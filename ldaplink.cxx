@@ -246,7 +246,7 @@ LDAPCtrl::Destroy(void)
 LDAPAnswer *
 LDAPCtrl::DirectoryUserLookup(const PString &alias)
 {
-	LDAPAnswer * result = new LDAPAnswer;
+	LDAPAnswer * result = NULL;
 	LDAPQuery *q=new LDAPQuery();
 	PStringList values;
 	using namespace dctn;
@@ -254,28 +254,34 @@ LDAPCtrl::DirectoryUserLookup(const PString &alias)
 	DEBUGPRINT("DirectoryUserLookup for User: " << alias);
 	values.AppendString(alias);
 	// assemble the search.
+	AttributeNames_mutex.StartRead();
 	q->DBAttributeValues.insert(DBAVValuePair((*AttributeNames)[DBAttrTags[H323ID]],values));
+	AttributeNames_mutex.EndRead();
 	q->LDAPOperator=LDAPQuery::LDAPNONE;
 
 	// search until found or out of retries
 	result = DirectoryLookup(*q);
-	delete q;
 
 	return result;
 }
 
 // searching for user
 LDAPAnswer *
-LDAPCtrl::DirectoryLookup(LDAPQuery & q)
+LDAPCtrl::DirectoryLookup(LDAPQuery &q)
 {
 	PStringList attrs;
 	using namespace dctn;
+	AttributeNames_mutex.StartRead();
 	DBAttributeNamesClass::iterator iter = AttributeNames->begin();
 	while(iter != AttributeNames->end()) {
 		attrs.AppendString((*iter).second);
 		iter++;
 	}
-	LDAPAnswer * answer=collectAttributes(q,attrs);
+	AttributeNames_mutex.EndRead();
+	BaseDN_mutex.StartRead();
+	PString DN=SearchBaseDN;
+	BaseDN_mutex.EndRead();
+	LDAPAnswer * answer=collectAttributes(q, attrs, DN);
 #ifdef ENCRYPTED_PASSWORD
 	for(LDAPEntryClass::iterator iter = answer->LDAPec.begin(); iter!=answer->LDAPec.end(); iter++) {
 		LDAPAttributeValueClass AV=iter->second;
@@ -295,12 +301,14 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & q)
 }
 
 LDAPAnswer *
-LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList attrs, unsigned int scope) {
-	LDAPAnswer *query=collectAttributes(q,scope);
+LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList &attrs, PString &DN, unsigned int scope) {
+	LDAPAnswer *query=InternalcollectAttributes(q, attrs, DN, scope);
 	if (query->status!=LDAP_SUCCESS) {
 		delete query;
 		return NULL; // emergency exit
 	}
+	if (query->LDAPec.empty())
+		return query;
 	for (map<PString, DBAttributeValueClass>::iterator iter=query->LDAPec.begin();
 	     iter!=query->LDAPec.end();
 	     iter++) {
@@ -315,23 +323,13 @@ LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList attrs, unsigned int scope)
 		PTRACE(5, "looking for: " << attribute_remainder << "in " << DN);
 		LDAPQuery new_query;
 		new_query.LDAPOperator=LDAPQuery::LDAPNONE;
-//		new_query.LDAPOperator=LDAPQuery::LDAPand;
-// 		PStringList pl=DN.Tokenise(",");
-// 		for (PINDEX j=0; j<pl.GetSize(); j++) {
-// 			PStringList vp=pl[j].Tokenise("=");
-// 			PStringList p;
-// 			p.AppendString(vp[1]);
-// 			new_query.DBAttributeValues.insert(DBAVValuePair(vp[0],p));
-// 		}
-		m_baseLock.Wait();
-		PString origSearchBaseDN=SearchBaseDN;
-		SearchBaseDN=DN;
-		LDAPAnswer *subquery=collectAttributes(new_query,attribute_remainder,LDAP_SCOPE_BASE);
-		SearchBaseDN=origSearchBaseDN;
-		m_baseLock.Signal();
+		LDAPAnswer *subquery=collectAttributes(new_query, attribute_remainder, DN, LDAP_SCOPE_BASE);
 		// insert subquery to query
 		if(NULL!=subquery) {
 			for(PINDEX j=0; j<attribute_remainder.GetSize();j++) {
+				PTRACE(1, "Inserting: " << attribute_remainder[j] << ":" <<
+				       subquery->LDAPec[DN][attribute_remainder[j]] <<
+				       " into " << iter->first);
 				iter->second.insert(DBAVValuePair(attribute_remainder[j],
 									 subquery->LDAPec[DN][attribute_remainder[j]]));
 			}
@@ -341,8 +339,7 @@ LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList attrs, unsigned int scope)
 }
 
 LDAPAnswer *
-LDAPCtrl::collectAttributes(LDAPQuery &p, unsigned int scope) {
-	PWaitAndSignal lock(m_readLock);
+LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PString &DN, unsigned int scope) {
 	LDAPAnswer * result = new LDAPAnswer;
 	int ldap_ret = LDAP_SUCCESS;
 	LDAPMessage * res;		/* response */
@@ -350,15 +347,12 @@ LDAPCtrl::collectAttributes(LDAPQuery &p, unsigned int scope) {
 	// basic search
 	using namespace dctn;
 	const char * (attrs[MAX_ATTR_NO]);
-	unsigned int pos = 0;
-	DBAttributeNamesClass::iterator iter = AttributeNames->begin();
-	while((iter != AttributeNames->end()) && (MAX_ATTR_NO >= pos)) {
-		// This cast is directly from hell, but pwlib is not nice to C APIs
-		attrs[pos++] = (const char *)((*iter).second) ;
-		iter++;
+	PINDEX pos = 0;
+	for (pos=0; pos<want_attrs.GetSize(); pos++){
+		attrs[pos]=(const char *)(want_attrs[pos]);
 	}
-	attrs[pos] = NULL;	// C construct: array of unknown size
-				// terminated by NULL-pointer
+ 	attrs[want_attrs.GetSize()] = NULL;	// C construct: array of unknown size
+ 				// terminated by NULL-pointer
 
 	int attrsonly = 0;	/* 0: attr&value; 1: attr */
 	PString filter;
@@ -396,19 +390,24 @@ LDAPCtrl::collectAttributes(LDAPQuery &p, unsigned int scope) {
 	unsigned int retry_count = 0;
 	do {
 		struct timeval * tm = new struct timeval;
+		m_miscLock.Wait();
 		memcpy(tm, &timeout, sizeof(struct timeval));
+		m_miscLock.Signal();
 		DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ", "
 			   << timeout.tv_sec << ":"
 			   << timeout.tv_usec << ")");
 
 		// The linux-implementation of select(2) will change the given value of
 		// struct timeval *. This syscall is used within ldap_search.
+		m_readLock.Wait();
 		if (LDAP_SUCCESS ==
-		    (ldap_ret = gk_ldap_search_st(ldap, SearchBaseDN, scope,
+		    (ldap_ret = gk_ldap_search_st(ldap, DN, scope,
 						  filter, (char **)attrs, attrsonly,
 						  tm, &res))) {
+			m_readLock.Signal();
 			DEBUGPRINT("ldap_search_st: OK " << PString(gk_ldap_err2string(ldap_ret)));
 		} else {
+			m_readLock.Signal();
 			DEBUGPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
 			//ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
 			result->status = ldap_ret;
@@ -466,7 +465,12 @@ LDAPCtrl::collectAttributes(LDAPQuery &p, unsigned int scope) {
 						  PStringList(valc, valv, false)));
 			gk_ldap_value_free(valv);	// remove value vector
 		} // attr
-		result->LDAPec.insert(LDAPECValuePair(dn,AV));
+  		PString out="AV=";
+  		for (std::map<PString,PStringList>::iterator Iter=AV.begin();Iter!=AV.end(); Iter++)
+  			out += (*Iter).first + ":" + (*Iter).second[0];
+  		PTRACE(1, out);
+		if(!AV.empty())
+			result->LDAPec.insert(LDAPECValuePair(dn,AV));
 	} // answer chain
 	return result;
 }

@@ -89,10 +89,8 @@ public:
 	virtual ~LDAPCtrl();
 
 	// searching for user accreditation
-	virtual LDAPAnswer * DirectoryUserLookup(const PString &);
-	virtual LDAPAnswer * DirectoryLookup(LDAPQuery &); // general lookup
-	virtual LDAPAnswer * collectAttributes(LDAPQuery &, PStringList, unsigned int scope=LDAP_SCOPE_SUBTREE);
-	virtual LDAPAnswer * collectAttributes(LDAPQuery &, unsigned int scope=LDAP_SCOPE_SUBTREE);
+	virtual LDAPAnswer * DirectoryUserLookup(const PString &alias);
+	virtual LDAPAnswer * DirectoryLookup(LDAPQuery &q); // general lookup
 	void flush_cache();
 
 
@@ -101,15 +99,21 @@ protected:
 	// keep the connection details. At least they come handy during a
 	// debugging session
 	DBAttributeNamesClass * AttributeNames; // names of the LDAP attributes
+	mutable PReadWriteMutex AttributeNames_mutex;
 	struct timeval timeout;	// timeout for *_st operations
 	PString ServerName;		// Name of the LDAP Server
 	int ServerPort;		// Port of the LDAP Server
 	PString SearchBaseDN;		// Distinguished Name (DN) from where to search
+	mutable PReadWriteMutex BaseDN_mutex;
 	PString BindUserDN;		// UserDN of acting user
 	PString BindUserPW;		// Pasword for simple auth. of BindUserDN
 	unsigned int sizelimit;	// size of local cache in bytes
 	unsigned int timelimit;	// timeout for operations in seconds
 	PString gk_filter;
+
+	virtual LDAPAnswer * InternalcollectAttributes(LDAPQuery &p, PStringList &attr, PString &DN, unsigned int scope=LDAP_SCOPE_SUBTREE);
+	virtual LDAPAnswer * collectAttributes(LDAPQuery &q, PStringList &attrs, PString &DN, unsigned int scope=LDAP_SCOPE_SUBTREE);
+
 private:
 	GK_LDAP * ldap;			// The ldap connection
 	bool known_to_be_bound;	// _known_ status of binding
@@ -117,9 +121,10 @@ private:
 	void Destroy(void);		// actual destructor called from formal one
 	int Bind(bool);		// binding, may be enforced by passing true
 	int Unbind(bool);		// unbinding, may be enforced by passing true
+
 	mutable PMutex m_bindLock;
 	mutable PMutex m_readLock;
-	mutable PMutex m_baseLock;
+	mutable PMutex m_miscLock;
 };
 
 #endif /* defined(LDAPLINK_H) */
