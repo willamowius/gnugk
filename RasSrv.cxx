@@ -1545,7 +1545,7 @@ bool AdmissionRequestPDU::Process()
 
 	unsigned rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 	if (!RasSrv->ValidatePDU(*this, rejectReason))
-		return BuildReply(H225_AdmissionRejectReason::e_securityDenial);
+		return BuildReply(rejectReason);
 
 	// CallRecs should be looked for using callIdentifier instead of callReferenceValue
 	// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
