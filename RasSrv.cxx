@@ -133,14 +133,15 @@ bool GatekeeperMessage::Read(RasListener *socket)
 {
 	m_socket = socket;
 	const int buffersize = 4096;
-	if (!socket->Read(m_rasPDU.GetPointer(buffersize), buffersize)) {
+	BYTE buffer[buffersize];
+	if (!socket->Read(buffer, buffersize)) {
 		PTRACE(1, "RAS\tRead error: " << socket->GetErrorText(PSocket::LastReadError));
 		return false;
 	}
 	socket->GetLastReceiveAddress(m_peerAddr, m_peerPort);
 	PTRACE(2, "RAS\tRead from " << m_peerAddr << ':' << m_peerPort);
-	PPER_Stream pdu(m_rasPDU.GetPointer(), socket->GetLastReadCount());
-	bool result = m_recvRAS.Decode(pdu);
+	m_rasPDU = PPER_Stream(buffer, socket->GetLastReadCount());
+	bool result = m_recvRAS.Decode(m_rasPDU);
 	PTRACE_IF(1, !result, "RAS\tCouldn't decode message!");
 	return result;
 }

@@ -38,7 +38,7 @@ class RasServer;
 const unsigned MaxRasTag = H225_RasMessage::e_serviceControlResponse;
 
 struct GatekeeperMessage {
-	PBYTEArray m_rasPDU;
+	PPER_Stream m_rasPDU;
 	H225_RasMessage m_recvRAS;
 	H225_RasMessage m_replyRAS;
 	PIPSocket::Address m_peerAddr;
