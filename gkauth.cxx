@@ -111,42 +111,6 @@ private:
 
 #endif
 
-// LDAP authentification
-#ifdef HAS_LDAP		// shall use LDAP
-
-#include "gkldap.h"
-
-class LDAPPasswordAuth : public SimplePasswordAuth {
-public:
-	LDAPPasswordAuth(const char *);
-	virtual ~LDAPPasswordAuth();
-
-private:
-	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
-	virtual bool GetPassword(const PString &, PString &);
-};
-
-// ISO 14882:1998 (C++), ISO9899:1999 (C), ISO9945-1:1996 (POSIX) have a
-// very clear oppinion regarding user symbols starting or ending with '_'
-
-class LDAPAliasAuth : public AliasAuth {
-public:
-	LDAPAliasAuth(const char *);
-	virtual ~LDAPAliasAuth();
-	
-private:
-	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
-
-	/** Searchs for an alias in LDAP and converts it to a valid config
-	    string (the expected return value from LDAP is only an IP-address!).
-	    @returns config-string (format: see description in ini-file)
-	 */
-	virtual PString GetConfigString(const PString &alias);
-};
-
-#endif // HAS_LDAP
-
-
 // Initial author: Michael Rubashenkkov  2002/01/14 (GkAuthorize)
 // Completely rewrite by Chih-Wei Huang  2002/05/01
 class AuthObj;
@@ -795,83 +759,6 @@ bool ExternalPasswordAuth::GetPassword(const PString & id, PString & passwd)
 
 #endif // class ExternalPasswordAuth
 
-// LDAP authentification
-#if defined(HAS_LDAP)
-
-LDAPPasswordAuth::LDAPPasswordAuth(const char *name) : SimplePasswordAuth(name)
-{
-}
-
-LDAPPasswordAuth::~LDAPPasswordAuth()
-{
-}
-
-bool LDAPPasswordAuth::GetPassword(const PString & alias, PString & passwd)
-{
-	PStringList attr_values;
-	using namespace lctn; // LDAP config tags and names
-	// get pointer to new answer object
-	if (!GkLDAP::Instance()->getAttribute(alias, H235PassWord, attr_values) || !attr_values.GetSize())
-		return false;
-	passwd = attr_values[0];
-	return true;
-}  
-
-int LDAPPasswordAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned & reason)
-{
-	int result = SimplePasswordAuth::Check(request, reason);
-	if (result == e_ok) {
-		// check if all aliases in RRQ exists in LDAP entry
-		H225_RegistrationRequest & rrq = request;
-		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
-		if (!GkLDAP::Instance()->validAliases(aliases)) {
-			result = e_fail;
-		}
-	}
-	return result;
-}
-
-
-LDAPAliasAuth::LDAPAliasAuth(const char *name) : AliasAuth(name)
-{
-}
-
-LDAPAliasAuth::~LDAPAliasAuth()
-{
-}
-
-PString LDAPAliasAuth::GetConfigString(const PString & alias)
-{
-	PStringList attr_values;
-	using namespace lctn; // LDAP config tags and names
-	// get pointer to new answer object
-	if (GkLDAP::Instance()->getAttribute(alias, IPAddress, attr_values) && attr_values.GetSize() > 0) {
-		PString ip = attr_values[0];
-    		if(!ip.IsEmpty()){
-      			PString port = GK_DEF_ENDPOINT_SIGNAL_PORT;    
-			return "sigip:" + ip + ":" + port;
-		}
-	}
-	return PString();
-}
-
-int LDAPAliasAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned & reason)
-{
-	int result = AliasAuth::Check(request, reason);
-	if (result == e_ok) {
-		// check if all aliases in RRQ exists in LDAP entry
-		H225_RegistrationRequest & rrq = request;
-		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
-		if (!GkLDAP::Instance()->validAliases(aliases)) {
-			result = e_fail;
-		}
-	}
-  	return result;
-}
-
-#endif // HAS_LDAP
-
-
 static const char* const prfflag="prf:";
 static const char* const allowflag="allow";
 static const char* const denyflag="deny";
@@ -1454,10 +1341,4 @@ namespace { // anonymous namespace
 #if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
 	GkAuthCreator<ExternalPasswordAuth> ExternalPasswordAuthCreator("ExternalPasswordAuth");
 #endif
-
-#ifdef HAS_LDAP		// shall use LDAP
-	GkAuthCreator<LDAPPasswordAuth> LDAPPasswordAuthCreator("LDAPPasswordAuth");
-	GkAuthCreator<LDAPAliasAuth> LDAPAliasAuthCreator("LDAPAliasAuth");
-#endif
-
 } // end of anonymous namespace
