@@ -1,5 +1,6 @@
 <!doctype linuxdoc system>
-<!-- C'est le manuel utilisateur pour OpenH323 Gatekeeper - The GNU Gatekeeper -->
+<!-- French translation from manual.sgml v1.72 -->
+<!-- Ceci est le Manuel Utilisateur de OpenH323 Gatekeeper - The GNU Gatekeeper -->
 
 <article>
 <!-- Title information -->
@@ -9,130 +10,228 @@
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
 <abstract>
-C'est le manuel utilisateur
-Comment compiler, installer, configurer et monitorer.
+Ceci est le Manuel Utilisateur
+comment compiler, installer, configurer et surveiller
 OpenH323 Gatekeeper - The GNU Gatekeeper.
 </abstract>
 
-<!-- Table of contents -->
+<!-- Table des matieres -->
 <toc>
 
-<!-- Begin of document -->
+<!-- Debut du document -->
 
 <!----------          Next Section          ---------->
 <sect>Introduction
 <p>
 <!--
-Ce manuel est aussi disponible en Portugais et Chinois traditionnel.
-La version Anglaise est le document maitre et sera mis à jour en premier.
+Ce manuel est aussi disponible en Anglais, Portugais et Chinois traditionnel.
+La version Anglaise est le document maitre et sera mise a jour en premier.
 -->
-<sect1>About
+<sect1>A propos
 <p>
 <bf>
 <url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
 </bf>
-Est un projet open-source qui implémente un gatekeeper H.323.
-Un gatekeeper fournit des services de contrôle d'appel pour les terminaux H.323.
-C'est une partie principale de la plupart des intallations de téléphonie sur
-internet qui sont basées sur la norme H.323.
+est un projet open-source qui impl&#233;mente un gatekeeper H.323.
+Un gatekeeper fournit des services de contr&#244;le d'appel pour les terminaux H.323.
+Il s'agit une partie essentielle de la plupart des installations de t&#233;l&#233;phonie
+sur internet qui sont bas&#233;es sur la norme H.323.
 
-Selon les recommendations H.323, un gatekeeper doit fournir les servcices
-suivant:
+Selon la recommandation H.323, un gatekeeper doit fournir les services suivants:
 <itemize>
-<item>Translation d'adresse
-<item>Control d'admissions
-<item>Control de bande passante
+<item>Traduction d'Adresse
+<item>Contr&#244;le d'Admissions
+<item>Contr&#244;le de Bande Passante
 <item>Gestion de Zone
-<item>Signalement des controls d'appel ???
-<item>Authorisation d'Appel
-<item>Gestion de la bande passante
-<item>Gestion des appels
+<item>Call Control Signaling
+<item>Autorisation d'Appel
+<item>Gestion de Bande Passante
+<item>Gestion des Appels
 </itemize>
 
-The GNU Gatekeeper implementes la plupart de ces focntions
-basé sur la pile de protocole 
-<url url="http://www.openh323.org/" name="OpenH323">
-. ???
+Le GNU Gatekeeper impl&#233;mente la plupart des fonctions bas&#233;es sur
+la pile du procole
+<url url="http://www.openh323.org/" name="OpenH323">.
 
-La recommandation H.323 est une norme internationale publié par l'
+La recommandation H.323 est une norme internationale publi&#233;e par l'
 <url url="http://www.itu.int/" name="ITU">.
-C'est une norme de communication pour l'audio, video et données par Internet.
-Voir aussi l'amorce de Paul Jones
-<url url="http://www.packetizer.com/iptel/h323/" name="sur H.323">.
+Il s'agit d'une norme de communication pour l'audio, vid&#233;o et donn&#233;es sur Internet.
+Voir aussi
+<url url="http://www.packetizer.com/iptel/h323/" name="l'introduction &#224; H.323">
+de Paul Jones.
 
-Pour une description détaillée sur ce que fait un gatekeeper, voir
+Pour une description de ce que fait un gatekeeper, voir
 <url url="http://www.webproforum.com/h323/topic06.html" name="ici">.
 
 <sect1>Copyright
 <p>
-It is covered by the
+Il est couvert par la
 <htmlurl url="http://www.gnu.org/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
-In addition to that, we explicitely grant
-the right to link this code to the OpenH323 and OpenSSL library.
+En suppl&#233;ment de celle-ci, nous autorisons explicitement de lier ce code
+&#224; la librairie OpenH323 et OpenSSL.
 
-Generally speaking, the GNU GPL allows you to copy, distribute, resell or modify
-the softwares, but it requires that all derived works must be published
-under GNU GPL also.
-That means that you must publish full source for all extensions to
-the gatekeeper and for all programs you include the gatekeeper into.
-See the file COPYING for details.
+D'une mani&#232;re g&#233;n&#233;rale, la GNU GPL vous autorise &#224; copier,
+distribuer, revendre ou modifier les logiciels, mais elle requi&#232;re que toutes
+les cr&#233;ations d&#233;riv&#233;es soient aussi publi&#233;es sous GNU GPL.
+Ceci signifie que vous devez publier tout le code source de toutes les extensions
+&#224; gatekeeper et de tous les programmes qui incluent gatekeeper.
+Voir le fichier COPYING pour les d&#233;tails.
 
-If that's not what you want, you must interface to the gatekeeper through
-the status port and communicate via TCP with it.
-That way you only have to integrate the basic funtionality into
-the gatekeeper (and provide source for that) and can keep other parts
-of your application private.
+Si ce n'est pas ce que vous voulez, vous devez vous interfacer au gatekeeper au
+travers du port d'&#233;tat et communiquer par TCP avec lui.
+De cette fa&#231;on vous devez seulement int&#233;grer les fonctions de base dans le
+gatekeeper (et en fournir les sources) et conserver les autres parties  priv&#233;es
+de votre application.
 
-<sect1>Name
+<sect1>Nom
 <p>
-The formal name of this project is
+Le nom exact de ce projet est
 <em>OpenH323 Gatekeeper - The GNU Gatekeeper</em>,
-short <em/GnuGk/.
-Please don't confuse it with other gatekeeper projects.
+en r&#233;sum&#233; <em/GnuGk/.
+Merci de ne pas le confondre avec d'autres projets de gatekeeper.
 
-There are several open-source gatekeeper projects based on the OpenH323 protocol stack.
+Il y a plusieurs projets gatekeeper open-source bas&#233;s sur la pile de protocole OpenH323.
 <itemize>
-<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper"> - by <url url="http://www.egoboo.com/" name="Egoboo">
-<quote>A full featured gatekeeper freely available under MPL. The project has been inactive for a period of time now. There is an H.323 proxy based on OpenGatekeeper, see <url url="http://openh323proxy.sourceforge.net/" name="OpenH323Proxy">.</quote>
-<item><url url="http://www.openh323.org/code.html" name="OpenGK"> - by <url url="http://www.equival.com.au/" name="Equivalence">
+<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper"> - par <url url="http://www.egoboo.com/" name="Egoboo">
+<quote>Un gatekeeper complet librement disponible sous MPL. Le projet a &#233;t&#233; inactif pour une certaine dur&#233;e. Il y a un proxy H.323 bas&#233; sur OpenGatekeeper, voir <url url="http://openh323proxy.sourceforge.net/" name="OpenH323Proxy">.</quote>
+<item><url url="http://www.openh323.org/code.html" name="OpenGK"> - par <url url="http://www.equival.com.au/" name="Equivalence">
 <quote>Only in a very primary grades.</quote>
-<item>OpenH323 Gatekeeper - this one.
+<item>OpenH323 Gatekeeper - celui ci.
 </itemize>
 
-To have different gatekeepers with very similar names is really
-confusing for most users.
-Since our "OpenH323 Gatekeeper" was the first on the scene,
-it is not our fault that others have chosen similar names.
-But to make the destinction a little more clear without confusing
-people even more, we have decided to give the project a
-subtitle "OpenH323 Gatekeeper - The GNU Gatekeeper" and start
-using <tt/gnugk/ as name for executables.
+Avoir diff&#233;rents gatekeepers avec des noms similaires embrouille vraiment
+la plupart des utilisateurs.
+Comme notre "OpenH323 Gatekeeper" &#233;tait le premier sur sc&#232;ne,
+ce n'est pas notre faute si d'autres ont choisi des noms similaires.
+Mais pour rendre la distinction plus &#233;vidente sans embrouiller encore plus
+les gens, nous avons d&#233;cid&#233; de donner un sous-titre au projet
+"OpenH323 Gatekeeper - The GNU Gatekeeper" et commenc&#233; &#224;
+utiliser <tt/gnugk/ comme nom pour les ex&#233;cutables.
 
-<sect1>Features
+<sect1>Caract&#233;ristiques
 <p>
-The version 2.2.1 contains the following new features and bugfixes:
+La version 2.2.2 contient les caract&#233;ristiques et corrections suivantes:
 
 <itemize>
 <item>
-New <tt/TcpKeepAlive/ option to solve the problem with network errors
-and calls hanging in the call table. See docs/keepalive.txt for more
-details.
+Possibilit&#233; d'encoder tous les mots de passe dans la configuration. Nouvelle variable de
+configuration<tt/EncrypAllPasswords/, utilisation &#233;tendue de la variable de configuration <tt/KeyFilled/.
 
 <item>
-New status port <tt/RouteToGateway/ command.
+La possibilit&#233; de lire les param&#232;tres de configuration depuis une base SQL
+a &#233;t&#233; port&#233;e depuis la branche 2.0.
+Lire <ref id="sqlconf" name="[SQLConfig]"> pour de plus amples informations.
+
+<item>
+Framed-IP-Address ne pouvait pas &#234;tre d&#233;termin&#233; pour les appels non
+enregistr&#233;s sans champ, Setup-UUIE.sourceCallSignalAddress, ce qui fait
+&#233;chouer l'authentification.
+
+<item>
+Fournit une gestion ad&#233;quate des alias du type partyNumber
+(e164Number ou privateNumber).
+
+<item>
+Une correction pour RTP/Q931/H245/T120PortRange pour corriger une anomalie avec
+le bouclage du domaine des ports si le dernier port est 65535. Ceci amenait le
+port suivant &#224; &#234;tre mis &#224; 0 et les allocation ult&#233;rieures de
+port &#233;chouaient.
+
+<item>
+L'allocation dynamique de ports RTP ne marchait pas, utilise un domaine de ports
+fig&#233; 1024-65535 comme valeur par d&#233; pour la variable de configuration
+<tt/RTPPortRange/.
+
+<item>
+Les modules auth obsol&#232;tes MySQLAliasAuth et MySQLPasswordAuth sont supprim&#233;s.
+
+<item>
+Les modules SQL acceptent un seul serveur de base de donn&#233;es dans le param&#232;tre <tt/Host/.
+</itemize>
+
+<p>
+La version 2.2.1 contient les caract&#233;ristiques et corrections suivantes:
+
+<itemize>
+<item>
+Am&#233;lioration de la correspondance des pr&#233;fixes pour les politiques de routage.
+Un point (<tt/./) correspond &#224; n'importe quel chiffre.
+
+<item>
+Am&#233;lioration de la correspondance des voisins.
+Un point (<tt/./) correspond &#224; n'importe quel chiffre.
+<tt/!/ au d&#233;but d&#233;sactive le pr&#233;fixe.
+
+<item>
+Un verrou manquant pendant le rechargement de la configuration faisait crasher le gatekeeper.
+
+<item>
+S&#233;lection plus fiable de num&#233;ro de port pour les plages de port de
+Q.931, H.245, T.120 et RTP (avant, un rechargement de la configuration pouvait
+cause des erreurs pour beaucoup d'appels &#224;, cause de l'impossibilit&#233;
+d'allouer une nouvelle socket).
+
+<item>
+La valeur par d&#233;faut de RTPPortRange est maintenant de laisser l'OS
+s&#233;lectionner un num&#233;ro de port.
+
+<item>
+R&#232;gles de r&#233;&#233;criture plus flexibles (global et par passerelle)
+avec les nouveaux caract&#232;res wildcard '.' et '%'.
+
+<item>
+Am&#233;lioration de la correspondance des pr&#233;fixes pour les passerelles.
+Un point (<tt/./) correspond &#224; n'importe quel chiffre.
+<tt/!/ au d&#233;but d&#233;sactive le pr&#233;fixe.
+
+<item>
+Ins&#232;re le Calling-Party-Number-IE/Display-IE manquant si les otpions
+correspondantes <tt/Screen.../ sont activ&#233;es.
+
+<item>
+Arr&#234;te le gatekeeper si il y a des erreurs dans la configurationd es
+modules SQL aut/acct
+
+<item>
+Le type de num&#233;ro Called-Station-Id peut &#234;tre s&#233;lectionn&#233;
+entre le num&#233;ro original (num&#233;ro compos&#233;) et le num&#233;ro
+r&#233;&#233;crit. Nouvelle option de configurgation </tt/UseDialedNumber/ pour les
+modules <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">
+/<ref id=radacct name="RadAcct">, nouvelle variable %{Dialed-Number} pour les modules
+<ref id=sqlacct name="SQLAcct"> et <ref id=fileacct name="FileAcct">.
+
+<item>
+Possibilit&#233; de modifier les formats d'horodate. Nouvelle variable de configuration
+<tt/TimestampFormat/ pour les parties main, <ref id="sqlacct" name="[SqlAcct]">, 
+<ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
+et <ref id="calltable" name="[CallTable]">.
+
+<item>
+Les modules RadAuth/RadAliasAuth peuvent maintenant ajouter/supprimer des
+alias de terminaux pendant l'enregistrement de terminaux (en utilisant
+h323-ivr-in=terminal-alias: Cisco AV-Pair).
+
+<item>
+Nouvelle option <tt/TcpKeepAlive/ pour r&#233;gler le probl&#232;me avec les
+erreurs r&#233;seau et les appels bloqu&#233;s dans la table d'appel. Voir
+docs/keepalive.txt pour de plus amples informations.
+
+<item>
+Nouvelle commande du port d'&#233;tat <tt/RouteToGateway/.
 
 </itemize>
 
 <p>
-The version 2.2.0 contains the following new features and bugfixes:
+La version 2.2.0 contient les caract&#233;ristiques et corrections suivantes:
 
 <itemize>
 <item>
-New <tt/RoundRobinGateways/ config option.
+Nouvelle option de configuration <tt/RoundRobinGateways/.
 
 <item>
-Call capacity limits and priority routing for gateways. New <tt/EP::/
-config sections for per-endpoint configuration settings (see 
+Limites de capacit&#233; d'appel et routage des priorit&#233;s pour les passerelles.
+Nouvelles sections de configuration <tt/EP::/ pour des param&#232;tres de configuration
+par terminal (voir
 <ref id="epconfig" name="Per-Endpoint Configuration Settings">).
 
 <item>
@@ -565,136 +664,184 @@ configurations on receiving <tt/reload/ command via status port, or on
 receiving <tt/HUP/ signal (Unix platform).
 </itemize>
 
-<sect1>Download
+<sect1>T&#233;l&#233;chargement
 <label id="download">
 <p>
-The newest stable and a development version are available at
-<url url="http://www.gnugk.org/h323download.html" name="the download page">.
+La derni&#232;re version stable et une version de d&#233;veloppement sont disponibles sur
+<url url="http://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
 
-The very latest source code is in the CVS at
+La toute derni&#232;re version du code source est sous CVS sur
 <url url="http://sourceforge.net/cvs/?group_id=4797" name="Sourceforge">
 (<url url="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/openh323gk/" name="Web-GUI">).
-Beware - that's the bleeding edge.
+Attention - il s'agit de la pointe de la technologie.
 
-You can also download some executables from
-<url url="http://www.gnugk.org/h323download.html" name="the download page">.
-Only some versions are made available as executables.
+Vous pouvez aussi t&#233;l&#233;charger certains ex&#233;cutables depuis
+<url url="http://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
+Seulement certaines versions sont rendues disponibles en tant qu'ex&#233;cutables.
 
-<sect1>Mailing Lists
+<sect1>Liste de Diffusion
 <p>
-There are two mailing list for the project, one for the developers and one for the users.
+Il y a deux listes de diffusion pour le projet, une pour les d&#233;veloppeurs et une pour les utilisateurs.
 
-General user questions should be send to the
-<url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. You can find the list archive
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="here">.
-To join this mailing list, click
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="here">.
+Les questions d'ordre g&#233;n&#233;ral doivent &#234;tre envoy&#233;es &#224; la
+<url url="mailto:Openh323gk-users@sourceforge.net" name="liste de diffusion des utilisateurs">.
+Vous pouvez trouver les archives de la liste
+<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="ici">.
+Pour vous joindre &#224; cette liste de diffusion, cliquez
+<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="ici">.
 
-To report problems or submit bugs/patches, send mails to the
-<url url="mailto:Openh323gk-developer@sourceforge.net" name="developers mailing list">.
-The list archive is
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="here">. Please send user questions to the users mailinglist and keep this list to development! If you want to contribute to the project, please
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="join the mailing list">.
+Pour signaler des probl&#232;mes ou des anomalies/patches, envoyer des mails &#224; la
+<url url="mailto:Openh323gk-developer@sourceforge.net" name="liste de diffusion des d&#233;veloppeurs">.
+Les archives de la liste sont
+<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="ici">.
+Veuillez envoyer les questions utilisateur &#224; la liste de diffusion des utilisateurs et garder cette liste pour le d&#233;veloppement! Si vous voulez contribuer au projet, veuillez
+<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="rejoindre la liste de diffusion">.
 
 <bf/Note/:
-Please don't send your questions as private emails to individual developer.
-We are usually busy. We would <bf/not/ like to be your private consultant,
-unless you'd like to pay us.
-Send your problems to the appropriate public mailing list so everybody
-can help you.
+Merci de ne pas envoyer vos questions par des mails priv&#233;s aux d&#233;veloppeurs.
+Nous sommes habituellement occup&#233;s. Nous ne voulons <bf/pas/ &#234;tre votre
+consultant personnel, &#224; moins que vous souhaitiez nous payer.
+Envoyez vos probl&#232;mes &#224; la liste de diffusion appropri&#233;e de telle
+sorte que tout le monde puisse vous aider.
 
-Also please don't send the GnuGk specific problems to the OpenH323
-mailing list, or vice versa.
-They are different projects, though closely related.
+Merci aussi de ne pas envoyer les probl&#232;mes sp&#233;cifiques de GnuGk &#224;
+la liste de diffusion OpenH323, ou vice versa.
+Il s'agit de projet distincts, bien que tr&#232;s apparent&#233;s.
 
-Before you sending an email, make sure you have read the related documents
-carefully. Describe your problems clearly and precisely. Show us the
-error messages or logs if there is any.
+Avant d'envoyer un mail, assurez-vous d'avoir lu les documents associ&#233;s
+m&#233;ticuleusement. D&#233;crivez votre probl&#232;me clairement et avec pr&#233;cision.
+Montrez nous les messages d'erreur ou les logs si il y en a.
 
-<sect1>Contributors
+<sect1>Participants
 <p>
-The current project coordinator is
+Le coordinateur actuel du projet est
 <url url="http://www.willamowius.de/" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
-The main features and functions of version 2.0 are contributed by
+Les principales caract&#233;ristiques et fonctions de la version 2.0 ont &#233;t&#233;
+contribu&#233;es par
 <url url="http://www.cwhuang.idv.tw/" name="Chih-Wei Huang">
 <tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
-and
+et
 <url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
-including thread-safe registration and call tables,
-new routed mode architecture, H.323 proxy,
-H.235 authentication and MySQL backend.
+incluant l'enregistrement et les tables d'appel thread safe,
+une nouvelle architecture de mode rout&#233;, proxy H.323,
+authentification H.235 et MySQL backend.
 
-Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done some great work on Radius support and other improvements.
+Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> a fait du bon travail sur le support de Radius et d'autres am&#233;liorations.
 
 <!-- A team at url url="http://www.mediaways.net/" name="mediaWays" -->
 <!-- is working on LDAP database-subsystem, overlapped sending -->
 <!-- and advanced routing mechanisms. -->
 
-The initial version of the gatekeeper has been developed by
-Xiang Ping Chen, Joe Metzger and Rajat Todi.
+La version initiale de gatekeeper a &#233;t&#233; d&#233;velopp&#233;e par
+Xiang Ping Chen, Joe Metzger et Rajat Todi.
 
 
 <!----------          Next Section          ---------->
-<sect>Compiling and Installing
+<sect>Compilation et Installation
 <p>
-<sect1>Compiling the Gatekeeper
+<sect1>Compilation du Gatekeeper
 <p>
-To build the gatekeeper you need at least PWLib 1.5.0 and OpenH323 1.12.0 or later.
-The development version of the gatekeeper usually needs the
-most recent OpenH323 version available.
-These libraries are available at
-<url url="http://www.openh323.org/code.html" name="OpenH323 Download Page">.
-See the instructions on
-<url url="http://www.openh323.org/build.html" name="how to compile the OpenH323 code">.
+Pour construire le gatekeeper vous avez besoin d'au moins PWLib 1.5.0 et OpenH323 1.12.0 ou ult&#233;rieur.
+La version de d&#233;veloppement du gatekeeper a g&#233;n&#233;ralement besoin de la version
+de OpenH323 la plus r&#233;cente disponible.
+Ces librairies sont disponibles &#224; la
+<url url="http://www.openh323.org/code.html" name="Page de T&#233;l&#233;chargement de OpenH323">.
+Voir les instructions sur
+<url url="http://www.openh323.org/build.html" name="comment compiler le code de OpenH323">.
 
-Order of compiling:
+Ordre de compilation:
 <enum>
-<item>PWLib (release + debug version)
+<item>PWLib (version release + debug)
 <item>OpenH323
-<item>OpenH323 test application (not needed, just to make sure everything works so far)
-<item>The Gatekeeper
+<item>Application de test OpenH323 (pas n&#233;cessaire, juste pour s'assure que tout marche)
+<item>Le Gatekeeper
 </enum>
 
-On Unix do a <tt/configure/ and <tt/make debug/ or <tt/make opt/
-in the gatekeeper directory to build debug or release version, respectively.
-Use <tt/make both/ to build both versions.
-Note you have to use GCC 3.3.x or later. The older version may not work.
-Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/
-in the gatekeeper directory before starting actual compilation (make debug or
-make opt) - these commands build approtiate dependency lists, so after
-you will update your sources from CVS, all affected files will get recompiled.
-Otherwise you can finish with the Gatekeeper partially compiled with the older
-headers and partially with the updated headers - a very bad thing.
-On Windows just open and compile the provided project (<tt/gk.dsw/) for
-Microsoft Visual C++ 6.0 or 7.0 (Visual C++ 5.0 is too old).<newline>
+Sous Unix faire un <tt/configure/ et <tt/make debug/ ou <tt/make opt/
+dans le r&#233;pertoire du gatekeeper pour construire la version debug ou release, respectivement.
+Utiliser <tt/make both/ pour construire les deux versions.
+Il faut noter que vous devez utiliser GCC 3.3.x ou ult&#233;rieur. Les versions plus anciennes peuvent ne pas marche.
+Une bonne habitude est de faire un <tt/make debugdepend/ ou <tt/make optdepend/
+dans le r&#233;pertoire du gatekeeper avant de commencer la compilation (make debug ou
+make opt) - ces commandes construisent les listes de d&#233;pendances appropri&#233;es, de telle sorte
+qu'apr&#232;s avoir mis &#224; jour vos sources depuis CVS, tous les fichiers affect&#233;s seront recompil&#233;s.
+Sinon vous pourriez obtenir un Gatekeeper  partiellement compil&#233; avec les vieux
+en-t&#234;tes et partiellement avec les nouveaux en-t&#234;tes - une mauvaise chose.
+Sous windows il suffit d'ouvrir et de compiler le project fourni (<tt/gk.dw/) pour
+Microsoft Visual C++ 6.0 ou 7.0 (Visual C++ 5.0 est trop ancien).<newline>
 
-Type <tt/configure --help/ to see a detailed list of all compile time
-options. You can use them to enable or disable some features of the gatekeeper.
-For example, if you do not need RADIUS just type: <tt/configure --disable-radius/.<newline>
+Taper <tt/configure --help/ pour voir une liste d&#233;taill&#233;e de toutes les options
+de compilation. Vous pouvez les utiliser pour pour activer ou d&#233;sactive certaines fonctions du gatekeeper.
+Par exemple, si vous n'avez pas besoin de RADIUS, taper juste: <tt/configure --disable-radius/.<newline>
 
-To build the gatekeeper that is statically linked with system and OpenH323 libraries,
-<tt/make optnoshared/ or <tt/make debugnoshared/ has to be used.
+Les versions recommand&#233;es de PWLib/OpenH323 sont celles de la version Pandora
+(1.7.5.2/1.14.4.2) ou plus r&#233;cente. La version <tt/Janus/ (1.6.6.3/1.13.5.3) devrait aussi
+marcher, mais les versions plus anciennes ne sont plus support&#233;es et ne sont garanties pour
+fonctioner avec le gatekeeper.
 
-In order to use the gatekeeper under heavy load, enabling LARGE_FDSET feature
-is recommended (configure --with-large-fdset=1024). Most systems also need 
-kernel reconfiguration/recompilation in order to allow more than 1024 sockets
-to be allocated for a single process. Note that the PWLib library starting
-from version 1.5.3 supports a similar feature too, so you can choose between
-LARGE_FDSET GnuGk and PWLib implementation. GnuGk native implementation gives
-better performance results. Maximum LARGE_FDSET value should be calculated 
-based upon predicted maximum sockets usage. A rule of thumb may be:
+Pour construire le gatekeeper qui est li&#233; statiquement avec les librairies syst&#232;me et OpenH323,
+il faut utiliser <tt/make optnoshared/ ou <tt/make debugnoshared/.
+
+Pour utiliser le gatekeeper sous une charge lourde, activer la fonction LARGE_FDSET est
+recommand&#233; (configure --with-large-fdset=4096). Certains syst&#232;mes requi&#232;rent
+aussi l'utilisation de ulimit pour autoriser l'allocation de plus de 1024 sockets pour
+un seul processus. Il faut noter qu'&#224; partir de la version 1.5.3 la librairie PWLib support aussi une fonction similaire, vous pouvez donc choisir entre
+les impl&#233;mentations LARGE_FDSET GnuGk et PWLib. L'impl&#233;mentation native GnuGk donne
+de meilleures performances. La valeur maximale LARGE_FDSET devrait &#234;tra calcul&#233;e en se
+basant sur l'utilisation maximum pr&#233;vue de sockets. Un proc&#233;d&#233; empirique est:
 <tscreen><verb>
 MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
 
-Where:
-10 = 2 sockets for Q.931 + 2 sockets for H.245 + 6 sockets for RTP and other stuff
+O&#249;:
+10 = 2 sockets pour Q.931 + 2 sockets pour H.245 + 6 sockets pour RTP et autres
 </verb></tscreen>
-So for 100 concurrent calls you don't need more than ca. 1024 sockets in the
-LARGE_FDSET.
+Ainsi pour 100 appels simultan&#233;s vous n'avez pas besoin de plus d'environ 1024 sockets
+dans le LARGE_FDSET.
 
-<sect1>Installing the Gatekeeper
+<sect1>L'utilitaire addpasswd Utility
+<p>
+Status line access authentication and SimplePasswordAuth module require
+encrypted passwords to be stored in the gatekeeper configuration file.
+Also since 2.2.2 version, the gatekeeper supports encryption of all passwords
+in the config. <tt/addpasswd/ utility is required to generate and store 
+these encrypted passwords. This utility is included with the gatekeeper 
+and can be compiled using:
+<tscreen><verb>
+$ make addpasswd
+</verb></tscreen>
+
+The usage is as follows:
+<tscreen><verb>
+$ addpasswd CONFIG SECTION KEYNAME PASSWORD
+</verb></tscreen>
+
+Example 1: 'gkadmin' user with 'secret' password has to be added 
+to [GkStatus::Auth] config section to enable status line interface 
+authentication:
+<tscreen><verb>
+$ addpasswd gnugk.ini GkStatus::Auth gkadmin secret
+</verb></tscreen>
+
+Example 2: 'joe' user with 'secret' password has to be added to [Password]
+config section to enable endpoint authentication:
+<tscreen><verb>
+$ addpasswd gnugk.ini Password joe secret
+</verb></tscreen>
+
+Example 3: An encrypted shared secret is added to a RadAuth config section:
+<tscreen><verb>
+$ addpasswd gnugk.ini RadAuth SharedSecret VerySecretPassword
+</verb></tscreen>
+
+IMPORTANT: <tt/KeyFilled/ variable defines a default initializer for password
+encryption keys. It can be ommited in the config (it is defined to 0 then),
+but if it is specified, each time it changes, encrypted passwords have to be
+regenerated (encrypted again using the <tt/addpasswd/ utility).
+</sect1>
+
+<sect1>Installation du Gatekeeper
 <p>
 There is no special installation procedure needed.
 Just copy the executable to the directory you like
@@ -882,6 +1029,21 @@ alias "gw1". If there is no registered gateway with that alias the
 call will fail. (Note that you must use the gateway alias - you
 can't just tell the gatekeeper the IP number of the gateway.)
 
+<p>
+A prefix can contain digits <tt/0-9/, <tt/#/ and <tt/*/. It can also
+contain a special character <tt/./ (a dot) that matches any digit
+and can be prefixed with <tt/!/ (an exclamation mark) to disable the prefix.
+Prefix matching is done accordingly to the longest matching prefix rule,
+with ! rules having higher priority if lengths are equal. Some examples:
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+; This entry will route numbers starting with 0048 (but not with 004850 and 004860)
+; to the gw1
+gw1=0048,!004850,!004860
+; This entry will match only 001 with 10 digits following
+gw2=001..........
+</verb></tscreen>
 
 <sect1>Rewriting E.164 numbers
 <p>
@@ -933,6 +1095,29 @@ gw2=1
 [RasSrv::GWRewriteE164]
 gw1=in=00=123400
 </verb></tscreen>
+
+Rewrite expressions accept dot <tt/'.'/ and percent sign <tt/'%'/ wildcard
+characters to allow building more general rules. The dot character can occur
+at both left and right hand sides of expressions, the percent sign can occur
+only at the left side only. Use <tt/'.'/ to match any character and copy it
+to the rewritten string and <tt/'%'/ to match any character and skip it.
+A few simple examples:
+
+<tscreen><verb>
+[RasSrv::RewriteE164]
+; Rewrite 0044 + min. 7 digits to 44 + min. 7 digits
+0044.......=44.......
+; Rewrite numbers starting with 11 + 4 digits + 11  to 22 + 4 digits + 22 (like 11333311 => 22333322, 110000112345 => 220000222345)
+11....11=22....22
+; strip the first four digits from all numbers (11114858345 => 4858345)
+; this is equivalent of 10 rules %%%%1=1, %%%%2=2, ... 
+%%%%.=.
+; insert two zeros in the middle of the number (111148581234 => 11110048581234)
+....48=....0048
+; even this is possible (415161 => 041051061)
+4.5.6=04.05.06
+</verb></tscreen>
+
 
 <!----------          Reference Section          ---------->
 <sect>Using the Gatekeeper (Reference)
@@ -1161,7 +1346,7 @@ Although this information is contained in AlternateGKs, you must still
 specify which address to forward RRQs to. This might differ from AlternateGK's
 address, so it's a separate config option (think of multihomed machines).
 
-<item><tt/SkipForwards=1.2.3.4:5.6.7.8/<newline>
+<item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
 Default: <tt>N/A</tt>
 <p>
 To avoid circular forwarding, you shouldn't forward RRQs you get from the
@@ -1183,6 +1368,62 @@ Default: <tt/2/
 Default output trace level for new status interface clients.
 See <ref id="monitor" name="this section"> for details.
 
+<item><tt/TimestampFormat=ISO8601/<newline>
+Default: <tt/Cisco/
+<p>
+Control default format of timestamp strings generated by the gatekeeper.
+This option affects <ref id="sqlacct" name="[SqlAcct]">, 
+<ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
+and other modules, except <ref id="calltable" name="[CallTable]">.
+You can further customize timestamp formatting per-module by configuring
+per-module <tt/TimestampFormat/ setting.
+<p>
+There are four predefined formats:
+<itemize>
+<item><tt/RFC822/ - a default format used by the gatekeeper (example: Wed, 10 Nov 2004 16:02:01 +0100)
+<item><tt/ISO8601/ - standard ISO format (example: 2004-11-10 T 16:02:01 +0100)
+<item><tt/Cisco/ - format used by Cisco equipment (example: 16:02:01.534 CET Wed Nov 10 2004)
+<item><tt/MySQL/ - simple format that MySQL can understand (example: 2004-11-10 16:02:01)
+</itemize>
+<p>
+If you need another format, you can build your own format string, using
+rules known from <tt/strftime/ C function (see man strftime or search MSDN for strftime).
+In general, the format string consists of regular character and format codes, preceeded
+by a percent sign. Example: "%Y-%m-%d and percent %%" will result in "2004-11-10 and percent %".
+Some common format codes:
+<itemize>
+<item><tt/%a/ - abbreviated weekday name
+<item><tt/%A/ - full weekday name
+<item><tt/%b/ - abbreviated month name
+<item><tt/%B/ - full month name
+<item><tt/%d/ - day of month as decimal number
+<item><tt/%H/ - hour in 24-hour format
+<item><tt/%I/ - hour in 12-hour format
+<item><tt/%m/ - month as decimal number
+<item><tt/%M/ - minute as decimal number
+<item><tt/%S/ - second as decimal number
+<item><tt/%y/ - year without century
+<item><tt/%Y/ - year with century
+<item><tt/%u/ - microseconds as decimal number (<bf/this is a GnuGk extension/)
+<item><tt/%z/ - time zone abbreviation (+0100)
+<item><tt/%Z/ - time zone name
+<item><tt/%%/ - percent sign
+</itemize>
+
+<item><tt/EncryptAllPasswords=1/<newline>
+Default: <tt/0/
+<p>
+Enable encryption of all passwords in the config (SQL passwords, RADIUS
+passwords, [Password] passwords, [GkStatus::Auth] passwords). If enabled,
+all passwords have to be encrypted using <tt/addpasswd/ utility. Otherwise
+only [Password] and [GkStatus::Auth] passwords are encrypted (old behaviour).
+
+<item><tt/KeyFilled=0/<newline>
+Default: <tt/0/
+<p>
+Define a global padding byte to be used during password encryption/decryption. 
+It can be overriden by setting <tt/KeyFilled/ inside a particular config section.
+Usually, you do not need to change this option.
 </itemize>
 
 Most users will never need to change any of the following values.
@@ -1460,13 +1701,13 @@ It's usually used for billing purpose.
 Only valid if <tt/ForwardOnFacility=1/.
 
 <item><tt/Q931PortRange=20000-20999/<newline>
-Default: <tt/0/ (random)
+Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for Q.931 signalling channels.
 Note the range size may limit the number of concurrent calls.
 
 <item><tt/H245PortRange=30000-30999/<newline>
-Default: <tt/0/ (random)
+Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for H.245 control channels.
 Note the range size may limit the number of concurrent calls.
@@ -1536,13 +1777,13 @@ CIDR notation (prefix length), as shown in the example.
 </descrip>
 
 <item><tt/T120PortRange=40000-40999/<newline>
-Default: <tt/0/ (random)
+Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for T.120 data channels.
 Note the range size may limit the number of concurrent calls.
 
 <item><tt/RTPPortRange=50000-59999/<newline>
-Default: <tt/10000-59999/
+Default: <tt>1024-65535</tt>
 <p>
 Specify the range of UDP port number for RTP/RTCP channels.
 Note the range size may limit the number of concurrent calls.
@@ -1704,7 +1945,8 @@ This section lists what E.164 numbers are routed to a specific gateway.
 <p>
 Note you have to specify the alias of the gateway.
 If a gateway registered with the alias, all numbers beginning with
-the prefixes are routed to this gateway.
+the prefixes are routed to this gateway. Special characters <tt/./ and <tt/!/
+can be used here to match any digit and disable the prefix.
 <tag/Example:/
 <tt/test-gw=02,03/
 </descrip>
@@ -1719,9 +1961,10 @@ This section defines the rewriting rules for dialedDigits (E.164 number).
 <tt>[!]original-prefix=target-prefix[,target-prefix,...]</tt>
 <p>
 If the number is beginning with <tt/original-prefix/,
-it is rewritten to <tt/target-prefix/. Multi targets are possible.
+it is rewritten to <tt/target-prefix/. Multiple targets are possible.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted
-and the target-prefix is prepended to the dialed number.
+and the target-prefix is prepended to the dialed number. Special wildcard
+characters (<tt/'.'/ and <tt/'%'/) are available.
 <tag/Example:/
 <tt/08=18888/
 <p>
@@ -1780,6 +2023,7 @@ Call to "gw2", dialedDigits 0867822
 If the call matches the gateway, the direction and begins with
 <tt/original-prefix/ it is rewritten to <tt/target-prefix/.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
+Special wildcard characters (<tt/'.'/ and <tt/'%'/) are available.
 Multiple rules for the same gateway should be seperated by ';'.
 <tag/Example:/
 <tt/gw1=in=123=321/
@@ -1794,6 +2038,8 @@ In this section you can put endpoints that don't have RAS support
 or that you don't want to be expired. The records will always
 keep in registration table of the gatekeeper.
 However, You can still unregister it via status port.
+Special characters <tt/./ and <tt/!/
+can be used with prefixes here to match any digit and disable the prefix.
 
 <descrip>
 <tag/Format:/
@@ -1812,6 +2058,8 @@ If the destination of an ARQ is unknown, the gatekeeper sends LRQs to
 its neighbors to ask if they have the destination endpoint.
 A neighbor is selected if one of its prefixes matches the destination
 or it has ``<tt/*/'' prefix. More than one prefix can be specified.
+You can use special characters ``<tt/./'' and ``<tt/!/'' to do wildcard
+matching and disable a specific prefix.
 
 Conversely, the gatekeeper will only reply to LRQs sent from neighbors
 defined in this section.
@@ -2130,6 +2378,12 @@ update is to provide backend services with incrementing call duration
 for connected calls.
 The default value 0 tells the gatkeeper to not send accounting updates
 at all. Please note that setting short periods may decrease GK performance.
+
+<item><tt/TimestampFormat=Cisco/<newline>
+Default: <tt/RFC822/
+<p>
+Format of timestamp strings printed inside CDRs.
+
 </itemize>
 
 
@@ -2173,6 +2427,9 @@ All RAS requests will contain the password in the <bf/cryptoTokens/ field
 (MD5 & HMAC-SHA1-96) and the <bf/tokens/ field (CAT).
 To send RAS requests without both <bf/cryptoTokens/ and <bf/tokens/ fields,
 set the password to be empty.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 <p>
 Besides, the password is also used in LRQs sent to neighbor gatekeepers.
 
@@ -2363,7 +2620,6 @@ For <tt/SQLAliasAuth/, the pattern is retrieved from an SQL database,
 defined in <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
 For <tt/LDAPAliasAuth/ the alias (default: mail attribute) and IP
 (default: voIPIpAddress attribute) must be found in one LDAP entry.
-Support for <tt/MySQLAliasAuth/ is maintained for backward compatibility.
 
 <item><tt>PrefixAuth</tt>
 <p>
@@ -2434,12 +2690,12 @@ using RadAliasAuth takes place (SetupUnreg).
 <label id="password">
 <p>
 The section defines the userid and password pairs used by
-<tt/SimplePasswordAuth/ module.
-Use `<tt/make addpasswd/' to generate the utility <tt/addpasswd/.
+<tt/SimplePasswordAuth/ module. All passwords are encrypted
+using the <tt/addpasswd/ utility.
 
 Usage:
 <tscreen><verb>
-addpasswd config userid password
+addpasswd config section userid password
 </verb></tscreen>
 
 Options:
@@ -2447,7 +2703,7 @@ Options:
 <item><tt/KeyFilled=123/<newline>
 Default: <tt/0/
 <p>
-Default value to initialize the encryption key.
+Default value to use as a padding byte during password encryption/decryption.
 
 <item><tt/CheckID=1/<newline>
 Default: <tt/0/
@@ -2477,12 +2733,11 @@ Default: N/A
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
-<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-Multiple hosts, separated by the semicolon, may be specified to support failover.
 
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
@@ -2498,6 +2753,9 @@ The username used to connect to the database.
 The password used to connect to the database.
 If the password is not specified, a database connection attempt 
 without any password will be made.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in an encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/CacheTimeout=120/<newline>
 Default: <tt/0/
@@ -2536,64 +2794,6 @@ SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
 </verb></tscreen>
 
 </itemize>
-
-<sect2>Section &lsqb;MySQLPasswordAuth&rsqb;
-<p>
-Define the MySQL database, table and fileds to retrieve the userid and password.
-This is obsolete, use <ref id="sqlpasswordauth" name="[SQLPasswordAuth]"> instead.
-
-<itemize>
-<item><tt/Host=localhost/<newline>
-Default: <tt/localhost/
-<p>
-Host name or IP of the MySQL server.
-
-<item><tt/Port=5353/<newline>
-Default: <tt/5353/
-<p>
-Port the MySQL server is listening on (if different for the default).
-
-<item><tt/Database=billing/<newline>
-Default: <tt/billing/
-<p>
-The database to connect.
-
-<item><tt/User=cwhuang/<newline>
-<item><tt/Password=123456/<newline>
-<p>
-The user name and password used to connect to the database.
-
-<item><tt/Table=customer/<newline>
-<p>
-The table in the database to query.
-
-<item><tt/KeyField=IPN/<newline>
-<p>
-A name for the column that contains user alias.
-
-<item><tt/DataField=Password/<newline>
-<p>
-A name for the column that contains user password.
-
-<item><tt/ExtraCriterion=Kind > 0/<newline>
-Default: <tt>N/A</tt>
-<p>
-Specify extra criterion.
-
-<item><tt/CacheTimeout=30/<newline>
-Default: <tt>0</tt>
-<p>
-Timeout value after username/password pairs cached in memory
-will be refreshed from the database. Default is to not cache
-passwords at all (CacheTimeout=0). -1 means the cache does not
-expire - it will be refreshed only when the gatekeeper is reloaded.
-
-</itemize>
-
-The SQL command will be issused:
-<tscreen><verb>
-SELECT $DataField FROM $Table WHERE $KeyField = %id [AND $ExtraCriterion]
-</verb></tscreen>
 
 <sect2>Section &lsqb;RasSrv::RRQAuth&rsqb;
 <label id="rrqauth">
@@ -2657,12 +2857,11 @@ Default: N/A
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
-<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-Multiple hosts, separated by the semicolon, may be specified to support failover.
 
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
@@ -2678,6 +2877,9 @@ The username used to connect to the database.
 The password used to connect to the database.
 If the password is not specified, a database connection attempt 
 without any password will be made.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/CacheTimeout=120/<newline>
 Default: <tt/0/
@@ -2717,66 +2919,6 @@ SELECT 'sigip:' || host(ip) || port FROM users WHERE alias = '%1'
 
 </itemize>
 
-<sect2>Section &lsqb;MySQLAliasAuth&rsqb;
-<label id="mysqlaliasauth">
-<p>
-Define the MySQL database, table and fileds to retrieve a pattern for an alias.
-This section is OBSOLETE and provided only for backward compatibility. Please
-use <ref id="sqlaliasauth" name="[SQLAliasAuth]"> instead.
-
-<itemize>
-<item><tt/Host=localhost/<newline>
-Default: <tt/localhost/
-<p>
-Host name or IP of the MySQL server.
-
-<item><tt/Port=5353/<newline>
-Default: <tt/5353/
-<p>
-Port the MySQL server is listening on (if different for the default).
-
-<item><tt/Database=billing/<newline>
-Default: <tt/billing/
-<p>
-The database to connect.
-
-<item><tt/User=cwhuang/<newline>
-<item><tt/Password=123456/<newline>
-<p>
-The user name and password used to connect to the database.
-
-<item><tt/Table=customer/<newline>
-<p>
-The table in the database to query.
-
-<item><tt/KeyField=alias/<newline>
-<p>
-A name for the column that contains user alias.
-
-<item><tt/DataField=IPADDR/<newline>
-<p>
-A name for the column that contains a AuthAlias rule. This can be an IP number or any other rule,
-see section <ref id="rrqauth" name="[RasSrv::RRQAuth]">..
-
-<item><tt/ExtraCriterion=Kind > 0/<newline>
-Default: <tt>N/A</tt>
-<p>
-Specify extra criterion.
-
-<item><tt/CacheTimeout=30/<newline>
-Default: <tt>0</tt>
-<p>
-Timeout value after username/password pairs cached in memory
-will be refreshed from the database. Default is to not cache
-passwords at all (CacheTimeout=0). -1 means the cache does not
-expire - it will be refreshed only when the gatekeeper is reloaded.
-
-</itemize>
-
-The SQL command will be issused:
-<tscreen><verb>
-SELECT $DataField FROM $Table WHERE $KeyField = %alias [AND $ExtraCriterion]
-</verb></tscreen>
 
 <sect2>Section &lsqb;PrefixAuth&rsqb;
 <label id="prefixauth">
@@ -2888,6 +3030,9 @@ Default: <tt>N/A (empty string)</tt>
 Secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -2964,6 +3109,13 @@ is allowed to register with. Format of this attribute is:
 Example:
 	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
 </verb></tscreen>
+
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+Default: <tt/0/
+<p>
+Select Called-Station-Id number type between the original one (as dialed
+by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
+
 </itemize>
 
 <sect2>Section &lsqb;RadAliasAuth&rsqb;
@@ -3023,6 +3175,9 @@ Default: <tt>N/A (empty string)</tt>
 Secret used to authenticate this GNU GK (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -3114,6 +3269,9 @@ If not set, User-Password is a copy of User-Name. For example, if User-Name
 is 'john' then User-Password will also be set to 'john'. Setting this
 parameter overrides this behavious and User-Password attribute will be
 always set to the value of <tt/FixedPassword/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <descrip>
 <tag/Example 1:/
@@ -3144,81 +3302,11 @@ All endpoints will be authenticated using the username 'ppp'
 and the password 'ppp'.
 </descrip>
 
-</itemize>
-
-<sect2>Section &lsqb;GkLDAP::LDAPAttributeNames&rsqb;
-<p>
-This section defines which LDAP attribute names to use.
-
-<itemize>
-<item><tt/H323ID/<newline>
-<p>
-The endpoint's H.323 alias. Needs to be unique within the used LDAP tree
-(this i why we use the mail address by default).
-
-<item><tt/TelephonNo/<newline>
-<p>
-The endpoint's E.164 alias.
-
-<item><tt/voIPIpAddress/<newline>
-<p>
-The IP address to be compared against when using <tt/LDAPAliasAuth/
-For now, only a single value is allowed here.
-
-<item><tt/H235PassWord/<newline>
-<p>
-The plain text password to be compared against when using H.235
-(<tt/LDAPPasswordAuth/ in Gatekeeper::Auth).
-For now, only a single value is allowed here.
-</itemize>
-
-<sect2>Section &lsqb;GkLDAP::Settings&rsqb;
-<p>
-This section defines the LDAP server and standard LDAP client operating
-parameters to be used.
-
-<itemize>
-<item><tt/ServerName/<newline>
-Default: <tt/ldap/
-<p>
-The LDAP server's DNS name.
-
-<item><tt/ServerPort/<newline>
-Default: <tt/389/
-<p>
-The LDAP server's TCP port (usually 389).
-
-<item><tt/SearchBaseDN/<newline>
-Default: <tt/o=University of Michigan, c=US/
-<p>
-Entry point into the server's LDAP tree structure.
-Searches are only made below this root node.
-
-<item><tt/BindUserDN/<newline>
-Default: <tt/cn=Babs Jensen,o=University of Michigan, c=US/
-<p>
-The distinguished name the gatekeeper uses to bind
-to the LDAP server. Leave empty if you want to access
-the LDAP server anonymously.
-
-<item><tt/BindUserPW/<newline>
-Default: <tt/ReallySecretPassword/
-<p>
-If you specified <tt/BindUserDN/, then specify the corresponding
-password to be used for binding here.
-
-<item><tt/sizelimit/<newline>
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
 Default: <tt/0/
 <p>
-Maximum number of results the server may return in response
-to a single search query. The gatekeeper expects each LDAP
-to only yields one or zero results anyway, so this parameter
-is rather useless.
-
-<item><tt/timelimit/<newline>
-Default: <tt/0/
-<p>
-Maximum number of seconds a query may take until it's considered as "failed".
+Select Called-Station-Id number type between the original one (as dialed
+by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
 
 </itemize>
 
@@ -3243,15 +3331,14 @@ acctmod=actions
  <acctmod> := FileAcct | RadAcct | SQLAcct | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
- <event>   := start | stop | update | on | off
+ <event>   := start | stop | connect | update | on | off
 </verb></tscreen>
 </descrip>
 The event list tells the gatekeeper, which events should trigger logging
 with the given accounting module (if an event type is supported by the module):
 <itemize>
-<item><tt/start/ - a call has been started (that does not mean it has been
-	connected - either Setup message has been received or ACF has been sent
-	in direct GK mode),
+<item><tt/start/ - a call has been started and a Setup message has been received (only available in routed mode),
+<item><tt/connect/ - a call has been connected (only available in routed mode),
 <item><tt/update/ - a call is active and the periodic update is performed
 	to reflect the new call duration. Frequency of such updates is determined
 	by <bf/AcctUpdateInterval/ variable from <ref id="calltable" name="[CallTable]">
@@ -3295,14 +3382,12 @@ The following <bf/control/ flags are recognized:
 Currently supported accounting modules:
 <itemize>
 <item><tt>FileAcct</tt>
-<label id="fileacct">
 <p>
 A plain CDR text file logger. It outputs status line like CDR lines to
 a specified text file. This module supports only <bf/stop/ accounting event.
 Configuration settings are read from <ref id="fileacct" name="[FileAcct]"> section.
 
 <item><tt>RadAcct</tt>
-<label id="radacct">
 <p>
 This module performs RADIUS accounting. It supports all event types
 (start, stop, update, on, off).
@@ -3419,9 +3504,15 @@ parameters are recognized:
 <item><tt/%{src-info}/ - a colon separated list of source aliases
 <item><tt/%{dest-info}/ - a colon separated list of destination aliases
 <item><tt/%{Calling-Station-Id}/ - calling party number
-<item><tt/%{Called-Station-Id}/ - called party number
+<item><tt/%{Called-Station-Id}/ - called party number (rewritten)
+<item><tt/%{Dialed-Number}/ - dialed number (as received from the calling party)
 </itemize><newline>
 
+<item><tt/TimestampFormat=Cisco/<newline>
+Default: <tt>N/A</tt>
+<p>
+Format of timestamp strings printed in CDR strings. If this setting
+is not specified, a global one from the main gatekeeper section is applied.
 
 <item>
 <tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
@@ -3496,6 +3587,7 @@ See the examples for more details.
 </itemize>
 
 <sect2>Section &lsqb;RadAcct&rsqb;
+<label id="radacct">
 <p>
 This accounting module sends accounting data to a RADIUS server. Module
 configuration is almost the same as for RADIUS authenticators (see
@@ -3547,6 +3639,9 @@ Default: <tt>N/A (empty string)</tt>
 A secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -3583,6 +3678,18 @@ Default: <tt/0/
 If set, Cisco Vendor Specific RADIUS attibutes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
+<item><tt/TimestampFormat=ISO8601/<newline>
+Default: <tt>N/A</tt>
+<p>
+Format of timestamp strings sent in RADIUS attributes. If this setting
+is not specified, a global one from the main gatekeeper section is applied.
+
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+Default: <tt/0/
+<p>
+Select Called-Station-Id number type between the original one (as dialed
+by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
+
 </itemize>
 
 <sect2>Section &lsqb;SQLAcct&rsqb;
@@ -3599,12 +3706,11 @@ Default: N/A
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
-<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-Multiple hosts, separated by the semicolon, may be specified to support failover.
 
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
@@ -3653,7 +3759,8 @@ For <tt/SQLAcct/ the following parameters are defined:
 <item><tt/%{src-info}/ - a colon separated list of source aliases
 <item><tt/%{dest-info}/ - a colon separated list of destination aliases
 <item><tt/%{Calling-Station-Id}/ - calling party number
-<item><tt/%{Called-Station-Id}/ - called party number
+<item><tt/%{Called-Station-Id}/ - called party number (rewritten Dialed-Number)
+<item><tt/%{Dialed-Number}/ - dialed number (as received from the calling party)
 </itemize>
 <p>
 Sample query string:
@@ -3705,6 +3812,12 @@ Sample query string:
 INSERT INTO call (gkname, sessid, username, calling, called, duration) 
 	VALUES ('%g', '%s', '%u', '%{Calling-Station-Id}', '%{Called-Station-Id}', %d)
 </verb></tscreen>
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt>
+<p>
+Format of timestamp strings used in queries. If this setting
+is not specified, a global one from the main gatekeeper section is applied.
 
 </itemize>
 
@@ -3782,7 +3895,7 @@ This defines a regular expression for the virtual queues (used with the vqueue R
 
 <descrip>
 <tag/Example (numbers starting with 001215 or 1215):/
-<quote/<tt/VirtualQueuePrefixes=^(001|1)215[0-9]*$//
+<quote/<tt/VirtualQueueRegex=^(001|1)215[0-9]*$//
 <newline>
 </descrip>
 
@@ -3792,6 +3905,182 @@ Default: <tt/10/
 Timeout in seconds for the external application to answer the RouteRequest.
 If no answer is received during this time an ARJ will be sent to
 the caller.
+</itemize>
+
+<sect2>Section &lsqb;SQLConfig&rsqb;
+<label id="sqlconf">
+<p>
+Load gatekeeper settings from an SQL database (in addition to settings
+read from the config file). A generic <tt/ConfigQuery/ can be used
+to read almost all setting from the database and/or one of <tt/[RasSrv::RewriteE164]/,
+<tt/[RasSrv::PermanentEndpoints]/, <tt/[RasSrv::Neighbors]/, 
+<tt/[RasSrv::GWPrefixes]/ queries can be used to load particular settings.
+Entries read from the SQL database take precedence over settings found
+in the config file.
+
+<itemize>
+<item><tt/Driver=MySQL | PostgreSQL/<newline>
+Default: N/A
+<p>
+SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+are implemented.
+
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
+Default: <tt/localhost/
+<p>
+SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
+Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+
+<item><tt/Database=billing/<newline>
+Default: <tt/billing/
+<p>
+The database name to connect to.
+
+<item><tt/Username=gnugk/<newline>
+<p>
+The username used to connect to the database.
+
+<item><tt/Password=secret/<newline>
+<p>
+The password used to connect to the database.
+If the password is not specified, a database connection attempt 
+without any password will be made.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
+
+<item><tt/ConfigQuery=SELECT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Define an SQL query used to read gatekeeper settings from the database. 
+The query is parametrized - that means parameter replacement occurs before 
+the query is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
+strings. Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/ConfigQuery/ only one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of <bf/three/ columns:
+<itemize>
+<item><tt/column at index 0/ - config section name
+<item><tt/column at index 1/ - config key (option name)
+<item><tt/column at index 2/ - config value (option value)
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+ConfigQuery=SELECT secname, seckey, secval FROM sqlconfig WHERE gk = '%1'
+ConfigQuery=SELECT '[RasSrv::RRQAuth]', alias, rule FROM rrqauth WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/RewriteE164Query=SELECT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Define an SQL query used to retrieve from the database rewrite rules 
+for <tt/[RasSrv::RewriteE164]/ section. The query is parametrized 
+- that means parameter replacement occurs before each query is executed. 
+Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings. 
+Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/RewriteE164Query/ only one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of two columns:
+<itemize>
+<item><tt/column at index 0/ - rewrite rule key
+<item><tt/column at index 1/ - rewrite rule value
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+RewriteE164Query=SELECT rkey, rvalue FROM rewriterule WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/NeighborsQuery=SELECT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Define an SQL query used to retrieve from the database neighbor entries
+for <tt/[RasSrv::Neighbors]/ section . The query is parametrized 
+- that means parameter replacement occurs before each query
+is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
+strings. Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/NeighborsQuery/ one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of six columns:
+<itemize>
+<item><tt/column at index 0/ - neighbor name (idenitifier)
+<item><tt/column at index 1/ - neighbor IP address
+<item><tt/column at index 2/ - neighbor port number
+<item><tt/column at index 3/ - optional prefixes (comma separated)
+<item><tt/column at index 4/ - optional password
+<item><tt/column at index 5/ - optional dynamic IP flag
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+NeighborsQuery=SELECT nid, nip, nport, npfx, NULL, 0 FROM neighbor WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/PermanentEndpointsQuery=SELECT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Define an SQL query used to retrieve permanent endpoints from the database 
+for <tt/[RasSrv::PermanentEndpoints]/ section . The query is parametrized 
+- that means parameter replacement occurs before each query
+is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
+strings. Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/PermanentEndpointsQuery/ only one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of four columns:
+<itemize>
+<item><tt/column at index 0/ - permanent endpoint IP address
+<item><tt/column at index 1/ - permanent endpoint port number
+<item><tt/column at index 2/ - permanent endpoint alias
+<item><tt/column at index 3/ - optional permanent endpoint prefixes (comma separated)
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+PermanentEndpointsQuery=SELECT peip, 1720, pealias, NULL FROM permanentep WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/GWPrefixesQuery=SELECT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Define an SQL query used to retrieve gateway prefixes from the database 
+for <tt/[RasSrv::GWPrefixes]/ section . The query is parametrized 
+- that means parameter replacement is made before each query
+is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
+strings. Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/GWPrefixesQuery/ only one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of two columns:
+<itemize>
+<item><tt/column at index 0/ - gateway alias
+<item><tt/column at index 1/ - gateway prefixes (comma separated)
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+GWPrefixesQuery=SELECT gwalias, gwpfx FROM gwprefix WHERE gk = '%1'
+</verb></tscreen>
+
 </itemize>
 
 <sect1>Per-Endpoint Configuration Settings
@@ -3829,7 +4118,9 @@ is assigned to a gateway. A call is routed to the first available gateway
 <item><tt/GatewayPrefixes=0048,0049,0044/<newline>
 Default: <tt>N/A</tt>
 <p>
-Additional prefixes for this gateway. Apply only to gateways.
+Additional prefixes for this gateway. Apply only to gateways. 
+Special characters <tt/./ and <tt/!/ can be used here to match any digit 
+and disable the prefix.
 
 </itemize>
 
@@ -3838,7 +4129,7 @@ Example:
 <tscreen><verb>
 [RasSrv::PermanentEndpoints]
 192.168.1.1=gw1;48
-192.168.1.2=gw2;48
+192.168.1.2=gw2;48,!4850,!4860,!4869,!4888
 
 [EP::gw1]
 Capacity=60
@@ -4489,23 +4780,23 @@ However, not all platforms are well-tested.
 The developers use Linux and MS-Windows to test the gatekeeper.
 Be careful if you're using other OS and report problems if you find bugs.
 
-<item>Can I get a pre-compiled binary?
+<item>Puis-je obtenir un binaire pr&#233;-compil&#233;?
 <p>
-There are a few pre-compiled binaries on the project homepage,
-but they might not be the most recent version.
-See the <ref id="download" name="Download section">.
+Il y a quelques binaires pr&#233;-compil&#233;s sur la page du projet,
+mais il ne s'agit peut-&#234;tre pas de la version la plus r&#233;cente.
+Voir la <ref id="download" name="section T&#233;l&#233;chargement">.
 
 </itemize>
 
-<sect1>Authentication
+<sect1>Authentification
 <p>
-<sect1>Firewall/NAT Issues
+<sect1>Probl&#232;mes Firewall/NAT
 <p>
 <itemize>
 <item>
 </itemize>
 
-<sect1>Redundancy
+<sect1>Redondance
 <p>
 -->
 </article>
