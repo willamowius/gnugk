@@ -759,7 +759,7 @@ bool Gatekeeper::SetLogFilename(
 	const PString& filename
 	)
 {
-	if (filename.IsEmpty() || !PFilePath::IsValid(filename))
+	if (filename.IsEmpty())
 		return false;
 		
 	PWaitAndSignal lock(m_logFileMutex);

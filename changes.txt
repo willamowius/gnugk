@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(gk.cxx) removed an invalid test for the log filename, preventing
+  from creating log files in a directory other than the current one
 - BUGFIX(GkClient.cxx) TTL bug fixed (RRQ every second), documentation updates
 - fixed assertions caused by attempts to get/set config keys with an empty key name
 - BUGFIX(gk.cxx) fixed log file rotation under Windows, thanks to Cristian Bullokles!
