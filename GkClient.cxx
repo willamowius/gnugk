@@ -28,8 +28,10 @@
 #include "ProxyChannel.h"
 #include "GkClient.h"
 
-const char *EndpointSection = "Endpoint";
-const char *RewriteE164Section = "Endpoint::RewriteE164";
+namespace {
+const char* const EndpointSection = "Endpoint";
+const char* const RewriteE164Section = "Endpoint::RewriteE164";
+}
 
 class AlternateGKs {
 public:
@@ -140,8 +142,10 @@ void NATClient::Exec()
 
 bool NATClient::DetectIncomingCall()
 {
-	int retry = GkConfig()->GetInteger(EndpointSection, "NATKeepaliveInterval", 86400); // one day
 	while (socket->IsOpen()) {
+		long retry = GkConfig()->GetInteger(
+			EndpointSection, "NATKeepaliveInterval", 86400
+			); // one day
 		SendInfo(Q931::CallState_IncomingCallProceeding);
 		while (socket->IsOpen() && --retry > 0)
 			if (socket->IsReadable(1000)) // one second
@@ -273,11 +277,22 @@ void GkClientHandler::OnRequest(RasMsg *ras)
 	delete ras;
 }
 
+namespace {
+const long DEFAULT_TTL = 60;
+const long DEFAULT_RRQ_RETRY = 3;
+}
 
 // class GkClient
-GkClient::GkClient(RasServer *rasSrv) : m_rasSrv(rasSrv)
+GkClient::GkClient(
+	RasServer* rasSrv
+	) : m_rasSrv(rasSrv), m_registered(false), m_discoveryComplete(false),
+	m_ttl(GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL)),
+	m_timer(0),
+	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY))
 {
-	m_registered = false;
+	m_resend = m_retry;
+	m_gkfailtime = m_retry * 128;
+	
 	m_endpointId = new H225_EndpointIdentifier;
 	m_gatekeeperId = new H225_GatekeeperIdentifier;
 	// initialize these variable for safe
@@ -312,30 +327,35 @@ void GkClient::OnReload()
 		else
 			Unregister();
 
+	m_password = GkConfig()->GetString(EndpointSection, "Password", "");
+	m_retry = m_resend = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY);
+	m_gkfailtime = m_retry * 128;
+	m_authMode = -1;
+
 	PIPSocket::Address gkaddr = m_gkaddr;
 	WORD gkport = m_gkport;
-	PString gk(GkConfig()->GetString(EndpointSection, "Gatekeeper", "no"));
+	const PString gk(GkConfig()->GetString(EndpointSection, "Gatekeeper", "no"));
+	
+	if (!IsRegistered())
+		m_ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
+
 	if (gk == "no") {
-		m_ttl = 0;
+		m_timer = 0;
 		m_rrjReason = PString();
 		return;
 	} else if (gk == "auto") {
 		m_gkaddr = INADDR_BROADCAST;
 		m_gkport = GK_DEF_UNICAST_RAS_PORT;
-		m_discovery = false;
+		m_discoveryComplete = false;
 	} else if (GetTransportAddress(gk, GK_DEF_UNICAST_RAS_PORT, m_gkaddr, m_gkport)) {
-		m_discovery = (m_gkaddr == gkaddr) && (m_gkport == gkport);
+		m_discoveryComplete = (m_gkaddr == gkaddr) && (m_gkport == gkport);
 	} else {
 		// unresolvable?
 		PTRACE(1, "GKC\tWarning: Can't resolve parent GK " << gk);
 		return;
 	}
 
-	m_password = GkConfig()->GetString(EndpointSection, "Password", "");
-	m_retry = m_resend = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", 3);
-	m_gkfailtime = m_retry << 8;
-	m_ttl = 100;
-	m_authMode = -1;
+	m_timer = 100;
 
 	// FIXME: not thread-safed
 	delete m_rewriteInfo;
@@ -344,7 +364,7 @@ void GkClient::OnReload()
 
 void GkClient::CheckRegistration()
 {
-	if (m_ttl > 0 && (PTime() - m_registeredTime) > m_ttl)
+	if (m_timer > 0 && (PTime() - m_registeredTime) > m_timer)
 		Register();
 }
 
@@ -464,7 +484,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	}
 	arq.m_answerCall = answer;
 	// workaround for bandwidth, as OpenH323 library :p
-	arq.m_bandWidth = 100000;
+	arq.m_bandWidth = 1280;
 
 	return WaitForACF(request, answer ? 0 : &setup_obj);
 }
@@ -495,7 +515,7 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 	}
 	arq.m_answerCall = false;
 	// workaround for bandwidth, as OpenH323 library :p
-	arq.m_bandWidth = 100000;
+	arq.m_bandWidth = 1280;
 
 	return WaitForACF(request, &facility_obj);
 }
@@ -618,8 +638,8 @@ void GkClient::Register()
 {
 	PWaitAndSignal lock(m_rrqMutex);
 	m_rrjReason = "no response";
-	if (!IsRegistered() && !m_discovery)
-		while (!(m_discovery = Discovery()))
+	if (!IsRegistered() && !m_discoveryComplete)
+		while (!(m_discoveryComplete = Discovery()))
 			if (!GetAltGK())
 				return;
 
@@ -663,13 +683,13 @@ bool GkClient::GetAltGK()
 	if (m_useAltGKPermanent)
 		Toolkit::Instance()->SetConfig(1, EndpointSection, "Gatekeeper", altgk);
 	if (result) {
-		m_ttl = 100, m_resend = m_retry, m_discovery = false;
+		m_timer = 100, m_resend = m_retry, m_discoveryComplete = false;
 		PTRACE(1, "GKC\tUse Alternate GK " << altgk << (m_useAltGKPermanent ? " permanently" : " temporarily"));
 	} else {
 		// if no alternate gatekeeper found
 		// increase our resent time to avoid flooding the parent
-		m_ttl = (m_resend *= 2) * 1000;
-		if (m_resend > m_gkfailtime) {
+		m_timer = (m_resend *= 2) * 1000;
+		if (m_resend >= m_gkfailtime) {
 			// FIXME: not thread-safed
 			Toolkit::Instance()->GetRouteTable()->InitTable();
 			m_resend = m_gkfailtime;
@@ -681,7 +701,7 @@ bool GkClient::GetAltGK()
 void GkClient::BuildRRQ(H225_RegistrationRequest & rrq)
 {
 	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
-	rrq.m_discoveryComplete = m_discovery;
+	rrq.m_discoveryComplete = m_discoveryComplete;
 	SetRasAddress(rrq.m_rasAddress);
 	SetCallSignalAddress(rrq.m_callSignalAddress);
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_supportsAltGK);
@@ -699,8 +719,8 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 		rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
 	} else if (t[0] == 'g') {
 		rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gateway);
-		PString prefix(GkConfig()->GetString(EndpointSection, "Prefix", ""));
-		PStringArray prefixes=prefix.Tokenise(",;", FALSE);
+		const PString prefix(GkConfig()->GetString(EndpointSection, "Prefix", ""));
+		const PStringArray prefixes=prefix.Tokenise(",;", FALSE);
 		as = prefixes.GetSize();
 		if (as > 0) {
 			rrq.m_terminalType.m_gateway.IncludeOptionalField(H225_GatewayInfo::e_protocol);
@@ -710,10 +730,10 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 			H225_VoiceCaps & voicecap = (H225_VoiceCaps &)protocol;
 			voicecap.m_supportedPrefixes.SetSize(as);
 			for (PINDEX p = 0; p < as; ++p)
-				H323SetAliasAddress(prefixes[p], voicecap.m_supportedPrefixes[p].m_prefix);
+				H323SetAliasAddress(prefixes[p].Trim(), voicecap.m_supportedPrefixes[p].m_prefix);
 		}
-		rrq.IncludeOptionalField(H225_RegistrationRequest::e_multipleCalls);
-		rrq.m_multipleCalls = TRUE;
+//		rrq.IncludeOptionalField(H225_RegistrationRequest::e_multipleCalls);
+//		rrq.m_multipleCalls = FALSE;
 	} // else what?
 
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
@@ -733,7 +753,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 		H323SetAliasAddress(e164s[p-as], rrq.m_terminalAlias[p]);
 	m_e164 = e164s[0];
 
-	int ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", 0);
+	int ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
 	if (ttl > 0) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_timeToLive);
 		rrq.m_timeToLive = ttl;
@@ -762,7 +782,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
 		rrq.m_gatekeeperIdentifier = *m_gatekeeperId;
 	}
-	rrq.m_keepAlive = false;
+	rrq.m_keepAlive = FALSE;
 }
 
 void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
@@ -771,7 +791,7 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	rrq.m_endpointIdentifier = *m_endpointId;
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
 	rrq.m_gatekeeperIdentifier = *m_gatekeeperId;
-	rrq.m_keepAlive = true;
+	rrq.m_keepAlive = TRUE;
 }
 
 bool GkClient::WaitForACF(RasRequester & request, Routing::RoutingRequest *robj)
@@ -803,7 +823,7 @@ H225_AdmissionRequest & GkClient::BuildARQ(H225_AdmissionRequest & arq)
 	arq.m_srcCallSignalAddress = m_rasSrv->GetCallSignalAddress(m_loaddr);
 
 	arq.IncludeOptionalField(H225_AdmissionRequest::e_canMapAlias);
-	arq.m_canMapAlias = true;
+	arq.m_canMapAlias = TRUE;
 
 	arq.IncludeOptionalField(H225_AdmissionRequest::e_gatekeeperIdentifier);
 	arq.m_gatekeeperIdentifier = *m_gatekeeperId;
@@ -827,13 +847,14 @@ void GkClient::OnRCF(RasMsg *ras)
 	}
 	
 	// Not all RCF contain TTL, in that case keep old value
-	if ( rcf.HasOptionalField( H225_RegistrationConfirm::e_timeToLive ) ) {
-		m_ttl = ( rcf.m_timeToLive - m_retry) * 1000;
+	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive)) {
+		m_ttl = PMAX(rcf.m_timeToLive - m_retry, 30);
 		// Have it reregister at 3/4 of TimeToLive, otherwise the parent
 		// might go out of sync and ends up sending an URQ
-		m_ttl = ( m_ttl / 4 ) * 3;
+		m_ttl = (m_ttl / 4) * 3;
 	}
 	
+	m_timer = m_ttl * 1000;
 	m_resend = m_retry;
 
 	// NAT handling
@@ -855,7 +876,7 @@ void GkClient::OnRRJ(RasMsg *ras)
 		GetAltGK();
 	} else if (rrj.m_rejectReason.GetTag() == H225_RegistrationRejectReason::e_fullRegistrationRequired) {
 		SendURQ();
-		m_ttl = 100;
+		m_timer = 100;
 		Toolkit::Instance()->GetRouteTable()->InitTable();
 	}
 }
@@ -869,7 +890,7 @@ void GkClient::OnARJ(RasMsg *ras)
 		GetAltGK();
 	} else if (arj.m_rejectReason.GetTag() == H225_AdmissionRejectReason::e_callerNotRegistered) {
 		Unregister();
-		m_ttl = 100; // re-register again
+		m_timer = 100; // re-register again
 	}
 }
 
@@ -883,11 +904,11 @@ bool GkClient::OnURQ(RasMsg *ras)
 	{
 		case H225_UnregRequestReason::e_reregistrationRequired:
 		case H225_UnregRequestReason::e_ttlExpired:
-			m_ttl = 500;
+			m_timer = 500;
 			break;
 
 		default:
-			m_ttl = m_retry * 1000;
+			m_timer = m_retry * 1000;
 			if (urq.HasOptionalField(H225_UnregistrationRequest::e_alternateGatekeeper)) {
 				m_gkList->Set(urq.m_alternateGatekeeper);
 				GetAltGK();

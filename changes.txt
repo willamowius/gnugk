@@ -1,5 +1,6 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(GkClient.cxx) TTL bug fixed (RRQ every second), documentation updates
 - fixed assertions caused by attempts to get/set config keys with an empty key name
 - BUGFIX(gk.cxx) fixed log file rotation under Windows, thanks to Cristian Bullokles!
 - log file rotation, new LogFile config section, new setlog and rotatelog

@@ -139,13 +139,25 @@ private:
 	PIPSocket::Address m_gkaddr, m_loaddr;
 	WORD m_gkport;
 
-	bool m_discovery, m_registered;
+	/// status of the registration with the parent gatekeeper
+	bool m_registered;
+	/// parent discovery status (DNS resolved, GRQ/GCF exchanged)
+	bool m_discoveryComplete;
 	PString m_h323Id, m_e164, m_password, m_rrjReason;
 	H225_EndpointIdentifier *m_endpointId;
 	H225_GatekeeperIdentifier *m_gatekeeperId;
 	PMutex m_rrqMutex;
 
-	int m_ttl, m_retry, m_resend, m_gkfailtime;
+	/// reregistration timeout (seconds)
+	long m_ttl;
+	/// timeout to send a next RRQ (milliseconds)
+	long m_timer;
+	/// intial interval (seconds) between resending an RRQ message (seconds)
+	long m_retry;
+	/// current RRQ resend interval (double with each failure) (seconds)
+	long m_resend;
+	/// maximun RRQ resend interval (seconds)
+	long m_gkfailtime;
 	PTime m_registeredTime;
 
 	AlternateGKs *m_gkList;

@@ -2065,17 +2065,18 @@ Register the specified prefixes with the parent gatekeeper.
 Only takes effect when the Type is <tt/Gateway/.
 
 <item><tt/TimeToLive=900/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>60</tt>
 <p>
-Suggest a time-to-live value in second for the registration.
+Suggest a time-to-live value in seconds for the registration.
 Note that the real time-to-live timer is assigned by the parent
 gatekeeper in the RCF replied to the RRQ.
 
 <item><tt/RRQRetryInterval=10/<newline>
-Default: <tt/10/
+Default: <tt/3/
 <p>
-Define a retry interval in second for RRQs if no response
-received from the parent gatekeeper.
+Define a retry interval in seconds for resending an RRQ if no response 
+is received from the parent gatekeeper. This interval is doubled with each
+failure, up to a maximum RRQRetryInterval * 128 timeout.
 
 <item><tt/ARQTimeout=2/<newline>
 Default: <tt/2/
@@ -2091,14 +2092,50 @@ it's parent when receiving a Reload command.
 <item><tt/NATRetryInterval=60/<newline>
 Default: <tt/60/
 <p>
-Retry interval in second for NAT socket.
-Leave it out if you don't understand it.
+How long to wait before trying to reconnect TCP NAT signalling socket (seconds).
+This can happen when either the connection cannot be established or it has
+been broken.
 
 <item><tt/NATKeepaliveInterval=86400/<newline>
 Default: <tt/86400/
 <p>
-Keepalive interval in second for NAT socket.
-Leave it out if you don't understand it.
+Define how often the TCP NAT signalling connection with a parent gatekeeper
+is refreshed. As NAT boxes usually keep TCP mappings for a definite time only,
+it is good to set this to some value a bit shorter than NAT box mapping timeout.
+Refreshing is done by sending a special Q.931 IncomingCallProceeding message.
+If you NAT performs TCP port translation, you may need to set it to a values
+as short as 60 seconds.
+
+<item><tt/Discovery=0/<newline>
+Default: <tt/1/
+<p>
+Decide whether to discover the parent gatekeeper by sending GRQ first.
+
+<item><tt/UseAlternateGK=0/<newline>
+Default: <tt/1/
+<p>
+Enable alternate gatekeepers feature. If GRJ/GCF/RFC messages received 
+from a parent gatekeeper contain a list of alternate gatekeepers, this
+information is stored and can be used to reregister with another gatekeeper
+in case of any failure. If you don't want to use this feature, set this
+variable to <tt/0/.
+
+<item><tt/GatekeeperIdentifier=ParentGK/<newline>
+Default: <tt/Not set/
+<p>
+Define it if you want to accept only such parent gatekeepers that match
+this gatekeeper identifier. Useful with GRQ discovery and can prevent 
+an accidental gatekeeper match. Do not set this variable, if you do not
+care about gatekeeper identifiers or you use alternate gatekeepers that
+can have different gatekeeper indentifiers set.
+
+<item><tt/EndpointIdentifier=OpenH323GK/<newline>
+Default: <tt/Not set/
+<p>
+Set this if you want to use a specific endpoint identifier for this child
+gatekeeper. If this option is not set (default), the identifier is assigned
+by a parent gatekeeper in a GCF/RCF message.
+
 </itemize>
 
 
