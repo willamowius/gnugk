@@ -1,3 +1,6 @@
+26 Aug 2004 -- zvision
+  * scripts to dump/restore data added
+
 15 Aug 2004 -- zvision
   * a new column 'active' in the voiptariff table to allow per user
     blocking of destinations
