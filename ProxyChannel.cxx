@@ -348,7 +348,11 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	}
 
 	q931pdu.Encode(buffer);
-	PrintQ931(5, "To send: ", &q931pdu, psignal);
+
+#if PTRACING
+	if (remote)
+		PrintQ931(5, "Send to " + remote->Name(), &q931pdu, psignal);
+#endif
 
 	switch (q931pdu.GetMessageType())
 	{
