@@ -35,13 +35,13 @@ struct Minus : public binary_function<_Tp,_Tp, R> {
 template <class _Operation1, class _Operation2>
 class unary_compose
   : public unary_function<typename _Operation2::argument_type,
-                          typename _Operation1::result_type> 
+                          typename _Operation1::result_type>
 {
 protected:
   _Operation1 __op1;
   _Operation2 __op2;
 public:
-  unary_compose(const _Operation1& __x, const _Operation2& __y) 
+  unary_compose(const _Operation1& __x, const _Operation2& __y)
     : __op1(__x), __op2(__y) {}
   typename _Operation1::result_type
   operator()(const typename _Operation2::argument_type& __x) const {
@@ -50,7 +50,7 @@ public:
 };
 
 template <class _Operation1, class _Operation2>
-inline unary_compose<_Operation1,_Operation2> 
+inline unary_compose<_Operation1,_Operation2>
 compose1(const _Operation1& __op1, const _Operation2& __op2)
 {
   return unary_compose<_Operation1,_Operation2>(__op1, __op2);
@@ -172,7 +172,7 @@ using std::transform;
 using std::distance;
 using std::sort;
 using std::unique;
+using std::ptr_fun;
 
 
 #endif  // __stl_supp_h_
-
