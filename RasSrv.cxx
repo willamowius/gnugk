@@ -599,20 +599,29 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			bShellForwardRequest = FALSE;
 		}
 
-	if (obj_rr.m_callSignalAddress.GetSize() >= 1) {
-		SignalAdr = obj_rr.m_callSignalAddress[0];
-	} else {
-		bReject = TRUE;
-		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
-	}
-
 	// lightweight registration update
 	if (obj_rr.HasOptionalField(H225_RegistrationRequest::e_keepAlive) &&
 		obj_rr.m_keepAlive.GetValue())
 	{
 		endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
+		bReject = !ep;
 		// check if the RRQ was sent from the registered endpoint
-		if (ep && ep->GetCallSignalAddress() == SignalAdr) {
+		if (ep) {
+			if (obj_rr.m_callSignalAddress.GetSize() >= 1)
+				bReject = (ep->GetCallSignalAddress() != obj_rr.m_callSignalAddress[0]);
+			else if (obj_rr.m_rasAddress.GetSize() >= 1)
+				bReject = (ep->GetRasAddress() != obj_rr.m_rasAddress[0]);
+			// No call signal and ras address provided.
+			// TODO: check rx_addr?
+			else
+				bReject = FALSE;
+		}
+
+		if (bReject) {
+			PTRACE_IF(1, ep, "WARNING:\tPossibly endpointId collide or security attack!!");
+			// endpoint was NOT registered
+			rejectReason.SetTag(H225_RegistrationRejectReason::e_fullRegistrationRequired);
+		} else {
 			// endpoint was already registered
 			obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
 			H225_RegistrationConfirm & rcf = obj_rpl;
@@ -635,12 +644,14 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 			ep->Update(obj_rrq);
 			return bShellSendReply;
-		} else {
-			PTRACE_IF(1, ep, "WARNING:\tPossibly endpointId collide or security attack!!");
-			// endpoint was NOT registered
-			bReject = TRUE;
-			rejectReason.SetTag(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		}
+	}
+
+	if (obj_rr.m_callSignalAddress.GetSize() >= 1) {
+		SignalAdr = obj_rr.m_callSignalAddress[0];
+	} else if (!bReject) {
+		bReject = TRUE;
+		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
 	}
 
 	// Check if the endpoint has specified the EndpointIdentifier.

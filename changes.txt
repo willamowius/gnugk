@@ -1,7 +1,9 @@
 Changes from 1.2 to now (by cwhuang)
 ====================================
+- fix problem for lightweightRRQ without callSignalAddress
 - rotate log on SIGHUP signal
 - write pid to /var/run/gk.pid (can be specified by --pid option)
+- rewrite dialedDigits OnLRQ
 
 Changes from 1.1 to 1.2 (by cwhuang)
 ====================================

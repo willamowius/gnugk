@@ -43,16 +43,10 @@ start () {
 stop () {
     # stop daemon
     echo -n $"Stopping $prog: "
-    pid=`cat $GKPID`
-    kill $pid
+    killproc /usr/sbin/gk
     RETVAL=$?
-    sleep 3 # wait for the GK to terminate
-    if [ -d /proc/$pid ]; then
-        killproc /usr/sbin/gk
-        RETVAL=$?
-    fi
     echo
-    [ $RETVAL = 0 ] && rm -f /var/lock/subsys/gk
+    rm -f /var/lock/subsys/gk # delete it anyway
     return $RETVAL
 }
 
@@ -66,7 +60,7 @@ restart () {
 # See how we were called.
 case "$1" in
     start)
-        start
+        [ -f /var/lock/subsys/gk ] || start
         ;;
     stop)
         stop
