@@ -266,6 +266,8 @@ public:
 		/// destination (virtual queue) aliases as specified
 		/// by the calling endpoint (modified by this function on successful return)
 		H225_ArrayOf_AliasAddress* destinationInfo,
+		/// destinationCallSignalAddr (optionally set by this function on successful return)
+		PString* callSigAdr,
 		/// an actual virtual queue name (should be present in destinationInfo too)
 		const PString& vqueue,
 		/// a sequence of aliases for the calling endpoint
@@ -283,6 +285,9 @@ public:
 		/// aliases for the routing target (an agent that the call will be routed to)
 		/// that will replace the original destination info
 		const H225_ArrayOf_AliasAddress& agent,
+		/// ip that will replace the destionationCallSignalAddress (RouteToGateway)
+		/// used only if set (port != 0)
+		const PString& destinationip,
 		/// identifier of the endpoint associated with the route request
 		const PString& callingEpId,
 		/// CRV of the call associated with the route request
@@ -299,6 +304,8 @@ public:
 		/// alias for the routing target that
 		/// will replace the original destination info
 		const PString& agent,
+		/// will replace the original destinationCallSignallAddress
+		const PString& destinationip, 		
 		/// identifier of the endpoint associated with the route request
 		const PString& callingEpId,
 		/// CRV of the call associated with the route request
@@ -331,11 +338,12 @@ private:
 		RouteRequest(
 			const PString& callingEpId,
 			unsigned crv,
-			H225_ArrayOf_AliasAddress* agent
+			H225_ArrayOf_AliasAddress* agent,
+			PString* callsignaladdr
 			)
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv),
-			m_agent(agent) {}
+			m_agent(agent), m_callsignaladdr(callsignaladdr) {}
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
@@ -344,6 +352,8 @@ private:
 		/// aliases for the virtual queue matched (on input)
 		/// aliases for the target agent - target route (on output)
 		H225_ArrayOf_AliasAddress* m_agent;
+		/// destinationCallSignallAddress for the target agent - target route IF NOT NULL
+		PString* m_callsignaladdr;
 		/// a synchronization point for signalling that routing decision
 		/// has been made by the external application
 		PSyncPoint m_sync;
@@ -359,6 +369,9 @@ private:
 		/// a pointer to an array to be filled with agent aliases
 		/// when the routing decision has been made
 		H225_ArrayOf_AliasAddress* agent,
+		/// a pointer to a string to be filled with a callSignalAddress
+		/// when the routing decision has been made (optional)
+		PString* callSigAdr,
 		/// set by the function to true if another route request for the same
 		/// call is pending
 		bool& duplicate

@@ -510,6 +510,9 @@ bool VirtualQueue::SendRouteRequest(
 	/// destination (virtual queue) aliases as specified
 	/// by the calling endpoint (modified by this function on successful return)
 	H225_ArrayOf_AliasAddress* destinationInfo,
+	/// destination (virtual queue) aliases as specified
+	/// by the calling endpoint (modified by this function on successful return)
+	PString* callSigAdr,
 	/// actual virtual queue name (should be present in destinationInfo too)
 	const PString& vqueue,
 	/// a sequence of aliases for the calling endpoint
@@ -520,7 +523,7 @@ bool VirtualQueue::SendRouteRequest(
 	bool result = false;
 	bool duprequest = false;
 	const PString epid(caller->GetEndpointIdentifier().GetValue());
-	if (RouteRequest *r = InsertRequest(epid, crv, destinationInfo, duprequest)) {
+	if (RouteRequest *r = InsertRequest(epid, crv, destinationInfo, callSigAdr, duprequest)) {
 		const PString msg(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;", 
 				(const char *)AsDotString(caller->GetCallSignalAddress()),
 				(const char *)epid,
@@ -571,6 +574,9 @@ bool VirtualQueue::RouteToAlias(
 	/// aliases for the routing target (an agent that the call will be routed to) 
 	/// that will replace the original destination info
 	const H225_ArrayOf_AliasAddress& agent,
+	/// ip that will replace the destionationCallSignalAddress (RouteToGateway)
+	/// used only if set (!= NULL)
+	const PString& destinationip,
 	/// identifier of the endpoint associated with the route request
 	const PString& callingEpId, 
 	/// CRV of the call associated with the route request
@@ -587,17 +593,17 @@ bool VirtualQueue::RouteToAlias(
 		if (r->m_callingEpId == callingEpId && r->m_crv == crv) {
 			// replace virtual queue aliases info with agent aliases
 			*r->m_agent = agent;
+			if (!destinationip.IsEmpty())	// RoteToGateway
+				*r->m_callsignaladdr = destinationip;
 			r->m_sync.Signal();
 			if( !foundrequest ) {
 				foundrequest = true;
 				if( agent.GetSize() > 0 )
 					PTRACE(2,"VQueue\tRoute request (EPID :"<<callingEpId
-						<<", CRV="<<crv<<") accepted by agent "<<AsString(agent)
-						);
-				else				
+						<<", CRV="<<crv<<") accepted by agent "<<AsString(agent));
+				else
 					PTRACE(2,"VQueue\tRoute request (EPID :"<<callingEpId
-						<<", CRV="<<crv<<") rejected"
-						);
+						<<", CRV="<<crv<<") rejected");
 			}
 		}
 		++i;
@@ -605,8 +611,7 @@ bool VirtualQueue::RouteToAlias(
 	
 	if( !foundrequest )
 		PTRACE(4,"VQueue\tPending route request (EPID:"<<callingEpId
-			<<", CRV="<<crv<<") not found - ignoring RouteToAlias command"
-			);
+			<<", CRV="<<crv<<") not found - ignoring RouteToAlias / RouteToGateway command");
 	
 	return foundrequest;
 }
@@ -614,17 +619,19 @@ bool VirtualQueue::RouteToAlias(
 bool VirtualQueue::RouteToAlias(
 	/// alias for the routing target that
 	/// will replace the original destination info
-	const PString& agent, 
+	const PString& targetAlias, 
+	/// will replace the original destinationCallSignallAddress
+	const PString& destinationIp, 
 	/// identifier of the endpoint associated with the route request
 	const PString& callingEpId, 
 	/// CRV for the call associated with the route request
 	unsigned crv
 	)
 {
-	H225_ArrayOf_AliasAddress agentAlias;
-	agentAlias.SetSize(1);
-	H323SetAliasAddress(agent, agentAlias[0]);
-	return RouteToAlias(agentAlias, callingEpId, crv);
+	H225_ArrayOf_AliasAddress alias;
+	alias.SetSize(1);
+	H323SetAliasAddress(targetAlias, alias[0]);
+	return RouteToAlias(alias, destinationIp, callingEpId, crv);
 }
 
 bool VirtualQueue::RouteReject(
@@ -635,7 +642,7 @@ bool VirtualQueue::RouteReject(
 	)
 {
 	H225_ArrayOf_AliasAddress nullAgent;
-	return RouteToAlias(nullAgent, callingEpId, crv);
+	return RouteToAlias(nullAgent, "", callingEpId, crv);
 }
 
 VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
@@ -646,6 +653,9 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	/// a pointer to an array to be filled with agent aliases
 	/// when the routing decision has been made
 	H225_ArrayOf_AliasAddress* agent,
+	/// a pointer to a string  to be filled with a destinationCallSignalAddress
+	/// when the routing decision has been made (optional)
+	PString* callSigAdr,
 	/// set by the function to true if another route request for the same
 	/// call is pending
 	bool& duplicate
@@ -673,7 +683,7 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	}
 
 	// insert the new pending route request
-	RouteRequest* r = new RouteRequest(callingEpId, crv, agent);
+	RouteRequest* r = new RouteRequest(callingEpId, crv, agent, callSigAdr);
 	m_pendingRequests.push_back(r);
 	return r;
 }
@@ -719,15 +729,28 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				<<arq.m_requestSeqNum.GetValue()<<')'
 				);
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
-			if (ep && m_vqueue->SendRouteRequest(ep, unsigned(arq.m_callReferenceValue), aliases, agent, AsString(arq.m_srcInfo)))
+			PString * callSigAdr = new PString();
+			if (ep && m_vqueue->SendRouteRequest(ep, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, agent, AsString(arq.m_srcInfo)))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
-				// the trick: if empty, the request is rejected
-				// so we return true to terminate the routing
-				// decision process, otherwise the aliases is
-				// rewritten, we return false to let subsequent
-				// policies determine the request 
-				if (m_next == NULL || aliases->GetSize() == 0)
-					return true;
+			if (!callSigAdr->IsEmpty()) {
+				if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+					arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
+				}
+				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
+				PString ip = adr_parts[0];
+				WORD port = adr_parts[1].AsInteger();
+				if (port == 0)
+					port = 1720;
+				arq.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
+			}
+			delete callSigAdr;
+			// the trick: if empty, the request is rejected
+			// so we return true to terminate the routing
+			// decision process, otherwise the aliases is
+			// rewritten, we return false to let subsequent
+			// policies determine the request 
+			if (m_next == NULL || aliases->GetSize() == 0)
+				return true;
 		}
 	}
 	return false;

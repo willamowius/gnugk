@@ -3708,7 +3708,7 @@ A virtual queue has an H.323 alias that can be called like an endpoint.
 Upon arrival of an ARQ on a virtual queue, the gatekeeper signals
 a RouteRequest on the status port and waits for an external application
 to respond with either a RouteReject (then the ARQ will be rejected)
-or with RouteToAlias which leads to the ARQ being rewritten so the call
+or with RouteToAlias/RouteToGateway which leads to the ARQ being rewritten so the call
 will be routed to the alias (eg. call center agent) specified by
 the external application.
 
@@ -4310,6 +4310,21 @@ RouteToAlias Alias CallingEndpointID CallRef
 <tag/Example:/
 <tscreen><verb>
 RouteToAlias Suzi endp_4711 1234
+</verb></tscreen>
+</descrip>
+
+<item><tt/RouteToGateway/, <tt/rtg/
+<p>Route this call on a virtual queue to the specified alias and set the destinationSignallAddress.
+This command is used as a response to a RouteRequest event (see below).
+You can use this command to route calls to out-of-zone gateways or MCUs not registered with the gatekeeper. Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+RouteToGateway Alias IP:Port CallingEndpointID CallRef
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 

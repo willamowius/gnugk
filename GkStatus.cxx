@@ -657,6 +657,8 @@ void GkStatus::OnStart()
 	m_commands["reload"] = e_Reload;
 	m_commands["routetoalias"] = e_RouteToAlias;
 	m_commands["rta"] = e_RouteToAlias;
+	m_commands["routetogateway"] = e_RouteToGateway;
+	m_commands["rtg"] = e_RouteToGateway;
 	m_commands["routereject"] = e_RouteReject;
 	m_commands["shutdown"] = e_Shutdown;
 	m_commands["exit"] = e_Exit;
@@ -1160,9 +1162,15 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_RouteToAlias:
 		if (args.GetSize() == 4) {
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3].AsUnsigned());
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned());
 		} else
 			WriteString("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV\r\n");
+		break;
+	case GkStatus::e_RouteToGateway:
+		if (args.GetSize() == 5) {
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned());
+		} else
+			WriteString("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV\r\n");
 		break;
 	case GkStatus::e_RouteReject:
 		if (args.GetSize() == 3) {
