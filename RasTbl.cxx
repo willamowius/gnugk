@@ -1131,22 +1131,13 @@ void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 
 void CallRec::SetConnected()
 {
-	// should be declared before any locks are qcquired (locks may introduce delays)
-	const long now = time(NULL); 
-	
+	// set before any locks are acquired (locks may introduce delays)
+	SetConnectTime(time(0));
+
 	if (m_Calling)
 		m_Calling->AddConnectedCall();
 	if (m_Called)
 		m_Called->AddConnectedCall();
-		
-	{
-		PWaitAndSignal lock(m_usedLock);
-		if( m_connectTime == 0 )
-			m_connectTime = now;
-		if( m_creationTime > m_connectTime )
-			m_creationTime = m_connectTime;
-	}
-
 }
 
 void CallRec::SetDurationLimit( long seconds )
@@ -1354,13 +1345,6 @@ PString CallRec::PrintOn(bool verbose) const
 	return result;
 }
 
-void CallRec::SetDisconnectTime(time_t tm)
-{
-	PWaitAndSignal lock(m_usedLock);
-	if( m_disconnectTime == 0 )
-		m_disconnectTime = tm;
-}
-
 void CallRec::SetSetupTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1377,6 +1361,13 @@ void CallRec::SetConnectTime(time_t tm)
 		m_connectTime = tm;
 	if( m_creationTime > m_connectTime )
 		m_creationTime = m_connectTime;
+}
+
+void CallRec::SetDisconnectTime(time_t tm)
+{
+	PWaitAndSignal lock(m_usedLock);
+	if( m_disconnectTime == 0 )
+		m_disconnectTime = tm;
 }
 
 bool CallRec::IsTimeout(

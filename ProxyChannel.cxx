@@ -1008,6 +1008,9 @@ void CallSignalSocket::ForwardCall()
 
 bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 {
+	// record the timestamp here since processing may take much time
+	time_t setupTime = time(0);
+
 	RasServer *RasSrv = RasServer::Instance();
 	m_result = Error;
 
@@ -1150,13 +1153,13 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
 		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 
+	// m_call should be valid here
+	m_call->SetSetupTime(setupTime);
 	return CreateRemote(Setup);
 }
 
 bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
 {
-	// m_call should be valid here
-	m_call->SetSetupTime(time(0));
 	if (!m_call->GetCalledAddress(peerAddr, peerPort)) {
 		PTRACE(3, "Q931\t" << GetName() << " INVALID ADDRESS");
 		return false;
