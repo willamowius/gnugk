@@ -490,6 +490,50 @@ void CallSignalSocket::DoRoutingDecision() {
 		PTRACE(5, "DoRoutingDecision() incomplete");
 		return;
 	}
+	if (endptr(NULL)==CalledEP && Toolkit::Instance()->GkClientIsRegistered()) { // maybe we want to route via GkClient?
+		PTRACE(1,"GkClient?");
+		H225_ArrayOf_AliasAddress epaliases;
+		epaliases.SetSize(1);
+		H323SetAliasAddress(GkConfig()->GetString("Endpoint", "MasterH323ID",""), epaliases[0], H225_AliasAddress::e_h323_ID);
+		PTRACE(1, "Searching for EP: " << epaliases[0]);
+		if(CalledNumber.GetLength()>=GkConfig()->GetInteger("Endpoint", "MinimumPrefixLength", 0)) {
+			// Fake ARQ -- that's *really* ugly. I'm not sure if that feature is ok with the H.323 Standards.
+			PString destinationString;
+			H225_H323_UserInformation signal;
+			PPER_Stream q = GetSetupPDU()->GetIE(Q931::UserUserIE);
+			if (!signal.Decode(q)) {
+				PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
+				return;
+			}
+			H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
+			H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+			H225_Setup_UUIE & Setup = body;
+			PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
+			CallRec * call= new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString , sourceString, 0, Toolkit::Instance()->GetMasterRASListener().IsGKRoutedH245());
+			if (NULL==call)
+				return;
+			CalledEP=RegistrationTable::Instance()->FindByAliases(epaliases);
+			m_call=callptr(call);
+			m_call->SetCalled(CalledEP);
+			m_call->SetCalling(GetCgEP(*GetSetupPDU()));
+			CgPNConversion();
+			if(!Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) || Setup.m_sourceAddress.GetSize()!=1) {
+				PTRACE(5,"setting m_sourceAddress to size 1");
+				Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+				Setup.m_sourceAddress.SetSize(1);
+			}
+			Setup.m_sourceAddress[0].SetTag(H225_AliasAddress::e_dialedDigits);
+			PTRACE(5,"setting m_sourceAddress to " << CalledNumber);
+			H323SetAliasAddress(CalledNumber, Setup.m_destinationAddress[0]);
+
+			CallTable::Instance()->Insert(call);
+			Toolkit::Instance()->GetGkClient().SendARQ(Setup, GetSetupPDU()->GetCallReference(), m_call, FALSE);
+			sleep(1);
+			PTRACE(1,"GkClient:" << CalledEP);
+		} else {
+			rsn=H225_AdmissionRejectReason::e_incompleteAddress;
+		}
+	}
 	if(CalledEP) {
 		PTRACE(5, "DoRoutingDecision() complete");
 		isRoutable=TRUE;
@@ -1314,7 +1358,7 @@ void CallSignalSocket::OnEmpty(H225_H323_UU_PDU_h323_message_body &)
 void CallSignalSocket::OnStatus(H225_Status_UUIE &)
 {
 	// reset timer
-	PTRACE(5, "OnStatus: " << *m_StatusTimer << ": " << this);
+	PTRACE(5, "OnStatus: : " << this);
 	if(NULL != m_StatusTimer) {
 		m_replytoStatusMessage=FALSE;
 		PTRACE(5, "StatusTimer stopped" << this);
@@ -1706,9 +1750,10 @@ BOOL CallSignalSocket::CgPNConversion() {
 		m_calledPLAN = CalledPLAN;
 		m_calledTON = CalledTON;
 	}
-	PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << "preparing to change: " << cgpf.TreatCalledPartyNumberAs());
+	PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << " preparing to change: " << cgpf.TreatCalledPartyNumberAs());
 	CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CalledTON : cgpf.TreatCalledPartyNumberAs());
 	PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON);
+	cgpf.debugPrint();
 	ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
 	PTRACE(5, "CgPNConversion converted CalledPartyNumber to int: " << CalledPartyNumber << " with TON: " << CalledTON);
 	// Check wether we are fooled with different ARQ-Number.

@@ -410,8 +410,21 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 					}
 					// ACF
 					PTRACE(4, "Alias match for GW " << AsDotString(e->GetCallSignalAddress()));
-					cdEP = endptr(e);
-					statusRoutingDecision = e_ok;
+					// check for prefix length of GW.
+					CalledProfile cdProfile;
+					dctn::DBTypeEnum dbtype;
+					H225_AliasAddress cdalias;
+					PString cdh323id = H323GetAliasAddressString(cdalias);
+					e->GetH323ID(cdalias);
+					GkDatabase::Instance()->getProfile(cdProfile, cdh323id, dbtype);
+					if(cdProfile.GetMinPrefixLen() >= H323GetAliasAddressString(destAlias).GetLength()) {
+						reason = H225_AdmissionRejectReason::e_incompleteAddress;
+						statusRoutingDecision = e_fail;
+					} else {
+						cdEP = endptr(e);
+						statusRoutingDecision = e_ok;
+					}
+
 				// else if no gateway is found in registration table
 				} else {
 					// ARJ (calledPartyNotRegisterd)

@@ -59,7 +59,7 @@ namespace dctn {
 		PrefixIncomingBlacklist, PrefixIncomingWhitelist, PrependCallbackAC, EPType, CountryCode,
 		NationalDestinationCode, OutgoingWhitelistBeforeBlacklist, ConvertToLocal,
 		TreatCallingPartyNumberAs, TreatCalledPartyNumberAs, StatusEnquiryInterval, CallTimeout,
-		MAX_ATTR_NO };
+		MinimumPrefixLength, MAX_ATTR_NO };
 
 	/// list of names (keys) as used in config file
 	extern const char * DBAttrTags[MAX_ATTR_NO];

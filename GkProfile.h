@@ -76,6 +76,7 @@ public:
         const PString & GetCC() const ;
 	const PString & GetNDC_IC() const ;
         const PString & GetCgPN() ;
+	const int GetMinPrefixLen() const;
 
 	const PStringList & GetBlackList() const ;
 	const PStringList & GetWhiteList() const ;
@@ -114,6 +115,7 @@ public:
 	void SetCC(const PString &cc) ;
 	void SetNDC_IC(const PString &ndc);
         void SetCgPN(PString &cgPN) ;
+	void SetMinPrefixLen(int len);
 
 	void SetStatusEnquiryInterval(int timeout); // Timeout in seconds
 	void SetCallTimeout(long int timeout); // Timeout in seconds
@@ -142,6 +144,7 @@ protected:
 	BOOL            m_ConvertToLocal;             // Convert Numbers to most local numbers.
 	E164_AnalysedNumber m_e164number;             // The maintelephonenumber as E164Number
 	PTimeInterval   m_StatusEnquiryInterval;      // Timeinterval between 2 StatusEnquiry pings.
+	int             m_minprefixlength;            // Minimum length a prefix must have (only used if Gateway)
 
 	enum Conversions m_TreatCallingPartyNumberAs; // Treat Calling Party Number as international, national, local or use the TON-field
 	enum Conversions m_TreatCalledPartyNumberAs;  // See above but Called Party Number

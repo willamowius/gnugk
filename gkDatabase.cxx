@@ -44,7 +44,7 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
  "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "PrependCallbackAC",
  "EndpointType", "CountryCode", "NationalDestnationCode", "OutgoingWhitelistBeforeBlacklist", "ConvertToLocal",
- "TreatCallingPartyNumberAs", "TreatCalledPartyNumberAs", "StatusEnquiryInterval", "CallTimeout"};
+ "TreatCallingPartyNumberAs", "TreatCalledPartyNumberAs", "StatusEnquiryInterval", "CallTimeout", "MinimumPrefixLength"};
 
 // section name for database names which shall be used
 const char *DB_NAMES_SEC = "Gatekeeper::Databases";
@@ -170,9 +170,13 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 					      DBAttrTags[TreatCallingPartyNumberAs],
 					      "voIPTreatCallingPartyNumberAs")));
 	AN.insert(DBANValuePair(DBAttrTags[TreatCalledPartyNumberAs],
-			    cfg.GetString(DB_ATTR_NAME_SEC,
+				cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[TreatCalledPartyNumberAs],
 					      "voIPTreatCalledPartyNumberAs")));
+	AN.insert(DBANValuePair(DBAttrTags[MinimumPrefixLength],
+			    cfg.GetString(DB_ATTR_NAME_SEC,
+					      DBAttrTags[TreatCalledPartyNumberAs],
+					      "voIPMinimumPrefixLength")));
 
 	AN_mutex.EndWrite();
 	// read database names which shall be used and append them to m_dbList
@@ -310,8 +314,8 @@ BOOL GkDatabase::getProfile(CallProfile & cgProfile, PString & h323id, dctn::DBT
 							      (attrMap[attrNameAsString(TreatCalledPartyNumberAs)][0].AsInteger()));
 		if (attrMap[attrNameAsString(OutgoingWhitelistBeforeBlacklist)].GetSize() > 0)
 			cgProfile.SetWhiteListBeforeBlackList(Toolkit::AsBool(attrMap[attrNameAsString(OutgoingWhitelistBeforeBlacklist)][0]));
-
-
+		if (attrMap[attrNameAsString(MinimumPrefixLength)].GetSize() > 0)
+			cgProfile.SetMinPrefixLen(attrMap[attrNameAsString(MinimumPrefixLength)][0].AsInteger());
 		cgProfile.debugPrint();
 	} else {
 		return FALSE;
