@@ -252,7 +252,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return Error;
 	}
 
-	PTRACE(3, "Q931\t" << " Received: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference());
+	PTRACE(3, "Q931\t" << "Received: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference());
 
 	H225_H323_UserInformation signal, *psignal = 0;
 	if (q931pdu.HasIE(Q931::UserUserIE)) {
@@ -966,8 +966,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 	PTRACE(6, type << "\tReading from " << fromIP << ':' << fromPort);
 	buflen = GetLastReadCount();
+
+//	if (fromIP == rSrcIP && (fromPort == rSrcPort || abs(fromPort - rSrcPort) == 2))
 	// Workaround: some bad endpoints don't send packets from the specified port
-	if (fromIP == rSrcIP && (fromPort == rSrcPort || abs(fromPort - rSrcPort) == 2))
+	if (fromIP == rSrcIP && (fromIP != fSrcIP || fromPort == rSrcPort))
 	//	PTRACE(5, "UDP\tfrom " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort),
 		SetSendAddress(rDestIP, rDestPort);
 	else
