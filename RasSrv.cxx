@@ -1257,13 +1257,16 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			bShellForwardRequest = FALSE;
 		}
 
-	endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
+	endptr ep = obj_rr.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ?
+		EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier) :
+		EndpointTable->FindBySignalAdr(obj_rr.m_callSignalAddress[0]);
 	if (ep)
 	{
 		// Disconnect the calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
 		// Remove from the table
-		EndpointTable->RemoveByEndpointId(obj_rr.m_endpointIdentifier);
+//		EndpointTable->RemoveByEndpointId(obj_rr.m_endpointIdentifier);
+		EndpointTable->RemoveByEndptr(ep);
 
 		// Return UCF
 		obj_rpl.SetTag(H225_RasMessage::e_unregistrationConfirm);
