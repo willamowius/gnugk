@@ -233,19 +233,28 @@ LDAPCtrl::Destroy(void)
 
 // searching for user
 LDAPAnswer * 
-LDAPCtrl::DirectoryUserLookup(LDAPQuery & q) 
+LDAPCtrl::DirectoryUserLookup(const PString &alias) 
 {
   LDAPAnswer * result = new LDAPAnswer;
+  LDAPQuery *q=new LDAPQuery();
+  PStringList values;
+  using namespace lctn;
   const unsigned int maxretries = 10; // we may migrate this into the object
   unsigned int retry = 0;
   using namespace lctn;
 
+  DEBUGPRINT("DirectoryUserLookup for User: " << alias)
+  values.AppendString(alias);
+  // assemble the search.
+  q->LDAPAttributeValues.insert(LDAPAVValuePair((*AttributeNames)[LDAPAttrTags[H323ID]],values));
+
   // search until found or out of retries
-  while((!((result = DirectoryLookup(q))->complete())) && 
+  while((!((result = DirectoryLookup(*q))->complete())) && 
 	(maxretries>(retry++))) {
     // FIXME: modify q to complete result
-    if(result->AV[LDAPAttrTags[DN]][0].GetSize()) {}
+    if((result->LDAPec[0])[LDAPAttrTags[DN]][0].GetSize()) {}
   }
+  delete q;
 
 #if defined(HAS_MWBB1)
   const char * const mwbb1 = MWBB1_TAG;	// MWBB1_TAG has to be a string literal
@@ -287,36 +296,36 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
 
   int attrsonly = 0;		/* 0: attr&value; 1: attr */
   PString filter;
-  if(p.LDAPAttributeValues.empty()) { // "Old" default behavior
-  filter.sprintf("(%s=%s)", // RFC 1558 conform template
-		 (const char *)(*AttributeNames)[LDAPAttrTags[H323ID]], // attribute name (H323ID)
-		 (const char *)p.userH323ID // requested value(H323ID)
-		 );
-  } else {
-    filter="(";
-    switch(p.LDAPOperator) {
-      case (LDAPQuery::LDAPand):
-	filter+="&";
-	break;
-      case (LDAPQuery::LDAPor):
-	filter+="|";
-	break;
-      case (LDAPQuery::LDAPnot):
-	filter+="!";
-    }
-    for(LDAPAttributeValueClass::iterator iter=p.LDAPAttributeValues.begin(); iter!=p.LDAPAttributeValues.end();
-	iter++) {
-      PString attribute=(*iter).first;
-      for (PINDEX index=0; (*iter).second.GetSize(); index++) {
-	filter+="(";
-	filter+=attribute;
-	filter+="=";
-	filter+=(*iter).second[index];
-	filter+=")";
-      }
-    }
-    filter+=")";
+//   if(p.LDAPAttributeValues.empty()) { // "Old" default behavior
+//   filter.sprintf("(%s=%s)", // RFC 1558 conform template
+// 		 (const char *)(*AttributeNames)[LDAPAttrTags[H323ID]], // attribute name (H323ID)
+// 		 (const char *)p.userH323ID // requested value(H323ID)
+// 		 );
+//   } else {
+  filter="(";
+  switch(p.LDAPOperator) {
+    case (LDAPQuery::LDAPand):
+      filter+="&";
+      break;
+    case (LDAPQuery::LDAPor):
+      filter+="|";
+      break;
+    case (LDAPQuery::LDAPnot):
+      filter+="!";
   }
+  for(LDAPAttributeValueClass::iterator iter=p.LDAPAttributeValues.begin(); iter!=p.LDAPAttributeValues.end();
+      iter++) {
+    PString attribute=(*iter).first;
+    for (PINDEX index=0; index<(*iter).second.GetSize(); index++) {
+      filter+="(";
+      filter+=attribute;
+      filter+="=";
+      filter+=(*iter).second[index];
+      filter+=")";
+    }
+  }
+  filter+=")";
+  //  }
 //   DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ", " << timeout.tv_sec << ":" << 
 // 	     timeout.tv_usec << ")");
   unsigned int retry_count = 0;
@@ -361,9 +370,10 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
       ERRORPRINT("ldap_get_dn: Could not get distinguished name.");
     }
     DEBUGPRINT("found DN: " << dn);
+    LDAPAttributeValueClass AV;
     // treating the dn as a kind of attribute
-    result->AV.insert(LDAPAVValuePair(PString(LDAPAttrTags[DN]),
-				      PStringList(1, &dn, false)));
+//     AV.insert(LDAPAVValuePair(PString(LDAPAttrTags[DN]),
+// 			      PStringList(1, &dn, false)));
     BerElement * ber = NULL;	// a 'void *' would do the same but RFC 1823
 				// indicates it to be a pointer to a BerElement
     char * attr = NULL;		// iterate throught list of attributes
@@ -377,10 +387,11 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
       // which can be accessed by a STL map, indexed by attribute names.
       // This implies, that the data is not bit- or octet-string, 
       // because it may NOT contain \0.
-      result->AV.insert(LDAPAVValuePair(PString(attr),
-					PStringList(valc, valv, false)));
+      AV.insert(LDAPAVValuePair(PString(attr),
+				PStringList(valc, valv, false)));
       gk_ldap_value_free(valv);	// remove value vector
     } // attr
+    result->LDAPec.insert(LDAPECValuePair(dn,AV));
   } // answer chain
   return result;
 }

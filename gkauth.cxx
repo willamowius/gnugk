@@ -637,9 +637,7 @@ LDAPAuth::Destroy()		// 'real', private destructor
 } // Destroy
 
 LDAPAnswer *LDAPAuth::doQuery(const PString & alias) {
-  LDAPQuery *query = new LDAPQuery();
-  query->userH323ID = alias;
-  return LDAPConn->DirectoryUserLookup(*query);
+  return LDAPConn->DirectoryUserLookup(alias);
 }
 
 bool LDAPAuth::getAttribute(const PString &alias, const int attr_name, 
@@ -649,8 +647,8 @@ bool LDAPAuth::getAttribute(const PString &alias, const int attr_name,
   // if LDAP succeeds
   if(answer->status == 0){
     using namespace lctn;
-    if(answer->AV.count(AN[LDAPAttrTags[attr_name]])){
-       attr_values = answer->AV[AN[LDAPAttrTags[attr_name]]];
+    if(answer->LDAPec.size() && ((answer->LDAPec[0]).count(AN[LDAPAttrTags[attr_name]]))){
+       attr_values = answer->LDAPec[0][AN[LDAPAttrTags[attr_name]]];
     }
   }
   return (answer->status == 0) ? true : false;

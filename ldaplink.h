@@ -71,6 +71,7 @@ namespace lctn {
 
 typedef map<PString, PStringList> LDAPAttributeValueClass;
 typedef LDAPAttributeValueClass::value_type LDAPAVValuePair;
+
 /** Class that contains search queries
 */
 class LDAPQuery {
@@ -83,6 +84,8 @@ public:
   LDAPQuery(): LDAPOperator(LDAPor) {}; // Default is "or"
 };
 
+typedef map<PString, LDAPAttributeValueClass> LDAPEntryClass;
+typedef LDAPEntryClass::value_type LDAPECValuePair;
 /** Class that contains search answers
 */
 class LDAPAnswer {
@@ -90,7 +93,7 @@ public:
   LDAPAnswer();
   virtual ~LDAPAnswer();
   int status;			// as LDAP.ld_errno
-  LDAPAttributeValueClass AV;	// the attributes and their values
+  LDAPEntryClass LDAPec;	// the attributes and their values
   virtual bool complete(void);	// test if this is all we need
 };
 
@@ -109,7 +112,9 @@ public:
   virtual ~LDAPCtrl();
 
   // searching for user accreditation
-  virtual LDAPAnswer * DirectoryUserLookup(LDAPQuery &); 
+  virtual LDAPAnswer * DirectoryUserLookup(const PString &); 
+  virtual LDAPAnswer * DirectoryLookup(LDAPQuery &); // internal look up
+
 
 protected:
   // Some of this data might look superflous, but experience teaches to
@@ -124,7 +129,6 @@ protected:
   PString BindUserPW;		// Pasword for simple auth. of BindUserDN
   unsigned int sizelimit;	// size of local cache in bytes
   unsigned int timelimit;	// timeout for operations in seconds
-  virtual LDAPAnswer * DirectoryLookup(LDAPQuery &); // internal look up
 private:
   GK_LDAP * ldap;			// The ldap connection
   bool known_to_be_bound;	// _known_ status of binding
