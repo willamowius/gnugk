@@ -8,30 +8,49 @@ avoid duplicate work.
 
 - feature: add ability to use routing via neighbour for known destinations, too
            Neighbours should be configured && handled like gateways (i.e. they're
-           configured to be used as the destination for certain prefixes), just
-           that they're addressed via LRQ.
+           configured to be used as the destination if one of their prefixes matches),
+           just that they're contacted via LRQ before sending SETUP (unlike gateways
+           which are directly sent a SETUP).
+
+- feature: make "browse up the LDAP tree for attributes not found in leaf" a
+           configurable feature
 
 - feature: implement blacklists (caller-, callee-dependant)
+           The order that black- and whitelist entries are applied is defined
+           by the endpoint property voIPWhiteListBeforeBlackList. Default
+           is that blacklist takes precedence.
+           voIPIncoming*List needs to be implemented
 
-- fix: message length on RewriteE164 may be wrong if rewriting and rewritten
-       number differ in length
+- feature: implement metric based routing
+
+  A metric should be configurable as a per-route per-gateway parameter, too,
+  to allow for least cost routing.
+  Available metrics range from "1" (best) to "99" (worst). Default is "50".
+
+  The routing decision will then be made as follows:
+
+  a) query portability database to get destination's carrier code
+  b) select all gateways with that carrier code
+  c) get metrics for the routes those selected gateways have to the destination
+  d) Generate a list of gateways according to the following rules:
+     
+     1. primary sorting key: carrier code
+        A matching carrier code is preferred over the "all" carrier code.
+        The default value is "all".
+
+     2. secondary sorting key (to be applied if two items have the same primary key):
+        longest match
+
+     3. tertiary sorting key (to be applied if two items have the same secondary key):
+	metric
+
+  e) use gateways in list order (gateway with equal carrier code AND equal prefix length
+     AND equal metric shall be used round-robin)
 
 - feature: implement alternate routing
   watch for either TCP or PBX errors, i.e. TCP errors on H.225 connection
   establishment or PBX side error codes in response to sending Q.931 SETUP
   (like no circuit/channel available)
-
-- feature: implement metric based routing
-  A metric should be configurable as a per-route per-gateway parameter, too,
-  to allow for least cost routing (default: "all").
-  The routing decision will then be made as follows:
-  * query portability database to get destination's carrier code
-  * select all gateways with that carrier code
-  * query .ini for metrics for the route those gateways have to the
-    destination
-  * select all gateways with best metric and carrier code (primary selection)
-    select all gateways with best metric and "all" carrier code (secondary)
-  * use gateways round-robin
 
 - feature: route call to voicemail mailbox for calls to provisioned, but
   non-registered destinations (i.e. those that result in calledpartyNotRegistered)
