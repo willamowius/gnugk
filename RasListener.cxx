@@ -1,18 +1,30 @@
 // -*- mode: c++; eval: (c-set-style "linux"); -*-
-//////////////////////////////////////////////////////////////////
+// Copyright (C) 2002 Nils Bokermann <Nils.Bokermann@mediaWays.net>
 //
-// RAS Listener Class.
-//
-// This Class will listen for incoming packets and let another
+// PURPOSE OF THIS FILE: This Class will listen for incoming packets and let another
 // new started thread analyze and answer the PDU
 //
-// This work is published under the GNU Public License (GPL)
-// see file COPYING for details.
+// - Automatic Version Information via RCS:
+//   $Id$
+//   $Source$
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+//
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-//
-//////////////////////////////////////////////////////////////////
 
 #include "RasListener.h"
 #include "Toolkit.h"
@@ -253,9 +265,15 @@ H323RasListener::Main()
 		if(result!=0) {
 			listener_mutex.Signal();
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
+			// This hack is necessary due to bugs in PWLib.
 			H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
 			if(NULL!=r) {
-				r->Resume();
+				r->Resume(); // Start thread
+				// Autodelete is set here to avoid
+				// deletion of thread before Resume()
+				// is called -- might happen on
+				// AutoDelete-threads and fast working
+				// threads.
 				r->SetAutoDelete(AutoDeleteThread);
 			}
 		} else {
