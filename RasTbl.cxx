@@ -145,6 +145,7 @@ EndpointRec::~EndpointRec()
 }
 
 bool EndpointRec::GetH323ID(H225_AliasAddress &id) {
+	PWaitAndSignal lock(m_usedLock);
 	const H225_ArrayOf_AliasAddress & aliases = GetAliases();
         for (PINDEX i = 0; i < aliases.GetSize(); i++) {
                if (aliases[i].GetTag() == H225_AliasAddress::e_h323_ID) {
@@ -165,6 +166,7 @@ BOOL EndpointRec::AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 	PString aliasStr = H323GetAliasAddressString(alias);
 	aliasStr_len = aliasStr.GetLength();
 	// for each alias which is stored for the endpoint in registration
+	m_usedLock.Wait();
 	for (PINDEX i = 0; i < reg_aliases.GetSize() && !partialMatch; i++) {
 		reg_alias = H323GetAliasAddressString(reg_aliases[i]);
 		// if alias from request message is prefix to alias which is
@@ -183,6 +185,7 @@ BOOL EndpointRec::AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 			}
 		}
 	}
+	m_usedLock.Signal();
 	return partialMatch;
 }
 
@@ -670,11 +673,11 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 		RemovedList_mutex.StartRead();
 		endptr e = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), rrq.m_callSignalAddress[0]),
 			mem_fun(&EndpointRec::GetCallSignalAddress)), &RemovedList);
-		RemovedList_mutex.EndRead();
 		if (e) // re-use the old endpoint identifier
 			rrq.m_endpointIdentifier = e->GetEndpointIdentifier();
 		else
 			GenerateEndpointId(rrq.m_endpointIdentifier);
+		RemovedList_mutex.EndRead();
 	}
 	if (!(rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (rrq.m_terminalAlias.GetSize() >= 1))) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
@@ -683,9 +686,8 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 
 	EndpointRec *ep = rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_gateway) ?
 			  new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
-	EndpointList_mutex.StartWrite();
+	WriteLock lock(EndpointList_mutex);
 	EndpointList.push_back(ep);
-	EndpointList_mutex.EndWrite();
 	return endptr(ep);
 }
 
@@ -723,11 +725,12 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 	EndpointRec *ep = eptr.operator->(); // evil
 	if (ep) {
 		RemovedList_mutex.StartWrite();
-		RemovedList.push_back(ep);
-		RemovedList_mutex.EndWrite();
 		EndpointList_mutex.StartWrite();
+		RemovedList.push_back(ep);
 		EndpointList.remove(ep);
+		RemovedList_mutex.EndWrite();
 		EndpointList_mutex.EndWrite();
+
 	}
 }
 
@@ -1039,7 +1042,7 @@ void RegistrationTable::CheckEndpoints()
 	}
 	EndpointList_mutex.EndWrite();
 
-	OuterZoneList_mutex.StartRead();
+	OuterZoneList_mutex.StartWrite();
 	Iter = partition(OuterZoneList.begin(), OuterZoneList.end(),
 		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 #ifdef PTRACING
@@ -1083,8 +1086,6 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 
 	m_Calling = endptr(NULL);
 	m_Called = endptr(NULL);
-	m_callingProfile = NULL;
-	m_calledProfile = NULL;
 }
 
 CallRec::~CallRec()
@@ -1092,7 +1093,7 @@ CallRec::~CallRec()
 	// First of all, we have to Print a CDR :-)
 	PTRACE(5, "GK\tBegining deletion of CallRec: " << this);
 	m_usedLock.Wait();
-	if((NULL!=m_callingProfile) && (NULL!=m_calledProfile)) {
+	if((!m_callingProfile.GetH323ID().IsEmpty()) && (!m_calledProfile.GetH323ID().IsEmpty())) {
 		PString cdrString(this->GenerateCDR());
  		GkStatus::Instance()->SignalStatus(cdrString, 1);
  		PTRACE(3, cdrString);
@@ -1116,10 +1117,6 @@ CallRec::~CallRec()
 
 	// Writeback the timeout
 	// GkDatabase::Instance()->WriteCallTimeout(m_timer.GetInterval());
-        delete m_callingProfile;
-	m_callingProfile=NULL;
-        delete m_calledProfile;
-	m_calledProfile=NULL;
 	delete m_startTime;
 	m_startTime=NULL;
 	delete m_stopTime;
@@ -1208,21 +1205,16 @@ CalledProfile & CallRec::GetCalledProfile()
 CalledProfile &
 CallRec::InternalGetCalledProfile()
 {
-	if (NULL != m_calledProfile && m_calledProfile->GetH323ID().IsEmpty()){
-		delete m_calledProfile;
-		m_calledProfile=NULL;
-	}
-	if (m_calledProfile == NULL) {
-  		m_calledProfile = new CalledProfile();
+	if (m_calledProfile.GetH323ID().IsEmpty()){
 		dctn::DBTypeEnum f;
 		H225_AliasAddress adr;
 		if ((endptr(NULL) != m_Called) && (m_Called->GetH323ID(adr))) {
-			PString h323id= H323GetAliasAddressString(adr);
+			PString h323id=H323GetAliasAddressString(adr);
 			PTRACE(1, "Looking for profile: " << h323id);
-			GkDatabase::Instance()->getProfile(*m_calledProfile, h323id ,f);
+			GkDatabase::Instance()->getProfile(m_calledProfile, h323id ,f);
 		}
 	}
-	return *m_calledProfile;
+	return m_calledProfile;
 }
 
 CallingProfile & CallRec::GetCallingProfile()
@@ -1234,22 +1226,17 @@ CallingProfile & CallRec::GetCallingProfile()
 CallingProfile &
 CallRec::InternalGetCallingProfile()
 {
-	if (NULL != m_callingProfile && m_callingProfile->GetH323ID().IsEmpty()){
-		delete m_callingProfile;
-		m_callingProfile=NULL;
-	}
-	if (m_callingProfile == NULL) {
-  		m_callingProfile = new CallingProfile();
+	if (m_callingProfile.GetH323ID().IsEmpty()){
 		dctn::DBTypeEnum f;
 		H225_AliasAddress adr;
 		if ((endptr(NULL) != m_Calling) && (m_Calling->GetH323ID(adr))) {
 			PString h323id= H323GetAliasAddressString(adr);
 			PTRACE(1, "Looking for profile: " << h323id);
-			if(!GkDatabase::Instance()->getProfile(*m_callingProfile, h323id,f))
+			if(!GkDatabase::Instance()->getProfile(m_callingProfile, h323id,f))
 				PTRACE(1, "Could not find profile for: " << h323id);
 		}
 	}
-	return *m_callingProfile;
+	return m_callingProfile;
 }
 
 
@@ -1364,15 +1351,15 @@ void CallRec::SendReleaseComplete()
 
 void CallRec::InternalSendReleaseComplete()
 {
-	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable() && NULL!=m_callingProfile &&
-	    m_callingProfile->SendReleaseCompleteOnDRQ()) {
+	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable() &&
+	    m_callingProfile.SendReleaseCompleteOnDRQ()) {
 		m_callingSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to calling party ..." << m_callingSocket);
 		m_callingSocket->SendReleaseComplete();
 		m_callingSocket->MarkBlocked(FALSE);
 	}
-	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable() && NULL!=m_calledProfile &&
-	    m_calledProfile->SendReleaseCompleteOnDRQ()) {
+	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable() &&
+	    m_calledProfile.SendReleaseCompleteOnDRQ()) {
 		m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete();
