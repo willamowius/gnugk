@@ -25,10 +25,11 @@
 #include "SoftPBX.h"
 #include "Toolkit.h"
 #include "ANSI.h"
-#include "h323util.h"
 
 using std::for_each;
 using std::mem_fun;
+
+void ReloadHandler(void);
 
 
 const int GkStatus::NumberOfCommandStrings = 33;

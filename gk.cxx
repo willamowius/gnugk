@@ -101,6 +101,44 @@ void ShutdownHandler(void)
 
 } // end of anonymous namespace
 
+void ReloadHandler(void)
+{
+	// only one thread must do this
+	if (ReloadMutex.WillBlock())
+		return;
+	
+	/*
+	** Enter critical Section
+	*/
+	PWaitAndSignal reload(ReloadMutex);
+
+	/*
+	** Force reloading config
+	*/
+	InstanceOf<Toolkit>()->ReloadConfig();
+	PTRACE(3, "GK\t\tConfig reloaded.");
+	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
+
+	/*
+	** Update all gateway prefixes
+	*/
+
+	RegistrationTable::Instance()->LoadConfig();
+
+	RasThread->LoadConfig();
+
+	/*
+	** Don't disengage current calls!
+	*/
+	PTRACE(3, "GK\t\tCarry on current calls.");
+
+	/*
+	** Leave critical Section
+	*/
+	// give other threads the chance to pass by this handler
+	PProcess::Current().Sleep(1000); 
+}
+
 #ifdef WIN32
 
 BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
@@ -358,40 +396,3 @@ void Gatekeeper::Main()
 	ShutdownHandler();
 }
 
-void ReloadHandler(void)
-{
-	// only one thread must do this
-	if (ReloadMutex.WillBlock())
-		return;
-	
-	/*
-	** Enter critical Section
-	*/
-	PWaitAndSignal reload(ReloadMutex);
-
-	/*
-	** Force reloading config
-	*/
-	InstanceOf<Toolkit>()->ReloadConfig();
-	PTRACE(3, "GK\t\tConfig reloaded.");
-	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
-
-	/*
-	** Update all gateway prefixes
-	*/
-
-	RegistrationTable::Instance()->LoadConfig();
-
-	RasThread->LoadConfig();
-
-	/*
-	** Don't disengage current calls!
-	*/
-	PTRACE(3, "GK\t\tCarry on current calls.");
-
-	/*
-	** Leave critical Section
-	*/
-	// give other threads the chance to pass by this handler
-	PProcess::Current().Sleep(1000); 
-}
