@@ -102,31 +102,25 @@ ShutdownHandler(void)
 	{
 		PTRACE(3, "GK\tClosing MulticastGRQThread");
 		MulticastGRQThread->Close();
-		MulticastGRQThread->WaitForTermination();
 		delete MulticastGRQThread;
 		MulticastGRQThread = NULL;
 	}
-// 	if (Toolkit::Instance()->GetMasterRASListener() != NULL)
-// 	{
-// 		PTRACE(3, "GK\tClosing Toolkit::Instance()->GetMasterRASListener()");
-// 		Toolkit::Instance()->GetMasterRASListener()->Close();
-// 		// send all registered clients a URQ
-// 		Toolkit::Instance()->GetMasterRASListener()->UnregisterAllEndpoints();
-// 		Toolkit::Instance()->GetMasterRASListener()->WaitForTermination();
-// 		delete Toolkit::Instance()->GetMasterRASListener();
-// 		Toolkit::Instance()->GetMasterRASListener() = NULL;
-// 	}
 
+	PTRACE(3, "GK\tClosing Toolkit::Instance()->GetMasterRASListener()");
+	Toolkit::Instance()->GetMasterRASListener().Close();
+	// send all registered clients a URQ
+
+	Toolkit::Instance()->GetMasterRASListener().WaitForTermination();
+	Toolkit::Instance()->GetMasterRASListener().UnregisterAllEndpoints();
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
-	delete CallTable::Instance();
-	delete RegistrationTable::Instance();
-	delete GkStatus::Instance();
 #if defined(HAVE_DIGIT_ANALYSIS)
-	delete DigitCodeLibrary::Instance();
 #endif /* HAVE_DIGIT_ANALYSIS */
 	delete Toolkit::Instance();
+	GkStatus::Instance()->Close();
+	delete CallTable::Instance();
+	delete RegistrationTable::Instance();
 	PTRACE(3, "GK\tdelete ok");
 
 #ifdef PTRACING
