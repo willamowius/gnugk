@@ -173,7 +173,6 @@ GkClient::Main()
 			listener_mutex.Signal();
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
 			GkClientWorker *r = new GkClientWorker(stream, rx_addr, rx_port, *this);
-			r->Resume();
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
@@ -502,11 +501,21 @@ void GkClient::SendARQ(const H225_AdmissionRequest & arq, const endptr & reqEP)
 
 	RewriteE164(arq_obj.m_srcInfo, true);
 
-	m_arqPendingList->Insert(arq, reqEP, reqNum);
-	SendRas(arq_ras);
+ 	H225_AliasAddress cdalias;
+ 	for (PINDEX i=0;i<arq.m_destinationInfo.GetSize(); i++) {
+ 		if (arq.m_destinationInfo[i].GetTag()==H225_AliasAddress::e_dialedDigits)
+ 			cdalias=arq.m_destinationInfo[i];
+ 	}
+
+	if(GkConfig()->GetInteger(EndpointSection, "MinimumPrefixLength", 0)<=H323GetAliasAddressString(cdalias).GetLength()) { // Route by default
+		m_arqPendingList->Insert(arq, reqEP, reqNum);
+		SendRas(arq_ras);
+	} else {
+		// do nothing??
+	}
 }
 
-void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callptr & call)
+void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callptr & call, const BOOL answer_call)
 {
 	H225_RasMessage arq_ras;
 	arq_ras.SetTag(H225_RasMessage::e_admissionRequest);
@@ -536,7 +545,7 @@ void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callpt
 		arq.m_destinationInfo = setup.m_destinationAddress;
 		RewriteE164(arq.m_destinationInfo, true);
 	}
-	arq.m_answerCall = TRUE;
+	arq.m_answerCall = answer_call;
 
 	m_arqAnsweredList[reqNum] = call;
 	SendRas(arq_ras);
@@ -716,9 +725,10 @@ This class is intended to do the real work. The PDU will come as a PER-Stream, d
 */
 
 GkClientWorker::GkClientWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server) :
-	H323RasWorker(initial_pdu, rx_addr, rx_port, server)
+	Abstract_H323RasWorker(initial_pdu, rx_addr, rx_port, server)
 {
 	PTRACE(5, "GkClientWorker started");
+	Resume();
 }
 
 GkClientWorker::~GkClientWorker() {
