@@ -1693,7 +1693,7 @@ fi
 
 if test "x${largefdset}" != "xno" ; then     
 	if test "x${largefdset}" = "xyes"; then
-		LARGE_FDSET=32768
+		LARGE_FDSET=8192
 	else
    		LARGE_FDSET=${largefdset}
 	fi
