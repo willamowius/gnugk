@@ -133,7 +133,7 @@ endif
 
 include $(PWLIBDIR)/make/ptlib.mak
 
-addpasswd:	obj_linux_x86_r/addpasswd
+addpasswd: $(OBJDIR)/addpasswd
 
 # Extra dependencies
 RasSrv.o: RasSrv.cxx
