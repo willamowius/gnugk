@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.22  2004/08/09 21:52:23  zvision
+ * RADIUS based call routing
+ *
  * Revision 1.21  2004/07/26 12:19:41  zvision
  * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
  *
@@ -383,6 +386,52 @@ int RadAuthBase::Check(
 					"attribute '" << value << '\''
 					);
 			}
+		}
+	}
+
+	// process h323-ivr-in=terminal-alias attribute
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+			RadiusAttr::CiscoVSA_AV_Pair
+			);
+		while (attr != NULL) {
+			PINDEX index;
+			value = attr->AsCiscoString();
+			if (value.Find("h323-ivr-in=") == 0 
+				&& ((index = value.Find("terminal-alias:")) != P_MAX_INDEX)) {
+				index += strlen("terminal-alias:");
+				const PINDEX semicolonpos = value.Find(';', index);
+				value = value.Mid(index, semicolonpos == P_MAX_INDEX
+					? P_MAX_INDEX : (semicolonpos-index)
+					);
+				PStringArray aliases = value.Tokenise(",");
+				if (aliases.GetSize() > 0 
+					&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+					PINDEX i = 0;
+					while (i < rrq.m_terminalAlias.GetSize()) {
+						PINDEX j = aliases.GetStringsIndex(H323GetAliasAddressString(rrq.m_terminalAlias[i]));
+						if( j == P_MAX_INDEX )
+							rrq.m_terminalAlias.RemoveAt(i);
+						else {
+							i++;
+							aliases.RemoveAt(j);
+						}
+					}
+				}
+				for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+					if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+						rrq.m_terminalAlias.SetSize(rrq.m_terminalAlias.GetSize()+1);
+					else {
+						rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
+						rrq.m_terminalAlias.SetSize(1);
+					}
+					H323SetAliasAddress(aliases[i], rrq.m_terminalAlias[rrq.m_terminalAlias.GetSize()-1]);
+				}
+				break;
+			}
+			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+				RadiusAttr::CiscoVSA_AV_Pair, attr
+				);
 		}
 	}
 
