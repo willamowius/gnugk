@@ -166,6 +166,10 @@ SOURCE=.\version.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\radproto.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\radauth.cxx
 # End Source File
 # Begin Source File
@@ -279,6 +283,10 @@ SOURCE=.\Toolkit.h
 # Begin Source File
 
 SOURCE=.\version.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\radproto.h
 # End Source File
 # Begin Source File
 
