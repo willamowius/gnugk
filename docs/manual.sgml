@@ -114,6 +114,9 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+More missing config reload locks added to allow seamless config reload.
+
+<item>
 A default value for the config variable <tt/ForwardOnFacility/ changed to <tt/0/.
 
 <item>

@@ -2343,6 +2343,8 @@ H245Socket::~H245Socket()
 
 void H245Socket::ConnectTo()
 {
+	ReadLock lockConfig(ConfigReloadMutex);
+	
 	if (remote->Accept(*listener)) {
 		if (ConnectRemote()) {
 			SetConnected(true);

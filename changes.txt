@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- more missing config reload locks added to allow seamless config reload
 - BUGFIX(ProxyChannel.cxx) the code could reference an invalid H.245 socket
   due to recent changes
 - BUGFIX(h323util.cxx) conference/call-id could get incorrectly converted

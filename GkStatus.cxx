@@ -846,6 +846,7 @@ void StatusClient::OnCommand(
 
 void StatusClient::Dispatch()
 {
+	ReadLock lockConfig(ConfigReloadMutex);
 	m_gkStatus->AuthenticateClient(this);
 }
 

@@ -279,6 +279,7 @@ void GkClientHandler::Process(RasMsg *ras)
 
 void GkClientHandler::OnRequest(RasMsg *ras)
 {
+	ReadLock lockConfig(ConfigReloadMutex);
 	if ((client->*handlePDU)(ras))
 		ras->Reply();
 	delete ras;
