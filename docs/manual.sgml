@@ -1396,7 +1396,7 @@ If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
 <tag/Example:/
 <tt/gw1=in=123=321/
 <p>
-If receive a call from "gw1" to <tt/12377897/, it is rewritten to <tt/32177897/
+If a call is received from "gw1" to <tt/12377897/, it is rewritten to <tt/32177897/
 before further action is taken.
 </descrip>
 
