@@ -1116,23 +1116,20 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 
 		PString source;
-		PStringArray tokenised_source;
 
 		// Do inbound per GWRewrite if we can before global rewrite
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 
-			source = AsString(Setup.m_sourceAddress);
+			if(Setup.m_sourceAddress.GetSize() > 0 ) {
+         		source = GetBestAliasAddressString(Setup.m_sourceAddress, H225_AliasAddress::e_h323_ID);
+			}
 
-			// Chop up source to get the h323_ID or dialedDigits
-			tokenised_source = source.Tokenise(PString(":"));
-
-			if (tokenised_source.GetSize() == 2) {
-				Toolkit::Instance()->GWRewriteE164(tokenised_source[0],true,Setup.m_destinationAddress);
-				in_rewrite_id = tokenised_source[0];
+            if (!source.IsEmpty()) {
+				Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
+                in_rewrite_id = source;
 			}
 
 		}
-
 
 		// Try lookup on neighbor list for rewrite source and perform another
 		source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(Setup.m_sourceCallSignalAddress);
@@ -1321,16 +1318,14 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		endptr rewriteEndPointOut = m_call->GetCalledParty();
 		if (rewriteEndPointOut) {
 			PString source;
-			PStringArray tokenised_source;
 
-			source = AsString(rewriteEndPointOut->GetAliases()[0]);
+			if(rewriteEndPointOut->GetAliases().GetSize() > 0 ) {
+		        source = GetBestAliasAddressString(rewriteEndPointOut->GetAliases(), H225_AliasAddress::e_h323_ID);
+			}
 
-			// Chop up source to get the h323_ID or dialedDigits
-			tokenised_source = source.Tokenise(PString(":"));
-
-			if (tokenised_source.GetSize() == 2) {
-				Toolkit::Instance()->GWRewriteE164(tokenised_source[0],false,Setup.m_destinationAddress);
-				out_rewrite_id = tokenised_source[0];
+			if (!source.IsEmpty()) {
+		        Toolkit::Instance()->GWRewriteE164(source,false,Setup.m_destinationAddress);
+			    out_rewrite_id = source;
 			}
 
 		}

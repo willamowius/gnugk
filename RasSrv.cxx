@@ -1625,17 +1625,18 @@ bool AdmissionRequestPDU::Process()
 	if (bHasDestInfo) { // apply rewriting rules
 
 		PString source;
-		PStringArray tokenised_source;
 
-		// Do inbound per GW rewriting first
-		source = AsString(RequestingEP->GetAliases()[0]);
-
-		// Chop up source to get the h323_ID or dialedDigits
-		tokenised_source = source.Tokenise(PString(":"));
-
-		if (tokenised_source.GetSize() == 2) {
-			Kit->GWRewriteE164(tokenised_source[0],true,request.m_destinationInfo[0]);
+		if(RequestingEP->GetAliases().GetSize() > 0) {
+			source = GetBestAliasAddressString(RequestingEP->GetAliases(), H225_AliasAddress::e_h323_ID);
 		}
+
+     	if(source.IsEmpty() && (request.m_srcInfo.GetSize() > 0)) {
+        	source = GetBestAliasAddressString(request.m_srcInfo, H225_AliasAddress::e_h323_ID);
+		}
+
+	 	if (!source.IsEmpty()) {
+	 		Kit->GWRewriteE164(source,true,request.m_destinationInfo[0]);
+        }
 
 		// Normal rewriting
 		Kit->RewriteE164(request.m_destinationInfo[0]);
@@ -1768,15 +1769,13 @@ bool AdmissionRequestPDU::Process()
 	// Per GW outbound rewrite
 	if (CalledEP && (RequestingEP != CalledEP)) {
 		PString source;
-		PStringArray tokenised_source;
 
-		source = AsString(CalledEP->GetAliases()[0]);
+		if(CalledEP->GetAliases().GetSize() > 0) {
+			source = GetBestAliasAddressString(CalledEP->GetAliases(), H225_AliasAddress::e_h323_ID);
+		}
 
-		// Chop up source to get the h323_ID or dialedDigits
-		tokenised_source = source.Tokenise(PString(":"));
-
-		if (tokenised_source.GetSize() == 2) {
-			Kit->GWRewriteE164(tokenised_source[0],false,request.m_destinationInfo[0]);
+		if (!source.IsEmpty()) {
+			Kit->GWRewriteE164(source,false,request.m_destinationInfo[0]);
 		}
 
 	}
