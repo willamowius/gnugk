@@ -326,7 +326,7 @@ PINDEX GkAuthorize::chkrule(const PString & orstr, const PString & src, REGEXMOD
 		re="^[ \\t]*" + orstr;
 		break;
 	default:
-		return FALSE;
+		return P_MAX_INDEX;
 	}
 
 	PINDEX rp;
