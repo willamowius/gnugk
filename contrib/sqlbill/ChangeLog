@@ -1,3 +1,6 @@
+1 Oct 2004 -- zvision
+  * fill voipcalltermtariff.tariffdesc field with correct tariff description
+
 26 Sep 2004 -- zvision
   * associate names with table constraints to allow further easy modifications
   * changed voiptariff multikey to contain the terminating column too

@@ -74,6 +74,8 @@ BEGIN
 		RETURN NEW;
 	END IF;
 
+	-- check if there exists a terminating tariff
+	
 	termuser.id := NULL;	
 	SELECT INTO termuser * FROM match_terminating_user(NEW.calledstationid, trfdst.exactmatch, NEW.calledstationip);
 	IF termuser.id IS NULL THEN
@@ -87,10 +89,10 @@ BEGIN
 	SELECT INTO trf * FROM match_terminating_tariff(trfdst.id, termaccount.id, termaccount.currencysym);
 	IF trf.id IS NOT NULL THEN
 		INSERT INTO voipcalltermtariff (callid, accountid, h323id, terminatingip,
-				cost, price, currencysym, initialincrement, regularincrement, graceperiod)
+				cost, price, currencysym, initialincrement, regularincrement, graceperiod, tariffdesc)
 			VALUES (NEW.id, termaccount.id, termuser.h323id, NEW.calledstationip,
 				0, trf.price, trf.currencysym, trf.initialincrement, trf.regularincrement,
-				trf.graceperiod);
+				trf.graceperiod, trf.description);
 	END IF;
 	RETURN NEW;
 END;
