@@ -1983,3 +1983,27 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 	PrintStatus(PString(PString::Printf, "RAC|%s;", inet_ntoa(m_msg->m_peerAddr)));
 	return true;
 }
+
+template<> bool RasPDU<H225_RegistrationReject>::Process()
+{
+	// OnRRJ
+	if ( request.HasOptionalField( H225_RegistrationReject::e_nonStandardData ) ) {
+		if ( request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard ) {
+			const H225_H221NonStandard & nonStandard = request.m_nonStandardData.m_nonStandardIdentifier;
+			// RRJ from alternateGKs
+			H225_EndpointIdentifier id;
+			id = request.m_nonStandardData.m_data.AsString();
+
+			if ( endptr ep = EndpointTbl->FindByEndpointId( id ) )  {
+				m_msg->m_replyRAS = ep->GetCompleteRegistrationRequest();
+				if (m_msg->m_replyRAS.GetTag() == H225_RasMessage::e_registrationRequest) {
+          				CopyNonStandardData(request, (H225_RegistrationRequest &)m_msg->m_replyRAS);
+					PTRACE(3, "RAS\tSending full RRQ to " << m_msg->m_peerAddr );
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
