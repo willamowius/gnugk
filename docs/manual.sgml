@@ -114,6 +114,9 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Obsolete auth modules MySQLAliasAuth and MySQLPasswordAuth are now removed.
+
+<item>
 SQL modules accept only one database host in the <tt/Host/ parameter.
 </itemize>
 
@@ -2515,7 +2518,6 @@ For <tt/SQLAliasAuth/, the pattern is retrieved from an SQL database,
 defined in <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
 For <tt/LDAPAliasAuth/ the alias (default: mail attribute) and IP
 (default: voIPIpAddress attribute) must be found in one LDAP entry.
-Support for <tt/MySQLAliasAuth/ is maintained for backward compatibility.
 
 <item><tt>PrefixAuth</tt>
 <p>
@@ -2688,64 +2690,6 @@ SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
 
 </itemize>
 
-<sect2>Section &lsqb;MySQLPasswordAuth&rsqb;
-<p>
-Define the MySQL database, table and fileds to retrieve the userid and password.
-This is obsolete, use <ref id="sqlpasswordauth" name="[SQLPasswordAuth]"> instead.
-
-<itemize>
-<item><tt/Host=localhost/<newline>
-Default: <tt/localhost/
-<p>
-Host name or IP of the MySQL server.
-
-<item><tt/Port=5353/<newline>
-Default: <tt/5353/
-<p>
-Port the MySQL server is listening on (if different for the default).
-
-<item><tt/Database=billing/<newline>
-Default: <tt/billing/
-<p>
-The database to connect.
-
-<item><tt/User=cwhuang/<newline>
-<item><tt/Password=123456/<newline>
-<p>
-The user name and password used to connect to the database.
-
-<item><tt/Table=customer/<newline>
-<p>
-The table in the database to query.
-
-<item><tt/KeyField=IPN/<newline>
-<p>
-A name for the column that contains user alias.
-
-<item><tt/DataField=Password/<newline>
-<p>
-A name for the column that contains user password.
-
-<item><tt/ExtraCriterion=Kind > 0/<newline>
-Default: <tt>N/A</tt>
-<p>
-Specify extra criterion.
-
-<item><tt/CacheTimeout=30/<newline>
-Default: <tt>0</tt>
-<p>
-Timeout value after username/password pairs cached in memory
-will be refreshed from the database. Default is to not cache
-passwords at all (CacheTimeout=0). -1 means the cache does not
-expire - it will be refreshed only when the gatekeeper is reloaded.
-
-</itemize>
-
-The SQL command will be issused:
-<tscreen><verb>
-SELECT $DataField FROM $Table WHERE $KeyField = %id [AND $ExtraCriterion]
-</verb></tscreen>
-
 <sect2>Section &lsqb;RasSrv::RRQAuth&rsqb;
 <label id="rrqauth">
 <p>
@@ -2867,66 +2811,6 @@ SELECT 'sigip:' || host(ip) || port FROM users WHERE alias = '%1'
 
 </itemize>
 
-<sect2>Section &lsqb;MySQLAliasAuth&rsqb;
-<label id="mysqlaliasauth">
-<p>
-Define the MySQL database, table and fileds to retrieve a pattern for an alias.
-This section is OBSOLETE and provided only for backward compatibility. Please
-use <ref id="sqlaliasauth" name="[SQLAliasAuth]"> instead.
-
-<itemize>
-<item><tt/Host=localhost/<newline>
-Default: <tt/localhost/
-<p>
-Host name or IP of the MySQL server.
-
-<item><tt/Port=5353/<newline>
-Default: <tt/5353/
-<p>
-Port the MySQL server is listening on (if different for the default).
-
-<item><tt/Database=billing/<newline>
-Default: <tt/billing/
-<p>
-The database to connect.
-
-<item><tt/User=cwhuang/<newline>
-<item><tt/Password=123456/<newline>
-<p>
-The user name and password used to connect to the database.
-
-<item><tt/Table=customer/<newline>
-<p>
-The table in the database to query.
-
-<item><tt/KeyField=alias/<newline>
-<p>
-A name for the column that contains user alias.
-
-<item><tt/DataField=IPADDR/<newline>
-<p>
-A name for the column that contains a AuthAlias rule. This can be an IP number or any other rule,
-see section <ref id="rrqauth" name="[RasSrv::RRQAuth]">..
-
-<item><tt/ExtraCriterion=Kind > 0/<newline>
-Default: <tt>N/A</tt>
-<p>
-Specify extra criterion.
-
-<item><tt/CacheTimeout=30/<newline>
-Default: <tt>0</tt>
-<p>
-Timeout value after username/password pairs cached in memory
-will be refreshed from the database. Default is to not cache
-passwords at all (CacheTimeout=0). -1 means the cache does not
-expire - it will be refreshed only when the gatekeeper is reloaded.
-
-</itemize>
-
-The SQL command will be issused:
-<tscreen><verb>
-SELECT $DataField FROM $Table WHERE $KeyField = %alias [AND $ExtraCriterion]
-</verb></tscreen>
 
 <sect2>Section &lsqb;PrefixAuth&rsqb;
 <label id="prefixauth">
