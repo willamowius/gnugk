@@ -76,7 +76,7 @@ DECLARE
 	accid ALIAS FOR $2;
 	curr ALIAS FOR $3;
 BEGIN
-	SELECT INTO trf NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL;
+	SELECT INTO trf NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL;
 	SELECT INTO dst NULL, NULL, NULL, NULL;
 	IF e164 IS NULL THEN
 		RETURN trf;
@@ -102,18 +102,21 @@ BEGIN
 	END IF;
 
 	SELECT INTO trf T.id, T.dstid, T.grpid, T.price, T.currencysym,
-			T.initialincrement, T.regularincrement, T.description
+			T.initialincrement, T.regularincrement, T.description, T.active
 		FROM voiptariff T JOIN voiptariffgrp G ON T.grpid = G.id 
 			JOIN voiptariffsel S ON G.id = S.grpid
 		WHERE dstid = dst.id AND currencysym = curr	AND S.accountid = accid
 		ORDER BY G.priority DESC
 		LIMIT 1;
 	IF FOUND AND trf.id IS NOT NULL THEN
+		IF NOT trf.active THEN
+			SELECT INTO trf NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL;
+		END IF;
 		RETURN trf;
 	END IF;
 	
 	SELECT INTO trf * FROM voiptariff 
-		WHERE dstid = dst.id AND currencysym = curr AND grpid IS NULL;
+		WHERE dstid = dst.id AND currencysym = curr AND grpid IS NULL AND active;
 	RETURN trf;
 END;
 ' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;

@@ -26,6 +26,8 @@ CREATE TABLE voiptariff (
 	graceperiod INT NOT NULL DEFAULT 0,
 	-- description
 	description TEXT NOT NULL DEFAULT '',
+	-- block a destination associated with this tariff
+	active BOOLEAN NO NULL DEFAULT TRUE,
 	
 	PRIMARY KEY (id),
 	FOREIGN KEY (dstid) REFERENCES voiptariffdst(id),

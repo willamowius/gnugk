@@ -1,3 +1,7 @@
+15 Aug 2004 -- zvision
+  * a new column 'active' in the voiptariff table to allow per user
+    blocking of destinations
+
 12 Aug 2004 -- zvision
   * added a new 'graceperiod' column to voiptariff and voipcall
 
