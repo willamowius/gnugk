@@ -72,8 +72,7 @@ void Toolkit::RouteTable::InitTable()
 	}
 
 	int i = r_table.GetSize();
-	rtable_begin = new RouteEntry[i];
-	rtable_end = rtable_begin; // workaround for Solaris
+	rtable_end = rtable_begin = new RouteEntry[i];
 	for (PINDEX r = 0; r < r_table.GetSize(); ++r) {
 		PIPSocket::RouteEntry & r_entry = r_table[r];
 		if (r_entry.GetNetMask() != INADDR_ANY)

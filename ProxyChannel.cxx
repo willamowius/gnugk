@@ -229,7 +229,7 @@ CallSignalSocket::~CallSignalSocket()
 	}
 }
 
-namespace { // end of anonymous namespace
+namespace { // anonymous namespace
 #if PTRACING
 void PrintQ931(int tlevel, const PString & msg, const Q931 *q931, const H225_H323_UserInformation *uuie)
 {
