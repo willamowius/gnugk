@@ -1,47 +1,51 @@
-<sect>Per-Endpoint Configuration
+<sect>Configuración Por-Terminal
 <label id="epconfig">
 <p>
-In addition to the standard configuration file options, per-endpoint configuration
-settings can be specified in the config file. The syntax is as follows:
+Para las opciones del fichero de configuración estándar, atributos de configuración 
+por terminal pueden ser especificados en el fichero de configuración. La sintaxis es
+como sigue:
 
-<sect1>Section &lsqb;EP::...&rsqb;
+<sect1>Sección &lsqb;EP::...&rsqb;
 <p>
 <tscreen><verb>
 [EP::ALIAS]
 Key Name=Value String
 </verb></tscreen>
 
-<tt/ALIAS/ is replaced with an actual alias for an endpoint the settings
-should apply to. Currently, the following options are recognized:
+<tt/ALIAS/ es reemplazado con un alias actual para un terminal para que la
+configuración sea aplicada. Actualmente, están reconocidas las siguientes
+opciones:
 
 <itemize>
 <item><tt/Capacity=10/<newline>
-Default: <tt/-1/
+Por defecto: <tt/-1/
 <p>
-Call capacity for an endpoint. No more than <tt/Capacity/ concurrent
-calls will be sent to this endpoint. In case of gateways, if more than one
-gateway matches a dialed number, a call will be sent to the first available
-gateway (that has available capacity).
+Capacidad de llamadas para un terminal. No más de <tt/Capacity/ llamadas 
+concurrentes serán enviadas a este terminal. En caso de puertas de enlace
+(gateways), si más de una puerta de enlace corresponde a un número marcado,
+la llamada será enviada a la primera puerta de enlace disponible (que tenga
+suficiente capacidad).
 
 <item><tt/GatewayPriority=1/<newline>
-Default: <tt/1/
+Por defecto: <tt/1/
 <p>
-Apply only to gateways. Allow priority based routing in case, when more
-than one gateway matches a dialed number. The smaller value the higher priority
-is assigned to a gateway. A call is routed to the first available gateway
-(that has available capacity) with the highest priority (the smallest
-<tt/GatewayPriority/ values).
+Aplicado solo a puertas de enlace (gateways). Permite la prioridad basada en
+casos de encaminado, cuando más de una puerta de enlace corresponde a un número
+marcado. El valor más pequeño es la prioridad más alta asignada a una puerta de
+enlace. Una llamada es encaminada a la primera puerta de enlace disponible
+(que tenga capacidad disponible) con la prioridad más alta (los valores más bajos
+en <tt/GatewayPriority/).
 
 <item><tt/GatewayPrefixes=0048,0049,0044/<newline>
-Default: <tt>N/A</tt>
+Por defecto: <tt>N/A</tt>
 <p>
-Additional prefixes for this gateway. Apply only to gateways. 
-Special characters <tt/./ and <tt/!/ can be used here to match any digit 
-and disable the prefix.
+Prefijos adicionales para esta puerta de enlace. Aplicado solo a puertas de enlace.
+Los caracteres especiales <tt/./ y <tt/!/ pueden ser usados aquí para la 
+correspondencia con cualquier dígito y desactivar el prefijo (respectivamente).
 
 </itemize>
 
-Example:
+Ejemplo:
 
 <tscreen><verb>
 [RasSrv::PermanentEndpoints]
@@ -57,6 +61,8 @@ Capacity=30
 GatewayPriority=2
 </verb></tscreen>
 
-In this example, calls will be sent to the gateway <tt/gw1/ until its
-capacity is fully utilized (60 concurrent calls) and then to the gateway <tt/gw2/.
+En este ejemplo, la llamada será enviada a la puerta de enlace <tt/gw1/ a menos que su
+capacidad esté completamente utilizada (60 llamadas concurrentes) y entonces pase a
+la puerta de enlace <tt/gw2/.
+
 
