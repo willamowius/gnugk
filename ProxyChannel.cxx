@@ -456,11 +456,12 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		}
 		Address fromIP;
 		GetPeerAddress(fromIP);
-		if (!RasThread->CheckNBIP(fromIP) && !(gkClient->IsRegistered() && gkClient->CheckGKIP(fromIP))) {
+		bool fromParent = (gkClient->IsRegistered() && gkClient->CheckGKIP(fromIP));
+		if (!fromParent && !RasThread->CheckNBIP(fromIP)) {
 			PTRACE(2, "Q931\tWarning: call " << callid << " not from my neighbor or parent");
 			return;
 		}
-		if (gkClient->IsRegistered())
+		if (fromParent)
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
 
 		endptr called;
@@ -487,7 +488,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		// TODO: set timeout
 		CallTable::Instance()->Insert(call);
 		m_call = callptr(call);
-		if (gkClient->IsRegistered()) {
+		if (fromParent) {
 			call->SetRegistered(true);
 			gkClient->SendARQ(Setup, m_crv, m_call);
 		}
