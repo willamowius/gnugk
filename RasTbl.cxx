@@ -1307,27 +1307,67 @@ static PString GetEPString(const endptr & ep)
 	return PString(" | ");
 }
 
-// for high resolution CDRs
+// for user defined CDRs
 static const char * const UseUTCinCDR = "UseUTCinCDR";
-static BOOL UseUTCinCDR_default = FALSE;
+static const BOOL UseUTCinCDR_default = FALSE;
 static const char * const UseCDRFormat = "UseCDRFormat";
+/*
+  Format description copied from pwlib/include/ptlib/ptime.h
+  martinf, Wed May  8 11:23:22 2002
+
+  \end{description}
+       \item[h]         hour without leading zero
+       \item[hh]        hour with leading zero
+       \item[m]         minute without leading zero
+       \item[mm]        minute with leading zero
+       \item[s]         second without leading zero
+       \item[ss]        second with leading zero
+       \item[u]         tenths of second
+       \item[uu]        hundedths of second with leading zero
+       \item[uuu]       millisecond with leading zeros
+       \item[uuuu]      microsecond with leading zeros
+       \item[a]         the am/pm string
+       \item[w/ww/www]  abbreviated day of week name
+       \item[wwww]      full day of week name
+       \item[d]         day of month without leading zero
+       \item[dd]        day of month with leading zero
+       \item[M]         month of year without leading zero
+       \item[MM]        month of year with leading zero
+       \item[MMM]       month of year as abbreviated text
+       \item[MMMM]      month of year as full text
+       \item[y/yy]      year without century
+       \item[yyy/yyyy]  year with century
+       \item[z]         the time zone description
+\end{description}
+ 
+All other characters are copied to the output string unchanged.
+       
+Note if there is an 'a' character in the string, the hour will be in 12
+hour format, otherwise in 24 hour format.
+ 
+This format applies to the following constant and analogical to the
+configuration file tag to which it is the default value.
+
+*/
 static const char * const UseCDRFormat_default = "wwwe, dd MMME yyyy hh:mm:ss z";
-static const PString & AsCDRTimeString(const PTime & t);
-static const PString & AsCDRTimeString(const PTime & t)
+static const PString AsCDRTimeString(const PTime & t);
+static const PString AsCDRTimeString(const PTime & t)
 {
 	const PString format(GkConfig()->GetString(UseCDRFormat,UseCDRFormat_default));
 	const int zone = (GkConfig()->GetBoolean(UseUTCinCDR,UseUTCinCDR_default) ? PTime::UTC : PTime::Local);
 
-	return t.AsString(format, zone);
+	return t.AsString((const char *)format, zone);
 }
 
 PString CallRec::GenerateCDR() const
 {
 	PString timeString;
+	PString startTimeStr;
+	PString endTimeStr;	
 	PTime endTime;
 	if (NULL != m_startTime) {
 		PTimeInterval callDuration = endTime - *m_startTime;
-		timeString = PString(PString::Printf, "%f.6|%s|%s",
+		timeString = PString(PString::Printf, "%.3f|%s|%s",
 				     (callDuration.GetMilliSeconds() / 1000.0),
 				     (const char *)AsCDRTimeString(*m_startTime),//->AsString(),
 				     (const char *)AsCDRTimeString(endTime)//.AsString()
