@@ -1,5 +1,7 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- BUGFIX(RasTbl.cxx) fixed NULL reference in CallRec::SetSocket - caused crash
+  in ForwardCall. Thanks to kubuqui cn!
 - check ReleaseComplete for H225 reason field, if no Q.931 cause IE is found
 - set disconnect cause to "normal call clearing" on DRQ received with normalDrop
   disengageReason and no termination cause set

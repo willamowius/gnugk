@@ -1153,13 +1153,14 @@ void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 {
 	PWaitAndSignal lock(m_sockLock); 
 	m_callingSocket = calling, m_calledSocket = called;
-	m_callerAddr = calling->GetName();
-	
-	if( !m_srcSignalAddress.IsValid() ) {
-		PIPSocket::Address addr(0);
-		WORD port = 0;
-		calling->GetPeerAddress(addr,port);
-		m_srcSignalAddress = SocketToH225TransportAddr(addr,port);
+	if( calling ) {
+		m_callerAddr = calling->GetName();
+		if( !m_srcSignalAddress.IsValid() ) {
+			PIPSocket::Address addr(0);
+			WORD port = 0;
+			calling->GetPeerAddress(addr,port);
+			m_srcSignalAddress = SocketToH225TransportAddr(addr,port);
+		}
 	}
 }
 
