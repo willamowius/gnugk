@@ -229,7 +229,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return NoData;
 
 	Q931 q931pdu;
-	q931pdu.Decode(buffer);
+	if (!q931pdu.Decode(buffer)) {
+		PTRACE(4, "Q931\t" << Name() << " ERROR DECODING Q.931!");
+		return Error;
+	}
 
 	PTRACE(3, "Q931\t" << Name() << " Message type: " << q931pdu.GetMessageTypeName());
 	PTRACE(4, "Q931\t" << Name() << " Call reference: " << q931pdu.GetCallReference());
@@ -423,11 +426,38 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		PTRACE(1, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
 		return;
 	}
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+		for (PINDEX n = 0; n < Setup.m_destinationAddress.GetSize(); ++n)
+			Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress[n]);
 	m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
 	if (!m_call) {
-		PTRACE(3, "Q931\tOnSetup() didn't find the call: " << AsString(Setup.m_callIdentifier.m_guid));
-		return;
+		PString callid(AsString(Setup.m_callIdentifier.m_guid));
+		if (!RasThread->AcceptUnregisteredCalls()) {
+			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
+			return;
+		}
+		if (!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+			PTRACE(3, "Q931\tNo destination address for the unregistered call " << callid);
+			return;
+		}
+		endptr called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
+		if (!called) {
+			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
+			return;
+		}
+
+		// TODO: check the Setup_UUIE by gkauth modules
+
+		PString destinationString(AsString(Setup.m_destinationAddress));
+		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
+		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0);
+		call->SetCalled(called, m_crv);
+		call->SetH245Routed(RasThread->IsGKRoutedH245());
+		// TODO: set timeout
+		CallTable::Instance()->Insert(call);
+		m_call = callptr(call);
 	}
+
 	const H225_TransportAddress *addr = m_call->GetCalledAddress();
 	if (!addr || addr->GetTag() != H225_TransportAddress::e_ipAddress)
 		return;
@@ -445,10 +475,6 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
 		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-
-	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
-		for (PINDEX n = 0; n < Setup.m_destinationAddress.GetSize(); ++n)
-			Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress[n]);
 
 	// to compliance to MediaRing VR, we have to setup our H323ID
 	PString H323ID = GkConfig()->GetString("H323ID");
@@ -604,7 +630,10 @@ void CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 //	for(PINDEX i = sz; i-- > 0; ) {
 		PPER_Stream strm = fastStart[i].GetValue();
 		H245_OpenLogicalChannel olc;
-		olc.Decode(strm);
+		if (!olc.Decode(strm)) {
+			PTRACE(4, "Q931\t" << Name() << " ERROR DECODING FAST START ELEMENT " << i);
+			return;
+		}
 		PTRACE(6, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
 		H245Handler::pMem handlefs = (fromCaller) ? &H245Handler::HandleFastStartSetup : &H245Handler::HandleFastStartResponse;
 		if ((m_h245handler->*handlefs)(olc)) {
@@ -645,7 +674,10 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 bool H245Handler::HandleMesg(PPER_Stream & mesg)
 {
 	H245_MultimediaSystemControlMessage h245msg;
-	h245msg.Decode(mesg);
+	if (!h245msg.Decode(mesg)) {
+		PTRACE(4, "H245\tERROR DECODING H.245");
+		return false;
+	}
 	PTRACE(6, ANSI::BYEL << "H245\nMessage received: " << setprecision(2) << h245msg << ANSI::OFF);
 
 	bool changed = false;
@@ -932,8 +964,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	buflen = GetLastReadCount();
 	// Workaround: some bad endpoints don't send packets from the specified port
 	if (fromIP == rSrcIP && (fromPort == rSrcPort || abs(fromPort - rSrcPort) == 2))
+	//	PTRACE(5, "UDP\tfrom " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort),
 		SetSendAddress(rDestIP, rDestPort);
 	else
+	//	PTRACE(5, "UDP\tfrom " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort),
 		SetSendAddress(fDestIP, fDestPort);
 	return Forwarding;
 }

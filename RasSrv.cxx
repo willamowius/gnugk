@@ -342,6 +342,8 @@ void H323RasSrv::LoadConfig()
 {
 	PWaitAndSignal lock(loadLock);
 
+	AcceptUnregCalls = Toolkit::AsBool(GkConfig()->GetString("AcceptUnregisteredCalls", "0"));
+
 	// add authenticators
 	delete authList;
 	authList = new GkAuthenticatorList(GkConfig());
@@ -1056,20 +1058,13 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	if (bReject)
 	{
 		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
-
-		PString destinationInfoString;
-		if (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-			destinationInfoString = AsString(obj_arq.m_destinationInfo);
-		else
-			destinationInfoString = " ";
-
 		PString msg(PString::Printf, "ARJ|%s|%s|%s|%s|%s;\r\n", 
 			    (const unsigned char *) srcInfoString,
 			    (const unsigned char *) destinationInfoString,
 			    (const unsigned char *) AsString(obj_arq.m_srcInfo),
 			    (obj_arq.m_answerCall) ? "true" : "false",
 			    (const unsigned char *) arj.m_rejectReason.GetTagName() );
-		PTRACE(2,msg);
+		PTRACE(2, msg);
 		GkStatusThread->SignalStatus(msg);
 	}   
 	else
@@ -1092,7 +1087,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			if (obj_arq.m_answerCall) // the second ARQ
 				pExistingCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
 			// else this may be a duplicate ARQ, ignore!
-			PTRACE(3, "Gk\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
+			PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
 		} else {
 			// the call is not in the table		
 			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, 
@@ -1440,13 +1435,11 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		lcf.m_nonStandardData = obj_lrq.m_nonStandardData;
 
 		WantedEndPoint->BuildLCF(obj_rpl);
-
-		PString sourceInfoString;
-		if (obj_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) {
-			sourceInfoString = AsString(obj_lrq.m_sourceInfo);
+		if (GKRoutedSignaling && AcceptUnregCalls) {
+			lcf.m_callSignalAddress = GetCallSignalAddress(rx_addr);
+			lcf.m_rasAddress = GetRasAddress(rx_addr);
 		}
-		else
-			sourceInfoString = " ";
+		PString sourceInfoString((obj_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(obj_lrq.m_sourceInfo) : PString(" "));
 
 		msg = PString(PString::Printf, "LCF|%s|%s|%s|%s;\r\n", 
 			     inet_ntoa(rx_addr),

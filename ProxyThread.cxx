@@ -220,7 +220,7 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 
 BOOL TCPProxySocket::Connect(const Address & addr)
 {
-//	SetReadTimeout(PTimeInterval(5000));
+	SetReadTimeout(PTimeInterval(6000)); // TODO: read from config...
 	BOOL result = PTCPSocket::Connect(addr);
 	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,

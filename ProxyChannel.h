@@ -156,7 +156,7 @@ protected:
 	}
 	template<class UUIE> void HandleFastStart(UUIE & uu, bool fromCaller)
 	{
-		if (uu.HasOptionalField(UUIE::e_fastStart))
+		if (m_h245handler && uu.HasOptionalField(UUIE::e_fastStart))
 			OnFastStart(uu.m_fastStart, fromCaller);
 	}
 

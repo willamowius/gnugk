@@ -19,6 +19,7 @@ Name=OpenH323GK
 # overwritten from command line parameter
 #Home=195.71.129.69
 #TimeToLive=600
+AcceptUnregisteredCalls=1
 
 [RoutedMode]
 GKRouted=1
@@ -27,8 +28,18 @@ CallSignalPort=1721
 CallSignalHandlerNumber=1
 
 [Proxy]
-Enable=1
-InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
+#Enable=1
+#InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
+
+[Endpoint]
+#Gatekeeper=auto
+#Gatekeeper=210.58.112.188
+#Type=Gateway
+#H323ID=CitronProxy
+#E164=18888600000
+#Password=
+#Prefix=18888600,1888890003
+#TimeToLive=900
 
 [Failover]
 ## Give a list of IP4-Addresses to forward the RRQ to that this

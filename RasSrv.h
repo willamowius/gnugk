@@ -86,6 +86,9 @@ public:
 	void SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Address & rx_addr, WORD rx_port, PUDPSocket & BoundSocket);
 
 	bool Check();
+	bool IsGKRouted() const { return GKRoutedSignaling; }
+	bool IsGKRoutedH245() const { return GKRoutedH245; }
+	bool AcceptUnregisteredCalls() const { return AcceptUnregCalls; }
 
 	void LoadConfig();
 
@@ -109,7 +112,7 @@ protected:
 	void ProcessARQ(PIPSocket::Address rx_addr, const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl, BOOL bReject = FALSE);
 
 private:
-	bool GKRoutedSignaling, GKRoutedH245;
+	bool GKRoutedSignaling, GKRoutedH245, AcceptUnregCalls;
 	WORD GKRasPort, GKCallSigPort;
         
 	PIPSocket::Address GKHome;
