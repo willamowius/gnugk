@@ -1,3 +1,8 @@
+Changes from 1.2 to now (by cwhuang)
+====================================
+- rotate log on SIGHUP signal
+- write pid to /var/run/gk.pid (can be specified by --pid option)
+
 Changes from 1.1 to 1.2 (by cwhuang)
 ====================================
 - add MySQLPasswordAuth, need mysql++ to compile it

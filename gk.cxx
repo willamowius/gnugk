@@ -48,6 +48,14 @@ BroadcastListen * BroadcastThread = NULL;
 PMutex ShutdownMutex;
 PMutex ReloadMutex;
 
+#ifndef WIN32
+PString pidfile("/var/run/gk.pid");
+#endif
+#ifdef PTRACING
+PTextFile *logfile = 0;
+PString logfilename;
+#endif
+
 bool ExitFlag = false;
 
 
@@ -97,8 +105,33 @@ void ShutdownHandler(void)
         // delete CallTable::Instance();
         delete Toolkit::Instance();
 
+#ifdef PTRACING
+	PTrace::SetStream(&cerr); // redirect to cerr
+	delete logfile;
+#endif
 	return;
 }
+
+#ifdef PTRACING
+void ReopenLogFile()
+{
+	if (!logfilename) {
+		PTRACE(1, "GK\tLogging closed.");
+		PTrace::SetStream(&cerr); // redirect to cerr
+		delete logfile;
+		logfile = new PTextFile(logfilename, PFile::WriteOnly, PFile::Create | PFile::Truncate);
+		if (!logfile->IsOpen()) {
+			cout << "Warning: could not open trace output file \""
+				<< logfilename << '"' << endl;
+			delete logfile;
+			logfile = 0;
+			return;
+		}
+		PTrace::SetStream(logfile); // redirect to logfile
+	}
+	PTRACE(1, "GK\tTrace logging started.");
+}
+#endif
 
 } // end of anonymous namespace
 
@@ -159,11 +192,15 @@ void UnixShutdownHandler(int sig)
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
 	ExitFlag = true;
+	PFile::Remove(pidfile);
 }
 
 void UnixReloadHandler(int sig) // For HUP Signal
 {
 	PTRACE(1, "GK\tGatekeeper Hangup (signal " << sig << ")");
+#ifdef PTRACING
+	ReopenLogFile();
+#endif
 	ReloadHandler();
 }
 
@@ -195,6 +232,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "l-timetolive:"
 		 "c-configfile:"
 		 "s-section:"
+		 "-pid:"
 		 "h-help:"
 		 );
 }
@@ -217,6 +255,12 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 	sa.sa_handler = UnixReloadHandler;
 
 	sigaction(SIGHUP, &sa, NULL);
+
+	if (args.HasOption("pid"))
+		pidfile = args.GetOptionString("pid");
+	PTextFile pid;
+	pid.Open(pidfile, PFile::WriteOnly);
+	pid.WriteLine(PString(PString::Unsigned, getpid()));
 #endif
 	return TRUE;
 }
@@ -230,18 +274,10 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 	//PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel | PTrace::Thread);
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel);
 	PTrace::SetLevel(args.GetOptionCount('t'));
-	if (args.HasOption('o'))
-	{
-		static PTextFile output;
-		if (output.Open(args.GetOptionString('o'), PFile::WriteOnly))
-			PTrace::SetStream(&output);
-		else
-		{
-			cout << "Warning: could not open trace output file \""
-				<< args.GetOptionString('o') << '"' << endl;
-		}
+	if (args.HasOption('o')) {
+		logfilename = args.GetOptionString('o');
+		ReopenLogFile();
 	}
-	PTRACE(1, "GK\tTrace logging started.");
 #endif
 	
 	return TRUE;
@@ -260,7 +296,7 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 {
 	// get the name of the config file
 	PFilePath fp("gatekeeper.ini");
-	PString   section("Gatekeeper::Main");
+	PString section("Gatekeeper::Main");
 
 	if (args.HasOption('c')) 
 		fp = PFilePath(args.GetOptionString('c'));
@@ -335,7 +371,7 @@ void Gatekeeper::Main()
 
 	// read gatekeeper home address from commandline
 	if (args.HasOption('i'))
-		GKHome = PString(args.GetOptionString('i'));
+		GKHome = args.GetOptionString('i');
 	else {
 		PString s = GkConfig()->GetString("Home", "x");
 		if (s == "x")
@@ -367,13 +403,13 @@ void Gatekeeper::Main()
 
 	// read capacity from commandline
 	if (args.HasOption('b'))
-		GKcapacity = atoi(args.GetOptionString('b'));
+		GKcapacity = args.GetOptionString('b').AsInteger();
 	PTRACE(2, "GK\tAvailable Bandwidth: " << GKcapacity);
 	resourceManager::Instance()->SetBandWidth(GKcapacity);
 
 	// read timeToLive from command line
 	if (args.HasOption('l'))
-		SoftPBX::TimeToLive = atoi(args.GetOptionString('l'));
+		SoftPBX::TimeToLive = args.GetOptionString('l').AsInteger();
 	PTRACE(2, "GK\tTimeToLive for Registrations: " << SoftPBX::TimeToLive);
   
 	RasThread = new H323RasSrv(GKHome);

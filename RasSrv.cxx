@@ -246,10 +246,7 @@ NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m
 	if (!PIPSocket::GetHostAddress(ipAddr.Left(p), m_ip))
 		throw InvalidNeighbor();
 	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
-	if (cfg.GetSize() > 1)
-		m_prefix = cfg[1];
-	else
-		m_prefix = "*";
+	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : PString("*");
 	if (cfg.GetSize() > 2)
 		m_password = cfg[2];
 	PTRACE(1, "Add neighbor " << m_gkid << '(' << m_ip << ':' << m_port << ") for prefix " << m_prefix);
@@ -646,6 +643,11 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 
+	// Check if the endpoint has specified the EndpointIdentifier.
+	// The GK will accept the EndpointIdentifier if
+	// the EndpointIdentifier doesn't exist in the RegistrationTable,
+	// or the request is sent from the original endpoint that has
+	// this EndpointIdentifier. Otherwise the request will be rejected.
 	if (!bReject && obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
 		endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 		if (ep && ep->GetCallSignalAddress() != SignalAdr) {
@@ -1361,7 +1363,6 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 { 
 	const H225_LocationRequest & obj_lrq = obj_rr;
 
-	// only search registered endpoints
 	endptr WantedEndPoint;
 
 	PString msg;
@@ -1369,9 +1370,11 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	// TODO: we should really send the reply to the reply address
 	//       we should modify the rx_addr
 
+	Toolkit::Instance()->RewriteE164(obj_lrq.m_destinationInfo[0]);
 	unsigned rsn;
-	if (authList->Check(obj_lrq, rsn) && (WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false)))
-	{
+	if (authList->Check(obj_lrq, rsn) &&
+		// only search registered endpoints
+		(WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false))) {
 		// Alias found
 		obj_rpl.SetTag(H225_RasMessage::e_locationConfirm);
 		H225_LocationConfirm & lcf = obj_rpl;
