@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/09/12 16:31:16  zvision
+ * Accounting initially added to the 2.2 branch
+ *
  * Revision 1.1.2.1  2003/06/19 15:36:04  zvision
  * Initial generic accounting support for GNU GK.
  *
@@ -36,6 +39,8 @@ using std::list;
 
 /// Name of the config file section for accounting configuration
 const char* GkAcctSectionName = "Gatekeeper::Acct";
+
+
 
 PString GkAcctLogger::AsString(
 	const PTime& tm
@@ -95,38 +100,40 @@ PString GkAcctLogger::AsString(
 }
 
 GkAcctLogger::GkAcctLogger(
-	const char* moduleName
+	const char* moduleName,
+	const char* cfgSecName
 	) 
 	: 
-	controlFlag(Sufficient),
+	controlFlag(Required),
 	defaultStatus(Fail),
-	eventMask(AcctAll)
+	enabledEvents(AcctAll),
+	supportedEvents(AcctNone),
+	configSectionName(cfgSecName)
 {
 	config = GkConfig();
 	SetName(moduleName);
-	
+	if( configSectionName.IsEmpty() )
+		configSectionName = moduleName;
+		
 	const PStringArray control( 
 		config->GetString( GkAcctSectionName, moduleName, "" ).Tokenise(";,")
 		);
 
 	if( control.GetSize() < 1 )
 		PTRACE(1,"GKACCT\tEmpty config entry for module "<<moduleName);
-	else if( strcmp(moduleName,"default") == 0 ) {
-		controlFlag = Sufficient,
-		defaultStatus = Toolkit::AsBool(control[0]) ? Ok : Fail;
-	} else if (control[0] *= "optional") {
+	else if (control[0] *= "optional") {
 		controlFlag = Optional;
 		defaultStatus = Next;
-	} else if (control[0] *= "required") {
-		controlFlag = Required;
-		defaultStatus = Fail;
+	} else if (control[0] *= "sufficient") {
+		controlFlag = Sufficient;
+		defaultStatus = Next;
 	}
 	
 	if( control.GetSize() > 1 )
-		eventMask = ReadEventMask(control);
+		enabledEvents = GetEvents(control);
 	
 	PTRACE(1,"GKACCT\tCreated module "<<moduleName<<" with event mask "
-		<<PString(PString::Unsigned,(long)eventMask,16)
+		<<PString(PString::Unsigned,(long)enabledEvents,16)
 		);
 }
 
@@ -135,7 +142,7 @@ GkAcctLogger::~GkAcctLogger()
 	PTRACE(1,"GKACCT\tDestroyed module "<<GetName());
 }
 
-int GkAcctLogger::ReadEventMask(
+int GkAcctLogger::GetEvents(
 	const PStringArray& tokens
 	) const
 {
@@ -163,7 +170,8 @@ GkAcctLogger::Status GkAcctLogger::Log(
 	callptr& call /// additional data for the event
 	)
 {
-	return defaultStatus;
+	return (evt & enabledEvents & supportedEvents) 
+		? defaultStatus : ((controlFlag == Sufficient) ? Next : Ok);
 }
 
 bool GkAcctLogger::LogAcctEvent( 
@@ -173,25 +181,145 @@ bool GkAcctLogger::LogAcctEvent(
 {
 	Status result;
 	
-	if( eventMask & evt ) {
+	if( evt & enabledEvents & supportedEvents ) {
 		result = Log(evt,call);
 		if( result == Ok ) {
 			PTRACE(4,"GKACCT\t"<<GetName()<<" logged event "
 				<<PString(PString::Unsigned,(long)evt,16));
 			if( controlFlag == Sufficient )
 				return true;
-		} else if( result == Fail || (result == Next && controlFlag != Optional) )
+		} else if( result == Fail || (result == Next && controlFlag == Required) )
 			PTRACE(2,"GKACCT\t"<<GetName()<<" failed to log event "
 				<<PString(PString::Unsigned,(long)evt,16));
 	} else
-		result = Ok;
+		result = ((controlFlag == Sufficient) ? Next : Ok);
 		
 	if( m_next && !m_next->LogAcctEvent(evt,call) )
 		return false;
 		
-	return result == Ok || (result == Next && controlFlag == Optional); 
+	return result == Ok || (result == Next && controlFlag != Required); 
 }
 
+
+FileAcct::FileAcct( 
+	const char* moduleName,
+	const char* cfgSecName
+	)
+	:
+	GkAcctLogger( moduleName, cfgSecName ),
+	cdrFile(NULL)
+{
+	SetSupportedEvents( FileAcctEvents );	
+	
+	cdrFilename = GetConfig()->GetString(GetConfigSectionName(),"DetailFile","");
+	rotateCdrFile = Toolkit::AsBool(GetConfig()->GetString(
+		GetConfigSectionName(),"Rotate","0"
+		));
+
+	Rotate();
+}
+
+FileAcct::~FileAcct()
+{
+	PWaitAndSignal lock(cdrFileMutex);
+	if( cdrFile ) {
+		cdrFile->Close();
+		delete cdrFile;
+	}
+}
+
+GkAcctLogger::Status FileAcct::Log(
+	GkAcctLogger::AcctEvent evt, 
+	callptr& call
+	)
+{
+	if( (evt & GetEnabledEvents() & GetSupportedEvents()) == 0 )
+		return (GetControlFlag() == Sufficient) ? Next : Ok;
+		
+	if( (evt & (AcctStart|AcctUpdate|AcctStop)) && (!call) ) {
+		PTRACE(1,"GKACCT\t"<<GetName()<<" log event "<<evt
+			<<((GetDefaultStatus() == Fail)?" failed":" skipped")
+			<<" - missing call info"
+			);
+		return GetDefaultStatus();
+	}
+	
+	PString cdrString;
+	
+	if( !GetCDRText(cdrString,evt,call) ) {
+		PTRACE(2,"GKACCT\t"<<GetName()<<" log event "<<evt
+			<<((GetDefaultStatus() == Fail)?" failed":" skipped")
+			<<" - unable to get CDR text"
+			);
+		return GetDefaultStatus();
+	}
+	
+	PTRACE(5,"GKACCT\t"<<GetName()<<" CDR event "<<evt<<" text: "<<cdrString);
+
+	PWaitAndSignal lock(cdrFileMutex);
+	
+	if( cdrFile && cdrFile->IsOpen() ) {
+		if( cdrFile->WriteLine(PString(cdrString)) )
+			return Ok;
+		else
+			PTRACE(1,"GKACCT\t"<<GetName()<<" write CDR text failed - "
+				<<cdrFile->GetErrorText()
+				);
+	} else
+		PTRACE(5,"GKACCT\t"<<GetName()<<" CDR file is closed - log failed");
+		
+	return GetDefaultStatus();
+}
+
+bool FileAcct::GetCDRText(
+	PString& cdrString,
+	AcctEvent evt,
+	callptr& call
+	)
+{
+	if( (evt & AcctStop) && call ) {
+		cdrString = call->GenerateCDR();
+		return !cdrString.IsEmpty();
+	}
+	
+	return false;	
+}
+
+void FileAcct::Rotate()
+{
+	PWaitAndSignal lock(cdrFileMutex);
+
+	if( cdrFile ) {
+		if( cdrFile->IsOpen() )
+			if( rotateCdrFile )
+				cdrFile->Close();
+			else
+				return;
+		delete cdrFile;
+		cdrFile = NULL;
+	}
+	
+	const PFilePath fn = cdrFilename;
+	
+	if( rotateCdrFile && PFile::Exists(fn) )
+		if( !PFile::Rename(fn,fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss")) )
+			PTRACE(1,"GKACCT\t"<<GetName()<<" rotate failed - could not rename"
+				" the log file: "<<cdrFile->GetErrorText()
+				);
+	
+	cdrFile = new PTextFile(fn,PFile::WriteOnly, PFile::Create | PFile::DenySharedWrite);
+	if (!cdrFile->IsOpen()) {
+   	    PTRACE(1,"GKACCT\t"<<GetName()<<" could not open file"
+			" required for plain text accounting \""
+			<<fn<<"\" :"<<cdrFile->GetErrorText()
+			);
+		delete cdrFile;
+		cdrFile = NULL;
+	    return;
+	}
+	cdrFile->SetPermissions(PFileInfo::UserRead|PFileInfo::UserWrite);
+	cdrFile->SetPosition(cdrFile->GetLength());
+}
 
 GkAcctLoggerList::GkAcctLoggerList()
 	:
@@ -218,4 +346,5 @@ void GkAcctLoggerList::OnReload()
 
 namespace {
 	GkAcctLoggerCreator<GkAcctLogger> DefaultAcctLoggerCreator("default");
+	GkAcctLoggerCreator<FileAcct> FileAcctLoggerCreator("FileAcct");
 }

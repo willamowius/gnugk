@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/09/12 16:31:16  zvision
+ * Accounting initially added to the 2.2 branch
+ *
  * Revision 1.1.2.1  2003/06/19 15:36:04  zvision
  * Initial generic accounting support for GNU GK.
  *
@@ -36,15 +39,14 @@ public:
 	enum Control 
 	{
 		/// if cannot log an accounting event
-		/// silently ignore the module and process remaining acct modules
+		/// ignore the module and process remaining acct modules
 		Optional, 
 		/// if cannot log an accounting event do not allow futher 
 		/// call processing (e.g. call should not be connected, etc.)
 		/// always process remaining acct modules
 		Required,
 		/// if cannot log an accounting event
-		/// stop processing and do not allow futher call progress
-		/// (e.g. call should not be connected, etc.)
+		/// ignore the module and process remaining acct modules
 		/// if the event has been logged, do not process remaining acct modules
 		Sufficient
 	};
@@ -65,14 +67,17 @@ public:
 		AcctUpdate = 0x0004, /// interim update
 		AcctOn = 0x0008, /// accounting enabled (GK start)
 		AcctOff = 0x0010, /// accounting disabled (GK stop)
-		AcctAll = 0xffff,
+		AcctAll = -1,
 		AcctNone = 0
 	};
 	
 	/// Construct new accounting logger object.
 	GkAcctLogger(
 		/// module name (should be unique among different module types)
-		const char* moduleName
+		const char* moduleName,
+		/// name for a config section with logger settings
+		/// pass NULL to use the moduleName as the section name
+		const char* cfgSecName = NULL
 		);
 		
 	virtual ~GkAcctLogger();
@@ -87,8 +92,13 @@ public:
 		Flags signalling which accounting events (see #AcctEvent enum#)
 		should be logged. The flags are ORed.
 	*/
-	int GetEventMask() const { return eventMask; }
-	
+	int GetEnabledEvents() const { return enabledEvents; }
+
+	/** @return
+		All events supported by the module ORed together.
+	*/
+	int GetSupportedEvents() const { return supportedEvents; }
+
 	/** Log an accounting event with this logger and loggers
 		that following this one on the list.
 	
@@ -132,13 +142,30 @@ protected:
 	*/
 	PConfig* GetConfig() const { return config; }
 	
-	/** Read an event mask (ORed #AccEvent enum# constants) 
-		from the passed tokens.
+	/** @return
+		A name of the config file section with settings for the logger module.
+	*/
+	const PString& GetConfigSectionName() const { return configSectionName; }
+
+	/** Set which accounting events should be processed by this module.
+		It is important to call this from derived module constructor
+		to set which accounting events are recognized by this module.
+	*/
+	void SetSupportedEvents(
+		const int events
+		)
+	{
+		supportedEvents = events;
+	}
+		
+	/** Read a list of events to be logged (ORed #AccEvent enum# constants) 
+		from the passed tokens. Override this method if new event types
+		are being introduced in derived loggers, then invokde it from constructor.
 	
 		@return
 		Resulting event mask.
 	*/
-	virtual int ReadEventMask( 
+	int GetEvents( 
 		const PStringArray& tokens /// event names (start from index 1)
 		) const;
 
@@ -162,11 +189,81 @@ private:
 	/// default processing status (see #Status enum#)
 	Status defaultStatus;
 	/// ORed #AcctEvent enum# constants - define which events are logged
-	int eventMask;
+	int enabledEvents;
+	/// all supported (recongized) event types ORed together
+	int supportedEvents;
 	/// module settings
 	PConfig* config;
+	/// name for the config section with logger settings
+	PString configSectionName;
 };
 
+/**
+	Plain text file accounting module for GNU Gatekeeper.
+	Based on source source code from Tamas Jalsovszky
+		Copyright (c) 2003, eWorld Com, Tamas Jalsovszky
+*/
+class FileAcct : public GkAcctLogger
+{
+public:
+	enum Constants
+	{
+		/// events recognized by this module
+		FileAcctEvents = AcctStop
+	};
+	
+	/** Create GkAcctLogger for plain text file accounting
+	*/
+	FileAcct( 
+		/// name from Gatekeeper::Acct section
+		const char* moduleName,
+		/// name for a config section with logger settings
+		/// pass NULL to use the moduleName as the section name
+		const char* cfgSecName = NULL
+		);
+		
+	/// Destroy the accounting logger
+	virtual ~FileAcct();
+
+	/** Rotate the detail file, saving old file contents to a different
+		file and starting with a new one.
+	*/
+	void Rotate();
+	
+protected:
+	virtual Status Log(
+		AcctEvent evt,
+		callptr& call
+		);
+		
+	/** Called to get CDR text to be stored in the CDR file.
+		Can be overriden to provide custom CDR text.
+		
+		@return
+		true if the text is available, false otherwise
+	*/
+	virtual bool GetCDRText(
+		PString& cdrString, /// PString for the resulting CDR line
+		AcctEvent evt, /// accounting event being processed
+		callptr& call /// call associated with this request (if any)
+		);
+
+private:
+	/* No copy constructor allowed */
+	FileAcct( const FileAcct& );
+	/* No operator= allowed */
+	FileAcct& operator=( const FileAcct& );
+	
+private:
+	/// Plain text file name
+	PString cdrFilename;
+	/// false to append cdr data, true to rotate cdr files
+	bool rotateCdrFile;
+	/// File object
+	PTextFile *cdrFile;
+	/// for mutual file access
+	PMutex cdrFileMutex;
+};
 
 /// Factory for instances of GkAcctLogger-derived classes
 template<class Acct>
