@@ -421,6 +421,7 @@ CallProfile::debugPrint(void)  const
 	PTRACE(5, ANSI::GRE << "  TreatCalledPartyNumberAs=" << TreatCalledPartyNumberAs() << ANSI::OFF);
 	PTRACE(5, ANSI::GRE << "  BlackList=" << GetBlackList() << ANSI::OFF);
 	PTRACE(5, ANSI::GRE << "  WhiteList=" << GetWhiteList() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  MinPrefix=" << GetMinPrefixLen() << ANSI::OFF);
 }
 
 CallProfile::CallProfile() : m_PrependCallbackAC(FALSE),
