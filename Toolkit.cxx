@@ -527,30 +527,6 @@ Toolkit::GKName()
 }
 
 
-
-// a int to print
-#ifdef P_PTHREADS
-#define PTHREADS_MARK_STRING "1"
-#else
-#define PTHREADS_MARK_STRING "0"
-#endif
-
-const PString
-Toolkit::GKVersion()
-{
-	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(pthreads="
-		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)",
-		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
-		       (const unsigned char*)(PProcess::Current().GetVersion(TRUE)),
-		       __DATE__, __TIME__,
-		       (const unsigned char*)(PProcess::GetOSName()),
-		       (const unsigned char*)(PProcess::GetOSHardware()),
-		       (const unsigned char*)(PProcess::GetOSVersion())
-		);
-}
-
-
 int
 Toolkit::GetInternalExtensionCode( const unsigned &country,
 				   const unsigned &extension,

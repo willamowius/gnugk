@@ -31,31 +31,31 @@
 */
 
 #ifndef GNUGK_VERSION_H
-#define GNUGK_VERSION_H
+#define GNUGK_VERSION_H "@(#) $Id$"
 
 /* Major version number of the gatekeeper */
 #ifndef MAJOR_VERSION
-#define MAJOR_VERSION 2
+# define MAJOR_VERSION 2
 #endif
 
 /* Minor version number of the gatekeeper */
 #ifndef MINOR_VERSION
-#define MINOR_VERSION 1
+# define MINOR_VERSION 1
 #endif
 
 /* Release status for the gatekeeper */
 #ifndef BUILD_TYPE
 /* might be: AlphaCode, BetaCode, ReleaseCode */
-#define BUILD_TYPE BetaCode
+# define BUILD_TYPE BetaCode
 /* Set this Macro if Release Code */
-#ifdef RELEASE_CODE
-# undef RELEASE_CODE
-#endif
+# ifdef RELEASE_CODE
+#  undef RELEASE_CODE
+# endif
 #endif
 
 /* Build number of the gatekeeper */
 #ifndef BUILD_NUMBER
-#define BUILD_NUMBER 27
+# define BUILD_NUMBER 27
 #endif
 
 #endif  /* GNUGK_VERSION_H */
