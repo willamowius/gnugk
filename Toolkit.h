@@ -32,6 +32,7 @@
 #pragma warning( disable : 4800 )
 #endif
 
+/// Helpfull definitions for platform independence
 #if !defined(GK_LINEBRK)
 #  if defined(WIN32)
 #    define GK_LINEBRK "\r\n"
@@ -39,6 +40,10 @@
 #    define GK_LINEBRK "\n"
 #  endif
 #endif
+
+/// mangle symbols to strings
+#define QUOTE(a) #a
+
 
 ///////////////////////// Profiles for storing Data from Database calls
 class CallProfile;
