@@ -642,7 +642,7 @@ protected:
 		}
 
 	virtual int getDestination(const H225_AliasAddress &, list<EndpointRec *> & EPList,
-                                   PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
+                                   PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason)
 		{
 			PAssert(cgEP, "Cannot get List without CalledEndpoint");
 			BOOL found=FALSE;
@@ -721,7 +721,7 @@ protected:
 		}
 
 	virtual int getDestination(const H225_AliasAddress &a, list<EndpointRec *> & EPList,
-                                   PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
+                                   PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason)
 		{
 			PAssert(cgEP, "Cannot get List without CalledEndpoint");
 			BOOL found=FALSE;
