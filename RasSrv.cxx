@@ -37,6 +37,8 @@
 #include "RasSrv.h"
 #include "ProxyThread.h"
 #include "gkauth.h"
+#include "gkldap.h"
+#include "gkDestAnalysis.h"
 #include "stl_supp.h"
 
 H323RasSrv *RasThread = 0;
@@ -288,12 +290,13 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	
 	GKRasPort = GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
 
-	EndpointTable = RegistrationTable::Instance();
+	EndpointTable = RegistrationTable::Instance(); //initialisation is done in LoadConfig
 	GKManager = resourceManager::Instance();
 
 	sigHandler = 0;
 
 	authList = 0;
+	destAnalysisList = 0;
 	NeighborsGK = 0;
 	GWR=NULL;
 
@@ -312,6 +315,7 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 H323RasSrv::~H323RasSrv()
 {
 	delete authList;
+	delete destAnalysisList;
 	delete NeighborsGK;
 	delete arqPendingList;
 	delete GWR;
@@ -342,6 +346,18 @@ void H323RasSrv::LoadConfig()
 	delete authList;
 	authList = new GkAuthenticatorList(GkConfig());
 
+	// add destination analysis
+        delete destAnalysisList;
+	destAnalysisList = new GkDestAnalysisList(GkConfig());
+	EndpointTable->Initialize(*destAnalysisList);
+	
+#if defined(HAS_LDAP)		// shall use LDAP
+	
+	// initialize LDAP
+	GkLDAP::Instance()->Initialize(*GkConfig());
+	
+#endif // HAS_LDAP
+	
 	// add neighbors
 	delete NeighborsGK;
 	NeighborsGK = new NeighborList(this, GkConfig());
@@ -883,8 +899,19 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {	
 			// apply rewrite rules
 			Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
+#ifdef WITH_DEST_ANALYSIS_LIST					
+			CalledEP = EndpointTable->getMsgDestination(obj_rr, rsn);
+			if (!CalledEP && 
+			    rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
+				obj_rpl.SetTag(H225_RasMessage::e_admissionReject); 
+				H225_AdmissionReject & arj = obj_rpl; 
+				arj.m_rejectReason.SetTag(rsn);
+				bReject = TRUE;
+			}
+#else				       
 			CalledEP = EndpointTable->FindEndpoint(obj_rr.m_destinationInfo);
-			if (!CalledEP && RequestingEP) {
+#endif			
+			if (!bReject && !CalledEP && RequestingEP) {
 				if (arqPendingList->Insert(obj_rr, RequestingEP))
 					return FALSE;
 			}
@@ -912,7 +939,8 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 		bReject = TRUE;
 		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
 	}
-	
+
+/*
 	// allow overlap sending for incomplete prefixes
 	if (!CalledEP && obj_arq.m_destinationInfo.GetSize() >= 1) {
 		const PString alias = AsString(obj_arq.m_destinationInfo[0], FALSE);
@@ -921,6 +949,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_incompleteAddress);
 		}
 	}
+*/
 
 	if(!bReject && !CalledEP)
 	{
@@ -953,7 +982,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_resourceUnavailable);
 		}
 	}
-	
+
 	//authorize arq
         if(!bReject)
         {
@@ -1017,7 +1046,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
  	}
  	//:towi
 #endif
-	
+
 	//
 	// Do the reject or the confirm
 	//
@@ -1397,7 +1426,12 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	unsigned rsn;
 	if (authList->Check(obj_lrq, rsn) &&
 		// only search registered endpoints
-		(WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false))) {
+#ifdef WITH_DEST_ANALYSIS_LIST					
+		(WantedEndPoint = EndpointTable->getMsgDestination(obj_lrq, rsn, false)
+#else				       
+		(WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false)
+#endif		
+		)) {
 		// Alias found
 		obj_rpl.SetTag(H225_RasMessage::e_locationConfirm);
 		H225_LocationConfirm & lcf = obj_rpl;
