@@ -429,6 +429,7 @@ void GkStatus::Client::Main()
 					PTRACE(1, "Shutting down the GK");
 					SoftPBX::UnregisterAllEndpoints();
 					SoftPBX::PrintStatistics(*this, TRUE);
+					StatusThread->StatusListener.Close();
 					ShutdownHandler();
 					WriteString("BYE" GK_LINEBRK);
 					exit(0);
