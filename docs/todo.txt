@@ -6,15 +6,15 @@ for people who wish to contribute to this project.
 I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
-- feature: avoid loop detection & prevention (mobile forwarded to office
-           number while office number forwarded to mobile ... you get the idea)
+- feature: avoid loop detection & prevention
+  (mobile forwarded to office number while office number forwarded to mobile ...)
   Idea: only allow <n> calls from the same originator within <m> seconds
 
-- feature: add ability to use routing via neighbour for known destinations, too
-
-- feature: route call to voicemail mailbox for calls to provisioned, but
-  non-registered destinations (i.e. those that result in calledpartyNotRegistered)
-  Mailbox should be a configurable H.323 endpoint (running e.g. OpenAM).
+- fix: re-implement Status Enquiry pings
+  * implement per-destination configurable pings (honorsStatusEnquiry flag)
+  * add T309 (network timeout) and T322 (Status Enquiry) timer, too
+    (right now: interval = timeout)
+  * see H.323 Annex R "Robustness Methods"
 
 - feature: implement metric based routing
   A metric should be configurable as a per-route per-gateway parameter, too,
@@ -38,6 +38,12 @@ avoid duplicate work.
   That carrier code is a per-route per-gateway parameter (default: "all")
   that takes precedence over the other parameters (prefix length and metrics).
   
+- feature: add ability to use routing via neighbour for known destinations, too
+
+- feature: route call to voicemail mailbox for calls to provisioned, but
+  non-registered destinations (i.e. those that result in calledpartyNotRegistered)
+  Mailbox should be a configurable H.323 endpoint (running e.g. OpenAM).
+
 - feature: implement alternate routing
   watch for either TCP or PBX errors, i.e. TCP errors on H.225 connection
   establishment or PBX side error codes in response to sending Q.931 SETUP
@@ -53,14 +59,6 @@ avoid duplicate work.
   and we must wait for the answer to continue processing.
   Since RasSrv is single-threaded, latencies of external calls sum up (e.g.
   if an external call takes 100 msec, then we can only do 10 calls per sec.).
-
-- fix: re-implement Status Enquiry pings
-  * implement per-destination configurable pings (honorsStatusEnquiry flag)
-  * add T309 (network timeout) and T322 (Status Enquiry) timer, too
-    (right now: interval = timeout)
-  * see H.323 Annex R "Robustness Methods"
-
-- fix: decode Q.931 UUIE debug output (pwlib thingy)
 
 - fix: honor Q.931 "sending complete" flag
 
