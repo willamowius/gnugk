@@ -60,7 +60,7 @@ public:
 	};
 
 	// note this is not a polymorphic class
-	RoutingRequest(endptr & called) : m_destination(0), m_neighbor_used(0), m_called(called), m_reason(-1), m_flags(0) {}
+	RoutingRequest(endptr &called);
 	~RoutingRequest();
 
 	H225_TransportAddress* GetDestination() const { return m_destination; }
@@ -73,6 +73,13 @@ public:
 	endptr& GetCalledParty() { return m_called; }
 	void SetNeighborUsed(PIPSocket::Address neighbor) { m_neighbor_used = neighbor; }
 	PIPSocket::Address GetNeighborUsed() { return m_neighbor_used; }
+	int GetProxyMode() const { return m_proxyMode; }
+	void SetProxyMode(int mode) { m_proxyMode = mode; }
+
+private:
+	RoutingRequest();
+	RoutingRequest(const RoutingRequest&);
+	RoutingRequest& operator=(const RoutingRequest&);
 
 protected:
 	H225_TransportAddress *m_destination;
@@ -82,6 +89,8 @@ private:
 	endptr & m_called;
 	int m_reason;
 	unsigned m_flags;
+	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
+	int m_proxyMode;
 };
 
 template<class R, class W>

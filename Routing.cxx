@@ -46,6 +46,13 @@ const char *SectionName[] = {
 
 
 // class RoutingRequest
+RoutingRequest::RoutingRequest(
+	endptr &called
+	) : m_destination(0), m_neighbor_used(0), m_called(called),
+	m_reason(-1), m_flags(0), m_proxyMode(CallRec::ProxyDetect)
+{
+}
+
 RoutingRequest::~RoutingRequest()
 {
 	delete m_destination;

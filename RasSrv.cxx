@@ -1941,6 +1941,7 @@ bool AdmissionRequestPDU::Process()
 	H225_TransportAddress CalledAddress;
 	if (!answer) {
 		Routing::AdmissionRequest arq(request, this, CalledEP);
+		arq.SetProxyMode(authData.m_proxyMode);
 		if ((authData.m_routeToIP != NULL 
 				&& arq.SetDestination(*authData.m_routeToIP, true))
 			|| arq.Process() != NULL) {
@@ -1954,6 +1955,7 @@ bool AdmissionRequestPDU::Process()
 			}
 		} else
 			return BuildReply(arq.GetRejectReason());
+		authData.m_proxyMode = arq.GetProxyMode();
 	}
 
 #ifdef ARJREASON_ROUTECALLTOSCN

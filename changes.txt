@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- (Routing.cxx) ability to do per-call proxy mode control from routing handlers
 - BUGFIX(ProxyChannel.cxx) fixed race condition between signaling/H.245 channel
   closure
 - parts of signalling code rewritten

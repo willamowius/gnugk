@@ -1469,6 +1469,8 @@ void CallSignalSocket::OnSetup(
 		H225_TransportAddress calledAddr;
 		Routing::SetupRequest request(setupBody, setup, called);
 		
+		request.SetProxyMode(authData.m_proxyMode);
+		
 		if (!rejectCall && authData.m_routeToIP != NULL) {
 			request.SetDestination(calledAddr, true);
 			calledAddr = *authData.m_routeToIP;
@@ -1541,6 +1543,8 @@ void CallSignalSocket::OnSetup(
 			}
 		}
 
+		authData.m_proxyMode = request.GetProxyMode();
+		
 		PString destinationString(setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) 
 			? AsString(setupBody.m_destinationAddress) : AsDotString(calledAddr)
 			);
