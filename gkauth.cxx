@@ -396,7 +396,7 @@ SimplePasswordAuth::SimplePasswordAuth(const char *name) : GkAuthenticator(name)
 	authenticator->SetPassword("dummy");
 	h235Authenticators->Append(authenticator);
 #endif
-#ifdef P_SSL
+#if P_SSL
 	authenticator = new H235AuthProcedure1;
 	authenticator->SetLocalId("dummy");
 	authenticator->SetRemoteId("dummy");
@@ -575,7 +575,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 				return e_ok;
 			} else
 				return e_fail;
-#ifdef P_SSL
+#if P_SSL
 		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken){
 			H235_CryptoToken & nestedCryptoToken = tokens[i];
 			H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
