@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2004/06/25 13:33:18  zvision
+ * Better Username, Calling-Station-Id and Called-Station-Id handling.
+ * New SetupUnreg option in Gatekeeper::Auth section.
+ *
  * Revision 1.13  2004/05/31 22:45:52  zvision
  * Fixed CDR rotation per number of lines
  *
@@ -270,10 +274,11 @@ PString GkAcctLogger::GetCallingStationId(
 				
 	if (id.IsEmpty()) {
 		const endptr callingEP = call->GetCallingParty();
-		id = GetBestAliasAddressString(callingEP->GetAliases(), false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
+		if (callingEP)
+			id = GetBestAliasAddressString(callingEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
 	}
 					
 	if (id.IsEmpty()) {
