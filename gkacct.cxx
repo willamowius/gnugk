@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2004/05/12 11:49:08  zvision
+ * New flexible CDR file rotation
+ *
  * Revision 1.10  2004/04/17 11:43:42  zvision
  * Auth/acct API changes.
  * Header file usage more consistent.
@@ -212,10 +215,17 @@ FileAcct::FileAcct(
 	GkAcctLogger(moduleName, cfgSecName),
 	m_cdrFile(NULL), m_rotateLines(-1), m_rotateSize(-1), m_rotateInterval(-1),
 	m_rotateMinute(-1), m_rotateHour(-1), m_rotateDay(-1), 
-	m_rotateTimer(GkTimerManager::INVALID_HANDLE), m_cdrLines(0)
+	m_rotateTimer(GkTimerManager::INVALID_HANDLE), m_cdrLines(0),
+	m_standardCDRFormat(true), m_gkName(Toolkit::Instance()->GKName())
 {
 	SetSupportedEvents(FileAcctEvents);
 	
+	m_cdrString = GetConfig()->GetString(GetConfigSectionName(), "CDRString", "");
+	m_standardCDRFormat = Toolkit::AsBool(
+		GetConfig()->GetString(GetConfigSectionName(), "StandardCDRFormat", 
+			m_cdrString.IsEmpty() ? "1" : "0"
+			));
+
 	// determine rotation type (by lines, by size, by time)	
 	const PString rotateCondition = GetConfig()->GetString(
 		GetConfigSectionName(), "Rotate", ""
@@ -465,12 +475,197 @@ bool FileAcct::GetCDRText(
 	callptr& call
 	)
 {
-	if ((evt & AcctStop) && call) {
+	if ((evt & AcctStop) != AcctStop || !call)
+		return false;
+	
+	if (m_standardCDRFormat)	
 		cdrString = call->GenerateCDR();
-		return !cdrString;
+	else {
+		std::map<PString, PString> params;
+
+		SetupCDRParams(params, call);
+		cdrString = ReplaceCDRParams(m_cdrString, params);
+	}	
+	
+	return !cdrString;
+}
+
+void FileAcct::SetupCDRParams(
+	/// CDR parameters (name => value) associations
+	std::map<PString, PString>& params,
+	/// call (if any) associated with an accounting event being logged
+	callptr& call
+	) const
+{
+	PIPSocket::Address addr;
+	WORD port = 0;
+	time_t t;
+	
+	params["g"] = m_gkName;
+	params["n"] = PString(call->GetCallNumber());
+	params["d"] = call->GetDuration();
+	params["c"] = call->GetDisconnectCause();
+	params["s"] = call->GetAcctSessionId();
+	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
+	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
+	
+	t = call->GetSetupTime();
+	if (t)
+		params["setup-time"] = AsString(t);
+	t = call->GetConnectTime();
+	if (t)
+		params["connect-time"] = AsString(t);
+	t = call->GetDisconnectTime();
+	if (t)
+		params["disconnect-time"] = AsString(t);
+	
+	if (call->GetSrcSignalAddr(addr, port)) {
+		params["caller-ip"] = addr.AsString();
+		params["caller-port"] = port;
 	}
 	
-	return false;	
+	PString srcInfo = call->GetSrcInfo();
+	params["src-info"] = srcInfo;
+
+	// Get User-name
+	if (!(srcInfo.IsEmpty() || srcInfo == "unknown")) {
+		const PINDEX index = srcInfo.FindOneOf(":");
+		if( index != P_MAX_INDEX )
+			srcInfo = srcInfo.Left(index);
+	}
+	
+	endptr callingEP = call->GetCallingParty();
+	PString userName;
+		
+	if (callingEP && callingEP->GetAliases().GetSize() > 0)
+		userName = GetBestAliasAddressString(
+			callingEP->GetAliases(),
+			H225_AliasAddress::e_h323_ID
+			);
+	else if (!srcInfo)
+		userName = srcInfo;
+	else if (addr.IsValid())
+		userName = addr.AsString();
+		
+	if (!userName)
+		params["u"] = userName;
+
+	PString stationId = srcInfo;
+
+	if (!stationId) {
+		const PINDEX index = stationId.FindOneOf(":");
+		if (index != P_MAX_INDEX)
+			stationId = stationId.Left(index);
+	}
+		
+	if (stationId.IsEmpty() && callingEP && callingEP->GetAliases().GetSize() > 0)
+		stationId = GetBestAliasAddressString(
+			callingEP->GetAliases(),
+			H225_AliasAddress::e_dialedDigits,
+			H225_AliasAddress::e_partyNumber,
+			H225_AliasAddress::e_h323_ID
+			);
+					
+	if (stationId.IsEmpty() && addr.IsValid() && port)
+		stationId = ::AsString(addr, port);
+
+	if (!stationId)
+		params["Calling-Station-Id"] = stationId;
+		
+	addr = (DWORD)0;
+	port = 0;
+		
+	if (call->GetDestSignalAddr(addr, port)) {
+		params["callee-ip"] = addr.AsString();
+		params["callee-port"] = port;
+	}
+
+	PString destInfo = call->GetDestInfo();
+	params["dest-info"] = destInfo;
+
+	stationId = destInfo;
+	
+	if (!stationId) {
+		const PINDEX index = stationId.FindOneOf(":");
+		if (index != P_MAX_INDEX)
+			stationId = destInfo.Left(index);
+	}
+		
+	if (stationId.IsEmpty()) {
+		endptr calledEP = call->GetCalledParty();
+		if (calledEP && calledEP->GetAliases().GetSize() > 0)
+			stationId = GetBestAliasAddressString(
+				calledEP->GetAliases(),
+				H225_AliasAddress::e_dialedDigits,
+				H225_AliasAddress::e_partyNumber,
+				H225_AliasAddress::e_h323_ID
+				);
+	}
+	
+	if (stationId.IsEmpty() && addr.IsValid() && port)
+		stationId = ::AsString(addr, port);
+		
+	if (!stationId)
+		params["Called-Station-Id"] = stationId;
+}
+
+PString FileAcct::ReplaceCDRParams(
+	/// parametrized CDR string
+	const PString& cdrStr,
+	/// parameter values
+	const std::map<PString, PString>& params
+	)
+{
+	PString finalCDR((const char*)cdrStr);
+	PINDEX len = finalCDR.GetLength();
+	PINDEX pos = 0;
+
+	while (pos != P_MAX_INDEX && pos < len) {
+		pos = finalCDR.Find('%', pos);
+		if (pos++ == P_MAX_INDEX)
+			break;
+		if (pos >= len) // strings ending with '%' - special case
+			break;
+		const char c = finalCDR[pos]; // char next after '%'
+		if (c == '%') { // replace %% with %
+			finalCDR.Delete(pos, 1);
+			len--;
+		} else if (c == '{') { // escaped syntax (%{Name})
+			const PINDEX closingBrace = finalCDR.Find('}', ++pos);
+			if (closingBrace != P_MAX_INDEX) {
+				const PINDEX paramLen = closingBrace - pos;
+				std::map<PString, PString>::const_iterator i = params.find(
+					finalCDR.Mid(pos, paramLen)
+					);
+				if (i != params.end()) {
+					const PINDEX escapedLen = i->second.GetLength();
+					finalCDR.Splice(i->second, pos - 2, paramLen + 3);
+					len = len + escapedLen - paramLen - 3;
+					pos = pos - 2 + escapedLen;
+				} else {
+					// replace out of range parameter with an empty string
+					finalCDR.Delete(pos - 2, paramLen + 3);
+					len -= paramLen + 3;
+					pos -= 2;
+				}
+			}
+		} else { // simple syntax (%c)
+			std::map<PString, PString>::const_iterator i = params.find(c);
+			if (i != params.end()) {
+				const PINDEX escapedLen = i->second.GetLength();
+				finalCDR.Splice(i->second, pos - 1, 2);
+				len = len + escapedLen - 2;
+				pos = pos - 1 + escapedLen;
+			} else {
+				// replace out of range parameter with an empty string
+				finalCDR.Delete(pos - 1, 2);
+				len -= 2;
+				pos--;
+			}
+		}
+	}
+
+	return finalCDR;
 }
 
 bool FileAcct::IsRotationNeeded()

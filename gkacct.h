@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2004/05/12 11:49:08  zvision
+ * New flexible CDR file rotation
+ *
  * Revision 1.8  2004/04/17 11:43:42  zvision
  * Auth/acct API changes.
  * Header file usage more consistent.
@@ -265,6 +268,31 @@ protected:
 		callptr& call /// call associated with this request (if any)
 		);
 
+	/** Fill the map with CDR parameters (name => value associations).
+	    Derived classes may override this method to append some custom
+	    parameters. Do not forget to call the base class implementation then
+	    to setup default parameters!
+	*/
+	virtual void SetupCDRParams(
+		/// query parameters (name => value) associations
+		std::map<PString, PString>& params,
+		/// call (if any) associated with an accounting event being logged
+		callptr& call
+		) const;
+
+	/** Replace CDR parameters placeholders (%a, %{Name}, ...) with 
+	    actual values.
+
+	    @return
+	    New CDR string with all parameters replaced.
+	*/
+	virtual PString ReplaceCDRParams(
+		/// parametrized CDR string
+		const PString& cdrStr,
+		/// parameter name => value associations
+		const std::map<PString, PString>& params
+		);
+
 	/** @return
 	    True if the CDR file should be rotated.
 	*/
@@ -319,6 +347,12 @@ private:
 	GkTimer* m_rotateTimer;
 	/// number of CDRs written (if rotation per number of lines is enabled)
 	long m_cdrLines;
+	/// if true, ignore CDR string and write CDRs in a standard format
+	bool m_standardCDRFormat;
+	/// parametrized CDR string
+	PString m_cdrString;
+	/// gatekeeper identifier (for fast access)
+	PString m_gkName;
 	/// human readable names for rotation intervals
 	static const char* const m_intervalNames[];
 };

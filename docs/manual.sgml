@@ -114,6 +114,9 @@ The version 2.2beta4 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Parametrized FileAcct CDR output.
+
+<item>
 Do not list H.235 Auth Procedure I support in GCF messages, as it is not
 fully implemented.
 
@@ -3112,17 +3115,57 @@ disconnects, so we can fetch call duration into a billing system later.
 <sect2>Section &lsqb;FileAcct&rsqb;
 <label id="fileacct">
 <p>
-This accounting module writes status line compatible CDR lines
-to a specified text file.
+This accounting module writes CDR lines to a specified text file. The CDR
+format can be a standard one (the same as displayed by the status interface)
+or a customized one (using parametrized query string).
 
 <itemize>
 <item>
 <tt/DetailFile=FULL_PATH_AND_FILENAME/<newline>
-Default: none
+Default: N/A
 <p>
-This specifies a full path to the CDR plain text file. If the file
-exists and <tt/Rotate/ is 0, CDRs will be appended, otherwise the file
-is rotated and CDRs are logged to a new file created.
+A full path to the CDR plain text file. If a file with the given name already 
+exists, new CDRs will be appended at the end of the file.
+
+<item>
+<tt/StandardCDRFormat=0/<newline>
+Default: <tt/1/
+<p>
+Use a CDR format compatible with the status interface CDR format (<tt/1/)
+or build a custom CDR strings from the <bf/CDRString/ parametrized string.
+
+<item>
+<tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-StationId}|%d|%c/<newline>
+Default: N/A
+<p>
+If <bf/StandardCDRFormat/ is disabled (0) or not specified at all, 
+this paramterized string instructs the gatekeeper how to build a custom
+CDRs. Parameters are specified using <tt/%/ character and can be one letter
+(like <tt/%n/) or longer (like <tt/%{CallId}/). Any remaining characters that
+are not parameter names are simply copied to a final CDR string. The following
+parameters are recognized:
+<itemize>
+<item><tt/%g/ - gatekeeper name
+<item><tt/%n/ - call number (not unique after gatekeeper restart)
+<item><tt/%d/ - call duration (seconds)
+<item><tt/%c/ - Q.931 disconnect cause (decimal integer)
+<item><tt/%s/ - unique (for this gatekeeper) session identifier (Acct-Session-Id)
+<item><tt/%u/ - H.323 ID of the calling party
+<item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
+<item><tt/%{ConfId}/ - H.323 conference identifier (16 hex 8-bit digits)
+<item><tt/%{setup-time}/ - timestamp string for Q.931 Setup message
+<item><tt/%{connect-time}/ - timestamp string for a call connected event
+<item><tt/%{disconnect-time}/ - timestamp string for a call disconnect event
+<item><tt/%{caller-ip}/ - signaling IP addres of the caller
+<item><tt/%{caller-port}/ - signaling port of the caller
+<item><tt/%{callee-ip}/ - signaling IP addres of the called party
+<item><tt/%{callee-port}/ - signaling port of the called party
+<item><tt/%{src-info}/ - a colon separated list of source aliases
+<item><tt/%{dest-info}/ - a colon separated list of destination aliases
+<item><tt/%{Calling-Station-Id}/ - calling party number
+<item><tt/%{Called-Station-Id}/ - called party number
+</itemize><newline>
+
 
 <item>
 <tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
