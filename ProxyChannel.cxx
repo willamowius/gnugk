@@ -624,6 +624,38 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 	} else {
 		q931pdu.Encode(buffer);
 		PTRACE(5, ANSI::BGRE << "Q931\nMessage to sent: " << setprecision(2) << q931pdu << ANSI::OFF);
+		{
+			unsigned int plan, ton;
+			PString calledNumber;
+			if(q931pdu.GetCalledPartyNumber(calledNumber, &plan, &ton)) {
+				calledNumber += " Numbering Plan: ";
+				if (plan==Q931::ISDNPlan)
+					calledNumber += "ISDN";
+				calledNumber += " TON: ";
+				if(ton==Q931::NationalType)
+					calledNumber += "national call";
+				if(ton==Q931::InternationalType)
+					calledNumber += "international call";
+				if(ton==Q931::SubscriberType)
+					calledNumber += "Subscriber Type";
+				PTRACE(5, ANSI::BGRE << "Q931-CalledPartyNumberIE: " << calledNumber << ANSI::OFF);
+			}
+			if(q931pdu.GetCallingPartyNumber(calledNumber, &plan, &ton)) {
+				calledNumber += " Numbering Plan: ";
+				if (plan==Q931::ISDNPlan)
+					calledNumber += "ISDN";
+				calledNumber += " TON: ";
+				if(ton==Q931::NationalType)
+					calledNumber += "national call";
+				if(ton==Q931::InternationalType)
+					calledNumber += "international call";
+				if(ton==Q931::SubscriberType)
+					calledNumber += "Subscriber Type";
+				PTRACE(5, ANSI::BGRE << "Q931-CallingPartyNumberIE: " << calledNumber << ANSI::OFF);
+			}
+
+		}
+
 
 		switch (q931pdu.GetMessageType()) {
 		case Q931::SetupMsg:
@@ -736,6 +768,9 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			return ;
 		}
 
+
+		// Rewrite sourceString
+
 		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
 		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, RasThread->IsGKRoutedH245());
 
@@ -754,6 +789,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 				called = RegistrationTable::Instance()->getMsgDestination(Setup.m_destinationAddress[0], // should check all
 										  callingEP, reason);
 			destinationString = AsString(Setup.m_destinationAddress);
+
 		}
 		if (!called && reason!=H225_AdmissionRejectReason::e_incompleteAddress) {
 			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
@@ -813,6 +849,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		isRoutable = TRUE;
 	}
 	if (isRoutable) {
+		CgPNConversion(*m_SetupPDU, Setup);
 		const H225_TransportAddress_ipAddress & ip = *addr;
 		peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		peerPort = ip.m_port;
@@ -1279,8 +1316,8 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 
 		// vars for q931pdu.SetCallingPartyNumber
 		PString  callingPN;
-		unsigned npi;
-		unsigned ton;
+		unsigned npi = Q931::ISDNPlan;
+		unsigned ton = Q931::InternationalType;
 		unsigned pi;
 		unsigned si;
 
@@ -1302,12 +1339,15 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 				// Is there more than 1 CgPN?
 				// convert cgPN to interternational format
 				PTRACE(5, "CgPN included:" << callingPN);
+#ifdef DO_NATIONAL_CALL
 				if(ton != Q931::InternationalType) {
 					callingPN = callRec->GetCallingProfile().getCC() + callingPN;
+					npi = Q931::ISDNPlan;
+					ton = Q931::InternationalType;
 				}
-
-				npi = Q931::ISDNPlan;
+#else
 				ton = Q931::InternationalType;
+#endif DO_NATIONAL_CALL
 
 				cgPNIncludedNotFromCPE = TRUE;
 			} else {
@@ -1336,6 +1376,9 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 					cgPNmatched = TRUE;
 					PTRACE(5, "CgPN does match");
 					si  = H225_ScreeningIndicator::e_userProvidedVerifiedAndPassed;
+// nilsb
+					ton = Q931::InternationalType;
+					npi = Q931::ISDNPlan;
 					PTRACE(5, "SI = e_userProvidedVerifiedAndPassed");
 					PString clir = callRec->GetCallingProfile().getClir();
 
@@ -1380,6 +1423,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 			}
 		}
 
+#ifdef DO_NATIONAL_CALL
 		if (cgPNIncludedNotFromCPE || callRec->GetCallingProfile().isCPE()) {
 			npi = Q931::ISDNPlan;
 			PTRACE(5, "NPI = ISDNPlan");
@@ -1387,8 +1431,9 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 			PTRACE(5, "TON = InternationalType");
 
 			// store cgPN for CDR generation
-			callRec->GetCallingProfile().setCgPN(callingPN);
 		}
+#endif
+		callRec->GetCallingProfile().setCgPN(callingPN);
 
 		// get CdPN
 		PString calledPN = callRec->GetCalledProfile().getCalledPN();
@@ -1423,6 +1468,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 		PTRACE(5, "CC: " << cdPNCC);
 
 		BOOL nationalCall = FALSE;
+#ifdef DO_NATIONAL_CALL
 		if ((cdPNCC!="") && (P_MAX_INDEX != callingPN.Find(cdPNCC))) { // aka 'contains' CC
 		// CgPN and CdPN have the same country code --> national call
 			nationalCall = TRUE;
@@ -1446,6 +1492,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 			PTRACE(5, "calledPN = " << calledPN);
 			PTRACE(5, "calledTON = NationalType");
 		}
+#endif // DO_NATIONAL_CALL
 
 		PString nac;
 		PString inac;
@@ -1510,6 +1557,9 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 				PTRACE(4, out);
 
 			}
+		}
+		if(setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) { // THIS IS AGAINST Q.931
+			H323SetAliasAddress(calledPN, setup.m_destinationAddress[0], H225_AliasAddress::e_dialedDigits);
 		}
 	}
 }
