@@ -388,9 +388,8 @@ void ProxyListener::Exec()
 	} else {
 		PChannel::Errors err = socket->GetErrorCode();
 		delete socket;  // delete unused socket
-		if (err == PTCPSocket::Interrupted)
-			return;
-		PTRACE(1, "ProxyL\tError: " << PChannel::GetErrorText(err));
+		PTRACE_IF(3, err != PChannel::Interrupted,
+			  "ProxyL\tError: " << PChannel::GetErrorText(err));
 	}
 }
 

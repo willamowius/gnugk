@@ -2,10 +2,10 @@
 %define mysql_dir /usr/include/mysql
 Summary: OpenH323 Gatekeeper
 Name: gk
-Version: 1.3
+Version: 2.0beta2
 Release: 1
 URL: http://www.willamowius.de/openh323gk.html
-Source0: gk.tar.gz
+Source0: openh323gk.tgz
 License: GPL
 Group: System Environment/Libraries
 Requires: pwlib openh323
@@ -37,8 +37,16 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT%{_sbindir}
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 
+%ifarch %ix86
 install -s -m 755 obj_linux_x86_r/gk $RPM_BUILD_ROOT%{_sbindir}/gk
 install -s -m 755 obj_linux_x86_r/addpasswd $RPM_BUILD_ROOT%{_sbindir}/gkaddpasswd
+%else
+%ifarch alpha
+install -s -m 755 obj_linux_alpha-redhat-linux-gnu_r/gk $RPM_BUILD_ROOT%{_sbindir}/gk
+install -s -m 755 obj_linux_alpha-redhat-linux-gnu_r/addpasswd $RPM_BUILD_ROOT%{_sbindir}/gkaddpasswd
+%endif
+%endif
+
 install -m 644 gatekeeper.ini.complete $RPM_BUILD_ROOT/etc/gatekeeper.ini
 install -m 755 gk.initd.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/gk
 
@@ -70,6 +78,10 @@ rm -rf $RPM_BUILD_ROOT
 /var/log/gk
 
 %changelog
+* Wed Feb 06 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
+- Upgraded 2.0beta2
+- add alpha support
+
 * Wed Nov 21 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
 - Upgraded 1.3
 

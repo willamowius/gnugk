@@ -129,10 +129,8 @@ private:
 	UDPProxySocket *rtp, *rtcp;
 };
 
-class T120LogicalChannel : public LogicalChannel, public MyPThread {
+class T120LogicalChannel : public LogicalChannel {
 public:
-	PCLASSINFO ( T120LogicalChannel, MyPThread )
-
 	T120LogicalChannel(WORD);
 	virtual ~T120LogicalChannel();
 
@@ -140,13 +138,23 @@ public:
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
 	virtual void StartReading(ProxyHandleThread *);
 
-	// override from class MyPThread
-	virtual void Close();
-	virtual void Exec();
-
+	void AcceptCall();
 	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
 
 private:
+	class T120Listener : public MyPThread {
+	public:
+		PCLASSINFO ( T120Listener, MyPThread )
+
+		T120Listener(T120LogicalChannel *lc) : t120lc(lc) { Resume(); }
+		// override from class MyPThread
+		virtual void Exec() { t120lc->AcceptCall(); }
+
+	private:
+		T120LogicalChannel *t120lc;
+	};
+
+	T120Listener *listenThread;
 	PTCPSocket listener;
 	T120ProxySocket *t120socket;
 	ProxyHandleThread *handler;
@@ -400,7 +408,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 {
 	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
-		PTRACE(1, "Q931\tSetup_UUIE doesn't contain callIdentifier!");
+		PTRACE(1, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
 		return;
 	}
 	m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
@@ -445,16 +453,14 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		(PASN_BMPString &)alias = H323ID;
 	}
 
-	SetH245Address(Setup);
-
-	if (Setup.HasOptionalField(H225_Setup_UUIE::e_fastStart))
-		OnFastStart(Setup.m_fastStart);	
-//	PTRACE(4, "GK\tSetup_UUIE:\n" << setprecision(2) << Setup);
+	HandleH245Address(Setup);
+	HandleFastStart(Setup);
 }
  
 void CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceeding)
 {
-	SetH245Address(CallProceeding);
+	HandleH245Address(CallProceeding);
+	HandleFastStart(CallProceeding);
 }
 
 void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
@@ -463,19 +469,19 @@ void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 		m_call->SetConnected(true);
 #ifndef NDEBUG
 	if (!Connect.HasOptionalField(H225_Connect_UUIE::e_callIdentifier)) {
-		PTRACE(1, "Q931\tOnConnect() no callIdentifier!");
+		PTRACE(1, "Q931\tConnect_UUIE doesn't contain CallIdentifier!");
 	} else if (m_call->GetCallIdentifier() != Connect.m_callIdentifier) {
-		PTRACE(1, "Q931\tCallIdentifier not match?");
+		PTRACE(1, "Q931\tWarning: CallIdentifier doesn't match?");
 	}
 #endif
-	SetH245Address(Connect);
-	if (Connect.HasOptionalField(H225_Connect_UUIE::e_fastStart))
-		OnFastStart(Connect.m_fastStart);	
+	HandleH245Address(Connect);
+	HandleFastStart(Connect);
 }
 
 void CallSignalSocket::OnAlerting(H225_Alerting_UUIE & Alerting)
 {
-	SetH245Address(Alerting);
+	HandleH245Address(Alerting);
+	HandleFastStart(Alerting);
 }
 
 void CallSignalSocket::OnInformation(H225_Information_UUIE &)
@@ -490,12 +496,14 @@ void CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComp
 
 void CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
 {
-	SetH245Address(Facility);
+	HandleH245Address(Facility);
+	HandleFastStart(Facility);
 }
 
 void CallSignalSocket::OnProgress(H225_Progress_UUIE & Progress)
 {
-	SetH245Address(Progress);
+	HandleH245Address(Progress);
+	HandleFastStart(Progress);
 }
 
 void CallSignalSocket::OnEmpty(H225_H323_UU_PDU_h323_message_body &)
@@ -588,7 +596,7 @@ void CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart)
 	}
 }
 
-bool CallSignalSocket::InternalSetH245Address(H225_TransportAddress & h245addr)
+bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
 	CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote);
 	if (!ret) {
@@ -958,10 +966,12 @@ T120LogicalChannel::T120LogicalChannel(WORD flcn)
 
 T120LogicalChannel::~T120LogicalChannel()
 {
-	if (used && t120socket)
-		// the sockets will be deleted by ProxyHandler,
-		// so we don't need to delete it here
-		t120socket->SetDeletable();
+	if (used) {
+		listener.Close();
+		listenThread->Destroy();
+		if (t120socket)
+			t120socket->SetDeletable();
+	}
 }
 
 bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
@@ -975,22 +985,14 @@ void T120LogicalChannel::StartReading(ProxyHandleThread *h)
 	if (!used) {
 		handler = h;
 		used = true;
-		Resume();
+		listenThread = new T120Listener(this);
 	}
 }
 
-void T120LogicalChannel::Close()
+void T120LogicalChannel::AcceptCall()
 {
-	listener.Close();
-	isOpen = false;
-}
-
-void T120LogicalChannel::Exec()
-{
-	if (!listener.IsOpen()) {
-		isOpen = false;
+	if (!listener.IsOpen())
 		return;
-	}
 
 	T120ProxySocket *socket = new T120ProxySocket;
 	if (socket->Accept(listener)) {
@@ -1177,6 +1179,7 @@ void H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 
 // to avoid ProxyThread.cxx to include the large h225.h,
 // put the method here...
+// class ProxyListener
 TCPProxySocket *ProxyListener::CreateSocket()
 {
 	return new CallSignalSocket;

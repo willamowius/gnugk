@@ -79,13 +79,6 @@ public:
 	void OnH245ChannelClosed() { m_h245socket = 0; }
 
 protected:
-	// localAddr is NOT the local address the socket bind to,
-	// but the local address that remote socket bind to
-	// they may be different in multi-homed environment
-	Address localAddr, peerAddr;
-	WORD peerPort;
-
-private:
 	void OnSetup(H225_Setup_UUIE &);
 	void OnCallProceeding(H225_CallProceeding_UUIE &);
 	void OnConnect(H225_Connect_UUIE &);
@@ -103,14 +96,27 @@ private:
 	void OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
 	void OnFastStart(H225_ArrayOf_PASN_OctetString &);
 
-	void BuildReleasePDU(Q931 &) const;
-	template<class UUIE> void SetH245Address(UUIE & uu)
+	template<class UUIE> void HandleH245Address(UUIE & uu)
 	{
 		if (m_h245handler && uu.HasOptionalField(UUIE::e_h245Address))
-			if (!InternalSetH245Address(uu.m_h245Address))
+			if (!SetH245Address(uu.m_h245Address))
 				uu.RemoveOptionalField(UUIE::e_h245Address);
 	}
-	bool InternalSetH245Address(H225_TransportAddress &);
+	template<class UUIE> void HandleFastStart(UUIE & uu)
+	{
+		if (uu.HasOptionalField(UUIE::e_fastStart))
+			OnFastStart(uu.m_fastStart);
+	}
+
+	// localAddr is NOT the local address the socket bind to,
+	// but the local address that remote socket bind to
+	// they may be different in multi-homed environment
+	Address localAddr, peerAddr;
+	WORD peerPort;
+
+private:
+	void BuildReleasePDU(Q931 &) const;
+	bool SetH245Address(H225_TransportAddress &);
 	
 	callptr m_call;
 	WORD m_crv;
