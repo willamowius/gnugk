@@ -37,7 +37,7 @@
 class GK_RASListener;
 class GkClient;
 
-class GkClientWorker : public H323RasWorker {
+class GkClientWorker : public Abstract_H323RasWorker {
 public:
 	GkClientWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server);
 	virtual ~GkClientWorker();
@@ -76,7 +76,7 @@ public:
 	void SendRRQ();
 	void SendURQ();
 	void SendARQ(const H225_AdmissionRequest &, const endptr &);
-	void SendARQ(const H225_Setup_UUIE &, unsigned, const callptr &);
+	void SendARQ(const H225_Setup_UUIE &, unsigned, const callptr &, const BOOL answer_call=TRUE);
 	void SendDRQ(H225_RasMessage &);
 
 	virtual void Main();
@@ -119,6 +119,7 @@ public:
 	void ProcessARJ(int seqNum);
 	const PString & GetEndpointId() const;
 	const int GetRetry() const;
+	const PString & GetH323Id() const {return m_h323Id;}
 protected:
 	virtual ~GkClient();
 	friend void Toolkit::delete_gkclient();
