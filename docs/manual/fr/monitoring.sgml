@@ -1,65 +1,78 @@
-<sect>Monitoring the Gatekeeper
+<sect>Surveillance du Gatekeeper
 <label id="monitor">
 <p>
-<sect1>Status Port
+<sect1>Port d'&#233;tat
 <p>
-The status port is the external interface for monitoring and controlling the gatekeeper.
-The gatekeeper will send out messages about ongoing calls to all
-connected clients and it can receive commands via this interface.
+Le port d'&#233;tat est l'interface externe pour surveiller et contr&#244;ler le
+gatekeeper.
+Via cette interface, le gatekeeper enverra des messages &#224; propos des appels en
+cours de tous les clients connect&#233;s et recevra des commandes.
 
 <p>
-The messages sent by the gatekeeper to the status port are groupped 
-into three <bf/output trace levels/:
+Les messages envoy&#233;s par le gatekeeper au port d'&#233;tat sont regroup&#233;s
+en trois <bf/niveaux de trace de sortie/:
 <itemize>
-<item>Level 0
+<item>Niveau 0
 	<quote>
-	Reload notifications and direct replies to entered commands.
+	Notifications de rechargement et r&#233;ponses directes aux commandes saisies.
 	</quote>
-<item>Level 1
+<item>Niveau 1
 	<quote>
-	Reload notifications, direct replies to entered commands, CDRs and Route Requests.
+	Notifications de rechargement, r&#233;ponses directes aux commandes saisies, CDRs
+	et Requ&#234;tes de Routage.
 	</quote>
-<item>Level 2
+<item>Niveau 2
 	<quote>
-	Output everything (reload notifications, direct replies to entered commands, 
-	CDRs, Route Requests, RAS, ...). This is the <bf/default/ output level.
+	Trace tout (notification des rechargement, r&#233;ponses directes aux commandes
+	saisies, CDRs, Requ&#234;tes de Routage, RAS, ...). Il s'agit du niveau de
+	trace par <bf/d&#233;faut/.
 	</quote>
 </itemize>
-The client connected to the status port can choose the output level it is interested in.
+Le client connect&#233; au port d'&#233;tat peut choisir le niveau de trace par lequel
+il est int&#233;ress&#233;.
 
 <p>
-The interface is a simple TCP port (default: 7000), you can connect to with telnet or another client. One example of a different client is the Java GUI, aka GkGUI.
-Another example is the Automatic Call Distribution application, aka GnuGk ACD.
+L'interface est un simple port TCP (par d&#233;faut: 7000), vous pouvez vous connecter
+avec telnet ou un autre client. Une exemple d'autre client est l'IHM Java, connue sous
+le nom de GnuGk ACD.
 
-<sect2>Application Areas
+<sect2>Domaines d'Application
 <p>
-What you do with the powers of the Status Interface is up to you, but here are a few ideas:
+Ce que vous fa&#238;tes avec les pouvoirs de l'Interface d'Etat d&#233;pend de vous,
+mais voici quelques id&#233;es:
 <itemize>
-<item>Call Monitoring
-<item>Monitoring the registered endpoints
-<item>Graphical User Interface
+<item>Surveillance d'Appel
+<item>Surveillande des terminaux enregistr&#233;s
+<item>Interface Utilisateur Graphique
 <quote>
-See GkGUI.
+Voir GkGUI.
 </quote>
-<item>Call Routing
+<item>Routage d'Appel
 <quote>
-See GnuGk ACD.
+Voir GnuGk ACD.
 </quote>
-<item>Billing Applications
+<item>Applications de Facturation
 <quote>
-Analyse the CDR messages and forward them to a billing application.
+Analyser les messages CDR et les transmettre &#224; l'application de facturation.
 </quote>
-<item>Interfacing external extensions
+<item>Interfacer des extensions externes
 <quote>
-If you don't want to publish the source code to additinal features, just publish the core functionality and interface to it through the status interface and keep the external part private.
+Si vous ne voulez pas publier le code source de ces fonctions suppl&#233;mentaires,
+publiez juste le noyau de la fonction et interfacez vous avec au travers de
+l'interface d'&#233;tat et conservez les parties externes priv&#233;es.
 </quote>
 </itemize>
 <p>
-<sect2>Examples
+<sect2>Exemples
 <p>
-Suppose you are just interested in the CDRs (call details records) and want to process them as a batch at regular intervals.
+Supposons que vous &#234;tes juste int&#233;ress&#233;s par les CDRs (enregistrement
+des d&#233;tails des appels) et vous voulez les traiter en lot &#224; intervalles
+r&#233;guliers.
 
-Here is a simple Perl script (<tt/gnugk_cdr.pl/) that starts the gatekeeper and also forks a very simple client for the Status Interface and writes just the CDRs into a logfile. You'll have to modify it a little to fit your needs.
+Voici un script Perl simple (<tt/gnugk_cdr.pl/) qui lance le gatekeeper et un client
+tr&#232;s simple pour l'Interface d'Etat et &#233;crit juste les CDRs dans un fichier
+de log. Vous aurez besoin de le modifier un peu pour qu'il corresponde &#224; vos
+besoins.
 
 <verb>
 #!/usr/bin/perl
@@ -100,64 +113,70 @@ if ($gk_pid = fork()) {
 }
 </verb>
 <p>
-Keep in mind that this is just an example to show the usage of the status port.
-You can use the FileAcct module to log CDRs in a production system.
+Rappelez-vous qu'il ne s'agit que d'un exemple pour montrer l'utilisation du port
+d'&#233;tat.
+Vous pouvez utiliser le module FileAcct pour tracer les CDRs dans un syst&#232;me
+de production.
 
-<sect2>GUI for the Gatekeeper
+<sect2>IHM pour le Gatekeeper
 <p>
-There are several Graphical User Interface (GUI) frontends for the gatekeeper.
+Il y a plusieurs Interfaces Home Machine (IHM - GUI) pour le gatekeeper.
 
 <itemize>
 <item>Java GUI<p>
-Developed by Jan Willamowius.
-You can monitor the registrations and calls that go through the gatekeeper.
-A right-click on a button gives you a popup menu for that endpoint.
+D&#233;velopp&#233; par Jan Willamowius.
+Vous pouvez surveiller les enregistrements et les appels qui passent par le gatekeeper.
+Un clic droit sur un bouton vous donne un menu d&#233;roulant pour ce terminal.
 
-This GUI works with Java 1.0 built into most web browsers.
-For security reasons the GUI must be run as a standalone application
-or served by a web server on the same IP number as the gatekeeper
-(you cannot run it as an applet via a local file).
+Cette IHM fonctionne avec Java 1.0 pr&#233;sent dans la plupart des navigateurs web.
+Pour des raisons de s&#233;curit&#233; l'IHM doit fonctionner comme une application
+autonome ou &#234;tre mise &#224; disposition par un serveur web sur le m&#234;me
+num&#233;ro IP que le gatekeeper (vous ne pouvez pas le lancer en tant qu'applet
+depuis un fichier local).
 
-The program is available at
+Le programme est disponible &#224;
 <url url="http://www.gnugk.org/h323gui.html">
 
 <item>GkGUI<p>
-A new standalone Java program developed by
+Un nouveau programme Java autonome d&#233;velopp&#233; par
 <url url="http://www.citron.com.tw/" name="Citron Network Inc.">
-It requires Java 1.4. New features include:
+Il n&#233;cessite Java 1.4. Les nouvelles fonctions comprennent:
 
 <itemize>
-<item>Monitor multiple gatekeepers simultaneously.
-<item>Two view modes: Button List and Tree List.
-<item>Call Detail Record(CDR) and statistics.
+<item>Surveillance de plusieurs gatekeeper simultan&#233;ment.
+<item>Deux modes d'affichage: Liste de Boutons ou Arbre.
+<item>Enregistrement des D&#233;tails d'Appel (CDR) et statistiques.
 <item>GK Status Log.
-<item>Different colors for different endpoint types.
-<item>Modify gatekeeper configuration.
-<item>Forcedly unregister endpoints.
-<item>Save and print status log and CDR.
+<item>Couleurs diff&#233;rentes pour diff&#233;rents types de terminaux.
+<item>Modification de la configuration du gatekeeper.
+<item>D&#233;senregistrement forc&#233; de terminaux.
+<item>Sauvegarde et imprime le log d'&#233;tat et CDR.
 </itemize>
 
-The GkGUI is released under GNU General Public License, available at
+Le GkGUI est distribu&#233; sous GNU General Public License, disponible &#224;
 <url url="http://www.gnugk.org/h323develop.html#java">
 </itemize>
 
-<sect1>Commands (Reference)
+<sect1>Commandes (R&#233;f&#233;rence)
 <p>
-This section lists all commands that you can isue to the status port (manually or with an external application). All commands are case-insensitive. But some parameters may be case-sensitive.
+Cette section liste toutes les commandes que vous pouvez &#233;mettre sur le port
+d'&#233;tat (manuellement ou avec une application externe). Les commandes ne tiennent
+pas compte de la casse (majuscules / minuscules). Mais certains param&#232;tres
+peuvent en tenir compte.
 <p>
-The command <tt/help/ or <tt/h/ will show you a list of all available commands.
+La commande <tt/help/ ou <tt/h/ affichera la liste de toutes les commandes disponibles.
 <p>
 <itemize>
 <item><tt/Reload/
-<p>Reload the configuration.
+<p>Recharge la configuration.
 
 <item><tt/Version/, <tt/v/
-<p>Show the version and OS information of the gatekeeper.
+<p>Afficher la version et des informations sur l'OS du gatekeeper.
 
 <item><tt/Statistics/, <tt/s/
-<p>Show the statistics information of the gatekeeper.
+<p>Affiche des informations statistiques du gatekeeper.
 <descrip>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 Statistics
 -- Endpoint Statistics --
@@ -172,7 +191,7 @@ Startup: Fri, 21 Jun 2002 10:50:22 +0800   Running: 11 days 04:22:59
 </descrip>
 
 <item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/
-<p>Show all registered endpoints.
+<p>Affiche tous les terminaux enregistr&#233;s.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -182,7 +201,7 @@ RCF|IP:Port|Aliases|Terminal_Type|EndpointID
 Number of Endpoints: n
 ;
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 AllRegistrations
 RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
@@ -194,7 +213,7 @@ Number of Endpoints: 3
 </descrip>
 
 <item><tt/PrintAllRegistrationsVerbose/, <tt/rv/, <tt/??/
-<p>Show details of all registered endpoints.
+<p>Affiche des d&#233;tails sur tous les terminaux enregistr&#233;s.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -206,7 +225,7 @@ Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt;
 Number of Endpoints: n
 ;
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 AllRegistrations
 RCF|10.0.1.8:1720|Accel-GW2:h323_ID|gateway|1322_endp
@@ -222,7 +241,8 @@ Number of Endpoints: 2
 </descrip>
 
 <item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/
-<p>Show all current calls using the same ACF syntax as in call establishment.
+<p>Affiche tous les appels en cours en utilisant la m&#234;me syntaxe ACF que lors de
+l'&#233;tablissement de l'appel.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -236,7 +256,7 @@ Number of Calls: Current_Call Active: Active_Call From Neighbor: Call_From_Neigh
 From Parent: Call_From_Parent
 ;
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 CurrentCalls
 Call No. 29 | CallID bd c6 17 ff aa ea 18 10 85 95 44 45 53 54 77 77 | 109 | 491
@@ -253,7 +273,7 @@ Number of Calls: 2 Active: 2 From Neighbor: 0 From Parent: 0
 </descrip>
 
 <item><tt/PrintCurrentCallsVerbose/, <tt/cv/, <tt/!!/
-<p>Show details of all current calls.
+<p>Affiche des d&#233;tails sur tous les appels en cours.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -267,7 +287,7 @@ ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered;
 Number of Calls: Current_Call Active: Active_Call From NB: Call_From_Neighbor
 ;
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 CurrentCalls
 Call No. 48 | CallID 7d 5a f1 0a ad ea 18 10 89 16 00 50 fc 3f 0c f5 | 30 | 570
@@ -281,7 +301,7 @@ Number of Calls: 1 Active: 1 From NB: 0
 </descrip>
 
 <item><tt/Find/, <tt/f/
-<p>Find a registered endpoint by an alias or a prefix.
+<p>Trouve un terminal enregistr&#233; par un alias ou un pr&#233;fixe.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -289,7 +309,7 @@ Find Alias
 RCF|IP:Port|Aliases|Terminal_Type|EndpointID
 ;
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 f 800
 RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
@@ -300,7 +320,7 @@ SoftPBX: alias 801 not found!
 </descrip>
 
 <item><tt/FindVerbose/, <tt/fv/
-<p>Find details of a registered endpoint by an alias or a prefix.
+<p>Trouve des d&#233;tails d'un terminal enregistr&#233; par un alias ou un pr&#233;fixe.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -310,7 +330,7 @@ Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt;
 [Prefixes: ##] (gateway only)
 ;
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 fv 02
 RCF|10.0.1.100:1720|TFN:h323_ID|gateway|4037_CGK1
@@ -321,13 +341,14 @@ Prefixes: 02,09
 </descrip>
 
 <item><tt/UnregisterIP/
-<p>Forcedly unregister an endpoint by IP and call signalling port.
+<p>Force l'annulation de l'enregistrement d'un terminal en fonction de son IP et
+appelle le port de signalisation.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 UnregisterIP IP[:Port]
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 UnregisterIP 10.0.1.31:1720
 URQ|10.0.1.31:1032|1326_endp|maintenance;
@@ -336,13 +357,13 @@ SoftPBX: Endpoint 10.0.1.31:1720 unregistered!
 </descrip>
 
 <item><tt/UnregisterAlias/
-<p>Forcedly unregister an endpoint by one of its aliases.
+<p>Force l'annulation de l'enregistrement d'un terminal en fonction d'un de ses alias.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 UnregisterAlias Alias
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 UnregisterAlias 601
 URQ|10.0.1.31:1032|1326_endp|maintenance;
@@ -351,12 +372,12 @@ SoftPBX: Endpoint 601 unregistered!
 </descrip>
 
 <item><tt/UnregisterAllEndpoints/
-<p>Forcedly unregister all registered endpoints.
+<p>Force l'annulation de l'enregistrement de tous les terminaux enregistr&#233;s.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 UnregisterAllEndpoints
 URQ|10.0.1.7:1024|1325_endp|maintenance;
@@ -370,80 +391,83 @@ Done
 </descrip>
 
 <item><tt/DisconnectCall/
-<p>Disconnect a call with given number.
+<p>D&#233;connecte un appel avec le num&#233;ro donn&#233;.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 DisconnectCall Number
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 DisconnectCall 1533
 </verb></tscreen>
 </descrip>
 
 <item><tt/DisconnectIP/
-<p>Disconnect all calls of an endpoint by IP and call signalling port.
+<p>D&#233;connecte tous les appels d'un terminal en fonction de son IP et appelle le
+port de signalisation.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 DisconnectIP IP[:Port]
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 DisconnectIP 10.0.1.31:1720
 </verb></tscreen>
 </descrip>
 
 <item><tt/DisconnectAlias/
-<p>Disconnect all calls of an endpoint by one of its aliases.
+<p>D&#233;connecte tous les appels d'un terminal en fonction d'un de ses alias.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 DisconnectAlias Alias
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 DisconnectAlias 601
 </verb></tscreen>
 </descrip>
 
 <item><tt/ClearCalls/
-<p>Disconnect all calls on the gatekeeper.
+<p>D&#233;connecte tous les appels sur le gatekeeper.
 
 <item><tt/GK/
-<p>Show the information of the parent gatekeeper.
+<p>Affiche les informations sur le gatekeeper parent.
 
 <item><tt/Trace/
-<p>Set the status interface output trace level. It controls which messages
-are sent to this client:
+<p>R&#232;gle le niveau de trace de sortie de l'interface d'&#233;tat. Il contr&#244;le
+quels messages sont envoy&#233;s &#224; ce client:
 <itemize>
-<item><tt/trace 0/ or <tt/trace min/
-	<p>Only direct responses to commands and reload notifications.
+<item><tt/trace 0/ ou <tt/trace min/
+	<p>Seulement les r&#233;ponses directes aux commandes et les notifications de
+	rechargement
 <item><tt/trace 1/
-	<p>CDRs, direct responses to commands and reload notifications.
-<item><tt/trace 2/ or <tt/trace max/
-	<p>Show all (RAS, CDRs, direct responses to commands, reload notifications, etc).
+	<p>CDRs, r&#233;ponses directes aux commandes et notifications de rechargement.
+<item><tt/trace 2/ ou <tt/trace max/
+	<p>Affiche tout (RAS, CDRs, r&#233;ponses directes aux commandes, notifications de
+	rechargement, etc).
 </itemize>
 
 <item><tt/Debug/
-<p>Only used for debug purpose. Options:
+<p>Utilis&#233; uniquement &#224; de buts de debug. Options:
 <itemize>
 <item><tt/trc [+|-|n]/
-<p>Show/modify trace level.
+<p>Affiche/modifie le niveau de trace.
 <item><tt/cfg SEC PAR/
-<p>Read and print a config parameter in a section.
+<p>Lit et imprime un param&#232;tre de configuration dans une section.
 <item><tt/set SEC PAR VAL/
-<p>Write a config value parameter in a section.
+<p>Ecrit une valeur de param&#232;tre de configuration dans une section.
 <item><tt/remove SEC PAR/
-<p>Remove a config value parameter in a section.
+<p>Supprime une valeur de param&#232;tre de configuration dans une section.
 <item><tt/remove SEC/
-<p>Remove a section.
+<p>Supprime une section.
 <item><tt/printrm VERBOSE/
-<p>Print all removed endpoint records.
+<p>Imprime tous les enregistrements de terminaux supprim&#232;s.
 </itemize>
 <descrip>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 debug trc 3
 debug set RoutedMode H245Routed 1
@@ -451,64 +475,71 @@ debug set RoutedMode H245Routed 1
 </descrip>
 
 <item><tt/Who/
-<p>Show all people on the status port.
+<p>Affiche toutes les personnes sur le port d'&#232;tat.
 
 <item><tt/RouteReject/
-<p>Terminate this call on a virtual queue.
-This command is used as a response to a RouteRequest event (see below).
+<p>Termine cette appel sur une file virtuelle.
+Cette commande est utilis&#233;e comme r&#233;ponse &#224; un &#233;v&#233;nement
+RouteRequest (voir ci-dessous).
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 RouteReject CallingEndpointID CallRef
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 RouteReject endp_4711 1234
 </verb></tscreen>
 </descrip>
 
 <item><tt/RouteToAlias/, <tt/rta/
-<p>Route this call on a virtual queue to the specified alias.
-This command is used as a response to a RouteRequest event (see below).
+<p>Route cet appel sur une file virtuel vers un alias donn&#233;.
+Cette commande est utilis&#233;e en r&#233;ponse &#224; un &#233;v&#233;nement
+RouteRequest (voir ci-dessous).
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 RouteToAlias Alias CallingEndpointID CallRef
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 RouteToAlias Suzi endp_4711 1234
 </verb></tscreen>
 </descrip>
 
 <item><tt/RouteToGateway/, <tt/rtg/
-<p>Route this call on a virtual queue to the specified alias and set the destinationSignallAddress.
-This command is used as a response to a RouteRequest event (see below).
-You can use this command to route calls to out-of-zone gateways or MCUs not registered with the gatekeeper. Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
+<p>Route cet appel sur une file virtuelle vers l'alias donn&#233; et positionne le
+destinationSignallAddress.
+Cette commande est utilis&#233;e en r&#233;ponse &#224; un &#233;v&#233;nement
+RouteRequest (voir ci-dessous).
+Vous pouvez utiliser cette commande pour router des appels vers des passerelles hors
+de la zone ou des MCUs non enregistr&#233;s aupr&#232;s du gatekeeper. Assurez-vous
+que la politique 'vqueue' et 'explicit' est en cours pour ces appels.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 RouteToGateway Alias IP:Port CallingEndpointID CallRef
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
 <item><tt/Exit/, <tt/q/
-<p>Quit the status port.
+<p>Quitte le port d'&#232;tat.
 
 <item><tt/TransferCall/
-<p>Transfer an established call from alias A to alias B. When before alias A is talking with alias X, then alias A is talking with alias B after the TransferCall.
-<p>Currently this works only with endpoints that properly support
-Q.931 Facility messages (so it doesn't work with Netmeeting).
+<p>Transf&#232;re un appel &#233;table d'un alias A vers un alias B. Quand l'alias A
+parlait avec l'alias X, alors l'alias A parle avec l'alias B apr&#232;s le TransferCall.
+<p>Actuellement, ceci ne fonctionne qu'avec les terminaux qui supportent correctement
+les messages du m&#233;canisme Q.931 (il ne fonctionne donc pas avec Netmeeting).
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 TransferCall Source-Alias New-Destination-Alias
 </verb></tscreen>
-<tag/Example:/
+<tag/Exemple:/
 <tscreen><verb>
 TransferCall Frank Peter
 </verb></tscreen>
@@ -516,83 +547,83 @@ TransferCall Frank Peter
 
 </itemize>
 
-<sect1>Messages (Reference)
-<p>The section describes the messages output to the status interface.
+<sect1>Messages (R&#233;f&#233;rence)
+<p>Cette section d&#233;crit la sortie des messages sur l'interface d'&#233;tat.
 
 <itemize>
 <item><tt/GCF|IP|Aliases|Endpoint_Type;/
-<p>The gatekeeper receives a GatekeeperRequest (GRQ) and responds with
-a GatekeeperConfirm (GCF).
+<p>Le gatekeeper re&#231;oit un GatekeeperRequest (GRQ) et r&#233;pond avec un
+GatekeeperConfirm (GCF).
 
 <item><tt/GRJ|IP|Aliases|Endpoint_Type|RejectReason;/
-<p>The gatekeeper receives a GatekeeperRequest (GRQ) and responds with
-a GatekeeperReject (GRJ).
+<p>Le gatekeeper re&#231;oit un GatekeeperRequest (GRQ) et r&#233;pond avec un
+GatekeeperReject (GRJ).
 
 <item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/
-<p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
-a RegistrationConfirm (RCF).
+<p>Le gatekeeper re&#231;oit un RegistrationRequest (RRQ) et r&#233;pond avec un
+RegistrationConfirm (RCF).
 
 <item><tt/RRJ|IP|Aliases|Endpoint_Type|RejectReason;/
-<p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
-a RegistrationReject (RRJ).
+<p>Le gatekeeper re&#231;oit un RegistrationRequest (RRQ) et r&#233;pond avec un
+RegistrationReject (RRJ).
 
 <item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered;/
-<p>The gatekeeper receives an AdmissionRequest (ARQ) and responds with
-an AdmissionConfirm (ACF).
+<p>Le gatekeeper re&#231;oit un AdmissionRequest (ARQ) et r&#233;pond avec un
+AdmissionConfirm (ACF).
 
 <item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason;/
-<p>The gatekeeper receives an AdmissionRequest (ARQ) and responds with
-an AdmissionReject (ARJ).
+<p>Le gatekeeper re&#231;oit un AdmissionRequest (ARQ) et r&#233;pond avec un
+AdmissionReject (ARJ).
 
 <item><tt/DCF|IP|EndpointID|CRV|DisengageReason;/
-<p>The gatekeeper receives a DisengageRequest (DRQ) and responds with
-a DisengageConfirm (DCF).
+<p>Le gatekeeper re&#231;oit un DisengageRequest (DRQ) et r&#233;pond avec un
+DisengageConfirm (DCF).
 
 <item><tt/DRJ|IP|EndpointID|CRV|RejectReason;/
-<p>The gatekeeper receives a DisengageRequest (DRQ) and responds with
-a DisengageReject (DRJ).
+<p>Le gatekeeper re&#231;oit un DisengageRequest (DRQ) et r&#233;pond avec un
+DisengageReject (DRJ).
 
 <item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/
-<p>The gatekeeper receives a LocationRequest (LRQ) and responds with
-a LocationConfirm (LCF).
+<p>Le gatekeeper re&#231;oit un LocationRequest (LRQ) et r&#233;pond avec un
+LocationConfirm (LCF).
 
 <item><tt/LRJ|IP|DestinationInfo|SrcInfo|RejectReason;/
-<p>The gatekeeper receives a LocationRequest (LRQ) and responds with
-a LocationReject (LRJ).
+<p>Le gatekeeper re&#231;oit un LocationRequest (LRQ) et r&#233;pond avec un
+LocationReject (LRJ).
 
 <item><tt/BCF|IP|EndpointID|Bandwidth;/
-<p>The gatekeeper receives a BandwidthRequest (BRQ) and responds with
-a BandwidthConfirm (BCF).
+<p>Le gatekeeper re&#231;oit un BandwidthRequest (BRQ) et r&#233;pond avec un
+BandwidthConfirm (BCF).
 
 <item><tt/BRJ|IP|EndpointID|Bandwidth|RejectReason;/
-<p>The gatekeeper receives a BandwidthRequest (BRQ) and responds with
-a BandwidthReject (BRJ).
+<p>Le gatekeeper re&#231;oit un BandwidthRequest (BRQ) et r&#233;pond avec un
+BandwidthReject (BRJ).
 
 <item><tt/UCF|IP|EndpointID;/
-<p>The gatekeeper receives an UnregistrationRequest (URQ) and responds with
-an UnregistrationConfirm (UCF).
+<p>Le gatekeeper re&#231;oit un UnregistrationRequest (URQ) et r&#233;pond avec un
+UnregistrationConfirm (UCF).
 
 <item><tt/URJ|IP|EndpointID|RejectReason;/
-<p>The gatekeeper receives an UnregistrationRequest (URQ) and responds with
-an UnregistrationReject (URJ).
+<p>Le gatekeeper re&#231;oit un UnregistrationRequest (URQ) et r&#233;pond avec un
+UnregistrationReject (URJ).
 
 <item><tt/IRQ|IP:Port|EndpointID;/
-<p>The gatekeeper sends an InfoRequest (IRQ) to an endpoint to query if it
-is still alive. The endpoint shall respond with an InfoRequestResponse (IRR)
-immediately.
+<p>Le gatekeeper envoie un InfoRequest (IRQ) &#224; un terminal pour lui demander si
+il est toujours en vie. Le terminal doit r&#233;pondre avec un InfoRequestResponse (IRR)
+imm&#233;diatement.
 
 <item><tt/URQ|IP:Port|EndpointID|Reason;/
-<p>The gatekeeper sends an UnregistrationRequest (URQ) to an endpoint to
-cancel its registration. The endpoint shall respond with
-an UnregistrationConfirm (UCF).
+<p>Le gatekeeper envoie un UnregistrationRequest (URQ) &#224; un terminal pour
+annuler son enregistrement. Le terminal doit r&#233;pondre avec un
+UnregistrationConfirm (UCF).
 
 <item><tt/CDR|CallNo|CallId|Duration|Starttime|Endtime|CallerIP|CallerEndId|/ \
 <newline><tt/CalledIP|CalledEndId|DestinationInfo|SrcInfo|GatekeeperID;/
-<p>After a call disconnected, the call detail record is shown (in one line).
+<p>Apr&#232;s un appel d&#233;connect&#233;, l'enregistrement du d&#233;tail de
+l'appel est affich&#233; (sur une ligne).
 
 <item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias;/
-<p>Request for an external application to route an incomming call on a virtual queue.
-This can be done with a RouteToAlias or RouteReject command.
+<p>Demande &#224; une application externe de router un appel arrivant sur une file
+virtuelle. Ceci peut &#234;tre fait avec une commande RouteToAlias ou RouteReject.
 
 </itemize>
-
