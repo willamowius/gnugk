@@ -214,6 +214,9 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 
 void GkDatabase::Destroy()		// 'real', private destructor
 {
+	for (PINDEX i = 0 ; i < m_dbList.GetSize(); i++)
+		delete m_dbList.RemoveAt(i);
+
 }
 
 BOOL GkDatabase::getProfile(CallProfile & cgProfile, PString & h323id, dctn::DBTypeEnum & dbType)
