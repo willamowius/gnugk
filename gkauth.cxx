@@ -126,6 +126,10 @@ private:
   virtual PString GetPassword(PString &);
 };
 
+// ISO 14882:1998 (C++), ISO9899:1999 (C), ISO9945-1:1996 (POSIX) have a
+// very clear oppinion regarding user symbols starting or ending with '_'
+static GkAuthInit<LDAPAuth> L_P_A("LDAPPasswordAuth");
+
 #endif // HAS_LDAP
 
 class RadiusAuth : public SimplePasswordAuth {
