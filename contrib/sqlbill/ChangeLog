@@ -1,3 +1,7 @@
+4 Aug 2004 -- zvision
+  * allow voipcall rows with NULL tariffdesc to be inserted - this happens
+    when users dial numbers not found in the tariff table
+
 9 Jul 2004 -- zvision
   * added GnuGk config examples how to use the billing systems with SQLAcct,
     SQLPasswordAuth and SQLAuth modules instead of Radius. It does not provide

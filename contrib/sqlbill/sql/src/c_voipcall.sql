@@ -56,7 +56,7 @@ CREATE TABLE voipcall (
   -- standard currency symbol for cost and price
   currencysym CHAR(3),
   -- description for the matched tariff
-  tariffdesc TEXT NOT NULL DEFAULT '',
+  tariffdesc TEXT,
   -- the first billing unit (in seconds)
   initialincrement INT,
   -- remaining (2nd, 3rd, ...) billing units (in seconds)
