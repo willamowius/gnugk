@@ -117,13 +117,13 @@
 # We need to further refine this definition as follows:
 # telephoneNumber: 49524680....
 #
-# Dots are important! Each dot is a placeholder for a single cipher, i.e. 0-9.
+# Dots are important! Each dot is a placeholder for a single digit, i.e. 0-9.
 # To correctly implement the screening functionality, we need to know how long
 # a number actually is. We also need this to handle overlapped receiving for
 # endpoints that don't support it themselves.
 # The above value of telephoneNumber defines the number space for a gateway
 # starting with the base number 49524680 and allowing for an extension
-# of exactly four ciphers. Attention: for every dot, all ciphers to the right
+# of exactly four digits. Attention: for every dot, all digits to the right
 # of this dot must be dots, too ! Otherwise the routing algorithm may fail.
 # Decomposition of this number into country code (cc), national destination code (ndc),
 # subscriber number (sn) and extension (ext) is needed for virtual numbering
@@ -433,9 +433,11 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # E.g. if looking for voIPprefixOutgoingWhiteList, the node "ou=Technology, ou=mediaWays,
 # o=mediaways.net" is being queried whether it has a voIPprefixOutgoingWhiteList
 # attribute; if is has not, the node "ou=mediaWays, o=mediaways.net" is queried.
-# This assumes that both nodes, "ou=Technology, ou=mediaWays, o=mediaways.net" and
+# This is in case that both nodes, "ou=Technology, ou=mediaWays, o=mediaways.net" and
 # "ou=mediaWays, o=mediaways.net", have the attribute "objectclass=voIPproperty" AND
 # the node "o=mediaways.net" does NOT have it.
+# We check every node up the tree unless either we found the wanted attribute or
+# the parent node does not have objectclass=voIPproperty any more.
 
 # Residential gateways are referenced by a LDAP-like representation of their DNS name.
 # Only the last element needs to be common to both, terminal and gateway subtrees to serve
@@ -459,5 +461,6 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # This gateway is not required to use H.235 but it is authenticated by it's
 # packets' source IP address which is 1.2.3.4.
 # Calls to +49 5241 80 XXXX and +49 5241 80 20XXX are routed to this gateway
-# (X being a single cipher).
+# (X being a single digit).
 # A call to e.g. +49 5241 80 21234 is NOT routed to this gateway.
+
