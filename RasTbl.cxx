@@ -1217,13 +1217,17 @@ void CallRec::Disconnect(bool force)
 void CallRec::SendReleaseComplete()
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_callingSocket) {
+	if (m_callingSocket && !m_callingSocket->IsDeleteable() && m_callingSocket->IsOpen()) {
+		m_callingSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to calling party ...");
 		m_callingSocket->SendReleaseComplete();
+		m_callingSocket->MarkBlocked(FALSE);
 	}
-	if (m_calledSocket) {
+	if (m_calledSocket && !m_calledSocket->IsDeletable() && m_calledSocket->IsOpen()) {
+		m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete();
+		m_calledSocket->MarkBlocked(FALSE);
 	}
 }
 
