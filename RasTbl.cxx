@@ -1042,7 +1042,6 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_srcInfo(srcInfo), // added (MM 05.11.01)
 	m_bandWidth(Bandwidth), 
 	m_setupTime(0), m_connectTime(0), m_disconnectTime(0),
-	m_durationLimit(0),
 	m_disconnectCause(0),
 	m_callingSocket(0), m_calledSocket(0),
 	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed),
@@ -1625,6 +1624,8 @@ void CallTable::InternalRemove(iterator Iter)
 	}
 
 	CallRec *call = *Iter;
+	
+	call->SetDisconnectTime(time(NULL));
 
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
 		PString cdrString(call->GenerateCDR() + "\r\n");
