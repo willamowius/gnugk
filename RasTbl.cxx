@@ -1004,8 +1004,8 @@ PString CallRec::GenerateCDR() const
 		(const char *)timeString,
 		(const char *)GetEPString(m_Calling),
 		(const char *)GetEPString(m_Called),
-		(const char *)m_srcInfo, //added (MM 05.11.01)
 		(const char *)m_destInfo,
+		(const char *)m_srcInfo, //added (MM 05.11.01)
 		(const char *)Toolkit::Instance()->GKName() //added (MM 06.11.01)
 	);
 }
