@@ -76,7 +76,7 @@ DECLARE
 	costdiff NUMERIC(12,4);
 BEGIN
 	IF NEW.price IS NOT NULL THEN
-		IF NEW.duration <= NEW.graceperiod THEN
+		IF NEW.duration <= NEW.graceperiod OR NEW.duration = 0 THEN
 			NEW.cost := 0;
 		ELSE
 			NEW.cost := NEW.price::NUMERIC(12,4) * NEW.initialincrement::NUMERIC(12,4)

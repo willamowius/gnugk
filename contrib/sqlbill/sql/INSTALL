@@ -97,3 +97,51 @@ To create the schema, follow these steps:
    The 'examples' directory contains tariffs.sxc spreadsheet with a sample
    tariff table and pricing.csv, destinations.csv, merged.csv files generated
    from the sample tariff table.
+
+Upgrading PostgreSQL Database Schema for GnuGk prepaid platform
+=====================================================
+
+During the upgrade, the database should not be in use by other applications,
+RADIUS server or GnuGk.
+
+1. Change the current directory to 'src'. Connect to the existing database 
+   'voipdb' as a user 'gkradius':
+
+   psql -U gkradius -h IP_ADDRESS voipdb
+   
+2. Start a new SQL transaction:
+
+   BEGIN;
+   
+   This is a very important step - as it makes possible to rollback all changes
+   in case of any failure.
+
+3. Delete old functions and triggers:
+
+   \i d_all_functions.sql
+
+4. Upgrade all tables using upgrade_tables.sql script:
+
+   \i upgrade_tables.sql
+
+   Some warnings (marked with NOTICE) may appear during database schema
+   creation, but can be ignored safely. The upgrade result is displayed.
+   If it indicates failure or there were some errors during upgrade process,
+   undo all changes by:
+   
+   ROLLBACK;
+   
+   and skip further steps.
+   
+5. Upgrade all functions:
+
+   \i upgrade_functions.sql
+
+   In case of any errors - ROlLBACK.
+
+6. You are done, the database schema is upgraded. You can type:
+
+   COMMIT;
+   
+   to store changes permanently.
+

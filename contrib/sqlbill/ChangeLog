@@ -1,3 +1,6 @@
+15 Sep 2004 -- zvision
+  * added database versioning and upgrade scripts
+
 26 Aug 2004 -- zvision
   * scripts to dump/restore data added
   * fixed bug that prevented IP only authorization using IP address range

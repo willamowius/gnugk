@@ -1,9 +1,5 @@
-\i c_voipaccount.sql
-\i c_voipuser.sql
-\i c_voiptariffdst.sql
-\i c_voiptariffgrp.sql
-\i c_voiptariff.sql
-\i c_voipcall.sql
-\i c_functions.sql
-\i c_voipcall_trig.sql
-\i c_radius_functions.sql
+\i c_all_tables.sql
+\i c_all_functions.sql
+
+INSERT INTO voipglobals (majorversion, minorversion, buildnumber)
+	VALUES (1, 0, 1);
