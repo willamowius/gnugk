@@ -236,8 +236,6 @@ void GkClient::RegisterFather()
 
  	rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
 
-	PINDEX as, p;
-
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
 	// Is there any way to get the H323ID from the RCF?
 	PString h323id(GkConfig()->GetString(EndpointSection, "MasterH323ID", "OpenH323Gatekeeper"));
