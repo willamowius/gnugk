@@ -83,48 +83,75 @@ BEGIN
 	END IF;
 	-- first try to find an exact match
 	SELECT INTO dst * FROM voiptariffdst
-		WHERE active AND exactmatch AND prefix = e164
+		WHERE exactmatch AND prefix = e164
 		LIMIT 1;
-	-- then try a prefix like match
-	IF dst.id IS NULL THEN
-		-- find an active destination for the given e164 (longest prefix match)
-		IF length(e164) > 0 THEN
-			IF ascii(e164) >= 48 AND ascii(e164) <= 57 THEN
-				SELECT INTO dst * FROM voiptariffdst
-					WHERE active AND NOT exactmatch AND ascii(prefix) = ascii(e164)
-						AND (e164 LIKE (prefix || ''%''))
-					ORDER BY length(prefix) DESC
-					LIMIT 1;
-			ELSE
-				SELECT INTO dst * FROM voiptariffdst
-					WHERE active AND NOT exactmatch AND prefix = ''PC''
-					LIMIT 1;
-			END IF;
+	IF dst.id IS NOT NULL THEN
+		-- check whether the destination is blocked or not
+		IF NOT dst.active THEN
+			RETURN trf;
 		END IF;
-	END IF;
-	-- no active destination found
-	IF dst.id IS NULL THEN
+		SELECT INTO trf T.id, T.dstid, T.grpid, T.price, T.currencysym,
+				T.initialincrement, T.regularincrement, T.graceperiod, T.description, T.active
+			FROM voiptariff T JOIN voiptariffgrp G ON T.grpid = G.id 
+				JOIN voiptariffsel S ON G.id = S.grpid
+			WHERE NOT T.terminating AND T.dstid = dst.id AND T.currencysym = curr
+				AND S.accountid = accid
+			ORDER BY G.priority DESC
+			LIMIT 1;
+		IF FOUND AND trf.id IS NOT NULL THEN
+			IF NOT trf.active THEN
+				SELECT INTO trf.id NULL;
+			END IF;
+			RETURN trf;
+		END IF;
+	
+		SELECT INTO trf * FROM voiptariff 
+			WHERE NOT terminating AND dstid = dst.id AND currencysym = curr
+				AND grpid IS NULL AND active;
 		RETURN trf;
 	END IF;
 
-	SELECT INTO trf T.id, T.dstid, T.grpid, T.price, T.currencysym,
-			T.initialincrement, T.regularincrement, T.graceperiod, T.description, T.active
-		FROM voiptariff T JOIN voiptariffgrp G ON T.grpid = G.id 
-			JOIN voiptariffsel S ON G.id = S.grpid
-		WHERE NOT T.terminating AND T.dstid = dst.id AND T.currencysym = curr
-			AND S.accountid = accid
-		ORDER BY G.priority DESC
-		LIMIT 1;
-	IF FOUND AND trf.id IS NOT NULL THEN
-		IF NOT trf.active THEN
-			SELECT INTO trf.id NULL;
+	IF length(e164) > 0 THEN
+		IF ascii(e164) >= 48 AND ascii(e164) <= 57 THEN
+			SELECT INTO dst.id, dst.active, trf.id D.id, D.active, T.id
+				FROM voiptariffdst D LEFT JOIN voiptariff T ON T.dstid = D.id
+					LEFT JOIN voiptariffgrp G ON T.grpid = G.id 
+					LEFT JOIN voiptariffsel S ON S.grpid = G.id
+				WHERE NOT D.exactmatch AND (e164 LIKE (D.prefix || ''%'')) 
+					AND NOT T.terminating AND T.currencysym = curr  
+					AND (T.grpid IS NULL OR S.accountid = accid)
+				ORDER BY length(D.prefix) DESC, G.priority DESC
+				LIMIT 1;
+		ELSE
+			SELECT INTO dst.id, dst.active, trf.id D.id, D.active, T.id 
+				FROM voiptariffdst D JOIN voiptariff T ON T.dstid = D.id
+					JOIN voiptariffgrp G ON T.grpid = G.id 
+					JOIN voiptariffsel S ON S.grpid = G.id
+				WHERE D.prefix = ''PC'' AND T.currencysym = curr 
+					AND S.accountid = accid
+				ORDER BY G.priority DESC;
+				LIMIT 1;
+			IF trf.id IS NULL THEN
+				SELECT INTO dst.id, dst.active, trf.id D.id, D.active, T.id 
+					FROM voiptariffdst D LEFT JOIN voiptariff T ON T.dstid = D.id
+					WHERE D.prefix = ''PC'' AND T.currencysym = curr AND T.grpid IS NULL
+					LIMIT 1;
+			END IF;
 		END IF;
+		IF trf.id IS NOT NULL THEN
+			SELECT INTO trf * FROM voiptariff WHERE id = trf.id;
+		END IF;
+	END IF;
+	-- no active destination found
+	IF dst.id IS NULL OR trf.id IS NULL THEN
+		SELECT INTO trf.id NULL;
 		RETURN trf;
 	END IF;
+
+	IF NOT dst.active OR NOT trf.active THEN
+		SELECT INTO trf.id NULL;
+	END IF;
 	
-	SELECT INTO trf * FROM voiptariff 
-		WHERE NOT terminating AND dstid = dst.id AND currencysym = curr
-			AND grpid IS NULL AND active;
 	RETURN trf;
 END;
 ' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;

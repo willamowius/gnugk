@@ -1,3 +1,9 @@
+25 Oct 2004 -- zvision
+  * tariff matching extended to support more precise group tariff matching,
+    ability to specify per group special destinations
+  * tariff matching now processes active flag correctly for tariffs/tariff
+    destinations
+
 13 Oct 2004 -- zvision
   * new 'prefix' column in the voipcall table to store a prefix
     that the Called-Station-Id has matched
