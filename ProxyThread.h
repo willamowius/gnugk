@@ -164,11 +164,11 @@ public:
 	virtual void Close();
 	virtual void Exec() = 0;
 
-	bool Wait();
-	void Go();
-	void Main();
+	virtual bool Wait();
+	virtual void Go();
+	virtual void Main();
 
-	bool Destroy();
+	virtual bool Destroy();
 
 protected:
 	PSyncPoint sync;

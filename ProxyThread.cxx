@@ -49,6 +49,7 @@ public:
 
 	// override from class MyPThread
 	virtual void Exec();
+	virtual bool Wait();
 
 private:
 	ProxyHandleThread *handler;
@@ -416,7 +417,6 @@ bool ProxyConnectThread::Connect(ProxySocket *socket)
 
 void ProxyConnectThread::Exec()
 {
-	ConfigReloadMutex.StartRead(); // This is silly but will prevent the ConfigReloadMutex from beeing not Read.
 	if (!Wait())
 		return;
 
@@ -432,6 +432,13 @@ void ProxyConnectThread::Exec()
 	//      Note: socket may be invalid
 
 	available = true;
+}
+
+bool
+ProxyConnectThread::Wait()
+{
+	sync.Wait();
+	return isOpen;
 }
 
 // class ProxyListener
