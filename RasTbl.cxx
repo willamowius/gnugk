@@ -169,7 +169,7 @@ void EndpointRec::SetEndpointRec(const H225_LocationRequest & lrq)
 
 EndpointRec::~EndpointRec()
 {
-	PTRACE(0, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
+//	PTRACE(0, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
 	delete m_terminalType;
 }
 
@@ -480,6 +480,7 @@ void GatewayRec::Update(const H225_RasMessage & ras_msg)
 			rrq.m_keepAlive.GetValue()) && (*m_terminalType != rrq.m_terminalType)) {
 			SetEndpointType(rrq.m_terminalType);
 		}
+		AddPrefixes(m_terminalType->m_gateway.m_protocol);
 	} else if (ras_msg.GetTag() == H225_RasMessage::e_locationConfirm) {
 		const H225_LocationConfirm & lcf = ras_msg;
 		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
@@ -1383,17 +1384,16 @@ void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, uns
 void CallRec::RemoveAll()
 {
 //	PWaitAndSignal lock(m_usedLock);
-	if (m_registered) {
-		H225_RasMessage ras_msg;
-		ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
-		H225_DisengageRequest & drq = ras_msg;
-		drq.m_conferenceID = m_conferenceIdentifier;
-		drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
-		drq.m_callIdentifier = m_callIdentifier;
-		drq.m_callReferenceValue = (m_Calling) ? m_callingCRV : m_calledCRV;
-		if(Toolkit::Instance()->GkClientIsRegistered())
-			Toolkit::Instance()->GetGkClient().SendDRQ(ras_msg);
-	}
+	H225_RasMessage ras_msg;
+	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
+	H225_DisengageRequest & drq = ras_msg;
+	drq.m_conferenceID = m_conferenceIdentifier;
+	drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
+	drq.m_callIdentifier = m_callIdentifier;
+	drq.m_callReferenceValue = (m_Calling) ? m_callingCRV : m_calledCRV;
+	if(Toolkit::Instance()->GkClientIsRegistered())
+		Toolkit::Instance()->GetGkClient().SendDRQ(ras_msg);
+
 
 	if (m_Calling)
 		m_Calling->RemoveCall();
@@ -1938,9 +1938,9 @@ void CallTable::InternalRemove(iterator Iter)
 
 	CallRec *call = *Iter;
 	if ((m_genNBCDR || call->GetCallingAddress()) && (m_genUCCDR || call->IsConnected())) {
-//		PString cdrString(call->GenerateCDR());
-// 		GkStatus::Instance()->SignalStatus(cdrString, 1);
-// 		PTRACE(3, cdrString);
+// 		PString cdrString(call->GenerateCDR());
+//  		GkStatus::Instance()->SignalStatus(cdrString, 1);
+//  		PTRACE(3, cdrString);
 #ifdef PTRACING
 	} else {
 		if (!call->IsConnected())
