@@ -50,7 +50,9 @@ typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
 class GkClient {
 public:
-	GkClient(RasServer *);
+	typedef GkClient Base;
+
+	GkClient();
 	~GkClient();
 
 	void OnReload();
@@ -61,11 +63,18 @@ public:
 	bool IsNATed() const { return m_natClient != 0; }
 	PString GetParent() const;
 
+	bool OnSendingRRQ(H225_RegistrationRequest &rrq);
+	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest &req);
+	bool OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest &req);
+	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::SetupRequest &req, bool answer = false);
+	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest &req);
+	bool OnSendingDRQ(H225_DisengageRequest &drq, const callptr &call);
+	bool OnSendingURQ(H225_UnregistrationRequest &urq);
+	
 	bool SendARQ(Routing::AdmissionRequest &);
 	bool SendLRQ(Routing::LocationRequest &);
-	bool SendARQ(Routing::SetupRequest &, bool = false);
+	bool SendARQ(Routing::SetupRequest &, bool answer = false);
 	bool SendARQ(Routing::FacilityRequest &);
-	bool SendARQ(const H225_Setup_UUIE &, unsigned, callptr &);
 	void SendDRQ(const callptr &);
 	void SendURQ();
 
@@ -91,7 +100,9 @@ public:
 		H225_LocationRequest& lrq /// LRQ message to be filled with tokens
 		)
 	{
-		SetNBPassword(lrq, !m_e164 ? m_e164 : m_h323Id);
+		SetNBPassword(lrq, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
+			(m_e164.GetSize() > 0 ? m_e164[0] : PString())
+			);
 	}
 		
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
@@ -108,7 +119,9 @@ public:
 	}
 	template<class RAS> void SetPassword(RAS & rasmsg)
 	{
-		SetPassword(rasmsg, !m_e164 ? m_e164 : m_h323Id);
+		SetPassword(rasmsg, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
+			(m_e164.GetSize() > 0 ? m_e164[0] : PString())
+			);
 	}
 
 private:
@@ -146,9 +159,9 @@ private:
 	bool m_registered;
 	/// parent discovery status (DNS resolved, GRQ/GCF exchanged)
 	bool m_discoveryComplete;
-	PString m_h323Id, m_e164, m_password, m_rrjReason;
-	H225_EndpointIdentifier *m_endpointId;
-	H225_GatekeeperIdentifier *m_gatekeeperId;
+	PString m_password, m_rrjReason;
+	H225_EndpointIdentifier m_endpointId;
+	H225_GatekeeperIdentifier m_gatekeeperId;
 	PMutex m_rrqMutex;
 
 	/// reregistration timeout (seconds)
@@ -172,6 +185,30 @@ private:
 	GkClientHandler *m_handlers[4];
 
 	NATClient *m_natClient;
+	
+	enum ParentVendors {
+		ParentVendor_Generic,
+		ParentVendor_GnuGk,
+		ParentVendor_Cisco
+	};
+	
+	/// vendor of the parent gatekeeper
+	int m_parentVendor;
+	
+	enum EndpointTypes {
+		EndpointType_Terminal,
+		EndpointType_Gateway
+	};
+	/// endpoint type to set in RRQs
+	int m_endpointType;
+	/// send GRQ prior to registration
+	bool m_discoverParent;
+	///	list of local prefixes, if #m_endpointType# is set to gateway
+	PStringArray m_prefixes;
+	/// list of H.323ID aliases to register with
+	PStringArray m_h323Id;
+	/// list of E.164 aliases to register with
+	PStringArray m_e164;
 };
 
 #endif // GKCLIENT_H

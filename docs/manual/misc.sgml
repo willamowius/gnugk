@@ -48,6 +48,7 @@ Format of timestamp strings printed inside CDRs.
 
 
 <sect1>Section &lsqb;Endpoint&rsqb;
+<label id="endpoint">
 <p>
 The gatekeeper can work as an endpoint by registering with another gatekeeper.
 With this feature, you can easily build gatekeeper hierarchies.
@@ -66,6 +67,12 @@ Default: <tt/Gateway/
 <p>
 Define the terminal type for the endpoint.
 The valid values are <tt/Gateway/ or <tt/Terminal/.
+
+<item><tt/Vendor=Cisco | GnuGk | Generic/<newline>
+Default: <tt/GnuGk/
+<p>
+Choose parent gatekeeper type to enable vendor specific
+extensions.
 
 <item><tt/H323ID=CitronProxy/<newline>
 Default: <tt>&lt;Name&gt;</tt>

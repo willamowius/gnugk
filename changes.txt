@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- new Vendor config variable for [Endpoint] section to provide vendor specific
+  extensions when registering with a parent gatekeeper
 - added support for Connect event in SqlAcct module, thanks to Boian Bonev
 - BUGFIX(Neighbor.cxx) nonStandardData field was not included for CiscoGK neighbors
 - a new module to rewrite ANI/CLI numbers. Sponsored by Gabriel Georgescu.

@@ -1072,7 +1072,7 @@ void RasServer::Run()
 	RasPDU<H225_ServiceControlResponse>::Creator SCRCreator;
 
 	listeners = new TCPServer;
-	gkClient = new GkClient(this);
+	gkClient = new GkClient;
 	neighbors = new NeighborList;
 	authList = new GkAuthenticatorList;
 	acctList = new GkAcctLoggerList;

@@ -27,6 +27,7 @@
 #include "RasSrv.h"
 #include "ProxyChannel.h"
 #include "sigmsg.h"
+#include "cisco.h"
 #include "GkClient.h"
 
 namespace {
@@ -291,21 +292,18 @@ const long DEFAULT_RRQ_RETRY = 3;
 }
 
 // class GkClient
-GkClient::GkClient(
-	RasServer* rasSrv
-	) : m_rasSrv(rasSrv), m_registered(false), m_discoveryComplete(false),
+GkClient::GkClient() 
+	: m_rasSrv(RasServer::Instance()), m_registered(false), m_discoveryComplete(false),
 	m_ttl(GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL)),
 	m_timer(0),
-	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY))
+	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY)),
+	m_rewriteInfo(NULL), m_natClient(NULL),
+	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
+	m_discoverParent(true)
 {
 	m_resend = m_retry;
 	m_gkfailtime = m_retry * 128;
 	
-	m_endpointId = new H225_EndpointIdentifier;
-	m_gatekeeperId = new H225_GatekeeperIdentifier;
-	// initialize these variable for safe
-	m_rewriteInfo = 0;
-	m_natClient = 0;
 	m_gkport = 0;
 
 	m_useAltGKPermanent = false;
@@ -322,31 +320,56 @@ GkClient::~GkClient()
 	DeleteObjectsInArray(m_handlers, m_handlers + 4);
 	delete m_gkList;
 	delete m_rewriteInfo;
-	delete m_gatekeeperId;
-	delete m_endpointId;
 	PTRACE(1, "GKC\tDelete GkClient");
 }
 
 void GkClient::OnReload()
 {
+	PConfig *cfg = GkConfig();
+	
 	if (IsRegistered())
-		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "UnregisterOnReload", "0")))
+		if (Toolkit::AsBool(cfg->GetString(EndpointSection, "UnregisterOnReload", "0")))
 			SendURQ(); // TODO
 		else
 			Unregister();
 
 	m_password = Toolkit::Instance()->ReadPassword(EndpointSection, "Password");
-	m_retry = m_resend = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY);
+	m_retry = m_resend = cfg->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY);
 	m_gkfailtime = m_retry * 128;
 	m_authMode = -1;
 
+	PCaselessString s = GkConfig()->GetString(EndpointSection, "Vendor", "GnuGk");
+	if (s == "Generic" ||  s == "Unknown")
+		m_parentVendor = ParentVendor_Generic;
+	else if (s == "Cisco")
+		m_parentVendor = ParentVendor_Cisco;
+	else
+		m_parentVendor = ParentVendor_GnuGk;
+
+	s = GkConfig()->GetString(EndpointSection, "Type", "GnuGk");
+	if (s[0] == 't' || s[0] == 'T') {
+		m_endpointType = EndpointType_Terminal;
+		m_prefixes.RemoveAll();
+	} else {
+		m_endpointType = EndpointType_Gateway;
+		m_prefixes = cfg->GetString(EndpointSection, "Prefix", "").Tokenise(",;", FALSE);
+	}
+	
+	m_discoverParent = Toolkit::AsBool(cfg->GetString(EndpointSection, "Discovery", "1"));
+
+	m_h323Id = cfg->GetString(
+		EndpointSection, "H323ID", (const char *)Toolkit::GKName()
+		).Tokenise(" ,;\t", FALSE);
+	m_e164 = cfg->GetString(EndpointSection, "E164", "").Tokenise(" ,;\t", FALSE);
+	
 	PIPSocket::Address gkaddr = m_gkaddr;
 	WORD gkport = m_gkport;
-	const PString gk(GkConfig()->GetString(EndpointSection, "Gatekeeper", "no"));
+	const PCaselessString gk(cfg->GetString(EndpointSection, "Gatekeeper", "no"));
 	
 	if (!IsRegistered())
 		m_ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
 
+	
 	if (gk == "no") {
 		m_timer = 0;
 		m_rrjReason = PString();
@@ -365,9 +388,8 @@ void GkClient::OnReload()
 
 	m_timer = 100;
 
-	// FIXME: not thread-safed
 	delete m_rewriteInfo;
-	m_rewriteInfo = new Toolkit::RewriteData(GkConfig(), RewriteE164Section);
+	m_rewriteInfo = new Toolkit::RewriteData(cfg, RewriteE164Section);
 }
 
 void GkClient::CheckRegistration()
@@ -384,8 +406,145 @@ bool GkClient::CheckFrom(const RasMsg *ras) const
 PString GkClient::GetParent() const
 {
 	return IsRegistered() ?
-		AsString(m_gkaddr, m_gkport) + '\t' + m_endpointId->GetValue() :
+		AsString(m_gkaddr, m_gkport) + '\t' + m_endpointId.GetValue() :
 		"not registered\t" + m_rrjReason;
+}
+
+bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
+{
+	if (m_parentVendor == ParentVendor_GnuGk) {
+		PIPSocket::Address sigip;
+		if (rrq.m_callSignalAddress.GetSize() > 0
+				&& GetIPFromTransportAddr(rrq.m_callSignalAddress[0], sigip)) {
+			rrq.IncludeOptionalField(H225_RegistrationRequest::e_nonStandardData);
+			rrq.m_nonStandardData.m_data = "IP=" + sigip.AsString();
+		}
+	}
+	return true;
+}
+
+bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest &req)
+{
+	if (m_parentVendor == ParentVendor_Cisco) {
+		const H225_AdmissionRequest &orig_arq = req.GetRequest();
+		
+		Cisco_ARQnonStandardInfo nonStandardData;
+
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);
+		arq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+		H225_H221NonStandard & h221 = arq.m_nonStandardData.m_nonStandardIdentifier;
+		h221.m_manufacturerCode = 18;
+		h221.m_t35CountryCode = 181;
+		h221.m_t35Extension = 0;
+	
+		PPER_Stream buff;
+		nonStandardData.Encode(buff);
+		buff.CompleteEncoding();
+		arq.m_nonStandardData.m_data = buff;
+	}
+	return true;
+}
+
+bool GkClient::OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest &/*req*/)
+{
+	if (m_parentVendor == ParentVendor_Cisco) {
+		Cisco_LRQnonStandardInfo nonStandardData;
+
+		nonStandardData.m_ttl = 6;
+
+		if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) {
+			nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
+			nonStandardData.m_gatewaySrcInfo.SetSize(lrq.m_sourceInfo.GetSize());
+			for (PINDEX i = 0; i < lrq.m_sourceInfo.GetSize(); i++)
+				nonStandardData.m_gatewaySrcInfo[i] = lrq.m_sourceInfo[i];
+		} else {
+			if (m_h323Id.GetSize() > 0) {
+				nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
+				nonStandardData.m_gatewaySrcInfo.SetSize(m_h323Id.GetSize());
+				for (PINDEX i = 0; i < m_h323Id.GetSize(); i++)
+					H323SetAliasAddress(m_h323Id[i], nonStandardData.m_gatewaySrcInfo[i], H225_AliasAddress::e_h323_ID);
+			}
+			if (m_e164.GetSize() > 0) {
+				nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
+				PINDEX sz = nonStandardData.m_gatewaySrcInfo.GetSize();
+				nonStandardData.m_gatewaySrcInfo.SetSize(sz + m_e164.GetSize());
+				for (PINDEX i = 0; i < m_e164.GetSize(); i++)
+					H323SetAliasAddress(m_e164[i], nonStandardData.m_gatewaySrcInfo[sz + i]);
+			}
+		}
+		
+		lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+		lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+		H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+		h221.m_manufacturerCode = 18;
+		h221.m_t35CountryCode = 181;
+		h221.m_t35Extension = 0;
+	
+		PPER_Stream buff;
+		nonStandardData.Encode(buff);
+		buff.CompleteEncoding();
+		lrq.m_nonStandardData.m_data = buff;
+	}
+	return true;
+}
+
+bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::SetupRequest &req, bool /*answer*/)
+{
+	if (m_parentVendor == ParentVendor_Cisco) {
+		const Q931 &setup = req.GetWrapper()->GetQ931();
+		Cisco_ARQnonStandardInfo nonStandardData;
+
+		if (setup.HasIE(Q931::CallingPartyNumberIE)) {
+			PBYTEArray data = setup.GetIE(Q931::CallingPartyNumberIE);
+			if (data.GetSize() >= 2 && (data[0] & 0x80) == 0x80) {
+				nonStandardData.IncludeOptionalField(Cisco_ARQnonStandardInfo::e_callingOctet3a);
+				nonStandardData.m_callingOctet3a = data[1];
+			}
+		}
+		
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);
+		arq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+		H225_H221NonStandard & h221 = arq.m_nonStandardData.m_nonStandardIdentifier;
+		h221.m_manufacturerCode = 18;
+		h221.m_t35CountryCode = 181;
+		h221.m_t35Extension = 0;
+	
+		PPER_Stream buff;
+		nonStandardData.Encode(buff);
+		buff.CompleteEncoding();
+		arq.m_nonStandardData.m_data = buff;
+	}
+	return true;
+}
+
+bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest &/*req*/)
+{
+	if (m_parentVendor == ParentVendor_Cisco) {
+		Cisco_ARQnonStandardInfo nonStandardData;
+
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);
+		arq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+		H225_H221NonStandard & h221 = arq.m_nonStandardData.m_nonStandardIdentifier;
+		h221.m_manufacturerCode = 18;
+		h221.m_t35CountryCode = 181;
+		h221.m_t35Extension = 0;
+	
+		PPER_Stream buff;
+		nonStandardData.Encode(buff);
+		buff.CompleteEncoding();
+		arq.m_nonStandardData.m_data = buff;
+	}
+	return true;
+}
+
+bool GkClient::OnSendingDRQ(H225_DisengageRequest &/*drq*/, const callptr &/*call*/)
+{
+	return true;
+}
+
+bool GkClient::OnSendingURQ(H225_UnregistrationRequest &/*urq*/)
+{
+	return true;
 }
 
 bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
@@ -413,7 +572,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 		arq.m_callIdentifier = oarq.m_callIdentifier;
 	}
 
-	return WaitForACF(request, &arq_obj);
+	return OnSendingARQ(arq, arq_obj) && WaitForACF(request, &arq_obj);
 }
 
 bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
@@ -425,7 +584,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 	lrq.m_destinationInfo = olrq.m_destinationInfo;
 	lrq.m_replyAddress = m_rasSrv->GetRasAddress(m_loaddr);
 	lrq.IncludeOptionalField(H225_LocationRequest::e_endpointIdentifier);
-	lrq.m_endpointIdentifier = *m_endpointId;
+	lrq.m_endpointIdentifier = m_endpointId;
 	if (olrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 		lrq.m_sourceInfo = olrq.m_sourceInfo;
@@ -437,6 +596,9 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 	}
 	SetNBPassword(lrq);
 
+	if (!OnSendingLRQ(lrq, lrq_obj))
+		return false;
+		
 	request.SendRequest(m_gkaddr, m_gkport);
 	if (request.WaitForResponse(5000)) {
 		RasMsg *ras = request.GetReply();
@@ -477,11 +639,14 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	} else {
 		// no sourceAddress privided in Q.931 Setup?
 		// since srcInfo is mandatory, set my aliases as the srcInfo
-		arq.m_srcInfo.SetSize(1);
-		H323SetAliasAddress(m_h323Id, arq.m_srcInfo[0]);
-		if (!m_e164) {
-			arq.m_srcInfo.SetSize(2);
-			H323SetAliasAddress(m_e164, arq.m_srcInfo[1]);
+		if (m_h323Id.GetSize() > 0) {
+			arq.m_srcInfo.SetSize(1);
+			H323SetAliasAddress(m_h323Id[0], arq.m_srcInfo[0], H225_AliasAddress::e_h323_ID);
+		}
+		if (m_e164.GetSize() > 0) {
+			PINDEX sz = arq.m_srcInfo.GetSize();
+			arq.m_srcInfo.SetSize(sz + 1);
+			H323SetAliasAddress(m_e164[0], arq.m_srcInfo[sz]);
 		}
 	}
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
@@ -494,7 +659,8 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	// workaround for bandwidth, as OpenH323 library :p
 	arq.m_bandWidth = 1280;
 
-	return WaitForACF(request, answer ? 0 : &setup_obj);
+	return OnSendingARQ(arq, setup_obj, answer)
+		&& WaitForACF(request, answer ? 0 : &setup_obj);
 }
 
 bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
@@ -511,11 +677,14 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_callIdentifier);
 		arq.m_callIdentifier = facility.m_callIdentifier;
 	}
-	arq.m_srcInfo.SetSize(1);
-	H323SetAliasAddress(m_h323Id, arq.m_srcInfo[0]);
-	if (!m_e164) {
-		arq.m_srcInfo.SetSize(2);
-		H323SetAliasAddress(m_e164, arq.m_srcInfo[1]);
+	if (m_h323Id.GetSize() > 0) {
+		arq.m_srcInfo.SetSize(1);
+		H323SetAliasAddress(m_h323Id[0], arq.m_srcInfo[0], H225_AliasAddress::e_h323_ID);
+	}
+	if (m_e164.GetSize() > 0) {
+		PINDEX sz = arq.m_srcInfo.GetSize();
+		arq.m_srcInfo.SetSize(sz + 1);
+		H323SetAliasAddress(m_e164[0], arq.m_srcInfo[sz]);
 	}
 	if (facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
@@ -525,7 +694,7 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 	// workaround for bandwidth, as OpenH323 library :p
 	arq.m_bandWidth = 1280;
 
-	return WaitForACF(request, &facility_obj);
+	return OnSendingARQ(arq, facility_obj) && WaitForACF(request, &facility_obj);
 }
 
 void GkClient::SendDRQ(const callptr & call)
@@ -535,13 +704,15 @@ void GkClient::SendDRQ(const callptr & call)
 	H225_DisengageRequest & drq = drq_ras;
 	call->BuildDRQ(drq, H225_DisengageReason::e_normalDrop);
 	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
-	drq.m_gatekeeperIdentifier = *m_gatekeeperId;
-	drq.m_endpointIdentifier = *m_endpointId;
+	drq.m_gatekeeperIdentifier = m_gatekeeperId;
+	drq.m_endpointIdentifier = m_endpointId;
 	drq.m_answeredCall = !call->GetCallingParty();
 	SetPassword(drq);
 
-	request.SendRequest(m_gkaddr, m_gkport);
-	request.WaitForResponse(3000);
+	if (OnSendingDRQ(drq, call)) {
+		request.SendRequest(m_gkaddr, m_gkport);
+		request.WaitForResponse(3000);
+	}
 	// ignore response
 }
 
@@ -553,14 +724,16 @@ void GkClient::SendURQ()
 	H225_UnregistrationRequest & urq = urq_ras;
 	urq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
-	urq.m_gatekeeperIdentifier = *m_gatekeeperId;
+	urq.m_gatekeeperIdentifier = m_gatekeeperId;
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointIdentifier);
-	urq.m_endpointIdentifier = *m_endpointId;
+	urq.m_endpointIdentifier = m_endpointId;
 	SetCallSignalAddress(urq.m_callSignalAddress);
 	SetPassword(urq);
 
 	Unregister();
-	m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr);
+	
+	if (OnSendingURQ(urq))
+		m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr);
 }
 
 bool GkClient::RewriteE164(H225_AliasAddress & alias, bool fromInternal)
@@ -626,8 +799,9 @@ bool GkClient::RewriteE164(
 bool GkClient::Discovery()
 {
 	m_loaddr = m_gkaddr;
-	*m_gatekeeperId = PString();
-	if (!Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "Discovery", "1")))
+	m_gatekeeperId = PString();
+
+	if (!m_discoverParent)
 		return true;
 
 	GRQRequester request(GkConfig()->GetString(EndpointSection, "GatekeeperIdentifier", ""));
@@ -639,7 +813,7 @@ bool GkClient::Discovery()
 			H225_GatekeeperConfirm & gcf = (*ras)->m_recvRAS;
 			m_loaddr = (*ras)->m_localAddr;
 			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier))
-				*m_gatekeeperId = gcf.m_gatekeeperIdentifier;
+				m_gatekeeperId = gcf.m_gatekeeperIdentifier;
 			GetIPAndPortFromTransportAddr(gcf.m_rasAddress, m_gkaddr, m_gkport);
 			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_authenticationMode))
 				m_authMode = gcf.m_authenticationMode.GetTag();
@@ -669,6 +843,7 @@ void GkClient::Register()
 	H225_RasMessage rrq_ras;
 	Requester<H225_RegistrationRequest> request(rrq_ras, m_loaddr);
 	BuildRRQ(rrq_ras);
+	OnSendingRRQ(rrq_ras);
 	request.SendRequest(m_gkaddr, m_gkport);
 	m_registeredTime = PTime();
 	if (request.WaitForResponse(m_retry * 1000)) {
@@ -690,7 +865,7 @@ void GkClient::Unregister()
 {
 	if (m_natClient) {
 		m_natClient->Stop();
-		m_natClient = 0;
+		m_natClient = NULL;
 	}
 	for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::UnregisterHandler), m_rasSrv));
 	m_registered = false;
@@ -737,14 +912,11 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
 
 	PINDEX as, p;
-	PString t(GkConfig()->GetString(EndpointSection, "Type", "gateway").ToLower());
-	if (t[0] == 't') {
+	if (m_endpointType == EndpointType_Terminal) {
 		rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
-	} else if (t[0] == 'g') {
+	} else {
 		rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gateway);
-		const PString prefix(GkConfig()->GetString(EndpointSection, "Prefix", ""));
-		const PStringArray prefixes=prefix.Tokenise(",;", FALSE);
-		as = prefixes.GetSize();
+		as = m_prefixes.GetSize();
 		if (as > 0) {
 			rrq.m_terminalType.m_gateway.IncludeOptionalField(H225_GatewayInfo::e_protocol);
 			rrq.m_terminalType.m_gateway.m_protocol.SetSize(1);
@@ -753,28 +925,22 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 			H225_VoiceCaps & voicecap = (H225_VoiceCaps &)protocol;
 			voicecap.m_supportedPrefixes.SetSize(as);
 			for (PINDEX p = 0; p < as; ++p)
-				H323SetAliasAddress(prefixes[p].Trim(), voicecap.m_supportedPrefixes[p].m_prefix);
+				H323SetAliasAddress(m_prefixes[p].Trim(), voicecap.m_supportedPrefixes[p].m_prefix);
 		}
 //		rrq.IncludeOptionalField(H225_RegistrationRequest::e_multipleCalls);
 //		rrq.m_multipleCalls = FALSE;
-	} // else what?
+	}
 
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
-	PString h323id(GkConfig()->GetString(EndpointSection, "H323ID", (const char *)Toolkit::GKName()));
-	PStringArray h323ids=h323id.Tokenise(" ,;\t", FALSE);
-	as = h323ids.GetSize();
+	as = m_h323Id.GetSize();
 	rrq.m_terminalAlias.SetSize(as);
 	for (p = 0; p < as; ++p)
-		H323SetAliasAddress(h323ids[p], rrq.m_terminalAlias[p]);
-	m_h323Id = h323ids[0];
+		H323SetAliasAddress(m_h323Id[p], rrq.m_terminalAlias[p], H225_AliasAddress::e_h323_ID);
 
-	PString e164(GkConfig()->GetString(EndpointSection, "E164", ""));
-	PStringArray e164s=e164.Tokenise(" ,;\t", FALSE);
-	PINDEX s = e164s.GetSize() + as;
+	PINDEX s = m_e164.GetSize() + as;
 	rrq.m_terminalAlias.SetSize(s);
 	for (p = as; p < s; ++p)
-		H323SetAliasAddress(e164s[p-as], rrq.m_terminalAlias[p]);
-	m_e164 = e164s[0];
+		H323SetAliasAddress(m_e164[p-as], rrq.m_terminalAlias[p]);
 
 	int ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
 	if (ttl > 0) {
@@ -788,12 +954,6 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_versionId);
 	vendor.m_versionId = "Version " + PProcess::Current().GetVersion();
 
-	PIPSocket::Address sigip;
-	if (GetIPFromTransportAddr(rrq.m_callSignalAddress[0], sigip)) {
-		rrq.IncludeOptionalField(H225_RegistrationRequest::e_nonStandardData);
-		rrq.m_nonStandardData.m_data = "IP=" + sigip.AsString();
-	}
-
 	// set user provided endpointIdentifier, if any
 	PString endpointId(GkConfig()->GetString(EndpointSection, "EndpointIdentifier", ""));
 	if (!endpointId) {
@@ -801,9 +961,9 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 		rrq.m_endpointIdentifier = endpointId;
 	}
 	// set gatekeeperIdentifier found in discovery procedure
-	if (!m_gatekeeperId->GetValue()) {
+	if (!m_gatekeeperId.GetValue()) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
-		rrq.m_gatekeeperIdentifier = *m_gatekeeperId;
+		rrq.m_gatekeeperIdentifier = m_gatekeeperId;
 	}
 	rrq.m_keepAlive = FALSE;
 }
@@ -811,9 +971,9 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 {
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
-	rrq.m_endpointIdentifier = *m_endpointId;
+	rrq.m_endpointIdentifier = m_endpointId;
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
-	rrq.m_gatekeeperIdentifier = *m_gatekeeperId;
+	rrq.m_gatekeeperIdentifier = m_gatekeeperId;
 	rrq.m_keepAlive = TRUE;
 }
 
@@ -840,7 +1000,7 @@ H225_AdmissionRequest & GkClient::BuildARQ(H225_AdmissionRequest & arq)
 {
 	arq.m_callType.SetTag(H225_CallType::e_pointToPoint);
 
-	arq.m_endpointIdentifier = *m_endpointId;
+	arq.m_endpointIdentifier = m_endpointId;
 
 	arq.IncludeOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress);
 	arq.m_srcCallSignalAddress = m_rasSrv->GetCallSignalAddress(m_loaddr);
@@ -849,7 +1009,7 @@ H225_AdmissionRequest & GkClient::BuildARQ(H225_AdmissionRequest & arq)
 	arq.m_canMapAlias = TRUE;
 
 	arq.IncludeOptionalField(H225_AdmissionRequest::e_gatekeeperIdentifier);
-	arq.m_gatekeeperIdentifier = *m_gatekeeperId;
+	arq.m_gatekeeperIdentifier = m_gatekeeperId;
 
 	SetPassword(arq);
 
@@ -862,8 +1022,8 @@ void GkClient::OnRCF(RasMsg *ras)
 	if (!IsRegistered()) {
 		PTRACE(2, "GKC\tRegister with " << AsString(m_gkaddr, m_gkport) << " successfully");
 		m_registered = true;
-		*m_endpointId = rcf.m_endpointIdentifier;
-		*m_gatekeeperId = rcf.m_gatekeeperIdentifier;
+		m_endpointId = rcf.m_endpointIdentifier;
+		m_gatekeeperId = rcf.m_gatekeeperIdentifier;
 		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper))
 			m_gkList->Set(rcf.m_alternateGatekeeper);
 		for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::RegisterHandler), m_rasSrv));
@@ -884,7 +1044,7 @@ void GkClient::OnRCF(RasMsg *ras)
 	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_nonStandardData))
 		if (rcf.m_nonStandardData.m_data.AsString().Find("NAT=") == 0)
 			if (!m_natClient && rcf.m_callSignalAddress.GetSize() > 0)
-				m_natClient = new NATClient(rcf.m_callSignalAddress[0], *m_endpointId);
+				m_natClient = new NATClient(rcf.m_callSignalAddress[0], m_endpointId);
 }
 
 void GkClient::OnRRJ(RasMsg *ras)

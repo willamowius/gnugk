@@ -93,6 +93,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+A new <tt/Vendor/ config variable for <ref id="endpoint" name="[Endpoint]">
+section to provide vendor specific extensions when registering with a parent gatekeeper.
+
+<item>
 LRQ nonStandardData field was not included for CiscoGK neighbors.
 
 <item>
