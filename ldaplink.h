@@ -53,7 +53,7 @@ typedef LDAPAttributeNamesClass::value_type LDAPANValuePair;
 namespace lctn {
   /// tags named after config file tags, used as indices to LDAPAttrTags
   enum LDAPAttributeNamesEnum {
-    DN=0, UserIdentity, H323ID, TelephonNo, H245PassWord, aliasH3232ID,
+    DN=0, UserIdentity, H323ID, TelephonNo, H245PassWord, aliasH323ID,
     CountryCode, AreaCode, LocalAccessCode, NationalAccessCode,
     InternationalAccessCode, CallingLineIdPresentation, PrefixBlacklist,
     PrefixWhitelist, MAX_ATTR_NO };

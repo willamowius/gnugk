@@ -190,13 +190,13 @@ LDAPCtrl::Initialize(void)
   int opt_ret = LDAP_OPT_SUCCESS;
   if(LDAP_OPT_SUCCESS != 
      (opt_ret = ldap_set_option(ldap, LDAP_OPT_TIMELIMIT, (void*)&timelimit))) {
-    DEBUGPRINT("timelimit");
-    ERRORPRINT("timelimit");
+    DEBUGPRINT("ldap_set_option: Couln't set timelimit");
+    ERRORPRINT("ldap_set_option: Couln't set timelimit");
   }
   if(LDAP_OPT_SUCCESS != 
      (opt_ret = ldap_set_option(ldap, LDAP_OPT_SIZELIMIT, (void*)&sizelimit))) {
-    DEBUGPRINT("sizelimit");
-    ERRORPRINT("sizelimit");
+    DEBUGPRINT("ldap_set_option: Couln't set sizelimit");
+    ERRORPRINT("ldap_set_option: Couln't set sizelimit");
   }
 #else /* LDAP_API_VERSION */
   // strictly RFC1823
@@ -290,7 +290,7 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
 		 LDAPAttrTags[H323ID], // attribute name (H323ID)
 		 (const char *)p.userH323ID, // requested value(H323ID)
 		 // possible alternative
-		 LDAPAttrTags[aliasH3232ID],// attribute name (H323ID)
+		 LDAPAttrTags[aliasH323ID],// attribute name (H323ID)
 		 (const char *)p.userH323ID // requested value (H323ID)
 		 );
   DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ")");

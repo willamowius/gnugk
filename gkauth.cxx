@@ -488,9 +488,9 @@ LDAPAuth::Initialize(PConfig * cfg) // 'real', private constructor
 			    config->GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[H245PassWord],
 					      "plaintextPassword")));	// ...9564.2.1.1.8
-  AN.insert(LDAPANValuePair(LDAPAttrTags[aliasH3232ID],
+  AN.insert(LDAPANValuePair(LDAPAttrTags[aliasH323ID],
 			    config->GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[aliasH3232ID],
+					      LDAPAttrTags[aliasH323ID],
 					      "voIPnickName"))); // ...9564.2.5.1000
   AN.insert(LDAPANValuePair(LDAPAttrTags[CountryCode],
 			    config->GetString(ldap_attr_name_sec, 
