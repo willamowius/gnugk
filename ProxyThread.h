@@ -33,6 +33,19 @@ class HandlerList;
 
 extern const char *RoutedSec;
 
+// This class shall prevent deletion of objects used (bogus pointers)
+// The user is responsible to Lock/Unlock objects.
+class ProxyCondMutex : public PCondMutex {
+public:
+	ProxyCondMutex() :  access_count(0) {};
+	virtual BOOL Condition();
+	virtual void Lock();
+	virtual void Unlock();
+private:
+	PINDEX access_count;
+};
+
+
 // abstract interface of a proxy socket
 class ProxySocket {
 public:
@@ -46,28 +59,39 @@ public:
 
 	ProxySocket(PIPSocket *, const char *);
 	virtual ~ProxySocket() =0; // abstract class
-	PString Name() const { return name; }
+	PString Name() const { PWaitAndSignal lock(m_lock); return name; }
 
 	virtual Result ReceiveData();
-	virtual bool ForwardData() { return WriteData(self); }
-	virtual bool TransmitData() { return WriteData(self); }
+	virtual bool ForwardData() { PWaitAndSignal lock(m_lock); return WriteData(self); }
+	virtual bool TransmitData() { PWaitAndSignal lock(m_lock); return WriteData(self); }
 	virtual bool EndSession();
 
-	bool IsSocketOpen() const { return self->IsOpen(); }
-	bool CloseSocket() { return IsSocketOpen() ? self->Close() : false; }
+	bool IsSocketOpen() const { PWaitAndSignal lock(m_lock); return InternalIsSocketOpen(); }
+	bool CloseSocket() { PWaitAndSignal lock(m_lock); return InternalCloseSocket(); }
 
 	bool Flush();
 	bool CanFlush() const;
-	bool IsBlocked() const { return blocked; }
-	void MarkBlocked(bool b) { blocked = b; }
-	bool IsConnected() const { return connected; }
-	virtual void SetConnected(bool c) { connected = c; }
-	bool IsDeletable() const { return deletable; }
-	void SetDeletable() { deletable = true; }
-	ProxyHandleThread *GetHandler() const { return handler; }
-	void SetHandler(ProxyHandleThread *h) { handler = h; }
+	bool IsBlocked() const { PWaitAndSignal lock(m_lock); return blocked; }
+	void MarkBlocked(bool b) { PWaitAndSignal lock(m_lock); blocked = b; }
+	bool IsConnected() const { PWaitAndSignal lock(m_lock); return connected; }
+	virtual void SetConnected(bool c) { PWaitAndSignal lock(m_lock); connected = c; }
+	bool IsDeletable() const { PWaitAndSignal lock(m_lock); return deletable; }
+	void SetDeletable() { PWaitAndSignal lock(m_lock); deletable = true; }
+	ProxyHandleThread *GetHandler() const { PWaitAndSignal lock(m_lock); return handler; }
+	void SetHandler(ProxyHandleThread *h) { PWaitAndSignal lock(m_lock); handler = h; }
 
 	void AddToSelectList(PSocket::SelectList &);
+
+	// Locking Functions
+// 	virtual void Lock();
+// 	virtual void Unlock();
+
+	// These two function are used to lock the existance of
+	// the Object as long as a pointer to it is active. The
+	// user has to Lock/Unlock the Object.
+	virtual void LockUse();
+	virtual void UnlockUse();
+	virtual const BOOL IsInUse();
 
 protected:
 	bool WriteData(PIPSocket *);
@@ -75,6 +99,9 @@ protected:
 	bool SetMinBufSize(WORD);
 	bool ErrorHandler(PSocket *, PChannel::ErrorGroup);
 	void SetName(PIPSocket::Address ip, WORD pt);
+
+	bool InternalIsSocketOpen() const { return self->IsOpen();}
+	bool InternalCloseSocket() { return InternalIsSocketOpen() ? self->Close() : false; }
 
 	PIPSocket *self;
 	PIPSocket *wsocket;
@@ -88,6 +115,8 @@ private:
 	bool blocked;
 	bool connected;
 	bool deletable;
+	mutable PMutex m_lock; // lock over all member objects.
+	mutable ProxyCondMutex m_usedCondition;
 };
 
 class TCPProxySocket : public PTCPSocket, public ProxySocket {
@@ -109,10 +138,21 @@ public:
 
 	// new virtual function
 	virtual TCPProxySocket *ConnectTo() = 0;
+
+	// Locking Functions
+// 	virtual void Lock();
+// 	virtual void Unlock();
+
+	// These two function are used to lock the existance of
+	// the Object as long as a pointer to it is active. The
+	// user has to Lock/Unlock the Object.
+	virtual void LockUse();
+	virtual void UnlockUse();
+	virtual const BOOL IsInUse();
+
 ////    PROTECTED
 	TCPProxySocket *remote;
 
-protected:
 	bool ReadTPKT();
 
 	PBYTEArray buffer;
@@ -120,6 +160,8 @@ protected:
 private:
 	bool InternalWrite();
 	void SetName();
+	mutable PMutex m_lock; // lock over all member objects.
+	mutable ProxyCondMutex m_usedCondition;
 };
 
 class MyPThread : public PThread {
@@ -238,11 +280,13 @@ private:
 
 inline bool ProxySocket::CanFlush() const
 {
+	PWaitAndSignal lock(m_lock);
 	return (wsocket && wsocket->IsOpen());
 }
 
 inline void ProxySocket::AddToSelectList(PSocket::SelectList & slist)
 {
+	PWaitAndSignal lock(m_lock);
 	slist.Append(self);
 }
 

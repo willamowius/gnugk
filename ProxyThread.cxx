@@ -37,6 +37,35 @@ static const char vcid[] = "@(#) $Id$";
 static const char vcHid[] = PROXYTHREAD_H;
 #endif /* lint */
 
+
+// ProxyCondMutex
+void
+ProxyCondMutex::Lock()
+{
+	Wait();
+	access_count +=1;
+	PTRACE(5, "ProxyCondMutex: " << access_count);
+	Signal();
+}
+
+void
+ProxyCondMutex::Unlock()
+{
+	Wait();
+	if(access_count >0)
+		access_count -=1;
+	PTRACE(5, "ProxyCondMutex: " << access_count);
+	Signal();
+}
+
+BOOL
+ProxyCondMutex::Condition()
+{
+	PTRACE(5, "access_count is: " << access_count);
+	return access_count==0;
+}
+
+// ProxyConnectThread
 class ProxyConnectThread : public MyPThread {
 public:
 	PCLASSINFO ( ProxyConnectThread, MyPThread )
@@ -80,12 +109,15 @@ ProxySocket::ProxySocket(PIPSocket *s, const char *t) : self(s), type(t)
 
 ProxySocket::~ProxySocket()
 {
+	m_usedCondition.WaitCondition();
+	m_lock.Wait();
 	delete [] wbuffer;
 	PTRACE(4, type << "\tDelete socket " << name);
 }
 
 ProxySocket::Result ProxySocket::ReceiveData()
 {
+	PWaitAndSignal lock(m_lock);
 	if (!self->Read(wbuffer, maxbufsize)) {
 		ErrorHandler(self, PChannel::LastReadError);
 		return NoData;
@@ -107,13 +139,15 @@ bool ProxySocket::WriteData(PIPSocket *socket)
 
 bool ProxySocket::EndSession()
 {
+	PWaitAndSignal lock(m_lock);
 	MarkBlocked(false);
 	SetConnected(false);
-	return CloseSocket();
+	return InternalCloseSocket();
 }
 
 bool ProxySocket::Flush()
 {
+	PWaitAndSignal lock(m_lock);
 	if (!wsocket || buflen == 0) {
 		InternalCleanup();
 		PTRACE(6, Name() << " Error: nothing to flush");
@@ -166,6 +200,42 @@ bool ProxySocket::SetMinBufSize(WORD len)
 	return (wbuffer != 0);
 }
 
+// void
+// ProxySocket::Lock()
+// {
+// 	m_lock.Wait();
+// }
+
+// void
+// ProxySocket::Unlock()
+// {
+// 	m_lock.Signal();
+// }
+
+void
+ProxySocket::LockUse()
+{
+	PTRACE(5, "Locking " << this << " " << Name());
+	PWaitAndSignal lock(m_lock);
+	m_usedCondition.Lock();
+}
+
+void
+ProxySocket::UnlockUse()
+{
+	PTRACE(5, "UnLocking " << this << " " << Name());
+	PWaitAndSignal lock(m_lock);
+	m_usedCondition.Unlock();
+}
+
+const BOOL
+ProxySocket::IsInUse()
+{
+	PWaitAndSignal lock(m_lock);
+	return m_usedCondition.Condition();
+}
+
+
 // class TCPProxySocket
 TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
 	: PTCPSocket(p), ProxySocket(this, t), remote(s)
@@ -175,6 +245,8 @@ TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
 
 TCPProxySocket::~TCPProxySocket()
 {
+	m_usedCondition.WaitCondition();
+	m_lock.Wait();
 	if (remote) {
 		if (remote->wsocket == this)
 			remote->InternalCleanup();
@@ -195,6 +267,7 @@ void TCPProxySocket::SetName()
 
 bool TCPProxySocket::ForwardData()
 {
+	PWaitAndSignal lock(m_lock);
 	if (buffer.GetSize() == 0)
 		return false;
 	if (!wsocket && remote) {
@@ -207,6 +280,7 @@ bool TCPProxySocket::ForwardData()
 
 bool TCPProxySocket::TransmitData()
 {
+	PWaitAndSignal lock(m_lock);
 	if (buffer.GetSize() == 0)
 		return false;
 	if (!wsocket) {
@@ -224,6 +298,7 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,
 	// we save it for reference
+	PWaitAndSignal lock(m_lock);
 	SetName();
 	return result;
 }
@@ -235,6 +310,7 @@ BOOL TCPProxySocket::Connect(WORD localPort, const Address & addr)
 	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,
 	// we save it for reference
+	PWaitAndSignal lock(m_lock);
 	SetName();
 	return result;
 }
@@ -284,6 +360,39 @@ bool TCPProxySocket::InternalWrite()
 	return Flush();
 }
 
+// void
+// TCPProxySocket::Lock()
+// {
+// 	m_lock.Wait();
+// }
+
+// void
+// TCPProxySocket::Unlock()
+// {
+// 	m_lock.Signal();
+// }
+
+void
+TCPProxySocket::LockUse()
+{
+	PTRACE(5, "Locking " << this << " " << Name());
+	PWaitAndSignal lock(m_lock);
+	m_usedCondition.Lock();
+}
+
+void TCPProxySocket::UnlockUse()
+{
+	PTRACE(5, "UnLocking " << this << " " << Name());
+	PWaitAndSignal lock(m_lock);
+	m_usedCondition.Unlock();
+}
+
+const BOOL
+TCPProxySocket::IsInUse()
+{
+	PWaitAndSignal lock(m_lock);
+	return m_usedCondition.Condition();
+}
 // class MyPThread
 MyPThread::MyPThread() : PThread(5000, NoAutoDeleteThread), isOpen(true)
 {
