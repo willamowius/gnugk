@@ -14,20 +14,28 @@
 #include "version.h"
 #include "Toolkit.h"
 
-// a int to print
-#ifdef P_PTHREADS
-#define PTHREADS_MARK_STRING "1"
-#else
-#define PTHREADS_MARK_STRING "0"
-#endif
-
 const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(pthreads="
-		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)\r\n",
+		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d)"
+		       " Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
+#ifdef P_PTHREADS
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_RADIUS
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_MYSQL
+				(int)1,
+#else
+				(int)0,
+#endif
 		       __DATE__, __TIME__,
 		       (const unsigned char*)(PProcess::GetOSName()),
 		       (const unsigned char*)(PProcess::GetOSHardware()),
