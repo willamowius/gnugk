@@ -302,11 +302,10 @@ endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 }
 
 CallSignalSocket::CallSignalSocket()
-	: TCPProxySocket("Q931s"), m_h245handler(0), m_h245socket(0), isRoutable(FALSE), m_numbercomplete(FALSE)
+	: TCPProxySocket("Q931s"), m_h245handler(NULL), m_h245socket(NULL), isRoutable(FALSE), m_numbercomplete(FALSE),
+	  m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL), m_replytoStatusMessage(TRUE)
 {
 	localAddr = peerAddr = INADDR_ANY;
-	m_h245handler = NULL;
-	m_h245socket = NULL;
 	m_receivedQ931 = NULL;
 	m_SetupPDU = NULL;
 }
@@ -314,9 +313,15 @@ CallSignalSocket::CallSignalSocket()
 
 CallSignalSocket::~CallSignalSocket()
 {
+	PWaitAndSignal lock(m_lock);
+	if(callptr(NULL)!=m_call) {
+		m_call->SetSocket(NULL, NULL);
+	}
 	delete m_h245handler;
 	delete m_receivedQ931;
 	delete m_SetupPDU;
+	delete m_StatusEnquiryTimer;
+	delete m_StatusTimer;
 
 	if(NULL!=remote)
 		remote->SetDeletable();
@@ -329,7 +334,8 @@ CallSignalSocket::~CallSignalSocket()
 }
 
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
-	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(0), m_h245socket(0), isRoutable(TRUE), m_numbercomplete(FALSE)
+	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(NULL), m_h245socket(NULL), isRoutable(TRUE),
+	  m_numbercomplete(FALSE), m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL), m_replytoStatusMessage(TRUE)
 {
 	m_call = socket->m_call;
 	m_call->SetSocket(socket, this);
@@ -356,6 +362,14 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 		m_h245handler = new H245Handler(localAddr, called);
 	}
 	m_SetupPDU = NULL;
+}
+
+void CallSignalSocket::Lock() {
+	m_lock.Wait();
+}
+
+void CallSignalSocket::Unlock() {
+	m_lock.Signal();
 }
 
 namespace { // end of anonymous namespace
@@ -550,11 +564,12 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
        ReleasePDU.SetIE(Q931::UserUserIE, strm);
 }
 
-void CallSignalSocket::SendReleaseComplete()
+void CallSignalSocket::SendReleaseComplete(const enum Q931::CauseValues cause)
 {
        if (IsOpen()) {
                Q931 ReleasePDU;
                BuildReleasePDU(ReleasePDU);
+	       ReleasePDU.SetCause(cause);
                ReleasePDU.Encode(buffer);
 	       PTRACE(5, "GK\tSend Release Complete to " << Name());
                TransmitData();
@@ -634,6 +649,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 			OnEmpty(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_status:
+			PTRACE(5, "onstatus");
 			OnStatus(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_statusInquiry:
@@ -746,6 +762,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 				CallTable::Instance()->RemoveCall(m_call);
 			}
 			return Closing;
+		case Q931::StatusMsg:
+			if(!m_replytoStatusMessage) {
+				PTRACE(5, "Not replying StatusMsg");
+				m_replytoStatusMessage=TRUE;
+				return NoData;
+			}
 		default:
 			return Forwarding;
 		}
@@ -1054,7 +1076,9 @@ void CallSignalSocket::OnInformation(H225_Information_UUIE &)
 
 void CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComplete)
 {
-	// do nothing
+	if(callptr(NULL)!=m_call) {
+		m_call->GetCalledProfile().SetReleaseCause(static_cast<Q931::CauseValues> (ReleaseComplete.m_reason.GetTag()));
+	}
 }
 
 void CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
@@ -1076,6 +1100,15 @@ void CallSignalSocket::OnEmpty(H225_H323_UU_PDU_h323_message_body &)
 
 void CallSignalSocket::OnStatus(H225_Status_UUIE &)
 {
+	// reset timer
+	PTRACE(5, "OnStatus: " << *m_StatusTimer << ": " << this);
+	if(NULL != m_StatusTimer) {
+		m_replytoStatusMessage=FALSE;
+		PTRACE(5, "StatusTimer stopped" << this);
+		m_StatusTimer->Stop();
+		delete m_StatusTimer;
+		m_StatusTimer=NULL;
+	}
 	// do nothing
 }
 
@@ -1202,6 +1235,80 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	return true;
 }
 
+void CallSignalSocket::SetTimer(PTimeInterval timer) {
+	if(NULL!=m_StatusEnquiryTimer)
+		delete m_StatusEnquiryTimer;
+	m_StatusEnquiryTimer = new PTimer();
+	m_timeout=timer;
+}
+
+void CallSignalSocket::StartTimer() {
+	if(NULL != m_StatusEnquiryTimer) {
+		m_StatusEnquiryTimer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+		m_StatusEnquiryTimer->RunContinuous(m_timeout);
+	}
+}
+
+void CallSignalSocket::StopTimer() {
+	if(NULL != m_StatusEnquiryTimer)
+		m_StatusEnquiryTimer->Stop();
+}
+
+void CallSignalSocket::OnTimeout() {
+	// Simply do nothing?
+}
+
+void CallSignalSocket::SendStatusEnquiryMessage() {
+	PTRACE(1, "Sending Message" << this);
+	m_StatusEnquiryTimer->Pause();
+	Q931 pdu;
+	pdu.BuildStatusEnquiry(m_crv, NULL==GetSetupPDU());
+	pdu.Encode(buffer);
+	if(TransmitData()) {
+		m_StatusTimer = new PTimer(0,4); // This is Q.931 timer T322
+		m_StatusTimer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+	} else {
+		dynamic_cast<CallSignalSocket *> (remote)->SendReleaseComplete(Q931::DestinationOutOfOrder);
+		if(callptr(NULL)!=m_call) {
+			m_call->GetCalledProfile().SetReleaseCause(Q931::DestinationOutOfOrder);
+		}
+		CallTable::Instance()->RemoveCall(m_call);
+		return;
+	}
+	m_StatusEnquiryTimer->Resume();
+}
+
+void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
+	PTRACE(5, "timer reached" << this);
+	if (NULL!=m_StatusEnquiryTimer && timer==*m_StatusEnquiryTimer) {
+		SendStatusEnquiryMessage();
+	}
+	if (NULL!= m_StatusTimer && timer==*m_StatusTimer) {
+		dynamic_cast<CallSignalSocket *> (remote)->SendReleaseComplete(Q931::NoRouteToDestination);
+		if(callptr(NULL)!=m_call) {
+			m_call->GetCalledProfile().SetReleaseCause(Q931::NoRouteToDestination);
+		}
+		CallTable::Instance()->RemoveCall(m_call);
+	}
+	if(!IsConnected()) {
+		dynamic_cast<CallSignalSocket *> (remote)->SendReleaseComplete();
+		CallTable::Instance()->RemoveCall(m_call);
+	}
+}
+
+void CallSignalSocket::SetConnected(bool c) {
+	ProxySocket::SetConnected(c);
+	if (c) {
+		PTRACE(5, "Setting Timer" << this);
+		PTimeInterval timer  = (NULL==GetSetupPDU() ?
+					m_call->GetCalledProfile().GetStatusEnquiryInterval() :
+					m_call->GetCallingProfile().GetStatusEnquiryInterval());
+		SetTimer(timer);
+		StartTimer();
+	} else {
+		StopTimer();
+	}
+}
 
 void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsigned pi, unsigned si) {
 
@@ -1270,6 +1377,8 @@ void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsi
 
         PTRACE(5, "Set PartyNumber" << endl << out);
 }
+
+
 
 static BOOL MatchAlias(const CallProfile &profile, const PString number);
 static BOOL ConvertNumberInternational(PString & number, unsigned int &TON, unsigned int & plan, unsigned int & SI, const CallProfile & profile);
@@ -1356,6 +1465,7 @@ BOOL CallSignalSocket::CgPNConversion() {
 	// we check only the left part we already have, because the ARQ could have provided one digit less than
 	// the setup.
 	// Sorry for the awful truth value...
+#if (PARANOIA_CHECK_REDIRECT=1)
 	if((!cdpf.GetCalledPN().IsEmpty()) && (cdpf.GetCalledPN().GetLength() > CalledPartyNumber.GetLength()) && // shrink of Number
 	     (cdpf.GetCalledPN() != CalledPartyNumber.Left(cdpf.GetCalledPN().GetSize()))) {
 		// Is the call redirected by network?
@@ -1384,6 +1494,7 @@ BOOL CallSignalSocket::CgPNConversion() {
 			return FALSE;
 		}
 	}
+#endif
 	E164_AnalysedNumber CalledE164Number=CalledPartyNumber;
 	E164_AnalysedNumber CallingE164Number=CallingPartyNumber;
 	if (cdpf.ConvertToLocal() && CalledE164Number.GetCC() == CallingE164Number.GetCC()) {

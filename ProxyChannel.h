@@ -132,10 +132,13 @@ public:
 	// override from class ProxySocket
         virtual Result ReceiveData();
 	virtual bool EndSession();
-	void SendReleaseComplete();
+	void SendReleaseComplete(const enum Q931::CauseValues cause=Q931::NormalCallClearing);
 
 	// override from class TCPProxySocket
 	virtual TCPProxySocket *ConnectTo();
+	virtual void SetConnected(bool c);
+	void Lock();
+	void Unlock();
 
 	bool HandleH245Mesg(PPER_Stream &);
 	void OnH245ChannelClosed() { m_h245socket = 0; }
@@ -180,6 +183,12 @@ protected:
 	WORD peerPort;
 
 private:
+	void SetTimer(PTimeInterval time);
+	void StartTimer();
+	void StopTimer();
+	PDECLARE_NOTIFIER(PTimer, CallSignalSocket, OnTimeout);
+	void OnTimeout();
+	void SendStatusEnquiryMessage();
 	void BuildReleasePDU(Q931 &) const;
 	bool SetH245Address(H225_TransportAddress &);
 	// the method is only valid within ReceiveData()
@@ -207,6 +216,14 @@ private:
 	Q931 * m_SetupPDU;
 	BOOL m_numbercomplete;
 	unsigned int m_calledPLAN, m_calledTON;
+
+	PTimeInterval m_timeout;
+	PTimer * m_StatusEnquiryTimer; // This timer will be set to the time between 2 ping (i.e. 1 minute)
+	PTimer * m_StatusTimer;        // This timer will be set to the maximum wait time for the status message
+	                               // (aka pong message)
+	BOOL m_replytoStatusMessage;
+
+	mutable PMutex m_lock;
 
 };
 
