@@ -1101,6 +1101,8 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 		// Rewrite sourceString
 
+		// Get Strong type as used in H.225 Ras.
+		//// TODO
 		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
 		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, Toolkit::Instance()->GetMasterRASListener().IsGKRoutedH245());
 
