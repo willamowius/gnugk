@@ -146,6 +146,8 @@ void Toolkit::RouteTable::ClearTable()
 
 PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(Address addr) const
 {
+	if(NULL == rtable_begin || NULL == rtable_end)
+		return defAddr;
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
 				    bind2nd(mem_fun_ref(&RouteEntry::Compare), addr));
 	return (entry != rtable_end) ? entry->GetDestination() : defAddr;

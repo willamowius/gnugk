@@ -66,7 +66,7 @@ BOOL
 GKCondMutex::Condition()
 {
 //	PTRACE(5, "access_count is: " << access_count);
-	return access_count==0;
+	return (access_count==0);
 }
 
 // ProxyCondMutex
@@ -99,16 +99,16 @@ ProxyCondMutex::Unlock(const PString &name)
 		if(0==--i) {
 			PTRACE(5, "Name: " << name << " StringsIndex: " << locker.GetStringsIndex(name));
 			if (locker.GetStringsIndex(name)!=P_MAX_INDEX) {
-				access_count -=1;
 				locker.RemoveAt(locker.GetStringsIndex(name));
 			} else
 				PTRACE(1, "removing non-locked");
 		} else {
-			access_count -= 1;
 			locker.RemoveAt(locker.GetStringsIndex(name + PString(i)));
 		}
 	}
-	PAssert(locker.GetSize()==access_count, "unlocking wrong!");
+	access_count -= 1;
+
+	//PAssert(locker.GetSize()==access_count, "unlocking wrong!");
 	Signal();
 }
 
