@@ -471,7 +471,7 @@ The section defines the endpoint features for the gatekeeper.
 
 Gatekeeper=10.0.1.1		Default: no
 
-Define a parent gatekeeper for the endpoint(gatekeeper) to register.
+Define a parent gatekeeper for the endpoint(gatekeeper) to register to.
 Don't try to register to yourself, unless you want to be confusing.
 To disable this feature, set the field to be no.
 
@@ -490,6 +490,8 @@ Password=123456
 
 Specify a password to be sent to the parent gatekeeper.
 All RAS requests will contain the password in the cryptoTokens field.
+
+Besides, the password is also used in LRQs sent to neighbor gatekeepers.
 
 Prefix=188886,188887
 
@@ -552,4 +554,5 @@ endpoint registered to the child GK with prefix '6' will appear
 as an endpoint with prefix '188886', for endpoints registered to
 the parent gatekeeper.
 
-The section does not relate to the section RasSvr::RewriteE164.
+The section does not relate to the section RasSvr::RewriteE164,
+though the later will take effect first.

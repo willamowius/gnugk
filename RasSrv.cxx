@@ -86,7 +86,7 @@ public:
 
 private:
 	list<Neighbor> nbList;
-	H323RasSrv *theRasSrv;
+	H323RasSrv *RasSrv;
 };
 
 void PendingList::Check()
@@ -151,7 +151,7 @@ void NBPendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 	}
 }
 
-NeighborList::NeighborList(H323RasSrv *rs, PConfig *config) : theRasSrv(rs)
+NeighborList::NeighborList(H323RasSrv *rs, PConfig *config) : RasSrv(rs)
 {
 	PStringToString cfgs(config->GetAllKeyValues(NeighborSection));
 	for (PINDEX i=0; i < cfgs.GetSize(); i++) {
@@ -169,7 +169,7 @@ int NeighborList::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq)
 	int nbCount = 0;
 	const_iterator Iter, eIter = nbList.end();
 	for (Iter=nbList.begin(); Iter != eIter; ++Iter)
-		if (Iter->SendLRQ(seqNum, obj_arq, theRasSrv))
+		if (Iter->SendLRQ(seqNum, obj_arq, RasSrv))
 			++nbCount;
 
 	return nbCount;
@@ -189,33 +189,34 @@ NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m
 	PTRACE(1, "Add neighbor " << m_gkid << '(' << m_ip << ':' << m_port << ") for prefix " << m_prefix);
 }
 
-bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
+bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
 {
 	if (m_prefix == "*")
-		return InternalSendLRQ(seqNum, obj_arq, theRasSrv);
+		return InternalSendLRQ(seqNum, obj_arq, RasSrv);
 
 	for (PINDEX i=0; i < obj_arq.m_destinationInfo.GetSize(); ++i)
 		if (AsString(obj_arq.m_destinationInfo[i], FALSE).Find(m_prefix) == 0)
-			return InternalSendLRQ(seqNum, obj_arq, theRasSrv);
+			return InternalSendLRQ(seqNum, obj_arq, RasSrv);
 
 	return false;
 }
 
-bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
+bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
 {
 	H225_RasMessage lrq_ras;
 	lrq_ras.SetTag(H225_RasMessage::e_locationRequest);
 	H225_LocationRequest & lrq_obj = lrq_ras;
 	lrq_obj.m_requestSeqNum.SetValue(seqNum);
-	lrq_obj.m_replyAddress = theRasSrv->GetRasAddress(m_ip);
+	lrq_obj.m_replyAddress = RasSrv->GetRasAddress(m_ip);
 	lrq_obj.m_destinationInfo = obj_arq.m_destinationInfo;
 
 	// tell the neighbor who I am
 	lrq_obj.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 	lrq_obj.m_sourceInfo.SetSize(1);
-	H323SetAliasAddress(theRasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
+	H323SetAliasAddress(RasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
+	RasSrv->GetGkClient()->SetPassword(lrq_obj);
 
-	theRasSrv->SendRas(lrq_ras, m_ip, m_port);
+	RasSrv->SendRas(lrq_ras, m_ip, m_port);
 	return true;
 }
 

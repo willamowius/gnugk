@@ -123,7 +123,7 @@ private:
 class EndpointRec
 {
 public:
-	EndpointRec(const H225_RasMessage & completeRRQ, bool Permanent=false);
+	EndpointRec(const H225_RasMessage & completeRAS, bool Permanent=false);
 	virtual ~EndpointRec();
 
 	// public interface to access EndpointRec
@@ -170,6 +170,7 @@ public:
 
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
+	bool IsFromParent() const { return m_fromParent; }
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 
 	/** If this Endpoint would be register itself again with all the same data
@@ -214,6 +215,7 @@ protected:
 	mutable PMutex m_usedLock;
 
 	PTime m_updatedTime;
+	bool m_fromParent;
 
 private: // not assignable
 	EndpointRec(const EndpointRec &);
@@ -228,7 +230,7 @@ public:
 	typedef std::vector<string>::iterator prefix_iterator;
 	typedef std::vector<string>::const_iterator const_prefix_iterator;
 
-	GatewayRec(const H225_RasMessage & completeRRQ, bool Permanent=false);
+	GatewayRec(const H225_RasMessage & completeRAS, bool Permanent=false);
 
 	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
 	virtual void SetEndpointType(const H225_EndpointType &);
@@ -255,7 +257,7 @@ protected:
 
 class OuterZoneEPRec : public EndpointRec {
 public:
-	OuterZoneEPRec(const H225_RasMessage & completeLCF, const H225_EndpointIdentifier &);
+	OuterZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
 
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
@@ -264,7 +266,7 @@ public:
 
 class OuterZoneGWRec : public GatewayRec {
 public:
-	OuterZoneGWRec(const H225_RasMessage & completeLCF, const H225_EndpointIdentifier &);
+	OuterZoneGWRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
 
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
@@ -432,6 +434,7 @@ public:
 	bool IsConnected() const;
 	bool IsTimeout(const PTime *) const;
 	bool IsH245Routed() const;
+	bool IsRegistered() const;
 
 	PString GenerateCDR() const;
 	PString PrintOn(bool verbose) const;
@@ -654,6 +657,11 @@ inline bool CallRec::IsTimeout(const PTime *now) const
 inline bool CallRec::IsH245Routed() const
 {
 	return m_h245Routed;
+}
+
+inline bool CallRec::IsRegistered() const
+{
+	return (!m_Calling || (m_Called && m_Called->IsFromParent()));
 }
 
 #endif

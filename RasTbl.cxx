@@ -112,7 +112,7 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_usedCount(0)
+      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_usedCount(0)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -146,6 +146,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 		SetTimeToLive(rrq.m_timeToLive);
 	else
 		SetTimeToLive(SoftPBX::TimeToLive);
+	m_fromParent = false;
 }
 
 void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
@@ -157,6 +158,7 @@ void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
 	m_terminalType = &acf.m_destinationType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+	m_fromParent = true;
 }
 
 void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
@@ -169,6 +171,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
 	m_terminalType = &lcf.m_destinationType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+	m_fromParent = false;
 }
 
 EndpointRec::~EndpointRec()

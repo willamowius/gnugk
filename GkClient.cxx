@@ -316,8 +316,6 @@ void GkClient::SendARQ(const H225_AdmissionRequest & arq, const endptr & reqEP)
 
 	m_arqPendingList->Insert(arq, reqEP, reqNum);
 	SendRas(arq_ras);
-	if (arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier))
-		m_callIdTable.insert(arq.m_callIdentifier);
 }
 
 void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callptr & call)
@@ -329,10 +327,8 @@ void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callpt
 
 	arq.m_callReferenceValue = crv;
 	arq.m_conferenceID = setup.m_conferenceID;
-	if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier))
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_callIdentifier);
-		m_callIdTable.insert(arq.m_callIdentifier = setup.m_callIdentifier);
-	}
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		arq.m_srcInfo = setup.m_sourceAddress;
 	} else {
@@ -383,10 +379,8 @@ void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
 	const H225_AdmissionReject & arj = obj_arj;
 	int reqNum = arj.m_requestSeqNum.GetValue();
 	H225_CallIdentifier callid;
-	if (m_arqPendingList->ProcessARJ(callid, reqNum)) {
-		m_callIdTable.erase(callid);
+	if (m_arqPendingList->ProcessARJ(callid, reqNum))
 		return;
-	}
 
 	// an ARJ to an answer ARQ
 	iterator Iter = m_arqAnsweredList.find(reqNum);
@@ -396,7 +390,6 @@ void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
 		// TODO: routeCallToGatekeeper
 		call->Disconnect(true);
 		m_arqAnsweredList.erase(Iter);
-		m_callIdTable.erase(call->GetCallIdentifier());
 	} else {
 		PTRACE(2, "GKC\tUnknown ARJ, ignore!");
 	}
@@ -404,19 +397,12 @@ void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
 
 bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 {
-	if (!drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier))
-		return false;
-
-	bool handled = false;
-	typedef std::set<CallIdentifier>::iterator siterator;
-	siterator iter = m_callIdTable.find(drq.m_callIdentifier);
+	callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue);
 	if (m_gkaddr == gkip && drq.m_endpointIdentifier.GetValue() == m_endpointId) {
-		// sent from my GK
-		if (callptr call = CallTable::Instance()->FindCallRec(drq.m_callIdentifier))
+		if (call)
 			call->Disconnect(true);
-		handled = true;
-	} else if (iter != m_callIdTable.end()) {
-		// sent from my endpoints
+		return true;
+	} else if (call && call->IsRegistered()) {
 		H225_RasMessage drq_ras;
 		drq_ras.SetTag(H225_RasMessage::e_disengageRequest);
 		H225_DisengageRequest & drq_obj = drq_ras;
@@ -426,9 +412,7 @@ bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 		SetPassword(drq_obj);
 		SendRas(drq_ras);
 	}
-	if (iter != m_callIdTable.end())
-		m_callIdTable.erase(iter);
-	return handled;
+	return false;
 }
 
 bool GkClient::RewriteE164(H225_AliasAddress & alias, bool fromInternal)

@@ -27,11 +27,7 @@
 #endif
 
 #include <map>
-#include <set>
 #include "RasTbl.h"
-//#include <ptlib/timer.h>
-//#include <ptlib/timeint.h>
-//#include <h225.h>
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
@@ -91,6 +87,14 @@ public:
 
 	void CheckRegistration();
 
+	template<class RAS> void SetPassword(RAS & rasmsg)
+	{
+		if (!m_password) {
+			rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
+			SetCryptoTokens(rasmsg.m_cryptoTokens);
+		}
+	}
+
 private:
 	typedef std::map<int, callptr>::iterator iterator;
 	typedef std::map<int, callptr>::const_iterator const_iterator;
@@ -103,13 +107,6 @@ private:
 	bool GetAdmission(H225_RasMessage &, H225_RasMessage &);
 	bool RewriteString(PString &, bool);
 	void SetCryptoTokens(H225_ArrayOf_CryptoH323Token &);
-	template<class RAS> void SetPassword(RAS & rasmsg)
-	{
-		if (!m_password) {
-			rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
-			SetCryptoTokens(rasmsg.m_cryptoTokens);
-		}
-	}
 
 	H323RasSrv *m_rasSrv;
 
@@ -129,21 +126,6 @@ private:
 
 	GKPendingList *m_arqPendingList;
 	std::map<int, callptr> m_arqAnsweredList;
-#ifdef WIN32 // a workaround for damn VC
-	class CallIdentifier : public H225_CallIdentifier {
-	public:
-		CallIdentifier() {}
-		CallIdentifier(const H225_CallIdentifier & callid) : H225_CallIdentifier(callid) {}
-
-		void *operator new(size_t, void *_p) { return _p; }
-		// placement delete, but not work for VC
-		// void operator delete(void *, void *) {}
-	};
-#else
-	typedef H225_CallIdentifier CallIdentifier;
-#endif
-	std::set<CallIdentifier> m_callIdTable;
 };
-
 
 #endif // __gkclient_h_

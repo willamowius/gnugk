@@ -441,7 +441,9 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	PString callid;
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+#ifdef PTRACING
 		callid = AsString(Setup.m_callIdentifier.m_guid);
+#endif
 	} else { // try CallReferenceValue
 		PTRACE(3, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
 		H225_CallIdentifier callIdentifier; // empty callIdentifier
@@ -451,20 +453,26 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		callid = AsString(callIdentifier.m_guid);
 	}
 	GkClient *gkClient = RasThread->GetGkClient();
-	if (gkClient->IsRegistered())
-		gkClient->RewriteE164(*GetReceivedQ931(), Setup, m_call);
-	else
-		gkClient = 0;
-	if (!m_call) {
+	if (m_call) {
+		if (m_call->IsRegistered())
+			gkClient->RewriteE164(*GetReceivedQ931(), Setup, true);
+	} else {
 		if (!RasThread->AcceptUnregisteredCalls()) {
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			return;
 		}
+		if (gkClient->IsRegistered())
+			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
 		endptr called;
-		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
+		PString destinationString;
+		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 			called = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_destCallSignalAddress);
-		else if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+			destinationString = AsDotString(Setup.m_destCallSignalAddress);
+		} else if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 			called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
+			destinationString = AsString(Setup.m_destinationAddress);
+		}
+
 		if (!called) {
 			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
 			return;
@@ -472,7 +480,6 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 		// TODO: check the Setup_UUIE by gkauth modules
 
-		PString destinationString(AsString(Setup.m_destinationAddress));
 		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
 		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0);
 		call->SetCalled(called, m_crv);
@@ -480,7 +487,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		// TODO: set timeout
 		CallTable::Instance()->Insert(call);
 		m_call = callptr(call);
-		if (gkClient)
+		if (gkClient->IsRegistered())
 			gkClient->SendARQ(Setup, m_crv, m_call);
 	}
 

@@ -34,7 +34,7 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 {
 	for (PINDEX i = 0; i < it.GetSize(); ++i) {
 		Address ip = it[i].GetAddress();
-		if (Compare(ip)) {
+		if (Compare(ip) || it[i].GetName() == interfaceName) {
 			destination = ip;
 			break;
 		}
