@@ -289,6 +289,7 @@ private:
 	PString GetPassword(const PString & UserName) const;
 	void ExecCommand(PString);
 
+	PString m_lastCmd;
 	PString m_currentCmd;
 	GkStatus *m_gkStatus;
 	PString	m_user;
@@ -417,6 +418,30 @@ int GkStatus::ParseCommand(const PString & cmd, PStringArray & args)
 		PTRACE(2, "Status\tgot command " << key);
 		if (m_commands.find(key) != m_commands.end())
 			return m_commands[key];
+		std::map<PString, int>::iterator it = m_commands.begin();
+		int expandedCmd = -1;
+#if PTRACING
+		PString expandedCmdStr;
+#endif
+		while (it != m_commands.end()) {
+			const PString& cmd = it->first;
+			if (key == cmd.Left(key.GetLength())) {
+				// if the key matches more than one command, do not expand
+				if( expandedCmd != -1 )
+					return -1;
+				else {
+					expandedCmd = it->second;
+#if PTRACING
+					expandedCmdStr = cmd;
+#endif
+				}
+			}
+			it ++;
+		}
+		if( expandedCmd != -1 ) {
+			PTRACE(4, "Status\tExpanded "<<key<<" into command "<<expandedCmdStr);
+			return expandedCmd;
+		}
 	}
 	return -1;
 }
@@ -441,7 +466,6 @@ bool GkStatus::OnStart()
 	m_commands["f"] =			     e_Find;
 	m_commands["findverbose"] =		     e_FindVerbose;
 	m_commands["fv"] =			     e_FindVerbose;
-	m_commands["disconnect"] =		     e_Disconnect;
 	m_commands["disconnectip"] =		     e_DisconnectIp;
 	m_commands["disconnectcall"] =		     e_DisconnectCall;
 	m_commands["disconnectalias"] =		     e_DisconnectAlias;
@@ -449,7 +473,6 @@ bool GkStatus::OnStart()
 	m_commands["disconnectsession"] =	     e_DisconnectSession;
 	m_commands["clearcalls"] =		     e_ClearCalls;
 	m_commands["unregisterallendpoints"] =	     e_UnregisterAllEndpoints;
-	m_commands["unregister"] =		     e_Unregister;
 	m_commands["unregisterip"] =		     e_UnregisterIp;
 	m_commands["unregisteralias"] =		     e_UnregisterAlias;
 	m_commands["transfercall"] =		     e_TransferCall;
@@ -528,15 +551,36 @@ bool StatusClient::ReadCommand(PString & cmd, bool echo, int timeout)
 			case '\r':
 			case '\n':
 				cmd = m_currentCmd;
+				m_lastCmd = cmd;
 				m_currentCmd = PString();
 				if (echo && NeedEcho())
 					TransmitData("\r\n");
 				return true;
+			case '\b':
+				if (m_currentCmd.GetLength()) {
+					m_currentCmd = m_currentCmd.Left(m_currentCmd.GetLength() - 1);
+					byte = char(read);
+					if (echo && NeedEcho()) {
+						Write(&byte, 1);
+						Write(&" ", 1);
+						Write(&byte, 1);
+					}
+				}
+				break;
 			default:
 				byte = char(read);
 				m_currentCmd += byte;
-				if (echo && NeedEcho())
-					Write(&byte, 1);
+				cmd = m_currentCmd.Right(3);
+				if (cmd == "\x1b\x5b\x41") { // Up Arrow
+					if (echo && NeedEcho()) {
+						for(PINDEX i = 0; i < m_currentCmd.GetLength() - 3; i ++)
+							Write("\b", 1);
+						WriteString(m_lastCmd);
+					}
+					m_currentCmd = m_lastCmd;
+				} else if (cmd.Find('\x1b') == P_MAX_INDEX)
+					if (echo && NeedEcho())
+						Write(&byte, 1);
 				break;
 		}
 	}
@@ -611,6 +655,7 @@ void StatusClient::DoDebug(const PStringArray & Args)
 	if (Args.GetSize() <= 1) {
 		WriteString("Debug options:\r\n"
 			    "  trc [+|-|n]       Show/modify trace level\r\n"
+				"  cfg               Read and print config sections\r\n"
 			    "  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n"
 			    "  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n"
 			    "  remove SEC PAR    Remove a config VALue PARameter in a SECtion\r\n"
@@ -637,6 +682,12 @@ void StatusClient::DoDebug(const PStringArray & Args)
 					result += cfgs[i] + "=" + v + "\r\n";
 				}
 				WriteString(result + ";\r\n");
+			} else {
+				const PStringList secs(GkConfig()->GetSections());
+				PString result = "Config sections\r\n";
+				for (PINDEX i = 0; i < secs.GetSize(); i++)
+					result += "[" + secs[i] + "]\r\n";
+				WriteString(result);
 			}
 		} else if ((Args[1] *= "set") && (Args.GetSize()>=5)) {
 			Toolkit::Instance()->SetConfig(1, Args[2], Args[3], Args[4]);

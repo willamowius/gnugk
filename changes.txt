@@ -1,5 +1,9 @@
 Changes from 2.2beta1 to 2.2beta2
 =================================
+- added status line improvements (command expansion, repeat last command,
+  backspace handling for windows) from Hu Yuxin
+- BUGFIX(GkStatus.cxx) removed unimplemented "disconnect" and "unregister"
+  commands
 - ACF is filled with destinationInfo if aliases have changed during
   ARQ processing and ARQ.canMapAlias is TRUE
 - added more tracing and human readable names to routing policies

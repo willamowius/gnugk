@@ -55,7 +55,6 @@ public:
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
 		e_Find,                        /// find an endpoint
 		e_FindVerbose,
-		e_Disconnect,                  /// disconnect a call
 		e_DisconnectIp,                /// disconnect a call by endpoint IP number
 		e_DisconnectAlias,             /// disconnect a call by endpoint alias
 		e_DisconnectCall,              /// disconnect a call by call number
@@ -63,7 +62,6 @@ public:
 		e_DisconnectSession,           /// disconnect a user from status port
 		e_ClearCalls,                  /// disconnect all calls
 		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
-		e_Unregister,                  /// force unregisterung of all andpoints
 		e_UnregisterIp,                /// force unregisterung of one andpoint by IP number
 		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
 		e_TransferCall,                /// transfer call from one endpoint to another
