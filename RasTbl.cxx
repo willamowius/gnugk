@@ -289,7 +289,7 @@ bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 {
 	for (PINDEX i = 0; i < a->GetSize(); i++)
 		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
-			if ((*a)[i] == m_terminalAliases[j])
+			if (((*a)[i].GetTag() == m_terminalAliases[j].GetTag()) && ((*a)[i] == m_terminalAliases[j]))
 				return true;
 	return false;
 }
