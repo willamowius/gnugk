@@ -684,9 +684,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	PString callid;
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
-#ifdef PTRACING
 		callid = AsString(Setup.m_callIdentifier.m_guid);
-#endif
 	} else {
 		PTRACE(3, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
 		H225_CallIdentifier callIdentifier; // empty callIdentifier
@@ -1238,6 +1236,7 @@ void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsi
 
 void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 
+	PTRACE(1, "Begin of CgPNConversion");
 	callptr callRec = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
 
 	PString srcH323IDStr=callRec->GetCallingProfile().getH323ID();
