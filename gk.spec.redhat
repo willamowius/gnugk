@@ -2,7 +2,7 @@
 %define mysql_dir /usr/include/mysql
 Summary: OpenH323 Gatekeeper
 Name: gk
-Version: 1.2.1
+Version: 1.3
 Release: 1
 URL: http://www.willamowius.de/openh323gk.html
 Source0: gk.tar.gz
@@ -70,6 +70,9 @@ rm -rf $RPM_BUILD_ROOT
 /var/log/gk
 
 %changelog
+* Wed Nov 21 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
+- Upgraded 1.3
+
 * Mon Nov 12 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
 - Upgraded 1.2.1
 - add file for logrotate

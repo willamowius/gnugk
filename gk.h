@@ -29,7 +29,7 @@ class Gatekeeper : public PProcess
 		(const char * manuf = "Willamowius", 
 		 const char * name = "Gatekeeper", 
 		 WORD majorVersion = 1,
-		 WORD minorVersion = 2,
+		 WORD minorVersion = 3,
 		 CodeStatus status = ReleaseCode,
 		 WORD buildNumber = 0);
 
