@@ -655,7 +655,7 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
 	if (!ReadTPKT())
-		return NoData;
+		return IsOpen() ? NoData : Error;
 
 	if (!m_lastQ931->Decode(buffer)) {
 		PTRACE(4, "Q931\t" << GetName() << " ERROR DECODING Q.931!");
@@ -871,8 +871,15 @@ void CallSignalSocket::SetPeerAddress(const Address & ip, WORD pt)
 bool CallSignalSocket::EndSession()
 {
 	SendReleaseComplete();
-
 	return TCPProxySocket::EndSession();
+}
+
+void CallSignalSocket::OnError()
+{
+	CallTable::Instance()->RemoveCall(m_call);
+	EndSession();
+	if (remote)
+		remote->EndSession();
 }
 
 void CallSignalSocket::ForwardCall()
@@ -2658,11 +2665,11 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 			break;
 		case ProxySocket::Closing:
 			psocket->ForwardData();
-			// then close the psocket
-		case ProxySocket::Error:
-			psocket->CloseSocket();
+			socket->Close();
 			break;
-		default:
+		case ProxySocket::Error:
+			psocket->OnError();
+			socket->Close();
 			break;
 	}
 }

@@ -66,6 +66,7 @@ public:
 	virtual Result ReceiveData();
 	virtual bool ForwardData();
 	virtual bool EndSession();
+	virtual void OnError() {}
 
 	bool IsConnected() const { return connected; }
 	void SetConnected(bool c) { connected = c; }
@@ -131,6 +132,7 @@ public:
 	// override from class ProxySocket
         virtual Result ReceiveData();
 	virtual bool EndSession();
+	virtual void OnError();
 
 	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
 	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
