@@ -44,6 +44,10 @@ and I'll pick it up.
   Results of these database queries will be merged; for conflicting entries,
   the first found is used.
 
+  Unfortunately the precedence of the Databases is hardwired to the
+  Gatekeeper. First the LDAP will be used, if this fails, the ini-File
+  will be read. Be warned, if you have entries for any given endpoint
+  in *both* databases, only entries from LDAP will ever return.
 
 
 * provision your endpoints !!
@@ -56,7 +60,7 @@ and I'll pick it up.
   Also, you commonly have some "trunk" gateways (those used to TDM-interconnect yourself
   with the other carriers). You then have some routing prefix entries like
   "route 11* to gateway A", "route 12* to gateway B" etc.
-  
+
   Now say someone from the public PSTN calls "123". 123 is ported to us.
   The call will be routed via PSTN to our network (because the other carriers know "123" is
   ported to us).
@@ -102,7 +106,7 @@ and I'll pick it up.
   We encourage you to use LDAP, enable it in [Gatekeeper::Databases], configure
   [GkLDAP::Settings] and [LDAPCache] and follow the hints in etc/voip.schema.
 
-  
+
 
 * Read etc/voip.schema for an explanation of available per-endpoints options.
   Read doc/*.pdf to understand the routing process ! Start with destAnalysis.pdf.
@@ -167,4 +171,3 @@ Some points to remember:
 
 
 Hope that helps. Good luck!
-
