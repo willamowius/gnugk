@@ -1,5 +1,9 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(gkacct.cxx) a fix to rotation interval calculation for monthly 
+  CDR file rotation
+- BUGFIX(gkacct.cxx) FileAcct monthly rotation rotated a CDR file unnecessary
+  on gatekeeper restart
 - BUGFIX(gkacct.cxx) fixed a critical bug in Username determination 
   for unregistered endpoints, introduced by recent changes
 - BUGFIX(RasSrv.cxx) do not include an invalid access token (with null object

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2004/06/28 18:47:58  zvision
+ * Fixed a bug in Username determination for unregistered endpoints
+ *
  * Revision 1.14  2004/06/25 13:33:18  zvision
  * Better Username, Calling-Station-Id and Called-Station-Id handling.
  * New SetupUnreg option in Gatekeeper::Auth section.
@@ -417,7 +420,7 @@ FileAcct::FileAcct(
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		if (rotateTime <= now)
-			rotateTime += PTimeInterval(60*60*1000);
+			rotateTime += PTimeInterval(0, 0, 0, 1); // 1 hour
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			this, &FileAcct::RotateOnTimer, rotateTime, 60*60
 			);
@@ -431,7 +434,7 @@ FileAcct::FileAcct(
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		if (rotateTime <= now)
-			rotateTime += PTimeInterval(60*60*24*1000);
+			rotateTime += PTimeInterval(0, 0, 0, 0, 1); // 1 day
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			this, &FileAcct::RotateOnTimer, rotateTime, 60*60*24
 			);
@@ -445,15 +448,15 @@ FileAcct::FileAcct(
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		if (rotateTime.GetDayOfWeek() < m_rotateDay)
-			rotateTime += PTimeInterval(
-				60*60*24*1000*(m_rotateDay-rotateTime.GetDayOfWeek())
+			rotateTime += PTimeInterval(0, 0, 0, 0, 
+				m_rotateDay - rotateTime.GetDayOfWeek()
 				);
 		else if (rotateTime.GetDayOfWeek() > m_rotateDay)
-			rotateTime -= PTimeInterval(
-				60*60*24*1000*(rotateTime.GetDayOfWeek()-m_rotateDay)
+			rotateTime -= PTimeInterval(0, 0, 0, 0,
+				rotateTime.GetDayOfWeek() - m_rotateDay
 				);
 		if (rotateTime <= now)
-			rotateTime += PTimeInterval(60*60*24*7*1000);
+			rotateTime += PTimeInterval(0, 0, 0, 0, 7); // 1 week
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			this, &FileAcct::RotateOnTimer, rotateTime, 60*60*24*7
 			);
@@ -466,9 +469,22 @@ FileAcct::FileAcct(
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1, 
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
-		rotateTime += PTimeInterval(1000*60*60*24*(m_rotateDay-1));
+		rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
 		while (rotateTime.GetMonth() != now.GetMonth())				
-			rotateTime -= PTimeInterval(1000*60*60*24);
+			rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
+
+		if (rotateTime <= now) {
+			rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1, 
+				now.GetMonth() + (now.GetMonth() == 12 ? -11 : 1), 
+				now.GetYear() + (now.GetMonth() == 12 ? 1 : 0), 
+				now.GetTimeZone()
+				);
+			const int month = rotateTime.GetMonth();
+			rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
+			while (rotateTime.GetMonth() != month)				
+				rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
+		}
+
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			this, &FileAcct::RotateOnTimer, rotateTime
 			);
@@ -752,9 +768,9 @@ void FileAcct::RotateOnTimer(
 			);
 	
 		const int month = newRotateTime.GetMonth();
-		newRotateTime += PTimeInterval(1000*60*60*24*(m_rotateDay-1));
-		while (newRotateTime.GetMonth() != month)				
-			newRotateTime -= PTimeInterval(1000*60*60*24);
+		newRotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
+		while (newRotateTime.GetMonth() != month)
+			newRotateTime -= PTimeInterval(0, 0, 0, 0, 1);
 		timer->SetExpirationTime(newRotateTime);
 		timer->SetFired(false);
 	}	
