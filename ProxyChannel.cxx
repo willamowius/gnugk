@@ -15,6 +15,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#define T302SECONDS 10 // will only be used in this file
+
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4355 ) // warning about using 'this' in initializer
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
@@ -619,8 +621,6 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 				remote->SetConnected(false);
 		}
 		SetConnected(true);
-		Q931 & pdu = *(GetSetupPDU());
-		FakeSetupACK(pdu);
 		MarkBlocked(false);
 		return NULL;
 	}
@@ -695,6 +695,10 @@ bool CallSignalSocket::FakeSetupACK(Q931 &setup) {
 	pdu.SetIE(Q931::UserUserIE, b);
 	buffer.SetSize(0); // Clear Buffer
 	pdu.Encode(buffer);
+	// Start Timer T.302 (network side)
+	PTRACE(5, "Setting Timer T.302");
+	m_t302.SetNotifier(PCREATE_NOTIFIER(OnT302Timeout));
+	m_t302.SetInterval(0,T302SECONDS); // Q.931 says 10-15s.
 	return TransmitData();
 }
 
@@ -1224,6 +1228,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		if(GetSetupPDU()->HasIE(Q931::CalledPartyNumberIE)) {
 			GetSetupPDU()->GetCalledPartyNumber(DialedDigits,&m_calledPLAN,&m_calledTON);
 		}
+		FakeSetupACK(*m_SetupPDU);
 		remote=NULL;
 	}
 
@@ -1247,6 +1252,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 void CallSignalSocket::OnInformationMsg(Q931 &pdu){
 	// Collect digits
+	m_t302.Stop(); // first of all stop the timer
 	if (!m_numbercomplete && pdu.HasIE(Q931::CalledPartyNumberIE)) {
 		PString calledDigit;
 		unsigned plan,type;
@@ -1265,8 +1271,10 @@ void CallSignalSocket::OnInformationMsg(Q931 &pdu){
 			}
 		}
 	} else {
-		if(!isRoutable)
+		if(!isRoutable) {
 			Q931InformationMessages.Append(new Q931(pdu));
+			m_t302.SetInterval(0,T302SECONDS);  // 15s see FakeSetupACK
+		}
 	}
 }
 
@@ -1358,7 +1366,6 @@ void CallSignalSocket::OnEmpty(H225_H323_UU_PDU_h323_message_body &)
 void CallSignalSocket::OnStatus(H225_Status_UUIE &)
 {
 	// reset timer
-	PTRACE(5, "OnStatus: : " << this);
 	if(NULL != m_StatusTimer) {
 		m_replytoStatusMessage=FALSE;
 		PTRACE(5, "StatusTimer stopped" << this);
@@ -1588,6 +1595,20 @@ void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
 		}
 		m_call=callptr(NULL);
 	}
+}
+
+void CallSignalSocket::OnT302Timeout(PTimer &timer, int extra) {
+	PTRACE(5, "Timer T.302 hit");
+	PWaitAndSignal lock(m_lock);
+	if(NULL!=remote) {
+		dynamic_cast<CallSignalSocket *>(remote)->InternalSendReleaseComplete(Q931::InvalidNumberFormat);
+		remote->SetDeletable();
+		remote->UnlockUse("CallSignalSocket " + Name() + type);
+		remote=NULL;
+	}
+	InternalSendReleaseComplete(Q931::InvalidNumberFormat);
+	if (callptr(NULL)!=m_call)
+		m_call->GetCalledProfile().SetReleaseCause(Q931::InvalidNumberFormat);
 }
 
 void CallSignalSocket::SetConnected(bool c) {
