@@ -161,7 +161,7 @@ $(LDAP_LIB):
 	$(MAKE) -C ldap/src opt
 endif
 $(TARGET):	$(OBJS) $(TARGET_LIBS)
-	make $(TARGET_LIBS)
+	$(MAKE) $(TARGET_LIBS)
 	$(CPLUS) -o $@ $(CFLAGS) $(LDFLAGS) $(OBJS) $(LDAP_LIB) $(LDLIBS) $(ENDLDLIBS) $(ENDLDFLAGS)
 endif
 
