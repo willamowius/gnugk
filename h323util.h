@@ -52,4 +52,6 @@ PString AsString(const PASN_OctetString & Octets);
 // convert a socket IP address into an H225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port);
 
+void GetNetworkFromString(const PString &, PIPSocket::Address &, PIPSocket::Address &);
+
 #endif

@@ -87,13 +87,13 @@ PString AsString(const H225_TransportAddress_ipAddress & ip)
 PString AsString(const H225_EndpointType & terminalType)
 {
 	PString terminalTypeString;
-			
+
 	if (terminalType.HasOptionalField(H225_EndpointType::e_terminal))
 		terminalTypeString = ",terminal";
 
 	if (terminalType.HasOptionalField(H225_EndpointType::e_gateway))
 		terminalTypeString += ",gateway";
-	
+
 	if (terminalType.HasOptionalField(H225_EndpointType::e_mcu))
 		terminalTypeString += ",mcu";
 
@@ -107,7 +107,7 @@ PString AsString(const H225_EndpointType & terminalType)
 
 	if (terminalTypeString.IsEmpty())
 		terminalTypeString = ",unknown";
-	
+
 	return terminalTypeString.Mid(1);
 }
 
@@ -196,3 +196,18 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
     return Result;
 }
 
+void GetNetworkFromString(const PString & cfg, PIPSocket::Address & network, PIPSocket::Address & netmask)
+{
+	PStringArray net = cfg.Tokenise("/", FALSE);
+	if (net.GetSize() < 2) {
+		netmask = (DWORD(~0));
+	} else if (net[1].Find('.') == P_MAX_INDEX) {
+		// CIDR notation
+		DWORD n = (DWORD(~0) >> net[1].AsInteger());
+		netmask = PIPSocket::Host2Net(~n);
+	} else {
+		// decimal dot notation
+		netmask = net[1];
+	}
+	network = PIPSocket::Address(net[0]) & netmask; // normalize
+}
