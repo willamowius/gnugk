@@ -160,7 +160,6 @@ bool ProxySocket::SetMinBufSize(WORD len)
 TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
       : PTCPSocket(p), ProxySocket(this, t), remote(s)
 {
-	SetReadTimeout(PTimeInterval(100));
 	SetWriteTimeout(PTimeInterval(100));
 }
 
@@ -210,7 +209,9 @@ bool TCPProxySocket::TransmitData()
 
 BOOL TCPProxySocket::Accept(PSocket & socket)
 {
+//	SetReadTimeout(PMaxTimeInterval);
 	BOOL result = PTCPSocket::Accept(socket);
+	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,
 	// we save it for reference
 	SetName();
@@ -219,7 +220,9 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 
 BOOL TCPProxySocket::Connect(const Address & addr)
 {
+//	SetReadTimeout(PTimeInterval(5000));
 	BOOL result = PTCPSocket::Connect(addr);
+	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,
 	// we save it for reference
 	SetName();
