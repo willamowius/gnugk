@@ -16,8 +16,18 @@
 
 #include "ptlib.h"
 #include "ptlib/sockets.h"
-#include "h225.h"
 
+class Q931;
+class H225_CallIdentifier;
+class H225_RasMessage;
+class H225_TransportAddress;
+class H225_TransportAddress_ipAddress;
+class H225_EndpointType;
+class H225_AliasAddress;
+class H225_ArrayOf_AliasAddress;
+class PASN_OctetString;
+
+H225_CallIdentifier *GetCallIdentifier(const Q931 & m_q931);
 
 bool SendRasPDU(H225_RasMessage & ras_msg, const H225_TransportAddress & dest);
 
@@ -35,7 +45,7 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, BOOL includeAl
 
 PString AsString(const PASN_OctetString & Octets);
 
-bool AliasEqualN(H225_AliasAddress AliasA, H225_AliasAddress AliasB, int n);
+//bool AliasEqualN(H225_AliasAddress AliasA, H225_AliasAddress AliasB, int n);
 
 // convert a socket IP address into an H225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port);

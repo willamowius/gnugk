@@ -19,7 +19,6 @@
 #include "ptlib.h" 
 #include "ptlib/sockets.h"
 #include "h225.h"
-#include "q931.h"
 #include "GkStatus.h"
 #include "SoftPBX.h"
 
@@ -205,8 +204,20 @@ inline bool EndpointRec::IsUsed() const
 
 inline bool EndpointRec::IsUpdated() const
 {
-	return (!m_timeToLive || (PTime() - m_updatedTime) < m_timeToLive*1000);
+	return (!m_timeToLive || (PTime() - m_updatedTime) < (DWORD)m_timeToLive*1000);
 }
+
+inline void EndpointRec::Lock()
+{       
+	PWaitAndSignal lock(m_usedLock);
+	++m_usedCount;
+}       
+
+inline void EndpointRec::Unlock()
+{       
+	PWaitAndSignal lock(m_usedLock); 
+	--m_usedCount;
+}       
 
 
 class GatewayRec : public EndpointRec {
@@ -305,8 +316,8 @@ private:
 	{   //  The function body must be put here,
 	    //  or the Stupid VC would fail to instantiate it
         	ReadLock lock(listLock);
-        	const_iterator Iter = find_if(ListToBeFinded->begin(), ListToBeFinded->end(), FindObject);
-	        return endptr((Iter != ListToBeFinded->end()) ? *Iter : NULL);
+        	const_iterator Iter(find_if(ListToBeFinded->begin(), ListToBeFinded->end(), FindObject));
+	        return endptr((Iter != ListToBeFinded->end()) ? *Iter : 0);
 	}
 
 	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, list<EndpointRec *> *ListToBeFinded);
@@ -348,63 +359,196 @@ public:
 };
 
 // record of one active call
-class CallRec
+class CallRec : private PTimer
 {
 public:
-	CallRec();
-	CallRec(const CallRec & Other);
+	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, const PString &, int);
 	~CallRec();
 
-	CallRec & operator= (const CallRec & other);
-	bool operator< (const CallRec & other) const;
-	void SetCalling(const EndpointCallRec & NewCalling);
-	void SetCalled(const EndpointCallRec & NewCalled);
-	void SetBandwidth(int Bandwidth);
+	const H225_CallIdentifier & GetCallIdentifier() const
+	{ return m_callIdentifier; }
+	const H225_ConferenceIdentifier & GetConferenceIdentifier() const
+	{ return m_conferenceIdentifier; }
+	const H225_TransportAddress *GetCallingAddress() const
+	{ return (m_Calling) ? &m_Calling->GetCallSignalAddress() : 0; }
+	const H225_TransportAddress *GetCalledAddress() const
+	{ return (m_Called) ? &m_Called->GetCallSignalAddress() : 0; }
+
+	void SetCalling(const endptr & NewCalling, unsigned = 0);
+	void SetCalled(const endptr & NewCalled, unsigned = 0);
+	void SetBandwidth(int Bandwidth) { m_bandWidth = Bandwidth; }
+	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
+	void SetConnected(bool c);
+	void SetTimer(int seconds);
+
+	void SendDRQ();
+
 	/// deletes endpoint end marks it as invalid
 	void RemoveCalling();
 	/// deletes endpoint end marks it as invalid
 	void RemoveCalled();
 	/// remove all involved endpoints and marks then invalid
-	void RemoveAll(void);
+	void RemoveAll();
 	/// counts the endpoints in this rec; currently #0 <= n <= 2#.
-	int CountEndpoints(void) const;
+	int CountEndpoints() const;
 
+	bool CompareCallId(H225_CallIdentifier *CallId) const
+	{ return (m_callIdentifier == *CallId); }
 
-	H225_ConferenceIdentifier m_conferenceIdentifier;
+	bool CompareCRV(unsigned crv) const
+	{ return (m_Calling && m_callingCRV == crv) || (m_Called && m_calledCRV == crv); }
+
+	bool CompareCallNumber(PINDEX CallNumber) const
+	{ return (m_CallNumber == CallNumber); }
+
+	bool CompareSigAdr(H225_TransportAddress *adr) const
+	{ return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
+		 (m_Called && m_Called->GetCallSignalAddress() == *adr); }
+
+	bool IsUsed() const;
+	bool IsConnected() const;
+
+	PString GenerateCDR() const;
+	PString PrintOn(bool verbose) const;
+
+	void Lock();
+	void Unlock();
+
+	// smart pointer for EndpointRec
+	typedef SmartPtr<CallRec> Ptr;
+
+#if !defined(NDEBUG) || defined(WIN32)
+// make the operators be public (only defined in debug mode)
+	using PTimer::operator new;
+	using PTimer::operator delete;
+#endif
+
+private:
+	void OnTimeout();
+
 	H225_CallIdentifier m_callIdentifier;
-	H225_BandWidth m_bandWidth;
+	H225_ConferenceIdentifier m_conferenceIdentifier;
 	PString m_destInfo;
-	time_t m_startTime;
+	int m_bandWidth;
 	PINDEX m_CallNumber;
 
-// protected:
-	EndpointCallRec * Calling;
-	EndpointCallRec * Called;
+	endptr m_Calling;
+	endptr m_Called;
+	unsigned m_callingCRV;
+	unsigned m_calledCRV;
+
+	PTime *m_startTime;
+
+	int m_usedCount;
+	mutable PMutex m_usedLock;
+
+	CallRec(const CallRec & Other);
+	CallRec & operator= (const CallRec & other);
 };
+
+inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_Calling = NewCalling, m_callingCRV = crv;
+}
+
+inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_Called = NewCalled, m_calledCRV = crv;
+}
+
+inline void CallRec::RemoveCalling()
+{
+	SetCalling(endptr(0));
+}
+
+inline void CallRec::RemoveCalled()
+{
+	SetCalled(endptr(0));
+}
+
+inline void CallRec::RemoveAll()
+{
+	RemoveCalled();
+	RemoveCalling();
+}
+
+inline void CallRec::Lock()
+{       
+	PWaitAndSignal lock(m_usedLock);
+	++m_usedCount;
+}       
+
+inline void CallRec::Unlock()
+{       
+	PWaitAndSignal lock(m_usedLock); 
+	--m_usedCount;
+}       
+
+inline bool CallRec::IsUsed() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return (m_usedCount != 0);
+}
+
+inline bool CallRec::IsConnected() const
+{       
+	return (m_startTime != 0);
+}       
+
+typedef CallRec::Ptr callptr;
+
+class Q931;
 
 // all active calls
 class CallTable : public Singleton<CallTable>
 {
 public:
+	typedef std::list<CallRec *>::iterator iterator;
+	typedef std::list<CallRec *>::const_iterator const_iterator;
+
 	CallTable();
+	~CallTable();
 
-	void Insert(const CallRec & NewRec);
-	void Insert(const EndpointCallRec & Calling, const EndpointCallRec & Called, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID, const PString& destInfo);
-	void Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID, const PString& destInfo);
-	void RemoveEndpoint(const H225_CallReferenceValue & CallRef);
+	void Insert(CallRec * NewRec);
+//	void Insert(const endptr & Calling, const endptr & Called, int Bandwidth, const H225_CallIdentifier & CallId, const H225_ConferenceIdentifier & ConfID, const PString& destInfo);
+//	void Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID, const PString& destInfo);
 
-	const CallRec * FindCallRec(const Q931 & m_q931) const;
-	const CallRec * FindCallRec(const H225_CallIdentifier & m_callIdentifier) const;
-	const CallRec * FindCallRec(const H225_CallReferenceValue & CallRef) const;
-	const CallRec * FindCallRec(PINDEX CallNumber) const;
-	const CallRec * FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
+//	callptr FindCallRec(const Q931 & m_q931) const;
+	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
+	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
+	callptr FindCallRec(PINDEX CallNumber) const;
+	callptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
+
+//	void RemoveCall(const Q931 & m_q931);
+	void RemoveCall(const H225_DisengageRequest & obj_drq);
+	void RemoveCall(const callptr &);
+
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE) const;
 
-protected:
-	set <CallRec> CallList;
-	PINDEX m_CallNumber;
-
 private:
+	template<class F> callptr InternalFind(const F & FindObject) const
+	{
+        	ReadLock lock(listLock);
+        	const_iterator Iter(find_if(CallList.begin(), CallList.end(), FindObject));
+	        return callptr((Iter != CallList.end()) ? *Iter : 0);
+	}
+
+	bool InternalRemovePtr(CallRec *call);
+	void InternalRemove(const H225_CallIdentifier & CallId);
+	void InternalRemove(unsigned CallRef);
+	void InternalRemove(iterator);
+
+	static void delete_call(CallRec *c) { delete c; }
+
+	list<CallRec *> CallList;
+	list<CallRec *> RemovedList;
+//	set <CallRec> CallList;
+
+	PINDEX m_CallNumber;
+	mutable PReadWriteMutex listLock;
+
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };

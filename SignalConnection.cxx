@@ -15,7 +15,6 @@
 #endif
 
 #include "SignalConnection.h"
-#include "RasTbl.h"
 #include "ANSI.h"
 #include "Toolkit.h"
 #include "h323util.h"
@@ -118,20 +117,7 @@ void SignalConnection::CloseSignalConnection(void)
 	  //	  resourceManager::Instance()->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID);
 
         // maipulate call-table
-	if (m_q931.HasIE(Q931::UserUserIE)) {
-   		H225_H323_UserInformation signal;
-   
-   		PPER_Stream q = m_q931.GetIE(Q931::UserUserIE);
-   		if ( ! signal.Decode(q) ) {
-   			PTRACE(2, "GK\tERROR DECODING Q931.UserInformation!");
-   		} else {
-  		 	H225_CallReferenceValue m_crv = m_q931.GetCallReference();
-   
-       			// here we remove the endpoint
-   			CallTable::Instance()->RemoveEndpoint(m_crv);
-		}
-	} else 
-   		PTRACE(2, "GK\tERROR no Q931.UserInformation!");
+	CallTable::Instance()->RemoveCall(pCallRec);
     }
 }
 
@@ -229,15 +215,18 @@ void SignalConnection::Main(void)
 
 			// CallRecs are looked for using callIdentifier; if non-existant
 			// (it's optional), FindCallRec uses callReferenceValue instead
-			CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(m_q931);
- 
-			if (Call == NULL)
-			{
+			if (!pCallRec)
+				pCallRec = CallTable::Instance()->FindCallRec(m_crv);
+			if (!pCallRec) {
 				PTRACE(4, "GK\t" << connectionName << "\tCALL NOT REGISTERED");
 				break;
 			};
+
+			const H225_TransportAddress *pAddr = pCallRec->GetCalledAddress();
+			if (!pAddr || pAddr->GetTag() != H225_TransportAddress::e_ipAddress)
+				break;  // invalid ip address
 			
-			H225_TransportAddress_ipAddress & ipaddress = Call->Called->m_callSignalAddress;
+			const H225_TransportAddress_ipAddress & ipaddress = *pAddr;
 			m_remote = new PTCPSocket(ipaddress.m_port);
 			PIPSocket::Address calledIP( ipaddress.m_ip[0], ipaddress.m_ip[1], ipaddress.m_ip[2], ipaddress.m_ip[3]);
 			if ( !m_remote->Connect(calledIP) )
@@ -497,19 +486,20 @@ BOOL SignalConnection::OnReceivedData(void)
 void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 {
 	// save callIdentifier + conferenceIdentifier
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
-	if (Call == NULL) {
+	pCallRec = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+	if (!pCallRec) {
 		PTRACE(3, "SignalConnection\tOnSetup() didn't find the call!");
 		return;
 	};
-	Call->m_callIdentifier = Setup.m_callIdentifier;
-	Call->m_conferenceIdentifier = Setup.m_conferenceID;
- 
+/* comment out by cwhuang
+   Is there any meaning to set callIdentifier & conferenceIdentifier again?
+   Aren't them already set?
+	pCallRec->m_callIdentifier = Setup.m_callIdentifier;
+	pCallRec->m_conferenceIdentifier = Setup.m_conferenceID;
+*/ 
 	// re-route called endpoint signalling messages to gatekeeper	
-	if ( Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) )
-	{
-		Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
-	};
+	Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
+	Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
 
 	// in routed mode the caller may have put the GK address in destCallSignalAddress
 	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
@@ -524,39 +514,43 @@ void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 	
 	PTRACE(4, "GK\t" << setprecision(2) << Setup);
 	PTRACE(4, "GK\tEND OF TRACED MESSAGE");
-};
+}
  
 void SignalConnection::OnCallProceeding( H225_CallProceeding_UUIE & CallProceeding )
 {
 	if (bH245Routing) {
 		// replace H.245 address with gatekeepers address
-		CallProceeding.IncludeOptionalField( H225_CallProceeding_UUIE::e_h245Address );
+//		CallProceeding.IncludeOptionalField( H225_CallProceeding_UUIE::e_h245Address );
 //		CallProceeding.m_h245Address = Addr;
 	}
 };
  
 void SignalConnection::OnConnect( H225_Connect_UUIE & Connect )
 {
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(Connect.m_callIdentifier);
-	if (Call == NULL) {
+	if (!Connect.HasOptionalField(H225_Connect_UUIE::e_callIdentifier)) {
+		PTRACE(1, "SignalConnection\tOnConnect() no callIdentifier!");
+		return;
+	}
+	pCallRec = CallTable::Instance()->FindCallRec(Connect.m_callIdentifier);
+	if (!pCallRec) {
 		PTRACE(3, "SignalConnection\tOnConnect() didn't find the call!");
 		return;
 	};
 
-//	Call->m_Q931StartTime = time(NULL);
+	pCallRec->SetConnected(true);
 
 	if (bH245Routing) {
 		// replace H.245 address with gatekeepers address
-		Connect.IncludeOptionalField( H225_Connect_UUIE::e_h245Address );
+//		Connect.IncludeOptionalField( H225_Connect_UUIE::e_h245Address );
 //		Connect.m_h245Address = Addr;
 	}
-};
+}
  
 void SignalConnection::OnAlerting( H225_Alerting_UUIE & Alerting )
 {
 	if (bH245Routing) {
 		// replace H.245 address with gatekeepers address
-		Alerting.IncludeOptionalField( H225_Alerting_UUIE::e_h245Address );
+//		Alerting.IncludeOptionalField( H225_Alerting_UUIE::e_h245Address );
 //		Alerting.m_h245Address = Addr;
 	}
 };
@@ -568,14 +562,9 @@ void SignalConnection::OnInformation( H225_Information_UUIE & Information )
  
 void SignalConnection::OnReleaseComplete( H225_ReleaseComplete_UUIE & ReleaseComplete )
 {
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(ReleaseComplete.m_callIdentifier);
-	if (Call == NULL) {
-		PTRACE(3, "SignalConnection\tOnReleaseComplete() didn't find the call!");
-		return;
-	};
-
-//	Call->m_Q931EndTime = time(NULL);
-};
+// would be removed on CloseSignalConnection
+//	CallTable::Instance()->RemoveCall(pCallRec);
+}
  
 void SignalConnection::OnFacility( H225_Facility_UUIE & Facility )
 {
@@ -632,5 +621,5 @@ BOOL SignalConnection::Send( PTCPSocket * socket, const Q931 & toSend )
 	PTRACE(5, "GK\t" << connectionName << "\tSent.");
 	return TRUE;
 	
-};
+}
 

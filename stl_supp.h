@@ -145,6 +145,7 @@ inline const _Tp& max(const _Tp& __a, const _Tp& __b)
 
 
 using std::back_inserter;
+using std::bind1st;
 using std::bind2nd;
 using std::mem_fun;
 using std::compose1;
@@ -152,6 +153,7 @@ using std::greater;
 using std::equal_to;
 using std::not1;
 using std::copy;
+using std::find;
 using std::find_if;
 using std::for_each;
 using std::partition;

@@ -1,4 +1,14 @@
+//////////////////////////////////////////////////////////////////
+//
 // addpasswd.cxx
+//
+// This work is published under the GNU Public License (GPL)
+// see file COPYING for details.
+//
+// History:
+//      2001/09/27      initial version (Chih-Wei Huang)
+//
+//////////////////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <ptlib.h>

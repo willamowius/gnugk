@@ -468,9 +468,19 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 			}
 			WriteString(PString(PString::Printf, "Trace Level is now %d\r\n", PTrace::GetLevel()));
 		}
-		else if((Args[1] *= "cfg") && (Args.GetSize()>=4)) 
-			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
-		else if((Args[1] *= "set") && (Args.GetSize()>=5)) {
+		else if (Args[1] *= "cfg") {
+			if (Args.GetSize()>=4)
+				WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
+			else if (Args.GetSize()>=3) {
+				PStringList cfgs(GkConfig()->GetKeys(Args[2]));
+				PString result;
+				for (PINDEX i=0; i < cfgs.GetSize(); ++i) {
+					PString v(GkConfig()->GetString(Args[2], cfgs[i], ""));
+					result += cfgs[i] + "=" + v + "\r\n";
+				}
+				WriteString(result + ";\r\n");
+			}
+		} else if((Args[1] *= "set") && (Args.GetSize()>=5)) {
 			GkConfig()->SetString(Args[2],Args[3],Args[4]);
 			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
 		} else if((Args[1] *= "printrm")) {

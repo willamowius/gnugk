@@ -11,6 +11,8 @@ OpenH323 Gatekeeper            ! OpenGatekeeper
 - can send LRQ to neighbour GK ! - can send LRQ to neighbour GK
   based on prefix              !
                                !
+- authentication mechanism     !
+                               !
 - Alternate gatekeeper option  !
                                !
 - rewriting of E.164 numbers   !

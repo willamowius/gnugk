@@ -212,7 +212,7 @@ void PendingList::Check()
 
 NeighborList::NeighborList(H323RasSrv *rs, PConfig *config) : theRasSrv(rs)
 {
-	PStringToString cfgs = config->GetAllKeyValues(NeighborSection);
+	PStringToString cfgs(config->GetAllKeyValues(NeighborSection));
 	for (PINDEX i=0; i < cfgs.GetSize(); i++) {
 		try {
 			nbList.push_back(Neighbor(cfgs.GetKeyAt(i), cfgs.GetDataAt(i)));
@@ -423,7 +423,7 @@ H323RasSrv::SetAlternateGK(H225_RegistrationConfirm &rcf)
 	BOOL result = FALSE;
 
 	PString param = GkConfig()->GetString("AlternateGKs","");
-	if(param != "") {
+	if(!param) {
 		PTRACE(5, ANSI::BLU << "Alternating: yes, set AltGK in RCF! " << ANSI::OFF);
 		result = TRUE;
 
@@ -479,7 +479,7 @@ H323RasSrv::ForwardRasMsg(H225_RasMessage msg) // not passed as const, ref or po
 	BOOL result = FALSE;
 
 	PString param = GkConfig()->GetString("SendTo","");
-	if (param != "") {
+	if (!param) {
 		PTRACE(5, ANSI::BLU << "Forwarding: yes! " << ANSI::OFF);
 		result = TRUE;
 
@@ -563,7 +563,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 	// mechanism 2: forwarding detection per "from"
 	const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
-        if (SkipForwards != "")
+        if (!SkipForwards)
 		if (SkipForwards.Find(rx_addr.AsString()) != P_MAX_INDEX)
 		{
 			PTRACE(5, "RRQ\tWill skip forwarding RRQ to other GK.");
@@ -937,6 +937,8 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 	// Do the reject or the confirm
 	//
 	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
+	PString destinationInfoString = (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)) ?
+		AsString(obj_arq.m_destinationInfo) : PString("unknown");
 	if (bReject)
 	{
 		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
@@ -965,10 +967,31 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 		acf.m_requestSeqNum = obj_arq.m_requestSeqNum;
 		acf.m_bandWidth = BWRequest;
 
-		CallRec * pExistingCallRec = NULL;
-		
-		if ( GKroutedSignaling )
-		{
+		// CallRecs should be looked for using callIdentifier instead of callReferenceValue
+		// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
+		callptr pExistingCallRec = CallTable::Instance()->FindCallRec(obj_arq.m_callIdentifier);
+
+		// since callIdentifier is optional, we might have to look for the callReferenceValue as well
+		if (!pExistingCallRec)
+			pExistingCallRec = CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
+
+		if (pExistingCallRec) {
+			// the call is already in the table hence this must be the 2. ARQ
+			pExistingCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
+		} else {
+			  // the call is not in the table
+			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString, BWRequest);
+			pCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
+			if (!GKroutedSignaling)
+				pCallRec->SetConnected(true);
+			if (!obj_arq.m_answerCall) // the first ARQ
+				pCallRec->SetCalling(RequestingEP, obj_arq.m_callReferenceValue);
+			CallTable::Instance()->Insert(pCallRec);
+		}
+			
+		if ( GKroutedSignaling ) {
+/* comment out by cwhuang
+   Does it have any difference from direct model?
 			H225_TransportAddress destAddress;
 			  // in routed mode we only use aliases
 			  // we can't redirect absolut callSignalladdresses right now
@@ -994,43 +1017,12 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 					destinationInfoString = AsString(obj_arq.m_destinationInfo);
 				CallTable::Instance()->Insert(Calling, Called, BWRequest, obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString);
 			};
-
+*/
 			acf.m_callModel.SetTag( H225_CallModel::e_gatekeeperRouted );
 			acf.m_destCallSignalAddress = GKCallSignalAddress;
-		}
-		else
-		{
+		} else {
 			// direct signalling
 
-			// CallRecs should be looked for using callIdentifier instead of callReferenceValue
-			// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
-			pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec(obj_arq.m_callIdentifier);
-
-			// since callIdentifier is optional, we might have to look for the callReferenceValue as well
-			if (pExistingCallRec == NULL)
-				pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
-
-			if (pExistingCallRec != NULL) {
-
-				// the call is already in the table hence this must be the 2. ARQ
-				EndpointCallRec newEP(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_arq.m_callReferenceValue);
-
-				if (pExistingCallRec->Called)	// This test is not necessary - the second ARQ is from called
-					pExistingCallRec->SetCalling(newEP);
-				else
-					pExistingCallRec->SetCalled(newEP);
-			}
-			else {
-				  // the call is not in the table hence this must be the 1. ARQ
-
-				EndpointCallRec Calling(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_arq.m_callReferenceValue);
-
-				PString destinationInfoString = "unknown";
-				if (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-					destinationInfoString = AsString(obj_arq.m_destinationInfo);
-				CallTable::Instance()->Insert(Calling, BWRequest, obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString);
-			}
-			
 			// Set ACF fields
 			acf.m_callModel.SetTag( H225_CallModel::e_direct );
 			if( obj_arq.HasOptionalField( H225_AdmissionRequest::e_destCallSignalAddress) )
@@ -1105,11 +1097,10 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		if ( GKroutedSignaling )
 		{
 //			sigListener->m_callTable.HungUp(obj_rr.m_callReferenceValue);
-			CallTable::Instance()->RemoveEndpoint(obj_rr.m_callReferenceValue);
-		}
-		else {
+			CallTable::Instance()->RemoveCall(obj_rr);
+		} else {
 			// I do not know if more is to be done - if not then the routing type check is obsolete
-			CallTable::Instance()->RemoveEndpoint(obj_rr.m_callReferenceValue);
+			CallTable::Instance()->RemoveCall(obj_rr);
 		}
 		PTRACE(4,"\tDRQ: removed first endpoint");
 
@@ -1131,7 +1122,8 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		H225_DisengageConfirm & dcf = obj_rpl;
 		dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
 
-		CallTable::Instance()->RemoveEndpoint(obj_rr.m_callReferenceValue);
+		CallTable::Instance()->RemoveCall(obj_rr);
+
 		PTRACE(4,"\tDRQ: removed second endpoint");
 
 		// always signal DCF

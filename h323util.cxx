@@ -13,7 +13,32 @@
 
 #include "h323util.h"
 #include "h323pdu.h"
+#include "q931.h"
 
+
+/*
+H225_CallIdentifier *GetCallIdentifier(const Q931 & m_q931)
+{
+	if (m_q931.HasIE(Q931::UserUserIE)) {
+		H225_H323_UserInformation signal;
+
+		PPER_Stream q(m_q931.GetIE(Q931::UserUserIE));
+		if (signal.Decode(q)) {
+			H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
+			H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+			H225_Setup_UUIE & setup = body;
+
+			if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier))
+				return &setup.m_callIdentifier;
+		} else {
+			PTRACE(5, "GK\tERROR DECODING Q931.UserInformation!");
+		}
+	} else {
+		PTRACE(3, "GK\tERROR Q931 has no UUIE!!\n");
+	}
+	return 0; // no CallId
+}
+*/
 
 bool SendRasPDU(H225_RasMessage &ras_msg, const H225_TransportAddress & dest)
 {
@@ -48,7 +73,7 @@ PString AsString(const H225_TransportAddress & ta)
 PString AsDotString(const H225_TransportAddress & ip)
 {
 	return (ip.GetTag() == H225_TransportAddress::e_ipAddress) ?
-		AsString((const H225_TransportAddress_ipAddress &)ip) : PString("");
+		AsString((const H225_TransportAddress_ipAddress &)ip) : PString();
 }
 
 PString AsString(const H225_TransportAddress_ipAddress & ip)
@@ -90,7 +115,6 @@ PString AsString(const H225_EndpointType & terminalType)
 	
 	return(terminalTypeString);
 }
-
 
 PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasName)
 {
@@ -137,16 +161,13 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, BOOL includeAl
 
 PString AsString(const PASN_OctetString & Octets)
 {
-	char MsgBuffer[1024];
-	char HexVal[10];
-
-	for (PINDEX i = 0; i < Octets.GetDataLength(); i++)
-	{
-		sprintf(HexVal, " %02x", Octets[i]);
-		strcat(MsgBuffer, HexVal);
-	};
-
-	return PString(MsgBuffer);
+	PString result;
+	if (Octets.GetDataLength() > 0) {
+		result = PString(PString::Printf, "%02x", Octets[0]);
+		for (PINDEX i = 1; i < Octets.GetDataLength(); ++i)
+			result += PString(PString::Printf, " %02x", Octets[i]);
+	}
+	return result;
 }
 
 

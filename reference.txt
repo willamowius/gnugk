@@ -205,3 +205,85 @@ AllowedPendings=3	Default: 3
 
 Timeout=5			Default: 1
 
+B.11 Section [RasSvr::Neighbors]
+
+The GK would send LRQ to its neighbors if the destination of ARQ is unknown.
+A neighbor is selected if its prefix match the destination or
+it has prefix '*'.
+Currently only one prefix is supported.
+
+  Format:
+    GKID=ip[:port;prefix;password]
+
+  Example:
+    GK1=203.60.151.5:1719;*;gk1
+    GK2=203.60.151.9:1719;02
+
+B.12 Section [RasSvr::PermanentEndpoints]
+
+In this section you can put endpoints that don't have RAS support
+or that you don't want to be expired. The records will always
+in GK's registration table.
+However, You can still unregister it via status thread.
+
+  Format:
+    IP=alias[,alias,...;prefix,prefix,...]
+
+  Example:
+    10.0.1.5=Citron;009,008  (For gateway)
+    10.0.1.10=798            (For terminal)
+
+B.13 Section [Gatekeeper::Auth]
+
+default=reject				Default: allow
+
+Syntax:
+   authrule=actions
+
+   <authrule> := SimplePasswordAuth | AliasAuth | ...
+   <actions>  := <control>[;<ras>,<ras>,...]
+   <control>  := optional | required | sufficient
+   <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
+
+A rule may results in one of the three codes: ok, fail, pass.
+
+  ok         The request is authenticated by this module
+  fail       The authentication fails and should be rejected
+  next       The rule cannot determine the request
+
+There are also three ways to control a rule:
+
+  optional      If the rule cannot determine the request, it is passed
+                to next rule.
+  required      The requests should be authenticated by this module,
+                or it would be rejected. The authenticated request would
+                then be passwd to next rule.
+  sufficient    If the request is authenticated, it is accepted,
+                or it would be rejected. That is, the rule determines
+                the fate of the request. No rule should be put after
+                a sufficient rule, since it won't take effect.
+
+Currently supported modules:
+
+  SimplePasswordAuth  The module checks the tokens or cryptoTokens
+                      fields of RAS message. The tokens should contain
+                      at least generalID and password. For cryptoTokens,
+                      only cryptoEPPwdHash tokens hashed by simple MD5
+                      are supported now.
+                      The ID and password are read from [Password] section.
+                      Support for other backend databases is easily to add.
+
+  AliasAuth           The IP of an endpoint with given alias should
+                      match a specified pattern. The pattern is defined
+                      in [RasSrv::RRQAuth] section.
+
+You can also configure a rule to check only for some particular RAS
+messages. For example, to configure SimplePasswordAuth as a required
+rule to check RRQ, ARQ and LRQ:
+SimplePasswordAuth=required;RRQ,ARQ,LRQ
+
+  Example:
+    SimplePasswordAuth=optional
+    AliasAuth=sufficient;RRQ
+    default=reject
+

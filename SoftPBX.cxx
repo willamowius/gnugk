@@ -31,33 +31,12 @@ int SoftPBX::TimeToLive = -1;
 
 namespace {  // anonymous namespace
 
-int RequestNum = 1;  // this is the only place we are _generating_ sequence numbers at the moment
-
-bool SendDRQ(const endptr &ep, CallRec *Call)
-{
-	if (!ep) {
-		PTRACE(2, "GK\tSoftPBX: Can't find endpoint registration");
-		return false;
-	}
-	H225_RasMessage ras_msg;
-	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
-	H225_DisengageRequest & drq = ras_msg;
-	drq.m_requestSeqNum.SetValue(RequestNum++);
-	drq.m_endpointIdentifier = ep->GetEndpointIdentifier();
-	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
-
-	if (Call != NULL) {
-		drq.m_callIdentifier = Call->m_callIdentifier;
-		drq.m_conferenceID = Call->m_conferenceIdentifier;
-	}
-	return SendRasPDU(ras_msg, ep->GetRasAddress());
-}
-
-bool SendDRQ(const endptr &ep)
+void SendDRQ(const endptr &ep)
 {
 	// find callId and conferenceId
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindBySignalAdr(ep->GetCallSignalAddress());
-	return SendDRQ(ep, Call);
+	callptr Call = CallTable::Instance()->FindBySignalAdr(ep->GetCallSignalAddress());
+	Call->SendDRQ();
+	CallTable::Instance()->RemoveCall(Call);
 }
 
 } // end of anonymous namespace
@@ -159,39 +138,15 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 {
 	PTRACE(3, "GK\tSoftPBX: DisconnectCall " << CallNumber);
 
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(CallNumber);
-	if (Call == NULL)
-	{
+	callptr Call = CallTable::Instance()->FindCallRec(CallNumber);
+	if (!Call) {
 		PString msg(PString::Printf, "Can't find call number %d .\n", CallNumber);
 		PTRACE(2, "GK\tSoftPBX: " << msg);
 		GkStatus::Instance()->SignalStatus(msg);
 		return;
-	};
-
-	EndpointCallRec * callep = Call->Calling;
-	if (callep == NULL)
-	{
-		PTRACE(3, "GK\tSoftPBX: Call number " << CallNumber << " has no calling party");
-		callep = Call->Called;
-	};
-	if (callep == NULL)
-	{
-		PTRACE(3, "GK\tSoftPBX: Call number " << CallNumber << " has no called party");
-		return;
-	};
-
-	endptr ep = RegistrationTable::Instance()->FindBySignalAdr(callep->m_callSignalAddress);
-	if (!ep) {
-		PTRACE(2, "GK\tSoftPBX: Calling endpoint is already deregistered");
-		callep = Call->Called;
-		ep = RegistrationTable::Instance()->FindBySignalAdr(callep->m_callSignalAddress);
-		if (!ep) {
-			PTRACE(2, "GK\tSoftPBX: All endpoints of call number " << CallNumber << " are already deregistered");
-			return;
-		}
 	}
 
-        SendDRQ( ep, Call );
+	Call->SendDRQ();
 
 	PString msg(PString::Printf, "Call number %d disconnected.\n", CallNumber);
 	PTRACE(2, "GK\tSoftPBX: " << msg);

@@ -11,6 +11,7 @@
 //////////////////////////////////////////////////////////////////
 
 #include "gkauth.h"
+#include "gk_const.h"
 #include "h323util.h"
 #include "stl_supp.h"
 #include "Toolkit.h"
@@ -38,6 +39,9 @@ static GkAuthInit<GkAuthenticator> _defaultGKA_("default");
 
 class SimplePasswordAuth : public GkAuthenticator {
 public:
+	typedef std::map<PString, PString>::iterator iterator;
+	typedef std::map<PString, PString>::const_iterator const_iterator;
+
 	SimplePasswordAuth(PConfig *, const char *);
 
 protected:
@@ -98,13 +102,13 @@ public:
 	AliasAuth(PConfig *, const char *);
 
 protected:
-//	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
+	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
 	virtual int Check(const H225_RegistrationRequest &, unsigned &);
 //	virtual int Check(const H225_UnregistrationRequest &, unsigned &);
 	virtual int Check(const H225_AdmissionRequest &, unsigned &);
 //	virtual int Check(const H225_BandwidthRequest &, unsigned &);
 //	virtual int Check(const H225_DisengageRequest &, unsigned &);
-//	virtual int Check(const H225_LocationRequest &, unsigned &);
+	virtual int Check(const H225_LocationRequest &, unsigned &);
 //	virtual int Check(const H225_InfoRequest &, unsigned &);
 
 	virtual bool AuthCondition(const H225_TransportAddress &SignalAdr, const PString &);
@@ -256,7 +260,7 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 		if (token.HasOptionalField(H235_ClearToken::e_generalID) &&
 		    token.HasOptionalField(H235_ClearToken::e_password)) {
 			PString id = token.m_generalID, passwd = token.m_password;
-			std::map<PString, PString>::iterator Iter = passwdCache.find(id);
+			iterator Iter = passwdCache.find(id);
 			if (Iter != passwdCache.end() && Iter->second == passwd) {
 				PTRACE(5, "GkAuth\t cache " << id << " found and match");
 				return true;
@@ -277,7 +281,7 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			PString id = AsString(pwdhash.m_alias, FALSE);
-			std::map<PString, PString>::iterator Iter = passwdCache.find(id);
+			iterator Iter = passwdCache.find(id);
 			PString passwd = (Iter == passwdCache.end()) ? GetPassword(id) : Iter->second;
 			authMD5.SetLocalId(id);
 			authMD5.SetPassword(passwd);
@@ -294,6 +298,11 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 // AliasAuth
 AliasAuth::AliasAuth(PConfig *cfg, const char *authName) : GkAuthenticator(cfg, authName)
 {
+}
+
+int AliasAuth::Check(const H225_GatekeeperRequest &, unsigned &)
+{
+	return e_next;
 }
 
 int AliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned &)
@@ -333,7 +342,12 @@ int AliasAuth::Check(const H225_AdmissionRequest &, unsigned &)
 	return e_next;
 }
 
-bool AliasAuth::AuthCondition(const H225_TransportAddress &SignalAdr, const PString &Condition)
+int AliasAuth::Check(const H225_LocationRequest &, unsigned &)
+{
+	return e_next;
+}
+
+bool AliasAuth::AuthCondition(const H225_TransportAddress & SignalAdr, const PString & Condition)
 {
 	const bool ON_ERROR = true; // return value on parse error in condition
 
@@ -360,6 +374,8 @@ bool AliasAuth::AuthCondition(const H225_TransportAddress &SignalAdr, const PStr
 	//   sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
 	//
 	else if(rName=="sigaddr") {
+		if( rule.GetSize() < 2)
+			return false;
 		return Toolkit::MatchRegex(AsString(SignalAdr), rule[1]) != 0;
 	}
 	//
@@ -367,23 +383,13 @@ bool AliasAuth::AuthCondition(const H225_TransportAddress &SignalAdr, const PStr
 	//   sigip:195.71.129.69:1720
 	//
 	else if(rName=="sigip") {
-		// we build a regex like "sigaddr" from the params of "sigip"
-		const PStringArray ip4 = rule[1].Tokenise(".",FALSE);
-		if(rule.GetSize()<2 || ip4.GetSize()<4) {
-			PTRACE(1, "Errornous RRQAuth condition: " << Condition);
-			return ON_ERROR;
-		}
-		PString regexStr(PString::Printf, 
-						 ".*ipAddress .* ip = .* %02x %02x %02x %02x .*port = %s.*",
-						 ip4[0].AsInteger(),
-						 ip4[1].AsInteger(),
-						 ip4[2].AsInteger(),
-						 ip4[3].AsInteger(),
-						 (const char*)(rule[2]) /*port*/ );
-		
-		return Toolkit::MatchRegex(AsString(SignalAdr), regexStr) != 0;
-	}
-	else {
+		if (rule.GetSize() < 2)
+			return false;
+		PIPSocket::Address ip;
+		PIPSocket::GetHostAddress(rule[1], ip);
+		WORD port = (rule.GetSize() < 3) ? GK_DEF_ENDPOINT_SIGNAL_PORT : rule[2].AsInteger();
+		return (SignalAdr == SocketToH225TransportAddr(ip, port));
+	} else {
 		PTRACE(4, "Unknown RRQAuth condition: " << Condition);
 		return ON_ERROR;
 	}

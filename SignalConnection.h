@@ -16,9 +16,10 @@
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <ptclib/asner.h>
+#include <h225.h>
+#include <q931.h>
 
-#include "q931.h"
-#include "h225.h"
+#include "RasTbl.h"
 
 class SignalChannel;
 
@@ -65,7 +66,7 @@ class SignalConnection:public PThread {
 		PString connectionName;
 		Q931 statusEnquiry;
 		BOOL killMe;
-
+		callptr pCallRec;
 };
 
 #endif

@@ -1,5 +1,9 @@
 Changes from 1.0 to now (by cwhuang)
 ========================================
+- only generate CDR for call that originated from my zone and connected
+  (must work in routed mode)
+- redesign CallRec & CallTable
+- extend debug cfg SEC command to retrieve a whole section
 - change neighbors structure
 - add class GkAuthInitializer for authenticators initialization
 - add authentication modules (gkauth.cxx, gkauth.h)
