@@ -1619,50 +1619,17 @@ BOOL MatchAlias(const CallProfile &profile, PString number) {
 	return FALSE;
 }
 
-BOOL ConvertNumberInternational(PString & number, unsigned int & plan, unsigned int &TON, unsigned int & SI, const CallProfile & profile) {
-	profile.debugPrint();
-	switch (TON) {
-	case Q931::SubscriberType:
-		PTRACE(5, "Switching from subscriber type to international by prepending " << profile.GetCC() << profile.GetNDC_IC());
-		number = profile.GetCC() + profile.GetNDC_IC() + number;
-		TON = Q931::InternationalType;
-		break;
-	case Q931::NationalType:
-		PTRACE(5, "Switching from National type to international by prepending " << profile.GetCC());
-		number = profile.GetCC() + number;
-		TON = Q931::InternationalType;
-		break;
-	case Q931::InternationalType:
-		PTRACE(5, "This Number was international");
-		break;
-	default:
-		PTRACE(5, "Using Toolkit::Rewrite::PrefixAnalysis");
-		switch (Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, profile)) {
-		case Q931::AbbreviatedType:
-			PTRACE(5, "Switching from assumed abbrivated Type to international by prepending " << profile.GetCC()
-			       << profile.GetNDC_IC() << profile.GetSubscriberNumber());
-			number = profile.GetCC() + profile.GetNDC_IC() + profile.GetSubscriberNumber() + number;
-		case Q931::SubscriberType:
-			PTRACE(5, "Switching from assumed subscriber type to international by prepending " << profile.GetCC()
-			       << profile.GetNDC_IC());
-			number = profile.GetCC() + profile.GetNDC_IC() + number;
-			TON = Q931::InternationalType;
-			break;
-		case Q931::NationalType:
-			PTRACE(5, "Switching from assumed national type to international by prepending " << profile.GetCC());
-			number = profile.GetCC() + number;
-			TON = Q931::InternationalType;
-			break;
-		case Q931::InternationalType:
-			PTRACE(5, "The number is assumed to be international");
-			break;
-		default:
-			PTRACE(5, "PrefixAnalysis did not succeed");
-			TON=Q931::UnknownType;
-			return FALSE;
-		}
-	}
-	return TRUE;
+BOOL
+ConvertNumberInternational(PString & number, unsigned int & plan, unsigned int &TON, unsigned int & SI, const CallProfile & profile)
+{
+	Q931::NumberingPlanCodes pl = static_cast <Q931::NumberingPlanCodes> (plan);
+	Q931::TypeOfNumberCodes tn  = static_cast <Q931::TypeOfNumberCodes> (TON);
+	H225_ScreeningIndicator::Enumerations screening = static_cast <H225_ScreeningIndicator::Enumerations> (SI);
+	BOOL result = Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, pl, tn, screening, profile);
+	plan=pl;
+	TON=tn;
+	SI=screening;
+	return result;
 }
 
 // class H245Handler
