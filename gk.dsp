@@ -186,6 +186,10 @@ SOURCE=.\SoftPBX.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\sqlacct.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\sqlauth.cxx
 # End Source File
 # Begin Source File
@@ -307,6 +311,10 @@ SOURCE=.\slist.h
 # Begin Source File
 
 SOURCE=.\SoftPBX.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\sqlacct.h
 # End Source File
 # Begin Source File
 

@@ -214,6 +214,9 @@
 				RelativePath="SoftPBX.cxx">
 			</File>
 			<File
+				RelativePath="sqlacct.cxx">
+			</File>
+			<File
 				RelativePath="sqlauth.cxx">
 			</File>
 			<File
@@ -306,6 +309,9 @@
 			</File>
 			<File
 				RelativePath="SoftPBX.h">
+			</File>
+			<File
+				RelativePath="sqlacct.h">
 			</File>
 			<File
 				RelativePath="stl_supp.h">
