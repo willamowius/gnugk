@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2005/01/12 17:55:07  willamowius
+ * fix gkip accounting parameter
+ *
  * Revision 1.7  2005/01/05 15:42:41  willamowius
  * new accounting event 'connect', parameter substitution unified in parent class
  *
@@ -129,7 +132,7 @@ SQLAcct::SQLAcct(
 
 	m_updateQuery = cfg->GetString(cfgSec, "UpdateQuery", "");
 	if (m_updateQuery.IsEmpty() 
-		&& (GetEnabledEvents() & GetSupportedEvents() & AcctUpdate) == AcctUpdate) {
+		&& (GetEnabledEvents() & GetSupportedEvents() & (AcctUpdate | AcctConnect)) != 0) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no update query configured"
 			);
@@ -201,7 +204,7 @@ GkAcctLogger::Status SQLAcct::Log(
 	if (evt == AcctStart) {
 		query = m_startQuery;
 		queryAlt = m_startQueryAlt;
-	} else if (evt == AcctUpdate)
+	} else if (evt == AcctUpdate || evt == AcctConnect)
 		query = m_updateQuery;
 	else if (evt == AcctStop) {
 		query = m_stopQuery;

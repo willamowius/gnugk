@@ -87,7 +87,7 @@ See the section <ref id="radacct" name="[RadAcct]"> for configuration details.
 
 <item><tt>SQLAcct</tt>
 <p>
-This module performs direct SQL accounting. It supports (start, stop, update)
+This module performs direct SQL accounting. It supports (start, connect, stop, update)
 event types. 
 See the section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 

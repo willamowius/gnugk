@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- added support for Connect event in SqlAcct module, thanks to Boian Bonev
 - BUGFIX(Neighbor.cxx) nonStandardData field was not included for CiscoGK neighbors
 - a new module to rewrite ANI/CLI numbers. Sponsored by Gabriel Georgescu.
 - new FreeBSD 5.3 startup script
