@@ -1101,6 +1101,9 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 						PString number = H323GetAliasAddressString(dest[0]);
 						Q931::NumberingPlanCodes plan = Q931::ISDNPlan;
 						Q931::TypeOfNumberCodes ton = Q931::UnknownType;
+						ton = static_cast<Q931::TypeOfNumberCodes> (
+							pCallRec->GetCallingProfile().TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
+							ton : pCallRec->GetCallingProfile().TreatCalledPartyNumberAs());
 						H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
 						Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
 												     pCallRec->GetCallingProfile());
@@ -1334,7 +1337,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			if(pCallRec->GetCallingProfile().GetCallTimeout()==0) {
 				delete pCallRec;
 				obj_rpl.SetTag(H225_RasMessage::e_admissionReject); // Build ARJ
-				H225_AdmissionReject arj=obj_rpl;
+				H225_AdmissionReject & arj=obj_rpl;
 				arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
 				arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_exceedsCallCapacity);
 				return;
