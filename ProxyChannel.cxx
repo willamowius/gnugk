@@ -1242,7 +1242,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 					    &si
 				    );
 
-		if (NULL != callrec && !callRec->GetCallingProfile().isCPE()) {
+		if (callRec && !callRec->GetCallingProfile().isCPE()) {
 			PTRACE(5, "EP not from CPE");
 
 			if (cgPNIncluded) {
