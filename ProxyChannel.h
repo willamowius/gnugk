@@ -198,6 +198,7 @@ private:
 	void SendStatusEnquiryMessage();
 	void BuildReleasePDU(Q931 &) const;
 	bool SetH245Address(H225_TransportAddress &);
+	void SetNumbersInUUIE(PString &CalledPartyNumber, PString & CallingPartyNumber);
 	// the method is only valid within ReceiveData()
 	Q931 *GetReceivedQ931() const;
 

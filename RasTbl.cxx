@@ -699,7 +699,7 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg)
 	case H225_RasMessage::e_locationRequest:
 	{
 		H225_LocationRequest & lrq = ras_msg;
-		if(ep = FindOZEPByName(static_cast <PString>(lrq.m_gatekeeperIdentifier)))
+		if(ep = FindOZEPByName(static_cast <PString>(lrq.m_gatekeeperIdentifier.GetValue())))
 			ep->Update(ras_msg);
 		else
 			ep = InternalInsertOZEP(ras_msg, lrq);
