@@ -1,5 +1,5 @@
 
-GNU Gatekeeper Service Version 1.1.0
+GNU Gatekeeper Service Version 1.1.1
 ====================================
 
 I) DISCLAIMER:
@@ -63,7 +63,8 @@ IV) Using the software:
 	   GATEKEEPER.INI or the config file you specify in the gk commandline with -c option below
 	   GNUGKSVC.EXE
 	   GKSVCTRL.EXE
-	   GKSVCTRL.CHM
+	   GKSVCTRL.CHM
+	   LOCALHOST.HT
 
 	2) Run GKSVCTRL.EXE (Administrator rights required).
 
