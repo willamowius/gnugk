@@ -36,7 +36,7 @@ public:
 	AlternateGKs(const PIPSocket::Address &, WORD);
 	void Set(const H225_ArrayOf_AlternateGK &);
 	bool Get(PIPSocket::Address &, WORD &);
-	
+
 private:
 	typedef std::multimap<int, H225_TransportAddress> GKList;
 	GKList AltGKs;
@@ -935,9 +935,9 @@ void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, cons
 {
 	cryptoTokens.RemoveAll();
 	H235AuthSimpleMD5 auth;
-//	auth.SetLocalId(m_h323Id);
-	auth.SetLocalId(id);
-	auth.SetPassword(m_password);
+	// avoid copying for thread-safely
+	auth.SetLocalId((const char *)id);
+	auth.SetPassword((const char *)m_password);
 #ifdef OPENH323_NEWVERSION
 	H225_ArrayOf_ClearToken dumbTokens;
 	auth.PrepareTokens(dumbTokens, cryptoTokens);
