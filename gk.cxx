@@ -47,11 +47,18 @@ void ReopenLogFile()
 		delete logfile;
 
 		PTime now;
-		PString fileName = logfilename;
-		fileName.Replace(".", "." + now.AsString( "yyyy-MM-dd" ) + "." );
+		PFilePath fileName;
 
-		logfile = new PTextFile( fileName, PFile::WriteOnly, PFile::Create);
+		logfile = new PTextFile(logfilename, PFile::WriteOnly, PFile::MustExist);
+		if (logfile->IsOpen()) {
+			// Backup of log file
+			fileName = logfile->GetFilePath();
+			fileName.Replace(".", "." + now.AsString("yyyyMMdd_hhmmss") + ".");
+			logfile->Move(logfile->GetFilePath(),fileName);
+		}
+		delete logfile;
 		
+		logfile = new PTextFile( logfilename, PFile::WriteOnly, PFile::Create);
 		if (!logfile->IsOpen()) {
 			cerr << "Warning: could not open trace output file \""
 			     << fileName << '"' << endl;

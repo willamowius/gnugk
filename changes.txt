@@ -1,5 +1,8 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- log rotation now maintains the original filename and stores rotated
+  log files with precise timestamp (YYYYMMDD_HHMMSS) to prevent overwritting. 
+  Thanks to Rafael Costa dos Santos.
 - added Q.931 Setup authentication to RadAuth module to allow
   authentication based on crypto tokens carried inside Setup
 - modified GkAuthenticator and RADIUS authenticators prototypes
