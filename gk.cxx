@@ -56,6 +56,8 @@ static const char vcHid[] = GK_H;
  * many things here should be members of Gatkeeper.
  */
 
+PReadWriteMutex ConfigReloadMutex;
+
 namespace { // keep the global objects private
 
 MulticastGRQ * MulticastGRQThread = NULL;
@@ -161,6 +163,8 @@ void ReloadHandler(void)
 	*/
 	PWaitAndSignal reload(ReloadMutex);
 
+	ConfigReloadMutex.StartWrite();
+
 	/*
 	** Force reloading config
 	*/
@@ -179,6 +183,8 @@ void ReloadHandler(void)
 
 	RasThread->LoadConfig();
 	RasThread->SetRoutedMode();
+
+	ConfigReloadMutex.EndWrite();
 	/*
 	** Don't disengage current calls!
 	*/
@@ -469,7 +475,7 @@ void Gatekeeper::Main()
 		"as published by the Free Software Foundation; either version 2" GK_LINEBRK
 		"of the License, or (at your option) any later version." GK_LINEBRK
 		;
-	
+
 // FIXME: local debugging, please keep for a while. Off per default (see line 236).
 #if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING) && defined(COREDUMPHACK)
 // enforce proper coredump for debugging
@@ -498,15 +504,15 @@ void Gatekeeper::Main()
 	const char optW = 'W';
 	PString Ws(cwd_buf);
 	if (args.HasOption(optW)) {
-		Ws = args.GetOptionString(optW);	
-	}	
+		Ws = args.GetOptionString(optW);
+	}
 	//int chdir(const char *path);
 	if(0 != chdir((const char *)Ws)) {
 		PTRACE(1, "GK\tFailed to change working dir");
 	} else {
 		PTRACE(1, PString("GK\tChanged working dir to: ") + Ws);
 	}
-	
+
 #endif /* (P_LINUX || P_SOLARIS) && PTRACING  */
 
 #if defined(HAVE_DIGIT_ANALYSIS) && defined(PTRACING)
