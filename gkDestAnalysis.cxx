@@ -115,7 +115,7 @@ PString OverlapSendDestAnalysis::MatchSpecialDial(const callptr &callRec, H225_A
         PString cdAliasStr = H323GetAliasAddressString(cdAlias);
         unsigned int cdAliasStrLen = cdAliasStr.GetLength();
 
-        const PStringToString &spDialMap = callRec->GetCallingProfile().getSpecialDials();
+        const PStringToString &spDialMap = callRec->GetCallingProfile().GetSpecialDials();
 
 	PString key;
 	for (PINDEX i=0; i < spDialMap.GetSize() && !partialMatch; i++) {
@@ -152,17 +152,16 @@ BOOL OverlapSendDestAnalysis::PrefixAnalysis(const CallingProfile &callingProfil
 
 	// take first telephoneNumber from cgProfile and analyse it
 	PString cgAlias;
-	if (callingProfile.getTelephoneNumbers().GetSize() > 0) {
-		cgAlias = callingProfile.getTelephoneNumbers()[0];
+	if (callingProfile.GetTelephoneNumbers().GetSize() > 0) {
+		cgAlias = callingProfile.GetTelephoneNumbers()[0];
 	}
-	E164_AnalysedNumber tele(cgAlias);
 
-	const PString lac = callingProfile.getLac();
-	const PString prefixInternational = callingProfile.getInac();
-	const PString subscriberNumber = callingProfile.getSubscriberNumber();
-	const PString &countryCode = tele.GetCC().GetValue();
-	PString prefixNational = callingProfile.getNac();
-	const PString &areaCode = tele.GetNDC_IC().GetValue();
+	const PString lac = callingProfile.GetLac();
+	const PString prefixInternational = callingProfile.GetInac();
+	const PString subscriberNumber = callingProfile.GetSubscriberNumber();
+	const PString &countryCode = callingProfile.GetCC();
+	PString prefixNational = callingProfile.GetNac();
+	const PString &areaCode = callingProfile.GetNDC_IC();
 	bool bReject = FALSE;
 
 	int oldCdAliasLen = oldCdAlias.GetLength();
@@ -240,7 +239,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 	// get srcH323ID from cgProfile (for searching cgEP in databases)
 	CallingProfile cgpf = callRec->GetCallingProfile();
 
-	PString srcH323IDStr = cgpf.getH323ID();
+	PString srcH323IDStr = cgpf.GetH323ID();
 	// if srcH323ID was not found (destAnalysis is called the first time
 	//   for this cgEP)
 	if (srcH323IDStr.IsEmpty()) {
@@ -263,7 +262,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 
 	//store data from database in cgProfile
 	// if it is not done up to now
-	if (callRec->GetCallingProfile().getH323ID().IsEmpty() || callRec->GetCallingProfile().getH323ID()==srcH323IDStr) {
+	if (callRec->GetCallingProfile().GetH323ID().IsEmpty() || callRec->GetCallingProfile().GetH323ID()==srcH323IDStr) {
 		// if no profile is found
 		if (!db->getProfile(callRec->GetCallingProfile(), srcH323IDStr, dbType)) {
 			// if section "Gatekeeper::Databases" exists in ini-file then a
@@ -277,18 +276,18 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 				cdEP = endptr(0);
 				return e_fail;
 			}
-			callRec->GetCallingProfile().setH323ID(srcH323IDStr);
+			callRec->GetCallingProfile().SetH323ID(srcH323IDStr);
 			PTRACE(1, "WARNING: Trusting H323ID of calling party");
 		}
 	}
 
         // Checking for special dials or running the prefix analysis can only be done
 	// if a profile exists
-	if (!callRec->GetCallingProfile().getH323ID().IsEmpty()) {
-		if (!callRec->GetCallingProfile().isCPE()) {
+	if (!callRec->GetCallingProfile().GetH323ID().IsEmpty()) {
+		if (!callRec->GetCallingProfile().IsCPE()) {
 			PTRACE(4, "trunk GW");
 			// add country code to calledPN
-			AddCCToCdAlias(destAlias, callRec->GetCallingProfile().getCC());
+//			AddCCToCdAlias(destAlias, callRec->GetCallingProfile().GetCC());
 		} else {
 			PTRACE(4, "not trunk GW");
 			// match CdPN left justified against voIPspecialDial
@@ -298,8 +297,8 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 			if (fullMatch) {
 				// set dialed cdPN and real cdPN in cdProfile
 				PString destAliasStr = H323GetAliasAddressString(destAlias);
-				callRec->GetCalledProfile().setDialedPN(destAliasStr);
-				callRec->GetCalledProfile().setCalledPN(realCalledAlias);
+				callRec->GetCalledProfile().SetDialedPN(destAliasStr);
+				callRec->GetCalledProfile().SetCalledPN(realCalledAlias);
 				// rewrite destInfo
 				PTRACE(5, "\tRewriteCdAlias: " << destAliasStr
 					<< " to real called " << realCalledAlias);
@@ -307,7 +306,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 			} else if (partialMatch) {
 				reason = H225_AdmissionRejectReason::e_incompleteAddress;
 				// ARJ/ACF
-				cdEP = (callRec->GetCallingProfile().honorsARJincompleteAddress()) ? endptr(0) : cgEP;
+				cdEP = (callRec->GetCallingProfile().HonorsARJincompleteAddress()) ? endptr(0) : cgEP;
 				return e_fail;
 			} else {
 				PString internationalCdPN;
@@ -316,8 +315,8 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 						  internationalCdPN, reason)) {
 					// set dialed cdPN and real cdPN in cdProfile
 					PString destAliasStr = H323GetAliasAddressString(destAlias);
-					callRec->GetCalledProfile().setDialedPN(destAliasStr);
-					callRec->GetCalledProfile().setCalledPN(internationalCdPN);
+					callRec->GetCalledProfile().SetDialedPN(destAliasStr);
+					callRec->GetCalledProfile().SetCalledPN(internationalCdPN);
 					// rewrite destInfo
 					PTRACE(1, "\tRewriteCdAlias: " << destAlias
 						<< " to international " << internationalCdPN);
@@ -365,8 +364,8 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 			reason = H225_AdmissionRejectReason::e_incompleteAddress;
 			// we sent an ARJ if no profile exists or the endpoint
 			// accepts ARJ with reason "incompleteAddress"
-			if (callRec->GetCallingProfile().getH323ID().IsEmpty() ||
-			    callRec->GetCallingProfile().honorsARJincompleteAddress())
+			if (callRec->GetCallingProfile().GetH323ID().IsEmpty() ||
+			    callRec->GetCallingProfile().HonorsARJincompleteAddress())
 				cdEP = endptr(0);
 			statusRoutingDecision = e_fail;
 		} else {
@@ -383,7 +382,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 		DBTypeEnum dbType;
 		// if a profile exists we search for an endpoint in existing databases
 		PTRACE(3, "searching for EP in databases");
-		BOOL profileExists = !callRec->GetCallingProfile().getH323ID().IsEmpty();
+		BOOL profileExists = !callRec->GetCallingProfile().GetH323ID().IsEmpty();
 		if (profileExists && !db->prefixMatch(destAlias, TelephoneNo, matchFound, fullMatch, gwFound, dbType, callRec->GetCalledProfile())) {
 			PTRACE(1, "Database access failed!");
 		} else {
@@ -400,7 +399,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 			} else if (profileExists && matchFound && !fullMatch && !gwFound) {
 				// ARJ/ACF (incompleteAddress)
 				reason = H225_AdmissionRejectReason::e_incompleteAddress;
-				cdEP = (callRec->GetCallingProfile().honorsARJincompleteAddress()) ? endptr(0) : cgEP;
+				cdEP = (callRec->GetCallingProfile().HonorsARJincompleteAddress()) ? endptr(0) : cgEP;
 				statusRoutingDecision = e_fail;
 			// else if no match is found
 			} else if (profileExists && !matchFound) {
@@ -457,7 +456,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 	}
 
 	// if profile exists we set status "isCPE" in called profile
-	if (!callRec->GetCallingProfile().getH323ID().IsEmpty() &&
+	if (!callRec->GetCallingProfile().GetH323ID().IsEmpty() &&
 			statusRoutingDecision == e_ok) {
 		//TODO: get destH323ID from cdProfile
 		//PString destH323IDStr = callRec->GetCalledProfile().getH323ID();
@@ -476,7 +475,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 				statusRoutingDecision = e_fail;
 			}
 			// set CPE flag in the cdProfile
-			callRec->GetCalledProfile().setIsCPE(db->isCPE(destH323IDStr, dbType));
+			callRec->GetCalledProfile().SetIsCPE(db->isCPE(destH323IDStr, dbType));
 		}
 	}
 	return statusRoutingDecision;
@@ -658,7 +657,7 @@ int BlackListAnalysis::getDestination(const H225_AdmissionRequest &, list<Endpoi
 	PAssert(cgEP, "Cannot get List without CallingEndpoint");
 	BOOL found=FALSE;
 	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
-	PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
+	PString DialedDigits = callRec->GetCalledProfile().GetCalledPN();
 	CallingProfile cgpf = callRec->GetCallingProfile();
 	if(callRec->GetCallingProfile().WhiteListBeforeBlackList()) {
 		PTRACE(5,"getDestination WhiteBlackList");
@@ -680,7 +679,7 @@ int BlackListAnalysis::getDestination(const H225_AliasAddress &, list<EndpointRe
 	PAssert(cgEP, "Cannot get List without CallingEndpoint");
 	BOOL found=FALSE;
 	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
-	PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
+	PString DialedDigits = callRec->GetCalledProfile().GetCalledPN();
 	CallingProfile cgpf = callRec->GetCallingProfile();
 	if(callRec->GetCallingProfile().WhiteListBeforeBlackList()) {
 		PTRACE(5,"getDestination WhiteBlackList");
@@ -713,8 +712,8 @@ BOOL BlackListAnalysis::CheckNumberInList(const PString CalledPartyNumber, const
 
 BOOL BlackListAnalysis::BlackWhiteCheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf){
 	BOOL found=FALSE;
-	PStringList BlackList=cgpf.getBlackList();
-	PStringList WhiteList=cgpf.getWhiteList();
+	PStringList BlackList=cgpf.GetBlackList();
+	PStringList WhiteList=cgpf.GetWhiteList();
 	PTRACE(5,"Starting Blacklist-search ");
 	if((found=CheckNumberInList(CalledPartyNumber, BlackList))) {
 		PTRACE(5, "Blacklist hit");
@@ -725,8 +724,8 @@ BOOL BlackListAnalysis::BlackWhiteCheckNumberInList(const PString CalledPartyNum
 
 BOOL BlackListAnalysis::WhiteBlackCheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf){
 	BOOL found=FALSE;
-	PStringList BlackList=cgpf.getBlackList();
-	PStringList WhiteList=cgpf.getWhiteList();
+	PStringList BlackList=cgpf.GetBlackList();
+	PStringList WhiteList=cgpf.GetWhiteList();
 	PTRACE(5,"Starting Whitelist-search ");
 	if((found=CheckNumberInList(CalledPartyNumber, WhiteList))) {
 		PTRACE(5, "Whitelist hit");
