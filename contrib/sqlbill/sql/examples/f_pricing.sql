@@ -27,7 +27,8 @@ CREATE TEMPORARY TABLE voiptariff_temp (
   price TEXT NOT NULL,
   currency TEXT NOT NULL,
   initialincrement TEXT NOT NULL,
-  regularincrement TEXT NOT NULL
+  regularincrement TEXT NOT NULL,
+  graceperiod TEXT NOT NULL
 );
 
 \copy voiptariff_temp from 'pricing.csv' with delimiter '\t'
@@ -37,7 +38,8 @@ CREATE TEMPORARY TABLE voiptariff_temp (
 UPDATE voiptariff_temp SET destination = trim(destination, '\'\r\n\t '),
 	grp = trim(grp, '\'\r\n\t '), price = trim(price, '\'\r\n\t '),
 	currency = trim(currency, '\'\r\n\t '), initialincrement = trim(initialincrement, '\'\r\n\t '),
-	regularincrement = trim(regularincrement, '\'\r\n\t ');
+	regularincrement = trim(regularincrement, '\'\r\n\t '),
+	graceperiod = trim(graceperiod, '\'\r\n\t ');
 
 UPDATE voiptariff_temp SET price = replace(price, ',', '.');
 
@@ -52,12 +54,13 @@ CREATE TEMPORARY TABLE voiptarifffull_temp
   price TEXT NOT NULL,
   currency TEXT NOT NULL,
   initialincrement TEXT NOT NULL,
-  regularincrement TEXT NOT NULL
+  regularincrement TEXT NOT NULL,
+  graceperiod TEXT NOT NULL
 );
 
 INSERT INTO voiptarifffull_temp
 	SELECT D.active, D.destination, D.finalpfx, T.grp, T.price, T.currency,
-		T.initialincrement, T.regularincrement
+		T.initialincrement, T.regularincrement, T.graceperiod
 	FROM voiptariffdst_temp D JOIN voiptariff_temp T ON D.destination = T.destination;
 
 CREATE OR REPLACE FUNCTION update_tariffs(voiptarifffull_temp)
@@ -168,6 +171,13 @@ BEGIN
 				update_query := update_query || '','';
 			END IF;
 			update_query := update_query || '' regularincrement = '' || CAST($1.regularincrement AS TEXT);
+			execute_query := TRUE;
+		END IF;
+		IF trf.graceperiod <> $1.graceperiod THEN
+			IF execute_query THEN
+				update_query := update_query || '','';
+			END IF;
+			update_query := update_query || '' graceperiod = '' || CAST($1.graceperiod AS TEXT);
 			execute_query := TRUE;
 		END IF;
 		update_query := update_query || '' WHERE id = '' || CAST(trf.id AS TEXT);

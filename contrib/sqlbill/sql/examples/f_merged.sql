@@ -13,7 +13,8 @@ CREATE TEMPORARY TABLE voiptarifffull_temp
   price TEXT NOT NULL,
   currency TEXT NOT NULL,
   initialincrement TEXT NOT NULL,
-  regularincrement TEXT NOT NULL
+  regularincrement TEXT NOT NULL,
+  graceperiod TEXT NOT NULL
 );
 
 \copy voiptarifffull_temp from 'merged.csv' with delimiter '\t'
@@ -24,7 +25,8 @@ UPDATE voiptarifffull_temp SET prefix = trim(prefix, '\'\r\n\t '),
 	active = trim(active, '\'\r\n\t '), destination = trim(destination, '\'\r\n\t '),
 	grp = trim(grp, '\'\r\n\t '), price = trim(price, '\'\r\n\t '),
 	currency = trim(currency, '\'\r\n\t '), initialincrement = trim(initialincrement, '\'\r\n\t '),
-	regularincrement = trim(regularincrement, '\'\r\n\t ');
+	regularincrement = trim(regularincrement, '\'\r\n\t '),
+	graceperiod = trim(graceperiod, '\'\r\n\t ');
 
 DELETE FROM voiptarifffull_temp WHERE active NOT IN ('T', 'F');
 
@@ -138,6 +140,13 @@ BEGIN
 				update_query := update_query || '','';
 			END IF;
 			update_query := update_query || '' regularincrement = '' || CAST($1.regularincrement AS TEXT);
+			execute_query := TRUE;
+		END IF;
+		IF trf.graceperiod <> $1.graceperiod THEN
+			IF execute_query THEN
+				update_query := update_query || '','';
+			END IF;
+			update_query := update_query || '' graceperiod = '' || CAST($1.graceperiod AS TEXT);
 			execute_query := TRUE;
 		END IF;
 		update_query := update_query || '' WHERE id = '' || CAST(trf.id AS TEXT);

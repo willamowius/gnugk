@@ -61,6 +61,8 @@ CREATE TABLE voipcall (
   initialincrement INT,
   -- remaining (2nd, 3rd, ...) billing units (in seconds)
   regularincrement INT,
+  -- duration below which the user will not be billed
+  graceperiod INT DEFAULT 0,
   
   -- Acct-Start event timestamp
   acctstarttime TIMESTAMP(0) WITH TIME ZONE NOT NULL,
@@ -81,5 +83,4 @@ CREATE TABLE voipcall (
 -- for fast access to call for a specified user
 CREATE INDEX voipcall_h323id_idx ON voipcall(h323id);
 -- for fast RADIUS call update
-CREATE UNIQUE INDEX voipcall_acctupdatestop_idx ON voipcall(acctsessionid,h323id,gkip)
-	WHERE acctstoptime IS NULL;
+CREATE UNIQUE INDEX voipcall_acctupdatestop_idx ON voipcall(acctsessionid, gkip) WHERE acctstoptime IS NULL;

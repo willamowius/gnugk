@@ -4,8 +4,9 @@ Copyright (c) 2004, Michal Zygmuntowicz
 This work is published under the GNU Public License (GPL)
 see file COPYING for details
 
-Recommended versions of PostgreSQL are 7.3.4 or 7.3.5. The schemas
-should also run fine with 7.4.x.
+Recommended versions of PostgreSQL are 7.4.x, as 7.3.x do not deal
+well with table alterations (column drops, adds) which may restrict
+further upgrades and database manipulation.
 
 This database schema creates the following tables:
 *) voipaccount - corresponds to an account endpoints are associated with.

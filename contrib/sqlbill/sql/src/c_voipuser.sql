@@ -41,4 +41,5 @@ CREATE TABLE voipuser (
 );
 
 -- an index for fast access to active users
-CREATE UNIQUE INDEX voipuser_active_idx ON voipuser(h323id) WHERE NOT disabled;
+CREATE UNIQUE INDEX voipuser_active_idx ON voipuser(h323id) WHERE checkh323id AND NOT disabled;
+CREATE UNIQUE INDEX voipuser_framedip_idx ON voipuser(framedip) WHERE NOT checkh323id AND NOT disabled;

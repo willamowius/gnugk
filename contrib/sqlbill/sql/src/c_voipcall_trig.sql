@@ -75,17 +75,17 @@ DECLARE
 	costdiff NUMERIC(12,4);
 BEGIN
 	IF NEW.price IS NOT NULL THEN
-		IF NEW.duration = 0 THEN
+		IF NEW.duration <= NEW.graceperiod THEN
 			NEW.cost := 0;
 		ELSE
 			NEW.cost := NEW.price::NUMERIC(12,4) * NEW.initialincrement::NUMERIC(12,4)
 				/ 60::NUMERIC(12,4);
-		END IF;
-		IF NEW.duration > NEW.initialincrement THEN
-			NEW.cost := NEW.cost + NEW.price::NUMERIC(12,4) 
-				* ((NEW.duration - NEW.initialincrement + NEW.regularincrement - 1)::INT 
-					/ NEW.regularincrement::INT)::NUMERIC(12,4) 
-				* NEW.regularincrement::NUMERIC(12,4) / 60::NUMERIC(12,4);
+			IF NEW.duration > NEW.initialincrement THEN
+				NEW.cost := NEW.cost + NEW.price::NUMERIC(12,4) 
+					* ((NEW.duration - NEW.initialincrement + NEW.regularincrement - 1)::INT 
+						/ NEW.regularincrement::INT)::NUMERIC(12,4) 
+					* NEW.regularincrement::NUMERIC(12,4) / 60::NUMERIC(12,4);
+			END IF;
 		END IF;
 		IF NEW.accountid IS NOT NULL THEN
 			IF TG_OP = ''UPDATE'' THEN

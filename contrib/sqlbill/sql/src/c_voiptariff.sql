@@ -22,6 +22,8 @@ CREATE TABLE voiptariff (
 	initialincrement INT NOT NULL DEFAULT 60,
 	-- regular (2dn, 3rd, ...) billing unit (seconds)
 	regularincrement INT NOT NULL DEFAULT 60,
+	-- call duration, below which the user will not be billed
+	graceperiod INT NOT NULL DEFAULT 0,
 	-- description
 	description TEXT NOT NULL DEFAULT '',
 	
