@@ -1,60 +1,64 @@
-<sect>Getting Started (Tutorial)
+<!-- French translation from tutorial.sgml v1.1 -->
+
+<sect>Pour Commencer (Tutorial)
 <p>
-<sect1>A first simple experiment
+<sect1>Une premi&#232;re exp&#233;rience simple
 <p>
-To see that all components are up and running, get
-2 Linux workstations, both connected to the LAN.
-Make sure you have at least version 1.1 of OpenH323 and OhPhone installed.
-On the first machine run the gatekeeper and ohphone (on
-different consoles):
+Pour s'assurer que tous les composants fonctionnent, trouvez
+2 stations de travail Linux, toutes les deux connect&#233;es au r&#233;seau local.
+Assurez-vous d'avoir au moins la version 1.1 de OpenH323 et OhPhone d'install&#233;e.
+Sur la premi&#232;re machine, lancez le gatekeeper et ohphone (dans
+des consoles diff&#233;rentes):
 
 <tscreen><verb>
 jan@machine1 > gnugk -ttt
 </verb></tscreen>
 
-Now the gatekeeper is running in direct mode.
-The "<tt/-ttt/" option tells the gatekeeper to do a lot of debug output
-on the console (you can direct that output to a file with "<tt/-o logfile/").
+Le gatekeeper tourne maintenant en mode direct.
+L'option "<tt/-ttt/" indique au gatekeeper de faire beaucoup de traces de debug
+dans la console (vous pouvez rediriger cette sortie vers un fichier avec
+"<tt/-o logfile/").
 
 <tscreen><verb>
 jan@machine1 > ohphone -l -a -u jan
 </verb></tscreen>
 
-Now this OhPhone is listening (<tt/-l/) for calls and will automatically
-accept them (<tt/-a/). It has registered as user jan with the gatekeeper
-that it will automatically detect. (If the auto detect fails for some
-reason use "<tt/-g 1.2.3.4/" to specify the IP number the gatekeeper
-is running on.)
+Cet OhPhone attend maintenant (<tt/-l/) les appels et les acceptera automatiquement
+(<tt/-a/). Il s'est enregistr&#233; comme utilisateur jan aupr&#232;s du gatekeeper
+qu'il d&#233;tectera automatiquement. (Si la d&#233;tection automatique ne marche pas
+pour une quelconque raison, utilisez "<tt/-g 1.2.3.4/" pour indiquer le num&#233;ro
+IP sur lequel le gatekeeper tourne.)
 
-On the second machine run ohphone only:
+Sur la deuxi&#232;me machine, lancez seulement ohphone:
 
 <tscreen><verb>
 peter@machine2 > ohphone -u peter jan
 </verb></tscreen>
 
-The second instance of OhPhone registers with the auto detected
-gatekeeper as user peter and tries to call user jan.
-The gatekeeper will resolve the username to the IP number from
-where user jan has registered (machine1 in this case) and OhPhone
-will call the other instance of OhPhone on machine one.
+La deuxi&#232;me instance de OhPhone s'enregistre aupr&#232;s du gatekeeper
+d&#233;tect&#233; automatiquement en tant qu'utilisateur peter et essaye d'appeler jan.
+Le gatekeeper d&#233;terminera le num&#233;ro IP o&#249; jan s'est enregistr&#233;
+(machine1 dans ce cas) &#224; partir du username et OhPhone appellera l'autre instance
+de OhPhone sur la machine une.
 
-The first instance of OhPhone will accept that call and Peter and Jan can chat.
+La premi&#232;re instance de OhPhone acceptera cet appel, Peter et Jan pourront parler.
 
-<sect1>Using the Status interface to monitor the gatekeeper
+<sect1>Utilisation de l'interface Status pour surveiller le gatekeeper
 <p>
-Now we try to see which messages are handled by the gatekeeper.
-On a new console on machine1 we use telnet to connect to the gatekeeper:
+Nous allons maintenant essayer de voir quels messages sont trait&#233;s par le gatekeeper.
+Dans une nouvelle console sur machine1 nous utilisons telnet pour nous connecter
+au gatekeeper:
 
 <tscreen><verb>
 jan@machine1 > telnet machine1 7000
 </verb></tscreen>
 
-Most probably we'll get an "Access forbidden!" message, because
-not everybody is allowed to spy.
+Tr&#232;s probablement nous aurons un message "Acc&#232;s interdit!", car tout le
+monde n'a pas le droit d'espionner.
 
-Now we create a file called <tt/gatekeeper.ini/ and put it in the
-directory where we start the gatekeeper.
-<tt/gatekeeper.ini/ only contains 4 lines:
+Nous cr&#233;ons maintenant un fichier appel&#233; <tt/gatekeeper.ini/ et le mettons
+dans le r&#233;pertoire o&#249; nous d&#233;marrons le gatekeeper.
+<tt/gatekeeper.ini/ contient seulement 4 lignes:
 
 <tscreen><verb>
 [Gatekeeper::Main]
@@ -63,59 +67,62 @@ Fourtytwo=42
 rule=allow
 </verb></tscreen>
 
-Stop the gatekeeper with Ctrl-C and restart it.
-When we do the telnet again, we stay connected with the gatekeeper.
-Now repeat the first experiment where Peter calls Jan and see which
-messages are handled by the gatekeeper in non-routed mode.
-There is a number of commands that can be issued in this telnet session:
-Type "help" to see them.
-To end the telnet session with the gatekeeper type "quit" and hit Enter.
+Arr&#234;tez le gatekeeper avec Ctrl-C et red&#233;marrez-le.
+Quand nous faisons &#224; nouveau le telnet, nous restons connect&#233;s au gatekeeper.
+R&#233;p&#233;tons maintenant la premi&#232;re exp&#233;rience o&#249; Peter appelle
+Jan et voyons quels messages sont trait&#233;s par le gatekeeper en mode non-rout&#233;.
+Il existe un certain nombre de commandes qui peuvent &#234;tre envoy&#233;es dans cette
+session telnet:
+Tapez "help" pour les voir.
+Pour terminer la session telnet avec le gatekeeper, tapez "quit" et Entr&#233;e.
 
-<sect1>Starting the gatekeeper in routed mode
+<sect1>D&#233;marrage du gatekeeper en mode rout&#233
 <p>
-Starting the gatekeeper in routed mode means that the gatekeeper
-uses "gatekeeper routed signalling" for all calls. In this
-mode the gatekeeper all signalling messages go through the gatekeeper
-and it has much greater control over the calls.
+D&#233;marrer le gatekeeper en mode rout&#233; signifie que le gatekeeper
+utilise la "signalisation rout&#233;e du gatekeeper" pour tous les appels. Dans ce
+mode tous les messages de signalisation du gatekeeper passent par le gatekeeper
+qui a beaucoup plus de contr&#244;le sur les appels.
 
 <tscreen><verb>
 jan@machine1 > gnugk -r
 </verb></tscreen>
 
-Now the gatekeeper is running in routed mode. Telnet to the status port
-and make a call to see what messages are now handled by the gatekeeper.
+Le gatekeeper tourne maintenant en mode rout&#233;. Faire un telnet sur le port
+d'&#233;tat et fa&#238;tes un appel pour voir quels messages sont maintenant
+trait&#233;s par le gatekeeper.
 
-Note that all media packets (audio and video) are still sent
-directly between the endpoints (the 2 instances of ohphone).
+Il faut noter que tous les paquets media (audio et vid&#233;o) sont toujours
+envoy&#233;s directement entre les terminaux (les 2 instances de ohphone).
 
-Since gatekeeper routed signalling is much more complicated you are
-much more likely to hit a bug n the gatekeeper in this mode.
-But if it breaks, you get to keep the pieces. ;-)
+Comme la signalisation rout&#233;e du gatekeeper est beaucoup plus complexe, vous
+avez plus de chances de tomber sur une anomalie dans ce mode. Mais si &#231;&#224;
+casse, vous gardez les pi&#232;ces. ;-)
 
 <p>
-<sect1>A virtual PBX: Disconnecting calls
+<sect1>Un PBX virtuel: D&#233;connection des appels
 <p>
-Until now the gatekeeper has only acted as a mechanism
-to resolve symbolic names to IP addresses. Thats an important
-function but hardly exciting.
+Jusqu'&#224; maintenant le gatekeeper a seulement servi de m&#233;canisme pour
+r&#233;soudre des noms symboliques en adresses IP. Il s'agit d'une fonction importante
+mais pas tr&#232;s excitante.
 
-Since the gatekeeper has a lot of control over the calls,
-it can terminate them for example. When we are
-connected to the status port, we can list all active calls
-with "<tt/PrintCurrentCalls/". To terminate a call, we can
-say "<tt/Disconnectip 1.2.3.4/" for one of its endpoints.
+Puisque le gatekeeper a beaucoup de contr&#244;le sur les appels, il peut les
+terminer par exemple. Quand nous sommes connect&#233;s au port d'&#233;tat, nous
+pouvons obtenir la liste de tous les appels en cours avec "<tt/PrintCurrentCalls/".
+Pour terminer un appel, nous pouvons dire "<tt/Disconnectip 1.2.3.4/" pour un de
+ses terminaux.
 
-One could for example write a simple script that connects to
-the status port and listens for all ongoing calls and terminates
-them after 5 minutes, so no user can over use system resources.
+Quelqu'un pourrait par exemple &#233;crire un script simple qui se connecte au port
+d'&#233;tat, surveille les appels en cours et les termine apr&#232;s 5 minutes, de
+telle sorte qu'aucun utilisateur ne puisse abuser des ressources syst&#232;me.
 
-Take a look at the other telephony functions like TransferCall to see what else is available.
+Regardez les autres fonctions t&#233;l&#233;phoniques telles que TransferCall pour
+voir ce qui est disponible.
 
-<sect1>Routing calls over a gateway to reach external users
+<sect1>Routage d'appels sur une passerelle pour atteindre des utilisateurs externes
 <p>
-Without using a gateway you can only call other people with an
-IP phone over the Internet. To reach people with ordinary telephones
-you must use a gateway.
+Sans utiliser de passerelle vous pouvez seulement appeler d'autres personnes avec un
+t&#233;l&#233;phone IP sur Internet. Pour atteindre les gens disposant d'un
+t&#233;l&#233;phone ordinaire vous devez utiliser une passerelle.
 
 <tscreen><verb>
 _________________          ______________
@@ -128,49 +135,51 @@ _________________          |            |
 |_______________|
 </verb></tscreen>
 
-The gatekeeper has to know which calls are supposed to be routed
-over the gateway and what numbers shall be called directly.
-Use the [RasSrv::GWPrefixes] section of the config file to tell
-the gatekeeper the prefix of numbers that shall be routed over the
-gateway.
+Le gatekeeper doit savoir quels appels sont suppos&#233;s &#234;tre rout&#233;s par
+la passerelle et quels num&#233;ros doivent &#234;tre appel&#233;s directement.
+Utilisez la section [RasSrv::GWPrefixes] du fichier de configuration pour indiquer au
+gatekeeper le pr&#233;fixe des num&#233;ros qui doivent &#234;tre rout&#233;s par la
+passerelle.
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
 gw1=0
 </verb></tscreen>
 
-This entry tells the gatekeeper to route all calls to E.164 numbers
-starting with 0 to the gateway that has registered with the H.323
-alias "gw1". If there is no registered gateway with that alias the
-call will fail. (Note that you must use the gateway alias - you
-can't just tell the gatekeeper the IP number of the gateway.)
+Cette entr&#233;e indique au gatekeeper de router tous les appels aux num&#233;ros E.164
+qui commencent par 0 sur la passerelle qui s'est enregistr&#233;e avec l'alias H.323
+"gw1". Si il n'y a pas de passerelle enregistr&#233;e avec cet alias l'appel
+&#233;chouera. (Il faut noter que vous devez utiliser l'alias de la passerelle -
+vous ne pouvez pas juste indiquer au gatekeeper le num&#233;ro IP de la passerelle.)
 
 <p>
-A prefix can contain digits <tt/0-9/, <tt/#/ and <tt/*/. It can also
-contain a special character <tt/./ (a dot) that matches any digit
-and can be prefixed with <tt/!/ (an exclamation mark) to disable the prefix.
-Prefix matching is done accordingly to the longest matching prefix rule,
-with ! rules having higher priority if lengths are equal. Some examples:
+Un pr&#233;fixe peut contenir des chiffres <tt/0-9/, <tt/#/ et <tt/*/. Il peut aussi
+contenir un carct&#232;re sp&#233;cial <tt/./ (un point) qui correspond &#224;
+n'importe quel chiffre et peut &#234;tre pr&#233;fix&#233; par <tt/!/ (un point
+d'exclamation) pour d&#233;sactiver le pr&#233;fixe.
+La correspondance des pr&#233;fixes est faite en respectant la r&#232;gle du plus
+long pr&#233;fixe correspondant, avec les r&#232;gles ! ayant une priorit&#233;
+sup&#233;rieure si les longueurs sont &#233;gales. Quelques exemples:
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
-; This entry will route numbers starting with 0048 (but not with 004850 and 004860)
-; to the gw1
+; Cette entr&#233;e routera les num&#233;ros commen&#231;ant par 0048 (mais pas par
+; 004850 et 004860) vers gw1
 gw1=0048,!004850,!004860
-; This entry will match only 001 with 10 digits following
+; Cette entr&#233;e correspond uniquement &#224; 001 avec 10 chiffres apr&#232;s
 gw2=001..........
 </verb></tscreen>
 
-<sect1>Rewriting E.164 numbers
+<sect1>R&#233;&#233;criture de num&#233;ros E.164
 <p>
-When using a gateway you often have to use different numbers internally
-and rewrite them before sending them over a gateway into the telephone
-network. You can use the <ref id="rewrite" name="RasSrv::RewriteE164">
-section to configure that.
+Quand vous utilisez une passerelle vous devez souvent utiliser des num&#233;ros
+diff&#233;rents en interne et les r&#233;&#233;crire avant de les envoyer par la
+passerelle sur le r&#233;seau t&#233;l&#233;phonique. Vous pouvez utiliser la section
+<ref id="rewrite" name="RasSrv::RewriteE164"> pour configurer ceci.
 
-Example:
-You want to call number 12345 with you IP Phone and would like to
-reach number 08765 behind a gateway called "gw1".
+Exemple:
+Vous voulez appeler le num&#233;ro 12345 avec votre t&#233;l&#233;phone IP et
+atteindre le num&#233;ro 08765 derri&#232;re la passerelle "gw1".
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
@@ -180,15 +189,15 @@ gw1=0
 12345=08765
 </verb></tscreen>
 
-You can also configure rewriting of E.164 numbers based on which gateway
-you are receiving a call from or sending a call to using the
-<ref id="gwrewrite" name="RasSrv::GWRewriteE164"> section.
+Vous pouvez aussi configurer la r&#233;&#233;criture de num&#233;ros E.164 en fonction
+de quelle passerelle vous recevez un appel ou vous en envoyez un en utilisant la
+section <ref id="gwrewrite" name="RasSrv::GWRewriteE164">.
 
-Example:
-You have two different gateways ("gw1" and "gw2") which you are sending
-calls with prefix 0044 to, but which require a different prefix to be
-added to the number after the routing has selected the gateway. This
-might be for identification purposes for example.
+Exemple:
+Vous avez deux passerelles diff&#233;rentes ("gw1" et "gw2") auxquelles vous envoyez
+des appels avec le pr&#233;fixe 0044, mais qui n&#233;cessitent l'ajout d'un
+pr&#233;fixe diff&#233;rent apr&#232;s que le routage ait choisi la passerelle.
+Ce peut &#234;tre par exemple pour des raisons d'identification.
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
@@ -200,9 +209,10 @@ gw1=out=0044=77770044
 gw2=out=0044=88880044
 </verb></tscreen>
 
-Example:
-You want to identify calls from a particular gateway "gw1" with a specific
-prefix before passing these calls to another gateway "gw2".
+Exemple:
+Vous voulez identifier les appels d'une passerelle particuli&#232;re "gw1" avec un
+pr&#233;fixe sp&#233;cifique avant de passer ces appels &#224; une autre passerelle
+"gw2".
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
@@ -212,25 +222,28 @@ gw2=1
 gw1=in=00=123400
 </verb></tscreen>
 
-Rewrite expressions accept dot <tt/'.'/ and percent sign <tt/'%'/ wildcard
-characters to allow building more general rules. The dot character can occur
-at both left and right hand sides of expressions, the percent sign can occur
-only at the left side only. Use <tt/'.'/ to match any character and copy it
-to the rewritten string and <tt/'%'/ to match any character and skip it.
-A few simple examples:
+Les expressions de r&#233;&#233;criture acceptent les caract&#232;res jokers point
+<tt/'.'/ et pourcent <tt/'%'/ pour permettre de construire des r&#232;gles plus
+g&#233;n&#233;rales. Le caract&#232;re point peut appara&#238;tre &#224; la fois
+&#224; gauche et &#224; droite de l'expression, le signe pourcent peut
+appara&#238;tre uniquement &#224; la gauche de l'expression. Utilisez <tt/'.'/ pour
+indiquer n'importe quel caract&#232;re et le copier dans la cha&#238;ne
+r&#233;&#233;crite et <tt/'%'/ pour indiquer n'importe quel caract&#232;re et
+l'omettre.
+Quelques exemples simples:
 
 <tscreen><verb>
 [RasSrv::RewriteE164]
-; Rewrite 0044 + min. 7 digits to 44 + min. 7 digits
+; R&#233;&#233;crit 0044 + min. 7 chiffres en 44 + min. 7 digits
 0044.......=44.......
-; Rewrite numbers starting with 11 + 4 digits + 11  to 22 + 4 digits + 22 (like 11333311 => 22333322, 110000112345 => 220000222345)
+; R&#233;&#233;crit les num&#233;ros commencant par 11 + 4 chiffres + 11 en 22 + 4 digits + 22
+; (comme 11333311 => 22333322, 110000112345 => 220000222345)
 11....11=22....22
-; strip the first four digits from all numbers (11114858345 => 4858345)
-; this is equivalent of 10 rules %%%%1=1, %%%%2=2, ... 
+; omet les 4 premiers chiffres de tous les num&#233;ros (11114858345 => 4858345)
+; c'est &#233;quivalent &#224; 10 r&#232;gles %%%%1=1, %%%%2=2, ...
 %%%%.=.
-; insert two zeros in the middle of the number (111148581234 => 11110048581234)
+; ins&#232;re deux z&#233;ros au milieu du num&#233;ro (111148581234 => 11110048581234)
 ....48=....0048
-; even this is possible (415161 => 041051061)
+; m&#234;me ceci est possible (415161 => 041051061)
 4.5.6=04.05.06
 </verb></tscreen>
-
