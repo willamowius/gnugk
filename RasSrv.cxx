@@ -398,10 +398,6 @@ void H323RasSrv::LoadConfig()
 
 	AcceptUnregCalls = Toolkit::AsBool(GkConfig()->GetString("AcceptUnregisteredCalls", "0"));
 
-	if (gkClient) { // don't create GkClient object at the first time
-		delete gkClient;
-		gkClient = new GkClient(this);
-	}
 	// add authenticators
 	delete authList;
 	authList = new GkAuthenticatorList(GkConfig());
@@ -425,6 +421,11 @@ void H323RasSrv::LoadConfig()
 	//add authorize
 	delete GWR;
 	GWR=new GkAuthorize(GkStatusThread);
+
+	if (gkClient) { // don't create GkClient object at the first time
+		delete gkClient;
+		gkClient = new GkClient(this);
+	}
 }
 
 void H323RasSrv::Close(void)
