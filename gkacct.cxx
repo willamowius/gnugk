@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2003/09/14 21:09:29  zvision
+ * Added new FileAcct logger from Tamas Jalsovszky. Thanks!
+ * Fixed module stacking. Redesigned API.
+ *
  * Revision 1.2  2003/09/12 16:31:16  zvision
  * Accounting initially added to the 2.2 branch
  *
@@ -87,11 +91,13 @@ PString GkAcctLogger::AsString(
 	
 #ifndef WIN32
 	if( localtime_r(&t,tmptr) == tmptr ) {
+		char buf[48];
+		size_t sz = strftime(buf,sizeof(buf),"%T.000 %Z %a %b %d %Y",tmptr);
 #else
 	if( (tmptr = localtime(&t)) != NULL ) {
+		char buf[96];
+		size_t sz = strftime(buf,sizeof(buf),"%H:%M:%S.000 %Z %a %b %d %Y",tmptr);
 #endif
-		char buf[48];
-		size_t sz = strftime(buf,sizeof(buf),"%T %Z %a %b %d %Y",tmptr);
 		if( sz < sizeof(buf) && sz > 0 )
 			return buf;
 	}
