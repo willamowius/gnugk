@@ -114,6 +114,9 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Handling multiple reply messages (RIP/LCF/LRJ) from neighbors fixed.
+
+<item>
 Support for CallCreditServiceControl in RCF and ACF messages, which allows
 reporting call duration limit and user's account balance to endpoints. 
 Currently RadAuth and RadAliasAuth modules support this feature.

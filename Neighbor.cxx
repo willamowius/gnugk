@@ -569,7 +569,6 @@ void LRQRequester::Process(RasMsg *ras)
 				<<" pending LRQ for neighbor "<<req.m_neighbor->GetId()
 				<<':'<<req.m_neighbor->GetIP()
 				);
-			--req.m_count;
 			unsigned tag = ras->GetTag();
 			if (tag == H225_RasMessage::e_requestInProgress) {
 				if (H225_NonStandardParameter *params = ras->GetNonStandardParam()) {
@@ -579,6 +578,7 @@ void LRQRequester::Process(RasMsg *ras)
 				}
 				RasRequester::Process(ras);
 			} else if (tag == H225_RasMessage::e_locationConfirm) {
+				--req.m_count;
 				// Note: to avoid race condition, the order is important
 				if (iter == m_requests.begin()) // the highest priority
 					m_result = ras;
@@ -587,8 +587,9 @@ void LRQRequester::Process(RasMsg *ras)
 				if (m_result)
 					m_sync.Signal();
 			} else { // should be H225_RasMessage::e_locationReject
+				--req.m_count;
 				delete ras;
-				if (req.m_count == 0 && req.m_reply == 0) {
+				if (req.m_count <= 0 && req.m_reply == 0) {
 					PTRACE(5,"NB\tLRQ rejected for neighbor "<<req.m_neighbor->GetId()
 						<<':'<<req.m_neighbor->GetIP()
 						);
