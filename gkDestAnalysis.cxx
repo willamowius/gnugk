@@ -249,7 +249,6 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 		}
 	}
 
-	BOOL bSpecialDial = FALSE;
 	GkDatabase *db = GkDatabase::Instance();
 
 	using namespace dctn;
@@ -277,12 +276,12 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
         // Checking for special dials or running the prefix analysis can only be done
 	// if a profile exists
 	if (!callRec->GetCallingProfile().getH323ID().IsEmpty()) {
-		if (!callRec->GetCallingProfile().isCPE() && dbType == e_IniFile) {
-			PTRACE(4, "trunk GW in ini-file");
+		if (!callRec->GetCallingProfile().isCPE()) {
+			PTRACE(4, "trunk GW");
 			// add country code to calledPN
 			AddCCToCdAlias(destAlias, callRec->GetCallingProfile().getCC());
 		} else {
-			PTRACE(4, "not GW in ini-file");
+			PTRACE(4, "not trunk GW");
 			// match CdPN left justified against voIPspecialDial
 			bool partialMatch, fullMatch;
 			// if MatchSpecialDial succeeds
@@ -296,33 +295,29 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 				PTRACE(5, "\tRewriteCdAlias: " << destAliasStr
 					<< " to real called " << realCalledAlias);
 				H323SetAliasAddress(realCalledAlias, destAlias);
-
-				bSpecialDial = TRUE;
 			} else if (partialMatch) {
 				reason = H225_AdmissionRejectReason::e_incompleteAddress;
 				// ARJ/ACF
 				cdEP = (callRec->GetCallingProfile().honorsARJincompleteAddress()) ? endptr(0) : cgEP;
 				return e_fail;
-			}
-		}
-
-		if(!callRec->GetCallingProfile().isCPE() || !bSpecialDial) {
-			PString internationalCdPN;
-			// if prefix analysis succeeds
-			if(PrefixAnalysis(callRec->GetCallingProfile(), destAlias,
-					  internationalCdPN, reason)) {
-				// set dialed cdPN and real cdPN in cdProfile
-				PString destAliasStr = H323GetAliasAddressString(destAlias);
-				callRec->GetCalledProfile().setDialedPN(destAliasStr);
-				callRec->GetCalledProfile().setCalledPN(internationalCdPN);
-				// rewrite destInfo
-				PTRACE(1, "\tRewriteCdAlias: " << destAlias
-					<< " to international " << internationalCdPN);
-				H323SetAliasAddress(internationalCdPN, destAlias);
 			} else {
-				// ARJ
-				cdEP = endptr(0);
-				return e_fail;
+				PString internationalCdPN;
+				// if prefix analysis succeeds
+				if(PrefixAnalysis(callRec->GetCallingProfile(), destAlias,
+						  internationalCdPN, reason)) {
+					// set dialed cdPN and real cdPN in cdProfile
+					PString destAliasStr = H323GetAliasAddressString(destAlias);
+					callRec->GetCalledProfile().setDialedPN(destAliasStr);
+					callRec->GetCalledProfile().setCalledPN(internationalCdPN);
+					// rewrite destInfo
+					PTRACE(1, "\tRewriteCdAlias: " << destAlias
+						<< " to international " << internationalCdPN);
+					H323SetAliasAddress(internationalCdPN, destAlias);
+				} else {
+					// ARJ
+					cdEP = endptr(0);
+					return e_fail;
+				}
 			}
 		}
 	}
@@ -371,7 +366,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 			statusRoutingDecision = e_ok;
 		}
 	} else {
-		PTRACE(3, "not even 1 EP found");
+		PTRACE(3, "not even 1 EP found in registration table");
 
 		BOOL matchFound = FALSE;
 		BOOL gwFound = FALSE;
@@ -381,7 +376,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 		PTRACE(3, "searching for EP in databases");
 		BOOL profileExists = !callRec->GetCallingProfile().getH323ID().IsEmpty();
 		if (profileExists && !db->prefixMatch(destAlias, TelephoneNo, matchFound, fullMatch, gwFound, dbType)) {
-			PTRACE(1, "LDAP access failed!");
+			PTRACE(1, "Database access failed!");
 		} else {
 			if (profileExists) {
 				PTRACE(3, "GkDatabase matches: " << matchFound << " " << fullMatch << " " << gwFound);
