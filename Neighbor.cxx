@@ -47,6 +47,7 @@ class GnuGK : public Neighbor {
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &);
+	virtual bool IsAcceptable(RasMsg *ras) const;
 };
 
 class CiscoGK : public Neighbor {
@@ -154,43 +155,6 @@ Neighbor::~Neighbor()
 bool Neighbor::SendLRQ(H225_RasMessage & lrq_ras)
 {
 	return m_rasSrv->SendRas(lrq_ras, GetIP(), m_port);
-}
-
-bool Neighbor::CheckReply(RasMsg *ras) const
-{
-	if (H225_NonStandardParameter *params = ras->GetNonStandardParam())
-		return strncmp(m_id, params->m_data.AsString(), m_id.GetLength()) == 0;
-	else
-		return ras->IsFrom(GetIP(), m_port);
-}
-
-bool Neighbor::IsAcceptable(RasMsg *ras) const
-{
-	if (ras->IsFrom(GetIP(), m_port)) {
-		// ras must be an LRQ
-		H225_LocationRequest & lrq = (*ras)->m_recvRAS;
-		if (lrq.HasOptionalField(H225_LocationRequest::e_gatekeeperIdentifier) &&
-			(m_acceptForwarded || lrq.m_gatekeeperIdentifier.GetValue() == m_gkid)) {
-			PINDEX i, sz = m_acceptPrefixes.GetSize();
-			H225_ArrayOf_AliasAddress & aliases = lrq.m_destinationInfo;
-			for (i = 0; i < sz; ++i)
-				if (m_acceptPrefixes[i] == "*")
-					return true;
-			for (PINDEX j = 0; j < aliases.GetSize(); ++j) {
-				H225_AliasAddress & alias = aliases[j];
-				for (i = 0; i < sz; ++i)
-					if (m_acceptPrefixes[i] == alias.GetTagName())
-						return true;
-				PString destination(AsString(alias, false));
-				for (i = 0; i < sz; ++i) {
-					const PString & prefix = m_acceptPrefixes[i];
-					if (strncmp(prefix, destination, prefix.GetLength()) == 0)
-						return true;
-				}
-			}
-		}
-	}
-	return false;
 }
 
 PIPSocket::Address Neighbor::GetIP() const
@@ -311,6 +275,40 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest &)
 	return OnSendingLRQ(lrq);
 }
 
+bool Neighbor::CheckReply(RasMsg *ras) const
+{
+	if (H225_NonStandardParameter *params = ras->GetNonStandardParam())
+		return strncmp(m_id, params->m_data.AsString(), m_id.GetLength()) == 0;
+	else
+		return ras->IsFrom(GetIP(), m_port);
+}
+
+bool Neighbor::IsAcceptable(RasMsg *ras) const
+{
+	if (ras->IsFrom(GetIP(), m_port)) {
+		// ras must be an LRQ
+		H225_LocationRequest & lrq = (*ras)->m_recvRAS;
+		PINDEX i, j, sz = m_acceptPrefixes.GetSize();
+		H225_ArrayOf_AliasAddress & aliases = lrq.m_destinationInfo;
+		for (i = 0; i < sz; ++i)
+			if (m_acceptPrefixes[i] == "*")
+				return true;
+		for (j = 0; j < aliases.GetSize(); ++j) {
+			H225_AliasAddress & alias = aliases[j];
+			for (i = 0; i < sz; ++i)
+				if (m_acceptPrefixes[i] == alias.GetTagName())
+					return true;
+			PString destination(AsString(alias, false));
+			for (i = 0; i < sz; ++i) {
+				const PString & prefix = m_acceptPrefixes[i];
+				if (strncmp(prefix, destination, prefix.GetLength()) == 0)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
 void Neighbor::SetForwardedInfo(const PString & section)
 {
 	PConfig *config = GkConfig();
@@ -387,6 +385,18 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & req
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = true;
 	return true;
+}
+
+bool GnuGK::IsAcceptable(RasMsg *ras) const
+{
+	if (Neighbor::IsAcceptable(ras)) {
+		if (!m_acceptForwarded) {
+			H225_LocationRequest & lrq = (*ras)->m_recvRAS;
+			return lrq.HasOptionalField(H225_LocationRequest::e_gatekeeperIdentifier) && lrq.m_gatekeeperIdentifier.GetValue() == m_gkid;
+		}
+		return true;
+	}
+	return false;
 }
 
 

@@ -68,8 +68,6 @@ public:
 	virtual ~Neighbor();
 
 	bool SendLRQ(H225_RasMessage &);
-	bool CheckReply(RasMsg *) const;
-	bool IsAcceptable(RasMsg *ras) const;
 	bool IsFrom(const PIPSocket::Address *ip) const { return GetIP() == *ip; }
 	bool ForwardResponse() const { return m_forwardResponse; }
 	int ForwardLRQ() const { return m_forwardto; }
@@ -93,6 +91,12 @@ public:
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &);
+
+	// check if the given message is a valid reply from this neighbor
+	virtual bool CheckReply(RasMsg *) const;
+
+	// check if the given LRQ is acceptable
+	virtual bool IsAcceptable(RasMsg *ras) const;
 
 protected:
 	void SetForwardedInfo(const PString &);
