@@ -7,18 +7,26 @@ dnl look for ptlib, use a preference order of explicit PWLIBDIR, directory
 dnl at same level, home directory, /usr/local or /usr.
 
 if test "${PWLIBDIR:-unset}" != "unset" ; then
-  AC_CHECK_FILE(${PWLIBDIR}/version.h, HAS_PTLIB=1)
+  if test -d ${PWLIBDIR}; then
+  	AC_CHECK_FILE(${PWLIBDIR}/version.h, HAS_PTLIB=1)
+  fi
 fi
 if test "${HAS_PTLIB:-unset}" = "unset" ; then
-  AC_CHECK_FILE(${HOME}/pwlib/include/ptlib.h, HAS_PTLIB=1)
+  if test -d ${HOME}/pwlib; then
+  	AC_CHECK_FILE(${HOME}/pwlib/include/ptlib.h, HAS_PTLIB=1)
+  fi
   if test "${HAS_PTLIB:-unset}" != "unset" ; then
     PWLIBDIR="${HOME}/pwlib"
   else
-    AC_CHECK_FILE(/usr/local/include/ptlib.h, HAS_PTLIB=1)
+    if test -d /usr/local/include; then
+      AC_CHECK_FILE(/usr/local/include/ptlib.h, HAS_PTLIB=1)
+	fi
     if test "${HAS_PTLIB:-unset}" != "unset" ; then
       AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/local/bin)
     else
-      AC_CHECK_FILE(/usr/include/ptlib.h, HAS_PTLIB=1)
+	  if test -d /usr/include; then
+        AC_CHECK_FILE(/usr/include/ptlib.h, HAS_PTLIB=1)
+	  fi
       if test "${HAS_PTLIB:-unset}" != "unset" ; then
         AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/share/pwlib/make/)
       fi
@@ -65,22 +73,32 @@ dnl look for openh323, use a preference order of explicit OPENH323DIR, directory
 dnl at same level, home directory, /usr/local or /usr.
 
 if test "${OPENH323DIR:-unset}" != "unset" ; then
-  AC_CHECK_FILE(${OPENH323DIR}/version.h, HAS_OPENH323=1)
+  if test -d ${OPENH323DIR}; then
+    AC_CHECK_FILE(${OPENH323DIR}/version.h, HAS_OPENH323=1)
+  fi
 fi
 if test "${HAS_OPENH323:-unset}" = "unset" ; then
-  AC_CHECK_FILE(${PWLIBDIR}/../openh323/version.h, HAS_OPENH323=1)
+  if test -d ${PWLIBDIR}/../openh323; then
+    AC_CHECK_FILE(${PWLIBDIR}/../openh323/version.h, HAS_OPENH323=1)
+  fi
   if test "${HAS_OPENH323:-unset}" != "unset" ; then
-    PWLIBDIR="${OPENH323DIR}/../openh323"
+    OPENH323DIR="${PWLIBDIR}/../openh323"
   else
-    AC_CHECK_FILE(${HOME}/openh323/include/h323.h, HAS_OPENH323=1)
+    if test -d ${HOME}/openh323/include; then
+      AC_CHECK_FILE(${HOME}/openh323/include/h323.h, HAS_OPENH323=1)
+	fi
     if test "${HAS_OPENH323:-unset}" != "unset" ; then
       OPENH323DIR="${HOME}/openh323"
     else
-      AC_CHECK_FILE(/usr/local/include/h323.h, HAS_OPENH323=1)
+	  if test -d /usr/local/include; then
+        AC_CHECK_FILE(/usr/local/include/h323.h, HAS_OPENH323=1)
+	  fi
       if test "${HAS_OPENH323:-unset}" != "unset" ; then
         OPENH323DIR="/usr/local"
       else
-        AC_CHECK_FILE(/usr/include/h323.h, HAS_OPENH323=1)
+	    if test -d /usr/include; then
+          AC_CHECK_FILE(/usr/include/h323.h, HAS_OPENH323=1)
+		fi
         if test "${HAS_OPENH323:-unset}" != "unset" ; then
 		  OPENH323DIR="/usr"
         fi
@@ -332,17 +350,17 @@ AC_ARG_WITH(mysql-lib-dir,
 AC_ARG_WITH(mysql-dir,
 [  --with-mysql-dir=DIR          base directory where MySQL is installed ],
 [ mysql_lib_dir="$withval/lib/mysql"
-  mysql_include_dir="$withval/include"
+  mysql_include_dir="$withval/include/mysql"
 ]
 )
 
 if test "x${mysql}" != "xno"; then
 
-	AC_CHECK_LIB(z, compress, LIBS="$LIBS -lz")
+	AC_CHECK_LIB(z, compress, MYSQL_LIBS=" -lz")
 
-	AC_MSG_CHECKING([for mysql/mysql.h])
+	AC_MSG_CHECKING([for mysql.h])
 
-	AC_TRY_COMPILE([#include <mysql/mysql.h>], [int a = 1;],
+	AC_TRY_COMPILE([#include <mysql.h>], [int a = 1;],
 		MYSQL_INCLUDE=" ",
 		MYSQL_INCLUDE=
 	)
@@ -350,14 +368,16 @@ if test "x${mysql}" != "xno"; then
 	if test "x$MYSQL_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/local/include /usr/local/mysql/include $mysql_include_dir; do
-			CFLAGS="$old_CFLAGS -I$try"
-			AC_TRY_COMPILE([#include <mysql/mysql.h>], [int a = 1;],
-				MYSQL_INCLUDE="-I$try",
-				MYSQL_INCLUDE=
-			)
-			if test "x$MYSQL_INCLUDE" != "x"; then
-				break;
+		for try in /usr/local/include/mysql /usr/local/mysql/include/mysql $mysql_include_dir/mysql; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				AC_TRY_COMPILE([#include <mysql.h>], [int a = 1;],
+					MYSQL_INCLUDE="-I$try",
+					MYSQL_INCLUDE=
+				)
+				if test "x$MYSQL_INCLUDE" != "x"; then
+					break;
+				fi
 			fi
 		done
 		CFLAGS="$old_CFLAGS"
@@ -376,27 +396,30 @@ if test "x${mysql}" != "xno"; then
 		old_LIBS="$LIBS"
 
 		for try in /usr/lib /usr/lib/mysql /usr/local/lib/mysql /usr/local/mysql/lib/mysql $mysql_lib_dir; do
-			LIBS="$old_LIBS -L$try -lmysqlclient"
-			AC_TRY_LINK([extern char mysql_init();], [mysql_init()],
-				MYSQL_LIBS="-L$try -lmysqlclient",
-				MYSQL_LIBS=
-			)
-			if test "x$MYSQL_LIBS" != "x"; then
-				break;
+			if test -d $try; then
+				LIBS="$old_LIBS -L$try -lmysqlclient"
+				AC_TRY_LINK([extern char mysql_init();], [mysql_init()],
+					[ MYSQL_LIBS="${MYSQL_LIBS} -lmysqlclient"
+					  MYSQL_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$MYSQL_LDFLAGS" != "x"; then
+					break;
+				fi
 			fi
 		done
 		LIBS="$old_LIBS"
 
 		dnl #  If one or the other isn't found, disable them both..
 		dnl #  If both are found, enable them both.
-		if test "x$MYSQL_LIBS" = "x"; then
+		if test "x$MYSQL_LDFLAGS" = "x"; then
 			AC_MSG_RESULT(no)
 			MYSQL_INCLUDE=
 			AC_MSG_WARN([mysql lib not found. Use --with-mysql-lib-dir=<path>])
 			mysql="no"
 		else
 			AC_MSG_RESULT(yes) 
-			sql_mysql_ldflags="$sql_mysql_ldflags $MYSQL_LIBS"
+			sql_mysql_ldflags="$sql_mysql_ldflags $MYSQL_LDFLAGS"
 		fi
 	fi
 
@@ -411,9 +434,11 @@ fi
 
 if test "x$mysql" != "xno"; then
 	HAS_MYSQL=1
-	STDCCFLAGS = "$STDCCFLAGS ${sql_mysql_cflags}"
-	ENDLDLIBFLAGS = "$ENDLDLIBFLAGS ${sql_mysql_ldflags}"
-    echo "MySQL support disabled"
+	SOURCES="$SOURCES mysqlcon.cxx"
+	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
+	ENDLDFLAGS="$MYSQL_LDFLAGS $ENDLDFLAGS"
+	ENDLDLIBS="$MYSQL_LIBS $ENDLDLIBS"
+    echo "MySQL support enabled"
 else
     echo "MySQL support disabled"
 	HAS_MYSQL=0
@@ -453,6 +478,7 @@ AC_SUBST(GNUGK_GVS)
 AC_SUBST(STDCCFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(ENDLDLIBS)
+AC_SUBST(ENDLDFLAGS)
 AC_SUBST(SOURCES)
 
 dnl ########################################################################
