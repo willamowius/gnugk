@@ -6,16 +6,6 @@ for people who wish to contribute to this project.
 I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
-- fix: set default (GK-wide) values for endpoint properties
-       (otherwise e.g. an endpoint cannot be called unless is has an entry
-       "voIPEndpointType=cpe" in [RasSvr::EndpointOptions])
-
-- feature: add ability to use routing via neighbour for known destinations, too
-           Neighbours should be configured && handled like gateways (i.e. they're
-           configured to be used as the destination if one of their prefixes matches),
-           just that they're contacted via LRQ before sending SETUP (unlike gateways
-           which are directly sent a SETUP).
-
 - feature: make "browse up the LDAP tree for attributes not found in leaf" a
            configurable feature
 
@@ -24,6 +14,12 @@ avoid duplicate work.
            by the endpoint property voIPWhiteListBeforeBlackList. Default
            is that blacklist takes precedence.
            voIPIncoming*List needs to be implemented
+
+- fix: re-implement Status Enquiry pings
+  * implement per-destination configurable pings (honorsStatusEnquiry flag)
+  * add T309 (network timeout) and T322 (Status Enquiry) timer, too
+    (right now: interval = timeout)
+  * see H.323 Annex R "Robustness Methods"
 
 - feature: implement metric based routing
 
@@ -56,6 +52,19 @@ avoid duplicate work.
   establishment or PBX side error codes in response to sending Q.931 SETUP
   (like no circuit/channel available)
 
+- feature: make RasSrv multithreaded
+  we need this since more & more subroutine calls are made to external entities
+  (databases) and we must wait for the answer to continue processing.
+  Since RasSrv is single-threaded, latencies of external calls sum up and
+  thus define a limit (e.g. if an external call takes 100 msec, then we can
+  only do 10 calls per sec. before RasSrv starts queueing requests).
+
+- feature: add ability to use routing via neighbour for known destinations, too
+           Neighbours should be configured && handled like gateways (i.e. they're
+           configured to be used as the destination if one of their prefixes matches),
+           just that they're contacted via LRQ before sending SETUP (unlike gateways
+           which are directly sent a SETUP).
+
 - feature: route call to voicemail mailbox for calls to provisioned, but
   non-registered destinations (i.e. those that result in calledpartyNotRegistered)
   Mailbox should be a configurable H.323 endpoint (running e.g. OpenAM).
@@ -64,13 +73,6 @@ avoid duplicate work.
   (mobile forwarded to office number while office number forwarded to mobile ...)
   Idea: only allow <n> calls from the same originator within <m> seconds
   
-- feature: make RasSrv multithreaded
-  we need this since more & more subroutine calls are made to external entities
-  (databases) and we must wait for the answer to continue processing.
-  Since RasSrv is single-threaded, latencies of external calls sum up and
-  thus define a limit (e.g. if an external call takes 100 msec, then we can
-  only do 10 calls per sec. before RasSrv starts queueing requests).
-
 - feature: implement portability database
   We need to run a (LDAP based ?) database of all numbers/numbering spaces
   of those carriers an ITSP is (VoIP-)interconnected to in order to
@@ -85,12 +87,6 @@ avoid duplicate work.
        (currently default=allow is required to stop GK from sending GRJ)
 
 - fix: move MySQLAliasAuth into DBAliasAuth scheme
-
-- fix: re-implement Status Enquiry pings
-  * implement per-destination configurable pings (honorsStatusEnquiry flag)
-  * add T309 (network timeout) and T322 (Status Enquiry) timer, too
-    (right now: interval = timeout)
-  * see H.323 Annex R "Robustness Methods"
 
 - feature: ability to use caller's cc, ac, sn placeholders in RewriteE164
   So e.g. emergency calls can be implemented as "911=<cc><ac>911"
