@@ -33,24 +33,24 @@ class GKPendingList : public PendingList {
 public:
 	GKPendingList(H323RasSrv *rs, int ttl) : PendingList(rs, ttl) {}
 
-	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP, int);
+	bool Insert(const H225_AdmissionRequest &, const endptr &, int);
 	bool ProcessACF(const H225_RasMessage &, int);
 	bool ProcessARJ(H225_CallIdentifier &, int);
 };
 
-bool GKPendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP, int reqNum)
+bool GKPendingList::Insert(const H225_AdmissionRequest & arq_ras, const endptr & reqEP, int reqNum)
 {
 	PWaitAndSignal lock(usedLock);
-	arqList.push_back(new PendingARQ(reqNum, obj_arq, reqEP, 0));
+	arqList.push_back(new PendingARQ(reqNum, arq_ras, reqEP, 0));
 	return true;
 }
 
-bool GKPendingList::ProcessACF(const H225_RasMessage & obj_ras, int reqNum)
+bool GKPendingList::ProcessACF(const H225_RasMessage & arq_ras, int reqNum)
 {
 	PWaitAndSignal lock(usedLock);
 	iterator Iter = FindBySeqNum(reqNum);
 	if (Iter != arqList.end()) {
-		endptr called = RegistrationTable::Instance()->InsertRec(const_cast<H225_RasMessage &>(obj_ras));
+		endptr called = RegistrationTable::Instance()->InsertRec(const_cast<H225_RasMessage &>(arq_ras));
 		if (called) {
 			(*Iter)->DoACF(RasSrv, called);
 			Remove(Iter);
@@ -355,14 +355,14 @@ void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callpt
 	SendRas(arq_ras);
 }
 
-void GkClient::OnACF(const H225_RasMessage & obj_acf, PIPSocket::Address gkip)
+void GkClient::OnACF(const H225_RasMessage & acf_ras, PIPSocket::Address gkip)
 {
 	if (!CheckGKIP(gkip))
 		return;
 
-	const H225_AdmissionConfirm & acf = obj_acf;
+	const H225_AdmissionConfirm & acf = acf_ras;
 	int reqNum = acf.m_requestSeqNum.GetValue();
-	if (m_arqPendingList->ProcessACF(obj_acf, reqNum))
+	if (m_arqPendingList->ProcessACF(acf_ras, reqNum))
 		return;
 
 	// an ACF to an answer ARQ
@@ -374,12 +374,12 @@ void GkClient::OnACF(const H225_RasMessage & obj_acf, PIPSocket::Address gkip)
 	}
 }
 
-void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
+void GkClient::OnARJ(const H225_RasMessage & arj_ras, PIPSocket::Address gkip)
 {
 	if (!CheckGKIP(gkip))
 		return;
 
-	const H225_AdmissionReject & arj = obj_arj;
+	const H225_AdmissionReject & arj = arj_ras;
 	if (arj.m_rejectReason.GetTag() == H225_AdmissionRejectReason::e_callerNotRegistered) { // reregister again
 		m_endpointId = PString();
 		SendRRQ();
@@ -406,8 +406,15 @@ void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
 bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 {
 	if (m_gkaddr == gkip && drq.m_endpointIdentifier.GetValue() == m_endpointId) {
-		if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue))
+		if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue)) {
 			call->Disconnect(true);
+			H225_RasMessage dcf_ras;
+			dcf_ras.SetTag(H225_RasMessage::e_disengageConfirm); 
+			H225_DisengageConfirm & dcf = dcf_ras;
+			dcf.m_requestSeqNum = drq.m_requestSeqNum; 
+			SetPassword(dcf);
+			SendRas(dcf_ras);
+		}
 		return true;
 	}
 	return false;
