@@ -1470,7 +1470,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	if (!m_h245handler) // no H245 routed
                 return true;
 	CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote);
-	if (NULL==ret) {
+	if (NULL!=ret) {
 		ret->LockUse("CallSignalSocket " + Name() + type);
 		m_h245handler->OnH245Address(h245addr);
 		if (m_h245socket) {
