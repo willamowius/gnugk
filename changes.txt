@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (ProxyChannel.cxx) added new config parameter ScreenSourceAddress
+  to screen calling party aliases from UUIE Setup element
 - added sample SQL/RADIUS billing example to the contrib directory
 - removed Makefile to force users running configure script before compilation
 - added per gateway E.164 rewriting of dialedDigits in addition to

@@ -1262,7 +1262,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	// Do outbound per GW rewrite
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 		endptr rewriteEndPointOut = m_call->GetCalledParty();
-		if (rewriteEndPointOut != NULL) {
+		if (rewriteEndPointOut) {
 			PString source;
 			PStringArray tokenised_source;
 
@@ -1279,6 +1279,13 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		}
 	}
 
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		const PString screenSourceAddress = GkConfig()->GetString(RoutedSec, "ScreenSourceAddress", "");
+		if (!screenSourceAddress) {
+			Setup.m_sourceAddress.SetSize(1);
+			H323SetAliasAddress(screenSourceAddress, Setup.m_sourceAddress[0]);
+		}
+	}
 	// in routed mode the caller may have put the GK address in destCallSignalAddress
 	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
