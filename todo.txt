@@ -7,7 +7,7 @@ I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
 - fix: set default (GK-wide) values for endpoint properties
-       (otherwise an endpoint cannot be called unless is has an entry
+       (otherwise e.g. an endpoint cannot be called unless is has an entry
        "voIPEndpointType=cpe" in [RasSvr::EndpointOptions])
 
 - feature: add ability to use routing via neighbour for known destinations, too
