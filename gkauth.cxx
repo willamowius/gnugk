@@ -16,6 +16,11 @@
 #include "Toolkit.h"
 #include <h235auth.h>
 #include <ptclib/cypher.h>
+
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
+
 #include <map>
 #include <list>
 
