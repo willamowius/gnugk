@@ -27,10 +27,6 @@
 #define snprintf _snprintf
 #endif
 
-#ifndef ARJREASON_ROUTECALLTOGATEKEEPER
-#define ARJREASON_ROUTECALLTOGATEKEEPER 1
-#endif
-
 #include "RasSrv.h"
 #include "h323pdu.h"
 #include "gk_const.h"
@@ -801,16 +797,23 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	}
 
 	bool nated = false, validaddress = false;
-	if (obj_rr.m_callSignalAddress.GetSize() >= 1) { // Can we have more than one SignalAdr?
+	if (obj_rr.m_callSignalAddress.GetSize() >= 1) {
 		SignalAdr = obj_rr.m_callSignalAddress[0];
 		if (SignalAdr.GetTag() == H225_TransportAddress::e_ipAddress) {
 			H225_TransportAddress_ipAddress & ip = SignalAdr;
 			PIPSocket::Address ipaddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 			validaddress = (rx_addr == ipaddr);
+
+			const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
+			if (!SkipForwards)
+				if (SkipForwards.Find(rx_addr.AsString()) != P_MAX_INDEX)
+					validaddress = true;
+
 			if (!validaddress && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
 				validaddress = nated = true;
 		}
 	}
+
 	if (!bReject && !validaddress) {
 		bReject = TRUE;
 		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
@@ -1260,22 +1263,13 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_resourceUnavailable);
 		}
 	}
-/*
-	//authorize arq
-        if(!bReject && obj_arq.m_answerCall) {
-            if(GWR->checkgw(obj_arq,RequestingEP,CalledEP)==FALSE) {
-                bReject = TRUE;
-                arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_securityDenial);
-            }
-        }
-*/
-#ifdef ARJREASON_ROUTECALLTOSCN
+
  	//
  	// call from one GW to itself?
  	// generate ARJ-reason: 'routeCallToSCN'
  	//
  	if(!bReject &&
- 	   Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures","ArjReasonRouteCallToSCN","TRUE")) )
+ 	   Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures","ArjReasonRouteCallToSCN","0")) )
  	{
  		// are the endpoints the same (GWs of course)?
  		if( (CalledEP) && (RequestingEP) && (CalledEP == RequestingEP) &&
@@ -1286,7 +1280,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
  			if ( obj_arq.m_destinationInfo.GetSize() >= 1 )	{
  				// PN will be the number that is set in the arj reason
  				H225_PartyNumber PN;
- 				PN.SetTag(H225_PartyNumber::e_publicNumber);
+ 				PN.SetTag(H225_PartyNumber::e_e164Number);
  				H225_PublicPartyNumber &PPN = PN;
  				// set defaults
  				PPN.m_publicTypeOfNumber.SetTag(H225_PublicTypeOfNumber::e_unknown);
@@ -1319,8 +1313,6 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
  			}
  		}
  	}
- 	//:towi
-#endif
 
 	//
 	// Do the reject or the confirm
