@@ -69,7 +69,7 @@ protected:
 	virtual int getDestination(const H225_AliasAddress & alias, list<EndpointRec *> & EPList,
 	                           PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason);
 	virtual int getMsgDestination(const H225_AliasAddress &cdAlias, list<EndpointRec *> & EPList, PReadWriteMutex &listlock,
-				      const endptr & cgEP, endptr CdEP, unsigned & reason, CallingProfile & CGprofile,
+				      const endptr & cgEP, endptr & CdEP, unsigned & reason, CallingProfile & CGprofile,
 				      CalledProfile & CDprofile);
 
 private:
@@ -238,9 +238,10 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 
 int
 OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, list<EndpointRec *> & EPList, PReadWriteMutex &listLock,
-					   const endptr & cgEP, endptr cdEP, unsigned & reason, CallingProfile & CGprofile,
+					   const endptr & cgEP, endptr & cdEP, unsigned & reason, CallingProfile & CGprofile,
 					   CalledProfile & CDprofile)
 {
+	PTRACE(1, "OverlapSendDestAnalysis::getMsgDestination");
 
 	H225_AliasAddress destAlias = cdAlias;
 	GkDatabase *db = GkDatabase::Instance();
@@ -329,8 +330,7 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 			reason = H225_AdmissionRejectReason::e_incompleteAddress;
 			// we sent an ARJ if no profile exists or the endpoint
 			// accepts ARJ with reason "incompleteAddress"
-			if (CGprofile.GetH323ID().IsEmpty() ||
-			    CGprofile.HonorsARJincompleteAddress())
+			if (CGprofile.HonorsARJincompleteAddress())
 				cdEP = endptr(0);
 			statusRoutingDecision = e_fail;
 		} else {
@@ -347,30 +347,28 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 		DBTypeEnum dbType;
 		// if a profile exists we search for an endpoint in existing databases
 		PTRACE(3, "searching for EP in databases");
-		BOOL profileExists = !CGprofile.GetH323ID().IsEmpty();
-		if (profileExists && !db->prefixMatch(destAlias, TelephoneNo, matchFound, fullMatch, gwFound, dbType, CDprofile)) {
+		if (!db->prefixMatch(destAlias, TelephoneNo, matchFound, fullMatch, gwFound, dbType, CDprofile)) {
 			PTRACE(1, "Database access failed!");
 		} else {
-			if (profileExists) {
-				PTRACE(3, "GkDatabase matches: " <<
-				       PString(matchFound ? "any match found" : "no match found") << " " <<
-				       PString(fullMatch ? "is a full match" : "is no full match") << " " <<
-				       PString(gwFound ? "found a Gateway" : "no Gateway"));
-			}
-			if (profileExists && fullMatch) {
+			PTRACE(3, "GkDatabase matches: " <<
+			       PString(matchFound ? "any match found" : "no match found") << " " <<
+			       PString(fullMatch ? "is a full match" : "is no full match") << " " <<
+			       PString(gwFound ? "found a Gateway" : "no Gateway"));
+
+			if (fullMatch) {
 				// ARJ (calledPartyNotRegistered)
 				// Is GK?
 				reason = H225_AdmissionRejectReason::e_calledPartyNotRegistered;
 				cdEP = endptr(0);
 				statusRoutingDecision = e_fail;
 			// else if result is a prefix of a TelephoneNo attribute
-			} else if (profileExists && matchFound && !fullMatch && !gwFound) {
+			} else if (matchFound && !fullMatch && !gwFound) {
 				// ARJ/ACF (incompleteAddress)
 				reason = H225_AdmissionRejectReason::e_incompleteAddress;
 				cdEP = (CGprofile.HonorsARJincompleteAddress()) ? endptr(0) : cgEP;
 				statusRoutingDecision = e_fail;
 			// else if no match is found
-			} else if (profileExists && !matchFound) {
+			} else if (!matchFound) {
 				// ARJ (unreachable destination)
 				reason = H225_AdmissionRejectReason::e_resourceUnavailable;
 				cdEP = endptr(0);
@@ -424,8 +422,7 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 	}
 
 	// if profile exists we set status "isCPE" in called profile
-	if (!CGprofile.GetH323ID().IsEmpty() &&
-			statusRoutingDecision == e_ok) {
+	if (statusRoutingDecision == e_ok) {
 		//TODO: get destH323ID from cdProfile
 		//PString destH323IDStr = CDprofile.getH323ID();
 		PString destH323IDStr;
@@ -446,6 +443,7 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 			CDprofile.SetIsCPE(db->isCPE(destH323IDStr, dbType));
 		}
 	}
+	PTRACE(5, "statusRoutingDecision: " << statusRoutingDecision);
 	return statusRoutingDecision;
 }
 
@@ -471,29 +469,33 @@ int OverlapSendDestAnalysis::getDestination(const H225_AdmissionRequest & arq, l
 int OverlapSendDestAnalysis::getDestination(const H225_LocationRequest & lrq, list<EndpointRec *> & EPList,
                                             PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
 {
+	PTRACE(1, "OverlapSendDestAnalysis::getDestination(const H225_LocationRequest) " << lrq.m_endpointIdentifier);
 	if (!cgEP) {
-		cgEP = RegistrationTable::Instance()->FindByEndpointId(lrq.m_endpointIdentifier);
+		cgEP = RegistrationTable::Instance()->FindBySignalAdr(lrq.m_replyAddress);
 	}
+	PTRACE(1, "cgEP: " << lrq.m_replyAddress);
 	CallingProfile cgpf;
 	CalledProfile  cdpf;
 	dctn::DBTypeEnum f;
 	H225_AliasAddress adr;
-	if ((endptr(NULL) != cgEP) && (cgEP->GetH323ID(adr))) {
-		PString h323id= H323GetAliasAddressString(adr);
-		PTRACE(1, "Looking for profile: " << h323id);
-		GkDatabase::Instance()->getProfile(cgpf, h323id,f);
-	} else {
-		return e_fail;
-	}
+	PString h323id=AsString(lrq.m_replyAddress);
+	PTRACE(1, "Looking for profile: " << h323id);
+	GkDatabase::Instance()->getProfile(cgpf, h323id,f);
+	// Fake profiles
+	cgpf.SetIsGK(TRUE);
+	cgpf.SetTreatCallingPartyNumberAs(CallProfile::TreatAsInternational);
+	cgpf.SetTreatCalledPartyNumberAs(CallProfile::TreatAsInternational);
+	cgpf.SetH323ID("Neighbor");
 	BOOL found = FALSE;
 	int status=0;
 	// check destAliases until a cdEP is found
 	for (PINDEX i=0; i < lrq.m_destinationInfo.GetSize() && !found; i++) {
-		status = getDestination(lrq.m_destinationInfo[i], EPList, listLock, cgEP, cdEP, reason);
+		status = getMsgDestination(lrq.m_destinationInfo[i], EPList, listLock, cgEP, cdEP, reason, cgpf, cdpf);
 		if (cdEP) {
 			found = TRUE;
 		}
 	}
+	PTRACE(5, "Found: " << PString(found ? "TRUE" : "FALSE"));
 	return status;
 }
 
