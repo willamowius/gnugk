@@ -87,15 +87,9 @@ ifndef GNUGK_BUILD_NUMBER
   GNUGK_BUILD_NUMBER = $(shell grep 'define GNUGK_BUILD_NUMBER' $(GNUGK_VERSION_FILE) | cut -d ' ' -f 4-)
 endif
 
-# Gatekeeper Global Version String to mark object with version info in such
-# a way that it is retrievable by the std. version/revision control tools
-XID=$$Id
-GKGVS="@(\#) $(XID): $(GNUGK_BUILD_TYPE) of "$(PROGRAMMNAME)" v$(GNUGK_MAJOR_VERSION).$(GNUGK_MINOR_VERSION) build\#$(GNUGK_BUILD_NUMBER) by "${MANUFACTURER}" at " __DATE__ " "  __TIME__ " $$"
-
 # use for versioning
 STDCCFLAGS += -D'MANUFACTURER=${MANUFACTURER}'
 STDCCFLAGS += -D'PROGRAMMNAME=${PROGRAMMNAME}'
-STDCCFLAGS += -D'GKGVS=${GKGVS}'
 
 # Recheck if the International Public Telecommunication Numbers (IPTNs)
 # used for callING party number and callED party number are in
