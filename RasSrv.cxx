@@ -31,7 +31,7 @@
 #include "GkStatus.h"
 #include "Neighbor.h"
 #include "ProxyChannel.h"
-
+#include "gk.h"
 
 #ifndef NEED_BROADCASTLISTENER
 #if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS)
@@ -1135,17 +1135,32 @@ void RasServer::ClearAltGKsTable()
 
 void RasServer::HouseKeeping()
 {
+#if PTRACING
+  PTime startUp;
+#endif
+
 	for (unsigned count = 0; IsRunning(); ++count)
 		if (!m_sync.Wait(1000)) {
 			if( !IsRunning() )
 				break;
-				
+
 			if (!(count % 60)) // one minute
 				RegistrationTable::Instance()->CheckEndpoints();
 
 			CallTable::Instance()->CheckCalls(this);
 
 			gkClient->CheckRegistration();
+
+			// Automatic daily logrotation of files
+#if PTRACING
+      			// Check if it's a new day, then rotate
+			PTime now;
+
+			if ( now.GetDay() != startUp.GetDay() ) {
+        			ReopenLogFile();
+				startUp = PTime::PTime();
+			}
+#endif
 		}
 }
 

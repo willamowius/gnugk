@@ -35,6 +35,38 @@
 #include "stl_supp.h"
 
 
+#if PTRACING
+PTextFile *logfile = 0;
+PString logfilename;
+
+void ReopenLogFile()
+{
+	if (!logfilename) {
+		PTRACE_IF(1, logfile, "GK\tLogging closed.");
+		PTrace::SetStream(&cerr); // redirect to cerr
+		delete logfile;
+
+		PTime now;
+		PString fileName = logfilename;
+		fileName.Replace(".", "." + now.AsString( "yyyy-MM-dd" ) + "." );
+
+		logfile = new PTextFile( fileName, PFile::WriteOnly, PFile::Create);
+		
+		if (!logfile->IsOpen()) {
+			cerr << "Warning: could not open trace output file \""
+			     << fileName << '"' << endl;
+			delete logfile;
+			logfile = 0;
+			return;
+		}
+		logfile->SetPosition(logfile->GetLength());
+		PTrace::SetStream(logfile); // redirect to logfile
+	}
+	PTRACE(1, "GK\tTrace logging restarted.");
+}
+#endif
+
+
 /*
  * many things here should be members of Gatkeeper. 
  */
@@ -49,10 +81,6 @@ PMutex ReloadMutex;
 
 #ifndef WIN32
 PString pidfile("/var/run/gnugk.pid");
-#endif
-#if PTRACING
-PTextFile *logfile = 0;
-PString logfilename;
 #endif
 
 void ShutdownHandler()
@@ -72,28 +100,6 @@ void ShutdownHandler()
 	delete logfile;
 #endif
 }
-
-#if PTRACING
-void ReopenLogFile()
-{
-	if (!logfilename) {
-		PTRACE_IF(1, logfile, "GK\tLogging closed.");
-		PTrace::SetStream(&cerr); // redirect to cerr
-		delete logfile;
-		logfile = new PTextFile(logfilename, PFile::WriteOnly, PFile::Create);
-		if (!logfile->IsOpen()) {
-			cerr << "Warning: could not open trace output file \""
-			     << logfilename << '"' << endl;
-			delete logfile;
-			logfile = 0;
-			return;
-		}
-		logfile->SetPosition(logfile->GetLength());
-		PTrace::SetStream(logfile); // redirect to logfile
-	}
-	PTRACE(1, "GK\tTrace logging restarted.");
-}
-#endif
 
 bool CheckSectionName(PConfig *cfg)
 {

@@ -26,6 +26,12 @@
 #include "version.h"
 #endif
 
+
+#if PTRACING
+void ReopenLogFile();
+#endif
+
+
 class Gatekeeper : public PProcess {
 	PCLASSINFO(Gatekeeper, PProcess)
  public:
