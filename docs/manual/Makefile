@@ -10,11 +10,13 @@ html-es:
 	cd es ; sgml2html --language=es -s 1 manual-es.sgml
 
 pdf:
-	sgml2latex manual.sgml ; dvipdfm manual.dvi ; rm manual.dvi
+	sgml2latex --output=dvi manual.sgml ; dvipdfm manual.dvi ; rm -f manual.dvi
 
 pdf-fr:
-	cd fr ; sgml2latex --language=fr manual-fr.sgml ; dvipdfm manual-fr.dvi ; rm manual-fr.dvi
+	cd fr ; sgml2latex --language=fr manual-fr.sgml ; dvipdfm manual-fr.dvi ; rm -f manual-fr.dvi
 
 pdf-es:
-	cd es ; sgml2latex --language=es manual-es.sgml ; dvipdfm manual-es.dvi ; rm manual-es.dvi
+	cd es ; sgml2latex --language=es manual-es.sgml ; dvipdfm manual-es.dvi ; rm -f manual-es.dvi
 
+clean:
+	rm -f *.html *.pdf *.dvi fr/*.html fr/*.pdf fr/*.dvi es/*.html es/*.pdf es/*.dvi
