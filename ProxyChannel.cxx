@@ -2248,8 +2248,6 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
 {
 	memcpy(this, flc, sizeof(RTPLogicalChannel)); // bitwise copy :)
-	SrcIP = 0;
-	SrcPort = 0;
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
