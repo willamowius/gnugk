@@ -1410,6 +1410,15 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 
 			pCallRec->Lock();
 
+			if(pCallRec->GetCallingProfile().GetCallTimeout()==0) {
+				delete pCallRec;
+				obj_rpl.SetTag(H225_RasMessage::e_admissionReject); // Build ARJ
+				H225_AdmissionReject arj=obj_rpl;
+				arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
+				arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_exceedsCallCapacity);
+				return;
+			}
+
 			CallTable::Instance()->Insert(pCallRec);
 
 			int timeout = (pCallRec->GetCallingProfile().GetCallTimeout()>=0 ?
