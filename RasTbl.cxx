@@ -143,9 +143,7 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRRQ, bool Permanent)
 
 EndpointRec::~EndpointRec()
 {
-#ifndef NDEBUG
 	PTRACE(3, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
-#endif
 }
 
 void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
@@ -1117,9 +1115,7 @@ void CallTable::RemoveCall(const callptr & call)
 
 bool CallTable::InternalRemovePtr(CallRec *call)
 {
-#ifndef NDEBUG
-	PTRACE(5, ANSI::PIN << "DEBUG\tRemoving callptr:" << AsString(call->GetCallIdentifier().m_guid) << "...\n" << ANSI::OFF);
-#endif
+	PTRACE(6, ANSI::PIN << "GK\tRemoving callptr:" << AsString(call->GetCallIdentifier().m_guid) << "...\n" << ANSI::OFF);
 	WriteLock lock(listLock);
 	InternalRemove(find(CallList.begin(), CallList.end(), call));
 	return true; // useless, workaround for VC
@@ -1127,9 +1123,7 @@ bool CallTable::InternalRemovePtr(CallRec *call)
 
 void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
 {
-#ifndef NDEBUG
-	PTRACE(5, ANSI::PIN << "DEBUG\tRemoving CallId:" << AsString(CallId.m_guid) << "...\n" << ANSI::OFF);
-#endif
+	PTRACE(5, ANSI::PIN << "GK\tRemoving CallId:" << AsString(CallId.m_guid) << "...\n" << ANSI::OFF);
 	WriteLock lock(listLock);
 	InternalRemove(
 		find_if(CallList.begin(), CallList.end(),
@@ -1139,9 +1133,7 @@ void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
 
 void CallTable::InternalRemove(unsigned CallRef)
 {
-#ifndef NDEBUG
-	PTRACE(5, ANSI::PIN << "DEBUG\tRemoving CallRef:" << CallRef << "...\n" << ANSI::OFF);
-#endif
+	PTRACE(5, ANSI::PIN << "GK\tRemoving CallRef:" << CallRef << "...\n" << ANSI::OFF);
 	WriteLock lock(listLock);
 	InternalRemove(
 		find_if(CallList.begin(), CallList.end(),
@@ -1152,7 +1144,6 @@ void CallTable::InternalRemove(unsigned CallRef)
 void CallTable::InternalRemove(iterator Iter)
 {
 	if (Iter == CallList.end()) {
-//		PTRACE(5, "DEBUG\tRemove call failed!");
 		return;
 	}
 

@@ -34,14 +34,16 @@ SignalConnection::SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHom
 	m_connection = local;
 	m_remote = remote;
 	m_sigChannel = NULL;  // this also indicates remote-thread
-	// to fix memory leaks
-	// always NULL in this instance of SignalConnection
+
+	// to fix memory leaks, always NULL in this instance of SignalConnection
 	remoteConnection = NULL;
 	m_crv.SetValue(caller_m_q931.GetCallReference());
 	statusEnquiry.BuildStatusEnquiry(m_crv.GetValue(), TRUE);
-	//mm-27.04.2001
+
 	connectionName = ANSI::RED + m_connection->GetName() + ANSI::OFF;
-PTRACE(3, "GK\t" << connectionName << "\t Create SignalConnection crv=" << m_crv);
+
+	PTRACE(3, "GK\t" << connectionName << "\t Create SignalConnection, crv = "
+		<< statusEnquiry.GetCallReference() << "(orig crv=" << m_crv << ")");
 	Resume();
 }
 
@@ -404,9 +406,8 @@ BOOL SignalConnection::OnReceivedData(void)
 		return FALSE;
 	};
 
-#ifndef NDEBUG
-	printf("data(4+): %02x %02x %02x %02x.\n",tpkt[0],tpkt[1],tpkt[2],tpkt[3]);
-#endif
+	// anyone who needs this debugging ?
+	// printf("data(4+): %02x %02x %02x %02x.\n",tpkt[0],tpkt[1],tpkt[2],tpkt[3]);
 
 	int packetLength = ((tpkt[2] << 8)|tpkt[3]) - 4;
 	
@@ -425,11 +426,10 @@ BOOL SignalConnection::OnReceivedData(void)
 		return FALSE;
 	};
 	
-#ifndef NDEBUG
-	const BYTE *bxx = streamBuffer.GetPointer();
-	printf("data(+x): %02x %02x %02x %02x %02x %02x %02x %02x...\n",
-		   bxx[0],bxx[1],bxx[2],bxx[3],bxx[4],bxx[5],bxx[6],bxx[7]);
-#endif
+	// anyone who needs this debugging ?
+	// const BYTE *bxx = streamBuffer.GetPointer();
+	// printf("data(+x): %02x %02x %02x %02x %02x %02x %02x %02x...\n",
+	// 	   bxx[0],bxx[1],bxx[2],bxx[3],bxx[4],bxx[5],bxx[6],bxx[7]);
 
 	m_q931.Decode(byteArray);
 	PTRACE(5, "GK\t" << connectionName << "\tReceived.");
@@ -511,8 +511,6 @@ BOOL SignalConnection::OnReceivedData(void)
 		if (Toolkit::Instance()->RewritePString(n_string))
 			m_q931.SetCalledPartyNumber(n_string, Q931::ISDNPlan, Q931::NationalType);
 	}
-
-	PTRACE(5, ANSI::BGRE << "\nQ931: " << m_q931 << ANSI::OFF << endl);
 
 	return TRUE;
 };
@@ -645,7 +643,6 @@ BOOL SignalConnection::Send( PTCPSocket * socket, const Q931 & toSend )
 {
 	// write the q931 data to #sbuf#
 	PBYTEArray sbuf;
-	//	m_q931.Encode(sbuf); // mm-27.04.2001
 	toSend.Encode(sbuf);
 	const PINDEX bufLen = sbuf.GetSize();
 //	const BYTE *buf = sbuf.GetPointer();
@@ -659,18 +656,19 @@ BOOL SignalConnection::Send( PTCPSocket * socket, const Q931 & toSend )
   	pktbuf[3] = (BYTE)(pktlen);
 	memcpy(pktbuf + 4, sbuf.GetPointer(), bufLen);
 
-#ifndef NDEBUG	
-	printf("data(4+%d): ", bufLen);
-	printf("%02x %02x %02x %02x.", pktbuf[0],pktbuf[1],pktbuf[2],pktbuf[3]);
-	BYTE *buf = pktbuf + 4;
-	for(PINDEX i=0; i<bufLen; i++) {
-		if(isalnum(buf[i]))
-			printf("%s%c%s",ANSI::YEL, (char)(buf[i]), ANSI::OFF);
-		else
-			printf("%02x ", buf[i]);
-	}
-	printf("\n");
-#endif	
+	// anyone who needs this debugging ?
+	//
+	// printf("data(4+%d): ", bufLen);
+	// printf("%02x %02x %02x %02x.", pktbuf[0],pktbuf[1],pktbuf[2],pktbuf[3]);
+	// BYTE *buf = pktbuf + 4;
+	// for(PINDEX i=0; i<bufLen; i++) {
+	// 	if(isalnum(buf[i]))
+	// 		printf("%s%c%s",ANSI::YEL, (char)(buf[i]), ANSI::OFF);
+	// 	else
+	// 		printf("%02x ", buf[i]);
+	// }
+	// printf("\n");
+
 /* comment out by cwhuang
    if we send the packet by two Write calls,
    it's possible be interrupted by another thread
