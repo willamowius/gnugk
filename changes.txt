@@ -1,9 +1,10 @@
-Changes from 1.2 to now (by mmuehlen 13.11.01)
+Changes from 1.2 to now (by mmuehlen)
 ====================================
-- fix a bug in Toolkit::GKName 
+- fix a bug in Toolkit::GKName (13.11.01)
 - add SrcInfo and GkName to CDR:
     CDR|CallNo|CallId|Duration|Starttime|Endtime|CallerIP|CallerEndId|CalledIP|CalledEndId|DestInfo|
-    srcInfo|GkName
+    srcInfo|GkName (13.11.01)
+- add SHA1 support for SimplePasswordAuth (14.12.01)
 
 Changes from 1.2 to now (by cwhuang)
 ====================================

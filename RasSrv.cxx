@@ -1546,8 +1546,13 @@ void H323RasSrv::Main(void)
 			continue;
 		}
 		PTRACE(2, "GK\tRead from : " << rx_addr << " [" << rx_port << "]");    
-    
-		if (!obj_req.Decode( rdstrm ))
+
+		// get only bytes which are really read
+		PPER_Stream rawPDU(rdstrm.GetPointer(), listener.GetLastReadCount());
+		// set rawPDU for authentication methods
+                authList->setLastReceivedRawPDU(rawPDU);
+
+                if (!obj_req.Decode( rawPDU ))
 		{
 			PTRACE(1, "GK\tCouldn't decode message!");
 

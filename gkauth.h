@@ -64,8 +64,9 @@ public:
 	GkAuthenticator(PConfig *, const char *authName = "default");
 	virtual ~GkAuthenticator();
 
-	template<class RasType> bool CheckRas(const RasType & req, unsigned & reason)
+	template<class RasType> bool CheckRas(PBYTEArray &rawPDU, const RasType & req, unsigned & reason)
 	{
+	        setLastReceivedRawPDU(rawPDU);
 		if (checkFlag & RasValue(req)) {
 			int r = Check(req, reason);
 			if (r == e_ok) {
@@ -78,10 +79,12 @@ public:
 			}
 		}
 		// try next rule
-		return (next) ? next->CheckRas(req, reason) : true;
+		return (next) ? next->CheckRas(rawPDU, req, reason) : true;
 	}
 
 	const char *GetName() { return name; }
+	
+
 
 protected:
 	// the second argument is the reject reason, if any
@@ -103,6 +106,8 @@ protected:
 	int RasValue(const H225_LocationRequest &)       { return e_LRQ; }
 	int RasValue(const H225_InfoRequest &)           { return e_IRQ; }
 
+	PBYTEArray& getLastReceivedRawPDU(){ return m_lastReceivedRawPDU; }
+
 	Control controlFlag;
 	Status defaultStatus;
 	PConfig *config;
@@ -116,6 +121,10 @@ private:
 
 	GkAuthenticator(const GkAuthenticator &);
 	GkAuthenticator & operator=(const GkAuthenticator &);
+	
+	void setLastReceivedRawPDU(PBYTEArray &rawPDU){ m_lastReceivedRawPDU = rawPDU; }
+	
+	PBYTEArray m_lastReceivedRawPDU;
 
 	friend class GkAuthenticatorList;
 };
@@ -143,16 +152,22 @@ public:
 class GkAuthenticatorList {
 public:
 	GkAuthenticatorList(PConfig *);
-	~GkAuthenticatorList();
+	virtual ~GkAuthenticatorList();
 
 	template<class RasType> bool Check(const RasType & req, unsigned & reason)
 	{
-		return (GkAuthenticator::head) ? GkAuthenticator::head->CheckRas(req, reason) : true;
+		return (GkAuthenticator::head) ? GkAuthenticator::head->CheckRas(getLastReceivedRawPDU(), req, reason) : true;
 	}
+
+	virtual void setLastReceivedRawPDU(PBYTEArray &rawPDU){ m_lastReceivedRawPDU = rawPDU; }
 
 private:
 	GkAuthenticatorList(const GkAuthenticatorList &);
 	GkAuthenticatorList & operator=(const GkAuthenticatorList &);
+
+	virtual PBYTEArray& getLastReceivedRawPDU(){ return m_lastReceivedRawPDU; }
+	
+	PBYTEArray m_lastReceivedRawPDU;
 };
 
 

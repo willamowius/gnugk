@@ -78,6 +78,7 @@ protected:
 
 private:
 	H235AuthSimpleMD5 authMD5;
+	H235AuthProcedure1 authProcedure1;
 	PBYTEArray nullPDU;
 	const H225_ArrayOf_AliasAddress *aliases;
 };
@@ -340,7 +341,7 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 
 bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & tokens)
 {
-	for (PINDEX i=0; i < tokens.GetSize(); ++i)
+	for (PINDEX i=0; i < tokens.GetSize(); ++i){
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			PString id = AsString(pwdhash.m_alias, FALSE);
@@ -351,11 +352,29 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 			authMD5.SetLocalId(id);
 			authMD5.SetPassword(passwd);
 			if (authMD5.VerifyToken(tokens[i], nullPDU) == H235Authenticator::e_OK) {
-				PTRACE(4, "GkAuth\t" << id << " password match");
+				PTRACE(4, "GkAuth\t" << id << " password match (MD5)");
+				passwdCache[id] = passwd;
+				return true;
+			}
+		}else if(tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken){
+			H235_CryptoToken & nestedCryptoToken = tokens[i];
+			H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
+			H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
+			PString gk_id = clearToken.m_generalID;
+			PString id = clearToken.m_sendersID;
+			if (aliases && !CheckAliases(id))
+				return false;
+			iterator Iter = passwdCache.find(id);
+			PString passwd = (Iter == passwdCache.end()) ? GetPassword(id) : Iter->second;
+			authProcedure1.SetLocalId(gk_id);
+			authProcedure1.SetPassword(passwd);
+			if (authProcedure1.VerifyToken(tokens[i], getLastReceivedRawPDU()) == H235Authenticator::e_OK) {
+				PTRACE(4, "GkAuth\t" << id << " password match (SHA-1)");
 				passwdCache[id] = passwd;
 				return true;
 			}
 		}
+	}
 	return false;
 }
 

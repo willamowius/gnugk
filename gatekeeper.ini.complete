@@ -213,7 +213,8 @@ rule=allow
 ##   SimplePasswordAuth  The module checks the tokens or cryptoTokens
 ##                       fields of RAS message. The tokens should contain
 ##                       at least generalID and password. For cryptoTokens,
-##                       only cryptoEPPwdHash tokens hashed by simple MD5
+##                       cryptoEPPwdHash tokens hashed by simple MD5 and 
+##                       nestedcryptoToken tokens hashed by HMAC-SHA1-96
 ##                       are supported now.
 ##                       The ID and password are read from [Password] section.
 ##                       Support for other backend databases is easily to add.
