@@ -1,20 +1,25 @@
 #!/bin/sh
 #
-# gk            This shell script takes care of starting and stopping \
-#               gk (Openh323 gatekeeper daemon)
+# gnugk         This shell script takes care of starting and stopping \
+#               gnugk (Openh323 Gatekeeper - GNU Gatekeeper daemon)
 #
 # chkconfig: 345 60 60
-# description: gk is the openh323 gatekeeper
-# processname: /usr/sbin/gk
+# description: gk is the gnu gatekeeper
+# processname: /usr/sbin/gnugk
 # config: /etc/gatekeeper.ini
+#
+# Maintained by Chih-Wei Huang <cwhuang@linux.org.tw>
+#               Citron Network Inc.
+#
 
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-GKEXE=/usr/sbin/gk
+GKEXE=/usr/sbin/gnugk
 GKPID=/var/run/gk.pid
 GKCONFIG=/etc/gatekeeper.ini
 LOGFILE=/var/log/gk/gk.log
+LOCKFILE=/var/lock/subsys/gnugk
 
 # Source networking configuration and check that networking is up.
 if [ -f /etc/sysconfig/network ] ; then
@@ -35,7 +40,7 @@ start () {
     # start daemon
     $GKEXE -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
     RETVAL=$?
-    [ $RETVAL = 0 ] && touch /var/lock/subsys/gk && success 
+    [ $RETVAL = 0 ] && touch $LOCKFILE && success 
     echo
     return $RETVAL
 }
@@ -43,10 +48,10 @@ start () {
 stop () {
     # stop daemon
     echo -n $"Stopping $prog: "
-    killproc /usr/sbin/gk
+    killproc $GKEXE
     RETVAL=$?
     echo
-    rm -f /var/lock/subsys/gk # delete it anyway
+    rm -f $LOCKFILE # delete it anyway
     return $RETVAL
 }
 
@@ -60,13 +65,13 @@ restart () {
 # See how we were called.
 case "$1" in
     start)
-        [ -f /var/lock/subsys/gk ] || start
+        [ -f $LOCKFILE ] || start
         ;;
     stop)
         stop
         ;;
     status)
-        status /usr/sbin/gk
+        status $GKEXE
         RETVAL=$?
         ;;
     restart)
@@ -78,7 +83,7 @@ case "$1" in
         ;;
     condrestart)
         # only restart if it is already running
-        [ -f /var/lock/subsys/gk ] && restart || :
+        [ -f $LOCKFILE ] && restart || :
         ;;
     *)
         echo $"Usage: $0 {start|stop|restart|reload|condrestart|status}"

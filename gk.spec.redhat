@@ -16,6 +16,7 @@ BuildRequires: pwlib-devel openh323-devel
 BuildRequires: mysql-devel mysql++
 %endif
 BuildRoot: %{_tmppath}/%{name}-root
+Obsoletes: gk
 
 %description
 While the  OpenH323  project works on a free H.323 protocol stack, this 
@@ -52,7 +53,7 @@ install -m 755 gk.initd.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/gnugk
 
 mkdir -p $RPM_BUILD_ROOT/var/log/gk
 mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
-cat << EOF > $RPM_BUILD_ROOT/etc/logrotate.d/gk
+cat << EOF > $RPM_BUILD_ROOT/etc/logrotate.d/gnugk
 /var/log/gk/gk.log {
     rotate 30
     size=100M
@@ -74,7 +75,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/gnugk
 %{_sbindir}/gkaddpasswd
 /etc/rc.d/init.d/gnugk
-/etc/logrotate.d/gk
+/etc/logrotate.d/gnugk
 /var/log/gk
 
 %changelog
