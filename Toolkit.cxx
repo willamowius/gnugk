@@ -206,49 +206,48 @@ void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 const BOOL Toolkit::RewriteTool::PrefixAnalysis(PString & number, Q931::NumberingPlanCodes & plan, enum Q931::TypeOfNumberCodes & ton,
 						H225_ScreeningIndicator::Enumerations & si, const CallProfile & profile) const
 {
-	PString internationalNumber;
-	if(profile.GetInac() == number.Left(profile.GetInac().GetLength())) {
-		PTRACE(5, "International Call");
-		// It's a number in dialedDigits format (international)
-		internationalNumber = number.Right(number.GetLength()-profile.GetInac().GetLength());
+	switch (ton) {
+	case Q931::SubscriberType:
+		PTRACE(5, "Switching from subscriber type to international by prepending " << profile.GetCC() << profile.GetNDC_IC());
+		number = profile.GetCC() + profile.GetNDC_IC() + number;
 		ton = Q931::InternationalType;
-	} else if (profile.GetInac().Left(number.GetLength()) == number) {
-		// The number is a prefix of the INAC. So we cannot decide what TON it is.
-		ton=Q931::UnknownType;
-		return FALSE;
-	} else { // This is definitely not an international Call.
-		// Let's see, if it's a national call.
-		if (profile.GetNac() == number.Left(profile.GetNac().GetLength())) {
-			// Ok, it's a National Call.
-			PTRACE(5, "National Call");
-			internationalNumber = profile.GetCC() + number.Right(number.GetLength()-profile.GetNac().GetLength());
+		break;
+	case Q931::NationalType:
+		PTRACE(5, "Switching from National type to international by prepending " << profile.GetCC());
+		number = profile.GetCC() + number;
+		ton = Q931::InternationalType;
+		break;
+	case Q931::InternationalType:
+		PTRACE(5, "This Number was international");
+		break;
+	default:
+		PTRACE(5, "Using Toolkit::Rewrite::PrefixAnalysis");
+		switch (Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, profile)) {
+		case Q931::AbbreviatedType:
+			PTRACE(5, "Switching from assumed abbrivated Type to international by prepending " << profile.GetCC()
+			       << profile.GetNDC_IC() << profile.GetSubscriberNumber());
+			number = profile.GetCC() + profile.GetNDC_IC() + profile.GetSubscriberNumber() + number;
+		case Q931::SubscriberType:
+			PTRACE(5, "Switching from assumed subscriber type to international by prepending " << profile.GetCC()
+			       << profile.GetNDC_IC());
+			number = profile.GetCC() + profile.GetNDC_IC() + number;
 			ton = Q931::InternationalType;
-		} else if (profile.GetNac().Left(number.GetLength()) == number) {
-			// The number is a prefix of the NAC. So we cannot decide what TON it is.
+			break;
+		case Q931::NationalType:
+			PTRACE(5, "Switching from assumed national type to international by prepending " << profile.GetCC());
+			number = profile.GetCC() + number;
+			ton = Q931::InternationalType;
+			break;
+		case Q931::InternationalType:
+			PTRACE(5, "The number is assumed to be international");
+			break;
+		default:
+			PTRACE(5, "PrefixAnalysis did not succeed");
 			ton=Q931::UnknownType;
 			return FALSE;
-		} else { // Not an international nor a national Call.
-			// next is to determine wether it's a local call.
-			PTRACE(5, "Neither National nor International Call");
-			if (profile.GetLac() == number.Left(profile.GetLac().GetLength())) {
-				PTRACE(5, "LAC");
-				internationalNumber = profile.GetCC() + profile.GetNDC_IC() + number.Right(number.GetLength()-profile.GetLac().GetLength());
-				ton=Q931::InternationalType;
-			} else if (profile.GetLac().Left(number.GetLength()) == number) {
-				// The number is a prefix of the LAC. So we cannot decide what TON it is.
-				// I don't know if that may ever happen -- but we are well prepared for it :-)
-				ton=Q931::UnknownType;
-				return FALSE;
-			} else {
-				PTRACE(5, "No Prefix");
-				// This MUST be a internal call.
-				internationalNumber = profile.GetCC() + profile.GetNDC_IC() + profile.GetSubscriberNumber() + number;
-				ton=Q931::InternationalType;
-			}
 		}
 	}
-	PTRACE(5, "Returning number: " << internationalNumber);
-	number = internationalNumber; // This is for future replacement of number-types
+	PTRACE(5, "Returning number: " << number);
 	return TRUE;
 }
 
