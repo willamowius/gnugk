@@ -703,7 +703,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	} // else what?
 
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
-	PString h323id(GkConfig()->GetString(EndpointSection, "H323ID", Toolkit::GKName()));
+	PString h323id(GkConfig()->GetString(EndpointSection, "H323ID", (const char *)Toolkit::GKName()));
 	PStringArray h323ids=h323id.Tokenise(" ,;\t", FALSE);
 	as = h323ids.GetSize();
 	rrq.m_terminalAlias.SetSize(as);
