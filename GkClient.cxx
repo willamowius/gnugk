@@ -68,11 +68,9 @@ bool GKPendingList::ProcessACF(const H225_RasMessage & arq_ras, int reqNum)
 
 bool GKPendingList::ProcessARJ(int reqNum)
 {
-	PTRACE(5, "bool GKPendingList::ProcessARJ(int reqNum)");
 	PWaitAndSignal lock(usedLock);
 	PINDEX nr = FindBySeqNum(reqNum);
 	if (nr != P_MAX_INDEX) {
-		PTRACE(5, "Sending ARJ?");
 		H225_AdmissionRequest arq;
 		endptr ep;
 		arqList[nr].GetRequest(arq, ep);
@@ -348,7 +346,6 @@ void GkClient::RegisterFather(const PString & endpointId, const PString & gateke
 	m_ttl = ttl;
 
 	// Set Alarm
-	PTRACE(5, PString("Setting reregisterTimer to ") << PString(m_ttl-5) << PString("seconds"));
 	reRegisterTimer.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
 	reRegisterTimer.RunContinuous(PTimeInterval(0,(m_ttl<=0 ? 50 : m_ttl)));
 
@@ -733,7 +730,6 @@ GkClientWorker::GetMaster()
 void
 GkClientWorker::Main()
 {
-	PTRACE(5, "GkClientWorker Main");
 	if(!pdu.Decode(raw_pdu)) {
 		PTRACE(5, "GkClientWorker: Did not decode message");
 		return;
@@ -797,7 +793,7 @@ GkClientWorker::OnRRJ(H225_RegistrationReject &rrj)
 {
 	if (!GetMaster().CheckGKIPVerbose(addr))
 		return;
-	PTRACE(1, "GKC\tRegistration Rejected: " << rrj.m_rejectReason.GetTagName());
+	PTRACE(1, "GKC\tRegistration Rejected");
 	GetMaster().UnRegister();
 
 	if (rrj.m_rejectReason.GetTag() == H225_RegistrationRejectReason::e_fullRegistrationRequired)
