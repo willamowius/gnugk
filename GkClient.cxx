@@ -41,14 +41,6 @@ static const char *EndpointSection = "Endpoint";
 static const char *RewriteE164Section = "Endpoint::RewriteE164";
 static const char *H225_ProtocolID= "0.0.8.2250.0.2";
 
-class GKPendingList : public PendingList {
-public:
-	GKPendingList(int ttl) : PendingList(ttl) {}
-
-	bool Insert(const H225_AdmissionRequest &, const endptr &, int);
-	bool ProcessACF(const H225_RasMessage &, int);
-	bool ProcessARJ(H225_CallIdentifier &, int);
-};
 
 bool GKPendingList::Insert(const H225_AdmissionRequest & arq_ras, const endptr & reqEP, int reqNum)
 {
@@ -74,18 +66,18 @@ bool GKPendingList::ProcessACF(const H225_RasMessage & arq_ras, int reqNum)
 	return false;
 }
 
-bool GKPendingList::ProcessARJ(H225_CallIdentifier & callid, int reqNum)
+bool GKPendingList::ProcessARJ(int reqNum)
 {
+	PTRACE(5, "bool GKPendingList::ProcessARJ(int reqNum)");
 	PWaitAndSignal lock(usedLock);
 	PINDEX nr = FindBySeqNum(reqNum);
 	if (nr != P_MAX_INDEX) {
+		PTRACE(5, "Sending ARJ?");
 		H225_AdmissionRequest arq;
 		endptr ep;
 		arqList[nr].GetRequest(arq, ep);
-		if (arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier))
-			callid = arq.m_callIdentifier;
 		// try neighbors...
-		if (Toolkit::Instance()->GetNeighbor().InsertARQ(arq, ep))
+		if (!Toolkit::Instance()->GetNeighbor().InsertARQ(arq, ep))
 			arqList[nr].DoARJ();
 		RemoveAt(nr);
 		return true;
@@ -93,8 +85,9 @@ bool GKPendingList::ProcessARJ(H225_CallIdentifier & callid, int reqNum)
 	return false;
 }
 
-GkClient::GkClient()
+GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 {
+	PTRACE(5, "GkClient start");
 	PString gk(GkConfig()->GetString(EndpointSection, "Gatekeeper", "no"));
 	if (gk == "no") { // no gatekeeper to register
 		m_ttl = 0;
@@ -113,7 +106,44 @@ GkClient::GkClient()
 	m_rewriteInfo = GkConfig()->GetAllKeyValues(RewriteE164Section);
 	m_retry = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", 10);
 	m_arqPendingList = new GKPendingList(GkConfig()->GetInteger(EndpointSection, "ARQTimeout", 2));
-	SendRRQ();
+
+	listener_mutex.Wait();
+	listener.Listen(GKHome, 0, 0, PSocket::CanReuseAddress);
+	listener_mutex.Signal();
+
+	// Send RRQ from Listener
+	m_ttl = m_retry * 1000;
+	H225_RasMessage rrq_ras;
+	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
+	H225_RegistrationRequest & rrq = rrq_ras;
+
+	rrq.m_requestSeqNum = Toolkit::Instance()->GetRequestSeqNum();
+	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	rrq.m_discoveryComplete = FALSE;
+        rrq.m_rasAddress.SetSize(1);
+	rrq.m_rasAddress[0] = *m_rasAddr;
+
+	BuildFullRRQ(rrq);
+	m_registeredTime = PTime();
+
+	PBYTEArray buffer(4096);
+	PPER_Stream writestream(buffer);
+
+	rrq_ras.Encode(writestream);
+	writestream.CompleteEncoding();
+	listener_mutex.Wait();
+	listener.WriteTo(writestream,writestream.GetSize(), m_gkaddr, m_gkport);
+	listener_mutex.Signal();
+
+	listener_mutex.Wait();
+	PIPSocket::Address addr;
+	WORD port;
+	listener.GetLocalAddress(addr);
+	port=listener.GetPort();
+	listener_mutex.Signal();
+	alternate_mutex.Wait();
+	alternate.SetSendAddress(addr, port);
+	alternate_mutex.Signal();
 }
 
 GkClient::~GkClient()
@@ -123,6 +153,32 @@ GkClient::~GkClient()
 	delete m_arqPendingList;
 }
 
+void
+GkClient::Main()
+{
+	listener_mutex.Wait();
+	while (listener.IsOpen()) {
+		listener_mutex.Signal();
+		const int buffersize = 4096;
+		BYTE buffer[buffersize];
+		WORD rx_port;
+		PIPSocket::Address rx_addr;
+		rx_port=0;
+		listener_mutex.Wait();
+		int result=listener.ReadFrom(buffer, buffersize,  rx_addr, rx_port);
+		if(result!=0) {
+			listener_mutex.Signal();
+			PPER_Stream stream(buffer, listener.GetLastReadCount());
+			GkClientWorker *r = new GkClientWorker(stream, rx_addr, rx_port, *this);
+			r->Resume();
+		} else {
+			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
+		}
+		listener_mutex.Wait();// before new truth value for while clause is computed
+	}
+	listener_mutex.Signal();
+
+}
 void GkClient::SendRas(const H225_RasMessage & ras_msg)
 {
 	PBYTEArray buffer(4096);
@@ -130,7 +186,7 @@ void GkClient::SendRas(const H225_RasMessage & ras_msg)
 
 	ras_msg.Encode(writestream);
 	writestream.CompleteEncoding();
-	Toolkit::Instance()->GetMasterRASListener().SendTo(writestream, writestream.GetSize(), m_gkaddr, m_gkport);
+	listener.WriteTo(writestream,writestream.GetSize(), m_gkaddr, m_gkport);
 }
 
 bool GkClient::CheckGKIPVerbose(PIPSocket::Address gkip)
@@ -140,6 +196,51 @@ bool GkClient::CheckGKIPVerbose(PIPSocket::Address gkip)
 		return false;
 	}
 	return true;
+}
+
+void
+GkClient::ProcessACF(H225_RasMessage &ras, int seqNum)
+{
+	if(!m_arqPendingList->ProcessACF(ras, seqNum)) {
+		// an ACF to an answer ARQ
+		iterator Iter = m_arqAnsweredList.find(seqNum);
+		if (Iter != m_arqAnsweredList.end()) {
+			m_arqAnsweredList.erase(Iter);
+		} else {
+			PTRACE(2, "GKC\tUnknown ACF, ignore!");
+		}
+	}
+}
+
+void
+GkClient::ProcessARJ(int seqNum)
+{
+	PTRACE(5, "GkClient::ProcessARJ(int seqNum)");
+	if(!m_arqPendingList->ProcessARJ(seqNum)) {
+		// an ARJ to an answer ARQ
+		iterator Iter = m_arqAnsweredList.find(seqNum);
+		if (Iter != m_arqAnsweredList.end()) {
+			callptr call = Iter->second;
+			PTRACE(2, "GKC\tGot ARJ for call " << call->GetCallNumber());
+			// TODO: routeCallToGatekeeper
+			call->Disconnect(true);
+			m_arqAnsweredList.erase(Iter);
+		} else {
+			PTRACE(2, "GKC\tUnknown ARJ, ignore!");
+		}
+	}
+}
+
+const PString &
+GkClient::GetEndpointId() const
+{
+	return m_endpointId;
+}
+
+const int
+GkClient::GetRetry() const
+{
+	return m_retry;
 }
 
 void GkClient::CheckRegistration()
@@ -239,8 +340,14 @@ void GkClient::SendRRQ()
 	SendRas(rrq_ras);
 }
 
-void GkClient::RegisterFather()
+void GkClient::RegisterFather(const PString & endpointId, const PString & gatekeeperId, int ttl)
 {
+	// Register internally
+	m_endpointId = endpointId;
+	m_gatekeeperId = gatekeeperId;
+	m_ttl = ttl;
+
+	// Register into EndpointTable
 	H225_RasMessage rrq_ras;
 	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
 	H225_RegistrationRequest &rrq = rrq_ras;
@@ -267,7 +374,7 @@ void GkClient::RegisterFather()
 	H225_TransportAddress_ipAddress & gkaddr_ip = gkaddr;
 	// Hopefully all GK will use the same port
 
-	gkaddr_ip.m_port = GkConfig()->GetInteger(EndpointSection, "MaserCallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+	gkaddr_ip.m_port = GkConfig()->GetInteger(EndpointSection, "MasterCallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
 	gkaddr_ip.m_ip[0] = m_gkaddr[0];
 	gkaddr_ip.m_ip[1] = m_gkaddr[1];
 	gkaddr_ip.m_ip[2] = m_gkaddr[2];
@@ -279,6 +386,17 @@ void GkClient::RegisterFather()
 	RegistrationTable::Instance()->InsertRec(rrq_ras);
 }
 
+void
+GkClient::UnRegister()
+{
+	H225_EndpointIdentifier ep;
+	ep=m_endpointId;
+
+	RegistrationTable::Instance()->RemoveByEndpointId(ep);
+	m_endpointId = PString();
+}
+
+/*
 void GkClient::OnRCF(const H225_RegistrationConfirm & rcf, PIPSocket::Address gkip)
 {
 	if (!CheckGKIPVerbose(gkip))
@@ -307,7 +425,7 @@ void GkClient::OnRRJ(const H225_RegistrationReject & rrj, PIPSocket::Address gki
 	else
 		m_ttl = m_retry * 1000;
 }
-
+*/
 void GkClient::SendURQ()
 {
 	H225_RasMessage urq_ras;
@@ -325,7 +443,7 @@ void GkClient::SendURQ()
 	m_endpointId = PString();
 	SendRas(urq_ras);
 }
-
+/*
 bool GkClient::OnURQ(const H225_UnregistrationRequest & urq, PIPSocket::Address gkip)
 {
 	if (gkip != m_gkaddr || m_endpointId != urq.m_endpointIdentifier.GetValue()) // not me?
@@ -346,7 +464,7 @@ bool GkClient::OnURQ(const H225_UnregistrationRequest & urq, PIPSocket::Address 
 	}
 	return true;
 }
-
+*/
 int GkClient::BuildARQ(H225_AdmissionRequest & arq)
 {
 	// Don't set call model, let the GK decide it
@@ -413,7 +531,7 @@ void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callpt
 	m_arqAnsweredList[reqNum] = call;
 	SendRas(arq_ras);
 }
-
+/*
 void GkClient::OnACF(const H225_RasMessage & acf_ras, PIPSocket::Address gkip)
 {
 	if (!CheckGKIPVerbose(gkip))
@@ -478,7 +596,7 @@ bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 	}
 	return false;
 }
-
+*/
 void GkClient::SendDRQ(H225_RasMessage & drq_ras)
 {
 	H225_DisengageRequest & drq = drq_ras;
@@ -564,4 +682,160 @@ void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, cons
 	auth.SetLocalId(id);
 	auth.SetPassword(m_password);
 	auth.Prepare(cryptoTokens);
+}
+
+
+/** GkClientWorker class.
+This class is intended to do the real work. The PDU will come as a PER-Stream, decoded and answered.
+*/
+
+GkClientWorker::GkClientWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server) :
+	H323RasWorker(initial_pdu, rx_addr, rx_port, server)
+{
+	PTRACE(5, "GkClientWorker started");
+}
+
+GkClientWorker::~GkClientWorker() {
+	PTRACE(5, "GkClientWorker exit");
+};
+
+GkClient &
+GkClientWorker::GetMaster()
+{
+	return dynamic_cast<GkClient &>(master);
+}
+
+void
+GkClientWorker::Main()
+{
+	PTRACE(5, "GkClientWorker Main");
+	if(!pdu.Decode(raw_pdu)) {
+		PTRACE(5, "GkClientWorker: Did not decode message");
+		return;
+	}
+	PTRACE(5, "GkClientWorker got PDU: " << endl << pdu);
+	switch(pdu.GetTag()) {
+	case H225_RasMessage::e_registrationConfirm:
+		OnRCF(pdu);
+		break;
+	case H225_RasMessage::e_registrationReject:
+		OnRRJ(pdu);
+		break;
+	case H225_RasMessage::e_unregistrationRequest:
+		OnURQ(pdu);
+		break;
+	case H225_RasMessage::e_admissionRequest:
+		OnARQ(pdu);
+		break;
+	case H225_RasMessage::e_admissionConfirm:
+		OnACF(pdu);
+		break;
+	case H225_RasMessage::e_admissionReject:
+		OnARJ(pdu);
+		break;
+	case H225_RasMessage::e_bandwidthRequest:
+		OnBRQ(pdu);
+		break;
+	case H225_RasMessage::e_disengageRequest:
+		OnDRQ(pdu);
+		break;
+	case H225_RasMessage::e_infoRequestResponse:
+		OnIRR(pdu);
+		break;
+	default:
+		OnUnknown(pdu);
+	}
+	if(need_answer) {
+		PTRACE(1,"Sending message");
+		SendRas();
+	} else {
+		PTRACE(1, "nothing to send");
+	}
+	return;
+}
+void
+GkClientWorker::OnRCF(H225_RegistrationConfirm &rcf)
+{
+	if (!GetMaster().CheckGKIPVerbose(addr))
+		return;
+
+	if (!GetMaster().IsRegistered()) {
+		PTRACE(2, "GKC\tRegister successfully to GK " << rcf.m_gatekeeperIdentifier);
+		GetMaster().RegisterFather(rcf.m_endpointIdentifier, rcf.m_gatekeeperIdentifier,
+				       rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive)
+				       ? (rcf.m_timeToLive - GetMaster().GetRetry()) * 1000 : 0);
+	}
+}
+
+void
+GkClientWorker::OnRRJ(H225_RegistrationReject &rrj)
+{
+	if (!GetMaster().CheckGKIPVerbose(addr))
+		return;
+	PTRACE(1, "GKC\tRegistration Rejected: " << rrj.m_rejectReason.GetTagName());
+	GetMaster().UnRegister();
+
+	if (rrj.m_rejectReason.GetTag() == H225_RegistrationRejectReason::e_fullRegistrationRequired)
+		GetMaster().SendRRQ();
+}
+
+void
+GkClientWorker::OnACF(H225_AdmissionConfirm &acf)
+{
+	if (!GetMaster().CheckGKIPVerbose(addr))
+		return;
+
+	int reqNum = acf.m_requestSeqNum.GetValue();
+	GetMaster().ProcessACF(pdu, reqNum);
+}
+
+void
+GkClientWorker::OnARJ(H225_AdmissionReject &arj)
+{
+	if (!GetMaster().CheckGKIPVerbose(addr))
+		return;
+
+	if (arj.m_rejectReason.GetTag() == H225_AdmissionRejectReason::e_callerNotRegistered) { // reregister again
+		GetMaster().UnRegister();
+		GetMaster().SendRRQ();
+	}
+
+	int reqNum = arj.m_requestSeqNum.GetValue();
+	PTRACE(5, "Processing ARJ");
+	GetMaster().ProcessARJ(reqNum);
+}
+
+void
+GkClientWorker::OnDRQ(H225_DisengageRequest &drq)
+{
+	if (GetMaster().CheckGKIPVerbose(addr) && drq.m_endpointIdentifier.GetValue() == GetMaster().GetEndpointId()) {
+		if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue)) {
+			call->Disconnect(true);
+			H225_RasMessage dcf_ras;
+			dcf_ras.SetTag(H225_RasMessage::e_disengageConfirm);
+			H225_DisengageConfirm & dcf = dcf_ras;
+			dcf.m_requestSeqNum = drq.m_requestSeqNum;
+			GetMaster().SetPassword(dcf);
+			GetMaster().SendRas(dcf_ras);
+		}
+	}
+}
+
+void
+GkClientWorker::OnURQ(H225_UnregistrationRequest &urq)
+{
+	if (GetMaster().CheckGKIPVerbose(addr) || GetMaster().GetEndpointId() != urq.m_endpointIdentifier.GetValue()) // not me?
+		return;
+
+	GetMaster().UnRegister();
+	switch (urq.m_reason.GetTag())
+	{
+		case H225_UnregRequestReason::e_reregistrationRequired:
+		case H225_UnregRequestReason::e_ttlExpired:
+			GetMaster().SendRRQ();
+			break;
+
+	}
+	return;
+
 }

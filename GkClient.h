@@ -29,37 +29,48 @@
 
 #include <map>
 #include <h235auth.h>
+#include "RasListener.h"
+#include "RasWorker.h"
 #include "RasTbl.h"
+#include "Neighbor.h"
 
-class H225_AliasAddress;
-class H225_ArrayOf_AliasAddress;
-class H225_TransportAddress;
-class H225_EndpointIdentifier;
-class H225_EndpointType;
-class H225_CallIdentifier;
-class H225_RasMessage;
-class H225_GatekeeperRequest;
-class H225_GatekeeperConfirm;
-class H225_GatekeeperReject;
-class H225_RegistrationRequest;
-class H225_RegistrationConfirm;
-class H225_RegistrationReject;
-class H225_AdmissionRequest;
-class H225_AdmissionConfirm;
-class H225_AdmissionReject;
-class H225_DisengageRequest;
-class H225_UnregistrationRequest;
-class H225_InfoRequest;
-class H225_Setup_UUIE;
-class H225_ArrayOf_CryptoH323Token;
-class Q931;
-class H323RasSrv;
-class PendingARQ;
-class GKPendingList;
+class GK_RASListener;
+class GkClient;
 
-class GkClient {
+class GkClientWorker : public H323RasWorker {
 public:
-	GkClient();
+	GkClientWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server);
+	virtual ~GkClientWorker();
+	virtual void Main(); // Do the actual work.
+
+protected:
+/*	virtual void OnGCF(const H225_GatekeeperConfirm &);
+	virtual void OnGRJ(const H225_GatekeeperReject &);
+*/
+	virtual void OnRCF(H225_RegistrationConfirm &);
+	virtual void OnRRJ(H225_RegistrationReject &);
+	virtual void OnACF(H225_AdmissionConfirm &);
+	virtual void OnARJ(H225_AdmissionReject &);
+	virtual void OnDRQ(H225_DisengageRequest &);
+	virtual void OnURQ(H225_UnregistrationRequest &);
+//	virtual void OnIRQ(H225_InfoRequest &);
+private:
+	GkClient & GetMaster();
+};
+
+
+class GKPendingList : public PendingList {
+public:
+	GKPendingList(int ttl) : PendingList(ttl) {}
+
+	bool Insert(const H225_AdmissionRequest &, const endptr &, int);
+	bool ProcessACF(const H225_RasMessage &, int);
+	bool ProcessARJ(int);
+};
+
+class GkClient : public GK_RASListener {
+public:
+	GkClient(PIPSocket::Address address);
 
 	void SendGRQ();
 	void SendRRQ();
@@ -68,15 +79,18 @@ public:
 	void SendARQ(const H225_Setup_UUIE &, unsigned, const callptr &);
 	void SendDRQ(H225_RasMessage &);
 
+	virtual void Main();
+/*
 	void OnGCF(const H225_GatekeeperConfirm &);
 	void OnGRJ(const H225_GatekeeperReject &);
-	void OnRCF(const H225_RegistrationConfirm &, PIPSocket::Address);
+	void OnRCF(const H225_RegiswtrationConfirm &, PIPSocket::Address);
 	void OnRRJ(const H225_RegistrationReject &, PIPSocket::Address);
 	void OnACF(const H225_RasMessage &, PIPSocket::Address);
 	void OnARJ(const H225_RasMessage &, PIPSocket::Address);
 	bool OnDRQ(const H225_DisengageRequest &, PIPSocket::Address);
 	bool OnURQ(const H225_UnregistrationRequest &, PIPSocket::Address);
 	bool OnIRQ(const H225_InfoRequest &);
+*/
 
 	bool IsRegistered() const { return !m_endpointId.IsEmpty(); }
 
@@ -99,7 +113,12 @@ public:
 	{
 		SetPassword(rasmsg, !m_e164 ? m_e164 : m_h323Id);
 	}
-
+	void RegisterFather(const PString & endpointId, const PString & gatekeeperId, int ttl);
+	void UnRegister();
+	void ProcessACF(H225_RasMessage &pdu, int seqNum);
+	void ProcessARJ(int seqNum);
+	const PString & GetEndpointId() const;
+	const int GetRetry() const;
 protected:
 	virtual ~GkClient();
 	friend void Toolkit::delete_gkclient();
@@ -108,8 +127,9 @@ private:
 	typedef std::map<int, callptr>::iterator iterator;
 	typedef std::map<int, callptr>::const_iterator const_iterator;
 
+	friend void GkClientWorker::OnDRQ(H225_DisengageRequest&);
+
 	void SendRas(const H225_RasMessage &);
-	void RegisterFather();
 	void BuildFullRRQ(H225_RegistrationRequest &);
 	void BuildLightWeightRRQ(H225_RegistrationRequest &);
 	int  BuildARQ(H225_AdmissionRequest &);
@@ -131,6 +151,8 @@ private:
 
 	GKPendingList *m_arqPendingList;
 	std::map<int, callptr> m_arqAnsweredList;
+
+
 
 	H235AuthSimpleMD5 auth;
 };
