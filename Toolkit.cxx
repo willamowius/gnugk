@@ -379,18 +379,19 @@ Toolkit::Toolkit() : m_Config(NULL), m_gkclient(NULL), m_neighbor(NULL), m_rasli
 
 Toolkit::~Toolkit()
 {
+	// delete RAS Classes.
+ 	delete_gkclient();
+ 	delete_neighbor();
+ 	delete_raslistener();
+
+	delete m_handlerlist;
+	m_handlerlist=NULL;
 	m_Config_mutex.Wait();
 	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
 	}
-	// delete RAS Classes.
-	delete_gkclient();
-	delete_neighbor();
-	delete_raslistener();
 
-	delete m_handlerlist;
-	m_handlerlist=NULL;
 }
 
 PConfig* Toolkit::Config()
@@ -1419,7 +1420,7 @@ DigitCodeLibrary::DigitCodeLibrary():
 
 DigitCodeLibrary::~DigitCodeLibrary()
 {
-	DEBUGPRINT("~DigitCodeLibrary()\tend of destructor");
+//	DEBUGPRINT("~DigitCodeLibrary()\tend of destructor");
 }
 
 /** Test of existence of given Country Code in Country Code Map
