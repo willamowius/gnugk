@@ -1065,7 +1065,6 @@ bool CallRec::GetSrcSignalAddr(
 	WORD& port
 	) const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return GetIPAndPortFromTransportAddr(m_srcSignalAddress, addr, port);
 }
 
@@ -1074,7 +1073,6 @@ bool CallRec::GetDestSignalAddr(
 	WORD& pt
 	) const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return GetIPAndPortFromTransportAddr(m_destSignalAddress, addr, pt);
 }
 
@@ -1099,7 +1097,6 @@ void CallRec::SetDestSignalAddr(
 	const H225_TransportAddress & addr
 	)
 {
-	PWaitAndSignal lock(m_usedLock);
 	m_destSignalAddress = addr;
 	m_calleeAddr = AsDotString(addr);
 }
@@ -1113,10 +1110,7 @@ void CallRec::SetCalling(const endptr & NewCalling)
 			if (NewCalling->HasNATSocket())
 				m_nattype |= citronNAT;
 		}
-		// neccessary, because SetSrcCallSignalAddr does not lock the mutex
-		PWaitAndSignal lock(m_usedLock);
 		SetSrcSignalAddr(NewCalling->GetCallSignalAddress());
-		m_callerAddr = AsDotString(NewCalling->GetCallSignalAddress());
 		m_callerId = NewCalling->GetEndpointIdentifier().GetValue();
 	}
 }
@@ -1157,25 +1151,15 @@ void CallRec::SetForward(CallSignalSocket *socket, const H225_TransportAddress &
 
 void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 {
-	PIPSocket::Address addr(0);
-	WORD port = 0;
-	{
-		PWaitAndSignal lock(m_sockLock); 
-		m_callingSocket = calling, m_calledSocket = called;
+	PWaitAndSignal lock(m_sockLock); 
+	m_callingSocket = calling, m_calledSocket = called;
+	m_callerAddr = calling->GetName();
+	
+	if( !m_srcSignalAddress.IsValid() ) {
+		PIPSocket::Address addr(0);
+		WORD port = 0;
 		calling->GetPeerAddress(addr,port);
-		m_callerAddr = calling->GetName();
-	}
-	{
-		PWaitAndSignal lock(m_usedLock);
-		
-		if( !m_srcSignalAddress.IsValid() ) {
-			m_srcSignalAddress.SetTag(H225_TransportAddress::e_ipAddress);
-			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[0] = addr[0];
-			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[1] = addr[1];
-			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[2] = addr[2];
-			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[3] = addr[3];
-			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_port = port;
-		}
+		m_srcSignalAddress = SocketToH225TransportAddr(addr,port);
 	}
 }
 
