@@ -722,7 +722,7 @@ PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 }
 
 
-
+/* Not used currently
 H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress & dest, const PIPSocket::Address & addr)
 {
 	H225_CryptoH323Token token;
@@ -752,6 +752,7 @@ H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress & dest, const 
 	cryptoHashedToken.m_token.m_hash.SetData(hashed.GetLength() * 8, hashed);
 	return token;
 }
+*/
 
 bool DecodeAccessToken(const H225_CryptoH323Token & token, const PIPSocket::Address & addr, H225_TransportAddress & dest)
 {

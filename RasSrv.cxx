@@ -2045,6 +2045,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 			GetRasAddress(lcf.m_rasAddress);
 			if (RasSrv->IsGKRouted()) {
 				GetCallSignalAddress(lcf.m_callSignalAddress);
+/* The access token should be standarized somehow and use a correct object 
+   identifier. As it does not (currently), we disable it to remove interop problems.
 				PINDEX s = 0;
 				if (lcf.HasOptionalField(H225_LocationConfirm::e_cryptoTokens))
 					s = lcf.m_cryptoTokens.GetSize();
@@ -2052,6 +2054,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_cryptoTokens);
 				lcf.m_cryptoTokens.SetSize(s + 1);
 				lcf.m_cryptoTokens[s] = Neighbors::BuildAccessToken(*dest, ipaddr);
+*/
 			} else
 				lcf.m_callSignalAddress = *dest;
 

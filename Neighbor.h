@@ -139,8 +139,9 @@ private:
 	List m_neighbors;
 };
 
-
+/* Not used currently
 H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress &, const PIPSocket::Address &);
+*/
 bool DecodeAccessToken(const H225_CryptoH323Token &, const PIPSocket::Address &, H225_TransportAddress &);
 
 

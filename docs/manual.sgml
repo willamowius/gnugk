@@ -114,6 +114,10 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Do not include an invalid access token (with null object identifier) 
+in LCF to prevent interoperability problems.
+
+<item>
 Better handling of multiple calls over a single signalling channel 
 by setting multipleCalls and maintainConnection H.225.0 fields to FALSE 
 in all messages passing through the gatekeeper.
