@@ -315,8 +315,10 @@ default=allow
 ##
 ##   BlackListDestAnalysis      This module checks Blacklisted numbers. The
 ##				precedence of Blacklisting and Whitelisting
-##				is per-endpoint configurable.
-##
+##				is per-endpoint configurable. BlackListDestAnalysis
+##				implies an OverlapSendDestAnalysis was also done before
+##				this to find an endpoint because blacklisting is a
+##				endpoint-dependant option.
 
 [Gatekeeper::DestAnalysis]
 OverlapSendDestAnalysis=optional;ARQ
