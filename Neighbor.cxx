@@ -40,8 +40,8 @@ static const char vcid[] = "@(#) $Id$";
 static const char vcHid[] = NEIGHBOR_H;
 #endif /* lint */
 
-extern const char *NeighborSection = "RasSvr::Neighbors";
-extern const char *LRQFeaturesSection = "RasSvr::LRQFeatures";
+extern const char *NeighborSection = "RasSrv::Neighbors";
+extern const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
 
 PendingList::~PendingList()
 {

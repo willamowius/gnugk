@@ -74,7 +74,7 @@ protected:
 
 private:
 
-	/** Adds country code from ini section RasSvr::GWCoutryCodes to
+	/** Adds country code from ini section RasSrv::GWCoutryCodes to
 	    calledPN (dialedDigits)  and returns new PN + gwCC
 	 */
 	void AddCCToCdAlias(H225_AliasAddress &alias, const PString & gwCC);

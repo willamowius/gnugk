@@ -461,12 +461,12 @@ bool GatewayRec::LoadConfig()
 {
 	PWaitAndSignal lock(m_usedLock);
 	Prefixes.clear();
-	if (Toolkit::AsBool(GkConfig()->GetString("RasSvr::RRQFeatures", "AcceptGatewayPrefixes", "1")))
+	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::RRQFeatures", "AcceptGatewayPrefixes", "1")))
 		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
 			AddPrefixes(m_terminalType->m_gateway.m_protocol);
 	for (PINDEX i=0; i<m_terminalAliases.GetSize(); i++) {
 		// Get terminal aliases from LDAP
-		PStringArray p = (GkConfig()->GetString("RasSvr::GWPrefixes",
+		PStringArray p = (GkConfig()->GetString("RasSrv::GWPrefixes",
 				  H323GetAliasAddressString(m_terminalAliases[i]), "")
 				 ).Tokenise(" ,;\t\n", false);
 #if defined (HAS_LDAP)
@@ -925,7 +925,7 @@ void RegistrationTable::LoadConfig()
 	endpointIdSuffix = GkConfig()->GetString("EndpointIDSuffix", "_endp");
 
 	// Load permanent endpoints
-	PStringToString cfgs=GkConfig()->GetAllKeyValues("RasSvr::PermanentEndpoints");
+	PStringToString cfgs=GkConfig()->GetAllKeyValues("RasSrv::PermanentEndpoints");
 	for (PINDEX i=0; i < cfgs.GetSize(); i++) {
 		EndpointRec *ep;
 		H225_RasMessage rrq_ras;

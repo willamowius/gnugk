@@ -29,8 +29,8 @@ static const char vcHid[] = GKINIFILE_H;
 #endif /* lint */
 
 
-const char *GK_GW_PREFIXES_SECTION_NAME = "RasSvr::GWPrefixes";
-const char *GK_EP_SECTION_NAME = "RasSvr::EndpointOptions";
+const char *GK_GW_PREFIXES_SECTION_NAME = "RasSrv::GWPrefixes";
+const char *GK_EP_SECTION_NAME = "RasSrv::EndpointOptions";
 const char *GK_DATABASES_SECTION_NAME = "Gatekeeper::Databases";
 
 GkIniFile::GkIniFile(PConfig &cfg)

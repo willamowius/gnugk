@@ -73,7 +73,7 @@ StatusReadTimeout=5000
 ## Separate list elements by one of " .,\t".
 ## @see RasTbl::addPrefixes
 ## This parameters should consider a HUP signal.
-[RasSvr::GWPrefixes]
+[RasSrv::GWPrefixes]
 ## Test-Gateways
 # 195.71.226.162
 #rossi-gt2=80,90
@@ -92,7 +92,7 @@ StatusReadTimeout=5000
 ## Attribute "voIPEndpointType" can be: "trunk"|"cpe".
 ## Separate attributes by ";", key/value pairs by "=" and
 ## values (if there are more than one for one attribute) by ","
-[RasSvr::EndpointOptions]
+[RasSrv::EndpointOptions]
 ep_1=voIPEndpointType=cpe;telephoneNumber=49524670567;voIPlocalAccessCode=0;voIPnationalAccessCode=00;voIPinternationalAccessCode=000;voIPspecialDial=110=49524675123,112=49524675456;plaintextPassword=asdf
 gw_1=voIPEndpointType=trunk;voIPCountryCode=49;voIPIpAddress=195.71.226.162
 
@@ -169,7 +169,7 @@ rule=allow
 ##
 ## The rewrite-numbers function take care of reloads/a HUP signal.
 
-[RasSvr::RewriteE164]
+[RasSrv::RewriteE164]
 ## Only if an e164 number begins with #Fastmatch# the
 ## the further rewriting is done. Only one #Fastmatch# can be given.
 #Fastmatch=
@@ -187,18 +187,18 @@ rule=allow
 #
 # GKID=ip[:port;prefix;password]
 #
-[RasSvr::Neighbors]
+[RasSrv::Neighbors]
 #GK1=203.60.151.5:1719;*;gk1
 #GK2=203.60.151.9:1719;02
 
-[RasSvr::RRQFeatures]
+[RasSrv::RRQFeatures]
 #AcceptGatewayPrefixes=1
 
-[RasSvr::ARQFeatures]
+[RasSrv::ARQFeatures]
 ArjReasonRouteCallToSCN=0
 ArjReasonRouteCallToGatekeeper=1
 
-[RasSvr::LRQFeatures]
+[RasSrv::LRQFeatures]
 #NeighborTimeout=2
 #ForwordHopCount=2
 #IncludeDestinationInfoInLCF=1
@@ -212,7 +212,7 @@ ArjReasonRouteCallToGatekeeper=1
 #
 # ip[:port]=alias,alias,...[;prefix,prefix,...]
 #
-[RasSvr::PermanentEndpoints]
+[RasSrv::PermanentEndpoints]
 # For gateway
 #10.0.1.5=Citron;009,008
 # For terminal

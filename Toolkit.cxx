@@ -200,7 +200,7 @@ bool Toolkit::ProxyCriterion::IsInternal(Address ip) const
 
 // class Toolkit::RewriteTool
 
-static const char *RewriteSection = "RasSvr::RewriteE164";
+static const char *RewriteSection = "RasSrv::RewriteE164";
 
 void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 {
@@ -208,7 +208,7 @@ void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 	PWaitAndSignal rewritelock(m_RewriteRules_mutex);
 	m_RewriteFastmatch = config->GetString(RewriteSection, "Fastmatch", "");
 	m_RewriteRules = config->GetAllKeyValues(RewriteSection);
-	m_TrailingChar = config->GetString("RasSvr::ARQFeatures", "RemoveTrailingChar", " ")[0];
+	m_TrailingChar = config->GetString("RasSrv::ARQFeatures", "RemoveTrailingChar", " ")[0];
 }
 
 const BOOL Toolkit::RewriteTool::PrefixAnalysis(PString & number, Q931::NumberingPlanCodes & plan, enum Q931::TypeOfNumberCodes & ton,
