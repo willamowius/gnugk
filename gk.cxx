@@ -120,7 +120,7 @@ void ReopenLogFile()
 		PTRACE_IF(1, logfile, "GK\tLogging closed.");
 		PTrace::SetStream(&cerr); // redirect to cerr
 		delete logfile;
-		logfile = new PTextFile(logfilename, PFile::WriteOnly);//, PFile::Create);
+		logfile = new PTextFile(logfilename, PFile::WriteOnly, PFile::Create); // Do not delete old file!
 		if (!logfile->IsOpen()) {
 			cerr << "Warning: could not open trace output file \""
 				<< logfilename << '"' << endl;
