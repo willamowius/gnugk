@@ -1,5 +1,6 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- BUGFIX(ProxyChannel.cxx) fixed bugs in ForwardCall, thanks to Daniel Liu
 - header file usage more consistent
 - SQL authenticators moved to a separate file
 - added VSNET2003 sln and vcproj files

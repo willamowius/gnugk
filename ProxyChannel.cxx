@@ -1040,7 +1040,7 @@ void CallSignalSocket::ForwardCall()
 				Setup->SetCalledPartyNumber(AsString(a[n], FALSE));
 				break;
 			}
-		SetupUUIE.HasOptionalField(H225_Setup_UUIE::e_destinationAddress);
+		SetupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
 		SetupUUIE.m_destinationAddress = a;
 	}
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ShowForwarderNumber", "0")))
@@ -1050,7 +1050,7 @@ void CallSignalSocket::ForwardCall()
 				if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
 					PString callingNumber(AsString(a[n], FALSE));
 					Setup->SetCallingPartyNumber(callingNumber);
-					SetupUUIE.HasOptionalField(H225_Setup_UUIE::e_sourceAddress);
+					SetupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
 					SetupUUIE.m_sourceAddress.SetSize(1);
 					H323SetAliasAddress(callingNumber, SetupUUIE.m_sourceAddress[0]);
 					break;
