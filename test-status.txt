@@ -1,4 +1,22 @@
 ===========================================================
+December 14th, 2001: (Alexandre Aractingi)
+
+OpenH323 Gatekeeper 1.0 (Linux)
+OpenH323			1.7
+Innovaphone IP200 (3x)
+Innovaphone IP400-IP3000
+
+Direct routing:
+---------------
+
+IP200->IP400->IP200 --Transfer->IP200				OK
+
+GK routed calling:
+------------------
+
+IP200->IP400->IP200 --Transfer->IP200				OK
+
+===========================================================
 June 17th, 2001:
 
 OpenH323 Gatekeeper 1.0 pre 3 (Linux)
