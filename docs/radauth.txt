@@ -1,0 +1,461 @@
+	RADIUS Authentication Modules
+	Version 1.7 2005/02/05
+	
+	Author: Michal Zygmuntowicz <m.zygmuntowicz@onet.pl>
+
+
+	Table of Contents:
+	1. Introduction
+	2. Compilation
+	3. RadAuth - H.235 Username/Password Authentication
+	3.1. RadAuth Access-Request RADIUS Attributes
+	3.2. RadAuth Access-Accept RADIUS Attributes
+	4. RadAliasAuth - Alias Based Authentication
+	4.1. RadAliasAuth Access-Request RADIUS Attributes
+	4.2. RadAliasAuth Access-Accept RADIUS Attributes
+	5. RadAcct - RADIUS Accounting Module
+	5.1. RadAcct Accounting-Request RADIUS Attributes
+	5.2. RadAcct Accounting-Response RADIUS Attributes
+	6. TODO
+	7. List of files
+
+
+1. Introduction
+---------------
+
+This RADIUS authentication package consists of two
+authentication modules - one for H.235 username/password
+based scheme and the other for alias based authentication.
+
+
+2. Compilation
+---------------
+
+By default, RADIUS support is compiled as other regular
+modules. In order to disable it, use configure script:
+
+	./configure --disable-radius
+
+To disable RADIUS modules compilation under Windows, 
+radauth.cxx, radacct.cxx and radproto.cxx have to be 
+manually excluded from the build or HAS_RADIUS=0 preprocessor
+variable has to be set.
+
+
+3. RadAuth - H.235 Username/Password Authentication
+---------------------------------------------------
+
+This modules provides authentication based on H.235
+security features. It requires endpoints to include
+CATs (Cisco Access Tokens) with username/password 
+inside RRQ, ARQ and/or Setup being sent (inside m_tokens field).
+
+
+3.1. RadAuth Access-Request RADIUS Attributes
+------------------------------
+
+For RRQs, the following RADIUS attributes are included
+inside Access-Request packets (* means optional):
+
+	User-Name
+		
+		H225_RegistrationRequest.tokens[CAT].m_generalID
+
+	CHAP-Password 
+	
+		H225_RegistrationRequest.tokens[CAT].m_random 
+		+ H225_RegistrationRequest.tokens[CAT].m_challenge
+
+	CHAP-Challenge
+	
+		H225_RegistrationRequest.tokens[CAT].m_timeStamp
+
+	NAS-IP-Address
+		
+		GNU Gk Home or a particular local network interface set
+		by 'LocalInterface' config parameter
+
+	NAS-Identifier
+	
+		GNU Gk Name
+
+	NAS-Port-Type
+	
+		Virtual (GNU Gk does not have concept of physical ports)
+
+	Framed-IP-Address
+	
+		An IP address of registering endpoint signalling channel 
+
+	Service-Type
+	
+		Login-User
+
+	*VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out
+	
+		A list of aliases an endpoint is registering with
+		(only if IncludeTerminalAliases config option is set)
+
+NOTE: The list of aliases inside h323-ivr-out is in the following form:
+	    h323-ivr-out="h323-ivr-out=terminal-alias:alias1,alias2,...,aliasN;"
+      The h323-ivr-out attribute can be (in future) instantiated multiple times
+      inside a single Access-Request and may also contain variables other than
+	  "terminal-alias", so a RADIUS server should be flexible enough 
+	  with processing of this attribute.
+
+For ARQ and Setup messages, the following RADIUS attributes are included
+inside Access-Request packets (* means optional):
+
+	User-Name
+	
+		ARQ.tokens[CAT].m_generalID
+
+	CHAP-Password
+	
+		ARQ.tokens[CAT].m_random + ARQ.tokens[CAT].m_challenge
+
+	CHAP-Challenge
+	
+		ARQ.tokens[CAT].m_timeStamp
+
+	NAS-IP-Address
+	
+		GNU Gk Home or a particular local network interface set
+		by 'LocalInterface' config parameter
+
+	NAS-Identifier
+	
+		GNU Gk Name
+
+	NAS-Port-Type
+	
+		Virtual (GNU Gk does not have concept of physical ports)
+
+	Framed-IP-Address
+	
+		An IP address of registering endpoint signalling channel 
+
+	Service-Type
+	
+		Login-User (for ARQs from originating endpoint)
+		or Call-Check (for ARQs from answering endpoint)
+	
+	Calling-Station-Id
+	
+		Calling party's number (if available)
+		
+	Called-Station-Id
+	
+		Called party's number
+
+	*VSA: VendorId=Cisco, h323-conf-id
+	
+		H.323 conference ID from ARQ
+		
+	*VSA: VendorId=Cisco, h323-call-type
+	
+		Call type (fixed value: "h323-call-type=VoIP")
+		
+	*VSA: VendorId=Cisco, h323-call-origin
+	
+		Call origin ("answer","originate")
+		
+	*VSA: VendorId=Cisco, h323-gw-id
+	
+		The same as NAS-Identifier
+		
+
+3.2. RadAuth Access-Accept RADIUS Attributes
+------------------------------
+
+For RRQs, the following RADIUS attributes are recognized 
+inside Access-Accept packets:
+
+	VSA: VendorId=Cisco, h323-return-code
+	
+		If present and not 0, the request is rejected. This check is provided 
+		to allow interoperability with some poor billing systems, that send 
+		Access-Accept with non-zero h323-return-code to reject the call instead
+		of Access-Reject. The attribute can be in form h323-return-code="1" 
+		or h323-return-code="h323-return-code=1". Note that the return code
+		is a string, not an integer,
+
+	VSA: VendorId=Cisco, h323-billing-model
+	
+		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
+		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
+		this information is used to build the message,
+		
+	VSA: VendorId=Cisco, h323-credit-amout
+		
+		A string representing current user's account balance. If an endpoint 
+		can understand H.225.0 CallCreditServiceControl messages, 
+		this information is used to build the message,
+		
+	VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-in
+	
+		If present, it is scanned for 'terminal-alias' variable that can contain
+		a list of aliases that should be assigned to the endpoint being registered.
+		All RRQ aliases that do not match this list are removed.
+		The format of this attribute is as follows:
+		
+			Cisco-AVPair = "h323-ivr-in=variable:value;[variable:value;]"
+			
+		where the "variable" can be "terminal-alias":
+		
+			Cisco-AVPair = "h323-ivr-in=terminal-alias:alias1[,alias2,...];"
+			
+		Example 1:
+			RRQ {
+				m_terminalAlias = { "myalias", "1234" }
+			}
+		if RADIUS server returns the following h323-ivr-in:
+			Access-Accept {
+				Cisco-AVPair = "h323-ivr-in=terminal-alias:anotheralias,6789;"
+			}
+		the endpoint will get registered with aliases "anotheralias" and "6789".
+		Also RCF will contain:
+			RCF {
+				m_terminalAlias = { "anotheralias", "6789" }
+			}
+		
+		Example 2 (add E164 to an existing alias):
+			RRQ {
+				m_terminalAlias = { "it_s_me" }
+			}
+		if RADIUS server returns the following h323-ivr-in:
+			Access-Accept {
+				Cisco-AVPair = "h323-ivr-in=terminal-alias:it_s_me,48586259732;"
+			}
+		RCF will contain:
+			RCF {
+				m_terminalAlias = { "it_s_me", "48586259732" }
+			}
+		
+	
+For ARQs, the following RADIUS attributes are recognized
+inside Access-Accept packets:
+
+	VSA: VendorId=Cisco, h323-return-code
+		
+		If present and not 0, the request is rejected. This check is provided
+		to allow interoperability with some poor billing systems, that send 
+		Access-Accept with non-zero h323-return-code to reject the call instead 
+		of Access-Reject. The attribute can be in form h323-return-code="1" 
+		or h323-return-code="h323-return-code=1". Note that the return code
+		is a string, not an integer,
+
+	VSA: VendorId=Cisco, h323-billing-model
+	
+		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
+		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
+		this information is used to build the message,
+		
+	VSA: VendorId=Cisco, h323-credit-amout
+	
+		A string representing current user account balance. If an endpoint can 
+		understand H.225.0 CallCreditServiceControl messages, this information 
+		is used to build the message,
+		
+	VSA: VendorId=Cisco, h323-credit-time
+	
+		If present, it enforces maximum call duration (in seconds).
+		The attribute can be in form of h323-credit-time="120" 
+		or h323-credit-time="h323-credit-time=120". Note that the return code 
+		is a string, not an integer,
+					   
+	Session-Timeout
+	
+		If present, it enforces maximum call duration (in seconds).
+		This is a standard RADIUS attribute of integer type,
+
+	VSA: VendorId=Cisco, h323-redirect-number
+	
+		If present, a call destination is overwritten with the number present 
+		in this attribute,
+
+	VSA: VendorId=Cisco, h323-redirect-ip-address
+	
+		If present, a call is sent to the IP address present in this attribute.
+
+If both Session-Timeout and h323-credit-time are present, a lesser value
+is taken.
+
+4. RadAliasAuth - Alias Based Authentication
+--------------------------------------------
+
+This modules provides authentication based on endpoint
+aliases and/or endpoint signalling address. RadAliasAuth 
+can be configured to include fixed username and/or fixed
+user password.
+
+
+4.1. RadAliasAuth RADIUS Attributes
+-----------------------------------
+
+For RRQs, the same attributes as with RadAuth are sent, with an exception
+of username/password attributes (CHAP-Password, CHAP-Challenge, User-Name):
+
+	User-Name
+	
+		Either an endpoint alias from RRQ or a value of FixedUsername 
+		config parameter. If no alias is present, an IP address is used
+
+	User-Password
+	
+		Either the same as User-Name or a value of FixedPassword
+		config parameter
+	
+For ARQ and Setup messages, the same attributes as with RadAuth are sent,
+with an exception of username/password attributes (CHAP-Password, 
+CHAP-Challenge, User-Name)::
+
+	User-Name
+	
+		Either an endpoint alias or a value of FixedUsername config parameter
+
+	User-Password
+	
+		Either the same as User-Name or a value of FixedPassword config parameter
+
+4.2. RadAliasAuth Access-Accept RADIUS Attributes
+-------------------------------------------------
+
+Exactly the same attributes are recognized as with RadAuth module.
+
+5. RadAcct - RADIUS Accounting Module
+-------------------------------------
+
+This modules enables the gatekeeper to send call accounting information
+to RADIUS servers. It can log gatekeeper start (NAS On), gatekeeper shutdown
+(NAS Off), call start, call interim-update, call stop events. 
+RadAcct can be configured to include fixed username and/or fixed
+user password.
+
+
+5.1. RadAcct Accounting-Request RADIUS Attributes
+-------------------------------------------------
+
+For an Accounting-Request, the following RADIUS attributes are included
+inside Accounting-Request packets (* means optional). Each attribute 
+is followed by a list of accounting event types, it is sent for:
+
+	Acct-Status-Type (start,update,stop,on,off)
+	
+		The accounting event type (Start, Iterim-Update, Stop, 
+		Accounting-On, Accounting-Off).
+		
+	NAS-IP-Address (start,update,stop,on,off)
+	
+		An IP address of the gatekeeper.
+		
+	NAS-Identifier (start,update,stop,on,off)
+	
+		The gatekeeper identifier (Name= gk parameter).
+		
+	NAS-Port-Type (start,update,stop,on,off)
+	
+		Fixed value Virtual.
+		
+	Service-Type (start,update,stop)
+	
+		Fixed value Login-User.
+		
+	Acct-Session-Id (start,update,stop)
+	
+		An unique accounting session identifier string.
+		
+	User-Name (start,update,stop)
+	
+		Calling party's account name.
+
+	Framed-IP-Address (start,update,stop)
+	
+		An IP address for the calling party. Either an endpoint call signalling
+		address or a remote socket address for the signalling channel.
+
+	Acct-Session-Time (update,stop)
+	
+		Call duration (seconds) - for interim-update events this is the actual
+		duration.
+		
+	Calling-Station-Id (start,update,stop)
+	
+		Calling party's number.
+		
+	Called-Station-Id (start,update,stop)
+	
+		Called party's number.
+
+	*VSA: VendorId=Cisco, h323-gw-id (start,update,stop)
+	
+		The same as NAS-Identifier.
+		
+	*VSA: VendorId=Cisco, h323-conf-id (start,update,stop)
+	
+		H.323 Conference ID for the call.
+		
+	*VSA: VendorId=Cisco, h323-call-origin (start,update,stop)
+	
+		Fixed string "proxy".
+		
+	*VSA: VendorId=Cisco, h323-call-type (start,update,stop)
+	
+		Fixed string "VoIP".
+		
+	*VSA: VendorId=Cisco, h323-setup-time (start,update,stop)
+	
+		Timestamp when the Q.931 Setup message has been received by the gk.
+		
+	*VSA: VendorId=Cisco, h323-connect-time (update,stop)
+		
+		Timestamp when the call has been connected (Q.931 Setup message 
+		has been received or ACF has been sent in direct signalling mode).
+	
+	*VSA: VendorId=Cisco, h323-disconnect-time (stop)
+
+		Timestamp when the call has been disconnected (ReleaseComplete or DRQ
+		has been received).
+		
+	*VSA: VendorId=Cisco, h323-disconnect-cause (stop)
+	
+		Q.931 two digit hexadecimal disconnect cause.
+		
+	*VSA: VendorId=Cisco, h323-remote-address (start,update,stop)
+	
+		An IP address of the called party (if known).
+
+	*VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)
+	
+		h323-call-id variable that contains an H.323 Call Identifier.
+		The syntax is as follows: "h323-ivr-out=h323-call-id:123FDE 12348765 9abc1234 12".
+		
+	Acct-Delay-Time (start,update,stop)
+	
+		Amount of time (seconds) the gk is trying to send the request.
+		Currently always 0.
+		
+5.2. RadAcct Accounting-Response RADIUS Attributes
+--------------------------------------------------
+
+The gatekeeper does not interpter any attributes present in Accounting-Response
+RADIUS packets.
+
+6. TODO
+-------
+	
+	* proper call forwarding information in accounting packets
+
+7. List of files
+----------------
+
+	openh323gk/radproto.cxx - RADIUS protocol generic client
+	openh323gk/radproto.h 
+	openh323gk/radauth.cxx - Authenticator for GNU Gk
+	openh323gk/radauth.h
+	openh323gk/radacct.cxx - Accounting Module for GNU Gk
+	openh323gk/radacct.h
+	openh323gk/etc/radauth.ini - example RadAuth configuration
+	openh323gk/etc/radaliasauth.ini - example RadAliasAuth configuration
+	openh323gk/etc/radacct.ini - example RadAcct configuration
+	openh323gk/docs/radauth.txt - documentation
