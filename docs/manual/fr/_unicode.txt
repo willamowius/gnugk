@@ -1,0 +1,17 @@
+# Unicode Latin-1 code for french characters with accent marks
+# 
+# &#224; | `a | a accent grave
+# &#226; | ^a | a accent circonflexe
+# &#228; | :a | a trema
+# &#231; | ,c | c cedille
+# &#232; | `e | e accent grave
+# &#233; | 'e | e accent aigu
+# &#234; | ^e | e accent circonflexe
+# &#235; | :e | e trema
+# &#238; | ^i | i accent circonflexe
+# &#239; | :i | i trema
+# &#244; | ^o | o accent circonflexe
+# &#246; | :o | o trema
+# &#249; | `u | u accent grave
+# &#251; | ^u | u accent circonflexe
+# &#252; | :u [ u trema
