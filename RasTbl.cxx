@@ -1469,6 +1469,32 @@ void CallRec::SetSocket(
 	}
 }
 
+void CallRec::SetCallSignalSocketCalling(
+	CallSignalSocket* socket
+	)
+{
+	PWaitAndSignal lock(m_sockLock); 
+	m_callingSocket = socket;
+	if (m_callingSocket) {
+		m_callerAddr = m_callingSocket->GetName();
+		if (!m_srcSignalAddress.IsValid()) {
+			PIPSocket::Address addr(0);
+			WORD port = 0;
+			m_callingSocket->GetPeerAddress(addr, port);
+			m_srcSignalAddress = SocketToH225TransportAddr(addr, port);
+		}
+	}
+}
+
+void CallRec::SetCallSignalSocketCalled(
+	CallSignalSocket* socket
+	)
+{
+	PWaitAndSignal lock(m_sockLock); 
+	m_calledSocket = socket;
+}
+
+
 void CallRec::SetConnected()
 {
 	SetConnectTime(time(NULL));

@@ -550,6 +550,8 @@ public:
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
 	void SetBandwidth(int bandwidth) { m_bandwidth = bandwidth; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
+	void SetCallSignalSocketCalling(CallSignalSocket* socket);
+	void SetCallSignalSocketCalled(CallSignalSocket* socket);
 	void SetToParent(bool toParent) { m_toParent = toParent; }
 	void SetAccessTokens(const H225_ArrayOf_CryptoH323Token & tokens) { m_accessTokens = tokens; }
 	void SetInboundRewriteId(PString id) { m_inbound_rewrite_id = id; }

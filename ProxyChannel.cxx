@@ -617,6 +617,20 @@ CallSignalSocket::~CallSignalSocket()
 	delete m_h245handler;
 	delete m_lastQ931;
 	delete m_setupUUIE;
+	
+	if (m_call) {
+		if (m_call->GetCallSignalSocketCalling() == this) {
+			PTRACE(1, "Q931\tWARNING: Calling socket " << GetName() 
+				<< " not removed from CallRec before deletion"
+				);
+			m_call->SetCallSignalSocketCalling(NULL);
+		} else if (m_call->GetCallSignalSocketCalled() == this) {
+			m_call->SetCallSignalSocketCalled(NULL);
+			PTRACE(1, "Q931\tWARNING: Called socket " << GetName() 
+				<< " not removed from CallRec before deletion"
+				);
+		}
+	}
 }
 
 #ifdef LARGE_FDSET
@@ -2007,7 +2021,7 @@ bool CallSignalSocket::InternalConnectTo()
 		PTRACE(3, "Q931\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
 		SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
 		if (m_call)
-			m_call->SetSocket(m_call->GetCallSignalSocketCalling(), NULL);
+			m_call->SetCallSignalSocketCalled(NULL);
 		CallTable::Instance()->RemoveCall(m_call);
 		delete remote;
 		remote = NULL;
