@@ -161,7 +161,7 @@ $(LDAP_LIB):
 endif
 $(TARGET):	$(OBJS) $(TARGET_LIBS)
 	make $(TARGET_LIBS)
-	$(CPLUS) -o $@ $(CFLAGS) $(LDFLAGS) $(OBJS) $(LDAP_LIBS) $(LDLIBS) $(ENDLDLIBS) $(ENDLDFLAGS)
+	$(CPLUS) -o $@ $(CFLAGS) $(LDFLAGS) $(OBJS) $(LDAP_LIB) $(LDLIBS) $(ENDLDLIBS) $(ENDLDFLAGS)
 endif
 
 addpasswd: $(OBJDIR)/addpasswd.o
