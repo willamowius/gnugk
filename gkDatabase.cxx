@@ -43,7 +43,7 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
  "MainTelephoneNumber", "SubscriberTelephoneNumber", "CallingLineIdRestriction", "SpecialDials",
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
  "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "PrependCallbackAC",
- "EndpointType", "CountryCode", "NationalDestnationCode", "OutgoingWhitelistBeforeBlacklist", "ConvertToLocal",
+ "EndpointType", "CountryCode", "NationalDestinationCode", "OutgoingWhitelistBeforeBlacklist", "ConvertToLocal",
  "TreatCallingPartyNumberAs", "TreatCalledPartyNumberAs", "StatusEnquiryInterval", "CallTimeout", "MinimumPrefixLength"};
 
 // section name for database names which shall be used
