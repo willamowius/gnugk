@@ -109,7 +109,7 @@ protected:
 	Control controlFlag;
 	Status defaultStatus;
 	PConfig *config;
-	PMutex deleteMutex;
+	mutable PMutex deleteMutex;
 
 private:
 	const char *name;
