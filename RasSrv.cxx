@@ -997,8 +997,6 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq, H225_RasMessage & obj_rpl, BOOL bReject)
 {
-	int BWRequest = 640;
-
 	// We use #obj_rpl# for storing information about a potential reject (e.g. the
 	// rejectReason). If the request results in a confirm (bReject==FALSE) then
 	// we have to ignore the previous set data in #obj_rpl# and re-cast it.
@@ -1032,14 +1030,17 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	// Bandwidth 
 	// and GkManager admission
 	//
+	int BWRequest = 1280;
+
 	if (!bReject) {
 		//
 		// Give bandwidth
 		// 
 
 		// hack for Netmeeting 3.0x
-		int bw = (obj_arq.m_bandWidth.GetValue() < 100) ? 1280 : obj_arq.m_bandWidth.GetValue();
-		BWRequest = std::min(bw, CallTbl->GetAvailableBW());
+		if (obj_arq.m_bandWidth.GetValue() >= 100)
+			BWRequest = obj_arq.m_bandWidth.GetValue();
+		//BWRequest = std::min(bw, CallTbl->GetAvailableBW());
 		PTRACE(3, "GK\tARQ will request bandwith of " << BWRequest);
 		
 		//
