@@ -26,14 +26,12 @@ SignalChannel::SignalChannel ( PINDEX stackSize, PIPSocket::Address _GKHome, WOR
 			PThread( stackSize, NoAutoDeleteThread ),
 			m_listener(port)
 {
-	PTRACE(6, ANSI::CYA << "SignalChannel::SignalChannel" << ANSI::OFF);
 	GKHome = _GKHome;
 	Resume();
 };
 
 BOOL SignalChannel::Open(void)
 {
-	PTRACE(6, ANSI::CYA << "SignalChannel::Open" << ANSI::OFF);
 	// Start socket to listen messages received from signal port.
 	return m_listener.Listen(GKHome,
 							 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
@@ -43,7 +41,6 @@ BOOL SignalChannel::Open(void)
 
 SignalChannel::~SignalChannel()
 {
-	PTRACE(6, ANSI::CYA << "SignalChannel::~SignalChannel" << ANSI::OFF);
 }
 
 
@@ -53,7 +50,6 @@ SignalChannel::~SignalChannel()
  */
 void SignalChannel::CleanupConnections(void)
 {
-	PTRACE(6, ANSI::CYA << "SignalChannel::CleanupConnections" << ANSI::OFF);
 
 	SignalConnection * connection = NULL;
 	int num = connectionList.GetSize();
@@ -84,8 +80,6 @@ void SignalChannel::CleanupConnections(void)
 /* Go through all the connections and signal them to close */
 void SignalChannel::CloseConnections(void)
 {
-	PTRACE(6, ANSI::CYA << "SignalChannel::CloseConnections" << ANSI::OFF);
-
 	SignalConnection * connection = NULL;
 	int num = connectionList.GetSize();
 
@@ -108,8 +102,6 @@ void SignalChannel::CloseConnections(void)
 
 void SignalChannel::Main(void)
 {
-	PTRACE(6, ANSI::CYA << "SignalChannel::Main" << ANSI::OFF);
-	
 	PTCPSocket *signallingChannel = new PTCPSocket;
 
 	m_listener.Listen(GKHome,
@@ -164,8 +156,6 @@ void SignalChannel::Main(void)
 
 void SignalChannel::Close(void)
 {
-	PTRACE(6, ANSI::CYA << "SignalChannel::Close" << ANSI::OFF);
-
 	PTRACE(2, "GK\tClosing SignalChannel");
 	m_listener.Close();
 };

@@ -215,7 +215,6 @@ void GkStatus::RemoveClient( GkStatus::Client * Client )
 
 void GkStatus::CleanupClients()
 {
-	PTRACE(6,"CleanupClients");
 	if(IsDirty()) {
 		/* we will only delete one client per round */
 		

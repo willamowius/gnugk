@@ -29,8 +29,6 @@
 SignalConnection::SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHome, PTCPSocket * local, PTCPSocket * remote, const Q931 & caller_m_q931 )
 	: PThread ( stackSize, NoAutoDeleteThread )
 {
-	PTRACE(6, ANSI::CYA << "SignalConnection::SignalConnection(1)" << ANSI::OFF);
-
 	bH245Routing = FALSE;	// TODO: read config
 	GKHome = _GKHome;
 	m_connection = local;
@@ -54,8 +52,6 @@ PTRACE(3, "GK\t" << connectionName << "\t Create SignalConnection crv=" << m_crv
 SignalConnection::SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHome, PTCPSocket * caller, SignalChannel * sigChannel ):
 			PThread ( stackSize, NoAutoDeleteThread)
 {
-	PTRACE(6, ANSI::CYA << "SignalConnection::SignalConnection(2)" << ANSI::OFF);
-
 	GKHome = _GKHome;
 	m_connection = caller;
 	m_remote = NULL;
@@ -163,11 +159,10 @@ void SignalConnection::Main(void)
 	BOOL usePings = GkConfig()->GetBoolean("SignalConnection::StatusEnquiry", "UsePing", FALSE);
 	if (usePings) {
 	  allowedPendings = GkConfig()->GetInteger("SignalConnection::StatusEnquiry", "AllowedPendings", 3);
-	  PTRACE(6, "GK\t" << connectionName << "\tallowedPendings "<<allowedPendings);
+
 	  //constructor: long millisecs, long seconds, long minutes, long hours, int days
-	  //m_connection->SetReadTimeout(PTimeInterval(0l, 10l, 0l, 0l, 0));
 	  m_connection->SetReadTimeout(PTimeInterval(0l, (long)(GkConfig()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1)), 0l, 0l, 0));
-	  PTRACE(6, "GK\t" << connectionName << "\treadTimeout "<< GkConfig()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1));
+	  PTRACE(5, "GK\t" << connectionName << "\treadTimeout "<< GkConfig()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1));
 	}
 	pendingCount = 0;
 	killMe = FALSE;
