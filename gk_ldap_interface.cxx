@@ -46,11 +46,6 @@ GK_LDAP *gk_ldap_init (const char *hostname, int portno) {
 		delete ld;
 		return NULL;
 	}
-#ifndef LDAP_PROVIDES_CACHE
-	ld->search_cache_mutex.Wait();
-	ld->search_cache.SetSize(0);
-	ld->search_cache_mutex.Signal();
-#endif
 	return ld;
 }
 
@@ -134,12 +129,6 @@ int gk_ldap_unbind_ext (GK_LDAP *ld, LDAPControl *serverctrls, LDAPControl *clie
 }
 
 static void gk_ldap_debug_print(GK_LDAP *ld) {
-	PTRACE(5, "GK_LDAP\n " << (ld->ld) << endl << "{ ");
-	PTRACE(5,  "Cache time: " << ld->max_cache_time.AsString() << endl);
-	ld->search_cache_mutex.Wait();
-	for(PINDEX i = 0 ; i<ld->search_cache.GetSize(); i++)
-		PTRACE(5,  "{ " << ld->search_cache[i].msgid << " }" << endl) ;
-	ld->search_cache_mutex.Signal();
 }
 
 int gk_ldap_unbind (GK_LDAP *ld) {
@@ -147,9 +136,6 @@ int gk_ldap_unbind (GK_LDAP *ld) {
 		return LDAP_UNAVAILABLE;
 	gk_ldap_debug_print(ld);
 	int i = ldap_unbind(ld->ld);
-	ld->search_cache_mutex.Wait();
-	ld->search_cache.SetSize(0);
-	ld->search_cache_mutex.Signal();
 	delete ld;
 	return i;
 }
@@ -183,14 +169,7 @@ int gk_ldap_search_ext (GK_LDAP *ld,  char const *base,
 #if (LDAP_VERSION_MAX < LDAP_VERSION3)
 	return LDAP_PROTOCOL_ERROR;
 #else
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_search_ext(ld->ld, base, scope, filter, attrs, attrsonly, serverctrls, clientctrls, timeout, sizelimit, msidp);
-#else
-	int rv=ldap_search_ext(ld->ld, base, scope, filter, attrs, attrsonly, serverctrls, clientctrls, timeout, sizelimit, msidp);
-	if(LDAP_SUCCESS==rv)
-		gk_ldap_cache_add_id(base, scope, filter, attrs, attrsonly, *msgidp);
-	return rv;
-#endif
 #endif
 }
 
@@ -203,14 +182,7 @@ int gk_ldap_search_ext_s (GK_LDAP *ld,  char const *base, int scope,  char const
 #if (LDAP_VERSION_MAX < LDAP_VERSION3)
 	return LDAP_PROTOCOL_ERROR;
 #else
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_search_ext_s(ld->ld, base, scope, filter, attrs, attrsonly, serverctrls, clientctrls, timeout, sizelimit, res);
-#else
-	int rv=ldap_search_ext_s(ld->ld, base, scope, filter, attrs, attrsonly, serverctrls, clientctrls, timeout, sizelimit, res);
-	if(LDAP_SUCCESS==rv)
-		gk_ldap_cache_add_searchresult(ld, base, scope, filter, attrs, attrsonly, *res);
-	return rv;
-#endif
 #endif
 }
 
@@ -218,64 +190,21 @@ int gk_ldap_search (GK_LDAP *ld,  char const *base, int scope, char const *filte
 		    int attrsonly) {
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_search(ld->ld, base, scope, filter, attrs, attrsonly);
-#else
-	// lookup in cache
-	int messageid;
-	if((messageid=gk_ldap_cache_check(ld, base, scope, filter, attrs, attrsonly))!=-1) {
-		return messageid;
-	} else { // not in cache
-		int rv=ldap_search(ld->ld, base, scope, filter, attrs, attrsonly);
-		if(LDAP_SUCCESS==rv)
-			gk_ldap_cache_add_searchresult(ld, base, scope, filter, attrs, attrsonly, NULL);
-		return rv;
-	}
-	return -1;
-#endif
 }
 
 int gk_ldap_search_s (GK_LDAP *ld,  char const *base, int scope, char const *filter, char **attrs,
 		      int attrsonly, LDAPMessage **res){
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_search_s(ld->ld, base, scope, filter, attrs, attrsonly, res);
-#else
-	// lookup in cache
-	int messageid;
-	if((messageid=gk_ldap_cache_check(ld, base, scope, filter, attrs, attrsonly))!=-1) { // found it
-		*res=gk_ldap_cache_get_message(ld, messageid);
-		return LDAP_SUCCESS;
-	} else {
-		int rv=ldap_search_s(ld->ld, base, scope, filter, attrs, attrsonly, res);
-		gk_ldap_cache_add_searchresult(ld, base, scope, filter, attrs, attrsonly, *res);
-		return rv;
-	}
-	return -1;
-#endif
 }
 
 int gk_ldap_search_st (GK_LDAP *ld,  char const *base, int scope, char const *filter, char **attrs,
 		       int attrsonly, struct timeval *timeout, LDAPMessage **res) {
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_search_st(ld->ld, base, scope, filter, attrs, attrsonly, timeout, res);
-#else
-	// lookup in cache
-	int messageid;
-	if((messageid=gk_ldap_cache_check(ld, base, scope, filter, attrs, attrsonly))!=-1) { // found it
-		*res=gk_ldap_cache_get_message(ld, messageid);
-		return LDAP_SUCCESS;
-	} else {
-		int rv=ldap_search_st(ld->ld, base, scope, filter, attrs, attrsonly, timeout, res);
-		if(LDAP_SUCCESS==rv)
-			gk_ldap_cache_add_searchresult(ld, base, scope, filter, attrs, attrsonly, *res);
-		return rv;
-	}
-	return -1;
-#endif
 }
 
 int gk_ldap_compare_ext (GK_LDAP *ld,  char const *dn, char const *attr,
@@ -283,14 +212,7 @@ int gk_ldap_compare_ext (GK_LDAP *ld,  char const *dn, char const *attr,
 			 LDAPControl **clientctrls, int *msgidp){
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_compare_ext(ld->ld, dn, attr, bvalue, serverctrls, clientctrls, msgidp);
-#else
-#if (LDAP_VERSION_MAX >= LDAP_VERSION3)
-	return ldap_compare_ext(ld->ld, dn, attr, bvalue, serverctrls, clientctrls, msgidp);
-#endif // LDAP_VERSION_MAX
-	return LDAP_PROTOCOL_ERROR;
-#endif
 }
 
 int gk_ldap_compare_ext_s (GK_LDAP *ld,  char const *dn, char const *attr,
@@ -298,90 +220,45 @@ int gk_ldap_compare_ext_s (GK_LDAP *ld,  char const *dn, char const *attr,
 			   LDAPControl **clientctrls){
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_compare_ext_s(ld->ld, dn, attr, bvalue, serverctrls, clientctrls);
-#else
-#if (LDAP_VERSION_MAX >= LDAP_VERSION3)
-	int rv=ldap_compare_ext_s(ld->ld, dn, attr, bvalue, serverctrls, clientctrls);
-	// Need to put into cache.
-	return rv;
-#endif // LDAP_VERSION_MAX
-	return LDAP_PROTOCOL_ERROR;
-#endif
 }
 
 int gk_ldap_compare (GK_LDAP *ld,  char const *dn, char const *attr, char const *value){
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_compare(ld->ld, dn, attr, value);
-#else
-	return ldap_compare(ld->ld, dn, attr, value);
-#endif
 }
 
 int gk_ldap_compare_s (GK_LDAP *ld,  char const *dn, char const *attr, char const *value) {
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_compare(ld->ld, dn, attr, value);
-#else
-	int rv=ldap_compare_s(ld->ld, dn, attr, value);
-	// Need to put into cache
-	return rv;
-#endif
 }
 
 int gk_ldap_modify_ext (GK_LDAP *ld,  char const *dn, LDAPMod **mods, LDAPControl **serverctrls,
 			LDAPControl **clientctrls, int *msgidp) {
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_modify_ext(ld->ld, dn, mods, serverctrls, clientctrls, msgidp);
-#else
-#if (LDAP_VERSION_MAX >= LDAP_VERSION3)
-	// should uncache the dn.
-	return ldap_modify_ext(ld->ld, dn, mods, serverctrls, clientctrls, msgidp);
-#endif // LDAP_VERSION_MAX
-	return LDAP_PROTOCOL_ERROR;
-#endif
 }
 
 int gk_ldap_modify_ext_s (GK_LDAP *ld, char const *dn, LDAPMod **mods,
 			  LDAPControl **serverctrls, LDAPControl **clientctrls ) {
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_modify_ext_s(ld->ld, dn, mods, serverctrls, clientctrls);
-#else
-#if (LDAP_VERSION_MAX >= LDAP_VERSION3)
-	// should uncache the dn.
-	return ldap_modify_ext_s(ld->ld, dn, mods, serverctrls, clientctrls);
-#endif
-	return LDAP_PROTOCOL_ERROR;
-#endif
 }
 
 int gk_ldap_modify (GK_LDAP *ld, char const *dn, LDAPMod **mods){
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_modify(ld->ld, dn, mods);
-#else
-	// should uncache the dn.
-	return ldap_modify(ld->ld, dn, mods);
-#endif
 }
 
 int gk_ldap_modify_s (GK_LDAP *ld, char const *dn, LDAPMod **mods){
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_modify_s(ld->ld, dn, mods);
-#else
-	// should uncache the dn.
-	return ldap_modify_s(ld->ld, dn, mods);
-#endif
 }
 
 #if (LDAP_VERSION_MAX >= LDAP_VERSION3)
@@ -553,9 +430,6 @@ int gk_ldap_abandon_ext (GK_LDAP *ld, int msgid, LDAPControl **serverctrls,
 int gk_ldap_abandon (GK_LDAP *ld, int msgid) {
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifndef LDAP_PROVIDES_CACHE
-	gk_ldap_cache_abandon(ld, msgid);
-#endif
 	return ldap_abandon(ld->ld, msgid);
 }
 
@@ -563,16 +437,7 @@ int gk_ldap_result (GK_LDAP *ld, int msgid, int all,struct timeval *timeout,
 		    LDAPMessage **result){
 	if (NULL==ld)
 		return LDAP_UNAVAILABLE;
-#ifdef LDAP_PROVIDES_CACHE
 	return ldap_result(ld->ld, msgid, all, timeout, result);
-#else
-	if((*result=gk_ldap_cache_get_result(ld, msgid, all))!=NULL) {
-		return LDAP_SUCCESS;
-	}
-	int rv=ldap_result(ld->ld, msgid, all, timeout, result);
-	gk_ldap_add_result_by_id(ld, msgid, all, *result);
-	return rv;
-#endif
 }
 
 int gk_ldap_msgid (LDAPMessage *lm) {
@@ -751,11 +616,7 @@ void gk_ldap_controls_free (LDAPControl **ctrl) {
 #endif
 
 int gk_ldap_msgfree (LDAPMessage *lm) {
-#ifndef LDAP_PROVIDES_CACHE
-	return LDAP_SUCCESS; // Do not delete if in ldap_cache.
-#else
 	return ldap_msgfree(lm);
-#endif
 }
 
 void gk_ldap_value_free (char **vals) {
@@ -780,181 +641,15 @@ void gk_ldap_cache_enable(GK_LDAP *ld, int timeout, int maxmem){
 		int gkconfig_timeout=gkconf->GetInteger("LDAPCache", "TTL", timeout);
 		int gkconfig_maxmem=gkconf->GetInteger("LDAPCache", "MaxMemory", maxmem);
 #ifdef LDAP_PROVIDES_OPENLDAP_CACHE
-		ldap_cache_enable(ld->ld, gkconfig_timeout, gkconfig_maxmem);
+		ldap_enable_cache(ld->ld, gkconfig_timeout, gkconfig_maxmem);
 		PTRACE(5, "Using openldap-cache");
-#else
-	// Use own cache...
-		ld->search_cache_mutex.Wait();
-		ld->search_cache=gk_ldap_search_type();
-		ld->search_cache_mutex.Signal();
-		ld->maxmem=gkconfig_maxmem/CACHE_AVERAGE_SEARCH_SIZE;
-		ld->max_cache_time=PTimeInterval(gkconfig_timeout*1000); // PTimeIntervall is in miliseconds
-		PTRACE(5, "Using internal cache");
 #endif
-		PTRACE(3, "Setting Cache to: " << gkconfig_maxmem << " bytes and timeout " << gkconfig_timeout
-		       << " seconds");
-	} else {
-		ld->maxmem=0;
 	}
 	return;
 }
 
-#ifndef LDAP_PROVIDES_CACHE
-
-int gk_ldap_cache_check(GK_LDAP *ld, char const *base, int scope, char const *filter,  char **attrs, int attrsonly) {
-	if((NULL==ld) || (0==ld->maxmem))
-		return -1;
-	PINDEX i=0;
-	PWaitAndSignal lock(ld->search_cache_mutex);
-	for(i=0; i<ld->search_cache.GetSize(); i++) {
-		if(ld->search_cache[i].is_search(base, scope, filter, attrs, attrsonly)) {
-			if((PTime()-ld->search_cache[i].get_insert_time())>=ld->max_cache_time) {
-				PTRACE(5, "max cache time hit: \t" << filter);
-				gk_ldap_cache_search_class *obj=
-					dynamic_cast <gk_ldap_cache_search_class *> (ld->search_cache.RemoveAt(i));
-				delete obj;
-				return -1; // was too old
-			}
-			PTRACE(5, "cache hit\tfilter=" << filter);
-			return ld->search_cache[i].msgid;
-		}
-	}
-	return -1;
-}
-
-void gk_ldap_cache_add_searchresult(GK_LDAP *ld,  char const *base, int scope, char const *filter, char **attrs,
-				    int attrsonly, LDAPMessage *res) {
-	if ((NULL==ld) || (0==ld->maxmem))
-		return;
-	gk_ldap_cache_search_class *a=new gk_ldap_cache_search_class(base, scope, filter, attrs, attrsonly, res);
-	a->msgid=gk_ldap_msgid(res);
-	ld->search_cache_mutex.Wait();
-	ld->search_cache.Append(a);
-	ld->search_cache_mutex.Signal();
-	gk_ldap_cache_delete_oldest(ld);
-}
-
-void gk_ldap_cache_delete_oldest(GK_LDAP *ld) {
-	if (NULL==ld)
-		return ;
-	ld->search_cache_mutex.Wait();
-	while ((ld->search_cache.GetSize() > 0) && (ld->search_cache.GetSize() > static_cast<PINDEX>(ld->maxmem) || (PTime()-ld->search_cache[0].get_insert_time()>ld->max_cache_time))) {
-		gk_ldap_cache_search_class *obj=dynamic_cast <gk_ldap_cache_search_class *> (ld->search_cache.RemoveAt(0));
-		delete obj;
-	}
-	ld->search_cache_mutex.Signal();
-}
-
 void gk_ldap_cache_delete(GK_LDAP *ld, int timeout, int maxmem) {
-	if (NULL==ld)
-		return ;
-	ld->search_cache_mutex.Wait();
-	ld->search_cache=gk_ldap_search_type();
-	ld->search_cache_mutex.Signal();
+#ifdef LDAP_PROVIDES_OPENLDAP_CACHE
+	ldap_disable_cache(ld->ld);
+#endif
 }
-
-int gk_ldap_cache_check_compare(GK_LDAP *ld,  char const *dn, char const *attr, struct berval bv) {
-	return -1;
-}
-
-void gk_ldap_cache_abandon(GK_LDAP *ld, int msgid) {
-	if ((NULL==ld) || (0==ld->maxmem))
-		return ;
-	PINDEX i=0;
-	ld->search_cache_mutex.Wait();
-	for(i=0; i<ld->search_cache.GetSize(); i++)
-		if(ld->search_cache[i].msgid==msgid) {
-			gk_ldap_cache_search_class *obj=dynamic_cast <gk_ldap_cache_search_class *> (ld->search_cache.RemoveAt(i));
-			delete obj;
-		}
-	ld->search_cache_mutex.Signal();
-}
-
-LDAPMessage * gk_ldap_cache_get_message(GK_LDAP *ld, int messageid) {
-	if ((NULL==ld) || (0==ld->maxmem))
-		return NULL;
-	PINDEX i=0;
-	PWaitAndSignal lock(ld->search_cache_mutex);
-	for(i=0; i<ld->search_cache.GetSize(); i++)
-		if(ld->search_cache[i].msgid==messageid)
-			return ld->search_cache[i].message;
-	return NULL;
-}
-
-
-LDAPMessage * gk_ldap_cache_get_result(GK_LDAP *ld, int msgid, int all) {
-	if ((NULL==ld) || (0==ld->maxmem))
-		return NULL;
-	PINDEX i=0;
-	PWaitAndSignal lock(ld->search_cache_mutex);
-	for(i=0; i<ld->search_cache.GetSize(); i++)
-		if(ld->search_cache[i].msgid==msgid)
-			return ld->search_cache[i].message;
-	return NULL;
-}
-
-void gk_ldap_add_result_by_id(GK_LDAP *ld, int msgid, int all, LDAPMessage *result) {
-	if ((NULL==ld) || (0==ld->maxmem))
-		return ;
-	PINDEX i=0;
-	ld->search_cache_mutex.Wait();
-	for(i=0; i<ld->search_cache.GetSize(); i++) {
-		if(ld->search_cache[i].msgid==msgid) {
-			ld->search_cache[i].message=result;
-			ld->search_cache_mutex.Signal();
-			gk_ldap_cache_delete_oldest(ld);
-			return;
-		}
-	}
-}
-
-// implementation of the search class.
-
-gk_ldap_cache_search_class::gk_ldap_cache_search_class(): base(NULL),  filter(NULL),  message(NULL),
-							  msgid(0) {}
-
-gk_ldap_cache_search_class::gk_ldap_cache_search_class(const char *bse, int scpe, const char *fltr, char **attr, int attrsnly, LDAPMessage *res) :
-	scope(scpe), attrsonly(attrsnly),  message(res)
-{
-	base=strndup(bse, strlen(bse));
-	filter=strndup(fltr, strlen(fltr));
-	attrs=PStringList(ldap_count_values(attr),attr);
-	msgid=gk_ldap_msgid(res);
-	insert_time=PTime();
-}
-
-gk_ldap_cache_search_class::~gk_ldap_cache_search_class(void) {
-	delete [] base;
-	delete [] filter;
-	ldap_msgfree(message);
-}
-
-void gk_ldap_cache_search_class::set_values(char *bse, int scpe, char *fltr, char **attr, int attrsnly, LDAPMessage *res){
-	scope=scpe;
-	attrsonly=attrsnly;
-	message=res; // cannot copy LDAPMessage.
-	base=strndup(bse, strlen(bse));
-	filter=strndup(fltr, strlen(fltr));
-	attrs=PStringList(ldap_count_values(attr),attr);
-	msgid=gk_ldap_msgid(res);
-}
-
-bool gk_ldap_cache_search_class::is_search(char const *bse, int scpe, char const *fltr, char **attr, int attrsnly){
-	PStringList p(ldap_count_values(attr),attr);
-	return ((strcmp(bse,base)==0) && (0==strcmp(fltr,filter)) && (scpe==scope) && (attrsnly==attrsonly) && (p==attrs) && (message!=NULL));
-}
-
-char * gk_ldap_cache_search_class::strndup(const char s[],int n) {
-	const char *old=s;
-	size_t len=(size_t) n ; // Very optimistic...
-	if(len < 8)
-		len=8;
-	char *nc=new char[len+1];
-	if(NULL==nc)
-		return NULL;
-	nc[n]='\0';
-	memcpy(nc,old,n);
-	return nc;
-}
-
-#endif // LDAP_PROVIDES_CACHE
