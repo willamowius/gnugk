@@ -1050,7 +1050,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	}
 
 	Address fromIP;
-	GetPeerAddress(fromIP);
+	WORD fromPort = 1720;
+	GetPeerAddress(fromIP,fromPort);
 	GkClient *gkClient = RasSrv->GetGkClient();
 	if (m_call) {
 		if (m_call->IsSocketAttached()) {
@@ -1145,6 +1146,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		bool h245Routed = RasSrv->IsH245Routed() || (useParent && gkClient->IsNATed());
 		// workaround for bandwidth, as OpenH323 library :p
 		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, m_crv, destinationString, sourceString, 100000, h245Routed);
+		call->SetSrcSignalAddr(SocketToH225TransportAddr(fromIP,fromPort));
 		if (called)
 			call->SetCalled(called);
 		else
@@ -1155,17 +1157,15 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 		m_call = callptr(call);
 		m_call->SetSetupTime(setupTime);
+		CallTable::Instance()->Insert(call);
 		// log AcctStart accounting event before inserting the call 
 		// to CallTable and connecting to a remote party
 		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
 				<<" due to accounting failure"
 				);
-			m_call = callptr(NULL);
-			delete call;
 			return false;
 		}
-		CallTable::Instance()->Insert(call);
 	}
 
 	// in routed mode the caller may have put the GK address in destCallSignalAddress
@@ -1488,7 +1488,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 void CallSignalSocket::Dispatch()
 {
 	const PTime channelStart;
-	const int setupTimeout = PMAX(GkConfig()->GetInteger("SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
+	const int setupTimeout = PMAX(GkConfig()->GetInteger(RoutedSec,"SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
 	int timeout = setupTimeout;
 		
 	while (timeout > 0) {
