@@ -198,6 +198,8 @@ static const char *RewriteSection = "RasSvr::RewriteE164";
 
 void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 {
+	PWaitAndSignal fastlock(m_RewriteFastmatch_mutex);
+	PWaitAndSignal rewritelock(m_RewriteRules_mutex);
 	m_RewriteFastmatch = config->GetString(RewriteSection, "Fastmatch", "");
 	m_RewriteRules = config->GetAllKeyValues(RewriteSection);
 	m_TrailingChar = config->GetString("RasSvr::ARQFeatures", "RemoveTrailingChar", " ")[0];
@@ -307,10 +309,16 @@ bool Toolkit::RewriteTool::RewritePString(PString & s)
 		changed = true;
 	}
 	// startsWith?
-	if (strncmp(s, m_RewriteFastmatch, m_RewriteFastmatch.GetLength()) != 0)
+	m_RewriteFastmatch_mutex.Wait();
+	if (strncmp(s, m_RewriteFastmatch, m_RewriteFastmatch.GetLength()) != 0) {
+		m_RewriteFastmatch_mutex.Signal();
 		return changed;
+	}
+	m_RewriteFastmatch_mutex.Signal();
+
 
 	PString t;
+	m_RewriteRules_mutex.Wait();
 	for (PINDEX i = 0; i < m_RewriteRules.GetSize(); ++i) {
 		PString key = m_RewriteRules.GetKeyAt(i);
 		// try a prefix match through all keys
@@ -339,6 +347,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s)
 			break;
 		}
 	}
+	m_RewriteRules_mutex.Signal();
 
 	//
 	// Do the rewrite.

@@ -413,6 +413,8 @@ public:
 		PString m_RewriteFastmatch;
 		PStringToString m_RewriteRules;
 		char m_TrailingChar;
+		mutable PMutex m_RewriteRules_mutex;
+		mutable PMutex m_RewriteFastmatch_mutex;
 	};
 
 
