@@ -44,7 +44,11 @@ avoid duplicate work.
   packets. (Take a look at the source for OpenGatekeeper to see how this
   can be implemented!)
 
-- implement LDAP access
+- LDAP access: (Assigned to: martinfroehlich, mmuehlen, rkeil)
+  o _Test_ the LDAP functionality
+  o implement the authentificator functionality
+  o implement the screening (based on authentification) functionality
+  o implement the RFC 1823 LDAP-API by PWlib/OpenH323lib based functions
 
 - The resourceManager should use the new CallTable and don't keep
   it's on list of resource allocations.
