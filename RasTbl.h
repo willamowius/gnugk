@@ -805,14 +805,6 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-inline bool CallRec::IsDurationLimitExceeded() const
-{
-	PWaitAndSignal lock(m_usedLock);
-	const long now = time(NULL);
-	return (m_durationLimit > 0 && m_connectTime != 0 
-		&& ((now - m_connectTime) > m_durationLimit));
-}
-
 inline long CallRec::GetDurationLimit() const
 {
 	return m_durationLimit;
@@ -848,19 +840,9 @@ inline void CallRec::SetDisconnectCause( unsigned causeCode )
 	m_disconnectCause = causeCode;
 }
 
-inline long CallRec::GetDuration() const
-{
-	PWaitAndSignal lock(m_usedLock);
-	return m_connectTime 
-		? (m_disconnectTime 
-			? (m_disconnectTime - m_connectTime) 
-			: ((long)time(NULL) - m_connectTime))
-		: 0;
-}
-
 inline bool CallRec::IsTimeout(const time_t now) const
 {
-	return (m_timeout > 0) && ((now - m_timer) > m_timeout);
+	return (m_timeout > 0) && ((now - m_timer) >= m_timeout);
 }
 
 #endif // RASTBL_H

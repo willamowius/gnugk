@@ -1401,6 +1401,25 @@ void CallRec::SetDisconnectTime(time_t tm)
 	if( m_disconnectTime == 0 )
 		m_disconnectTime = tm;
 }
+
+bool CallRec::IsDurationLimitExceeded() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	const long now = time(NULL);
+	return (m_durationLimit > 0 && m_connectTime != 0 
+		&& ((now - m_connectTime) > m_durationLimit));
+}
+
+long CallRec::GetDuration() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_connectTime 
+		? (m_disconnectTime 
+			? (m_disconnectTime - m_connectTime) 
+			: ((long)time(NULL) - m_connectTime))
+		: 0;
+}
+
 /*
 bool CallRec::IsTimeout(
 	const time_t now,
