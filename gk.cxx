@@ -23,6 +23,7 @@
 #endif
 
 #ifndef WIN32
+#define HAS_SETUSERNAME
 #include <signal.h>
 #endif
 #include "gk.h"
@@ -184,7 +185,35 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 	return true;
 }
 
+bool Gatekeeper::SetUserAndGroup(const PString &username)
+{
+	return false;
+}
+
 #else
+#  include <pwd.h>
+
+bool Gatekeeper::SetUserAndGroup(const PString &username)
+{
+#if defined(P_PTHREADS) && !defined(P_THREAD_SAFE_CLIB)
+	static const size_t MAX_PASSWORD_BUFSIZE = 1024;
+
+	struct passwd userdata;
+	struct passwd *userptr;
+	char buffer[MAX_PASSWORD_BUFSIZE];
+
+#if defined (P_LINUX) || defined (P_AIX) || defined(P_IRIX) || (__GNUC__>=3 && defined(P_SOLARIS)) || defined(P_RTEMS)
+	::getpwnam_r(username,&userdata,buffer,sizeof(buffer),&userptr);
+#else
+	userptr = ::getpwnam_r(username, &userdata, buffer, sizeof(buffer));
+#endif
+#else
+	struct passwd *userptr = ::getpwnam(username);
+#endif
+
+	return userptr && userptr->pw_name 
+		&& (::setgid(userptr->pw_gid) == 0) && (::setuid(userptr->pw_uid) == 0);
+}
 
 void UnixShutdownHandler(int sig)
 {
@@ -234,6 +263,9 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "i-interface:"
 		 "l-timetolive:"
 		 "b-bandwidth:"
+#ifdef HAS_SETUSERNAME
+		 "u-user:"
+#endif
 #if PTRACING
 		 "t-trace."
 		 "o-output:"
@@ -338,6 +370,9 @@ void Gatekeeper::PrintOpts(void)
 		"  -i  --interface IP : The IP that the gatekeeper listen to\n"
 		"  -l  --timetolive n : Time to live for client registration\n"
 		"  -b  --bandwidth n  : Specify the total bandwidth\n"
+#ifdef HAS_SETUSERNAME
+		"  -u  --user name    : Run as this user\n"
+#endif
 #if PTRACING
 		"  -t  --trace        : Set trace verbosity\n"
 		"  -o  --output file  : Write trace to this file\n"
@@ -353,6 +388,19 @@ void Gatekeeper::Main()
 {
 	PArgList & args = GetArguments();
 	args.Parse(GetArgumentsParseString());
+
+#ifdef HAS_SETUSERNAME
+	if (args.HasOption('u')) {
+		const PString username = args.GetOptionString('u');
+
+		if ( !SetUserAndGroup(username) ) {
+			cout << "GNU Gatekeeper could not run as user "
+			     << username
+			     << endl;
+			return;
+		}
+	}
+#endif
 
 	if(!InitLogging(args) || !InitToolkit(args))
 		return;

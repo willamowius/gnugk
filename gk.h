@@ -68,6 +68,11 @@ class Gatekeeper : public PProcess {
 	/** print the available command-line-options **/
 	void PrintOpts(void);
 
+	/** Set a new user and group (ownership) for the GK process.
+		The group that will be set is the user's default group.
+	*/
+	virtual bool SetUserAndGroup(const PString &username);
+
 	//@}
 
 };
