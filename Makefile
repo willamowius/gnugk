@@ -88,7 +88,9 @@ CLEAN_FILES     += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
 		LDAP_SFilter.cxx  delete.cxx   init.cxx      options.cxx \
 		abandon.cxx       free.cxx     parse.cxx     modify.cxx \
 		add.cxx           getattr.cxx  result.cxx    getresults.cxx \
-		bind.cxx          getdn.cxx    messages.cxx  search.cxx 
+		bind.cxx          getdn.cxx    messages.cxx  search.cxx \
+		LDAP_SBindRequest_authentication.h LDAP_SFilter.h ber.h \
+		ldap-int.h ldap_cdefs.h ldapapi.h
 
 HAS_LDAP	= 1
 #STDCCFLAGS_stub := $(STDCCFLAGS)
@@ -163,6 +165,8 @@ CallTbl.o: CallTbl.h
 BroadcastListen.cxx: BroadcastListen.h
 
 ifdef HAS_LEVEL_TWO_LDAPAPI
+gkauth.cxx: ldapapi.h
+
 LDAP_SBindRequest_authentication.cxx: ldap/src/LDAP_SBindRequest_authentication.cxx LDAP_SBindRequest_authentication.h
 	cp ldap/src/LDAP_SBindRequest_authentication.cxx .
 
@@ -223,7 +227,7 @@ ldaptest.cxx: ldap/src/ldaptest.cxx ldap-int.h ldapapi.h
 result.cxx: ldap/src/result.cxx ldap-int.h ldapapi.h
 	cp ldap/src/result.cxx .
 
-bind.cxx: ldap/src/bind.cxx ldap-int.h ldapapi.h
+bind.cxx: ldap/src/bind.cxx ldap-int.h ldapapi.h LDAP_SBindRequest_authentication.h
 	cp ldap/src/bind.cxx .
 
 getdn.cxx: ldap/src/getdn.cxx ldap-int.h ldapapi.h
@@ -232,7 +236,7 @@ getdn.cxx: ldap/src/getdn.cxx ldap-int.h ldapapi.h
 messages.cxx: ldap/src/messages.cxx ldap-int.h ldapapi.h
 	cp ldap/src/messages.cxx .
 
-search.cxx: ldap/src/search.cxx ldap-int.h ldapapi.h
+search.cxx: ldap/src/search.cxx ldap-int.h ldapapi.h LDAP_SFilter.h
 	cp ldap/src/search.cxx .
 
 getresults.cxx: ldap/src/getresults.cxx ldap-int.h ldapapi.h
