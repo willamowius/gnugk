@@ -1,108 +1,122 @@
 -*- mode: outline; eval: (setq outline-regexp "[ \\.0-9]+) ") -*-
-Time-stamp: <02/05/08 18:07:15 martinf>
+Time-stamp: <02/05/13 18:37:07 martinf>
 $Id$
 
-Format of the current CDR:
+ 1) Format of the current CDR
+    The call detail (or data) records are written to the gatekeeper
+    status port among other information. They are typically
+    discriminated by matching against the first letters 'CDR' as
+    described by (1.1).
+    The field delimeter is the vertical bar '|' 
+    The record delimeter is the linefeed, either '\r\n' (M$-OS) or '\n'
+    (POSIX OS).
 
- 0) Delimeter
-    The field delimeter is the vertical bar '|'
-    The record delieter is the linefeed, either '\r\n' (M$-OS) or '\n'
-    (POSIX OS). 
+ 1.1) Tag 'CDR'
+      [CDR]
+      Simply the literal tag 'CDR'. 
 
- 1) Tag 'CDR'
-    [CDR]
-    Simply the literal tag 'CDR'. 
+ 1.2) Call Number
+      [4]
+      Integer value, local to gatekeeper
 
- 2) Call Number
-    [4]
-    Integer value, local to gatekeeper
+ 1.3) Call Identifier (guid)
+      [56 34 34 34 34 ef 14 00 2b 21 29 29 77 c2 f7 cc]
+      Global H.323 call identifier in hexadecimal representation
 
- 3) Call Identifier (guid)
-    [56 34 34 34 34 ef 14 00 2b 21 29 29 77 c2 f7 cc]
-    Global H.323 call identifier in hexadecimal representation
+ 1.4) Call Duration
+      [26.799]
+      Fixed point representation in seconds with millisecond resolution
 
- 4) Call Duration
-    [26.799000]
-    Fixed point representation in seconds with millisecond resolution
+ 1.5) Call Start 
+      [Wed, 13 Mar 2002 17:39:41 +0100]
+      Textual time representation of the beginning of the billable call
+      as specified in 'UseCDRFormat'-tag in the ini-file. Defaults to
+      RFC 1123 (with numerical time zone information) in local
+      time. With the 'UseUTCinCDR'-tag the time zone may be switched to
+      Universal Time Coordinates (UTC).
 
- 5) Call Start 
-    [Wed, 13 Mar 2002 17:39:41 +0100]
-    Textual time representation of the beginning of the billable call as
-    specified in 'UseCDRFormat'-tag in the ini-file. Defaults to RFC
-    1123 (with numerical time zone information) in local time. With the
-    'UseUTCinCDR'-tag the time zone may be switched to Universal Time
-    Coordinates (UTC).
+ 1.6) Call End
+      [Wed, 13 Mar 2002 17:40:07 +0100]
+      Textual time representation of the end of the billable
+      call. Format as specified for (1.5) Call Start.
 
- 6) Call End
-    [Wed, 13 Mar 2002 17:40:07 +0100]
-    Textual time representation of the end of the billable call. Format
-    as specified for (5) Call Start.
+ 1.7) Calling Endpoint (A) as dotted decimal
+      [195.71.100.56:1720]
+      Internet Protocol Address and Port of calling endpoint in dotted
+      decimal notation. The Port part is seperated from the Address part
+      by a colon (:).
 
- 7) Calling Endpoint (A) as dotted decimal
-    [195.71.100.56:1720]
+ 1.8) Calling Endpoint (A) as Endpoint Identifier
+      [5632_gk3]
+      H225 Endpoint Identifier of calling endpoint
 
-    Internet Protocol Address and Port of calling endpoint in dotted
-    decimal notation. The Port part is seperated from the Address part
-    by a colon (:).
+ 1.9) Called Endpoint (B) as dotted decimal
+      [195.71.100.3:20000]
+      Internet Protocol Address and Port of called endpoint in dotted
+      decimal notation. The Port part is seperated from the Address part
+      by a colon (:).
 
- 8) Calling Endpoint (A) as Endpoint Identifier
-    [5632_gk3]
-    H225 Endpoint Identifier of calling endpoint
+1.10) Called Endpoint (B) as Endpoint Identifier
+      [5631_gk3]
+      H225 Endpoint Identifier of called endpoint
 
- 9) Called Endpoint (B) as dotted decimal
-    [195.71.100.3:20000]
-    Internet Protocol Address and Port of called endpoint in dotted
-    decimal notation. . The Port part is seperated from the Address part
-    by a colon (:).
+1.11) Destination Information
+      [00495246801581:dialedDigits]
+      This is the Destination Information Alias Address filed of an
+      H.225 Admission Request. For a reaon or another the fildes are
+      delimited by '=' [equal] characters and the notation is
+      'value:tag', that is a tag-value pair, delimited by a ':' [colon]
+      character in value then tag order.
 
-10) Called Endpoint (B) as Endpoint Identifier
-    [5631_gk3]
-    H225 Endpoint Identifier of called endpoint
+1.12) Source Information
+      [49524680321:dialedDigits=49524680321:h323_ID=49524680321:dialedDigits=49524680321:h323_ID]
+      This is the Source Information Alias Address filed of an H.225
+      Admission Request. For a reaon or another the fildes are delimited
+      by '=' [equal] characters and the notation is 'value:tag', that is
+      a tag-value pair, delimited by a ':' [colon] character in value
+      then tag order.
 
-11) Destination Information
-    [00495246801581:dialedDigits]
+1.13) Reporting Gatekeeper's name
+      [martinf-GK]
+      Name as specified in ini-file by 'Name'-tag. This is the
+      possibility to discriminate between two GKs if the CDRs are merged
+      into one file/stream.
 
-    H225_AdmissionRequest
-	m_destinationInfo
-	H225_ArrayOf_AliasAddress m_destinationInfo;
+2) Notes on formats in ini-files
+   Every value will be taken between the '=' equal-sign and the newline
+   '\n' character as entered.  Leading as well as tailing spaces are to
+   be avoided for eazy maintainance.
+   Use a comment, starting with '#', to denote any special settings, as
+   such as ones containing tailing spaces
 
-12) Source Information
-    [49524680321:dialedDigits=49524680321:h323_ID=49524680321:dialedDigits=49524680321:h323_ID]
+2.1) Note truth representation for 'UseUTCinCDR'-tag
+     Boolean values should be denoted either as 'TRUE' or 'FALSE'
+     alternatively as 'YES' or 'NO' (each without quotes).
 
-    H225_AdmissionRequest
-	m_destinationInfo
-	H225_ArrayOf_AliasAddress m_srcInfo
+2.2) Note on time representation for 'UseCDRFormat'-tag
+     The format of the time representation is the one given by the ptime
+     methods as set forth in pwlib/include/ptlib/ptime.h:
+     h         hour without leading zero
+     hh        hour with leading zero
+     m         minute without leading zero
+     mm        minute with leading zero
+     s         second without leading zero
+     ss        second with leading zero
+     u         tenths of second
+     uu        hundedths of second with leading zero
+     uuu       millisecond with leading zeros
+     uuuu      microsecond with leading zeros
+     a         the am/pm string
+     w/ww/www  abbreviated day of week name
+     wwww      full day of week name
+     d         day of month without leading zero
+     dd        day of month with leading zero
+     M         month of year without leading zero
+     MM        month of year with leading zero
+     MMM       month of year as abbreviated text
+     MMMM      month of year as full text
+     y/yy      year without century
+     yyy/yyyy  year with century
+     z         the time zone description
 
-13) Reporting Gatekeeper's name
-    [martinf-GK]
-    Name as specified in ini-file by 'Name'-tag. This is the possibility
-    to discriminate between two GKs if the CDRs are merged into one
-    file/stream.
-
-The format of the 
-  Format description copied from pwlib/include/ptlib/ptime.h
-
-  \end{description}
-       \item[h]         hour without leading zero
-       \item[hh]        hour with leading zero
-       \item[m]         minute without leading zero
-       \item[mm]        minute with leading zero
-       \item[s]         second without leading zero
-       \item[ss]        second with leading zero
-       \item[u]         tenths of second
-       \item[uu]        hundedths of second with leading zero
-       \item[uuu]       millisecond with leading zeros
-       \item[uuuu]      microsecond with leading zeros
-       \item[a]         the am/pm string
-       \item[w/ww/www]  abbreviated day of week name
-       \item[wwww]      full day of week name
-       \item[d]         day of month without leading zero
-       \item[dd]        day of month with leading zero
-       \item[M]         month of year without leading zero
-       \item[MM]        month of year with leading zero
-       \item[MMM]       month of year as abbreviated text
-       \item[MMMM]      month of year as full text
-       \item[y/yy]      year without century
-       \item[yyy/yyyy]  year with century
-       \item[z]         the time zone description
-\end{description}
+End of CDR.txt
