@@ -1,65 +1,72 @@
-<sect>Basic Gatekeeper Configuration
-<p>
-The behavior of the gatekeeper is completely determined by the command line
-options and configuration file. Some command line options may override
-the setting of the configuration file.
-For example, the option <tt/-l/ overrides the setting <tt/TimeToLive/
-in the configuration file.
+<!-- French translation from reference.sgml v1.1 -->
 
-<sect1>Command Line Options
+<sect>Configuration Basique du Gatekeeper
+<p>
+Le comportement du gatekeeper est compl&#232;tement d&#233;termin&#233; par
+les options de la ligne de commande et le fichier de configuration. Certaines
+options de la ligne de commande peuvent annuler certains param&#232;tres du
+fichier de configuration.
+Par exemple, l'option <tt/-l/ annule le param&#232;tre <tt/TimeToLive/
+dans le fichier de configuration.
+
+<sect1>Options de la Ligne de Commande
 <label id="commandline">
 <p>
-Almost every option has a short and a long format, e.g.,
-<tt/-c/ is the same as <tt/--config/.
+Presque chaque option a un format court et un format long, i.e.,
+<tt/-c/ est comme <tt/--config/.
 <p>
-<sect2>Basic
+<sect2>Basique
 <p>
 <descrip>
 <tag/<tt/-h  --help//
-Show all available options and quit the program.
+Liste toutes les options disponibles et quitte le programme.
 <tag/<tt/-c  --config filename//
-Specify the configuration file to use.
+Indique le fichier de configuration &#224; utiliser.
 <tag/<tt/-s  --section section//
-Specify which main section to use in the configuration file. The default is [Gatekeeper::Main].
+Indique quelle section principale utiliser dans le fichier de configuration.
+Par d&#233;faut, c'est [Gatekeeper::Main].
 <tag/<tt/-i  --interface IP//
-Specify the interface (IP number) that the gatekeeper listens to.
-You should leave out this option to let the gatekeeper automatically determine
-the IP it listens to, unless you want the gatekeeper only binds to
-a specified IP.
+Indique l'interface (num&#233;ro IP) sur laquelle &#233;coute le gatekeeper.
+Vous devriez omettre cette option pour laisser le gatekeeper d&#233;terminer
+automatiquement l'IP sur laquelle il &#233;coute, &#224; moins que vous ne
+vouliez que le gatekeeper s'attache &#224; une IP pr&#233;cise.
 <tag/<tt/-l  --timetolive n//
-Specify the time-to-live timer (in seconds) for endpoint registration.
-It overrides the setting <tt/TimeToLive/ in the configuration file.
-See <ref id="ttl" name="there"> for detailed explanations.
+Indique la minuterie (en secondes) du temps-&#224;-vivre pour l'enregistrement
+de terminal. Il annule le param&#232;tre <tt/TimeToLive/ du fichier de
+configuration. Voir <ref id="ttl" name="ici"> pour des explications
+d&#233;taill&#233;es.
 <tag/<tt/-b  --bandwidth n//
-Specify the total bandwidth available for the gatekeeper.
-Without specifying this option, the bandwidth management
-is disable by default.
+Indique la bande passante totale disponible pour le gatekeeper.
+En ne pr&#233;cisant pas cette option, la gestion de la bande passante est
+d&#233;sactiv&#233;e par d&#233;faut.
 <tag/<tt/--pid filename//
-Specify the pid file, only valid for Unix version.
+Indique le fichier pid, valable uniquement pour les versions Unix.
 <tag/<tt/-u  --user name//
-Run the gatekeeper process as this user. Only valid for Unix versions.
+Ex&#233;cute le processus gatekeeper avec cet utilisateur. Valable uniquement
+pour les version Unix.
 </descrip>
 
-<sect2>Gatekeeper Mode
+<sect2>Mode du Gatekeeper
 <p>
-The options in this subsection override the settings in the
-<ref id="routed" name="[RoutedMode] section"> of the configuration file.
+Les options de cette sous-section annulent les param&#232;tres de la
+<ref id="routed" name="section [RoutedMode]"> du fichier de configuration.
 <descrip>
 <tag/<tt/-d  --direct//
-Use direct endpoint call signalling.
+Utilise le signal d'appel direct de terminal.
 <tag/<tt/-r  --routed//
-Use gatekeeper routed call signalling.
+Utilise le signal d'appel rout&#233; du gatekeeper.
 <tag/<tt/-rr  --h245routed//
-Use gatekeeper routed call signalling and H.245 control channel.
+Utilise le signal d'appel rout&#233; du gatekeeper et le canal de
+contr&#244;le H.245.
 </descrip>
 
-<sect2>Debug Information
+<sect2>Information de Debug
 <p>
 <descrip>
 <tag/<tt/-o  --output filename//
-Write trace log to the specified file.
+Ecrit les traces dans le fichier indiqu&#233;.
 <tag/<tt/-t  --trace//
-Set trace verbosity. The more <tt/-t/ you add, the more verbose to output.
-For example, use <tt/-ttttt/ to set the trace level to 5.
+R&#232;gle le niveau de trace. Plus vous ajoutez de <tt/-t/, plus les traces
+sont compl&#232;tes.
+Par exemple, utiliser <tt/-ttttt/ pour r&#233;gler le niveau de trace &#224; 5.
 </descrip>
-
