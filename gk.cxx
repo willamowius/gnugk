@@ -22,12 +22,15 @@
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
+#include <ptlib.h>
+#include <ptlib/sockets.h>
 #ifndef WIN32
 #define HAS_SETUSERNAME
 #include <signal.h>
 #endif
-#include <ptlib.h>
-#include <ptlib/sockets.h>
+#ifdef P_LINUX
+#include <sys/resource.h>
+#endif
 #include <h225.h>
 #include "h323util.h"
 #include "Toolkit.h"
@@ -306,6 +309,9 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "c-config:"
 		 "s-section:"
 		 "-pid:"
+#ifdef P_LINUX
+		 "-core:"
+#endif
 		 "h-help:"
 		 );
 }
@@ -430,6 +436,9 @@ void Gatekeeper::PrintOpts(void)
 		"  -c  --config file  : Specify which config file to use\n"
 		"  -s  --section sec  : Specify which main section to use in the config file\n"
 		"      --pid file     : Specify the pid file\n"
+#ifdef P_LINUX
+		"      --core n       : Enable core dumps (with max size of n bytes)\n"
+#endif
 		"  -h  --help         : Show this message\n" << endl;
 }
 
@@ -438,6 +447,32 @@ void Gatekeeper::Main()
 {
 	PArgList & args = GetArguments();
 	args.Parse(GetArgumentsParseString());
+
+#ifdef P_LINUX
+	// set the core file size
+	if (args.HasOption("core")) {
+		struct rlimit rlim;
+		if (getrlimit(RLIMIT_CORE, &rlim) != 0)
+			cout << "Could not get current core file size : error = " << errno << endl;
+		else {
+			cout << "Current core dump size limits - soft: " << rlim.rlim_cur
+				<< ", hard: " << rlim.rlim_max << endl;
+			int uid = geteuid();
+			seteuid(getuid()); // Switch back to starting uid for next call
+			const PCaselessString s = args.GetOptionString("core");
+			rlim_t v = (s == "unlimited" ? RLIM_INFINITY : (rlim_t)s.AsInteger());
+			rlim.rlim_cur = v;
+			if (setrlimit(RLIMIT_CORE, &rlim) != 0) 
+				cout << "Could not set current core file size to " << v << " : error = " << errno << endl;
+			else {
+				getrlimit(RLIMIT_CORE, &rlim);
+				cout << "New core dump size limits - soft: " << rlim.rlim_cur
+					<< ", hard: " << rlim.rlim_max << endl;
+			}
+			seteuid(uid);
+		}
+	}
+#endif
 
 #ifdef HAS_SETUSERNAME
 	if (args.HasOption('u')) {

@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- new --core command line argument to enable core dump generation for Unix
 - new Vendor config variable for [Endpoint] section to provide vendor specific
   extensions when registering with a parent gatekeeper
 - added support for Connect event in SqlAcct module, thanks to Boian Bonev

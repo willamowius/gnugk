@@ -38,6 +38,10 @@ is disable by default.
 Specify the pid file, only valid for Unix version.
 <tag/<tt/-u  --user name//
 Run the gatekeeper process as this user. Only valid for Unix versions.
+<tag/<tt/--core n//
+(Unix only) Enable writting core dump files when the application crashes. A core
+dump file will not exceed n bytes in size. A special constant "unlimited"
+may be used to not enforce any particular limit.
 </descrip>
 
 <sect2>Gatekeeper Mode

@@ -93,6 +93,9 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New --core command line argument to enable core dump generation for Unix.
+
+<item>
 A new <tt/Vendor/ config variable for <ref id="endpoint" name="[Endpoint]">
 section to provide vendor specific extensions when registering with a parent gatekeeper.
 
