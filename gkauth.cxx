@@ -675,7 +675,6 @@ PString LDAPPasswordAuth::GetPassword(PString & alias)
   using namespace lctn; // LDAP config tags and names
   // get pointer to new answer object
   if(LDAPAuth::Instance()->getAttribute(alias, H245PassWord, attr_values)){
-PTRACE(2, "passwd:" + attr_values[0]);
     return attr_values[0];
   }
   return "";
