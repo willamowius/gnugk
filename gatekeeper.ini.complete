@@ -249,6 +249,9 @@ rule=allow
 [RasSrv::ARQFeatures]
 #ArjReasonRouteCallToSCN=0
 #ArjReasonRouteCallToGatekeeper=1
+#CallUnregisteredEndpoints=1
+#RemoveTrailingChar=#   
+
 
 
 [RasSrv::LRQFeatures]
