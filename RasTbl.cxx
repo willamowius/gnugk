@@ -1095,7 +1095,9 @@ CallRec::~CallRec()
 	m_usedLock.Wait();
 	if((!m_callingProfile.GetH323ID().IsEmpty()) && (!m_calledProfile.GetH323ID().IsEmpty())) {
 		PString cdrString(this->GenerateCDR());
- 		GkStatus::Instance()->SignalStatus(cdrString, 1);
+		if(NULL!=m_startTime ||
+		   Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0")))
+			GkStatus::Instance()->SignalStatus(cdrString, 1);
  		PTRACE(3, cdrString);
 	}
 	RemoveAll();
