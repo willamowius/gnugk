@@ -1,0 +1,462 @@
+AC_INIT(gk.h)
+
+AC_PROG_CXX
+
+dnl ########################################################################
+dnl look for ptlib, use a preference order of explicit PWLIBDIR, directory
+dnl at same level, home directory, /usr/local or /usr.
+
+if test "${PWLIBDIR:-unset}" != "unset" ; then
+  AC_CHECK_FILE(${PWLIBDIR}/version.h, HAS_PTLIB=1)
+fi
+if test "${HAS_PTLIB:-unset}" = "unset" ; then
+  AC_CHECK_FILE(${HOME}/pwlib/include/ptlib.h, HAS_PTLIB=1)
+  if test "${HAS_PTLIB:-unset}" != "unset" ; then
+    PWLIBDIR="${HOME}/pwlib"
+  else
+    AC_CHECK_FILE(/usr/local/include/ptlib.h, HAS_PTLIB=1)
+    if test "${HAS_PTLIB:-unset}" != "unset" ; then
+      AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/local/bin)
+    else
+      AC_CHECK_FILE(/usr/include/ptlib.h, HAS_PTLIB=1)
+      if test "${HAS_PTLIB:-unset}" != "unset" ; then
+        AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/share/pwlib/make/)
+      fi
+    fi
+  fi
+fi
+
+if test "${HAS_PTLIB:-unset}" = "unset" ; then
+  echo "Cannot find pwlib - please install or set PWLIBDIR and try again"
+  exit
+fi
+
+if test "${PWLIBDIR:-unset}" = "unset" ; then
+  if test "${PTLIB_CONFIG:-unset}" = "unset" ; then
+    echo "Cannot find ptlib-config - please install and try again"
+    exit
+  fi
+  PWLIBDIR=`$PTLIB_CONFIG --prefix`
+fi
+
+if test "x$PWLIBDIR" = "x/usr" -o "x$PWLIBDIR" = "x/usr/"; then
+  PWLIBDIR="/usr/share/pwlib/"
+fi
+if test "xPWLIBDIR" = "x/usr/local" -o "x$PWLIBDIR" = "x/usr/"; then
+  PWLIBDIR="/usr/local/share/pwlib/"
+fi
+
+echo "PWLib prefix set to.... $PWLIBDIR"
+
+AC_SUBST(PWLIBDIR)
+
+dnl ########################################################################
+dnl extract the PWLIB version
+MAJOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
+MINOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
+BUILD_NUMBER=`cat ${PWLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
+PWLIB_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
+AC_SUBST(PWLIB_VERSION)
+
+echo "PTLib version is ${PWLIB_VERSION}"
+
+dnl ########################################################################
+dnl look for openh323, use a preference order of explicit OPENH323DIR, directory
+dnl at same level, home directory, /usr/local or /usr.
+
+if test "${OPENH323DIR:-unset}" != "unset" ; then
+  AC_CHECK_FILE(${OPENH323DIR}/version.h, HAS_OPENH323=1)
+fi
+if test "${HAS_OPENH323:-unset}" = "unset" ; then
+  AC_CHECK_FILE(${PWLIBDIR}/../openh323/version.h, HAS_OPENH323=1)
+  if test "${HAS_OPENH323:-unset}" != "unset" ; then
+    PWLIBDIR="${OPENH323DIR}/../openh323"
+  else
+    AC_CHECK_FILE(${HOME}/openh323/include/h323.h, HAS_OPENH323=1)
+    if test "${HAS_OPENH323:-unset}" != "unset" ; then
+      OPENH323DIR="${HOME}/openh323"
+    else
+      AC_CHECK_FILE(/usr/local/include/h323.h, HAS_OPENH323=1)
+      if test "${HAS_OPENH323:-unset}" != "unset" ; then
+        OPENH323DIR="/usr/local"
+      else
+        AC_CHECK_FILE(/usr/include/h323.h, HAS_OPENH323=1)
+        if test "${HAS_OPENH323:-unset}" != "unset" ; then
+		  OPENH323DIR="/usr"
+        fi
+      fi
+    fi
+  fi
+fi
+
+if test "${HAS_OPENH323:-unset}" = "unset" ; then
+  echo "Cannot find OpenH323 - please install or set OPENH323DIR and try again"
+  exit
+fi
+
+if test "x$OPENH323DIR" = "x/usr" -o "x$OPENH323DIR" = "x/usr/"; then
+  OPENH323DIR="/usr/share/openh323/"
+fi
+if test "xOPENH323DIR" = "x/usr/local" -o "x$OPENH323DIR" = "x/usr/"; then
+  OPENH323DIR="/usr/local/share/openh323/"
+fi
+
+echo "OpenH323 prefix set to.... $OPENH323DIR"
+
+AC_SUBST(OPENH323DIR)
+
+dnl ########################################################################
+dnl extract the OpenH323 version
+MAJOR_VERSION=`cat ${OPENH323DIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
+MINOR_VERSION=`cat ${OPENH323DIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
+BUILD_NUMBER=`cat ${OPENH323DIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
+OPENH323_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
+AC_SUBST(OPENH323_VERSION)
+
+echo "OpenH323 version is ${OPENH323_VERSION}"
+
+dnl ########################################################################
+dnl set the PREFIX accordingly
+if test "x$prefix" = "xNONE"; then
+   INSTALLPREFIX="/usr/local"
+else
+   INSTALLPREFIX="${prefix}"
+fi
+
+AC_SUBST(INSTALLPREFIX)
+
+dnl #########################################################################
+dnl  Check for RADIUS
+dnl ########################################################################
+AC_ARG_ENABLE(radius, 
+[  --enable-radius               enable RADIUS support (default=yes)], 
+[ radius="${enableval}" ], [radius="yes"] 
+)
+	
+if test "x${radius}" != "xno" ; then     
+   HAS_RADIUS=1
+   STDCCFLAGS="-DHAS_RADIUS=1 $STDCCFLAGS"
+   SOURCES="$SOURCES radproto.cxx radauth.cxx radacct.cxx"
+   echo "RADIUS support enabled"
+else
+   echo "RADIUS support disabled"
+   HAS_RADIUS=0
+fi
+AC_SUBST(HAS_RADIUS)
+
+dnl #########################################################################
+dnl  Check for LARGE FDSET
+dnl ########################################################################
+AC_ARG_WITH(large-fdset,
+[  --with-large-fdset[=MAXFD]    Maximum number of sockets supported (default=1024)],
+[ largefdset="$withval" ], 
+[ largefdset="no" ]
+)
+
+if test "x${largefdset}" != "xno" ; then     
+	if test "x${largefdset}" = "xyes"; then
+		LARGE_FDSET=32767
+	else
+   		LARGE_FDSET=${largefdset}
+	fi
+   	STDCCFLAGS="-DLARGE_FDSET=${LARGE_FDSET} $STDCCFLAGS"
+   	echo "LARGE FDSET support enabled"
+else
+	echo "LARGE FDSET support disabled"
+fi
+AC_SUBST(LARGE_FDSET)
+
+dnl #########################################################################
+dnl  Check for LDAP
+dnl ########################################################################
+AC_ARG_ENABLE(ldap, 
+[  --enable-ldap                 enable LDAP support (default=no)], 
+[ ldap="yes" ], [ ldap="no" ]
+)
+
+AC_ARG_WITH(ldap-dir,
+[  --with-ldap-dir=DIR           directory where LDAP is installed ],
+[ ldap_dir="$withval"
+  ldap_include_dir="$withval/include"
+  ldap_lib_dir="$withval/lib" 
+]
+)
+
+AC_ARG_WITH(ldap-include-dir,
+[  --with-ldap-include-dir=DIR   directory where LDAP headers are installed ],
+[ ldap_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(ldap-lib-dir,
+[  --with-ldap-lib-dir=DIR       directory where LDAP libraries are installed ],
+[ ldap_lib_dir="$withval" ]
+)
+
+if test "x${ldap}" != "xno"; then
+
+	if test "${ldap_include_dir:-unset}" = "unset"; then
+		AC_CHECK_HEADERS(ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
+		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
+			for try in ldap /usr/local /usr/local/ldap; do
+				AC_CHECK_FILE(${try}/include/ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
+				if test "${HAS_LEVELTWO_LDAPAPI:-unset}" != "unset"; then
+					ldap_include_dir=${try}/include
+					ldap_dir=${try}
+					break;
+				fi
+			done
+		fi
+	else
+		AC_CHECK_FILE(${ldap_include_dir}/ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
+		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
+			unset ldap_include_dir
+			AC_CHECK_HEADERS(ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
+			if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
+				for try in /usr/local /usr/local/ldap; do
+					AC_CHECK_FILE(${try}/include/ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
+					if test "${HAS_LEVELTWO_LDAPAPI:-unset}" != "unset"; then
+						ldap_include_dir=${try}/include
+						ldap_dir=${try}
+						break;
+					fi
+				done
+			fi
+		fi
+	fi
+		
+	if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
+		if test "${ldap_include_dir:-unset}" = "unset"; then
+			AC_CHECK_HEADERS(ldap.h,HAS_OPENLDAP_LDAPAPI=1)
+			if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
+				for try in /usr/local /usr/local/ldap; do
+					AC_CHECK_FILE(${try}/include/ldap.h,HAS_OPENLDAP_LDAPAPI=1)
+					if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
+						ldap_include_dir=${try}/include
+						ldap_dir=${try}
+						break;
+					fi
+				done
+			fi
+		else
+			AC_CHECK_FILE(${ldap_include_dir}/ldap.h,HAS_OPENLDAP_LDAPAPI=1)
+			if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
+				unset ldap_include_dir
+				AC_CHECK_HEADERS(ldap.h,HAS_OPENLDAP_LDAPAPI=1)
+				if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
+					for try in /usr/local /usr/local/ldap; do
+						AC_CHECK_FILE(${try}/include/ldap.h,HAS_OPENLDAP_LDAPAPI=1)
+						if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
+							ldap_include_dir=${try}/include
+							ldap_dir=${try}
+							break;
+						fi
+					done
+				fi
+			fi
+		fi
+	fi
+	
+	if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset" -a "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
+		AC_MSG_WARN([LDAP headers not found. Use --with-ldap-include-dir=<path>])
+		AC_MSG_WARN([LDAP support disabled])
+		echo "LDAP support disabled"
+	else
+		if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
+			AC_CHECK_LIB(ldap,ldap_open,HAS_OPENLDAP_LDAPAPI=1,unset HAS_OPENLDAP_LDAPAPI)
+			if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
+				AC_CHECK_FILE(${ldap_lib_dir}/libldap.so,HAS_OPENLDAP_LDAPAPI=1)
+				if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
+					AC_CHECK_FILE(${ldap_lib_dir}/libldap.a,HAS_OPENLDAP_LDAPAPI=1)
+				fi
+			fi
+		fi
+		if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
+			SOURCES="$SOURCES ldaplink.cxx gk_ldap_interface.cxx"
+			STDCCFLAGS="-DHAS_LDAP=1 $STDCCFLAGS"
+			ENDLDLIBS="$ENDLDLIBS -lldap"
+			if test "${ldap_lib_dir:-unset}" != "unset"; then
+				LDFLAGS="-L${ldap_lib_dir} $LDFLAGS"
+			fi
+			if test "${ldap_include_dir:-unset}" != "unset"; then
+				STDCCFLAGS="-I${ldap_include_dir} $STDCCFLAGS"
+			fi
+		fi
+			
+		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" != "unset"; then
+			SOURCES="$SOURCES ldaplink.cxx gk_ldap_interface.cxx"
+			STDCCFLAGS="-DHAS_LDAP=1 $STDCCFLAGS"
+			if test "x${ldap_dir}" = "xldap"; then
+				LDLIBS="$LDLIBS -lldapapi_\$\$(PLATFORMTYPE)_\$\$(OBJ_SUFFIX)"
+				STDCCFLAGS="-DHAS_LEVEL_TWO_LDAPAPI=1 -DLDAPVERSION=2 $STDCCFLAGS"
+			else
+				STDCCFLAGS="-DHAS_OPENH323_LDAPAPI=1 $STDCCFLAGS"
+			fi
+			if test "${ldap_lib_dir:-unset}" != "unset"; then
+				LDFLAGS="-L${ldap_lib_dir} $LDFLAGS"
+			fi
+			if test "${ldap_include_dir:-unset}" != "unset"; then
+				STDCCFLAGS="-I${ldap_include_dir} $STDCCFLAGS"
+			fi
+		fi
+		
+		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset" -a "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
+			AC_MSG_WARN([LDAP libraries not found. Use --with-ldap-library-dir=<path>])
+			AC_MSG_WARN([LDAP support disabled])
+   			echo "LDAP support disabled"
+		else
+   			echo "LDAP support enabled"
+		fi
+	fi
+else
+	echo "LDAP support disabled"
+fi
+
+dnl #########################################################################
+dnl  Check for MySQL
+dnl ########################################################################
+AC_ARG_ENABLE(mysql, 
+[  --enable-mysql                enable MySQL support (default=yes)], 
+[ mysql="${enableval}" ], [ mysql="yes" ]
+)
+
+AC_ARG_WITH(mysql-include-dir,
+[  --with-mysql-include-dir=DIR  directory where the MySQL includes may be found ],
+[ mysql_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(mysql-lib-dir,
+[  --with-mysql-lib-dir=DIR      directory where the MySQL libraries may be found ],
+[ mysql_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(mysql-dir,
+[  --with-mysql-dir=DIR          base directory where MySQL is installed ],
+[ mysql_lib_dir="$withval/lib/mysql"
+  mysql_include_dir="$withval/include"
+]
+)
+
+if test "x${mysql}" != "xno"; then
+
+	AC_CHECK_LIB(z, compress, LIBS="$LIBS -lz")
+
+	AC_MSG_CHECKING([for mysql/mysql.h])
+
+	AC_TRY_COMPILE([#include <mysql/mysql.h>], [int a = 1;],
+		MYSQL_INCLUDE=" ",
+		MYSQL_INCLUDE=
+	)
+
+	if test "x$MYSQL_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/local/include /usr/local/mysql/include $mysql_include_dir; do
+			CFLAGS="$old_CFLAGS -I$try"
+			AC_TRY_COMPILE([#include <mysql/mysql.h>], [int a = 1;],
+				MYSQL_INCLUDE="-I$try",
+				MYSQL_INCLUDE=
+			)
+			if test "x$MYSQL_INCLUDE" != "x"; then
+				break;
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$MYSQL_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([mysql headers not found. Use --with-mysql-include-dir=<path>])
+		mysql="no"
+	else
+		sql_mysql_cflags="${sql_mysql_cflags} ${MYSQL_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for mysql_init in -lmysqlclient])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/lib/mysql /usr/local/lib/mysql /usr/local/mysql/lib/mysql $mysql_lib_dir; do
+			LIBS="$old_LIBS -L$try -lmysqlclient"
+			AC_TRY_LINK([extern char mysql_init();], [mysql_init()],
+				MYSQL_LIBS="-L$try -lmysqlclient",
+				MYSQL_LIBS=
+			)
+			if test "x$MYSQL_LIBS" != "x"; then
+				break;
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		dnl #  If one or the other isn't found, disable them both..
+		dnl #  If both are found, enable them both.
+		if test "x$MYSQL_LIBS" = "x"; then
+			AC_MSG_RESULT(no)
+			MYSQL_INCLUDE=
+			AC_MSG_WARN([mysql lib not found. Use --with-mysql-lib-dir=<path>])
+			mysql="no"
+		else
+			AC_MSG_RESULT(yes) 
+			sql_mysql_ldflags="$sql_mysql_ldflags $MYSQL_LIBS"
+		fi
+	fi
+
+	sql_mysql_ldflags="$sql_mysql_ldflags $LIBS"
+
+	if test "x$mysql" = "xno"; then
+		AC_MSG_WARN([MySQL disabled])
+	fi
+else
+	mysql="no"
+fi
+
+if test "x$mysql" != "xno"; then
+	HAS_MYSQL=1
+	STDCCFLAGS = "$STDCCFLAGS ${sql_mysql_cflags}"
+	ENDLDLIBFLAGS = "$ENDLDLIBFLAGS ${sql_mysql_ldflags}"
+    echo "MySQL support disabled"
+else
+    echo "MySQL support disabled"
+	HAS_MYSQL=0
+fi
+AC_SUBST(HAS_MYSQL)
+
+dnl ########################################################################
+dnl make directives
+
+dnl ########################################################################
+dnl extract the OpenH323 version
+GNUGK_MAJOR_VERSION=`cat version.h | grep "define GNUGK_MAJOR_VERSION" | cut -f4 -d' '`
+GNUGK_MINOR_VERSION=`cat version.h | grep "define GNUGK_MINOR_VERSION" | cut -f4 -d' '`
+GNUGK_BUILD_NUMBER=`cat version.h | grep "define GNUGK_BUILD_NUMBER" | cut -f4 -d' '`
+GNUGK_BUILD_TYPE=`cat version.h | grep "define GNUGK_BUILD_TYPE" | cut -f4 -d' '`
+GNUGK_VERSION="${GNUGK_MAJOR_VERSION}.${GNUGK_MINOR_VERSION}.${GNUGK_BUILD_NUMBER}"
+echo "GNU Gatkeeper version is ${GNUGK_VERSION}"
+AC_SUBST(GNUGK_VERSION)
+AC_SUBST(GNUGK_MAJOR_VERSION)
+AC_SUBST(GNUGK_MINOR_VERSION)
+AC_SUBST(GNUGK_BUILD_NUMBER)
+AC_SUBST(GNUGK_BUILD_TYPE)
+
+if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
+	HAS_LEVELTWO_LDAPAPI=0
+fi
+AC_SUBST(HAS_LEVELTWO_LDAPAPI)
+
+MANUFACTURER="GNU"
+PROGRAMNAME="Gatekeeper"
+
+GNUGK_GVS="\"@(\#) \$\$Id${GNUGK_BUILD_TYPE} of ${PROGRAMNAME} v${GNUGK_MAJOR_VERSION}.${GNUGK_MINOR_VERSION} build\\#${GNUGK_BUILD_NUMBER} by ${MANUFACTURER} at \" __DATE__ \" \"  __TIME__ \" \$\$\""
+
+AC_SUBST(MANUFACTURER)
+AC_SUBST(PROGRAMNAME)
+AC_SUBST(GNUGK_GVS)
+AC_SUBST(STDCCFLAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(ENDLDLIBS)
+AC_SUBST(SOURCES)
+
+dnl ########################################################################
+dnl Output configured files
+
+AC_OUTPUT(Makefile)
+
