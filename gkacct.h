@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2003/09/14 21:09:29  zvision
+ * Added new FileAcct logger from Tamas Jalsovszky. Thanks!
+ * Fixed module stacking. Redesigned API.
+ *
  * Revision 1.2  2003/09/12 16:31:16  zvision
  * Accounting initially added to the 2.2 branch
  *
@@ -298,8 +302,12 @@ public:
 		callptr& call /// a call associated with the event (if any)
 		) 
 	{
-		ReadLock lock(m_reloadMutex);
-		return !m_head || m_head->LogAcctEvent(evt,call);
+		// microoptimization for configuration without accounting enabled
+		if( m_head ) {
+			ReadLock lock(m_reloadMutex);
+			return !m_head || m_head->LogAcctEvent(evt,call);
+		} else
+			return true;
 	}
 	
 private:
