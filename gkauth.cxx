@@ -2036,9 +2036,7 @@ PStringArray ARQAuthObj::GetPrefixes() const
 		}
 	}
 	if (array.GetSize() == 0)
-		// let empty destinationInfo match the ALL rule
-		array.SetSize(1);
-
+		array.AppendString(PString());
 	return array;
 }
 
