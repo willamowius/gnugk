@@ -180,7 +180,7 @@ AC_ARG_WITH(large-fdset,
 
 if test "x${largefdset}" != "xno" ; then     
 	if test "x${largefdset}" = "xyes"; then
-		LARGE_FDSET=32767
+		LARGE_FDSET=32768
 	else
    		LARGE_FDSET=${largefdset}
 	fi
@@ -190,151 +190,6 @@ else
 	echo "LARGE FDSET support disabled"
 fi
 AC_SUBST(LARGE_FDSET)
-
-dnl #########################################################################
-dnl  Check for LDAP
-dnl ########################################################################
-AC_ARG_ENABLE(ldap, 
-[  --enable-ldap                 enable LDAP support (default=no)], 
-[ ldap="yes" ], [ ldap="no" ]
-)
-
-AC_ARG_WITH(ldap-dir,
-[  --with-ldap-dir=DIR           directory where LDAP is installed ],
-[ ldap_dir="$withval"
-  ldap_include_dir="$withval/include"
-  ldap_lib_dir="$withval/lib" 
-]
-)
-
-AC_ARG_WITH(ldap-include-dir,
-[  --with-ldap-include-dir=DIR   directory where LDAP headers are installed ],
-[ ldap_include_dir="$withval" ]
-)
-
-AC_ARG_WITH(ldap-lib-dir,
-[  --with-ldap-lib-dir=DIR       directory where LDAP libraries are installed ],
-[ ldap_lib_dir="$withval" ]
-)
-
-if test "x${ldap}" != "xno"; then
-
-	if test "${ldap_include_dir:-unset}" = "unset"; then
-		AC_CHECK_HEADERS(ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
-		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
-			for try in ldap /usr/local /usr/local/ldap; do
-				AC_CHECK_FILE(${try}/include/ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
-				if test "${HAS_LEVELTWO_LDAPAPI:-unset}" != "unset"; then
-					ldap_include_dir=${try}/include
-					ldap_dir=${try}
-					break;
-				fi
-			done
-		fi
-	else
-		AC_CHECK_FILE(${ldap_include_dir}/ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
-		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
-			unset ldap_include_dir
-			AC_CHECK_HEADERS(ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
-			if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
-				for try in /usr/local /usr/local/ldap; do
-					AC_CHECK_FILE(${try}/include/ldapapi.h,HAS_LEVELTWO_LDAPAPI=1)
-					if test "${HAS_LEVELTWO_LDAPAPI:-unset}" != "unset"; then
-						ldap_include_dir=${try}/include
-						ldap_dir=${try}
-						break;
-					fi
-				done
-			fi
-		fi
-	fi
-		
-	if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
-		if test "${ldap_include_dir:-unset}" = "unset"; then
-			AC_CHECK_HEADERS(ldap.h,HAS_OPENLDAP_LDAPAPI=1)
-			if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
-				for try in /usr/local /usr/local/ldap; do
-					AC_CHECK_FILE(${try}/include/ldap.h,HAS_OPENLDAP_LDAPAPI=1)
-					if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
-						ldap_include_dir=${try}/include
-						ldap_dir=${try}
-						break;
-					fi
-				done
-			fi
-		else
-			AC_CHECK_FILE(${ldap_include_dir}/ldap.h,HAS_OPENLDAP_LDAPAPI=1)
-			if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
-				unset ldap_include_dir
-				AC_CHECK_HEADERS(ldap.h,HAS_OPENLDAP_LDAPAPI=1)
-				if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
-					for try in /usr/local /usr/local/ldap; do
-						AC_CHECK_FILE(${try}/include/ldap.h,HAS_OPENLDAP_LDAPAPI=1)
-						if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
-							ldap_include_dir=${try}/include
-							ldap_dir=${try}
-							break;
-						fi
-					done
-				fi
-			fi
-		fi
-	fi
-	
-	if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset" -a "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
-		AC_MSG_WARN([LDAP headers not found. Use --with-ldap-include-dir=<path>])
-		AC_MSG_WARN([LDAP support disabled])
-		echo "LDAP support disabled"
-	else
-		if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
-			AC_CHECK_LIB(ldap,ldap_open,HAS_OPENLDAP_LDAPAPI=1,unset HAS_OPENLDAP_LDAPAPI)
-			if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
-				AC_CHECK_FILE(${ldap_lib_dir}/libldap.so,HAS_OPENLDAP_LDAPAPI=1)
-				if test "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
-					AC_CHECK_FILE(${ldap_lib_dir}/libldap.a,HAS_OPENLDAP_LDAPAPI=1)
-				fi
-			fi
-		fi
-		if test "${HAS_OPENLDAP_LDAPAPI:-unset}" != "unset"; then
-			SOURCES="$SOURCES ldaplink.cxx gk_ldap_interface.cxx"
-			STDCCFLAGS="-DHAS_LDAP=1 $STDCCFLAGS"
-			ENDLDLIBS="$ENDLDLIBS -lldap"
-			if test "${ldap_lib_dir:-unset}" != "unset"; then
-				LDFLAGS="-L${ldap_lib_dir} $LDFLAGS"
-			fi
-			if test "${ldap_include_dir:-unset}" != "unset"; then
-				STDCCFLAGS="-I${ldap_include_dir} $STDCCFLAGS"
-			fi
-		fi
-			
-		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" != "unset"; then
-			SOURCES="$SOURCES ldaplink.cxx gk_ldap_interface.cxx"
-			STDCCFLAGS="-DHAS_LDAP=1 $STDCCFLAGS"
-			if test "x${ldap_dir}" = "xldap"; then
-				LDLIBS="$LDLIBS -lldapapi_\$\$(PLATFORMTYPE)_\$\$(OBJ_SUFFIX)"
-				STDCCFLAGS="-DHAS_LEVEL_TWO_LDAPAPI=1 -DLDAPVERSION=2 $STDCCFLAGS"
-			else
-				STDCCFLAGS="-DHAS_OPENH323_LDAPAPI=1 $STDCCFLAGS"
-			fi
-			if test "${ldap_lib_dir:-unset}" != "unset"; then
-				LDFLAGS="-L${ldap_lib_dir} $LDFLAGS"
-			fi
-			if test "${ldap_include_dir:-unset}" != "unset"; then
-				STDCCFLAGS="-I${ldap_include_dir} $STDCCFLAGS"
-			fi
-		fi
-		
-		if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset" -a "${HAS_OPENLDAP_LDAPAPI:-unset}" = "unset"; then
-			AC_MSG_WARN([LDAP libraries not found. Use --with-ldap-library-dir=<path>])
-			AC_MSG_WARN([LDAP support disabled])
-   			echo "LDAP support disabled"
-		else
-   			echo "LDAP support enabled"
-		fi
-	fi
-else
-	echo "LDAP support disabled"
-fi
 
 dnl #########################################################################
 dnl  Check for MySQL
@@ -469,19 +324,11 @@ AC_SUBST(GNUGK_MINOR_VERSION)
 AC_SUBST(GNUGK_BUILD_NUMBER)
 AC_SUBST(GNUGK_BUILD_TYPE)
 
-if test "${HAS_LEVELTWO_LDAPAPI:-unset}" = "unset"; then
-	HAS_LEVELTWO_LDAPAPI=0
-fi
-AC_SUBST(HAS_LEVELTWO_LDAPAPI)
-
 MANUFACTURER="GNU"
 PROGRAMNAME="Gatekeeper"
 
-GNUGK_GVS="\"@(\#) \$\$Id${GNUGK_BUILD_TYPE} of ${PROGRAMNAME} v${GNUGK_MAJOR_VERSION}.${GNUGK_MINOR_VERSION} build\\#${GNUGK_BUILD_NUMBER} by ${MANUFACTURER} at \" __DATE__ \" \"  __TIME__ \" \$\$\""
-
 AC_SUBST(MANUFACTURER)
 AC_SUBST(PROGRAMNAME)
-AC_SUBST(GNUGK_GVS)
 AC_SUBST(STDCCFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(ENDLDLIBS)
