@@ -54,6 +54,9 @@ rm -rf $RPM_BUILD_ROOT
 /etc/rc.d/init.d/gk
 
 %changelog
+* Tue Nov 06 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
+- Fix bugs in gk
+
 * Fri Nov 02 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
 - Upgraded 1.2
 
