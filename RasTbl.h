@@ -634,9 +634,6 @@ private:
 	PINDEX m_CallNumber;
 	mutable PReadWriteMutex listLock;
 
-	list<callptr> ForwardedCallList;
-	mutable PReadWriteMutex flistLock;
-
 	int m_capacity;
 
 	// statistics

@@ -1411,7 +1411,6 @@ CallTable::~CallTable()
 
 void CallTable::LoadConfig()
 {
-	ForwardedCallList.clear();
 	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
 	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
 	SetTotalBandWidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
@@ -1653,27 +1652,3 @@ PString CallTable::PrintStatistics() const
 		m_CallCount, m_successCall, m_neighborCall, m_parentCall);
 }
 
-/*
-void CallTable::AddForwardedCall(const callptr & call)
-{
-	WriteLock lock(flistLock);
-	ForwardedCallList.push_front(call);
-	PTRACE(3, "GK\tMark call " << call->GetCallNumber() << " as forwarded, size " << ForwardedCallList.size());
-	if (ForwardedCallList.size() > 100) // todo: be an option
-		ForwardedCallList.pop_back();
-}
-
-endptr CallTable::IsForwardedCall(const callptr & call)
-{
-	endptr ep;
-	ReadLock lock(flistLock);
-	for (std::list<callptr>::iterator b = ForwardedCallList.begin(), e = ForwardedCallList.end(); b != e; ++b)
-		if ((*b)->GetCallIdentifier() == call->GetCallIdentifier()) {
-			ep = (*b)->GetCalledParty();
-			PTRACE_IF(3, ep, "GK\tForwarded call from " << ep->GetEndpointIdentifier().GetValue() << " detected, size " << ForwardedCallList.size());
-			ForwardedCallList.erase(b);
-			break;
-		}
-	return ep;
-}
-*/
