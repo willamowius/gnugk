@@ -99,7 +99,6 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 
 	m_password = GkConfig()->GetString(EndpointSection, "Password", "");
 	m_callAddr = new H225_TransportAddress(Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(m_gkaddr));
-	m_rasAddr = new H225_TransportAddress(Toolkit::Instance()->GetMasterRASListener().GetRasAddress(m_gkaddr));
 
 	m_rewriteInfo = GkConfig()->GetAllKeyValues(RewriteE164Section);
 	m_retry = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", 10);
@@ -108,6 +107,22 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 	listener_mutex.Wait();
 	listener.Listen(GKHome, 0, 0, PSocket::CanReuseAddress);
 	listener_mutex.Signal();
+
+	listener_mutex.Wait();
+	PIPSocket::Address addr;
+	WORD port;
+	listener.GetLocalAddress(addr);
+	port=listener.GetPort();
+	listener_mutex.Signal();
+	//	m_rasAddr = new H225_TransportAddress(Toolkit::Instance()->GetMasterRASListener().GetRasAddress(m_gkaddr));
+	H225_TransportAddress rasadr;
+	rasadr.SetTag(H225_TransportAddress::e_ipAddress);
+	H225_TransportAddress_ipAddress &rasip = rasadr;
+	H225_TransportAddress_ipAddress &callip = *m_callAddr;
+	rasip.m_ip=callip.m_ip;
+	rasip.m_port=port;
+
+	m_rasAddr = new H225_TransportAddress(rasadr);
 
 	// Send RRQ from Listener
 	m_ttl = m_retry * 1000;
@@ -118,7 +133,7 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 	rrq.m_requestSeqNum = Toolkit::Instance()->GetRequestSeqNum();
 	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	rrq.m_discoveryComplete = FALSE;
-        rrq.m_rasAddress.SetSize(1);
+	rrq.m_rasAddress.SetSize(1);
 	rrq.m_rasAddress[0] = *m_rasAddr;
 
 	BuildFullRRQ(rrq);
@@ -133,12 +148,6 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 	listener.WriteTo(writestream,writestream.GetSize(), m_gkaddr, m_gkport);
 	listener_mutex.Signal();
 
-	listener_mutex.Wait();
-	PIPSocket::Address addr;
-	WORD port;
-	listener.GetLocalAddress(addr);
-	port=listener.GetPort();
-	listener_mutex.Signal();
 	alternate_mutex.Wait();
 	alternate.SetSendAddress(addr, port);
 	alternate_mutex.Signal();
