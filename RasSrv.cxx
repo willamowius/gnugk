@@ -2079,7 +2079,6 @@ template<> bool RasPDU<H225_RegistrationReject>::Process()
 	// OnRRJ
 	if ( request.HasOptionalField( H225_RegistrationReject::e_nonStandardData ) ) {
 		if ( request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard ) {
-			const H225_H221NonStandard & nonStandard = request.m_nonStandardData.m_nonStandardIdentifier;
 			// RRJ from alternateGKs
 			H225_EndpointIdentifier id;
 			id = request.m_nonStandardData.m_data.AsString();
