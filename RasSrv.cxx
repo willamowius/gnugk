@@ -1017,6 +1017,93 @@ bool H323RasSrv::SendLRQ(const H225_AdmissionRequest & arq, const endptr & reqEP
        return arqPendingList->Insert(arq, reqEP);
 }
 
+// PrefixAnalysis for rewriting the ARQ to gkclient
+
+static void PrefixAnalysis(CallingProfile &, H225_AdmissionRequest &);
+
+static void PrefixAnalysis(CallingProfile & callingProfile, H225_AdmissionRequest & obj_rr)
+{
+	PINDEX i=0;
+	H225_AliasAddress alias;
+	do {
+		alias=obj_rr.m_destinationInfo[i++];
+	} while (alias.GetTag() != H225_AliasAddress::e_dialedDigits && i < obj_rr.m_destinationInfo.GetSize());
+
+
+
+	// it makes only sence to analyse dialedDigits
+	if(alias.GetTag() != H225_AliasAddress::e_dialedDigits)
+		return ;
+	PString oldCdAlias = H323GetAliasAddressString(alias);
+	// take first telephoneNumber from cgProfile and analyse it
+	PString cgAlias;
+	if (callingProfile.getTelephoneNumbers().GetSize() > 0) {
+		cgAlias = callingProfile.getTelephoneNumbers()[0];
+	}
+	E164_AnalysedNumber tele(cgAlias);
+
+	const PString lac = callingProfile.getLac();
+	const PString prefixInternational = callingProfile.getInac();
+	const PString subscriberNumber = callingProfile.getSubscriberNumber();
+	const PString &countryCode = tele.GetCC().GetValue();
+	PString prefixNational = callingProfile.getNac();
+	const PString &areaCode = tele.GetNDC_IC().GetValue();
+	bool bReject = FALSE;
+
+	int oldCdAliasLen = oldCdAlias.GetLength();
+	//inac match
+	int len = prefixInternational.GetLength();
+	//if full match
+	if (prefixInternational == oldCdAlias.Left(len)) {
+		//cut off international prefix
+		H323SetAliasAddress(oldCdAlias.Right(oldCdAliasLen - len), obj_rr.m_destinationInfo[i-1], H225_AliasAddress::e_dialedDigits);
+		PTRACE(5, "International call");
+	//else if partial match
+	} else if (oldCdAlias == prefixInternational.Left(oldCdAliasLen)) {
+		//ARJ (incomplete address)
+		bReject = TRUE;
+	//else if no match
+	} else {
+		//nac match
+		len = prefixNational.GetLength();
+		//if full match
+		if (prefixNational == oldCdAlias.Left(len)) {
+			//cut off national prefix and add country code of CgAlias
+			 H323SetAliasAddress( countryCode + oldCdAlias.Right(oldCdAliasLen - len), obj_rr.m_destinationInfo[i-1] ,
+					      H225_AliasAddress::e_dialedDigits);
+			PTRACE(5, "National call");
+		//else if partial match
+		} else if (oldCdAlias == prefixNational.Left(oldCdAliasLen)) {
+			//ARJ (incomplete address)
+			bReject = TRUE;
+		//else if no match
+		} else {
+			//lac match
+			len = lac.GetLength();
+			//if full match
+			if(lac == oldCdAlias.Left(len)) {
+				//cut off lac and add country code, area code of CgAlias
+				H323SetAliasAddress (countryCode + areaCode +
+				          oldCdAlias.Right(oldCdAliasLen - len) , obj_rr.m_destinationInfo[i-1], H225_AliasAddress::e_dialedDigits);
+				PTRACE(5, "Local call");
+			//else if partial match
+			} else if (oldCdAlias == lac.Left(oldCdAliasLen)) {
+				//ARJ (incomplete address)
+				bReject = TRUE;
+			//else if no match
+			} else {
+				//add calling alias
+//				internationalCdAlias = GkDatabase::Instance()->rmInvalidCharsFromTelNo(cgAlias) + oldCdAlias;
+				H323SetAliasAddress(countryCode + areaCode + subscriberNumber +
+					oldCdAlias, obj_rr.m_destinationInfo[i-1], H225_AliasAddress::e_dialedDigits);
+				PTRACE(5, "Internal call");
+			}
+		}
+	}
+	return ;
+}
+
+
 /* Admission Request */
 BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arq, H225_RasMessage & obj_rpl)
 {
@@ -1079,12 +1166,16 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 				if (!bReject && !CalledEP) {
 					if (gkClient->IsRegistered()) {
 						H225_ArrayOf_AliasAddress dest = obj_rr.m_destinationInfo;
-						if (gkClient->RewriteE164(dest, false))
-							CalledEP = EndpointTable->FindEndpoint(dest);
-						if (!CalledEP) {
-							gkClient->SendARQ(obj_rr, RequestingEP);
-							return FALSE;
-						}
+// 						if (gkClient->RewriteE164(dest, false))
+// 							CalledEP = EndpointTable->FindEndpoint(dest);
+//						if (!CalledEP) {
+						H225_AdmissionRequest arq_fake=obj_rr;
+						// The obj_rr is the non-rewritten H225_AdmissionRequest. We need to change the destination-address
+						// so we copy it to arq_fake and then build a new AdmissionRequest.
+						PrefixAnalysis(pCallRec->GetCallingProfile(), arq_fake); // Number should be long enough to dertermine
+						gkClient->SendARQ(arq_fake, RequestingEP);
+						return FALSE;
+
 					} else if (arqPendingList->Insert(obj_rr, RequestingEP)) {
 						return FALSE;
 					}
@@ -1109,6 +1200,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	// We use #obj_rpl# for storing information about a potential reject (e.g. the
 	// rejectReason). If the request results in a confirm (bReject==FALSE) then
 	// we have to ignore the previous set data in #obj_rpl# and re-cast it.
+	PTRACE(1, "Processing ARQ");
 	if (obj_rpl.GetTag() != H225_RasMessage::e_admissionReject)
 		obj_rpl.SetTag(H225_RasMessage::e_admissionReject);
 	H225_AdmissionReject & arj = obj_rpl;
@@ -1789,9 +1881,9 @@ void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Add
 {
 #if PTRACING
 	if (PTrace::CanTrace(3))
-               PTRACE(3, "GK\tSend to " << rx_addr << ':' << rx_port << '\n' << setprecision(2) << obj_rpl);
-       else
-               PTRACE(2, "GK\tSend " << obj_rpl.GetTagName() << " to " << rx_addr << ':' << rx_port);
+		PTRACE(3, "GK\tSend to " << rx_addr << ':' << rx_port << '\n' << setprecision(2) << obj_rpl);
+	else
+		PTRACE(2, "GK\tSend " << obj_rpl.GetTagName() << " to " << rx_addr << ':' << rx_port);
 #endif
 
 	PBYTEArray wtbuf(4096);
