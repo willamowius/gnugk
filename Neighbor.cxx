@@ -59,6 +59,7 @@ public:
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
+	virtual bool CheckReply(RasMsg *msg) const;
 };
 
 // stupid Clarent gatekeeper
@@ -579,6 +580,36 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
 	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+	return true;
+}
+
+bool CiscoGK::CheckReply(RasMsg *msg) const
+{
+	if (msg->IsFrom(GetIP(), 0))
+		return true;
+		
+	if (msg->GetTag() != H225_RasMessage::e_locationConfirm
+			&& msg->GetTag() != H225_RasMessage::e_locationReject)
+		return false;
+
+	H225_NonStandardParameter *nonStandardData = msg->GetNonStandardParam();
+	if (nonStandardData == NULL)
+		return false;
+	
+	if (nonStandardData->m_nonStandardIdentifier.GetTag() != H225_NonStandardIdentifier::e_h221NonStandard)
+		return false;
+	
+	H225_H221NonStandard &h221 = nonStandardData->m_nonStandardIdentifier;
+	if (h221.m_manufacturerCode != 18 || h221.m_t35CountryCode != 181)
+		return false;
+	
+	PPER_Stream strm(nonStandardData->m_data);
+	Cisco_LRQnonStandardInfo ciscoNonStandardData;
+	if (ciscoNonStandardData.Decode(strm)) {
+		// here should go additional checks to match callIdentifier, for example
+	} else
+		PTRACE(5, "NB\tFailed to decode Cisco nonStandardInfo field");
+		
 	return true;
 }
 
