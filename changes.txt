@@ -1,5 +1,6 @@
 Changes from 1.0 to now (by cwhuang)
 ========================================
+- disconnect calls of a endpoint on URQ
 - add DefaultCallTimeout to remove staled calls
 - fix bug in DisconnectAlias
 - only use CallId to find CallRec if it presents, this fix a potential
