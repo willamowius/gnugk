@@ -198,12 +198,15 @@ private:
 	bool FakeSetupACK(Q931 &setup);
 	Q931 * GetSetupPDU() const;
 
-        void CgPNConversion(Q931 & q931pdu, H225_Setup_UUIE &callId); // rkeil
+        BOOL CgPNConversion();
 
 	PString DialedDigits;
+	PString CalledNumber;
 	BOOL isRoutable;
 	gk_Q931InformationMessageList Q931InformationMessages;
 	Q931 * m_SetupPDU;
+	BOOL m_numbercomplete;
+	unsigned int m_calledPLAN, m_calledTON;
 
 };
 

@@ -38,12 +38,50 @@
 #include "gkDatabase.h"
 
 const char *RoutedSec = "RoutedMode";
+const char *ProxySection = "Proxy";
+
+class PortRange {
+public:
+       WORD GetPort();
+       void LoadConfig(const char *, const char *, const char * = "");
+
+private:
+       WORD port, minport, maxport;
+       PMutex mutex;
+};
+
+WORD PortRange::GetPort()
+{
+       WORD result = port;
+       if (port > 0) {
+               PWaitAndSignal lock(mutex);
+               ++port;
+               if (port > maxport)
+                       port = minport;
+       }
+       return result;
+}
+
+void PortRange::LoadConfig(const char *sec, const char *setting, const char *def)
+{
+       PStringArray cfgs = GkConfig()->GetString(sec, setting, def).Tokenise(",.:-/'", FALSE);
+       if (cfgs.GetSize() >= 2) // no such a setting in config
+               port = minport = cfgs[0].AsUnsigned(), maxport = cfgs[1].AsUnsigned();
+       else
+               port = 0;
+       PTRACE_IF(2, port, setting << ": " << minport << '-' << maxport);
+}
+
+static PortRange Q931PortRange;
+static PortRange H245PortRange;
+static PortRange T120PortRange;
+static PortRange RTPPortRange;
 
 class H245Socket : public TCPProxySocket {
 public:
 	PCLASSINFO ( H245Socket, TCPProxySocket )
 
-		H245Socket(CallSignalSocket *);
+	H245Socket(CallSignalSocket *);
 	H245Socket(H245Socket *, CallSignalSocket *);
 	~H245Socket();
 
@@ -138,6 +176,7 @@ public:
 	// override from class LogicalChannel
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
 	virtual void StartReading(ProxyHandleThread *);
+	bool IsAttached() const { return (peer != 0); }
 
 	class NoPortAvailable {};
 
@@ -149,8 +188,6 @@ private:
 	WORD SrcPort;
 
 	static WORD GetPortNumber();
-	static WORD portNumber;
-	static PMutex mutex;
 };
 
 class T120LogicalChannel : public LogicalChannel {
@@ -241,10 +278,11 @@ endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 			PTRACE(1, "Q931\tOnSetup() no callIdentifier!");
 			return endptr(0);
 		}
-		callptr m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
-		if (m_call)
+		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+		if (m_call) {
 			if (endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress())))
 				return RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress()));
+		}
 		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
 			if(endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress))
 				return RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress);
@@ -255,15 +293,25 @@ endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 }
 
 CallSignalSocket::CallSignalSocket()
-	: TCPProxySocket("Q931s"), m_h245handler(0), m_h245socket(0)
+	: TCPProxySocket("Q931s"), m_h245handler(0), m_h245socket(0), isRoutable(FALSE), m_numbercomplete(FALSE)
 {
 	localAddr = peerAddr = INADDR_ANY;
+	m_h245handler = NULL;
+	m_h245socket = NULL;
+	m_receivedQ931 = NULL;
+	m_SetupPDU = NULL;
 }
 
 
 CallSignalSocket::~CallSignalSocket()
 {
 	delete m_h245handler;
+	delete m_receivedQ931;
+	delete m_SetupPDU;
+
+	if(NULL!=remote)
+		remote->SetDeletable();
+
 	if (m_h245socket) {
 		m_h245socket->EndSession();
 		m_h245socket->OnSignalingChannelClosed();
@@ -272,11 +320,12 @@ CallSignalSocket::~CallSignalSocket()
 }
 
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
-	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(0), m_h245socket(0), isRoutable(FALSE)
+	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(0), m_h245socket(0), isRoutable(TRUE), m_numbercomplete(FALSE)
 {
 	m_call = socket->m_call;
 	m_call->SetSocket(socket, this);
 	m_crv = (socket->m_crv & 0x7fffu);
+	m_receivedQ931 = NULL;
 	socket->GetLocalAddress(localAddr);
 	socket->GetPeerAddress(peerAddr, peerPort);
 	SetHandler(socket->GetHandler());
@@ -297,9 +346,7 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 		socket->m_h245handler = new H245Handler(socket->localAddr, calling);
 		m_h245handler = new H245Handler(localAddr, called);
 	}
-	m_SetupPDU = new Q931(*(socket->m_SetupPDU));
-	for(PINDEX i=0; socket->Q931InformationMessages.GetSize(); i++)
-		Q931InformationMessages.Append(socket->Q931InformationMessages[i]);
+	m_SetupPDU = NULL;
 }
 
 namespace { // end of anonymous namespace
@@ -328,7 +375,7 @@ void CallSignalSocket::DoRoutingDecision() {
 
 	unsigned rsn;
 	isRoutable=FALSE;
-	H323SetAliasAddress(DialedDigits,h225address);
+	H323SetAliasAddress(CalledNumber,h225address);
 
 	CalledEP = RegistrationTable::Instance()->getMsgDestination(h225address, CallingEP, rsn);
 	if(H225_AdmissionRejectReason::e_incompleteAddress == rsn) {
@@ -339,17 +386,7 @@ void CallSignalSocket::DoRoutingDecision() {
 		PTRACE(5, "DoRoutingDecision() complete");
 		isRoutable=TRUE;
 		// Do CgPNConversion. We need the setup pdu and the setup UUIE (stored in m_SetupPDU)
-		Q931 setup = *(GetSetupPDU());
-		H225_H323_UserInformation signal;
-		PPER_Stream q = setup.GetIE(Q931::UserUserIE);
-		if (signal.Decode(q)) {
-			H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
-			H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-			H225_Setup_UUIE & setup_UUIE = body;
-			CgPNConversion(setup, setup_UUIE);
-		} else {
-			PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
-		}
+		CgPNConversion();
 		const H225_TransportAddress &ad  = CalledEP->GetCallSignalAddress();
 		if (ad.GetTag() == H225_TransportAddress::e_ipAddress) { // IP Address known?
 			const H225_TransportAddress_ipAddress & ip = ad;
@@ -359,6 +396,9 @@ void CallSignalSocket::DoRoutingDecision() {
 			//SetPort(peerPort);
 			BuildConnection();
 		}
+		PTRACE(5, "Setting Profile.Number");
+		m_call->GetCalledProfile().SetCalledPN(CalledNumber); // are the dialed digits in international format?
+		m_call->GetCalledProfile().SetDialedPN(DialedDigits);
 		return;
 	}
 	if (H225_AdmissionRejectReason::e_incompleteAddress != rsn) {
@@ -375,21 +415,25 @@ void CallSignalSocket::DoRoutingDecision() {
 }
 
 void CallSignalSocket::SendInformationMessages() {
-	GetSetupPDU()->Encode(buffer);
-	if(!ForwardData())
-		return;
-	PTRACE(5,"fake setup sent" << *GetSetupPDU());
-	buffer.SetSize(0); // empty Buffer
-	PINDEX end=Q931InformationMessages.GetSize();
-	for(PINDEX i=0; i<end; i++) {
-		Q931InformationMessages[i]->Encode(buffer);
+	if (NULL !=GetSetupPDU()) {
+		GetSetupPDU()->Encode(buffer);
 		if(!ForwardData())
 			return;
-		PTRACE(5, "Sent: " << *(Q931InformationMessages[i]));
-		delete Q931InformationMessages[i];
-		Q931InformationMessages[i]=NULL;
+		PTRACE(5, "fake setup sent" << *GetSetupPDU());
+		buffer.SetSize(0); // empty Buffer
+		PINDEX end=Q931InformationMessages.GetSize();
+		for(PINDEX i=0; i<end; i++) {
+			Q931InformationMessages[i]->Encode(buffer);
+			if(!ForwardData())
+				return;
+			PTRACE(5, "Sent: " << *(Q931InformationMessages[i]));
+			delete Q931InformationMessages[i];
+			Q931InformationMessages[i]=NULL;
+		}
+		Q931InformationMessages.SetSize(0);
+//		delete m_SetupPDU;
+//		m_SetupPDU = NULL;
 	}
-	Q931InformationMessages.SetSize(0);
 }
 
 void CallSignalSocket::BuildConnection() {
@@ -398,12 +442,13 @@ void CallSignalSocket::BuildConnection() {
 	PString calledDigit;
 	pdu->GetCalledPartyNumber(calledDigit, &plan, &type);
 	pdu->SetCalledPartyNumber(DialedDigits,plan,type);
+	// CgPNConversion();
 	m_SetupPDU=pdu;
 	//Q931InformationMessages.RemoveAt(0); // delete first element (is now used)
 //	delete pdu;
 	// Cannot determin the CallingAddress from a CallRec
 	remote=new CallSignalSocket(this, peerPort);
-	ConnectTo();
+//	ConnectTo();
 //	SendInformationMessages();
 }
 
@@ -418,22 +463,34 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 		MarkBlocked(false);
 		return NULL;
 	}
-	if (remote->Connect(peerAddr)) {
-#ifdef WIN32
-		PTRACE(3, "Q931(" << GetCurrentThreadId() << ") Connect to " << peerAddr << " successful");
-#else
-		PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
-#endif
-		SetConnected(true);
-		remote->SetConnected(true);
-		SendInformationMessages();
-		ForwardData();
-	} else {
-		PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
-		EndSession();
-		delete remote; // would close myself
-		// remote = 0; // already detached
+	if(NULL==remote) {
+		SetDeletable();
+		CallTable::Instance()->RemoveCall(m_call);
+		return NULL;
 	}
+	if(!remote->IsConnected()) { // ignore already connected calls
+		if (remote->Connect(Q931PortRange.GetPort(),peerAddr)) {
+#ifdef WIN32
+			PTRACE(3, "Q931(" << GetCurrentThreadId() << ") Connect to " << peerAddr << " successful");
+#else
+			PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
+#endif
+			SetConnected(true);
+			remote->SetConnected(true);
+			SendInformationMessages();
+		} else {
+			PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
+			EndSession();
+//			delete remote; // would close myself
+//			remote = NULL; // already detached
+			remote->SetDeletable(); // do not delete.
+			CallTable::Instance()->RemoveCall(m_call);
+			MarkBlocked(false);
+			SetDeletable();
+		}
+	}
+       	if (remote->IsConnected())
+		ForwardData();
 	return remote;
 }
 
@@ -472,7 +529,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
        H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
        body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
        H225_ReleaseComplete_UUIE & uuie = body;
-       if (m_call) {
+       if (callptr(NULL)!=m_call) {
                uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
                uuie.m_callIdentifier = m_call->GetCallIdentifier();
        }
@@ -490,8 +547,8 @@ void CallSignalSocket::SendReleaseComplete()
                Q931 ReleasePDU;
                BuildReleasePDU(ReleasePDU);
                ReleasePDU.Encode(buffer);
-               TransmitData();
 	       PTRACE(5, "GK\tSend Release Complete to " << Name());
+               TransmitData();
 	       PrintQ931(6, "Sending ", &ReleasePDU, 0);
        }
 }
@@ -512,12 +569,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		return Error;
 	}
 
-	m_receivedQ931 = &q931pdu;
+	m_receivedQ931 = new Q931(q931pdu);
 
 	PTRACE(1, "Q931\t" << Name() << " Message type: " << q931pdu.GetMessageTypeName());
 	PTRACE(3, "Q931\t" << "Received: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference() << " from " << Name());
 	PTRACE(4, "Q931\t" << Name() << " Call reference: " << q931pdu.GetCallReference());
 	PTRACE(4, "Q931\t" << Name() << " From destination " << q931pdu.IsFromDestination());
+	PTRACE(5, "Q931\t" << Name() << " IsRoutable " << isRoutable);
 	PTRACE(6, ANSI::BYEL << "Q931\nMessage received: " << setprecision(2) << q931pdu << ANSI::OFF);
 
 	if (q931pdu.HasIE(Q931::UserUserIE)) {
@@ -539,9 +597,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		case H225_H323_UU_PDU_h323_message_body::e_setup:
 			m_crv = (q931pdu.GetCallReference() | 0x8000u);
 			q931pdu.GetCalledPartyNumber(DialedDigits,&ton,&plan);
-			m_SetupPDU = new Q931(*(GetReceivedQ931()));
-			OnSetup(body);
-			CgPNConversion(q931pdu,body);
+			if (NULL==GetSetupPDU()) {
+				m_SetupPDU = new Q931(*(GetReceivedQ931()));
+				OnSetup(body);
+			}
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_callProceeding:
 			OnCallProceeding(body);
@@ -598,6 +657,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		signal.Encode(sb);
 		sb.CompleteEncoding();
 		q931pdu.SetIE(Q931::UserUserIE, sb);
+		if(q931pdu.GetMessageType()==Q931::SetupMsg) {
+			m_SetupPDU->SetIE(Q931::UserUserIE, sb);
+			PPER_Stream fakesetup;
+			GetSetupPDU()->Encode(fakesetup);
+			q931pdu.Decode(fakesetup);
+		}
 	}
 /*
    Note: Openh323 1.7.9 or later required.
@@ -623,11 +688,11 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		}
 	}
 */
- 	if (!isRoutable && q931pdu.GetMessageType()==Q931::InformationMsg) {
+ 	if (q931pdu.GetMessageType()==Q931::InformationMsg)
 		OnInformationMsg(q931pdu);
-	} else {
+	if(isRoutable) {
 		q931pdu.Encode(buffer);
-		PTRACE(5, ANSI::BGRE << "Q931\nMessage to sent: " << setprecision(2) << q931pdu << ANSI::OFF);
+		PTRACE(5, ANSI::BGRE << "Q931\nMessage to sent to " << setprecision(2) << q931pdu << ANSI::OFF);
 		{
 			unsigned int plan, ton;
 			PString calledNumber;
@@ -670,18 +735,18 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 			return NoData;
 		*/
 		case Q931::ReleaseCompleteMsg:
-			if (m_call) {
+			if (callptr(NULL)!=m_call) {
 				CallTable::Instance()->RemoveCall(m_call);
-				m_call = callptr(0);
 			}
 			return Closing;
 		default:
 			return Forwarding;
 		}
 
-		if (!m_call) {
+		if (callptr(NULL)==m_call) {
 			PTRACE(3, "Q931\t" << Name() << " Setup destination not found!");
 			EndSession();
+			SetDeletable();
 			return Error;
 		}
 
@@ -701,14 +766,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 {
 	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-		unsigned plan, type;
-		PString destination;
-		if (GetReceivedQ931()->GetCalledPartyNumber(destination, &plan, &type)) {
+		if (GetReceivedQ931()->GetCalledPartyNumber(DialedDigits, &m_calledPLAN, &m_calledTON)) {
 			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
 			// We create the destinationAddress according to it
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
 			Setup.m_destinationAddress.SetSize(1);
-			H323SetAliasAddress(destination, Setup.m_destinationAddress[0]);
+			H323SetAliasAddress(DialedDigits, Setup.m_destinationAddress[0]);
 		}
 	}
 
@@ -734,13 +797,13 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	Address fromIP;
 	GetPeerAddress(fromIP);
 
-	bool bOverlapSending = FALSE;
 	isRoutable=FALSE;
 
 	if (m_call) {
 		if (m_call->IsRegistered()) {
 			if (gkClient->CheckGKIP(fromIP)) {
 				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << Name() << ')');
+				m_call->Unlock();
 				m_call = callptr(0);  // reject it
 				return;
 			}
@@ -766,7 +829,6 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			return ;
 		}
 
-
 		// Rewrite sourceString
 
 		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
@@ -790,7 +852,9 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 		}
 		if (!called && reason!=H225_AdmissionRejectReason::e_incompleteAddress) {
+			CallTable::Instance()->RemoveCall(m_call);
 			m_call=callptr(NULL); // delete callrec
+
 			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
 			return;
 		}
@@ -798,7 +862,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		if(called) {
 			call->SetCalled(called, m_crv);
 		} else {
-			bOverlapSending=TRUE;
+			m_numbercomplete = FALSE;
 		}
 		if (fromParent) {
 			call->SetRegistered(true);
@@ -815,7 +879,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			isRoutable = FALSE;
 		} else {
-			PTRACE(1, "OnSetup: call should be routable");
+			PTRACE(5, "OnSetup: call should be routable");
 			isRoutable = TRUE;
 		}
 	}
@@ -829,26 +893,41 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		} else {
         		// if real destination address is given then check for incomplete address
 			//FIXME: the first destAlias need not be dialed digits!
-			DialedDigits = H323GetAliasAddressString(Setup.m_destinationAddress[0]);
-			H225_AliasAddress h225address;
-			H323SetAliasAddress(DialedDigits,h225address);
-			unsigned rsn;
-			endptr CalledEP = RegistrationTable::Instance()->getMsgDestination(h225address, m_call->GetCallingEP(), rsn);
-			if(CalledEP && (H225_AdmissionRejectReason::e_incompleteAddress != rsn) ) {
-				isRoutable=TRUE;
-				H323SetAliasAddress(m_call->GetCalledPartyNumber(), Setup.m_destinationAddress[0]);
-			} else {
-				bOverlapSending = TRUE;
+
+			for (PINDEX i=0; i<Setup.m_destinationAddress.GetSize() && !isRoutable; i++) {
+				PTRACE(5, "Setup.m_destinationAddress[" << i << "]: " << Setup.m_destinationAddress[i]);
+
+				DialedDigits = H323GetAliasAddressString(Setup.m_destinationAddress[i]);
+ 				H225_AliasAddress h225address;
+ 				H323SetAliasAddress(DialedDigits,h225address);
+				unsigned rsn;
+				endptr CalledEP = RegistrationTable::Instance()->getMsgDestination(h225address, m_call->GetCallingEP(), rsn);
+				if(CalledEP && (H225_AdmissionRejectReason::e_incompleteAddress != rsn) ) {
+					isRoutable=TRUE;
+					H323SetAliasAddress(m_call->GetCalledPartyNumber(), Setup.m_destinationAddress[i]);
+				} else {
+					m_numbercomplete = FALSE;
+				}
+				PTRACE(5,"isRoutable: " << isRoutable);
+				PTRACE(5,"DialedDigits: " << DialedDigits );
 			}
-			DialedDigits = H323GetAliasAddressString(Setup.m_destinationAddress[0]);
-			PTRACE(5,"DialedDigits: " << DialedDigits );
 		}
 	}
 	if (addr && addr->GetTag() == H225_TransportAddress::e_ipAddress) {
 		isRoutable = TRUE;
 	}
 	if (isRoutable) {
-		CgPNConversion(*m_SetupPDU, Setup);
+		if(m_call->GetCallingProfile().GetH323ID().IsEmpty()) {
+			CallTable::Instance()->RemoveCall(m_call);
+			m_call=callptr(0);
+			PTRACE(1, "Removing unknown call");
+			return;
+		}
+		CgPNConversion();
+		if(callptr(NULL)==m_call) {
+			PTRACE(1, "Removing unknown call");
+			return;
+		}
 		const H225_TransportAddress_ipAddress & ip = *addr;
 		peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		peerPort = ip.m_port;
@@ -862,9 +941,8 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT));
 		//remote = new CallSignalSocket(this, GetReceivedQ931());
-		if(DialedDigits.IsEmpty() && GetSetupPDU()->HasIE(Q931::CalledPartyNumberIE)) {
-			unsigned plan,type;
-			GetSetupPDU()->GetCalledPartyNumber(DialedDigits,&plan,&type);
+		if(GetSetupPDU()->HasIE(Q931::CalledPartyNumberIE)) {
+			GetSetupPDU()->GetCalledPartyNumber(DialedDigits,&m_calledPLAN,&m_calledTON);
 		}
 		remote=NULL;
 	}
@@ -888,20 +966,26 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 	HandleH245Address(Setup);
 	HandleFastStart(Setup,true);
-	//SetBlocked(false);
-//	PTRACE(4, "GK\tSetup_UUIE:\n" << setprecision(2) << Setup);
 }
 
 void CallSignalSocket::OnInformationMsg(Q931 &pdu){
 	// Collect digits
-	if (pdu.HasIE(Q931::CalledPartyNumberIE)) {
+	if (!m_numbercomplete && pdu.HasIE(Q931::CalledPartyNumberIE)) {
 		PString calledDigit;
 		unsigned plan,type;
 		if(pdu.GetCalledPartyNumber(calledDigit, &plan, &type)) {
 			DialedDigits+=calledDigit;
-			if(Toolkit::Instance()->RewritePString(DialedDigits))
-				GetSetupPDU()->SetCalledPartyNumber(DialedDigits,plan,type);
-			DoRoutingDecision();
+			CalledNumber=DialedDigits;
+			Toolkit::Instance()->RewritePString(CalledNumber);
+			GetSetupPDU()->SetCalledPartyNumber(DialedDigits,m_calledPLAN,m_calledTON);
+			if(!isRoutable)
+				DoRoutingDecision();
+			else {
+				PTRACE(5, "Setting Profile.Number");
+				m_call->GetCalledProfile().SetCalledPN(CalledNumber); // are the dialed digits in international format?
+				m_call->GetCalledProfile().SetDialedPN(DialedDigits, static_cast <Q931::NumberingPlanCodes> (m_calledPLAN),
+								       static_cast<Q931::TypeOfNumberCodes> (m_calledTON));
+			}
 		}
 	} else {
 		if(!isRoutable)
@@ -917,15 +1001,30 @@ void CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceedin
 
 void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 {
-	if (m_call) // hmm... it should not be null
-		m_call->SetConnected(true);
+	PTRACE(5, "Got ConnectIE");
 #ifndef NDEBUG
 	if (!Connect.HasOptionalField(H225_Connect_UUIE::e_callIdentifier)) {
 		PTRACE(1, "Q931\tConnect_UUIE doesn't contain CallIdentifier!");
-	} else if (m_call->GetCallIdentifier() != Connect.m_callIdentifier) {
+	} else if (m_call!=callptr(NULL) && m_call->GetCallIdentifier() != Connect.m_callIdentifier) {
 		PTRACE(1, "Q931\tWarning: CallIdentifier doesn't match?");
 	}
 #endif
+	if (!m_numbercomplete) {
+		if (callptr(NULL)==m_call) {// hmm... it should not be null
+			SetDeletable();
+			if(NULL!=remote)
+				remote->SetDeletable() ;
+			return;
+		}
+		m_call->SetConnected(true);
+
+		// Stop collecting numbers. the telno is complete
+		m_numbercomplete = TRUE;
+		CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
+		rem->CgPNConversion();
+		m_call->GetCalledProfile().SetDialedPN(rem->DialedDigits, static_cast<Q931::NumberingPlanCodes> (rem->m_calledPLAN),
+						       static_cast<Q931::TypeOfNumberCodes> (rem->m_calledTON));
+	}
 	HandleH245Address(Connect);
 	HandleFastStart(Connect, false);
 }
@@ -1092,142 +1191,10 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	return true;
 }
 
-PString MatchCgAlias(const callptr &callRec, H225_AliasAddress &alias, bool &partialMatch, bool &fullMatch) {
-// match CgPN right justified against voIPtelephoneNumbers and returns the
-// complete calling PN
-        partialMatch = FALSE;
-        fullMatch = FALSE;
-	int number_of_matches = 0;
-	PString completeCgPN;
-
-	PString aliasStr = H323GetAliasAddressString(alias);
-
-        unsigned int aliasStrLen = aliasStr.GetLength();
-        const PStringList &telNos = callRec->GetCallingProfile().getTelephoneNumbers();
-
-        // for all telephone numbers (emergency calls)
-        for (PINDEX i=0; i < telNos.GetSize() && !partialMatch; i++) {
-		if ((telNos[i].GetLength() >= aliasStrLen)) {
-			int telNoLen = telNos[i].GetLength();
-
-			// get amount of points
-			unsigned int amountPoints = 0;
-			int posFirstPoint = telNos[i].Find('.');
-			if (posFirstPoint != P_MAX_INDEX && posFirstPoint >= 0) {
-		        	amountPoints = telNoLen - posFirstPoint;
-			}
-
-                        PTRACE(5,"posFirstPoint: " << posFirstPoint);
-                        PTRACE(5,"amountPoints: " << amountPoints);
-			// if no points exist and alias matches right justified
-			if (amountPoints == 0 &&
-					aliasStr == telNos[i].Right(aliasStrLen)) {
-                                PTRACE(5, "Full match");
-				fullMatch = TRUE;
-				number_of_matches++;
-				completeCgPN = telNos[i];
-                                PTRACE(5,"completeCgPN: " << completeCgPN);
-			// else if points exist
-			} else if (amountPoints > 0) {
-				if (aliasStrLen < amountPoints) {
-					partialMatch = TRUE;
-				} else if (aliasStrLen == amountPoints) {
-					fullMatch = TRUE;
-					number_of_matches++;
-					completeCgPN = telNos[i].Left(
-						telNoLen - amountPoints) + aliasStr;
-				} else {
-				//aliasStrLen > amountPoints
-					int amountOverlap = (aliasStrLen - amountPoints);
-					//if aliasStrOverlap == telNoOverlap
-					if (aliasStr.Left(amountOverlap) ==
-                                            telNos[i].Mid(posFirstPoint - amountOverlap, amountOverlap)) {
-						fullMatch = TRUE;
-						number_of_matches++;
-						completeCgPN = telNos[i].Left(
-							telNoLen - amountPoints)
-							+ aliasStr.Right(amountPoints);
-					} else {
-						//no match
-					}
-				}
-			}
-
-			if (partialMatch) {
-				PTRACE(1, "Partial match " << aliasStr
-					<< " with telephone number "
-					<< telNos[i]);
-			} else if (fullMatch) {
-				PTRACE(1, "Full match " << aliasStr
-					<< " with telephone number "
-				       << telNos[i]);
-			}
-		}
-	}
-        if (completeCgPN == "") {
-                PTRACE(1, "Error: couldn't find complete CgPN!");
-		completeCgPN=callRec->GetCallingProfile().getMainTelephoneNumber();
-        }
-	if(number_of_matches>1) {
-		completeCgPN=callRec->GetCallingProfile().getMainTelephoneNumber();
-	}
-        return completeCgPN;
-}
-
-// rkeil {
-static BOOL TestAnalysedNumber(E164_AnalysedNumber &an, PString &n);
-static BOOL TestAnalysedNumber(E164_AnalysedNumber &an, PString &n)
-{
-	BOOL result = (E164_AnalysedNumber::IPTN_unknown != an.GetIPTN_kind());
-	if(!result) {	// 'an' could not be analysed
-		PTRACE(6, ANSI::RED << "Q931\tCould not analyse: "  << ANSI::BRED
-		       << n << ANSI::OFF);
-		GkStatus::Instance()->
-			SignalStatus(PString("Q931\tCould not analyse: '")
-				     + n + "'");
-	} // 'an' could not be analysed
-	return result;
-}
-
-static BOOL prependCallbackAC(const callptr &callRec, PString &nac, PString &inac);
-static BOOL prependCallbackAC(const callptr &callRec, PString &nac, PString &inac)
-{
-        H225_AliasAddress destH323ID;
-	PString destH323IDStr;
-
-        endptr cdEP = callRec->GetCalledEP(); // get called EP
-        if (cdEP && cdEP->GetH323ID(destH323ID)) {
-        // found dest H323ID
-                DBAttributeValueClass attrMap;
-                destH323IDStr = H323GetAliasAddressString(destH323ID);
-
-		using namespace dctn;
-		DBTypeEnum dbType;
-                // get dest attributes from database
-                GkDatabase *db = GkDatabase::Instance();
-                if (db->getAttributes(destH323IDStr,  attrMap, dbType)) {
-                        using namespace dctn;
-                        if (attrMap[db->attrNameAsString(NationalAccessCode)].GetSize() > 0) {
-                                nac = attrMap[db->attrNameAsString(NationalAccessCode)][0];
-                        }
-                        if (attrMap[db->attrNameAsString(InternationalAccessCode)].GetSize() > 0) {
-                                inac = attrMap[db->attrNameAsString(InternationalAccessCode)][0];
-                        }
-                        if (attrMap[db->attrNameAsString(PrependCallbackAC)].GetSize() > 0) {
-                                return Toolkit::Instance()->AsBool(attrMap[db->attrNameAsString(PrependCallbackAC)][0]);
-                        }
-                } else {
-                        PTRACE(5, "Can't find attributes for destH323IDStr: " << destH323IDStr);
-                }
-        }
-        return FALSE;
-}
-// { rkeil
-
 
 void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsigned pi, unsigned si) {
 
-	PString out = "\t\t\t\t\t\t\t\t\tcallingPN: " + callingPN;
+	PString out = "\t\t\t\t\t\t\t\t\tPN: " + callingPN;
 	out += "\n\t\t\t\t\t\t\t\t\tNumberingPlanIndicator: " + PString(npi) + " (";
 	switch (npi) {
 		case Q931::UnknownPlan:
@@ -1290,281 +1257,254 @@ void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsi
 	}
 	out += ")";
 
-        PTRACE(5, "SetCallingPartyNumber" << endl << out);
+        PTRACE(5, "Set PartyNumber" << endl << out);
 }
 
+static BOOL MatchAlias(const CallProfile &profile, const PString number);
+static BOOL ConvertNumberInternational(PString & number, unsigned int &TON, unsigned int & plan, unsigned int & SI, const CallProfile & profile);
 
-void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
+BOOL CallSignalSocket::CgPNConversion() {
+	// The variables to store the needed information:
+	PString CallingPartyNumber;
+	PString CalledPartyNumber;
+	PString CalledPartyNumberDD; // Not necessary Dialed Digits, but the Number from the Setup/Information messages
+	unsigned int CallingTON    = 0;
+	unsigned int CalledTON     = 0;
+	unsigned int CallingPLAN   = 0;
+	unsigned int CalledPLAN    = 0;
+	unsigned int CallingSI     = 0;
+	unsigned int CalledSI      = 0;
+	unsigned int CallingPI     = 0;
 
-	PTRACE(1, "Begin of CgPNConversion");
-	callptr callRec = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
+	if(callptr(NULL) == m_call)
+		return FALSE;
+	CallingProfile & cgpf = m_call->GetCallingProfile();
+	CalledProfile & cdpf = m_call->GetCalledProfile();
+	// Check if CallingPartyNumber is provided.
+	if (GetSetupPDU()->GetCallingPartyNumber(CallingPartyNumber, &CallingPLAN, &CallingTON, &CallingPI,&CallingSI)) {
+		// Convert CallingPartyNumber to international Format.
+		PTRACE(5, "CgPNConversion received CallingPartyNumber: " << CallingPartyNumber << " with TON: " << CallingTON);
+		CallingTON=((cgpf.TreatCallingPartyNumberAs()==CallProfile::LeaveUntouched) ? CallingTON : cgpf.TreatCallingPartyNumberAs());
+		ConvertNumberInternational(CallingPartyNumber, CallingPLAN, CallingTON, CallingSI, cgpf);
+		PTRACE(5, "CgPNConversion converted CallingPartyNumber to int: " << CallingPartyNumber << " with TON: " << CallingTON);
 
-	PTRACE(1, "callrec: " << callRec);
-
-	if(callRec==callptr(NULL))
-		return;
-
-	callRec->GetCallingProfile().debugPrint();
-	PString srcH323IDStr=callRec->GetCallingProfile().getH323ID();
-	PTRACE(6, "srcH323ID: " << srcH323IDStr);
-
-	// if a profile exists
-	if (!srcH323IDStr.IsEmpty()) {
-        	PTRACE(1,"Start CgPNConversion");
-
-		// some bools to code the tricky flow chart
-		bool cgPNIncludedNotFromCPE = TRUE;
-		bool cgPNIncludedFromCPE = TRUE;
-		bool cgPNmatched = TRUE;
-
-		// vars for q931pdu.SetCallingPartyNumber
-		PString  callingPN;
-		unsigned npi = Q931::ISDNPlan;
-		unsigned ton = Q931::InternationalType;
-		unsigned pi;
-		unsigned si;
-
-		// get the original calling party number settings
-		BOOL cgPNIncluded = q931pdu.GetCallingPartyNumber(
-					    callingPN,
-					    &npi,
-					    &ton,
-					    &pi,
-					    &si
-				    );
-
-		if (callRec && !callRec->GetCallingProfile().isCPE()) {
-			PTRACE(5, "EP not from CPE");
-
-			if (cgPNIncluded) {
-				// CgPNs included
-				// select a cgPN to set
-				// Is there more than 1 CgPN?
-				// convert cgPN to interternational format
-				PTRACE(5, "CgPN included:" << callingPN);
-#ifdef DO_NATIONAL_CALL
-				if(ton != Q931::InternationalType) {
-					callingPN = callRec->GetCallingProfile().getCC() + callingPN;
-					npi = Q931::ISDNPlan;
-					ton = Q931::InternationalType;
-				}
-#else
-				ton = Q931::InternationalType;
-#endif DO_NATIONAL_CALL
-
-				cgPNIncludedNotFromCPE = TRUE;
+		// If number is provided by peer network all our work is done now.
+		// If the call is initiated by a CPE, we'll have to check the number
+		if(cgpf.IsCPE()) {
+			// Match agains the telephonenumber in Profile
+			PTRACE(5, "Calling EP is CPE");
+			if(!MatchAlias(cgpf, CallingPartyNumber)) {
+				// The number is not possible / right, so we have to provide a number.
+				CallingPartyNumber=cgpf.GetMainTelephoneNumber();
+				CallingTON=Q931::InternationalType;
+				CallingPLAN=Q931::ISDNPlan;
+				CallingSI=H225_ScreeningIndicator::e_networkProvided;
 			} else {
-			// CgPNs not included
-				// nothing to do here yet
-				cgPNIncludedNotFromCPE = FALSE;
-				PTRACE(5, "CgPN not included");
+				CallingSI=H225_ScreeningIndicator::e_userProvidedVerifiedAndPassed;
 			}
+		}
+	} else {
+		// No CallingPartyNumber provided
+		CallingPartyNumber=cgpf.GetMainTelephoneNumber();
+		if(CallingPartyNumber.IsEmpty()) {
+			// we cannot provide any number
+			CallingTON=Q931::UnknownType;
+			CallingPLAN=Q931::UnknownPlan;
+			CallingSI=H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed;
 		} else {
-			PTRACE(5, "From CPE");
-
-			if (cgPNIncluded) {
-			// CgPN included (only one CgPN possible)
-				cgPNIncludedFromCPE = TRUE;
-				PTRACE(5, "CgPN included:" << callingPN);
-
-				// match CgPN right justified...
-				bool partialMatch, fullMatch;
-				H225_AliasAddress cgPN;
-				H323SetAliasAddress(callingPN, cgPN);
-
-				callingPN = MatchCgAlias(callRec, cgPN, partialMatch, fullMatch);
-
-				if (fullMatch) {
-				// CgPN does match
-					cgPNmatched = TRUE;
-					PTRACE(5, "CgPN does match");
-					si  = H225_ScreeningIndicator::e_userProvidedVerifiedAndPassed;
-// nilsb
-					ton = Q931::InternationalType;
-					npi = Q931::ISDNPlan;
-					PTRACE(5, "SI = e_userProvidedVerifiedAndPassed");
-					PString clir = callRec->GetCallingProfile().getClir();
-
-					if (clir.IsEmpty()) {
-						PTRACE(5, "No CLIR in calling profile --> leave PI unchanged");
-					} else {
-					// set PI according to clir flag
-						pi = Toolkit::AsBool(clir) ? H225_PresentationIndicator::e_presentationRestricted
-							: H225_PresentationIndicator::e_presentationAllowed;
-						PTRACE(5, "PI = " << pi);
-					}
-				} else {
-				// CgPN does not match
-					cgPNmatched = FALSE;
-					PTRACE(5, "CgPN does not match");
-				}
-			} else {
-			// CgPN not included
-				cgPNIncludedFromCPE = FALSE;
-				PTRACE(5, "CgPN not included");
-			}
-
-			if (!cgPNIncludedFromCPE || !cgPNmatched) {
-				// insert main callingPN from CallTable
-				// SI = network provided
-				// get CLIR from callTable
-				// no CLIR PI = restricted ....
-				PTRACE(5, "Insert main callingPN from CallTable");
-				callingPN = callRec->GetCallingProfile().getMainTelephoneNumber();
-				PTRACE(5, "callingPN = " << callingPN);
-				si = H225_ScreeningIndicator::e_networkProvided;
-				PTRACE(5, "SI = e_networkProvided");
-				PString clir = callRec->GetCallingProfile().getClir();
-				if (clir.IsEmpty()) {
-					pi = H225_PresentationIndicator::e_presentationRestricted;
-				} else {
-				// set PI according to clir flag
-					pi = Toolkit::AsBool(clir) ? H225_PresentationIndicator::e_presentationRestricted
-						: H225_PresentationIndicator::e_presentationAllowed;
-				}
-				PTRACE(5, "PI = " << pi);
-			}
-		}
-
-#ifdef DO_NATIONAL_CALL
-		if (cgPNIncludedNotFromCPE || callRec->GetCallingProfile().isCPE()) {
-			npi = Q931::ISDNPlan;
-			PTRACE(5, "NPI = ISDNPlan");
-			ton = Q931::InternationalType;
-			PTRACE(5, "TON = InternationalType");
-
-			// store cgPN for CDR generation
-		}
-#endif
-		callRec->GetCallingProfile().setCgPN(callingPN);
-
-		// get CdPN
-		PString calledPN = callRec->GetCalledProfile().getCalledPN();
-		// CdPN TON = international
-		// CdPN NPI = ISDN
-		PString originalCalledPN;
-		unsigned ocdpn=0,
-			ocdt=0;
-		q931pdu.GetCalledPartyNumber(
-			originalCalledPN,
-			&ocdpn,
-			&ocdt);
-		q931pdu.SetCalledPartyNumber(
-			calledPN,
-			Q931::ISDNPlan,
-			Q931::InternationalType
-		);
-
-#if 1				/* FIXME: Untested code */
-		E164_AnalysedNumber tele(calledPN); // analyse
-		if(!TestAnalysedNumber(tele,calledPN))// check if valid
-			q931pdu.SetCalledPartyNumber(
-				originalCalledPN,
-				ocdpn,
-				ocdt);
-
-		const PString &cdPNCC = tele.GetCC().GetValue(); // get CC of CdPN
-
-		PString telestr = tele;
-		PTRACE(5, "calledPN: " << calledPN);
-		PTRACE(5, "tele: " << telestr);
-		PTRACE(5, "CC: " << cdPNCC);
-
-		BOOL nationalCall = FALSE;
-#ifdef DO_NATIONAL_CALL
-		if ((cdPNCC!="") && (P_MAX_INDEX != callingPN.Find(cdPNCC))) { // aka 'contains' CC
-		// CgPN and CdPN have the same country code --> national call
-			nationalCall = TRUE;
-			PTRACE(5, "CgPN and CdPN have the same country code --> national call");
-
-			// convert CgPN to national format
-			E164_AnalysedNumber cgTele(callingPN); // analyse
-			TestAnalysedNumber(cgTele,callingPN); // check if valid
-			callingPN.Replace(cgTele.GetCC().GetValue(),""); // remove CC
-			PTRACE(5, "callingPN = " << callingPN);
-			ton = Q931::NationalType;
-			PTRACE(5, "TON = NationalType");
-
-			// convert CdPN to national format
-			PString  cdPN;
-			unsigned cdNpi = 0; // called numbering plan
-			unsigned cdTon = 0; // called number type
-			q931pdu.GetCalledPartyNumber(cdPN, &cdNpi, &cdTon);
-			calledPN.Replace(tele.GetCC().GetValue(),""); // remove CC
-			q931pdu.SetCalledPartyNumber(calledPN, cdNpi, Q931::NationalType); // set CdPN
-			PTRACE(5, "calledPN = " << calledPN);
-			PTRACE(5, "calledTON = NationalType");
-		}
-#endif // DO_NATIONAL_CALL
-
-		PString nac;
-		PString inac;
-		if (prependCallbackAC(callRec, nac, inac)) {
-		// PrependCallbackAC is TRUE
-			ton = Q931::UnknownType; // set TON = unknown
-
-			if (nationalCall) {
-			// national call --> prepend nac to CgPN
-				PTRACE(5, "national call --> prepend nac to CgPN");
-				PTRACE(5, callingPN << " --> " << nac + callingPN);
-				callingPN = nac + callingPN;
-			} else {
-			// international call --> prepend inac to CgPN
-				PTRACE(5, "international call --> prepend inac to CgPN");
-				PTRACE(5, callingPN << " --> " << inac + callingPN);
-				callingPN = inac + callingPN;
-			}
-		} else {
-			PTRACE(5, "PrependCallbackAC == FALSE");
-		}
-#endif
-
-		// apply changes
-		q931pdu.RemoveIE(Q931::CallingPartyNumberIE);
-		q931pdu.SetCallingPartyNumber(
-			callingPN,
-			npi,
-			ton,
-			pi,
-			si
-		);
-
-		PrintCallingPartyNumber(callingPN, npi, ton, pi, si);
-		callRec->GetCalledProfile().setDialedPN_TON((enum Q931::TypeOfNumberCodes)ton); // for CDR use mainly
-
-		if (callRec->GetCalledProfile().isCPE()) {
-		// call goes to CPE
-			PTRACE(5, "Call goes to CPE");
-			// remove cgPNs with: PI = restricted
-			//                    SI = user provided, not screened
-			//                    SI = user provided, verrified and failed
-			if((si == H225_ScreeningIndicator::e_userProvidedNotScreened)       ||
-			   (si == H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed) ||
-			   (pi == H225_PresentationIndicator::e_presentationRestricted)) {
-				q931pdu.RemoveIE(Q931::CallingPartyNumberIE);
-				q931pdu.SetCallingPartyNumber(
-					"",
-					Q931::UnknownPlan,
-					Q931::UnknownType,
-					H225_PresentationIndicator::e_presentationRestricted,
-					si
-				);
-
-				PString out = "Calling party number removed, reason: ";
-				if(si == H225_ScreeningIndicator::e_userProvidedNotScreened)
-					out += "SI == e_userProvidedNotScreened";
-				if(si == H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed)
-					out += "SI == e_userProvidedVerifiedAndFailed";
-				if(pi == H225_PresentationIndicator::e_presentationRestricted)
-					out += "PI == e_presentationRestricted";
-				PTRACE(4, out);
-
-			}
-		}
-		if(setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) { // THIS IS AGAINST Q.931
-			H323SetAliasAddress(calledPN, setup.m_destinationAddress[0], H225_AliasAddress::e_dialedDigits);
+			CallingTON=Q931::InternationalType;
+			CallingPLAN=Q931::ISDNPlan;
+			CallingSI=H225_ScreeningIndicator::e_networkProvided;
 		}
 	}
+
+	if(!(cgpf.GetClir().IsEmpty())) {
+		if(cgpf.GetClir() == "TRUE") {
+			CallingPI=H225_PresentationIndicator::e_presentationRestricted;
+		} else {
+			CallingPI=H225_PresentationIndicator::e_presentationAllowed;
+		}
+	}
+	// we are done with converting the CallingPN to international.
+
+	if (! GetSetupPDU()->GetCalledPartyNumber(CalledPartyNumber, &CalledPLAN, &CalledTON)) {
+		PTRACE(1, "Could not get CalledPartyNumberIE from setup PDU. \t Aborting NumberConversion");
+		return false;
+	}
+	DialedDigits = CalledPartyNumber;
+	m_calledPLAN = CalledPLAN;
+	m_calledTON = CalledTON;
+	CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CallingTON : cgpf.TreatCalledPartyNumberAs());
+	ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
+	// Check wether we are fooled with different ARQ-Number.
+	// we check only the left part we already have, because the ARQ could have provided one digit less than
+	// the setup.
+	// Sorry for the big truth value...
+	if((!cdpf.GetCalledPN().IsEmpty()) && (cdpf.GetCalledPN().GetLength() > CalledPartyNumber.GetLength()) && // shrink of Number
+	     (cdpf.GetCalledPN() != CalledPartyNumber.Left(cdpf.GetCalledPN().GetSize()))) {
+		// Is the call redirected by network?
+		if(GetSetupPDU()->HasIE(Q931::RedirectingNumberIE)) {
+			PString redirectionPN;
+			unsigned int redirectionPLAN, redirectionTON, redirectionPI, redirectionSI, redirectionReason;
+			GetSetupPDU()->GetRedirectingNumber(redirectionPN, &redirectionPLAN, &redirectionTON, &redirectionPI, &redirectionSI, &redirectionReason);
+			PTRACE(5, "Redirected Call received. Redirection: " << redirectionPN << "numeric Reason: " << redirectionReason);
+			if((cdpf.GetCalledPN().GetSize() <=  redirectionPN.GetSize()) &&
+			   (cdpf.GetCalledPN() == redirectionPN.Left(cdpf.GetCalledPN().GetSize()))) {
+				// Ok, redirection is done by the right party
+				// Not yet implemented
+				PAssertAlways("Sorry, implementation missing");
+				// cdpf.SetRedirection(redirectionPN, redirectionPLAN, redirectionTON, redirectionPI, redirectionSI, redirectionReason);
+			} else {
+				// redirection is faked!
+				PTRACE(1, "Redirection is faked by " << redirectionPN << ". Aborting call");
+				m_call=callptr(NULL);
+				return FALSE;
+			}
+		} else {
+			PTRACE(1, "Mismatch between ARQ and Setup. Aborting Call");
+			PTRACE(1, "Profile says: " << cdpf.GetCalledPN() << "is empty: " <<
+			       cdpf.GetCalledPN().IsEmpty() << "dialed Number: " << CalledPartyNumber);
+			m_call=callptr(NULL);
+			return FALSE;
+		}
+	}
+	E164_AnalysedNumber CalledE164Number=CalledPartyNumber;
+	E164_AnalysedNumber CallingE164Number=CallingPartyNumber;
+	if (cdpf.ConvertToLocal() && CalledE164Number.GetCC() == CallingE164Number.GetCC()) {
+		if (CalledE164Number.GetNDC_IC() == CallingE164Number.GetNDC_IC()) {
+			// Convert to local
+			CalledPartyNumber = CalledE164Number.GetGSN_SN();
+			CalledTON = Q931::SubscriberType;
+			CallingPartyNumber = CalledE164Number.GetGSN_SN();
+			CallingTON = Q931::SubscriberType;
+
+		} else {
+			// Convert to National
+			CalledPartyNumber = PString(CalledE164Number.GetNDC_IC()) + PString(CalledE164Number.GetGSN_SN());
+			CalledTON = Q931::NationalType;
+			CallingPartyNumber = PString(CallingE164Number.GetNDC_IC()) + PString(CalledE164Number.GetGSN_SN());
+			CallingTON = Q931::NationalType;
+		}
+	}
+	// Convert PartyNumber to dialable Digits
+	if(cdpf.GetPrependCallbackAC()) {
+		switch (CalledTON) {
+		case Q931::InternationalType:
+			CalledPartyNumber = cdpf.GetInac() + CalledPartyNumber;
+			CalledTON=Q931::UnknownType;
+			break;
+		case Q931::NationalType:
+			CalledPartyNumber = cdpf.GetNac() + CalledPartyNumber;
+			CalledTON=Q931::UnknownType;
+			break;
+		default:
+			// simply do nothing
+			break;
+		}
+	}
+	// Do CallingPartyNumber suppression
+	if(cdpf.IsCPE() && ((CallingPI == H225_PresentationIndicator::e_presentationRestricted) ||
+			    (CallingSI == H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed) ||
+			    (CallingSI == H225_ScreeningIndicator::e_userProvidedNotScreened))) {
+		CallingPartyNumber = "";
+		CallingPLAN = Q931::UnknownPlan;
+		CallingTON = Q931::UnknownType;
+	}
+
+	// Now reassemble the Setup PDU
+//	m_SetupPDU->RemoveIE(Q931::CallingPartyNumberIE);
+	m_SetupPDU->SetCallingPartyNumber(CallingPartyNumber,
+					  CallingPLAN,
+					  CallingTON,
+					  CallingPI,
+					  CallingSI);
+	PTRACE(5, "CallingPN");
+	PrintCallingPartyNumber(CallingPartyNumber, CallingPLAN, CallingTON, CallingPI, CallingSI);
+//	m_SetupPDU->RemoveIE(Q931::CalledPartyNumberIE);
+	m_SetupPDU->SetCalledPartyNumber(CalledPartyNumber,
+					 CalledPLAN,
+					 CalledTON);
+	PTRACE(5, "CalledPN");
+	PrintCallingPartyNumber(CalledPartyNumber, CalledPLAN, CalledTON, 0, 0);
+	cdpf.SetCallingPN(CallingPartyNumber, static_cast<Q931::NumberingPlanCodes> (CallingPLAN), static_cast<Q931::TypeOfNumberCodes> (CallingTON),
+			  static_cast<H225_ScreeningIndicator::Enumerations> (CallingSI), static_cast<H225_PresentationIndicator::Choices> (CallingPI));
+	m_call->GetCalledProfile().SetDialedPN(DialedDigits, static_cast<Q931::NumberingPlanCodes> (m_calledPLAN),
+					       static_cast<Q931::TypeOfNumberCodes> (m_calledTON));
+	m_call->GetCalledProfile().SetCalledPN(CalledPartyNumber);
+	CalledNumber=CalledPartyNumber;
+	return TRUE;
+}
+
+BOOL MatchAlias(const CallProfile &profile, PString number) {
+	PStringList telephonenumbers = profile.GetTelephoneNumbers();
+	PString complete_number = number ;
+	int matches=0;
+
+	for(PINDEX i=0; i< telephonenumbers.GetSize(); i++) {
+		if(telephonenumbers[i].GetLength() >= number.GetLength()) {
+			unsigned int amountPoints = 0;
+			int first_point = telephonenumbers[i].Find('.');
+			if( first_point != P_MAX_INDEX && first_point >= 0)
+				amountPoints = telephonenumbers[i].GetLength() - first_point;
+
+			PTRACE(5,"amountPoints: " << amountPoints);
+			if(0 == amountPoints && number == telephonenumbers[i].Right(number.GetLength())) {
+				// we found a match -- let's do a sanity check, wether is in international format
+				if (number.GetLength() == telephonenumbers[i].GetLength()) {
+					return TRUE;
+				} else {
+					complete_number=telephonenumbers[i];
+					matches++;
+				}
+			} else if(0 < amountPoints) {
+				if(number.GetLength()>amountPoints) {
+					int overlap_digits = number.GetLength() - amountPoints; // the "significant" numbers
+					if (number.Left(overlap_digits) == telephonenumbers[i].Mid(first_point-overlap_digits, overlap_digits)) {
+						// Some of the mid overlaps. we have a match
+						matches++;
+						complete_number = telephonenumbers[i].Left(telephonenumbers[i].GetLength() - amountPoints)
+							+ number.Right(amountPoints);
+					}
+				} else if (number.GetLength()==amountPoints) {
+					// This matches in any case.
+					matches++;
+					complete_number = telephonenumbers[i].Left(telephonenumbers[i].GetLength() - amountPoints)
+						+ number;
+				} // else no match
+			}
+		}
+	}
+	// now check if exatly 1 match was found.
+
+	if(1==matches) {
+		number=complete_number;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+BOOL ConvertNumberInternational(PString & number, unsigned int & plan, unsigned int &TON, unsigned int & SI, const CallProfile & profile) {
+	profile.debugPrint();
+	switch (TON) {
+	case Q931::SubscriberType:
+		PTRACE(5, "Switching from subscriber type to international by prepending " << profile.GetCC() << profile.GetNDC_IC());
+		number = profile.GetCC() + profile.GetNDC_IC() + number;
+		TON = Q931::InternationalType;
+		break;
+	case Q931::NationalType:
+		PTRACE(5, "Switching from National type to international by prepending " << profile.GetCC());
+		number = profile.GetCC() + number;
+		TON = Q931::InternationalType;
+		break;
+	case Q931::InternationalType:
+		PTRACE(5, "This Number was international");
+		break;
+	default:
+		PTRACE(5, "Using Toolkit::Rewrite::PrefixAnalysis");
+		return Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, TON, plan, SI, profile);
+		// Unknown type -- we have to figure out wether call is in dialedDigits format
+	}
+	return TRUE;
 }
 
 // class H245Handler
@@ -1671,7 +1611,7 @@ bool H245Handler::HandleCommand(H245_CommandMessage & Command)
 H245Socket::H245Socket(CallSignalSocket *sig)
 : TCPProxySocket("H245s"), sigSocket(sig), listener(new PTCPSocket)
 {
-	listener->Listen(1);
+	listener->Listen(1, H245PortRange.GetPort());
 	SetHandler(sig->GetHandler());
 }
 
@@ -1719,7 +1659,7 @@ TCPProxySocket *H245Socket::ConnectTo()
 		H225_TransportAddress_ipAddress & ip = peerH245Addr;
 		PIPSocket::Address peerAddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		SetPort(ip.m_port);
-		if (Connect(peerAddr)) {
+		if (Connect(H245PortRange.GetPort(), peerAddr)) {
 #ifdef WIN32
 			PTRACE(3, "H245(" << GetCurrentThreadId() << ") Connect to " << Name() << " successful");
 #else
@@ -1851,6 +1791,11 @@ inline const H245_UnicastAddress_iPAddress & operator>>(const H245_UnicastAddres
 	return addr;
 }
 
+inline bool compare_lc(std::pair<const WORD, RTPLogicalChannel *> p, LogicalChannel *lc)
+{
+       return p.second == lc;
+}
+
 inline void delete_lc(std::pair<const WORD, LogicalChannel *> & p)
 {
 	delete p.second;
@@ -1880,7 +1825,7 @@ void UDPProxySocket::SetForwardDestination(Address srcIP, WORD srcPort, const H2
 	addr >> fDestIP >> fDestPort;
 
 	SetName(srcIP, srcPort);
-	PTRACE(5, "UDP\tForward " << name << " to " << fDestIP << ':' << fDestPort);
+	PTRACE(5, type << "UDP\tForward " << name << " to " << fDestIP << ':' << fDestPort);
 	SetConnected(true);
 }
 
@@ -1890,7 +1835,7 @@ void UDPProxySocket::SetReverseDestination(Address srcIP, WORD srcPort, const H2
 	rSrcIP = srcIP, rSrcPort = srcPort;
 	addr >> rDestIP >> rDestPort;
 
-	PTRACE(5, "UDP\tReverse " <<  srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
+	PTRACE(5, type << "UDP\tReverse " <<  srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
 	SetConnected(true);
 	}
 
@@ -1908,10 +1853,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 //     if (fromIP == rSrcIP && (fromPort == rSrcPort || abs(fromPort - rSrcPort) == 2))
        // Workaround: some bad endpoints don't send packets from the specified port
 	if ((fromIP == rSrcIP || fromIP == fDestIP) && (fromIP != fSrcIP || fromPort == rSrcPort)) {
-		PTRACE(6, "UDP\tforward " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort);
+		PTRACE(6, type << "\tforward " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort);
 		SetSendAddress(rDestIP, rDestPort);               SetSendAddress(rDestIP, rDestPort);
 	} else {
-		PTRACE(6, "UDP\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
+		PTRACE(6, type << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
 		SetSendAddress(fDestIP, fDestPort);
 	}
        return Forwarding;
@@ -1927,24 +1872,19 @@ T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
 TCPProxySocket *T120ProxySocket::ConnectTo()
 {
 	remote = new T120ProxySocket(this, peerPort);
-	if (remote->Connect(peerAddr)) {
+	if (remote->Connect(T120PortRange.GetPort(), peerAddr)) {
 		PTRACE(3, "T120\tConnect to " << remote->Name() << " successful");
 		SetConnected(true);
 		remote->SetConnected(true);
 	} else {
 		PTRACE(3, "T120\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
-		delete remote; // would close myself
+		// delete remote; // would close myself
+		remote->SetDeletable();
 	}
 	return remote;
 }
 
 // class RTPLogicalChannel
-const WORD RTPPortLowerLimit = 10000u;
-const WORD RTPPortUpperLimit = 60000u;
-
-WORD RTPLogicalChannel::portNumber = RTPPortUpperLimit;
-PMutex RTPLogicalChannel::mutex;
-
 RTPLogicalChannel::RTPLogicalChannel(WORD flcn) : LogicalChannel(flcn), reversed(false), peer(0)
 {
 	rtp = new UDPProxySocket("RTP");
@@ -1982,9 +1922,8 @@ RTPLogicalChannel::~RTPLogicalChannel()
 		if (used) {
 		// the sockets will be deleted by ProxyHandler,
 		// so we don't need to delete it here
-			rtp->EndSession();
+		// don't close the sockets, or it causes crashing
 			rtp->SetDeletable();
-			rtcp->EndSession();
 			rtcp->SetDeletable();
 		} else {
 			delete rtp;
@@ -2064,17 +2003,17 @@ void RTPLogicalChannel::StartReading(ProxyHandleThread *handler)
 
 WORD RTPLogicalChannel::GetPortNumber()
 {
-	PWaitAndSignal lock(mutex);
-	portNumber += 2;
-	if (portNumber > RTPPortUpperLimit)
-		portNumber = RTPPortLowerLimit;
-	return portNumber;
+ 	WORD port = RTPPortRange.GetPort();
+	if (port & 1) // make sure it is even
+		port = RTPPortRange.GetPort();
+	RTPPortRange.GetPort(); // skip one
+	return port;
 }
 
 // class T120LogicalChannel
 T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 {
-	listener.Listen(1);
+	listener.Listen(1, T120PortRange.GetPort());
 	port = listener.GetPort();
 	PTRACE(4, "T120\tOpen logical channel " << flcn << " port " << port);
 }
@@ -2152,29 +2091,33 @@ H245ProxyHandler::H245ProxyHandler(CallSignalSocket *sig, PIPSocket::Address loc
 
 H245ProxyHandler::~H245ProxyHandler()
 {
+	for_each(logicalChannels.begin(), logicalChannels.end(), delete_lc);
 	for_each(fastStartLCs.begin(), fastStartLCs.end(), delete_rtplc);
+	if (peer)
+		peer->peer = 0;
+
 }
 
 bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request)
 {
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
-	switch (Request.GetTag())
-	{
+	if(peer)
+		switch (Request.GetTag()) {
 		case H245_RequestMessage::e_openLogicalChannel:
 			return HandleOpenLogicalChannel(Request);
 		case H245_RequestMessage::e_closeLogicalChannel:
 			return HandleCloseLogicalChannel(Request);
 		default:
 			break;
-	}
+		}
 	return false;
 }
 
 bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
-	switch (Response.GetTag())
-	{
+	if(peer)
+		switch (Response.GetTag()) {
 		case H245_ResponseMessage::e_openLogicalChannelAck:
 			return HandleOpenLogicalChannelAck(Response);
 		case H245_ResponseMessage::e_openLogicalChannelReject:
@@ -2182,7 +2125,7 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response)
 			break;
 		default:
 			break;
-	}
+		}
 	return false;
 }
 
@@ -2262,6 +2205,8 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 
 bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 {
+	if(!peer)
+		return false;
 	if (hnat)
 		hnat->HandleOpenLogicalChannel(olc);
 	bool nouse;
@@ -2271,6 +2216,8 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 
 bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 {
+	if(!peer)
+		return false;
 	if (hnat)
 		hnat->HandleOpenLogicalChannel(olc);
 
@@ -2289,7 +2236,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 				lc->SetChannelNumber(flcn);
 				peer->fastStartLCs.erase(iter);
 			}
-		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
+		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id)) && !lc->IsAttached()) {
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
 			if (akalc)
 				lc = dynamic_cast<RTPLogicalChannel *>(akalc);
@@ -2345,7 +2292,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 		siterator iter = peer->fastStartLCs.begin();
 		(lc = iter->second)->SetChannelNumber(flcn);
 		peer->fastStartLCs.erase(iter);
-	} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
+	} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id)) && !lc->IsAttached()) {
 		lc = new RTPLogicalChannel(lc, flcn);
 	} else {
 		try {
@@ -2395,8 +2342,12 @@ void H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 {
 	iterator iter = logicalChannels.find(flcn);
 	if (iter != logicalChannels.end()) {
-		delete iter->second;
+		LogicalChannel *lc = iter->second;
+               siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(ptr_fun(compare_lc), lc));
+               if (i != sessionIDs.end())
+                       sessionIDs.erase(i);
                logicalChannels.erase(iter);
+	       delete lc;
 #ifdef PTRACING
 	} else {
 		PTRACE(3, "Proxy\tLogical channel " << flcn << " not found");
@@ -2476,11 +2427,16 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 // class HandlerList
 void HandlerList::LoadConfig()
 {
+	Q931PortRange.LoadConfig(RoutedSec, "Q931PortRange");
+	H245PortRange.LoadConfig(RoutedSec, "H245PortRange");
+	T120PortRange.LoadConfig(ProxySection, "T120PortRange");
+	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange", "10000-59999");
+
 	WORD port = GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
 	if (!listenerThread || (GKPort != port)) {
 		CloseListener();
 		unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
-		listenerThread = new ProxyListener(this, GKHome, port, queueSize);
+		listenerThread = new ProxyListener(this, GKHome, port ? port : Q931PortRange.GetPort(), queueSize);
 		GKPort = port;
 	}
 
