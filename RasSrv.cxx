@@ -173,6 +173,7 @@ void NBPendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 		PTRACE(2, "GK\tUnknown LRJ, ignore!");
 		return;
 	}
+
 	if ((*Iter)->DecCount() == 0) {
 		(*Iter)->DoARJ(RasSrv);
 		Remove(Iter);
@@ -1163,6 +1164,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 // #endif
 
+
 				if (!bReject && !CalledEP) {
 					if (gkClient->IsRegistered()) {
 						H225_ArrayOf_AliasAddress dest = obj_rr.m_destinationInfo;
@@ -1200,7 +1202,6 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	// We use #obj_rpl# for storing information about a potential reject (e.g. the
 	// rejectReason). If the request results in a confirm (bReject==FALSE) then
 	// we have to ignore the previous set data in #obj_rpl# and re-cast it.
-	PTRACE(1, "Processing ARQ");
 	if (obj_rpl.GetTag() != H225_RasMessage::e_admissionReject)
 		obj_rpl.SetTag(H225_RasMessage::e_admissionReject);
 	H225_AdmissionReject & arj = obj_rpl;
@@ -1308,7 +1309,6 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 
  				// set the ARJ reason
  				bReject = TRUE;
-				PTRACE(1, "lskfdj");
  				arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_routeCallToSCN);
  				H225_ArrayOf_PartyNumber &APN = arj.m_rejectReason;
  				APN.SetSize(1);
@@ -1379,7 +1379,6 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 		if (pExistingCallRec) {
 //#ifdef WITH_DEST_ANALYSIS_LIST
 			// set calledEP
-			PTRACE(1, "Setting CalledEP to: " << CalledEP);
 			pExistingCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
 			// if it is the first ARQ then add the rest of informations in callRec
 			if (!obj_arq.m_answerCall) {
@@ -1408,7 +1407,6 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			pCallRec->SetTimer(timeout);
 			pCallRec->StartTimer();
 
-			PTRACE(1, "Setting CalledEP to: " << CalledEP);
 			pCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
 
 			if (!obj_arq.m_answerCall) // the first ARQ
