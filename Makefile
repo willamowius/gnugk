@@ -7,7 +7,7 @@ PROG	 = gnugk
 SOURCES  = Toolkit.cxx CountryCodeTables.cxx gk.cxx gkauth.cxx gkldap.cxx				\
            gkDestAnalysis.cxx RasSrv.cxx RasTbl.cxx GkClient.cxx MulticastGRQ.cxx			\
            BroadcastListen.cxx SoftPBX.cxx h323util.cxx GkStatus.cxx	\
-           ProxyThread.cxx ProxyChannel.cxx singleton.cxx GkAuthorize.cxx main.cxx	\
+           ProxyThread.cxx ProxyChannel.cxx singleton.cxx main.cxx	\
            gkDatabase.cxx gkIniFile.cxx
 
 ifndef MANUFACTURER
@@ -236,8 +236,6 @@ SignalChannel.o: SignalChannel.h
 SignalConnection.o: SignalConnection.h
 CallTbl.o: CallTbl.h
 BroadcastListen.cxx: BroadcastListen.h
-GkAuthorize.o: GkAuthorize.cxx
-GkAuthorize.cxx: GkAuthorize.h
 
 # probably needed!
 OverlapSendingCallSignalSocket.o:  RasTbl.h
