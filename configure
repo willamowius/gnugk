@@ -2094,7 +2094,7 @@ rm -f conftest*
 	if test "x$MYSQL_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/local/include/mysql /usr/local/mysql/include/mysql $mysql_include_dir/mysql; do
+		for try in /usr/include/mysql /usr/local/include/mysql /usr/local/mysql/include/mysql $mysql_include_dir/mysql; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat > conftest.$ac_ext <<EOF
@@ -2139,7 +2139,7 @@ echo "configure:2137: checking for mysql_init in -lmysqlclient" >&5
 
 		for try in /usr/lib /usr/lib/mysql /usr/local/lib/mysql /usr/local/mysql/lib/mysql $mysql_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lmysqlclient"
+				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
 				cat > conftest.$ac_ext <<EOF
 #line 2145 "configure"
 #include "confdefs.h"
@@ -2150,7 +2150,7 @@ mysql_init()
 EOF
 if { (eval echo configure:2152: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-   MYSQL_LIBS="${MYSQL_LIBS} -lmysqlclient"
+   MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
 					  MYSQL_LDFLAGS="-L$try"
 					
 				
@@ -2190,7 +2190,7 @@ if test "x$mysql" != "xno"; then
 	HAS_MYSQL=1
 	SOURCES="$SOURCES mysqlcon.cxx"
 	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
-	ENDLDFLAGS="$MYSQL_LDFLAGS $ENDLDFLAGS"
+	LDFLAGS="$MYSQL_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$MYSQL_LIBS $ENDLDLIBS"
     echo "MySQL support enabled"
 else

@@ -368,7 +368,7 @@ if test "x${mysql}" != "xno"; then
 	if test "x$MYSQL_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/local/include/mysql /usr/local/mysql/include/mysql $mysql_include_dir/mysql; do
+		for try in /usr/include/mysql /usr/local/include/mysql /usr/local/mysql/include/mysql $mysql_include_dir/mysql; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				AC_TRY_COMPILE([#include <mysql.h>], [int a = 1;],
@@ -397,9 +397,9 @@ if test "x${mysql}" != "xno"; then
 
 		for try in /usr/lib /usr/lib/mysql /usr/local/lib/mysql /usr/local/mysql/lib/mysql $mysql_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lmysqlclient"
+				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
 				AC_TRY_LINK([extern char mysql_init();], [mysql_init()],
-					[ MYSQL_LIBS="${MYSQL_LIBS} -lmysqlclient"
+					[ MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
 					  MYSQL_LDFLAGS="-L$try"
 					]
 				)
@@ -436,7 +436,7 @@ if test "x$mysql" != "xno"; then
 	HAS_MYSQL=1
 	SOURCES="$SOURCES mysqlcon.cxx"
 	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
-	ENDLDFLAGS="$MYSQL_LDFLAGS $ENDLDFLAGS"
+	LDFLAGS="$MYSQL_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$MYSQL_LIBS $ENDLDLIBS"
     echo "MySQL support enabled"
 else
