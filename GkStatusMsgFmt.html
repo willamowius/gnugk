@@ -1,0 +1,75 @@
+<HTML>
+<HEAD>
+<TITLE>openh323 gatekeeper status message format</TITLE>
+</HEAD>
+<BODY>
+<H1>OpenH323 gatekeeper status message format</H1>
+<P>This is the suggested format for the messages that the gatekeeper sends to its status port when a RAS message has been handled. The messages are described in a BNR type style.</P>
+<p>Note that this is a first attempt to define the necessary information - hence all kinds of input is welcome - changes will no doubt occur in the near future.</p>
+<P>Message ::= GCFMsg | GRJMsg | RCFMsg | RRJMsg | UCFMsg | URJMsg | ACFMsg | ARJMsg | BCFMsg | BRJMsg | LCFMsg | LRJMsg | DCFMsg | DRJMsg | ICFMsg | IRRMsg | IACKMsg | INAKMsg | CallStartMsg | CallEndMsg | AllRegistrationsMsg | CurrentCallsMsg terminator</P>
+
+<p>GCFMsg ::= "GCF" sep ipAddress sep aliasList sep endpointTypeList
+</p>
+<p>GRJMsg ::= "GRJ" sep ipAddress sep aliasList sep endpointTypeList sep rejectReason
+</p>
+<p>RCFMsg ::= "RCF" sep ipAddress sep aliasList sep endpointTypeList sep endpointIdentifier
+</p>
+<p>RRJMsg ::= "RRJ" sep ipAddress sep aliasList sep endpointTypeList sep rejectReason
+</p>
+<p>UCFMsg ::= "UCF" sep ipAddress sep endpointIdentifier
+</p>
+<p>URJMsg ::= "URJ" sep ipAddress sep endpointIdentifier sep rejectReason
+</p>
+<p>ACFMsg ::= "ACF" sep ipAddress sep endpointIdentifier sep callReferenceValue sep destinationInfo sep sourceinfo
+</p>
+<p>ARJMsg ::= "ARJ" sep ipAddress sep endpointIdentifier sep destinationInfo sep sourceInfo sep answerCall sep rejectReason 
+</p>
+<p>BCFMsg ::= "BCF" sep ipAddress sep endpointIdentifier sep bandwidth
+</p>
+<p>BRJMsg ::= "BRJ" sep ipAddress sep endpointIdentifier sep allowedBandWidth sep rejectReason
+</p>
+<p>LCFMsg ::= "LCF" sep ipAddress sep endpointIdentifier sep destinationInfo sep sourceInfo
+</p>
+<p>LRJMsg ::= "LRJ" sep ipAddress sep destinationInfo sep sourceInfo sep rejectReason
+</p>
+<p>DCFMsg ::= "DCF" sep ipAddress sep endpointIdentifier sep callReferenceValue sep disengageReason
+</p>
+<p>DRJMsg ::= "DRJ" sep ipAddress sep endpointIdentifier sep callReferenceValue sep rejectReason
+</p>
+<p>ICFMsg ::= "ICF" sep ipAddress
+</p>
+<p>IRRMsg ::= "IRR" sep ipAddress
+</p>
+<p>IACKMsg ::= "IACK" sep ipAddress
+</p>
+<p>INAKMsg ::= "INAK" sep ipAddress
+</p>
+<p>CallStartMsg ::= "CALLStart" sep callingEPId sep calledEPId sep conferenceID sep callReferenceValue sep destinationInfo sep sourceinfo sep startTime sep bandwidth sep
+</p>
+<p>CallEndMsg ::= "CallEnd" sep conferenceID sep callReferenceValue
+</p>
+<p>AllRegistrationsMsg ::= "AllRegistrations" \n { RCFMsg \n } 
+</p>
+<p>CurrentCallsMsg ::= "CurrentCalls" \n { CallStartMsg \n } 
+</p>
+ipAddress ::= dotted decimal format <br>
+aliasList ::= alias {sep2 alias}<br>
+alias ::=  string [ ":" aliasType ]<br>
+aliasType ::= "h323_ID" | "e164" | something else that I don't know now<br>
+endpointTypeList ::= endpointType { listSep endpointType }<br>
+endpointType ::= "vendor" | "gatekeeper" | "gateway" | "mcu" | "terminal"<br>
+answerCall ::= "true" | "false"
+sep ::= "|"<br>
+sep2 ::= "="<br>
+listSep ::= ","<br>
+terminator ::= ";\n"<br>
+.<br>
+.<br>
+.<br>
+and so on<br>
+
+<p>here the H.225 elements are written as strings - so I don't want to go into unnecessary detail here</p>
+<p>The reason why I used "sep" instead of "|" is that I would confuse myself using "|" as a literal in a BNR syntax.</p> 
+</body>
+</HTML>
+

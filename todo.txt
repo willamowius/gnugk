@@ -1,0 +1,43 @@
+TODO
+====
+
+This list of missing features and bugs is meant as a starting point
+for people who wish to contribute to this project.
+I'll add a note if somebody is already working on a project to
+avoid duplicate work.
+
+- add thread synchronization (mutexes) to RegistrationTable
+  and CallTable
+
+- we need a GUI client to visualize the status messages 
+  (partly done; see gkkdeclient, but needs much improvement)
+
+- Registration timeout (easy)
+  add a command line option to limit time an endpoint registration
+  is valid, so endpoints have to send updates, so we know they are alive
+  Outline how to implement:
+  - add a time filed to the RegistrationTable
+  - add commandline option to specify the value in the timeToLive filed
+    of every RCF (DONE)
+  - update time in RegistrationTable on IRR from endpoint
+  - periodically remove endpoints that we haven't heard of
+
+- manual registration and deregistration via the status thread
+
+- Implement H.245 signal routing (commandline option)
+  Redirect all H.245 connections to gatekeeper and start another thread
+  for each connection.
+  H.245 routing only works when H.225 routing is active.
+  The GK replaces all H.245 addresses the endpoints inserts into the H.225
+  messages with addresses on his own machine and starts a new thread thats
+  listening on that port and forwards the packets just like we do with H.225
+  packets.
+
+- implement LDAP access
+
+- The resourceManager should use the new CallTable and don't keep
+  it's on list of resource allocations.
+
+- currently we only use the first alias of each endpoint; we should
+  use all and keep a list in EndpointRec
+
