@@ -462,6 +462,14 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		}
 		if (gkClient->IsRegistered())
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
+		else {
+			Address fromIP;
+			GetPeerAddress(fromIP);
+			if (!RasThread->CheckNBIP(fromIP)) {
+				PTRACE(2, "Q931\tWarning: call " << callid << " not from my neighbor");
+				return;
+			}
+		}
 		endptr called;
 		PString destinationString;
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
