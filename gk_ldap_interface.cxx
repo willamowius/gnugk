@@ -770,6 +770,10 @@ void gk_ldap_memfree (char *mem) {
 	return ldap_memfree(mem);
 }
 
+void gk_ber_free(BerElement * ber, int flag) {
+	ber_free(ber,flag);
+}
+
 void gk_ldap_cache_enable(GK_LDAP *ld, int timeout, int maxmem){
 	const PConfig * const gkconf = Toolkit::Instance()->Config();
 	if(0!=gkconf->GetBoolean("LDAPCache", "Enable", FALSE)){
@@ -920,8 +924,8 @@ gk_ldap_cache_search_class::gk_ldap_cache_search_class(const char *bse, int scpe
 }
 
 gk_ldap_cache_search_class::~gk_ldap_cache_search_class(void) {
-	delete base;
-	delete filter;
+	delete [] base;
+	delete [] filter;
 	ldap_msgfree(message);
 }
 
