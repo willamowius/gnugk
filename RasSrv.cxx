@@ -1565,6 +1565,13 @@ bool RegistrationRequestPDU::BuildRRJ(unsigned reason, bool alt)
 	if (alt)
 		RasSrv->SetAltGKInfo(rrj);
 
+	if (request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)
+		&& request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+		const H225_H221NonStandard& nonStandard = request.m_nonStandardData.m_nonStandardIdentifier;
+		if (Toolkit::Instance()->GetInternalExtensionCode(nonStandard) == Toolkit::iecFailoverRAS)
+			CopyNonStandardData(request, rrj);
+	}
+	
 	PString alias(request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? AsString(request.m_terminalAlias) : PString(" "));
 	PString log(PString::Printf, "RRJ|%s|%s|%s|%s;",
 			inet_ntoa(m_msg->m_peerAddr),

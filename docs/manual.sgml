@@ -114,6 +114,9 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Fixed handling of RRJ from an alternate GnuGk.
+
+<item>
 New direct SQL accounting module (<ref id="sqlacct" name="[SQLAcct]">).
 
 <item>
