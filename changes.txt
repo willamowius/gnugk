@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(Toolkit.cxx) correct handling of '!' character in rewrite rules
 - provide proper handling of aliases of type partyNumber (e164Number or privateNumber)
 - BUGFIX(ProxyChannel.cxx) fix for RTP/Q931/H245/T120PortRange
   to correct a bug with port range wraparound if the last port is 65535.
