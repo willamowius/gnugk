@@ -601,7 +601,7 @@ int GkStatus::Client::Close(void)
 BOOL GkStatus::AuthenticateClient(PIPSocket &Socket) const
 {
 	static PMutex AuthClientMutex;
-	GkProtectBlock _using(AuthClientMutex);
+	PWaitAndSignal _using(AuthClientMutex);
 
 	BOOL result = FALSE;
 
