@@ -893,7 +893,7 @@ void RegistrationTable::LoadConfig()
 			rrq.m_terminalAlias.SetSize(as);
 			for (PINDEX p=0; p<as; p++)
 				H323SetAliasAddress(aa[p], rrq.m_terminalAlias[p]);
-        	}
+		}
 		// GatewayInfo
 		if (sp.GetSize() > 1) {
 			aa=sp[1].Tokenise(",", FALSE);
@@ -909,7 +909,7 @@ void RegistrationTable::LoadConfig()
 					H323SetAliasAddress(aa[p], ((H225_VoiceCaps &)protocol).m_supportedPrefixes[p].m_prefix);
 			}
 			ep = new GatewayRec(rrq_ras, true);
-                } else {
+		} else {
 			rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
 			ep = new EndpointRec(rrq_ras, true);
 		}
@@ -917,7 +917,7 @@ void RegistrationTable::LoadConfig()
 		PTRACE(2, "Add permanent endpoint " << AsDotString(rrq.m_callSignalAddress[0]));
 		WriteLock lock(listLock);
 		EndpointList.push_back(ep);
-        }
+	}
 
 	// Load config for each endpoint
 	ReadLock lock(listLock);
