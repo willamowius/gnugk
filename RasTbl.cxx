@@ -449,7 +449,7 @@ OuterZoneGWRec::OuterZoneGWRec(const H225_RasMessage & completeLCF, const H225_E
 
 RegistrationTable::RegistrationTable()
 {
-	srandom(time(0));
+	srand(time(0));
 	recCnt = rand()%9000+1000;
 
 	LoadConfig();
@@ -665,7 +665,7 @@ void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, li
 	listLock.StartRead();
 	const_iterator IterLast = List->end();
 	PINDEX k =0, s = List->size();
-	endptr eptr[s];
+	endptr *eptr = new endptr[s];
 	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter)
 		eptr[k++] = endptr(*Iter);
 	listLock.EndRead();
@@ -675,7 +675,8 @@ void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, li
 		msg.SetSize(s * (verbose ? 200 : 100));
 	for (k = 0; k < s; k++)
 		msg += "RCF|" + eptr[k]->PrintOn(verbose);
-	
+	delete [] eptr;
+
 	msg += PString(PString::Printf, "Number of endpoints: %u\r\n;\r\n", s);
 	client.WriteString(msg);
 	//PTRACE(2, msg);
