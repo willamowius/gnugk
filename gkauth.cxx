@@ -298,7 +298,7 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 		if (token.HasOptionalField(H235_ClearToken::e_generalID) &&
 		    token.HasOptionalField(H235_ClearToken::e_password)) {
 			PString id = token.m_generalID;
-			if (checkid && aliases && !CheckAliases(id))
+			if (aliases && !CheckAliases(id))
 				return false;
 			PString passwd = token.m_password;
 			iterator Iter = passwdCache.find(id);
@@ -322,7 +322,7 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			PString id = AsString(pwdhash.m_alias, FALSE);
-			if (checkid && aliases && !CheckAliases(id))
+			if (aliases && !CheckAliases(id))
 				return false;
 			iterator Iter = passwdCache.find(id);
 			PString passwd = (Iter == passwdCache.end()) ? GetPassword(id) : Iter->second;

@@ -26,6 +26,7 @@ STDCCFLAGS := -I${H323_INCDIR} -DPTRACING#-DPASN_NOPRINT
 
 
 # MySQL support
+ifndef NO_MYSQL
 ifndef MYSQLDIR
 
 ifneq (,$(wildcard /usr/include/mysql))
@@ -42,6 +43,8 @@ STDCCFLAGS	+= -DHAS_MYSQL -I$(MYSQLDIR)
 ENDLDLIBS	+= -lsqlplus
 HAS_MYSQL	= 1
 endif
+endif
+
 endif
 
 
