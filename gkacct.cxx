@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.20  2005/01/05 15:42:31  willamowius
+ * new accounting event 'connect', parameter substitution unified in parent class
+ *
  * Revision 1.19  2005/01/04 17:50:51  willamowius
  * space in trace msg
  *
@@ -253,8 +256,8 @@ PString GkAcctLogger::ReplaceAcctParams(
 					finalCDR.Mid(pos, paramLen)
 					);
 				if (i != params.end()) {
-					const PINDEX escapedLen = i->second.GetLength();
-					finalCDR.Splice(i->second, pos - 2, paramLen + 3);
+					const PINDEX escapedLen = EscapeAcctParam(i->second).GetLength();
+					finalCDR.Splice(EscapeAcctParam(i->second), pos - 2, paramLen + 3);
 					len = len + escapedLen - paramLen - 3;
 					pos = pos - 2 + escapedLen;
 				} else {
@@ -267,8 +270,8 @@ PString GkAcctLogger::ReplaceAcctParams(
 		} else { // simple syntax (%c)
 			map<PString, PString>::const_iterator i = params.find(c);
 			if (i != params.end()) {
-				const PINDEX escapedLen = i->second.GetLength();
-				finalCDR.Splice(i->second, pos - 1, 2);
+				const PINDEX escapedLen = EscapeAcctParam(i->second).GetLength();
+				finalCDR.Splice(EscapeAcctParam(i->second), pos - 1, 2);
 				len = len + escapedLen - 2;
 				pos = pos - 1 + escapedLen;
 			} else {
@@ -281,6 +284,11 @@ PString GkAcctLogger::ReplaceAcctParams(
 	}
 
 	return finalCDR;
+}
+
+PString GkAcctLogger::EscapeAcctParam(const PString& param) const
+{
+	return param;	// default implementation: don't escape anything
 }
 
 PString GkAcctLogger::GetUsername(

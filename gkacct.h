@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2005/01/05 15:42:40  willamowius
+ * new accounting event 'connect', parameter substitution unified in parent class
+ *
  * Revision 1.13  2004/11/15 23:57:41  zvision
  * Ability to choose between the original and the rewritten dialed number
  *
@@ -172,7 +175,7 @@ protected:
 	void SetSupportedEvents(
 		const int events
 		) { m_supportedEvents = events; }
-	
+
 	/** Fill the map with accounting parameters (name => value associations).
 	*/	
 	virtual void SetupAcctParams(
@@ -190,12 +193,21 @@ protected:
 	    @return
 	    New string with all parameters replaced.
 	*/
-	virtual PString ReplaceAcctParams(
+	PString ReplaceAcctParams(
 		/// parametrized accounting string
 		const PString& cdrStr,
 		/// parameter values
 		const map<PString, PString>& params
 	) const;
+
+	/** Escape accounting parameters; called for each value before inserting.
+		Subclass this for all accounting modules that need escaping.
+		Default implementation doesn't modify the parameter.
+
+		@return
+		escaped string
+	 */
+	virtual PString EscapeAcctParam(const PString& param) const;
 		
 	/** Read a list of events to be logged (ORed #AccEvent enum# constants) 
 		from the passed tokens. Override this method if new event types
