@@ -439,6 +439,17 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 
 void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 {
+	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+		unsigned plan, type;
+		PString destination;
+		if (GetReceivedQ931()->GetCalledPartyNumber(destination, &plan, &type)) {
+			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
+			// We create the destinationAddress according to it
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			Setup.m_destinationAddress.SetSize(1);
+			H323SetAliasAddress(destination, Setup.m_destinationAddress[0]);
+		}
+	}
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
 		for (PINDEX n = 0; n < Setup.m_destinationAddress.GetSize(); ++n)
 			Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress[n]);
@@ -473,21 +484,13 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
 
 		endptr called;
-		unsigned plan, type;
-		PString destination, destinationString;
+		PString destinationString;
 
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 			called = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_destCallSignalAddress);
 			destinationString = AsDotString(Setup.m_destCallSignalAddress);
-		} else if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-			called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
-			destinationString = AsString(Setup.m_destinationAddress);
-		} else if (GetReceivedQ931()->GetCalledPartyNumber(destination, &plan, &type)) {
-			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
-			// We create the destinationAddress according to it
-			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
-			Setup.m_destinationAddress.SetSize(1);
-			H323SetAliasAddress(destination, Setup.m_destinationAddress[0]);
+		}
+		if (!called && Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 			called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
 			destinationString = AsString(Setup.m_destinationAddress);
 		}

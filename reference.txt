@@ -198,7 +198,6 @@ Setting this parameter to "1" makes the gk always send RELEASE COMPLETE
 to both endpoints before closing the call when it receives DRQ from one of
 the parties.
 
-DisengageRequest to endpoints. However, some bad endpoints just ignore
 
 B.3 Section [GkStatus::Auth]
 
