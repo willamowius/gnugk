@@ -11,12 +11,16 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2004/07/09 22:11:36  zvision
+ * SQLAcct module ported from 2.0 branch
+ *
  */
 #ifndef GKSQL_H
 #define GKSQL_H "#(@) $Id$"
 
 #include <list>
 #include <map>
+#include <vector>
 #include "name.h"
 #include "factory.h"
 
@@ -33,6 +37,10 @@ protected:
 			m_queryError(queryError) {}
 	
 public:
+	/// the first element of the pair is a field value and the second 
+	/// is a field name
+	typedef std::vector< std::pair<PString, PString> > ResultRow;
+	
 	virtual ~GkSQLResult();
 	
 	/** @return
@@ -85,6 +93,10 @@ public:
 		/// array to be filled with string representations of the row fields
 		PStringArray& result
 		) = 0;
+	virtual bool FetchRow(
+		/// array to be filled with string representations of the row fields
+		ResultRow& result
+		) = 0;
 
 	/** @return
 	    True if the column at the index #fieldOffset# is NULL in the row 
@@ -105,6 +117,12 @@ public:
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
 		PStringArray& result,
+		/// index (0 based) of the row to fetch
+		long rowOffset
+		) = 0;
+	virtual bool FetchRow(
+		/// array to be filled with string representations of the row fields
+		ResultRow& result,
 		/// index (0 based) of the row to fetch
 		long rowOffset
 		) = 0;

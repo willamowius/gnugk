@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2004/07/09 22:11:36  zvision
+ * SQLAcct module ported from 2.0 branch
+ *
  */
 #if HAS_MYSQL
 
@@ -81,6 +84,10 @@ public:
 		/// array to be filled with string representations of the row fields
 		PStringArray& result
 		);
+	virtual bool FetchRow(
+		/// array to be filled with string representations of the row fields
+		ResultRow& result
+		);
 
 	/** @return
 	    True if the column at the index #fieldOffset# is NULL in the row 
@@ -101,6 +108,12 @@ public:
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
 		PStringArray& result,
+		/// index (0 based) of the row to fetch
+		long rowOffset
+		);
+	virtual bool FetchRow(
+		/// array to be filled with string representations of the row fields
+		ResultRow& result,
 		/// index (0 based) of the row to fetch
 		long rowOffset
 		);
@@ -298,6 +311,33 @@ bool GkMySQLResult::FetchRow(
 	return true;
 }
 
+bool GkMySQLResult::FetchRow(
+	/// array to be filled with string representations of the row fields
+	ResultRow& result
+	)
+{
+	if (m_sqlResult == NULL || m_numRows <= 0)
+		return false;
+	
+	m_sqlRow = mysql_fetch_row(m_sqlResult);
+	m_sqlRowLengths = mysql_fetch_lengths(m_sqlResult);
+	MYSQL_FIELD* fields = mysql_fetch_fields(m_sqlResult);
+	if (m_sqlRow == NULL || m_sqlRowLengths == NULL || fields == NULL) {
+		m_sqlRow = NULL;
+		m_sqlRowLengths = NULL;
+		return false;
+	}
+		
+	result.resize(m_numFields);
+	
+	for (PINDEX i = 0; i < m_numFields; i++) {
+		result[i].first = PString(m_sqlRow[i], m_sqlRowLengths[i]);
+		result[i].second = fields[i].name;
+	}
+	
+	return true;
+}
+
 bool GkMySQLResult::IsNullField(
 	/// index of the column to check
 	long fieldOffset
@@ -332,6 +372,39 @@ bool GkMySQLResult::FetchRow(
 	
 	for (PINDEX i = 0; i < m_numFields; i++)
 		result[i] = PString(row[i], rowLen[i]);
+	
+	mysql_row_seek(m_sqlResult, oldRowOffset);	
+	return true;
+}
+
+bool GkMySQLResult::FetchRow(
+	/// array to be filled with string representations of the row fields
+	ResultRow& result,
+	/// index (0 based) of the row to fetch
+	long rowOffset
+	)
+{
+	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows)
+		return false;
+
+	// remember the current cursor position and restore it on exit
+	const MYSQL_ROW_OFFSET oldRowOffset = mysql_row_tell(m_sqlResult);
+	mysql_data_seek(m_sqlResult, rowOffset);
+
+	MYSQL_ROW row = mysql_fetch_row(m_sqlResult);
+	unsigned long* rowLen = mysql_fetch_lengths(m_sqlResult);
+	MYSQL_FIELD* fields = mysql_fetch_fields(m_sqlResult);
+	if (row == NULL || rowLen == NULL || fields == NULL) {
+		mysql_row_seek(m_sqlResult, oldRowOffset);
+		return false;
+	}
+		
+	result.resize(m_numFields);
+	
+	for (PINDEX i = 0; i < m_numFields; i++) {
+		result[i].first = PString(row[i], rowLen[i]);
+		result[i].second = fields[i].name;
+	}
 	
 	mysql_row_seek(m_sqlResult, oldRowOffset);	
 	return true;

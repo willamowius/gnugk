@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2004/07/09 22:11:36  zvision
+ * SQLAcct module ported from 2.0 branch
+ *
  */
 #if HAS_PGSQL
 #include <ptlib.h>
@@ -72,6 +75,10 @@ public:
 		/// array to be filled with string representations of the row fields
 		PStringArray& result
 		);
+	virtual bool FetchRow(
+		/// array to be filled with string representations of the row fields
+		ResultRow& result
+		);
 
 	/** @return
 	    True if the column at the index #fieldOffset# is NULL in the row 
@@ -92,6 +99,12 @@ public:
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
 		PStringArray& result,
+		/// index (0 based) of the row to fetch
+		long rowOffset
+		);
+	virtual bool FetchRow(
+		/// array to be filled with string representations of the row fields
+		ResultRow& result,
 		/// index (0 based) of the row to fetch
 		long rowOffset
 		);
@@ -290,6 +303,35 @@ bool GkPgSQLResult::FetchRow(
 	return true;
 }
 
+bool GkPgSQLResult::FetchRow(
+	/// array to be filled with string representations of the row fields
+	ResultRow& result
+	)
+{
+	if (m_sqlResult == NULL || m_numRows <= 0)
+		return false;
+	
+	if (m_sqlRow < 0)
+		m_sqlRow = 0;
+		
+	if (m_sqlRow >= m_numRows)
+		return false;
+		
+	result.resize(m_numFields);
+	
+	for (PINDEX i = 0; i < m_numFields; i++) {
+		result[i].first = PString(
+			PQgetvalue(m_sqlResult, m_sqlRow, i), 
+			PQgetlength(m_sqlResult, m_sqlRow, i)
+			);
+		result[i].second = PQfname(m_sqlResult, i);
+	}
+	
+	m_sqlRow++;
+	
+	return true;
+}
+
 bool GkPgSQLResult::IsNullField(
 	/// index of the column to check
 	long fieldOffset
@@ -317,6 +359,29 @@ bool GkPgSQLResult::FetchRow(
 			PQgetvalue(m_sqlResult, rowOffset, i), 
 			PQgetlength(m_sqlResult, rowOffset, i)
 			);
+	
+	return true;
+}
+
+bool GkPgSQLResult::FetchRow(
+	/// array to be filled with string representations of the row fields
+	ResultRow& result,
+	/// index (0 based) of the row to fetch
+	long rowOffset
+	)
+{
+	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows)
+		return false;
+
+	result.resize(m_numFields);
+	
+	for (PINDEX i = 0; i < m_numFields; i++) {
+		result[i].first = PString(
+			PQgetvalue(m_sqlResult, rowOffset, i), 
+			PQgetlength(m_sqlResult, rowOffset, i)
+			);
+		result[i].second = PQfname(m_sqlResult, i);
+	}
 	
 	return true;
 }
