@@ -1,7 +1,13 @@
-Changes from 2.0b3 to 2.0b4 (by cwhuang)
+Changes from 2.0b4 to now (by cwhuang)
 ======================================
+- support NATed endpoints by NATHandler
+- add AcceptNeighborsCalls, change the meaning of AcceptUnregisteredCalls
+
+Changes from 2.0b3 to 2.0b4 (by cwhuang)
+========================================
 - add MySQLAliasAuth module
 - add ExtraCriterion to MySQLAuth, remove CheckField
+- bandwidth management is disable by default
 - remove resourceManager, bandwidth management now in CallTable
 - allow set neighbors without prefix, no LRQs will be sent to such neighbors
 - send IRQ to an endpoint before expiring it

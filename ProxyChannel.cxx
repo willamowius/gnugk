@@ -209,8 +209,10 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port)
 		m_h245handler = new H245ProxyHandler(this, localAddr, proxyhandler);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
 	} else if (m_call->IsH245Routed()) {
-		socket->m_h245handler = new H245Handler(socket->localAddr);
-		m_h245handler = new H245Handler(localAddr);
+		int type = m_call->GetNATType();
+		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " has NAT type " << type);
+		socket->m_h245handler = (type & CallRec::callingParty) ? new NATHandler(socket->localAddr, peerAddr) : new H245Handler(socket->localAddr);
+		m_h245handler = (type & CallRec::calledParty) ? new NATHandler(localAddr, socket->peerAddr) : new H245Handler(localAddr);
 	}
 }
 
@@ -696,6 +698,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		PTRACE(2, "H245\t" << Name() << " no remote party?");
 		return false;
 	}
+	m_h245handler->OnH245Address(h245addr);
 	if (m_h245socket) {
 		if (m_h245socket->IsConnected()) {
 			PTRACE(4, "H245\t" << Name() << " H245 channel already established");
@@ -929,6 +932,21 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 	}
 }
 
+bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_iPAddress * & mediaControlChannel, H245_UnicastAddress_iPAddress * & mediaChannel)
+{
+	if (!olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters))
+		return false;
+	H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
+	if (ackparams.GetTag() != H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
+		return false;
+	H245_H2250LogicalChannelAckParameters & h225Params = ackparams;
+	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
+		return false;
+	mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
+	mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
+	return true;
+}
+
 inline H245_UnicastAddress_iPAddress & operator<<(H245_UnicastAddress_iPAddress & addr, PIPSocket::Address ip)
 {
 	for (int i = 0; i < 4; ++i)
@@ -1144,18 +1162,12 @@ bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParam
 
 bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
 {
-	if (!olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters))
-		return false;
-	H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
-	if (ackparams.GetTag() != H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
-		return false;
-	H245_H2250LogicalChannelAckParameters & h225Params = ackparams;
-	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
-		return false;
-	H245_UnicastAddress_iPAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
-	H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetLocalAddr(), false);
-	return true;
+	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
+	if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
+		HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetLocalAddr(), false);
+		return true;
+	}
+	return false;
 }
 
 void RTPLogicalChannel::StartReading(ProxyHandleThread *handler)
@@ -1502,6 +1514,94 @@ void H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 	}
 }
 
+// class NATHandler
+NATHandler::NATHandler(PIPSocket::Address local, PIPSocket::Address remote)
+      : H245Handler(local), remoteAddr(remote)
+{
+}
+
+void NATHandler::OnH245Address(H225_TransportAddress & h245addr)
+{
+	if (h245addr.GetTag() == H225_TransportAddress::e_ipAddress) {
+		H225_TransportAddress_ipAddress & addr = h245addr;
+		h245addr = SocketToH225TransportAddr(remoteAddr, addr.m_port);
+	}
+}
+
+bool NATHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
+{
+	return HandleOpenLogicalChannel(olc);
+}
+
+bool NATHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
+{
+	return HandleOpenLogicalChannel(olc);
+}
+
+bool NATHandler::HandleRequest(H245_RequestMessage & Request)
+{
+	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
+	if (Request.GetTag() == H245_RequestMessage::e_openLogicalChannel)
+		return HandleOpenLogicalChannel(Request);
+	else
+		return false;
+}
+
+bool NATHandler::HandleResponse(H245_ResponseMessage & Response)
+{
+	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
+	if (Response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck)
+		return HandleOpenLogicalChannelAck(Response);
+	else
+		return false;
+}
+
+bool NATHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
+{
+	bool changed = false;
+	if (IsT120Channel(olc) && olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)) {
+		if (olc.m_separateStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress) {
+			H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(olc.m_separateStack.m_networkAddress);
+			if (addr) {
+				*addr << remoteAddr << addr->m_tsapIdentifier;
+				changed = true;
+			}
+		}
+	} else {
+		bool nouse;
+		if (H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse)) {
+			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)) {
+				H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel);
+				if (addr) {
+					*addr << remoteAddr << addr->m_tsapIdentifier;
+					changed = true;
+				}
+			}
+			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
+				H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params->m_mediaChannel);
+				if (addr) {
+					*addr << remoteAddr << addr->m_tsapIdentifier;
+					changed = true;
+				}
+			}
+		}
+	}
+	return changed;
+}
+
+bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
+{
+	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
+	if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
+		*mediaControlChannel << remoteAddr << mediaControlChannel->m_tsapIdentifier;
+		if (mediaChannel)
+			*mediaChannel << remoteAddr << mediaChannel->m_tsapIdentifier;
+		return true;
+	}
+	return false;
+}
+
+// to avoid ProxyThread.cxx to include the large h225.h,
 // to avoid ProxyThread.cxx to include the large h225.h,
 // put the method here...
 // class ProxyListener

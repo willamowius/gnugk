@@ -619,7 +619,7 @@ inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 {
 	InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
 	if (NewCalling->IsNATed())
-		m_nattype |= callingParty;
+		m_nattype |= callingParty, m_h245Routed = true;
 }
 
 inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
@@ -627,7 +627,7 @@ inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 	InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
 	SetRegistered(m_Called && m_Called->IsFromParent());
 	if (NewCalled->IsNATed())
-		m_nattype |= calledParty;
+		m_nattype |= calledParty, m_h245Routed = true;
 }
 
 inline void CallRec::Lock()

@@ -133,6 +133,11 @@ AcceptUnregisteredCalls=1	Default: 0
 With this feature enabled, the call signaling thread will accept calls
 from any calling party. So the GK works exactly like a gateway.
 
+SupportNATedEndpoints=1		Default: 0
+Whether to allow an endpoint behind an NAT box register to the GK.
+If yes, the GK will translate the IP address in Q.931 and H.245
+into the IP of NAT box.
+
 TotalBandwidth=100000		Default: -1
 Total available bandwidth to be given to clients.
 

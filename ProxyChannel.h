@@ -52,6 +52,7 @@ public:
 	H245Handler(PIPSocket::Address l) : localAddr(l) {}
 	virtual ~H245Handler() {}
 
+	virtual void OnH245Address(H225_TransportAddress &) {}
 	virtual bool HandleMesg(PPER_Stream &);
 	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
@@ -108,6 +109,26 @@ private:
 	std::map<WORD, RTPLogicalChannel *> sessionIDs;
 	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
 	H245ProxyHandler *peer;
+};
+
+class NATHandler : public H245Handler {
+public:
+	NATHandler(PIPSocket::Address, PIPSocket::Address);
+
+	// override from class H245Handler
+	virtual void OnH245Address(H225_TransportAddress &);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
+
+private:
+	// override from class H245Handler
+	virtual bool HandleRequest(H245_RequestMessage &);
+	virtual bool HandleResponse(H245_ResponseMessage &);
+
+	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
+	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
+
+	PIPSocket::Address remoteAddr;
 };
 
 class CallSignalSocket : public TCPProxySocket {
