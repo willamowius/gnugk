@@ -1,5 +1,8 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (RasSrv.cxx) do not copy nonStandardData field from RAS requests to RAS replies,
+  as it does not make any sense and cause interoperability problems with some
+  Cisco IOSes
 - (yasocket.cxx) fixed a bug in TCPListener::IsTimeout() which prevented
   GNUgk from running > 596 hours
 - (ProxyChannel.cxx) fixed a critical bug with referencing already deleted
