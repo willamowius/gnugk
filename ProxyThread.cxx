@@ -38,39 +38,6 @@ static const char vcHid[] = PROXYTHREAD_H;
 #endif /* lint */
 
 
-// ProxyCondMutex
-void
-ProxyCondMutex::Lock(const PString & name)
-{
-	Wait();
-	locker.AppendString(name);
-	access_count +=1;
-	PTRACE(5, "ProxyCondMutex: " << access_count << " from " << name );
-	Signal();
-}
-
-void
-ProxyCondMutex::Unlock(const PString &name)
-{
-	Wait();
- 	if(access_count >0) {
-		PTRACE(5, "deleting Lock of:" << name << " with place " << locker.GetStringsIndex(name));
-		access_count -=1;
-		if (locker.GetStringsIndex(name)!=P_MAX_INDEX)
-			locker.RemoveAt(locker.GetStringsIndex(name));
-	}
-	PTRACE(5, "ProxyCondMutex: " << access_count);
-	Signal();
-}
-
-BOOL
-ProxyCondMutex::Condition()
-{
-	PTRACE(5, "access_count is: " << access_count);
-	PTRACE(5, "locks of: " << locker);
-	return access_count==0;
-}
-
 // ProxyConnectThread
 class ProxyConnectThread : public MyPThread {
 public:

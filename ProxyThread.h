@@ -19,6 +19,7 @@
 #define PROXYTHREAD_H "@(#) $Id$"
 
 #include "rwlock.h"
+#include "gklock.h"
 #include <list>
 #include <vector>
 #include <ptlib.h>
@@ -32,19 +33,6 @@ class ProxyHandleThread;
 class HandlerList;
 
 extern const char *RoutedSec;
-
-// This class shall prevent deletion of objects used (bogus pointers)
-// The user is responsible to Lock/Unlock objects.
-class ProxyCondMutex : public PCondMutex {
-public:
-	ProxyCondMutex() :  access_count(0) {};
-	virtual BOOL Condition();
-	virtual void Lock(const PString &name);
-	virtual void Unlock(const PString &name);
-private:
-	PINDEX access_count;
-	PStringList locker;
-};
 
 
 // abstract interface of a proxy socket
