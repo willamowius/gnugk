@@ -13,6 +13,11 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/08/19 10:47:37  zvision
+ * Initially added to 2.2 brach. Completely redesigned.
+ * Redundant code removed. Added h323-return-code, h323-credit-time
+ * and Session-Timeout respone attributes processing.
+ *
  * Revision 1.1.2.7  2003/07/31 13:09:15  zvision
  * Added Q.931 Setup message authentication and call duration limit feature
  *
@@ -181,10 +186,7 @@ protected:
 		/// to custom H225_RegistrationRejectReason
 		/// if the check fails
 		unsigned& rejectReason
-		)
-	{
-		return doCheck((H225_RegistrationRequest&)rrq,rejectReason);
-	}
+		);
 		
 	/** Authenticate using data from ARQ RAS message.
 	
@@ -198,11 +200,7 @@ protected:
 		/// to custom H225_AdmissionRejectReason
 		/// if the check fails
 		unsigned& rejectReason
-		)
-	{
-		int dummyLimit = -1;
-		return doCheck((H225_AdmissionRequest&)arq,rejectReason,dummyLimit);
-	}
+		);
 
 private:
 

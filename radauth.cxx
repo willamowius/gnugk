@@ -12,6 +12,11 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/08/19 10:47:37  zvision
+ * Initially added to 2.2 brach. Completely redesigned.
+ * Redundant code removed. Added h323-return-code, h323-credit-time
+ * and Session-Timeout respone attributes processing.
+ *
  * Revision 1.1.2.17  2003/07/31 22:59:24  zvision
  * Fixed IP address retrieval for unregistered endpoints
  *
@@ -97,7 +102,7 @@ PString RadAuth::OID_CAT( "1.2.840.113548.10.1.2.1" );
 PString GetConferenceIDString( const H225_ConferenceIdentifier& id )
 {
 	if( id.GetSize() < 16 )
-		return PString::Empty();
+		return PString();
 		
 	PString h323ConfId;
 					
@@ -170,12 +175,12 @@ RadAuthBase::RadAuthBase(
 		PTRACE(1,"RADAUTH\tSpecified local interface - "<<localInterface
 			<<" - does not belong to this machine"
 			);
-		localInterface = PString::Empty();
+		localInterface = PString();
 	}
 	/// build RADIUS client
 	radiusClient = new RadiusClient( 
 		radiusServers[0],
-		(radiusServers.GetSize() > 1) ? radiusServers[1] : PString::Empty(),
+		(radiusServers.GetSize() > 1) ? radiusServers[1] : PString(),
 		localInterface
 		);
 
@@ -247,6 +252,31 @@ bool RadAuthBase::CheckAliases(
 		}
 	
 	return result;
+}
+
+int RadAuthBase::Check(
+	/// RRQ RAS message to be authenticated
+	RasPDU<H225_RegistrationRequest>& rrq, 
+	/// reference to the variable, that can be set 
+	/// to custom H225_RegistrationRejectReason
+	/// if the check fails
+	unsigned& rejectReason
+	)
+{
+	return doCheck(rrq,rejectReason);
+}
+		
+int RadAuthBase::Check(
+	/// ARQ nessage to be authenticated
+	RasPDU<H225_AdmissionRequest> & arq, 
+	/// reference to the variable, that can be set 
+	/// to custom H225_AdmissionRejectReason
+	/// if the check fails
+	unsigned& rejectReason
+	)
+{
+	int dummyLimit = -1;
+	return doCheck(arq,rejectReason,dummyLimit);
 }
 
 int RadAuthBase::doCheck(
@@ -478,7 +508,7 @@ int RadAuthBase::doCheck(
 		if( callingEP && !stationId.IsEmpty() )
 			if( !(callingEP->IsGateway()
 				|| CheckAliases(callingEP->GetAliases(),stationId)) )
-				stationId = PString::Empty();
+				stationId = PString();
 	}
 
 	// if no alias found in m_srcInfo, then try to get alias
@@ -498,7 +528,7 @@ int RadAuthBase::doCheck(
 	if( !stationId.IsEmpty() )		
 		*pdu += new RadiusAttr( RadiusAttr::CallingStationId, stationId );
 						
-	stationId = PString::Empty();
+	stationId = PString();
 					
 	// Called-Station-Id
 	// Priority:
@@ -795,7 +825,7 @@ int RadAuth::AppendUsernameAndPassword(
 			// append User-Name
 			pdu += new RadiusAttr( RadiusAttr::UserName, id );
 			if( username != NULL )
-				*username = id;
+				*username = (const char*)id;
 				
 			// build CHAP-Password
 			char password[17] = { (BYTE)randomInt };
@@ -881,7 +911,7 @@ int RadAuth::AppendUsernameAndPassword(
 			pdu += new RadiusAttr( RadiusAttr::UserName, id );
 			
 			if( username != NULL )
-				*username = id;
+				*username = (const char*)id;
 								
 			// build CHAP-Password
 			char password[17] = { (BYTE)randomInt };
@@ -958,7 +988,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
    	pdu += new RadiusAttr( RadiusAttr::UserName, id );
 	
 	if( username != NULL )
-		*username = id;
+		*username = (const char*)id;
 		
 	// append User-Password
 	if( !fixedPassword.IsEmpty() )
@@ -1012,7 +1042,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
    	pdu += new RadiusAttr( RadiusAttr::UserName, id );
 
 	if( username != NULL )
-		*username = id;
+		*username = (const char*)id;
 				
 	if( !fixedPassword.IsEmpty() )
 		pdu += new RadiusAttr( RadiusAttr::UserPassword, fixedPassword );

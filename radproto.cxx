@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/08/19 10:44:18  zvision
+ * Initially added to 2.2 branch
+ *
  * Revision 1.1.2.8  2003/07/20 23:18:51  zvision
  * Fixed trace output.
  *
@@ -587,14 +590,14 @@ BOOL RadiusAttr::GetVsaValue( PBYTEArray& buffer, PINDEX offset ) const
 PString RadiusAttr::AsString() const
 {
 	if( !IsValid() )
-		return PString::Empty();
+		return PString();
 
 	const PINDEX len = (PINDEX)data[1] & 0xff;
 	const PINDEX headerLen = ((PINDEX)data[0] == VendorSpecific) 
 			? VsaFixedHeaderLength : FixedHeaderLength;
 
 	if( len <= headerLen )
-		return PString::Empty();
+		return PString();
 	else
 		return PString( &(data[headerLen]), len-headerLen );
 }
@@ -651,12 +654,12 @@ PIPSocket::Address RadiusAttr::AsAddress() const
 PString RadiusAttr::AsVsaString() const
 {
 	if( (!IsValid()) || ((PINDEX)data[0] != VendorSpecific) )
-		return PString::Empty();
+		return PString();
 		
 	const PINDEX len = (PINDEX)data[1] & 0xff;
 
 	if( len <= VsaRfc2865FixedHeaderLength )
-		return PString::Empty();
+		return PString();
 	else
 		return PString( &(data[VsaRfc2865FixedHeaderLength]), len-VsaRfc2865FixedHeaderLength );
 }
@@ -1802,7 +1805,7 @@ BOOL RadiusClient::MakeRequest(
 	{ 
 		PWaitAndSignal lock( socketMutex );
 		
-		secret = sharedSecret;
+		secret = (const char*)sharedSecret;
 		servers = radiusServers;
 		servers.MakeUnique();
 	}

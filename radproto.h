@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/08/19 10:44:19  zvision
+ * Initially added to 2.2 branch
+ *
  * Revision 1.1.2.5  2003/07/03 15:32:20  zvision
  * Fixed comments. Removed md5 param from VerifyResponseAuthenticator.
  *
@@ -1125,9 +1128,9 @@ public:
 		/// primary RADIUS server
 		const PString& primaryServer, 
 		/// secondary RADIUS server
-		const PString& secondaryServer = PString::Empty(),
+		const PString& secondaryServer = PString(),
 		/// local address for RADIUS client
-		const PString& address = PString::Empty()
+		const PString& address = PString()
 		);
 	
 	/// Destroy this object
