@@ -408,7 +408,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 		lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 		lrq.m_canMapAlias = olrq.m_canMapAlias;
 	}
-	SetPassword(lrq);
+	SetNBPassword(lrq);
 
 	request.SendRequest(m_gkaddr, m_gkport);
 	if (request.WaitForResponse(5000)) {
@@ -992,7 +992,7 @@ void GkClient::SetCallSignalAddress(H225_ArrayOf_TransportAddress & addr)
 	addr[0] = m_rasSrv->GetCallSignalAddress(m_loaddr);
 }
 
-void GkClient::SetPassword(
+void GkClient::SetNBPassword(
 	H225_LocationRequest& lrq, /// LRQ message to be filled with tokens
 	const PString& id // login name
 	)

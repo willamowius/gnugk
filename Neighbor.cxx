@@ -180,7 +180,7 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_data.SetValue(m_id);
-	m_rasSrv->GetGkClient()->SetPassword(lrq, Toolkit::GKName());
+	m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
 	if (m_forwardHopCount > 1) { // what if set hopCount = 1?
 		lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
 		lrq.m_hopCount = m_forwardHopCount;

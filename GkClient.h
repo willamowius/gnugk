@@ -85,10 +85,21 @@ public:
 		Declared outside SetPassword template because it should not 
 		depend on authMode.
 	*/
-	void SetPassword(
+	void SetNBPassword(
 		H225_LocationRequest& lrq, /// LRQ message to be filled with tokens
-		const PString& id // login name
+		const PString& id // username to be put inside tokens/cryptoTokens
 		);
+
+	/** Fills LRQ with approtiation tokens/cryptoTokens containing,
+		taking both the username and the password from config [Endpoint]
+		section.
+	*/
+	void SetNBPassword(
+		H225_LocationRequest& lrq /// LRQ message to be filled with tokens
+		)
+	{
+		SetNBPassword(lrq, !m_e164 ? m_e164 : m_h323Id);
+	}
 		
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
