@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.21  2005/01/28 11:19:42  zvision
+ * All passwords in the config can be stored in an encrypted form
+ *
  * Revision 1.20  2004/12/16 17:11:26  zvision
  * FindVsaAttr ignored vendor identifier during attribute match
  *
@@ -1742,7 +1745,7 @@ bool RadiusSocket::MakeRequest(
 	}
 
 	delete requestInfo;
-	return result;
+	return result ? true : false;
 }
 
 bool RadiusSocket::SendRequest( 
@@ -1860,7 +1863,7 @@ RadiusClient::RadiusClient(
 	m_numRetries(config.GetInteger(sectionName, "RequestRetransmissions",
 		DefaultRetries)),
 	m_roundRobinServers(config.GetBoolean(
-		sectionName, "RoundRobinServers", TRUE)),
+		sectionName, "RoundRobinServers", TRUE) ? true : false),
 	m_localAddress(INADDR_ANY)
 {
 	GetServersFromString(config.GetString(sectionName, "Servers", ""));
