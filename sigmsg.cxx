@@ -104,7 +104,7 @@ bool SignalingMsg::Encode(
 		strm.CompleteEncoding();
 		m_q931->SetIE(Q931::UserUserIE, strm);
 	}
-	return m_q931->Encode(buffer);
+	return m_q931->Encode(buffer) ? true : false;
 }
 
 SignalingMsg* SignalingMsg::Create(

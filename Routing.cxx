@@ -794,7 +794,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				}
 				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
 				PString ip = adr_parts[0];
-				WORD port = adr_parts[1].AsInteger();
+				WORD port = (WORD)(adr_parts[1].AsInteger());
 				if (port == 0)
 					port = 1720;
 				arq.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
