@@ -318,7 +318,7 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 
 	sigaction(SIGHUP, &sa, NULL);
 
-	if (args) {
+	if (&args != NULL) {
 		if (args.HasOption("pid"))
 			pidfile = args.GetOptionString("pid");
 		PTextFile pid(pidfile, PFile::WriteOnly);
