@@ -114,6 +114,10 @@ The version 2.2beta4 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Permanent endpoints are correctly reloaded now, with removal
+of permanent endpoints for which config entries have been deleted
+
+<item>
 Support for <tt/ExternalPasswordAuth/ module finally removed (although
 the source code is only commented out for those who need this module).
 

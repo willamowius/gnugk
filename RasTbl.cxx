@@ -43,11 +43,17 @@ const char *CallTableSection = "CallTable";
 const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
 
 
-EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-      :	m_RasMsg(completeRAS), m_timeToLive(1), m_pollCount(2),
-	m_nat(false), m_natsocket(0)
+EndpointRec::EndpointRec(
+	/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
+	const H225_RasMessage& ras, 
+	/// permanent endpoint flag
+	bool permanent
+	)
+	: m_RasMsg(ras), m_timeToLive(1),
+	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
+	m_pollCount(2), m_usedCount(0),
+	m_nat(false), m_natsocket(0), m_permanent(permanent)
 {
-	m_activeCall = m_connectedCall = m_totalCall = m_usedCount = 0;
 	switch (m_RasMsg.GetTag())
 	{
 		case H225_RasMessage::e_registrationRequest:
@@ -66,7 +72,7 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
 		default: // should not happen
 			break;
 	}
-	if (Permanent)
+	if (permanent)
 		m_timeToLive = 0;
 }	
 
@@ -192,7 +198,7 @@ void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
         
 void EndpointRec::SetTimeToLive(int seconds)
 {
-	if (m_timeToLive > 0) {
+	if (m_timeToLive > 0 && !m_permanent) {
 		// To avoid bloated RRQ traffic, don't allow ttl < 60
 		if (seconds < 60)
 			seconds = 60;
@@ -202,22 +208,16 @@ void EndpointRec::SetTimeToLive(int seconds)
 	}
 }
 
-void EndpointRec::SetPermanent(bool b)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_timeToLive = (!b && SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 0;
-}
-
 void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
 {
 	PWaitAndSignal lock(m_usedLock);
-        m_terminalAliases = a;
+	m_terminalAliases = a;
 }
         
 void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
 {
 	PWaitAndSignal lock(m_usedLock);
-        *m_terminalType = t;
+	*m_terminalType = t;
 }
 
 void EndpointRec::Update(const H225_RasMessage & ras_msg)
@@ -318,7 +318,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		    (const unsigned char *) GetEndpointIdentifier().GetValue() );
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
-		if (m_timeToLive == 0)
+		if (m_permanent)
 			msg += " (permanent)";
 		PString natstring(m_nat ? m_natip.AsString() : PString());
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>\r\n", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
@@ -972,6 +972,37 @@ void RegistrationTable::LoadConfig()
 
 	// Load permanent endpoints
 	PStringToString cfgs=GkConfig()->GetAllKeyValues("RasSrv::PermanentEndpoints");
+
+	// first, remove permanent endpoints deleted from the config
+	{
+		WriteLock lock(listLock);
+		iterator iter = EndpointList.begin(), endIter = EndpointList.end();
+		while (iter != endIter) {
+			iterator epIter = iter++;
+			EndpointRec *ep = *epIter;
+			if (!ep->IsPermanent())
+				continue;
+			// find a corresponing permanent endpoint entry in the config file
+			const H225_TransportAddress& epSigAddr = ep->GetCallSignalAddress();
+			PINDEX i;
+			for (i = 0; i < cfgs.GetSize(); ++i) {
+				H225_TransportAddress taddr;
+				if (GetTransportAddress(cfgs.GetKeyAt(i), (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), taddr))
+					if (taddr == epSigAddr)
+						break;
+			}
+			// if the entry has not been found, unregister this permanent endpoint
+			if (i >= cfgs.GetSize()) {
+				SoftPBX::DisconnectEndpoint(endptr(ep));
+				ep->Unregister();
+				RemovedList.push_back(ep);
+				EndpointList.erase(epIter);
+				--regSize;
+				PTRACE(2, "Permanent endpoint " << ep->GetEndpointIdentifier().GetValue() << " removed");
+			}
+		}
+	}
+	
 	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
 		EndpointRec *ep;
 		H225_RasMessage rrq_ras;

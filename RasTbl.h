@@ -71,7 +71,17 @@ private:
 class EndpointRec
 {
 public:
-	EndpointRec(const H225_RasMessage & completeRAS, bool Permanent=false);
+	/** Construct internal/outer zone endpoint from the specified RAS message.
+		RRQ builds an internal zone endpoint, ARQ, ACF and LCF build outer zone
+		endpoints.
+	*/
+	EndpointRec(
+		/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
+		const H225_RasMessage& ras, 
+		/// permanent endpoint flag
+		bool permanent = false
+		);
+		
 	virtual ~EndpointRec();
 
 	// public interface to access EndpointRec
@@ -102,7 +112,6 @@ public:
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
 	virtual void SetTimeToLive(int);
-	virtual void SetPermanent(bool = true);
 	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
 	virtual void SetEndpointType(const H225_EndpointType &);
 
@@ -146,6 +155,10 @@ public:
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
 
+	/** @return
+		true if this is a permanent endpoint loaded from the config file entry.
+	*/
+	bool IsPermanent() const { return m_permanent; }
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const { return m_fromParent; }
@@ -202,6 +215,8 @@ protected:
 	bool m_fromParent, m_nat;
 	PIPSocket::Address m_natip;
 	CallSignalSocket *m_natsocket;
+	/// permanent (preconfigured) endpoint flag
+	bool m_permanent;
 
 private: // not assignable
 	EndpointRec(const EndpointRec &);

@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (RasTbl.cxx) permanent endpoints are correctly reloaded now, with removal
+  of permanent endpoints for which config entries have been deleted
 - (gkauth.cxx) depreciated ExternalPasswordAuth finally removed
 - SQL engine rewritten completelly to use a concept of SQL driver.
   New modules SQLPasswordAuth and SQLAliasAuth added. MySQL and PostgreSQL
