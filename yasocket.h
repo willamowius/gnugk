@@ -203,7 +203,11 @@ public:
 	virtual ~USocket() = 0; // abstract class
 
 	const char *Type() const { return type; }
+#ifdef LARGE_FDSET
 	const PString & Name() const { return self->GetName(); }
+#else
+	PString Name() const { return self->GetName(); }
+#endif
 
 	// new virtual function
 	virtual bool TransmitData(const PString &);
