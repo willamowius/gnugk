@@ -215,7 +215,7 @@ rule=allow
 ##                       at least generalID and password. For cryptoTokens,
 ##                       cryptoEPPwdHash tokens hashed by simple MD5 and 
 ##                       nestedcryptoToken tokens hashed by HMAC-SHA1-96
-##                       are supported now.
+##                       (libssl must be installed!) are supported now.
 ##                       The ID and password are read from [Password] section.
 ##                       Support for other backend databases is easily to add.
 ##
