@@ -21,6 +21,7 @@
 #define GK_H "@(#) $Id$"
 
 #include <ptlib.h>
+#include "version.h"
 
 class Gatekeeper : public PProcess
 {
@@ -28,11 +29,11 @@ class Gatekeeper : public PProcess
  public:
 	Gatekeeper
 		(const char * manuf = MANUFACTURER,
-		 const char * name = PROGRAMMNAME, 
-		 WORD majorVersion = VERSION_MAJOR,
-		 WORD minorVersion = VERSION_MINOR,
-		 CodeStatus status = VERSION_STATUS,
-		 WORD buildNumber = VERSION_BUILD);
+		 const char * name  = PROGRAMMNAME, 
+		 WORD majorVersion  = MAJOR_VERSION,
+		 WORD minorVersion  = MINOR_VERSION,
+		 CodeStatus status  = BUILD_TYPE,
+		 WORD buildNumber   = BUILD_NUMBER);
 
 	virtual void Main();
 

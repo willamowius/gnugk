@@ -522,19 +522,19 @@ Toolkit::GKName()
 
 // a int to print
 #ifdef P_PTHREADS
-static const int INT_PTHREADS = 1;
+#define PTHREADS_MARK_STRING "1"
 #else
-static const int INT_PTHREADS = 0;
+#define PTHREADS_MARK_STRING "0"
 #endif
 
 const PString
 Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d) Build(%s, %s) Sys(%s %s %s)" GK_LINEBRK,
+		       "Gatekeeper(%s) Version(%s) Ext(pthreads="
+		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)" GK_LINEBRK,
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(TRUE)),
-		       INT_PTHREADS,
 		       __DATE__, __TIME__,
 		       (const unsigned char*)(PProcess::GetOSName()),
 		       (const unsigned char*)(PProcess::GetOSHardware()),
