@@ -7,8 +7,7 @@ A. Command line options
 
 -h		help
 
--b <n>	limit the sum of bandwidth to be given to clients to n * 100 bit/sec,
-		default is 100000 which should roughly be (very) the capacity of a 100 MBit LAN
+-b <n>		limit the sum of bandwidth to be given to clients
 
 -r		use gatekeeper routed signaling
 
@@ -19,21 +18,23 @@ A. Command line options
 		the above options override the RoutedMode
 		setting in the config file
 
--i <ip>	gatekeeper will only listen on this IP number (eg. useful,
+-i <ip>		gatekeeper will only listen on this IP number (eg. useful,
 		when running client and gatekeeper on the same machine)
 		overrides the Home= setting in the config file
 
 -t		set trace verbosity: -t = a little , -tt = more, -ttt a lot, ...
 
--o <file> write trace to this file, default is to write on the console
+-o <file>	write trace to this file, default is to write on the console
 
--l <n>	limit TTL (time to live) for client registration to n
-	overrides the TimeToLive= setting in the config file
+-l <n>		limit TTL (time to live) for client registration to n
+		overrides the TimeToLive= setting in the config file
 
 -c <file>	specify which config file to use, default is to look for
-			gatekeeper.ini in the current directory or ~/.pwlib_config/Gatekeeper.ini (on Unix)
+		gatekeeper.ini in the current directory or
+		~/.pwlib_config/Gatekeeper.ini (on Unix)
 
--s <section>	specify which [Main] section to use in the config file, default is [Gatekeeper::Main]
+-s <section>	specify which [Main] section to use in the config file,
+		default is [Gatekeeper::Main]
 
 
 B. Configuration file reference
@@ -126,6 +127,9 @@ RegistrationTable. The GK will also use it's own call signaling address
 in LCF replied to an LRQ.  That means, the call signaling will be routed
 to GK2 in GK-GK calls. As a result, the CDRs in GK2 can correctly
 show the connected time, instead of 'unconnected'.
+
+TotalBandwidth=100000		Default: -1
+Total available bandwidth to be given to clients.
 
 
 B.2 Section [RoutedMode]

@@ -28,7 +28,6 @@
 // forward references to avoid includes
 
 class HandlerList;
-class resourceManager;
 class GkStatus;
 class GkAuthenticatorList;
 class GkDestAnalysisList;
@@ -155,7 +154,7 @@ private:
 
 	// just pointers to global singleton objects
 	RegistrationTable * EndpointTable;
-	resourceManager * GKManager; 
+	CallTable * CallTbl; 
 	GkStatus * GkStatusThread;
 
 	GkClient * gkClient;

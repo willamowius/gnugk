@@ -37,6 +37,7 @@
 
 const char *CallTableSection = "CallTable";
 
+/*
 conferenceRec::conferenceRec(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw)
 {
     m_src = src;
@@ -110,7 +111,7 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 	}
 	return FALSE;
 }
-
+*/
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
       :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0)
@@ -1173,7 +1174,7 @@ PString CallRec::PrintOn(bool verbose) const
 }
 
 
-CallTable::CallTable() : m_CallNumber(1)
+CallTable::CallTable() : m_CallNumber(1), m_capacity(-1)
 {
 	LoadConfig();
 	m_CallCount = m_successCall = m_neighborCall = 0;
@@ -1190,6 +1191,7 @@ void CallTable::LoadConfig()
 {
 	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
 	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
+	SetTotalBandWidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
 }
 
 void CallTable::Insert(CallRec * NewRec)
@@ -1199,6 +1201,25 @@ void CallTable::Insert(CallRec * NewRec)
 	WriteLock lock(listLock);
 	CallList.push_back(NewRec);
 	++m_CallCount;
+	if (m_capacity >= 0) {
+		m_capacity -= NewRec->GetBandWidth();
+   		PTRACE(2, "GK\tTotal sessions : " << CallList.size() << ", Available BandWidth " << m_capacity);
+	}
+}
+
+void CallTable::SetTotalBandWidth(int bw)
+{
+	if ((m_capacity = bw) >= 0) {
+		int used = 0;
+		WriteLock lock(listLock);
+		iterator Iter = CallList.begin(), eIter = CallList.end();
+		while (Iter != eIter)
+			used += (*Iter)->GetBandWidth();
+		if (bw > used)
+			m_capacity -= used;
+		else
+			m_capacity = 0;
+	}
 }
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
@@ -1314,6 +1335,8 @@ void CallTable::InternalRemove(iterator Iter)
 //	call->StopTimer();
 	call->RemoveAll();
 	call->RemoveSocket();
+	if (m_capacity >= 0)
+		m_capacity += call->GetBandWidth();
 
 	RemovedList.push_back(call);
 	CallList.erase(Iter);

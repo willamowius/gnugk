@@ -1,5 +1,6 @@
 Changes from 2.0b3 to now (by cwhuang)
 ======================================
+- remove resourceManager, bandwidth management now in CallTable
 - allow set neighbors without prefix, no LRQs will be sent to such neighbors
 - send IRQ to an endpoint before expiring it
 - only accept unregistered call from neighbors

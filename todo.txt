@@ -71,6 +71,3 @@ avoid duplicate work.
   * overflow (i.e. first concurrent n calls go to destination 1,
     all additional calls to destination 2)
 
-- The resourceManager should use the new CallTable and don't keep
-  it's on list of resource allocations.
-

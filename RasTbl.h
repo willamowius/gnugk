@@ -59,6 +59,7 @@ class WriteLock {
 // all information about ongoing calls is in CallTable
 // it's still filled with correct information, but all
 // functions using it should be rewritten to use CallTable
+/*
 class conferenceRec
 {
 public:
@@ -92,7 +93,7 @@ protected:
 	H225_BandWidth m_capacity;
 	set<conferenceRec> ConferenceList;
 };
-
+*/
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -407,6 +408,7 @@ public:
 	{ return (m_Calling) ? &m_Calling->GetCallSignalAddress() : 0; }
 	const H225_TransportAddress *GetCalledAddress() const
 	{ return (m_Called) ? &m_Called->GetCallSignalAddress() : 0; }
+	int GetBandWidth() const { return m_bandWidth; }
 
 	void SetCalling(const endptr & NewCalling, unsigned = 0);
 	void SetCalled(const endptr & NewCalled, unsigned = 0);
@@ -496,6 +498,11 @@ public:
 
 	void Insert(CallRec * NewRec);
 
+	// bandwidth management
+	void SetTotalBandWidth(int bw);
+	bool GetAdmission(int bw) const { return m_capacity < 0 || m_capacity >= bw; }
+	int GetAvailableBW() const { return m_capacity; }
+
 	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
 	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
 	callptr FindCallRec(PINDEX CallNumber) const;
@@ -537,6 +544,8 @@ private:
 
 	PINDEX m_CallNumber;
 	mutable PReadWriteMutex listLock;
+
+	int m_capacity;
 
 	// statistics
 	unsigned m_CallCount;

@@ -307,7 +307,7 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	GKRasPort = GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
 
 	EndpointTable = RegistrationTable::Instance(); //initialisation is done in LoadConfig
-	GKManager = resourceManager::Instance();
+	CallTbl = CallTable::Instance();
 
 	sigHandler = 0;
 
@@ -1039,13 +1039,13 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 
 		// hack for Netmeeting 3.0x
 		unsigned bw = (obj_arq.m_bandWidth.GetValue() < 100) ? 1280u : obj_arq.m_bandWidth.GetValue();
-		BWRequest = std::min(bw, GKManager->GetAvailableBW());
+		BWRequest = std::min(bw, CallTbl->GetAvailableBW());
 		PTRACE(3, "GK\tARQ will request bandwith of " << BWRequest);
 		
 		//
 		// GkManager admission
 		//
-		if (!GKManager->GetAdmission(obj_arq.m_endpointIdentifier, obj_arq.m_conferenceID, BWRequest)) {
+		if (!CallTbl->GetAdmission(BWRequest)) {
 			bReject = TRUE;
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_resourceUnavailable);
 		}
@@ -1292,13 +1292,8 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	
 	if (gkClient->IsRegistered() && gkClient->OnDRQ(obj_rr, rx_addr)) {
 		PTRACE(4,"GKC\tDRQ: from my GK");
-	} else if (GKManager->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID)) {
-		PTRACE(4,"GK\tDRQ: closed conference, removed first endpoint");
 	} else if (EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier)) {
-	// The first EP that sends DRQ closes the conference and removes the CallTable entry -
-	// this should not exclude the second one from receiving DCF.
-	// This way we will not catch stray DRQs but we send the right messages ourselves
-		PTRACE(4, "GK\tDRQ: removed second endpoint");
+		PTRACE(4, "GK\tDRQ: closed conference");
 	} else {
 		bReject = true;
 	}

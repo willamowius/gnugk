@@ -96,7 +96,6 @@ void ShutdownHandler(void)
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
-	delete resourceManager::Instance();
 	delete CallTable::Instance();
 	delete RegistrationTable::Instance();
 	delete GkStatus::Instance();
@@ -152,11 +151,11 @@ void ReloadHandler(void)
 	PTRACE(3, "GK\tConfig reloaded.");
 	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
 
+	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
+
 	/*
 	** Update all gateway prefixes
 	*/
-
-	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
 
 	CallTable::Instance()->LoadConfig();
 	RegistrationTable::Instance()->LoadConfig();
@@ -361,7 +360,6 @@ void Gatekeeper::Main()
 	PArgList & args = GetArguments();
 	args.Parse(GetArgumentsParseString());
 
-	int GKcapacity = 100000; // default gatekeeper capacity (in 100s bit)
 	PIPSocket::Address GKHome = INADDR_ANY;
 
 	if(! InitLogging(args)) return;
@@ -400,10 +398,16 @@ void Gatekeeper::Main()
 	    << endl;
 
 	// read capacity from commandline
+	int GKcapacity;
 	if (args.HasOption('b'))
 		GKcapacity = args.GetOptionString('b').AsInteger();
-	PTRACE(2, "GK\tAvailable Bandwidth: " << GKcapacity);
-	resourceManager::Instance()->SetBandWidth(GKcapacity);
+	else
+		GKcapacity = GkConfig()->GetInteger("TotalBandwidth", -1);
+	CallTable::Instance()->SetTotalBandWidth(GKcapacity);
+	if (GKcapacity < 0)
+		cout << "\nDisable Bandwidth Management" << endl;
+	else
+		cout << "\nAvailable Bandwidth " << GKcapacity << endl;
 
 	// read timeToLive from command line
 	if (args.HasOption('l'))
