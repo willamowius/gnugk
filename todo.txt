@@ -36,6 +36,7 @@ avoid duplicate work.
 
 - Implement H.245 signal routing (command line option) - PARTLY DONE
   * implement fast connect 
+  * implement codec selection (caller-, callee-dependant)
 
 - implement carrier-grade routing
   (Assigned to: martinfroehlich, mmuehlen, rkeil, nilsb)
