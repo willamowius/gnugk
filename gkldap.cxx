@@ -129,7 +129,7 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 			for(; iterAttr != (iterDN->second).end() && !partialMatch; iterAttr++) {
 				if (iterAttr->first == attrNameStr) {
 					// for each value
-					for(PINDEX i=0; i < (iterAttr->second).GetSize() && !partialMatch; i++) {
+					for(PINDEX i=0; i < (iterAttr->second).GetSize() && !fullMatch; i++) {
 						PString telno(GkDatabase::Instance()->rmInvalidCharsFromTelNo((iterAttr->second)[i]));
 						// if dialed number equals LDAP entry
 						if (aliasStr == telno) {
@@ -166,7 +166,7 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 							partialMatch = TRUE;
 							PTRACE(2, ANSI::DBG << "TelephoneNo "
 							  << alias << " matches endpoint "
-							  << iterDN->first
+							       << iterDN->first
 							  << " (partial)" << ANSI::OFF);
 						}
 					}
