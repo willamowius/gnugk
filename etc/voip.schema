@@ -66,7 +66,7 @@
 # voIPspecialDial                   | HERE
 # voIPhonorsARJincompleteAddress    | HERE
 # voIPhonorsStatusEnquiry           | HERE
-# voIPprependCallbackAC             | HERE
+# voIPprependCallbackAccessCode     | HERE
 # voIPCountryCode                   | HERE
 # voIPEndpointType                  | HERE
 # voIPprefixOutgoingBlacklist       | HERE
@@ -248,7 +248,8 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2090 NAME 'voIPhonorsARJincompleteAddress'
 # This transforms the calling party number into a number the destination
 # can directly call back (without having to manually type nac/inac + number)
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2100 NAME 'voIPprependCallbackAC'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2100
+  NAME ( 'voIPprependCallbackAccessCode' 'voIPprependCallbackAC' )
   DESC 'defines whether to prepend inac/nac to calling party number'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
   SINGLE-VALUE
@@ -313,7 +314,7 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 	plaintextPassword $ voIPIpAddress $
 	voIPsubscriberTelephoneNumber $ voIPmainTelephoneNumber $
 	voIPlocalAccessCode $ voIPnationalAccessCode $ voIPinternationalAccessCode $
-	voIPhonorsARJincompleteAddress $ voIPprependCallbackAC $
+	voIPhonorsARJincompleteAddress $ voIPprependCallbackAccessCode $
 	voIPcallingLineIdRestriction $ voIPspecialDial $
 	voIPCountryCode $ voIPEndpointType $
 	voIPprefixIncomingBlacklist $ voIPprefixOutgoingBlacklist $
