@@ -1442,15 +1442,21 @@ PString CallRec::PrintOn(bool verbose) const
 	const int left = m_timeout > timer ? m_timeout - timer : 0;
 
 	PString result(PString::Printf,
-		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%s|%d\r\nACF|%s|%s|%d\r\n",
+		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%s|%d|%s|%s|false;\r\nACF|%s|%s|%d|%s|%s|true;\r\n",
 		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), timer, left,
+		// 1st ACF
 		(const char *)m_destInfo,
 		(const char *)m_callerAddr,
 		(const char *)m_callerId,
 		m_crv,
+		(const char*)m_destInfo,
+		(const char*)m_srcInfo,
+		// 2nd ACF
 		(const char *)m_calleeAddr,
 		(const char *)m_calleeId,
-		m_crv | 0x8000u
+		m_crv | 0x8000u,
+		(const char*)m_destInfo,
+		(const char*)m_srcInfo
 	);
 	if (verbose) {
 		result += PString(PString::Printf, "# %s|%s|%d|%s <%d>\r\n",

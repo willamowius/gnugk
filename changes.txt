@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- BUGFIX(RasTbl.cxx) make sure PrintCurrentCalls prints ACF messages
+  in the same format as all ACFs
 - improved performance of the socket code (especially when LARGE_FDSET 
   is enabled). Faster select for a single socket and an unnecessary 
   write lock for UDP sockets removed
