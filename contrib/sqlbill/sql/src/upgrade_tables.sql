@@ -290,6 +290,36 @@ BEGIN
 		ALTER TABLE voipcall ALTER COLUMN prefix SET NOT NULL;
 	END IF;
 
+	-- create/deelte new/old voiptariffdst indexes
+	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voiptariffdst_activepfx_idx'';
+	IF attrfound <> 0 THEN
+		DROP INDEX voiptariffdst_activepfx_idx;
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voiptariffdst_pfx_idx'';
+	IF attrfound = 0 THEN
+		CREATE UNIQUE INDEX voiptariffdst_pfx_idx ON voiptariffdst(prefix);
+	END IF;
+
+	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voiptariffdst_activeh323id_idx'';
+	IF attrfound <> 0 THEN
+		DROP INDEX voiptariffdst_activeh323id_idx;
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voiptariffdst_h323id_idx'';
+	IF attrfound = 0 THEN
+		CREATE UNIQUE INDEX voiptariffdst_h323id_idx ON voiptariffdst(prefix)
+			WHERE exactmatch;
+	END IF;
+
+	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voiptariffdst_activepc_idx'';
+	IF attrfound <> 0 THEN
+		DROP INDEX voiptariffdst_activepc_idx;
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voiptariffdst_pc_idx'';
+	IF attrfound = 0 THEN
+		CREATE UNIQUE INDEX voiptariffdst_pc_idx ON voiptariffdst(prefix)
+			WHERE prefix = ''PC'';
+	END IF;
+
 	RAISE INFO ''Upgrade complete'';
 	RETURN TRUE;
 END;

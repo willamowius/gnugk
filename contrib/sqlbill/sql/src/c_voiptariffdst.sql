@@ -24,6 +24,6 @@ CREATE TABLE voiptariffdst (
 	CONSTRAINT voiptariffdst_unique UNIQUE (prefix)
 );
 
-CREATE UNIQUE INDEX voiptariffdst_activepfx_idx ON voiptariffdst(prefix) WHERE active;
-CREATE UNIQUE INDEX voiptariffdst_activeh323id_idx ON voiptariffdst(prefix) WHERE active AND exactmatch;
-CREATE INDEX voiptariffdst_activepc_idx ON voiptariffdst(prefix) WHERE prefix = 'PC' AND active;
+CREATE UNIQUE INDEX voiptariffdst_pfx_idx ON voiptariffdst(prefix);
+CREATE UNIQUE INDEX voiptariffdst_h323id_idx ON voiptariffdst(prefix) WHERE exactmatch;
+CREATE INDEX voiptariffdst_pc_idx ON voiptariffdst(prefix) WHERE prefix = 'PC';
