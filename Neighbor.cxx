@@ -103,7 +103,8 @@ bool PendingList::PendingARQ::DoACF(const endptr & called) const
 	const H225_TransportAddress_ipAddress & ip = m_reqEP->GetRasAddress();
 	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 
-	NeighborWorker *n = new NeighborWorker(stream, called, ipaddress, ip.m_port, (Toolkit::Instance()->GetMasterRASListener()));
+	// The RasWorker object will delete itself via the PThread-autodelete function.
+	new NeighborWorker(stream, called, ipaddress, ip.m_port, (Toolkit::Instance()->GetMasterRASListener()));
 	return true;
 }
 

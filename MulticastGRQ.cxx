@@ -65,8 +65,8 @@ MulticastGRQ::MulticastGRQ(PIPSocket::Address Home)
 	mreq.imr_multiaddr.s_addr = inet_addr(GkConfig()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
 	mreq.imr_interface.s_addr = GKHome;
 	MulticastListener.Listen(GKHome,
-							 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
-							 MulticastListener.GetPort());
+				 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
+				 MulticastListener.GetPort());
 	if (setsockopt(MulticastListener.GetHandle(), IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0)
 	{
 		PTRACE(1, "GK\tCan't join multicast group.");
@@ -102,7 +102,8 @@ void MulticastGRQ::Main(void)
 		listener_mutex.Signal();
 		if (result) {
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
-			H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
+			// The RasWorker object will delete itself via the PThread-autodelete function.
+			new H323RasWorker(stream, rx_addr, rx_port, *this);
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
