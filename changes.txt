@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(ProxyChannel.cxx) fixed config reload deadlock when using H.245
+  routed mode and listening sockets are holding the config reload mutex
 - (Routing.cxx) new routing policy NumberAnalysis to support overlapped digit
   sending with ARQs
 - WinSvc from Franz J Ehrengruber updated to work with GnuGk 2.2.2 and 2.0.10

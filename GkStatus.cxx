@@ -1152,8 +1152,9 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_Reload:
 		{
-			ReadUnlock unlockConfig(ConfigReloadMutex);
+			ConfigReloadMutex.EndRead();
 			ReloadHandler();
+			ConfigReloadMutex.StartRead();
 		}
 		PTRACE(1, "STATUS\tConfig reloaded.");
 		m_gkStatus->SignalStatus("Config reloaded.\r\n");

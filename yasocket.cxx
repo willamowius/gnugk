@@ -690,10 +690,12 @@ bool SocketsReader::SelectSockets(SocketSelectList & slist)
 #if PTRACING
 	int ss = slist.GetSize();
 #endif
-	ReadUnlock cfglock(ConfigReloadMutex);
-	if (!slist.Select(SocketSelectList::Read, m_timeout))
+	ConfigReloadMutex.EndRead();
+	if (!slist.Select(SocketSelectList::Read, m_timeout)) {
+		ConfigReloadMutex.StartRead();
 		return false;
-
+	}
+	ConfigReloadMutex.StartRead();
 #if PTRACING
 	PString msg(PString::Printf, " %u sockets selected from %u, total %u/%u", slist.GetSize(), ss, m_socksize, m_rmsize);
 	PTRACE(5, GetName() << msg);
@@ -754,9 +756,10 @@ void SocketsReader::Exec()
 		CleanUp();
 	} else {
 		CleanUp();
-		ReadUnlock unlock(ConfigReloadMutex);
+		ConfigReloadMutex.EndRead();
 		PTRACE(3, GetName() << " waiting...");
 		Wait();
+		ConfigReloadMutex.StartRead();
 	}
 }
 

@@ -2096,13 +2096,13 @@ void CallSignalSocket::Dispatch()
 
 	while (timeout > 0) {
 
-		{
-			ReadUnlock unlockConfig(ConfigReloadMutex);
-			if (!IsReadable(timeout)) {
-				PTRACE(3, "Q931\tTimed out waiting for initial Setup message from " << GetName());
-				break;
-			}
+		ConfigReloadMutex.EndRead();
+		if (!IsReadable(timeout)) {
+			PTRACE(3, "Q931\tTimed out waiting for initial Setup message from " << GetName());
+			ConfigReloadMutex.StartRead();
+			break;
 		}
+		ConfigReloadMutex.StartRead();
 		
 		switch (ReceiveData()) {
 		case NoData:
@@ -2343,16 +2343,19 @@ H245Socket::~H245Socket()
 
 void H245Socket::ConnectTo()
 {
-	ReadLock lockConfig(ConfigReloadMutex);
-	
 	if (remote->Accept(*listener)) {
 		if (ConnectRemote()) {
+			ConfigReloadMutex.StartRead();
 			SetConnected(true);
 			remote->SetConnected(true);
 			GetHandler()->Insert(this, remote);
+			ConfigReloadMutex.EndRead();
 			return;
 		}
 	}
+
+	ReadLock lockConfig(ConfigReloadMutex);
+
 	// establish H.245 channel failed, disconnect the call
 	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
 	if (socket) {
