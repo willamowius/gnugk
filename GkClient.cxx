@@ -460,6 +460,8 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
 		arq.m_destinationInfo = setup.m_destinationAddress;
+		if (answer)
+			RewriteE164(arq.m_destinationInfo, true);
 	}
 	arq.m_answerCall = answer;
 	// workaround for bandwidth, as OpenH323 library :p
