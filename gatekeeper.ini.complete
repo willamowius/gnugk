@@ -272,6 +272,34 @@ rule=allow
 default=allow
 
 ##
+## Destination analysis mechanism
+##  (must be enabled with compiler option WITH_DEST_ANALYSIS_LIST)
+##
+## Syntax:
+##   authrule=actions
+##
+##   <authrule> := OverlapSendDestAnalysis
+##   <actions>  := <control>[;<message>,<message>,...]
+##   <control>  := optional | required | sufficient
+##   <message>  := ARQ | LRQ
+##
+## Currently supported modules:
+##
+##   OverlapSendDestAnalysis  This module checks for incomplete destination 
+##                            addresses (not fully implemented up to now).
+##
+## A rule may results in one of the three codes: ok, fail, pass. 
+## There are also three ways to control a rule: optional, required, sufficient.
+## Additionally you can configure a rule to check only for some particular 
+## messages.
+## (see Authentication mechanism for details informations).
+#
+[Gatekeeper::DestAnalysis]
+#OverlapSendDestAnalysis=required;ARQ
+#default=reject
+default=allow
+
+##
 ## Use the utility addpasswd (make addpasswd) to add users
 ## Usage:
 ##   addpasswd config userid password
@@ -298,7 +326,7 @@ default=allow
 
 # the attribute names used for LDAP access, the default is the names
 # from the VoIP-scheme which is provided within this distribution
-[LDAPAuth::LDAPAttributeNames]
+[GkLDAP::LDAPAttributeNames]
 #UserIdentity=uid
 #H323ID=cn
 #TelephonNo=telephoneNumber
@@ -314,7 +342,7 @@ default=allow
 #PrefixWhitelist=voIPprefixWhitelist
 
 # Settings for LDAP access
-[LDAPAuth::Settings]
+[GkLDAP::Settings]
 #ServerName=ldap
 #ServerPort=389
 #SearchBaseDN=o=University of Michigan, c=US
