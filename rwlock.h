@@ -2,6 +2,8 @@
 //
 // rwlock.h
 //
+// Utilities for PReadWriteMutex usage
+//
 // Copyright (c) Citron Network Inc. 2002
 //
 // This work is published under the GNU Public License (GPL)
@@ -14,12 +16,13 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef __rwlock_h__
-#define __rwlock_h__
+#ifndef RWLOCK_H
+#define RWLOCK_H "@(#) $Id$"
 
+#ifndef _PTLIB_H
 #include <ptlib.h>
+#endif
 
-// Utility for PReadWriteMutex usage
 
 class ReadLock {
 	PReadWriteMutex & mutex;
@@ -51,5 +54,4 @@ class WriteUnlock {
 
 extern PReadWriteMutex ConfigReloadMutex;
 
-#endif // __rwlock_h__
-
+#endif // RWLOCK_H
