@@ -585,6 +585,7 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 void ProxyHandleThread::Exec()
 {
 	ReadLock cfglock(ConfigReloadMutex);
+	PTRACE(5, "execing void ProxyHandleThread::Exec(): " <<  getpid());
 	PSocket::SelectList sList;
 	while (true) {
 		FlushSockets();
@@ -709,6 +710,31 @@ void ProxyHandleThread::Remove(iterator i)
 	}
 	removedList.push_back(*i);
 	sockList.erase(i);
+}
+
+// Quick solution of locking the handler thread -- see ProxyThread.h too.
+void
+ProxyHandleThread::delete_socket(ProxySocket *s)
+{
+	ProxyDeleter *d = new ProxyDeleter(s);
+	d->Resume();
+}
+
+// Quick solution of locking the handler thread -- see ProxyThread.h too.
+
+void
+ProxyDeleter::Main()
+{
+	delete delete_socket;
+#ifndef WIN32
+	sleep(1); // wait for PWLib to settle
+#endif
+	return;
+}
+
+ProxyDeleter::ProxyDeleter(ProxySocket *s):
+	PThread(1000,AutoDeleteThread), delete_socket(s)
+{
 }
 
 HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)

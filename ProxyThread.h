@@ -112,7 +112,7 @@ class TCPProxySocket : public PTCPSocket, public ProxySocket {
 public:
 	PCLASSINFO( TCPProxySocket, PTCPSocket )
 
-	TCPProxySocket(const char * , TCPProxySocket * = 0, WORD = 0);
+	TCPProxySocket(const char * , TCPProxySocket * = NULL, WORD = 0);
 	virtual ~TCPProxySocket();
 
 	// override from class ProxySocket
@@ -199,6 +199,23 @@ private:
 	HandlerList *m_handler;
 };
 
+// Quick hack to avoid lock when deleting multiple ProxySockets from the handler thread.
+// The old version might produce a even a deadlock.
+// In longer terms we have to think about the handlerlist-locks.
+//
+// This class will take a proxysocket via constructor and delete it, when scheduler gives
+// time.
+
+class ProxyDeleter : public PThread {
+public:
+	ProxyDeleter(ProxySocket *s);
+	~ProxyDeleter() {}
+	virtual void Main();
+protected:
+	ProxySocket *delete_socket;
+};
+
+
 class ProxyHandleThread : public MyPThread {
 public:
 	PCLASSINFO ( ProxyHandleThread, MyPThread )
@@ -238,7 +255,8 @@ private:
 	ProxyHandleThread *lcHandler;
 	PString id;
 
-	static void delete_socket(ProxySocket *s) { PTRACE(5, "deleteSocket: " << s->Name()); delete s; }
+	static void delete_socket(ProxySocket *s);
+//{ PTRACE(5, "deleteSocket: " << s->Name()); delete s; }
 };
 
 class HandlerList {
