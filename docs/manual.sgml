@@ -367,8 +367,8 @@ Order of compiling:
 <item>The Gatekeeper
 </enum>
 
-On Unix do a <tt/make debug/ or <tt/make opt/ in the gatekeeper directory
-to build debug or release version, respectively.
+On Unix do a <tt/configure/ and <tt/make debug/ or <tt/make opt/ 
+in the gatekeeper directory to build debug or release version, respectively.
 Use <tt/make both/ to build both versions.
 Note you have to use GCC 2.95.2 or later. The older version may not work.
 Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/ 
@@ -378,53 +378,14 @@ you will update your sources from CVS, all affected files will get recompiled.
 Otherwise you can finish with the Gatekeeper partially compiled with the older
 headers and partially with the updated headers - a very bad thing.
 On Windows just open and compile the provided project (<tt/gk.dsw/) for
-Microsoft Visual C++ 6.0 or 7.0 (Visual C++ 5.0 is too old).
+Microsoft Visual C++ 6.0 or 7.0 (Visual C++ 5.0 is too old).<newline>
 
-Since version 2.0, the Gatekeeper supports MySQL and LDAP backend databases.
-If you don't want MySQL support, you may set NO_MYSQL environment
-before making:
-<tscreen><verb>
-$ NO_MYSQL=1 make both
-</verb></tscreen>
+Type <tt/configure --help/ to see a detailed list of all compile time
+options. You can use them to enable or disable some features of the gatekeeper.
+For example, if you do not need RADIUS just type: <tt/configure --disable-radius/.<newline>
 
-To leave out LDAP support:
-<tscreen><verb>
-$ NO_LDAP=1 make both
-</verb></tscreen>
-
-Or disable both with
-<tscreen><verb>
-$ NO_MYSQL=1 NO_LDAP=1 make both
-</verb></tscreen>
-
-Since version 2.0.1 the Gatekeeper has implemented an extended fd_set structure
-that enables the Gatekeeper to support thousands of concurrent calls
-in routed mode. To enable this feature, export LARGE_FDSET environment variable
-to the maximum number of file descriptors. Most systems also need kernel
-reconfiguration/recompilation in order to allow more than 1024 sockets
-to be allocated for a single process. Note that the PWLib library starting
-from version 1.5.3 supports a similar feature too, so you can choose between
-LARGE_FDSET GnuGk and PWLib implementation. To enable GnuGk LARGE_FDSET, type:
-<tscreen><verb>
-$ LARGE_FDSET=16384 make opt
-</verb></tscreen>
-
-Since version 2.0.4 the Gatekeeper has implemented Radius protocol client
-that enables registration/admission authentication and authorization using 
-Radius servers. This featured is enabled by default. To disable compilation
-of these radius modules, set NO_RADIUS environment variable before making:
-<tscreen><verb>
-$ NO_RADIUS=1 make both
-</verb></tscreen>
-
-Since version 2.0.5 the Gatekeeper is able to do accounting. Currently,
-only RADIUS and plain text file accounting modules are available. The accounting
-is still an experimental features (although it is reported to work fine),
-so it is not compiled by default. To enable accounting, set HAS_ACCT evironment
-variable before making:
-<tscreen><verb>
-$ HAS_ACCT=1 make both
-</verb></tscreen>
+To build the gatekeeper that is statically linked with system and OpenH323 libraries,
+<tt/make optnoshared/ or <tt/make debugnoshared/ has to be used.
 
 <sect1>Installing the Gatekeeper
 <p>
@@ -1239,11 +1200,13 @@ ARQ, LRQ, Setup and Facility (with the callForwarded reason)
 There is also the general routing policy, which is kind of a
 default for the other types.
 
+<descrip>
 <tag/Example:/
 <quote><tt>[RoutingPolicy]<newline>
 h323_ID=dns,internal<newline>
 002=neighbor,internal<newline>
 Default=internal,neighbor,parent</tt></quote>
+</descrip>
 
 When one of the messages is received which calls for a routing 
 decision, all calls to an alias of the h323_ID type will be
@@ -1283,7 +1246,7 @@ If <tt/ip/ is not listed the parameter <tt/default/ is used.
 To allow client from 195.71.129.0/24 and 195.71.131.0/24:
 <quote><tt>regex=^195\.71\.(129|131)\.[0-9]+$</tt></quote>
 </descrip>
-<item><tt/password/ - the user has to input appropriate username and password to login. The format of username/password is the same as <ref id="password" name="[Password]"> section.
+<item><tt/password/ - the user has to input appropriate username and password to login. The format of username/password is the same as <ref id="password" name="[SimplePasswordAuth]"> section.
 
 </itemize>
 
@@ -1392,8 +1355,11 @@ If you skip the semicolon, LRQs will be always sent to this neighbor.
 The <tt/password/ field is used to authenticate LRQs from that neighbor.
 See section <ref id="gkauth" name="[Gatekeeper::Auth]"> for details.
 
+Neighbor handling has changed significantly from version 2.0 to version 2.2.
+Neighbors can be specified now in two ways - the old one and the new one.
+
 <descrip>
-<tag/Format:/
+<tag/Entry in the old format:/
 <tt>GKID=ip[:port;prefixes;password;dynamic]</tt>
 <p>
 <tag/Example:/
@@ -1401,6 +1367,35 @@ See section <ref id="gkauth" name="[Gatekeeper::Auth]"> for details.
 <tt/GK2=10.0.1.1:1719;035,036;gk2/<newline>
 <tt/GK3=gk.citron.com.tw;;gk3;1/
 </descrip>
+
+<descrip>
+<tag/Entry in the new format:/
+<tt>GKID="GnuGK" | "CiscoGK" | "ClarentGK" | "GlonetGK"</tt>
+<p>
+<tag/Example:/
+<tt/[RasSrv::Neighbors]/<newline>
+<tt/GK1=CiscoGK/<newline>
+<tt/GK2=GnuGK/<newline>
+<newline>
+<tt/[Neighbor::GK1]/<newline>
+<tt/GatekeeperIdentifier=GK1/<newline>
+<tt/Host=192.168.1.1/<newline>
+<tt/SendPrefixes=02/<newline>
+<tt/AcceptPrefixes=*/<newline>
+<tt/ForwardLRQ=always/<newline>
+<newline>
+<tt/[Neighbor::GK2]/<newline>
+<tt/GatekeeperIdentifier=GK2/<newline>
+<tt/Host=192.168.1.2/<newline>
+<tt/SendPrefixes=03,0048/<newline>
+<tt/AcceptPrefixes=0049,001/<newline>
+<tt/ForwardHopCount=2/<newline>
+<tt/ForwardLRQ=depends/<newline>
+<newline>
+</descrip>
+
+The new format specifies in <tt/[RasSrv::Neighbors]/ section only gatekeeper
+types and configuration for each neighbor is placed in a separate section.
 
 <sect2>Section &lsqb;RasSrv::LRQFeatures&rsqb;
 <p>
@@ -1424,17 +1419,22 @@ should be forwarded on to another gatekeeeper, it first decrements
 If <bf/hopCount/ has reached 0, the gatekeeper shall not forward the message.
 This options defines the number of gatekeepers through which an LRQ
 may propagate. Note it only affects the sender of LRQ, not the forwarder.
+This setting can be overriden with configuration of a particular neighbor.
 
 <item><tt/AlwaysForwardLRQ=1/<newline>
 Default: <tt>0</tt>
 <p>
 Force the gatekeeper to forward an LRQ even if there is no <bf/hopCount/
 in the LRQ. To avoid LRQ loops, you should use this option very carefully.
+This option is used only for an old-style (2.0) neighbor configuration,
+the new one reads the settings from a neighbor-specific config section.
 
 <item><tt/AcceptForwardedLRQ=1/<newline>
 Default: <tt/1/
 <p>
 Whether to accept an LRQ forwarded from neighbors.
+This setting can be overriden with configuration
+of a particular neighbor.
 
 <item><tt/IncludeDestinationInfoInLCF=0/<newline>
 Default: <tt/1/
@@ -1447,10 +1447,106 @@ result in interoperability problems.
 Only turn off this option if you encounter problems upon communicating
 with a third-party gatekeeper.
 
-<item><tt/CiscoGKCompatible=1/<newline>
+<item><tt/ForwardResponse=0/<newline>
 Default: <tt/0/
 <p>
-Include a NonStandardParameter in LRQs to compatible with Cisco gatekeepers.
+If the gatekeeper forwards received LRQ message it can decide either
+to receive the LCF response or to let it travel back directly to the LRQ
+origintator. Set this option to 1, if the gatekeeper needs to receive LCF
+messages for forwarded LRQs. This setting can be overriden with configuration
+of a particular neighbor.
+
+<item><tt/ForwardLRQ=always | never | depends/<newline>
+Default: <tt/depends/
+<p>
+This settings determines whether the received LRQ should be forwarded
+or not. <tt/always/ forwards LRQ unconditionally, <tt/never/ blocks LRQ
+forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
+hop count is greater than 1. This setting can be overriden with configuration
+of a particular neighbor.
+</itemize>
+
+<sect3>Section &lsqb;Neighbor::...&rsqb;
+<p>
+Sections starting with <tt/[Neighbor::/ are for neighbor specific configuration.
+
+<itemize>
+<item><tt/GatekeeperIdentifier=GKID/<newline>
+Default: <tt>N/A</tt>
+<p>
+Gatekeeper identifier for this neighbor. If this options is not specified,
+the identifier is taken from the second part of this <tt/Neighbor::/ section name.
+
+<item><tt/Host=192.168.1.1/<newline>
+Default: <tt>N/A</tt>
+<p>
+An IP address for this neighbor.
+
+<item><tt/Password=secret/<newline>
+Default: <tt>N/A</tt>
+<p>
+A password to be used to validate crypto tokens received from incoming LRQs.
+<tt/It is not yet implemented/.
+
+<item><tt/Dynamic=0/<newline>
+Default: <tt>0</tt>
+<p>
+1 means that the IP address for this neighbor can change.
+
+<item><tt/SendPrefixes=004,002:=1,001:=2/<newline>
+Default: <tt>N/A</tt>
+<p>
+A list of prefixes that this neighbor expects LRQs to receive for.
+If '*' is specified, LRQs will always be sent to this neighbor.
+A priority can be given to each prefix for each neighbor (using := syntax),
+so in case of multiple LCF received from multiple neighbor, the one
+with the highest priority will be selected to route the call.
+One can also direct the gatekeeper to send LRQ to this neighbor
+based on an alias type:<newline>
+SendPrefixes=h323_ID,dialedDigits,001<newline>
+
+<item><tt/AcceptPrefixes=*/<newline>
+Default: <tt>N/A</tt>
+<p>
+A list of prefixes that the gatekeeper will accept in LRQs received
+from this neighbor. If '*' is specified, all LRQs will be accepted from this neighbor.
+One can also direct the gatekeeper to accept LRQ from this neighbor
+based on an alias type:<newline>
+AcceptPrefixes=dialedDigits<newline>
+
+<item><tt/ForwardHopCount=2/<newline>
+Default: <tt>N/A</tt>
+<p>
+If the gatekeeper receives an LRQ that the destination is either unknown,
+it may forward this message to its neighbors.
+When the gatekeeper receives an LRQ and decides that the message
+should be forwarded on to another gatekeeeper, it first decrements
+<bf/hopCount/ field of the LRQ.
+If <bf/hopCount/ has reached 0, the gatekeeper shall not forward the message.
+This options defines the number of gatekeepers through which an LRQ
+may propagate. Note it only affects the sender of LRQ, not the forwarder.
+
+<item><tt/AcceptForwardedLRQ=1/<newline>
+Default: <tt/1/
+<p>
+Whether to accept an LRQ forwarded from this neighbor.
+
+<item><tt/ForwardResponse=0/<newline>
+Default: <tt/0/
+<p>
+If the gatekeeper forwards received LRQ message it can decide either
+to receive the LCF response or to let it travel back directly to the LRQ
+origintator. Set this option to 1, if the gatekeeper needs to receive LCF
+messages for forwarded LRQs.
+
+<item><tt/ForwardLRQ=always | never | depends/<newline>
+Default: <tt/depends/
+<p>
+This settings determines whether the received LRQ should be forwarded
+or not. <tt/always/ forwards LRQ unconditionally, <tt/never/ blocks LRQ
+forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
+hop count is greater than 1. This setting can be overriden with configuration
+of a particular neighbor.
 
 </itemize>
 
@@ -1735,7 +1831,7 @@ For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
 <bf/nestedcryptoToken/ tokens hashed by HMAC-SHA1-96 (libssl must be installed!)
 are supported now. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
 and a clear text username/password are supported now.
-The ID and password are read from <ref id="password" name="[Password]"> section,
+The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
 MySQL database, LDAP or an external program
 for <tt/SimplePasswordAuth/, <tt/MySQLPasswordAuth/, <tt/LDAPPasswordAuth/
 and <tt/ExternalPasswordAuth/ modules, respectively.
@@ -1807,7 +1903,7 @@ The default is to accept all requests.
 <tt/default=allow/
 </descrip>
 
-<sect2>Section &lsqb;Password&rsqb;
+<sect2>Section &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
 <p>
 The section defines the userid and password pairs used by
@@ -1840,7 +1936,7 @@ authenticated password. This field define the cache timeout value in second.
 means the cache never expires.
 </itemize>
 
-<sect2>Section &lsqb;MySQLAuth&rsqb;
+<sect2>Section &lsqb;MySQLPasswordAuth&rsqb;
 <p>
 Define the MySQL database, table and fileds to retrieve the userid and password.
 
@@ -1849,6 +1945,11 @@ Define the MySQL database, table and fileds to retrieve the userid and password.
 Default: <tt/localhost/
 <p>
 Host name or IP of the MySQL server.
+
+<item><tt/Port=5353/<newline>
+Default: <tt/5353/
+<p>
+Port the MySQL server is listening on (if different for the default).
 
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
@@ -1864,30 +1965,38 @@ The user name and password used to connect to the database.
 <p>
 The table in the database to query.
 
-<item><tt/IDField=IPN/<newline>
+<item><tt/KeyField=IPN/<newline>
 <p>
-The field name of user id.
+A name for the column that contains user alias.
 
-<item><tt/PasswordField=Password/<newline>
+<item><tt/DataField=Password/<newline>
 <p>
-The field name of password.
+A name for the column that contains user password.
 
 <item><tt/ExtraCriterion=Kind > 0/<newline>
 Default: <tt>N/A</tt>
 <p>
 Specify extra criterion.
+
+<item><tt/CacheTimeout=30/<newline>
+Default: <tt>30</tt>
+<p>
+Timeout value after username/password pairs cached in memory
+will be refreshed from the database.
+
 </itemize>
 
 The SQL command will be issused:
 <tscreen><verb>
-SELECT $PasswordField FROM $Table WHERE $IDField = %id [AND $ExtraCriterion]
+SELECT $DataField FROM $Table WHERE $KeyField = %id [AND $ExtraCriterion]
 </verb></tscreen>
 
 <sect2>Section &lsqb;ExternalPasswordAuth&rsqb;
 <p>
 Specify an external program to retrieve the password.
 The program should accept ID from stdin and print the password to stdout.
-You can use this mechanism to integrate almost any external system for authentication. But beware, this is not the fastest way to authenticate.
+You can use this mechanism to integrate almost any external system for authentication. 
+But beware, this is not the fastest way to authenticate. <tt/This module is depreceated/.
 
 <itemize>
 <item><tt>PasswordProgram=/usr/local/bin/getpasswd</tt><newline>
@@ -1954,6 +2063,11 @@ Default: <tt/localhost/
 <p>
 Host name or IP of the MySQL server.
 
+<item><tt/Port=5353/<newline>
+Default: <tt/5353/
+<p>
+Port the MySQL server is listening on (if different for the default).
+
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
 <p>
@@ -1968,23 +2082,30 @@ The user name and password used to connect to the database.
 <p>
 The table in the database to query.
 
-<item><tt/IDField=IPN/<newline>
+<item><tt/KeyField=alias/<newline>
 <p>
-The field name of user id.
+A name for the column that contains user alias.
 
-<item><tt/IPField=Address/<newline>
+<item><tt/DataField=IPADDR/<newline>
 <p>
-The field name of IP address.
+A name for the column that contains IP address for the user.
 
 <item><tt/ExtraCriterion=Kind > 0/<newline>
 Default: <tt>N/A</tt>
 <p>
 Specify extra criterion.
+
+<item><tt/CacheTimeout=30/<newline>
+Default: <tt>30</tt>
+<p>
+Timeout value after username/password pairs cached in memory
+will be refreshed from the database.
+
 </itemize>
 
 The SQL command will be issused:
 <tscreen><verb>
-SELECT $IPField FROM $Table WHERE $IDField = %alias [AND $ExtraCriterion]
+SELECT $DataField FROM $Table WHERE $KeyField = %alias [AND $ExtraCriterion]
 </verb></tscreen>
 
 <sect2>Section &lsqb;PrefixAuth&rsqb;
