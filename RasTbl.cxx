@@ -1281,14 +1281,13 @@ PString CallRec::GenerateCDR() const
 {
 	PString timeString;
 
-	PTime endTime(m_disconnectTime);
-	if( endTime.GetTimeInSeconds() == 0 )
-		endTime = PTime();
-		
+	time_t eTime = m_disconnectTime ? m_disconnectTime : time(0);
+	PTime endTime(eTime);
+
 	if (m_connectTime != 0) {
 		const PTime startTime(m_connectTime);
 		timeString = PString(PString::Printf, "%ld|%s|%s",
-			(m_disconnectTime - m_connectTime),
+			(eTime - m_connectTime),
 			(const char *)startTime.AsString(),
 			(const char *)endTime.AsString()
 		);
