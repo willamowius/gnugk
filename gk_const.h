@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gk_const.h	constants for gatekeeper ports etc.
@@ -10,7 +9,7 @@
 //
 // History:
 // 	991002	initial version (Jan Willamowius)
-//  990127  moved all to config file (towi)
+//	990127  moved all to config file (towi)
 //
 //////////////////////////////////////////////////////////////////
 
@@ -27,15 +26,28 @@
 #define GK_DEF_MULTICAST_GROUP		"224.0.1.41"
 
 /* port used by gatekeeper for routed signaling: anything != 1720 so endpoint can be on same IP as GK */
-#define GK_DEF_CALL_SIGNAL_PORT	1721
+#define GK_DEF_CALL_SIGNAL_PORT		1721
 
 /* well known signal port */
 #define GK_DEF_ENDPOINT_SIGNAL_PORT	1720
 
-#define GK_DEF_STATUS_PORT			7000
+#define GK_DEF_STATUS_PORT		7000
 
-#define GK_DEF_LISTEN_QUEUE_LENGTH		1024
+#define GK_DEF_LISTEN_QUEUE_LENGTH	1024
 
+extern const char *H225_ProtocolID;
 
-#endif /* GK_CONST_H */
+#ifdef WIN32
+#ifndef _OpenH323_VERSION_H
+#include <../../openh323/version.h> // get OpenH323 version
+#endif
+#endif
 
+// check for version 1.11.5
+#if (MAJOR_VERSION > 1) || (MAJOR_VERSION == 1 && MINOR_VERSION > 11) || (MAJOR_VERSION == 1 && MINOR_VERSION == 11 && BUILD_NUMBER >= 5)
+#define OPENH323_NEWVERSION
+#else
+#undef  OPENH323_NEWVERSION
+#endif
+
+#endif
