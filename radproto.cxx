@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2004/04/17 11:43:43  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.12  2004/03/17 00:00:38  zvision
  * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
  *
@@ -637,11 +641,6 @@ PObject::Comparison RadiusAttr::Compare(
 	const PObject & obj   // Object to compare against.
 	) const
 {
-	if( !obj.IsDescendant(RadiusAttr::Class()) ) {
-		PAssertAlways(PInvalidCast);
-		return GreaterThan;
-	}
-
 	if( !(IsValid() && ((const RadiusAttr&)obj).IsValid()) ) {
 #ifdef _DEBUG
 		PAssertAlways(PInvalidParameter);

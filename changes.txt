@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- removed descendancy check in radproto to allow compilation with the latest
+  RTTI enabled PWLib
 - BUGFIX(Neighbor.cxx) fixed missing parentheses, thanks to kubuqi cn
 - BUGFIX(h323util.cxx) GetIPAndPortFromTransportAddr now checks if the address
   is valid
