@@ -126,7 +126,7 @@ PString OverlapSendDestAnalysis::MatchSpecialDial(const CallingProfile &CGprofil
 	PString realCdAlias;
 
         PString cdAliasStr = H323GetAliasAddressString(cdAlias);
-        unsigned int cdAliasStrLen = cdAliasStr.GetLength();
+        PINDEX cdAliasStrLen = cdAliasStr.GetLength();
 
         const PStringToString &spDialMap = CGprofile.GetSpecialDials();
 
