@@ -1542,7 +1542,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 			return true;
 		}
 	}
-	bool userevert = ((2 - bool(m_crv & 0x8000u)) & m_call->GetNATType()) && (m_isnatsocket || ret->m_isnatsocket);
+	bool userevert = m_isnatsocket || ((m_crv & 0x8000u) && (m_call->GetNATType() & CallRec::citronNAT));
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
 	ret->m_h245socket = new H245Socket(m_h245socket, ret);
 	m_h245socket->SetH245Address(h245addr, localAddr);

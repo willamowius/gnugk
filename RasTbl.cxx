@@ -1080,8 +1080,11 @@ void CallRec::SetCalling(const endptr & NewCalling)
 {
 	InternalSetEP(m_Calling, NewCalling);
 	if (NewCalling) {
-		if (NewCalling->IsNATed())
+		if (NewCalling->IsNATed()) {
 			m_nattype |= callingParty, m_h245Routed = true;
+			if (NewCalling->HasNATSocket())
+				m_nattype |= citronNAT;
+		}
 		m_callerAddr = AsDotString(NewCalling->GetCallSignalAddress());
 		m_callerId = NewCalling->GetEndpointIdentifier().GetValue();
 	}

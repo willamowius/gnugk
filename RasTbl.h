@@ -126,6 +126,7 @@ public:
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const { return m_fromParent; }
 	bool IsNATed() const { return m_nat; }
+	bool HasNATSocket() const { return m_natsocket; }
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 
 	/** If this Endpoint would be register itself again with all the same data
@@ -345,7 +346,8 @@ public:
 		none = 0,
 		callingParty = 1,
 		calledParty = 2,
-		both = 3
+		both = 3,
+		citronNAT = 4  // caller with Citron NAT Technology?
 	};
 
 	PINDEX GetCallNumber() const
