@@ -79,23 +79,23 @@ CalledProfile::CalledProfile(PString &dialedPN, PString &calledPN)
 }
 
 void
-CalledProfile::setDialedPN(PString &dialedPN, 
+CalledProfile::setDialedPN(PString &dialedPN,
 			   const enum Q931::TypeOfNumberCodes dialedPN_TON)
 {
-	m_dialedPN = dialedPN; 
-	m_dialedPN_TON = dialedPN_TON; 
+	m_dialedPN = dialedPN;
+	m_dialedPN_TON = dialedPN_TON;
 }
 
-void 
+void
 CalledProfile::setDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON)
-{ 
-	m_dialedPN_TON = dialedPN_TON; 
+{
+	m_dialedPN_TON = dialedPN_TON;
 }
 
-void  
-CalledProfile::setCalledPN(PString &calledPN) 
-{ 
-	m_calledPN = calledPN; 
+void
+CalledProfile::setCalledPN(PString &calledPN)
+{
+	m_calledPN = calledPN;
 }
 // End of: Classes to store information read from e.g. LDAP
 
@@ -631,6 +631,17 @@ RegistrationTable::RegistrationTable()
 	LoadConfig();
 }
 
+static void delete_call(CallRec *c);
+
+static PMutex deletemutex;
+
+static void delete_call(CallRec *c)
+{
+	PWaitAndSignal lock(deletemutex);
+	delete c;
+}
+
+
 RegistrationTable::~RegistrationTable()
 {
 	ClearTable();
@@ -1097,32 +1108,6 @@ void CallRec::StopTimer()
 	m_timeout = 0;
 }
 
-// void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
-// {
-// 	PWaitAndSignal lock(m_usedLock);
-// 	// if an old endpoint exists and a really new endpoint shall be set
-// 	if (NewCalling != m_Calling) {
-// 		if (m_Calling) {
-// 			delete m_callingProfile;
-// 			m_callingProfile = NULL;
-// 		}
-// 		InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
-// 	}
-// }
-
-// void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
-// {
-// 	PWaitAndSignal lock(m_usedLock);
-// 	// if an old endpoint exists and a really new endpoint shall be set
-// 	if (NewCalled != m_Called) {
-// 		if (m_Called) {
-// 			delete m_calledProfile;
-// 			m_calledProfile = NULL;
-// 		}
-// 		InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
-// 	}
-// }
-
 endptr & CallRec::GetCallingEP()
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1327,7 +1312,7 @@ static const PString AsCDRTimeString(const PTime & t)
 	const PString format(GkConfig()->GetString(UseCDRFormat,UseCDRFormat_default));
 	const int zone = (GkConfig()->GetBoolean(UseUTCinCDR,UseUTCinCDR_default) ? PTime::UTC : PTime::Local);
 	const PString & result = t.AsString((const char *)format, zone);
-	PTRACE(5, PString(ANSI::DBG) + "CDR: Time formated to " 
+	PTRACE(5, PString(ANSI::DBG) + "CDR: Time formated to "
 	       + ANSI::PIN + result + ANSI::OFF);
 	return result;
 	//return t.AsString((const char *)format, zone);
@@ -1345,7 +1330,7 @@ static const BOOL IPTN_is_inter(E164_IPTNString & iptn)
 	if(E164_AnalysedNumber::IPTN_unknown != an.GetIPTN_kind()) {
 		result = TRUE;
 		PString well_formated(an); // convert to '+CC NDC SN'
-		PTRACE(2, PString(ANSI::DBG) + "CDR: rewriting " + iptn + 
+		PTRACE(2, PString(ANSI::DBG) + "CDR: rewriting " + iptn +
 		       " to " + ANSI::GRE +well_formated + ANSI::OFF);
 		iptn = well_formated;
 	}
@@ -1408,9 +1393,9 @@ PString CallRec::GenerateCDR()
 		default:
 			TONstr = "unknown";
 		}
-		PTRACE(2, PString(ANSI::DBG)+"CDR: dialedPN is in " 
+		PTRACE(2, PString(ANSI::DBG)+"CDR: dialedPN is in "
 		       + ANSI::GRE + TONstr + ANSI::DBG + " format" + ANSI::OFF);
-#  endif	
+#  endif
 	}
 	// get the proper called party number, they should be in
 	// international format
@@ -1420,13 +1405,13 @@ PString CallRec::GenerateCDR()
 		if(IPTN_is_inter(calledPN)) {
 			PTRACE(2, "CDR: calledPN is in international type format");
 		} else {
-			PTRACE(2, PString("CDR: ") + ANSI::RED + "WARNING" + ANSI::OFF + 
-			       ": calledPN " + calledPN + 
-			       " is " + ANSI::RED + "NOT" + ANSI::OFF + 
+			PTRACE(2, PString("CDR: ") + ANSI::RED + "WARNING" + ANSI::OFF +
+			       ": calledPN " + calledPN +
+			       " is " + ANSI::RED + "NOT" + ANSI::OFF +
 			       " in international format; stripped!");
 			calledPN = "";
 		}
-#  endif	
+#  endif
 	}
 
 
@@ -1583,8 +1568,8 @@ void CallTable::CheckCalls()
 	}
 
 	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
-       for_each(Iter, RemovedList.end(), delete_call);
-       RemovedList.erase(Iter, RemovedList.end());
+	for_each(Iter, RemovedList.end(), delete_call);
+	RemovedList.erase(Iter, RemovedList.end());
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
@@ -1665,6 +1650,7 @@ void CallTable::InternalRemove(iterator Iter)
 	RemovedList.push_back(call);
 	CallList.erase(Iter);
 }
+
 
 void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const
 {
