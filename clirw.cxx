@@ -50,8 +50,8 @@ PString CLIRewrite::RewriteRule::AsString() const
 
 	std::vector<std::string>::const_iterator cli = m_cli.begin();
 	while (cli != m_cli.end()) {
-		s += *cli++;
-		if (cli != m_cli.end())
+		s += cli->c_str();
+		if (++cli != m_cli.end())
 			s += ", ";
 	}
 	return s;
