@@ -1,6 +1,21 @@
 Changes from 0.17 to 1.0
 ========================
 
+- add singleton.h, singleton.cxx, change all singleton objects to derive from a
+  template singleton base to avoid code duplication and allow a better cleanup
+  (cwhuang)
+- remove all usages of for_each_with by STL for_each (cwhuang)
+- add RegistrationTable::RemovePrefixes(const PString &) (cwhuang)
+- add more fields to CDR output, add port number to ACF output (cwhuang)
+- rewrite UnixShutdownhandler for graceful shutdown (cwhuang)
+- change some members and methods in Toolkit to non-static (cwhuang)
+- ensure Toolkit::Config be called after SetConfig
+  some order of initialization in gk.cxx changed accordingly (cwhuang)
+- fix the reload mechanism, set m_RewriteFastmatch when reload (cwhuang)
+- add 'reload' command to status thread and remove 'debug reload' command
+  'shutdown' command is also added, but not implemented yet (cwhuang)
+- show a copyright notice to be compliant to GPL requirement (cwhuang)
+
 - more documentation
 - status thread: changed Disconnect command to DisconnectIp,
   added DisconnectAlias, DisconnectCall, DisconnectEndpoint,

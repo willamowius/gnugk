@@ -163,12 +163,12 @@ void ReloadHandler(void)
 	/*
 	** Enter critical Section
 	*/
-	ReloadMutex.Wait();
+	PWaitAndSignal reload(ReloadMutex);
 
 	/*
 	** Force reloading config
 	*/
-	Toolkit::ReloadConfig();
+	InstanceOf<Toolkit>()->ReloadConfig();
 	PTRACE(3, "GK\t\tConfig reloaded.");
 	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
 
@@ -188,8 +188,6 @@ void ReloadHandler(void)
 	*/
 	// give other threads the chance to pass by this handler
 	PProcess::Current().Sleep(1000); 
-
-	ReloadMutex.Signal();
 
 	return;
 }

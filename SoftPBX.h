@@ -9,19 +9,14 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef SOFTPBX
-#define SOFTPBX
+#ifndef _SOFTPBX_H
+#define _SOFTPBX_H
 
-#include "ptlib.h"
-#include "ptlib/sockets.h"
-#include <h225.h>
 #include "GkStatus.h"
 
-class SoftPBX
+class SoftPBX : public Singleton<SoftPBX>
 {
 public:
-	static SoftPBX * Instance(void);
-
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
 	void DisconnectIp(PString Ip);
@@ -33,9 +28,6 @@ public:
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
 
-protected:
-	static SoftPBX * m_instance;
-	static PMutex m_CreationLock;		// lock to protect singleton creation
 };
 
 #endif

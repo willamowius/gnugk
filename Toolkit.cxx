@@ -10,53 +10,32 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#include "Toolkit.h"
-#include "ANSI.h"
 
 #include <ptlib.h>
 #include "h323pdu.h"
+#include "Toolkit.h"
+#include "ANSI.h"
 
 
-Toolkit*  Toolkit::m_Instance = NULL;
-PMutex    Toolkit::m_CreationLock;
-PFilePath Toolkit::m_ConfigFilePath("gatekeeper.ini");
-PString   Toolkit::m_ConfigDefaultSection("Gatekeeper::Main");
-PConfig*  Toolkit::m_Config = NULL;
-
-
-Toolkit* Toolkit::Instance()
+Toolkit::~Toolkit()
 {
-	if (m_Instance == NULL)
-	{
-		m_CreationLock.Wait();
-		if (m_Instance == NULL)
-			m_Instance = new Toolkit();
-		m_CreationLock.Signal();
+	if (m_Config != NULL) {
+		delete m_Config;
+		PFile::Remove(m_tmpconfig);
 	}
-	
-	return m_Instance;
 }
-
-
-Toolkit::Toolkit()
-	: m_RewriteFastmatch(Config()->GetString("RasSvr::RewriteE164","Fastmatch", ""))
-{
-}
-
 
 PConfig* Toolkit::Config()
-{ 
-	if (m_Config == NULL) {
-		m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
-	}
-	
-	return m_Config; 
+{
+	// Make sure the config would not be called before SetConfig
+	PAssert(!m_ConfigDefaultSection, "Error: Call Config() before SetConfig()!");
+	return (m_Config == NULL) ? ReloadConfig() : m_Config;
 }
 
 
 PConfig* Toolkit::SetConfig(const PFilePath &fp, const PString &section)
 { 
-    m_ConfigFilePath = fp;
+	m_ConfigFilePath = fp;
 	m_ConfigDefaultSection = section;
 
 	return ReloadConfig();
@@ -65,10 +44,27 @@ PConfig* Toolkit::SetConfig(const PFilePath &fp, const PString &section)
 
 PConfig* Toolkit::ReloadConfig()
 {
-	if (m_Config != NULL) 
+	if (m_Config != NULL) {
 		delete m_Config;
-	
-	m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
+		PFile::Remove(m_tmpconfig);
+	}
+
+	// generate a unique name
+	do {
+		m_tmpconfig = m_ConfigFilePath + "-" + PString(PString::Unsigned, rand()%10000);
+		PTRACE(5, "Try name "<< m_tmpconfig);
+	} while (PFile::Exists(m_tmpconfig));
+
+#ifdef WIN32
+	// Does WIN32 support symlink?
+	if (PFile::Copy(m_ConfigFilePath, m_tmpconfig))
+#else
+	if (symlink(m_ConfigFilePath, m_tmpconfig)==0)
+#endif
+		m_Config = new PConfig(m_tmpconfig, m_ConfigDefaultSection);
+	else // Oops! Create temporary config file failed, use the original one
+		m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
+	m_RewriteFastmatch = m_Config->GetString("RasSvr::RewriteE164","Fastmatch", "");
 	
 	return m_Config; 
 }
@@ -176,7 +172,7 @@ Toolkit::RewritePString(PString &s)
 const PString 
 Toolkit::GKName() 
 {
-  return Config()->GetString("Gatekeeper::Main", "Name", "OpenH323GK");
+  return GkConfig()->GetString("Gatekeeper::Main", "Name", "OpenH323GK");
 }
 
 

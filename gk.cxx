@@ -23,13 +23,15 @@
 #ifndef WIN32
 #include <signal.h>
 #endif
+#include <ptlib.h>
+#include <q931.h>
 #include "gk.h"
 #include "RasSrv.h"
+#include "RasTbl.h"
 #include "MulticastGRQ.h"
 #include "BroadcastListen.h"
 #include "Toolkit.h"
 #include "h323util.h"
-#include "RasTbl.h"
 
 
 /*
@@ -48,7 +50,7 @@ void ShutdownHandler(void)
 	// delete objects only once
 	if (ShutdownMutex.WillBlock())
 		return;
-	ShutdownMutex.Wait();
+	PWaitAndSignal shutdown(ShutdownMutex);
 	if (BroadcastThread != NULL)
 	{
 		PTRACE(3, "GK\tClosing BroadcastThread");
@@ -77,10 +79,16 @@ void ShutdownHandler(void)
 
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
-	delete resourceManager::Instance();
-	delete RegistrationTable::Instance();
-	delete CallTable::Instance();
-	ShutdownMutex.Signal();
+
+	// The singletons would be deleted automatically
+	// by destructor of listptr<SingletonBase *>
+	// However, I have to delete Toolkit instance here,
+	// or it will cause a core dump. I don't know why...
+//        delete resourceManager::Instance();
+//        delete RegistrationTable::Instance();
+//        delete CallTable::Instance();
+//        delete SoftPBX::Instance();
+        delete Toolkit::Instance();
 
 	return;
 }
@@ -98,12 +106,17 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 
 #else
 
+PThread *mainThread = NULL;
+
 void UnixShutdownHandler(int sig)
 {
 	PTRACE(1, "GK\tGatekeeper shutdown (signal " << sig << ")");
 	// exit(2); // dump gprof info to gmon.out
-	ShutdownHandler();
-	exit(0);
+	if (PThread::Current() == mainThread) {
+		RasThread->Shutdown();
+	} else {
+		PTRACE(1, "This is not main thread, ignore!\n");
+	}
 };
 
 void UnixReloadHandler(int sig) // For HUP Signal
@@ -162,6 +175,7 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 	sa.sa_handler = UnixReloadHandler;
 
 	sigaction(SIGHUP, &sa, NULL);
+	mainThread = PThread::Current();
 #endif
 
 	return TRUE;
@@ -177,14 +191,13 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o'))
 	{
-		PTextFile * output = new PTextFile;
-		if (output->Open(args.GetOptionString('o'), PFile::WriteOnly))
-			PTrace::SetStream(output);
+		static PTextFile output;
+		if (output.Open(args.GetOptionString('o'), PFile::WriteOnly))
+			PTrace::SetStream(&output);
 		else
 		{
 			cout << "Warning: could not open trace output file \""
 				<< args.GetOptionString('o') << '"' << endl;
-			delete output;
 		}
 	}
 	PTRACE(1, "GK\tTrace logging started.");
@@ -196,7 +209,7 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 
 BOOL Gatekeeper::InitToolkit(const PArgList &args)
 {
-	Toolkit::Instance(); // force using the right Toolkit constructor
+	InstanceOf<Toolkit>(); // force using the right Toolkit constructor
 
 	return TRUE;
 }
@@ -214,9 +227,9 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 	if (args.HasOption('s')) 
 		section = args.GetOptionString('s');
 
-	Toolkit::SetConfig(fp, section);
+	InstanceOf<Toolkit>()->SetConfig(fp, section);
 
-	if( (Toolkit::Config()->GetInteger("Fourtytwo") ) != 42) { 
+	if( (GkConfig()->GetInteger("Fourtytwo") ) != 42) { 
 		cerr << "WARNING: No config file found!\n"
 			 << "- Does the config file exist? The default (~/.pwlib_config/Gatekeeper.ini or gatekeeper.ini in current directory) or the one given with -c?\n"
 			 << "- Did you specify they the right 'Main' section with -s?\n" 
@@ -248,12 +261,7 @@ void Gatekeeper::Main()
 	BOOL GKroutedSignaling = FALSE;	// default: use direct signaling
 	PIPSocket::Address GKHome;
 
-	if (args.HasOption('h')) {
-		cout << "OpenH323 gatekeeper '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome) << endl;
-		cout << Toolkit::GKVersion() << endl;
-		PrintOpts();
-		exit(0);
-	}
+	if(! InitLogging(args)) return;
 
 	if(! InitHandlers(args)) return;
 
@@ -261,13 +269,19 @@ void Gatekeeper::Main()
 
 	if(! InitConfig(args)) return;
 
-	if(! InitLogging(args)) return;
+	if (args.HasOption('h')) {
+		cout << "OpenH323 gatekeeper '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome) << endl;
+		cout << Toolkit::GKVersion() << endl;
+		PrintOpts();
+        	delete Toolkit::Instance();
+		exit(0);
+	}
 
 	// read gatekeeper home address from commandline
 	if (args.HasOption('i'))
 		GKHome = PString(args.GetOptionString('i'));
 	else {
-		PString s = Toolkit::Config()->GetString("Home", "x");
+		PString s = GkConfig()->GetString("Home", "x");
 		if (s == "x")
 			PIPSocket::GetHostAddress(GKHome);
 		else
@@ -278,6 +292,14 @@ void Gatekeeper::Main()
 	cout << Toolkit::GKVersion() << endl;
 	PTRACE(1, "GK\tGatekeeper with ID '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome));
 	PTRACE(1, "GK\t"<<Toolkit::GKVersion());
+
+	// Copyright notice
+	cout <<
+		"This program is free software; you can redistribute it and/or\n"
+		"modify it under the terms of the GNU General Public License\n"
+		"as published by the Free Software Foundation; either version 2\n"
+		"of the License, or (at your option) any later version.\n"
+	    << endl;
 
 	// read signaling method from commandline
 	if (args.HasOption('r'))
@@ -316,4 +338,7 @@ void Gatekeeper::Main()
 
 	// let's go
 	RasThread->HandleConnections();
+
+	// graceful shutdown
+	ShutdownHandler();
 }

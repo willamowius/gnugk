@@ -15,13 +15,14 @@
 
 #include <ptlib.h>
 #include "h225.h"
+#include "singleton.h"
 
 
-class Toolkit
+class Toolkit : public Singleton<Toolkit>
 {
  public: // con- and destructing
-	explicit Toolkit();
-	virtual ~Toolkit() { };
+	explicit Toolkit() : m_Config(NULL) {}
+	virtual ~Toolkit();
 
 	/// returns #basic# for
 	virtual const PString GetName() const { return "basic"; }
@@ -51,22 +52,20 @@ class Toolkit
 	 * }
 	 * </pre>
 	 */
-	static Toolkit* Instance();
-	static PMutex m_CreationLock;		// lock to protect singleton creation
 
 	/** Accessor and 'Factory' for the global (static) configuration. 
 	 * With this we are able to implement out own Config-Loader 
 	 * in the same way as #Instance()#. And we can use #Config()# 
 	 * in the constructor of #Toolkit# (and its descentants).
 	 */
-	static PConfig* Config(); 
+	PConfig* Config(); 
 
 	/** Sets the config that the toolkit uses to a given config.
 	 *  A prior loaded Config is discarded. 
 	 */
-	static PConfig* SetConfig(const PFilePath &fp, const PString &section);
+	PConfig* SetConfig(const PFilePath &fp, const PString &section);
 
-	static PConfig* ReloadConfig();
+	PConfig* ReloadConfig();
 
 	/// reads name of the running instance from config
 	static const PString GKName();
@@ -142,15 +141,17 @@ class Toolkit
 	 */
 	inline static unsigned long HashCStr(const unsigned char *name) ;
 
- protected: // static fields
-	static PFilePath m_ConfigFilePath;
-	static PString   m_ConfigDefaultSection;
-	static PConfig*  m_Config;
-	static Toolkit * m_Instance;
-	
+ protected:
+	PFilePath m_ConfigFilePath;
+	PString   m_ConfigDefaultSection;
+	PConfig*  m_Config;
+
 	/** e164s starting with this string are examined further for rewriting. */
-	const PString  m_RewriteFastmatch;
-	BOOL           m_EmergencyAccept;
+	PString   m_RewriteFastmatch;
+	BOOL      m_EmergencyAccept;
+
+ private:
+	PFilePath m_tmpconfig;
 };
 
 
@@ -207,6 +208,11 @@ Toolkit::HashCStr(const unsigned char *name)
 		h &= ~g;
 	}
 	return h;
+}
+
+inline PConfig *GkConfig()
+{
+	return InstanceOf<Toolkit>()->Config();
 }
 
 #endif

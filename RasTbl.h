@@ -53,12 +53,11 @@ public:
 
 // this data structure is obsolete !
 // all information about ongoing calls is in CallTable
-class resourceManager
+class resourceManager : public Singleton<resourceManager>
 {
 public:
-	static resourceManager * Instance(void);
-protected:
 	resourceManager();
+protected:
 	resourceManager(const resourceManager &);
 public:
 	void SetBandWidth(int bw);
@@ -69,9 +68,6 @@ public:
 protected:
 	H225_BandWidth m_capacity;
 	set<conferenceRec> ConferenceList;
-
-	static resourceManager * m_instance;
-	static PMutex m_CreationLock;		// lock to protect singleton creation
 };
 
 
@@ -108,13 +104,11 @@ protected:
 };
 
 
-class RegistrationTable
+class RegistrationTable : public Singleton<RegistrationTable>
 {
 public:
-	// singleton
-	static RegistrationTable* Instance(void);
-protected:
 	RegistrationTable();
+protected:
 	RegistrationTable(const RegistrationTable &);
 public:
 	void Insert(const endpointRec & NewRec);
@@ -161,6 +155,7 @@ public:
   void UpdatePrefixes();
 
   /** removes the prefixes for a gw with the alias #AliasStr#, or does nothing. */
+  void RemovePrefixes(const PString & alias);
   void RemovePrefixes(const H225_AliasAddress & alias);
 
   /** If alias is a e164 alias, #m_destinationInfo[0]# is matched against
@@ -175,8 +170,6 @@ protected:
 	// this is NOT the count of endpoints!
 	int recCnt;
 	const PString endpointIdSuffix; // Suffix of the generated Endpoint IDs
-	static RegistrationTable * m_instance;
-	static PMutex m_CreationLock;		// lock to protect singleton creation
 };
 
 
@@ -230,12 +223,11 @@ public:
 };
 
 // all active calls
-class CallTable
+class CallTable : public Singleton<CallTable>
 {
 public:
-	static CallTable * Instance(void);
-protected:
 	CallTable();
+protected:
 	CallTable(const CallTable &);
 
 public:
@@ -253,8 +245,6 @@ public:
 
 protected:
 	std::set <CallRec> CallList;
-	static CallTable * m_instance;
-	static PMutex m_CreationLock;		// lock to protect singleton creation
 	PINDEX m_CallNumber;
 };
 

@@ -20,22 +20,19 @@
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
-#include "ptlib.h"
-#include "ptlib/sockets.h"
-#include "ptlib/mutex.h"
+#include <ptlib.h>
+#include <ptlib/sockets.h>
 #include <set>
+#include "singleton.h"
 
-class GkStatus : public PThread
+class GkStatus : public PThread, public Singleton<GkStatus>
 {
-	  PCLASSINFO(GkStatus, PThread)
+	PCLASSINFO(GkStatus, PThread)
 public:
-	static GkStatus * Instance(PIPSocket::Address _gkhome = PIPSocket::Address(PString("0.0.0.0")));
-
-private:
-	GkStatus(PIPSocket::Address _GKHome);
-
-public:
+	GkStatus();
 	virtual ~GkStatus();
+
+	void Initialize(PIPSocket::Address);
 
 	void Close(void);
 
@@ -69,6 +66,8 @@ public:
 		e_Version,                     /// GkStatus Protocol Info
 		e_Debug,                       /// Debugging commands
 		e_Exit,                        /// Close Connection
+		e_Reload,                      /// Reload Config File
+		e_Shutdown,                    /// Shutdown the program
 		/// Number of different strings
 	};
 	static const int NumberOfCommandStrings;
@@ -145,10 +144,6 @@ public:
 	std::set<Client*>::const_iterator ClientIter;
 	PMutex       ClientSetLock;
 	BOOL         m_IsDirty;
-
-protected:    // singelton instance and lock
-	static GkStatus * m_instance;
-	static PMutex m_CreationLock;
 };
 
 #endif // GKSTATUS_H

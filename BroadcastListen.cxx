@@ -23,7 +23,7 @@
 
 BroadcastListen::BroadcastListen(H323RasSrv * _RasSrv)
 	: PThread(1000, NoAutoDeleteThread), 
-	  BroadcastListener(WORD(Toolkit::Config()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)))
+	  BroadcastListener(WORD(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)))
 {
 	PTRACE(1, "GK\tBroadcast listener started");
 
@@ -39,7 +39,7 @@ BroadcastListen::~BroadcastListen()
 void BroadcastListen::Main(void)
 {
 	BroadcastListener.Listen
-		(Toolkit::Config()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
+		(GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
 		 BroadcastListener.GetPort(), 
 		 PSocket::CanReuseAddress);
 

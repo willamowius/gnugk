@@ -28,13 +28,13 @@
 
 MulticastGRQ::MulticastGRQ(PIPSocket::Address _GKHome, H323RasSrv * _RasSrv)
 	: PThread(1000, NoAutoDeleteThread), 
-	  MulticastListener(WORD(Toolkit::Config()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
+	  MulticastListener(WORD(GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
 {
 	GKHome = _GKHome;
 	RasSrv = _RasSrv;
 
 	// own IP number
-	GKRasAddress = SocketToH225TransportAddr(GKHome, WORD(Toolkit::Config()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)));
+	GKRasAddress = SocketToH225TransportAddr(GKHome, WORD(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)));
 
 	Resume();
 };
@@ -47,10 +47,10 @@ void MulticastGRQ::Main(void)
 {
 	// set socket to multicast
 	struct ip_mreq mreq;
-	mreq.imr_multiaddr.s_addr = inet_addr(Toolkit::Config()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
+	mreq.imr_multiaddr.s_addr = inet_addr(GkConfig()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
 	mreq.imr_interface.s_addr = GKHome;
 	MulticastListener.Listen(GKHome, 
-							 Toolkit::Config()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
+							 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
 							 MulticastListener.GetPort());
 	if (setsockopt(MulticastListener.GetHandle(), IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0)
 	{

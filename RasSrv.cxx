@@ -42,7 +42,7 @@
 
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
-  : listener(Toolkit::Config()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)),
+  : listener(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)),
 	udpForwarding()
 {
 	GKHome = _GKHome;
@@ -55,13 +55,14 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	sigListener = NULL;
 
 	// own IP number
-	GKCallSignalAddress = SocketToH225TransportAddr(GKHome, Toolkit::Config()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
-	GKRasAddress = SocketToH225TransportAddr(GKHome, Toolkit::Config()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
+	GKCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
+	GKRasAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
 
 	udpForwarding.SetWriteTimeout(PTimeInterval(300));
  
 	// we now use singelton instance mm-22.05.2001
-	GkStatusThread = GkStatus::Instance(GKHome);
+	GkStatusThread = GkStatus::Instance();
+	GkStatusThread->Initialize(_GKHome);
 }
 
 
@@ -96,7 +97,7 @@ void H323RasSrv::Close(void)
 void H323RasSrv::UnregisterAllEndpoints(void)
 {
 	SoftPBX::Instance()->UnregisterAllEndpoints();
-};
+}
 
 
 /* Gatekeeper request */
@@ -206,7 +207,7 @@ H323RasSrv::SetAlternateGK(H225_RegistrationConfirm &rcf)
 	PTRACE(5, ANSI::BLU << "Alternating? " << ANSI::OFF);
 	BOOL result = FALSE;
 
-	PString param = Toolkit::Config()->GetString("AlternateGKs","");
+	PString param = GkConfig()->GetString("AlternateGKs","");
 	if(param != "") {
 		PTRACE(5, ANSI::BLU << "Alternating: yes, set AltGK in RCF! " << ANSI::OFF);
 		result = TRUE;
@@ -262,7 +263,7 @@ H323RasSrv::ForwardRasMsg(H225_RasMessage msg) // not passed as const, ref or po
 	PTRACE(5, ANSI::BLU << "Forwarding? " << ANSI::OFF);
 	BOOL result = FALSE;
 
-	PString param = Toolkit::Config()->GetString("SendTo","");
+	PString param = GkConfig()->GetString("SendTo","");
 	if (param != "") {
 		PTRACE(5, ANSI::BLU << "Forwarding: yes! " << ANSI::OFF);
 		result = TRUE;
@@ -351,7 +352,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	}
 
 	// mechanism 2: forwarding detection per "from"
-	const PString SkipForwards = Toolkit::Config()->GetString("SkipForwards", "");
+	const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
         if (SkipForwards != "")
 		if (SkipForwards.Find(rx_addr.AsString()) != P_MAX_INDEX)
 		{
@@ -474,7 +475,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		for (PINDEX AliasIndex=0; !AliasFoundInConfig && AliasIndex < NewAliases.GetSize(); ++AliasIndex)
 		{
 			alias = AsString(NewAliases[AliasIndex], FALSE);
-			const PString cfgString = Toolkit::Config()->GetString("RasSrv::RRQAuth", alias, "");
+			const PString cfgString = GkConfig()->GetString("RasSrv::RRQAuth", alias, "");
 
 			if (cfgString != "") {
 				const PStringArray conditions = cfgString.Tokenise("&", FALSE);
@@ -496,7 +497,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 
 		if (!AliasFoundInConfig)
-			if ((Toolkit::Config()->GetString("RasSrv::RRQAuth", "default", "")).ToLower() == "deny") {
+			if ((GkConfig()->GetString("RasSrv::RRQAuth", "default", "")).ToLower() == "deny") {
 				bReject = TRUE;
 				rejectReason.SetTag(H225_RegistrationRejectReason::e_securityDenial);
 				PTRACE(4, "Gk\tRRQAuth default condition rejected endpoint " << alias);
@@ -611,7 +612,7 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_AliasAddress & alias) cons
 	// since this routine is only called when the routing decision has been made,
 	// finding a prefix that is longer than our dialled number implies the number is incomplete
 
-	const PString DoCheck = Toolkit::AsBool(Toolkit::Config()->GetString
+	const PString DoCheck = Toolkit::AsBool(GkConfig()->GetString
 		("RasSvr::ARQ", "IncompleteAddresses", "TRUE"));
 
 	if (!DoCheck)
@@ -733,7 +734,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
  	// generate ARJ-reason: 'routeCallToSCN'
  	//
  	if(!bReject && 
- 	   Toolkit::AsBool(Toolkit::Config()->GetString("RasSrv::ARQFeatures","ArjReasonRouteCallToSCN","TRUE")) ) 
+ 	   Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures","ArjReasonRouteCallToSCN","TRUE")) ) 
  	{
  		// are the endpoints the same (GWs of course)?
  		if( (CalledEP != NULL) && (RequestingEP != NULL) && (CalledEP == RequestingEP) && 
@@ -1017,7 +1018,7 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	// mechanism 2: forwarding detection per "from"
 	{
 		const PString addr = rx_addr;
-		if(Toolkit::AsBool(Toolkit::Config()->GetString("skipfrom-"+addr, ""))) {
+		if(Toolkit::AsBool(GkConfig()->GetString("skipfrom-"+addr, ""))) {
 			bShellSendReply = FALSE;
 			bShellForwardRequest = FALSE;
 		}
@@ -1245,9 +1246,9 @@ void H323RasSrv::HandleConnections(void)
     PTRACE(2, "GK\tEntering connection handling loop");
 
 	if (GKroutedSignaling)
-		sigListener = new SignalChannel(1000, GKHome, Toolkit::Config()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
+		sigListener = new SignalChannel(1000, GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
 	listener.Listen(GKHome, 
-					Toolkit::Config()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
+					GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
 					listener.GetPort(), 
 					PSocket::CanReuseAddress);
 	if (!listener.IsOpen())
@@ -1262,37 +1263,28 @@ void H323RasSrv::HandleConnections(void)
 		H225_RasMessage obj_req;   
 		H225_RasMessage obj_rpl;
 		BOOL ShallSendReply = FALSE;
-		PBYTEArray * rdbuf = new PBYTEArray(4096);
-		PPER_Stream * rdstrm = new PPER_Stream(*rdbuf);
+		PBYTEArray rdbuf(4096);
+		PPER_Stream rdstrm(rdbuf);
 
-		int iResult = listener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
+		int iResult = listener.ReadFrom(rdstrm.GetPointer(), rdstrm.GetSize(), rx_addr, rx_port);
 		if (!iResult)
 		{
 			PTRACE(1, "GK\tRAS thread: Read error: " << listener.GetErrorText());
-
-			delete rdbuf;
-			delete rdstrm;
 
 			// TODO: "return" (terminate) on some errors (like the one at shutdown)
 			continue;
 		};
 		PTRACE(2, "GK\tRead from : " << rx_addr << " [" << rx_port << "]");    
     
-		if (!obj_req.Decode( *rdstrm ))
+		if (!obj_req.Decode( rdstrm ))
 		{
 			PTRACE(1, "GK\tCouldn't decode message!");
 
-			delete rdbuf;
-			delete rdstrm;
- 
 			continue;
 		};
 		
 		PTRACE(3, "GK\t" << endl << setprecision(2) << obj_req);
  
-		delete rdbuf;
-		delete rdstrm;
-
 		switch (obj_req.GetTag())
 		{
 		case H225_RasMessage::e_gatekeeperRequest:    

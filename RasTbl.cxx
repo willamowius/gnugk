@@ -30,15 +30,6 @@
 #include "RasTbl.h"
 
 
-// initialize singleton instances and locks
-resourceManager * resourceManager::m_instance = NULL;
-RegistrationTable * RegistrationTable::m_instance = NULL;
-CallTable * CallTable::m_instance = NULL;
-PMutex resourceManager::m_CreationLock;
-PMutex RegistrationTable::m_CreationLock;
-PMutex CallTable::m_CreationLock;
-
-
 conferenceRec::conferenceRec(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw)
 {
     m_src = src;
@@ -51,20 +42,6 @@ bool conferenceRec::operator< (const conferenceRec & other) const
 	return (this->m_cid < other.m_cid);
 };
 
-
-resourceManager * resourceManager::Instance(void)
-{
-	if (m_instance == NULL)
-	{
-		m_CreationLock.Wait();
-		if (m_instance == NULL)
-			m_instance = new resourceManager;
-		m_CreationLock.Signal();
-	}
-	return m_instance;
-};
-
-
 resourceManager::resourceManager()
 {
 	m_capacity = 0;
@@ -74,7 +51,7 @@ resourceManager::resourceManager()
 void resourceManager::SetBandWidth(int bw)
 {
 	m_capacity = bw;
-	cout << endl << "Available bandwidth " << m_capacity  << endl;
+	cout << endl << "Available BandWidth " << m_capacity  << endl;
 }
 
 
@@ -106,7 +83,7 @@ BOOL resourceManager::GetAdmission(const H225_EndpointIdentifier & src, const H2
       
     conferenceRec cRec( src, cid, bw );
 	ConferenceList.insert(cRec);
-    PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable bandwidth " << GetAvailableBW());
+    PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable BandWidth " << GetAvailableBW());
     return TRUE;
 }
 
@@ -120,7 +97,7 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 		if( ((*Iter).m_src == src) && ((*Iter).m_cid == cid) )
 		{
 			ConferenceList.erase(Iter);
-    		PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable bandwidth " << GetAvailableBW());
+    		PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable BandWidth " << GetAvailableBW());
 			return TRUE;
 		}
 	}
@@ -187,28 +164,11 @@ void RegistrationTable::Insert(const endpointRec & NewRec)
 	EndpointList.push_back(NewRec);
 };
 
-
-RegistrationTable * RegistrationTable::Instance(void)
-{
-	if (m_instance == NULL)
-	{
-		m_CreationLock.Wait();
-		if (m_instance == NULL)
-			m_instance = new RegistrationTable;
-		m_CreationLock.Signal();
-	};
-
-	return m_instance;
-};
-
-
-
 RegistrationTable::RegistrationTable()
 	: GatewayPrefixes(),  // TODO: how to define a default in the map for not-found elements?
 	  GatewayFlags(),
-	  endpointIdSuffix(Toolkit::Config()->GetString("EndpointIDSuffix", "_endp"))
+	  endpointIdSuffix(GkConfig()->GetString("EndpointIDSuffix", "_endp"))
 {
-	srand(time(0));
 	recCnt = rand()%9000+1000;
 };
 
@@ -272,36 +232,26 @@ bool GWAliasEqual(H225_AliasAddress GWAlias, H225_AliasAddress OtherAlias)
 
 void RegistrationTable::AddPrefixes(const PString & NewAliasStr, const PString &prefixes, const PString &flags)
 {
-	// delete old if existing	
-	PStringArray *prefixArr = GatewayPrefixes[NewAliasStr];
-	if (prefixArr != NULL) {
-		delete prefixArr;
-		GatewayPrefixes[NewAliasStr] = NULL;
-	}
-	PStringArray *flagsArr = GatewayFlags[NewAliasStr];
-	if (flagsArr != NULL) {
-		delete flagsArr;
-		GatewayFlags[NewAliasStr] = NULL;
-	}
-
 	// create new
-	prefixArr = new PStringArray(prefixes.Tokenise(" ,;\t\n", FALSE));
+	PStringArray *prefixArr = new PStringArray(prefixes.Tokenise(" ,;\t\n", FALSE));
 	GatewayPrefixes[NewAliasStr] = prefixArr;
 
 	// allow for multiple flags
-	flagsArr = new PStringArray(flags.Tokenise(" ,;\t\n", FALSE));
+	PStringArray *flagsArr = new PStringArray(flags.Tokenise(" ,;\t\n", FALSE));
 	GatewayFlags[NewAliasStr] = flagsArr;
 }
 
 
 void RegistrationTable::AddAlias(const PString & NewAliasStr)
 {
-	PString gatewayline = Toolkit::Config()->GetString("RasSvr::GWPrefixes", NewAliasStr, "");
+	PString gatewayline = GkConfig()->GetString("RasSvr::GWPrefixes", NewAliasStr, "");
 	PString flags = "";
+
+	RemovePrefixes(NewAliasStr);
 
 	const PStringArray gateway = gatewayline.Tokenise(":", FALSE);
 	// gateway[0] = prefix, gateway[1] = flags
-	if (gatewayline != "") {
+	if (!gatewayline) {
 		if (gateway.GetSize() == 2)
 			flags = gateway[1];
 		AddPrefixes(NewAliasStr, gateway[0], flags);
@@ -327,26 +277,14 @@ void RegistrationTable::UpdatePrefixes()
 			Alias = AsString(Iter->m_terminalAliases[i], FALSE);
 		        PTRACE(5, "Updating Alias " << i << ": " << Alias);
 
-			// if (GW in Config)
-			const PStringArray *prefixArr = GatewayPrefixes[Alias];
-			if (prefixArr != NULL)
-				// overwrites prefix & flags for this alias
-				AddAlias(Alias);
-			else
-				SoftPBX::Instance()->UnregisterAlias(Alias);
+			AddAlias(Alias);
 		}
 	}
         // all new gateways need to register themselves
 }
 
-
-void RegistrationTable::RemovePrefixes(const H225_AliasAddress & alias)
+void RegistrationTable::RemovePrefixes(const PString & AliasStr)
 {
-	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) 
-		return;
-	
-	PString AliasStr = H323GetAliasAddressString(alias);
-
 	// delete old if existing
 	PStringArray *prefixArr = GatewayPrefixes[AliasStr];
 	if (prefixArr != NULL) {
@@ -358,6 +296,14 @@ void RegistrationTable::RemovePrefixes(const H225_AliasAddress & alias)
 		delete flagsArr;
 		GatewayFlags[AliasStr] = NULL;
 	}
+}
+
+void RegistrationTable::RemovePrefixes(const H225_AliasAddress & alias)
+{
+	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) 
+		return;
+	
+	RemovePrefixes(H323GetAliasAddressString(alias));
 }
 
 
@@ -734,19 +680,6 @@ int CallRec::CountEndpoints(void) const
 };
 
 
-CallTable * CallTable::Instance(void)
-{
-	if (m_instance == NULL)
-	{
-		m_CreationLock.Wait();
-		if (m_instance == NULL)
-			m_instance = new CallTable;
-		m_CreationLock.Signal();
-	};
-
-	return m_instance;
-};
-
 CallTable::CallTable()
 {
 	m_CallNumber = 1;
@@ -798,6 +731,8 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 	BOOL hasRemoved = FALSE;
 	time_t startTime;
 
+// dirty hack, I hate it...:p
+	CallRec theCall;
 	set<CallRec>::iterator CallIter;
 	char callRefString[10];
 	sprintf(callRefString, "%u", (unsigned)CallRef.GetValue());
@@ -815,7 +750,7 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 		if (((*CallIter).Calling != NULL) &&
 			((*CallIter).Calling->m_callReference.GetValue() == CallRef.GetValue()))
 		{
-			CallRec rec = *CallIter;
+			CallRec rec = theCall = *CallIter;
 			CallList.erase(CallIter);
 			rec.RemoveCalling();
 			CallList.insert(rec);
@@ -832,6 +767,8 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 			((*CallIter).Called->m_callReference.GetValue() == CallRef.GetValue()))
 		{
 			CallRec rec = *CallIter;
+			if (theCall.Called == NULL)
+				theCall = rec;
 			CallList.erase(CallIter);
 			rec.RemoveCalled();
 			CallList.insert(rec);
@@ -865,7 +802,7 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 		struct tm * timeStructEnd;
 		time_t now;
 		double callDuration;
-		char cdrString[100];
+		char cdrString[200];
 
 		timeStructStart = gmtime(&startTime);
 		if (timeStructStart == NULL) 
@@ -880,8 +817,23 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 		PString endTimeString(asctime(timeStructEnd));
 		endTimeString.Replace("\n", "");
 
+		char caller[200], callee[200];
+		*caller = *callee = '\0';
+		if (theCall.Calling) {
+			H225_TransportAddress & addr = theCall.Calling->m_callSignalAddress;
+			const endpointRec *rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
+			H225_TransportAddress_ipAddress & ip = addr;
+			sprintf(caller, "%d.%d.%d.%d:%u|%s", ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3], (unsigned)ip.m_port.GetValue(), (const unsigned char *)rec->m_endpointIdentifier.GetValue());
+		}
+		if (theCall.Called) {
+			H225_TransportAddress & addr = theCall.Called->m_callSignalAddress;
+			const endpointRec *rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
+			H225_TransportAddress_ipAddress & ip = addr;
+			sprintf(callee, "%d.%d.%d.%d:%u|%s", ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3], (unsigned)ip.m_port.GetValue(), (const unsigned char *)rec->m_endpointIdentifier.GetValue());
+		}
+
 		callDuration = difftime(now, startTime);
-		sprintf(cdrString, "CDR|%s|%.0f|%s|%s\n", callRefString, callDuration, (const unsigned char *)startTimeString, (const unsigned char *)endTimeString);
+		sprintf(cdrString, "CDR|%s|%.0f|%s|%s|%s\n", callRefString, callDuration, (const unsigned char *)startTimeString, caller, callee);
 
 		GkStatus::Instance()->SignalStatus(cdrString, 1);
 		PTRACE(3, cdrString);
@@ -1025,14 +977,14 @@ void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 		client.WriteString(PString(MsgBuffer));
 		if (Call.Calling)
 		{
-			H225_TransportAddress_ipAddress & ipAddressA = Call.Calling->m_rasAddress;
-			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d\r\n", ipAddressA.m_ip[0], ipAddressA.m_ip[1], ipAddressA.m_ip[2], ipAddressA.m_ip[3]);
+			H225_TransportAddress_ipAddress & ipAddressA = Call.Calling->m_callSignalAddress;
+			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d:%u\r\n", ipAddressA.m_ip[0], ipAddressA.m_ip[1], ipAddressA.m_ip[2], ipAddressA.m_ip[3], (unsigned)ipAddressA.m_port.GetValue());
 			client.WriteString(PString(MsgBuffer));
 		};
 		if (Call.Called)
 		{
-			H225_TransportAddress_ipAddress & ipAddressB = Call.Called->m_rasAddress;
-			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d\r\n", ipAddressB.m_ip[0], ipAddressB.m_ip[1], ipAddressB.m_ip[2], ipAddressB.m_ip[3]);
+			H225_TransportAddress_ipAddress & ipAddressB = Call.Called->m_callSignalAddress;
+			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d:%u\r\n", ipAddressB.m_ip[0], ipAddressB.m_ip[1], ipAddressB.m_ip[2], ipAddressB.m_ip[3], (unsigned)ipAddressB.m_port.GetValue());
 			client.WriteString(PString(MsgBuffer));
 		};
 		if (verbose)

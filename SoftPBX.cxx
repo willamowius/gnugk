@@ -9,37 +9,24 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#include "SoftPBX.h"
 
 #if (_MSC_VER >= 1200)  
 #pragma warning( disable : 4800 ) // one performance warning off
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
+#include <ptlib.h>
 #include <ptlib/sockets.h>
+#include "gk_const.h"
+#include "h323util.h"
 #include "h225.h"
 #include "h323pdu.h"
 #include "RasTbl.h"
 #include "Toolkit.h"
-#include "gk_const.h"
-#include "h323util.h"
+#include "SoftPBX.h"
 
 static int RequestNum = 1;	// this is the only place we are _generating_ sequence numbers at the moment
 
-SoftPBX * SoftPBX::m_instance = NULL;
-PMutex SoftPBX::m_CreationLock;
-
-SoftPBX * SoftPBX::Instance(void)
-{
-	if (m_instance == NULL)
-	{
-		m_CreationLock.Wait();
-		if (m_instance == NULL)
-			m_instance = new SoftPBX;
-		m_CreationLock.Signal();
-	};
-	return m_instance;
-};
 
 void SoftPBX::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 {
@@ -51,13 +38,21 @@ void SoftPBX::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintCurrentCalls");
 	CallTable::Instance()->PrintCurrentCalls(client, verbose);
-};
+}
 
-// helper function to for_each_with
+// function object used by for_each
 // unregisters a single endpoint
-void UnregisterEP(const endpointRec & er, void* param) 
+class UnregisterEP {
+  public:
+	UnregisterEP(H225_RasMessage *r) : ras_msg(r) {}
+	void operator()(const endpointRec &er);
+
+  private:
+	H225_RasMessage *ras_msg;
+};
+ 
+void UnregisterEP::operator()(const endpointRec & er)
 {
-	H225_RasMessage *ras_msg = (H225_RasMessage *)param;
 	PUDPSocket URQSocket;
 
 	// these values are specific for each endpoint
@@ -91,26 +86,14 @@ void SoftPBX::UnregisterAllEndpoints()
 	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
 	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
 
-#ifdef WIN32
-	// Visual C++ doesn't grock the for_each_with2 template function
-	// anybody have a better fix ?
-	list<endpointRec>::iterator EpIter;
-	for (EpIter=RegistrationTable::Instance()->EndpointList.begin();
-		EpIter != RegistrationTable::Instance()->EndpointList.end();
-		++EpIter)
-	{
-		UnregisterEP(*EpIter, &ras_msg);
-	};
-#else
-	Toolkit::for_each_with(RegistrationTable::Instance()->EndpointList.begin(), 
-						   RegistrationTable::Instance()->EndpointList.end(), 
-						   UnregisterEP, (void*)(&ras_msg));
-#endif
+	for_each(RegistrationTable::Instance()->EndpointList.begin(),
+		 RegistrationTable::Instance()->EndpointList.end(),
+		 UnregisterEP(&ras_msg));
 
 	RegistrationTable::Instance()->EndpointList.clear(); 
 	RegistrationTable::Instance()->GatewayPrefixes.clear();
 	RegistrationTable::Instance()->GatewayFlags.clear();
-};
+}
 
 void SoftPBX::UnregisterAlias(PString Alias)
 {
@@ -133,8 +116,11 @@ void SoftPBX::UnregisterAlias(PString Alias)
 		return;
 	};
 
-	UnregisterEP(*ep, &ras_msg);
-
+#ifndef WIN32
+	(UnregisterEP(&ras_msg))(*ep);
+#else   // Create temporary object by hand, stupid bug of VC!!
+	UnregisterEP u(&ras_msg); u(*ep);
+#endif
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
 	RegistrationTable::Instance()->RemoveByEndpointId(ep->m_endpointIdentifier);
 
@@ -153,7 +139,7 @@ void SoftPBX::DisconnectIp(PString Ip)
 
 	H225_TransportAddress callSignalAddress;
 
-	callSignalAddress = SocketToH225TransportAddr(ipaddress, Toolkit::Config()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT));
+	callSignalAddress = SocketToH225TransportAddr(ipaddress, GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT));
 	endpointRec * ep = (endpointRec *)RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);
 
 	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << ipaddress);

@@ -140,14 +140,14 @@ void SignalConnection::Main(void)
 	remoteConnection = NULL;
 	//detect dead calls
 	int allowedPendings = 0;
-	BOOL usePings = Toolkit::Config()->GetBoolean("SignalConnection::StatusEnquiry", "UsePing", FALSE);
+	BOOL usePings = GkConfig()->GetBoolean("SignalConnection::StatusEnquiry", "UsePing", FALSE);
 	if (usePings) {
-	  allowedPendings = Toolkit::Config()->GetInteger("SignalConnection::StatusEnquiry", "AllowedPendings", 3);
+	  allowedPendings = GkConfig()->GetInteger("SignalConnection::StatusEnquiry", "AllowedPendings", 3);
 	  PTRACE(6, "GK\t" << connectionName << "\tallowedPendings "<<allowedPendings);
 	  //constructor: long millisecs, long seconds, long minutes, long hours, int days
 	  //m_connection->SetReadTimeout(PTimeInterval(0l, 10l, 0l, 0l, 0));
-	  m_connection->SetReadTimeout(PTimeInterval(0l, (long)(Toolkit::Config()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1)), 0l, 0l, 0));
-	  PTRACE(6, "GK\t" << connectionName << "\treadTimeout "<< Toolkit::Config()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1));
+	  m_connection->SetReadTimeout(PTimeInterval(0l, (long)(GkConfig()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1)), 0l, 0l, 0));
+	  PTRACE(6, "GK\t" << connectionName << "\treadTimeout "<< GkConfig()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1));
 	}
 	pendingCount = 0;
 	killMe = FALSE;
@@ -508,7 +508,7 @@ void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 	// re-route called endpoint signalling messages to gatekeeper	
 	if ( Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) )
 	{
-		Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(GKHome, Toolkit::Config()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
+		Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
 	};
 
 	// in routed mode the caller may have put the GK address in destCallSignalAddress

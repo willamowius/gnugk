@@ -158,8 +158,6 @@ rule=allow
 [RasSvr::RewriteE164]
 ## Only if an e164 number begins with #Fastmatch# the
 ## the further rewriting is done. Only one #Fastmatch# can be given.
-## NOTE: The #Fastmatch# parameter is loaded at program startup and 
-##       not influenced by the HUP signal.
 #Fastmatch=
 #0190703100=052418088663
 #01903142=0521178260

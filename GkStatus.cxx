@@ -18,15 +18,17 @@
 #pragma warning( disable : 4101 ) // warning unused locals off
 #endif
 
-#include "GkStatus.h"
+#include <ptlib.h>
+#include <h225.h>
 #include "gk_const.h"
+#include "GkStatus.h"
 #include "SoftPBX.h"
 #include "Toolkit.h"
 #include "ANSI.h"
 #include "h323util.h"
 
 
-const int GkStatus::NumberOfCommandStrings = 29;
+const int GkStatus::NumberOfCommandStrings = 31;
 const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
 {
 	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
@@ -55,6 +57,8 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"h",                        GkStatus::e_Help},
 	{"version",                  GkStatus::e_Version},
 	{"debug",                    GkStatus::e_Debug},
+	{"reload",                   GkStatus::e_Reload},
+	{"shutdown",                 GkStatus::e_Shutdown},
 	{"exit",                     GkStatus::e_Exit},
 	{"quit",                     GkStatus::e_Exit},
 	{"q",                        GkStatus::e_Exit}
@@ -63,49 +67,37 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 
 int GkStatus::Client::StaticInstanceNo = 0;
 
-// initialise singelton instance
-GkStatus * GkStatus::m_instance = NULL;
-PMutex GkStatus::m_CreationLock;
 
-GkStatus * GkStatus::Instance(PIPSocket::Address _gkhome ) {
-	if (m_instance == NULL)
-	{
-		m_CreationLock.Wait();
-		if (m_instance == NULL) {
-		  if (_gkhome.AsString() == PString("0.0.0.0")) {
-			PTRACE(1, "error in GkHome-IP-Address!");
-			exit(1);
-		  } else
-			m_instance = new GkStatus(_gkhome);
-		}
-		m_CreationLock.Signal();
-	};
-	return m_instance;
-};
-
-
-GkStatus::GkStatus(PIPSocket::Address _GKHome)
+GkStatus::GkStatus()
 : PThread(1000, NoAutoDeleteThread), 
-  StatusListener(Toolkit::Config()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)),
+  StatusListener(GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)),
 	m_IsDirty(FALSE)
 {
-	GKHome = _GKHome;
-	Resume();	// start the thread
-};
+}
 
 GkStatus::~GkStatus()
 {
-};
+}
+
+void GkStatus::Initialize(PIPSocket::Address _GKHome)
+{
+	if (_GKHome.AsString() == PString("0.0.0.0")) {
+		PTRACE(1, "error in GkHome-IP-Address!");
+		exit(1);
+	}
+	GKHome = _GKHome;
+	Resume();	// start the thread
+}
 
 void GkStatus::Main()
 {
 	StatusListener.Listen
 		(GKHome, 
-		 Toolkit::Config()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
-		 Toolkit::Config()->GetInteger("StatusPort", GK_DEF_STATUS_PORT), 
+		 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
+		 GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT), 
 		 PSocket::CanReuseAddress);
 
-	StatusListener.SetReadTimeout(Toolkit::Config()->GetInteger("StatusReadTimeout", 3000));
+	StatusListener.SetReadTimeout(GkConfig()->GetInteger("StatusReadTimeout", 3000));
 	PTCPSocket * NewConnection = new PTCPSocket;
 	while(StatusListener.IsOpen())
 	{
@@ -127,7 +119,7 @@ void GkStatus::Main()
 	};
 	delete NewConnection;
 
-};
+}
 
 void GkStatus::Close(void)
 {
@@ -156,42 +148,46 @@ void GkStatus::Close(void)
 	StatusListener.Close();
 
 	PTRACE(2, "GK\tClosed Status thread.");
+}
+
+// function object used by for_each
+class WriteWhoAmI {
+  public:
+	WriteWhoAmI(GkStatus::Client *c) : writeTo(c) {}
+	void operator()(const GkStatus::Client *) const;
+
+  private:
+	GkStatus::Client *writeTo;
 };
 
-
-void WriteWhoAmI(const GkStatus::Client *pclient, void *p1)
+void WriteWhoAmI::operator()(const GkStatus::Client *pclient) const
 {
-	GkStatus::Client *writeTo = (GkStatus::Client *)p1;
 	writeTo->WriteString("  " + pclient->WhoAmI() + "\r\n");
 }
 
+// function object used by for_each
+class ClientSignalStatus {
+  public:
+	ClientSignalStatus(const PString &m, int l) : msg(m), level(l) {} 
+	void operator()(GkStatus::Client *) const;
 
-void ClientSignalStatus(const GkStatus::Client *pclient, void* p1, void* p2)
+  private:
+	const PString &msg;
+	int level;
+};
+
+void ClientSignalStatus::operator()(GkStatus::Client *pclient) const
 {
-	PString *msg   = (PString*)p1;
-	int     level = *((int*)p2);
 	int ctl = pclient->TraceLevel;
-	if((ctl<=10) && (ctl>=0)) {
-		if (level >= ctl) 
-			((GkStatus::Client*)pclient)->WriteString(*msg);
-	}
+	if((ctl<=10) && (ctl>=0) && (level >= ctl)) 
+		pclient->WriteString(msg);
 }
 
 
 void GkStatus::SignalStatus(const PString &Message, int level)
 {
 //	ClientSetLock.Wait();
-#ifdef WIN32
-	// Visual C++ doesn't grock the for_each_with2 template function
-	// anybody have a better fix ?
-	for (ClientIter=Clients.begin(); ClientIter != Clients.end(); ++ClientIter)
-	{
-		ClientSignalStatus(*ClientIter, (void*)&Message, &level);
-	};
-#else
-	Toolkit::for_each_with2(Clients.begin(),Clients.end(), ClientSignalStatus, 
-							(void*)(&Message), (void*)(&level));
-#endif
+	for_each(Clients.begin(),Clients.end(), ClientSignalStatus(Message, level));
 //	ClientSetLock.Signal();
 };
 
@@ -248,7 +244,7 @@ GkStatus::Client::Client( GkStatus * _StatusThread, PTCPSocket * _Socket )
 {
 	InstanceNo = ++StaticInstanceNo;
 	Resume();	// start the thread
-};
+}
 
 
 GkStatus::Client::~Client()
@@ -259,7 +255,7 @@ GkStatus::Client::~Client()
 	delete Socket;
 	Socket = NULL;
 	Mutex.Signal();
-};
+}
 
 
 PString GkStatus::Client::ReadCommand()
@@ -366,19 +362,7 @@ void GkStatus::Client::Main()
 					StatusThread->SignalStatus(PString("  "+WhoAmI() + ": " + Line + "\r\n"));
 					break;
 				case GkStatus::e_Who:
-#ifdef WIN32
-					// Visual C++ doesn't grock the for_each_with2 template function
-					// anybody have a better fix ?
-					for (StatusThread->ClientIter=StatusThread->Clients.begin();
-						StatusThread->ClientIter != StatusThread->Clients.end();
-						++(StatusThread->ClientIter) )
-					{
-						WriteWhoAmI(*(StatusThread->ClientIter), this);
-					};
-#else
-					Toolkit::for_each_with(StatusThread->Clients.begin(), StatusThread->Clients.end(), 
-						WriteWhoAmI, this);
-#endif
+					for_each(StatusThread->Clients.begin(), StatusThread->Clients.end(), WriteWhoAmI(this));
 					WriteString(";\r\n");
 					break;
 				case GkStatus::e_Help:
@@ -392,7 +376,7 @@ void GkStatus::Client::Main()
 					WriteString(Toolkit::GKVersion());
 					WriteString("GkStatus: Version(1.0) Ext()\r\n");
 					WriteString("Toolkit: Version(1.0) Ext("
-								+Toolkit::Instance()->GetName()+")\r\n");
+								+ InstanceOf<Toolkit>()->GetName() + ")\r\n");
 					WriteString(";\r\n");
 					break;
 				case GkStatus::e_Exit:
@@ -424,6 +408,13 @@ void GkStatus::Client::Main()
 					else
 						WriteString("Syntax Error: MakeCall Source Destination\r\n");
 					break;
+				case GkStatus::e_Reload:
+					ReloadHandler();
+					break;
+				case GkStatus::e_Shutdown:
+					PTRACE(1, "Shutdown the GK, not implemented yet");
+					WriteString("Shutdown command not implemented yet.\r\n");
+					break;
 				default:
 					PTRACE(3, "WRONG COMMANDS TABLE ENTRY. PLEASE LOOK AT THE CODE.");
 					WriteString("Error: Internal Error.\r\n");
@@ -444,7 +435,7 @@ void GkStatus::Client::Main()
 	StatusThread->SetDirty(TRUE);
 
 	// returning from main will delete this thread
-};
+}
 
 
 void GkStatus::Client::DoDebug(const PStringArray &Args)
@@ -458,7 +449,6 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		WriteString("  trc [+|-|n]       Show/modify trace level\r\n");
 		WriteString("  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n");
 		WriteString("  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n");
-		WriteString("  reload            Reload config file\r\n");
 	}
 	else {
 		if(Args[1] *= "trc") {
@@ -472,12 +462,10 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 			WriteString(PString(PString::Printf, "Trace Level is now %d\r\n", PTrace::GetLevel()));
 		}
 		else if((Args[1] *= "cfg") && (Args.GetSize()>=4)) 
-			WriteString(Toolkit::Config()->GetString(Args[2],Args[3],"") + "\r\n");
-		else if(Args[1] *= "reload")
-			ReloadHandler();
+			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
 		else if((Args[1] *= "set") && (Args.GetSize()>=5)) {
-			Toolkit::Config()->SetString(Args[2],Args[3],Args[4]);
-			WriteString(Toolkit::Config()->GetString(Args[2],Args[3],"") + "\r\n");
+			GkConfig()->SetString(Args[2],Args[3],Args[4]);
+			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
 		}
 	}
 }
@@ -522,7 +510,7 @@ void GkStatus::Client::Close(void)
 {
 	if ( (NULL != Socket) && Socket->IsOpen() )
 		Socket->Close();
-};
+}
 
 
 BOOL GkStatus::AuthenticateClient(PIPSocket &Socket) const
@@ -532,7 +520,7 @@ BOOL GkStatus::AuthenticateClient(PIPSocket &Socket) const
 	
 	BOOL result = FALSE;
 
-	const PString rule = Toolkit::Config()->GetString("GkStatus::Auth", "rule", "forbid");
+	const PString rule = GkConfig()->GetString("GkStatus::Auth", "rule", "forbid");
 	PIPSocket::Address PeerAddress;
 	Socket.GetPeerAddress(PeerAddress);
 	const PString peer = PeerAddress.AsString();
@@ -548,20 +536,20 @@ BOOL GkStatus::AuthenticateClient(PIPSocket &Socket) const
 	}
 	else if(rule *= "explicit") {
 		PTRACE(5,"Auth client rule=explicit");
-		PString val = Toolkit::Config()->GetString("GkStatus::Auth", peer, "");
+		PString val = GkConfig()->GetString("GkStatus::Auth", peer, "");
 		if(val == "") { // use "default" entry
 			PTRACE(5,"Auth client rule=explicit, ip-param not found, using default");
 			result = Toolkit::AsBool
-				(Toolkit::Config()->GetString("GkStatus::Auth", "default", "FALSE"));
+				(GkConfig()->GetString("GkStatus::Auth", "default", "FALSE"));
 		}
 		else 
 			result = Toolkit::AsBool(val);
 	}
 	else if(rule *= "regex") {
 		PTRACE(5,"Auth client rule=regex");
-		PString val = Toolkit::Config()->GetString("GkStatus::Auth", peer, "");
+		PString val = GkConfig()->GetString("GkStatus::Auth", peer, "");
 		if(val == "") 
-			result = Toolkit::MatchRegex(peer, Toolkit::Config()->GetString("GkStatus::Auth", "regex", ""));
+			result = Toolkit::MatchRegex(peer, GkConfig()->GetString("GkStatus::Auth", "regex", ""));
 		else 
 			result = Toolkit::AsBool(val);
 	} 

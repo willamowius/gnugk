@@ -13,8 +13,8 @@
 #include "SignalChannel.h"
 #include "q931.h"
 #include "ANSI.h"
-#include "Toolkit.h"
 #include "SignalConnection.h"
+#include "Toolkit.h"
 #include "gk_const.h"
 
 
@@ -34,7 +34,7 @@ BOOL SignalChannel::Open(void)
 	PTRACE(6, ANSI::CYA << "SignalChannel::Open" << ANSI::OFF);
 	// Start socket to listen messages received from signal port.
 	return m_listener.Listen(GKHome,
-							 Toolkit::Config()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
+							 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
 							 m_listener.GetPort(),
 							 PSocket::CanReuseAddress);
 };
@@ -111,12 +111,12 @@ void SignalChannel::Main(void)
 	PTCPSocket *signallingChannel = new PTCPSocket;
 
 	m_listener.Listen(GKHome,
-					  Toolkit::Config()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
+					  GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
 					  m_listener.GetPort(),
 					  PSocket::CanReuseAddress);
 
 	// make call to accept block for this amount of time.
-	m_listener.SetReadTimeout(Toolkit::Config()->GetInteger("SignalReadTimeout", 1000));  
+	m_listener.SetReadTimeout(GkConfig()->GetInteger("SignalReadTimeout", 1000));  
 	while ( m_listener.IsOpen() )
 	{
 		CleanupConnections(); // free memory of any closed connections

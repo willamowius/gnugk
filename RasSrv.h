@@ -36,6 +36,9 @@ public:
 	virtual ~H323RasSrv();
 	void Close(void);
 
+	// Close the listener terminate the HandleConnections loop
+	void Shutdown(void) { listener.Close(); }
+
 	void HandleConnections(void); 
 	void UnregisterAllEndpoints(void);
 
