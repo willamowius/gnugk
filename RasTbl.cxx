@@ -1284,6 +1284,25 @@ static const PString AsCDRTimeString(const PTime & t)
 	return t.AsString((const char *)format, zone);
 }
 
+/*
+  IPTN_good will return TRUE if the number is in a known format and will
+  rewrite it to the proper analysis result.
+ */
+static const BOOL IPTN_good(E164_IPTNString & iptn);
+static const BOOL IPTN_good(E164_IPTNString & iptn)
+{
+	BOOL result = FALSE;
+	E164_AnalysedNumber an(iptn); //  analyse it
+	if(E164_AnalysedNumber::IPTN_unknown != an.GetIPTN_kind()) {
+		result = TRUE;
+		E164_IPTNString well_formated(an.GetAsDigitString());
+		PTRACE(2, "CDR: rewriting " + iptn + " to " + PString(well_formated));
+		iptn = well_formated;
+	}
+	return result;
+}
+
+
 PString CallRec::GenerateCDR()
 {
 	PString timeString;
@@ -1292,6 +1311,10 @@ PString CallRec::GenerateCDR()
 	PTime endTime;
 	PString srcInfo(m_srcInfo);
 	PString destInfo(m_destInfo);
+	E164_IPTNString CgPN(""); // callING party number, formatted
+	E164_IPTNString CdPN(""); // callED party number, formatted
+	CallingProfile & CallingP = GetCallingProfile();
+	CalledProfile & CalledP = GetCalledProfile();
 	if (NULL != m_startTime) {
 		PTimeInterval callDuration = endTime - *m_startTime;
 		timeString = PString(PString::Printf, "%.3f|%s|%s",
@@ -1300,21 +1323,50 @@ PString CallRec::GenerateCDR()
 				     (const char *)AsCDRTimeString(endTime)//.AsString()
 			);
 	} else
-		timeString = "0|unconnected| " + endTime.AsString();;
+		timeString = "0|unconnected| " + endTime.AsString();
 
+	// get the proper CgPN and CdPN, they should be in international format
+	if (!CallingP.getCgPN().IsEmpty()) {
+		CgPN = GetCallingProfile().getCgPN();
+#  if defined(CDR_RECHECK)
+		if(IPTN_good(CgPN)) {
+			PTRACE(2, "CDR: CgPN is in international format");
+		} else {
+			PTRACE(2, "CDR: WARNING: CgPN " + CgPN + 
+			       " is NOT in international format; stripped!");
+			CgPN = "";
+		}
+#  endif	
+	}
+	if (!CalledP.getCalledPN().IsEmpty()) {
+		CdPN = GetCalledProfile().getCalledPN();
+#  if defined(CDR_RECHECK)
+		if(IPTN_good(CdPN)) {
+			PTRACE(2, "CDR: CdPN is in international format");
+		} else {
+			PTRACE(2, "CDR: WARNING: CdPN " + CdPN + 
+			       " is NOT in international format; stripped!");
+			CdPN = "";
+		}
+#  endif	
+	}
+
+
+#if defined(CDR_MOD_INFO_FIELDS)
 	// if profile for calling endpoint exists
-	if (!GetCallingProfile().getH323ID().IsEmpty()) {
-		if (!GetCallingProfile().getCgPN().IsEmpty()) {
+	if (!CallingP.getH323ID().IsEmpty()) {
+		if (!CallingP.getCgPN().IsEmpty()) {
 			PTRACE(2, "CDR: set CgPN to international format");
 			srcInfo = GetCallingProfile().getCgPN() + ":dialedDigits";
 		}
-		if (!GetCalledProfile().getCalledPN().IsEmpty()) {
+		if (!CalledP.getCalledPN().IsEmpty()) {
 			PTRACE(2, "CDR: set CdPN to international format");
 			destInfo = GetCalledProfile().getCalledPN() + ":dialedDigits";
 		}
 	}
+#endif
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s;" GK_LINEBRK,
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s;" GK_LINEBRK,
 		       m_CallNumber,
 		       (const char *)AsString(m_callIdentifier.m_guid),
 		       (const char *)timeString,
@@ -1322,7 +1374,9 @@ PString CallRec::GenerateCDR()
 		       (const char *)GetEPString(m_Called, m_calledSocket),
 		       (const char *)destInfo,
 		       (const char *)srcInfo,
-		       (const char *)Toolkit::Instance()->GKName()
+		       (const char *)Toolkit::Instance()->GKName(),
+		       (const char *)((PString)CgPN),
+		       (const char *)((PString)CdPN)
 		);
 }
 

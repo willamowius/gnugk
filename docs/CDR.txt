@@ -1,5 +1,5 @@
 -*- mode: outline; eval: (setq outline-regexp "[ \\.0-9]+) ") -*-
-Time-stamp: <02/05/13 18:37:07 martinf>
+Time-stamp: <02/06/03 14:13:47 martinf>
 $Id$
 
  1) Format of the current CDR
@@ -66,7 +66,10 @@ $Id$
       H.225 Admission Request. For a reaon or another the fildes are
       delimited by '=' [equal] characters and the notation is
       'value:tag', that is a tag-value pair, delimited by a ':' [colon]
-      character in value then tag order.
+      character in value then tag order.If the compilation falg
+      'CDR_MOD_INFO_FIELDS' is set, an internationalized version of the
+      dialed digits is appended as another 'dialedDigits' field, if that
+      information is available.
 
 1.12) Source Information
       [49524680321:dialedDigits=49524680321:h323_ID=49524680321:dialedDigits=49524680321:h323_ID]
@@ -74,13 +77,29 @@ $Id$
       Admission Request. For a reaon or another the fildes are delimited
       by '=' [equal] characters and the notation is 'value:tag', that is
       a tag-value pair, delimited by a ':' [colon] character in value
-      then tag order.
+      then tag order. If the compilation falg 'CDR_MOD_INFO_FIELDS' is
+      set, an internationalized version of the dialed digits is appended
+      as another 'dialedDigits' field, if that information is available.
 
 1.13) Reporting Gatekeeper's name
       [martinf-GK]
       Name as specified in ini-file by 'Name'-tag. This is the
       possibility to discriminate between two GKs if the CDRs are merged
       into one file/stream.
+
+1.14) The calling party number (A Number) 
+      [49524680321]
+      This is the number of the calling party in international
+      format. It is ommited if the compilation flag 'CDR_RECHECK' is set
+      and the number could not be validated by E.164 Number analysis
+      based on the dictonaries provided in CodesDB.
+
+1.15) The called party number (B Number) 
+      [495246801581]
+      This is the number of the called party in international format. It
+      is ommited if the compilation flag 'CDR_RECHECK' is set and the
+      number could not be validated by E.164 Number analysis based on
+      the dictonaries provided in CodesDB.
 
 2) Notes on formats in ini-files
    Every value will be taken between the '=' equal-sign and the newline

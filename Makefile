@@ -47,6 +47,17 @@ STDCCFLAGS += -D'VERSION_MINOR=${VERSION_MINOR}'
 STDCCFLAGS += -D'VERSION_STATUS=${VERSION_STATUS}'
 STDCCFLAGS += -D'VERSION_BUILD=${VERSION_BUILD}'
 
+# Recheck if the International Public Telecommunication Numbers (IPTNs)
+# used for callING party number and callED party number ar in international
+# format (TON=internetaional), as they should be
+STDCCFLAGS += -D'CDR_RECHECK'
+
+# Should the dialed digit fields in the src. or dest. information fields of
+# the CDR should be appended by an 'dialedDigits'-subfield containing the
+# internationalized callING party number or callED party number
+# respectively. Uncomment to use
+#STDCCFLAGS += -D'CDR_MOD_INFO_FIELDS'
+
 # use for Digit Analysis
 STDCCFLAGS += -D'HAVE_DIGIT_ANALYSIS'
 
