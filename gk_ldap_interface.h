@@ -38,7 +38,6 @@
 
 #if (LDAP_API_VERSION >= 2004) && defined(LDAP_API_FEATURE_X_OPENLDAP) // if any other LDAP-library implements caching, add here.
 # define LDAP_PROVIDES_OPENLDAP_CACHE
-# define LDAP_PROVIDES_CACHE
 #endif
 
 #include <ptlib.h>
@@ -47,50 +46,9 @@
 #define CACHE_MAXMEM 1000
 #define CACHE_AVERAGE_SEARCH_SIZE 10
 
-#ifndef LDAP_PROVIDES_CACHE
-
-class gk_ldap_cache_search_class : public PObject {
-private:
-	char *base;
-	int scope;
-	char *filter;
-	PStringList attrs;
-	int attrsonly;
-	PTime insert_time;
-	char * strndup(const char orig[], int len);
-public:
-	LDAPMessage *message;
-	int msgid;
-	gk_ldap_cache_search_class(const char *bse, int scpe, const char *fltr, char **attr, int attrsnly, LDAPMessage *res);
-	gk_ldap_cache_search_class();
-	~gk_ldap_cache_search_class();
-	void set_values(char *bse, int scpe, char *fltr, char **attr, int attrsnly, LDAPMessage *res);
-	bool is_search(char const *base, int scope, char const *filter, char **attrs, int attrsonly);
-	const PTime & get_insert_time() const {return insert_time;}
-};
-
-#ifdef DOC_PLUS_PLUS
-class  ldap_cache_search_class : public PList {
-#endif
-PDECLARE_LIST(gk_ldap_search_type,gk_ldap_cache_search_class);
-};
-
-
-typedef struct {
-	LDAP * ld;
-	PTimeInterval max_cache_time;
-	gk_ldap_search_type search_cache;
-	int maxmem;
-	mutable PMutex search_cache_mutex;
-} GK_LDAP;
-
-#else
-
 typedef struct {
 	LDAP * ld;
 } GK_LDAP;
-
-#endif //LDAP_PROVIDES_CACHE
 
 GK_LDAP *gk_ldap_init (const char *hostname, int portno);
 
