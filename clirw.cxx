@@ -58,7 +58,7 @@ PString CLIRewrite::RewriteRule::AsString() const
 }
 
 namespace {
-struct RewriteRule_greater : public binary_function<CLIRewrite::RewriteRule, CLIRewrite::RewriteRule, bool> {
+struct RewriteRule_greater : public std::binary_function<CLIRewrite::RewriteRule, CLIRewrite::RewriteRule, bool> {
 
 	bool operator()(const CLIRewrite::RewriteRule &e1, const CLIRewrite::RewriteRule &e2) const
 	{
@@ -72,7 +72,7 @@ struct RewriteRule_greater : public binary_function<CLIRewrite::RewriteRule, CLI
 	}
 };
 
-struct SingleIpRule_greater : public binary_function<CLIRewrite::SingleIpRule, CLIRewrite::SingleIpRule, bool> {
+struct SingleIpRule_greater : public std::binary_function<CLIRewrite::SingleIpRule, CLIRewrite::SingleIpRule, bool> {
 
 	bool operator()(const CLIRewrite::SingleIpRule &e1, const CLIRewrite::SingleIpRule &e2) const 
 	{
@@ -91,7 +91,7 @@ struct SingleIpRule_greater : public binary_function<CLIRewrite::SingleIpRule, C
 	}
 };
 
-struct DoubleIpRule_greater : public binary_function<CLIRewrite::DoubleIpRule, CLIRewrite::DoubleIpRule, bool> {
+struct DoubleIpRule_greater : public std::binary_function<CLIRewrite::DoubleIpRule, CLIRewrite::DoubleIpRule, bool> {
 
 	bool operator()(const CLIRewrite::DoubleIpRule &e1, const CLIRewrite::DoubleIpRule &e2) const 
 	{
@@ -273,7 +273,7 @@ CLIRewrite::CLIRewrite()
 			
 			std::string prefix((const char*)(data.Mid(keyIndex, sepIndex - keyIndex)));
 			if (prefix == "any")
-				prefix.clear();
+				prefix.erase();
 	
 			// get RHS of the rewrite rule, multiple targets will be selected
 			// in random order

@@ -469,6 +469,13 @@ public:
 		ProxyDisabled /// disable full proxy mode
 	};
 
+	/// who disconnected the call
+	enum ReleaseSource {
+		ReleasedByGatekeeper,
+		ReleasedByCaller,
+		ReleasedByCallee
+	};
+
 	/// build a new call record from the received ARQ message
 	CallRec(
 		/// ARQ with call information
@@ -606,6 +613,14 @@ public:
 	/** Set Q.931 ReleaseComplete cause code associated with this call. */
 	void SetDisconnectCause(
 		unsigned causeCode
+		);
+
+	/// @return	Information about who disconnected the call (see #ReleaseSource enum#)
+	int GetReleaseSource() const;
+
+	/// Set information about who disconnected the call
+	void SetReleaseSource(
+		int releaseSentFrom /// see #ReleaseSource enum#
 		);
 
 	/** Set maximum duration limit (in seconds) for this call */
@@ -891,6 +906,8 @@ private:
 	long m_durationLimit;
 	/// Q.931 release complete cause code
 	unsigned m_disconnectCause;
+	/// who disconnected the call (see #RelaseSource enum#)
+	int  m_releaseSource;
 	/// unique accounting session id associated with this call
 	PString m_acctSessionId;
 	/// signalling transport address of the calling party

@@ -245,6 +245,8 @@ private:
 	Result m_result;
 	/// stored for use by ForwardCall, NULL if ForwardOnFacility is disabled
 	Q931 *m_setupPdu;
+	/// true if the socket is connected to the caller, false if to the callee
+	bool m_callerSocket;
 };
 
 class CallSignalListener : public TCPListenSocket {

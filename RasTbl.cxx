@@ -1277,7 +1277,7 @@ CallRec::CallRec(
 	m_sourceAddress(((const H225_AdmissionRequest&)arqPdu).m_srcInfo),
 	m_srcInfo(AsString(((const H225_AdmissionRequest&)arqPdu).m_srcInfo)), 
 	m_destInfo(destInfo), m_bandwidth(bandwidth), m_setupTime(0), 
-	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0),
+	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), 
@@ -1313,7 +1313,7 @@ CallRec::CallRec(
 	m_crv(q931pdu.GetCallReference() & 0x7fffU),
 	m_destInfo(destInfo),
 	m_bandwidth(1280), m_setupTime(0), m_connectTime(0), 
-	m_disconnectTime(0), m_disconnectCause(0),
+	m_disconnectTime(0), m_disconnectCause(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), m_h245Routed(routeH245),
@@ -1750,6 +1750,19 @@ void CallRec::SetDisconnectTime(time_t tm)
 			? (m_connectTime + 1) : tm;
 }
 
+int CallRec::GetReleaseSource() const
+{
+	return m_releaseSource;
+}
+
+void CallRec::SetReleaseSource(
+	int releaseSource
+	)
+{
+	if (m_releaseSource == -1)
+		m_releaseSource = releaseSource;
+}
+
 bool CallRec::IsDurationLimitExceeded() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1980,6 +1993,7 @@ void CallTable::ClearTable()
 	while (Iter != eIter) {
 		iterator i = Iter++;
 		(*i)->SetDisconnectCause(Q931::TemporaryFailure);
+		(*i)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		(*i)->Disconnect();
 		InternalRemove(i);
 	}
@@ -2017,6 +2031,7 @@ void CallTable::CheckCalls(
 		(*call)->SetDisconnectCause((*call)->IsConnected()
 			? Q931::ResourceUnavailable : Q931::TemporaryFailure
 			);
+		(*call)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		(*call)->Disconnect();
 		RemoveCall((*call));
 		call++;
@@ -2042,6 +2057,9 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 			PTRACE(3, "GK\tWarning: CallRec doesn't belong to the requesting endpoint!");
 			return;
 		}
+		call->SetReleaseSource(ep == call->GetCallingParty()
+			? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee
+			);
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
 			if( obj_drq.m_disengageReason.GetTag() == H225_DisengageReason::e_normalDrop )
 				call->SetDisconnectCause(Q931::NormalCallClearing);

@@ -258,7 +258,7 @@ inline const_mem_vfun1_ref_t<_Tp,_Arg> mem_vfun_ref(void (_Tp::*__f)(_Arg) const
 } // end of namespace std
 
 
-struct str_prefix_greater : public binary_function<std::string, std::string, bool> {
+struct str_prefix_greater : public std::binary_function<std::string, std::string, bool> {
 
 	bool operator()(const std::string& s1, const std::string& s2) const 
 	{
@@ -269,7 +269,7 @@ struct str_prefix_greater : public binary_function<std::string, std::string, boo
 	}
 };
 
-struct pstr_prefix_lesser : public binary_function<PString, PString, bool> {
+struct pstr_prefix_lesser : public std::binary_function<PString, PString, bool> {
 
 	bool operator()(const PString& s1, const PString& s2) const 
 	{

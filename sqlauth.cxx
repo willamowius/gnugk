@@ -7,6 +7,7 @@
 #include <h235.h>
 #include <h323pdu.h>
 #include <h235auth.h>
+#include <limits>
 
 #include "gk_const.h"
 #include "h323util.h"

@@ -549,7 +549,8 @@ bool TCPProxySocket::SetMinBufSize(WORD len)
 
 
 // class CallSignalSocket
-CallSignalSocket::CallSignalSocket() : TCPProxySocket("Q931s")
+CallSignalSocket::CallSignalSocket()
+	: TCPProxySocket("Q931s"), m_callerSocket(true)
 {
 	InternalInit();
 	localAddr = peerAddr = INADDR_ANY;
@@ -557,14 +558,16 @@ CallSignalSocket::CallSignalSocket() : TCPProxySocket("Q931s")
 	SetHandler(RasServer::Instance()->GetSigProxyHandler());
 }
 
-CallSignalSocket::CallSignalSocket(CallSignalSocket *socket) : TCPProxySocket("Q931d", socket)
+CallSignalSocket::CallSignalSocket(CallSignalSocket *socket)
+	: TCPProxySocket("Q931d", socket), m_callerSocket(false)
 {
 	InternalInit();
 	remote = socket;
 	m_call = socket->m_call;
 }
 
-CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port) : TCPProxySocket("Q931d", socket, port)
+CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port)
+	: TCPProxySocket("Q931d", socket, port), m_callerSocket(false)
 {
 	InternalInit();
 	SetRemote(socket);
@@ -700,8 +703,10 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
 
 void CallSignalSocket::RemoveCall()
 {
-	if (m_call)
+	if (m_call) {
+		m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		CallTable::Instance()->RemoveCall(m_call);
+	}
 }
 
 ProxySocket::Result CallSignalSocket::ReceiveData()
@@ -1027,6 +1032,8 @@ void CallSignalSocket::ForwardCall(
 	} else {
 		remoteSocket->EndSession();
 		remoteSocket->SetConnected(false);
+		if (m_call)
+			m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		CallTable::Instance()->RemoveCall(m_call);
 	}
 
@@ -1895,6 +1902,9 @@ void CallSignalSocket::OnReleaseComplete(
 
 	if( m_call ) {
 		m_call->SetDisconnectTime(time(NULL));
+		m_call->SetReleaseSource(m_callerSocket
+			? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee
+			);
 		if (msg->GetQ931().HasIE(Q931::CauseIE))
 			m_call->SetDisconnectCause(msg->GetQ931().GetCause());
 		else if (rc != NULL) {
@@ -2217,8 +2227,10 @@ bool CallSignalSocket::InternalConnectTo()
 	} else {
 		PTRACE(3, "Q931\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
 		SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
-		if (m_call)
+		if (m_call) {
 			m_call->SetCallSignalSocketCalled(NULL);
+			m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
+		}
 		CallTable::Instance()->RemoveCall(m_call);
 		delete remote;
 		remote = NULL;
