@@ -42,11 +42,7 @@ public:
 
 	void Close(void);
 	virtual void Main(void);
-
 protected:
-
-protected:
-	PUDPSocket MulticastListener;
 	H225_TransportAddress GKRasAddress;
 };
 

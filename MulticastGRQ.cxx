@@ -54,23 +54,24 @@ static const char vcHid[] = MULTICASTGRQ_H;
 
 
 MulticastGRQ::MulticastGRQ(PIPSocket::Address Home)
-	: GK_RASListener(Home), MulticastListener(WORD(GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
+	: GK_RASListener(Home)//, GK_RASListener::listener(WORD(GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
 {
 	// own IP number
-	GKRasAddress = SocketToH225TransportAddr(GKHome, WORD(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)));
+	GKRasPort = WORD(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
+	GKRasAddress = SocketToH225TransportAddr(GKHome,GKRasPort );
 
 
 	// set socket to multicast
 	struct ip_mreq mreq;
 	mreq.imr_multiaddr.s_addr = inet_addr(GkConfig()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
 	mreq.imr_interface.s_addr = GKHome;
-	MulticastListener.Listen(GKHome,
-				 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
-				 MulticastListener.GetPort());
-	if (setsockopt(MulticastListener.GetHandle(), IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0)
+	listener.Listen(GKHome,
+			GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
+			GKRasPort);
+	if (setsockopt(listener.GetHandle(), IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0)
 	{
 		PTRACE(1, "GK\tCan't join multicast group.");
-		MulticastListener.Close();
+		listener.Close();
 		//Suspend();
 	};
 
@@ -80,6 +81,8 @@ MulticastGRQ::MulticastGRQ(PIPSocket::Address Home)
 
 MulticastGRQ::~MulticastGRQ()
 {
+	if(listener.IsOpen())
+		Close();
 };
 
 void MulticastGRQ::Main(void)
@@ -106,7 +109,7 @@ void MulticastGRQ::Main(void)
 void MulticastGRQ::Close(void)
 {
 	PTRACE(5, "MulticastGRQ::Close() " << getpid());
-	MulticastListener.Close();
+	listener.Close();
 
 	// terminate thread
 	Terminate();
