@@ -55,12 +55,12 @@ and I'll pick it up.
   Usually you have a range of ported but unallocated numbers.
   Also, you commonly have some "trunk" gateways (those used to TDM-interconnect yourself
   with the other carriers). You then have some routing prefix entries like
-  "route 11* to gateway A", "12* to gateway B" etc.
+  "route 11* to gateway A", "route 12* to gateway B" etc.
   
   Now say someone from the public PSTN calls "123". 123 is ported to us.
   The call will be routed via PSTN to our network (because the other carriers know "123" is
   ported to us).
-  But our gatekeeper does not necessarily need to know how to route it either because we have
+  But our gatekeeper does not necessarily need to know how to route it because we have
   not yet configured it to do so. This can be because we have not yet allocated the number to
   a subscriber of ours or because the user is not registered with our gatekeeper (and maybe he's
   using dynamic IPs so we cannot statically route his number).
@@ -77,13 +77,14 @@ and I'll pick it up.
   Just make sure you understand that "porting" and "routing" are independent concepts.
   Configuring ported numbers is called "provisioning".
 
+
   Therefore:
   You can **AND MUST** provision any endpoints you want to register.
   You can configure per-endpoint options in the new section
   [RasSrv::EndpointOptions].
   Available options are documented in etc/voip.schema.
 
-  Loglines like "Could not find profile for: XXX" indicate you didn't properly provision
+  Logfile lines like "Could not find profile for: XXX" indicate you didn't properly provision
   the endpoint.
 
   NOTE: You need to have at least a line like "myendpoint=voIPEndpointType=cpe" per endpoint !
@@ -91,7 +92,7 @@ and I'll pick it up.
   Use something like
   [RasSrv::EndpointOptions]
   # voIPTreat{Calling|Called}PartyNumberAs: 2=int, 3=nat, 4=local, 5=unchanged
-  myendpoint=voIPEndpointType=cpe;voIPcountryCode=49;voIPTreatCalledPartyNumberAs=5;
+  myendpoint=voIPEndpointType=cpe;telephonenumber=12345;voIPcountryCode=49;voIPTreatCalledPartyNumberAs=5;
   voIPTreatCallingPartyNumberAs=5;voIPConvertToLocal=0;voIPlocalAccessCode=;
   voIPnationalAccessCode=0;voIPinternationalAccessCode=00
 
@@ -156,7 +157,7 @@ Some points to remember:
 
 
   Remember overlapped sending and read docs/*.pdf if you think a call
-  is incorrectly routed (or not-routed).
+  is incorrectly routed (or not routed).
 
 
 * if all else fails: read the code !
