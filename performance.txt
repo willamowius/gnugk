@@ -17,3 +17,10 @@ and with 2 PC with RADCOM H.323 Call Generator
 Some memory leaks let GK breakdown after 4 hours (out of memory).
 (the memory leak is fixed in 1.0)
 
+----------------------------------------------------------
+
+PC with 95MB RAM celloron 400MHZ
+(GK 2.0 beta 1, murthy@optoconnect.net.in)
+
+5-6 calls/sec
+
