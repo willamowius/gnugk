@@ -25,6 +25,7 @@ On Windows just compile the provided project for Visual C++ 6.0 (Visual C++ 5.0 
 
 Development version:
 
+The development version need Mysql++.
 If you don't want mysql support, you may set NO_MYSQL environment
 before making:
 
