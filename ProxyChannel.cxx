@@ -454,12 +454,6 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			return;
 		}
-		Address fromIP;
-		GetPeerAddress(fromIP);
-		if (!RasThread->CheckNBIP(fromIP)) {
-			PTRACE(2, "Q931\tWarning: call " << callid << " not from my neighbor");
-			return;
-		}
 		if (gkClient->IsRegistered())
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
 		else {
