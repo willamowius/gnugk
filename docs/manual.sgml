@@ -58,10 +58,10 @@ Recommendation H.323 is an international standard published by the
 <url url="http://www.itu.int/" name="ITU">.
 It is a communications standard for audio, video, and data over the Internet.
 See also Paul Jones'
-<url url="http://www.packetizer.com/iptel/h323/" name="primer on H.323">.
+<url url="http://www.packetizer.com/voip/h323/papers/primer" name="A Primer on the H.323 Series Standard">.
 
 For a detailed description of what a gatekeeper does, see
-<url url="http://www.webproforum.com/h323/topic06.html" name="here">.
+<url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="here">.
 
 <sect1>Copyright
 <p>
