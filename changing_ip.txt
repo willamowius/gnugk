@@ -23,6 +23,14 @@ Most endpoint will try to re-register automatically. If the
 enpoint uses the new IP number for the reregistration everything
 is well.
 
+If you have nc (netcat), the script is as simple as this:
+
+echo -e "unregisterip 1.2.3.4 \n quit" | nc hostname 7000
+
+or use the supplied Perl script:
+
+unregister_ip.pl 1.2.3.4 hostname
+
 
 Changing IP number for the gatekeeper
 =====================================
