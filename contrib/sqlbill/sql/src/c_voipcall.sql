@@ -75,6 +75,9 @@ CREATE TABLE voipcall (
 	-- delay (seconds) for the acctstoptime
 	acctstopdelay INT DEFAULT 0 NOT NULL,
 
+	-- voiptariffdst prefix that calledstationid has matched
+	prefix TEXT DEFAULT '' NOT NULL,
+	
 	CONSTRAINT voipcall_pkey PRIMARY KEY(id),
 	CONSTRAINT voipcall_account_exists FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE
 ) WITHOUT OIDS;

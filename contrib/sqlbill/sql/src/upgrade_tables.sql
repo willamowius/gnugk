@@ -280,6 +280,16 @@ BEGIN
 			FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE;
 	END IF;
 
+	-- check for voipcall.prefix column presence
+	SELECT INTO attrfound COUNT(*) FROM pg_class C JOIN pg_attribute A ON a.attrelid = C.oid
+		WHERE c.relname = ''voipcall'' AND A.attname = ''prefix'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voipcall ADD COLUMN prefix TEXT;
+		UPDATE voipcall SET prefix = '''';
+		ALTER TABLE voipcall ALTER COLUMN prefix SET DEFAULT '''';
+		ALTER TABLE voipcall ALTER COLUMN prefix SET NOT NULL;
+	END IF;
+
 	RAISE INFO ''Upgrade complete'';
 	RETURN TRUE;
 END;

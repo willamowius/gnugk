@@ -1,3 +1,7 @@
+13 Oct 2004 -- zvision
+  * new 'prefix' column in the voipcall table to store a prefix
+    that the Called-Station-Id has matched
+
 5 Oct 2004 -- zvision
   * fix to allow negative prices to be specified for callback tariffs
 

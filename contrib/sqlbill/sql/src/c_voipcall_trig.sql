@@ -65,9 +65,9 @@ BEGIN
 	END IF;
 	IF NEW.price IS NULL AND NEW.accountid IS NOT NULL AND trf.id IS NOT NULL THEN
 		SELECT INTO NEW.price, NEW.tariffdesc, NEW.initialincrement,
-				NEW.regularincrement, NEW.graceperiod 
+				NEW.regularincrement, NEW.graceperiod, NEW.prefix
 				trf.price, trfdst.description, trf.initialincrement, trf.regularincrement,
-				trf.graceperiod;
+				trf.graceperiod, trfdst.prefix;
 	END IF;
 
 	IF trf.id IS NULL OR trfdst.id IS NULL THEN
