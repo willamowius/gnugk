@@ -200,7 +200,7 @@ LDAPCtrl::Initialize(void)
 			   ServerName << ":(" << ServerPort << ")" <<
 			   endl << vcid << endl << vcHid);
 		ERRORPRINT(PString("LDAPCtrl::Initialize: no connection on ") +
-			   ServerName + ":(" + ServerPort + ")");
+			   static_cast<PString>(ServerName) + static_cast<PString>(":(") + static_cast<PString>(ServerPort) + static_cast<PString>(")"));
 		ldap = NULL;
 	} else {
 		DEBUGPRINT("LDAPCtrl::Initialize: connection OK on " <<

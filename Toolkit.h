@@ -41,10 +41,6 @@
 #  endif
 #endif
 
-/// mangle symbols to strings
-#define QUOTE(a) #a
-
-
 ///////////////////////// Profiles for storing Data from Database calls
 class CallProfile;
 ///////////////////////// Classes for GKClient and Neighbor GKs
@@ -155,15 +151,15 @@ public:
  */
 class E164_AnalysedNumber {
 private:			// std helper
-	E164_AnalysedNumber & assign(const E164_AnalysedNumber &an); // basic assigment
+	E164_AnalysedNumber & assign(const E164_AnalysedNumber &an); /// basic assigment
 public:				// Constructor/Destructor
-	E164_AnalysedNumber();	// default const
-	E164_AnalysedNumber(const E164_AnalysedNumber & an); // copy const
-	~E164_AnalysedNumber();	// destructor
+	E164_AnalysedNumber();	/// default const
+	E164_AnalysedNumber(const E164_AnalysedNumber & an); /// copy const
+	~E164_AnalysedNumber();	/// destructor
 
-	E164_AnalysedNumber(const char * str); // from char *
-	E164_AnalysedNumber(const PString & pstr); // from PString
-	E164_AnalysedNumber(const E164_IPTNString & istr); // from E164_IPTNString
+	E164_AnalysedNumber(const char * str); /// from char *
+	E164_AnalysedNumber(const PString & pstr); /// from PString
+	E164_AnalysedNumber(const E164_IPTNString & istr); /// from E164_IPTNString
 public:				// operators
 	E164_AnalysedNumber & operator=(const E164_AnalysedNumber & an);
 	E164_AnalysedNumber & operator=(const char * str);
@@ -173,24 +169,24 @@ public:				// operators
 	operator PString();
 	PString GetAsDigitString() const;
 public:				// class based types
-	enum IPTN_kind_type     // kinds of International Public
-			        // Telecommunication Numbers
+	enum IPTN_kind_type     /// kinds of International Public
+			        /// Telecommunication Numbers
 	{
-		IPTN_unknown = 0, // expressional completeness
-		IPTN_geographical_areas, // E.164 6.2.1
-		IPTN_global_services, // E.164 6.2.2
-		IPTN_networks	// E.164 6.2.3
+		IPTN_unknown = 0, /// expressional completeness
+		IPTN_geographical_areas, /// E.164 6.2.1
+		IPTN_global_services, /// E.164 6.2.2
+		IPTN_networks	/// E.164 6.2.3
 	};
 protected:			// Members
-	E164_IPTNString CC;	// Country Code
-	E164_IPTNString NDC_IC;	// National Destination Code/Identification Code
-	E164_IPTNString GSN_SN;	// (Global) Subscriber Number
-	IPTN_kind_type IPTN_kind; // kind of IPTN detected here
+	E164_IPTNString CC;	/// Country Code
+	E164_IPTNString NDC_IC;	/// National Destination Code/Identification Code
+	E164_IPTNString GSN_SN;	/// (Global) Subscriber Number
+	IPTN_kind_type IPTN_kind; /// kind of IPTN detected here
 public:				// Access methods
-	const E164_IPTNString & GetCC() const;
-	const E164_IPTNString & GetNDC_IC() const;
-	const E164_IPTNString & GetGSN_SN() const;
-	IPTN_kind_type  GetIPTN_kind() const;
+	const E164_IPTNString & GetCC() const; /// get Country Code
+	const E164_IPTNString & GetNDC_IC() const; /// get National Destination Code/Identification Code
+	const E164_IPTNString & GetGSN_SN() const; /// get (Global) Subscriber Number
+	IPTN_kind_type  GetIPTN_kind() const; /// get the E.164 6.2 type
 private:
 	E164_AnalysedNumber & analyse(PString pstr);
 	// matching all but dialable digits
@@ -210,6 +206,8 @@ class DigitCodeLibrary : public Singleton<DigitCodeLibrary>
 public: // con- and destructing
 	explicit DigitCodeLibrary();
 	virtual ~DigitCodeLibrary();
+	/// defining the general *pointer* type of a split function
+	typedef E164_IPTNString (*split_functor_type)(E164_IPTNString);
 protected:
 	/** This is a mapping type (i.e. integer function) between an IPTN
 	 *  code (E.164 well defined subsequences of IPTNs) and some
@@ -217,8 +215,6 @@ protected:
 	 */
 	PDICTIONARY(CodeDict, E164_IPTNString, PString);
 
-	// defining the general *pointer* type of a split function
-	typedef E164_IPTNString (*split_functor_type)(E164_IPTNString);
 	class split_functor_class : public PObject
 	{
 		PCLASSINFO(split_functor_class, PObject);

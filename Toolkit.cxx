@@ -535,7 +535,7 @@ Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
 		       "Gatekeeper(%s) Version(%s) Ext(pthreads="
-		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)" GK_LINEBRK,
+		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(TRUE)),
 		       __DATE__, __TIME__,
@@ -544,7 +544,6 @@ Toolkit::GKVersion()
 		       (const unsigned char*)(PProcess::GetOSVersion())
 		);
 }
-
 
 
 int

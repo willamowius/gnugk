@@ -29,6 +29,7 @@
 #include <ptlib/sockets.h>
 #include "GkProfile.h"
 #include "Toolkit.h"
+#include "ANSI.h"
 
 #ifndef lint
 // mark object with version info in such a way that it is retrievable by
@@ -382,29 +383,29 @@ void
 CallProfile::debugPrint(void)  const
 {
 	PWaitAndSignal lock(m_lock);
-	PTRACE(5, "Calling profile:");
-	PTRACE(5, "H323ID=" << GetH323ID());
-	PTRACE(5, "CPE=" << IsCPE());
-	PTRACE(5, "Telno=" << GetTelephoneNumbers());
+	PTRACE(5, ANSI::GRE << "Call Profile:" << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  H323ID=" << GetH323ID() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  CPE=" << IsCPE() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  Telno=" << GetTelephoneNumbers() << ANSI::OFF);
 	const PStringToString &spMap = GetSpecialDials();
 	PTRACE(5, spMap.GetSize() << " SpecialDials:");
 	for (PINDEX i=0; i < spMap.GetSize(); i++) {
 		PTRACE(5, "\t" << spMap.GetKeyAt(i) << "--->" << spMap.GetDataAt(i));
 	}
-	PTRACE(5, "MainNo=" << GetMainTelephoneNumber());
-	PTRACE(5, "SubsNo=" << GetSubscriberNumber());
-	PTRACE(5, "CLIR=" << GetClir());
-	PTRACE(5, "Lac=" << GetLac());
-	PTRACE(5, "Nac=" << GetNac());
-	PTRACE(5, "Inac=" << GetInac());
-	PTRACE(5, "HonorsARJIncompleteAddr=" << HonorsARJincompleteAddress());
-	PTRACE(5, "CC=" << GetCC());
-	PTRACE(5, "PrependCallbackAC=" << GetPrependCallbackAC());
-	PTRACE(5, "ConvertNumberToLocal= " << ConvertToLocal());
-	PTRACE(5, "TreatCallingPartyNumberAs=" << TreatCallingPartyNumberAs());
-	PTRACE(5, "TreatCalledPartyNumberAs=" << TreatCalledPartyNumberAs());
-	PTRACE(5, "BlackList=" << GetBlackList());
-	PTRACE(5, "WhiteList=" << GetWhiteList());
+	PTRACE(5, ANSI::GRE << "  MainNo=" << GetMainTelephoneNumber() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  SubsNo=" << GetSubscriberNumber() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  CLIR=" << GetClir() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  Lac=" << GetLac() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  Nac=" << GetNac() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  Inac=" << GetInac() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  HonorsARJIncompleteAddr=" << HonorsARJincompleteAddress() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  CC=" << GetCC() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  PrependCallbackAC=" << GetPrependCallbackAC() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  ConvertNumberToLocal= " << ConvertToLocal() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  TreatCallingPartyNumberAs=" << TreatCallingPartyNumberAs() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  TreatCalledPartyNumberAs=" << TreatCalledPartyNumberAs() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  BlackList=" << GetBlackList() << ANSI::OFF);
+	PTRACE(5, ANSI::GRE << "  WhiteList=" << GetWhiteList() << ANSI::OFF);
 }
 
 CallProfile::CallProfile() : m_PrependCallbackAC(FALSE),

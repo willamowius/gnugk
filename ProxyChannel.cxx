@@ -402,7 +402,7 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 		m_h245handler = new H245Handler(localAddr, called);
 	}
 	m_SetupPDU = NULL;
-	remote->LockUse("CallSignalSocket " + Name() + type);
+	remote->LockUse("CallSignalSocket " + Name() + static_cast<PString>(type));
 }
 
 // void

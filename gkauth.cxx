@@ -113,9 +113,11 @@ static GkAuthInit<MySQLAliasAuth> M_A_A("MySQLAliasAuth");
 
 #endif // HAS_MYSQL
 
-#ifndef WIN32
+#if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
 #include <unistd.h>
-#include <procbuf.h>
+#if defined(__GNUG__)
+#include <procbuf.h>		// this is a obscure GNU extension
+#endif
 
 class ExternalPasswordAuth : public SimplePasswordAuth {
 public:
@@ -710,7 +712,7 @@ PString MySQLAliasAuth::GetConfigString(const PString & alias) const
 
 #endif // HAS_MYSQL
 
-#ifndef WIN32
+#if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
 // ExternalPasswordAuth
 
 ExternalPasswordAuth::ExternalPasswordAuth(PConfig * cfg, const char * authName)
@@ -743,7 +745,7 @@ PString ExternalPasswordAuth::GetPassword(const PString & id)
 	return PString(buff);
 }
 
-#endif // WIN32
+#endif // !defined(WIN32)
 
 
 #include "gkDatabase.h"
