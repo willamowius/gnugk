@@ -1505,7 +1505,8 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 			return true;
 		}
 	}
-	m_h245socket = ((2 - bool(m_crv & 0x8000u)) & m_call->GetNATType()) ? new NATH245Socket(this) : new H245Socket(this);
+	bool userevert = ((2 - bool(m_crv & 0x8000u)) & m_call->GetNATType()) && (m_isnatsocket || ret->m_isnatsocket);
+	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
 	ret->m_h245socket = new H245Socket(m_h245socket, ret);
 	m_h245socket->SetH245Address(h245addr, localAddr);
 	CreateJob(m_h245socket, &H245Socket::ConnectTo, "H245Connector");
