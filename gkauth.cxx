@@ -26,469 +26,661 @@
 #include "gk_const.h"
 #include "h323util.h"
 #include "stl_supp.h"
+#include "Toolkit.h"
 #include "RasTbl.h"
 #include "RasPDU.h"
-#include "Toolkit.h"
-#include "gkauth.h"
 #include "gksql.h"
+#include "gkauth.h"
 
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
-#include <map>
-#include <list>
-
-using std::map;
-using std::list;
-
-const char *GkAuthSectionName = "Gatekeeper::Auth";
-
-//////////////////////////////////////////////////////////////////////
-// Definition of authentication rules
-
-#if HAS_MYSQL
-
-#include <mysql.h>
-
-class MySQLPasswordAuth : public SimplePasswordAuth
-{
-public:
-	MySQLPasswordAuth(
-		const char* authName
-		);
-
-	virtual ~MySQLPasswordAuth();
-
-protected:
-	virtual bool GetPassword(
-		const PString& alias,
-		PString& password
-		);
-		
-protected:
-	GkSQLConnection* m_sqlConn;
-	PString m_query;
-};
-
-class MySQLAliasAuth : public AliasAuth
-{
-public:
-	MySQLAliasAuth(
-		const char* authName
-		);
-	
-	virtual ~MySQLAliasAuth();
-
-protected:
-	virtual PString GetAuthConditionString(
-		const PString& alias
-		);
-
-protected:
-	GkSQLConnection* m_sqlConn;
-	CacheManager* m_cache;
-	PString m_query;
-};
-
-#endif // HAS_MYSQL
-
-/// Generic SQL authenticator for H.235 enabled endpoints
-class SQLPasswordAuth : public SimplePasswordAuth
-{
-public:
-	/// build authenticator reading settings from the config
-	SQLPasswordAuth(
-		/// name for this authenticator and for the config section to read settings from
-		const char* authName
-		);
-	
-	virtual ~SQLPasswordAuth();
-
-protected:
-	/** Override from SimplePasswordAuth.
-	
-	    @return
-	    True if the password has been found for the given alias.
-	*/
-	virtual bool GetPassword(
-		/// alias to check the password for
-		const PString& alias,
-		/// password string, if the match is found
-		PString& password
-		);
-		
-protected:
-	/// connection to the SQL database
-	GkSQLConnection* m_sqlConn;
-	/// parametrized query string for password retrieval
-	PString m_query;
-};
-
-/// Generic SQL authenticator for alias/IP based authentication
-class SQLAliasAuth : public AliasAuth
-{
-public:
-	/// build authenticator reading settings from the config
-	SQLAliasAuth(
-		/// name for this authenticator and for the config section to read settings from
-		const char* authName
-		);
-	
-	virtual ~SQLAliasAuth();
-
-protected:
-	/** Override from AliasAuth.
-	
-	    @return
-	    Auth condition string associated with the given alias
-	    or an empty string if no match is found for the given alias.
-	*/
-	virtual PString GetAuthConditionString(
-		/// alias to retrieve the auth condition string for
-		const PString& alias
-		);
-
-protected:
-	/// connection to the SQL database
-	GkSQLConnection* m_sqlConn;
-	/// auth condition string cache
-	CacheManager* m_cache;
-	/// parametrized query string for the auth condition string retrieval
-	PString m_query;
-};
-
-/*
-#if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
-#include <unistd.h>
-#include <procbuf.h>
-
-class ExternalPasswordAuth : public SimplePasswordAuth {
-public:
-	ExternalPasswordAuth(const char *);
-
-private:
-	bool ExternalInit();
-	virtual bool GetPassword(const PString &, PString &);
-
-	PString Program;
-};
-
-#endif
-*/
-
-// Initial author: Michael Rubashenkkov  2002/01/14 (GkAuthorize)
-// Completely rewrite by Chih-Wei Huang  2002/05/01
-class AuthObj;
-class AuthRule;
-class PrefixAuth : public GkAuthenticator {
-public:
-	PrefixAuth(const char *);
-	~PrefixAuth();
-
-	typedef std::map< PString, AuthRule *, greater<PString> > Rules;
-
-private:
-	// override from class GkAuthenticator
-	virtual int Check(RasPDU<H225_GatekeeperRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_UnregistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_BandwidthRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_InfoRequest> &, unsigned &);
-
-	virtual int doCheck(const AuthObj &);
-	
-	Rules prefrules;
-};
-
-
-bool CacheManager::Retrieve(
-	const PString& key, 
-	PString& value
-	) const
-{
-	ReadLock lock(rwmutex);
-	std::map<PString, PString>::const_iterator iter = cache.find(key);
-	if (iter == cache.end())
-		return false;
-	if (ttl > 0) {
-		std::map<PString, long>::const_iterator i = ctime.find(key);
-		if ((time(NULL) - i->second) > ttl)
-			return false; // cache expired
-	}
-	value = (const char *)iter->second;
-	PTRACE(5, "GkAuth\tCache found for " << key);
-	return true;
+namespace {
+const char* GkAuthSectionName = "Gatekeeper::Auth";
+const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 }
 
-void CacheManager::Save(
-	const PString& key, 
-	const PString& value
-	)
+// class GkAuthenticator
+GkAuthenticator::GkAuthenticator(
+	const char* name, /// a name for the module (to be used in the config file)
+	unsigned supportedRasChecks, /// RAS checks supported by this module
+	unsigned supportedMiscChecks /// non-RAS checks supported by this module
+	) 
+	: NamedObject(name), m_defaultStatus(e_fail), m_controlFlag(e_Required),
+	m_enabledRasChecks(~0U), m_supportedRasChecks(supportedRasChecks), 
+	m_enabledMiscChecks(~0U), m_supportedMiscChecks(supportedMiscChecks),
+	m_config(GkConfig()), m_h235Authenticators(NULL)
 {
-	if (ttl != 0) {
-		WriteLock lock(rwmutex);
-		cache[key] = value;
-		ctime[key] = time(NULL);
-	}
-}
+	const PStringArray control(
+		m_config->GetString(GkAuthSectionName, name, "").Tokenise(";,")
+		);
+	if (control.GetSize() > 0) {
+		const PString controlStr = control[0].Trim();
+		if (strcasecmp(name, "default") == 0)
+			m_controlFlag = e_Sufficient,
+			m_defaultStatus = Toolkit::AsBool(controlStr) ? e_ok : e_fail;
+		else if (controlStr *= "optional")
+			m_controlFlag = e_Optional, m_defaultStatus = e_next;
+		else if (controlStr *= "required")
+			m_controlFlag = e_Required, m_defaultStatus = e_fail;
+		else if (controlStr *= "sufficient")
+			m_controlFlag = e_Sufficient, m_defaultStatus = e_fail;
+		else
+			PTRACE(1, "GKAUTH\tInvalid control flag '" << controlStr
+				<< "' specified in the config for " << GetName()
+				);
+	} else
+		PTRACE(1, "GKAUTH\tNo control flag specified in the config for module '" 
+			<< GetName() << '\''
+			);
 
-//////////////////////////////////////////////////////////////////////
-
-GkAuthenticator::GkAuthenticator(const char *name) : h235Authenticators(0)
-{
-	config = GkConfig();
-	SetName(name);
-
-	PStringArray control(config->GetString(GkAuthSectionName, name, "").Tokenise(";,"));
-	if (strcmp(name, "default") == 0)
-		controlFlag = e_Sufficient,
-		defaultStatus = Toolkit::AsBool(control[0]) ? e_ok : e_fail;
-	else if (control[0] *= "optional")
-		controlFlag = e_Optional, defaultStatus = e_next;
-	else if (control[0] *= "required")
-		controlFlag = e_Required, defaultStatus = e_fail;
-	else
-		controlFlag = e_Sufficient, defaultStatus = e_fail;
-
+	std::map<PString, unsigned> rasmap;
+	rasmap["GRQ"] = RasInfo<H225_GatekeeperRequest>::flag,
+	rasmap["RRQ"] = RasInfo<H225_RegistrationRequest>::flag,
+	rasmap["URQ"] = RasInfo<H225_UnregistrationRequest>::flag,
+	rasmap["ARQ"] = RasInfo<H225_AdmissionRequest>::flag,
+	rasmap["BRQ"] = RasInfo<H225_BandwidthRequest>::flag,
+	rasmap["DRQ"] = RasInfo<H225_DisengageRequest>::flag,
+	rasmap["LRQ"] = RasInfo<H225_LocationRequest>::flag,
+	rasmap["IRQ"] = RasInfo<H225_InfoRequest>::flag;
+		
+	std::map<PString, unsigned> miscmap;
+	miscmap["SETUP"] = e_Setup;
+	
 	if (control.GetSize() > 1) {
-		rasCheckFlags = 0;
-		miscCheckFlags = 0;
+		m_enabledRasChecks = 0;
+		m_enabledMiscChecks = 0;
 		
-		map<PString, int> rasmap;
-		rasmap["GRQ"] = RasInfo<H225_GatekeeperRequest>::flag,
-		rasmap["RRQ"] = RasInfo<H225_RegistrationRequest>::flag,
-		rasmap["URQ"] = RasInfo<H225_UnregistrationRequest>::flag,
-		rasmap["ARQ"] = RasInfo<H225_AdmissionRequest>::flag,
-		rasmap["BRQ"] = RasInfo<H225_BandwidthRequest>::flag,
-		rasmap["DRQ"] = RasInfo<H225_DisengageRequest>::flag,
-		rasmap["LRQ"] = RasInfo<H225_LocationRequest>::flag,
-		rasmap["IRQ"] = RasInfo<H225_InfoRequest>::flag;
-		
-		map<PString, int> miscmap;
-		miscmap["Setup"] = e_Setup;
-		
-		for (PINDEX i=1; i < control.GetSize(); ++i) {
-			if (rasmap.find(control[i]) != rasmap.end())
-				rasCheckFlags |= rasmap[control[i]];
-			else if(miscmap.find(control[i]) != miscmap.end())
-				miscCheckFlags |= miscmap[control[i]];
+		for (PINDEX i = 1; i < control.GetSize(); ++i) {
+			const PString checkStr = control[i].Trim().ToUpper();
+			if (rasmap.find(checkStr) != rasmap.end()) {
+				m_enabledRasChecks |= rasmap[checkStr];
+				if ((m_supportedRasChecks & rasmap[checkStr]) != rasmap[checkStr])
+					PTRACE(1, "GKAUTH\t" << GetName() << " does not support '"
+						<< control[i] << "' check"
+						);
+			} else if(miscmap.find(checkStr) != miscmap.end()) {
+				m_enabledMiscChecks |= miscmap[checkStr];
+				if ((m_supportedMiscChecks & miscmap[checkStr]) != miscmap[checkStr])
+					PTRACE(1, "GKAUTH\t" << GetName() << " does not support '"
+						<< control[i] << "' check"
+						);
+			} else
+				PTRACE(1, "GKAUTH\tInvalid check flag '" << control[i]
+					<< "' specified in the config for " << GetName()
+					);
 		}
-	} else {
-		rasCheckFlags = ~0;
-		miscCheckFlags = ~0;
+		if ((m_enabledRasChecks & m_supportedRasChecks) == 0 
+			&& (m_enabledMiscChecks & m_supportedMiscChecks) == 0)
+			PTRACE(1, "GKAUTH\tNo check flags have been specified "
+				"in the config for " << GetName() << " - it will be disabled"
+				);
+	}
+
+#if PTRACING
+	// convert bit flags to human readable names
+	PString rasFlagsStr, miscFlagsStr;
+	
+	std::map<PString, unsigned>::const_iterator iter = rasmap.begin();
+	while (iter != rasmap.end()) {
+		if (m_enabledRasChecks & iter->second) {
+			if (!rasFlagsStr)
+				rasFlagsStr += ' ';
+			rasFlagsStr += iter->first;
+		}
+		iter++;
 	}
 	
-	PTRACE(1,"GkAuth\tAdd "<<name<<" rule with flags RAS:"<<hex<<rasCheckFlags
-		<<" OTHER:"<<miscCheckFlags<<dec
+	iter = miscmap.begin();
+	while (iter != miscmap.end()) {
+		if (m_enabledMiscChecks & iter->second) {
+			if (!miscFlagsStr)
+				miscFlagsStr += ' ';
+			miscFlagsStr += iter->first;
+		}
+		iter++;
+	}
+	
+	if (rasFlagsStr.IsEmpty())
+		rasFlagsStr = "NONE";
+	if (miscFlagsStr.IsEmpty())
+		miscFlagsStr = "NONE";
+	
+	PTRACE(1, "GKAUTH\t" << GetName() << " rule added to check RAS: "
+		<< rasFlagsStr << ", OTHER: " << miscFlagsStr
 		);
+#endif	
 }
 
 GkAuthenticator::~GkAuthenticator()
 {
-	delete h235Authenticators;
-	PTRACE(1, "GkAuth\tRemove " << GetName() << " rule");
-}
-
-bool GkAuthenticator::Validate(
-	RasPDU<H225_AdmissionRequest>& req, 
-	unsigned& rejectReason,
-	long& callDurationLimit
-	)
-{
-	callDurationLimit = -1;
-	if (rasCheckFlags & RasInfo<H225_AdmissionRequest>::flag) {
-		int r = Check(req, rejectReason, callDurationLimit);
-		if( callDurationLimit == 0 ) {
-			PTRACE(2,"GkAuth\t"<<GetName()<<" - call duration limit 0");
-			return false;
-		}
-		if (r == e_ok) {
-			PTRACE(4, "GkAuth\t" << GetName() << " check ok");
-			if (controlFlag != e_Required)
-				return true;
-		} else if (r == e_fail) {
-			PTRACE(2, "GkAuth\t" << GetName() << " check failed");
-			return false;
-		}
-	}
-	if( m_next ) {
-		long newDurationLimit = -1;
-		if( !m_next->Validate(req, rejectReason,newDurationLimit) )
-			return false;
-		if( callDurationLimit >= 0 && newDurationLimit >= 0 )
-			callDurationLimit = PMIN(callDurationLimit,newDurationLimit);
-		else
-			callDurationLimit = PMAX(callDurationLimit,newDurationLimit);
-	}
-	if( callDurationLimit == 0 ) {
-		PTRACE(2,"GkAuth\t"<<GetName()<<" - call duration limit 0");
-		return false;
-	}
-	return true;
-}
-
-bool GkAuthenticator::Validate(
-	/// received Q.931 Setup message
-	Q931& q931pdu, 
-	/// received H.225 Setup message
-	H225_Setup_UUIE& setup, 
-	/// Q931 disconnect cause code to set, if authentication failed
-	unsigned& releaseCompleteCause, 
-	/// call duration limit to set (-1 for no duration limit)
-	long& callDurationLimit
-	)
-{
-	callDurationLimit = -1;
-	if (miscCheckFlags & e_Setup) {
-		int r = Check(q931pdu, setup, releaseCompleteCause, callDurationLimit);
-		if( callDurationLimit == 0 ) {
-			PTRACE(2,"GkAuth\t"<<GetName()<<" - (Setup) call duration limit 0");
-			return false;
-		}
-		if (r == e_ok) {
-			PTRACE(4, "GkAuth\t" << GetName() << " (Setup) check ok");
-			if (controlFlag != e_Required)
-				return true;
-		} else if (r == e_fail) {
-			PTRACE(2, "GkAuth\t" << GetName() << " (Setup) check failed");
-			return false;
-		}
-	}
-	if( m_next ) {
-		long newDurationLimit = -1;
-		if( !m_next->Validate(q931pdu, setup, releaseCompleteCause, newDurationLimit) )
-			return false;
-		if( callDurationLimit >= 0 && newDurationLimit >= 0 )
-			callDurationLimit = PMIN(callDurationLimit,newDurationLimit);
-		else
-			callDurationLimit = PMAX(callDurationLimit,newDurationLimit);
-	}
-	if( callDurationLimit == 0 ) {
-		PTRACE(2,"GkAuth\t"<<GetName()<<" - (Setup) call duration limit 0");
-		return false;
-	}
-	return true;
+	delete m_h235Authenticators;
+	PTRACE(1, "GKAUTH\t" << GetName() << " rule removed");
 }
 
 int GkAuthenticator::Check(RasPDU<H225_GatekeeperRequest> &, unsigned &)
 {
-	return defaultStatus;
+	return IsRasCheckEnabled(RasInfo<H225_GatekeeperRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_RegistrationRequest> &, unsigned &)
 {
-	return defaultStatus;
+	return IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_UnregistrationRequest> &, unsigned &)
 {
-	return defaultStatus;
+	return IsRasCheckEnabled(RasInfo<H225_UnregistrationRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
-int GkAuthenticator::Check(RasPDU<H225_AdmissionRequest> &, unsigned &)
+int GkAuthenticator::Check(
+	/// a request to be authenticated
+	RasPDU<H225_AdmissionRequest>& /*req*/,
+	/// authorization data (call duration limit, reject reason, ...)
+	GkAuthenticator::ARQAuthData& /*authData*/
+	)
 {
-	return defaultStatus;
-}
-
-int GkAuthenticator::Check(RasPDU<H225_AdmissionRequest>& req, unsigned& reason, long& limit)
-{
-	return Check(req,reason);
+	return IsRasCheckEnabled(RasInfo<H225_AdmissionRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_BandwidthRequest> &, unsigned &)
 {
-	return defaultStatus;
+	return IsRasCheckEnabled(RasInfo<H225_BandwidthRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_DisengageRequest> &, unsigned &)
 {
-	return defaultStatus;
+	return IsRasCheckEnabled(RasInfo<H225_DisengageRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_LocationRequest> &, unsigned &)
 {
-	return defaultStatus;
+	return IsRasCheckEnabled(RasInfo<H225_LocationRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_InfoRequest> &, unsigned &)
 {
-	return defaultStatus;
+	return IsRasCheckEnabled(RasInfo<H225_InfoRequest>::flag) 
+		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check( 
-	Q931&, 
-	H225_Setup_UUIE&, 
-	unsigned&, 
-	long& 
+	/// received Q.931 Setup message
+	Q931& /*q931pdu*/, 
+	/// decoded H.225 Setup UUIE element of Q.931 Setup message
+	H225_Setup_UUIE& /*setup*/, 
+	/// authorization data (call duration limit, reject reason, ...)
+	SetupAuthData& /*authData*/
 	)
 {
-	return defaultStatus;
+	return IsMiscCheckEnabled(e_Setup) ? m_defaultStatus : e_next;
 }
 
 bool GkAuthenticator::GetH235Capability(
+	/// append supported authentication mechanism to this array
 	H225_ArrayOf_AuthenticationMechanism& mechanisms,
+	/// append supported algorithm OIDs for the given authentication
+	/// mechanism
 	H225_ArrayOf_PASN_ObjectId& algorithmOIDs
 	) const
 {
-	if (h235Authenticators) {
-		for (int i = 0; i < h235Authenticators->GetSize(); ++i)
-			(*h235Authenticators)[i].SetCapability(mechanisms, algorithmOIDs);
+	if (m_h235Authenticators && m_h235Authenticators->GetSize() > 0) {
+		for (PINDEX i = 0; i < m_h235Authenticators->GetSize(); i++)
+			(*m_h235Authenticators)[i].SetCapability(mechanisms, algorithmOIDs);
 		return true;
-	}
-	return false;
+	} else
+		return false;
 }		
 
 bool GkAuthenticator::IsH235Capability(
+	/// authentication mechanism
 	const H235_AuthenticationMechanism& mechanism,
+	/// algorithm OID for the given authentication mechanism
 	const PASN_ObjectId& algorithmOID
 	) const
 {
-	if (h235Authenticators) {
-		for (int i = 0; i < h235Authenticators->GetSize(); ++i)
-			if ((*h235Authenticators)[i].IsCapability(mechanism,algorithmOID))
+	if (m_h235Authenticators)
+		for (PINDEX i = 0; i < m_h235Authenticators->GetSize(); i++)
+			if ((*m_h235Authenticators)[i].IsCapability(mechanism, algorithmOID))
 				return true;
-	}
 	return false;
 }
 
 bool GkAuthenticator::IsH235Capable() const
 {
-	return h235Authenticators && h235Authenticators->GetSize() > 0;
+	return m_h235Authenticators && m_h235Authenticators->GetSize() > 0;
+}
+
+void GkAuthenticator::SetSupportedChecks(
+	unsigned supportedRasChecks, /// RAS checks supported by this module
+	unsigned supportedMiscChecks /// non-RAS checks supported by this module
+	)
+{
+	m_supportedRasChecks = supportedRasChecks;
+	m_supportedMiscChecks = supportedMiscChecks;
+}
+
+void GkAuthenticator::AppendH235Authenticator(
+	H235Authenticator* h235Auth /// H.235 authenticator to append
+	)
+{
+	if (h235Auth) {
+		if (m_h235Authenticators == NULL)
+			m_h235Authenticators = new H235Authenticators();
+		m_h235Authenticators->Append(h235Auth);
+	}
+}
+
+
+// class GkAuthenticatorList
+GkAuthenticatorList::GkAuthenticatorList() 
+	: m_mechanisms(new H225_ArrayOf_AuthenticationMechanism),
+	m_algorithmOIDs(new H225_ArrayOf_PASN_ObjectId)
+{
+}
+
+GkAuthenticatorList::~GkAuthenticatorList()
+{
+	WriteLock lock(m_reloadMutex);
+	DeleteObjectsInContainer(m_authenticators);
+	m_authenticators.clear();
+	delete m_mechanisms;
+	delete m_algorithmOIDs;
+}
+
+void GkAuthenticatorList::OnReload()
+{
+	// lock here to prevent too early authenticator destruction 
+	// from another thread
+	WriteLock lock(m_reloadMutex);
+
+	std::list<GkAuthenticator*> authenticators;	
+	GkAuthenticator *auth;
+	
+	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
+	for (PINDEX r = 0; r < authRules.GetSize(); r++) {
+		auth = Factory<GkAuthenticator>::Create(authRules[r]);
+		if (auth)
+			authenticators.push_back(auth);
+	}
+
+	H225_ArrayOf_AuthenticationMechanism mechanisms;
+	H225_ArrayOf_PASN_ObjectId algorithmOIDs;
+
+	bool found = false;
+	int i, j, k;
+
+	// scan all authenticators that are either "required" or "sufficient"
+	// (skip "optional") and fill #mechanisms# and #algorithmOIDs# arrays
+	// with H.235 capabilities that are supported by all these authenticators
+	
+	std::list<GkAuthenticator*>::const_iterator iter = authenticators.begin();
+	
+	while (iter != authenticators.end()) {
+		auth = *iter++;
+		if (auth->IsH235Capable() 
+				&& (auth->GetControlFlag() == GkAuthenticator::e_Required
+					|| auth->GetControlFlag() == GkAuthenticator::e_Sufficient)) {
+			if (mechanisms.GetSize() == 0) {
+				// append H.235 capability to empty arrays
+				auth->GetH235Capability(mechanisms, algorithmOIDs);
+				// should never happen, but we should check just for a case				
+				if (algorithmOIDs.GetSize() == 0)
+					mechanisms.RemoveAll();
+				else
+					found = true;
+				continue;
+			}
+
+			// Already have H.235 capabilities - check the current
+			// authenticator if it supports any of the capabilities.
+			// Remove capabilities that are not supported
+
+			H225_ArrayOf_AuthenticationMechanism matchedMechanisms;
+
+			for (i = 0; i < algorithmOIDs.GetSize(); i++) {
+				bool matched = false;
+
+				for (j = 0; j < mechanisms.GetSize(); j++)
+					if (auth->IsH235Capability(mechanisms[j], algorithmOIDs[i])) {
+						for (k = 0; k < matchedMechanisms.GetSize(); k++)
+							if (matchedMechanisms[k].GetTag() == mechanisms[j].GetTag())
+								break;
+						if (k == matchedMechanisms.GetSize()) {
+							matchedMechanisms.SetSize(k+1);
+							matchedMechanisms[k].SetTag(mechanisms[j].GetTag());
+						}
+						matched = true;
+					}
+
+				if (!matched) {
+					PTRACE(5, "GKAUTH\tAlgorithm OID: " << algorithmOIDs[i]
+						<< " removed from GCF list"
+						);
+					algorithmOIDs.RemoveAt(i--);
+				}
+			}
+
+			for (i = 0; i < mechanisms.GetSize(); i++) {
+				for (j = 0; j < matchedMechanisms.GetSize(); j++)
+					if (mechanisms[i].GetTag() == matchedMechanisms[j].GetTag())
+						break;
+				if (j == matchedMechanisms.GetSize()) {
+					PTRACE(5, "GKAUTH\tAuth method: " << mechanisms[i]
+						<< " removed from GCF list"
+						);
+					mechanisms.RemoveAt(i--);
+				}
+			}
+
+			if (mechanisms.GetSize() == 0 || algorithmOIDs.GetSize() == 0)
+				break;
+		}
+	}
+
+	// Scan "optional" authenticators if the above procedure has not found
+	// any H.235 capabilities or has found more than one
+	if ((!found) || mechanisms.GetSize() > 1 || algorithmOIDs.GetSize() > 1) {
+		iter = authenticators.begin();
+		while (iter != authenticators.end()) {
+			auth = *iter++;
+			if (auth->IsH235Capable() 
+					&& auth->GetControlFlag() == GkAuthenticator::e_Optional) {
+				if (mechanisms.GetSize() == 0) {
+					auth->GetH235Capability(mechanisms, algorithmOIDs);
+					if (algorithmOIDs.GetSize() == 0 )
+						mechanisms.RemoveAll();
+					else
+						found = true;
+					continue;
+				}
+
+				H225_ArrayOf_AuthenticationMechanism matchedMechanisms;
+
+				for (i = 0; i < algorithmOIDs.GetSize(); i++) {
+					bool matched = false;
+
+					for (j = 0; j < mechanisms.GetSize(); j++)
+						if (auth->IsH235Capability(mechanisms[j], algorithmOIDs[i])) {
+							for (k = 0; k < matchedMechanisms.GetSize(); k++)
+								if (matchedMechanisms[k].GetTag() == mechanisms[j].GetTag())
+									break;
+							if (k == matchedMechanisms.GetSize()) {
+								matchedMechanisms.SetSize(k+1);
+								matchedMechanisms[k].SetTag(mechanisms[j].GetTag());
+							}
+							matched = true;
+						}
+
+					if (!matched) {
+						PTRACE(5, "GKAUTH\tAlgorithm OID: " << algorithmOIDs[i]
+							<< " removed from GCF list"
+							);
+						algorithmOIDs.RemoveAt(i--);
+					}
+				}
+
+				for (i = 0; i < mechanisms.GetSize(); i++) {
+					for (j = 0; j < matchedMechanisms.GetSize(); j++)
+						if (mechanisms[i].GetTag() == matchedMechanisms[j].GetTag())
+							break;
+					if (j == matchedMechanisms.GetSize()) {
+						PTRACE(5, "GKAUTH\tAuth method: " << mechanisms[i]
+							<< " removed from GCF list"
+							);
+						mechanisms.RemoveAt(i--);
+					}
+				}
+
+				if ((mechanisms.GetSize() == 0) || (algorithmOIDs.GetSize() == 0))
+					break;
+			}
+		}
+	}
+
+	if (mechanisms.GetSize() > 0 && algorithmOIDs.GetSize() > 0) {
+		if (PTrace::CanTrace(4)) {
+#if PTRACING
+			ostream& strm = PTrace::Begin(4,__FILE__,__LINE__);
+			strm <<"GkAuth\tH.235 capabilities selected for GCF:\n";
+			strm <<"\tAuthentication mechanisms: \n";
+			for (i = 0; i < mechanisms.GetSize(); i++)
+				strm << "\t\t" << mechanisms[i] << '\n';
+			strm <<"\tAuthentication algorithm OIDs: \n";
+			for (i = 0; i < algorithmOIDs.GetSize(); i++)
+				strm << "\t\t" << algorithmOIDs[i] << '\n';
+			PTrace::End(strm);
+#endif
+		}
+	} else {
+		PTRACE(4, "GKAUTH\tH.235 security is not active or conflicting "
+			"H.235 capabilities are active - GCF will not select "
+			"any particular capability"
+			);
+		mechanisms.RemoveAll();
+		algorithmOIDs.RemoveAll();
+	}
+
+	// now switch to new setting
+	*m_mechanisms = mechanisms;
+	*m_algorithmOIDs = algorithmOIDs;
+	DeleteObjectsInContainer(m_authenticators);
+	m_authenticators.clear();
+	m_authenticators = authenticators;
+}
+
+void GkAuthenticatorList::SelectH235Capability(
+	const H225_GatekeeperRequest& grq, 
+	H225_GatekeeperConfirm& gcf
+	)
+{
+	ReadLock lock(m_reloadMutex);
+	
+	if (m_authenticators.empty())
+		return;
+	
+	// if GRQ does not contain a list of authentication mechanisms simply return
+	if (!(grq.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability)
+			&& grq.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)
+			&& grq.m_authenticationCapability.GetSize() > 0
+			&& grq.m_algorithmOIDs.GetSize() > 0))
+		return;
+
+	H225_ArrayOf_AuthenticationMechanism & mechanisms = *m_mechanisms;
+	H225_ArrayOf_PASN_ObjectId & algorithmOIDs = *m_algorithmOIDs;
+
+	// And now match H.235 capabilities found with those from GRQ
+	// to find the one to be returned in GCF		
+	for (int i = 0; i < grq.m_authenticationCapability.GetSize(); i++)
+		for (int j = 0; j < mechanisms.GetSize(); j++)	
+			if (grq.m_authenticationCapability[i].GetTag() == mechanisms[j].GetTag())
+				for (int l = 0; l < algorithmOIDs.GetSize(); l++)
+					for (int k = 0; k < grq.m_algorithmOIDs.GetSize(); k++)
+						if (grq.m_algorithmOIDs[k] == algorithmOIDs[l]) {
+							std::list<GkAuthenticator*>::const_iterator iter = m_authenticators.begin();
+							while (iter != m_authenticators.end()) {
+								GkAuthenticator* auth = *iter++;
+								if (auth->IsH235Capable() && auth->IsH235Capability(mechanisms[j], algorithmOIDs[l])) {
+									gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
+									gcf.m_authenticationMode = mechanisms[j];
+									gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
+									gcf.m_algorithmOID = algorithmOIDs[l];
+
+									PTRACE(4, "GKAUTH\tGCF will select authentication "
+										"mechanism: " << mechanisms[j] 
+										<< " and algorithm OID: "<< algorithmOIDs[l]
+										);
+									return;
+								}
+							}
+
+							PTRACE(5, "GKAUTH\tAuthentication mechanism: "
+								<< mechanisms[j] << " and algorithm OID: "
+								<< algorithmOIDs[l] << " removed from GCF list"
+								);
+						}
+}
+
+bool GkAuthenticatorList::Validate(
+	/// ARQ to be validated by authenticators
+	RasPDU<H225_AdmissionRequest>& request,
+	/// authorization data (call duration limit, reject reason, ...)
+	GkAuthenticator::ARQAuthData& authData
+	)
+{
+	ReadLock lock(m_reloadMutex);
+	std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
+	while (i != m_authenticators.end()) {
+		GkAuthenticator* auth = *i++;
+		if (auth->IsRasCheckEnabled(RasInfo<H225_AdmissionRequest>::flag)) {
+			const long oldDurationLimit = authData.m_callDurationLimit;
+			const int result = auth->Check(request, authData);
+			if (authData.m_callDurationLimit == 0) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " ARQ check failed: "
+					"call duration 0"
+					);
+				return false;
+			}
+			if (authData.m_callDurationLimit >= 0 && oldDurationLimit >= 0)
+				authData.m_callDurationLimit = PMIN(
+					authData.m_callDurationLimit, oldDurationLimit
+					);
+			else
+				authData.m_callDurationLimit = PMAX(
+					authData.m_callDurationLimit, oldDurationLimit
+					);
+			if (result == GkAuthenticator::e_ok) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " ARQ check ok");
+				if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+					return true;
+			} else if (result == GkAuthenticator::e_fail) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " ARQ check failed");
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+bool GkAuthenticatorList::Validate(
+	/// received Q.931 Setup message
+	Q931& q931pdu,
+	///  H.225.0 Setup UUIE decoded from Q.931 SETUP
+	H225_Setup_UUIE& setup, 
+	/// authorization data (call duration limit, reject reason, ...)
+	GkAuthenticator::SetupAuthData& authData
+	)
+{
+	ReadLock lock(m_reloadMutex);
+	std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
+	while (i != m_authenticators.end()) {
+		GkAuthenticator* auth = *i++;
+		if (auth->IsMiscCheckEnabled(GkAuthenticator::e_Setup)) {
+			const long oldDurationLimit = authData.m_callDurationLimit;
+			const int result = auth->Check(q931pdu, setup, authData);
+			if (authData.m_callDurationLimit == 0) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check failed: "
+					"call duration limit 0"
+					);
+				return false;
+			}
+			if (authData.m_callDurationLimit >= 0 && oldDurationLimit >= 0)
+				authData.m_callDurationLimit = PMIN(
+					authData.m_callDurationLimit, oldDurationLimit
+					);
+			else
+				authData.m_callDurationLimit = PMAX(
+					authData.m_callDurationLimit, oldDurationLimit
+					);
+			if (result == GkAuthenticator::e_ok) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check ok");
+				if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+					return true;
+			} else if (result == GkAuthenticator::e_fail) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check failed");
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+// class CacheManager
+bool CacheManager::Retrieve(
+	const PString& key, /// the key to look for
+	PString& value /// filled with the value on return
+	) const
+{
+	// quick check
+	if (m_ttl == 0)
+		return false;
+		
+	ReadLock lock(m_rwmutex);
+	
+	std::map<PString, PString>::const_iterator iter = m_cache.find(key);
+	if (iter == m_cache.end())
+		return false;
+	if (m_ttl >= 0) {
+		std::map<PString, long>::const_iterator i = m_ctime.find(key);
+		if (i == m_ctime.end() || (time(NULL) - i->second) >= m_ttl)
+			return false; // cache expired
+	}
+	value = (const char *)(iter->second);
+	return true;
+}
+
+void CacheManager::Save(
+	const PString& key, /// a key to be stored
+	const PString& value /// a value to be associated with the key
+	)
+{
+	if (m_ttl != 0) {
+		WriteLock lock(m_rwmutex);
+		m_cache[key] = (const char*)value;
+		m_ctime[key] = time(NULL);
+	}
 }
 
 
 // class SimplePasswordAuth
-SimplePasswordAuth::SimplePasswordAuth(const char *name) : GkAuthenticator(name)
+SimplePasswordAuth::SimplePasswordAuth(
+	const char* name,
+	unsigned supportedRasChecks,
+	unsigned supportedMiscChecks
+	) 
+	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks), 
+	m_cache(NULL)
 {
-	filled = config->GetInteger(name, "KeyFilled", 0);
-	checkid = Toolkit::AsBool(config->GetString(name, "CheckID", "0"));
-	m_cache = new CacheManager(config->GetInteger(name, "PasswordTimeout", -1));
+	if (!GetConfig()->HasKey(name, "KeyFilled"))
+		PTRACE(1, "GKAUTH\t" << GetName() << " KeyFilled config variable "
+			"is missing"
+			);
+	m_encryptionKey = GetConfig()->GetInteger(name, "KeyFilled", 0);
+	m_checkID = Toolkit::AsBool(GetConfig()->GetString(name, "CheckID", "0"));
+	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
 	
-	h235Authenticators = new H235Authenticators;
 	H235Authenticator* authenticator;
 	
 	authenticator = new H235AuthSimpleMD5;
 	authenticator->SetLocalId("dummy");
 	authenticator->SetRemoteId("dummy");
 	authenticator->SetPassword("dummy");
-	h235Authenticators->Append(authenticator);
-#ifdef OPENH323_NEWVERSION
+	AppendH235Authenticator(authenticator);
 	authenticator = new H235AuthCAT;
 	authenticator->SetLocalId("dummy");
 	authenticator->SetRemoteId("dummy");
 	authenticator->SetPassword("dummy");
-	h235Authenticators->Append(authenticator);
-#endif
+	AppendH235Authenticator(authenticator);
 #if P_SSL
 	authenticator = new H235AuthProcedure1;
 	authenticator->SetLocalId("dummy");
 	authenticator->SetRemoteId("dummy");
 	authenticator->SetPassword("dummy");
-	h235Authenticators->Append(authenticator);
+	AppendH235Authenticator(authenticator);
 #endif
 }
 
@@ -505,15 +697,13 @@ int SimplePasswordAuth::Check(RasPDU<H225_GatekeeperRequest> & request, unsigned
 int SimplePasswordAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned &)
 {
 	H225_RegistrationRequest & rrq = request;
-	return doCheck(request, rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? &rrq.m_terminalAlias : 0);
+	return doCheck(request, 
+		rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) 
+			? &rrq.m_terminalAlias : NULL
+		);
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_UnregistrationRequest> & request, unsigned &)
-{
-	return doCheck(request);
-}
-
-int SimplePasswordAuth::Check(RasPDU<H225_AdmissionRequest> & request, unsigned &)
 {
 	return doCheck(request);
 }
@@ -538,170 +728,259 @@ int SimplePasswordAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 	return doCheck(request);
 }
 
-bool SimplePasswordAuth::GetPassword(const PString & id, PString & passwd)
+int SimplePasswordAuth::Check(
+	/// ARQ to be authenticated/authorized
+	RasPDU<H225_AdmissionRequest>& request, 
+	/// authorization data (call duration limit, reject reason, ...)
+	GkAuthenticator::ARQAuthData& /*authData*/
+	)
 {
-	if (!config->HasKey(GetName(), id))
+	H225_AdmissionRequest& arq = request;
+	return doCheck(request, &arq.m_srcInfo);
+}
+
+bool SimplePasswordAuth::GetPassword(
+	const PString& id, /// get the password for this id
+	PString& passwd /// filled with the password on return
+	)
+{
+	if (!GetConfig()->HasKey(GetName(), id))
 		return false;
-	passwd = Toolkit::CypherDecode(id, config->GetString(GetName(), id, ""), filled);
+	if (strcasecmp(id, "KeyFilled") == 0 || strcasecmp(id, "CheckID") == 0
+		|| strcasecmp(id, "PasswordTimeout") == 0) {
+		PTRACE(2, "GKAUTH\t" << GetName() << " trying to get password for "
+			" the forbidden alias '" << id << '\''
+			);
+		return false;
+	}
+	passwd = Toolkit::CypherDecode(
+		id, GetConfig()->GetString(GetName(), id, ""), m_encryptionKey
+		);
 	return true;
 }
 
-PString SimplePasswordAuth::InternalGetPassword(const PString & id)
+bool SimplePasswordAuth::InternalGetPassword(
+	const PString& id, /// get the password for this id
+	PString& passwd /// filled with the password on return
+	)
 {
-	PString passwd;
-	if (!m_cache->Retrieve(id, passwd))
-		if (GetPassword(id, passwd))
-			m_cache->Save(id, passwd);
-	return passwd;
+	if (m_cache->Retrieve(id, passwd)) {
+		PTRACE(5, "GKAUTH\t" << GetName() << " cached password found for '"
+			<< id << '\''
+			);
+		return true;
+	}
+	if (GetPassword(id, passwd)) {
+		m_cache->Save(id, passwd);
+		return true;
+	} else
+		return false;
 }
 
-bool SimplePasswordAuth::CheckAliases(const PString & id, const H225_ArrayOf_AliasAddress *aliases)
+bool SimplePasswordAuth::CheckAliases(
+	const PString& id, /// the identifier to be checked
+	const H225_ArrayOf_AliasAddress* aliases /// aliases to be searched
+	)
 {
-	bool result = !checkid;
-	if (checkid && aliases)
-		for (PINDEX i = 0; i < aliases->GetSize(); ++i)
-			if (H323GetAliasAddressString((*aliases)[i]) == id) {
-				result = true;
-				break;
-			}
-	return result;
+	if (aliases)
+		for (PINDEX i = 0; i < aliases->GetSize(); i++)
+			if (H323GetAliasAddressString((*aliases)[i]) == id)
+				return true;
+	return false;
 }
-
-static const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 
 int SimplePasswordAuth::CheckTokens(
-	const H225_ArrayOf_ClearToken& tokens, 
+	/// an array of tokens to be checked
+	const H225_ArrayOf_ClearToken& tokens,
+	/// aliases for the endpoint that generated the tokens
 	const H225_ArrayOf_AliasAddress* aliases
 	)
 {
-	for (PINDEX i=0; i < tokens.GetSize(); ++i) {
-		H235_ClearToken & token = tokens[i];
+	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
+		H235_ClearToken& token = tokens[i];
 
-#ifdef OPENH323_NEWVERSION
 		// check for Cisco Access Token
 		if (token.m_tokenOID == OID_CAT) {
 			if (!token.HasOptionalField(H235_ClearToken::e_generalID)) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" generalID field not found"
-					<<" inside CAT token"
+				PTRACE(3, "GKAUTH\t" << GetName() << " generalID field "
+					"not found inside CAT token"
 					);
 				return e_fail;
 			}
 			const PString id = token.m_generalID;
-			if (!CheckAliases(id, aliases)) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" generalID field of CAT token"
-					<<" does not match any alias for the endpoint"
+			if (m_checkID && !CheckAliases(id, aliases)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " generalID '" << id
+					<< "' of CAT token does not match any alias for the endpoint"
 					);
 				return e_fail;
 			}
-			const PString passwd = InternalGetPassword(id);
+			
+			PString passwd;
+			if (!InternalGetPassword(id, passwd)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '"
+					<< id << '\''
+					);
+				return e_fail;
+			}
 
 			H235AuthCAT authCAT;
 			authCAT.SetLocalId(id);
 			authCAT.SetPassword(passwd);
 			if (authCAT.ValidateClearToken(token) == H235Authenticator::e_OK) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" CAT password match for "<<id);
+				PTRACE(5, "GKAUTH\t" << GetName() << " CAT password match for '"
+					<< id << '\''
+					);
 				return e_ok;
-			}
-			return e_fail;
+			} else
+				return e_fail;
 		}
-#endif
+		
 		if (token.HasOptionalField(H235_ClearToken::e_password)) {
 			if (!token.HasOptionalField(H235_ClearToken::e_generalID)) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" generalID field not found"
+				PTRACE(3, "GKAUTH\t"<< GetName() << " generalID field not found"
 					<<" inside the clear text token"
 					);
 				return e_fail;
 			}
 			const PString id = token.m_generalID;
-			if (!CheckAliases(id, aliases)) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" generalID field of the token"
-					<<" does not match any alias for the endpoint"
+			if (m_checkID && !CheckAliases(id, aliases)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " generalID '"
+					<<"' does not match any alias for the endpoint"
 					);
 				return e_fail;
 			}
-			const PString passwd = InternalGetPassword(id), tokenpasswd = token.m_password;
+			
+			PString passwd;
+			if (!InternalGetPassword(id, passwd)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '"
+					<< id << '\''
+					);
+				return e_fail;
+			}
+			
+			const PString tokenpasswd = token.m_password;
 			if (passwd == tokenpasswd) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" clear text password match for "
-					<<id
+				PTRACE(5, "GKAUTH\t" << GetName() << " clear text password "
+					"match for '" << id << '\''
 					);
 				return e_ok;
-			}
+			} else
+				return e_fail;
 		}
 	}
 	return e_next;
 }
 
 int SimplePasswordAuth::CheckCryptoTokens(
+	/// an array of cryptoTokens to be checked
 	const H225_ArrayOf_CryptoH323Token& tokens, 
-	const H225_ArrayOf_AliasAddress* aliases, 
+	/// aliases for the endpoint that generated the tokens
+	const H225_ArrayOf_AliasAddress* aliases,
+	/// raw data for RAS PDU - required to validate some tokens
+	/// like H.235 Auth Procedure I
 	const PBYTEArray& rawPDU
 	)
 {
-	for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
-			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
+			H225_CryptoH323Token_cryptoEPPwdHash& pwdhash = tokens[i];
 			const PString id = AsString(pwdhash.m_alias, false);
-			if (!CheckAliases(id, aliases)) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" alias field of the token"
-					<<" does not match any alias for the endpoint"
+			if (m_checkID && !CheckAliases(id, aliases)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " alias '" << id 
+					<< "' of the cryptoEPPwdHash token does not match "
+					"any alias for the endpoint"
 					);
 				return e_fail;
 			}
 
-			const PString passwd = InternalGetPassword(id);
+			PString passwd;
+			if (!InternalGetPassword(id, passwd)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '"
+					<< id << '\''
+					);
+				return e_fail;
+			}
+			
 			H235AuthSimpleMD5 authMD5;
 			authMD5.SetLocalId(id);
 			authMD5.SetPassword(passwd);
-			const PBYTEArray nullPDU;
-#ifdef OPENH323_NEWVERSION
-			if (authMD5.ValidateCryptoToken(tokens[i], nullPDU) == H235Authenticator::e_OK) {
-#else
-			if (authMD5.VerifyToken(tokens[i], nullPDU) == H235Authenticator::e_OK) {
-#endif
-				PTRACE(4,"GkAuth\t"<<GetName()<<" MD5 password match for "<<id);
+			if (authMD5.ValidateCryptoToken(tokens[i], rawPDU) == H235Authenticator::e_OK) {
+				PTRACE(5, "GKAUTH\t" << GetName() << " MD5 password match for '"
+					<< id << '\''
+					);
 				return e_ok;
 			} else
 				return e_fail;
 #if P_SSL
-		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken){
-			H235_CryptoToken & nestedCryptoToken = tokens[i];
-			H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
-			H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
-			PString gk_id = clearToken.m_generalID;
-			//assumption: sendersID == endpoint alias (RRQ)
-			PString ep_alias = clearToken.m_sendersID; 
-			if (!CheckAliases(ep_alias, aliases))
+		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
+			const H235_CryptoToken& nestedCryptoToken = tokens[i];
+			
+			if (nestedCryptoToken.GetTag() != H235_CryptoToken::e_cryptoHashedToken)
+				continue;
+				
+			const H235_CryptoToken_cryptoHashedToken& cryptoHashedToken = nestedCryptoToken;
+			const H235_ClearToken& clearToken = cryptoHashedToken.m_hashedVals;
+			
+			if (!clearToken.HasOptionalField(H235_ClearToken::e_sendersID)) {
+				PTRACE(5, "GKAUTH\t" << GetName() << " hashedVals of nested "
+					" cryptoHashedToken do not contain sendersID"
+					);
+				continue;
+			}
+			
+			PString id = clearToken.m_sendersID; 
+			if (m_checkID && !CheckAliases(id, aliases)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " sendersID '" << id 
+					<< "' of the cryptoHashedToken hasgedVals does not match "
+					"any alias for the endpoint"
+					);
 				return e_fail;
-			PString passwd = InternalGetPassword(ep_alias);
+			}
+			
+			PString passwd;
+			bool passwordFound = InternalGetPassword(id, passwd);
+			
 			//if a password is not found: senderID == endpointIdentifier?
-			if (passwd.IsEmpty()){
-			 	//get endpoint by endpointIdentifier
-				H225_EndpointIdentifier ep_id;
-				ep_id = clearToken.m_sendersID;
-				endptr ep = RegistrationTable::Instance()->FindByEndpointId(ep_id);
-				if(!ep){
+			if (!passwordFound) {
+				H225_EndpointIdentifier epId;
+				epId = id;
+				endptr ep = RegistrationTable::Instance()->FindByEndpointId(epId);
+				if (!ep) {
+					PTRACE(3, "GKAUTH\t" << GetName() << " sendersID '" << id 
+						<< "' of the cryptoHashedToken hashedVals does not match "
+						"any endpoint identifier"
+						);
 					return e_fail;
 				}
-				//check all endpoint aliases for a password
-				H225_ArrayOf_AliasAddress ep_aliases = ep->GetAliases();
-				for (PINDEX i = 0; i < ep_aliases.GetSize(); i++){
-					ep_alias = H323GetAliasAddressString(ep_aliases[i]);
-					passwd = InternalGetPassword(ep_alias);
-					if (!passwd)
+				
+				// check all endpoint aliases for a password
+				const H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
+				for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+					id = H323GetAliasAddressString(aliases[i]);
+					passwordFound = InternalGetPassword(id, passwd);
+					if (passwordFound)
 						break;
 				}
 			}
-			H235AuthProcedure1 authProcedure1;
-			authProcedure1.SetLocalId(gk_id);
-			authProcedure1.SetPassword(passwd);
-#ifdef OPENH323_NEWVERSION
-			if (authProcedure1.ValidateCryptoToken(tokens[i], rawPDU) == H235Authenticator::e_OK) {
-#else
-			if (authProcedure1.VerifyToken(tokens[i], rawPDU) == H235Authenticator::e_OK) {
-#endif
-				PTRACE(4, "GkAuth\t" << ep_alias << " password match (SHA-1)");
-				return e_ok;
+			
+			if (!passwordFound) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '"
+					<< id << '\''
+					);
+				return e_fail;
 			}
+			
+			H235AuthProcedure1 authProcedure1;
+			authProcedure1.SetLocalId(Toolkit::GKName());
+			authProcedure1.SetPassword(passwd);
+			const int result = authProcedure1.ValidateCryptoToken(tokens[i], rawPDU);
+			if (result == H235Authenticator::e_OK) {
+				PTRACE(5, "GKAUTH\t" << GetName() << " SHA-1 password match for '"
+					<< id << '\''
+					);
+				return e_ok;
+			} else if (result == H235Authenticator::e_Absent)
+				continue;
 			else
 				return e_fail;
 #endif
@@ -710,572 +989,747 @@ int SimplePasswordAuth::CheckCryptoTokens(
 	return e_next;
 }
 
-
 // class AliasAuth
 AliasAuth::AliasAuth(
-	const char* name
+	const char* name,
+	unsigned supportedRasChecks,
+	unsigned supportedMiscChecks
 	) 
-	: GkAuthenticator(name) 
+	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks),
+	m_cache(NULL)
 {
-}
- 
-int AliasAuth::Check(RasPDU<H225_GatekeeperRequest> &, unsigned &)
-{
-	return e_next;
+	m_cache = new CacheManager(GetConfig()->GetInteger(name, "CacheTimeout", -1));
 }
 
-int AliasAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned &)
+AliasAuth::~AliasAuth()
+{
+	delete m_cache;
+}
+
+int AliasAuth::Check(
+	RasPDU<H225_RegistrationRequest>& request, 
+	unsigned& /*rejectReason*/
+	)
 {
 	H225_RegistrationRequest& rrq = request;
 
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
-		PTRACE(4,"GkAuth\t"<<GetName()<<" - RRQ terminalAlias field not found");
-		return defaultStatus;
+		PTRACE(3, "GKAUTH\t" << GetName() << " - terminalAlias field not found "
+			"in RRQ message"
+			);
+		return GetDefaultStatus();
 	}
 
 	const H225_ArrayOf_AliasAddress& aliases = rrq.m_terminalAlias;
 
-	for (PINDEX i = 0; i <= aliases.GetSize(); ++i) {
+	for (PINDEX i = 0; i <= aliases.GetSize(); i++) {
 		const PString alias = (i < aliases.GetSize())
 			? AsString(aliases[i], false) : PString("default");
-		const PString authcond = GetAuthConditionString(alias);
-		if (!authcond) {
+		PString authcond;
+		if (InternalGetAuthConditionString(alias, authcond)) {
 			if (doCheck(rrq.m_callSignalAddress, authcond)) {
+				PTRACE(5, "GKAUTH\t" << GetName() << " auth condition '"
+					<< authcond <<"' accepted RRQ from '" << alias << '\''
+					);
 				return e_ok;
 			} else {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" - condition '"<<authcond
-					<<"' rejected RRQ from the endpoint "<<alias
+				PTRACE(3, "GKAUTH\t" << GetName() << " auth condition '"
+					<< authcond <<"' rejected RRQ from '" << alias << '\''
 					);
 				return e_fail;
 			}
-		}
+		} else
+			PTRACE(4, "GKAUTH\t" << GetName() << " auth condition not found "
+				<< "for alias '" << alias << '\''
+				);
 	}
-	return defaultStatus;
+	return GetDefaultStatus();
 }
 
-int AliasAuth::Check(RasPDU<H225_UnregistrationRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int AliasAuth::Check(RasPDU<H225_AdmissionRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int AliasAuth::Check(RasPDU<H225_BandwidthRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int AliasAuth::Check(RasPDU<H225_DisengageRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int AliasAuth::Check(RasPDU<H225_LocationRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int AliasAuth::Check(RasPDU<H225_InfoRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-PString AliasAuth::GetAuthConditionString(
-	const PString& alias
+bool AliasAuth::GetAuthConditionString(
+	/// an alias the condition string is to be retrieved for
+	const PString& alias,
+	/// filled with auth condition string that has been found
+	PString& authCond
 	)
 {
-	return config->GetString("RasSrv::RRQAuth", alias, "");
+	if (!GetConfig()->HasKey("RasSrv::RRQAuth", alias))
+		return false;
+	if (strcasecmp(alias, "CacheTimeout") == 0) {
+		PTRACE(2, "GKAUTH\t" << GetName() << " trying to get auth condition "
+			" string for the forbidden alias '" << alias << '\''
+			);
+		return false;
+	}
+	authCond = GetConfig()->GetString("RasSrv::RRQAuth", alias, "");
+	return true;
+}
+
+bool AliasAuth::InternalGetAuthConditionString(
+	const PString& id, /// get the password for this id
+	PString& authCond /// filled with the auth condition string on return
+	)
+{
+	if (m_cache->Retrieve(id, authCond)) {
+		PTRACE(5, "GKAUTH\t" << GetName() << " cached auth condition string "
+			"found for '" << id << '\''
+			);
+		return true;
+	}
+	if (GetAuthConditionString(id, authCond)) {
+		m_cache->Save(id, authCond);
+		return true;
+	} else
+		return false;
 }
 
 bool AliasAuth::doCheck(
-	const H225_ArrayOf_TransportAddress& sigaddr, 
+	/// an array of source signalling addresses for an endpoint that sent the request
+	const H225_ArrayOf_TransportAddress& sigaddr,
+	/// auth condition string as returned by GetAuthConditionString
 	const PString& condition
 	)
 {
-	const PStringArray authrules(condition.Tokenise("&|", false));
-	for (PINDEX i = 0; i < authrules.GetSize(); ++i) {
-		for (PINDEX j = 0; j < sigaddr.GetSize(); ++j) {
+	const PStringArray authrules(condition.Tokenise("&|", FALSE));
+#if PTRACING
+	if (authrules.GetSize() < 1) {
+		PTRACE(2, "GKAUTH\t" << GetName() << " contains an empty auth condition");
+		return false;
+	}
+#endif
+	for (PINDEX i = 0; i < authrules.GetSize(); ++i)
+		for (PINDEX j = 0; j < sigaddr.GetSize(); ++j)
 			if (CheckAuthRule(sigaddr[j], authrules[i])) {
-				PTRACE(4,"GkAuth\t"<<GetName()<<" - auth rule '"<<authrules[i]
-					<<"' applied successfully to RRQ from endpoint "
-					<<AsDotString(sigaddr[j])
+				PTRACE(5, "GKAUTH\t" << GetName() << " auth rule '"
+					<< authrules[i] << "' applied successfully to RRQ "
+					" from " << AsDotString(sigaddr[j])
 					);
 				return true;
 			}
-		}
-	}
 	return false;
 }
 
 bool AliasAuth::CheckAuthRule(
-	const H225_TransportAddress& sigaddr, 
+	/// a signalling address for the endpoint that sent the request
+	const H225_TransportAddress& sigaddr,
+	/// the auth rule to be used for checking
 	const PString& authrule
 	)
 {
 	const PStringArray rule = authrule.Tokenise(":", false);
 	if (rule.GetSize() < 1) {
-		PTRACE(1,"GkAuth\t"<<GetName()<<" invalid empty auth rule: "<<authrule);
+		PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty auth rule '"
+			<< authrule << '\''
+			);
 		return false;
 	}
 	
 	// authrule = rName[:params...]
-	const PString& rName = rule[0];
+	const PString rName = rule[0].Trim();
 
- 	if (rName=="confirm" || rName=="allow")
+ 	if (strcasecmp(rName, "confirm") == 0 || strcasecmp(rName, "allow") == 0)
  		return true;
- 	else if (rName=="reject" || rName=="deny" || rName=="forbid")
+ 	else if (strcasecmp(rName, "reject") == 0 || strcasecmp(rName, "deny") == 0
+		|| strcasecmp(rName, "forbid") == 0)
  		return false;
-	else if (rName=="sigaddr") {
+	else if (strcasecmp(rName, "sigaddr") == 0) {
 		// condition 'sigaddr' example:
 		//   sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
-		if(rule.GetSize() < 2) {
-			PTRACE(1,"GkAuth\t"<<GetName()<<" invalid empty sigaddr auth rule");
+		if (rule.GetSize() < 2) {
+			PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty sigaddr "
+				"auth rule '" << authrule << '\''
+				);
 			return false;
 		}
-		return Toolkit::MatchRegex(AsString(sigaddr), rule[1]) != 0;
-	} else if (rName=="sigip") {
+		return Toolkit::MatchRegex(AsString(sigaddr), rule[1].Trim()) != 0;
+	} else if (strcasecmp(rName, "sigip") == 0) {
 		// condition 'sigip' example:
 		//   sigip:195.71.129.69:1720
 		if (rule.GetSize() < 2) {
-			PTRACE(1,"GkAuth\t"<<GetName()<<" invalid empty sigip auth rule");
+			PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty sigip "
+				"auth rule '" << authrule << '\''
+				);
 			return false;
 		}
 		PIPSocket::Address ip;
-		PIPSocket::GetHostAddress(rule[1], ip);
+		PIPSocket::GetHostAddress(rule[1].Trim(), ip);
 		const WORD port = (WORD)((rule.GetSize() < 3) 
-			? GK_DEF_ENDPOINT_SIGNAL_PORT : rule[2].AsInteger());
+			? GK_DEF_ENDPOINT_SIGNAL_PORT : rule[2].Trim().AsInteger());
 		return (sigaddr == SocketToH225TransportAddr(ip, port));
 	} else {
-		PTRACE(1,"GkAuth\t"<<GetName()<<" - unknown auth rule: "<<authrule);
-		return false;
-	}
-
-	return false;
-}
-
-#if HAS_MYSQL
-
-// class MySQLPasswordAuth
-MySQLPasswordAuth::MySQLPasswordAuth(
-	const char* authName
-	)
-	: SimplePasswordAuth(authName), m_sqlConn(NULL)
-{
-	m_sqlConn = GkSQLConnection::Create("MySQL", authName);
-	if (m_sqlConn == NULL) {
-		PTRACE(1, GetName() << "\tModule creation failed: could not find driver for MySQL database");
-		return;
-	}
-
-	SetCacheTimeout(config->GetInteger(authName, "CacheTimeout", 0));
-		
-	const PString password = config->GetString(authName, "Password", "");
-	
-	PString host = config->GetString(authName, "Host", "localhost");
-	if (config->GetInteger(authName, "Port", -1) > 0)
-		host += ":" + PString(config->GetInteger(authName, "Port", MYSQL_PORT));
-		
-	if (!m_sqlConn->Initialize(
-			host,
-			config->GetString(authName, "Database", "mysql"),
-			config->GetString(authName, "User", "mysql"),
-			password.IsEmpty() ? (const char*)NULL : (const char*)password,
-			1, 1)) {
-		delete m_sqlConn;
-		m_sqlConn = NULL;
-		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
-		return;
-	}
-	
-	const PString table = config->GetString(authName, "Table", "");
-	const PString passwordField = config->GetString(authName, "DataField", "");
-	const PString aliasField = config->GetString(authName, "KeyField", "");
-	
-	if (table.IsEmpty() || passwordField.IsEmpty() || aliasField.IsEmpty()) {
-		PTRACE(1, GetName() << "\tCannot build query: Table, KeyField or DataField not specified");
-		return;
-	}
-	
-	m_query = "SELECT " + passwordField + " FROM " + table + " WHERE " 
-		+ aliasField + " = '%1'";
-		
-	const PString extraCrit = config->GetString(authName, "ExtraCriterion", "");
-	if (!extraCrit.IsEmpty())
-		m_query += " AND " + extraCrit;
-		
-	PTRACE(4, GetName() << "\tConfigured query: " << m_query);
-}
-
-MySQLPasswordAuth::~MySQLPasswordAuth()
-{
-	delete m_sqlConn;
-}
-
-bool MySQLPasswordAuth::GetPassword(
-	const PString& alias, 
-	PString& password
-	)
-{
-	if (m_sqlConn == NULL) {
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed: SQL connection not active"
+		PTRACE(1, "GKAUTH\t" << GetName() << " found unknown auth rule '"
+			<< rName << '\''
 			);
 		return false;
 	}
+}
+
+// class PrefixAuth
+
+// Initial author: Michael Rubashenkkov  2002/01/14 (GkAuthorize)
+// Completely rewrite by Chih-Wei Huang  2002/05/01
+
+class AuthRule;
+class AuthObj;
+
+class PrefixAuth : public GkAuthenticator 
+{
+public:
+	typedef std::map< PString, AuthRule *, greater<PString> > Rules;
+
+	enum SupportedRasChecks {
+		PrefixAuthRasChecks = RasInfo<H225_AdmissionRequest>::flag
+			| RasInfo<H225_LocationRequest>::flag
+	};
+
+	PrefixAuth(
+		const char* name,
+		unsigned supportedRasChecks = PrefixAuthRasChecks,
+		unsigned supportedMiscChecks = 0
+		);
+		
+	virtual ~PrefixAuth();
+
+	// override from class GkAuthenticator
+	virtual int Check(RasPDU<H225_LocationRequest>& request, unsigned& rejectReason);
+
+	/** Authenticate/Authorize ARQ message. Override from GkAuthenticator.
 	
-	if (m_query.IsEmpty()) {
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed: Query string not configured"
+	    @return
+	    e_fail - authentication failed
+	    e_ok - authenticated with this authenticator
+	    e_next - authentication could not be determined
+	*/
+	virtual int Check(
+		/// ARQ to be authenticated/authorized
+		RasPDU<H225_AdmissionRequest>& request, 
+		/// authorization data (call duration limit, reject reason, ...)
+		ARQAuthData& authData
+		);
+
+protected:
+	virtual int doCheck(
+		const AuthObj& aobj
+		);
+
+private:
+	PrefixAuth();
+	PrefixAuth(const PrefixAuth&);
+	PrefixAuth& operator=(const PrefixAuth&);
+	
+private:	
+	Rules m_prefrules;
+	int m_defaultRule;
+};
+
+// Help classes for PrefixAuth
+class AuthObj // abstract class
+{
+public:
+	virtual ~AuthObj() {}
+
+	virtual bool IsValid() const { return true; }
+
+	virtual PStringArray GetPrefixes() const = 0;
+
+	virtual PIPSocket::Address GetIP() const = 0;
+	virtual PString GetAliases() const = 0;
+};
+
+class ARQAuthObj : public AuthObj 
+{
+public:
+	ARQAuthObj(
+		const H225_AdmissionRequest& arq
+		);
+
+	virtual bool IsValid() const { return m_ep; }
+
+	virtual PStringArray GetPrefixes() const;
+
+	virtual PIPSocket::Address GetIP() const;
+	virtual PString GetAliases() const;
+
+private:
+	ARQAuthObj();
+	ARQAuthObj(const ARQAuthObj&);
+	ARQAuthObj& operator=(const ARQAuthObj&);
+	
+private:
+	const H225_AdmissionRequest& m_arq;
+	endptr m_ep;
+};
+
+class LRQAuthObj : public AuthObj 
+{
+public:
+	LRQAuthObj(
+		const H225_LocationRequest& lrq
+		);
+
+	virtual PStringArray GetPrefixes() const;
+
+	virtual PIPSocket::Address GetIP() const;
+	virtual PString GetAliases() const;
+
+private:
+	LRQAuthObj();
+	LRQAuthObj(const LRQAuthObj&);
+	LRQAuthObj& operator=(const LRQAuthObj&);
+	
+private:
+	const H225_LocationRequest& m_lrq;
+	PIPSocket::Address m_ipAddress;
+};
+
+class AuthRule : public NamedObject
+{
+public:
+	enum Result {
+		e_nomatch,
+		e_allow,
+		e_deny
+	};
+
+	AuthRule(
+		Result fate, 
+		bool inverted
+		) : m_priority(1000), m_fate(fate), m_inverted(inverted), m_next(NULL) {}
+	
+	virtual ~AuthRule() { delete m_next; }
+
+	virtual bool Match(
+		const AuthObj& aobj
+		) = 0;
+		
+	int Check(
+		const AuthObj& aobj
+		);
+	
+	bool operator<(
+		const AuthRule& obj
+		) const { return m_priority < obj.m_priority; }
+	
+	void SetNext(
+		AuthRule* next
+		) { m_next = next; }
+
+private:
+	AuthRule();
+	AuthRule(const AuthRule&);
+	AuthRule& operator=(const AuthRule&);
+	
+protected:
+	/// the lesser the value, the higher the priority
+	int m_priority; 
+
+private:
+	Result m_fate;
+	bool m_inverted;
+	AuthRule* m_next;
+};
+
+class NullRule : public AuthRule 
+{
+public:
+	NullRule() : AuthRule(e_nomatch, false) { SetName("NULL"); }
+	
+	virtual bool Match(
+		const AuthObj& /*aobj*/
+		) { return false; }
+
+private:
+	NullRule(const NullRule&);
+	NullRule& operator=(const NullRule&);
+};
+
+class IPv4AuthRule : public AuthRule 
+{
+public:
+	IPv4AuthRule(
+		Result fate, 
+		const PString& ipStr, 
+		bool inverted
+		);
+
+	virtual bool Match(
+		const AuthObj& aobj
+		);
+
+private:
+	IPv4AuthRule();
+	IPv4AuthRule(const IPv4AuthRule&);
+	IPv4AuthRule& operator=(const IPv4AuthRule&);
+	
+private:
+	PIPSocket::Address m_network, m_netmask;
+};
+
+class AliasAuthRule : public AuthRule 
+{
+public:
+	AliasAuthRule(
+		Result fate, 
+		const PString& aliasStr, 
+		bool inverted
+		) : AuthRule(fate, inverted), m_pattern(aliasStr) 
+	{ 
+		m_priority = -1;
+#if PTRACING
+		SetName(PString((fate == e_allow) ? "allow alias" : "deny alias")
+			+ (inverted ? ":!" : ":") + aliasStr
 			);
-		return false;
+#endif
 	}
+
+	virtual bool Match(
+		const AuthObj& aobj
+		);
+
+private:
+	AliasAuthRule();
+	AliasAuthRule(const AliasAuthRule&);
+	AliasAuthRule& operator=(const AliasAuthRule&);
 	
-	PStringArray params;
-	params += alias;
-	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
-	if (result == NULL) {
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed: Timeout or fatal error"
-			);
-		return false;
-	}
-	
-	if (result->IsValid()) {
-		PStringArray fields;
-		if (result->GetNumRows() < 1)
-			PTRACE(4, GetName() << "\tPassword not found for alias '" << alias << '\'');
-		else if (result->GetNumFields() < 1)
-			PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
-		else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
-			PTRACE(4, GetName() << "\tPassword query for alias '" << alias 
-				<< "' failed: could not fetch the result row"
-				);
-		else {
-			password = fields[0];
-			delete result;
-			return true;
+private:
+	PString m_pattern;
+};
+
+
+ARQAuthObj::ARQAuthObj(
+	const H225_AdmissionRequest& arq
+	) 
+	: m_arq(arq), m_ep(RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier))
+{
+}
+
+PStringArray ARQAuthObj::GetPrefixes() const
+{
+	PStringArray array;
+	if (m_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)) {
+		const PINDEX ss = m_arq.m_destinationInfo.GetSize();
+		if (ss > 0) {
+			array.SetSize(ss);
+			for (PINDEX i = 0; i < ss; ++i)
+				array[i] = AsString(m_arq.m_destinationInfo[i], false);
 		}
+	}
+	if (array.GetSize() == 0)
+		// let empty destinationInfo match the ALL rule
+		array.SetSize(1);
+
+	return array;
+}
+
+PIPSocket::Address ARQAuthObj::GetIP() const
+{
+	PIPSocket::Address result;
+	const H225_TransportAddress& addr = 
+		m_arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress) 
+		? m_arq.m_srcCallSignalAddress : m_ep->GetCallSignalAddress();
+	GetIPFromTransportAddr(addr, result);
+	return result;
+}
+
+PString ARQAuthObj::GetAliases() const
+{
+	return AsString(m_ep->GetAliases());
+}
+
+LRQAuthObj::LRQAuthObj(
+	const H225_LocationRequest& lrq
+	) 
+	: m_lrq(lrq)
+{
+	GetIPFromTransportAddr(m_lrq.m_replyAddress, m_ipAddress);
+}
+
+PStringArray LRQAuthObj::GetPrefixes() const
+{
+	PStringArray array;
+	const PINDEX ss = m_lrq.m_destinationInfo.GetSize();
+	if (ss > 0) {
+		array.SetSize(ss);
+		for (PINDEX i = 0; i < ss; ++i)
+			array[i] = AsString(m_lrq.m_destinationInfo[i], false);
+	}
+	return array;
+}
+
+PIPSocket::Address LRQAuthObj::GetIP() const
+{
+	return m_ipAddress;
+}
+
+PString LRQAuthObj::GetAliases() const
+{
+	return m_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) 
+		? AsString(m_lrq.m_sourceInfo) : PString();
+}
+
+int AuthRule::Check(
+	const AuthObj& aobj
+	)
+{
+	if (Match(aobj) ^ m_inverted) {
+		PTRACE(5, "GKAUTH\tPrefix auth rule '" << GetName() << "' matched");
+		return m_fate;
 	} else
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed (" << result->GetErrorCode() << "): "
-			<< result->GetErrorMessage()
-			);
-
-	delete result;
-	return false;
+		return m_next ? m_next->Check(aobj) : e_nomatch;
 }
 
-// class MySQLAliasAuth
-MySQLAliasAuth::MySQLAliasAuth(
-	const char* authName
-	)
-	: AliasAuth(authName), m_sqlConn(NULL), m_cache(NULL)
+inline void delete_rule(PrefixAuth::Rules::value_type r)
 {
-	m_sqlConn = GkSQLConnection::Create("MySQL", authName);
-	if (m_sqlConn == NULL) {
-		PTRACE(1, GetName() << "\tModule creation failed: could not find driver for MySQL database");
-		return;
-	}
-	
-	m_cache = new CacheManager(config->GetInteger(authName, "CacheTimeout", 0));
-	
-	const PString password = config->GetString(authName, "Password", "");
-	
-	PString host = config->GetString(authName, "Host", "localhost");
-	if (config->GetInteger(authName, "Port", -1) > 0)
-		host += ":" + PString(config->GetInteger(authName, "Port", MYSQL_PORT));
-		
-	if (!m_sqlConn->Initialize(
-			host,
-			config->GetString(authName, "Database", "mysql"),
-			config->GetString(authName, "User", "mysql"),
-			password.IsEmpty() ? (const char*)NULL : (const char*)password,
-			1, 1)) {
-		delete m_sqlConn;
-		m_sqlConn = NULL;
-		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
-		return;
-	}
-	
-	const PString table = config->GetString(authName, "Table", "");
-	const PString ipField = config->GetString(authName, "DataField", "");
-	const PString aliasField = config->GetString(authName, "KeyField", "");
-	
-	if (table.IsEmpty() || ipField.IsEmpty() || aliasField.IsEmpty()) {
-		PTRACE(1, GetName() << "\tCannot build query: Table, KeyField or DataField not specified");
-		return;
-	}
-	
-	m_query = "SELECT " + ipField + " FROM " + table + " WHERE " 
-		+ aliasField + " = '%1'";
-		
-	const PString extraCrit = config->GetString(authName, "ExtraCriterion", "");
-	if (!extraCrit.IsEmpty())
-		m_query += " AND " + extraCrit;
-		
-	PTRACE(4, GetName() << "\tConfigured query: " << m_query);
+	delete r.second;
 }
 
-MySQLAliasAuth::~MySQLAliasAuth()
+IPv4AuthRule::IPv4AuthRule(
+	Result fate, 
+	const PString& ipStr, 
+	bool inverted
+	) 
+	: AuthRule(fate, inverted)
 {
-	delete m_cache;
-	delete m_sqlConn;
+	Toolkit::GetNetworkFromString(ipStr, m_network, m_netmask);
+	DWORD n = ~PIPSocket::Net2Host(DWORD(m_netmask));
+	for (m_priority = 0; n; n >>= 1)
+		++m_priority;
+#if PTRACING
+	SetName(PString((fate == e_allow) ? "allow ipv4(" : "deny ipv4(")
+		+ PString(m_priority) + (inverted ? "):!" : "):") + ipStr
+		);
+#endif
 }
 
-PString MySQLAliasAuth::GetAuthConditionString(
-	const PString& alias
+bool IPv4AuthRule::Match(
+	const AuthObj& aobj
 	)
 {
-	PString authCondition;
+	return ((aobj.GetIP() & m_netmask) == m_network);
+}
+
+bool AliasAuthRule::Match(
+	const AuthObj& aobj
+	)
+{
+	return aobj.GetAliases().FindRegEx(m_pattern) != P_MAX_INDEX;
+}
+
+inline bool is_inverted(const PString & cfg, PINDEX p)
+{
+	return (p > 1) ? cfg[p-1] == '!' : false;
+}
+
+inline bool comp_authrule_priority(AuthRule *a1, AuthRule *a2)
+{
+	return *a1 < *a2;
+}
+
+namespace {
+const char* const prfflag="prf:";
+const char* const allowflag="allow";
+const char* const denyflag="deny";
+const char* const ipflag="ipv4:";
+const char* const aliasflag="alias:";
+}
+
+// class PrefixAuth
+PrefixAuth::PrefixAuth(
+	const char* name,
+	unsigned supportedRasChecks,
+	unsigned supportedMiscChecks
+	) 
+	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks)
+{
+	m_defaultRule = GetDefaultStatus();
+
+	const int ipfl = strlen(ipflag);
+	const int aliasfl = strlen(aliasflag);
 	
-	if (m_sqlConn == NULL) {
-		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-			<< "' failed: SQL connection not active"
-			);
-		return authCondition;
-	}
-	
-	if (m_cache == NULL || m_cache->Retrieve(alias, authCondition))
-		return authCondition;
+	const PStringToString cfgs = GetConfig()->GetAllKeyValues(name);
+	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
+		PString key = cfgs.GetKeyAt(i);
+		if (key *= "default") {
+			m_defaultRule = Toolkit::AsBool(cfgs.GetDataAt(i)) ? e_ok : e_fail;
+			continue;
+		} else if (key *= "ALL") {
+			// use space (0x20) as the key so it will be the last resort
+			key = " ";
+		}
+		if (m_prefrules.find(key) != m_prefrules.end()) {
+			PTRACE(1, "GKAUTH\t" << GetName() << " duplicate entry for "
+				"destination '" << key << '\''
+				);
+			continue; //rule already exists? ignore
+		}
 		
-	if (m_query.IsEmpty()) {
-		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-			<< "' failed: Query string not configured"
-			);
-		return authCondition;
-	}
-	
-	PStringArray params;
-	params += alias;
-	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
-	if (result == NULL)
-		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-			<< "' failed: Timeout or fatal error"
-			);
-	else {
-		if (result->IsValid()) {
-			PStringArray fields;
-			if (result->GetNumRows() < 1)
-				PTRACE(4, GetName() << "\tEntry not found for alias '" << alias << '\'');
-			else if (result->GetNumFields() < 1)
-				PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
-			else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
-				PTRACE(4, GetName() << "\tQuery for alias '" << alias 
-					<< "' failed: could not fetch the result row"
+		const PStringArray rules = cfgs.GetDataAt(i).Tokenise("|", false);
+		const PINDEX sz = rules.GetSize();
+		if (sz < 1) {
+			PTRACE(1, "GKAUTH\t" << GetName() << " no rules found for "
+				"destination '" << key << '\''
+				);
+			continue;
+		}
+		//AuthRule *rls[sz];
+		AuthRule **rls = new AuthRule *[sz];
+		for (PINDEX j = 0; j < sz; ++j) {
+			// if not allowed, assume denial
+			const AuthRule::Result fate = (rules[j].Find(allowflag) != P_MAX_INDEX) 
+				? AuthRule::e_allow : AuthRule::e_deny;
+			PINDEX pp;
+			if ((pp = rules[j].Find(ipflag)) != P_MAX_INDEX)
+				rls[j] = new IPv4AuthRule(fate, rules[j].Mid(pp + ipfl).Trim(), 
+					is_inverted(rules[j], pp)
+					);
+			else if ((pp = rules[j].Find(aliasflag)) != P_MAX_INDEX)
+				rls[j] = new AliasAuthRule(fate, rules[j].Mid(pp+aliasfl).Trim(), 
+					is_inverted(rules[j], pp)
 					);
 			else {
-				authCondition = fields[0];
-				m_cache->Save(alias, authCondition);
+				rls[j] = new NullRule;
 			}
-		} else
-			PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-				<< "' failed (" << result->GetErrorCode() << "): "
-				<< result->GetErrorMessage()
-				);
-		delete result;
-	}
-	return authCondition;
-}
-
-#endif // HAS_MYSQL
-
-SQLPasswordAuth::SQLPasswordAuth(
-	const char* authName
-	)
-	: SimplePasswordAuth(authName), m_sqlConn(NULL)
-{
-	const PString driverName = config->GetString(authName, "Driver", "");
-	if (driverName.IsEmpty()) {
-		PTRACE(1, GetName() << "\tModule creation failed: no SQL driver selected");
-		return;
-	}
-	
-	m_sqlConn = GkSQLConnection::Create(driverName, authName);
-	if (m_sqlConn == NULL) {
-		PTRACE(1, GetName() << "\tModule creation failed: could not find " 
-			<< driverName << " database driver"
-			);
-		return;
-	}
-
-	SetCacheTimeout(config->GetInteger(authName, "CacheTimeout", 0));
-		
-	if (!m_sqlConn->Initialize(config, authName)) {
-		delete m_sqlConn;
-		m_sqlConn = NULL;
-		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
-		return;
-	}
-	
-	m_query = config->GetString(authName, "Query", "");
-	if (m_query.IsEmpty())
-		PTRACE(1, GetName() << "\tModule creation failed: no query configured");
-	else
-		PTRACE(4, GetName() << "\tConfigured query: " << m_query);
-}
-
-SQLPasswordAuth::~SQLPasswordAuth()
-{
-	delete m_sqlConn;
-}
-
-bool SQLPasswordAuth::GetPassword(
-	const PString& alias,
-	PString& password
-	)
-{
-	if (m_sqlConn == NULL) {
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed: SQL connection not active"
-			);
-		return false;
-	}
-	
-	if (m_query.IsEmpty()) {
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed: Query string not configured"
-			);
-		return false;
-	}
-	
-	PStringArray params;
-	params += alias;
-	params += Toolkit::GKName();
-	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
-	if (result == NULL) {
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed: Timeout or fatal error"
-			);
-		return false;
-	}
-
-	if (result->IsValid()) {
-		PStringArray fields;
-		if (result->GetNumRows() < 1)
-			PTRACE(4, GetName() << "\tPassword not found for alias '" << alias << '\'');
-		else if (result->GetNumFields() < 1)
-			PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
-		else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
-			PTRACE(4, GetName() << "\tPassword query for alias '" << alias 
-				<< "' failed: could not fetch the result row"
-				);
-		else {
-			password = fields[0];
-			delete result;
-			return true;
 		}
-	} else
-		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
-			<< "' failed (" << result->GetErrorCode() << "): "
-			<< result->GetErrorMessage()
+
+		// sort the rules by priority
+		stable_sort(rls, rls + sz, comp_authrule_priority);
+		for (PINDEX k = 1; k < sz; ++k)
+			rls[k-1]->SetNext(rls[k]);
+		m_prefrules[key] = rls[0];
+		delete [] rls;
+	}
+
+	if (m_prefrules.size() == 0)
+		PTRACE(1, "GKAUTH\t" << GetName() << " contains no rules - "
+			"check the config"
 			);
-
-	delete result;
-	return false;
 }
 
-SQLAliasAuth::SQLAliasAuth(
-	const char* authName
-	)
-	: AliasAuth(authName), m_sqlConn(NULL), m_cache(NULL)
+PrefixAuth::~PrefixAuth()
 {
-	const PString driverName = config->GetString(authName, "Driver", "");
-	if (driverName.IsEmpty()) {
-		PTRACE(1, GetName() << "\tModule creation failed: no SQL driver selected");
-		return;
-	}
-	
-	m_sqlConn = GkSQLConnection::Create(driverName, authName);
-	if (m_sqlConn == NULL) {
-		PTRACE(1, GetName() << "\tModule creation failed: could not find " 
-			<< driverName << " database driver"
-			);
-		return;
-	}
-
-	m_cache = new CacheManager(config->GetInteger(authName, "CacheTimeout", 0));
-	
-	if (!m_sqlConn->Initialize(config, authName)) {
-		delete m_sqlConn;
-		m_sqlConn = NULL;
-		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
-		return;
-	}
-	
-	m_query = config->GetString(authName, "Query", "");
-	if (m_query.IsEmpty())
-		PTRACE(1, GetName() << "\tModule creation failed: no query configured");
-	else
-		PTRACE(4, GetName() << "\tConfigured query: " << m_query);
+	for_each(m_prefrules.begin(), m_prefrules.end(), delete_rule);
 }
 
-SQLAliasAuth::~SQLAliasAuth()
+int PrefixAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
 {
-	delete m_sqlConn;
-	delete m_cache;
+	return doCheck(LRQAuthObj((const H225_LocationRequest&)request));
 }
 
-PString SQLAliasAuth::GetAuthConditionString(
-	const PString& alias
+int PrefixAuth::Check(
+	/// ARQ to be authenticated/authorized
+	RasPDU<H225_AdmissionRequest>& request, 
+	/// authorization data (call duration limit, reject reason, ...)
+	GkAuthenticator::ARQAuthData& /*authData*/
 	)
 {
-	PString authCondition;
-	
-	if (m_sqlConn == NULL) {
-		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-			<< "' failed: SQL connection not active"
+	H225_AdmissionRequest& arq = request;
+	if (arq.m_answerCall 
+		&& arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)
+		&& CallTable::Instance()->FindCallRec(arq.m_callIdentifier)) {
+		PTRACE(5, "GKAUTH\t" << GetName() << " ARQ check skipped - call "
+			" already admitted and present in the call table"
 			);
-		return authCondition;
+		return e_ok;
 	}
+	return doCheck(ARQAuthObj(arq));
+}
+
+struct comp_pref { // function object
+	comp_pref(const PString & s) : value(s) {}
+	bool operator()(const PrefixAuth::Rules::value_type & v) const;
+	const PString & value;
+};
+
+inline bool comp_pref::operator()(const PrefixAuth::Rules::value_type & v) const
+{
+	return (value.Find(v.first) == 0) || (v.first *= " ");
+}
+
+int PrefixAuth::doCheck(
+	const AuthObj& aobj
+	)
+{
+	if (!aobj.IsValid())
+		return e_fail;
 	
-	if (m_query.IsEmpty()) {
-		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-			<< "' failed: Query string not configured"
-			);
-		return authCondition;
-	}
-	
-	if (m_cache == NULL || m_cache->Retrieve(alias, authCondition))
-		return authCondition;
-		
-	PStringArray params;
-	params += alias;
-	params += Toolkit::GKName();
-	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
-	if (result == NULL)
-		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-			<< "' failed: Timeout or fatal error"
-			);
-	else {
-		if (result->IsValid()) {
-			PStringArray fields;
-			if (result->GetNumRows() < 1)
-				PTRACE(4, GetName() << "\tEntry not found for alias '" << alias << '\'');
-			else if (result->GetNumFields() < 1)
-				PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
-			else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
-				PTRACE(4, GetName() << "\tQuery for alias '" << alias 
-					<< "' failed: could not fetch the result row"
-					);
-			else {
-				authCondition = fields[0];
-				m_cache->Save(alias, authCondition);
-			}
-		} else
-			PTRACE(2, GetName() << "\tQuery for alias '" << alias 
-				<< "' failed (" << result->GetErrorCode() << "): "
-				<< result->GetErrorMessage()
+	const PStringArray destinationInfo(aobj.GetPrefixes());
+	for (PINDEX i = 0; i < destinationInfo.GetSize(); ++i) {
+		// find the first match rule
+		// since prefrules is descendently sorted
+		// it must be the most specific prefix
+		for (Rules::iterator j = m_prefrules.begin(); j != m_prefrules.end(); ++j) {
+			Rules::iterator iter = find_if(j, m_prefrules.end(), 
+				comp_pref(destinationInfo[i])
 				);
-		delete result;
+			if (iter == m_prefrules.end())
+				break;
+			switch (iter->second->Check(aobj))
+			{
+			case AuthRule::e_allow:
+				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
+					"accepted destination prefix '" 
+					<< ((iter->first == " ") ? PString("ALL") : iter->first)
+					<< "' for alias '" << destinationInfo[i] << '\''
+					);
+				return e_ok;
+				
+			case AuthRule::e_deny:
+				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
+					"rejected destination prefix '" 
+					<< ((iter->first == " ") ? PString("ALL") : iter->first)
+					<< "' for alias '" << destinationInfo[i] << '\''
+					);
+				return e_fail;
+				
+			default: // try next prefix...
+				j = iter;
+				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
+					" could not reject or accept destination prefix '" 
+					<< ((iter->first == " ") ? PString("ALL") : iter->first)
+					<< "' for alias '" << destinationInfo[i] << '\''
+					);
+			}
+		}
 	}
-	return authCondition;
+#if PTRACING
+	if (m_defaultRule == e_ok)
+		PTRACE(4, "GKAUTH\t" << GetName() << " default rule accepted "
+			"the request"
+			);
+	else if (m_defaultRule == e_fail)
+		PTRACE(4, "GKAUTH\t" << GetName() << " default rule rejected "
+			"the request"
+			);
+	else
+		PTRACE(4, "GKAUTH\t" << GetName() << " could not reject or "
+			"accept the request"
+			);
+#endif
+	return m_defaultRule;
 }
 
-/*
+namespace { // anonymous namespace
+	GkAuthCreator<GkAuthenticator> DefaultAuthenticatorCreator("default");
+	GkAuthCreator<SimplePasswordAuth> SimplePasswordAuthCreator("SimplePasswordAuth");
+	GkAuthCreator<AliasAuth> AliasAuthCreator("AliasAuth");
+	GkAuthCreator<PrefixAuth> PrefixAuthCreator("PrefixAuth");
+} // end of anonymous namespace
+
+/* This is OBSOLETE
 #if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
+#include <unistd.h>
+#include <procbuf.h>
+
+class ExternalPasswordAuth : public SimplePasswordAuth {
+public:
+	ExternalPasswordAuth(const char *);
+
+private:
+	bool ExternalInit();
+	virtual bool GetPassword(const PString &, PString &);
+
+	PString Program;
+};
 
 // class ExternalPasswordAuth
 ExternalPasswordAuth::ExternalPasswordAuth(const char *name) : SimplePasswordAuth(name)
@@ -1308,599 +1762,9 @@ bool ExternalPasswordAuth::GetPassword(const PString & id, PString & passwd)
 	return true;
 }
 
-#endif // class ExternalPasswordAuth
-*/
-
-static const char* const prfflag="prf:";
-static const char* const allowflag="allow";
-static const char* const denyflag="deny";
-static const char* const ipflag="ipv4:";
-static const char* const aliasflag="alias:";
-
-// Help classes for PrefixAuth
-class AuthObj { // abstract class
-public:
-	virtual ~AuthObj() {}
-
-	virtual bool IsValid() const { return true; }
-
-	virtual PStringArray GetPrefixes() const = 0;
-
-	virtual PIPSocket::Address GetIP() const = 0;
-	virtual PString GetAliases() const = 0;
-};
-
-class RRQAuthObj : public AuthObj {
-public:
-	RRQAuthObj(const H225_RegistrationRequest & ras) : rrq(ras) {}
-
-	virtual PStringArray GetPrefixes() const;
-
-	virtual PIPSocket::Address GetIP() const;
-	virtual PString GetAliases() const;
-
-private:
-	const H225_RegistrationRequest & rrq;
-};
-
-class ARQAuthObj : public AuthObj {
-public:
-	ARQAuthObj(const H225_AdmissionRequest & ras);
-
-	virtual bool IsValid() const { return ep; }
-
-	virtual PStringArray GetPrefixes() const;
-
-	virtual PIPSocket::Address GetIP() const;
-	virtual PString GetAliases() const;
-
-private:
-	const H225_AdmissionRequest & arq;
-	endptr ep;
-};
-
-ARQAuthObj::ARQAuthObj(const H225_AdmissionRequest & ras) : arq(ras)
-{
-	ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
-}
-
-PStringArray ARQAuthObj::GetPrefixes() const
-{
-	PStringArray array;
-	if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-		if (PINDEX ss = arq.m_destinationInfo.GetSize() > 0) {
-			array.SetSize(ss);
-			for (PINDEX i = 0; i < ss; ++i)
-				array[i] = AsString(arq.m_destinationInfo[i], false);
-		}
-	if (array.GetSize() == 0)
-		// let empty destinationInfo match the ALL rule
-		array.SetSize(1);
-
-	return array;
-}
-
-PIPSocket::Address ARQAuthObj::GetIP() const
-{
-	PIPSocket::Address result;
-	const H225_TransportAddress & addr = (arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)) ?
-		arq.m_srcCallSignalAddress : ep->GetCallSignalAddress();
-	GetIPFromTransportAddr(addr, result);
-	return result;
-}
-
-PString ARQAuthObj::GetAliases() const
-{
-	return AsString(ep->GetAliases());
-}
-
-class LRQAuthObj : public AuthObj {
-public:
-	LRQAuthObj(const H225_LocationRequest & ras);
-
-	virtual PStringArray GetPrefixes() const;
-
-	virtual PIPSocket::Address GetIP() const;
-	virtual PString GetAliases() const;
-
-private:
-	const H225_LocationRequest & lrq;
-	PIPSocket::Address ipaddress;
-};
-
-LRQAuthObj::LRQAuthObj(const H225_LocationRequest & ras) : lrq(ras)
-{
-	GetIPFromTransportAddr(lrq.m_replyAddress, ipaddress);
-}
-
-PStringArray LRQAuthObj::GetPrefixes() const
-{
-	PStringArray array;
-	if (PINDEX ss = lrq.m_destinationInfo.GetSize() > 0) {
-		array.SetSize(ss);
-		for (PINDEX i = 0; i < ss; ++i)
-			array[i] = AsString(lrq.m_destinationInfo[i], false);
-	}
-	return array;
-}
-
-PIPSocket::Address LRQAuthObj::GetIP() const
-{
-	return ipaddress;
-}
-
-PString LRQAuthObj::GetAliases() const
-{
-	return (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(lrq.m_sourceInfo) : PString();
-}
-
-
-class AuthRule {
-public:
-	enum Result {
-		e_nomatch,
-		e_allow,
-		e_deny
-	};
-
-	AuthRule(Result f, bool r) : priority(1000), fate(f), inverted(r), next(0) {}
-	virtual ~AuthRule() { delete next; }
-
-	virtual bool Match(const AuthObj &) = 0;
-	int Check(const AuthObj &);
-	
-	bool operator<(const AuthRule & o) const { return priority < o.priority; }
-	void SetNext(AuthRule *n) { next = n; }
-
-//	virtual PString GetName() const { return PString(); }
-
-protected:
-	int priority; // the lesser the value, the higher the priority
-
-private:
-	Result fate;
-	bool inverted;
-	AuthRule *next;
-};
-
-int AuthRule::Check(const AuthObj & aobj)
-{
-//	PTRACE(3, "auth\t" << GetName());
-	return (Match(aobj) ^ inverted) ? fate : (next) ? next->Check(aobj) : e_nomatch;
-}
-
-inline void delete_rule(PrefixAuth::Rules::value_type r)
-{
-	delete r.second;
-}
-
-class NullRule : public AuthRule {
-public:
-	NullRule() : AuthRule(e_nomatch, false) {}
-	virtual bool Match(const AuthObj &) { return false; }
-};
-
-class IPv4AuthRule : public AuthRule {
-public:
-	IPv4AuthRule(Result, const PString &, bool);
-
-private:
-	virtual bool Match(const AuthObj &);
-//	virtual PString GetName() const { return network.AsString() + "/" + PString(PString::Unsigned, 32-priority); }
-
-	PIPSocket::Address network, netmask;
-};
-
-IPv4AuthRule::IPv4AuthRule(Result f, const PString & cfg, bool r) : AuthRule(f, r)
-{
-	Toolkit::GetNetworkFromString(cfg, network, netmask);
-	DWORD n = ~PIPSocket::Net2Host(DWORD(netmask));
-	for (priority = 0; n; n >>= 1)
-		++priority;
-}
-
-bool IPv4AuthRule::Match(const AuthObj & aobj)
-{
-	return ((aobj.GetIP() & netmask) == network);
-}
-
-class AliasAuthRule : public AuthRule {
-public:
-	AliasAuthRule(Result f, const PString & cfg, bool r) : AuthRule(f, r), pattern(cfg) { priority = -1; }
-
-private:
-	virtual bool Match(const AuthObj &);
-//	virtual PString GetName() const { return pattern; }
-
-	PString pattern;
-};
-
-bool AliasAuthRule::Match(const AuthObj & aobj)
-{
-	return (aobj.GetAliases().FindRegEx(pattern) != P_MAX_INDEX);
-}
-
-inline bool is_inverted(const PString & cfg, PINDEX p)
-{
-	return (p > 1) ? cfg[p-1] == '!' : false;
-}
-
-inline bool comp_authrule_priority(AuthRule *a1, AuthRule *a2)
-{
-	return *a1 < *a2;
-}
-
-// class PrefixAuth
-PrefixAuth::PrefixAuth(const char *name) : GkAuthenticator(name)
-{
-	int ipfl = strlen(ipflag), aliasfl = strlen(aliasflag);
-	PStringToString cfgs = config->GetAllKeyValues(name);
-	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
-		PString key = cfgs.GetKeyAt(i);
-		if (key *= "default") {
-			defaultStatus = Toolkit::AsBool(cfgs.GetDataAt(i)) ? e_ok : e_fail;
-			continue;
-		} else if (key *= "ALL") {
-			// use space (0x20) as the key so it will be the last resort
-			key = " ";
-		}
-		if (prefrules.find(key) != prefrules.end())
-			continue; //rule already exists? ignore
-
-		PStringArray rules = cfgs.GetDataAt(i).Tokenise("|", false);
-		PINDEX sz = rules.GetSize();
-		if (sz < 1)
-			continue;
-		//AuthRule *rls[sz];
-		AuthRule **rls = new AuthRule *[sz];
-		for (PINDEX j = 0; j < sz; ++j) {
-			PINDEX pp;
-			// if not allowed, assume denial
-			AuthRule::Result ft = (rules[j].Find(allowflag) != P_MAX_INDEX) ? AuthRule::e_allow : AuthRule::e_deny;
-			if ((pp=rules[j].Find(ipflag)) != P_MAX_INDEX)
-				rls[j] = new IPv4AuthRule(ft, rules[j].Mid(pp+ipfl), is_inverted(rules[j], pp));
-			else if ((pp=rules[j].Find(aliasflag)) != P_MAX_INDEX)
-				rls[j] = new AliasAuthRule(ft, rules[j].Mid(pp+aliasfl), is_inverted(rules[j], pp));
-			else
-				rls[j] = new NullRule;
-		}
-
-		// sort the rules by priority
-		stable_sort(rls, rls + sz, comp_authrule_priority);
-		for (PINDEX k = 1; k < sz; ++k)
-			rls[k-1]->SetNext(rls[k]);
-		prefrules[key] = rls[0];
-		delete [] rls;
-	}
-}
-
-PrefixAuth::~PrefixAuth()
-{
-	for_each(prefrules.begin(), prefrules.end(), delete_rule);
-}
-
-int PrefixAuth::Check(RasPDU<H225_GatekeeperRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int PrefixAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned &)
-{
-	return e_next;
-}
-
-int PrefixAuth::Check(RasPDU<H225_UnregistrationRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int PrefixAuth::Check(RasPDU<H225_AdmissionRequest> & request, unsigned &)
-{
-	H225_AdmissionRequest & arq = request;
-	return CallTable::Instance()->FindCallRec(arq.m_callIdentifier) ? e_ok : doCheck(ARQAuthObj(arq));
-}
-
-int PrefixAuth::Check(RasPDU<H225_BandwidthRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int PrefixAuth::Check(RasPDU<H225_DisengageRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-int PrefixAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
-{
-	return doCheck(LRQAuthObj((const H225_LocationRequest&)request));
-}
-
-int PrefixAuth::Check(RasPDU<H225_InfoRequest> &, unsigned &)
-{
-	return e_next;
-}
-
-struct comp_pref { // function object
-	comp_pref(const PString & s) : value(s) {}
-	bool operator()(const PrefixAuth::Rules::value_type & v) const;
-	const PString & value;
-};
-
-inline bool comp_pref::operator()(const PrefixAuth::Rules::value_type & v) const
-{
-	return (value.Find(v.first) == 0) || (v.first *= " ");
-}
-
-int PrefixAuth::doCheck(const AuthObj & aobj)
-{
-	if (!aobj.IsValid())
-		return e_fail;
-	PStringArray ary(aobj.GetPrefixes());
-	for (PINDEX i = 0; i < ary.GetSize(); ++i) {
-		// find the first match rule
-		// since prefrules is descendently sorted
-		// it must be the most specific prefix
-		for (Rules::iterator j = prefrules.begin(); j != prefrules.end(); ++j) {
-			Rules::iterator iter = find_if(j, prefrules.end(), comp_pref(ary[i]));
-			if (iter == prefrules.end())
-				break;
-			switch (iter->second->Check(aobj))
-			{
-				case AuthRule::e_allow:
-					return e_ok;
-				case AuthRule::e_deny:
-					return e_fail;
-				default: // try next prefix...
-					j = iter;
-			}
-		}
-	}
-	return defaultStatus;
-}
-
-
-// class GkAuthenticatorList
-GkAuthenticatorList::GkAuthenticatorList() : m_head(0)
-{
-	m_mechanisms = new H225_ArrayOf_AuthenticationMechanism;
-	m_algorithmOIDs = new H225_ArrayOf_PASN_ObjectId;
-}
-
-GkAuthenticatorList::~GkAuthenticatorList()
-{
-	WriteLock lock(m_reloadMutex);
-	delete m_head;
-	delete m_mechanisms;
-	delete m_algorithmOIDs;
-}
-
-void GkAuthenticatorList::OnReload()
-{
-	// lock here to prevent too early authenticator destruction 
-	// from another thread
-	WriteLock lock(m_reloadMutex);
-	
-	GkAuthenticator *head, *authenticator;
-	head = GkAuthenticator::Create(GkConfig()->GetKeys(GkAuthSectionName));
-
-	H225_ArrayOf_AuthenticationMechanism mechanisms;
-	H225_ArrayOf_PASN_ObjectId algorithmOIDs;
-
-	authenticator = head;
-	bool found = false;
-	int i, j, k;
-
-	// scan all authenticators that are either "required" or "sufficient"
-	// (skip "optional") and fill #mechanisms# and #algorithmOIDs# arrays
-	// with H.235 capabilities that are supported by all these authenticators
-	while (authenticator) {
-		if (authenticator->IsH235Capable() 
-				&& ((authenticator->GetControlFlag() == GkAuthenticator::e_Required)
-					|| (authenticator->GetControlFlag() == GkAuthenticator::e_Sufficient))) {
-			if (mechanisms.GetSize() == 0) {
-				// append H.235 capability to empty arrays
-				authenticator->GetH235Capability(mechanisms, algorithmOIDs);
-				// should never happen, but we should check just for a case				
-				if (algorithmOIDs.GetSize() == 0)
-					mechanisms.RemoveAll();
-				else
-					found = true;
-				authenticator = authenticator->GetNext();
-				continue;
-			}
-
-			// Already have H.235 capabilities - check the current
-			// authenticator if it supports any of the capabilities.
-			// Remove capabilities that are not supported
-
-			H225_ArrayOf_AuthenticationMechanism matchedMechanisms;
-
-			for (i = 0; i < algorithmOIDs.GetSize(); i++) {
-				bool matched = false;
-
-				for( j = 0; j < mechanisms.GetSize(); j++ )
-					if (authenticator->IsH235Capability(mechanisms[j], algorithmOIDs[i])) {
-						for (k = 0; k < matchedMechanisms.GetSize(); k++)
-							if (matchedMechanisms[k].GetTag() == mechanisms[j].GetTag())
-								break;
-						if (k == matchedMechanisms.GetSize()) {
-							matchedMechanisms.SetSize(k+1);
-							matchedMechanisms[k].SetTag(mechanisms[j].GetTag());
-						}
-						matched = true;
-					}
-
-				if (!matched) {
-					PTRACE(5, "GkAuth\tRemoved from GCF list algorithm OID: " << algorithmOIDs[i]);
-					algorithmOIDs.RemoveAt(i--);
-				}
-			}
-
-			for (i = 0; i < mechanisms.GetSize(); i++) {
-				for( j = 0; j < matchedMechanisms.GetSize(); j++ )
-					if (mechanisms[i].GetTag() == matchedMechanisms[j].GetTag())
-						break;
-				if( j == matchedMechanisms.GetSize() ) {
-					PTRACE(5, "GkAuth\tRemoved from GCF list mechanism: " << mechanisms[i]);
-					mechanisms.RemoveAt(i--);
-				}
-			}
-
-			if ((mechanisms.GetSize() == 0) || (algorithmOIDs.GetSize() == 0))
-				break;
-		}
-		authenticator = authenticator->GetNext();
-	}
-
-	// Scan "optional" authenticators if the above procedure has not found
-	// any H.235 capabilities or has found more than one
-	if ((!found) || (mechanisms.GetSize() > 1) || (algorithmOIDs.GetSize() > 1)) {
-		authenticator = head;
-		while (authenticator) {
-			if (authenticator->IsH235Capable() 
-					&& (authenticator->GetControlFlag() == GkAuthenticator::e_Optional)) {
-				if (mechanisms.GetSize() == 0) {
-					authenticator->GetH235Capability(mechanisms, algorithmOIDs);
-					if (algorithmOIDs.GetSize() == 0 )
-						mechanisms.RemoveAll();
-					else
-						found = true;
-					authenticator = authenticator->GetNext();
-					continue;
-				}
-
-				H225_ArrayOf_AuthenticationMechanism matchedMechanisms;
-
-				for (i = 0; i < algorithmOIDs.GetSize(); i++) {
-					bool matched = false;
-
-					for (j = 0; j < mechanisms.GetSize(); j++)
-						if (authenticator->IsH235Capability(mechanisms[j], algorithmOIDs[i])) {
-							for (k = 0; k < matchedMechanisms.GetSize(); k++)
-								if (matchedMechanisms[k].GetTag() == mechanisms[j].GetTag())
-									break;
-							if (k == matchedMechanisms.GetSize()) {
-								matchedMechanisms.SetSize(k+1);
-								matchedMechanisms[k].SetTag(mechanisms[j].GetTag());
-							}
-							matched = true;
-						}
-
-					if (!matched) {
-						PTRACE(5, "GkAuth\tRemoved from GCF list algorithm OID: " << algorithmOIDs[i]);
-						algorithmOIDs.RemoveAt(i--);
-					}
-				}
-
-				for (i = 0; i < mechanisms.GetSize(); i++) {
-					for (j = 0; j < matchedMechanisms.GetSize(); j++)
-						if (mechanisms[i].GetTag() == matchedMechanisms[j].GetTag())
-							break;
-					if (j == matchedMechanisms.GetSize()) {
-						PTRACE(5, "GkAuth\tRemoved from GCF list mechanism: " << mechanisms[i]);
-						mechanisms.RemoveAt(i--);
-					}
-				}
-
-				if ((mechanisms.GetSize() == 0) || (algorithmOIDs.GetSize() == 0))
-					break;
-			}
-			authenticator = authenticator->GetNext();
-		}
-	}
-
-	if ((mechanisms.GetSize() > 0) && (algorithmOIDs.GetSize() > 0)) {
-		if (PTrace::CanTrace(5)) {
-#if PTRACING
-			ostream& strm = PTrace::Begin(5,__FILE__,__LINE__);
-			strm <<"GkAuth\tH.235 capabilities selected for GCF:\n";
-			strm <<"\tAuthentication mechanisms: \n";
-			for (i = 0; i < mechanisms.GetSize(); i++)
-				strm << "\t\t" << mechanisms[i] << '\n';
-			strm <<"\tAuthentication algorithm OIDs: \n";
-			for (i = 0; i < algorithmOIDs.GetSize(); i++)
-				strm << "\t\t" << algorithmOIDs[i] << '\n';
-			PTrace::End(strm);
-#endif
-		}
-	} else {
-		PTRACE(4,"GkAuth\tH.235 security is not active or conflicting H.235 capabilities are active - GCF will not select any particular capability");
-		mechanisms.RemoveAll();
-		algorithmOIDs.RemoveAll();
-	}
-
-	// now switch to new setting
-	*m_mechanisms = mechanisms;
-	*m_algorithmOIDs = algorithmOIDs;
-	swap(m_head, head);
-	delete head;
-}
-
-void GkAuthenticatorList::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_GatekeeperConfirm & gcf)
-{
-	ReadLock lock(m_reloadMutex);
-	
-	if (!m_head)
-		return;
-	
-	// if GRQ does not contain a list of authentication mechanisms simply return
-	if (!(grq.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability)
-			&& grq.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)
-			&& grq.m_authenticationCapability.GetSize() > 0
-			&& grq.m_algorithmOIDs.GetSize() > 0))
-		return;
-
-	H225_ArrayOf_AuthenticationMechanism & mechanisms = *m_mechanisms;
-	H225_ArrayOf_PASN_ObjectId & algorithmOIDs = *m_algorithmOIDs;
-
-	// And now match H.235 capabilities found with those from GRQ
-	// to find the one to be returned in GCF		
-	for (int i = 0; i < grq.m_authenticationCapability.GetSize(); i++)
-		for (int j = 0; j < mechanisms.GetSize(); j++)	
-			if (grq.m_authenticationCapability[i].GetTag() == mechanisms[j].GetTag())
-				for (int l = 0; l < algorithmOIDs.GetSize(); l++)
-					for (int k = 0; k < grq.m_algorithmOIDs.GetSize(); k++)
-						if (grq.m_algorithmOIDs[k] == algorithmOIDs[l]) {
-							GkAuthenticator *authenticator = m_head;
-							while (authenticator) {
-								if (authenticator->IsH235Capable() && authenticator->IsH235Capability(mechanisms[j], algorithmOIDs[l])) {
-									gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
-									gcf.m_authenticationMode = mechanisms[j];
-									gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
-									gcf.m_algorithmOID = algorithmOIDs[l];
-
-									PTRACE(4,"GK\tGCF will select authentication mechanism: "
-										<< mechanisms[j] << " and algorithm OID: "<< algorithmOIDs[l]
-									      );
-									return;
-								}
-								authenticator = authenticator->GetNext();
-							}
-
-							PTRACE(5, "GK\tAuthentication mechanism: "
-								<< mechanisms[j] << " and algorithm OID: "
-								<< algorithmOIDs[l] << " dropped"
-							      );
-						}
-}
-
-
-namespace { // anonymous namespace
-
-	GkAuthCreator<GkAuthenticator> DefaultAuthenticatorCreator("default");
-	GkAuthCreator<SimplePasswordAuth> SimplePasswordAuthCreator("SimplePasswordAuth");
-	GkAuthCreator<AliasAuth> AliasAuthCreator("AliasAuth");
-	GkAuthCreator<PrefixAuth> PrefixAuthCreator("PrefixAuth");
-
-	GkAuthCreator<SQLPasswordAuth> SQLPasswordAuthCreator("SQLPasswordAuth");
-	GkAuthCreator<SQLAliasAuth> SQLAliasAuthCreator("SQLAliasAuth");
-#if HAS_MYSQL
-	GkAuthCreator<MySQLPasswordAuth> MySQLPasswordAuthCreator("MySQLPasswordAuth");
-	GkAuthCreator<MySQLAliasAuth> MySQLAliasAuthCreator("MySQLAliasAuth");
-#endif
-/*
-#if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
+namespace {
 	GkAuthCreator<ExternalPasswordAuth> ExternalPasswordAuthCreator("ExternalPasswordAuth");
+}
+
 #endif
 */
-} // end of anonymous namespace

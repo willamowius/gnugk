@@ -17,25 +17,16 @@
 #ifndef RASTBL_H
 #define RASTBL_H "@(#) $Id$"
 
-#include "rwlock.h" 
-#include "singleton.h" 
-
 #include <list>
 #include <vector>
 #include <string>
-
-#include <h225.h>
-#include <ptlib/sockets.h>
+#include "rwlock.h" 
+#include "singleton.h" 
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 )
 #endif
-
-
-using std::list;
-using std::vector;
-using std::string;
 
 class GkDestAnalysisList;
 class USocket;
@@ -228,8 +219,8 @@ typedef EndpointRec::Ptr endptr;
 
 class GatewayRec : public EndpointRec {
 public:
-	typedef std::vector<string>::iterator prefix_iterator;
-	typedef std::vector<string>::const_iterator const_prefix_iterator;
+	typedef std::vector<std::string>::iterator prefix_iterator;
+	typedef std::vector<std::string>::const_iterator const_prefix_iterator;
 
 	GatewayRec(const H225_RasMessage & completeRAS, bool Permanent=false);
 
@@ -279,7 +270,7 @@ public:
 protected:
 	// strange! can't compile in debug mode, anybody know why??
 	//vector<PString> Prefixes;  
-	vector<string> Prefixes;
+	std::vector<std::string> Prefixes;
 	bool defaultGW;
 };
 
@@ -362,15 +353,15 @@ private:
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationConfirm &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_AdmissionConfirm &);
 
-	void InternalPrint(USocket *, BOOL, list<EndpointRec *> *, PString &);
-	void InternalStatistics(const list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g, unsigned & n) const;
+	void InternalPrint(USocket *, BOOL, std::list<EndpointRec *> *, PString &);
+	void InternalStatistics(const std::list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g, unsigned & n) const;
 
 	void InternalRemove(iterator);
 
 	template<class F> endptr InternalFind(const F & FindObject) const
 	{ return InternalFind(FindObject, &EndpointList); }
 
-	template<class F> endptr InternalFind(const F & FindObject, const list<EndpointRec *> *ListToBeFound) const
+	template<class F> endptr InternalFind(const F & FindObject, const std::list<EndpointRec *> *ListToBeFound) const
 	{   //  The function body must be put here,
 	    //  or the Stupid VC would fail to instantiate it
         	ReadLock lock(listLock);
@@ -378,15 +369,15 @@ private:
 	        return endptr((Iter != ListToBeFound->end()) ? *Iter : 0);
 	}
 
-	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, list<EndpointRec *> *ListToBeFound, bool);
+	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool);
 
 	void GenerateEndpointId(H225_EndpointIdentifier &);
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
 
 	GkDestAnalysisList & getGkDestAnalysisList() { return *m_destAnalysisList; }
-	list<EndpointRec *> EndpointList;
-	list<EndpointRec *> OuterZoneList;
-	list<EndpointRec *> RemovedList;
+	std::list<EndpointRec *> EndpointList;
+	std::list<EndpointRec *> OuterZoneList;
+	std::list<EndpointRec *> RemovedList;
 	int regSize;
 	mutable PReadWriteMutex listLock;
 	GkDestAnalysisList * m_destAnalysisList;
@@ -784,8 +775,8 @@ private:
 
 	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, BOOL verbose) const;
 
-	list<CallRec *> CallList;
-	list<CallRec *> RemovedList;
+	std::list<CallRec *> CallList;
+	std::list<CallRec *> RemovedList;
 
 	bool m_genNBCDR;
 	bool m_genUCCDR;

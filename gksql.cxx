@@ -49,7 +49,7 @@ bool GkSQLConnection::Initialize(
 	PStringArray hosts = cfg->GetString(cfgSectionName, "Host", "localhost").Tokenise(";");
 	for (PINDEX i = 0; i < hosts.GetSize(); i++) {
 		const PString host = hosts[i].Trim();
-		if (!host.IsEmpty())
+		if (!host)
 			m_hosts += host;
 	}
 
@@ -90,7 +90,7 @@ bool GkSQLConnection::Initialize(
 	PStringArray hostArray = PString(hosts).Tokenise(";");
 	for (PINDEX i = 0; i < hostArray.GetSize(); i++) {
 		const PString host = hostArray[i].Trim();
-		if (!host.IsEmpty())
+		if (!host)
 			m_hosts += host;
 	}
 

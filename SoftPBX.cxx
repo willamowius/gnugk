@@ -16,13 +16,14 @@
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
-#include "SoftPBX.h"
+#include <ptlib.h>
+#include <h323pdu.h>
 #include "gk_const.h"
-#include "GkStatus.h"
 #include "Toolkit.h"
+#include "GkStatus.h"
 #include "RasSrv.h"
 #include "ProxyChannel.h"
-#include <h323pdu.h>
+#include "SoftPBX.h"
 
 
 int SoftPBX::TimeToLive = -1;

@@ -19,12 +19,7 @@
 #ifndef GK_H
 #define GK_H "@(#) $Id$"
 
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#endif
-#ifndef GNUGK_VERSION_H
 #include "version.h"
-#endif
 
 
 #if PTRACING

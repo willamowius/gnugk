@@ -20,6 +20,10 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
+#include <ptlib.h>
+#include <q931.h>
+#include <h245.h>
+#include <h323pdu.h>
 #include "gk.h"
 #include "gk_const.h"
 #include "h323util.h"
@@ -31,15 +35,6 @@
 #include "GkClient.h"
 #include "Neighbor.h"
 #include "ProxyChannel.h"
-#include <q931.h>
-#include <h245.h>
-#include <h323pdu.h>
-
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
-#include <map>
 
 // default timeout (ms) for initial Setup message,
 // if not specified in the config file
@@ -266,7 +261,7 @@ private:
 	ProxyHandler *handler;
 	PIPSocket::Address peerAddr;
 	WORD peerPort;
-	list<T120ProxySocket *> sockets;
+	std::list<T120ProxySocket *> sockets;
 	PMutex m_smutex;
 };
 
@@ -376,7 +371,7 @@ ProxySocket::Result ProxySocket::ReceiveData()
 		return NoData;
 	}
 	PTRACE(6, Type() << "\tReading from " << Name());
-	buflen = self->GetLastReadCount();
+	buflen = (WORD)self->GetLastReadCount();
 	return Forwarding;
 }
 
@@ -509,7 +504,7 @@ bool TCPProxySocket::ReadTPKT()
 
 bool TCPProxySocket::InternalWrite(const PBYTEArray & buf)
 {
-	WORD len = buf.GetSize(), tlen = len + sizeof(TPKTV3);
+	WORD len = (WORD)buf.GetSize(), tlen = len + sizeof(TPKTV3);
 	PBYTEArray tbuf(tlen);
 	BYTE *bptr = tbuf.GetPointer();
 	new (bptr) TPKTV3(len); // placement operator
@@ -689,7 +684,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		PrintQ931(4, "Received:", "", q931pdu, psignal = &signal);
 
 		if (remote && body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup) {
-			const WORD newcrv = q931pdu->GetCallReference();
+			const WORD newcrv = (WORD)q931pdu->GetCallReference();
 			if (m_crv && newcrv == (m_crv & 0x7fffu))
 				PTRACE(2, "Q931\tWarning: duplicate Setup - ignored!");
 			else {
@@ -736,7 +731,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				PTRACE(3, "Warning: duplicate Setup? ignored!");
 				return NoData;
 			}
-			m_crv = (m_lastQ931->GetCallReference() | 0x8000u);
+			m_crv = (WORD)(m_lastQ931->GetCallReference() | 0x8000u);
 			m_setupUUIE = new H225_H323_UserInformation(signal);
 			changed = OnSetup(body, in_rewrite_id, out_rewrite_id);
 			break;
@@ -1124,7 +1119,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
          		source = GetBestAliasAddressString(Setup.m_sourceAddress, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 			}
 
-            if (!source.IsEmpty()) {
+            if (!source) {
 				Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
                 in_rewrite_id = source;
 			}
@@ -1166,6 +1161,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	WORD fromPort = 1720;
 	GetPeerAddress(fromIP,fromPort);
 	GkClient *gkClient = RasSrv->GetGkClient();
+	GkAuthenticator::SetupAuthData authData;
+	
 	if (m_call) {
 		if (m_call->IsSocketAttached()) {
 			PTRACE(2, "Q931\tWarning: socket already attached for callid " << callid);
@@ -1188,21 +1185,24 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		m_call->SetSetupTime(setupTime);
 
 		// authenticate the call
-		long durationLimit = -1;
-		unsigned cause = Q931::CallRejected;
-		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup,cause,durationLimit) ) {
+		if( !RasSrv->ValidatePDU(*m_lastQ931, Setup, authData) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
 				<<" due to Setup authentication failure"
 				);
-			m_call->SetDisconnectCause(cause);
+			if (authData.m_rejectCause >= 0)
+				m_call->SetDisconnectCause(authData.m_rejectCause);
+			else if (authData.m_rejectReason >= 0)
+				m_call->SetDisconnectCause(MapH225ReasonToQ931Cause(authData.m_rejectReason));
+			else
+				m_call->SetDisconnectCause(Q931::CallRejected);
 			return false;
 		}
 
-		if( durationLimit > 0 )
-			m_call->SetDurationLimit(durationLimit);
+		if( authData.m_callDurationLimit > 0 )
+			m_call->SetDurationLimit(authData.m_callDurationLimit);
 
 		// log AcctStart accounting event
-		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
+		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
 				<<" due to accounting failure"
 				);
@@ -1227,7 +1227,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && Setup.m_cryptoTokens.GetSize() > 0) {
 			PINDEX s = Setup.m_cryptoTokens.GetSize() - 1;
-			if ((destFound = Neighbors::DecodeAccessToken(Setup.m_cryptoTokens[s], fromIP, calledAddr))) {
+			destFound = Neighbors::DecodeAccessToken(Setup.m_cryptoTokens[s], fromIP, calledAddr);
+			if (destFound) {
 				called = RegistrationTable::Instance()->FindBySignalAdr(calledAddr);
 				PTRACE(3, "Q931\tGot destination " << AsDotString(calledAddr));
 				if (s > 0)
@@ -1290,20 +1291,23 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
 
-		long durationLimit = -1;
-		unsigned cause = Q931::CallRejected;
-		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup,cause,durationLimit) ) {
+		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup, authData) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
 				<<" due to Setup authentication failure"
 				);
-			m_call->SetDisconnectCause(cause);
+			if (authData.m_rejectCause >= 0)
+				m_call->SetDisconnectCause(authData.m_rejectCause);
+			else if (authData.m_rejectReason >= 0)
+				m_call->SetDisconnectCause(MapH225ReasonToQ931Cause(authData.m_rejectReason));
+			else
+				m_call->SetDisconnectCause(Q931::CallRejected);
 			return false;
 		}
 
-		if( durationLimit > 0 )
-			m_call->SetDurationLimit(durationLimit);
+		if( authData.m_callDurationLimit > 0 )
+			m_call->SetDurationLimit(authData.m_callDurationLimit);
 
-		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
+		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
 				<<" due to accounting failure"
 				);
@@ -1323,7 +1327,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		        source = GetBestAliasAddressString(rewriteEndPointOut->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 			}
 
-			if (!source.IsEmpty()) {
+			if (!source) {
 		        Toolkit::Instance()->GWRewriteE164(source,false,Setup.m_destinationAddress);
 			    out_rewrite_id = source;
 			}
@@ -1520,6 +1524,7 @@ bool CallSignalSocket::OnNotify(H225_Notify_UUIE &)
 	return false; // do nothing
 }
 
+/*
 bool CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
 {
 	bool changed = false;
@@ -1566,6 +1571,7 @@ bool CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
 		octs.SetValue(buf, pBuf-buf);
 	return changed;
 }
+*/
 
 bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control)
 {
@@ -2143,7 +2149,7 @@ inline const H245_UnicastAddress_iPAddress & operator>>(const H245_UnicastAddres
 
 inline const H245_UnicastAddress_iPAddress & operator>>(const H245_UnicastAddress_iPAddress & addr, WORD & port)
 {
-	port = addr.m_tsapIdentifier;
+	port = (WORD)addr.m_tsapIdentifier;
 	return addr;
 }
 
@@ -2238,7 +2244,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	Address fromIP;
 	WORD fromPort;
 	GetLastReceiveAddress(fromIP, fromPort);
-	buflen = GetLastReadCount();
+	buflen = (WORD)GetLastReadCount();
 
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
 	if( rSrcIP == 0 && fromIP == fDestIP )
@@ -2579,8 +2585,8 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response)
 bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *h225Params, WORD flcn)
 {
 	RTPLogicalChannel *lc = (flcn) ?
-		CreateRTPLogicalChannel(h225Params->m_sessionID, flcn) :
-		CreateFastStartLogicalChannel(h225Params->m_sessionID);
+		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn) :
+		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID);
 	if (!lc)
 		return false;
 
@@ -2609,7 +2615,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
 	if (hnat)
 		hnat->HandleOpenLogicalChannel(olc);
-	WORD flcn = olc.m_forwardLogicalChannelNumber;
+	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	if (IsT120Channel(olc)) {
 		T120LogicalChannel *lc = CreateT120LogicalChannel(flcn);
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)
@@ -2627,7 +2633,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 
 bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject & olcr)
 {
-	peer->RemoveLogicalChannel(olcr.m_forwardLogicalChannelNumber);
+	peer->RemoveLogicalChannel((WORD)olcr.m_forwardLogicalChannelNumber);
 	return false; // nothing changed :)
 }
 
@@ -2635,7 +2641,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 {
 	if (hnat)
 		hnat->HandleOpenLogicalChannelAck(olca);
-	WORD flcn = olca.m_forwardLogicalChannelNumber;
+	WORD flcn = (WORD)olca.m_forwardLogicalChannelNumber;
 	LogicalChannel *lc = peer->FindLogicalChannel(flcn);
 	if (!lc) {
 		PTRACE(2, "Proxy\tWarning: logical channel " << flcn << " not found");
@@ -2656,7 +2662,8 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 		first = this, second = peer;
 	else
 		first = peer, second = this;
-	first->RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber) || second->RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber);
+	first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber) 
+		|| second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	return false; // nothing changed :)
 }
 
@@ -2677,12 +2684,12 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 		return false;
 	if (hnat)
 		hnat->HandleOpenLogicalChannel(olc);
-	WORD flcn = olc.m_forwardLogicalChannelNumber;
+	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	bool changed = false, isReverseLC;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
 	if (!h225Params)
 		return false;
-	WORD id = h225Params->m_sessionID;
+	WORD id = (WORD)h225Params->m_sessionID;
 	siterator iter = peer->fastStartLCs.find(id);
 	RTPLogicalChannel *lc = (iter != peer->fastStartLCs.end()) ? iter->second : 0;
 	if (isReverseLC) {
@@ -2745,8 +2752,8 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 		PTRACE(3, "Proxy\tRTP logical channel " << flcn << " already exist?");
 		return 0;
 	}
-	RTPLogicalChannel *lc;
-	if ((lc = peer->FindRTPLogicalChannelBySessionID(id)) && !lc->IsAttached()) {
+	RTPLogicalChannel *lc = peer->FindRTPLogicalChannelBySessionID(id);
+	if (lc && !lc->IsAttached()) {
 		lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 	// if H.245 OpenLogicalChannel is received, the fast connect procedure
 	// should be disable. So we reuse the fast start logical channel here

@@ -20,6 +20,7 @@
 #ifndef RASPDU_H
 #define RASPDU_H "@(#) $Id$"
 
+#include <list>
 #include "yasocket.h"
 #include "factory.h"
 #include "rasinfo.h"
@@ -130,6 +131,8 @@ protected:
 template<class RAS>
 class RasPDU : public RasMsg {
 public:
+	typedef RAS RasClass;
+	
 	RasPDU(GatekeeperMessage *m) : RasMsg(m), request(m->m_recvRAS) {}
 
 	// override from class RasMsg

@@ -22,10 +22,6 @@
 
 #if PTRACING
 
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#endif
-
 class NamedObject 
 {
 public:
@@ -35,6 +31,20 @@ public:
 		const char* name = NULL
 		) : m_name(name) {}
 
+	/// copy constructor for proper PString copying
+	NamedObject(
+		const NamedObject& obj
+		) : m_name((const char*)(obj.m_name)) {}
+
+	/// assignment operator for proper PString assignment
+	NamedObject& operator=(
+		const NamedObject& obj
+		)
+	{
+		m_name = (const char*)(obj.m_name);
+		return *this;
+	}
+	
 	/** Set new name for the object.
 		Not really thread safe (another thread may call GetName in the same time),
 		so it should be used with care.
@@ -57,15 +67,6 @@ private:
 	PString m_name;
 };
 
-class CNamedObject {
-public:
-	void SetName(const char *n) { m_name = n; }
-	const char *GetName() const { return m_name; }
-
-private:
-	const char *m_name;
-};
-
 #else
 
 struct NamedObject {
@@ -74,10 +75,6 @@ struct NamedObject {
 		const char* name = NULL
 		) {}
 	void SetName(const char*) {}
-};
-
-struct CNamedObject {
-	void SetName(const char *) {}
 };
 
 #endif

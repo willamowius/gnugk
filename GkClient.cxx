@@ -19,13 +19,14 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include "GkClient.h"
-#include "RasPDU.h"
-#include "RasSrv.h"
-#include "stl_supp.h"
-#include "ProxyChannel.h"
+#include <ptlib.h>
 #include <h323pdu.h> 
 #include <h235auth.h>
+#include "stl_supp.h"
+#include "RasPDU.h"
+#include "RasSrv.h"
+#include "ProxyChannel.h"
+#include "GkClient.h"
 
 const char *EndpointSection = "Endpoint";
 const char *RewriteE164Section = "Endpoint::RewriteE164";
@@ -193,11 +194,9 @@ GRQRequester::GRQRequester(const PString & gkid) : RasRequester(grq_ras)
 	H235AuthSimpleMD5 md5auth;
 	md5auth.SetPassword("dummy"); // activate it
 	md5auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
-#ifdef OPENH323_NEWVERSION
 	H235AuthCAT catauth;
 	catauth.SetPassword("dummy"); // activate it
 	catauth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
-#endif
 	m_rasSrv->RegisterHandler(this);
 }
 
@@ -210,7 +209,7 @@ bool GRQRequester::SendRequest(const Address & addr, WORD pt, int r)
 {
 	m_txAddr = addr, m_txPort = pt, m_retry = r;
 	H225_GatekeeperRequest & grq = grq_ras;
-	vector<Address> GKHome;
+	std::vector<Address> GKHome;
 	Toolkit::Instance()->GetGKHome(GKHome);
 	for (std::vector<Address>::iterator i = GKHome.begin(); i != GKHome.end(); ++i) {
 		if ((IsLoopback(addr) || IsLoopback(*i)) && addr != *i)
@@ -959,7 +958,6 @@ bool GkClient::RewriteString(PString & alias, bool fromInternal) const
 	return false;
 }
 
-#ifdef OPENH323_NEWVERSION
 void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PString & id)
 {
 	clearTokens.RemoveAll();
@@ -970,7 +968,6 @@ void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PStri
 	H225_ArrayOf_CryptoH323Token dumbTokens;
 	auth.PrepareTokens(clearTokens, dumbTokens);
 }
-#endif
 
 void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id)
 {
@@ -979,12 +976,8 @@ void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, cons
 	// avoid copying for thread-safely
 	auth.SetLocalId((const char *)id);
 	auth.SetPassword((const char *)m_password);
-#ifdef OPENH323_NEWVERSION
 	H225_ArrayOf_ClearToken dumbTokens;
 	auth.PrepareTokens(dumbTokens, cryptoTokens);
-#else
-	auth.Prepare(cryptoTokens); 
-#endif
 }
 
 void GkClient::SetRasAddress(H225_ArrayOf_TransportAddress & addr)
@@ -1006,8 +999,6 @@ void GkClient::SetNBPassword(
 {
 	if (!m_password) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_cryptoTokens), SetCryptoTokens(lrq.m_cryptoTokens, id);
-#ifdef OPENH323_NEWVERSION
 		lrq.IncludeOptionalField(H225_LocationRequest::e_tokens), SetClearTokens(lrq.m_tokens, id);
-#endif
 	}
 }

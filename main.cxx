@@ -17,5 +17,7 @@
  */
 
 
+#include <ptlib.h>
 #include "gk.h"
+
 PCREATE_PROCESS(Gatekeeper)

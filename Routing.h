@@ -19,6 +19,8 @@
 #ifndef ROUTING_H
 #define ROUTING_H "@(#) $Id$"
 
+#include <map>
+#include <list>
 #include "slist.h"
 #include "singleton.h"
 
@@ -59,7 +61,7 @@ public:
 
 	bool SetDestination(const H225_TransportAddress &, bool = false);
 	bool SetCalledParty(const endptr &);
-	void SetRejectReason(unsigned reason) { m_reason = reason; }
+	void SetRejectReason(unsigned reason) { m_reason = (WORD)reason; }
 	void SetFlag(unsigned f) { m_flags |= f; }
 	unsigned GetRejectReason() const { return m_reason; }
 	unsigned GetFlags() const { return m_flags; }

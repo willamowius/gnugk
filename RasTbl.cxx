@@ -28,13 +28,14 @@
 #include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
+#include "stl_supp.h"
 #include "SoftPBX.h"
 #include "RasSrv.h"
 #include "GkClient.h"
 #include "GkStatus.h"
-#include "stl_supp.h"
 #include "ProxyChannel.h"
 #include "gkacct.h"
+#include "RasTbl.h"
 
 #define DEFAULT_SETUP_TIMEOUT 8000
 #define DEFAULT_CONNECT_TIMEOUT 180000
@@ -490,10 +491,10 @@ void GatewayRec::AddPrefixes(const PString & prefixes)
 void GatewayRec::SortPrefixes()
 {
 	// remove duplicate aliases
-	sort(Prefixes.begin(), Prefixes.end(), greater<string>());
+	sort(Prefixes.begin(), Prefixes.end(), greater<std::string>());
 	prefix_iterator Iter = unique(Prefixes.begin(), Prefixes.end());
 	Prefixes.erase(Iter, Prefixes.end());
-	defaultGW = (find(Prefixes.begin(), Prefixes.end(), string("*")) != Prefixes.end());
+	defaultGW = (find(Prefixes.begin(), Prefixes.end(), std::string("*")) != Prefixes.end());
 }
 
 bool GatewayRec::LoadConfig()
@@ -600,7 +601,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 		if (Prefixes.size() == 0) {
 			msg += "<none>";
 		} else {
-			string m=Prefixes.front();
+			std::string m=Prefixes.front();
 			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
 			while (++Iter != eIter)
 				m += "," + (*Iter);
@@ -842,7 +843,7 @@ endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, 
 }
 
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
-	list<EndpointRec *> *List, bool roundrobin)
+	std::list<EndpointRec *> *List, bool roundrobin)
 {
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
         if (ep) {
@@ -851,7 +852,7 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
         }
 
         int maxlen = 0;
-        list<EndpointRec *> GWlist;
+        std::list<EndpointRec *> GWlist;
         listLock.StartRead();
         const_iterator Iter = List->begin(), IterLast = List->end();
         while (Iter != IterLast) {
@@ -912,7 +913,7 @@ void RegistrationTable::PrintRemoved(USocket *client, BOOL verbose)
 	InternalPrint(client, verbose, &RemovedList, msg);
 }
 
-void RegistrationTable::InternalPrint(USocket *client, BOOL verbose, list<EndpointRec *> * List, PString & msg)
+void RegistrationTable::InternalPrint(USocket *client, BOOL verbose, std::list<EndpointRec *> * List, PString & msg)
 {
 	// copy the pointers into a temporary array to avoid large lock
 	listLock.StartRead();
@@ -934,7 +935,7 @@ void RegistrationTable::InternalPrint(USocket *client, BOOL verbose, list<Endpoi
 	client->TransmitData(msg);
 }
 
-void RegistrationTable::InternalStatistics(const list<EndpointRec *> *List, unsigned & s, unsigned & t, unsigned & g, unsigned & n) const
+void RegistrationTable::InternalStatistics(const std::list<EndpointRec *> *List, unsigned & s, unsigned & t, unsigned & g, unsigned & n) const
 {
 	ReadLock lock(listLock);
 	s = List->size(), t = g = n = 0;

@@ -17,14 +17,12 @@
 #ifndef YASOCKET_H
 #define YASOCKET_H "@(#) $Id$"
 
-#include "job.h"
 #include <list>
-#include <ptlib/sockets.h>
+#include <vector>
+#include "job.h"
 
 //#define LARGE_FDSET 32768
 #ifdef LARGE_FDSET
-
-#include <vector>
 
 // yet another socket class to replace PSocket
 

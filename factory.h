@@ -98,13 +98,6 @@ factory.h(135)   Init    Can't create SampleC with 3 parameter(s)
 
 #include <map>
 #include <cstring>
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#endif
-
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
 
 namespace std {
 
@@ -234,7 +227,8 @@ private:
 	static bool FindCreator(Identifier n, int i, P & p)
 	{
 		Creator creator = FindCreator(n);
-		return creator && ((p = dynamic_cast<P>(creator)) || ParmMismatch(n, i));
+		p = dynamic_cast<P>(creator);
+		return creator && (p || ParmMismatch(n, i));
 	}
 
 	static Associations *m_associations;

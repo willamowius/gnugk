@@ -27,13 +27,13 @@ SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx          \
            Routing.cxx Neighbor.cxx GkClient.cxx gkauth.cxx         \
            RasSrv.cxx ProxyChannel.cxx gk.cxx version.cxx gkacct.cxx \
-           gksql.cxx @SOURCES@
+           gksql.cxx sqlauth.cxx @SOURCES@
 
 HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            RasSrv.h RasTbl.h Routing.h SoftPBX.h Toolkit.h factory.h \
            gk.h gk_const.h gkacct.h gkauth.h job.h name.h \
            radacct.h radauth.h radproto.h rasinfo.h rwlock.h singleton.h \
-           slist.h stl_supp.h version.h yasocket.h gksql.h
+           slist.h stl_supp.h version.h yasocket.h gksql.h configure Makefile 
 
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by
@@ -49,9 +49,16 @@ space:=$(empty) $(empty)
 # setup various important paths
 PWLIBDIR=@PWLIBDIR@
 OPENH323DIR=@OPENH323DIR@
+OPENH323MAKEDIR=@OPENH323MAKEDIR@
 
 ifndef TMP
   TMP=/tmp
+endif
+
+ifeq (@NEEDOPENH323PREFIX@,1)
+ifndef PREFIX
+PREFIX=@OPENH323INSTALLPREFIX@
+endif
 endif
 
 CWD:=$(shell pwd)
@@ -88,7 +95,7 @@ endif
 ### Including the general make rules of OpenH323
 ###
 
-include $(OPENH323DIR)/openh323u.mak
+include $(OPENH323MAKEDIR)/openh323u.mak
 
 ### Remove -fdata-sections gcc option that cause problems during link step
 temp_STDCCFLAGS := $(subst -fdata-sections,,$(STDCCFLAGS))
@@ -127,3 +134,14 @@ increment:
         rm -f $(TMP)/version.h; \
 		echo "Rerunning configure utility"; \
 		./configure
+
+# special configure dependencies
+configure: configure.in
+	autoconf
+
+Makefile: Makefile.in config.status
+	./config.status
+
+config.status: configure
+	./config.status --recheck
+

@@ -378,7 +378,7 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 	/// query string
 	const char* queryStr,
 	/// maximum time (ms) for the query execution, -1 means infinite
-	long timeout
+	long /*timeout*/
 	)
 {
 	PGconn* pgsqlconn = ((PgSQLConnWrapper*)conn)->m_conn;

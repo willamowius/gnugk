@@ -18,8 +18,7 @@
 #define NEIGHBOR_H "@(#) $Id$"
 
 #include <list>
-#include <ptlib.h>
-#include <ptlib/sockets.h>
+#include <map>
 #include "Routing.h"
 
 

@@ -19,12 +19,9 @@
 #ifndef GKAUTH_H
 #define GKAUTH_H "@(#) $Id$"
 
-#ifndef NAME_H
+#include <map>
+#include <list>
 #include "name.h"
-#endif
-#ifndef SLIST_H
-#include "slist.h"
-#endif
 #include "rwlock.h"
 
 class H225_GatekeeperRequest;
@@ -46,6 +43,7 @@ class H225_ArrayOf_TransportAddress;
 class H235_AuthenticationMechanism;
 class PASN_ObjectId;
 class H235Authenticators;
+class H235Authenticator;
 class Q931;
 class H225_Setup_UUIE;
 
@@ -53,122 +51,104 @@ template<class> class RasPDU;
 template<class> struct RasInfo;
 
 /** The base class for all authenticator modules. Authenticator modules
-	are used to authenticate RAS and Q.931 messages sent by endpoints
-	and to check if the endpoints are authorized to use H.323 network resources.
+    are used to authenticate/authorized RAS and Q.931 messages sent 
+    by endpoints and to check if the endpoints are authorized to use 
+    H.323 network resources.
 	
-	The modules are stackable - each request can be checked by multiple
-	modules to get the final authentications result.
+    The modules are stackable - each request can be checked by multiple
+    modules to get the final authentication result.
 	
-	Derived classes usually override one or more Check virtual methods
-	to implement specific authentication mechanism.
+    Derived classes usually override one or more Check virtual methods
+    to implement specific authentication mechanism.
 */
-class GkAuthenticator : public SList<GkAuthenticator>, public CNamedObject 
+class GkAuthenticator : public NamedObject
 {
 public:
 	/// processing rule for the authenticator
 	enum Control {
 		/// if this module cannot determine authentication success or failure
 		/// (due to some missing info, for example), remaining modules will
-		/// decide about acceptation/rejection of the reqest
+		/// decide about acceptation/rejection of the reqest,
+		/// otherwise auth processing ends at this module
 		e_Optional, 
 		/// the request has to be authenticated by this module
+		/// and processing is continued with remaining modules
 		e_Required, 
 		/// if the request is authenticated by this module, authentication
-		/// is successful and no further modules are processed
+		/// is successful, otherwise the request is rejected
+		/// (no further modules are processed in both cases)
 		e_Sufficient 
 	};
 
-	/// authentication status returned from Check method
+	/// authentication status returned from Check methods
 	enum Status {
-		e_ok = 1, /// the request is authenticated
-		e_fail = -1, /// the request should be rejected
-		e_next = 0 /// the module could not authenticate or reject the request
+		e_ok = 1, /// the request is authenticated and accepted
+		e_fail = -1, /// the request is authenticated and rejected
+		e_next = 0 /// the module could not authenticate the request
 	};
 
 	/// bit masks for event types other than RAS - see miscCheckFlags variable
 	enum MiscCheckEvents {
 		e_Setup = 0x0001 /// Q.931/H.225 Setup message
 	};
+
+	/// Data read/written during ARQ processing by all configured 
+	/// authenticator modules
+	struct ARQAuthData
+	{
+		ARQAuthData() : m_rejectReason(-1), m_callDurationLimit(-1) {}
+		~ARQAuthData() {}
+		
+		/// -1 if not set, H225_AdmissionRejectReason enum otherwise
+		int m_rejectReason;
+		/// -1 if not set, max allowe call duration in seconds otherwise
+		long m_callDurationLimit;
+	};
 	
+	/// Data read/written during Q.931/H.225.0 Setup processing 
+	/// by all authenticators
+	struct SetupAuthData
+	{
+		SetupAuthData() 
+			: m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1) {}
+
+		~SetupAuthData() {}
+		
+		/// -1 if not set, H225_ReleaseCompleteReason enum otherwise
+		int m_rejectReason;
+		/// -1 if not set, Q931 cause value otherwise
+		int m_rejectCause;
+		/// -1 if not set, max allowe call duration in seconds otherwise
+		long m_callDurationLimit;
+	};
+	
+
+	/** Build a new authenticator object with the given name.
+	    It is important to pass proper check flags to signal, which checks
+	    are supported/implemented by this authenticator.
+	*/
 	GkAuthenticator(
-		const char* name /// a name for the module (to be used in the config file)
+		const char* name, /// a name for the module (to be used in the config file)
+		unsigned supportedRasChecks = ~0U, /// RAS checks supported by this module
+		unsigned supportedMiscChecks = ~0U /// non-RAS checks supported by this module
 		);
+		
 	virtual ~GkAuthenticator();
 
-	/** Authenticate RAS request (all except ARQ) through this module
-	    and all remaining modules.
-		
-		@return
-		true if the request has been authenticated, false if the request
-		has to be rejected.
-	*/
-	template<class RAS> bool Validate(
-		RasPDU<RAS>& req, /// a request to be authenticated
-		unsigned& reason /// H225_ReleaseCompleteReason returned if the request is rejected
-		)
-	{
-		if (rasCheckFlags & RasInfo<RAS>::flag) {
-			int r = Check(req, reason);
-			if (r == e_ok) {
-				PTRACE(4, "GkAuth\t" << GetName() << " check ok");
-				if (controlFlag != e_Required)
-					return true;
-			} else if (r == e_fail) {
-				PTRACE(2, "GkAuth\t" << GetName() << " check failed");
-				return false;
-			}
-		}
-		// try next rule
-		return !m_next || m_next->Validate(req, reason);
-	}
-
-	/** Authenticate and authorize (get call duration limit) ARQ 
-	    through this module and all remaining modules.
-		
-		@return
-		true if the request has been authenticated, false if the request
-		has to be rejected or call duration limit is 0.
-	*/
-	bool Validate(
-		/// a request to be authenticated
-		RasPDU<H225_AdmissionRequest>& req, 
-		/// H225_ReleaseCompleteReason returned if the request is rejected
-		unsigned& reason, 
-		/// call duration limit to be set for the admitted call, 
-		/// -1 if no duration limit is required
-		long& callDurationLimit 
-		);
-	
-	/** Authenticate/Authorize Setup signalling message.
-	
-		@return
-		true if the call is authorized, fals to reject the call 
-		and send a ReleaseComplete message.
-	*/
-	bool Validate(
-		/// received Q.931 Setup message
-		Q931& q931pdu, 
-		/// received H.225 Setup message
-		H225_Setup_UUIE& setup, 
-		/// Q931 disconnect cause code to set, if authentication failed
-		unsigned& releaseCompleteCause, 
-		/// call duration limit to set (-1 for no duration limit)
-		long& callDurationLimit
-		);
 		
 	/** @return
-		true if this authenticator provides H.235 compatible security.
-		It simply checks if h235Authenticators list is not empty.
+	    true if this authenticator provides H.235 compatible security.
+	    It simply checks if m_h235Authenticators list is not empty.
 	*/
 	virtual bool IsH235Capable() const;
 	
 	/** If the authenticator supports H.235 security,
-		this call returns H.235 security capabilities
-		associated with it. It scans list pointed by h235Authenticators.
+	    this call returns H.235 security capabilities
+	    associated with it. It scans list pointed by m_h235Authenticators.
 		
-		@return
-		true if H.235 security is supported by this authenticator 
-		and capabilities has been set.
+	    @return
+	    true if H.235 security is supported by this authenticator 
+	    and capabilities has been set.
 	*/
 	virtual bool GetH235Capability(
 		/// append supported authentication mechanism to this array
@@ -179,11 +159,11 @@ public:
 		) const;
 
 	/** Check if this authenticator supports the given
-		H.235 capability (mechanism+algorithmOID) by scanning
-		the h235Authenticators list of H.235 capabilities.
+	    H.235 capability (mechanism+algorithmOID) by scanning
+	    the m_h235Authenticators list of H.235 capabilities.
 		
-		@return
-		true if the capability is supported by this module.
+	    @return
+	    true if the capability is supported by this module.
 	*/
 	virtual bool IsH235Capability(
 		/// authentication mechanism
@@ -193,77 +173,152 @@ public:
 		) const;
 
 	/** @return
-		Control flag determining authenticator behaviour
-		(optional,sufficient,required).
+	    Control flag determining authenticator behaviour
+	    (optional, sufficient, required).
 	*/
-	Control GetControlFlag() const { return controlFlag; }
+	Control GetControlFlag() const { return m_controlFlag; }
 
-protected:
-	// the second argument is the reject reason, if any
-	virtual int Check(RasPDU<H225_GatekeeperRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_UnregistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &, long &);
-	virtual int Check(RasPDU<H225_BandwidthRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_InfoRequest> &, unsigned &);
+	/** @return
+	    True if the check is supported (implemented) by this authenticator.
+	*/
+	bool IsRasCheckEnabled(
+		unsigned rasCheck
+		) const { return (m_enabledRasChecks & m_supportedRasChecks & rasCheck) == rasCheck; }
+
+	/** @return
+	    True if the check is supported (implemented) by this authenticator.
+	*/
+	bool IsMiscCheckEnabled(
+		unsigned miscCheck
+		) const { return (m_enabledMiscChecks & m_supportedMiscChecks & miscCheck) == miscCheck; }
+
+	
+	/** Virtual methods overriden in derived classes to perform
+		the actual authentication. The first parameter is a request
+	    to be checked, the second is a H225_XXXRejectReason that can
+	    be set if the authentication rejects the request.
+		
+	    @return
+	    e_fail - authentication rejected the request
+	    e_ok - authentication accepted the request
+	    e_next - authentication is not supported for this request
+	             or cannot be determined (SQL failure, no cryptoTokens, ...)
+	*/
+	virtual int Check(RasPDU<H225_GatekeeperRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_RegistrationRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_UnregistrationRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_BandwidthRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_DisengageRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
+
+	/** Authenticate/Authorize ARQ message.
+	
+	    @return
+	    e_fail - authentication rejected the request
+	    e_ok - authentication accepted the request
+	    e_next - authentication is not supported for this request
+	             or cannot be determined (SQL failure, no cryptoTokens, ...)
+	*/
+	virtual int Check(
+		/// ARQ to be authenticated/authorized
+		RasPDU<H225_AdmissionRequest>& request, 
+		/// authorization data (call duration limit, reject reason, ...)
+		ARQAuthData& authData
+		);
+		
 	/** Authenticate/Authorize Setup signalling message.
 	
-		@return
-		e_fail - authentication failed
-		e_ok - authenticated with this authenticator
-		e_next - authentication could not be determined
+	    @return
+	    e_fail - authentication rejected the request
+	    e_ok - authentication accepted the request
+	    e_next - authentication is not supported for this request
+	             or cannot be determined (SQL failure, no cryptoTokens, ...)
 	*/
 	virtual int Check(
 		/// received Q.931 Setup message
 		Q931& q931pdu, 
-		/// received H.225 Setup message
+		/// decoded H.225 Setup UUIE element of Q.931 Setup message
 		H225_Setup_UUIE& setup, 
-		/// Q931 disconnect cause code to set, if authentication failed
-		unsigned& releaseCompleteCause, 
-		/// call duration limit to set (-1 for no duration limit)
-		long& callDurationLimit
+		/// authorization data (call duration limit, reject reason, ...)
+		SetupAuthData& authData
 		);
 
-	/// processing rule for this authenticator
-	Control controlFlag;
-	/// default status to be returned, if not determined otherwise
-	Status defaultStatus;
-	/// authenticator config
-	PConfig* config;
-	/// a list of H.235 capabilities supported by this module (if any)
-	H235Authenticators *h235Authenticators;
-	
+protected:
+	/** @return
+	    Default authentication status, if not determined by Check... method.
+	*/
+	int GetDefaultStatus() const { return m_defaultStatus; }
+
+	/** @return
+	    Config that contains settings for this authenticator.
+	*/
+	PConfig* GetConfig() const { return m_config; }
+
+	/// Set bitmasks for checks supported (implemented) by this authenticator
+	void SetSupportedChecks(
+		unsigned supportedRasChecks, /// RAS checks supported by this module
+		unsigned supportedMiscChecks /// non-RAS checks supported by this module
+		);
+
+	/** @return
+	    Bitmask for RAS checks supported/implemented by this authenticator.
+	*/
+	unsigned GetSupportedRasChecks() const { return m_supportedRasChecks; }
+
+	/** @return
+	    Bitmask for non-RAS checks supported/implemented by this authenticator.
+	*/
+	unsigned GetSupportedMiscChecks() const { return m_supportedMiscChecks; }
+
+	/** Should be called only from derived constructor to add supported
+	    H.235 capabilities (if any).
+	*/
+	void AppendH235Authenticator(
+		H235Authenticator* h235Auth /// H.235 authenticator to append
+		);
+
 private:
-	/// bit flags for RAS messages to be authenticated (there are currently
-	/// 32 messages defined, so the whole 32 bit value is required)
-	DWORD rasCheckFlags;
+	GkAuthenticator();
+	GkAuthenticator(const GkAuthenticator&);
+	GkAuthenticator & operator=(const GkAuthenticator&);
+
+private:
+	/// default status to be returned, if not determined otherwise
+	Status m_defaultStatus;
+	/// processing rule for this authenticator
+	Control m_controlFlag;
+	/// bit flags for RAS messages to be authenticated (this enforces the limit
+	/// of first 32 RAS messages being supported)
+	unsigned m_enabledRasChecks;
+	/// bit flags with RAS checks supported by a given authenticator
+	unsigned m_supportedRasChecks;
 	/// bit flags for other event types to be authenticated (like Q.931 Setup)
-	DWORD miscCheckFlags;
-	
-	GkAuthenticator(const GkAuthenticator &);
-	GkAuthenticator & operator=(const GkAuthenticator &);
+	unsigned m_enabledMiscChecks;
+	/// bit flags with non-RAS checks supported by a given authenticator
+	unsigned m_supportedMiscChecks;
+	/// authenticator config
+	PConfig* m_config;
+	/// a list of H.235 capabilities supported by this module (if any)
+	H235Authenticators* m_h235Authenticators;
 };
 
 /** Cache used by some authenticators to remember key-value associations,
     like username-password. It increases performance, as backend 
-	does not need to be queried each time.
+    does not need to be queried each time.
 */
 class CacheManager 
 {
 public:
 	CacheManager(
-		long timeout /// cache timeout - expiry period (seconds)
-		) 
-		: ttl(timeout) {}
+		long timeout = -1 /// cache timeout - expiry period (seconds)
+		) : m_ttl(timeout) {}
 
 	/** Get a value associated with the key.
 	
-		@return
-		true if association has been found and the value is valid,
-		false if the key-value pair is not cached or the cache expired
+	    @return
+	    true if association has been found and the value is valid,
+	    false if the key-value pair is not cached or the cache expired
 	*/
 	bool Retrieve(
 		const PString& key, /// the key to look for
@@ -278,56 +333,83 @@ public:
 
 	void SetTimeout(
 		long newTimeout /// new cache expiration timeout
-		)
-	{
-		ttl = newTimeout;
-	}
+		) { m_ttl = newTimeout; }
+
+private:
+	CacheManager(const CacheManager&);
+	CacheManager & operator=(const CacheManager&);
 	
 private:
 	/// cache timeout (seconds), 0 = do not cache, -1 = never expires
-	long ttl;
+	long m_ttl;
 	/// cached key-value pairs
-	std::map<PString, PString> cache;
+	std::map<PString, PString> m_cache;
 	/// timestamps for key-value pair expiration calculation
-	std::map<PString, long> ctime;
+	std::map<PString, long> m_ctime;
 	/// mutex for multiple read/mutual write access to the cache
-	mutable PReadWriteMutex rwmutex;
-
-	CacheManager(const CacheManager &);
-	CacheManager & operator=(const CacheManager &);
+	mutable PReadWriteMutex m_rwmutex;
 };      
 
 /** A base class for all authenticators that only checks if username-password
-	pairs match. This authenticator checks H.235 tokens/cryptoTokens carried
-	inside RAS requests. Currently, only simple MD5 password hash and Cisco CAT
-	authentication token types are supported.
+    pairs match. This authenticator checks H.235 tokens/cryptoTokens carried
+    inside RAS requests. Currently, only simple MD5 password hash and Cisco CAT
+    authentication token types are supported.
 	
-	Derived authenticators usually override only GetPassword virtual method.
+    Derived authenticators usually override only GetPassword virtual method.
 */
 class SimplePasswordAuth : public GkAuthenticator 
 {
 public:
+	enum SupportedRasChecks {
+		/// bitmask of RAS checks implemented by this module
+		SimplePasswordAuthRasChecks = RasInfo<H225_GatekeeperRequest>::flag
+			| RasInfo<H225_RegistrationRequest>::flag
+			| RasInfo<H225_UnregistrationRequest>::flag
+			| RasInfo<H225_BandwidthRequest>::flag
+			| RasInfo<H225_DisengageRequest>::flag
+			| RasInfo<H225_LocationRequest>::flag
+			| RasInfo<H225_InfoRequest>::flag
+			| RasInfo<H225_AdmissionRequest>::flag
+	};
+
 	SimplePasswordAuth(
-		const char* name /// a name for this module (a config section name)
+		const char* name, /// a name for this module (a config section name)
+		unsigned supportedRasChecks = SimplePasswordAuthRasChecks,
+		unsigned supportedMiscChecks = 0 /// none supported
 		);
-	~SimplePasswordAuth();
+		
+	virtual ~SimplePasswordAuth();
+
+	// overriden from class GkAuthenticator
+	virtual int Check(RasPDU<H225_GatekeeperRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_RegistrationRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_UnregistrationRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_BandwidthRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_DisengageRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
+
+	/** Authenticate/Authorize ARQ message. Override from GkAuthenticator.
+	
+	    @return
+	    e_fail - authentication rejected the request
+	    e_ok - authentication accepted the request
+	    e_next - authentication is not supported for this request
+	             or cannot be determined (SQL failure, no cryptoTokens, ...)
+	*/
+	virtual int Check(
+		/// ARQ to be authenticated/authorized
+		RasPDU<H225_AdmissionRequest>& request, 
+		/// authorization data (call duration limit, reject reason, ...)
+		ARQAuthData& authData
+		);
 
 protected:
-	// override from class GkAuthenticator
-	virtual int Check(RasPDU<H225_GatekeeperRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_UnregistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_BandwidthRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_InfoRequest> &, unsigned &);
-
 	/** Get a password associated with the identifier.
 	
-		@return
-		true if the password is returned, false if the password 
-		could not be found.
+	    @return
+	    true if the password is returned, false if the password 
+	    could not be found.
 	*/
 	virtual bool GetPassword(
 		const PString& id, /// get the password for this id
@@ -336,8 +418,8 @@ protected:
 	
 	/** Check if aliases contain the identifier.
 	
-		@return
-		true if the identifier is a valid alias.
+	    @return
+	    true if the identifier is found within the given aliases.
 	*/
 	virtual bool CheckAliases(
 		const PString& id, /// the identifier to be checked
@@ -345,12 +427,12 @@ protected:
 		);
 
 	/** Validate username/password carried inside the tokens. This method
-		supports only CAT and clear text tokens.
+	    supports only CAT and clear text tokens.
 		
-		@return
-		e_ok if the username/password carried inside the tokens is valid,
-		e_fail if the username/password carried inside the tokens is invalid,
-		e_next if no recognized tokens have been found
+	    @return
+	    e_ok if the username/password carried inside the tokens is valid,
+	    e_fail if the username/password carried inside the tokens is invalid,
+	    e_next if no recognized tokens have been found
 	*/
 	virtual int CheckTokens(
 		/// an array of tokens to be checked
@@ -360,12 +442,12 @@ protected:
 		);
 		
 	/** Validate username/password carried inside the tokens. This method
-		supports only simple MD5 pwdHash cryptoTokens.
+	    supports only simple MD5 pwdHash cryptoTokens.
 		
-		@return
-		e_ok if the username/password carried inside the tokens is valid,
-		e_fail if the username/password carried inside the tokens is invalid,
-		e_next if no recognized tokens have been found
+	    @return
+	    e_ok if the username/password carried inside the tokens is valid,
+	    e_fail if the username/password carried inside the tokens is invalid,
+	    e_next if no recognized tokens have been found
 	*/
 	virtual int CheckCryptoTokens(
 		/// an array of cryptoTokens to be checked
@@ -377,79 +459,105 @@ protected:
 		const PBYTEArray& rawPDU
 		);
 
+	/** A family of template functions that check tokens/cryptoTokens
+	    inside RAS messages.
+		
+	    @return
+	    e_ok if the username/password carried inside the tokens is valid,
+	    e_fail if the username/password carried inside the tokens is invalid,
+	    e_next if no recognized tokens have been found
+	*/
 	template<class RAS> int doCheck(
-		const RasPDU<RAS>& request, 
+		/// RAS request to be authenticated
+		const RasPDU<RAS>& request,
+		/// list of aliases for the endpoint sending the request
 		const H225_ArrayOf_AliasAddress* aliases = NULL
 		)
 	{
-		const RAS & req = request;
+		const RAS& req = request;
 		bool finalResult = false;
 		int result;
 		
 		if (req.HasOptionalField(RAS::e_cryptoTokens)) {
-			if( (result = CheckCryptoTokens(req.m_cryptoTokens, aliases, 
-					request->m_rasPDU)) == e_fail )
+			if ((result = CheckCryptoTokens(req.m_cryptoTokens, aliases, 
+					request->m_rasPDU)) == e_fail)
 				return e_fail;
 			finalResult = (result == e_ok);
 		}
 		if (req.HasOptionalField(RAS::e_tokens)) {
-			if( (result = CheckTokens(req.m_tokens, aliases)) == e_fail )
+			if ((result = CheckTokens(req.m_tokens, aliases)) == e_fail)
 				return e_fail;
 			finalResult = finalResult || (result == e_ok);
 		}
-		return finalResult ? e_ok 
-			: ((controlFlag == e_Optional) ? e_next : e_fail);
+		return finalResult ? e_ok : GetDefaultStatus();
 	}
 
+	/// Set new timeout for username/password pairs cache
 	void SetCacheTimeout(
 		long newTimeout
-		)
-	{
-		if (m_cache)
-			m_cache->SetTimeout(newTimeout);
-	}
+		) { m_cache->SetTimeout(newTimeout); }
+
+	/** @return
+	    True if usernames should match one of endpoint aliases.
+	*/
+	bool GetCheckID() const { return m_checkID; }
+
+private:
+	/** Get password for the given user. Examine password cache first.
+	
+	    @return
+	    true if the password has been found.
+    */
+	bool InternalGetPassword(
+		const PString& id, /// get the password for this id
+		PString& passwd /// filled with the password on return
+		);
+
+	SimplePasswordAuth();
+	SimplePasswordAuth(const SimplePasswordAuth&);
+	SimplePasswordAuth& operator=(const SimplePasswordAuth&);
 	
 private:
-	PString InternalGetPassword(const PString & id);
-
 	/// an encryption key used to decrypt passwords from the config file
-	int filled;
+	int m_encryptionKey;
 	/// if true, generalID has to be also in the endpoint alias list
-	bool checkid;
+	bool m_checkID;
 	/// cache for username/password pairs
 	CacheManager* m_cache;
 };
 
 
 /** A base class for all authenticators that validate endpoints (requests)
-	by alias and/or IP address only.
+    by alias and/or IP address only.
 	
-	Derived authenticators usually override GetAuthConditionString virtual 
-	method only.
+    Derived authenticators usually override GetAuthConditionString virtual 
+    method only.
 */
 class AliasAuth : public GkAuthenticator 
 {
 public:
+	enum SupportedRasChecks {
+		/// bitmask of RAS checks implemented by this module
+		AliasAuthRasChecks = RasInfo<H225_RegistrationRequest>::flag
+	};
+
 	AliasAuth(
-		const char* name /// a name for this module (a config section name)
+		const char* name, /// a name for this module (a config section name)
+		unsigned supportedRasChecks = AliasAuthRasChecks,
+		unsigned supportedMiscChecks = 0
 		);
 
-protected:
+	virtual ~AliasAuth();
+	
 	// override from class GkAuthenticator
-	virtual int Check(RasPDU<H225_GatekeeperRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_UnregistrationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_BandwidthRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
-	virtual int Check(RasPDU<H225_InfoRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_RegistrationRequest>& req, unsigned& rejectReason);
 
+protected:
 	/** Validate that the signalling addresses match the given condition.
-		The condition consists of one or more auth rules.
+	    The condition consists of one or more auth rules.
 		
-		@return
-		true if the signalling addresses match the condition.
+	    @return
+	    true if the signalling addresses match the condition.
 	*/
 	virtual bool doCheck(
 		/// an array of source signalling addresses for an endpoint that sent the request
@@ -460,8 +568,8 @@ protected:
 		
 	/** Validate that the signalling address matches the given auth rule.
 	
-		@return
-		true if the signal address matches the rule.
+	    @return
+	    true if the signal address matches the rule.
 	*/
 	virtual bool CheckAuthRule(
 		/// a signalling address for the endpoint that sent the request
@@ -471,23 +579,50 @@ protected:
 		);
 
 	/** Get AliasAuth condition string for the given alias. 
-		This implementation searches RasSrv::RRQAuth section for the string.
-		The string is then used to accept/reject the request, optionally
-		checking its source signaliing addresses. The string consists of
-		one or more auth rules separated by '|' or '&' character.
+	    This implementation searches RasSrv::RRQAuth section for the string.
+	    The string is then used to accept/reject the request, optionally
+	    checking its source signaliing addresses. The string consists of
+	    one or more auth rules separated by '|' or '&' character.
 		
 		@return
 		The AliasAuth condition string for the given alias.
 	 */
-	virtual PString GetAuthConditionString(
+	virtual bool GetAuthConditionString(
 		/// an alias the condition string is to be retrieved for
-		const PString& alias
+		const PString& alias,
+		/// filled with auth condition string that has been found
+		PString& authCond
 		);
+
+	/// Set new timeout for username/password pairs cache
+	void SetCacheTimeout(
+		long newTimeout
+		) { m_cache->SetTimeout(newTimeout); }
+		
+private:
+	/** Get auth condition string for the given user. 
+	    Examine the cache first.
+	
+	    @return
+	    true if the auth condition string has been found.
+    */
+	bool InternalGetAuthConditionString(
+		const PString& id, /// get the password for this id
+		PString& authCond /// filled with the auth condition string on return
+		);
+		
+	AliasAuth();
+	AliasAuth(const AliasAuth&);
+	AliasAuth& operator=(const AliasAuth&);
+	
+private:
+	/// cache for username/password pairs
+	CacheManager* m_cache;
 };
 
 
 /** A list of authenticators. Usually created as a single global object
-	by the RasServer.
+    by the RasServer.
 */
 class GkAuthenticatorList 
 {
@@ -500,9 +635,9 @@ public:
 	void OnReload();
 	
 	/** Select H.235 authentication mechanisms supported both by the endpoint
-		sending GRQ and all the authenticators, and copy these into GCF.
-		If no common H.235 capabilities can be found, do not select 
-		any authentication mechanisms with GCF.
+	    sending GRQ and all the authenticators, and copy these into GCF.
+	    If no common H.235 capabilities can be found, do not select 
+	    any authentication mechanisms with GCF.
 	*/
 	void SelectH235Capability(
 		const H225_GatekeeperRequest& grq, 
@@ -510,89 +645,97 @@ public:
 		);
 
 	/** Authenticate the request through all configured authenticators.
-		Currently, only RAS requests are supported.
+	    Currently, only RAS requests are supported.
 				
-		@return
-		true if the request should be accepted, false to reject the request.
+	    @return
+	    true if the request should be accepted, false to reject the request.
 	*/
-	template<class PDU> bool Validate(
+	template<class RAS> bool Validate(
 		/// the request to be validated by authenticators
-		PDU& request, 
-		/// H225_ReleaseCompleteReason to be set if the request is rejected
+		RasPDU<RAS>& request,
+		/// H225_RegistrationRejectReason to be set if the request is rejected
 		unsigned& rejectReason
 		)
 	{
-		if( m_head ) {
-			ReadLock lock(m_reloadMutex);
-			return !m_head || m_head->Validate(request, rejectReason);
-		} else
-			return true;
+		ReadLock lock(m_reloadMutex);
+		std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
+		while (i != m_authenticators.end()) {
+			GkAuthenticator* auth = *i++;
+			if (auth->IsRasCheckEnabled(RasInfo<RAS>::flag)) {
+				const int result = auth->Check(request, rejectReason);
+				if (result == GkAuthenticator::e_ok) {
+					PTRACE(3, "GKAUTH\t" << auth->GetName() << ' ' 
+						<< request.GetTagName() << " check ok"
+						);
+					if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+						return true;
+				} else if (result == GkAuthenticator::e_fail) {
+					PTRACE(3, "GKAUTH\t" << auth->GetName() << ' '
+						<< request.GetTagName() << " check failed"
+						);
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
 	/** Authenticate and authorize (set call duration limit) ARQ 
-		through all configured authenticators.
+	    through all configured authenticators.
 				
-		@return
-		true if the call should be admitted, false to send ARJ.
+	    @return
+	    true if the call should be admitted, false to send ARJ.
 	*/
 	bool Validate(
 		/// ARQ to be validated by authenticators
 		RasPDU<H225_AdmissionRequest>& request,
-		/// H225_ReleaseCompleteReason to be set if the request is rejected
-		unsigned& rejectReason,
-		/// duration limit to set for the admitted call, -1 to not set any limit
-		long& callDurationLimit
-		)
-	{
-		callDurationLimit = -1;
-		if( m_head ) {
-			ReadLock lock(m_reloadMutex);
-			return !m_head 
-				|| m_head->Validate(request, rejectReason, callDurationLimit);
-		} else
-			return true;
-	}
+		/// authorization data (call duration limit, reject reason, ...)
+		GkAuthenticator::ARQAuthData& authData
+		);
 	
 	/** Authenticate and authorize (set call duration limit) Q.931/H.225 Setup 
-		through all configured authenticators.
+	    through all configured authenticators.
 				
-		@return
-		true if the call should be accepted, false to send ReleaseComplete.
+	    @return
+	    true if the call should be accepted, false to send ReleaseComplete.
 	*/
 	bool Validate(
 		/// received Q.931 Setup message
 		Q931& q931pdu,
 		///  H.225.0 Setup UUIE decoded from Q.931 SETUP
 		H225_Setup_UUIE& setup, 
-		/// Q931 disconnect cause code to set, if authentication failed
-		unsigned& releaseCompleteCause,
-		/// duration limit to set for the admitted call, -1 to not set any limit
-		long& callDurationLimit
-		)
-	{
-		callDurationLimit = -1;
-		if( m_head ) {
-			ReadLock lock(m_reloadMutex);
-			return !m_head 
-				|| m_head->Validate(q931pdu, setup, releaseCompleteCause, callDurationLimit);
-		} else
-			return true;
-	}
+		/// authorization data (call duration limit, reject reason, ...)
+		GkAuthenticator::SetupAuthData& authData
+		);
+
+private:
+	GkAuthenticatorList(const GkAuthenticatorList&);
+	GkAuthenticatorList& operator=(const GkAuthenticatorList&);
 
 private:
 	/// a list of all configured authenticators
-	GkAuthenticator *m_head;
+	std::list<GkAuthenticator*> m_authenticators;
 	/// reload/destroy mutex
 	PReadWriteMutex m_reloadMutex;
 	/// the most common authentication capabilities 
 	/// shared by all authenticators on the list
-	H225_ArrayOf_AuthenticationMechanism *m_mechanisms;
-	H225_ArrayOf_PASN_ObjectId *m_algorithmOIDs;
-
-	GkAuthenticatorList(const GkAuthenticatorList &);
-	GkAuthenticatorList & operator=(const GkAuthenticatorList &);
+	H225_ArrayOf_AuthenticationMechanism* m_mechanisms;
+	H225_ArrayOf_PASN_ObjectId* m_algorithmOIDs;
 };
 
+/** A factory template for authenticator objects. When you create
+    your own authenticator class (derived from GkAuthenticator),
+    you need to register it and tell the gatekeeper how to instantiate it.
+    You can do it by putting the following code:
+	
+    namespace {
+        GkAuthCreator<MyAuthClass> MY_AUTH_FACTORY("MyAuthClass");
+    }
+	
+    This registers "MyAuthClass" string as the name to be used in the config
+    for MyAuthClass authenticator. Of course, authenticator name 
+    and class name do not have to be the same.
+*/
 template<class Auth>
 struct GkAuthCreator : public Factory<GkAuthenticator>::Creator0 {
 	GkAuthCreator(const char *n) : Factory<GkAuthenticator>::Creator0(n) {}

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2004/03/17 00:00:38  zvision
+ * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
+ *
  * Revision 1.11  2004/03/11 13:42:48  zvision
  * 64-bit fixes from Klaus Kaempf
  *
@@ -72,10 +75,6 @@
 #if HAS_RADIUS
 
 #include <ptlib.h>
-#include <ptlib/sockets.h>
-#include <ptclib/random.h>
-#include <ptclib/cypher.h>
-
 #include "radproto.h"
 
 #if PTRACING
@@ -1586,6 +1585,81 @@ RadiusClient::RadiusClient(
 #endif
 }
 
+RadiusClient::RadiusClient( 
+	PConfig& config, /// config that contains RADIUS settings
+	const PString& sectionName /// config section with the settings
+	)
+	:
+	sharedSecret(config.GetString(sectionName, "SharedSecret", "")),
+	authPort((WORD)config.GetInteger(sectionName, "DefaultAuthPort", 
+		RadiusClient::GetDefaultAuthPort())),
+	acctPort((WORD)config.GetInteger(sectionName, "DefaultAcctPort", 
+		RadiusClient::GetDefaultAcctPort())),
+	portBase(1024),
+	portMax(65535),
+	requestTimeout(config.GetInteger(sectionName, "RequestTimeout",
+		DefaultRequestTimeout)),
+	idCacheTimeout(config.GetInteger(sectionName, "IdCacheTimeout",
+		DefaultIdCacheTimeout)),
+	socketDeleteTimeout(config.GetInteger(sectionName, "SocketDeleteTimeout",
+		DefaultSocketDeleteTimeout)),
+	numRetries(config.GetInteger(sectionName, "RequestRetransmissions",
+		DefaultRetries)),
+	roundRobinServers(config.GetBoolean(
+		sectionName, "RoundRobinServers", TRUE)),
+	localAddress(INADDR_ANY)
+{
+	radiusServers = config.GetString(sectionName, "Servers", "").Tokenise(";, |\t", FALSE);
+
+	const PString addr = config.GetString(sectionName, "LocalInterface", "");
+	
+	if (!addr)
+		if (!PIPSocket::IsLocalHost(addr))
+			PTRACE(2, "RADIUS\tSpecified local client address '" << addr 
+				<< "' is not bound to any local interface"
+				);
+		else
+			PIPSocket::GetHostAddress(addr, localAddress);
+
+	// parse port range (if it does exist)
+	const PStringArray s
+		= config.GetString(sectionName, "RadiusPortRange", "").Tokenise("-");
+	if (s.GetSize() >= 2) { 
+		unsigned p1 = s[0].AsUnsigned();
+		unsigned p2 = s[1].AsUnsigned();
+	
+		// swap if base is greater than max
+		if (p2 < p1) {
+			const unsigned temp = p1;
+			p1 = p2;
+			p2 = temp;
+		}
+		
+		if (p1 > 65535)
+			p1 = 65535;
+		if (p2 > 65535)
+			p2 = 65535;
+	
+		if (p1 > 0 && p2 > 0) {
+			portBase = (WORD)p1;
+			portMax = (WORD)p2;
+		}
+	}
+
+#if PTRACING
+	if( PTrace::CanTrace(4) ) {
+		ostream& s = PTrace::Begin(4,__FILE__,__LINE__);
+		const int indent = s.precision() + 2;
+		s << "RADIUS\tCreated instance of RADIUS client (local if: "
+			<< localAddress << ", default ports: " << authPort << ',' << acctPort
+			<< ") for RADIUS servers group:";
+		for( int i = 0; i < radiusServers.GetSize(); i++ )
+			s<<'\n'<<setw(indent+radiusServers[i].GetLength())<<radiusServers[i];
+		PTrace::End(s);
+	}
+#endif
+}
+
 RadiusClient::~RadiusClient()
 {
 	for( PINDEX i = 0; i < activeSockets.GetSize(); i++ )
@@ -1969,7 +2043,7 @@ BOOL RadiusClient::SendRequest(
 
 BOOL RadiusClient::VerifyResponseAuthenticator(
 	const BYTE* requestBuffer,
-	PINDEX requestLength,
+	PINDEX /*requestLength*/,
 	const BYTE* responseBuffer,
 	PINDEX responseLength
 	)
@@ -2018,8 +2092,8 @@ BOOL RadiusClient::VerifyResponseAuthenticator(
 }
 
 BOOL RadiusClient::OnSendPDU( 
-	RadiusPDU& pdu,
-	BOOL retransmission,
+	RadiusPDU& /*pdu*/,
+	BOOL /*retransmission*/,
 	BOOL& changed
 	)
 {
@@ -2027,7 +2101,9 @@ BOOL RadiusClient::OnSendPDU(
 	return TRUE;
 }
 
-BOOL RadiusClient::OnReceivedPDU( RadiusPDU& pdu )
+BOOL RadiusClient::OnReceivedPDU( 
+	RadiusPDU& /*pdu*/
+	)
 {
 	return TRUE;
 }
@@ -2056,19 +2132,19 @@ RadiusClient::RAGenerator RadiusClient::GetRAGenerator(
 WORD RadiusClient::GetDefaultAuthPort()
 {
 	const WORD port = PSocket::GetPortByService( "udp", "radius" );
-	return (port==0) ? DefaultAuthPort : port;
+	return (port==0) ? (WORD)DefaultAuthPort : port;
 }
 
 WORD RadiusClient::GetDefaultAcctPort()
 {
 	const WORD port = PSocket::GetPortByService( "udp", "radacct" );
-	return (port==0) ? DefaultAcctPort : port;
+	return (port==0) ? (WORD)DefaultAcctPort : port;
 }
 
 void RadiusClient::FillRequestAuthenticator( 
 	RadiusPDU& pdu, 
 	const PString& secret,
-	PMessageDigest5& md5 
+	PMessageDigest5& md5
 	) const
 {
 	if( GetRAGenerator(pdu) == RAGeneratorMD5 ) {
@@ -2155,23 +2231,10 @@ void RadiusClient::EncryptPasswords(
 		const DWORD* buf2ptr = (const DWORD*)&digest;
 #endif
 
-		if( ((unsigned long)buf2ptr & 3) || ((unsigned long)buf1ptr & 3) ) {
-			((BYTE*)buf1ptr)[0] = ((BYTE*)buf1ptr)[0] ^ ((const BYTE*)buf2ptr)[0];
-			((BYTE*)buf1ptr)[1] = ((BYTE*)buf1ptr)[1] ^ ((const BYTE*)buf2ptr)[1];
-			((BYTE*)buf1ptr)[2] = ((BYTE*)buf1ptr)[2] ^ ((const BYTE*)buf2ptr)[2];
-			((BYTE*)buf1ptr)[3] = ((BYTE*)buf1ptr)[3] ^ ((const BYTE*)buf2ptr)[3];
-			((BYTE*)buf1ptr)[4] = ((BYTE*)buf1ptr)[4] ^ ((const BYTE*)buf2ptr)[4];
-			((BYTE*)buf1ptr)[5] = ((BYTE*)buf1ptr)[5] ^ ((const BYTE*)buf2ptr)[5];
-			((BYTE*)buf1ptr)[6] = ((BYTE*)buf1ptr)[6] ^ ((const BYTE*)buf2ptr)[6];
-			((BYTE*)buf1ptr)[7] = ((BYTE*)buf1ptr)[7] ^ ((const BYTE*)buf2ptr)[7];
-			((BYTE*)buf1ptr)[8] = ((BYTE*)buf1ptr)[8] ^ ((const BYTE*)buf2ptr)[8];
-			((BYTE*)buf1ptr)[9] = ((BYTE*)buf1ptr)[9] ^ ((const BYTE*)buf2ptr)[9];
-			((BYTE*)buf1ptr)[10] = ((BYTE*)buf1ptr)[10] ^ ((const BYTE*)buf2ptr)[10];
-			((BYTE*)buf1ptr)[11] = ((BYTE*)buf1ptr)[11] ^ ((const BYTE*)buf2ptr)[11];
-			((BYTE*)buf1ptr)[12] = ((BYTE*)buf1ptr)[12] ^ ((const BYTE*)buf2ptr)[12];
-			((BYTE*)buf1ptr)[13] = ((BYTE*)buf1ptr)[13] ^ ((const BYTE*)buf2ptr)[13];
-			((BYTE*)buf1ptr)[14] = ((BYTE*)buf1ptr)[14] ^ ((const BYTE*)buf2ptr)[14];
-			((BYTE*)buf1ptr)[15] = ((BYTE*)buf1ptr)[15] ^ ((const BYTE*)buf2ptr)[15];
+		if( (reinterpret_cast<unsigned long>(buf2ptr) & 3) 
+			|| (reinterpret_cast<unsigned long>(buf1ptr) & 3) ) {
+			for (int _i = 0; _i < 16; _i++)
+				((BYTE*)buf1ptr)[_i] = ((BYTE*)buf1ptr)[_i] ^ ((const BYTE*)buf2ptr)[_i];
 			buf1ptr += 4;
 			buf2ptr += 4;
 		} else {
@@ -2195,23 +2258,10 @@ void RadiusClient::EncryptPasswords(
 #else
 			buf2ptr = (const DWORD*)&digest;
 #endif
-			if( ((unsigned)buf2ptr & 3) || ((unsigned)buf1ptr & 3) ) {
-				((BYTE*)buf1ptr)[0] = ((BYTE*)buf1ptr)[0] ^ ((const BYTE*)buf2ptr)[0];
-				((BYTE*)buf1ptr)[1] = ((BYTE*)buf1ptr)[1] ^ ((const BYTE*)buf2ptr)[1];
-				((BYTE*)buf1ptr)[2] = ((BYTE*)buf1ptr)[2] ^ ((const BYTE*)buf2ptr)[2];
-				((BYTE*)buf1ptr)[3] = ((BYTE*)buf1ptr)[3] ^ ((const BYTE*)buf2ptr)[3];
-				((BYTE*)buf1ptr)[4] = ((BYTE*)buf1ptr)[4] ^ ((const BYTE*)buf2ptr)[4];
-				((BYTE*)buf1ptr)[5] = ((BYTE*)buf1ptr)[5] ^ ((const BYTE*)buf2ptr)[5];
-				((BYTE*)buf1ptr)[6] = ((BYTE*)buf1ptr)[6] ^ ((const BYTE*)buf2ptr)[6];
-				((BYTE*)buf1ptr)[7] = ((BYTE*)buf1ptr)[7] ^ ((const BYTE*)buf2ptr)[7];
-				((BYTE*)buf1ptr)[8] = ((BYTE*)buf1ptr)[8] ^ ((const BYTE*)buf2ptr)[8];
-				((BYTE*)buf1ptr)[9] = ((BYTE*)buf1ptr)[9] ^ ((const BYTE*)buf2ptr)[9];
-				((BYTE*)buf1ptr)[10] = ((BYTE*)buf1ptr)[10] ^ ((const BYTE*)buf2ptr)[10];
-				((BYTE*)buf1ptr)[11] = ((BYTE*)buf1ptr)[11] ^ ((const BYTE*)buf2ptr)[11];
-				((BYTE*)buf1ptr)[12] = ((BYTE*)buf1ptr)[12] ^ ((const BYTE*)buf2ptr)[12];
-				((BYTE*)buf1ptr)[13] = ((BYTE*)buf1ptr)[13] ^ ((const BYTE*)buf2ptr)[13];
-				((BYTE*)buf1ptr)[14] = ((BYTE*)buf1ptr)[14] ^ ((const BYTE*)buf2ptr)[14];
-				((BYTE*)buf1ptr)[15] = ((BYTE*)buf1ptr)[15] ^ ((const BYTE*)buf2ptr)[15];
+			if( (reinterpret_cast<unsigned long>(buf2ptr) & 3) 
+				|| (reinterpret_cast<unsigned long>(buf1ptr) & 3) ) {
+				for (int _i = 0; _i < 16; _i++)
+					((BYTE*)buf1ptr)[_i] = ((BYTE*)buf1ptr)[_i] ^ ((const BYTE*)buf2ptr)[_i];
 				buf1ptr += 4;
 				buf2ptr += 4;
 			} else {
@@ -2245,7 +2295,7 @@ BOOL RadiusClient::GetSocket( RadiusSocket*& socket, unsigned char& id )
 				continue;
 			else {
 				s = activeSockets.GetAt(i);
-				id = _id;
+				id = (unsigned char)(_id & 0xff);
 				break;
 			}
 		} else
@@ -2292,9 +2342,9 @@ BOOL RadiusClient::GetSocket( RadiusSocket*& socket, unsigned char& id )
 			s = NULL;
 
 			if( localAddress == INADDR_ANY )
-				s = CreateSocket( portBase + portIndex );
+				s = CreateSocket( (WORD)(portBase + portIndex) );
 			else
-				s = CreateSocket( localAddress, portBase + portIndex );
+				s = CreateSocket( localAddress, (WORD)(portBase + portIndex) );
 		} while( ((s == NULL) || (!s->IsOpen())) && (--randCount) );
 
 	if( (s == NULL) || (!s->IsOpen()) )
@@ -2335,7 +2385,7 @@ BOOL RadiusClient::GetSocket( RadiusSocket*& socket, unsigned char& id )
 		return FALSE;
 		
 	socket = s;
-	id = i;
+	id = (unsigned char)(i & 0xff);
 
 	return TRUE;
 }

@@ -18,8 +18,9 @@
 #define PROXYCHANNEL_H "@(#) $Id$"
 
 #include <vector>
-#include "RasTbl.h"
+#include <list>
 #include "yasocket.h"
+#include "RasTbl.h"
 
 
 class Q931;

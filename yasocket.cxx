@@ -18,14 +18,13 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
+#include <ptlib.h>
+#include "h323util.h"
+#include "stl_supp.h"
 #include "rwlock.h"
 #include "yasocket.h"
-#include "stl_supp.h"
-
 
 #ifdef LARGE_FDSET
-
-#include "h323util.h"
 
 // class YaSelectList
 YaSelectList::YaSelectList(YaSocket *s) : maxfd(0)

@@ -24,10 +24,6 @@
 #include <algorithm>
 #include <stdexcept>
 
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#endif
-
 //
 // a list of pointers that would delete all objects
 // referred by the pointers in the list on destruction

@@ -11,6 +11,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include <ptlib.h>
+#include <ptlib/sockets.h>
 #include "versionts.h"
 #include "version.h"
 #include "Toolkit.h"

@@ -21,7 +21,9 @@
 #endif
 
 #include <ptlib.h>
+#include <ptlib/sockets.h>
 #include <ptclib/telnet.h>
+#include <h225.h>
 #include "gk_const.h"
 #include "stl_supp.h"
 #include "SoftPBX.h"
@@ -273,7 +275,7 @@ BOOL TelnetSocket::Accept(PSocket & socket)
 int TelnetSocket::ReadChar()
 {
 	bool hasData = false;
-	BYTE currentByte;
+	BYTE currentByte = 0;
 
 	while (!hasData) {
 		if (!TCPSocket::Read(&currentByte, 1)) {

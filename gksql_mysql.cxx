@@ -4,6 +4,10 @@
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
+#ifdef _WIN32
+#pragma comment( lib, "libmysql.lib" )
+#endif
+
 #include <ptlib.h>
 #include <mysql.h>
 #include "gksql.h"
@@ -205,7 +209,7 @@ GkMySQLResult::GkMySQLResult(
 	m_sqlRowLengths(NULL), m_errorCode(0)
 {
 	if (m_sqlResult) {
-		m_numRows = mysql_num_rows(m_sqlResult);
+		m_numRows = (long)mysql_num_rows(m_sqlResult);
 		m_numFields = mysql_num_fields(m_sqlResult);
 	} else
 		m_queryError = true;
@@ -396,7 +400,7 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 	/// query string
 	const char* queryStr,
 	/// maximum time (ms) for the query execution, -1 means infinite
-	long timeout
+	long /*timeout*/
 	)
 {
 	MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
@@ -413,7 +417,7 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 	if (result)
 		return new GkMySQLResult(result, mysql_error(mysqlconn));
 
-	return new GkMySQLResult(mysql_affected_rows(mysqlconn));
+	return new GkMySQLResult((long)mysql_affected_rows(mysqlconn));
 }
 
 PString GkMySQLConnection::EscapeString(

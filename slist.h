@@ -19,9 +19,7 @@
 #ifndef SLIST_H
 #define SLIST_H "@(#) $Id$"
 
-#ifndef FACTORY_H
 #include "factory.h"
-#endif
 
 template<class T>
 class SList {

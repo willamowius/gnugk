@@ -15,8 +15,6 @@
 #ifndef TOOLKIT_H
 #define TOOLKIT_H "@(#) $Id$"
 
-#include <ptlib.h>
-#include <ptlib/sockets.h>
 #include <vector>
 #include "singleton.h"
 

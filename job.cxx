@@ -23,10 +23,11 @@
 #endif
 
 #include <list>
-#include "job.h"
-#include "rwlock.h"
+#include <ptlib.h>
 #include "stl_supp.h"
+#include "rwlock.h"
 #include "singleton.h"
+#include "job.h"
 
 
 // timeout (seconds) for an idle Worker to be deleted
@@ -170,10 +171,11 @@ void Worker::Main()
 	while (!m_closed) {
 		bool timedout = false;
 		// wait for a new job or idle timeout expiration
-		if (m_job == NULL)
-			if (timedout = !m_wakeupSync.Wait(m_idleTimeout))
+		if (m_job == NULL) {
+			timedout = !m_wakeupSync.Wait(m_idleTimeout);
+			if (timedout)
 				PTRACE(5, "JOB\tIdle timeout for Worker " << m_id);
-				
+		}
 		// terminate this worker if closed explicitly or idle timeout expired
 		if (m_closed || (timedout && m_job == NULL)) {
 			m_closed = true;

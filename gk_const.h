@@ -43,11 +43,4 @@ extern const char *H225_ProtocolID;
 #endif
 #endif
 
-// check for version 1.11.5
-#if (MAJOR_VERSION > 1) || (MAJOR_VERSION == 1 && MINOR_VERSION > 11) || (MAJOR_VERSION == 1 && MINOR_VERSION == 11 && BUILD_NUMBER >= 5)
-#define OPENH323_NEWVERSION
-#else
-#undef  OPENH323_NEWVERSION
-#endif
-
 #endif

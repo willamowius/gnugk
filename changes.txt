@@ -1,5 +1,12 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- header file usage more consistent
+- SQL authenticators moved to a separate file
+- added VSNET2003 sln and vcproj files
+- fixed Windows DSP files to not enable some optimizations for Windows
+  that result in VC6 linker throwing away some gnugk modules (static variables)
+- improved configure script to detect installed PWLib/OpenH323
+- significant API changes to authentication/accounting modules
 - added logparser application from Saad Faisal to the contrib section
 - pgsqlauth removed from the contrib section, as it is obsolete now
 - BUGFIX(Routing.cxx) the absense of a regexp for virtual queues wasn't detected

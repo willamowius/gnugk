@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2004/03/17 00:00:38  zvision
+ * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
+ *
  * Revision 1.6  2003/10/31 00:01:25  zvision
  * Improved accounting modules stacking control, optimized radacct/radauth a bit
  *
@@ -71,13 +74,13 @@ public:
 	/// Destroy the accounting logger
 	virtual ~RadAcct();
 
-protected:
 	/// overriden from GkAcctLogger
 	virtual Status Log(
 		AcctEvent evt,
 		callptr& call
 		);
 		
+protected:
 	/** Called before Accounting-Request PDU is send.
 		Can be used to introduce additional attributes etc.
 		
@@ -103,52 +106,25 @@ protected:
 		);
 		
 private:
+	RadAcct();
 	/* No copy constructor allowed */
-	RadAcct( const RadAcct& );
+	RadAcct(const RadAcct&);
 	/* No operator= allowed */
-	RadAcct& operator=( const RadAcct& );
+	RadAcct& operator=(const RadAcct&);
 	
 private:
-	/// array of configured RADIUS server names
-	PStringArray radiusServers;
-	/// shared secret for gk client<->RADIUS server authorization
-	PString sharedSecret;
-	/// default port that will be used for sending RADIUS acct
-	/// requests
-	WORD acctPort;
-	/// base port number for UDP client socket allocation
-	WORD portBase;
-	/// max port number for UDP client socket allocation
-	WORD portMax;
-	/// timeout (ms) for a single RADIUS request
-	unsigned requestTimeout;
-	/// timeout (ms) for RADIUS requests IDs to be unique
-	unsigned idCacheTimeout;
-	/// timeout (ms) for unused sockets to be deleted
-	unsigned socketDeleteTimeout;
-	/// how many times to transmit a single request (1==no retransmission)
-	/// to a single RADIUS server
-	unsigned numRequestRetransmissions;
-	/// retransmission fashion: 
-	/// 	false - do #numRequestRetransmissions# for server A,
-	///				then do #numRequestRetransmissions# for server B, etc.
-	///		true  - transmit request to server A, then to server B, etc.
-	///				the whole procedure repeat #numRequestRetransmissions# times
-	bool roundRobin;
 	/// if true Cisco VSAs are appended to the RADIUS packets
-	bool appendCiscoAttributes;
+	bool m_appendCiscoAttributes;
 	/// append IP address of the calling endpoint
-	bool includeFramedIp;
-	/// local interface RADIUS client should be bound to (multihomed hosts)
-	PString localInterface;	
-	/// IP address for the local interface
-	PIPSocket::Address localInterfaceAddr;
+	bool m_includeFramedIp;
 	/// NAS (GK) identifier
-	PString NASIdentifier;
+	PString m_nasIdentifier;
+	/// NAS IP address (local interface for RADIUS client)
+	PIPSocket::Address m_nasIpAddress;
 	/// Fixed value for User-Name attribute in outgoing requests
-	PString fixedUsername;
+	PString m_fixedUsername;
 	/// RADIUS protocol client class associated with this authenticator
-	RadiusClient* radiusClient;
+	RadiusClient* m_radiusClient;
 };
 
 #endif /* __RADACCT_H */

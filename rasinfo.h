@@ -20,13 +20,6 @@
 #ifndef RASINFO_H
 #define RASINFO_H "@(#) $Id$"
 
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#endif
-#ifndef __H225_H
-#include <h225.h> 
-#endif
-
 #ifndef __STL_TEMPLATE_NULL
 // explicit specialization
 #define __STL_TEMPLATE_NULL template<>

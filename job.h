@@ -19,12 +19,7 @@
 #ifndef JOB_H
 #define JOB_H "@(#) $Id$"
 
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#endif
-#ifndef NAME_H
 #include "name.h"
-#endif
 
 /** The base abstract class that represents job objects.
     This class implements the way to execute the job.

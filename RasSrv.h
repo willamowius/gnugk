@@ -19,10 +19,11 @@
 #ifndef RASSRV_H
 #define RASSRV_H "@(#) $Id$"
 
+#include <vector>
+#include <list>
 #include "h323util.h"
 #include "yasocket.h"
 #include "singleton.h"
-#include <vector>
 #include "RasTbl.h"
 #include "RasPDU.h"
 #include "gkauth.h"
@@ -46,6 +47,8 @@ class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
 class HandlerList;
+struct GkAuthenticator::ARQAuthData;
+struct GkAuthenticator::SetupAuthData;
 
 class WaitingARQlist;
 
@@ -121,26 +124,26 @@ public:
 
 	void SelectH235Capability(const H225_GatekeeperRequest &, H225_GatekeeperConfirm &) const;
 
-	template<class PDU> bool ValidatePDU(PDU & ras, unsigned & reason)
+	template<class RAS> bool ValidatePDU(RasPDU<RAS>& ras, unsigned & reason)
 	{
 		return authList->Validate(ras, reason);
 	}
+
 	bool ValidatePDU(
 		RasPDU<H225_AdmissionRequest>& ras, 
-		unsigned& rejectReason, 
-		long& callDurationLimit
+		GkAuthenticator::ARQAuthData& authData
 		)
 	{
-		return authList->Validate(ras, rejectReason, callDurationLimit);
+		return authList->Validate(ras, authData);
 	}
+
 	bool ValidatePDU(
 		Q931& q931pdu,
 		H225_Setup_UUIE& setup,
-		unsigned& rejectReason,
-		long& callDurationLimit
+		GkAuthenticator::SetupAuthData& authData
 		)
 	{
-		return authList->Validate(q931pdu, setup, rejectReason, callDurationLimit);
+		return authList->Validate(q931pdu, setup, authData);
 	}
 
 	bool LogAcctEvent(

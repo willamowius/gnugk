@@ -17,15 +17,12 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include "Toolkit.h"
-#include "stl_supp.h"
-#include <h323pdu.h>
+#include <ptlib.h>
 #include <ptclib/cypher.h>
-
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
+#include <h323pdu.h>
 #include <map>
+#include "stl_supp.h"
+#include "Toolkit.h"
 
 
 extern const char *ProxySection;
@@ -797,7 +794,7 @@ bool Toolkit::AsBool(const PString & str)
 {
 	if (str.IsEmpty())
 		return false;
-	const unsigned char c = tolower(str[0]);
+	const unsigned char c = (unsigned char)tolower(str[0]);
 	return ( c=='t' || c=='1' || c=='y' || c=='a' );
 }
 

@@ -42,9 +42,10 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GR /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /I "..\include" /D "NDEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FD /c
-# ADD BASE RSC /l 0x407 /d "NDEBUG"
-# ADD RSC /l 0x407 /d "NDEBUG"
+# ADD CPP /nologo /G6 /MD /W3 /GR /GX /Og /Oi /Os /Oy /Ob2 /I "..\include" /D "NDEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FD /c
+# SUBTRACT CPP /Ox /Ot
+# ADD BASE RSC /l 0x409 /d "NDEBUG"
+# ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -67,10 +68,10 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GR /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /Zi /Od /I "..\include" /D "_DEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FR /FD /GZ /c
+# ADD CPP /nologo /G6 /MDd /W3 /Gm /GR /GX /Zi /Od /I "..\include" /D "_DEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FR /FD /GZ /c
 # SUBTRACT CPP /YX /Yc /Yu
-# ADD BASE RSC /l 0x407 /d "_DEBUG"
-# ADD RSC /l 0x407 /d "_DEBUG"
+# ADD BASE RSC /l 0x409 /d "_DEBUG"
+# ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -110,6 +111,18 @@ SOURCE=.\GkClient.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\gksql.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\gksql_mysql.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\gksql_pgsql.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\GkStatus.cxx
 # End Source File
 # Begin Source File
@@ -123,18 +136,6 @@ SOURCE=.\job.cxx
 # Begin Source File
 
 SOURCE=.\main.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=.\gksql.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=.\gksql_mysql.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=.\gksql_pgsql.cxx
 # End Source File
 # Begin Source File
 
@@ -182,6 +183,10 @@ SOURCE=.\SoftPBX.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\sqlauth.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\Toolkit.cxx
 # End Source File
 # Begin Source File
@@ -222,6 +227,10 @@ SOURCE=.\GkClient.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\gksql.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\GkStatus.h
 # End Source File
 # Begin Source File
@@ -231,18 +240,6 @@ SOURCE=.\h323util.h
 # Begin Source File
 
 SOURCE=.\job.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\gksql.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\gksql_mysql.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\gksql_pgsql.h
 # End Source File
 # Begin Source File
 

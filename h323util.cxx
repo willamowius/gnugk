@@ -12,10 +12,10 @@
 //
 //////////////////////////////////////////////////////////////////
 
-
-#include "h323util.h"
+#include <ptlib.h>
+#include <h323pdu.h>
 #include "gk_const.h"
-#include "h323pdu.h"
+#include "h323util.h"
 
 
 PString AsString(const PIPSocket::Address & ip, WORD pt)
@@ -169,18 +169,14 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 	if (addr.GetTag() != H225_TransportAddress::e_ipAddress)
 		return false;
 	const H225_TransportAddress_ipAddress & ipaddr = addr;
-	ip = *reinterpret_cast<const DWORD *>((const BYTE *)ipaddr.m_ip);
-	port = ipaddr.m_port;
+	ip = PIPSocket::Address(ipaddr.m_ip.GetSize(), (const BYTE*)ipaddr.m_ip);
+	port = (WORD)ipaddr.m_port;
 	return true;
 }
 
 bool IsLoopback(const PIPSocket::Address & addr)
 {
-#ifdef OPENH323_NEWVERSION
 	return addr.IsLoopback() != 0;
-#else
-	return addr == PIPSocket::Address(127,0,0,1);
-#endif
 }
 
 PString GetBestAliasAddressString( 

@@ -26,13 +26,15 @@
 #define HAS_SETUSERNAME
 #include <signal.h>
 #endif
-#include "gk.h"
+#include <ptlib.h>
+#include <h225.h>
+#include "h323util.h"
+#include "Toolkit.h"
+#include "stl_supp.h"
 #include "RasSrv.h"
 #include "RasTbl.h"
 #include "SoftPBX.h"
-#include "Toolkit.h"
-#include "h323util.h"
-#include "stl_supp.h"
+#include "gk.h"
 
 
 #if PTRACING
@@ -236,7 +238,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 	return TRUE;
 }
 
-bool Gatekeeper::SetUserAndGroup(const PString &username)
+bool Gatekeeper::SetUserAndGroup(const PString& /*username*/)
 {
 	return false;
 }
@@ -329,7 +331,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 }
 
 
-BOOL Gatekeeper::InitHandlers(const PArgList &args)
+BOOL Gatekeeper::InitHandlers(const PArgList& args)
 {
 #ifdef WIN32
 	SetConsoleCtrlHandler(WinCtrlHandlerProc, TRUE);
@@ -379,7 +381,7 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 }
 
 
-BOOL Gatekeeper::InitToolkit(const PArgList &args)
+BOOL Gatekeeper::InitToolkit(const PArgList& /*args*/)
 {
 	InstanceOf<Toolkit>(); // force using the right Toolkit constructor
 

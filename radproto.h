@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2004/03/17 00:00:38  zvision
+ * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
+ *
  * Revision 1.8  2003/11/11 11:14:21  zvision
  * Fixed invalid signed/unsigned integer conversions for radius attributes.
  * Optimized radius attributes handling.
@@ -1145,10 +1148,23 @@ public:
 		/// local address for RADIUS client
 		const PString& address = PString()
 		);
-	
+
+	/** Construct a RADIUS protocol client reading its settings
+	    from the config.
+	*/
+	RadiusClient(
+		PConfig& config, /// config that contains RADIUS settings
+		const PString& sectionName /// config section with the settings
+		);
+
 	/// Destroy this object
 	virtual ~RadiusClient();
 
+	/** @return
+		The local IP address this RADIUS client is bound to.
+	*/
+	PIPSocket::Address GetLocalAddress() const { return localAddress; }
+	
 	/** Set shared secret to be used to authorize this client
 		with RADIUS server.
 	*/

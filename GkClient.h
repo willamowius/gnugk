@@ -17,16 +17,6 @@
 #ifndef GKCLIENT_H
 #define GKCLIENT_H "@(#) $Id$"
 
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#include <ptlib/sockets.h>
-#endif
-
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
-#include <map>
 #include "gk_const.h"
 #include "Toolkit.h"
 #include "Routing.h"
@@ -109,10 +99,8 @@ public:
 			// 7 == H235_AuthenticationMechanism::e_authenticationBES
 			if (m_authMode < 0 || m_authMode == 2)
 				rasmsg.IncludeOptionalField(RAS::e_cryptoTokens), SetCryptoTokens(rasmsg.m_cryptoTokens, id);
-#ifdef OPENH323_NEWVERSION
 			if (m_authMode < 0 || m_authMode == 7)
 				rasmsg.IncludeOptionalField(RAS::e_tokens), SetClearTokens(rasmsg.m_tokens, id);
-#endif
 		}
 	}
 	template<class RAS> void SetPassword(RAS & rasmsg)

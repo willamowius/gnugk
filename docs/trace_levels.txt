@@ -12,13 +12,16 @@ Level 1
 Level 2
 =======
 *) basic H.225.0 RAS/Q.931 message flow - one liners
-*) important failure notices for accounting/authentication modules
+*) important failure notices for accounting/authentication modules,
+   like SQL connection errors, RADIUS server offline
 
 Level 3
 =======
 *) basic H.245 message flow - one liners
 *) basic RADIUS/SQL/LDAP/status line messages - one liners
-*) authentication/accounting processing results - one liners
+*) authentication/accounting processing results - one liners,
+   per-module authentication/accounting results, messages related
+   to authentication/accounting failures
 *) error reporting (network errors, authentication rejections)
 *) call routing decisions
 

@@ -16,9 +16,7 @@
 #ifndef H323UTIL_H
 #define H323UTIL_H "@(#) $Id$"
 
-#include <ptlib.h>
 #include <ptlib/sockets.h>
-
 
 class H225_TransportAddress;
 class H225_TransportAddress_ipAddress;
@@ -26,7 +24,6 @@ class H225_EndpointType;
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
 class PASN_OctetString;
-
 
 PString AsString(const PIPSocket::Address &, WORD);
 

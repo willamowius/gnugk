@@ -19,15 +19,16 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include "Neighbor.h"
-#include "GkClient.h"
+#include <ptlib.h>
+#include <h323pdu.h>
+#include <ptclib/cypher.h>
 #include "gk_const.h"
 #include "stl_supp.h"
+#include "GkClient.h"
 #include "Routing.h"
 #include "RasPDU.h"
 #include "RasSrv.h"
-#include <h323pdu.h>
-#include <ptclib/cypher.h>
+#include "Neighbor.h"
 
 
 namespace Neighbors {
@@ -125,7 +126,7 @@ private:
 	const LocationRequest & m_lrq;
 };
 
-PrefixInfo LRQForwarder::operator()(Neighbor *nb, WORD seqnum) const
+PrefixInfo LRQForwarder::operator()(Neighbor *nb, WORD /*seqnum*/) const
 {
 	H225_ArrayOf_AliasAddress aliases;
 	if (PrefixInfo info = nb->GetPrefixInfo(m_lrq.GetRequest().m_destinationInfo, aliases)) {
@@ -240,7 +241,7 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 		if (iter != eiter) {
 			dest.SetSize(1);
 			dest[0] = alias;
-			return PrefixInfo(100, iter->second);
+			return PrefixInfo(100, (short)iter->second);
 		}
 		PString destination(AsString(alias, false));
 		while (iter != biter) {
@@ -249,7 +250,7 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 			if (strncmp(iter->first, destination, len) == 0) {
 				dest.SetSize(1);
 				dest[0] = alias;
-				return PrefixInfo(len, iter->second);
+				return PrefixInfo((short)len, (short)iter->second);
 			}
 		}
 	}
@@ -257,7 +258,7 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 	if (iter == eiter)
 		return nomatch;
 	dest = aliases;
-	return PrefixInfo(0, iter->second);
+	return PrefixInfo(0, (short)iter->second);
 }
 
 bool Neighbor::OnSendingLRQ(H225_LocationRequest &)
@@ -404,7 +405,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	return true;
 }
 
-bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & request)
+bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*request*/)
 {
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = true;
@@ -450,7 +451,7 @@ bool ClarentGK::OnSendingLRQ(H225_LocationRequest & lrq)
 // class GlonetGK
 bool GlonetGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & request)
 {
-	return BuildLRQ(lrq, request.GetRequest().m_callReferenceValue);
+	return BuildLRQ(lrq, (WORD)request.GetRequest().m_callReferenceValue);
 }
 
 bool GlonetGK::OnSendingLRQ(H225_LocationRequest &, const LocationRequest &)
@@ -461,12 +462,12 @@ bool GlonetGK::OnSendingLRQ(H225_LocationRequest &, const LocationRequest &)
 
 bool GlonetGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & request)
 {
-	return BuildLRQ(lrq, request.GetWrapper()->GetCallReference());
+	return BuildLRQ(lrq, (WORD)request.GetWrapper()->GetCallReference());
 }
 
 bool GlonetGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & request)
 {
-	return BuildLRQ(lrq, request.GetWrapper()->GetCallReference());
+	return BuildLRQ(lrq, (WORD)request.GetWrapper()->GetCallReference());
 }
 
 bool GlonetGK::BuildLRQ(H225_LocationRequest & lrq, WORD crv)
@@ -610,7 +611,8 @@ bool LRQRequester::OnTimeout()
 		return false;
 	Queue::iterator iter, biter = m_requests.begin(), eiter = m_requests.end();
 	for (iter = biter; iter != eiter; ++iter)
-		if ((m_result = iter->second.m_reply))
+		m_result = iter->second.m_reply;
+		if (m_result)
 			return false;
 	if (m_retry-- == 0)
 		return false;

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2004/03/17 00:00:38  zvision
+ * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
+ *
  * Revision 1.7  2003/10/31 00:01:24  zvision
  * Improved accounting modules stacking control, optimized radacct/radauth a bit
  *
@@ -66,10 +69,9 @@ RadAcct::RadAcct(
 	const char* cfgSecName
 	)
 	:
-	GkAcctLogger( moduleName, cfgSecName ),
-	portBase( 1024 ),
-	portMax( 65535 ),
-	radiusClient( NULL )
+	GkAcctLogger(moduleName, cfgSecName),
+	m_nasIdentifier(Toolkit::Instance()->GKName()),
+	m_radiusClient(NULL)
 {
 	// it is very important to set what type of accounting events
 	// are supported for each accounting module, otherwise Log method
@@ -78,105 +80,33 @@ RadAcct::RadAcct(
 	
 	PConfig* cfg = GetConfig();
 	const PString& cfgSec = GetConfigSectionName();
-	
-	radiusServers = cfg->GetString(cfgSec,"Servers","").Tokenise(";, \t",FALSE);
-	sharedSecret = cfg->GetString(cfgSec,"SharedSecret","");
-	acctPort = (WORD)cfg->GetInteger(cfgSec,"DefaultAcctPort");
-	requestTimeout = cfg->GetInteger(cfgSec,"RequestTimeout");
-	idCacheTimeout = cfg->GetInteger(cfgSec,"IdCacheTimeout");
-	socketDeleteTimeout = cfg->GetInteger(cfgSec,"SocketDeleteTimeout");
-	numRequestRetransmissions = cfg->GetInteger(cfgSec,"RequestRetransmissions");
-	roundRobin = Toolkit::AsBool(cfg->GetString(cfgSec,"RoundRobinServers", "1"));
-	appendCiscoAttributes = Toolkit::AsBool(cfg->GetString(
-		cfgSec,"AppendCiscoAttributes", "1"
+
+	m_radiusClient = new RadiusClient(*cfg, cfgSec);
+
+	m_nasIpAddress = m_radiusClient->GetLocalAddress();
+	if (m_nasIpAddress == INADDR_ANY) {
+		std::vector<PIPSocket::Address> interfaces;
+		Toolkit::Instance()->GetGKHome(interfaces);
+		if (!interfaces.empty())
+			m_nasIpAddress = interfaces.front();
+		else
+			PTRACE(1, "RADACCT\t" << GetName() << " cannot determine "
+				" NAS IP address"
+				);
+	}
+
+	m_appendCiscoAttributes = Toolkit::AsBool(cfg->GetString(
+		cfgSec, "AppendCiscoAttributes", "1"
 		));
-	includeFramedIp = Toolkit::AsBool(cfg->GetString(
-		cfgSec,"IncludeEndpointIP", "1"
+	m_includeFramedIp = Toolkit::AsBool(cfg->GetString(
+		cfgSec, "IncludeEndpointIP", "1"
 		));
-	localInterface = cfg->GetString(cfgSec, "LocalInterface", "");
-	fixedUsername = cfg->GetString(cfgSec, "FixedUsername", "");
-		
-	if( radiusServers.GetSize() < 1 ) {
-		PTRACE(1,"RADACCT\tCannot build "<<moduleName<<" accounting logger"
-			" - no RADIUS servers specified in the config"
-			);
-		return;
-	}
-	
-	if( (!localInterface.IsEmpty()) 
-		&& (!PIPSocket::IsLocalHost(localInterface)) ) {
-		PTRACE(1,"RADACCT\tConfigured local interface - "<<localInterface
-			<<" - does not belong to this machine, assuming ip:*"
-			);
-		localInterface = PString::Empty();
-	}
-	// get IP address for the local interface
-	if( localInterface.IsEmpty() )
-		localInterfaceAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress();
-	else
-		localInterfaceAddr = PIPSocket::Address(localInterface);
-
-	NASIdentifier = Toolkit::Instance()->GKName();
-	
-	/// build RADIUS client
-	radiusClient = new RadiusClient( 
-		radiusServers[0],
-		(radiusServers.GetSize() > 1) ? radiusServers[1] : PString::Empty(),
-		localInterface
-		);
-
-	/// if there were specified more than two RADIUS servers, append them
-	for( int i = 2; i < radiusServers.GetSize(); i++ )
-		radiusClient->AppendServer( radiusServers[i] );	
-		
-	radiusClient->SetSharedSecret( sharedSecret );
-	radiusClient->SetRoundRobinServers( roundRobin );
-		
-	if( acctPort > 0 )
-		radiusClient->SetAcctPort( acctPort );
-		
-	if( requestTimeout > 0 )
-		radiusClient->SetRequestTimeout( requestTimeout );
-	if( idCacheTimeout > 0 )
-		radiusClient->SetIdCacheTimeout( idCacheTimeout );
-	if( socketDeleteTimeout > 0 )
-		radiusClient->SetSocketDeleteTimeout( socketDeleteTimeout );
-	if( numRequestRetransmissions > 0 )
-		radiusClient->SetRetryCount( numRequestRetransmissions );
-	
-	const PStringArray s = cfg->GetString(
-		cfgSec,"RadiusPortRange",""
-		).Tokenise("-");
-
-	// parse port range		
-	if( s.GetSize() >= 2 ) { 
-		unsigned p1 = s[0].AsUnsigned();
-		unsigned p2 = s[1].AsUnsigned();
-	
-		// swap if base is greater than max
-		if( p2 < p1 ) {
-			const unsigned temp = p1;
-			p1 = p2;
-			p2 = temp;
-		}
-		
-		if( p1 > 65535 )
-			p1 = 65535;
-		if( p2 > 65535 )
-			p2 = 65535;
-	
-		if( (p1 > 0) && (p2 > 0) ) {
-			portBase = (WORD)p1;
-			portMax = (WORD)p2;
-		}
-	}
-	
-	radiusClient->SetClientPortRange( portBase, portMax-portBase+1 );
+	m_fixedUsername = cfg->GetString(cfgSec, "FixedUsername", "");
 }
 
 RadAcct::~RadAcct()
 {
-	delete radiusClient;
+	delete m_radiusClient;
 }
 
 GkAcctLogger::Status RadAcct::Log(
@@ -186,10 +116,10 @@ GkAcctLogger::Status RadAcct::Log(
 {
 	// a workaround to prevent processing end on "sufficient" module
 	// if it is not interested in this event type
-	if( (evt & GetEnabledEvents() & GetSupportedEvents()) == 0 )
+	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 		
-	if( radiusClient == NULL ) {
+	if (m_radiusClient == NULL) {
 		PTRACE(1,"RADACCT\t"<<GetName()<<" - null RADIUS client instance");
 		return Fail;
 	}
@@ -200,7 +130,7 @@ GkAcctLogger::Status RadAcct::Log(
 	}
 	
 	// build RADIUS Accounting-Request
-	RadiusPDU* pdu = radiusClient->BuildPDU();
+	RadiusPDU* pdu = m_radiusClient->BuildPDU();
 	if( pdu == NULL ) {
 		PTRACE(2,"RADACCT\t"<<GetName()<<" - could not build Accounting-Request PDU"
 			<<" for event "<<evt<<", call no. "<<(call?call->GetCallNumber():0)
@@ -222,9 +152,9 @@ GkAcctLogger::Status RadAcct::Log(
 	WORD port;
 					
 	// Gk works as NAS point, so append NAS IP
-	*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, localInterfaceAddr );
-	*pdu += new RadiusAttr( RadiusAttr::NasIdentifier, NASIdentifier );
-	*pdu += new RadiusAttr( RadiusAttr::NasPortType, 
+	*pdu += new RadiusAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	*pdu += new RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
+	*pdu += new RadiusAttr(RadiusAttr::NasPortType, 
 		RadiusAttr::NasPort_Virtual 
 		);
 		
@@ -249,8 +179,8 @@ GkAcctLogger::Status RadAcct::Log(
 
 		PString userName;
 	
-		if( !fixedUsername.IsEmpty() )
-			userName = fixedUsername;
+		if( !m_fixedUsername.IsEmpty() )
+			userName = m_fixedUsername;
 		else if( callingEP && (callingEP->GetAliases().GetSize() > 0) )
 			userName = GetBestAliasAddressString(
 				callingEP->GetAliases(),
@@ -268,7 +198,7 @@ GkAcctLogger::Status RadAcct::Log(
 				<<" for the call no. "<<call->GetCallNumber()
 				);
 		
-		if( includeFramedIp && callerIP.IsValid() )
+		if( m_includeFramedIp && callerIP.IsValid() )
 			*pdu += new RadiusAttr( RadiusAttr::FramedIpAddress, callerIP );
 		
 		if( (evt & AcctStart) == 0 )
@@ -331,9 +261,9 @@ GkAcctLogger::Status RadAcct::Log(
 		else
 			*pdu += new RadiusAttr( RadiusAttr::CalledStationId, calledStationId );
 		
-		if( appendCiscoAttributes ) {
+		if( m_appendCiscoAttributes ) {
 			*pdu += new RadiusAttr(
-				PString("h323-gw-id=") + NASIdentifier,
+				PString("h323-gw-id=") + m_nasIdentifier,
 				CiscoVendorId, 33 
 				);
 			
@@ -400,9 +330,9 @@ GkAcctLogger::Status RadAcct::Log(
 	// the request to the server and are not waiting for a response
 	if( result )
 		if( evt & AcctUpdate )
-			result = radiusClient->SendRequest( *pdu );
+			result = m_radiusClient->SendRequest( *pdu );
 		else
-			result = radiusClient->MakeRequest( *pdu, response ) && (response != NULL);
+			result = m_radiusClient->MakeRequest( *pdu, response ) && (response != NULL);
 			
 	delete pdu;
 			
@@ -427,18 +357,18 @@ GkAcctLogger::Status RadAcct::Log(
 }
 
 bool RadAcct::OnSendPDU(
-	RadiusPDU& pdu,
-	GkAcctLogger::AcctEvent evt,
-	callptr& call
+	RadiusPDU& /*pdu*/,
+	GkAcctLogger::AcctEvent /*evt*/,
+	callptr& /*call*/
 	)
 {
 	return true;
 }
 
 bool RadAcct::OnReceivedPDU(
-	RadiusPDU& pdu,
-	GkAcctLogger::AcctEvent evt,
-	callptr& call
+	RadiusPDU& /*pdu*/,
+	GkAcctLogger::AcctEvent /*evt*/,
+	callptr& /*call*/
 	)
 {
 	return true;

@@ -19,19 +19,23 @@
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
-#include "RasPDU.h"
-#include "RasSrv.h"
-#include "gkauth.h"
-#include "gkacct.h"
-#include "SoftPBX.h"
-#include "Routing.h"
+#include <ptlib.h>
+#include <ptlib/sockets.h>
+#include <h225.h>
+#include "gk.h"
 #include "gk_const.h"
 #include "stl_supp.h"
+#include "RasPDU.h"
+#include "RasTbl.h"
+#include "SoftPBX.h"
+#include "Routing.h"
 #include "GkClient.h"
 #include "GkStatus.h"
 #include "Neighbor.h"
 #include "ProxyChannel.h"
-#include "gk.h"
+#include "gkauth.h"
+#include "gkacct.h"
+#include "RasSrv.h"
 
 #ifndef NEED_BROADCASTLISTENER
 #if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS)
@@ -654,7 +658,8 @@ void RasServer::SetRoutedMode()
 
 void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 {
-	if ((GKRoutedSignaling = routedSignaling)) {
+	GKRoutedSignaling = routedSignaling;
+	if (GKRoutedSignaling) {
 		if (sigHandler)
 			sigHandler->LoadConfig();
 		else
@@ -704,7 +709,7 @@ void RasServer::LoadConfig()
 {
 	GetAlternateGK();
 
-	vector<Address> GKHome;
+	std::vector<Address> GKHome;
 	PString Home(Toolkit::Instance()->GetGKHome(GKHome));
 	PTRACE(2, "GK\tHome = " << Home);
 
@@ -949,7 +954,8 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			return;
 	}
 
-	if ((hasStandardParam = sobj->HasOptionalField(tag)))
+	hasStandardParam = sobj->HasOptionalField(tag);
+	if (hasStandardParam)
 		oldParam = *nonStandardParam;
 	else
 		sobj->IncludeOptionalField(tag);
@@ -1367,9 +1373,11 @@ bool RegistrationRequestPDU::Process()
 		PIPSocket::Address ipaddr;
 		for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
 			SignalAddr = request.m_callSignalAddress[s];
-			if (GetIPFromTransportAddr(SignalAddr, ipaddr))
-				if ((validaddress = (rx_addr == ipaddr)))
+			if (GetIPFromTransportAddr(SignalAddr, ipaddr)) {
+				validaddress = (rx_addr == ipaddr);
+				if (validaddress)
 					break;
+			}
 		}
 		//validaddress = PIPSocket::IsLocalHost(rx_addr.AsString());
 		if (!bShellSendReply) // is forwarded RRQ?
@@ -1403,9 +1411,11 @@ bool RegistrationRequestPDU::Process()
 		for (int i = 0; i < Aliases.GetSize(); ++i) {
 			Alias[0] = Aliases[i];
 			bool skip = false;
-			for (int j = 0; j < i; ++j)
-				if ((skip = (Alias[0] == Aliases[j])))
+			for (int j = 0; j < i; ++j) {
+				skip = (Alias[0] == Aliases[j]);
+				if (skip)
 					break;
+			}
 			if (skip) { // remove duplicate alias
 				Aliases.RemoveAt(i--);
 				continue;
@@ -1413,7 +1423,8 @@ bool RegistrationRequestPDU::Process()
 
 			const endptr ep = EndpointTbl->FindByAliases(Alias);
 			if (ep) {
-				if ((bNewEP = (ep->GetCallSignalAddress() != SignalAddr))) {
+				bNewEP = (ep->GetCallSignalAddress() != SignalAddr);
+				if (bNewEP) {
 					if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0"))) {
 						// If the operators policy allows this case:
 						// 1) unregister the active ep - sends URQ and
@@ -1609,7 +1620,6 @@ bool AdmissionRequestPDU::Process()
 	// OnARQ
 	bool bReject = false;
 	bool answer = request.m_answerCall;
-	long callDurationLimit = -1;
 
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
@@ -1634,7 +1644,7 @@ bool AdmissionRequestPDU::Process()
         	source = GetBestAliasAddressString(request.m_srcInfo, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 		}
 
-	 	if (!source.IsEmpty()) {
+	 	if (!source) {
 	 		Kit->GWRewriteE164(source,true,request.m_destinationInfo[0]);
         }
 
@@ -1647,9 +1657,12 @@ bool AdmissionRequestPDU::Process()
 		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
 		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
 
-	unsigned rejectReason = H225_AdmissionRejectReason::e_securityDenial;
-	if (!RasSrv->ValidatePDU(*this, rejectReason, callDurationLimit))
-		return BuildReply(rejectReason);
+	GkAuthenticator::ARQAuthData authData;
+	if (!RasSrv->ValidatePDU(*this, authData)) {
+		if (authData.m_rejectReason < 0)
+			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
+		return BuildReply(authData.m_rejectReason);
+	}
 
 	// CallRecs should be looked for using callIdentifier instead of callReferenceValue
 	// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
@@ -1783,11 +1796,12 @@ bool AdmissionRequestPDU::Process()
 	if (pExistingCallRec) {
 		// duplicate or answer ARQ
 		PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
-		if( callDurationLimit > 0 )
-			pExistingCallRec->SetDurationLimit(callDurationLimit);
+		if (authData.m_callDurationLimit > 0)
+			pExistingCallRec->SetDurationLimit(authData.m_callDurationLimit);
 	} else {
 		// the call is not in the table
-		CallRec *pCallRec = new CallRec(request.m_callIdentifier, request.m_conferenceID, request.m_callReferenceValue,
+		CallRec *pCallRec = new CallRec(request.m_callIdentifier, request.m_conferenceID, 
+			(WORD)request.m_callReferenceValue.GetValue(),
 			destinationString, AsString(request.m_srcInfo), BWRequest, RasSrv->IsH245Routed());
 
 		if (CalledEP)
@@ -1799,8 +1813,8 @@ bool AdmissionRequestPDU::Process()
 		if (toParent)
 			pCallRec->SetRegistered(true);
 
-		if( callDurationLimit > 0 )
-			pCallRec->SetDurationLimit(callDurationLimit);
+		if (authData.m_callDurationLimit > 0)
+			pCallRec->SetDurationLimit(authData.m_callDurationLimit);
 
 		if (!RasSrv->IsGKRouted())
 			pCallRec->SetConnected();
@@ -2079,6 +2093,7 @@ template<> bool RasPDU<H225_RegistrationReject>::Process()
 	// OnRRJ
 	if ( request.HasOptionalField( H225_RegistrationReject::e_nonStandardData ) ) {
 		if ( request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard ) {
+//			const H225_H221NonStandard & nonStandard = request.m_nonStandardData.m_nonStandardIdentifier;
 			// RRJ from alternateGKs
 			H225_EndpointIdentifier id;
 			id = request.m_nonStandardData.m_data.AsString();

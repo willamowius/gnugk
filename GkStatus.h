@@ -18,14 +18,9 @@
 #ifndef GKSTATUS_H
 #define GKSTATUS_H "@(#) $Id$"
 
+#include <map>
 #include "yasocket.h"
 #include "singleton.h"
-
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
-#include <map>
 
 /** The idea of status interface output trace levels
     allows to select the kind of output received by a status interface client.

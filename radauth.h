@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2004/03/17 00:00:38  zvision
+ * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
+ *
  * Revision 1.10  2004/02/20 14:44:11  zvision
  * Changed API for GkAuthenticator class. Modified RadAuth/RadAliasAuth classes.
  * Added Q.931 Setup authentication for RadAuth module.
@@ -72,7 +75,6 @@
 #ifndef __RADAUTH_H
 #define __RADAUTH_H "@(#) $Id$"
 
-#include <ptlib.h>
 #include "gkauth.h"
 
 // forward declaration of RADIUS classes (no need for radproto.h inclusion)
@@ -89,23 +91,73 @@ class RadiusClient;
 class RadAuthBase : public GkAuthenticator 
 {
 public:
+	enum SupportedChecks {
+		RadAuthBaseRasChecks = RasInfo<H225_RegistrationRequest>::flag
+			| RasInfo<H225_AdmissionRequest>::flag,
+		RadAuthBaseMiscChecks = e_Setup
+	};
+
 	/// Create base authenticator for RADIUS protocol
 	RadAuthBase( 
 		/// authenticator name from Gatekeeper::Auth section
 		const char* authName,
 		/// name of the config section with settings for this authenticator
-		const char* configSectionName
+		const char* configSectionName,
+		/// bitmask with supported RAS checks
+		unsigned supportedRasChecks = RadAuthBaseRasChecks,
+		/// bitmask with supported non-RAS checks
+		unsigned supportedMiscChecks = RadAuthBaseMiscChecks
 		);
 		
 	/// Destroy the authenticator
 	virtual ~RadAuthBase();
+
+	/** Authenticate using data from RRQ RAS message.
+	
+		@return:
+		#GkAuthenticator::Status enum# with the result of authentication.
+	*/
+	virtual int Check(
+		/// RRQ RAS message to be authenticated
+		RasPDU<H225_RegistrationRequest>& rrqPdu, 
+		/// reference to the variable, that can be set 
+		/// to custom H225_RegistrationRejectReason
+		/// if the check fails
+		unsigned& rejectReason
+		);
+		
+	/** Authenticate using data from ARQ RAS message.
+	
+		@return:
+		#GkAuthenticator::Status enum# with the result of authentication.
+	*/
+	virtual int Check(
+		/// ARQ nessage to be authenticated
+		RasPDU<H225_AdmissionRequest> & arqPdu, 
+		/// authorization data (call duration limit, reject reason, ...)
+		ARQAuthData& authData
+		);
+
+	/** Authenticate using data from ARQ RAS message.
+	
+		@return:
+		#GkAuthenticator::Status enum# with the result of authentication.
+	*/
+	virtual int Check(
+		/// Q.931 Setup message to be authenticated
+		Q931& q931pdu, 
+		/// H.225 Setup UUIE to be authenticated
+		H225_Setup_UUIE& setup, 
+		/// authorization data (call duration limit, reject reason, ...)
+		SetupAuthData& authData
+		);
 	
 protected:		
 	/** Hook for adding/modifying pdu before it is sent.
 		It can be used to add custom attributes, for example.
 		
 		@return
-		TRUE if PDU should be sent, FALSE to reject RRQ
+		true if PDU should be sent, false to reject RRQ
 		(rejectReason can be set to indicate a particular reason).
 	*/
 	virtual bool OnSendPDU(
@@ -124,7 +176,7 @@ protected:
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
 		RasPDU<H225_AdmissionRequest>& arqPdu, /// ARQ being processed
-		unsigned& rejectReason /// reject reason on return FALSE
+		ARQAuthData& authData /// authorization data 
 		);
 
 	/** Hook for adding/modifying pdu before it is sent.
@@ -138,7 +190,7 @@ protected:
 		RadiusPDU& pdu, /// PDU to be sent
 		Q931& q931pdu, /// Q.931 Setup being processed
 		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
-		unsigned& releaseCompleteCause /// Q931 disconnect cause code to set on FALSE
+		SetupAuthData& authData /// authorization data 
 		);
 		
 	/** Hook for processing pdu after it is received.
@@ -164,8 +216,7 @@ protected:
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// received PDU
 		RasPDU<H225_AdmissionRequest>& arqPdu, /// ARQ being processed
-		unsigned& rejectReason, /// reject reason on return FALSE
-		long& durationLimit /// call duration limit to be set
+		ARQAuthData& authData /// authorization data 
 		);
 	
 	/** Hook for processing pdu after it is received.
@@ -179,8 +230,7 @@ protected:
 		RadiusPDU& pdu, /// received PDU
 		Q931& q931pdu, /// Q.931 Setup being processed
 		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
-		unsigned& releaseCompleteCause, /// Q931 disconnect cause code to set on 
-		long& durationLimit /// call duration limit to be set
+		SetupAuthData& authData /// authorization data 
 		);
 	
 	/** Hook for appending username/password attributes 
@@ -214,7 +264,7 @@ protected:
 		RadiusPDU& pdu, /// append attribues to this pdu
 		RasPDU<H225_AdmissionRequest>& arqPdu, /// extract data from this RAS msg
 		endptr& originatingEP, /// endpoint that the ARQ originates from
-		unsigned& rejectReason, /// reject reason to be set on e_fail return code
+		ARQAuthData& authData, /// authorization data 
 		/// if not NULL and return status is e_ok, then the string is filled
 		/// with appended username
 		PString* username = NULL 
@@ -234,7 +284,7 @@ protected:
 		Q931& q931pdu, /// Q.931 Setup being processed
 		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
 		endptr& callingEP, /// calling endpoint (if found in the registration table)
-		unsigned& releaseCompleteCause, /// Q931 disconnect cause code to set on e_fail
+		SetupAuthData& authData, /// authorization data 
 		/// if not NULL and return status is e_ok, then the string is filled
 		/// with appended username
 		PString* username = NULL 
@@ -252,104 +302,27 @@ protected:
 		const PString& id 
 		) const;
 		
-	/** Authenticate using data from RRQ RAS message.
-	
-		@return:
-		#GkAuthenticator::Status enum# with the result of authentication.
-	*/
-	virtual int Check(
-		/// RRQ RAS message to be authenticated
-		RasPDU<H225_RegistrationRequest>& rrqPdu, 
-		/// reference to the variable, that can be set 
-		/// to custom H225_RegistrationRejectReason
-		/// if the check fails
-		unsigned& rejectReason
-		);
-		
-	/** Authenticate using data from ARQ RAS message.
-	
-		@return:
-		#GkAuthenticator::Status enum# with the result of authentication.
-	*/
-	virtual int Check(
-		/// ARQ nessage to be authenticated
-		RasPDU<H225_AdmissionRequest> & arqPdu, 
-		/// reference to the variable, that can be set 
-		/// to custom H225_AdmissionRejectReason
-		/// if the check fails
-		unsigned& rejectReason,
-		/// call duration limit to be set for the call
-		/// (-1 stands for no limit)
-		long& callDurationLimit
-		);
-
-	/** Authenticate using data from ARQ RAS message.
-	
-		@return:
-		#GkAuthenticator::Status enum# with the result of authentication.
-	*/
-	virtual int Check(
-		/// Q.931 Setup message to be authenticated
-		Q931& q931pdu, 
-		/// H.225 Setup UUIE to be authenticated
-		H225_Setup_UUIE& setup, 
-		/// Q931 disconnect cause code to set on authentication failure
-		unsigned& releaseCompleteCause,
-		/// call duration limit to be set for the call
-		/// (-1 stands for no limit)
-		long& callDurationLimit
-		);
-		
 private:
+	RadAuthBase();
 	/* No copy constructor allowed */
-	RadAuthBase( const RadAuthBase& );
+	RadAuthBase(const RadAuthBase&);
 	/* No operator= allowed */
-	RadAuthBase& operator=( const RadAuthBase& );
+	RadAuthBase& operator=(const RadAuthBase&);
 
-protected:
-	/// if TRUE Cisco VSAs are appended to the RADIUS packets
-	bool appendCiscoAttributes;
-	/// local interface RADIUS client should be bound to (multihomed hosts)
-	PString localInterface;	
-	/// IP address of the local interface
-	PIPSocket::Address localInterfaceAddr;
-	
 private:
-	/// array of configured RADIUS server names
-	PStringArray radiusServers;
-	/// shared secret for gk client<->RADIUS server authorization
-	PString sharedSecret;
-	/// default port that will be used for sending RADIUS auth
-	/// requests
-	WORD authPort;
-	/// base port number for UDP client socket allocation
-	WORD portBase;
-	/// max port number for UDP client socket allocation
-	WORD portMax;
-	/// timeout (ms) for a single RADIUS request
-	unsigned requestTimeout;
-	/// timeout (ms) for RADIUS requests IDs to be unique
-	unsigned idCacheTimeout;
-	/// timeout (ms) for unused sockets to be deleted
-	unsigned socketDeleteTimeout;
-	/// how many times to transmit a single request (1==no retransmission)
-	/// to a single RADIUS server
-	unsigned numRequestRetransmissions;
-	/// retransmission fashion: 
-	/// 	FALSE - do #numRequestRetransmissions# for server A,
-	///				then do #numRequestRetransmissions# for server B, etc.
-	///		TRUE - transmit request to server A, then to server B, etc.
-	///				the whole procedure repeat #numRequestRetransmissions# times
-	bool roundRobin;
+	/// if TRUE Cisco VSAs are appended to the RADIUS packets
+	bool m_appendCiscoAttributes;
 	/// if true an h323-ivr-out attribute will be sent with every alias
 	/// found inside RRQ.m_terminalAlias
-	bool includeTerminalAliases;
+	bool m_includeTerminalAliases;
 	/// if TRUE endpoint IP is placed inside Framed-IP-Address attribute
-	bool includeFramedIp;
+	bool m_includeFramedIp;
 	/// RADIUS protocol client class associated with this authenticator
-	RadiusClient* radiusClient;
+	RadiusClient* m_radiusClient;
 	/// NAS identifier (GK name)
-	PString NASIdentifier;
+	PString m_nasIdentifier;
+	/// NAS IP Address (local interface for RADIUS client)
+	PIPSocket::Address m_nasIpAddress;
 };
 
 /**
@@ -387,7 +360,7 @@ protected:
 		RadiusPDU& pdu,
 		RasPDU<H225_AdmissionRequest>& arqPdu,
 		endptr& originatingEP,
-		unsigned& rejectReason,
+		ARQAuthData& authData,
 		PString* username = NULL 
 		) const;
 		
@@ -396,13 +369,21 @@ protected:
 		Q931& q931pdu,
 		H225_Setup_UUIE& setup,
 		endptr& callingEP,
-		unsigned& releaseCompleteCause,
+		SetupAuthData& authData,
+		PString* username = NULL
+		) const;
+
+	virtual int CheckTokens(
+		RadiusPDU& pdu,
+		const H225_ArrayOf_ClearToken& tokens,
+		const H225_ArrayOf_AliasAddress* aliases = NULL,
 		PString* username = NULL
 		) const;
 
 private:
+	RadAuth();
 	/* No copy constructor allowed */
-	RadAuth( const RadAuth& );
+	RadAuth(const RadAuth&);
 	/* No operator= allowed */
 	RadAuth& operator=( const RadAuth& );
 	
@@ -440,7 +421,7 @@ protected:
 		RadiusPDU& pdu,
 		RasPDU<H225_AdmissionRequest>& arqPdu,
 		endptr& originatingEP,
-		unsigned& rejectReason,
+		ARQAuthData& authData,
 		PString* username = NULL
 		) const;
 	
@@ -449,21 +430,22 @@ protected:
 		Q931& q931pdu,
 		H225_Setup_UUIE& setup,
 		endptr& callingEP,
-		unsigned& releaseCompleteCause,
+		SetupAuthData& authData,
 		PString* username = NULL
 		) const;
 		
 private:
+	RadAliasAuth();
 	/* No copy constructor allowed */
-	RadAliasAuth( const RadAliasAuth& );
+	RadAliasAuth(const RadAliasAuth&);
 	/* No operator= allowed */
-	RadAliasAuth& operator=( const RadAliasAuth& );
+	RadAliasAuth& operator=(const RadAliasAuth&);
 	
 protected:
 	/// fixed value for User-Name attribute, read from config
-	PString fixedUsername;
+	PString m_fixedUsername;
 	/// fixed valud for User-Password attribute, read from config
-	PString fixedPassword;
+	PString m_fixedPassword;
 };
 
 #endif /* __RADAUTH_H */

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2003/12/21 00:58:17  zvision
+ * FileAcct logger should work fine with the reload command now
+ *
  * Revision 1.8  2003/11/01 10:36:34  zvision
  * Fixed missing semicolon. Thanks to Hu Yuxin
  *
@@ -43,6 +46,7 @@
 #endif
 
 #include <ptlib.h>
+#include <h225.h>
 #include "gk_const.h"
 #include "h323util.h"
 #include "stl_supp.h"
@@ -50,18 +54,11 @@
 #include "RasTbl.h"
 #include "gkacct.h"
 
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
-#include <map>
-#include <list>
-
-using std::map;
-using std::list;
-
 /// Name of the config file section for accounting configuration
+namespace {
 const char* GkAcctSectionName = "Gatekeeper::Acct";
+}
+
 extern const char* CallTableSection;
 
 
@@ -128,40 +125,35 @@ GkAcctLogger::GkAcctLogger(
 	const char* moduleName,
 	const char* cfgSecName
 	) 
-	: 
-	controlFlag(Required),
-	defaultStatus(Fail),
-	enabledEvents(AcctAll),
-	supportedEvents(AcctNone),
-	configSectionName(cfgSecName)
+	: NamedObject(moduleName), m_controlFlag(Required), m_defaultStatus(Fail),
+	m_enabledEvents(AcctAll), m_supportedEvents(AcctNone), m_config(GkConfig()),
+	m_configSectionName(cfgSecName)
 {
-	config = GkConfig();
-	SetName(moduleName);
-	if( configSectionName.IsEmpty() )
-		configSectionName = moduleName;
+	if (m_configSectionName.IsEmpty())
+		m_configSectionName = moduleName;
 		
 	const PStringArray control( 
-		config->GetString( GkAcctSectionName, moduleName, "" ).Tokenise(";,")
+		m_config->GetString(GkAcctSectionName, moduleName, "").Tokenise(";,")
 		);
 
-	if( control.GetSize() < 1 )
-		PTRACE(1,"GKACCT\tEmpty config entry for module "<<moduleName);
-	else if( strcmp(moduleName, "default") == 0 ) {
-		controlFlag = Required;
-		defaultStatus = Toolkit::AsBool(control[0]) ? Ok : Fail;
-		supportedEvents = AcctAll;
+	if (control.GetSize() < 1)
+		PTRACE(1, "GKACCT\tEmpty config entry for module " << moduleName);
+	else if (strcasecmp(moduleName, "default") == 0) {
+		m_controlFlag = Required;
+		m_defaultStatus = Toolkit::AsBool(control[0]) ? Ok : Fail;
+		m_supportedEvents = AcctAll;
 	} else if (control[0] *= "optional")
-		controlFlag = Optional;
+		m_controlFlag = Optional;
 	else if (control[0] *= "sufficient")
-		controlFlag = Sufficient;
+		m_controlFlag = Sufficient;
 	else if (control[0] *= "alternative")
-		controlFlag = Alternative;
+		m_controlFlag = Alternative;
 	
-	if( control.GetSize() > 1 )
-		enabledEvents = GetEvents(control);
+	if (control.GetSize() > 1)
+		m_enabledEvents = GetEvents(control);
 	
-	PTRACE(1,"GKACCT\tCreated module "<<moduleName<<" with event mask "
-		<<PString(PString::Unsigned,(long)enabledEvents,16)
+	PTRACE(1, "GKACCT\tCreated module " << moduleName << " with event mask "
+		<< PString(PString::Unsigned,(long)m_enabledEvents,16)
 		);
 }
 
@@ -195,85 +187,10 @@ int GkAcctLogger::GetEvents(
 
 GkAcctLogger::Status GkAcctLogger::Log(
 	AcctEvent evt, /// accounting event to log
-	callptr& call /// a call associated with the event (if any)
+	callptr& /*call*/ /// a call associated with the event (if any)
 	)
 {
-	return (evt & enabledEvents & supportedEvents) ? defaultStatus : Next;
-}
-
-bool GkAcctLogger::LogAcctEvent( 
-	AcctEvent evt, /// accounting event to log
-	callptr& call /// additional data for the event
-	)
-{
-	if( (evt & AcctUpdate) && !call )
-		return false;
-	
-	bool finalResult = true;
-	Status status = Ok;
-	GkAcctLogger* logger = this;
-	
-	// log the event with all modules on the list, starting from this one
-	while( logger ) {
-		if( (evt & logger->GetEnabledEvents() & logger->GetSupportedEvents()) == 0 ) {
-			logger = logger->m_next;
-			continue;
-		}
-			
-		switch( status = logger->Log( evt, call ) )
-		{
-		case Ok:
-#if PTRACING
-			if( PTrace::CanTrace(3) ) {
-				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
-				strm<<"GKACCT\t"<<logger->GetName()<<" logged event "<<evt;
-				if( call )
-					strm<<" for call no. "<<call->GetCallNumber();
-				PTrace::End(strm);
-			}
-#endif
-			break;
-			
-		default:
-#if PTRACING
-			if( PTrace::CanTrace(3) ) {
-				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
-				strm<<"GKACCT\t"<<logger->GetName()<<" failed to log event "<<evt;
-				if( call )
-					strm<<" for call no. "<<call->GetCallNumber();
-				PTrace::End(strm);
-			}
-#endif
-			// required and sufficient rules always determine 
-			// status of the request
-			if( logger->GetControlFlag() == Required
-				|| logger->GetControlFlag() == Sufficient )
-				finalResult = false;
-		}
-		
-		// sufficient and alternative are terminal rules (on log success)
-		if( status == Ok && (logger->GetControlFlag() == Sufficient
-			|| logger->GetControlFlag() == Alternative) )
-			break;
-			
-		logger = logger->m_next;
-	}
-
-	// a last rule determine status of the the request
-	if( finalResult && status != Ok )
-		finalResult = false;
-		
-#if PTRACING
-	if( PTrace::CanTrace(2) ) {
-		ostream& strm = PTrace::Begin(2,__FILE__,__LINE__);
-		strm<<"GKACCT\t"<<(finalResult?"Successfully logged event ":"Failed to log event ")
-			<<evt;
-		if( call )
-			strm<<" for call no. "<<call->GetCallNumber();
-		PTrace::End(strm);
-	}
-#endif
-	return finalResult;
+	return (evt & m_enabledEvents & m_supportedEvents) ? m_defaultStatus : Next;
 }
 
 
@@ -282,27 +199,27 @@ FileAcct::FileAcct(
 	const char* cfgSecName
 	)
 	:
-	GkAcctLogger( moduleName, cfgSecName ),
-	cdrFile(NULL)
+	GkAcctLogger(moduleName, cfgSecName),
+	m_cdrFile(NULL)
 {
-	SetSupportedEvents( FileAcctEvents );	
+	SetSupportedEvents(FileAcctEvents);
 	
-	cdrFilename = GetConfig()->GetString(GetConfigSectionName(),"DetailFile","");
-	rotateCdrFile = Toolkit::AsBool(GetConfig()->GetString(
-		GetConfigSectionName(),"Rotate","0"
+	m_cdrFilename = GetConfig()->GetString(GetConfigSectionName(), "DetailFile", "");
+	m_rotateCdrFile = Toolkit::AsBool(GetConfig()->GetString(
+		GetConfigSectionName(), "Rotate", "0"
 		));
 
 	Rotate();
-	if( cdrFile && cdrFile->IsOpen() )
-		PTRACE(2,"GKACCT\t"<<GetName()<<" CDR file: "<<cdrFile->GetFilePath());
+	if (m_cdrFile && m_cdrFile->IsOpen())
+		PTRACE(2, "GKACCT\t" << GetName() << " CDR file: " << m_cdrFile->GetFilePath());
 }
 
 FileAcct::~FileAcct()
 {
-	PWaitAndSignal lock(cdrFileMutex);
-	if( cdrFile ) {
-		cdrFile->Close();
-		delete cdrFile;
+	PWaitAndSignal lock(m_cdrFileMutex);
+	if (m_cdrFile) {
+		m_cdrFile->Close();
+		delete m_cdrFile;
 	}
 }
 
@@ -311,34 +228,34 @@ GkAcctLogger::Status FileAcct::Log(
 	callptr& call
 	)
 {
-	if( (evt & GetEnabledEvents() & GetSupportedEvents()) == 0 )
+	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 		
-	if( (evt & (AcctStart|AcctUpdate|AcctStop)) && (!call) ) {
+	if ((evt & (AcctStart|AcctUpdate|AcctStop)) && (!call)) {
 		PTRACE(1,"GKACCT\t"<<GetName()<<" - missing call info for event"<<evt);
 		return Fail;
 	}
 	
 	PString cdrString;
 	
-	if( !GetCDRText(cdrString,evt,call) ) {
+	if (!GetCDRText(cdrString, evt, call)) {
 		PTRACE(2,"GKACCT\t"<<GetName()<<" - unable to get CDR text for event "<<evt
 			<<", call no. "<<call->GetCallNumber()
 			);
 		return Fail;
 	}
 	
-	PWaitAndSignal lock(cdrFileMutex);
+	PWaitAndSignal lock(m_cdrFileMutex);
 	
-	if( cdrFile && cdrFile->IsOpen() ) {
-		if( cdrFile->WriteLine(PString(cdrString)) ) {
+	if (m_cdrFile && m_cdrFile->IsOpen()) {
+		if (m_cdrFile->WriteLine(PString(cdrString))) {
 			PTRACE(5,"GKACCT\t"<<GetName()<<" - CDR string for event "<<evt
 				<<", call no. "<<call->GetCallNumber()<<": "<<cdrString
 				);
 			return Ok;
 		} else
 			PTRACE(1,"GKACCT\t"<<GetName()<<" - write CDR text for event "<<evt
-				<<", call no. "<<call->GetCallNumber()<<" failed: "<<cdrFile->GetErrorText()
+				<<", call no. "<<call->GetCallNumber()<<" failed: "<<m_cdrFile->GetErrorText()
 				);
 	} else
 		PTRACE(1,"GKACCT\t"<<GetName()<<" - write CDR text for event "<<evt
@@ -364,70 +281,159 @@ bool FileAcct::GetCDRText(
 
 void FileAcct::Rotate()
 {
-	PWaitAndSignal lock(cdrFileMutex);
+	PWaitAndSignal lock(m_cdrFileMutex);
 
-	if( cdrFile ) {
-		if( cdrFile->IsOpen() )
-			if( rotateCdrFile )
-				cdrFile->Close();
+	if (m_cdrFile) {
+		if (m_cdrFile->IsOpen())
+			if (m_rotateCdrFile)
+				m_cdrFile->Close();
 			else
 				return;
-		delete cdrFile;
-		cdrFile = NULL;
+		delete m_cdrFile;
+		m_cdrFile = NULL;
 	}
 	
-	const PFilePath fn = cdrFilename;
+	const PFilePath fn = m_cdrFilename;
 	
-	if( rotateCdrFile && PFile::Exists(fn) )
-		if( !PFile::Rename(fn,fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss")) )
+	if (m_rotateCdrFile && PFile::Exists(fn))
+		if (!PFile::Rename(fn, fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss")))
 			PTRACE(1,"GKACCT\t"<<GetName()<<" rotate failed - could not rename"
-				" the log file: "<<cdrFile->GetErrorText()
+				" the log file: "<<m_cdrFile->GetErrorText()
 				);
 	
-	cdrFile = new PTextFile(fn,PFile::WriteOnly, PFile::Create | PFile::DenySharedWrite);
-	if (!cdrFile->IsOpen()) {
+	m_cdrFile = new PTextFile(fn, PFile::WriteOnly, PFile::Create | PFile::DenySharedWrite);
+	if (!m_cdrFile->IsOpen()) {
    	    PTRACE(1,"GKACCT\t"<<GetName()<<" could not open file"
 			" required for plain text accounting \""
-			<<fn<<"\" :"<<cdrFile->GetErrorText()
+			<<fn<<"\" :"<<m_cdrFile->GetErrorText()
 			);
-		delete cdrFile;
-		cdrFile = NULL;
+		delete m_cdrFile;
+		m_cdrFile = NULL;
 	    return;
 	}
-	cdrFile->SetPermissions(PFileInfo::UserRead|PFileInfo::UserWrite);
-	cdrFile->SetPosition(cdrFile->GetLength());
+	m_cdrFile->SetPermissions(PFileInfo::UserRead | PFileInfo::UserWrite);
+	m_cdrFile->SetPosition(m_cdrFile->GetLength());
 }
 
 GkAcctLoggerList::GkAcctLoggerList()
-	:
-	m_head(NULL),
-	m_acctUpdateInterval(GkConfig()->GetInteger(CallTableSection,"AcctUpdateInterval",0))
+	: m_acctUpdateInterval(
+		GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0)
+		)
 {
 	// should not be less than 10 seconds
-	if( m_acctUpdateInterval != 0 )
-		m_acctUpdateInterval = PMAX(10,m_acctUpdateInterval);
+	if (m_acctUpdateInterval)
+		m_acctUpdateInterval = PMAX(10, m_acctUpdateInterval);
 }
 
 GkAcctLoggerList::~GkAcctLoggerList()
 {
 	WriteLock lock(m_reloadMutex);
-	delete m_head;
-	m_head = NULL;
+	DeleteObjectsInContainer(m_loggers);
+	m_loggers.clear();
 }
 
 void GkAcctLoggerList::OnReload()
 {
 	WriteLock lock(m_reloadMutex);
 		
-	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection,"AcctUpdateInterval",0);
+	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, 
+		"AcctUpdateInterval", 0
+		);
 	// should not be less than 10 seconds
-	if( m_acctUpdateInterval != 0 )
-		m_acctUpdateInterval = PMAX(10,m_acctUpdateInterval);
+	if (m_acctUpdateInterval)
+		m_acctUpdateInterval = PMAX(10, m_acctUpdateInterval);
+
+	DeleteObjectsInContainer(m_loggers);
+	m_loggers.clear();
 	
-	// we have to delete the old modules first to allow some cleanup
-	// (example is a FileAcct logger that needs to close cdr.log)	
-	delete m_head;
-	m_head = GkAcctLogger::Create(GkConfig()->GetKeys(GkAcctSectionName));
+	const PStringArray modules = GkConfig()->GetKeys(GkAcctSectionName);
+	for (PINDEX i = 0; i < modules.GetSize(); i++) {
+		GkAcctLogger* logger = Factory<GkAcctLogger>::Create(modules[i]);
+		if (logger)
+			m_loggers.push_back(logger);
+	}
+}
+
+bool GkAcctLoggerList::LogAcctEvent( 
+	GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
+	callptr& call, /// a call associated with the event (if any)
+	time_t now /// "now" timestamp for accounting update events
+	)
+{
+	// if this is an accounting update, check the interval
+	if (evt & GkAcctLogger::AcctUpdate)
+		if ((!call) || m_acctUpdateInterval == 0 
+			|| (now - call->GetLastAcctUpdateTime()) < m_acctUpdateInterval)
+			return true;
+		else
+			call->SetLastAcctUpdateTime(now);
+			
+	bool finalResult = true;
+	GkAcctLogger::Status status = GkAcctLogger::Ok;
+	ReadLock lock(m_reloadMutex);
+	std::list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
+	
+	while (iter != m_loggers.end()) {
+		GkAcctLogger* logger = *iter++;
+	
+		if ((evt & logger->GetEnabledEvents() & logger->GetSupportedEvents()) == 0)
+			continue;
+		
+		status = logger->Log(evt, call);
+		switch (status)
+		{
+		case GkAcctLogger::Ok:
+#if PTRACING
+			if (PTrace::CanTrace(3)) {
+				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
+				strm << "GKACCT\t" << logger->GetName() << " logged event " << evt;
+				if (call)
+					strm << " for call no. " << call->GetCallNumber();
+				PTrace::End(strm);
+			}
+#endif
+			break;
+			
+		default:
+#if PTRACING
+			if (PTrace::CanTrace(3)) {
+				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
+				strm << "GKACCT\t" << logger->GetName() << " failed to log event "
+					<< evt;
+				if (call)
+					strm << " for call no. " << call->GetCallNumber();
+				PTrace::End(strm);
+			}
+#endif
+			// required and sufficient rules always determine 
+			// status of the request
+			if (logger->GetControlFlag() == GkAcctLogger::Required
+				|| logger->GetControlFlag() == GkAcctLogger::Sufficient)
+				finalResult = false;
+		}
+		
+		// sufficient and alternative are terminal rules (on log success)
+		if (status == GkAcctLogger::Ok 
+			&& (logger->GetControlFlag() == GkAcctLogger::Sufficient
+			|| logger->GetControlFlag() == GkAcctLogger::Alternative))
+			break;
+	}
+
+	// a last rule determine status of the the request
+	if (finalResult && status != GkAcctLogger::Ok)
+		finalResult = false;
+		
+#if PTRACING
+	if (PTrace::CanTrace(2)) {
+		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
+		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
+			: "Failed to log event ") << evt;
+		if (call)
+			strm << " for call no. " << call->GetCallNumber();
+		PTrace::End(strm);
+	}
+#endif
+	return finalResult;
 }
 
 namespace {

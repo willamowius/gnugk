@@ -19,11 +19,6 @@
 #ifndef RWLOCK_H
 #define RWLOCK_H "@(#) $Id$"
 
-#ifndef _PTLIB_H
-#include <ptlib.h>
-#endif
-
-
 class ReadLock {
 	PReadWriteMutex & mutex;
   public:

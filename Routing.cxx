@@ -19,16 +19,17 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include "Routing.h"
+#include <ptlib.h>
+#include <h323pdu.h>
+#include "gk_const.h"
+#include "h323util.h"
 #include "Toolkit.h"
+#include "stl_supp.h"
 #include "RasTbl.h"
 #include "RasSrv.h"
 #include "GkClient.h"
-#include "stl_supp.h"
-#include "h323util.h"
-#include "gk_const.h"
 #include "GkStatus.h"
-#include <h323pdu.h>
+#include "Routing.h"
 
 
 namespace Routing {
@@ -51,7 +52,17 @@ RoutingRequest::~RoutingRequest()
 
 bool RoutingRequest::SetDestination(const H225_TransportAddress & dest, bool find_called)
 {
-	PAssert(!m_destination, "Error: destination overwritten!");
+	if (m_destination) {
+		PTRACE(1, "ROUTING\tError: destination overwritten!");
+		return false;
+	}
+	PIPSocket::Address addr;
+	WORD port;
+	if (!(dest.IsValid() && GetIPAndPortFromTransportAddr(dest, addr, port) 
+			&& addr.IsValid() && port != 0)) {
+		PTRACE(1, "ROUTING\tInvalid destination address: " << dest);
+		return false;
+	}
 	m_destination = new H225_TransportAddress(dest);
 	if (find_called)
 		m_called = RegistrationTable::Instance()->FindBySignalAdr(dest);
@@ -331,7 +342,8 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
 		H225_TransportAddress dest;
 		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
-			request.SetDestination(dest, true);
+			if (!request.SetDestination(dest, true))
+				continue;
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
 			// remove the domain name part
 			H323SetAliasAddress(alias.Left(at), aliases[i]);
