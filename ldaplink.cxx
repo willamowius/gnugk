@@ -347,11 +347,12 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
 		}
 		delete tm;
 	} while((LDAP_SUCCESS != ldap_ret)&&(retry_count++ < 4));
-
+	
+	result->status = ldap_ret;
 	// analyze answer
-	if (0 >= (ldap_ret = gk_ldap_count_entries(ldap, res))) {
+	if (0 > (ldap_ret = gk_ldap_count_entries(ldap, res))) {
 		ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
-		result->status = (0==ldap_ret) ? (-1) : ldap_ret;
+		result->status = ldap_ret;
 		return result;
 	} else {
 		DEBUGPRINT("ldap_search: " << ldap_ret << " results");
