@@ -1,5 +1,8 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- BUGFIX(gkacct.cxx) changed accounting reload handling to first cleanup
+  the old modules and then create the new ones. This allows the FileAcct 
+  logger to work fine with the reload command
 - BUGFIX(h323util.cxx) additional check for H225_TransportAddress
   to prevent NULL pointer assertions. Thanks to Andrey Pankov!
 - added Q.931/H.225 Setup authentication (RadAliasAuth module implementation)

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2003/11/01 10:36:34  zvision
+ * Fixed missing semicolon. Thanks to Hu Yuxin
+ *
  * Revision 1.7  2003/10/31 00:01:23  zvision
  * Improved accounting modules stacking control, optimized radacct/radauth a bit
  *
@@ -414,19 +417,17 @@ GkAcctLoggerList::~GkAcctLoggerList()
 
 void GkAcctLoggerList::OnReload()
 {
-	GkAcctLogger* head 
-		= GkAcctLogger::Create(GkConfig()->GetKeys(GkAcctSectionName));
-	{
-		WriteLock lock(m_reloadMutex);
+	WriteLock lock(m_reloadMutex);
 		
-		m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection,"AcctUpdateInterval",0);
-		// should not be less than 10 seconds
-		if( m_acctUpdateInterval != 0 )
-			m_acctUpdateInterval = PMAX(10,m_acctUpdateInterval);
-		
-		swap(m_head,head);
-	}
-	delete head;	
+	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection,"AcctUpdateInterval",0);
+	// should not be less than 10 seconds
+	if( m_acctUpdateInterval != 0 )
+		m_acctUpdateInterval = PMAX(10,m_acctUpdateInterval);
+	
+	// we have to delete the old modules first to allow some cleanup
+	// (example is a FileAcct logger that needs to close cdr.log)	
+	delete m_head;
+	m_head = GkAcctLogger::Create(GkConfig()->GetKeys(GkAcctSectionName));
 }
 
 namespace {
