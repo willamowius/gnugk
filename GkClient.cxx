@@ -347,7 +347,7 @@ void GkClient::RegisterFather(const PString & endpointId, const PString & gateke
 
 	// Set Alarm
 	reRegisterTimer.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
-	reRegisterTimer.RunContinuous(PTimeInterval(0,(m_ttl<=0 ? 50 : m_ttl)));
+	reRegisterTimer=PTimeInterval(0,(m_ttl<=0 ? 50 : m_ttl));
 
 	PAssert(reRegisterTimer.IsRunning(), "Timer is not Running!");
 
