@@ -107,7 +107,7 @@ GkStatus::GkStatus()
 
 GkStatus::~GkStatus()
 {
-	PTRACE(1, "Deleting GkStatusObject");
+
 }
 
 void GkStatus::Initialize(PIPSocket::Address _GKHome)
