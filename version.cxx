@@ -17,7 +17,7 @@
 const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d)"
+		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d,large_fdset=%d)"
 		       " Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
@@ -35,6 +35,11 @@ const PString Toolkit::GKVersion()
 				(int)1,
 #else
 				(int)0,
+#endif
+#ifdef LARGE_FDSET
+				(int)LARGE_FDSET,
+#else
+				0,
 #endif
 		       __DATE__, __TIME__,
 		       (const unsigned char*)(PProcess::GetOSName()),
