@@ -231,3 +231,26 @@ unsigned MapH225ReasonToQ931Cause(
 	else
 		return H225ReasonToQ931Cause[reason];
 }
+
+PString GetGUIDString(
+	const H225_GloballyUniqueID& id, /// 128-bit identifier to convert
+	bool fixedLength /// skip leading zeros (false) or not (true)
+	)
+{
+	if (id.GetSize() < 16)
+		return "Invalid";
+		
+	PString idstr;
+					
+	for (int j = 0, i = 0; j < 4; j++) {
+		const unsigned hex = ((unsigned)(id[i++])<<24) | ((unsigned)(id[i++])<<16) 
+			| ((unsigned)(id[i++])<<8) | ((unsigned)(id[i++]));
+							
+		idstr += fixedLength ? PString(PString::Printf, "%08x", hex)
+			: PString(PString::Unsigned, (long)hex, 16);
+		if (j < 3)
+			idstr += ' ';
+	}
+
+	return idstr;
+}

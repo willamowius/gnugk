@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2004/04/17 11:43:43  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.8  2004/03/17 00:00:38  zvision
  * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
  *
@@ -61,8 +65,6 @@
 #include "gkacct.h"
 #include "radproto.h"
 #include "radacct.h"
-
-extern PString GetConferenceIDString( const H225_ConferenceIdentifier& id );
 
 RadAcct::RadAcct( 
 	const char* moduleName,
@@ -269,7 +271,7 @@ GkAcctLogger::Status RadAcct::Log(
 			
 			*pdu += new RadiusAttr(
 				PString("h323-conf-id=") 
-					+ GetConferenceIDString(call->GetConferenceIdentifier()),
+					+ GetGUIDString(call->GetConferenceIdentifier()),
 				CiscoVendorId, 24
 				);
 						
@@ -317,6 +319,11 @@ GkAcctLogger::Status RadAcct::Log(
 					PString("h323-remote-address=") + addr.AsString(),
 					CiscoVendorId, 23
 					);
+
+			*pdu += new RadiusAttr(PString("h323-ivr-out=h323-call-id:") 
+				+ GetGUIDString(call->GetCallIdentifier().m_guid),
+				CiscoVendorId, 1
+				);
 		}
 	
 		*pdu += new RadiusAttr( RadiusAttr::AcctDelayTime, 0 );

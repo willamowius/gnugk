@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2004/06/17 10:03:17  zvision
+ * Better Framed-IP-Address handling in RadAliasAuth Setup check
+ *
  * Revision 1.15  2004/06/16 23:46:47  zvision
  * RadAliasAuth will work even when Setup-UUIE does not contain sourceAddress
  *
@@ -143,33 +146,6 @@ const char* RadAliasAuthConfigSectionName = "RadAliasAuth";
 
 // OID for CAT (Cisco Access Token) algorithm
 PString RadAuth::OID_CAT("1.2.840.113548.10.1.2.1");
-
-/** Return conference identifier as a string compatible with Cisco
-	equipment (four 32-bit hex numbers, with leading zeros skipped)
-	
-	@return
-	A string with formatted conference identifier.
-*/
-PString GetConferenceIDString(
-	const H225_ConferenceIdentifier& id
-	)
-{
-	if (id.GetSize() < 16)
-		return PString();
-		
-	PString h323ConfId;
-					
-	for (int j = 0, i = 0; j < 4; j++) {
-		const unsigned hex = ((unsigned)(id[i++])<<24) | ((unsigned)(id[i++])<<16) 
-			| ((unsigned)(id[i++])<<8) | ((unsigned)(id[i++]));
-							
-		h323ConfId += PString( PString::Unsigned, (long)hex, 16 );
-		if (j < 3)
-			h323ConfId += ' ';
-	}
-
-	return h323ConfId;
-}
 
 
 RadAuthBase::RadAuthBase( 
@@ -576,7 +552,7 @@ int RadAuthBase::Check(
 			
 	if (m_appendCiscoAttributes) {
 		*pdu += new RadiusAttr(
-			PString("h323-conf-id=") + GetConferenceIDString(arq.m_conferenceID),
+			PString("h323-conf-id=") + GetGUIDString(arq.m_conferenceID),
 			9, 24
 			);
 		*pdu += new RadiusAttr(
@@ -864,7 +840,7 @@ int RadAuthBase::Check(
 			
 	if (m_appendCiscoAttributes) {
 		*pdu += new RadiusAttr(
-			PString("h323-conf-id=") + GetConferenceIDString(setup.m_conferenceID),
+			PString("h323-conf-id=") + GetGUIDString(setup.m_conferenceID),
 			9, 24
 			);
 		*pdu += new RadiusAttr(

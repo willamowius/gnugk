@@ -114,6 +114,10 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New RADIUS h323-ivr-out=h323-call-id parameter that contains 
+an H.323 Call Identifier.
+
+<item>
 The SQL billing from the contrib section can now authenticate users only 
 by their IP (ignoring User-Name) and has a new, more flexible tariff/rating 
 engine.

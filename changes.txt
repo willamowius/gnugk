@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- (radacct.cxx) new RADIUS h323-ivr-out=h323-call-id parameter that contains
+  an H.323 Call Identifier
 - BUGFIX(radauth.cxx) better Framed-IP-Address handling in RadAliasAuth Setup check
 - BUGFIX (ProxyChannel.cxx) With a certain combination of endpoints it 
   was possible to have UDPProxySocket trying to forward incoming RTP / 

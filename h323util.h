@@ -18,6 +18,7 @@
 
 #include <ptlib/sockets.h>
 
+class H225_GloballyUniqueID;
 class H225_TransportAddress;
 class H225_TransportAddress_ipAddress;
 class H225_EndpointType;
@@ -84,6 +85,18 @@ PString GetBestAliasAddressString(
 */
 unsigned MapH225ReasonToQ931Cause(
 	int reason /// H225_ReleaseCompleteReason code to map
+	);
+
+/** Return 128-bit globally unique identifier as a string composed of four 
+    32-bit hex numbers, with leading zeros skipped or not. This format is 
+    compatible with Cisco equipment.
+	
+    @return
+    A string with properly formatted identifier.
+*/
+PString GetGUIDString(
+	const H225_GloballyUniqueID& id, /// 128-bit identifier to convert
+	bool fixedLength = false /// skip leading zeros (false) or not (true)
 	);
 	
 #endif // H323UTIL_H
