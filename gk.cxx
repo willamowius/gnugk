@@ -318,10 +318,12 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 
 	sigaction(SIGHUP, &sa, NULL);
 
-	if (args.HasOption("pid"))
-		pidfile = args.GetOptionString("pid");
-	PTextFile pid(pidfile, PFile::WriteOnly);
-	pid.WriteLine(PString(PString::Unsigned, getpid()));
+	if (args) {
+		if (args.HasOption("pid"))
+			pidfile = args.GetOptionString("pid");
+		PTextFile pid(pidfile, PFile::WriteOnly);
+		pid.WriteLine(PString(PString::Unsigned, getpid()));
+	}
 #endif
 	return TRUE;
 }
