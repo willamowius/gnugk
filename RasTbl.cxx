@@ -1342,7 +1342,7 @@ PString CallRec::GenerateCDR() const
 		timeString = "0|unconnected|" + endTime.AsString();
 	}
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s;\r\n",
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s;",
 		m_CallNumber,
 		(const char *)AsString(m_callIdentifier.m_guid),
 		(const char *)timeString,
@@ -1643,7 +1643,7 @@ void CallTable::InternalRemove(iterator Iter)
 	CallRec *call = *Iter;
 
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
-		PString cdrString(call->GenerateCDR());
+		PString cdrString(call->GenerateCDR() + "\r\n");
 		GkStatus::Instance()->SignalStatus(cdrString, 1);
 		PTRACE(1, cdrString);
 #if PTRACING
