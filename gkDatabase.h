@@ -56,7 +56,7 @@ enum DBAttributeNamesEnum {
 	MainTelephoneNo, SubscriberTelephoneNumber, CallingLineIdRestriction, SpecialDials,
 	HonorsARJincompleteAddress, PrefixOutgoingBlacklist, PrefixOutgoingWhitelist,
 	PrefixIncomingBlacklist, PrefixIncomingWhitelist, PrependCallbackAC, EPType, CountryCode,
-	MAX_ATTR_NO };
+	OutgoingWhitelistBeforeBlacklist, MAX_ATTR_NO };
 
 	/// list of names (keys) as used in config file
 extern const char * DBAttrTags[MAX_ATTR_NO];

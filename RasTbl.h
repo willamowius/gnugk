@@ -100,6 +100,7 @@ class CallingProfile {
 public:
         CallingProfile() { m_honorsARJincompleteAddress = TRUE;
 		           m_isCPE = FALSE;
+			   m_WhiteListBeforeBlackList = FALSE; // BlacklistBeforeWhiteList, default nonblocking
 	                 };
 
         // Get accessor methods
@@ -107,6 +108,7 @@ public:
         const BOOL isCPE() const { return m_isCPE; } // Customer Promise Equipment
         const BOOL isGK() const { return m_isGK; } // Gatekeeper client
         const BOOL honorsARJincompleteAddress() const { return m_honorsARJincompleteAddress; }
+	const BOOL WhiteListBeforeBlackList() const { return m_WhiteListBeforeBlackList; }
         const PStringList & getTelephoneNumbers() const { return m_telephoneNumbers; }
         const PStringToString & getSpecialDials() const { return m_specialDials; }
         const PString & getMainTelephoneNumber() const { return m_mainTelephoneNumber; }
@@ -134,6 +136,7 @@ public:
         void setNac(PString &nac) { m_nac = nac; }
         void setInac(PString &inac) { m_inac = inac; }
         void setHonorsARJincompleteAddress(BOOL honor) { m_honorsARJincompleteAddress = honor; }
+	void setWhiteListBeforeBlackList(BOOL wbb) {m_WhiteListBeforeBlackList = wbb; }
         void setCC(PString &cc) { m_cc = cc; }
         void setCgPN(PString &cgPN) { m_cgPN = cgPN; }
 
@@ -157,6 +160,7 @@ private:
         PString         m_cgPN;                       // calling party number for CDR generation
         BOOL            m_isCPE;                      // CPE flag
 	BOOL            m_isGK;                       // Gatekeeper client Flag
+	BOOL            m_WhiteListBeforeBlackList;   // if true do WhitelistBlacklist else BlacklistWhitelistAnalysis
 
 	PStringList     m_BlackList;                  // Blacklist of "bad" prefices
 	PStringList     m_WhiteList;                  // Whitelist of "good" prefices

@@ -32,7 +32,7 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
  "MainTelephoneNumber", "SubscriberTelephoneNumber", "CallingLineIdRestriction", "SpecialDials",
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
  "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "PrependCallbackAC",
- "EndpointType", "CountryCode"};
+ "EndpointType", "CountryCode", "OutgoingWhitelistBeforeBlacklist"};
 
 // section name for database names which shall be used
 const char *DB_NAMES_SEC = "Gatekeeper::Databases";
@@ -136,6 +136,10 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 			    cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[CountryCode],
 					      "voIPCountryCode")));
+	AN.insert(DBANValuePair(DBAttrTags[OutgoingWhitelistBeforeBlacklist],
+			    cfg.GetString(DB_ATTR_NAME_SEC,
+					      DBAttrTags[OutgoingWhitelistBeforeBlacklist],
+					      "voIPWhiteListBeforeBlackList")));
 
 	// read database names which shall be used and append them to m_dbList
 	if(m_dbList.GetSize()>0) {
@@ -217,6 +221,9 @@ BOOL GkDatabase::getProfile(CallingProfile & cgProfile, PString & h323id, dctn::
 			cgProfile.setIsCPE( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_TRUNK_GW)) ? FALSE : TRUE);
 			cgProfile.setIsGK( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_GATEKEEPER)) ? FALSE : TRUE);
 		}
+		if (attrMap[attrNameAsString(OutgoingWhitelistBeforeBlacklist)].GetSize() > 0)
+			cgProfile.setWhiteListBeforeBlackList(Toolkit::AsBool(attrMap[attrNameAsString(OutgoingWhitelistBeforeBlacklist)][0]));
+
 
 		cgProfile.debugPrint();
 	} else {
