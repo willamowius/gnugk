@@ -8,7 +8,7 @@ SOURCES  = Toolkit.cxx CountryCodeTables.cxx gk.cxx gkauth.cxx gkldap.cxx				\
            gkDestAnalysis.cxx RasSrv.cxx RasTbl.cxx GkClient.cxx MulticastGRQ.cxx			\
            BroadcastListen.cxx SoftPBX.cxx h323util.cxx GkStatus.cxx	\
            ProxyThread.cxx ProxyChannel.cxx singleton.cxx main.cxx	\
-           gkDatabase.cxx gkIniFile.cxx
+           gkDatabase.cxx gkIniFile.cxx GkProfile.cxx
 
 ifndef MANUFACTURER
 MANUFACTURER = "Willamowius"
@@ -235,6 +235,9 @@ endif
 addpasswd: $(OBJDIR)/addpasswd.o
 	$(CPLUS) -o $(OBJDIR)/addpasswd $(CFLAGS) $(OBJDIR)/addpasswd.o $(LDFLAGS) $(LDLIBS) $(ENDLDLIBS)
 
+
+doc: docs/manual.sgml
+	cd docs; sgml2html manual.sgml
 
 
 # Extra dependencies
