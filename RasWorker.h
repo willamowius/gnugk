@@ -66,6 +66,7 @@ protected:
 	virtual void OnLCF(H225_RasMessage &lcf);
 	virtual void OnIRR(H225_InfoRequestResponse &gqr);
 	virtual void OnRAI(H225_ResourcesAvailableIndicate &gqr);
+	virtual void OnUCF(H225_UnregistrationConfirm &ucf);
 private:
 	GkAuthenticatorList *authList;
 };
