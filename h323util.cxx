@@ -89,32 +89,26 @@ PString AsString(const H225_EndpointType & terminalType)
 	PString terminalTypeString;
 			
 	if (terminalType.HasOptionalField(H225_EndpointType::e_terminal))
-		terminalTypeString = "terminal";
+		terminalTypeString = ",terminal";
 
-	if (terminalType.HasOptionalField(H225_EndpointType::e_gateway)) {
-		if (terminalTypeString != "")
-			terminalTypeString += ",";
-		terminalTypeString += "gateway";
-	}
+	if (terminalType.HasOptionalField(H225_EndpointType::e_gateway))
+		terminalTypeString += ",gateway";
 	
-	if (terminalType.HasOptionalField(H225_EndpointType::e_mcu)) {
-		if (terminalTypeString != "")
-			terminalTypeString += ",";
-		terminalTypeString += "mcu";
-	}
+	if (terminalType.HasOptionalField(H225_EndpointType::e_mcu))
+		terminalTypeString += ",mcu";
+
+	if (terminalType.HasOptionalField(H225_EndpointType::e_gatekeeper))
+		terminalTypeString += ",gatekeeper";
 
 /* vendor seems always to be set - this clutters up the display
-	if (terminalType.HasOptionalField(H225_EndpointType::e_vendor)) {
-		if (terminalTypeString != "")
-			terminalTypeString += ",";
-		terminalTypeString += "vendor";
-	}
+	if (terminalType.HasOptionalField(H225_EndpointType::e_vendor))
+		terminalTypeString += ",vendor";
 */
 
-	if (terminalTypeString == "")
-		terminalTypeString = "unknown";
+	if (terminalTypeString.IsEmpty())
+		terminalTypeString = ",unknown";
 	
-	return(terminalTypeString);
+	return terminalTypeString.Mid(1);
 }
 
 PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasName)

@@ -122,7 +122,7 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 	if (!Call) {
 		PString msg(PString::Printf, "Can't find call number %u", CallNumber);
 		PTRACE(2, "GK\tSoftPBX: " << msg);
-		GkStatus::Instance()->SignalStatus(msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
 
@@ -130,9 +130,9 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 	// remove the call directly so we don't have to handle DCF
 	CallTable::Instance()->RemoveCall(Call);
 
-	PString msg(PString::Printf, "Call number %d disconnected.\n", CallNumber);
+	PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
 	PTRACE(2, "GK\tSoftPBX: " << msg);
-	GkStatus::Instance()->SignalStatus(msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
 // send a DRQ to this endpoint

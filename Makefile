@@ -8,7 +8,7 @@ PROG		= gk
 SOURCES		= gk.cxx gkauth.cxx RasSrv.cxx RasTbl.cxx \
 		  MulticastGRQ.cxx BroadcastListen.cxx \
 		  SignalChannel.cxx SignalConnection.cxx \
-		  GkStatus.cxx SoftPBX.cxx Toolkit.cxx h323util.cxx \
+		  SoftPBX.cxx Toolkit.cxx h323util.cxx GkStatus.cxx \
 		  singleton.cxx main.cxx
 
 ifndef OPENH323DIR

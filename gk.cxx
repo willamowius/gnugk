@@ -96,14 +96,11 @@ void ShutdownHandler(void)
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
-	// The singletons would be deleted automatically
-	// by destructor of listptr<SingletonBase *>
-	// However, I have to delete Toolkit instance here,
-	// or it will cause a core dump. I don't know why...
-        // delete resourceManager::Instance();
-        // delete RegistrationTable::Instance();
-        // delete CallTable::Instance();
+	delete resourceManager::Instance();
+	delete RegistrationTable::Instance();
+	delete CallTable::Instance();
         delete Toolkit::Instance();
+	delete GkStatus::Instance();
 
 #ifdef PTRACING
 	PTrace::SetStream(&cerr); // redirect to cerr
