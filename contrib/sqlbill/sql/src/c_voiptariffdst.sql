@@ -14,7 +14,7 @@ CREATE TABLE voiptariffdst (
 	active BOOLEAN NOT NULL DEFAULT TRUE,
 	-- E.164 prefix or a special value 'PC' that specifies all
 	-- non-E.164 (H.323 id) aliases starting with a letter, not digit
-	prefix VARCHAR(12) NOT NULL,
+	prefix TEXT NOT NULL,
 	-- description (like country name)
 	description TEXT NOT NULL,
 	

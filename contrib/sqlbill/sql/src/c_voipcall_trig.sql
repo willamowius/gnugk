@@ -84,7 +84,8 @@ BEGIN
 		IF NEW.duration > NEW.initialincrement THEN
 			NEW.cost := NEW.cost + NEW.price::NUMERIC(12,4) 
 				* ((NEW.duration - NEW.initialincrement + NEW.regularincrement - 1)::INT 
-					* NEW.regularincrement::INT)::NUMERIC(12,4) / 60::NUMERIC(12,4);
+					/ NEW.regularincrement::INT)::NUMERIC(12,4) 
+				* NEW.regularincrement::NUMERIC(12,4) / 60::NUMERIC(12,4);
 		END IF;
 		IF NEW.accountid IS NOT NULL THEN
 			IF TG_OP = ''UPDATE'' THEN

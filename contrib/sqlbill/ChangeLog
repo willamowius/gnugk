@@ -1,3 +1,7 @@
+5 Aug 2004 -- zvision
+  * cost for calls longer than the initialincrement was incorrectly calculated
+  * allow arbitraty prefix length
+
 4 Aug 2004 -- zvision
   * allow voipcall rows with NULL tariffdesc to be inserted - this happens
     when users dial numbers not found in the tariff table
