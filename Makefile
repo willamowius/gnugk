@@ -1,26 +1,26 @@
 # -*- mode: Makefile -*-
 # Copyright (C) 2002 by its various Authors, see CVS-log
-#  
+#
 # PURPOSE OF THIS FILE: Make file for OpenH323 Gatekeeper
-#  
+#
 # - Automatic Version Information via RCS:
 #   $Id$
 #   $Source$
-#  
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-#  
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-#  
+#
 
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by
@@ -162,8 +162,16 @@ ifndef NO_LDAP
 
 # add test for HAS_LEVEL_TWO_LDAPAPI here
 else  # USE_EXTERNAL_LDAP
-  ifneq (,$(wildcard ldap/include/ldapapi.h))
-    HAS_LEVEL_TWO_LDAPAPI = 1
+# First look if openh323 supports ldap.
+  ifneq (,$(wildcard $(OPENH323DIR)/include/ldapapi.h))
+    HAS_OPENH323_LDAPAPI = 1
+    LDAP1823LIBNM       := "" # force to be set.
+    LDAP1823DIR          = $(OPENH323DIR)
+  else
+# then look if we support ldap.
+    ifneq (,$(wildcard ldap/include/ldapapi.h))
+      HAS_LEVEL_TWO_LDAPAPI = 1
+    endif
   endif
 endif # USE_EXTERNAL_LDAP
 
@@ -213,6 +221,11 @@ else
       LDFLAGS         += -L$(LDAP1823LIBDIR)
       LD_RUN_LIST     += $(strip $(LDAP1823LIBDIR))
     endif
+  endif
+  ifdef HAS_OPENH323_LDAPAPI
+    SOURCES     += ldaplink.cxx gk_ldap_interface.cxx
+    HAS_LDAP    = 1
+    STDCCFLAGS += -D"HAS_LDAP=$(HAS_LDAP)" -D"HAS_OPENH323_LDAPAPI=$(HAS_OPENH323_LDAPAPI)"
   endif
 endif
 

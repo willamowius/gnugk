@@ -26,8 +26,12 @@
 #if !defined(LDAPLINK_H)	/* make idempotent */
 #define LDAPLINK_H "@(#) $Id$"
 
-#if defined(HAS_LEVEL_TWO_LDAPAPI)
-#  include "ldapapi.h"		// local API to libOpenH323 classes
+#include <ptlib.h>
+
+#if defined(HAS_LEVEL_TWO_LDAPAPI) || defined(HAS_OPENH323_LDAPAPI)
+
+#  include <stdlib.h>
+#  include <ldapapi.h>		// local API to libOpenH323 classes
 #else
 #  include <ldap.h>		// std RFC 1823 LDAP-API
 #  if defined(NO_BERVAL_IN_LDAP_H) // set in case of old headers
@@ -39,7 +43,6 @@ typedef struct berval {
 #  endif
 #endif
 
-#include <ptlib.h>		// the PWlib
 
 #ifdef P_SOLARIS
 #define map stl_map

@@ -211,7 +211,7 @@ LDAPCtrl::Initialize(void)
         gk_filter = GkConfig()->GetString("GkLDAP::Settings", "Filter", "");
 
 #if (((LDAP_API_VERSION >= 2004) && defined(LDAP_API_FEATURE_X_OPENLDAP)) || \
- defined (HAS_LEVEL_TWO_LDAPAPI))
+ defined (HAS_LEVEL_TWO_LDAPAPI)) || defined(HAS_OPENH323_LDAPAPI)
 	// OpenLDAP API 2000+draft revision provides better controlled access
 	int opt_ret = LDAP_OPT_SUCCESS;
 	if(LDAP_OPT_SUCCESS !=

@@ -29,7 +29,8 @@
 #ifndef GK_LDAP_H
 #define GK_LDAP_H "@(#) $Id$"
 
-#ifdef HAS_LEVEL_TWO_LDAPAPI
+#if defined(HAS_LEVEL_TWO_LDAPAPI) || defined(HAS_OPENH323_LDAPAPI)
+# include <stdlib.h>
 # include <ldapapi.h>
 #else
 # include <ldap.h>
@@ -39,8 +40,6 @@
 # define LDAP_PROVIDES_OPENLDAP_CACHE
 # define LDAP_PROVIDES_CACHE
 #endif
-
-//#include <vector>
 
 #include <ptlib.h>
 
