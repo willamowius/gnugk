@@ -89,8 +89,8 @@ SOURCES += ldaplink.cxx 	  gk_ldap_interface.cxx
 LDAP_LIB = ./ldap/lib/libldapapi_$(PLATFORM_TYPE)_$(OBJ_SUFFIX).$(LIB_SUFFIX)
 
 SUBDIRS += ldap/src
-#LDLIBS	+= -lldapapi_$(PLATFORM_TYPE)_$(OBJ_SUFFIX) $(TMP_LDLIBS)
-#LDFLAGS += -L./ldap/lib/
+LDLIBS	+= -lldapapi_$(PLATFORM_TYPE)_$(OBJ_SUFFIX) $(TMP_LDLIBS)
+LDFLAGS += -L./ldap/lib/
 HAS_LDAP	= 1
 STDCCFLAGS	+= -I./ldap/include -D"HAS_LDAP=$(HAS_LDAP)" \
                    -D"HAS_LEVEL_TWO_LDAPAPI=$(HAS_LEVEL_TWO_LDAPAPI)" -D"LDAPVERSION=2"
@@ -162,7 +162,7 @@ $(LDAP_LIB):
 endif
 $(TARGET):	$(OBJS) $(TARGET_LIBS)
 	$(MAKE) $(TARGET_LIBS)
-	$(CPLUS) -o $@ $(CFLAGS) $(LDFLAGS) $(OBJS) $(LDAP_LIB) $(LDLIBS) $(ENDLDLIBS) $(ENDLDFLAGS)
+	$(CPLUS) -o $@ $(CFLAGS) $(LDFLAGS) $(OBJS) $(LDLIBS) $(ENDLDLIBS) $(ENDLDFLAGS)
 endif
 
 addpasswd: $(OBJDIR)/addpasswd.o
