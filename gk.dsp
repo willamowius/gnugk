@@ -98,6 +98,10 @@ SOURCE=.\gkauth.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\gkacct.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\GkClient.cxx
 # End Source File
 # Begin Source File
@@ -162,6 +166,14 @@ SOURCE=.\version.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\radauth.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\radacct.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\yasocket.cxx
 # End Source File
 # End Group
@@ -183,6 +195,10 @@ SOURCE=.\gk_const.h
 # Begin Source File
 
 SOURCE=.\gkauth.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gkacct.h
 # End Source File
 # Begin Source File
 
@@ -263,6 +279,14 @@ SOURCE=.\Toolkit.h
 # Begin Source File
 
 SOURCE=.\version.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\radauth.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\radacct.h
 # End Source File
 # Begin Source File
 
