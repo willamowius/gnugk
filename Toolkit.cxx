@@ -1089,24 +1089,52 @@ bool Toolkit::AsBool(const PString & str)
 	return ( c=='t' || c=='1' || c=='y' || c=='a' );
 }
 
-void Toolkit::GetNetworkFromString(const PString & cfg, PIPSocket::Address & network, PIPSocket::Address & netmask)
+void Toolkit::GetNetworkFromString(
+	const PString &s,
+	PIPSocket::Address &network,
+	PIPSocket::Address &netmask
+	)
 {
-	if (cfg *= "ALL") {
+	if (s *= "ALL") {
 		network = netmask = INADDR_ANY;
 		return;
 	}
-	PStringArray net = cfg.Tokenise("/", FALSE);
-	if (net.GetSize() < 2) {
-		netmask = (DWORD(~0));
-	} else if (net[1].Find('.') == P_MAX_INDEX) {
-		// CIDR notation
-		DWORD n = (DWORD(~0) >> net[1].AsInteger());
-		netmask = PIPSocket::Host2Net(~n);
+
+	PINDEX slashPos = s.Find('/');
+	if (slashPos == P_MAX_INDEX) {
+		// a single IP
+		static BYTE fullNetMask[16] = { 
+			255, 255, 255, 255, 255, 255, 255, 255,
+			255, 255, 255, 255, 255, 255, 255, 255
+			};
+		network = PIPSocket::Address(s);
+		netmask = PIPSocket::Address(network.GetSize(), fullNetMask);
 	} else {
-		// decimal dot notation
-		netmask = net[1];
+		network = PIPSocket::Address(s.Left(slashPos));
+		
+		const PString netmaskString = s.Mid(slashPos + 1);
+		BYTE rawData[16];
+		
+		if (netmaskString.FindOneOf(".:") != P_MAX_INDEX) {
+			// netmask as a network address
+			netmask = PIPSocket::Address(netmaskString);
+		} else {
+			// netmask as an integer
+			const DWORD netmaskLen = netmaskString.AsUnsigned();
+			for (unsigned b = 0; b < (unsigned)(network.GetSize() * 8); b++)
+				if (b < netmaskLen)
+					rawData[b >> 3] |= 0x80U >> (b & 7);
+				else
+					rawData[b >> 3] &= ~(0x80U >> (b & 7));
+			netmask = PIPSocket::Address(network.GetSize(), rawData);
+		}
+		
+		// normalize the address
+		for (unsigned b = 0; b < (unsigned)(network.GetSize()); b++)
+			rawData[b] = network[b] & netmask[b];
+				
+		network = PIPSocket::Address(network.GetSize(), rawData);
 	}
-	network = PIPSocket::Address(net[0]) & netmask; // normalize
 }
 
 PString Toolkit::CypherDecode(const PString & key, const PString & crypto, int s)
