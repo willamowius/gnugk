@@ -591,12 +591,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 
 		PTRACE(6, ANSI::BYEL << "Q931\nUUIE received: " << setprecision(2) << pdu << ANSI::OFF);
 
-		unsigned ton=0,
-			plan=0;
 		switch (body.GetTag()){
 		case H225_H323_UU_PDU_h323_message_body::e_setup:
 			m_crv = (q931pdu.GetCallReference() | 0x8000u);
-			q931pdu.GetCalledPartyNumber(DialedDigits,&ton,&plan);
+			q931pdu.GetCalledPartyNumber(DialedDigits,&m_calledPLAN, &m_calledTON);
 			if (NULL==GetSetupPDU()) {
 				m_SetupPDU = new Q931(*(GetReceivedQ931()));
 				OnSetup(body);
@@ -918,9 +916,12 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	}
 	if (isRoutable) {
 		if(m_call->GetCallingProfile().GetH323ID().IsEmpty()) {
-			CallTable::Instance()->RemoveCall(m_call);
-			m_call=callptr(0);
+			PTRACE(5, "m_call->GetCallingProfile() " <<" H323ID: " << m_call->GetCallingProfile().GetH323ID());
+			m_call->GetCallingProfile().debugPrint();
 			PTRACE(1, "Removing unknown call");
+			CallTable::Instance()->RemoveCall(m_call);
+			m_call->GetCallingProfile().debugPrint();
+			m_call=callptr(0);
 			return;
 		}
 		CgPNConversion();
@@ -1022,6 +1023,7 @@ void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 		m_numbercomplete = TRUE;
 		CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
 		rem->CgPNConversion();
+		PTRACE(5, "Setting DialedPN");
 		m_call->GetCalledProfile().SetDialedPN(rem->DialedDigits, static_cast<Q931::NumberingPlanCodes> (rem->m_calledPLAN),
 						       static_cast<Q931::TypeOfNumberCodes> (rem->m_calledTON));
 	}
@@ -1278,12 +1280,12 @@ BOOL CallSignalSocket::CgPNConversion() {
 
 	if(callptr(NULL) == m_call)
 		return FALSE;
+	PTRACE(5, "Beginning CgPNConversion()");
 	CallingProfile & cgpf = m_call->GetCallingProfile();
 	CalledProfile & cdpf = m_call->GetCalledProfile();
 	// Check if CallingPartyNumber is provided.
 	if (GetSetupPDU()->GetCallingPartyNumber(CallingPartyNumber, &CallingPLAN, &CallingTON, &CallingPI,&CallingSI)) {
 		// Convert CallingPartyNumber to international Format.
-		PTRACE(5, "CgPNConversion received CallingPartyNumber: " << CallingPartyNumber << " with TON: " << CallingTON);
 		CallingTON=((cgpf.TreatCallingPartyNumberAs()==CallProfile::LeaveUntouched) ? CallingTON : cgpf.TreatCallingPartyNumberAs());
 		ConvertNumberInternational(CallingPartyNumber, CallingPLAN, CallingTON, CallingSI, cgpf);
 		PTRACE(5, "CgPNConversion converted CallingPartyNumber to int: " << CallingPartyNumber << " with TON: " << CallingTON);
@@ -1331,15 +1333,20 @@ BOOL CallSignalSocket::CgPNConversion() {
 		PTRACE(1, "Could not get CalledPartyNumberIE from setup PDU. \t Aborting NumberConversion");
 		return false;
 	}
-	DialedDigits = CalledPartyNumber;
-	m_calledPLAN = CalledPLAN;
-	m_calledTON = CalledTON;
-	CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CallingTON : cgpf.TreatCalledPartyNumberAs());
+	if(DialedDigits.IsEmpty()) { // The initial Setup did not contain any number. This should not happen.
+		DialedDigits = CalledPartyNumber;
+		m_calledPLAN = CalledPLAN;
+		m_calledTON = CalledTON;
+	}
+	PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << "preparing to change: " << cgpf.TreatCalledPartyNumberAs());
+	CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CalledTON : cgpf.TreatCalledPartyNumberAs());
+	PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON);
 	ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
+	PTRACE(5, "CgPNConversion converted CalledPartyNumber to int: " << CalledPartyNumber << " with TON: " << CalledTON);
 	// Check wether we are fooled with different ARQ-Number.
 	// we check only the left part we already have, because the ARQ could have provided one digit less than
 	// the setup.
-	// Sorry for the big truth value...
+	// Sorry for the awful truth value...
 	if((!cdpf.GetCalledPN().IsEmpty()) && (cdpf.GetCalledPN().GetLength() > CalledPartyNumber.GetLength()) && // shrink of Number
 	     (cdpf.GetCalledPN() != CalledPartyNumber.Left(cdpf.GetCalledPN().GetSize()))) {
 		// Is the call redirected by network?
@@ -1426,10 +1433,19 @@ BOOL CallSignalSocket::CgPNConversion() {
 					 CalledTON);
 	PTRACE(5, "CalledPN");
 	PrintCallingPartyNumber(CalledPartyNumber, CalledPLAN, CalledTON, 0, 0);
-	cdpf.SetCallingPN(CallingPartyNumber, static_cast<Q931::NumberingPlanCodes> (CallingPLAN), static_cast<Q931::TypeOfNumberCodes> (CallingTON),
-			  static_cast<H225_ScreeningIndicator::Enumerations> (CallingSI), static_cast<H225_PresentationIndicator::Choices> (CallingPI));
+	cdpf.SetCallingPN(CallingPartyNumber, static_cast<Q931::NumberingPlanCodes> (CallingPLAN),
+			  static_cast<Q931::TypeOfNumberCodes> (CallingTON),
+			  static_cast<H225_ScreeningIndicator::Enumerations> (CallingSI),
+			  static_cast<H225_PresentationIndicator::Choices> (CallingPI));
 	m_call->GetCalledProfile().SetDialedPN(DialedDigits, static_cast<Q931::NumberingPlanCodes> (m_calledPLAN),
 					       static_cast<Q931::TypeOfNumberCodes> (m_calledTON));
+	PString dd(DialedDigits);
+	Q931::TypeOfNumberCodes assumed_ton = static_cast<Q931::TypeOfNumberCodes>(m_calledTON);
+	assumed_ton = static_cast<Q931::TypeOfNumberCodes>((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ?
+							   static_cast<int>(assumed_ton) : cgpf.TreatCalledPartyNumberAs());
+	if(assumed_ton==Q931::UnknownType)
+		assumed_ton = Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(dd, cgpf);
+	m_call->GetCalledProfile().SetAssumedDialedPN(dd, static_cast<Q931::NumberingPlanCodes> (m_calledPLAN), assumed_ton);
 	m_call->GetCalledProfile().SetCalledPN(CalledPartyNumber);
 	CalledNumber=CalledPartyNumber;
 	return TRUE;
@@ -1501,8 +1517,30 @@ BOOL ConvertNumberInternational(PString & number, unsigned int & plan, unsigned 
 		break;
 	default:
 		PTRACE(5, "Using Toolkit::Rewrite::PrefixAnalysis");
-		return Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, TON, plan, SI, profile);
-		// Unknown type -- we have to figure out wether call is in dialedDigits format
+		switch (Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, profile)) {
+		case Q931::AbbreviatedType:
+			PTRACE(5, "Switching from assumed abbrivated Type to international by prepending " << profile.GetCC()
+			       << profile.GetNDC_IC() << profile.GetSubscriberNumber());
+			number = profile.GetCC() + profile.GetNDC_IC() + profile.GetSubscriberNumber() + number;
+		case Q931::SubscriberType:
+			PTRACE(5, "Switching from assumed subscriber type to international by prepending " << profile.GetCC()
+			       << profile.GetNDC_IC());
+			number = profile.GetCC() + profile.GetNDC_IC() + number;
+			TON = Q931::InternationalType;
+			break;
+		case Q931::NationalType:
+			PTRACE(5, "Switching from assumed national type to international by prepending " << profile.GetCC());
+			number = profile.GetCC() + number;
+			TON = Q931::InternationalType;
+			break;
+		case Q931::InternationalType:
+			PTRACE(5, "The number is assumed to be international");
+			break;
+		default:
+			PTRACE(5, "PrefixAnalysis did not succeed");
+			TON=Q931::UnknownType;
+			return FALSE;
+		}
 	}
 	return TRUE;
 }

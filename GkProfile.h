@@ -140,13 +140,17 @@ public:
         const PString & GetCalledPN() const { return m_calledPN; }
 	const PString & GetCallingPN() const { return m_callingPN; }
         const enum Q931::TypeOfNumberCodes & GetDialedPN_TON() const { return m_dialedPN_TON; }
+	const enum Q931::TypeOfNumberCodes & GetAssumedDialedPN_TON() const { return m_assumeddialedPN_TON; }
+	const PString & GetAssumedDialedPN() const { return m_assumeddialedPN; }
 
         void SetDialedPN(PString &dialedPN,
 			 const enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType);
 	void SetDialedPN(PString &dialedPN, const enum Q931::NumberingPlanCodes dialedPN_PLAN,
 			 const enum Q931::TypeOfNumberCodes dialedPN_TON,
 			 const enum H225_ScreeningIndicator::Enumerations dialedPN_SI = H225_ScreeningIndicator::e_userProvidedNotScreened);
-        void SetDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON);
+	void SetAssumedDialedPN(PString &dialedPN, const enum Q931::NumberingPlanCodes dialedPN_PLAN,
+				const enum Q931::TypeOfNumberCodes dialedPN_TON);
+	void SetDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON);
         void SetCalledPN(PString &calledPN);
 	void SetCallingPN(PString &callingPN, const enum Q931::NumberingPlanCodes callingPN_PLAN = Q931::UnknownPlan,
 			  const enum Q931::TypeOfNumberCodes callingPN_TON = Q931::UnknownType,
@@ -155,10 +159,23 @@ public:
 
 
 private:
+	// the dialed.*-information is the "raw" data collected from H225Ras or Q.931. The "assumed"
+	// data is the collected "raw" information with addition of a possible TON from a prefix analysis
+	// or a E164 number analysis. The party number will *not* be rewritten in any way other than
+	// striping the prefix (inac/nac/lac).
+
+
+	// The ScreeningIndicator member is (at the moment) not used, but provided for later use (in CDR
+	// generation for instance)
 	enum Q931::TypeOfNumberCodes m_dialedPN_TON; // type of number for dialed PN
 	enum Q931::NumberingPlanCodes m_dialedPN_PLAN;
 	H225_ScreeningIndicator m_dialedPN_SI;
         PString m_dialedPN; // dialed party number
+
+	enum Q931::TypeOfNumberCodes m_assumeddialedPN_TON; // type of number for dialed PN
+	enum Q931::NumberingPlanCodes m_assumeddialedPN_PLAN;
+        PString m_assumeddialedPN; // dialed party number
+
         PString m_calledPN; // called party number
 	PString m_callingPN; // calling party number as in Q.931-Setup after converting to international
 }; // CalledProfile

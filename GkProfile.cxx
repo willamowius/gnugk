@@ -26,7 +26,7 @@ const BOOL CallProfile::IsGK() const { return m_isGK; } // Gatekeeper client
 const BOOL CallProfile::IsTrunkGW() const { return !(m_isCPE || m_isGK) ; }
 const BOOL CallProfile::HonorsARJincompleteAddress() const { return m_honorsARJincompleteAddress; }
 const BOOL CallProfile::WhiteListBeforeBlackList() const { return m_WhiteListBeforeBlackList; }
-const BOOL CallProfile::ConvertToLocal() const { return FALSE ; } // Not yet implemented
+const BOOL CallProfile::ConvertToLocal() const { return m_ConvertToLocal; } // Not yet implemented
 const BOOL CallProfile::GetPrependCallbackAC() const { return m_PrependCallbackAC; }
 const enum CallProfile::Conversions CallProfile::TreatCallingPartyNumberAs() const {return m_TreatCallingPartyNumberAs; };
 const enum CallProfile::Conversions CallProfile::TreatCalledPartyNumberAs() const {return m_TreatCalledPartyNumberAs; };
@@ -89,11 +89,16 @@ CallProfile::debugPrint(void)  const
 		PTRACE(5, "HonorsARJIncompleteAddr=" << HonorsARJincompleteAddress());
 		PTRACE(5, "CC=" << GetCC());
 		PTRACE(5, "PrependCallbackAC=" << GetPrependCallbackAC());
+		PTRACE(5, "ConvertNumberToLocal= " << ConvertToLocal());
+		PTRACE(5, "TreatCallingPartyNumberAs=" << TreatCallingPartyNumberAs());
+		PTRACE(5, "TreatCalledPartyNumberAs=" << TreatCalledPartyNumberAs());
 		PTRACE(5, "BlackList=" << GetBlackList());
 		PTRACE(5, "WhiteList=" << GetWhiteList());
 }
 
-CallProfile::CallProfile() : m_TreatCallingPartyNumberAs(LeaveUntouched),
+CallProfile::CallProfile() : m_PrependCallbackAC(FALSE),
+			     m_ConvertToLocal(FALSE),
+			     m_TreatCallingPartyNumberAs(LeaveUntouched),
 			     m_TreatCalledPartyNumberAs(LeaveUntouched)
 {
 	m_honorsARJincompleteAddress = TRUE;
@@ -121,6 +126,7 @@ void
 CalledProfile::SetDialedPN(PString &dialedPN,
 			   const enum Q931::TypeOfNumberCodes dialedPN_TON)
 {
+	PTRACE(5, "Setting DialedPN to " << dialedPN);
 	m_dialedPN = dialedPN;
 	m_dialedPN_TON = dialedPN_TON;
 }
@@ -130,12 +136,26 @@ CalledProfile::SetDialedPN(PString &dialedPN,
 			   const enum Q931::NumberingPlanCodes dialedPN_PLAN,
 			   const enum Q931::TypeOfNumberCodes dialedPN_TON,
 			   const enum H225_ScreeningIndicator::Enumerations dialedPN_SI)
+// The dialed PN as provided in Q.931 or H225Ras
 {
+	PTRACE(5, "Setting DialedPN to " << dialedPN);
 	m_dialedPN = dialedPN;
 	m_dialedPN_TON = dialedPN_TON;
 	m_dialedPN_PLAN = dialedPN_PLAN;
 	m_dialedPN_SI.SetTag(dialedPN_SI);
 
+}
+
+void
+CalledProfile::SetAssumedDialedPN(PString &dialedPN,
+				  const enum Q931::NumberingPlanCodes dialedPN_PLAN,
+				  const enum Q931::TypeOfNumberCodes dialedPN_TON)
+// The "dialedPN" as assumed in Numbering Conversions (not necessary international Type)
+{
+	PTRACE(5, "Setting DialedPN to " << dialedPN);
+	m_assumeddialedPN = dialedPN;
+	m_assumeddialedPN_TON = dialedPN_TON;
+	m_assumeddialedPN_PLAN = dialedPN_PLAN;
 }
 
 void
@@ -147,7 +167,7 @@ CalledProfile::SetDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON)
 void
 CalledProfile::SetCalledPN(PString &calledPN)
 {
-	PTRACE(5, "Setting CalledPN to" << calledPN);
+	PTRACE(5, "Setting CalledPN to " << calledPN);
 	m_calledPN = calledPN;
 }
 
@@ -157,6 +177,8 @@ CalledProfile::SetCallingPN(PString &callingPN, const enum Q931::NumberingPlanCo
 	     const enum H225_ScreeningIndicator::Enumerations callingPN_SI,
 	     const enum H225_PresentationIndicator::Choices callingPN_PI)
 {
+	// PLAN, TON, ScreeningIndicator, PresentationIndicator are not yet used, but reserved
+	// for future use. Please do not change.
 	m_callingPN = callingPN;
 }
 
