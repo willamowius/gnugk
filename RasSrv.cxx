@@ -1199,14 +1199,15 @@ void RasServer::ReadSocket(IPSocket *socket)
 			if (iter == handlers.end()) {
 				std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
 				if (i != requests.end() && !(*i)->IsDone()) {
-					PTRACE(2, "RAS\tDuplicate " << msg->GetTagName());
-					(*i)->SetNext(ras);
+					PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
+//					(*i)->SetNext(ras);
+					delete ras;
 				} else {
+					requests.push_back(ras);
 					Job *job = new Jobs(ras);
 					job->SetName(msg->GetTagName());
 					job->Execute();
 				}
-				requests.push_back(ras);
 			} else {
 				PTRACE(2, "RAS\tTrapped " << msg->GetTagName());
 				// re-create RasMsg object by the handler
