@@ -2,8 +2,8 @@
 %define mysql_dir /usr/include/mysql
 Summary: OpenH323 Gatekeeper
 Name: gk
-Version: 1.2
-Release: 3
+Version: 1.2.1
+Release: 1
 URL: http://www.willamowius.de/openh323gk.html
 Source0: gk.tar.gz
 License: GPL
@@ -42,18 +42,38 @@ install -s -m 755 obj_linux_x86_r/addpasswd $RPM_BUILD_ROOT%{_sbindir}/gkaddpass
 install -m 644 gatekeeper.ini.complete $RPM_BUILD_ROOT/etc/gatekeeper.ini
 install -m 755 gk.initd.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/gk
 
+mkdir -p $RPM_BUILD_ROOT/var/log/gk
+mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
+cat << EOF > $RPM_BUILD_ROOT/etc/logrotate.d/gk
+/var/log/gk/gk.log {
+    rotate 30
+    size=100M
+    notifempty
+    missingok
+    postrotate
+	kill -HUP \`cat /var/run/gk.pid\`
+    endscript
+}
+EOF
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc gatekeeper.ini* *.txt
-%config /etc/gatekeeper.ini
+%doc gatekeeper.ini* *.txt *.html
+%config(noreplace) /etc/gatekeeper.ini
 %{_sbindir}/gk
 %{_sbindir}/gkaddpasswd
 /etc/rc.d/init.d/gk
+/etc/logrotate.d/gk
+/var/log/gk
 
 %changelog
+* Mon Nov 12 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
+- Upgraded 1.2.1
+- add file for logrotate
+
 * Tue Nov 06 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
 - Fix bugs in gk
 
@@ -62,4 +82,3 @@ rm -rf $RPM_BUILD_ROOT
 
 * Mon Oct  8 2001 Adi Linden <adi@adis.on.ca> 1.7.0-2
 - The first rpm
-

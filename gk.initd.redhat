@@ -11,15 +11,20 @@
 # Source function library.
 . /etc/rc.d/init.d/functions
 
+GKEXE=/usr/sbin/gk
+GKPID=/var/run/gk.pid
+GKCONFIG=/etc/gatekeeper.ini
+LOGFILE=/var/log/gk/gk.log
+
 # Source networking configuration and check that networking is up.
 if [ -f /etc/sysconfig/network ] ; then
         . /etc/sysconfig/network
         [ ${NETWORKING} = "no" ] && exit 0
 fi
 
-[ -x /usr/sbin/gk ] || exit 0
+[ -x $GKEXE ] || exit 0
 
-[ -f /etc/gatekeeper.ini ] || exit 0
+[ -f $GKCONFIG ] || exit 0
 
 prog=gk
 
@@ -28,7 +33,7 @@ RETVAL=0
 start () {
     echo -n $"Starting $prog: "
     # start daemon
-    /usr/sbin/gk -c /etc/gatekeeper.ini > /dev/null 2>&1 &
+    $GKEXE -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
     RETVAL=$?
     [ $RETVAL = 0 ] && touch /var/lock/subsys/gk && success 
     echo
@@ -38,8 +43,14 @@ start () {
 stop () {
     # stop daemon
     echo -n $"Stopping $prog: "
-    killproc /usr/sbin/gk
+    pid=`cat $GKPID`
+    kill $pid
     RETVAL=$?
+    sleep 3 # wait for the GK to terminate
+    if [ -d /proc/$pid ]; then
+        killproc /usr/sbin/gk
+        RETVAL=$?
+    fi
     echo
     [ $RETVAL = 0 ] && rm -f /var/lock/subsys/gk
     return $RETVAL
@@ -67,12 +78,16 @@ case "$1" in
     restart)
         restart
         ;;
+    reload)
+        kill -HUP `cat $GKPID`
+        RETVAL=$?
+        ;;
     condrestart)
         # only restart if it is already running
         [ -f /var/lock/subsys/gk ] && restart || :
         ;;
     *)
-        echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+        echo $"Usage: $0 {start|stop|restart|reload|condrestart|status}"
         RETVAL=1
 esac
 
