@@ -28,7 +28,6 @@
 
 #include "RasListener.h"
 #include "Toolkit.h"
-#include "ProxyThread.h"
 #include "h323util.h"
 #include "SoftPBX.h"
 #include "GkClient.h"
@@ -52,7 +51,7 @@ GK_RASListener::GK_RASListener(PIPSocket::Address Home) :
 	m_gkauthenticator_mutex.Wait();
 	m_gkauthenticator = new GkAuthenticatorList(GkConfig());
 	m_gkauthenticator_mutex.Signal();
-
+	SetRoutedMode();
 }
 
 GK_RASListener::~GK_RASListener()
@@ -75,8 +74,7 @@ GK_RASListener::SetRoutedMode(BOOL routedSignaling, BOOL routedH245)
 {
 	m_routedSignaling = routedSignaling;
 	m_routedH245 = routedH245;
-	Toolkit::Instance()->GetHandlerList().LoadConfig();
-	GKCallSigPort = Toolkit::Instance()->GetHandlerList().GetCallSignalPort();
+	GKCallSigPort = GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
 }
 
 void
@@ -93,7 +91,7 @@ GK_RASListener::SetRoutedMode()
 void
 GK_RASListener::LoadConfig()
 {
-	PTRACE(1, "What Config?");
+	SetRoutedMode();
 }
 
 H225_ArrayOf_AlternateGK
@@ -238,9 +236,6 @@ GK_RASListener::GetAuthenticator()
 H323RasListener::H323RasListener(PIPSocket::Address address) : GK_RASListener(address)
 {
 	LoadConfig();
-	PTRACE(1, "Starting RasListener");
-	Resume();
-	// GkClient()?
 }
 
 H323RasListener::~H323RasListener()
@@ -254,6 +249,7 @@ void
 H323RasListener::LoadConfig()
 {
 	GKRasPort = GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
+	GK_RASListener::LoadConfig();
 }
 
 void
@@ -290,6 +286,7 @@ H323RasListener::Close()
 {
 	PTRACE(2, "GK\tClosing RasListener");
 
+	UnregisterAllEndpoints();
 	// disconnect all calls
 	CallTable::Instance()->ClearTable();
 

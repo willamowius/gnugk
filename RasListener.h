@@ -32,6 +32,7 @@
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <h225.h>
+#include "ProxyThread.h"
 #include "RasWorker.h"
 
 
@@ -48,7 +49,8 @@ public:
 	virtual void LoadConfig();
 
 	// Information Elements for RasWorker Threads.
-	virtual BOOL IsGKRouted() const { return m_routedSignaling; }
+	virtual BOOL IsGKRouted() const { return  m_routedSignaling; }
+
 	virtual BOOL IsGKRoutedH245() const { return m_routedH245; }
 
 	virtual BOOL AcceptUnregisteredCalls(PIPSocket::Address, bool & fromParent) const;
