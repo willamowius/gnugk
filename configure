@@ -904,16 +904,16 @@ else
 fi
 
 
-ac_safe=`echo "${PWLIBDIR}/version.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for ${PWLIBDIR}/version.h""... $ac_c" 1>&6
-echo "configure:910: checking for ${PWLIBDIR}/version.h" >&5
+ac_safe=`echo "${PWLIBDIR}/make/unix.mak" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ${PWLIBDIR}/make/unix.mak""... $ac_c" 1>&6
+echo "configure:910: checking for ${PWLIBDIR}/make/unix.mak" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   if test "$cross_compiling" = yes; then
     { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
 else
-  if test -r ${PWLIBDIR}/version.h; then
+  if test -r ${PWLIBDIR}/make/unix.mak; then
     eval "ac_cv_file_$ac_safe=yes"
   else
     eval "ac_cv_file_$ac_safe=no"
@@ -929,13 +929,50 @@ else
 fi
 
   fi
+  if test "${HAS_PTLIB:-unset}" != "unset" ; then
+    # Extract the first word of "ptlib-config", so it can be a program name with args.
+set dummy ptlib-config; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:937: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$PTLIB_CONFIG" in
+  /*)
+  ac_cv_path_PTLIB_CONFIG="$PTLIB_CONFIG" # Let the user override the test with a path.
+  ;;
+  ?:/*)			 
+  ac_cv_path_PTLIB_CONFIG="$PTLIB_CONFIG" # Let the user override the test with a dos path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="${PWLIBDIR}/make"
+  for ac_dir in $ac_dummy; do 
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_PTLIB_CONFIG="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  ;;
+esac
+fi
+PTLIB_CONFIG="$ac_cv_path_PTLIB_CONFIG"
+if test -n "$PTLIB_CONFIG"; then
+  echo "$ac_t""$PTLIB_CONFIG" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+  fi
 fi
 if test "${HAS_PTLIB:-unset}" = "unset" ; then
-  if test -d ${HOME}/pwlib; then
+  if test -d ${HOME}/pwlib/include; then
   	
 ac_safe=`echo "${HOME}/pwlib/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${HOME}/pwlib/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:939: checking for ${HOME}/pwlib/include/ptlib.h" >&5
+echo "configure:976: checking for ${HOME}/pwlib/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -960,12 +997,47 @@ fi
   fi
   if test "${HAS_PTLIB:-unset}" != "unset" ; then
     PWLIBDIR="${HOME}/pwlib"
+    # Extract the first word of "ptlib-config", so it can be a program name with args.
+set dummy ptlib-config; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1004: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$PTLIB_CONFIG" in
+  /*)
+  ac_cv_path_PTLIB_CONFIG="$PTLIB_CONFIG" # Let the user override the test with a path.
+  ;;
+  ?:/*)			 
+  ac_cv_path_PTLIB_CONFIG="$PTLIB_CONFIG" # Let the user override the test with a dos path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="${PWLIBDIR}/make"
+  for ac_dir in $ac_dummy; do 
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_PTLIB_CONFIG="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  ;;
+esac
+fi
+PTLIB_CONFIG="$ac_cv_path_PTLIB_CONFIG"
+if test -n "$PTLIB_CONFIG"; then
+  echo "$ac_t""$PTLIB_CONFIG" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
   else
 	if test -d ../pwlib; then
   	  
 ac_safe=`echo "../pwlib/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../pwlib/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:969: checking for ../pwlib/include/ptlib.h" >&5
+echo "configure:1041: checking for ../pwlib/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -990,12 +1062,47 @@ fi
   	fi
   	if test "${HAS_PTLIB:-unset}" != "unset" ; then
       PWLIBDIR="../pwlib"
+      # Extract the first word of "ptlib-config", so it can be a program name with args.
+set dummy ptlib-config; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1069: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$PTLIB_CONFIG" in
+  /*)
+  ac_cv_path_PTLIB_CONFIG="$PTLIB_CONFIG" # Let the user override the test with a path.
+  ;;
+  ?:/*)			 
+  ac_cv_path_PTLIB_CONFIG="$PTLIB_CONFIG" # Let the user override the test with a dos path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="${PWLIBDIR}/make"
+  for ac_dir in $ac_dummy; do 
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_PTLIB_CONFIG="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  ;;
+esac
+fi
+PTLIB_CONFIG="$ac_cv_path_PTLIB_CONFIG"
+if test -n "$PTLIB_CONFIG"; then
+  echo "$ac_t""$PTLIB_CONFIG" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
   	else
       if test -d /usr/local/include; then
 	    
 ac_safe=`echo "/usr/local/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/local/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:999: checking for /usr/local/include/ptlib.h" >&5
+echo "configure:1106: checking for /usr/local/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1022,7 +1129,7 @@ fi
         # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1026: checking for $ac_word" >&5
+echo "configure:1133: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1035,7 +1142,7 @@ else
   ;;
   *)
   IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
-  ac_dummy="/usr/local/bin"
+  ac_dummy="/usr/local/share/pwlib/make:/usr/local/bin"
   for ac_dir in $ac_dummy; do 
     test -z "$ac_dir" && ac_dir=.
     if test -f $ac_dir/$ac_word; then
@@ -1059,7 +1166,7 @@ fi
           
 ac_safe=`echo "/usr/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:1063: checking for /usr/include/ptlib.h" >&5
+echo "configure:1170: checking for /usr/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1086,7 +1193,7 @@ fi
           # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1090: checking for $ac_word" >&5
+echo "configure:1197: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1148,10 +1255,77 @@ echo "PWLib prefix set to.... $PWLIBDIR"
 
 
 
-PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
-PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
-PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
-PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
+if test "${PTLIB_CONFIG:-unset}" = "unset"; then
+  
+ac_safe=`echo "${PWLIBDIR}/version.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ${PWLIBDIR}/version.h""... $ac_c" 1>&6
+echo "configure:1263: checking for ${PWLIBDIR}/version.h" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ${PWLIBDIR}/version.h; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  HAS_PWLIB_VERSION_FILE=1
+else
+  echo "$ac_t""no" 1>&6
+
+fi
+
+  if test "${HAS_PWLIB_VERSION_FILE:-unset}" != "unset"; then
+    PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
+    PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
+    PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
+    PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
+  else
+    
+ac_safe=`echo "${PWLIBDIR}/ptbuildopts.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ${PWLIBDIR}/ptbuildopts.h""... $ac_c" 1>&6
+echo "configure:1294: checking for ${PWLIBDIR}/ptbuildopts.h" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ${PWLIBDIR}/ptbuildopts.h; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  HAS_PWLIB_VERSION_FILE=1
+else
+  echo "$ac_t""no" 1>&6
+
+fi
+
+	if test "${HAS_PWLIB_VERSION_FILE:-unset}" != "unset"; then
+      PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_MAJOR | cut -f3 -d' '`
+      PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_MINOR | cut -f3 -d' '`
+      PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_BUILD | cut -f3 -d' '`
+      PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
+    fi
+  fi
+else
+  PWLIB_VERSION=`${PTLIB_CONFIG} --version`
+fi
+if test "${PWLIB_VERSION:-unset}" = "unset" -o "${PWLIB_VERSION}" = ".."; then
+  echo "Error: could not determine PWLib version"
+  exit
+fi
 
 
 echo "PTLib version is ${PWLIB_VERSION}"
@@ -1160,16 +1334,16 @@ echo "PTLib version is ${PWLIB_VERSION}"
 if test "${OPENH323DIR:-unset}" != "unset" ; then
   if test -d ${OPENH323DIR}; then
     
-ac_safe=`echo "${OPENH323DIR}/version.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for ${OPENH323DIR}/version.h""... $ac_c" 1>&6
-echo "configure:1166: checking for ${OPENH323DIR}/version.h" >&5
+ac_safe=`echo "${OPENH323DIR}/openh323u.mak" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ${OPENH323DIR}/openh323u.mak""... $ac_c" 1>&6
+echo "configure:1340: checking for ${OPENH323DIR}/openh323u.mak" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   if test "$cross_compiling" = yes; then
     { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
 else
-  if test -r ${OPENH323DIR}/version.h; then
+  if test -r ${OPENH323DIR}/openh323u.mak; then
     eval "ac_cv_file_$ac_safe=yes"
   else
     eval "ac_cv_file_$ac_safe=no"
@@ -1191,7 +1365,7 @@ if test "${HAS_OPENH323:-unset}" = "unset" ; then
     
 ac_safe=`echo "${PWLIBDIR}/../openh323/version.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${PWLIBDIR}/../openh323/version.h""... $ac_c" 1>&6
-echo "configure:1195: checking for ${PWLIBDIR}/../openh323/version.h" >&5
+echo "configure:1369: checking for ${PWLIBDIR}/../openh323/version.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1221,7 +1395,7 @@ fi
       
 ac_safe=`echo "${HOME}/openh323/include/h323.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${HOME}/openh323/include/h323.h""... $ac_c" 1>&6
-echo "configure:1225: checking for ${HOME}/openh323/include/h323.h" >&5
+echo "configure:1399: checking for ${HOME}/openh323/include/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1247,18 +1421,18 @@ fi
     if test "${HAS_OPENH323:-unset}" != "unset" ; then
       OPENH323DIR="${HOME}/openh323"
     else
-	  if test -d /usr/local/include; then
+	  if test -d /usr/local/include/openh323; then
         
-ac_safe=`echo "/usr/local/include/h323.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for /usr/local/include/h323.h""... $ac_c" 1>&6
-echo "configure:1255: checking for /usr/local/include/h323.h" >&5
+ac_safe=`echo "/usr/local/include/openh323/h323.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for /usr/local/include/openh323/h323.h""... $ac_c" 1>&6
+echo "configure:1429: checking for /usr/local/include/openh323/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   if test "$cross_compiling" = yes; then
     { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
 else
-  if test -r /usr/local/include/h323.h; then
+  if test -r /usr/local/include/openh323/h323.h; then
     eval "ac_cv_file_$ac_safe=yes"
   else
     eval "ac_cv_file_$ac_safe=no"
@@ -1277,18 +1451,18 @@ fi
       if test "${HAS_OPENH323:-unset}" != "unset" ; then
         OPENH323DIR="/usr/local"
       else
-	    if test -d /usr/include; then
+	    if test -d /usr/include/openh323; then
           
-ac_safe=`echo "/usr/include/h323.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for /usr/include/h323.h""... $ac_c" 1>&6
-echo "configure:1285: checking for /usr/include/h323.h" >&5
+ac_safe=`echo "/usr/include/openh323/h323.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for /usr/include/openh323/h323.h""... $ac_c" 1>&6
+echo "configure:1459: checking for /usr/include/openh323/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   if test "$cross_compiling" = yes; then
     { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
 else
-  if test -r /usr/include/h323.h; then
+  if test -r /usr/include/openh323/h323.h; then
     eval "ac_cv_file_$ac_safe=yes"
   else
     eval "ac_cv_file_$ac_safe=no"
@@ -1317,24 +1491,119 @@ if test "${HAS_OPENH323:-unset}" = "unset" ; then
   exit
 fi
 
-if test "x$OPENH323DIR" = "x/usr" -o "x$OPENH323DIR" = "x/usr/"; then
-  OPENH323DIR="/usr/share/openh323/"
-fi
-if test "xOPENH323DIR" = "x/usr/local" -o "x$OPENH323DIR" = "x/usr/"; then
-  OPENH323DIR="/usr/local/share/openh323/"
+if test -d "${OPENH323DIR}/share/openh323"; then
+  OPENH323DIR=${OPENH323DIR}/share/openh323/
 fi
 
 echo "OpenH323 prefix set to.... $OPENH323DIR"
 
 
 
-MAJOR_VERSION=`cat ${OPENH323DIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
-MINOR_VERSION=`cat ${OPENH323DIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
-BUILD_NUMBER=`cat ${OPENH323DIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
-OPENH323_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
+if test -d ${OPENH323DIR}; then
+  
+ac_safe=`echo "${OPENH323DIR}/version.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ${OPENH323DIR}/version.h""... $ac_c" 1>&6
+echo "configure:1507: checking for ${OPENH323DIR}/version.h" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ${OPENH323DIR}/version.h; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  HAS_OPENH323_VERSIONFILE=1
+else
+  echo "$ac_t""no" 1>&6
 
+fi
 
-echo "OpenH323 version is ${OPENH323_VERSION}"
+  if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
+    OPENH323_VERSION_FILE=${OPENH323DIR}/version.h
+	MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MAJOR_VERSION | cut -f3 -d' '`
+	MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MINOR_VERSION | cut -f3 -d' '`
+	BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep BUILD_NUMBER | cut -f3 -d' '`
+  else
+    
+ac_safe=`echo "${OPENH323DIR}/openh323buildopts.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ${OPENH323DIR}/openh323buildopts.h""... $ac_c" 1>&6
+echo "configure:1538: checking for ${OPENH323DIR}/openh323buildopts.h" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ${OPENH323DIR}/openh323buildopts.h; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  HAS_OPENH323_VERSIONFILE=1
+else
+  echo "$ac_t""no" 1>&6
+
+fi
+
+    if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
+      OPENH323_VERSION_FILE=${OPENH323DIR}/openh323buildopts.h
+      MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f3 -d' '`
+      MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f3 -d' '`
+      BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_BUILD | cut -f3 -d' '`
+    else
+      
+ac_safe=`echo "${OPENH323DIR}/../../include/openh323/openh323buildopts.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ${OPENH323DIR}/../../include/openh323/openh323buildopts.h""... $ac_c" 1>&6
+echo "configure:1569: checking for ${OPENH323DIR}/../../include/openh323/openh323buildopts.h" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ${OPENH323DIR}/../../include/openh323/openh323buildopts.h; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  HAS_OPENH323_VERSIONFILE=1
+else
+  echo "$ac_t""no" 1>&6
+
+fi
+
+      if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
+        OPENH323_VERSION_FILE=${OPENH323DIR}/../../include/openh323/openh323buildopts.h
+        MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f2 -d' '`
+        MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f2 -d' '`
+        BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "OPENH323_BUILD " | cut -f2 -d' '`
+      fi
+	fi
+  fi
+fi
+if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
+	OPENH323_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
+	echo "OpenH323 version is ${OPENH323_VERSION}"
+else
+	echo "Error: Could not determine OpenH323 version"
+	exit
+fi
+
 
 if test "x$prefix" = "xNONE"; then
    INSTALLPREFIX="/usr/local"
@@ -1427,7 +1696,7 @@ fi
 if test "x${mysql}" != "xno"; then
 
 	echo $ac_n "checking for compress in -lz""... $ac_c" 1>&6
-echo "configure:1431: checking for compress in -lz" >&5
+echo "configure:1700: checking for compress in -lz" >&5
 ac_lib_var=`echo z'_'compress | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1435,7 +1704,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lz  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1439 "configure"
+#line 1708 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -1446,7 +1715,7 @@ int main() {
 compress()
 ; return 0; }
 EOF
-if { (eval echo configure:1450: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1719: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1468,17 +1737,17 @@ fi
 
 
 	echo $ac_n "checking for mysql.h""... $ac_c" 1>&6
-echo "configure:1472: checking for mysql.h" >&5
+echo "configure:1741: checking for mysql.h" >&5
 
 	cat > conftest.$ac_ext <<EOF
-#line 1475 "configure"
+#line 1744 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1482: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1751: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE=" "
 else
@@ -1497,14 +1766,14 @@ rm -f conftest*
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat > conftest.$ac_ext <<EOF
-#line 1501 "configure"
+#line 1770 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1508: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1777: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE="-I$try"
 else
@@ -1532,7 +1801,7 @@ rm -f conftest*
 		echo "$ac_t""yes" 1>&6
 
 		echo $ac_n "checking for mysql_init in -lmysqlclient""... $ac_c" 1>&6
-echo "configure:1536: checking for mysql_init in -lmysqlclient" >&5
+echo "configure:1805: checking for mysql_init in -lmysqlclient" >&5
 
 		old_LIBS="$LIBS"
 
@@ -1540,14 +1809,14 @@ echo "configure:1536: checking for mysql_init in -lmysqlclient" >&5
 			if test -d $try; then
 				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
 				cat > conftest.$ac_ext <<EOF
-#line 1544 "configure"
+#line 1813 "configure"
 #include "confdefs.h"
 extern char mysql_init();
 int main() {
 mysql_init()
 ; return 0; }
 EOF
-if { (eval echo configure:1551: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1820: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
    MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
 					  MYSQL_LDFLAGS="-L$try"
