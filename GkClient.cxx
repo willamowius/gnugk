@@ -448,7 +448,6 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
 		arq.m_destinationInfo = setup.m_destinationAddress;
-		RewriteE164(arq.m_destinationInfo, true);
 	}
 	arq.m_answerCall = answer;
 	// workaround for bandwidth, as OpenH323 library :p
@@ -477,10 +476,9 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 		arq.m_srcInfo.SetSize(2);
 		H323SetAliasAddress(m_e164, arq.m_srcInfo[1]);
 	}
-	if (H225_ArrayOf_AliasAddress *dest = facility_obj.GetAliases()) {
+	if (facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
-		arq.m_destinationInfo = *dest;
-		RewriteE164(arq.m_destinationInfo, true);
+		arq.m_destinationInfo = facility.m_alternativeAliasAddress;
 	}
 	arq.m_answerCall = false;
 	// workaround for bandwidth, as OpenH323 library :p
