@@ -153,6 +153,7 @@ private:
 	Policy *ChoosePolicy(const H225_ArrayOf_AliasAddress *, Rules &);
 
 	Rules m_rules[4];
+	PReadWriteMutex m_reloadMutex;
 };
 
 

@@ -99,15 +99,18 @@ Analyzer::Analyzer() : Singleton<Analyzer>("Routing::Analyzer")
 
 Analyzer::~Analyzer()
 {
+	WriteLock lock(m_reloadMutex);
 	for (int i = 0; i < 4; ++i)
 		DeleteObjectsInMap(m_rules[i]);
 }
 
 void Analyzer::OnReload()
 {
+	WriteLock lock(m_reloadMutex);
+	
 	for (int i = 0; i < 4; ++i) {
 		Rules & rules = m_rules[i];
-		// FIXME: not thread-safed
+
 		DeleteObjectsInMap(rules);
 		rules.clear();
 
@@ -132,6 +135,7 @@ void Analyzer::OnReload()
 
 bool Analyzer::Parse(AdmissionRequest & request)
 {
+	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[0]);
 	return policy ? policy->Handle(request) : false;
@@ -139,6 +143,7 @@ bool Analyzer::Parse(AdmissionRequest & request)
 
 bool Analyzer::Parse(LocationRequest & request)
 {
+	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_LocationRejectReason::e_requestDenied);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[1]);
 	return policy ? policy->Handle(request) : false;
@@ -146,6 +151,7 @@ bool Analyzer::Parse(LocationRequest & request)
 
 bool Analyzer::Parse(SetupRequest & request)
 {
+	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[2]);
 	return policy ? policy->Handle(request) : false;
@@ -153,6 +159,7 @@ bool Analyzer::Parse(SetupRequest & request)
 
 bool Analyzer::Parse(FacilityRequest & request)
 {
+	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[3]);
 	return policy ? policy->Handle(request) : false;
