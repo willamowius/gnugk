@@ -424,8 +424,6 @@ LDAPCtrl::collectAttributes(LDAPQuery &p, unsigned int scope) {
 		delete tm;
 	} while((LDAP_SUCCESS != ldap_ret)&&(retry_count < 4));
 
-//	PAssert(ldap_ret==LDAP_SUCCESS,"No valid ldap_search");
-
 	if(retry_count>=4) {
 		result->status=ldap_ret;
 		PTRACE(1, "didn't get LDAP-Answer.");
