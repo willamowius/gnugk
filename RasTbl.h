@@ -86,19 +86,19 @@ public:
 
 	// public interface to access EndpointRec
 	const H225_TransportAddress & GetRasAddress() const
-	{ return m_rasAddress; }
-	const H225_TransportAddress & GetCallSignalAddress() const
-	{ PWaitAndSignal lock(m_usedLock); return m_callSignalAddress; }
+		{ return m_rasAddress; }
+	virtual const H225_TransportAddress & GetCallSignalAddress() const
+		{ PWaitAndSignal lock(m_usedLock); return m_callSignalAddress; }
 	const H225_EndpointIdentifier & GetEndpointIdentifier() const
-	{ return m_endpointIdentifier; }
+		{ return m_endpointIdentifier; }
 	const H225_ArrayOf_AliasAddress & GetAliases() const
-	{ return m_terminalAliases; }
+		{ return m_terminalAliases; }
 	const H225_EndpointType & GetEndpointType() const
-	{ return *m_terminalType; }
+		{ return *m_terminalType; }
 	int GetTimeToLive() const
-	{ return m_timeToLive; }
+		{ return m_timeToLive; }
 	PIPSocket::Address GetNATIP() const
-	{ return m_natip; }
+		{ return m_natip; }
 	bool GetH323ID(H225_AliasAddress &id);
 
 	/** checks if the given alias is a prefix of the aliases which are stored
@@ -163,6 +163,7 @@ protected:
 	void SetEndpointRec(H225_AdmissionRequest &);
 	void SetEndpointRec(H225_AdmissionConfirm &);
 	void SetEndpointRec(H225_LocationConfirm &);
+	void SetEndpointRec(H225_LocationRequest &);
 
 	bool SendURQ(H225_UnregRequestReason::Choices);
 
@@ -239,6 +240,8 @@ protected:
 class OuterZoneEPRec : public EndpointRec {
 public:
 	OuterZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
+	virtual const H225_TransportAddress & GetCallSignalAddress() const
+		{ PWaitAndSignal lock(m_usedLock); PTRACE(5, "EP::m_callSignalAddress: " << m_callSignalAddress); return m_callSignalAddress; }
 
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
@@ -272,6 +275,7 @@ public:
 	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
 	endptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
+	endptr FindOZEPByName(const PString & endpointId) const ;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool SearchOuterZone = true);
 
@@ -317,6 +321,7 @@ private:
 
 	endptr InternalInsertEP(H225_RasMessage &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationConfirm &);
+	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationRequest &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_AdmissionConfirm &);
 
 	void InternalPrint(GkStatus::Client &, BOOL, list<EndpointRec *> *, PString &);

@@ -1036,13 +1036,17 @@ H323RasWorker::OnBRQ(H225_BandwidthRequest &brq)
 void
 H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 {
-	PTRACE(1, "GK\tLRQ Received");
+  PTRACE(1, "GK\tLRQ Received");
 
 	PString msg;
 	endptr WantedEndPoint;
 
-	Toolkit::Instance()->RewriteE164(lrq.m_destinationInfo[0]);
 	endptr cgEP;
+	// Get cgEP
+        cgEP=RegistrationTable::Instance()->FindBySignalAdr(lrq.m_replyAddress);
+        if(endptr(NULL) == cgEP) { // not found in RegistrationTable --
+                cgEP=RegistrationTable::Instance()->InsertRec(pdu);
+        }
 
 	for(PINDEX i=0; i<lrq.m_destinationInfo.GetSize(); i++)
 		Toolkit::Instance()->RewriteE164(lrq.m_destinationInfo[i]);
@@ -1051,7 +1055,10 @@ H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 				RegistrationTable::Instance()->FindByEndpointId(lrq.m_endpointIdentifier));
 	bool bReject = (!(fromRegEndpoint || Toolkit::Instance()->GetNeighbor().CheckIP(addr)) || !authList->Check(lrq, rsn));
 
-	bReject = true; // Ignore LRQ for now
+	PTRACE(5, "LRQ: fromRegEndpoint " << PString(fromRegEndpoint ? PString("YES") : PString("NO")) <<
+	       " From Neighbor: " << PString(Toolkit::Instance()->GetNeighbor().CheckIP(addr) ? PString("YES") : PString("NO")) <<
+	       " authenticated: " << PString(!authList->Check(lrq, rsn) ? PString("YES") : PString("NO")));
+//	bReject = true; // Ignore LRQ for now
 
 	PString sourceInfoString((lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(lrq.m_sourceInfo) : PString(" "));
 	if (!bReject) {
