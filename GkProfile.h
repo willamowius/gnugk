@@ -50,6 +50,7 @@ public:
 
 
 	enum Conversions {
+		TreatAsUnknown       = Q931::UnknownType,
 		TreatAsInternational = Q931::InternationalType,
 		TreatAsNational      = Q931::NationalType,
 		TreatAsLocal         = Q931::SubscriberType,
