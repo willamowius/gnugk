@@ -105,6 +105,7 @@ BOOL TelnetSocket::Accept(PSocket & socket)
 	WORD pt;
 	GetPeerAddress(addr, pt);
 	SetName(AsString(addr, pt));
+	SetReadTimeout(0);
 #else
 	// name already be set
 #endif
