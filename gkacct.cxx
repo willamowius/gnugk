@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2004/04/17 11:43:42  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.9  2003/12/21 00:58:17  zvision
  * FileAcct logger should work fine with the reload command now
  *
@@ -52,6 +56,7 @@
 #include "stl_supp.h"
 #include "Toolkit.h"
 #include "RasTbl.h"
+#include "gktimer.h"
 #include "gkacct.h"
 
 /// Name of the config file section for accounting configuration
@@ -194,32 +199,215 @@ GkAcctLogger::Status GkAcctLogger::Log(
 }
 
 
+const char* const FileAcct::m_intervalNames[] =
+{
+	"Hourly", "Daily", "Weekly", "Monthly"
+};
+
 FileAcct::FileAcct( 
 	const char* moduleName,
 	const char* cfgSecName
 	)
 	:
 	GkAcctLogger(moduleName, cfgSecName),
-	m_cdrFile(NULL)
+	m_cdrFile(NULL), m_rotateLines(-1), m_rotateSize(-1), m_rotateInterval(-1),
+	m_rotateMinute(-1), m_rotateHour(-1), m_rotateDay(-1), 
+	m_rotateTimer(GkTimerManager::INVALID_HANDLE), m_cdrLines(0)
 {
 	SetSupportedEvents(FileAcctEvents);
 	
-	m_cdrFilename = GetConfig()->GetString(GetConfigSectionName(), "DetailFile", "");
-	m_rotateCdrFile = Toolkit::AsBool(GetConfig()->GetString(
-		GetConfigSectionName(), "Rotate", "0"
-		));
+	// determine rotation type (by lines, by size, by time)	
+	const PString rotateCondition = GetConfig()->GetString(
+		GetConfigSectionName(), "Rotate", ""
+		).Trim();
+	if (!rotateCondition) {
+		const char suffix = rotateCondition[rotateCondition.GetLength()-1];
+		if (rotateCondition[0] == 'L' || rotateCondition[0] == 'l') {
+			// rotate per number of lines
+			m_rotateLines = rotateCondition.Mid(1).AsInteger();
+			if (suffix == 'k' || suffix == 'K')
+				m_rotateLines *= 1000;
+			else if (suffix == 'm' || suffix == 'M')
+				m_rotateLines *= 1000*1000;
+		} else if (rotateCondition[0] == 'S' || rotateCondition[0] == 's') {
+			// rotate per CDR file size
+			m_rotateSize = rotateCondition.Mid(1).AsInteger(); 
+			if (suffix == 'k' || suffix == 'K')
+				m_rotateSize *= 1024;
+			else if (suffix == 'm' || suffix == 'M')
+				m_rotateSize *= 1024*1024;
+		} else {
+			for (int i = 0; i < RotationIntervalMax; i++)
+				if (strcasecmp(rotateCondition, m_intervalNames[i]) == 0)
+					m_rotateInterval = i;
 
-	Rotate();
-	if (m_cdrFile && m_cdrFile->IsOpen())
-		PTRACE(2, "GKACCT\t" << GetName() << " CDR file: " << m_cdrFile->GetFilePath());
+			if (m_rotateInterval < 0 || m_rotateInterval >= RotationIntervalMax)
+				PTRACE(1, "GKACCT\t" << GetName() << " unsupported rotation "
+					"method: " << rotateCondition << " - rotation disabled"
+					);
+			else {
+				// time based rotation
+				GetRotateInterval(*GetConfig(), GetConfigSectionName());
+			}
+		}
+	}
+
+	m_cdrFilename = GetConfig()->GetString(GetConfigSectionName(), "DetailFile", "");
+	m_cdrFile = OpenCDRFile(m_cdrFilename);
+	if (m_cdrFile && m_cdrFile->IsOpen()) {
+		PTRACE(2, "GKACCT\t" << GetName() << " CDR file: "
+			<< m_cdrFile->GetFilePath()
+			);
+		// count an initial number of CDR lines
+		if (m_rotateLines > 0) {
+			PString s;
+			m_cdrFile->SetPosition(0);
+			while (m_cdrFile->ReadLine(s))
+				m_cdrLines++;
+			m_cdrFile->SetPosition(m_cdrFile->GetLength());
+		}
+	}
+
+	// setup rotation timer in case of time based rotation
+	PTime now, rotateTime;
+		
+	switch (m_rotateInterval) 
+	{
+	case Hourly:
+		rotateTime = PTime(0, m_rotateMinute, now.GetHour(), now.GetDay(), 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		if (rotateTime <= now)
+			rotateTime += PTimeInterval(60*60*1000);
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			this, &FileAcct::RotateOnTimer, rotateTime, 60*60
+			);
+		PTRACE(5, "GKACCT\t" << GetName() << " hourly rotation enabled (first "
+			"rotation sheduled at " << rotateTime
+			);
+		break;
+		
+	case Daily:
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(), 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		if (rotateTime <= now)
+			rotateTime += PTimeInterval(60*60*24*1000);
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			this, &FileAcct::RotateOnTimer, rotateTime, 60*60*24
+			);
+		PTRACE(5, "GKACCT\t" << GetName() << " daily rotation enabled (first "
+			"rotation sheduled at " << rotateTime
+			);
+		break;
+		
+	case Weekly:
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(), 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		if (rotateTime.GetDayOfWeek() < m_rotateDay)
+			rotateTime += PTimeInterval(
+				60*60*24*1000*(m_rotateDay-rotateTime.GetDayOfWeek())
+				);
+		else if (rotateTime.GetDayOfWeek() > m_rotateDay)
+			rotateTime -= PTimeInterval(
+				60*60*24*1000*(rotateTime.GetDayOfWeek()-m_rotateDay)
+				);
+		if (rotateTime <= now)
+			rotateTime += PTimeInterval(60*60*24*7*1000);
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			this, &FileAcct::RotateOnTimer, rotateTime, 60*60*24*7
+			);
+		PTRACE(5, "GKACCT\t" << GetName() << " weekly rotation enabled (first "
+			"rotation sheduled at " << rotateTime
+			);
+		break;
+		
+	case Monthly:
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1, 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		rotateTime += PTimeInterval(1000*60*60*24*(m_rotateDay-1));
+		while (rotateTime.GetMonth() != now.GetMonth())				
+			rotateTime -= PTimeInterval(1000*60*60*24);
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			this, &FileAcct::RotateOnTimer, rotateTime
+			);
+		PTRACE(5, "GKACCT\t" << GetName() << " monthly rotation enabled (first "
+			"rotation sheduled at " << rotateTime
+			);
+		break;
+	}
 }
 
 FileAcct::~FileAcct()
 {
+	if (m_rotateTimer != GkTimerManager::INVALID_HANDLE)
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_rotateTimer);
+		
 	PWaitAndSignal lock(m_cdrFileMutex);
 	if (m_cdrFile) {
 		m_cdrFile->Close();
 		delete m_cdrFile;
+	}
+}
+
+void FileAcct::GetRotateInterval(
+	PConfig& cfg,
+	const PString& section
+	)
+{
+	PString s;
+	
+	if (m_rotateInterval == Hourly)
+		m_rotateMinute = cfg.GetInteger(section, "RotateTime", 59);
+	else {
+		s = cfg.GetString(section, "RotateTime", "00:59");
+		m_rotateHour = s.AsInteger();
+		m_rotateMinute = 0;
+		if (s.Find(':') != P_MAX_INDEX)
+			m_rotateMinute = s.Mid(s.Find(':') + 1).AsInteger();
+			
+		if (m_rotateHour < 0 || m_rotateHour > 23 || m_rotateMinute < 0
+			|| m_rotateMinute > 59) {
+			PTRACE(1, "GKACCT\t" << GetName() << " invalid "
+				"RotateTime specified: " << s
+				);
+			m_rotateMinute = 59;
+			m_rotateHour = 0;
+		}
+	}
+			
+	if (m_rotateInterval == Weekly)	{
+		s = cfg.GetString(section, "RotateDay", "Sun");
+		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
+			m_rotateDay = s.AsInteger();
+		} else {
+			std::map<PCaselessString, int> dayNames;
+			dayNames["sun"] = 0; dayNames["sunday"] = 0;
+			dayNames["mon"] = 1; dayNames["monday"] = 1;
+			dayNames["tue"] = 2; dayNames["tuesday"] = 2;
+			dayNames["wed"] = 3; dayNames["wednesday"] = 3;
+			dayNames["thu"] = 4; dayNames["thursday"] = 4;
+			dayNames["fri"] = 5; dayNames["friday"] = 5;
+			dayNames["sat"] = 6; dayNames["saturday"] = 6;
+			std::map<PCaselessString, int>::const_iterator i = dayNames.find(s);
+			m_rotateDay = (i != dayNames.end()) ? i->second : -1;
+		}
+		if (m_rotateDay < 0 || m_rotateDay > 6) {
+			PTRACE(1, "GKACCT\t" << GetName() << " invalid "
+				"RotateDay specified: " << s
+				);
+			m_rotateDay = 0;
+		}
+	} else if (m_rotateInterval == Monthly) {
+		m_rotateDay = cfg.GetInteger(section, "RotateDay", 1);
+		if (m_rotateDay < 1 || m_rotateDay > 31) {
+			PTRACE(1, "GKACCT\t" << GetName() << " invalid "
+				"RotateDay specified: " << cfg.GetString(section, "RotateDay", "")
+				);
+			m_rotateDay = 1;
+		}
 	}
 }
 
@@ -231,16 +419,16 @@ GkAcctLogger::Status FileAcct::Log(
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 		
-	if ((evt & (AcctStart|AcctUpdate|AcctStop)) && (!call)) {
-		PTRACE(1,"GKACCT\t"<<GetName()<<" - missing call info for event"<<evt);
+	if (!call) {
+		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event" << evt);
 		return Fail;
 	}
 	
 	PString cdrString;
 	
 	if (!GetCDRText(cdrString, evt, call)) {
-		PTRACE(2,"GKACCT\t"<<GetName()<<" - unable to get CDR text for event "<<evt
-			<<", call no. "<<call->GetCallNumber()
+		PTRACE(2, "GKACCT\t" << GetName() << " - unable to get CDR text for "
+			"event " << evt << ", call no. " << call->GetCallNumber()
 			);
 		return Fail;
 	}
@@ -249,17 +437,23 @@ GkAcctLogger::Status FileAcct::Log(
 	
 	if (m_cdrFile && m_cdrFile->IsOpen()) {
 		if (m_cdrFile->WriteLine(PString(cdrString))) {
-			PTRACE(5,"GKACCT\t"<<GetName()<<" - CDR string for event "<<evt
-				<<", call no. "<<call->GetCallNumber()<<": "<<cdrString
+			PTRACE(5, "GKACCT\t" << GetName() << " - CDR string for event "
+				<< evt << ", call no. " << call->GetCallNumber() 
+				<< ": " << cdrString
 				);
+			m_cdrLines++;
+			if (IsRotationNeeded())
+				Rotate();
 			return Ok;
 		} else
-			PTRACE(1,"GKACCT\t"<<GetName()<<" - write CDR text for event "<<evt
-				<<", call no. "<<call->GetCallNumber()<<" failed: "<<m_cdrFile->GetErrorText()
+			PTRACE(1, "GKACCT\t" << GetName() << " - write CDR text for event "
+				<< evt << ", call no. " << call->GetCallNumber()
+				<< " failed: " << m_cdrFile->GetErrorText()
 				);
 	} else
-		PTRACE(1,"GKACCT\t"<<GetName()<<" - write CDR text for event "<<evt
-			<<", for call no. "<<call->GetCallNumber()<<" failed: CDR file is closed"
+		PTRACE(1, "GKACCT\t" << GetName() << " - write CDR text for event "
+			<< evt << ", for call no. " << call->GetCallNumber()
+			<< " failed: CDR file is closed"
 			);
 		
 	return Fail;
@@ -271,49 +465,88 @@ bool FileAcct::GetCDRText(
 	callptr& call
 	)
 {
-	if( (evt & AcctStop) && call ) {
+	if ((evt & AcctStop) && call) {
 		cdrString = call->GenerateCDR();
-		return !cdrString.IsEmpty();
+		return !cdrString;
 	}
 	
 	return false;	
 }
 
+bool FileAcct::IsRotationNeeded()
+{
+	if (m_rotateLines > 0 && m_cdrLines >= m_rotateLines)
+		return true;
+	if (m_rotateSize > 0 && m_cdrFile && m_cdrFile->GetLength() >= m_rotateSize)
+		return true;
+	return false;
+}
+
+void FileAcct::RotateOnTimer(
+	GkTimer* timer
+	)
+{
+	if (m_rotateInterval == Monthly) {
+		// setup next time for one-shot timer
+		const PTime& rotateTime = timer->GetExpirationTime();
+		PTime newRotateTime(rotateTime.GetSecond(), rotateTime.GetMinute(),
+			rotateTime.GetHour(), 1, 
+			rotateTime.GetMonth() < 12 ? rotateTime.GetMonth() + 1 : 1, 
+			rotateTime.GetMonth() < 12 ? rotateTime.GetYear() : rotateTime.GetYear() + 1,
+			rotateTime.GetTimeZone()
+			);
+	
+		const int month = newRotateTime.GetMonth();
+		newRotateTime += PTimeInterval(1000*60*60*24*(m_rotateDay-1));
+		while (newRotateTime.GetMonth() != month)				
+			newRotateTime -= PTimeInterval(1000*60*60*24);
+		timer->SetExpirationTime(newRotateTime);
+		timer->SetFired(false);
+	}	
+	PWaitAndSignal lock(m_cdrFileMutex);
+	Rotate();
+}
+
 void FileAcct::Rotate()
 {
-	PWaitAndSignal lock(m_cdrFileMutex);
-
 	if (m_cdrFile) {
 		if (m_cdrFile->IsOpen())
-			if (m_rotateCdrFile)
-				m_cdrFile->Close();
-			else
-				return;
+			m_cdrFile->Close();
 		delete m_cdrFile;
 		m_cdrFile = NULL;
 	}
 	
 	const PFilePath fn = m_cdrFilename;
 	
-	if (m_rotateCdrFile && PFile::Exists(fn))
+	if (PFile::Exists(fn))
 		if (!PFile::Rename(fn, fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss")))
-			PTRACE(1,"GKACCT\t"<<GetName()<<" rotate failed - could not rename"
-				" the log file: "<<m_cdrFile->GetErrorText()
+			PTRACE(1, "GKACCT\t" << GetName() << " rotate failed - could not "
+				"rename the log file"
 				);
 	
-	m_cdrFile = new PTextFile(fn, PFile::WriteOnly, PFile::Create | PFile::DenySharedWrite);
-	if (!m_cdrFile->IsOpen()) {
-   	    PTRACE(1,"GKACCT\t"<<GetName()<<" could not open file"
-			" required for plain text accounting \""
-			<<fn<<"\" :"<<m_cdrFile->GetErrorText()
-			);
-		delete m_cdrFile;
-		m_cdrFile = NULL;
-	    return;
-	}
-	m_cdrFile->SetPermissions(PFileInfo::UserRead | PFileInfo::UserWrite);
-	m_cdrFile->SetPosition(m_cdrFile->GetLength());
+	m_cdrFile = OpenCDRFile(fn);
 }
+
+PTextFile* FileAcct::OpenCDRFile(
+	const PFilePath& fn
+	)
+{
+	PTextFile* cdrFile = new PTextFile(fn, PFile::ReadWrite, 
+		PFile::Create | PFile::DenySharedWrite
+		);
+	if (!cdrFile->IsOpen()) {
+   	    PTRACE(1, "GKACCT\t" << GetName() << " could not open file"
+			" required for plain text accounting \""
+			<< fn << "\" :" << cdrFile->GetErrorText()
+			);
+		delete cdrFile;
+	    return NULL;
+	}
+	cdrFile->SetPermissions(PFileInfo::UserRead | PFileInfo::UserWrite);
+	cdrFile->SetPosition(cdrFile->GetLength());
+	return cdrFile;
+}
+
 
 GkAcctLoggerList::GkAcctLoggerList()
 	: m_acctUpdateInterval(

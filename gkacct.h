@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2004/04/17 11:43:42  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.7  2003/10/31 00:01:23  zvision
  * Improved accounting modules stacking control, optimized radacct/radauth a bit
  *
@@ -205,17 +209,24 @@ private:
 	Based on source source code from Tamas Jalsovszky
 		Copyright (c) 2003, eWorld Com, Tamas Jalsovszky
 */
+class GkTimer;
 class FileAcct : public GkAcctLogger
 {
 public:
-	enum Constants
-	{
+	enum Constants {
 		/// events recognized by this module
 		FileAcctEvents = AcctStop
 	};
+
+	enum RotationIntervals {
+		Hourly,
+		Daily,
+		Weekly,
+		Monthly,
+		RotationIntervalMax
+	};
 	
-	/** Create GkAcctLogger for plain text file accounting
-	*/
+	/// Create GkAcctLogger for plain text file accounting
 	FileAcct( 
 		/// name from Gatekeeper::Acct section
 		const char* moduleName,
@@ -232,13 +243,16 @@ public:
 		AcctEvent evt,
 		callptr& call
 		);
+
+	/** Rotate the detail file, saving old file contents to a different
+	    file and starting with a new one. This is a callback function
+	    called when the rotation timer expires.
+	*/
+	void RotateOnTimer(
+		GkTimer* timer /// timer object that triggered rotation
+		);
 	
 protected:
-	/** Rotate the detail file, saving old file contents to a different
-		file and starting with a new one.
-	*/
-	void Rotate();
-		
 	/** Called to get CDR text to be stored in the CDR file.
 		Can be overriden to provide custom CDR text.
 		
@@ -251,7 +265,30 @@ protected:
 		callptr& call /// call associated with this request (if any)
 		);
 
+	/** @return
+	    True if the CDR file should be rotated.
+	*/
+	virtual bool IsRotationNeeded();
+		
+	/** @return
+	    Pointer to the opened file or NULL, if the operation failed.
+	*/
+	virtual PTextFile* OpenCDRFile(
+		const PFilePath& fn /// name of the file to open
+		);
+		
+	/** Rotate the detail file, saving old file contents to a different
+		file and starting with a new one.
+	*/
+	void Rotate();
+		
 private:
+	/// parse rotation interval from the config
+	void GetRotateInterval(
+		PConfig& cfg, /// the config
+		const PString& section /// name of the config section to check
+		);
+		
 	/* No default constructor allowed */
 	FileAcct();
 	/* No copy constructor allowed */
@@ -262,12 +299,28 @@ private:
 private:
 	/// Plain text file name
 	PString m_cdrFilename;
-	/// false to append cdr data, true to rotate cdr files
-	bool m_rotateCdrFile;
 	/// File object
 	PTextFile* m_cdrFile;
 	/// for mutual file access
 	PMutex m_cdrFileMutex;
+	/// rotate file after the specified amount of lines is reached (if > 0)
+	long m_rotateLines;
+	/// rotate file after the specified fize size is reached (if > 0)
+	long m_rotateSize;
+	/// rotate file after the specified period of time (if >= 0)
+	int m_rotateInterval;
+	/// a minute when the interval based rotation should occur
+	int m_rotateMinute;
+	/// an hour when the interval based rotation should occur
+	int m_rotateHour;
+	/// day of the month (or of the week) for the interval based rotation
+	int m_rotateDay;
+	/// timer for rotation events
+	GkTimer* m_rotateTimer;
+	/// number of CDRs written (if rotation per number of lines is enabled)
+	long m_cdrLines;
+	/// human readable names for rotation intervals
+	static const char* const m_intervalNames[];
 };
 
 /// Factory for instances of GkAcctLogger-derived classes

@@ -183,6 +183,9 @@ Treat MCUs as gateways and allow MCUs to register prefixes
 Fixed referencing to a temporary PString object after it is destroyed
 when logging routing policy information
 
+<item>
+Flexible FileAcct CDR file rotation.
+
 </itemize>
 
 <p>
@@ -3099,6 +3102,7 @@ to store a CDR in a text file in case the RADIUS server is down when the call
 disconnects, so we can fetch call duration into a billing system later.
 
 <sect2>Section &lsqb;FileAcct&rsqb;
+<label id="fileacct">
 <p>
 This accounting module writes status line compatible CDR lines
 to a specified text file.
@@ -3113,20 +3117,73 @@ exists and <tt/Rotate/ is 0, CDRs will be appended, otherwise the file
 is rotated and CDRs are logged to a new file created.
 
 <item>
-<tt/Rotate=0 or 1/<newline>
-Default: <tt/0/
+<tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
+Default: N/A
 <p>
-Determines if the CDR text file should be rotated on every gatekeeper
-restart or reload. If it is 0, then CDRs will be appended to any existing
-file. If it is 1, then any existing file is renamed to CURRENT_FILENAME.YYYYMMDD-HHMMSS,
-where YYYYMMDD-HHMMSS is replaced with current timestamp, and CDRs are logged
-to an empty file.
+If set, the CDR file will be rotated based on this setting. Hourly rotation
+enables rotation once per hour, daily - once per day, weekly - once per week
+and monthly - once per month. An exact rotation moment is determined by a combination
+of RotateDay and RotateTime. During rotation, an existing file is renamed 
+to CURRENT_FILENAME.YYYYMMDD-HHMMSS, where YYYYMMDD-HHMMSS is replaced with 
+the current timestamp, and new CDRs are logged to an empty file.<newline>
+In addition, rotation per number of CDRs written (L...) and per file size (S...)
+is supported. The <tt/L/ prefix specifies a number of CDR lines written,
+the <tt/S/ prefix specifies CDR file size. <tt/k/ and <tt/m/ suffixes can
+be used to speficy throusands (kilobytes) and millions (megabytes). 
+See the examples for more details.
 
 <descrip>
-<tag/Example:/
+<tag/Example 1 - no rotation:/
 <tt/&lsqb;FileAcct&rsqb;/<newline>
 <tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
-<tt/Rotate=0/<newline>
+</descrip>
+
+<descrip>
+<tag/Example 2 - rotate every hour (00:45, 01:45, ..., 23:45):/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=hourly</tt><newline>
+<tt>RotateTime=45</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 3 - rotate every day at 23:00 (11PM):/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=daily</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 4 - rotate every Sunday at 00:59:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=weekly</tt><newline>
+<tt>RotateDay=Sun</tt><newline>
+<tt>RotateTime=00:59</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 5 - rotate on the last day of each month:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=monthly</tt><newline>
+<tt>RotateDay=31</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 6 - rotate per every 10000 CDRs:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=L10000</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 7 - rotate per every 10 kilobytes:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=S10k</tt><newline>
 </descrip>
 
 </itemize>
