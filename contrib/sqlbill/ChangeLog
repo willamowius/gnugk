@@ -1,5 +1,7 @@
 13 Dec 2004 -- zvision
   * allow an empty value for Calling-Station-Id
+  * bugs fixed in report queries, ASR calculation more accurate,
+    redundant code removed
 
 07 Dec 2004 -- zvision
   * simple report query examples to get ASR, ACD and other statistics
