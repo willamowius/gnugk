@@ -141,18 +141,19 @@ class Toolkit : public Singleton<Toolkit>
 		typedef PIPSocket::Address Address;
 
 	public:
-		ProxyCriterion() : network(0) { /* initialize later */ }
-		~ProxyCriterion() { ClearTable(); }
+		ProxyCriterion();
+		~ProxyCriterion();
 
-		bool IsInternal(const Address & ip) const;
 		bool Required(const Address &, const Address &) const;
 
 		void LoadConfig(PConfig *);
-		void ClearTable();
 
+	protected:
+		bool IsInternal(const Address & ip) const;
+	
 	private:
-		int size;
-		Address *network, *netmask;
+		bool m_enable;
+		std::vector<NetworkAddress> m_networks;
 	};
 
 	bool ProxyRequired(const PIPSocket::Address & ip1, const PIPSocket::Address & ip2) const

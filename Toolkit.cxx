@@ -324,48 +324,44 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 }
 
 // class Toolkit::ProxyCriterion
+Toolkit::ProxyCriterion::ProxyCriterion() : m_enable(false)
+{
+}
+
+Toolkit::ProxyCriterion::~ProxyCriterion()
+{ 
+}
+
 void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 {
-	ClearTable();
-	if (!AsBool(config->GetString(ProxySection, "Enable", "0"))) {
+	m_networks.clear();
+
+	m_enable = AsBool(config->GetString(ProxySection, "Enable", "0"));
+	if (!m_enable) {
 		PTRACE(2, "GK\tH.323 Proxy disabled");
-		size = -1;
 		return;
 	}
 
 	PTRACE(2, "GK\tH.323 Proxy enabled");
 
 	PStringArray networks(config->GetString(ProxySection, "InternalNetwork", "").Tokenise(" ,;\t", FALSE));
-	if ((size = networks.GetSize()) == 0) {
-		// no internal networks specified, always use proxy
-		return;
+	for (PINDEX i = 0; i < networks.GetSize(); ++i) {
+		m_networks.resize(m_networks.size() + 1);
+		m_networks[m_networks.size() - 1] = NetworkAddress(networks[i]);
+		PTRACE(2, "GK\tInternal Network " << i << " = " << m_networks.back());
 	}
-
-	network = new Address[size * 2];
-	netmask = network + size;
-	for (int i = 0; i < size; ++i) {
-		GetNetworkFromString(networks[i], network[i], netmask[i]);
-		PTRACE(2, "GK\tInternal Network " << i << " = " <<
-			   network[i] << '/' << netmask[i]);
-	}
-}
-
-void Toolkit::ProxyCriterion::ClearTable()
-{
-	size = 0;
-	delete [] network;
-	network = 0;
 }
 
 bool Toolkit::ProxyCriterion::Required(const Address & ip1, const Address & ip2) const
 {
-	return (size >= 0) ? ((size == 0) || (IsInternal(ip1) != IsInternal(ip2))) : false;
+	return m_enable ? (m_networks.empty() || (IsInternal(ip1) != IsInternal(ip2))) : false;
 }
 
 bool Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 {
-	for (int i = 0; i < size; ++i)
-		if ((ip & netmask[i]) == network[i])
+	std::vector<NetworkAddress>::const_iterator i = m_networks.begin();
+	while (i != m_networks.end())
+		if (ip << *i++)
 			return true;
 	return false;
 }
