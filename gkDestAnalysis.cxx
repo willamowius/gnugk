@@ -295,7 +295,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 	listLock.StartRead();
 	std::list<EndpointRec *>::const_iterator Iter = EPList.begin(), IterLast = EPList.end();
 	for (; Iter != IterLast && !partialMatchFound; Iter++) {
-		PTRACE(1, "Checking EP: " << (*Iter)->PrintOn(true));
+		PTRACE(5, "Checking EP: " << (*Iter)->PrintOn(true));
 		partialMatchFound = (*Iter)->AliasIsIncomplete(destAlias, fullMatch);
 		if (!partialMatchFound && (*Iter)->IsGateway()) {
 			partialMatchFound = dynamic_cast<GatewayRec *>(*Iter)->PrefixIsIncomplete(destAlias, fullMatch);

@@ -874,7 +874,6 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 				if (!bReject && !CalledEP &&
 				    ( rsn == H225_AdmissionRejectReason::e_securityDenial ||
 					    rsn == H225_AdmissionRejectReason::e_resourceUnavailable)) {
-					PTRACE(5," b");
 					if (Toolkit::Instance()->GkClientIsRegistered()) {
 						H225_ArrayOf_AliasAddress dest = arq.m_destinationInfo;
 						H225_AdmissionRequest arq_fake=arq;
