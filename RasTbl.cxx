@@ -72,6 +72,8 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
 	case H225_RasMessage::e_locationConfirm:
 		SetEndpointRec((H225_LocationConfirm &)m_RasMsg);
 		break;
+	case H225_RasMessage::e_locationRequest:
+		SetEndpointRec(static_cast<H225_LocationRequest &>(m_RasMsg));
 	default: // should not happen
 		break;
 	}
@@ -136,6 +138,20 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
                 lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
         m_terminalType = &lcf.m_destinationType;
         m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+        m_fromParent = false;
+}
+
+void EndpointRec::SetEndpointRec(H225_LocationRequest & lrq)
+{
+        m_rasAddress = lrq.m_replyAddress;
+	PTRACE(5, "lrq.m_gatekeeperIdentifier: " << lrq.m_gatekeeperIdentifier);
+
+	m_callSignalAddress=lrq.m_replyAddress; // even if it's wrong
+	H225_TransportAddress_ipAddress &a = m_callSignalAddress;
+	a.m_port = GK_DEF_CALL_SIGNAL_PORT; // Not really what we want, but how to fake?
+	m_terminalType = new H225_EndpointType;
+	m_terminalAliases = lrq.m_sourceInfo;
+	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
         m_fromParent = false;
 }
 
@@ -258,6 +274,10 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 		SetRasAddress(lcf.m_rasAddress);
 		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
 			SetAliases(lcf.m_destinationInfo);
+	} else if (ras_msg.GetTag() == H225_RasMessage::e_locationRequest) {
+		const H225_LocationRequest & lrq = ras_msg;
+		SetRasAddress(lrq.m_replyAddress);
+		SetAliases(lrq.m_destinationInfo);
 	}
 	PWaitAndSignal lock(m_usedLock);
 	m_updatedTime = PTime();
@@ -392,6 +412,20 @@ void EndpointRec::SendRas(const H225_RasMessage &ras_msg)
 	PIPSocket::Address addr(adr.m_ip[0], adr.m_ip[1], adr.m_ip[2], adr.m_ip[3]);
 	WORD port = adr.m_port;
 	Toolkit::Instance()->GetMasterRASListener().SendTo(ras_msg, addr, port);
+}
+
+const PIPSocket::Address
+EndpointRec::GetAddress() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (H225_TransportAddress::e_ipAddress == m_rasAddress.GetTag()) {
+		const H225_TransportAddress_ipAddress & adr = m_rasAddress;
+		return PIPSocket::Address(adr.m_ip[0], adr.m_ip[1], adr.m_ip[2], adr.m_ip[3]);
+	} else if (H225_TransportAddress::e_ipAddress == m_callSignalAddress.GetTag()) {
+		const H225_TransportAddress_ipAddress & adr = m_rasAddress;
+		return PIPSocket::Address(adr.m_ip[0], adr.m_ip[1], adr.m_ip[2], adr.m_ip[3]);
+	}
+	return PIPSocket::Address();
 }
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
@@ -662,6 +696,15 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg)
 		break;
 
 	}
+	case H225_RasMessage::e_locationRequest:
+	{
+		H225_LocationRequest & lrq = ras_msg;
+		if(ep = FindOZEPByName(static_cast <PString>(lrq.m_gatekeeperIdentifier)))
+			ep->Update(ras_msg);
+		else
+			ep = InternalInsertOZEP(ras_msg, lrq);
+		break;
+	}
 	default:
 		PTRACE(1, "RegistrationTable: unable to insert " << ras_msg.GetTagName());
 		break;
@@ -718,6 +761,20 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Loc
 		ep = new OuterZoneGWRec(ras_msg, epID);
 	else
 		ep = new OuterZoneEPRec(ras_msg, epID);
+
+	OuterZoneList_mutex.StartWrite();
+	OuterZoneList.push_front(ep);
+	OuterZoneList_mutex.EndWrite();
+	return endptr(ep);
+}
+
+endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_LocationRequest & lrq)
+{
+	H225_EndpointIdentifier epID;
+	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
+
+	EndpointRec *ep;
+	ep = new OuterZoneEPRec(ras_msg, epID);
 
 	OuterZoneList_mutex.StartWrite();
 	OuterZoneList.push_front(ep);
@@ -783,6 +840,23 @@ endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress &sigAd
        ReadLock lock(OuterZoneList_mutex);
        return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
                        mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList);
+}
+
+endptr
+RegistrationTable::FindOZEPByAdr(const PIPSocket::Address &adr) const
+{
+	ReadLock lock(OuterZoneList_mutex);
+	return InternalFind(compose1(bind2nd(equal_to<PIPSocket::Address>(),adr),
+				     mem_fun(&EndpointRec::GetAddress)), &OuterZoneList);
+}
+
+endptr RegistrationTable::FindOZEPByName(const PString & name) const
+{
+       ReadLock lock(OuterZoneList_mutex);
+       H225_EndpointIdentifier epid;
+       epid=name;
+       return InternalFind(compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epid),
+                       mem_fun(&EndpointRec::GetEndpointIdentifier)), &OuterZoneList);
 }
 
 endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias) const
