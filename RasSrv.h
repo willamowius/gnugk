@@ -249,7 +249,7 @@ inline bool PendingList::PendingARQ::CompSeq(int seqNum) const
 
 inline bool PendingList::PendingARQ::IsStaled(int sec) const
 {
-	return (PTime() - m_reqTime) > sec*1000;
+	return (PTime() - m_reqTime).GetSeconds() > sec;
 }
 
 inline void PendingList::PendingARQ::GetRequest(H225_AdmissionRequest & arq, endptr & ep) const

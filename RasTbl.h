@@ -578,7 +578,7 @@ inline bool EndpointRec::IsUsed() const
 
 inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
-	return (!m_timeToLive || m_activeCall > 0 || (*now - m_updatedTime) < (DWORD)m_timeToLive*1000);
+	return (!m_timeToLive || m_activeCall > 0 || (*now - m_updatedTime).GetSeconds() < m_timeToLive);
 }
 
 inline void EndpointRec::AddCall()
@@ -686,7 +686,7 @@ inline bool CallRec::IsConnected() const
 
 inline bool CallRec::IsTimeout(const PTime *now) const
 {       
-	return (m_timeout > 0 && ((*now - m_timer) > (DWORD)m_timeout*1000));
+	return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > m_timeout));
 }
 
 inline bool CallRec::IsH245Routed() const

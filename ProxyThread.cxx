@@ -356,8 +356,8 @@ bool ProxyListener::Open(unsigned queueSize)
 {
 	m_listener = new PTCPSocket(m_port);
 	isOpen = (m_interface == INADDR_ANY) ?
-		  m_listener->Listen(queueSize) :
-		  m_listener->Listen(m_interface, queueSize);
+		  m_listener->Listen(queueSize, m_port, PSocket::CanReuseAddress) :
+		  m_listener->Listen(m_interface, queueSize, m_port, PSocket::CanReuseAddress);
 	m_port = m_listener->GetPort(); // get the listen port
 	if (isOpen) {
 		PTRACE(2, "ProxyL\tListen to " << m_interface << ':' << m_port);
