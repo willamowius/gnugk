@@ -37,9 +37,11 @@ SignalConnection::SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHom
 	// to fix memory leaks
 	// always NULL in this instance of SignalConnection
 	remoteConnection = NULL;
-	statusEnquiry.BuildStatusEnquiry(caller_m_q931.GetCallReference(), TRUE);
+	m_crv.SetValue(caller_m_q931.GetCallReference());
+	statusEnquiry.BuildStatusEnquiry(m_crv.GetValue(), TRUE);
 	//mm-27.04.2001
 	connectionName = ANSI::RED + m_connection->GetName() + ANSI::OFF;
+PTRACE(3, "GK\t" << connectionName << "\t Create SignalConnection crv=" << m_crv);
 	Resume();
 }
 
@@ -87,9 +89,14 @@ SignalConnection::~SignalConnection()
 void SignalConnection::CloseSignalConnection(void)
 { 
 	PTRACE(5, "GK\t" << connectionName << "\tentering CloseSignalConnection");
+
+	if (m_CloseMutex.WillBlock()) {
+		PTRACE(5, "GK\t" << connectionName << "\tClosing by other thread, ignore!");
+		return;
+	}
+	PWaitAndSignal lock(m_CloseMutex);
 	// instance of SignalConnection that handles receiving data from caller to gatekeeper?
-	if (remoteConnection) 
-	{
+	if (remoteConnection) {
 		/* close the other SignalConnection thread created by this thread
 		 * This will invoke the else condition below in the other thread instance.
 		 */
@@ -101,24 +108,45 @@ void SignalConnection::CloseSignalConnection(void)
 		 */
 		delete remoteConnection;
 		remoteConnection = NULL;
-		m_connection->Close();   // close connection to caller
 	}
-	else 
-	/* Close instance of SignalConnection that handles receiving data from remote to gatekeeper
-	 * OR
-	 * CloseSignalConnection() was called before remoteConnection could be setup
-	 */
-	{
-		m_connection->Close();
-	}
+
+	m_connection->Close();
 
 	if (m_sigChannel) { // this indicates caller-thread
 // TODO: 
-	  //	  resourceManager::Instance()->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID);
+	// resourceManager::Instance()->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID);
 
-        // maipulate call-table
-	CallTable::Instance()->RemoveCall(pCallRec);
-    }
+        	// maipulate call-table
+		CallTable::Instance()->RemoveCall(pCallRec);
+	}
+}
+
+void SignalConnection::SendReleaseComplete()
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
+	H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
+	H225_ReleaseComplete_UUIE & uuie = body;
+	uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
+	uuie.m_callIdentifier = m_callid;
+	PPER_Stream sb;
+	signal.Encode(sb);
+	sb.CompleteEncoding();
+
+	Q931 releasePDU;
+	releasePDU.BuildReleaseComplete(m_crv, TRUE);
+	releasePDU.SetIE(Q931::UserUserIE, sb);
+	Send(m_connection, releasePDU);
+	if (m_remote) {
+		releasePDU.BuildReleaseComplete(m_crv, FALSE);
+		releasePDU.SetIE(Q931::UserUserIE, sb);
+		Send(m_remote, releasePDU);
+	}
+	PTRACE(4, "GK\tSend Release Complete to " << connectionName);
+	
+	Sleep(100); // wait for the pdu to be sent
+	CloseSignalConnection();
 }
 
 void SignalConnection::Main(void)
@@ -143,7 +171,7 @@ void SignalConnection::Main(void)
 		// Read incoming messages
 		if ( ! OnReceivedData() )
 		{
-		  PTRACE(1, "GK\t" << connectionName << "\tREAD ERROR !!!\nCLOSING CONNECTION...");
+			PTRACE(2, "GK\t" << connectionName << "\tREAD ERROR !!!\nCLOSING CONNECTION...");
 			CloseSignalConnection();
 			break;
 		}
@@ -170,7 +198,7 @@ void SignalConnection::Main(void)
 			};
 
 			if (remoteConnection)
-				if (remoteConnection->SouldBeTerminated()) {
+				if (remoteConnection->ShouldBeTerminated()) {
 					CloseSignalConnection();
 					break;
 				};
@@ -212,26 +240,32 @@ void SignalConnection::Main(void)
 
 			m_crv.SetValue(m_q931.GetCallReference());
 			PTRACE(4, "GK\t" << connectionName << "\tCALL REFERENCE VALUE : " << m_crv); 
-
+/* comment out by cwhuang:
+   it's dangerous to use CRV here, an irrelevant call may be found
 			// CallRecs are looked for using callIdentifier; if non-existant
 			// (it's optional), FindCallRec uses callReferenceValue instead
 			if (!pCallRec)
 				pCallRec = CallTable::Instance()->FindCallRec(m_crv);
+*/
 			if (!pCallRec) {
-				PTRACE(4, "GK\t" << connectionName << "\tCALL NOT REGISTERED");
+				PTRACE(3, "GK\t" << connectionName << "\tCALL NOT REGISTERED");
+				SendReleaseComplete();
 				break;
 			};
 
 			const H225_TransportAddress *pAddr = pCallRec->GetCalledAddress();
-			if (!pAddr || pAddr->GetTag() != H225_TransportAddress::e_ipAddress)
-				break;  // invalid ip address
+			if (!pAddr || pAddr->GetTag() != H225_TransportAddress::e_ipAddress) {
+				PTRACE(3, "GK\t" << connectionName << "\tINVALID IP ADDRESS");
+				SendReleaseComplete();
+				break;
+			}
 			
 			const H225_TransportAddress_ipAddress & ipaddress = *pAddr;
 			m_remote = new PTCPSocket(ipaddress.m_port);
 			PIPSocket::Address calledIP( ipaddress.m_ip[0], ipaddress.m_ip[1], ipaddress.m_ip[2], ipaddress.m_ip[3]);
-			if ( !m_remote->Connect(calledIP) )
-			{
-				PTRACE(4, "GK\t" << connectionName << "\t" << calledIP << " DIDN'T ACCEPT THE CALL");
+			if ( !m_remote->Connect(calledIP) ) {
+				PTRACE(3, "GK\t" << connectionName << "\t" << calledIP << " DIDN'T ACCEPT THE CALL");
+				SendReleaseComplete();
 				break;
 			};
 
@@ -485,12 +519,18 @@ BOOL SignalConnection::OnReceivedData(void)
 
 void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 {
+	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+		PTRACE(1, "SignalConnection\tOnSetup() no callIdentifier!");
+		return;
+	}
+	m_callid = Setup.m_callIdentifier;
 	// save callIdentifier + conferenceIdentifier
-	pCallRec = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+	pCallRec = CallTable::Instance()->FindCallRec(m_callid);
 	if (!pCallRec) {
-		PTRACE(3, "SignalConnection\tOnSetup() didn't find the call!");
+		PTRACE(3, "SignalConnection\tOnSetup() didn't find the call: " << AsString(m_callid.m_guid));
 		return;
 	};
+	pCallRec->SetSigConnection(this);
 /* comment out by cwhuang
    Is there any meaning to set callIdentifier & conferenceIdentifier again?
    Aren't them already set?
@@ -503,10 +543,9 @@ void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 
 	// in routed mode the caller may have put the GK address in destCallSignalAddress
 	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
-	if ( Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress) )
-	{
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-	};
+	}
 
 	if (bH245Routing) {
 		// replace H.245 address with gatekeepers address
@@ -531,7 +570,8 @@ void SignalConnection::OnConnect( H225_Connect_UUIE & Connect )
 		PTRACE(1, "SignalConnection\tOnConnect() no callIdentifier!");
 		return;
 	}
-	pCallRec = CallTable::Instance()->FindCallRec(Connect.m_callIdentifier);
+	m_callid = Connect.m_callIdentifier;
+	pCallRec = CallTable::Instance()->FindCallRec(m_callid);
 	if (!pCallRec) {
 		PTRACE(3, "SignalConnection\tOnConnect() didn't find the call!");
 		return;
@@ -562,6 +602,8 @@ void SignalConnection::OnInformation( H225_Information_UUIE & Information )
  
 void SignalConnection::OnReleaseComplete( H225_ReleaseComplete_UUIE & ReleaseComplete )
 {
+	if (pCallRec)
+		pCallRec->SetSigConnection(0);
 // would be removed on CloseSignalConnection
 //	CallTable::Instance()->RemoveCall(pCallRec);
 }

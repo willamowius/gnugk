@@ -1,5 +1,15 @@
 Changes from 1.0 to now (by cwhuang)
 ========================================
+- add DefaultCallTimeout to remove staled calls
+- fix bug in DisconnectAlias
+- only use CallId to find CallRec if it presents, this fix a potential
+  CRV conflict in ARQ
+- re-use endpoint identifier if call signal address found in RemovedList
+- send URQ & DRQ from RAS port instead of arbitrary port
+- print dialed number, number of calls in PrintCurrentCalls cmd
+- print number of endpoints in PrintAllRegistrations cmd
+- allow generate NB, UC CDR
+- don't let ttl < 60
 - only generate CDR for call that originated from my zone and connected
   (must work in routed mode)
 - redesign CallRec & CallTable

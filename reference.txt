@@ -287,3 +287,25 @@ SimplePasswordAuth=required;RRQ,ARQ,LRQ
     AliasAuth=sufficient;RRQ
     default=reject
 
+B.14 Section [Password]
+
+B.15 Section [CallTable]
+
+GenerateNBCDR=FALSE	Default: TRUE
+
+Allow generate CDR for call that calling from neighbor zones.
+The IP and endpoint ID of the calling party is printed
+as empty. This is usually used for debug purpose.
+
+GenerateUCCDR=FALSE	Default: FALSE
+
+Allow generate CDR for call that is unconnected. This is usually
+used for debug purpose. Note a call is considered unconnected
+only if the GK is in routed mode and Q.931 connect message is not
+received by the GK. In direct mode, a call is always considered
+connected.
+
+DefaultCallTimeout	Default: 0
+
+Default timeout value in seconds to tear down a call.
+Set it to 0 to disable this feature.

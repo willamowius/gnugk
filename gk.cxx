@@ -27,7 +27,7 @@
 #include <q931.h>
 #include "gk.h"
 #include "RasSrv.h"
-#include "RasTbl.h"
+#include "SoftPBX.h"
 #include "MulticastGRQ.h"
 #include "BroadcastListen.h"
 #include "Toolkit.h"
@@ -41,7 +41,6 @@
 namespace { // keep the global objects private
 
 
-H323RasSrv * RasThread = NULL;
 MulticastGRQ * MulticastGRQThread = NULL;
 BroadcastListen * BroadcastThread = NULL;
 PMutex ShutdownMutex;
@@ -124,6 +123,7 @@ void ReloadHandler(void)
 	*/
 
 	RegistrationTable::Instance()->LoadConfig();
+	CallTable::Instance()->LoadConfig();
 
 	RasThread->LoadConfig();
 
@@ -225,6 +225,7 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 #ifdef PTRACING
 	// PTrace::SetOptions(PTrace::Timestamp | PTrace::Thread);
 	// PTrace::SetOptions(PTrace::Timestamp);
+	//PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel | PTrace::Thread);
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel);
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o'))

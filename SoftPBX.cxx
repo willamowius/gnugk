@@ -29,18 +29,6 @@
 int SoftPBX::TimeToLive = -1;
 
 
-namespace {  // anonymous namespace
-
-void SendDRQ(const endptr &ep)
-{
-	// find callId and conferenceId
-	callptr Call = CallTable::Instance()->FindBySignalAdr(ep->GetCallSignalAddress());
-	Call->SendDRQ();
-	CallTable::Instance()->RemoveCall(Call);
-}
-
-} // end of anonymous namespace
-
 void SoftPBX::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintAllRegistrations");
@@ -80,9 +68,9 @@ void SoftPBX::UnregisterAlias(PString Alias)
 
 	const endptr ep = RegistrationTable::Instance()->FindByAliases(EpAlias);
 	if (!ep) {
-		PString msg("GK\tSoftPBX: alias " + Alias + " not found!");
-		PTRACE(1, msg);
-		GkStatus::Instance()->SignalStatus(msg + "\n");
+		PString msg("SoftPBX: alias " + Alias + " not found!");
+		PTRACE(1, "GK\t" + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
 	ep->Unregister();
@@ -90,8 +78,30 @@ void SoftPBX::UnregisterAlias(PString Alias)
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
 	RegistrationTable::Instance()->RemoveByEndptr(ep);
 
-	PString msg("Endpoint " + Alias + " disconnected.\n");
-	PTRACE(2, "GK\tSoftPBX: endpoint " << Alias << " disconnected.");
+	PString msg("SoftPBX: Endpoint " + Alias + " unregistered!");
+	PTRACE(2, "GK\t" + msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+}
+
+// send a DRQ to caller of this call number, causing it to close the H.225 channel
+// this causes the gatekeeper to close the H.225 channel to the called party when
+// it recognises the caller has gone away
+void SoftPBX::DisconnectCall(PINDEX CallNumber)
+{
+	PTRACE(3, "GK\tSoftPBX: DisconnectCall " << CallNumber);
+
+	callptr Call = CallTable::Instance()->FindCallRec(CallNumber);
+	if (!Call) {
+		PString msg(PString::Printf, "Can't find call number %u", CallNumber);
+		PTRACE(2, "GK\tSoftPBX: " << msg);
+		GkStatus::Instance()->SignalStatus(msg);
+		return;
+	}
+
+	Call->Disconnect();
+
+	PString msg(PString::Printf, "Call number %d disconnected.\n", CallNumber);
+	PTRACE(2, "GK\tSoftPBX: " << msg);
 	GkStatus::Instance()->SignalStatus(msg);
 }
 
@@ -107,7 +117,7 @@ void SoftPBX::DisconnectIp(PString Ip)
 
 	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << ipaddress << ':' << port);
 
-	SendDRQ( RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress) );
+	DisconnectEndpoint(RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress));
 }
 
 // send a DRQ to this endpoint
@@ -118,7 +128,7 @@ void SoftPBX::DisconnectAlias(PString Alias)
 	H323SetAliasAddress(Alias, EpAlias[0]);
 	PTRACE(3, "GK\tSoftPBX: DisconnectAlias " << Alias);
 
-	SendDRQ( RegistrationTable::Instance()->FindByAliases(EpAlias) );
+	DisconnectEndpoint(RegistrationTable::Instance()->FindByAliases(EpAlias));
 }
 
 // send a DRQ to this endpoint
@@ -128,29 +138,21 @@ void SoftPBX::DisconnectEndpoint(PString Id)
 	EpId = Id;
 	PTRACE(3, "GK\tSoftPBX: DisconnectEndpoint " << EpId);
 
-        SendDRQ( RegistrationTable::Instance()->FindByEndpointId(EpId) );
+        DisconnectEndpoint(RegistrationTable::Instance()->FindByEndpointId(EpId));
 }
 
-// send a DRQ to caller of this call number, causing it to close the H.225 channel
-// this causes the gatekeeper to close the H.225 channel to the called party when
-// it recognises the caller has gone away
-void SoftPBX::DisconnectCall(PINDEX CallNumber)
+void SoftPBX::DisconnectEndpoint(const endptr &ep)
 {
-	PTRACE(3, "GK\tSoftPBX: DisconnectCall " << CallNumber);
-
-	callptr Call = CallTable::Instance()->FindCallRec(CallNumber);
-	if (!Call) {
-		PString msg(PString::Printf, "Can't find call number %d .\n", CallNumber);
-		PTRACE(2, "GK\tSoftPBX: " << msg);
-		GkStatus::Instance()->SignalStatus(msg);
+	if (!ep) {
+		PString msg("SoftPBX: no endpoint to disconnect!");
+		PTRACE(1, "GK\t" + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
-
-	Call->SendDRQ();
-
-	PString msg(PString::Printf, "Call number %d disconnected.\n", CallNumber);
-	PTRACE(2, "GK\tSoftPBX: " << msg);
-	GkStatus::Instance()->SignalStatus(msg);
+	callptr Call;
+	// remove all calls of ep
+	while (Call = CallTable::Instance()->FindCallRec(ep))
+		Call->Disconnect();
 }
 
 void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)

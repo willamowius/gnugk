@@ -251,5 +251,10 @@ default=allow
 #(id=cwhuang, password=123456)
 #cwhuang=UGwUtpy837k=
 
+[CallTable]
+#GenerateNBCDR=TRUE
+#GenerateUCCDR=TRUE
+#DefaultCallTimeout=21600  // 6hr
+
 # EOF
 

@@ -20,7 +20,6 @@
 #include "ptlib/sockets.h"
 #include "h225.h"
 #include "GkStatus.h"
-#include "SoftPBX.h"
 
 #include <set>
 #include <list>
@@ -31,7 +30,6 @@ using std::set;
 using std::list;
 using std::vector;
 using std::string;
-
 
 class ReadLock {
 	PReadWriteMutex &mutex;
@@ -358,13 +356,17 @@ public:
 	// TODO: thread pointer (or NULL for direct calls)
 };
 
+class SignalConnection;
+
 // record of one active call
-class CallRec : private PTimer
+class CallRec
 {
 public:
 	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, const PString &, int);
-	~CallRec();
+	virtual ~CallRec();
 
+	PINDEX GetCallNumber() const
+	{ return m_CallNumber; }
 	const H225_CallIdentifier & GetCallIdentifier() const
 	{ return m_callIdentifier; }
 	const H225_ConferenceIdentifier & GetConferenceIdentifier() const
@@ -378,10 +380,14 @@ public:
 	void SetCalled(const endptr & NewCalled, unsigned = 0);
 	void SetBandwidth(int Bandwidth) { m_bandWidth = Bandwidth; }
 	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
+	void SetSigConnection(SignalConnection *);
+
 	void SetConnected(bool c);
 	void SetTimer(int seconds);
+	void StartTimer();
+	void StopTimer();
 
-	void SendDRQ();
+	void Disconnect();
 
 	/// deletes endpoint end marks it as invalid
 	void RemoveCalling();
@@ -392,18 +398,11 @@ public:
 	/// counts the endpoints in this rec; currently #0 <= n <= 2#.
 	int CountEndpoints() const;
 
-	bool CompareCallId(H225_CallIdentifier *CallId) const
-	{ return (m_callIdentifier == *CallId); }
-
-	bool CompareCRV(unsigned crv) const
-	{ return (m_Calling && m_callingCRV == crv) || (m_Called && m_calledCRV == crv); }
-
-	bool CompareCallNumber(PINDEX CallNumber) const
-	{ return (m_CallNumber == CallNumber); }
-
-	bool CompareSigAdr(H225_TransportAddress *adr) const
-	{ return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
-		 (m_Called && m_Called->GetCallSignalAddress() == *adr); }
+	bool CompareCallId(H225_CallIdentifier *CallId) const;
+	bool CompareCRV(unsigned crv) const;
+	bool CompareCallNumber(PINDEX CallNumber) const;
+	bool CompareEndpoint(endptr *) const;
+	bool CompareSigAdr(H225_TransportAddress *adr) const;
 
 	bool IsUsed() const;
 	bool IsConnected() const;
@@ -417,14 +416,11 @@ public:
 	// smart pointer for EndpointRec
 	typedef SmartPtr<CallRec> Ptr;
 
-#if !defined(NDEBUG) || defined(WIN32)
-// make the operators be public (only defined in debug mode)
-	using PTimer::operator new;
-	using PTimer::operator delete;
-#endif
-
 private:
-	void OnTimeout();
+	void SendDRQ();
+
+	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
+//	void OnTimeout(PTimer &, INT);
 
 	H225_CallIdentifier m_callIdentifier;
 	H225_ConferenceIdentifier m_conferenceIdentifier;
@@ -438,6 +434,10 @@ private:
 	unsigned m_calledCRV;
 
 	PTime *m_startTime;
+	PTimer *m_timer;
+	int m_timeout;
+
+	SignalConnection *m_sigConnection;
 
 	int m_usedCount;
 	mutable PMutex m_usedLock;
@@ -446,6 +446,69 @@ private:
 	CallRec & operator= (const CallRec & other);
 };
 
+typedef CallRec::Ptr callptr;
+
+class Q931;
+
+// all active calls
+class CallTable : public Singleton<CallTable>
+{
+public:
+	typedef std::list<CallRec *>::iterator iterator;
+	typedef std::list<CallRec *>::const_iterator const_iterator;
+
+	CallTable();
+	~CallTable();
+
+	void Insert(CallRec * NewRec);
+//	void Insert(const endptr & Calling, const endptr & Called, int Bandwidth, const H225_CallIdentifier & CallId, const H225_ConferenceIdentifier & ConfID, const PString& destInfo);
+//	void Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID, const PString& destInfo);
+
+//	callptr FindCallRec(const Q931 & m_q931) const;
+	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
+	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
+	callptr FindCallRec(PINDEX CallNumber) const;
+	callptr FindCallRec(const endptr &) const;
+	callptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
+
+//	void RemoveCall(const Q931 & m_q931);
+	void RemoveCall(const H225_DisengageRequest & obj_drq);
+	void RemoveCall(const callptr &);
+
+	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE) const;
+
+	void LoadConfig();
+
+private:
+	template<class F> callptr InternalFind(const F & FindObject) const
+	{
+        	ReadLock lock(listLock);
+        	const_iterator Iter(find_if(CallList.begin(), CallList.end(), FindObject));
+	        return callptr((Iter != CallList.end()) ? *Iter : 0);
+	}
+
+	bool InternalRemovePtr(CallRec *call);
+	void InternalRemove(const H225_CallIdentifier & CallId);
+	void InternalRemove(unsigned CallRef);
+	void InternalRemove(iterator);
+
+	static void delete_call(CallRec *c) { delete c; }
+
+	list<CallRec *> CallList;
+	list<CallRec *> RemovedList;
+//	set <CallRec> CallList;
+
+	bool m_genNBCDR;
+	bool m_genUCCDR;
+
+	PINDEX m_CallNumber;
+	mutable PReadWriteMutex listLock;
+
+	CallTable(const CallTable &);
+	CallTable& operator==(const CallTable &);
+};
+
+// inline functions of CallRec
 inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -456,6 +519,16 @@ inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_Called = NewCalled, m_calledCRV = crv;
+}
+
+inline void CallRec::SetSigConnection(SignalConnection *sigConnection)
+{
+	m_sigConnection = sigConnection;
+}
+
+inline void CallRec::SetTimer(int seconds)
+{
+	m_timeout = seconds;
 }
 
 inline void CallRec::RemoveCalling()
@@ -486,6 +559,32 @@ inline void CallRec::Unlock()
 	--m_usedCount;
 }       
 
+inline bool CallRec::CompareCallId(H225_CallIdentifier *CallId) const
+{
+	return (m_callIdentifier == *CallId);
+}
+
+inline bool CallRec::CompareCRV(unsigned crv) const
+{
+	return (m_Calling && m_callingCRV == crv) || (m_Called && m_calledCRV == crv);
+}
+
+inline bool CallRec::CompareCallNumber(PINDEX CallNumber) const
+{
+	return (m_CallNumber == CallNumber);
+}
+
+inline bool CallRec::CompareEndpoint(endptr *ep) const
+{
+	return (m_Calling && m_Calling == *ep) || (m_Called && m_Called == *ep);
+}
+
+inline bool CallRec::CompareSigAdr(H225_TransportAddress *adr) const
+{
+	return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
+		(m_Called && m_Called->GetCallSignalAddress() == *adr);
+}
+
 inline bool CallRec::IsUsed() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -496,62 +595,6 @@ inline bool CallRec::IsConnected() const
 {       
 	return (m_startTime != 0);
 }       
-
-typedef CallRec::Ptr callptr;
-
-class Q931;
-
-// all active calls
-class CallTable : public Singleton<CallTable>
-{
-public:
-	typedef std::list<CallRec *>::iterator iterator;
-	typedef std::list<CallRec *>::const_iterator const_iterator;
-
-	CallTable();
-	~CallTable();
-
-	void Insert(CallRec * NewRec);
-//	void Insert(const endptr & Calling, const endptr & Called, int Bandwidth, const H225_CallIdentifier & CallId, const H225_ConferenceIdentifier & ConfID, const PString& destInfo);
-//	void Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID, const PString& destInfo);
-
-//	callptr FindCallRec(const Q931 & m_q931) const;
-	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
-	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
-	callptr FindCallRec(PINDEX CallNumber) const;
-	callptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
-
-//	void RemoveCall(const Q931 & m_q931);
-	void RemoveCall(const H225_DisengageRequest & obj_drq);
-	void RemoveCall(const callptr &);
-
-	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE) const;
-
-private:
-	template<class F> callptr InternalFind(const F & FindObject) const
-	{
-        	ReadLock lock(listLock);
-        	const_iterator Iter(find_if(CallList.begin(), CallList.end(), FindObject));
-	        return callptr((Iter != CallList.end()) ? *Iter : 0);
-	}
-
-	bool InternalRemovePtr(CallRec *call);
-	void InternalRemove(const H225_CallIdentifier & CallId);
-	void InternalRemove(unsigned CallRef);
-	void InternalRemove(iterator);
-
-	static void delete_call(CallRec *c) { delete c; }
-
-	list<CallRec *> CallList;
-	list<CallRec *> RemovedList;
-//	set <CallRec> CallList;
-
-	PINDEX m_CallNumber;
-	mutable PReadWriteMutex listLock;
-
-	CallTable(const CallTable &);
-	CallTable& operator==(const CallTable &);
-};
 
 #endif
 

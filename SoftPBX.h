@@ -14,6 +14,7 @@
 
 #include <ptlib.h>
 #include "GkStatus.h"
+#include "RasTbl.h"
 
 
 namespace SoftPBX
@@ -24,10 +25,11 @@ namespace SoftPBX
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);
+	void DisconnectCall(PINDEX CallNumber);
 	void DisconnectIp(PString Ip);
 	void DisconnectAlias(PString Alias);
 	void DisconnectEndpoint(PString Id);
-	void DisconnectCall(PINDEX CallNumber);
+	void DisconnectEndpoint(const endptr &);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
 

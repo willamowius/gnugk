@@ -13,7 +13,7 @@
 
 #include "h323util.h"
 #include "h323pdu.h"
-#include "q931.h"
+//#include "q931.h"
 
 
 /*
@@ -38,7 +38,6 @@ H225_CallIdentifier *GetCallIdentifier(const Q931 & m_q931)
 	}
 	return 0; // no CallId
 }
-*/
 
 bool SendRasPDU(H225_RasMessage &ras_msg, const H225_TransportAddress & dest)
 {
@@ -61,7 +60,7 @@ bool SendRasPDU(H225_RasMessage &ras_msg, const H225_TransportAddress & dest)
 	PUDPSocket Sock;
 	return Sock.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), ipaddress, ip.m_port) != 0;
 }
-
+*/
 
 PString AsString(const H225_TransportAddress & ta)
 {

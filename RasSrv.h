@@ -28,8 +28,7 @@ class GkAuthenticatorList;
 class NeighborList;
 class PendingList;
 
-
-class H323RasSrv : public PThread 
+class H323RasSrv : public PThread
 {
   PCLASSINFO(H323RasSrv, PThread)
 
@@ -72,15 +71,19 @@ public:
       
 	BOOL OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
       
-	void SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address rx_addr, WORD rx_port, PUDPSocket & BoundSocket);
-
 	void ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq);
+
+	void SendRas(const H225_RasMessage & obj_ras, const H225_TransportAddress & dest);
+
+	void SendRas(const H225_RasMessage & obj_ras, const PIPSocket::Address & rx_addr, WORD rx_port);
+
+	void SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Address & rx_addr, WORD rx_port, PUDPSocket & BoundSocket);
 
 	bool Check();
 
 	void LoadConfig();
 
-	PUDPSocket & GetRasSocket() { return listener; }
+//	PUDPSocket & GetRasSocket() { return listener; }
 	const H225_TransportAddress & GetCallSignalAddress() const
 	{ return GKCallSignalAddress; }
 	const H225_TransportAddress & GetRasAddress() const
@@ -114,6 +117,7 @@ private:
         
 	PIPSocket::Address GKHome;
 	PUDPSocket listener;
+	PMutex writeMutex;
 
 	/** this is the upd port where all requests to the alternate GK are sent to */
 	PUDPSocket udpForwarding;
@@ -130,5 +134,7 @@ private:
 	NeighborList * NeighborsGK;
 	PendingList * arqPendingList;
 };
+
+extern H323RasSrv *RasThread;  // I hate global object, but...
 
 #endif

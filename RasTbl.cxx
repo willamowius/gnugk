@@ -26,10 +26,13 @@
 #include "ANSI.h"
 #include "h323util.h"
 #include "Toolkit.h"
-#include "RasTbl.h"
+#include "SoftPBX.h"
+#include "RasSrv.h"
+#include "SignalConnection.h"
 #include "gk_const.h"
 #include "stl_supp.h"
 
+const char *CallTableSection = "CallTable";
 
 conferenceRec::conferenceRec(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw)
 {
@@ -171,6 +174,9 @@ void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
 void EndpointRec::SetTimeToLive(int seconds)
 {
 	if (m_timeToLive > 0) {
+		// To avoid bloated RRQ traffic, don't allow ttl < 60
+		if (seconds < 60)
+			seconds = 60;
 		PWaitAndSignal lock(m_usedLock);
 		m_timeToLive = (SoftPBX::TimeToLive > 0) ?
 			std::min(SoftPBX::TimeToLive, seconds) : 0;
@@ -294,7 +300,8 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 			(const unsigned char *) urq.m_reason.GetTagName());
         GkStatus::Instance()->SignalStatus(msg);
 
-	return SendRasPDU(ras_msg, GetRasAddress());
+	RasThread->SendRas(ras_msg, GetRasAddress());
+	return true;
 }
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
@@ -498,7 +505,12 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 	H225_RegistrationRequest & rrq = ras_msg;
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
-		GenerateEndpointId(rrq.m_endpointIdentifier);
+		endptr e = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), rrq.m_callSignalAddress[0]),
+			mem_fun(&EndpointRec::GetCallSignalAddress)), &RemovedList);
+		if (e) // re-use the old endpoint identifier
+			rrq.m_endpointIdentifier = e->GetEndpointIdentifier();
+		else
+			GenerateEndpointId(rrq.m_endpointIdentifier);
 	}
 	if (!(rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (rrq.m_terminalAlias.GetSize() >= 1))) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
@@ -661,16 +673,18 @@ void RegistrationTable::PrintRemoved(GkStatus::Client &client, BOOL verbose)
 
 void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, list<EndpointRec *> * List)
 {
-	const_iterator IterLast = List->end();
+	PString msg;
 
-	ReadLock lock(listLock);
-	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter) {
-		PString msg = "RCF|" + (*Iter)->PrintOn(verbose);
-	//	PTRACE(2, msg);
-		client.WriteString(msg);
-	}
+	listLock.StartRead();
+	PINDEX i = List->size();
+	const_iterator IterLast = List->end();
+	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter)
+		msg += "RCF|" + (*Iter)->PrintOn(verbose);
+	listLock.EndRead();
 	
-	client.WriteString(";\r\n");
+	msg += PString(PString::Printf, "Number of endpoints: %u\r\n;\r\n", i);
+	client.WriteString(msg);
+	//PTRACE(2, msg);
 }
 
 namespace { // end of anonymous namespace
@@ -720,7 +734,6 @@ void RegistrationTable::LoadConfig()
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
 		GenerateEndpointId(rrq.m_endpointIdentifier);
 
-//		PString aliases=GkConfig()->GetString("RasSvr::PermanentEndpoints", cfgs[i], "");
 		rrq.IncludeOptionalField(rrq.e_terminalAlias);
 		PStringArray sp=cfgs.GetDataAt(i).Tokenise(";", FALSE);
 		PStringArray aa=sp[0].Tokenise(",", FALSE);
@@ -823,7 +836,8 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_destInfo(destInfo),
 	m_bandWidth(Bandwidth), m_CallNumber(0),
 	m_callingCRV(0), m_calledCRV(0),
-	m_startTime(0),
+	m_startTime(0), m_timer(0), m_timeout(0),
+	m_sigConnection(0),
 	m_usedCount(0)
 {
 }
@@ -831,57 +845,40 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 CallRec::~CallRec()
 {
 	SetConnected(false);
-}
-
-void CallRec::OnTimeout()
-{
-	PTRACE(1, "Call No. " << m_CallNumber << " timeout!");
-	// TODO
+	PTRACE(5, "Gk\tDelete Call No. " << m_CallNumber);
 }
 
 void CallRec::SetConnected(bool c)
 {
 	PTime *ts = (c) ? new PTime : 0;
 	delete m_startTime;
-	m_startTime = ts;
+	if ((m_startTime = ts) != 0)
+		StartTimer();
+	else
+		StopTimer();
 }
 
-void CallRec::SetTimer(int seconds)
+void CallRec::StartTimer()
 {
-	PTimer::operator=((DWORD)seconds*1000);
+	if (m_timeout > 0) {
+		delete m_timer;
+		m_timer = new PTimer(0, m_timeout);
+		m_timer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+	}
 }
 
-/*
-CallRec & CallRec::operator=(const CallRec & Other)
-
+void CallRec::StopTimer()
 {
-	if (this == &Other)
-		return *this;
+	delete m_timer;
+	m_timer = 0;
+PTRACE(5, "CDR\tstop timer " << m_CallNumber);
+}
 
-	m_conferenceIdentifier = Other.m_conferenceIdentifier;
-	m_callIdentifier = Other.m_callIdentifier;
-	m_bandWidth = Other.m_bandWidth;
-	m_startTime = Other.m_startTime;
-	m_CallNumber = Other.m_CallNumber;
-	m_destInfo = Other.m_destInfo;
-
-	Calling = NULL;
-	Called = NULL;
-
-	// copy EndpointCallRec
-	if (Other.Calling)
-		Calling = new EndpointCallRec(*Other.Calling);
-	if (Other.Called)
-		Called = new EndpointCallRec(*Other.Called);
-
-	return *this;
-};
-
-bool CallRec::operator< (const CallRec & other) const
+void CallRec::OnTimeout(PTimer &, INT)
 {
-	return this->m_callIdentifier < other.m_callIdentifier;
-};
-*/
+	PTRACE(2, "Gk\tCall No. " << m_CallNumber << " timeout!");
+	Disconnect();
+}
 
 int CallRec::CountEndpoints() const
 {
@@ -894,6 +891,18 @@ int CallRec::CountEndpoints() const
 	return result;
 }
 
+void CallRec::Disconnect()
+{
+	if (m_sigConnection)
+		m_sigConnection->SendReleaseComplete();
+	else
+		SendDRQ();
+	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
+
+	// remove the call directly so we don't have to handle DCF
+	CallTable::Instance()->RemoveCall(callptr(this));
+}
+
 void CallRec::SendDRQ()
 {
 	// this is the only place we are _generating_ sequence numbers at the moment
@@ -904,17 +913,22 @@ void CallRec::SendDRQ()
 	H225_DisengageRequest & drq = ras_msg;
 	drq.m_requestSeqNum.SetValue(++RequestNum);
 	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
-	drq.m_callIdentifier = m_callIdentifier;
 	drq.m_conferenceID = m_conferenceIdentifier;
+	drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
+	drq.m_callIdentifier = m_callIdentifier;
+	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
+	drq.m_gatekeeperIdentifier = Toolkit::GKName();
 
 // Warning: For an outer zone endpoint, the endpoint identifier may not correct
 	if (m_Calling) {
 		drq.m_endpointIdentifier = m_Calling->GetEndpointIdentifier();
-		SendRasPDU(ras_msg, m_Calling->GetRasAddress());
+		drq.m_callReferenceValue = m_callingCRV;
+		RasThread->SendRas(ras_msg, m_Calling->GetRasAddress());
 	}
 	if (m_Called) {
 		drq.m_endpointIdentifier = m_Called->GetEndpointIdentifier();
-		SendRasPDU(ras_msg, m_Called->GetRasAddress());
+		drq.m_callReferenceValue = m_calledCRV;
+		RasThread->SendRas(ras_msg, m_Called->GetRasAddress());
 	}
 }
 
@@ -934,17 +948,22 @@ PString GetEPString(const endptr & ep)
 
 PString CallRec::GenerateCDR() const
 {
-	if (m_startTime == 0)
-		return PString();
+	PString timeString;
+	if (m_startTime != 0) {
+		PTime endTime;
+		PTimeInterval callDuration = endTime - *m_startTime;
+		timeString = PString(PString::Printf, "%ld|%s|%s",
+			callDuration.GetSeconds(),
+			(const char *)m_startTime->AsString(),
+			(const char *)endTime.AsString()
+		);
+	} else
+		timeString = "0|unconnected| ";
 
-	PTime endTime;
-	PTimeInterval callDuration = endTime - *m_startTime;
-	return PString(PString::Printf, "CDR|%d|%s|%ld|%s|%s|%s|%s|%s\r\n",
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s\r\n",
 		m_CallNumber,
 		(const char *)AsString(m_callIdentifier.m_guid),
-		callDuration.GetSeconds(),
-		(const char *)m_startTime->AsString(),
-		(const char *)endTime.AsString(),
+		(const char *)timeString,
 		(const char *)GetEPString(m_Calling),
 		(const char *)GetEPString(m_Called),
 		(const char *)m_destInfo
@@ -953,8 +972,9 @@ PString CallRec::GenerateCDR() const
 
 PString CallRec::PrintOn(bool verbose) const
 {
-	PString result(PString::Printf, "Call No. %d | CallID %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
+	PString result(PString::Printf, "Call No. %d | CallID %s\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
 		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid),
+		(const char *)m_destInfo,
 		(const char *)GetEPString(m_Calling), m_callingCRV,
 		(const char *)GetEPString(m_Called), m_calledCRV
 	);
@@ -963,7 +983,7 @@ PString CallRec::PrintOn(bool verbose) const
 				(m_Calling) ? (const char *)AsString(m_Calling->GetAliases()) : "?",
 				(m_Called) ? (const char *)AsString(m_Called->GetAliases()) : "?",
 				m_bandWidth,
-				(m_startTime) ? (const char *)m_startTime->AsString() : "not connected",
+				(m_startTime) ? (const char *)m_startTime->AsString() : "unconnected",
 				m_usedCount
 			  );
 	}
@@ -974,6 +994,13 @@ PString CallRec::PrintOn(bool verbose) const
 
 CallTable::CallTable() : m_CallNumber(1)
 {
+	LoadConfig();
+}
+
+void CallTable::LoadConfig()
+{
+	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
+	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
 }
 
 CallTable::~CallTable()
@@ -1004,6 +1031,11 @@ callptr CallTable::FindCallRec(const H225_CallReferenceValue & CallRef) const
 callptr CallTable::FindCallRec(PINDEX CallNumber) const
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallNumber), CallNumber));
+}
+
+callptr CallTable::FindCallRec(const endptr & ep) const
+{
+	return InternalFind(bind2nd(mem_fun(&CallRec::CompareEndpoint), &ep));
 }
 
 callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) const
@@ -1066,8 +1098,7 @@ void CallTable::InternalRemove(iterator Iter)
 	}
 
 	CallRec *call = *Iter;
-	// Only generate CDR for call that originated from my zone and connected
-	if (call->GetCallingAddress() && call->IsConnected()) {
+	if ((m_genNBCDR || call->GetCallingAddress()) && (m_genUCCDR || call->IsConnected())) {
 		PString cdrString(call->GenerateCDR());
 		GkStatus::Instance()->SignalStatus(cdrString, 1);
 		PTRACE(3, cdrString);
@@ -1080,6 +1111,7 @@ void CallTable::InternalRemove(iterator Iter)
 #endif
 	}
 
+	call->StopTimer();
 	RemovedList.push_back(call);
 	CallList.erase(Iter);
 
@@ -1090,15 +1122,24 @@ void CallTable::InternalRemove(iterator Iter)
 
 void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 {
-	ReadLock lock(listLock);
+	PString msg = "CurrentCalls\r\n";
 
-	client.WriteString("CurrentCalls\r\n");
+	listLock.StartRead();
+	PINDEX n = CallList.size(), act = 0, nb = 0;
 	const_iterator eIter = CallList.end();
-	for (const_iterator Iter = CallList.begin(); Iter != eIter; ++Iter)
-		client.WriteString((*Iter)->PrintOn(verbose));
-
-	client.WriteString(";\r\n");
+	for (const_iterator Iter = CallList.begin(); Iter != eIter; ++Iter) {
+		msg += (*Iter)->PrintOn(verbose);
+		if ((*Iter)->IsConnected())
+			++act;
+		if ((*Iter)->GetCallingAddress() == 0) // from neighbors
+			++nb;
+	}
+	listLock.EndRead();
 	
+	msg += PString(PString::Printf, "Number of call: %u Active: %u From NB: %u\r\n;\r\n", n, act, nb);
+	client.WriteString(msg);
+	//PTRACE(2, msg);
+}
 /*
 	static PMutex mutex;
 	GkProtectBlock _using(mutex);
@@ -1160,8 +1201,8 @@ void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 		}
 	}
 	client.WriteString(";\r\n");
-*/
 }
+*/
 
 
 /*

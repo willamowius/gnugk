@@ -38,6 +38,8 @@
 #include "gkauth.h"
 #include "stl_supp.h"
 
+H323RasSrv *RasThread = 0;
+
 const char *NeighborSection = "RasSvr::Neighbors";
 
 class PendingList {
@@ -242,10 +244,7 @@ NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m
 	if (!PIPSocket::GetHostAddress(ipAddr.Left(p), m_ip))
 		throw InvalidNeighbor();
 	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
-	if (cfg.GetSize() > 2)
-		m_prefix = cfg[1];
-	else
-		m_prefix = "*";
+	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : "*";
 	if (cfg.GetSize() > 2)
 		m_password = cfg[2];
 	PTRACE(1, "Add neighbor " << m_gkid << '(' << m_ip << ':' << m_port << ") for prefix " << m_prefix);
@@ -277,7 +276,7 @@ bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionReq
 	lrq_obj.m_sourceInfo.SetSize(1);
 	H323SetAliasAddress(theRasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
 
-	theRasSrv->SendReply(lrq_ras, m_ip, m_port, theRasSrv->GetRasSocket());
+	theRasSrv->SendRas(lrq_ras, m_ip, m_port);
 	return true;
 }
 
@@ -745,7 +744,7 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress & ali
 	// since this routine is only called when the routing decision has been made,
 	// finding a prefix that is longer than our dialled number implies the number is incomplete
 
-	const PString DoCheck = Toolkit::AsBool(GkConfig()->GetString
+	BOOL DoCheck = Toolkit::AsBool(GkConfig()->GetString
 		("RasSvr::ARQ", "IncompleteAddresses", "TRUE"));
 
 	if (!DoCheck)
@@ -831,6 +830,13 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 		obj_rpl.SetTag(H225_RasMessage::e_admissionReject); 
 	H225_AdmissionReject & arj = obj_rpl; 
 
+	// check if the endpoint requesting is registered with this gatekeeper
+	if (!bReject && !RequestingEP)
+	{
+		bReject = TRUE;
+		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
+	}
+	
 	// allow overlap sending for incomplete prefixes
 	if (!CalledEP && obj_arq.m_destinationInfo.GetSize() >= 1) {
 		const PString alias = AsString(obj_arq.m_destinationInfo[0], FALSE);
@@ -846,13 +852,6 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 	}
 
-	// check if the endpoint requesting is registered with this gatekeeper
-	if (!bReject && !RequestingEP)
-	{
-		bReject = TRUE;
-		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
-	}
-	
 	//
 	// Bandwidth 
 	// and GkManager admission
@@ -969,19 +968,21 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 
 		// CallRecs should be looked for using callIdentifier instead of callReferenceValue
 		// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
-		callptr pExistingCallRec = CallTable::Instance()->FindCallRec(obj_arq.m_callIdentifier);
-
+		callptr pExistingCallRec = (obj_arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)) ?
+			CallTable::Instance()->FindCallRec(obj_arq.m_callIdentifier) :
 		// since callIdentifier is optional, we might have to look for the callReferenceValue as well
-		if (!pExistingCallRec)
-			pExistingCallRec = CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
+			CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
 		if (pExistingCallRec) {
-			// the call is already in the table hence this must be the 2. ARQ
+			// the call is already in the table hence this must be the 2nd ARQ
 			pExistingCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
+			PTRACE(3, "Gk\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
 		} else {
 			  // the call is not in the table
 			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString, BWRequest);
 			pCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
+			int timeout = GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0);
+			pCallRec->SetTimer(timeout);
 			if (!GKroutedSignaling)
 				pCallRec->SetConnected(true);
 			if (!obj_arq.m_answerCall) // the first ARQ
@@ -1052,7 +1053,7 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 				(const unsigned char *) destinationInfoString,
 				(const unsigned char *) AsString(obj_arq.m_srcInfo)
 				);
-		PTRACE(2,msg);
+		PTRACE(2, msg);
 		GkStatusThread->SignalStatus(msg);
 		
 	}
@@ -1084,7 +1085,7 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	char callReferenceValueString[8];
 	sprintf(callReferenceValueString, "%u", (unsigned) obj_rr.m_callReferenceValue);
 		
-	PTRACE(4,"DRQ");
+//	PTRACE(4,"DRQ");
 	PString msg;
 	
 	if ( GKManager->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID) )
@@ -1190,6 +1191,8 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 	if (ep)
 	{
+		// Disconnect the calls of the endpoint
+		SoftPBX::DisconnectEndpoint(ep);
 		// Remove from the table
 		EndpointTable->RemoveByEndpointId(obj_rr.m_endpointIdentifier);
 
@@ -1396,7 +1399,25 @@ bool H323RasSrv::Check()
 	return !IsTerminated();
 }
 
-void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address rx_addr, WORD rx_port, PUDPSocket & BoundSocket)
+void H323RasSrv::SendRas(const H225_RasMessage & obj_ras, const H225_TransportAddress & dest)
+{
+	if (dest.GetTag() != H225_TransportAddress::e_ipAddress) {
+		PTRACE(3, "No IP address to send!" );
+		return;
+	}
+
+	const H225_TransportAddress_ipAddress & ip = dest;
+	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+
+	SendReply(obj_ras, ipaddress, ip.m_port, listener);
+}
+
+void H323RasSrv::SendRas(const H225_RasMessage & obj_ras, const PIPSocket::Address & rx_addr, WORD rx_port)
+{
+	SendReply(obj_ras, rx_addr, rx_port, listener);
+}
+
+void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Address & rx_addr, WORD rx_port, PUDPSocket & BoundSocket)
 {
 	PBYTEArray wtbuf(4096);
 	PPER_Stream wtstrm(wtbuf);
@@ -1406,6 +1427,7 @@ void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address r
 	PTRACE(2, "GK\tSend to "<< rx_addr << " [" << rx_port << "] : " << obj_rpl.GetTagName());
 	PTRACE(3, "GK\t" << endl << setprecision(2) << obj_rpl);
 
+	PWaitAndSignal lock(writeMutex);
 	if(! BoundSocket.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), rx_addr, rx_port) ) {
 		PTRACE(4, "GK\tRAS thread: Write error: " << BoundSocket.GetErrorText());
 	} else {

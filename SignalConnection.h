@@ -23,7 +23,11 @@
 
 class SignalChannel;
 
-class SignalConnection:public PThread {
+class H245Thread {
+// TODO
+};
+
+class SignalConnection : public PThread {
 
 	PCLASSINFO ( SignalConnection, PThread )
 
@@ -46,7 +50,8 @@ class SignalConnection:public PThread {
 		BOOL Send(PTCPSocket *socket, const Q931 &toSend);
 		void CloseSignalConnection(void);  // cause thread to terminate
 		BOOL IsSignalConnectionOpen(void) { return m_connection->IsOpen(); };  // FALSE when thread is just about to terminate
-		BOOL SouldBeTerminated(void) { return killMe; };
+		BOOL ShouldBeTerminated(void) { return killMe; };
+		void SendReleaseComplete();
 
 	protected:
 		PIPSocket::Address GKHome;
@@ -54,11 +59,11 @@ class SignalConnection:public PThread {
 		PTCPSocket		* m_remote;
 		SignalChannel	* m_sigChannel;
 		H225_CallReferenceValue m_crv;
-		H225_CallIdentifier		callid;
+		H225_CallIdentifier	m_callid;
 
 		Q931 m_q931;
 		BOOL bH245Routing;
-		void* m_h245_thread;
+		H245Thread *m_h245_thread;
 
 	private:
 		SignalConnection * remoteConnection;
@@ -67,6 +72,7 @@ class SignalConnection:public PThread {
 		Q931 statusEnquiry;
 		BOOL killMe;
 		callptr pCallRec;
+		PMutex m_CloseMutex;
 };
 
 #endif
