@@ -1776,13 +1776,13 @@ CallTable::CallTable() : m_CallNumber(1), m_capacity(-1)
 
 CallTable::~CallTable()
 {
-	CallListMutex.Wait();
+	CallListMutex.StartWrite();
         for_each(CallList.begin(), CallList.end(),
 		bind1st(mem_fun(&CallTable::InternalRemovePtr), this));
-	CallListMutex.Signal();
-	RemovedListMutex.Wait();
+	CallListMutex.EndWrite();
+	RemovedListMutex.StartWrite();
         for_each(RemovedList.begin(), RemovedList.end(), &CallTable::delete_call);
-	RemovedListMutex.Signal();
+	RemovedListMutex.EndWrite();
 }
 
 void CallTable::LoadConfig()
@@ -1796,15 +1796,15 @@ void CallTable::Insert(CallRec * NewRec)
 {
 	PTRACE(3, "CallTable::Insert(CALL) Call No. " << m_CallNumber);
 	NewRec->SetCallNumber(m_CallNumber++);
-	CallListMutex.Wait();
+	CallListMutex.StartWrite();
 	CallList.push_back(NewRec);
-	CallListMutex.Signal();
+	CallListMutex.EndWrite();
 	++m_CallCount;
 	if (m_capacity >= 0) {
 		m_capacity -= NewRec->GetBandWidth();
-		CallListMutex.Wait();
+		CallListMutex.StartRead();
 		PTRACE(2, "GK\tTotal sessions : " << CallList.size() << ", Available BandWidth " << m_capacity);
-		CallListMutex.Signal();
+		CallListMutex.EndRead();
 	}
 }
 
@@ -1812,11 +1812,11 @@ void CallTable::SetTotalBandWidth(int bw)
 {
 	if ((m_capacity = bw) >= 0) {
 		int used = 0;
-		CallListMutex.Wait();
+		CallListMutex.StartRead();
 		iterator Iter = CallList.begin(), eIter = CallList.end();
 		while (Iter != eIter)
 			used += (*Iter)->GetBandWidth();
-		CallListMutex.Signal();
+		CallListMutex.EndRead();
 		if (bw > used)
 			m_capacity -= used;
 		else
@@ -1851,14 +1851,14 @@ callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) cons
 
 void CallTable::ClearTable()
 {
-	CallListMutex.Wait();
+	CallListMutex.StartWrite();
 	iterator Iter = CallList.begin(), eIter = CallList.end();
 	while (Iter != eIter) {
 		iterator i = Iter++;
 		(*i)->Disconnect();
 		InternalRemove(i);
 	}
-	CallListMutex.Signal();
+	CallListMutex.EndWrite();
 }
 
 void CallTable::CheckCalls()
@@ -1874,11 +1874,11 @@ void CallTable::CheckCalls()
 		}
 	}
 */
-	RemovedListMutex.Wait();
+	RemovedListMutex.StartWrite();
 	iterator Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
 	for_each(Iter, RemovedList.end(), &CallTable::delete_call);
 	RemovedList.erase(Iter, RemovedList.end());
-	RemovedListMutex.Signal();
+	RemovedListMutex.EndWrite();
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
@@ -1900,32 +1900,32 @@ void CallTable::RemoveCall(const callptr & call)
 bool CallTable::InternalRemovePtr(CallRec *call)
 {
 	PTRACE(6, ANSI::PIN << "GK\tRemoving callptr:" << AsString(call->GetCallIdentifier().m_guid) << "...\n" << ANSI::OFF);
-	CallListMutex.Wait();
+	CallListMutex.StartWrite();
 	InternalRemove(find(CallList.begin(), CallList.end(), call));
-	CallListMutex.Signal();
+	CallListMutex.EndWrite();
 	return true; // useless, workaround for VC
 }
 
 void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
 {
 	PTRACE(5, ANSI::PIN << "GK\tRemoving CallId:" << AsString(CallId.m_guid) << "...\n" << ANSI::OFF);
-	CallListMutex.Wait();
+	CallListMutex.StartWrite();
 	InternalRemove(
 		find_if(CallList.begin(), CallList.end(),
 		bind2nd(mem_fun(&CallRec::CompareCallId), &CallId))
 	);
-	CallListMutex.Signal();
+	CallListMutex.EndWrite();
 }
 
 void CallTable::InternalRemove(unsigned CallRef)
 {
 	PTRACE(5, ANSI::PIN << "GK\tRemoving CallRef:" << CallRef << "...\n" << ANSI::OFF);
-	CallListMutex.Wait();
+	CallListMutex.StartWrite();
 	InternalRemove(
 		find_if(CallList.begin(), CallList.end(),
 		bind2nd(mem_fun(&CallRec::CompareCRV), CallRef))
 	);
-	CallListMutex.Signal();
+	CallListMutex.EndWrite();
 }
 
 void CallTable::InternalRemove(iterator Iter)
@@ -1962,16 +1962,16 @@ void CallTable::InternalRemove(iterator Iter)
 	if (m_capacity >= 0)
 		m_capacity += call->GetBandWidth();
 
-	RemovedListMutex.Wait();
+	RemovedListMutex.StartWrite();
 	RemovedList.push_back(call);
-	RemovedListMutex.Signal();
+	RemovedListMutex.EndWrite();
 	CallList.erase(Iter);
 }
 
 
 void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const
 {
-	CallListMutex.Wait();
+	CallListMutex.StartRead();
 	n = CallList.size(), act = 0, nb = 0;
 	const_iterator eIter = CallList.end();
 	for (const_iterator Iter = CallList.begin(); Iter != eIter; ++Iter) {
@@ -1982,7 +1982,7 @@ void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, 
 		if (!msg)
 			msg += (*Iter)->PrintOn(verbose);
 	}
-	CallListMutex.Signal();
+	CallListMutex.EndRead();
 }
 
 void CallTable::PrintCurrentCalls(GkStatus::Client & client, BOOL verbose) const

@@ -541,7 +541,7 @@ public:
 private:
 	template<class F> callptr InternalFind(const F & FindObject) const
 	{
-        	PWaitAndSignal lock(CallListMutex);
+        	ReadLock lock(CallListMutex);
         	const_iterator Iter(find_if(CallList.begin(), CallList.end(), FindObject));
 	        return callptr((Iter != CallList.end()) ? *Iter : 0);
 	}
@@ -554,9 +554,9 @@ private:
 	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const;
 
 	list<CallRec *> CallList;
-	mutable PMutex CallListMutex;
+	mutable PReadWriteMutex CallListMutex;
 	list<CallRec *> RemovedList;
-	mutable PMutex RemovedListMutex;
+	mutable PReadWriteMutex RemovedListMutex;
 
 	static void delete_call(CallRec *c);
 
@@ -564,7 +564,6 @@ private:
 	bool m_genUCCDR;
 
 	PINDEX m_CallNumber;
-//	mutable PReadWriteMutex listLock; // This is bullshit -- each list has to have it's own lock!
 
 	int m_capacity;
 
