@@ -1037,10 +1037,11 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 		CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
 #if ARJREASON_ROUTECALLTOGATEKEEPER
-	if (GKRoutedSignaling && obj_arq.m_answerCall && !pExistingCallRec) {
-		bReject = TRUE;
-		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
-	}
+	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures","ArjReasonRouteCallToGatekeeper","TRUE")) )
+		if (GKRoutedSignaling && obj_arq.m_answerCall && !pExistingCallRec) {
+			bReject = TRUE;
+			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
+		}
 #endif
 	if (bReject)
 	{
