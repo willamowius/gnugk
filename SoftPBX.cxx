@@ -154,7 +154,7 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 		return;
 	}
 
-	Call->Disconnect(true);
+	Call->Disconnect();
 	// remove the call directly so we don't have to handle DCF
 	CallTable::Instance()->RemoveCall(Call);
 

@@ -140,7 +140,9 @@ public:
 	{ return *m_terminalType; }
 	int GetTimeToLive() const
 	{ return m_timeToLive; }
-	
+	PIPSocket::Address GetNATIP() const
+	{ return m_natip; }
+
 	/** checks if the given aliases are prefixes of the aliases which are stored
 	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
 	    a full match is found.
@@ -222,6 +224,7 @@ protected:
 
 	PTime m_updatedTime;
 	bool m_fromParent, m_nat;
+	PIPSocket::Address m_natip;
 
 private: // not assignable
 	EndpointRec(const EndpointRec &);
@@ -419,7 +422,7 @@ public:
 	const H225_TransportAddress *GetCalledAddress() const
 	{ return (m_Called) ? &m_Called->GetCallSignalAddress() : 0; }
 	int GetBandWidth() const { return m_bandWidth; }
-	int GetNATType() const { return m_nattype; }
+	int GetNATType(PIPSocket::Address &, PIPSocket::Address &) const;
 
 	void SetCalling(const endptr & NewCalling, unsigned = 0);
 	void SetCalled(const endptr & NewCalled, unsigned = 0);
@@ -605,6 +608,15 @@ inline void EndpointRec::Unlock()
 }       
 
 // inline functions of CallRec
+inline int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address & called) const
+{
+	if (m_nattype & callingParty)
+		calling = m_Calling->GetNATIP();
+	if (m_nattype & calledParty)
+		called = m_Called->GetNATIP();
+	return m_nattype;
+}
+
 inline void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 {
 	m_callingSocket = calling, m_calledSocket = called;

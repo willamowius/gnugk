@@ -407,7 +407,7 @@ bool EndpointRec::SendIRQ()
 	return true;
 }
 
-void EndpointRec::SetNATAddress(PIPSocket::Address /*ip*/)
+void EndpointRec::SetNATAddress(PIPSocket::Address ip)
 {
 /* need to do this?
 	if (m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)
@@ -416,6 +416,7 @@ void EndpointRec::SetNATAddress(PIPSocket::Address /*ip*/)
 		m_callSignalAddress = SocketToH225TransportAddr(ip, ((H225_TransportAddress_ipAddress &)m_callSignalAddress).m_port);
 */
 	m_nat = true;
+	m_natip = ip;
 }
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
@@ -1089,7 +1090,7 @@ int CallRec::CountEndpoints() const
 
 void CallRec::Disconnect(bool force)
 {
-	if (force && (m_callingSocket || m_calledSocket)) {
+	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
 		if (m_callingSocket)
 			m_callingSocket->EndSession();
 		if (m_calledSocket)

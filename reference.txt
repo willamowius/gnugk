@@ -169,9 +169,17 @@ at runtime.
 RemoveH245AddressOnTunneling=1	Default: 0
 
 Some endpoints send h245Address in the UUIE of Q.931 even when h245Tunneling
-is set to be TRUE. This may cause interoperability problems. If the option
+is set to TRUE. This may cause interoperability problems. If the option
 is TRUE, the gatekeeper will remove h245Address when h245Tunneling flag
 is TRUE. This enforces the remote party to stay in tunneling mode.
+
+DropCallsByReleaseComplete=1	Default: 0
+
+According to H.323 spec, the GK could tear down a call by sending RAS
+DisengageRequest to endpoints. However, some bad endpoints just ignore
+this command. With this option turning on, the GK will send Q.931
+Release Complete instead of RAS DRQ to both endpoints to force them
+drop the call.
 
 
 B.3 Section [GkStatus::Auth]

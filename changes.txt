@@ -1,5 +1,6 @@
 Changes from 2.0b4 to now (by cwhuang)
 ======================================
+- add DropCallsByReleaseComplete option
 - support NATed endpoints by NATHandler
 - add AcceptNeighborsCalls, change the meaning of AcceptUnregisteredCalls
 

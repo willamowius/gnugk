@@ -21,8 +21,8 @@ Name=OpenH323GK
 #TimeToLive=600
 AcceptNeighborsCalls=1
 AcceptUnregisteredCalls=0
-TotalBandwidth=100000
 SupportNATedEndpoints=1
+TotalBandwidth=100000
 
 [RoutedMode]
 GKRouted=1
@@ -30,6 +30,7 @@ H245Routed=1
 CallSignalPort=1721
 CallSignalHandlerNumber=1
 RemoveH245AddressOnTunneling=0
+DropCallsByReleaseComplete=1
 
 [Proxy]
 #Enable=1

@@ -209,7 +209,10 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port)
 		m_h245handler = new H245ProxyHandler(this, localAddr, proxyhandler);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
 	} else if (m_call->IsH245Routed()) {
-		int type = m_call->GetNATType();
+		Address calling, called;
+		int type = m_call->GetNATType(calling, called);
+		if (type & CallRec::calledParty)
+			socket->peerAddr = called;
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " has NAT type " << type);
 		socket->m_h245handler = (type & CallRec::callingParty) ? new NATHandler(socket->localAddr, peerAddr) : new H245Handler(socket->localAddr);
 		m_h245handler = (type & CallRec::calledParty) ? new NATHandler(localAddr, socket->peerAddr) : new H245Handler(localAddr);
