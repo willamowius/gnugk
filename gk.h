@@ -26,7 +26,7 @@ class Gatekeeper : public PProcess
 	PCLASSINFO(Gatekeeper, PProcess)
  public:
 	Gatekeeper
-		(const char * manuf = "Willamowius", 
+		(const char * manuf = "GNU", 
 		 const char * name = "Gatekeeper", 
 		 WORD majorVersion = 2,
 		 WORD minorVersion = 0,
