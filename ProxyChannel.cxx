@@ -540,7 +540,7 @@ void CallSignalSocket::DoRoutingDecision() {
 		PTRACE(5, "DoRoutingDecision() complete");
 		isRoutable=TRUE;
 		// Do CgPNConversion. We need the setup pdu and the setup UUIE (stored in m_SetupPDU)
-		CgPNConversion();
+//		CgPNConversion();
 		const H225_TransportAddress &ad  = CalledEP->GetCallSignalAddress();
 		if (ad.GetTag() == H225_TransportAddress::e_ipAddress) { // IP Address known?
 			const H225_TransportAddress_ipAddress & ip = ad;
@@ -612,6 +612,7 @@ void CallSignalSocket::BuildConnection() {
 
 TCPProxySocket *CallSignalSocket::ConnectTo()
 {
+	CgPNConversion(TRUE);
 	if (peerAddr == Address("0.0.0.0")) {
 		if (NULL!=remote) {
 			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
@@ -640,7 +641,6 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 #else
 			PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
 #endif
-			CgPNConversion(TRUE);
 			SetConnected(true);
 			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
 			if(NULL!=rem)
@@ -1125,11 +1125,11 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			unsigned int CalledPLAN    = 0;
 			unsigned int CalledSI      = 0;
 			if(GetSetupPDU()->GetCalledPartyNumber(CalledPartyNumber, &CalledPLAN, &CalledTON)) {
-				PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << "preparing to change: " << cgpf.TreatCalledPartyNumberAs());
+				PTRACE(5, "OnSetup read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << "preparing to change: " << cgpf.TreatCalledPartyNumberAs());
 				CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CalledTON : cgpf.TreatCalledPartyNumberAs());
-				PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON);
+				PTRACE(5, "OnSetup read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON);
 				ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
-				PTRACE(5, "CgPNConversion converted CalledPartyNumber to int: " << CalledPartyNumber << " with TON: " << CalledTON);
+				PTRACE(5, "OnSetup converted CalledPartyNumber to int: " << CalledPartyNumber << " with TON: " << CalledTON);
 				calledAlias.SetTag(H225_AliasAddress::e_dialedDigits);
 				H323SetAliasAddress(CalledPartyNumber, calledAlias, H225_AliasAddress::e_dialedDigits);
 				if (callingEP)
@@ -1230,7 +1230,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			m_call=callptr(NULL);
 			return;
 		}
-		CgPNConversion();
+//		CgPNConversion();
 		m_call->GetCallingProfile().debugPrint();
 		if(callptr(NULL)==m_call) {
 			PTRACE(1, "Removing unknown call");
@@ -1248,7 +1248,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		Setup.m_sourceCallSignalAddress = Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(peerAddr);
 		H225_TransportAddress_ipAddress & cip = Setup.m_sourceCallSignalAddress;
 		localAddr = PIPSocket::Address(cip.m_ip[0], cip.m_ip[1], cip.m_ip[2], cip.m_ip[3]);
-		CgPNConversion();
+//		CgPNConversion(TRUE);
 		remote = new CallSignalSocket(this, peerPort);
 		CallSignalSocket *rem = dynamic_cast<CallSignalSocket*>(remote);
 		if(NULL!=rem)
@@ -1345,7 +1345,7 @@ void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 		CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
 		if(NULL!=rem) {
 			rem->LockUse("CallSignalSocket " + Name() + type);
-			rem->CgPNConversion();
+//			rem->CgPNConversion();
 			PTRACE(5, "Setting DialedPN");
 			m_call->GetCalledProfile().SetDialedPN(rem->DialedDigits, static_cast<Q931::NumberingPlanCodes> (rem->m_calledPLAN),
 							       static_cast<Q931::TypeOfNumberCodes> (rem->m_calledTON));
@@ -1846,7 +1846,9 @@ BOOL CallSignalSocket::CgPNConversion(BOOL connecting) {
 #endif
 	E164_AnalysedNumber CalledE164Number=CalledPartyNumber;
 	E164_AnalysedNumber CallingE164Number=CallingPartyNumber;
+	m_call->GetCalledProfile().SetCalledPN(CalledPartyNumber);
 	if (cdpf.ConvertToLocal() && CalledE164Number.GetCC() == CallingE164Number.GetCC()) {
+		PTRACE(5, "Converting to local");
 		if (CalledE164Number.GetNDC_IC() == CallingE164Number.GetNDC_IC()) {
 			// Convert to local
 			CalledPartyNumber = CalledE164Number.GetGSN_SN();
@@ -1918,7 +1920,6 @@ BOOL CallSignalSocket::CgPNConversion(BOOL connecting) {
 	if(assumed_ton==Q931::UnknownType)
 		assumed_ton = Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(dd, cgpf);
 	m_call->GetCalledProfile().SetAssumedDialedPN(dd, static_cast<Q931::NumberingPlanCodes> (m_calledPLAN), assumed_ton);
-	m_call->GetCalledProfile().SetCalledPN(CalledPartyNumber);
 	CalledNumber=CalledPartyNumber;
 	return TRUE;
 }
@@ -1986,6 +1987,7 @@ BOOL MatchAlias(const CallProfile &profile, PString number) {
 	int matches=0;
 
 	for(PINDEX i=0; i< telephonenumbers.GetSize(); i++) {
+		PTRACE(5, "telephonenumbers["<<i<<"]="<<telephonenumbers[i]);
 		if(telephonenumbers[i].GetLength() >= number.GetLength()) {
 			PINDEX amountPoints = 0;
 			int first_point = telephonenumbers[i].Find('.');
