@@ -119,7 +119,9 @@ void Analyzer::OnReload()
 			PString prefix = cfgs.GetKeyAt(j);
 			if (prefix *= "default")
 				prefix = "*";
-			rules[prefix] = Create(cfgs.GetDataAt(j));
+			PStringArray prefixes(prefix.Tokenise(",;|", false));
+			for (PINDEX k = 0; k < prefixes.GetSize(); ++k)
+				rules[prefixes[k]] = Create(cfgs.GetDataAt(j));
 			PTRACE(1, SectionName[i] << " add policy " << cfgs.GetDataAt(j) << " for prefix " << prefix);
 		}
 		// default policy for backward compatibility
