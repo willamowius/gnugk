@@ -188,6 +188,13 @@ rule=allow
 #GK1=203.60.151.5:1719;*;gk1
 #GK2=203.60.151.9:1719;02
 
+[RasSvr::RRQFeatures]
+#AcceptGatewayPrefixes=1
+
+[RasSvr::ARQFeatures]
+ArjReasonRouteCallToSCN=0
+ArjReasonRouteCallToGatekeeper=1
+
 [RasSvr::LRQFeatures]
 #NeighborTimeout=2
 #ForwordHopCount=2
@@ -297,8 +304,16 @@ default=allow
 ##
 ## Currently supported modules:
 ##
-##   OverlapSendDestAnalysis  This module checks for incomplete destination
-##                            addresses (not fully implemented up to now).
+##   OverlapSendDestAnalysis    This module checks for incomplete destination
+##                              addresses (not fully implemented up to now).
+##
+##   BlackWhiteListDestAnalysis This module checks for Blacklisted numbers (forbidden
+##			        numbers) and *then* for Whitelisted numbers (exceptions
+##				from Blacklist). Default is allow connections.
+##
+##   WhiteBlackListDestAnalysis This module checks for Whitelisted numbers (allowed
+##			        numbers) and *then* for Blacklisted numbers (exceptions
+##				from Whitelist). Default is deny connections.
 ##
 ## A rule may results in one of the three codes: ok, fail, pass.
 ## There are also three ways to control a rule: optional, required, sufficient.
