@@ -1060,7 +1060,7 @@ int PrefixAuth::Check(RasPDU<H225_DisengageRequest> &, unsigned &)
 
 int PrefixAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
 {
-	return doCheck(LRQAuthObj(request));
+	return doCheck(LRQAuthObj((const H225_LocationRequest&)request));
 }
 
 int PrefixAuth::Check(RasPDU<H225_InfoRequest> &, unsigned &)

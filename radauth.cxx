@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2003/10/15 10:16:57  zvision
+ * Fixed VC6 compiler warnings. Thanks to Hu Yuxin.
+ *
  * Revision 1.6  2003/10/08 12:40:48  zvision
  * Realtime accounting updates added
  *
@@ -283,7 +286,7 @@ int RadAuthBase::Check(
 	unsigned& rejectReason
 	)
 {
-	return doCheck(rrq,rejectReason);
+	return doCheck((const H225_RegistrationRequest&)rrq,rejectReason);
 }
 		
 int RadAuthBase::Check(
@@ -298,7 +301,7 @@ int RadAuthBase::Check(
 	long& callDurationLimit
 	)
 {
-	return doCheck(arq,rejectReason,callDurationLimit);
+	return doCheck((const H225_AdmissionRequest&)arq,rejectReason,callDurationLimit);
 }
 
 int RadAuthBase::doCheck(

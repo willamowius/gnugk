@@ -931,7 +931,7 @@ void CallSignalSocket::ForwardCall()
 					H225_EnumeratedParameter & parm = fd[0].m_parameters[0];
 					if (parm.HasOptionalField(H225_EnumeratedParameter::e_content))
 						if (parm.m_content.GetTag() == H225_Content::e_alias)
-							forwarder = AsString(parm.m_content, FALSE) + ":forward";
+							forwarder = AsString((const H225_AliasAddress&)parm.m_content, FALSE) + ":forward";
 				}
 		}
 		PString altDestInfo(aliases ? AsString(*aliases) : AsDotString(*dest));
