@@ -340,11 +340,11 @@ CallSignalSocket::~CallSignalSocket()
 			m_lock.Signal();
 			rem->m_lock.Wait();
 			PTRACE(5, "deleteing remote socket");
-			if(NULL!=rem->remote) {
-				PAssert(rem->remote==this, "remote->remote != this");
+//			if(NULL!=rem->remote) {
+//				PAssert(rem->remote==this, "remote->remote != this");
 				rem->UnlockUse("CallSignalSocket " + Name() + type);
 				remote->SetDeletable();
-			}
+//			}
 			rem->m_lock.Signal();
 			m_lock.Wait();
 		}
@@ -1762,7 +1762,7 @@ BOOL MatchAlias(const CallProfile &profile, PString number) {
 
 	for(PINDEX i=0; i< telephonenumbers.GetSize(); i++) {
 		if(telephonenumbers[i].GetLength() >= number.GetLength()) {
-			unsigned int amountPoints = 0;
+			PINDEX amountPoints = 0;
 			int first_point = telephonenumbers[i].Find('.');
 			if( first_point != P_MAX_INDEX && first_point >= 0)
 				amountPoints = telephonenumbers[i].GetLength() - first_point;
