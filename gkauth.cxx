@@ -647,8 +647,11 @@ bool LDAPAuth::getAttribute(const PString &alias, const int attr_name,
   // if LDAP succeeds
   if(answer->status == 0){
     using namespace lctn;
-    if(answer->LDAPec.size() && ((answer->LDAPec[0]).count(AN[LDAPAttrTags[attr_name]]))){
-       attr_values = answer->LDAPec[0][AN[LDAPAttrTags[attr_name]]];
+    if (answer->LDAPec.size()){
+      LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
+      if((pFirstDN->second).count(AN[LDAPAttrTags[attr_name]])){
+	attr_values = (pFirstDN->second)[AN[LDAPAttrTags[attr_name]]];
+      }
     }
   }
   return (answer->status == 0) ? true : false;
