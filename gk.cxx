@@ -90,13 +90,14 @@ ShutdownHandler(void)
 	if (ShutdownMutex.WillBlock())
 		return;
 	ExitFlag=true;
-	PWaitAndSignal shutdown(ShutdownMutex);
+	ShutdownMutex.Wait();
+	delete GkDatabase::Instance();
 	if (BroadcastThread != NULL)
 	{
 		PTRACE(3, "GK\tClosing BroadcastThread");
 		BroadcastThread->Close();
 		BroadcastThread->WaitForTermination();
-		//delete BroadcastThread;
+		delete BroadcastThread;
 		BroadcastThread = NULL;
 	}
 	if (MulticastGRQThread != NULL)
@@ -104,12 +105,9 @@ ShutdownHandler(void)
 
  		PTRACE(3, "GK\tClosing MulticastGRQThread");
  		MulticastGRQThread->Close();
-// 		delete MulticastGRQThread;
-// 		MulticastGRQThread = NULL;
+ 		delete MulticastGRQThread;
+ 		MulticastGRQThread = NULL;
 	}
-
-	PTRACE(3, "GK\tClosing Toolkit::Instance()->GetMasterRASListener().UnregisterAllEndpoints()");
-	Toolkit::Instance()->GetMasterRASListener().UnregisterAllEndpoints();
 
 	PTRACE(3, "GK\tClosing Toolkit::Instance()->GetMasterRASListener()");
 	Toolkit::Instance()->GetMasterRASListener().Close();
@@ -121,8 +119,8 @@ ShutdownHandler(void)
 	PTRACE(3, "GkStatus::Instance()->Close();");
 	GkStatus::Instance()->Close();
 
-//	delete CallTable::Instance();
-//	delete RegistrationTable::Instance();
+	delete CallTable::Instance();
+	delete RegistrationTable::Instance();
 	PTRACE(3, "GK\tdelete ok");
 
 #ifdef PTRACING
@@ -184,6 +182,7 @@ ReloadHandler(void)
 	CallTable::Instance()->LoadConfig();
 	RegistrationTable::Instance()->LoadConfig();
 
+	Toolkit::Instance()->GetHandlerList().LoadConfig();
 	Toolkit::Instance()->GetMasterRASListener().LoadConfig();
 	Toolkit::Instance()->GetMasterRASListener().SetRoutedMode();
 
@@ -422,12 +421,12 @@ void Gatekeeper::HouseKeeping(void)
 {
 	// THis is why polling is not what you really want!
 	for (unsigned count=1; !ExitFlag; count++) {
-		Sleep(1000);
 // 		if (!Toolkit::Instance()->GetMasterRASListener()->IsTerminated()) // return true if the thread running
 // 			break;
 		if (!(count % 60)) // one minute
 			RegistrationTable::Instance()->CheckEndpoints();
 		CallTable::Instance()->CheckCalls();
+		Sleep(1000);
 	}
 }
 
@@ -593,6 +592,7 @@ void Gatekeeper::Main()
 		SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", -1);
 	PTRACE(2, "GK\tTimeToLive for Registrations: " << SoftPBX::TimeToLive);
 
+	Toolkit::Instance()->GetHandlerList();
 	Toolkit::Instance()->GetMasterRASListener();
 	// read signaling method from commandline
 	if (args.HasOption('r'))
