@@ -129,7 +129,7 @@ public:
 	virtual PString PrintOn(bool verbose) const;
 	void SetNATAddress(PIPSocket::Address);
 
-	bool IsUsed() const ;
+	BOOL IsUsed() const ;
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const { return m_fromParent; }
 	bool IsNATed() const { return m_nat; }
@@ -297,11 +297,11 @@ public:
 	{
 		endptr cdEP;
 		PTRACE(2, "Search for calledEP in registration table");
-		bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
+		bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, EndpointList_mutex,
 			cgEP, cdEP, reason);
 		if (!cdEP && (reason == H225_AdmissionRejectReason::e_resourceUnavailable) && SearchOuterZone) {
 			PTRACE(2, "Search for calledEP in outer zone");
-			ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock,
+			ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, EndpointList_mutex,
 				cgEP, cdEP, reason);
 		}
 		return (cdEP) ? cdEP : endptr(0);
@@ -328,7 +328,6 @@ private:
 	template<class F> endptr InternalFind(const F & FindObject, const list<EndpointRec *> *ListToBeFinded) const
 	{   //  The function body must be put here,
 	    //  or the Stupid VC would fail to instantiate it
-        	ReadLock lock(listLock);
         	const_iterator Iter(find_if(ListToBeFinded->begin(), ListToBeFinded->end(), FindObject));
 	        return endptr((Iter != ListToBeFinded->end()) ? *Iter : 0);
 	}
@@ -342,9 +341,13 @@ private:
 	GkDestAnalysisList & getGkDestAnalysisList() { return *m_destAnalysisList; }
 
 	list<EndpointRec *> EndpointList;
+	mutable PReadWriteMutex EndpointList_mutex;
+
 	list<EndpointRec *> OuterZoneList;
+	mutable PReadWriteMutex OuterZoneList_mutex;
+
 	list<EndpointRec *> RemovedList;
-	mutable PReadWriteMutex listLock;
+	mutable PReadWriteMutex RemovedList_mutex;
 	GkDestAnalysisList * m_destAnalysisList;
 
 	// counter to generate endpoint identifier
@@ -411,7 +414,6 @@ public:
 	void SetTimer(int seconds);
 
 	void Disconnect(bool = false); // Send Release Complete?
-	void RemoveAll();
 	void RemoveSocket();
 	void SendReleaseComplete();
 
@@ -423,7 +425,7 @@ public:
 	bool CompareEndpoint(const endptr *) const;
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 
-	bool IsUsed();
+	BOOL IsUsed();
 	bool IsConnected() const;
 	bool IsTimeout(const PTime *) const;
 	bool IsH245Routed() const;
@@ -447,6 +449,11 @@ private:
 	void InternalDisconnect(bool);
 	void InternalRemoveSocket();
 	void InternalSendReleaseComplete();
+	void RemoveAll();
+
+        CallingProfile & InternalGetCallingProfile();
+        CalledProfile & InternalGetCalledProfile();
+
 	void SendDRQ();
 	void InternalSetEP(endptr &, unsigned &, const endptr &, unsigned);
 
@@ -476,6 +483,8 @@ private:
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
 	mutable PMutex m_usedLock;
+	mutable PMutex m_cgpfLock;
+	mutable PMutex m_cdpfLock;
 	int m_nattype;
 
 	bool m_h245Routed;
@@ -525,7 +534,7 @@ public:
 private:
 	template<class F> callptr InternalFind(const F & FindObject) const
 	{
-        	ReadLock lock(listLock);
+        	PWaitAndSignal lock(CallListMutex);
         	const_iterator Iter(find_if(CallList.begin(), CallList.end(), FindObject));
 	        return callptr((Iter != CallList.end()) ? *Iter : 0);
 	}
@@ -538,13 +547,17 @@ private:
 	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const;
 
 	list<CallRec *> CallList;
+	mutable PMutex CallListMutex;
 	list<CallRec *> RemovedList;
+	mutable PMutex RemovedListMutex;
+
+	static void delete_call(CallRec *c);
 
 	bool m_genNBCDR;
 	bool m_genUCCDR;
 
 	PINDEX m_CallNumber;
-	mutable PReadWriteMutex listLock;
+//	mutable PReadWriteMutex listLock; // This is bullshit -- each list has to have it's own lock!
 
 	int m_capacity;
 
@@ -558,7 +571,7 @@ private:
 };
 
 // inline functions of EndpointRec
-inline bool EndpointRec::IsUsed() const
+inline BOOL EndpointRec::IsUsed() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return (m_activeCall > 0 || m_usedCount > 0);
@@ -658,10 +671,10 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-inline bool CallRec::IsUsed()
+inline BOOL CallRec::IsUsed()
 {
 	PWaitAndSignal lock(m_usedLock);
-	return m_access_count.Condition();
+	return !m_access_count.Condition();
 }
 
 inline bool CallRec::IsConnected() const
