@@ -2672,20 +2672,16 @@ void ProxyHandler::CleanUp()
 	if (m_rmsize > 0) {
 		PTime now;
 		PWaitAndSignal lock(m_rmutex);
-PTRACE(1, GetName() << " removed sockets " << m_rmsize);
 		iterator i = m_removed.begin();
 		std::list<PTime *>::iterator ti = m_removedTime.begin();
 		while ((i != m_removed.end()) && ((now - **ti).GetSeconds() > 5)) {
-PTRACE(1, GetName() << " delete socket " << *i);
 			delete *i++;
 			delete *ti++;
 			--m_rmsize;
-PTRACE(1, GetName() << " after removed " << m_rmsize);
 		}
 
 		m_removed.erase(m_removed.begin(), i);
 		m_removedTime.erase(m_removedTime.begin(), ti);
-PTRACE(1, GetName() << " removed sockets " << m_removed.size() << '/' << m_removedTime.size());
 	}
 }
 
@@ -2735,7 +2731,6 @@ void ProxyHandler::Remove(iterator i)
 	m_removed.push_back(*i);
 	m_removedTime.push_back(new PTime);
 	++m_rmsize;
-PTRACE(1, GetName() << " remove sockets " << *i << " h=" << (*i)->GetHandle() << ' ' << m_socksize << '/' << m_rmsize);
 }
 
 
