@@ -212,7 +212,8 @@ public:
 	RTPLogicalChannel(RTPLogicalChannel *, WORD, bool);
 	virtual ~RTPLogicalChannel();
 
-	void SetSource(const H245_UnicastAddress_iPAddress &);
+	void SetMediaChannelSource(const H245_UnicastAddress_iPAddress &);
+	void SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress &);
 	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool);
 	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool);
 
@@ -2031,19 +2032,22 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 
 bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_iPAddress * & mediaControlChannel, H245_UnicastAddress_iPAddress * & mediaChannel)
 {
+	mediaChannel = NULL;
+	mediaControlChannel = NULL;
+	
 	if (!olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters))
 		return false;
 	H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
 	if (ackparams.GetTag() != H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
 		return false;
 	H245_H2250LogicalChannelAckParameters & h225Params = ackparams;
-	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
-		return false;
-	mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
-	if (!mediaControlChannel)
-		return false;
-	mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
-	return true;
+	
+	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
+		mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
+	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel))
+		mediaChannel =  GetH245UnicastAddress(h225Params.m_mediaChannel);
+	
+	return mediaControlChannel != NULL;
 }
 
 inline H245_UnicastAddress_iPAddress & operator<<(H245_UnicastAddress_iPAddress & addr, const PIPSocket::Address & ip)
@@ -2117,6 +2121,11 @@ bool UDPProxySocket::Bind(WORD pt)
 
 void UDPProxySocket::SetNAT(bool rev)
 {
+	fSrcIP = 0;
+	fSrcPort = 0;
+	rSrcIP = 0;
+	rSrcPort = 0;
+	
 	// if the handler of lc is NATed,
 	// the destination of reverse direction should be changed
 	(rev ? fnat : rnat) = true;
@@ -2125,17 +2134,23 @@ void UDPProxySocket::SetNAT(bool rev)
 
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
 {
-	fSrcIP = srcIP, fSrcPort = srcPort;
+	if( (DWORD)srcIP != 0 )
+		fSrcIP = srcIP, fSrcPort = srcPort;
 	addr >> fDestIP >> fDestPort;
 
-	SetName(AsString(srcIP, srcPort));
+	if( (DWORD)srcIP )
+		SetName(AsString(srcIP, srcPort));
+	else
+		SetName("(To be autodetected)");
 	PTRACE(5, Type() << "\tForward " << GetName() << " to " << fDestIP << ':' << fDestPort);
 	SetConnected(true);
 }
 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
 {
-	rSrcIP = srcIP, rSrcPort = srcPort;
+	if( (DWORD)srcIP != 0 )
+		rSrcIP = srcIP, rSrcPort = srcPort;
+		
 	addr >> rDestIP >> rDestPort;
 
 	PTRACE(5, Type() << "\tReverse " << srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
@@ -2153,8 +2168,18 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	GetLastReceiveAddress(fromIP, fromPort);
 	buflen = GetLastReadCount();
 
+	/* autodetect channel source IP:PORT that was not specified by OLCs */
+	if( rSrcIP == 0 && fromIP == fDestIP )
+		rSrcIP = fromIP, rSrcPort = fromPort;
+	if( fSrcIP == 0 && fromIP == rDestIP ) {
+		fSrcIP = fromIP, fSrcPort = fromPort;
+		SetName(AsString(fSrcIP, fSrcPort));
+	}
+				
 	// Workaround: some bad endpoints don't send packets from the specified port
-	if ((fromIP == fSrcIP || fromIP == rDestIP) && (fromIP != rSrcIP || fromPort == fSrcPort)) {
+	if( (fromIP == fSrcIP && fromPort == fSrcPort) 
+		|| (fromIP == rDestIP && fromIP != rSrcIP) ) {
+//	if ((fromIP == fSrcIP || fromIP == rDestIP) && (fromIP != rSrcIP || fromPort == fSrcPort)) {
 		PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
 		SetSendAddress(fDestIP, fDestPort);
 		if (rnat)
@@ -2196,6 +2221,9 @@ void T120ProxySocket::Dispatch()
 // class RTPLogicalChannel
 RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(0)
 {
+	SrcIP = 0;
+	SrcPort = 0;
+	
 	rtp = new UDPProxySocket("RTP");
 	rtcp = new UDPProxySocket("RTCP");
 	SetNAT(nated);
@@ -2220,6 +2248,8 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
 {
 	memcpy(this, flc, sizeof(RTPLogicalChannel)); // bitwise copy :)
+	SrcIP = 0;
+	SrcPort = 0;
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
@@ -2245,18 +2275,34 @@ RTPLogicalChannel::~RTPLogicalChannel()
 	PTRACE(4, "RTP\tDelete logical channel " << channelNumber);
 }
 
-void RTPLogicalChannel::SetSource(const H245_UnicastAddress_iPAddress & addr)
+void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress & addr)
 {
 	addr >> SrcIP >> SrcPort;
 	--SrcPort; // get the RTP port
 }
 
+void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress_iPAddress & addr)
+{
+	addr >> SrcIP >> SrcPort;
+}
+
 void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaControlChannel, H245_UnicastAddress_iPAddress *mediaChannel, const PIPSocket::Address & local, bool rev)
 {
 	// mediaControlChannel should be non-zero.
-	H245_UnicastAddress_iPAddress tmp, tmpmedia, *dest = mediaControlChannel;
+	H245_UnicastAddress_iPAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
+	
+	if (mediaControlChannel == NULL)
+		if (mediaChannel == NULL)
+			return;
+		else {
+			tmpmediacontrol = *mediaChannel;
+			tmpmediacontrol.m_tsapIdentifier = tmpmediacontrol.m_tsapIdentifier + 1;
+			mediaControlChannel = &tmpmediacontrol;
+			dest = mediaControlChannel;
+		}
+		
 	if (rev) { // from a reverseLogicalChannelParameters
 		tmp << tmpSrcIP << tmpSrcPort;
 		dest = &tmp;
@@ -2294,11 +2340,11 @@ bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParam
 bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
 {
 	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
-	if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
-		HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetLocalAddr(), false);
-		return true;
-	}
-	return false;
+	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
+	if (mediaControlChannel == NULL && mediaChannel == NULL)
+		return false;
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetLocalAddr(), false);
+	return true;
 }
 
 void RTPLogicalChannel::StartReading(ProxyHandler *handler)
@@ -2462,24 +2508,31 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response)
 
 bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *h225Params, WORD flcn)
 {
-	if (!h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
-		return false;
-	H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel);
-	if (!addr)
-		return false;
 	RTPLogicalChannel *lc = (flcn) ?
 		CreateRTPLogicalChannel(h225Params->m_sessionID, flcn) :
 		CreateFastStartLogicalChannel(h225Params->m_sessionID);
 	if (!lc)
 		return false;
-	lc->SetSource(*addr);
-	*addr << GetLocalAddr() << (lc->GetPort() + 1);
-	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
-		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params->m_mediaChannel);
-		if (addr)
-			*addr << GetLocalAddr() << lc->GetPort();
+	
+	H245_UnicastAddress_iPAddress *addr;
+	bool changed = false;
+	
+	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel) 
+		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
+		
+		lc->SetMediaControlChannelSource(*addr);
+		*addr << GetLocalAddr() << (lc->GetPort() + 1);
+		changed = true;
 	}
-	return true;
+	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
+		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel)) ) {
+		
+		lc->SetMediaChannelSource(*addr);
+		*addr << GetLocalAddr() << lc->GetPort();
+		changed = true;
+	}
+
+	return changed;
 }
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
@@ -2732,10 +2785,10 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 			return SetAddress(GetH245UnicastAddress(sepStack.m_networkAddress));
 	} else {
 		H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
-		if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
-			SetAddress(mediaChannel);
-			return SetAddress(mediaControlChannel);
-		}
+		GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
+		bool changed = SetAddress(mediaChannel);
+		changed = SetAddress(mediaControlChannel) || changed;
+		return changed;
 	}
 	return false;
 }

@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (ProxyChannel.cxx) RTP proxy fixed to not require RTCP channel
+  and work better with T.38 faxes
 - (ProxyChannel.cxx) added new config parameter ScreenSourceAddress
   to screen calling party aliases from UUIE Setup element
 - added sample SQL/RADIUS billing example to the contrib directory
