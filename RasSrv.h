@@ -23,7 +23,7 @@
 #include "yasocket.h"
 #include "singleton.h"
 #include <vector>
-
+#include "RasTbl.h"
 
 class H225_RasMessage;
 class H225_GatekeeperRequest;
@@ -38,6 +38,7 @@ class RasMsg;
 class RasHandler;
 class GkInterface;
 class GkAuthenticatorList;
+class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
 class HandlerList;
@@ -113,6 +114,11 @@ public:
 		return authList->Validate(ras, reason);
 	}
 
+	bool LogAcctEvent(
+		int evt,
+		callptr& call
+		);
+	
 	template<class RAS> bool IsForwardedRas(const RAS & ras, const Address & addr) const
 	{
 		return IsForwardedMessage(ras.HasOptionalField(RAS::e_nonStandardData) ? &ras.m_nonStandardData : 0, addr);
@@ -173,6 +179,7 @@ private:
 
 	HandlerList *sigHandler;
 	GkAuthenticatorList *authList;
+	GkAcctLoggerList* acctList;
 	GkClient *gkClient;
 	NeighborList *neighbors;
 

@@ -294,6 +294,8 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit")
 {
 	m_Config = 0;
 	m_ConfigDirty = false;
+	m_acctSessionBase = (long)time(NULL);
+	m_acctSessionCounter = 0;
 	srand(time(0));
 }
 
@@ -575,4 +577,10 @@ PString Toolkit::CypherDecode(const PString & key, const PString & crypto, int s
 	PTEACypher cypher(thekey);
 
 	return cypher.Decode(crypto);
+}
+
+PString Toolkit::GenerateAcctSessionId()
+{
+	PWaitAndSignal lock( m_acctSessionMutex );
+	return psprintf("%08x%08x",m_acctSessionBase,++m_acctSessionCounter);
 }

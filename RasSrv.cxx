@@ -22,6 +22,7 @@
 #include "RasPDU.h"
 #include "RasSrv.h"
 #include "gkauth.h"
+#include "gkacct.h"
 #include "SoftPBX.h"
 #include "Routing.h"
 #include "gk_const.h"
@@ -608,7 +609,8 @@ void RasRequester::AddReply(RasMsg *ras)
 }
 
 // class RasServer
-RasServer::RasServer() : Singleton<RasServer>("RasServer"), requestSeqNum(0)
+RasServer::RasServer() : Singleton<RasServer>("RasServer"), requestSeqNum(0),
+	acctList(NULL)
 {
 	SetName("RasServer");
 
@@ -621,6 +623,7 @@ RasServer::RasServer() : Singleton<RasServer>("RasServer"), requestSeqNum(0)
 RasServer::~RasServer()
 {
 	delete authList;
+	delete acctList;
 	delete neighbors;
 	delete gkClient;
 	delete altGKs;
@@ -771,6 +774,7 @@ void RasServer::LoadConfig()
 	gkClient->OnReload();
 	neighbors->OnReload();
 	authList->OnReload();
+	acctList->OnReload();
 	Routing::Analyzer::Instance()->OnReload();
 
 	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", 1));
@@ -957,6 +961,14 @@ void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_Ga
 	authList->SelectH235Capability(grq, gcf);
 }
 
+bool RasServer::LogAcctEvent(
+	int evt,
+	callptr& call
+	)
+{
+	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt,call);
+}
+
 void RasServer::Run()
 {
 	RasMsg::Initialize();
@@ -994,12 +1006,17 @@ void RasServer::Run()
 	gkClient = new GkClient(this);
 	neighbors = new NeighborList;
 	authList = new GkAuthenticatorList;
+	acctList = new GkAcctLoggerList;
 
 	LoadConfig();
+	
+	callptr nullcall;
+	acctList->LogAcctEvent(GkAcctLogger::AcctOn,nullcall);
 	if (m_socksize > 0) {
 		CreateJob(this, &RasServer::HouseKeeping, "HouseKeeping");
 		RegularJob::Run();
 	}
+	acctList->LogAcctEvent(GkAcctLogger::AcctOff,nullcall);
 }
 
 void RasServer::OnStop()
@@ -1691,7 +1708,7 @@ bool AdmissionRequestPDU::Process()
 		if (CalledEP)
 			pCallRec->SetCalled(CalledEP);
 		else
-			pCallRec->SetCalledAddress(CalledAddress);
+			pCallRec->SetDestSignalAddr(CalledAddress);
 		if (!answer)
 			pCallRec->SetCalling(RequestingEP);
 		if (toParent)

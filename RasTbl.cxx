@@ -25,6 +25,7 @@
 #include <time.h>
 #include <ptlib.h>
 #include <h323pdu.h>
+#include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
 #include "SoftPBX.h"
@@ -33,7 +34,7 @@
 #include "GkStatus.h"
 #include "stl_supp.h"
 #include "ProxyChannel.h"
-#include "gk_const.h"
+#include "gkacct.h"
 
 #define DEFAULT_SETUP_TIMEOUT 8000
 #define DEFAULT_CONNECT_TIMEOUT 180000
@@ -1047,6 +1048,7 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed),
 	m_registered(false), m_forwarded(false)
 {
+	m_acctSessionId = Toolkit::Instance()->GenerateAcctSessionId();
 	m_timer = m_creationTime = time(0);
 	m_timeout = CallTable::Instance()->GetConnectTimeout() / 1000;
 	m_durationLimit = CallTable::Instance()->GetDefaultDurationLimit();
@@ -1058,9 +1060,22 @@ CallRec::~CallRec()
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 }
 
-bool CallRec::GetCalledAddress(PIPSocket::Address & addr, WORD & pt) const
+bool CallRec::GetSrcSignalAddr(
+	PIPSocket::Address& addr,
+	WORD& port
+	) const
 {
-	return GetIPAndPortFromTransportAddr(m_calledAddress, addr, pt);
+	PWaitAndSignal lock(m_usedLock);
+	return GetIPAndPortFromTransportAddr(m_srcSignalAddress, addr, port);
+}
+
+bool CallRec::GetDestSignalAddr(
+	PIPSocket::Address& addr, 
+	WORD& pt
+	) const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return GetIPAndPortFromTransportAddr(m_destSignalAddress, addr, pt);
 }
 
 int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address & called) const
@@ -1072,9 +1087,20 @@ int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address & calle
 	return m_nattype;
 }
 
-void CallRec::SetCalledAddress(const H225_TransportAddress & addr)
+void CallRec::SetSrcSignalAddr(
+	const H225_TransportAddress & addr
+	)
 {
-	m_calledAddress = addr;
+	m_srcSignalAddress = addr;
+	m_callerAddr = AsDotString(addr);
+}
+
+void CallRec::SetDestSignalAddr(
+	const H225_TransportAddress & addr
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_destSignalAddress = addr;
 	m_calleeAddr = AsDotString(addr);
 }
 
@@ -1087,6 +1113,9 @@ void CallRec::SetCalling(const endptr & NewCalling)
 			if (NewCalling->HasNATSocket())
 				m_nattype |= citronNAT;
 		}
+		// neccessary, because SetSrcCallSignalAddr does not lock the mutex
+		PWaitAndSignal lock(m_usedLock);
+		SetSrcSignalAddr(NewCalling->GetCallSignalAddress());
 		m_callerAddr = AsDotString(NewCalling->GetCallSignalAddress());
 		m_callerId = NewCalling->GetEndpointIdentifier().GetValue();
 	}
@@ -1098,7 +1127,7 @@ void CallRec::SetCalled(const endptr & NewCalled)
 	if (NewCalled) {
 		if (NewCalled->IsNATed())
 			m_nattype |= calledParty, m_h245Routed = true;
-		SetCalledAddress(NewCalled->GetCallSignalAddress());
+		SetDestSignalAddr(NewCalled->GetCallSignalAddress());
 		m_calleeId = NewCalled->GetEndpointIdentifier().GetValue();
 	}
 }
@@ -1109,7 +1138,7 @@ void CallRec::SetForward(CallSignalSocket *socket, const H225_TransportAddress &
 	m_forwarded = true;
 	m_Forwarder = (socket == m_calledSocket) ? m_Called : endptr(0);
 	if (m_Forwarder) {
-		m_callerAddr = AsDotString(m_Forwarder->GetCallSignalAddress());
+		SetSrcSignalAddr(m_Forwarder->GetCallSignalAddress());
 		m_callerId = m_Forwarder->GetEndpointIdentifier().GetValue();
 	} // else TODO:
 	  // how to solve billing issue if forwarder is not a registered party?
@@ -1123,15 +1152,31 @@ void CallRec::SetForward(CallSignalSocket *socket, const H225_TransportAddress &
 	if (forwarded)
 		SetCalled(forwarded);
 	else
-		SetCalledAddress(dest);
+		SetDestSignalAddr(dest);
 }
 
 void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 {
-	PWaitAndSignal lock(m_sockLock); 
-	m_callingSocket = calling, m_calledSocket = called;
-	if (m_callerAddr.GetLength() == 1) // " "
+	PIPSocket::Address addr(0);
+	WORD port = 0;
+	{
+		PWaitAndSignal lock(m_sockLock); 
+		m_callingSocket = calling, m_calledSocket = called;
+		calling->GetPeerAddress(addr,port);
 		m_callerAddr = calling->GetName();
+	}
+	{
+		PWaitAndSignal lock(m_usedLock);
+		
+		if( !m_srcSignalAddress.IsValid() ) {
+			m_srcSignalAddress.SetTag(H225_TransportAddress::e_ipAddress);
+			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[0] = addr[0];
+			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[1] = addr[1];
+			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[2] = addr[2];
+			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_ip[3] = addr[3];
+			((H225_TransportAddress_ipAddress&)m_srcSignalAddress).m_port = port;
+		}
+	}
 }
 
 void CallRec::SetConnected()
@@ -1347,6 +1392,8 @@ void CallRec::SetSetupTime(time_t tm)
 		m_setupTime = tm;
 	if( m_connectTime == 0 )
 		m_timer = tm;
+	// can be the case, because CallRec is usually created
+	// after Setup message has been received
 	if( m_creationTime > m_setupTime )
 		m_creationTime = m_setupTime;
 }
@@ -1358,6 +1405,9 @@ void CallRec::SetConnectTime(time_t tm)
 		m_connectTime = m_timer = tm;
 		m_timeout = m_durationLimit;
 	}
+	// can be the case for direct signalling mode, 
+	// because CallRec is usually created after ARQ message 
+	// has been received
 	if( m_creationTime > m_connectTime )
 		m_creationTime = m_connectTime;
 }
@@ -1372,7 +1422,7 @@ void CallRec::SetDisconnectTime(time_t tm)
 bool CallRec::IsTimeout(
 	const time_t now,
 	const long connectTimeout
-	)
+	) const
 {
 	PWaitAndSignal lock(m_usedLock);
 
@@ -1605,6 +1655,11 @@ void CallTable::InternalRemove(iterator Iter)
 #endif
 	}
 
+	{
+		callptr cptr(call);
+		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop,cptr);
+	}
+	
 	--m_activeCall;
 	if (call->IsConnected())
 		++m_successCall;

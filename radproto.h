@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2003/08/20 14:46:19  zvision
+ * Avoid PString reference copying. Small code improvements.
+ *
  * Revision 1.2  2003/08/19 10:44:19  zvision
  * Initially added to 2.2 branch
  *
@@ -190,7 +193,7 @@ public:
 	*/
 	RadiusAttr( 
 		unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
-		const PTime& timeValue /// timestamp to be stored in the attribute Value
+		const time_t timeValue /// timestamp to be stored in the attribute Value
 		);
 
 	/** Create TLV RADIUS attribute of a given type,
@@ -247,7 +250,7 @@ public:
 		#vsaVendorId# is set to 'vendorId'.
 	*/
 	RadiusAttr( 
-		const PTime& timeValue, /// 32 bit timestamp to be stored in the attribute value
+		const time_t timeValue, /// 32 bit timestamp to be stored in the attribute value
 		int vendorId, /// 32 bit vendor identifier
 		unsigned char vendorType /// vendor-specific attribute type
 		);
@@ -348,14 +351,10 @@ public:
 	*/
 	int GetVsaVendorId() const 
 	{
-		DWORD val = 0;
-		
-		val |= ((DWORD)(data[FixedHeaderLength+0]) & 0xff) << 24;
-		val |= ((DWORD)(data[FixedHeaderLength+1]) & 0xff) << 16;
-		val |= ((DWORD)(data[FixedHeaderLength+2]) & 0xff) << 8;
-		val |= ((DWORD)(data[FixedHeaderLength+3]) & 0xff);
-		
-		return val; 
+		return (((DWORD)(data[FixedHeaderLength+0]) & 0xff) << 24)
+			| (((DWORD)(data[FixedHeaderLength+1]) & 0xff) << 16)
+			| (((DWORD)(data[FixedHeaderLength+2]) & 0xff) << 8)
+			| ((DWORD)(data[FixedHeaderLength+3]) & 0xff);
 	}
 
 	/** Get attribute Value as a string. Be aware that the string
@@ -413,7 +412,7 @@ public:
 		PTime representing attribute Value. This timestamp
 		is interpreted as number of seconds passed since
 	*/
-	virtual PTime AsTime() const;
+	time_t AsTime() const { return AsVsaInteger(); }
 
 	/** Get RFC 2865 guidelines conformant VSA Value as a 32 bit timestamp. 
 		This call will build the timestamp from 4 bytes of data contained 
@@ -423,7 +422,7 @@ public:
 		PTime representing attribute Value. This timestamp
 		is interpreted as number of seconds passed since
 	*/
-	virtual PTime AsVsaTime() const;
+	time_t AsVsaTime() const { return AsVsaInteger(); }
 
 	/** Get attribute Value as a 32 bit IPv4 address. 
 		For VSA attributes this call will build the IPv4 address
@@ -914,7 +913,7 @@ class RadiusSocket : public PUDPSocket
 {
 	PCLASSINFO(RadiusSocket,PUDPSocket)
 public:
-	PARRAY(Array,RadiusSocket);
+	PBASEARRAY(Array,RadiusSocket*);
 
 	/** Create new socket at given port.
 		Autoselect local network interface.
@@ -979,7 +978,9 @@ public:
 	/** Free any RADIUS packet identifiers, that can be reused
 		at this moment.
 	*/
-	void RefreshIdCache();
+	void RefreshIdCache(
+		const time_t now = time(NULL) /// current time
+		);
 	
 	/** @return
 		The time interval for generated Identifier to be unique.
@@ -1072,7 +1073,7 @@ private:
 	unsigned char nextId;
 	/// timestamps for generated IDs, used to check when
 	///	Id can be retruned to pool of free IDs
-	PTime idTimestamps[256];
+	time_t idTimestamps[256];
 	/// Timestamp of the most recent request performed on this socket
 	PTime recentRequestTime;
 	/// time interval over that generated IDs must be unique
@@ -1144,7 +1145,7 @@ public:
 		) 
 	{ 
 		PWaitAndSignal lock( socketMutex );
-		sharedSecret = secret; 
+		sharedSecret = (const char*)secret; 
 	}
 
 	/** Get secret password shared between RADIUS server 

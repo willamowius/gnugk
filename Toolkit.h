@@ -236,6 +236,14 @@ class Toolkit : public Singleton<Toolkit>
 	 */
 	inline static unsigned long HashCStr(const unsigned char *name) ;
 
+	/** Generate a call id for accounting purposes, that is unique  
+		during subsequent GK start/stop events.
+		
+		@return
+		A string with the unique id.
+	*/
+	PString GenerateAcctSessionId();
+	
  protected:
 	void CreateConfig();
 
@@ -255,6 +263,13 @@ class Toolkit : public Singleton<Toolkit>
 	std::vector<PIPSocket::Address> m_GKHome;
 	bool m_BindAll;
 
+	/// a counter incremented for each generated session id
+	long m_acctSessionCounter;
+	/// base part for session id, changed with every GK restart
+	long m_acctSessionBase;
+	/// mutex for atomic session id generation (prevents from duplicates)
+	PMutex m_acctSessionMutex;
+	
  private:
 	PFilePath m_tmpconfig;
 };

@@ -26,7 +26,7 @@ PROG	 = gnugk
 SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx          \
            Routing.cxx Neighbor.cxx GkClient.cxx gkauth.cxx         \
-           RasSrv.cxx ProxyChannel.cxx gk.cxx version.cxx
+           RasSrv.cxx ProxyChannel.cxx gk.cxx version.cxx gkacct.cxx
 
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by
@@ -273,7 +273,7 @@ NO_RADIUS := 0
 endif
 
 ifeq ($(NO_RADIUS),0)
-  SOURCES	      += radproto.cxx radauth.cxx
+  SOURCES	      += radproto.cxx radauth.cxx radacct.cxx
   STDCCFLAGS_STUB := $(STDCCFLAGS)
   STDCCFLAGS       = -DHAS_RADIUS $(STDCCFLAGS_STUB)
   HAS_RADIUS       = 1

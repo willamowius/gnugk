@@ -30,6 +30,8 @@
 #include "h323util.h"
 #include "Toolkit.h"
 #include "stl_supp.h"
+#include "RasTbl.h"
+#include "gkacct.h"
 #include "RasSrv.h"
 #include "GkClient.h"
 #include "Neighbor.h"
@@ -791,7 +793,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	switch (m_lastQ931->GetMessageType())
 	{
 		case Q931::SetupMsg:
-			if (m_result == Error) {
+			if( m_result == Error 
+				|| !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 				CallTable::Instance()->RemoveCall(m_call);
 				EndSession();
 			}
@@ -1139,7 +1142,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		if (called)
 			call->SetCalled(called);
 		else
-			call->SetCalledAddress(calledAddr);
+			call->SetDestSignalAddr(calledAddr);
 
 		if (useParent)
 			call->SetRegistered(true);
@@ -1160,7 +1163,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
 {
-	if (!m_call->GetCalledAddress(peerAddr, peerPort)) {
+	if (!m_call->GetDestSignalAddr(peerAddr, peerPort)) {
 		PTRACE(3, "Q931\t" << GetName() << " INVALID ADDRESS");
 		return false;
 	}

@@ -359,7 +359,6 @@ public:
 	endptr GetCallingParty() const { return m_Calling; }
 	endptr GetCalledParty() const { return m_Called; }
 	endptr GetForwarder() const { return m_Forwarder; }
-	bool GetCalledAddress(PIPSocket::Address &, WORD &) const;
 	int GetBandWidth() const { return m_bandWidth; }
 	int GetNATType() const { return m_nattype; }
 	int GetNATType(PIPSocket::Address &, PIPSocket::Address &) const;
@@ -368,7 +367,6 @@ public:
 	const H225_ArrayOf_CryptoH323Token & GetAccessTokens() const { return m_accessTokens; }
 
 	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
-	void SetCalledAddress(const H225_TransportAddress & addr);
 	void SetCalling(const endptr & NewCalling);
 	void SetCalled(const endptr & NewCalled);
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
@@ -442,7 +440,7 @@ public:
 		@return
 		true if the call duration limit has been exceeded, false otherwise.
 	*/
-	bool IsDurationLimitExceeded();
+	bool IsDurationLimitExceeded() const;
 
 	/** @return
 		Timestamp (number of seconds since 1st January 1970) for the call creation
@@ -503,17 +501,85 @@ public:
 		const time_t now
 		) const;
 
+	/** @return
+		Call duration in seconds. 0 for unconnected calls. Actual
+		duration for calls in progress.
+	*/
+	long GetDuration() const;
+
+	/** @return
+		A string that identifies uniquelly this call for accounting
+		purposes. This string should be unique across subsequent GK 
+		start/stop events.
+	*/
+	PString GetAcctSessionId() const { return m_acctSessionId; }
+
+	/** @return
+		A string with ARQ.m_srcInfo for registered endpoints
+		and Setup.m_sourceAddress for unregistered endpoints.
+		The string has alias type appended (example: '772:dialedDigits')
+		and for forwarded calls contains alias of forwarding
+		after '=' (example: '772:dialedDigits=775:forward').
+	*/
+	PString GetSrcInfo() const { return m_srcInfo; }
+
+	/** Set a new address for the called party signalling channel. 
+	*/
+	void SetDestSignalAddr(
+		const H225_TransportAddress & addr /// new signalling transport address
+		);
+
+	/** Get IP and port for the calling party. It is a signal address
+		for registered endpoints and remote signalling socket address
+		for unregistered endpoints.
+
+		@return
+		true if the address has been retrieved successfully, false otherwise.
+	*/
+	bool GetSrcSignalAddr( 
+		PIPSocket::Address& addr, /// will receive the IP address
+		WORD& port /// will receive the port number
+		) const;
+
+	/** Get IP and port for the called party. It is a signal address
+		for registered endpoints and remote signalling socket address
+		for unregistered endpoints.
+
+		@return
+		true if the address has been retrieved successfully, false otherwise.
+	*/
+	bool GetDestSignalAddr( 
+		PIPSocket::Address& addr, /// will receive the IP address
+		WORD& port /// will receive the port number
+		) const;
+
+	/** @return
+		A string with ARQ.m_destinationInfo or ARQ.m_destCallSignalAddress
+		or "unknown" for registered endpoints
+		and Setup.m_destinationAddress or called endpoint IP address 
+		for unregistered endpoints.
+		The string has alias type appended (example: '772:dialedDigits')
+		and for forwarded calls contains alias of forwarding
+		after '=' (example: '772:dialedDigits=775:forward').
+	*/
+	PString GetDestInfo() const { return m_destInfo; }
+
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
 
 private:
+	/** Set a new address for the calling party signalling channel.
+	*/
+	void SetSrcSignalAddr(
+		const H225_TransportAddress & addr /// new signalling transport address
+		);
+
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
 
 	PINDEX m_CallNumber;
 	H225_CallIdentifier m_callIdentifier;
 	H225_ConferenceIdentifier m_conferenceIdentifier;
-	H225_TransportAddress m_calledAddress;
 
 	endptr m_Calling, m_Called;
 	WORD m_crv;
@@ -542,6 +608,12 @@ private:
 	long m_durationLimit;
 	/// Q.931 release complete cause code
 	unsigned m_disconnectCause;
+	/// unique accounting session id associated with this call
+	PString m_acctSessionId;
+	/// signalling transport address of the calling party	
+	H225_TransportAddress m_srcSignalAddress;
+	/// signalling transport address of the called party	
+	H225_TransportAddress m_destSignalAddress;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
@@ -733,7 +805,7 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-inline bool CallRec::IsDurationLimitExceeded()
+inline bool CallRec::IsDurationLimitExceeded() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	const long now = time(NULL);
@@ -774,6 +846,16 @@ inline unsigned CallRec::GetDisconnectCause() const
 inline void CallRec::SetDisconnectCause( unsigned causeCode )
 {
 	m_disconnectCause = causeCode;
+}
+
+inline long CallRec::GetDuration() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_connectTime 
+		? (m_disconnectTime 
+			? (m_disconnectTime - m_connectTime) 
+			: ((long)time(NULL) - m_connectTime))
+		: 0;
 }
 
 inline bool CallRec::IsTimeout(const time_t now) const
