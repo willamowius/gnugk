@@ -339,13 +339,18 @@ CallSignalSocket::CallSignalSocket()
 	m_SetupPDU = NULL;
 }
 
-
-CallSignalSocket::~CallSignalSocket()
+void CallSignalSocket::Shutdown()
 {
-	PTRACE(1,"Trying Deletion CallSignalSocket " << this << " with condition: " << PString(m_usedCondition.Condition() ? "TRUE" : "FALSE"));
-	PTRACE(1, "Name(): " << Name());
-
 	m_lock.Wait();
+
+	if(NULL!=m_StatusEnquiryTimer)
+		m_StatusEnquiryTimer->Stop();
+	delete m_StatusEnquiryTimer;
+	m_StatusEnquiryTimer = NULL;
+	if(NULL!=m_StatusTimer)
+		m_StatusTimer->Stop();
+	delete m_StatusTimer;
+	m_StatusTimer = NULL;
 
 	if(callptr(NULL)!=m_call) {
 		PTRACE(5, "Deleting Call " << m_call->GetCallIdentifier());
@@ -355,19 +360,25 @@ CallSignalSocket::~CallSignalSocket()
 	}
 
 	if(NULL!=remote) {
-		CallSignalSocket *rem=dynamic_cast<CallSignalSocket *>(remote);
-		if(NULL!=rem){
-			m_lock.Signal();
-			rem->m_lock.Wait();
-			PTRACE(5, "deleteing remote socket");
-			remote->UnlockUse("CallSignalSocket " + Name() + type);
-			remote->SetDeletable();
-			rem->m_lock.Signal();
-			m_lock.Wait();
-		}
+		m_lock.Signal();
+		PTRACE(5, "deleteing remote socket");
+		remote->SetConnected(FALSE);
+		remote->SetDeletable();
+		remote->UnlockUse("CallSignalSocket " + Name() + type);
+		m_lock.Wait();
 		remote=NULL;
 	}
 	m_lock.Signal();
+}
+
+CallSignalSocket::~CallSignalSocket()
+{
+	PTRACE(1,"Trying Deletion CallSignalSocket " << this << " with condition: " << PString(m_usedCondition.Condition() ? "TRUE" : "FALSE"));
+	PTRACE(1, "Name(): " << Name());
+
+	if(NULL!=remote)
+		Shutdown();
+
 	PTRACE(5, "Waiting for Condition to come true");
 	m_usedCondition.WaitCondition();
 	m_lock.Wait();
@@ -381,8 +392,9 @@ CallSignalSocket::~CallSignalSocket()
 	delete m_h245handler;
 	delete m_receivedQ931;
 	delete m_SetupPDU;
-	delete m_StatusEnquiryTimer;
-	delete m_StatusTimer;
+
+ 	if (m_t302.IsRunning())
+ 		m_t302.Stop();
 
 	if (NULL!=m_h245socket) {
 		m_h245socket->EndSession();
@@ -391,7 +403,7 @@ CallSignalSocket::~CallSignalSocket()
 		m_h245socket->UnlockUse("CallSignalSocket " + Name() + type);
 		m_h245socket=NULL;
 	}
-
+	Close(); // Force the socket to be closed...
 }
 
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
@@ -428,33 +440,6 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 	}
 	m_SetupPDU = NULL;
 	remote->LockUse("CallSignalSocket " + Name() + static_cast<PString>(type));
-}
-
-// void
-// CallSignalSocket::Lock()
-// {
-// 	m_lock.Wait();
-// }
-
-// void
-// CallSignalSocket::Unlock()
-// {
-// 	m_lock.Signal();
-// }
-
-void
-CallSignalSocket::LockUse(const PString &name)
-{
-	PTRACE(5, "Locking " << this << " " << Name());
-	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Lock(name);
-}
-
-void CallSignalSocket::UnlockUse(const PString &name)
-{
-	PTRACE(5, "UnLocking " << this << " " << Name());
-//	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Unlock(name);
 }
 
 namespace { // end of anonymous namespace
@@ -641,6 +626,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 		m_call=callptr(NULL);
 		return NULL;
 	}
+	PWaitAndSignal lock(m_lock);
 	if(!remote->IsConnected()) { // ignore already connected calls
 		if (remote->Connect(static_cast<PIPSocket::Address>(GkConfig()->GetString("Home", INADDR_ANY)), Q931PortRange.GetPort(),peerAddr)) {
 #ifdef WIN32
@@ -654,9 +640,9 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 		} else {
 			PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
 			InternalEndSession();
-			remote->SetDeletable(); // do not delete.
-			remote->UnlockUse("CallSignalSocket " + Name() + type);
-			remote=NULL;
+			// remote->SetDeletable(); // do not delete.
+// 			remote->UnlockUse("CallSignalSocket " + Name() + type);
+// 			remote=NULL;
 			if(callptr(NULL)!=m_call) {
 				m_call->RemoveSocket();
 				CallTable::Instance()->RemoveCall(m_call);
