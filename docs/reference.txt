@@ -758,6 +758,23 @@ B.25 Section [GkLDAP::Settings]
 This section defines the LDAP server and standard LDAP client operating
 parameters to be used.
 
+ServerName: The LDAP server's DNS name.
+ServerPort: The LDAP server's TCP port (usually 389).
+SearchBaseDN: entry point into the server's LDAP tree structure.
+              Searches are only made below this root node.
+BindUserDN: The distinguished name the gatekeeper uses to bind
+	    to the LDAP server. Leave empty if you want to access
+	    the LDAP server anonymously.
+BindUserPW: If you specified BindUserDN, then specify the corresponding
+	    password to be used for binding here.
+sizelimit:  Maximum number of results the server may return in response
+	    to a single search query. The gatekeeper expects each LDAP
+	    to only yields one or zero results anyway, so this parameter
+	    is rather useless.
+	    Usually that's restricted on the server side, anyway.
+timelimit:  maximum number of seconds a query may take until it's
+            considered as "failed".
+
 Defaults:
 #ServerName=ldap
 #ServerPort=389
@@ -770,20 +787,18 @@ Defaults:
 
 B.26 Section [GkLDAP::Cache]
 
-#
-# LDAP Cache:
-#
-# Enable (boolean):    switch caching on/off. Default: off
-# MaxMemory (integer): maximum amount of memory used in cache
-#                      With internal cache the amount of
-#                      results is computed by:
-#                      maxresults=MaxMemory/CACHE_AVERAGE_SEARCH_SIZE
-#                      CACHE_AVERAGE_SEARCH_SIZE is set in
-#                      gk_ldap_interface.h to 10.
-# TTL (boolean):       maximum time (in seconds) a cache entry may have.
+This section specifies LDAP cache operating parameters.
+
+Enable (boolean):    switch caching on/off. Default: off
+MaxMemory (integer): maximum amount of memory used in cache
+                     With internal cache the amount of
+                     results is computed by:
+                     maxresults=MaxMemory/CACHE_AVERAGE_SEARCH_SIZE
+                     CACHE_AVERAGE_SEARCH_SIZE is set in
+                     gk_ldap_interface.h to 10.
+TTL (boolean):       maximum time (in seconds) a cache entry may have.
 
 Defaults:
-[LDAPCache]
 #Enable=T
 #MaxMemory=10000
 #TTL=60
