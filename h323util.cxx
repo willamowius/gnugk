@@ -216,5 +216,5 @@ PString GetBestAliasAddressString(
 	if( aliases.GetSize() > 0 )
 		return H323GetAliasAddressString(aliases[0]);
 	else
-		return PString::Empty();
+		return PString();
 }
