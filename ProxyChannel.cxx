@@ -792,6 +792,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 		}
 		if (!called && reason!=H225_AdmissionRejectReason::e_incompleteAddress) {
+			m_call=callptr(NULL); // delete callrec
 			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
 			return;
 		}
@@ -1299,6 +1300,8 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 
 	PTRACE(1, "Begin of CgPNConversion");
 	callptr callRec = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
+
+	PTRACE(1, "callrec: " << callRec);
 
 	if(callRec==callptr(NULL))
 		return;
