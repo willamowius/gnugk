@@ -119,6 +119,7 @@ private:
 	int Unbind(bool);		// unbinding, may be enforced by passing true
 	mutable PMutex m_bindLock;
 	mutable PMutex m_readLock;
+	mutable PMutex m_baseLock;
 };
 
 #endif /* defined(LDAPLINK_H) */
