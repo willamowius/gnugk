@@ -563,6 +563,7 @@ const char *ldap_auth_sec = "LDAPAuth::Settings";
 // constructor
 LDAPAuth::LDAPAuth()
 {
+  LDAPConn=NULL;
   //Initialisation must be done with method "Initialize"!
 } // LDAPAuth constructor
 
@@ -575,6 +576,8 @@ LDAPAuth::~LDAPAuth()
 void 
 LDAPAuth::Initialize(PConfig &cfg) // 'real', private constructor
 {
+  if(NULL!=LDAPConn)
+    return;
   struct timeval default_timeout;
   default_timeout.tv_sec = 10l;	// seconds
   default_timeout.tv_usec = 0l;	// micro seconds

@@ -38,39 +38,44 @@
 #endif // HAS_LDAP_LEVEL_TWO_API
 
 #include <vector>
+#include <ptlib.h>
 
 #define CACHE_TIMEOUT 0
-#define CACHE_MAXMEM 0 // disable cache
+#define CACHE_MAXMEM 100 // disable cache
 
 #ifndef LDAP_HAS_CACHE
 
-class search {
-  char *base;
-  int scope;
-  char *filter;
-  char **attrs;
-  int attrsonly;
- public:
-  LDAPMessage *message;
-  int msgid;
-  search(const char *bse, int scpe, const char *fltr, char **attr, int attrsnly, LDAPMessage *res);
-  search();
-  ~search();
-  void set_values(char *bse, int scpe, char *fltr, char **attr, int attrsnly, LDAPMessage *res);
-  bool is_search(char const *base, int scope, char const *filter, char **attrs, int attrsonly);
+class gk_ldap_cache_search_class {
+private:
+	char *base;
+	int scope;
+	char *filter;
+//	char **attrs;
+	PStringList attrs;
+	int attrsonly;
+	char * strndup(const char orig[], int len);
+public:
+	LDAPMessage *message;
+	int msgid;
+	gk_ldap_cache_search_class(const char *bse, int scpe, const char *fltr, char **attr, int attrsnly, LDAPMessage *res);
+	gk_ldap_cache_search_class();
+	~gk_ldap_cache_search_class();
+	void set_values(char *bse, int scpe, char *fltr, char **attr, int attrsnly, LDAPMessage *res);
+	bool is_search(char const *base, int scope, char const *filter, char **attrs, int attrsonly);
 };
-  
-typedef vector<search> search_type
+
+typedef vector<gk_ldap_cache_search_class*> gk_ldap_search_type;
 
 typedef struct {
-  LDAP * ld;
-  search_type search_cache;
-  int maxmem;
+	LDAP * ld;
+	gk_ldap_search_type search_cache;
+	int maxmem;
 } GK_LDAP;
+
 #else 
 
 typedef struct {
-  LDAP * ld;
+	LDAP * ld;
 } GK_LDAP;
 
 #endif //LDAP_HAS_CACHE1
@@ -90,13 +95,13 @@ GK_LDAP *gk_ldap_open (const char *hostname, int portno);
 
 /// Bind with sasl mechanism. Currently only simple bind is allowed 
 int gk_ldap_sasl_bind (GK_LDAP *ld,  char const *dn, char const *mechanism,
-		    struct berval const *cred, LDAPControl **serverctrls,
-		    LDAPControl **clientctrls, int *msgidp);
+		       struct berval const *cred, LDAPControl **serverctrls,
+		       LDAPControl **clientctrls, int *msgidp);
 
 /// Bind with sasl mechanism. Synchronous version.
 int gk_ldap_sasl_bind_s (GK_LDAP *ld,  char *dn, char const *mechanism,
-		      struct berval const *cred, LDAPControl **serverctrls,
-		      LDAPControl **clientctrls, struct berval **servercredp);
+			 struct berval const *cred, LDAPControl **serverctrls,
+			 LDAPControl **clientctrls, struct berval **servercredp);
 
 /// Bind with simple pasword.
 int gk_ldap_simple_bind (GK_LDAP *ld,  char const *dn, char const *passwd);
@@ -111,9 +116,9 @@ int gk_ldap_bind (GK_LDAP *ld,  char const *dn, char const *cred, int method);
 /// Old bind. For backward compatibility. Synchronous version.
 int gk_ldap_bind_s (GK_LDAP *ld,  char const *dn, char const *cred, int method);
 /*
-LDAP_F(int) gk_ldap_kerberos_bind LDAP_P((GK_LDAP *ld,  char const *dn));
+  LDAP_F(int) gk_ldap_kerberos_bind LDAP_P((GK_LDAP *ld,  char const *dn));
 
-LDAP_F(int) gk_ldap_kerberos_bind_s LDAP_P((GK_LDAP *ld,  char const *dn));
+  LDAP_F(int) gk_ldap_kerberos_bind_s LDAP_P((GK_LDAP *ld,  char const *dn));
 */
 /* unbinding */
 
@@ -157,18 +162,18 @@ int gk_ldap_set_option (GK_LDAP *ld, int option,  void const *outvalue);
     @param msgidp pointer to the messageID
 */
 int gk_ldap_search_ext (GK_LDAP *ld,  char const *base,
-  int scope,  char const *filter, char **attrs, int attrsonly, 
-  LDAPControl **serverctrls, LDAPControl **clientctrls,
-  struct timeval *timeout, int sizelimit, int *msgidp);
+			int scope,  char const *filter, char **attrs, int attrsonly, 
+			LDAPControl **serverctrls, LDAPControl **clientctrls,
+			struct timeval *timeout, int sizelimit, int *msgidp);
 
 /** Complete search request (synchronous). 
     @param res the search results
     @see gk_ldap_search_ext for details.
- */
+*/
 int gk_ldap_search_ext_s (GK_LDAP *ld,  char const *base, int scope,  char const *filter,
-		       char **attrs, int attrsonly, LDAPControl **serverctrls,
-		       LDAPControl **clientctrls, struct timeval *timeout,
-		       int sizelimit, LDAPMessage **res);
+			  char **attrs, int attrsonly, LDAPControl **serverctrls,
+			  LDAPControl **clientctrls, struct timeval *timeout,
+			  int sizelimit, LDAPMessage **res);
 /** Simple search request. 
     @param base the search base
     @param scope the search scope
@@ -179,21 +184,21 @@ int gk_ldap_search_ext_s (GK_LDAP *ld,  char const *base, int scope,  char const
     @return messageID
 */
 int gk_ldap_search (GK_LDAP *ld,  char const *base, int scope, char const *filter, char **attrs,
-		 int attrsonly);
+		    int attrsonly);
 
 /** Simple search request (synchronous). @see gk_ldap_search for details.
     @param res the search results
     @return LDAP_SUCCESS if search was successful, a GK_LDAP error otherwise.
 */
 int gk_ldap_search_s (GK_LDAP *ld,  char const *base, int scope, char const *filter, char **attrs,
-		   int attrsonly, LDAPMessage **res);
+		      int attrsonly, LDAPMessage **res);
 
 /** Simple search request with timeout.
     @param timeout overall timeout to get the messages
     @see gk_ldap_search_s
 */
 int gk_ldap_search_st (GK_LDAP *ld,  char const *base, int scope, char const *filter, char **attrs,
-		    int attrsonly, struct timeval *timeout, LDAPMessage **res);
+		       int attrsonly, struct timeval *timeout, LDAPMessage **res);
 
 //@}
 /* comparing between local values and entries */
@@ -207,16 +212,16 @@ int gk_ldap_search_st (GK_LDAP *ld,  char const *base, int scope, char const *fi
     @return LDAP_SUCCESS on success. Error othterwise
 */
 int gk_ldap_compare_ext (GK_LDAP *ld,  char const *dn, char const *attr, 
-		      struct berval const *bvalue, LDAPControl **serverctrls,
-		      LDAPControl **clientctrls, int *msgidp);
+			 struct berval const *bvalue, LDAPControl **serverctrls,
+			 LDAPControl **clientctrls, int *msgidp);
 
 /** Compare (synchronous).
     @see gk_ldap_compare_ext for details.
     @return MessageID
 */
 int gk_ldap_compare_ext_s (GK_LDAP *ld,  char const *dn, char const *attr,
-			struct berval const *bvalue, LDAPControl **serverctrls,
-			LDAPControl **clientctrls);
+			   struct berval const *bvalue, LDAPControl **serverctrls,
+			   LDAPControl **clientctrls);
 
 /** Compare. 
     @param attr array of attributes to compare
@@ -234,21 +239,21 @@ int gk_ldap_compare_s (GK_LDAP *ld,  char const *dn, char const *attr, char *con
 /* Modifying entries */
 /** @name Modifying Entries.
     @deprecated gk_ldap_modify gk_ldap_modify_s
- */
+*/
 //@{ 
 /** Complete modification Request.
     @param mods Array of modifications
     @param msgidp Pointer to the messageid
     @return LDAP_SUCCESS on success. Error othterwise
- */
+*/
 int gk_ldap_modify_ext (GK_LDAP *ld,  char const *dn, LDAPMod **mods, LDAPControl **serverctrls,
-  LDAPControl **clientctrls, int *msgidp);
+			LDAPControl **clientctrls, int *msgidp);
 
 /** Complete modification Request (synchronous).
     @see gk_ldap_modify_ext for details
 */
 int gk_ldap_modify_ext_s (GK_LDAP *ld, char const *dn, LDAPMod **mods,
-  LDAPControl **serverctrls, LDAPControl **clientctrls );
+			  LDAPControl **serverctrls, LDAPControl **clientctrls );
 
 /* deprecated */
 /// Simple modification request.
@@ -260,19 +265,19 @@ int gk_ldap_modify_s (GK_LDAP *ld, char const *dn, LDAPMod **mods);
 /* Modifying names of entries */
 #if (LDAP_VERSION_MAX >= LDAP_VERSION3)
 int gk_ldap_rename (GK_LDAP *ld,  char *dn, 
-  char *newrdn, char *newSuperior, int deleteoldrdn,
-  LDAPControl **sctrls, LDAPControl **cctrls, int *msgidp); /* LDAPv3 */
+		    char *newrdn, char *newSuperior, int deleteoldrdn,
+		    LDAPControl **sctrls, LDAPControl **cctrls, int *msgidp); /* LDAPv3 */
 
 int gk_ldap_rename_s (GK_LDAP *ld,  char *dn, char *newrdn,
-  char *newSuperior, int deleteoldrdn, LDAPControl **sctrls,
-  LDAPControl **cctrls);
+		      char *newSuperior, int deleteoldrdn, LDAPControl **sctrls,
+		      LDAPControl **cctrls);
 #endif
 
 /* deprecated with LDAPv3 */
 /** Modify the relative distinguished name of an entry.
     @param deleteoldrdn 0 if not to delete the old rdn.
     @return MessageID
- */
+*/
 int gk_ldap_modrdn2 (GK_LDAP *ld, char const *dn, char const *newrdn, int deleteoldrdn);
 
 /** Modify the relative distinguished name of an entry (synchronous).
@@ -303,21 +308,21 @@ int gk_ldap_modrdn_s (GK_LDAP *ld, char const *dn, char const *newrdn);
     @return LDAP_SUCCESS on success. Error otherwise
 */
 int gk_ldap_add_ext (GK_LDAP *ld, char const *dn, LDAPMod **attrs,
-  LDAPControl **serverctrls, LDAPControl **clientctrls, int *msgidp);
+		     LDAPControl **serverctrls, LDAPControl **clientctrls, int *msgidp);
 
 /** Add an entry (synchronous).
     @see gk_ldap_add_ext for details.
 */
 int gk_ldap_add_ext_s (GK_LDAP *ld, char const *dn, LDAPMod **attrs,
-  LDAPControl **serverctrls, LDAPControl **clientctrls);
+		       LDAPControl **serverctrls, LDAPControl **clientctrls);
 /** Add an entry.
     @see gk_ldap_add_ext for details.
- */
+*/
 int gk_ldap_add (GK_LDAP *ld,  char const *dn, LDAPMod **attrs);
 
 /** Add an entry (synchronous).
     @see gk_ldap_add_ext for details.
- */
+*/
 int gk_ldap_add_s (GK_LDAP *ld,  char const *dn, LDAPMod **attrs );
 
 /* Deleting entries */
@@ -327,40 +332,40 @@ int gk_ldap_add_s (GK_LDAP *ld,  char const *dn, LDAPMod **attrs );
     @return LDAP_SUCCESS on success. Error otherwise
 */
 int gk_ldap_delete_ext (GK_LDAP *ld,  char const *dn, LDAPControl **serverctrls,
-		     LDAPControl **clientctrls, int *msgidp);
+			LDAPControl **clientctrls, int *msgidp);
 
 /** Delete an entry (synchronous).
     @see gk_ldap_delete_ext for details.
- */
+*/
 int gk_ldap_delete_ext_s (GK_LDAP *ld,  char const *dn, LDAPControl **serverctrls,
-		       LDAPControl **clientctrls);
+			  LDAPControl **clientctrls);
 
 /** Delete an entry.
     @see gk_ldap_delete_ext for details.
- */
+*/
 int gk_ldap_delete (GK_LDAP *ld,  char const *dn );
 
 /** Delete an entry (synchronous).
     @see gk_ldap_delete_ext for details.
- */
+*/
 int gk_ldap_delete_s (GK_LDAP *ld,  char const *dn );
 
 //@}
 #if (LDAP_VERSION_MAX >= LDAP_VERSION3)
 int gk_ldap_extended_operation (GK_LDAP *ld, char *reqoid,
-  struct berval *reqdata, LDAPControl **serverctrls,
-  LDAPControl **clientctrls, int *msgidp);
+				struct berval *reqdata, LDAPControl **serverctrls,
+				LDAPControl **clientctrls, int *msgidp);
 
 int gk_ldap_extended_operation_s (GK_LDAP *ld, char *reqoid,
-  struct berval *reqdata, LDAPControl **serverctrls,
-  LDAPControl **clientctrls, char **retoidp, struct berval **retdatap);
+				  struct berval *reqdata, LDAPControl **serverctrls,
+				  LDAPControl **clientctrls, char **retoidp, struct berval **retdatap);
 
 int gk_ldap_parse_extended_result (GK_LDAP *ld, LDAPMessage *res,
-  char **retoidp, struct berval **retdatap, int freeit);
+				   char **retoidp, struct berval **retdatap, int freeit);
 
 int gk_ldap_parse_extended_partial (GK_LDAP *ld, LDAPMessage *res,
-  char **retoidp, struct berval **retdatap, LDAPControl ***serverctrls,
-  int freeit );
+				    char **retoidp, struct berval **retdatap, LDAPControl ***serverctrls,
+				    int freeit );
 #endif /* LDAPv3 */
 
 /* Abandoning operations */
@@ -369,7 +374,7 @@ int gk_ldap_parse_extended_partial (GK_LDAP *ld, LDAPMessage *res,
 //@{ 
 /// Abandon.
 int gk_ldap_abandon_ext (GK_LDAP *ld, int msgid, LDAPControl **serverctrls,
-  LDAPControl **clientctrls);
+			 LDAPControl **clientctrls);
 /// Abandon.
 int gk_ldap_abandon (GK_LDAP *ld, int msgid);
 
@@ -377,7 +382,7 @@ int gk_ldap_abandon (GK_LDAP *ld, int msgid);
 /* Obtaining results */
 /** @name Getting resulsts.
     @deprecated gk_ldap_result2error, gk_ldap_perror
- */
+*/
 //@{ 
 /** Getting a LDAPMessage pointer.
     @param msgid MessageID.
@@ -387,7 +392,7 @@ int gk_ldap_abandon (GK_LDAP *ld, int msgid);
     @return type of the message fetched.    
 */
 int gk_ldap_result (GK_LDAP *ld, int msgid, int all,struct timeval *timeout,
-  LDAPMessage **result);
+		    LDAPMessage **result);
 
 /// Getting the MessageID from an LDAPMessage
 int gk_ldap_msgid (LDAPMessage *lm);
@@ -402,12 +407,12 @@ int gk_ldap_msgtype (LDAPMessage *lm);
     @param freeit 0 if the LDAPMessage should not be freed. 
 */
 int gk_ldap_parse_result (GK_LDAP *ld, LDAPMessage *res, 
-  int *errcodep, char **matcheddnp, char **errmsgp,
-  char ***referralsp, LDAPControl ***serverctrls,
-  int freeit);
+			  int *errcodep, char **matcheddnp, char **errmsgp,
+			  char ***referralsp, LDAPControl ***serverctrls,
+			  int freeit);
 
 int gk_ldap_parse_sasl_bind_result (GK_LDAP *ld, LDAPMessage *res,
-  struct berval **servercredp, int freeit);
+				    struct berval **servercredp, int freeit);
 
 /// Get the textual representation of a numeric error.
 const char * gk_ldap_err2string (int err);
@@ -463,7 +468,7 @@ char ** gk_ldap_get_values (GK_LDAP *ld, LDAPMessage *entry, char const *target)
 
 /// Get all values for an attribute from a LDAPMessage (as bervals).
 struct berval ** gk_ldap_get_values_len (GK_LDAP *ld, LDAPMessage *entry,
-				      char const *target);
+					 char const *target);
 
 /// Count values returned by gk_ldap_get_values
 int gk_ldap_count_values (char **vals);
@@ -489,7 +494,7 @@ char ** gk_ldap_explode_rdn (char const *rdn, int notypes);
 #if (LDAP_VERSION_MAX >= LDAP_VERSION3)
 
 int gk_ldap_get_entry_controls (GK_LDAP *ld, LDAPMessage *entry,
-  LDAPControl	***serverctrls);
+				LDAPControl	***serverctrls);
 
 #endif
 
@@ -497,7 +502,7 @@ int gk_ldap_get_entry_controls (GK_LDAP *ld, LDAPMessage *entry,
 #if (LDAP_VERSION_MAX >= LDAP_VERSION3)
 
 int gk_ldap_parse_reference (GK_LDAP *ld, LDAPMessage *ref,
-  char ***referralsp, LDAPControl ***serverctrls, int freeit);
+			     char ***referralsp, LDAPControl ***serverctrls, int freeit);
 
 #endif
 
@@ -548,6 +553,10 @@ LDAPMessage * gk_ldap_cache_get_result(GK_LDAP *ld, int msgid, int all);
 void gk_ldap_add_result_by_id(GK_LDAP *ld, int msgid, int all, LDAPMessage *result);
 
 void gk_ldap_cache_enable(GK_LDAP *ld, int timeout, int maxmem);
+
+#define GK_LDAP_SIZEOF_REQUEST 10
+
+void gk_ldap_cache_delete_oldest(GK_LDAP *ld);
 
 #endif /* __GK_LDAP_H */
 //
