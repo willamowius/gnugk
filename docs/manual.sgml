@@ -114,6 +114,14 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New <tt/RoundRobinGateways/ config option.
+
+<item>
+Call capacity limits and priority routing for gateways. New <tt/EP::/
+config sections for per-endpoint configuration settings (see 
+<ref id="epconfig" name="Per-Endpoint Configuration Settings">).
+
+<item>
 RTP proxy handling moved to a separate RTP proxy threads, so processing
 of signaling messages does not block RTP packets. New <tt/RtpHandlerNumber/ 
 config option.
@@ -2051,6 +2059,14 @@ Default: <tt>N/A</tt>
 Specify the trailing character to be removed in <bf/destinationInfo/.
 For example, if your endpoint incorrectly contains the termination character
 like `&num;' in <bf/destinationInfo/, you may remove it by this option.
+
+<item><tt/RoundRobinGateways=0/<newline>
+Default: <tt/1/
+<p>
+Enable/disable round-robin gateway selection, if more than one gateway
+matches a dialed number. If disabled, the first available gateway will be selected.
+Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
+
 </itemize>
 
 <sect2>Section &lsqb;CallTable&rsqb;
@@ -3755,6 +3771,63 @@ If no answer is received during this time an ARJ will be sent to
 the caller.
 </itemize>
 
+<sect1>Per-Endpoint Configuration Settings
+<label id="epconfig">
+<p>
+In addition to the standard configuration file options, per-endpoint configuration
+settings can be specified in the config file. The syntax is as follows:
+
+<tscreen><verb>
+[EP::ALIAS]
+Key Name=Value String
+</verb></tscreen>
+
+<tt/ALIAS/ is replaced with an actual alias for an endpoint the settings
+should apply to. Currently, the following options are recognized:
+
+<itemize>
+<item><tt/Capacity=10/<newline>
+Default: <tt/-1/
+<p>
+Call capacity for an endpoint. No more than <tt/Capacity/ concurrent
+calls will be sent to this endpoint. In case of gateways, if more than one
+gateway matches a dialed number, a call will be sent to the first available
+gateway (that has available capacity).
+
+<item><tt/GatewayPriority=1/<newline>
+Default: <tt/1/
+<p>
+Apply only to gateways. Allow priority based routing in case, when more
+than one gateway matches a dialed number. The smaller value the higher priority
+is assigned to a gateway. A call is routed to the first available gateway
+(that has available capacity) with the highest priority (the smallest
+<tt/GatewayPriority/ values).
+
+<item><tt/GatewayPrefixes=0048,0049,0044/<newline>
+Default: <tt>N/A</tt>
+<p>
+Additional prefixes for this gateway. Apply only to gateways.
+
+</itemize>
+
+Example:
+
+<tscreen><verb>
+[RasSrv::PermanentEndpoints]
+192.168.1.1=gw1;48
+192.168.1.2=gw2;48
+
+[EP::gw1]
+Capacity=60
+GatewayPriority=1
+
+[EP::gw2]
+Capacity=30
+GatewayPriority=2
+</verb></tscreen>
+
+In this example, calls will be sent to the gateway <tt/gw1/ until its
+capacity is fully utilized (60 concurrent calls) and then to the gateway <tt/gw2/.
 
 <!----------          Next Section          ---------->
 <sect>Monitoring the Gatekeeper (Reference)

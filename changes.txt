@@ -1,5 +1,9 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(ProxyChannel.cxx) race condition with NAT sockets fixed, thanks to Daniel Liu
+- new RoundRobinGateways config option in the RasSrv::ARQFeatures sections
+  to enable/disable round-robin gateway selection
+- call capacity limits and gateway prioritization (new EP:: config sections)
 - BUGFIX(ProxyChannel.cxx) errors during H.245 channel establishment caused
   calls to not disconnect correctly
 - check VirtualQueueRegex on startup

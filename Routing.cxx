@@ -71,7 +71,14 @@ bool RoutingRequest::SetDestination(const H225_TransportAddress & dest, bool fin
 
 bool RoutingRequest::SetCalledParty(const endptr & called)
 {
-	return (m_called = called) ? SetDestination(called->GetCallSignalAddress()) : false;
+	m_called = called;
+	if (called)
+		return SetDestination(called->GetCallSignalAddress());
+	else {
+		delete m_destination;
+		m_destination = NULL;
+		return false;
+	}
 }
 
 
@@ -264,15 +271,56 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 // the classical policy, find the dstionation from the RegistrationTable
 class InternalPolicy : public AliasesPolicy {
 public:
-	InternalPolicy() { m_name = "Internal"; }
+	InternalPolicy();
+
 protected:
+	virtual bool OnRequest(AdmissionRequest &);
+	virtual bool OnRequest(SetupRequest &);
+
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+	
+private:
+	bool roundRobin;
 };
+
+InternalPolicy::InternalPolicy()
+	: roundRobin(Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "RoundRobinGateways", "1")))
+{
+	m_name = "Internal";
+}
+
+bool InternalPolicy::OnRequest(AdmissionRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases == NULL || !FindByAliases(request, *aliases))
+		return false;
+	if (request.GetCalledParty())
+		if (!request.GetCalledParty()->HasAvailableCapacity()) {
+			request.SetCalledParty(endptr(NULL));
+			request.SetRejectReason(H225_AdmissionRejectReason::e_resourceUnavailable);
+		}
+
+	return true;
+}
+
+bool InternalPolicy::OnRequest(SetupRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases == NULL || !FindByAliases(request, *aliases))
+		return false;
+	if (request.GetCalledParty())
+		if (!request.GetCalledParty()->HasAvailableCapacity()) {
+			request.SetCalledParty(endptr(NULL));
+			request.SetRejectReason(H225_ReleaseCompleteReason::e_gatewayResources);
+		}
+
+	return true;
+}
 
 bool InternalPolicy::FindByAliases(RoutingRequest& request, H225_ArrayOf_AliasAddress & aliases)
 {
-	return request.SetCalledParty(RegistrationTable::Instance()->FindEndpoint(aliases, true));
+	return request.SetCalledParty(RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin));
 }
 
 bool InternalPolicy::FindByAliases(LocationRequest& request, H225_ArrayOf_AliasAddress & aliases)

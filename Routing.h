@@ -56,16 +56,17 @@ public:
 	};
 
 	// note this is not a polymorphic class
-	RoutingRequest(endptr & called) : m_destination(0), m_neighbor_used(0), m_called(called), m_flags(0) {}
+	RoutingRequest(endptr & called) : m_destination(0), m_neighbor_used(0), m_called(called), m_reason(-1), m_flags(0) {}
 	~RoutingRequest();
 
 	H225_TransportAddress* GetDestination() const { return m_destination; }
 	bool SetDestination(const H225_TransportAddress &, bool = false);
 	bool SetCalledParty(const endptr &);
-	void SetRejectReason(unsigned reason) { m_reason = (WORD)reason; }
+	void SetRejectReason(unsigned reason) { m_reason = reason; }
 	void SetFlag(unsigned f) { m_flags |= f; }
 	unsigned GetRejectReason() const { return m_reason; }
 	unsigned GetFlags() const { return m_flags; }
+	endptr& GetCalledParty() { return m_called; }
 	void SetNeighborUsed(PIPSocket::Address neighbor) { m_neighbor_used = neighbor; }
 	PIPSocket::Address GetNeighborUsed() { return m_neighbor_used; }
 
@@ -75,7 +76,8 @@ protected:
 
 private:
 	endptr & m_called;
-	short unsigned m_reason, m_flags;
+	int m_reason;
+	unsigned m_flags;
 };
 
 template<class R, class W>

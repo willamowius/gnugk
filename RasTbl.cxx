@@ -54,7 +54,8 @@ EndpointRec::EndpointRec(
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(2), m_usedCount(0),
 	m_nat(false), m_natsocket(0), m_permanent(permanent), 
-	m_hasCallCreditCapabilities(false), m_callCreditSession(-1)
+	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
+	m_capacity(-1)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -76,6 +77,8 @@ EndpointRec::EndpointRec(
 	}
 	if (permanent)
 		m_timeToLive = 0;
+		
+	LoadEndpointConfig();
 }	
 
 void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
@@ -147,6 +150,28 @@ EndpointRec::~EndpointRec()
 		m_natsocket->SetDeletable();
 }
 
+bool EndpointRec::LoadConfig()
+{ 
+	PWaitAndSignal lock(m_usedLock);
+	LoadEndpointConfig();
+	return true;
+}
+
+void EndpointRec::LoadEndpointConfig()
+{
+	PConfig* const cfg = GkConfig();
+	const PStringList sections = cfg->GetSections();
+	
+	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
+		const PString key = "EP::" + H323GetAliasAddressString(m_terminalAliases[i]);
+		if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
+			m_capacity = cfg->GetInteger(key, "Capacity", -1);
+			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity);
+			break;
+		}
+	}
+}
+
 /*
 bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
                                                bool &fullMatch) const
@@ -189,6 +214,13 @@ bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress 
 }
 */
 
+void EndpointRec::SetCapacity(
+	int newCapacity /// max number of concurrent calls, -1 means no limit
+	) 
+{ 
+	m_capacity = newCapacity; 
+}
+
 void EndpointRec::SetTimeToLive(int seconds)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -213,6 +245,53 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 		}
 		m_natsocket = socket;
 	}
+}
+
+void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_rasAddress = a;
+}
+
+void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_endpointIdentifier = i;
+}
+
+void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
+{
+	{
+		PWaitAndSignal lock(m_usedLock);
+		m_terminalAliases = a;
+	}
+	LoadConfig(); // update settings for the new aliases
+}
+
+void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
+{
+	{
+		PWaitAndSignal lock(m_usedLock);
+		*m_terminalType = t;
+	}
+	LoadConfig(); // update settings for the new endpoint type
+}
+
+void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	m_nat = true;
+	m_natip = ip;
+
+	// we keep the original private IP in signalling address,
+	// because we have to use it to identify different endpoints
+	// but from the same NAT box
+	if (m_rasAddress.GetTag() != H225_TransportAddress::e_ipAddress)
+		m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
+	H225_TransportAddress_ipAddress & rasip = m_rasAddress;
+	for (int i = 0; i < 4; ++i)
+		rasip.m_ip[i] = ip[i];
 }
 
 
@@ -428,13 +507,50 @@ GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false)
 {
 	Prefixes.reserve(8);
-	GatewayRec::LoadConfig(); // static binding
+	LoadGatewayConfig(); // static binding
 }
 
-void GatewayRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
+bool GatewayRec::LoadConfig()
 {
-	EndpointRec::SetAliases(a);
-	LoadConfig();
+	EndpointRec::LoadConfig();
+	PWaitAndSignal lock(m_usedLock);
+	LoadGatewayConfig();
+	return true;
+}
+
+void GatewayRec::LoadGatewayConfig()
+{
+	PConfig* const cfg = GkConfig();
+	const PStringList sections = cfg->GetSections();
+	
+	Prefixes.clear();
+	
+	if (Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
+		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+			AddPrefixes(m_terminalType->m_gateway.m_protocol);
+			
+	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
+		const PString alias = H323GetAliasAddressString(m_terminalAliases[i]);
+		if (!alias) {
+			AddPrefixes(cfg->GetString("RasSrv::GWPrefixes", alias, ""));
+			const PString key = "EP::" + H323GetAliasAddressString(m_terminalAliases[i]);
+			if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
+				AddPrefixes(cfg->GetString(key, "GatewayPrefixes", ""));
+				priority = cfg->GetInteger(key, "GatewayPriority", 1);
+				PTRACE(5, "RAS\tGateway " << key << " priority: " << priority);
+				break;
+			}
+		}
+	}
+
+	SortPrefixes();
+}
+
+void GatewayRec::SetPriority(
+	int newPriority
+	) 
+{
+	priority = newPriority;
 }
 
 void GatewayRec::SetEndpointType(const H225_EndpointType &t)
@@ -444,7 +560,6 @@ void GatewayRec::SetEndpointType(const H225_EndpointType &t)
 		return;
 	}
 	EndpointRec::SetEndpointType(t);
-	LoadConfig();
 }
 
 void GatewayRec::Update(const H225_RasMessage & ras_msg)
@@ -503,22 +618,6 @@ void GatewayRec::SortPrefixes()
 	prefix_iterator Iter = unique(Prefixes.begin(), Prefixes.end());
 	Prefixes.erase(Iter, Prefixes.end());
 	defaultGW = (find(Prefixes.begin(), Prefixes.end(), std::string("*")) != Prefixes.end());
-}
-
-bool GatewayRec::LoadConfig()
-{
-	PWaitAndSignal lock(m_usedLock);
-	Prefixes.clear();
-	if (Toolkit::AsBool(GkConfig()->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
-		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
-			AddPrefixes(m_terminalType->m_gateway.m_protocol);
-	for (PINDEX i=0; i<m_terminalAliases.GetSize(); i++) {
-		const PString alias = H323GetAliasAddressString(m_terminalAliases[i]);
-		if (!alias)
-			AddPrefixes(GkConfig()->GetString("RasSrv::GWPrefixes", alias, ""));
-	}
-	SortPrefixes();
-	return true;
 }
 
 int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &a) const
@@ -857,41 +956,64 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	std::list<EndpointRec *> *List, bool roundrobin)
 {
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
-        if (ep) {
-                PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
-                return ep;
-        }
+	if (ep) {
+		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
+        return ep;
+	}
 
-        int maxlen = 0;
-        std::list<EndpointRec *> GWlist;
-        listLock.StartRead();
-        const_iterator Iter = List->begin(), IterLast = List->end();
-        while (Iter != IterLast) {
-                if ((*Iter)->IsGateway()) {
-                        int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
-                        if (maxlen < len) {
-                                GWlist.clear();
-                                maxlen = len;
-                        }
-                        if (maxlen == len)
-                                GWlist.push_back(*Iter);
-                }
-                ++Iter;
-        }
-        listLock.EndRead();
+	int maxlen = 0;
+	std::list<GatewayRec *> GWlist;
+	listLock.StartRead();
+	const_iterator Iter = List->begin(), IterLast = List->end();
+	while (Iter != IterLast) {
+		if ((*Iter)->IsGateway()) {
+			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
+			if (maxlen < len) {
+				GWlist.clear();
+				maxlen = len;
+			}
+			if (maxlen == len)
+				GWlist.push_back(dynamic_cast<GatewayRec*>(*Iter));
+		}
+		++Iter;
+	}
+	listLock.EndRead();
 
-        if (GWlist.size() > 0) {
-                EndpointRec *e = GWlist.front();
-                if ((GWlist.size() > 1) && roundrobin) {
-                        PTRACE(3, "Prefix apply round robin");
-                        WriteLock lock(listLock);
-                        List->remove(e);
-                        List->push_back(e);
-                }
-                PTRACE(4, "Alias match for GW " << AsDotString(e->GetCallSignalAddress()));
-                return endptr(e);
-        }
-        return endptr(0);
+	if (GWlist.size() > 0) {
+		std::list<GatewayRec*>::const_iterator endIter = GWlist.end();
+
+		// do we need here something better than a bubble-sort?		
+		int numSwaps;
+		do {
+			numSwaps = 0;
+			std::list<GatewayRec*>::iterator i = GWlist.begin();
+			std::list<GatewayRec*>::iterator j = i;
+			while (++j != endIter) {
+				if ((*i)->GetPriority() > (*j)->GetPriority()) {
+					std::swap(*i, *j);
+					numSwaps++;
+				}
+				i++;
+			}
+		} while (numSwaps != 0);
+		
+		std::list<GatewayRec*>::const_iterator i = GWlist.begin();
+		GatewayRec *e = GWlist.front();
+		while (!e->HasAvailableCapacity() && ++i != endIter) {
+			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
+			e = *i;
+		}
+		if ((GWlist.size() > 1) && roundrobin) {
+			PTRACE(3, "Prefix apply round robin");
+			WriteLock lock(listLock);
+			List->remove(e);
+			List->push_back(e);
+		}
+		PTRACE(4, "Prefix match for GW " << AsDotString(e->GetCallSignalAddress()));
+		return endptr(e);
+	}
+	
+	return endptr(0);
 }
 
 void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId)

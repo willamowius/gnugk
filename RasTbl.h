@@ -126,7 +126,14 @@ public:
 		int& matchedalias
 		) const;
 
-	virtual bool LoadConfig() { return true; } // workaround: VC need a return value
+	/** Load additional endpoint settings from the config file.
+	    Derived classes should call LoadConfig method of their base class
+	    at the beginning of the overriden LoadConfig.
+		
+	    @return
+		True if the configuration has been updated successfully.	
+	*/
+	virtual bool LoadConfig();
 
 	virtual EndpointRec *Unregister();
 	virtual EndpointRec *Expired();
@@ -178,7 +185,25 @@ public:
 		int billingMode, /// user's account billing mode (-1 if not set)
 		long callDurationLimit /// call duration limit (-1 if not set)
 		);
-		
+
+	/** @return
+	    Maximum call capacity for this endpoint. -1 if there is not capacity
+	    limit set.
+	*/
+	int GetCapacity() const { return m_capacity; }
+	
+	/** Set maximum number of concurrent calls this endpoint can handle.
+	    Pass -1 to disable the limit.
+	*/
+	void SetCapacity(
+		int newCapacity /// max number of concurrent calls, -1 means no limit
+		);
+
+	/** @return
+	    True if the endpoint can handle at least one more concurrent call.
+	*/
+	bool HasAvailableCapacity() const { return m_capacity == -1 || m_activeCall < m_capacity; }
+	
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -191,6 +216,15 @@ protected:
 
 	bool SendURQ(H225_UnregRequestReason::Choices);
 
+private:
+	/// Load general endpoint settings from the config
+	void LoadEndpointConfig();
+
+	EndpointRec();
+	EndpointRec(const EndpointRec &);
+	EndpointRec & operator= (const EndpointRec &);
+	
+protected:
 	/**This field may disappear sometime when GetCompleteRegistrationRequest() can
 	 * build its return value itself.
 	 * @see GetCompleteRegistrationRequest()
@@ -218,9 +252,8 @@ protected:
 	bool m_hasCallCreditCapabilities;
 	/// session number for call credit service control session
 	int m_callCreditSession;
-private: // not assignable
-	EndpointRec(const EndpointRec &);
-	EndpointRec & operator= (const EndpointRec &);
+	/// endpoint call capacity, -1 means no limit
+	int m_capacity;
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -233,11 +266,12 @@ public:
 
 	GatewayRec(const H225_RasMessage & completeRAS, bool Permanent=false);
 
-	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
 	virtual void SetEndpointType(const H225_EndpointType &);
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
+
+	/// Overiden from EndpointRec
 	virtual bool LoadConfig();
 
 	/** Find if at least one of the given aliases matches any prefix
@@ -276,11 +310,32 @@ public:
 	void AddPrefixes(const PString &);
 	void SortPrefixes();
 
+	/** @return
+	    Priority for this gateway, when more than one gateway matches
+	    a dialed number.
+	*/
+	int GetPriority() const { return priority; }
+	
+	/// Set the priority for this gateway.
+	void SetPriority(
+		int newPriority
+		);
+
+private:
+	/// Load gateway specific settings from the config
+	void LoadGatewayConfig();
+	
+	GatewayRec();
+	GatewayRec(const GatewayRec&);
+	GatewayRec& operator=(const GatewayRec&);
+
 protected:
 	// strange! can't compile in debug mode, anybody know why??
 	//vector<PString> Prefixes;
 	std::vector<std::string> Prefixes;
 	bool defaultGW;
+	/// priority for this gateway (when more than one gw matches a dialed number)
+	int priority;
 };
 
 
@@ -930,12 +985,6 @@ inline H225_TransportAddress EndpointRec::GetRasAddress() const
 	return m_rasAddress;
 }
 
-inline void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_rasAddress = a;
-}
-
 inline H225_TransportAddress EndpointRec::GetCallSignalAddress() const
 { 
 	PWaitAndSignal lock(m_usedLock);
@@ -947,13 +996,7 @@ inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
 	PWaitAndSignal lock(m_usedLock);
 	return m_endpointIdentifier;
 }
-
-inline void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_endpointIdentifier = i;
-}
-        
+  
 inline int EndpointRec::GetTimeToLive() const
 {
 	return m_timeToLive;
@@ -965,22 +1008,10 @@ inline H225_ArrayOf_AliasAddress EndpointRec::GetAliases() const
 	return m_terminalAliases;
 }
 
-inline void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_terminalAliases = a;
-}
-        
 inline H225_EndpointType EndpointRec::GetEndpointType() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return *m_terminalType;
-}
-
-inline void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
-{
-	PWaitAndSignal lock(m_usedLock);
-	*m_terminalType = t;
 }
 
 inline void EndpointRec::SetNAT(bool nat)
@@ -997,23 +1028,6 @@ inline PIPSocket::Address EndpointRec::GetNATIP() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return m_natip;
-}
-
-inline void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
-{
-	PWaitAndSignal lock(m_usedLock);
-
-	m_nat = true;
-	m_natip = ip;
-
-	// we keep the original private IP in signalling address,
-	// because we have to use it to identify different endpoints
-	// but from the same NAT box
-	if (m_rasAddress.GetTag() != H225_TransportAddress::e_ipAddress)
-		m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
-	H225_TransportAddress_ipAddress & rasip = m_rasAddress;
-	for (int i = 0; i < 4; ++i)
-		rasip.m_ip[i] = ip[i];
 }
 
 inline CallSignalSocket *EndpointRec::GetSocket() 

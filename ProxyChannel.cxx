@@ -1360,7 +1360,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 						useParent = request.GetFlags() & Routing::SetupRequest::e_toParent;
 				} else {
 					PTRACE(3, "Q931\tNo destination for unregistered call " << callid);
-					authData.m_rejectCause = Q931::NoRouteToDestination;
+					authData.m_rejectReason = request.GetRejectReason();
 					rejectCall = true;
 				}
 			}
@@ -1918,13 +1918,16 @@ void CallSignalSocket::Dispatch()
 			case Forwarding:
 				if (remote && IsConnected()) { // remote is NAT socket
 					ForwardData();
-					if (!remote->IsReadable(2*setupTimeout)) {
-						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-						if( m_call ) {
-							m_call->SetDisconnectCause(Q931::TimerExpiry);
-							CallTable::Instance()->RemoveCall(m_call);
-						}
-					}
+// in case of NAT socket, IsReadable cause race condition if the remote socket
+// is selected by its proxy handler, thanks to Daniel Liu
+//
+//					if (!remote->IsReadable(2*setupTimeout)) {
+//						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
+//						if( m_call ) {
+//							m_call->SetDisconnectCause(Q931::TimerExpiry);
+//							CallTable::Instance()->RemoveCall(m_call);
+//						}
+//					}
 					return;
 				}
 
