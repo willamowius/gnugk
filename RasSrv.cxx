@@ -1324,6 +1324,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		obj_rpl.SetTag(H225_RasMessage::e_locationConfirm);
 		H225_LocationConfirm & lcf = obj_rpl;
 		lcf.m_requestSeqNum = obj_lrq.m_requestSeqNum;
+		lcf.IncludeOptionalField(H225_LocationConfirm::e_nonStandardData);
 		lcf.m_nonStandardData = obj_lrq.m_nonStandardData;
 
 		WantedEndPoint->BuildLCF(obj_rpl);
@@ -1346,6 +1347,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		H225_LocationReject & lrj = obj_rpl;
 		lrj.m_requestSeqNum = obj_lrq.m_requestSeqNum;
 		lrj.m_rejectReason.SetTag(H225_LocationRejectReason::e_requestDenied); // can't find the location
+		lrj.IncludeOptionalField(H225_LocationReject::e_nonStandardData);
 		lrj.m_nonStandardData = obj_lrq.m_nonStandardData;
 
 		PString sourceInfoString;
