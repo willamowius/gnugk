@@ -925,7 +925,7 @@ bool StatusClient::CheckAuthRule(
 	} else if (rule *= "explicit") {
 		PString val;
 		if (!peer)
-			GkConfig()->GetString(authsec, peer, "");
+		    val = GkConfig()->GetString(authsec, peer, "");
 		if (val.IsEmpty()) { // use "default" entry
 			result = Toolkit::AsBool(GkConfig()->GetString(authsec, "default", "0"));
 			PTRACE(5, "STATUS\tClient IP " << peer << " not found for explicit rule, using default ("
@@ -936,7 +936,7 @@ bool StatusClient::CheckAuthRule(
 	} else if (rule *= "regex") {
 		PString val;
 		if (!peer)
-			GkConfig()->GetString(authsec, peer, "");
+		    val = GkConfig()->GetString(authsec, peer, "");
 		if (val.IsEmpty()) {
 			result = Toolkit::MatchRegex(peer, GkConfig()->GetString(authsec, "regex", ""));
 			PTRACE(5, "STATUS\tClient IP " << peer << " not found for regex rule, using default ("

@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(GkStatus.cxx) fixed bug in status client authentication introduced
+  by recent changes, thanks to Razvan Radu!
 - (sqlbill) examples how to setup SQLAcct, SQLPasswordAuth and SQLAliasAuth
   with the billing
 - direct SQL accounting module (SQLAcct) ported from 2.0 branch
