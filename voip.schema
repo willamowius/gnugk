@@ -244,7 +244,7 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
   DESC 'Objects of this class can be used to provide VoIP-Equipment with
         user-related access and authentification information'
   MAY ( mail $ telephonenumber $ plaintextPassword $ voIPIpAddress $
-	voiIPsubscriberNumber $
+	voIPsubscriberNumber $
 	voIPlocalAccessCode $ voIPnationalAccessCode $ voIPinternationalAccessCode $
 	voIPcallingLineIdRestriction $ voIPspecialDial $
 	voIPprefixBlacklist $ voIPprefixWhitelist ) )
