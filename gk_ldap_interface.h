@@ -545,6 +545,9 @@ void gk_ldap_value_free_len (struct berval **vals);
 /// Frees any char * returned by gk_ldap-API functions
 void gk_ldap_memfree (char *mem);
 
+/// Free an BerElement.
+void gk_ber_free(BerElement * ber, int flag);
+
 //@}
 
 // gk_ldap_cache-functions.
