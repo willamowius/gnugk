@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2004/12/25 15:38:45  zvision
+ * Typos fixed
+ *
  * Revision 1.7  2004/12/15 14:43:24  zvision
  * Shutdown the gatekeeper on SQL auth/acct module config errors.
  * Thanks to Mikko Oilinki.
@@ -74,14 +77,8 @@ bool GkSQLConnection::Initialize(
 		PTRACE(1, GetName() << "\tInitialize failed: NULL config or config section not specified!");
 		return false;
 	}
-	
-	PStringArray hosts = cfg->GetString(cfgSectionName, "Host", "localhost").Tokenise(";");
-	for (PINDEX i = 0; i < hosts.GetSize(); i++) {
-		const PString host = hosts[i].Trim();
-		if (!host)
-			m_hosts += host;
-	}
 
+	GetHostAndPort(cfg->GetString(cfgSectionName, "Host", "localhost"), m_host, m_port);
 	m_database = cfg->GetString(cfgSectionName, "Database", "");
 	m_username = cfg->GetString(cfgSectionName, "Username", "");
 	m_password = cfg->GetString(cfgSectionName, "Password", "");
@@ -91,7 +88,7 @@ bool GkSQLConnection::Initialize(
 	if (m_maxPoolSize >= 0)
 		m_maxPoolSize = std::max(m_minPoolSize, m_maxPoolSize);
 		
-	if (m_hosts.GetSize() < 1 || m_database.IsEmpty()) {
+	if (m_host.IsEmpty() || m_database.IsEmpty()) {
 		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
 		return false;
 	}
@@ -100,10 +97,11 @@ bool GkSQLConnection::Initialize(
 }
 
 bool GkSQLConnection::Initialize(
-	const char* hosts,
+	const char* host,
 	const char* database,
 	const char* username,
 	const char* password,
+	unsigned port,
 	int minPoolSize,
 	int maxPoolSize
 	)
@@ -115,19 +113,15 @@ bool GkSQLConnection::Initialize(
 		m_maxPoolSize = -1;
 	else
 		m_maxPoolSize = std::max(maxPoolSize,m_minPoolSize);
-	
-	PStringArray hostArray = PString(hosts).Tokenise(";");
-	for (PINDEX i = 0; i < hostArray.GetSize(); i++) {
-		const PString host = hostArray[i].Trim();
-		if (!host)
-			m_hosts += host;
-	}
+
+	m_host = host;
+	m_port = port;	
 
 	m_database = database;
 	m_username = username;
 	m_password = password;
 
-	if (m_hosts.GetSize() < 1 || m_database.IsEmpty()) {
+	if (m_host.IsEmpty() || m_database.IsEmpty()) {
 		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
 		return false;
 	}

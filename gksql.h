@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2004/12/15 13:41:33  zvision
+ * Reconnect to the database, if the initial attempt failed. Thanks to Mikko Oilinki
+ *
  * Revision 1.4  2004/08/02 10:52:07  zvision
  * Ability to extract column names from a result set
  *
@@ -204,6 +207,7 @@ public:
 	    True if connections have been established.
 	*/	
 	virtual bool Initialize(
+		/// database host to connect to
 		const char* host,
 		/// database name to connect to
 		const char* database,
@@ -211,6 +215,8 @@ public:
 		const char* username,
 		/// password to use (or NULL to not use any password)
 		const char* password = NULL,
+		/// database port to connect to (0 to use a default)
+		unsigned port = 0,
 		/// minimum number of active SQL connections
 		int minPoolSize = 1,
 		/// maximum number of active SQL connections
@@ -415,10 +421,10 @@ private:
 	bool Connect();
 	
 protected:
-	/// list of database hosts (IP:PORT or DNS:PORT)
-	PStringArray m_hosts;
 	/// filled with the actual host from m_hosts the database connection is made to
 	PString m_host;
+	/// database port to connect to
+	WORD m_port;
 	/// database name
 	PString m_database;
 	/// database username to connect as

@@ -1,3 +1,8 @@
+Changes from 2.2.1 to 2.2.2
+===========================
+- SQL modules accept only one database host now (the failover was not supported
+  properly either, so it has been removed)
+
 Changes from 2.2.0 to 2.2.1
 ===========================
 - enchanced prefix matching for routing policies. A dot (.) matches any digit

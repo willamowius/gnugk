@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2004/08/02 10:52:07  zvision
+ * Ability to extract column names from a result set
+ *
  * Revision 1.4  2004/07/09 22:11:36  zvision
  * SQLAcct module ported from 2.0 branch
  *
@@ -462,21 +465,17 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&CONNECT_TIMEOUT);
 
 	// connect to the MySQL database, try each host on the list in case of failure
-	for (PINDEX i = 0; i < m_hosts.GetSize(); i++) {
-		WORD port = 0;
-		GetHostAndPort(m_hosts[i], m_host, port);
-		if (mysql_real_connect(conn, m_host, m_username, 
-				m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
-				m_database, port, NULL, 0)) {
-			PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
-				<< '[' << m_database << "] established successfully"
-				);
-			return new MySQLConnWrapper(id, m_host, conn);
-		} else {
-			PTRACE(2, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
-				<< '[' << m_database << "] failed (mysql_real_connect failed): " << mysql_error(conn)
-				);
-		}
+	if (mysql_real_connect(conn, m_host, m_username, 
+			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
+			m_database, m_port, NULL, 0)) {
+		PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
+			<< '[' << m_database << "] established successfully"
+			);
+		return new MySQLConnWrapper(id, m_host, conn);
+	} else {
+		PTRACE(2, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
+			<< '[' << m_database << "] failed (mysql_real_connect failed): " << mysql_error(conn)
+			);
 	}
 	return NULL;
 }

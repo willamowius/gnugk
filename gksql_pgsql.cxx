@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2004/10/20 09:16:23  zvision
+ * VC6 compilation errors fixed
+ *
  * Revision 1.5.4.1  2004/10/20 09:10:12  zvision
  * VC6 compilation errors fixed
  *
@@ -428,31 +431,26 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 	int id
 	)
 {
-	// connect to the PostgreSQL database, try each host on the list in case of failure
-	for (PINDEX i = 0; i < m_hosts.GetSize(); i++) {
-		PGconn* conn;
-		WORD port = 0;
-		GetHostAndPort(m_hosts[i], m_host, port);
-		const PString portStr(port);
-//		const PString optionsStr("connect_timeout=10000");
-		if ((conn = PQsetdbLogin(m_host, 
-				port ? (const char*)portStr : (const char*)NULL,
-				NULL /*(const char*)optionsStr*/, NULL,
-				m_database, m_username, 
-				m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password
-				)) && PQstatus(conn) == CONNECTION_OK) {
-			PTRACE(5, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
-				<< '[' << m_database << "] established successfully"
-				);
-			return new PgSQLConnWrapper(id, m_host, conn);
-		} else {
-			PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
-				<< '[' << m_database << "] failed (PQsetdbLogin failed): " 
-				<< (conn ? PQerrorMessage(conn) : "")
-				);
-			if (conn)
-				PQfinish(conn);
-		}
+	PGconn* conn;
+	const PString portStr(m_port);
+//	const PString optionsStr("connect_timeout=10000");
+	if ((conn = PQsetdbLogin(m_host, 
+			m_port ? (const char*)portStr : (const char*)NULL,
+			NULL /*(const char*)optionsStr*/, NULL,
+			m_database, m_username, 
+			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password
+			)) && PQstatus(conn) == CONNECTION_OK) {
+		PTRACE(5, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
+			<< '[' << m_database << "] established successfully"
+			);
+		return new PgSQLConnWrapper(id, m_host, conn);
+	} else {
+		PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
+			<< '[' << m_database << "] failed (PQsetdbLogin failed): " 
+			<< (conn ? PQerrorMessage(conn) : "")
+			);
+		if (conn)
+			PQfinish(conn);
 	}
 	return NULL;
 }

@@ -110,6 +110,14 @@ using <tt/gnugk/ as name for executables.
 
 <sect1>Features
 <p>
+The version 2.2.2 contains the following new features and bugfixes:
+
+<itemize>
+<item>
+SQL modules accept only one database host in the <tt/Host/ parameter.
+</itemize>
+
+<p>
 The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
@@ -2621,12 +2629,11 @@ Default: N/A
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
-<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-Multiple hosts, separated by the semicolon, may be specified to support failover.
 
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
@@ -2801,12 +2808,11 @@ Default: N/A
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
-<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-Multiple hosts, separated by the semicolon, may be specified to support failover.
 
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
@@ -3772,12 +3778,11 @@ Default: N/A
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
-<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-Multiple hosts, separated by the semicolon, may be specified to support failover.
 
 <item><tt/Database=billing/<newline>
 Default: <tt/billing/
