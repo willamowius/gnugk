@@ -58,37 +58,39 @@ void Toolkit::RouteTable::InitTable()
 		PTRACE(1, "Error: Can't get route table");
 		return;
 	}
-	for (PINDEX r = 0; r < r_table.GetSize(); r++) {
+
+	rtable_end = rtable_begin = new RouteEntry[r_table.GetSize()];
+	for (PINDEX r = 0; r < r_table.GetSize(); ++r) {
 		PIPSocket::RouteEntry & r_entry = r_table[r];
 		if (!r_entry.GetInterface())
-			rTable.push_back(new RouteEntry(r_entry, if_table));
+			new (rtable_end++) RouteEntry(r_entry, if_table);
 	}
 
 	// Set default IP according to route table
 	defAddr = GetLocalAddress(INADDR_ANY);
 
 #ifdef PTRACING
-	typedef std::list<RouteEntry *>::iterator iterator;
-	for (iterator i = rTable.begin(); i != rTable.end(); ++i)
-		PTRACE(2, "Network=" << (*i)->GetNetwork() << '/' <<
-			  (*i)->GetNetMask() <<
-			  ", IP=" << (*i)->GetDestination());
+	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry)
+		PTRACE(2, "Network=" << entry->GetNetwork() << '/' <<
+			  entry->GetNetMask() <<
+			  ", IP=" << entry->GetDestination());
 	PTRACE(2, "Default IP=" << defAddr);
 #endif
 }
 
 void Toolkit::RouteTable::ClearTable()
 {
-	for_each(rTable.begin(), rTable.end(), delete_entry);
-	rTable.clear();
+	if (rtable_begin) {
+		delete [] rtable_begin;
+		rtable_begin = 0;
+	}
 }
 
 PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(Address addr) const
 {
-	typedef std::list<RouteEntry *>::const_iterator const_iterator;
-	const_iterator iter = find_if(rTable.begin(), rTable.end(),
-			bind2nd(mem_fun(&RouteEntry::Compare), addr));
-	return (iter != rTable.end()) ? (*iter)->GetDestination() : defAddr;
+	RouteEntry *entry = find_if(rtable_begin, rtable_end,
+			bind2nd(mem_fun_ref(&RouteEntry::Compare), addr));
+	return (entry != rtable_end) ? entry->GetDestination() : defAddr;
 }
 
 // class Toolkit::ProxyCriterion

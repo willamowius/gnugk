@@ -42,7 +42,7 @@ class Toolkit : public Singleton<Toolkit>
 		typedef PIPSocket::InterfaceTable InterfaceTable;
 
 	public:
-		RouteTable() { /* initialize later */ }
+		RouteTable() : rtable_begin(0) { /* initialize later */ }
 		~RouteTable() { ClearTable(); }
 		Address GetLocalAddress() const { return defAddr; };
 		Address GetLocalAddress(Address) const;
@@ -56,12 +56,12 @@ class Toolkit : public Singleton<Toolkit>
 #ifndef WIN32
 			PCLASSINFO( RouteEntry, PIPSocket::RouteEntry )
 #endif
+			RouteEntry() : PIPSocket::RouteEntry(Address()) {}
 			RouteEntry(PIPSocket::RouteEntry &, InterfaceTable &);
 			bool Compare(Address) const;
 		};
-		static void delete_entry(RouteEntry *e) { delete e; } 
 
-		std::list<RouteEntry *> rTable;
+		RouteEntry *rtable_begin, *rtable_end;
 		Address defAddr;
 	};
 

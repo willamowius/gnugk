@@ -41,13 +41,13 @@ public:
 		Error
 	};
 
-	ProxySocket(PIPSocket *);
-	virtual ~ProxySocket() { delete [] wbuffer; }
+	ProxySocket(PIPSocket *, const char *);
+	virtual ~ProxySocket() = 0; // abstract class
 	PString Name() const { return name; }
 
-	virtual Result ReceiveData() = 0;
-	virtual bool ForwardData() = 0;
-	virtual bool TransmitData() = 0;
+	virtual Result ReceiveData();
+	virtual bool ForwardData() { return WriteData(self); }
+	virtual bool TransmitData() { return WriteData(self); }
 	virtual bool EndSession();
 
 	bool IsSocketOpen() const { return self->IsOpen(); }
@@ -59,15 +59,18 @@ public:
 	void MarkBlocked(bool b) { blocked = b; }
 	bool IsConnected() const { return connected; }
 	void SetConnected(bool c) { connected = c; }
+	bool IsDeletable() const { return deletable; }
+	void SetDeletable() { deletable = true; }
 	ProxyHandleThread *GetHandler() const { return handler; }
 	void SetHandler(ProxyHandleThread *h) { handler = h; }
 
 	void AddToSelectList(PSocket::SelectList &);
 
 protected:
+	bool WriteData(PIPSocket *);
+	void InternalCleanup();
 	bool SetMinBufSize(WORD);
 	bool ErrorHandler(PSocket *, PChannel::ErrorGroup);
-	void InternalCleanup();
 	void SetName(PIPSocket::Address ip, WORD pt);
 
 	PIPSocket *self;
@@ -80,17 +83,18 @@ private:
 	ProxyHandleThread *handler;
 	bool blocked;
 	bool connected;
+	bool deletable;
+	const char *type;
 };
 
 class TCPProxySocket : public PTCPSocket, public ProxySocket {
 public:
 	PCLASSINFO( TCPProxySocket, PTCPSocket )
 
-	TCPProxySocket(WORD = 0, TCPProxySocket * = 0);
+	TCPProxySocket(const char *, TCPProxySocket * = 0, WORD = 0);
 	virtual ~TCPProxySocket();
 
 	// override from class ProxySocket
-	virtual Result ReceiveData() = 0;
 	virtual bool ForwardData();
 	virtual bool TransmitData();
 
@@ -128,7 +132,7 @@ public:
 	void Go();
 	void Main();
 
-	void Destroy();
+	bool Destroy();
 
 protected:
 	PSyncPoint sync;
@@ -142,8 +146,10 @@ public:
 	ProxyListener(HandlerList *, PIPSocket::Address, WORD, unsigned);
 	virtual ~ProxyListener();
 	virtual bool Open(unsigned);
+
+	// override from class MyPThread
 	virtual void Close();
-	void Exec();
+	virtual void Exec();
 
 	WORD GetPort() const { return m_port; }
 				
@@ -167,28 +173,34 @@ public:
 	typedef std::list<ProxyConnectThread *>::iterator citerator;
         typedef std::list<ProxyConnectThread *>::const_iterator const_citerator;
 
+	ProxyHandleThread() : lcHandler(0) {}
 	ProxyHandleThread(PINDEX);
-	~ProxyHandleThread();
+	virtual ~ProxyHandleThread();
+
 	void Insert(ProxySocket *);
+	void InsertLC(ProxySocket *socket) { lcHandler->Insert(socket); }
 	void Remove(iterator);
 	void Remove(ProxySocket *socket);
-
-	void Exec();
-
-	void CloseUnusedThreads();
+	void SetID(const PString & i) { id = i; }
 	void ConnectTo(ProxySocket *);
+	bool CloseUnusedThreads();
+
+	// override from class MyPThread
+	virtual void Exec();
 
 private:
-	ProxyConnectThread *FindConnectThread();
 	void FlushSockets();
 	void BuildSelectList(PSocket::SelectList &);
-	static void delete_socket(ProxySocket *s) { delete s; }
-	static void delete_thread(MyPThread *t) { delete t; }
+	ProxyConnectThread *FindConnectThread();
 	
 	std::list<ProxySocket *> sockList;
+	mutable PReadWriteMutex mutex;
 	std::list<ProxyConnectThread *> connList;
-	mutable PReadWriteMutex mutex, connMutex;
+	mutable PReadWriteMutex connMutex;
+	ProxyHandleThread *lcHandler;
 	PString id;
+	
+	static void delete_socket(ProxySocket *s) { delete s; }
 };
 
 class HandlerList {     
@@ -204,16 +216,15 @@ public:
 
 private:
 	void CloseListener();
-	static void delete_thread(MyPThread *t) { delete t; }
-	static void close_threads(ProxyHandleThread *t) { t->CloseUnusedThreads(); }
 
 	std::vector<ProxyHandleThread *> handlers;
 	ProxyListener *listenerThread;
-
 	PINDEX currentHandler;
 	PMutex mutex;
 	PIPSocket::Address GKHome;
 	WORD GKPort;
+
+	static void delete_thread(MyPThread *t) { delete t; }
 };
 
 
@@ -266,6 +277,13 @@ inline void ProxyHandleThread::Remove(ProxySocket *socket)
 	sockList.remove(socket);
 	mutex.EndWrite();
 }
+
+#ifdef WIN32
+inline DWORD getpid()
+{
+	return GetCurrentThreadId();
+}
+#endif
 
 #endif // __proxythread_h__
 

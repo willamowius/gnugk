@@ -412,6 +412,7 @@ public:
 
 	void Disconnect(bool = false); // Send Release Complete?
 	void RemoveAll();
+	void RemoveSocket();
 
 	int CountEndpoints() const;
 

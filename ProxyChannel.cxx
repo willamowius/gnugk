@@ -32,13 +32,14 @@ TCPProxySocket *ProxyListener::CreateSocket()
 	return new CallSignalSocket;
 }
 
-CallSignalSocket::CallSignalSocket() : m_h245handler(0), m_h245socket(0)
+CallSignalSocket::CallSignalSocket()
+      : TCPProxySocket("Q931s"), m_h245handler(0), m_h245socket(0)
 {
 	localAddr = peerAddr = INADDR_ANY;
 }
 
-CallSignalSocket::CallSignalSocket(WORD port, CallSignalSocket *socket)
-      : TCPProxySocket(port, socket), m_h245handler(0), m_h245socket(0)
+CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port)
+      : TCPProxySocket("Q931d", socket, port), m_h245handler(0), m_h245socket(0)
 {
 	m_call = socket->m_call;
 	m_call->SetSocket(socket, this);
@@ -61,60 +62,11 @@ CallSignalSocket::CallSignalSocket(WORD port, CallSignalSocket *socket)
 CallSignalSocket::~CallSignalSocket()
 {
 	delete m_h245handler;
-	if (m_h245socket)
+	if (m_h245socket) {
 		m_h245socket->EndSession();
-	if (m_call)
-		CallTable::Instance()->RemoveCall(m_call);
-}
-
-TCPProxySocket *CallSignalSocket::ConnectTo()
-{
-	if (remote->Connect(peerAddr)) {
-#ifdef WIN32
-		PTRACE(3, "Q931(" << GetCurrentThreadId() << ") Connect to " << peerAddr << " successful");
-#else
-		PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
-#endif
-		SetConnected(true);
-		remote->SetConnected(true);
-		ForwardData();
-	} else {
-		PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
-		EndSession();
-		delete remote; // would close myself
-		// remote = 0; // already detached
+		m_h245socket->OnSignalingChannelClosed();
+		m_h245socket->SetDeletable();
 	}
-	return remote;
-}
-
-void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
-{
-	H225_H323_UserInformation signal;
-	H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
-	H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
-	H225_ReleaseComplete_UUIE & uuie = body;
-	uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
-	uuie.m_callIdentifier = m_call->GetCallIdentifier();
-	PPER_Stream sb;
-	signal.Encode(sb);
-	sb.CompleteEncoding();
-
-	ReleasePDU.BuildReleaseComplete(m_crv, m_crv & 0x8000u);
-	ReleasePDU.SetIE(Q931::UserUserIE, sb);
-}
-
-bool CallSignalSocket::EndSession()
-{
-	if (m_call) {
-		Q931 ReleasePDU;
-		BuildReleasePDU(ReleasePDU);
-		ReleasePDU.Encode(buffer);
-		TransmitData();
-		PTRACE(4, "GK\tSend Release Complete to " << Name());
-//		PTRACE(5, "GK\tRelease Complete: " << ReleasePDU);
-	}
-	return TCPProxySocket::EndSession();
 }
 
 ProxySocket::Result CallSignalSocket::ReceiveData()
@@ -239,10 +191,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			// don't forward status messages mm-30.04.2001
 			return NoData;
 		case Q931::ReleaseCompleteMsg:
-			if (m_call) {
+			if (m_call)
 				CallTable::Instance()->RemoveCall(m_call);
-				m_call = callptr(0);
-			}
 			return Closing;
 		default:
 			return Forwarding;
@@ -251,15 +201,66 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	if (!m_call) {
 		PTRACE(3, "Q931\t" << Name() << " Setup destination not found!");
 		EndSession();
+		SetDeletable();
 		return Error;
 	}
 	if (peerAddr == INADDR_ANY) {
 		PTRACE(3, "Q931\t" << Name() << " INVALID ADDRESS");
 		EndSession();
+		CallTable::Instance()->RemoveCall(m_call);
 		return Error;
 	}
 
 	return Connecting;
+}
+
+void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
+	H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
+	H225_ReleaseComplete_UUIE & uuie = body;
+	uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
+	uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	PPER_Stream sb;
+	signal.Encode(sb);
+	sb.CompleteEncoding();
+
+	ReleasePDU.BuildReleaseComplete(m_crv, m_crv & 0x8000u);
+	ReleasePDU.SetIE(Q931::UserUserIE, sb);
+}
+
+bool CallSignalSocket::EndSession()
+{
+	if (m_call && IsOpen()) {
+		Q931 ReleasePDU;
+		BuildReleasePDU(ReleasePDU);
+		ReleasePDU.Encode(buffer);
+		TransmitData();
+		PTRACE(4, "GK\tSend Release Complete to " << Name());
+//		PTRACE(5, "GK\tRelease Complete: " << ReleasePDU);
+	}
+	return TCPProxySocket::EndSession();
+}
+
+TCPProxySocket *CallSignalSocket::ConnectTo()
+{
+	if (remote->Connect(peerAddr)) {
+		PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
+		SetConnected(true);
+		remote->SetConnected(true);
+		ForwardData();
+		return remote;
+	} else {
+		PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
+		EndSession();
+		MarkBlocked(true);
+		delete remote; // would close myself
+		CallTable::Instance()->RemoveCall(m_call);
+		MarkBlocked(false);
+		return 0;
+	}
 }
 
 void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
@@ -273,13 +274,13 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		PTRACE(3, "Q931\tOnSetup() didn't find the call: " << AsString(Setup.m_callIdentifier.m_guid));
 		return;
 	}
-	const H225_TransportAddress *ad = m_call->GetCalledAddress();
-	if (ad || ad->GetTag() == H225_TransportAddress::e_ipAddress) {
-		const H225_TransportAddress_ipAddress & ip = *ad;
+	const H225_TransportAddress *addr = m_call->GetCalledAddress();
+	if (addr || addr->GetTag() == H225_TransportAddress::e_ipAddress) {
+		const H225_TransportAddress_ipAddress & ip = *addr;
 		peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		peerPort = ip.m_port;
 		localAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr);
-		remote = new CallSignalSocket(peerPort, this);
+		remote = new CallSignalSocket(this, peerPort);
 	}
 
 	// re-route called endpoint signalling messages to gatekeeper	
@@ -402,7 +403,7 @@ void CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
 		switch (type) { 
 		case 0x70: // called party
 			CalledPN = new PString( (char*) (&(pOcts[3])), len-1); 
-			if(Toolkit::Instance()->RewritePString(*CalledPN)) {
+			if (Toolkit::Instance()->RewritePString(*CalledPN)) {
 				// change
 				const char* s = *CalledPN;
 				pBuf[0] = type;
@@ -411,8 +412,7 @@ void CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
 				memcpy(&(pBuf[3]), s, strlen(s));
 				pBuf += strlen(s)+3; 
 				changed = TRUE;
-			}
-			else { 
+			} else { 
 				// leave unchanged
 				memcpy(pBuf, pOcts, (len+2)*sizeof(BYTE));
 				pBuf += len+2;  // incr write pointer
@@ -544,86 +544,23 @@ bool H245Handler::HandleCommand(H245_CommandMessage & Command)
 
 // class H245Socket
 H245Socket::H245Socket(CallSignalSocket *sig)
-      : sigSocket(sig), listener(new PTCPSocket)
+      : TCPProxySocket("H245s"), sigSocket(sig), listener(new PTCPSocket)
 {
 	listener->Listen(1);
 	SetHandler(sig->GetHandler());
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
-      : TCPProxySocket(0, socket), sigSocket(sig), listener(0)
+      : TCPProxySocket("H245d", socket), sigSocket(sig), listener(0)
 {
 	socket->remote = this;
 }
 
 H245Socket::~H245Socket()
 {
+	delete listener;
 	if (sigSocket)
 		sigSocket->OnH245ChannelClosed();
-	delete listener;
-}
-
-bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, Address myip)
-{
-	bool swapped;
-	H245Socket *socket;
-	if (listener) {
-		socket = this;
-		swapped = false;
-	} else {
-		socket = dynamic_cast<H245Socket *>(remote);
-		swapped = true;
-		std::swap(this->sigSocket, socket->sigSocket);
-	}
-	socket->peerH245Addr = h245addr;
-	PIPSocket::Address h245ip;
-	WORD h245port;
-	socket->listener->GetLocalAddress(h245ip, h245port);
-	h245addr = SocketToH225TransportAddr(myip, h245port);
-	PTRACE(3, "H245\tSet h245Address to " << AsDotString(h245addr));
-	return swapped;
-}
-
-TCPProxySocket *H245Socket::ConnectTo()
-{
-	if (remote->Accept(*listener)) {
-		PTRACE(3, "H245\tConnected from " << remote->Name());
-		listener->Close(); // don't accept other connection
-		if (peerH245Addr.GetTag() != H225_TransportAddress::e_ipAddress) {
-			PTRACE(3, "H245\tINVALID ADDRESS");
-			return false;
-		}
-		H225_TransportAddress_ipAddress & ip = peerH245Addr;
-		PIPSocket::Address peerAddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-		SetPort(ip.m_port);
-		if (Connect(peerAddr)) {
-#ifdef WIN32
-			PTRACE(3, "H245(" << GetCurrentThreadId() << ") Connect to " << Name() << " successful");
-#else
-			PTRACE(3, "H245(" << getpid() << ") Connect to " << Name() << " successful");
-#endif
-			GetHandler()->Insert(this);
-			SetConnected(true);
-			remote->SetConnected(true);
-			return remote;
-		}
-		PTRACE(3, "H245\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
-	} else {
-		Errors err = remote->GetErrorCode();
-		PTRACE(2, "H245\tError: " << remote->GetErrorText(err));
-	}
-	delete remote;
-	// remote = 0; // already detached
-	// insert myself into the handler so it will be deleted anyway
-	GetHandler()->Insert(this);
-	return 0;
-}
-
-bool H245Socket::EndSession()
-{
-	if (listener)
-		listener->Close();
-	return TCPProxySocket::EndSession();
 }
 
 ProxySocket::Result H245Socket::ReceiveData()
@@ -639,8 +576,60 @@ ProxySocket::Result H245Socket::ReceiveData()
 	return res;
 }
 
+bool H245Socket::EndSession()
+{
+	if (listener)
+		listener->Close();
+	return TCPProxySocket::EndSession();
+}
 
-namespace {
+TCPProxySocket *H245Socket::ConnectTo()
+{
+	if (remote->Accept(*listener)) {
+		PTRACE(3, "H245\tConnected from " << remote->Name());
+		listener->Close(); // don't accept other connection
+		if (peerH245Addr.GetTag() != H225_TransportAddress::e_ipAddress) {
+			PTRACE(3, "H245\tINVALID ADDRESS");
+			return false;
+		}
+		H225_TransportAddress_ipAddress & ip = peerH245Addr;
+		PIPSocket::Address peerAddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+		SetPort(ip.m_port);
+		if (Connect(peerAddr)) {
+			PTRACE(3, "H245(" << getpid() << ") Connect to " << Name() << " successful");
+			GetHandler()->Insert(this);
+			SetConnected(true);
+			remote->SetConnected(true);
+			return remote;
+		}
+		PTRACE(3, "H245\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
+	}
+	GetHandler()->Insert(this);
+	GetHandler()->Insert(remote);
+	SetDeletable();
+	return 0;
+}
+
+bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, Address myip)
+{
+	bool swapped;
+	H245Socket *socket;
+	if (listener) {
+		socket = this;
+		swapped = false;
+	} else {
+		socket = dynamic_cast<H245Socket *>(remote);
+		swapped = true;
+		std::swap(this->sigSocket, socket->sigSocket);
+	}
+	socket->peerH245Addr = h245addr;
+	h245addr = SocketToH225TransportAddr(myip, socket->listener->GetPort());
+	PTRACE(3, "H245\tSet h245Address to " << AsDotString(h245addr));
+	return swapped;
+}
+
+
+namespace { // anonymous namespace
 
 H245_UnicastAddress_iPAddress *GetH245UnicastAddress(H245_TransportAddress & tsap)
 {
@@ -659,24 +648,41 @@ void SetH245UnicastAddress(H245_UnicastAddress_iPAddress & addr, PIPSocket::Addr
 	addr.m_tsapIdentifier = port;
 }
 
+bool IsSeparateLANStack(const H245_DataType & data)
+{
+	if (data.GetTag() == H245_DataType::e_data ) { 
+		const H245_DataApplicationCapability & cap = data;
+		if (cap.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120) {
+			const H245_DataProtocolCapability & proto_cap = cap.m_application;
+			return (proto_cap.GetTag() == H245_DataProtocolCapability::e_separateLANStack);
+		}
+	}
+	return false;
+}
+
+bool IsT120Channel(const H245_OpenLogicalChannel & olc)
+{
+	return  IsSeparateLANStack(olc.m_forwardLogicalChannelParameters.m_dataType) &&
+		olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters) &&
+		IsSeparateLANStack(olc.m_reverseLogicalChannelParameters.m_dataType);
+}
+
+inline void delete_lc(std::pair<const WORD, LogicalChannel *> & p)
+{
+	delete p.second;
+}
+
 } // end of anonymous namespace
 
 
 // class UDPProxySocket
 const WORD BufferSize = 2048;
 
-UDPProxySocket::UDPProxySocket(RTPLogicalChannel *lc)
-      : ProxySocket(this), rtplc(lc)
+UDPProxySocket::UDPProxySocket(const char *t) : ProxySocket(this, t)
 {
 	SetReadTimeout(PTimeInterval(50));
         SetWriteTimeout(PTimeInterval(50));
 	SetMinBufSize(BufferSize);
-}
-
-UDPProxySocket::~UDPProxySocket()
-{
-	if (rtplc)
-		rtplc->RemoveSocket(this);
 }
 
 void UDPProxySocket::SetDestination(H245_UnicastAddress_iPAddress & addr)
@@ -687,48 +693,69 @@ void UDPProxySocket::SetDestination(H245_UnicastAddress_iPAddress & addr)
 	SetName(peerAddr, peerPort);
 
 	SetH245UnicastAddress(addr, localAddr, localPort);
-	PTRACE(5, "UDP\tListen to " << name << ", Destination: " << peerAddr << ':' << peerPort);
+	PTRACE(5, "UDP\tListen to " << localAddr << ':' << localPort << ", Destination: " << name);
 	SetConnected(true);
 }
 
-ProxySocket::Result UDPProxySocket::ReceiveData()
+// class T120ProxySocket
+T120ProxySocket::T120ProxySocket(TCPLogicalChannel *lc)
+      : TCPProxySocket("T120s"), tcplc(lc), listener(new PTCPSocket)
 {
-	if (!Read(wbuffer, maxbufsize)) {
-		ErrorHandler(this, LastReadError);
-		return NoData;
+	listener->Listen(1);
+}
+
+T120ProxySocket::T120ProxySocket(TCPLogicalChannel *lc, T120ProxySocket *socket)
+      : TCPProxySocket("T120d", socket), tcplc(lc), listener(0)
+{
+	socket->remote = this;
+//	ProxySocket::SetName(INADDR_ANY, GetPort());
+}
+
+T120ProxySocket::~T120ProxySocket()
+{
+	if (tcplc)
+		tcplc->RemoveSocket(this);
+	delete listener;
+}
+
+void T120ProxySocket::SetDestination(H245_UnicastAddress_iPAddress & addr)
+{
+	peerAddr = PIPSocket::Address(addr.m_network[0], addr.m_network[1], addr.m_network[2], addr.m_network[3]);
+	peerPort = addr.m_tsapIdentifier;
+}
+
+bool T120ProxySocket::EndSession()
+{
+	tcplc = 0;
+	if (listener)
+		listener->Close();
+	return TCPProxySocket::EndSession();
+}
+
+TCPProxySocket *T120ProxySocket::ConnectTo()
+{
+	if (remote->Accept(*listener)) {
+		PTRACE(3, "T120\tConnected from " << remote->Name());
+		listener->Close(); // don't accept other connection
+		SetPort(peerPort);
+		if (Connect(peerAddr)) {
+			PTRACE(3, "T120(" << getpid() << ") Connect to " << Name() << " successful");
+			GetHandler()->Insert(this);
+			SetConnected(true);
+			remote->SetConnected(true);
+			return remote;
+		}
+		PTRACE(3, "T120\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
+	} else {
+		Errors err = remote->GetErrorCode();
+		PTRACE(3, "T120\tError: " << GetErrorText(err));
 	}
-
-	//GetLastReceiveAddress(peerAddr, peerPort);
-	PTRACE(6, "UDP\tReading from " << Name());
-
-	buflen = GetLastReadCount();
-	return Forwarding;
+	delete remote;
+	// remote = 0; // already detached
+	// insert myself into the handler so it will be deleted anyway
+	GetHandler()->Insert(this);
+	return 0;
 }
-
-bool UDPProxySocket::ForwardData()
-{
-	if (buflen == 0)
-		return false;
-
-	bufptr = wbuffer;
-	wsocket = this;
-	MarkBlocked(true);
-	return Flush();
-}
-
-// this method should not be called, however, we have to override it
-bool UDPProxySocket::TransmitData()
-{
-	PTRACE(2, "UDP\tLogical Error: call TransmitData in UDPProxySocket");
-	return false;
-}
-
-bool UDPProxySocket::EndSession()
-{
-	rtplc = 0;
-	return ProxySocket::EndSession();
-}
-
 
 // class RTPLogicalChannel
 const WORD RTPPortLowerLimit = 10000u;
@@ -738,17 +765,17 @@ WORD RTPLogicalChannel::portNumber = RTPPortUpperLimit;
 PMutex RTPLogicalChannel::mutex;
 
 RTPLogicalChannel::RTPLogicalChannel(PIPSocket::Address ip, WORD flcn)
-      : channelNumber(flcn), used(false)
+      : LogicalChannel(flcn)
 {
-	rtp = new UDPProxySocket(this);
-	rtcp = new UDPProxySocket(this);
+	rtp = new UDPProxySocket("RTP");
+	rtcp = new UDPProxySocket("RTCP");
 
 	// try to get an available port 10 times
 	for (int i = 0; i < 10; ++i) {
 		port = GetPortNumber();
 		// try to bind rtp to an even port and rtcp to the next one port
 		if (rtp->Bind(ip, port) && rtcp->Bind(ip, port + 1)) {
-			PTRACE(4, "RTP\tOpen logical channel " << flcn << ' ' << ip << ':' << port);
+			PTRACE(4, "RTP\tOpen RTP logical channel " << flcn << ' ' << ip << ':' << port);
 			return;
 		}
 
@@ -767,19 +794,28 @@ RTPLogicalChannel::~RTPLogicalChannel()
 	if (used) {
 		// the sockets will be deleted by ProxyHandler,
 		// so we don't need to delete it here
-		if (rtp)
-			rtp->EndSession();
-		if (rtcp)
-			rtcp->EndSession();
+		rtp->EndSession();
+		rtp->SetDeletable();
+		rtcp->EndSession();
+		rtcp->SetDeletable();
+		PTRACE(5, "RTP\tClose RTP logical channel " << channelNumber);
 	} else {
 		delete rtp;
 		delete rtcp;
+		PTRACE(4, "RTP\tDelete RTP logical channel " << channelNumber);
 	}
 }
 
-bool RTPLogicalChannel::SetDestination(H245_H2250LogicalChannelAckParameters & h225Params)
+bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *)
 {
-	bool hasMediaControlChannel = false, hasMediaChannel = false;
+	if (!olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters))
+		return false;
+	H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
+	if (ackparams.GetTag() != H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
+		return false;
+	H245_H2250LogicalChannelAckParameters & h225Params = ackparams;
+
+	bool hasMediaChannel = false, hasMediaControlChannel = false;
 	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
 		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params.m_mediaChannel);
 		if (addr) {
@@ -800,22 +836,14 @@ bool RTPLogicalChannel::SetDestination(H245_H2250LogicalChannelAckParameters & h
 void RTPLogicalChannel::StartReading(ProxyHandleThread *handler)
 {
 	if (!used) {
-		handler->Insert(rtp);
-		handler->Insert(rtcp);
+		handler->InsertLC(rtp);
+		handler->InsertLC(rtcp);
 		used = true;
 #ifdef PTRACING
 	} else {
 		PTRACE(2, "RTP\tWarning: channel already be used");
 #endif
 	}
-}
-
-void RTPLogicalChannel::RemoveSocket(UDPProxySocket *socket)
-{
-	if (socket == rtp)
-		rtp = 0;
-	else if (socket == rtcp)
-		rtcp = 0;
 }
 
 WORD RTPLogicalChannel::GetPortNumber()
@@ -825,6 +853,67 @@ WORD RTPLogicalChannel::GetPortNumber()
 	if (portNumber > RTPPortUpperLimit)
 		portNumber = RTPPortLowerLimit;
 	return portNumber;
+}
+
+// class TCPLogicalChannel
+TCPLogicalChannel::TCPLogicalChannel(WORD flcn) : LogicalChannel(flcn)
+{
+	caller = new T120ProxySocket(this);
+	callee = new T120ProxySocket(this, caller);
+	port = caller->GetListenPort();
+	PTRACE(4, "T120\tOpen T.120 logical channel " << flcn << " port " << port);
+}
+
+TCPLogicalChannel::~TCPLogicalChannel()
+{
+	if (used) {
+		// the sockets will be deleted by ProxyHandler,
+		// so we don't need to delete it here
+		if (caller)
+			caller->EndSession();
+		if (callee)
+			callee->EndSession();
+	} else {
+		delete caller;
+		delete callee;
+	}
+}
+
+bool TCPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
+{
+	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
+		OnSeparateStack(olca.m_separateStack, handler) : false;
+}
+
+void TCPLogicalChannel::StartReading(ProxyHandleThread *handler)
+{
+	if (!used) {
+		caller->SetHandler(handler);
+		handler->ConnectTo(caller);
+		used = true;
+	}
+}
+
+bool TCPLogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler *handler)
+{
+	bool changed = false;
+	if (sepStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress) {
+		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(sepStack.m_networkAddress);
+		if (addr) {
+			caller->SetDestination(*addr);
+			SetH245UnicastAddress(*addr, handler->GetLocalAddr(), port);
+			changed = true;
+		}
+	}
+	return changed;
+}
+
+void TCPLogicalChannel::RemoveSocket(T120ProxySocket *socket)
+{
+	if (socket == caller)
+		caller = 0;
+	else if (socket == callee)
+		callee = 0;
 }
 
 // class H245ProxyHandler
@@ -873,6 +962,18 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response)
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
+	WORD flcn = olc.m_forwardLogicalChannelNumber;
+	if (IsT120Channel(olc)) {
+		TCPLogicalChannel *lc = new TCPLogicalChannel(flcn);
+		logicalChannels[flcn] = lc;
+		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)
+			&& lc->OnSeparateStack(olc.m_separateStack, this)) {
+			lc->StartReading(handler);
+			return true;
+		}
+		return false;
+	}
+
 	H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters & params = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
 	if (params.GetTag() != H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters)
 		return false;
@@ -880,7 +981,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 
 	bool changed = false;
 	RTPLogicalChannel *lc = 0;
-	WORD flcn = olc.m_forwardLogicalChannelNumber;
 	if (h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)) {
 		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 		if (addr) {
@@ -904,26 +1004,20 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 
 bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject & olcr)
 {
-	RemoveRTPLogicalChannel(olcr.m_forwardLogicalChannelNumber);
+	peer->RemoveLogicalChannel(olcr.m_forwardLogicalChannelNumber);
 	return false; // nothing changed :)
 }
 
 bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 {
-	if (!olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters))
-		return false;
-	H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
-	if (ackparams.GetTag() != H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
-		return false;
-
 	WORD flcn = olca.m_forwardLogicalChannelNumber;
-	RTPLogicalChannel *lc = peer->FindRTPLogicalChannel(flcn);
+	LogicalChannel *lc = peer->FindLogicalChannel(flcn);
 	if (!lc) {
 		PTRACE(2, "Proxy\tWarning: logical channel " << flcn << " not found");
 		if (!(lc = peer->CreateRTPLogicalChannel(flcn)));
 			return false;
 	}
-	bool result = lc->SetDestination(ackparams);
+	bool result = lc->SetDestination(olca, this);
 	if (result)
 		lc->StartReading(handler);
 	return result;
@@ -932,16 +1026,16 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc) 
 {
 	if (clc.m_source.GetTag() == H245_CloseLogicalChannel_source::e_user)
-		RemoveRTPLogicalChannel(clc.m_forwardLogicalChannelNumber);
+		RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber);
 	else
-		peer->RemoveRTPLogicalChannel(clc.m_forwardLogicalChannelNumber);
+		peer->RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber);
 	return false; // nothing changed :)
 }       
 
-RTPLogicalChannel *H245ProxyHandler::FindRTPLogicalChannel(WORD flcn)
+LogicalChannel *H245ProxyHandler::FindLogicalChannel(WORD flcn)
 {
-	iterator Iter = InternalFindLC(flcn);
-	return (Iter != logicalChannels.end()) ? *Iter : 0;
+	iterator Iter = logicalChannels.find(flcn);
+	return (Iter != logicalChannels.end()) ? Iter->second : 0;
 }
 
 RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD flcn)
@@ -949,19 +1043,19 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD flcn)
 	RTPLogicalChannel *lc = 0;
 	try {
 		lc = new RTPLogicalChannel(peer->GetLocalAddr(), flcn);
-		logicalChannels.push_back(lc);
+		logicalChannels[flcn] = lc;
 	} catch (RTPLogicalChannel::NoPortAvailable) {
-		PTRACE(2, "Proxy\tError: Can't create an RTP logical channel");
+		PTRACE(2, "Proxy\tError: Can't create RTP logical channel " << flcn);
 	}
 	return lc;
 }
 
-void H245ProxyHandler::RemoveRTPLogicalChannel(WORD flcn)
+void H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 {
-	iterator Iter = InternalFindLC(flcn);
+	iterator Iter = logicalChannels.find(flcn);
 	if (Iter != logicalChannels.end()) {
+		delete Iter->second;
 		logicalChannels.erase(Iter);
-		delete *Iter;
 #ifdef PTRACING
 	} else {
 		PTRACE(3, "Proxy\tLogical channel " << flcn << " not found");

@@ -20,6 +20,11 @@
 #include "RasTbl.h"
 #include "ProxyThread.h"
 
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
+
+#include <map>
 
 extern const char *RoutedSec;
 
@@ -30,7 +35,10 @@ class H245Handler;
 class CallSignalSocket;
 class H245Socket;
 class UDPProxySocket;
+class T120ProxySocket;
+class LogicalChannel;
 class RTPLogicalChannel;
+class TCPLogicalChannel;
 class H245ProxyHandler;
 
 
@@ -61,7 +69,7 @@ public:
 	PCLASSINFO ( CallSignalSocket, TCPProxySocket )
 
 	CallSignalSocket();
-	CallSignalSocket(WORD, CallSignalSocket *);
+	CallSignalSocket(CallSignalSocket *, WORD);
 	~CallSignalSocket();
 
 	// override from class ProxySocket
@@ -130,7 +138,7 @@ public:
 	virtual TCPProxySocket *ConnectTo();
 
 	bool SetH245Address(H225_TransportAddress & h245addr, Address);
-	void OnSignalingChannelClosed();
+	void OnSignalingChannelClosed() { sigSocket = 0; }
 	
 private:
 	CallSignalSocket *sigSocket;
@@ -142,39 +150,75 @@ class UDPProxySocket : public PUDPSocket, public ProxySocket {
 public:
 	PCLASSINFO( UDPProxySocket, PUDPSocket )
 
-	UDPProxySocket(RTPLogicalChannel *);
-	virtual ~UDPProxySocket();
+	UDPProxySocket(const char *);
+	virtual ~UDPProxySocket() {}
 
 	void SetDestination(H245_UnicastAddress_iPAddress &);
-
-	// override from class ProxySocket
-	virtual Result ReceiveData();
-	virtual bool ForwardData();
-	virtual bool TransmitData();
-	virtual bool EndSession();
 
 	bool Bind(Address ip, WORD pt);
 
 private:
-	RTPLogicalChannel *rtplc;
 	Address localAddr;
 	WORD localPort;
 };
 
-class H245_H2250LogicalChannelAckParameters;
-
-class RTPLogicalChannel {
+class T120ProxySocket : public TCPProxySocket {
 public:
-	RTPLogicalChannel(PIPSocket::Address, WORD);
-	~RTPLogicalChannel();
+	PCLASSINFO ( T120ProxySocket, TCPProxySocket )
+
+	T120ProxySocket(TCPLogicalChannel *);
+	T120ProxySocket(TCPLogicalChannel *, T120ProxySocket *);
+	virtual ~T120ProxySocket();
+
+	void SetDestination(H245_UnicastAddress_iPAddress &);
+	WORD GetListenPort() const { return listener->GetPort(); }
+
+	// override from class ProxySocket
+	virtual bool ForwardData() { return WriteData(remote); }
+	virtual bool TransmitData() { return WriteData(this); }
+	virtual bool EndSession();
+
+	// override from class TCPProxySocket
+	virtual TCPProxySocket *ConnectTo();
+
+private:
+	TCPLogicalChannel *tcplc;
+	PTCPSocket *listener;
+	Address peerAddr;
+	WORD peerPort;
+};
+
+class H245_OpenLogicalChannelAck;
+
+class LogicalChannel {
+public:
+	LogicalChannel(WORD flcn) : channelNumber(flcn), used(false) {}
+	virtual ~LogicalChannel() {}
 
 	bool IsUsed() const { return used; }
 	bool Compare(WORD lcn) const { return channelNumber == lcn; }
-	bool SetDestination(H245_H2250LogicalChannelAckParameters &);
-	void StartReading(ProxyHandleThread *);
-	void RemoveSocket(UDPProxySocket *socket);
-
 	WORD GetPort() const { return port; }
+	WORD GetChannelNumber() const { return channelNumber; }
+
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *) = 0;
+	virtual void StartReading(ProxyHandleThread *) = 0;
+
+protected:
+	WORD channelNumber;
+	WORD port;
+	bool used;
+};
+
+class H245_H2250LogicalChannelAckParameters;
+
+class RTPLogicalChannel : public LogicalChannel {
+public:
+	RTPLogicalChannel(PIPSocket::Address, WORD);
+	virtual ~RTPLogicalChannel();
+
+	// override from class LogicalChannel
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
+	virtual void StartReading(ProxyHandleThread *);
 
 	class NoPortAvailable {};
 
@@ -184,41 +228,50 @@ private:
 	static PMutex mutex;
 
 	UDPProxySocket *rtp, *rtcp;
-	WORD channelNumber;
-	WORD port;
-	bool used;
+};
+
+class TCPLogicalChannel : public LogicalChannel {
+public:
+	TCPLogicalChannel(WORD);
+	virtual ~TCPLogicalChannel();
+
+	// override from class LogicalChannel
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
+	virtual void StartReading(ProxyHandleThread *);
+
+	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
+	void RemoveSocket(T120ProxySocket *socket);
+
+private:
+	T120ProxySocket *caller, *callee;
 };
 
 class H245ProxyHandler : public H245Handler {
 public:
-	typedef std::list<RTPLogicalChannel *>::iterator iterator;
-	typedef std::list<RTPLogicalChannel *>::const_iterator const_iterator;
+	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
+	typedef std::map<WORD, LogicalChannel *>::const_iterator const_iterator;
 
 	H245ProxyHandler(CallSignalSocket *, PIPSocket::Address, H245ProxyHandler * = 0);
 	virtual ~H245ProxyHandler();
 
-	void RemoveSocket(ProxySocket *);
-	RTPLogicalChannel *FindRTPLogicalChannel(WORD);
+	LogicalChannel *FindLogicalChannel(WORD);
 	
 private:
+	// override from class H245Handler
 	virtual bool HandleRequest(H245_RequestMessage &);
 	virtual bool HandleResponse(H245_ResponseMessage &);
 
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
 	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
-	bool HandleOpenLogicalChannelConfirm(H245_OpenLogicalChannelConfirm &);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
 	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
 
 	RTPLogicalChannel *CreateRTPLogicalChannel(WORD);
-	void RemoveRTPLogicalChannel(WORD flcn);
-	iterator InternalFindLC(WORD flcn);
+	void RemoveLogicalChannel(WORD flcn);
 
 	ProxyHandleThread *handler;
-	std::list<RTPLogicalChannel *> logicalChannels;
+	std::map<WORD, LogicalChannel *> logicalChannels;
 	H245ProxyHandler *peer;
-
-	static void delete_lc(RTPLogicalChannel *lc) { delete lc; }
 };
 
 inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, Result & res)
@@ -226,22 +279,10 @@ inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, Result & res)
 	return m_h245handler->HandleMesg(strm, res);
 }
 
-inline void H245Socket::OnSignalingChannelClosed()
-{
-	sigSocket = 0;
-	EndSession();
-}
-
 inline bool UDPProxySocket::Bind(Address ip, WORD pt)
 {
 	localAddr = ip, localPort = pt;
 	return Listen(0, pt);
-}
-
-inline H245ProxyHandler::iterator H245ProxyHandler::InternalFindLC(WORD flcn)
-{
-	return find_if(logicalChannels.begin(), logicalChannels.end(),
-			bind2nd(mem_fun(&RTPLogicalChannel::Compare), flcn));
 }
 
 #endif // __proxychannel_h__

@@ -958,6 +958,16 @@ void CallRec::RemoveAll()
 		m_Called->RemoveCall();
 }
 
+void CallRec::RemoveSocket()
+{
+	if (m_callingSocket) {
+		m_callingSocket->SetDeletable();
+		m_callingSocket = 0;
+	}
+//	if (m_calledSocket)
+//		m_calledSocket->SetDeletable();
+}
+
 int CallRec::CountEndpoints() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1212,6 +1222,7 @@ void CallTable::InternalRemove(iterator Iter)
 
 //	call->StopTimer();
 	call->RemoveAll();
+	call->RemoveSocket();
 
 	RemovedList.push_back(call);
 	CallList.erase(Iter);
