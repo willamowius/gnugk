@@ -240,7 +240,8 @@ default=reject				Default: allow
 Syntax:
    authrule=actions
 
-   <authrule> := SimplePasswordAuth | AliasAuth | ...
+   <authrule> := SimplePasswordAuth | LDAPPasswordAuth
+                 | AliasAuth | LDAPAliasAuth | ...
    <actions>  := <control>[;<ras>,<ras>,...]
    <control>  := optional | required | sufficient
    <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
@@ -265,17 +266,24 @@ There are also three ways to control a rule:
 
 Currently supported modules:
 
-  SimplePasswordAuth  The module checks the tokens or cryptoTokens
+  SimplePasswordAuth/
+  LDAPPasswordAuth    The module checks the tokens or cryptoTokens
                       fields of RAS message. The tokens should contain
                       at least generalID and password. For cryptoTokens,
-                      only cryptoEPPwdHash tokens hashed by simple MD5
-                      are supported now.
-                      The ID and password are read from [Password] section.
-                      Support for other backend databases is easily to add.
+                      cryptoEPPwdHash tokens hashed by simple MD5 and 
+                      nestedcryptoToken tokens hashed by HMAC-SHA1-96
+                      (libssl must be installed!) are supported now.
+                      The ID and password are read from [Password] section 
+                      / LDAP. Support for other backend databases is 
+                      easily to add.
 
-  AliasAuth           The IP of an endpoint with given alias should
-                      match a specified pattern. The pattern is defined
-                      in [RasSrv::RRQAuth] section.
+  AliasAuth/
+  LDAPAliasAuth       The IP of an endpoint with given alias should
+                      match a specified pattern. For AliasAuth the pattern 
+                      is defined in [RasSrv::RRQAuth] section. 
+                      For LDAPAliasAuth the alias (default: mail attribute)
+                      and IP (default: voIPIpAddress attribute) must be 
+                      found in one LDAP entry.
 
 You can also configure a rule to check only for some particular RAS
 messages. For example, to configure SimplePasswordAuth as a required

@@ -226,8 +226,9 @@ rule=allow
 ##   LDAPAliasAuth       The IP of an endpoint with given alias should
 ##                       match a specified pattern. For AliasAuth the pattern 
 ##                       is defined in [RasSrv::RRQAuth] section. 
-##                       For LDAPAliasAuth the alias and IP must be found in 
-##                       one LDAP entry as H323-ID and H323-alias.
+##                       For LDAPAliasAuth the alias (default: mail attribute)
+##                       and IP (default: voIPIpAddress attribute) must be found
+##                       in one LDAP entry.
 ##
 ## A rule may results in one of the three codes: ok, fail, pass.
 ##

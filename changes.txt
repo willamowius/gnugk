@@ -6,6 +6,7 @@ Changes from 1.2 to now (by mmuehlen)
     srcInfo|GkName (13.11.01)
 - add SHA1 support for SimplePasswordAuth (14.12.01)
 - add LDAPAliasAuth (03.01.02)
+- add support for new voip.schema (15.01.02)
 
 Changes from 1.2 to now (by cwhuang)
 ====================================

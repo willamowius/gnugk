@@ -67,10 +67,9 @@ using namespace std;            // <--- NOTE!
 
 // list of names (keys) as used in config file, keep in sync with LDAPAttributeNamesEnum
 const char *  lctn::LDAPAttrTags[lctn::MAX_ATTR_NO] =
-{"DN", "UserIdentity", "H323ID", "TelephonNo", "H245PassWord", "aliasH323ID", 
- "CountryCode", "AreaCode", "LocalAccessCode", "NationalAccessCode", 
- "InternationalAccessCode", "CallingLineIdPresentation", "PrefixBlacklist", 
- "PrefixWhitelist"};
+{"DN", "H323ID", "TelephonNo", "H245PassWord", "IPAddress", "SubscriberNo", 
+ "LocalAccessCode", "NationalAccessCode",  "InternationalAccessCode", 
+ "CallingLineIdRestriction", "SpecialDial", "PrefixBlacklist", "PrefixWhitelist"};
 
 
 
@@ -288,12 +287,9 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
 
   int attrsonly = 0;		/* 0: attr&value; 1: attr */
   PString filter;
-  filter.sprintf("(|(%s=%s)(%s=%s))", // RFC 1558 conform template
+  filter.sprintf("(%s=%s)", // RFC 1558 conform template
 		 (const char *)(*AttributeNames)[LDAPAttrTags[H323ID]], // attribute name (H323ID)
-		 (const char *)p.userH323ID, // requested value(H323ID)
-		 // possible alternative
-		 (const char *)(*AttributeNames)[LDAPAttrTags[aliasH323ID]],// attribute name (H323ID)
-		 (const char *)p.userH323ID // requested value (H323ID)
+		 (const char *)p.userH323ID // requested value(H323ID)
 		 );
 //   DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ", " << timeout.tv_sec << ":" << 
 // 	     timeout.tv_usec << ")");

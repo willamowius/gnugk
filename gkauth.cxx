@@ -61,7 +61,7 @@ private:
 	/** @returns the value for a given alias from section #RasSrv::RRQAuth# 
 	    in ini-file
 	 */
-	virtual PString getConfigString(const PString &alias);
+	virtual PString getConfigString(const PString &alias) const;
 };
 
 static GkAuthInit<AliasAuth> _AA_("AliasAuth");
@@ -143,21 +143,38 @@ static GkAuthInit<MySQLPasswordAuth> _MPA_("MySQLPasswordAuth");
 #if defined(HAS_LDAP)		// shall use LDAP
 #include "ldaplink.h"		// link to LDAP functions
 
-class LDAPAuth {
+class LDAPAuth : public Singleton<LDAPAuth>{
 public:
-  LDAPAuth(PConfig *, const char *);
+  
+  /** LDAP initialisation must be done with method "Initialize". 
+      This is necessary because this class is singleton.
+   */
+  LDAPAuth();
+  void Initialize(PConfig &);
+  
   virtual ~LDAPAuth();
+
+  /** returns attribute values for a given alias + attribute
+      @returns #TRUE# if LDAPQuery succeeds
+   */
+  bool getAttribute(const PString &alias, const int attr_name, PStringList &attr_values);
+
 private:
-  // Data
-  LDAPAttributeNamesClass AN;	// names of the LDAP attributes
-  LDAPCtrl * LDAPConn;		// a HAS-A relation is prefered over a IS-A relation
-				// because one can better steer the parameters
+
   // Methods
-  void Initialize(PConfig *);
   void Destroy(void);
   
-public:
-  virtual PString getAttribute(const PString &alias, const int attr_name);
+  /** searchs an alias in LDAP
+      @returns pointer to the answer object.
+   */
+  virtual LDAPAnswer *doQuery(const PString &alias);
+
+  // Data
+  LDAPAttributeNamesClass AN;	// names of the LDAP attributes
+  LDAPCtrl *LDAPConn;		// a HAS-A relation is prefered over a IS-A relation
+				// because one can better steer the parameters  
+
+  PMutex m_usedLock;
 };
 
 class LDAPPasswordAuth : public SimplePasswordAuth {
@@ -165,10 +182,7 @@ public:
   LDAPPasswordAuth(PConfig *, const char *);
   virtual ~LDAPPasswordAuth();
 
-  virtual PString GetPassword(PString &);
-
-private:
-  LDAPAuth *m_ldapauth;
+  virtual PString GetPassword(PString &alias);
 };
 
 // ISO 14882:1998 (C++), ISO9899:1999 (C), ISO9945-1:1996 (POSIX) have a
@@ -185,9 +199,7 @@ private:
 	    string (the expected return value from LDAP is only an IP-address!).
 	    @returns config-string (format: see description in ini-file)
 	 */
-	virtual PString getConfigString(const PString &alias);
-	
-	LDAPAuth *m_ldapauth;
+	virtual PString getConfigString(const PString &alias) const;
 };
 
 static GkAuthInit<LDAPAliasAuth> L_A_A ("LDAPAliasAuth");
@@ -533,95 +545,89 @@ const char *ldap_attr_name_sec = "LDAPAuth::LDAPAttributeNames";
 const char *ldap_auth_sec = "LDAPAuth::Settings";
 
 // constructor
-LDAPAuth::LDAPAuth(PConfig * cfg, const char * authName)
+LDAPAuth::LDAPAuth()
 {
-  Initialize(cfg);
+  //Initialisation must be done with method "Initialize"!
 } // LDAPAuth constructor
 
-// constructor
+// destructor
 LDAPAuth::~LDAPAuth()
 {
   Destroy();
 } // LDAPAuth destructor
 
-
 void 
-LDAPAuth::Initialize(PConfig * cfg) // 'real', private constructor
+LDAPAuth::Initialize(PConfig &cfg) // 'real', private constructor
 {
   struct timeval default_timeout;
   default_timeout.tv_sec = 10l;	// seconds
   default_timeout.tv_usec = 0l;	// micro seconds
   using namespace lctn;		// LDAP config tags and names
   // The defaults are given by the constructor of LDAPAttributeNamesClass
-  AN.insert(LDAPANValuePair(LDAPAttrTags[UserIdentity], 
-			    cfg->GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[UserIdentity],
-					      "uid"))); // 0.9.2342.19200300.100.1.1
   AN.insert(LDAPANValuePair(LDAPAttrTags[H323ID],
-			    cfg->GetString(ldap_attr_name_sec, 
+ 		            cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[H323ID],
-					      "cn"))); // 2.5.4.3
+					      "mail"))); // 0.9.2342.19200300.100.1.3
   AN.insert(LDAPANValuePair(LDAPAttrTags[TelephonNo],
-			    cfg->GetString(ldap_attr_name_sec, 
+			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[TelephonNo],
-					      "telephoneNumber"))); // 2.5.4.20
+					      "telephonenumber"))); // 2.5.4.20
   AN.insert(LDAPANValuePair(LDAPAttrTags[H245PassWord],
-			    cfg->GetString(ldap_attr_name_sec, 
+			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[H245PassWord],
-					      "plaintextPassword")));	// ...9564.2.1.1.8
-  AN.insert(LDAPANValuePair(LDAPAttrTags[aliasH323ID],
-			    cfg->GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[aliasH323ID],
-					      "voIPnickName"))); // ...9564.2.5.1000
-  AN.insert(LDAPANValuePair(LDAPAttrTags[CountryCode],
-			    cfg->GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[CountryCode],
-					      "voIPcountryCode"))); // ...9564.2.5.2000
-  AN.insert(LDAPANValuePair(LDAPAttrTags[AreaCode],
-			    cfg->GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[AreaCode],
-					      "voIPareaCode"))); // ...9564.2.5.2010
+					      "plaintextPassword")));	// 1.3.6.1.4.1.9564.2.1.1.8
+  AN.insert(LDAPANValuePair(LDAPAttrTags[IPAddress],
+			    cfg.GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[IPAddress],
+					      "voIPIpAddress"))); // ...9564.2.5.2010
+  AN.insert(LDAPANValuePair(LDAPAttrTags[SubscriberNo],
+			    cfg.GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[SubscriberNo],
+					      "voIPsubscriberNumber"))); // ...2050
   AN.insert(LDAPANValuePair(LDAPAttrTags[LocalAccessCode],
-			    cfg->GetString(ldap_attr_name_sec, 
+			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[LocalAccessCode],
-					      "voIPlocalAccessCode"))); // ...9564.2.5.2020
+					      "voIPlocalAccessCode"))); // ...2020
   AN.insert(LDAPANValuePair(LDAPAttrTags[NationalAccessCode],
-			    cfg->GetString(ldap_attr_name_sec, 
+			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[NationalAccessCode],
 					      // ...9564.2.5.2030
-					      "voIPnationalAccessCode")));
+					      "voIPnationalAccessCode"))); // ...2030
   AN.insert(LDAPANValuePair(LDAPAttrTags[InternationalAccessCode],
-			    cfg->GetString(ldap_attr_name_sec, 
+			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[InternationalAccessCode],
 					       // ...9564.2.5.2040
-					      "voIPinternationalAccessCode")));
-  AN.insert(LDAPANValuePair(LDAPAttrTags[CallingLineIdPresentation],
-			    cfg->GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[CallingLineIdPresentation],
-					      "voIPcallingLineIdPresentation"))); // ...2050
+					      "voIPinternationalAccessCode"))); // ...2040
+  AN.insert(LDAPANValuePair(LDAPAttrTags[CallingLineIdRestriction],
+			    cfg.GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[CallingLineIdRestriction],
+					      "voIPcallingLineIdRestriction"))); // ...2060
+  AN.insert(LDAPANValuePair(LDAPAttrTags[SpecialDial],
+			    cfg.GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[SpecialDial],
+					      "voIPspecialDial"))); // ...2070
   AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixBlacklist],
-			    cfg->GetString(ldap_attr_name_sec, 
+			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[PrefixBlacklist],
-					      "voIPprefixBlacklist"))); // ...9564.2.5.2060
+					      "voIPprefixBlacklist"))); // ...2070
   AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixWhitelist],
-			    cfg->GetString(ldap_attr_name_sec, 
+			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[PrefixWhitelist],
-					      "voIPprefixWhitelist"))); // ...9564.2.5.2070
+					      "voIPprefixWhitelist"))); // ...2090
 
-  PString ServerName = cfg->GetString(ldap_auth_sec, "ServerName", "ldap");
-  int ServerPort = cfg->GetString(ldap_auth_sec, "ServerPort", "389").AsInteger();
-  PString SearchBaseDN = cfg->GetString(ldap_auth_sec, "SearchBaseDN", 
+  PString ServerName = cfg.GetString(ldap_auth_sec, "ServerName", "ldap");
+  int ServerPort = cfg.GetString(ldap_auth_sec, "ServerPort", "389").AsInteger();
+  PString SearchBaseDN = cfg.GetString(ldap_auth_sec, "SearchBaseDN", 
 					   "o=University of Michigan, c=US");
-  PString BindUserDN = cfg->GetString(ldap_auth_sec, "BindUserDN", 
+  PString BindUserDN = cfg.GetString(ldap_auth_sec, "BindUserDN", 
 					 "cn=Babs Jensen,o=University of Michigan, c=US");
-  PString BindUserPW = cfg->GetString(ldap_auth_sec, "BindUserPW", "RealySecretPassword");
-  unsigned int sizelimit = cfg->GetString(ldap_auth_sec, "sizelimit", "0").AsUnsigned();
-  unsigned int timelimit = cfg->GetString(ldap_auth_sec, "timelimit", "0").AsUnsigned();
+  PString BindUserPW = cfg.GetString(ldap_auth_sec, "BindUserPW", "RealySecretPassword");
+  unsigned int sizelimit = cfg.GetString(ldap_auth_sec, "sizelimit", "0").AsUnsigned();
+  unsigned int timelimit = cfg.GetString(ldap_auth_sec, "timelimit", "0").AsUnsigned();
 
   LDAPConn = new LDAPCtrl(&AN, default_timeout, ServerName, 
 			  SearchBaseDN, BindUserDN, BindUserPW, 
 			  sizelimit, timelimit, ServerPort);
-
 } // Initialize
 
 void
@@ -630,56 +636,72 @@ LDAPAuth::Destroy()		// 'real', private destructor
   delete LDAPConn;
 } // Destroy
 
-PString LDAPAuth::getAttribute(const PString & alias, const int attr_name)
-{
-  LDAPQuery q;			// using query class to make interface flexible
-  q.userH323ID = alias;
-  using namespace lctn;
-  // FIXME: (?) always take first value for the attribute
-  LDAPAnswer *answer=LDAPConn->DirectoryUserLookup(q);
-  if(answer->status==0) { // LDAP_SUCCESS??
-    if(answer->AV.count(AN[LDAPAttrTags[attr_name]])>0)
-      return (answer->AV[AN[LDAPAttrTags[attr_name]]])[0];
+LDAPAnswer *LDAPAuth::doQuery(const PString & alias) {
+  LDAPQuery *query = new LDAPQuery();
+  query->userH323ID = alias;
+  return LDAPConn->DirectoryUserLookup(*query);
+}
+
+bool LDAPAuth::getAttribute(const PString &alias, const int attr_name, 
+                           PStringList &attr_values){
+  PWaitAndSignal lock(m_usedLock);
+  LDAPAnswer *answer = doQuery(alias);
+  // if LDAP succeeds
+  if(answer->status == 0){
+    using namespace lctn;
+    if(answer->AV.count(AN[LDAPAttrTags[attr_name]])){
+       attr_values = answer->AV[AN[LDAPAttrTags[attr_name]]];
+    }
   }
-  return PString(""); // FIXME: If a user HAS an empty attribute?
-}  
+  return (answer->status == 0) ? true : false;
+} 
+ 
 
 // constructor
 LDAPPasswordAuth::LDAPPasswordAuth(PConfig * cfg, const char * authName)
   : SimplePasswordAuth(cfg, authName)
 {
-  m_ldapauth = PNEW LDAPAuth(cfg, authName);
+  LDAPAuth::Instance()->Initialize(*cfg);
 } // LDAPAuth constructor
 
 // destructor
 LDAPPasswordAuth::~LDAPPasswordAuth()
 {
-  delete m_ldapauth;
 } // LDAPAuth destructor
 
-PString LDAPPasswordAuth::GetPassword(PString & id)
+PString LDAPPasswordAuth::GetPassword(PString & alias)
 {
+  PStringList attr_values;
   using namespace lctn; // LDAP config tags and names
-  return m_ldapauth->getAttribute(id, H245PassWord);
+  // get pointer to new answer object
+  if(LDAPAuth::Instance()->getAttribute(alias, H245PassWord, attr_values)){
+PTRACE(2, "passwd:" + attr_values[0]);
+    return attr_values[0];
+  }
+  return "";
 }  
 
 // LDAPAliasAuth
 LDAPAliasAuth::LDAPAliasAuth(PConfig *cfg, const char *authName) : AliasAuth(cfg, authName)
 {
-  m_ldapauth = PNEW LDAPAuth(cfg, authName);
-}
+  LDAPAuth::Instance()->Initialize(*cfg);
+} // LDAPAliasAuth constructor
 
+// destructor
 LDAPAliasAuth::~LDAPAliasAuth() {
-  delete m_ldapauth;
-}
+} // LDAPAliasAuth destructor
 
-PString LDAPAliasAuth::getConfigString(const PString &alias)
+PString LDAPAliasAuth::getConfigString(const PString &alias) const
 {
+  PStringList attr_values;
   using namespace lctn; // LDAP config tags and names
-  PString ip = m_ldapauth->getAttribute(alias, aliasH323ID);
-  PString port = GK_DEF_ENDPOINT_SIGNAL_PORT;
-  if(!ip.IsEmpty()){
-    return "sigip:" + ip + ":" + port;
+  // get pointer to new answer object
+  if(LDAPAuth::Instance()->getAttribute(alias, IPAddress, attr_values)){
+    PString ip = attr_values[0];
+    if(!ip.IsEmpty()){
+      PString port = GK_DEF_ENDPOINT_SIGNAL_PORT;    
+      return "sigip:" + ip + ":" + port;
+    }
   }
   return "";
 }
@@ -738,7 +760,7 @@ int AliasAuth::Check(const H225_LocationRequest &, unsigned &)
 	return e_next;
 }
 
-PString AliasAuth::getConfigString(const PString &alias){
+PString AliasAuth::getConfigString(const PString &alias) const {
 	return config->GetString("RasSrv::RRQAuth", alias, "");
 }
 
