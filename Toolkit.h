@@ -22,6 +22,69 @@ class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
 class H225_H221NonStandard;
 
+/// Hold an address of a single host or a whole network
+struct NetworkAddress {
+	/// Build an "any" address 
+	NetworkAddress();
+	/// Build a single host address
+	NetworkAddress(
+		const PIPSocket::Address &addr
+		);
+	/// Build an address of the specified network
+	NetworkAddress(
+		const PIPSocket::Address &addr,
+		const PIPSocket::Address &nm
+		);
+	/// Build an address from the string
+	NetworkAddress(
+		const PString &str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0
+		);
+
+	/// @return	Length of the network mask (number of significant bits)
+	unsigned GetNetmaskLen() const;
+
+	/** Compare two network addresses and define their relative order.
+	    Ordering is done accordingly to netmask length and then to IP bytes.
+		
+	    @return <0 if this address is lesser than #addr#, 0 if both are equal,
+	            >0 if this address is greater than #addr#.
+	*/
+	int Compare(
+		const NetworkAddress &addr
+		) const;
+
+	/// @return	A string representation of the address in the form A.B.C.D/netmasklen
+	PString AsString() const;
+
+	/// @return	True if this is a wildcard address
+	bool IsAny() const;
+		
+	/// @return	True if the given address is equal to this address
+	bool operator==(const PIPSocket::Address &addr) const;
+	bool operator==(const NetworkAddress &addr) const;
+
+	/// @return	True if the given address is contained within this network		
+	bool operator>>(const PIPSocket::Address &addr) const;
+	bool operator>>(const NetworkAddress &addr) const;
+	/// @return	True if the given network contains this network		
+	bool operator<<(const NetworkAddress &addr) const;
+
+	bool operator<(const NetworkAddress &addr) const;
+	bool operator<=(const NetworkAddress &addr) const;
+	bool operator>(const NetworkAddress &addr) const;
+	bool operator>=(const NetworkAddress &addr) const;
+	
+	PIPSocket::Address m_address; /// host/network address
+	PIPSocket::Address m_netmask; /// netmask for the #m_address#
+};
+
+/// @return	True if the given address equals to this address
+bool operator==(const PIPSocket::Address &addr, const NetworkAddress &net);
+/// @return	True if the given address is contained withing this network
+bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net);
+
+ostream & operator<<(ostream &strm, const NetworkAddress &addr);
+
 class GkTimerManager;
 class Toolkit : public Singleton<Toolkit>
 {

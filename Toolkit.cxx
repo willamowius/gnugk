@@ -32,8 +32,181 @@
 extern const char *ProxySection;
 
 namespace {
+
 const PString paddingByteConfigKey("KeyFilled");
+const BYTE AnyRawAddress[16] = {
+	255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255
+};
+
+} /* namespace */
+
+NetworkAddress::NetworkAddress() : m_address(0), m_netmask(0)
+{
 }
+
+NetworkAddress::NetworkAddress(
+	const PIPSocket::Address &addr
+	) : m_address(addr), m_netmask(addr.GetSize(), AnyRawAddress)
+{
+}
+
+NetworkAddress::NetworkAddress(
+	const PIPSocket::Address &addr,
+	const PIPSocket::Address &nm
+	) : m_netmask(nm)
+{
+	// normalize the address
+	BYTE rawdata[16];
+	const unsigned sz = addr.GetSize();
+	for (unsigned i = 0; i < sz; i++)
+		rawdata[i] = addr[i] & nm[i];
+	m_address = PIPSocket::Address(sz, rawdata);
+}
+	
+NetworkAddress::NetworkAddress(
+	const PString &str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0
+	)
+{
+	Toolkit::GetNetworkFromString(str, m_address, m_netmask);
+}
+
+unsigned NetworkAddress::GetNetmaskLen() const		
+{
+	unsigned len = 0;
+	const unsigned sz = m_netmask.GetSize() * 8;
+	const char *rawdata = m_netmask.GetPointer();
+	
+	
+	for (int b = sz - 1; b >= 0; b--)
+		if (rawdata[b >> 3] & (0x80 >> (b & 7)))
+			break;
+		else
+			len++;
+			
+	return sz - len;
+}
+
+bool NetworkAddress::operator==(const NetworkAddress &addr) const
+{
+	if (m_address.GetSize() != addr.m_address.GetSize())
+		return false;
+
+	const unsigned sz = m_address.GetSize();
+	for (unsigned i = 0; i < sz; i++)
+		if (m_address[i] != addr.m_address[i] || m_netmask[i] != addr.m_netmask[i])
+			return false;
+			
+	return true;
+}
+
+bool NetworkAddress::operator==(const PIPSocket::Address &addr) const
+{
+	if (m_address.GetSize() != addr.GetSize())
+		return false;
+
+	const unsigned sz = m_address.GetSize();
+	for (unsigned i = 0; i < sz; i++)
+		if (m_netmask[i] != 255 || m_address[i] != addr[i])
+			return false;
+			
+	return true;
+}
+
+bool NetworkAddress::operator>>(const NetworkAddress &addr) const
+{
+	if (m_address.GetSize() != addr.m_address.GetSize())
+		return false;
+
+	const unsigned sz = m_address.GetSize();
+	for (unsigned i = 0; i < sz; i++)
+		if (m_netmask[i] != (addr.m_netmask[i] & m_netmask[i])
+				|| m_address[i] != (addr.m_address[i] & m_netmask[i]))
+			return false;
+			
+	return true;
+}
+	
+bool NetworkAddress::operator<<(const NetworkAddress &addr) const
+{
+	return addr >> *this;
+}
+
+bool NetworkAddress::operator>>(const PIPSocket::Address &addr) const
+{
+	if (m_address.GetSize() != addr.GetSize())
+		return false;
+
+	const unsigned sz = m_address.GetSize();
+	for (unsigned i = 0; i < sz; i++)
+		if (m_address[i] != (addr[i] & m_netmask[i]))
+			return false;
+			
+	return true;
+}
+
+int NetworkAddress::Compare(const NetworkAddress &addr) const
+{
+	int diff = m_address.GetSize() - addr.m_address.GetSize();
+	if (diff == 0) {
+		diff = GetNetmaskLen() - addr.GetNetmaskLen();
+		if (diff == 0) {
+			const unsigned sz = m_address.GetSize();
+			for (unsigned i = 0; i < sz; i++) {
+				diff = m_address[i] - addr.m_address[i];
+				if (diff != 0)
+					break;
+			}
+		}
+	}
+	return diff;
+}
+
+PString NetworkAddress::AsString() const
+{
+	return m_address.AsString() + "/" + PString(GetNetmaskLen());
+}
+
+bool NetworkAddress::IsAny() const
+{
+	return const_cast<NetworkAddress*>(this)->m_address.IsAny();
+}
+
+bool NetworkAddress::operator<(const NetworkAddress &addr) const
+{
+	return Compare(addr) < 0;
+}
+
+bool NetworkAddress::operator<=(const NetworkAddress &addr) const
+{
+	return Compare(addr) <= 0;
+}
+
+bool NetworkAddress::operator>(const NetworkAddress &addr) const
+{
+	return Compare(addr) > 0;
+}
+
+bool NetworkAddress::operator>=(const NetworkAddress &addr) const
+{
+	return Compare(addr) >= 0;
+}
+
+bool operator==(const PIPSocket::Address &addr, const NetworkAddress &net)
+{
+	return net == addr;
+}
+
+bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net)
+{
+	return net >> addr;
+}
+
+ostream & operator<<(ostream &strm, const NetworkAddress &addr)
+{
+	return strm << addr.AsString();
+}
+
 
 // class Toolkit::RouteTable::RouteEntry
 Toolkit::RouteTable::RouteEntry::RouteEntry(
