@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2004/06/25 13:33:18  zvision
+ * Better Username, Calling-Station-Id and Called-Station-Id handling.
+ * New SetupUnreg option in Gatekeeper::Auth section.
+ *
  * Revision 1.10  2004/05/22 12:17:12  zvision
  * Parametrized FileAcct CDR format
  *
@@ -138,26 +142,6 @@ public:
 	virtual Status Log(		
 		AcctEvent evt, /// accounting event to log
 		const callptr& call /// a call associated with the event (if any)
-		);
-
-	/** Format time string suitable for accounting logs.
-		Currently NTP format conversion occurs.
-		
-		@return
-		Formatted time string.
-	*/ 
-	static PString AsString( 
-		const PTime& tm /// time value to be formatted
-		);
-	
-	/** Format time string suitable for accounting logs.
-		Currently NTP format conversion occurs.
-		
-		@return
-		Formatted time string.
-	*/ 
-	static PString AsString( 
-		const time_t& tm /// time value to be formatted
 		);
 
 protected:
@@ -381,6 +365,8 @@ private:
 	PString m_cdrString;
 	/// gatekeeper identifier (for fast access)
 	PString m_gkName;
+	/// timestamp formatting string
+	PString m_timestampFormat;
 	/// human readable names for rotation intervals
 	static const char* const m_intervalNames[];
 };

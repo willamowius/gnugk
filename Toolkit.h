@@ -303,7 +303,19 @@ class Toolkit : public Singleton<Toolkit>
 	    of time scheduled events.
 	*/
 	GkTimerManager* GetTimerManager() const { return m_timerManager; }
-	
+
+	/** Convert the timestamp into a string according to the passed
+	    format string or (if it is an empty string) to the default format string.
+	    The format string conforms to strftime formatting rules or can be a one
+	    of predefined constants: Cisco, ISO8601, RFC822, MySQL.
+		
+	    @return	Formatted timestamp string.
+	*/
+	PString AsString(
+		const PTime& tm, /// timestamp to convert into a string
+		const PString& formatStr = PString() /// format string to use
+		);
+
 protected:
 	void CreateConfig();
 
@@ -333,6 +345,8 @@ private:
 	PFilePath m_tmpconfig;
 	/// global manager for time-based events
 	GkTimerManager* m_timerManager;
+	/// a default timestamp format string
+	PString m_timestampFormatStr;
 };
 
 

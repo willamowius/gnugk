@@ -588,7 +588,10 @@ public:
 	bool IsForwarded() const { return m_forwarded; }
 	bool IsSocketAttached() const { return (m_callingSocket != 0); }
 
-	PString GenerateCDR() const;
+	PString GenerateCDR(
+		/// timestamp formatting string (empty for a default RFC822 format)
+		const PString& timestampFormat = PString()
+		) const;
 	PString PrintOn(bool verbose) const;
 
 	void Lock();
@@ -999,7 +1002,9 @@ private:
 	long m_defaultDurationLimit;
 	/// default interval (seconds) for accounting updates to be logged
 	long m_acctUpdateInterval;
-
+	/// timestamp formatting string for CDRs
+	PString m_timestampFormat;
+	
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };

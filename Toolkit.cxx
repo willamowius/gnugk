@@ -512,7 +512,9 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"), 
 	m_Config(NULL), m_ConfigDirty(false),
 	m_acctSessionCounter(0), m_acctSessionBase((long)time(NULL)),
-	m_timerManager(new GkTimerManager())
+	m_timerManager(new GkTimerManager()),
+	m_timestampFormatStr("Cisco")
+
 {
 	srand(time(0));
 }
@@ -619,7 +621,9 @@ PConfig* Toolkit::ReloadConfig()
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
 	m_GKName = GkConfig()->GetString("Name", "GNU Gatekeeper");
-
+	
+	m_timestampFormatStr = GkConfig()->GetString("TimestampFormat", "Cisco");
+	
 	return m_Config;
 }
 
@@ -911,4 +915,48 @@ bool Toolkit::AsTimeInterval(
 	if (valid)
 		interval = result;
 	return valid;
+}
+
+PString Toolkit::AsString(
+	const PTime& tm, /// timestamp to convert into a string
+	const PString& formatStr /// format string to use
+	)
+{
+	PString fmtStr = !formatStr ? formatStr : m_timestampFormatStr;
+	if (fmtStr.IsEmpty())
+		return PString();
+
+	if (fmtStr *= "Cisco")
+		fmtStr = "%H:%M:%S.%u %Z %a %b %d %Y";
+	else if (fmtStr *= "ISO8601")
+		return tm.AsString(PTime::LongISO8601);
+	else if (fmtStr *= "RFC822")
+		return tm.AsString(PTime::RFC1123);
+	else if (fmtStr *= "MySQL" )
+		fmtStr = "%Y-%m-%d %H:%M:%S";
+	
+	struct tm _tm;
+	struct tm* tmptr = &_tm;
+	time_t t = tm.GetTimeInSeconds();
+
+#ifndef WIN32
+	if (localtime_r(&t, tmptr) != tmptr) {
+#else
+	tmptr = localtime(&t);
+	if (tmptr  == NULL) {
+#endif
+		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
+		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
+	}
+
+	PString buf;
+	
+	buf.SetSize(128);
+	if (strftime(buf.GetPointer(), 128, (const char*)fmtStr, tmptr) == 0) {
+		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
+		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
+	}
+	
+	buf.MakeMinimumSize();
+	return buf;
 }

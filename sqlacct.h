@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2004/07/09 22:11:36  zvision
+ * SQLAcct module ported from 2.0 branch
+ *
  * Revision 1.1.2.1  2004/04/23 16:01:16  zvision
  * New direct SQL accounting module (SQLAcct)
  *
@@ -108,6 +111,8 @@ private:
 	PString m_stopQuery;
 	/// parametrized alternative query string for the call stop event
 	PString m_stopQueryAlt;
+	/// timestamp formatting string
+	PString m_timestampFormat;
 	/// for fast access
 	PString m_gkName;
 	PIPSocket::Address m_gkAddr;

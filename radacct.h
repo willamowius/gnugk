@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2004/07/26 12:19:41  zvision
+ * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
+ *
  * Revision 1.9.2.1  2004/07/07 23:11:07  zvision
  * Faster and more elegant handling of Cisco VSA
  *
@@ -132,6 +135,8 @@ private:
 	PIPSocket::Address m_nasIpAddress;
 	/// Fixed value for User-Name attribute in outgoing requests
 	PString m_fixedUsername;
+	/// timestamp formatting string
+	PString m_timestampFormat;
 	/// RADIUS protocol client class associated with this authenticator
 	RadiusClient* m_radiusClient;
 	/// radius attributes that do not change - x4 performance boost

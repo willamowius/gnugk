@@ -1640,22 +1640,25 @@ PString GetEPString(const endptr & ep, const CallSignalSocket *socket)
 
 } // end of anonymous namespace
 
-PString CallRec::GenerateCDR() const
+PString CallRec::GenerateCDR(
+	const PString& timestampFormat
+	) const
 {
 	PString timeString;
-
+	const PString fmtStr = !timestampFormat ? timestampFormat : PString("RFC822");
+	Toolkit* const toolkit = Toolkit::Instance();
+	
 	const time_t eTime = m_disconnectTime ? m_disconnectTime : time(0);
 	const PTime endTime(eTime);
 
 	if (m_connectTime != 0) {
 		const PTime startTime(m_connectTime);
-		timeString = PString(PString::Printf, "%ld|%s|%s",
-			(eTime > m_connectTime)?(eTime - m_connectTime):1,
-			(const char *)startTime.AsString(),
-			(const char *)endTime.AsString()
-		);
+		timeString = PString((unsigned)(eTime > m_connectTime
+			? (eTime - m_connectTime) : 1))
+			+ toolkit->AsString(startTime, fmtStr)
+			+ toolkit->AsString(endTime, fmtStr);
 	} else {
-		timeString = "0|unconnected|" + endTime.AsString();
+		timeString = "0|unconnected|" + toolkit->AsString(endTime, fmtStr);
 	}
 
 	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s;",
@@ -1668,7 +1671,7 @@ PString CallRec::GenerateCDR() const
 		(const char *)m_calleeId,
 		(const char *)m_destInfo,
 		(const char *)m_srcInfo,
-		(const char *)Toolkit::Instance()->GKName()
+		(const char *)toolkit->GKName()
 	);
 }
 
@@ -1883,6 +1886,8 @@ void CallTable::LoadConfig()
 	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0);
 	if( m_acctUpdateInterval != 0 )
 		m_acctUpdateInterval = PMAX(m_acctUpdateInterval,10);
+		
+	m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
 }
 
 void CallTable::Insert(CallRec * NewRec)
@@ -2056,7 +2061,7 @@ void CallTable::InternalRemove(iterator Iter)
 	call->SetDisconnectTime(time(NULL));
 
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
-		PString cdrString(call->GenerateCDR() + "\r\n");
+		PString cdrString(call->GenerateCDR(m_timestampFormat) + "\r\n");
 		GkStatus::Instance()->SignalStatus(cdrString, STATUS_TRACE_LEVEL_CDR);
 		PTRACE(1, cdrString);
 #if PTRACING

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2004/07/26 12:19:41  zvision
+ * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
+ *
  * Revision 1.11.2.2  2004/07/07 23:11:07  zvision
  * Faster and more elegant handling of Cisco VSA
  *
@@ -119,6 +122,8 @@ RadAcct::RadAcct(
 		));
 	m_fixedUsername = cfg->GetString(cfgSec, "FixedUsername", "");
 
+	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
+	
 	m_attrNasIdentifier = RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
 	m_attrH323GwId = RadiusAttr(RadiusAttr::CiscoVSA_h323_gw_id, false, m_nasIdentifier);
 }
@@ -217,18 +222,20 @@ GkAcctLogger::Status RadAcct::Log(
 			pdu->AppendAttr(m_attrH323GwId);
 			pdu->AppendAttr(m_attrH323CallOrigin);
 			pdu->AppendAttr(m_attrH323CallType);
-	
+
+			Toolkit* const toolkit = Toolkit::Instance();
+				
 			time_t tm = call->GetSetupTime();
 			if (tm != 0)
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_setup_time,
-					AsString(tm)
+					toolkit->AsString(PTime(tm), m_timestampFormat)
 					);
 			
 			if (evt & (AcctStop | AcctUpdate)) {
 				tm = call->GetConnectTime();
 				if (tm != 0)
 					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_connect_time,
-						AsString(tm)
+						toolkit->AsString(PTime(tm), m_timestampFormat)
 						);
 			}
 			
@@ -236,7 +243,7 @@ GkAcctLogger::Status RadAcct::Log(
 				tm = call->GetDisconnectTime();
 				if (tm != 0)
 					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_time,
-						AsString(tm)
+						toolkit->AsString(PTime(tm), m_timestampFormat)
 						);
 				
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause,

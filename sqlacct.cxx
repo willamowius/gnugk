@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2004/07/09 22:11:36  zvision
+ * SQLAcct module ported from 2.0 branch
+ *
  * Revision 1.1.2.6  2004/06/22 18:41:17  zvision
  * Username, Calling-Station-Id and Called-Station-Id handling rewritten.
  * Radius modules optimized.
@@ -49,7 +52,7 @@
 #include "sqlacct.h"
 
 
-SQLAcct::SQLAcct( 
+SQLAcct::SQLAcct(
 	const char* moduleName,
 	const char* cfgSecName
 	) : GkAcctLogger(moduleName, cfgSecName),
@@ -130,6 +133,8 @@ SQLAcct::SQLAcct(
 		m_gkAddr = interfaces.front();
 	else
 		PTRACE(1, "GKACCT\t" << GetName() << " cannot determine gatekeeper IP address");
+
+	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
 }
 
 SQLAcct::~SQLAcct()
@@ -157,16 +162,18 @@ void SQLAcct::SetupQueryParams(
 	params["gkip"] = m_gkAddr.AsString();
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
-	
+
+	Toolkit* const toolkit = Toolkit::Instance();
+		
 	t = call->GetSetupTime();
 	if (t)
-		params["setup-time"] = AsString(t);
+		params["setup-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
 	t = call->GetConnectTime();
 	if (t)
-		params["connect-time"] = AsString(t);
+		params["connect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
 	t = call->GetDisconnectTime();
 	if (t)
-		params["disconnect-time"] = AsString(t);
+		params["disconnect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
 	
 	if (call->GetSrcSignalAddr(addr, port)) {
 		params["caller-ip"] = addr.AsString();

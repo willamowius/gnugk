@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2004/06/28 19:09:33  zvision
+ * Monthly CDR files rotation fixes.
+ *
  * Revision 1.15  2004/06/28 18:47:58  zvision
  * Fixed a bug in Username determination for unregistered endpoints
  *
@@ -82,65 +85,6 @@ const char* GkAcctSectionName = "Gatekeeper::Acct";
 
 extern const char* CallTableSection;
 
-
-PString GkAcctLogger::AsString(
-	const PTime& tm
-	)
-{
-	struct tm _tm;
-	struct tm* tmptr = &_tm;
-	time_t t;
-	
-	if( (time(&t) != (time_t)(-1))
-#ifndef WIN32
-		&& (localtime_r(&t,tmptr) == tmptr) )
-#else
-		&& ((tmptr = localtime(&t)) != NULL) )
-#endif
-	{
-		char buf[10];
-		
-		buf[0] = 0;
-		if( strftime(buf,sizeof(buf),"%Z",tmptr) < 10 )
-		{
-			buf[9] = 0;
-			const PString tzname(buf);
-			if( !tzname.IsEmpty() )
-			{
-				PString s = tm.AsString( "hh:mm:ss.uuu @@@ www MMM d yyyy" );
-				s.Replace("@@@",tzname);
-				return s;
-			}
-		}
-	}
-	
-	return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
-}
-
-PString GkAcctLogger::AsString(
-	const time_t& tm
-	)
-{
-	struct tm _tm;
-	struct tm* tmptr = &_tm;
-	time_t t = tm;
-	
-	
-#ifndef WIN32
-	if( localtime_r(&t,tmptr) == tmptr ) {
-		char buf[48];
-		size_t sz = strftime(buf,sizeof(buf),"%T.000 %Z %a %b %d %Y",tmptr);
-#else
-	if( (tmptr = localtime(&t)) != NULL ) {
-		char buf[96];
-		size_t sz = strftime(buf,sizeof(buf),"%H:%M:%S.000 %Z %a %b %d %Y",tmptr);
-#endif
-		if( sz < sizeof(buf) && sz > 0 )
-			return buf;
-	}
-	
-	return PTime(tm).AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
-}
 
 GkAcctLogger::GkAcctLogger(
 	const char* moduleName,
@@ -357,7 +301,10 @@ FileAcct::FileAcct(
 		GetConfig()->GetString(GetConfigSectionName(), "StandardCDRFormat", 
 			m_cdrString.IsEmpty() ? "1" : "0"
 			));
-
+	m_timestampFormat = GetConfig()->GetString(GetConfigSectionName(), 
+		"TimestampFormat", ""
+		);
+		
 	// determine rotation type (by lines, by size, by time)	
 	const PString rotateCondition = GetConfig()->GetString(
 		GetConfigSectionName(), "Rotate", ""
@@ -624,7 +571,7 @@ bool FileAcct::GetCDRText(
 		return false;
 	
 	if (m_standardCDRFormat)	
-		cdrString = call->GenerateCDR();
+		cdrString = call->GenerateCDR(m_timestampFormat);
 	else {
 		std::map<PString, PString> params;
 
@@ -655,15 +602,17 @@ void FileAcct::SetupCDRParams(
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
 	
+	Toolkit* const toolkit = Toolkit::Instance();
+	
 	t = call->GetSetupTime();
 	if (t)
-		params["setup-time"] = AsString(t);
+		params["setup-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
 	t = call->GetConnectTime();
 	if (t)
-		params["connect-time"] = AsString(t);
+		params["connect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
 	t = call->GetDisconnectTime();
 	if (t)
-		params["disconnect-time"] = AsString(t);
+		params["disconnect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
 	
 	if (call->GetSrcSignalAddr(addr, port)) {
 		params["caller-ip"] = addr.AsString();
