@@ -40,6 +40,8 @@ BroadcastListen::~BroadcastListen()
 
 void BroadcastListen::Main(void)
 {
+	ReadLock cfglock(ConfigReloadMutex);
+
 	BroadcastListener.Listen
 		(GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
 		 BroadcastListener.GetPort(),
@@ -56,7 +58,9 @@ void BroadcastListen::Main(void)
 
 		PBYTEArray * rdbuf = new PBYTEArray(4096);
 		PPER_Stream * rdstrm = new PPER_Stream(*rdbuf);
+		ConfigReloadMutex.EndRead();
 		int iResult = BroadcastListener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
+		ConfigReloadMutex.StartRead();
 		if (!iResult)
 		{
     		PTRACE(1, "GK\tBroadcast thread: Read error: " << BroadcastListener.GetErrorText());
