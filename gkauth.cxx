@@ -106,11 +106,26 @@ static GkAuthInit<MySQLPasswordAuth> _MPA_("MySQLPasswordAuth");
 
 #endif // HAS_MYSQL
 
+
+// LDAP authentification
+#if defined(HAS_LDAP)		// shall use LDAP
+#include "ldaplink.h"		// link to LDAP functions
+
 class LDAPAuth : public SimplePasswordAuth {
 public:
-	LDAPAuth(PConfig *, const char *);
-// TODO
+  LDAPAuth(PConfig *, const char *);
+  ~LDAPAuth();
+private:
+  // Data
+  LDAPAttributeNamesClass AN;	// names of the LDAP attributes
+  LDAPCtrl * LDAPConn;		// a HAS-A relation is prefered over a IS-A relation
+				// because one can better steer the parameters
+  // Methods
+  void Initialize(PConfig *);
+  void Destroy(void);
 };
+
+#endif // HAS_LDAP
 
 class RadiusAuth : public SimplePasswordAuth {
 public:
@@ -423,6 +438,113 @@ PString MySQLPasswordAuth::GetPassword(PString & id)
 
 #endif // HAS_MYSQL
 
+// LDAP authentification
+#if defined(HAS_LDAP)
+
+// init file section name
+const char *ldap_attr_name_sec = "LDAPAuth::LDAPAttributeNames";
+const char *ldap_auth_sec = "LDAPAuth::Settings";
+
+// constructor
+LDAPAuth::LDAPAuth(PConfig * cfg, const char * authName)
+  : SimplePasswordAuth(cfg, authName)
+{
+  Initialize(cfg);
+} // LDAPAuth constructor
+
+// constructor
+LDAPAuth::~LDAPAuth()
+{
+  Destroy();
+} // LDAPAuth destructor
+
+
+void 
+LDAPAuth::Initialize(PConfig * cfg) // 'real', private constructor
+{
+  struct timeval default_timeout;
+  default_timeout.tv_sec = 10l;	// seconds
+  default_timeout.tv_usec = 0l;	// micro seconds
+  using namespace lctn;		// LDAP config tags and names
+  // The defaults are given by the constructor of LDAPAttributeNamesClass
+  AN.insert(LDAPANValuePair(LDAPAttrTags[UserIdentity], 
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[UserIdentity],
+					      "uid"))); // 0.9.2342.19200300.100.1.1
+  AN.insert(LDAPANValuePair(LDAPAttrTags[H323ID],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[H323ID],
+					      "cn"))); // 2.5.4.3
+  AN.insert(LDAPANValuePair(LDAPAttrTags[TelephonNo],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[TelephonNo],
+					      "telephoneNumber"))); // 2.5.4.20
+  AN.insert(LDAPANValuePair(LDAPAttrTags[H245PassWord],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[H245PassWord],
+					      "plaintextPassword")));	// ...9564.2.1.1.8
+  AN.insert(LDAPANValuePair(LDAPAttrTags[aliasH3232ID],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[aliasH3232ID],
+					      "voIPnickName"))); // ...9564.2.5.1000
+  AN.insert(LDAPANValuePair(LDAPAttrTags[CountryCode],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[CountryCode],
+					      "voIPcountryCode"))); // ...9564.2.5.2000
+  AN.insert(LDAPANValuePair(LDAPAttrTags[AreaCode],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[AreaCode],
+					      "voIPareaCode"))); // ...9564.2.5.2010
+  AN.insert(LDAPANValuePair(LDAPAttrTags[LocalAccessCode],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[LocalAccessCode],
+					      "voIPlocalAccessCode"))); // ...9564.2.5.2020
+  AN.insert(LDAPANValuePair(LDAPAttrTags[NationalAccessCode],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[NationalAccessCode],
+					      // ...9564.2.5.2030
+					      "voIPnationalAccessCode")));
+  AN.insert(LDAPANValuePair(LDAPAttrTags[InternationalAccessCode],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[InternationalAccessCode],
+					       // ...9564.2.5.2040
+					      "voIPinternationalAccessCode")));
+  AN.insert(LDAPANValuePair(LDAPAttrTags[CallingLineIdPresentation],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[CallingLineIdPresentation],
+					      "voIPcallingLineIdPresentation"))); // ...2050
+  AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixBlacklist],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[PrefixBlacklist],
+					      "voIPprefixBlacklist"))); // ...9564.2.5.2060
+  AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixWhitelist],
+			    config->GetString(ldap_attr_name_sec, 
+					      LDAPAttrTags[PrefixWhitelist],
+					      "voIPprefixWhitelist"))); // ...9564.2.5.2070
+
+  PString ServerName = config->GetString(ldap_auth_sec, "ServerName", "ldap");
+  int ServerPort = config->GetString(ldap_auth_sec, "ServerPort", "389").AsInteger();
+  PString SearchBaseDN = config->GetString(ldap_auth_sec, "SearchBaseDN", 
+					   "o=University of Michigan, c=US");
+  PString BindUserDN = config->GetString(ldap_auth_sec, "BindUserDN", 
+					 "cn=Babs Jensen,o=University of Michigan, c=US");
+  PString BindUserPW = config->GetString(ldap_auth_sec, "BindUserPW", "RealySecretPassword");
+  unsigned int sizelimit = config->GetString(ldap_auth_sec, "sizelimit", "0").AsUnsigned();
+  unsigned int timelimit = config->GetString(ldap_auth_sec, "timelimit", "0").AsUnsigned();
+
+  LDAPConn = new LDAPCtrl(&AN, &default_timeout, ServerName, 
+			  SearchBaseDN, BindUserDN, BindUserPW, 
+			  sizelimit, timelimit, ServerPort);
+
+} // Initialize
+
+void
+LDAPAuth::Destroy()		// 'real', private destructor
+{
+  delete LDAPConn;
+} // Destroy
+
+#endif // HAS_LDAP
 
 // AliasAuth
 AliasAuth::AliasAuth(PConfig *cfg, const char *authName) : GkAuthenticator(cfg, authName)
