@@ -1,5 +1,5 @@
 <!doctype linuxdoc system>
-<!-- French translation from manual.sgml v1.79 -->
+<!-- French translation from manual.sgml v1.83 -->
 <!-- Ceci est le Manuel Utilisateur de OpenH323 Gatekeeper - The GNU Gatekeeper -->
 
 <article>
@@ -51,17 +51,17 @@ Selon la recommandation H.323, un gatekeeper doit fournir les services suivants:
 
 Le GNU Gatekeeper impl&#233;mente la plupart des fonctions bas&#233;es sur
 la pile du procole
-<url url="http://www.openh323.org/" name="OpenH323">.
+<url url="http://sourceforge.net/projects/openh323" name="OpenH323">
 
 La recommandation H.323 est une norme internationale publi&#233;e par l'
 <url url="http://www.itu.int/" name="ITU">.
 Il s'agit d'une norme de communication pour l'audio, vid&#233;o et donn&#233;es sur Internet.
 Voir aussi
-<url url="http://www.packetizer.com/iptel/h323/" name="l'introduction &#224; H.323">
+<url url="http://www.packetizer.com/voip/h323/papers/primer" name="l'introduction &#224; la s&#233;rie de normes H.323">.
 de Paul Jones.
 
 Pour une description de ce que fait un gatekeeper, voir
-<url url="http://www.webproforum.com/h323/topic06.html" name="ici">.
+<url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="ici">.
 
 <sect1>Copyright
 <p>
@@ -92,11 +92,12 @@ Merci de ne pas le confondre avec d'autres projets de gatekeeper.
 
 Il y a plusieurs projets gatekeeper open-source bas&#233;s sur la pile de protocole OpenH323.
 <itemize>
-<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper"> - par <url url="http://www.egoboo.com/" name="Egoboo">
-<quote>Un gatekeeper complet librement disponible sous MPL. Le projet a &#233;t&#233; inactif pour une certaine dur&#233;e. Il y a un proxy H.323 bas&#233; sur OpenGatekeeper, voir <url url="http://openh323proxy.sourceforge.net/" name="OpenH323Proxy">.</quote>
-<item><url url="http://www.openh323.org/code.html" name="OpenGK"> - par <url url="http://www.equival.com.au/" name="Equivalence">
+<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper">
+<quote>Un gatekeeper disponible sous MPL. Le projet a &#233;t&#233; inactif pour une certaine dur&#233;e.</quote>
+<item><url url="http://sourceforge.net/projects/openh323" name="OpenGK">
 <quote>Only in a very primary grades.</quote>
-<item>OpenH323 Gatekeeper - celui ci.
+<item><url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
+<quote>Celui-ci, aussi appel&#233; GnuGk.</quote>
 </itemize>
 
 Avoir diff&#233;rents gatekeepers avec des noms similaires embrouille vraiment
@@ -113,6 +114,14 @@ utiliser <tt/gnugk/ comme nom pour les ex&#233;cutables.
 La version 2.2.2 contient les caract&#233;ristiques et corrections suivantes:
 
 <itemize>
+<item>
+New FileIPAuth module in the contrib/ipauth directory.
+
+<item>
+Call accounting updates/call disconnect handling is now more robust
+and does not lock the whole call table and (effectively) the gatekeeper
+for long time periods.
+
 <item>
 Do not support mutiple rewrite targets, as this feature does not work well
 if rewrite is performed more than once.
@@ -486,7 +495,7 @@ Pour construire le gatekeeper vous avez besoin d'au moins PWLib 1.5.0 et OpenH32
 La version de d&#233;veloppement du gatekeeper a g&#233;n&#233;ralement besoin de la version
 de OpenH323 la plus r&#233;cente disponible.
 Ces librairies sont disponibles &#224; la
-<url url="http://www.openh323.org/code.html" name="Page de T&#233;l&#233;chargement de OpenH323">.
+<url url="http://sourceforge.net/projects/openh323" name="Page de T&#233;l&#233;chargement de OpenH323">.
 Voir les instructions sur
 <url url="http://www.openh323.org/build.html" name="comment compiler le code de OpenH323">.
 
