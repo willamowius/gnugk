@@ -74,10 +74,11 @@
 # voIPprefixOutgoingWhitelist       | HERE
 # voIPprefixIncomingBlacklist       | HERE
 # voIPprefixIncomingWhitelist       | HERE
-# voIPConvertToLocal                | HERE
 # voIPCallTimeout                   | HERE
 # voIPTreatCallingPartyNumberAs     | HERE
 # voIPTreatCalledPartyNumberAs      | HERE
+# voIPConvertToLocal                | HERE
+# voIPvoIPMinimumDigitsRequired     | HERE
 
 # This objectClass shall be used to extend entries which typically are
 # either also of class 'person' or 'inetOrgPerson', 'mways'
@@ -320,17 +321,17 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2190 NAME 'voIPPrefixIncomingWhitelist'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPConvertToLocal'
-  DESC 'Convert Numbers to national/subscriber type when calls are national/local. Default is to leave them international'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
-  SINGLE-VALUE
- )
-
-attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPCallTimeout'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPCallTimeout'
   DESC 'Maximum number of seconds left on the callers time account. If 0, call will be terminated by the network.'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
 )
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPConvertToLocal'
+  DESC 'Convert Numbers to national/subscriber type when calls are national/local. Default is to leave them international'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
+  SINGLE-VALUE
+ )
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2220 NAME 'voIPTreatCallingPartyNumberAs'
   DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
@@ -340,6 +341,12 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2220 NAME 'voIPTreatCallingPartyNumberAs'
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2230 NAME 'voIPTreatCalledPartyNumberAs'
   DESC 'Treat CalledPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  SINGLE-VALUE
+ )
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2240 NAME 'voIPMinimumDigitsRequired'
+  DESC 'minimum number of digits required to be collected prior to routing a call to this endpoint '
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
  )
