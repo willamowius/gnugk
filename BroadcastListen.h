@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // BroadcastListen.h thread for listening to broadcasts (only needed on some OSs)

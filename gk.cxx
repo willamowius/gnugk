@@ -37,6 +37,14 @@
 #include "h323util.h"
 #include "ANSI.h"
 
+#if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING)
+// FIXME: This code is only to assure proper coredump for debugging
+#  include <sys/time.h>
+#  include <sys/resource.h>
+#  include <unistd.h>
+#endif
+
+
 /*
  * many things here should be members of Gatkeeper.
  */
@@ -259,6 +267,10 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "-pid:"
 		 "h-help:"
 #ifdef PTRACING
+#  if (defined(P_LINUX) || defined(P_SOLARIS))
+		 "U-unlimitcore:"
+		 "W-workingdir:"
+#  endif /* P_LINUX || P_SOLARIS */
 #  if defined(HAVE_DIGIT_ANALYSIS)
 		 "X-number:"
 #  endif /* HAVE_DIGIT_ANALYSIS */
@@ -444,6 +456,43 @@ void Gatekeeper::Main()
 		"as published by the Free Software Foundation; either version 2" GK_LINEBRK
 		"of the License, or (at your option) any later version." GK_LINEBRK
 		;
+	
+#if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING)
+// FIXME: This code is only to assure proper coredump for debugging
+	const char optU = 'U';
+	if (args.HasOption(optU)) {
+		struct rlimit resource_limits;
+		//int getrlimit (int resource, struct rlimit *rlim);
+		if(0 != getrlimit(RLIMIT_CORE, &resource_limits)) {
+			PTRACE(1, "GK\tFailed to get core dump size");
+		} else {
+			PTRACE(1, "GK\tCore dump size is: " + PString(resource_limits.rlim_cur));
+		}
+		resource_limits.rlim_max=RLIM_INFINITY;
+		//int setrlimit (int resource, const struct rlimit *rlim);
+		if(0 != setrlimit(RLIMIT_CORE, &resource_limits)) {
+			PTRACE(1, "GK\tFailed to unlimit core dump size");
+		} else {
+			PTRACE(1, "GK\tCore dump size is now unlimited");
+		}
+	}
+	const size_t cwd_buf_size = PATH_MAX * 2;
+	char cwd_buf[cwd_buf_size]; // buffer to hold cwd
+	if(NULL != getcwd(cwd_buf, cwd_buf_size)) {
+		PTRACE(1, PString("GK\tCurrent working dir is: ") + PString(cwd_buf));
+	}
+	const char optW = 'W';
+	PString Ws(cwd_buf);
+	if (args.HasOption(optW)) {
+		Ws = args.GetOptionString(optW);	
+	}	
+	//int chdir(const char *path);
+	PTRACE(1, PString("Trying to change working dir to: ") + Ws);
+	if(0 != chdir((const char *)Ws)) {
+		PTRACE(1, "Failed to change working dir");
+	}
+	
+#endif
 
 #if defined(HAVE_DIGIT_ANALYSIS) && defined(PTRACING)
 	const char optX = 'X';
