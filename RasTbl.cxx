@@ -1578,9 +1578,10 @@ void CallTable::ClearTable()
 	}
 }
 
-void CallTable::CheckCalls()
+void CallTable::CheckCalls(
+	RasServer* rassrv
+	)
 {
-	RasServer* rassrv = RasServer::Instance();
 	WriteLock lock(listLock);
 	iterator Iter = CallList.begin(), eIter = CallList.end();
 	const time_t now = time(0);

@@ -40,6 +40,7 @@ using std::string;
 class GkDestAnalysisList;
 class USocket;
 class CallSignalSocket;
+class RasServer;
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -676,7 +677,9 @@ public:
 	callptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
 
 	void ClearTable();
-	void CheckCalls();
+	void CheckCalls(
+		RasServer* rassrv // to avoid call RasServer::Instance every second
+		);
 
 	void RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &);
 	void RemoveCall(const callptr &);

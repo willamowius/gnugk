@@ -1127,10 +1127,13 @@ void RasServer::HouseKeeping()
 {
 	for (unsigned count = 0; IsRunning(); ++count)
 		if (!m_sync.Wait(1000)) {
+			if( !IsRunning() )
+				break;
+				
 			if (!(count % 60)) // one minute
 				RegistrationTable::Instance()->CheckEndpoints();
 
-			CallTable::Instance()->CheckCalls();
+			CallTable::Instance()->CheckCalls(this);
 
 			gkClient->CheckRegistration();
 		}
