@@ -1858,7 +1858,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	PIPSocket::Address ipaddr;
 	WORD port;
 	bool fromRegEndpoint = false;
-	bool replyAddrMatch = GetIPAndPortFromTransportAddr(request.m_replyAddress, ipaddr, port) && (ipaddr == m_msg->m_peerAddr);
+	bool replyAddrMatch = GetIPAndPortFromTransportAddr(request.m_replyAddress, ipaddr, port) && (ipaddr == m_msg->m_peerAddr && port == m_msg->m_peerPort);
 	if (request.HasOptionalField(H225_LocationRequest::e_endpointIdentifier))
 		if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier))
 			fromRegEndpoint = replyAddrMatch ? true : ep->IsNATed();
