@@ -63,7 +63,7 @@ class GkClient {
 public:
 	GkClient(H323RasSrv *);
 	~GkClient();
-	
+
 	void SendGRQ();
 	void SendRRQ();
 	void SendURQ();
@@ -100,7 +100,7 @@ public:
 	}
 	template<class RAS> void SetPassword(RAS & rasmsg)
 	{
-		SetPassword(rasmsg, m_e164);
+		SetPassword(rasmsg, !m_e164 ? m_e164 : m_h323Id);
 	}
 
 private:
