@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(ProxyChannel.cxx) dynamic allocation of RTP ports did not work,
+  use a fixed range 1024-65535 as a default for RTPPortRange config variable
 - (RasTbl.cxx) LRQs received on a multicast interface triggered LCFs
   with an invalid signalling port number (0) in signalling routed mode
 - get rid of redundant config reload mutex inside accounting modules

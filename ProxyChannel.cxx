@@ -46,11 +46,17 @@ const char* RoutedSec = "RoutedMode";
 const char* ProxySection = "Proxy";
 const char* H225_ProtocolID = "0.0.8.2250.0.2";
 
-class PortRange {
-public:
+struct PortRange {
+	PortRange() : port(0), minport(0), maxport(0) {}
+	
 	WORD GetPort();
+	int GetNumPorts() const;
 	void LoadConfig(const char *, const char *, const char * = "");
 
+private:
+	PortRange(const PortRange&);
+	PortRange& operator=(const PortRange&);
+	
 private:
 	WORD port, minport, maxport;
 	PMutex mutex;
@@ -65,6 +71,11 @@ WORD PortRange::GetPort()
 	if (port > maxport)
 		port = minport;
 	return result;
+}
+
+int PortRange::GetNumPorts() const
+{
+	return maxport - minport + 1;
 }
 
 void PortRange::LoadConfig(const char *sec, const char *setting, const char *def)
@@ -2793,21 +2804,16 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 	rtcp = new UDPProxySocket("RTCP");
 	SetNAT(nated);
 
-	const int startport = port = GetPortNumber();
-	
-	do {
+	const int numPorts = RTPPortRange.GetNumPorts();
+	for (int i = 0; i < numPorts; i += 2) {
+		port = GetPortNumber();
 		// try to bind rtp to an even port and rtcp to the next one port
 		if (rtp->Bind(port) && rtcp->Bind(port + 1))
 			return;
 
 		PTRACE(2, "RTP\tPort " << port << " not available");
 		rtp->Close(), rtcp->Close();
-		
-		if (port == 0)
-			break;
-		else
-			port = GetPortNumber();
-	} while (port != startport);
+	}
 
 	PTRACE(2, "RTP\tLogical channel " << flcn << " could not be established - out of RTP sockets");
 }
@@ -2940,8 +2946,7 @@ WORD RTPLogicalChannel::GetPortNumber()
 	WORD port = RTPPortRange.GetPort();
 	if (port & 1) // make sure it is even
 		port = RTPPortRange.GetPort();
-	if (port != 0)
-		RTPPortRange.GetPort(); // skip one
+	RTPPortRange.GetPort(); // skip odd port
 	return port;
 }
 
@@ -3629,7 +3634,7 @@ void HandlerList::LoadConfig()
 	Q931PortRange.LoadConfig(RoutedSec, "Q931PortRange");
 	H245PortRange.LoadConfig(RoutedSec, "H245PortRange");
 	T120PortRange.LoadConfig(ProxySection, "T120PortRange");
-	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange");
+	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange", "1024-65535");
 
 	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 1);
 	if (m_numSigHandlers < 1)

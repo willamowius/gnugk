@@ -114,6 +114,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Dynamic allocation of RTP ports did not work, use a fixed port range 
+1024-65535 as a default for the <tt/RTPPortRange/ config variable.
+
+<item>
 Obsolete auth modules MySQLAliasAuth and MySQLPasswordAuth are now removed.
 
 <item>
@@ -1684,7 +1688,7 @@ Specify the range of TCP port number for T.120 data channels.
 Note the range size may limit the number of concurrent calls.
 
 <item><tt/RTPPortRange=50000-59999/<newline>
-Default: <tt>N/A (let the OS allocate ports)</tt>
+Default: <tt>1024-65535</tt>
 <p>
 Specify the range of UDP port number for RTP/RTCP channels.
 Note the range size may limit the number of concurrent calls.
