@@ -45,7 +45,7 @@ PString Encrypt(const PString &key, const PString &clear)
 {
 	PTEACypher::Key thekey;
 	memset(&thekey, keyFilled, sizeof(PTEACypher::Key));
-	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), static_cast<unsigned int>(key.GetLength())));
+	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), static_cast<unsigned int>(abs(key.GetLength()))));
 	PTEACypher cypher(thekey);
 	return cypher.Encode(clear);
 }
@@ -54,7 +54,7 @@ PString Decrypt(const PString &key, const PString &encrypt)
 {
 	PTEACypher::Key thekey;
 	memset(&thekey, keyFilled, sizeof(PTEACypher::Key));
-	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), static_cast<unsigned int>(key.GetLength())));
+	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), static_cast<unsigned int>(abs(key.GetLength()))));
 	PTEACypher cypher(thekey);
 	return cypher.Decode(encrypt);
 }
