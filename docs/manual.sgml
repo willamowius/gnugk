@@ -1930,7 +1930,7 @@ The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"
 MySQL database, LDAP or an external program
 for <tt/SimplePasswordAuth/, <tt/MySQLPasswordAuth/, <tt/LDAPPasswordAuth/
 and <tt/ExternalPasswordAuth/ modules, respectively.
-Support for other backend databases is easily to add.
+Support for other backend databases is easy to add.
 
 <item><tt>NeighborPasswordAuth</tt>
 <p>
@@ -1989,7 +1989,6 @@ The default is to accept all requests.
 <tag/Example 1:/
 <tt/SimplePasswordAuth=optional;RRQ,ARQ/<newline>
 <tt/AliasAuth=sufficient;RRQ/<newline>
-<tt/default=allow/
 </descrip>
 
 <descrip>
@@ -2183,7 +2182,8 @@ A name for the column that contains user alias.
 
 <item><tt/DataField=IPADDR/<newline>
 <p>
-A name for the column that contains IP address for the user.
+A name for the column that contains a AuthAlias rule. This can be an IP number or any other rule,
+see section <ref id="rrqauth" name="[RasSrv::RRQAuth]">..
 
 <item><tt/ExtraCriterion=Kind > 0/<newline>
 Default: <tt>N/A</tt>
