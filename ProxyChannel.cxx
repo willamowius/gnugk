@@ -2360,7 +2360,7 @@ void H245Socket::ConnectTo()
 		    socket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
 		socket->CloseSocket();
 	}
-	if (H245Socket *ret = static_cast<H245Socket *>(remote))
+	if (H245Socket *ret = static_cast<H245Socket *>(remote)) {
 		socket = ret->sigSocket;
 		if (socket) {
 			if (socket->IsConnected() && !socket->IsBlocked())
@@ -2368,6 +2368,7 @@ void H245Socket::ConnectTo()
 			socket->SetConnected(false);
 			socket->CloseSocket();
 		}
+	}
 	GetHandler()->Insert(this, remote);
 }
 
