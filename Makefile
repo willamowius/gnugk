@@ -26,7 +26,7 @@ PROG	 = gnugk
 SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx          \
            Routing.cxx Neighbor.cxx GkClient.cxx gkauth.cxx         \
-           RasSrv.cxx ProxyChannel.cxx gk.cxx
+           RasSrv.cxx ProxyChannel.cxx gk.cxx version.cxx
 
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by
