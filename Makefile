@@ -263,6 +263,22 @@ ifeq ($(NO_MYSQL),0)
   endif
 endif
 
+# RADIUS support
+#
+# Flags for RADIUS:
+# * NO_RADIUS:            Disable RADIUS Support.
+
+ifndef NO_RADIUS
+NO_RADIUS := 0
+endif
+
+ifeq ($(NO_RADIUS),0)
+  SOURCES	      += radproto.cxx radauth.cxx
+  STDCCFLAGS_STUB := $(STDCCFLAGS)
+  STDCCFLAGS       = -DHAS_RADIUS $(STDCCFLAGS_STUB)
+  HAS_RADIUS       = 1
+endif
+
 ###
 ### Including the general make rules of OpenH323
 ###
