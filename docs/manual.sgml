@@ -1226,7 +1226,7 @@ Route the call using neighbors by exchanging LRQ messages
 
 <item><tt/dns/<newline>
 <p>
-The destination is resolved from DNS, provided it is 
+The destination is resolved from DNS, provided it is
 resolvable
 
 </itemize>
@@ -1239,23 +1239,22 @@ ARQ, LRQ, Setup and Facility (with the callForwarded reason)
 There is also the general routing policy, which is kind of a
 default for the other types.
 
-<descrip>
 <tag/Example:/
-<quote><tt>[RoutingPolicy]
-h323_ID=dns,internal
-002=neighbor,internal
+<quote><tt>[RoutingPolicy]<newline>
+h323_ID=dns,internal<newline>
+002=neighbor,internal<newline>
 Default=internal,neighbor,parent</tt></quote>
 
 When one of the messages is received which calls for a routing 
-decision, all calls to an alias of the h323_id type will be
+decision, all calls to an alias of the h323_ID type will be
 resolved using DNS. If DNS fails to resolve the alias, it is 
 matched against the internal registration table. If a call is 
 requested to an alias starting with 002, first the neighbours 
 are checked and then the internal registration table. If the
-requested alias is not an h323_id or an alias starting with 
+requested alias is not an h323_ID or an alias starting with 
 002, the default policy is used by querying the internal 
 registration table, then the neighbours, and if that fails the
-parent.</descrip>
+parent.
 
 For the ARQ, LRQ, Setup and Facility messages one would use the 
 [RoutingPolicy::OnARQ], [RoutingPolicy::OnLRQ], 
