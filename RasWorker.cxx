@@ -22,6 +22,7 @@
 #include "SoftPBX.h"
 #include "gkDestAnalysis.h"
 #include "Neighbor.h"
+#include "GkClient.h"
 
 #ifndef lint
 // mark object with version info in such a way that it is retrievable by
@@ -372,6 +373,12 @@ H323RasWorker::Main()
 	case H225_RasMessage::e_locationRequest:
 		OnLRQ(pdu);
 		break;
+	case H225_RasMessage::e_locationConfirm:
+		OnLCF(pdu);
+		break;
+	case H225_RasMessage::e_locationReject:
+		OnLRJ(pdu);
+		break;
 	case H225_RasMessage::e_infoRequestResponse:
 		OnIRR(pdu);
 		break;
@@ -528,7 +535,7 @@ H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 				bReject = FALSE;
 		}
 
-		if (bReject) {
+		if (bReject || endptr(NULL)==ep) {
 			PTRACE_IF(1, ep, "WARNING:\tPossibly endpointId collide or security attack!!");
 			// endpoint was NOT registered
 			rejectReason.SetTag(H225_RegistrationRejectReason::e_fullRegistrationRequired);
@@ -739,14 +746,14 @@ H323RasWorker::OnURQ(H225_UnregistrationRequest &urq)
 	BOOL bShellForwardRequest = TRUE;
 
 	// check first if it comes from my GK
-	if (Toolkit::Instance()->GkClientIsRegistered() && Toolkit::Instance()->GetGkClient().OnURQ(urq, addr)) {
-		// Return UCF
-		answer_pdu.SetTag(H225_RasMessage::e_unregistrationConfirm);
-		H225_UnregistrationConfirm & ucf = answer_pdu;
-		ucf.m_requestSeqNum = urq.m_requestSeqNum;
-		need_answer = TRUE;
-		return;
-	}
+// 	if (Toolkit::Instance()->GkClientIsRegistered() && Toolkit::Instance()->GetGkClient().OnURQ(urq, addr)) {
+// 		// Return UCF
+// 		answer_pdu.SetTag(H225_RasMessage::e_unregistrationConfirm);
+// 		H225_UnregistrationConfirm & ucf = answer_pdu;
+// 		ucf.m_requestSeqNum = urq.m_requestSeqNum;
+// 		need_answer = TRUE;
+// 		return;
+// 	}
 	// OK, it comes from my endpoints
 	// mechanism 1: forwarding detection per "flag"
 	if(urq.HasOptionalField(H225_UnregistrationRequest::e_nonStandardData)) {
@@ -875,31 +882,31 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 				    ( rsn == H225_AdmissionRejectReason::e_securityDenial ||
 					    rsn == H225_AdmissionRejectReason::e_resourceUnavailable ||
 					    rsn == H225_AdmissionRejectReason::e_calledPartyNotRegistered)) {
+					H225_ArrayOf_AliasAddress dest = arq.m_destinationInfo;
+					H225_AdmissionRequest arq_fake=arq;
+					// The arq is the non-rewritten H225_AdmissionRequest. We need to change the destination-address
+					// so we copy it to arq_fake and then build a new AdmissionRequest.
+					PString number = H323GetAliasAddressString(dest[0]);
+					Q931::NumberingPlanCodes plan = Q931::ISDNPlan;
+					Q931::TypeOfNumberCodes ton = Q931::UnknownType;
+					H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
+					CallProfile & profile=pCallRec->GetCallingProfile();
+					PTRACE(5, "foo");
+					profile.debugPrint();
+					ton = static_cast<Q931::TypeOfNumberCodes> (
+						profile.TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
+						ton : profile.TreatCalledPartyNumberAs());
+					Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
+											     profile);
+					H323SetAliasAddress(number, dest[0], H225_AliasAddress::e_dialedDigits);
+					PTRACE(5, "rewriting destination " << dest[0]);
+					arq_fake.m_destinationInfo=dest;
 					if (Toolkit::Instance()->GkClientIsRegistered()) {
-						H225_ArrayOf_AliasAddress dest = arq.m_destinationInfo;
-						H225_AdmissionRequest arq_fake=arq;
-						// The arq is the non-rewritten H225_AdmissionRequest. We need to change the destination-address
-						// so we copy it to arq_fake and then build a new AdmissionRequest.
-						PString number = H323GetAliasAddressString(dest[0]);
-						Q931::NumberingPlanCodes plan = Q931::ISDNPlan;
-						Q931::TypeOfNumberCodes ton = Q931::UnknownType;
-						H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
-						CallProfile & profile=pCallRec->GetCallingProfile();
-						PTRACE(5, "foo");
-						profile.debugPrint();
-						ton = static_cast<Q931::TypeOfNumberCodes> (
-							profile.TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
-							ton : profile.TreatCalledPartyNumberAs());
-						Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
-												     profile);
-						H323SetAliasAddress(number, dest[0], H225_AliasAddress::e_dialedDigits);
-						PTRACE(5, "rewriting destination " << dest[0]);
-						arq_fake.m_destinationInfo=dest;
 						Toolkit::Instance()->GetGkClient().SendARQ(arq_fake, RequestingEP);
 						need_answer = FALSE;
 						return;
 
-					} else if (Toolkit::Instance()->GetNeighbor().InsertARQ(arq, RequestingEP)) { // Neighbor!
+					} else if (Toolkit::Instance()->GetNeighbor().InsertARQ(arq_fake, RequestingEP)) { // Neighbor!
 						need_answer = FALSE;
 						return ;
 					}
@@ -928,32 +935,33 @@ H323RasWorker::OnDRQ(H225_DisengageRequest &drq)
 
 	bool bReject = false;
 
-       if (Toolkit::Instance()->GkClientIsRegistered() && Toolkit::Instance()->GetGkClient().OnDRQ(drq, addr)) {
-               PTRACE(4,"GKC\tDRQ: from my GK");
-       } else if (RegistrationTable::Instance()->FindByEndpointId(drq.m_endpointIdentifier)) {
-	       callptr call = CallTable::Instance()->FindCallRec(drq.m_callIdentifier);
-	       if(callptr(NULL)!=call) {
-		       call->GetCalledProfile().SetReleaseCause(drq.m_disengageReason);
-	       }
-               PTRACE(4, "GK\tDRQ: closed conference");
-       } else {
-               bReject = true;
-       }
+//        if (Toolkit::Instance()->GkClientIsRegistered() && Toolkit::Instance()->GetGkClient().OnDRQ(drq, addr)) {
+//                PTRACE(4,"GKC\tDRQ: from my GK");
+//        } else
+	if (RegistrationTable::Instance()->FindByEndpointId(drq.m_endpointIdentifier)) {
+		callptr call = CallTable::Instance()->FindCallRec(drq.m_callIdentifier);
+		if(callptr(NULL)!=call) {
+			call->GetCalledProfile().SetReleaseCause(drq.m_disengageReason);
+		}
+		PTRACE(4, "GK\tDRQ: closed conference");
+	} else {
+		bReject = true;
+	}
 
-       PString msg;
-       if (bReject) {
-               PTRACE(4, "GK\tDRQ: reject");
-               answer_pdu.SetTag(H225_RasMessage::e_disengageReject);
-               H225_DisengageReject & drj = answer_pdu;
-               drj.m_requestSeqNum = drq.m_requestSeqNum;
-               drj.m_rejectReason.SetTag( drj.m_rejectReason.e_notRegistered );
+	PString msg;
+	if (bReject) {
+		PTRACE(4, "GK\tDRQ: reject");
+		answer_pdu.SetTag(H225_RasMessage::e_disengageReject);
+		H225_DisengageReject & drj = answer_pdu;
+		drj.m_requestSeqNum = drq.m_requestSeqNum;
+		drj.m_rejectReason.SetTag( drj.m_rejectReason.e_notRegistered );
 
-	       msg = PString(PString::Printf, "DRJ|%s|%s|%u|%s;" GK_LINEBRK,
-			     inet_ntoa(addr),
-			     (const unsigned char *) drq.m_endpointIdentifier.GetValue(),
-			     (unsigned) drq.m_callReferenceValue,
-			     (const unsigned char *) drj.m_rejectReason.GetTagName());
-       } else {
+		msg = PString(PString::Printf, "DRJ|%s|%s|%u|%s;" GK_LINEBRK,
+			      inet_ntoa(addr),
+			      (const unsigned char *) drq.m_endpointIdentifier.GetValue(),
+			      (unsigned) drq.m_callReferenceValue,
+			      (const unsigned char *) drj.m_rejectReason.GetTagName());
+	} else {
 
 	       answer_pdu.SetTag(H225_RasMessage::e_disengageConfirm);
 	       H225_DisengageConfirm & dcf = answer_pdu;
@@ -1022,6 +1030,8 @@ H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 				RegistrationTable::Instance()->FindByEndpointId(lrq.m_endpointIdentifier));
 	bool bReject = (!(fromRegEndpoint || Toolkit::Instance()->GetNeighbor().CheckIP(addr)) || !authList->Check(lrq, rsn));
 
+	bReject = true; // Ignore LRQ for now
+
 	PString sourceInfoString((lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(lrq.m_sourceInfo) : PString(" "));
 	if (!bReject) {
 		PTRACE(5, "LRQ from known endpoint");
@@ -1085,6 +1095,27 @@ H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 }
 
 void
+H323RasWorker::OnLCF(H225_RasMessage &lcf) // No conversion needed here!
+{
+	PTRACE(1, "GK\tLCF Received");
+	need_answer = FALSE;
+	if (Toolkit::Instance()->GetNeighbor().CheckIP(addr)) // may send from sibling
+		Toolkit::Instance()->GetNeighbor().ProcessLCF(lcf);
+	return;
+}
+
+void
+H323RasWorker::OnLRJ(H225_RasMessage &lrj) // No conversion needed here!
+{
+	PTRACE(1, "GK\tLRJ Received");
+	need_answer = FALSE;
+	// we should ignore LRJ from sibling
+	if (Toolkit::Instance()->GetNeighbor().CheckIP(addr))
+		Toolkit::Instance()->GetNeighbor().ProcessLRJ(lrj);
+	return;
+}
+
+void
 H323RasWorker::OnIRR(H225_InfoRequestResponse &irr)
 {
 	PTRACE(1, "GK\tIRR Received");
@@ -1130,14 +1161,13 @@ H323RasWorker::OnRAI(H225_ResourcesAvailableIndicate &rai)
 NeighborWorker::NeighborWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server)
 	: GK_RASWorker(initial_pdu, rx_addr, rx_port, server), m_called(NULL)
 {
-//	Resume();
 	PTRACE(5, "Neighbor Worker started");
 }
 
 NeighborWorker::NeighborWorker(PPER_Stream initial_pdu, endptr called, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server)
 	: GK_RASWorker(initial_pdu, rx_addr, rx_port, server), m_called(called)
 {
-//	Resume();
+	PTRACE(5, "Neighbor Worker started");
 }
 
 NeighborWorker::~NeighborWorker()
@@ -1154,6 +1184,7 @@ NeighborWorker::Main()
 	}
 	switch(pdu.GetTag()) {
 	case H225_RasMessage::e_locationConfirm:
+	case H225_RasMessage::e_admissionRequest:
 		OnARQ(pdu);
 		break;
 	default:

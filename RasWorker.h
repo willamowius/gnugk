@@ -62,6 +62,8 @@ protected:
 	virtual void OnDRQ(H225_DisengageRequest &gqr);
 	virtual void OnBRQ(H225_BandwidthRequest &gqr);
 	virtual void OnLRQ(H225_LocationRequest &gqr);
+	virtual void OnLRJ(H225_RasMessage &lrj);
+	virtual void OnLCF(H225_RasMessage &lcf);
 	virtual void OnIRR(H225_InfoRequestResponse &gqr);
 	virtual void OnRAI(H225_ResourcesAvailableIndicate &gqr);
 private:
