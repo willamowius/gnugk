@@ -38,7 +38,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="openh323sd.lib ptclibd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
+				AdditionalDependencies="openh323d.lib ptclibd.lib ptlibd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
 				SuppressStartupBanner="TRUE"
@@ -102,7 +102,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ptclib.lib ptlibs.lib OpenH323s.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
+				AdditionalDependencies="OpenH323s.lib ptclib.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"

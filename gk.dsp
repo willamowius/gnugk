@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GR /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /G6 /MT /W3 /GR /GX /Og /Oi /Os /Oy /Ob2 /D "NDEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FD /c
+# ADD CPP /nologo /G6 /MD /W3 /GR /GX /Og /Oi /Os /Oy /Ob2 /D "NDEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FD /c
 # SUBTRACT CPP /Ox /Ot
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
