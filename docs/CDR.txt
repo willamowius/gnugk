@@ -1,5 +1,5 @@
 -*- mode: outline; eval: (setq outline-regexp "[ \\.0-9]+) ") -*-
-Time-stamp: <02/06/05 20:33:53 martinf>
+Time-stamp: <2002-08-16 17:04:46 martinf>
 $Id$
 
  1) Format of the current CDR
@@ -131,6 +131,21 @@ $Id$
       [5246801418]
       This is the called party number after a prefix analysis. This is
       the corresponding number to field 1.17.
+
+1.19) The version of the gatekeeper in use
+      [Gatekeeper+v2.1.12-Linux-i686-2.4.18]
+      This is the gatekeeper version in a brief format:
+      PROGRAMMNAME, '+' for pthreads enabled, MAJOR_VERSION,
+      MINOR_VERSION, BUILD_NUMBER, and then seperated by '-', OSName,
+      OSHardware, and OSVersion. Note that the PROGRAMNAME as well as
+      the version data is set at compile time, while the OS related
+      information is set at runtime.
+
+1.20) The cause code of the release
+      [16]
+      This is the cause code as delivered directly form the protocolls,
+      in future work we will provide a fully qualified string to
+      distinguish between Q.931 and H.225, and other sources.
 
 2) Notes on formats in ini-files
    Every value will be taken between the '=' equal-sign and the newline

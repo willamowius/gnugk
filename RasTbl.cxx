@@ -26,7 +26,7 @@
 #include <time.h>
 #include <ptlib.h>
 #include <h323pdu.h>
-#include "ANSI.h"
+#include "ANSI.h"		// ansi terminal codes
 #include "h323util.h"
 #include "Toolkit.h"
 #include "SoftPBX.h"
@@ -36,6 +36,7 @@
 #include "ProxyChannel.h"
 #include "gk_const.h"
 #include "gkDatabase.h"
+#include "version.h"		// versioning information
 
 #ifdef HAS_LDAP
 # include "ldaplink.h"
@@ -158,7 +159,7 @@ BOOL EndpointRec::AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 {
         fullMatch = FALSE;
         bool partialMatch = FALSE;
-	unsigned int aliasStr_len;
+	PINDEX aliasStr_len;
 	const H225_ArrayOf_AliasAddress & reg_aliases = GetAliases();
 	PString reg_alias;
 	PString aliasStr = H323GetAliasAddressString(alias);
@@ -505,7 +506,7 @@ BOOL GatewayRec::PrefixIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 	bool partialMatch = FALSE;
 	// check for gw prefixes
 	PString aliasStr = H323GetAliasAddressString(alias);
-	unsigned int aliasStrLen = aliasStr.GetLength();
+	PINDEX aliasStrLen = aliasStr.GetLength();
 	PString regPrefix;
 	// for each prefix which is stored for the endpoint in registration
 	for (const_prefix_iterator Iter = Prefixes.begin(); Iter != Prefixes.end() && !partialMatch; Iter++) {
@@ -1464,7 +1465,11 @@ static const BOOL IPTN_is_inter(E164_IPTNString & iptn)
 	return result;
 }
 
-
+/** Generate the Call Detail Record for a finished call
+ *  
+ * The exact format and spezification of the elements in this record are to
+ * be found in the file CDR.txt in the docs directory.
+ */
 PString CallRec::GenerateCDR()
 {
 	PString timeString;	// holding the time part
@@ -1564,21 +1569,35 @@ PString CallRec::GenerateCDR()
 		destInfo = CalledP.GetCallingPN();
 	}
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s|%u|%s;" GK_LINEBRK,
+	return PString(PString::Printf, 
+		       "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s|%u|%s|%s%d.%d.%d-%s-%s-%s|%d;" 
+		       GK_LINEBRK,
 		       m_CallNumber,
-		       (const char *)AsString(m_callIdentifier.m_guid),
-		       (const char *)timeString,
-		       (const char *)GetEPString(m_Calling, m_callingSocket),
-		       (const char *)GetEPString(m_Called, m_calledSocket),
-		       (const char *)destInfo,
-		       (const char *)srcInfo,
-		       (const char *)Toolkit::Instance()->GKName(),
-		       (unsigned int)dialedPN_TON,
-		       (const char *)((PString)dialedPN),
-		       (const char *)((PString)calledPN),
+		       static_cast<const char *>(AsString(m_callIdentifier.m_guid)),
+		       static_cast<const char *>(timeString),
+		       static_cast<const char *>(GetEPString(m_Calling, m_callingSocket)),
+		       static_cast<const char *>(GetEPString(m_Called, m_calledSocket)),
+		       static_cast<const char *>(destInfo),
+		       static_cast<const char *>(srcInfo),
+		       static_cast<const char *>(Toolkit::Instance()->GKName()),
+		       static_cast<unsigned int>(dialedPN_TON),
+		       static_cast<const char *>(static_cast<PString>(dialedPN)),
+		       static_cast<const char *>(static_cast<PString>(calledPN)),
 		       static_cast<unsigned int>(GetCalledProfile().GetAssumedDialedPN_TON()),
-		       static_cast<const char *>(GetCalledProfile().GetAssumedDialedPN())
-		       //, m_timer.GetInterval();
+		       static_cast<const char *>(GetCalledProfile().GetAssumedDialedPN()),
+		       // build string from constants via cpp
+		       PROGRAMMNAME
+#ifdef P_PTHREADS
+		       "+"
+#else
+		       "-"
+#endif
+		       "v", 	// the comma is needed
+		       MAJOR_VERSION, MINOR_VERSION, BUILD_NUMBER,
+		       static_cast<const char *>(PProcess::GetOSName()),
+		       static_cast<const char *>(PProcess::GetOSHardware()),
+		       static_cast<const char *>(PProcess::GetOSVersion()),
+		       static_cast<int>(GetCalledProfile().GetReleaseCause())
 		);
 }
 
