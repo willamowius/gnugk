@@ -1304,6 +1304,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 		return;
 
 	PString srcH323IDStr=callRec->GetCallingProfile().getH323ID();
+	PTRACE(6, "srcH323ID: " << srcH323IDStr);
 
 	// if a profile exists
 	if (!srcH323IDStr.IsEmpty()) {
