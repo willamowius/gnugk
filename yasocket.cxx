@@ -627,7 +627,7 @@ void SocketsReader::RemoveClosed(bool bDeleteImmediately)
 		m_socksize -= rmsize;
 	}
 }
-
+/*
 void SocketsReader::RemoveSocket(iterator i)
 {
 	m_sockets.erase(i);
@@ -645,7 +645,7 @@ void SocketsReader::RemoveSocket(IPSocket *s)
 	m_removed.push_back(s);
 	++m_rmsize;
 }
-
+*/
 void SocketsReader::Exec()
 {
 	ReadLock cfglock(ConfigReloadMutex);
