@@ -1472,7 +1472,7 @@ void HandlerList::LoadConfig()
 		CloseListener();
 		unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
 		listenerThread = new ProxyListener(this, GKHome, port, queueSize);
-		GKPort = listenerThread->GetPort();
+		GKPort = port;
 	}
 
 	// the handler number can only be increased

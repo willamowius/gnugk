@@ -3,6 +3,8 @@ Changes from 2.0b2 to 2.0b3 (by cwhuang)
 - add detailed explanations of known options
 - support proxy for fast start logical channels
 - fix GKHome not work for proxy
+- add AcceptUnregisteredCalls feature
+- fix problem of RouteTable in Linux with alias interfaces
 
 Changes from 2.0b1 to 2.0b2 (by cwhuang)
 ====================================

@@ -212,7 +212,7 @@ public:
 	void Insert(ProxySocket *);
 	void Check();
 
-	WORD GetCallSignalPort() const { return GKPort; }
+	WORD GetCallSignalPort() const { return listenerThread->GetPort(); }
 
 private:
 	void CloseListener();

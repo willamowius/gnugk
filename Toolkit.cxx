@@ -33,8 +33,9 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 ) : PIPSocket::RouteEntry(re)
 {
 	for (PINDEX i = 0; i < it.GetSize(); ++i) {
-		if (it[i].GetName() == interfaceName) {
-			destination = it[i].GetAddress();
+		Address ip = it[i].GetAddress();
+		if (Compare(ip)) {
+			destination = ip;
 			break;
 		}
 	}
@@ -67,7 +68,7 @@ void Toolkit::RouteTable::InitTable()
 	rtable_end = rtable_begin = new RouteEntry[r_table.GetSize()];
 	for (PINDEX r = 0; r < r_table.GetSize(); ++r) {
 		PIPSocket::RouteEntry & r_entry = r_table[r];
-		if (!r_entry.GetInterface())
+		if (r_entry.GetNetMask() != INADDR_ANY)
 			// It's unusual to contruct an object twice,
 			// However, since RouteEntry is just a simple object,
 			// it won't hurt. :p
@@ -75,7 +76,9 @@ void Toolkit::RouteTable::InitTable()
 	}
 
 	// Set default IP according to route table
-	defAddr = GetLocalAddress(INADDR_ANY);
+	PIPSocket::Address defGW;
+	PIPSocket::GetGatewayAddress(defGW);
+	defAddr = GetLocalAddress(defGW);
 
 #ifdef PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry)
