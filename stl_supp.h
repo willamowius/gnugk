@@ -19,6 +19,7 @@
 #ifndef STL_SUPP_H
 #define STL_SUPP_H "@(#) $Id$"
 
+#include <vector>
 #include <iterator>
 #include <algorithm>
 #include <functional>
@@ -57,6 +58,13 @@ compose1(const _Operation1& __op1, const _Operation2& __op2)
 {
   return unary_compose<_Operation1,_Operation2>(__op1, __op2);
 }
+using std::compose1;
+#endif
+#if (defined(__GNUC__) && __GNUC__ >=3 )
+# include <ext/functional>
+using __gnu_cxx::compose1;
+#else
+using std::compose1;
 #endif
 
 
@@ -161,7 +169,6 @@ using std::bind1st;
 using std::bind2nd;
 using std::mem_fun;
 using std::mem_fun_ref;
-using std::compose1;
 using std::greater;
 using std::equal_to;
 using std::not1;
