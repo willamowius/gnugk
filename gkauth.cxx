@@ -160,6 +160,34 @@ private:
 
 static GkAuthInit<DBAliasAuth> L_A_A ("DBAliasAuth");
 
+// Initial author: Michael Rubashenkkov  2002/01/14 (GkAuthorize)
+// Completely rewrite by Chih-Wei Huang  2002/05/01
+class AuthObj;
+class AuthRule;
+class PrefixAuth : public GkAuthenticator {
+public:
+	PrefixAuth(PConfig *, const char *);
+	~PrefixAuth();
+
+	typedef std::map< PString, AuthRule *, greater<PString> > Rules;
+
+private:
+	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
+	virtual int Check(const H225_RegistrationRequest &, unsigned &);
+	virtual int Check(const H225_UnregistrationRequest &, unsigned &);
+	virtual int Check(const H225_AdmissionRequest &, unsigned &);
+	virtual int Check(const H225_BandwidthRequest &, unsigned &);
+	virtual int Check(const H225_DisengageRequest &, unsigned &);
+	virtual int Check(const H225_LocationRequest &, unsigned &);
+	virtual int Check(const H225_InfoRequest &, unsigned &);
+
+	virtual int doCheck(const AuthObj &);
+
+	Rules prefrules;
+};
+
+static GkAuthInit<PrefixAuth> PF_A("PrefixAuth");
+
 
 class CacheManager {
 public:
@@ -866,7 +894,7 @@ PString AliasAuth::GetConfigString(const PString &alias) const
 
 bool AliasAuth::AuthCondition(const H225_TransportAddress & SignalAdr, const PString & Condition)
 {
-	const bool ON_ERROR = true; // return value on parse error in condition
+	const bool ON_ERROR = false; // return value on parse error in condition
 
 
 	const PStringArray rule = Condition.Tokenise(":", FALSE);
@@ -921,6 +949,324 @@ bool AliasAuth::AuthCondition(const H225_TransportAddress & SignalAdr, const PSt
 	// not reached...
 	return false;
 }
+
+
+// Help classes for PrefixAuth
+static const char* const prfflag="prf:";
+static const char* const allowflag="allow";
+static const char* const denyflag="deny";
+static const char* const ipflag="ipv4:";
+static const char* const aliasflag="alias:";
+
+class AuthObj { // abstract class
+public:
+	virtual ~AuthObj() {}
+
+	virtual bool IsValid() const { return true; }
+
+	virtual PStringArray GetPrefixes() const = 0;
+
+	virtual PIPSocket::Address GetIP() const = 0;
+	virtual PString GetAliases() const = 0;
+};
+
+class RRQAuthObj : public AuthObj {
+public:
+	RRQAuthObj(const H225_RegistrationRequest & ras) : rrq(ras) {}
+
+	virtual PStringArray GetPrefixes() const;
+
+	virtual PIPSocket::Address GetIP() const;
+	virtual PString GetAliases() const;
+
+private:
+	const H225_RegistrationRequest & rrq;
+};
+
+class ARQAuthObj : public AuthObj {
+public:
+	ARQAuthObj(const H225_AdmissionRequest & ras);
+
+	virtual bool IsValid() const { return ep; }
+
+	virtual PStringArray GetPrefixes() const;
+
+	virtual PIPSocket::Address GetIP() const;
+	virtual PString GetAliases() const;
+
+private:
+	const H225_AdmissionRequest & arq;
+	endptr ep;
+};
+
+ARQAuthObj::ARQAuthObj(const H225_AdmissionRequest & ras) : arq(ras)
+{
+	ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
+}
+
+PStringArray ARQAuthObj::GetPrefixes() const
+{
+	PStringArray array;
+	if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+		if (PINDEX ss = arq.m_destinationInfo.GetSize() > 0) {
+			array.SetSize(ss);
+			for (PINDEX i = 0; i < ss; ++i)
+				array[i] = AsString(arq.m_destinationInfo[i], FALSE);
+		}
+	return array;
+}
+
+PIPSocket::Address ARQAuthObj::GetIP() const
+{
+	PIPSocket::Address result;
+	const H225_TransportAddress & addr = (arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)) ?
+		arq.m_srcCallSignalAddress : ep->GetCallSignalAddress();
+	if (addr.GetTag() == H225_TransportAddress::e_ipAddress) {
+		const H225_TransportAddress_ipAddress & ip = addr;
+		result = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	}
+	return result;
+}
+
+PString ARQAuthObj::GetAliases() const
+{
+	return AsString(ep->GetAliases());
+}
+
+class LRQAuthObj : public AuthObj {
+public:
+	LRQAuthObj(const H225_LocationRequest & ras);
+
+	virtual PStringArray GetPrefixes() const;
+
+	virtual PIPSocket::Address GetIP() const;
+	virtual PString GetAliases() const;
+
+private:
+	const H225_LocationRequest & lrq;
+	PIPSocket::Address ipaddress;
+};
+
+LRQAuthObj::LRQAuthObj(const H225_LocationRequest & ras) : lrq(ras)
+{
+	const H225_TransportAddress & addr = lrq.m_replyAddress;
+	if (addr.GetTag() == H225_TransportAddress::e_ipAddress) {
+		const H225_TransportAddress_ipAddress & ip = addr;
+		ipaddress = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	}
+}
+
+PStringArray LRQAuthObj::GetPrefixes() const
+{
+	PStringArray array;
+	if (PINDEX ss = lrq.m_destinationInfo.GetSize() > 0) {
+		array.SetSize(ss);
+		for (PINDEX i = 0; i < ss; ++i)
+			array[i] = AsString(lrq.m_destinationInfo[i], FALSE);
+	}
+	return array;
+}
+
+PIPSocket::Address LRQAuthObj::GetIP() const
+{
+	return ipaddress;
+}
+
+PString LRQAuthObj::GetAliases() const
+{
+	return (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(lrq.m_sourceInfo) : PString();
+}
+
+
+class AuthRule {
+public:
+	enum Result {
+		e_nomatch,
+		e_allow,
+		e_deny
+	};
+
+	AuthRule(Result f, AuthRule *prev);
+	virtual ~AuthRule() { delete next; }
+
+	virtual bool Match(const AuthObj &) = 0;
+	int Check(const AuthObj &);
+
+private:
+	Result fate;
+	AuthRule *next;
+};
+
+AuthRule::AuthRule(Result f, AuthRule *prev) : fate(f), next(0)
+{
+	if (prev)
+		prev->next = this;
+}
+
+int AuthRule::Check(const AuthObj & aobj)
+{
+	return Match(aobj) ? fate : (next) ? next->Check(aobj) : e_nomatch;
+}
+
+inline void delete_rule(PrefixAuth::Rules::value_type r)
+{
+	delete r.second;
+}
+
+class IPv4AuthRule : public AuthRule {
+public:
+	IPv4AuthRule(Result, const PString &, AuthRule *);
+
+private:
+	virtual bool Match(const AuthObj &);
+
+	PIPSocket::Address network, netmask;
+};
+
+IPv4AuthRule::IPv4AuthRule(Result f, const PString & cfg, AuthRule *prev) : AuthRule(f, prev)
+{
+	GetNetworkFromString(cfg, network, netmask);
+}
+
+bool IPv4AuthRule::Match(const AuthObj & aobj)
+{
+	return ((aobj.GetIP() & netmask) == network);
+}
+
+class AliasAuthRule : public AuthRule {
+public:
+	AliasAuthRule(Result f, const PString & cfg, AuthRule *prev) : AuthRule(f, prev), pattern(cfg) {}
+
+private:
+	virtual bool Match(const AuthObj &);
+
+	PString pattern;
+};
+
+bool AliasAuthRule::Match(const AuthObj & aobj)
+{
+	return (aobj.GetAliases().FindRegEx(pattern) != P_MAX_INDEX);
+}
+
+// PrefixAuth
+PrefixAuth::PrefixAuth(PConfig *cfg, const char *authName)
+      : GkAuthenticator(cfg, authName)
+{
+	int ipfl = strlen(ipflag), aliasfl = strlen(aliasflag);
+	PStringToString cfgs=cfg->GetAllKeyValues("PrefixAuth");
+	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
+		AuthRule *head = 0, *next = 0;
+		PString key = cfgs.GetKeyAt(i);
+		if (key *= "default") {
+			if (!Toolkit::AsBool(cfgs.GetDataAt(i)))
+				defaultStatus = e_fail;
+			continue;
+		} else if (key *= "ALL") {
+			// use space (0x20) as the key so it will be the last resort
+			key = " ";
+		}
+		PStringArray rules = cfgs.GetDataAt(i).Tokenise("|", FALSE);
+		for (PINDEX j = 0; j < rules.GetSize(); ++j) {
+			PINDEX pp;
+			AuthRule *rl = 0;
+			// if not allowed, assume denial
+			AuthRule::Result ft = (rules[j].Find(allowflag) != P_MAX_INDEX) ? AuthRule::e_allow : AuthRule::e_deny;
+			if ((pp=rules[j].Find(ipflag)) != P_MAX_INDEX)
+				rl = new IPv4AuthRule(ft, rules[j].Mid(pp+ipfl), next);
+			else if ((pp=rules[j].Find(aliasflag)) != P_MAX_INDEX)
+				rl = new AliasAuthRule(ft, rules[j].Mid(pp+aliasfl), next);
+
+			if (rl) {
+				if (!next)
+					head = rl;
+				next = rl;
+			}
+		}
+		if (head)
+			prefrules[key] = head;
+	}
+}
+
+PrefixAuth::~PrefixAuth()
+{
+	for_each(prefrules.begin(), prefrules.end(), delete_rule);
+}
+
+int PrefixAuth::Check(const H225_GatekeeperRequest &, unsigned &)
+{
+	return e_next;
+}
+
+int PrefixAuth::Check(const H225_RegistrationRequest & rrq, unsigned &)
+{
+	return e_next;
+}
+
+int PrefixAuth::Check(const H225_UnregistrationRequest &, unsigned &)
+{
+	return e_next;
+}
+
+int PrefixAuth::Check(const H225_AdmissionRequest & arq, unsigned &)
+{
+	return CallTable::Instance()->FindCallRec(arq.m_callIdentifier) ? e_ok : doCheck(ARQAuthObj(arq));
+}
+
+int PrefixAuth::Check(const H225_BandwidthRequest &, unsigned &)
+{
+	return e_next;
+}
+
+int PrefixAuth::Check(const H225_DisengageRequest &, unsigned &)
+{
+	return e_next;
+}
+
+int PrefixAuth::Check(const H225_LocationRequest & lrq, unsigned &)
+{
+	return doCheck(LRQAuthObj(lrq));
+}
+
+int PrefixAuth::Check(const H225_InfoRequest &, unsigned &)
+{
+	return e_next;
+}
+
+struct comp_pref { // function object
+	comp_pref(const PString & s) : value(s) {}
+	bool operator()(const PrefixAuth::Rules::value_type & v) const;
+	const PString & value;
+};
+
+inline bool comp_pref::operator()(const PrefixAuth::Rules::value_type & v) const
+{
+	return (value.Find(v.first) == 0) || (v.first *= " ");
+}
+
+int PrefixAuth::doCheck(const AuthObj & aobj)
+{
+	if (!aobj.IsValid())
+		return e_fail;
+	PStringArray ary(aobj.GetPrefixes());
+	for (PINDEX i = 0; i < ary.GetSize(); ++i) {
+		// find the first match rule
+		// since prefrules is descendently sorted
+		// it must be the most specific prefix
+		Rules::iterator iter = find_if(prefrules.begin(), prefrules.end(), comp_pref(ary[i]));
+		if (iter != prefrules.end()) {
+			switch (iter->second->Check(aobj))
+			{
+				case AuthRule::e_allow:
+					return e_ok;
+				case AuthRule::e_deny:
+					return e_fail;
+				// default, try next prefix...
+			}
+		}
+	}
+	return defaultStatus;
+}
+
 
 static list<GkAuthInitializer *> *AuthNameList;
 
