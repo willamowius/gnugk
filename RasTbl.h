@@ -85,8 +85,7 @@ public:
 	virtual ~EndpointRec();
 
 	// public interface to access EndpointRec
-	const H225_TransportAddress & GetRasAddress() const
-		{ return m_rasAddress; }
+	const H225_TransportAddress & GetRasAddress() const ;
 	virtual const H225_TransportAddress & GetCallSignalAddress() const
 		{ PWaitAndSignal lock(m_usedLock); return m_callSignalAddress; }
 	const H225_EndpointIdentifier & GetEndpointIdentifier() const

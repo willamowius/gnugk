@@ -83,15 +83,26 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
 
 void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 {
-        if (rrq.m_rasAddress.GetSize() > 0)
-                m_rasAddress = rrq.m_rasAddress[0];
-        else
-                m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress
-);
-        if (rrq.m_callSignalAddress.GetSize() > 0)
-                m_callSignalAddress = rrq.m_callSignalAddress[0];
-        else
-                m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+// relaying on the first entry is complete bullshit. let's do this in a better way.
+//         if (rrq.m_rasAddress.GetSize() > 0)
+//                 m_rasAddress = rrq.m_rasAddress[0];
+//         else
+//                 m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress
+// );
+//         if (rrq.m_callSignalAddress.GetSize() > 0)
+//                 m_callSignalAddress = rrq.m_callSignalAddress[0];
+//         else
+//                 m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+	m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+	for (PINDEX i=0; i<rrq.m_rasAddress.GetSize() && m_rasAddress.GetTag()!=H225_TransportAddress::e_ipAddress; i++) {
+		if (rrq.m_rasAddress[i].GetTag()==H225_TransportAddress::e_ipAddress)
+			m_rasAddress=rrq.m_rasAddress[i];
+	}
+	m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+	for (PINDEX i=0; i<rrq.m_callSignalAddress.GetSize() && m_callSignalAddress.GetTag()!=H225_TransportAddress::e_ipAddress; i++) {
+		if (rrq.m_callSignalAddress[i].GetTag()==H225_TransportAddress::e_ipAddress)
+			m_callSignalAddress=rrq.m_callSignalAddress[i];
+	}
         m_endpointIdentifier = rrq.m_endpointIdentifier;
         m_terminalAliases = rrq.m_terminalAlias;
         m_terminalType = &rrq.m_terminalType;
@@ -161,6 +172,12 @@ EndpointRec::~EndpointRec()
 	PTRACE(3, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
 	if (m_must_delete_terminal_type)
 		delete m_terminalType;
+}
+
+const H225_TransportAddress &
+EndpointRec::GetRasAddress() const
+{
+	return m_rasAddress;
 }
 
 bool EndpointRec::GetH323ID(H225_AliasAddress &id) {
@@ -411,6 +428,8 @@ void EndpointRec::SetNATAddress(PIPSocket::Address ip)
 
 void EndpointRec::SendRas(const H225_RasMessage &ras_msg)
 {
+	if(GetRasAddress().GetTag()!=H225_TransportAddress::e_ipAddress)
+		return ; // simply do nothing.
 	const H225_TransportAddress_ipAddress & adr = GetRasAddress();
 	PIPSocket::Address addr(adr.m_ip[0], adr.m_ip[1], adr.m_ip[2], adr.m_ip[3]);
 	WORD port = adr.m_port;
