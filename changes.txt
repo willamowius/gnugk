@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(h323util.cxx) conference/call-id could get incorrectly converted
+  to a string with some compilers
 - (Routing.cxx) ability to do per-call proxy mode control from routing handlers
 - BUGFIX(ProxyChannel.cxx) fixed race condition between signaling/H.245 channel
   closure
