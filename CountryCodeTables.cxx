@@ -336,7 +336,7 @@ const DictInitializer ITU_T_E164_CodeTables::AssignedCountyCodes[] = {
 	{"896","Spare code"},		/* NOTE: m */
 	{"897","Spare code"},		/* NOTE: m */
 	{"898","Spare code"},		/* NOTE: m */
-	{"899","Spare code"},		/* NOTE: m */
+	{"899","Spare code (gnuGK: trouble indicator)"}, /* NOTE: m2 */
 	{"90","Turkey"},
 	{"91","India (Republic of)"},
 	{"92","Pakistan (Islamic Republic of)"},
@@ -403,6 +403,9 @@ const DictInitializer ITU_T_E164_CodeTables::AssignedCountyCodes[] = {
 	 *   identification code have been made for the GMSS networks
 	 * l Reserved for the Palestinian Authority.
 	 * m Reserved for E.164 country code expansion.
+         * m2 This code, not used by ITU, is used to indicate trouble via
+         *    various number conversions. In general this code is not routable
+         *    and therefore limits the problem within the local network
 	 */
 };
 
