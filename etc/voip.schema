@@ -68,6 +68,7 @@
 # voIPhonorsStatusEnquiry           | HERE
 # voIPprependCallbackAccessCode     | HERE
 # voIPCountryCode                   | HERE
+# voIPNationalDestinationCode       | HERE
 # voIPEndpointType                  | HERE
 # voIPWhiteListBeforeBlackList      | HERE
 # voIPprefixOutgoingBlacklist       | HERE
@@ -75,8 +76,8 @@
 # voIPprefixIncomingBlacklist       | HERE
 # voIPprefixIncomingWhitelist       | HERE
 # voIPConvertToLocal                | HERE
-# voIPTreatCallingPartyNumberAS     | HERE
-# voIPTreatCalledPartyNumberAS      | HERE
+# voIPTreatCallingPartyNumberAs     | HERE
+# voIPTreatCalledPartyNumberAs      | HERE
 
 # This objectClass shall be used to extend entries which typically are
 # either also of class 'person' or 'inetOrgPerson', 'mways' or 'umuser'
@@ -266,65 +267,76 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2110 NAME 'voIPhonorsStatusEnquiry'
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2120 NAME 'voIPCountryCode'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2120
+  NAME ( 'voIPCountryCode' 'voIPcc' )
   EQUALITY numericStringMatch
-  DESC 'the ITU country code a gateway is located in; to be prepended to CdPN for incoming calls (if needed)'
+  DESC 'the ITU country code of the user or gateway; to be prepended to CgPN or CdPN if needed'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{3}
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2130 NAME 'voIPEndpointType'
-  DESC 'a gateway is either of type cpe (customer premise equipment) or trunk (operator-side gateways)'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2130
+  NAME ( 'voIPNationalDestinationCode' 'voIPndc' )
+  EQUALITY numericStringMatch
+  DESC 'the ITU national destination code of the user or gateway; to be prepended to CgPN or CdPN if needed'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{3}
+  SINGLE-VALUE
+ )
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2140 NAME 'voIPEndpointType'
+  DESC 'a gateway is either of type cpe (customer premise equipment), trunk (operator-side gateways) or neighbor (another gatekeeper)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2140 NAME 'voIPWhiteListBeforeBlackList'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2150 NAME 'voIPWhiteListBeforeBlackList'
   DESC 'defines whether WhiteBlackListDestAnalysis should be applied instead of default BlackWhiteListDestAnalysis'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2150 NAME 'voIPprefixOutgoingBlacklist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPprefixOutgoingBlacklist'
   EQUALITY numericStringMatch
-  DESC 'A blocked destination prefix for this user'
+  DESC 'A blocked destination prefix for this caller'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPprefixOutgoingWhitelist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPprefixOutgoingWhitelist'
   EQUALITY numericStringMatch
-  DESC 'An accessible destination prefix for this user (overriding blacklisted entries)'
+  DESC 'An accessible destination prefix for this caller (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPprefixIncomingBlacklist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2180 NAME 'voIPprefixIncomingBlacklist'
   EQUALITY numericStringMatch
   DESC 'Incoming callers to be blocked'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2180 NAME 'voIPprefixIncomingWhitelist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2190 NAME 'voIPprefixIncomingWhitelist'
   EQUALITY numericStringMatch
   DESC 'Incoming callers to be allowed (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2190 NAME 'voIPConvertToLocal'
-  DESC 'Convert Numbers to national/subscriber type when calls are national/local. Default is leave them international'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPConvertToLocal'
+  DESC 'Convert Numbers to national/subscriber type when calls are national/local. Default is to leave them international'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPTreatCallingPartyNumberAs'
-  DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or relay on the TON in Q.931'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPTreatCallingPartyNumberAs'
+  DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPTreatCalledPartyNumberAs'
-  DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or relay on the TON in Q.931'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2220 NAME 'voIPTreatCalledPartyNumberAs'
+  DESC 'Treat CalledPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
  )
+
+
 
 # A.4) Object classes dedicated to VoIP. They are defined HERE.
 
@@ -338,11 +350,12 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 	voIPlocalAccessCode $ voIPnationalAccessCode $ voIPinternationalAccessCode $
 	voIPhonorsARJincompleteAddress $ voIPprependCallbackAccessCode $
 	voIPcallingLineIdRestriction $ voIPspecialDial $
-	voIPCountryCode $ voIPEndpointType $
+	voIPCountryCode $ voIPnationalDestinationCode $ voIPEndpointType $
 	voIPprefixIncomingBlacklist $ voIPprefixOutgoingBlacklist $
 	voIPprefixIncomingWhitelist $ voIPprefixOutgoingWhitelist $
 	voIPWhiteListBeforeBlackList $ voIPConvertToLocal $
 	voIPTreatCallingPartyNumberAs $ voIPTreatCalledPartyNumberAs ) )
+
 
 
 
@@ -351,14 +364,16 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # B.1) recommended tree structure
 #
 # You do not need to setup your LDAP tree like this. It's just a recommendation.
-# The exact attributes used to compose the dn are irrelevant. If you intend to
-# use "default" values, however, DNs must represent the tree structure.
+# The exact attributes used to compose the DN (distinguished name; the primary LDAP
+# key) are irrelevant. If you intend to use "default values", however, DNs must
+# represent the tree structure, i.e. to get from a subnode to it's parent node, cut off
+# the leading component (a.k.a. "RDN") from the DN string.
 #
 # A common search root for both, the subtree containing all the terminals and
 # the subtree containing all the gateways, is assumed. In the following example,
 # this common search root is "o=mediaways.net".
 # Go with something like OpenLDAP's back-meta if you need to tie multiple servers
-# together under a single root.
+# or multiple trees together under a single root.
 # To allow for further, LDAP-like representation below this root, entries need not
 # be direct childs of the search root. In the following example, "ou=mediaWays"
 # is a organizational unit representing the customer "mediaWays". Other ou's like
@@ -367,8 +382,8 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # NOTE:
 # Default values may be stored as attributes to parent nodes, i.e.
 # values stored down the tree override values higher up in the tree.
-# An entry's parent node is "guessed" by eliminating the first component of
-# the entry's dn. Currently, there's no way to change this assumption.
+# An entry's parent node is "guessed" by eliminating the RDN (first component of
+# the entry's DN). Currently, there's no way to change this assumption.
 # Browsing up the tree can stop when encountering "top nodes".
 # Top nodes are the highest nodes within a subtree structure that still contain
 # the voIPProperty objectclass.
