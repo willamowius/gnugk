@@ -1077,6 +1077,10 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq, H225_RasMessage & obj_rpl, BOOL bReject)
 {
+	BOOL fromAlternateGK = FALSE;
+        H225_TransportAddress_ipAddress srcipaddr;
+
+
 	// We use #obj_rpl# for storing information about a potential reject (e.g. the
 	// rejectReason). If the request results in a confirm (bReject==FALSE) then
 	// we have to ignore the previous set data in #obj_rpl# and re-cast it.
@@ -1209,13 +1213,24 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	// since callIdentifier is optional, we might have to look for the callReferenceValue as well
 		CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
-#if ARJREASON_ROUTECALLTOGATEKEEPER
-	if (!bReject && Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1")))
-		if (GKRoutedSignaling && obj_arq.m_answerCall && !pExistingCallRec) {
+	if (!bReject && Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1"))) {
+
+		const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
+		if (!SkipForwards) {
+		if(obj_arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress))
+			srcipaddr = (H225_TransportAddress_ipAddress) obj_arq.m_srcCallSignalAddress;
+			PString srcip(PString::Printf,"%d.%d.%d.%d", srcipaddr.m_ip[0], srcipaddr.m_ip[1],
+				srcipaddr.m_ip[2], srcipaddr.m_ip[3]);
+
+			fromAlternateGK = (SkipForwards.Find(srcip) != P_MAX_INDEX);
+		}
+
+		if (GKRoutedSignaling && !fromAlternateGK && obj_arq.m_answerCall && !pExistingCallRec) {
 			bReject = TRUE;
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
 		}
-#endif
+	}
+
 	if (bReject) {
 		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
 		PString msg(PString::Printf, "ARJ|%s|%s|%s|%s|%s;\r\n", 
