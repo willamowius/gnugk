@@ -1,5 +1,6 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- added GNU Gatekeeper Service for Windows from Franz J Ehrengruber
 - added Windows icon and version info from Franz J Ehrengruber
 - (manual.sgml) corrected MySQLPasswordAuth, MySQLAliasAuth sections,
   removed NeighborPasswordAuth documentation (not necessary anymore)
