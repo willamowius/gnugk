@@ -3,6 +3,21 @@ AC_INIT(gk.h)
 AC_PROG_CXX
 
 dnl ########################################################################
+dnl Check if recv call supports MSG_NOSIGNAL flag
+AC_MSG_CHECKING(if MSG_NOSIGNAL is supported by recv call)
+AC_TRY_COMPILE([
+#include <sys/types.h>
+#include <sys/socket.h>
+],
+[recv(0,NULL,1,MSG_NOSIGNAL);], HAS_MSG_NOSIGNAL=1, HAS_MSG_NOSIGNAL=0)
+if test "$HAS_MSG_NOSIGNAL" = 0 ; then
+  AC_MSG_RESULT(no)
+else
+  AC_MSG_RESULT(yes)
+  STDCCFLAGS="-DHAS_MSG_NOSIGNAL=1 $STDCCFLAGS"
+fi
+
+dnl ########################################################################
 dnl look for ptlib, use a preference order of explicit PWLIBDIR, directory
 dnl at same level, home directory, /usr/local or /usr.
 
@@ -381,6 +396,7 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(ENDLDLIBS)
 AC_SUBST(ENDLDFLAGS)
 AC_SUBST(SOURCES)
+AC_SUBST(HAS_MSG_NOSIGNAL)
 
 dnl ########################################################################
 dnl Output configured files

@@ -326,12 +326,20 @@ bool YaTCPSocket::Connect(const Address & addr)
 
 int YaTCPSocket::os_recv(void *buf, int sz)
 {
+#if HAS_MSG_NOSIGNAL
 	return ::recv(os_handle, buf, sz, MSG_NOSIGNAL);
+#else
+	return ::recv(os_handle, buf, sz, 0);
+#endif
 }
 
 int YaTCPSocket::os_send(const void *buf, int sz)
 {
+#if HAS_MSG_NOSIGNAL
 	return ::send(os_handle, buf, sz, MSG_NOSIGNAL);
+#else
+	return ::send(os_handle, buf, sz, 0);
+#endif
 }
 
 
