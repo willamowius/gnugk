@@ -205,7 +205,7 @@ LDAPCtrl::Initialize(void)
 		ldap = ld;
 	}
 	gk_filter.SetSize(0);
-	gk_filter = Toolkit::Instance()->Config("GkLDAP::Settings")->GetString("Filter");
+        gk_filter = GkConfig()->GetString("GkLDAP::Settings", "Filter", "");
 
 #if (((LDAP_API_VERSION >= 2004) && defined(LDAP_API_FEATURE_X_OPENLDAP)) || \
  defined (HAS_LEVEL_TWO_LDAPAPI))
