@@ -579,7 +579,7 @@ GkClient & Toolkit::GetGkClient()
 {
 	PWaitAndSignal lock(m_gkclient_mutex);
 	if(NULL==m_gkclient)
-		m_gkclient=new GkClient();
+		StartGkClient();
 	return *m_gkclient;
 }
 const BOOL
@@ -649,6 +649,23 @@ Toolkit::GetHandlerList()
 	return *m_handlerlist;
 }
 
+void
+Toolkit:: StartGkClient()
+{
+	m_gkclient=new GkClient();
+	return;
+}
+
+void
+Toolkit::Close()
+{
+	delete_gkclient();
+	delete_neighbor();
+	delete_raslistener();
+
+	delete m_handlerlist;
+	m_handlerlist=NULL;
+}
 ///////////////////////// Digit Analysis according to E.164
 
 /* CLASS  E164_IPTNString, see comment in header

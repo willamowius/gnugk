@@ -537,6 +537,9 @@ public: // accessors
 	Neighbor & GetNeighbor();
 	H323RasListener & GetMasterRASListener();
 	HandlerList & GetHandlerList();
+	void StartGkClient(); // if needed.
+
+	void Close();
 
 	int GetRequestSeqNum();
 protected:

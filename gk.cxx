@@ -115,9 +115,7 @@ ShutdownHandler(void)
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
-#if defined(HAVE_DIGIT_ANALYSIS)
-#endif /* HAVE_DIGIT_ANALYSIS */
-	delete Toolkit::Instance();
+	Toolkit::Instance()->Close();
 	GkStatus::Instance()->Close();
 	delete CallTable::Instance();
 	delete RegistrationTable::Instance();
@@ -619,8 +617,13 @@ void Gatekeeper::Main()
 	PAssert(NULL!=dal, "No DestAnalysisList!");
 	RegistrationTable::Instance()->Initialize(*dal);
 
+
+	// Check for GkClient()
+	Toolkit::Instance()->StartGkClient();
 	// let's go
 	Toolkit::Instance()->GetMasterRASListener().Resume();
+
+
 
 	HouseKeeping();
 
