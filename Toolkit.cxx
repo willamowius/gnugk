@@ -290,6 +290,218 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	return changed;
 }
 
+// class Toolkit::GWRewriteTool
+
+static const char *GWRewriteSection = "RasSrv::GWRewriteE164";
+
+Toolkit::GWRewriteTool::~GWRewriteTool() {
+	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
+		delete &(m_GWRewrite.GetDataAt(i));
+	}
+	m_GWRewrite.RemoveAll();
+}
+
+bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString &data) {
+
+	GWRewriteEntry *gw_entry;
+	std::vector<std::pair<PString,PString> >::iterator rule_iterator;
+	PString key,value;
+	bool inverted;
+	int striplen;
+
+	// First lookup the GW in the dictionary
+	gw_entry = m_GWRewrite.GetAt(gw);
+
+	if (gw_entry == NULL) {
+		return false;
+	}
+
+	// True is "in" direction
+	if (direction == true) {
+		for (rule_iterator = gw_entry->m_entry_data.first.begin(); rule_iterator != gw_entry->m_entry_data.first.end(); ++rule_iterator) {
+			key = (*rule_iterator).first;
+			inverted = false;
+
+			// Inverted match sense
+			if (key.GetLength() !=0 && key[0] == '!') {
+				inverted = true;
+				key = key.Mid(1);
+			}
+
+			// Attempt match
+			if ((strncmp(data, key, key.GetLength()) == 0) ^ inverted) {
+
+				// Start rewrite
+				value = (*rule_iterator).second;
+				striplen = (inverted) ? 0 : key.GetLength();
+				value += data.Mid(striplen);
+
+				// Log
+				PTRACE(2, "\tGWRewriteTool::RewritePString: " << data << " to " << value);
+
+				// Finish rewrite
+				data = value;
+
+				break;
+			}
+
+		}
+
+	}
+	else {
+		for (rule_iterator = gw_entry->m_entry_data.second.begin(); rule_iterator != gw_entry->m_entry_data.second.end(); ++rule_iterator) {
+			key = (*rule_iterator).first;
+			inverted = false;
+
+			// Inverted match sense
+			if (key.GetLength() !=0 && key[0] == '!') {
+				inverted = true;
+				key = key.Mid(1);
+			}
+
+			// Attempt match
+			if ((strncmp(data, key, key.GetLength()) == 0) ^ inverted) {
+
+				// Start rewrite
+				value = (*rule_iterator).second;
+				striplen = (inverted) ? 0 : key.GetLength();
+				value += data.Mid(striplen);
+
+				// Log
+				PTRACE(2, "\tGWRewriteTool::RewritePString: " << data << " to " << value);
+
+				// Finish rewrite
+				data = value;
+
+				break;
+			}
+
+		}
+
+	}
+
+
+	return true;
+
+}
+
+void Toolkit::GWRewriteTool::PrintData() {
+
+	std::vector<std::pair<PString,PString> >::iterator rule_iterator;
+
+	PTRACE(2, "GK\tLoaded per GW rewrite data:");
+
+	if (m_GWRewrite.GetSize() == 0) {
+		PTRACE(2, "GK\tNo per GW data loaded");
+		return;
+	}
+
+	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
+
+		// In
+		for (rule_iterator = m_GWRewrite.GetDataAt(i).m_entry_data.first.begin(); rule_iterator != m_GWRewrite.GetDataAt(i).m_entry_data.first.end(); ++rule_iterator) {
+			PTRACE(3, "GK\t" << m_GWRewrite.GetKeyAt(i) << " (in): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
+		}
+
+		// Out
+		for (rule_iterator = m_GWRewrite.GetDataAt(i).m_entry_data.second.begin(); rule_iterator != m_GWRewrite.GetDataAt(i).m_entry_data.second.end(); ++rule_iterator) {
+			PTRACE(3, "GK\t" << m_GWRewrite.GetKeyAt(i) << " (out): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
+		}
+
+	}
+
+	PTRACE(2, "GK\tLoaded " << m_GWRewrite.GetSize() << " GW entries with rewrite info");
+
+}
+
+
+void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
+
+	PINDEX gw_size, i, j, lines_size;
+	PString key, cfg_value;
+	PStringArray lines, tokenised_line;
+	GWRewriteEntry *gw_entry;
+	std::map<PString,PString> in_strings, out_strings;
+	std::vector<std::pair<PString,PString> > sorted_in_strings, sorted_out_strings;
+	std::map<PString,PString>::reverse_iterator strings_iterator;
+	std::pair<PString,PString> rule;
+
+	PStringToString cfgs(config->GetAllKeyValues(GWRewriteSection));
+
+	// Clear old config
+	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
+		delete &(m_GWRewrite.GetDataAt(i));
+	}
+	m_GWRewrite.RemoveAll();
+
+	gw_size = cfgs.GetSize();
+	if (gw_size > 0) {
+		for (i = 0; i < gw_size; ++i) {
+
+			// Get the config keys
+			key = cfgs.GetKeyAt(i);
+			cfg_value = cfgs[key];
+
+			in_strings.clear();
+			out_strings.clear();
+			sorted_in_strings.clear();
+			sorted_out_strings.clear();
+
+			// Split the config data into seperate lines
+			lines = cfg_value.Tokenise(PString("\n"));
+
+			lines_size = lines.GetSize();
+
+			for (j = 0; j < lines_size; ++j) {
+
+				// Split the config line into three strings, direction, from string, to string
+				tokenised_line = lines[j].Tokenise(PString("="));
+
+				if (tokenised_line.GetSize() < 3) {
+					continue;
+				}
+
+				// Put into appropriate std::map
+
+				if (tokenised_line[0] == "in") {
+					in_strings[tokenised_line[1]] = tokenised_line[2];
+
+				}
+				if (tokenised_line[0] == "out") {
+					out_strings[tokenised_line[1]] = tokenised_line[2];
+				}
+
+			}
+
+			// Put the map contents into reverse sorted vectors
+			for (strings_iterator = in_strings.rbegin(); strings_iterator != in_strings.rend(); ++strings_iterator) {
+				rule = *strings_iterator;
+				sorted_in_strings.push_back(rule);
+			}
+			for (strings_iterator = out_strings.rbegin(); strings_iterator != out_strings.rend(); ++strings_iterator) {
+				rule = *strings_iterator;
+				sorted_out_strings.push_back(rule);
+			}
+
+
+			// Create the entry
+			gw_entry = new GWRewriteEntry();
+			gw_entry->m_entry_data.first = sorted_in_strings;
+			gw_entry->m_entry_data.second = sorted_out_strings;
+
+
+			// Add to PDictionary hash table
+			m_GWRewrite.Insert(key,gw_entry);
+
+		}
+	}
+
+	PrintData();
+}
+
+
+
+
 Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit")
 {
 	m_Config = 0;
@@ -326,7 +538,7 @@ PConfig* Toolkit::Config(const char *section)
 }
 
 PConfig* Toolkit::SetConfig(const PFilePath &fp, const PString &section)
-{ 
+{
 	m_ConfigFilePath = fp;
 	m_ConfigDefaultSection = section;
 
@@ -395,12 +607,13 @@ PConfig* Toolkit::ReloadConfig()
 	m_VirtualRouteTable.InitTable();
 	m_ProxyCriterion.LoadConfig(m_Config);
 	m_Rewrite.LoadConfig(m_Config);
+	m_GWRewrite.LoadConfig(m_Config);
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
 	m_GKName = GkConfig()->GetString("Name", "GNU Gatekeeper");
 
-	return m_Config; 
+	return m_Config;
 }
 
 BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
@@ -421,16 +634,16 @@ BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 
 
 bool Toolkit::RewriteE164(H225_AliasAddress &alias)
-{ 
-	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) 
+{
+	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits)
 		return FALSE;
-	
+
 	PString E164 = H323GetAliasAddressString(alias);
 
 	bool changed = RewritePString(E164);
 	if (changed)
 		H323SetAliasAddress(E164, alias);
-	
+
 	return changed;
 }
 
@@ -441,6 +654,39 @@ bool Toolkit::RewriteE164(H225_ArrayOf_AliasAddress & aliases)
 		changed |= RewriteE164(aliases[n]);
 	return changed;
 }
+
+bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_AliasAddress &alias) {
+
+	PString E164;
+	bool changed;
+
+	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) {
+		return false;
+	}
+
+	E164 = H323GetAliasAddressString(alias);
+	changed = GWRewritePString(gw,direction,E164);
+
+	if (changed) {
+		H323SetAliasAddress(E164, alias);
+	}
+
+	return changed;
+}
+
+bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddress &aliases) {
+
+	bool changed;
+	PINDEX n;
+
+	changed = false;
+	for (n = 0; n < aliases.GetSize(); ++n) {
+		changed |= GWRewriteE164(gw,direction,aliases[n]);
+	}
+
+	return changed;
+}
+
 
 PString Toolkit::GetGKHome(std::vector<PIPSocket::Address> & GKHome) const
 {
@@ -479,7 +725,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 					--size, --n;
 				}
 			}
-		} 
+		}
 		if (size == 0) {
 			m_GKHome.clear();
 			size = is;
@@ -513,12 +759,12 @@ void Toolkit::SetGKHome(const PStringArray & home)
 }
 
 int
-Toolkit::GetInternalExtensionCode( const unsigned &country, 
-				   const unsigned &extension, 
-				   const unsigned &manufacturer) const 
+Toolkit::GetInternalExtensionCode( const unsigned &country,
+				   const unsigned &extension,
+				   const unsigned &manufacturer) const
 {
 	switch(country) {
-	case t35cOpenOrg: 
+	case t35cOpenOrg:
 		switch(manufacturer) {
 		case t35mOpenOrg:
 			switch(extension) {
@@ -538,7 +784,7 @@ int Toolkit::GetInternalExtensionCode(const H225_H221NonStandard& data) const
 			data.m_manufacturerCode);
 }
 
-bool Toolkit::AsBool(const PString & str) 
+bool Toolkit::AsBool(const PString & str)
 {
 	if (str.IsEmpty())
 		return false;

@@ -132,18 +132,48 @@ class Toolkit : public Singleton<Toolkit>
 
 	bool RewritePString(PString & s) { return m_Rewrite.RewritePString(s); }
 
+	// Class to allow correct use of STL inside PDictionary type
+	class GWRewriteEntry : public PObject {
+		PCLASSINFO(GWRewriteEntry, PObject);
+		public:
+			std::pair<std::vector<std::pair<PString,PString> >,std::vector<std::pair<PString,PString> > > m_entry_data;
+	};
+
+
+	// per GW RewriteTool
+	class GWRewriteTool {
+		public:
+
+			GWRewriteTool() {
+				m_GWRewrite.AllowDeleteObjects(false);
+			}
+			~GWRewriteTool();
+			void LoadConfig(PConfig *);
+			void PrintData();
+			bool RewritePString(PString gw, bool direction, PString &data);
+
+		private:
+			PDictionary<PString, GWRewriteEntry> m_GWRewrite;
+
+	};
+
+	// Equivalent functions to RewriteE164 group
+	bool GWRewriteE164(PString gw, bool direction, H225_AliasAddress &alias);
+	bool GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddress &aliases);
+	bool GWRewritePString(PString gw, bool direction, PString &data) { return m_GWRewrite.RewritePString(gw,direction,data); }
+
 	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
 	void SetGKHome(const PStringArray &);
 
 	// accessors
-	/** Accessor and 'Factory' to the static Toolkit. 
+	/** Accessor and 'Factory' to the static Toolkit.
 	 * If you want to use your own Toolkit class you have to
-	 * overwrite this method and ensure that your version is 
+	 * overwrite this method and ensure that your version is
 	 * called first -- before any other call to #Toolkit::Instance#.
-	 * Example: 
+	 * Example:
 	 * <pre>
 	 * class MyToolkit: public Toolkit {
-	 *  public: 
+	 *  public:
 	 *   static Toolkit& Instance() {
 	 *	   if (m_Instance == NULL) m_Instance = new MyToolkit();
 	 *     return m_Instance;
@@ -155,16 +185,16 @@ class Toolkit : public Singleton<Toolkit>
 	 * </pre>
 	 */
 
-	/** Accessor and 'Factory' for the global (static) configuration. 
-	 * With this we are able to implement out own Config-Loader 
-	 * in the same way as #Instance()#. And we can use #Config()# 
+	/** Accessor and 'Factory' for the global (static) configuration.
+	 * With this we are able to implement out own Config-Loader
+	 * in the same way as #Instance()#. And we can use #Config()#
 	 * in the constructor of #Toolkit# (and its descentants).
 	 */
-	PConfig* Config(); 
-	PConfig* Config(const char *); 
+	PConfig* Config();
+	PConfig* Config(const char *);
 
 	/** Sets the config that the toolkit uses to a given config.
-	 *  A prior loaded Config is discarded. 
+	 *  A prior loaded Config is discarded.
 	 */
 	PConfig* SetConfig(const PFilePath &fp, const PString &section);
 
@@ -189,7 +219,7 @@ class Toolkit : public Singleton<Toolkit>
 	 */
 	static BOOL MatchRegex(const PString &str, const PString &regexStr);
 
-	/** returns the #BOOL# that #str# represents. 
+	/** returns the #BOOL# that #str# represents.
 	 * Case insensitive, "t...", "y...", "a...", "1" are #TRUE#, all other values are #FALSE#.
 	 */
 	static bool AsBool(const PString & str);
@@ -209,10 +239,10 @@ class Toolkit : public Singleton<Toolkit>
 	enum {
 		t35cOpenOrg = 255,       /// country code for the "Open Source Organisation" Country
 		t35mOpenOrg = 4242,     /// manufacurers code for the "Open Source Organisation"
-		t35eFailoverRAS = 255  /// Defined HERE! 
+		t35eFailoverRAS = 255  /// Defined HERE!
 	};
-	/** If the triple #(country,extension,manufacturer)# represents an 
-	 * extension known to the GnuGK this method returns its 'internal extension code' 
+	/** If the triple #(country,extension,manufacturer)# represents an
+	 * extension known to the GnuGK this method returns its 'internal extension code'
 	 # #iecXXX' or #iecUnknow# otherwise.
 	 *
 	 * Overwriting methods should use a simlilar scheme and call
@@ -225,10 +255,10 @@ class Toolkit : public Singleton<Toolkit>
 	 * </code>
 	 * This results in 'cascading' calls until a iec!=iecUnkown is returned.
 	 */
-	virtual int GetInternalExtensionCode(const unsigned &country, 
-						 const unsigned &extension, 
+	virtual int GetInternalExtensionCode(const unsigned &country,
+						 const unsigned &extension,
 						 const unsigned &manufacturer) const;
-	
+
 	int GetInternalExtensionCode(const H225_H221NonStandard& data) const;
 
 	/** A c-string (#char*#) hash function that considers the
@@ -236,14 +266,14 @@ class Toolkit : public Singleton<Toolkit>
 	 */
 	inline static unsigned long HashCStr(const unsigned char *name) ;
 
-	/** Generate a call id for accounting purposes, that is unique  
+	/** Generate a call id for accounting purposes, that is unique
 		during subsequent GK start/stop events.
-		
+
 		@return
 		A string with the unique id.
 	*/
 	PString GenerateAcctSessionId();
-	
+
  protected:
 	void CreateConfig();
 
@@ -254,6 +284,8 @@ class Toolkit : public Singleton<Toolkit>
 	bool	  m_ConfigDirty;
 
 	RewriteTool m_Rewrite;
+	GWRewriteTool m_GWRewrite; // GW Based RewriteTool
+
 	BOOL      m_EmergencyAccept;
 
 	RouteTable m_RouteTable;
@@ -269,14 +301,14 @@ class Toolkit : public Singleton<Toolkit>
 	long m_acctSessionBase;
 	/// mutex for atomic session id generation (prevents from duplicates)
 	PMutex m_acctSessionMutex;
-	
+
  private:
 	PFilePath m_tmpconfig;
 };
 
 
 inline unsigned long
-Toolkit::HashCStr(const unsigned char *name) 
+Toolkit::HashCStr(const unsigned char *name)
 {
 	register unsigned long h = 0, g;
 	while (*name) {

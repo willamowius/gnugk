@@ -14,7 +14,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)  
+#if (_MSC_VER >= 1200)
 #pragma warning( disable : 4800 ) // one performance warning off
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
@@ -894,7 +894,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 	H225_RequestSeqNum oldReqNum, *reqNum;
 
 	// ATS 2004-01-16 Forward messages to alternates using our own sequence numbers
-	// instead of using those supplied by the originator of the message, this will 
+	// instead of using those supplied by the originator of the message, this will
 	// result in clashes in RasMSG::EqualTo() by the receiver of this message
 
 	switch (msg.GetTag())
@@ -904,7 +904,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			H225_GatekeeperRequest & o = msg;
 			nonStandardParam = &o.m_nonStandardData;
 			sobj = &o;
-			
+
 			// Get a pointer to the current sequence number
 			reqNum = &o.m_requestSeqNum;
 			// Make a copy of the old sequence number
@@ -1037,9 +1037,9 @@ void RasServer::Run()
 	authList = new GkAuthenticatorList;
 	acctList = new GkAcctLoggerList;
 	vqueue = new VirtualQueue;
-	
+
 	LoadConfig();
-	
+
 	callptr nullcall;
 	acctList->LogAcctEvent(GkAcctLogger::AcctOn,nullcall);
 	if (m_socksize > 0) {
@@ -1117,7 +1117,7 @@ void RasServer::GetAlternateGK()
 		const PStringArray tokens = altgks[idx].Tokenise(":", FALSE);
 		if (tokens.GetSize() < 4) {
 			PTRACE(1,"GK\tFormat error in AlternateGKs");
-			continue; 
+			continue;
 		}
 
 		H225_AlternateGK & alt = (*altGKs)[idx];
@@ -1233,7 +1233,7 @@ GkInterface *RasServer::CreateInterface(const Address & addr)
 Toolkit *RasMsg::Kit;
 GkStatus *RasMsg::StatusPort;
 RegistrationTable *RasMsg::EndpointTbl;
-CallTable *RasMsg::CallTbl; 
+CallTable *RasMsg::CallTbl;
 RasServer *RasMsg::RasSrv;
 
 void RasMsg::Initialize()
@@ -1290,7 +1290,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 
 		RasSrv->SelectH235Capability(request, gcf);
 
-		log = PString(PString::Printf, "GCF|%s|%s|%s;", 
+		log = PString(PString::Printf, "GCF|%s|%s|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) alias,
 			(const unsigned char *) AsString(request.m_endpointType)
@@ -1347,7 +1347,7 @@ bool RegistrationRequestPDU::Process()
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		} else {
 			// forward lightweights, too
-			if (bShellForwardRequest) 
+			if (bShellForwardRequest)
 				RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
 			// endpoint was already registered
 			ep->Update(m_msg->m_recvRAS);
@@ -1442,7 +1442,7 @@ bool RegistrationRequestPDU::Process()
 			case H225_EndpointType::e_mcu:
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
 			/* only while debugging
-			default:  
+			default:
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
 			 */
 		}
@@ -1479,9 +1479,9 @@ bool RegistrationRequestPDU::Process()
 	else
 		ep->SetNAT(false);
 	if (bShellSendReply) {
-		//	
+		//
 		// OK, now send RCF
-		//	
+		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 		if (nated) {
@@ -1549,7 +1549,7 @@ bool RegistrationRequestPDU::BuildRRJ(unsigned reason, bool alt)
 		RasSrv->SetAltGKInfo(rrj);
 
 	PString alias(request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? AsString(request.m_terminalAlias) : PString(" "));
-	PString log(PString::Printf, "RRJ|%s|%s|%s|%s;", 
+	PString log(PString::Printf, "RRJ|%s|%s|%s|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) alias,
 			(const unsigned char *) AsString(request.m_terminalType),
@@ -1580,21 +1580,21 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 		// Return UCF
 		BuildConfirm();
 
-		log = PString(PString::Printf, "UCF|%s|%s;", 
+		log = PString(PString::Printf, "UCF|%s|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) endpointId
 		      );
 	} else {
-		// Return URJ	
+		// Return URJ
 		H225_UnregistrationReject & urj = BuildReject(H225_UnregRejectReason::e_notCurrentlyRegistered);
-		log = PString(PString::Printf, "URJ|%s|%s|%s;", 
+		log = PString(PString::Printf, "URJ|%s|%s|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) endpointId,
 			(const unsigned char *) urj.m_rejectReason.GetTagName()
 		      );
 	}
 
-	if (bShellForwardRequest) 
+	if (bShellForwardRequest)
 		RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
 	PrintStatus(log);
 	return bShellSendReply;
@@ -1606,14 +1606,6 @@ bool AdmissionRequestPDU::Process()
 	bool bReject = false;
 	bool answer = request.m_answerCall;
 	long callDurationLimit = -1;
-	
-	bool bHasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && request.m_destinationInfo.GetSize() > 0;
-	if (bHasDestInfo) // apply rewriting rules
-		Kit->RewriteE164(request.m_destinationInfo[0]);
-
-	destinationString = bHasDestInfo ? AsString(request.m_destinationInfo) :
-		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
-		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
 
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
@@ -1624,6 +1616,31 @@ bool AdmissionRequestPDU::Process()
 		PTRACE(1, "RAS\tWarning: Exceed call limit!!");
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 	}
+
+	bool bHasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && request.m_destinationInfo.GetSize() > 0;
+	if (bHasDestInfo) { // apply rewriting rules
+
+		PString source;
+		PStringArray tokenised_source;
+
+		// Do inbound per GW rewriting first
+		source = AsString(RequestingEP->GetAliases()[0]);
+
+		// Chop up source to get the h323_ID or dialedDigits
+		tokenised_source = source.Tokenise(PString(":"));
+
+		if (tokenised_source.GetSize() == 2) {
+			Kit->GWRewriteE164(tokenised_source[0],true,request.m_destinationInfo[0]);
+		}
+
+		// Normal rewriting
+		Kit->RewriteE164(request.m_destinationInfo[0]);
+
+	}
+
+	destinationString = bHasDestInfo ? AsString(request.m_destinationInfo) :
+		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
+		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
 
 	unsigned rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 	if (!RasSrv->ValidatePDU(*this, rejectReason, callDurationLimit))
@@ -1650,7 +1667,7 @@ bool AdmissionRequestPDU::Process()
 	}
 
 	//
-	// Bandwidth 
+	// Bandwidth
 	// and GkManager admission
 	//
 	int BWRequest = 1280;
@@ -1695,7 +1712,7 @@ bool AdmissionRequestPDU::Process()
 
 #ifdef ARJREASON_ROUTECALLTOSCN
  	//
- 	// call from one GW to itself? 
+ 	// call from one GW to itself?
  	// generate ARJ-reason: 'routeCallToSCN'
  	//
  	if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToSCN", "1"))) {
@@ -1720,11 +1737,11 @@ bool AdmissionRequestPDU::Process()
 				// there can be diffent information in the destination info
 				switch(request.m_destinationInfo[0].GetTag())
 				{
-					case H225_AliasAddress::e_dialedDigits: 
+					case H225_AliasAddress::e_dialedDigits:
 						// normal number, extract only the digits
 						PPN.m_publicNumberDigits = AsString(request.m_destinationInfo[0], FALSE);
 						break;
-					case H225_AliasAddress::e_partyNumber: 
+					case H225_AliasAddress::e_partyNumber:
 						// ready-to-use party number
 						PN = request.m_destinationInfo[0];
 						break;
@@ -1732,7 +1749,7 @@ bool AdmissionRequestPDU::Process()
 						PTRACE(1, "Unsupported AliasAdress for ARQ reason 'routeCallToSCN': " << request.m_destinationInfo[0]);
 				}
 				return true;
-			} else { 
+			} else {
  				// missing destination info. is this possible at this point?
  			}
  		}
@@ -1744,13 +1761,29 @@ bool AdmissionRequestPDU::Process()
 	H225_AdmissionConfirm & acf = BuildConfirm();
 	acf.m_bandWidth = BWRequest;
 
+	// Per GW outbound rewrite
+	if (CalledEP && (RequestingEP != CalledEP)) {
+		PString source;
+		PStringArray tokenised_source;
+
+		source = AsString(CalledEP->GetAliases()[0]);
+
+		// Chop up source to get the h323_ID or dialedDigits
+		tokenised_source = source.Tokenise(PString(":"));
+
+		if (tokenised_source.GetSize() == 2) {
+			Kit->GWRewriteE164(tokenised_source[0],false,request.m_destinationInfo[0]);
+		}
+
+	}
+
 	if (pExistingCallRec) {
 		// duplicate or answer ARQ
 		PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
 		if( callDurationLimit > 0 )
 			pExistingCallRec->SetDurationLimit(callDurationLimit);
 	} else {
-		// the call is not in the table		
+		// the call is not in the table
 		CallRec *pCallRec = new CallRec(request.m_callIdentifier, request.m_conferenceID, request.m_callReferenceValue,
 			destinationString, AsString(request.m_srcInfo), BWRequest, RasSrv->IsH245Routed());
 
@@ -1765,14 +1798,14 @@ bool AdmissionRequestPDU::Process()
 
 		if( callDurationLimit > 0 )
 			pCallRec->SetDurationLimit(callDurationLimit);
-		
+
 		if (!RasSrv->IsGKRouted())
 			pCallRec->SetConnected();
 		else if (acf.HasOptionalField(H225_AdmissionConfirm::e_cryptoTokens))
 			pCallRec->SetAccessTokens(acf.m_cryptoTokens);
 		CallTbl->Insert(pCallRec);
 	}
-			
+
 	if (RasSrv->IsGKRouted()) {
 		acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
 		GetCallSignalAddress(acf.m_destCallSignalAddress);
@@ -1790,7 +1823,7 @@ bool AdmissionRequestPDU::Process()
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
 		acf.m_destinationInfo = request.m_destinationInfo;
 	}
-	
+
 	return BuildReply(e_acf);
 }
 
@@ -1802,7 +1835,7 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 
 	PString log;
 	if (reason == e_routeRequest) {
-		log = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;", 
+		log = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;",
 			(const unsigned char *) source,
 			(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
 			(unsigned) request.m_callReferenceValue,
@@ -1810,7 +1843,7 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 			(const unsigned char *) srcInfo
 		      );
 	} else if (reason < 0) {
-		log = PString(PString::Printf, "ACF|%s|%s|%u|%s|%s|%s;", 
+		log = PString(PString::Printf, "ACF|%s|%s|%u|%s|%s|%s;",
 			(const unsigned char *) source,
 			(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
 			(unsigned) request.m_callReferenceValue,
@@ -1822,7 +1855,7 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 		H225_AdmissionReject & arj = BuildReject(reason);
 		if (reason == H225_AdmissionRejectReason::e_resourceUnavailable)
 			RasSrv->SetAltGKInfo(arj);
-		log = PString(PString::Printf, "ARJ|%s|%s|%s|%s|%s;", 
+		log = PString(PString::Printf, "ARJ|%s|%s|%s|%s|%s;",
 			(const unsigned char *) source,
 			(const unsigned char *) destinationString,
 			(const unsigned char *) srcInfo,
@@ -1834,7 +1867,7 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 }
 
 template<> bool RasPDU<H225_BandwidthRequest>::Process()
-{ 
+{
 	// OnBRQ
 	// hack for Netmeeting 3.0
 	int bandwidth = (request.m_bandWidth.GetValue() < 100) ? 1280 : int(request.m_bandWidth);
@@ -1860,7 +1893,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 			// ask the endpoint to try alternate gatekeepers
 			RasSrv->SetAltGKInfo(brj);
 		}
-		log = PString(PString::Printf, "BRJ|%s|%s|%u|%s;", 
+		log = PString(PString::Printf, "BRJ|%s|%s|%u|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			bandwidth,
@@ -1870,7 +1903,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 		pCall->SetBandwidth(bandwidth);
 		H225_BandwidthConfirm & bcf = BuildConfirm();
 		bcf.m_bandWidth = bandwidth;
-		log = PString(PString::Printf, "BCF|%s|%s|%u;", 
+		log = PString(PString::Printf, "BCF|%s|%s|%u;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			bandwidth
@@ -1898,7 +1931,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	PString log;
 	if (bReject) {
 		H225_DisengageReject & drj = BuildReject(rsn);
-		log = PString(PString::Printf, "DRJ|%s|%s|%u|%s;", 
+		log = PString(PString::Printf, "DRJ|%s|%s|%u|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			(unsigned) request.m_callReferenceValue,
@@ -1907,7 +1940,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	} else {
 		BuildConfirm();
 		// always signal DCF
-		log = PString(PString::Printf, "DCF|%s|%s|%u|%s;", 
+		log = PString(PString::Printf, "DCF|%s|%s|%u|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			(unsigned) request.m_callReferenceValue,
@@ -1926,8 +1959,30 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	// OnLRQ
 	PString log;
 
-	if (request.m_destinationInfo.GetSize() > 0)
+	if (request.m_destinationInfo.GetSize() > 0) {
+
+		// per GW rewrite first
+		endptr rewriteEndPoint = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
+		if (rewriteEndPoint) {
+
+			PString source;
+			PStringArray tokenised_source;
+
+			source = AsString(rewriteEndPoint->GetAliases()[0]);
+
+			// Chop up source to get the h323_ID or dialedDigits
+			tokenised_source = source.Tokenise(PString(":"));
+
+			if (tokenised_source.GetSize() == 2) {
+				Kit->GWRewriteE164(tokenised_source[0],true,request.m_destinationInfo[0]);
+			}
+
+		}
+
+		// Normal rewrite
 		Kit->RewriteE164(request.m_destinationInfo[0]);
+	}
+
 
 	unsigned reason = H225_LocationRejectReason::e_securityDenial;
 	PIPSocket::Address ipaddr;
@@ -2002,7 +2057,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 }
 
 template<> bool RasPDU<H225_InfoRequestResponse>::Process()
-{ 
+{
 	// OnIRR
 	if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier)) {
 		ep->Update(m_msg->m_recvRAS);
@@ -2017,7 +2072,7 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 }
 
 template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
-{ 
+{
 	// OnRAI
 	// accept all RAIs
 	H225_ResourcesAvailableConfirm & rac = BuildConfirm();

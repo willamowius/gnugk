@@ -152,7 +152,7 @@ protected:
 	bool CreateRemote(H225_Setup_UUIE &);
 	void ForwardCall();
 
-	bool OnSetup(H225_Setup_UUIE &);
+	bool OnSetup(H225_Setup_UUIE &, PString &in_rewrite_id, PString &out_rewrite_id);
 	bool OnCallProceeding(H225_CallProceeding_UUIE &);
 	bool OnConnect(H225_Connect_UUIE &);
 	bool OnAlerting(H225_Alerting_UUIE &);

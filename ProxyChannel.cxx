@@ -40,7 +40,7 @@
 #include <h245.h>
 #include <h323pdu.h>
 
-// default timeout (ms) for initial Setup message, 
+// default timeout (ms) for initial Setup message,
 // if not specified in the config file
 #define DEFAULT_SETUP_TIMEOUT 8000
 
@@ -328,7 +328,7 @@ public:
 	void SetHandler(ProxyHandler *);
 	LogicalChannel *FindLogicalChannel(WORD);
 	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
-	
+
 private:
 	// override from class H245Handler
 	virtual bool HandleRequest(H245_RequestMessage &);
@@ -660,6 +660,9 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
 
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
+
+	PString in_rewrite_id,out_rewrite_id;
+
 	if (!ReadTPKT())
 		return IsOpen() ? NoData : Error;
 
@@ -691,7 +694,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			}
 			m_crv = (m_lastQ931->GetCallReference() | 0x8000u);
 			m_setupUUIE = new H225_H323_UserInformation(signal);
-			changed = OnSetup(body);
+			changed = OnSetup(body, in_rewrite_id, out_rewrite_id);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_callProceeding:
 			changed = OnCallProceeding(body);
@@ -754,14 +757,32 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
    Note: Openh323 1.7.9 or later required.
    The older version has an out of memory bug in Q931::GetCalledPartyNumber.
 */
+
 	if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
 		unsigned plan, type;
 		PString calledNumber;
+
+		// Do per GW inbound rewrite before global rewrite
+		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+			Toolkit::Instance()->GWRewritePString(in_rewrite_id,true,calledNumber)) {
+			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+			changed = true;
+		}
+
+		// Normal rewrite
 		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
 		    Toolkit::Instance()->RewritePString(calledNumber)) {
 			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
 			changed = true;
 		}
+
+		// Do per GW outbound rewrite after global rewrite
+		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+			Toolkit::Instance()->GWRewritePString(out_rewrite_id,false,calledNumber)) {
+			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+			changed = true;
+		}
+
 	}
 
 	if (m_lastQ931->HasIE(Q931::DisplayIE)) {
@@ -855,7 +876,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 			uuie.m_reason = H225_ReleaseCompleteReason(H225_ReleaseCompleteReason::e_undefinedReason);
 		}
 	}
-		
+
 	SetUUIE(ReleasePDU, signal);
 
 	PrintQ931(5, "Send to ", GetName(), &ReleasePDU, &signal);
@@ -1027,7 +1048,7 @@ void CallSignalSocket::ForwardCall()
 	SetDeletable();
 }
 
-bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
+bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, PString &out_rewrite_id)
 {
 	// record the timestamp here since processing may take much time
 	time_t setupTime = time(0);
@@ -1046,8 +1067,27 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			H323SetAliasAddress(destination, Setup.m_destinationAddress[0]);
 		}
 	}
-	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+
+		// Do inbound per GWRewrite if we can before global rewrite
+		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) == true) {
+			PString source;
+			PStringArray tokenised_source;
+			source = AsString(Setup.m_sourceAddress);
+
+			// Chop up source to get the h323_ID or dialedDigits
+			tokenised_source = source.Tokenise(PString(":"));
+
+			if (tokenised_source.GetSize() == 2) {
+				Toolkit::Instance()->GWRewriteE164(tokenised_source[0],true,Setup.m_destinationAddress);
+				in_rewrite_id = tokenised_source[0];
+			}
+		}
+
+		// Normal rewrite
 		Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress);
+	}
+
 
 #if PTRACING
 	PString callid;
@@ -1090,9 +1130,9 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 			Setup.m_cryptoTokens = tokens;
 		}
-		
+
 		m_call->SetSetupTime(setupTime);
-		
+
 		// authenticate the call
 		long durationLimit = -1;
 		unsigned cause = Q931::CallRejected;
@@ -1103,10 +1143,10 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			m_call->SetDisconnectCause(cause);
 			return false;
 		}
-		
+
 		if( durationLimit > 0 )
 			m_call->SetDurationLimit(durationLimit);
-			
+
 		// log AcctStart accounting event
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
@@ -1195,7 +1235,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		m_call = callptr(call);
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
-		
+
 		long durationLimit = -1;
 		unsigned cause = Q931::CallRejected;
 		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup,cause,durationLimit) ) {
@@ -1205,16 +1245,37 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			m_call->SetDisconnectCause(cause);
 			return false;
 		}
-		
+
 		if( durationLimit > 0 )
 			m_call->SetDurationLimit(durationLimit);
-			
+
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
 				<<" due to accounting failure"
 				);
 			m_call->SetDisconnectCause(Q931::TemporaryFailure);
 			return false;
+		}
+	}
+
+
+	// Do outbound per GW rewrite
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+		endptr rewriteEndPointOut = m_call->GetCalledParty();
+		if (rewriteEndPointOut != NULL) {
+			PString source;
+			PStringArray tokenised_source;
+
+			source = AsString(rewriteEndPointOut->GetAliases()[0]);
+
+			// Chop up source to get the h323_ID or dialedDigits
+			tokenised_source = source.Tokenise(PString(":"));
+
+			if (tokenised_source.GetSize() == 2) {
+				Toolkit::Instance()->GWRewriteE164(tokenised_source[0],false,Setup.m_destinationAddress);
+				out_rewrite_id = tokenised_source[0];
+			}
+
 		}
 	}
 
@@ -1545,14 +1606,14 @@ void CallSignalSocket::Dispatch()
 	const PTime channelStart;
 	const int setupTimeout = PMAX(GkConfig()->GetInteger(RoutedSec,"SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
 	int timeout = setupTimeout;
-		
+
 	while (timeout > 0) {
-	
+
 		if (!IsReadable(timeout)) {
 			PTRACE(3, "Q931\tTimed out waiting for initial Setup message from " << GetName());
 			break;
 		}
-			
+
 		switch (ReceiveData())
 		{
 			case NoData:
@@ -2831,7 +2892,7 @@ void ProxyHandler::FlushSockets()
 
 	if (!wlist.Select(SocketSelectList::Write, PTimeInterval(10)))
 	       return;
-	
+
 	PTRACE(5, "Proxy\t" << wlist.GetSize() << " sockets to flush...");
 	for (int k = 0; k < wlist.GetSize(); ++k) {
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(wlist[k]);
