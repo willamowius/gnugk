@@ -3,7 +3,7 @@ Storage
 	{ Format 1.31 }
 	{ GeneratedFrom TGD-version-2.01 }
 	{ WrittenBy mmuehlen }
-	{ WrittenOn "Mon May  6 13:59:18 2002" }
+	{ WrittenOn "Mon May  6 14:03:22 2002" }
 }
 
 Document 
@@ -26,7 +26,7 @@ Page
 
 Scale 
 {
-	{ ScaleValue 0.984042 }
+	{ ScaleValue 0.569469 }
 }
 
 # GRAPH NODES
@@ -1312,7 +1312,7 @@ EllipsedBox 127
 {
 	{ View 6 }
 	{ Subject 120 }
-	{ Position 510 1640 }
+	{ Position 510 1620 }
 	{ Size 106 66 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -1568,8 +1568,8 @@ Line 159
 	{ End2 FilledArrow }
 	{ Points 2 }
 	{ Point 510 1536 }
-	{ Point 510 1607 }
-	{ NamePosition 496 1571 }
+	{ Point 510 1587 }
+	{ NamePosition 496 1561 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -1678,7 +1678,7 @@ TextBox 165
 	{ View 6 }
 	{ Subject 164 }
 	{ Position 370 60 }
-	{ Size 242 31 }
+	{ Size 242 33 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
