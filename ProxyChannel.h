@@ -137,11 +137,13 @@ public:
 	// override from class TCPProxySocket
 	virtual TCPProxySocket *ConnectTo();
 	virtual void SetConnected(bool c);
-	void Lock();
-	void Unlock();
+//  	virtual void Lock();
+//  	virtual void Unlock();
+	virtual void LockUse();
+	virtual void UnlockUse();
 
 	bool HandleH245Mesg(PPER_Stream &);
-	void OnH245ChannelClosed() { m_h245socket = 0; }
+	void OnH245ChannelClosed() { PWaitAndSignal lock(m_lock); m_h245socket = 0; }
 
 protected:
 	void OnSetup(H225_Setup_UUIE &);
@@ -162,7 +164,7 @@ protected:
 	void OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 	void OnInformationMsg(Q931 &pdu);
 
-	endptr GetCgEP(Q931 &q931pdu);
+	const endptr GetCgEP(Q931 &q931pdu);
 
 	template<class UUIE> void HandleH245Address(UUIE & uu)
 	{
@@ -183,6 +185,8 @@ protected:
 	WORD peerPort;
 
 private:
+	void InternalSendReleaseComplete(const enum Q931::CauseValues cause);
+	bool InternalEndSession();
 	void SetTimer(PTimeInterval time);
 	void StartTimer();
 	void StopTimer();
@@ -224,7 +228,7 @@ private:
 	BOOL m_replytoStatusMessage;
 
 	mutable PMutex m_lock;
-
+	mutable ProxyCondMutex m_usedCondition;
 };
 
 inline Q931 * CallSignalSocket::GetSetupPDU() const {
