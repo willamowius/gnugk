@@ -1254,14 +1254,12 @@ H323RasWorker::~H323RasWorker() {
 NeighborWorker::NeighborWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server)
 	: GK_RASWorker(initial_pdu, rx_addr, rx_port, server), m_called(NULL)
 {
-	PTRACE(5, "Neighbor Worker started");
 	Resume();
 }
 
 NeighborWorker::NeighborWorker(PPER_Stream initial_pdu, endptr called, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server)
 	: GK_RASWorker(initial_pdu, rx_addr, rx_port, server), m_called(called)
 {
-	PTRACE(5, "Neighbor Worker started");
 	Resume();
 }
 

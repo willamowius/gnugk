@@ -89,7 +89,7 @@ PendingList::PendingARQ::PendingARQ(int seqNum, const H225_AdmissionRequest & ob
 
 bool PendingList::PendingARQ::DoACF(const endptr & called) const
 {
-	PTRACE(1, "Doing ACF with EP: " << (endptr(NULL)==called ? PString("NULL"): called->GetEndpointIdentifier()));
+//	PTRACE(1, "Doing ACF with EP: " << (endptr(NULL)==called ? PString("NULL"): called->GetEndpointIdentifier()));
 	PPER_Stream stream;
 
 	H225_RasMessage pdu;
@@ -97,7 +97,6 @@ bool PendingList::PendingARQ::DoACF(const endptr & called) const
 	H225_AdmissionRequest & arq = pdu;
 	arq=m_arq;
        	pdu.Encode(stream);
-	H225_RasMessage abc;
 	stream.SetPosition(0);
 
 	const H225_TransportAddress_ipAddress & ip = m_reqEP->GetRasAddress();
