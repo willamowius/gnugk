@@ -1,3 +1,17 @@
+Changes from 2.2beta1 to 2.2beta2
+=================================
+- ACF is filled with destinationInfo if aliases have changed during
+  ARQ processing and ARQ.canMapAlias is TRUE
+- added more tracing and human readable names to routing policies
+- added modified CTI virtual queues implementation from Chih-Wei Huang
+- BUGFIX(singleton.cxx): incorrect singleton instance counting with different trace levels
+- added "run as user" feature
+- plain text CDR accounting logger module from Tamas Jalsovszky
+- call duration limit features introduced for ARQ handlers
+- old LDAP support removed from the source code tree
+- full Radius - authentication and accounting(start/stop/update)
+- added configure script to detect system settings and create Makefile
+
 Changes from 2.0.x to 2.2beta1 (by cwhuang)
 ===========================================
 - new method to detect NATed endpoints
