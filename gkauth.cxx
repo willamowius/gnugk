@@ -776,11 +776,12 @@ bool LDAPPasswordAuth::GetPassword(const PString & alias, PString & passwd)
 	return true;
 }  
 
-int LDAPPasswordAuth::Check(RasPDU<H225_RegistrationRequest> & rrq, unsigned & reason)
+int LDAPPasswordAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned & reason)
 {
-	int result = SimplePasswordAuth::Check(rrq, reason);
+	int result = SimplePasswordAuth::Check(request, reason);
 	if (result == e_ok) {
 		// check if all aliases in RRQ exists in LDAP entry
+		H225_RegistrationRequest & rrq = request;
 		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
 		if (!GkLDAP::Instance()->validAliases(aliases)) {
 			result = e_fail;
@@ -813,11 +814,12 @@ PString LDAPAliasAuth::GetConfigString(const PString & alias)
 	return PString();
 }
 
-int LDAPAliasAuth::Check(RasPDU<H225_RegistrationRequest> & rrq, unsigned & reason)
+int LDAPAliasAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned & reason)
 {
-	int result = AliasAuth::Check(rrq, reason);
+	int result = AliasAuth::Check(request, reason);
 	if (result == e_ok) {
 		// check if all aliases in RRQ exists in LDAP entry
+		H225_RegistrationRequest & rrq = request;
 		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
 		if (!GkLDAP::Instance()->validAliases(aliases)) {
 			result = e_fail;
