@@ -1,0 +1,73 @@
+To detect network errors and signaling connection problems, you can enable
+tcp keep alive feature. It will increase signaling bandwidth used, but as bandwidth
+utilized by signaling channels is low from its nature, the increase should
+not be significant. Moreover, you can control it using keep alive timeout.
+
+The problem is that most system use keep alive timeout of 7200 seconds,
+which means the system is notified about a dead connection after 2 hours.
+You probably want this time to be shorter, like one minute or so.
+On each operating system, the adjustment is done in a different way.
+
+After settings all parameters, it's recommened to check whether the feature
+works correctly - just make a test call and unplug a network cable at either
+side of the call. Then see if the call terminates after the configured timeout.
+
+Here are some hints:
+
+Linux systems
+=============
+Use sysctl -A to get a list of available kernel variables
+and grep this list for net.ipv4 settings (sysctl -A | grep net.ipv4).
+There should exist the following variables:
+- net.ipv4.tcp_keepalive_time - time of connection inactivity after which
+                                the first keep alive request is sent
+- net.ipv4.tcp_keepalive_probes - number of keep alive requests retransmitted
+                                  before the connection is considered broken
+- net.ipv4.tcp_keepalive_intvl - time interval between keep alive probes
+
+You can manipulate with these settings using the following command:
+
+sysctl -w net.ipv4.tcp_keepalive_time=60 net.ipv4.tcp_keepalive_probes=3 net.ipv4.tcp_keepalive_intvl=10
+
+This sample command changes tcp keepalive timeout to 60 seconds with 3 probes,
+10 seconds gap between each. With this, your application will detect dead tcp
+connections after 90 seconds (60 + 10 + 10 + 10).
+
+FreeBSD
+=======
+For the list of available tcp settings:
+
+sysctl -A | grep net.inet.tcp
+
+Keepalive related variables:
+- net.inet.tcp.keepidle - idle timeout
+- net.inet.tcp.keepintvl - interval between probes
+- net.inet.tcp.keepcnt (not on all systems) - number of keep alive probes (default 8)
+- net.inet.tcp.always_keepalive - enable keep alive feature on all sockets
+
+All values are usually in milliseconds.
+
+- net.inet.tcp.keepinit (net.inet.tcp.keepinittime on OpenBSD) - initial 
+  timeout for tcp connect operation (default is 75 seconds... - you may want
+  to change it)
+
+Solaris
+=======
+For the list of available tcp settings:
+
+ndd /dev/tcp \?
+
+Keepalive related variables:
+- tcp_keepalive_interval - idle timeout
+
+Example:
+ndd -set /dev/tcp tcp_keepalive_interval 60000
+
+Windows
+=======
+
+Search Knowledge Base for article ID 120642:
+http://support.microsoft.com/kb/120642/EN-US
+
+Basically, you need to tweak some registry entries under
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters
