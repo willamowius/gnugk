@@ -324,26 +324,34 @@ CallSignalSocket::~CallSignalSocket()
 	PTRACE(1, "Name(): " << Name());
 
 	m_lock.Wait();
+
+	if(callptr(NULL)!=m_call) {
+		PTRACE(5, "Deleting Call" << m_call);
+		m_call->RemoveSocket();
+		CallTable::Instance()->RemoveCall(m_call);
+
+	}
+
 	if(NULL!=remote) {
 		CallSignalSocket *rem=dynamic_cast<CallSignalSocket *>(remote);
-		if(rem){
+		if(NULL!=rem){
 			rem->m_lock.Wait();
-			rem->remote->UnlockUse();
-			rem->remote=NULL;
+			PTRACE(5, "deleteing remote socket");
+			if(NULL!=rem->remote) {
+				rem->remote->UnlockUse("CallSignalSocket " + Name() + type);
+				rem->remote=NULL;
+			}
 			rem->m_lock.Signal();
 		}
  		remote->SetDeletable();
-		remote->UnlockUse();
+		remote->UnlockUse("CallSignalSocket " + Name() + type);
 		remote=NULL;
 	}
 	m_lock.Signal();
-
+	PTRACE(5, "Waiting for Condition to come true");
 	m_usedCondition.WaitCondition();
+
 	PTRACE(1,"Deleteing CallSignalSocket " << this);
-	if(callptr(NULL)!=m_call) {
-		m_call->SetSocket(NULL, NULL);
-		CallTable::Instance()->RemoveCall(m_call);
-	}
 
 	delete m_h245handler;
 	delete m_receivedQ931;
@@ -355,7 +363,7 @@ CallSignalSocket::~CallSignalSocket()
 		m_h245socket->EndSession();
 		m_h245socket->OnSignalingChannelClosed();
 		m_h245socket->SetDeletable();
-		m_h245socket->UnlockUse();
+		m_h245socket->UnlockUse("CallSignalSocket " + Name() + type);
 		m_h245socket=NULL;
 	}
 
@@ -407,18 +415,18 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 // }
 
 void
-CallSignalSocket::LockUse()
+CallSignalSocket::LockUse(const PString &name)
 {
 	PTRACE(5, "Locking " << this << " " << Name());
 	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Lock();
+	m_usedCondition.Lock(name);
 }
 
-void CallSignalSocket::UnlockUse()
+void CallSignalSocket::UnlockUse(const PString &name)
 {
 	PTRACE(5, "UnLocking " << this << " " << Name());
 //	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Unlock();
+	m_usedCondition.Unlock(name);
 }
 
 namespace { // end of anonymous namespace
@@ -475,10 +483,10 @@ void CallSignalSocket::DoRoutingDecision() {
 	}
 	if (H225_AdmissionRejectReason::e_incompleteAddress != rsn) {
 		PTRACE(1, "DoRoutingDecision() Error");
-		if(remote) {
+		if(NULL!=remote) {
 			remote->SetDeletable();
 			remote->CloseSocket();
-			remote->UnlockUse();
+			remote->UnlockUse("CallSignalSocket " + Name() + type);
 			remote=NULL;
 		}
 		SetDeletable();
@@ -518,7 +526,7 @@ void CallSignalSocket::BuildConnection() {
 	pdu->SetCalledPartyNumber(DialedDigits,plan,type);
 	m_SetupPDU=pdu;
 	remote=new CallSignalSocket(this, peerPort);
-	remote->LockUse();
+	remote->LockUse("CallSignalSocket " + Name() + type);
 }
 
 TCPProxySocket *CallSignalSocket::ConnectTo()
@@ -534,6 +542,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 	}
 	if(NULL==remote) {
 		SetDeletable();
+		m_call->RemoveSocket();
 		CallTable::Instance()->RemoveCall(m_call);
 		m_call=callptr(NULL);
 		return NULL;
@@ -552,12 +561,14 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 			PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
 			InternalEndSession();
 			remote->SetDeletable(); // do not delete.
-			remote->UnlockUse();
+			remote->UnlockUse("CallSignalSocket " + Name() + type);
 			remote=NULL;
+			m_call->RemoveSocket();
 			CallTable::Instance()->RemoveCall(m_call);
 			m_call=callptr(NULL);
 			MarkBlocked(false);
 			SetDeletable();
+			return NULL;
 		}
 	}
        	if (remote->IsConnected())
@@ -826,6 +837,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		case Q931::ReleaseCompleteMsg:
 			if (callptr(NULL)!=m_call) {
 				PTRACE(5, "Removing Call");
+				m_call->RemoveSocket();
 				CallTable::Instance()->RemoveCall(m_call);
 			}
 			return Closing;
@@ -845,7 +857,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 			SetDeletable();
  			if(NULL!=remote) {
 				remote->SetDeletable();
-				remote->UnlockUse();
+				remote->UnlockUse("CallSignalSocket " + Name() + type);
 				remote=NULL;
 			}
 			return Error;
@@ -905,7 +917,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			if (gkClient->CheckGKIP(fromIP)) {
 				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << Name() << ')');
 				m_call->Unlock();
-				m_call = callptr(0);  // reject it
+				m_call = callptr(NULL);  // reject it
 				return;
 			}
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, true);
@@ -953,6 +965,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 		}
 		if (!called && reason!=H225_AdmissionRejectReason::e_incompleteAddress) {
+			m_call->RemoveSocket();
 			CallTable::Instance()->RemoveCall(m_call);
 			m_call=callptr(NULL); // delete callrec
 
@@ -1023,6 +1036,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			m_call->GetCallingProfile().debugPrint();
 			PTRACE(1, "Removing unknown call");
 			m_call->GetCallingProfile().debugPrint();
+			m_call->RemoveSocket();
 			CallTable::Instance()->RemoveCall(m_call);
 			m_call=callptr(NULL);
 			return;
@@ -1040,7 +1054,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		H225_TransportAddress_ipAddress & cip = Setup.m_sourceCallSignalAddress;
 		localAddr = PIPSocket::Address(cip.m_ip[0], cip.m_ip[1], cip.m_ip[2], cip.m_ip[3]);
 		remote = new CallSignalSocket(this, peerPort);
-		remote->LockUse();
+		remote->LockUse("CallSignalSocket " + Name() + type);
 	} else { // Overlap Sending
 		// re-route called endpoint signalling messages to gatekeeper
 		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
@@ -1118,7 +1132,7 @@ void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 			SetDeletable();
 			if(NULL!=remote) {
 				remote->SetDeletable();
-				remote->UnlockUse();
+				remote->UnlockUse("CallSignalSocket " + Name() + type);
 				remote=NULL;
 			}
 			return;
@@ -1129,12 +1143,12 @@ void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 		m_numbercomplete = TRUE;
 		CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
 		if(NULL!=rem) {
-			rem->LockUse();
+			rem->LockUse("CallSignalSocket " + Name() + type);
 			rem->CgPNConversion();
 			PTRACE(5, "Setting DialedPN");
 			m_call->GetCalledProfile().SetDialedPN(rem->DialedDigits, static_cast<Q931::NumberingPlanCodes> (rem->m_calledPLAN),
 							       static_cast<Q931::TypeOfNumberCodes> (rem->m_calledTON));
-			rem->UnlockUse();
+			rem->UnlockUse("CallSignalSocket " + Name() + type);
 		}
 	}
 	HandleH245Address(Connect);
@@ -1295,7 +1309,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
                 return true;
 	CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote);
 	if (NULL==ret) {
-		ret->LockUse();
+		ret->LockUse("CallSignalSocket " + Name() + type);
 		m_h245handler->OnH245Address(h245addr);
 		if (m_h245socket) {
 			if (m_h245socket->IsConnected()) {
@@ -1309,7 +1323,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		}
 		m_h245socket = new H245Socket(this);
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);
-		ret->UnlockUse();
+		ret->UnlockUse("CallSignalSocket " + Name() + type);
 		m_h245socket->SetH245Address(h245addr, localAddr);
 		GetHandler()->ConnectTo(m_h245socket);
 	} else {
@@ -1358,12 +1372,15 @@ void CallSignalSocket::SendStatusEnquiryMessage() {
 			dynamic_cast<CallSignalSocket *> (remote)->InternalSendReleaseComplete(Q931::DestinationOutOfOrder);
 		if(callptr(NULL)!=m_call) {
 			m_call->GetCalledProfile().SetReleaseCause(Q931::DestinationOutOfOrder);
-			remote->SetDeletable();
-			remote->UnlockUse();
+			if(NULL!=remote) {
+				remote->SetDeletable();
+				remote->UnlockUse("CallSignalSocket " + Name() + type);
+			}
 			remote=NULL;
 		}
+		m_call->RemoveSocket();
 		CallTable::Instance()->RemoveCall(m_call);
-		//m_call=callptr(NULL);
+		m_call=callptr(NULL);
 		return;
 	}
 	m_StatusEnquiryTimer->Resume();
@@ -1384,16 +1401,20 @@ void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
 			PTRACE(5, "setting failure codes");
 		}
 		PTRACE(5, "removing Call");
+		m_call->RemoveSocket();
 		CallTable::Instance()->RemoveCall(m_call);
-		//m_call=callptr(NULL);
-		remote->SetDeletable();
-		remote->UnlockUse();
+		m_call=callptr(NULL);
+		if (NULL!=remote) {
+			remote->SetDeletable();
+			remote->UnlockUse("CallSignalSocket " + Name() + type);
+		}
 		remote=NULL;
 	}
 	if(!IsConnected()) {
 		dynamic_cast<CallSignalSocket *> (remote)->SendReleaseComplete();
+		m_call->RemoveSocket();
 		CallTable::Instance()->RemoveCall(m_call);
-		//m_call=callptr(NULL);
+		m_call=callptr(NULL);
 	}
 }
 

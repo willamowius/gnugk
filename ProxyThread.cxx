@@ -40,20 +40,25 @@ static const char vcHid[] = PROXYTHREAD_H;
 
 // ProxyCondMutex
 void
-ProxyCondMutex::Lock()
+ProxyCondMutex::Lock(const PString & name)
 {
 	Wait();
+	locker.AppendString(name);
 	access_count +=1;
-	PTRACE(5, "ProxyCondMutex: " << access_count);
+	PTRACE(5, "ProxyCondMutex: " << access_count << " from " << name );
 	Signal();
 }
 
 void
-ProxyCondMutex::Unlock()
+ProxyCondMutex::Unlock(const PString &name)
 {
 	Wait();
-	if(access_count >0)
+ 	if(access_count >0) {
+		PTRACE(5, "deleting Lock of:" << name << " with place " << locker.GetStringsIndex(name));
 		access_count -=1;
+		if (locker.GetStringsIndex(name)!=P_MAX_INDEX)
+			locker.RemoveAt(locker.GetStringsIndex(name));
+	}
 	PTRACE(5, "ProxyCondMutex: " << access_count);
 	Signal();
 }
@@ -62,6 +67,7 @@ BOOL
 ProxyCondMutex::Condition()
 {
 	PTRACE(5, "access_count is: " << access_count);
+	PTRACE(5, "locks of: " << locker);
 	return access_count==0;
 }
 
@@ -213,19 +219,19 @@ bool ProxySocket::SetMinBufSize(WORD len)
 // }
 
 void
-ProxySocket::LockUse()
+ProxySocket::LockUse(const PString &name)
 {
 	PTRACE(5, "Locking " << this << " " << Name());
 	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Lock();
+	m_usedCondition.Lock(name);
 }
 
 void
-ProxySocket::UnlockUse()
+ProxySocket::UnlockUse(const PString &name)
 {
 	PTRACE(5, "UnLocking " << this << " " << Name());
 	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Unlock();
+	m_usedCondition.Unlock(name);
 }
 
 const BOOL
@@ -373,18 +379,18 @@ bool TCPProxySocket::InternalWrite()
 // }
 
 void
-TCPProxySocket::LockUse()
+TCPProxySocket::LockUse(const PString & name)
 {
 	PTRACE(5, "Locking " << this << " " << Name());
 	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Lock();
+	m_usedCondition.Lock(name);
 }
 
-void TCPProxySocket::UnlockUse()
+void TCPProxySocket::UnlockUse(const PString &name)
 {
 	PTRACE(5, "UnLocking " << this << " " << Name());
 	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Unlock();
+	m_usedCondition.Unlock(name);
 }
 
 const BOOL

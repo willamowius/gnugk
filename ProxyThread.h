@@ -39,10 +39,11 @@ class ProxyCondMutex : public PCondMutex {
 public:
 	ProxyCondMutex() :  access_count(0) {};
 	virtual BOOL Condition();
-	virtual void Lock();
-	virtual void Unlock();
+	virtual void Lock(const PString &name);
+	virtual void Unlock(const PString &name);
 private:
 	PINDEX access_count;
+	PStringList locker;
 };
 
 
@@ -89,8 +90,8 @@ public:
 	// These two function are used to lock the existance of
 	// the Object as long as a pointer to it is active. The
 	// user has to Lock/Unlock the Object.
-	virtual void LockUse();
-	virtual void UnlockUse();
+	virtual void LockUse(const PString &name);
+	virtual void UnlockUse(const PString &name);
 	virtual const BOOL IsInUse();
 
 protected:
@@ -146,8 +147,8 @@ public:
 	// These two function are used to lock the existance of
 	// the Object as long as a pointer to it is active. The
 	// user has to Lock/Unlock the Object.
-	virtual void LockUse();
-	virtual void UnlockUse();
+	virtual void LockUse(const PString &name);
+	virtual void UnlockUse(const PString &name);
 	virtual const BOOL IsInUse();
 
 ////    PROTECTED

@@ -139,8 +139,8 @@ public:
 	virtual void SetConnected(bool c);
 //  	virtual void Lock();
 //  	virtual void Unlock();
-	virtual void LockUse();
-	virtual void UnlockUse();
+	virtual void LockUse(const PString &name);
+	virtual void UnlockUse(const PString &name);
 
 	bool HandleH245Mesg(PPER_Stream &);
 	void OnH245ChannelClosed() { PWaitAndSignal lock(m_lock); m_h245socket = 0; }

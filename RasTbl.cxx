@@ -1059,11 +1059,11 @@ CallRec::~CallRec()
  		PTRACE(3, cdrString);
 	}
 	if(NULL!=m_callingSocket) {
-		m_callingSocket->UnlockUse();
+		m_callingSocket->UnlockUse("CallRec");
 		m_callingSocket=NULL;
 	}
 	if(NULL!=m_calledSocket) {
-		m_calledSocket->UnlockUse();
+		m_calledSocket->UnlockUse("CallRec");
 		m_calledSocket=NULL;
 	}
 
@@ -1222,13 +1222,13 @@ void CallRec::InternalRemoveSocket()
 {
 	if (NULL!=m_callingSocket) {
 		m_callingSocket->SetDeletable();
-		m_callingSocket->UnlockUse();
+		m_callingSocket->UnlockUse("CallRec");
 		m_callingSocket = NULL;
 	}
 
 	if (NULL!=m_calledSocket) {
 		m_calledSocket->SetDeletable();
-		m_calledSocket->UnlockUse();
+		m_calledSocket->UnlockUse("CallRec");
 		m_calledSocket = NULL;
 	}
 }
@@ -1289,13 +1289,13 @@ void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if(NULL!=calling)
-		calling->LockUse();
+		calling->LockUse("CallRec");
 	if(NULL!=m_callingSocket)
-		m_callingSocket->UnlockUse();
+		m_callingSocket->UnlockUse("CallRec");
 	if(NULL!=called)
-		calling->LockUse();
+		calling->LockUse("CallRec");
 	if(NULL!=m_calledSocket)
-		m_calledSocket->UnlockUse();
+		m_calledSocket->UnlockUse("CallRec");
 	m_callingSocket = calling, m_calledSocket = called;
 }
 
