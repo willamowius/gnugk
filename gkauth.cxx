@@ -438,7 +438,7 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 	return false;
 }
 
-PString SimplePasswordAuth::GetPassword(PString & tokenAlias, const H225_ArrayOf_AliasAddress & moreAliases, BOOL checkTokenAlias = TRUE)
+PString SimplePasswordAuth::GetPassword(PString & tokenAlias, const H225_ArrayOf_AliasAddress & moreAliases, BOOL checkTokenAlias)
 {
 	PString passwd = "";
 	bool found;
