@@ -211,14 +211,19 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 		}
 		// now the rules are ascendantly sorted by the keys
 		if ((m_size = rules.size()) > 0) {
-			m_RewriteKey = new PString[m_size * 2];
+			// replace array constructor with explicit memory allocation
+			// and in-place new operators - workaround for VC compiler
+//			m_RewriteKey = new PString[m_size * 2];
+			m_RewriteKey = (PString*)(new BYTE[sizeof(PString) * m_size * 2]);
 			m_RewriteValue = m_RewriteKey + m_size;
 			m_RewriteValues = new PStringArray[m_size];
 			std::map<PString, PString>::iterator iter = rules.begin();
 			// reverse the order
 			for (int i = m_size; i-- > 0 ; ++iter) {
-				m_RewriteKey[i] = iter->first;
-				m_RewriteValue[i] = iter->second;
+//				m_RewriteKey[i] = iter->first;
+				new(m_RewriteKey + i) PString(iter->first);
+//				m_RewriteValue[i] = iter->second;
+				new(m_RewriteValue + i) PString(iter->second);
 				m_RewriteValues[i] = iter->second.Tokenise(",:;&|\t ", false);;
 			}
 		}
@@ -227,7 +232,11 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 
 Toolkit::RewriteData::~RewriteData()
 {
-	delete [] m_RewriteKey;
+//	delete [] m_RewriteKey;
+	if (m_RewriteKey)
+		for (int i = 0; i < m_size * 2; i++)
+			(m_RewriteKey+i)->~PString();
+	delete[] ((BYTE*)m_RewriteKey);
 	delete [] m_RewriteValues;
 }
 

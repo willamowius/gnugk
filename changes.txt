@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (Toolkit.cxx) use in-place constructors and destructors inside RewriteData
+  to prevent Windows exceptions on rewrite rules reload in debug mode
 - removed duplicated build timestamp from 'version' command output.
   Added special file versionts.h to ensure version.cxx is rebuilt each
   time GnuGk is recompiled, in order to get proper build timestamp
