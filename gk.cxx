@@ -192,10 +192,48 @@ void ReloadHandler()
 
 BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 {
-	PTRACE(1, "GK\tGatekeeper shutdown");
+	PString eventName = "CTRL_UNKNOWN_EVENT";
+	
+	if( dwCtrlType == CTRL_LOGOFF_EVENT ) {
+		eventName = "CTRL_LOGOFF_EVENT";
+#if PTRACING
+		PTRACE(2,"GK\tGatekeeper received " <<eventName);
+#endif
+		// prevent shut down
+		return FALSE;
+	}
+	
+	if( dwCtrlType == CTRL_C_EVENT )
+		eventName = "CTRL_C_EVENT";
+	else if( dwCtrlType == CTRL_BREAK_EVENT )
+		eventName = "CTRL_BREAK_EVENT";
+	else if( dwCtrlType == CTRL_CLOSE_EVENT )
+		eventName = "CTRL_CLOSE_EVENT";
+	else if( dwCtrlType == CTRL_SHUTDOWN_EVENT )
+		eventName = "CTRL_SHUTDOWN_EVENT";
+
+#if PTRACING
+	PTRACE(1,"GK\tGatekeeper shutdown due to "<<eventName);
+#endif
+
 	PWaitAndSignal shutdown(ShutdownMutex);
 	RasServer::Instance()->Stop();
-	return true;
+
+	// CTRL_CLOSE_EVENT:
+	// this case needs special treatment as Windows would
+	// immidiately call ExitProcess() upon returning TRUE,
+	// and the GK has no chance to clean-up. The call to
+	// WaitForSingleObject() results in around 5 sec's of
+	// clean-up time - This may at times not be sufficient
+	// for the GK to shut down in an organized fashion. The
+	// only safe way to handle this, is to remove the
+	// 'Close' menu item from the System menu and we will 
+	// never have to deal with this event again.
+	if( dwCtrlType == CTRL_CLOSE_EVENT )
+		WaitForSingleObject(GetCurrentProcess(), 15000);
+
+	// proceed with shut down
+	return TRUE;
 }
 
 bool Gatekeeper::SetUserAndGroup(const PString &username)
@@ -478,14 +516,29 @@ void Gatekeeper::Main()
 	else
 		RasSrv->SetRoutedMode();
 
+#if defined(WIN32)
+	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT 
+	//    dialog box from being displayed. 
+	// 2) set process shutdown priority - we want as much time as possible
+	//    for tasks, such as unregistering endpoints during the shut down process.
+	//    0x3ff is a maximimum permitted for windows app
+	SetProcessShutdownParameters(0x3ff, SHUTDOWN_NORETRY);
+#endif
+
 	// let's go
 	RasSrv->Run();
 
 	//HouseKeeping();
 
 	// graceful shutdown
-	cerr << "\nShutting down gatekeeper";
+	cerr << "\nShutting down gatekeeper . . . ";
 	ShutdownHandler();
 	cerr << "done\n";
+
+#ifdef WIN32
+	// remove control handler/close console
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)WinCtrlHandlerProc, FALSE);
+	FreeConsole();
+#endif // WIN32
 }
 
