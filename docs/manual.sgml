@@ -646,7 +646,7 @@ Order of compiling:
 On Unix do a <tt/configure/ and <tt/make debug/ or <tt/make opt/
 in the gatekeeper directory to build debug or release version, respectively.
 Use <tt/make both/ to build both versions.
-Note you have to use GCC 2.95.2 or later. The older version may not work.
+Note you have to use GCC 3.3.x or later. The older version may not work.
 Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/
 in the gatekeeper directory before starting actual compilation (make debug or
 make opt) - these commands build approtiate dependency lists, so after
