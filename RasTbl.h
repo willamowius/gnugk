@@ -95,6 +95,9 @@ public:
 		{ return m_terminalAliases; }
 	const H225_EndpointType & GetEndpointType() const
 		{ return *m_terminalType; }
+
+	const PIPSocket::Address GetAddress() const;
+
 	int GetTimeToLive() const
 		{ return m_timeToLive; }
 	PIPSocket::Address GetNATIP() const
@@ -276,8 +279,10 @@ public:
 	endptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindOZEPByName(const PString & endpointId) const ;
+	endptr FindOZEPByAdr(const PIPSocket::Address &addr) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool SearchOuterZone = true);
+
 
 	void ClearTable();
 	void CheckEndpoints();

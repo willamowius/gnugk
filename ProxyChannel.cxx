@@ -316,6 +316,10 @@ const endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 			return RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier));
 
 	}
+	PIPSocket::Address peeraddr;
+	GetPeerAddress(peeraddr);
+	if (endptr(NULL) != RegistrationTable::Instance()->FindOZEPByAdr(peeraddr))
+		return RegistrationTable::Instance()->FindOZEPByAdr(peeraddr);
 	PTRACE(1, "No endpoint found");
 	return endptr(NULL);
 }
