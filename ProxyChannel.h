@@ -143,6 +143,7 @@ public:
 	void OnH245ChannelClosed() { m_h245socket = 0; }
 	void SetPeerAddress(const Address &, WORD);
 	void BuildFacilityPDU(Q931 &, int, const PObject * = 0);
+	void RemoveCall();
 
 	// override from class ServerSocket
 	virtual void Dispatch();

@@ -661,6 +661,12 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
 
 } // end of anonymous namespace
 
+void CallSignalSocket::RemoveCall()
+{
+	if (m_call)
+		CallTable::Instance()->RemoveCall(m_call);
+}
+
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
 
@@ -2117,11 +2123,20 @@ void H245Socket::ConnectTo()
 		}
 	}
 	// establish H.245 channel failed, disconnect the call
-	if (sigSocket)
-		sigSocket->EndSession();
+	if (sigSocket) {
+		sigSocket->SetConnected(false);
+		sigSocket->RemoveCall();
+		if (!sigSocket->IsBlocked())
+		    sigSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+		sigSocket->CloseSocket();
+	}
 	if (H245Socket *ret = static_cast<H245Socket *>(remote))
-		if (ret->sigSocket)
-			ret->sigSocket->EndSession();
+		if (ret->sigSocket) {
+			if (ret->sigSocket->IsConnected() && !ret->sigSocket->IsBlocked())
+				ret->sigSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+			ret->sigSocket->SetConnected(false);
+			ret->sigSocket->CloseSocket();
+		}
 	GetHandler()->Insert(this, remote);
 }
 
