@@ -467,7 +467,7 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 		} // attr
   		PString out="AV=";
   		for (std::map<PString,PStringList>::iterator Iter=AV.begin();Iter!=AV.end(); Iter++)
-  			out += (*Iter).first + ":" + (*Iter).second[0];
+  			out += (*Iter).first + ":" + (*Iter).second[0] + " ";
   		PTRACE(1, out);
 		if(!AV.empty())
 			result->LDAPec.insert(LDAPECValuePair(dn,AV));
