@@ -249,21 +249,6 @@ LDLIBS  += -l$(H323_LIB)
 ###
 include $(PWLIBDIR)/make/ptlib.mak
 
-# correcting some weird unix.mak settings
-ifneq (,$(findstring i686,$(shell uname -m)))
-  STDCCFLAGS += -march=i686 -pipe
-endif
-ifneq (,$(findstring sun4u,$(shell uname -m)))
-  STDCCFLAGS += -pipe
-  ifeq (,$(findstring 0,$(shell sysdef | grep v9 | wc)))
-    STDCCFLAGS += -mcpu=v9
-  endif
-  ifeq (,$(findstring 0,$(shell sysdef | grep v8 | wc)))
-    STDCCFLAGS += -mcpu=v8
-  endif
-endif
-
-
 ifdef HAS_LEVEL_TWO_LDAPAPI
   TARGET_LIBS += $(LDAP_LIB)
   $(LDAP_LIB):
@@ -321,25 +306,6 @@ gktimestamp.c ldaplibtimestamp.c:
 #
 $(TARGET): gktimestamp.c
 $(LDAP_LIB): ldaplibtimestamp.c
-RasSrv.o: RasSrv.cxx
-RasSrv.o: RasSrv.h
-RasSrv.o: RasTbl.h
-RasTbl.o: RasTbl.h
-RasTbl.o: RasTbl.cxx
-SignalChannel.o: SignalChannel.h
-SignalConnection.o: SignalConnection.h
-CallTbl.o: CallTbl.h
-BroadcastListen.o: BroadcastListen.h
-
-#
-# FIXME: probably needed!
-#
-OverlapSendingCallSignalSocket.o:  RasTbl.h
-ProxyChannel.o: RasTbl.h
-SignalConnection.o: RasTbl.h
-SoftPBX.o: RasTbl.h
-gkDestAnalysis.o: RasTbl.h
-gkauth.o: RasTbl.h
 
 #
 # This models the dependencies between the GK and its
