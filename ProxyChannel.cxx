@@ -1089,7 +1089,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 					}
 				}
 			}
-		} else {
+		}
+		if (!destFound) {
 			// for compatible to old version
 			if (!(useParent || RasSrv->AcceptUnregisteredCalls(fromIP))) {
 				PTRACE(3, "Q931\tReject unregistered call " << callid);
@@ -1105,12 +1106,10 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 				calledAddr = *dest;
 				if (!useParent)
 					useParent = request.GetFlags() & Routing::SetupRequest::e_toParent;
+			} else {
+				PTRACE(3, "Q931\tNo destination for unregistered call " << callid);
+				return false;
 			}
-		}
-
-		if (!destFound) {
-			PTRACE(3, "Q931\tNo destination for unregistered call " << callid);
-			return false;
 		}
 
 		// TODO: check the Setup_UUIE by gkauth modules
