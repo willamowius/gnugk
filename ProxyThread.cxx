@@ -18,7 +18,7 @@
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4355 ) // warning about using 'this' in initializer
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 )
+#pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
 #include <algorithm>
@@ -61,7 +61,7 @@ inline TPKTV3::TPKTV3(WORD len)
 	length = PIPSocket::Host2Net(WORD(len + sizeof(TPKTV3)));
 }
 
-
+// class ProxySocket
 ProxySocket::ProxySocket(PIPSocket *s, const char *t) : self(s), type(t)
 {
 	maxbufsize = 1024;
@@ -111,7 +111,9 @@ bool ProxySocket::Flush()
 		PTRACE(6, Name() << " Error: nothing to flush");
 		return false;
 	}
+//PTRACE(5, wsocket->Name() << " Write " << buflen << " bytes");
 	if (wsocket->Write(bufptr, buflen)) {
+//PTRACE(5, wsocket->Name() << " Write ok");
 		InternalCleanup();
 		return true;
 	}
@@ -160,7 +162,6 @@ bool ProxySocket::SetMinBufSize(WORD len)
 TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
 	: PTCPSocket(p), ProxySocket(this, t), remote(s)
 {
-	SetReadTimeout(PTimeInterval(1000));
 	SetWriteTimeout(PTimeInterval(100));
 }
 
@@ -198,8 +199,6 @@ bool TCPProxySocket::ForwardData()
 
 bool TCPProxySocket::TransmitData()
 {
-	PTRACE(2, "TransmitData(): " << *this);
-
 	if (buffer.GetSize() == 0)
 		return false;
 	if (!wsocket) {
@@ -221,10 +220,10 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 	return result;
 }
 
-BOOL TCPProxySocket::Connect(const Address & addr)
+BOOL TCPProxySocket::Connect(WORD localPort, const Address & addr)
 {
 	SetReadTimeout(PTimeInterval(6000)); // TODO: read from config...
-	BOOL result = PTCPSocket::Connect(addr);
+	BOOL result = PTCPSocket::Connect(localPort, addr);
 	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,
 	// we save it for reference
@@ -315,10 +314,8 @@ ProxyConnectThread::ProxyConnectThread(ProxyHandleThread *h)
 bool ProxyConnectThread::Connect(ProxySocket *socket)
 {
 	if (!available) {
-		PTRACE(1, "Socket not available");
 		return false;
 	}
-	PTRACE(1,"ProxyConnectThread::Connect(): " << socket);
 	available = false;
 
 	socket->MarkBlocked(true);
@@ -333,8 +330,10 @@ void ProxyConnectThread::Exec()
 		return;
 
 	TCPProxySocket *socket = dynamic_cast<TCPProxySocket *>(calling);
+	PTRACE(5, "got socket: " << socket->Name());
 	TCPProxySocket *remote = socket->ConnectTo();
-	if (remote) {
+	PTRACE(5, "remote socket: " << socket->Name());
+		if (remote) {
 		handler->Insert(remote);
 		socket->MarkBlocked(false);
 	}
@@ -359,9 +358,7 @@ ProxyListener::~ProxyListener()
 bool ProxyListener::Open(unsigned queueSize)
 {
 	m_listener = new PTCPSocket(m_port);
-	isOpen = (m_interface == INADDR_ANY) ?
-		  m_listener->Listen(queueSize, m_port, PSocket::CanReuseAddress) :
-		  m_listener->Listen(m_interface, queueSize, m_port, PSocket::CanReuseAddress);
+	isOpen = m_listener->Listen(m_interface, queueSize, m_port, PSocket::CanReuseAddress);
 	m_port = m_listener->GetPort(); // get the listen port
 	if (isOpen) {
 		PTRACE(2, "ProxyL\tListen to " << m_interface << ':' << m_port);
@@ -427,6 +424,11 @@ void ProxyHandleThread::Insert(ProxySocket *socket)
 {
 	socket->SetHandler(this);
 	mutex.StartWrite();
+	iterator j=sockList.begin(), k=sockList.end();
+	while (j!=k) {
+		PAssert (*j!=socket, "Boom, socket doubled in sockList");
+		j++;
+	}
 	sockList.push_back(socket);
 	mutex.EndWrite();
 	Go();
@@ -459,9 +461,15 @@ void ProxyHandleThread::FlushSockets()
 	}
 }
 
+void ProxyHandleThread::RemoveSockets()
+{
+	std::for_each(removedList.begin(), removedList.end(), delete_socket);
+	removedList.clear();
+}
+
 void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 {
-	mutex.StartWrite();
+	WriteLock lock(mutex);
 	iterator i = sockList.begin(), j = sockList.end();
 	while (i != j) {
 		iterator k=i++;
@@ -482,17 +490,18 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 #endif
 		}
 	}
-	mutex.EndWrite();
 }
 
 void ProxyHandleThread::Exec()
 {
+	ReadLock cfglock(ConfigReloadMutex);
 	PSocket::SelectList sList;
 	while (true) {
 		FlushSockets();
 		BuildSelectList(sList);
 		if (!sList.IsEmpty())
 			break;
+		RemoveSockets();
 		PTRACE(5, id << " waiting...");
 		if (!Wait())
 			return;
@@ -501,9 +510,13 @@ void ProxyHandleThread::Exec()
 #ifdef PTRACING
 	PINDEX ss = sList.GetSize();
 #endif
+	ConfigReloadMutex.EndRead();
 	PSocket::Select(sList, PTimeInterval(100));
-        if (sList.IsEmpty())
+	ConfigReloadMutex.StartRead();
+        if (sList.IsEmpty()) {
+		RemoveSockets();
 		return;
+	}
 
 #ifdef PTRACING
 	PString msg(PString::Printf, " %u sockets selected from %u, total %u", sList.GetSize(), ss, sockList.size());
@@ -523,7 +536,7 @@ void ProxyHandleThread::Exec()
 				break;
 			case ProxySocket::Forwarding:
 				if (!socket->ForwardData()) {
-					PTRACE(2, "Proxy\t" << socket->Name() << " forward blocked");
+					PTRACE(3, "Proxy\t" << socket->Name() << " forward blocked");
 				}
 				break;
 			case ProxySocket::Closing:
@@ -536,8 +549,7 @@ void ProxyHandleThread::Exec()
 				break;
 		}
 	}
-	std::for_each(removedList.begin(), removedList.end(), delete_socket);
-	removedList.clear();
+	RemoveSockets();
 }
 
 ProxyConnectThread *ProxyHandleThread::FindConnectThread()
@@ -560,6 +572,13 @@ ProxyConnectThread *ProxyHandleThread::FindConnectThread()
 
 void ProxyHandleThread::ConnectTo(ProxySocket *socket)
 {
+	iterator j = removedList.begin(), k = removedList.end();
+	while(j != k) {
+		if(*j == socket)
+			PAssertAlways("Booom, duplicate socket");
+		j++;
+	}
+
 	FindConnectThread()->Connect(socket);
 }
 
@@ -587,6 +606,20 @@ bool ProxyHandleThread::CloseUnusedThreads()
 	return true; // useless, workaround for VC
 }
 
+void ProxyHandleThread::Remove(iterator i)
+{
+	PWaitAndSignal lock(removedMutex);
+	PTRACE(5, "Removing: " << *i << " : " << (*i)->Name());
+	iterator j = removedList.begin(), k = removedList.end();
+	while(j != k) {
+
+		if(*j == *i)
+			PAssertAlways("Booom, removing duplicate socket");
+		j++;
+	}
+	removedList.push_back(*i);
+	sockList.erase(i);
+}
 
 HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)
 {

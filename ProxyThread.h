@@ -18,6 +18,7 @@
 #ifndef __proxythread_h__
 #define __proxythread_h__
 
+#include "rwlock.h"
 #include <list>
 #include <vector>
 #include <ptlib.h>
@@ -53,7 +54,7 @@ public:
 	virtual bool EndSession();
 
 	bool IsSocketOpen() const { return self->IsOpen(); }
-	bool CloseSocket() { return self->Close(); }
+	bool CloseSocket() { return IsSocketOpen() ? self->Close() : false; }
 
 	bool Flush();
 	bool CanFlush() const;
@@ -102,17 +103,18 @@ public:
 
 	// override from class PTCPSocket
 	virtual BOOL Accept(PSocket &);
-	virtual BOOL Connect(const Address &);
+	virtual BOOL Connect(WORD, const Address &);
 //	BOOL WriteAsync( const void * buf, PINDEX len );
 //	void OnWriteComplete( const void * buf, PINDEX len );
 
 	// new virtual function
 	virtual TCPProxySocket *ConnectTo() = 0;
+////    PROTECTED
+	TCPProxySocket *remote;
 
 protected:
 	bool ReadTPKT();
 
-	TCPProxySocket *remote;
 	PBYTEArray buffer;
 
 private:
@@ -192,6 +194,7 @@ public:
 
 private:
 	void FlushSockets();
+	void RemoveSockets();
 	void BuildSelectList(PSocket::SelectList &);
 	ProxyConnectThread *FindConnectThread();
 
@@ -204,7 +207,7 @@ private:
 	ProxyHandleThread *lcHandler;
 	PString id;
 
-	static void delete_socket(ProxySocket *s) { delete s; }
+	static void delete_socket(ProxySocket *s) { PTRACE(5, "deleteSocket: " << s->Name()); delete s; }
 };
 
 class HandlerList {
@@ -257,6 +260,7 @@ inline void ProxySocket::SetName(PIPSocket::Address ip, WORD pt)
 
 inline bool MyPThread::Wait()
 {
+	ReadUnlock unlock(ConfigReloadMutex);
 	sync.Wait();
 	return isOpen;
 }
@@ -267,20 +271,12 @@ inline void MyPThread::Go()
 		sync.Signal();
 }
 
-inline void ProxyHandleThread::Remove(iterator i)
-{
-	removedList.push_back(*i);
-	removedMutex.Wait();
-	sockList.erase(i);
-	removedMutex.Signal();
-}
-
 inline void ProxyHandleThread::Remove(ProxySocket *socket)
 {
+	PWaitAndSignal lock(removedMutex);
+	PTRACE(5, "Removing: " << socket << " : " << socket->Name());
 	removedList.push_back(socket);
-	removedMutex.Wait();
 	sockList.remove(socket);
-	removedMutex.Signal();
 }
 
 #ifdef WIN32
