@@ -332,7 +332,7 @@ void RasMsg::Exec()
 
 bool RasMsg::IsFrom(const PIPSocket::Address & addr, WORD pt) const
 {
-	return (addr == m_msg->m_peerAddr) && (pt == m_msg->m_peerPort);
+	return (addr == m_msg->m_peerAddr) && (pt == 0 || pt == m_msg->m_peerPort);
 }
 
 void RasMsg::GetRecvAddress(PIPSocket::Address & addr, WORD & pt) const
