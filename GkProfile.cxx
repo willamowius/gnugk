@@ -20,7 +20,7 @@
 // the std. version/revision control tools like RCS/CVS ident cmd. At
 // least the strings cmd will extract this info.
 static const char gkid[] = GKGVS;
-static const char vcid[] = "@(#) $Id$";
+static const char vcid[] = "@(#) $Id";
 static const char vcHid[] = GKPROFILE_H;
 #endif /* lint */
 
@@ -206,7 +206,7 @@ void
 CallProfile::SetH323ID(PString &h323id)
 {
 	PWaitAndSignal lock(m_lock);
-	m_h323id = h323id;
+	m_h323id = *(dynamic_cast<PString *> (h323id.Clone()));;
 }
 
 void
@@ -241,14 +241,14 @@ void
 CallProfile::SetSubscriberNumber(PString &SN)
 {
 	PWaitAndSignal lock(m_lock);
-	m_subscriberNumber = SN;
+	m_subscriberNumber = *(dynamic_cast<PString *> (SN.Clone()));
 }
 
 void
 CallProfile::SetClir(PString &clir)
 {
 	PWaitAndSignal lock(m_lock);
-	m_clir = clir;
+	m_clir = *(dynamic_cast<PString *> (clir.Clone()));;
 }
 
 void
@@ -354,6 +354,8 @@ CallProfile::SetStatusEnquiryInterval(int timeout)
 { // Timeout in seconds
 	PWaitAndSignal lock(m_lock);
 	m_StatusEnquiryInterval = PTimeInterval(0,timeout);
+	if(timeout<4)
+		m_StatusEnquiryInterval = PTimeInterval(0);
 }
 void
 CallProfile::SetCallTimeout(long int timeout)
