@@ -2,8 +2,8 @@ Storage
 {
 	{ Format 1.31 }
 	{ GeneratedFrom TGD-version-2.01 }
-	{ WrittenBy nilsb }
-	{ WrittenOn "Tue Jan 15 15:43:48 2002" }
+	{ WrittenBy storm }
+	{ WrittenOn "Tue May 14 10:09:04 2002" }
 }
 
 Document 
@@ -41,7 +41,7 @@ Comment 1
 
 GenericNode 2
 {
-	{ Name "inc match" }
+	{ Name "inac match" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -57,7 +57,7 @@ GenericNode 3
 
 GenericNode 13
 {
-	{ Name "ARJ\rincomplete Address" }
+	{ Name "ARJ\rincompleteAddress" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -73,7 +73,7 @@ GenericNode 14
 
 GenericNode 15
 {
-	{ Name "cut off nac \radd county code\rof CgPN" }
+	{ Name "cut off nac \radd country code\rof CgPN" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -81,7 +81,7 @@ GenericNode 15
 
 GenericNode 16
 {
-	{ Name "ARJ\rincomplete Address" }
+	{ Name "ARJ\rincompleteAddress" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -97,7 +97,7 @@ GenericNode 17
 
 GenericNode 18
 {
-	{ Name "cut off lac \radd county code\rand area code\rof CgPN" }
+	{ Name "cut off lac \radd country code\rand area code\rof CgPN" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -105,7 +105,7 @@ GenericNode 18
 
 GenericNode 19
 {
-	{ Name "ARJ\rincomplete Address" }
+	{ Name "ARJ\rincompleteAddress" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -113,7 +113,7 @@ GenericNode 19
 
 GenericNode 20
 {
-	{ Name "add county code,\r area code and\rsubscriberNumber\rof CgPN" }
+	{ Name "add country code,\r area code and\rsubscriberNumber\rof CgPN" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -167,7 +167,7 @@ GenericEdge 23
 
 GenericEdge 24
 {
-	{ Name "full match \r(i.e. nac is \rcomlete prefix\rof CdPN)" }
+	{ Name "full match" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Subject1 14 }
@@ -176,7 +176,7 @@ GenericEdge 24
 
 GenericEdge 25
 {
-	{ Name "partial match \r(i.e. CdPN is shorter\rthan nac and is part \rof nac)" }
+	{ Name "partial match" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Subject1 14 }
@@ -194,7 +194,7 @@ GenericEdge 26
 
 GenericEdge 27
 {
-	{ Name "full match \r(see above)" }
+	{ Name "full match" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Subject1 17 }
@@ -203,7 +203,7 @@ GenericEdge 27
 
 GenericEdge 28
 {
-	{ Name "partial match \r(see above)" }
+	{ Name "partial match" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Subject1 17 }
@@ -268,7 +268,7 @@ TextBox 8
 	{ View 7 }
 	{ Subject 1 }
 	{ Position 280 40 }
-	{ Size 177 33 }
+	{ Size 175 33 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -476,7 +476,7 @@ Line 39
 	{ Points 2 }
 	{ Point 329 260 }
 	{ Point 431 260 }
-	{ NamePosition 376 229 }
+	{ NamePosition 376 241 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -517,7 +517,7 @@ Line 41
 	{ Points 2 }
 	{ Point 231 260 }
 	{ Point 113 260 }
-	{ NamePosition 172 230 }
+	{ NamePosition 177 244 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
