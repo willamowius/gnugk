@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/09/24 00:22:03  zvision
+ * Removed time_t RadAttr constructors
+ *
  * Revision 1.4  2003/09/12 16:31:16  zvision
  * Accounting initially added to the 2.2 branch
  *
@@ -1955,6 +1958,8 @@ BOOL RadiusClient::GetSocket( RadiusSocket*& socket, unsigned char& id )
 	PINDEX i;
 	PINDEX emptySocketIndex = P_MAX_INDEX;
 	
+	// query active radius client sockets for a next available
+	// request id and/or find first empty (NULL) socket slot
 	for( i = 0; i < activeSockets.GetSize(); i++ )
 		if( activeSockets.GetAt(i) ) {
 			const PINDEX _id = activeSockets.GetAt(i)->GenerateNewId();
@@ -1968,9 +1973,9 @@ BOOL RadiusClient::GetSocket( RadiusSocket*& socket, unsigned char& id )
 		} else
 			emptySocketIndex = i;
 			
+	// delete inactive sockets (if any)
 	const PTime now;
-		
-	int j = 0;
+	PINDEX j = 0;
 	while( j < activeSockets.GetSize() ) {
 		if( j == i ) {
 			j++;
@@ -1993,25 +1998,29 @@ BOOL RadiusClient::GetSocket( RadiusSocket*& socket, unsigned char& id )
 		j++;
 	}
 
+	// if the socket with the available request id has been found
+	// we are done
 	if( s != NULL ) {
 		socket = s;
 		return TRUE;	
 	}
 
+	// allocate the new radius client socket
 	PRandom random;
 	PINDEX randCount = (unsigned)(portMax-portBase+1) / 3;
 	
-	do {
-		PINDEX portIndex = random % (unsigned)(portMax-portBase+1);
+	if( randCount > 0 )
+		do {
+			PINDEX portIndex = random % (unsigned)(portMax-portBase+1);
 
-		delete s;
-		s = NULL;
+			delete s;
+			s = NULL;
 
-		if( localAddress == INADDR_ANY )
-			s = CreateSocket( portBase + portIndex );
-		else
-			s = CreateSocket( localAddress, portBase + portIndex );
-	} while( ((s == NULL) || (!s->IsOpen())) && (--randCount) );
+			if( localAddress == INADDR_ANY )
+				s = CreateSocket( portBase + portIndex );
+			else
+				s = CreateSocket( localAddress, portBase + portIndex );
+		} while( ((s == NULL) || (!s->IsOpen())) && (--randCount) );
 
 	if( (s == NULL) || (!s->IsOpen()) )
 		for( WORD p = portBase; p < portMax; p++ ) {
@@ -2046,9 +2055,13 @@ BOOL RadiusClient::GetSocket( RadiusSocket*& socket, unsigned char& id )
 	else
 		activeSockets.SetAt(activeSockets.GetSize(),s);
 	
+	i = s->GenerateNewId();
+	if( i == P_MAX_INDEX )
+		return FALSE;
+		
 	socket = s;
-	id = s->GenerateNewId();
-	return (id != P_MAX_INDEX);
+	id = i;
+	return TRUE;
 }
 
 void RadiusClient::SetSocketDeleteTimeout(
