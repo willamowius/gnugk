@@ -891,6 +891,11 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 	bool hasStandardParam;
 	PASN_Sequence *sobj;
 	unsigned tag;
+	H225_RequestSeqNum oldReqNum, *reqNum;
+
+	// ATS 2004-01-16 Forward messages to alternates using our own sequence numbers
+	// instead of using those supplied by the originator of the message, this will 
+	// result in clashes in RasMSG::EqualTo() by the receiver of this message
 
 	switch (msg.GetTag())
 	{
@@ -900,10 +905,11 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			nonStandardParam = &o.m_nonStandardData;
 			sobj = &o;
 			
-			// Forward messages to alternates using new sequence numbers
-			// instead of using those supplied by the originator of the 
-			// message, this will result in duplicate <RAS> message errors
-			// at the receiver of this message
+			// Get a pointer to the current sequence number
+			reqNum = &o.m_requestSeqNum;
+			// Make a copy of the old sequence number
+			oldReqNum = *reqNum;
+			// Set a new value in the sequence number
 			o.m_requestSeqNum = GetRequestSeqNum();
 
 			break;
@@ -915,6 +921,10 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			sobj = &o;
 			if (o.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier))
 				nonStandardParam->m_data = o.m_endpointIdentifier;
+
+			reqNum = &o.m_requestSeqNum;
+			oldReqNum = *reqNum;
+
 			o.m_requestSeqNum = GetRequestSeqNum();
 			break;
 		}
@@ -923,6 +933,10 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			H225_UnregistrationRequest & o = msg;
 			nonStandardParam = &o.m_nonStandardData;
 			sobj = &o;
+
+			reqNum = &o.m_requestSeqNum;
+			oldReqNum = *reqNum;
+
 			o.m_requestSeqNum = GetRequestSeqNum();
 			break;
 		}
@@ -949,11 +963,15 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 		SendRas(msg, altGKsAddr[i], altGKsPort[i]);
 	}
 
-	// restore the old field
+	// restore the old nonstandard field
 	if (hasStandardParam)
 		*nonStandardParam = oldParam;
 	else
 		sobj->RemoveOptionalField(tag);
+
+	// restore the old sequence number
+	// using the pointer and the old value.
+	*reqNum = oldReqNum;
 }
 
 PString RasServer::GetParent() const
