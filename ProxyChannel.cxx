@@ -2725,10 +2725,11 @@ void ProxyHandler::FlushSockets()
 void ProxyHandler::Remove(iterator i)
 {
 	// assume the list is locked for writing
+	IPSocket *socket = *i;
 	m_sockets.erase(i);
 	--m_socksize;
 	PWaitAndSignal lock(m_rmutex);
-	m_removed.push_back(*i);
+	m_removed.push_back(socket);
 	m_removedTime.push_back(new PTime);
 	++m_rmsize;
 }
