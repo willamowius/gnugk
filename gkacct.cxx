@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.24  2005/01/16 22:37:15  zvision
+ * Redundant config reload mutex removed
+ *
  * Revision 1.23  2005/01/12 18:01:34  willamowius
  * small cleanup
  *
@@ -183,7 +186,7 @@ GkAcctLogger::Status GkAcctLogger::Log(
 
 void GkAcctLogger::SetupAcctParams(
 	/// CDR parameters (name => value) associations
-	map<PString, PString>& params,
+	std::map<PString, PString>& params,
 	/// call (if any) associated with an accounting event being logged
 	const callptr& call,
 	/// timestamp formatting string
@@ -245,7 +248,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 	/// parametrized CDR string
 	const PString& cdrStr,
 	/// parameter values
-	const map<PString, PString>& params
+	const std::map<PString, PString>& params
 	) const
 {
 	PString finalCDR((const char*)cdrStr);
@@ -266,7 +269,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 			const PINDEX closingBrace = finalCDR.Find('}', ++pos);
 			if (closingBrace != P_MAX_INDEX) {
 				const PINDEX paramLen = closingBrace - pos;
-				map<PString, PString>::const_iterator i = params.find(
+				std::map<PString, PString>::const_iterator i = params.find(
 					finalCDR.Mid(pos, paramLen)
 					);
 				if (i != params.end()) {
@@ -282,7 +285,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 				}
 			}
 		} else { // simple syntax (%c)
-			map<PString, PString>::const_iterator i = params.find(c);
+			std::map<PString, PString>::const_iterator i = params.find(c);
 			if (i != params.end()) {
 				const PINDEX escapedLen = EscapeAcctParam(i->second).GetLength();
 				finalCDR.Splice(EscapeAcctParam(i->second), pos - 1, 2);
@@ -670,7 +673,7 @@ void FileAcct::GetRotateInterval(
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
 			m_rotateDay = s.AsInteger();
 		} else {
-			map<PCaselessString, int> dayNames;
+			std::map<PCaselessString, int> dayNames;
 			dayNames["sun"] = 0; dayNames["sunday"] = 0;
 			dayNames["mon"] = 1; dayNames["monday"] = 1;
 			dayNames["tue"] = 2; dayNames["tuesday"] = 2;
@@ -678,7 +681,7 @@ void FileAcct::GetRotateInterval(
 			dayNames["thu"] = 4; dayNames["thursday"] = 4;
 			dayNames["fri"] = 5; dayNames["friday"] = 5;
 			dayNames["sat"] = 6; dayNames["saturday"] = 6;
-			map<PCaselessString, int>::const_iterator i = dayNames.find(s);
+			std::map<PCaselessString, int>::const_iterator i = dayNames.find(s);
 			m_rotateDay = (i != dayNames.end()) ? i->second : -1;
 		}
 		if (m_rotateDay < 0 || m_rotateDay > 6) {
@@ -758,7 +761,7 @@ bool FileAcct::GetCDRText(
 	if (m_standardCDRFormat)	
 		cdrString = call->GenerateCDR(m_timestampFormat);
 	else {
-		map<PString, PString> params;
+		std::map<PString, PString> params;
 
 		SetupAcctParams(params, call, m_timestampFormat);
 		cdrString = ReplaceAcctParams(m_cdrString, params);

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2005/01/16 22:37:15  zvision
+ * Redundant config reload mutex removed
+ *
  * Revision 1.15  2005/01/10 23:49:06  willamowius
  * provide mechanism for accounting modules to escape the parameters
  *
@@ -183,7 +186,7 @@ protected:
 	*/	
 	virtual void SetupAcctParams(
 		/// accounting parameters (name => value) associations
-		map<PString, PString>& params,
+		std::map<PString, PString>& params,
 		/// call (if any) associated with an accounting event being logged
 		const callptr& call,
 		/// timestamp formatting string
@@ -200,7 +203,7 @@ protected:
 		/// parametrized accounting string
 		const PString& cdrStr,
 		/// parameter values
-		const map<PString, PString>& params
+		const std::map<PString, PString>& params
 	) const;
 
 	/** Escape accounting parameters; called for each value before inserting.
