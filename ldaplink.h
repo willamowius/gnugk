@@ -70,36 +70,40 @@ public:
   PString userH323ID;
 };
 
+typedef map<PString, PStringList> LDAPAttributeValueClass;
+typedef LDAPAttributeValueClass::value_type LDAPAVValuePair;
 /** Class that contains search answers
 */
 class LDAPAnswer {
 public:
   LDAPAnswer();
-  ~LDAPAnswer();
+  virtual ~LDAPAnswer();
   int status;			// as LDAP.ld_errno
-  typedef map<PString, PStringList> LDAPAttributeValueClass;
-  typedef LDAPAttributeNamesClass::value_type LDAPAVValuePair;
   LDAPAttributeValueClass AV;	// the attributes and their values
+  virtual bool complete(void);	// test if this is all we need
 };
 
 class LDAPCtrl {
 public:
   LDAPCtrl(LDAPAttributeNamesClass *, // the Attribute names
 	   struct timeval *,	// the devault timeout for *_st operations
-	   PString,		// Name of the LDAP Server
-	   PString,		// Distinguished Name (DN) from where to search
-	   PString,		// UserDN of acting user
-	   PString,		// Pasword for simple auth. of BindUserDN
+	   PString &,		// Name of the LDAP Server
+	   PString &,		// Distinguished Name (DN) from where to search
+	   PString &,		// UserDN of acting user
+	   PString &,		// Pasword for simple auth. of BindUserDN
 	   unsigned int,	// 0 for no cache (default 0)
 	   unsigned int,	// timeout in seconds (default 10)
 	   int			// Port of the LDAP Server (default IANA port)
 	   ); 
-  ~LDAPCtrl();
+  virtual ~LDAPCtrl();
 
   // searching for user accreditation
-  LDAPAnswer * DirectoryUserLookup(LDAPQuery &); 
+  virtual LDAPAnswer * DirectoryUserLookup(LDAPQuery &); 
 
 protected:
+  // Some of this data might look superflous, but experience teaches to
+  // keep the connection details. At least they come handy during a
+  // debugging session
   LDAPAttributeNamesClass * AttributeNames; // names of the LDAP attributes
   struct timeval * timeout;	// timeout for *_st operations
   PString ServerName;		// Name of the LDAP Server
@@ -109,9 +113,15 @@ protected:
   PString BindUserPW;		// Pasword for simple auth. of BindUserDN
   unsigned int sizelimit;	// size of local cache in bytes
   unsigned int timelimit;	// timeout for operations in seconds
+  virtual LDAPAnswer * DirectoryLookup(LDAPQuery &); // internal look up
 private:
   LDAP * ldap;			// The ldap connection
-  LDAPAnswer * DirectoryLookup(LDAPQuery &); // internal look up
+  bool known_to_be_bound;	// _known_ status of binding
+  void Initialize(void);	// initializer, called from constructors
+  void Destroy(void);		// actual destructor called from formal one
+  int Bind(bool);		// binding, may be enforced by passing true
+  int Unbind(bool);		// unbinding, may be enforced by passing true
+
 };
 
 #endif /* defined(LDAPLINK_H) */

@@ -123,6 +123,7 @@ private:
   // Methods
   void Initialize(PConfig *);
   void Destroy(void);
+  virtual PString GetPassword(PString &);
 };
 
 #endif // HAS_LDAP
@@ -543,6 +544,15 @@ LDAPAuth::Destroy()		// 'real', private destructor
 {
   delete LDAPConn;
 } // Destroy
+
+PString LDAPAuth::GetPassword(PString & id)
+{
+  LDAPQuery q;			// using query class to make interface flexible
+  q.userH323ID = id;
+  using namespace lctn;
+  // FIXME: (?) always take first value for the H245PassWord attribute
+  return (LDAPConn->DirectoryUserLookup(q)->AV[LDAPAttrTags[H245PassWord]])[0]; 
+}
 
 #endif // HAS_LDAP
 

@@ -39,7 +39,9 @@ using namespace std;            // <--- NOTE!
 #  include <stdlib.h>           /* ANSI C: C standard library */
 #endif /* use of header type resolved */
 
+#include <math.h>		/* ANSI C: C math library */
 #include "GkStatus.h"		// gatekeeper status port for error handling
+#include <ptlib.h>		// the PWlib
 
 
 // simplified output
@@ -81,42 +83,100 @@ LDAPAnswer::~LDAPAnswer()
   // this space left blank intentionally
 }
 
+bool
+LDAPAnswer::complete(void)
+{
+  bool result = true;
+  // FIXME: this is just stub a t the moment;
+  return result;
+}
+
 // CLASS: LDAPCtrl
 
 LDAPCtrl::LDAPCtrl(LDAPAttributeNamesClass * AttrNames,
 		   struct timeval * default_timeout,
-		   PString ServerName,
-		   PString SearchBaseDN,
-		   PString BindUserDN,
-		   PString BindUserPW,
+		   PString & ServerName,
+		   PString & SearchBaseDN,
+		   PString & BindUserDN,
+		   PString & BindUserPW,
 		   unsigned int sizelimit = LDAP_NO_LIMIT,
 		   unsigned int timelimit = LDAP_NO_LIMIT,
-		   int ServerPort = LDAP_PORT)
+		   int ServerPort = LDAP_PORT):
+  AttributeNames(AttributeNames), timeout(default_timeout), ServerName(ServerName),
+  ServerPort(ServerPort), SearchBaseDN(SearchBaseDN), BindUserDN(BindUserDN),
+  BindUserPW(BindUserPW), sizelimit(sizelimit), timelimit(timelimit), 
+  ldap(NULL), known_to_be_bound(false)
 {
-  // Some of this data might look superflous, but experience teaches to
-  // keep the connection details. At least they come handy during a
-  // debugging session
-  LDAPCtrl::timeout = default_timeout;
-  LDAPCtrl::AttributeNames = AttrNames;
-  LDAPCtrl::ServerName = ServerName;
-  LDAPCtrl::ServerPort = ServerPort;
-  LDAPCtrl::SearchBaseDN = SearchBaseDN;
-  LDAPCtrl::BindUserDN = BindUserDN;
-  LDAPCtrl::BindUserPW = BindUserPW;
-  LDAPCtrl::sizelimit = sizelimit;
-  LDAPCtrl::timelimit = timelimit;
+  Initialize();
+  if(LDAP_SUCCESS != Bind(true)){ // bind (enforced)
+    ERRORPRINT("LDAPCtrl: can not access LDAP, destroying object")
+    Destroy();
+  }
+} // constructor: LDAPCtrl
 
+
+LDAPCtrl::~LDAPCtrl()
+{
+  Destroy();
+} // destructor: LDAPCtrl
+
+
+// binding, may be enforced by passing true
+int
+LDAPCtrl::Bind(bool force = false)
+{
+  int ldap_ret = LDAP_SUCCESS;
+  if(known_to_be_bound && force)
+    DEBUGPRINT("Bind: I think I'm already bound, but action is forced");
+
+  if(!known_to_be_bound || force) {
+    // this is the local bind version
+    DEBUGPRINT("Binding with " << BindUserDN << "pw length:" << BindUserPW.GetLength());
+    if (LDAP_SUCCESS == 
+	(ldap_ret = ldap_simple_bind_s(ldap, BindUserDN, BindUserPW))) {
+      known_to_be_bound = true;
+      DEBUGPRINT("LDAPCtrl::Bind: OK bound");
+    } else {
+      ERRORPRINT("LDAPCtrl::Bind: " + PString(ldap_err2string(ldap_ret)));
+    }
+  }
+  return ldap_ret;
+}
+
+// unbinding, may be enforced by passing true
+int
+LDAPCtrl::Unbind(bool force = false)
+{
+  int ldap_ret = LDAP_SUCCESS;
+
+  if(!known_to_be_bound && force)
+    DEBUGPRINT("Unbind: I think I'm already unbound, but action is forced");
+
+  if((NULL != ldap) && (known_to_be_bound || force))
+    if(LDAP_SUCCESS != (ldap_ret = ldap_unbind(ldap))) {
+      ERRORPRINT("Unbind: couldn't unbind: " 
+		 + PString(ldap_err2string(ldap_ret)));
+    } else {
+      known_to_be_bound = false;
+    }
+  return ldap_ret;
+}
+
+// privat: initializer called from constructors
+void
+LDAPCtrl::Initialize(void)
+{
   // get ldap c-object
   LDAP * ld = NULL;
   if (NULL == (ld = ldap_init(ServerName, ServerPort))) {
-    DEBUGPRINT("ldap_ctrl: no connection on " << 
+    DEBUGPRINT("Initialize: no connection on " << 
 	       ServerName << ":(" << ServerPort << ")" << 
 	       endl << vcid << endl << vcHid);
-    ERRORPRINT(PString("ldap_ctrl: no connection on ") +
+    ERRORPRINT(PString("LDAPCtrl::Initialize: no connection on ") +
 	       ServerName + ":(" + ServerPort + ")");
     ldap = NULL;
   } else {
-    DEBUGPRINT("ldap_ctrl: connection OK on" << 
+    DEBUGPRINT("LDAPCtrl::Initialize: connection OK on" << 
 	       ServerName << ":(" << ServerPort << ")");
     ldap = ld;
   }
@@ -150,49 +210,31 @@ LDAPCtrl::LDAPCtrl(LDAPAttributeNamesClass * AttrNames,
   }
 #endif /* LDAP_USE_CACHE */
 
-} // constructor: LDAPCtrl
+} // privat: Initialize
 
-LDAPCtrl::~LDAPCtrl()
+
+void 
+LDAPCtrl::Destroy(void)
 {
-  int ldap_ret;
+  Unbind();
+
 #if (defined(LDAP_USE_CACHE) && (LDAP_USE_CACHE < 1))
-    if(LDAP_SUCCESS != (ldap_ret = ldap_destroy_cache(ldap)))
-      ERRORPRINT("~LDAPCtrl: couldn't get rid of cache: " 
-		 + PString(ldap_err2string(ldap_ret)));
+  if(LDAP_SUCCESS != (ldap_ret = ldap_destroy_cache(ldap)))
+    ERRORPRINT("~LDAPCtrl: couldn't get rid of cache: " 
+	       + PString(ldap_err2string(ldap_ret)));
 #endif /* LDAP_USE_CACHE */
-  if(NULL != ldap)
-    if(LDAP_SUCCESS != (ldap_ret = ldap_unbind(ldap)))
-      ERRORPRINT("~LDAPCtrl: couldn't unbind: " 
-		 + PString(ldap_err2string(ldap_ret)));
-} // destructor: LDAPCtrl
+}
+
+
 
 // searching for user
 LDAPAnswer * 
-LDAPCtrl::DirectoryUserLookup(LDAPQuery & p) 
+LDAPCtrl::DirectoryUserLookup(LDAPQuery & q) 
 {
   LDAPAnswer * result = new LDAPAnswer;
-  int ldap_ret = LDAP_SUCCESS;
 
-  // this is the local bind version
-  DEBUGPRINT("Binding with " << BindUserDN << "pw length:" << BindUserPW.GetLength());
-  if (LDAP_SUCCESS == 
-      (ldap_ret = ldap_simple_bind_s(ldap, BindUserDN, BindUserPW))) {
-    DEBUGPRINT("ldap_simple_bind: OK " << PString(ldap_err2string(ldap_ret)));
-  } else {
-    ERRORPRINT("ldap_simple_bind: " + PString(ldap_err2string(ldap_ret)));
-    result->status=ldap_ret;
-    return result;
-  }
-
-  result = DirectoryLookup(p);
-
-  DEBUGPRINT("Unbinding " << BindUserDN);
-  if (LDAP_SUCCESS == (ldap_ret = ldap_unbind(ldap))) {
-    DEBUGPRINT("ldap_unbind: OK " << PString(ldap_err2string(ldap_ret)));
-  } else {
-    ERRORPRINT("ldap_unbind: " + PString(ldap_err2string(ldap_ret)));
-    result->status=ldap_ret;
-    return result;
+  while(!((result = DirectoryLookup(q))->complete())) {
+    // FIXME: modify q to complete result
   }
 
   return result;
@@ -224,23 +266,25 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
 		 LDAPAttrTags[H323ID], // attribute name (H323ID)
 		 (const char *)p.userH323ID, // requested value(H323ID)
 		 // possible alternative
-		 (char*)aliasH3232ID,// attribute name (H323ID)
+		 LDAPAttrTags[aliasH3232ID],// attribute name (H323ID)
 		 (const char *)p.userH323ID // requested value (H323ID)
 		 );
-
-
   DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ")");
-
-  if (LDAP_SUCCESS == 
-      (ldap_ret = ldap_search_st(ldap, SearchBaseDN, LDAP_SCOPE_SUBTREE, 
-				 filter, (char **)attrs, attrsonly,
-				 timeout, &res))) {
-    DEBUGPRINT("ldap_search_st: OK " << PString(ldap_err2string(ldap_ret)));
-  } else {
-    ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
-    result->status = ldap_ret;
-    return result;
-  }
+  unsigned int retry_count = 0;
+  do {
+    if (LDAP_SUCCESS == 
+	(ldap_ret = ldap_search_st(ldap, SearchBaseDN, LDAP_SCOPE_SUBTREE, 
+				   filter, (char **)attrs, attrsonly,
+				   timeout, &res))) {
+      DEBUGPRINT("ldap_search_st: OK " << PString(ldap_err2string(ldap_ret)));
+    } else {
+      ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
+      result->status = ldap_ret;
+      if(LDAP_UNAVAILABLE == ldap_ret) known_to_be_bound = false;
+      sleep((int)pow(2.0,retry_count)); // exponential back off
+      Bind();			// rebind 
+    }
+  } while((LDAP_SUCCESS != ldap_ret)||(retry_count++ < 4));
 
   // analyze answer
   if (0 > (ldap_ret = ldap_count_entries(ldap, res))) {
@@ -250,34 +294,33 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
   } else {
     DEBUGPRINT("ldap_search: " << ldap_ret << " results");
   }
-
-  LDAPMessage * chain;		// iterate throght chain of answers
+  LDAPMessage * chain;		// iterate throught chain of answers
   for(chain = ldap_first_entry(ldap, res);
-      chain != NULL;
+      chain != NULL;		// NULL terminated
       chain = ldap_next_entry(ldap, chain)) {
-    char * attr = NULL;
     char * dn = NULL;
-    BerElement * ber = NULL;
     if(NULL == (dn = ldap_get_dn(ldap, chain))) {
       ERRORPRINT("ldap_get_dn: Could not get distinguished name.");
     }
     DEBUGPRINT("found DN: " << dn);
-
+    // treating the dn as a kind of attribute
+    result->AV.insert(LDAPAVValuePair(PString("DN"),PStringList(1, &dn, false)));
+    BerElement * ber = NULL;	// a 'void *' would do the same but RFC 1823
+				// indicates it to be a pointer to a BerElement
+    char * attr = NULL;		// iterate throught list of attributes
     for(attr = ldap_first_attribute(ldap, chain, &ber);
-	attr != NULL;
+	attr != NULL;		// NULL terminated
 	attr = ldap_next_attribute(ldap, chain, ber)) {
-      char ** valv = NULL;
-      int valc = 0;
-      if(NULL == (valv = ldap_get_values(ldap, chain, attr))) {
-	ERRORPRINT("ldap_get_values: Could not get attribute values");
-	result->status = LDAP_OTHER;
-	return result;
-      }
-      valc = ldap_count_values(valv);
-
-      //AV.insert(LDAPAVValuePair(attr,PStringList()));
-
-      ldap_value_free(valv);
+      char ** valv = ldap_get_values(ldap, chain, attr); // vector
+      int valc = ldap_count_values(valv); // count
+      if(0 == valc) DEBUGPRINT("value handling: No values returned");
+      // put list of values (of this partyicular attribute) into PStringList
+      // which can be accessed by a STL map, indexed by attribute names.
+      // This implies, that the data is not bit- or octet-string, 
+      // because it may NOT contain \0.
+      result->AV.insert(LDAPAVValuePair(PString(attr),
+					PStringList(valc, valv, false)));
+      ldap_value_free(valv);	// remove value vector
     } // attr
   } // answer chain
   return result;
