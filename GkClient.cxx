@@ -175,7 +175,8 @@ GkClient::Main()
 		if(result!=0) {
 			listener_mutex.Signal();
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
-			GkClientWorker *r = new GkClientWorker(stream, rx_addr, rx_port, *this);
+			// The RasWorker object will delete itself via the PThread-autodelete function.
+			new GkClientWorker(stream, rx_addr, rx_port, *this);
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
