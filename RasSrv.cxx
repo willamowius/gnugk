@@ -891,6 +891,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 	bool hasStandardParam;
 	PASN_Sequence *sobj;
 	unsigned tag;
+
 	switch (msg.GetTag())
 	{
 		case H225_RasMessage::e_gatekeeperRequest: {
@@ -898,6 +899,13 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			H225_GatekeeperRequest & o = msg;
 			nonStandardParam = &o.m_nonStandardData;
 			sobj = &o;
+			
+			// Forward messages to alternates using new sequence numbers
+			// instead of using those supplied by the originator of the 
+			// message, this will result in duplicate <RAS> message errors
+			// at the receiver of this message
+			o.m_requestSeqNum = GetRequestSeqNum();
+
 			break;
 		}
 		case H225_RasMessage::e_registrationRequest: {
@@ -907,6 +915,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			sobj = &o;
 			if (o.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier))
 				nonStandardParam->m_data = o.m_endpointIdentifier;
+			o.m_requestSeqNum = GetRequestSeqNum();
 			break;
 		}
 		case H225_RasMessage::e_unregistrationRequest: {
@@ -914,6 +923,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			H225_UnregistrationRequest & o = msg;
 			nonStandardParam = &o.m_nonStandardData;
 			sobj = &o;
+			o.m_requestSeqNum = GetRequestSeqNum();
 			break;
 		}
 		default:
