@@ -1,3 +1,6 @@
+5 Oct 2004 -- zvision
+  * fix to allow negative prices to be specified for callback tariffs
+
 1 Oct 2004 -- zvision
   * fill voipcalltermtariff.tariffdesc field with correct tariff description
 

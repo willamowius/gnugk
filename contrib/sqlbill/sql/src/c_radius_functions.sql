@@ -387,7 +387,7 @@ BEGIN
 			END IF;
 		END IF;
 
-		IF trf.price <> 0 THEN
+		IF trf.price > 0 THEN
 			-- calculate credit time
 			reply_attr.id := attr_num;
 			reply_attr.attrname := ''h323-credit-time'';
