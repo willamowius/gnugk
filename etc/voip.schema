@@ -75,6 +75,7 @@
 # voIPprefixIncomingBlacklist       | HERE
 # voIPprefixIncomingWhitelist       | HERE
 # voIPConvertToLocal                | HERE
+# voIPCallTimeout                   | HERE
 # voIPTreatCallingPartyNumberAs     | HERE
 # voIPTreatCalledPartyNumberAs      | HERE
 
@@ -295,25 +296,25 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2150 NAME 'voIPWhiteListBeforeBlackList'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPprefixOutgoingBlacklist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPPrefixOutgoingBlacklist'
   EQUALITY numericStringMatch
   DESC 'A blocked destination prefix for this caller'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPprefixOutgoingWhitelist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPPrefixOutgoingWhitelist'
   EQUALITY numericStringMatch
   DESC 'An accessible destination prefix for this caller (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2180 NAME 'voIPprefixIncomingBlacklist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2180 NAME 'voIPPrefixIncomingBlacklist'
   EQUALITY numericStringMatch
   DESC 'Incoming callers to be blocked'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2190 NAME 'voIPprefixIncomingWhitelist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2190 NAME 'voIPPrefixIncomingWhitelist'
   EQUALITY numericStringMatch
   DESC 'Incoming callers to be allowed (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
@@ -325,13 +326,19 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPConvertToLocal'
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPTreatCallingPartyNumberAs'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPCallTimeout'
+  DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  SINGLE-VALUE
+)
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2220 NAME 'voIPTreatCallingPartyNumberAs'
   DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2220 NAME 'voIPTreatCalledPartyNumberAs'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2230 NAME 'voIPTreatCalledPartyNumberAs'
   DESC 'Treat CalledPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
@@ -354,7 +361,7 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 	voIPCountryCode $ voIPnationalDestinationCode $ voIPEndpointType $
 	voIPprefixIncomingBlacklist $ voIPprefixOutgoingBlacklist $
 	voIPprefixIncomingWhitelist $ voIPprefixOutgoingWhitelist $
-	voIPWhiteListBeforeBlackList $ voIPConvertToLocal $
+	voIPWhiteListBeforeBlackList $ voIPConvertToLocal $ voIPCallTimeout $
 	voIPTreatCallingPartyNumberAs $ voIPTreatCalledPartyNumberAs ) )
 
 
