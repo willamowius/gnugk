@@ -31,7 +31,7 @@ class Gatekeeper : public PProcess
 		 WORD majorVersion = 2,
 		 WORD minorVersion = 0,
 		 CodeStatus status = BetaCode,
-		 WORD buildNumber = 4);
+		 WORD buildNumber = 5);
 
 	virtual void Main();
 

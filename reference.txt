@@ -155,6 +155,7 @@ is TRUE, the gatekeeper will remove h245Address when h245Tunneling flag
 is TRUE. This enforces the remote party to stay in tunneling mode.
 
 AcceptNeighborsCalls=1		Default: 1
+
 With this feature enabled, the call signaling thread will accept calls
 without a pre-existing CallRec found in CallTable, provided an endpoint
 corresponding to the destinationAddress in Setup can be found in the
@@ -165,10 +166,12 @@ calls. As a result, the CDRs in GK2 can correctly show the connected
 time, instead of 'unconnected'.
 
 AcceptUnregisteredCalls=1	Default: 0
+
 With this feature enabled, the call signaling thread will accept calls
 from any calling party. So the GK works exactly like a gateway.
 
 SupportNATedEndpoints=1		Default: 0
+
 Whether to allow an endpoint behind an NAT box register to the GK.
 If yes, the GK will translate the IP address in Q.931 and H.245
 into the IP of NAT box.

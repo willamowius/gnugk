@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //
-// gk.cxx for H.323 gatekeeper
+// gk.cxx for OpenH323 Gatekeeper - GNU Gatekeeper
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -379,9 +379,14 @@ void Gatekeeper::Main()
 			GKHome = home;
 	}
 
-	PString welcome = "OpenH323 Gatekeeper with ID '" + Toolkit::GKName() + "' started on " + GKHome.AsString() + "\n" + Toolkit::GKVersion();
-	cout << welcome << endl;
+	PString welcome("OpenH323 Gatekeeper - GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started on " + GKHome.AsString() + "\n" + Toolkit::GKVersion());
+	cout << welcome << '\n';
 	PTRACE(1, welcome);
+
+	if (GKHome == INADDR_ANY) {
+		PString myip("Default IP = " + Toolkit::Instance()->GetRouteTable()->GetLocalAddress().AsString());
+		cout << myip << "\n\n";
+	}
 
 	if (args.HasOption('h')) {
 		PrintOpts();
@@ -395,7 +400,7 @@ void Gatekeeper::Main()
 		"modify it under the terms of the GNU General Public License\n"
 		"as published by the Free Software Foundation; either version 2\n"
 		"of the License, or (at your option) any later version.\n"
-	    << endl;
+	     << endl;
 
 	// read capacity from commandline
 	int GKcapacity;
