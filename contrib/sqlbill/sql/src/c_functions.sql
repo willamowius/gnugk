@@ -102,7 +102,7 @@ BEGIN
 	END IF;
 
 	SELECT INTO trf T.id, T.dstid, T.grpid, T.price, T.currencysym,
-			T.initialincrement, T.regularincrement, T.description, T.active
+			T.initialincrement, T.regularincrement, T.graceperiod, T.description, T.active
 		FROM voiptariff T JOIN voiptariffgrp G ON T.grpid = G.id 
 			JOIN voiptariffsel S ON G.id = S.grpid
 		WHERE dstid = dst.id AND currencysym = curr	AND S.accountid = accid

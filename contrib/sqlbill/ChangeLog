@@ -1,7 +1,8 @@
 26 Aug 2004 -- zvision
   * scripts to dump/restore data added
   * fixed bug that prevented IP only authorization using IP address range
-
+  * fixed bug (syntax error) with tariff matching when tariff groups are used
+  
 15 Aug 2004 -- zvision
   * a new column 'active' in the voiptariff table to allow per user
     blocking of destinations
