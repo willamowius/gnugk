@@ -1,0 +1,43 @@
+Trace level usage guidelines:
+
+Level 1
+=======
+*) CDR records
+*) registration records for new endpoints 
+*) fatal errors related to the program flow
+*) basic configuration information, like what modules are loaded
+*) reload notifications
+*) status line logins/logouts
+
+Level 2
+=======
+*) basic H.225.0 RAS/Q.931 message flow - one liners
+*) important failure notices for accounting/authentication modules
+
+Level 3
+=======
+*) basic H.245 message flow - one liners
+*) basic RADIUS/SQL/LDAP/status line messages - one liners
+*) authentication/accounting processing results - one liners
+*) error reporting (network errors, authentication rejections)
+*) call routing decisions
+
+Level 4
+=======
+*) H.323 message details
+*) RADIUS message details
+*) SQL/LDAP queries details
+*) authentication/accounting processing results - detailed per-module info
+*) detailed configuration reporting
+
+Level 5
+=======
+*) detailed program flow and resource usage, like Job allocation, 
+   thread start/stop, socket usage
+*) detailed network traffic reports, includind RTP proxy statistics
+*) informational messages of lesser importance
+
+Level 6
+=======
+*) extra data like binary message encoding or some extra debug info
+   for developers
