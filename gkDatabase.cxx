@@ -25,6 +25,7 @@
 #include "gkldap.h"
 #endif
 
+#include "rwlock.h"
 #ifndef lint
 // mark object with version info in such a way that it is retrievable by
 // the std. version/revision control tools like RCS/CVS ident cmd. At
@@ -66,6 +67,7 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 {
 	using namespace dctn;		// database config tags and names
 	// The defaults are given by the constructor of DBAttributeNamesClass
+	AN_mutex.StartWrite();
 	AN.insert(DBANValuePair(DBAttrTags[H323ID],
 			    cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[H323ID],
@@ -172,6 +174,7 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 					      DBAttrTags[TreatCalledPartyNumberAs],
 					      "voIPTreatCalledPartyNumberAs")));
 
+	AN_mutex.EndWrite();
 	// read database names which shall be used and append them to m_dbList
 	if(m_dbList.GetSize()>0) {
 		m_dbList.RemoveAll();
@@ -191,7 +194,9 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 					PTRACE(1, "Added IniFile to database list");
 #if defined (HAS_LDAP)
 				} else if (dbName == "LDAP") {
+					AN_mutex.StartRead();
 					m_dbList.Append(PNEW GkLDAP(cfg, AN));
+					AN_mutex.EndRead();
 					PTRACE(1, "Added LDAP to database list");
 #endif
 				}
@@ -353,6 +358,7 @@ BOOL GkDatabase::isGK(PString &h323id, dctn::DBTypeEnum & dbType)
 
 PString GkDatabase::attrNameAsString(const dctn::DBAttributeNamesEnum &attr_name) {
 	using namespace dctn;
+	ReadLock lock(AN_mutex);
 	return AN[DBAttrTags[attr_name]];
 }
 
@@ -401,7 +407,7 @@ BOOL GkDatabase::validAliases(const H225_ArrayOf_AliasAddress & aliases) {
 BOOL GkDatabase::getAttribute(const PString &alias, const dctn::DBAttributeNamesEnum attr_name, PStringList &attr_values,
 		dctn::DBTypeEnum & dbType)
 {
-	PWaitAndSignal lock(m_usedLock);
+	ReadLock lock(m_usedLock);
 	dbType = dctn::e_TypeUnknown;
 	BOOL found = FALSE;
 	for (PINDEX i=0; i < m_dbList.GetSize() && !found; i++) {
@@ -415,7 +421,7 @@ BOOL GkDatabase::getAttribute(const PString &alias, const dctn::DBAttributeNames
 
 BOOL GkDatabase::getAttributes(const PString &alias, DBAttributeValueClass &attr_map, dctn::DBTypeEnum & dbType)
 {
-	PWaitAndSignal lock(m_usedLock);
+	ReadLock lock(m_usedLock);
 	dbType = dctn::e_TypeUnknown;
 	BOOL found = FALSE;
 	for (PINDEX i=0; i < m_dbList.GetSize() && !found; i++) {
@@ -430,7 +436,7 @@ BOOL GkDatabase::getAttributes(const PString &alias, DBAttributeValueClass &attr
 BOOL GkDatabase::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name,
 			   BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound, dctn::DBTypeEnum & dbType, CalledProfile & calledProfile)
 {
-	PWaitAndSignal lock(m_usedLock);
+	ReadLock lock(m_usedLock);
 	dbType = dctn::e_TypeUnknown;
 	BOOL fullMatchOld = FALSE;
 	BOOL gwFoundOld = FALSE;
