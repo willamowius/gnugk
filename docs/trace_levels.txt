@@ -4,7 +4,7 @@ Level 1
 =======
 *) CDR records
 *) registration records for new endpoints 
-*) fatal errors related to the program flow
+*) fatal errors related to the program flow and unusual conditions
 *) basic configuration information, like what modules are loaded
 *) reload notifications
 *) status line logins/logouts
@@ -34,6 +34,7 @@ Level 5
 =======
 *) detailed program flow and resource usage, like Job allocation, 
    thread start/stop, socket usage
+*) detailes status interface clients authentication reports
 *) detailed network traffic reports, includind RTP proxy statistics
 *) informational messages of lesser importance
 
