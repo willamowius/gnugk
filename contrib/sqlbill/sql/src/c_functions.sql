@@ -129,7 +129,7 @@ BEGIN
 					JOIN voiptariffsel S ON S.grpid = G.id
 				WHERE D.prefix = ''PC'' AND T.currencysym = curr 
 					AND S.accountid = accid
-				ORDER BY G.priority DESC;
+				ORDER BY G.priority DESC
 				LIMIT 1;
 			IF trf.id IS NULL THEN
 				SELECT INTO dst.id, dst.active, trf.id D.id, D.active, T.id 

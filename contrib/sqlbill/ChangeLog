@@ -1,3 +1,6 @@
+25 Jan 2005 -- zvision
+  * fixed a syntax error inside match_tariff
+
 13 Dec 2004 -- zvision
   * allow an empty value for Calling-Station-Id
   * bugs fixed in report queries, ASR calculation more accurate,
