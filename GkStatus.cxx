@@ -26,7 +26,7 @@
 #include "gk.h"
 #include "gk_const.h"
 #include "GkStatus.h"
-#include "GkDatabase.h"
+#include "gkDatabase.h"
 #include "SoftPBX.h"
 #include "Toolkit.h"
 #include "ANSI.h"
