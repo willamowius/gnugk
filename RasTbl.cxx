@@ -111,8 +111,8 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 }
 
 
-EndpointRec::EndpointRec(const H225_RasMessage &completeRRQ, bool Permanent)
-      :	m_RasMsg(completeRRQ), m_timeToLive(1), m_callCount(0), m_usedCount(0)
+EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
+      :	m_RasMsg(completeRAS), m_timeToLive(1), m_callCount(0), m_usedCount(0)
 {
 	SetTimeToLive(SoftPBX::TimeToLive);
 	if (m_RasMsg.GetTag() == H225_RasMessage::e_registrationRequest) {
@@ -133,8 +133,9 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRRQ, bool Permanent)
 		m_callSignalAddress = lcf.m_callSignalAddress;
 		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
 			m_terminalAliases = lcf.m_destinationInfo;
-		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
-			m_terminalType = &lcf.m_destinationType;
+		if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
+			lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
+		m_terminalType = &lcf.m_destinationType;
 		m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	}
 	if (Permanent)
