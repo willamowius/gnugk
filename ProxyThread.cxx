@@ -597,7 +597,7 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 
 void ProxyHandleThread::Exec()
 {
-	ReadLock cfglock(ConfigReloadMutex);
+	ConfigReloadMutex.StartRead();
 	PSocket::SelectList sList;
 	while (true) {
 		FlushSockets();
@@ -618,6 +618,7 @@ void ProxyHandleThread::Exec()
 	ConfigReloadMutex.StartRead();
         if (sList.IsEmpty()) {
 		RemoveSockets();
+		ConfigReloadMutex.EndRead();
 		return;
 	}
 
@@ -654,6 +655,7 @@ void ProxyHandleThread::Exec()
 		}
 	}
 	RemoveSockets();
+	ConfigReloadMutex.EndRead();
 }
 
 ProxyConnectThread *ProxyHandleThread::FindConnectThread()
