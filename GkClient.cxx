@@ -385,7 +385,6 @@ void GkClient::RegisterFather(const PString & endpointId, const PString & gateke
 	gkaddr_ip.m_ip[3] = m_gkaddr[3];
 	rrq.m_callSignalAddress.SetSize(1);
 	rrq.m_callSignalAddress[0] = gkaddr;
-	rrq.m_timeToLive = m_ttl;
 
 	PTRACE(5, "registering with: " << rrq_ras);
 	RegistrationTable::Instance()->InsertRec(rrq_ras);
@@ -780,12 +779,11 @@ GkClientWorker::OnRCF(H225_RegistrationConfirm &rcf)
 	if (!GetMaster().CheckGKIPVerbose(addr))
 		return;
 
-	if (!GetMaster().IsRegistered()) {
-		PTRACE(2, "GKC\tRegister successfully to GK " << rcf.m_gatekeeperIdentifier);
-		GetMaster().RegisterFather(rcf.m_endpointIdentifier, rcf.m_gatekeeperIdentifier,
-				       rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive)
-				       ? (rcf.m_timeToLive - GetMaster().GetRetry()) : 0);
-	}
+	// Always reregister father as there is no way to get the father a permanent object.
+	PTRACE(2, "GKC\tRegister successfully to GK " << rcf.m_gatekeeperIdentifier);
+	GetMaster().RegisterFather(rcf.m_endpointIdentifier, rcf.m_gatekeeperIdentifier,
+				   rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive)
+				   ? (rcf.m_timeToLive - GetMaster().GetRetry()) : 0);
 }
 
 void
