@@ -1,5 +1,9 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(ProxyChannel.cxx) fix for RTP/Q931/H245/T120PortRange
+  to correct a bug with port range wraparound if the last port is 65535.
+  This caused a next port to be set to 0 and any subsequent port allocation 
+  to fail
 - BUGFIX(ProxyChannel.cxx) dynamic allocation of RTP ports did not work,
   use a fixed range 1024-65535 as a default for RTPPortRange config variable
 - (RasTbl.cxx) LRQs received on a multicast interface triggered LCFs

@@ -114,6 +114,11 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+A fix for RTP/Q931/H245/T120PortRange to correct a bug with port range 
+wraparound if the last port is 65535. This caused a next port to be set 
+to 0 and any subsequent port allocation to fail.
+
+<item>
 Dynamic allocation of RTP ports did not work, use a fixed port range 
 1024-65535 as a default for the <tt/RTPPortRange/ config variable.
 

@@ -70,6 +70,10 @@ WORD PortRange::GetPort()
 	WORD result = port++;
 	if (port > maxport)
 		port = minport;
+	if (port < minport) // special case to check for 16-bit wrap around
+		port = minport;
+	if (port == 0)
+		port = 1;
 	return result;
 }
 
