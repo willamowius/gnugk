@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2003/11/11 11:14:21  zvision
+ * Fixed invalid signed/unsigned integer conversions for radius attributes.
+ * Optimized radius attributes handling.
+ *
  * Revision 1.9  2003/10/31 00:02:27  zvision
  * A better tracing/error reporting
  *
@@ -2146,7 +2150,7 @@ void RadiusClient::EncryptPasswords(
 		const DWORD* buf2ptr = (const DWORD*)&digest;
 #endif
 
-		if( ((unsigned)buf2ptr & 3) || ((unsigned)buf1ptr & 3) ) {
+		if( ((unsigned long)buf2ptr & 3) || ((unsigned long)buf1ptr & 3) ) {
 			((BYTE*)buf1ptr)[0] = ((BYTE*)buf1ptr)[0] ^ ((const BYTE*)buf2ptr)[0];
 			((BYTE*)buf1ptr)[1] = ((BYTE*)buf1ptr)[1] ^ ((const BYTE*)buf2ptr)[1];
 			((BYTE*)buf1ptr)[2] = ((BYTE*)buf1ptr)[2] ^ ((const BYTE*)buf2ptr)[2];
