@@ -553,8 +553,21 @@ void ProxyHandleThread::FlushSockets()
 
 void ProxyHandleThread::RemoveSockets()
 {
-	std::for_each(removedList.begin(), removedList.end(), delete_socket);
+	if(!removedMutex.Wait(PTimeInterval(0,2))) {
+		PTRACE(5, "Cannot Lock removedMutex");
+		return;
+	}
+	if(removedList.begin()==removedList.end()) {
+		removedMutex.Signal();
+		return;
+	}
+	for(iterator Iter=removedList.begin(); Iter !=removedList.end(); Iter++) {
+		ProxyDeleter *d = new ProxyDeleter(*Iter);
+		d->Resume();
+		d->SetAutoDelete();
+	}
 	removedList.clear();
+	removedMutex.Signal();
 }
 
 void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
@@ -585,7 +598,6 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 void ProxyHandleThread::Exec()
 {
 	ReadLock cfglock(ConfigReloadMutex);
-	PTRACE(5, "execing void ProxyHandleThread::Exec(): " <<  getpid());
 	PSocket::SelectList sList;
 	while (true) {
 		FlushSockets();
@@ -620,6 +632,7 @@ void ProxyHandleThread::Exec()
 	// List of Sockets to read.
 	for (PINDEX i = 0; i < sList.GetSize(); ++i) {
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(&sList[i]);
+		PTRACE(5, "Reading from " << socket->Name());
 		switch (socket->ReceiveData())
 		{
 			case ProxySocket::Connecting:
@@ -663,6 +676,7 @@ ProxyConnectThread *ProxyHandleThread::FindConnectThread()
 
 void ProxyHandleThread::ConnectTo(ProxySocket *socket)
 {
+	PWaitAndSignal lock(removedMutex);
 	iterator j = removedList.begin(), k = removedList.end();
 	while(j != k) {
 		if(*j == socket)
@@ -700,7 +714,6 @@ bool ProxyHandleThread::CloseUnusedThreads()
 void ProxyHandleThread::Remove(iterator i)
 {
 	PWaitAndSignal lock(removedMutex);
-	PTRACE(5, "Removing: " << *i << " : " << (*i)->Name());
 	iterator j = removedList.begin(), k = removedList.end();
 	while(j != k) {
 
