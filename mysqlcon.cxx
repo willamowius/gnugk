@@ -21,6 +21,7 @@
 #endif
 #include <mysql.h>
 #ifdef WIN32
+#include <ptlib/socket.h>
 #pragma comment(lib, "libmySQL.lib")
 #endif
 
@@ -49,14 +50,15 @@ MySQLConnection::MySQLConnection(PConfig *cfg, const char *section)
 
 MySQLConnection::~MySQLConnection()
 {
+	PWaitAndSignal lock(m_mutex);
 	Cleanup();
 }
 
 bool MySQLConnection::Query(const PString & id, Result & result)
 {
+	PWaitAndSignal lock(m_mutex);
 	if (m_connection || Init()) {
 		PString sqlcmd = GetSelectClause(id);
-		PWaitAndSignal lock(m_mutex);
 		return result.Store(m_connection, sqlcmd);
 	}
 	return false;
@@ -88,7 +90,6 @@ PString MySQLConnection::GetSelectClause(const PString & id) const
 
 bool MySQLConnection::Init()
 {
-	PWaitAndSignal lock(m_mutex);
 	PString host = m_config->GetString(m_section, "Host", "localhost");
 	unsigned port = m_config->GetInteger(m_section, "Port", MYSQL_PORT);
 	PString dbname = m_config->GetString(m_section, "Database", "mysql");
@@ -127,7 +128,6 @@ bool MySQLConnection::Init()
 
 void MySQLConnection::Cleanup()
 {
-	PWaitAndSignal lock(m_mutex);
 	mysql_close(m_connection);
 	m_connection = 0;
 }
