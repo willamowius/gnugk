@@ -14,7 +14,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)  
+#if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
@@ -181,6 +181,10 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	H225_LocationRequest & lrq = lrq_ras;
 	lrq.m_requestSeqNum = seqnum;
 	lrq.m_destinationInfo = dest;
+
+	// Perform outbound per GK rewrite on the destination of the LRQ
+	Toolkit::Instance()->GWRewriteE164(m_id,false,lrq.m_destinationInfo[0]);
+
 	lrq.m_replyAddress = m_rasSrv->GetRasAddress(GetIP());
 	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
@@ -277,7 +281,7 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest &o
 			lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
 			lrq.m_hopCount = orig_lrq.GetRequest().m_hopCount;
 		}
-		
+
 	return OnSendingLRQ(lrq);
 }
 
@@ -502,7 +506,7 @@ private:
 
 	Queue m_requests;
 	PMutex m_rmutex;
-	const LRQFunctor & m_sendto; 
+	const LRQFunctor & m_sendto;
 	RasMsg *m_result;
 };
 
@@ -560,7 +564,7 @@ void LRQRequester::Process(RasMsg *ras)
 		if (req.m_neighbor->CheckReply(ras)) {
 			PTRACE(5,"NB\tReceived "<<ras->GetTagName()<<" message matched"
 				<<" pending LRQ for neighbor "<<req.m_neighbor->GetId()
-				<<':'<<req.m_neighbor->GetIP() 
+				<<':'<<req.m_neighbor->GetIP()
 				);
 			--req.m_count;
 			unsigned tag = ras->GetTag();
@@ -582,7 +586,7 @@ void LRQRequester::Process(RasMsg *ras)
 				delete ras;
 				if (req.m_count == 0 && req.m_reply == 0) {
 					PTRACE(5,"NB\tLRQ rejected for neighbor "<<req.m_neighbor->GetId()
-						<<':'<<req.m_neighbor->GetIP() 
+						<<':'<<req.m_neighbor->GetIP()
 						);
 					m_requests.erase(iter);
 					if (m_requests.empty())
@@ -678,6 +682,39 @@ bool NeighborList::CheckIP(const PIPSocket::Address & addr) const
 {
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &addr)) != m_neighbors.end();
 }
+
+PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
+{
+
+	PIPSocket::Address ipaddr;
+
+	// Get the Neigbor IP address from the transport address
+	if (!GetIPFromTransportAddr(sigAd, ipaddr))
+	{
+		return PString("");
+	}
+
+	return GetNeighborIdBySigAdr(ipaddr);
+}
+
+PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
+{
+
+	List::iterator findNeighbor;
+
+	// Attempt to find the neigbor in the list
+	findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
+
+	if (findNeighbor == m_neighbors.end())
+	{
+		return PString("");
+	}
+
+	return (*findNeighbor)->GetId();
+
+}
+
+
 
 H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress & dest, const PIPSocket::Address & addr)
 {
@@ -816,7 +853,7 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 			return false;
 		else if (requester->ForwardLRQ() > 0)
 			hopCount = 1;
-			
+
 	H225_LocationRequest & lrq = (*ras)->m_recvRAS;
 	if (lrq.HasOptionalField(H225_LocationRequest::e_hopCount)) {
 		hopCount = lrq.m_hopCount - 1;
@@ -825,7 +862,7 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 	}
 	if (!hopCount)
 		return false;
-	
+
 
 	if (requester && !requester->ForwardResponse()) {
 		LRQForwarder functor(lrq_obj);

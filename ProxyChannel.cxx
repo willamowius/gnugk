@@ -1086,6 +1086,15 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				Toolkit::Instance()->GWRewriteE164(tokenised_source[0],true,Setup.m_destinationAddress);
 				in_rewrite_id = tokenised_source[0];
 			}
+
+
+			// Try lookup on neighbor list for rewrite source and perform another
+			source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(Setup.m_sourceCallSignalAddress);
+			if (source != "") {
+				Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
+				in_rewrite_id = source;
+			}
+
 		}
 
 		// Normal rewrite
@@ -1280,6 +1289,22 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				out_rewrite_id = tokenised_source[0];
 			}
 
+		}
+		else {
+			PIPSocket::Address neighbor_addr;
+			WORD port;
+			PString neighbor_alias;
+
+			// Try outbound per GK rewrite
+			if (m_call->GetDestSignalAddr(neighbor_addr,port)) {
+
+				neighbor_alias = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(neighbor_addr);
+
+				if (neighbor_alias != "") {
+					Toolkit::Instance()->GWRewriteE164(neighbor_alias,false,Setup.m_destinationAddress);
+					out_rewrite_id = neighbor_alias;
+				}
+			}
 		}
 	}
 

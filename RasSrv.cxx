@@ -258,7 +258,7 @@ BroadcastListener::BroadcastListener(WORD pt) : RasListener(INADDR_ANY, pt)
 bool BroadcastListener::Filter(GatekeeperMessage *msg) const
 {
 	const unsigned tag = msg->GetTag();
-	if (tag == H225_RasMessage::e_gatekeeperRequest 
+	if (tag == H225_RasMessage::e_gatekeeperRequest
 		|| tag == H225_RasMessage::e_locationRequest)
 		return true;
 	PTRACE(1, "RAS\tUnknown broadcasted RAS message tag " << tag);
@@ -292,7 +292,7 @@ MulticastListener::MulticastListener(const Address & addr, WORD pt, WORD upt) : 
 bool MulticastListener::Filter(GatekeeperMessage *msg) const
 {
 	unsigned tag = msg->GetTag();
-	if (tag == H225_RasMessage::e_gatekeeperRequest 
+	if (tag == H225_RasMessage::e_gatekeeperRequest
 		|| tag == H225_RasMessage::e_locationRequest)
 		return true;
 	PTRACE(1, "RAS\tInvalid multicasted RAS message tag " << tag);
@@ -1961,26 +1961,15 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 template<> bool RasPDU<H225_LocationRequest>::Process()
 {
 	// OnLRQ
-	PString log;
+	PString log,neighbor_alias;
 
 	if (request.m_destinationInfo.GetSize() > 0) {
 
 		// per GW rewrite first
-		endptr rewriteEndPoint = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
-		if (rewriteEndPoint) {
+		neighbor_alias = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
 
-			PString source;
-			PStringArray tokenised_source;
-
-			source = AsString(rewriteEndPoint->GetAliases()[0]);
-
-			// Chop up source to get the h323_ID or dialedDigits
-			tokenised_source = source.Tokenise(PString(":"));
-
-			if (tokenised_source.GetSize() == 2) {
-				Kit->GWRewriteE164(tokenised_source[0],true,request.m_destinationInfo[0]);
-			}
-
+		if (neighbor_alias != "") {
+			Kit->GWRewriteE164(neighbor_alias,true,request.m_destinationInfo[0]);
 		}
 
 		// Normal rewrite

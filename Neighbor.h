@@ -62,7 +62,7 @@ inline bool PrefixInfo::operator<(PrefixInfo o) const
 
 class Neighbor {
 public:
-	typedef Neighbor Base;	// for SimpleCreator template 
+	typedef Neighbor Base;	// for SimpleCreator template
 
 	Neighbor();
 	virtual ~Neighbor();
@@ -101,7 +101,7 @@ public:
 
 protected:
 	void SetForwardedInfo(const PString &);
-	
+
 	typedef std::map<PString, int> Prefixes;
 
 	RasServer *m_rasSrv;
@@ -128,6 +128,10 @@ public:
 
 	bool CheckLRQ(RasMsg *) const;
 	bool CheckIP(const PIPSocket::Address &) const;
+
+	// Return the neighbors Id from the list from the signal address.
+	PString GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd);
+	PString GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd);
 
 	operator List & () { return m_neighbors; }
 	operator const List & () const { return m_neighbors; }
