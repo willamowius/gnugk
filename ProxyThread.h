@@ -29,6 +29,7 @@ class ProxyConnectThread;
 class ProxyHandleThread;
 class HandlerList;
 
+extern const char *RoutedSec;
 
 // abstract interface of a proxy socket
 class ProxySocket {
@@ -194,6 +195,7 @@ private:
 	ProxyConnectThread *FindConnectThread();
 	
 	std::list<ProxySocket *> sockList;
+	std::list<ProxySocket *> removedList;
 	mutable PReadWriteMutex mutex;
 	std::list<ProxyConnectThread *> connList;
 	mutable PReadWriteMutex connMutex;
@@ -264,7 +266,7 @@ inline void MyPThread::Go()
 
 inline void ProxyHandleThread::Remove(iterator i)
 {
-	delete *i;
+	removedList.push_back(*i);
 	mutex.StartWrite();
 	sockList.erase(i);
 	mutex.EndWrite();
@@ -272,7 +274,7 @@ inline void ProxyHandleThread::Remove(iterator i)
 
 inline void ProxyHandleThread::Remove(ProxySocket *socket)
 {
-	delete socket;
+	removedList.push_back(socket);
 	mutex.StartWrite();
 	sockList.remove(socket);
 	mutex.EndWrite();

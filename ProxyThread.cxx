@@ -461,11 +461,13 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 		iterator k=i++;
 		ProxySocket *socket = *k;
 		if (!socket->IsBlocked()) {
-			if (socket->IsDeletable())
-				Remove(k);
-			else if (socket->IsSocketOpen())
+			if (socket->IsSocketOpen())
 				socket->AddToSelectList(result);
-			else if (!socket->IsConnected())
+			else if (!socket->IsConnected()) {
+				Remove(k);
+				continue;
+			}
+			if (socket->IsDeletable())
 				Remove(k);
 #ifdef PTRACING
 		} else {
@@ -522,6 +524,8 @@ void ProxyHandleThread::Exec()
 				break;
 		}
 	}
+	std::for_each(removedList.begin(), removedList.end(), delete_socket);
+	removedList.clear();
 }
 
 ProxyConnectThread *ProxyHandleThread::FindConnectThread()
