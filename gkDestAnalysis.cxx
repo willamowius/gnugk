@@ -230,8 +230,10 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 	// get callRec
 	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
 
-	if (callptr(NULL)==callRec)
+	if (callptr(NULL)==callRec) {
+		PTRACE(1, "No callrec found, giving up");
 		return e_fail;
+	}
 
 	H225_AliasAddress destAlias = cdAlias;
 
@@ -261,7 +263,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 
 	//store data from database in cgProfile
 	// if it is not done up to now
-	if (callRec->GetCallingProfile().getH323ID().IsEmpty()) {
+	if (callRec->GetCallingProfile().getH323ID().IsEmpty() || callRec->GetCallingProfile().getH323ID()==srcH323IDStr) {
 		// if no profile is found
 		if (!db->getProfile(callRec->GetCallingProfile(), srcH323IDStr, dbType)) {
 			// if section "Gatekeeper::Databases" exists in ini-file then a
@@ -275,6 +277,8 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 				cdEP = endptr(0);
 				return e_fail;
 			}
+			callRec->GetCallingProfile().setH323ID(srcH323IDStr);
+			PTRACE(1, "WARNING: Trusting H323ID of calling party");
 		}
 	}
 
