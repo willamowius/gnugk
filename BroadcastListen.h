@@ -20,7 +20,7 @@
 
 #include "ptlib.h"
 #include "ptlib/sockets.h"
-#include "h225.h" 
+#include "h225.h"
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
@@ -47,4 +47,3 @@ protected:
 };
 
 #endif // BROADCASTLISTEN_H
-

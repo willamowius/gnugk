@@ -27,9 +27,9 @@
 #include "RasSrv.h"
 #include <h323pdu.h>
 
-const char *EndpointSection = "Endpoint";
-const char *RewriteE164Section = "Endpoint::RewriteE164";
-const char *H225_ProtocolID= "0.0.8.2250.0.2";
+static const char *EndpointSection = "Endpoint";
+static const char *RewriteE164Section = "Endpoint::RewriteE164";
+static const char *H225_ProtocolID= "0.0.8.2250.0.2";
 
 class GKPendingList : public PendingList {
 public:

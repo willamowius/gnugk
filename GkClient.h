@@ -56,9 +56,6 @@ class H323RasSrv;
 class PendingARQ;
 class GKPendingList;
 
-extern const char *EndpointSection;
-extern const char *RewriteE164Section;
-
 class GkClient {
 public:
 	GkClient(H323RasSrv *);
