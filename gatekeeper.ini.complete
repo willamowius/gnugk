@@ -14,6 +14,8 @@
 [Gatekeeper::Main]
 ## 'config is present' indicator. Has to be 42.
 Fourtytwo=42
+## Config is uptodate indicator. Must be the version string of the gk (only for development versions)
+ConfigVersion=2.5beta123456
 # Includes in some RAS-Msgs
 Name=OpenH323GK
 # overwritten from command line parameter
