@@ -271,6 +271,26 @@ CLEAN_FILES += gktimestamp.c ldaplibtimestamp.c
 CLEAN_FILES += $(wildcard core.*)
 
 
+#### a need HACK to support gcc version > 3
+ifeq (,$(findstring $(CPLUS),g++))
+  GXXVERSION:=$(strip $(shell $(CPLUS) --version | tr '.' ' '))
+  #$(warning found GCC <$(CPLUS)> <$(GXXVERSION)>)
+  GXX_MAJOR_VERSION:=$(word 1,$(GXXVERSION))
+  #GXX_MINOR_VERSION:=$(word 2,$(GXXVERSION))
+  #GXX_BUILD_VERSION:=$(word 3,$(GXXVERSION))
+  ifeq (,$(findstring $(GXX_MAJOR_VERSION), 0 1 2))
+    $(warning found GCC bigger 2 <$(GXX_MAJOR_VERSION)> special treatment enabled)
+    # My MySQL is not gcc 3.0 compatible, remove this if yours is
+    NO_MYSQL=1
+    FILTERED_FLAGS:=$(filter-out %HAS_MYSQL,$(STDCCFLAGS))
+    STDCCFLAGS = $(FILTERED_FLAGS)
+    # the stdio lib has some nonstd parts, you may have to uncomment
+    # the following to use them (depricated)
+    #STDCCFLAGS += -idirafter /usr/include/g++-3
+  endif
+endif
+
+
 addpasswd: $(OBJDIR)/addpasswd.o
 	$(CPLUS) -o $(OBJDIR)/addpasswd $(CFLAGS) $(OBJDIR)/addpasswd.o $(LDFLAGS) $(LDLIBS) $(ENDLDLIBS)
 
