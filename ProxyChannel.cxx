@@ -669,7 +669,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return IsOpen() ? NoData : Error;
 
 	Q931* q931pdu = new Q931();
-	
+
 	if (!q931pdu->Decode(buffer)) {
 		PTRACE(2, "Q931\t" << GetName() << " ERROR DECODING Q.931!");
 		delete q931pdu;
@@ -685,16 +685,16 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	if (GetUUIE(*q931pdu, signal, GetName())) {
 		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
 		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-		
+
 		PrintQ931(4, "Received:", "", q931pdu, psignal = &signal);
-		
+
 		if (remote && body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup) {
 			const WORD newcrv = q931pdu->GetCallReference();
 			if (m_crv && newcrv == (m_crv & 0x7fffu))
 				PTRACE(2, "Q931\tWarning: duplicate Setup - ignored!");
 			else {
 				PTRACE(4, "Q931\tMultiple calls over single signalling channel not supported - new connection needed");
-				
+
 				Q931 releasePDU;
 				H225_H323_UserInformation userInfo;
 				H225_H323_UU_PDU_h323_message_body& msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
@@ -708,7 +708,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				releasePDU.BuildReleaseComplete(newcrv, TRUE);
 				SetUUIE(releasePDU, userInfo);
 				PrintQ931(5, "Send to ", remote->GetName(), &releasePDU, &userInfo);
-				
+
 				PBYTEArray buf;
 				if( releasePDU.Encode(buf) )
 					TransmitData(buf);
@@ -1121,7 +1121,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 
 			if(Setup.m_sourceAddress.GetSize() > 0 ) {
-         		source = GetBestAliasAddressString(Setup.m_sourceAddress, H225_AliasAddress::e_h323_ID);
+         		source = GetBestAliasAddressString(Setup.m_sourceAddress, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 			}
 
             if (!source.IsEmpty()) {
@@ -1320,7 +1320,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			PString source;
 
 			if(rewriteEndPointOut->GetAliases().GetSize() > 0 ) {
-		        source = GetBestAliasAddressString(rewriteEndPointOut->GetAliases(), H225_AliasAddress::e_h323_ID);
+		        source = GetBestAliasAddressString(rewriteEndPointOut->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 			}
 
 			if (!source.IsEmpty()) {

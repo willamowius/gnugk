@@ -1627,11 +1627,11 @@ bool AdmissionRequestPDU::Process()
 		PString source;
 
 		if(RequestingEP->GetAliases().GetSize() > 0) {
-			source = GetBestAliasAddressString(RequestingEP->GetAliases(), H225_AliasAddress::e_h323_ID);
+			source = GetBestAliasAddressString(RequestingEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 		}
 
      	if(source.IsEmpty() && (request.m_srcInfo.GetSize() > 0)) {
-        	source = GetBestAliasAddressString(request.m_srcInfo, H225_AliasAddress::e_h323_ID);
+        	source = GetBestAliasAddressString(request.m_srcInfo, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 		}
 
 	 	if (!source.IsEmpty()) {
@@ -1767,11 +1767,11 @@ bool AdmissionRequestPDU::Process()
 	acf.m_bandWidth = BWRequest;
 
 	// Per GW outbound rewrite
-	if (CalledEP && (RequestingEP != CalledEP)) {
+	if (bHasDestInfo && CalledEP && (RequestingEP != CalledEP)) {
 		PString source;
 
 		if(CalledEP->GetAliases().GetSize() > 0) {
-			source = GetBestAliasAddressString(CalledEP->GetAliases(), H225_AliasAddress::e_h323_ID);
+			source = GetBestAliasAddressString(CalledEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 		}
 
 		if (!source.IsEmpty()) {
