@@ -55,7 +55,6 @@ private:
 	char *base;
 	int scope;
 	char *filter;
-//	char **attrs;
 	PStringList attrs;
 	int attrsonly;
 	PTime insert_time;
@@ -71,7 +70,6 @@ public:
 	const PTime & get_insert_time() const {return insert_time;}
 };
 
-//typedef vector<gk_ldap_cache_search_class*> gk_ldap_search_type;
 #ifdef DOC_PLUS_PLUS
 class  ldap_cache_search_class : public PList {
 #endif
@@ -84,6 +82,7 @@ typedef struct {
 	PTimeInterval max_cache_time;
 	gk_ldap_search_type search_cache;
 	int maxmem;
+	mutable PMutex search_cache_mutex;
 } GK_LDAP;
 
 #else
