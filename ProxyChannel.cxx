@@ -615,23 +615,23 @@ BOOL CallSignalSocket::Connect(const Address & addr)
 
 namespace { // anonymous namespace
 #if PTRACING
-void PrintQ931(int tlevel, const PString & msg, const Q931 *q931, const H225_H323_UserInformation *uuie)
+void PrintQ931(int tlevel, const char *msg1, const char *msg2, const Q931 *q931, const H225_H323_UserInformation *uuie)
 {
 	PStringStream pstrm;
-	pstrm << "Q931\t" << msg << " {\n  q931pdu = " << setprecision(2) << *q931;
+	pstrm << "Q931\t" << msg1 << msg2 << " {\n  q931pdu = " << setprecision(2) << *q931;
 	if (uuie)
 		pstrm << "\n  h225pdu = " << setprecision(2) << *uuie;
 	pstrm << "\n}";
 	PTRACE(tlevel, pstrm);
 }
 #else
-inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserInformation *)
+inline void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *)
 {
 	// nothing to do
 }
 #endif
 
-bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie, const PString & name)
+bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie, const char *name)
 {
 	if (q931.HasIE(Q931::UserUserIE)) {
 		PPER_Stream strm(q931.GetIE(Q931::UserUserIE));
@@ -674,7 +674,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (m_h245Tunneling)
 			m_h245Tunneling = (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling) && pdu.m_h245Tunneling.GetValue());
 
-		PrintQ931(4, "Received:", m_lastQ931, psignal = &signal);
+		PrintQ931(4, "Received:", "", m_lastQ931, psignal = &signal);
 
 		switch (body.GetTag())
 		{
@@ -742,7 +742,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (changed)
 			SetUUIE(*m_lastQ931, signal);
 	} else { // not have UUIE
-		PrintQ931(4, "Received:", m_lastQ931, 0);
+		PrintQ931(4, "Received:", "", m_lastQ931, 0);
 	}
 /*
    Note: Openh323 1.7.9 or later required.
@@ -780,7 +780,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		m_lastQ931->Encode(buffer);
 #if PTRACING
 		if (remote)
-			PrintQ931(5, "Send to " + remote->GetName(), m_lastQ931, psignal);
+			PrintQ931(5, "Send to ", remote->GetName(), m_lastQ931, psignal);
 #endif
 	}
 
@@ -835,7 +835,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 	}
 	SetUUIE(ReleasePDU, signal);
 
-	PrintQ931(5, "Send to " + GetName(), &ReleasePDU, &signal);
+	PrintQ931(5, "Send to ", GetName(), &ReleasePDU, &signal);
 }
 
 void CallSignalSocket::SendReleaseComplete(const H225_CallTerminationCause *cause)
@@ -880,7 +880,7 @@ void CallSignalSocket::ForwardCall()
 	MarkSocketBlocked lock(this);
 
 	H225_H323_UserInformation fuuie;
-	GetUUIE(*m_lastQ931, fuuie, Name());
+	GetUUIE(*m_lastQ931, fuuie, GetName());
 	H225_Facility_UUIE & Facility = fuuie.m_h323_uu_pdu.m_h323_message_body;
 
 	endptr forwarded;
@@ -971,7 +971,7 @@ void CallSignalSocket::ForwardCall()
 	if (ret->CreateRemote(SetupUUIE)) {
 		SetUUIE(*Setup, suuie);
 		Setup->Encode(ret->buffer);
-		PrintQ931(5, "Forward Setup to " + ret->remote->GetName(), Setup, &suuie);
+		PrintQ931(5, "Forward Setup to ", ret->remote->GetName(), Setup, &suuie);
 		if (ret->m_result == Forwarding || ret->InternalConnectTo()) {
 			CallSignalSocket *result = static_cast<CallSignalSocket *>(ret->remote);
 			if (m_h245socket) {
@@ -1443,7 +1443,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 	FacilityPDU.BuildFacility(m_crv, m_crv & 0x8000u);
 	SetUUIE(FacilityPDU, signal);
 
-	PrintQ931(5, "Send to " + GetName(), &FacilityPDU, &signal);
+	PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &signal);
 }
 
 void CallSignalSocket::Dispatch()
