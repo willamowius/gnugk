@@ -88,7 +88,7 @@ public:
 	const H225_TransportAddress & GetRasAddress() const
 	{ return m_rasAddress; }
 	const H225_TransportAddress & GetCallSignalAddress() const
-	{ return m_callSignalAddress; }
+	{ PWaitAndSignal lock(m_usedLock); return m_callSignalAddress; }
 	const H225_EndpointIdentifier & GetEndpointIdentifier() const
 	{ return m_endpointIdentifier; }
 	const H225_ArrayOf_AliasAddress & GetAliases() const
@@ -472,13 +472,14 @@ private:
 	unsigned m_callingCRV;
 	unsigned m_calledCRV;
 
-        CallingProfile *m_callingProfile;
-        CalledProfile  *m_calledProfile;
+        CallingProfile m_callingProfile;
+        CalledProfile  m_calledProfile;
 
 	PTime *m_startTime;
 	PTime *m_stopTime;
 	PTimer m_timer;
 	int m_timeout;
+
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
