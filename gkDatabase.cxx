@@ -175,7 +175,7 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 					      "voIPTreatCalledPartyNumberAs")));
 	AN.insert(DBANValuePair(DBAttrTags[MinimumPrefixLength],
 			    cfg.GetString(DB_ATTR_NAME_SEC,
-					      DBAttrTags[TreatCalledPartyNumberAs],
+					      DBAttrTags[MinimumPrefixLength],
 					      "voIPMinimumPrefixLength")));
 
 	AN_mutex.EndWrite();
