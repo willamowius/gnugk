@@ -81,11 +81,15 @@ public:
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
 		if (!m_password) {
-			// 7 == H235_AuthenticationMechanism::e_authenticationBES, avoid including h235.h
-			if (m_authMode == 7)
-				rasmsg.IncludeOptionalField(RAS::e_tokens), SetClearTokens(rasmsg.m_tokens, id);
-			else
+			// to avoid including h235.h
+			// 2 == H235_AuthenticationMechanism::e_pwdHash
+			// 7 == H235_AuthenticationMechanism::e_authenticationBES
+			if (m_authMode < 0 || m_authMode == 2)
 				rasmsg.IncludeOptionalField(RAS::e_cryptoTokens), SetCryptoTokens(rasmsg.m_cryptoTokens, id);
+#ifdef OPENH323_NEWVERSION
+			if (m_authMode < 0 || m_authMode == 7)
+				rasmsg.IncludeOptionalField(RAS::e_tokens), SetClearTokens(rasmsg.m_tokens, id);
+#endif
 		}
 	}
 	template<class RAS> void SetPassword(RAS & rasmsg)
@@ -135,7 +139,7 @@ private:
 
 	AlternateGKs *m_gkList;
 	bool m_useAltGKPermanent;
-	unsigned m_authMode;
+	int m_authMode;
 
 	Toolkit::RewriteData *m_rewriteInfo;
 

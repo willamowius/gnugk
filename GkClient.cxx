@@ -288,7 +288,6 @@ GkClient::GkClient(RasServer *rasSrv) : m_rasSrv(rasSrv)
 
 	m_useAltGKPermanent = false;
 	m_gkList = new AlternateGKs(m_gkaddr, m_gkport);
-	m_authMode = H235_AuthenticationMechanism::e_pwdHash;
 
 	m_handlers[0] = new GkClientHandler(this, &GkClient::OnURQ, H225_RasMessage::e_unregistrationRequest);
 	m_handlers[1] = new GkClientHandler(this, &GkClient::OnBRQ, H225_RasMessage::e_bandwidthRequest);
@@ -337,6 +336,7 @@ void GkClient::OnReload()
 	m_retry = m_resend = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", 3);
 	m_gkfailtime = m_retry << 8;
 	m_ttl = 100;
+	m_authMode = -1;
 
 	// FIXME: not thread-safed
 	delete m_rewriteInfo;
