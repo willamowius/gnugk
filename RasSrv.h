@@ -129,7 +129,7 @@ public:
 
 	bool ValidatePDU(
 		RasPDU<H225_RegistrationRequest>& ras, 
-		GkAuthenticator::RRQAuthData& authData
+		RRQAuthData& authData
 		)
 	{
 		return authList->Validate(ras, authData);
@@ -137,7 +137,7 @@ public:
 	
 	bool ValidatePDU(
 		RasPDU<H225_AdmissionRequest>& ras, 
-		GkAuthenticator::ARQAuthData& authData
+		ARQAuthData& authData
 		)
 	{
 		return authList->Validate(ras, authData);
@@ -146,7 +146,7 @@ public:
 	bool ValidatePDU(
 		Q931& q931pdu,
 		H225_Setup_UUIE& setup,
-		GkAuthenticator::SetupAuthData& authData
+		SetupAuthData& authData
 		)
 	{
 		return authList->Validate(q931pdu, setup, authData);

@@ -37,7 +37,7 @@ const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 }
 
-GkAuthenticator::ARQAuthData::ARQAuthData(
+ARQAuthData::ARQAuthData(
 	/// an endpoint requesting admission
 	const endptr& ep,
 	/// call record matching this ARQ (if any)
@@ -48,7 +48,7 @@ GkAuthenticator::ARQAuthData::ARQAuthData(
 {
 }
 
-GkAuthenticator::ARQAuthData::ARQAuthData(
+ARQAuthData::ARQAuthData(
 	const ARQAuthData& obj
 	) : m_rejectReason(obj.m_rejectReason), 
 	m_callDurationLimit(obj.m_callDurationLimit), 
@@ -62,7 +62,7 @@ GkAuthenticator::ARQAuthData::ARQAuthData(
 		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
 }
 
-GkAuthenticator::ARQAuthData& GkAuthenticator::ARQAuthData::operator=(const ARQAuthData& obj)
+ARQAuthData& ARQAuthData::operator=(const ARQAuthData& obj)
 {
 	m_callDurationLimit = obj.m_callDurationLimit; 
 	m_requestingEP = obj.m_requestingEP;
@@ -83,48 +83,48 @@ GkAuthenticator::ARQAuthData& GkAuthenticator::ARQAuthData::operator=(const ARQA
 	return *this;
 }
 
-GkAuthenticator::ARQAuthData::~ARQAuthData()
+ARQAuthData::~ARQAuthData()
 {
 	delete m_routeToAlias;
 	delete m_routeToIP;
 }
 
-void GkAuthenticator::ARQAuthData::SetRouteToAlias(H225_AliasAddress* alias)
+void ARQAuthData::SetRouteToAlias(H225_AliasAddress* alias)
 {
 	delete m_routeToAlias;
 	m_routeToAlias = alias;
 }
 
-void GkAuthenticator::ARQAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
+void ARQAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
 {
 	SetRouteToAlias(new H225_AliasAddress(alias));
 }
 
-void GkAuthenticator::ARQAuthData::SetRouteToAlias(const PString& alias, int tag)
+void ARQAuthData::SetRouteToAlias(const PString& alias, int tag)
 {
 	SetRouteToAlias(new H225_AliasAddress);
 	H323SetAliasAddress(alias, *m_routeToAlias, tag);
 }
 
-void GkAuthenticator::ARQAuthData::SetRouteToIP(H225_TransportAddress* addr)
+void ARQAuthData::SetRouteToIP(H225_TransportAddress* addr)
 {
 	delete m_routeToIP;
 	m_routeToIP = addr;
 }
 
-void GkAuthenticator::ARQAuthData::SetRouteToIP(const H225_TransportAddress& addr)
+void ARQAuthData::SetRouteToIP(const H225_TransportAddress& addr)
 {
 	SetRouteToIP(new H225_TransportAddress(addr));
 }
 
-void GkAuthenticator::ARQAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
+void ARQAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
 {
 	SetRouteToIP(new H225_TransportAddress(
 		SocketToH225TransportAddr(addr, port ? port : GK_DEF_ENDPOINT_SIGNAL_PORT)
 		));
 }
 
-GkAuthenticator::SetupAuthData::SetupAuthData(
+SetupAuthData::SetupAuthData(
 	/// call associated with the message (if any)
 	const callptr& call,
 	/// is the Setup message from a registered endpoint
@@ -140,7 +140,7 @@ GkAuthenticator::SetupAuthData::SetupAuthData(
 {
 }
 
-GkAuthenticator::SetupAuthData::SetupAuthData(
+SetupAuthData::SetupAuthData(
 	const SetupAuthData& obj
 	) : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
@@ -154,7 +154,7 @@ GkAuthenticator::SetupAuthData::SetupAuthData(
 		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
 }
 
-GkAuthenticator::SetupAuthData& GkAuthenticator::SetupAuthData::operator=(const SetupAuthData& obj)
+SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 {
 	m_rejectReason = obj.m_rejectReason;
 	m_rejectCause = obj.m_rejectCause;
@@ -178,41 +178,41 @@ GkAuthenticator::SetupAuthData& GkAuthenticator::SetupAuthData::operator=(const 
 	return *this;
 }
 
-GkAuthenticator::SetupAuthData::~SetupAuthData()
+SetupAuthData::~SetupAuthData()
 {
 	delete m_routeToAlias;
 	delete m_routeToIP;
 }
 
-void GkAuthenticator::SetupAuthData::SetRouteToAlias(H225_AliasAddress* alias)
+void SetupAuthData::SetRouteToAlias(H225_AliasAddress* alias)
 {
 	delete m_routeToAlias;
 	m_routeToAlias = alias;
 }
 
-void GkAuthenticator::SetupAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
+void SetupAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
 {
 	SetRouteToAlias(new H225_AliasAddress(alias));
 }
 
-void GkAuthenticator::SetupAuthData::SetRouteToAlias(const PString& alias, int tag)
+void SetupAuthData::SetRouteToAlias(const PString& alias, int tag)
 {
 	SetRouteToAlias(new H225_AliasAddress);
 	H323SetAliasAddress(alias, *m_routeToAlias, tag);
 }
 
-void GkAuthenticator::SetupAuthData::SetRouteToIP(H225_TransportAddress* addr)
+void SetupAuthData::SetRouteToIP(H225_TransportAddress* addr)
 {
 	delete m_routeToIP;
 	m_routeToIP = addr;
 }
 
-void GkAuthenticator::SetupAuthData::SetRouteToIP(const H225_TransportAddress& addr)
+void SetupAuthData::SetRouteToIP(const H225_TransportAddress& addr)
 {
 	SetRouteToIP(new H225_TransportAddress(addr));
 }
 
-void GkAuthenticator::SetupAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
+void SetupAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
 {
 	SetRouteToIP(new H225_TransportAddress(
 		SocketToH225TransportAddr(addr, port ? port : GK_DEF_ENDPOINT_SIGNAL_PORT)
@@ -348,7 +348,7 @@ int GkAuthenticator::Check(
 	/// a request to be authenticated
 	RasPDU<H225_RegistrationRequest>& /*request*/,
 	/// authorization data (reject reason, ...)
-	GkAuthenticator::RRQAuthData& /*authData*/
+	RRQAuthData& /*authData*/
 	)
 {
 	return IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag) 
@@ -365,7 +365,7 @@ int GkAuthenticator::Check(
 	/// a request to be authenticated
 	RasPDU<H225_AdmissionRequest>& /*req*/,
 	/// authorization data (call duration limit, reject reason, ...)
-	GkAuthenticator::ARQAuthData& /*authData*/
+	ARQAuthData& /*authData*/
 	)
 {
 	return IsRasCheckEnabled(RasInfo<H225_AdmissionRequest>::flag) 
@@ -499,7 +499,7 @@ PString GkAuthenticator::GetUsername(
 	/// ARQ message with additional data
 	const RasPDU<H225_AdmissionRequest>& request,
 	/// additional data
-	GkAuthenticator::ARQAuthData& authData
+	ARQAuthData& authData
 	) const
 {
 	const H225_AdmissionRequest& arq = request;
@@ -566,7 +566,7 @@ PString GkAuthenticator::GetUsername(
 	/// Setup-UUIE element extracted from the Q.931 Setup message
 	const H225_Setup_UUIE& setup,
 	/// additional data
-	GkAuthenticator::SetupAuthData& authData
+	SetupAuthData& authData
 	) const
 {
 	const bool hasCall = authData.m_call.operator->() != NULL;
@@ -651,59 +651,10 @@ PString GkAuthenticator::GetCallingStationId(
 	/// ARQ message with additional data
 	const RasPDU<H225_AdmissionRequest>& request,
 	/// additional data
-	GkAuthenticator::ARQAuthData& authData
+	ARQAuthData& authData
 	) const
 {
-	if (!authData.m_callingStationId)
-		return authData.m_callingStationId;
-		
-	const H225_AdmissionRequest& arq = request;
-	const bool hasCall = authData.m_call.operator->() != NULL;
-	PString id;
-
-	// Calling-Station-Id
-	if (!arq.m_answerCall) // srcInfo is meaningful only in an originating ARQ
-		id = GetBestAliasAddressString(arq.m_srcInfo, false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-	else if (hasCall)
-		id = authData.m_call->GetCallingStationId();
-
-	if (!id)
-		return id;
-		
-	if (id.IsEmpty() && hasCall)
-		id = GetBestAliasAddressString(authData.m_call->GetSourceAddress(), false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (id.IsEmpty() && authData.m_requestingEP && !arq.m_answerCall)
-		id = GetBestAliasAddressString(
-			authData.m_requestingEP->GetAliases(), false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-			
-	if (id.IsEmpty() && arq.m_answerCall && hasCall) {
-		const endptr callingEP = authData.m_call->GetCallingParty();
-		if (callingEP)
-			id = GetBestAliasAddressString(
-				callingEP->GetAliases(), false,
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
-	}
-				
-	if (id.IsEmpty() && hasCall) {
-		PIPSocket::Address addr(0);
-		WORD port = 0;
-		if (authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid())
-			id = AsString(addr, port);
-	}
-	
-	return id;
+	return authData.m_callingStationId;
 }
 
 PString GkAuthenticator::GetCallingStationId(
@@ -712,114 +663,20 @@ PString GkAuthenticator::GetCallingStationId(
 	/// Setup-UUIE element extracted from the Q.931 Setup message
 	const H225_Setup_UUIE& setup,
 	/// additional data
-	GkAuthenticator::SetupAuthData& authData
+	SetupAuthData& authData
 	) const
 {
-	if (!authData.m_callingStationId)
-		return authData.m_callingStationId;
-
-	const bool hasCall = authData.m_call.operator->() != NULL;		
-	PString id;
-	
-	if (hasCall)
-		id = authData.m_call->GetCallingStationId();
-
-	if (id.IsEmpty())
-		q931pdu.GetCallingPartyNumber(id);
-	
-	if (!id)
-		return id;
-
-	if (id.IsEmpty() && setup.HasOptionalField(setup.e_sourceAddress)) 
-		id = GetBestAliasAddressString(setup.m_sourceAddress, false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (hasCall) {
-		if (id.IsEmpty())
-			id = GetBestAliasAddressString(
-				authData.m_call->GetSourceAddress(), false,
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
-
-		if (id.IsEmpty()) {
-			const endptr callingEP = authData.m_call->GetCallingParty();
-			if (callingEP)
-				id = GetBestAliasAddressString(callingEP->GetAliases(), false,
-					AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-						| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-					);
-		}
-	}
-	
-	return id;
+	return authData.m_callingStationId;
 }
 
 PString GkAuthenticator::GetCalledStationId(
 	/// ARQ message with additional data
 	const RasPDU<H225_AdmissionRequest>& request,
 	/// additional data
-	GkAuthenticator::ARQAuthData& authData
+	ARQAuthData& authData
 	) const
 {
-	if (!authData.m_calledStationId)
-		return authData.m_calledStationId;
-
-	const H225_AdmissionRequest& arq = request;
-	const bool hasCall = authData.m_call.operator->() != NULL;
-	PString id;
-				
-	if (!arq.m_answerCall) {
-		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
-	} else if (hasCall)
-		id = authData.m_call->GetCalledStationId();
-
-	if (!id)
-		return id;
-
-	if (id.IsEmpty() && hasCall)
-		id = GetBestAliasAddressString(
-			authData.m_call->GetDestinationAddress(), false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (id.IsEmpty() && arq.m_answerCall) {
-		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
-
-		if (id.IsEmpty() && authData.m_requestingEP)
-			id = GetBestAliasAddressString(
-				authData.m_requestingEP->GetAliases(), false,
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
-
-		PIPSocket::Address addr;
-		if (id.IsEmpty() && authData.m_requestingEP
-			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr) 
-			&& addr.IsValid())
-			id = addr.AsString();
-	}
-		
-	// this does not work well in routed mode, when destCallSignalAddress
-	// is usually the gatekeeper address
-	if (id.IsEmpty() 
-		&& arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-		const H225_TransportAddress& tsap = arq.m_destCallSignalAddress;
-		id = AsDotString(tsap);
-	}
-	
-	return id;
+	return authData.m_calledStationId;
 }
 
 PString GkAuthenticator::GetCalledStationId(
@@ -828,108 +685,20 @@ PString GkAuthenticator::GetCalledStationId(
 	/// Setup-UUIE element extracted from the Q.931 Setup message
 	const H225_Setup_UUIE& setup,
 	/// additional data
-	GkAuthenticator::SetupAuthData& authData
+	SetupAuthData& authData
 	) const
 {
-	if (!authData.m_calledStationId)
-		return authData.m_calledStationId;
-		
-	const bool hasCall = authData.m_call.operator->() != NULL;
-	PString id;
-	
-	if (hasCall)
-		id = authData.m_call->GetCalledStationId();
-
-	if (id.IsEmpty())
-		q931pdu.GetCalledPartyNumber(id);
-	
-	if (!id)
-		return id;
-		
-	if (id.IsEmpty() && setup.HasOptionalField(setup.e_destinationAddress))
-		id = GetBestAliasAddressString(setup.m_destinationAddress, false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (id.IsEmpty() && hasCall)
-		id = GetBestAliasAddressString(
-			authData.m_call->GetDestinationAddress(), false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (id.IsEmpty()) {
-		PIPSocket::Address addr;
-		WORD port = 0;
-		if (hasCall && authData.m_call->GetDestSignalAddr(addr, port))
-			id = AsString(addr, port);
-		// this does not work well in routed mode, when destCallSignalAddress
-		// is usually the gatekeeper address
-		else if (setup.HasOptionalField(setup.e_destCallSignalAddress) 
-			&& GetIPAndPortFromTransportAddr(setup.m_destCallSignalAddress, addr, port) 
-			&& addr.IsValid())
-			id = AsString(addr, port);
-	}
-	
-	return id;
+	return authData.m_calledStationId;
 }
 
 PString GkAuthenticator::GetDialedNumber(
 	/// ARQ message with additional data
 	const RasPDU<H225_AdmissionRequest>& request,
 	/// additional data
-	GkAuthenticator::ARQAuthData& authData,
-	/// extract dialed number, if it is not set yet
-	bool generateNumber
+	ARQAuthData& authData
 	) const
 {
-	if (!authData.m_dialedNumber)
-		return authData.m_dialedNumber;
-
-	PString id;
-	const bool hasCall = authData.m_call.operator->() != NULL;
-	
-	if (hasCall)
-		id = authData.m_call->GetDialedNumber();
-		
-	if (!generateNumber)
-		return id;
-		
-	const H225_AdmissionRequest& arq = request;
-				
-	if (!arq.m_answerCall && arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-		id = GetBestAliasAddressString(arq.m_destinationInfo, false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (!id)
-		return id;
-
-	if (id.IsEmpty() && hasCall)
-		id = GetBestAliasAddressString(
-			authData.m_call->GetDestinationAddress(), false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (id.IsEmpty() && arq.m_answerCall) {
-		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
-
-		if (id.IsEmpty() && authData.m_requestingEP)
-			id = GetBestAliasAddressString(
-				authData.m_requestingEP->GetAliases(), false,
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
-	}
-		
-	return id;
+	return authData.m_dialedNumber;
 }
 
 PString GkAuthenticator::GetDialedNumber(
@@ -938,46 +707,10 @@ PString GkAuthenticator::GetDialedNumber(
 	/// Setup-UUIE element extracted from the Q.931 Setup message
 	const H225_Setup_UUIE& setup,
 	/// additional data
-	GkAuthenticator::SetupAuthData& authData,
-	/// extract dialed number, if it is not set yet
-	bool generateNumber
+	SetupAuthData& authData
 	) const
 {
-	if (!authData.m_dialedNumber)
-		return authData.m_dialedNumber;
-		
-	PString id;
-	const bool hasCall = authData.m_call.operator->() != NULL;
-	
-	if (!generateNumber) {
-		if (hasCall)
-			id = authData.m_call->GetCalledStationId();
-		return id;
-	}
-
-	if (id.IsEmpty())
-		q931pdu.GetCalledPartyNumber(id);
-	
-	if (!id)
-		return id;
-		
-	if (id.IsEmpty() && setup.HasOptionalField(setup.e_destinationAddress))
-		id = GetBestAliasAddressString(setup.m_destinationAddress, false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	if (id.IsEmpty() && hasCall)
-		id = authData.m_call->GetDialedNumber();
-		
-	if (id.IsEmpty() && hasCall)
-		id = GetBestAliasAddressString(
-			authData.m_call->GetDestinationAddress(), false,
-			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
-
-	return id;
+	return authData.m_dialedNumber;
 }
 
 
@@ -1234,7 +967,7 @@ bool GkAuthenticatorList::Validate(
 	/// RRQ to be validated by authenticators
 	RasPDU<H225_RegistrationRequest>& request,
 	/// authorization data (reject reason, ...)
-	GkAuthenticator::RRQAuthData& authData
+	RRQAuthData& authData
 	)
 {
 	ReadLock lock(m_reloadMutex);
@@ -1260,7 +993,7 @@ bool GkAuthenticatorList::Validate(
 	/// ARQ to be validated by authenticators
 	RasPDU<H225_AdmissionRequest>& request,
 	/// authorization data (call duration limit, reject reason, ...)
-	GkAuthenticator::ARQAuthData& authData
+	ARQAuthData& authData
 	)
 {
 	ReadLock lock(m_reloadMutex);
@@ -1303,7 +1036,7 @@ bool GkAuthenticatorList::Validate(
 	///  H.225.0 Setup UUIE decoded from Q.931 SETUP
 	H225_Setup_UUIE& setup, 
 	/// authorization data (call duration limit, reject reason, ...)
-	GkAuthenticator::SetupAuthData& authData
+	SetupAuthData& authData
 	)
 {
 	ReadLock lock(m_reloadMutex);
@@ -1431,7 +1164,7 @@ int SimplePasswordAuth::Check(RasPDU<H225_GatekeeperRequest> & request, unsigned
 
 int SimplePasswordAuth::Check(
 	RasPDU<H225_RegistrationRequest> & request, 
-	GkAuthenticator::RRQAuthData& /*authData*/
+	RRQAuthData& /*authData*/
 	)
 {
 	H225_RegistrationRequest& rrq = request;
@@ -1470,7 +1203,7 @@ int SimplePasswordAuth::Check(
 	/// ARQ to be authenticated/authorized
 	RasPDU<H225_AdmissionRequest>& request, 
 	/// authorization data (call duration limit, reject reason, ...)
-	GkAuthenticator::ARQAuthData& /*authData*/
+	ARQAuthData& /*authData*/
 	)
 {
 	H225_AdmissionRequest& arq = request;
@@ -1736,7 +1469,7 @@ AliasAuth::~AliasAuth()
 
 int AliasAuth::Check(
 	RasPDU<H225_RegistrationRequest>& request,
-	GkAuthenticator::RRQAuthData& /*authData*/
+	RRQAuthData& /*authData*/
 	)
 {
 	H225_RegistrationRequest& rrq = request;
@@ -2348,7 +2081,7 @@ int PrefixAuth::Check(
 	/// ARQ to be authenticated/authorized
 	RasPDU<H225_AdmissionRequest>& request, 
 	/// authorization data (call duration limit, reject reason, ...)
-	GkAuthenticator::ARQAuthData& /*authData*/
+	ARQAuthData& /*authData*/
 	)
 {
 	H225_AdmissionRequest& arq = request;

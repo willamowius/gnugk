@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.24  2004/11/15 23:57:42  zvision
+ * Ability to choose between the original and the rewritten dialed number
+ *
  * Revision 1.23  2004/11/03 10:40:17  zvision
  * Add/remove RRQ aliases using h323-ivr-in=terminal-alias Cisco AV-Pair attr
  *
@@ -454,7 +457,7 @@ int RadAuthBase::Check(
 	/// ARQ nessage to be authenticated
 	RasPDU<H225_AdmissionRequest> & arqPdu, 
 	/// authorization data (call duration limit, reject reason, ...)
-	GkAuthenticator::ARQAuthData& authData
+	ARQAuthData& authData
 	)
 {
 	H225_AdmissionRequest& arq = (H225_AdmissionRequest&)arqPdu;
@@ -550,17 +553,10 @@ int RadAuthBase::Check(
 	PString stationId = GetCallingStationId(arqPdu, authData);
 	if (!stationId) {
 		pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
-		if (authData.m_callingStationId.IsEmpty())
-			authData.m_callingStationId = stationId;
 	}
 
 	const PString dialedNumber = GetDialedNumber(arqPdu, authData);
 	const PString calledStationId = GetCalledStationId(arqPdu, authData);
-	
-	if (authData.m_calledStationId.IsEmpty())
-		authData.m_calledStationId = calledStationId;
-	if (authData.m_dialedNumber.IsEmpty())
-		authData.m_dialedNumber = dialedNumber;
 	
 	stationId = m_useDialedNumber ? dialedNumber : calledStationId;
 	if (stationId.IsEmpty()) {
@@ -778,7 +774,7 @@ int RadAuthBase::Check(
 int RadAuthBase::Check(
 	Q931& q931pdu,
 	H225_Setup_UUIE& setup,
-	GkAuthenticator::SetupAuthData& authData
+	SetupAuthData& authData
 	)
 {
 	// build RADIUS Access-Request packet
@@ -846,18 +842,11 @@ int RadAuthBase::Check(
 	PString stationId = GetCallingStationId(q931pdu, setup, authData);
 	if (!stationId) {
 		pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
-		if (authData.m_callingStationId.IsEmpty())
-			authData.m_callingStationId = stationId;
 	}
 
 	const PString calledStationId = GetCalledStationId(q931pdu, setup, authData);
 	const PString dialedNumber = GetDialedNumber(q931pdu, setup, authData);
 
-	if (authData.m_calledStationId.IsEmpty())
-		authData.m_calledStationId = calledStationId;
-	if (authData.m_dialedNumber.IsEmpty())
-		authData.m_dialedNumber = dialedNumber;
-	
 	stationId = m_useDialedNumber ? dialedNumber : calledStationId;
 	if (stationId.IsEmpty()) {
 		delete pdu;
@@ -1017,7 +1006,7 @@ int RadAuthBase::Check(
 bool RadAuthBase::OnSendPDU(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	GkAuthenticator::RRQAuthData& /*authData*/
+	RRQAuthData& /*authData*/
 	)
 {
 	return true;
@@ -1026,7 +1015,7 @@ bool RadAuthBase::OnSendPDU(
 bool RadAuthBase::OnSendPDU(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_AdmissionRequest>& /*arqPdu*/,
-	GkAuthenticator::ARQAuthData& /*authData*/
+	ARQAuthData& /*authData*/
 	)
 {
 	return true;
@@ -1036,7 +1025,7 @@ bool RadAuthBase::OnSendPDU(
 	RadiusPDU& /*pdu*/,
 	Q931& /*q931pdu*/,
 	H225_Setup_UUIE& /*setup*/,
-	GkAuthenticator::SetupAuthData& /*authData*/
+	SetupAuthData& /*authData*/
 	)
 {
 	return true;
@@ -1045,7 +1034,7 @@ bool RadAuthBase::OnSendPDU(
 bool RadAuthBase::OnReceivedPDU(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	GkAuthenticator::RRQAuthData& /*authData*/
+	RRQAuthData& /*authData*/
 	)
 {
 	return true;
@@ -1054,7 +1043,7 @@ bool RadAuthBase::OnReceivedPDU(
 bool RadAuthBase::OnReceivedPDU(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_AdmissionRequest>& /*arqPdu*/,
-	GkAuthenticator::ARQAuthData& /*authData*/
+	ARQAuthData& /*authData*/
 	)
 {
 	return true;
@@ -1064,7 +1053,7 @@ bool RadAuthBase::OnReceivedPDU(
 	RadiusPDU& /*pdu*/,
 	Q931& /*q931pdu*/,
 	H225_Setup_UUIE& /*setup*/,
-	GkAuthenticator::SetupAuthData& /*authData*/
+	SetupAuthData& /*authData*/
 	)
 {
 	return true;
@@ -1073,7 +1062,7 @@ bool RadAuthBase::OnReceivedPDU(
 int RadAuthBase::AppendUsernameAndPassword(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	GkAuthenticator::RRQAuthData& /*authData*/,
+	RRQAuthData& /*authData*/,
 	PString* /*username*/
 	) const
 {
@@ -1083,7 +1072,7 @@ int RadAuthBase::AppendUsernameAndPassword(
 int RadAuthBase::AppendUsernameAndPassword(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_AdmissionRequest>& /*arqPdu*/,
-	GkAuthenticator::ARQAuthData& /*authData*/,
+	ARQAuthData& /*authData*/,
 	PString* /*username*/
 	) const
 {
@@ -1095,7 +1084,7 @@ int RadAuthBase::AppendUsernameAndPassword(
 	Q931& /*q931pdu*/,
 	H225_Setup_UUIE& /*setup*/,
 	endptr& /*callingEP*/,
-	GkAuthenticator::SetupAuthData& /*authData*/,
+	SetupAuthData& /*authData*/,
 	PString* /*username*/
 	) const
 {
@@ -1197,7 +1186,7 @@ int RadAuth::CheckTokens(
 int RadAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_RegistrationRequest>& rrqPdu,
-	GkAuthenticator::RRQAuthData& authData,
+	RRQAuthData& authData,
 	PString* username
 	) const
 {
@@ -1230,7 +1219,7 @@ int RadAuth::AppendUsernameAndPassword(
 int RadAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_AdmissionRequest>& arqPdu,
-	GkAuthenticator::ARQAuthData& authData,
+	ARQAuthData& authData,
 	PString* username
 	) const
 {
@@ -1256,7 +1245,7 @@ int RadAuth::AppendUsernameAndPassword(
 	Q931& /*q931pdu*/,
 	H225_Setup_UUIE& setup,
 	endptr& /*callingEP*/,
-	GkAuthenticator::SetupAuthData& authData,
+	SetupAuthData& authData,
 	PString* username
 	) const
 {
@@ -1294,7 +1283,7 @@ RadAliasAuth::~RadAliasAuth()
 int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_RegistrationRequest>& rrqPdu, 
-	GkAuthenticator::RRQAuthData& authData,
+	RRQAuthData& authData,
 	PString* username
 	) const
 {
@@ -1329,7 +1318,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_AdmissionRequest>& arqPdu,
-	GkAuthenticator::ARQAuthData& authData,
+	ARQAuthData& authData,
 	PString* username
 	) const
 {
@@ -1365,7 +1354,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	Q931& q931pdu, 
 	H225_Setup_UUIE& setup,
 	endptr& /*callingEP*/,
-	GkAuthenticator::SetupAuthData& authData,
+	SetupAuthData& authData,
 	PString* username
 	) const
 {

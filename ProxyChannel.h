@@ -115,6 +115,8 @@ private:
 	BYTE *bufptr;
 };
 
+struct SetupAuthData;
+
 class CallSignalSocket : public TCPProxySocket {
 public:
 	CallSignalSocket();
@@ -203,6 +205,30 @@ private:
 	// if return false, the h245Address field will be removed
 	bool SetH245Address(H225_TransportAddress &);
 	bool InternalConnectTo();
+
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	PString GetCallingStationId(
+		/// Q.931 Setup message with additional data
+		const Q931& q931pdu,
+		/// Setup-UUIE element extracted from the Q.931 Setup message
+		const H225_Setup_UUIE& setup,
+		/// additional data
+		SetupAuthData& authData
+		) const;
+
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	PString GetCalledStationId(
+		/// Q.931 Setup message with additional data
+		const Q931& q931pdu,
+		/// Setup-UUIE element extracted from the Q.931 Setup message
+		const H225_Setup_UUIE& setup,
+		/// additional data
+		SetupAuthData& authData
+		) const;
 
 	WORD m_crv;
 	H245Handler *m_h245handler;

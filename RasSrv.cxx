@@ -86,6 +86,22 @@ private:
 	};
 	bool BuildReply(int);
 
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	PString GetCallingStationId(
+		/// additional data, like call record and requesting endpoint
+		ARQAuthData& authData
+		) const;
+
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	PString GetCalledStationId(
+		/// additional data, like call record and requesting endpoint
+		ARQAuthData& authData
+		) const;
+
 	endptr RequestingEP, CalledEP;
 	PString destinationString;
 };
@@ -1431,7 +1447,7 @@ bool RegistrationRequestPDU::Process()
 			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
 	}
 
-	GkAuthenticator::RRQAuthData authData;
+	RRQAuthData authData;
 	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 	if (!RasSrv->ValidatePDU(*this, authData))
 		return BuildRRJ(authData.m_rejectReason);
@@ -1660,6 +1676,126 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	return bShellSendReply;
 }
 
+PString AdmissionRequestPDU::GetCallingStationId(
+	/// additional data
+	ARQAuthData& authData
+	) const
+{
+	if (!authData.m_callingStationId)
+		return authData.m_callingStationId;
+		
+	const H225_AdmissionRequest& arq = request;
+	const bool hasCall = authData.m_call.operator->() != NULL;
+	PString id;
+
+	// Calling-Station-Id
+	if (!arq.m_answerCall) // srcInfo is meaningful only in an originating ARQ
+		id = GetBestAliasAddressString(arq.m_srcInfo, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+	else if (hasCall)
+		id = authData.m_call->GetCallingStationId();
+
+	if (!id)
+		return id;
+		
+	if (id.IsEmpty() && hasCall)
+		id = GetBestAliasAddressString(authData.m_call->GetSourceAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && authData.m_requestingEP && !arq.m_answerCall)
+		id = GetBestAliasAddressString(
+			authData.m_requestingEP->GetAliases(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+			
+	if (id.IsEmpty() && arq.m_answerCall && hasCall) {
+		const endptr callingEP = authData.m_call->GetCallingParty();
+		if (callingEP)
+			id = GetBestAliasAddressString(
+				callingEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	}
+				
+	if (id.IsEmpty() && hasCall) {
+		PIPSocket::Address addr(0);
+		WORD port = 0;
+		if (authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid())
+			id = AsString(addr, port);
+	}
+	
+	return id;
+}
+
+PString AdmissionRequestPDU::GetCalledStationId(
+	/// additional data
+	ARQAuthData& authData
+	) const
+{
+	if (!authData.m_calledStationId)
+		return authData.m_calledStationId;
+
+	const H225_AdmissionRequest& arq = request;
+	const bool hasCall = authData.m_call.operator->() != NULL;
+	PString id;
+				
+	if (!arq.m_answerCall) {
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	} else if (hasCall)
+		id = authData.m_call->GetCalledStationId();
+
+	if (!id)
+		return id;
+
+	if (id.IsEmpty() && hasCall)
+		id = GetBestAliasAddressString(
+			authData.m_call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && arq.m_answerCall) {
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		if (id.IsEmpty() && authData.m_requestingEP)
+			id = GetBestAliasAddressString(
+				authData.m_requestingEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		PIPSocket::Address addr;
+		if (id.IsEmpty() && authData.m_requestingEP
+			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr) 
+			&& addr.IsValid())
+			id = addr.AsString();
+	}
+		
+	// this does not work well in routed mode, when destCallSignalAddress
+	// is usually the gatekeeper address
+	if (id.IsEmpty() 
+		&& arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+		const H225_TransportAddress& tsap = arq.m_destCallSignalAddress;
+		id = AsDotString(tsap);
+	}
+	
+	return id;
+}
+
 bool AdmissionRequestPDU::Process()
 {
 	// OnARQ
@@ -1687,7 +1823,7 @@ bool AdmissionRequestPDU::Process()
 		// since callIdentifier is optional, we might have to look for the callReferenceValue as well
 		CallTbl->FindCallRec(request.m_callReferenceValue);
 
-	GkAuthenticator::ARQAuthData authData(RequestingEP, pExistingCallRec);
+	ARQAuthData authData(RequestingEP, pExistingCallRec);
 
 	if (answer && pExistingCallRec)
 		authData.m_dialedNumber = pExistingCallRec->GetDialedNumber();
@@ -1732,6 +1868,9 @@ bool AdmissionRequestPDU::Process()
 		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
 		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
 
+	authData.m_callingStationId = GetCallingStationId(authData);
+	authData.m_calledStationId = GetCalledStationId(authData);
+	
 	if (!RasSrv->ValidatePDU(*this, authData)) {
 		if (authData.m_rejectReason < 0)
 			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;

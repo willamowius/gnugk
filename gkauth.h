@@ -56,6 +56,130 @@ typedef SmartPtr<CallRec> callptr;
 template<class> class RasPDU;
 template<class> struct RasInfo;
 
+/// Data read/written during RRQ processing by all configured 
+/// authenticator modules
+struct RRQAuthData
+{
+	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1) {}
+		
+	/// -1 if not set, H225_RegistrationRejectReason enum otherwise
+	int m_rejectReason;
+	/// optional user's account balance amount string
+	PString m_amountString;
+	/// H225_CallCreditServiceControl_billingMode or -1, if not defined
+	int m_billingMode;
+};
+
+/// Data read/written during ARQ processing by all configured 
+/// authenticator modules
+struct ARQAuthData
+{
+	ARQAuthData(
+		const ARQAuthData& obj
+		);
+	ARQAuthData(
+		const endptr& ep,
+		const callptr& call
+		);
+	~ARQAuthData();
+		
+	ARQAuthData& operator=(const ARQAuthData& obj);
+		
+	void SetRouteToAlias(H225_AliasAddress* alias);
+	void SetRouteToAlias(const H225_AliasAddress& alias);
+	void SetRouteToAlias(const PString& alias, int tag = -1);
+	void SetRouteToIP(H225_TransportAddress* addr);
+	void SetRouteToIP(const H225_TransportAddress& addr);
+	void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
+		
+	/// -1 if not set, H225_AdmissionRejectReason enum otherwise
+	int m_rejectReason;
+	/// -1 if not set, max allowe call duration in seconds otherwise
+	long m_callDurationLimit;
+	/// endpoint that sent the request
+	endptr m_requestingEP;
+	/// call associated with the request (if any, only for answering ARQ)
+	callptr m_call;
+	/// input/output - set or get Calling-Station-Id
+	PString m_callingStationId;		
+	/// input/output - set or get Called-Station-Id
+	PString m_calledStationId;
+	/// number dialed by the user (Called-Station-Id before rewrite)
+	PString m_dialedNumber;
+	/// optional user's account balance amount string
+	PString m_amountString;
+	/// H225_CallCreditServiceControl_billingMode or -1, if not defined
+	int m_billingMode;
+	/// if not NULL, route the call to the specified alias
+	H225_AliasAddress* m_routeToAlias;
+	/// if not NULL, route the call to the specified IP
+	H225_TransportAddress* m_routeToIP;
+	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
+	int m_proxyMode;
+		
+private:
+	ARQAuthData();
+};
+	
+/// Data read/written during Q.931/H.225.0 Setup processing 
+/// by all authenticators
+struct SetupAuthData
+{
+	SetupAuthData(
+		const SetupAuthData& obj
+		);
+	SetupAuthData(
+		/// call associated with the message (if any)
+		const callptr& call,
+		/// is the Setup message from a registered endpoint
+		bool fromRegistered,
+		/// an IP address the Setup message has been received from
+		PIPSocket::Address addr,
+		/// a port number the Setup message has been received from
+		WORD port
+		);
+	~SetupAuthData();
+		
+	SetupAuthData& operator=(const SetupAuthData& obj);
+	
+	void SetRouteToAlias(H225_AliasAddress* alias);
+	void SetRouteToAlias(const H225_AliasAddress& alias);
+	void SetRouteToAlias(const PString& alias, int tag = -1);
+	void SetRouteToIP(H225_TransportAddress* addr);
+	void SetRouteToIP(const H225_TransportAddress& addr);
+	void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
+
+	/// -1 if not set, H225_ReleaseCompleteReason enum otherwise
+	int m_rejectReason;
+	/// -1 if not set, Q931 cause value otherwise
+	int m_rejectCause;
+	/// -1 if not set, max allowe call duration in seconds otherwise
+	long m_callDurationLimit;
+	/// call associated with the message (if any)
+	callptr m_call;
+	/// is the Setup message from a registered endpoint
+	bool m_fromRegistered;
+	/// an IP address the Setup message has been received from
+	PIPSocket::Address m_peerAddr;
+	/// a port number the Setup message has been received from
+	WORD m_peerPort;
+	/// input/output - set or get Calling-Station-Id
+	PString m_callingStationId;		
+	/// input/output - set or get Called-Station-Id
+	PString m_calledStationId;
+	/// number dialed by the user (Called-Station-Id before rewrite)
+	PString m_dialedNumber;
+	/// if not NULL, route the call to the specified alias
+	H225_AliasAddress* m_routeToAlias;
+	/// if not NULL, route the call to the specified IP
+	H225_TransportAddress* m_routeToIP;
+	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
+	int m_proxyMode;
+		
+private:
+	SetupAuthData();
+};
+
 /** The base class for all authenticator modules. Authenticator modules
     are used to authenticate/authorized RAS and Q.931 messages sent 
     by endpoints and to check if the endpoints are authorized to use 
@@ -99,129 +223,6 @@ public:
 		e_SetupUnreg = 0x0002 /// Q.931/H.225 Setup message only from an unregistered endpoint
 	};
 
-	/// Data read/written during RRQ processing by all configured 
-	/// authenticator modules
-	struct RRQAuthData
-	{
-		RRQAuthData() : m_rejectReason(-1), m_billingMode(-1) {}
-		
-		/// -1 if not set, H225_RegistrationRejectReason enum otherwise
-		int m_rejectReason;
-		/// optional user's account balance amount string
-		PString m_amountString;
-		/// H225_CallCreditServiceControl_billingMode or -1, if not defined
-		int m_billingMode;
-	};
-
-	/// Data read/written during ARQ processing by all configured 
-	/// authenticator modules
-	struct ARQAuthData
-	{
-		ARQAuthData(
-			const ARQAuthData& obj
-			);
-		ARQAuthData(
-			const endptr& ep,
-			const callptr& call
-			);
-		~ARQAuthData();
-		
-		ARQAuthData& operator=(const ARQAuthData& obj);
-		
-		void SetRouteToAlias(H225_AliasAddress* alias);
-		void SetRouteToAlias(const H225_AliasAddress& alias);
-		void SetRouteToAlias(const PString& alias, int tag = -1);
-		void SetRouteToIP(H225_TransportAddress* addr);
-		void SetRouteToIP(const H225_TransportAddress& addr);
-		void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
-		
-		/// -1 if not set, H225_AdmissionRejectReason enum otherwise
-		int m_rejectReason;
-		/// -1 if not set, max allowe call duration in seconds otherwise
-		long m_callDurationLimit;
-		/// endpoint that sent the request
-		endptr m_requestingEP;
-		/// call associated with the request (if any, only for answering ARQ)
-		callptr m_call;
-		/// input/output - set or get Calling-Station-Id
-		PString m_callingStationId;		
-		/// input/output - set or get Called-Station-Id
-		PString m_calledStationId;
-		/// number dialed by the user (Called-Station-Id before rewrite)
-		PString m_dialedNumber;
-		/// optional user's account balance amount string
-		PString m_amountString;
-		/// H225_CallCreditServiceControl_billingMode or -1, if not defined
-		int m_billingMode;
-		/// if not NULL, route the call to the specified alias
-		H225_AliasAddress* m_routeToAlias;
-		/// if not NULL, route the call to the specified IP
-		H225_TransportAddress* m_routeToIP;
-		/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
-		int m_proxyMode;
-		
-	private:
-		ARQAuthData();
-	};
-	
-	/// Data read/written during Q.931/H.225.0 Setup processing 
-	/// by all authenticators
-	struct SetupAuthData
-	{
-		SetupAuthData(
-			const SetupAuthData& obj
-			);
-		SetupAuthData(
-			/// call associated with the message (if any)
-			const callptr& call,
-			/// is the Setup message from a registered endpoint
-			bool fromRegistered,
-			/// an IP address the Setup message has been received from
-			PIPSocket::Address addr,
-			/// a port number the Setup message has been received from
-			WORD port
-			);
-		~SetupAuthData();
-		
-		SetupAuthData& operator=(const SetupAuthData& obj);
-	
-		void SetRouteToAlias(H225_AliasAddress* alias);
-		void SetRouteToAlias(const H225_AliasAddress& alias);
-		void SetRouteToAlias(const PString& alias, int tag = -1);
-		void SetRouteToIP(H225_TransportAddress* addr);
-		void SetRouteToIP(const H225_TransportAddress& addr);
-		void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
-
-		/// -1 if not set, H225_ReleaseCompleteReason enum otherwise
-		int m_rejectReason;
-		/// -1 if not set, Q931 cause value otherwise
-		int m_rejectCause;
-		/// -1 if not set, max allowe call duration in seconds otherwise
-		long m_callDurationLimit;
-		/// call associated with the message (if any)
-		callptr m_call;
-		/// is the Setup message from a registered endpoint
-		bool m_fromRegistered;
-		/// an IP address the Setup message has been received from
-		PIPSocket::Address m_peerAddr;
-		/// a port number the Setup message has been received from
-		WORD m_peerPort;
-		/// input/output - set or get Calling-Station-Id
-		PString m_callingStationId;		
-		/// input/output - set or get Called-Station-Id
-		PString m_calledStationId;
-		/// number dialed by the user (Called-Station-Id before rewrite)
-		PString m_dialedNumber;
-		/// if not NULL, route the call to the specified alias
-		H225_AliasAddress* m_routeToAlias;
-		/// if not NULL, route the call to the specified IP
-		H225_TransportAddress* m_routeToIP;
-		/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
-		int m_proxyMode;
-		
-	private:
-		SetupAuthData();
-	};
 	
 
 	/** Build a new authenticator object with the given name.
@@ -439,9 +440,7 @@ protected:
 		/// ARQ message with additional data
 		const RasPDU<H225_AdmissionRequest>& request,
 		/// additional data
-		GkAuthenticator::ARQAuthData& authData,
-		/// extract dialed number, if it is not set yet
-		bool generateNumber = false
+		ARQAuthData& authData
 		) const;
 		
 	/// @return	Number actually dialed by the user (before rewrite)
@@ -451,9 +450,7 @@ protected:
 		/// Setup-UUIE element extracted from the Q.931 Setup message
 		const H225_Setup_UUIE& setup,
 		/// additional data
-		GkAuthenticator::SetupAuthData& authData,
-		/// extract dialed number, if it is not set yet
-		bool generateNumber = false
+		SetupAuthData& authData
 		) const;
 
 private:
@@ -868,7 +865,7 @@ public:
 		/// RRQ to be validated by authenticators
 		RasPDU<H225_RegistrationRequest>& request,
 		/// authorization data (reject reason, ...)
-		GkAuthenticator::RRQAuthData& authData
+		RRQAuthData& authData
 		);
 		
 	/** Authenticate and authorize (set call duration limit) ARQ 
@@ -881,7 +878,7 @@ public:
 		/// ARQ to be validated by authenticators
 		RasPDU<H225_AdmissionRequest>& request,
 		/// authorization data (call duration limit, reject reason, ...)
-		GkAuthenticator::ARQAuthData& authData
+		ARQAuthData& authData
 		);
 	
 	/** Authenticate and authorize (set call duration limit) Q.931/H.225 Setup 
@@ -896,7 +893,7 @@ public:
 		///  H.225.0 Setup UUIE decoded from Q.931 SETUP
 		H225_Setup_UUIE& setup, 
 		/// authorization data (call duration limit, reject reason, ...)
-		GkAuthenticator::SetupAuthData& authData
+		SetupAuthData& authData
 		);
 
 private:

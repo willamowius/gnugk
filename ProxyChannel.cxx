@@ -1095,6 +1095,109 @@ void CallSignalSocket::ForwardCall()
 	SetDeletable();
 }
 
+PString CallSignalSocket::GetCallingStationId(
+	/// Q.931 Setup message with additional data
+	const Q931& q931pdu,
+	/// Setup-UUIE element extracted from the Q.931 Setup message
+	const H225_Setup_UUIE& setup,
+	/// additional data
+	SetupAuthData& authData
+	) const
+{
+	if (!authData.m_callingStationId)
+		return authData.m_callingStationId;
+
+	const bool hasCall = authData.m_call.operator->() != NULL;		
+	PString id;
+	
+	q931pdu.GetCallingPartyNumber(id);
+
+	if (id.IsEmpty() && hasCall)
+		id = authData.m_call->GetCallingStationId();
+
+	
+	if (!id)
+		return id;
+
+	if (id.IsEmpty() && setup.HasOptionalField(setup.e_sourceAddress)) 
+		id = GetBestAliasAddressString(setup.m_sourceAddress, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (hasCall) {
+		if (id.IsEmpty())
+			id = GetBestAliasAddressString(
+				authData.m_call->GetSourceAddress(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		if (id.IsEmpty()) {
+			const endptr callingEP = authData.m_call->GetCallingParty();
+			if (callingEP)
+				id = GetBestAliasAddressString(callingEP->GetAliases(), false,
+					AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+						| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+					);
+		}
+	}
+	
+	return id;
+}
+
+PString CallSignalSocket::GetCalledStationId(
+	/// Q.931 Setup message with additional data
+	const Q931& q931pdu,
+	/// Setup-UUIE element extracted from the Q.931 Setup message
+	const H225_Setup_UUIE& setup,
+	/// additional data
+	SetupAuthData& authData
+	) const
+{
+	if (!authData.m_calledStationId)
+		return authData.m_calledStationId;
+		
+	const bool hasCall = authData.m_call.operator->() != NULL;
+	PString id;
+	
+	q931pdu.GetCalledPartyNumber(id);
+	
+	if (id.IsEmpty() && hasCall)
+		id = authData.m_call->GetCalledStationId();
+
+	if (!id)
+		return id;
+		
+	if (id.IsEmpty() && setup.HasOptionalField(setup.e_destinationAddress))
+		id = GetBestAliasAddressString(setup.m_destinationAddress, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && hasCall)
+		id = GetBestAliasAddressString(
+			authData.m_call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty()) {
+		PIPSocket::Address addr;
+		WORD port = 0;
+		if (hasCall && authData.m_call->GetDestSignalAddr(addr, port))
+			id = AsString(addr, port);
+		// this does not work well in routed mode, when destCallSignalAddress
+		// is usually the gatekeeper address
+		else if (setup.HasOptionalField(setup.e_destCallSignalAddress) 
+			&& GetIPAndPortFromTransportAddr(setup.m_destCallSignalAddress, addr, port) 
+			&& addr.IsValid())
+			id = AsString(addr, port);
+	}
+	
+	return id;
+}
+
 bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, PString &out_rewrite_id)
 {
 	// record the timestamp here since processing may take much time
@@ -1150,7 +1253,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
-	}	
+	}
 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 
@@ -1255,10 +1358,12 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 		m_call->SetSetupTime(setupTime);
 
-		GkAuthenticator::SetupAuthData authData(m_call, true, fromIP, fromPort);
+		SetupAuthData authData(m_call, true, fromIP, fromPort);
 		authData.m_dialedNumber = dialedNumber;
 		authData.SetRouteToAlias(m_call->GetRouteToAlias());
-
+		authData.m_callingStationId = GetCallingStationId(*m_lastQ931, Setup, authData);
+		authData.m_calledStationId = GetCalledStationId(*m_lastQ931, Setup, authData);
+		
 		// authenticate the call
 		if (!rejectCall && !RasSrv->ValidatePDU(*m_lastQ931, Setup, authData)) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
@@ -1311,8 +1416,10 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		if (rejectCall)
 			return false;
 	} else {
-		GkAuthenticator::SetupAuthData authData(m_call, false, fromIP, fromPort);
+		SetupAuthData authData(m_call, false, fromIP, fromPort);
 		authData.m_dialedNumber = dialedNumber;
+		authData.m_callingStationId = GetCallingStationId(*m_lastQ931, Setup, authData);
+		authData.m_calledStationId = GetCalledStationId(*m_lastQ931, Setup, authData);
 
 		if (!RasSrv->ValidatePDU(*m_lastQ931,Setup, authData)) {
 			PTRACE(4,"Q931\tDropping call from " << fromIP << ':' << fromPort
@@ -1413,8 +1520,6 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				}
 			}
 		}
-
-		// TODO: check the Setup_UUIE by gkauth modules
 
 		PString destinationString(Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) ? AsString(Setup.m_destinationAddress) : AsDotString(calledAddr));
 
