@@ -9,10 +9,10 @@ avoid duplicate work.
 - feature: make "browse up the LDAP tree for attributes not found in leaf" a
            configurable feature
 
-- fix: re-implement Status Enquiry pings
-  * implement per-destination configurable pings (honorsStatusEnquiry flag)
-  * add T309 (network timeout) and T322 (Status Enquiry) timer, too
-    (right now: interval = timeout)
+- feature: make DropCallsByReleaseComplete a per-endpoint option
+
+- fix: When receiving DRQ before Release Complete, generating DRQs and/or Release Complete
+       (dependant on DropCallsByReleaseComplete setting) "forgets" about cause codes
 
 - feature: implement blacklists (caller-, callee-dependant)
            The order that black- and whitelist entries are applied is defined
@@ -25,6 +25,9 @@ avoid duplicate work.
            configured to be used as the destination if one of their prefixes matches),
            just that they're contacted via LRQ before sending SETUP (unlike gateways
            which are directly sent a SETUP).
+	   Currently neighbours ar only queried if no other endpoint matches. That
+           prevents using trunk gateways with "catch-all" prefixes like 09 if 0900
+           shall be routed via a neighbour.
 
 - feature: implement metric based routing
 
