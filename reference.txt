@@ -448,6 +448,11 @@ The format is exactly as MySQLAuth, except the selected result
 is used as a specified pattern to match the IP of endpoint,
 as described in section [RasSrv::RRQAuth].
 
+CacheTimeout=100	Default: -1
+
+Timeout value in second to cache the result. See option
+PasswordTimeout in section [SimplePasswordAuth] for details.
+
 
 B.18 Section [GkAuthorize]
 

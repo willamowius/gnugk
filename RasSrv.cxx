@@ -297,7 +297,7 @@ PString NeighborList::NeighborPasswordAuth::GetPassword(const PString &)
 	return RasThread->GetNeighborsGK()->GetPassword();
 }
 
-static GkAuthInit<NeighborList::NeighborPasswordAuth> _NBA_("NeighborPasswordAuth");
+static GkAuthInit<NeighborList::NeighborPasswordAuth> N_B_A("NeighborPasswordAuth");
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
       : PThread(10000, NoAutoDeleteThread), requestSeqNum(0)

@@ -69,7 +69,7 @@ private:
 	virtual PString GetConfigString(const PString & alias) const;
 };
 
-static GkAuthInit<AliasAuth> _AA_("AliasAuth");
+static GkAuthInit<AliasAuth> A_A("AliasAuth");
 
 #ifdef HAS_MYSQL
 
@@ -86,7 +86,7 @@ private:
 	MySQLAuthBase *mysqlconn;
 };
 
-static GkAuthInit<MySQLPasswordAuth> _MPA_("MySQLPasswordAuth");
+static GkAuthInit<MySQLPasswordAuth> M_P_A("MySQLPasswordAuth");
 
 class MySQLAliasAuth : public AliasAuth {
 public:
@@ -97,9 +97,10 @@ private:
 	virtual PString GetConfigString(const PString & alias) const;
 
 	MySQLAuthBase *mysqlconn;
+	CacheManager *cache;
 };
 
-static GkAuthInit<MySQLAliasAuth> _MAA_("MySQLAliasAuth");
+static GkAuthInit<MySQLAliasAuth> M_A_A("MySQLAliasAuth");
 
 #endif // HAS_MYSQL
 
@@ -146,6 +147,46 @@ private:
 static GkAuthInit<LDAPAliasAuth> L_A_A ("LDAPAliasAuth");
 
 #endif // HAS_LDAP
+
+class CacheManager {
+public:
+	CacheManager(int t) : ttl(t) {}
+
+	bool Retrieve(const PString & key, PString & value);
+	void Save(const PString & key, const PString & value);
+
+private:
+	map<PString, PString> cache;
+	map<PString, PTime> ctime;
+	// 0 means don't cache, -1 means never expires
+	int ttl; // miliseconds
+
+	CacheManager(const CacheManager &);
+	CacheManager & operator=(const CacheManager &);
+};      
+
+bool CacheManager::Retrieve(const PString & key, PString & value)
+{
+	std::map<PString, PString>::iterator iter = cache.find(key);
+	if (iter == cache.end())
+		return false;
+	if (ttl > 0) {
+		std::map<PString, PTime>::iterator i = ctime.find(key);
+		if ((PTime() - i->second) > ttl)
+			return false; // cache expired
+	}
+	value = iter->second;
+	PTRACE(5, "GkAuth\tCache found for " << key);
+	return true;
+}
+
+void CacheManager::Save(const PString & key, const PString & value)
+{
+	if (ttl != 0) {
+		cache[key] = value;
+		ctime[key] = PTime();
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 
@@ -228,7 +269,7 @@ int GkAuthenticator::Check(const H225_InfoRequest &, unsigned &)
 }
 
 
-static GkAuthInit<SimplePasswordAuth> _SPA_("SimplePasswordAuth");
+static GkAuthInit<SimplePasswordAuth> S_P_A("SimplePasswordAuth");
 
 const char *passwdsec = "Password";
 
@@ -238,7 +279,12 @@ SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
 {
 	filled = config->GetInteger(passwdsec, "KeyFilled", 0);
 	checkid = Toolkit::AsBool(config->GetString(passwdsec, "CkeckID", "0"));
-	passwdTimeout = config->GetInteger(passwdsec, "PasswordTimeout", -1) * 1000;
+	cache = new CacheManager(config->GetInteger(passwdsec, "PasswordTimeout", -1) * 1000);
+}
+
+SimplePasswordAuth::~SimplePasswordAuth()
+{
+	delete cache;
 }
 
 int SimplePasswordAuth::Check(const H225_GatekeeperRequest & grq, unsigned &)
@@ -297,29 +343,10 @@ PString SimplePasswordAuth::GetPassword(const PString & id)
 
 bool SimplePasswordAuth::InternalGetPassword(const PString & id, PString & passwd)
 {
-	iterator iter = passwdCache.find(id);
-	if (iter != passwdCache.end()) {
-		if (passwdTimeout > 0) {
-			std::map<PString, PTime>::iterator i = cacheTime.find(id);
-			if ((PTime() - i->second) > passwdTimeout) {
-				passwd = GetPassword(id);
-				return false;
-			}
-		}
-		passwd = iter->second;
-		PTRACE(5, "GkAuth\tPassword cache found");
-		return true;
-	}
-	passwd = GetPassword(id);
-	return false;
-}
-
-void SimplePasswordAuth::SavePassword(const PString & id, const PString & passwd)
-{
-	if (passwdTimeout != 0) {
-		passwdCache[id] = passwd;
-		cacheTime[id] = PTime();
-	}
+	bool result = cache->Retrieve(id, passwd);
+	if (!result)
+		passwd = GetPassword(id);
+	return result;
 }
 
 bool SimplePasswordAuth::CheckAliases(const PString & id)
@@ -348,7 +375,7 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 			if (passwd == tokenpasswd) {
 				PTRACE(4, "GkAuth\t" << id << " password match");
 				if (!cached)
-					SavePassword(id, passwd);
+					cache->Save(id, passwd);
 				return true;
 			}
 		}
@@ -374,7 +401,7 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 			if (authMD5.VerifyToken(tokens[i], nullPDU) == H235Authenticator::e_OK) {
 				PTRACE(4, "GkAuth\t" << id << " password match (MD5)");
 				if (!cached)
-					SavePassword(id, passwd);
+					cache->Save(id, passwd);
 				return true;
 			}
 #ifdef P_SSL
@@ -413,7 +440,7 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 			if (authProcedure1.VerifyToken(tokens[i], getLastReceivedRawPDU()) == H235Authenticator::e_OK) {
 				PTRACE(4, "GkAuth\t" << ep_alias << " password match (SHA-1)");
 				if (!cached)
-					SavePassword(ep_alias, passwd);
+					cache->Save(ep_alias, passwd);
 				return true;
 			}
 #endif
@@ -551,7 +578,7 @@ void MySQLAuthBase::Cleanup()
 	mysql_connection = 0; // disable the authenticator
 }
 
-// MysqlPasswordAuth
+// MySQLPasswordAuth
 MySQLPasswordAuth::MySQLPasswordAuth(PConfig *cfg, const char *authName)
 	: SimplePasswordAuth(cfg, authName)
 {
@@ -571,24 +598,33 @@ PString MySQLPasswordAuth::GetPassword(const PString & id)
 	return mysqlconn->GetString(id);
 }
 
-// MysqlPasswordAuth
+// MySQLAliasAuth
 MySQLAliasAuth::MySQLAliasAuth(PConfig *cfg, const char *authName)
 	: AliasAuth(cfg, authName)
 {
-	mysqlconn = new MySQLAuthBase(cfg, "MySQLAliasAuth",
+	const char *secname = "MySQLAliasAuth";
+	mysqlconn = new MySQLAuthBase(cfg, secname,
 				"Host", "Database", "User", "Password",
 				"Table", "IDField", "IPField", "ExtraCriterion"
 			);
+	cache = new CacheManager(config->GetInteger(secname, "CacheTimeout", -1) * 1000);
 }
 
 MySQLAliasAuth::~MySQLAliasAuth()
 {
 	delete mysqlconn;
+	delete cache;
 }
 
 PString MySQLAliasAuth::GetConfigString(const PString & alias) const
 {
-	return mysqlconn->GetString(alias);
+	PString result;
+	if (!cache->Retrieve(alias, result)) {
+		result = mysqlconn->GetString(alias);
+		if (!result)
+			cache->Save(alias, result);
+	}
+	return result;
 }
 
 #endif // HAS_MYSQL

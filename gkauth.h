@@ -23,10 +23,6 @@
 #ifndef _PTLIB_H
 #include <ptlib.h>
 #endif
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-#include <map>
 
 class H225_GatekeeperRequest;
 class H225_RegistrationRequest;
@@ -39,6 +35,8 @@ class H225_InfoRequest;
 class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
 class H225_ArrayOf_AliasAddress;
+
+class CacheManager;
 
 class GkAuthenticator {
 public:
@@ -134,10 +132,8 @@ private:
 
 class SimplePasswordAuth : public GkAuthenticator {
 public:
-	typedef std::map<PString, PString>::iterator iterator;
-	typedef std::map<PString, PString>::const_iterator const_iterator;
-
 	SimplePasswordAuth(PConfig *, const char *);
+	~SimplePasswordAuth();
 
 protected:
 	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
@@ -165,16 +161,13 @@ protected:
 	}
 
 	bool InternalGetPassword(const PString & id, PString & passwd);
-	void SavePassword(const PString &, const PString &);
 
 	int filled;
 	bool checkid;
 	const H225_ArrayOf_AliasAddress *aliases;
 
 private:
-	std::map<PString, PString> passwdCache;
-	std::map<PString, PTime> cacheTime;
-	int passwdTimeout;
+	CacheManager *cache;
 };
 
 class GkAuthInitializer {
