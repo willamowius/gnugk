@@ -114,6 +114,12 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Ability to set shared secrets for each radius server separatelly.
+
+<item>
+New, much faster, Radius client implementation.
+
+<item>
 Called-Party-Number-IE rewrite occured too late, causing auth/acct modules 
 to receive the original number instead of the rewritten one.
 
@@ -2743,22 +2749,24 @@ This section defines configuration settings that enable
 RADIUS authentication based on H.235 CATs (Cisco Access Tokens)
 present in RRQ, ARQ RAS requests and Q.931 Setup messages.
 <itemize>
-<item><tt/Servers=SERVER1[:AUTH_PORT];SERVER2[:AUTH_PORT];.../<newline>
+<item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
 Default: <tt>N/A</tt>
 <p>
-RADIUS servers to be used for authentication.
-The list can contain an arbitrary number of servers.
-The order of servers is important, because servers will be queried
-by the RADIUS module in the order given. If no port information is given,
-port number from <tt/DefaultAuthPort/ will be used.
-If these attributes are not set, then os services file will be queried
-for 'radius' services port. Servers could be IP addresses or DNS names.
+RADIUS servers to be used for authentication. The list can contain an arbitrary 
+number of servers. The order of servers is important, because servers will 
+be queried by the RADIUS module in the given order. If no port information 
+is provided, port number from <tt/DefaultAuthPort/ will be used. If no secret is set, 
+the default shared secret from <tt/SharedSecret/ is taken. 
+Servers names can be IP addresses or DNS names.
 
 <descrip>
-<tag/Example:/
-<tscreen><verb>
-Servers=192.168.3.1:1645;192.168.3.2:1812;radius.mycompany.com
-</verb></tscreen>
+<tag>Sample <tt/Servers/ lines:</tag>
+<tt>Servers=192.168.1.1</tt><newline>
+<tt>Servers=192.168.1.1:1645</tt><newline>
+<tt>Servers=192.168.1.1:1645:1646:secret1</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812</tt><newline>
+<tt>Servers=radius1.mycompany.com;radius2.mycompany.com</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812:1813:secret1;radius2.mycompany.com:1812:1813:secret2</tt><newline>
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
@@ -2781,7 +2789,7 @@ If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
-Default: <tt>An entry for 'radius' service in services file or 1812</tt>
+Default: <tt>1812</tt>
 <p>
 Default port number to be used for RADIUS authentication requests
 (Access-Request packets), if not overriden by <tt/Servers/ attribute.
@@ -2790,7 +2798,8 @@ Default port number to be used for RADIUS authentication requests
 Default: <tt>N/A (empty string)</tt>
 <p>
 Secret used to authenticate this GnuGk (NAS client) to RADIUS
-server. It should be a cryptographically strong password.
+server. It should be a cryptographically strong password. This is the default
+value used, if no server-specific secret is set in the <tt/Servers/.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -2867,17 +2876,6 @@ is allowed to register with. Format of this attribute is:
 Example:
 	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
 </verb></tscreen>
-
-<item><tt/IncludeEndpointIP=BOOLEAN/<newline>
-Default: <tt/1/
-<p>
-If set, endpoint IP address is passed as Framed-IP-Address
-RADIUS attribute inside Access-Requests. Can be used for
-additional (to the username/password) authentication.
-For RRQs, this attribute is equal to RRQ.m_radAddress[0]
-or RRQ.m_callSignalAddress[0] field.
-For ARQs, this attribute is equal to ARQ.m_srcCallSignalAddress
-field or call signal address reported by the gatekeeper registration table.
 </itemize>
 
 <sect2>Section &lsqb;RadAliasAuth&rsqb;
@@ -2888,23 +2886,22 @@ RADIUS authentication based on endpoint aliases and/or IP adresses
 present in RRQ RAS requests, ARQ RAS request or Q.931 Setup request.
 This authentication scheme is useful both for endpoints registered
 at the gatekeeper (ARQ,RRQ) and calls from unregistered endpoints (Setup).
+
 <itemize>
-<item><tt/Servers=SERVER1[:AUTH_PORT];SERVER2[:AUTH_PORT];.../<newline>
+<item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
 Default: <tt>N/A</tt>
 <p>
 RADIUS servers to be used for RAS requests authentication.
-This list can contain an arbitrary number of servers.
-The order of servers is important, because servers will be queried
-by the RADIUS module in the order given. If no port information is given,
-port number from <tt/DefaultAuthPort/ will be used.
-If these attributes are not set, then os services file will be queried
-for 'radius' services port. Servers could be IP addresses or DNS names.
+This list can contain an arbitrary number of servers. The order of servers 
+is important, because servers will be queried by the RADIUS module 
+in the given order. If no port information is specified, port number from 
+<tt/DefaultAuthPort/ will be used. If no secret is set, 
+the default shared secret from <tt/SharedSecret/ is used.
+Servers can be IP addresses or DNS names.
 
 <descrip>
 <tag/Example:/
-<tscreen><verb>
-Servers=192.168.3.1:1645;192.168.3.2:1812;radius.mycompany.com
-</verb></tscreen>
+<tt/Servers=192.168.3.1:1645;192.168.3.2:1812:1813:mysecret;radius.mycompany.com/
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
@@ -2927,7 +2924,7 @@ If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
-Default: <tt>An entry for 'radius' service in services file or 1812</tt>
+Default: <tt>1812</tt>
 <p>
 Default port number to be used for RADIUS authentication requests
 (Access-Request packets), if not overriden by <tt/Servers/ attribute.
@@ -2936,7 +2933,8 @@ Default port number to be used for RADIUS authentication requests
 Default: <tt>N/A (empty string)</tt>
 <p>
 Secret used to authenticate this GNU GK (NAS client) to RADIUS
-server. It should be a cryptographically strong password.
+server. It should be a cryptographically strong password. This is the default
+value used, if no server-specific secret is set in the <tt/Servers/.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -3013,17 +3011,6 @@ is allowed to register with. Format of this attribute is:
 Example:
 	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
 </verb></tscreen>
-
-<item><tt/IncludeEndpointIP=BOOLEAN/<newline>
-Default: <tt/1/
-<p>
-If set, endpoint IP address is passed as Framed-IP-Address
-RADIUS attribute inside Access-Requests. Can be used for
-additional (to the username/password) authentication.
-For RRQs, this attribute is equal to RRQ.m_radAddress[0]
-or RRQ.m_callSignalAddress[0] field.
-For ARQs, this attribute is equal to ARQ.m_srcCallSignalAddress
-field or call signal address reported by the gatekeeper registration table.
 
 <item><tt/FixedUsername/<newline>
 Default: <tt>N/A</tt>
@@ -3428,14 +3415,23 @@ configuration is almost the same as for RADIUS authenticators (see
 for more details on the parameters).
 
 <itemize>
-<item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT];SERVER2[:AUTH_PORT:ACCT_PORT];.../<newline>
+<item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT[:SECRET]];SERVER2[:AUTH_PORT:ACCT_PORT[:SECRET]];.../<newline>
 Default: <tt>N/A</tt>
 <p>
-RADIUS servers to send accounting data to.
-If no port information is given,
-port number from <tt/DefaultAcctPort/ is be used.
-If these attributes are not set, then OS services file will be queried
-for 'radaccr' service port. Servers could be IP addresses or DNS names.
+RADIUS servers to send accounting data to. If no port information is given,
+port number from <tt/DefaultAcctPort/ is be used. If no secret is set, 
+the default shared secret from <tt/SharedSecret/ is used. Server names could 
+be either IP addresses or DNS names.
+
+<descrip>
+<tag>Sample <tt/Servers/ lines:</tag>
+<tt>Servers=192.168.1.1</tt><newline>
+<tt>Servers=192.168.1.1:1645:1646</tt><newline>
+<tt>Servers=192.168.1.1:1645:1646:secret1</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812:1813</tt><newline>
+<tt>Servers=radius1.mycompany.com;radius2.mycompany.com</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812:1813:secret1;radius2.mycompany.com:1812:1813:secret2</tt><newline>
+</descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
 Default: <tt>N/A</tt>
@@ -3452,7 +3448,7 @@ If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAcctPort=PORT_NO/<newline>
-Default: <tt>An entry for 'radius' service in services file or 1813</tt>
+Default: <tt>1813</tt>
 <p>
 Default port number to be used for RADIUS accounting requests,
 if not overriden by <tt/Servers/ attribute.
@@ -3460,8 +3456,9 @@ if not overriden by <tt/Servers/ attribute.
 <item><tt/SharedSecret=SECRET/<newline>
 Default: <tt>N/A (empty string)</tt>
 <p>
-Secret used to authenticate this GnuGk (NAS client) to RADIUS
-server. It should be a cryptographically strong password.
+A secret used to authenticate this GnuGk (NAS client) to RADIUS
+server. It should be a cryptographically strong password. This is the default
+value used, if no server-specific secret is set in the <tt/Servers/.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -3498,11 +3495,6 @@ Default: <tt/0/
 If set, Cisco Vendor Specific RADIUS attibutes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
-<item><tt/IncludeEndpointIP=BOOLEAN/<newline>
-Default: <tt/1/
-<p>
-If set, endpoint IP address is passed as Framed-IP-Address
-RADIUS attribute inside Accounting-Requests.
 </itemize>
 
 <sect2>Section &lsqb;SQLAcct&rsqb;

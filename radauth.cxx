@@ -12,6 +12,15 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.20.2.2  2004/07/07 23:11:07  zvision
+ * Faster and more elegant handling of Cisco VSA
+ *
+ * Revision 1.20.2.1  2004/07/07 20:50:14  zvision
+ * New, faster, Radius client implementation. Thanks to Pavel Pavlov for ideas!
+ *
+ * Revision 1.20  2004/07/06 23:46:20  zvision
+ * gcc 2.95.x compilation errors fixed
+ *
  * Revision 1.19  2004/07/05 16:39:45  zvision
  * Support for CallCreditServiceControl
  *
@@ -166,7 +175,13 @@ RadAuthBase::RadAuthBase(
 	)
 	:
 	GkAuthenticator(authName, supportedRasChecks, supportedMiscChecks),
-	m_radiusClient(NULL)
+	m_radiusClient(NULL),
+	m_attrH323CallType(RadiusAttr::CiscoVSA_h323_call_type, false, 
+		PString("VoIP")),
+	m_attrH323CallOriginOriginate(RadiusAttr::CiscoVSA_h323_call_origin, false,
+		PString("originate")),
+	m_attrH323CallOriginAnswer(RadiusAttr::CiscoVSA_h323_call_origin, false,
+		PString("answer"))
 {
 	// read settings from the config
 	m_appendCiscoAttributes = Toolkit::AsBool(GetConfig()->GetString(
@@ -189,37 +204,13 @@ RadAuthBase::RadAuthBase(
 				" NAS IP address"
 				);
 	}
+	m_attrH323GwId = RadiusAttr(RadiusAttr::CiscoVSA_h323_gw_id, false, m_nasIdentifier);
+	m_attrNasIdentifier = RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
 }
 
 RadAuthBase::~RadAuthBase()
 {
 	delete m_radiusClient;
-}
-
-namespace {
-bool GetAVPair(
-	RadiusPDU& pdu,
-	int vendorId,
-	unsigned char vendorType,
-	PString& value,
-	const char* name
-	)
-{
-	const PINDEX index = pdu.FindVsaAttr(vendorId, vendorType);
-	if (index == P_MAX_INDEX)
-		return false;
-		
-	const RadiusAttr* attr = pdu.GetAttrAt(index);
-	if (attr == NULL || !attr->IsValid())
-		return false;
-
-	value = attr->AsVsaString();
-	PINDEX i;
-	if (name && (i = value.Find(name)) == 0)
-		value = value.Mid(strlen(name) + 1);
-
-	return true;
-}
 }
 
 int RadAuthBase::Check(
@@ -232,16 +223,7 @@ int RadAuthBase::Check(
 	H225_RegistrationRequest& rrq = (H225_RegistrationRequest&)rrqPdu;
 	
 	// build RADIUS Access-Request
-	RadiusPDU* pdu = m_radiusClient->BuildPDU();
-	if (pdu == NULL) {
-		PTRACE(2, "RADAUTH\t" << GetName() << " RRQ auth failed: "
-			"could not to create Access-Request PDU"
-			);
-		authData.m_rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
-		return GetDefaultStatus();
-	}
-
-	pdu->SetCode(RadiusPDU::AccessRequest);
+	RadiusPDU* const pdu = new RadiusPDU(RadiusPDU::AccessRequest);
 
 	// Append User-Name and a password related attributes
 	// (User-Password or Chap-Password and Chap-Timestamp)
@@ -250,18 +232,16 @@ int RadAuthBase::Check(
 		delete pdu;
 		return status;
 	}
-		
+	
 	// Gk works as NAS point, so append NAS IP
-	*pdu += new RadiusAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	// NAS-Identifier as Gk name
-	*pdu += new RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
+	pdu->AppendAttr(m_attrNasIdentifier);
 	// Gk does not have a concept of physical ports,
 	// so define port type as NAS-Port-Virtual
-	*pdu += new RadiusAttr(RadiusAttr::NasPortType, 
-		RadiusAttr::NasPort_Virtual 
-		);
+	pdu->AppendAttr(RadiusAttr::NasPortType, RadiusAttr::NasPort_Virtual);
 	// RRQ service type is Login-User
-	*pdu += new RadiusAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
+	pdu->AppendAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
 
 	// append Framed-IP-Address					
 	PIPSocket::Address addr;
@@ -283,7 +263,7 @@ int RadAuthBase::Check(
 		delete pdu;
 		return e_fail;
 	} else
-		*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
+		pdu->AppendAttr(RadiusAttr::FramedIpAddress, addr);
 				
 	if (m_appendCiscoAttributes && m_includeTerminalAliases
 			&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
@@ -294,8 +274,9 @@ int RadAuthBase::Check(
 			aliasList += H323GetAliasAddressString(rrq.m_terminalAlias[i]);
 		}
 		// Cisco-AV-Pair
-		*pdu += new RadiusAttr( 
-			PString("h323-ivr-out=") + aliasList + ";", 9, 1 
+		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+			PString("h323-ivr-out=") + aliasList + ";",
+			true
 			);
 	}
 	
@@ -321,61 +302,86 @@ int RadAuthBase::Check(
 	result = (response->GetCode() == RadiusPDU::AccessAccept);
 
 	PString value;
+	const RadiusAttr* attr;
+	
 	// test for h323-return-code attribute (has to be 0 if accept)
-	if (result && GetAVPair(*response, 9, 103, value, "h323-return-code"))
-		if (value.GetLength() > 0
-			&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
-			const unsigned retcode = value.AsUnsigned();
-			if (retcode != 0) {
-				PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: "
-					"return code " << retcode
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_return_code
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0
+				&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
+				const unsigned retcode = value.AsUnsigned();
+				if (retcode != 0) {
+					PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: "
+						"return code " << retcode
+						);
+					result = false;
+				}
+			} else {
+				PTRACE(2, "RADAUTH\t" << GetName() << " RRQ check failed: "
+					"invalid h323-return-code attribute '" << value << '\''
 					);
 				result = false;
 			}
-		} else {
-			PTRACE(2, "RADAUTH\t" << GetName() << " RRQ check failed: "
-				"invalid h323-return-code attribute '" << value << '\''
-				);
-			result = false;
 		}
-
+	}
+	
 	// check for h323-billing-model	
-	if (result && GetAVPair(*response, 9, 109, value, "h323-billing-model"))
-		if( value.GetLength() > 0 
-			&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
-			const int intVal = value.AsInteger();
-			if (intVal == 0)
-				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
-			else if (intVal == 1 || intVal == 2)
-				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
-		} else {
-			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-billing-model "
-				"attribute '" << value << '\''
-				);
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_billing_model
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0 
+					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+				const int intVal = value.AsInteger();
+				if (intVal == 0)
+					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
+				else if (intVal == 1 || intVal == 2)
+					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
+			} else {
+				PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-billing-model "
+					"attribute '" << value << '\''
+					);
+			}
 		}
-
+	}
+	
 	// check for h323-credit-amount
-	if (result && GetAVPair(*response, 9, 101, value, "h323-credit-amount"))
-		if( value.GetLength() > 0 
-			&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
-			if (value.Find('.') == P_MAX_INDEX) {
-				PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
-					"without a decimal dot is ambiguous '" << value << '\''
-					);
-				authData.m_amountString = psprintf("%d.%d", 
-					value.AsInteger() / 100, value.AsInteger() % 100
-					);
-			} else
-				authData.m_amountString = value;
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_credit_amount
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0 
+					&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
+				if (value.Find('.') == P_MAX_INDEX) {
+					PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
+						"without a decimal dot is ambiguous '" << value << '\''
+						);
+					authData.m_amountString = psprintf("%d.%d", 
+						value.AsInteger() / 100, value.AsInteger() % 100
+						);
+				} else
+					authData.m_amountString = value;
 				
-			if (GetAVPair(*response, 9, 110, value, "h323-currency"))
-				if (!value)
-					authData.m_amountString += value; 
-		} else {
-			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-credit-amount "
-				"attribute '" << value << '\''
-				);
+				attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+			 		RadiusAttr::CiscoVSA_h323_currency
+					);
+				if (attr != NULL)
+					authData.m_amountString += attr->AsCiscoString(); 
+			} else {
+				PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-credit-amount "
+					"attribute '" << value << '\''
+					);
+			}
 		}
+	}
 
 	if (result)
 		result = OnReceivedPDU(*response, rrqPdu, authData);
@@ -396,17 +402,7 @@ int RadAuthBase::Check(
 	H225_AdmissionRequest& arq = (H225_AdmissionRequest&)arqPdu;
 
 	// build RADIUS Access-Request packet
-	RadiusPDU* pdu = m_radiusClient->BuildPDU();
-	if (pdu == NULL) {
-		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
-			"could not to create Access-Request PDU"
-			);
-		authData.m_rejectReason = H225_AdmissionRejectReason::e_undefinedReason;
-		return GetDefaultStatus();
-	}
-
-	pdu->SetCode(RadiusPDU::AccessRequest);
-
+	RadiusPDU* const pdu = new RadiusPDU(RadiusPDU::AccessRequest);
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PIPSocket::Address addr;
 	endptr callingEP, calledEP;
@@ -449,17 +445,15 @@ int RadAuthBase::Check(
 	}
 	
 	// Gk acts as NAS, so include NAS IP
-	*pdu += new RadiusAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	// NAS-Identifier as Gk name
-	*pdu += new RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
+	pdu->AppendAttr(m_attrNasIdentifier);
 	// NAS-Port-Type as Virtual, since Gk does
 	// not care about physical ports concept
-	*pdu += new RadiusAttr(RadiusAttr::NasPortType, 
-		RadiusAttr::NasPort_Virtual 
-		);
+	pdu->AppendAttr(RadiusAttr::NasPortType, RadiusAttr::NasPort_Virtual);
 	// Service-Type is Login-User if originating the call
 	// and Call Check if answering the call
-	*pdu += new RadiusAttr(RadiusAttr::ServiceType,
+	pdu->AppendAttr(RadiusAttr::ServiceType,
 		arq.m_answerCall ? RadiusAttr::ST_CallCheck : RadiusAttr::ST_Login
 		);
 				
@@ -482,7 +476,7 @@ int RadAuthBase::Check(
 		else if(arq.HasOptionalField(arq.e_srcCallSignalAddress)
 			&& GetIPFromTransportAddr(arq.m_srcCallSignalAddress, addr) 
 			&& addr.IsValid())
-			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
+			ipFound = true;
 	}
 	if (!ipFound) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
@@ -492,12 +486,12 @@ int RadAuthBase::Check(
 		delete pdu;
 		return e_fail;
 	} else
-		*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
+		pdu->AppendAttr(RadiusAttr::FramedIpAddress, addr);
 					
 	// fill Calling-Station-Id and Called-Station-Id fields
 	PString stationId = GetCallingStationId(arqPdu, authData);
 	if (!stationId) {
-		*pdu += new RadiusAttr(RadiusAttr::CallingStationId, stationId);
+		pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
 		if (authData.m_callingStationId.IsEmpty())
 			authData.m_callingStationId = stationId;
 	}
@@ -511,25 +505,21 @@ int RadAuthBase::Check(
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		return e_fail;
 	} else {
-		*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
+		pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
 		if (authData.m_calledStationId.IsEmpty())
 			authData.m_calledStationId = stationId;
 	}
 	
 	if (m_appendCiscoAttributes) {
-		*pdu += new RadiusAttr(
-			PString("h323-conf-id=") + GetGUIDString(arq.m_conferenceID),
-			9, 24
+		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,
+			GetGUIDString(arq.m_conferenceID)
 			);
-		*pdu += new RadiusAttr(
-			PString(arq.m_answerCall 
-				? "h323-call-origin=answer" : "h323-call-origin=originate"),
-				9, 26
-				);
-		*pdu += new RadiusAttr( PString("h323-call-type=VoIP"),	9, 27 );
-		*pdu += new RadiusAttr( 
-			PString("h323-gw-id=") + m_nasIdentifier, 9, 33 
-			);
+		if (arq.m_answerCall)
+			pdu->AppendAttr(m_attrH323CallOriginAnswer);
+		else
+			pdu->AppendAttr(m_attrH323CallOriginOriginate);
+		pdu->AppendAttr(m_attrH323CallType);
+		pdu->AppendAttr(m_attrH323GwId);
 	}
 				
 	if (!OnSendPDU(*pdu, arqPdu, authData)) {
@@ -555,104 +545,124 @@ int RadAuthBase::Check(
 	result = (response->GetCode() == RadiusPDU::AccessAccept);
 	
 	PString value;
+	const RadiusAttr* attr;
+	
 	// test for h323-return-code attribute (has to be 0 if accept)
-	if (result && GetAVPair(*response, 9, 103, value, "h323-return-code"))
-		if (value.GetLength() > 0
-			&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
-			const unsigned retcode = value.AsUnsigned();
-			if (retcode != 0) {
-				PTRACE(3, "RADAUTH\t" << GetName() << " ARQ check failed: "
-					"return code " << retcode
-					);
-				result = false;
-			}
-		} else {
-			PTRACE(2, "RADAUTH\t" << GetName() << " ARQ check failed: "
-				"invalid h323-return-code attribute '" << value << '\''
-				);
-			result = false;
-		}
-
-	// check for h323-credit-time attribute (call duration limit)	
-	if (result && GetAVPair(*response, 9, 102, value, "h323-credit-time"))
-		if( value.GetLength() > 0 
-			&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
-			authData.m_callDurationLimit = value.AsInteger();
-			PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check set duration "
-				"limit: " << authData.m_callDurationLimit
-				);
-			if (authData.m_callDurationLimit == 0)						
-				result = false;
-		} else {
-			PTRACE(2, "RADAUTH\t" << GetName() << " ARQ check failed: "
-				"invalid h323-credit-time attribute '" << value << '\''
-				);
-			result = false;
-		}
-
-	// check for Session-Timeout attribute (alternate call duration limit)	
 	if (result) {
-		const PINDEX index = response->FindAttr(RadiusAttr::SessionTimeout);
-		if (index != P_MAX_INDEX) {
-			RadiusAttr* attr = response->GetAttrAt(index);
-			if (attr && attr->IsValid()) {
-				const long sessionTimeout = attr->AsInteger();
-				if (authData.m_callDurationLimit < 0 
-					|| authData.m_callDurationLimit > sessionTimeout) {
-					authData.m_callDurationLimit = sessionTimeout;
-					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check set "
-						"duration limit set " << authData.m_callDurationLimit
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_return_code
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0
+					&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
+				const unsigned retcode = value.AsUnsigned();
+				if (retcode != 0) {
+					PTRACE(3, "RADAUTH\t" << GetName() << " ARQ check failed: "
+						"return code " << retcode
 						);
-				}
-				if (authData.m_callDurationLimit == 0)
 					result = false;
+				}
 			} else {
 				PTRACE(2, "RADAUTH\t" << GetName() << " ARQ check failed: "
-					"invalid Session-Timeout attribute"
+					"invalid h323-return-code attribute '" << value << '\''
 					);
 				result = false;
 			}
 		}
 	}
+	// check for h323-credit-time attribute (call duration limit)	
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_credit_time
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0 
+					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+				authData.m_callDurationLimit = value.AsInteger();
+				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check set duration "
+					"limit: " << authData.m_callDurationLimit
+					);
+				if (authData.m_callDurationLimit == 0)						
+					result = false;
+			} else {
+				PTRACE(2, "RADAUTH\t" << GetName() << " ARQ check failed: "
+					"invalid h323-credit-time attribute '" << value << '\''
+					);
+				result = false;
+			}
+		}
+	}
+	// check for Session-Timeout attribute (alternate call duration limit)	
+	if (result) {
+		const RadiusAttr* const attr = response->FindAttr(RadiusAttr::SessionTimeout);
+		if (attr != NULL) {
+			const long sessionTimeout = attr->AsInteger();
+			if (authData.m_callDurationLimit < 0 
+				|| authData.m_callDurationLimit > sessionTimeout) {
+				authData.m_callDurationLimit = sessionTimeout;
+				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check set "
+					"duration limit set " << authData.m_callDurationLimit
+					);
+			}
+			if (authData.m_callDurationLimit == 0)
+				result = false;
+		}
+	}
 
 	// check for h323-billing-model	
-	if (result && GetAVPair(*response, 9, 109, value, "h323-billing-model"))
-		if (value.GetLength() > 0 
-			&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
-			const int intVal = value.AsInteger();
-			if (intVal == 0)
-				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
-			else if (intVal == 1 || intVal == 2)
-				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
-		} else {
-			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-billing-model "
-				"attribute '" << value << '\''
-				);
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_billing_model
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0 
+					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+				const int intVal = value.AsInteger();
+				if (intVal == 0)
+					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
+				else if (intVal == 1 || intVal == 2)
+					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
+			} else {
+				PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-billing-model "
+					"attribute '" << value << '\''
+					);
+			}
 		}
-
+	}
 	// check for h323-credit-amount
-	if (result && GetAVPair(*response, 9, 101, value, "h323-credit-amount"))
-		if( value.GetLength() > 0 
-			&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
-			if (value.Find('.') == P_MAX_INDEX) {
-				PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
-					"without a decimal dot is ambiguous '" << value << '\''
-					);
-				authData.m_amountString = psprintf("%d.%d", 
-					value.AsInteger() / 100, value.AsInteger() % 100
-					);
-			} else
-				authData.m_amountString = value;
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_credit_amount
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0 
+					&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
+				if (value.Find('.') == P_MAX_INDEX) {
+					PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
+						"without a decimal dot is ambiguous '" << value << '\''
+						);
+					authData.m_amountString = psprintf("%d.%d", 
+						value.AsInteger() / 100, value.AsInteger() % 100
+						);
+				} else
+					authData.m_amountString = value;
 				
-			if (GetAVPair(*response, 9, 110, value, "h323-currency"))
-				if (!value)
-					authData.m_amountString += value; 
-		} else {
-			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-credit-amount "
-				"attribute '" << value << '\''
-				);
+				attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+			 		RadiusAttr::CiscoVSA_h323_currency
+					);
+				if (attr != NULL)
+					authData.m_amountString += attr->AsCiscoString(); 
+			} else {
+				PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-credit-amount "
+					"attribute '" << value << '\''
+					);
+			}
 		}
-			
+	}
 	if (result)
 		result = OnReceivedPDU(*response, arqPdu, authData);
 	else
@@ -669,17 +679,7 @@ int RadAuthBase::Check(
 	)
 {
 	// build RADIUS Access-Request packet
-	RadiusPDU* pdu = m_radiusClient->BuildPDU();
-	if (pdu == NULL) {
-		PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
-			"could not to create Access-Request PDU"
-			);
-		authData.m_rejectCause = Q931::TemporaryFailure;
-		return GetDefaultStatus();
-	}
-
-	pdu->SetCode(RadiusPDU::AccessRequest);
-
+	RadiusPDU* const pdu = new RadiusPDU(RadiusPDU::AccessRequest);
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PIPSocket::Address addr;
 	endptr callingEP, calledEP;
@@ -703,19 +703,17 @@ int RadAuthBase::Check(
 	}
 	
 	// Gk acts as NAS, so include NAS IP
-	*pdu += new RadiusAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	// NAS-Identifier as Gk name
-	*pdu += new RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
+	pdu->AppendAttr(m_attrNasIdentifier);
 	// NAS-Port-Type as Virtual, since Gk does
 	// not care about physical ports concept
-	*pdu += new RadiusAttr(RadiusAttr::NasPortType, 
-		RadiusAttr::NasPort_Virtual 
-		);
+	pdu->AppendAttr(RadiusAttr::NasPortType, RadiusAttr::NasPort_Virtual);
 	// Service-Type is Login-User if originating the call
 	// and Call Check if answering the call
-	*pdu += new RadiusAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login );
+	pdu->AppendAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
 				
-	// append Frame-IP-Address					
+	// append Frame-IP-Address
 	bool ipFound = false;
 	WORD dummyPort;
 		
@@ -739,12 +737,12 @@ int RadAuthBase::Check(
 		authData.m_rejectCause = Q931::CallRejected;
 		return e_fail;
 	} else
-		*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
+		pdu->AppendAttr(RadiusAttr::FramedIpAddress, addr);
 				
 	// fill Calling-Station-Id and Called-Station-Id fields
 	PString stationId = GetCallingStationId(q931pdu, setup, authData);
 	if (!stationId) {
-		*pdu += new RadiusAttr(RadiusAttr::CallingStationId, stationId);
+		pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
 		if (authData.m_callingStationId.IsEmpty())
 			authData.m_callingStationId = stationId;
 	}
@@ -758,24 +756,18 @@ int RadAuthBase::Check(
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_badFormatAddress;
 		return e_fail;
 	} else {
-		*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
+		pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
 		if (authData.m_calledStationId.IsEmpty())
 			authData.m_calledStationId = stationId;
 	}
 			
 	if (m_appendCiscoAttributes) {
-		*pdu += new RadiusAttr(
-			PString("h323-conf-id=") + GetGUIDString(setup.m_conferenceID),
-			9, 24
+		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,
+			GetGUIDString(setup.m_conferenceID)
 			);
-		*pdu += new RadiusAttr(
-			PString("h323-call-origin=originate"),
-			9, 26
-			);
-		*pdu += new RadiusAttr(PString("h323-call-type=VoIP"),	9, 27);
-		*pdu += new RadiusAttr(
-			PString("h323-gw-id=") + m_nasIdentifier, 9, 33 
-			);
+		pdu->AppendAttr(m_attrH323CallOriginOriginate);
+		pdu->AppendAttr(m_attrH323CallType);
+		pdu->AppendAttr(m_attrH323GwId);
 	}
 				
 	if (!OnSendPDU(*pdu, q931pdu, setup, authData)) {
@@ -801,63 +793,69 @@ int RadAuthBase::Check(
 	result = (response->GetCode() == RadiusPDU::AccessAccept);
 	
 	PString value;
+	const RadiusAttr* attr;
+	
 	// test for h323-return-code attribute (has to be 0 if accept)
-	if (result && GetAVPair(*response, 9, 103, value, "h323-return-code"))
-		if (value.GetLength() > 0 
-			&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
-			const unsigned retcode = value.AsUnsigned();
-			if (retcode != 0) {
-				PTRACE(5, "RADAUTH\t" << GetName() << " Setup check failed: "
-					"return code " << retcode
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_return_code
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0 
+					&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
+				const unsigned retcode = value.AsUnsigned();
+				if (retcode != 0) {
+					PTRACE(5, "RADAUTH\t" << GetName() << " Setup check failed: "
+						"return code " << retcode
+						);
+					result = false;
+				}
+			} else {
+				PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
+					"invalid h323-return-code attribute '" << value << '\''
 					);
 				result = false;
 			}
-		} else {
-			PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
-				"invalid h323-return-code attribute '" << value << '\''
-				);
-			result = false;
 		}
-
+	}
 	// check for h323-credit-time attribute (call duration limit)	
-	if (result && GetAVPair(*response, 9, 102, value, "h323-credit-time"))
-		if (value.GetLength() > 0 
-			&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength() ) {
-			authData.m_callDurationLimit = value.AsInteger();
-			PTRACE(5, "RADAUTH\t" << GetName() << " Setup check set duration "
-				"limit: " << authData.m_callDurationLimit
-				);
-			if (authData.m_callDurationLimit == 0)
-				result = false;
-		} else {
-			PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
-				"invalid h323-credit-time attribute '" << value << '\''
-				);
-			result = false;
-		}
-
-	// check for Session-Timeout attribute (alternate call duration limit)	
 	if (result) {
-		const PINDEX index = response->FindAttr( RadiusAttr::SessionTimeout );
-		if (index != P_MAX_INDEX) {
-			RadiusAttr* attr = response->GetAttrAt(index);
-			if (attr && attr->IsValid()) {
-				const long sessionTimeout = attr->AsInteger();
-				if (authData.m_callDurationLimit < 0 
-					|| authData.m_callDurationLimit > sessionTimeout) {
-					authData.m_callDurationLimit = sessionTimeout;
-					PTRACE(5, "RADAUTH\t" << GetName() << " Setup check "
-						"set duration limit: " << authData.m_callDurationLimit
-						);
-				}
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_credit_time
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();	
+			if (value.GetLength() > 0 
+					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength() ) {
+				authData.m_callDurationLimit = value.AsInteger();
+				PTRACE(5, "RADAUTH\t" << GetName() << " Setup check set duration "
+					"limit: " << authData.m_callDurationLimit
+					);
 				if (authData.m_callDurationLimit == 0)
 					result = false;
 			} else {
 				PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
-					"invalid Session-Timeout attribute"
+					"invalid h323-credit-time attribute '" << value << '\''
 					);
 				result = false;
 			}
+		}
+	}
+	// check for Session-Timeout attribute (alternate call duration limit)	
+	if (result) {
+		const RadiusAttr* const attr = response->FindAttr(RadiusAttr::SessionTimeout);
+		if (attr != NULL) {
+			const long sessionTimeout = attr->AsInteger();
+			if (authData.m_callDurationLimit < 0 
+				|| authData.m_callDurationLimit > sessionTimeout) {
+				authData.m_callDurationLimit = sessionTimeout;
+				PTRACE(5, "RADAUTH\t" << GetName() << " Setup check "
+					"set duration limit: " << authData.m_callDurationLimit
+					);
+			}
+			if (authData.m_callDurationLimit == 0)
+				result = false;
 		}
 	}
 			
@@ -1033,7 +1031,7 @@ int RadAuth::CheckTokens(
 		}
 					
 		// append User-Name
-		pdu += new RadiusAttr(RadiusAttr::UserName, id);
+		pdu.AppendAttr(RadiusAttr::UserName, id);
 		if (username != NULL)
 			*username = (const char*)id;
 				
@@ -1041,12 +1039,8 @@ int RadAuth::CheckTokens(
 		char password[17] = { (BYTE)randomInt };
 		memcpy(password + 1, (const BYTE*)(token.m_challenge), 16);
 				
-		pdu += new RadiusAttr(RadiusAttr::ChapPassword,
-			password, sizeof(password)
-			);
-		pdu += new RadiusAttr(RadiusAttr::ChapChallenge,
-			(int)(DWORD)token.m_timeStamp
-			);
+		pdu.AppendAttr(RadiusAttr::ChapPassword, password, sizeof(password));
+		pdu.AppendAttr(RadiusAttr::ChapChallenge, (int)(DWORD)token.m_timeStamp);
 				
 		return e_ok;
 	}
@@ -1168,7 +1162,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	}
 	
 	// append User-Name
-   	pdu += new RadiusAttr(RadiusAttr::UserName, 
+   	pdu.AppendAttr(RadiusAttr::UserName, 
 		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
 		);
 	
@@ -1177,9 +1171,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		
 	// append User-Password
 	if (!m_fixedPassword)
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, m_fixedPassword);
+		pdu.AppendAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else 
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, 
+		pdu.AppendAttr(RadiusAttr::UserPassword, 
 			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
 			);
 		
@@ -1203,7 +1197,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	}
 	
 	// append User-Name
-   	pdu += new RadiusAttr(RadiusAttr::UserName, 
+   	pdu.AppendAttr(RadiusAttr::UserName, 
 		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
 		);
 
@@ -1211,9 +1205,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		*username = (const char*)id;
 				
 	if (!m_fixedPassword)
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, m_fixedPassword);
+		pdu.AppendAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, 
+		pdu.AppendAttr(RadiusAttr::UserPassword, 
 			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
 			);
 			
@@ -1239,7 +1233,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	}
 	
 	// append User-Name
-   	pdu += new RadiusAttr(RadiusAttr::UserName, 
+   	pdu.AppendAttr(RadiusAttr::UserName, 
 		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
 		);
 
@@ -1247,9 +1241,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		*username = (const char*)id;
 				
 	if (!m_fixedPassword)
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, m_fixedPassword);
+		pdu.AppendAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, 
+		pdu.AppendAttr(RadiusAttr::UserPassword, 
 			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
 			);
 			

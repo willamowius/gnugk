@@ -1,5 +1,9 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- (radproto.cxx) ability to set shared secrets for each radius server 
+  separatelly, more Radius optimizations
+- new, much faster, Radius client implementation. Thanks to Pavel Pavlov
+  for numerous ideas and suggestions!
 - BUGFIX(ProxyChannel.cxx) Called-Party-Number-IE rewrite occured too late,
   causing auth/acct modules to receive the original number instead of the rewritten one
 - (RasSrv.cxx) duplicated RAS messages are now simply discarded

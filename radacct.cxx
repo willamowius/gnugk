@@ -11,6 +11,16 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11.2.2  2004/07/07 23:11:07  zvision
+ * Faster and more elegant handling of Cisco VSA
+ *
+ * Revision 1.11.2.1  2004/07/07 20:50:14  zvision
+ * New, faster, Radius client implementation. Thanks to Pavel Pavlov for ideas!
+ *
+ * Revision 1.11  2004/06/25 13:33:18  zvision
+ * Better Username, Calling-Station-Id and Called-Station-Id handling.
+ * New SetupUnreg option in Gatekeeper::Auth section.
+ *
  * Revision 1.10  2004/06/17 10:47:13  zvision
  * New h323-ivr-out=h323-call-id accounting attribute
  *
@@ -76,7 +86,11 @@ RadAcct::RadAcct(
 	:
 	GkAcctLogger(moduleName, cfgSecName),
 	m_nasIdentifier(Toolkit::Instance()->GKName()),
-	m_radiusClient(NULL)
+	m_radiusClient(NULL),
+	m_attrH323CallOrigin(RadiusAttr::CiscoVSA_h323_call_origin, false,
+		PString("proxy")),
+	m_attrH323CallType(RadiusAttr::CiscoVSA_h323_call_type, false, 
+		PString("VoIP"))
 {
 	// it is very important to set what type of accounting events
 	// are supported for each accounting module, otherwise Log method
@@ -104,6 +118,9 @@ RadAcct::RadAcct(
 		cfgSec, "AppendCiscoAttributes", "1"
 		));
 	m_fixedUsername = cfg->GetString(cfgSec, "FixedUsername", "");
+
+	m_attrNasIdentifier = RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
+	m_attrH323GwId = RadiusAttr(RadiusAttr::CiscoVSA_h323_gw_id, false, m_nasIdentifier);
 }
 
 RadAcct::~RadAcct()
@@ -132,39 +149,27 @@ GkAcctLogger::Status RadAcct::Log(
 	}
 	
 	// build RADIUS Accounting-Request
-	RadiusPDU* pdu = m_radiusClient->BuildPDU();
-	if( pdu == NULL ) {
-		PTRACE(2,"RADACCT\t"<<GetName()<<" - could not build Accounting-Request PDU"
-			<<" for event "<<evt<<", call no. "<<(call?call->GetCallNumber():0)
-			);
-		return Fail;
-	}
+	RadiusPDU* const pdu = new RadiusPDU(RadiusPDU::AccountingRequest);
 
-	pdu->SetCode( RadiusPDU::AccountingRequest );
-
-	*pdu += new RadiusAttr( RadiusAttr::AcctStatusType, 
+	pdu->AppendAttr(RadiusAttr::AcctStatusType, 
 		(evt & AcctStart) ? RadiusAttr::AcctStatus_Start
 		: ((evt & AcctStop) ? RadiusAttr::AcctStatus_Stop
 		: ((evt & AcctUpdate) ? RadiusAttr::AcctStatus_InterimUpdate
 		: ((evt & AcctOn) ? RadiusAttr::AcctStatus_AccountingOn
 		: ((evt & AcctOff) ? RadiusAttr::AcctStatus_AccountingOff : 0)
-		))) );
+		))));
 
 	PIPSocket::Address addr;
 	WORD port;
 					
 	// Gk works as NAS point, so append NAS IP
-	*pdu += new RadiusAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
-	*pdu += new RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
-	*pdu += new RadiusAttr(RadiusAttr::NasPortType, 
-		RadiusAttr::NasPort_Virtual 
-		);
+	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	pdu->AppendAttr(m_attrNasIdentifier);
+	pdu->AppendAttr(RadiusAttr::NasPortType, RadiusAttr::NasPort_Virtual);
 		
 	if (evt & (AcctStart | AcctStop | AcctUpdate)) {
-		*pdu += new RadiusAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
-		*pdu += new RadiusAttr(RadiusAttr::AcctSessionId, 
-			call->GetAcctSessionId()
-			);
+		pdu->AppendAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
+		pdu->AppendAttr(RadiusAttr::AcctSessionId, call->GetAcctSessionId());
 
 		endptr callingEP = call->GetCallingParty();
 		PIPSocket::Address callerIP(0);
@@ -178,21 +183,19 @@ GkAcctLogger::Status RadAcct::Log(
 				<<" for the call no. "<<call->GetCallNumber()
 				);
 		else
-			*pdu += new RadiusAttr(RadiusAttr::UserName, 
+			pdu->AppendAttr(RadiusAttr::UserName, 
 				m_fixedUsername.IsEmpty() ? username : m_fixedUsername
 				);
 		
 		if (callerIP.IsValid())
-			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, callerIP);
+			pdu->AppendAttr(RadiusAttr::FramedIpAddress, callerIP);
 		
 		if ((evt & AcctStart) == 0)
-			*pdu += new RadiusAttr(RadiusAttr::AcctSessionTime, 
-				call->GetDuration() 
-				);
+			pdu->AppendAttr(RadiusAttr::AcctSessionTime, call->GetDuration());
 	
 		PString stationId = GetCallingStationId(call);
 		if (!stationId)
-			*pdu += new RadiusAttr(RadiusAttr::CallingStationId, stationId);
+			pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
 		else
 			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
 				<<" Calling-Station-Id for the call "<<call->GetCallNumber()
@@ -200,73 +203,60 @@ GkAcctLogger::Status RadAcct::Log(
 
 		stationId = GetCalledStationId(call);
 		if (!stationId)
-			*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
+			pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
 		else
 			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
 				<<" Called-Station-Id for the call no. "<<call->GetCallNumber()
 				);
 		
 		if (m_appendCiscoAttributes) {
-			*pdu += new RadiusAttr(PString("h323-gw-id=") + m_nasIdentifier,
-				CiscoVendorId, 33 
-				);
-			
-			*pdu += new RadiusAttr(PString("h323-conf-id=") 
-					+ GetGUIDString(call->GetConferenceIdentifier()),
-				CiscoVendorId, 24
+			pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,
+				GetGUIDString(call->GetConferenceIdentifier())
 				);
 						
-			*pdu += new RadiusAttr(PString("h323-call-origin=proxy"),
-				CiscoVendorId, 26
-				);
-				
-			*pdu += new RadiusAttr(PString("h323-call-type=VoIP"),
-				CiscoVendorId, 27
-				);
+			pdu->AppendAttr(m_attrH323GwId);
+			pdu->AppendAttr(m_attrH323CallOrigin);
+			pdu->AppendAttr(m_attrH323CallType);
 	
 			time_t tm = call->GetSetupTime();
 			if (tm != 0)
-				*pdu += new RadiusAttr(
-					PString("h323-setup-time=") + AsString(tm),
-					CiscoVendorId, 25
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_setup_time,
+					AsString(tm)
 					);
 			
 			if (evt & (AcctStop | AcctUpdate)) {
 				tm = call->GetConnectTime();
 				if (tm != 0)
-					*pdu += new RadiusAttr(
-						PString("h323-connect-time=") + AsString(tm),
-						CiscoVendorId, 28
+					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_connect_time,
+						AsString(tm)
 						);
 			}
 			
 			if (evt & AcctStop) {
 				tm = call->GetDisconnectTime();
 				if (tm != 0)
-					*pdu += new RadiusAttr(
-						PString("h323-disconnect-time=") + AsString(tm),
-						CiscoVendorId, 29
+					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_time,
+						AsString(tm)
 						);
 				
-				*pdu += new RadiusAttr(PString("h323-disconnect-cause=") 
-						+ PString( PString::Unsigned, (long)(call->GetDisconnectCause()), 16 ),
-					CiscoVendorId, 30
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause,
+					PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16)
 					);
 			}					
 			
 			if (call->GetDestSignalAddr(addr,port))
-				*pdu += new RadiusAttr(
-					PString("h323-remote-address=") + addr.AsString(),
-					CiscoVendorId, 23
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_remote_address,
+					addr.AsString()
 					);
 
-			*pdu += new RadiusAttr(PString("h323-ivr-out=h323-call-id:") 
-				+ GetGUIDString(call->GetCallIdentifier().m_guid),
-				CiscoVendorId, 1
+			pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				PString("h323-ivr-out=h323-call-id:") 
+					+ GetGUIDString(call->GetCallIdentifier().m_guid),
+				true
 				);
 		}
 	
-		*pdu += new RadiusAttr(RadiusAttr::AcctDelayTime, 0);
+		pdu->AppendAttr(RadiusAttr::AcctDelayTime, 0);
 	}
 		
 	// send request and wait for response

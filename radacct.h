@@ -11,6 +11,13 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9.2.1  2004/07/07 23:11:07  zvision
+ * Faster and more elegant handling of Cisco VSA
+ *
+ * Revision 1.9  2004/06/25 13:33:19  zvision
+ * Better Username, Calling-Station-Id and Called-Station-Id handling.
+ * New SetupUnreg option in Gatekeeper::Auth section.
+ *
  * Revision 1.8  2004/04/17 11:43:43  zvision
  * Auth/acct API changes.
  * Header file usage more consistent.
@@ -127,6 +134,11 @@ private:
 	PString m_fixedUsername;
 	/// RADIUS protocol client class associated with this authenticator
 	RadiusClient* m_radiusClient;
+	/// radius attributes that do not change - x4 performance boost
+	RadiusAttr m_attrNasIdentifier;
+	RadiusAttr m_attrH323GwId;
+	RadiusAttr m_attrH323CallOrigin;
+	RadiusAttr m_attrH323CallType;
 };
 
 #endif /* __RADACCT_H */

@@ -13,6 +13,13 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13.2.1  2004/07/07 23:11:07  zvision
+ * Faster and more elegant handling of Cisco VSA
+ *
+ * Revision 1.13  2004/06/25 13:33:19  zvision
+ * Better Username, Calling-Station-Id and Called-Station-Id handling.
+ * New SetupUnreg option in Gatekeeper::Auth section.
+ *
  * Revision 1.12  2004/04/17 11:43:43  zvision
  * Auth/acct API changes.
  * Header file usage more consistent.
@@ -304,6 +311,12 @@ private:
 	PString m_nasIdentifier;
 	/// NAS IP Address (local interface for RADIUS client)
 	PIPSocket::Address m_nasIpAddress;
+	/// radius attributes that do not change - performance boost
+	RadiusAttr m_attrH323GwId;
+	RadiusAttr m_attrH323CallType;
+	RadiusAttr m_attrH323CallOriginOriginate;
+	RadiusAttr m_attrH323CallOriginAnswer;
+	RadiusAttr m_attrNasIdentifier;
 };
 
 /**
