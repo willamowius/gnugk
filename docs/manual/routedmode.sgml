@@ -37,12 +37,16 @@ All settings in this section are affected by reloading.
 <item><tt/GKRouted=1/<newline>
 Default: <tt/0/
 <p>
-Whether to enable the gatekeeper routed mode.
+Whether to enable the gatekeeper routed signaling mode.
 
 <item><tt/H245Routed=1/<newline>
 Default: <tt/0/
 <p>
-Whether to route the H.245 control channel. Only takes effect if <tt/GKRouted=1/.
+Whether to route the H.245 control channel through the gatekeeper too.
+Only takes effect if <tt/GKRouted=1/ and H.245 tunneling is disabled
+for a call. Even when this option is disabled, if Proxy or ProxyForNAT
+takes effect, an H.245 channel is always routed through the gatekeeper
+for calls being proxied.
 
 <item><tt/CallSignalPort=0/<newline>
 Default: <tt/1721/
@@ -55,15 +59,21 @@ You may set it to <tt/0/ to let the gatekeeper choose an arbitrary port.
 <item><tt/CallSignalHandlerNumber=2/<newline>
 Default: <tt/1/
 <p>
-The number of call signalling handler. You may increase this number
-in a heavy loaded gatekeeper. The number can only be increased
-at runtime. If you have a SMP machine, you can set this number
-to your number of CPUs.
+The number of threads dedicated to handle signaling/H.245 channels.
+You may increase this number in a heavy loaded gatekeeper. Each thread
+can process one signaling message at time, so increasing this number
+will increase call throughput. Under Windows, there exists a default limit
+of 64 sockets used by a single signaling thread, so each signaling thread
+is able to handle at most 32 calls (with H.245 tunneling enabled).
 
 <item><tt/RtpHandlerNumber=2/<newline>
 Default: <tt/1/
 <p>
-The number of RTP proxy handling threads.
+The number of RTP proxy handling threads. Increase this value only if you
+experience problems with RTP delay or jitter on a heavily loaded gatekeeper.
+A special care has to be taken on Windows, at RTP handling threads are subject
+of the same limit of 64 sockets as signalling threads. Each RTP thread is
+able to handle at most 32 proxied calls (2 sockets per call).
 
 <item><tt/AcceptNeighborsCalls=1/<newline>
 Default: <tt/1/

@@ -46,8 +46,9 @@ Default: <tt/0.0.0.0/
 <p>
 The gatekeeper will listen for requests on this IP number.
 By default, the gatekeeper listens on all interfaces of your host.
-You should leave out this option,
-unless you want the gatekeeper only to bind to a specified IP.
+You should leave out this option, unless you want the gatekeeper only 
+to bind to a specified IP. Multiple Home addresses can be used
+and have to be separated with a semicolon (;) or comma (,).
 
 <item><tt>NetworkInterfaces=192.168.1.1/24,10.0.0.1/0</tt><newline>
 Default: <tt>N/A</tt>
@@ -225,7 +226,7 @@ all passwords have to be encrypted using <tt/addpasswd/ utility. Otherwise
 only [Password] and [GkStatus::Auth] passwords are encrypted (old behaviour).
 
 <item><tt/KeyFilled=0/<newline>
-Default: <tt/0/
+Default: <tt>N/A</tt>
 <p>
 Define a global padding byte to be used during password encryption/decryption. 
 It can be overriden by setting <tt/KeyFilled/ inside a particular config section.
