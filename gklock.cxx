@@ -90,8 +90,7 @@ ProxyCondMutex::Unlock(const PString &name)
 {
 	Wait();
 	PTRACE(5, "ProxyCondMutex::Unlock(this=" << this << ") " << access_count << " lockers: " << locker);
-	PAssert(access_count>0, "unlocking unlocked.");
- 	if(access_count >0) {
+	if(access_count >0) {
 		PTRACE(5, "deleting Lock of:" << name << " with place " << locker.GetStringsIndex(name));
 		int i=0;
 		while(locker.GetStringsIndex(name+PString(++i))!=P_MAX_INDEX)
@@ -105,10 +104,11 @@ ProxyCondMutex::Unlock(const PString &name)
 		} else {
 			locker.RemoveAt(locker.GetStringsIndex(name + PString(i)));
 		}
+	} else {
+		PTRACE(5,"WARNING: unlocking unlocked.");
 	}
 	access_count -= 1;
 
-	//PAssert(locker.GetSize()==access_count, "unlocking wrong!");
 	Signal();
 }
 
