@@ -1,5 +1,6 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- added logparser application from Saad Faisal to the contrib section
 - pgsqlauth removed from the contrib section, as it is obsolete now
 - BUGFIX(Routing.cxx) the absense of a regexp for virtual queues wasn#t cetected
 - BUGFIX(ProxyChannel.cxx) multiple calls over a single signalling channel
