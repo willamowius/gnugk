@@ -1,6 +1,11 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // addpasswd.cxx
+//
+// - Automatic Version Information via CVS:
+//   $Id$
+//   $Source$
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -12,9 +17,17 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#include <algorithm>
 #include <ptlib.h>
 #include <ptclib/cypher.h>
+#include "stl_supp.h"
+
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+#endif /* lint */
 
 class Client : public PProcess
 {       
@@ -32,7 +45,7 @@ PString Encrypt(const PString &key, const PString &clear)
 {
 	PTEACypher::Key thekey;
 	memset(&thekey, keyFilled, sizeof(PTEACypher::Key));
-	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), key.GetLength()));
+	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), static_cast<unsigned int>(key.GetLength())));
 	PTEACypher cypher(thekey);
 	return cypher.Encode(clear);
 }
@@ -41,7 +54,7 @@ PString Decrypt(const PString &key, const PString &encrypt)
 {
 	PTEACypher::Key thekey;
 	memset(&thekey, keyFilled, sizeof(PTEACypher::Key));
-	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), key.GetLength()));
+	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), min(sizeof(PTEACypher::Key), static_cast<unsigned int>(key.GetLength())));
 	PTEACypher cypher(thekey);
 	return cypher.Decode(encrypt);
 }
@@ -50,7 +63,9 @@ void Client::Main()
 {
 	PArgList args(GetArguments());
 	if (args.GetCount() < 3) {
-		cout << "Usage: addpasswd config userid password\n\n";
+		cout << vcid << "\n"
+		     << "of " << GKGVS << "\n"
+		     << "Usage: addpasswd config userid password\n\n";
 		return;
 	}
 
@@ -61,3 +76,4 @@ void Client::Main()
 	config.SetString(userid, encrypt);
 }
 
+// End of $Source$
