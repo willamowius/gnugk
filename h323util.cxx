@@ -166,7 +166,7 @@ bool GetIPFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Addre
 
 bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip, WORD & port)
 {
-	if (addr.GetTag() != H225_TransportAddress::e_ipAddress)
+	if (!(addr.IsValid() && addr.GetTag() == H225_TransportAddress::e_ipAddress))
 		return false;
 	const H225_TransportAddress_ipAddress & ipaddr = addr;
 	ip = PIPSocket::Address(ipaddr.m_ip.GetSize(), (const BYTE*)ipaddr.m_ip);
