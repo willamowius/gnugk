@@ -1,3 +1,17 @@
+/*
+ * gksql_pgsql.cxx
+ *
+ * PostgreSQL driver module for GnuGk
+ *
+ * Copyright (c) 2004, Michal Zygmuntowicz
+ *
+ * This work is published under the GNU Public License (GPL)
+ * see file COPYING for details.
+ * We also explicitely grant the right to link this code
+ * with the OpenH323 library.
+ *
+ * $Log$
+ */
 #if HAS_PGSQL
 #include <ptlib.h>
 #include <libpq-fe.h>

@@ -1,7 +1,22 @@
-#ifndef gksql__h__included
-#define gksql__h__included "#(@) $Id$"
+/*
+ * gksql.h
+ *
+ * Generic interface to access SQL databases
+ *
+ * Copyright (c) 2004, Michal Zygmuntowicz
+ *
+ * This work is published under the GNU Public License (GPL)
+ * see file COPYING for details.
+ * We also explicitely grant the right to link this code
+ * with the OpenH323 library.
+ *
+ * $Log$
+ */
+#ifndef GKSQL_H
+#define GKSQL_H "#(@) $Id$"
 
 #include <list>
+#include <map>
 #include "name.h"
 #include "factory.h"
 
@@ -14,9 +29,8 @@ protected:
 	GkSQLResult(
 		/// true if the query failed and no result is available
 		bool queryError = false
-		) 
-		: m_numRows(0), m_numFields(0), m_selectType(true), 
-		m_queryError(queryError) {}
+		) : m_numRows(0), m_numFields(0), m_selectType(true), 
+			m_queryError(queryError) {}
 	
 public:
 	virtual ~GkSQLResult();
@@ -138,8 +152,14 @@ public:
 
 	virtual ~GkSQLConnection();
 
+	/** Create an instance of a GkSQLConnection derived class,
+	    that implements access to a specific SQL backend. The class to be created
+	    is found by searching a global factory list for #driverName# entry.
+	*/
 	static GkSQLConnection* Create(
+		/// driver name for the connection object
 		const char* driverName,
+		/// name for the connection to use in the log file
 		const char* connectionName
 		);
 
@@ -199,6 +219,29 @@ public:
 		long timeout = -1
 		);
 
+	/** Execute the query and return the result set. It uses first idle SQL
+	    connection or waits for an idle SQL connection, if all connections 
+	    are busy with query execution. Pool size defines how many concurrent
+	    queries can be executed by this object.
+	    The query can be parametrized and the parameters are replaced with
+	    strings from the #queryParams# list. Usage:
+	    	SELECT name, surname FROM people WHERE name = '%{Name}' and age > %a
+	    The parameter names can be a one letter (%a, for example) or whole
+	    strings (%{Name}, for example).
+
+	    @return
+	    Query execution result (no matters the query failed or succeeded) 
+	    or NULL if timed out waiting for an idle SQL connection.
+	*/
+	GkSQLResult* ExecuteQuery(
+		/// query to be executed
+		const char* queryStr,
+		/// query parameters (name => value associations)
+		const std::map<PString, PString>& queryParams,
+		/// time (ms) to wait for an idle connection, -1 means infinite
+		long timeout = -1
+		);
+
 #if defined(WIN32) && (_MSC_VER < 1300)
 public:
 #else
@@ -246,6 +289,28 @@ protected:
 		int id
 		) = 0;
 	
+	/** Get the first idle connection from the pool and set connptr	variable
+	    to point to this connection. IMPORTANT: After connection is successfully
+	    acquired, ReleaseSQLConnection has to be called to return back 
+	    the connection to the pool.
+		
+	    @return
+	    True if the connection has been acquired, false if it is not available
+	    (timeout, network connection lost, ...).
+	*/
+	bool AcquireSQLConnection(
+		SQLConnPtr& connptr, /// variable to hold connection pointer (handle)
+		long timeout /// timeout (ms) to wait for an idle connection
+		);
+
+	/** Return previously acquired connection back to the pool. It is important
+	    that the reference references the same variable as when calling
+	    AcquireSQLConnection.
+	*/
+	void ReleaseSQLConnection(
+		SQLConnPtr& connptr /// connection to release (mark as idle)
+		);
+
 	/** Execute the query using specified SQL connection.
 
 	    @return
@@ -275,6 +340,23 @@ protected:
 		const char* queryStr,
 		/// parameter values
 		const PStringArray& queryParams
+		);
+
+	/** Replace query parameters placeholders (%a, %{Name}, ...) with 
+	    actual values and escape parameter strings. Derived classes do not need 
+	    to override this function, unless want to perform some custom parameter 
+	    processing.
+
+	    @return
+	    New query string with all parameters replaced.
+	*/
+	virtual PString ReplaceQueryParams(
+		/// SQL connection to get escape parameters from
+		SQLConnPtr conn,
+		/// parametrized query string
+		const char* queryStr,
+		/// parameter name => value associations
+		const std::map<PString, PString>& queryParams
 		);
 
 	/** Escape any special characters in the string, so it can be used in a SQL query.
@@ -378,4 +460,4 @@ inline void GkSQLConnection::GetHostAndPort(
 	}
 }
 
-#endif /* gksql__h__included */
+#endif /* GKSQL_H */

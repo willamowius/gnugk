@@ -1,3 +1,17 @@
+/*
+ * gksql_mysql.cxx
+ *
+ * MySQL driver module for GnuGk
+ *
+ * Copyright (c) 2004, Michal Zygmuntowicz
+ *
+ * This work is published under the GNU Public License (GPL)
+ * see file COPYING for details.
+ * We also explicitely grant the right to link this code
+ * with the OpenH323 library.
+ *
+ * $Log$
+ */
 #if HAS_MYSQL
 
 #if (_MSC_VER >= 1200)

@@ -114,6 +114,9 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New direct SQL accounting module (<ref id="sqlacct" name="[SQLAcct]">).
+
+<item>
 Handling multiple reply messages (RIP/LCF/LRJ) from neighbors fixed.
 
 <item>
@@ -3149,7 +3152,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | update | on | off
@@ -3216,6 +3219,12 @@ Configuration settings are read from <ref id="fileacct" name="[FileAcct]"> secti
 This module performs RADIUS accounting. It supports all event types
 (start, stop, update, on, off).
 See the section <ref id="radacct" name="[RadAcct]"> for configuration details.
+
+<item><tt>SQLAcct</tt>
+<p>
+This module performs direct SQL accounting. It supports (start, stop, update)
+event types. 
+See the section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 
 <item><tt>default</tt>
 <p>
@@ -3481,6 +3490,129 @@ Default: <tt/1/
 <p>
 If set, endpoint IP address is passed as Framed-IP-Address
 RADIUS attribute inside Accounting-Requests.
+</itemize>
+
+<sect2>Section &lsqb;SQLAcct&rsqb;
+<label id="sqlacct">
+<p>
+This accounting module stores accounting information directly
+to an SQL database. Many configuration settings are common with
+other SQL modules.
+
+<itemize>
+<item><tt/Driver=MySQL | PostgreSQL/<newline>
+Default: N/A
+<p>
+SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+are implemented.
+
+<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+Default: <tt/localhost/
+<p>
+SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
+Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+Multiple hosts, separated by the semicolon, may be specified to support failover.
+
+<item><tt/Database=billing/<newline>
+Default: <tt/billing/
+<p>
+The database name to connect to.
+
+<item><tt/Username=gnugk/<newline>
+<p>
+The username used to connect to the database.
+
+<item><tt/Password=secret/<newline>
+<p>
+The password used to connect to the database.
+If the password is not specified, a database connection attempt 
+without any password will be made.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in an encrypted form and should be created 
+using the <tt/addpasswd/ utility.
+
+<item><tt/StartQuery=INSERT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Defines SQL query used to insert a new call record to the database. The query
+is parametrized - that means parameter replacement is made before each query
+is executed. Parameter placeholders are denoted by % character and can be one
+letter (like %u) or whole strings (like %{src-info}). Specify %% to embed 
+a percent character inside the query string (like <bf/%%/).
+For <tt/SQLAcct/ the following parameters are defined:
+<itemize>
+<item><tt/%g/ - gatekeeper name
+<item><tt/%n/ - call number (not unique after gatekeeper restart)
+<item><tt/%d/ - call duration (seconds)
+<item><tt/%c/ - Q.931 disconnect cause (<bf/hexadecimal/ integer)
+<item><tt/%s/ - unique (for this gatekeeper) call (Acct-Session-Id)
+<item><tt/%u/ - H.323 ID of the calling party
+<item><tt/%{gkip}/ - IP address of the gatekeeper
+<item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
+<item><tt/%{ConfId}/ - H.323 conference identifier (16 hex 8-bit digits)
+<item><tt/%{setup-time}/ - timestamp string for Q.931 Setup message
+<item><tt/%{connect-time}/ - timestamp string for a call connected event
+<item><tt/%{disconnect-time}/ - timestamp string for a call disconnect event
+<item><tt/%{caller-ip}/ - signaling IP addres of the caller
+<item><tt/%{caller-port}/ - signaling port of the caller
+<item><tt/%{callee-ip}/ - signaling IP addres of the called party
+<item><tt/%{callee-port}/ - signaling port of the called party
+<item><tt/%{src-info}/ - a colon separated list of source aliases
+<item><tt/%{dest-info}/ - a colon separated list of destination aliases
+<item><tt/%{Calling-Station-Id}/ - calling party number
+<item><tt/%{Called-Station-Id}/ - called party number
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+INSERT INTO call (gkname, sessid, username, calling, called) 
+	VALUES ('%g', '%s', '%u', '%{Calling-Station-Id}', '%{Called-Station-Id}')
+</verb></tscreen>
+
+<item><tt/StartQueryAlt=INSERT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Defines SQL query used to insert a new call record to the database in case
+the <tt/StartQuery/ failed for some reason (the call already exists, for example).
+The syntax and parameters are the same as for <tt/StartQuery/.
+
+<item><tt/UpdateQuery=UPDATE .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Defines SQL query used to update call record in the database with the current 
+call state. The syntax and parameters are the same as for <tt/StartQuery/.
+<p>
+Sample query string:
+<tscreen><verb>
+UPDATE call SET duration = %d WHERE gkname = '%g' AND sessid = '%s'
+</verb></tscreen>
+
+<item><tt/StopQuery=UPDATE .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Defines SQL query used to update call record in the database when the call
+is finished (disconnected). The syntax and parameters are the same 
+as for <tt/StartQuery/.
+<p>
+Sample query string:
+<tscreen><verb>
+UPDATE call SET duration = %d, dtime = '%{disconnect-time}' WHERE gkname = '%g' AND sessid = '%s'
+</verb></tscreen>
+
+<item><tt/StopQueryAlt=INSERT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Defines SQL query used to update call record in the database when the call
+is finished (disconnected) in case the regular <tt/StopQuery/ failed (because
+the call record does not yet exist, for example). The syntax and parameters 
+are the same as for <tt/StartQuery/.
+<p>
+Sample query string:
+<tscreen><verb>
+INSERT INTO call (gkname, sessid, username, calling, called, duration) 
+	VALUES ('%g', '%s', '%u', '%{Calling-Station-Id}', '%{Called-Station-Id}', %d)
+</verb></tscreen>
+
 </itemize>
 
 <sect2>Section &lsqb;NATedEndpoints&rsqb;
