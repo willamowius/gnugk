@@ -249,6 +249,50 @@ const BOOL Toolkit::RewriteTool::PrefixAnalysis(PString & number, unsigned int &
 	return TRUE;
 }
 
+const enum Q931::TypeOfNumberCodes Toolkit::RewriteTool::PrefixAnalysis(PString & number, const CallProfile & profile) const
+{
+	PString internationalNumber;
+	Q931::TypeOfNumberCodes ton=Q931::UnknownType;
+	if(profile.GetInac() == number.Left(profile.GetInac().GetLength())) {
+		PTRACE(5, "International Call");
+		// It's a number in dialedDigits format (international)
+		internationalNumber = number.Right(number.GetLength()-profile.GetInac().GetLength());
+		ton = Q931::InternationalType;
+	} else if (profile.GetInac().Left(number.GetLength()) == number) {
+		// The number is a prefix of the INAC. So we cannot decide what TON it is.
+		ton=Q931::UnknownType;
+	} else { // This is definitely not an international Call.
+		// Let's see, if it's a national call.
+		if (profile.GetNac() == number.Left(profile.GetNac().GetLength())) {
+			// Ok, it's a National Call.
+			PTRACE(5, "National Call");
+			internationalNumber =number.Right(number.GetLength()-profile.GetNac().GetLength());
+			ton = Q931::NationalType;
+		} else if (profile.GetNac().Left(number.GetLength()) == number) {
+			// The number is a prefix of the NAC. So we cannot decide what TON it is.
+			ton=Q931::UnknownType;
+		} else { // Not an international nor a national Call.
+			// next is to determine wether it's a local call.
+			PTRACE(5, "Neither National nor International Call");
+			if (profile.GetLac() == number.Left(profile.GetLac().GetLength())) {
+				PTRACE(5, "LAC");
+				internationalNumber = number.Right(number.GetLength()-profile.GetLac().GetLength());
+				ton=Q931::SubscriberType;
+			} else if (profile.GetLac().Left(number.GetLength()) == number) {
+				// The number is a prefix of the LAC. So we cannot decide what TON it is.
+				// I don't know if that may ever happen -- but we are well prepared for it :-)
+				ton=Q931::UnknownType;
+			} else {
+				PTRACE(5, "No Prefix");
+				// This MUST be a internal call.
+				internationalNumber = number;
+				ton=Q931::AbbreviatedType;
+			}
+		}
+	}
+	number = internationalNumber; // This is for future replacement of number-types
+	return ton;
+}
 
 bool Toolkit::RewriteTool::RewritePString(PString & s)
 {
