@@ -109,7 +109,8 @@ public:
 	{
 		if( IsActive() ) {
 #if PTRACING
-			const char* tagname = request.GetWrapper()?request.GetWrapper()->GetTagName():"unknown";
+			const char* tagname = request.GetWrapper()
+				?(const char*)(request.GetWrapper()->GetTagName()):"unknown";
 			const unsigned seqnum = request.GetRequest().m_requestSeqNum.GetValue();
 			PTRACE(5,"ROUTING\tChecking policy "<<m_name
 				<<" for the request "<<tagname<<' '<<seqnum
@@ -131,7 +132,8 @@ public:
 	{
 		if( IsActive() ) {
 #if PTRACING
-			const char* tagname = request.GetWrapper()?request.GetWrapper()->GetMessageTypeName():"unknown";
+			const char* tagname = request.GetWrapper()
+				?(const char*)(request.GetWrapper()->GetMessageTypeName()):"unknown";
 			const unsigned crv = request.GetWrapper()?request.GetWrapper()->GetCallReference():0;
 			PTRACE(5,"ROUTING\tChecking policy "<<m_name
 				<<" for request "<<tagname<<" CRV="<<crv
