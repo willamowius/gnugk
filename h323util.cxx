@@ -218,3 +218,20 @@ PString GetBestAliasAddressString(
 	else
 		return PString();
 }
+
+unsigned MapH225ReasonToQ931Cause(
+	int reason
+	)
+{
+	// from ITU-T Recommendation H.225
+	static unsigned H225ReasonToQ931Cause[] =
+	{
+		34, 47, 3, 16, 88, 111, 38, 42, 28, 41, 17, 31, 16, 31, 20, 31, 47, 127,
+		31, 31, 31, 127
+	};
+	
+	if( reason < 0 || reason > H225_ReleaseCompleteReason::e_tunnelledSignallingRejected )
+		return 0;
+	else
+		return H225ReasonToQ931Cause[reason];
+}

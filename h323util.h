@@ -80,4 +80,13 @@ PString GetBestAliasAddressString(
 	int tag4 = -1 /// if alias types #tag#, #tag2# and #tag3# not found
 	);
 	
+/** Map H225_ReleaseCompleteReason code to Q.931 cause value.
+	
+	@return
+	The corresponding Q.931 cause value or 0, if there is no direct mapping.
+*/
+unsigned MapH225ReasonToQ931Cause(
+	int reason /// H225_ReleaseCompleteReason code to map
+	);
+	
 #endif // H323UTIL_H
