@@ -371,12 +371,36 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 {
 	const H225_GatekeeperRequest & obj_gr = obj_grq;
 
+	BOOL bShellForwardRequest = TRUE;
+
+
 	// reply only if gkID matches
 	if ( obj_gr.HasOptionalField ( H225_GatekeeperRequest::e_gatekeeperIdentifier ) )
 		if (obj_gr.m_gatekeeperIdentifier.GetValue() != GetGKName()) {
 			PTRACE(2, "GK\tGRQ is not meant for this gatekeeper");
 			return FALSE;
 		}
+
+	// mechanism 1: forwarding detection per "flag"
+	if(obj_gr.HasOptionalField(H225_GatekeeperRequest::e_nonStandardData)) {
+		switch(obj_gr.m_nonStandardData.m_nonStandardIdentifier.GetTag()) {
+		case H225_NonStandardIdentifier::e_h221NonStandard:
+			const H225_H221NonStandard &nonStandard =
+				(const H225_H221NonStandard&)(obj_gr.m_nonStandardData.m_nonStandardIdentifier);
+			int iec = Toolkit::Instance()->GetInternalExtensionCode(nonStandard);
+			if(iec == Toolkit::iecFailoverRAS) {
+				bShellForwardRequest = FALSE;
+			}
+		}
+	}
+
+	// mechanism 2: forwarding detection per "from"
+	const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
+	if (!SkipForwards)
+		if (SkipForwards.Find(rx_addr.AsString()) != P_MAX_INDEX) {
+			PTRACE(5, "RRQ\tWill skip forwarding RRQ to other GK.");
+			bShellForwardRequest = FALSE;
+	}
 
 	PString msg;
 	unsigned rsn = H225_GatekeeperRejectReason::e_securityDenial;
@@ -405,6 +429,9 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			aliasListString = AsString(obj_gr.m_endpointAlias);
 		}
 		else aliasListString = " ";
+
+		if (bShellForwardRequest)
+			ForwardRasMsg(obj_grq);
 
 		msg = PString(PString::Printf, "GCF|%s|%s|%s;\r\n", 
 			inet_ntoa(rx_addr),
