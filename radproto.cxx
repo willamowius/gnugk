@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2003/10/21 10:47:16  zvision
+ * Fixed minor compilation warnings about precision loss
+ *
  * Revision 1.7  2003/10/08 12:40:48  zvision
  * Realtime accounting updates added
  *
@@ -1784,26 +1787,46 @@ BOOL RadiusClient::MakeRequest(
 				clonedRequestPDU = oldPDU;
 			}
 			
-			PTRACE(5,"RADIUS\tSending PDU to RADIUS server "
-				<<serverName<<" ("<<serverAddress<<':'<<serverPort<<')'<<" from "
-				<<(*socket)<<", PDU: "<<*clonedRequestPDU);
-
+#if PTRACING
+			if( PTrace::CanTrace(3) ) {
+				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
+				strm<<"RADIUS\tSending PDU to RADIUS server "
+					<<serverName<<" ("<<serverAddress<<':'<<serverPort<<')'<<" from "
+					<<(*socket)<<", PDU: ";
+				if( PTrace::CanTrace(5) )
+					strm<<*clonedRequestPDU;
+				else
+					strm<<PMAP_CODE_TO_NAME(clonedRequestPDU->GetCode())<<", id "
+						<<(PINDEX)(clonedRequestPDU->GetId());
+				PTrace::End(strm);
+			}
+#endif
 			RadiusPDU* response = NULL;
 			
 			retransmission = TRUE;
 			
 			if( !socket->MakeRequest( (const BYTE*)sendBuffer, length, 
 					serverAddress, serverPort, response ) ) {
-				PTRACE(5,"RADIUS\tReceive response from RADIUS server failed (id:"
+				PTRACE(3,"RADIUS\tReceive response from RADIUS server failed (id:"
 					<<(PINDEX)(clonedRequestPDU->GetId())<<')'
 					);
 				continue;
 			}
 
-			PTRACE(5,"RADIUS\tReceived PDU from RADIUS server "
-				<<serverName<<" ("<<serverAddress<<':'<<serverPort<<')'<<" by socket "
-				<<(*socket)<<", PDU: "<<(*response));
-				
+#if PTRACING
+			if( PTrace::CanTrace(3) ) {
+				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
+				strm<<"RADIUS\tReceived PDU from RADIUS server "
+					<<serverName<<" ("<<serverAddress<<':'<<serverPort<<')'<<" by socket "
+					<<(*socket)<<", PDU: ";
+				if( PTrace::CanTrace(5) )
+					strm<<(*response);
+				else
+					strm<<PMAP_CODE_TO_NAME(response->GetCode())<<", id "
+						<<(PINDEX)(response->GetId());
+				PTrace::End(strm);
+			}
+#endif
 			if( !OnReceivedPDU( *response ) ) {
 				delete response;
 				continue;
@@ -1916,12 +1939,23 @@ BOOL RadiusClient::SendRequest(
 		return FALSE;
 	}
 			
-	PTRACE(5,"RADIUS\tSending PDU to RADIUS server "
-		<<serverName<<" ("<<serverAddress<<':'<<serverPort<<')'<<" from "
-		<<(*socket)<<", PDU: "<<*clonedRequestPDU);
+#if PTRACING
+	if( PTrace::CanTrace(3) ) {
+		ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
+		strm<<"RADIUS\tSending PDU to RADIUS server "
+			<<serverName<<" ("<<serverAddress<<':'<<serverPort<<')'<<" from "
+			<<(*socket)<<", PDU: ";
+		if( PTrace::CanTrace(5) )
+			strm<<*clonedRequestPDU;
+		else
+			strm<<PMAP_CODE_TO_NAME(clonedRequestPDU->GetCode())<<", id "
+				<<(PINDEX)(clonedRequestPDU->GetId());
+		PTrace::End(strm);
+	}
+#endif
 
 	if( !socket->SendRequest( sendBuffer, length, serverAddress, serverPort ) ) {
-		PTRACE(5,"RADIUS\tError sending RADIUS request (id:"<<(PINDEX)id<<')');
+		PTRACE(3,"RADIUS\tError sending RADIUS request (id:"<<(PINDEX)id<<')');
 		delete clonedRequestPDU;
 		return FALSE;
 	}
