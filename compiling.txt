@@ -1,11 +1,11 @@
 How to compile the OpenH323 Gatekeeper
 ======================================
 
-To build the gatekeeper you need PWlib 1.14 and
-OpenH323 1.11 or later.
+To build the gatekeeper you need at least PWlib 1.1.33 and
+OpenH323 1.5.5 or later.
 You can put the gatekeeper code into a subdirectory of openh323
 or set the PWLIBDIR and OPENH323DIR environment variables and place
-the gatekepper code anywhere you want.
+the gatekeeper code anywhere you want.
 
 Order of compiling:
 1. pwlib (release + debug version)
@@ -13,6 +13,6 @@ Order of compiling:
 3. openh323 test application (not needed, just to make sure everything works so far)
 4. gatekeeper
 
-On Unix do a "make debug" or "make opt" in the gatekeeepr directory.
-On Windows just compile the provided project for Visual C++ 6.0.
+On Unix do a "make debug" or "make opt" in the gatekeeper directory.
+On Windows just compile the provided project for Visual C++ 6.0 (Visual C++ 5.0 is too old!).
 
