@@ -128,6 +128,8 @@ protected:
 	enum Conversions m_TreatCalledPartyNumberAs;  // See above but Called Party Number
 	PStringList     m_BlackList;                  // Blacklist of "bad" prefices
 	PStringList     m_WhiteList;                  // Whitelist of "good" prefices
+protected:
+	PMutex          m_lock;
 };
 
 class CallingProfile : public CallProfile {
@@ -140,15 +142,16 @@ class CalledProfile : public CallProfile {
 public:
         CalledProfile() : m_releasecause(Q931::NormalCallClearing) {};
         CalledProfile(PString &dialedPN, PString &calledPN);
+	~CalledProfile();
 
         // Get accessor methods
-        const PString & GetDialedPN() const { return m_dialedPN; }
-        const PString & GetCalledPN() const { return m_calledPN; }
-	const PString & GetCallingPN() const { return m_callingPN; }
-        const enum Q931::TypeOfNumberCodes  GetDialedPN_TON() const { return m_dialedPN_TON; }
-	const enum Q931::TypeOfNumberCodes  GetAssumedDialedPN_TON() const { return m_assumeddialedPN_TON; }
-	const PString & GetAssumedDialedPN() const { return m_assumeddialedPN; }
-	const enum Q931::CauseValues GetReleaseCause() const {return m_releasecause; }
+        const PString & GetDialedPN() const ;
+        const PString & GetCalledPN() const ;
+	const PString & GetCallingPN() const ;
+        const enum Q931::TypeOfNumberCodes  GetDialedPN_TON() const ;
+	const enum Q931::TypeOfNumberCodes  GetAssumedDialedPN_TON() const ;
+	const PString & GetAssumedDialedPN() const ;
+	const enum Q931::CauseValues GetReleaseCause() const ;
 
         void SetDialedPN(PString &dialedPN,
 			 const enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType);
@@ -186,6 +189,7 @@ private:
 
         PString m_calledPN; // called party number
 	PString m_callingPN; // calling party number as in Q.931-Setup after converting to international
+	mutable PMutex m_lock;
 }; // CalledProfile
 
 // End of: Classes to store information read from e.g. LDAP
