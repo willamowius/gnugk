@@ -639,7 +639,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 		return NULL;
 	}
 	if(!remote->IsConnected()) { // ignore already connected calls
-		if (remote->Connect(Q931PortRange.GetPort(),peerAddr)) {
+		if (remote->Connect(static_cast<PIPSocket::Address>(GkConfig()->GetString("Home", INADDR_ANY)), Q931PortRange.GetPort(),peerAddr)) {
 #ifdef WIN32
 			PTRACE(3, "Q931(" << GetCurrentThreadId() << ") Connect to " << peerAddr << " successful");
 #else
@@ -1325,6 +1325,10 @@ void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 		PTRACE(1, "Q931\tWarning: CallIdentifier doesn't match?");
 	}
 #endif
+	if(callptr(NULL)==m_call) {
+		InternalSendReleaseComplete(Q931::ClearedRequestedCallIdentity);
+		return;
+	}
 	m_call->SetConnected(true);
 	if (!m_numbercomplete) {
 		if (callptr(NULL)==m_call) {// hmm... it should not be null
@@ -2186,7 +2190,7 @@ TCPProxySocket *H245Socket::ConnectTo()
 		H225_TransportAddress_ipAddress & ip = peerH245Addr;
 		PIPSocket::Address peerAddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		SetPort(ip.m_port);
-		if (Connect(H245PortRange.GetPort(), peerAddr)) {
+		if (Connect(static_cast<PIPSocket::Address>(GkConfig()->GetString("Home", INADDR_ANY)), H245PortRange.GetPort(), peerAddr)) {
 #ifdef WIN32
 			PTRACE(3, "H245(" << GetCurrentThreadId() << ") Connect to " << Name() << " successful");
 #else
@@ -2416,7 +2420,7 @@ T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
 TCPProxySocket *T120ProxySocket::ConnectTo()
 {
 	remote = new T120ProxySocket(this, peerPort);
-	if (remote->Connect(T120PortRange.GetPort(), peerAddr)) {
+	if (remote->Connect(static_cast<PIPSocket::Address>(GkConfig()->GetString("Home", INADDR_ANY)), T120PortRange.GetPort(), peerAddr)) {
 		PTRACE(3, "T120\tConnect to " << remote->Name() << " successful");
 		SetConnected(true);
 		remote->SetConnected(true);

@@ -277,10 +277,17 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 	return result;
 }
 
-BOOL TCPProxySocket::Connect(WORD localPort, const Address & addr)
+
+BOOL
+TCPProxySocket::Connect(WORD localPort, const Address &addr)
+{
+	return Connect(INADDR_ANY, localPort, addr);
+}
+
+BOOL TCPProxySocket::Connect(const Address & local, WORD localPort, const Address & addr)
 {
 	SetReadTimeout(PTimeInterval(6000)); // TODO: read from config...
-	BOOL result = PTCPSocket::Connect(localPort, addr);
+	BOOL result = PTCPSocket::Connect(local, localPort, addr);
 	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,
 	// we save it for reference

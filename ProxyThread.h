@@ -123,6 +123,7 @@ public:
 	// override from class PTCPSocket
 	virtual BOOL Accept(PSocket &);
 	virtual BOOL Connect(WORD, const Address &);
+	virtual BOOL Connect(const Address &, WORD, const Address &);
 //	BOOL WriteAsync( const void * buf, PINDEX len );
 //	void OnWriteComplete( const void * buf, PINDEX len );
 
