@@ -117,7 +117,8 @@ public:
 	const VirtualQueue *GetVirtualQueue() const { return vqueue; }
 
 	// get signalling handler
-	ProxyHandler *GetProxyHandler();
+	ProxyHandler *GetSigProxyHandler();
+	ProxyHandler *GetRtpProxyHandler();
 
 	void SelectH235Capability(const H225_GatekeeperRequest &, H225_GatekeeperConfirm &) const;
 

@@ -1227,7 +1227,7 @@ StatusListener::StatusListener(
 	)
 {
 	const unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
-	if (!Listen(addr, queueSize, port))
+	if (!Listen(addr, queueSize, port, PSocket::CanReuseAddress))
 		PTRACE(1, "STATUS\tCould not open listening socket at " << addr << ':' << port
 			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
 			<< GetErrorText(PSocket::LastGeneralError) << ')'

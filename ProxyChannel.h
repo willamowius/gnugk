@@ -225,7 +225,7 @@ public:
 
 class ProxyHandler : public SocketsReader {
 public:
-	ProxyHandler(int i);
+	ProxyHandler(const PString& name);
 	~ProxyHandler();
 
 	void Insert(TCPProxySocket *);
@@ -248,6 +248,11 @@ private:
 	void Remove(iterator);
 	void Remove(ProxySocket *socket);
 
+	ProxyHandler();
+	ProxyHandler(const ProxyHandler&);
+	ProxyHandler& operator=(const ProxyHandler&);
+	
+private:
 	std::list<PTime *> m_removedTime;
 };
 
@@ -256,13 +261,37 @@ public:
 	HandlerList();
 	~HandlerList();
 
-	ProxyHandler *GetHandler();
+	/** @return
+	    Signaling proxy thread to handle a new signaling/H.245/T.120 socket.
+	*/
+	ProxyHandler* GetSigHandler();
+
+	/** @return
+	    RTP proxy thread to handle a pair of new RTP sockets.
+	*/
+	ProxyHandler* GetRtpHandler();
+
 	void LoadConfig();
 
 private:
-	std::vector<ProxyHandler *> m_handlers;
-	int m_current, m_hsize;
-	PMutex m_hmutex;
+	HandlerList(const HandlerList&);
+	HandlerList& operator=(const HandlerList&);
+	
+private:
+	/// signaling/H.245/T.120 proxy handling threads
+	std::vector<ProxyHandler *> m_sigHandlers;
+	/// RTP proxy handling threads
+	std::vector<ProxyHandler *> m_rtpHandlers;
+	/// number of signaling handlers
+	unsigned m_numSigHandlers;
+	/// number of RTP handlers
+	unsigned m_numRtpHandlers;
+	/// next available signaling handler
+	unsigned m_currentSigHandler;
+	/// next available RTP handler
+	unsigned m_currentRtpHandler;
+	/// atomic access to the handler lists
+	PMutex m_handlerMutex;
 };
 
 #endif // PROXYCHANNEL_H

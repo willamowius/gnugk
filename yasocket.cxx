@@ -254,7 +254,7 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 		inaddr.sin_family = AF_INET;
 		inaddr.sin_addr.s_addr = addr;
 		inaddr.sin_port = htons(pt);
-		if (SetOption(SO_REUSEADDR, 1) && ConvertOSError(::bind(os_handle, (struct sockaddr *)&inaddr, sizeof(inaddr)))) {
+		if (ConvertOSError(::bind(os_handle, (struct sockaddr *)&inaddr, sizeof(inaddr)))) {
 			socklen_t insize = sizeof(inaddr);
 			if (::getsockname(os_handle, (struct sockaddr *)&inaddr, &insize) == 0) {
 				port = ntohs(inaddr.sin_port);
@@ -291,17 +291,19 @@ bool YaTCPSocket::SetLinger()
 	return SetOption(SO_LINGER, &ling, sizeof(ling));
 }
 
-bool YaTCPSocket::Listen(unsigned qs, WORD pt)
+bool YaTCPSocket::Listen(unsigned qs, WORD pt, PSocket::Reusability reuse)
 {
 	return Listen(INADDR_ANY, qs, pt);
 }
 
-bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt)
+bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Reusability reuse)
 {
 	os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
 	if (!ConvertOSError(os_handle))
 		return false;
 
+	SetOption(SO_REUSEADDR, reuse == PSocket::CanReuseAddress ? 1 : 0);
+	
 //	SetNonBlockingMode();
 	if (Bind(addr, pt) && ConvertOSError(::listen(os_handle, qs)))
 		return true;
@@ -350,6 +352,8 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 			return false;
 	}
 
+	SetOption(SO_REUSEADDR, 0);
+	
 	int optval;
 	socklen_t optlen = sizeof(optval);
 
@@ -419,17 +423,18 @@ YaUDPSocket::YaUDPSocket()
 	sendaddr.sin_port = 0;
 }
 
-bool YaUDPSocket::Listen(unsigned, WORD pt)
+bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
 {
-	return Listen(INADDR_ANY, 0, pt, 0);
+	return Listen(INADDR_ANY, 0, pt, 0, reuse);
 }
 
-bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, int)
+bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, int, PSocket::Reusability reuse)
 {
 	os_handle = ::socket(PF_INET, SOCK_DGRAM, 0);
 	if (!ConvertOSError(os_handle))
 		return false;
 
+	SetOption(SO_REUSEADDR, reuse == PSocket::CanReuseAddress ? 1 : 0);
 	SetNonBlockingMode();
 	return Bind(addr, pt);
 }

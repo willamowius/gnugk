@@ -534,7 +534,7 @@ CallSignalSocket::CallSignalSocket() : TCPProxySocket("Q931s")
 	InternalInit();
 	localAddr = peerAddr = INADDR_ANY;
 	m_h245Tunneling = true;
-	SetHandler(RasServer::Instance()->GetProxyHandler());
+	SetHandler(RasServer::Instance()->GetSigProxyHandler());
 }
 
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket) : TCPProxySocket("Q931d", socket)
@@ -2087,7 +2087,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
       : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket)
 {
 	peerH245Addr = 0;
-	listener->Listen(1, H245PortRange.GetPort());
+	listener->Listen(1, H245PortRange.GetPort(), PSocket::CanReuseAddress);
 	SetHandler(sig->GetHandler());
 }
 
@@ -2710,7 +2710,7 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 void RTPLogicalChannel::StartReading(ProxyHandler *handler)
 {
 	if (!used) {
-		handler->Insert(rtp, rtcp);
+		RasServer::Instance()->GetRtpProxyHandler()->Insert(rtp, rtcp);
 		used = true;
 		if (peer)
 			peer->used = true;
@@ -2776,7 +2776,7 @@ void T120LogicalChannel::StartReading(ProxyHandler *h)
 
 T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(lc)
 {
-	Listen(5, T120PortRange.GetPort());
+	Listen(5, T120PortRange.GetPort(), PSocket::CanReuseAddress);
 	SetName("T120:" + PString(GetPort()));
 }
 
@@ -3164,7 +3164,7 @@ bool NATHandler::SetAddress(H245_UnicastAddress_iPAddress * addr)
 CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 {
 	unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
-	Listen(addr, queueSize, pt);
+	Listen(addr, queueSize, pt, PSocket::CanReuseAddress);
 	SetName(AsString(addr, GetPort()));
 }
 
@@ -3175,9 +3175,12 @@ ServerSocket *CallSignalListener::CreateAcceptor() const
 
 
 // class ProxyHandler
-ProxyHandler::ProxyHandler(int id) : SocketsReader(100)
+ProxyHandler::ProxyHandler(
+	const PString& name
+	) 
+	: SocketsReader(100)
 {
-	SetName(PString(PString::Printf, "ProxyH(%d)", id));
+	SetName(name);
 	Execute();
 }
 
@@ -3339,45 +3342,81 @@ void ProxyHandler::Remove(iterator i)
 
 
 // class HandlerList
-HandlerList::HandlerList()
+HandlerList::HandlerList() : m_numSigHandlers(0), m_numRtpHandlers(0),
+	m_currentSigHandler(0), m_currentRtpHandler(0)
 {
-	m_current = m_hsize = 0;
 	LoadConfig();
 }
 
 HandlerList::~HandlerList()
 {
-	ForEachInContainer(m_handlers, mem_vfun(&ProxyHandler::Stop));
+	PWaitAndSignal lock(m_handlerMutex);
+	ForEachInContainer(m_sigHandlers, mem_vfun(&ProxyHandler::Stop));
+	ForEachInContainer(m_rtpHandlers, mem_vfun(&ProxyHandler::Stop));
 }
 
-ProxyHandler *HandlerList::GetHandler()
+ProxyHandler *HandlerList::GetSigHandler()
 {
-	PWaitAndSignal lock(m_hmutex);
-	ProxyHandler *result = m_handlers[m_current];
-	if (++m_current >= m_hsize)
-		m_current = 0;
+	PWaitAndSignal lock(m_handlerMutex);
+	ProxyHandler* const result = m_sigHandlers[m_currentSigHandler];
+	if (++m_currentSigHandler >= m_numSigHandlers)
+		m_currentSigHandler = 0;
+	return result;
+}
+
+ProxyHandler *HandlerList::GetRtpHandler()
+{
+	PWaitAndSignal lock(m_handlerMutex);
+	ProxyHandler* const result = m_rtpHandlers[m_currentRtpHandler];
+	if (++m_currentRtpHandler >= m_numRtpHandlers)
+		m_currentRtpHandler = 0;
 	return result;
 }
 
 void HandlerList::LoadConfig()
 {
+	PWaitAndSignal lock(m_handlerMutex);
+	
 	Q931PortRange.LoadConfig(RoutedSec, "Q931PortRange");
 	H245PortRange.LoadConfig(RoutedSec, "H245PortRange");
 	T120PortRange.LoadConfig(ProxySection, "T120PortRange");
 	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange", "10000-59999");
 
-	m_hsize = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 1);
-	if (m_hsize < 1)
-		m_hsize = 1;
-	int hs = m_handlers.size();
-	if (hs <= m_hsize) {
-		for (int i = hs; i < m_hsize; ++i)
-			m_handlers.push_back(new ProxyHandler(i));
+	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 1);
+	if (m_numSigHandlers < 1)
+		m_numSigHandlers = 1;
+	if (m_numSigHandlers > 200)
+		m_numSigHandlers = 200;
+	unsigned hs = m_sigHandlers.size();
+	if (hs <= m_numSigHandlers) {
+		for (unsigned i = hs; i < m_numSigHandlers; ++i)
+			m_sigHandlers.push_back(
+				new ProxyHandler(psprintf("ProxyH(%d)", i))
+				);
 	} else {
-		int ds = hs - m_hsize;
-		for (int i = 0; i < hs && ds > 0; ++i) {
+//		int ds = hs - m_numSigHandlers;
+//		for (int i = 0; i < hs && ds > 0; ++i) {
 			// TODO
-		}
-		m_current = 0;
+//		}
+		m_currentSigHandler = 0;
+	}
+
+	m_numRtpHandlers = GkConfig()->GetInteger(RoutedSec, "RtpHandlerNumber", 1);
+	if (m_numRtpHandlers < 1)
+		m_numRtpHandlers = 1;
+	if (m_numRtpHandlers > 200)
+		m_numRtpHandlers = 200;
+	hs = m_rtpHandlers.size();
+	if (hs <= m_numRtpHandlers) {
+		for (unsigned i = hs; i < m_numRtpHandlers; ++i)
+			m_rtpHandlers.push_back(
+				new ProxyHandler(psprintf("ProxyRTP(%d)", i))
+				);
+	} else {
+//		unsigned ds = hs - m_numRtpHandlers;
+//		for (int i = 0; i < hs && ds > 0; ++i) {
+			// TODO
+//		}
+		m_currentRtpHandler = 0;
 	}
 }

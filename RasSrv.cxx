@@ -992,9 +992,14 @@ PString RasServer::GetParent() const
 	return gkClient->GetParent();
 }
 
-ProxyHandler *RasServer::GetProxyHandler()
+ProxyHandler *RasServer::GetSigProxyHandler()
 {
-	return sigHandler ? sigHandler->GetHandler() : 0;
+	return sigHandler ? sigHandler->GetSigHandler() : NULL;
+}
+
+ProxyHandler *RasServer::GetRtpProxyHandler()
+{
+	return sigHandler ? sigHandler->GetRtpHandler() : NULL;
 }
 
 void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_GatekeeperConfirm & gcf) const

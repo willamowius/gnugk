@@ -1,5 +1,9 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(ProxyChannel.cxx) RTP proxy handling moved to a separate RTP proxy
+  threads. New RtpHandlerNumber config option
+- BUGFIX(yasocket.cxx) enabled REUSE_ADDRESS option on listening sockets
+  in non-LARGE_FDSET mode to allow fast gatekeeper restarting
 - better disconnect cause reporting in Setup processing
 - ability to set call destination in auth modules. RADIUS based call routing
 - BUGFIX(Neighbor.cxx) fixed sourceInfo LRQ field handling - now it contains

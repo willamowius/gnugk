@@ -114,6 +114,16 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+RTP proxy handling moved to a separate RTP proxy threads, so processing
+of signaling messages does not block RTP packets. New <tt/RtpHandlerNumber/ 
+config option.
+
+<item>
+REUSE_ADDRESS option enabled on listening sockets in non-LARGE_FDSET mode 
+to fix a bug with the gatekeeper being unable to open listening ports after
+restart.
+
+<item>
 Ability to set call destination in auth modules. RADIUS based call routing.
 
 <item>
@@ -1298,6 +1308,11 @@ The number of call signalling handler. You may increase this number
 in a heavy loaded gatekeeper. The number can only be increased
 at runtime. If you have a SMP machine, you can set this number
 to your number of CPUs.
+
+<item><tt/RtpHandlerNumber=2/<newline>
+Default: <tt/1/
+<p>
+The number of RTP proxy handling threads.
 
 <item><tt/AcceptNeighborsCalls=1/<newline>
 Default: <tt/1/
