@@ -93,6 +93,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+A new, generic <ref id="sqlauth" name="SQLAuth"> module for RRQ, ARQ, LRQ
+and Setup authentication and authorization.
+
+<item>
 New --core command line argument to enable core dump generation for Unix.
 
 <item>

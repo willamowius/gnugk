@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- new generic SQLAuth module to authenticate and authorize RRQ, ARQ, LRQ and Setup messages
 - BUGFIX(ProxyChannel.cxx) another attempt to solve race issues in H.245 routed
   mode that may cause occasional crashes
 - new --core command line argument to enable core dump generation for Unix
