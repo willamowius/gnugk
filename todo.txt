@@ -6,7 +6,9 @@ for people who wish to contribute to this project.
 I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
-- fix: decode Q.931 UUIE debug output (pwlib thingy)
+- feature: multithread RasSrv
+
+- fix: decode Q.931 UUIE output, too (pwlib thingy)
 
 - fix: Forwarding to alternate GK doesn't use GKHome as it's
   sender address
