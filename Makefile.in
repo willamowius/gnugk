@@ -27,7 +27,13 @@ SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx          \
            Routing.cxx Neighbor.cxx GkClient.cxx gkauth.cxx         \
            RasSrv.cxx ProxyChannel.cxx gk.cxx version.cxx gkacct.cxx \
-		   @SOURCES@
+           @SOURCES@
+
+HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
+           RasSrv.h RasTbl.h Routing.h SoftPBX.h Toolkit.h factory.h \
+           gk.h gk_const.h gkacct.h gkauth.h job.h mysqlcon.h name.h \
+           radacct.h radauth.h radproto.h rasinfo.h rwlock.h singleton.h \
+           slist.h stl_supp.h version.h yasocket.h
 
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by
@@ -91,6 +97,10 @@ STDCCFLAGS = $(temp_STDCCFLAGS)
 # GK version infomation
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
 
+# special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled
+# so the proper build timestamp is included
+versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PW_LIBDIR)/$(PTLIB_FILE)
+	@touch $@
 
 # extra targets
 addpasswd: $(OBJDIR)/addpasswd.o
