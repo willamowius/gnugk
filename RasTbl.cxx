@@ -622,57 +622,10 @@ void GatewayRec::SortPrefixes()
 	defaultGW = (find(Prefixes.begin(), Prefixes.end(), std::string("*")) != Prefixes.end());
 }
 
-int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &a) const
+int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &aliases) const
 {
-	int maxlen = 0;
-	const_prefix_iterator pfxiter = Prefixes.end();
-	const_prefix_iterator eIter = Prefixes.end();
-	
-	for (PINDEX i = 0; i < a.GetSize(); i++) {
-		const unsigned tag = a[i].GetTag();
-		if (tag == H225_AliasAddress::e_dialedDigits
-			|| tag == H225_AliasAddress::e_partyNumber
-			|| tag == H225_AliasAddress::e_h323_ID) {
-
-			const PString alias = AsString(a[i], FALSE);
-
-			// we also allow h_323_ID aliases consisting only from digits
-			if( tag == H225_AliasAddress::e_h323_ID )
-				if( strspn(alias,"1234567890*#") != strlen(alias) )
-					continue;
-					
-			const_prefix_iterator Iter = Prefixes.begin();
-			while (Iter != eIter) {
-				if (Iter->length() > std::abs(maxlen)) {
-					const int len = MatchPrefix(alias, Iter->c_str());
-					if (std::abs(len) > std::abs(maxlen)
-						|| (len < 0 && (len + maxlen) == 0)) {
-						pfxiter = Iter;
-						maxlen = len;
-					}
-				}
-				++Iter;
-			}
-		}
-	}
-			
-	if (maxlen < 0) {
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue() 
-			<< " skipped by prefix " << pfxiter->c_str()
-			);
-	} else if (maxlen > 0) {
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
-			<< " matched by prefix " << pfxiter->c_str()
-			);
-		return maxlen;
-	} else if (defaultGW) {
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
-			<< " matched as a default gateway"
-			);
-		return 0;
-	}
-
-	return -1;
+	int dummy;
+	return PrefixMatch(aliases, dummy);
 }
 
 int GatewayRec::PrefixMatch(
@@ -700,7 +653,7 @@ int GatewayRec::PrefixMatch(
 					
 			const_prefix_iterator Iter = Prefixes.begin();
 			while (Iter != eIter) {
-				if (Iter->length() > std::abs(maxlen)) {
+				if (Iter->length() > (unsigned)std::abs(maxlen)) {
 					const int len = MatchPrefix(alias, Iter->c_str());
 					// replace the current match if the new prefix is longer
 					// or if lengths are equal and this is a blocking rule (!)
