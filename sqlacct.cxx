@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2005/03/08 00:13:47  zvision
+ * Support for connect event in SqlAcct module, thanks to Boian Bonev
+ *
  * Revision 1.8  2005/01/12 17:55:07  willamowius
  * fix gkip accounting parameter
  *
@@ -103,15 +106,6 @@ SQLAcct::SQLAcct(
 		return;
 	}
 
-	if (!m_sqlConn->Initialize(cfg, cfgSec)) {
-		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
-			"could not connect to the database"
-			);
-		PTRACE(0, "GKACCT\tFATAL: Shutting down");
-		RasServer::Instance()->Stop();
-		return;
-	}
-	
 	m_startQuery = cfg->GetString(cfgSec, "StartQuery", "");
 	if (m_startQuery.IsEmpty() 
 		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStart) == AcctStart) {
@@ -169,6 +163,15 @@ SQLAcct::SQLAcct(
 		return;
 	}
 
+	if (!m_sqlConn->Initialize(cfg, cfgSec)) {
+		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
+			"could not connect to the database"
+			);
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
+		return;
+	}
+	
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
 }
 
