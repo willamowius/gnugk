@@ -423,11 +423,11 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 {
 	m_rasSrv = RasSrv;
 
-	WORD rasPort = GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
-	WORD multicastPort = Toolkit::AsBool(GkConfig()->GetString("UseMulticastListener", "1")) ?
-		GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT) : 0;
-	WORD signalPort = GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
-	WORD statusPort = GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT);
+	WORD rasPort = (WORD)GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
+	WORD multicastPort = (WORD)(Toolkit::AsBool(GkConfig()->GetString("UseMulticastListener", "1")) ?
+		GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT) : 0);
+	WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+	WORD statusPort = (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT);
 
 	SetListener(rasPort, m_rasPort, m_rasListener, &GkInterface::CreateRasListener);
 	SetListener(multicastPort, m_multicastPort, m_multicastListener, &GkInterface::CreateMulticastListener);
@@ -540,7 +540,7 @@ bool RasRequester::WaitForResponse(int timeout)
 {
 	m_timeout = timeout;
 	while (m_iterator == m_queue.end()) {
-		int passed = (PTime() - m_sentTime).GetMilliSeconds();
+		int passed = (int)((PTime() - m_sentTime).GetMilliSeconds());
 		if (m_timeout > passed && m_sync.Wait(m_timeout - passed))
 			if (m_timeout > 0)
 				continue;
@@ -1093,7 +1093,7 @@ void RasServer::GetAlternateGK()
 		}
 
 		H225_AlternateGK & alt = (*altGKs)[idx];
-		alt.m_rasAddress = SocketToH225TransportAddr(Address(tokens[0]), tokens[1].AsUnsigned());
+		alt.m_rasAddress = SocketToH225TransportAddr(Address(tokens[0]), (WORD)tokens[1].AsUnsigned());
 		alt.m_needToRegister = Toolkit::AsBool(tokens[2]);
 		alt.m_priority = tokens[3].AsInteger();
 		if (tokens.GetSize() > 4) {

@@ -64,7 +64,8 @@ bool AlternateGKs::Get(PIPSocket::Address & gkaddr, WORD & gkport)
 		if (index == AltGKs.end()) {
 			index = AltGKs.begin();
 			// switch back to original GK
-			gkaddr = pgkaddr, gkport = pgkport;
+			gkaddr = pgkaddr;
+			gkport = (WORD)pgkport;
 			return false;
 		}
 

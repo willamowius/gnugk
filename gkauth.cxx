@@ -677,7 +677,7 @@ bool AliasAuth::AuthCondition(const H225_TransportAddress & SignalAdr, const PSt
 			return false;
 		PIPSocket::Address ip;
 		PIPSocket::GetHostAddress(rule[1], ip);
-		WORD port = (rule.GetSize() < 3) ? GK_DEF_ENDPOINT_SIGNAL_PORT : rule[2].AsInteger();
+		WORD port = (WORD)((rule.GetSize() < 3) ? GK_DEF_ENDPOINT_SIGNAL_PORT : rule[2].AsInteger());
 		return (SignalAdr == SocketToH225TransportAddr(ip, port));
 	} else {
 		PTRACE(4, "Unknown RRQAuth condition: " << Condition);

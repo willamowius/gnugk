@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2003/10/08 12:40:48  zvision
+ * Realtime accounting updates added
+ *
  * Revision 1.6  2003/09/28 15:47:23  zvision
  * Better RADIUS client socket handling
  *
@@ -1705,9 +1708,9 @@ BOOL RadiusClient::MakeRequest(
 		const PString serverName = serverComponents[0].Trim();
 		
 		if( serverComponents.GetSize() >= 2 )
-			_authPort = serverComponents[1].AsUnsigned();
+			_authPort = (WORD)serverComponents[1].AsUnsigned();
 		if( serverComponents.GetSize() >= 3 )	
-			_acctPort = serverComponents[2].AsUnsigned();
+			_acctPort = (WORD)serverComponents[2].AsUnsigned();
 			
 		if( _authPort == 0 )
 			_authPort = authPort;
@@ -1849,9 +1852,9 @@ BOOL RadiusClient::SendRequest(
 	const PString serverName = serverComponents[0].Trim();
 		
 	if( serverComponents.GetSize() >= 2 )
-		_authPort = serverComponents[1].AsUnsigned();
+		_authPort = (WORD)serverComponents[1].AsUnsigned();
 	if( serverComponents.GetSize() >= 3 )	
-		_acctPort = serverComponents[2].AsUnsigned();
+		_acctPort = (WORD)serverComponents[2].AsUnsigned();
 			
 	if( _authPort == 0 )
 		_authPort = authPort;

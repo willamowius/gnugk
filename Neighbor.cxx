@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////
+;//////////////////////////////////////////////////////////////////
 //
 // New Neighboring System for GNU Gatekeeper
 //
@@ -312,7 +312,7 @@ bool Neighbor::IsAcceptable(RasMsg *ras) const
 void Neighbor::SetForwardedInfo(const PString & section)
 {
 	PConfig *config = GkConfig();
-	m_forwardHopCount = config->GetInteger(section, "ForwardHopCount", 0);
+	m_forwardHopCount = (WORD)config->GetInteger(section, "ForwardHopCount", 0);
 	m_acceptForwarded = Toolkit::AsBool(config->GetString(section, "AcceptForwardedLRQ", "1"));
 	m_forwardResponse = Toolkit::AsBool(config->GetString(section, "ForwardResponse", "0"));
 	PString forwardto(config->GetString(section, "ForwardLRQ", "0"));

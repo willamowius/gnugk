@@ -916,7 +916,7 @@ void RegistrationTable::LoadConfig()
 		H225_RegistrationRequest &rrq = rrq_ras;
 
 		rrq.m_callSignalAddress.SetSize(1);
-		GetTransportAddress(cfgs.GetKeyAt(i), GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), rrq.m_callSignalAddress[0]);
+		GetTransportAddress(cfgs.GetKeyAt(i), (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), rrq.m_callSignalAddress[0]);
 		endptr eptr = FindBySignalAdr(rrq.m_callSignalAddress[0]);
 
 		// a permanent endpoint may not support RAS

@@ -44,7 +44,7 @@ void SoftPBX::PrintEndpoint(const PString & EpStr, USocket *client, bool verbose
 	}
 	if (!ep) {
 		H225_TransportAddress callSignalAddress;
-		GetTransportAddress(EpStr, GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
+		GetTransportAddress(EpStr, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
 		ep = RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);
 	}
 
@@ -124,7 +124,7 @@ void SoftPBX::UnregisterAlias(PString Alias)
 void SoftPBX::UnregisterIp(PString Ip)
 {
 	H225_TransportAddress callSignalAddress;
-	GetTransportAddress(Ip, GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
+	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
 
 	PTRACE(3, "GK\tSoftPBX: UnregisterIp " << AsDotString(callSignalAddress));
 
@@ -179,7 +179,7 @@ void SoftPBX::DisconnectCall(unsigned CallNumber)
 void SoftPBX::DisconnectIp(PString Ip)
 {
 	H225_TransportAddress callSignalAddress;
-	GetTransportAddress(Ip, GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
+	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
 	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << AsDotString(callSignalAddress));
 
 	DisconnectEndpoint(RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress));
