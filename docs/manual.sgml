@@ -1393,11 +1393,12 @@ Call to "gw2", dialedDigits 0867822
 
 <descrip>
 <tag/Format:/
-<tt>gw-alias=in|out=[!]original-prefix=target-prefix</tt>
+<tt>gw-alias=in|out=[!]original-prefix=target-prefix[;in|out...]</tt>
 <p>
 If the call matches the gateway, the direction and begins with
 <tt/original-prefix/ it is rewritten to <tt/target-prefix/.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
+Multiple rules for the same gateway should be seperated by ';'.
 <tag/Example:/
 <tt/gw1=in=123=321/
 <p>
@@ -2253,7 +2254,7 @@ prefix 09. All other situations are allowed.
 <p>
 This section defines configuration settings that enable
 RADIUS authentication based on H.235 CATs (Cisco Access Tokens)
-present in RRQ, ARQ RAS requests and Q.931 Setup messages. 
+present in RRQ, ARQ RAS requests and Q.931 Setup messages.
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT];SERVER2[:AUTH_PORT];.../<newline>
 Default: <tt>N/A</tt>
