@@ -467,9 +467,11 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 	// MulticastListener::GetPort() didn't return the real multicast port
 	m_multicastPort = multicastPort;
 	if (m_rasListener && m_callSignalListener)
-		if (RasSrv->IsGKRouted())
+		if (RasSrv->IsGKRouted()) {
 			m_rasListener->SetSignalPort(m_signalPort);
-		else
+			if (m_multicastListener)
+				m_multicastListener->SetSignalPort(m_signalPort);
+		} else
 			RasSrv->CloseListener(m_callSignalListener), m_callSignalListener = 0;
 
 	return m_rasListener != 0;

@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- (RasTbl.cxx) LRQs received on a multicast interface triggered LCFs
+  with an invalid signalling port number (0) in signalling routed mode
 - get rid of redundant config reload mutex inside accounting modules
 - obsolete auth modules MySQLAliasAuth and MySQLPasswordAuth are now removed
 - (GkStatus.cxx) fixed a missing lock during config reload
