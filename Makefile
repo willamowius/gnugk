@@ -4,7 +4,7 @@
 # Make file for OpenH323 Gatekeeper
 #
 
-PROG		= gk
+PROG		= gnugk
 SOURCES		= gk.cxx gkauth.cxx gkldap.cxx gkDestAnalysis.cxx \
 		  RasSrv.cxx RasTbl.cxx GkClient.cxx \
 		  MulticastGRQ.cxx BroadcastListen.cxx \

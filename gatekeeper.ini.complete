@@ -19,9 +19,6 @@ Name=OpenH323GK
 # overwritten from command line parameter
 #Home=195.71.129.69
 #TimeToLive=600
-AcceptNeighborsCalls=1
-AcceptUnregisteredCalls=0
-SupportNATedEndpoints=1
 TotalBandwidth=100000
 
 [RoutedMode]
@@ -30,6 +27,9 @@ H245Routed=1
 CallSignalPort=1721
 CallSignalHandlerNumber=1
 RemoveH245AddressOnTunneling=0
+AcceptNeighborsCalls=1
+AcceptUnregisteredCalls=0
+SupportNATedEndpoints=1
 DropCallsByReleaseComplete=1
 
 [Proxy]

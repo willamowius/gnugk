@@ -394,15 +394,16 @@ void H323RasSrv::SetRoutedMode()
 
 bool H323RasSrv::AcceptUnregisteredCalls(PIPSocket::Address ip, bool & fp) const
 {
-	return AcceptUnregCalls || (AcceptNBCalls ? (fp = (gkClient->IsRegistered() && gkClient->CheckGKIP(ip)) || NeighborsGK->CheckIP(ip)) : false);
+	fp = (gkClient->IsRegistered() && gkClient->CheckGKIP(ip));
+	return AcceptUnregCalls || (AcceptNBCalls ? (fp || NeighborsGK->CheckIP(ip)) : false);
 }
 
 void H323RasSrv::LoadConfig()
 {
 	PWaitAndSignal lock(loadLock);
 
-	AcceptNBCalls = Toolkit::AsBool(GkConfig()->GetString("AcceptNeighborsCalls", "1"));
-	AcceptUnregCalls = Toolkit::AsBool(GkConfig()->GetString("AcceptUnregisteredCalls", "0"));
+	AcceptNBCalls = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptNeighborsCalls", "1"));
+	AcceptUnregCalls = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptUnregisteredCalls", "0"));
 
 	// add authenticators
 	delete authList;
@@ -736,7 +737,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			H225_TransportAddress_ipAddress & ip = SignalAdr;
 			PIPSocket::Address ipaddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 			validaddress = (rx_addr == ipaddr);
-			if (!validaddress && Toolkit::AsBool(GkConfig()->GetString("SupportNATedEndpoints", "0")))
+			if (!validaddress && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
 				validaddress = nated = true;
 		}
 	}

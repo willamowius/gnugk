@@ -1,8 +1,8 @@
 # MySQL support
 %define mysql_dir /usr/include/mysql
-Summary: OpenH323 Gatekeeper
-Name: gk
-Version: 2.0beta4
+Summary: OpenH323 Gatekeeper - GNU Gatekeeper
+Name: gnugk
+Version: 2.0beta5
 Release: 1
 URL: http://www.willamowius.de/openh323gk.html
 Source0: openh323gk.tgz
@@ -38,17 +38,17 @@ mkdir -p $RPM_BUILD_ROOT%{_sbindir}
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 
 %ifarch %ix86
-install -s -m 755 obj_linux_x86_r/gk $RPM_BUILD_ROOT%{_sbindir}/gk
+install -s -m 755 obj_linux_x86_r/gnugk $RPM_BUILD_ROOT%{_sbindir}
 install -s -m 755 obj_linux_x86_r/addpasswd $RPM_BUILD_ROOT%{_sbindir}/gkaddpasswd
 %else
 %ifarch alpha
-install -s -m 755 obj_linux_alpha-redhat-linux-gnu_r/gk $RPM_BUILD_ROOT%{_sbindir}/gk
+install -s -m 755 obj_linux_alpha-redhat-linux-gnu_r/gnugk $RPM_BUILD_ROOT%{_sbindir}
 install -s -m 755 obj_linux_alpha-redhat-linux-gnu_r/addpasswd $RPM_BUILD_ROOT%{_sbindir}/gkaddpasswd
 %endif
 %endif
 
 install -m 644 gatekeeper.ini.complete $RPM_BUILD_ROOT/etc/gatekeeper.ini
-install -m 755 gk.initd.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/gk
+install -m 755 gk.initd.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/gnugk
 
 mkdir -p $RPM_BUILD_ROOT/var/log/gk
 mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
@@ -71,13 +71,18 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc gatekeeper.ini* *.txt *.html
 %config(noreplace) /etc/gatekeeper.ini
-%{_sbindir}/gk
+%{_sbindir}/gnugk
 %{_sbindir}/gkaddpasswd
-/etc/rc.d/init.d/gk
+/etc/rc.d/init.d/gnugk
 /etc/logrotate.d/gk
 /var/log/gk
 
 %changelog
+* Fri Mar 29 2002 Chih-Wei Huang <cwhuang@linux.org.tw>
+- Upgraded 2.0beta5
+- rename to gnugk
+
+* Wed Feb 06 2002 Chih-Wei Huang <cwhuang@linux.org.tw>
 * Fri Mar 22 2002 Chih-Wei Huang <cwhuang@linux.org.tw>
 - Upgraded 2.0beta4
 
