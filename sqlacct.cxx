@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2004/11/15 23:57:43  zvision
+ * Ability to choose between the original and the rewritten dialed number
+ *
  * Revision 1.3  2004/11/10 18:30:41  zvision
  * Ability to customize timestamp strings
  *
@@ -50,6 +53,7 @@
 #include "h323util.h"
 #include "Toolkit.h"
 #include "RasTbl.h"
+#include "RasSrv.h"
 #include "gksql.h"
 #include "gkacct.h"
 #include "sqlacct.h"
@@ -68,36 +72,43 @@ SQLAcct::SQLAcct(
 	
 	const PString driverName = cfg->GetString(cfgSec, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(1, "GKACCT\t" << GetName() << " module creation failed: "
+		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no SQL driver selected"
 			);
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 	
 	m_sqlConn = GkSQLConnection::Create(driverName, cfgSec);
 	if (m_sqlConn == NULL) {
-		PTRACE(1, "GKACCT\t" << GetName() << " module creation failed: "
+		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"could not find " << driverName << " database driver"
 			);
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 
 	if (!m_sqlConn->Initialize(cfg, cfgSec)) {
-		delete m_sqlConn;
-		m_sqlConn = NULL;
-		PTRACE(2, "GKACCT\t" << GetName() << " module creation failed: "
+		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"could not connect to the database"
 			);
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 	
 	m_startQuery = cfg->GetString(cfgSec, "StartQuery", "");
 	if (m_startQuery.IsEmpty() 
-		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStart) == AcctStart)
-		PTRACE(1, "GKACCT\t" << GetName() << " module creation failed: "
+		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStart) == AcctStart) {
+		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no start query configured"
 			);
-	else
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
+		return;
+	} else
 		PTRACE(4, "GKACCT\t" << GetName() << " start query: " << m_startQuery);
 	
 	m_startQueryAlt = cfg->GetString(cfgSec, "StartQueryAlt", "");
@@ -108,20 +119,26 @@ SQLAcct::SQLAcct(
 
 	m_updateQuery = cfg->GetString(cfgSec, "UpdateQuery", "");
 	if (m_updateQuery.IsEmpty() 
-		&& (GetEnabledEvents() & GetSupportedEvents() & AcctUpdate) == AcctUpdate)
-		PTRACE(1, "GKACCT\t" << GetName() << " module creation failed: "
+		&& (GetEnabledEvents() & GetSupportedEvents() & AcctUpdate) == AcctUpdate) {
+		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no update query configured"
 			);
-	else
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
+		return;
+	} else
 		PTRACE(4, "GKACCT\t" << GetName() << " update query: " << m_updateQuery);
 
 	m_stopQuery = cfg->GetString(cfgSec, "StopQuery", "");
 	if (m_stopQuery.IsEmpty() 
-		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStop) == AcctStop)
-		PTRACE(1, "GKACCT\t" << GetName() << " module creation failed: "
+		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStop) == AcctStop) {
+		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no stop query configured"
 			);
-	else
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
+		return;
+	} else
 		PTRACE(4, "GKACCT\t" << GetName() << " stop query: " << m_stopQuery);
 	
 	m_stopQueryAlt = cfg->GetString(cfgSec, "StopQueryAlt", "");
@@ -134,8 +151,12 @@ SQLAcct::SQLAcct(
 	Toolkit::Instance()->GetGKHome(interfaces);
 	if (!interfaces.empty())
 		m_gkAddr = interfaces.front();
-	else
-		PTRACE(1, "GKACCT\t" << GetName() << " cannot determine gatekeeper IP address");
+	else {
+		PTRACE(0, "GKACCT\t" << GetName() << " cannot determine gatekeeper IP address");
+		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
+		return;
+	}
 
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
 }

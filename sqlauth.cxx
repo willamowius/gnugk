@@ -14,6 +14,7 @@
 #include "RasTbl.h"
 #include "RasPDU.h"
 #include "Toolkit.h"
+#include "RasSrv.h"
 #include "gksql.h"
 #include "gkauth.h"
 
@@ -405,37 +406,44 @@ SQLPasswordAuth::SQLPasswordAuth(
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"no SQL driver selected"
 			);
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 	
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"could not find " << driverName << " database driver"
 			);
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 
 	SetCacheTimeout(cfg->GetInteger(authName, "CacheTimeout", 0));
 		
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		delete m_sqlConn;
-		m_sqlConn = NULL;
-		PTRACE(2, "SQLAUTH\t" << GetName() << " module creation failed: "
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"could not connect to the database"
 			);
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 	
 	m_query = cfg->GetString(authName, "Query", "");
-	if (m_query.IsEmpty())
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
+	if (m_query.IsEmpty()) {
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"no query configured"
 			);
-	else
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
+		return;
+	} else
 		PTRACE(4, "SQLAUTH\t" << GetName() << " query: " << m_query);
 }
 
@@ -512,37 +520,44 @@ SQLAliasAuth::SQLAliasAuth(
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"no SQL driver selected"
 			);
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 	
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"could not find " << driverName << " database driver"
 			);
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 
 	SetCacheTimeout(cfg->GetInteger(authName, "CacheTimeout", 0));
 	
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		delete m_sqlConn;
-		m_sqlConn = NULL;
-		PTRACE(2, "SQLAUTH\t" << GetName() << " module creation failed: "
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"could not connect to the database"
 			);
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
 		return;
 	}
 	
 	m_query = cfg->GetString(authName, "Query", "");
-	if (m_query.IsEmpty())
+	if (m_query.IsEmpty()) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"no query configured"
 			);
-	else
+		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
+		RasServer::Instance()->Stop();
+		return;
+	} else
 		PTRACE(4, "SQLAUTH\t" << GetName() << " query: " << m_query);
 }
 

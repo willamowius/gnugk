@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2004/12/15 13:41:33  zvision
+ * Reconnect to the database, if the initial attempt failed. Thanks to Mikko Oilinki
+ *
  * Revision 1.5  2004/07/09 22:11:36  zvision
  * SQLAcct module ported from 2.0 branch
  *
@@ -125,7 +128,10 @@ bool GkSQLConnection::Initialize(
 		return false;
 	}
 	
-	return Connect();	
+	if (!Connect())
+		PTRACE(1, GetName() << "\tDatabase connection failed, will rety later");
+	
+	return true;
 }
 
 bool GkSQLConnection::Connect()
