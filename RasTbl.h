@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
@@ -15,42 +14,32 @@
 //
 //////////////////////////////////////////////////////////////////
 
-
 #ifndef RASTBL_H
 #define RASTBL_H "@(#) $Id$"
 
-#include "rwlock.h"
-#include "ptlib.h"
-#include "ptlib/sockets.h"
-#include "h225.h"
-#include "GkStatus.h"
-#include <h323pdu.h>
-#include <q931.h>
-#include "singleton.h"
-#include "GkProfile.h"
-#include "gklock.h"
+#include "rwlock.h" 
+#include "singleton.h" 
 
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
-#include <vector>
-#include <set>
 #include <list>
+#include <vector>
 #include <string>
-#include <map>
+
+#include <h225.h>
+#include <ptlib/sockets.h>
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 )
 #endif
 
-using std::set;
+
 using std::list;
 using std::vector;
 using std::string;
 
 class GkDestAnalysisList;
+class USocket;
+class CallSignalSocket;
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -85,30 +74,29 @@ public:
 	virtual ~EndpointRec();
 
 	// public interface to access EndpointRec
-	const H225_TransportAddress & GetRasAddress() const ;
-	virtual const H225_TransportAddress & GetCallSignalAddress() const
-		{ PWaitAndSignal lock(m_usedLock); return m_callSignalAddress; }
+	const H225_TransportAddress & GetRasAddress() const
+	{ return m_rasAddress; }
+	const H225_TransportAddress & GetCallSignalAddress() const
+	{ return m_callSignalAddress; }
 	const H225_EndpointIdentifier & GetEndpointIdentifier() const
-		{ return m_endpointIdentifier; }
+	{ return m_endpointIdentifier; }
 	const H225_ArrayOf_AliasAddress & GetAliases() const
-		{ return m_terminalAliases; }
+	{ return m_terminalAliases; }
 	const H225_EndpointType & GetEndpointType() const
-		{ return *m_terminalType; }
-
-	const PIPSocket::Address GetAddress() const;
-
+	{ return *m_terminalType; }
 	int GetTimeToLive() const
-		{ return m_timeToLive; }
+	{ return m_timeToLive; }
 	PIPSocket::Address GetNATIP() const
-		{ return m_natip; }
-	bool GetH323ID(H225_AliasAddress &id);
+	{ return m_natip; }
+	CallSignalSocket *GetSocket();
 
-	/** checks if the given alias is a prefix of the aliases which are stored
+	/** checks if the given aliases are prefixes of the aliases which are stored
 	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
 	    a full match is found.
-	    @returns #TRUE# if a partial match is found
+	    @returns #TRUE# if a match is found
 	 */
-	virtual BOOL AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullMatch) const;
+        bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
+	                                  bool &fullMatch) const;
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
@@ -125,23 +113,27 @@ public:
 	virtual EndpointRec *Unregister();
 	virtual EndpointRec *Expired();
 
-	virtual void BuildACF(H225_AdmissionConfirm &) const;
-	virtual void BuildLCF(H225_LocationConfirm &) const;
+	//virtual void BuildACF(H225_AdmissionConfirm &) const;
+	//virtual void BuildLCF(H225_LocationConfirm &) const;
 
 	virtual PString PrintOn(bool verbose) const;
-	void SetNATAddress(PIPSocket::Address);
 
-	BOOL IsUsed() const ;
+	void SetNAT(bool nat) { m_nat = nat; }
+	void SetNATAddress(const PIPSocket::Address &);
+	void SetSocket(CallSignalSocket *);
+
+	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const { return m_fromParent; }
 	bool IsNATed() const { return m_nat; }
-
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 
 	/** If this Endpoint would be register itself again with all the same data
-	 * how would this RRQ would look like? May be implemented with a
+	 * how would this RRQ would look like? May be implemented with a 
 	 * built-together-RRQ, but for the moment a stored RRQ.
 	 */
+	const H225_RasMessage & GetCompleteRegistrationRequest() const
+	{ return m_RasMsg; }
 
 	void AddCall();
 	void AddConnectedCall();
@@ -152,25 +144,24 @@ public:
 
 	bool SendIRQ();
 
-	void SendRas(const H225_RasMessage &);
-
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
 protected:
 
-	void SetEndpointRec(const H225_RegistrationRequest &);
-	void SetEndpointRec(const H225_AdmissionRequest &);
-	void SetEndpointRec(const H225_AdmissionConfirm &);
-	void SetEndpointRec(const H225_LocationConfirm &);
-	void SetEndpointRec(const H225_LocationRequest &);
+	void SetEndpointRec(H225_RegistrationRequest &);
+	void SetEndpointRec(H225_AdmissionRequest &);
+	void SetEndpointRec(H225_AdmissionConfirm &);
+	void SetEndpointRec(H225_LocationConfirm &);
 
 	bool SendURQ(H225_UnregRequestReason::Choices);
 
-	/**This field may disappear sometime when GetCompleteRegistrationRequest() can
+	/**This field may disappear sometime when GetCompleteRegistrationRequest() can 
 	 * build its return value itself.
 	 * @see GetCompleteRegistrationRequest()
 	 */
+	H225_RasMessage m_RasMsg;
+
 	H225_TransportAddress m_rasAddress;
 	H225_TransportAddress m_callSignalAddress;
 	H225_EndpointIdentifier m_endpointIdentifier;
@@ -185,12 +176,11 @@ protected:
 	PTime m_updatedTime;
 	bool m_fromParent, m_nat;
 	PIPSocket::Address m_natip;
+	CallSignalSocket *m_natsocket;
 
-private:
-	// not assignable
+private: // not assignable
 	EndpointRec(const EndpointRec &);
 	EndpointRec & operator= (const EndpointRec &);
-	BOOL m_must_delete_terminal_type;
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -209,28 +199,19 @@ public:
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
 	virtual bool LoadConfig();
+	virtual int  PrefixMatch(const H225_ArrayOf_AliasAddress &) const;
 
-	/** checks if the given alias is a prefix of a gateway prefix.
-	    #fullMatch# returns #TRUE# if a full match is found.
-	    @returns #TRUE# if a full match or a partial match is found
-	 */
-        virtual BOOL PrefixIsIncomplete(const H225_AliasAddress & alias, BOOL &fullMatch) const;
-
-	/** checks if the given alias matches to a gateway prefix.
-	    @returns length of prefix or -1 if no prefix is found
-	 */
-	virtual int PrefixMatch(const H225_ArrayOf_AliasAddress &) const;
-
-	virtual void BuildLCF(H225_LocationConfirm &) const;
+	//virtual void BuildLCF(H225_LocationConfirm &) const;
 
 	virtual PString PrintOn(bool verbose) const;
 
-protected:
 	void AddPrefixes(const H225_ArrayOf_SupportedProtocols &);
+	void AddPrefixes(const PString &);
 	void SortPrefixes();
 
+protected:
 	// strange! can't compile in debug mode, anybody know why??
-	//vector<PString> Prefixes;
+	//vector<PString> Prefixes;  
 	vector<string> Prefixes;
 	bool defaultGW;
 };
@@ -239,8 +220,6 @@ protected:
 class OuterZoneEPRec : public EndpointRec {
 public:
 	OuterZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
-	virtual const H225_TransportAddress & GetCallSignalAddress() const
-		{ PWaitAndSignal lock(m_usedLock); return m_callSignalAddress; }
 
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
@@ -256,104 +235,93 @@ public:
 };
 
 
-class RegistrationTable : public Singleton<RegistrationTable>
-{
+class RegistrationTable : public Singleton<RegistrationTable> {
 public:
 	typedef std::list<EndpointRec *>::iterator iterator;
 	typedef std::list<EndpointRec *>::const_iterator const_iterator;
 
 	RegistrationTable();
 	~RegistrationTable();
-
+	
 	void Initialize(GkDestAnalysisList & list) { m_destAnalysisList = &list; }
 
-	endptr InsertRec(H225_RasMessage & rrq);
+	endptr InsertRec(H225_RasMessage & rrq, PIPSocket::Address = INADDR_ANY);
 	void RemoveByEndptr(const endptr & eptr);
 	void RemoveByEndpointId(const H225_EndpointIdentifier & endpointId);
 
 	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
-	endptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
+	endptr FindBySignalAdr(const H225_TransportAddress &, PIPSocket::Address = INADDR_ANY) const;
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
-	endptr FindOZEPByName(const PString & endpointId) const ;
-	endptr FindOZEPByAdr(const PIPSocket::Address &addr) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
-	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool SearchOuterZone = true);
-
+	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone = true);
+	
+	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason, 
+	                                                 bool SearchOuterZone = true)
+	{
+	  endptr ep;
+	  bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
+	                                                      ep, reason);
+	  if (!ok && SearchOuterZone) {
+            ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock, 
+	                                                   ep, reason);
+	  }
+	  return (ok) ? ep : endptr(0);
+	}
 
 	void ClearTable();
 	void CheckEndpoints();
 
-	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
-	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
-	void PrintRemoved(GkStatus::Client &client, BOOL verbose=FALSE);
+	void PrintAllRegistrations(USocket *client, BOOL verbose=FALSE);
+	void PrintAllCached(USocket *client, BOOL verbose=FALSE);
+	void PrintRemoved(USocket *client, BOOL verbose=FALSE);
 
 	PString PrintStatistics() const;
+
+//	void PrintOn( ostream &strm ) const;
 
 	/** Updates Prefix + Flags for all aliases */
 	void LoadConfig();
 
-
-	/** Returns the destination endpoint of the message.
-	    The calling endpoint must be given if MsgType == H225_AliasAddress. In
-	    all other cases it can also be NULL.
-	 */
-	template<class MsgType> endptr getMsgDestination(const MsgType & msg,
-		endptr & cgEP, unsigned int & reason, bool SearchOuterZone = true)
-	{
-		endptr cdEP;
-		PTRACE(2, "Search for calledEP in registration table");
-		bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, EndpointList_mutex,
-			cgEP, cdEP, reason);
-		if (!cdEP && (reason == H225_AdmissionRejectReason::e_resourceUnavailable) && SearchOuterZone) {
-			PTRACE(2, "Search for calledEP in outer zone");
-			ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, EndpointList_mutex,
-				cgEP, cdEP, reason);
-		}
-		return (cdEP) ? cdEP : endptr(0);
-	}
-
+	PINDEX Size() const { return regSize; }
 
 public:
   enum enumGatewayFlags {
                 e_SCNType		// "trunk" or "residential"
   };
-
+  
 private:
 
 	endptr InternalInsertEP(H225_RasMessage &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationConfirm &);
-	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationRequest &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_AdmissionConfirm &);
 
-	void InternalPrint(GkStatus::Client &, BOOL, list<EndpointRec *> *, PString &);
-	void InternalStatistics(const list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g) const;
+	void InternalPrint(USocket *, BOOL, list<EndpointRec *> *, PString &);
+	void InternalStatistics(const list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g, unsigned & n) const;
+
+	void InternalRemove(iterator);
 
 	template<class F> endptr InternalFind(const F & FindObject) const
 	{ return InternalFind(FindObject, &EndpointList); }
 
-	template<class F> endptr InternalFind(const F & FindObject, const list<EndpointRec *> *ListToBeFinded) const
+	template<class F> endptr InternalFind(const F & FindObject, const list<EndpointRec *> *ListToBeFound) const
 	{   //  The function body must be put here,
 	    //  or the Stupid VC would fail to instantiate it
-        	const_iterator Iter(find_if(ListToBeFinded->begin(), ListToBeFinded->end(), FindObject));
-	        return endptr((Iter != ListToBeFinded->end()) ? *Iter : 0);
+        	ReadLock lock(listLock);
+        	const_iterator Iter(find_if(ListToBeFound->begin(), ListToBeFound->end(), FindObject));
+	        return endptr((Iter != ListToBeFound->end()) ? *Iter : 0);
 	}
 
-	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, list<EndpointRec *> *ListToBeFinded);
+	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, list<EndpointRec *> *ListToBeFound, bool);
 
 	void GenerateEndpointId(H225_EndpointIdentifier &);
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
 
-	static void delete_ep(EndpointRec *e) { delete e; }
 	GkDestAnalysisList & getGkDestAnalysisList() { return *m_destAnalysisList; }
-
 	list<EndpointRec *> EndpointList;
-	mutable PReadWriteMutex EndpointList_mutex;
-
 	list<EndpointRec *> OuterZoneList;
-	mutable PReadWriteMutex OuterZoneList_mutex;
-
 	list<EndpointRec *> RemovedList;
-	mutable PReadWriteMutex RemovedList_mutex;
+	int regSize;
+	mutable PReadWriteMutex listLock;
 	GkDestAnalysisList * m_destAnalysisList;
 
 	// counter to generate endpoint identifier
@@ -367,16 +335,10 @@ private:
 };
 
 
-
-
-//typedef PTCPSocket CallSignalSocket;
-class CallSignalSocket;
-
 // record of one active call
-class CallRec
-{
+class CallRec {
 public:
-	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, const PString &, const PString & srcInfo, int, bool);
+	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, WORD, const PString &, const PString & srcInfo, int, bool);
 	virtual ~CallRec();
 
 	enum NATType { // who is nated?
@@ -387,119 +349,107 @@ public:
 	};
 
 	PINDEX GetCallNumber() const
-		{ return m_CallNumber; }
+	{ return m_CallNumber; }
 	const H225_CallIdentifier & GetCallIdentifier() const
-		{ return m_callIdentifier; }
+	{ return m_callIdentifier; }
 	const H225_ConferenceIdentifier & GetConferenceIdentifier() const
-		{ return m_conferenceIdentifier; }
-	const H225_TransportAddress *GetCallingAddress() const
-		{ return (m_Calling) ? &m_Calling->GetCallSignalAddress() : 0; }
-	const H225_TransportAddress *GetCalledAddress() const
-		{ return (m_Called) ? &m_Called->GetCallSignalAddress() : 0; }
+	{ return m_conferenceIdentifier; }
+	endptr GetCallingParty() const { return m_Calling; }
+	endptr GetCalledParty() const { return m_Called; }
+	endptr GetForwarder() const { return m_Forwarder; }
+	bool GetCalledAddress(PIPSocket::Address &, WORD &) const;
 	int GetBandWidth() const { return m_bandWidth; }
+	int GetNATType() const { return m_nattype; }
 	int GetNATType(PIPSocket::Address &, PIPSocket::Address &) const;
-	const PString GetCallingPartyNumber() const
-		{ return (m_Calling && (m_Calling->GetAliases().GetSize() >0)) ? H323GetAliasAddressString((m_Calling->GetAliases())[0]) : PString(); }
-	const PString GetCalledPartyNumber() const
-		{ return (m_Called && (m_Called->GetAliases().GetSize() >0)) ? H323GetAliasAddressString((m_Called->GetAliases())[0]) : PString(); }
+	CallSignalSocket *GetCallSignalSocketCalled() { return m_calledSocket; }
+	CallSignalSocket *GetCallSignalSocketCalling() { return m_callingSocket; }
+	const H225_ArrayOf_CryptoH323Token & GetAccessTokens() const { return m_accessTokens; }
 
-	endptr & GetCallingEP();
-	endptr & GetCalledEP();
-        CallingProfile & GetCallingProfile();
-        CalledProfile & GetCalledProfile();
-
-	void SetCalling(const endptr & NewCalling, unsigned = 0);
-	void SetCalled(const endptr & NewCalled, unsigned = 0);
-	void SetBandwidth(int Bandwidth) { m_bandWidth = Bandwidth; }
 	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
+	void SetCalledAddress(const H225_TransportAddress & addr);
+	void SetCalling(const endptr & NewCalling);
+	void SetCalled(const endptr & NewCalled);
+	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
+	void SetBandwidth(int Bandwidth) { m_bandWidth = Bandwidth; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetRegistered(bool registered) { m_registered = registered; }
+	void SetAccessTokens(const H225_ArrayOf_CryptoH323Token & tokens) { m_accessTokens = tokens; }
 
 	void SetConnected(bool c);
-	void SetDisconnected();
 	void SetTimer(int seconds);
+	void StartTimer();
+	void StopTimer();
 
 	void Disconnect(bool = false); // Send Release Complete?
+	void RemoveAll();
 	void RemoveSocket();
-	void SendReleaseComplete();
+	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
+	void BuildDRQ(H225_DisengageRequest &, unsigned reason) const;
 
 	int CountEndpoints() const;
 
 	bool CompareCallId(const H225_CallIdentifier *CallId) const;
-	bool CompareCRV(unsigned crv) const;
+	bool CompareCRV(WORD crv) const;
 	bool CompareCallNumber(PINDEX CallNumber) const;
 	bool CompareEndpoint(const endptr *) const;
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 
-	BOOL IsUsed();
-	bool IsConnected() const;
+	bool IsUsed() const { return (m_usedCount != 0); }
+	bool IsConnected() const { return (m_startTime != 0); }
 	bool IsTimeout(const PTime *) const;
-	bool IsH245Routed() const;
-	bool IsRegistered() const;
+	bool IsH245Routed() const { return m_h245Routed; }
+	bool IsRegistered() const { return m_registered; }
+	bool IsForwarded() const { return m_forwarded; }
+	bool IsSocketAttached() const { return (m_callingSocket != 0); }
 
+	PString GenerateCDR() const;
 	PString PrintOn(bool verbose) const;
-
-	void StartTimer();
-	void StopTimer();
-
 
 	void Lock();
 	void Unlock();
 
-	// smart pointer for EndpointRec
+	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
 
 private:
-	PString GenerateCDR();
-
-	void InternalDisconnect(bool);
-	void InternalRemoveSocket();
-	void InternalSendReleaseComplete(BOOL force=FALSE);
-	void RemoveAll();
-
-        CallingProfile & InternalGetCallingProfile();
-        CalledProfile & InternalGetCalledProfile();
-
 	void SendDRQ();
-	void InternalSetEP(endptr &, unsigned &, const endptr &, unsigned);
+	void InternalSetEP(endptr &, const endptr &);
 
-	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
+//	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
 	void OnTimeout();
 
+	PINDEX m_CallNumber;
 	H225_CallIdentifier m_callIdentifier;
 	H225_ConferenceIdentifier m_conferenceIdentifier;
+	H225_TransportAddress m_calledAddress;
+
+	endptr m_Calling, m_Called;
+	WORD m_crv;
+
+	PString m_callerAddr, m_callerId;
+	PString m_calleeAddr, m_calleeId;
 	PString m_destInfo;
 	PString m_srcInfo; //added (MM 05.11.01)
 	int m_bandWidth;
-	PINDEX m_CallNumber;
 
-	endptr m_Calling;
-	endptr m_Called;
-	unsigned m_callingCRV;
-	unsigned m_calledCRV;
-
-        CallingProfile m_callingProfile;
-        CalledProfile  m_calledProfile;
-
-	PTime *m_startTime;
-	PTime *m_stopTime;
-	PTimer m_timer;
+	PTime *m_startTime, m_timer;
 	int m_timeout;
-
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
-	mutable PMutex m_usedLock;
-	mutable PMutex m_cgpfLock;
-	mutable PMutex m_cdpfLock;
+	int m_usedCount;
+	mutable PMutex m_usedLock, m_sockLock;
 	int m_nattype;
-
+	
 	bool m_h245Routed;
 	bool m_registered;
+	bool m_forwarded;
+	endptr m_Forwarder;
+
+	H225_ArrayOf_CryptoH323Token m_accessTokens;
 
 	CallRec(const CallRec & Other);
 	CallRec & operator= (const CallRec & other);
-	GKCondMutex m_access_count;
 };
 
 typedef CallRec::Ptr callptr;
@@ -516,9 +466,10 @@ public:
 
 	void Insert(CallRec * NewRec);
 
-        // bandwidth management
+	// bandwidth management
 	void SetTotalBandWidth(int bw);
-	bool GetAdmission(int bw) const { return m_capacity < 0 || m_capacity >= bw; }
+	bool GetAdmission(int bw);
+	bool GetAdmission(int bw, const callptr &);
 	int GetAvailableBW() const { return m_capacity; }
 
 	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
@@ -530,182 +481,139 @@ public:
 	void ClearTable();
 	void CheckCalls();
 
-	void RemoveCall(const H225_DisengageRequest & obj_drq);
+	void RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &);
 	void RemoveCall(const callptr &);
 
-	void PrintCurrentCalls(GkStatus::Client & client, BOOL verbose=FALSE) const;
+	void PrintCurrentCalls(USocket *client, BOOL verbose=FALSE) const;
 	PString PrintStatistics() const;
 
+	void AddForwardedCall(const callptr &);
+	endptr IsForwardedCall(const callptr &);
+
 	void LoadConfig();
+
+	PINDEX Size() const { return m_activeCall; }
 
 private:
 	template<class F> callptr InternalFind(const F & FindObject) const
 	{
-        	ReadLock lock(CallListMutex);
+        	ReadLock lock(listLock);
         	const_iterator Iter(find_if(CallList.begin(), CallList.end(), FindObject));
 	        return callptr((Iter != CallList.end()) ? *Iter : 0);
 	}
 
 	bool InternalRemovePtr(CallRec *call);
 	void InternalRemove(const H225_CallIdentifier & CallId);
-	void InternalRemove(unsigned CallRef);
+	void InternalRemove(WORD CallRef);
 	void InternalRemove(iterator);
 
-	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const;
+	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, BOOL verbose) const;
 
 	list<CallRec *> CallList;
-	mutable PReadWriteMutex CallListMutex;
 	list<CallRec *> RemovedList;
-	mutable PReadWriteMutex RemovedListMutex;
-
-	static void delete_call(CallRec *c);
 
 	bool m_genNBCDR;
 	bool m_genUCCDR;
 
 	PINDEX m_CallNumber;
+	mutable PReadWriteMutex listLock;
+
+	list<callptr> ForwardedCallList;
+	mutable PReadWriteMutex flistLock;
 
 	int m_capacity;
 
 	// statistics
-	unsigned m_CallCount;
-	unsigned m_successCall;
-	unsigned m_neighborCall;
+	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall;
 
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };
 
 // inline functions of EndpointRec
-inline BOOL EndpointRec::IsUsed() const
+inline bool EndpointRec::IsUsed() const
 {
-	PWaitAndSignal lock(m_usedLock);
+//	PWaitAndSignal lock(m_usedLock);
 	return (m_activeCall > 0 || m_usedCount > 0);
 }
 
 inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
-	 return (!m_timeToLive || m_activeCall > 0 || (*now - m_updatedTime).GetSeconds() < (long)m_timeToLive);
+	return (!m_timeToLive || (*now - m_updatedTime).GetSeconds() < m_timeToLive);
 }
 
 inline void EndpointRec::AddCall()
-{
+{       
 	PWaitAndSignal lock(m_usedLock);
 	++m_activeCall, ++m_totalCall;
-}
+}       
 
 inline void EndpointRec::AddConnectedCall()
-{
+{       
 	PWaitAndSignal lock(m_usedLock);
 	++m_connectedCall;
-}
+}       
 
 inline void EndpointRec::RemoveCall()
-{
-	PWaitAndSignal lock(m_usedLock);
+{       
+	PWaitAndSignal lock(m_usedLock); 
 	--m_activeCall;
-}
+}       
 
 inline void EndpointRec::Lock()
-{
+{       
 	PWaitAndSignal lock(m_usedLock);
 	++m_usedCount;
-}
+}       
 
 inline void EndpointRec::Unlock()
-{
-	PWaitAndSignal lock(m_usedLock);
+{       
+	PWaitAndSignal lock(m_usedLock); 
 	--m_usedCount;
-}
+}       
 
 // inline functions of CallRec
-inline int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address & called) const
-{
+inline void CallRec::Lock()
+{       
 	PWaitAndSignal lock(m_usedLock);
-	if (m_nattype & callingParty)
-		calling = m_Calling->GetNATIP();
-	if (m_nattype & calledParty)
-		called = m_Called->GetNATIP();
-	return m_nattype;
-}
+	++m_usedCount;
+}       
 
-inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
-{
-	PWaitAndSignal lock(m_usedLock);
-        InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
-        if (NewCalling->IsNATed())
-                m_nattype |= callingParty, m_h245Routed = true;
-}
-
-inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
-{
-	PWaitAndSignal lock(m_usedLock);
-        InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
-        SetRegistered(m_Called && m_Called->IsFromParent());
-        if (NewCalled && NewCalled->IsNATed())
-                m_nattype |= calledParty, m_h245Routed = true;
-}
+inline void CallRec::Unlock()
+{       
+	PWaitAndSignal lock(m_usedLock); 
+	--m_usedCount;
+}       
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return (m_callIdentifier == *CallId);
 }
 
-inline bool CallRec::CompareCRV(unsigned crv) const
+inline bool CallRec::CompareCRV(WORD crv) const
 {
-	PWaitAndSignal lock(m_usedLock);
-	return (m_Calling && m_callingCRV == crv) || (m_Called && m_calledCRV == crv);
+	return m_crv == (crv & 0x7fffu);
 }
 
 inline bool CallRec::CompareCallNumber(PINDEX CallNumber) const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return (m_CallNumber == CallNumber);
 }
 
 inline bool CallRec::CompareEndpoint(const endptr *ep) const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return (m_Calling && m_Calling == *ep) || (m_Called && m_Called == *ep);
 }
 
 inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-inline BOOL CallRec::IsUsed()
-{
-	PWaitAndSignal lock(m_usedLock);
-	return !m_access_count.Condition();
-}
-
-inline bool CallRec::IsConnected() const
-{
-	PWaitAndSignal lock(m_usedLock);
-	return (m_startTime != 0);
-}
-
 inline bool CallRec::IsTimeout(const PTime *now) const
-{
-	PWaitAndSignal lock(m_usedLock);
-	return m_timer.GetInterval()>0;
-	//return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > (long)m_timeout));
+{       
+	return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > m_timeout));
 }
 
-inline bool CallRec::IsH245Routed() const
-{
-	PWaitAndSignal lock(m_usedLock);
-	return m_h245Routed;
-}
-
-inline bool CallRec::IsRegistered() const
-{
-	PWaitAndSignal lock(m_usedLock);
-        return m_registered;
-}
-
-#endif /* RASTBL_H */
+#endif // RASTBL_H

@@ -1,9 +1,8 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // ProxyChannel.h
 //
-// Copyright (c) Citron Network Inc. 2001-2002
+// Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -11,170 +10,182 @@
 // with the OpenH323 library.
 //
 // initial author: Chin-Wei Huang <cwhuang@linux.org.tw>
-// initial version: 12/7/2001
+// initial version: 12/07/2001
 //
 //////////////////////////////////////////////////////////////////
 
 #ifndef PROXYCHANNEL_H
 #define PROXYCHANNEL_H "@(#) $Id$"
 
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
-#include <map>
+#include <vector>
 #include "RasTbl.h"
-#include "ProxyThread.h"
+#include "yasocket.h"
+
+
+class Q931;
+class PASN_OctetString;
+class H225_CallTerminationCause;
+class H225_H323_UserInformation;
+class H225_H323_UU_PDU_h323_message_body;
+class H225_Setup_UUIE;
+class H225_CallProceeding_UUIE;
+class H225_Connect_UUIE;
+class H225_Alerting_UUIE;
+class H225_Information_UUIE;
+class H225_ReleaseComplete_UUIE;
+class H225_Facility_UUIE;
+class H225_Progress_UUIE;
+class H225_Status_UUIE;
+class H225_StatusInquiry_UUIE;
+class H225_SetupAcknowledge_UUIE;
+class H225_Notify_UUIE;
+class H225_TransportAddress;
 
 class H245Handler;
-class H245ProxyHandler;
-class NATHandler;
-class CallSignalSocket;
 class H245Socket;
 class UDPProxySocket;
-class T120ProxySocket;
-class LogicalChannel;
-class RTPLogicalChannel;
-class T120LogicalChannel;
+class ProxyHandler;
+class HandlerList;
 
-class H245_RequestMessage;
-class H245_ResponseMessage;
-class H245_CommandMessage;
-class H245_IndicationMessage;
-class H245_H2250LogicalChannelParameters;
-class H245_OpenLogicalChannel;
-class H245_OpenLogicalChannelAck;
-class H245_OpenLogicalChannelReject;
-class H245_CloseLogicalChannel;
+extern const char *RoutedSec;
 
-class H245Handler {
-// This class handles H.245 messages which can either be transmitted on their
-// own TCP connection or can be tunneled in the Q.931 connection
+class ProxySocket : public USocket {
 public:
-	H245Handler(PIPSocket::Address local, PIPSocket::Address remote);
-	virtual ~H245Handler();
+	enum Result {
+		NoData,
+		Connecting,
+		Forwarding,
+		Closing,
+		Error
+	};
 
-	virtual void OnH245Address(H225_TransportAddress &);
-	virtual bool HandleMesg(PPER_Stream &);
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
-	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &);
+	ProxySocket(IPSocket *, const char *);
+	~ProxySocket() = 0; // abstract class
 
-	PIPSocket::Address GetLocalAddr() const { return localAddr; }
-	void SetLocalAddr(PIPSocket::Address local) { localAddr = local; }
+	// new virtual function
+	virtual Result ReceiveData();
+	virtual bool ForwardData();
+	virtual bool EndSession();
+
+	bool IsConnected() const { return connected; }
+	void SetConnected(bool c) { connected = c; }
+	bool IsDeletable() const { return deletable; }
+	void SetDeletable() { deletable = true; }
+	ProxyHandler *GetHandler() const { return handler; }
+	void SetHandler(ProxyHandler *h) { handler = h; }
 
 protected:
-	virtual bool HandleRequest(H245_RequestMessage &);
-	virtual bool HandleResponse(H245_ResponseMessage &);
-	virtual bool HandleCommand(H245_CommandMessage &);
-	virtual bool HandleIndication(H245_IndicationMessage &);
-
-	NATHandler *hnat;
+	BYTE *wbuffer;
+	WORD wbufsize, buflen;
 
 private:
-	PIPSocket::Address localAddr, remoteAddr;
+	bool connected, deletable;
+	ProxyHandler *handler;
 };
 
-class H245ProxyHandler : public H245Handler {
+class TCPProxySocket : public ServerSocket, public ProxySocket {
 public:
-	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
-	typedef std::map<WORD, LogicalChannel *>::const_iterator const_iterator;
-	typedef std::map<WORD, RTPLogicalChannel *>::iterator siterator;
-	typedef std::map<WORD, RTPLogicalChannel *>::const_iterator const_siterator;
+	TCPProxySocket(const char *, TCPProxySocket * = 0, WORD = 0);
+	virtual ~TCPProxySocket();
 
-	H245ProxyHandler(CallSignalSocket *, PIPSocket::Address, PIPSocket::Address, H245ProxyHandler * = 0);
-	virtual ~H245ProxyHandler();
+#ifndef LARGE_FDSET
+	PCLASSINFO( TCPProxySocket, ServerSocket )
 
-	// override from class H245Handler
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
+	// override from class PTCPSocket
+	virtual BOOL Accept(PSocket &);
+	virtual BOOL Connect(const Address &, WORD, const Address &);
+	virtual BOOL Connect(const Address &);
+#endif
+	// override from class ProxySocket
+	virtual bool ForwardData();
+	virtual bool TransmitData(const PBYTEArray &);
 
-	LogicalChannel *FindLogicalChannel(WORD);
-	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
+protected:
+	bool ReadTPKT();
+
+	TCPProxySocket *remote;
+	PBYTEArray buffer;
 
 private:
-	// override from class H245Handler
-	virtual bool HandleRequest(H245_RequestMessage &);
-	virtual bool HandleResponse(H245_ResponseMessage &);
+	bool InternalWrite(const PBYTEArray &);
+	bool SetMinBufSize(WORD);
 
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD);
-	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
-	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
-	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
-	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
-
-	RTPLogicalChannel *CreateRTPLogicalChannel(WORD, WORD);
-	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD);
-	T120LogicalChannel *CreateT120LogicalChannel(WORD);
-	void RemoveLogicalChannel(WORD flcn);
-
-	ProxyHandleThread *handler;
-	std::map<WORD, LogicalChannel *> logicalChannels;
-	std::map<WORD, RTPLogicalChannel *> sessionIDs;
-	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
-	H245ProxyHandler *peer;
-};
-
-#ifdef DOC_PLUS_PLUS
-class  gk_Q931InformationMessageList : public PList {
-#endif
-PDECLARE_LIST(gk_Q931InformationMessageList, Q931 *);
+	BYTE *bufptr;
 };
 
 class CallSignalSocket : public TCPProxySocket {
 public:
-	PCLASSINFO ( CallSignalSocket, TCPProxySocket )
-
 	CallSignalSocket();
 	CallSignalSocket(CallSignalSocket *, WORD);
 	~CallSignalSocket();
 
+#ifdef LARGE_FDSET
+	// override from class TCPProxySocket
+	virtual bool Connect(const Address &);
+#else
+	PCLASSINFO ( CallSignalSocket, TCPProxySocket )
+	// override from class TCPProxySocket
+	virtual BOOL Connect(const Address &);
+#endif
+
 	// override from class ProxySocket
         virtual Result ReceiveData();
 	virtual bool EndSession();
-	void SendReleaseComplete(const enum Q931::CauseValues cause=Q931::NormalCallClearing);
 
-	// override from class TCPProxySocket
-	virtual TCPProxySocket *ConnectTo();
-	virtual void SetConnected(bool c);
-
-	virtual void Shutdown();
+	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
+	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
 
 	bool HandleH245Mesg(PPER_Stream &);
-	void OnH245ChannelClosed() { PWaitAndSignal lock(m_lock); m_h245socket = 0; }
+	bool IsNATSocket() const { return m_isnatsocket; }
+	void OnH245ChannelClosed() { m_h245socket = 0; }
+	void SetPeerAddress(const Address &, WORD);
+	void BuildFacilityPDU(Q931 &, int, const PObject * = 0);
+
+	// override from class ServerSocket
+	virtual void Dispatch();
 
 protected:
-	void OnSetup(H225_Setup_UUIE &);
-	void OnCallProceeding(H225_CallProceeding_UUIE &);
-	void OnConnect(H225_Connect_UUIE &);
-	void OnAlerting(H225_Alerting_UUIE &);
-	void OnInformation(H225_Information_UUIE &);
-	void OnReleaseComplete(H225_ReleaseComplete_UUIE &);
-	void OnFacility(H225_Facility_UUIE &);
-	void OnProgress(H225_Progress_UUIE &);
-	void OnEmpty(H225_H323_UU_PDU_h323_message_body &);
-	void OnStatus(H225_Status_UUIE &);
-	void OnStatusInquiry(H225_StatusInquiry_UUIE &);
-	void OnSetupAcknowledge(H225_SetupAcknowledge_UUIE &);
-	void OnNotify(H225_Notify_UUIE &);
-	void OnNonStandardData(PASN_OctetString &);
-	void OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
-	void OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
-	void OnInformationMsg(Q931 &pdu);
+	CallSignalSocket(CallSignalSocket *);
+	void SetRemote(CallSignalSocket *);
+	bool CreateRemote(H225_Setup_UUIE &);
+	void ForwardCall();
 
-	const endptr GetCgEP(Q931 &q931pdu);
+	bool OnSetup(H225_Setup_UUIE &);
+	bool OnCallProceeding(H225_CallProceeding_UUIE &);
+	bool OnConnect(H225_Connect_UUIE &);
+	bool OnAlerting(H225_Alerting_UUIE &);
+	bool OnInformation(H225_Information_UUIE &);
+	bool OnReleaseComplete(H225_ReleaseComplete_UUIE &);
+	bool OnFacility(H225_Facility_UUIE &);
+	bool OnProgress(H225_Progress_UUIE &);
+	bool OnEmpty(H225_H323_UU_PDU_h323_message_body &);
+	bool OnStatus(H225_Status_UUIE &);
+	bool OnStatusInquiry(H225_StatusInquiry_UUIE &);
+	bool OnSetupAcknowledge(H225_SetupAcknowledge_UUIE &);
+	bool OnNotify(H225_Notify_UUIE &);
+	bool OnNonStandardData(PASN_OctetString &);
+	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
+	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
-	template<class UUIE> void HandleH245Address(UUIE & uu)
+	bool OnInformationMsg(Q931 &);
+
+	template<class UUIE> bool HandleH245Address(UUIE & uu)
 	{
-		if (uu.HasOptionalField(UUIE::e_h245Address))
-			if (!SetH245Address(uu.m_h245Address))
-				uu.RemoveOptionalField(UUIE::e_h245Address);
-	}
-	template<class UUIE> void HandleFastStart(UUIE & uu, bool fromCaller)
-		{
-			if (m_h245handler && uu.HasOptionalField(UUIE::e_fastStart))
-				OnFastStart(uu.m_fastStart, fromCaller);
+		if (uu.HasOptionalField(UUIE::e_h245Address)) {
+			if (SetH245Address(uu.m_h245Address))
+				return (m_h245handler != 0);
+			uu.RemoveOptionalField(UUIE::e_h245Address);
+			return true;
 		}
+		return false;
+	}
+	template<class UUIE> bool HandleFastStart(UUIE & uu, bool fromCaller)
+	{
+		return (m_h245handler && uu.HasOptionalField(UUIE::e_fastStart)) ?
+			OnFastStart(uu.m_fastStart, fromCaller) : false;
+	}
+
+	callptr m_call;
 
 	// localAddr is NOT the local address the socket bind to,
 	// but the local address that remote socket bind to
@@ -183,67 +194,74 @@ protected:
 	WORD peerPort;
 
 private:
-	void InternalSendReleaseComplete(const enum Q931::CauseValues cause);
-	bool InternalEndSession();
-	void SetTimer(PTimeInterval time);
-	void StartTimer();
-	void StopTimer();
-	PDECLARE_NOTIFIER(PTimer, CallSignalSocket, OnTimeout);
-	PDECLARE_NOTIFIER(PTimer, CallSignalSocket, OnT302Timeout);
-	void OnTimeout();
-	void SendStatusEnquiryMessage();
-	void BuildReleasePDU(Q931 &) const;
+	void InternalInit();
+	void BuildReleasePDU(Q931 &, const H225_CallTerminationCause *) const;
+	// if return false, the h245Address field will be removed
 	bool SetH245Address(H225_TransportAddress &);
-	void SetNumbersInUUIE(PString &CalledPartyNumber, PString & CallingPartyNumber);
-	bool CompareCRV(unsigned int crv) const;
-	// the method is only valid within ReceiveData()
-	Q931 *GetReceivedQ931() const;
+	bool InternalConnectTo();
 
-	callptr m_call;
-	unsigned int m_crv;
+	WORD m_crv;
 	H245Handler *m_h245handler;
 	H245Socket *m_h245socket;
-	bool m_h245Tunneling;
-	Q931 *m_receivedQ931;
-
-	void DoRoutingDecision();
-	void SendInformationMessages();
-	void BuildConnection();
-	bool FakeSetupACK(Q931 &setup);
-	Q931 * GetSetupPDU() const;
-
-        BOOL CgPNConversion(BOOL connecting=FALSE);
-
-	PString DialedDigits;
-	PString CalledNumber;
-	BOOL isRoutable;
-	gk_Q931InformationMessageList Q931InformationMessages;
-	Q931 * m_SetupPDU;
-	BOOL m_numbercomplete;
-	unsigned int m_calledPLAN, m_calledTON;
-
-	PTimeInterval m_timeout;
-	PTimer * m_StatusEnquiryTimer; // This timer will be set to the time between 2 ping (i.e. 1 minute)
-	PTimer * m_StatusTimer;        // This timer will be set to the maximum wait time for the status message
-	                               // (aka pong message)
-	PTimer m_t302;
-	BOOL m_replytoStatusMessage;
-	BOOL lastInformationMessage;
-
+	bool m_h245Tunneling, m_isnatsocket;
+	Result m_result;
+	Q931 *m_lastQ931;
+	H225_H323_UserInformation *m_setupUUIE;
 };
 
-inline Q931 * CallSignalSocket::GetSetupPDU() const {
-	return m_SetupPDU;
-}
+class CallSignalListener : public TCPListenSocket {
+#ifndef LARGE_FDSET
+	PCLASSINFO ( CallSignalListener, TCPListenSocket )
+#endif
+public:
+	CallSignalListener(const Address &, WORD);
 
-inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
-{
-	return m_h245handler->HandleMesg(strm);
-}
+	// override from class TCPListenSocket
+	virtual ServerSocket *CreateAcceptor() const;
+};
 
-inline Q931 *CallSignalSocket::GetReceivedQ931() const
-{
-	return m_receivedQ931;
-}
+class ProxyHandler : public SocketsReader {
+public:
+	ProxyHandler(int i);
+	~ProxyHandler();
+
+	void Insert(TCPProxySocket *);
+	void Insert(TCPProxySocket *, TCPProxySocket *);
+	void Insert(UDPProxySocket *, UDPProxySocket *);
+	void MoveTo(ProxyHandler *, TCPProxySocket *);
+	bool IsEmpty() const { return m_socksize == 0; }
+
+private:
+	// override from class RegularJob
+	virtual bool OnStart();
+
+	// override from class SocketsReader
+	virtual bool BuildSelectList(SocketSelectList &);
+	virtual void ReadSocket(IPSocket *);
+	virtual void CleanUp();
+
+	void AddPairSockets(IPSocket *, IPSocket *);
+	void FlushSockets();
+	void Remove(iterator);
+	void Remove(ProxySocket *socket);
+
+	std::list<PTime *> m_removedTime;
+};
+
+class HandlerList {
+public:
+	HandlerList();
+	~HandlerList();
+
+	ProxyHandler *GetHandler();
+	void LoadConfig();
+
+	void Check();
+
+private:
+	std::vector<ProxyHandler *> m_handlers;
+	int m_current, m_hsize;
+	PMutex m_hmutex;
+};
 
 #endif // PROXYCHANNEL_H

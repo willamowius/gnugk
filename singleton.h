@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // singleton.h
@@ -17,7 +16,6 @@
 //
 //////////////////////////////////////////////////////////////////
 
-
 #ifndef SINGLETON_H
 #define SINGLETON_H "@(#) $Id$"
 
@@ -30,13 +28,11 @@
 #include <ptlib.h>
 #endif
 
-using std::list;
-
 //
 // a list of pointers that would delete all objects
 // referred by the pointers in the list on destruction
 //
-template<class T> class listptr : public list<void *> {
+template<class T> class listptr : public std::list<void *> {
   public:
 	listptr() : clear_list(false) {}
 	~listptr();
@@ -56,10 +52,11 @@ template<class T> listptr<T>::~listptr()
 // Base class for all singletons
 class SingletonBase {
   public:
-	SingletonBase();
+	SingletonBase(const char *);
 	virtual ~SingletonBase();
 
   private:
+	const char *m_name;
 	// Note the SingletonBase instance is not singleton itself :p
 	// However, list of singletons *are* singleton
 	// But we can't put the singleton into the list :(
@@ -85,7 +82,7 @@ template<class T> class Singleton : public SingletonBase {
 	template<class U> static T *Instance(const U &);
 
   protected:
-	Singleton();
+	Singleton(const char *);
 	~Singleton();
 
 #ifdef WIN32
@@ -94,63 +91,62 @@ template<class T> class Singleton : public SingletonBase {
   private:
 	friend T *InstanceOf<T>();
 #endif
-	static SingletonBase *m_Instance;
+	static T *m_Instance;
 	static PMutex m_CreationLock;
 };
 
-template<class T> Singleton<T>::Singleton()
+template<class T> Singleton<T>::Singleton(const char *n) : SingletonBase(n)
 {
-	if (m_Instance != NULL)
+	if (m_Instance != 0)
 		throw std::runtime_error("Duplicate instances");
 }
 
 template<class T> Singleton<T>::~Singleton()
 {
-	m_CreationLock.Wait();
-	m_Instance = NULL;
-	m_CreationLock.Signal();
+	PWaitAndSignal lock(m_CreationLock);
+	m_Instance = 0;
 }
 
 // Function to access the singleton
 template<class T> T *Singleton<T>::Instance()
 {
-	if (m_Instance == NULL) {
+	if (m_Instance == 0) {
 		PWaitAndSignal lock(m_CreationLock);
 		// We have to check it again after we got the lock
-		if (m_Instance == NULL)
+		if (m_Instance == 0)
 			m_Instance = new T;
 	}
-	return dynamic_cast<T *>(m_Instance);
+	return m_Instance;
 }
 
 #ifndef WIN32  // VC++ doesn't support nested template?
 template<class T> template <class U> T *Singleton<T>::Instance(const U &u)
 {
-	if (m_Instance == NULL) {
+	if (m_Instance == 0) {
 		PWaitAndSignal lock(m_CreationLock);
 		// We have to check it again after we got the lock
-		if (m_Instance == NULL)
+		if (m_Instance == 0)
 			m_Instance = new T(u);
 	}
-	return dynamic_cast<T *>(m_Instance);
+	return m_Instance;
 }
 #endif
 
 // Function to access the singleton
 template<class T> T *InstanceOf()
 {
-	if (Singleton<T>::m_Instance == NULL) {
+	if (Singleton<T>::m_Instance == 0) {
 		PWaitAndSignal lock(Singleton<T>::m_CreationLock);
 		// We have to check it again after we got the lock
-		if (Singleton<T>::m_Instance == NULL)
+		if (Singleton<T>::m_Instance == 0)
 			Singleton<T>::m_Instance = new T;
 	}
-	return dynamic_cast<T *>(Singleton<T>::m_Instance);
+	return Singleton<T>::m_Instance;
 }
 
 // static members
-template<class T> SingletonBase *Singleton<T>::m_Instance=NULL;
+template<class T> T *Singleton<T>::m_Instance=0;
 template<class T> PMutex Singleton<T>::m_CreationLock;
 
 
-#endif /* SINGLETON_H */
+#endif // SINGLETON_H
