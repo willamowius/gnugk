@@ -442,7 +442,7 @@ BOOL SignalConnection::OnReceivedData(void)
 	PTRACE(4, "GK\t" << connectionName << "\tCall reference : " << m_q931.GetCallReference());
 	PTRACE(4, "GK\t" << connectionName << "\tFrom destination " << m_q931.IsFromDestination());
 	PTRACE(4, "GK\t" << connectionName << "\tMessage type : " << (int)m_q931.GetMessageType());
-	PTRACE(5, ANSI::BYEL << "Q931: " << m_q931 << ANSI::OFF << endl);
+	PTRACE(5, ANSI::BYEL << "\nQ931: " << m_q931 << ANSI::OFF << endl);
 
 	if(m_q931.HasIE(Q931::UserUserIE)) {
 		H225_H323_UserInformation signal;
@@ -517,7 +517,7 @@ BOOL SignalConnection::OnReceivedData(void)
 			m_q931.SetCalledPartyNumber(n_string, Q931::ISDNPlan, Q931::NationalType);
 	}
 
-	PTRACE(5, ANSI::BGRE << "Q931: " << m_q931 << ANSI::OFF << endl);
+	PTRACE(5, ANSI::BGRE << "\nQ931: " << m_q931 << ANSI::OFF << endl);
 
 	return TRUE;
 };
