@@ -1724,8 +1724,10 @@ bool CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceedin
 
 bool CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 {
-	if (m_call) // hmm... it should not be null
+	if (m_call) {// hmm... it should not be null
 		m_call->SetConnected();
+		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
+	}
 #ifndef NDEBUG
 	if (!Connect.HasOptionalField(H225_Connect_UUIE::e_callIdentifier)) {
 		PTRACE(1, "Q931\tConnect_UUIE doesn't contain CallIdentifier!");

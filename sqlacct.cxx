@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2005/01/04 18:13:42  willamowius
+ * space in trace msg
+ *
  * Revision 1.5  2004/12/15 14:43:25  zvision
  * Shutdown the gatekeeper on SQL auth/acct module config errors.
  * Thanks to Mikko Oilinki.
@@ -67,7 +70,7 @@ SQLAcct::SQLAcct(
 	const char* moduleName,
 	const char* cfgSecName
 	) : GkAcctLogger(moduleName, cfgSecName),
-	m_sqlConn(NULL), m_gkName(Toolkit::Instance()->GKName())
+	m_sqlConn(NULL)
 {
 	SetSupportedEvents(SQLAcctEvents);	
 
@@ -170,57 +173,6 @@ SQLAcct::~SQLAcct()
 	delete m_sqlConn;
 }
 
-void SQLAcct::SetupQueryParams(
-	/// query parameters (name => value) associations
-	std::map<PString, PString>& params,
-	/// call (if any) associated with an accounting event being logged
-	const callptr& call
-	) const
-{
-	PIPSocket::Address addr;
-	WORD port = 0;
-	time_t t;
-	
-	params["g"] = m_gkName;
-	params["u"] = GetUsername(call);
-	params["n"] = PString(call->GetCallNumber());
-	params["d"] = call->GetDuration();
-	params["c"] = PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16);
-	params["s"] = call->GetAcctSessionId();
-	params["gkip"] = m_gkAddr.AsString();
-	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
-	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
-
-	Toolkit* const toolkit = Toolkit::Instance();
-		
-	t = call->GetSetupTime();
-	if (t)
-		params["setup-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
-	t = call->GetConnectTime();
-	if (t)
-		params["connect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
-	t = call->GetDisconnectTime();
-	if (t)
-		params["disconnect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
-	
-	if (call->GetSrcSignalAddr(addr, port)) {
-		params["caller-ip"] = addr.AsString();
-		params["caller-port"] = port;
-	}
-	
-	params["src-info"] = call->GetSrcInfo();
-	params["Calling-Station-Id"] = GetCallingStationId(call);
-		
-	if (call->GetDestSignalAddr(addr, port)) {
-		params["callee-ip"] = addr.AsString();
-		params["callee-port"] = port;
-	}
-
-	params["dest-info"] = call->GetDestInfo();
-	params["Called-Station-Id"] = GetCalledStationId(call);
-	params["Dialed-Number"] = GetDialedNumber(call);
-}
-
 GkAcctLogger::Status SQLAcct::Log(
 	GkAcctLogger::AcctEvent evt, 
 	const callptr& call
@@ -264,7 +216,7 @@ GkAcctLogger::Status SQLAcct::Log(
 	}
 
 	std::map<PString, PString> params;
-	SetupQueryParams(params, call);
+	SetupAcctParams(params, call, m_timestampFormat);
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
 	if (result == NULL)
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "

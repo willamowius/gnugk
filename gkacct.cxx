@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2005/01/04 17:50:51  willamowius
+ * space in trace msg
+ *
  * Revision 1.18  2004/11/15 23:57:41  zvision
  * Ability to choose between the original and the rewritten dialed number
  *
@@ -71,7 +74,7 @@
  *
  */
 #if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug sumbol off
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
 #include <ptlib.h>
@@ -147,6 +150,8 @@ int GkAcctLogger::GetEvents(
 			mask |= AcctStop;
 		else if( token *= "update" )
 			mask |= AcctUpdate;
+		else if( token *= "connect" )
+			mask |= AcctConnect;
 		else if( token *= "on" )
 			mask |= AcctOn;
 		else if( token *= "off" )
@@ -162,6 +167,120 @@ GkAcctLogger::Status GkAcctLogger::Log(
 	)
 {
 	return (evt & m_enabledEvents & m_supportedEvents) ? m_defaultStatus : Next;
+}
+
+void GkAcctLogger::SetupAcctParams(
+	/// CDR parameters (name => value) associations
+	map<PString, PString>& params,
+	/// call (if any) associated with an accounting event being logged
+	const callptr& call,
+	/// timestamp formatting string
+	const PString& timestampFormat
+	) const
+{
+	PIPSocket::Address addr;
+	WORD port = 0;
+	time_t t;
+	
+	params["g"] = Toolkit::Instance()->GKName();
+	params["n"] = PString(call->GetCallNumber());
+	params["u"] = GetUsername(call);
+	params["d"] = call->GetDuration();
+	params["c"] = call->GetDisconnectCause();
+	params["s"] = call->GetAcctSessionId();
+	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
+	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
+	
+	Toolkit* const toolkit = Toolkit::Instance();
+	
+	t = call->GetSetupTime();
+	if (t)
+		params["setup-time"] = toolkit->AsString(PTime(t), timestampFormat);
+	t = call->GetConnectTime();
+	if (t)
+		params["connect-time"] = toolkit->AsString(PTime(t), timestampFormat);
+	t = call->GetDisconnectTime();
+	if (t)
+		params["disconnect-time"] = toolkit->AsString(PTime(t), timestampFormat);
+	
+	if (call->GetSrcSignalAddr(addr, port)) {
+		params["caller-ip"] = addr.AsString();
+		params["caller-port"] = port;
+	}
+	
+	params["src-info"] = call->GetSrcInfo();
+	params["Calling-Station-Id"] = GetCallingStationId(call);
+		
+	addr = (DWORD)0;
+	port = 0;
+		
+	if (call->GetDestSignalAddr(addr, port)) {
+		params["callee-ip"] = addr.AsString();
+		params["callee-port"] = port;
+	}
+
+	params["dest-info"] = call->GetDestInfo();
+	params["Called-Station-Id"] = GetCalledStationId(call);
+	params["Dialed-Number"] = GetDialedNumber(call);
+}
+
+PString GkAcctLogger::ReplaceAcctParams(
+	/// parametrized CDR string
+	const PString& cdrStr,
+	/// parameter values
+	const map<PString, PString>& params
+	) const
+{
+	PString finalCDR((const char*)cdrStr);
+	PINDEX len = finalCDR.GetLength();
+	PINDEX pos = 0;
+
+	while (pos != P_MAX_INDEX && pos < len) {
+		pos = finalCDR.Find('%', pos);
+		if (pos++ == P_MAX_INDEX)
+			break;
+		if (pos >= len) // strings ending with '%' - special case
+			break;
+		const char c = finalCDR[pos]; // char next after '%'
+		if (c == '%') { // replace %% with %
+			finalCDR.Delete(pos, 1);
+			len--;
+		} else if (c == '{') { // escaped syntax (%{Name})
+			const PINDEX closingBrace = finalCDR.Find('}', ++pos);
+			if (closingBrace != P_MAX_INDEX) {
+				const PINDEX paramLen = closingBrace - pos;
+				map<PString, PString>::const_iterator i = params.find(
+					finalCDR.Mid(pos, paramLen)
+					);
+				if (i != params.end()) {
+					const PINDEX escapedLen = i->second.GetLength();
+					finalCDR.Splice(i->second, pos - 2, paramLen + 3);
+					len = len + escapedLen - paramLen - 3;
+					pos = pos - 2 + escapedLen;
+				} else {
+					// replace out of range parameter with an empty string
+					finalCDR.Delete(pos - 2, paramLen + 3);
+					len -= paramLen + 3;
+					pos -= 2;
+				}
+			}
+		} else { // simple syntax (%c)
+			map<PString, PString>::const_iterator i = params.find(c);
+			if (i != params.end()) {
+				const PINDEX escapedLen = i->second.GetLength();
+				finalCDR.Splice(i->second, pos - 1, 2);
+				len = len + escapedLen - 2;
+				pos = pos - 1 + escapedLen;
+			} else {
+				// replace out of range parameter with an empty string
+				finalCDR.Delete(pos - 1, 2);
+				len -= 2;
+				pos--;
+			}
+		}
+	}
+
+	return finalCDR;
 }
 
 PString GkAcctLogger::GetUsername(
@@ -336,7 +455,7 @@ FileAcct::FileAcct(
 	m_cdrFile(NULL), m_rotateLines(-1), m_rotateSize(-1), m_rotateInterval(-1),
 	m_rotateMinute(-1), m_rotateHour(-1), m_rotateDay(-1), 
 	m_rotateTimer(GkTimerManager::INVALID_HANDLE), m_cdrLines(0),
-	m_standardCDRFormat(true), m_gkName(Toolkit::Instance()->GKName())
+	m_standardCDRFormat(true)
 {
 	SetSupportedEvents(FileAcctEvents);
 	
@@ -529,7 +648,7 @@ void FileAcct::GetRotateInterval(
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
 			m_rotateDay = s.AsInteger();
 		} else {
-			std::map<PCaselessString, int> dayNames;
+			map<PCaselessString, int> dayNames;
 			dayNames["sun"] = 0; dayNames["sunday"] = 0;
 			dayNames["mon"] = 1; dayNames["monday"] = 1;
 			dayNames["tue"] = 2; dayNames["tuesday"] = 2;
@@ -537,7 +656,7 @@ void FileAcct::GetRotateInterval(
 			dayNames["thu"] = 4; dayNames["thursday"] = 4;
 			dayNames["fri"] = 5; dayNames["friday"] = 5;
 			dayNames["sat"] = 6; dayNames["saturday"] = 6;
-			std::map<PCaselessString, int>::const_iterator i = dayNames.find(s);
+			map<PCaselessString, int>::const_iterator i = dayNames.find(s);
 			m_rotateDay = (i != dayNames.end()) ? i->second : -1;
 		}
 		if (m_rotateDay < 0 || m_rotateDay > 6) {
@@ -617,125 +736,13 @@ bool FileAcct::GetCDRText(
 	if (m_standardCDRFormat)	
 		cdrString = call->GenerateCDR(m_timestampFormat);
 	else {
-		std::map<PString, PString> params;
+		map<PString, PString> params;
 
-		SetupCDRParams(params, call);
-		cdrString = ReplaceCDRParams(m_cdrString, params);
+		SetupAcctParams(params, call, m_timestampFormat);
+		cdrString = ReplaceAcctParams(m_cdrString, params);
 	}	
 	
 	return !cdrString;
-}
-
-void FileAcct::SetupCDRParams(
-	/// CDR parameters (name => value) associations
-	std::map<PString, PString>& params,
-	/// call (if any) associated with an accounting event being logged
-	const callptr& call
-	) const
-{
-	PIPSocket::Address addr;
-	WORD port = 0;
-	time_t t;
-	
-	params["g"] = m_gkName;
-	params["n"] = PString(call->GetCallNumber());
-	params["u"] = GetUsername(call);
-	params["d"] = call->GetDuration();
-	params["c"] = call->GetDisconnectCause();
-	params["s"] = call->GetAcctSessionId();
-	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
-	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
-	
-	Toolkit* const toolkit = Toolkit::Instance();
-	
-	t = call->GetSetupTime();
-	if (t)
-		params["setup-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
-	t = call->GetConnectTime();
-	if (t)
-		params["connect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
-	t = call->GetDisconnectTime();
-	if (t)
-		params["disconnect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
-	
-	if (call->GetSrcSignalAddr(addr, port)) {
-		params["caller-ip"] = addr.AsString();
-		params["caller-port"] = port;
-	}
-	
-	params["src-info"] = call->GetSrcInfo();
-	params["Calling-Station-Id"] = GetCallingStationId(call);
-		
-	addr = (DWORD)0;
-	port = 0;
-		
-	if (call->GetDestSignalAddr(addr, port)) {
-		params["callee-ip"] = addr.AsString();
-		params["callee-port"] = port;
-	}
-
-	params["dest-info"] = call->GetDestInfo();
-	params["Called-Station-Id"] = GetCalledStationId(call);
-	params["Dialed-Number"] = GetDialedNumber(call);
-}
-
-PString FileAcct::ReplaceCDRParams(
-	/// parametrized CDR string
-	const PString& cdrStr,
-	/// parameter values
-	const std::map<PString, PString>& params
-	)
-{
-	PString finalCDR((const char*)cdrStr);
-	PINDEX len = finalCDR.GetLength();
-	PINDEX pos = 0;
-
-	while (pos != P_MAX_INDEX && pos < len) {
-		pos = finalCDR.Find('%', pos);
-		if (pos++ == P_MAX_INDEX)
-			break;
-		if (pos >= len) // strings ending with '%' - special case
-			break;
-		const char c = finalCDR[pos]; // char next after '%'
-		if (c == '%') { // replace %% with %
-			finalCDR.Delete(pos, 1);
-			len--;
-		} else if (c == '{') { // escaped syntax (%{Name})
-			const PINDEX closingBrace = finalCDR.Find('}', ++pos);
-			if (closingBrace != P_MAX_INDEX) {
-				const PINDEX paramLen = closingBrace - pos;
-				std::map<PString, PString>::const_iterator i = params.find(
-					finalCDR.Mid(pos, paramLen)
-					);
-				if (i != params.end()) {
-					const PINDEX escapedLen = i->second.GetLength();
-					finalCDR.Splice(i->second, pos - 2, paramLen + 3);
-					len = len + escapedLen - paramLen - 3;
-					pos = pos - 2 + escapedLen;
-				} else {
-					// replace out of range parameter with an empty string
-					finalCDR.Delete(pos - 2, paramLen + 3);
-					len -= paramLen + 3;
-					pos -= 2;
-				}
-			}
-		} else { // simple syntax (%c)
-			std::map<PString, PString>::const_iterator i = params.find(c);
-			if (i != params.end()) {
-				const PINDEX escapedLen = i->second.GetLength();
-				finalCDR.Splice(i->second, pos - 1, 2);
-				len = len + escapedLen - 2;
-				pos = pos - 1 + escapedLen;
-			} else {
-				// replace out of range parameter with an empty string
-				finalCDR.Delete(pos - 1, 2);
-				len -= 2;
-				pos--;
-			}
-		}
-	}
-
-	return finalCDR;
 }
 
 bool FileAcct::IsRotationNeeded()
@@ -870,7 +877,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 	bool finalResult = true;
 	GkAcctLogger::Status status = GkAcctLogger::Ok;
 	ReadLock lock(m_reloadMutex);
-	std::list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
+	list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
 	
 	while (iter != m_loggers.end()) {
 		GkAcctLogger* logger = *iter++;

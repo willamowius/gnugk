@@ -3351,7 +3351,7 @@ acctmod=actions
  <acctmod> := FileAcct | RadAcct | SQLAcct | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
- <event>   := start | stop | update | on | off
+ <event>   := start | stop | connect | update | on | off
 </verb></tscreen>
 </descrip>
 The event list tells the gatekeeper, which events should trigger logging
@@ -3360,6 +3360,7 @@ with the given accounting module (if an event type is supported by the module):
 <item><tt/start/ - a call has been started (that does not mean it has been
 	connected - either Setup message has been received or ACF has been sent
 	in direct GK mode),
+<item><tt/connect/ - a call has been connected (only available in routed mode),
 <item><tt/update/ - a call is active and the periodic update is performed
 	to reflect the new call duration. Frequency of such updates is determined
 	by <bf/AcctUpdateInterval/ variable from <ref id="calltable" name="[CallTable]">

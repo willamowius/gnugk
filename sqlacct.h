@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2004/11/10 18:30:41  zvision
+ * Ability to customize timestamp strings
+ *
  * Revision 1.2  2004/07/09 22:11:36  zvision
  * SQLAcct module ported from 2.0 branch
  *
@@ -79,19 +82,6 @@ public:
 		const callptr& call /// additional data for the event
 		);
 
-protected:
-	/** Fill the map with query parameters (name => value associations).
-	    Derived classes may override this method to append some custom
-	    parameters. Do not forget to call the base class implementation then
-	    to setup default parameters!
-	*/
-	virtual void SetupQueryParams(
-		/// query parameters (name => value) associations
-		std::map<PString, PString>& params,
-		/// call (if any) associated with an accounting event being logged
-		const callptr& call
-		) const;
-			
 private:
 	/* No copy constructor allowed */
 	SQLAcct(const SQLAcct&);
@@ -113,8 +103,6 @@ private:
 	PString m_stopQueryAlt;
 	/// timestamp formatting string
 	PString m_timestampFormat;
-	/// for fast access
-	PString m_gkName;
 	PIPSocket::Address m_gkAddr;
 };
 

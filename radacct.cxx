@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2005/01/04 16:47:12  willamowius
+ * space in trace msg
+ *
  * Revision 1.14  2004/11/15 23:57:42  zvision
  * Ability to choose between the original and the rewritten dialed number
  *
@@ -75,7 +78,7 @@
 #if HAS_RADIUS
 
 #if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug sumbol off
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
 #include <ptlib.h>
