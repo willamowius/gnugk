@@ -1,5 +1,6 @@
 26 Aug 2004 -- zvision
   * scripts to dump/restore data added
+  * fixed bug that prevented IP only authorization using IP address range
 
 15 Aug 2004 -- zvision
   * a new column 'active' in the voiptariff table to allow per user
