@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2004/11/15 23:57:41  zvision
+ * Ability to choose between the original and the rewritten dialed number
+ *
  * Revision 1.17  2004/11/10 18:30:41  zvision
  * Ability to customize timestamp strings
  *
@@ -563,7 +566,7 @@ GkAcctLogger::Status FileAcct::Log(
 		return Next;
 		
 	if (!call) {
-		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event" << evt);
+		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
 	
