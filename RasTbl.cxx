@@ -708,8 +708,10 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 		GenerateAlias(rrq.m_terminalAlias, rrq.m_endpointIdentifier);
 	}
 
-	EndpointRec *ep = rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_gateway) ?
-			  new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
+	EndpointRec *ep = 
+		(rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)
+			|| rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_mcu))
+		? new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
 	WriteLock lock(listLock);
 	EndpointList.push_back(ep);
 	++regSize;
@@ -733,7 +735,8 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Loc
 
 	EndpointRec *ep;
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType) &&
-	    lcf.m_destinationType.HasOptionalField(H225_EndpointType::e_gateway))
+	    (lcf.m_destinationType.HasOptionalField(H225_EndpointType::e_gateway)
+			|| lcf.m_destinationType.HasOptionalField(H225_EndpointType::e_mcu)))
 		ep = new OuterZoneGWRec(ras_msg, epID);
 	else
 		ep = new OuterZoneEPRec(ras_msg, epID);
