@@ -49,7 +49,7 @@ avoid duplicate work.
 
 - implement metric based routing (to allow for least cost routing decisions)
 
-- implement 'gateway of last resort' (to be taken if noone is registered)
+- implement 'gateway of last resort' (to be taken if none is registered)
 
 - implement alternate routing
   watch for either TCP or PBX errors, i.e. TCP errors on H.225 connection

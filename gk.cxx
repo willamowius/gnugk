@@ -333,8 +333,6 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 
 void Gatekeeper::PrintOpts(void)
 {
-	PStringArray opts = GetArgumentsParseString().Tokenise(".:", FALSE);
-
 	cout << "Options:\n"
 		"  -r  --routed       : Use gatekeeper routed call signaling\n"
 		"  -rr --h245routed   : Use H.245 control channel routed\n"

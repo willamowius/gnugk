@@ -37,6 +37,15 @@ class RTPLogicalChannel;
 class T120LogicalChannel;
 class H245ProxyHandler;
 
+class H245_RequestMessage;
+class H245_ResponseMessage;
+class H245_CommandMessage;
+class H245_IndicationMessage;
+class H245_H2250LogicalChannelParameters;
+class H245_OpenLogicalChannel;
+class H245_OpenLogicalChannelAck;
+class H245_OpenLogicalChannelReject;
+class H245_CloseLogicalChannel;
 
 class H245Handler {
 // This class handles H.245 messages which can either be transmitted on their
@@ -46,6 +55,10 @@ public:
 	virtual ~H245Handler() {}
 
 	virtual bool HandleMesg(PPER_Stream &);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
+	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &);
+
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
 	void SetLocalAddr(PIPSocket::Address local) { localAddr = local; }
 
@@ -63,27 +76,39 @@ class H245ProxyHandler : public H245Handler {
 public:
 	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
 	typedef std::map<WORD, LogicalChannel *>::const_iterator const_iterator;
+	typedef std::map<WORD, RTPLogicalChannel *>::iterator siterator;
+	typedef std::map<WORD, RTPLogicalChannel *>::const_iterator const_siterator;
 
 	H245ProxyHandler(CallSignalSocket *, PIPSocket::Address, H245ProxyHandler * = 0);
 	virtual ~H245ProxyHandler();
 
+	// override from class H245Handler
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
+
 	LogicalChannel *FindLogicalChannel(WORD);
+	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
 	
 private:
 	// override from class H245Handler
 	virtual bool HandleRequest(H245_RequestMessage &);
 	virtual bool HandleResponse(H245_ResponseMessage &);
 
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
 	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
 	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
 
-	RTPLogicalChannel *CreateRTPLogicalChannel(WORD);
+	RTPLogicalChannel *CreateRTPLogicalChannel(WORD, WORD);
+	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD);
+	T120LogicalChannel *CreateT120LogicalChannel(WORD);
 	void RemoveLogicalChannel(WORD flcn);
 
 	ProxyHandleThread *handler;
 	std::map<WORD, LogicalChannel *> logicalChannels;
+	std::map<WORD, RTPLogicalChannel *> sessionIDs;
+	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
 	H245ProxyHandler *peer;
 };
 
@@ -121,7 +146,7 @@ protected:
 	void OnNotify(H225_Notify_UUIE &);
 	void OnNonStandardData(PASN_OctetString &);
 	void OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
-	void OnFastStart(H225_ArrayOf_PASN_OctetString &);
+	void OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
 	template<class UUIE> void HandleH245Address(UUIE & uu)
 	{
@@ -129,10 +154,10 @@ protected:
 			if (!SetH245Address(uu.m_h245Address))
 				uu.RemoveOptionalField(UUIE::e_h245Address);
 	}
-	template<class UUIE> void HandleFastStart(UUIE & uu)
+	template<class UUIE> void HandleFastStart(UUIE & uu, bool fromCaller)
 	{
 		if (uu.HasOptionalField(UUIE::e_fastStart))
-			OnFastStart(uu.m_fastStart);
+			OnFastStart(uu.m_fastStart, fromCaller);
 	}
 
 	// localAddr is NOT the local address the socket bind to,

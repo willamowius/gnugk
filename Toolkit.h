@@ -19,11 +19,6 @@
 #include "h225.h"
 #include "singleton.h"
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 )
-#endif
-
 
 class Toolkit : public Singleton<Toolkit>
 {

@@ -198,6 +198,14 @@ SOURCE=.\MulticastGRQ.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\ProxyChannel.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ProxyThread.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\RasSrv.h
 # End Source File
 # Begin Source File
