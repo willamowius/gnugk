@@ -187,7 +187,7 @@ rule=allow
 ## Currently only one prefix is supported.
 ##
 #
-# GKID=ip[:port;prefix;password]
+# GKID=ip[:port;prefix;password;dynamic]
 #
 [RasSvr::Neighbors]
 #GK1=203.60.151.5:1719;*;gk1
@@ -222,16 +222,22 @@ rule=allow
 ##
 ## Currently supported modules:
 ##
-##   SimplePasswordAuth/
-##   LDAPPasswordAuth    The module checks the tokens or cryptoTokens
+##   SimplePasswordAuth/MySQLAuth/LDAPPasswordAuth
+##
+##                       The module checks the tokens or cryptoTokens
 ##                       fields of RAS message. The tokens should contain
 ##                       at least generalID and password. For cryptoTokens,
 ##                       cryptoEPPwdHash tokens hashed by simple MD5 and 
 ##                       nestedcryptoToken tokens hashed by HMAC-SHA1-96
 ##                       (libssl must be installed!) are supported now.
 ##                       The ID and password are read from [Password] section 
-##                       / LDAP. Support for other backend databases is 
-##                       easily to add.
+##                       / MySQL / LDAP. Support for other backend databases
+##                       is easily to add.
+##
+##   NeighborPasswordAuth
+##
+##                       The module only check LRQs from neighbors. The ID and
+##                       password are defined in [RasSvr::Neighbors] section.
 ##
 ##   AliasAuth/
 ##   LDAPAliasAuth       The IP of an endpoint with given alias should

@@ -1,5 +1,8 @@
 Changes from 2.0b3 to now (by cwhuang)
 ======================================
+- only accept unregistered call from neighbors
+- add NeighborPasswordAuth module
+- check if LRQs is from IP of my neighbors 
 - add dynamic resolving name for neighbors, thanks to Rodrigo Gonzalez
 - add GkClient module
 - allow remove a key or a section in the config from status thread
