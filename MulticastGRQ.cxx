@@ -53,6 +53,8 @@ MulticastGRQ::~MulticastGRQ()
 
 void MulticastGRQ::Main(void)
 {
+	ReadLock cfglock(ConfigReloadMutex);
+
 	// set socket to multicast
 	struct ip_mreq mreq;
 	mreq.imr_multiaddr.s_addr = inet_addr(GkConfig()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
@@ -73,7 +75,9 @@ void MulticastGRQ::Main(void)
 
 		PBYTEArray * rdbuf = new PBYTEArray(4096);
 		PPER_Stream * rdstrm = new PPER_Stream(*rdbuf);
+		ConfigReloadMutex.EndRead();
 		int iResult = MulticastListener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
+		ConfigReloadMutex.StartRead();
 		if (!iResult)
 		{
     		PTRACE(1, "GK\tMulticast thread: Read error: " << MulticastListener.GetErrorText());
