@@ -556,12 +556,16 @@ private:
 	PFilePath m_tmpconfig;
 	GkClient * m_gkclient;
 	mutable PMutex m_gkclient_mutex;
+	void delete_gkclient();
 	Neighbor * m_neighbor;
 	mutable PMutex m_neighbor_mutex;
+	void delete_neighbor();
 	H323RasListener * m_raslistener;
 	mutable PMutex m_raslistener_mutex;
+	void delete_raslistener();
 	HandlerList * m_handlerlist;
 	mutable PMutex m_handlerlist_mutex;
+
 
 	int m_requestseqnum;
 	mutable PMutex m_requestseqnum_mutex;
