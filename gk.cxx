@@ -37,12 +37,19 @@
 #include "h323util.h"
 #include "ANSI.h"
 
-#if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING)
-// FIXME: This code is only to assure proper coredump for debugging
+// FIXME: local debugging, please keep for a while. Off per default (see line 236).
+#if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING) && defined(COREDUMPHACK)
 #  include <sys/time.h>
 #  include <sys/resource.h>
 #  include <unistd.h>
+#  include <stdlib.h>		// abort
 #endif
+
+#ifndef lint
+// mark object with version info
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = GK_H;
+#endif /* lint */
 
 
 /*
@@ -229,10 +236,16 @@ void UnixReloadConfigHandler(int sig) // For USR1 Signal
 
 void UnixCoreDumpHandler(int sig) // for USR2 Signal
 {
-	PTRACE(1, "GK\tGatekeeper USR12(signal " << sig << ")");
+	PTRACE(1, "GK\tGatekeeper USR2(signal " << sig << ")");
 	ExitFlag = true;
 	PFile::Remove(pidfile);
+// FIXME: local debugging, please keep for a while. Off per default
+#if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING) && defined(COREDUMPHACK)
+// enforce proper coredump for debugging
+	abort();		// the hard way. But will dump
+#else
 	PAssertAlways("Requestet to dump core, doing so...");
+#endif /* (P_LINUX || P_SOLARIS) && PTRACING  */
 }
 #endif
 
@@ -457,8 +470,9 @@ void Gatekeeper::Main()
 		"of the License, or (at your option) any later version." GK_LINEBRK
 		;
 	
-#if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING)
-// FIXME: This code is only to assure proper coredump for debugging
+// FIXME: local debugging, please keep for a while. Off per default (see line 236).
+#if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING) && defined(COREDUMPHACK)
+// enforce proper coredump for debugging
 	const char optU = 'U';
 	if (args.HasOption(optU)) {
 		struct rlimit resource_limits;

@@ -29,7 +29,7 @@
 #include "CountryCodeTables.h"
 #include <h323pdu.h>
 
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  include <openssl/ssl.h>
 #  include <openssl/err.h>
 #  include <openssl/rand.h>
@@ -1318,7 +1318,7 @@ void H323SetAliasAddress(const PString & name, H225_AliasAddress & alias, int ta
 // keep in sync with codec_kind, has to be one bigger then live due to syntax rules
 const char * PTPW_Codec::PTPW_Ids[PTPW_Codec::C_count] =
 {"",
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  if !defined(NO_DES)
  "{DES}", "{DES_EDE}", "{DES_EDE3}", "{DESX}",
 #  endif // NO_DES
@@ -1347,7 +1347,7 @@ const char * PTPW_Codec::PTPW_Ids[PTPW_Codec::C_count] =
 };
 
 const char * const PTPW_Codec::init_section_name = "PlaintextPasswd::SharedSecret";
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 static const PString & Base64_decode(PString & str);
 static const PString & Base64_decode(PString & str)
 {
@@ -1387,7 +1387,7 @@ static const PString & Base64_decode(PString & str)
 PTPW_Codec::PTPW_Codec(codec_kind a, coding_style st):
 	algo(a), style(st)
 {
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 	DEBUGPRINT("PTPW_Codec: (Open)SSL Library considered for " << PTPW_Ids[algo]);
 
 	EVP_CIPHER * type = EVP_enc_null();
@@ -1497,7 +1497,7 @@ PTPW_Codec::PTPW_Codec(codec_kind a, coding_style st):
 
 PTPW_Codec::~PTPW_Codec()
 {
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access?
 	BIO_flush(bio_stack);
 	BIO_free_all(bio_stack);
 #endif // P_SSL
@@ -1513,7 +1513,7 @@ PTPW_Codec::Info(PString & in)
 	DEBUGPRINT("PTPW_Codec::Info:  " << C_count << " entries found");
 	DEBUGPRINT("PTPW_Codec::Info: adding NULL " << C_NULL);
 	info &= "NULL";
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access?
 #  ifndef NO_DES
 	DEBUGPRINT("PTPW_Codec::Info: adding C_DES" << C_DES);
 	info &= PTPW_Ids[C_DES];
@@ -1562,7 +1562,7 @@ PTPW_Codec::cipher(PString & str)
 {
 	PString * result = &str; // actually working on str
 	switch (algo) {
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access?
 #ifndef NO_DES
 	case C_DES:
 	case C_DES_EDE:

@@ -43,7 +43,7 @@
 #if defined(MWBB1_TAG)
 #  include <MWCryptBB1.h>	// MWCrypt routines coding
 #endif // MWBB1_TAG
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  include <openssl/evp.h> // variuos definitions
 #  include <openssl/bio.h>	// BIO type
 #endif // P_SSL
@@ -53,7 +53,7 @@ class PTPW_Codec : public PObject
 	PCLASSINFO(PTPW_Codec, PObject);
 public:
 	typedef enum {C_NULL=0, 
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  if !defined(NO_DES)
 		      C_DES, C_DES_EDE, C_DES_EDE3, C_DESX, 
 #  endif // NO_DES
@@ -95,7 +95,7 @@ protected:
 	static const char * PTPW_Ids[C_count];	// keep in sync with codec_kind
 	codec_kind algo;	// kind of algorithm to use
 	coding_style style;	// encoding, decoding?
-#if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
+#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 	BIO * bio_stack;	// cipher stack
 	EVP_CIPHER * type;	// the cipher type information
 private:

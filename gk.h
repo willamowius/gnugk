@@ -17,8 +17,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef _gk_h
-#define _gk_h
+#ifndef GK_H
+#define GK_H "@(#) $Id$"
 
 #include <ptlib.h>
 
@@ -77,4 +77,4 @@ class Gatekeeper : public PProcess
 
 };
 
-#endif
+#endif /* GK_H */
