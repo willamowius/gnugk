@@ -27,12 +27,12 @@
 
 // list of names (keys) as used in config file, keep in sync with DBAttributeNamesEnum
 const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
-{"DN", "H323ID", "TelephoneNo", "FacsimileTelephoneNo", "H235PassWord", "IPAddress",
+{"DN", "H323ID", "TelephoneNumber", "FacsimileTelephoneNumber", "H235PassWord", "IPAddress",
  "LocalAccessCode", "NationalAccessCode",  "InternationalAccessCode",
- "MainTelephoneNo", "SubscriberTelephoneNumber", "CallingLineIdRestriction", "SpecialDials",
+ "MainTelephoneNumber", "SubscriberTelephoneNumber", "CallingLineIdRestriction", "SpecialDials",
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
- "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "voIPprependCallbackAC",
- "EPType", "CountryCode"};
+ "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "PrependCallbackAC",
+ "EndpointType", "CountryCode"};
 
 // section name for database names which shall be used
 const char *DB_NAMES_SEC = "Gatekeeper::Databases";
@@ -273,12 +273,15 @@ BOOL GkDatabase::validAliases(const H225_ArrayOf_AliasAddress & aliases) {
 		for (PINDEX i = 0; i < aliases.GetSize(); i++) {
 			if (aliases[i].GetTag() != H225_AliasAddress::e_h323_ID) {
 				aliasStr = H323GetAliasAddressString(aliases[i]);
+				BOOL found=FALSE;
 				// check if alias exists in telephoneNumber attributes from database entry
-				for (PINDEX j = 0; j < telephoneNumbers.GetSize(); j++) {
-					if(aliasStr != rmInvalidCharsFromTelNo(telephoneNumbers[j])) {
-						return FALSE;
+				for (PINDEX j = 0; j < telephoneNumbers.GetSize() && !found ; j++) {
+					if(aliasStr == rmInvalidCharsFromTelNo(telephoneNumbers[j])) {
+						found=TRUE;
 					}
 				}
+				if (!found)
+					return FALSE; // Not in list.
 			}
 		}
 		return TRUE;
