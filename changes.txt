@@ -1,5 +1,9 @@
 Changes from 2.2.0 to 2.2.1
 ===========================
+- ability to select Called-Station-Id number type between the original one
+  (dialed number) and the rewritten one. New UseDialedNumber config option
+  for RadAuth/RadAliasAuth/RadAcct modules, new %{Dialed-Number} variable
+  for SQLAcct and FileAcct modules
 - ability to customize timestamp formats. New TimestampFormat config variables
   for main, SqlAcct, RadAcct, FileAcct and CallTable sections
 - (ProxyChannel.cxx) safety check before a signaling socket is actually deleted

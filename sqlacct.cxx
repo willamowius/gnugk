@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2004/11/10 18:30:41  zvision
+ * Ability to customize timestamp strings
+ *
  * Revision 1.2  2004/07/09 22:11:36  zvision
  * SQLAcct module ported from 2.0 branch
  *
@@ -190,6 +193,7 @@ void SQLAcct::SetupQueryParams(
 
 	params["dest-info"] = call->GetDestInfo();
 	params["Called-Station-Id"] = GetCalledStationId(call);
+	params["Dialed-Number"] = GetDialedNumber(call);
 }
 
 GkAcctLogger::Status SQLAcct::Log(

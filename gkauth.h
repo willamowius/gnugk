@@ -147,6 +147,8 @@ public:
 		PString m_callingStationId;		
 		/// input/output - set or get Called-Station-Id
 		PString m_calledStationId;
+		/// number dialed by the user (Called-Station-Id before rewrite)
+		PString m_dialedNumber;
 		/// optional user's account balance amount string
 		PString m_amountString;
 		/// H225_CallCreditServiceControl_billingMode or -1, if not defined
@@ -208,6 +210,8 @@ public:
 		PString m_callingStationId;		
 		/// input/output - set or get Called-Station-Id
 		PString m_calledStationId;
+		/// number dialed by the user (Called-Station-Id before rewrite)
+		PString m_dialedNumber;
 		/// if not NULL, route the call to the specified alias
 		H225_AliasAddress* m_routeToAlias;
 		/// if not NULL, route the call to the specified IP
@@ -428,6 +432,28 @@ protected:
 		const H225_Setup_UUIE& setup,
 		/// additional data
 		SetupAuthData& authData
+		) const;
+
+	/// @return	Number actually dialed by the user (before rewrite)
+	PString GetDialedNumber(
+		/// ARQ message with additional data
+		const RasPDU<H225_AdmissionRequest>& request,
+		/// additional data
+		GkAuthenticator::ARQAuthData& authData,
+		/// extract dialed number, if it is not set yet
+		bool generateNumber = false
+		) const;
+		
+	/// @return	Number actually dialed by the user (before rewrite)
+	virtual PString GetDialedNumber(
+		/// Q.931 Setup message with additional data
+		const Q931& q931pdu,
+		/// Setup-UUIE element extracted from the Q.931 Setup message
+		const H225_Setup_UUIE& setup,
+		/// additional data
+		GkAuthenticator::SetupAuthData& authData,
+		/// extract dialed number, if it is not set yet
+		bool generateNumber = false
 		) const;
 
 private:

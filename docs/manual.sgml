@@ -114,6 +114,13 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Called-Station-Id number type can be selected between the original one
+(dialed number) and the rewritten one. New <tt/UseDialedNumber/ config option
+for <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">
+/<ref id=radacct name="RadAcct"> modules, new %{Dialed-Number} variable
+for <ref id=sqlacct name="SQLAcct"> and <ref id=fileacct name="FileAcct"> modules.
+
+<item>
 Ability to customize timestamp formats. New <tt/TimestampFormat/ config 
 variables for main, <ref id="sqlacct" name="[SqlAcct]">, 
 <ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
@@ -3022,6 +3029,13 @@ is allowed to register with. Format of this attribute is:
 Example:
 	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
 </verb></tscreen>
+
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+Default: <tt/0/
+<p>
+Select Called-Station-Id number type between the original one (as dialed
+by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
+
 </itemize>
 
 <sect2>Section &lsqb;RadAliasAuth&rsqb;
@@ -3201,6 +3215,12 @@ FixedPassword=ppp
 All endpoints will be authenticated using the username 'ppp'
 and the password 'ppp'.
 </descrip>
+
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+Default: <tt/0/
+<p>
+Select Called-Station-Id number type between the original one (as dialed
+by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
 
 </itemize>
 
@@ -3475,7 +3495,8 @@ parameters are recognized:
 <item><tt/%{src-info}/ - a colon separated list of source aliases
 <item><tt/%{dest-info}/ - a colon separated list of destination aliases
 <item><tt/%{Calling-Station-Id}/ - calling party number
-<item><tt/%{Called-Station-Id}/ - called party number
+<item><tt/%{Called-Station-Id}/ - called party number (rewritten)
+<item><tt/%{Dialed-Number}/ - dialed number (as received from the calling party)
 </itemize><newline>
 
 <item><tt/TimestampFormat=Cisco/<newline>
@@ -3651,6 +3672,12 @@ Default: <tt>N/A</tt>
 Format of timestamp strings sent in RADIUS attributes. If this setting
 is not specified, a global one from the main gatekeeper section is applied.
 
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+Default: <tt/0/
+<p>
+Select Called-Station-Id number type between the original one (as dialed
+by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
+
 </itemize>
 
 <sect2>Section &lsqb;SQLAcct&rsqb;
@@ -3721,7 +3748,8 @@ For <tt/SQLAcct/ the following parameters are defined:
 <item><tt/%{src-info}/ - a colon separated list of source aliases
 <item><tt/%{dest-info}/ - a colon separated list of destination aliases
 <item><tt/%{Calling-Station-Id}/ - calling party number
-<item><tt/%{Called-Station-Id}/ - called party number
+<item><tt/%{Called-Station-Id}/ - called party number (rewritten Dialed-Number)
+<item><tt/%{Dialed-Number}/ - dialed number (as received from the calling party)
 </itemize>
 <p>
 Sample query string:

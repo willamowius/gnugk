@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2004/11/10 18:30:41  zvision
+ * Ability to customize timestamp strings
+ *
  * Revision 1.11  2004/06/25 13:33:18  zvision
  * Better Username, Calling-Station-Id and Called-Station-Id handling.
  * New SetupUnreg option in Gatekeeper::Auth section.
@@ -187,7 +190,7 @@ protected:
 	    A string that can be used to identify a calling number.
 	*/
 	virtual PString GetCallingStationId(
-		/// call (if any) associated with the RAS message
+		/// call associated with the accounting event
 		const callptr& call
 		) const;
 
@@ -195,7 +198,13 @@ protected:
 	    A string that can be used to identify a calling number.
 	*/
 	virtual PString GetCalledStationId(
-		/// call (if any) associated with the RAS message
+		/// call associated with the accounting event
+		const callptr& call
+		) const;
+
+	/// @return	A number actually dialed by the user (before rewrite)
+	virtual PString GetDialedNumber(
+		/// call associated with the accounting event
 		const callptr& call
 		) const;
 

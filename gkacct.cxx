@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2004/11/10 18:30:41  zvision
+ * Ability to customize timestamp strings
+ *
  * Revision 1.16  2004/06/28 19:09:33  zvision
  * Monthly CDR files rotation fixes.
  *
@@ -202,7 +205,7 @@ PString GkAcctLogger::GetUsername(
 }
 
 PString GkAcctLogger::GetCallingStationId(
-	/// call (if any) associated with the RAS message
+	/// call associated with the accounting event
 	const callptr& call
 	) const
 {
@@ -240,7 +243,7 @@ PString GkAcctLogger::GetCallingStationId(
 }
 
 PString GkAcctLogger::GetCalledStationId(
-	/// call (if any) associated with the RAS message
+	/// call associated with the accounting event
 	const callptr& call
 	) const
 {
@@ -248,6 +251,44 @@ PString GkAcctLogger::GetCalledStationId(
 		return PString();
 
 	PString id = call->GetCalledStationId();
+	if (!id)
+		return id;
+			
+	if (id.IsEmpty())
+		id = GetBestAliasAddressString(call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+		
+	if (id.IsEmpty()) {
+		const endptr calledEP = call->GetCalledParty();
+		if (calledEP)
+			id = GetBestAliasAddressString(calledEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	}
+	
+	if (id.IsEmpty()) {
+		PIPSocket::Address calledSigAddr;
+		WORD calledSigPort = 0;
+		if (call->GetDestSignalAddr(calledSigAddr, calledSigPort) 
+		 	&& calledSigAddr.IsValid())
+			id = ::AsString(calledSigAddr, calledSigPort);
+	}
+	
+	return id;
+}
+
+PString GkAcctLogger::GetDialedNumber(
+	/// call associated with the accounting event
+	const callptr& call
+	) const
+{
+	if (!call)
+		return PString();
+
+	PString id = call->GetDialedNumber();
 	if (!id)
 		return id;
 			
@@ -632,6 +673,7 @@ void FileAcct::SetupCDRParams(
 
 	params["dest-info"] = call->GetDestInfo();
 	params["Called-Station-Id"] = GetCalledStationId(call);
+	params["Dialed-Number"] = GetDialedNumber(call);
 }
 
 PString FileAcct::ReplaceCDRParams(

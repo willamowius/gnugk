@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.23  2004/11/03 10:40:17  zvision
+ * Add/remove RRQ aliases using h323-ivr-in=terminal-alias Cisco AV-Pair attr
+ *
  * Revision 1.22  2004/08/09 21:52:23  zvision
  * RADIUS based call routing
  *
@@ -210,6 +213,9 @@ RadAuthBase::RadAuthBase(
 				" NAS IP address"
 				);
 	}
+	m_useDialedNumber = Toolkit::AsBool(GetConfig()->GetString(
+		configSectionName, "UseDialedNumber", "0"
+		));
 	m_attrH323GwId = RadiusAttr(RadiusAttr::CiscoVSA_h323_gw_id, false, m_nasIdentifier);
 	m_attrNasIdentifier = RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
 }
@@ -547,8 +553,16 @@ int RadAuthBase::Check(
 		if (authData.m_callingStationId.IsEmpty())
 			authData.m_callingStationId = stationId;
 	}
-						
-	stationId = GetCalledStationId(arqPdu, authData);
+
+	const PString dialedNumber = GetDialedNumber(arqPdu, authData);
+	const PString calledStationId = GetCalledStationId(arqPdu, authData);
+	
+	if (authData.m_calledStationId.IsEmpty())
+		authData.m_calledStationId = calledStationId;
+	if (authData.m_dialedNumber.IsEmpty())
+		authData.m_dialedNumber = dialedNumber;
+	
+	stationId = m_useDialedNumber ? dialedNumber : calledStationId;
 	if (stationId.IsEmpty()) {
 		delete pdu;
 		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
@@ -556,11 +570,9 @@ int RadAuthBase::Check(
 			);
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		return e_fail;
-	} else {
+	} else
 		pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
-		if (authData.m_calledStationId.IsEmpty())
-			authData.m_calledStationId = stationId;
-	}
+	
 	
 	if (m_appendCiscoAttributes) {
 		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,
@@ -837,8 +849,16 @@ int RadAuthBase::Check(
 		if (authData.m_callingStationId.IsEmpty())
 			authData.m_callingStationId = stationId;
 	}
-						
-	stationId = GetCalledStationId(q931pdu, setup, authData);
+
+	const PString calledStationId = GetCalledStationId(q931pdu, setup, authData);
+	const PString dialedNumber = GetDialedNumber(q931pdu, setup, authData);
+
+	if (authData.m_calledStationId.IsEmpty())
+		authData.m_calledStationId = calledStationId;
+	if (authData.m_dialedNumber.IsEmpty())
+		authData.m_dialedNumber = dialedNumber;
+	
+	stationId = m_useDialedNumber ? dialedNumber : calledStationId;
 	if (stationId.IsEmpty()) {
 		delete pdu;
 		PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
@@ -846,11 +866,8 @@ int RadAuthBase::Check(
 			);
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_badFormatAddress;
 		return e_fail;
-	} else {
+	} else
 		pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
-		if (authData.m_calledStationId.IsEmpty())
-			authData.m_calledStationId = stationId;
-	}
 			
 	if (m_appendCiscoAttributes) {
 		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,

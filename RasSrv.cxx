@@ -1677,6 +1677,9 @@ bool AdmissionRequestPDU::Process()
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 	}
 
+	bool aliasesChanged = false;
+	bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
+		&& request.m_destinationInfo.GetSize() > 0;
 	// CallRecs should be looked for using callIdentifier instead of callReferenceValue
 	// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
 	callptr pExistingCallRec = request.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
@@ -1684,9 +1687,20 @@ bool AdmissionRequestPDU::Process()
 		// since callIdentifier is optional, we might have to look for the callReferenceValue as well
 		CallTbl->FindCallRec(request.m_callReferenceValue);
 
-	bool aliasesChanged = false;
-	bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
-		&& request.m_destinationInfo.GetSize() > 0;
+	GkAuthenticator::ARQAuthData authData(RequestingEP, pExistingCallRec);
+
+	if (answer && pExistingCallRec)
+		authData.m_dialedNumber = pExistingCallRec->GetDialedNumber();
+		
+	if (authData.m_dialedNumber.IsEmpty()) {
+		if (!answer && hasDestInfo)
+			authData.m_dialedNumber = GetBestAliasAddressString(
+				request.m_destinationInfo, false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	}
+		
 	if (hasDestInfo) { // apply rewriting rules
 
 		in_rewrite_source = GetBestAliasAddressString(
@@ -1718,7 +1732,6 @@ bool AdmissionRequestPDU::Process()
 		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
 		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
 
-	GkAuthenticator::ARQAuthData authData(RequestingEP, pExistingCallRec);
 	if (!RasSrv->ValidatePDU(*this, authData)) {
 		if (authData.m_rejectReason < 0)
 			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
@@ -1899,6 +1912,9 @@ bool AdmissionRequestPDU::Process()
 			pCallRec->SetCallingStationId(authData.m_callingStationId);
 		if (!authData.m_calledStationId)
 			pCallRec->SetCalledStationId(authData.m_calledStationId);
+		if (!authData.m_dialedNumber)
+			pCallRec->SetDialedNumber(authData.m_dialedNumber);
+			
 		if (authData.m_routeToAlias != NULL)
 			pCallRec->SetRouteToAlias(*authData.m_routeToAlias);
 

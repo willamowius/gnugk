@@ -808,6 +808,17 @@ public:
 		);
 
 	/** @return
+	    Called party's number before rewrite or an empty string, 
+	    if the number has not been yet determined.
+	*/
+	PString GetDialedNumber();
+
+	/// Set dialed number
+	void SetDialedNumber(
+		const PString& number /// Dialed-Number
+		);
+
+	/** @return
 	    Fixed destination address for the call (NULL if not set).
 	*/
 	H225_AliasAddress* GetRouteToAlias() const;
@@ -890,6 +901,8 @@ private:
 	PString m_callingStationId;
 	/// called party's number
 	PString m_calledStationId;
+	/// dialed number (called party's number before rewrite)
+	PString m_dialedNumber;
 	/// fixed destination alias
 	H225_AliasAddress* m_routeToAlias;
 

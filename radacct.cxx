@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2004/11/10 18:30:41  zvision
+ * Ability to customize timestamp strings
+ *
  * Revision 1.12  2004/07/26 12:19:41  zvision
  * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
  *
@@ -123,6 +126,10 @@ RadAcct::RadAcct(
 	m_fixedUsername = cfg->GetString(cfgSec, "FixedUsername", "");
 
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
+
+	m_useDialedNumber = Toolkit::AsBool(cfg->GetString(
+		cfgSec, "UseDialedNumber", "0"
+		));
 	
 	m_attrNasIdentifier = RadiusAttr(RadiusAttr::NasIdentifier, m_nasIdentifier);
 	m_attrH323GwId = RadiusAttr(RadiusAttr::CiscoVSA_h323_gw_id, false, m_nasIdentifier);
@@ -206,7 +213,7 @@ GkAcctLogger::Status RadAcct::Log(
 				<<" Calling-Station-Id for the call "<<call->GetCallNumber()
 				);
 
-		stationId = GetCalledStationId(call);
+		stationId = m_useDialedNumber ? GetDialedNumber(call) : GetCalledStationId(call);
 		if (!stationId)
 			pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
 		else

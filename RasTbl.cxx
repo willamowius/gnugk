@@ -1796,6 +1796,20 @@ void CallRec::SetCalledStationId(
 	m_calledStationId = id;
 }
 
+PString CallRec::GetDialedNumber()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_dialedNumber;
+}
+
+void CallRec::SetDialedNumber(
+	const PString& number
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_dialedNumber = number;
+}
+
 H225_AliasAddress* CallRec::GetRouteToAlias() const
 {
 	if (m_routeToAlias != NULL) {

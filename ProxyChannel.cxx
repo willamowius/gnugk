@@ -1129,6 +1129,29 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		callid = AsString(callIdentifier.m_guid);
 	}
 
+	PString dialedNumber;
+	
+	m_lastQ931->GetCalledPartyNumber(dialedNumber);
+	
+	if (dialedNumber.IsEmpty()) {
+		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+			dialedNumber = GetBestAliasAddressString(
+				Setup.m_destinationAddress, false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		if (dialedNumber.IsEmpty() && m_call)
+			dialedNumber = m_call->GetDialedNumber();
+		
+		if (dialedNumber.IsEmpty() && m_call)
+			dialedNumber = GetBestAliasAddressString(
+				m_call->GetDestinationAddress(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	}	
+
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 
 		// Do inbound per GWRewrite if we can before global rewrite
@@ -1233,6 +1256,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		m_call->SetSetupTime(setupTime);
 
 		GkAuthenticator::SetupAuthData authData(m_call, true, fromIP, fromPort);
+		authData.m_dialedNumber = dialedNumber;
 		authData.SetRouteToAlias(m_call->GetRouteToAlias());
 
 		// authenticate the call
@@ -1272,7 +1296,9 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			m_call->SetCallingStationId(authData.m_callingStationId);
 		if (!authData.m_calledStationId)
 			m_call->SetCalledStationId(authData.m_calledStationId);
-			
+		if (!authData.m_dialedNumber)
+			m_call->SetDialedNumber(authData.m_dialedNumber);
+					
 		// log AcctStart accounting event
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
@@ -1286,6 +1312,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			return false;
 	} else {
 		GkAuthenticator::SetupAuthData authData(m_call, false, fromIP, fromPort);
+		authData.m_dialedNumber = dialedNumber;
 
 		if (!RasSrv->ValidatePDU(*m_lastQ931,Setup, authData)) {
 			PTRACE(4,"Q931\tDropping call from " << fromIP << ':' << fromPort
@@ -1416,6 +1443,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			m_call->SetCallingStationId(authData.m_callingStationId);
 		if (!authData.m_calledStationId)
 			m_call->SetCalledStationId(authData.m_calledStationId);
+		if (!authData.m_dialedNumber)
+			m_call->SetDialedNumber(authData.m_dialedNumber);
 
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()

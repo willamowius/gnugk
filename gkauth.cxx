@@ -875,6 +875,111 @@ PString GkAuthenticator::GetCalledStationId(
 	return id;
 }
 
+PString GkAuthenticator::GetDialedNumber(
+	/// ARQ message with additional data
+	const RasPDU<H225_AdmissionRequest>& request,
+	/// additional data
+	GkAuthenticator::ARQAuthData& authData,
+	/// extract dialed number, if it is not set yet
+	bool generateNumber
+	) const
+{
+	if (!authData.m_dialedNumber)
+		return authData.m_dialedNumber;
+
+	PString id;
+	const bool hasCall = authData.m_call.operator->() != NULL;
+	
+	if (hasCall)
+		id = authData.m_call->GetDialedNumber();
+		
+	if (!generateNumber)
+		return id;
+		
+	const H225_AdmissionRequest& arq = request;
+				
+	if (!arq.m_answerCall && arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+		id = GetBestAliasAddressString(arq.m_destinationInfo, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (!id)
+		return id;
+
+	if (id.IsEmpty() && hasCall)
+		id = GetBestAliasAddressString(
+			authData.m_call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && arq.m_answerCall) {
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		if (id.IsEmpty() && authData.m_requestingEP)
+			id = GetBestAliasAddressString(
+				authData.m_requestingEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	}
+		
+	return id;
+}
+
+PString GkAuthenticator::GetDialedNumber(
+	/// Q.931 Setup message with additional data
+	const Q931& q931pdu,
+	/// Setup-UUIE element extracted from the Q.931 Setup message
+	const H225_Setup_UUIE& setup,
+	/// additional data
+	GkAuthenticator::SetupAuthData& authData,
+	/// extract dialed number, if it is not set yet
+	bool generateNumber
+	) const
+{
+	if (!authData.m_dialedNumber)
+		return authData.m_dialedNumber;
+		
+	PString id;
+	const bool hasCall = authData.m_call.operator->() != NULL;
+	
+	if (!generateNumber) {
+		if (hasCall)
+			id = authData.m_call->GetCalledStationId();
+		return id;
+	}
+
+	if (id.IsEmpty())
+		q931pdu.GetCalledPartyNumber(id);
+	
+	if (!id)
+		return id;
+		
+	if (id.IsEmpty() && setup.HasOptionalField(setup.e_destinationAddress))
+		id = GetBestAliasAddressString(setup.m_destinationAddress, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && hasCall)
+		id = authData.m_call->GetDialedNumber();
+		
+	if (id.IsEmpty() && hasCall)
+		id = GetBestAliasAddressString(
+			authData.m_call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	return id;
+}
+
 
 // class GkAuthenticatorList
 GkAuthenticatorList::GkAuthenticatorList() 

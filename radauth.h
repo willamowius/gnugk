@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2004/07/26 12:19:41  zvision
+ * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
+ *
  * Revision 1.13.2.1  2004/07/07 23:11:07  zvision
  * Faster and more elegant handling of Cisco VSA
  *
@@ -311,6 +314,8 @@ private:
 	PString m_nasIdentifier;
 	/// NAS IP Address (local interface for RADIUS client)
 	PIPSocket::Address m_nasIpAddress;
+	/// false to use rewritten number, true to use the original one for Called-Station-Id
+	bool m_useDialedNumber;
 	/// radius attributes that do not change - performance boost
 	RadiusAttr m_attrH323GwId;
 	RadiusAttr m_attrH323CallType;

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2004/11/10 18:30:41  zvision
+ * Ability to customize timestamp strings
+ *
  * Revision 1.10  2004/07/26 12:19:41  zvision
  * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
  *
@@ -139,6 +142,8 @@ private:
 	PString m_timestampFormat;
 	/// RADIUS protocol client class associated with this authenticator
 	RadiusClient* m_radiusClient;
+	/// false to use rewritten number, true to use the original one for Called-Station-Id
+	bool m_useDialedNumber;
 	/// radius attributes that do not change - x4 performance boost
 	RadiusAttr m_attrNasIdentifier;
 	RadiusAttr m_attrH323GwId;
