@@ -25,6 +25,7 @@
 #include "h225.h"
 #include "singleton.h"
 
+
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 )
@@ -38,6 +39,8 @@
 #  endif
 #endif
 
+///////////////////////// Profiles for storing Data from Database calls
+class CallProfile;
 
 ///////////////////////// Shared Secret Cryptography
 #if defined(MWBB1_TAG)
@@ -52,13 +55,13 @@ class PTPW_Codec : public PObject
 {
 	PCLASSINFO(PTPW_Codec, PObject);
 public:
-	typedef enum {C_NULL=0, 
+	typedef enum {C_NULL=0,
 #if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  if !defined(NO_DES)
-		      C_DES, C_DES_EDE, C_DES_EDE3, C_DESX, 
+		      C_DES, C_DES_EDE, C_DES_EDE3, C_DESX,
 #  endif // NO_DES
 #  if !defined(NO_RC4)
-		      C_RC4, 
+		      C_RC4,
 #  endif // NO_RC4
 #  if !defined(NO_IDEA)
 		      C_IDEA,
@@ -67,10 +70,10 @@ public:
 		      C_RC2,
 #  endif // NO_RC2
 #  if !defined(NO_BF)
-		      C_BF, 
+		      C_BF,
 #  endif // NO_BF
 #  if !defined(NO_CAST)
-		      C_CAST, 
+		      C_CAST,
 #  endif // NO_CAST
 #  if !defined(NO_RC5)
 		      C_RC5,
@@ -173,10 +176,10 @@ protected:			// Members
 	E164_IPTNString GSN_SN;	// (Global) Subscriber Number
 	IPTN_kind_type IPTN_kind; // kind of IPTN detected here
 public:				// Access methods
-	const E164_IPTNString & GetCC();
-	const E164_IPTNString & GetNDC_IC();
-	const E164_IPTNString & GetGSN_SN();
-	IPTN_kind_type  GetIPTN_kind();
+	const E164_IPTNString & GetCC() const;
+	const E164_IPTNString & GetNDC_IC() const;
+	const E164_IPTNString & GetGSN_SN() const;
+	IPTN_kind_type  GetIPTN_kind() const;
 private:
 	E164_AnalysedNumber & analyse(PString pstr);
 	// matching all but dialable digits
@@ -336,7 +339,8 @@ private:
 
 class Toolkit : public Singleton<Toolkit>
 {
-public: // con- and destructing
+public:
+        // con- and destructing
 	explicit Toolkit();
 	virtual ~Toolkit();
 
@@ -397,9 +401,25 @@ public: // con- and destructing
 	bool ProxyRequired(PIPSocket::Address ip1, PIPSocket::Address ip2) const
 		{ return m_ProxyCriterion.Required(ip1, ip2); }
 
+	class RewriteTool {
+	public:
+		void LoadConfig(PConfig *);
+		bool RewritePString(PString &);
+		const BOOL PrefixAnalysis(PString & number, unsigned int & ton, unsigned int & plan, unsigned int si, const CallProfile & profile) const;
+	private:
+		PString m_RewriteFastmatch;
+		PStringToString m_RewriteRules;
+		char m_TrailingChar;
+	};
+
+
 public: // virtual tools
 	/// maybe modifies #alias#. returns true if it did
 	virtual BOOL  RewriteE164(H225_AliasAddress &alias);
+
+	/// Accessor method to the RewriteObject.
+
+	const RewriteTool & GetRewriteTool() { return m_Rewrite ; }
 
 	virtual BOOL RewritePString(PString &s);
 
@@ -443,18 +463,6 @@ public: // accessors
 
 	/// returns an identification of the binary
 	static const PString GKVersion();
-
-	/** #f# is called for each element
-	 * and is of the style #void f(const element &e, void *param)#.
-	 * @see C++-Stl #for_each#.
-	 * @see #H323RasSrv::UnregisterAllEndpoints#
-	 */
-	template <class InputIterator, class Function>
-	static Function for_each_with(InputIterator first, InputIterator last, Function f, void* param);
-
-	template <class InputIterator, class Function>
-	static Function for_each_with2(InputIterator first, InputIterator last, Function f,
-				       void* p1, void* p2);
 
 	/** simplify PString regex matching.
 	 * @param str String that should match the regex
@@ -518,7 +526,7 @@ protected:
 	PConfig*  m_Config;
 
 	/** e164s starting with this string are examined further for rewriting. */
-	PString   m_RewriteFastmatch;
+	RewriteTool m_Rewrite;
 	BOOL      m_EmergencyAccept;
 
 	RouteTable m_RouteTable;
@@ -545,31 +553,6 @@ public:
 	GkProtectBlock(PMutex &a_mutex) : mutex(a_mutex) { mutex.Wait(); }
 	~GkProtectBlock() { mutex.Signal(); }
 };
-
-
-//
-// inlines
-//
-
-template <class InputIterator, class Function>
-inline Function
-Toolkit::for_each_with(InputIterator first, InputIterator last, Function f, void* param)
-{
-	for ( ; first != last; ++first)
-		f(*first, param);
-	return f;
-}
-
-
-template <class InputIterator, class Function>
-inline Function
-Toolkit::for_each_with2(InputIterator first, InputIterator last, Function f,
-			void* p1, void* p2)
-{
-	for ( ; first != last; ++first)
-		f(*first, p1, p2);
-	return f;
-}
 
 
 inline unsigned long
