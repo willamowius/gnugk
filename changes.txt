@@ -1,5 +1,8 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- support for CallCreditServiceControl in RCF and ACF messages, which allows
+  reporting call duration limit and user's account balance to endpoints. 
+  Currently RadAuth and RadAliasAuth modules support this feature.
 - BUGFIX(gk.cxx) removed an invalid test for the log filename, preventing
   from creating log files in a directory other than the current one
 - BUGFIX(GkClient.cxx) TTL bug fixed (RRQ every second), documentation updates

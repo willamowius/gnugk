@@ -103,10 +103,14 @@ public:
 	/// authenticator modules
 	struct RRQAuthData
 	{
-		RRQAuthData() : m_rejectReason(-1) {}
+		RRQAuthData() : m_rejectReason(-1), m_billingMode(-1) {}
 		
 		/// -1 if not set, H225_RegistrationRejectReason enum otherwise
 		int m_rejectReason;
+		/// optional user's account balance amount string
+		PString m_amountString;
+		/// H225_CallCreditServiceControl_billingMode or -1, if not defined
+		int m_billingMode;
 	};
 
 	/// Data read/written during ARQ processing by all configured 
@@ -117,7 +121,7 @@ public:
 			endptr& ep,
 			callptr& call
 			) : m_rejectReason(-1), m_callDurationLimit(-1), 
-				m_requestingEP(ep),	m_call(call) {}
+				m_requestingEP(ep),	m_call(call), m_billingMode(-1) {}
 		
 		/// -1 if not set, H225_AdmissionRejectReason enum otherwise
 		int m_rejectReason;
@@ -131,6 +135,10 @@ public:
 		PString m_callingStationId;		
 		/// input/output - set or get Called-Station-Id
 		PString m_calledStationId;
+		/// optional user's account balance amount string
+		PString m_amountString;
+		/// H225_CallCreditServiceControl_billingMode or -1, if not defined
+		int m_billingMode;
 		
 	private:
 		ARQAuthData();

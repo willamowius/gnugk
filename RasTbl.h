@@ -174,6 +174,19 @@ public:
 
 	bool SendIRQ();
 
+	bool HasCallCreditCapabilities() const { return m_hasCallCreditCapabilities; }
+	
+	/** Append a call credit related service control descriptor to the array
+	    of service control sessions, if the endpoint supports call credit 
+	    capabilities.
+	*/
+	virtual void AddCallCreditServiceControl(
+		H225_ArrayOf_ServiceControlSession& sessions, /// array to add the service control descriptor to
+		const PString& amountStr, /// user's account balance amount string
+		int billingMode, /// user's account billing mode (-1 if not set)
+		long callDurationLimit /// call duration limit (-1 if not set)
+		);
+		
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -209,7 +222,10 @@ protected:
 	CallSignalSocket *m_natsocket;
 	/// permanent (preconfigured) endpoint flag
 	bool m_permanent;
-
+	/// can understand H.225 CallCreditServiceControl
+	bool m_hasCallCreditCapabilities;
+	/// session number for call credit service control session
+	int m_callCreditSession;
 private: // not assignable
 	EndpointRec(const EndpointRec &);
 	EndpointRec & operator= (const EndpointRec &);

@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2004/06/25 13:33:19  zvision
+ * Better Username, Calling-Station-Id and Called-Station-Id handling.
+ * New SetupUnreg option in Gatekeeper::Auth section.
+ *
  * Revision 1.17  2004/06/17 10:47:13  zvision
  * New h323-ivr-out=h323-call-id accounting attribute
  *
@@ -189,6 +193,32 @@ RadAuthBase::~RadAuthBase()
 	delete m_radiusClient;
 }
 
+namespace {
+bool GetAVPair(
+	RadiusPDU& pdu,
+	int vendorId,
+	unsigned char vendorType,
+	PString& value,
+	const char* name
+	)
+{
+	const PINDEX index = pdu.FindVsaAttr(vendorId, vendorType);
+	if (index == P_MAX_INDEX)
+		return false;
+		
+	const RadiusAttr* attr = pdu.GetAttrAt(index);
+	if (attr == NULL || !attr->IsValid())
+		return false;
+
+	value = attr->AsVsaString();
+	PINDEX i;
+	if (name && (i = value.Find(name)) == 0)
+		value = value.Mid(strlen(name) + 1);
+
+	return true;
+}
+}
+
 int RadAuthBase::Check(
 	/// RRQ RAS message to be authenticated
 	RasPDU<H225_RegistrationRequest>& rrqPdu, 
@@ -286,6 +316,64 @@ int RadAuthBase::Check(
 	}
 				
 	result = (response->GetCode() == RadiusPDU::AccessAccept);
+
+	PString value;
+	// test for h323-return-code attribute (has to be 0 if accept)
+	if (result && GetAVPair(*response, 9, 103, value, "h323-return-code"))
+		if (value.GetLength() > 0
+			&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
+			const unsigned retcode = value.AsUnsigned();
+			if (retcode != 0) {
+				PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: "
+					"return code " << retcode
+					);
+				result = false;
+			}
+		} else {
+			PTRACE(2, "RADAUTH\t" << GetName() << " RRQ check failed: "
+				"invalid h323-return-code attribute '" << value << '\''
+				);
+			result = false;
+		}
+
+	// check for h323-billing-model	
+	if (result && GetAVPair(*response, 9, 109, value, "h323-billing-model"))
+		if( value.GetLength() > 0 
+			&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+			const int intVal = value.AsInteger();
+			if (intVal == 0)
+				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
+			else if (intVal == 1 || intVal == 2)
+				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
+		} else {
+			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-billing-model "
+				"attribute '" << value << '\''
+				);
+		}
+
+	// check for h323-credit-amount
+	if (result && GetAVPair(*response, 9, 101, value, "h323-credit-amount"))
+		if( value.GetLength() > 0 
+			&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
+			if (value.Find('.') == P_MAX_INDEX) {
+				PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
+					"without a decimal dot is ambiguous '" << value << '\''
+					);
+				authData.m_amountString = psprintf("%d.%d", 
+					value.AsInteger() / 100, value.AsInteger() % 100
+					);
+			} else
+				authData.m_amountString = value;
+				
+			if (GetAVPair(*response, 9, 110, value, "h323-currency"))
+				if (!value)
+					authData.m_amountString += value; 
+		} else {
+			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-credit-amount "
+				"attribute '" << value << '\''
+				);
+		}
+
 	if (result)
 		result = OnReceivedPDU(*response, rrqPdu, authData);
 	else
@@ -293,32 +381,6 @@ int RadAuthBase::Check(
 				
 	delete response;
 	return result ? e_ok : e_fail;
-}
-		
-namespace {
-bool GetAVPair(
-	RadiusPDU& pdu,
-	int vendorId,
-	unsigned char vendorType,
-	PString& value,
-	const char* name
-	)
-{
-	const PINDEX index = pdu.FindVsaAttr(vendorId, vendorType);
-	if (index == P_MAX_INDEX)
-		return false;
-		
-	const RadiusAttr* attr = pdu.GetAttrAt(index);
-	if (attr == NULL || !attr->IsValid())
-		return false;
-
-	value = attr->AsVsaString();
-	PINDEX i;
-	if (name && (i = value.Find(name)) == 0)
-		value = value.Mid(strlen(name) + 1);
-
-	return true;
-}
 }
  
 int RadAuthBase::Check(
@@ -548,6 +610,44 @@ int RadAuthBase::Check(
 			}
 		}
 	}
+
+	// check for h323-billing-model	
+	if (result && GetAVPair(*response, 9, 109, value, "h323-billing-model"))
+		if (value.GetLength() > 0 
+			&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+			const int intVal = value.AsInteger();
+			if (intVal == 0)
+				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
+			else if (intVal == 1 || intVal == 2)
+				authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
+		} else {
+			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-billing-model "
+				"attribute '" << value << '\''
+				);
+		}
+
+	// check for h323-credit-amount
+	if (result && GetAVPair(*response, 9, 101, value, "h323-credit-amount"))
+		if( value.GetLength() > 0 
+			&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
+			if (value.Find('.') == P_MAX_INDEX) {
+				PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
+					"without a decimal dot is ambiguous '" << value << '\''
+					);
+				authData.m_amountString = psprintf("%d.%d", 
+					value.AsInteger() / 100, value.AsInteger() % 100
+					);
+			} else
+				authData.m_amountString = value;
+				
+			if (GetAVPair(*response, 9, 110, value, "h323-currency"))
+				if (!value)
+					authData.m_amountString += value; 
+		} else {
+			PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-credit-amount "
+				"attribute '" << value << '\''
+				);
+		}
 			
 	if (result)
 		result = OnReceivedPDU(*response, arqPdu, authData);

@@ -53,7 +53,8 @@ EndpointRec::EndpointRec(
 	: m_RasMsg(ras), m_timeToLive(1),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(2), m_usedCount(0),
-	m_nat(false), m_natsocket(0), m_permanent(permanent)
+	m_nat(false), m_natsocket(0), m_permanent(permanent), 
+	m_hasCallCreditCapabilities(false), m_callCreditSession(-1)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -95,6 +96,9 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	else
 		SetTimeToLive(SoftPBX::TimeToLive);
 	m_fromParent = false;
+	m_hasCallCreditCapabilities = rrq.HasOptionalField(
+		H225_RegistrationRequest::e_callCreditCapability
+		);
 }
 
 void EndpointRec::SetEndpointRec(H225_AdmissionRequest & arq)
@@ -415,6 +419,50 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 		m_natsocket = socket;
 	}
 }
+
+void EndpointRec::AddCallCreditServiceControl(
+	H225_ArrayOf_ServiceControlSession& sessions, /// array to add the service control descriptor to
+	const PString& amountStr, /// user's account balance amount string
+	int billingMode, /// user's account billing mode (-1 if not set)
+	long callDurationLimit /// call duration limit (-1 if not set)
+	)
+{
+	const PINDEX sessionIndex = sessions.GetSize();
+	sessions.SetSize(sessionIndex + 1);
+	H225_ServiceControlSession& session = sessions[sessionIndex];
+
+	// in future we may want to assign this dynamically to allow multiple
+	// service control sessions
+	if (m_callCreditSession == -1) {
+		session.m_sessionId = m_callCreditSession = 0;
+		session.m_reason = H225_ServiceControlSession_reason::e_open;
+	} else {
+		session.m_sessionId = m_callCreditSession;
+		session.m_reason = H225_ServiceControlSession_reason::e_refresh;
+	}
+
+	session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
+	session.m_contents.SetTag(H225_ServiceControlDescriptor::e_callCreditServiceControl);
+	H225_CallCreditServiceControl& callCreditSession = session.m_contents;
+	
+	if (!amountStr) {
+		callCreditSession.IncludeOptionalField(H225_CallCreditServiceControl::e_amountString);
+		callCreditSession.m_amountString = amountStr;
+	}
+	if (billingMode >= 0) {
+		callCreditSession.IncludeOptionalField(H225_CallCreditServiceControl::e_billingMode);
+		callCreditSession.m_billingMode = billingMode;
+	}
+	if (callDurationLimit > 0) {
+		callCreditSession.IncludeOptionalField(H225_CallCreditServiceControl::e_callDurationLimit);
+		callCreditSession.m_callDurationLimit = callDurationLimit;
+		callCreditSession.IncludeOptionalField(H225_CallCreditServiceControl::e_enforceCallDurationLimit);
+		callCreditSession.m_enforceCallDurationLimit = TRUE;
+	}
+	callCreditSession.IncludeOptionalField(H225_CallCreditServiceControl::e_callStartingPoint);
+	callCreditSession.m_callStartingPoint.SetTag(H225_CallCreditServiceControl_callStartingPoint::e_connect);
+}
+
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false)

@@ -1503,6 +1503,12 @@ bool RegistrationRequestPDU::Process()
 		// Alternate GKs
 		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK))
 			RasSrv->SetAlternateGK(rcf);
+		if (ep->HasCallCreditCapabilities()) {
+			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_serviceControl);
+			ep->AddCallCreditServiceControl(rcf.m_serviceControl, 
+				authData.m_amountString, authData.m_billingMode, -1
+				);
+		}
 	} else {
 		PIPSocket::Address rasip, sigip;
 		if (GetIPFromTransportAddr(request.m_rasAddress[0], rasip) && GetIPFromTransportAddr(SignalAddr, sigip) && rasip != sigip)
@@ -1865,6 +1871,13 @@ bool AdmissionRequestPDU::Process()
 		acf.m_destinationInfo = request.m_destinationInfo;
 	}
 
+	if (RequestingEP->HasCallCreditCapabilities()) {
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_serviceControl);
+		RequestingEP->AddCallCreditServiceControl(acf.m_serviceControl, 
+			authData.m_amountString, authData.m_billingMode, 
+			authData.m_callDurationLimit
+			);
+	}
 	return BuildReply(e_acf);
 }
 
