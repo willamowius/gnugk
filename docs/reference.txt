@@ -690,15 +690,15 @@ Currently supported modules:
   OverlapSendDestAnalysis    This module checks for incomplete destination
                              addresses (not fully implemented up to now).
 
-  BlackWhiteListDestAnalysis This module checks for Blacklisted numbers
-                             (forbidden numbers) and *then* for Whitelisted
+  BlackWhiteListDestAnalysis This module checks for blacklisted numbers
+                             (forbidden numbers) and *then* for whitelisted
                              numbers (exceptions from Blacklist). Default is
-                             allow connections.
+                             to allow connections.
 
-  WhiteBlackListDestAnalysis This module checks for Whitelisted numbers
-                             (allowed numbers) and *then* for Blacklisted
+  WhiteBlackListDestAnalysis This module checks for whitelisted numbers
+                             (allowed numbers) and *then* for blacklisted
                              numbers (exceptions from Whitelist). Default
-                             is deny connections.
+                             is to deny connections.
 
 A rule may results in one of the three codes: ok, fail, pass.
 There are also three ways to control a rule: optional, required, sufficient.
@@ -718,6 +718,115 @@ voIPprefixOutgoingWhiteList (aka WhiteList): 49
 That means only calls to 49* (aka Germany) are allowed. Rest of the world is
 forbidden!
 voIPprefixOutgoingBlackList (aka BlackList): 49190, 49800, 49700
-That means calls to 49190* (user dialed 0190...) is forbidden too. The rest of the
-world was forbidden in the WhiteList rule.
+That means calls to 49190* (user dialed 0190...) is forbidden too. The rest
+of the world was forbidden in the WhiteList rule.
+
+
+B.24 Section [GkDatabase::DBAttributeNames]
+
+GkDatabase::DBAttributeNames defines the attribute names used for database
+access, i.e. which function is mapped to which database field name.
+The default are the names from the LDAP-VoIP-scheme that is provided as
+etc/voip.schema. See that file for explanations of the fields.
+Note that this applies to non-LDAP databases (.ini file, MySQL) as well.
+
+Defaults:
+#H323ID=mail
+#TelephoneNumber=telephoneNumber
+#FacsimileTelephoneNumber=facsimileTelephoneNumber
+#H235PassWord=plaintextPassword
+#IPAddress=voIPIpAddress
+#CountryCode=voIPCountryCode
+#EndpointType=voIPEndpointType
+#LocalAccessCode=voIPlocalAccessCode
+#NationalAccessCode=voIPnationalAccessCode
+#InternationalAccessCode=voIPinternationalAccessCode
+#MainTelephoneNumber=voIPmainTelephoneNumber
+#SubscriberTelephoneNumber=voIPsubscriberTelephoneNumber
+#CallingLineIdRestriction=voIPcallingLineIdRestriction
+#SpecialDial=voIPspecialDial
+#HonorsARJincompleteAddress=voIPhonorsARJincompleteAddress
+#PrefixOutgoingBlacklist=voIPprefixOutgoingBlacklist
+#PrefixOutgoingWhitelist=voIPprefixOutgoingWhitelist
+#PrefixIncomingBlacklist=voIPprefixIncomingBlacklist
+#PrefixIncomingWhitelist=voIPprefixIncomingWhitelist
+#PrependCallbackAccessCode=voIPprependCallbackAccessCode
+
+
+B.25 Section [GkLDAP::Settings]
+
+This section defines the LDAP server and standard LDAP client operating
+parameters to be used.
+
+Defaults:
+#ServerName=ldap
+#ServerPort=389
+#SearchBaseDN=o=University of Michigan, c=US
+#BindUserDN=cn=Babs Jensen,o=University of Michigan, c=US
+#BindUserPW=ReallySecretPassword
+#sizelimit=0
+#timelimit=0
+
+
+B.26 Section [GkLDAP::Cache]
+
+#
+# LDAP Cache:
+#
+# Enable (boolean):    switch caching on/off. Default: off
+# MaxMemory (integer): maximum amount of memory used in cache
+#                      With internal cache the amount of
+#                      results is computed by:
+#                      maxresults=MaxMemory/CACHE_AVERAGE_SEARCH_SIZE
+#                      CACHE_AVERAGE_SEARCH_SIZE is set in
+#                      gk_ldap_interface.h to 10.
+# TTL (boolean):       maximum time (in seconds) a cache entry may have.
+
+Defaults:
+[LDAPCache]
+#Enable=T
+#MaxMemory=10000
+#TTL=60
+
+
+B.27 Section [Digit Analysis::General]
+
+[DigitAnalysis::General]
+
+May be used to specify the override(!) file for the E.164 defined Country Codes.
+Each line must be in "<code>;<description>" syntax.
+Since most if not all country codes are compiled in, you shouldn't need to touch this.
+
+Default:
+#CountryCodes=cc.dat
+
+
+B.28 Section [Digit Analysis::Functor]
+
+Digit Analysis special section: the keys here have to be E.164 defined
+Country Codes and their value might either be a valid file name or an
+valid function identifier. In case a file is specified, it must
+contain the National Destination Codes (NDC) for that Country Code in
+"<code>;<description>" syntax. The function identifier selects a functional
+way to extract the NDC from a given digit sequence.
+The gatekeeper already knows how to use "simple" numbering plans like the
+North American and the Australian one.
+More complicated ones, in particular those with variable-length area codes,
+need to be defined in the appropriate file.
+There is already a large number of national dialling plans available in
+the CodesDB/ directory
+
+Examples:
+1=NorthAmericanNumberingPlan
+61=AustralianNumberingPlan
+49=49.dat
+
+
+B.28 Section [PlaintextPasswd::SharedSecret]
+# the shared secret for the symetric ciphers used to secure 'plaintext'
+# passwords needed for challenge response authentification. LHS the
+# cipher's prefix (as used by LDAP for instance); RHS is the base64
+# encoded password (shared secret). The actual key used is the MD5
+# digest of the password.
+
 
