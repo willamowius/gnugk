@@ -1074,10 +1074,12 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	}
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 
+		PString source;
+		PStringArray tokenised_source;
+
 		// Do inbound per GWRewrite if we can before global rewrite
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
-			PString source;
-			PStringArray tokenised_source;
+
 			source = AsString(Setup.m_sourceAddress);
 
 			// Chop up source to get the h323_ID or dialedDigits
@@ -1088,14 +1090,14 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				in_rewrite_id = tokenised_source[0];
 			}
 
+		}
 
-			// Try lookup on neighbor list for rewrite source and perform another
-			source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(Setup.m_sourceCallSignalAddress);
-			if (source != "") {
-				Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
-				in_rewrite_id = source;
-			}
 
+		// Try lookup on neighbor list for rewrite source and perform another
+		source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(Setup.m_sourceCallSignalAddress);
+		if (source != "") {
+			Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
+			in_rewrite_id = source;
 		}
 
 		// Normal rewrite
