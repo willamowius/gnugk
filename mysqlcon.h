@@ -52,7 +52,6 @@ public:
 protected:
 	PString GetSelectClause(const PString &) const;
 
-private:
 	bool Init();
 	void Cleanup();
 
