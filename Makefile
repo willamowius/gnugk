@@ -83,6 +83,7 @@ ifdef HAVE_LDAP1823_LIBS
 SOURCES         += ldaplink.cxx
 ENDLDLIBS	+= -lldap
 HAS_LDAP	= 1
+export HAS_LDAP
 # due to the unwise naming of the libH323 header, the std. header 'ldap.h'
 # would be hooded, if the include search path would not PREpended
 STDCCFLAGS_stub := $(STDCCFLAGS)
@@ -121,13 +122,5 @@ SignalChannel.o: SignalChannel.h
 SignalConnection.o: SignalConnection.h
 CallTbl.o: CallTbl.h
 BroadcastListen.cxx: BroadcastListen.h
-ifdef HAS_LDAP
-ldaplink.cxx: ldaplink.h
-gkauth.cxx: ldaplink.h
-ifdef HAS_LEVEL_TWO_LDAPAPI
-ldapapi.cxx: ldapapi.h
-ldaplink.cxx: ldapapi.h
-endif
-endif
 
 # end
