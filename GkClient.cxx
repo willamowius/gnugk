@@ -87,6 +87,7 @@ GkClient::GkClient(H323RasSrv *rasSrv) : m_rasSrv(rasSrv)
 	if (gk == "no") { // no gatekeeper to register
 		m_ttl = 0;
 		m_callAddr = m_rasAddr = 0;
+		m_arqPendingList = 0;
 		return;
 	}
         PINDEX p = gk.Find(':');
@@ -227,7 +228,7 @@ void GkClient::OnRCF(const H225_RegistrationConfirm & rcf, PIPSocket::Address gk
 		return;
 
 	if (!IsRegistered()) {
-		PTRACE(2, "GKC\tRegister Successfully to GK " << m_gkaddr);
+		PTRACE(2, "GKC\tRegister successfully to GK " << m_gkaddr);
 		m_endpointId = rcf.m_endpointIdentifier;
 		m_gatekeeperId = rcf.m_gatekeeperIdentifier;
 	}
