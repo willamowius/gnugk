@@ -258,9 +258,13 @@ static PString PrintGkVersion(); // local helper
 static PString PrintGkVersion()
 {
 	return PString("Version:" GK_LINEBRK) + Toolkit::GKVersion() +
-		GK_LINEBRK "GkStatus: Version(1.0) Ext()" GK_LINEBRK
+		vcid + GK_LINEBRK + vcHid + GK_LINEBRK +
 		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() +
 		")" GK_LINEBRK + SoftPBX::Uptime() + GK_LINEBRK ";" GK_LINEBRK;
+// 	return PString("Version:" GK_LINEBRK) + Toolkit::GKVersion() +
+// 		GK_LINEBRK "GkStatus: Version(1.0) Ext()" GK_LINEBRK
+// 		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() +
+// 		")" GK_LINEBRK + SoftPBX::Uptime() + GK_LINEBRK ";" GK_LINEBRK;
 }
 
 
@@ -464,6 +468,7 @@ void GkStatus::Client::Main()
 					break;
 				case GkStatus::e_Reload:
 					ReloadHandler();
+					WriteString("Config reloaded" GK_LINEBRK);
 					break;
 				case GkStatus::e_Shutdown:
 					PTRACE(1, "Shutting down the GK");
@@ -476,6 +481,7 @@ void GkStatus::Client::Main()
 				case GkStatus::e_CDB_Flush:
 					PTRACE(3, "Flushing the common gk database cache");
 					GkDatabase::Instance()->flush_cache();
+					WriteString("Common gk database cache flushed" GK_LINEBRK);
 					break;
 				default:
 					PTRACE(3, "WRONG COMMANDS TABLE ENTRY. PLEASE LOOK AT THE CODE.");
