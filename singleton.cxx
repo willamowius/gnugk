@@ -22,13 +22,13 @@ listptr<SingletonBase> SingletonBase::_instance_list;
 
 SingletonBase::SingletonBase()
 {
-	PTRACE(5, "Create instance: " << ++singleton_cnt << endl);
+	PTRACE(5, "Create instance: " << ++singleton_cnt);
         _instance_list.push_back(this);
 }
 
 SingletonBase::~SingletonBase()
 {
-	PTRACE(5, "Delete instance: " << --singleton_cnt << endl);
+	PTRACE(5, "Delete instance: " << --singleton_cnt);
 	if (!_instance_list.clear_list)
 		_instance_list.remove(this);
 }

@@ -15,6 +15,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
+//#ifdef WITH_DEST_ANALYSIS_LIST
 
 #ifndef __gkDestAnalysis_h_
 #define __gkDestAnalysis_h_
@@ -33,6 +34,7 @@ class GkDestAnalysis {
 public:
 	enum Control {
 		e_Optional,
+		e_Alternative,
 		e_Required,
 		e_Sufficient
 	};
@@ -52,40 +54,63 @@ public:
 	GkDestAnalysis(PConfig *, const char *authName = "default");
 	virtual ~GkDestAnalysis();
 
-	template<class MsgType> bool getMsgDestination(const MsgType & req, list<EndpointRec *> & EPList, 
-	                                               PReadWriteMutex & listLock, endptr & ep, unsigned & reason)
-	{
+	/** Returns the destination endpoint of the message.
+	    The calling endpoint must be given if MsgType == H225_AliasAddress. In
+	    all other cases it can also be NULL.
+	 */
+	template<class MsgType> bool getMsgDestination(const MsgType & req, list<EndpointRec *> & EPList,
+		PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
+	  {
+		  PWaitAndSignal lock(deleteMutex);
 		if (checkFlag & MsgValue(req)) {
-			int r = getDestination(req, EPList, listLock, ep, reason);
+			int r = getDestination(req, EPList, listLock, cgEP, cdEP, reason);
 			if (r == e_ok) {
 				PTRACE(4, "GkDestAnalysis\t" << name << " check ok");
 				if (controlFlag != e_Required)
 					return true;
 			} else if (r == e_fail) {
 				PTRACE(2, "GkDestAnalysis\t" << name << " check failed");
-				return false;
+				if (controlFlag != e_Alternative)
+					return false;
 			}
 		}
 		// try next rule
-		return (next) ? next->getMsgDestination(req, EPList, listLock, ep, reason) : true;
+		//if(!next)
+		PTRACE(1, "CdEP: " << cdEP);
+		return (next) ? next->getMsgDestination(req, EPList, listLock, cgEP, cdEP, reason) : true;
 	}
 
 	const char *GetName() { return name; }
-	
+
 
 
 protected:
-	virtual int getDestination(const H225_AdmissionRequest &, list<EndpointRec *> & EPList, 
-	                           PReadWriteMutex & listLock, endptr & ep, unsigned & reason);
-	virtual int getDestination(const H225_LocationRequest &, list<EndpointRec *> & EPList, 
-	                           PReadWriteMutex & listLock, endptr & ep, unsigned & reason);				   
+	/** Returns the destination endpoint of an ARQ.
+	    The calling endpoint is optional.
+	 */
+	virtual int getDestination(const H225_AdmissionRequest &, list<EndpointRec *> & EPList,
+				   PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason);
+
+	/** Returns the destination endpoint of an LRQ.
+	    The calling endpoint is optional.
+	 */
+	virtual int getDestination(const H225_LocationRequest &, list<EndpointRec *> & EPList,
+	                           PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason);
+
+   	/** Returns the destination endpoint of an ARQ.
+	    The calling endpoint must be given!
+	 */
+	virtual int getDestination(const H225_AliasAddress &, list<EndpointRec *> & EPList,
+	                           PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason);
 
 	int MsgValue(const H225_AdmissionRequest &)      { return e_ARQ; }
 	int MsgValue(const H225_LocationRequest &)      { return e_LRQ; }
+	int MsgValue(const H225_AliasAddress &) {return 1;}
 
 	Control controlFlag;
 	Status defaultStatus;
 	PConfig *config;
+	PMutex deleteMutex;
 
 private:
 	const char *name;
@@ -96,7 +121,7 @@ private:
 
 	GkDestAnalysis(const GkDestAnalysis &);
 	GkDestAnalysis & operator=(const GkDestAnalysis &);
-	
+
 	friend class GkDestAnalysisList;
 };
 
@@ -125,13 +150,15 @@ public:
 	GkDestAnalysisList(PConfig *);
 	virtual ~GkDestAnalysisList();
 
-	template<class MsgType> bool getMsgDestination(const MsgType & req, 
-	                                               list<EndpointRec *> & EPList, 
+	template<class MsgType> bool getMsgDestination(const MsgType & req,
+	                                               list<EndpointRec *> & EPList,
 	                                               PReadWriteMutex & listLock,
-						       endptr & ep, 
+						       endptr & cgEP, endptr & cdEP,
 						       unsigned & reason)
 	{
-		return (GkDestAnalysis::head) ? GkDestAnalysis::head->getMsgDestination(req, EPList, listLock, ep, reason) : true;
+		return (GkDestAnalysis::head) ?
+			GkDestAnalysis::head->getMsgDestination(req, EPList, listLock,
+				cgEP, cdEP, reason) : true;
 	}
 
 private:
@@ -142,3 +169,4 @@ private:
 
 #endif  // __gkDestAnalysis_h_
 
+//#endif // WITH_DEST_ANALYSIS_LIST

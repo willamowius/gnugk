@@ -42,6 +42,7 @@ class GkAuthenticator {
 public:
 	enum Control {
 		e_Optional,
+		e_Alternative,
 		e_Required,
 		e_Sufficient
 	};
@@ -69,7 +70,8 @@ public:
 
 	template<class RasType> bool CheckRas(PBYTEArray &rawPDU, const RasType & req, unsigned & reason)
 	{
-	        setLastReceivedRawPDU(rawPDU);
+		PWaitAndSignal lock(deleteMutex);
+		setLastReceivedRawPDU(rawPDU);
 		if (checkFlag & RasValue(req)) {
 			int r = Check(req, reason);
 			if (r == e_ok) {
@@ -78,7 +80,8 @@ public:
 					return true;
 			} else if (r == e_fail) {
 				PTRACE(2, "GkAuth\t" << name << " check failed");
-				return false;
+				if (controlFlag != e_Alternative)
+					return false;
 			}
 		}
 		// try next rule
@@ -112,7 +115,7 @@ protected:
 	Control controlFlag;
 	Status defaultStatus;
 	PConfig *config;
-
+	PMutex deleteMutex;
 private:
 	const char *name;
 	int checkFlag;
@@ -122,9 +125,9 @@ private:
 
 	GkAuthenticator(const GkAuthenticator &);
 	GkAuthenticator & operator=(const GkAuthenticator &);
-	
+
 	void setLastReceivedRawPDU(PBYTEArray &rawPDU){ m_lastReceivedRawPDU = rawPDU; }
-	
+
 	PBYTEArray m_lastReceivedRawPDU;
 
 	friend class GkAuthenticatorList;
@@ -145,7 +148,8 @@ protected:
 	virtual int Check(const H225_LocationRequest &, unsigned &);
 	virtual int Check(const H225_InfoRequest &, unsigned &);
 
-	virtual PString GetPassword(const PString & id);
+	virtual PString GetPassword(const PString &);
+	virtual PString GetPassword(PString & tokenAlias, const H225_ArrayOf_AliasAddress & moreAliases, BOOL checkTokenAlias = TRUE);
 
 	virtual bool CheckAliases(const PString &);
 	virtual bool CheckTokens(const H225_ArrayOf_ClearToken &);
@@ -157,16 +161,22 @@ protected:
 			return CheckCryptoTokens(req.m_cryptoTokens) ? e_ok : e_fail;
 	 	else if (req.HasOptionalField(RasType::e_tokens))
 			return CheckTokens(req.m_tokens) ? e_ok : e_fail;
-		return (controlFlag == e_Optional) ? e_next : e_fail;
+		return (controlFlag == e_Optional || controlFlag == e_Alternative) ? e_next : e_fail;
 	}
-
-	bool InternalGetPassword(const PString & id, PString & passwd);
 
 	int filled;
 	bool checkid;
 	const H225_ArrayOf_AliasAddress *aliases;
+	BOOL m_aliasesChecked;
 
 private:
+/*  	H235AuthSimpleMD5 authMD5; */
+
+/* #ifdef P_SSL */
+/*  	H235AuthProcedure1 authProcedure1; */
+/* #endif */
+
+  	PBYTEArray nullPDU;
 	CacheManager *cache;
 };
 
@@ -206,10 +216,9 @@ private:
 	GkAuthenticatorList & operator=(const GkAuthenticatorList &);
 
 	virtual PBYTEArray& getLastReceivedRawPDU(){ return m_lastReceivedRawPDU; }
-	
+
 	PBYTEArray m_lastReceivedRawPDU;
 };
 
 
 #endif  // __gkauth_h_
-

@@ -18,7 +18,7 @@
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>
-#include "h225.h" 
+#include "h225.h"
 #include "Toolkit.h"
 #include "RasTbl.h"
 #include "h323util.h"
@@ -38,15 +38,12 @@ class GkClient;
 
 class H323RasSrv : public PThread {
 public:
-
-	PCLASSINFO(H323RasSrv, PThread)
-
 	H323RasSrv(PIPSocket::Address GKHome);
 	virtual ~H323RasSrv();
 
 	void Close(void);
 
-	void Main(void);  // original HandleConnections(); 
+	void Main(void);  // original HandleConnections();
 
 	void UnregisterAllEndpoints(void);
 
@@ -91,15 +88,15 @@ public:
 	BOOL OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
 
 	BOOL OnLCF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
-      
+
 	BOOL OnLRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
-      
+
 	BOOL OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
 
 	BOOL OnIgnored(const PIPSocket::Address &, const H225_RasMessage &, H225_RasMessage &);
 
 	BOOL OnUnknown(const PIPSocket::Address &, const H225_RasMessage &, H225_RasMessage &);
-      
+
 	void ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq);
 
 	void SendRas(const H225_RasMessage & obj_ras, const H225_TransportAddress & dest);
@@ -125,6 +122,7 @@ public:
 
 	WORD GetRequestSeqNum() { return ++requestSeqNum; }
 
+
 protected:
 	/** OnARQ checks if the dialled address (#aliasStr#) should be
 	 * rejected with the reason "incompleteAddress". This is the case whenever the
@@ -142,7 +140,7 @@ protected:
 private:
 	bool GKRoutedSignaling, GKRoutedH245, AcceptNBCalls, AcceptUnregCalls;
 	WORD GKRasPort, GKCallSigPort;
-        
+
 	PIPSocket::Address GKHome;
 	PUDPSocket listener;
 	PMutex writeMutex, loadLock;
@@ -154,7 +152,7 @@ private:
 
 	// just pointers to global singleton objects
 	RegistrationTable * EndpointTable;
-	CallTable * CallTbl; 
+	CallTable * CallTbl;
 	GkStatus * GkStatusThread;
 
 	GkClient * gkClient;
@@ -163,13 +161,17 @@ private:
 
 	NeighborList * NeighborsGK;
 	NBPendingList * arqPendingList;
-	
+
 	GkAuthorize* GWR;
 
 	OnRAS rasHandler[H225_RasMessage::e_serviceControlResponse + 1];
 
 	WORD requestSeqNum;
+
+	PMutex authlist_deleteMutex;
+	PMutex destAnalysisList_deleteMutex;
 };
+
 
 inline const H225_TransportAddress H323RasSrv::GetRasAddress(PIPSocket::Address peerAddr) const
 {
@@ -185,42 +187,42 @@ inline const H225_TransportAddress H323RasSrv::GetCallSignalAddress(PIPSocket::A
 
 class PendingList {
 protected:
-	class PendingARQ {
-	public:
-		PendingARQ(int, const H225_AdmissionRequest &, const endptr &, int);
+       class PendingARQ {
+       public:
+               PendingARQ(int, const H225_AdmissionRequest &, const endptr &, int);
 
-		bool DoACF(H323RasSrv *, const endptr &) const;
-		bool DoARJ(H323RasSrv *) const;
-		bool CompSeq(int seqNum) const;
-		bool IsStaled(int) const;
-		void GetRequest(H225_AdmissionRequest &, endptr &) const;
+               bool DoACF(H323RasSrv *, const endptr &) const;
+               bool DoARJ(H323RasSrv *) const;
+               bool CompSeq(int seqNum) const;
+               bool IsStaled(int) const;
+               void GetRequest(H225_AdmissionRequest &, endptr &) const;
 
-		int DecCount();
+               int DecCount();
 
-	private:
-		int m_seqNum;
-		H225_AdmissionRequest m_arq;
-		endptr m_reqEP;
-		int m_Count;
-		PTime m_reqTime;
-	};
+       private:
+               int m_seqNum;
+               H225_AdmissionRequest m_arq;
+               endptr m_reqEP;
+               int m_Count;
+               PTime m_reqTime;
+       };
 
 public:
-	typedef std::list<PendingARQ *>::iterator iterator;
-	typedef std::list<PendingARQ *>::const_iterator const_iterator;
+       typedef std::list<PendingARQ *>::iterator iterator;
+       typedef std::list<PendingARQ *>::const_iterator const_iterator;
 
-	PendingList(H323RasSrv *rs, int ttl) : RasSrv(rs), pendingTTL(ttl) {}
-	~PendingList();
+       PendingList(H323RasSrv *rs, int ttl) : RasSrv(rs), pendingTTL(ttl) {}
+       ~PendingList();
 
-	void Check();
-	iterator FindBySeqNum(int);
-	void Remove(iterator);
+       void Check();
+       iterator FindBySeqNum(int);
+       void Remove(iterator);
 
 protected:
-	H323RasSrv *RasSrv;
-	int pendingTTL;
+       H323RasSrv *RasSrv;
+       int pendingTTL;
         list<PendingARQ *> arqList;
-	PMutex usedLock;
+       PMutex usedLock;
 
         static void delete_arq(PendingARQ *p) { delete p; }
 };
@@ -232,50 +234,50 @@ inline PendingList::PendingARQ::PendingARQ(int seqNum, const H225_AdmissionReque
 
 inline bool PendingList::PendingARQ::DoACF(H323RasSrv *RasSrv, const endptr & called) const
 {
-	RasSrv->ReplyARQ(m_reqEP, called, m_arq);
-	return true;
+       RasSrv->ReplyARQ(m_reqEP, called, m_arq);
+       return true;
 }
 
 inline bool PendingList::PendingARQ::DoARJ(H323RasSrv *RasSrv) const
 {
-	RasSrv->ReplyARQ(m_reqEP, endptr(NULL), m_arq);
-	return true;
+       RasSrv->ReplyARQ(m_reqEP, endptr(NULL), m_arq);
+       return true;
 }
 
 inline bool PendingList::PendingARQ::CompSeq(int seqNum) const
 {
-	return (m_seqNum == seqNum);
+       return (m_seqNum == seqNum);
 }
 
 inline bool PendingList::PendingARQ::IsStaled(int sec) const
 {
-	return (PTime() - m_reqTime).GetSeconds() > sec;
+       return (PTime() - m_reqTime).GetSeconds() > sec;
 }
 
 inline void PendingList::PendingARQ::GetRequest(H225_AdmissionRequest & arq, endptr & ep) const
 {
-	arq = m_arq, ep = m_reqEP;
+       arq = m_arq, ep = m_reqEP;
 }
 
 inline int PendingList::PendingARQ::DecCount()
 {
-	return --m_Count;
+       return --m_Count;
 }
 
 inline PendingList::~PendingList()
 {
-	for_each(arqList.begin(), arqList.end(), delete_arq);
+       for_each(arqList.begin(), arqList.end(), delete_arq);
 }
 
 inline PendingList::iterator PendingList::FindBySeqNum(int seqnum)
 {
-	return find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), seqnum));
+       return find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), seqnum));
 }
 
 inline void PendingList::Remove(iterator Iter)
 {
-	delete *Iter;
-	arqList.erase(Iter);
+       delete *Iter;
+       arqList.erase(Iter);
 }
 
 extern H323RasSrv *RasThread;  // I hate global object, but...

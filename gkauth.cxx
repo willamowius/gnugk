@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gkauth.cxx
@@ -63,24 +64,23 @@ protected:
 	virtual bool AuthCondition(const H225_TransportAddress &SignalAdr, const PString &);
 
 private:
-	/** @returns the value for a given alias from section #RasSrv::RRQAuth# 
+	/** @returns the value for a given alias from section #RasSrv::RRQAuth#
 	    in ini-file
 	 */
-	virtual PString GetConfigString(const PString & alias) const;
+	virtual PString GetConfigString(const PString &alias) const;
 };
 
 static GkAuthInit<AliasAuth> A_A("AliasAuth");
-
 #ifdef HAS_MYSQL
 
 class MySQLAuthBase;
 
 class MySQLPasswordAuth : public SimplePasswordAuth {
 public:
-	MySQLPasswordAuth(PConfig *, const char *);
-	~MySQLPasswordAuth();
+       MySQLPasswordAuth(PConfig *, const char *);
+       ~MySQLPasswordAuth();
 
-private:
+ private:
 	virtual PString GetPassword(const PString &);
 
 	MySQLAuthBase *mysqlconn;
@@ -110,13 +110,13 @@ static GkAuthInit<MySQLAliasAuth> M_A_A("MySQLAliasAuth");
 
 class ExternalPasswordAuth : public SimplePasswordAuth {
 public:
-	ExternalPasswordAuth(PConfig *, const char *);
+       ExternalPasswordAuth(PConfig *, const char *);
 
-	virtual PString GetPassword(const PString &);
+       virtual PString GetPassword(const PString &);
 private:
-	bool ExternalInit();
+       bool ExternalInit();
 
-	PString Program;
+       PString Program;
 };
 
 static GkAuthInit<ExternalPasswordAuth> E_P_A("ExternalPasswordAuth");
@@ -125,47 +125,41 @@ static GkAuthInit<ExternalPasswordAuth> E_P_A("ExternalPasswordAuth");
 
 class RadiusAuth : public SimplePasswordAuth {
 public:
-	RadiusAuth(PConfig *, const char *);
+	RadiusAuth(PConfig *,  const char *);
 // TODO
 };
 
-// LDAP authentification
-#if defined(HAS_LDAP)		// shall use LDAP
-
-#include "gkldap.h"
-
-class LDAPPasswordAuth : public SimplePasswordAuth {
+class DBPasswordAuth : public SimplePasswordAuth {
 public:
-  LDAPPasswordAuth(PConfig *, const char *);
-  virtual ~LDAPPasswordAuth();
+  DBPasswordAuth(PConfig *, const char *);
+  virtual ~DBPasswordAuth();
 
   virtual PString GetPassword(const PString &alias);
-  
+
   virtual int Check(const H225_RegistrationRequest & rrq, unsigned & reason);
 };
 
 // ISO 14882:1998 (C++), ISO9899:1999 (C), ISO9945-1:1996 (POSIX) have a
 // very clear oppinion regarding user symbols starting or ending with '_'
-static GkAuthInit<LDAPPasswordAuth> L_P_A("LDAPPasswordAuth");
+static GkAuthInit<DBPasswordAuth> L_P_A("DBPasswordAuth");
 
-class LDAPAliasAuth : public AliasAuth {
+class DBAliasAuth : public AliasAuth {
 public:
-	LDAPAliasAuth(PConfig *, const char *);
-	virtual ~LDAPAliasAuth();
-	
+	DBAliasAuth(PConfig *, const char *);
+	virtual ~DBAliasAuth();
+
 	virtual int Check(const H225_RegistrationRequest & rrq, unsigned &);
 
 private:
-	/** Searchs for an alias in LDAP and converts it to a valid config
-	    string (the expected return value from LDAP is only an IP-address!).
+	/** Searchs for an alias in DB and converts it to a valid config
+	    string (the expected return value from DB is only an IP-address!).
 	    @returns config-string (format: see description in ini-file)
 	 */
 	virtual PString GetConfigString(const PString &alias) const;
 };
 
-static GkAuthInit<LDAPAliasAuth> L_A_A ("LDAPAliasAuth");
+static GkAuthInit<DBAliasAuth> L_A_A ("DBAliasAuth");
 
-#endif // HAS_LDAP
 
 class CacheManager {
 public:
@@ -182,7 +176,7 @@ private:
 
 	CacheManager(const CacheManager &);
 	CacheManager & operator=(const CacheManager &);
-};      
+};
 
 bool CacheManager::Retrieve(const PString & key, PString & value)
 {
@@ -195,7 +189,7 @@ bool CacheManager::Retrieve(const PString & key, PString & value)
 			return false; // cache expired
 	}
 	value = iter->second;
-	PTRACE(5, "GkAuth\tCache found for " << key);
+	PTRACE(5, "GkAuth\tCache found for " << key << " value: " << value);
 	return true;
 }
 
@@ -217,6 +211,8 @@ GkAuthenticator::GkAuthenticator(PConfig *cfg, const char *authName) : config(cf
 		defaultStatus = Toolkit::AsBool(control[0]) ? e_ok : e_fail;
 	else if (control[0] *= "optional")
 		controlFlag = e_Optional, defaultStatus = e_next;
+	else if (control[0] *= "alternative")
+		controlFlag = e_Alternative, defaultStatus = e_next;
 	else if (control[0] *= "required")
 		controlFlag = e_Required, defaultStatus = e_fail;
 	else
@@ -234,7 +230,7 @@ GkAuthenticator::GkAuthenticator(PConfig *cfg, const char *authName) : config(cf
 				checkFlag |= rasmap[control[i]];
 		}
 	}
-	
+
 	next = head;
 	head = this;
 
@@ -243,6 +239,7 @@ GkAuthenticator::GkAuthenticator(PConfig *cfg, const char *authName) : config(cf
 
 GkAuthenticator::~GkAuthenticator()
 {
+	deleteMutex.Wait();
 	PTRACE(1, "GkAuth\tRemove " << name << " rule");
 	delete next;  // delete whole list recursively
 }
@@ -287,10 +284,10 @@ int GkAuthenticator::Check(const H225_InfoRequest &, unsigned &)
 	return defaultStatus;
 }
 
-
 static GkAuthInit<SimplePasswordAuth> S_P_A("SimplePasswordAuth");
 
 const char *passwdsec = "Password";
+
 
 // SimplePasswordAuth
 SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
@@ -303,51 +300,60 @@ SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
 
 SimplePasswordAuth::~SimplePasswordAuth()
 {
+	deleteMutex.Wait();
 	delete cache;
 }
 
+
 int SimplePasswordAuth::Check(const H225_GatekeeperRequest & grq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	return doCheck(grq);
 }
 
 int SimplePasswordAuth::Check(const H225_RegistrationRequest & rrq, unsigned &)
 {
-	if (checkid) {
-		if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
-			return e_fail;
-		aliases = &rrq.m_terminalAlias;
-	}
+	PWaitAndSignal lock(deleteMutex);
+	m_aliasesChecked = checkid ? FALSE : TRUE;
+	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+		return e_fail;
+	aliases = &rrq.m_terminalAlias;
 	return doCheck(rrq);
 }
 
 int SimplePasswordAuth::Check(const H225_UnregistrationRequest & urq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	return doCheck(urq);
 }
 
 int SimplePasswordAuth::Check(const H225_AdmissionRequest & arq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	return doCheck(arq);
 }
 
 int SimplePasswordAuth::Check(const H225_BandwidthRequest & brq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	return doCheck(brq);
 }
 
 int SimplePasswordAuth::Check(const H225_DisengageRequest & drq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	return doCheck(drq);
 }
 
 int SimplePasswordAuth::Check(const H225_LocationRequest & lrq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	return doCheck(lrq);
 }
 
 int SimplePasswordAuth::Check(const H225_InfoRequest & drq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	return doCheck(drq);
 }
 
@@ -360,14 +366,6 @@ PString SimplePasswordAuth::GetPassword(const PString & id)
 	return cypher.Decode(config->GetString(passwdsec, id, ""));
 }
 
-bool SimplePasswordAuth::InternalGetPassword(const PString & id, PString & passwd)
-{
-	bool result = cache->Retrieve(id, passwd);
-	if (!result)
-		passwd = GetPassword(id);
-	return result;
-}
-
 bool SimplePasswordAuth::CheckAliases(const PString & id)
 {
 	bool r = false;
@@ -376,7 +374,7 @@ bool SimplePasswordAuth::CheckAliases(const PString & id)
 			r = true;
 			break;
 		}
-	aliases = 0;
+	m_aliasesChecked = TRUE;
 	return r;
 }
 
@@ -387,14 +385,13 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 		if (token.HasOptionalField(H235_ClearToken::e_generalID) &&
 		    token.HasOptionalField(H235_ClearToken::e_password)) {
 			PString id = token.m_generalID;
-			if (aliases && !CheckAliases(id))
+			if (!m_aliasesChecked && !CheckAliases(id)) {
 				return false;
-			PString passwd, tokenpasswd = token.m_password;
-			bool cached = InternalGetPassword(id, passwd);
+			}
+			PString passwd = GetPassword(id);
+			PString tokenpasswd = token.m_password;
 			if (passwd == tokenpasswd) {
-				PTRACE(4, "GkAuth\t" << id << " password match");
-				if (!cached)
-					cache->Save(id, passwd);
+                                PTRACE(4, "GkAuth\t" << id << " password match");
 				return true;
 			}
 		}
@@ -402,25 +399,73 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 	return false;
 }
 
+PString SimplePasswordAuth::GetPassword(PString & tokenAlias, const H225_ArrayOf_AliasAddress & moreAliases, BOOL checkTokenAlias = TRUE)
+{
+	PString passwd = "";
+	bool found;
+	// first check tokenAlias
+	if (checkTokenAlias) {
+		found = cache->Retrieve(tokenAlias,passwd);
+		if(!found) {
+			passwd = GetPassword(tokenAlias);
+			cache->Save(tokenAlias, passwd);
+		}
+	}
+	if (passwd.IsEmpty() && moreAliases.GetSize() > 0) {
+		// check all aliases which are not equal to tokenAlias
+		PString alias;
+		for (PINDEX i = 0; i < moreAliases.GetSize() && passwd.IsEmpty(); i++){
+			alias = H323GetAliasAddressString(moreAliases[i]);
+			if (alias != tokenAlias) {
+				found = cache->Retrieve(alias,passwd);
+				if (!found) {
+					passwd = GetPassword(alias);
+					cache->Save(alias, passwd);
+				}
+			}
+		}
+	}
+	//if a password is not found: senderID == endpointIdentifier?
+	if (passwd.IsEmpty()){
+		 //get endpoint by endpointIdentifier
+		H225_EndpointIdentifier epID;
+		epID = tokenAlias;
+		endptr ep = RegistrationTable::Instance()->FindByEndpointId(epID);
+		if(ep){
+			//check all endpoint aliases for a password which are not
+			// equal to tokenAlias
+			PString epAlias = "";
+			H225_ArrayOf_AliasAddress epAliases = ep->GetAliases();
+			for (PINDEX i = 0; i < epAliases.GetSize() && passwd.IsEmpty(); i++){
+				epAlias = H323GetAliasAddressString(epAliases[i]);
+				if (epAlias != tokenAlias) {
+					found =  cache->Retrieve(epAlias, passwd);
+					if (!found) {
+						passwd = GetPassword(epAlias);
+						cache->Save(epAlias, passwd);
+					}
+				}
+			}
+		}
+	}
+	return passwd;
+}
+
 bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & tokens)
 {
-	for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+	for (PINDEX i = 0; i < tokens.GetSize(); ++i){
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			PString id = AsString(pwdhash.m_alias, FALSE);
-			if (aliases && !CheckAliases(id))
+			if (!m_aliasesChecked && !CheckAliases(id)) {
 				return false;
-			PString passwd;
-			bool cached = InternalGetPassword(id, passwd);
-
+			}
+			PString passwd = GetPassword(id, *aliases);
 			H235AuthSimpleMD5 authMD5;
 			authMD5.SetLocalId(id);
 			authMD5.SetPassword(passwd);
-			PBYTEArray nullPDU;
 			if (authMD5.VerifyToken(tokens[i], nullPDU) == H235Authenticator::e_OK) {
 				PTRACE(4, "GkAuth\t" << id << " password match (MD5)");
-				if (!cached)
-					cache->Save(id, passwd);
 				return true;
 			}
 #ifdef P_SSL
@@ -430,36 +475,16 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 			H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
 			PString gk_id = clearToken.m_generalID;
 			//assumption: sendersID == endpoint alias (RRQ)
-			PString ep_alias = clearToken.m_sendersID; 
-			if (aliases && !CheckAliases(ep_alias))
+			PString ep_alias = clearToken.m_sendersID;
+			if (!m_aliasesChecked && !CheckAliases(ep_alias)) {
 				return false;
-			PString passwd;
-			bool cached = InternalGetPassword(ep_alias, passwd);
-			//if a password is not found: senderID == endpointIdentifier?
-			if (passwd.IsEmpty()){
-			 	//get endpoint by endpointIdentifier
-				H225_EndpointIdentifier ep_id;
-				ep_id = clearToken.m_sendersID;
-				endptr ep = RegistrationTable::Instance()->FindByEndpointId(ep_id);
-				if(!ep){
-					return false;
-				}
-				//check all endpoint aliases for a password
-				H225_ArrayOf_AliasAddress ep_aliases = ep->GetAliases();
-				for (PINDEX i = 0; i < ep_aliases.GetSize(); i++){
-					ep_alias = H323GetAliasAddressString(ep_aliases[i]);
-					cached = InternalGetPassword(ep_alias, passwd);
-					if (!passwd)
-						break;
-				}
 			}
+			PString passwd = GetPassword(ep_alias, *aliases);
 			H235AuthProcedure1 authProcedure1;
 			authProcedure1.SetLocalId(gk_id);
 			authProcedure1.SetPassword(passwd);
 			if (authProcedure1.VerifyToken(tokens[i], getLastReceivedRawPDU()) == H235Authenticator::e_OK) {
 				PTRACE(4, "GkAuth\t" << ep_alias << " password match (SHA-1)");
-				if (!cached)
-					cache->Save(ep_alias, passwd);
 				return true;
 			}
 #endif
@@ -476,20 +501,19 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 class MySQLAuthBase {
 public:
 	MySQLAuthBase(PConfig *,
-		const char *section,
-		const char *host,
-		const char *dbname,
-		const char *user,
-		const char *passwd,
-		const char *table,
-		const char *alias,
-		const char *query,
-		const char *extra
-	);
+		      const char *section,
+		      const char *host,
+		      const char *dbname,
+		      const char *user,
+		      const char *passwd,
+		      const char *table,
+		      const char *alias,
+		      const char *query,
+		      const char *extra
+		);
 	~MySQLAuthBase();
 	bool Exec(const PString &, MysqlRes &);
 	PString GetString(const PString &);
-
 private:
 	bool MySQLInit();
 	void Cleanup();
@@ -504,15 +528,15 @@ private:
 };
 
 MySQLAuthBase::MySQLAuthBase(PConfig *cfg,
-		const char *section,
-		const char *host,
-		const char *dbname,
-		const char *user,
-		const char *passwd,
-		const char *table,
-		const char *alias,
-		const char *query,
-		const char *extra
+			     const char *section,
+			     const char *host,
+			     const char *dbname,
+			     const char *user,
+			     const char *passwd,
+			     const char *table,
+			     const char *alias,
+			     const char *query,
+			     const char *extra
 	) : config(cfg), section_n(section),
 	    host_n(host), dbname_n(dbname), user_n(user), passwd_n(passwd),
 	    table_n(table), alias_n(alias), query_n(query), extra_n(extra)
@@ -536,7 +560,7 @@ bool MySQLAuthBase::Exec(const PString & id, MysqlRes & result)
 			Cleanup();
 		} catch (MysqlBadConversion er) {
 			PTRACE(1,  "MySQL\tBadConversion: Tried to convert \"" << er.data << "\" to a \"" << er.type_name << "\".");
-		} 
+		}
 	}
 	return false;
 }
@@ -602,9 +626,9 @@ MySQLPasswordAuth::MySQLPasswordAuth(PConfig *cfg, const char *authName)
 	: SimplePasswordAuth(cfg, authName)
 {
 	mysqlconn = new MySQLAuthBase(cfg, "MySQLAuth",
-				"Host", "Database", "User", "Password",
-				"Table", "IDField", "PasswordField", "ExtraCriterion"
-			);
+				      "Host", "Database", "User", "Password",
+				      "Table", "IDField", "PasswordField", "ExtraCriterion"
+		);
 }
 
 MySQLPasswordAuth::~MySQLPasswordAuth()
@@ -623,9 +647,9 @@ MySQLAliasAuth::MySQLAliasAuth(PConfig *cfg, const char *authName)
 {
 	const char *secname = "MySQLAliasAuth";
 	mysqlconn = new MySQLAuthBase(cfg, secname,
-				"Host", "Database", "User", "Password",
-				"Table", "IDField", "IPField", "ExtraCriterion"
-			);
+				      "Host", "Database", "User", "Password",
+				      "Table", "IDField", "IPField", "ExtraCriterion"
+		);
 	cache = new CacheManager(config->GetInteger(secname, "CacheTimeout", -1) * 1000);
 }
 
@@ -652,7 +676,7 @@ PString MySQLAliasAuth::GetConfigString(const PString & alias) const
 // ExternalPasswordAuth
 
 ExternalPasswordAuth::ExternalPasswordAuth(PConfig * cfg, const char * authName)
-      : SimplePasswordAuth(cfg, authName)
+	: SimplePasswordAuth(cfg, authName)
 {
 	ExternalInit();
 }
@@ -663,7 +687,7 @@ bool ExternalPasswordAuth::ExternalInit()
 
 	// Read the configuration
 	Program = config->GetString(ExternalSec, "PasswordProgram", "");
-	
+
 	return true;
 }
 
@@ -683,81 +707,89 @@ PString ExternalPasswordAuth::GetPassword(const PString & id)
 
 #endif // WIN32
 
-// LDAP authentification
-#if defined(HAS_LDAP)
 
-LDAPPasswordAuth::LDAPPasswordAuth(PConfig * cfg, const char * authName)
-  : SimplePasswordAuth(cfg, authName)
+#include "gkDatabase.h"
+// PasswordAuth (using database list)
+DBPasswordAuth::DBPasswordAuth(PConfig * cfg,  const char * authName)
+	: SimplePasswordAuth(cfg, authName)
 {
 }
 
-LDAPPasswordAuth::~LDAPPasswordAuth()
+DBPasswordAuth::~DBPasswordAuth()
 {
+	deleteMutex.Wait();
 }
 
-PString LDAPPasswordAuth::GetPassword(const PString & alias)
+PString DBPasswordAuth::GetPassword(const PString & alias)
 {
 	PStringList attr_values;
-	using namespace lctn; // LDAP config tags and names
-	// get pointer to new answer object
-	if(GkLDAP::Instance()->getAttribute(alias, H245PassWord, attr_values) && 
+	using namespace dctn; // database config tags and names
+	DBTypeEnum dbType;
+	if(GkDatabase::Instance()->getAttribute(alias, H235PassWord, attr_values, dbType) &&
 	   !attr_values.IsEmpty()){
 		return attr_values[0];
 	}
 	return "";
-}  
+}
 
-int LDAPPasswordAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason)
+int DBPasswordAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason)
 {
+	PWaitAndSignal lock(deleteMutex);
 	int result = SimplePasswordAuth::Check(rrq, reason);
 	if(result == e_ok) {
-		// check if all aliases in RRQ exists in LDAP entry
+		// check if all aliases in RRQ exists in DB entry
 		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
-		if(!GkLDAP::Instance()->validAliases(aliases)) {
+		if(!GkDatabase::Instance()->validAliases(aliases)) {
 			result = e_fail;
 		}
 	}
 	return result;
 }
 
-
-LDAPAliasAuth::LDAPAliasAuth(PConfig *cfg, const char *authName) : AliasAuth(cfg, authName)
+// AliasAuth (using database list)
+DBAliasAuth::DBAliasAuth(PConfig *cfg, const char *authName) : AliasAuth(cfg, authName)
 {
 }
 
-LDAPAliasAuth::~LDAPAliasAuth()
+DBAliasAuth::~DBAliasAuth()
 {
+	deleteMutex.Wait();
 }
 
-PString LDAPAliasAuth::GetConfigString(const PString &alias) const
+PString DBAliasAuth::GetConfigString(const PString &alias) const
 {
 	PStringList attr_values;
-	using namespace lctn; // LDAP config tags and names
+	using namespace dctn; // DB config tags and names
 	// get pointer to new answer object
-	if (GkLDAP::Instance()->getAttribute(alias, IPAddress, attr_values) && (!attr_values.IsEmpty())) {
-		PString ip = attr_values[0];
-    		if(!ip.IsEmpty()){
-      			PString port = GK_DEF_ENDPOINT_SIGNAL_PORT;    
-			return "sigip:" + ip + ":" + port;
+	DBTypeEnum dbType;
+	PString rv;
+	if (GkDatabase::Instance()->getAttribute(alias, IPAddress, attr_values, dbType)
+			&& (!attr_values.IsEmpty())) {
+		for(PINDEX i=0; i<attr_values.GetSize(); i++) {
+			PString ip = attr_values[i];
+			if(!ip.IsEmpty()){
+				if((rv.GetSize()==0) || (rv==""))
+					rv = "sigip:" + ip;
+				else
+					rv += "|sigip:" + ip;
+			}
 		}
 	}
-	return "";
+	return rv;
 }
 
-int LDAPAliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason)
+int DBAliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason)
 {
 	int result = AliasAuth::Check(rrq, reason);
 	if(result == e_ok) {
-		// check if all aliases in RRQ exists in LDAP entry
+		// check if all aliases in RRQ exists in database entry
 		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
-		if(!GkLDAP::Instance()->validAliases(aliases)) {
-      			result = e_fail;
+		if(!GkDatabase::Instance()->validAliases(aliases)) {
+			result = e_fail;
     		}
 	}
   	return result;
 }
-
-#endif // HAS_LDAP
 
 
 // AliasAuth
@@ -772,6 +804,7 @@ int AliasAuth::Check(const H225_GatekeeperRequest &, unsigned &)
 
 int AliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned &)
 {
+	PWaitAndSignal lock(deleteMutex);
 	bool AliasFoundInConfig = false;
 
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
@@ -784,17 +817,30 @@ int AliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned &)
 		PString alias = AsString(NewAliases[i], FALSE);
 		const PString cfgString = GetConfigString(alias);
 
-		if (!cfgString) {
-			const PStringArray conditions = cfgString.Tokenise("&", FALSE);
+		if (cfgString != "") {
+			if(cfgString.Find("&")<cfgString.GetSize()) {
+				const PStringArray conditions = cfgString.Tokenise("&", FALSE);
 
-			for (PINDEX iCnd = 0; iCnd < conditions.GetSize(); ++iCnd) {
+				for (PINDEX iCnd = 0; iCnd < conditions.GetSize(); ++iCnd) {
+					if (!AuthCondition(rrq.m_callSignalAddress[0], conditions[iCnd])) {
+						PTRACE(4, "Gk\tRRQAuth condition '" << conditions[iCnd] << "' rejected endpoint " << alias);
+						return e_fail;
+					} else {
+						AliasFoundInConfig = true;
+						PTRACE(5, "Gk\tRRQAuth condition applied successfully for endpoint " << alias);
+					}
+				}
+			} else {
+				const PStringArray conditions = cfgString.Tokenise("|", FALSE);
 
-				if (!AuthCondition(rrq.m_callSignalAddress[0], conditions[iCnd])) {
-					PTRACE(4, "Gk\tRRQAuth condition '" << conditions[iCnd] << "' rejected endpoint " << alias);
-					return e_fail;
-				} else {
-					AliasFoundInConfig = true;
-					PTRACE(5, "Gk\tRRQAuth condition applied successfully for endpoint " << alias);
+				for (PINDEX iCnd = 0; iCnd < conditions.GetSize(); ++iCnd) {
+					if (rrq.m_callSignalAddress.GetSize()==0 || !AuthCondition(rrq.m_callSignalAddress[0], conditions[iCnd])) {
+						PTRACE(4, "Gk\tRRQAuth condition '" << conditions[iCnd] << "' rejected endpoint " << alias);
+						//return e_fail;
+					} else {
+						AliasFoundInConfig = true;
+						PTRACE(5, "Gk\tRRQAuth condition applied successfully for endpoint " << alias);
+					}
 				}
 			}
 		}
@@ -822,16 +868,17 @@ bool AliasAuth::AuthCondition(const H225_TransportAddress & SignalAdr, const PSt
 {
 	const bool ON_ERROR = true; // return value on parse error in condition
 
+
 	const PStringArray rule = Condition.Tokenise(":", FALSE);
 	if(rule.GetSize() < 1) {
 		PTRACE(1, "Errornous RRQAuth rule: " << Condition);
 		return ON_ERROR;
 	}
-	
-	// 
+
+	//
 	// condition = rule[0]:rule[1]... = rName:params...
 	//
-	
+
 	const PString &rName = rule[0];
 
  	if (rName=="confirm" || rName=="allow") {
@@ -858,6 +905,12 @@ bool AliasAuth::AuthCondition(const H225_TransportAddress & SignalAdr, const PSt
 			return false;
 		PIPSocket::Address ip;
 		PIPSocket::GetHostAddress(rule[1], ip);
+		if ((rule.GetSize()>=3) && (rule[2]=="*")) {
+			const H225_TransportAddress_ipAddress & sig_ip = SignalAdr;
+			const H225_TransportAddress rtip = SocketToH225TransportAddr(ip,0);
+			const H225_TransportAddress_ipAddress &rule_ip = rtip;
+			return (rule_ip.m_ip==sig_ip.m_ip);
+		}
 		WORD port = (rule.GetSize() < 3) ? GK_DEF_ENDPOINT_SIGNAL_PORT : rule[2].AsInteger();
 		return (SignalAdr == SocketToH225TransportAddr(ip, port));
 	} else {
@@ -911,4 +964,3 @@ GkAuthenticatorList::~GkAuthenticatorList()
 	delete GkAuthenticator::head;
 	GkAuthenticator::head = 0;
 }
-

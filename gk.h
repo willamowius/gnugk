@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gk.h gatekeeper process
@@ -26,12 +27,12 @@ class Gatekeeper : public PProcess
 	PCLASSINFO(Gatekeeper, PProcess)
  public:
 	Gatekeeper
-		(const char * manuf = "GNU", 
-		 const char * name = "Gatekeeper", 
-		 WORD majorVersion = 2,
-		 WORD minorVersion = 0,
-		 CodeStatus status = BetaCode,
-		 WORD buildNumber = 5);
+		(const char * manuf = MANUFACTURER,
+		 const char * name = PROGRAMMNAME, 
+		 WORD majorVersion = VERSION_MAJOR,
+		 WORD minorVersion = VERSION_MINOR,
+		 CodeStatus status = VERSION_STATUS,
+		 WORD buildNumber = VERSION_BUILD);
 
 	virtual void Main();
 
@@ -39,11 +40,11 @@ class Gatekeeper : public PProcess
 	/** returns the template string for which the cmommand line is parsed */
 	virtual const PString GetArgumentsParseString() const;
 
-	/**@name Initialization 
+	/**@name Initialization
 	 * A sequence of virtual initialization methods is called from #Main#
-	 * before the fun starts. 
+	 * before the fun starts.
 	 * Each one takes the already parsed command line arguments (so you can
-	 * depend the behavior on them). Later -- after #InitConfig# -- you can 
+	 * depend the behavior on them). Later -- after #InitConfig# -- you can
 	 * also use #Toolkit::Config()# to decide different things.
 	 * Every method may return #FALSE# to abort #Main# and end the program.
 	 */
@@ -54,6 +55,11 @@ class Gatekeeper : public PProcess
 
 	/** factory for the static toolkit; Called after #InitHandlers#.  */
 	virtual BOOL InitToolkit(const PArgList &args);
+
+#if defined(HAVE_DIGIT_ANALYSIS)
+	/** factory for the static DigitCode library; Called after #InitConfig#.  */
+	virtual BOOL InitDigitCodeLibrary(const PArgList &args);
+#endif /* HAVE_DIGIT_ANALYSIS */
 
 	/** factory for the static Config in Toolkit; Called after #InitToolkit# */
 	virtual BOOL InitConfig(const PArgList &args);
@@ -72,4 +78,3 @@ class Gatekeeper : public PProcess
 };
 
 #endif
- 

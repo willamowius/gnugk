@@ -106,10 +106,6 @@ SOURCE=.\GkAuthorize.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\GkClient.cxx
-# End Source File
-# Begin Source File
-
 SOURCE=.\gkDestAnalysis.cxx
 # End Source File
 # Begin Source File
@@ -154,6 +150,14 @@ SOURCE=.\RasTbl.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\SignalChannel.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\SignalConnection.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\singleton.cxx
 # End Source File
 # Begin Source File
@@ -190,14 +194,6 @@ SOURCE=.\gkauth.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\GkAuthorize.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\GkClient.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\GkStatus.h
 # End Source File
 # Begin Source File
@@ -210,19 +206,19 @@ SOURCE=.\MulticastGRQ.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\ProxyChannel.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\ProxyThread.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\RasSrv.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\RasTbl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\SignalChannel.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\SignalConnection.h
 # End Source File
 # Begin Source File
 

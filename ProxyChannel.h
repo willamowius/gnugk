@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // ProxyChannel.h
@@ -87,7 +88,7 @@ public:
 
 	LogicalChannel *FindLogicalChannel(WORD);
 	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
-	
+
 private:
 	// override from class H245Handler
 	virtual bool HandleRequest(H245_RequestMessage &);
@@ -131,6 +132,12 @@ private:
 	PIPSocket::Address remoteAddr;
 };
 
+#ifdef DOC_PLUS_PLUS
+class  gk_Q931InformationMessageList : public PList {
+#endif
+PDECLARE_LIST(gk_Q931InformationMessageList, Q931 *);
+};
+
 class CallSignalSocket : public TCPProxySocket {
 public:
 	PCLASSINFO ( CallSignalSocket, TCPProxySocket )
@@ -167,6 +174,9 @@ protected:
 	void OnNonStandardData(PASN_OctetString &);
 	void OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
 	void OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
+	void OnInformationMsg(Q931 &pdu);
+
+	endptr GetCgEP(Q931 &q931pdu);
 
 	template<class UUIE> void HandleH245Address(UUIE & uu)
 	{
@@ -175,10 +185,10 @@ protected:
 				uu.RemoveOptionalField(UUIE::e_h245Address);
 	}
 	template<class UUIE> void HandleFastStart(UUIE & uu, bool fromCaller)
-	{
-		if (m_h245handler && uu.HasOptionalField(UUIE::e_fastStart))
-			OnFastStart(uu.m_fastStart, fromCaller);
-	}
+		{
+			if (m_h245handler && uu.HasOptionalField(UUIE::e_fastStart))
+				OnFastStart(uu.m_fastStart, fromCaller);
+		}
 
 	// localAddr is NOT the local address the socket bind to,
 	// but the local address that remote socket bind to
@@ -198,7 +208,25 @@ private:
 	H245Socket *m_h245socket;
 	bool m_h245Tunneling;
 	Q931 *m_receivedQ931;
+
+	void DoRoutingDecision();
+	void SendInformationMessages();
+	void BuildConnection();
+	bool FakeSetupACK(Q931 &setup);
+	Q931 * GetSetupPDU() const;
+
+        void CgPNConversion(Q931 & q931pdu, H225_Setup_UUIE &callId); // rkeil
+
+	PString DialedDigits;
+	BOOL isRoutable;
+	gk_Q931InformationMessageList Q931InformationMessages;
+	Q931 * m_SetupPDU;
+
 };
+
+inline Q931 * CallSignalSocket::GetSetupPDU() const {
+	return m_SetupPDU;
+}
 
 inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
 {
@@ -211,4 +239,3 @@ inline Q931 *CallSignalSocket::GetReceivedQ931() const
 }
 
 #endif // __proxychannel_h__
-

@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // GkStatus.h thread for external interface
@@ -14,7 +15,7 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if (_MSC_VER >= 1200)  
+#if (_MSC_VER >= 1200)
 #pragma warning( disable : 4800 ) // one performance warning off
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4101 ) // warning unused locals off
@@ -31,7 +32,10 @@
 using std::for_each;
 using std::mem_fun;
 
+// FIXME: this is very ugly because it is an import of local functions of
+//        gk.cxx which are not exported by gk.h
 void ReloadHandler(void);
+void ShutdownHandler(void);
 
 
 const int GkStatus::NumberOfCommandStrings = 41;
@@ -85,7 +89,7 @@ int GkStatus::Client::StaticInstanceNo = 0;
 
 
 GkStatus::GkStatus()
-: PThread(1000, NoAutoDeleteThread), 
+: PThread(1000, NoAutoDeleteThread),
   StatusListener(GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)),
 	m_IsDirty(FALSE)
 {
@@ -116,9 +120,9 @@ void GkStatus::Main()
 	{
 		CleanupClients();
 
-		if(!NewConnection->Accept (StatusListener)) 
+		if(!NewConnection->Accept (StatusListener))
 			continue;
-		
+
 		if (NewConnection->IsOpen())
 		{
 			// add new connection to connection list
@@ -137,7 +141,7 @@ void GkStatus::Main()
 void GkStatus::Close(void)
 {
 	PTRACE(2, "GK\tClosing Status thread.");
-	
+
 	// close all connected clients
 	ClientSetLock.Wait();
 	for_each(Clients.begin(), Clients.end(), mem_fun(&Client::Close));
@@ -172,13 +176,13 @@ class WriteWhoAmI {
 
 void WriteWhoAmI::operator()(const GkStatus::Client *pclient) const
 {
-	writeTo->WriteString("  " + pclient->WhoAmI() + "\r\n");
+	writeTo->WriteString("  " + pclient->WhoAmI() + GK_LINEBRK);
 }
 
 // function object used by for_each
 class ClientSignalStatus {
   public:
-	ClientSignalStatus(const PString &m, int l) : msg(m), level(l) {} 
+	ClientSignalStatus(const PString &m, int l) : msg(m), level(l) {}
 	void operator()(GkStatus::Client *) const;
 
   private:
@@ -189,7 +193,7 @@ class ClientSignalStatus {
 void ClientSignalStatus::operator()(GkStatus::Client *pclient) const
 {
 	int ctl = pclient->TraceLevel;
-	if((ctl<=10) && (ctl>=0) && (level >= ctl)) 
+	if((ctl<=10) && (ctl>=0) && (level >= ctl))
 		pclient->WriteString(msg);
 }
 
@@ -215,9 +219,9 @@ void GkStatus::CleanupClients()
 {
 	if(IsDirty()) {
 		/* we will only delete one client per round */
-		
+
 		Client* deleteThis = NULL; // will be != NULL for deletition
-		
+
 		for (ClientIter=Clients.begin(); ClientIter != Clients.end(); ++ClientIter)
 		{
 			if((*ClientIter)->PleaseDelete) {
@@ -225,8 +229,8 @@ void GkStatus::CleanupClients()
 				break;
 			}
 		};
-		
-		if(deleteThis != NULL) 
+
+		if(deleteThis != NULL)
 		{
 			ClientSetLock.Wait();
 			RemoveClient(deleteThis);
@@ -245,10 +249,10 @@ namespace {
 
 PString PrintGkVersion()
 {
-	return PString("Version:\r\n") + Toolkit::GKVersion() +
-		"\r\nGkStatus: Version(1.0) Ext()\r\n"
+	return PString("Version:" GK_LINEBRK) + Toolkit::GKVersion() +
+		GK_LINEBRK "GkStatus: Version(1.0) Ext()" GK_LINEBRK
 		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() +
-		")\r\n" + SoftPBX::Uptime() + "\r\n;\r\n";
+		")" GK_LINEBRK + SoftPBX::Uptime() + GK_LINEBRK ";" GK_LINEBRK;
 }
 
 }
@@ -282,14 +286,14 @@ PString GkStatus::Client::ReadCommand()
 {
 	PString Command;
 	int	CharRead;
-	
+
 	for(;;)
 	{
 		CharRead = Socket->ReadChar();
 		if ( CharRead < 0 )
 			throw -1;
 		if ( CharRead == '\n' )
-			break;	
+			break;
 		if ( CharRead != '\r' )		// ignore carriage return
 			Command += CharRead;
 	}
@@ -305,11 +309,11 @@ void GkStatus::Client::Main()
 	PTRACE(2, "GK\tGkStatus new status client: addr " << PeerAddress.AsString());
 #endif
 
-	if(!StatusThread->AuthenticateClient(*Socket)) 
+	if(!StatusThread->AuthenticateClient(*Socket))
 	{
-		WriteString("Access forbidden!\r\n");
+		WriteString("Access forbidden!" GK_LINEBRK);
 	}
-	else 
+	else
 	{
 		BOOL exit_and_out = FALSE;
 		while ( Socket->IsOpen() && !exit_and_out)
@@ -324,13 +328,13 @@ void GkStatus::Client::Main()
 
 			Line = Line.Trim(); // the 'Tokenise' seems not correct for leading spaces
 			const PStringArray Args = Line.Tokenise(" ", FALSE);
-			if(Args.GetSize() < 1) 
+			if(Args.GetSize() < 1)
 				continue;
-			
+
 			const PCaselessString &Command = Args[0];
 
 			PTRACE(2, "GK\tGkStatus got command " << Command);
-			if(Commands.Contains(Command.ToLower())) 
+			if(Commands.Contains(Command.ToLower()))
 			{
 				PINDEX key = Commands[Command];
 				switch(key) {
@@ -339,14 +343,14 @@ void GkStatus::Client::Main()
 					if (Args.GetSize() == 2)
 						SoftPBX::DisconnectIp(Args[1]);
 					else
-						WriteString("Syntax Error: DisconnectIp <ip address>\r\n");
+						WriteString("Syntax Error: DisconnectIp <ip address>" GK_LINEBRK);
 					break;
 				case GkStatus::e_DisconnectAlias:
 					// disconnect call on this alias
 					if (Args.GetSize() == 2)
 						SoftPBX::DisconnectAlias(Args[1]);
 					else
-						WriteString("Syntax Error: DisconnectAlias <h.323 alias>\r\n");
+						WriteString("Syntax Error: DisconnectAlias <h.323 alias>" GK_LINEBRK);
 					break;
 				case GkStatus::e_DisconnectCall:
 					// disconnect call with this call number
@@ -354,14 +358,14 @@ void GkStatus::Client::Main()
 						for (PINDEX p=1; p < Args.GetSize(); ++p)
 							SoftPBX::DisconnectCall(Args[p].AsInteger());
  					else
-						WriteString("Syntax Error: DisconnectCall <call number> ...\r\n");
+						WriteString("Syntax Error: DisconnectCall <call number> ..." GK_LINEBRK);
  					break;
 				case GkStatus::e_DisconnectEndpoint:
-					// disconnect call on this alias
+					// disconnect call on this endpoint
 					if (Args.GetSize() == 2)
 						SoftPBX::DisconnectEndpoint(Args[1]);
 					else
-						WriteString("Syntax Error: DisconnectEndpoint ID\r\n");
+						WriteString("Syntax Error: DisconnectEndpoint ID" GK_LINEBRK);
 					break;
 				case GkStatus::e_PrintAllRegistrations:
 					// print list of all registered endpoints
@@ -390,20 +394,20 @@ void GkStatus::Client::Main()
 					if (Args.GetSize() == 2)
 						SoftPBX::PrintEndpoint(Args[1], *this, FALSE);
 					else
-						WriteString("Syntax Error: Find alias\r\n");
+						WriteString("Syntax Error: Find alias" GK_LINEBRK);
 					break;
 				case GkStatus::e_FindVerbose:
 					if (Args.GetSize() == 2)
 						SoftPBX::PrintEndpoint(Args[1], *this, TRUE);
 					else
-						WriteString("Syntax Error: FindVerbose alias\r\n");
+						WriteString("Syntax Error: FindVerbose alias" GK_LINEBRK);
 					break;
 				case GkStatus::e_Yell:
-					StatusThread->SignalStatus(PString("  "+WhoAmI() + ": " + Line + "\r\n"));
+					StatusThread->SignalStatus(PString("  "+WhoAmI() + ": " + Line + GK_LINEBRK));
 					break;
 				case GkStatus::e_Who:
 					for_each(StatusThread->Clients.begin(), StatusThread->Clients.end(), WriteWhoAmI(this));
-					WriteString(";\r\n");
+					WriteString(";" GK_LINEBRK);
 					break;
 				case GkStatus::e_Help:
 					PrintHelp();
@@ -429,49 +433,53 @@ void GkStatus::Client::Main()
 					if (Args.GetSize() == 2)
 						SoftPBX::UnregisterAlias(Args[1]);
 					else
-						WriteString("Syntax Error: UnregisterAlias Alias\r\n");
+						WriteString("Syntax Error: UnregisterAlias Alias" GK_LINEBRK);
 					break;
 				case GkStatus::e_UnregisterIp:
 					// unregister this IP
 					if (Args.GetSize() == 2)
 						SoftPBX::UnregisterIp(Args[1]);
 					else
-						WriteString("Syntax Error: UnregisterIp <ip addr>\r\n");
+						WriteString("Syntax Error: UnregisterIp <ip addr>" GK_LINEBRK);
 					break;
 				case GkStatus::e_TransferCall:
 					if (Args.GetSize() == 3)
 						SoftPBX::TransferCall(Args[1], Args[2]);
 					else
-						WriteString("Syntax Error: TransferCall Source Destination\r\n");
+						WriteString("Syntax Error: TransferCall Source Destination" GK_LINEBRK);
 					break;
 				case GkStatus::e_MakeCall:
 					if (Args.GetSize() == 3)
 						SoftPBX::MakeCall(Args[1], Args[2]);
 					else
-						WriteString("Syntax Error: MakeCall Source Destination\r\n");
+						WriteString("Syntax Error: MakeCall Source Destination" GK_LINEBRK);
 					break;
 				case GkStatus::e_Reload:
 					ReloadHandler();
 					break;
 				case GkStatus::e_Shutdown:
-					PTRACE(1, "Shutdown the GK, not implemented yet");
-					WriteString("Shutdown command not implemented yet.\r\n");
+					PTRACE(1, "Shutting down the GK");
+					SoftPBX::UnregisterAllEndpoints();
+					SoftPBX::PrintStatistics(*this, TRUE);
+					ShutdownHandler();
+					WriteString("BYE" GK_LINEBRK);
+					exit(0);
 					break;
 				default:
 					PTRACE(3, "WRONG COMMANDS TABLE ENTRY. PLEASE LOOK AT THE CODE.");
-					WriteString("Error: Internal Error.\r\n");
+					WriteString("Error: Internal Error." GK_LINEBRK);
 					break;
 				}
 			}
-			else 
+			else
 			{
 				// commmand not recognized
 				PTRACE(3, "Gk\tUnknown Command.");
-				WriteString("Error: Unknown Command.\r\n");
+				WriteString("Error: Unknown Command." GK_LINEBRK);
 			}
 		}
 	}
-	
+
 	PTRACE(2, "GK\tGkStatus client " << PeerAddress.AsString() << " has disconnected");
 	PleaseDelete = TRUE;
 	StatusThread->SetDirty(TRUE);
@@ -487,39 +495,39 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 	}
 
 	if(Args.GetSize() <= 1) {
-		WriteString("Debug options:\r\n");
-		WriteString("  trc [+|-|n]       Show/modify trace level\r\n");
-		WriteString("  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n");
-		WriteString("  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n");
-		WriteString("  remove SEC PAR    Remove a config VALue PARameter in a SECtion\r\n");
-		WriteString("  remove SEC        Remove a SECtion\r\n");
-		WriteString("  printrm VERBOSE   Print all removed endpoint records\r\n");
+		WriteString("Debug options:" GK_LINEBRK);
+		WriteString("  trc [+|-|n]       Show/modify trace level" GK_LINEBRK);
+		WriteString("  cfg SEC PAR       Read and print a config PARameter in a SECtion" GK_LINEBRK);
+		WriteString("  set SEC PAR VAL   Write a config VALue PARameter in a SECtion" GK_LINEBRK);
+		WriteString("  remove SEC PAR    Remove a config VALue PARameter in a SECtion" GK_LINEBRK);
+		WriteString("  remove SEC        Remove a SECtion" GK_LINEBRK);
+		WriteString("  printrm VERBOSE   Print all removed endpoint records" GK_LINEBRK);
 	}
 	else {
 		if(Args[1] *= "trc") {
 			if(Args.GetSize() >= 3) {
-				if((Args[2] == "-") && (PTrace::GetLevel() > 0)) 
+				if((Args[2] == "-") && (PTrace::GetLevel() > 0))
 					PTrace::SetLevel(PTrace::GetLevel()-1);
-				else if(Args[2] == "+") 
+				else if(Args[2] == "+")
 					PTrace::SetLevel(PTrace::GetLevel()+1);
 				else PTrace::SetLevel(Args[2].AsInteger());
 			}
-			WriteString(PString(PString::Printf, "Trace Level is now %d\r\n", PTrace::GetLevel()));
+			WriteString(PString(PString::Printf, "Trace Level is now %d" GK_LINEBRK, PTrace::GetLevel()));
 		} else if (Args[1] *= "cfg") {
 			if (Args.GetSize()>=4)
-				WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n;\r\n");
+				WriteString(GkConfig()->GetString(Args[2],Args[3],"") + GK_LINEBRK ";" GK_LINEBRK);
 			else if (Args.GetSize()>=3) {
 				PStringList cfgs(GkConfig()->GetKeys(Args[2]));
-				PString result = "Section [" + Args[2] + "]\r\n";
+				PString result = "Section [" + Args[2] + "]" GK_LINEBRK;
 				for (PINDEX i=0; i < cfgs.GetSize(); ++i) {
 					PString v(GkConfig()->GetString(Args[2], cfgs[i], ""));
-					result += cfgs[i] + "=" + v + "\r\n";
+					result += cfgs[i] + "=" + v + GK_LINEBRK;
 				}
-				WriteString(result + ";\r\n");
+				WriteString(result + ";" GK_LINEBRK);
 			}
 		} else if((Args[1] *= "set") && (Args.GetSize()>=5)) {
 			GkConfig()->SetString(Args[2],Args[3],Args[4]);
-			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
+			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + GK_LINEBRK);
 		} else if (Args[1] *= "remove") {
 			if (Args.GetSize()>=4) {
 				GkConfig()->DeleteKey(Args[2],Args[3]);
@@ -541,12 +549,12 @@ void GkStatus::Client::PrintHelp()
 		return;
 	}
 
-	WriteString("Commands:\r\n");
+	WriteString("Commands:" GK_LINEBRK);
 	for(PINDEX i=0; i<Commands.GetSize(); i++) {
 		const PString &s = Commands.GetKeyAt(i);
-		WriteString(s+"\r\n");
+		WriteString(s+GK_LINEBRK);
 	}
-	WriteString(";\r\n");
+	WriteString(";" GK_LINEBRK);
 	return;
 }
 
@@ -582,7 +590,7 @@ BOOL GkStatus::AuthenticateClient(PIPSocket &Socket) const
 {
 	static PMutex AuthClientMutex;
 	GkProtectBlock _using(AuthClientMutex);
-	
+
 	BOOL result = FALSE;
 
 	const PString rule = GkConfig()->GetString("GkStatus::Auth", "rule", "forbid");
@@ -607,21 +615,21 @@ BOOL GkStatus::AuthenticateClient(PIPSocket &Socket) const
 			result = Toolkit::AsBool
 				(GkConfig()->GetString("GkStatus::Auth", "default", "FALSE"));
 		}
-		else 
+		else
 			result = Toolkit::AsBool(val);
 	}
 	else if(rule *= "regex") {
 		PTRACE(5,"Auth client rule=regex");
 		PString val = GkConfig()->GetString("GkStatus::Auth", peer, "");
-		if(val == "") 
+		if(val == "")
 			result = Toolkit::MatchRegex(peer, GkConfig()->GetString("GkStatus::Auth", "regex", ""));
-		else 
+		else
 			result = Toolkit::AsBool(val);
-	} 
+	}
 	else {
 		PTRACE(2, "Invalid [GkStatus::Auth].rule");
 		result = FALSE;
 	}
-	
+
 	return result;
 }

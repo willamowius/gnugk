@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gk.cxx for OpenH323 Gatekeeper - GNU Gatekeeper
@@ -17,7 +18,7 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if (_MSC_VER >= 1200)  
+#if (_MSC_VER >= 1200)
 #pragma warning( disable : 4800 ) // one performance warning off
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
@@ -34,14 +35,13 @@
 #include "BroadcastListen.h"
 #include "Toolkit.h"
 #include "h323util.h"
-
+#include "ANSI.h"
 
 /*
- * many things here should be members of Gatkeeper. 
+ * many things here should be members of Gatkeeper.
  */
 
 namespace { // keep the global objects private
-
 
 MulticastGRQ * MulticastGRQThread = NULL;
 BroadcastListen * BroadcastThread = NULL;
@@ -58,6 +58,7 @@ PString logfilename;
 
 bool ExitFlag = false;
 
+} // end of anonymous namespace
 
 void ShutdownHandler(void)
 {
@@ -99,6 +100,9 @@ void ShutdownHandler(void)
 	delete CallTable::Instance();
 	delete RegistrationTable::Instance();
 	delete GkStatus::Instance();
+#if defined(HAVE_DIGIT_ANALYSIS)
+	delete DigitCodeLibrary::Instance();
+#endif /* HAVE_DIGIT_ANALYSIS */
 	delete Toolkit::Instance();
 	PTRACE(3, "GK\tdelete ok");
 
@@ -119,7 +123,7 @@ void ReopenLogFile()
 		logfile = new PTextFile(logfilename, PFile::WriteOnly);//, PFile::Create);
 		if (!logfile->IsOpen()) {
 			cerr << "Warning: could not open trace output file \""
-			     << logfilename << '"' << endl;
+				<< logfilename << '"' << endl;
 			delete logfile;
 			logfile = 0;
 			return;
@@ -130,15 +134,12 @@ void ReopenLogFile()
 }
 #endif
 
-
-} // end of anonymous namespace
-
 void ReloadHandler(void)
 {
 	// only one thread must do this
 	if (ReloadMutex.WillBlock())
 		return;
-	
+
 	/*
 	** Enter critical Section
 	*/
@@ -149,7 +150,7 @@ void ReloadHandler(void)
 	*/
 	InstanceOf<Toolkit>()->ReloadConfig();
 	PTRACE(3, "GK\tConfig reloaded.");
-	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
+	GkStatus::Instance()->SignalStatus("Config reloaded." GK_LINEBRK);
 
 	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
 
@@ -162,7 +163,6 @@ void ReloadHandler(void)
 
 	RasThread->LoadConfig();
 	RasThread->SetRoutedMode();
-
 	/*
 	** Don't disengage current calls!
 	*/
@@ -172,7 +172,7 @@ void ReloadHandler(void)
 	** Leave critical Section
 	*/
 	// give other threads the chance to pass by this handler
-	PProcess::Sleep(1000); 
+	PProcess::Sleep(1000);
 }
 
 #ifdef WIN32
@@ -237,6 +237,13 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "s-section:"
 		 "-pid:"
 		 "h-help:"
+#ifdef PTRACING
+#  if defined(HAVE_DIGIT_ANALYSIS)
+		 "X-number:"
+#  endif /* HAVE_DIGIT_ANALYSIS */
+		 "Y-codeddata:"
+		 "Z-codingdata:"
+#endif
 		 );
 }
 
@@ -281,7 +288,7 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 		ReopenLogFile();
 	}
 #endif
-	
+
 	return TRUE;
 }
 
@@ -294,27 +301,39 @@ BOOL Gatekeeper::InitToolkit(const PArgList &args)
 }
 
 
+#if defined(HAVE_DIGIT_ANALYSIS) && defined(PTRACING)
+BOOL Gatekeeper::InitDigitCodeLibrary(const PArgList &args)
+{
+	InstanceOf<DigitCodeLibrary>(); // force using the right DigitCodeLibrary constructor
+
+	return TRUE;
+}
+#endif /* HAVE_DIGIT_ANALYSIS && PTRACING */
+
+
 BOOL Gatekeeper::InitConfig(const PArgList &args)
 {
 	// get the name of the config file
 	PFilePath fp("gatekeeper.ini");
 	PString section("Gatekeeper::Main");
 
-	if (args.HasOption('c')) 
+	if (args.HasOption('c'))
 		fp = PFilePath(args.GetOptionString('c'));
 
-	if (args.HasOption('s')) 
+	if (args.HasOption('s'))
 		section = args.GetOptionString('s');
 
 	InstanceOf<Toolkit>()->SetConfig(fp, section);
 
-	if( (GkConfig()->GetInteger("Fourtytwo") ) != 42) { 
-		cerr << "WARNING: No config file found!\n"
-			 << "- Does the config file exist? The default (~/.pwlib_config/Gatekeeper.ini or gatekeeper.ini in current directory) or the one given with -c?\n"
-			 << "- Did you specify they the right 'Main' section with -s?\n" 
-			 << "- Is the line 'Fourtytwo=42' present in this 'Main' section?"<<endl;
+	if( (GkConfig()->GetInteger("Fourtytwo") ) != 42) {
+		PTRACE(0, "WARNING: No config file found!" GK_LINEBRK
+		       " - Does the config file exist? The default "
+		       "(~/.pwlib_config/Gatekeeper.ini or gatekeeper.ini "
+		       "in current directory) or the one given with -c?" GK_LINEBRK
+		       " - Did you specify they the right 'Main' section with -s?" GK_LINEBRK
+		       " - Is the line 'Fourtytwo=42' present in this 'Main' section?");
 	}
-	
+
 	return TRUE;
 }
 
@@ -341,7 +360,7 @@ void Gatekeeper::PrintOpts(void)
 
 void Gatekeeper::HouseKeeping(void)
 {
-	for (unsigned count=1; !ExitFlag; count++) {	
+	for (unsigned count=1; !ExitFlag; count++) {
 
 		Sleep(1000);
 
@@ -363,12 +382,12 @@ void Gatekeeper::Main()
 	PIPSocket::Address GKHome = INADDR_ANY;
 
 	if(! InitLogging(args)) return;
-
 	if(! InitHandlers(args)) return;
-
 	if(! InitToolkit(args)) return;
-
 	if(! InitConfig(args)) return;
+#if defined(HAVE_DIGIT_ANALYSIS) && defined(PTRACING)
+	if(! InitDigitCodeLibrary(args)) return;
+#endif /* HAVE_DIGIT_ANALYSIS && PTRACING*/
 
 	// read gatekeeper home address from commandline
 	if (args.HasOption('i'))
@@ -380,27 +399,83 @@ void Gatekeeper::Main()
 	}
 
 	PString welcome("OpenH323 Gatekeeper - The GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started on " + GKHome.AsString() + "\n" + Toolkit::GKVersion());
-	cout << welcome << '\n';
+	cout << welcome << endl;
 	PTRACE(1, welcome);
 
 	if (GKHome == INADDR_ANY) {
-		PString myip("Default IP = " + Toolkit::Instance()->GetRouteTable()->GetLocalAddress().AsString());
-		cout << myip << "\n\n";
+               PString myip("Default IP = " + Toolkit::Instance()->GetRouteTable()->GetLocalAddress().AsString());
+               cout << myip << "\n\n";
 	}
 
 	if (args.HasOption('h')) {
 		PrintOpts();
+		delete DigitCodeLibrary::Instance();
         	delete Toolkit::Instance();
 		exit(0);
 	}
 
 	// Copyright notice
 	cout <<
-		"This program is free software; you can redistribute it and/or\n"
-		"modify it under the terms of the GNU General Public License\n"
-		"as published by the Free Software Foundation; either version 2\n"
-		"of the License, or (at your option) any later version.\n"
-	     << endl;
+		"This program is free software; you can redistribute it and/or" GK_LINEBRK
+		"modify it under the terms of the GNU General Public License" GK_LINEBRK
+		"as published by the Free Software Foundation; either version 2" GK_LINEBRK
+		"of the License, or (at your option) any later version." GK_LINEBRK
+		;
+
+#if defined(HAVE_DIGIT_ANALYSIS) && defined(PTRACING)
+	const char optX = 'X';
+	if (args.HasOption(optX)) {
+		PString s = args.GetOptionString(optX);
+		E164_IPTNString n(s);
+		E164_AnalysedNumber m(n);
+		cout << endl << "TESTING digit analysis:" << endl ;
+		cout << "E164_IPTNString n: " << n << endl;
+		cout << "E164_AnalysedNumber m CC: " << m.GetCC() << endl;
+		cout << "E164_AnalysedNumber m NDC_IC: " << m.GetNDC_IC() << endl;
+		cout << "E164_AnalysedNumber m GSN_SN: " << m.GetGSN_SN() << endl;
+		cout << "E164_AnalysedNumber m kind: " << m.GetIPTN_kind() << endl;
+		cout << "- as PString: " << (PString)m << endl;
+		cout << "- as E164_IPTNString: " << (E164_IPTNString)m << endl;
+		cout << endl;
+
+		delete DigitCodeLibrary::Instance();
+        	delete Toolkit::Instance();
+		exit(0);
+	}
+#endif /* HAVE_DIGIT_ANALYSIS && PTRACING*/
+
+
+#if defined(PTRACING)
+	PString I("");
+	const char optY = 'Y';
+	if (args.HasOption(optY)) {
+		cout << endl << "TESTING shared secret cryptograpy (deciphering):" << endl ;
+		PTPW_Codec::Info(I);
+		cout << I << endl;
+		PString s = args.GetOptionString(optY);
+		PTPW_Codec::codec_kind codec = PTPW_Codec::GetAlgo(s);
+		PTPW_Codec decoder(codec, PTPW_Codec::CT_DECODE);
+		cout << "Data read: " << ANSI::GRE << s << ANSI::OFF << endl;
+		cout << "Data plain: " << ANSI::BRED << *(decoder.cipher(s)) << ANSI::OFF << endl;
+		delete DigitCodeLibrary::Instance();
+        	delete Toolkit::Instance();
+		exit(0);
+	}
+	const char optZ = 'Z';
+	if (args.HasOption(optZ)) {
+		cout << endl << "TESTING shared secret cryptograpy (enciphering):" << endl ;
+		cout << PTPW_Codec::Info(I) << endl;
+		PString s = args.GetOptionString(optZ);
+		PTPW_Codec::codec_kind codec = PTPW_Codec::GetAlgo(s);
+		PTPW_Codec encoder(codec, PTPW_Codec::CT_ENCODE);
+		cout << "Data plain: " << ANSI::GRE << s << ANSI::OFF << endl;
+		cout << "Data cipher: " << ANSI::BRED << *(encoder.cipher(s)) << ANSI::OFF << endl;
+
+		delete DigitCodeLibrary::Instance();
+        	delete Toolkit::Instance();
+		exit(0);
+	}
+#endif /* PTRACING*/
 
 	// read capacity from commandline
 	int GKcapacity;
@@ -420,7 +495,7 @@ void Gatekeeper::Main()
 	else
 		SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", -1);
 	PTRACE(2, "GK\tTimeToLive for Registrations: " << SoftPBX::TimeToLive);
-  
+
 	RasThread = new H323RasSrv(GKHome);
 	// read signaling method from commandline
 	if (args.HasOption('r'))
@@ -439,7 +514,7 @@ void Gatekeeper::Main()
 	// On Windows NT we get all messages on the RAS socket, even
 	// if it's bound to a specific interface and thus don't have
 	// to start this thread.
-	
+
 	// only start the thread if we don't bind to all interfaces
 	if (GKHome != INADDR_ANY)
 		BroadcastThread = new BroadcastListen(RasThread);
@@ -453,4 +528,3 @@ void Gatekeeper::Main()
 	// graceful shutdown
 	ShutdownHandler();
 }
-

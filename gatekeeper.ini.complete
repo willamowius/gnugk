@@ -9,7 +9,7 @@
 
 ##
 ## Params used in  Gatekeeper::Main()
-## 
+##
 ## NOTE: This parameters may be loaded at program startup and not influenced by the HUP signal.
 [Gatekeeper::Main]
 ## 'config is present' indicator. Has to be 42.
@@ -19,51 +19,41 @@ Name=OpenH323GK
 # overwritten from command line parameter
 #Home=195.71.129.69
 #TimeToLive=600
-TotalBandwidth=100000
+# how to print CDRs: use local time or universal coordinates
+UseUTCinCDR=TRUE
+# how to print CDRs: the format string of the time stamps as defined by PTime
+UseCDRFormat=wwwe, dd MMME yyyy hh:mm:ss,uuuu z
+
 
 [RoutedMode]
 GKRouted=1
 H245Routed=1
 CallSignalPort=1721
 CallSignalHandlerNumber=1
-RemoveH245AddressOnTunneling=0
-AcceptNeighborsCalls=1
-AcceptUnregisteredCalls=0
-SupportNATedEndpoints=1
-DropCallsByReleaseComplete=1
-SendReleaseCompleteOnDRQ=0
 
 [Proxy]
-#Enable=1
-#InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
-
-#[Endpoint]
-#Gatekeeper=auto
-#Gatekeeper=210.58.112.188
-#Type=Gateway
-#H323ID=CitronProxy
-#E164=18888600000
-#Password=
-#Prefix=18888600,1888890003
-#TimeToLive=900
-#RRQRetryInterval=10
-#ARQTimeout=2
-
-#[Endpoint::RewriteE164]
-#188889000=9
+Enable=1
+InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
 
 [Failover]
-#Sendto=1.2.3.4:1719
-#EndpointIDSuffix=_gk1
-#AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK2
-#SkipForwards=4.3.2.1
+## Give a list of IP4-Addresses to forward the RRQ to that this
+## Gatekeeper receives. Notation: "a.b.c.d:p[,a.b.c.d:p[,...]]" (all numbers)
+#Sendto=195.71.129.37:1719
+#EndpointIDSuffix=_skeeve
+# List of alternate GKs (current maximum: 1)
+# Notation: "a.b.c.d:port:regNeeded:prio(1..127)[:gkID]" (a..d,port = numbers)
+#AlternateGKs=195.71.129.37:1719:false:120:OpenH323GK2
+# when receiving from these IPs, we don't forward the packets to our
+# alternate GKs. Insert your alternate GKs here to prevent loops.
+# Notation: "a.b.c.d[,a.b.c.d[,...]]" (a..d = numbers)
+#SkipForwards=195.71.129.37
 
 ##
-## This section should not be changed and loaded with the HUP signal at runtime 
+## This section should not be changed and loaded with the HUP signal at runtime
 ## because only newly created connections are affected from the change.
 ## You better restart the gatekeeper after changing something here.
 [Gatekeeper::TCP]
-UnicastRasPort=1719 
+UnicastRasPort=1719
 MulticastPort=1718
 MulticastGroup=224.0.1.41
 EndpointSignalPort=9999
@@ -77,7 +67,7 @@ StatusReadTimeout=5000
 
 ##
 ## Prefixes of e164 numbers for gateways.
-## Separate list elements by one of " .,\t". 
+## Separate list elements by one of " .,\t".
 ## @see RasTbl::addPrefixes
 ## This parameters should consider a HUP signal.
 [RasSvr::GWPrefixes]
@@ -92,13 +82,20 @@ StatusReadTimeout=5000
 #ip400-v1=12
 #ip400-wi1=0
 
-[RasSvr::ARQFeatures]
-ArjReasonRouteCallToSCN=0
-ArjReasonRouteCallToGatekeeper=1
+##
+## Options for endpoints.
+## For valid attribute names:
+## @see GkDatabase::DBAttributeNames
+## Attribute "voIPEndpointType" can be: "trunk"|"cpe".
+## Separate attributes by ";", key/value pairs by "=" and
+## values (if there are more than one for one attribute) by ","
+[RasSvr::EndpointOptions]
+ep_1=voIPEndpointType=cpe;telephoneNumber=49524670567;voIPlocalAccessCode=0;voIPnationalAccessCode=00;voIPinternationalAccessCode=000;voIPspecialDial=110=49524675123,112=49524675456;plaintextPassword=asdf
+gw_1=voIPEndpointType=trunk;voIPCountryCode=49;voIPIpAddress=195.71.226.162
 
 [RasSrv::RRQAuth]
-## On a RRQ the h323-alias is queried from this section. 
-## If there is an entry the endpint is authenticated against the given rules. 
+## On a RRQ the h323-alias is queried from this section.
+## If there is an entry the endpint is authenticated against the given rules.
 
 ## If there is no entry the default action is performed. The default action
 ## is to confirm the RRQ, unless the parameter "default=reject" is given.
@@ -109,7 +106,7 @@ ArjReasonRouteCallToGatekeeper=1
 ##   <authtype>  := "sigaddr" | "sigip"
 ##   <autparams> := [!&]*
 ## The notation and meaning of <authparams> depends on <authtype>:
-## - sigaddr: extended regular expression that has to match agains the 
+## - sigaddr: extended regular expression that has to match agains the
 ##     "PrintOn(ostream)" representation of the signal address of the request.
 ##     Example: "sigaddr:.*ipAddress .* ip = .* c3 47 e2 a5 .*port = 1720.*"
 ## - sigip: specialized form of "sigaddr". Write the signalling ip adresse
@@ -135,7 +132,7 @@ default=confirm
 ##   if the peering client. #<value># is resolved with #Toolkit::AsBool#. If the ip
 ##   is not listed the param "default" is used.
 ## - "regex" the #<ip># of the client is matched against the given regular expression.
-##   First the ip-rules (like "explicit") are tested. Olny of no such param exists 
+##   First the ip-rules (like "explicit") are tested. Olny of no such param exists
 ##   the regex is tried.
 ##   Example: "regex=^195\.71\.(129|131)\.[0-9]+$"
 [GkStatus::Auth]
@@ -143,7 +140,7 @@ rule=allow
 #rule=deny
 #rule=explicit
 #rule=regex
-# - 195.71.129.*      
+# - 195.71.129.*
 # - 195.71.100.*
 # - 62.52.26.[1-2][0-9][0-9]
 #regex=^(195\.71\.(129|100)\.[0-9]+)|(62\.52\.26\.[1-2][0-9][0-9])$
@@ -165,7 +162,7 @@ rule=allow
 ## //               999 Suffix
 ## //       0190        Fastmatch
 ## //       01901234    prefix, Config-Rule: 01901234=0521321
-## // new:  0521321999    
+## // new:  0521321999
 ##
 ## The rewrite-numbers function take care of reloads/a HUP signal.
 
@@ -185,7 +182,7 @@ rule=allow
 ## Currently only one prefix is supported.
 ##
 #
-# GKID=ip[:port;prefix;password;dynamic]
+# GKID=ip[:port;prefix;password]
 #
 [RasSvr::Neighbors]
 #GK1=203.60.151.5:1719;*;gk1
@@ -217,38 +214,32 @@ rule=allow
 ## Syntax:
 ##   authrule=actions
 ##
-##   <authrule> := SimplePasswordAuth | LDAPPasswordAuth
-##                 | AliasAuth | LDAPAliasAuth | ...
+##   <authrule> := SimplePasswordAuth | DBPasswordAuth
+##                 | AliasAuth | DBAliasAuth | ...
 ##   <actions>  := <control>[;<ras>,<ras>,...]
-##   <control>  := optional | required | sufficient
+##   <control>  := alternative | optional | required | sufficient
 ##   <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
 ##
 ## Currently supported modules:
 ##
-##   SimplePasswordAuth/MySQLAuth/LDAPPasswordAuth
-##
-##                       The module checks the tokens or cryptoTokens
+##   SimplePasswordAuth/
+##   DBPasswordAuth      The module checks the tokens or cryptoTokens
 ##                       fields of RAS message. The tokens should contain
 ##                       at least generalID and password. For cryptoTokens,
-##                       cryptoEPPwdHash tokens hashed by simple MD5 and 
+##                       cryptoEPPwdHash tokens hashed by simple MD5 and
 ##                       nestedcryptoToken tokens hashed by HMAC-SHA1-96
 ##                       (libssl must be installed!) are supported now.
-##                       The ID and password are read from [Password] section 
-##                       / MySQL / LDAP. Support for other backend databases
-##                       is easily to add.
-##
-##   NeighborPasswordAuth
-##
-##                       The module only check LRQs from neighbors. The ID and
-##                       password are defined in [RasSvr::Neighbors] section.
+##                       The ID and password are read from [Password] section
+##                       / Database. Support for other backend databases is
+##                       easily to add.
 ##
 ##   AliasAuth/
-##   LDAPAliasAuth       The IP of an endpoint with given alias should
-##                       match a specified pattern. For AliasAuth the pattern 
-##                       is defined in [RasSrv::RRQAuth] section. 
-##                       For LDAPAliasAuth the alias (default: mail attribute)
+##   DBAliasAuth         The IP of an endpoint with given alias should
+##                       match a specified pattern. For AliasAuth the pattern
+##                       is defined in [RasSrv::RRQAuth] section.
+##                       For DBAliasAuth the alias (default: mail attribute)
 ##                       and IP (default: voIPIpAddress attribute) must be found
-##                       in one LDAP entry.
+##                       in one database entry.
 ##
 ## A rule may results in one of the three codes: ok, fail, pass.
 ##
@@ -256,17 +247,28 @@ rule=allow
 ##   fail       The authentication fails and should be rejected
 ##   next       The rule cannot determine the request
 ##
-## There are also three ways to control a rule:
+## There are also four ways to control a rule:
 ##
-##   optional      If the rule cannot determine the request, it is passed
-##                 to next rule.
-##   required      The requests should be authenticated by this module,
+##   alternative   If this rule cannot determine the request, it is passed
+##                 to next rule. If the answer is positive, the request is
+##		   confirmed. If the answer is negative, the request is passed
+##		   on to the next rule.
+##   optional      If this rule cannot determine the request, it is passed
+##                 to next rule. Otherwise, the output determines the
+##		   answer, i.e. the request is either confirmed or denied.
+##		   In that case, the request is NOT passed on to the next rule.
+##   required      The request should be authenticated by this module,
 ##                 or it would be rejected. The authenticated request would
 ##                 then be passwd to next rule.
 ##   sufficient    If the request is authenticated, it is accepted,
 ##                 or it would be rejected. That is, the rule determines
 ##                 the fate of the request. No rule should be put after
 ##                 a sufficient rule, since it won't take effect.
+##
+##
+## "Cannot determine" means the rule is not applicable, e.g:
+##    a [Simple|DB]PasswordAuth rule cannot be applied if the request does not contain CryptoTokens
+##    a DBAliasAuth cannot be applied if the database entry does not contain the alias field
 ##
 ## You can also configure a rule to check only for some particular RAS
 ## messages. For example, to configure SimplePasswordAuth as a required
@@ -275,9 +277,9 @@ rule=allow
 #
 [Gatekeeper::Auth]
 #SimplePasswordAuth=optional
-#LDAPPasswordAuth=optional
+#DBPasswordAuth=optional
 #AliasAuth=sufficient;RRQ
-#LDAPAliasAuth=sufficient;RRQ
+#DBAliasAuth=sufficient;RRQ
 #default=reject
 default=allow
 
@@ -295,12 +297,12 @@ default=allow
 ##
 ## Currently supported modules:
 ##
-##   OverlapSendDestAnalysis  This module checks for incomplete destination 
+##   OverlapSendDestAnalysis  This module checks for incomplete destination
 ##                            addresses (not fully implemented up to now).
 ##
-## A rule may results in one of the three codes: ok, fail, pass. 
+## A rule may results in one of the three codes: ok, fail, pass.
 ## There are also three ways to control a rule: optional, required, sufficient.
-## Additionally you can configure a rule to check only for some particular 
+## Additionally you can configure a rule to check only for some particular
 ## messages.
 ## (see Authentication mechanism for details informations).
 #
@@ -316,8 +318,6 @@ default=allow
 ##
 #[Password]
 #KeyFilled=123
-#CkeckID=FALSE
-#PasswordTimeout=0
 #(id=cwhuang, password=123456)
 #cwhuang=UGwUtpy837k=
 
@@ -329,29 +329,43 @@ default=allow
 #Table=customer
 #IDField=IPN
 #PasswordField=Password
-#ExtraCriterion=Kind < 2
+#CheckEnableField=Active
 
 [CallTable]
 #GenerateNBCDR=TRUE
 #GenerateUCCDR=TRUE
 #DefaultCallTimeout=21600  // 6hr
 
-# the attribute names used for LDAP access, the default is the names
-# from the VoIP-scheme which is provided within this distribution
-[GkLDAP::LDAPAttributeNames]
-#UserIdentity=uid
-#H323ID=cn
-#TelephonNo=telephoneNumber
-#H245PassWord=plaintextPassword
-#aliasH3232ID=voIPnickName
-#CountryCode=voIPcountryCode
-#AreaCode=voIPareaCode
+# The databases which are used for endpoint configuration.
+# The databases are searched for a config in the same order as they
+# are listed here.
+[Gatekeeper::Databases]
+#IniFile=true
+#LDAP=true
+
+# the attribute names used for database access, the default is the names
+# from the LDAP-VoIP-scheme which is provided within this distribution
+[GkDatabase::DBAttributeNames]
+#H323ID=mail
+#TelephoneNo=telephoneNumber
+#FacsimileTelephoneNo=facsimileTelephoneNumber
+#H235PassWord=plaintextPassword
+#IPAddress=voIPIpAddress
+#CountryCode=voIPCountryCode
+#EPType=voIPEndpointType
 #LocalAccessCode=voIPlocalAccessCode
 #NationalAccessCode=voIPnationalAccessCode
 #InternationalAccessCode=voIPinternationalAccessCode
-#CallingLineIdPresentation=voIPcallingLineIdPresentation
-#PrefixBlacklist=voIPprefixBlacklist
-#PrefixWhitelist=voIPprefixWhitelist
+#MainTelephoneNo=voIPmainTelephoneNumber
+#SubscriberTelephoneNumber=voIPsubscriberTelephoneNumber
+#CallingLineIdRestriction=voIPcallingLineIdRestriction
+#SpecialDial=voIPspecialDial
+#HonorsARJincompleteAddress=voIPhonorsARJincompleteAddress
+#PrefixOutgoingBlacklist=voIPprefixOutgoingBlacklist
+#PrefixOutgoingWhitelist=voIPprefixOutgoingWhitelist
+#PrefixIncomingBlacklist=voIPprefixIncomingBlacklist
+#PrefixIncomingWhitelist=voIPprefixIncomingWhitelist
+#PrependCallbackAC=voIPprependCallbackAC
 
 # Settings for LDAP access
 [GkLDAP::Settings]
@@ -363,5 +377,46 @@ default=allow
 #sizelimit=0
 #timelimit=0
 
-# EOF
+#
+# LDAP Cache:
+#
+# Enable (boolean):    switch caching on/off. Default: off
+# MaxMemory (integer): maximum amount of memory used in cache
+#                      With internal cache the amount of
+#                      results is computed by:
+#		       maxresults=MaxMemory/CACHE_AVERAGE_SEARCH_SIZE
+#		       CACHE_AVERAGE_SEARCH_SIZE is set in
+#                      gk_ldap_interface.h to 10.
+# TTL (boolean):       maximum time (in seconds) a cache entry may have.
 
+[LDAPCache]
+#Enable=T
+#MaxMemory=10000
+#TTL=60
+
+
+# Digit Analysis general section,
+[DigitAnalysis::General]
+#may specify the override(!) file for the E.164 defined Country Codes,
+#in <code>;<descr> syntax
+#CountryCodes=cc.dat
+
+# Digit Analysis special section: the keys here have to be E.164 defined
+# Country Codes and their value might either be a valid file name or an
+# valid function identifier. In case a file is specified, it must
+# contain the National Destination Codes (NDC) for that Country Code in
+# <code>;<descr> syntax. The function identifier selects a functional
+# way to extract the NDC from a given digit sequence.
+[DigitAnalysis::Functor]
+1=NorthAmericanNumberingPlan
+#49=49.dat
+
+# the shared secret for the symetric ciphers used to secure 'plaintext'
+# passwords needed for challenge response authentification. LHS the
+# cipher's prefix (as used by LDAP for instance); RHS is the base64
+# encoded password (shared secret). The actual key used is the MD5
+# digest of the password.
+[PlaintextPasswd::SharedSecret]
+#{BF}=cHc=
+
+# EOF

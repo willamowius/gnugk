@@ -1,0 +1,89 @@
+#!/bin/sh
+#
+# gk            This shell script takes care of starting and stopping \
+#               gk (Openh323 gatekeeper daemon)
+#
+# chkconfig: 345 60 60
+# description: gk is the openh323 gatekeeper
+# processname: /usr/sbin/gk
+# config: /etc/gatekeeper.ini
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+GKEXE=/usr/sbin/gk
+GKPID=/var/run/gk.pid
+GKCONFIG=/etc/gatekeeper.ini
+LOGFILE=/var/log/gk/gk.log
+
+# Source networking configuration and check that networking is up.
+if [ -f /etc/sysconfig/network ] ; then
+        . /etc/sysconfig/network
+        [ ${NETWORKING} = "no" ] && exit 0
+fi
+
+[ -x $GKEXE ] || exit 0
+
+[ -f $GKCONFIG ] || exit 0
+
+prog=gk
+
+RETVAL=0
+
+start () {
+    echo -n $"Starting $prog: "
+    # start daemon
+    $GKEXE -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
+    RETVAL=$?
+    [ $RETVAL = 0 ] && touch /var/lock/subsys/gk && success 
+    echo
+    return $RETVAL
+}
+
+stop () {
+    # stop daemon
+    echo -n $"Stopping $prog: "
+    killproc /usr/sbin/gk
+    RETVAL=$?
+    echo
+    rm -f /var/lock/subsys/gk # delete it anyway
+    return $RETVAL
+}
+
+restart () {
+    stop
+    start
+    RETVAL=$?
+    return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        [ -f /var/lock/subsys/gk ] || start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status /usr/sbin/gk
+        RETVAL=$?
+        ;;
+    restart)
+        restart
+        ;;
+    reload)
+        kill -HUP `cat $GKPID`
+        RETVAL=$?
+        ;;
+    condrestart)
+        # only restart if it is already running
+        [ -f /var/lock/subsys/gk ] && restart || :
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|reload|condrestart|status}"
+        RETVAL=1
+esac
+
+exit $RETVAL
+

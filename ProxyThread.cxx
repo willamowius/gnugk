@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // ProxyThread.cxx
@@ -17,7 +18,7 @@
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4355 ) // warning about using 'this' in initializer
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#pragma warning( disable : 4800 )
 #endif
 
 #include <algorithm>
@@ -61,7 +62,6 @@ inline TPKTV3::TPKTV3(WORD len)
 }
 
 
-// class ProxySocket
 ProxySocket::ProxySocket(PIPSocket *s, const char *t) : self(s), type(t)
 {
 	maxbufsize = 1024;
@@ -111,9 +111,7 @@ bool ProxySocket::Flush()
 		PTRACE(6, Name() << " Error: nothing to flush");
 		return false;
 	}
-//PTRACE(5, wsocket->Name() << " Write " << buflen << " bytes");
 	if (wsocket->Write(bufptr, buflen)) {
-//PTRACE(5, wsocket->Name() << " Write ok");
 		InternalCleanup();
 		return true;
 	}
@@ -128,12 +126,13 @@ bool ProxySocket::ErrorHandler(PSocket *socket, PChannel::ErrorGroup group)
 	PChannel::Errors e = socket->GetErrorCode(group);
 
 	PString msg(PString(type) + "\t" + dynamic_cast<ProxySocket *>(socket)->Name());
+
 	switch (e)
 	{
 //		case PChannel::NoError:
-//			// I don't know why there is error with code NoError
-//			PTRACE(4, msg << " Error(" << group << "): No error?");
-//			break;
+// I don't know why there is error with code NoError
+//                     PTRACE(4, msg << " Error(" << group << "): No error?");
+//                     break;
 		case PChannel::Timeout:
 			PTRACE(4, msg << " Error(" << group << "): Timeout");
 			break;
@@ -144,6 +143,7 @@ bool ProxySocket::ErrorHandler(PSocket *socket, PChannel::ErrorGroup group)
 				socket->Close();
 			break;
 	}
+
 	return false;
 }
 
@@ -158,8 +158,9 @@ bool ProxySocket::SetMinBufSize(WORD len)
 
 // class TCPProxySocket
 TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
-      : PTCPSocket(p), ProxySocket(this, t), remote(s)
+	: PTCPSocket(p), ProxySocket(this, t), remote(s)
 {
+	SetReadTimeout(PTimeInterval(1000));
 	SetWriteTimeout(PTimeInterval(100));
 }
 
@@ -197,6 +198,8 @@ bool TCPProxySocket::ForwardData()
 
 bool TCPProxySocket::TransmitData()
 {
+	PTRACE(2, "TransmitData(): " << *this);
+
 	if (buffer.GetSize() == 0)
 		return false;
 	if (!wsocket) {
@@ -209,7 +212,7 @@ bool TCPProxySocket::TransmitData()
 
 BOOL TCPProxySocket::Accept(PSocket & socket)
 {
-//	SetReadTimeout(PMaxTimeInterval);
+//      SetReadTimeout(PMaxTimeInterval);
 	BOOL result = PTCPSocket::Accept(socket);
 	SetReadTimeout(PTimeInterval(100));
 	// since GetName() may not work if socket closed,
@@ -243,7 +246,7 @@ bool TCPProxySocket::ReadTPKT()
 		buflen = Net2Host(tpkt.length) - sizeof(TPKTV3);
 		if (buflen < 1) {
 			PTRACE(3, "Proxy\t" << Name() << " PACKET TOO SHORT!");
-			buflen = 0;
+                        buflen = 0;
 			return false;
 		}
 		buffer.SetSize(buflen);
@@ -274,7 +277,6 @@ bool TCPProxySocket::InternalWrite()
 	return Flush();
 }
 
-
 // class MyPThread
 MyPThread::MyPThread() : PThread(5000, NoAutoDeleteThread), isOpen(true)
 {
@@ -303,7 +305,6 @@ bool MyPThread::Destroy()
 	return true; // useless, workaround for VC
 }
 
-
 // class ProxyConnectThread
 ProxyConnectThread::ProxyConnectThread(ProxyHandleThread *h)
 	: handler(h), available(true)
@@ -313,8 +314,11 @@ ProxyConnectThread::ProxyConnectThread(ProxyHandleThread *h)
 
 bool ProxyConnectThread::Connect(ProxySocket *socket)
 {
-	if (!available)
+	if (!available) {
+		PTRACE(1, "Socket not available");
 		return false;
+	}
+	PTRACE(1,"ProxyConnectThread::Connect(): " << socket);
 	available = false;
 
 	socket->MarkBlocked(true);
@@ -335,7 +339,7 @@ void ProxyConnectThread::Exec()
 		socket->MarkBlocked(false);
 	}
 	// else
-	// 	Note: socket may be invalid
+	//      Note: socket may be invalid
 
 	available = true;
 }
@@ -443,7 +447,7 @@ void ProxyHandleThread::FlushSockets()
 	// unfortunately, there is no method to select only sockets to write
 	PSocket::SelectList rlist = wlist;
 	PSocket::Select(rlist, wlist, PTimeInterval(10));
-	
+
 	PTRACE(5, "Proxy\t" << wlist.GetSize() << " sockets to flush...");
 	for (PINDEX k = 0; k < wlist.GetSize(); ++k) {
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(&wlist[k]);
@@ -461,8 +465,9 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 		iterator k=i++;
 		ProxySocket *socket = *k;
 		if (!socket->IsBlocked()) {
-			if (socket->IsSocketOpen())
+			if (socket->IsSocketOpen()) {
 				socket->AddToSelectList(result);
+			}
 			else if (!socket->IsConnected()) {
 				Remove(k);
 				continue;
@@ -470,8 +475,8 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 			if (socket->IsDeletable())
 				Remove(k);
 #ifdef PTRACING
-	//	} else {
-	//		PTRACE(5, socket->Name() << " is busy!");
+		} else {
+			PTRACE(5, socket->Name() << " is busy!");
 #endif
 		}
 	}
@@ -502,6 +507,11 @@ void ProxyHandleThread::Exec()
 	PString msg(PString::Printf, " %u sockets selected from %u, total %u", sList.GetSize(), ss, sockList.size());
 	PTRACE(4, id + msg);
 #endif
+	// As we cannot decide wether a number is complete (here) we have to hope. that
+	// the ProxySocket does a destination analysis. Therefore, we will return
+	// ProxySocket::noData als long, as the dest analysis will fail.
+
+	// List of Sockets to read.
 	for (PINDEX i = 0; i < sList.GetSize(); ++i) {
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(&sList[i]);
 		switch (socket->ReceiveData())
@@ -511,7 +521,7 @@ void ProxyHandleThread::Exec()
 				break;
 			case ProxySocket::Forwarding:
 				if (!socket->ForwardData()) {
-					PTRACE(3, "Proxy\t" << socket->Name() << " forward blocked");
+					PTRACE(2, "Proxy\t" << socket->Name() << " forward blocked");
 				}
 				break;
 			case ProxySocket::Closing:
@@ -586,7 +596,7 @@ HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)
 HandlerList::~HandlerList()
 {
 	CloseListener();
-	std::for_each(handlers.begin(), handlers.end(), std::mem_fun(&MyPThread::Destroy));
+	std::for_each(handlers.begin(), handlers.end(), delete_thread);
 }
 
 void HandlerList::Insert(ProxySocket *socket)
@@ -599,7 +609,7 @@ void HandlerList::Insert(ProxySocket *socket)
 
 void HandlerList::Check()
 {
-	std::for_each(handlers.begin(), handlers.end(), std::mem_fun(&ProxyHandleThread::CloseUnusedThreads));
+	std::for_each(handlers.begin(), handlers.end(), close_threads);
 }
 
 void HandlerList::CloseListener()
@@ -609,4 +619,3 @@ void HandlerList::CloseListener()
 		listenerThread = 0;
 	}
 }
-

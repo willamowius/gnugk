@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
@@ -16,7 +17,7 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if (_MSC_VER >= 1200)  
+#if (_MSC_VER >= 1200)
 #pragma warning( disable : 4800 ) // one performance warning off
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #define snprintf	_snprintf
@@ -35,8 +36,12 @@
 #include "ProxyChannel.h"
 #include "gk_const.h"
 
-const char *CallTableSection = "CallTable";
+#ifdef HAS_LDAP
+# include "ldaplink.h"
+# include "gkldap.h"
+#endif
 
+const char *CallTableSection = "CallTable";
 /*
 conferenceRec::conferenceRec(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw)
 {
@@ -83,25 +88,25 @@ unsigned int resourceManager::GetAvailableBW(void) const
 	return RemainingBW;
 }
 
-   
+
 BOOL resourceManager::GetAdmission(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw)
 {
     if( bw.GetValue() > GetAvailableBW() )
 		return FALSE;
-      
+
     conferenceRec cRec( src, cid, bw );
 	ConferenceList.insert(cRec);
     PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable BandWidth " << GetAvailableBW());
     return TRUE;
 }
 
- 
+
 BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid)
 {
 	std::set<conferenceRec>::iterator Iter;
 
 	for (Iter = ConferenceList.begin(); Iter != ConferenceList.end(); ++Iter)
-	{  
+	{
 		if( ((*Iter).m_src == src) && ((*Iter).m_cid == cid) )
 		{
 			ConferenceList.erase(Iter);
@@ -112,75 +117,86 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 	return FALSE;
 }
 */
+// Classes to store information read form e.g. LDAP
+// necessary for e.g. routing decisions
+
+CalledProfile::CalledProfile(PString &dialedPN, PString &calledPN)
+{
+        setDialedPN(dialedPN);
+        setCalledPN(calledPN);
+}
+
+// End of: Classes to store information read from e.g. LDAP
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false)
+	:        m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false)
 {
 	switch (m_RasMsg.GetTag())
 	{
-		case H225_RasMessage::e_registrationRequest:
-			SetEndpointRec((H225_RegistrationRequest &)m_RasMsg);
-			PTRACE(1, "New EP|" << PrintOn(false));
-			break;
-		case H225_RasMessage::e_admissionConfirm:
-			SetEndpointRec((H225_AdmissionConfirm &)m_RasMsg);
-			break;
-		case H225_RasMessage::e_locationConfirm:
-			SetEndpointRec((H225_LocationConfirm &)m_RasMsg);
-			break;
-		default: // should not happen
-			break;
+	case H225_RasMessage::e_registrationRequest:
+		SetEndpointRec((H225_RegistrationRequest &)m_RasMsg);
+		PTRACE(1, "New EP|" << PrintOn(false));
+		break;
+	case H225_RasMessage::e_admissionConfirm:
+		SetEndpointRec((H225_AdmissionConfirm &)m_RasMsg);
+		break;
+	case H225_RasMessage::e_locationConfirm:
+		SetEndpointRec((H225_LocationConfirm &)m_RasMsg);
+		break;
+	default: // should not happen
+		break;
 	}
 	if (Permanent)
 		m_timeToLive = 0;
-}	
+}
 
 void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 {
-	if (rrq.m_rasAddress.GetSize() > 0)
-		m_rasAddress = rrq.m_rasAddress[0];
-	else
-		m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
-	if (rrq.m_callSignalAddress.GetSize() > 0)
-		m_callSignalAddress = rrq.m_callSignalAddress[0];
-	else
-		m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
-	m_endpointIdentifier = rrq.m_endpointIdentifier;
-	m_terminalAliases = rrq.m_terminalAlias;
-	m_terminalType = &rrq.m_terminalType;
-	if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
-		SetTimeToLive(rrq.m_timeToLive);
-	else
-		SetTimeToLive(SoftPBX::TimeToLive);
-	m_fromParent = false;
+        if (rrq.m_rasAddress.GetSize() > 0)
+                m_rasAddress = rrq.m_rasAddress[0];
+        else
+                m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress
+);
+        if (rrq.m_callSignalAddress.GetSize() > 0)
+                m_callSignalAddress = rrq.m_callSignalAddress[0];
+        else
+                m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+        m_endpointIdentifier = rrq.m_endpointIdentifier;
+        m_terminalAliases = rrq.m_terminalAlias;
+        m_terminalType = &rrq.m_terminalType;
+        if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
+                SetTimeToLive(rrq.m_timeToLive);
+        else
+                SetTimeToLive(SoftPBX::TimeToLive);
+        m_fromParent = false;
 }
 
 void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
 {
-	// there is no RAS address in ACF
-	// we set it to non-standard address to avoid misuse
-	m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
-	m_callSignalAddress = acf.m_destCallSignalAddress;
-	if (acf.HasOptionalField(H225_AdmissionConfirm::e_destinationInfo))
-		m_terminalAliases = acf.m_destinationInfo;
-	if (!acf.HasOptionalField(H225_AdmissionConfirm::e_destinationType))
-		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
-	m_terminalType = &acf.m_destinationType;
-	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
-	m_fromParent = true;
+       // there is no RAS address in ACF
+       // we set it to non-standard address to avoid misuse
+       m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+       m_callSignalAddress = acf.m_destCallSignalAddress;
+       if (acf.HasOptionalField(H225_AdmissionConfirm::e_destinationInfo))
+               m_terminalAliases = acf.m_destinationInfo;
+       if (!acf.HasOptionalField(H225_AdmissionConfirm::e_destinationType))
+               acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
+       m_terminalType = &acf.m_destinationType;
+       m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+       m_fromParent = true;
 }
 
 void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 {
-	m_rasAddress = lcf.m_rasAddress;
-	m_callSignalAddress = lcf.m_callSignalAddress;
-	if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
-		m_terminalAliases = lcf.m_destinationInfo;
-	if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
-		lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
-	m_terminalType = &lcf.m_destinationType;
-	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
-	m_fromParent = false;
+        m_rasAddress = lcf.m_rasAddress;
+        m_callSignalAddress = lcf.m_callSignalAddress;
+        if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
+                m_terminalAliases = lcf.m_destinationInfo;
+        if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
+                lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
+        m_terminalType = &lcf.m_destinationType;
+        m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+        m_fromParent = false;
 }
 
 EndpointRec::~EndpointRec()
@@ -188,44 +204,46 @@ EndpointRec::~EndpointRec()
 	PTRACE(3, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
 }
 
-bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
-                                               bool &fullMatch) const
+bool EndpointRec::GetH323ID(H225_AliasAddress &id) {
+	const H225_ArrayOf_AliasAddress & aliases = GetAliases();
+        for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+               if (aliases[i].GetTag() == H225_AliasAddress::e_h323_ID) {
+                       id = aliases[i];
+		       return TRUE;
+	       }
+        }
+	return FALSE;
+}
+
+BOOL EndpointRec::AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullMatch) const
 {
-        fullMatch = 0;
-        int partialMatch = 0;
-        PString aliasStr;
+        fullMatch = FALSE;
+        bool partialMatch = FALSE;
 	unsigned int aliasStr_len;
 	const H225_ArrayOf_AliasAddress & reg_aliases = GetAliases();
 	PString reg_alias;
-	// for each given alias (dialedDigits) from request message 
-	for(PINDEX i = 0; i < aliases.GetSize() && !fullMatch; i++) {
-//          if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-	    aliasStr = H323GetAliasAddressString(aliases[i]);
-	    aliasStr_len = aliasStr.GetLength();
-	    // for each alias (dialedDigits) which is stored for the endpoint in registration
-	    for (PINDEX i = 0; i < reg_aliases.GetSize() && !fullMatch; i++) {
-//              if (reg_aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-	        reg_alias = H323GetAliasAddressString(reg_aliases[i]);
-                // if alias from request message is prefix to alias which is 
+	PString aliasStr = H323GetAliasAddressString(alias);
+	aliasStr_len = aliasStr.GetLength();
+	// for each alias which is stored for the endpoint in registration
+	for (PINDEX i = 0; i < reg_aliases.GetSize() && !partialMatch; i++) {
+		reg_alias = H323GetAliasAddressString(reg_aliases[i]);
+		// if alias from request message is prefix to alias which is
 		//   stored in registration
-	        if ((reg_alias.GetLength() >= aliasStr_len) && 
-		    (aliasStr == reg_alias.Left(aliasStr_len))) {
-		  // check if it is a full match 
-		  if (aliasStr == reg_alias) {
-		    fullMatch = 1;
-  		    PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
-		      << (const unsigned char *)m_endpointIdentifier.GetValue() << " (full)" << ANSI::OFF);
-  		  } else {
-		    partialMatch = 1;
-  		    PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
-		      << (const unsigned char *)m_endpointIdentifier.GetValue() << " (partial)" << ANSI::OFF);
-		  }
-	        }
-//	      }
-	    }
-//	  }
+		if ((reg_alias.GetLength() >= aliasStr_len) && (aliasStr == reg_alias.Left(aliasStr_len))) {
+			// check if it is a full match
+			if (aliasStr == reg_alias) {
+				fullMatch = TRUE;
+				PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint "
+				  << (const unsigned char *)m_endpointIdentifier.GetValue() << " (full)" << ANSI::OFF);
+			} else {
+				fullMatch = FALSE;
+				partialMatch = TRUE;
+				PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint "
+				  << (const unsigned char *)m_endpointIdentifier.GetValue() << " (partial)" << ANSI::OFF);
+			}
+		}
 	}
-	return (partialMatch || fullMatch);
+	return partialMatch;
 }
 
 void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
@@ -239,7 +257,7 @@ void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
 	PWaitAndSignal lock(m_usedLock);
 	m_endpointIdentifier = i;
 }
-        
+
 void EndpointRec::SetTimeToLive(int seconds)
 {
 	if (m_timeToLive > 0) {
@@ -263,8 +281,8 @@ void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
 	PWaitAndSignal lock(m_usedLock);
         m_terminalAliases = a;
 }
-        
-void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
+
+void EndpointRec::SetEndpointType(const H225_EndpointType &t)
 {
 	PWaitAndSignal lock(m_usedLock);
         *m_terminalType = t;
@@ -319,18 +337,18 @@ EndpointRec *EndpointRec::Unregister()
 	return this;
 }
 
-EndpointRec *EndpointRec::Expired()
-{
-	SendURQ(H225_UnregRequestReason::e_ttlExpired);
-	return this;
-}
-
 void EndpointRec::BuildACF(H225_AdmissionConfirm & obj_acf) const
 {
 	obj_acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
 	obj_acf.m_destinationInfo = GetAliases();
 	obj_acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
 	obj_acf.m_destinationType = GetEndpointType();
+}
+
+EndpointRec *EndpointRec::Expired()
+{
+	SendURQ(H225_UnregRequestReason::e_ttlExpired);
+	return this;
 }
 
 void EndpointRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
@@ -348,7 +366,7 @@ void EndpointRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
 
 PString EndpointRec::PrintOn(bool verbose) const
 {
-	PString msg(PString::Printf, "%s|%s|%s|%s\r\n",
+	PString msg(PString::Printf, "%s|%s|%s|%s" GK_LINEBRK,
 		    (const unsigned char *) AsDotString(GetCallSignalAddress()),
 		    (const unsigned char *) AsString(GetAliases()),
 		    (const unsigned char *) AsString(GetEndpointType()),
@@ -357,7 +375,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		msg += GetUpdatedTime().AsString();
 		if (m_timeToLive == 0)
 			msg += " (permanent)";
-		msg += PString(PString::Printf, " C(%d/%d) <%d>\r\n", m_activeCall, m_totalCall, m_usedCount);
+		msg += PString(PString::Printf, " C(%d) <%d>" GK_LINEBRK, m_activeCall, m_totalCall, m_usedCount);
 	}
 	return msg;
 }
@@ -380,7 +398,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_reason);
 	urq.m_reason.SetTag(reason);
 
-	PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
+	PString msg(PString::Printf, "URQ|%s|%s|%s;" GK_LINEBRK,
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue(),
 			(const unsigned char *) urq.m_reason.GetTagName());
@@ -401,9 +419,9 @@ bool EndpointRec::SendIRQ()
 	irq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
 	irq.m_callReferenceValue.SetValue(0); // ask for each call
 
-	PString msg(PString::Printf, "IRQ|%s|%s;\r\n", 
-			(const unsigned char *) AsDotString(GetRasAddress()),
-			(const unsigned char *) GetEndpointIdentifier().GetValue());
+	PString msg(PString::Printf, "IRQ|%s|%s;\r\n",
+		    (const unsigned char *) AsDotString(GetRasAddress()),
+		    (const unsigned char *) GetEndpointIdentifier().GetValue());
         GkStatus::Instance()->SignalStatus(msg);
 	RasThread->SendRas(ras_msg, GetRasAddress());
 
@@ -413,14 +431,15 @@ bool EndpointRec::SendIRQ()
 void EndpointRec::SetNATAddress(PIPSocket::Address ip)
 {
 /* need to do this?
-	if (m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)
-		m_rasAddress = SocketToH225TransportAddr(ip, ((H225_TransportAddress_ipAddress &)m_rasAddress).m_port);
-	if (m_callSignalAddress.GetTag() == H225_TransportAddress::e_ipAddress)
-		m_callSignalAddress = SocketToH225TransportAddr(ip, ((H225_TransportAddress_ipAddress &)m_callSignalAddress).m_port);
+   if (m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)
+               m_rasAddress = SocketToH225TransportAddr(ip, ((H225_TransportAddress_ipAddress &)m_rasAddress).m_port);
+   if (m_callSignalAddress.GetTag() == H225_TransportAddress::e_ipAddress)
+               m_callSignalAddress = SocketToH225TransportAddr(ip, ((H225_TransportAddress_ipAddress &)m_callSignalAddress).m_port);
 */
 	m_nat = true;
 	m_natip = ip;
 }
+
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false)
@@ -458,7 +477,7 @@ void GatewayRec::Update(const H225_RasMessage & ras_msg)
 		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
 			SetEndpointType(lcf.m_destinationType);
 	}
-			
+
 	EndpointRec::Update(ras_msg);
 }
 
@@ -492,35 +511,89 @@ bool GatewayRec::LoadConfig()
 {
 	PWaitAndSignal lock(m_usedLock);
 	Prefixes.clear();
-	if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+	if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol)) {
 		AddPrefixes(m_terminalType->m_gateway.m_protocol);
+	}
 	for (PINDEX i=0; i<m_terminalAliases.GetSize(); i++) {
+		// Get terminal aliases from LDAP
 		PStringArray p = (GkConfig()->GetString("RasSvr::GWPrefixes",
 				  H323GetAliasAddressString(m_terminalAliases[i]), "")
 				 ).Tokenise(" ,;\t\n", false);
-		for (PINDEX s=0; s<p.GetSize(); s++)
+#if defined (HAS_LDAP)
+		using namespace dctn;
+		if(m_terminalAliases[i].GetTag()==H225_AliasAddress::e_h323_ID) {
+			DBAttributeValueClass attr;
+			using namespace dctn;
+			DBTypeEnum dbType;
+// 			if(GkDatabase::Instance()->getAttributes(H323GetAliasAddressString(m_terminalAliases[i]), attr, dbType)) {
+// 				PStringList p2 = attr.find("telephonenumber")->second;
+			PStringList p2;
+//  			PTRACE(2, "GkDatabase::Instance()->getAttribute(" << H323GetAliasAddressString(m_terminalAliases[i])
+// 			       << ", " << TelephoneNo << ", " << p2 << ")");
+			if(GkDatabase::Instance()->getAttribute(H323GetAliasAddressString(m_terminalAliases[i]),
+							    TelephoneNo, p2, dbType)) {
+//				PTRACE(2, "got numbers: " << p2);
+				for(PINDEX j=0; j<p2.GetSize(); j++) {
+					if((p.GetSize()==0) || (p.GetStringsIndex(p2[j])==0)) {
+						p.AppendString(E164_AnalysedNumber(p2[j]).GetAsDigitString());
+					}
+				}
+			}
+		}
+#endif // HAS_LDAP
+		for (PINDEX s=0; s<p.GetSize(); s++) {
+			PTRACE(5, "adding prefix " << p[s]);
 			Prefixes.push_back((const char *)p[s]);
+		}
 	}
 	SortPrefixes();
 	return true;
 }
 
+BOOL GatewayRec::PrefixIsIncomplete(const H225_AliasAddress & alias, BOOL &fullMatch) const
+{
+	fullMatch = FALSE;
+	bool partialMatch = FALSE;
+	// check for gw prefixes
+	PString aliasStr = H323GetAliasAddressString(alias);
+	unsigned int aliasStrLen = aliasStr.GetLength();
+	PString regPrefix;
+	// for each prefix which is stored for the endpoint in registration
+	for (const_prefix_iterator Iter = Prefixes.begin(); Iter != Prefixes.end() && !partialMatch; Iter++) {
+		regPrefix = Iter->c_str();
+		// if alias from request message is prefix to gw prefix
+		if ((regPrefix.GetLength() >= aliasStrLen) && (aliasStr == regPrefix.Left(aliasStrLen))) {
+			// check if it is a full match
+			if (aliasStr == regPrefix) {
+				fullMatch = TRUE;
+				PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches GW "
+					<< (const unsigned char *)m_endpointIdentifier.GetValue() << " (full)" << ANSI::OFF);
+			} else {
+				fullMatch = FALSE;
+				partialMatch = TRUE;
+				PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " is prefix of GW "
+					<< (const unsigned char *)m_endpointIdentifier.GetValue() << " (partial)" << ANSI::OFF);
+			}
+		}
+	}
+	return partialMatch;
+}
+
 int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &a) const
 {
 	int maxlen = (defaultGW) ? 0 : -1;
-	for (PINDEX i = 0; i < a.GetSize(); i++)
-		if (a[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-			PString AliasStr = H323GetAliasAddressString(a[i]);
-			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
-			while (Iter != eIter) {
-				int len = Iter->length();
-				if ((maxlen < len) && (strncmp(AliasStr, Iter->c_str(), len)==0)) {
-					PTRACE(2, ANSI::DBG << "Gateway " << (const unsigned char *)m_endpointIdentifier.GetValue() << " match " << Iter->c_str() << ANSI::OFF);
-					maxlen = len;
-				}
-				++Iter;
+	for (PINDEX i = 0; i < a.GetSize(); i++) {
+		PString AliasStr = H323GetAliasAddressString(a[i]);
+		const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
+		while (Iter != eIter) {
+			int len = Iter->length();
+			if ((maxlen < len) && (strncmp(AliasStr, Iter->c_str(), len)==0)) {
+				PTRACE(2, ANSI::DBG << "Gateway " << (const unsigned char *)m_endpointIdentifier.GetValue() << " match " << Iter->c_str() << ANSI::OFF);
+				maxlen = len;
 			}
+			++Iter;
 		}
+	}
 	return maxlen;
 }
 
@@ -553,7 +626,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 				m += "," + (*Iter);
 			msg += m.c_str();
 		}
-		msg += "\r\n";
+		msg += GK_LINEBRK;
 	}
 	return msg;
 }
@@ -598,31 +671,32 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg)
 	endptr ep;
 	switch (ras_msg.GetTag())
 	{
-		case H225_RasMessage::e_registrationRequest: {
-			H225_RegistrationRequest & rrq = ras_msg;
-			if (ep = FindBySignalAdr(rrq.m_callSignalAddress[0]))
-				ep->Update(ras_msg);
-			else
-				ep = InternalInsertEP(ras_msg);
-			break;
-		}
-		case H225_RasMessage::e_admissionConfirm: {
-			H225_AdmissionConfirm & acf = ras_msg;
-			if (!(ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), acf.m_destCallSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList)))
-				ep = InternalInsertOZEP(ras_msg, acf);
-			break;
-		}
-		case H225_RasMessage::e_locationConfirm: {
-			H225_LocationConfirm & lcf = ras_msg;
-			if (ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), lcf.m_callSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList))
-				ep->Update(ras_msg);
-			else
-				ep = InternalInsertOZEP(ras_msg, lcf);
-			break;
-		}
-		default:
-			PTRACE(1, "RegistrationTable: unable to insert " << ras_msg.GetTagName());
-			break;
+	case H225_RasMessage::e_registrationRequest: {
+		H225_RegistrationRequest & rrq = ras_msg;
+		if (ep = FindBySignalAdr(rrq.m_callSignalAddress[0]))
+			ep->Update(ras_msg);
+		else
+			ep = InternalInsertEP(ras_msg);
+		break;
+	}
+	case H225_RasMessage::e_admissionConfirm: {
+                       H225_AdmissionConfirm & acf = ras_msg;
+                       if (!(ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), acf.m_destCallSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList)))
+			       ep = InternalInsertOZEP(ras_msg, acf);
+                       break;
+	}
+	case H225_RasMessage::e_locationConfirm: {
+		H225_LocationConfirm & lcf = ras_msg;
+		if (ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), lcf.m_callSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList))
+			ep->Update(ras_msg);
+		else
+			ep = InternalInsertOZEP(ras_msg, lcf);
+		break;
+
+	}
+	default:
+		PTRACE(1, "RegistrationTable: unable to insert " << ras_msg.GetTagName());
+		break;
 	}
 
 	return ep;
@@ -791,19 +865,19 @@ void RegistrationTable::GenerateAlias(H225_ArrayOf_AliasAddress & AliasList, con
 
 void RegistrationTable::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 {
-	PString msg("AllRegistrations\r\n");
+	PString msg("AllRegistrations" GK_LINEBRK);
 	InternalPrint(client, verbose, &EndpointList, msg);
 }
 
 void RegistrationTable::PrintAllCached(GkStatus::Client &client, BOOL verbose)
 {
-	PString msg("AllCached\r\n");
+	PString msg("AllCached" GK_LINEBRK);
 	InternalPrint(client, verbose, &OuterZoneList, msg);
 }
 
 void RegistrationTable::PrintRemoved(GkStatus::Client &client, BOOL verbose)
 {
-	PString msg("AllRemoved\r\n");
+	PString msg("AllRemoved" GK_LINEBRK);
 	InternalPrint(client, verbose, &RemovedList, msg);
 }
 
@@ -825,7 +899,7 @@ void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, li
 		msg += "RCF|" + eptr[k]->PrintOn(verbose);
 	delete [] eptr;
 
-	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", s);
+	msg += PString(PString::Printf, "Number of Endpoints: %u" GK_LINEBRK  ";" GK_LINEBRK, s);
 	client.WriteString(msg);
 	//PTRACE(2, msg);
 }
@@ -846,9 +920,9 @@ PString RegistrationTable::PrintStatistics() const
 	unsigned cs, ct, cg;
 	InternalStatistics(&OuterZoneList, cs, ct, cg);
 
-	return PString(PString::Printf, "-- Endpoint Statistics --\r\n"
-		"Total Endpoints: %u  Terminals: %u  Gateways: %u\r\n"
-		"Cached Endpoints: %u  Terminals: %u  Gateways: %u\r\n",
+	return PString(PString::Printf, "-- Endpoint Statistics --" GK_LINEBRK
+		"Total Endpoints: %u  Terminals: %u  Gateways: %u" GK_LINEBRK
+		"Cached Endpoints: %u  Terminals: %u  Gateways: %u" GK_LINEBRK,
 		es, et, eg, cs, ct, cg);
 }
 
@@ -908,7 +982,7 @@ void RegistrationTable::LoadConfig()
 			rrq.m_terminalAlias.SetSize(as);
 			for (PINDEX p=0; p<as; p++)
 				H323SetAliasAddress(aa[p], rrq.m_terminalAlias[p]);
-		}
+        	}
 		// GatewayInfo
 		if (sp.GetSize() > 1) {
 			aa=sp[1].Tokenise(",", FALSE);
@@ -924,7 +998,7 @@ void RegistrationTable::LoadConfig()
 					H323SetAliasAddress(aa[p], ((H225_VoiceCaps &)protocol).m_supportedPrefixes[p].m_prefix);
 			}
 			ep = new GatewayRec(rrq_ras, true);
-		} else {
+                } else {
 			rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
 			ep = new EndpointRec(rrq_ras, true);
 		}
@@ -932,7 +1006,7 @@ void RegistrationTable::LoadConfig()
 		PTRACE(2, "Add permanent endpoint " << AsDotString(rrq.m_callSignalAddress[0]));
 		WriteLock lock(listLock);
 		EndpointList.push_back(ep);
-	}
+        }
 
 	// Load config for each endpoint
 	ReadLock lock(listLock);
@@ -990,20 +1064,32 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 		 int Bandwidth, bool h245Routed)
       : m_callIdentifier(CallId), m_conferenceIdentifier(ConfId),
 	m_destInfo(destInfo),
-	m_srcInfo(srcInfo), // added (MM 05.11.01)
+	m_srcInfo(srcInfo),
 	m_bandWidth(Bandwidth), m_CallNumber(0),
 	m_callingCRV(0), m_calledCRV(0),
 	m_startTime(0), m_timeout(0),
 	m_callingSocket(0), m_calledSocket(0),
 	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed)
 {
+
+	PWaitAndSignal lock(m_usedLock);
 	int timeout = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
 	SetTimer(timeout);
 	StartTimer();
+
+	m_Calling = endptr(NULL);
+	m_Called = endptr(NULL);
+	m_callingProfile = NULL;
+	m_calledProfile = NULL;
 }
 
 CallRec::~CallRec()
 {
+	m_usedLock.Wait();
+        delete m_callingProfile;
+        delete m_calledProfile;
+	m_usedLock.Signal();
+
 	SetConnected(false);
 	PTRACE(5, "Gk\tDelete Call No. " << m_CallNumber);
 }
@@ -1020,8 +1106,8 @@ void CallRec::SetConnected(bool c)
 
 void CallRec::SetTimer(int seconds)
 {
-	PWaitAndSignal lock(m_usedLock);
-	m_timeout = seconds;
+       PWaitAndSignal lock(m_usedLock);
+       m_timeout = seconds;
 }
 
 void CallRec::StartTimer()
@@ -1038,6 +1124,62 @@ void CallRec::StopTimer()
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_timeout = 0;
+}
+
+// void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
+// {
+// 	PWaitAndSignal lock(m_usedLock);
+// 	// if an old endpoint exists and a really new endpoint shall be set
+// 	if (NewCalling != m_Calling) {
+// 		if (m_Calling) {
+// 			delete m_callingProfile;
+// 			m_callingProfile = NULL;
+// 		}
+// 		InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
+// 	}
+// }
+
+// void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
+// {
+// 	PWaitAndSignal lock(m_usedLock);
+// 	// if an old endpoint exists and a really new endpoint shall be set
+// 	if (NewCalled != m_Called) {
+// 		if (m_Called) {
+// 			delete m_calledProfile;
+// 			m_calledProfile = NULL;
+// 		}
+// 		InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
+// 	}
+// }
+
+endptr & CallRec::GetCallingEP()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_Calling;
+}
+
+endptr & CallRec::GetCalledEP()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_Called;
+}
+
+CalledProfile & CallRec::GetCalledProfile()
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (m_calledProfile == NULL) {
+  		m_calledProfile = new CalledProfile();
+	}
+	return *m_calledProfile;
+}
+
+CallingProfile & CallRec::GetCallingProfile()
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (m_callingProfile == NULL) {
+		m_callingProfile = new CallingProfile();
+	}
+	return *m_callingProfile;
 }
 
 /*
@@ -1073,6 +1215,7 @@ void CallRec::RemoveAll()
 		drq.m_callReferenceValue = (m_Calling) ? m_callingCRV : m_calledCRV;
 		RasThread->GetGkClient()->SendDRQ(ras_msg);
 	}
+
 	if (m_Calling)
 		m_Calling->RemoveCall();
 	if (m_Called)
@@ -1154,9 +1297,7 @@ void CallRec::SendDRQ()
 	}
 }
 
-namespace { // end of anonymous namespace
-
-PString GetEPString(const endptr & ep)
+static PString GetEPString(const endptr & ep)
 {
 	if (ep) {
 		return PString(PString::Printf, "%s|%s",
@@ -1166,33 +1307,44 @@ PString GetEPString(const endptr & ep)
 	return PString(" | ");
 }
 
-} // end of anonymous namespace
+// for high resolution CDRs
+static const char * const UseUTCinCDR = "UseUTCinCDR";
+static BOOL UseUTCinCDR_default = FALSE;
+static const char * const UseCDRFormat = "UseCDRFormat";
+static const char * const UseCDRFormat_default = "wwwe, dd MMME yyyy hh:mm:ss z";
+static const PString & AsCDRTimeString(const PTime & t);
+static const PString & AsCDRTimeString(const PTime & t)
+{
+	const PString format(GkConfig()->GetString(UseCDRFormat,UseCDRFormat_default));
+	const int zone = (GkConfig()->GetBoolean(UseUTCinCDR,UseUTCinCDR_default) ? PTime::UTC : PTime::Local);
+
+	return t.AsString(format, zone);
+}
 
 PString CallRec::GenerateCDR() const
 {
 	PString timeString;
 	PTime endTime;
-	if (m_startTime != 0) {
+	if (NULL != m_startTime) {
 		PTimeInterval callDuration = endTime - *m_startTime;
-		timeString = PString(PString::Printf, "%ld|%s|%s",
-			callDuration.GetSeconds(),
-			(const char *)m_startTime->AsString(),
-			(const char *)endTime.AsString()
-		);
-	} else {
-		timeString = "0|unconnected|" + endTime.AsString();
-	}
+		timeString = PString(PString::Printf, "%f.6|%s|%s",
+				     (callDuration.GetMilliSeconds() / 1000.0),
+				     (const char *)AsCDRTimeString(*m_startTime),//->AsString(),
+				     (const char *)AsCDRTimeString(endTime)//.AsString()
+			);
+	} else
+		timeString = "0|unconnected| " + endTime.AsString();;
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s;\r\n",
-		m_CallNumber,
-		(const char *)AsString(m_callIdentifier.m_guid),
-		(const char *)timeString,
-		(const char *)GetEPString(m_Calling),
-		(const char *)GetEPString(m_Called),
-		(const char *)m_destInfo,
-		(const char *)m_srcInfo,
-		(const char *)Toolkit::Instance()->GKName()
-	);
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s;" GK_LINEBRK,
+		       m_CallNumber,
+		       (const char *)AsString(m_callIdentifier.m_guid),
+		       (const char *)timeString,
+		       (const char *)GetEPString(m_Calling),
+		       (const char *)GetEPString(m_Called),
+		       (const char *)m_destInfo,
+		       (const char *)m_srcInfo,
+		       (const char *)Toolkit::Instance()->GKName()
+		);
 }
 
 PString CallRec::PrintOn(bool verbose) const
@@ -1200,14 +1352,14 @@ PString CallRec::PrintOn(bool verbose) const
 	int time = (PTime() - m_timer).GetSeconds();
 	int left = (m_timeout > 0 ) ? m_timeout - time : 0;
 	PString result(PString::Printf,
-		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
-		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), time, left,
+		       "Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
+		       m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), time, left,
 		(const char *)m_destInfo,
 		(const char *)GetEPString(m_Calling), m_callingCRV,
 		(const char *)GetEPString(m_Called), m_calledCRV
 	);
 	if (verbose) {
-		result += PString(PString::Printf, "# %s|%s|%d|%s <%d>\r\n",
+		result += PString(PString::Printf, "# %s|%s|%d|%s <%d>" GK_LINEBRK,
 				(m_Calling) ? (const char *)AsString(m_Calling->GetAliases()) : "?",
 				(m_Called) ? (const char *)AsString(m_Called->GetAliases()) : "?",
 				m_bandWidth,
@@ -1224,6 +1376,7 @@ CallTable::CallTable() : m_CallNumber(1), m_capacity(-1)
 {
 	LoadConfig();
 	m_CallCount = m_successCall = m_neighborCall = 0;
+	PTRACE(5,"Call table constructed");
 }
 
 CallTable::~CallTable()
@@ -1249,7 +1402,7 @@ void CallTable::Insert(CallRec * NewRec)
 	++m_CallCount;
 	if (m_capacity >= 0) {
 		m_capacity -= NewRec->GetBandWidth();
-   		PTRACE(2, "GK\tTotal sessions : " << CallList.size() << ", Available BandWidth " << m_capacity);
+		PTRACE(2, "GK\tTotal sessions : " << CallList.size() << ", Available BandWidth " << m_capacity);
 	}
 }
 
@@ -1307,8 +1460,8 @@ void CallTable::CheckCalls()
 	}
 
 	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
-	for_each(Iter, RemovedList.end(), delete_call);
-	RemovedList.erase(Iter, RemovedList.end());
+       for_each(Iter, RemovedList.end(), delete_call);
+       RemovedList.erase(Iter, RemovedList.end());
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
@@ -1368,7 +1521,7 @@ void CallTable::InternalRemove(iterator Iter)
 	} else {
 		if (!call->IsConnected())
 			PTRACE(2, "CDR\tignore not connected call");
-		else	
+		else
 			PTRACE(2, "CDR\tignore caller from neighbor");
 #endif
 	}
@@ -1405,11 +1558,11 @@ void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, 
 
 void CallTable::PrintCurrentCalls(GkStatus::Client & client, BOOL verbose) const
 {
-	PString msg = "CurrentCalls\r\n";
+	PString msg = "CurrentCalls" GK_LINEBRK;
 	unsigned n, act, nb;
 	InternalStatistics(n, act, nb, msg, verbose);
-	
-	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From NB: %u\r\n;\r\n", n, act, nb);
+
+	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From NB: %u" GK_LINEBRK ";" GK_LINEBRK, n, act, nb);
 	client.WriteString(msg);
 	//PTRACE(2, msg);
 }
@@ -1420,9 +1573,9 @@ PString CallTable::PrintStatistics() const
 	unsigned n, act, nb;
 	InternalStatistics(n, act, nb, dumb, FALSE);
 
-	return PString(PString::Printf, "-- Call Statistics --\r\n"
-		"Current Calls: %u Active: %u From Neighbor: %u\r\n"
-		"Total Calls: %u  Successful: %u  From Neighbor: %u\r\n",
+	return PString(PString::Printf, "-- Call Statistics --" GK_LINEBRK
+		"Current Calls: %u Active: %u From Neighbor: %u" GK_LINEBRK
+		"Total Calls: %u  Successful: %u  From Neighbor: %u" GK_LINEBRK,
 		n, act, nb,
 		m_CallCount, m_successCall, m_neighborCall);
 }

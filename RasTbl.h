@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
@@ -18,21 +19,27 @@
 #ifndef _rastbl_h__
 #define _rastbl_h__
 
-#include "ptlib.h" 
+#include "ptlib.h"
 #include "ptlib/sockets.h"
 #include "h225.h"
 #include "GkStatus.h"
+#include <h323pdu.h>
+#include "singleton.h"
+
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
 
 #include <set>
 #include <list>
 #include <vector>
 #include <string>
+#include <map>
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 )
 #endif
-
 
 using std::set;
 using std::list;
@@ -72,7 +79,7 @@ public:
 	H225_EndpointIdentifier m_src;
 	H225_ConferenceIdentifier m_cid;
 	H225_BandWidth m_bw;
-};  
+};
 
 
 // this data structure is obsolete !
@@ -121,6 +128,106 @@ private:
 	T *pt;
 };
 
+// Classes to store information read form e.g. LDAP
+// necessary for e.g. routing decisions
+using std::map;
+typedef std::map<PString, PString> SpecialDialClass;
+typedef SpecialDialClass::value_type SpecialDialValuePair;
+
+class CallingProfile {
+public:
+        CallingProfile() { m_honorsARJincompleteAddress = TRUE;
+		           m_isCPE = FALSE;
+	                 };
+
+        // Get accessor methods
+        const PString & getH323ID() const { return m_h323id; }
+        const BOOL isCPE() const { return m_isCPE; } // Customer Promise Equipment
+        const BOOL honorsARJincompleteAddress() const { return m_honorsARJincompleteAddress; }
+        const PStringList & getTelephoneNumbers() const { return m_telephoneNumbers; }
+        const PStringToString & getSpecialDials() const { return m_specialDials; }
+        const PString & getMainTelephoneNumber() const { return m_mainTelephoneNumber; }
+	const PString & getSubscriberNumber() const { return m_subscriberNumber; }
+        const PString & getClir() const { return m_clir; }
+        const PString & getLac() const { return m_lac; }
+        const PString & getNac() const { return m_nac; }
+        const PString & getInac() const { return m_inac; }
+        const PString & getCC() const { return m_cc; }
+        const PString & getCgPN() { return m_cgPN; }
+
+        // Set accessor methods
+        void setH323ID(PString &h323id) { m_h323id = h323id; }
+        void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
+        void setTelephoneNumbers(PStringList &telNums) { m_telephoneNumbers = telNums; }
+        void setSpecialDials(PStringToString & spcDials) { m_specialDials = spcDials; }
+        void setMainTelephoneNumber(PString &mainTelNum) { m_mainTelephoneNumber = mainTelNum; }
+	void setSubscriberNumber (PString &SN) { m_subscriberNumber = SN; }
+        void setClir(PString &clir) { m_clir = clir; }
+        void setLac(PString &lac) { m_lac = lac; }
+        void setNac(PString &nac) { m_nac = nac; }
+        void setInac(PString &inac) { m_inac = inac; }
+        void setHonorsARJincompleteAddress(BOOL honor) { m_honorsARJincompleteAddress = honor; }
+        void setCC(PString &cc) { m_cc = cc; }
+        void setCgPN(PString &cgPN) { m_cgPN = cgPN; }
+	void debugPrint() {
+		PTRACE(5, "Calling profile:");
+		PTRACE(5, "H323ID=" << getH323ID());
+		PTRACE(5, "CPE=" << isCPE());
+		PTRACE(5, "Telno=" << getTelephoneNumbers());
+		const PStringToString &spMap = getSpecialDials();
+		PTRACE(5, spMap.GetSize() << " SpecialDials:");
+		for (PINDEX i=0; i < spMap.GetSize(); i++) {
+			PTRACE(5, "\t" << spMap.GetKeyAt(i) << "--->" << spMap.GetDataAt(i));
+		}
+		PTRACE(5, "MainNo=" << getMainTelephoneNumber());
+		PTRACE(5, "SubsNo=" << getSubscriberNumber());
+		PTRACE(5, "CLIR=" << getClir());
+		PTRACE(5, "Lac=" << getLac());
+		PTRACE(5, "Nac=" << getNac());
+		PTRACE(5, "Inac=" << getInac());
+		PTRACE(5, "HonorsARJIncompleteAddr=" << honorsARJincompleteAddress());
+		PTRACE(5, "CC=" << getCC());
+	}
+
+private:
+        PString         m_h323id;                     // H323ID
+	BOOL            m_honorsARJincompleteAddress; // honorsARJincompleteAddress
+        PStringList     m_telephoneNumbers;           // telephone numbers
+        PStringToString m_specialDials;               // emergency call numbers
+        PString         m_mainTelephoneNumber;        // main telephone number
+	PString         m_subscriberNumber;           // Subscriber Number (i.e. the "80" in 49 5246 80-1234)
+        PString         m_clir;                       // CLIR
+        PString         m_lac;                        // local access code
+        PString         m_nac;                        // national access code
+        PString         m_inac;                       // international access code
+        PString         m_cc;                         // country code
+        PString         m_cgPN;                       // calling party number for CDR generation
+        BOOL            m_isCPE;                      // CPE flag
+}; // CallingProfile
+
+class CalledProfile {
+public:
+        CalledProfile() {};
+        CalledProfile(PString &dialedPN, PString &calledPN);
+
+        // Get accessor methods
+        const BOOL isCPE() const { return m_isCPE; } // Customer Promise Equipment
+        const PString & getDialedPN() const { return m_dialedPN; }
+        const PString & getCalledPN() const { return m_calledPN; }
+
+        // Set accessor methods
+        void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
+        void setDialedPN(PString &dialedPN) { m_dialedPN = dialedPN; }
+        void setCalledPN(PString &calledPN) { m_calledPN = calledPN; }
+
+private:
+        PString m_dialedPN; // dialed party number
+        PString m_calledPN; // called party number
+        BOOL    m_isCPE;    // CPE flag
+}; // CalledProfile
+
+// End of: Classes to store information read from e.g. LDAP
+
 class EndpointRec
 {
 public:
@@ -142,14 +249,14 @@ public:
 	{ return m_timeToLive; }
 	PIPSocket::Address GetNATIP() const
 	{ return m_natip; }
+	bool GetH323ID(H225_AliasAddress &id);
 
-	/** checks if the given aliases are prefixes of the aliases which are stored
+	/** checks if the given alias is a prefix of the aliases which are stored
 	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
 	    a full match is found.
-	    @returns #TRUE# if a match is found
+	    @returns #TRUE# if a partial match is found
 	 */
-        bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
-	                                  bool &fullMatch) const;
+	virtual BOOL AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullMatch) const;
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
@@ -170,17 +277,17 @@ public:
 	virtual void BuildLCF(H225_LocationConfirm &) const;
 
 	virtual PString PrintOn(bool verbose) const;
-
 	void SetNATAddress(PIPSocket::Address);
 
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const { return m_fromParent; }
 	bool IsNATed() const { return m_nat; }
+
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 
 	/** If this Endpoint would be register itself again with all the same data
-	 * how would this RRQ would look like? May be implemented with a 
+	 * how would this RRQ would look like? May be implemented with a
 	 * built-together-RRQ, but for the moment a stored RRQ.
 	 */
 	const H225_RasMessage & GetCompleteRegistrationRequest() const
@@ -205,7 +312,7 @@ protected:
 
 	bool SendURQ(H225_UnregRequestReason::Choices);
 
-	/**This field may disappear sometime when GetCompleteRegistrationRequest() can 
+	/**This field may disappear sometime when GetCompleteRegistrationRequest() can
 	 * build its return value itself.
 	 * @see GetCompleteRegistrationRequest()
 	 */
@@ -247,7 +354,17 @@ public:
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
 	virtual bool LoadConfig();
-	virtual int  PrefixMatch(const H225_ArrayOf_AliasAddress &) const;
+
+	/** checks if the given alias is a prefix of a gateway prefix.
+	    #fullMatch# returns #TRUE# if a full match is found.
+	    @returns #TRUE# if a full match or a partial match is found
+	 */
+        virtual BOOL PrefixIsIncomplete(const H225_AliasAddress & alias, BOOL &fullMatch) const;
+
+	/** checks if the given alias matches to a gateway prefix.
+	    @returns length of prefix or -1 if no prefix is found
+	 */
+	virtual int PrefixMatch(const H225_ArrayOf_AliasAddress &) const;
 
 	virtual void BuildLCF(H225_LocationConfirm &) const;
 
@@ -258,7 +375,7 @@ protected:
 	void SortPrefixes();
 
 	// strange! can't compile in debug mode, anybody know why??
-	//vector<PString> Prefixes;  
+	//vector<PString> Prefixes;
 	vector<string> Prefixes;
 	bool defaultGW;
 };
@@ -290,7 +407,7 @@ public:
 
 	RegistrationTable();
 	~RegistrationTable();
-	
+
 	void Initialize(GkDestAnalysisList & list) { m_destAnalysisList = &list; }
 
 	endptr InsertRec(H225_RasMessage & rrq);
@@ -301,19 +418,6 @@ public:
 	endptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool SearchOuterZone = true);
-	
-	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason, 
-	                                                 bool SearchOuterZone = true)
-	{
-	  endptr ep;
-	  bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
-	                                                      ep, reason);
-	  if (!ok && SearchOuterZone) {
-            ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock, 
-	                                                   ep, reason);
-	  }
-	  return (ok) ? ep : endptr(0);
-	}
 
 	void ClearTable();
 	void CheckEndpoints();
@@ -329,11 +433,34 @@ public:
 	/** Updates Prefix + Flags for all aliases */
 	void LoadConfig();
 
+//#ifdef WITH_DEST_ANALYSIS_LIST
+
+	/** Returns the destination endpoint of the message.
+	    The calling endpoint must be given if MsgType == H225_AliasAddress. In
+	    all other cases it can also be NULL.
+	 */
+	template<class MsgType> endptr getMsgDestination(const MsgType & msg,
+		endptr & cgEP, unsigned int & reason, bool SearchOuterZone = true)
+	{
+		endptr cdEP;
+		PTRACE(2, "Search for calledEP in registration table");
+		bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
+			cgEP, cdEP, reason);
+		if (!cdEP && (reason == H225_AdmissionRejectReason::e_resourceUnavailable) && SearchOuterZone) {
+			PTRACE(2, "Search for calledEP in outer zone");
+			ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock,
+				cgEP, cdEP, reason);
+		}
+		return (cdEP) ? cdEP : endptr(0);
+	}
+
+//#endif
+
 public:
   enum enumGatewayFlags {
                 e_SCNType		// "trunk" or "residential"
   };
-  
+
 private:
 
 	endptr InternalInsertEP(H225_RasMessage &);
@@ -394,6 +521,7 @@ public:
 	// TODO: thread pointer (or NULL for direct calls)
 };
 
+//typedef PTCPSocket CallSignalSocket;
 class CallSignalSocket;
 
 // record of one active call
@@ -411,17 +539,26 @@ public:
 	};
 
 	PINDEX GetCallNumber() const
-	{ return m_CallNumber; }
+		{ return m_CallNumber; }
 	const H225_CallIdentifier & GetCallIdentifier() const
-	{ return m_callIdentifier; }
+		{ return m_callIdentifier; }
 	const H225_ConferenceIdentifier & GetConferenceIdentifier() const
-	{ return m_conferenceIdentifier; }
+		{ return m_conferenceIdentifier; }
 	const H225_TransportAddress *GetCallingAddress() const
-	{ return (m_Calling) ? &m_Calling->GetCallSignalAddress() : 0; }
+		{ return (m_Calling) ? &m_Calling->GetCallSignalAddress() : 0; }
 	const H225_TransportAddress *GetCalledAddress() const
-	{ return (m_Called) ? &m_Called->GetCallSignalAddress() : 0; }
+		{ return (m_Called) ? &m_Called->GetCallSignalAddress() : 0; }
 	int GetBandWidth() const { return m_bandWidth; }
 	int GetNATType(PIPSocket::Address &, PIPSocket::Address &) const;
+	const PString GetCallingPartyNumber() const
+		{ return (m_Calling && (m_Calling->GetAliases().GetSize() >0)) ? H323GetAliasAddressString((m_Calling->GetAliases())[0]) : PString(); }
+	const PString GetCalledPartyNumber() const
+		{ return (m_Called && (m_Called->GetAliases().GetSize() >0)) ? H323GetAliasAddressString((m_Called->GetAliases())[0]) : PString(); }
+
+	endptr & GetCallingEP();
+	endptr & GetCalledEP();
+        CallingProfile & GetCallingProfile();
+        CalledProfile & GetCalledProfile();
 
 	void SetCalling(const endptr & NewCalling, unsigned = 0);
 	void SetCalled(const endptr & NewCalled, unsigned = 0);
@@ -481,6 +618,9 @@ private:
 	unsigned m_callingCRV;
 	unsigned m_calledCRV;
 
+        CallingProfile *m_callingProfile;
+        CalledProfile  *m_calledProfile;
+
 	PTime *m_startTime, m_timer;
 	int m_timeout;
 
@@ -489,7 +629,7 @@ private:
 	int m_usedCount;
 	mutable PMutex m_usedLock;
 	int m_nattype;
-	
+
 	bool m_h245Routed;
 	bool m_registered;
 
@@ -511,7 +651,7 @@ public:
 
 	void Insert(CallRec * NewRec);
 
-	// bandwidth management
+        // bandwidth management
 	void SetTotalBandWidth(int bw);
 	bool GetAdmission(int bw) const { return m_capacity < 0 || m_capacity >= bw; }
 	int GetAvailableBW() const { return m_capacity; }
@@ -578,32 +718,32 @@ inline bool EndpointRec::IsUsed() const
 
 inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
-	return (!m_timeToLive || m_activeCall > 0 || (*now - m_updatedTime).GetSeconds() < m_timeToLive);
+	 return (!m_timeToLive || m_activeCall > 0 || (*now - m_updatedTime).GetSeconds() < (long)m_timeToLive);
 }
 
 inline void EndpointRec::AddCall()
-{       
+{
 	PWaitAndSignal lock(m_usedLock);
 	++m_activeCall, ++m_totalCall;
-}       
+}
 
 inline void EndpointRec::RemoveCall()
-{       
-	PWaitAndSignal lock(m_usedLock); 
+{
+	PWaitAndSignal lock(m_usedLock);
 	--m_activeCall;
-}       
+}
 
 inline void EndpointRec::Lock()
-{       
+{
 	PWaitAndSignal lock(m_usedLock);
 	++m_usedCount;
-}       
+}
 
 inline void EndpointRec::Unlock()
-{       
-	PWaitAndSignal lock(m_usedLock); 
+{
+	PWaitAndSignal lock(m_usedLock);
 	--m_usedCount;
-}       
+}
 
 // inline functions of CallRec
 inline int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address & called) const
@@ -622,30 +762,30 @@ inline void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *call
 
 inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 {
-	InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
-	if (NewCalling->IsNATed())
-		m_nattype |= callingParty, m_h245Routed = true;
+        InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
+        if (NewCalling->IsNATed())
+                m_nattype |= callingParty, m_h245Routed = true;
 }
 
 inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 {
-	InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
-	SetRegistered(m_Called && m_Called->IsFromParent());
-	if (NewCalled->IsNATed())
-		m_nattype |= calledParty, m_h245Routed = true;
+        InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
+        SetRegistered(m_Called && m_Called->IsFromParent());
+        if (NewCalled && NewCalled->IsNATed())
+                m_nattype |= calledParty, m_h245Routed = true;
 }
 
 inline void CallRec::Lock()
-{       
+{
 	PWaitAndSignal lock(m_usedLock);
 	++m_usedCount;
-}       
+}
 
 inline void CallRec::Unlock()
-{       
-	PWaitAndSignal lock(m_usedLock); 
+{
+	PWaitAndSignal lock(m_usedLock);
 	--m_usedCount;
-}       
+}
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const
 {
@@ -680,13 +820,13 @@ inline bool CallRec::IsUsed() const
 }
 
 inline bool CallRec::IsConnected() const
-{       
+{
 	return (m_startTime != 0);
 }
 
 inline bool CallRec::IsTimeout(const PTime *now) const
-{       
-	return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > m_timeout));
+{
+	return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > (long)m_timeout));
 }
 
 inline bool CallRec::IsH245Routed() const
@@ -696,8 +836,7 @@ inline bool CallRec::IsH245Routed() const
 
 inline bool CallRec::IsRegistered() const
 {
-	return m_registered;
+        return m_registered;
 }
 
 #endif
-

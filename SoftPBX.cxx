@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if (_MSC_VER >= 1200)  
+#if (_MSC_VER >= 1200)
 #pragma warning( disable : 4800 ) // one performance warning off
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
@@ -45,7 +45,7 @@ void SoftPBX::PrintEndpoint(const PString & Alias, GkStatus::Client &client, BOO
 	else
 		msg = "SoftPBX: alias " + Alias + " not found!";
 
-	client.WriteString(msg + "\r\n");
+	client.WriteString(msg + GK_LINEBRK);
 }
 
 void SoftPBX::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
@@ -77,7 +77,7 @@ void SoftPBX::PrintStatistics(GkStatus::Client &client, BOOL)
 	PTRACE(3, "GK\tSoftPBX: PrintStatistics");
 	PString msg = RegistrationTable::Instance()->PrintStatistics()
 		    + CallTable::Instance()->PrintStatistics()
-		    + SoftPBX::Uptime() + "\r\n;\r\n";
+		    + SoftPBX::Uptime() + GK_LINEBRK ";" GK_LINEBRK;
 	client.WriteString(msg);
 }
 
@@ -98,7 +98,7 @@ void SoftPBX::UnregisterAlias(PString Alias)
 	if (!ep) {
 		PString msg("SoftPBX: alias " + Alias + " not found!");
 		PTRACE(1, "GK\t" + msg);
-		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 		return;
 	}
 	ep->Unregister();
@@ -108,7 +108,7 @@ void SoftPBX::UnregisterAlias(PString Alias)
 
 	PString msg("SoftPBX: Endpoint " + Alias + " unregistered!");
 	PTRACE(2, "GK\t" + msg);
-	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+	GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 }
 
 void SoftPBX::UnregisterIp(PString Ip)
@@ -126,7 +126,7 @@ void SoftPBX::UnregisterIp(PString Ip)
 	if (!ep) {
 		PString msg("SoftPBX: ip " + AsDotString(callSignalAddress) + " not found!");
 		PTRACE(1, "GK\t" + msg);
-		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 		return;
 	}
 	ep->Unregister();
@@ -136,7 +136,7 @@ void SoftPBX::UnregisterIp(PString Ip)
 
 	PString msg("SoftPBX: Endpoint " + AsDotString(callSignalAddress) + " unregistered!");
 	PTRACE(2, "GK\t" + msg);
-	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+	GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 }
 
 // send a DRQ to caller of this call number, causing it to close the H.225 channel
@@ -150,7 +150,7 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 	if (!Call) {
 		PString msg(PString::Printf, "Can't find call number %u", CallNumber);
 		PTRACE(2, "GK\tSoftPBX: " << msg);
-		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 		return;
 	}
 
@@ -160,7 +160,7 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 
 	PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
 	PTRACE(2, "GK\tSoftPBX: " << msg);
-	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+	GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 }
 
 // send a DRQ to this endpoint
@@ -204,7 +204,7 @@ void SoftPBX::DisconnectEndpoint(const endptr &ep)
 	if (!ep) {
 		PString msg("SoftPBX: no endpoint to disconnect!");
 		PTRACE(1, "GK\t" + msg);
-		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 		return;
 	}
 	callptr Call;

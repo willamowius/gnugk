@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // ProxyThread.h
@@ -43,7 +44,7 @@ public:
 	};
 
 	ProxySocket(PIPSocket *, const char *);
-	virtual ~ProxySocket() = 0; // abstract class
+	virtual ~ProxySocket() =0; // abstract class
 	PString Name() const { return name; }
 
 	virtual Result ReceiveData();
@@ -92,7 +93,7 @@ class TCPProxySocket : public PTCPSocket, public ProxySocket {
 public:
 	PCLASSINFO( TCPProxySocket, PTCPSocket )
 
-	TCPProxySocket(const char *, TCPProxySocket * = 0, WORD = 0);
+	TCPProxySocket(const char * , TCPProxySocket * = 0, WORD = 0);
 	virtual ~TCPProxySocket();
 
 	// override from class ProxySocket
@@ -153,10 +154,10 @@ public:
 	virtual void Exec();
 
 	WORD GetPort() const { return m_port; }
-				
+
 protected:
 	PTCPSocket *m_listener;
-	PIPSocket::Address m_interface; 
+	PIPSocket::Address m_interface;
 	WORD m_port;
 
 private:
@@ -193,7 +194,7 @@ private:
 	void FlushSockets();
 	void BuildSelectList(PSocket::SelectList &);
 	ProxyConnectThread *FindConnectThread();
-	
+
 	std::list<ProxySocket *> sockList;
 	std::list<ProxySocket *> removedList;
 	mutable PReadWriteMutex mutex;
@@ -201,12 +202,12 @@ private:
 	mutable PReadWriteMutex connMutex;
 	ProxyHandleThread *lcHandler;
 	PString id;
-	
+
 	static void delete_socket(ProxySocket *s) { delete s; }
 };
 
-class HandlerList {     
-public:         
+class HandlerList {
+public:
 	HandlerList(PIPSocket::Address = INADDR_ANY);
 	~HandlerList();
 
@@ -218,6 +219,7 @@ public:
 
 private:
 	void CloseListener();
+	static void close_threads(ProxyHandleThread *t) { t->CloseUnusedThreads(); }
 
 	std::vector<ProxyHandleThread *> handlers;
 	ProxyListener *listenerThread;
@@ -283,9 +285,8 @@ inline void ProxyHandleThread::Remove(ProxySocket *socket)
 #ifdef WIN32
 inline DWORD getpid()
 {
-	return GetCurrentThreadId();
+       return GetCurrentThreadId();
 }
 #endif
 
 #endif // __proxythread_h__
-

@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gkldap.cxx
@@ -16,161 +17,157 @@
 // LDAP authentification
 #if defined(HAS_LDAP)
 
+#include "gkDatabase.h"
+#include "Toolkit.h"
 #include "gkldap.h"
+#include "ldaplink.h"		// link to LDAP functions
+#include "h225.h"
+#include "h323pdu.h"
+#include "ANSI.h"
 
-// init file section name
-const char *ldap_attr_name_sec = "GkLDAP::LDAPAttributeNames";
-const char *ldap_auth_sec = "GkLDAP::Settings";
+const char *LDAP_SETTINGS_SEC = "GkLDAP::Settings";
 
-// constructor
-GkLDAP::GkLDAP()
+GkLDAP::GkLDAP(PConfig &cfg, DBAttributeNamesClass & attrNames)
 {
-  LDAPConn=NULL;
-  //Initialisation must be done with method "Initialize"!
-} // GkLDAP constructor
+	AN = attrNames;
+	LDAPConn=NULL;
+	struct timeval default_timeout;
+	default_timeout.tv_sec = 10l;	// seconds
+	default_timeout.tv_usec = 0l;	// micro seconds
 
-// destructor
+	PString ServerName = cfg.GetString(LDAP_SETTINGS_SEC, "ServerName", "ldap");
+	int ServerPort = cfg.GetString(LDAP_SETTINGS_SEC, "ServerPort", "389").AsInteger();
+	PString SearchBaseDN = cfg.GetString(LDAP_SETTINGS_SEC, "SearchBaseDN",
+					   "o=University of Michigan, c=US");
+	PString BindUserDN = cfg.GetString(LDAP_SETTINGS_SEC, "BindUserDN",
+					 "cn=Babs Jensen,o=University of Michigan, c=US");
+	PString BindUserPW = cfg.GetString(LDAP_SETTINGS_SEC, "BindUserPW", "RealySecretPassword");
+	unsigned int sizelimit = cfg.GetString(LDAP_SETTINGS_SEC, "sizelimit", "0").AsUnsigned();
+	unsigned int timelimit = cfg.GetString(LDAP_SETTINGS_SEC, "timelimit", "0").AsUnsigned();
+
+	LDAPConn = new LDAPCtrl(&AN, default_timeout, ServerName,
+			  SearchBaseDN, BindUserDN, BindUserPW,
+			  sizelimit, timelimit, ServerPort);
+}
+
 GkLDAP::~GkLDAP()
 {
-  Destroy();
-} // GkLDAP destructor
-
-void GkLDAP::Initialize(PConfig &cfg) // 'real', private constructor
-{
-  if(NULL!=LDAPConn)
-    return;
-  struct timeval default_timeout;
-  default_timeout.tv_sec = 10l;	// seconds
-  default_timeout.tv_usec = 0l;	// micro seconds
-  using namespace lctn;		// LDAP config tags and names
-  // The defaults are given by the constructor of LDAPAttributeNamesClass
-  AN.insert(LDAPANValuePair(LDAPAttrTags[H323ID],
- 		            cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[H323ID],
-					      "mail"))); // 0.9.2342.19200300.100.1.3
-  AN.insert(LDAPANValuePair(LDAPAttrTags[TelephonNo],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[TelephonNo],
-					      "telephoneNumber"))); // 2.5.4.20
-  AN.insert(LDAPANValuePair(LDAPAttrTags[H245PassWord],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[H245PassWord],
-					      "plaintextPassword")));	// 1.3.6.1.4.1.9564.2.1.1.8
-  AN.insert(LDAPANValuePair(LDAPAttrTags[IPAddress],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[IPAddress],
-					      "voIPIpAddress"))); // ...9564.2.5.2010
-  AN.insert(LDAPANValuePair(LDAPAttrTags[SubscriberNo],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[SubscriberNo],
-					      "voIPsubscriberNumber"))); // ...2050
-  AN.insert(LDAPANValuePair(LDAPAttrTags[LocalAccessCode],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[LocalAccessCode],
-					      "voIPlocalAccessCode"))); // ...2020
-  AN.insert(LDAPANValuePair(LDAPAttrTags[NationalAccessCode],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[NationalAccessCode],
-					      // ...9564.2.5.2030
-					      "voIPnationalAccessCode"))); // ...2030
-  AN.insert(LDAPANValuePair(LDAPAttrTags[InternationalAccessCode],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[InternationalAccessCode],
-					       // ...9564.2.5.2040
-					      "voIPinternationalAccessCode"))); // ...2040
-  AN.insert(LDAPANValuePair(LDAPAttrTags[CallingLineIdRestriction],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[CallingLineIdRestriction],
-					      "voIPcallingLineIdRestriction"))); // ...2060
-  AN.insert(LDAPANValuePair(LDAPAttrTags[SpecialDial],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[SpecialDial],
-					      "voIPspecialDial"))); // ...2070
-  AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixBlacklist],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[PrefixBlacklist],
-					      "voIPprefixBlacklist"))); // ...2070
-  AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixWhitelist],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[PrefixWhitelist],
-					      "voIPprefixWhitelist"))); // ...2090
-
-  PString ServerName = cfg.GetString(ldap_auth_sec, "ServerName", "ldap");
-  int ServerPort = cfg.GetString(ldap_auth_sec, "ServerPort", "389").AsInteger();
-  PString SearchBaseDN = cfg.GetString(ldap_auth_sec, "SearchBaseDN", 
-					   "o=University of Michigan, c=US");
-  PString BindUserDN = cfg.GetString(ldap_auth_sec, "BindUserDN", 
-					 "cn=Babs Jensen,o=University of Michigan, c=US");
-  PString BindUserPW = cfg.GetString(ldap_auth_sec, "BindUserPW", "RealySecretPassword");
-  unsigned int sizelimit = cfg.GetString(ldap_auth_sec, "sizelimit", "0").AsUnsigned();
-  unsigned int timelimit = cfg.GetString(ldap_auth_sec, "timelimit", "0").AsUnsigned();
-
-  LDAPConn = new LDAPCtrl(&AN, default_timeout, ServerName, 
-			  SearchBaseDN, BindUserDN, BindUserPW, 
-			  sizelimit, timelimit, ServerPort);
-} // Initialize
-
-void GkLDAP::Destroy()		// 'real', private destructor
-{
-  delete LDAPConn;
-} // Destroy
-
-PString GkLDAP::convertE123ToDialedDigits(PString e123) {
-  e123.Replace("+","");
-  // remove all whitespaces
-  e123.Replace(" ","", TRUE);
-  // remove all "."
-  e123.Replace(".","", TRUE);
-  return e123;
+	delete LDAPConn;
+	LDAPConn=NULL;
 }
 
-bool GkLDAP::getAttribute(const PString &alias, const int attr_name, 
-                           PStringList &attr_values){
-  PWaitAndSignal lock(m_usedLock);
-  LDAPAnswer *answer = LDAPConn->DirectoryUserLookup(alias);
-  // if LDAP succeeds
-  if(answer->status == 0){
-    using namespace lctn;
-    if (answer->LDAPec.size()){
-      LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
-      if((pFirstDN->second).count(AN[LDAPAttrTags[attr_name]])){
-	attr_values = (pFirstDN->second)[AN[LDAPAttrTags[attr_name]]];
-      }
-    }
-  }
-  return (answer->status == 0) ? true : false;
+BOOL GkLDAP::getAttribute(const PString &alias, const dctn::DBAttributeNamesEnum attr_name,
+                           PStringList &attr_values)
+{
+	BOOL found = FALSE;
+	LDAPAnswer *answer = LDAPConn->DirectoryUserLookup(alias);
+	// if LDAP succeeds
+	if((NULL!=answer) && (answer->status == 0)){
+		if (answer->LDAPec.size()){
+			PString attrNameStr = GkDatabase::Instance()->attrNameAsString(attr_name);
+			LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
+			if((pFirstDN->second).count(attrNameStr)){
+				found = TRUE;
+				attr_values = (pFirstDN->second)[attrNameStr];
+			}
+		}
+	}
+	return found;
 }
 
-bool GkLDAP::validAliases(const H225_ArrayOf_AliasAddress & aliases) {
-  PString aliasStr;
-  bool found = 0;
-  // search H323ID in aliases
-  for (PINDEX i = 0; i < aliases.GetSize() && !found; i++) {
-    if (aliases[i].GetTag() == H225_AliasAddress::e_h323_ID) {
-      aliasStr = H323GetAliasAddressString(aliases[i]);
-      found = 1;
-    }
-  }
-  if(!found) return false;
-  PStringList telephoneNumbers;
-  // get telephone numbers from LDAP for H323ID
-  using namespace lctn;		// LDAP config tags and names
-  if(getAttribute(aliasStr, TelephonNo, telephoneNumbers)) {
-    // for each alias == dialedDigits
-    for (PINDEX i = 0; i < aliases.GetSize(); i++) { 
-      if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-        aliasStr = H323GetAliasAddressString(aliases[i]);
-        // check if alias exists in telephoneNumbers from LDAP entry
-        for (PINDEX j = 0; j < telephoneNumbers.GetSize(); j++) {
-          if(aliasStr != convertE123ToDialedDigits(telephoneNumbers[j])) {
-            return false;
-          }
+BOOL GkLDAP::getAttributes(const PString &alias, DBAttributeValueClass &attr_map)
+{
+        LDAPAnswer *answer = LDAPConn->DirectoryUserLookup(alias);
+        if ((NULL!=answer) && (answer->status == 0) && (answer->LDAPec.size() == 1)) {
+        // LDAP succeeds and exactly 1 match
+                LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
+                attr_map =  pFirstDN->second;
+                return TRUE;
+        } else {
+        // not 1 match
+                return FALSE;
         }
-      }
-    }
-    return true;
-  }
-  return false;
+}
+
+BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name, BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound)
+{
+	PString aliasStr = H323GetAliasAddressString(alias);
+	PString attrNameStr = GkDatabase::Instance()->attrNameAsString(attr_name);
+	BOOL partialMatch = (matchFound && !fullMatch && !gwFound);
+	LDAPQuery query;
+	query.LDAPOperator = LDAPQuery::LDAPNONE;
+	PStringList searchPattern;
+	// { nilsb
+	searchPattern.AppendString(aliasStr + "*");
+	if(alias.GetTag()==H225_AliasAddress::e_dialedDigits) {
+		E164_AnalysedNumber e164_alias(aliasStr);
+		if(e164_alias.GetIPTN_kind()!=E164_AnalysedNumber::IPTN_unknown) {
+			unsigned int len=e164_alias.GetGSN_SN().GetValue().GetLength();
+			if(len!=0) {
+				query.LDAPOperator = LDAPQuery::LDAPor;
+				PString substr = aliasStr;
+				for (PINDEX j=1; j<len+1;j++) {
+					substr[substr.GetLength()-j]='.';
+					searchPattern.AppendString(substr + "*");
+				}
+			}
+		}
+	}
+	// nilsb }
+	query.DBAttributeValues[attrNameStr] = searchPattern;
+	LDAPAnswer *answer = LDAPConn->DirectoryLookup(query);
+	//LDAPAnswer *answer = LDAPConn->collectAttributes(query);
+	// if LDAP succeeds and an entry has been found
+	if(answer->status == 0 && answer->LDAPec.size()){
+		// check for full/partial match
+		// for each DN
+		LDAPEntryClass::iterator iterDN = answer->LDAPec.begin();
+		for(; iterDN != answer->LDAPec.end() && !partialMatch; iterDN++){
+			DBAttributeValueClass::iterator iterAttr = (iterDN->second).begin();
+			// for each attribute
+			for(; iterAttr != (iterDN->second).end() && !partialMatch; iterAttr++) {
+				if (iterAttr->first == attrNameStr) {
+					// for each value
+					for(PINDEX i=0; i < (iterAttr->second).GetSize() && !partialMatch; i++) {
+						PString telno(GkDatabase::Instance()->rmInvalidCharsFromTelNo((iterAttr->second)[i]));
+						// if dialed number equals LDAP entry
+						if (aliasStr == telno) {
+							gwFound = FALSE;
+							fullMatch = TRUE;
+							PTRACE(2, ANSI::DBG << "TelephoneNo "
+							  << alias << " matches endpoint "
+							  << iterDN->first
+							  << " (full)" << ANSI::OFF);
+						// if no full match is found up to now and
+						// LDAP entry is prefix of dialed number
+						} else if (!fullMatch && telno == aliasStr.Left(telno.GetLength())) {
+							gwFound = TRUE;
+							PTRACE(2, ANSI::DBG << "TelephoneNo "
+							  << alias << " matches endpoint "
+							  << iterDN->first
+							  << " (gateway found)" << ANSI::OFF);
+						// dialed number is prefix of LDAP entry
+						} else {
+							gwFound = FALSE;
+							fullMatch = FALSE;
+							partialMatch = TRUE;
+							PTRACE(2, ANSI::DBG << "TelephoneNo "
+							  << alias << " matches endpoint "
+							  << iterDN->first
+							  << " (partial)" << ANSI::OFF);
+						}
+					}
+				}
+			}
+		}
+	}
+	matchFound = (fullMatch || partialMatch || gwFound);
+	return (answer->status == 0) ? TRUE : FALSE;
+}
+
+dctn::DBTypeEnum GkLDAP::dbType()
+{
+	return dctn::e_LDAP;
 }
 
 #endif // HAS_LDAP
