@@ -899,7 +899,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {	
 			// apply rewrite rules
 			Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
-#ifdef WITH_DEST_ANALYSIS_LIST					
+#if (WITH_DEST_ANALYSIS_LIST != 0)
 			CalledEP = EndpointTable->getMsgDestination(obj_rr, rsn);
 			if (!CalledEP && 
 			    rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
@@ -908,9 +908,9 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 				arj.m_rejectReason.SetTag(rsn);
 				bReject = TRUE;
 			}
-#else				       
+#else
 			CalledEP = EndpointTable->FindEndpoint(obj_rr.m_destinationInfo);
-#endif			
+#endif
 			if (!bReject && !CalledEP && RequestingEP) {
 				if (arqPendingList->Insert(obj_rr, RequestingEP))
 					return FALSE;
@@ -1426,11 +1426,11 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	unsigned rsn;
 	if (authList->Check(obj_lrq, rsn) &&
 		// only search registered endpoints
-#ifdef WITH_DEST_ANALYSIS_LIST					
+#if (WITH_DEST_ANALYSIS_LIST != 0)
 		(WantedEndPoint = EndpointTable->getMsgDestination(obj_lrq, rsn, false)
-#else				       
+#else
 		(WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false)
-#endif		
+#endif
 		)) {
 		// Alias found
 		obj_rpl.SetTag(H225_RasMessage::e_locationConfirm);
