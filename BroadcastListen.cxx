@@ -24,7 +24,7 @@
 #endif
 
 BroadcastListen::BroadcastListen(H323RasSrv * _RasSrv)
-	: PThread(1000, NoAutoDeleteThread), 
+	: PThread(1000, NoAutoDeleteThread),
 	  BroadcastListener(WORD(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)))
 {
 	PTRACE(1, "GK\tBroadcast listener started");
@@ -42,7 +42,7 @@ void BroadcastListen::Main(void)
 {
 	BroadcastListener.Listen
 		(GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
-		 BroadcastListener.GetPort(), 
+		 BroadcastListener.GetPort(),
 		 PSocket::CanReuseAddress);
 
 	if (!BroadcastListener.IsOpen())
@@ -50,7 +50,7 @@ void BroadcastListen::Main(void)
 		PTRACE(1,"GK\tBind to broadcast listener failed!");
 	};
 	while (BroadcastListener.IsOpen())
-	{ 
+	{
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
 
@@ -67,31 +67,38 @@ void BroadcastListen::Main(void)
 			continue;
 		};
 		PTRACE(2, "GK\tRd from : " << rx_addr << " [" << rx_port << "]");
-    
-		H225_RasMessage obj_req;   
+
+		H225_RasMessage obj_req;
 		if (!obj_req.Decode( *rdstrm ))
 		{
 			PTRACE(1, "GK\tCouldn't decode message!");
 
 			delete rdbuf;
 			delete rdstrm;
- 
+
 			continue;
 		};
-		
+
 		PTRACE(2, "GK\t" << obj_req.GetTagName());
 		PTRACE(3, "GK\t" << endl << setprecision(2) << obj_req);
 
 		delete rdbuf;
 		delete rdstrm;
- 
+
 		H225_RasMessage obj_rpl;
 
 		switch (obj_req.GetTag())
 		{
-		case H225_RasMessage::e_gatekeeperRequest:    
+		case H225_RasMessage::e_gatekeeperRequest:
 			PTRACE(1, "GK\tBroadcast GRQ Received");
 			if ( RasSrv->OnGRQ( rx_addr, obj_req, obj_rpl ) )
+				RasSrv->SendReply( obj_rpl, rx_addr, rx_port, BroadcastListener );
+			break;
+		// It is said Cisco Call Manager sends RRQ via broadcast
+		// But is it valid to use broadcasting RRQ?
+		case H225_RasMessage::e_registrationRequest:
+			PTRACE(1, "GK\tBroadcast RRQ Received");
+			if ( RasSrv->OnRRQ( rx_addr, obj_req, obj_rpl ) )
 				RasSrv->SendReply( obj_rpl, rx_addr, rx_port, BroadcastListener );
 			break;
 		case H225_RasMessage::e_locationRequest :
@@ -101,7 +108,7 @@ void BroadcastListen::Main(void)
 			break;
 		default:
 			PTRACE(1, "GK\tUnknown RAS message broadcast received");
-			break;      
+			break;
 		}
 	};
 };
@@ -109,8 +116,7 @@ void BroadcastListen::Main(void)
 void BroadcastListen::Close(void)
 {
 	BroadcastListener.Close();
-	
+
 	// terminate thread
 //	Terminate();
 };
-
