@@ -662,6 +662,19 @@ public:
 		);
 
 	/** @return
+		Timestamp (number of seconds since 1st January 1970) 
+		for the Alerting message associated with this call. 0 if Alerting
+		has not been yet received.
+		Meaningful only in GK routed mode.
+	*/
+	time_t GetAlertingTime() const;
+
+	/** Set timestamp for a Alerting message associated with this call. */
+	void SetAlertingTime( 
+		time_t tm /// timestamp (seconds since 1st January 1970)
+		);
+
+	/** @return
 		Timestamp (number of seconds since 1st January 1970)
 		for the Connect message associated with this call. 0 if Connect
 		has not been yet received. If GK is not in routed mode, this is
@@ -721,6 +734,21 @@ public:
 		duration for calls in progress.
 	*/
 	long GetDuration() const;
+
+	/** @return
+		Call total time in seconds. 0 for calls without disconnect.
+	*/
+	long GetTotalCallDuration() const;
+
+	/** @return
+		Call Post Dial Delay in seconds.
+	*/
+	long GetPostDialDelay() const;
+
+	/** @return
+		Call ring time in seconds. 0 for calls without Alerting.
+	*/
+	long GetRingTime() const;
 
 	/** @return
 		A string that identifies uniquelly this call for accounting
@@ -895,6 +923,8 @@ private:
 	time_t m_creationTime;
 	/// timestamp (seconds since 1st January, 1970) for a Setup message reception
 	time_t m_setupTime;
+	/// timestamp (seconds since 1st January, 1970) for a Alerting message reception
+	time_t m_alertingTime;
 	/// timestamp (seconds since 1st January, 1970) for a Connect (routed mode)
 	/// or ARQ/ACF (direct mode) message reception
 	time_t m_connectTime;
@@ -986,9 +1016,17 @@ public:
 	PINDEX Size() const { return m_activeCall; }
 
 	/** @return
-		ConnectTimeout value (milliseconds).
+	    Timeout value for a signalling channel to be opened after ACF
+	    and for an Alerting message to be received after signalling start.
+	    The value is expressed in milliseconds.
 	*/
-	long GetConnectTimeout() const { return m_connectTimeout; }
+	long GetSignalTimeout() const { return m_signalTimeout; }
+
+	/** @return
+	    Timeout value for Connect message to be received after a call entered
+	    the Alerting state. The value is expressed in milliseconds.
+	*/
+	long GetAlertingTimeout() const { return m_alertingTimeout; }
 
 	/** @return
 		Default call duration limit value (seconds).
@@ -1027,7 +1065,9 @@ private:
 	/// timeout for a Connect message to be received
 	/// and for a signalling channel to be opened after ACF/ARQ
 	/// (0 if GK is not in routed mode)
-	long m_connectTimeout;
+	long m_signalTimeout;
+	/// timeout for a Connect message to be received after getting an Alerting message
+	long m_alertingTimeout;
 	/// default call duration limit read from the config
 	long m_defaultDurationLimit;
 	/// default interval (seconds) for accounting updates to be logged
@@ -1225,6 +1265,11 @@ inline time_t CallRec::GetCreationTime() const
 inline time_t CallRec::GetSetupTime() const
 {
 	return m_setupTime;
+}
+
+inline time_t CallRec::GetAlertingTime() const
+{
+	return m_alertingTime;
 }
 
 inline time_t CallRec::GetConnectTime() const

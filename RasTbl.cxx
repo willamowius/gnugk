@@ -37,12 +37,13 @@
 #include "gkacct.h"
 #include "RasTbl.h"
 
-#define DEFAULT_SETUP_TIMEOUT 8000
-#define DEFAULT_CONNECT_TIMEOUT 180000
-
 const char *CallTableSection = "CallTable";
 const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
 
+namespace {
+const long DEFAULT_SIGNAL_TIMEOUT = 15000;
+const long DEFAULT_ALERTING_TIMEOUT = 180000;
+}
 
 EndpointRec::EndpointRec(
 	/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
@@ -1276,7 +1277,7 @@ CallRec::CallRec(
 	m_crv(((const H225_AdmissionRequest&)arqPdu).m_callReferenceValue.GetValue() & 0x7fffU),
 	m_sourceAddress(((const H225_AdmissionRequest&)arqPdu).m_srcInfo),
 	m_srcInfo(AsString(((const H225_AdmissionRequest&)arqPdu).m_srcInfo)), 
-	m_destInfo(destInfo), m_bandwidth(bandwidth), m_setupTime(0), 
+	m_destInfo(destInfo), m_bandwidth(bandwidth), m_setupTime(0), m_alertingTime(0),
 	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
@@ -1293,7 +1294,7 @@ CallRec::CallRec(
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
 
 	CallTable* const ctable = CallTable::Instance();
-	m_timeout = ctable->GetConnectTimeout() / 1000;
+	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
 }
 
@@ -1312,7 +1313,7 @@ CallRec::CallRec(
 	m_conferenceIdentifier(setup.m_conferenceID), 
 	m_crv(q931pdu.GetCallReference() & 0x7fffU),
 	m_destInfo(destInfo),
-	m_bandwidth(1280), m_setupTime(0), m_connectTime(0), 
+	m_bandwidth(1280), m_setupTime(0), m_alertingTime(0), m_connectTime(0), 
 	m_disconnectTime(0), m_disconnectCause(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
@@ -1331,7 +1332,7 @@ CallRec::CallRec(
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
 
 	CallTable* const ctable = CallTable::Instance();
-	m_timeout = ctable->GetConnectTimeout() / 1000;
+	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
 }
 
@@ -1726,6 +1727,16 @@ void CallRec::SetSetupTime(time_t tm)
 		m_creationTime = m_setupTime;
 }
 
+void CallRec::SetAlertingTime(time_t tm)
+{
+	CallTable* const ctable = CallTable::Instance();
+	PWaitAndSignal lock(m_usedLock);
+	if( m_alertingTime == 0 ) {
+		m_timer = m_alertingTime = tm;
+		m_timeout = ctable->GetAlertingTimeout() / 1000;
+	}
+}
+
 void CallRec::SetConnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1748,6 +1759,51 @@ void CallRec::SetDisconnectTime(time_t tm)
 	if( m_disconnectTime == 0 )
 		m_disconnectTime = (m_connectTime && m_connectTime >= tm)
 			? (m_connectTime + 1) : tm;
+}
+
+long CallRec::GetPostDialDelay() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	const long startTime = (m_setupTime == 0
+		? m_creationTime : std::min(m_creationTime, m_setupTime));
+
+	if (startTime == 0)
+		return 0;
+	if (m_alertingTime)
+		return (m_alertingTime > startTime) 
+			? (m_alertingTime - startTime) : 0;
+	if (m_connectTime)
+		return (m_connectTime > startTime) 
+			? (m_connectTime - startTime) : 0;
+	if (m_disconnectTime)
+		return (m_disconnectTime > startTime) 
+			? (m_disconnectTime - startTime) : 0;
+	return 0;
+}
+
+long CallRec::GetRingTime() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	if( m_alertingTime ) {
+		if( m_connectTime ) {
+			return (m_connectTime > m_alertingTime) 
+				? (m_connectTime-m_alertingTime) : 0;
+		} else {
+			return (m_disconnectTime > m_alertingTime) 
+				? (m_disconnectTime-m_alertingTime) : 0;
+		}
+	}
+	return 0;
+}
+
+long CallRec::GetTotalCallDuration() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	if( m_disconnectTime ) {
+		return (m_disconnectTime > m_setupTime) 
+			? (m_disconnectTime-m_setupTime) : 1;
+	}
+	return 0;
 }
 
 int CallRec::GetReleaseSource() const
@@ -1898,12 +1954,13 @@ void CallTable::LoadConfig()
 	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
 	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
 	SetTotalBandwidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
-	// this timeout is stored in CallTable, not in CallRec
-	// because it is constant for all CallRecs and should not add another
-	// 4 bytes to each CallRec unnecessary
-	m_connectTimeout = PMAX(
-		GkConfig()->GetInteger(RoutedSec, "ConnectTimeout",DEFAULT_CONNECT_TIMEOUT),
-		5000
+	m_signalTimeout = std::max(
+		GkConfig()->GetInteger(RoutedSec, "SignalTimeout", DEFAULT_SIGNAL_TIMEOUT),
+		5000L
+		);
+	m_alertingTimeout = std::max(
+		GkConfig()->GetInteger(RoutedSec, "AlertingTimeout", DEFAULT_ALERTING_TIMEOUT),
+		5000L
 		);
 	m_defaultDurationLimit = GkConfig()->GetInteger(
 		CallTableSection, "DefaultCallDurationLimit", 0
@@ -1915,7 +1972,7 @@ void CallTable::LoadConfig()
 			);
 	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0);
 	if( m_acctUpdateInterval != 0 )
-		m_acctUpdateInterval = PMAX(m_acctUpdateInterval,10);
+		m_acctUpdateInterval = std::max(m_acctUpdateInterval, 10L);
 		
 	m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
 }

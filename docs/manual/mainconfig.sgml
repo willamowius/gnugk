@@ -231,6 +231,21 @@ Default: <tt>N/A</tt>
 Define a global padding byte to be used during password encryption/decryption. 
 It can be overriden by setting <tt/KeyFilled/ inside a particular config section.
 Usually, you do not need to change this option.
+
+<item><tt/SignalTimeout=10000/<newline>
+Default: <tt>15000</tt>
+<p>
+A timeout value (in milliseconds) to wait for a signalling channel
+to be opened after an ACF message is sent or to wait for an Alerting
+message after a signalling channel has been opened. This option
+can be thought as a maximum allowed PDD (Post Dial Delay) value.
+
+<item><tt/AlertingTimeout=60000/<newline>
+Default: <tt>180000</tt>
+<p>
+A timeout value (in milliseconds) to wait for a Connect message
+after a call entered Alerting state. This option can be thought
+as a maximum "ringing time".
 </itemize>
 
 Most users will never need to change any of the following values.

@@ -1828,6 +1828,8 @@ void CallSignalSocket::OnAlerting(
 	SignalingMsg* msg
 	)
 {
+	m_call->SetAlertingTime(time(NULL));
+	
 	AlertingMsg *alerting = dynamic_cast<AlertingMsg*>(msg);
 	if (alerting == NULL) {
 		PTRACE(2, Type() << "\tError: Alerting message from " << Name() << " without associated UUIE");

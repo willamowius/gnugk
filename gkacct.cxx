@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.26  2005/02/02 22:16:46  zvision
+ * Different Username was presented during auth and acct steps in some case
+ *
  * Revision 1.25  2005/01/17 08:42:24  zvision
  * Compilation error fixed (missing std:: prefix before map)
  *
@@ -209,6 +212,9 @@ void GkAcctLogger::SetupAcctParams(
 	params["d"] = call->GetDuration();
 	params["c"] = call->GetDisconnectCause();
 	params["s"] = call->GetAcctSessionId();
+	params["p"] = call->GetPostDialDelay();
+	params["r"] = call->GetReleaseSource();
+	params["t"] = call->GetTotalCallDuration();
 	if (interfaces.empty())
 		params["gkip"] = "";
 	else
@@ -219,12 +225,16 @@ void GkAcctLogger::SetupAcctParams(
 	t = call->GetSetupTime();
 	if (t)
 		params["setup-time"] = toolkit->AsString(PTime(t), timestampFormat);
+	t = call->GetAlertingTime();
+	if (t)
+		params["alerting-time"] = toolkit->AsString(PTime(t), timestampFormat);
 	t = call->GetConnectTime();
 	if (t)
 		params["connect-time"] = toolkit->AsString(PTime(t), timestampFormat);
 	t = call->GetDisconnectTime();
 	if (t)
 		params["disconnect-time"] = toolkit->AsString(PTime(t), timestampFormat);
+	params["ring-time"] = call->GetRingTime();
 	
 	if (call->GetSrcSignalAddr(addr, port)) {
 		params["caller-ip"] = addr.AsString();
