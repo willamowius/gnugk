@@ -35,7 +35,9 @@ public:
 	ProxyConnectThread(ProxyHandleThread *);
 	bool IsAvailable() const { return available; }
 	bool Connect(ProxySocket *);
-	void Exec();
+
+	// override from class MyPThread
+	virtual void Exec();
 
 private:
 	ProxyHandleThread *handler;

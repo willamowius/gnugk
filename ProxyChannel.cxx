@@ -31,13 +31,141 @@
 
 const char *RoutedSec = "RoutedMode";
 
-// to avoid ProxyThread.cxx to include the large h225.h,
-// put the method here...
-TCPProxySocket *ProxyListener::CreateSocket()
+class H245Socket : public TCPProxySocket {
+public:
+	PCLASSINFO ( H245Socket, TCPProxySocket )
+
+	H245Socket(CallSignalSocket *);
+	H245Socket(H245Socket *, CallSignalSocket *);
+	~H245Socket();
+
+	// override from class ProxySocket
+        virtual Result ReceiveData();
+	virtual bool EndSession();
+
+	// override from class TCPProxySocket
+	virtual TCPProxySocket *ConnectTo();
+
+	bool SetH245Address(H225_TransportAddress & h245addr, Address);
+	void OnSignalingChannelClosed() { sigSocket = 0; }
+	
+private:
+	CallSignalSocket *sigSocket;
+	H225_TransportAddress peerH245Addr;
+	PTCPSocket *listener;
+};
+
+class UDPProxySocket : public PUDPSocket, public ProxySocket {
+public:
+	PCLASSINFO( UDPProxySocket, PUDPSocket )
+
+	UDPProxySocket(const char *);
+	virtual ~UDPProxySocket() {}
+
+	void SetDestination(H245_UnicastAddress_iPAddress &);
+
+	bool Bind(Address ip, WORD pt);
+
+private:
+	Address localAddr;
+	WORD localPort;
+};
+
+class T120ProxySocket : public TCPProxySocket {
+public:
+	PCLASSINFO ( T120ProxySocket, TCPProxySocket )
+
+	T120ProxySocket(T120ProxySocket * = 0, WORD = 0);
+
+	void SetDestination(Address, WORD);
+
+	// override from class ProxySocket
+	virtual bool ForwardData() { return WriteData(remote); }
+	virtual bool TransmitData() { return WriteData(this); }
+
+	// override from class TCPProxySocket
+	virtual TCPProxySocket *ConnectTo();
+
+private:
+	Address peerAddr;
+	WORD peerPort;
+};
+
+class LogicalChannel {
+public:
+	LogicalChannel(WORD flcn) : channelNumber(flcn), used(false) {}
+	virtual ~LogicalChannel() {}
+
+	bool IsUsed() const { return used; }
+	bool Compare(WORD lcn) const { return channelNumber == lcn; }
+	WORD GetPort() const { return port; }
+	WORD GetChannelNumber() const { return channelNumber; }
+
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *) = 0;
+	virtual void StartReading(ProxyHandleThread *) = 0;
+
+protected:
+	WORD channelNumber;
+	WORD port;
+	bool used;
+};
+
+class RTPLogicalChannel : public LogicalChannel {
+public:
+	RTPLogicalChannel(PIPSocket::Address, WORD);
+	virtual ~RTPLogicalChannel();
+
+	// override from class LogicalChannel
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
+	virtual void StartReading(ProxyHandleThread *);
+
+	class NoPortAvailable {};
+
+private:
+	static WORD GetPortNumber();
+	static WORD portNumber;
+	static PMutex mutex;
+
+	UDPProxySocket *rtp, *rtcp;
+};
+
+class T120LogicalChannel : public LogicalChannel, public MyPThread {
+public:
+	PCLASSINFO ( T120LogicalChannel, MyPThread )
+
+	T120LogicalChannel(WORD);
+	virtual ~T120LogicalChannel();
+
+	// override from class LogicalChannel
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
+	virtual void StartReading(ProxyHandleThread *);
+
+	// override from class MyPThread
+	virtual void Close();
+	virtual void Exec();
+
+	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
+
+private:
+	PTCPSocket listener;
+	T120ProxySocket *t120socket;
+	ProxyHandleThread *handler;
+	PIPSocket::Address peerAddr;
+	WORD peerPort;
+};
+
+inline bool UDPProxySocket::Bind(Address ip, WORD pt)
 {
-	return new CallSignalSocket;
+	localAddr = ip, localPort = pt;
+	return Listen(0, pt);
 }
 
+inline void T120ProxySocket::SetDestination(Address ip, WORD pt)
+{
+	peerAddr = ip, peerPort = pt;
+}
+
+// class CallSignalSocket
 CallSignalSocket::CallSignalSocket()
       : TCPProxySocket("Q931s"), m_h245handler(0), m_h245socket(0)
 {
@@ -701,63 +829,23 @@ void UDPProxySocket::SetDestination(H245_UnicastAddress_iPAddress & addr)
 }
 
 // class T120ProxySocket
-T120ProxySocket::T120ProxySocket(TCPLogicalChannel *lc)
-      : TCPProxySocket("T120s"), tcplc(lc), listener(new PTCPSocket)
+T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
+      : TCPProxySocket("T120", socket, pt)
 {
-	listener->Listen(1);
-}
-
-T120ProxySocket::T120ProxySocket(TCPLogicalChannel *lc, T120ProxySocket *socket)
-      : TCPProxySocket("T120d", socket), tcplc(lc), listener(0)
-{
-	socket->remote = this;
-//	ProxySocket::SetName(INADDR_ANY, GetPort());
-}
-
-T120ProxySocket::~T120ProxySocket()
-{
-	if (tcplc)
-		tcplc->RemoveSocket(this);
-	delete listener;
-}
-
-void T120ProxySocket::SetDestination(H245_UnicastAddress_iPAddress & addr)
-{
-	peerAddr = PIPSocket::Address(addr.m_network[0], addr.m_network[1], addr.m_network[2], addr.m_network[3]);
-	peerPort = addr.m_tsapIdentifier;
-}
-
-bool T120ProxySocket::EndSession()
-{
-	tcplc = 0;
-	if (listener)
-		listener->Close();
-	return TCPProxySocket::EndSession();
 }
 
 TCPProxySocket *T120ProxySocket::ConnectTo()
 {
-	if (remote->Accept(*listener)) {
-		PTRACE(3, "T120\tConnected from " << remote->Name());
-		listener->Close(); // don't accept other connection
-		SetPort(peerPort);
-		if (Connect(peerAddr)) {
-			PTRACE(3, "T120(" << getpid() << ") Connect to " << Name() << " successful");
-			GetHandler()->Insert(this);
-			SetConnected(true);
-			remote->SetConnected(true);
-			return remote;
-		}
-		PTRACE(3, "T120\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
+	remote = new T120ProxySocket(this, peerPort);
+	if (remote->Connect(peerAddr)) {
+		PTRACE(3, "T120\tConnect to " << Name() << " successful");
+		SetConnected(true);
+		remote->SetConnected(true);
 	} else {
-		Errors err = remote->GetErrorCode();
-		PTRACE(3, "T120\tError: " << GetErrorText(err));
+		PTRACE(3, "T120\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
+		delete remote; // would close myself
 	}
-	delete remote;
-	// remote = 0; // already detached
-	// insert myself into the handler so it will be deleted anyway
-	GetHandler()->Insert(this);
-	return 0;
+	return remote;
 }
 
 // class RTPLogicalChannel
@@ -858,65 +946,85 @@ WORD RTPLogicalChannel::GetPortNumber()
 	return portNumber;
 }
 
-// class TCPLogicalChannel
-TCPLogicalChannel::TCPLogicalChannel(WORD flcn) : LogicalChannel(flcn)
+// class T120LogicalChannel
+T120LogicalChannel::T120LogicalChannel(WORD flcn)
+      : LogicalChannel(flcn), t120socket(0)
 {
-	caller = new T120ProxySocket(this);
-	callee = new T120ProxySocket(this, caller);
-	port = caller->GetListenPort();
+	listener.Listen(1);
+	port = listener.GetPort();
 	PTRACE(4, "T120\tOpen T.120 logical channel " << flcn << " port " << port);
 }
 
-TCPLogicalChannel::~TCPLogicalChannel()
+T120LogicalChannel::~T120LogicalChannel()
 {
-	if (used) {
+	if (used && t120socket)
 		// the sockets will be deleted by ProxyHandler,
 		// so we don't need to delete it here
-		if (caller)
-			caller->EndSession();
-		if (callee)
-			callee->EndSession();
-	} else {
-		delete caller;
-		delete callee;
-	}
+		t120socket->SetDeletable();
 }
 
-bool TCPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
+bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
 {
 	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
 		OnSeparateStack(olca.m_separateStack, handler) : false;
 }
 
-void TCPLogicalChannel::StartReading(ProxyHandleThread *handler)
+void T120LogicalChannel::StartReading(ProxyHandleThread *h)
 {
 	if (!used) {
-		caller->SetHandler(handler);
-		handler->ConnectTo(caller);
+		handler = h;
 		used = true;
+		Resume();
 	}
 }
 
-bool TCPLogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler *handler)
+void T120LogicalChannel::Close()
+{
+	listener.Close();
+	isOpen = false;
+}
+
+void T120LogicalChannel::Exec()
+{
+	if (!listener.IsOpen()) {
+		isOpen = false;
+		return;
+	}
+
+	T120ProxySocket *socket = new T120ProxySocket;
+	if (socket->Accept(listener)) {
+		PTRACE(4, "T120\tConnected from " << socket->Name());
+		socket->SetDestination(peerAddr, peerPort);
+		TCPProxySocket *remote = socket->ConnectTo();
+		if (remote) {
+			if (t120socket)
+				t120socket->SetDeletable();
+			t120socket = socket;
+			handler->InsertLC(t120socket);
+			handler->InsertLC(remote);
+			return;
+		}
+	}
+
+	PChannel::Errors err = socket->GetErrorCode();
+	PTRACE_IF(3, err != PChannel::Interrupted,
+		  "T120\tError: " << PChannel::GetErrorText(err));
+	delete socket;
+}
+
+bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler *handler)
 {
 	bool changed = false;
 	if (sepStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress) {
 		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(sepStack.m_networkAddress);
 		if (addr) {
-			caller->SetDestination(*addr);
+			peerAddr = PIPSocket::Address(addr->m_network[0], addr->m_network[1], addr->m_network[2], addr->m_network[3]);
+			peerPort = addr->m_tsapIdentifier;
 			SetH245UnicastAddress(*addr, handler->GetLocalAddr(), port);
 			changed = true;
 		}
 	}
 	return changed;
-}
-
-void TCPLogicalChannel::RemoveSocket(T120ProxySocket *socket)
-{
-	if (socket == caller)
-		caller = 0;
-	else if (socket == callee)
-		callee = 0;
 }
 
 // class H245ProxyHandler
@@ -967,7 +1075,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
 	WORD flcn = olc.m_forwardLogicalChannelNumber;
 	if (IsT120Channel(olc)) {
-		TCPLogicalChannel *lc = new TCPLogicalChannel(flcn);
+		T120LogicalChannel *lc = new T120LogicalChannel(flcn);
 		logicalChannels[flcn] = lc;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)
 			&& lc->OnSeparateStack(olc.m_separateStack, this)) {
@@ -1064,6 +1172,13 @@ void H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 		PTRACE(3, "Proxy\tLogical channel " << flcn << " not found");
 #endif
 	}
+}
+
+// to avoid ProxyThread.cxx to include the large h225.h,
+// put the method here...
+TCPProxySocket *ProxyListener::CreateSocket()
+{
+	return new CallSignalSocket;
 }
 
 // class HandlerList

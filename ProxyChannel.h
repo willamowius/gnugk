@@ -17,19 +17,15 @@
 #ifndef __proxychannel_h__
 #define __proxychannel_h__
 
-#include "RasTbl.h"
-#include "ProxyThread.h"
-
 #ifdef P_SOLARIS
 #define map stl_map
 #endif
 
 #include <map>
+#include "RasTbl.h"
+#include "ProxyThread.h"
 
 extern const char *RoutedSec;
-
-class Q931;
-class H245_UnicastAddress_iPAddress;
 
 class H245Handler;
 class CallSignalSocket;
@@ -38,7 +34,7 @@ class UDPProxySocket;
 class T120ProxySocket;
 class LogicalChannel;
 class RTPLogicalChannel;
-class TCPLogicalChannel;
+class T120LogicalChannel;
 class H245ProxyHandler;
 
 
@@ -122,130 +118,6 @@ private:
 	H245Socket *m_h245socket;
 };
 
-class H245Socket : public TCPProxySocket {
-public:
-	PCLASSINFO ( H245Socket, TCPProxySocket )
-
-	H245Socket(CallSignalSocket *);
-	H245Socket(H245Socket *, CallSignalSocket *);
-	~H245Socket();
-
-	// override from class ProxySocket
-        virtual Result ReceiveData();
-	virtual bool EndSession();
-
-	// override from class TCPProxySocket
-	virtual TCPProxySocket *ConnectTo();
-
-	bool SetH245Address(H225_TransportAddress & h245addr, Address);
-	void OnSignalingChannelClosed() { sigSocket = 0; }
-	
-private:
-	CallSignalSocket *sigSocket;
-	H225_TransportAddress peerH245Addr;
-	PTCPSocket *listener;
-};
-
-class UDPProxySocket : public PUDPSocket, public ProxySocket {
-public:
-	PCLASSINFO( UDPProxySocket, PUDPSocket )
-
-	UDPProxySocket(const char *);
-	virtual ~UDPProxySocket() {}
-
-	void SetDestination(H245_UnicastAddress_iPAddress &);
-
-	bool Bind(Address ip, WORD pt);
-
-private:
-	Address localAddr;
-	WORD localPort;
-};
-
-class T120ProxySocket : public TCPProxySocket {
-public:
-	PCLASSINFO ( T120ProxySocket, TCPProxySocket )
-
-	T120ProxySocket(TCPLogicalChannel *);
-	T120ProxySocket(TCPLogicalChannel *, T120ProxySocket *);
-	virtual ~T120ProxySocket();
-
-	void SetDestination(H245_UnicastAddress_iPAddress &);
-	WORD GetListenPort() const { return listener->GetPort(); }
-
-	// override from class ProxySocket
-	virtual bool ForwardData() { return WriteData(remote); }
-	virtual bool TransmitData() { return WriteData(this); }
-	virtual bool EndSession();
-
-	// override from class TCPProxySocket
-	virtual TCPProxySocket *ConnectTo();
-
-private:
-	TCPLogicalChannel *tcplc;
-	PTCPSocket *listener;
-	Address peerAddr;
-	WORD peerPort;
-};
-
-class H245_OpenLogicalChannelAck;
-
-class LogicalChannel {
-public:
-	LogicalChannel(WORD flcn) : channelNumber(flcn), used(false) {}
-	virtual ~LogicalChannel() {}
-
-	bool IsUsed() const { return used; }
-	bool Compare(WORD lcn) const { return channelNumber == lcn; }
-	WORD GetPort() const { return port; }
-	WORD GetChannelNumber() const { return channelNumber; }
-
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *) = 0;
-	virtual void StartReading(ProxyHandleThread *) = 0;
-
-protected:
-	WORD channelNumber;
-	WORD port;
-	bool used;
-};
-
-class H245_H2250LogicalChannelAckParameters;
-
-class RTPLogicalChannel : public LogicalChannel {
-public:
-	RTPLogicalChannel(PIPSocket::Address, WORD);
-	virtual ~RTPLogicalChannel();
-
-	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
-	virtual void StartReading(ProxyHandleThread *);
-
-	class NoPortAvailable {};
-
-private:
-	static WORD GetPortNumber();
-	static WORD portNumber;
-	static PMutex mutex;
-
-	UDPProxySocket *rtp, *rtcp;
-};
-
-class TCPLogicalChannel : public LogicalChannel {
-public:
-	TCPLogicalChannel(WORD);
-	virtual ~TCPLogicalChannel();
-
-	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
-	virtual void StartReading(ProxyHandleThread *);
-
-	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
-	void RemoveSocket(T120ProxySocket *socket);
-
-private:
-	T120ProxySocket *caller, *callee;
-};
-
 class H245ProxyHandler : public H245Handler {
 public:
 	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
@@ -277,12 +149,6 @@ private:
 inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
 {
 	return m_h245handler->HandleMesg(strm);
-}
-
-inline bool UDPProxySocket::Bind(Address ip, WORD pt)
-{
-	localAddr = ip, localPort = pt;
-	return Listen(0, pt);
 }
 
 #endif // __proxychannel_h__
