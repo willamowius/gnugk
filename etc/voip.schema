@@ -51,9 +51,9 @@
 #
 # LDAP attribute		    | defined in
 # -----------------------------------------------------------------------------
-# mail 0.9.2342.19200300.100.1.3    | RFC 2256(core)
-# telephoneNumber 2.5.4.20	    | RFC 2256(core)
-# facsimileTelephoneNumber 2.5.4.23 | RFC 2256(core)
+# mail				    | RFC 2256(core), OID 0.9.2342.19200300.100.1.3
+# telephoneNumber		    | RFC 2256(core), OID 2.5.4.20
+# facsimileTelephoneNumber	    | RFC 2256(core), OID 2.5.4.23
 # plaintextPassword		    | your-own-class (mediaWays: mways)
 #
 # voIPlocalAccessCode		    | HERE
@@ -74,9 +74,11 @@
 # voIPprefixOutgoingWhitelist       | HERE
 # voIPprefixIncomingBlacklist       | HERE
 # voIPprefixIncomingWhitelist       | HERE
-# voIPConvertToLocal                | HERE
+# voIPCallTimeout                   | HERE
 # voIPTreatCallingPartyNumberAs     | HERE
 # voIPTreatCalledPartyNumberAs      | HERE
+# voIPConvertToLocal                | HERE
+# voIPMinimumPrefixLength           | HERE
 
 # This objectClass shall be used to extend entries which typically are
 # either also of class 'person' or 'inetOrgPerson', 'mways'
@@ -86,12 +88,13 @@
 
 # A) VoIP User
 #
-# A.1) Attributes also used in standard classes. Your LDAP server should know about these.
+# A.1) Attributes also used in standard classes. Your LDAP server should already
+#      know about these.
 #
 # NOTE:
 # In order to have a unique H.323 ID to avoid registration clashing, we use
 # a user's primary e-mail address as his H.323 ID.
-# Neither uids nor cns are guaranteed to be unique.
+# Neither "uid" nor "cn" are guaranteed to be unique.
 # Two users with the same uid trying to register with their uid as a H.323 alias would
 # result in RRJ for the second user, and he would certainly not understand why !
 # For gateways, that address needs to be artificially constructed.
@@ -111,15 +114,16 @@
 # According to RFC 2256, E.123 defines the format to be used for the
 # telephoneNumber attribute. See http://www.ngi.org/enum/pub/Draft_Rec_E123.htm
 #
-# We further refine this definition as follows:
+# We need to further refine this definition as follows:
 # telephoneNumber: 49524680....
 #
 # Dots are important! Each dot is a placeholder for a single cipher, i.e. 0-9.
 # To correctly implement the screening functionality, we need to know how long
-# a number actually is.
+# a number actually is. We also need this to handle overlapped receiving for
+# endpoints that don't support it themselves.
 # The above value of telephoneNumber defines the number space for a gateway
 # starting with the base number 49524680 and allowing for an extension
-# of exactly four ciphers. NOTE: for every dot, all ciphers to the right
+# of exactly four ciphers. Attention: for every dot, all ciphers to the right
 # of this dot must be dots, too ! Otherwise the routing algorithm may fail.
 # Decomposition of this number into country code (cc), national destination code (ndc),
 # subscriber number (sn) and extension (ext) is needed for virtual numbering
@@ -127,10 +131,8 @@
 # (voIPCountryCode, voIPnationalDestinationCode and voIPsubscriberNumber).
 # Multiple occurences of the telephoneNumber attribute may be used to define
 # further prefixes / subscriber numbers. 
-# The "primary" telephonenumber is the one that is decomposed into voIPcc, voIPndc
-# and voIPsn attributes. There may be only one value for each of these attributes.
 # A fully qualified number used to represent a terminal would be e.g. "495246801867".
-# A fully qualified number used to represent a cpe gateway would be e.g. "49524180....".
+# A fully qualified number used to represent a CPE gateway would be e.g. "49524180....".
 #
 # attributetype ( 2.5.4.20 NAME 'telephoneNumber'
 #   DESC 'telephoneNumber in E.123 format'
@@ -139,7 +141,7 @@
 #   SYNTAX 1.3.6.1.4.1.1466.115.121.1.50{32} )
 #
 # NOTE:
-# Used for fax-2-mail, which is not part the gatekeeper.
+# Used for fax-2-mail, which is not part of the gatekeeper.
 # Fax receipt must be implemented separately.
 # attributetype ( 2.5.4.23 NAME ( 'facsimileTelephoneNumber' 'fax' )
 #        SYNTAX 1.3.6.1.4.1.1466.115.121.1.22 )
@@ -297,48 +299,60 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2150 NAME 'voIPWhiteListBeforeBlackList'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPprefixOutgoingBlacklist'
-  EQUALITY caseIgnoreMatch      
+attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPPrefixOutgoingBlacklist'
+  EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   DESC 'A blocked destination prefix for this caller'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPprefixOutgoingWhitelist'
-  EQUALITY caseIgnoreMatch      
+attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPPrefixOutgoingWhitelist'
+  EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   DESC 'An accessible destination prefix for this caller (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2180 NAME 'voIPprefixIncomingBlacklist'
-  EQUALITY caseIgnoreMatch      
+attributeType ( 1.3.6.1.4.1.9564.2.5.2180 NAME 'voIPPrefixIncomingBlacklist'
+  EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   DESC 'Incoming callers to be blocked'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2190 NAME 'voIPprefixIncomingWhitelist'
-  EQUALITY caseIgnoreMatch      
+attributeType ( 1.3.6.1.4.1.9564.2.5.2190 NAME 'voIPPrefixIncomingWhitelist'
+  EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   DESC 'Incoming callers to be allowed (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPConvertToLocal'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPCallTimeout'
+  DESC 'Maximum number of seconds left on the callers time account. If 0, call will be terminated by the network.'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  SINGLE-VALUE
+ )
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPConvertToLocal'
   DESC 'Convert Numbers to national/subscriber type when calls are national/local. Default is to leave them international'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPTreatCallingPartyNumberAs'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2220 NAME 'voIPTreatCallingPartyNumberAs'
   DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2220 NAME 'voIPTreatCalledPartyNumberAs'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2230 NAME 'voIPTreatCalledPartyNumberAs'
   DESC 'Treat CalledPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  SINGLE-VALUE
+ )
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2240 NAME 'voIPMinimumPrefixLength'
+  DESC 'minimum number of digits required to be collected prior to routing a call to this endpoint'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
  )
@@ -360,8 +374,9 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 	voIPCountryCode $ voIPnationalDestinationCode $ voIPEndpointType $
 	voIPprefixIncomingBlacklist $ voIPprefixOutgoingBlacklist $
 	voIPprefixIncomingWhitelist $ voIPprefixOutgoingWhitelist $
-	voIPWhiteListBeforeBlackList $ voIPConvertToLocal $
-	voIPTreatCallingPartyNumberAs $ voIPTreatCalledPartyNumberAs ) )
+	voIPWhiteListBeforeBlackList $ voIPCallTimeout $
+	voIPTreatCallingPartyNumberAs $ voIPTreatCalledPartyNumberAs $
+	voIPConvertToLocal $ voIPMinimumPrefixLength ) )
 
 
 
