@@ -1311,8 +1311,8 @@ PString CallRec::GenerateCDR() const
 {
 	PString timeString;
 
-	time_t eTime = m_disconnectTime ? m_disconnectTime : time(0);
-	PTime endTime(eTime);
+	const time_t eTime = m_disconnectTime ? m_disconnectTime : time(0);
+	const PTime endTime(eTime);
 
 	if (m_connectTime != 0) {
 		const PTime startTime(m_connectTime);
@@ -1341,8 +1341,8 @@ PString CallRec::GenerateCDR() const
 
 PString CallRec::PrintOn(bool verbose) const
 {
-	int timer = time(0) - m_timer;
-	int left = m_timeout > 0 ? m_timeout - timer : 0;
+	const int timer = time(0) - m_timer;
+	const int left = m_timeout > timer ? m_timeout - timer : 0;
 
 	PString result(PString::Printf,
 		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%s|%d\r\nACF|%s|%s|%d\r\n",
