@@ -52,12 +52,10 @@ GK_RASWorker::GK_RASWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, 
 	need_answer(FALSE)
 {
 	PTRACE(5, "RasWorker started");
-	PTRACE(1, raw_pdu);
 }
 
 GK_RASWorker::~GK_RASWorker() {
 	PTRACE(5, "RasWorker stopped");
-	PTRACE(1, raw_pdu);
 };
 
 void
