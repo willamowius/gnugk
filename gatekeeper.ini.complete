@@ -271,5 +271,31 @@ default=allow
 #GenerateUCCDR=TRUE
 #DefaultCallTimeout=21600  // 6hr
 
+# the attribute names used for LDAP access, the default is the names
+# from the VoIP-scheme which is provided within this distribution
+[LDAPAuth::LDAPAttributeNames]
+#UserIdentity=uid
+#H323ID=cn
+#TelephonNr=telephoneNumber
+#H245PassWord=plaintextPassword
+#aliasH3232ID=voIPnickName
+#CountryCode=voIPcountryCode
+#AreaCode=voIPareaCode
+#LocalAccessCode=voIPlocalAccessCode
+#NationalAccessCode=voIPnationalAccessCode
+#InternationalAccessCode=voIPinternationalAccessCode
+#CallingLineIdPresentation=voIPcallingLineIdPresentation
+#PrefixBlacklist=voIPprefixBlacklist
+#PrefixWhitelist=voIPprefixWhitelist
+
+# Settings for LDAP access
+[LDAPAuth::Settings]
+#ServerName=ldap
+#ServerPort=389
+#SearchBaseDN=o=University of Michigan, c=US
+#BindUserDN=cn=Babs Jensen,o=University of Michigan, c=US
+#BindUserPW=RealySecretPassword
+#sizelimit=0
+#timelimit=0
 # EOF
 
