@@ -155,6 +155,9 @@ public:
 	// override from class ProxySocket
 	virtual Result ReceiveData();
 
+protected:
+	virtual bool WriteData(const BYTE *, int);
+	
 private:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
@@ -2269,6 +2272,24 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 	}
 	return Forwarding;
+}
+
+bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
+{
+	if (!IsSocketOpen())
+		return false;
+
+	const int queueSize = GetQueueSize();
+	if (queueSize == 0)
+		return InternalWriteData(buffer, len);
+	else if (queueSize > 100) {
+		PTRACE(2, Type() << '\t' << Name() << " is dead and closed");
+		CloseSocket();
+	} else {
+		PTRACE(3, Type() << '\t' << Name() << " is busy, " << len << " bytes queued");
+		QueuePacket(buffer, len);
+	}
+	return false;
 }
 
 

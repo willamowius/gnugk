@@ -58,6 +58,13 @@ public:
 	PString GetErrorText(PSocket::ErrorGroup) const;
 	bool ConvertOSError(int libReturnValue, PSocket::ErrorGroup = PSocket::LastGeneralError);
 
+	bool CanRead(
+		long timeout
+		) const;
+	bool CanWrite(
+		long timeout
+		) const;
+		
 protected:
 	virtual int os_recv(void *, int) = 0;
 	virtual int os_send(const void *, int) = 0;
@@ -124,9 +131,27 @@ public:
 	typedef std::vector<YaSocket *>::iterator iterator;
 	typedef std::vector<YaSocket *>::const_iterator const_iterator;
 
-	YaSelectList(YaSocket * = 0);
+	/// build a select list for more than one socket
+	YaSelectList(
+		/// estimated number of sockets to be put in this select list
+		size_t reserve = 512
+	) : maxfd(0) { fds.reserve(reserve); }
+	
+	/// build a select list for signle socket only
+	YaSelectList(
+		YaSocket* singleSocket /// socket to be put on the list
+		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()) {}
 
-	void Append(YaSocket *);
+	void Append(
+		YaSocket* s /// the socket to be appended
+		)
+	{
+		if (s && s->IsOpen()) {
+			fds.push_back(s);
+			if (s->GetHandle() > maxfd)
+				maxfd = s->GetHandle();
+		}
+	}
 
 	bool IsEmpty() const { return fds.empty(); }
 	int GetSize() const { return fds.size(); }
@@ -169,7 +194,8 @@ public:
 		Read,
 		Write
 	};
-	SocketSelectList(PIPSocket *s = 0);
+	SocketSelectList(size_t) {};
+	SocketSelectList(PIPSocket *s = 0) { if (s) Append(s); }
 	bool Select(SelectType, const PTimeInterval &);
 	PSocket *operator[](int i) const;
 };
@@ -230,17 +256,39 @@ public:
 		USocket *s;
 	};
 
-	bool IsReadable(int = 0);
-	bool IsWriteable(int = 0);
+#ifdef LARGE_FDSET
+	bool IsReadable(long timeout = 0) { return self->CanRead(timeout); }
+	bool IsWriteable(long timeout = 0) { return self->CanWrite(timeout); }
+#else
+	bool IsReadable(int milisec = 0)
+	{
+		return SocketSelectList(self).Select(SocketSelectList::Read, milisec);
+	}
+
+	bool IsWriteable(int milisec = 0)
+	{
+		return SocketSelectList(self).Select(SocketSelectList::Write, milisec);
+	}
+#endif
 
 protected:
-	bool WriteData(const BYTE *, int);
+	virtual bool WriteData(const BYTE *, int);
+	bool InternalWriteData(const BYTE *, int);
+	
+	int GetQueueSize() const { return qsize; }
+	void QueuePacket(const BYTE* buf, int len)
+	{
+		queueMutex.Wait();
+		queue.push_back(new PBYTEArray(buf, len));
+		++qsize;
+		queueMutex.Signal();
+	}
+	
 	bool ErrorHandler(PSocket::ErrorGroup);
 
 	IPSocket *self;
 
 private:
-	bool InternalWriteData(const BYTE *, int);
 
 	std::list<PBYTEArray *> queue;
 	int qsize;

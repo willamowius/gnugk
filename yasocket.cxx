@@ -26,28 +26,14 @@
 
 #ifdef LARGE_FDSET
 
-// class YaSelectList
-YaSelectList::YaSelectList(YaSocket *s) : maxfd(0)
-{
-	fds.reserve(512);
-	Append(s);
-}
-
-void YaSelectList::Append(YaSocket *s)
-{
-	if (s) {
-		fds.push_back(s);
-		if (s->GetHandle() > maxfd)
-			maxfd = s->GetHandle();
-		PAssert(maxfd < LARGE_FDSET, "Out of Range Error");
-	}
-}
-
 bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 {
 	large_fd_set fdset;
-	for_each(fds.begin(), fds.end(),
-		 compose1(bind1st(mem_fun(&large_fd_set::add), &fdset), mem_fun(&YaSocket::GetHandle)));
+	// add handles to the fdset
+	const_iterator i = fds.begin();
+	const_iterator endIter = fds.end();
+	while (i != endIter)
+		fdset.add((*i++)->GetHandle());
 
 	fd_set *readfds, *writefds;
 	if (t == Read)
@@ -55,15 +41,65 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 	else
 		writefds = fdset, readfds = 0;
 
-	DWORD msec = timeout.GetInterval();
+	const unsigned long msec = timeout.GetInterval();
 	struct timeval tval;
-	tval.tv_usec = (msec % 1000) * 1000;
 	tval.tv_sec  = msec / 1000;
+	tval.tv_usec = (msec - tval.tv_sec * 1000) * 1000;
 	bool r = ::select(maxfd + 1, readfds, writefds, 0, &tval) > 0;
 	if (r) {
-		iterator last = remove_if(fds.begin(), fds.end(),
-					  not1(compose1(bind1st(mem_fun(&large_fd_set::has), &fdset), mem_fun(&YaSocket::GetHandle))));
+#if 1
+		std::vector<YaSocket*>::iterator last = std::remove_if(
+			fds.begin(), fds.end(),
+			std::not1(std::compose1(
+				std::bind1st(mem_fun(&large_fd_set::has), &fdset), 
+				mem_fun(&YaSocket::GetHandle)
+				)));
 		fds.erase(last, fds.end());
+#else
+		/* This unrolled implementation of the above code may give
+		   another 10-15% of performance gain. As it is not much under normal
+		   conditions, I leave it for thouse who want to squeeze a few more
+		   calls from their proxies;-)
+		   
+		   I did some performance tests (Duron 1.1GHz) with simulation of
+		   various fds selected sockets coverage (10%, 33%, 50%, 75%, 90%):
+		   
+		   LARGE_FDSET=1024  - 12% performance gain
+		   LARGE_FDSET=4096  - 15% performance gain
+		   LARGE_FDSET=16384 - 13% performance gain
+		   
+		   For LARGE_FDSET=4096 it took less than 1ms to manipulate the fdset
+		   and this grows in a linear fashion (LARGE_FDSET=16384 takes a few
+		   milliseconds to perform the same task).
+		*/
+		std::vector<YaSocket*>::reverse_iterator j = fds.rbegin();
+		std::vector<YaSocket*>::iterator k = fds.end();
+		const std::vector<YaSocket*>::reverse_iterator rendIter = fds.rend();
+		bool hasfd = false;
+		
+		// start from the end of the list, skip consecutive sockets 
+		// that were not selected (find the first one selected)
+		while (j != rendIter) {
+			k--;
+			if (fdset.has((*j)->GetHandle())) {
+				hasfd = true;
+				break;
+			} else
+				j++;
+		}
+		// reorder remaining sockets, so non-selected sockets 
+		// are moved to the end of the vector
+		if (hasfd) {
+			while (++j != rendIter) {
+				if (!fdset.has((*j)->GetHandle()))
+					*j = *k--;
+			}
+			// at this point the vector [begin(),k] should contain
+			// all selected sockets, so erase the remaining vector elements
+			fds.erase(++k, fds.end());
+		} else
+			fds.clear();
+#endif
 	}
 	return r;
 }
@@ -110,10 +146,44 @@ bool YaSocket::ReadBlock(void *buf, int len)
 	return Read(buf, len) && (lastReadCount == len);
 }
 
+bool YaSocket::CanRead(
+	long timeout
+	) const
+{
+	const int h = os_handle;
+	if (h < 0)
+		return false;
+
+	YaSelectList::large_fd_set fdset;
+	fdset.add(h);
+
+	struct timeval tval;
+	tval.tv_sec  = timeout / 1000;
+	tval.tv_usec = (timeout - tval.tv_sec * 1000) * 1000;
+	return ::select(h + 1, (fd_set*)fdset, NULL, NULL, &tval) > 0;
+}
+
+bool YaSocket::CanWrite(
+	long timeout
+	) const
+{
+	const int h = os_handle;
+	if (h < 0)
+		return false;
+		
+	YaSelectList::large_fd_set fdset;
+	fdset.add(h);
+
+	struct timeval tval;
+	tval.tv_sec  = timeout / 1000;
+	tval.tv_usec = (timeout - tval.tv_sec * 1000) * 1000;
+	return ::select(h + 1, NULL, (fd_set*)fdset, NULL, &tval) > 0;
+}
+
 bool YaSocket::Write(const void *buf, int sz)
 {
 	lastWriteCount = 0;
-	if (!YaSelectList(this).Select(YaSelectList::Write, writeTimeout)) {
+	if (!CanWrite(writeTimeout.GetInterval())) {
 		errno = EAGAIN;
 		return ConvertOSError(-1, PSocket::LastWriteError);
 	}
@@ -402,12 +472,6 @@ int YaUDPSocket::os_send(const void *buf, int sz)
 
 #else // LARGE_FDSET
 
-SocketSelectList::SocketSelectList(PIPSocket *s)
-{
-	if (s && s->IsOpen())
-		Append(s);
-}
-
 bool SocketSelectList::Select(SelectType t, const PTimeInterval & timeout)
 {
 	if (IsEmpty())
@@ -477,16 +541,6 @@ bool USocket::Flush()
 		delete pdata;
 	}
 	return result;
-}
-
-bool USocket::IsReadable(int milisec)
-{
-	return SocketSelectList(self).Select(SocketSelectList::Read, milisec);
-}
-
-bool USocket::IsWriteable(int milisec)
-{
-	return SocketSelectList(self).Select(SocketSelectList::Write, milisec);
 }
 
 bool USocket::WriteData(const BYTE *buf, int len)

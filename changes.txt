@@ -1,5 +1,8 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- improved performance of the socket code (especially when LARGE_FDSET 
+  is enabled). Faster select for a single socket and an unnecessary 
+  write lock for UDP sockets removed
 - BUGFIX(radproto.cxx) default auth/acct ports are now set to fixed values
   1812 and 1813, due to problems with getservbyname and multithreading
 - (gksql.cxx) improved SQL query parameters replacement routine
