@@ -46,16 +46,13 @@
 /* Release status for the gatekeeper */
 #ifndef GNUGK_BUILD_TYPE
 /* might be: AlphaCode, BetaCode, ReleaseCode */
-# define GNUGK_BUILD_TYPE BetaCode
+# define GNUGK_BUILD_TYPE ReleaseCode
 /* Set this Macro if Release Code */
-# ifdef RELEASE_CODE
-#  undef RELEASE_CODE
-# endif
 #endif
 
 /* Build number of the gatekeeper */
 #ifndef GNUGK_BUILD_NUMBER
-# define GNUGK_BUILD_NUMBER 5
+# define GNUGK_BUILD_NUMBER 1
 #endif
 
 #endif  /* GNUGK_VERSION_H */
