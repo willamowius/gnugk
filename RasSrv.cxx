@@ -1357,8 +1357,8 @@ bool RegistrationRequestPDU::Process()
 			//if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') )
 			if (s.GetLength() < 1)
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
-			if (!nated)
-				nated = Kit->Config()->HasKey("NATedEndpoints", s);
+			//if (!nated)
+			//	nated = Kit->Config()->HasKey("NATedEndpoints", s);
 		}
 	} else {
 		// reject gw without alias
@@ -1379,6 +1379,24 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable);
 	}
 
+	if (!nated && request.HasOptionalField(H225_RegistrationRequest::e_featureSet) && request.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+		H225_ArrayOf_FeatureDescriptor & fd = request.m_featureSet.m_neededFeatures;
+		if (fd.GetSize() > 0 && fd[0].HasOptionalField(H225_FeatureDescriptor::e_parameters)) {
+			H225_ArrayOf_EnumeratedParameter & parms = fd[0].m_parameters;
+			int i;
+			bool detecting = false;
+			for (i = 0; i < parms.GetSize(); ++i)
+				if (parms[i].HasOptionalField(H225_EnumeratedParameter::e_content))
+					if (parms[i].m_content.GetTag() == H225_Content::e_transport) {
+						H225_TransportAddress & addr = parms[i].m_content;
+						detecting = true;
+						if (addr == SignalAddr)
+							break;
+					}
+			if (detecting)
+				nated = (i >= parms.GetSize());
+		}
+	}
 	request.m_callSignalAddress.SetSize(1);
 	request.m_callSignalAddress[0] = SignalAddr;
 
