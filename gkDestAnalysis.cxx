@@ -624,158 +624,113 @@ GkDestAnalysisList::~GkDestAnalysisList()
 
 // Blacklist blocking feature
 
-class BlackWhiteListAnalysis : public GkDestAnalysis {
+class BlackListAnalysis : public GkDestAnalysis {
 public:
-	BlackWhiteListAnalysis(PConfig *, const char *);
-	virtual ~BlackWhiteListAnalysis();
+	BlackListAnalysis(PConfig *, const char *);
+	virtual ~BlackListAnalysis();
 
 protected:
 	virtual int getDestination(const H225_AdmissionRequest &, list<EndpointRec *> & EPList,
-                                   PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
-		{
-			PAssert(cgEP, "Cannot get List without CalledEndpoint");
-			BOOL found=FALSE;
-			callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
-			PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
-			CallingProfile cgpf = callRec->GetCallingProfile();
-			PTRACE(5,"getDestination BlackWhiteList");
-			found=CheckNumberInList(DialedDigits, cgpf, reason);
-			if(found)
-				cdEP=endptr(0);
-			return e_ok;
-		}
+                                   PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason);
 
 	virtual int getDestination(const H225_AliasAddress &, list<EndpointRec *> & EPList,
-                                   PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason)
-		{
-			PAssert(cgEP, "Cannot get List without CalledEndpoint");
-			BOOL found=FALSE;
-			callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
-			PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
-			CallingProfile cgpf = callRec->GetCallingProfile();
-			PTRACE(5,"getDestination BlackWhiteList");
-			found=CheckNumberInList(DialedDigits, cgpf, reason);
-			if(found)
-				cdEP=endptr(0);
-			return e_ok;
-		}
+                                   PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason);
 
-private:
-	BOOL CheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf, unsigned & reason);
+	BOOL CheckNumberInList(const PString CalledPartyNumber, PStringList numberlist);
+	BOOL BlackWhiteCheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf);
+	BOOL WhiteBlackCheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf);
 
 };
 
-static GkDestAnalysisInit<BlackWhiteListAnalysis> BLDA("BlackWhiteListDestinationAnalysis");
+static GkDestAnalysisInit<BlackListAnalysis> BLDA("BlackListDestinationAnalysis");
 
-BlackWhiteListAnalysis::BlackWhiteListAnalysis(PConfig *cfg, const char *destAnalysisName) : GkDestAnalysis(cfg, destAnalysisName)
+BlackListAnalysis::BlackListAnalysis(PConfig *cfg, const char *destAnalysisName) : GkDestAnalysis(cfg, destAnalysisName)
 {
 }
 
-BlackWhiteListAnalysis::~BlackWhiteListAnalysis()
+BlackListAnalysis::~BlackListAnalysis()
 {
 }
 
-BOOL BlackWhiteListAnalysis::CheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf, unsigned & reason)
+int BlackListAnalysis::getDestination(const H225_AdmissionRequest &, list<EndpointRec *> & EPList,
+			   PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
 {
+	PAssert(cgEP, "Cannot get List without CallingEndpoint");
+	BOOL found=FALSE;
+	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
+	PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
+	CallingProfile cgpf = callRec->GetCallingProfile();
+	if(callRec->GetCallingProfile().WhiteListBeforeBlackList()) {
+		PTRACE(5,"getDestination WhiteBlackList");
+		found=WhiteBlackCheckNumberInList(DialedDigits, cgpf);
+	} else {
+		PTRACE(5,"getDestination WhiteBlackList");
+		found=BlackWhiteCheckNumberInList(DialedDigits, cgpf);
+	}
+	if(found) {
+		cdEP=endptr(0);
+		reason = H225_AdmissionRejectReason::e_invalidPermission;
+	}
+	return e_ok;
+}
+
+int BlackListAnalysis::getDestination(const H225_AliasAddress &, list<EndpointRec *> & EPList,
+			   PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason)
+{
+	PAssert(cgEP, "Cannot get List without CallingEndpoint");
+	BOOL found=FALSE;
+	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
+	PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
+	CallingProfile cgpf = callRec->GetCallingProfile();
+	if(callRec->GetCallingProfile().WhiteListBeforeBlackList()) {
+		PTRACE(5,"getDestination WhiteBlackList");
+		found=WhiteBlackCheckNumberInList(DialedDigits, cgpf);
+	} else {
+		PTRACE(5,"getDestination WhiteBlackList");
+		found=BlackWhiteCheckNumberInList(DialedDigits, cgpf);
+	}
+	if(found){
+		cdEP=endptr(0);
+		reason = H225_AdmissionRejectReason::e_invalidPermission;
+	}
+	return e_ok;
+}
+
+BOOL BlackListAnalysis::CheckNumberInList(const PString CalledPartyNumber, const PStringList numberlist)
+{
+	BOOL found=FALSE;
+	PTRACE(5,"Starting List-search");
+	for(PINDEX i=0; i < numberlist.GetSize() && !found; i++) {
+		PTRACE(6,"Checking for " << numberlist[i] << ":" <<  CalledPartyNumber << endl <<
+		       numberlist[i].GetLength() << "," << CalledPartyNumber.GetLength());
+		if(numberlist[i].GetLength() <= CalledPartyNumber.GetLength() && numberlist[i]==CalledPartyNumber.Left(numberlist[i].GetLength())) {
+			PTRACE(5, "Hit Listist  " << numberlist[i]);
+			found=TRUE;
+		}
+	}
+	return found;
+}
+
+BOOL BlackListAnalysis::BlackWhiteCheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf){
 	BOOL found=FALSE;
 	PStringList BlackList=cgpf.getBlackList();
 	PStringList WhiteList=cgpf.getWhiteList();
-	PTRACE(5,"Starting Blacklist-search");
-	for(PINDEX i=0; i < BlackList.GetSize() && !found; i++) {
-		PTRACE(6,"Checking for " << BlackList[i] << ":" <<  CalledPartyNumber << endl <<
-		       BlackList[i].GetLength() << "," << CalledPartyNumber.GetLength());
-		if(BlackList[i].GetLength() <= CalledPartyNumber.GetLength() && BlackList[i]==CalledPartyNumber.Left(BlackList[i].GetLength())) {
-			PTRACE(5, "Hit Blacklist  " << BlackList[i]);
-			found=TRUE;
-			reason=H225_AdmissionRejectReason::e_invalidPermission;
-		}
-	}
-	PTRACE(5,"Starting Whitelist-search");
-	for(PINDEX i=0; i < WhiteList.GetSize() && found; i++) {
-		PTRACE(6,"Checking for " << WhiteList[i]);
-		if(WhiteList[i].GetLength() <= CalledPartyNumber.GetLength() && WhiteList[i]==CalledPartyNumber.Left(WhiteList[i].GetLength())) {
-			PTRACE(5, "Hit Whitelist  " << WhiteList[i]);
-			reason=H225_AdmissionRejectReason::e_calledPartyNotRegistered;
-			found=FALSE;
-		}
+	PTRACE(5,"Starting Blacklist-search ");
+	if(found=CheckNumberInList(CalledPartyNumber, BlackList)) {
+		PTRACE(5, "Blacklist hit");
+		found=!CheckNumberInList(CalledPartyNumber,WhiteList);
 	}
 	return found;
 }
 
-
-class WhiteBlackListAnalysis : public GkDestAnalysis {
-public:
-	WhiteBlackListAnalysis(PConfig *, const char *);
-	virtual ~WhiteBlackListAnalysis();
-
-protected:
-	virtual int getDestination(const H225_AdmissionRequest &a, list<EndpointRec *> & EPList,
-                                   PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
-		{
-			PAssert(cgEP, "Cannot get List without CalledEndpoint");
-			BOOL found=FALSE;
-			callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
-			PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
-			CallingProfile cgpf = callRec->GetCallingProfile();
-			PTRACE(5,"getDestination WhiteBlackList");
-			found=CheckNumberInList(DialedDigits, cgpf, reason);
-			if(found)
-				cdEP=endptr(0);
-			return e_ok;
-		}
-
-	virtual int getDestination(const H225_AliasAddress &a, list<EndpointRec *> & EPList,
-                                   PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason)
-		{
-			PAssert(cgEP, "Cannot get List without CalledEndpoint");
-			BOOL found=FALSE;
-			callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
-			PString DialedDigits = callRec->GetCalledProfile().getCalledPN();
-			CallingProfile cgpf = callRec->GetCallingProfile();
-			PTRACE(5,"getDestination WhiteBlackList");
-			found=CheckNumberInList(DialedDigits, cgpf, reason);
-			if(found)
-				cdEP=endptr(0);
-			return e_ok;
-		}
-
-private:
-	BOOL CheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf, unsigned & reason);
-
-};
-
-static GkDestAnalysisInit<WhiteBlackListAnalysis> WLDA("WhiteBlackListDestinationAnalysis");
-
-WhiteBlackListAnalysis::WhiteBlackListAnalysis(PConfig *cfg, const char *destAnalysisName) : GkDestAnalysis(cfg, destAnalysisName)
-{
-}
-
-WhiteBlackListAnalysis::~WhiteBlackListAnalysis()
-{
-}
-
-BOOL WhiteBlackListAnalysis::CheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf, unsigned & reason)
-{
-	BOOL found=TRUE;
+BOOL BlackListAnalysis::WhiteBlackCheckNumberInList(const PString CalledPartyNumber, const CallingProfile cgpf){
+	BOOL found=FALSE;
 	PStringList BlackList=cgpf.getBlackList();
 	PStringList WhiteList=cgpf.getWhiteList();
-	PTRACE(5,"Starting Whitelist-search "<< WhiteList);
-	for(PINDEX i=0; i < WhiteList.GetSize() && found; i++) {
-		PTRACE(6,"Checking Whitelist for " << WhiteList[i]);
-		if(WhiteList[i].GetLength() <= CalledPartyNumber.GetLength() && WhiteList[i]==CalledPartyNumber.Left(WhiteList[i].GetLength())) {
-			PTRACE(5, "Found White hit: " << WhiteList[i] << ":" << CalledPartyNumber);
-			found=FALSE;
-		}
+	PTRACE(5,"Starting Whitelist-search ");
+	if(found=CheckNumberInList(CalledPartyNumber, WhiteList)) {
+		PTRACE(5, "Whitelist hit");
+		found=!CheckNumberInList(CalledPartyNumber, BlackList);
 	}
-	for(PINDEX i=0; i < BlackList.GetSize() && !found; i++) {
-		PTRACE(6,"Checking Blacklist for " << BlackList[i]);
-		if(BlackList[i].GetLength() <= CalledPartyNumber.GetLength() && BlackList[i]==CalledPartyNumber.Left(BlackList[i].GetLength())) {
-			PTRACE(5, "Hit Blacklist  " << BlackList[i]);
-			found=TRUE;
-			reason=H225_AdmissionRejectReason::e_invalidPermission;
-		}
-	}
-	return found;
+	return !found;
 }
-
-//#endif // WITH_DEST_ANALYSIS_LIST

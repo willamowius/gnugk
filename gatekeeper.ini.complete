@@ -307,13 +307,9 @@ default=allow
 ##   OverlapSendDestAnalysis    This module checks for incomplete destination
 ##                              addresses (not fully implemented up to now).
 ##
-##   BlackWhiteListDestAnalysis This module checks for Blacklisted numbers (forbidden
-##			        numbers) and *then* for Whitelisted numbers (exceptions
-##				from Blacklist). Default is allow connections.
-##
-##   WhiteBlackListDestAnalysis This module checks for Whitelisted numbers (allowed
-##			        numbers) and *then* for Blacklisted numbers (exceptions
-##				from Whitelist). Default is deny connections.
+##   BlackListDestAnalysis      This module checks Blacklisted numbers. The
+##				precedence of Blacklisting and Whitelisting
+##				is per-endpoint configurable.
 ##
 ## A rule may results in one of the three codes: ok, fail, pass.
 ## There are also three ways to control a rule: optional, required, sufficient.

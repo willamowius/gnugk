@@ -244,18 +244,18 @@ First, the first alias (this will mostly be a h323id) of the endpoint to registe
 up in this section.  If a parameter is found the value will apply as a rule. If no parameter
 is found, the value of the parameter "default" will apply. If no "default" is found all
 registrations are accepted. A rule consists of conditions separated by "&". A registration
-is accepted when all conditions apply. 
+is accepted when all conditions apply.
 
 A condition has the notation authtype:param1[:param2[...]]. The number of params depends on
-the authtype. Currently the following authtypes are implemented: 
+the authtype. Currently the following authtypes are implemented:
 
-  confirm (or allow)        : allow this endpoint to register. 
-  reject (or deny, forbid)  : may not register. 
-  sigip:<a.b.c.d:p>         : allow registering if the signal address is <a.b.c.d:p>. 
+  confirm (or allow)        : allow this endpoint to register.
+  reject (or deny, forbid)  : may not register.
+  sigip:<a.b.c.d:p>         : allow registering if the signal address is <a.b.c.d:p>.
   sigaddr:<regex>           : allow registering only if the PString (see pwlib class)
                               representation of the signal address of the registering endpoint
 			      matches <regex>. This is a more general form then "sigip" and
-			      will allow future extension (ie by IPv6). 
+			      will allow future extension (ie by IPv6).
 
   Example:
   rossi-gt2=sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
@@ -351,12 +351,12 @@ Currently supported modules:
   AliasAuth/
   MySQLAliasAuth/
   DBAliasAuth         The IP of an endpoint with given alias should
-                      match a specified pattern. For AliasAuth the pattern 
+                      match a specified pattern. For AliasAuth the pattern
                       is defined in [RasSrv::RRQAuth] section.
                       For MySQLAliasAuth, the pattern is retrieved from
                       MySQL database, defined in [MySQLAliasAuth] section.
                       For DBAliasAuth the alias (default: mail attribute)
-                      and IP (default: voIPIpAddress attribute) must be 
+                      and IP (default: voIPIpAddress attribute) must be
                       found in one LDAP entry or, if using the .ini file
 		      as the database, the corresponding entry in the
 		      [RasSvr::EndpointOptions] section.
@@ -690,15 +690,9 @@ Currently supported modules:
   OverlapSendDestAnalysis    This module checks for incomplete destination
                              addresses (not fully implemented up to now).
 
-  BlackWhiteListDestAnalysis This module checks for blacklisted numbers
-                             (forbidden numbers) and *then* for whitelisted
-                             numbers (exceptions from Blacklist). Default is
-                             to allow connections.
-
-  WhiteBlackListDestAnalysis This module checks for whitelisted numbers
-                             (allowed numbers) and *then* for blacklisted
-                             numbers (exceptions from Whitelist). Default
-                             is to deny connections.
+  BlackListDestAnalysis      This module checks Blacklisted numbers. The
+			     precedence of Blacklisting and Whitelisting
+			     is per-endpoint configurable.
 
 A rule may results in one of the three codes: ok, fail, pass.
 There are also three ways to control a rule: optional, required, sufficient.
@@ -710,16 +704,27 @@ Blacklist rules will always result in ok.
 [Example]
 
 OverlapSendDestAnalysis=required;ARQ
-WhiteBlackListDestAnalysis=required;ARQ
+BlackListDestAnalysis=required;ARQ
 default=reject
 
 The calling EP has:
+voIPWhiteListBeforeBlackList = TRUE
 voIPprefixOutgoingWhiteList (aka WhiteList): 49
 That means only calls to 49* (aka Germany) are allowed. Rest of the world is
 forbidden!
 voIPprefixOutgoingBlackList (aka BlackList): 49190, 49800, 49700
 That means calls to 49190* (user dialed 0190...) is forbidden too. The rest
 of the world was forbidden in the WhiteList rule.
+
+The calling EP has:
+voIPWhiteListBeforeBlackList = FALSE (default)
+voIPprefixOutgoingBlackList (aka BlackList): 49
+That means calls to 49* (aka Germany) are disallowed. Rest of the world is
+allowed (do you really want this?)!
+voIPprefixOutgoingWhiteList (aka WhiteList): 49521, 495246, 495205
+That means calls to 49521 (as dialed from germany: 0521 (Bielefeld)) is ok,
+as is 495246 (Verl) and 495205 (Bielefeld-Sennestadt). The rest of germany
+is still disallowed.
 
 
 B.24 Section [GkDatabase::DBAttributeNames]
@@ -843,5 +848,3 @@ B.28 Section [PlaintextPasswd::SharedSecret]
 # cipher's prefix (as used by LDAP for instance); RHS is the base64
 # encoded password (shared secret). The actual key used is the MD5
 # digest of the password.
-
-
