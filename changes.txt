@@ -1,12 +1,24 @@
 Changes from 1.0pre8 to 1.0 (by cwhuang)
 ========================
 
-- Neighbor function based on LRQ/LCF
-- add more information in LCF reply
-- re-design EndpointRec & Registration
-- add permanent endpoints support for endpoints without RAS
-- add gateway SupportedPrefix support
-- replace using directive by using declaration to avoid namespace pollution
+- Neighbor function based on LRQ/LCF.
+  GK would cache the records in a list.
+  A command "PrintAllCached" is added to GkStatus.
+  
+- Add more information in LCF reply, including terminal type, aliases
+  and supportedProtocols (if any) so that the neighbors could cache it.
+
+- Re-design EndpointRec & RegistrationTable.
+  The output format of "PrintAllRegistrations" is also changed.
+
+- Add permanent endpoints support for endpoints without RAS.
+
+- Add gateway SupportedPrefix support.
+  Note the gateway aliases no longer be treated as prefixes.
+  If you want an alias to be a prefix, add it to SupportedPrefix
+  or config file.
+
+- Replace using directive by using declaration to avoid namespace pollution.
 
 Changes from 0.17 to 1.0pre8
 ======================== 
