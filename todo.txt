@@ -6,6 +6,7 @@ for people who wish to contribute to this project.
 I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
+- fix: decode Q.931 UUIE debug output (pwlib thingy)
 
 - fix: Forwarding to alternate GK doesn't use GKHome as it's
   sender address
@@ -33,23 +34,14 @@ avoid duplicate work.
 
 - we need a GUI client to visualize the status messages (Java GUI started)
 
-- Implement H.245 signal routing (command line option)
-  Redirect all H.245 connections to gatekeeper and start another thread
-  for each connection.
-  H.245 routing only works when H.225 routing is active.
-  The GK replaces all H.245 addresses the endpoints inserts into the H.225
-  messages with addresses on his own machine and starts a new thread thats
-  listening on that port and forwards the packets just like we do with H.225
-  packets. (Take a look at the source for OpenGatekeeper to see how this
-  can be implemented!)
+- Implement H.245 signal routing (command line option) - PARTLY DONE
+  * implement fast connect 
 
-- implement H.235 SHA-1 hashing - DONE, PLEASE TEST
+- implement carrier-grade routing
+  (Assigned to: martinfroehlich, mmuehlen, rkeil, nilsb)
 
-- LDAP access: (Assigned to: martinfroehlich, mmuehlen, rkeil) - DONE, PLEASE TEST
-
-- implement carrier-grade routing (Assigned to: martinfroehlich, mmuehlen, rkeil, nilsb)
-
-- implement screening (verification of A number, based on authentification) functionality
+- implement screening
+  (verification of A number, based on authentification) functionality
   (Assigned to: martinfroehlich, mmuehlen, rkeil, nilsb)
 
 - implement blacklists (caller-, callee-dependant)
@@ -64,13 +56,18 @@ avoid duplicate work.
   (like no circuit/channel available)
 
 - implement source based routing: for mobile numbers (and others, possibly), 
-  routing should be done based on *A* number
+  routing should be done based on *A* number.
   Since the breakout gateway doesn't make a difference in terms of cost,
-  routing to the breakout gateway closest to the originator minimizes on-net cost.
+  routing to the breakout gateway closest to the originator minimizes on-net costs.
 
 - implement call interception (for legal purposes)
 
-- implement call distribution (static percentage, 
+- implement call distribution based on:
+  * static percentage
+  * time of day
+  * overflow (i.e. first concurrent n calls go to destination 1,
+    all additional calls to destination 2)
+
 - The resourceManager should use the new CallTable and don't keep
   it's on list of resource allocations.
 
