@@ -223,6 +223,30 @@ void GkClient::SendRRQ()
 	SendRas(rrq_ras);
 }
 
+void GkClient::RegisterFather()
+{
+	H225_RasMessage rrq_ras;
+	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
+	H225_RegistrationRequest &rrq = rrq_ras;
+	rrq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	rrq.m_discoveryComplete = FALSE;
+
+	BuildFullRRQ(rrq);
+
+	H225_TransportAddress gkaddr;
+	gkaddr.SetTag(H225_TransportAddress::e_ipAddress);
+	H225_TransportAddress_ipAddress & gkaddr_ip = gkaddr;
+	gkaddr_ip.m_port = 1721;
+	gkaddr_ip.m_ip[0] = m_gkaddr[0];
+	gkaddr_ip.m_ip[1] = m_gkaddr[1];
+	gkaddr_ip.m_ip[2] = m_gkaddr[2];
+	gkaddr_ip.m_ip[3] = m_gkaddr[3];
+	rrq.m_callSignalAddress.SetSize(1);
+	rrq.m_callSignalAddress[0] = gkaddr;
+	RegistrationTable::Instance()->InsertRec(rrq_ras);
+}
+
 void GkClient::OnRCF(const H225_RegistrationConfirm & rcf, PIPSocket::Address gkip)
 {
 	if (!CheckGKIPVerbose(gkip))
@@ -235,6 +259,8 @@ void GkClient::OnRCF(const H225_RegistrationConfirm & rcf, PIPSocket::Address gk
 	}
 	m_ttl = rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive) ?
 		(rcf.m_timeToLive - m_retry) * 1000 : 0;
+
+	RegisterFather();
 }
 
 void GkClient::OnRRJ(const H225_RegistrationReject & rrj, PIPSocket::Address gkip)

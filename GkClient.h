@@ -81,7 +81,7 @@ public:
 	bool OnURQ(const H225_UnregistrationRequest &, PIPSocket::Address);
 	bool OnIRQ(const H225_InfoRequest &);
 
-	bool IsRegistered() const { return !m_endpointId; }
+	bool IsRegistered() const { return !m_endpointId.IsEmpty(); }
 
 	bool RewriteE164(H225_AliasAddress & alias, bool);
 	bool RewriteE164(H225_ArrayOf_AliasAddress & alias, bool);
@@ -108,6 +108,7 @@ private:
 	typedef std::map<int, callptr>::const_iterator const_iterator;
 
 	void SendRas(const H225_RasMessage &);
+	void RegisterFather();
 	void BuildFullRRQ(H225_RegistrationRequest &);
 	void BuildLightWeightRRQ(H225_RegistrationRequest &);
 	int  BuildARQ(H225_AdmissionRequest &);
