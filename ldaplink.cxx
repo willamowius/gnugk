@@ -247,7 +247,7 @@ LDAPAnswer *
 LDAPCtrl::DirectoryUserLookup(const PString &alias)
 {
 	LDAPAnswer * result = NULL;
-	LDAPQuery *q=new LDAPQuery();
+	LDAPQuery q;
 	PStringList values;
 	using namespace dctn;
 
@@ -255,12 +255,12 @@ LDAPCtrl::DirectoryUserLookup(const PString &alias)
 	values.AppendString(alias);
 	// assemble the search.
 	AttributeNames_mutex.StartRead();
-	q->DBAttributeValues.insert(DBAVValuePair((*AttributeNames)[DBAttrTags[H323ID]],values));
+	q.DBAttributeValues.insert(DBAVValuePair((*AttributeNames)[DBAttrTags[H323ID]],values));
 	AttributeNames_mutex.EndRead();
-	q->LDAPOperator=LDAPQuery::LDAPNONE;
+	q.LDAPOperator=LDAPQuery::LDAPNONE;
 
 	// search until found or out of retries
-	result = DirectoryLookup(*q);
+	result = DirectoryLookup(q);
 
 	return result;
 }
@@ -333,6 +333,7 @@ LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList &attrs, PString &DN, unsig
 				iter->second.insert(DBAVValuePair(attribute_remainder[j],
 									 subquery->LDAPec[DN][attribute_remainder[j]]));
 			}
+			delete subquery;
 		}
 	}
 	return query;
@@ -408,6 +409,7 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 			DEBUGPRINT("ldap_search_st: OK " << PString(gk_ldap_err2string(ldap_ret)));
 		} else {
 			m_readLock.Signal();
+			gk_ldap_msgfree(res);
 			DEBUGPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
 			//ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
 			result->status = ldap_ret;
@@ -464,14 +466,18 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 			AV.insert(DBAVValuePair(PString(attr),
 						  PStringList(valc, valv, false)));
 			gk_ldap_value_free(valv);	// remove value vector
+			gk_ldap_memfree(attr); // remove attr
 		} // attr
+		gk_ber_free(ber,0);
   		PString out="AV=";
   		for (std::map<PString,PStringList>::iterator Iter=AV.begin();Iter!=AV.end(); Iter++)
   			out += (*Iter).first + ":" + (*Iter).second[0] + " ";
   		PTRACE(1, out);
 		if(!AV.empty())
 			result->LDAPec.insert(LDAPECValuePair(dn,AV));
+		gk_ldap_memfree(dn);
 	} // answer chain
+	gk_ldap_msgfree(res);
 	return result;
 }
 
