@@ -6,7 +6,15 @@ for people who wish to contribute to this project.
 I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
+- feature: add ability to use routing via neighbour for known destinations, too
+           Neighbours should be configured && handled like gateways (i.e. they're
+           configured to be used as the destination for certain prefixes), just
+           that they're addressed via LRQ.
+
 - feature: implement blacklists (caller-, callee-dependant)
+
+- fix: GRQ should be authenticated against [DB][Alias|Password]Auth, too.
+       (currently default=allow is required to stop GK from sending GRJ)
 
 - fix: message length on RewriteE164 may be wrong if rewriting and rewritten
        number differ in length
@@ -16,8 +24,6 @@ avoid duplicate work.
   * add T309 (network timeout) and T322 (Status Enquiry) timer, too
     (right now: interval = timeout)
   * see H.323 Annex R "Robustness Methods"
-
-- feature: add ability to use routing via neighbour for known destinations, too
 
 - feature: route call to voicemail mailbox for calls to provisioned, but
   non-registered destinations (i.e. those that result in calledpartyNotRegistered)
