@@ -80,7 +80,8 @@ volatile bool ExitFlag = false;	// used in signaling
 
 } // end of anonymous namespace
 
-void ShutdownHandler(void)
+extern void 
+ShutdownHandler(void)
 {
 	// we may get one shutdown signal for every thread; make sure we
 	// delete objects only once
@@ -155,7 +156,8 @@ void ReopenLogFile()
 }
 #endif
 
-void ReloadHandler(void)
+extern void 
+ReloadHandler(void)
 {
 	// only one thread must do this
 	if (ReloadMutex.WillBlock())

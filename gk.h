@@ -77,4 +77,10 @@ class Gatekeeper : public PProcess
 
 };
 
+// Handle a shutdown request, from either source, gracefully
+extern void ShutdownHandler(void);
+
+// Handle a reload request, from either source, gracefully
+extern void ReloadHandler(void);
+
 #endif /* GK_H */
