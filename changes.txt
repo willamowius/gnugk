@@ -1,5 +1,142 @@
-Changes from 2.0b4 to now (by cwhuang)
-======================================
+Changes from 2.0.x to 2.2beta1 (by cwhuang)
+===========================================
+- the underlying architecture is almost rewritten entirely, includes
+    object factory
+    new thread model
+    universal sockets handling mechanism
+    RAS type traits
+    multi-threaded RAS server
+    new neighboring system
+    configurable routing policies
+    thread-safed gkauth
+- use MySQL C API directly instead of MySQL++
+
+Changes from 2.0.3 to 2.0.4 (by cwhuang)
+========================================
+- add multiple prefixes for neighbors from Rodrigo Gonzalez
+- TransferCall patch from Olivier GRALL <olivier.grall@caramail.com>
+- fix H.235 compatibility with lastest CVS of Openh323
+- set m_h245Tunneling as h245Tunneling flag in Setup_UUIE
+- allow h245 reverting work for calltype=1
+- allow disable Shutdown command
+- permanent endpoints can be reloaded now
+- fix conflict between AcceptGatewayPrefixes option and permanent endpoints
+- fix bug for multiple SupportedProtocols
+- add StatusWriteTimeout option
+- add OverwriteEPOnSameAddress option
+- add Shutdown command (jan)
+
+Changes from 2.0.2 to 2.0.3 (by cwhuang)
+========================================
+- add VendorIdentifier in RRQ
+- more elegant way to detect version of Openh323
+- fix typo for CheckID :(
+- fix nattype bug on fullRRQ
+- reject nated endpoint from private IP 127.0.0.1
+- fix problem if receiving DRQ before than ReleaseComplete
+- fix compile problem with latest CVS of Openh323
+- add AcceptEndpointIdentifier option
+- fix hang bug on GkStatus
+- allow to reject forwarded LRQ
+- forward call on Facility
+- fix bug LRQ with empty destinationInfo
+- send endpoint alias via sourceInfo of LRQ
+- allow set nated endpoints forcedly
+- let virtual queue feature be optional
+- fix a bug on startH245
+- implemented inbound call distribution with virtual queues
+  (based on patch by Dennis Lazreg)
+- workaround for Setup contains empty destinationAddress
+- workaround to copy cryptoTokens for the latest CVS of OpenH323
+- fix shutdown problem on SMP machine
+- reject lightweightRRQ if IP has changed
+- send DRQ to parent if reject a call
+- fix billing issue for forwarded calls
+- change 'ifdef PTRACING' to 'if PTRACING' since it is always defined
+- fix warnings of unused variables in non PTRACING mode
+- expire endpoints even in active calls
+- send endSessionCommand before closing h245socket
+
+Changes from 2.0.1 to 2.0.2 (by cwhuang)
+========================================
+- show NAT IP in print verbose command
+- fix reply of pending ARQs to NATed endpoint
+- fix bug on handling Facility
+- allow hide DisplayIE and CallingPartyNumberIE
+- fix an interoperability bug with old NAT solution
+- fix a bug that prefixes is not changed on full RRQ
+- support 'H323-GW' prefixes
+- fix leaking messages on status port
+- fix a security bug OnDRQ
+- rewrite Setup.destinationAddress even if no CalledPartyNumber
+- fix interoperability problem on CloseLogicalChannel for some bad endpoints
+- reload route table on RRJ with reason fullRegistrationRequired
+
+Changes from 2.0.0 to 2.0.1 (by cwhuang)
+========================================
+- add statistics for nated ep and calls from parent
+- avoid looped calls
+- add NetworkInterfaces option for OS that don't support GetRouteTable()
+- add H.245 Reverting technology(Patent Pending)
+- fix H.225.0 procotolID problem
+- fix a long existing bug according to Packetizer
+  http://www.packetizer.com/in/q14.html
+- add TOS flag for RTP/RTCP, thanks to Thomas Jalsovsky
+- add Citron NAT technology(Patent Pending)
+- allow multiple nated endpoints with the same private IP but
+  different public IP register simultaneously
+- fix possible race conditions in all STL list::size()
+- fix a sigfault when name of parent GK is unresolved
+- add 'gk' command to show parent GK
+- add AlwaysForwardLRQ option
+- don't do round-robin for LRQ and find command
+- fix a bug in proxy mode (when there are several session IDs in fast start)
+- improve support NATed endpoints
+- only include alternateGatekeeper field in GCF/RCF if GRQ/RRQ has supportsAltGK
+- add a workaround so OpenH323 clients won't reject our confirm messages
+  when use H.235 authenticators
+- add UseBroadcastListener option
+- fix incorrect bandwidth in answered ARQ as a child GK
+- add DisconnectSession command, thanks to Rodrigo Gonzalez
+- change debug level of received messages(Q931, H245) to 4,
+  only show sent messages if modified
+- change RasSvr to RasSrv for consistent
+- fix bandwidth problem of the answered ARQ
+- add password rule for GkStatus, thanks to Rodrigo Gonzalez
+- large fd_set patch
+- fix problem of h245socket handling
+- fix incorrect lightweight RRQ handling
+
+Changes from 2.0b8 to 2.0.0 (by cwhuang)
+========================================
+- allow to find by epid or ip address
+- improve ProxySocket for thread-safe writing
+- improve BRQ handling
+- add alternateGKs support for GkClient
+- improve alternateGKs support
+- sort the AuthRules by priority
+- clean up BroadcastListen.cxx and MulticastGRQ.cxx
+- fix a serious bug in MulticastGRQ.cxx
+- let setting options from status port work
+- print version when connect to status port
+
+Changes from 2.0b5 to 2.0b8 (by cwhuang)
+========================================
+- allow to limit port range
+- allow call unregistered endpoints
+- add RemoveTrailingChar feature
+- show CallerIP for CDR from neighbors
+- disconnect all calls on shutdown
+- disconnect calls when unregister an endpoint
+- accept LRQ from registered endpoints
+- add AcceptGatewayPrefixes option
+- always rewrite dialedDigits OnARQ
+- create symbolic link in /tmp to avoid permission problem
+- rewrite GkAuthorize to PrefixAuth module
+- accept broadcasting RRQ (workaround for Cisco Call Manager)
+
+Changes from 2.0b4 to 2.0b5 (by cwhuang)
+========================================
 - add ExternalPasswordAuth module
 - accept unregistered call if Q.931 contains CalledPartyNumber
 - add IncludeDestinationInfoInLCF option
