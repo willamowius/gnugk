@@ -332,6 +332,7 @@ bool TCPProxySocket::InternalWrite()
 	bufptr = wbuffer;
 	MarkBlocked(true);
 	return Flush();
+	// this could be a point where chunks of memory are lost.
 }
 
 // void
@@ -455,6 +456,7 @@ ProxyListener::~ProxyListener()
 
 bool ProxyListener::Open(unsigned queueSize)
 {
+	delete m_listener;
 	m_listener = new PTCPSocket(m_port);
 	isOpen = m_listener->Listen(m_interface, queueSize, m_port, PSocket::CanReuseAddress);
 	m_port = m_listener->GetPort(); // get the listen port
@@ -502,6 +504,7 @@ ProxyHandleThread::ProxyHandleThread(PINDEX i)
 	Resume();
 
 	FindConnectThread(); // pre-fork a connect thread
+	delete lcHandler;
 	lcHandler = new ProxyHandleThread;
 	lcHandler->SetID(PString(PString::Printf, "ProxyLC(%u)", i));
 	lcHandler->SetPriority(HighPriority);
