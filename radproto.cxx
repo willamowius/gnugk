@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2004/04/20 15:50:07  zvision
+ * Descendancy check removed to enable compilation with RTTI enabled PWLib
+ *
  * Revision 1.13  2004/04/17 11:43:43  zvision
  * Auth/acct API changes.
  * Header file usage more consistent.
@@ -2126,18 +2129,6 @@ RadiusClient::RAGenerator RadiusClient::GetRAGenerator(
 		return RAGeneratorMD5;
 		
 	return RAGeneratorRandom;
-}
-
-WORD RadiusClient::GetDefaultAuthPort()
-{
-	const WORD port = PSocket::GetPortByService( "udp", "radius" );
-	return (port==0) ? (WORD)DefaultAuthPort : port;
-}
-
-WORD RadiusClient::GetDefaultAcctPort()
-{
-	const WORD port = PSocket::GetPortByService( "udp", "radacct" );
-	return (port==0) ? (WORD)DefaultAcctPort : port;
 }
 
 void RadiusClient::FillRequestAuthenticator( 

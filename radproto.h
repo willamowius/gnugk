@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2004/04/17 11:43:43  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.9  2004/03/17 00:00:38  zvision
  * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
  *
@@ -1407,8 +1411,8 @@ public:
 	    PINDEX responseLength /// length of the response PDU
 	    );
 	    
-	static WORD GetDefaultAuthPort();
-	static WORD GetDefaultAcctPort();
+	static WORD GetDefaultAuthPort() { return DefaultAuthPort; }
+	static WORD GetDefaultAcctPort() { return DefaultAcctPort; }
 
 protected:
 	/** Callback called before request PDU is sent to RADIUS server.
