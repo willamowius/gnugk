@@ -6,6 +6,9 @@ for people who wish to contribute to this project.
 I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
+- feature: update CallRec between Alternate GKs
+           (=> forward ARQ, DRQ, too).
+
 - feature: multithread RasSrv
 
 - fix: decode Q.931 UUIE output, too (pwlib thingy)
