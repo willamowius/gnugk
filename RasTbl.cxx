@@ -139,8 +139,12 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 {
 	if (rrq.m_rasAddress.GetSize() > 0)
 		m_rasAddress = rrq.m_rasAddress[0];
+	else
+		m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
 	if (rrq.m_callSignalAddress.GetSize() > 0)
 		m_callSignalAddress = rrq.m_callSignalAddress[0];
+	else
+		m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
 	m_endpointIdentifier = rrq.m_endpointIdentifier;
 	m_terminalAliases = rrq.m_terminalAlias;
 	m_terminalType = &rrq.m_terminalType;
@@ -153,6 +157,9 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 
 void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
 {
+	// there is no RAS address in ACF
+	// we set it to non-standard address to avoid misuse
+	m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
 	m_callSignalAddress = acf.m_destCallSignalAddress;
 	if (acf.HasOptionalField(H225_AdmissionConfirm::e_destinationInfo))
 		m_terminalAliases = acf.m_destinationInfo;
