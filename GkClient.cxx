@@ -401,7 +401,7 @@ void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
 bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 {
 	if (m_gkaddr == gkip && drq.m_endpointIdentifier.GetValue() == m_endpointId) {
-		if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue));
+		if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue))
 			call->Disconnect(true);
 		return true;
 	}
