@@ -40,14 +40,17 @@ inline bool Toolkit::RouteTable::RouteEntry::Compare(Address addr) const
 
 void Toolkit::RouteTable::InitTable()
 {
+	// Workaround for OS doesn't support GetRouteTable
+	PIPSocket::GetHostAddress(defAddr);
+
 	ClearTable();
 	InterfaceTable if_table;
 	if (!PIPSocket::GetInterfaceTable(if_table)) {
-		PTRACE(1, "Error: Can't get route table");
+		PTRACE(1, "Error: Can't get interface table");
 		return;
 	}
 	PIPSocket::RouteTable r_table;
-	if ( !PIPSocket::GetRouteTable(r_table)) {
+	if (!PIPSocket::GetRouteTable(r_table)) {
 		PTRACE(1, "Error: Can't get route table");
 		return;
 	}
@@ -57,6 +60,7 @@ void Toolkit::RouteTable::InitTable()
 			rTable.push_back(new RouteEntry(r_entry, if_table));
 	}
 
+	// Set default IP according to route table
 	defAddr = GetLocalAddress(INADDR_ANY);
 
 #ifdef PTRACING
@@ -86,7 +90,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(Address addr) const
 
 Toolkit::Toolkit() : m_Config(0), GKRouteTable(0)
 {
-	PTRACE(1, "Toolkit::Toolkit");
+//	PTRACE(1, "Toolkit::Toolkit");
 }
 
 Toolkit::~Toolkit()
@@ -101,7 +105,6 @@ Toolkit::~Toolkit()
 PConfig* Toolkit::Config()
 {
 	// Make sure the config would not be called before SetConfig
-//cout << "Toolkit::Config()" << getpid() << endl;
 	PAssert(!m_ConfigDefaultSection, "Error: Call Config() before SetConfig()!");
 	return (m_Config == NULL) ? ReloadConfig() : m_Config;
 }
@@ -143,7 +146,7 @@ PConfig* Toolkit::ReloadConfig()
 		m_Config = new PConfig(m_tmpconfig, m_ConfigDefaultSection);
 	else // Oops! Create temporary config file failed, use the original one
 		m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
-	m_RewriteFastmatch = m_Config->GetString("RasSvr::RewriteE164","Fastmatch", "");
+	m_RewriteFastmatch = m_Config->GetString("RasSvr::RewriteE164", "Fastmatch", "");
 
 	if (GKRouteTable)
 		GKRouteTable->InitTable();
