@@ -439,10 +439,14 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 	WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
 	WORD statusPort = (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT);
 
-	SetListener(rasPort, m_rasPort, m_rasListener, &GkInterface::CreateRasListener);
-	SetListener(multicastPort, m_multicastPort, m_multicastListener, &GkInterface::CreateMulticastListener);
-	SetListener(signalPort, m_signalPort, m_callSignalListener, &GkInterface::CreateCallSignalListener);
-	SetListener(statusPort, m_statusPort, m_statusListener, &GkInterface::CreateStatusListener);
+	if (SetListener(rasPort, m_rasPort, m_rasListener, &GkInterface::CreateRasListener))
+		m_rasSrv->AddListener(m_rasListener);
+	if (SetListener(multicastPort, m_multicastPort, m_multicastListener, &GkInterface::CreateMulticastListener))
+		m_rasSrv->AddListener(m_multicastListener);
+	if (SetListener(signalPort, m_signalPort, m_callSignalListener, &GkInterface::CreateCallSignalListener))
+		m_rasSrv->AddListener(m_callSignalListener);
+	if (SetListener(statusPort, m_statusPort, m_statusListener, &GkInterface::CreateStatusListener))
+		m_rasSrv->AddListener(m_statusListener);
 
 	// MulticastListener::GetPort() didn't return the real multicast port
 	m_multicastPort = multicastPort;

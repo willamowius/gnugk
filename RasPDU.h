@@ -184,7 +184,7 @@ public:
 protected:
 	bool ValidateSocket(IPSocket *, WORD &);
 
-	template <class Listener> void SetListener(WORD nport, WORD & oport, Listener *& listener, Listener *(GkInterface::*creator)())
+	template <class Listener> bool SetListener(WORD nport, WORD & oport, Listener *& listener, Listener *(GkInterface::*creator)())
 	{
 		if (!listener || !oport || oport != nport) {
 			oport = nport;
@@ -192,10 +192,11 @@ protected:
 				listener->Close();
 			listener = (this->*creator)();
 			if (ValidateSocket(listener, oport))
-				m_rasSrv->AddListener(listener);
+				return true;
 			else
 				listener = 0;
 		}
+		return false;
 	}
 
 	Address m_address;
