@@ -2127,10 +2127,9 @@ void CallSignalSocket::Dispatch()
 				ConfigReloadMutex.StartRead();
 				if (!isReadable) {
 					PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-					if( m_call ) {
+					if( m_call )
 						m_call->SetDisconnectCause(Q931::TimerExpiry);
-						CallTable::Instance()->RemoveCall(m_call);
-					}
+					OnError();
 				}
 				GetHandler()->Insert(this, remote);
 				return;

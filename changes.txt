@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(ProxyChannel.cxx) send proper Release Complete when the remote side
+  does not respond to a Setup message
 - BUGFIX(ProxyChannel.cxx) correctly remove calls from the call table,
   when setup processing fails for some reason (auth failed, acct failed, ...)
 - BUGFIX(ProxyChannel.cxx) fixed config reload deadlock when using H.245
