@@ -256,7 +256,6 @@ private:
 	PString id;
 
 	static void delete_socket(ProxySocket *s);
-//{ PTRACE(5, "deleteSocket: " << s->Name()); delete s; }
 };
 
 class HandlerList {
@@ -325,7 +324,6 @@ inline void MyPThread::Go()
 inline void ProxyHandleThread::Remove(ProxySocket *socket)
 {
 	PWaitAndSignal lock(removedMutex);
-	PTRACE(5, "Removing: " << socket << " : " << socket->Name());
 	removedList.push_back(socket);
 	sockList.remove(socket);
 }

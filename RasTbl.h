@@ -297,7 +297,6 @@ public:
 	{
 		endptr cdEP;
 		PTRACE(2, "Search for calledEP in registration table");
-		PTRACE(2, "GkDestanalysisList: " << m_destAnalysisList);
 		bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
 			cgEP, cdEP, reason);
 		if (!cdEP && (reason == H225_AdmissionRejectReason::e_resourceUnavailable) && SearchOuterZone) {
