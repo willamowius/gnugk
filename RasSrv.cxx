@@ -1133,7 +1133,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	}
 
 	//authorize arq
-        if(!bReject)
+        if(!bReject && obj_arq.m_answerCall)
         {
             if(GWR->checkgw(obj_arq,RequestingEP,CalledEP)==FALSE)
             {
