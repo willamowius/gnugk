@@ -78,13 +78,13 @@ protected:
 	WORD maxbufsize, buflen;
 	BYTE *wbuffer, *bufptr;
 	PString name;
+	const char *type;
 
 private:
 	ProxyHandleThread *handler;
 	bool blocked;
 	bool connected;
 	bool deletable;
-	const char *type;
 };
 
 class TCPProxySocket : public PTCPSocket, public ProxySocket {

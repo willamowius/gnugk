@@ -231,7 +231,7 @@ BOOL TCPProxySocket::Connect(const Address & addr)
 
 bool TCPProxySocket::ReadTPKT()
 {
-	PTRACE(5, "Proxy\tReading from " << Name());
+	PTRACE(5, type << "\tReading from " << Name());
 	if (buflen == 0) {
 		TPKTV3 tpkt;
 		if (!ReadBlock(&tpkt, sizeof(TPKTV3)))
