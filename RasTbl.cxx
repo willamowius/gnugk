@@ -168,13 +168,15 @@ bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress 
 		//   stored in registration
 	        if ((reg_alias.GetLength() >= aliasStr_len) && 
 		    (aliasStr == reg_alias.Left(aliasStr_len))) {
-		  PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
-		    << (const unsigned char *)m_endpointIdentifier.GetValue() << ANSI::OFF);
 		  // check if it is a full match 
 		  if (aliasStr == reg_alias) {
 		    fullMatch = 1;
-		  } else {
+  		    PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
+		      << (const unsigned char *)m_endpointIdentifier.GetValue() << " (full)" << ANSI::OFF);
+  		  } else {
 		    partialMatch = 1;
+  		    PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
+		      << (const unsigned char *)m_endpointIdentifier.GetValue() << " (partial)" << ANSI::OFF);
 		  }
 	        }
               }
@@ -663,11 +665,12 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	if (ep) {
    	  if (partialMatch_found) {
             // TODO: ARJ (incomplete address)
+	    return endptr(0);
 	  } else {
 	    //TODO: ACF
   	    PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
+  	    return ep;	    
 	  }
-	  return ep;
 	} else {
 	  //TODO: LDAPSearch (alias is prefix or equal to number in LDAP voIP-schema 
 	  //        (default attribute: telephoneNumber)

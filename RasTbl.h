@@ -134,8 +134,8 @@ public:
 	
 	/** checks if the given aliases are prefixes of the aliases which are stored
 	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
-	    only one full match is found.
-	    @returns #TRUE# if one alias partially matches
+	    a full match is found.
+	    @returns #TRUE# if a match is found
 	 */
         bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
 	                                  bool &fullMatch) const;
