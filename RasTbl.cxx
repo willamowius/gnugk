@@ -1217,7 +1217,7 @@ void CallRec::Disconnect(bool force)
 void CallRec::SendReleaseComplete()
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_callingSocket && !m_callingSocket->IsDeleteable() && m_callingSocket->IsOpen()) {
+	if (m_callingSocket && !m_callingSocket->IsDeletable() && m_callingSocket->IsOpen()) {
 		m_callingSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to calling party ...");
 		m_callingSocket->SendReleaseComplete();
