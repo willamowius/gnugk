@@ -962,7 +962,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	//authorize arq
         if(!bReject)
         {
-            if(GWR->checkgw(obj_arq)==FALSE)
+            if(GWR->checkgw(obj_arq,RequestingEP,CalledEP)==FALSE)
             {
                 bReject = TRUE;
                 arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_securityDenial);

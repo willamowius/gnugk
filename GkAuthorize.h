@@ -4,6 +4,8 @@
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
+// We also explicitely grant the right to link this code
+// with the OpenH323 library.
 //
 // History:
 //      020114  initial version (Michael Rubashenkkov)
@@ -16,6 +18,7 @@
 #include "h225.h"
 #include "h323.h"
 #include "GkStatus.h"
+#include "RasTbl.h"
 
 class AddrMatrix
 {
@@ -44,7 +47,7 @@ class GkAuthorize:public PObject
 
     GkStatus* GkStatusThread;
 
-    BOOL prefixip(const H225_AdmissionRequest & arq);
+    BOOL prefixip(const H225_AdmissionRequest & arq,const endptr & RequestingEP, const endptr & CalledEP);
     
     protected:
     PINDEX chkrule(const PString &,const PString &,REGEXMOD);
@@ -54,7 +57,7 @@ class GkAuthorize:public PObject
     GkAuthorize(GkStatus* s);
     ~GkAuthorize();
 
-    BOOL checkgw(const H225_AdmissionRequest & arq);
+    BOOL checkgw(const H225_AdmissionRequest & arq,const endptr & RequestingEP, const endptr & CalledEP);
 };
 
 #endif

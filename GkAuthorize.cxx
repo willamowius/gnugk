@@ -4,6 +4,8 @@
 // 
 // This work is published under the GNU Public License (GPL) 
 // see file COPYING for details. 
+// We also explicitely grant the right to link this code
+// with the OpenH323 library.
 // 
 // History: 
 //      020114  initial version (Michael Rubashenkkov) 
@@ -21,6 +23,7 @@
 #include "GkAuthorize.h"
 #include "ptlib.h"
 #include "Toolkit.h"
+#include "RasTbl.h"
 
 
 static const char* const loghead="AUTHORIZE";
@@ -44,29 +47,70 @@ GkAuthorize::GkAuthorize(GkStatus* s)
   dpolicy=(GkConfig()->GetString(section,policy,allowflag).ToLower()).Compare((PString)allowflag)==PObject::EqualTo?TRUE:FALSE;
 }
 
-BOOL GkAuthorize::checkgw(const H225_AdmissionRequest & arq)
+BOOL GkAuthorize::checkgw(const H225_AdmissionRequest & arq,const endptr & RequestingEP, const endptr & CalledEP)
 {
   //there is no GkAuthorize section in the config file
     if(no_config==TRUE)return TRUE;
     BOOL desi=dpolicy;
 
+    //we check if the call is already authorized
+
+    callptr Ex_call;    
+    if(arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) && 
+    (Ex_call=CallTable::Instance()->FindCallRec(arq.m_callIdentifier)))
+    {
+	PTRACE(4,"found existing call no " << Ex_call->GetCallNumber() );
+	return TRUE;
+    }
+
     switch((arq.m_destinationInfo[0]).GetTag())
     {
-	case H225_AliasAddress::e_dialedDigits: return prefixip(arq);
+	case H225_AliasAddress::e_dialedDigits: return prefixip(arq,RequestingEP,CalledEP);
 	default:
         PString msg(PString::Printf,"%s|%s||||UnknownDestinationType\r\n",loghead,desi==FALSE?"DENY":"ALLOW");
 	PTRACE(2,msg);
 	GkStatusThread->SignalStatus(msg);
         return desi;
     }
-    return prefixip(arq);
+    return desi;
 }
 
-BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq)
+BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq,const endptr & RequestingEP, const endptr & CalledEP)
 {
     PINDEX maxprf=keys.GetSize();
     BOOL desi=dpolicy;
+    
+    if(!RequestingEP)
+    {
+	PString msg("RequestingEP is NULL\r\n");
+	PTRACE(1,msg);
+	GkStatusThread->SignalStatus(msg);
+        return desi;
+    }
+    if(!CalledEP)
+    {
+	PString msg("CalledEP is NULL\r\n");
+	PTRACE(1,msg);
+	GkStatusThread->SignalStatus(msg);
+        return desi;
+    }
 
+    H225_TransportAddress_ipAddress srcipaddr;
+    H225_TransportAddress_ipAddress dstipaddr;
+    int srcaddrfound=0;
+    
+    if(arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress))
+    {
+	srcipaddr=(H225_TransportAddress_ipAddress)arq.m_srcCallSignalAddress;
+	srcaddrfound=1;
+    }
+    else if(arq.m_answerCall!=TRUE)
+    {
+	srcipaddr=(H225_TransportAddress_ipAddress)RequestingEP->GetCallSignalAddress();
+	srcaddrfound=1;
+    }
+    dstipaddr=(H225_TransportAddress_ipAddress)CalledEP->GetCallSignalAddress();
+    
   PINDEX lp=0;
   PString ta= ((PASN_IA5String&)((arq.m_destinationInfo[0])).GetObject()).GetValue();
   PINDEX i;
@@ -100,7 +144,11 @@ BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq)
     if(maxprf== keys.GetSize())
     {
 	//prefix was not found
-        PString msg(PString::Printf,"%s|%s||%s:dialedDigits||UnknownPrefix\r\n",loghead,desi==FALSE?"DENY":"ALLOW",(const char*)ta);
+        PString msg(PString::Printf,"%s|%s|%d.%d.%d.%d:ipv4|%s:dialedDigits|%d.%d.%d.%d:ipv4|UnknownPrefix\r\n",loghead,desi==FALSE?"DENY":"ALLOW",
+	srcipaddr.m_ip[0],
+	srcipaddr.m_ip[1],
+	srcipaddr.m_ip[2],
+	srcipaddr.m_ip[3],(const char*)ta,dstipaddr.m_ip[0],dstipaddr.m_ip[1],dstipaddr.m_ip[2],dstipaddr.m_ip[3]);
         PTRACE(2,msg);
 	GkStatusThread->SignalStatus(msg);
 	return desi;
@@ -112,7 +160,8 @@ BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq)
     int rul=TRUE;
     unsigned masklong=0;
     unsigned ms;
-    if(arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress))
+    
+    if(srcaddrfound)
     {
 	for(i=maxprf+1;i<keys.GetSize();i++)
 	{
@@ -234,7 +283,7 @@ BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq)
 		ip_dig[1]&=mask_dig[1];
 		ip_dig[2]&=mask_dig[2];
 		ip_dig[3]&=mask_dig[3];
-		H225_TransportAddress_ipAddress srcip=(H225_TransportAddress_ipAddress)arq.m_srcCallSignalAddress;
+		H225_TransportAddress_ipAddress srcip=srcipaddr;
 		srcip.m_ip[0]&=mask_dig[0];
 		srcip.m_ip[1]&=mask_dig[1];
 		srcip.m_ip[2]&=mask_dig[2];
@@ -253,14 +302,18 @@ BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq)
 		    
 	    }//if((np=chkrule(ipflag,keys[i],FLAG))!=P_MAX_INDEX)
 	}//for(i=maxprf+1;i<keys.GetSize();i++)
-        PString msg(PString::Printf,"%s|%s|%d.%d.%d.%d:ipv4|%s:dialedDigits||OK\r\n",loghead,desi==FALSE?"DENY":"ALLOW",
-	((H225_TransportAddress_ipAddress)arq.m_srcCallSignalAddress).m_ip[0],
-	((H225_TransportAddress_ipAddress)arq.m_srcCallSignalAddress).m_ip[1],
-	((H225_TransportAddress_ipAddress)arq.m_srcCallSignalAddress).m_ip[2],
-	((H225_TransportAddress_ipAddress)arq.m_srcCallSignalAddress).m_ip[3],(const char*)ta);
+        PString msg(PString::Printf,"%s|%s|%d.%d.%d.%d:ipv4|%s:dialedDigits|%d.%d.%d.%d:ipv4|OK\r\n",loghead,desi==FALSE?"DENY":"ALLOW",
+	srcipaddr.m_ip[0],
+	srcipaddr.m_ip[1],
+	srcipaddr.m_ip[2],
+	srcipaddr.m_ip[3],(const char*)ta,dstipaddr.m_ip[0],dstipaddr.m_ip[1],dstipaddr.m_ip[2],dstipaddr.m_ip[3]);
         PTRACE(2,msg);
 	GkStatusThread->SignalStatus(msg);
-    }//if(arq.HasOptionalField
+    }//if(srcaddrfound
+    else
+    {
+	PTRACE(4,(PString)"srcCallSignalAddress is unknown returning " << (PString)((desi==TRUE)?"TRUE":"FALSE") << "\r\n");
+    }
     return desi;
 }//GkAuthorizeions::checkgw
 
