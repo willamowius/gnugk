@@ -196,8 +196,10 @@ bool Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 
 static const char *RewriteSection = "RasSrv::RewriteE164";
 
-Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section) : m_RewriteKey(0)
+Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 {
+	m_RewriteKey = 0;
+	m_RewriteValues = 0;
 	PStringToString cfgs(config->GetAllKeyValues(section));
 	m_size = cfgs.GetSize();
 	if (m_size > 0) {
@@ -211,14 +213,22 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section) : m_
 		if ((m_size = rules.size()) > 0) {
 			m_RewriteKey = new PString[m_size * 2];
 			m_RewriteValue = m_RewriteKey + m_size;
+			m_RewriteValues = new PStringArray[m_size];
 			std::map<PString, PString>::iterator iter = rules.begin();
 			// reverse the order
-			for (PINDEX i = m_size; i-- > 0 ; ++iter) {
+			for (int i = m_size; i-- > 0 ; ++iter) {
 				m_RewriteKey[i] = iter->first;
 				m_RewriteValue[i] = iter->second;
+				m_RewriteValues[i] = iter->second.Tokenise(",:;&|\t ", false);;
 			}
 		}
 	}
+}
+
+Toolkit::RewriteData::~RewriteData()
+{
+	delete [] m_RewriteKey;
+	delete [] m_RewriteValues;
 }
 
 void Toolkit::RewriteTool::LoadConfig(PConfig *config)
@@ -232,7 +242,6 @@ void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 bool Toolkit::RewriteTool::RewritePString(PString & s) const
 {
 	bool changed = false;
-	bool do_rewrite = false; // marker if a rewrite has to be done.
 
 	// remove trailing character
 	if (s.GetLength() > 1 && s[s.GetLength() - 1] == m_TrailingChar) {
@@ -245,48 +254,39 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 
 	PString t;
 	for (PINDEX i = 0; i < m_Rewrite->Size(); ++i) {
-		bool inverted;
-		PString key = m_Rewrite->Key(i);
-		if ((inverted = (key[0] == '!')))
-			key = key.Mid(1);
+		bool inverted = false;
+		const char *key = m_Rewrite->Key(i);
+		int len = m_Rewrite->Key(i).GetLength();
+		if (len > 0 && (inverted = (key[0] == '!')))
+			++key, --len;
 		// try a prefix match through all keys
-		if ((strncmp(s, key, key.GetLength()) == 0) ^ inverted) {
+		if ((strncmp(s, key, len) == 0) ^ inverted) {
 			// Rewrite to #t#. Append the suffix, too.
 			// old:  01901234999
 			//               999 Suffix
 			//       0190        Fastmatch
 			//       01901234    prefix, Config-Rule: 01901234=0521321
 			// new:  0521321999
-			t = m_Rewrite->Value(i);
+
+			const char *pre = m_Rewrite->Value(i);
+			const PStringArray & ts = m_Rewrite->Values(i);
 			// multiple targets possible
-			if (!t) {
-				const PStringArray ts = t.Tokenise(",:;&|\t ", FALSE);
-				if (ts.GetSize() > 1) {
-					PINDEX j = rand() % ts.GetSize();
-					PTRACE(5, "GK\tRewritePString: randomly chosen [" << j << "] of " << t << "");
-					t = ts[j];
-				}
+			if (ts.GetSize() > 1) {
+				PINDEX j = rand() % ts.GetSize();
+				PTRACE(5, "GK\tRewritePString: randomly chosen [" << j << "] of " << pre << "");
+				pre = ts[j];
 			}
 
 			// append the suffix
-			int striplen = (inverted) ? 0 : key.GetLength();
-			t += s.Mid(striplen);
+			PString t = pre + s.Mid(inverted ? 0 : len);
+			PTRACE(2, "\tRewritePString: " << s << " to " << t);
+			s = t;
+			changed = true;
 
-			do_rewrite = true;
 			break;
 		}
 	}
-	
-	// 
-	// Do the rewrite. 
-	// @param #t# will be written to #s#
-	//
-	if (do_rewrite) {
-		PTRACE(2, "\tRewritePString: " << s << " to " << t);
-		s = t;
-		changed = true;
-	}
-	
+
 	return changed;
 }
 
@@ -396,6 +396,7 @@ PConfig* Toolkit::ReloadConfig()
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
+	m_GKName = GkConfig()->GetString("Name", "GNU Gatekeeper");
 
 	return m_Config; 
 }
@@ -507,11 +508,6 @@ void Toolkit::SetGKHome(const PStringArray & home)
 	begin = find(m_GKHome.begin(), m_GKHome.end(), m_RouteTable.GetLocalAddress());
 	if (begin != m_GKHome.end())
 		swap(m_GKHome[0], *begin);
-}
-
-const PString Toolkit::GKName() 
-{
-	return GkConfig()->GetString("Name", "GNU Gatekeeper"); //use default section (MM 06.11.01)
 }
 
 int

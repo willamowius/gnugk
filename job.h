@@ -155,7 +155,7 @@ private:
 };
 
 template<class T>
-void CreateJob(T *t, void (T::*j)(), const PString & n)
+void CreateJob(T *t, void (T::*j)(), const char *n)
 {
 	Job *newjob = new SimpleClassJob<T>(t, j);
 	newjob->SetName(n);
@@ -163,7 +163,7 @@ void CreateJob(T *t, void (T::*j)(), const PString & n)
 }
 
 template<class T, class A>
-void CreateJob(T *t, void (T::*j)(A), A a, const PString & n)
+void CreateJob(T *t, void (T::*j)(A), A a, const char *n)
 {
 	Job *newjob = new SimpleClassJobA<T, A>(t, j, a);
 	newjob->SetName(n);

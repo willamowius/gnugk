@@ -20,22 +20,40 @@
 #ifndef NAME_H
 #define NAME_H "@(#) $Id$"
 
-template<typename N>
-class NamedObj {
-public:
 #if PTRACING
-        N GetName() const { return m_name; }
-        void SetName(const N & n) { m_name = n; }
+
+#ifndef _PTLIB_H
+#include <ptlib.h>
+#endif
+
+class NamedObject {
+public:
+	void SetName(const char *n) { m_name = n; }
+	const PString & GetName() const { return m_name; }
 
 private:
-        N m_name;
-#else
-        void SetName(const N &) {}
-#endif
+	PString m_name;
 };
 
-class PString;
-typedef NamedObj<PString> NamedObject;
-typedef NamedObj<const char *> CNamedObject;
+class CNamedObject {
+public:
+	void SetName(const char *n) { m_name = n; }
+	const char *GetName() const { return m_name; }
+
+private:
+	const char *m_name;
+};
+
+#else
+
+struct NamedObject {
+	void SetName(const char *) {}
+};
+
+struct CNamedObject {
+	void SetName(const char *) {}
+};
+
+#endif
 
 #endif // NAME_H

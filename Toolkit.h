@@ -101,13 +101,15 @@ class Toolkit : public Singleton<Toolkit>
 	class RewriteData {
 	public:
 		RewriteData(PConfig *, const PString &);
-		~RewriteData() { delete [] m_RewriteKey; }
+		~RewriteData();
 		PINDEX Size() const { return m_size; }
-		PString Key(PINDEX i) const { return m_RewriteKey[i]; }
-		PString Value(PINDEX i) const { return m_RewriteValue[i]; }
+		const PString & Key(PINDEX i) const { return m_RewriteKey[i]; }
+		const PString & Value(PINDEX i) const { return m_RewriteValue[i]; }
+		const PStringArray & Values(PINDEX i) const { return m_RewriteValues[i]; }
 
 	private:
 		PString *m_RewriteKey, *m_RewriteValue;
+		PStringArray *m_RewriteValues;
 		PINDEX m_size;
 	};
 
@@ -170,12 +172,12 @@ class Toolkit : public Singleton<Toolkit>
 	 * Warning: don't modify the config via status port and change config file simultaneously,
 	 * or the config file may be messed up.
 	 */
-	void SetConfig(int act, const PString & sec, const PString & key = PString(), const PString & value = PString());
+	void SetConfig(int act, const PString & sec, const PString & key = PString::Empty(), const PString & value = PString::Empty());
 
 	PConfig* ReloadConfig();
 
 	/// reads name of the running instance from config
-	static const PString GKName();
+	static const PString & GKName();
 
 	/// returns an identification of the binary
 	static const PString GKVersion();
@@ -224,8 +226,8 @@ class Toolkit : public Singleton<Toolkit>
 	 * This results in 'cascading' calls until a iec!=iecUnkown is returned.
 	 */
 	virtual int GetInternalExtensionCode(const unsigned &country, 
-										 const unsigned &extension, 
-										 const unsigned &manufacturer) const;
+						 const unsigned &extension, 
+						 const unsigned &manufacturer) const;
 	
 	int GetInternalExtensionCode(const H225_H221NonStandard& data) const;
 
@@ -238,6 +240,7 @@ class Toolkit : public Singleton<Toolkit>
 	void CreateConfig();
 
 	PFilePath m_ConfigFilePath;
+	PString   m_GKName;
 	PString   m_ConfigDefaultSection;
 	PConfig*  m_Config;
 	bool	  m_ConfigDirty;
@@ -277,6 +280,11 @@ inline PConfig *GkConfig()
 inline PConfig *GkConfig(const char *section)
 {
 	return Toolkit::Instance()->Config(section);
+}
+
+inline const PString & Toolkit::GKName()
+{
+	return Toolkit::Instance()->m_GKName;
 }
 
 #endif // TOOLKIT_H

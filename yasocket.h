@@ -183,14 +183,14 @@ public:
 	PCLASSINFO( TCPSocket, PTCPSocket )
 	TCPSocket(WORD pt = 0) : PTCPSocket(pt) {}
 	// override from class PIPSocket
-        PString GetName() const { return NamedObject::GetName(); }
+        PString GetName() const { return (const char *)NamedObject::GetName(); }
 };
 
 class UDPSocket : public PUDPSocket, public NamedObject {
 public:
 	PCLASSINFO( UDPSocket, PUDPSocket )
 	// override from class PIPSocket
-        PString GetName() const { return NamedObject::GetName(); }
+        PString GetName() const { return (const char *)NamedObject::GetName(); }
 };
 
 #endif // LARGE_FDSET
@@ -203,7 +203,7 @@ public:
 	virtual ~USocket() = 0; // abstract class
 
 	const char *Type() const { return type; }
-	PString Name() const { return self->GetName(); }
+	const PString & Name() const { return self->GetName(); }
 
 	// new virtual function
 	virtual bool TransmitData(const PString &);
