@@ -102,6 +102,7 @@ GkStatus::GkStatus()
   StatusListener(GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)),
 	m_IsDirty(FALSE)
 {
+	Clients.AllowDeleteObjects(FALSE);
 }
 
 GkStatus::~GkStatus()
@@ -239,11 +240,9 @@ GkStatus::Client::Client( GkStatus * _StatusThread, PTCPSocket * _Socket )
 GkStatus::Client::~Client()
 {
 	Mutex.Wait();
-	StatusThread->Clients.Remove(this);
-	if(Socket->IsOpen())
+	if(NULL!=Socket && Socket->IsOpen())
 		Close();
-	delete Socket;
-	Socket = NULL;
+	StatusThread->Clients.Remove(this);
 	Mutex.Signal(); // Who should I signal?? This instance *is* already dead.
 }
 
@@ -282,7 +281,7 @@ void GkStatus::Client::Main()
 	else
 	{
 		BOOL exit_and_out = FALSE;
-		while ( Socket->IsOpen() && !exit_and_out)
+		while ( NULL!=Socket && Socket->IsOpen() && !exit_and_out)
 		{
 			PString Line;
 
@@ -556,6 +555,8 @@ int GkStatus::Client::Close(void)
 {
 	if ( (NULL != Socket) && Socket->IsOpen() )
 		Socket->Close();
+	delete Socket;
+	Socket=NULL;
 	PleaseDelete = TRUE;
 	return 0; // workaround for VC
 }
