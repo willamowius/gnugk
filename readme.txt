@@ -4,7 +4,8 @@ OpenH323 Gatekeeper
 This gatekeeper was originally written by Xiang Ping Chen,
 Rajat Todi and Joe Metzger.
 It is covered by the GNU Public License (GPL); for details
-see the file COPYING.
+see the file COPYING. In addition to that, we explicitely grant
+the right to link this code to the OpenH323 library.
 
 It's currently maintained by Jan Willamowius (jan@willamowius.com,
 http://www.willamowius.com/openh323gk.html).

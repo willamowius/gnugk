@@ -6,6 +6,9 @@
 //
 // The codes are adapted from SGI implementation
 //
+// We also explicitely grant the right to link this code
+// with the OpenH323 library.
+/
 // History:
 //      2001/09/03      initial version (Chih-Wei Huang)
 //

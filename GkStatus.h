@@ -5,6 +5,8 @@
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
+// We also explicitely grant the right to link this code
+// with the OpenH323 library.
 //
 // History:
 // 	990913	initial version (Jan Willamowius)
