@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2004/06/16 23:46:47  zvision
+ * RadAliasAuth will work even when Setup-UUIE does not contain sourceAddress
+ *
  * Revision 1.14  2004/05/22 12:25:17  zvision
  * Check aliases only when authenticating RRQ message
  *
@@ -742,24 +745,27 @@ int RadAuthBase::Check(
 	// append Frame-IP-Address					
 	if (m_includeFramedIp) {
 		bool ipFound = false;
-		if (callingEP 
+		WORD dummyPort;
+		
+		if (call && call->GetSrcSignalAddr(addr, dummyPort) && addr.IsValid())
+			ipFound = true;	
+		else if (callingEP 
 			&& GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr)
-			&& addr.IsValid()) {
-			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
+			&& addr.IsValid())
 			ipFound = true;
-		} else if (setup.HasOptionalField(setup.e_sourceCallSignalAddress)
+		else if (setup.HasOptionalField(setup.e_sourceCallSignalAddress)
 			&& GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
-			&& addr.IsValid()) {
-			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
+			&& addr.IsValid())
 			ipFound = true;
-		}
+			
 		if (!ipFound) {
 			PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
 				"could not setup Framed-IP-Address"
 				);
 			delete pdu;
 			return e_fail;
-		}
+		} else
+			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
 	}
 				
 	// fill Calling-Station-Id and Called-Station-Id fields

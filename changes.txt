@@ -1,5 +1,6 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(radauth.cxx) better Framed-IP-Address handling in RadAliasAuth Setup check
 - BUGFIX (ProxyChannel.cxx) With a certain combination of endpoints it 
   was possible to have UDPProxySocket trying to forward incoming RTP / 
   RTCP trafic to 127.0.0.1:0. Added a check for this situation and send
