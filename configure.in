@@ -18,17 +18,24 @@ if test "${HAS_PTLIB:-unset}" = "unset" ; then
   if test "${HAS_PTLIB:-unset}" != "unset" ; then
     PWLIBDIR="${HOME}/pwlib"
   else
-    if test -d /usr/local/include; then
-      AC_CHECK_FILE(/usr/local/include/ptlib.h, HAS_PTLIB=1)
-	fi
-    if test "${HAS_PTLIB:-unset}" != "unset" ; then
-      AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/local/bin)
-    else
-	  if test -d /usr/include; then
-        AC_CHECK_FILE(/usr/include/ptlib.h, HAS_PTLIB=1)
+	if test -d ../pwlib; then
+  	  AC_CHECK_FILE(../pwlib/include/ptlib.h, HAS_PTLIB=1)
+  	fi
+  	if test "${HAS_PTLIB:-unset}" != "unset" ; then
+      PWLIBDIR="../pwlib"
+  	else
+      if test -d /usr/local/include; then
+	    AC_CHECK_FILE(/usr/local/include/ptlib.h, HAS_PTLIB=1)
 	  fi
       if test "${HAS_PTLIB:-unset}" != "unset" ; then
-        AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/share/pwlib/make/)
+        AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/local/bin)
+      else
+	    if test -d /usr/include; then
+          AC_CHECK_FILE(/usr/include/ptlib.h, HAS_PTLIB=1)
+	    fi
+        if test "${HAS_PTLIB:-unset}" != "unset" ; then
+          AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/share/pwlib/make/)
+        fi
       fi
     fi
   fi
