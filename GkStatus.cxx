@@ -310,7 +310,8 @@ PString PrintGkVersion()
 #endif
 		"\r\nGkStatus: Version(2.0) Ext()\r\n"
 		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() +
-		")\r\n" + SoftPBX::Uptime() + "\r\n;\r\n";
+		")\r\n" + SoftPBX::Uptime() + "\r\nBuilt:" + PString( __DATE__) + 
+		PString( " " ) + PString( __TIME__ ) + "\r\n\r\n;";
 }
 
 }
