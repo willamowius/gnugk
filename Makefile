@@ -76,17 +76,17 @@ ifndef PROGRAMMNAME
   PROGRAMMNAME = "Gatekeeper"
 endif
 ifndef MAJOR_VERSION
-  MAJOR_VERSION = $(shell grep 'define MAJOR_VERSION' $(VERSION_FILE) | cut -d ' ' -f 3-)
+  MAJOR_VERSION = $(shell grep 'define MAJOR_VERSION' $(VERSION_FILE) | cut -d ' ' -f 4-)
 endif
 ifndef MINOR_VERSION
-  MINOR_VERSION = $(shell grep 'define MINOR_VERSION' $(VERSION_FILE) | cut -d ' ' -f 3-)
+  MINOR_VERSION = $(shell grep 'define MINOR_VERSION' $(VERSION_FILE) | cut -d ' ' -f 4-)
 endif
 ifndef BUILD_TYPE
 # might be: AlphaCode, BetaCode, ReleaseCode
-  BUILD_TYPE = $(shell grep 'define BUILD_TYPE' $(VERSION_FILE) | cut -d ' ' -f 3-)
+  BUILD_TYPE = $(shell grep 'define BUILD_TYPE' $(VERSION_FILE) | cut -d ' ' -f 4-)
 endif
 ifndef BUILD_NUMBER
-  BUILD_NUMBER = $(shell grep 'define BUILD_NUMBER' $(VERSION_FILE) | cut -d ' ' -f 3-)
+  BUILD_NUMBER = $(shell grep 'define BUILD_NUMBER' $(VERSION_FILE) | cut -d ' ' -f 4-)
 endif
 
 # Gatekeeper Global Version String to mark object with version info in such
