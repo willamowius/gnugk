@@ -1,4 +1,5 @@
 22 Jun 2004 -- zvision
+  * reject gracefully Access-Requests without Framed-IP-Address attribute
   * better handling of IP only authorization - changed user account binding 
     order - IP only users are searched first, then search by h323id is performed
 
