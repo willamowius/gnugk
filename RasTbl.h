@@ -244,7 +244,7 @@ class OuterZoneEPRec : public EndpointRec {
 public:
 	OuterZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
 	virtual const H225_TransportAddress & GetCallSignalAddress() const
-		{ PWaitAndSignal lock(m_usedLock); PTRACE(5, "EP::m_callSignalAddress: " << m_callSignalAddress); return m_callSignalAddress; }
+		{ PWaitAndSignal lock(m_usedLock); return m_callSignalAddress; }
 
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
