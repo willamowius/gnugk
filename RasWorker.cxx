@@ -373,6 +373,9 @@ H323RasWorker::Main()
 	case H225_RasMessage::e_unregistrationRequest:
 		OnURQ(pdu);
 		break;
+	case H225_RasMessage::e_unregistrationConfirm:
+		OnUCF(pdu);
+		break;
 	case H225_RasMessage::e_admissionRequest:
 		OnARQ(pdu);
 		break;
@@ -840,7 +843,7 @@ H323RasWorker::OnURQ(H225_UnregistrationRequest &urq)
 void
 H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 {
-	PTRACE(2, "GK\tARQ Received: << " << arq) ;
+	PTRACE(2, "GK\tARQ Received:");
 
 	BOOL bReject = FALSE;
 
@@ -848,6 +851,7 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 	endptr RequestingEP = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
 
 	endptr CalledEP(NULL);
+	callptr CallPtr(NULL);
 
 	if (RequestingEP) { // Is the ARQ from a registered endpoint?
 		bool bHasDestInfo = (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && arq.m_destinationInfo.GetSize() >= 1);
@@ -877,6 +881,7 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 								AsString(arq.m_srcInfo), 0,
 								master.IsGKRoutedH245()); //BWRequest will be set in ProcessARQ
 				pCallRec->SetCalling(RequestingEP, arq.m_callReferenceValue);
+				CallPtr=callptr(pCallRec);
 				CallTable::Instance()->Insert(pCallRec);
 				// get called ep
 				CalledEP = RegistrationTable::Instance()->getMsgDestination(arq, RequestingEP, rsn, TRUE);
@@ -943,7 +948,7 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 void
 H323RasWorker::OnDRQ(H225_DisengageRequest &drq)
 {
-	PTRACE(1, "GK\tDRQ Received " << drq);
+	PTRACE(1, "GK\tDRQ Received ");
 
 	bool bReject = false;
 
@@ -953,7 +958,9 @@ H323RasWorker::OnDRQ(H225_DisengageRequest &drq)
 	if (RegistrationTable::Instance()->FindByEndpointId(drq.m_endpointIdentifier)) {
 		callptr call = CallTable::Instance()->FindCallRec(drq.m_callIdentifier);
 		if(callptr(NULL)!=call) {
-			call->GetCalledProfile().SetReleaseCause(drq.m_disengageReason);
+		  // TODO: Set Timeout to do deletion of call
+		  CalledProfile &cgpf = call->GetCalledProfile();
+		  cgpf.SetReleaseCause(drq.m_disengageReason);
 		}
 		PTRACE(4, "GK\tDRQ: closed conference");
 	} else {
@@ -985,7 +992,7 @@ H323RasWorker::OnDRQ(H225_DisengageRequest &drq)
 			     (const unsigned char *) drq.m_endpointIdentifier.GetValue(),
 			     (unsigned) drq.m_callReferenceValue,
 			     (const unsigned char *) drq.m_disengageReason.GetTagName() );
-	       CallTable::Instance()->RemoveCall(drq);
+//	       CallTable::Instance()->RemoveCall(drq);
        }
 
 	PTRACE(2, msg);
@@ -1166,6 +1173,12 @@ H323RasWorker::OnRAI(H225_ResourcesAvailableIndicate &rai)
 	need_answer=TRUE;
 	return;
 
+}
+
+void
+H323RasWorker::OnUCF(H225_UnregistrationConfirm &ucf)
+{
+	PTRACE(1, "GK\tUCF Received" << endl << ucf);
 }
 
 // Class NeighborWorker
