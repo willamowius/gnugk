@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- (GkStatus.cxx) fixed a missing lock during config reload
 - accept LRQs from any port (check only an IP address)
 - SQL modules accept only one database host now (the failover was not supported
   properly either, so it has been removed)

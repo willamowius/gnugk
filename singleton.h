@@ -88,8 +88,8 @@ template<class T> class Singleton : public SingletonBase {
 
 template<class T> Singleton<T>::Singleton(const char *n) : SingletonBase(n)
 {
-	if (m_Instance != 0)
-		throw std::runtime_error("Duplicate instances");
+//	if (m_Instance != 0)
+//		throw std::runtime_error("Duplicate instances");
 }
 
 template<class T> Singleton<T>::~Singleton()

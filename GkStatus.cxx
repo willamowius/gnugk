@@ -1013,6 +1013,8 @@ void StatusClient::ExecCommand(
 	PString cmd
 	)
 {
+	ReadLock lockConfig(ConfigReloadMutex);
+	
 	PTRACE(5, "STATUS\tGot command " << cmd << " from client " << Name());
 	
 	PStringArray args;
@@ -1148,7 +1150,10 @@ void StatusClient::ExecCommand(
 			WriteString("Syntax Error: MakeCall SOURCE DESTINATION\r\n");
 		break;
 	case GkStatus::e_Reload:
-		ReloadHandler();
+		{
+			ReadUnlock unlockConfig(ConfigReloadMutex);
+			ReloadHandler();
+		}
 		PTRACE(1, "STATUS\tConfig reloaded.");
 		m_gkStatus->SignalStatus("Config reloaded.\r\n");
 		break;
