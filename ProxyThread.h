@@ -46,6 +46,7 @@ public:
 		Error
 	};
 
+	friend class ProxyDeleter;
 	ProxySocket(PIPSocket *, const char *);
 	virtual ~ProxySocket() =0; // abstract class
 	PString Name() const { PWaitAndSignal lock(m_lock); return name; }
@@ -208,11 +209,18 @@ private:
 
 class ProxyDeleter : public PThread {
 public:
+	PCLASSINFO (ProxyDeleter, PThread)
+
 	ProxyDeleter(ProxySocket *s);
-	~ProxyDeleter() {}
+	~ProxyDeleter() { PTRACE(1,"Destructor of ProxyDeleter");}
 	virtual void Main();
 protected:
 	ProxySocket *delete_socket;
+	PTimer max_wait;
+
+	PDECLARE_NOTIFIER(PTimer, ProxyDeleter, OnTimeout);
+
+//	void OnTimeout(PTimer &timer, int extra);
 };
 
 

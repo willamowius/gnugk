@@ -717,6 +717,7 @@ void
 ProxyHandleThread::delete_socket(ProxySocket *s)
 {
 	ProxyDeleter *d = new ProxyDeleter(s);
+	d->SetAutoDelete();
 	d->Resume();
 }
 
@@ -725,16 +726,33 @@ ProxyHandleThread::delete_socket(ProxySocket *s)
 void
 ProxyDeleter::Main()
 {
+#ifdef _DEBUG
+	max_wait = PTimer(0,25);
+	max_wait.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+#endif // _DEBUG
 	delete delete_socket;
-#ifndef WIN32
-	sleep(1); // wait for PWLib to settle
+	PTRACE(1, "deleted socket");
+	delete_socket=NULL;
+#ifdef _DEBUG
+	max_wait.Stop();
 #endif
 	return;
 }
 
-ProxyDeleter::ProxyDeleter(ProxySocket *s):
-	PThread(1000,AutoDeleteThread), delete_socket(s)
+void
+ProxyDeleter::OnTimeout(PTimer &timer, int extra)
 {
+	if(timer == max_wait)
+		PAssertAlways(PString("timeout in deleteion of ProxySocket ") +
+			      (delete_socket->IsInUse() ? PString("In Use") : PString("not in use")) +
+			(delete_socket->m_lock.WillBlock() ? PString(" Will Blocke") : PString(" Will not block")));
+
+}
+
+ProxyDeleter::ProxyDeleter(ProxySocket *s):
+	PThread(1000,NoAutoDeleteThread), delete_socket(s)
+{
+	PTRACE(1, "Start of ProxyDeleter");
 }
 
 HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)
