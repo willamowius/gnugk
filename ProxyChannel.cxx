@@ -832,22 +832,21 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
    The older version has an out of memory bug in Q931::GetCalledPartyNumber.
 */
 
-	if (m_lastQ931->HasIE(Q931::DisplayIE)) {
-		PString display = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
-		if (!display) {
-			m_lastQ931->SetDisplayName(display);
-			changed = true;
-		}
+	PString display = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+	if (!display) {
+		m_lastQ931->SetDisplayName(display);
+		changed = true;
 	}
-	if (m_lastQ931->HasIE(Q931::CallingPartyNumberIE)) {
-		PString newnumber = GkConfig()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
-		if (!newnumber) {
-			unsigned plan, type;
-			PString oldnumber;
-			m_lastQ931->GetCallingPartyNumber(oldnumber, &plan, &type);
-			m_lastQ931->SetCallingPartyNumber(newnumber, plan, type);
-			changed = true;
+	
+	PString cli = GkConfig()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
+	if (!cli) {
+		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
+		if (m_lastQ931->HasIE(Q931::CallingPartyNumberIE)) {
+			PString dummy;
+			m_lastQ931->GetCallingPartyNumber(dummy, &plan, &type);
 		}
+		m_lastQ931->SetCallingPartyNumber(cli, plan, type);
+		changed = true;
 	}
 
 	if (changed) {

@@ -1,5 +1,7 @@
 Changes from 2.2.0 to 2.2.1
 ===========================
+- insert missing Calling-Party-Number-IE/Display-IE if corresponing
+  Screen... options are enabled
 - shutdown the gatekeeper if there are errors in SQL auth/acct modules
   configuration, thanks to Mikko Oilinki
 - (gkslq.cxx) try to reconnect to the database, if the initial attempt

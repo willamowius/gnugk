@@ -114,6 +114,14 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Insert missing Calling-Party-Number-IE/Display-IE if corresponing
+<tt/Screen.../ options are enabled.
+
+<item>
+Shutdown the gatekeeper if there are errors in SQL auth/acct modules
+configuration.
+
+<item>
 Called-Station-Id number type can be selected between the original one
 (dialed number) and the rewritten one. New <tt/UseDialedNumber/ config option
 for <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">
