@@ -400,7 +400,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 {
 	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
-		PTRACE(1, "Q931\tOnSetup() no callIdentifier!");
+		PTRACE(1, "Q931\tSetup_UUIE doesn't contain callIdentifier!");
 		return;
 	}
 	m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
@@ -409,13 +409,14 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		return;
 	}
 	const H225_TransportAddress *addr = m_call->GetCalledAddress();
-	if (addr || addr->GetTag() == H225_TransportAddress::e_ipAddress) {
-		const H225_TransportAddress_ipAddress & ip = *addr;
-		peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-		peerPort = ip.m_port;
-		localAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr);
-		remote = new CallSignalSocket(this, peerPort);
-	}
+	if (!addr || addr->GetTag() != H225_TransportAddress::e_ipAddress)
+		return;
+
+	const H225_TransportAddress_ipAddress & ip = *addr;
+	peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	peerPort = ip.m_port;
+	localAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr);
+	remote = new CallSignalSocket(this, peerPort);
 
 	// re-route called endpoint signalling messages to gatekeeper	
 	Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
