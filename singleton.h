@@ -106,8 +106,9 @@ template<class T> Singleton<T>::Singleton()
 
 template<class T> Singleton<T>::~Singleton()
 {
-	PWaitAndSignal lock(m_CreationLock);
+	m_CreationLock.Wait();
 	m_Instance = NULL;
+	m_CreationLock.Signal();
 }
 
 // Function to access the singleton
