@@ -1306,7 +1306,7 @@ CallRec::SendDRQ()
 	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
 	H225_DisengageRequest & drq = ras_msg;
 	drq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
-	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
+	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop); // Set DisengageReason here
 	drq.m_conferenceID = m_conferenceIdentifier;
 	drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
 	drq.m_callIdentifier = m_callIdentifier;
@@ -1314,6 +1314,8 @@ CallRec::SendDRQ()
 	drq.m_gatekeeperIdentifier = Toolkit::GKName();
 
 // Warning: For an outer zone endpoint, the endpoint identifier may not correct
+	if(GetCalledProfile().ReleaseCauseIsSet())
+			drq.m_disengageReason=GetCalledProfile().GetDisengageReason();
 	if (m_Calling) {
 		drq.m_endpointIdentifier = m_Calling->GetEndpointIdentifier();
 		drq.m_callReferenceValue = m_callingCRV;

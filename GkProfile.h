@@ -155,7 +155,9 @@ public:
         const enum Q931::TypeOfNumberCodes  GetDialedPN_TON() const ;
 	const enum Q931::TypeOfNumberCodes  GetAssumedDialedPN_TON() const ;
 	const PString & GetAssumedDialedPN() const ;
+	BOOL ReleaseCauseIsSet() const;
 	const enum Q931::CauseValues GetReleaseCause() const ;
+	const H225_DisengageReason GetDisengageReason() const ;
 
         void SetDialedPN(PString &dialedPN,
 			 const enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType);
@@ -171,6 +173,7 @@ public:
 			  const enum H225_ScreeningIndicator::Enumerations callingPN_SI = H225_ScreeningIndicator::e_userProvidedNotScreened,
 			  const enum H225_PresentationIndicator::Choices callingPN_PI = H225_PresentationIndicator::e_presentationAllowed);
 	void SetReleaseCause(const enum Q931::CauseValues cause);
+	void SetReleaseCause(const H225_DisengageReason cause);
 
 private:
 	// the dialed.*-information is the "raw" data collected from H225Ras or Q.931. The "assumed"
@@ -185,6 +188,8 @@ private:
 	enum Q931::NumberingPlanCodes m_dialedPN_PLAN;
 	H225_ScreeningIndicator m_dialedPN_SI;
         PString m_dialedPN; // dialed party number
+
+	BOOL m_release_is_set;
 
 	enum Q931::TypeOfNumberCodes m_assumeddialedPN_TON; // type of number for dialed PN
 	enum Q931::NumberingPlanCodes m_assumeddialedPN_PLAN;

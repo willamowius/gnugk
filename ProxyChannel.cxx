@@ -532,8 +532,13 @@ void CallSignalSocket::BuildConnection() {
 TCPProxySocket *CallSignalSocket::ConnectTo()
 {
 	if (peerAddr == Address("0.0.0.0")) {
-		if (NULL!=remote)
-			remote->SetConnected(false);
+		if (NULL!=remote) {
+			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
+			if(NULL!=rem)
+				rem->SetConnected(false);
+			else
+				remote->SetConnected(false);
+		}
 		SetConnected(true);
 		Q931 & pdu = *(GetSetupPDU());
 		FakeSetupACK(pdu);
@@ -555,7 +560,11 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 			PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
 #endif
 			SetConnected(true);
-			remote->SetConnected(true);
+			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
+			if(NULL!=rem)
+				rem->SetConnected(false);
+			else
+				remote->SetConnected(true);
 			SendInformationMessages();
 		} else {
 			PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
@@ -612,7 +621,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
        body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
        H225_ReleaseComplete_UUIE & uuie = body;
        if (callptr(NULL)!=m_call) {
-               uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
+	       uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
                uuie.m_callIdentifier = m_call->GetCallIdentifier();
        }
        PPER_Stream strm;
@@ -621,6 +630,8 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
 
        ReleasePDU.BuildReleaseComplete(m_crv, m_crv & 0x8000u);
        ReleasePDU.SetIE(Q931::UserUserIE, strm);
+       if(callptr(NULL)!=m_call && m_call->GetCalledProfile().ReleaseCauseIsSet())
+	       ReleasePDU.SetCause(m_call->GetCalledProfile().GetReleaseCause());
 }
 
 void CallSignalSocket::SendReleaseComplete(const enum Q931::CauseValues cause)
@@ -654,7 +665,10 @@ bool CallSignalSocket::EndSession()
 bool
 CallSignalSocket::InternalEndSession()
 {
-	InternalSendReleaseComplete(Q931::NormalCallClearing);
+	if(callptr(NULL)!=m_call  && m_call->GetCalledProfile().ReleaseCauseIsSet())
+		InternalSendReleaseComplete(m_call->GetCalledProfile().GetReleaseCause());
+	else
+		InternalSendReleaseComplete(Q931::NormalCallClearing);
 	return TCPProxySocket::EndSession();
 }
 
@@ -866,6 +880,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		// NB: Check for routable number
 		if ((peerAddr == INADDR_ANY) && (isRoutable)) {
 			PTRACE(3, "Q931\t" << Name() << " INVALID ADDRESS");
+			m_call->GetCalledProfile().SetReleaseCause(Q931::NoRouteToDestination);
 			InternalEndSession();
 			return Error;
 		}
@@ -1708,9 +1723,12 @@ BOOL MatchAlias(const CallProfile &profile, PString number) {
 			PTRACE(5,"amountPoints: " << amountPoints);
 			if(0 == amountPoints && number == telephonenumbers[i].Right(number.GetLength())) {
 				// we found a match -- let's do a sanity check, wether is in international format
+				PTRACE(5,"matches nubmer " << telephonenumbers[i]);
 				if (number.GetLength() == telephonenumbers[i].GetLength()) {
+					PTRACE(5, "fullmatch");
 					return TRUE;
 				} else {
+					PTRACE(5, "partial match");
 					complete_number=telephonenumbers[i];
 					matches++;
 				}
@@ -1915,7 +1933,12 @@ TCPProxySocket *H245Socket::ConnectTo()
 #endif
 			GetHandler()->Insert(this);
 			SetConnected(true);
-			remote->SetConnected(true);
+			CallSignalSocket *rem=dynamic_cast<CallSignalSocket *> (remote);
+			if(NULL!=rem) {
+				rem->SetConnected(true);
+			} else {
+				remote->SetConnected(true);
+			}
 			return remote;
 		}
 		PTRACE(3, "H245\t" << peerAddr << " DIDN'T ACCEPT THE CALL");

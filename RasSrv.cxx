@@ -1433,6 +1433,10 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
        if (gkClient->IsRegistered() && gkClient->OnDRQ(obj_rr, rx_addr)) {
                PTRACE(4,"GKC\tDRQ: from my GK");
        } else if (EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier)) {
+	       callptr call = CallTable::Instance()->FindCallRec(obj_rr.m_callIdentifier);
+	       if(callptr(NULL)!=call) {
+		       call->GetCalledProfile().SetReleaseCause(obj_rr.m_disengageReason);
+	       }
                PTRACE(4, "GK\tDRQ: closed conference");
        } else {
                bReject = true;
@@ -1452,18 +1456,19 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			     (unsigned) obj_rr.m_callReferenceValue,
 			     (const unsigned char *) drj.m_rejectReason.GetTagName());
        } else {
-		obj_rpl.SetTag(H225_RasMessage::e_disengageConfirm);
-		H225_DisengageConfirm & dcf = obj_rpl;
-		dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
 
-		// always signal DCF
-		msg = PString(PString::Printf, "DCF|%s|%s|%u|%s;" GK_LINEBRK,
-				inet_ntoa(rx_addr),
-				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
-				(unsigned) obj_rr.m_callReferenceValue,
-				(const unsigned char *) obj_rr.m_disengageReason.GetTagName() );
-		CallTable::Instance()->RemoveCall(obj_rr);
-	}
+	       obj_rpl.SetTag(H225_RasMessage::e_disengageConfirm);
+	       H225_DisengageConfirm & dcf = obj_rpl;
+	       dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
+
+	       // always signal DCF
+	       msg = PString(PString::Printf, "DCF|%s|%s|%u|%s;" GK_LINEBRK,
+			     inet_ntoa(rx_addr),
+			     (const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
+			     (unsigned) obj_rr.m_callReferenceValue,
+			     (const unsigned char *) obj_rr.m_disengageReason.GetTagName() );
+	       CallTable::Instance()->RemoveCall(obj_rr);
+       }
 
 	PTRACE(2, msg);
 	GkStatusThread->SignalStatus(msg);
