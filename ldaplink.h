@@ -26,6 +26,8 @@
 #if !defined(LDAPLINK_H)	/* make idempotent */
 #define LDAPLINK_H "@(#) $Id$"
 
+#include <sys/time.h>
+
 #if defined(HAS_LEVEL_TWO_LDAPAPI) 
 #  include "ldapapi.h"		// local API to libOpenH323 classes
 #else
