@@ -7,7 +7,7 @@ CREATE TEMPORARY TABLE voiptariff_temp (
   dstcurr TEXT NOT NULL,
   dstinitinc INT NOT NULL,
   dstreginc INT NOT NULL,
-  dstgraceperiod INT NOT NULL,
+  dstgraceperiod INT NOT NULL
 );
 	
 \copy voiptariff_temp(dstname, dstprice, dstcurr, dstinitinc, dstreginc, dstgraceperiod) from 'voiptariff.asc' with delimiter '\t'
