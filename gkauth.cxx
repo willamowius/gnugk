@@ -773,8 +773,7 @@ bool AliasAuth::CheckAuthRule(
 MySQLPasswordAuth::MySQLPasswordAuth(const char *name)
       : SimplePasswordAuth(name), MySQLConnection(config, name)
 {
-	if (cache)
-		cache->SetTimeout(config->GetInteger(name, "CacheTimeout", 0)
+	SetCacheTimeout(config->GetInteger(name, "CacheTimeout", 0));
 }
 
 bool MySQLPasswordAuth::GetPassword(const PString & id, PString & passwd)

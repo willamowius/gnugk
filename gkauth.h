@@ -401,6 +401,14 @@ protected:
 			: ((controlFlag == e_Optional) ? e_next : e_fail);
 	}
 
+	void SetCacheTimeout(
+		long newTimeout
+		)
+	{
+		if (cache)
+			cache->SetTimeout(newTimeout);
+	}
+	
 private:
 	PString InternalGetPassword(const PString & id);
 
