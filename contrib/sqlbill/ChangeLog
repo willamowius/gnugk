@@ -1,6 +1,8 @@
 17 Jun 2004 -- zvision
   * BUGFIX: accounting_update_query changed to not check h323id in order
     to allow IP only authorization
+  * BUGFIX: accounting_stop_query changed to not check h323id in order
+    to allow IP only authorization
 
 16 Jun 2004 -- zvision
   * added ability to authenticate users only by their IP (ignoring User-Name)

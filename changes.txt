@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(sqlbill) FreeRadius accounting_stop_query changed to not check h323id 
+  in order to allow IP only authorization
 - BUGFIX(sqlbill) FreeRadius accounting_update_query changed to not check h323id 
   in order to allow IP only authorization
 - (radacct.cxx) new RADIUS h323-ivr-out=h323-call-id parameter that contains
