@@ -55,25 +55,25 @@ static const char vcHid[] = RASTBL_H;
 const char *CallTableSection = "CallTable";
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-	:        m_RasMsg(completeRAS), m_terminalType(NULL), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false), m_must_delete_terminal_type(FALSE)
+	:        m_terminalType(NULL), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false)
 {
-	switch (m_RasMsg.GetTag())
+	switch (completeRAS.GetTag())
 	{
 	case H225_RasMessage::e_registrationRequest:
-		SetEndpointRec((H225_RegistrationRequest &)m_RasMsg);
+		SetEndpointRec((const H225_RegistrationRequest &)completeRAS);
 		PTRACE(1, "New EP|" << PrintOn(false));
 		break;
 	case H225_RasMessage::e_admissionRequest:
-		SetEndpointRec((H225_AdmissionRequest &)m_RasMsg);
+		SetEndpointRec((const H225_AdmissionRequest &)completeRAS);
 		break;
 	case H225_RasMessage::e_admissionConfirm:
-		SetEndpointRec((H225_AdmissionConfirm &)m_RasMsg);
+		SetEndpointRec((const H225_AdmissionConfirm &)completeRAS);
 		break;
 	case H225_RasMessage::e_locationConfirm:
-		SetEndpointRec((H225_LocationConfirm &)m_RasMsg);
+		SetEndpointRec((const H225_LocationConfirm &)completeRAS);
 		break;
 	case H225_RasMessage::e_locationRequest:
-		SetEndpointRec(static_cast<H225_LocationRequest &>(m_RasMsg));
+		SetEndpointRec(static_cast<const H225_LocationRequest &>(completeRAS));
 	default: // should not happen
 		break;
 	}
@@ -81,7 +81,7 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
 		m_timeToLive = 0;
 }
 
-void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
+void EndpointRec::SetEndpointRec(const H225_RegistrationRequest & rrq)
 {
 // relaying on the first entry is complete bullshit. let's do this in a better way.
 //         if (rrq.m_rasAddress.GetSize() > 0)
@@ -105,7 +105,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	}
         m_endpointIdentifier = rrq.m_endpointIdentifier;
         m_terminalAliases = rrq.m_terminalAlias;
-        m_terminalType = &rrq.m_terminalType;
+        m_terminalType = new H225_EndpointType(rrq.m_terminalType);
         if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
                 SetTimeToLive(rrq.m_timeToLive);
         else
@@ -113,18 +113,18 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
         m_fromParent = false;
 }
 
-void EndpointRec::SetEndpointRec(H225_AdmissionRequest & arq)
+void EndpointRec::SetEndpointRec(const H225_AdmissionRequest & arq)
 {
 	static H225_EndpointType termType; // nouse
 	// we set it to non-standard address to avoid misuse
 	m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
 	m_callSignalAddress = arq.m_destCallSignalAddress;
-	m_terminalType = &termType;
+	m_terminalType = new H225_EndpointType(termType);
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = true;
 }
 
-void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
+void EndpointRec::SetEndpointRec(const H225_AdmissionConfirm & acf)
 {
        // there is no RAS address in ACF
        // we set it to non-standard address to avoid misuse
@@ -132,27 +132,27 @@ void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
        m_callSignalAddress = acf.m_destCallSignalAddress;
        if (acf.HasOptionalField(H225_AdmissionConfirm::e_destinationInfo))
                m_terminalAliases = acf.m_destinationInfo;
-       if (!acf.HasOptionalField(H225_AdmissionConfirm::e_destinationType))
-               acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
-       m_terminalType = &acf.m_destinationType;
+//        if (!acf.HasOptionalField(H225_AdmissionConfirm::e_destinationType))
+//                acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
+       m_terminalType = new H225_EndpointType(acf.m_destinationType);
        m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
        m_fromParent = true;
 }
 
-void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
+void EndpointRec::SetEndpointRec(const H225_LocationConfirm & lcf)
 {
         m_rasAddress = lcf.m_rasAddress;
         m_callSignalAddress = lcf.m_callSignalAddress;
         if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
                 m_terminalAliases = lcf.m_destinationInfo;
-        if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
-                lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
-        m_terminalType = &lcf.m_destinationType;
+//         if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
+//                 lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
+        m_terminalType = new H225_EndpointType(lcf.m_destinationType);
         m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
         m_fromParent = false;
 }
 
-void EndpointRec::SetEndpointRec(H225_LocationRequest & lrq)
+void EndpointRec::SetEndpointRec(const H225_LocationRequest & lrq)
 {
         m_rasAddress = lrq.m_replyAddress;
 	PTRACE(5, "lrq.m_gatekeeperIdentifier: " << lrq.m_gatekeeperIdentifier);
@@ -169,9 +169,8 @@ void EndpointRec::SetEndpointRec(H225_LocationRequest & lrq)
 
 EndpointRec::~EndpointRec()
 {
-	PTRACE(3, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
-	if (m_must_delete_terminal_type)
-		delete m_terminalType;
+	PTRACE(0, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
+	delete m_terminalType;
 }
 
 const H225_TransportAddress &
