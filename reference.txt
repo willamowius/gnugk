@@ -153,32 +153,22 @@ Possible values are...
 B.4 Section [RasSvr::GWPrefixes]
 
 This section lists what E.164 numbers are routed to a specific gateway.
-You can also defines the gateway as a trunk or residential gateway here.
-Calls coming in from residential gateways (or terminals) must be screened
-(e.g. verification of A number), calls coming in via trunk gateways
+You can either define all gateways here OR, if using LDAP authentication,
+you have to define trunk gateways here. CPE (customer premise equipment)
+gateways must then be stored in LDAP.
+Calls coming in from CPE devices (residential gateways or terminals) must
+be screened (e.g. verification of A number), calls coming in via trunk gateways
 may not be screened (not yet implemented).
 
-test-gw=0:trunk
-All numbers starting with 0 go to the gateway with the alias name
+test-gw=02,03:CC=49
+All numbers starting with 02 or 03 go to the gateway with the alias name
 "test-gw". It's a trunk gateway. The gateway must be currently registered
-with the gatekeeper.
+with the gatekeeper to be serviced. The country code (CC) "49" is prepended to
+every CdPN (called party number). This can be used to convert CdPNs to
+international format. Internal to the gatekeeper, the international numbering
+format is used to uniquely identify source and target of a call (not yet
+fully implemented).
 
-
-B.5 Section [RasSvr::ARQ]
-
-IncompleteAddresses=TRUE		Default = FALSE
-If TRUE, GK returns ARJ with reason incomplete addresses in response to
-ARQs with incomplete numbers.  This is needed to support overlapped sending
-of digits. The dialed number is considered to be incomplete if we have a
-gateway that is registered with a prefix that is potentially matching the
-dialed number, but is LONGER. Therefore, without collecting more digits,
-the GK can't decide whether the dialed number will evolve into a registered
-number. It might or might not - it depends on the next, yet-unknown digits.
-
-
-B.6 Section [RasSvr::RewriteE164]
-
-Fastmatch=xxx		Default: (empty)
 
 B.7 Section [RasSvr::ARQFeatures]
 ArjReasonRouteCallToSCN=FALSE
@@ -232,11 +222,15 @@ UsePing=TRUE		Default: FALSE
 Turn usage of Q.931 StatusEnquiry on or off. If the endpoint doesn't
 answer, the call will be terminated.
 Note that Netmeeting will not respond to StatusEnquiry, even though
-it is a mandatory feature!
+it is a mandatory feature! So if you want to use Netmeeting, turn
+this feature off.
 
 AllowedPendings=3	Default: 3
+Maximum allowed number of outstanding responses
 
 Timeout=5			Default: 1
+Time between 'pings'
+
 
 B.11 Section [RasSvr::Neighbors]
 

@@ -279,7 +279,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 	// re-route called endpoint signalling messages to gatekeeper	
 	Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-	Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
+	Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT));
 
 	// in routed mode the caller may have put the GK address in destCallSignalAddress
 	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
@@ -963,7 +963,7 @@ void H245ProxyHandler::RemoveRTPLogicalChannel(WORD flcn)
 // class HandlerList
 void HandlerList::LoadConfig()
 {
-	WORD port = GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_ROUTE_SIGNAL_PORT);
+	WORD port = GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
 	if (!listenerThread || (GKPort != port)) {
 		CloseListener();
 		unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);

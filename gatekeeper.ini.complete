@@ -18,7 +18,7 @@ Fourtytwo=42
 Name=OpenH323GK
 # overwritten from command line parameter
 #Home=195.71.129.69
-#TimeToTive=600
+#TimeToLive=600
 
 [RoutedMode]
 GKRouted=1
@@ -45,14 +45,12 @@ InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
 
 ##
 ## This section should not be changed and loaded with the HUP signal at runtime 
-## because only newly created connections are affected from the change. Open
-## you better restart the gatekeeper then.
+## because only newly created connections are affected from the change.
+## You better restart the gatekeeper after changing something here.
 [Gatekeeper::TCP]
 UnicastRasPort=1719 
 MulticastPort=1718
 MulticastGroup=224.0.1.41
-#RouteSignalPort=1721
-RouteSignalPort=1720
 EndpointSignalPort=9999
 #EndpointSignalPort=1720
 StatusPort=7000
@@ -78,24 +76,6 @@ StatusReadTimeout=5000
 # 195.71.129.254
 #ip400-v1=12
 #ip400-wi1=0
-
-
-[RasSvr::ARQAuth]
-## To allow ARQ based overlap sending a number/alias that 
-## - is not registerd or
-## - begins with a registerd GW-Prefix 
-## is searched in the list of #IncompleteAddresses#. The search is done
-## prepending a ":" to the dialed address and search the #IncompleteAddresses#
-## for it. If this string IS found, it is considered to reject with the
-## reject reason "incompleteAddress". This way you only have to give some
-## addresses. Example: If "0, 01, 019, 018, 017" should be rejected as 
-## incomplete addresses, then it is enough to set 
-## "IncompleteAddress=:019:018:017:" because the strings ":0" and ":01" 
-## are also found in this string.
-##
-## You have to separate list entries in #IncompleteAddresses# with ":" 
-## and also begin the line with ":". This speeds up the matching.
-#IncompleteAddresses=:00:019:018:017:
 
 
 [RasSrv::RRQAuth]
@@ -169,7 +149,8 @@ rule=allow
 ## //       01901234    prefix, Config-Rule: 01901234=0521321
 ## // new:  0521321999    
 ##
-## The Rewrite-Numbers consider a HUP signal.
+## The rewrite-numbers function take care of reloads/a HUP signal.
+
 [RasSvr::RewriteE164]
 ## Only if an e164 number begins with #Fastmatch# the
 ## the further rewriting is done. Only one #Fastmatch# can be given.
@@ -347,8 +328,9 @@ default=allow
 #ServerPort=389
 #SearchBaseDN=o=University of Michigan, c=US
 #BindUserDN=cn=Babs Jensen,o=University of Michigan, c=US
-#BindUserPW=RealySecretPassword
+#BindUserPW=ReallySecretPassword
 #sizelimit=0
 #timelimit=0
+
 # EOF
 

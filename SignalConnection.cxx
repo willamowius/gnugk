@@ -538,7 +538,7 @@ void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 */ 
 	// re-route called endpoint signalling messages to gatekeeper	
 	Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-	Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
+	Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RoutedMode","CallSignalPort", GK_DEF_CALL_SIGNAL_PORT));
 
 	// in routed mode the caller may have put the GK address in destCallSignalAddress
 	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
