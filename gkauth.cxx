@@ -244,9 +244,9 @@ bool GkAuthenticator::Validate(
 
 bool GkAuthenticator::Validate(
 	/// received Q.931 Setup message
-	const Q931& q931pdu, 
+	Q931& q931pdu, 
 	/// received H.225 Setup message
-	const H225_Setup_UUIE& setup, 
+	H225_Setup_UUIE& setup, 
 	/// Q931 disconnect cause code to set, if authentication failed
 	unsigned& releaseCompleteCause, 
 	/// call duration limit to set (-1 for no duration limit)
@@ -331,8 +331,8 @@ int GkAuthenticator::Check(RasPDU<H225_InfoRequest> &, unsigned &)
 }
 
 int GkAuthenticator::Check( 
-	const Q931&, 
-	const H225_Setup_UUIE&, 
+	Q931&, 
+	H225_Setup_UUIE&, 
 	unsigned&, 
 	long& 
 	)

@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2003/11/14 00:27:30  zvision
+ * Q.931/H.225 Setup authentication added
+ *
  * Revision 1.8  2003/10/31 00:01:28  zvision
  * Improved accounting modules stacking control, optimized radacct/radauth a bit
  *
@@ -101,7 +104,7 @@ protected:
 	*/
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
-		const H225_RegistrationRequest& rrq, /// RRQ being processed
+		RasPDU<H225_RegistrationRequest>& rrqPdu, /// RRQ being processed
 		unsigned& rejectReason /// reject reason on return FALSE
 		);
 
@@ -114,7 +117,7 @@ protected:
 	*/
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
-		const H225_AdmissionRequest& rrq, /// ARQ being processed
+		RasPDU<H225_AdmissionRequest>& arqPdu, /// ARQ being processed
 		unsigned& rejectReason /// reject reason on return FALSE
 		);
 
@@ -127,10 +130,9 @@ protected:
 	*/
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
-		const Q931& q931pdu, /// Q.931 Setup being processed
-		const H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
+		Q931& q931pdu, /// Q.931 Setup being processed
+		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
 		unsigned& releaseCompleteCause /// Q931 disconnect cause code to set on FALSE
-		
 		);
 		
 	/** Hook for processing pdu after it is received.
@@ -142,7 +144,7 @@ protected:
 	*/
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// received PDU 
-		const H225_RegistrationRequest& rrq, /// RRQ being processed
+		RasPDU<H225_RegistrationRequest>& rrqPdu, /// RRQ being processed
 		unsigned& rejectReason /// reject reason on return FALSE
 		);
 
@@ -155,7 +157,7 @@ protected:
 	*/
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// received PDU
-		const H225_AdmissionRequest& rrq, /// ARQ being processed
+		RasPDU<H225_AdmissionRequest>& arqPdu, /// ARQ being processed
 		unsigned& rejectReason, /// reject reason on return FALSE
 		long& durationLimit /// call duration limit to be set
 		);
@@ -169,8 +171,8 @@ protected:
 	*/
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// received PDU
-		const Q931& q931pdu, /// Q.931 Setup being processed
-		const H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
+		Q931& q931pdu, /// Q.931 Setup being processed
+		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
 		unsigned& releaseCompleteCause, /// Q931 disconnect cause code to set on 
 		long& durationLimit /// call duration limit to be set
 		);
@@ -186,7 +188,7 @@ protected:
 	*/
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu, /// append attribues to this pdu
-		const H225_RegistrationRequest& rrq, /// extract data from this RAS msg
+		RasPDU<H225_RegistrationRequest>& rrqPdu, /// extract data from this RAS msg
 		unsigned& rejectReason, /// reject reason to be set on e_fail return code
 		/// if not NULL and return status is e_ok, then the string is filled
 		/// with appended username
@@ -204,7 +206,7 @@ protected:
 	*/
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu, /// append attribues to this pdu
-		const H225_AdmissionRequest& arq, /// extract data from this RAS msg
+		RasPDU<H225_AdmissionRequest>& arqPdu, /// extract data from this RAS msg
 		endptr& originatingEP, /// endpoint that the ARQ originates from
 		unsigned& rejectReason, /// reject reason to be set on e_fail return code
 		/// if not NULL and return status is e_ok, then the string is filled
@@ -223,8 +225,8 @@ protected:
 	*/
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu, /// append attribues to this pdu
-		const Q931& q931pdu, /// Q.931 Setup being processed
-		const H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
+		Q931& q931pdu, /// Q.931 Setup being processed
+		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
 		endptr& callingEP, /// calling endpoint (if found in the registration table)
 		unsigned& releaseCompleteCause, /// Q931 disconnect cause code to set on e_fail
 		/// if not NULL and return status is e_ok, then the string is filled
@@ -251,7 +253,7 @@ protected:
 	*/
 	virtual int Check(
 		/// RRQ RAS message to be authenticated
-		RasPDU<H225_RegistrationRequest>& rrq, 
+		RasPDU<H225_RegistrationRequest>& rrqPdu, 
 		/// reference to the variable, that can be set 
 		/// to custom H225_RegistrationRejectReason
 		/// if the check fails
@@ -265,7 +267,7 @@ protected:
 	*/
 	virtual int Check(
 		/// ARQ nessage to be authenticated
-		RasPDU<H225_AdmissionRequest> & arq, 
+		RasPDU<H225_AdmissionRequest> & arqPdu, 
 		/// reference to the variable, that can be set 
 		/// to custom H225_AdmissionRejectReason
 		/// if the check fails
@@ -282,9 +284,9 @@ protected:
 	*/
 	virtual int Check(
 		/// Q.931 Setup message to be authenticated
-		const Q931& q931pdu, 
+		Q931& q931pdu, 
 		/// H.225 Setup UUIE to be authenticated
-		const H225_Setup_UUIE& setup, 
+		H225_Setup_UUIE& setup, 
 		/// Q931 disconnect cause code to set on authentication failure
 		unsigned& releaseCompleteCause,
 		/// call duration limit to be set for the call
@@ -293,30 +295,6 @@ protected:
 		);
 		
 private:
-
-	/// actual RRQ authentication implementation
-	int doCheck(
-		/// RRQ RAS message to be authenticated
-		const H225_RegistrationRequest& rrq, 
-		/// reference to the variable, that can be set 
-		/// to custom H225_RegistrationRejectReason
-		/// if the check fails
-		unsigned& rejectReason
-		);
-	
-	/// actual ARQ authentication implementation
-	int doCheck(
-		/// RRQ RAS message to be authenticated
-		const H225_AdmissionRequest& rrq, 
-		/// reference to the variable, that can be set 
-		/// to custom H225_AdmissionRejectReason
-		/// if the check fails
-		unsigned& rejectReason,
-		/// call duration limit to be set for the call
-		/// (-1 stands for no limit)
-		long& durationLimit
-		);
-	
 	/* No copy constructor allowed */
 	RadAuthBase( const RadAuthBase& );
 	/* No operator= allowed */
@@ -394,17 +372,26 @@ protected:
 
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
-		const H225_RegistrationRequest& rrq,
+		RasPDU<H225_RegistrationRequest>& rrqPdu,
 		unsigned& rejectReason,
 		PString* username = NULL 
 		) const;
 	
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
-		const H225_AdmissionRequest& arq,
+		RasPDU<H225_AdmissionRequest>& arqPdu,
 		endptr& originatingEP,
 		unsigned& rejectReason,
 		PString* username = NULL 
+		) const;
+		
+	virtual int AppendUsernameAndPassword(
+		RadiusPDU& pdu,
+		Q931& q931pdu,
+		H225_Setup_UUIE& setup,
+		endptr& callingEP,
+		unsigned& releaseCompleteCause,
+		PString* username = NULL
 		) const;
 
 private:
@@ -438,14 +425,14 @@ protected:
 
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
-		const H225_RegistrationRequest& rrq,
+		RasPDU<H225_RegistrationRequest>& rrqPdu,
 		unsigned& rejectReason,
 		PString* username = NULL
 		) const;
 	
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
-		const H225_AdmissionRequest& arq,
+		RasPDU<H225_AdmissionRequest>& arqPdu,
 		endptr& originatingEP,
 		unsigned& rejectReason,
 		PString* username = NULL
@@ -453,8 +440,8 @@ protected:
 	
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
-		const Q931& q931pdu,
-		const H225_Setup_UUIE& setup,
+		Q931& q931pdu,
+		H225_Setup_UUIE& setup,
 		endptr& callingEP,
 		unsigned& releaseCompleteCause,
 		PString* username = NULL

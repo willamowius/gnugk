@@ -147,9 +147,9 @@ public:
 	*/
 	bool Validate(
 		/// received Q.931 Setup message
-		const Q931& q931pdu, 
+		Q931& q931pdu, 
 		/// received H.225 Setup message
-		const H225_Setup_UUIE& setup, 
+		H225_Setup_UUIE& setup, 
 		/// Q931 disconnect cause code to set, if authentication failed
 		unsigned& releaseCompleteCause, 
 		/// call duration limit to set (-1 for no duration limit)
@@ -218,9 +218,9 @@ protected:
 	*/
 	virtual int Check(
 		/// received Q.931 Setup message
-		const Q931& q931pdu, 
+		Q931& q931pdu, 
 		/// received H.225 Setup message
-		const H225_Setup_UUIE& setup, 
+		H225_Setup_UUIE& setup, 
 		/// Q931 disconnect cause code to set, if authentication failed
 		unsigned& releaseCompleteCause, 
 		/// call duration limit to set (-1 for no duration limit)
@@ -546,9 +546,9 @@ public:
 	*/
 	bool Validate(
 		/// received Q.931 Setup message
-		const Q931& q931pdu,
-		/// received H.225 Setup message
-		const H225_Setup_UUIE& setup, 
+		Q931& q931pdu,
+		///  H.225.0 Setup UUIE decoded from Q.931 SETUP
+		H225_Setup_UUIE& setup, 
 		/// Q931 disconnect cause code to set, if authentication failed
 		unsigned& releaseCompleteCause,
 		/// duration limit to set for the admitted call, -1 to not set any limit

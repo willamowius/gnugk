@@ -1952,10 +1952,10 @@ AdmissionRequest (ARQ) and LocationRequest (LRQ).
 <item><tt>RadAuth</tt>
 <p>
 Provides authentication based on H.235 username/password
-security scheme. Authenticates RRQs and/or ARQs through remote
+security scheme. Authenticates RRQ, ARQ and Q.931 Setup through remote
 RADIUS servers. It passes to RADIUS servers usernames and passwords
 extracted from CAT (Cisco Access Tokens) <bf/tokens/ carried
-inside RRQ and ARQ packets. Therefore if your endpoints do not
+inside RRQ, ARQ or Setup packets. Therefore if your endpoints do not
 support CATs or you do not need authentication scheme based on
 individually assigned usernames/password - this module will not
 work for you (but you may check <tt/RadAliasAuth/ module).
@@ -2253,13 +2253,12 @@ prefix 09. All other situations are allowed.
 <p>
 This section defines configuration settings that enable
 RADIUS authentication based on H.235 CATs (Cisco Access Tokens)
-present in RRQ and ARQ RAS requests. This authentication scheme
-is useful only for endpoints registered at the gatekeeper.
+present in RRQ, ARQ RAS requests and Q.931 Setup messages. 
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT];SERVER2[:AUTH_PORT];.../<newline>
 Default: <tt>N/A</tt>
 <p>
-RADIUS servers to be used for authentication RAS requests.
+RADIUS servers to be used for authentication.
 The list can contain an arbitrary number of servers.
 The order of servers is important, because servers will be queried
 by the RADIUS module in the order given. If no port information is given,

@@ -134,8 +134,8 @@ public:
 		return authList->Validate(ras, rejectReason, callDurationLimit);
 	}
 	bool ValidatePDU(
-		const Q931& q931pdu,
-		const H225_Setup_UUIE& setup,
+		Q931& q931pdu,
+		H225_Setup_UUIE& setup,
 		unsigned& rejectReason,
 		long& callDurationLimit
 		)
