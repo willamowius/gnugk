@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2004/11/15 23:57:42  zvision
+ * Ability to choose between the original and the rewritten dialed number
+ *
  * Revision 1.13  2004/11/10 18:30:41  zvision
  * Ability to customize timestamp strings
  *
@@ -156,7 +159,7 @@ GkAcctLogger::Status RadAcct::Log(
 	}
 
 	if ((evt & (AcctStart | AcctStop | AcctUpdate)) && (!call)) {
-		PTRACE(1,"RADACCT\t"<<GetName()<<" - missing call info for event"<<evt);
+		PTRACE(1,"RADACCT\t"<<GetName()<<" - missing call info for event "<<evt);
 		return Fail;
 	}
 	
