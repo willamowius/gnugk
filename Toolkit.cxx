@@ -22,6 +22,7 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
+#include <ptlib.h>
 #include "Toolkit.h"
 #include "h323util.h"
 #include "ANSI.h"
@@ -30,8 +31,10 @@
 #include <h323pdu.h>
 #include "GkProfile.h"
 #include "RasListener.h"
+#include "RasWorker.h"
 #include "Neighbor.h"
 #include "ProxyThread.h"
+#include "GkClient.h"
 
 #if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  include <openssl/ssl.h>
@@ -652,7 +655,10 @@ Toolkit::GetHandlerList()
 void
 Toolkit:: StartGkClient()
 {
-	m_gkclient=new GkClient();
+	PIPSocket::Address Home=GkConfig()->GetString("Home", INADDR_ANY);
+	PWaitAndSignal lock(m_gkclient_mutex);
+	m_gkclient=new GkClient(Home);
+	m_gkclient->Resume();
 	return;
 }
 
