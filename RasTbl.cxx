@@ -260,6 +260,20 @@ bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 	return false;
 }
 
+bool EndpointRec::MatchAlias(
+	const H225_ArrayOf_AliasAddress& aliases,
+	int& matchedalias
+	) const
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); i++)
+		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
+			if (aliases[i] == m_terminalAliases[j]) {
+				matchedalias = i;
+				return true;
+			}
+	return false;
+}
+
 EndpointRec *EndpointRec::Unregister()
 {
 	SendURQ(H225_UnregRequestReason::e_maintenance);
@@ -511,6 +525,52 @@ int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &a) const
 				++Iter;
 			}
 		}
+	return maxlen;
+}
+
+int GatewayRec::PrefixMatch(
+	const H225_ArrayOf_AliasAddress& aliases,
+	int& matchedalias
+	) const
+{
+	int maxlen = (defaultGW) ? 0 : -1;
+	matchedalias = 0;
+	
+	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+		const unsigned tag = aliases[i].GetTag();
+		if ( tag == H225_AliasAddress::e_dialedDigits
+			|| tag == H225_AliasAddress::e_partyNumber
+			|| tag == H225_AliasAddress::e_h323_ID) {
+			
+			const PString alias = H323GetAliasAddressString(aliases[i]);
+			// we also allow h_323_ID aliases consisting only from digits
+			if( tag == H225_AliasAddress::e_h323_ID )
+				if( strspn(alias,"1234567890*#") != strlen(alias) )
+					continue;
+					
+			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
+			while (Iter != eIter) {
+				int len = Iter->length();
+				if ((maxlen < len) && (strncmp(alias, Iter->c_str(), len)==0)) {
+					PTRACE(2, "Gateway " << (const unsigned char *)m_endpointIdentifier.GetValue() << " match " << Iter->c_str() );
+					maxlen = len;
+					matchedalias = i;
+				}
+				++Iter;
+			}
+		}
+	}
+	
+	// if no match has been found and this is the default gateway,
+	// assume first dialedDigits or partyNumber alias match
+	if( maxlen == 0 ) {
+		for (PINDEX i = 0; i < aliases.GetSize(); i++)
+			if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits
+				|| aliases[i].GetTag() == H225_AliasAddress::e_partyNumber) {
+				matchedalias = i;
+				break;
+			}
+	}
 	return maxlen;
 }
 

@@ -1093,6 +1093,20 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		
 		m_call->SetSetupTime(setupTime);
 		
+		// authenticate the call
+		long durationLimit = -1;
+		unsigned cause = Q931::CallRejected;
+		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup,cause,durationLimit) ) {
+			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
+				<<" due to Setup authentication failure"
+				);
+			m_call->SetDisconnectCause(cause);
+			return false;
+		}
+		
+		if( durationLimit > 0 )
+			m_call->SetDurationLimit(durationLimit);
+			
 		// log AcctStart accounting event
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
@@ -1181,6 +1195,20 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		m_call = callptr(call);
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
+		
+		long durationLimit = -1;
+		unsigned cause = Q931::CallRejected;
+		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup,cause,durationLimit) ) {
+			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
+				<<" due to Setup authentication failure"
+				);
+			m_call->SetDisconnectCause(cause);
+			return false;
+		}
+		
+		if( durationLimit > 0 )
+			m_call->SetDurationLimit(durationLimit);
+			
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
 				<<" due to accounting failure"

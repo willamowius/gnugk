@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2003/10/31 00:01:28  zvision
+ * Improved accounting modules stacking control, optimized radacct/radauth a bit
+ *
  * Revision 1.7  2003/10/08 12:40:48  zvision
  * Realtime accounting updates added
  *
@@ -115,6 +118,21 @@ protected:
 		unsigned& rejectReason /// reject reason on return FALSE
 		);
 
+	/** Hook for adding/modifying pdu before it is sent.
+		It can be used to add custom attributes, for example.
+		
+		@return
+		TRUE if PDU should be sent, FALSE to reject the call
+		(rejectReason can be set to indicate a particular reason).
+	*/
+	virtual bool OnSendPDU(
+		RadiusPDU& pdu, /// PDU to be sent
+		const Q931& q931pdu, /// Q.931 Setup being processed
+		const H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
+		unsigned& releaseCompleteCause /// Q931 disconnect cause code to set on FALSE
+		
+		);
+		
 	/** Hook for processing pdu after it is received.
 		It can be used to process custom attributes, for example.
 		
@@ -142,6 +160,21 @@ protected:
 		long& durationLimit /// call duration limit to be set
 		);
 	
+	/** Hook for processing pdu after it is received.
+		It can be used to process custom attributes, for example.
+		
+		@return
+		TRUE if PDU should be accepted, FALSE to reject the call
+		(rejectReason can be set to indicate a particular reason).
+	*/
+	virtual bool OnReceivedPDU(
+		RadiusPDU& pdu, /// received PDU
+		const Q931& q931pdu, /// Q.931 Setup being processed
+		const H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
+		unsigned& releaseCompleteCause, /// Q931 disconnect cause code to set on 
+		long& durationLimit /// call duration limit to be set
+		);
+	
 	/** Hook for appending username/password attributes 
 		proper for derived authenticators.
 		
@@ -158,7 +191,7 @@ protected:
 		/// if not NULL and return status is e_ok, then the string is filled
 		/// with appended username
 		PString* username = NULL 
-		) const = 0;
+		) const;
 	
 	/** Hook for appending username/password attributes 
 		proper for derived authenticators.
@@ -172,12 +205,33 @@ protected:
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu, /// append attribues to this pdu
 		const H225_AdmissionRequest& arq, /// extract data from this RAS msg
+		endptr& originatingEP, /// endpoint that the ARQ originates from
 		unsigned& rejectReason, /// reject reason to be set on e_fail return code
 		/// if not NULL and return status is e_ok, then the string is filled
 		/// with appended username
 		PString* username = NULL 
-		) const = 0;
+		) const;
 	
+	/** Hook for appending username/password attributes 
+		proper for derived authenticators.
+		
+		@return
+		#GkAuthenticator::Status enum#:
+			e_ok - attributes appended,
+			e_fail - corrupted or invalid authentication data,
+			e_next - required data not found
+	*/
+	virtual int AppendUsernameAndPassword(
+		RadiusPDU& pdu, /// append attribues to this pdu
+		const Q931& q931pdu, /// Q.931 Setup being processed
+		const H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
+		endptr& callingEP, /// calling endpoint (if found in the registration table)
+		unsigned& releaseCompleteCause, /// Q931 disconnect cause code to set on e_fail
+		/// if not NULL and return status is e_ok, then the string is filled
+		/// with appended username
+		PString* username = NULL 
+		) const;
+		
 	/** Scan the array of 'aliases' for 'id' alias.
 	
 		@return
@@ -221,10 +275,27 @@ protected:
 		long& callDurationLimit
 		);
 
+	/** Authenticate using data from ARQ RAS message.
+	
+		@return:
+		#GkAuthenticator::Status enum# with the result of authentication.
+	*/
+	virtual int Check(
+		/// Q.931 Setup message to be authenticated
+		const Q931& q931pdu, 
+		/// H.225 Setup UUIE to be authenticated
+		const H225_Setup_UUIE& setup, 
+		/// Q931 disconnect cause code to set on authentication failure
+		unsigned& releaseCompleteCause,
+		/// call duration limit to be set for the call
+		/// (-1 stands for no limit)
+		long& callDurationLimit
+		);
+		
 private:
 
 	/// actual RRQ authentication implementation
-	virtual int doCheck(
+	int doCheck(
 		/// RRQ RAS message to be authenticated
 		const H225_RegistrationRequest& rrq, 
 		/// reference to the variable, that can be set 
@@ -234,18 +305,18 @@ private:
 		);
 	
 	/// actual ARQ authentication implementation
-	virtual int doCheck(
+	int doCheck(
 		/// RRQ RAS message to be authenticated
 		const H225_AdmissionRequest& rrq, 
 		/// reference to the variable, that can be set 
-		/// to custom H225_RegistrationRejectReason
+		/// to custom H225_AdmissionRejectReason
 		/// if the check fails
 		unsigned& rejectReason,
 		/// call duration limit to be set for the call
 		/// (-1 stands for no limit)
 		long& durationLimit
 		);
-		
+	
 	/* No copy constructor allowed */
 	RadAuthBase( const RadAuthBase& );
 	/* No operator= allowed */
@@ -331,6 +402,7 @@ protected:
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		const H225_AdmissionRequest& arq,
+		endptr& originatingEP,
 		unsigned& rejectReason,
 		PString* username = NULL 
 		) const;
@@ -374,7 +446,17 @@ protected:
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		const H225_AdmissionRequest& arq,
+		endptr& originatingEP,
 		unsigned& rejectReason,
+		PString* username = NULL
+		) const;
+	
+	virtual int AppendUsernameAndPassword(
+		RadiusPDU& pdu,
+		const Q931& q931pdu,
+		const H225_Setup_UUIE& setup,
+		endptr& callingEP,
+		unsigned& releaseCompleteCause,
 		PString* username = NULL
 		) const;
 		

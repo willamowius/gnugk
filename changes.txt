@@ -1,5 +1,6 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- added Q.931/H.225 Setup authentication (RadAliasAuth module implementation)
 - BUGFIX(radproto.cxx) fixed invalid signed/unsigned conversion that caused
   some functions to return unexpected results
 - BUGFIX(Neighbor.cxx) LCF is considered to come from a given neighbor

@@ -164,7 +164,9 @@ GkAuthenticator::GkAuthenticator(const char *name) : h235Authenticators(0)
 		controlFlag = e_Sufficient, defaultStatus = e_fail;
 
 	if (control.GetSize() > 1) {
-		checkFlag = 0;
+		rasCheckFlags = 0;
+		miscCheckFlags = 0;
+		
 		map<PString, int> rasmap;
 		rasmap["GRQ"] = RasInfo<H225_GatekeeperRequest>::flag,
 		rasmap["RRQ"] = RasInfo<H225_RegistrationRequest>::flag,
@@ -174,14 +176,24 @@ GkAuthenticator::GkAuthenticator(const char *name) : h235Authenticators(0)
 		rasmap["DRQ"] = RasInfo<H225_DisengageRequest>::flag,
 		rasmap["LRQ"] = RasInfo<H225_LocationRequest>::flag,
 		rasmap["IRQ"] = RasInfo<H225_InfoRequest>::flag;
+		
+		map<PString, int> miscmap;
+		miscmap["Setup"] = e_Setup;
+		
 		for (PINDEX i=1; i < control.GetSize(); ++i) {
 			if (rasmap.find(control[i]) != rasmap.end())
-				checkFlag |= rasmap[control[i]];
+				rasCheckFlags |= rasmap[control[i]];
+			else if(miscmap.find(control[i]) != miscmap.end())
+				miscCheckFlags |= miscmap[control[i]];
 		}
-	} else
-		checkFlag = ~0;
-
-	PTRACE(1, "GkAuth\tAdd " << name << " rule with flag " << hex << checkFlag << dec);
+	} else {
+		rasCheckFlags = ~0;
+		miscCheckFlags = ~0;
+	}
+	
+	PTRACE(1,"GkAuth\tAdd "<<name<<" rule with flags RAS:"<<hex<<rasCheckFlags
+		<<" OTHER:"<<miscCheckFlags<<dec
+		);
 }
 
 GkAuthenticator::~GkAuthenticator()
@@ -197,7 +209,7 @@ bool GkAuthenticator::Validate(
 	)
 {
 	callDurationLimit = -1;
-	if (checkFlag & RasInfo<H225_AdmissionRequest>::flag) {
+	if (rasCheckFlags & RasInfo<H225_AdmissionRequest>::flag) {
 		int r = Check(req, rejectReason, callDurationLimit);
 		if( callDurationLimit == 0 ) {
 			PTRACE(2,"GkAuth\t"<<GetName()<<" - call duration limit 0");
@@ -221,6 +233,47 @@ bool GkAuthenticator::Validate(
 	}
 	if( callDurationLimit == 0 ) {
 		PTRACE(2,"GkAuth\t"<<GetName()<<" - call duration limit 0");
+		return false;
+	}
+	return true;
+}
+
+bool GkAuthenticator::Validate(
+	/// received Q.931 Setup message
+	const Q931& q931pdu, 
+	/// received H.225 Setup message
+	const H225_Setup_UUIE& setup, 
+	/// Q931 disconnect cause code to set, if authentication failed
+	unsigned& releaseCompleteCause, 
+	/// call duration limit to set (-1 for no duration limit)
+	long& callDurationLimit
+	)
+{
+	callDurationLimit = -1;
+	if (miscCheckFlags & e_Setup) {
+		int r = Check(q931pdu, setup, releaseCompleteCause, callDurationLimit);
+		if( callDurationLimit == 0 ) {
+			PTRACE(2,"GkAuth\t"<<GetName()<<" - (Setup) call duration limit 0");
+			return false;
+		}
+		if (r == e_ok) {
+			PTRACE(4, "GkAuth\t" << GetName() << " (Setup) check ok");
+			if (controlFlag != e_Required)
+				return true;
+		} else if (r == e_fail) {
+			PTRACE(2, "GkAuth\t" << GetName() << " (Setup) check failed");
+			return false;
+		}
+	}
+	if( m_next ) {
+		long newDurationLimit = -1;
+		if( !m_next->Validate(q931pdu, setup, releaseCompleteCause, newDurationLimit) )
+			return false;
+		if( newDurationLimit >= 0 )
+			callDurationLimit = PMIN(callDurationLimit,newDurationLimit);
+	}
+	if( callDurationLimit == 0 ) {
+		PTRACE(2,"GkAuth\t"<<GetName()<<" - (Setup) call duration limit 0");
 		return false;
 	}
 	return true;
@@ -267,6 +320,16 @@ int GkAuthenticator::Check(RasPDU<H225_LocationRequest> &, unsigned &)
 }
 
 int GkAuthenticator::Check(RasPDU<H225_InfoRequest> &, unsigned &)
+{
+	return defaultStatus;
+}
+
+int GkAuthenticator::Check( 
+	const Q931&, 
+	const H225_Setup_UUIE&, 
+	unsigned&, 
+	long& 
+	)
 {
 	return defaultStatus;
 }
@@ -1130,6 +1193,7 @@ GkAuthenticatorList::GkAuthenticatorList() : m_head(0)
 
 GkAuthenticatorList::~GkAuthenticatorList()
 {
+	WriteLock lock(m_reloadMutex);
 	delete m_head;
 	delete m_mechanisms;
 	delete m_algorithmOIDs;
@@ -1137,6 +1201,10 @@ GkAuthenticatorList::~GkAuthenticatorList()
 
 void GkAuthenticatorList::OnReload()
 {
+	// lock here to prevent too early authenticator destruction 
+	// from another thread
+	WriteLock lock(m_reloadMutex);
+	
 	GkAuthenticator *head, *authenticator;
 	head = GkAuthenticator::Create(GkConfig()->GetKeys(GkAuthSectionName));
 
@@ -1281,24 +1349,25 @@ void GkAuthenticatorList::OnReload()
 #endif
 		}
 	} else {
-		PTRACE(4,"GkAuth\tConflicting H.235 capabilities are active - GCF will not select any particular capability");
+		PTRACE(4,"GkAuth\tH.235 security is not active or conflicting H.235 capabilities are active - GCF will not select any particular capability");
 		mechanisms.RemoveAll();
 		algorithmOIDs.RemoveAll();
 	}
 
 	// now switch to new setting
-	// FIXME: not thread-safe
 	*m_mechanisms = mechanisms;
 	*m_algorithmOIDs = algorithmOIDs;
 	swap(m_head, head);
 	delete head;
 }
 
-void GkAuthenticatorList::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_GatekeeperConfirm & gcf) const
+void GkAuthenticatorList::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_GatekeeperConfirm & gcf)
 {
+	ReadLock lock(m_reloadMutex);
+	
 	if (!m_head)
 		return;
-		
+	
 	// if GRQ does not contain a list of authentication mechanisms simply return
 	if (!(grq.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability)
 			&& grq.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)

@@ -25,6 +25,7 @@
 #ifndef SLIST_H
 #include "slist.h"
 #endif
+#include "rwlock.h"
 
 class H225_GatekeeperRequest;
 class H225_GatekeeperConfirm;
@@ -45,6 +46,8 @@ class H225_ArrayOf_TransportAddress;
 class H235_AuthenticationMechanism;
 class PASN_ObjectId;
 class H235Authenticators;
+class Q931;
+class H225_Setup_UUIE;
 
 template<class> class RasPDU;
 template<class> struct RasInfo;
@@ -77,11 +80,16 @@ public:
 
 	/// authentication status returned from Check method
 	enum Status {
-		e_ok = 1,	// the request is authenticated
-		e_fail = -1,	// the request should be rejected
-		e_next = 0	// the module could not authenticate or reject the request
+		e_ok = 1, /// the request is authenticated
+		e_fail = -1, /// the request should be rejected
+		e_next = 0 /// the module could not authenticate or reject the request
 	};
 
+	/// bit masks for event types other than RAS - see miscCheckFlags variable
+	enum MiscCheckEvents {
+		e_Setup = 0x0001 /// Q.931/H.225 Setup message
+	};
+	
 	GkAuthenticator(
 		const char* name /// a name for the module (to be used in the config file)
 		);
@@ -99,7 +107,7 @@ public:
 		unsigned& reason /// H225_ReleaseCompleteReason returned if the request is rejected
 		)
 	{
-		if (checkFlag & RasInfo<RAS>::flag) {
+		if (rasCheckFlags & RasInfo<RAS>::flag) {
 			int r = Check(req, reason);
 			if (r == e_ok) {
 				PTRACE(4, "GkAuth\t" << GetName() << " check ok");
@@ -131,6 +139,23 @@ public:
 		long& callDurationLimit 
 		);
 	
+	/** Authenticate/Authorize Setup signalling message.
+	
+		@return
+		true if the call is authorized, fals to reject the call 
+		and send a ReleaseComplete message.
+	*/
+	bool Validate(
+		/// received Q.931 Setup message
+		const Q931& q931pdu, 
+		/// received H.225 Setup message
+		const H225_Setup_UUIE& setup, 
+		/// Q931 disconnect cause code to set, if authentication failed
+		unsigned& releaseCompleteCause, 
+		/// call duration limit to set (-1 for no duration limit)
+		long& callDurationLimit
+		);
+		
 	/** @return
 		true if this authenticator provides H.235 compatible security.
 		It simply checks if h235Authenticators list is not empty.
@@ -184,6 +209,23 @@ protected:
 	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
 	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
 	virtual int Check(RasPDU<H225_InfoRequest> &, unsigned &);
+	/** Authenticate/Authorize Setup signalling message.
+	
+		@return
+		e_fail - authentication failed
+		e_ok - authenticated with this authenticator
+		e_next - authentication could not be determined
+	*/
+	virtual int Check(
+		/// received Q.931 Setup message
+		const Q931& q931pdu, 
+		/// received H.225 Setup message
+		const H225_Setup_UUIE& setup, 
+		/// Q931 disconnect cause code to set, if authentication failed
+		unsigned& releaseCompleteCause, 
+		/// call duration limit to set (-1 for no duration limit)
+		long& callDurationLimit
+		);
 
 	/// processing rule for this authenticator
 	Control controlFlag;
@@ -195,8 +237,12 @@ protected:
 	H235Authenticators *h235Authenticators;
 	
 private:
-	DWORD checkFlag;
-
+	/// bit flags for RAS messages to be authenticated (there are currently
+	/// 32 messages defined, so the whole 32 bit value is required)
+	DWORD rasCheckFlags;
+	/// bit flags for other event types to be authenticated (like Q.931 Setup)
+	DWORD miscCheckFlags;
+	
 	GkAuthenticator(const GkAuthenticator &);
 	GkAuthenticator & operator=(const GkAuthenticator &);
 };
@@ -446,7 +492,7 @@ public:
 	void SelectH235Capability(
 		const H225_GatekeeperRequest& grq, 
 		H225_GatekeeperConfirm& gcf
-		) const;
+		);
 
 	/** Authenticate the request through all configured authenticators.
 		Currently, only RAS requests are supported.
@@ -456,12 +502,16 @@ public:
 	*/
 	template<class PDU> bool Validate(
 		/// the request to be validated by authenticators
-		PDU& req, 
+		PDU& request, 
 		/// H225_ReleaseCompleteReason to be set if the request is rejected
-		unsigned& reason
+		unsigned& rejectReason
 		)
 	{
-		return !m_head || m_head->Validate(req, reason);
+		if( m_head ) {
+			ReadLock lock(m_reloadMutex);
+			return !m_head || m_head->Validate(request, rejectReason);
+		} else
+			return true;
 	}
 	
 	/** Authenticate and authorize (set call duration limit) ARQ 
@@ -472,7 +522,7 @@ public:
 	*/
 	bool Validate(
 		/// ARQ to be validated by authenticators
-		RasPDU<H225_AdmissionRequest>& req,
+		RasPDU<H225_AdmissionRequest>& request,
 		/// H225_ReleaseCompleteReason to be set if the request is rejected
 		unsigned& rejectReason,
 		/// duration limit to set for the admitted call, -1 to not set any limit
@@ -480,12 +530,45 @@ public:
 		)
 	{
 		callDurationLimit = -1;
-		return !m_head || m_head->Validate(req, rejectReason, callDurationLimit);
+		if( m_head ) {
+			ReadLock lock(m_reloadMutex);
+			return !m_head 
+				|| m_head->Validate(request, rejectReason, callDurationLimit);
+		} else
+			return true;
+	}
+	
+	/** Authenticate and authorize (set call duration limit) Q.931/H.225 Setup 
+		through all configured authenticators.
+				
+		@return
+		true if the call should be accepted, false to send ReleaseComplete.
+	*/
+	bool Validate(
+		/// received Q.931 Setup message
+		const Q931& q931pdu,
+		/// received H.225 Setup message
+		const H225_Setup_UUIE& setup, 
+		/// Q931 disconnect cause code to set, if authentication failed
+		unsigned& releaseCompleteCause,
+		/// duration limit to set for the admitted call, -1 to not set any limit
+		long& callDurationLimit
+		)
+	{
+		callDurationLimit = -1;
+		if( m_head ) {
+			ReadLock lock(m_reloadMutex);
+			return !m_head 
+				|| m_head->Validate(q931pdu, setup, releaseCompleteCause, callDurationLimit);
+		} else
+			return true;
 	}
 
 private:
+	/// a list of all configured authenticators
 	GkAuthenticator *m_head;
-
+	/// reload/destroy mutex
+	PReadWriteMutex m_reloadMutex;
 	/// the most common authentication capabilities 
 	/// shared by all authenticators on the list
 	H225_ArrayOf_AuthenticationMechanism *m_mechanisms;

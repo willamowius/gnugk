@@ -108,7 +108,30 @@ public:
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return false; }
-	virtual bool CompareAlias(const H225_ArrayOf_AliasAddress *) const;
+	
+	/** Find if one of the given aliases matches any alias for this endpoint.
+		
+		@return
+		true if the match has been found, false otherwise.
+	*/
+	virtual bool CompareAlias(
+		/// aliases to be matched (one of them)
+		const H225_ArrayOf_AliasAddress* aliases
+		) const;
+	
+	/** Find if one of the given aliases matches any alias for this endpoint
+		and return an index for the matching alias.
+		
+		@return
+		true if the match has been found, false otherwise.
+	*/
+	virtual bool MatchAlias(
+		/// aliases to be matched (one of them)
+		const H225_ArrayOf_AliasAddress& aliases,
+		/// filled with an index into aliases for the matching alias (if found)
+		int& matchedalias
+		) const;
+		
 	virtual bool LoadConfig() { return true; } // workaround: VC need a return value
 
 	virtual EndpointRec *Unregister();
@@ -201,7 +224,34 @@ public:
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
 	virtual bool LoadConfig();
-	virtual int  PrefixMatch(const H225_ArrayOf_AliasAddress &) const;
+	
+	/** Find if at least one of the given aliases matches any prefix
+		for this gateway.
+		
+		@return
+		Length (number of characters) of the match, 0 if no match has been
+		found and this is the default gateway, -1 if no match has been found
+		and this is not the default gateway.
+	*/
+	virtual int PrefixMatch(
+		/// aliases to be matched (one of them)
+		const H225_ArrayOf_AliasAddress& aliases
+		) const;
+		
+	/** Find if at least one of the given aliases matches any prefix
+		for this gateway and return an index of the matched alias.
+		
+		@return
+		Length (number of characters) of the match, 0 if no match has been
+		found and this is the default gateway, -1 if no match has been found
+		and this is not the default gateway.
+	*/
+	virtual int PrefixMatch(
+		/// aliases to be matched (one of them)
+		const H225_ArrayOf_AliasAddress& aliases,
+		/// filled with an index of the matching alias (if found)
+		int& matchedalias
+		) const;
 
 	//virtual void BuildLCF(H225_LocationConfirm &) const;
 

@@ -33,6 +33,8 @@ class H225_GatekeeperConfirm;
 class H225_NonStandardParameter;
 class H225_TransportAddress;
 class H225_ArrayOf_AlternateGK;
+class H225_Setup_UUIE;
+class Q931;
 
 //struct GatekeeperMessage;
 class RasListener;
@@ -130,6 +132,15 @@ public:
 		)
 	{
 		return authList->Validate(ras, rejectReason, callDurationLimit);
+	}
+	bool ValidatePDU(
+		const Q931& q931pdu,
+		const H225_Setup_UUIE& setup,
+		unsigned& rejectReason,
+		long& callDurationLimit
+		)
+	{
+		return authList->Validate(q931pdu, setup, rejectReason, callDurationLimit);
 	}
 
 	bool LogAcctEvent(
