@@ -1,5 +1,6 @@
 Changes from 2.0b4 to now (by cwhuang)
 ======================================
+- support forwarding LRQs
 - add call duration in seconds, thanks to Rodrigo Gonzalez
 - change executable name to gnugk
 - add DropCallsByReleaseComplete option

@@ -197,6 +197,10 @@ rule=allow
 #GK1=203.60.151.5:1719;*;gk1
 #GK2=203.60.151.9:1719;02
 
+[RasSvr::LRQFeatures]
+#NeighborTimeout=2
+#ForwordHopCount=2
+
 ##
 ## In this section you can put endpoints that don't have RAS support
 ## or that you don't want to be expired. The records will always
