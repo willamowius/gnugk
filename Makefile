@@ -165,8 +165,7 @@ $(TARGET):	$(OBJS) $(TARGET_LIBS)
 endif
 
 addpasswd: $(OBJDIR)/addpasswd.o
-	$(CC) -s -o obj_linux_x86_r/addpasswd obj_linux_x86_r/addpasswd.o $(LDFLAGS) $(LDLIBS) $(ENDLDLIBS)
-
+	$(CC) -s -o $(OBJDIR)/addpasswd $(OBJDIR)/addpasswd.o $(LDFLAGS) $(LDLIBS) $(ENDLDLIBS)
 
 
 # Extra dependencies
