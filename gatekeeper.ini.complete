@@ -300,7 +300,7 @@ default=allow
 default=allow
 
 ##
-## Use the utility addpasswd (make addpasswd) to add users
+## Use 'make addpasswd' to generate the utility addpasswd
 ## Usage:
 ##   addpasswd config userid password
 ##
