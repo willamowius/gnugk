@@ -19,6 +19,7 @@
 #ifndef _rastbl_h__
 #define _rastbl_h__
 
+#include "rwlock.h"
 #include "ptlib.h"
 #include "ptlib/sockets.h"
 #include "h225.h"
@@ -26,6 +27,7 @@
 #include <h323pdu.h>
 #include <q931.h>
 #include "singleton.h"
+#include "GkProfile.h"
 
 #ifdef P_SOLARIS
 #define map stl_map
@@ -48,21 +50,6 @@ using std::vector;
 using std::string;
 
 class GkDestAnalysisList;
-
-class ReadLock {
-	PReadWriteMutex &mutex;
-  public:
-	ReadLock(PReadWriteMutex &m) : mutex(m) { mutex.StartRead(); }
-	~ReadLock() { mutex.EndRead(); }
-};
-
-class WriteLock {
-	PReadWriteMutex &mutex;
-  public:
-	WriteLock(PReadWriteMutex &m) : mutex(m) { mutex.StartWrite(); }
-	~WriteLock() { mutex.EndWrite(); }
-};
-
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -89,113 +76,6 @@ private:
 	T &operator*();
 	T *pt;
 };
-
-// Classes to store information read form e.g. LDAP
-// necessary for e.g. routing decisions
-using std::map;
-typedef std::map<PString, PString> SpecialDialClass;
-typedef SpecialDialClass::value_type SpecialDialValuePair;
-
-class CallingProfile {
-public:
-        CallingProfile() { m_honorsARJincompleteAddress = TRUE;
-		           m_isCPE = FALSE;
-			   m_WhiteListBeforeBlackList = FALSE; // BlacklistBeforeWhiteList, default nonblocking
-	                 };
-
-        // Get accessor methods
-        const PString & getH323ID() const { return m_h323id; }
-        const BOOL isCPE() const { return m_isCPE; } // Customer Promise Equipment
-        const BOOL isGK() const { return m_isGK; } // Gatekeeper client
-        const BOOL honorsARJincompleteAddress() const { return m_honorsARJincompleteAddress; }
-	const BOOL WhiteListBeforeBlackList() const { return m_WhiteListBeforeBlackList; }
-        const PStringList & getTelephoneNumbers() const { return m_telephoneNumbers; }
-        const PStringToString & getSpecialDials() const { return m_specialDials; }
-        const PString & getMainTelephoneNumber() const { return m_mainTelephoneNumber; }
-	const PString & getSubscriberNumber() const { return m_subscriberNumber; }
-        const PString & getClir() const { return m_clir; }
-        const PString & getLac() const { return m_lac; }
-        const PString & getNac() const { return m_nac; }
-        const PString & getInac() const { return m_inac; }
-        const PString & getCC() const { return m_cc; }
-        const PString & getCgPN() { return m_cgPN; }
-
-	const PStringList & getBlackList() const { return m_BlackList; }
-	const PStringList & getWhiteList() const { return m_WhiteList; }
-
-        // Set accessor methods
-        void setH323ID(PString &h323id) { m_h323id = h323id; }
-        void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
-	void setIsGK(BOOL isGK) {m_isGK = isGK;}
-        void setTelephoneNumbers(PStringList &telNums) { m_telephoneNumbers = telNums; }
-        void setSpecialDials(PStringToString & spcDials) { m_specialDials = spcDials; }
-        void setMainTelephoneNumber(PString &mainTelNum) { m_mainTelephoneNumber = mainTelNum; }
-	void setSubscriberNumber (PString &SN) { m_subscriberNumber = SN; }
-        void setClir(PString &clir) { m_clir = clir; }
-        void setLac(PString &lac) { m_lac = lac; }
-        void setNac(PString &nac) { m_nac = nac; }
-        void setInac(PString &inac) { m_inac = inac; }
-        void setHonorsARJincompleteAddress(BOOL honor) { m_honorsARJincompleteAddress = honor; }
-	void setWhiteListBeforeBlackList(BOOL wbb) {m_WhiteListBeforeBlackList = wbb; }
-        void setCC(PString &cc) { m_cc = cc; }
-        void setCgPN(PString &cgPN) { m_cgPN = cgPN; }
-
-	void setBlackList(PStringList &bl) { m_BlackList = bl; }
-	void setWhiteList(PStringList &wl) { m_WhiteList = wl; }
-
-	void debugPrint(void);
-
-private:
-        PString         m_h323id;                     // H323ID
-	BOOL            m_honorsARJincompleteAddress; // honorsARJincompleteAddress
-        PStringList     m_telephoneNumbers;           // telephone numbers
-        PStringToString m_specialDials;               // emergency call numbers
-        PString         m_mainTelephoneNumber;        // main telephone number
-	PString         m_subscriberNumber;           // Subscriber Number (i.e. the "80" in 49 5246 80-1234)
-        PString         m_clir;                       // CLIR
-        PString         m_lac;                        // local access code
-        PString         m_nac;                        // national access code
-        PString         m_inac;                       // international access code
-        PString         m_cc;                         // country code
-        PString         m_cgPN;                       // calling party number for CDR generation
-        BOOL            m_isCPE;                      // CPE flag
-	BOOL            m_isGK;                       // Gatekeeper client Flag
-	BOOL            m_WhiteListBeforeBlackList;   // if true do WhitelistBlacklist else BlacklistWhitelistAnalysis
-
-	PStringList     m_BlackList;                  // Blacklist of "bad" prefices
-	PStringList     m_WhiteList;                  // Whitelist of "good" prefices
-}; // CallingProfile
-
-class CalledProfile {
-public:
-        CalledProfile() {};
-        CalledProfile(PString &dialedPN, PString &calledPN);
-
-        // Get accessor methods
-        const BOOL isCPE() const { return m_isCPE; } // Customer Premise Equipment
-	const BOOL isGK() const {return m_isGK; }
-	const BOOL isTrunkGW() const { return !(m_isCPE || m_isGK) ; }
-        const PString & getDialedPN() const { return m_dialedPN; }
-        const PString & getCalledPN() const { return m_calledPN; }
-        const enum Q931::TypeOfNumberCodes & getDialedPN_TON() const { return m_dialedPN_TON; }
-
-        // Set accessor methods
-        void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
-	void setIsGK(BOOL isGK) { m_isGK = isGK;}
-        void setDialedPN(PString &dialedPN,
-			 const enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType);
-        void setDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON);
-        void setCalledPN(PString &calledPN);
-
-private:
-	enum Q931::TypeOfNumberCodes m_dialedPN_TON; // type of number for dialed PN
-        PString m_dialedPN; // dialed party number
-        PString m_calledPN; // called party number
-        BOOL    m_isCPE;    // CPE flag
-	BOOL    m_isGK;
-}; // CalledProfile
-
-// End of: Classes to store information read from e.g. LDAP
 
 class EndpointRec
 {
@@ -263,6 +143,7 @@ public:
 	{ return m_RasMsg; }
 
 	void AddCall();
+	void AddConnectedCall();
 	void RemoveCall();
 
 	void Lock();
@@ -276,6 +157,7 @@ public:
 protected:
 
 	void SetEndpointRec(H225_RegistrationRequest &);
+	void SetEndpointRec(H225_AdmissionRequest &);
 	void SetEndpointRec(H225_AdmissionConfirm &);
 	void SetEndpointRec(H225_LocationConfirm &);
 
@@ -294,7 +176,7 @@ protected:
 	H225_EndpointType *m_terminalType;
 	int m_timeToLive;   // seconds
 
-	int m_activeCall, m_totalCall;
+	int m_activeCall, m_connectedCall, m_totalCall;
 	int m_pollCount, m_usedCount;
 	mutable PMutex m_usedLock;
 
@@ -385,6 +267,7 @@ public:
 
 	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
 	endptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
+	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool SearchOuterZone = true);
 
@@ -683,6 +566,12 @@ inline void EndpointRec::AddCall()
 	++m_activeCall, ++m_totalCall;
 }
 
+inline void EndpointRec::AddConnectedCall()
+{
+	PWaitAndSignal lock(m_usedLock);
+	++m_connectedCall;
+}
+
 inline void EndpointRec::RemoveCall()
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -729,18 +618,6 @@ inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
         SetRegistered(m_Called && m_Called->IsFromParent());
         if (NewCalled && NewCalled->IsNATed())
                 m_nattype |= calledParty, m_h245Routed = true;
-}
-
-inline void CallRec::Lock()
-{
-	PWaitAndSignal lock(m_usedLock);
-	++m_usedCount;
-}
-
-inline void CallRec::Unlock()
-{
-	PWaitAndSignal lock(m_usedLock);
-	--m_usedCount;
 }
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const

@@ -42,62 +42,6 @@
 #endif
 
 const char *CallTableSection = "CallTable";
-// Classes to store information read form e.g. LDAP
-// necessary for e.g. routing decisions
-
-//   callING Profile
-
-void
-CallingProfile::debugPrint(void) {
-		PTRACE(5, "Calling profile:");
-		PTRACE(5, "H323ID=" << getH323ID());
-		PTRACE(5, "CPE=" << isCPE());
-		PTRACE(5, "Telno=" << getTelephoneNumbers());
-		const PStringToString &spMap = getSpecialDials();
-		PTRACE(5, spMap.GetSize() << " SpecialDials:");
-		for (PINDEX i=0; i < spMap.GetSize(); i++) {
-			PTRACE(5, "\t" << spMap.GetKeyAt(i) << "--->" << spMap.GetDataAt(i));
-		}
-		PTRACE(5, "MainNo=" << getMainTelephoneNumber());
-		PTRACE(5, "SubsNo=" << getSubscriberNumber());
-		PTRACE(5, "CLIR=" << getClir());
-		PTRACE(5, "Lac=" << getLac());
-		PTRACE(5, "Nac=" << getNac());
-		PTRACE(5, "Inac=" << getInac());
-		PTRACE(5, "HonorsARJIncompleteAddr=" << honorsARJincompleteAddress());
-		PTRACE(5, "CC=" << getCC());
-		PTRACE(5, "BlackList=" << getBlackList());
-		PTRACE(5, "WhiteList=" << getWhiteList());
-}
-
-//   callED Profile
-
-CalledProfile::CalledProfile(PString &dialedPN, PString &calledPN)
-{
-        setDialedPN(dialedPN);
-        setCalledPN(calledPN);
-}
-
-void
-CalledProfile::setDialedPN(PString &dialedPN,
-			   const enum Q931::TypeOfNumberCodes dialedPN_TON)
-{
-	m_dialedPN = dialedPN;
-	m_dialedPN_TON = dialedPN_TON;
-}
-
-void
-CalledProfile::setDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON)
-{
-	m_dialedPN_TON = dialedPN_TON;
-}
-
-void
-CalledProfile::setCalledPN(PString &calledPN)
-{
-	m_calledPN = calledPN;
-}
-// End of: Classes to store information read from e.g. LDAP
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
 	:        m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false)
@@ -107,6 +51,9 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
 	case H225_RasMessage::e_registrationRequest:
 		SetEndpointRec((H225_RegistrationRequest &)m_RasMsg);
 		PTRACE(1, "New EP|" << PrintOn(false));
+		break;
+	case H225_RasMessage::e_admissionRequest:
+		SetEndpointRec((H225_AdmissionRequest &)m_RasMsg);
 		break;
 	case H225_RasMessage::e_admissionConfirm:
 		SetEndpointRec((H225_AdmissionConfirm &)m_RasMsg);
@@ -140,6 +87,17 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
         else
                 SetTimeToLive(SoftPBX::TimeToLive);
         m_fromParent = false;
+}
+
+void EndpointRec::SetEndpointRec(H225_AdmissionRequest & arq)
+{
+	static H225_EndpointType termType; // nouse
+	// we set it to non-standard address to avoid misuse
+	m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+	m_callSignalAddress = arq.m_destCallSignalAddress;
+	m_terminalType = &termType;
+	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+	m_fromParent = true;
 }
 
 void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
@@ -346,7 +304,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		msg += GetUpdatedTime().AsString();
 		if (m_timeToLive == 0)
 			msg += " (permanent)";
-		msg += PString(PString::Printf, " C(%d) <%d>" GK_LINEBRK, m_activeCall, m_totalCall, m_usedCount);
+		msg += PString(PString::Printf, " C(%d%d%d) <%d>" GK_LINEBRK, m_activeCall, m_connectedCall, m_totalCall, m_usedCount);
 	}
 	return msg;
 }
@@ -661,15 +619,22 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg)
 			ep = InternalInsertEP(ras_msg);
 		break;
 	}
+	case H225_RasMessage::e_admissionRequest: {
+		H225_AdmissionConfirm nouse;
+		H225_AdmissionRequest & arq = ras_msg;
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) && !(ep = FindOZEPBySignalAdr(arq.m_destCallSignalAddress)))
+			ep = InternalInsertOZEP(ras_msg, nouse);
+		break;
+	}
 	case H225_RasMessage::e_admissionConfirm: {
                        H225_AdmissionConfirm & acf = ras_msg;
-                       if (!(ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), acf.m_destCallSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList)))
+                       if (!(ep = FindOZEPBySignalAdr(acf.m_destCallSignalAddress)))
 			       ep = InternalInsertOZEP(ras_msg, acf);
                        break;
 	}
 	case H225_RasMessage::e_locationConfirm: {
 		H225_LocationConfirm & lcf = ras_msg;
-		if (ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), lcf.m_callSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList))
+		if ((ep = FindOZEPBySignalAdr(lcf.m_callSignalAddress)))
 			ep->Update(ras_msg);
 		else
 			ep = InternalInsertOZEP(ras_msg, lcf);
@@ -779,6 +744,12 @@ endptr RegistrationTable::FindBySignalAdr(const H225_TransportAddress &sigAd) co
 {
 	return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
 			mem_fun(&EndpointRec::GetCallSignalAddress)));
+}
+
+endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress &sigAd) const
+{
+       return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
+                       mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList);
 }
 
 endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias) const
@@ -1067,13 +1038,36 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 
 CallRec::~CallRec()
 {
+	// First of all, we have to Print a CDR :-)
+	PTRACE(5, "GK\tBegining deletion of CallRec: " << this);
+	PTRACE(5, "GK\tusedCount: " << m_usedCount);
+	if((NULL!=m_callingProfile) && (NULL!=m_calledProfile)) {
+		PString cdrString(this->GenerateCDR());
+ 		GkStatus::Instance()->SignalStatus(cdrString, 1);
+ 		PTRACE(3, cdrString);
+	}
+
 	m_usedLock.Wait();
         delete m_callingProfile;
         delete m_calledProfile;
 	m_usedLock.Signal();
 
-	SetConnected(false);
+       	SetConnected(false);
 	PTRACE(5, "Gk\tDelete Call No. " << m_CallNumber);
+}
+
+void CallRec::Lock()
+{
+	PWaitAndSignal lock(m_usedLock);
+	PTRACE(5, "Locked deletion of CallRec: " << this);
+	++m_usedCount;
+}
+
+void CallRec::Unlock()
+{
+	PWaitAndSignal lock(m_usedLock);
+	PTRACE(5, "UnLocked deletion of CallRec: " << this);
+	--m_usedCount;
 }
 
 void CallRec::SetConnected(bool c)
@@ -1084,6 +1078,12 @@ void CallRec::SetConnected(bool c)
 		StartTimer();
 	else
 		StopTimer();
+	if (c) {
+		if (m_Calling)
+			m_Calling->AddConnectedCall();
+		if (m_Called)
+			m_Called->AddConnectedCall();
+	}
 }
 
 void CallRec::SetTimer(int seconds)
@@ -1369,9 +1369,9 @@ PString CallRec::GenerateCDR()
 
 	// get the proper dialed party number and its Type of Number, they
 	// usually are not in international format
-	if (!CalledP.getDialedPN().IsEmpty()) {
-		dialedPN = CalledP.getDialedPN();
-		dialedPN_TON = CalledP.getDialedPN_TON();
+	if (!CalledP.GetDialedPN().IsEmpty()) {
+		dialedPN = CalledP.GetDialedPN();
+		dialedPN_TON = CalledP.GetDialedPN_TON();
 #  if defined(CDR_RECHECK)
 		PString TONstr;
 		switch(dialedPN_TON) {
@@ -1403,8 +1403,8 @@ PString CallRec::GenerateCDR()
 	}
 	// get the proper called party number, they should be in
 	// international format
-	if (!CalledP.getCalledPN().IsEmpty()) {
-		calledPN = CalledP.getCalledPN();
+	if (!CalledP.GetCalledPN().IsEmpty()) {
+		calledPN = CalledP.GetCalledPN();
 #  if defined(CDR_RECHECK)
 		if(IPTN_is_inter(calledPN)) {
 			PTRACE(2, "CDR: calledPN is in international type format");
@@ -1422,17 +1422,22 @@ PString CallRec::GenerateCDR()
 #if defined(CDR_MOD_INFO_FIELDS)
 	// if profile for calling endpoint exists
 	CallingProfile & CallingP = GetCallingProfile();
-	if (!CallingP.getH323ID().IsEmpty()) {
-		if (!CallingP.getCgPN().IsEmpty()) {
+	if (!CallingP.GetH323ID().IsEmpty()) {
+		if (!CallingP.GetCgPN().IsEmpty()) {
 			PTRACE(4, "CDR: set CgPN to international format");
-			srcInfo = CallingP.getCgPN() + ":dialedDigits";
+			srcInfo = CallingP.GetCgPN() + ":dialedDigits";
 		}
-		if (!CalledP.getCalledPN().IsEmpty()) {
+		if (!CalledP.GetCalledPN().IsEmpty()) {
 			PTRACE(4, "CDR: set CdPN to international format");
-			destInfo = CalledP.getCalledPN() + ":dialedDigits";
+			destInfo = CalledP.GetCalledPN() + ":dialedDigits";
 		}
 	}
 #endif
+
+	// fake destInfo if not provided by CallRec
+	if (destInfo.IsEmpty()) {
+		destInfo = CalledP.GetCallingPN();
+	}
 
 	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s;" GK_LINEBRK,
 		       m_CallNumber,
@@ -1629,9 +1634,9 @@ void CallTable::InternalRemove(iterator Iter)
 
 	CallRec *call = *Iter;
 	if ((m_genNBCDR || call->GetCallingAddress()) && (m_genUCCDR || call->IsConnected())) {
-		PString cdrString(call->GenerateCDR());
-		GkStatus::Instance()->SignalStatus(cdrString, 1);
-		PTRACE(3, cdrString);
+//		PString cdrString(call->GenerateCDR());
+// 		GkStatus::Instance()->SignalStatus(cdrString, 1);
+// 		PTRACE(3, cdrString);
 #ifdef PTRACING
 	} else {
 		if (!call->IsConnected())
@@ -1647,6 +1652,7 @@ void CallTable::InternalRemove(iterator Iter)
 		++m_neighborCall;
 
 //	call->StopTimer();
+	PTRACE(5, "removing call: " << call);
 	call->RemoveAll();
 	call->RemoveSocket();
 	if (m_capacity >= 0)
