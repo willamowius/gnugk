@@ -1940,7 +1940,7 @@ based on an alias type:<newline>
 SendPrefixes=h323_ID,dialedDigits,001<newline>
 
 <item><tt/AcceptPrefixes=*/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>*</tt>
 <p>
 A list of prefixes that the gatekeeper will accept in LRQs received
 from this neighbor. If '*' is specified, all LRQs will be accepted from this neighbor.
