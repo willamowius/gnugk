@@ -25,28 +25,6 @@ LDLIBS		= -l$(H323_LIB)
 STDCCFLAGS := -I${H323_INCDIR} -DPTRACING#-DPASN_NOPRINT
 
 
-# MySQL support
-ifndef NO_MYSQL
-ifndef MYSQLDIR
-
-ifneq (,$(wildcard /usr/include/mysql/mysql++))
-MYSQLDIR := /usr/include/mysql
-export MYSQLDIR
-endif
-
-endif
-
-ifdef MYSQLDIR
-ifneq (,$(wildcard $(MYSQLDIR)))
-STDCCFLAGS	+= -DHAS_MYSQL -I$(MYSQLDIR)
-#LDFLAGS	+= -L$(MYSQLDIR)/lib
-ENDLDLIBS	+= -lsqlplus
-HAS_MYSQL	= 1
-endif
-endif
-
-endif
-
 # LDAP support
 ifndef NO_LDAP
 ifndef LDAP1823DIR
@@ -103,6 +81,27 @@ endif
 endif
 # end of LDAP configuration
 
+
+# MySQL support
+# has to be added after LDAP support because order of -I options is crucial
+ifndef NO_MYSQL
+ifndef MYSQLDIR
+ifneq (,$(wildcard /usr/include/mysql/mysql++))
+MYSQLDIR := /usr/include/mysql
+export MYSQLDIR
+endif
+endif
+
+ifdef MYSQLDIR
+ifneq (,$(wildcard $(MYSQLDIR)))
+STDCCFLAGS_stub := $(STDCCFLAGS)
+STDCCFLAGS	= -DHAS_MYSQL -I$(MYSQLDIR) $(STDCCFLAGS_stub)
+#LDFLAGS	+= -L$(MYSQLDIR)/lib
+ENDLDLIBS	+= -lsqlplus
+HAS_MYSQL	= 1
+endif
+endif
+endif
 
 ifndef PWLIBDIR
 PWLIBDIR=$(HOME)/pwlib
