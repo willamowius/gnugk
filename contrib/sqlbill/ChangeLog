@@ -1,3 +1,7 @@
+07 Dec 2004 -- zvision
+  * simple report query examples to get ASR, ACD and other statistics
+    added to the 'examples' directory
+
 03 Nov 2004 -- zvision
   * check RRQ aliases against voipuser h323id and allowedaliases fields
   * updated postgresql.conf authorize_check and authorize_reply queries
