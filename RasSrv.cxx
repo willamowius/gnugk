@@ -1235,7 +1235,7 @@ bool RegistrationRequestPDU::Process()
 {
 	// OnRRQ
 	H225_TransportAddress SignalAddr;
-	PIPSocket::Address rx_addr = m_msg->m_peerAddr;
+	const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
 	bool bShellSendReply, bShellForwardRequest;
 	bShellSendReply = bShellForwardRequest = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
 
@@ -1254,10 +1254,14 @@ bool RegistrationRequestPDU::Process()
 			else {
 				PIPSocket::Address oaddr, raddr;
 				WORD oport, rport;
-				if (request.m_callSignalAddress.GetSize() >= 1)
-					GetIPAndPortFromTransportAddr(ep->GetCallSignalAddress(), oaddr, oport),
-					GetIPAndPortFromTransportAddr(request.m_callSignalAddress[0], raddr, rport);
-				else if (request.m_rasAddress.GetSize() >= 1)
+				if (request.m_callSignalAddress.GetSize() >= 1) {
+					GetIPAndPortFromTransportAddr(ep->GetCallSignalAddress(), oaddr, oport);
+					for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
+						GetIPAndPortFromTransportAddr(request.m_callSignalAddress[s], raddr, rport);
+						if (oaddr == raddr && oport == rport)
+							break;
+					}
+				} else if (request.m_rasAddress.GetSize() >= 1)
 					GetIPAndPortFromTransportAddr(ep->GetRasAddress(), oaddr, oport),
 					GetIPAndPortFromTransportAddr(request.m_rasAddress[0], raddr, rport);
 				else
