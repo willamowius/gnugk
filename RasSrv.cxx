@@ -999,9 +999,7 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 	//
 	// Do the reject or the confirm
 	//
-	// srcInfoString has now the same format as destinationInfoString (MM 05.11.01)
-	//PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
-	PString srcInfoString = AsString(obj_arq.m_srcInfo);
+	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
 	PString destinationInfoString = (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)) ?
 		AsString(obj_arq.m_destinationInfo) : PString("unknown");
 	if (bReject)
@@ -1047,7 +1045,7 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 		} else {
 			// the call is not in the table		
 			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, 
-			        destinationInfoString, srcInfoString, BWRequest);// added srcInfoString (MM 05.11.01)
+			        destinationInfoString, AsString(obj_arq.m_srcInfo), BWRequest);// added srcInfo (MM 05.11.01)
 			int timeout = GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0);
 			pCallRec->SetTimer(timeout);
 			pCallRec->StartTimer();
