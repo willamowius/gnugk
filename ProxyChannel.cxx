@@ -416,7 +416,8 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 	socket->m_lock.Signal();
 	m_call->SetSocket(socket, this);
 	socket->m_lock.Wait();
-	m_crv = (socket->m_crv & 0x7fffu);
+	m_crv = (socket->m_crv & 0x7fffu); // set the MSB to 0 -- this bit shows the 'direction' of the
+	                                   // call.
 	m_receivedQ931 = NULL;
 	socket->GetLocalAddress(localAddr);
 	socket->GetPeerAddress(peerAddr, peerPort);
@@ -721,7 +722,7 @@ void CallSignalSocket::SendReleaseComplete(const enum Q931::CauseValues cause)
 void
 CallSignalSocket::InternalSendReleaseComplete(const enum Q931::CauseValues cause)
 {
-	PTRACE(5, "void CallSignalSocket::InternalSendReleaseComplete(const enum Q931::CauseValues cause)");
+	PTRACE(5, "void CallSignalSocket::InternalSendReleaseComplete(const enum Q931::CauseValues "<< cause <<")");
 	if (IsOpen()) {
 		Q931 ReleasePDU;
 		BuildReleasePDU(ReleasePDU);
@@ -942,16 +943,21 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		*/
 		case Q931::ReleaseCompleteMsg:
 			if (callptr(NULL)!=m_call) {
-				if(m_call->CompareCRV(q931pdu.GetCallReference())) {
-					PTRACE(5, "Removing Call");
-					m_call->RemoveSocket();
-					CallTable::Instance()->RemoveCall(m_call);
-					m_call=callptr(NULL);
-					if(NULL!=remote)
-						dynamic_cast<CallSignalSocket *> (remote)->m_call=callptr(NULL);
-				} else {
-					PTRACE(1, "Mismatched CallReferenceValue, not killing call");
+				if(!CompareCRV(q931pdu.GetCallReference())) {
+					PString msg(PString::Printf,
+							    "Mismatched CallReferenceValue, not killing call! should: %i, is: %i",
+							    m_crv,
+							    q931pdu.GetCallReference());
+					PTRACE(1, msg);
+					GkStatus::Instance()->SignalStatus(msg);
+
 				}
+				PTRACE(5, "Removing Call");
+				m_call->RemoveSocket();
+				CallTable::Instance()->RemoveCall(m_call);
+				m_call=callptr(NULL);
+				if(NULL!=remote)
+					dynamic_cast<CallSignalSocket *> (remote)->m_call=callptr(NULL);
 			}
 			return Closing;
 		case Q931::StatusMsg:
@@ -1366,14 +1372,17 @@ void CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComp
 {
 	PTRACE(5, "releaseComplete");
 	if(callptr(NULL)!=m_call) {
-		if((ReleaseComplete.HasOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier) &&
+		if(!((ReleaseComplete.HasOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier) &&
 		    ReleaseComplete.m_callIdentifier == m_call->GetCallIdentifier()) ||
-		   (m_call->CompareCRV(m_receivedQ931->GetCallReference()))) {
-			m_call->GetCalledProfile().SetReleaseCause(static_cast<Q931::CauseValues> (ReleaseComplete.m_reason.GetTag()));
-			m_call->SetDisconnected();
-		} else {
-			PTRACE(1, "Mismatched ReleaseComplete, not killing call.");
+		   (CompareCRV(m_receivedQ931->GetCallReference())))) {
+			PString msg(PString::Printf,
+					    "Mismatched CallReferenceValue, not killing call! should: %i, is: %i",
+					    m_crv, m_receivedQ931->GetCallReference());
+			PTRACE(1, msg);
+			GkStatus::Instance()->SignalStatus(msg);
 		}
+		m_call->GetCalledProfile().SetReleaseCause(static_cast<Q931::CauseValues> (ReleaseComplete.m_reason.GetTag()));
+		m_call->SetDisconnected();
 	}
 	PTRACE(5, "releaseComplete");
 }
@@ -1533,6 +1542,10 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	return true;
 }
 
+bool CallSignalSocket::CompareCRV(unsigned int crv) const {
+	return (m_crv & 0x7fff) == (crv & 0x7fff);
+}
+
 void CallSignalSocket::SetTimer(PTimeInterval timer) {
 	if(NULL!=m_StatusEnquiryTimer)
 		delete m_StatusEnquiryTimer;
@@ -1560,13 +1573,18 @@ void CallSignalSocket::SendStatusEnquiryMessage() {
 	PWaitAndSignal lock(m_lock);
 	m_StatusEnquiryTimer->Pause();
 	Q931 pdu;
-	pdu.BuildStatusEnquiry(m_crv, NULL==GetSetupPDU());
+	// Fold the MSB of the crv.
+	PTRACE(5, "Sending StatusEnquiryMessage with crv: " << (NULL!=GetSetupPDU() ? m_crv | 0x8000 : m_crv & 0x7fff)
+	       << " To " << GetName() );
+	pdu.BuildStatusEnquiry((NULL!=GetSetupPDU() ? m_crv | 0x8000 : m_crv & 0x7fff ) , NULL!=GetSetupPDU());
+	PTRACE(5, "Sending StatusEnquiryMessage: " << pdu);
 	pdu.Encode(buffer);
 	if(TransmitData()) {
 		delete m_StatusTimer;
 		m_StatusTimer = new PTimer(0,4); // This is Q.931 timer T322
 		m_StatusTimer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
 	} else {
+		PTRACE(5, "Could not send StatusEnquiry Ping");
 		if(NULL!=remote)
 			dynamic_cast<CallSignalSocket *> (remote)->InternalSendReleaseComplete(Q931::DestinationOutOfOrder);
 		if(callptr(NULL)!=m_call) {
@@ -1593,6 +1611,7 @@ void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
 		SendStatusEnquiryMessage();
 	}
 	if (NULL!= m_StatusTimer && timer==*m_StatusTimer) {
+		PTRACE(5, "Terminating call because lack of StatusMsg");
 		if(NULL!=remote)
 			dynamic_cast<CallSignalSocket *> (remote)->InternalSendReleaseComplete(Q931::NoRouteToDestination);
 		if(callptr(NULL)!=m_call) {
