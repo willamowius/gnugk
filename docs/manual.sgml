@@ -114,6 +114,10 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+RadAliasAuth can authenticate now Setup messages without sourceAddress
+field present (it will use Calling-Party-Number instead).
+
+<item>
 Better signal handling to prevent accidental gatekeeper crashes 
 (due to SIGPIPE, for example).
 

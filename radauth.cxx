@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2004/05/22 12:25:17  zvision
+ * Check aliases only when authenticating RRQ message
+ *
  * Revision 1.13  2004/04/17 11:43:43  zvision
  * Auth/acct API changes.
  * Header file usage more consistent.
@@ -1339,7 +1342,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 
 int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
-	Q931& /*q931pdu*/, 
+	Q931& q931pdu, 
 	H225_Setup_UUIE& setup,
 	endptr& callingEP,
 	GkAuthenticator::SetupAuthData& authData,
@@ -1362,7 +1365,10 @@ int RadAliasAuth::AppendUsernameAndPassword(
 				H225_AliasAddress::e_h323_ID,
 				H225_AliasAddress::e_dialedDigits
 				);
-	
+		
+		if (id.IsEmpty() && q931pdu.HasIE(Q931::CallingPartyNumberIE))
+			q931pdu.GetCallingPartyNumber(id);
+		
 		if (id.IsEmpty() && setup.HasOptionalField(setup.e_sourceCallSignalAddress))
 			if (GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
 				&& addr.IsValid())
