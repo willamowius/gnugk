@@ -78,6 +78,7 @@ public:
                 }
         }
 
+	virtual GkAuthenticatorList & GetAuthenticator();
 
 protected:
 	virtual ~GK_RASListener();
@@ -89,6 +90,8 @@ protected:
 	mutable PMutex listener_mutex;
 	PUDPSocket alternate;
 	mutable PMutex alternate_mutex;
+	GkAuthenticatorList *m_gkauthenticator;
+	mutable PMutex m_gkauthenticator_mutex;
 };
 
 class H323RasListener : public GK_RASListener {

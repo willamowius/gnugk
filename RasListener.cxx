@@ -49,12 +49,19 @@ GK_RASListener::GK_RASListener(PIPSocket::Address Home) :
 	PThread(10000, NoAutoDeleteThread), m_routedSignaling(FALSE), m_routedH245(FALSE)
 {
 	GKHome=Home;
+	m_gkauthenticator_mutex.Wait();
+	m_gkauthenticator = new GkAuthenticatorList(GkConfig());
+	m_gkauthenticator_mutex.Signal();
 
 }
 
 GK_RASListener::~GK_RASListener()
 {
-	// Do Nothing?
+	m_gkauthenticator_mutex.Wait();
+	delete m_gkauthenticator;
+	m_gkauthenticator = NULL;
+	m_gkauthenticator_mutex.Signal();
+
 }
 
 // void
@@ -222,6 +229,15 @@ GK_RASListener::AcceptNBCalls()
 	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptNeighborsCalls", "1"));
 }
 
+GkAuthenticatorList &
+GK_RASListener::GetAuthenticator()
+{
+	PWaitAndSignal lock(m_gkauthenticator_mutex);
+	if (NULL == m_gkauthenticator)
+		m_gkauthenticator = new GkAuthenticatorList(GkConfig());
+	return *m_gkauthenticator;
+}
+
 // Class H323RasListener (was part of RasSrv)
 H323RasListener::H323RasListener(PIPSocket::Address address) : GK_RASListener(address)
 {
@@ -265,8 +281,8 @@ H323RasListener::Main()
 		if(result!=0) {
 			listener_mutex.Signal();
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
-			// This hack is necessary due to bugs in PWLib.
-			H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
+			// RasWorker will delete itself.
+			new H323RasWorker(stream, rx_addr, rx_port, *this);
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
