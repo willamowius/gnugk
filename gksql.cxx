@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2004/12/15 14:43:24  zvision
+ * Shutdown the gatekeeper on SQL auth/acct module config errors.
+ * Thanks to Mikko Oilinki.
+ *
  * Revision 1.6  2004/12/15 13:41:33  zvision
  * Reconnect to the database, if the initial attempt failed. Thanks to Mikko Oilinki
  *
@@ -88,7 +92,7 @@ bool GkSQLConnection::Initialize(
 		m_maxPoolSize = std::max(m_minPoolSize, m_maxPoolSize);
 		
 	if (m_hosts.GetSize() < 1 || m_database.IsEmpty()) {
-		PTRACE(1, GetName() << "\tInitialize failed: database name or host no specified!");
+		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
 		return false;
 	}
 
@@ -124,7 +128,7 @@ bool GkSQLConnection::Initialize(
 	m_password = password;
 
 	if (m_hosts.GetSize() < 1 || m_database.IsEmpty()) {
-		PTRACE(1, GetName() << "\tInitialize failed: database name or host no specified!");
+		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
 		return false;
 	}
 	
