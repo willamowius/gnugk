@@ -2231,7 +2231,8 @@ PrefixAuth::~PrefixAuth()
 
 int PrefixAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
 {
-	return doCheck(LRQAuthObj((const H225_LocationRequest&)request));
+	LRQAuthObj tmpObj((const H225_LocationRequest&)request); // fix for GCC 3.4.2
+	return doCheck(tmpObj);
 }
 
 int PrefixAuth::Check(
@@ -2250,7 +2251,8 @@ int PrefixAuth::Check(
 			);
 		return e_ok;
 	}
-	return doCheck(ARQAuthObj(arq));
+	ARQAuthObj tmpObj(arq); // fix for GCC 3.4.2
+	return doCheck(tmpObj);
 }
 
 struct comp_pref { // function object

@@ -300,7 +300,7 @@ public:
 	typedef typename RasInfo<RAS>::ConfirmTag ConfirmTag;
 	typedef typename RasInfo<RAS>::RejectTag RejectTag;
 	Requester(H225_RasMessage &, const Address &);
-	~Requester() { m_rasSrv->UnregisterHandler(this); }
+	~Requester() { this->m_rasSrv->UnregisterHandler(this); } // fix for GCC 3.4.2
 };
 
 template<class RAS>
@@ -311,7 +311,7 @@ Requester<RAS>::Requester(H225_RasMessage & obj_ras, const Address & ip) : RasRe
 	ras.m_requestSeqNum = GetSeqNum();
 	AddFilter(ConfirmTag());
 	AddFilter(RejectTag());
-	m_rasSrv->RegisterHandler(this);
+	this->m_rasSrv->RegisterHandler(this); // fix for GCC 3.4.2
 }
 
 /*****************************************************************
@@ -347,9 +347,9 @@ public:
 
 	typedef typename RasPDU<RAS>::RasCreator RasCreator;
 	struct Creator : public RasPDU<RAS>::Creator {
-		Creator() { PAssert(m_old, "Error: Hook failed"); }
+		Creator() { PAssert(this->m_old, "Error: Hook failed"); } // fix for GCC 3.4.2
 		virtual RasMsg *operator()(GatekeeperMessage *m) const
-		{ return new HookedPDU<RAS>(m, dynamic_cast<RasCreator &>(*m_old)(m)); }
+		{ return new HookedPDU<RAS>(m, dynamic_cast<RasCreator &>(*(this->m_old))(m)); } // fix for GCC 3.4.2
 	};
 
 private:
