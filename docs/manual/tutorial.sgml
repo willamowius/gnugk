@@ -223,7 +223,8 @@ A few simple examples:
 [RasSrv::RewriteE164]
 ; Rewrite 0044 + min. 7 digits to 44 + min. 7 digits
 0044.......=44.......
-; Rewrite numbers starting with 11 + 4 digits + 11  to 22 + 4 digits + 22 (like 11333311 => 22333322, 110000112345 => 220000222345)
+; Rewrite numbers starting with 11 + 4 digits + 11  to 22 + 4 digits + 22
+; (like 11333311 => 22333322, 110000112345 => 220000222345)
 11....11=22....22
 ; strip the first four digits from all numbers (11114858345 => 4858345)
 ; this is equivalent of 10 rules %%%%1=1, %%%%2=2, ... 
