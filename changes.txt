@@ -1,5 +1,7 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- BUGFIX(h323util.cxx) additional check for H225_TransportAddress
+  to prevent NULL pointer assertions. Thanks to Andrey Pankov!
 - added Q.931/H.225 Setup authentication (RadAliasAuth module implementation)
 - BUGFIX(radproto.cxx) fixed invalid signed/unsigned conversion that caused
   some functions to return unexpected results
