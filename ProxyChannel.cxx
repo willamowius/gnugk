@@ -268,16 +268,16 @@ private:
 
 const endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 {
-//	PTRACE(1, "CallSignalSocket::GetCgEP start");
+	PTRACE(6, "CallSignalSocket::GetCgEP start");
 	PString CallingPN;
 	H225_AliasAddress CallingEPA;
 	H225_ArrayOf_AliasAddress ACallingPN;
 	if(q931pdu.GetCallingPartyNumber(CallingPN)) {
 		H323SetAliasAddress(CallingPN,CallingEPA);
-//		PTRACE(1, "CallSignalSocket::GetCgEP CallingPN:" << CallingPN);
+		PTRACE(6, "CallSignalSocket::GetCgEP CallingPN:" << CallingPN);
  		ACallingPN.SetSize(1);
 		ACallingPN[0]=CallingEPA;
-//		PTRACE(1, "CallSignalSocket::GetCgEP CallingEP: " << RegistrationTable::Instance()->FindByAliases(ACallingPN));
+		PTRACE(6, "CallSignalSocket::GetCgEP CallingEP: " << RegistrationTable::Instance()->FindByAliases(ACallingPN));
 		if (RegistrationTable::Instance()->FindByAliases(ACallingPN)!=endptr(NULL))
 			return RegistrationTable::Instance()->FindByAliases(ACallingPN);
 	}
@@ -297,13 +297,24 @@ const endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 		}
 		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
 		if (m_call) {
+			PTRACE(6, "Call found");
 			if (endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress())))
 				return RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress()));
 		}
 		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
-			if(endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress))
+			PTRACE(6, "sourceCallSignalAddr: " << Setup.m_sourceCallSignalAddress);
+			if(endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress)) {
+				PTRACE(6, "Got EP by SourceCallSignalAddress");
 				return RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress);
+			} else if (endptr(NULL)!=RegistrationTable::Instance()->FindOZEPBySignalAdr(Setup.m_sourceCallSignalAddress)) {
+				PTRACE(6, "Got OZEP by SourceCallSignalAddress");
+				return RegistrationTable::Instance()->FindOZEPBySignalAdr(Setup.m_sourceCallSignalAddress);
+			}
 		}
+		// OZEP??
+		if(endptr(NULL)!=RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier)))
+			return RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier));
+
 	}
 	PTRACE(1, "No endpoint found");
 	return endptr(NULL);
@@ -932,7 +943,16 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			Setup.m_destinationAddress.SetSize(1);
 			H323SetAliasAddress(DialedDigits, Setup.m_destinationAddress[0]);
 		}
+	} else if (GetReceivedQ931()->GetCalledPartyNumber(DialedDigits, &m_calledPLAN, &m_calledTON)) {
+		// Fake the CalledPartyNumber into the H225_Setup_UUIE
+		for (PINDEX i=0; i < Setup.m_destinationAddress.GetSize(); i++) {
+			if (H225_AliasAddress::e_dialedDigits==Setup.m_destinationAddress[i].GetTag() &&
+			    H323GetAliasAddressString(Setup.m_destinationAddress[i])!=DialedDigits)
+				H323SetAliasAddress(DialedDigits, Setup.m_destinationAddress[i]);
+		}
 	}
+
+
 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 		PINDEX last = Setup.m_destinationAddress.GetSize();
