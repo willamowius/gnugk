@@ -23,11 +23,20 @@
 #include "Toolkit.h"
 
 
+static const char* const loghead="AUTHORIZE";
+static const char* const section="GkAuthorize";
+static const char* const prfflag="prf:";
+static const char* const allowflag="allow";
+static const char* const denyflag="deny";
+static const char* const ipflag="ipv4:";
+static const char* const policy="default";
+
+
 GkAuthorize::GkAuthorize(GkStatus* s)
 {
   GkStatusThread=s;
-  prfl=(PString(prfflag)).GetLength();
-  ipfl=(PString(ipflag)).GetLength();
+  prfl=(PString((char *)prfflag)).GetLength();
+  ipfl=(PString((char *)ipflag)).GetLength();
   keys = GkConfig()->GetKeys(section);
   if(!keys.GetSize()){dpolicy=TRUE;no_config=TRUE;return;}
   no_config=FALSE;

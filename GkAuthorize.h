@@ -35,15 +35,7 @@ class GkAuthorize:public PObject
     PCLASSINFO(GkAuthorize, PObject)
     
     private:
-    const static char * const loghead="AUTHORIZE";
-    const static char * const section="GkAuthorize";
-    const static char * const prfflag="prf:";
-    const static char * const allowflag="allow";
-    const static char * const denyflag="deny";
-    const static char * const ipflag="ipv4:";
-    const static char * const policy="default";
-    
-    BOOL dpolicy;
+	BOOL dpolicy;
     BOOL no_config;
     PStringList keys;
     PINDEX prfl,ipfl;
