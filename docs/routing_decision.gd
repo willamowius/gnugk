@@ -2,8 +2,8 @@ Storage
 {
 	{ Format 1.31 }
 	{ GeneratedFrom TGD-version-2.01 }
-	{ WrittenBy storm }
-	{ WrittenOn "Thu Mar 21 16:48:50 2002" }
+	{ WrittenBy mmuehlen }
+	{ WrittenOn "Mon May  6 13:31:28 2002" }
 }
 
 Document 
@@ -26,14 +26,14 @@ Page
 
 Scale 
 {
-	{ ScaleValue 1 }
+	{ ScaleValue 0.833333 }
 }
 
 # GRAPH NODES
 
 GenericNode 1
 {
-	{ Name "search in\rregistration table\r(CdPN is prefix of\rthe number in \rregistration table)" }
+	{ Name "search in\rregistration table\r(CdPN is prefix of\rthe number or gw prefix in \rregistration table)" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -41,7 +41,7 @@ GenericNode 1
 
 GenericNode 2
 {
-	{ Name "full match\r(CdPN is eqal\rto number in\rregistration table)\r" }
+	{ Name "full match\r(CdPN is eqal\rto number or gw prefix\rin registration table)\r" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -49,7 +49,7 @@ GenericNode 2
 
 GenericNode 3
 {
-	{ Name "ARJ\rincomplete Address" }
+	{ Name "ARJ\rincompleteAddress" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -63,17 +63,9 @@ GenericNode 4
 	{ Index "" }
 }
 
-GenericNode 5
-{
-	{ Name "LDAP Search for possibly\rmatching CPE entries against \rtelephonenumber attribute  in LDAP\rAfter search, \".\" are stripped from LDAP\r entries. If more than 1 LDAP\rentry is found, comparison is done\r against the one with the\rlongest prefix." }
-	{ Annotation "blabla\r" }
-	{ Parent 0 }
-	{ Index "" }
-}
-
 GenericNode 6
 {
-	{ Name "ARJ\rincomplete Address" }
+	{ Name "ARJ\rincompleteAddress" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -82,14 +74,6 @@ GenericNode 6
 GenericNode 7
 {
 	{ Name "ARJ calledPartyNotRegistered\rOR\rACF and route call to VoiceMail" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Index "" }
-}
-
-GenericNode 8
-{
-	{ Name "search in Registration table\rfor trunk gateway with longest\rmatch (i.e. the RegTable entry\ris prefix of CdPN)" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -105,7 +89,7 @@ GenericNode 10
 
 GenericNode 11
 {
-	{ Name "ARJ\rincomplete Address" }
+	{ Name "ARJ\rincompleteAddress" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -151,14 +135,6 @@ GenericNode 52
 	{ Index "" }
 }
 
-GenericNode 53
-{
-	{ Name "search in Database (ini)\rfor match" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Index "" }
-}
-
 GenericNode 54
 {
 	{ Name "ARJ\runreachableDestination" }
@@ -194,30 +170,6 @@ Comment 80
 GenericNode 82
 {
 	{ Name "Routing Decision (II)\r(see special diagram)" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Index "" }
-}
-
-GenericNode 83
-{
-	{ Name "search in Registration \rtable for CPE gateway with longest\r match (i.e. the RegTable entry\ris prefix of CdPN)" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Index "" }
-}
-
-GenericNode 94
-{
-	{ Name "ARJ calledPartyNotRegistered\rOR\rACF and route call to VoiceMail" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Index "" }
-}
-
-Comment 95
-{
-	{ Name "Call to provisioned, but\rnon-registered CPE" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -263,6 +215,30 @@ Comment 111
 	{ Index "" }
 }
 
+GenericNode 114
+{
+	{ Name "profile for CdPN \rexists" }
+	{ Annotation "" }
+	{ Parent 0 }
+	{ Index "" }
+}
+
+GenericNode 115
+{
+	{ Name "search in registration \rtable for gateway with longest\r match  (the RegTable entry\ris prefix of CdPN)" }
+	{ Annotation "" }
+	{ Parent 0 }
+	{ Index "" }
+}
+
+GenericNode 116
+{
+	{ Name "search for match against\rtelephoneNumber attribute\rin existing databases \r(CdPN is prefix of a number in a database entry\rOR\ra number in a database entry is  prefix of CdPN \rOR\rboth numbers are equal)" }
+	{ Annotation "" }
+	{ Parent 0 }
+	{ Index "" }
+}
+
 # GRAPH EDGES
 
 GenericEdge 12
@@ -292,15 +268,6 @@ GenericEdge 14
 	{ Subject2 4 }
 }
 
-GenericEdge 15
-{
-	{ Name "= 0" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Subject1 1 }
-	{ Subject2 5 }
-}
-
 GenericEdge 16
 {
 	{ Name ">1" }
@@ -312,38 +279,29 @@ GenericEdge 16
 
 GenericEdge 17
 {
-	{ Name "CdPN is equal to \rLDAP entry's telephoneNumber" }
+	{ Name "CdPN is equal \rto database entry's \rtelephoneNumber" }
 	{ Annotation "" }
 	{ Parent 0 }
-	{ Subject1 5 }
+	{ Subject1 116 }
 	{ Subject2 7 }
 }
 
 GenericEdge 21
 {
-	{ Name "CdPN is prefix of\rLDAP entry's telephoneNumber" }
+	{ Name "CdPN is prefix of\rdatabase entry's \rtelephoneNumber" }
 	{ Annotation "" }
 	{ Parent 0 }
-	{ Subject1 5 }
+	{ Subject1 116 }
 	{ Subject2 11 }
 }
 
 GenericEdge 57
 {
-	{ Name "found" }
+	{ Name "no match" }
 	{ Annotation "" }
 	{ Parent 0 }
-	{ Subject1 53 }
+	{ Subject1 115 }
 	{ Subject2 52 }
-}
-
-GenericEdge 58
-{
-	{ Name "not found" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Subject1 53 }
-	{ Subject2 54 }
 }
 
 GenericEdge 84
@@ -355,58 +313,58 @@ GenericEdge 84
 	{ Subject2 82 }
 }
 
-GenericEdge 85
-{
-	{ Name "not found" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Subject1 8 }
-	{ Subject2 53 }
-}
-
 GenericEdge 86
 {
 	{ Name "no match" }
 	{ Annotation "" }
 	{ Parent 0 }
-	{ Subject1 5 }
-	{ Subject2 8 }
-}
-
-GenericEdge 87
-{
-	{ Name "\"else\" case\r(LDAP entry's telephonenumber\ris a prefix of CdPN)" }
-	{ Annotation "" }
-	{ Parent 0 }
-	{ Subject1 5 }
-	{ Subject2 83 }
+	{ Subject1 116 }
+	{ Subject2 54 }
 }
 
 GenericEdge 96
 {
-	{ Name "found at least 1 router" }
+	{ Name "found at least \r1 router" }
 	{ Annotation "" }
 	{ Parent 0 }
-	{ Subject1 8 }
+	{ Subject1 115 }
 	{ Subject2 10 }
 }
 
-GenericEdge 97
+GenericEdge 117
 {
-	{ Name "found at least 1 router" }
+	{ Name "=0" }
 	{ Annotation "" }
 	{ Parent 0 }
-	{ Subject1 83 }
-	{ Subject2 10 }
+	{ Subject1 1 }
+	{ Subject2 114 }
 }
 
-GenericEdge 98
+GenericEdge 118
 {
-	{ Name "not found" }
+	{ Name "no" }
 	{ Annotation "" }
 	{ Parent 0 }
-	{ Subject1 83 }
-	{ Subject2 94 }
+	{ Subject1 114 }
+	{ Subject2 115 }
+}
+
+GenericEdge 124
+{
+	{ Name "yes" }
+	{ Annotation "" }
+	{ Parent 0 }
+	{ Subject1 114 }
+	{ Subject2 116 }
+}
+
+GenericEdge 125
+{
+	{ Name "gateway found" }
+	{ Annotation "" }
+	{ Parent 0 }
+	{ Subject1 116 }
+	{ Subject2 115 }
 }
 
 # VIEWS AND GRAPHICAL SHAPES
@@ -421,7 +379,7 @@ Diamond 23
 {
 	{ View 22 }
 	{ Subject 1 }
-	{ Position 450 190 }
+	{ Position 320 190 }
 	{ Size 164 158 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -439,7 +397,7 @@ Diamond 24
 {
 	{ View 22 }
 	{ Subject 2 }
-	{ Position 630 190 }
+	{ Position 510 190 }
 	{ Size 142 108 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -463,9 +421,9 @@ Line 25
 	{ End1 Empty }
 	{ End2 FilledArrow }
 	{ Points 2 }
-	{ Point 532 190 }
-	{ Point 559 190 }
-	{ NamePosition 545 180 }
+	{ Point 402 190 }
+	{ Point 439 190 }
+	{ NamePosition 420 180 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -480,7 +438,7 @@ EllipsedBox 26
 {
 	{ View 22 }
 	{ Subject 3 }
-	{ Position 790 190 }
+	{ Position 670 190 }
 	{ Size 120 40 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -504,9 +462,9 @@ Line 27
 	{ End1 Empty }
 	{ End2 FilledArrow }
 	{ Points 2 }
-	{ Point 701 190 }
-	{ Point 730 190 }
-	{ NamePosition 715 180 }
+	{ Point 581 190 }
+	{ Point 610 190 }
+	{ NamePosition 595 180 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -521,7 +479,7 @@ RoundedBox 28
 {
 	{ View 22 }
 	{ Subject 4 }
-	{ Position 630 290 }
+	{ Position 510 290 }
 	{ Size 76 38 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -545,50 +503,9 @@ Line 29
 	{ End1 Empty }
 	{ End2 FilledArrow }
 	{ Points 2 }
-	{ Point 630 244 }
-	{ Point 630 271 }
-	{ NamePosition 616 257 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Diamond 30
-{
-	{ View 22 }
-	{ Subject 5 }
-	{ Position 450 420 }
-	{ Size 232 204 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FillStyle Unfilled }
-	{ FillColor "white" }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Line 31
-{
-	{ View 22 }
-	{ Subject 15 }
-	{ FromShape 23 }
-	{ ToShape 30 }
-	{ Curved False }
-	{ End1 Empty }
-	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 450 269 }
-	{ Point 450 318 }
-	{ NamePosition 436 293 }
+	{ Point 510 244 }
+	{ Point 510 271 }
+	{ NamePosition 496 257 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -603,7 +520,7 @@ EllipsedBox 32
 {
 	{ View 22 }
 	{ Subject 6 }
-	{ Position 70 190 }
+	{ Position 80 190 }
 	{ Size 106 38 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -627,9 +544,9 @@ Line 33
 	{ End1 Empty }
 	{ End2 FilledArrow }
 	{ Points 2 }
-	{ Point 368 190 }
-	{ Point 123 190 }
-	{ NamePosition 245 180 }
+	{ Point 238 190 }
+	{ Point 133 190 }
+	{ NamePosition 185 180 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -644,7 +561,7 @@ EllipsedBox 34
 {
 	{ View 22 }
 	{ Subject 7 }
-	{ Position 90 420 }
+	{ Position 590 680 }
 	{ Size 178 42 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -662,36 +579,18 @@ Line 35
 {
 	{ View 22 }
 	{ Subject 17 }
-	{ FromShape 30 }
+	{ FromShape 123 }
 	{ ToShape 34 }
 	{ Curved False }
 	{ End1 Empty }
 	{ End2 FilledArrow }
 	{ Points 2 }
-	{ Point 334 420 }
-	{ Point 179 420 }
-	{ NamePosition 262 399 }
+	{ Point 519 532 }
+	{ Point 580 659 }
+	{ NamePosition 516 624 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Diamond 36
-{
-	{ View 22 }
-	{ Subject 8 }
-	{ Position 240 590 }
-	{ Size 198 144 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FillStyle Unfilled }
-	{ FillColor "white" }
 	{ FixedName False }
 	{ Font "-*-helvetica-medium-r-normal--10*" }
 	{ TextAlignment Center }
@@ -703,7 +602,7 @@ RoundedBox 40
 {
 	{ View 22 }
 	{ Subject 10 }
-	{ Position 480 840 }
+	{ Position 280 760 }
 	{ Size 110 38 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -721,7 +620,7 @@ EllipsedBox 42
 {
 	{ View 22 }
 	{ Subject 11 }
-	{ Position 790 420 }
+	{ Position 400 650 }
 	{ Size 106 38 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -739,15 +638,15 @@ Line 43
 {
 	{ View 22 }
 	{ Subject 21 }
-	{ FromShape 30 }
+	{ FromShape 123 }
 	{ ToShape 42 }
 	{ Curved False }
 	{ End1 Empty }
 	{ End2 FilledArrow }
 	{ Points 2 }
-	{ Point 566 420 }
-	{ Point 737 420 }
-	{ NamePosition 650 400 }
+	{ Point 459 531 }
+	{ Point 409 631 }
+	{ NamePosition 386 574 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -762,8 +661,8 @@ TextBox 45
 {
 	{ View 22 }
 	{ Subject 44 }
-	{ Position 260 890 }
-	{ Size 129 43 }
+	{ Position 80 730 }
+	{ Size 130 43 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -780,8 +679,8 @@ TextBox 48
 {
 	{ View 22 }
 	{ Subject 46 }
-	{ Position 600 840 }
-	{ Size 129 30 }
+	{ Position 400 760 }
+	{ Size 124 30 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -798,8 +697,8 @@ TextBox 49
 {
 	{ View 22 }
 	{ Subject 47 }
-	{ Position 630 330 }
-	{ Size 82 20 }
+	{ Position 520 320 }
+	{ Size 85 20 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -816,8 +715,8 @@ TextBox 51
 {
 	{ View 22 }
 	{ Subject 50 }
-	{ Position 520 40 }
-	{ Size 228 33 }
+	{ Position 410 40 }
+	{ Size 233 33 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -834,26 +733,8 @@ EllipsedBox 59
 {
 	{ View 22 }
 	{ Subject 52 }
-	{ Position 260 840 }
+	{ Position 80 680 }
 	{ Size 136 46 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FillStyle Unfilled }
-	{ FillColor "white" }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Diamond 60
-{
-	{ View 22 }
-	{ Subject 53 }
-	{ Position 170 740 }
-	{ Size 150 110 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -870,15 +751,16 @@ Line 62
 {
 	{ View 22 }
 	{ Subject 57 }
-	{ FromShape 60 }
+	{ FromShape 121 }
 	{ ToShape 59 }
 	{ Curved False }
 	{ End1 Empty }
 	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 199 773 }
-	{ Point 240 817 }
-	{ NamePosition 229 789 }
+	{ Points 3 }
+	{ Point 65 572 }
+	{ Point 51 573 }
+	{ Point 51 657 }
+	{ NamePosition 76 614 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -893,7 +775,7 @@ EllipsedBox 63
 {
 	{ View 22 }
 	{ Subject 54 }
-	{ Position 80 840 }
+	{ Position 670 550 }
 	{ Size 136 46 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -907,34 +789,11 @@ EllipsedBox 63
 	{ NameUnderlined False }
 }
 
-Line 64
-{
-	{ View 22 }
-	{ Subject 58 }
-	{ FromShape 60 }
-	{ ToShape 63 }
-	{ Curved False }
-	{ End1 Empty }
-	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 140 773 }
-	{ Point 100 817 }
-	{ NamePosition 110 789 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
 TextBox 65
 {
 	{ View 22 }
 	{ Subject 55 }
-	{ Position 130 1010 }
+	{ Position 150 970 }
 	{ Size 230 69 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -952,8 +811,8 @@ TextBox 79
 {
 	{ View 22 }
 	{ Subject 74 }
-	{ Position 310 1100 }
-	{ Size 603 43 }
+	{ Position 320 1040 }
+	{ Size 601 43 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -970,8 +829,8 @@ TextBox 81
 {
 	{ View 22 }
 	{ Subject 80 }
-	{ Position 90 890 }
-	{ Size 172 43 }
+	{ Position 670 600 }
+	{ Size 165 43 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -988,7 +847,7 @@ Box 88
 {
 	{ View 22 }
 	{ Subject 82 }
-	{ Position 480 920 }
+	{ Position 280 840 }
 	{ Size 132 38 }
 	{ Color "black" }
 	{ LineWidth 1 }
@@ -1012,50 +871,9 @@ Line 89
 	{ End1 Empty }
 	{ End2 FilledArrow }
 	{ Points 2 }
-	{ Point 480 859 }
-	{ Point 480 901 }
-	{ NamePosition 466 880 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Diamond 90
-{
-	{ View 22 }
-	{ Subject 83 }
-	{ Position 620 600 }
-	{ Size 208 148 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FillStyle Unfilled }
-	{ FillColor "white" }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Line 91
-{
-	{ View 22 }
-	{ Subject 85 }
-	{ FromShape 36 }
-	{ ToShape 60 }
-	{ Curved False }
-	{ End1 Empty }
-	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 214 643 }
-	{ Point 189 699 }
-	{ NamePosition 173 663 }
+	{ Point 280 779 }
+	{ Point 280 821 }
+	{ NamePosition 266 800 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -1070,38 +888,16 @@ Line 92
 {
 	{ View 22 }
 	{ Subject 86 }
-	{ FromShape 30 }
-	{ ToShape 36 }
+	{ FromShape 123 }
+	{ ToShape 63 }
 	{ Curved False }
 	{ End1 Empty }
 	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 389 468 }
-	{ Point 286 552 }
-	{ NamePosition 312 493 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Line 93
-{
-	{ View 22 }
-	{ Subject 87 }
-	{ FromShape 30 }
-	{ ToShape 90 }
-	{ Curved False }
-	{ End1 Empty }
-	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 502 475 }
-	{ Point 578 555 }
-	{ NamePosition 607 489 }
+	{ Points 3 }
+	{ Point 665 470 }
+	{ Point 690 470 }
+	{ Point 690 527 }
+	{ NamePosition 677 460 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
@@ -1116,100 +912,19 @@ Line 99
 {
 	{ View 22 }
 	{ Subject 96 }
-	{ FromShape 36 }
+	{ FromShape 121 }
 	{ ToShape 40 }
 	{ Curved False }
 	{ End1 Empty }
 	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 280 632 }
-	{ Point 462 821 }
-	{ NamePosition 315 729 }
+	{ Points 3 }
+	{ Point 254 572 }
+	{ Point 281 573 }
+	{ Point 281 741 }
+	{ NamePosition 243 644 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Line 100
-{
-	{ View 22 }
-	{ Subject 97 }
-	{ FromShape 90 }
-	{ ToShape 40 }
-	{ Curved False }
-	{ End1 Empty }
-	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 589 652 }
-	{ Point 491 821 }
-	{ NamePosition 509 696 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-EllipsedBox 101
-{
-	{ View 22 }
-	{ Subject 94 }
-	{ Position 780 840 }
-	{ Size 176 42 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FillStyle Unfilled }
-	{ FillColor "white" }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-Line 102
-{
-	{ View 22 }
-	{ Subject 98 }
-	{ FromShape 90 }
-	{ ToShape 101 }
-	{ Curved False }
-	{ End1 Empty }
-	{ End2 FilledArrow }
-	{ Points 2 }
-	{ Point 653 650 }
-	{ Point 766 819 }
-	{ NamePosition 720 729 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Solid }
-	{ FixedName False }
-	{ Font "-*-helvetica-medium-r-normal--10*" }
-	{ TextAlignment Center }
-	{ TextColor "black" }
-	{ NameUnderlined False }
-}
-
-TextBox 103
-{
-	{ View 22 }
-	{ Subject 95 }
-	{ Position 790 880 }
-	{ Size 120 30 }
-	{ Color "black" }
-	{ LineWidth 1 }
-	{ LineStyle Invisible }
-	{ FillStyle Unfilled }
-	{ FillColor "white" }
 	{ FixedName False }
 	{ Font "-*-helvetica-medium-r-normal--10*" }
 	{ TextAlignment Center }
@@ -1221,8 +936,8 @@ TextBox 107
 {
 	{ View 22 }
 	{ Subject 104 }
-	{ Position 630 920 }
-	{ Size 146 43 }
+	{ Position 420 840 }
+	{ Size 142 43 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -1239,8 +954,8 @@ TextBox 108
 {
 	{ View 22 }
 	{ Subject 105 }
-	{ Position 790 470 }
-	{ Size 169 43 }
+	{ Position 390 690 }
+	{ Size 165 43 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -1257,8 +972,8 @@ TextBox 109
 {
 	{ View 22 }
 	{ Subject 106 }
-	{ Position 80 470 }
-	{ Size 131 43 }
+	{ Position 590 730 }
+	{ Size 127 43 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -1275,8 +990,8 @@ TextBox 112
 {
 	{ View 22 }
 	{ Subject 110 }
-	{ Position 790 240 }
-	{ Size 147 43 }
+	{ Position 660 240 }
+	{ Size 144 43 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -1293,13 +1008,162 @@ TextBox 113
 {
 	{ View 22 }
 	{ Subject 111 }
-	{ Position 80 240 }
-	{ Size 144 56 }
+	{ Position 90 240 }
+	{ Size 139 56 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
 	{ FillStyle Unfilled }
 	{ FillColor "white" }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Diamond 119
+{
+	{ View 22 }
+	{ Subject 114 }
+	{ Position 320 350 }
+	{ Size 120 56 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FillStyle Unfilled }
+	{ FillColor "white" }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Line 120
+{
+	{ View 22 }
+	{ Subject 117 }
+	{ FromShape 23 }
+	{ ToShape 119 }
+	{ Curved False }
+	{ End1 Empty }
+	{ End2 Empty }
+	{ Points 2 }
+	{ Point 320 269 }
+	{ Point 320 322 }
+	{ NamePosition 306 295 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Diamond 121
+{
+	{ View 22 }
+	{ Subject 115 }
+	{ Position 160 570 }
+	{ Size 198 112 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FillStyle Unfilled }
+	{ FillColor "white" }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Line 122
+{
+	{ View 22 }
+	{ Subject 118 }
+	{ FromShape 119 }
+	{ ToShape 121 }
+	{ Curved False }
+	{ End1 Empty }
+	{ End2 FilledArrow }
+	{ Points 3 }
+	{ Point 260 350 }
+	{ Point 160 350 }
+	{ Point 160 514 }
+	{ NamePosition 210 340 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Diamond 123
+{
+	{ View 22 }
+	{ Subject 116 }
+	{ Position 490 470 }
+	{ Size 350 150 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FillStyle Unfilled }
+	{ FillColor "white" }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Line 126
+{
+	{ View 22 }
+	{ Subject 124 }
+	{ FromShape 119 }
+	{ ToShape 123 }
+	{ Curved False }
+	{ End1 Empty }
+	{ End2 FilledArrow }
+	{ Points 3 }
+	{ Point 380 350 }
+	{ Point 490 350 }
+	{ Point 490 395 }
+	{ NamePosition 435 340 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Line 127
+{
+	{ View 22 }
+	{ Subject 125 }
+	{ FromShape 123 }
+	{ ToShape 121 }
+	{ Curved False }
+	{ End1 Empty }
+	{ End2 FilledArrow }
+	{ Points 3 }
+	{ Point 315 470 }
+	{ Point 170 470 }
+	{ Point 160 514 }
+	{ NamePosition 242 460 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
 	{ FixedName False }
 	{ Font "-*-helvetica-medium-r-normal--10*" }
 	{ TextAlignment Center }
