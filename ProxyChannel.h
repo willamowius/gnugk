@@ -38,7 +38,6 @@ class T120LogicalChannel;
 class H245ProxyHandler;
 
 
-// abstract class of a proxy thread
 class H245Handler {
 // This class handles H.245 messages which can either be transmitted on their
 // own TCP connection or can be tunneled in the Q.931 connection
@@ -58,6 +57,34 @@ protected:
 
 private:
 	PIPSocket::Address localAddr;
+};
+
+class H245ProxyHandler : public H245Handler {
+public:
+	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
+	typedef std::map<WORD, LogicalChannel *>::const_iterator const_iterator;
+
+	H245ProxyHandler(CallSignalSocket *, PIPSocket::Address, H245ProxyHandler * = 0);
+	virtual ~H245ProxyHandler();
+
+	LogicalChannel *FindLogicalChannel(WORD);
+	
+private:
+	// override from class H245Handler
+	virtual bool HandleRequest(H245_RequestMessage &);
+	virtual bool HandleResponse(H245_ResponseMessage &);
+
+	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
+	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
+	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
+	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
+
+	RTPLogicalChannel *CreateRTPLogicalChannel(WORD);
+	void RemoveLogicalChannel(WORD flcn);
+
+	ProxyHandleThread *handler;
+	std::map<WORD, LogicalChannel *> logicalChannels;
+	H245ProxyHandler *peer;
 };
 
 class CallSignalSocket : public TCPProxySocket {
@@ -122,34 +149,6 @@ private:
 	WORD m_crv;
 	H245Handler *m_h245handler;
 	H245Socket *m_h245socket;
-};
-
-class H245ProxyHandler : public H245Handler {
-public:
-	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
-	typedef std::map<WORD, LogicalChannel *>::const_iterator const_iterator;
-
-	H245ProxyHandler(CallSignalSocket *, PIPSocket::Address, H245ProxyHandler * = 0);
-	virtual ~H245ProxyHandler();
-
-	LogicalChannel *FindLogicalChannel(WORD);
-	
-private:
-	// override from class H245Handler
-	virtual bool HandleRequest(H245_RequestMessage &);
-	virtual bool HandleResponse(H245_ResponseMessage &);
-
-	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
-	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
-	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
-	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
-
-	RTPLogicalChannel *CreateRTPLogicalChannel(WORD);
-	void RemoveLogicalChannel(WORD flcn);
-
-	ProxyHandleThread *handler;
-	std::map<WORD, LogicalChannel *> logicalChannels;
-	H245ProxyHandler *peer;
 };
 
 inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
