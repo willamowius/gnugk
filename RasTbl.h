@@ -408,8 +408,6 @@ public:
 
 	void SetConnected(bool c);
 	void SetTimer(int seconds);
-	void StartTimer();
-	void StopTimer();
 
 	void Disconnect(bool = false); // Send Release Complete?
 	void RemoveAll();
@@ -430,8 +428,11 @@ public:
 	bool IsH245Routed() const;
 	bool IsRegistered() const;
 
-	PString GenerateCDR();
 	PString PrintOn(bool verbose) const;
+
+	void StartTimer();
+	void StopTimer();
+
 
 	void Lock();
 	void Unlock();
@@ -440,6 +441,11 @@ public:
 	typedef SmartPtr<CallRec> Ptr;
 
 private:
+	PString GenerateCDR();
+
+	void InternalDisconnect(bool);
+	void InternalRemoveSocket();
+	void InternalSendReleaseComplete();
 	void SendDRQ();
 	void InternalSetEP(endptr &, unsigned &, const endptr &, unsigned);
 
@@ -594,6 +600,7 @@ inline void EndpointRec::Unlock()
 // inline functions of CallRec
 inline int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address & called) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	if (m_nattype & callingParty)
 		calling = m_Calling->GetNATIP();
 	if (m_nattype & calledParty)
@@ -601,13 +608,9 @@ inline int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address 
 	return m_nattype;
 }
 
-inline void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
-{
-	m_callingSocket = calling, m_calledSocket = called;
-}
-
 inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 {
+	PWaitAndSignal lock(m_usedLock);
         InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
         if (NewCalling->IsNATed())
                 m_nattype |= callingParty, m_h245Routed = true;
@@ -615,6 +618,7 @@ inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 
 inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 {
+	PWaitAndSignal lock(m_usedLock);
         InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
         SetRegistered(m_Called && m_Called->IsFromParent());
         if (NewCalled && NewCalled->IsNATed())
@@ -623,26 +627,31 @@ inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return (m_callIdentifier == *CallId);
 }
 
 inline bool CallRec::CompareCRV(unsigned crv) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return (m_Calling && m_callingCRV == crv) || (m_Called && m_calledCRV == crv);
 }
 
 inline bool CallRec::CompareCallNumber(PINDEX CallNumber) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return (m_CallNumber == CallNumber);
 }
 
 inline bool CallRec::CompareEndpoint(const endptr *ep) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return (m_Calling && m_Calling == *ep) || (m_Called && m_Called == *ep);
 }
 
 inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
@@ -655,22 +664,26 @@ inline bool CallRec::IsUsed() const
 
 inline bool CallRec::IsConnected() const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return (m_startTime != 0);
 }
 
 inline bool CallRec::IsTimeout(const PTime *now) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return m_timer.GetInterval()>0;
 	//return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > (long)m_timeout));
 }
 
 inline bool CallRec::IsH245Routed() const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return m_h245Routed;
 }
 
 inline bool CallRec::IsRegistered() const
 {
+	PWaitAndSignal lock(m_usedLock);
         return m_registered;
 }
 

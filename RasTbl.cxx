@@ -157,7 +157,7 @@ BOOL EndpointRec::AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 {
         fullMatch = FALSE;
         bool partialMatch = FALSE;
-	int aliasStr_len;
+	unsigned int aliasStr_len;
 	const H225_ArrayOf_AliasAddress & reg_aliases = GetAliases();
 	PString reg_alias;
 	PString aliasStr = H323GetAliasAddressString(alias);
@@ -342,6 +342,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 			(const unsigned char *) urq.m_reason.GetTagName());
         GkStatus::Instance()->SignalStatus(msg);
 
+	RasThread->ForwardRasMsg(ras_msg);
 	RasThread->SendRas(ras_msg, GetRasAddress());
 	return true;
 }
@@ -494,7 +495,7 @@ BOOL GatewayRec::PrefixIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 	bool partialMatch = FALSE;
 	// check for gw prefixes
 	PString aliasStr = H323GetAliasAddressString(alias);
-	int aliasStrLen = aliasStr.GetLength();
+	unsigned int aliasStrLen = aliasStr.GetLength();
 	PString regPrefix;
 	// for each prefix which is stored for the endpoint in registration
 	for (const_prefix_iterator Iter = Prefixes.begin(); Iter != Prefixes.end() && !partialMatch; Iter++) {
@@ -604,6 +605,7 @@ static PMutex deletemutex;
 
 static void delete_call(CallRec *c)
 {
+	PTRACE(5, "doing delete_call");
 	PWaitAndSignal lock(deletemutex);
 	delete c;
 }
@@ -1034,7 +1036,7 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed)
 {
 
-	PWaitAndSignal lock(m_usedLock);
+//	PWaitAndSignal lock(m_usedLock);
 	int timeout = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
 	SetTimer(timeout);
 	StartTimer();
@@ -1049,19 +1051,27 @@ CallRec::~CallRec()
 {
 	// First of all, we have to Print a CDR :-)
 	PTRACE(5, "GK\tBegining deletion of CallRec: " << this);
+	m_usedLock.Wait();
 	PTRACE(5, "GK\tusedCount: " << m_usedCount);
 	if((NULL!=m_callingProfile) && (NULL!=m_calledProfile)) {
 		PString cdrString(this->GenerateCDR());
  		GkStatus::Instance()->SignalStatus(cdrString, 1);
  		PTRACE(3, cdrString);
 	}
+	if(NULL!=m_callingSocket) {
+		m_callingSocket->UnlockUse();
+		m_callingSocket=NULL;
+	}
+	if(NULL!=m_calledSocket) {
+		m_calledSocket->UnlockUse();
+		m_calledSocket=NULL;
+	}
+
 
 	// Writeback the timeout
 	// GkDatabase::Instance()->WriteCallTimeout(m_timer.GetInterval());
-	m_usedLock.Wait();
         delete m_callingProfile;
         delete m_calledProfile;
-	m_usedLock.Signal();
 
        	SetConnected(false);
 	PTRACE(5, "Gk\tDelete Call No. " << m_CallNumber);
@@ -1083,6 +1093,7 @@ void CallRec::Unlock()
 
 void CallRec::SetConnected(bool c)
 {
+	PWaitAndSignal lock(m_usedLock);
 	PTime *ts = (c) ? new PTime : NULL;
 	delete m_startTime;
 	if ((m_startTime = ts) != NULL)
@@ -1105,8 +1116,8 @@ void CallRec::SetTimer(int seconds)
 
 void CallRec::StartTimer()
 {
+	PWaitAndSignal lock(m_usedLock);
 	if (m_timeout > 0) {
-		PWaitAndSignal lock(m_usedLock);
 		m_timer = PTimer(0, m_timeout);
 		m_timer.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
 	}
@@ -1151,14 +1162,21 @@ CallingProfile & CallRec::GetCallingProfile()
 
 void CallRec::OnTimeout()
 {
+	m_usedLock.Wait();
 	PTRACE(2, "GK\tCall No. " << m_CallNumber << " timeout!");
-	Disconnect();
+	InternalDisconnect(true);
+	m_usedLock.Signal();
 }
 
 void CallRec::OnTimeout(PTimer &timer, int extra) {
+	m_usedLock.Wait();
 	PTRACE(1, "CallRec::OnTimer(): " << timer << " : " << extra);
-	if(timer.GetInterval()==0.0)
+	if(timer.GetInterval()==0.0) {
+		m_usedLock.Signal();
 		OnTimeout();
+		return;
+	}
+	m_usedLock.Signal();
 
 }
 
@@ -1168,9 +1186,7 @@ void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, uns
 	if (ep != nep) {
 		if (ep)
 			ep->RemoveCall();
-		m_usedLock.Wait();
 		ep = nep, crv = ncrv;
-		m_usedLock.Signal();
 		if (ep)
 			ep->AddCall();
 	}
@@ -1178,6 +1194,7 @@ void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, uns
 
 void CallRec::RemoveAll()
 {
+	PWaitAndSignal lock(m_usedLock);
 	if (m_registered) {
 		H225_RasMessage ras_msg;
 		ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
@@ -1198,16 +1215,22 @@ void CallRec::RemoveAll()
 void CallRec::RemoveSocket()
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_callingSocket) {
+	InternalRemoveSocket();
+}
+
+void CallRec::InternalRemoveSocket()
+{
+	if (NULL!=m_callingSocket) {
 		m_callingSocket->SetDeletable();
-		m_callingSocket = 0;
+		m_callingSocket->UnlockUse();
+		m_callingSocket = NULL;
 	}
 
-	// m_calledSocket may be an invalid pointer
-//	if (m_calledSocket) {
-//		m_calledSocket->SetDeletable();
-		m_calledSocket = 0;
-//	}
+	if (NULL!=m_calledSocket) {
+		m_calledSocket->SetDeletable();
+		m_calledSocket->UnlockUse();
+		m_calledSocket = NULL;
+	}
 }
 
 int CallRec::CountEndpoints() const
@@ -1223,10 +1246,18 @@ int CallRec::CountEndpoints() const
 
 void CallRec::Disconnect(bool force)
 {
-	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket))
-		SendReleaseComplete();
-	else
-		SendDRQ();
+	PWaitAndSignal lock(m_usedLock);
+	InternalDisconnect(force);
+}
+
+void
+CallRec::InternalDisconnect(bool force)
+{
+	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
+		InternalSendReleaseComplete();
+	} else {
+		SendDRQ(); // This is an internal function
+	}
 
 	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
 }
@@ -1234,25 +1265,42 @@ void CallRec::Disconnect(bool force)
 void CallRec::SendReleaseComplete()
 {
 	PWaitAndSignal lock(m_usedLock);
+	InternalSendReleaseComplete();
+}
+
+void CallRec::InternalSendReleaseComplete()
+{
 	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable() && GetCallingProfile().SendReleaseCompleteOnDRQ()) {
-		//m_callingSocket->MarkBlocked(TRUE);
-		m_callingSocket->Lock();
+		m_callingSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to calling party ..." << m_callingSocket);
 		m_callingSocket->SendReleaseComplete();
 		m_callingSocket->MarkBlocked(FALSE);
-		m_callingSocket->Unlock();
 	}
 	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable() && GetCallingProfile().SendReleaseCompleteOnDRQ()) {
-		m_calledSocket->Lock();
-		//m_calledSocket->MarkBlocked(TRUE);
+		m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete();
 		m_calledSocket->MarkBlocked(FALSE);
-		m_calledSocket->Unlock();
+
 	}
 }
 
-void CallRec::SendDRQ()
+void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
+{
+	PWaitAndSignal lock(m_usedLock);
+	if(NULL!=calling)
+		calling->LockUse();
+	if(NULL!=m_callingSocket)
+		m_callingSocket->UnlockUse();
+	if(NULL!=called)
+		calling->LockUse();
+	if(NULL!=m_calledSocket)
+		m_calledSocket->UnlockUse();
+	m_callingSocket = calling, m_calledSocket = called;
+}
+
+void
+CallRec::SendDRQ()
 {
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
@@ -1480,6 +1528,7 @@ PString CallRec::GenerateCDR()
 
 PString CallRec::PrintOn(bool verbose) const
 {
+	m_usedLock.Wait();
 	int time = m_timeout - m_timer.GetSeconds();
 	int left = (m_timeout > 0 ) ? m_timer.GetSeconds() : 0;
 	PString result(PString::Printf,
@@ -1499,6 +1548,7 @@ PString CallRec::PrintOn(bool verbose) const
 			  );
 	}
 
+	m_usedLock.Signal();
 	return result;
 }
 
@@ -1589,9 +1639,7 @@ void CallTable::ClearTable()
 
 void CallTable::CheckCalls()
 {
-
-	/*
-	PTime now;
+/*	PTime now;
 	WriteLock lock(listLock);
 	iterator Iter = CallList.begin(), eIter = CallList.end();
 	while (Iter != eIter) {
@@ -1601,13 +1649,10 @@ void CallTable::CheckCalls()
 			InternalRemove(i);
 		}
 	}
-
-	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
+*/
+	iterator Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
 	for_each(Iter, RemovedList.end(), delete_call);
 	RemovedList.erase(Iter, RemovedList.end());
-	*/
-
-	// The CallRec-Object does housekeeping on his own (via PTimer timeout);
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
@@ -1679,7 +1724,7 @@ void CallTable::InternalRemove(iterator Iter)
 	if (call->GetCallingAddress() == 0)
 		++m_neighborCall;
 
-//	call->StopTimer();
+///	call->StopTimer();
 	PTRACE(5, "removing call: " << call);
 	call->RemoveAll();
 	call->RemoveSocket();
