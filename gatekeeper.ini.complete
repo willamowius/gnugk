@@ -362,16 +362,16 @@ default=allow
 # from the LDAP-VoIP-scheme which is provided within this distribution
 [GkDatabase::DBAttributeNames]
 #H323ID=mail
-#TelephoneNo=telephoneNumber
-#FacsimileTelephoneNo=facsimileTelephoneNumber
+#TelephoneNumber=telephoneNumber
+#FacsimileTelephoneNumber=facsimileTelephoneNumber
 #H235PassWord=plaintextPassword
 #IPAddress=voIPIpAddress
 #CountryCode=voIPCountryCode
-#EPType=voIPEndpointType
+#EndpointType=voIPEndpointType
 #LocalAccessCode=voIPlocalAccessCode
 #NationalAccessCode=voIPnationalAccessCode
 #InternationalAccessCode=voIPinternationalAccessCode
-#MainTelephoneNo=voIPmainTelephoneNumber
+#MainTelephoneNumber=voIPmainTelephoneNumber
 #SubscriberTelephoneNumber=voIPsubscriberTelephoneNumber
 #CallingLineIdRestriction=voIPcallingLineIdRestriction
 #SpecialDial=voIPspecialDial
@@ -380,7 +380,7 @@ default=allow
 #PrefixOutgoingWhitelist=voIPprefixOutgoingWhitelist
 #PrefixIncomingBlacklist=voIPprefixIncomingBlacklist
 #PrefixIncomingWhitelist=voIPprefixIncomingWhitelist
-#PrependCallbackAC=voIPprependCallbackAC
+#PrependCallbackAccessCode=voIPprependCallbackAccessCode
 
 # Settings for LDAP access
 [GkLDAP::Settings]
