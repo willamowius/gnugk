@@ -369,6 +369,7 @@ Toolkit::Toolkit() : m_Config(0)
 
 Toolkit::~Toolkit()
 {
+	m_Config_mutex.Wait();
 	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
@@ -379,12 +380,14 @@ PConfig* Toolkit::Config()
 {
 	// Make sure the config would not be called before SetConfig
 	PAssert(!m_ConfigDefaultSection, "Error: Call SetConfig() before Config()!");
-	return (m_Config == NULL) ? ReloadConfig() : m_Config;
+	PWaitAndSignal lock(m_Config_mutex);
+	return (m_Config == NULL) ? InternalReloadConfig() : m_Config;
 }
 
 PConfig* Toolkit::Config(const char *section)
 {
-	Config()->SetDefaultSection(section);
+	PWaitAndSignal lock(m_Config_mutex);
+	m_Config->SetDefaultSection(section);
 	return m_Config;
 }
 
@@ -398,6 +401,13 @@ PConfig* Toolkit::SetConfig(const PFilePath &fp, const PString &section)
 
 
 PConfig* Toolkit::ReloadConfig()
+{
+	PWaitAndSignal lock(m_Config_mutex);
+	return InternalReloadConfig();
+}
+
+PConfig*
+Toolkit::InternalReloadConfig()
 {
 	if (m_Config != NULL) {
 		delete m_Config;
