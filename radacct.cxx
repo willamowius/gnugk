@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/09/12 16:31:16  zvision
+ * Accounting initially added to the 2.2 branch
+ *
  * Revision 1.1.2.5  2003/08/21 15:28:58  zvision
  * Fixed double h323-setup-time sent in Acct-Stop
  *
@@ -34,58 +37,42 @@
 #include "radproto.h"
 #include "radacct.h"
 
-// Settings for accoutning logger RADIUS module will be stored 
-// inside [RadAcct] config section
-#define RadAcctConfigSectionName "RadAcct"
-
 extern PString GetConferenceIDString( const H225_ConferenceIdentifier& id );
 
 RadAcct::RadAcct( 
-	const char* moduleName
+	const char* moduleName,
+	const char* cfgSecName
 	)
 	:
-	GkAcctLogger( moduleName ),
+	GkAcctLogger( moduleName, cfgSecName ),
 	portBase( 1024 ),
 	portMax( 65535 ),
 	radiusClient( NULL )
 {
-	PConfig* cfg = GetConfig();
+	// it is very important to set what type of accounting events
+	// are supported for each accounting module, otherwise Log method
+	// will no get called
+	SetSupportedEvents(RadAcctEvents);
 	
-	radiusServers = cfg->GetString(
-		RadAcctConfigSectionName,"Servers",""
-		).Tokenise( ";, \t", FALSE );
-		
-	sharedSecret = cfg->GetString(RadAcctConfigSectionName,"SharedSecret","");
-	acctPort = (WORD)cfg->GetInteger(
-		RadAcctConfigSectionName,"DefaultAcctPort"
-		);
-	requestTimeout = cfg->GetInteger(
-		RadAcctConfigSectionName,"RequestTimeout"
-		);
-	idCacheTimeout = cfg->GetInteger(
-		RadAcctConfigSectionName,"IdCacheTimeout"
-		);
-	socketDeleteTimeout = cfg->GetInteger(
-		RadAcctConfigSectionName,"SocketDeleteTimeout"
-		);
-	numRequestRetransmissions = cfg->GetInteger(
-		RadAcctConfigSectionName,"RequestRetransmissions"
-		);
-	roundRobin = Toolkit::AsBool(cfg->GetString(
-		RadAcctConfigSectionName,"RoundRobinServers", "1"
-		));
+	PConfig* cfg = GetConfig();
+	const PString& cfgSec = GetConfigSectionName();
+	
+	radiusServers = cfg->GetString(cfgSec,"Servers","").Tokenise(";, \t",FALSE);
+	sharedSecret = cfg->GetString(cfgSec,"SharedSecret","");
+	acctPort = (WORD)cfg->GetInteger(cfgSec,"DefaultAcctPort");
+	requestTimeout = cfg->GetInteger(cfgSec,"RequestTimeout");
+	idCacheTimeout = cfg->GetInteger(cfgSec,"IdCacheTimeout");
+	socketDeleteTimeout = cfg->GetInteger(cfgSec,"SocketDeleteTimeout");
+	numRequestRetransmissions = cfg->GetInteger(cfgSec,"RequestRetransmissions");
+	roundRobin = Toolkit::AsBool(cfg->GetString(cfgSec,"RoundRobinServers", "1"));
 	appendCiscoAttributes = Toolkit::AsBool(cfg->GetString(
-		RadAcctConfigSectionName,"AppendCiscoAttributes", "1"
+		cfgSec,"AppendCiscoAttributes", "1"
 		));
 	includeFramedIp = Toolkit::AsBool(cfg->GetString(
-		RadAcctConfigSectionName,"IncludeEndpointIP", "1"
+		cfgSec,"IncludeEndpointIP", "1"
 		));
-	localInterface = cfg->GetString(
-		RadAcctConfigSectionName, "LocalInterface", ""
-		);
-	fixedUsername = cfg->GetString(
-		RadAcctConfigSectionName, "FixedUsername", ""
-		);
+	localInterface = cfg->GetString(cfgSec, "LocalInterface", "");
+	fixedUsername = cfg->GetString(cfgSec, "FixedUsername", "");
 		
 	if( radiusServers.GetSize() < 1 ) {
 		PTRACE(1,"RADACCT\tCannot build "<<moduleName<<" accounting logger"
@@ -128,9 +115,9 @@ RadAcct::RadAcct(
 	if( numRequestRetransmissions > 0 )
 		radiusClient->SetRetryCount( numRequestRetransmissions );
 	
-	PStringArray s = cfg->GetString(
-		RadAcctConfigSectionName,"RadiusPortRange",""
-		).Tokenise( "-" );
+	const PStringArray s = cfg->GetString(
+		cfgSec,"RadiusPortRange",""
+		).Tokenise("-");
 
 	// parse port range		
 	if( s.GetSize() >= 2 ) { 
@@ -168,6 +155,9 @@ GkAcctLogger::Status RadAcct::Log(
 	callptr& call
 	)
 {
+	if( (evt & GetEnabledEvents() & GetSupportedEvents()) == 0 )
+		return (GetControlFlag() == Sufficient) ? Next : Ok;
+		
 	if( radiusClient == NULL ) {
 		PTRACE(1,"RADACCT\tAcct "<<((GetDefaultStatus() == Fail)?"failed":"skipped")
 			<<" - null RADIUS client instance"
@@ -178,13 +168,6 @@ GkAcctLogger::Status RadAcct::Log(
 	if( (evt & (AcctStart | AcctStop | AcctUpdate)) && (!call) ) {
 		PTRACE(2,"RADACCT\tAcct "<<((GetDefaultStatus() == Fail)?"failed":"skipped")
 			<<" - missing call info"
-			);
-		return GetDefaultStatus();
-	}
-	
-	if( (evt & RadAcctEvents) == 0 ) {
-		PTRACE(4,"RADACCT\tAcct "<<((GetDefaultStatus() == Fail)?"failed":"skipped")
-			<<" - unknown event type "<<PString(PString::Unsigned,(long)evt,16)
 			);
 		return GetDefaultStatus();
 	}
@@ -396,7 +379,7 @@ GkAcctLogger::Status RadAcct::Log(
 		
 	// send request and wait for response
 	RadiusPDU* response = NULL;
-	bool result = OnSendPDU(*pdu,(int)evt,call) 
+	bool result = OnSendPDU(*pdu,evt,call) 
 		&& radiusClient->MakeRequest( *pdu, response ) 
 		&& (response != NULL);
 			
@@ -415,7 +398,7 @@ GkAcctLogger::Status RadAcct::Log(
 	// check if Access-Request has been accepted
 	result = (response->GetCode() == RadiusPDU::AccountingResponse);
 	if( result )
-		result = OnReceivedPDU(*response,(int)evt,call);
+		result = OnReceivedPDU(*response,evt,call);
 						
 	delete response;
 	return result ? Ok : Fail;
@@ -423,7 +406,7 @@ GkAcctLogger::Status RadAcct::Log(
 
 bool RadAcct::OnSendPDU(
 	RadiusPDU& pdu,
-	int acctEventMask,
+	GkAcctLogger::AcctEvent evt,
 	callptr& call
 	)
 {
@@ -432,7 +415,7 @@ bool RadAcct::OnSendPDU(
 
 bool RadAcct::OnReceivedPDU(
 	RadiusPDU& pdu,
-	int acctEventMask,
+	GkAcctLogger::AcctEvent evt,
 	callptr& call
 	)
 {
@@ -441,5 +424,5 @@ bool RadAcct::OnReceivedPDU(
 
 namespace {
 // append RADIUS based accounting logger to the global list of loggers
-	GkAcctLoggerCreator<RadAcct> RadAcctCreator(RadAcctConfigSectionName);
+	GkAcctLoggerCreator<RadAcct> RadAcctCreator("RadAcct");
 }

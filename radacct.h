@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2003/09/12 16:31:16  zvision
+ * Accounting initially added to the 2.2 branch
+ *
  * Revision 1.1.2.3  2003/07/31 22:58:48  zvision
  * Added Framed-IP-Address attribute and improved h323-disconnect-cause handling
  *
@@ -41,13 +44,14 @@ public:
 	*/
 	RadAcct( 
 		/// name from Gatekeeper::Acct section
-		const char* moduleName 
+		const char* moduleName,
+		const char* cfgSecName = NULL
 		);
 		
 	/// Destroy the accounting logger
 	virtual ~RadAcct();
 
-protected:		
+protected:
 	virtual Status Log(
 		AcctEvent evt,
 		callptr& call
@@ -61,13 +65,13 @@ protected:
 	*/
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
-		int acctEventMask, /// accounting event being processed
+		AcctEvent evt, /// accounting event being processed
 		callptr& call /// call associated with this request (if any)
 		);
 
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// PDU received from RADIUS server
-		int acctEventMask, /// accounting event being processed
+		AcctEvent evt, /// accounting event being processed
 		callptr& call /// call associated with this response (if any)
 		);
 		
