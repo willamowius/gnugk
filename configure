@@ -23,6 +23,14 @@ ac_help="$ac_help
   --with-mysql-lib-dir=DIR      directory where the MySQL libraries may be found "
 ac_help="$ac_help
   --with-mysql-dir=DIR          base directory where MySQL is installed "
+ac_help="$ac_help
+  --enable-pgsql                enable PostgreSQL support (default=yes)"
+ac_help="$ac_help
+  --with-pgsql-include-dir=DIR  directory where the PostgreSQL includes may be found "
+ac_help="$ac_help
+  --with-pgsql-lib-dir=DIR      directory where the PostgreSQL libraries may be found "
+ac_help="$ac_help
+  --with-pgsql-dir=DIR          base directory where PostgreSQL is installed "
 
 # Initialize some variables set by options.
 # The variables have the same names as the options, with
@@ -539,7 +547,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:543: checking for $ac_word" >&5
+echo "configure:551: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CXX'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -571,7 +579,7 @@ test -n "$CXX" || CXX="gcc"
 
 
 echo $ac_n "checking whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) works""... $ac_c" 1>&6
-echo "configure:575: checking whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) works" >&5
+echo "configure:583: checking whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) works" >&5
 
 ac_ext=C
 # CXXFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
@@ -582,12 +590,12 @@ cross_compiling=$ac_cv_prog_cxx_cross
 
 cat > conftest.$ac_ext << EOF
 
-#line 586 "configure"
+#line 594 "configure"
 #include "confdefs.h"
 
 int main(){return(0);}
 EOF
-if { (eval echo configure:591: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:599: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   ac_cv_prog_cxx_works=yes
   # If we can't run a trivial program, we are probably using a cross compiler.
   if (./conftest; exit) 2>/dev/null; then
@@ -613,12 +621,12 @@ if test $ac_cv_prog_cxx_works = no; then
   { echo "configure: error: installation or configuration problem: C++ compiler cannot create executables." 1>&2; exit 1; }
 fi
 echo $ac_n "checking whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) is a cross-compiler""... $ac_c" 1>&6
-echo "configure:617: checking whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) is a cross-compiler" >&5
+echo "configure:625: checking whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) is a cross-compiler" >&5
 echo "$ac_t""$ac_cv_prog_cxx_cross" 1>&6
 cross_compiling=$ac_cv_prog_cxx_cross
 
 echo $ac_n "checking whether we are using GNU C++""... $ac_c" 1>&6
-echo "configure:622: checking whether we are using GNU C++" >&5
+echo "configure:630: checking whether we are using GNU C++" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_gxx'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -627,7 +635,7 @@ else
   yes;
 #endif
 EOF
-if { ac_try='${CXX-g++} -E conftest.C'; { (eval echo configure:631: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='${CXX-g++} -E conftest.C'; { (eval echo configure:639: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_gxx=yes
 else
   ac_cv_prog_gxx=no
@@ -646,7 +654,7 @@ ac_test_CXXFLAGS="${CXXFLAGS+set}"
 ac_save_CXXFLAGS="$CXXFLAGS"
 CXXFLAGS=
 echo $ac_n "checking whether ${CXX-g++} accepts -g""... $ac_c" 1>&6
-echo "configure:650: checking whether ${CXX-g++} accepts -g" >&5
+echo "configure:658: checking whether ${CXX-g++} accepts -g" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_cxx_g'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -679,9 +687,9 @@ fi
 
 
 echo $ac_n "checking if MSG_NOSIGNAL is supported by recv call""... $ac_c" 1>&6
-echo "configure:683: checking if MSG_NOSIGNAL is supported by recv call" >&5
+echo "configure:691: checking if MSG_NOSIGNAL is supported by recv call" >&5
 cat > conftest.$ac_ext <<EOF
-#line 685 "configure"
+#line 693 "configure"
 #include "confdefs.h"
 
 #include <sys/types.h>
@@ -691,7 +699,7 @@ int main() {
 recv(0,NULL,1,MSG_NOSIGNAL);
 ; return 0; }
 EOF
-if { (eval echo configure:695: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:703: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   HAS_MSG_NOSIGNAL=1
 else
@@ -714,7 +722,7 @@ if test "${PWLIBDIR:-unset}" != "unset" ; then
   	# Extract the first word of "gcc", so it can be a program name with args.
 set dummy gcc; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:718: checking for $ac_word" >&5
+echo "configure:726: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -744,7 +752,7 @@ if test -z "$CC"; then
   # Extract the first word of "cc", so it can be a program name with args.
 set dummy cc; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:748: checking for $ac_word" >&5
+echo "configure:756: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -795,7 +803,7 @@ fi
       # Extract the first word of "cl", so it can be a program name with args.
 set dummy cl; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:799: checking for $ac_word" >&5
+echo "configure:807: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -827,7 +835,7 @@ fi
 fi
 
 echo $ac_n "checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works""... $ac_c" 1>&6
-echo "configure:831: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works" >&5
+echo "configure:839: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works" >&5
 
 ac_ext=c
 # CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
@@ -838,12 +846,12 @@ cross_compiling=$ac_cv_prog_cc_cross
 
 cat > conftest.$ac_ext << EOF
 
-#line 842 "configure"
+#line 850 "configure"
 #include "confdefs.h"
 
 main(){return(0);}
 EOF
-if { (eval echo configure:847: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:855: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   ac_cv_prog_cc_works=yes
   # If we can't run a trivial program, we are probably using a cross compiler.
   if (./conftest; exit) 2>/dev/null; then
@@ -869,12 +877,12 @@ if test $ac_cv_prog_cc_works = no; then
   { echo "configure: error: installation or configuration problem: C compiler cannot create executables." 1>&2; exit 1; }
 fi
 echo $ac_n "checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler""... $ac_c" 1>&6
-echo "configure:873: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler" >&5
+echo "configure:881: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler" >&5
 echo "$ac_t""$ac_cv_prog_cc_cross" 1>&6
 cross_compiling=$ac_cv_prog_cc_cross
 
 echo $ac_n "checking whether we are using GNU C""... $ac_c" 1>&6
-echo "configure:878: checking whether we are using GNU C" >&5
+echo "configure:886: checking whether we are using GNU C" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_gcc'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -883,7 +891,7 @@ else
   yes;
 #endif
 EOF
-if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:887: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:895: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_gcc=yes
 else
   ac_cv_prog_gcc=no
@@ -902,7 +910,7 @@ ac_test_CFLAGS="${CFLAGS+set}"
 ac_save_CFLAGS="$CFLAGS"
 CFLAGS=
 echo $ac_n "checking whether ${CC-cc} accepts -g""... $ac_c" 1>&6
-echo "configure:906: checking whether ${CC-cc} accepts -g" >&5
+echo "configure:914: checking whether ${CC-cc} accepts -g" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_cc_g'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -936,7 +944,7 @@ fi
 
 ac_safe=`echo "${PWLIBDIR}/make/unix.mak" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${PWLIBDIR}/make/unix.mak""... $ac_c" 1>&6
-echo "configure:940: checking for ${PWLIBDIR}/make/unix.mak" >&5
+echo "configure:948: checking for ${PWLIBDIR}/make/unix.mak" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -963,7 +971,7 @@ fi
     # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:967: checking for $ac_word" >&5
+echo "configure:975: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1002,7 +1010,7 @@ if test "${HAS_PTLIB:-unset}" = "unset" ; then
   	
 ac_safe=`echo "${HOME}/pwlib/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${HOME}/pwlib/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:1006: checking for ${HOME}/pwlib/include/ptlib.h" >&5
+echo "configure:1014: checking for ${HOME}/pwlib/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1030,7 +1038,7 @@ fi
     # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1034: checking for $ac_word" >&5
+echo "configure:1042: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1067,7 +1075,7 @@ fi
   	  
 ac_safe=`echo "../pwlib/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../pwlib/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:1071: checking for ../pwlib/include/ptlib.h" >&5
+echo "configure:1079: checking for ../pwlib/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1095,7 +1103,7 @@ fi
       # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1099: checking for $ac_word" >&5
+echo "configure:1107: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1132,7 +1140,7 @@ fi
 	    
 ac_safe=`echo "/usr/local/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/local/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:1136: checking for /usr/local/include/ptlib.h" >&5
+echo "configure:1144: checking for /usr/local/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1159,7 +1167,7 @@ fi
         # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1163: checking for $ac_word" >&5
+echo "configure:1171: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1196,7 +1204,7 @@ fi
           
 ac_safe=`echo "/usr/include/ptlib.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/include/ptlib.h""... $ac_c" 1>&6
-echo "configure:1200: checking for /usr/include/ptlib.h" >&5
+echo "configure:1208: checking for /usr/include/ptlib.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1223,7 +1231,7 @@ fi
           # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1227: checking for $ac_word" >&5
+echo "configure:1235: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PTLIB_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1289,7 +1297,7 @@ if test "${PTLIB_CONFIG:-unset}" = "unset"; then
   
 ac_safe=`echo "${PWLIBDIR}/version.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${PWLIBDIR}/version.h""... $ac_c" 1>&6
-echo "configure:1293: checking for ${PWLIBDIR}/version.h" >&5
+echo "configure:1301: checking for ${PWLIBDIR}/version.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1320,7 +1328,7 @@ fi
     
 ac_safe=`echo "${PWLIBDIR}/ptbuildopts.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${PWLIBDIR}/ptbuildopts.h""... $ac_c" 1>&6
-echo "configure:1324: checking for ${PWLIBDIR}/ptbuildopts.h" >&5
+echo "configure:1332: checking for ${PWLIBDIR}/ptbuildopts.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1366,7 +1374,7 @@ if test "${OPENH323DIR:-unset}" != "unset" ; then
     
 ac_safe=`echo "${OPENH323DIR}/openh323u.mak" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323DIR}/openh323u.mak""... $ac_c" 1>&6
-echo "configure:1370: checking for ${OPENH323DIR}/openh323u.mak" >&5
+echo "configure:1378: checking for ${OPENH323DIR}/openh323u.mak" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1395,7 +1403,7 @@ if test "${HAS_OPENH323:-unset}" = "unset" ; then
     
 ac_safe=`echo "${PWLIBDIR}/../openh323/version.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${PWLIBDIR}/../openh323/version.h""... $ac_c" 1>&6
-echo "configure:1399: checking for ${PWLIBDIR}/../openh323/version.h" >&5
+echo "configure:1407: checking for ${PWLIBDIR}/../openh323/version.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1425,7 +1433,7 @@ fi
       
 ac_safe=`echo "${HOME}/openh323/include/h323.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${HOME}/openh323/include/h323.h""... $ac_c" 1>&6
-echo "configure:1429: checking for ${HOME}/openh323/include/h323.h" >&5
+echo "configure:1437: checking for ${HOME}/openh323/include/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1455,7 +1463,7 @@ fi
         
 ac_safe=`echo "/usr/local/include/openh323/h323.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/local/include/openh323/h323.h""... $ac_c" 1>&6
-echo "configure:1459: checking for /usr/local/include/openh323/h323.h" >&5
+echo "configure:1467: checking for /usr/local/include/openh323/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1485,7 +1493,7 @@ fi
           
 ac_safe=`echo "/usr/include/openh323/h323.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/include/openh323/h323.h""... $ac_c" 1>&6
-echo "configure:1489: checking for /usr/include/openh323/h323.h" >&5
+echo "configure:1497: checking for /usr/include/openh323/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1533,7 +1541,7 @@ if test -d ${OPENH323DIR}; then
   
 ac_safe=`echo "${OPENH323DIR}/version.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323DIR}/version.h""... $ac_c" 1>&6
-echo "configure:1537: checking for ${OPENH323DIR}/version.h" >&5
+echo "configure:1545: checking for ${OPENH323DIR}/version.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1564,7 +1572,7 @@ fi
     
 ac_safe=`echo "${OPENH323DIR}/openh323buildopts.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323DIR}/openh323buildopts.h""... $ac_c" 1>&6
-echo "configure:1568: checking for ${OPENH323DIR}/openh323buildopts.h" >&5
+echo "configure:1576: checking for ${OPENH323DIR}/openh323buildopts.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1595,7 +1603,7 @@ fi
       
 ac_safe=`echo "${OPENH323DIR}/../../include/openh323/openh323buildopts.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323DIR}/../../include/openh323/openh323buildopts.h""... $ac_c" 1>&6
-echo "configure:1599: checking for ${OPENH323DIR}/../../include/openh323/openh323buildopts.h" >&5
+echo "configure:1607: checking for ${OPENH323DIR}/../../include/openh323/openh323buildopts.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1726,7 +1734,7 @@ fi
 if test "x${mysql}" != "xno"; then
 
 	echo $ac_n "checking for compress in -lz""... $ac_c" 1>&6
-echo "configure:1730: checking for compress in -lz" >&5
+echo "configure:1738: checking for compress in -lz" >&5
 ac_lib_var=`echo z'_'compress | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1734,7 +1742,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lz  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1738 "configure"
+#line 1746 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -1745,7 +1753,7 @@ int main() {
 compress()
 ; return 0; }
 EOF
-if { (eval echo configure:1749: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1757: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1767,17 +1775,17 @@ fi
 
 
 	echo $ac_n "checking for mysql.h""... $ac_c" 1>&6
-echo "configure:1771: checking for mysql.h" >&5
+echo "configure:1779: checking for mysql.h" >&5
 
 	cat > conftest.$ac_ext <<EOF
-#line 1774 "configure"
+#line 1782 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1781: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1789: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE=" "
 else
@@ -1796,14 +1804,14 @@ rm -f conftest*
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat > conftest.$ac_ext <<EOF
-#line 1800 "configure"
+#line 1808 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1807: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1815: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE="-I$try"
 else
@@ -1831,7 +1839,7 @@ rm -f conftest*
 		echo "$ac_t""yes" 1>&6
 
 		echo $ac_n "checking for mysql_init in -lmysqlclient""... $ac_c" 1>&6
-echo "configure:1835: checking for mysql_init in -lmysqlclient" >&5
+echo "configure:1843: checking for mysql_init in -lmysqlclient" >&5
 
 		old_LIBS="$LIBS"
 
@@ -1839,14 +1847,14 @@ echo "configure:1835: checking for mysql_init in -lmysqlclient" >&5
 			if test -d $try; then
 				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
 				cat > conftest.$ac_ext <<EOF
-#line 1843 "configure"
+#line 1851 "configure"
 #include "confdefs.h"
 extern char mysql_init();
 int main() {
 mysql_init()
 ; return 0; }
 EOF
-if { (eval echo configure:1850: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1858: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
    MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
 					  MYSQL_LDFLAGS="-L$try"
@@ -1886,7 +1894,7 @@ fi
 
 if test "x$mysql" != "xno"; then
 	HAS_MYSQL=1
-	SOURCES="$SOURCES mysqlcon.cxx"
+	SOURCES="$SOURCES gksql_mysql.cxx"
 	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
 	LDFLAGS="$MYSQL_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$MYSQL_LIBS $ENDLDLIBS"
@@ -1894,6 +1902,175 @@ if test "x$mysql" != "xno"; then
 else
     echo "MySQL support disabled"
 	HAS_MYSQL=0
+fi
+
+
+# Check whether --enable-pgsql or --disable-pgsql was given.
+if test "${enable_pgsql+set}" = set; then
+  enableval="$enable_pgsql"
+   pgsql="${enableval}" 
+else
+   pgsql="yes" 
+
+fi
+
+
+# Check whether --with-pgsql-include-dir or --without-pgsql-include-dir was given.
+if test "${with_pgsql_include_dir+set}" = set; then
+  withval="$with_pgsql_include_dir"
+   pgsql_include_dir="$withval" 
+
+fi
+
+
+# Check whether --with-pgsql-lib-dir or --without-pgsql-lib-dir was given.
+if test "${with_pgsql_lib_dir+set}" = set; then
+  withval="$with_pgsql_lib_dir"
+   pgsql_lib_dir="$withval" 
+
+fi
+
+
+# Check whether --with-pgsql-dir or --without-pgsql-dir was given.
+if test "${with_pgsql_dir+set}" = set; then
+  withval="$with_pgsql_dir"
+   pgsql_lib_dir="$withval/lib"
+  pgsql_include_dir="$withval/include"
+
+
+fi
+
+
+if test "x${pgsql}" != "xno"; then
+
+	echo $ac_n "checking for libpq-fe.h""... $ac_c" 1>&6
+echo "configure:1948: checking for libpq-fe.h" >&5
+
+	cat > conftest.$ac_ext <<EOF
+#line 1951 "configure"
+#include "confdefs.h"
+#include <libpq-fe.h>
+int main() {
+int a = 1;
+; return 0; }
+EOF
+if { (eval echo configure:1958: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf conftest*
+  PGSQL_INCLUDE=" "
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  PGSQL_INCLUDE=
+	
+fi
+rm -f conftest*
+
+	if test "x$PGSQL_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/include/pgsql /usr/local/include/pgsql /usr/local/pgsql/include $pgsql_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				cat > conftest.$ac_ext <<EOF
+#line 1977 "configure"
+#include "confdefs.h"
+#include <libpq-fe.h>
+int main() {
+int a = 1;
+; return 0; }
+EOF
+if { (eval echo configure:1984: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf conftest*
+  PGSQL_INCLUDE="-I$try"
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  PGSQL_INCLUDE=
+				
+fi
+rm -f conftest*
+				if test "x$PGSQL_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$PGSQL_INCLUDE" = "x"; then
+		echo "$ac_t""no" 1>&6
+		echo "configure: warning: pgsql headers not found. Use --with-pgsql-include-dir=<path>" 1>&2
+		pgsql="no"
+	else
+		sql_pgsql_cflags="${sql_pgsql_cflags} ${PGSQL_INCLUDE}"
+		echo "$ac_t""yes" 1>&6
+
+		echo $ac_n "checking for PQconnectdb in -lpq""... $ac_c" 1>&6
+echo "configure:2012: checking for PQconnectdb in -lpq" >&5
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/local/lib /usr/local/pgsql/lib $pgsql_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS -L$try -lpq -lcrypt ${PGSQL_LIBS}"
+				cat > conftest.$ac_ext <<EOF
+#line 2020 "configure"
+#include "confdefs.h"
+extern char PQconnectdb();
+int main() {
+PQconnectdb
+; return 0; }
+EOF
+if { (eval echo configure:2027: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+   PGSQL_LIBS="-lpq -lcrypt ${PGSQL_LIBS}"
+					  PGSQL_LDFLAGS="-L$try"
+					
+				
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+fi
+rm -f conftest*
+				if test "x$PGSQL_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+						if test "x$PGSQL_LDFLAGS" = "x"; then
+			echo "$ac_t""no" 1>&6
+			PGSQL_INCLUDE=
+			echo "configure: warning: pgsql lib not found. Use --with-pgsql-lib-dir=<path>" 1>&2
+			pgsql="no"
+		else
+			echo "$ac_t""yes" 1>&6 
+			sql_pgsql_ldflags="$sql_pgsql_ldflags $PGSQL_LDFLAGS"
+		fi
+	fi
+
+	sql_pgsql_ldflags="$sql_pgsql_ldflags $LIBS"
+
+	if test "x$pgsql" = "xno"; then
+		echo "configure: warning: PostgreSQL disabled" 1>&2
+	fi
+else
+	pgsql="no"
+fi
+
+if test "x$pgsql" != "xno"; then
+	HAS_PGSQL=1
+	SOURCES="$SOURCES gksql_pgsql.cxx"
+	STDCCFLAGS="${sql_pgsql_cflags} -DHAS_PGSQL=1 $STDCCFLAGS"
+	LDFLAGS="$PGSQL_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$PGSQL_LIBS $ENDLDLIBS"
+    echo "PostgreSQL support enabled"
+else
+    echo "PostgreSQL support disabled"
+	HAS_PGSQL=0
 fi
 
 
@@ -2078,6 +2255,7 @@ s%@INSTALLPREFIX@%$INSTALLPREFIX%g
 s%@HAS_RADIUS@%$HAS_RADIUS%g
 s%@LARGE_FDSET@%$LARGE_FDSET%g
 s%@HAS_MYSQL@%$HAS_MYSQL%g
+s%@HAS_PGSQL@%$HAS_PGSQL%g
 s%@GNUGK_VERSION@%$GNUGK_VERSION%g
 s%@GNUGK_MAJOR_VERSION@%$GNUGK_MAJOR_VERSION%g
 s%@GNUGK_MINOR_VERSION@%$GNUGK_MINOR_VERSION%g

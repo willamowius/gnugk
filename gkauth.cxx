@@ -30,6 +30,7 @@
 #include "RasPDU.h"
 #include "Toolkit.h"
 #include "gkauth.h"
+#include "gksql.h"
 
 #ifdef P_SOLARIS
 #define map stl_map
@@ -46,31 +47,118 @@ const char *GkAuthSectionName = "Gatekeeper::Auth";
 //////////////////////////////////////////////////////////////////////
 // Definition of authentication rules
 
-#ifdef HAS_MYSQL
+#if HAS_MYSQL
 
-#include "mysqlcon.h"
+#include <mysql.h>
 
-class MySQLPasswordAuth : public SimplePasswordAuth, private MySQLConnection {
+class MySQLPasswordAuth : public SimplePasswordAuth
+{
 public:
-	MySQLPasswordAuth(const char *);
+	MySQLPasswordAuth(
+		const char* authName
+		);
 
-private:
-	virtual bool GetPassword(const PString &, PString &);
+	virtual ~MySQLPasswordAuth();
+
+protected:
+	virtual bool GetPassword(
+		const PString& alias,
+		PString& password
+		);
+		
+protected:
+	GkSQLConnection* m_sqlConn;
+	PString m_query;
 };
 
-class MySQLAliasAuth : public AliasAuth, private MySQLConnection {
+class MySQLAliasAuth : public AliasAuth
+{
 public:
-	MySQLAliasAuth(const char *);
-	~MySQLAliasAuth();
+	MySQLAliasAuth(
+		const char* authName
+		);
+	
+	virtual ~MySQLAliasAuth();
 
-private:
-	virtual PString GetAuthConditionString(const PString & alias);
+protected:
+	virtual PString GetAuthConditionString(
+		const PString& alias
+		);
 
-	CacheManager *cache;
+protected:
+	GkSQLConnection* m_sqlConn;
+	CacheManager* m_cache;
+	PString m_query;
 };
 
 #endif // HAS_MYSQL
 
+/// Generic SQL authenticator for H.235 enabled endpoints
+class SQLPasswordAuth : public SimplePasswordAuth
+{
+public:
+	/// build authenticator reading settings from the config
+	SQLPasswordAuth(
+		/// name for this authenticator and for the config section to read settings from
+		const char* authName
+		);
+	
+	virtual ~SQLPasswordAuth();
+
+protected:
+	/** Override from SimplePasswordAuth.
+	
+	    @return
+	    True if the password has been found for the given alias.
+	*/
+	virtual bool GetPassword(
+		/// alias to check the password for
+		const PString& alias,
+		/// password string, if the match is found
+		PString& password
+		);
+		
+protected:
+	/// connection to the SQL database
+	GkSQLConnection* m_sqlConn;
+	/// parametrized query string for password retrieval
+	PString m_query;
+};
+
+/// Generic SQL authenticator for alias/IP based authentication
+class SQLAliasAuth : public AliasAuth
+{
+public:
+	/// build authenticator reading settings from the config
+	SQLAliasAuth(
+		/// name for this authenticator and for the config section to read settings from
+		const char* authName
+		);
+	
+	virtual ~SQLAliasAuth();
+
+protected:
+	/** Override from AliasAuth.
+	
+	    @return
+	    Auth condition string associated with the given alias
+	    or an empty string if no match is found for the given alias.
+	*/
+	virtual PString GetAuthConditionString(
+		/// alias to retrieve the auth condition string for
+		const PString& alias
+		);
+
+protected:
+	/// connection to the SQL database
+	GkSQLConnection* m_sqlConn;
+	/// auth condition string cache
+	CacheManager* m_cache;
+	/// parametrized query string for the auth condition string retrieval
+	PString m_query;
+};
+
+/*
 #if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
 #include <unistd.h>
 #include <procbuf.h>
@@ -87,6 +175,7 @@ private:
 };
 
 #endif
+*/
 
 // Initial author: Michael Rubashenkkov  2002/01/14 (GkAuthorize)
 // Completely rewrite by Chih-Wei Huang  2002/05/01
@@ -377,7 +466,7 @@ SimplePasswordAuth::SimplePasswordAuth(const char *name) : GkAuthenticator(name)
 {
 	filled = config->GetInteger(name, "KeyFilled", 0);
 	checkid = Toolkit::AsBool(config->GetString(name, "CheckID", "0"));
-	cache = new CacheManager(config->GetInteger(name, "PasswordTimeout", -1));
+	m_cache = new CacheManager(config->GetInteger(name, "PasswordTimeout", -1));
 	
 	h235Authenticators = new H235Authenticators;
 	H235Authenticator* authenticator;
@@ -405,7 +494,7 @@ SimplePasswordAuth::SimplePasswordAuth(const char *name) : GkAuthenticator(name)
 
 SimplePasswordAuth::~SimplePasswordAuth()
 {
-	delete cache;
+	delete m_cache;
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_GatekeeperRequest> & request, unsigned &)
@@ -460,9 +549,9 @@ bool SimplePasswordAuth::GetPassword(const PString & id, PString & passwd)
 PString SimplePasswordAuth::InternalGetPassword(const PString & id)
 {
 	PString passwd;
-	if (!cache->Retrieve(id, passwd))
+	if (!m_cache->Retrieve(id, passwd))
 		if (GetPassword(id, passwd))
-			cache->Save(id, passwd);
+			m_cache->Save(id, passwd);
 	return passwd;
 }
 
@@ -767,45 +856,425 @@ bool AliasAuth::CheckAuthRule(
 	return false;
 }
 
-#ifdef HAS_MYSQL
+#if HAS_MYSQL
 
 // class MySQLPasswordAuth
-MySQLPasswordAuth::MySQLPasswordAuth(const char *name)
-      : SimplePasswordAuth(name), MySQLConnection(config, name)
+MySQLPasswordAuth::MySQLPasswordAuth(
+	const char* authName
+	)
+	: SimplePasswordAuth(authName), m_sqlConn(NULL)
 {
-	SetCacheTimeout(config->GetInteger(name, "CacheTimeout", 0));
+	m_sqlConn = GkSQLConnection::Create("MySQL", authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(1, GetName() << "\tModule creation failed: could not find driver for MySQL database");
+		return;
+	}
+
+	SetCacheTimeout(config->GetInteger(authName, "CacheTimeout", 0));
+		
+	const PString password = config->GetString(authName, "Password", "");
+	
+	PString host = config->GetString(authName, "Host", "localhost");
+	if (config->GetInteger(authName, "Port", -1) > 0)
+		host += ":" + PString(config->GetInteger(authName, "Port", MYSQL_PORT));
+		
+	if (!m_sqlConn->Initialize(
+			host,
+			config->GetString(authName, "Database", "mysql"),
+			config->GetString(authName, "User", "mysql"),
+			password.IsEmpty() ? (const char*)NULL : (const char*)password,
+			1, 1)) {
+		delete m_sqlConn;
+		m_sqlConn = NULL;
+		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
+		return;
+	}
+	
+	const PString table = config->GetString(authName, "Table", "");
+	const PString passwordField = config->GetString(authName, "DataField", "");
+	const PString aliasField = config->GetString(authName, "KeyField", "");
+	
+	if (table.IsEmpty() || passwordField.IsEmpty() || aliasField.IsEmpty()) {
+		PTRACE(1, GetName() << "\tCannot build query: Table, KeyField or DataField not specified");
+		return;
+	}
+	
+	m_query = "SELECT " + passwordField + " FROM " + table + " WHERE " 
+		+ aliasField + " = '%1'";
+		
+	const PString extraCrit = config->GetString(authName, "ExtraCriterion", "");
+	if (!extraCrit.IsEmpty())
+		m_query += " AND " + extraCrit;
+		
+	PTRACE(4, GetName() << "\tConfigured query: " << m_query);
 }
 
-bool MySQLPasswordAuth::GetPassword(const PString & id, PString & passwd)
+MySQLPasswordAuth::~MySQLPasswordAuth()
 {
-	return Query(id, passwd);
+	delete m_sqlConn;
+}
+
+bool MySQLPasswordAuth::GetPassword(
+	const PString& alias, 
+	PString& password
+	)
+{
+	if (m_sqlConn == NULL) {
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed: SQL connection not active"
+			);
+		return false;
+	}
+	
+	if (m_query.IsEmpty()) {
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed: Query string not configured"
+			);
+		return false;
+	}
+	
+	PStringArray params;
+	params += alias;
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
+	if (result == NULL) {
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed: Timeout or fatal error"
+			);
+		return false;
+	}
+	
+	if (result->IsValid()) {
+		PStringArray fields;
+		if (result->GetNumRows() < 1)
+			PTRACE(4, GetName() << "\tPassword not found for alias '" << alias << '\'');
+		else if (result->GetNumFields() < 1)
+			PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
+		else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
+			PTRACE(4, GetName() << "\tPassword query for alias '" << alias 
+				<< "' failed: could not fetch the result row"
+				);
+		else {
+			password = fields[0];
+			delete result;
+			return true;
+		}
+	} else
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed (" << result->GetErrorCode() << "): "
+			<< result->GetErrorMessage()
+			);
+
+	delete result;
+	return false;
 }
 
 // class MySQLAliasAuth
-MySQLAliasAuth::MySQLAliasAuth(const char *name)
-      : AliasAuth(name), MySQLConnection(config, name)
+MySQLAliasAuth::MySQLAliasAuth(
+	const char* authName
+	)
+	: AliasAuth(authName), m_sqlConn(NULL), m_cache(NULL)
 {
-	cache = new CacheManager(config->GetInteger(name, "CacheTimeout", 0));
+	m_sqlConn = GkSQLConnection::Create("MySQL", authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(1, GetName() << "\tModule creation failed: could not find driver for MySQL database");
+		return;
+	}
+	
+	m_cache = new CacheManager(config->GetInteger(authName, "CacheTimeout", 0));
+	
+	const PString password = config->GetString(authName, "Password", "");
+	
+	PString host = config->GetString(authName, "Host", "localhost");
+	if (config->GetInteger(authName, "Port", -1) > 0)
+		host += ":" + PString(config->GetInteger(authName, "Port", MYSQL_PORT));
+		
+	if (!m_sqlConn->Initialize(
+			host,
+			config->GetString(authName, "Database", "mysql"),
+			config->GetString(authName, "User", "mysql"),
+			password.IsEmpty() ? (const char*)NULL : (const char*)password,
+			1, 1)) {
+		delete m_sqlConn;
+		m_sqlConn = NULL;
+		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
+		return;
+	}
+	
+	const PString table = config->GetString(authName, "Table", "");
+	const PString ipField = config->GetString(authName, "DataField", "");
+	const PString aliasField = config->GetString(authName, "KeyField", "");
+	
+	if (table.IsEmpty() || ipField.IsEmpty() || aliasField.IsEmpty()) {
+		PTRACE(1, GetName() << "\tCannot build query: Table, KeyField or DataField not specified");
+		return;
+	}
+	
+	m_query = "SELECT " + ipField + " FROM " + table + " WHERE " 
+		+ aliasField + " = '%1'";
+		
+	const PString extraCrit = config->GetString(authName, "ExtraCriterion", "");
+	if (!extraCrit.IsEmpty())
+		m_query += " AND " + extraCrit;
+		
+	PTRACE(4, GetName() << "\tConfigured query: " << m_query);
 }
 
 MySQLAliasAuth::~MySQLAliasAuth()
 {
-	delete cache;
+	delete m_cache;
+	delete m_sqlConn;
 }
 
 PString MySQLAliasAuth::GetAuthConditionString(
 	const PString& alias
 	)
 {
-	PString result;
-	if (!cache->Retrieve(alias, result))
-		if (Query(alias, result))
-			cache->Save(alias, result);
-	return result;
+	PString authCondition;
+	
+	if (m_sqlConn == NULL) {
+		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+			<< "' failed: SQL connection not active"
+			);
+		return authCondition;
+	}
+	
+	if (m_cache == NULL || m_cache->Retrieve(alias, authCondition))
+		return authCondition;
+		
+	if (m_query.IsEmpty()) {
+		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+			<< "' failed: Query string not configured"
+			);
+		return authCondition;
+	}
+	
+	PStringArray params;
+	params += alias;
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
+	if (result == NULL)
+		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+			<< "' failed: Timeout or fatal error"
+			);
+	else {
+		if (result->IsValid()) {
+			PStringArray fields;
+			if (result->GetNumRows() < 1)
+				PTRACE(4, GetName() << "\tEntry not found for alias '" << alias << '\'');
+			else if (result->GetNumFields() < 1)
+				PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
+			else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
+				PTRACE(4, GetName() << "\tQuery for alias '" << alias 
+					<< "' failed: could not fetch the result row"
+					);
+			else {
+				authCondition = fields[0];
+				m_cache->Save(alias, authCondition);
+			}
+		} else
+			PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+				<< "' failed (" << result->GetErrorCode() << "): "
+				<< result->GetErrorMessage()
+				);
+		delete result;
+	}
+	return authCondition;
 }
 
 #endif // HAS_MYSQL
 
+SQLPasswordAuth::SQLPasswordAuth(
+	const char* authName
+	)
+	: SimplePasswordAuth(authName), m_sqlConn(NULL)
+{
+	const PString driverName = config->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(1, GetName() << "\tModule creation failed: no SQL driver selected");
+		return;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(1, GetName() << "\tModule creation failed: could not find " 
+			<< driverName << " database driver"
+			);
+		return;
+	}
+
+	SetCacheTimeout(config->GetInteger(authName, "CacheTimeout", 0));
+		
+	if (!m_sqlConn->Initialize(config, authName)) {
+		delete m_sqlConn;
+		m_sqlConn = NULL;
+		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
+		return;
+	}
+	
+	m_query = config->GetString(authName, "Query", "");
+	if (m_query.IsEmpty())
+		PTRACE(1, GetName() << "\tModule creation failed: no query configured");
+	else
+		PTRACE(4, GetName() << "\tConfigured query: " << m_query);
+}
+
+SQLPasswordAuth::~SQLPasswordAuth()
+{
+	delete m_sqlConn;
+}
+
+bool SQLPasswordAuth::GetPassword(
+	const PString& alias,
+	PString& password
+	)
+{
+	if (m_sqlConn == NULL) {
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed: SQL connection not active"
+			);
+		return false;
+	}
+	
+	if (m_query.IsEmpty()) {
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed: Query string not configured"
+			);
+		return false;
+	}
+	
+	PStringArray params;
+	params += alias;
+	params += Toolkit::GKName();
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
+	if (result == NULL) {
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed: Timeout or fatal error"
+			);
+		return false;
+	}
+
+	if (result->IsValid()) {
+		PStringArray fields;
+		if (result->GetNumRows() < 1)
+			PTRACE(4, GetName() << "\tPassword not found for alias '" << alias << '\'');
+		else if (result->GetNumFields() < 1)
+			PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
+		else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
+			PTRACE(4, GetName() << "\tPassword query for alias '" << alias 
+				<< "' failed: could not fetch the result row"
+				);
+		else {
+			password = fields[0];
+			delete result;
+			return true;
+		}
+	} else
+		PTRACE(2, GetName() << "\tPassword query for alias '" << alias 
+			<< "' failed (" << result->GetErrorCode() << "): "
+			<< result->GetErrorMessage()
+			);
+
+	delete result;
+	return false;
+}
+
+SQLAliasAuth::SQLAliasAuth(
+	const char* authName
+	)
+	: AliasAuth(authName), m_sqlConn(NULL), m_cache(NULL)
+{
+	const PString driverName = config->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(1, GetName() << "\tModule creation failed: no SQL driver selected");
+		return;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(1, GetName() << "\tModule creation failed: could not find " 
+			<< driverName << " database driver"
+			);
+		return;
+	}
+
+	m_cache = new CacheManager(config->GetInteger(authName, "CacheTimeout", 0));
+	
+	if (!m_sqlConn->Initialize(config, authName)) {
+		delete m_sqlConn;
+		m_sqlConn = NULL;
+		PTRACE(2, GetName() << "\tModule creation failed: could not connect to the database");
+		return;
+	}
+	
+	m_query = config->GetString(authName, "Query", "");
+	if (m_query.IsEmpty())
+		PTRACE(1, GetName() << "\tModule creation failed: no query configured");
+	else
+		PTRACE(4, GetName() << "\tConfigured query: " << m_query);
+}
+
+SQLAliasAuth::~SQLAliasAuth()
+{
+	delete m_sqlConn;
+	delete m_cache;
+}
+
+PString SQLAliasAuth::GetAuthConditionString(
+	const PString& alias
+	)
+{
+	PString authCondition;
+	
+	if (m_sqlConn == NULL) {
+		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+			<< "' failed: SQL connection not active"
+			);
+		return authCondition;
+	}
+	
+	if (m_query.IsEmpty()) {
+		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+			<< "' failed: Query string not configured"
+			);
+		return authCondition;
+	}
+	
+	if (m_cache == NULL || m_cache->Retrieve(alias, authCondition))
+		return authCondition;
+		
+	PStringArray params;
+	params += alias;
+	params += Toolkit::GKName();
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, &params);
+	if (result == NULL)
+		PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+			<< "' failed: Timeout or fatal error"
+			);
+	else {
+		if (result->IsValid()) {
+			PStringArray fields;
+			if (result->GetNumRows() < 1)
+				PTRACE(4, GetName() << "\tEntry not found for alias '" << alias << '\'');
+			else if (result->GetNumFields() < 1)
+				PTRACE(4, GetName() << "\tBad-formed query: no columns found in the result set");
+			else if ((!result->FetchRow(fields)) || fields.GetSize() < 1)
+				PTRACE(4, GetName() << "\tQuery for alias '" << alias 
+					<< "' failed: could not fetch the result row"
+					);
+			else {
+				authCondition = fields[0];
+				m_cache->Save(alias, authCondition);
+			}
+		} else
+			PTRACE(2, GetName() << "\tQuery for alias '" << alias 
+				<< "' failed (" << result->GetErrorCode() << "): "
+				<< result->GetErrorMessage()
+				);
+		delete result;
+	}
+	return authCondition;
+}
+
+/*
 #if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
 
 // class ExternalPasswordAuth
@@ -840,6 +1309,7 @@ bool ExternalPasswordAuth::GetPassword(const PString & id, PString & passwd)
 }
 
 #endif // class ExternalPasswordAuth
+*/
 
 static const char* const prfflag="prf:";
 static const char* const allowflag="allow";
@@ -1422,11 +1892,15 @@ namespace { // anonymous namespace
 	GkAuthCreator<AliasAuth> AliasAuthCreator("AliasAuth");
 	GkAuthCreator<PrefixAuth> PrefixAuthCreator("PrefixAuth");
 
-#ifdef HAS_MYSQL
+	GkAuthCreator<SQLPasswordAuth> SQLPasswordAuthCreator("SQLPasswordAuth");
+	GkAuthCreator<SQLAliasAuth> SQLAliasAuthCreator("SQLAliasAuth");
+#if HAS_MYSQL
 	GkAuthCreator<MySQLPasswordAuth> MySQLPasswordAuthCreator("MySQLPasswordAuth");
 	GkAuthCreator<MySQLAliasAuth> MySQLAliasAuthCreator("MySQLAliasAuth");
 #endif
+/*
 #if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
 	GkAuthCreator<ExternalPasswordAuth> ExternalPasswordAuthCreator("ExternalPasswordAuth");
 #endif
+*/
 } // end of anonymous namespace

@@ -358,7 +358,7 @@ fi
 
 if test "x$mysql" != "xno"; then
 	HAS_MYSQL=1
-	SOURCES="$SOURCES mysqlcon.cxx"
+	SOURCES="$SOURCES gksql_mysql.cxx"
 	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
 	LDFLAGS="$MYSQL_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$MYSQL_LIBS $ENDLDLIBS"
@@ -368,6 +368,120 @@ else
 	HAS_MYSQL=0
 fi
 AC_SUBST(HAS_MYSQL)
+
+dnl #########################################################################
+dnl  Check for PostgreSQL
+dnl ########################################################################
+AC_ARG_ENABLE(pgsql, 
+[  --enable-pgsql                enable PostgreSQL support (default=yes)], 
+[ pgsql="${enableval}" ], [ pgsql="yes" ]
+)
+
+AC_ARG_WITH(pgsql-include-dir,
+[  --with-pgsql-include-dir=DIR  directory where the PostgreSQL includes may be found ],
+[ pgsql_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(pgsql-lib-dir,
+[  --with-pgsql-lib-dir=DIR      directory where the PostgreSQL libraries may be found ],
+[ pgsql_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(pgsql-dir,
+[  --with-pgsql-dir=DIR          base directory where PostgreSQL is installed ],
+[ pgsql_lib_dir="$withval/lib"
+  pgsql_include_dir="$withval/include"
+]
+)
+
+if test "x${pgsql}" != "xno"; then
+
+	AC_MSG_CHECKING([for libpq-fe.h])
+
+	AC_TRY_COMPILE([#include <libpq-fe.h>], [int a = 1;],
+		PGSQL_INCLUDE=" ",
+		PGSQL_INCLUDE=
+	)
+
+	if test "x$PGSQL_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/include/pgsql /usr/local/include/pgsql /usr/local/pgsql/include $pgsql_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				AC_TRY_COMPILE([#include <libpq-fe.h>], [int a = 1;],
+					PGSQL_INCLUDE="-I$try",
+					PGSQL_INCLUDE=
+				)
+				if test "x$PGSQL_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$PGSQL_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([pgsql headers not found. Use --with-pgsql-include-dir=<path>])
+		pgsql="no"
+	else
+		sql_pgsql_cflags="${sql_pgsql_cflags} ${PGSQL_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for PQconnectdb in -lpq])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/local/lib /usr/local/pgsql/lib $pgsql_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS -L$try -lpq -lcrypt ${PGSQL_LIBS}"
+				AC_TRY_LINK([extern char PQconnectdb();], [PQconnectdb],
+					[ PGSQL_LIBS="-lpq -lcrypt ${PGSQL_LIBS}"
+					  PGSQL_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$PGSQL_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		dnl #  If one or the other isn't found, disable them both..
+		dnl #  If both are found, enable them both.
+		if test "x$PGSQL_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			PGSQL_INCLUDE=
+			AC_MSG_WARN([pgsql lib not found. Use --with-pgsql-lib-dir=<path>])
+			pgsql="no"
+		else
+			AC_MSG_RESULT(yes) 
+			sql_pgsql_ldflags="$sql_pgsql_ldflags $PGSQL_LDFLAGS"
+		fi
+	fi
+
+	sql_pgsql_ldflags="$sql_pgsql_ldflags $LIBS"
+
+	if test "x$pgsql" = "xno"; then
+		AC_MSG_WARN([PostgreSQL disabled])
+	fi
+else
+	pgsql="no"
+fi
+
+if test "x$pgsql" != "xno"; then
+	HAS_PGSQL=1
+	SOURCES="$SOURCES gksql_pgsql.cxx"
+	STDCCFLAGS="${sql_pgsql_cflags} -DHAS_PGSQL=1 $STDCCFLAGS"
+	LDFLAGS="$PGSQL_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$PGSQL_LIBS $ENDLDLIBS"
+    echo "PostgreSQL support enabled"
+else
+    echo "PostgreSQL support disabled"
+	HAS_PGSQL=0
+fi
+AC_SUBST(HAS_PGSQL)
 
 dnl ########################################################################
 dnl make directives

@@ -126,7 +126,15 @@ SOURCE=.\main.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\mysqlcon.cxx
+SOURCE=.\gksql.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\gksql_mysql.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\gksql_pgsql.cxx
 # End Source File
 # Begin Source File
 
@@ -226,7 +234,15 @@ SOURCE=.\job.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\mysqlcon.h
+SOURCE=.\gksql.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gksql_mysql.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gksql_pgsql.h
 # End Source File
 # Begin Source File
 

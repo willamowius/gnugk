@@ -110,6 +110,152 @@ using <tt/gnugk/ as name for executables.
 
 <sect1>Features
 <p>
+The version 2.2beta4 contains the following new features and bugfixes:
+
+<itemize>
+<item>
+Support for <tt/ExternalPasswordAuth/ module finally removed (although
+the source code is only commented out for those who need this module).
+
+<item>
+SQL engine rewritten completelly to use a concept of SQL driver.
+New modules SQLPasswordAuth and SQLAliasAuth added. MySQL and PostgreSQL
+drivers implemented. Backward compatibility (MySQLAliasAuth and MySQLPasswordAuth) 
+is maintained.
+
+<item>
+Per gateway E.164 rewriting of dialedDigits in addition 
+to the global E.164 rewriting. Thanks to Ian Campbell!
+
+<item>
+A sample SQL/RADIUS billing example has been added to the contrib directory
+
+<item>
+A new config parameter ScreenSourceAddress introduced 
+to screen calling party aliases present in the UUIE Setup element
+
+<item>
+Q.931 Setup authentication added to RadAuth module to allow
+authentication based on crypto tokens carried inside Setup messages
+
+<item>
+Log rotation added
+
+<item>
+Applied the concept of output trace levels for the status interface. 
+It allows to select amount of information a status client receives
+(level 0 - silent mode + reloads; level 1 - CDRs, RouteRequests, reloads;
+level 2 - everything: the default mode)
+
+<item>
+The GNU Gatekeeper Service for Windows contributed by Franz J Ehrengruber
+
+<item>
+Makefile to force users running configure script before the compilation
+
+<item>
+Better LOG_OFF Windows event handling to prevent gatekeeper shutdown
+when the user logs out
+
+<item>
+Fixed SimplePasswordAuth module to read settings from 
+<tt/SimplePasswordAuth/ section instead of <tt/Password/ section. 
+Fixed MySQLPasswordAuth module to accept CacheTimeout parameter.
+Default CacheTimeout for MySQLPasswordAuth and MySQLAliasAuth set to 0
+(do not cache passwords/aliases at all).
+
+<item>
+RTP proxy fixed to (usually) not require RTCP channel and work better 
+with T.38 faxes
+
+<item>
+Treat MCUs as gateways and allow MCUs to register prefixes
+
+<item>
+Fixed referencing to a temporary PString object after it is destroyed
+when logging routing policy information
+
+</itemize>
+
+<p>
+The version 2.2beta3 contains the following new features and bugfixes:
+<itemize>
+<item>
+The config variable VirtualQueue has been renamed to VirtualQueueAliases 
+(backward compatibility is maintained)
+
+<item>
+New VirtualQueuePrefixes and VirtualQueueRegex config variables introduced
+
+<item>
+Handling of multiple accounting modules has changed (new "alternative" control type added)
+
+<item>
+PostgreSQL authenticator modules have been added to the contrib directory
+
+<item>
+Q.931/H.225 Setup authentication (RadAliasAuth module implementation) added
+
+<item>
+<bf/addpasswd/ utility changed to require section name 
+where the encrypted username/password will be stored
+
+<item>
+Fixed NULL reference in CallRec::SetSocket - caused crash in ForwardCall. Thanks to kubuqui cn!
+
+<item>
+Fixed invalid signed/unsigned conversions in RADIUS modules that caused
+some functions to return unexpected results under certain circumstances
+
+</itemize>
+
+<p>
+The version 2.2beta2 contains the following new features and bugfixes:
+<itemize>
+<item>
+configure script to detect and control system settings and the compilation
+
+<item>
+RADIUS auth/acct modules ported from 2.0 and optimized
+
+<item>
+Plain text CDR accounting logger module (FileAcct) from Tamas Jalsovszky
+
+<item>
+Added "run as user" feature
+
+<item>
+New CTI virtual queues implementation from Chih-Wei Huang
+
+<item>
+Status line improvements (command expansion, repeat last command,
+backspace handling for windows) from Hu Yuxin
+
+</itemize>
+
+<p>
+The version 2.2beta1 contains the following new features:
+<itemize>
+<item>
+A new method to detect NATed endpoints
+
+<item>
+Configurable, flexible routing policies
+
+<item>
+New neighboring system
+
+<item>
+Multithreaded RAS server
+
+<item>
+Support for multiple MySQL servers, MySQL can now be compiled on Windows
+</itemize>
+
+<p>
+The version 2.0.6 has became a base for the new 2.2 gatekeeper version.
+
+<p>
 The version 2.0.6 is a bugfix release, plus the following enchancements:
 <itemize>
 <item>
@@ -1918,7 +2064,7 @@ There are also three ways to control a rule:
 
 Currently supported modules:
 <itemize>
-<item><tt>SimplePasswordAuth/MySQLPasswordAuth/LDAPPasswordAuth/ExternalPasswordAuth</tt>
+<item><tt>SimplePasswordAuth/SQLPasswordAuth/LDAPPasswordAuth</tt>
 <p>
 These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
 The tokens should contain at least generalID and password.
@@ -1927,21 +2073,22 @@ For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
 are supported now. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
 and a clear text username/password are supported now.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
-MySQL database, LDAP or an external program
-for <tt/SimplePasswordAuth/, <tt/MySQLPasswordAuth/, <tt/LDAPPasswordAuth/
-and <tt/ExternalPasswordAuth/ modules, respectively.
-Support for other backend databases is easy to add.
+an SQL database or LDAP
+for <tt/SimplePasswordAuth/, <tt/SQLPasswordAuth/ and <tt/LDAPPasswordAuth/
+modules, respectively. <tt/MySQLPasswordAuth/
+module is supported for backward compatibility.
 
-<item><tt>AliasAuth/MySQLAliasAuth/LDAPAliasAuth</tt>
+<item><tt>AliasAuth/SQLAliasAuth/LDAPAliasAuth</tt>
 <p>
 The module can only be used to authenticate RegistrationRequest (RRQ).
 The IP of an endpoint with a given alias should match a specified pattern.
 For <tt/AliasAuth/ the pattern is defined in
 <ref id="rrqauth" name="[RasSrv::RRQAuth]"> section.
-For <tt/MySQLAliasAuth/, the pattern is retrieved from MySQL database, defined in
-<ref id="mysqlaliasauth" name="[MySQLAliasAuth]"> section.
+For <tt/SQLAliasAuth/, the pattern is retrieved from an SQL database, 
+defined in <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
 For <tt/LDAPAliasAuth/ the alias (default: mail attribute) and IP
 (default: voIPIpAddress attribute) must be found in one LDAP entry.
+Support for <tt/MySQLAliasAuth/ is maintained for backward compatibility.
 
 <item><tt>PrefixAuth</tt>
 <p>
@@ -2025,9 +2172,84 @@ authenticated password. This field define the cache timeout value in second.
 means the cache never expires.
 </itemize>
 
+<sect2>Section &lsqb;SQLPasswordAuth&rsqb;
+<label id="sqlpasswordauth">
+<p>
+Authenticate H.235 enabled endpoints using passwords stored
+in the SQL database. This section defines SQL driver to use,
+SQL database connection parameters and the query to use to retrieve passwords.
+
+<itemize>
+<item><tt/Driver=MySQL | PostgreSQL/<newline>
+Default: N/A
+<p>
+SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+are implemented.
+
+<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+Default: <tt/localhost/
+<p>
+SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
+Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+Multiple hosts, separated by the semicolon, may be specified to support failover.
+
+<item><tt/Database=billing/<newline>
+Default: <tt/billing/
+<p>
+The database name to connect to.
+
+<item><tt/Username=gnugk/<newline>
+<p>
+The username used to connect to the database.
+
+<item><tt/Password=secret/<newline>
+<p>
+The password used to connect to the database.
+If the password is not specified, a database connection attempt 
+without any password will be made.
+
+<item><tt/CacheTimeout=120/<newline>
+Default: <tt/0/
+<p>
+This field defines how long (alias;password) pairs retrieved from the database 
+will be cached in the local memory. The cache timeout value is expressed in seconds.
+<tt/0/ means to not cache passwords, while a negative value
+means the cache never expires (only <tt/reload/ command will refresh the cache).
+
+<item><tt/MinPoolSize=5/<newline>
+Default: <tt/1/
+<p>
+Define the number of active SQL connections. This allows better peformance
+under heave load, because more than 1 concurrent query can be executed 
+at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour, 
+when access to the SQL database is serialized (one query at time).
+
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Defines SQL query used to retrieve H.235 password from the database. The query
+is parametrized - that means parameter replacement is made before each query
+is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
+Specify %% to embed a percent character before a digit into string (like <bf/%%1/),
+specify <bf/%{1}/ to allow expansion inside complex expressions like <bf/%{1}123/.
+For <tt/SQLPasswordAuth/ two parameters are defined:
+<itemize>
+<item><tt/%1/ - the actual alias to query the password for
+<item><tt/%2/ - the gatekeeper identifier
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+SELECT h235password FROM users WHERE alias = '%1' AND active
+SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
+</verb></tscreen>
+
+</itemize>
+
 <sect2>Section &lsqb;MySQLPasswordAuth&rsqb;
 <p>
 Define the MySQL database, table and fileds to retrieve the userid and password.
+This is obsolete, use <ref id="sqlpasswordauth" name="[SQLPasswordAuth]"> instead.
 
 <itemize>
 <item><tt/Host=localhost/<newline>
@@ -2082,20 +2304,6 @@ The SQL command will be issused:
 SELECT $DataField FROM $Table WHERE $KeyField = %id [AND $ExtraCriterion]
 </verb></tscreen>
 
-<sect2>Section &lsqb;ExternalPasswordAuth&rsqb;
-<p>
-Specify an external program to retrieve the password.
-The program should accept ID from stdin and print the password to stdout.
-You can use this mechanism to integrate almost any external system for authentication.
-But beware, this is not the fastest way to authenticate. <tt/This module is depreceated/.
-
-<itemize>
-<item><tt>PasswordProgram=/usr/local/bin/getpasswd</tt><newline>
-Default: <tt>N/A</tt>
-<p>
-The executable of the external program.
-</itemize>
-
 <sect2>Section &lsqb;RasSrv::RRQAuth&rsqb;
 <label id="rrqauth">
 <p>
@@ -2143,10 +2351,87 @@ sigip:192.168.242.165:1720
 
 </itemize>
 
+<sect2>Section &lsqb;SQLAliasAuth&rsqb;
+<label id="sqlaliasauth">
+<p>
+Authenticate endpoints using rules stored in the SQL database
+(the rules conform to the format defined in the <ref id="rrqauth" name="[RasSrv::RRQAuth]"> section). 
+This section defines SQL driver to use, SQL database connection parameters 
+and the query to use to retrieve the patterns.
+
+<itemize>
+<item><tt/Driver=MySQL | PostgreSQL/<newline>
+Default: N/A
+<p>
+SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+are implemented.
+
+<item><tt/Host=DNS[:PORT] | IP[:PORT][;DNS[:PORT] | IP[:PORT]].../<newline>
+Default: <tt/localhost/
+<p>
+SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
+Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+Multiple hosts, separated by the semicolon, may be specified to support failover.
+
+<item><tt/Database=billing/<newline>
+Default: <tt/billing/
+<p>
+The database name to connect to.
+
+<item><tt/Username=gnugk/<newline>
+<p>
+The username used to connect to the database.
+
+<item><tt/Password=secret/<newline>
+<p>
+The password used to connect to the database.
+If the password is not specified, a database connection attempt 
+without any password will be made.
+
+<item><tt/CacheTimeout=120/<newline>
+Default: <tt/0/
+<p>
+This field defines how long (alias;authrule) pairs retrieved from the database 
+will be cached in the local memory. The cache timeout value is expressed in seconds.
+<tt/0/ means to not cache rules, while a negative value
+means the cache never expires (only <tt/reload/ command will refresh the cache).
+
+<item><tt/MinPoolSize=5/<newline>
+Default: <tt/1/
+<p>
+Define the number of active SQL connections. This allows better peformance
+under heave load, because more than 1 concurrent query can be executed 
+at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour, 
+when access to the SQL database is serialized (one query at time).
+
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt>
+<p>
+Defines SQL query used to retrieve alias rule from the database. The query
+is parametrized - that means parameter replacement is made before each query
+is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
+Specify %% to embed a percent character before a digit into string (like <bf/%%1/),
+specify <bf/%{1}/ to allow expansion inside complex expressions like <bf/%{1}123/.
+For <tt/SQLAliasAuth/ two parameters are defined:
+<itemize>
+<item><tt/%1/ - the actual alias to query the rule for
+<item><tt/%2/ - the gatekeeper identifier
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+SELECT authrule FROM users WHERE alias = '%1' AND active
+SELECT 'sigip:' || host(ip) || port FROM users WHERE alias = '%1'
+</verb></tscreen>
+
+</itemize>
+
 <sect2>Section &lsqb;MySQLAliasAuth&rsqb;
 <label id="mysqlaliasauth">
 <p>
 Define the MySQL database, table and fileds to retrieve a pattern for an alias.
+This section is OBSOLETE and provided only for backward compatibility. Please
+use <ref id="sqlaliasauth" name="[SQLAliasAuth]"> instead.
 
 <itemize>
 <item><tt/Host=localhost/<newline>

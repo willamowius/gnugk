@@ -26,12 +26,34 @@
 #include <ptlib.h>
 #endif
 
-class NamedObject {
+class NamedObject 
+{
 public:
-	void SetName(const char *n) { m_name = n; }
-	const PString & GetName() const { return m_name; }
+	/// build a named with the given name (or with an empty name)
+	NamedObject(
+		/// name to set for the object
+		const char* name = NULL
+		) : m_name(name) {}
+
+	/** Set new name for the object.
+		Not really thread safe (another thread may call GetName in the same time),
+		so it should be used with care.
+	*/
+	void SetName(
+		/// name to set for the object
+		const char* name
+		) 
+	{ 
+		m_name = name; 
+	}
+	
+	/** @return
+		Name for this object.
+	*/
+	const PString& GetName() const { return m_name; }
 
 private:
+	/// object name
 	PString m_name;
 };
 
@@ -47,7 +69,11 @@ private:
 #else
 
 struct NamedObject {
-	void SetName(const char *) {}
+	NamedObject(
+		/// name to set for the object
+		const char* name = NULL
+		) {}
+	void SetName(const char*) {}
 };
 
 struct CNamedObject {

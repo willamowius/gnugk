@@ -405,8 +405,8 @@ protected:
 		long newTimeout
 		)
 	{
-		if (cache)
-			cache->SetTimeout(newTimeout);
+		if (m_cache)
+			m_cache->SetTimeout(newTimeout);
 	}
 	
 private:
@@ -417,7 +417,7 @@ private:
 	/// if true, generalID has to be also in the endpoint alias list
 	bool checkid;
 	/// cache for username/password pairs
-	CacheManager *cache;
+	CacheManager* m_cache;
 };
 
 

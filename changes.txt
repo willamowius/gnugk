@@ -1,5 +1,10 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (gkauth.cxx) depreciated ExternalPasswordAuth finally removed
+- SQL engine rewritten completelly to use a concept of SQL driver.
+  New modules SQLPasswordAuth and SQLAliasAuth added. MySQL and PostgreSQL
+  drivers implemented. Funded by Doxum Technologies Inc.
+  Backward compatibility (MySQLAliasAuth and MySQLPasswordAuth) maintained.
 - BUGFIX(Routing.h) fixed referencing to a temporary PString object
   after it is destroyed
 - better LOG_OFF Windows event handling to prevent gatekeeper shutdown
