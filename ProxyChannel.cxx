@@ -881,13 +881,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 
 
 	// NB: Rewriting Number!
-	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
-		unsigned plan, type;
-		PString calledNumber;
-		if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type) &&
-		    Toolkit::Instance()->RewritePString(calledNumber))
-			q931pdu.SetCalledPartyNumber(calledNumber, plan, type);
-	}
+// 	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
+// 		unsigned plan, type;
+// 		PString calledNumber;
+// 		if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type) &&
+// 		    Toolkit::Instance()->RewritePString(calledNumber))
+// 			q931pdu.SetCalledPartyNumber(calledNumber, plan, type);
+// 	}
 /*
 	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
 		PBYTEArray n_array = q931pdu.GetIE(Q931::CalledPartyNumberIE);
@@ -1698,6 +1698,7 @@ BOOL CallSignalSocket::CgPNConversion() {
 	// Check if CallingPartyNumber is provided.
 	if (GetSetupPDU()->GetCallingPartyNumber(CallingPartyNumber, &CallingPLAN, &CallingTON, &CallingPI,&CallingSI)) {
 		// Convert CallingPartyNumber to international Format.
+		PTRACE(5, "CgPNConversion read CallingPartyNumber: " << CallingPartyNumber << " with TON: " << CallingTON << " preparing to change: " << cgpf.TreatCallingPartyNumberAs());
 		CallingTON=((cgpf.TreatCallingPartyNumberAs()==CallProfile::LeaveUntouched) ? CallingTON : cgpf.TreatCallingPartyNumberAs());
 		ConvertNumberInternational(CallingPartyNumber, CallingPLAN, CallingTON, CallingSI, cgpf);
 		PTRACE(5, "CgPNConversion converted CallingPartyNumber to int: " << CallingPartyNumber << " with TON: " << CallingTON);
