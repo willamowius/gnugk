@@ -56,12 +56,9 @@ MySQLConnection::~MySQLConnection()
 
 bool MySQLConnection::Query(const PString & id, Result & result)
 {
+	PString sqlcmd = GetSelectClause(id);
 	PWaitAndSignal lock(m_mutex);
-	if (m_connection || Init()) {
-		PString sqlcmd = GetSelectClause(id);
-		return result.Store(m_connection, sqlcmd);
-	}
-	return false;
+	return (m_connection || Init()) && result.Store(m_connection, sqlcmd);
 }
 
 bool MySQLConnection::Query(const PString & id, PStringArray & result)
