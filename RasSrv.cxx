@@ -1038,7 +1038,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 		// 
 
 		// hack for Netmeeting 3.0x
-		unsigned bw = (obj_arq.m_bandWidth.GetValue() < 100) ? 1280u : obj_arq.m_bandWidth.GetValue();
+		int bw = (obj_arq.m_bandWidth.GetValue() < 100) ? 1280 : obj_arq.m_bandWidth.GetValue();
 		BWRequest = std::min(bw, CallTbl->GetAvailableBW());
 		PTRACE(3, "GK\tARQ will request bandwith of " << BWRequest);
 		
