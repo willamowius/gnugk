@@ -99,7 +99,7 @@ private:
 
 class LogicalChannel {
 public:
-	LogicalChannel(WORD flcn) : channelNumber(flcn), used(false) {}
+	LogicalChannel(WORD flcn = 0) : channelNumber(flcn), used(false) {}
 	virtual ~LogicalChannel() {}
 
 	bool IsUsed() const { return used; }
@@ -134,7 +134,8 @@ public:
 	class NoPortAvailable {};
 
 private:
-	RTPLogicalChannel *reversed;
+	bool reversed;
+	RTPLogicalChannel *peer;
 	UDPProxySocket *rtp, *rtcp;
 	PIPSocket::Address SrcIP;
 	WORD SrcPort;
@@ -1009,9 +1010,8 @@ const WORD RTPPortUpperLimit = 60000u;
 WORD RTPLogicalChannel::portNumber = RTPPortUpperLimit;
 PMutex RTPLogicalChannel::mutex;
 
-RTPLogicalChannel::RTPLogicalChannel(WORD flcn) : LogicalChannel(flcn)
+RTPLogicalChannel::RTPLogicalChannel(WORD flcn) : LogicalChannel(flcn), reversed(false), peer(0)
 {
-	reversed = 0;
 	rtp = new UDPProxySocket("RTP");
 	rtcp = new UDPProxySocket("RTCP");
 
@@ -1032,16 +1032,19 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn) : LogicalChannel(flcn)
 	throw NoPortAvailable();
 }
 
-RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn) : LogicalChannel(flcn)
+RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn)
 {
 	memcpy(this, flc, sizeof(RTPLogicalChannel)); // bitwise copy :)
-	reversed = flc;
-	channelNumber = flcn;
+	reversed = !flc->reversed;
+	peer = flc, flc->peer = this;
+	SetChannelNumber(flcn);
 }
 
 RTPLogicalChannel::~RTPLogicalChannel()
 {
-	if (!reversed) {
+	if (peer) {
+		peer->peer = 0;
+	} else {
 		if (used) {
 			// the sockets will be deleted by ProxyHandler,
 			// so we don't need to delete it here
@@ -1121,12 +1124,12 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 
 void RTPLogicalChannel::StartReading(ProxyHandleThread *handler)
 {
-	if (reversed) {
-		reversed->StartReading(handler);
-	} else if (!used) {
+	if (!used) {
 		handler->InsertLC(rtp);
 		handler->InsertLC(rtcp);
 		used = true;
+		if (peer)
+			peer->used = true;
 	}
 }
 
