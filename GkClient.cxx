@@ -328,8 +328,10 @@ void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callpt
 
 	arq.m_callReferenceValue = crv;
 	arq.m_conferenceID = setup.m_conferenceID;
-	if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier))
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_callIdentifier);
+		arq.m_callIdentifier = setup.m_callIdentifier;
+	}
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		arq.m_srcInfo = setup.m_sourceAddress;
 	} else {
