@@ -1180,10 +1180,11 @@ PString CallRec::GenerateCDR() const
 
 PString CallRec::PrintOn(bool verbose) const
 {
-	int left = (m_timeout > 0 ) ? m_timeout - (PTime() - m_timer).GetSeconds() : 0;
+	int time = (PTime() - m_timer).GetSeconds();
+	int left = (m_timeout > 0 ) ? m_timeout - time : 0;
 	PString result(PString::Printf,
-		"Call No. %d | CallID %s | %d\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
-		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), left,
+		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
+		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), time, left,
 		(const char *)m_destInfo,
 		(const char *)GetEPString(m_Calling), m_callingCRV,
 		(const char *)GetEPString(m_Called), m_calledCRV
