@@ -59,6 +59,7 @@ compose1(const _Operation1& __op1, const _Operation2& __op2)
 
 
 #ifdef WIN32
+#if (_MSC_VER <= 1200)
 // VC++ didn't define these
 template <class _Ret, class _Tp>
 class const_mem_fun_t : public unary_function<const _Tp*,_Ret> {
@@ -121,7 +122,6 @@ template <class _Ret, class _Tp, class _Arg>
 inline const_mem_fun1_ref_t<_Ret,_Tp,_Arg> mem_fun_ref(_Ret (_Tp::*__f)(_Arg) const)
   { return const_mem_fun1_ref_t<_Ret,_Tp,_Arg>(__f); }
 
-
 #ifdef min
 #undef min
 #endif
@@ -141,7 +141,14 @@ inline const _Tp& max(const _Tp& __a, const _Tp& __b)
 {
   return  __a < __b ? __b : __a;
 }
-
+#else
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+#endif
 #endif
 
 } // end of namespace std
