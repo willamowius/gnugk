@@ -131,6 +131,7 @@ void Toolkit::ProxyCriterion::ClearTable()
 {
 	size = 0;
 	delete [] network;
+	network = 0;
 }
 
 bool Toolkit::ProxyCriterion::Required(Address ip1, Address ip2) const
