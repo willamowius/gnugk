@@ -256,6 +256,16 @@ default=allow
 #(id=cwhuang, password=123456)
 #cwhuang=UGwUtpy837k=
 
+[MySQLAuth]
+#Host=localhost
+#Database=billing
+#User=cwhuang
+#Password=123456
+#Table=customer
+#IDField=IPN
+#PasswordField=Password
+#CheckEnableField=Active
+
 [CallTable]
 #GenerateNBCDR=TRUE
 #GenerateUCCDR=TRUE

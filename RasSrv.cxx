@@ -600,9 +600,9 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			bShellForwardRequest = FALSE;
 		}
 
-	if (obj_rr.m_callSignalAddress.GetSize() >= 1)
+	if (obj_rr.m_callSignalAddress.GetSize() >= 1) {
 		SignalAdr = obj_rr.m_callSignalAddress[0];
-	else {
+	} else {
 		bReject = TRUE;
 		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
 	}
@@ -613,7 +613,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	{
 		endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 		// check if the RRQ was sent from the registered endpoint
-		if (ep && ep == EndpointTable->FindBySignalAdr(SignalAdr)) {
+		if (ep && ep->GetCallSignalAddress() == SignalAdr) {
 			// endpoint was already registered
 			obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
 			H225_RegistrationConfirm & rcf = obj_rpl;
@@ -644,10 +644,13 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 
-	if (!bReject && obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) && EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier)) {
-		bReject = TRUE;
-		// no reason named invalidEndpointIdentifier? :(
-		rejectReason.SetTag(H225_RegistrationRejectReason::e_securityDenial);
+	if (!bReject && obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
+		endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
+		if (ep && ep->GetCallSignalAddress() != SignalAdr) {
+			bReject = TRUE;
+			// no reason named invalidEndpointIdentifier? :(
+			rejectReason.SetTag(H225_RegistrationRejectReason::e_securityDenial);
+		}
 	}
 	
 	if (!bReject) {

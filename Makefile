@@ -5,9 +5,11 @@
 #
 
 PROG		= gk
-SOURCES		= gk.cxx gkauth.cxx RasSrv.cxx RasTbl.cxx MulticastGRQ.cxx SignalChannel.cxx \
-				SignalConnection.cxx GkStatus.cxx BroadcastListen.cxx \
-				SoftPBX.cxx h323util.cxx Toolkit.cxx singleton.cxx main.cxx
+SOURCES		= gk.cxx gkauth.cxx RasSrv.cxx RasTbl.cxx \
+		  MulticastGRQ.cxx BroadcastListen.cxx \
+		  SignalChannel.cxx SignalConnection.cxx \
+		  GkStatus.cxx SoftPBX.cxx Toolkit.cxx h323util.cxx \
+		  singleton.cxx main.cxx
 
 ifndef OPENH323DIR
 OPENH323DIR=$(HOME)/openh323
@@ -20,11 +22,31 @@ H323_LIB	= h323_$(PLATFORM_TYPE)_$(OBJ_SUFFIX)
 LDFLAGS		= -L$(H323_LIBDIR)
 LDLIBS		= -l$(H323_LIB)
 
-STDCCFLAGS := -I${H323_INCDIR} -DPTRACING  #-DPASN_NOPRINT
+STDCCFLAGS := -I${H323_INCDIR} -DPTRACING#-DPASN_NOPRINT
+
+
+# MySQL support
+ifndef MYSQLDIR
+
+ifneq (,$(wildcard /usr/include/mysql))
+MYSQLDIR := /usr/include/mysql
+export MYSQLDIR
+endif
+
+endif
+
+ifdef MYSQLDIR
+ifneq (,$(wildcard $(MYSQLDIR)))
+STDCCFLAGS	+= -DHAS_MYSQL -I$(MYSQLDIR)
+#LDFLAGS	+= -L$(MYSQLDIR)/lib
+ENDLDLIBS	+= -lsqlplus
+HAS_MYSQL	= 1
+endif
+endif
 
 
 ifndef PWLIBDIR
-	PWLIBDIR=$(HOME)/pwlib
+PWLIBDIR=$(HOME)/pwlib
 endif
 
 include $(PWLIBDIR)/make/ptlib.mak

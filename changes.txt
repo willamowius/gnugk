@@ -1,5 +1,8 @@
 Changes from 1.1 to now (by cwhuang)
 ========================================
+- add MySQLPasswordAuth, need mysql++ to compile it
+- show left time of calls in PrintCurrentCalls
+- add 'Statistics' command
 - Rewrite destinationAddress in H225_Setup_UUIE
 - fix a bug in Toolkit::RewritePString
 - send DRQ to endpoints when tear down a call, give up send Release Complete
@@ -9,11 +12,13 @@ Changes from 1.1 to now (by cwhuang)
 - fix 'connectionList returned NULL' bug in SignalChannel.cxx
 - modify SignalConnection::Send to more thread-safe
 - modify OnARQ to fix routed mode problem
+- show count of current calls of endpoints in PrintAllRegistrationsVerbose
 - add 'Find' and 'FindVerbose' commands
+- check endpoint identifier for fullRegistrationRRQ
 - fix a (security) bug in lightweightRRQ
 - add startup and running time to 'Version' command
 - change EndpointRec::m_terminalType to be a pointer to reduce memory
-  consumed (H225_EndpointType is a very large object, size=2552 in x86)
+  consumed (sizeof H225_EndpointType = 2552 in x86)
 - send Release Complete to endpoints when tear down a call (routed mode)
 - disconnect calls of an endpoint on URQ
 - add DefaultCallTimeout to remove staled calls

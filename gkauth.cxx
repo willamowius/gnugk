@@ -16,6 +16,7 @@
 #include "stl_supp.h"
 #include "Toolkit.h"
 #include <h235auth.h>
+#include <h323pdu.h>
 #include <ptclib/cypher.h>
 
 #ifdef P_SOLARIS
@@ -54,8 +55,9 @@ protected:
 	virtual int Check(const H225_LocationRequest &, unsigned &);
 	virtual int Check(const H225_InfoRequest &, unsigned &);
 
-	virtual PString GetPassword(PString &) const;
+	virtual PString GetPassword(PString &);
 
+	virtual bool CheckAliases(const PString &);
 	virtual bool CheckTokens(const H225_ArrayOf_ClearToken &);
 	virtual bool CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token &);
 
@@ -70,29 +72,47 @@ protected:
 
 	map<PString, PString> passwdCache;
 	int filled;
+	bool checkid;
 
 private:
 	H235AuthSimpleMD5 authMD5;
 	PBYTEArray nullPDU;
+	const H225_ArrayOf_AliasAddress *aliases;
 };
 
 static GkAuthInit<SimplePasswordAuth> _SPA_("SimplePasswordAuth");
 
-class MysqlPasswordAuth : public SimplePasswordAuth {
+#ifdef HAS_MYSQL
+#define MYSQL_NO_SHORT_NAMES  // use long names
+#include <mysql++>
+
+class MySQLPasswordAuth : public SimplePasswordAuth {
 public:
-	MysqlPasswordAuth(PConfig *);
-// TODO
+	MySQLPasswordAuth(PConfig *, const char *);
+	~MySQLPasswordAuth();
+
+private:
+	virtual PString GetPassword(PString &);
+	bool MySQLInit();
+	void Cleanup();
+
+	MysqlConnection *connection;
+	MysqlQuery *query;
 };
+
+static GkAuthInit<MySQLPasswordAuth> _MPA_("MySQLPasswordAuth");
+
+#endif // HAS_MYSQL
 
 class LDAPAuth : public SimplePasswordAuth {
 public:
-	LDAPAuth(PConfig *);
+	LDAPAuth(PConfig *, const char *);
 // TODO
 };
 
 class RadiusAuth : public SimplePasswordAuth {
 public:
-	RadiusAuth(PConfig *);
+	RadiusAuth(PConfig *, const char *);
 // TODO
 };
 
@@ -201,7 +221,8 @@ int GkAuthenticator::Check(const H225_InfoRequest &, unsigned &)
 SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
       : GkAuthenticator(cfg, authName)
 {
-	filled = (config->GetString("Password", "KeyFilled", "0")).AsInteger();
+	filled = config->GetInteger("Password", "KeyFilled", 0);
+	checkid = Toolkit::AsBool(config->GetString("Password", "CkeckID", "0"));
 }
 
 int SimplePasswordAuth::Check(const H225_GatekeeperRequest & grq, unsigned &)
@@ -211,6 +232,11 @@ int SimplePasswordAuth::Check(const H225_GatekeeperRequest & grq, unsigned &)
 
 int SimplePasswordAuth::Check(const H225_RegistrationRequest & rrq, unsigned &)
 {
+	if (checkid) {
+		if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+			return e_fail;
+		aliases = &rrq.m_terminalAlias;
+	}
 	return doCheck(rrq);
 }
 
@@ -244,7 +270,7 @@ int SimplePasswordAuth::Check(const H225_InfoRequest & drq, unsigned &)
 	return doCheck(drq);
 }
 
-PString SimplePasswordAuth::GetPassword(PString & id) const
+PString SimplePasswordAuth::GetPassword(PString & id)
 {
 	PTEACypher::Key key;
 	memset(&key, filled, sizeof(PTEACypher::Key));
@@ -253,13 +279,28 @@ PString SimplePasswordAuth::GetPassword(PString & id) const
 	return cypher.Decode(config->GetString("Password", id, ""));
 }
 
+bool SimplePasswordAuth::CheckAliases(const PString & id)
+{
+	bool r = false;
+	for (PINDEX i = 0; i < aliases->GetSize(); i++)
+		if (H323GetAliasAddressString((*aliases)[i]) == id) {
+			r = true;
+			break;
+		}
+	aliases = 0;
+	return r;
+}
+
 bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 {
 	for (PINDEX i=0; i < tokens.GetSize(); ++i) {
 		H235_ClearToken & token = tokens[i];
 		if (token.HasOptionalField(H235_ClearToken::e_generalID) &&
 		    token.HasOptionalField(H235_ClearToken::e_password)) {
-			PString id = token.m_generalID, passwd = token.m_password;
+			PString id = token.m_generalID;
+			if (checkid && aliases && !CheckAliases(id))
+				return false;
+			PString passwd = token.m_password;
 			iterator Iter = passwdCache.find(id);
 			if (Iter != passwdCache.end() && Iter->second == passwd) {
 				PTRACE(5, "GkAuth\t cache " << id << " found and match");
@@ -281,6 +322,8 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			PString id = AsString(pwdhash.m_alias, FALSE);
+			if (checkid && aliases && !CheckAliases(id))
+				return false;
 			iterator Iter = passwdCache.find(id);
 			PString passwd = (Iter == passwdCache.end()) ? GetPassword(id) : Iter->second;
 			authMD5.SetLocalId(id);
@@ -293,6 +336,89 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 		}
 	return false;
 }
+
+
+#ifdef HAS_MYSQL
+
+const char *mysqlsec = "MySQLAuth";
+
+// MysqlPasswordAuth
+MySQLPasswordAuth::MySQLPasswordAuth(PConfig *cfg, const char *authName)
+	: SimplePasswordAuth(cfg, authName), connection(0), query(0)
+{
+	MySQLInit();
+}
+
+MySQLPasswordAuth::~MySQLPasswordAuth()
+{
+	Cleanup();
+}
+
+void MySQLPasswordAuth::Cleanup()
+{
+	delete query;
+	query = 0;
+	delete connection;
+	connection = 0; // disable the authenticator
+}
+
+bool MySQLPasswordAuth::MySQLInit()
+{
+	try {
+		PString dbname = config->GetString(mysqlsec, "Database", "billing");
+		PString host = config->GetString(mysqlsec, "Host", "localhost");
+		PString user = config->GetString(mysqlsec, "User", "cwhuang");
+		PString passwd = config->GetString(mysqlsec, "Password", "123456");
+
+		PString table = config->GetString(mysqlsec, "Table", "customer");
+		PString id_field = config->GetString(mysqlsec, "IDField", "IPN");
+		PString passwd_field = config->GetString(mysqlsec, "PasswordField", "Password");
+		PString check_field = config->GetString(mysqlsec, "CheckEnableField", "");
+
+		connection = new MysqlConnection(mysql_use_exceptions);
+		connection->connect(dbname, host, user, passwd);
+
+		query = new MysqlQuery(connection, true);
+		PString selectString(PString::Printf,
+			"select %s from %s where %s = %%0:id",
+			(const char *)passwd_field,
+			(const char *)table,
+			(const char *)id_field
+		);
+		if (!check_field)
+			selectString += " and " + check_field + " = 1";
+		PTRACE(3, "MySQL\t" << selectString);
+
+		*query << selectString;
+		query->parse();
+		PTRACE(1, "MySQL\tReady for query");
+		return true;
+	} catch (MysqlBadQuery er) { // any error?
+		PTRACE(1, "MySQL\tError: " << er.error);
+		Cleanup();
+		return false;
+	}
+}
+
+PString MySQLPasswordAuth::GetPassword(PString & id)
+{
+	PString passwd;
+	if (connection || MySQLInit()) {
+		try {
+			MysqlRes res = query->store(SQLString(id));
+			if (!res.empty())
+				passwd = (*res.begin())[0].c_str();
+		} catch (MysqlBadQuery er) {
+			PTRACE(1, "MySQL\tBadQuery: " << er.error);
+			Cleanup();
+		} catch (MysqlBadConversion er) {
+			PTRACE(1,  "MySQL\tBadConversion: Tried to convert \"" << er.data << "\" to a \"" << er.type_name << "\".");
+		} 
+	}
+	return passwd;
+}
+
+#endif // HAS_MYSQL
 
 
 // AliasAuth

@@ -53,7 +53,7 @@ public:
 		e_PrintAllCached,
 		e_PrintCurrentCalls,
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
-		e_Find,
+		e_Find,                        /// find an endpoint
 		e_FindVerbose,
 		e_DisconnectIp,                /// disconnect a call by endpoint IP number
 		e_DisconnectAlias,             /// disconnect a call by endpoint alias
@@ -68,6 +68,7 @@ public:
 		e_Help,                        /// List all commands
 		e_Version,                     /// GkStatus Protocol Info
 		e_Debug,                       /// Debugging commands
+		e_Statistics,                  /// Show Statistics
 		e_Exit,                        /// Close Connection
 		e_Reload,                      /// Reload Config File
 		e_Shutdown,                    /// Shutdown the program

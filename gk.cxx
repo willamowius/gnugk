@@ -292,7 +292,7 @@ void Gatekeeper::PrintOpts(void)
 
 void Gatekeeper::HouseKeeping(void)
 {
-	for (int count=1; !ExitFlag; count++) {	
+	for (unsigned count=1; !ExitFlag; count++) {	
 
 		Sleep(1000);
 
@@ -302,6 +302,7 @@ void Gatekeeper::HouseKeeping(void)
 		if (!(count % 60)) // one minute
 			RegistrationTable::Instance()->CheckEndpoints();
 
+		CallTable::Instance()->CheckCalls();
 	}
 }
 

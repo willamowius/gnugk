@@ -24,6 +24,7 @@ namespace SoftPBX
 	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintRemoved(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
+	void PrintStatistics(GkStatus::Client &client, BOOL verbose=FALSE);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);
 	void DisconnectCall(PINDEX CallNumber);
@@ -33,6 +34,8 @@ namespace SoftPBX
 	void DisconnectEndpoint(const endptr &);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
+
+	PString Uptime();
 
 	extern int TimeToLive;
 	extern PTime StartUp;

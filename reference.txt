@@ -289,6 +289,14 @@ SimplePasswordAuth=required;RRQ,ARQ,LRQ
 
 B.14 Section [Password]
 
+KeyFilled=123           Default: 0
+
+Default value to initialize the encryption key.
+
+CkeckID=TRUE            Default: FALSE
+
+Check if the aliases match the ID in the tokens.
+
 B.15 Section [CallTable]
 
 GenerateNBCDR=FALSE	Default: TRUE
@@ -309,3 +317,35 @@ DefaultCallTimeout	Default: 0
 
 Default timeout value in seconds to tear down a call.
 Set it to 0 to disable this feature.
+
+B.16 Section [MySQLAuth]
+
+Host=localhost          Default: localhost
+
+Host name or IP of the MySQL server.
+
+Database=billing        Default: billing
+
+The database to connect.
+
+User=cwhuang
+Password=123456
+
+Isn't it clear?
+
+Table=customer
+
+The table in the database to query.
+
+IDField=IPN
+
+The field name of user id.
+
+PasswordField=Password
+
+The password field name.
+
+CheckEnableField=Active
+
+If this variable is set, the GK will check whether if
+the id is disable or not from the specified field.

@@ -149,7 +149,7 @@ public:
 	virtual PString PrintOn(bool verbose) const;
 
 	bool IsUsed() const;
-	bool IsUpdated() const;
+	bool IsUpdated(const PTime *) const;
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 
 	/** If this Endpoint would be register itself again with all the same data
@@ -265,12 +265,14 @@ public:
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool SearchOuterZone = true);
 
+	void ClearTable();
+	void CheckEndpoints();
+
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintRemoved(GkStatus::Client &client, BOOL verbose=FALSE);
 
-	void ClearTable();
-	void CheckEndpoints();
+	PString PrintStatistics() const;
 
 //	void PrintOn( ostream &strm ) const;
 
@@ -288,6 +290,7 @@ private:
 	endptr InternalInsertOZEP(H225_RasMessage & lcf);
 
 	void InternalPrint(GkStatus::Client &, BOOL, list<EndpointRec *> *, PString &);
+	void InternalStatistics(const list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g) const;
 
 	template<class F> endptr InternalFind(const F & FindObject) const
 	{ return InternalFind(FindObject, &EndpointList); }
@@ -369,7 +372,7 @@ public:
 	void StartTimer();
 	void StopTimer();
 
-	void Disconnect(bool = false); // Send ReleaseComplete?
+	void Disconnect(bool = false); // Send Release Complete?
 	void RemoveAll();
 
 	int CountEndpoints() const;
@@ -382,6 +385,7 @@ public:
 
 	bool IsUsed() const;
 	bool IsConnected() const;
+	bool IsTimeout(const PTime *) const;
 
 	PString GenerateCDR() const;
 	PString PrintOn(bool verbose) const;
@@ -396,8 +400,8 @@ private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, unsigned &, const endptr &, unsigned);
 
-	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
-//	void OnTimeout(PTimer &, INT);
+//	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
+	void OnTimeout();
 
 	H225_CallIdentifier m_callIdentifier;
 	H225_ConferenceIdentifier m_conferenceIdentifier;
@@ -410,8 +414,7 @@ private:
 	unsigned m_callingCRV;
 	unsigned m_calledCRV;
 
-	PTime *m_startTime;
-	PTimer *m_timer;
+	PTime *m_startTime, m_timer;
 	int m_timeout;
 
 	SignalConnection *m_sigConnection;
@@ -425,8 +428,6 @@ private:
 
 typedef CallRec::Ptr callptr;
 
-class Q931;
-
 // all active calls
 class CallTable : public Singleton<CallTable>
 {
@@ -438,21 +439,20 @@ public:
 	~CallTable();
 
 	void Insert(CallRec * NewRec);
-//	void Insert(const endptr & Calling, const endptr & Called, int Bandwidth, const H225_CallIdentifier & CallId, const H225_ConferenceIdentifier & ConfID, const PString& destInfo);
-//	void Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID, const PString& destInfo);
 
-//	callptr FindCallRec(const Q931 & m_q931) const;
 	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
 	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
 	callptr FindCallRec(PINDEX CallNumber) const;
 	callptr FindCallRec(const endptr &) const;
 	callptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
 
-//	void RemoveCall(const Q931 & m_q931);
+	void CheckCalls();
+
 	void RemoveCall(const H225_DisengageRequest & obj_drq);
 	void RemoveCall(const callptr &);
 
-	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE) const;
+	void PrintCurrentCalls(GkStatus::Client & client, BOOL verbose=FALSE) const;
+	PString PrintStatistics() const;
 
 	void LoadConfig();
 
@@ -469,17 +469,23 @@ private:
 	void InternalRemove(unsigned CallRef);
 	void InternalRemove(iterator);
 
+	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const;
+
 	static void delete_call(CallRec *c) { delete c; }
 
 	list<CallRec *> CallList;
 	list<CallRec *> RemovedList;
-//	set <CallRec> CallList;
 
 	bool m_genNBCDR;
 	bool m_genUCCDR;
 
 	PINDEX m_CallNumber;
 	mutable PReadWriteMutex listLock;
+
+	// statistics
+	unsigned m_CallCount;
+	unsigned m_successCall;
+	unsigned m_neighborCall;
 
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
@@ -492,9 +498,9 @@ inline bool EndpointRec::IsUsed() const
 	return (m_callCount > 0 || m_usedCount > 0);
 }
 
-inline bool EndpointRec::IsUpdated() const
+inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
-	return (!m_timeToLive || m_callCount > 0 || (PTime() - m_updatedTime) < (DWORD)m_timeToLive*1000);
+	return (!m_timeToLive || m_callCount > 0 || (*now - m_updatedTime) < (DWORD)m_timeToLive*1000);
 }
 
 inline void EndpointRec::AddCall()
@@ -589,7 +595,12 @@ inline bool CallRec::IsUsed() const
 inline bool CallRec::IsConnected() const
 {       
 	return (m_startTime != 0);
-}       
+}
+
+inline bool CallRec::IsTimeout(const PTime *now) const
+{       
+	return (m_timeout > 0 && ((*now - m_timer) > (DWORD)m_timeout*1000));
+}
 
 #endif
 

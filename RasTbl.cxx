@@ -22,7 +22,7 @@
 
 #include <time.h>
 #include <ptlib.h>
-#include "h323pdu.h"
+#include <h323pdu.h>
 #include "ANSI.h"
 #include "h323util.h"
 #include "Toolkit.h"
@@ -661,10 +661,10 @@ void RegistrationTable::PrintRemoved(GkStatus::Client &client, BOOL verbose)
 
 void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, list<EndpointRec *> * List, PString & msg)
 {
-	// copy the pointers into a temporary array to avoid a large lock
+	// copy the pointers into a temporary array to avoid large lock
 	listLock.StartRead();
 	const_iterator IterLast = List->end();
-	PINDEX k =0, s = List->size();
+	unsigned k =0, s = List->size();
 	endptr *eptr = new endptr[s];
 	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter)
 		eptr[k++] = endptr(*Iter);
@@ -677,9 +677,31 @@ void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, li
 		msg += "RCF|" + eptr[k]->PrintOn(verbose);
 	delete [] eptr;
 
-	msg += PString(PString::Printf, "Number of endpoints: %u\r\n;\r\n", s);
+	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", s);
 	client.WriteString(msg);
 	//PTRACE(2, msg);
+}
+
+void RegistrationTable::InternalStatistics(const list<EndpointRec *> *List, unsigned & s, unsigned & t, unsigned & g) const
+{
+	ReadLock lock(listLock);
+	s = List->size(), t = 0, g = 0;
+	const_iterator IterLast = List->end();
+	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter)
+		((*Iter)->IsGateway() ? g : t)++;
+}
+
+PString RegistrationTable::PrintStatistics() const
+{
+	unsigned es, et, eg;
+	InternalStatistics(&EndpointList, es, et, eg);
+	unsigned cs, ct, cg;
+	InternalStatistics(&OuterZoneList, cs, ct, cg);
+
+	return PString(PString::Printf, "-- Endpoint Statistics --\r\n"
+		"Total Endpoints: %u  Terminals: %u  Gateways: %u\r\n"
+		"Cached Endpoints: %u  Terminals: %u  Gateways: %u\r\n",
+		es, et, eg, cs, ct, cg);
 }
 
 namespace { // end of anonymous namespace
@@ -782,10 +804,11 @@ void RegistrationTable::ClearTable()
 
 void RegistrationTable::CheckEndpoints()
 {
+	PTime now;
 	WriteLock lock(listLock);
 
 	iterator Iter = partition(EndpointList.begin(), EndpointList.end(),
-			mem_fun(&EndpointRec::IsUpdated));
+			bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 #ifdef PTRACING
 	if (ptrdiff_t s = distance(Iter, EndpointList.end()))
 		PTRACE(2, s << " endpoint(s) expired.");
@@ -795,7 +818,7 @@ void RegistrationTable::CheckEndpoints()
 	EndpointList.erase(Iter, EndpointList.end());
 
 	Iter = partition(OuterZoneList.begin(), OuterZoneList.end(),
-		mem_fun(&EndpointRec::IsUpdated));
+		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 #ifdef PTRACING
 	if (ptrdiff_t s = distance(Iter, OuterZoneList.end()))
 		PTRACE(2, s << " outerzone endpoint(s) expired.");
@@ -818,7 +841,7 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_destInfo(destInfo),
 	m_bandWidth(Bandwidth), m_CallNumber(0),
 	m_callingCRV(0), m_calledCRV(0),
-	m_startTime(0), m_timer(0), m_timeout(0),
+	m_startTime(0), m_timeout(0),
 	m_sigConnection(0),
 	m_usedCount(0)
 {
@@ -843,23 +866,26 @@ void CallRec::SetConnected(bool c)
 void CallRec::StartTimer()
 {
 	if (m_timeout > 0) {
-		delete m_timer;
-		m_timer = new PTimer(0, m_timeout);
-		m_timer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+		PWaitAndSignal lock(m_usedLock);
+		m_timer = PTime();
+//		m_timer = new PTimer(0, m_timeout);
+//		m_timer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
 	}
 }
 
 void CallRec::StopTimer()
 {
-	delete m_timer;
-	m_timer = 0;
+	PWaitAndSignal lock(m_usedLock);
+	m_timeout = 0;
 }
 
-void CallRec::OnTimeout(PTimer &, INT)
+/*
+void CallRec::OnTimeout()
 {
-	PTRACE(2, "Gk\tCall No. " << m_CallNumber << " timeout!");
+	PTRACE(2, "GK\tCall No. " << m_CallNumber << " timeout!");
 	Disconnect();
 }
+*/
 
 void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, unsigned ncrv)
 {
@@ -893,16 +919,12 @@ int CallRec::CountEndpoints() const
 	return result;
 }
 
-
 void CallRec::Disconnect(bool f)
 {
 	if (m_sigConnection && f)
 		m_sigConnection->SendReleaseComplete();
 	else
 		SendDRQ();
-
-	// remove the call directly so we don't have to handle DCF
-	CallTable::Instance()->RemoveCall(callptr(this));
 
 	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
 }
@@ -976,9 +998,10 @@ PString CallRec::GenerateCDR() const
 
 PString CallRec::PrintOn(bool verbose) const
 {
-//	int left = (m_timer) ? m_timer->GetSeconds() : 0;
-	PString result(PString::Printf, "Call No. %d | CallID %s\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
-		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid),
+	int left = (m_timeout > 0 ) ? m_timeout - (PTime() - m_timer).GetSeconds() : 0;
+	PString result(PString::Printf,
+		"Call No. %d | CallID %s | %d\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
+		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), left,
 		(const char *)m_destInfo,
 		(const char *)GetEPString(m_Calling), m_callingCRV,
 		(const char *)GetEPString(m_Called), m_calledCRV
@@ -1000,6 +1023,7 @@ PString CallRec::PrintOn(bool verbose) const
 CallTable::CallTable() : m_CallNumber(1)
 {
 	LoadConfig();
+	m_CallCount = m_successCall = m_neighborCall = 0;
 }
 
 CallTable::~CallTable()
@@ -1021,6 +1045,7 @@ void CallTable::Insert(CallRec * NewRec)
 	NewRec->SetCallNumber(m_CallNumber++);
 	WriteLock lock(listLock);
 	CallList.push_back(NewRec);
+	++m_CallCount;
 }
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
@@ -1046,6 +1071,20 @@ callptr CallTable::FindCallRec(const endptr & ep) const
 callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) const
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdr), &SignalAdr));
+}
+
+void CallTable::CheckCalls()
+{
+	PTime now;
+	WriteLock lock(listLock);
+	iterator Iter = CallList.begin(), eIter = CallList.end();
+	while (Iter != eIter) {
+		iterator i = Iter++;
+		if ((*i)->IsTimeout(&now)) {
+			(*i)->Disconnect();
+			InternalRemove(i);
+		}
+	}
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
@@ -1107,8 +1146,8 @@ void CallTable::InternalRemove(iterator Iter)
 		PString cdrString(call->GenerateCDR());
 		GkStatus::Instance()->SignalStatus(cdrString, 1);
 		PTRACE(3, cdrString);
-	} else {
 #ifdef PTRACING
+	} else {
 		if (!call->IsConnected())
 			PTRACE(2, "CDR\tignore not connected call");
 		else	
@@ -1116,8 +1155,14 @@ void CallTable::InternalRemove(iterator Iter)
 #endif
 	}
 
+	if (call->IsConnected())
+		++m_successCall;
+	if (call->GetCallingAddress() == 0)
+		++m_neighborCall;
+
 	call->StopTimer();
 	call->RemoveAll();
+
 	RemovedList.push_back(call);
 	CallList.erase(Iter);
 
@@ -1126,257 +1171,41 @@ void CallTable::InternalRemove(iterator Iter)
 	RemovedList.erase(Iter, RemovedList.end());
 }
 
-void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
+void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const
 {
-	PString msg = "CurrentCalls\r\n";
-
-	listLock.StartRead();
-	PINDEX n = CallList.size(), act = 0, nb = 0;
+	ReadLock lock(listLock);
+	n = CallList.size(), act = 0, nb = 0;
 	const_iterator eIter = CallList.end();
 	for (const_iterator Iter = CallList.begin(); Iter != eIter; ++Iter) {
-		msg += (*Iter)->PrintOn(verbose);
 		if ((*Iter)->IsConnected())
 			++act;
 		if ((*Iter)->GetCallingAddress() == 0) // from neighbors
 			++nb;
+		if (!msg)
+			msg += (*Iter)->PrintOn(verbose);
 	}
-	listLock.EndRead();
+}
+
+void CallTable::PrintCurrentCalls(GkStatus::Client & client, BOOL verbose) const
+{
+	PString msg = "CurrentCalls\r\n";
+	unsigned n, act, nb;
+	InternalStatistics(n, act, nb, msg, verbose);
 	
-	msg += PString(PString::Printf, "Number of call: %u Active: %u From NB: %u\r\n;\r\n", n, act, nb);
+	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From NB: %u\r\n;\r\n", n, act, nb);
 	client.WriteString(msg);
 	//PTRACE(2, msg);
 }
-/*
-	static PMutex mutex;
-	GkProtectBlock _using(mutex);
 
-	std::set<CallRec>::const_iterator CallIter;
-	char MsgBuffer[1024];
-	char Val[10];
-
-	client.WriteString("CurrentCalls\r\n");
-	for (CallIter = CallList.begin(); CallIter != CallList.end(); ++CallIter)
-	{
-		const CallRec &Call = (*CallIter);
-		strcpy (MsgBuffer, "Call No. ");
-		sprintf(Val, "%d", Call.m_CallNumber);
-		strcat (MsgBuffer, Val);
-		strcat (MsgBuffer, "  CallID");
-		for (PINDEX i = 0; i < Call.m_callIdentifier.m_guid.GetDataLength(); i++)
-		{
-			sprintf(Val, " %02x", Call.m_callIdentifier.m_guid[i]);
-			strcat(MsgBuffer, Val);
-		}
-		strcat(MsgBuffer, "\r\n");
-		client.WriteString(PString(MsgBuffer));
-		if (Call.Calling)
-		{
-			client.WriteString(PString(PString::Printf, "ACF|%s\r\n",
-				(const char *) AsString(H225_TransportAddress_ipAddress(Call.Calling->m_callSignalAddress))));
-		}
-		if (Call.Called)
-		{
-			client.WriteString(PString(PString::Printf, "ACF|%s\r\n",
-				(const char *) AsString(H225_TransportAddress_ipAddress(Call.Called->m_callSignalAddress))));
-		}
-		if (verbose)
-		{
-			PString from = "?";
-			PString to   = "?";
-			if (Call.Calling) {
-				const endptr e = RegistrationTable::Instance()->FindBySignalAdr(Call.Calling->m_callSignalAddress);
-				if (e)
-					from = AsString(e->GetAliases(), FALSE);
-			}
-			if (Call.Called) {
-				const endptr e = RegistrationTable::Instance()->FindBySignalAdr(Call.Called->m_callSignalAddress);
-				if (e)
-					to = AsString(e->GetAliases(), FALSE);
-			}
-			int bw = Call.m_bandWidth;
-			char ctime[100];
-#if defined (WIN32)
-			strncpy(ctime, asctime(localtime(&(Call.m_startTime))), 100);
-#elif  defined (P_SOLARIS)
-			asctime_r(localtime(&(Call.m_startTime)), ctime, 100);
-#else
-			asctime_r(localtime(&(Call.m_startTime)), ctime);
-#endif
-			sprintf(MsgBuffer, "# %s|%s|%d|%s", (const char*)from, (const char*)to, bw, ctime);
-			client.WriteString(PString(MsgBuffer));
-		}
-	}
-	client.WriteString(";\r\n");
-}
-*/
-
-
-/*
-void CallTable::Insert(const endptr & Calling, const endptr & Called, int Bandwidth, const H225_CallIdentifier & CallId, const H225_ConferenceIdentifier & ConfID, const PString& destInfo)
+PString CallTable::PrintStatistics() const
 {
-	PTRACE(3, "CallTable::Insert(EP,EP) Call No. " << m_CallNumber);
-	CallRec *call = new CallRec(CallId, ConfID, destInfo, Bandwidth);
-	
-	call->SetCalling(Calling);
-	call->SetCalled(Called);
-	Insert(call);
+	PString dumb;
+	unsigned n, act, nb;
+	InternalStatistics(n, act, nb, dumb, FALSE);
+
+	return PString(PString::Printf, "-- Call Statistics --\r\n"
+		"Current Calls: %u Active: %u From Neighbor: %u\r\n"
+		"Total Calls: %u  Successful: %u  From Neighbor: %u\r\n",
+		n, act, nb,
+		m_CallCount, m_successCall, m_neighborCall);
 }
-
-callptr CallTable::FindCallRec(const Q931 & m_q931) const
-{
-	H225_CallIdentifier *pCallId = GetCallIdentifier(m_q931);
-	return (pCallId) ? FindCallRec(*pCallId) :
-	// callIdentifier is optional, so in case we don't find it, look for the
-	// CallRec by its callReferenceValue
-			  FindCallRec(H225_CallReferenceValue(m_q931.GetCallReference()));
-}
-
-void CallTable::Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfId, const PString &destInfo)
-{
-	CallRec Call;
-
-	PTRACE(3, "CallTable::Insert(EP)");
-	
-	Call.SetCalling(Calling);
-	Call.SetBandwidth(Bandwidth);
-	Call.m_callIdentifier = CallId;
-	Call.m_conferenceIdentifier = ConfId;
-	Call.m_CallNumber = m_CallNumber++;
-	Call.m_destInfo = destInfo;
-	Insert(Call);
-}
-
-void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
-{
-	static PMutex mutex;
-	GkProtectBlock _using(mutex); // Auto protect the whole method!
-	BOOL hasRemoved = FALSE;
-	time_t startTime;
-
-// dirty hack, I hate it...:p
-	CallRec theCall;
-	std::set<CallRec>::iterator CallIter;
-	char callRefString[10];
-	sprintf(callRefString, "%u", (unsigned)CallRef.GetValue());
-
-#ifndef NDEBUG
-	GkStatus::Instance()->SignalStatus("DEBUG\tremoving callRef:" + PString(callRefString) + "...\n\r", 1);
-	PTRACE(5, ANSI::PIN << "DEBUG\tremoving CallRef:" << CallRef << "...\n" << ANSI::OFF);
-#endif
-
-	// look at all calls
-	CallIter = CallList.begin();
-	while(CallIter != CallList.end())
-	{
-		// look at each endpoint in this call if it has this call reference
-		if (((*CallIter).Calling != NULL) &&
-			((*CallIter).Calling->m_callReference.GetValue() == CallRef.GetValue()))
-		{
-			CallRec rec = theCall = *CallIter;
-			CallList.erase(CallIter);
-			rec.RemoveCalling();
-			CallList.insert(rec);
-			CallIter = CallList.begin();
-			hasRemoved = TRUE;
-			startTime = rec.m_startTime;
-#ifndef NDEBUG
-	GkStatus::Instance()->SignalStatus("DEBUG\tcallRef:" + PString(callRefString) + "found&removed for calling\n\r", 1);
-	PTRACE(5, ANSI::PIN << "DEBUG\tCallRef:" << CallRef << "found&removed for calling\n" << ANSI::OFF);
-#endif
-		}
-
-		if (((*CallIter).Called != NULL) &&
-			((*CallIter).Called->m_callReference.GetValue() == CallRef.GetValue()))
-		{
-			CallRec rec = *CallIter;
-			if (theCall.Called == NULL)
-				theCall = rec;
-			CallList.erase(CallIter);
-			rec.RemoveCalled();
-			CallList.insert(rec);
-			CallIter = CallList.begin();
-			hasRemoved = TRUE;
-			startTime = rec.m_startTime;
-#ifndef NDEBUG
-	GkStatus::Instance()->SignalStatus("DEBUG\tcallRef:" + PString(callRefString) + "found&removed for called\n\r", 1);
-	PTRACE(5, ANSI::PIN <<"DEBUG\tCallRef:" << CallRef << "found&removed for called...\n" << ANSI::OFF);
-#endif
-		}
-		
-		if((*CallIter).CountEndpoints() <= 1)
-		{
-			CallRec rec = *CallIter;
-			CallList.erase(CallIter);
-			rec.RemoveAll();
-			CallIter = CallList.begin();
-			hasRemoved = TRUE;
-			startTime = rec.m_startTime;
-#ifndef NDEBUG
-	GkStatus::Instance()->SignalStatus("DEBUG\tcall completely removed\n\r", 1);
-	PTRACE(5, ANSI::PIN << "DEBUG\tcall completely removed\n" << ANSI::OFF);
-#endif
-		}
-		else
-			++CallIter;
-	}
-	if (hasRemoved) {
-		struct tm * timeStructStart;
-		struct tm * timeStructEnd;
-		time_t now;
-		double callDuration;
-
-		timeStructStart = gmtime(&startTime);
-		if (timeStructStart == NULL) 
-			PTRACE(1, "ERROR\t ##################### timeconversion-error(1)!!\n");
-		PString startTimeString(asctime(timeStructStart));
-		startTimeString.Replace("\n", "");
-
-		now = time(NULL);
-		timeStructEnd = gmtime(&now);
-		if (timeStructEnd == NULL) 
-			PTRACE(1, "ERROR\t ##################### timeconversion-error(2)!!\n");
-		PString endTimeString(asctime(timeStructEnd));
-		endTimeString.Replace("\n", "");
-
-		PString caller, callee;
-		if (theCall.Calling) {
-			H225_TransportAddress & addr = theCall.Calling->m_callSignalAddress;
-			const endptr rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
-			caller = PString(PString::Printf, "%s|%s",
-				(const char *) AsString(H225_TransportAddress_ipAddress(addr)),
-				(rec) ? (const char *)rec->GetEndpointIdentifier().GetValue() : "");
-		}
-		if (theCall.Called) {
-			H225_TransportAddress & addr = theCall.Called->m_callSignalAddress;
-			const endptr rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
-			callee = PString(PString::Printf, "%s|%s",
-				(const char *) AsString(H225_TransportAddress_ipAddress(addr)),
-				(rec) ? (const char *)rec->GetEndpointIdentifier().GetValue() : "");
-		}
-
-		callDuration = difftime(now, startTime);
-		PString cdrString(PString::Printf, "CDR|%s|%.0f|%s|%s|%s|%s|%s\r\n",
-				 callRefString, callDuration,
-				 (const char *)startTimeString,
-				 (const char *)endTimeString,
-				 (const char *)caller, (const char *)callee,
-				 (const char *)theCall.m_destInfo);
-
-		GkStatus::Instance()->SignalStatus(cdrString, 1);
-		PTRACE(3, cdrString);
-	}
-#ifndef NDEBUG
-	GkStatus::Instance()->SignalStatus("DEBUG\tdone for "  + PString(callRefString) + "...\n\r", 1);
-	PTRACE(5, ANSI::PIN << "DEBUG\tdone for " + PString(callRefString) + "...\n" << ANSI::OFF);
-#endif
-}
-
-void CallTable::RemoveCall(const Q931 & m_q931)
-{
-	H225_CallIdentifier *pCallId = GetCallIdentifier(m_q931);
-	if (pCallId)
-		InternalRemove(*pCallId);
-	else
-		InternalRemove(m_q931.GetCallReference());
-}
-*/

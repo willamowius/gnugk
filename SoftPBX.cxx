@@ -70,6 +70,15 @@ void SoftPBX::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose)
 	CallTable::Instance()->PrintCurrentCalls(client, verbose);
 }
 
+void SoftPBX::PrintStatistics(GkStatus::Client &client, BOOL)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintStatistics");
+	PString msg = RegistrationTable::Instance()->PrintStatistics()
+		    + CallTable::Instance()->PrintStatistics()
+		    + SoftPBX::Uptime() + "\r\n;\r\n";
+	client.WriteString(msg);
+}
+
 // send URQ to all endpoints
 void SoftPBX::UnregisterAllEndpoints()
 {
@@ -116,6 +125,8 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 	}
 
 	Call->Disconnect(true);
+	// remove the call directly so we don't have to handle DCF
+	CallTable::Instance()->RemoveCall(Call);
 
 	PString msg(PString::Printf, "Call number %d disconnected.\n", CallNumber);
 	PTRACE(2, "GK\tSoftPBX: " << msg);
@@ -168,8 +179,10 @@ void SoftPBX::DisconnectEndpoint(const endptr &ep)
 	}
 	callptr Call;
 	// remove all calls of ep
-	while (Call = CallTable::Instance()->FindCallRec(ep))
+	while (Call = CallTable::Instance()->FindCallRec(ep)) {
 		Call->Disconnect();
+		CallTable::Instance()->RemoveCall(Call);
+	}
 }
 
 void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
@@ -184,3 +197,16 @@ void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 	PTRACE(1, "GK\tSoftPBX: MakeCall not implemented, yet");
 }
 
+PString SoftPBX::Uptime()
+{
+	long total = (PTime() - SoftPBX::StartUp).GetSeconds();
+	int days = total / (24*60*60);
+	int hour = (total % (24*60*60)) / (60*60);
+	int min  = (total % (60*60)) / 60;
+	int sec  = total % 60;
+
+	return PString(PString::Printf,
+			"Startup: %s   Running: %d days %02d:%02d:%02d",
+			(const char *)SoftPBX::StartUp.AsString(),
+			days, hour, min, sec);
+}

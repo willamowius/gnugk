@@ -32,7 +32,7 @@ using std::mem_fun;
 void ReloadHandler(void);
 
 
-const int GkStatus::NumberOfCommandStrings = 38;
+const int GkStatus::NumberOfCommandStrings = 40;
 const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
 {
 	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
@@ -68,6 +68,8 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"version",                  GkStatus::e_Version},
 	{"v",                        GkStatus::e_Version},
 	{"debug",                    GkStatus::e_Debug},
+	{"statistics",               GkStatus::e_Statistics},
+	{"s",                        GkStatus::e_Statistics},
 	{"reload",                   GkStatus::e_Reload},
 	{"shutdown",                 GkStatus::e_Shutdown},
 	{"exit",                     GkStatus::e_Exit},
@@ -244,18 +246,10 @@ namespace {
 
 PString PrintGkVersion()
 {
-	long total = (PTime() - SoftPBX::StartUp).GetSeconds();
-	int days = total / (24*60*60);
-	int hour = (total % (24*60*60)) / (60*60);
-	int min  = (total % (60*60)) / 60;
-	int sec  = total % 60;
-
 	return PString("Version:\r\n") + Toolkit::GKVersion() +
 		"\r\nGkStatus: Version(1.0) Ext()\r\n"
-		"Toolkit: Version(1.0) Ext(" + InstanceOf<Toolkit>()->GetName() +
-		")\r\nStartup: " + SoftPBX::StartUp.AsString() + "  Running: " +
-		PString(PString::Printf, "%d days %02d:%02d:%02d", days, hour, min, sec) +
-		"\r\n;\r\n";
+		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() +
+		")\r\n" + SoftPBX::Uptime() + "\r\n;\r\n";
 }
 
 }
@@ -389,6 +383,9 @@ void GkStatus::Client::Main()
 				case GkStatus::e_PrintCurrentCallsVerbose:
 					// print list of currently ongoing calls
 					SoftPBX::PrintCurrentCalls(*this, TRUE);
+					break;
+				case GkStatus::e_Statistics:
+					SoftPBX::PrintStatistics(*this, TRUE);
 					break;
 				case GkStatus::e_Find:
 					if (Args.GetSize() == 2)
