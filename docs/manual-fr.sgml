@@ -54,14 +54,14 @@ basé sur la pile de protocole
 <url url="http://www.openh323.org/" name="OpenH323">
 . ???
 
-Recommendation H.323 is an international standard published by the
+La recommandation H.323 est une norme internationale publié par l'
 <url url="http://www.itu.int/" name="ITU">.
-It is a communications standard for audio, video, and data over the Internet.
-See also Paul Jones'
-<url url="http://www.packetizer.com/iptel/h323/" name="primer on H.323">.
+C'est une norme de communication pour l'audio, video et données par Internet.
+Voir aussi l'amorce de Paul Jones
+<url url="http://www.packetizer.com/iptel/h323/" name="sur H.323">.
 
-For a detailed description of what a gatekeeper does, see
-<url url="http://www.webproforum.com/h323/topic06.html" name="here">.
+Pour une description détaillée sur ce que fait un gatekeeper, voir
+<url url="http://www.webproforum.com/h323/topic06.html" name="ici">.
 
 <sect1>Copyright
 <p>
