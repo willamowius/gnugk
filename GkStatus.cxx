@@ -423,7 +423,7 @@ void GkStatus::Client::Main()
 					break;
 				case GkStatus::e_Reload:
 					ReloadHandler();
-					WriteString("Config reloaded" GK_LINEBRK);
+					WriteString("Reloading Config ..." GK_LINEBRK);
 					break;
 				case GkStatus::e_Shutdown:
 					PTRACE(1, "Shutting down the GK");
