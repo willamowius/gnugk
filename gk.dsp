@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GR /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "..\include" /D "NDEBUG" /D "PTRACING" /D "HAS_RADIUS=1" /FD /c
+# ADD CPP /nologo /MD /W3 /GR /GX /I "..\include" /D "NDEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FD /c
 # ADD BASE RSC /l 0x407 /d "NDEBUG"
 # ADD RSC /l 0x407 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -50,7 +50,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 ptclib.lib ptlibs.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib OpenH323s.lib mpr.lib wsock32.lib winmm.lib snmpapi.lib /nologo /subsystem:console /machine:I386 /out:"Release/gnugk.exe" /libpath:"..\..\lib"
+# ADD LINK32 ptclib.lib ptlibs.lib OpenH323s.lib snmpapi.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib wsock32.lib winmm.lib /nologo /subsystem:console /machine:I386 /out:"Release/gnugk.exe" /libpath:"..\..\lib"
 # SUBTRACT LINK32 /debug
 
 !ELSEIF  "$(CFG)" == "gk - Win32 Debug"
@@ -67,7 +67,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GR /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /Zi /Od /I "..\include" /D "_DEBUG" /D "PTRACING" /D "HAS_RADIUS=1" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /Zi /Od /I "..\include" /D "_DEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FR /FD /GZ /c
 # SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x407 /d "_DEBUG"
 # ADD RSC /l 0x407 /d "_DEBUG"
@@ -76,7 +76,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 ptclibd.lib ptlibd.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib wsock32.lib OpenH323d.lib /nologo /subsystem:console /incremental:no /debug /machine:I386 /out:"Debug/gnugk.exe" /pdbtype:sept /libpath:"..\..\lib"
+# ADD LINK32 openh323sd.lib ptclibd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib wsock32.lib /nologo /subsystem:console /incremental:no /debug /machine:I386 /out:"Debug/gnugk.exe" /pdbtype:sept /libpath:"..\..\lib"
 # SUBTRACT LINK32 /nodefaultlib
 
 !ENDIF 
@@ -94,11 +94,15 @@ SOURCE=.\gk.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\gkauth.cxx
+SOURCE=.\gk.rc
 # End Source File
 # Begin Source File
 
 SOURCE=.\gkacct.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\gkauth.cxx
 # End Source File
 # Begin Source File
 
@@ -138,6 +142,18 @@ SOURCE=.\ProxyChannel.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\radacct.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\radauth.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\radproto.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\RasSrv.cxx
 # End Source File
 # Begin Source File
@@ -166,18 +182,6 @@ SOURCE=.\version.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\radproto.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=.\radauth.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=.\radacct.cxx
-# End Source File
-# Begin Source File
-
 SOURCE=.\yasocket.cxx
 # End Source File
 # End Group
@@ -198,11 +202,11 @@ SOURCE=.\gk_const.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\gkauth.h
+SOURCE=.\gkacct.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\gkacct.h
+SOURCE=.\gkauth.h
 # End Source File
 # Begin Source File
 
@@ -235,6 +239,18 @@ SOURCE=.\Neighbor.h
 # Begin Source File
 
 SOURCE=.\ProxyChannel.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\radacct.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\radauth.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\radproto.h
 # End Source File
 # Begin Source File
 
@@ -286,24 +302,16 @@ SOURCE=.\version.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\radproto.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\radauth.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\radacct.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\yasocket.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\gk.ico
+# End Source File
 # End Group
 # Begin Group "Doc Files"
 
