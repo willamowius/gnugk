@@ -279,6 +279,7 @@ GK_RASWorker::ProcessARQ(endptr &RequestingEP, endptr &CalledEP, H225_AdmissionR
 			pCallRec->Lock();
 
 			if(pCallRec->GetCallingProfile().GetCallTimeout()==0) {
+				pCallRec->Unlock();
 				delete pCallRec;
 				answer_pdu.SetTag(H225_RasMessage::e_admissionReject); // Build ARJ
 				H225_AdmissionReject & arj=answer_pdu;
@@ -543,6 +544,8 @@ Abstract_H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 #ifdef CHECK_FOR_ALIAS0
 			PAssert(FALSE,"H323RasSrv::OnRRQ using only first");
 #endif
+
+			// TODO: Check for all m_callSignalAddresses/m_rasAddresses
 			if (rrq.m_callSignalAddress.GetSize() >= 1)
 				bReject = (ep->GetCallSignalAddress() != rrq.m_callSignalAddress[0]);
 			else if (rrq.m_rasAddress.GetSize() >= 1)
@@ -891,7 +894,9 @@ Abstract_H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 				CallTable::Instance()->Insert(pCallRec);
 				// get called ep
 				CalledEP = RegistrationTable::Instance()->getMsgDestination(arq, RequestingEP, rsn, TRUE);
+				PTRACE(5, "Called RegTable::getMsgDestination(): " << CalledEP);
 				if (!CalledEP && rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
+					CallTable::Instance()->RemoveCall(CallPtr);
 					PTRACE(5, "Incomplete Number");
 					bReject = TRUE;
 				}
@@ -936,6 +941,7 @@ Abstract_H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 		}
 
 		if(bReject || CalledEP==endptr(NULL)) {
+			CallTable::Instance()->RemoveCall(CallPtr);
 			answer_pdu.SetTag(H225_RasMessage::e_admissionReject);
 			H225_AdmissionReject & arj = answer_pdu;
 			arj.m_rejectReason.SetTag(rsn);
