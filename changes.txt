@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- BUGFIX(radauth.cxx) check if generalID matches one of endpoint's aliases
+  only when authenticating RRQ
 - (gkacct.cxx) parametrized FileAcct CDR output
 - BUGFIX(gkauth.cxx) do not declare H.235 Auth Procedure I support as it is
   not fully implemented

@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2004/04/17 11:43:43  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.12  2004/03/17 00:00:38  zvision
  * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
  *
@@ -1193,7 +1197,7 @@ int RadAuth::AppendUsernameAndPassword(
 		return GetDefaultStatus();
 	}
 
-	const int result = CheckTokens(pdu, arq.m_tokens, &arq.m_srcInfo, username);
+	const int result = CheckTokens(pdu, arq.m_tokens, NULL, username);
 	if (result != e_ok)	
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 	return result;
