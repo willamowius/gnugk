@@ -36,14 +36,15 @@
 #include "Neighbor.h"
 #include "ProxyChannel.h"
 
+namespace {
 // default timeout (ms) for initial Setup message,
 // if not specified in the config file
-#define DEFAULT_SETUP_TIMEOUT 8000
+const long DEFAULT_SETUP_TIMEOUT = 8000;
+}
 
-const char *RoutedSec = "RoutedMode";
-const char *ProxySection = "Proxy";
-
-const char *H225_ProtocolID = "0.0.8.2250.0.2";
+const char* RoutedSec = "RoutedMode";
+const char* ProxySection = "Proxy";
+const char* H225_ProtocolID = "0.0.8.2250.0.2";
 
 class PortRange {
 public:
@@ -157,7 +158,8 @@ public:
 
 protected:
 	virtual bool WriteData(const BYTE *, int);
-	
+	virtual bool Flush();
+		
 private:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
@@ -1728,7 +1730,7 @@ void CallSignalSocket::Dispatch()
 				}
 
 			case Forwarding:
-				if (IsConnected()) { // remote is NAT socket
+				if (remote && IsConnected()) { // remote is NAT socket
 					ForwardData();
 					if (!remote->IsReadable(2*setupTimeout)) {
 						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
@@ -1745,6 +1747,8 @@ void CallSignalSocket::Dispatch()
 				break;
 		}
 	}
+	if (m_call)
+		m_call->SetSocket(NULL, NULL);
 	delete this; // oh!
 }
 
@@ -1790,8 +1794,11 @@ bool CallSignalSocket::InternalConnectTo()
 	} else {
 		PTRACE(3, "Q931\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
 		SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+		if (m_call)
+			m_call->SetSocket(m_call->GetCallSignalSocketCalling(), NULL);
 		CallTable::Instance()->RemoveCall(m_call);
 		delete remote;
+		remote = NULL;
 		return false;
 	}
 }
@@ -2290,6 +2297,21 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 		QueuePacket(buffer, len);
 	}
 	return false;
+}
+
+bool UDPProxySocket::Flush()
+{
+	bool result = true;
+	while (result && GetQueueSize() > 0) {
+		PBYTEArray* const pdata = PopQueuedPacket();
+		if (pdata) {
+			result = InternalWriteData(*pdata, pdata->GetSize());
+			PTRACE_IF(4, result, Type() << '\t' << pdata->GetSize() << " bytes flushed to " << Name());
+			delete pdata;
+		} else
+			break;
+	}
+	return result;
 }
 
 

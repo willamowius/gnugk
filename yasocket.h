@@ -207,14 +207,14 @@ public:
 	PCLASSINFO( TCPSocket, PTCPSocket )
 	TCPSocket(WORD pt = 0) : PTCPSocket(pt) {}
 	// override from class PIPSocket
-        PString GetName() const { return (const char *)NamedObject::GetName(); }
+	PString GetName() const { return (const char *)NamedObject::GetName(); }
 };
 
 class UDPSocket : public PUDPSocket, public NamedObject {
 public:
 	PCLASSINFO( UDPSocket, PUDPSocket )
 	// override from class PIPSocket
-        PString GetName() const { return (const char *)NamedObject::GetName(); }
+	PString GetName() const { return (const char *)NamedObject::GetName(); }
 };
 
 #endif // LARGE_FDSET
@@ -226,9 +226,9 @@ public:
 	USocket(IPSocket *, const char *);
 	virtual ~USocket() = 0; // abstract class
 
-	const char *Type() const { return type; }
+	const char* Type() const { return type; }
 #ifdef LARGE_FDSET
-	const PString & Name() const { return self->GetName(); }
+	const PString& Name() const { return self->GetName(); }
 #else
 	PString Name() const { return self->GetName(); }
 #endif
@@ -241,7 +241,7 @@ public:
 	bool IsSocketOpen() const { return self->IsOpen(); }
 	bool CloseSocket() { return IsSocketOpen() ? self->Close() : false; }
 
-	bool Flush();
+	virtual bool Flush();
 	bool CanFlush() const { return (qsize > 0) && IsSocketOpen(); }
 
 	bool IsBlocked() const { return blocked; }
@@ -282,6 +282,18 @@ protected:
 		queue.push_back(new PBYTEArray(buf, len));
 		++qsize;
 		queueMutex.Signal();
+	}
+	PBYTEArray* PopQueuedPacket()
+	{
+		PBYTEArray* packet = NULL;
+		queueMutex.Wait();
+		if (!queue.empty()) {
+			packet = queue.front();
+			queue.pop_front();
+			--qsize;
+		}
+		queueMutex.Signal();
+		return packet;
 	}
 	
 	bool ErrorHandler(PSocket::ErrorGroup);

@@ -481,10 +481,8 @@ bool SocketSelectList::Select(SelectType t, const PTimeInterval & timeout)
 		rlist = this, wlist = &dumb;
 	else
 		wlist = this, rlist = &dumb;
-#if PTRACING
-	PSocket::Errors r = PSocket::Select(*rlist, *wlist, timeout);
+	const PSocket::Errors r = PSocket::Select(*rlist, *wlist, timeout);
 	PTRACE_IF(3, r != PSocket::NoError, "ProxyH\tSelect error: " << r);
-#endif
 	return !IsEmpty();
 }
 
@@ -498,16 +496,20 @@ PSocket *SocketSelectList::operator[](int i) const
 
 
 // class USocket
-USocket::USocket(IPSocket *s, const char *t) : self(s), type(t)
+USocket::USocket(IPSocket *s, const char *t) 
+	: self(s), qsize(0), blocked(false), type(t)
 {
-	qsize = 0;
-	blocked = false;
 }
 
 USocket::~USocket()
 {
 	//PWaitAndSignal lock(writeMutex);
-	DeleteObjectsInContainer(queue);
+	{
+		PWaitAndSignal lock(queueMutex);
+		DeleteObjectsInContainer(queue);
+		queue.clear();
+		qsize = 0;
+	}
 	PTRACE(3, type << "\tDelete socket " << Name());
 }
 
@@ -531,14 +533,13 @@ bool USocket::Flush()
 	bool result = true;
 	PWaitAndSignal lock(writeMutex);
 	while (result && qsize > 0) {
-		queueMutex.Wait();
-		PBYTEArray *pdata = queue.front();
-		queue.pop_front();
-		--qsize;
-		queueMutex.Signal();
-		result = InternalWriteData(*pdata, pdata->GetSize());
-		PTRACE_IF(4, result, type << '\t' << pdata->GetSize() << " bytes flushed to " << Name());
-		delete pdata;
+		PBYTEArray* const pdata = PopQueuedPacket();
+		if (pdata) {
+			result = InternalWriteData(*pdata, pdata->GetSize());
+			PTRACE_IF(4, result, type << '\t' << pdata->GetSize() << " bytes flushed to " << Name());
+			delete pdata;
+		} else
+			break;
 	}
 	return result;
 }
@@ -555,9 +556,7 @@ bool USocket::WriteData(const BYTE *buf, int len)
 			CloseSocket();
 		} else {
 			PTRACE(3, type << '\t' << Name() << " is busy, " << len << " bytes queued");
-			PWaitAndSignal lock(queueMutex);
-			queue.push_back(new PBYTEArray(buf, len));
-			++qsize;
+			QueuePacket(buf, len);
 		}
 	}
 	return false;
@@ -601,6 +600,9 @@ bool USocket::InternalWriteData(const BYTE *buf, int len)
 		ErrorHandler(PSocket::LastWriteError);
 	if (IsSocketOpen()) {
 		PTRACE(4, type << '\t' << Name() << " blocked, " << wcount << " bytes written, " << len << " bytes queued");
+		// push_front used intentionally, as InternalWriteData can be called
+		// either when flushing the queue (so any remaining unflushed data
+		// should be put back at the queue front) or when the queue is epmty
 		PWaitAndSignal lock(queueMutex);
 		queue.push_front(new PBYTEArray(buf, len));
 		++qsize;

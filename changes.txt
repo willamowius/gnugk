@@ -1,5 +1,8 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (ProxyChannel.cxx) fixed a critical bug with referencing already deleted
+  socket, when the remote party did not accept signalling tcp connection
+- (ProxyChannel.cxx) more UDP proxy optimizations
 - new flexible CDR file rotation for FileAcct module
 - (gktimer.cxx) new generic support for time-based events
 - BUGFIX(Routing.cxx) processing LRQ request should not apply round robin
