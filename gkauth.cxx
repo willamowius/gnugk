@@ -219,7 +219,7 @@ int GkAuthenticator::Check(const H225_InfoRequest &, unsigned &)
 
 // SimplePasswordAuth
 SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
-      : GkAuthenticator(cfg, authName)
+      : GkAuthenticator(cfg, authName), aliases(0)
 {
 	filled = config->GetInteger("Password", "KeyFilled", 0);
 	checkid = Toolkit::AsBool(config->GetString("Password", "CkeckID", "0"));
@@ -365,8 +365,8 @@ void MySQLPasswordAuth::Cleanup()
 bool MySQLPasswordAuth::MySQLInit()
 {
 	try {
-		PString dbname = config->GetString(mysqlsec, "Database", "billing");
 		PString host = config->GetString(mysqlsec, "Host", "localhost");
+		PString dbname = config->GetString(mysqlsec, "Database", "billing");
 		PString user = config->GetString(mysqlsec, "User", "cwhuang");
 		PString passwd = config->GetString(mysqlsec, "Password", "123456");
 
@@ -378,9 +378,10 @@ bool MySQLPasswordAuth::MySQLInit()
 		connection = new MysqlConnection(mysql_use_exceptions);
 		connection->connect(dbname, host, user, passwd);
 
+		PTRACE(2, "MySQL\tConnect to server " << host << ", database " << dbname);
 		query = new MysqlQuery(connection, true);
 		PString selectString(PString::Printf,
-			"select %s from %s where %s = %%0:id",
+			"select %s from %s where %s = '%%0:id'",
 			(const char *)passwd_field,
 			(const char *)table,
 			(const char *)id_field
