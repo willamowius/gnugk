@@ -1178,7 +1178,7 @@ CallRec::~CallRec()
 	// First of all, we have to Print a CDR :-)
 	PTRACE(5, "GK\tBegining deletion of CallRec: " << this);
 	m_usedLock.Wait();
-	if((!m_callingProfile.GetH323ID().IsEmpty()) && (!m_calledProfile.GetH323ID().IsEmpty())) {
+	if((!m_callingProfile.GetH323ID().IsEmpty())) {
 		PString cdrString(this->GenerateCDR());
 		if(NULL!=m_startTime ||
 		   Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0")))
