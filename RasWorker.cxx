@@ -81,7 +81,7 @@ GK_RASWorker::SendRas()
 	PBYTEArray buffer(4096);
 	PPER_Stream writestream(buffer);
 
-	PTRACE(5, "SendRAS: " << answer_pdu);
+	PTRACE(5, "SendRAS: " << setprecision(2) << answer_pdu);
 	answer_pdu.Encode(writestream);
 	writestream.CompleteEncoding();
 	master.SendTo(writestream, writestream.GetSize(), addr, port);
