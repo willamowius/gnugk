@@ -185,18 +185,18 @@ First, the first alias (this will mostly be a h323id) of the endpoint to registe
 up in this section.  If a parameter is found the value will apply as a rule. If no parameter
 is found, the value of the parameter "default" will apply. If no "default" is found all
 registrations are accepted. A rule consists of conditions separated by "&". A registration
-is accepted when all conditions apply. 
+is accepted when all conditions apply.
 
 A condition has the notation authtype:param1[:param2[...]]. The number of params depends on
-the authtype. Currently the following authtypes are implemented: 
+the authtype. Currently the following authtypes are implemented:
 
-  confirm (or allow)        : allow this endpoint to register. 
-  reject (or deny, forbid)  : may not register. 
-  sigip:<a.b.c.d:p>         : allow registering if the signal address is <a.b.c.d:p>. 
+  confirm (or allow)        : allow this endpoint to register.
+  reject (or deny, forbid)  : may not register.
+  sigip:<a.b.c.d:p>         : allow registering if the signal address is <a.b.c.d:p>.
   sigaddr:<regex>           : allow registering only if the PString (see pwlib class)
                               representation of the signal address of the registering endpoint
 			      matches <regex>. This is a more general form then "sigip" and
-			      will allow future extension (ie by IPv6). 
+			      will allow future extension (ie by IPv6).
 
   Example:
   rossi-gt2=sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
@@ -297,19 +297,19 @@ Currently supported modules:
   LDAPPasswordAuth    The module checks the tokens or cryptoTokens
                       fields of RAS message. The tokens should contain
                       at least generalID and password. For cryptoTokens,
-                      cryptoEPPwdHash tokens hashed by simple MD5 and 
+                      cryptoEPPwdHash tokens hashed by simple MD5 and
                       nestedcryptoToken tokens hashed by HMAC-SHA1-96
                       (libssl must be installed!) are supported now.
-                      The ID and password are read from [Password] section 
-                      / LDAP. Support for other backend databases is 
+                      The ID and password are read from [Password] section
+                      / LDAP. Support for other backend databases is
                       easily to add.
 
   AliasAuth/
   LDAPAliasAuth       The IP of an endpoint with given alias should
-                      match a specified pattern. For AliasAuth the pattern 
-                      is defined in [RasSrv::RRQAuth] section. 
+                      match a specified pattern. For AliasAuth the pattern
+                      is defined in [RasSrv::RRQAuth] section.
                       For LDAPAliasAuth the alias (default: mail attribute)
-                      and IP (default: voIPIpAddress attribute) must be 
+                      and IP (default: voIPIpAddress attribute) must be
                       found in one LDAP entry.
 
 You can also configure a rule to check only for some particular RAS
@@ -444,3 +444,50 @@ in the internal network and one external.
   Example:
     InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24
 
+B.15 [Gatekeeper::DestAnalysis]
+
+ Destination analysis mechanism
+
+Syntax:
+   authrule=actions
+
+   <authrule> := OverlapSendDestAnalysis
+   <actions>  := <control>[;<message>,<message>,...]
+   <control>  := optional | required | sufficient
+   <message>  := ARQ | LRQ
+
+Currently supported modules:
+
+  OverlapSendDestAnalysis    This module checks for incomplete destination
+                             addresses (not fully implemented up to now).
+
+  BlackWhiteListDestAnalysis This module checks for Blacklisted numbers
+			     (forbidden numbers) and *then* for Whitelisted
+			     numbers (exceptions from Blacklist). Default is
+			     allow connections.
+
+  WhiteBlackListDestAnalysis This module checks for Whitelisted numbers
+			     (allowed numbers) and *then* for Blacklisted
+			     numbers (exceptions from Whitelist). Default
+			     is deny connections.
+
+A rule may results in one of the three codes: ok, fail, pass.
+There are also three ways to control a rule: optional, required, sufficient.
+Additionally you can configure a rule to check only for some particular
+messages.
+
+Blacklist rules will always result in ok.
+
+[Example]
+
+OverlapSendDestAnalysis=required;ARQ
+WhiteBlackListDestAnalysis=required;ARQ
+default=reject
+
+The calling EP has:
+voIPprefixOutgoingWhiteList (aka WhiteList): 49
+That means only calls to 49* (aka Germany) are allowed. Rest of the world is
+forbidden!
+voIPprefixOutgoingBlackList (aka BlackList): 49190, 49800, 49700
+That means calls to 49190* (user dialed 0190...) is forbidden too. The rest of the
+world was forbidden in the WhiteList rule.
