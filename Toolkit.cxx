@@ -216,7 +216,7 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 			m_RewriteKey = (PString*)(new BYTE[sizeof(PString) * m_size * 2]);
 			m_RewriteValue = m_RewriteKey + m_size;
 			m_RewriteValues = new PStringArray[m_size];
-			std::map<PString, PString>::iterator iter = rules.begin();
+			std::map<PString, PString, pstr_prefix_lesser>::iterator iter = rules.begin();
 			
 			// reverse the order
 			for (int i = m_size; i-- > 0 ; ++iter) {

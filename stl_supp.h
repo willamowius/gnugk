@@ -17,6 +17,7 @@
 #ifndef STL_SUPP_H
 #define STL_SUPP_H "@(#) $Id$"
 
+#include <string>
 #include <iterator>
 #include <algorithm>
 #include <functional>
