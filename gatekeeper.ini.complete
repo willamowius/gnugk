@@ -18,6 +18,8 @@
 [Gatekeeper::Main]
 # 'config is present' indicator. Has to be 42.
 Fourtytwo=42
+# Config matches Release of Gatekeeper
+ConfigVersion=2.1alpha1
 # Includes in some RAS-Msgs
 Name=OpenH323GK
 # overwritten from command line parameter
@@ -92,6 +94,10 @@ DropCallsByReleaseComplete=1
 #UnregisterOnReload=0
 #NATRetryInterval=60
 #NATKeepaliveInterval=86400
+# Name of the parent GK. This is needed to provide a dummy Profile for it.
+MasterH323ID=solf-476
+# This is needed to identify the parent.
+MasterCallSignalPort=1721
 
 
 #[Endpoint::RewriteE164]
@@ -107,7 +113,7 @@ DropCallsByReleaseComplete=1
 ## NOTE: Use of this section is depreciated.
 ## Use telephonenumber= in [RasSrv::EndpointOptions] instead.
 ## For now, telephonenumbers from [RasSrv::EndpointOptions] and
-## entries here are merged together, but you REALLY SHOULD use 
+## entries here are merged together, but you REALLY SHOULD use
 ## [RasSrv::EndpointOptions].
 #############################################################
 ##
@@ -204,7 +210,7 @@ rule=allow
 
 
 ##
-## Number rewriting 
+## Number rewriting
 ##
 ## This is the general number rewriting. There's also a number rewriting specific to
 ## child/parent GK configurations, see #[Endpoint::RewriteE164]# for that one.
@@ -250,7 +256,7 @@ rule=allow
 #ArjReasonRouteCallToSCN=0
 #ArjReasonRouteCallToGatekeeper=1
 #CallUnregisteredEndpoints=1
-#RemoveTrailingChar=#   
+#RemoveTrailingChar=#
 
 
 
@@ -418,7 +424,7 @@ default=reject
 #(id=cwhuang, password=123456)
 #cwhuang=UGwUtpy837k=
 
-
+# This is likely to be not supported with Profiles and OverlapSendDestanalysis
 [MySQLAuth]
 #Host=localhost
 #Database=billing
@@ -482,9 +488,9 @@ IniFile=TRUE
 #PrependCallbackAccessCode=voIPprependCallbackAccessCode
 
 
-## 
+##
 ## Settings for LDAP access
-## 
+##
 ## ServerName:   The LDAP server's DNS name.
 ## ServerPort:   The LDAP server's TCP port (usually 389).
 ## SearchBaseDN: entry point into the server's LDAP tree structure.
@@ -501,7 +507,7 @@ IniFile=TRUE
 ##               Usually that's restricted on the server side, anyway.
 ## timelimit:    maximum number of seconds a query may take until it's
 ##               considered as "failed".
-## 
+##
 
 [GkLDAP::Settings]
 #ServerName=ldap
@@ -527,6 +533,8 @@ IniFile=TRUE
 
 [LDAPCache]
 Enable=TRUE
+# Cache Negative results
+EnableNegative=TRUE
 #TTL=60
 #MaxMemory=10000
 
