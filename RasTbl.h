@@ -142,8 +142,6 @@ public:
 	 * how would this RRQ would look like? May be implemented with a
 	 * built-together-RRQ, but for the moment a stored RRQ.
 	 */
-	const H225_RasMessage & GetCompleteRegistrationRequest() const
-	{ return m_RasMsg; }
 
 	void AddCall();
 	void AddConnectedCall();
@@ -161,11 +159,11 @@ public:
 
 protected:
 
-	void SetEndpointRec(H225_RegistrationRequest &);
-	void SetEndpointRec(H225_AdmissionRequest &);
-	void SetEndpointRec(H225_AdmissionConfirm &);
-	void SetEndpointRec(H225_LocationConfirm &);
-	void SetEndpointRec(H225_LocationRequest &);
+	void SetEndpointRec(const H225_RegistrationRequest &);
+	void SetEndpointRec(const H225_AdmissionRequest &);
+	void SetEndpointRec(const H225_AdmissionConfirm &);
+	void SetEndpointRec(const H225_LocationConfirm &);
+	void SetEndpointRec(const H225_LocationRequest &);
 
 	bool SendURQ(H225_UnregRequestReason::Choices);
 
@@ -173,8 +171,6 @@ protected:
 	 * build its return value itself.
 	 * @see GetCompleteRegistrationRequest()
 	 */
-	H225_RasMessage m_RasMsg;
-
 	H225_TransportAddress m_rasAddress;
 	H225_TransportAddress m_callSignalAddress;
 	H225_EndpointIdentifier m_endpointIdentifier;

@@ -582,8 +582,7 @@ Abstract_H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 
 			// forward lightweights, too
 			if (bShellForwardRequest) {
-				H225_RasMessage ras = ep->GetCompleteRegistrationRequest();
-				ForwardRasMsg(ras);
+				ForwardRasMsg(pdu);
 			}
 
 			ep->Update(pdu);
