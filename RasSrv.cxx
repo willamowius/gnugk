@@ -423,6 +423,8 @@ void H323RasSrv::LoadConfig()
 	GWR=new GkAuthorize(GkStatusThread);
 
 	if (gkClient) { // don't create GkClient object at the first time
+		if (gkClient->IsRegistered())
+			gkClient->SendURQ();
 		delete gkClient;
 		gkClient = new GkClient(this);
 	}

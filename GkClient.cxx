@@ -116,7 +116,7 @@ inline void GkClient::SendRas(const H225_RasMessage & ras)
 	m_rasSrv->SendRas(ras, m_gkaddr, m_gkport);
 }
 
-bool GkClient::CheckGKIP(PIPSocket::Address gkip)
+bool GkClient::CheckGKIPVerbose(PIPSocket::Address gkip)
 {
 	if (gkip != m_gkaddr) {
 		PTRACE(2, "GKC\tReceived RAS not from my GK? ignore!");
@@ -224,7 +224,7 @@ void GkClient::SendRRQ()
 
 void GkClient::OnRCF(const H225_RegistrationConfirm & rcf, PIPSocket::Address gkip)
 {
-	if (!CheckGKIP(gkip))
+	if (!CheckGKIPVerbose(gkip))
 		return;
 
 	if (!IsRegistered()) {
@@ -238,7 +238,7 @@ void GkClient::OnRCF(const H225_RegistrationConfirm & rcf, PIPSocket::Address gk
 
 void GkClient::OnRRJ(const H225_RegistrationReject & rrj, PIPSocket::Address gkip)
 {
-	if (!CheckGKIP(gkip))
+	if (!CheckGKIPVerbose(gkip))
 		return;
 	PTRACE(1, "GKC\tRegistration Rejected: " << rrj.m_rejectReason.GetTagName());
 	m_endpointId = PString();
@@ -269,7 +269,7 @@ void GkClient::SendURQ()
 
 bool GkClient::OnURQ(const H225_UnregistrationRequest & urq, PIPSocket::Address gkip)
 {
-	if (!CheckGKIP(gkip) || m_endpointId != urq.m_endpointIdentifier.GetValue()) // not me?
+	if (gkip != m_gkaddr || m_endpointId != urq.m_endpointIdentifier.GetValue()) // not me?
 		return false;
 
 	m_endpointId = PString();
@@ -357,7 +357,7 @@ void GkClient::SendARQ(const H225_Setup_UUIE & setup, unsigned crv, const callpt
 
 void GkClient::OnACF(const H225_RasMessage & acf_ras, PIPSocket::Address gkip)
 {
-	if (!CheckGKIP(gkip))
+	if (!CheckGKIPVerbose(gkip))
 		return;
 
 	const H225_AdmissionConfirm & acf = acf_ras;
@@ -376,7 +376,7 @@ void GkClient::OnACF(const H225_RasMessage & acf_ras, PIPSocket::Address gkip)
 
 void GkClient::OnARJ(const H225_RasMessage & arj_ras, PIPSocket::Address gkip)
 {
-	if (!CheckGKIP(gkip))
+	if (!CheckGKIPVerbose(gkip))
 		return;
 
 	const H225_AdmissionReject & arj = arj_ras;

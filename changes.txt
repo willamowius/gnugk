@@ -1,4 +1,4 @@
-Changes from 2.0b3 to now (by cwhuang)
+Changes from 2.0b3 to 2.0b4 (by cwhuang)
 ======================================
 - add MySQLAliasAuth module
 - add ExtraCriterion to MySQLAuth, remove CheckField

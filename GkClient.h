@@ -88,7 +88,8 @@ public:
 	bool RewriteE164(Q931 &, H225_Setup_UUIE &, bool);
 
 	void CheckRegistration();
-	bool CheckGKIP(PIPSocket::Address);
+	bool CheckGKIP(PIPSocket::Address gkip) { return m_gkaddr == gkip; }
+	bool CheckGKIPVerbose(PIPSocket::Address);
 
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
