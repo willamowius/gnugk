@@ -11,7 +11,7 @@
 //////////////////////////////////////////////////////////////////
 
 #ifndef GKPROFILE_H
-#define GKPROFILE_H
+#define GKPROFILE_H "@(#) $Id$"
 
 #ifdef P_SOLARIS
 #define map stl_map
@@ -65,6 +65,7 @@ public:
 	const PStringList & GetWhiteList() const ;
 
 	const long int GetCallTimeout() {return -1 ; }
+	const PTimeInterval GetStatusEnquiryInterval() {return PTimeInterval(0,0,1);}
 
 	// These two will change the numbering conversion functions to treat the
 	// number as International (TreatAsInternational), National (TreatAsNational)
@@ -134,16 +135,17 @@ public:
 
 class CalledProfile : public CallProfile {
 public:
-        CalledProfile() {};
+        CalledProfile() : m_releasecause(Q931::NormalCallClearing) {};
         CalledProfile(PString &dialedPN, PString &calledPN);
 
         // Get accessor methods
         const PString & GetDialedPN() const { return m_dialedPN; }
         const PString & GetCalledPN() const { return m_calledPN; }
 	const PString & GetCallingPN() const { return m_callingPN; }
-        const enum Q931::TypeOfNumberCodes & GetDialedPN_TON() const { return m_dialedPN_TON; }
-	const enum Q931::TypeOfNumberCodes & GetAssumedDialedPN_TON() const { return m_assumeddialedPN_TON; }
+        const enum Q931::TypeOfNumberCodes  GetDialedPN_TON() const { return m_dialedPN_TON; }
+	const enum Q931::TypeOfNumberCodes  GetAssumedDialedPN_TON() const { return m_assumeddialedPN_TON; }
 	const PString & GetAssumedDialedPN() const { return m_assumeddialedPN; }
+	const enum Q931::CauseValues GetReleaseCause() const {return m_releasecause; }
 
         void SetDialedPN(PString &dialedPN,
 			 const enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType);
@@ -158,7 +160,7 @@ public:
 			  const enum Q931::TypeOfNumberCodes callingPN_TON = Q931::UnknownType,
 			  const enum H225_ScreeningIndicator::Enumerations callingPN_SI = H225_ScreeningIndicator::e_userProvidedNotScreened,
 			  const enum H225_PresentationIndicator::Choices callingPN_PI = H225_PresentationIndicator::e_presentationAllowed);
-
+	void SetReleaseCause(const enum Q931::CauseValues cause);
 
 private:
 	// the dialed.*-information is the "raw" data collected from H225Ras or Q.931. The "assumed"
@@ -176,6 +178,7 @@ private:
 
 	enum Q931::TypeOfNumberCodes m_assumeddialedPN_TON; // type of number for dialed PN
 	enum Q931::NumberingPlanCodes m_assumeddialedPN_PLAN;
+	enum Q931::CauseValues m_releasecause;
         PString m_assumeddialedPN; // dialed party number
 
         PString m_calledPN; // called party number

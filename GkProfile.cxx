@@ -15,6 +15,16 @@
 #include "GkProfile.h"
 #include "Toolkit.h"
 
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id";
+static const char vcHid[] = GKPROFILE_H;
+#endif /* lint */
+
+
 // Classes to store information read form e.g. LDAP
 // necessary for e.g. routing decisions
 
@@ -182,4 +192,9 @@ CalledProfile::SetCallingPN(PString &callingPN, const enum Q931::NumberingPlanCo
 	m_callingPN = callingPN;
 }
 
+void
+CalledProfile::SetReleaseCause(const enum Q931::CauseValues cause)
+{
+	m_releasecause = cause;
+}
 // End of: Classes to store information read from e.g. LDAP
