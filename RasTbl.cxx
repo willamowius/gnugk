@@ -319,7 +319,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 	H225_UnregistrationRequest & urq = ras_msg;
 	urq.m_requestSeqNum.SetValue(RasSrv->GetRequestSeqNum());
 	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
-	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
+	urq.m_gatekeeperIdentifier = Toolkit::GKName();
 	urq.IncludeOptionalField(urq.e_endpointIdentifier);
 	urq.m_endpointIdentifier = GetEndpointIdentifier();
 	urq.m_callSignalAddress.SetSize(1);

@@ -1200,7 +1200,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		H225_GatekeeperReject & grj = BuildReject(rsn);
 		grj.m_protocolIdentifier = request.m_protocolIdentifier;
 		grj.IncludeOptionalField(H225_GatekeeperReject::e_gatekeeperIdentifier);
-		grj.m_gatekeeperIdentifier.SetValue(Toolkit::GKName());
+		grj.m_gatekeeperIdentifier = Toolkit::GKName();
 		if (rsn == H225_GatekeeperRejectReason::e_resourceUnavailable)
 			RasSrv->SetAltGKInfo(grj);
 		log = PString(PString::Printf, "GRJ|%s|%s|%s|%s;",
@@ -1214,7 +1214,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		gcf.m_protocolIdentifier = request.m_protocolIdentifier;
 		GetRasAddress(gcf.m_rasAddress);
 		gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier);
-		gcf.m_gatekeeperIdentifier.SetValue(Toolkit::GKName());
+		gcf.m_gatekeeperIdentifier = Toolkit::GKName();
 		if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
 			RasSrv->SetAlternateGK(gcf);
 
