@@ -243,9 +243,14 @@ endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 		}
 		callptr m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
 		if (m_call)
-			return RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress()));
+			if (endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress())))
+				return RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress()));
+		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+			if(endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress))
+				return RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress);
+		}
 	}
-	PTRACE(1, "Something nasty happened");
+	PTRACE(1, "No endpoint found");
 	return endptr(0);
 }
 
@@ -309,8 +314,7 @@ void PrintQ931(int tlevel, const PString & msg, const Q931 *q931, const H225_H32
        PTRACE(tlevel, pstrm);
 }
 #else
-inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserI
-nformation *)
+inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserInformation *)
 {
 	// Nothing to do
 }
@@ -756,14 +760,8 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		PString destinationString;
 
 		endptr callingEP = GetCgEP(*GetSetupPDU());
-		if (endptr(NULL)==callingEP) {
-			if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
-				callingEP = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress);
-			}
-		}
-		// TODO: check the Setup_UUIE by gkauth modules
 
-		if (!callingEP) {
+		if (endptr(NULL)==callingEP) {
 			PTRACE(1, "Unknown Calling Party -- giving up");
 			return ;
 		}
@@ -1306,6 +1304,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 	if(callRec==callptr(NULL))
 		return;
 
+	callRec->GetCallingProfile().debugPrint();
 	PString srcH323IDStr=callRec->GetCallingProfile().getH323ID();
 	PTRACE(6, "srcH323ID: " << srcH323IDStr);
 
