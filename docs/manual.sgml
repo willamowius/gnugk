@@ -115,6 +115,9 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New FileIPAuth module in the contrib/ipauth directory.
+
+<item>
 Call accounting updates/call disconnect handling is now more robust
 and does not lock the whole call table and (effectively) the gatekeeper
 for long time periods.
