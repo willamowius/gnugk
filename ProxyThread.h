@@ -234,7 +234,7 @@ public:
 	typedef std::list<ProxyConnectThread *>::iterator citerator;
         typedef std::list<ProxyConnectThread *>::const_iterator const_citerator;
 
-	ProxyHandleThread() : lcHandler(0) {}
+	ProxyHandleThread() : lcHandler(NULL) {}
 	ProxyHandleThread(PINDEX);
 	virtual ~ProxyHandleThread();
 

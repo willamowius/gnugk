@@ -505,7 +505,7 @@ void ProxyListener::Exec()
 }
 
 // class ProxyHandleThread
-ProxyHandleThread::ProxyHandleThread(PINDEX i)
+ProxyHandleThread::ProxyHandleThread(PINDEX i) : lcHandler(NULL)
 {
 	SetID(PString(PString::Printf, "ProxyH(%u)", i));
 	Resume();
