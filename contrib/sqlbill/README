@@ -14,7 +14,7 @@ to Voice over IP networks managed by the GNU Gatekeeper.
 
 It consists of three major components:
 	GnuGk (2.0 or 2.2) H.323 gatekeeper (http://www.gnugk.org)
-	FreeRADIUS RADIUS server (http://www.freeradius.org)
+	FreeRADIUS RADIUS server (http://www.freeradius.org) (optional)
 	PostgreSQL database server (http://www.postgresql.org)
 	
 All these application are open source and have been proven
@@ -24,7 +24,7 @@ What you may expect from this system:
 1. Endpoint authentication based on a h323id/password pair.
 2. Automatic assignment of specified E.164/H.323 ID to endpoints.
 4. Restricting aliases an endpoint is allowed to register with.
-5. Restricting IP address a endpoint can register/call from.
+5. Restricting IP address an endpoint can register/call from.
 6. Call authorization:
    - call duration limit based on available account balance
    - allow only fixed set of destination numbers (tariff table)
@@ -34,6 +34,7 @@ What you may expect from this system:
      disconnected and in progress (incremental accounting updates)
    - automatic account balance update after call state is updated
      or the call is disconnected
+   - support for both originating and terminating account
 	 
 What you will not find here:
 1. User interface (this package contains only SQL schema and configuration
