@@ -398,7 +398,7 @@ CallSignalSocket::~CallSignalSocket()
 
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(NULL), m_h245socket(NULL), isRoutable(TRUE),
-	  m_numbercomplete(FALSE), m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL), m_replytoStatusMessage(TRUE)
+	  m_numbercomplete(TRUE), m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL), m_replytoStatusMessage(TRUE)
 {
 	m_call = socket->m_call;
 	socket->m_lock.Signal();
@@ -477,6 +477,7 @@ inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserIn
 } // end of anonymous namespace
 
 void CallSignalSocket::DoRoutingDecision() {
+	lastInformationMessage=TRUE;
 	endptr CalledEP(NULL);
 	H225_AliasAddress h225address;
 	endptr CallingEP = endptr(NULL);
@@ -541,15 +542,16 @@ void CallSignalSocket::DoRoutingDecision() {
 		isRoutable=TRUE;
 		// Do CgPNConversion. We need the setup pdu and the setup UUIE (stored in m_SetupPDU)
 //		CgPNConversion();
-		const H225_TransportAddress &ad  = CalledEP->GetCallSignalAddress();
-		if (ad.GetTag() == H225_TransportAddress::e_ipAddress) { // IP Address known?
-			const H225_TransportAddress_ipAddress & ip = ad;
-			peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-			peerPort = ip.m_port;
-			localAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr);
+		// const H225_TransportAddress &ad  = CalledEP->GetCallSignalAddress();
+// 		if (ad.GetTag() == H225_TransportAddress::e_ipAddress) { // IP Address known?
+// 			const H225_TransportAddress_ipAddress & ip = ad;
+// 			peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+// 			peerPort = ip.m_port;
+// 			localAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr);
 			//SetPort(peerPort);
-			BuildConnection();
-		}
+		m_call->SetCalled(CalledEP);
+		BuildConnection();
+//		}
 		PTRACE(5, "Setting Profile.Number");
 		if(callptr(NULL)!=m_call) {
 			m_call->GetCalledProfile().SetCalledPN(CalledNumber); // are the dialed digits in international format?
@@ -603,10 +605,19 @@ void CallSignalSocket::BuildConnection() {
 	pdu->GetCalledPartyNumber(calledDigit, &plan, &type);
 	pdu->SetCalledPartyNumber(DialedDigits,plan,type);
 	m_SetupPDU=pdu;
+
+       	const H225_TransportAddress *addr = m_call->GetCalledAddress();
+
+	const H225_TransportAddress_ipAddress & ip = *addr;
+	peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	peerPort = ip.m_port;
+	remote = new CallSignalSocket(this, peerPort);
+
 	remote=new CallSignalSocket(this, peerPort);
 	CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
 	if(NULL!=rem)
 		rem->LockUse("CallSignalSocket " + Name() + type);
+	GetHandler()->Insert(remote);
 	ConnectTo();
 }
 
@@ -614,6 +625,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 {
 	CgPNConversion(TRUE);
 	if (peerAddr == Address("0.0.0.0")) {
+		PTRACE(5, "peerAddr is INADDR_ANY");
 		if (NULL!=remote) {
 			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
 			if(NULL!=rem)
@@ -642,11 +654,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 			PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
 #endif
 			SetConnected(true);
-			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
-			if(NULL!=rem)
-				rem->SetConnected(false);
-			else
-				remote->SetConnected(true);
+			remote->SetConnected(true);
 			SendInformationMessages();
 		} else {
 			PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
@@ -666,8 +674,8 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 			return NULL;
 		}
 	}
-       	if (remote->IsConnected())
-		ForwardData();
+	if (remote->IsConnected()) // NumberIE sent here?
+ 		ForwardData();
 	return remote;
 }
 
@@ -785,7 +793,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 	PTRACE(4, "Q931\t" << Name() << " Call reference: " << q931pdu.GetCallReference());
 	PTRACE(4, "Q931\t" << Name() << " From destination " << q931pdu.IsFromDestination());
 	PTRACE(5, "Q931\t" << Name() << " IsRoutable " << isRoutable);
-	PTRACE(6, ANSI::BYEL << "Q931\nMessage received: " << setprecision(2) << q931pdu << ANSI::OFF);
+	PTRACE(5, ANSI::BYEL << "Q931\nMessage received: " << setprecision(2) << q931pdu << ANSI::OFF);
 
 	if (q931pdu.HasIE(Q931::UserUserIE)) {
 		H225_H323_UserInformation signal;
@@ -906,7 +914,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 */
  	if (q931pdu.GetMessageType()==Q931::InformationMsg)
 		OnInformationMsg(q931pdu);
-	if(isRoutable) {
+	if(isRoutable && !(lastInformationMessage && q931pdu.GetMessageType()==Q931::InformationMsg)) {
 		q931pdu.Encode(buffer);
 		PTRACE(5, ANSI::BGRE << "Q931\nMessage to sent to " << setprecision(2) << q931pdu << ANSI::OFF);
 		{
@@ -995,6 +1003,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		//return (isRoutable) ? Connecting : NoData;
 		return Connecting;
 	}
+	lastInformationMessage=FALSE;
 	return NoData;
 }
 
@@ -1244,6 +1253,8 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		const H225_TransportAddress_ipAddress & ip = *addr;
 		peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		peerPort = ip.m_port;
+		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
+			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		Setup.m_sourceCallSignalAddress = Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(peerAddr);
 		H225_TransportAddress_ipAddress & cip = Setup.m_sourceCallSignalAddress;
@@ -1255,8 +1266,10 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			rem->LockUse("CallSignalSocket " + Name() + type);
 	} else { // Overlap Sending
 		// re-route called endpoint signalling messages to gatekeeper
+		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
+			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-		Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT));
+		Setup.m_sourceCallSignalAddress = Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(peerAddr);
 		if(GetSetupPDU()->HasIE(Q931::CalledPartyNumberIE)) {
 			GetSetupPDU()->GetCalledPartyNumber(DialedDigits,&m_calledPLAN,&m_calledTON);
 		}

@@ -231,6 +231,7 @@ private:
 	                               // (aka pong message)
 	PTimer m_t302;
 	BOOL m_replytoStatusMessage;
+	BOOL lastInformationMessage;
 
 	mutable PMutex m_lock;
 	mutable ProxyCondMutex m_usedCondition;
