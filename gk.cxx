@@ -119,9 +119,10 @@ ShutdownHandler(void)
 	PTRACE(3, "GkStatus::Instance()->Close();");
 	GkStatus::Instance()->Close();
 
-	delete CallTable::Instance();
-	delete RegistrationTable::Instance();
+//	delete CallTable::Instance();
+//	delete RegistrationTable::Instance();
 	PTRACE(3, "GK\tdelete ok");
+	delete Toolkit::Instance();
 
 #ifdef PTRACING
 	PTrace::SetStream(&cerr); // redirect to cerr
