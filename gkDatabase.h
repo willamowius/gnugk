@@ -56,7 +56,8 @@ enum DBAttributeNamesEnum {
 	MainTelephoneNo, SubscriberTelephoneNumber, CallingLineIdRestriction, SpecialDials,
 	HonorsARJincompleteAddress, PrefixOutgoingBlacklist, PrefixOutgoingWhitelist,
 	PrefixIncomingBlacklist, PrefixIncomingWhitelist, PrependCallbackAC, EPType, CountryCode,
-	OutgoingWhitelistBeforeBlacklist, MAX_ATTR_NO };
+	OutgoingWhitelistBeforeBlacklist, ConvertToLocal, TreatCallingPartyNumberAs,
+	TreatCalledPartyNumberAs, MAX_ATTR_NO };
 
 	/// list of names (keys) as used in config file
 extern const char * DBAttrTags[MAX_ATTR_NO];
@@ -106,7 +107,7 @@ public:
 
   /** @returns profile data and dbType in
    */
-  virtual BOOL getProfile(CallingProfile & cgProfile, PString & h323id, dctn::DBTypeEnum & dbType);
+  virtual BOOL getProfile(CallProfile & cgProfile, PString & h323id, dctn::DBTypeEnum & dbType);
 
   /** @returns #TRUE# if the endpoint with given H323ID is an CPE.
    */

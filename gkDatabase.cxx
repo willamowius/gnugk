@@ -32,7 +32,8 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
  "MainTelephoneNumber", "SubscriberTelephoneNumber", "CallingLineIdRestriction", "SpecialDials",
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
  "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "PrependCallbackAC",
- "EndpointType", "CountryCode", "OutgoingWhitelistBeforeBlacklist"};
+ "EndpointType", "CountryCode", "OutgoingWhitelistBeforeBlacklist", "ConvertToLocal",
+ "TreatCallingPartyNumberAs", "TreatCalledPartyNumberAs"};
 
 // section name for database names which shall be used
 const char *DB_NAMES_SEC = "Gatekeeper::Databases";
@@ -140,6 +141,18 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 			    cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[OutgoingWhitelistBeforeBlacklist],
 					      "voIPWhiteListBeforeBlackList")));
+	AN.insert(DBANValuePair(DBAttrTags[ConvertToLocal],
+			    cfg.GetString(DB_ATTR_NAME_SEC,
+					      DBAttrTags[ConvertToLocal],
+					      "voIPConvertToLocal")));
+	AN.insert(DBANValuePair(DBAttrTags[TreatCallingPartyNumberAs],
+			    cfg.GetString(DB_ATTR_NAME_SEC,
+					      DBAttrTags[TreatCallingPartyNumberAs],
+					      "voIPTreatCallingPartyNumberAs")));
+	AN.insert(DBANValuePair(DBAttrTags[TreatCalledPartyNumberAs],
+			    cfg.GetString(DB_ATTR_NAME_SEC,
+					      DBAttrTags[TreatCalledPartyNumberAs],
+					      "voIPTreatCalledPartyNumberAs")));
 
 	// read database names which shall be used and append them to m_dbList
 	if(m_dbList.GetSize()>0) {
@@ -176,7 +189,7 @@ void GkDatabase::Destroy()		// 'real', private destructor
 {
 }
 
-BOOL GkDatabase::getProfile(CallingProfile & cgProfile, PString & h323id, dctn::DBTypeEnum & dbType)
+BOOL GkDatabase::getProfile(CallProfile & cgProfile, PString & h323id, dctn::DBTypeEnum & dbType)
 {
 	DBAttributeValueClass attrMap;
 	using namespace dctn;
@@ -190,39 +203,55 @@ BOOL GkDatabase::getProfile(CallingProfile & cgProfile, PString & h323id, dctn::
 				spDialDict.SetAt(spDialArray[0], spDialArray[1]);
 			}
 		}
-		cgProfile.setSpecialDials(spDialDict);
+		cgProfile.SetSpecialDials(spDialDict);
 		if (attrMap[attrNameAsString(TelephoneNo)].GetSize() > 0)
-			cgProfile.setTelephoneNumbers(attrMap[attrNameAsString(TelephoneNo)]);
+			cgProfile.SetTelephoneNumbers(attrMap[attrNameAsString(TelephoneNo)]);
 		if (attrMap[attrNameAsString(PrefixOutgoingBlacklist)].GetSize() > 0)
-			cgProfile.setBlackList(attrMap[attrNameAsString(PrefixOutgoingBlacklist)]);
+			cgProfile.SetBlackList(attrMap[attrNameAsString(PrefixOutgoingBlacklist)]);
 		if (attrMap[attrNameAsString(PrefixOutgoingWhitelist)].GetSize() > 0)
-			cgProfile.setWhiteList(attrMap[attrNameAsString(PrefixOutgoingWhitelist)]);
+			cgProfile.SetWhiteList(attrMap[attrNameAsString(PrefixOutgoingWhitelist)]);
 		if (attrMap[attrNameAsString(HonorsARJincompleteAddress)].GetSize() > 0)
-			cgProfile.setHonorsARJincompleteAddress(Toolkit::AsBool(attrMap[attrNameAsString(HonorsARJincompleteAddress)][0]));
+			cgProfile.SetHonorsARJincompleteAddress(Toolkit::AsBool(attrMap[attrNameAsString(HonorsARJincompleteAddress)][0]));
 		if (attrMap[attrNameAsString(H323ID)].GetSize() > 0)
-			cgProfile.setH323ID(attrMap[attrNameAsString(H323ID)][0]);
+			cgProfile.SetH323ID(attrMap[attrNameAsString(H323ID)][0]);
 		if (attrMap[attrNameAsString(MainTelephoneNo)].GetSize() > 0)
-			cgProfile.setMainTelephoneNumber(attrMap[attrNameAsString(MainTelephoneNo)][0]);
+			cgProfile.SetMainTelephoneNumber(attrMap[attrNameAsString(MainTelephoneNo)][0]);
 		if (attrMap[attrNameAsString(SubscriberTelephoneNumber)].GetSize() > 0)
-			cgProfile.setSubscriberNumber(attrMap[attrNameAsString(SubscriberTelephoneNumber)][0]);
+			cgProfile.SetSubscriberNumber(attrMap[attrNameAsString(SubscriberTelephoneNumber)][0]);
 		if (attrMap[attrNameAsString(CallingLineIdRestriction)].GetSize() > 0)
-			cgProfile.setClir(attrMap[attrNameAsString(CallingLineIdRestriction)][0]);
+			cgProfile.SetClir(attrMap[attrNameAsString(CallingLineIdRestriction)][0]);
 		if (attrMap[attrNameAsString(LocalAccessCode)].GetSize() > 0)
-			cgProfile.setLac(attrMap[attrNameAsString(LocalAccessCode)][0]);
+			cgProfile.SetLac(attrMap[attrNameAsString(LocalAccessCode)][0]);
 		if (attrMap[attrNameAsString(NationalAccessCode)].GetSize() > 0)
-			cgProfile.setNac(attrMap[attrNameAsString(NationalAccessCode)][0]);
+			cgProfile.SetNac(attrMap[attrNameAsString(NationalAccessCode)][0]);
 		if (attrMap[attrNameAsString(InternationalAccessCode)].GetSize() > 0)
-			cgProfile.setInac(attrMap[attrNameAsString(InternationalAccessCode)][0]);
+			cgProfile.SetInac(attrMap[attrNameAsString(InternationalAccessCode)][0]);
 		if (attrMap[attrNameAsString(CountryCode)].GetSize() > 0)
-			cgProfile.setCC(attrMap[attrNameAsString(CountryCode)][0]);
+			cgProfile.SetCC(attrMap[attrNameAsString(CountryCode)][0]);
 		if (attrMap[attrNameAsString(EPType)].GetSize() == 0) {
-			cgProfile.setIsCPE(TRUE);
+			cgProfile.SetIsCPE(TRUE);
 		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
-			cgProfile.setIsCPE( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_TRUNK_GW)) ? FALSE : TRUE);
-			cgProfile.setIsGK( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_GATEKEEPER)) ? FALSE : TRUE);
+			cgProfile.SetIsCPE( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_TRUNK_GW)) ? FALSE : TRUE);
+			cgProfile.SetIsGK( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_GATEKEEPER)) ? FALSE : TRUE);
 		}
+		if (attrMap[attrNameAsString(PrependCallbackAC)].GetSize() == 0) {
+			cgProfile.SetPrependCallbackAC(FALSE);
+		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
+			cgProfile.SetPrependCallbackAC(Toolkit::AsBool(attrMap[attrNameAsString(PrependCallbackAC)][0]));
+		}
+		if (attrMap[attrNameAsString(ConvertToLocal)].GetSize() == 0) {
+			cgProfile.SetConvertToLocal(FALSE);
+		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
+			cgProfile.SetConvertToLocal(Toolkit::AsBool(attrMap[attrNameAsString(ConvertToLocal)][0]));
+		}
+		if (attrMap[attrNameAsString(TreatCallingPartyNumberAs)].GetSize() > 0)
+			cgProfile.SetTreatCallingPartyNumberAs(static_cast <CallProfile::Conversions>
+							       (attrMap[attrNameAsString(TreatCallingPartyNumberAs)][0].AsInteger()));
+		if (attrMap[attrNameAsString(TreatCalledPartyNumberAs)].GetSize() > 0)
+			cgProfile.SetTreatCalledPartyNumberAs(static_cast <CallProfile::Conversions>
+							      (attrMap[attrNameAsString(TreatCalledPartyNumberAs)][0].AsInteger()));
 		if (attrMap[attrNameAsString(OutgoingWhitelistBeforeBlacklist)].GetSize() > 0)
-			cgProfile.setWhiteListBeforeBlackList(Toolkit::AsBool(attrMap[attrNameAsString(OutgoingWhitelistBeforeBlacklist)][0]));
+			cgProfile.SetWhiteListBeforeBlackList(Toolkit::AsBool(attrMap[attrNameAsString(OutgoingWhitelistBeforeBlacklist)][0]));
 
 
 		cgProfile.debugPrint();
