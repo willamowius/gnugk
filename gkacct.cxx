@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.25  2005/01/17 08:42:24  zvision
+ * Compilation error fixed (missing std:: prefix before map)
+ *
  * Revision 1.24  2005/01/16 22:37:15  zvision
  * Redundant config reload mutex removed
  *
@@ -339,7 +342,10 @@ PString GkAcctLogger::GetUsername(
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 			);
-				
+
+	if (username.IsEmpty())
+		username = call->GetCallingStationId();
+
 	if (username.IsEmpty()) {
 		PIPSocket::Address callingSigAddr;
 		WORD callingSigPort;

@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BIGFIX(gkacct.cxx) different Username was reported during Setup auth
+  and acct step, if no sourceAddress has been present for an unregistered call
 - more missing config reload locks added to allow seamless config reload
 - BUGFIX(ProxyChannel.cxx) the code could reference an invalid H.245 socket
   due to recent changes

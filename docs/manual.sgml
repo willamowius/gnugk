@@ -114,6 +114,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Different Username was reported during Setup auth
+and acct step, if no sourceAddress has been present for an unregistered call.
+
+<item>
 More missing config reload locks added to allow seamless config reload.
 
 <item>
