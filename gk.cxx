@@ -621,8 +621,7 @@ void Gatekeeper::Main()
 	GkDestAnalysisList *dal = new GkDestAnalysisList(GkConfig());
 	PAssert(NULL!=dal, "No DestAnalysisList!");
 	RegistrationTable::Instance()->Initialize(*dal);
-	delete dal;
-
+	dal=NULL; // do NOT delete dal, because there is no copy in RegistrationTable.
 	// Check for GkClient()
 	Toolkit::Instance()->StartGkClient();
 	// let's go
