@@ -793,8 +793,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	switch (m_lastQ931->GetMessageType())
 	{
 		case Q931::SetupMsg:
-			if( m_result == Error 
-				|| !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
+			if( m_result == Error ) {
 				CallTable::Instance()->RemoveCall(m_call);
 				EndSession();
 			}
@@ -1071,6 +1070,11 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 			Setup.m_cryptoTokens = tokens;
 		}
+		
+		// log AcctStart accounting event
+		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) )
+			return false;
+			
 	} else {
 		endptr called;
 		bool destFound = false;
@@ -1147,8 +1151,18 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		if (useParent)
 			call->SetRegistered(true);
 
-		CallTable::Instance()->Insert(call);
 		m_call = callptr(call);
+		// log AcctStart accounting event before inserting the call 
+		// to CallTable and connecting to a remote party
+		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
+			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
+				<<" due to accounting failure"
+				);
+			m_call = callptr(NULL);
+			delete call;
+			return false;
+		}
+		CallTable::Instance()->Insert(call);
 	}
 
 	// in routed mode the caller may have put the GK address in destCallSignalAddress
