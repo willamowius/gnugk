@@ -458,7 +458,7 @@ private:
 
 	void InternalDisconnect(bool);
 	void InternalRemoveSocket();
-	void InternalSendReleaseComplete();
+	void InternalSendReleaseComplete(BOOL force=FALSE);
 	void RemoveAll();
 
         CallingProfile & InternalGetCallingProfile();

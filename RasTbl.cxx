@@ -1422,7 +1422,7 @@ void
 CallRec::InternalDisconnect(bool force)
 {
 	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
-		InternalSendReleaseComplete();
+		InternalSendReleaseComplete(TRUE);
 	} else {
 		SendDRQ(); // This is an internal function
 	}
@@ -1436,17 +1436,17 @@ void CallRec::SendReleaseComplete()
 	InternalSendReleaseComplete();
 }
 
-void CallRec::InternalSendReleaseComplete()
+void CallRec::InternalSendReleaseComplete(BOOL force)
 {
 	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable() &&
-	    m_callingProfile.SendReleaseCompleteOnDRQ()) {
+	    (m_callingProfile.SendReleaseCompleteOnDRQ() || force)) {
 		m_callingSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to calling party ..." << m_callingSocket);
 		m_callingSocket->SendReleaseComplete();
 		m_callingSocket->MarkBlocked(FALSE);
 	}
 	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable() &&
-	    m_calledProfile.SendReleaseCompleteOnDRQ()) {
+	    (m_calledProfile.SendReleaseCompleteOnDRQ() || force)) {
 		m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete();
