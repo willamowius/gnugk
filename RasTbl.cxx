@@ -1654,8 +1654,8 @@ PString CallRec::GenerateCDR(
 	if (m_connectTime != 0) {
 		const PTime startTime(m_connectTime);
 		timeString = PString((unsigned)(eTime > m_connectTime
-			? (eTime - m_connectTime) : 1)) + PString("|")
-			+ toolkit->AsString(startTime, fmtStr) + PString("|")
+			? (eTime - m_connectTime) : 1)) + "|"
+			+ toolkit->AsString(startTime, fmtStr) + "|"
 			+ toolkit->AsString(endTime, fmtStr);
 	} else {
 		timeString = "0|unconnected|" + toolkit->AsString(endTime, fmtStr);
