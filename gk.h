@@ -27,8 +27,8 @@ class Gatekeeper : public PProcess
 		(const char * manuf = "Willamowius", 
 		 const char * name = "Gatekeeper", 
 		 WORD majorVersion = 1,
-		 WORD minorVersion = 0,  
-		 CodeStatus status = ReleaseCode, 
+		 WORD minorVersion = 2,
+		 CodeStatus status = ReleaseCode,
 		 WORD buildNumber = 0);
 
 	virtual void Main();
