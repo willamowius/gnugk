@@ -30,10 +30,9 @@ class ProxyHandleThread;
 class HandlerList;
 
 
-class ProxySocket : public PTCPSocket {
+// abstract interface of a proxy socket
+class ProxySocket {
 public:
-	PCLASSINFO( ProxySocket, PTCPSocket )
-
 	enum Result {
 		NoData,
 		Connecting,
@@ -42,55 +41,79 @@ public:
 		Error
 	};
 
-	ProxySocket(WORD = 0, ProxySocket * = 0);
-	virtual ~ProxySocket();
+	ProxySocket(PIPSocket *);
+	virtual ~ProxySocket() { delete [] wbuffer; }
 	PString Name() const { return name; }
 
-	virtual ProxySocket *ConnectTo() = 0;
 	virtual Result ReceiveData() = 0;
-	virtual bool CloseConnection();
+	virtual bool ForwardData() = 0;
+	virtual bool TransmitData() = 0;
+	virtual bool EndSession();
 
-	bool ForwardData();
-	bool TransmitData();
+	bool IsSocketOpen() const { return self->IsOpen(); }
+	bool CloseSocket() { return self->Close(); }
 
 	bool Flush();
 	bool CanFlush() const;
 	bool IsBlocked() const { return blocked; }
 	void MarkBlocked(bool b) { blocked = b; }
-	void SetHandler(ProxyHandleThread *);
-	
+	bool IsConnected() const { return connected; }
+	void SetConnected(bool c) { connected = c; }
+	ProxyHandleThread *GetHandler() const { return handler; }
+	void SetHandler(ProxyHandleThread *h) { handler = h; }
+
+	void AddToSelectList(PSocket::SelectList &);
+
+protected:
+	bool SetMinBufSize(WORD);
+	bool ErrorHandler(PSocket *, PChannel::ErrorGroup);
+	void InternalCleanup();
+	void SetName(PIPSocket::Address ip, WORD pt);
+
+	PIPSocket *self;
+	PIPSocket *wsocket;
+	WORD maxbufsize, buflen;
+	BYTE *wbuffer, *bufptr;
+	PString name;
+
+private:
+	ProxyHandleThread *handler;
+	bool blocked;
+	bool connected;
+};
+
+class TCPProxySocket : public PTCPSocket, public ProxySocket {
+public:
+	PCLASSINFO( TCPProxySocket, PTCPSocket )
+
+	TCPProxySocket(WORD = 0, TCPProxySocket * = 0);
+	virtual ~TCPProxySocket();
+
+	// override from class ProxySocket
+	virtual Result ReceiveData() = 0;
+	virtual bool ForwardData();
+	virtual bool TransmitData();
+
 	// override from class PTCPSocket
 	virtual BOOL Accept(PSocket &);
 	virtual BOOL Connect(const Address &);
-
-	bool IsConnected() const { return connected; }
-	void SetConnected(bool c) { connected = c; }
-
 //	BOOL WriteAsync( const void * buf, PINDEX len );
 //	void OnWriteComplete( const void * buf, PINDEX len );
 
+	// new virtual function
+	virtual TCPProxySocket *ConnectTo() = 0;
+
 protected:
 	bool ReadTPKT();
-	bool SetMinBufSize(WORD);
-	bool ErrorHandler(ProxySocket *, ErrorGroup);
 
-	ProxySocket *remote;
+	TCPProxySocket *remote;
 	PBYTEArray buffer;
-	ProxyHandleThread *phandler;
 
 private:
-	void SetName();
 	bool InternalWrite();
-
-	ProxySocket *wsocket;
-	WORD maxbufsize, buflen;
-	BYTE *wbuffer, *bufptr;
-	bool blocked;
-	bool connected;
-	PString name;
+	void SetName();
 };
 
-// abstract class
 class MyPThread : public PThread {
 public:
 	PCLASSINFO ( MyPThread, PThread )
@@ -130,7 +153,7 @@ protected:
 	WORD m_port;
 
 private:
-	ProxySocket *CreateSocket();
+	TCPProxySocket *CreateSocket();
 
 	HandlerList *m_handler;
 };
@@ -147,6 +170,9 @@ public:
 	ProxyHandleThread(PINDEX);
 	~ProxyHandleThread();
 	void Insert(ProxySocket *);
+	void Remove(iterator);
+	void Remove(ProxySocket *socket);
+
 	void Exec();
 
 	void CloseUnusedThreads();
@@ -159,13 +185,9 @@ private:
 	static void delete_socket(ProxySocket *s) { delete s; }
 	
 	std::list<ProxySocket *> sockList;
-	mutable PReadWriteMutex mutex, connMutex;
 	std::list<ProxyConnectThread *> connList;
-
-	PIPSocket::Address toAddr;
-	WORD toPort;
-
-	PINDEX id;
+	mutable PReadWriteMutex mutex, connMutex;
+	PString id;
 };
 
 class HandlerList {     
@@ -197,27 +219,21 @@ inline bool ProxySocket::CanFlush() const
 	return (wsocket && wsocket->IsOpen());
 }
 
-inline BOOL ProxySocket::Accept(PSocket & socket)
+inline void ProxySocket::AddToSelectList(PSocket::SelectList & slist)
 {
-	BOOL result = PTCPSocket::Accept(socket);
-	// since GetName() may not work if socket closed,
-	// we save it for reference
-	SetName();
-	return result;
+	slist.Append(self);
 }
 
-inline BOOL ProxySocket::Connect(const Address & addr)
+inline void ProxySocket::InternalCleanup()
 {
-	BOOL result = PTCPSocket::Connect(addr);
-	// since GetName() may not work if socket closed,
-	// we save it for reference
-	SetName();
-	return result;
+	wsocket = 0;
+	buflen = 0;
+	blocked = false;
 }
 
-inline void ProxySocket::SetHandler(ProxyHandleThread *h)
+inline void ProxySocket::SetName(PIPSocket::Address ip, WORD pt)
 {
-	phandler = h;
+	name = ip.AsString() + PString(PString::Printf, ":%u", pt);
 }
 
 inline bool MyPThread::Wait()
@@ -230,6 +246,22 @@ inline void MyPThread::Go()
 {
 	if (sync.WillBlock())
 		sync.Signal();
+}
+
+inline void ProxyHandleThread::Remove(iterator i)
+{
+	delete *i;
+	mutex.StartWrite();
+	sockList.erase(i);
+	mutex.EndWrite();
+}
+
+inline void ProxyHandleThread::Remove(ProxySocket *socket)
+{
+	delete socket;
+	mutex.StartWrite();
+	sockList.remove(socket);
+	mutex.EndWrite();
 }
 
 #endif // __proxythread_h__

@@ -37,7 +37,7 @@ class Toolkit : public Singleton<Toolkit>
 		typedef PIPSocket::InterfaceTable InterfaceTable;
 
 	public:
-		RouteTable() { InitTable(); }
+		RouteTable() { /* initialize later */ }
 		~RouteTable() { ClearTable(); }
 		Address GetLocalAddress() const { return defAddr; };
 		Address GetLocalAddress(Address) const;
@@ -58,7 +58,28 @@ class Toolkit : public Singleton<Toolkit>
 		Address defAddr;
 	};
 
-	RouteTable *GetRouteTable() { return GKRouteTable; }
+	RouteTable *GetRouteTable() { return &m_RouteTable; }
+
+	class ProxyCriterion {
+		typedef PIPSocket::Address Address;
+
+	public:
+		ProxyCriterion() : network(0) { /* initialize later */ }
+		~ProxyCriterion() { ClearTable(); }
+
+		bool IsInternal(Address ip) const;
+		bool Required(Address, Address) const;
+
+		void LoadConfig(PConfig *);
+		void ClearTable();
+
+	private:
+		int size;
+		Address *network, *netmask;
+	};
+
+	bool ProxyRequired(PIPSocket::Address ip1, PIPSocket::Address ip2) const
+	{ return m_ProxyCriterion.Required(ip1, ip2); }
 
  public: // virtual tools
 	/// maybe modifies #alias#. returns true if it did
@@ -184,7 +205,8 @@ class Toolkit : public Singleton<Toolkit>
 	PString   m_RewriteFastmatch;
 	BOOL      m_EmergencyAccept;
 
-	RouteTable *GKRouteTable;
+	RouteTable m_RouteTable;
+	ProxyCriterion m_ProxyCriterion;
 
  private:
 	PFilePath m_tmpconfig;

@@ -20,6 +20,9 @@
 #include "stl_supp.h"
 
 
+const char *ProxySection = "Proxy";
+
+// class Toolkit::RouteTable::RouteEntry
 Toolkit::RouteTable::RouteEntry::RouteEntry(
 	PIPSocket::RouteEntry & re,
 	InterfaceTable & it
@@ -33,11 +36,12 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 	}
 }
 
-inline bool Toolkit::RouteTable::RouteEntry::Compare(Address addr) const
+inline bool Toolkit::RouteTable::RouteEntry::Compare(Address ip) const
 {
-	return ((addr & net_mask) == network);
+	return ((ip & net_mask) == network);
 }
 
+// class Toolkit::RouteTable
 void Toolkit::RouteTable::InitTable()
 {
 	// Workaround for OS doesn't support GetRouteTable
@@ -66,8 +70,8 @@ void Toolkit::RouteTable::InitTable()
 #ifdef PTRACING
 	typedef std::list<RouteEntry *>::iterator iterator;
 	for (iterator i = rTable.begin(); i != rTable.end(); ++i)
-		PTRACE(2, "Network=" << (*i)->GetNetwork() <<
-			  ", Netmask=" << (*i)->GetNetMask() <<
+		PTRACE(2, "Network=" << (*i)->GetNetwork() << '/' <<
+			  (*i)->GetNetMask() <<
 			  ", IP=" << (*i)->GetDestination());
 	PTRACE(2, "Default IP=" << defAddr);
 #endif
@@ -87,15 +91,66 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(Address addr) const
 	return (iter != rTable.end()) ? (*iter)->GetDestination() : defAddr;
 }
 
+// class Toolkit::ProxyCriterion
+void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
+{
+	ClearTable();
+	if (!AsBool(config->GetString(ProxySection, "Enable", "0"))) {
+		PTRACE(2, "GK\tH.323 Proxy disabled");
+		return;
+	}
 
-Toolkit::Toolkit() : m_Config(0), GKRouteTable(0)
+	PStringArray networks(config->GetString(ProxySection, "InternalNetwork", "").Tokenise(" ,;\t", FALSE));
+	if ((size = networks.GetSize()) == 0) {
+		PTRACE(2, "GK\tNo internal network? Proxy disabled");
+		return;
+	}
+
+	PTRACE(2, "GK\tH.323 Proxy enabled");
+	network = new Address[size * 2];
+	netmask = network + size;
+	for (int i = 0; i < size; ++i) {
+		PStringArray net = networks[i].Tokenise("/", FALSE);
+		if (net[1].Find('.') == P_MAX_INDEX) {
+			// CIDR notation
+			DWORD n = (DWORD(~0) >> net[1].AsInteger());
+			netmask[i] = PIPSocket::Host2Net(~n);
+		} else {
+			// decimal dot notation
+			netmask[i] = net[1];
+		}
+		network[i] = Address(net[0]) & netmask[i]; // normalize
+		PTRACE(2, "GK\tInternal Network " << i << " = " <<
+			   network[i] << '/' << netmask[i]);
+	}
+}
+
+void Toolkit::ProxyCriterion::ClearTable()
+{
+	size = 0;
+	delete [] network;
+}
+
+bool Toolkit::ProxyCriterion::Required(Address ip1, Address ip2) const
+{
+	return (size > 0) && (IsInternal(ip1) != IsInternal(ip2));
+}
+
+bool Toolkit::ProxyCriterion::IsInternal(Address ip) const
+{
+	for (int i = 0; i < size; ++i)
+		if ((ip & netmask[i]) == network[i])
+			return true;
+	return false;
+}
+
+Toolkit::Toolkit() : m_Config(0)
 {
 //	PTRACE(1, "Toolkit::Toolkit");
 }
 
 Toolkit::~Toolkit()
 {
-	delete GKRouteTable;
 	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
@@ -148,10 +203,8 @@ PConfig* Toolkit::ReloadConfig()
 		m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
 	m_RewriteFastmatch = m_Config->GetString("RasSvr::RewriteE164", "Fastmatch", "");
 
-	if (GKRouteTable)
-		GKRouteTable->InitTable();
-	else
-		GKRouteTable = new RouteTable;
+	m_RouteTable.InitTable();
+	m_ProxyCriterion.LoadConfig(m_Config);
 
 	return m_Config; 
 }

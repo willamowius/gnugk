@@ -160,7 +160,7 @@ void ReloadHandler(void)
 	** Force reloading config
 	*/
 	InstanceOf<Toolkit>()->ReloadConfig();
-	PTRACE(3, "GK\t\tConfig reloaded.");
+	PTRACE(3, "GK\tConfig reloaded.");
 	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
 
 	/*
@@ -178,7 +178,7 @@ void ReloadHandler(void)
 	/*
 	** Don't disengage current calls!
 	*/
-	PTRACE(3, "GK\t\tCarry on current calls.");
+	PTRACE(3, "GK\tCarry on current calls.");
 
 	/*
 	** Leave critical Section

@@ -52,81 +52,100 @@ inline TPKTV3::TPKTV3(WORD len)
 }
 
 
-ProxySocket::ProxySocket(WORD p, ProxySocket *s) : PTCPSocket(p), remote(s)
+ProxySocket::ProxySocket(PIPSocket *socket) : self(socket)
 {
-	wsocket = 0;
-	buflen = 0;
-	blocked = false;
 	maxbufsize = 1024;
 	wbuffer = new BYTE[maxbufsize];
 	connected = false;
+	InternalCleanup();
+}
 
+bool ProxySocket::EndSession()
+{
+	MarkBlocked(false);
+	SetConnected(false);
+	return CloseSocket();
+}
+
+bool ProxySocket::Flush()
+{
+	if (!wsocket || buflen == 0) {
+		InternalCleanup();
+		PTRACE(6, Name() << " Error: nothing to flush");
+		return false;
+	}
+//PTRACE(5, wsocket->Name() << " Write " << buflen << " bytes");
+	if (wsocket->Write(bufptr, buflen)) {
+//PTRACE(5, wsocket->Name() << " Write ok");
+		InternalCleanup();
+		return true;
+	}
+	buflen -= wsocket->GetLastWriteCount();
+	bufptr += wsocket->GetLastWriteCount();
+
+	return ErrorHandler(wsocket, PChannel::LastWriteError);
+}
+
+bool ProxySocket::ErrorHandler(PSocket *socket, PChannel::ErrorGroup group)
+{
+	PChannel::Errors e = socket->GetErrorCode(group);
+
+	switch (e)
+	{
+//		case PChannel::NoError:
+			// I don't know why there is error with code NoError
+		case PChannel::Timeout:
+			break;
+		default:
+			InternalCleanup();
+			if (socket->IsOpen())
+				socket->Close();
+			break;
+	}
+
+	PTRACE(4, "ProxyS\t" << dynamic_cast<ProxySocket *>(socket)->Name() << " Error(" << group << "): " << PChannel::GetErrorText(e) << " (" << e << ')');
+
+	return false;
+}
+
+bool ProxySocket::SetMinBufSize(WORD len)
+{
+	if (maxbufsize < len) {
+		delete [] wbuffer;
+		wbuffer = new BYTE[maxbufsize = len];
+	}
+	return (wbuffer != 0);
+}
+
+TCPProxySocket::TCPProxySocket(WORD p, TCPProxySocket *s)
+      : PTCPSocket(p), ProxySocket(this), remote(s)
+{
 	SetReadTimeout(PTimeInterval(1000));
 	SetWriteTimeout(PTimeInterval(100));
 }
 
-ProxySocket::~ProxySocket()
+TCPProxySocket::~TCPProxySocket()
 {
-	delete [] wbuffer;
 	if (remote) {
-		if (remote->wsocket == this) {
-			remote->wsocket = 0;
-			remote->blocked = false;
-		}
+		if (remote->wsocket == this)
+			remote->InternalCleanup();
 		if (remote->IsOpen())
 			remote->Close();
 		remote->remote = 0; // detach myself from remote
 	}
 }
 
-bool ProxySocket::CloseConnection()
+void TCPProxySocket::SetName()
 {
-	connected = false;
-	return Close();
+	// since GetName() may not work if socket closed,
+	// we save it for reference
+	PIPSocket::Address ip;
+	WORD pt;
+	GetPeerAddress(ip, pt);
+	ProxySocket::SetName(ip, pt);
 }
 
-bool ProxySocket::Flush()
-{
-	if (!wsocket) {
-		PTRACE(6, Name() << " Error: no socket to flush");
-		return false;
-	}
-//PTRACE(5, wsocket->Name() << " Write " << buflen << " bytes");
-	if (wsocket->Write(bufptr, buflen)) {
-//PTRACE(5, wsocket->Name() << " Write ok");
-		buflen = 0;
-		wsocket = 0;
-		blocked = false;
-		return true;
-	}
-	buflen -= wsocket->GetLastWriteCount();
-	bufptr += wsocket->GetLastWriteCount();
-
-	return ErrorHandler(wsocket, LastWriteError);
-}
-
-bool ProxySocket::ErrorHandler(ProxySocket *socket, ErrorGroup group)
-{
-	Errors e = socket->GetErrorCode(group);
-
-	PTRACE(4, "ProxyS\t" << socket->Name() << " Error(" << group << "): " << GetErrorText(e) << " (" << e << ')');
-
-	switch (e)
-	{
-//		case NoError:
-			// I don't know why there is error with code NoError
-		case Timeout:
-			break;
-		default:
-			socket->Close();
-			wsocket = 0;
-			blocked = false;
-			break;
-	}
-	return false;
-}
-
-bool ProxySocket::ForwardData()
+bool TCPProxySocket::ForwardData()
 {
 	if (buffer.GetSize() == 0)
 		return false;
@@ -138,7 +157,7 @@ bool ProxySocket::ForwardData()
 	return false;
 }
 
-bool ProxySocket::TransmitData()
+bool TCPProxySocket::TransmitData()
 {
 	if (buffer.GetSize() == 0)
 		return false;
@@ -150,7 +169,25 @@ bool ProxySocket::TransmitData()
 	return false;
 }
 
-bool ProxySocket::ReadTPKT()
+BOOL TCPProxySocket::Accept(PSocket & socket)
+{
+	BOOL result = PTCPSocket::Accept(socket);
+	// since GetName() may not work if socket closed,
+	// we save it for reference
+	SetName();
+	return result;
+}
+
+BOOL TCPProxySocket::Connect(const Address & addr)
+{
+	BOOL result = PTCPSocket::Connect(addr);
+	// since GetName() may not work if socket closed,
+	// we save it for reference
+	SetName();
+	return result;
+}
+
+bool TCPProxySocket::ReadTPKT()
 {
 	PTRACE(5, "ProxyH\tReading from " << Name());
 	if (buflen == 0) {
@@ -181,26 +218,7 @@ bool ProxySocket::ReadTPKT()
 	return ErrorHandler(this, LastReadError);
 }
 
-bool ProxySocket::SetMinBufSize(WORD len)
-{
-	if (maxbufsize < len) {
-		delete [] wbuffer;
-		wbuffer = new BYTE[maxbufsize = len];
-	}
-	return (wbuffer != 0);
-}
-
-void ProxySocket::SetName()
-{
-	// since GetName() may not work if socket closed,
-	// we save it for reference
-	Address ip;
-	WORD pt;
-	GetPeerAddress(ip, pt);
-	name = ip.AsString() + PString(PString::Printf, ":%u", pt);
-}
-
-bool ProxySocket::InternalWrite()
+bool TCPProxySocket::InternalWrite()
 {
 	WORD len = buffer.GetSize();
 	buflen = len + sizeof(TPKTV3);
@@ -208,13 +226,12 @@ bool ProxySocket::InternalWrite()
 	new (wbuffer) TPKTV3(len); // placement operator
 	memcpy(wbuffer + sizeof(TPKTV3), buffer, len);
 	bufptr = wbuffer;
-	blocked = true;
+	MarkBlocked(true);
 	return Flush();
 }
 
 
-MyPThread::MyPThread()
-      : PThread(1000, NoAutoDeleteThread), isOpen(true)
+MyPThread::MyPThread() : PThread(5000, NoAutoDeleteThread), isOpen(true)
 {
 }
 
@@ -227,12 +244,14 @@ void MyPThread::Close()
 void MyPThread::Main()
 {
 #ifndef WIN32
-	PTRACE(2, "Proxy\t" << GetClass() << " started, pid " << getpid());
+	PTRACE(2, GetClass() << ' ' << getpid() << " started");
 #endif
 	while (isOpen)
 		Exec();
 
-	PTRACE(2, GetClass() << " closed!");
+#ifndef WIN32
+	PTRACE(2, GetClass() << ' ' << getpid() << " closed");
+#endif
 }
 
 void MyPThread::Destroy()
@@ -266,16 +285,13 @@ void ProxyConnectThread::Exec()
 	if (!Wait())
 		return;
 
-	ProxySocket *remote = calling->ConnectTo();
-	if (remote) {
-//		calling->ForwardData();
+	TCPProxySocket *socket = dynamic_cast<TCPProxySocket *>(calling);
+	TCPProxySocket *remote = socket->ConnectTo();
+	if (remote)
 		handler->Insert(remote);
-//	} else {
-//		PTRACE(3, "ProxyCT\tREMOTE PARTY DIDN'T ACCEPT THE CALL");
-//		calling->CloseConnection(); // already closed
-	}
+
 	available = true;
-	calling->MarkBlocked(false);
+	socket->MarkBlocked(false);
 }
 
 ProxyListener::ProxyListener(HandlerList *h, PIPSocket::Address i, WORD p, unsigned qs)
@@ -321,9 +337,9 @@ void ProxyListener::Exec()
 		return;
 	}
 
-	ProxySocket *socket = CreateSocket();
+	TCPProxySocket *socket = CreateSocket();
 	if (socket->Accept(*m_listener)) { // incoming connection
-		PTRACE(2, "ProxyL\tConnected from " << socket->Name());
+		PTRACE(3, "ProxyL\tConnected from " << socket->Name());
 		m_handler->Insert(socket);
 	} else {
 		PChannel::Errors err = socket->GetErrorCode();
@@ -334,8 +350,9 @@ void ProxyListener::Exec()
 	}
 }
 
-ProxyHandleThread::ProxyHandleThread(PINDEX i) : id(i)
+ProxyHandleThread::ProxyHandleThread(PINDEX i)
 {
+	id = PString(PString::Printf, "ProxyH(%u)", i);
 	FindConnectThread(); // pre-fork a connect thread
 	Resume();
 }
@@ -385,7 +402,7 @@ void ProxyHandleThread::FlushSockets()
 	iterator i = sockList.begin(), j = sockList.end();
 	while (i != j) {
 		if ((*i)->CanFlush())
-			wlist.Append(*i);
+			(*i)->AddToSelectList(wlist);
 		++i;
 	}
 	mutex.EndRead();
@@ -413,12 +430,11 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 	while (i != j) {
 		iterator k=i++;
 		ProxySocket *socket = *k;
-		if (socket->IsOpen() && !socket->IsBlocked()) {
-			result.Append(socket);
+		if (socket->IsSocketOpen() && !socket->IsBlocked()) {
+			socket->AddToSelectList(result);
 		} else if (!socket->IsBlocked()) {
 			PTRACE(4, "ProxyH\tDelete socket " << socket->Name());
-			delete socket;
-			sockList.erase(k);
+			Remove(k);
 #ifdef PTRACING
 		} else {
 			PTRACE(5, socket->Name() << " is busy!");
@@ -436,7 +452,7 @@ void ProxyHandleThread::Exec()
 		BuildSelectList(sList);
 		if (!sList.IsEmpty())
 			break;
-		PTRACE(5, "ProxyH(" << id << ") waiting...");
+		PTRACE(5, id << " waiting...");
 		if (!Wait())
 			return;
 	}
@@ -449,8 +465,8 @@ void ProxyHandleThread::Exec()
 		return;
 
 #ifdef PTRACING
-	PString msg(PString::Printf, "ProxyH(%u)\t%u sockets selected from %u, total %u", id, sList.GetSize(), ss, sockList.size());
-	PTRACE(3, msg);
+	PString msg(PString::Printf, " %u sockets selected from %u, total %u", sList.GetSize(), ss, sockList.size());
+	PTRACE(3, id + msg);
 #endif
 	for (PINDEX i = 0; i < sList.GetSize(); ++i) {
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(&sList[i]);
@@ -468,11 +484,12 @@ void ProxyHandleThread::Exec()
 				socket->ForwardData();
 				// then close the socket
 			case ProxySocket::Error:
-				socket->Close();
+				socket->CloseSocket();
 				break;
 			default:
 				break;
 		}
+//PTRACE(5, id << " handle " << socket->Name() << " ok...");
 	}
 }
 
@@ -492,7 +509,7 @@ void ProxyHandleThread::CloseUnusedThreads()
 			connMutex.EndWrite();
 
 			(*i)->Destroy();
-			PTRACE(3, "ProxyH\tClose one unused ConnectThread");
+			PTRACE(3, id << " Close one unused ConnectThread");
 			return;
 		}
 	}
@@ -534,74 +551,3 @@ void HandlerList::CloseListener()
 	}
 }
 
-
-/*
-class ProxyWriteThread : public MyPThread {
-public:
-	PCLASSINFO ( ProxyWriteThread, MyPThread )
-
-	typedef std::list<ProxySocket *>::iterator iterator;
-        typedef std::list<ProxySocket *>::const_iterator const_iterator;
-
-	ProxyWriteThread(ProxyHandleThread *);
-//	~ProxyWriteThread();
-	void Insert(ProxySocket *);
-	void Exec();
-
-private:
-	void Remove(iterator);
-
-	std::list<ProxySocket *> sockList;
-	mutable PReadWriteMutex mutex;
-	ProxyHandleThread *handler;
-};
-
-ProxyWriteThread::ProxyWriteThread(ProxyHandleThread *h) : handler(h)
-{
-	Resume();
-}
-
-void ProxyWriteThread::Insert(ProxySocket *socket)
-{
-	PTRACE(4, "ProxyW\tAdd " << socket->Name() << " to flush");
-	mutex.StartWrite();
-	sockList.push_back(socket);
-	mutex.EndWrite();
-	Go();
-}
-
-void ProxyWriteThread::Remove(iterator i)
-{
-	mutex.StartWrite();
-	if (i != sockList.end())
-		sockList.erase(i);
-	mutex.EndWrite();
-}
-
-void ProxyWriteThread::Exec()
-{
-	if (sockList.empty() && !Wait())
-		return;
-
-	mutex.StartRead();
-	iterator i = sockList.begin(), j;
-	mutex.EndRead();
-	do {
-		mutex.StartRead();
-		iterator s = i++;
-		mutex.EndRead();
-		if (!((*s)->CanFlush())) {
-			PTRACE(4, "ProxyW\t" << (*s)->Name() << " can't flush");
-			(*s)->MarkBlocked(false);
-			Remove(s);
-		} else if ((*s)->Flush()) {
-			PTRACE(3, "ProxyW\t" << (*s)->Name() << " flush ok");
-			Remove(s);
-			handler->Go();
-		}
-		mutex.StartRead();
-		j = sockList.end();
-		mutex.EndRead();
-	} while (i != j);
-}
-*/

@@ -52,10 +52,9 @@ Gatekeeper ID of this gatekeeper. The GK will only respond to GRQs
 for this ID and will use it in a number of messages to its endpoints.
 
 Home=195.71.129.69	Default: 0.0.0.0 (= all interfaces)
-The GK will listen fore requests on this IP number.
+The GK will listen form requests on this IP number.
 This setting is most useful on multi-homed machines with more
-than one IP number. Note that the GK will _not_ listen on
-localhost (127.0.0.1) !
+than one IP number.
 
 AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK
 We allow for existence of another gatekeeper to allow for redundancy.
@@ -105,7 +104,7 @@ MulticastGroup=224.0.1.41	Default: 224.0.1.41
 
 EndpointSignalPort=1720		Default: 1720
 
-StatusPort=7000				Default: 7000
+StatusPort=7000			Default: 7000
 
 ListenQueueLength=1024		Default: 1024
 
@@ -117,7 +116,7 @@ Time in ms when for read timeout on signaling channels (Q931).
 
 TimeToLive=300			Default: -1
 Time to live for client registration in seconds.
-
+Use -1 to disable this feature.
 
 B.2 Section [RoutedMode]
 
@@ -140,7 +139,8 @@ an arbitrary port (replace the old option RouteSignalPort).
 CallSignalHandlerNumber=1	Default: 1
 
 The number of call signaling handler. You may increase this number
-in a heavy loaded gatekeeper.
+in a heavy loaded gatekeeper. The number can only be increased
+at runtime.
 
 
 B.3 Section [GkStatus::Auth]
@@ -418,3 +418,33 @@ allow ipv4:0/0
 
 #We choose the most specific prefix and then
 #we choose the most specific network from list
+
+B.18 Section [Proxy]
+
+The section defines the H.323 proxy features. It means the gatekeeper will
+route all the traffic between the calling and called endpoints, so there
+is no traffic between the two endpoints directly. Thus it is very useful
+if you have some endpoints using private IP behind an NAT box and some
+endpoints using real IP outside the box.
+
+Enable=1		Default: 0
+
+Whether to enable the proxy function. You have to enable gatekeeper
+routed mode first (see Section B.2). You don't have to specify
+H.245 routed. It will automatically be used if required.
+
+InternalNetwork=10.0.1.0/24	Default: n/a
+
+Define the networks behind the proxy. Multiple internal networks is allow.
+The proxy route channels only of the communications between one endpoint
+in the internal network and one external.
+
+  Format:
+    InternalNetwork=network address/netmask[,network address/netmask,...]
+
+    The netmask can be expressed in decimal dot notation or
+    CIDR notation (prefix length), as shown in the example.
+
+  Example:
+    InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24
+

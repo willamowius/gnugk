@@ -972,9 +972,9 @@ void CallRec::Disconnect(bool force)
 {
 	if (force && (m_callingSocket || m_calledSocket)) {
 		if (m_callingSocket)
-			m_callingSocket->CloseConnection();
+			m_callingSocket->EndSession();
 		if (m_calledSocket)
-			m_calledSocket->CloseConnection();
+			m_calledSocket->EndSession();
 	} else {
 		SendDRQ();
 	}
