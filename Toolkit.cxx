@@ -429,7 +429,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 	PStringToString cfgs(config->GetAllKeyValues(GWRewriteSection));
 
 	// Clear old config
-	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
+	for (i = 0; i < m_GWRewrite.GetSize(); ++i) {
 		delete &(m_GWRewrite.GetDataAt(i));
 	}
 	m_GWRewrite.RemoveAll();
