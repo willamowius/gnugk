@@ -141,9 +141,9 @@ public:
 	virtual void UnlockUse(const PString &name);
 	virtual const BOOL IsInUse();
 
-////    PROTECTED
 	TCPProxySocket *remote;
-
+////    PROTECTED
+protected:
 	bool ReadTPKT();
 
 	PBYTEArray buffer;
@@ -220,8 +220,6 @@ protected:
 	PTimer max_wait;
 
 	PDECLARE_NOTIFIER(PTimer, ProxyDeleter, OnTimeout);
-
-//	void OnTimeout(PTimer &timer, int extra);
 };
 
 
