@@ -2154,14 +2154,16 @@ void CallSignalSocket::Dispatch()
 //							CallTable::Instance()->RemoveCall(m_call);
 //						}
 //					}
-					return;
+				return;
 			}
 
 		default:
+			OnError();
 			timeout = 0;
 			break;
 		} /* switch */
 	} /* while */
+	
 	if (m_call)
 		m_call->SetSocket(NULL, NULL);
 	delete this; // oh!
