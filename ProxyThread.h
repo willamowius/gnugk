@@ -257,7 +257,7 @@ private:
 	std::list<ProxySocket *> sockList;
 	std::list<ProxySocket *> removedList;
 	mutable PReadWriteMutex mutex;
-	PMutex removedMutex;
+	mutable PMutex removedMutex;
 	std::list<ProxyConnectThread *> connList;
 	mutable PReadWriteMutex connMutex;
 	ProxyHandleThread *lcHandler;
