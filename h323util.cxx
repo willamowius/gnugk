@@ -308,3 +308,26 @@ PINDEX FindAlias(
 			
 	return P_MAX_INDEX;
 }
+
+int MatchPrefix(
+	const char* alias,
+	const char* prefix
+	)
+{
+	if (alias == NULL || prefix == NULL)
+		return 0;
+
+	const bool negative = (prefix[0] == '!');
+	
+	int i = 0;
+	int j = (negative ? 1 : 0);
+	
+	while (prefix[j] != 0) {
+		if (alias[i] == 0 || (prefix[j] != '.' && alias[i] != prefix[j]))
+			return 0;
+		i++;
+		j++;
+	}
+	
+	return negative ? -j + 1 : j;
+}

@@ -122,4 +122,17 @@ PINDEX FindAlias(
 	const PString& alias /// alias to find on the list
 	);
 
+/** Check if the given alias matches the prefix. The prefix can be preceeded
+    with '!' to force negative match and contain dots ('.') to match any character.
+	
+    @return
+    0 if no match is found, a positive integer if normal match is found 
+    (the integer gives the match length) or a negative integer if '!' match is found
+    (absolute value gives the match length).
+*/
+int MatchPrefix(
+	const char* alias,
+	const char* prefix
+	);
+	
 #endif // H323UTIL_H

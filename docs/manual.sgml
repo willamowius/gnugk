@@ -114,6 +114,10 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Enchanced prefix matching for gateways. A dot (<tt/./) matches any digit,
+<tt/!/ at the beginning disables the prefix.
+
+<item>
 Insert missing Calling-Party-Number-IE/Display-IE if corresponing
 <tt/Screen.../ options are enabled.
 
@@ -907,6 +911,21 @@ alias "gw1". If there is no registered gateway with that alias the
 call will fail. (Note that you must use the gateway alias - you
 can't just tell the gatekeeper the IP number of the gateway.)
 
+<p>
+A prefix can contain digits <tt/0-9/, <tt/#/ and <tt/*/. It can also
+contain a special character <tt/./ (a dot) that matches any digit
+and can be prefixed with <tt/!/ (an exclamation mark) to disable the prefix.
+Prefix matching is done accordingly to the longest matching prefix rule,
+with ! rules having higher priority if lengths are equal. Some examples:
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+; This entry will route numbers starting with 0048 (but not with 004850 and 004860)
+; to the gw1
+gw1=0048,!004850,!004860
+; This entry will match only 001 with 10 digits following
+gw2=001..........
+</verb></tscreen>
 
 <sect1>Rewriting E.164 numbers
 <p>
@@ -1771,7 +1790,8 @@ This section lists what E.164 numbers are routed to a specific gateway.
 <p>
 Note you have to specify the alias of the gateway.
 If a gateway registered with the alias, all numbers beginning with
-the prefixes are routed to this gateway.
+the prefixes are routed to this gateway. Special characters <tt/./ and <tt/!/
+can be used here to match any digit and disable the prefix.
 <tag/Example:/
 <tt/test-gw=02,03/
 </descrip>
@@ -1861,6 +1881,8 @@ In this section you can put endpoints that don't have RAS support
 or that you don't want to be expired. The records will always
 keep in registration table of the gatekeeper.
 However, You can still unregister it via status port.
+Special characters <tt/./ and <tt/!/
+can be used with prefixes here to match any digit and disable the prefix.
 
 <descrip>
 <tag/Format:/
@@ -3939,7 +3961,9 @@ is assigned to a gateway. A call is routed to the first available gateway
 <item><tt/GatewayPrefixes=0048,0049,0044/<newline>
 Default: <tt>N/A</tt>
 <p>
-Additional prefixes for this gateway. Apply only to gateways.
+Additional prefixes for this gateway. Apply only to gateways. 
+Special characters <tt/./ and <tt/!/ can be used here to match any digit 
+and disable the prefix.
 
 </itemize>
 
@@ -3948,7 +3972,7 @@ Example:
 <tscreen><verb>
 [RasSrv::PermanentEndpoints]
 192.168.1.1=gw1;48
-192.168.1.2=gw2;48
+192.168.1.2=gw2;48,!4850,!4860,!4869,!4888
 
 [EP::gw1]
 Capacity=60

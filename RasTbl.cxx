@@ -622,21 +622,55 @@ void GatewayRec::SortPrefixes()
 
 int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &a) const
 {
-	int maxlen = (defaultGW) ? 0 : -1;
-	for (PINDEX i = 0; i < a.GetSize(); i++)
-		if (a[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-			PString AliasStr = H323GetAliasAddressString(a[i]);
-			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
+	int maxlen = 0;
+	const_prefix_iterator pfxiter = Prefixes.end();
+	const_prefix_iterator eIter = Prefixes.end();
+	
+	for (PINDEX i = 0; i < a.GetSize(); i++) {
+		const unsigned tag = a[i].GetTag();
+		if (tag == H225_AliasAddress::e_dialedDigits
+			|| tag == H225_AliasAddress::e_partyNumber
+			|| tag == H225_AliasAddress::e_h323_ID) {
+
+			const PString alias = H323GetAliasAddressString(a[i]);
+
+			// we also allow h_323_ID aliases consisting only from digits
+			if( tag == H225_AliasAddress::e_h323_ID )
+				if( strspn(alias,"1234567890*#") != strlen(alias) )
+					continue;
+					
+			const_prefix_iterator Iter = Prefixes.begin();
 			while (Iter != eIter) {
-				int len = Iter->length();
-				if ((maxlen < len) && (strncmp(AliasStr, Iter->c_str(), len)==0)) {
-					PTRACE(2, "GK\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue() << " match " << Iter->c_str());
-					maxlen = len;
+				if (Iter->length() > std::abs(maxlen)) {
+					const int len = MatchPrefix(alias, Iter->c_str());
+					if (std::abs(len) > std::abs(maxlen)
+						|| (len < 0 && (len + maxlen) == 0)) {
+						pfxiter = Iter;
+						maxlen = len;
+					}
 				}
 				++Iter;
 			}
 		}
-	return maxlen;
+	}
+			
+	if (maxlen < 0) {
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue() 
+			<< " skipped by prefix " << pfxiter->c_str()
+			);
+	} else if (maxlen > 0) {
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
+			<< " matched by prefix " << pfxiter->c_str()
+			);
+		return maxlen;
+	} else if (defaultGW) {
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
+			<< " matched as a default gateway"
+			);
+		return 0;
+	}
+
+	return -1;
 }
 
 int GatewayRec::PrefixMatch(
@@ -644,12 +678,15 @@ int GatewayRec::PrefixMatch(
 	int& matchedalias
 	) const
 {
-	int maxlen = (defaultGW) ? 0 : -1;
+	int maxlen = 0;
+	const_prefix_iterator pfxiter = Prefixes.end();
+	const_prefix_iterator eIter = Prefixes.end();
+
 	matchedalias = 0;
 	
 	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
 		const unsigned tag = aliases[i].GetTag();
-		if ( tag == H225_AliasAddress::e_dialedDigits
+		if (tag == H225_AliasAddress::e_dialedDigits
 			|| tag == H225_AliasAddress::e_partyNumber
 			|| tag == H225_AliasAddress::e_h323_ID) {
 			
@@ -659,30 +696,49 @@ int GatewayRec::PrefixMatch(
 				if( strspn(alias,"1234567890*#") != strlen(alias) )
 					continue;
 					
-			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
+			const_prefix_iterator Iter = Prefixes.begin();
 			while (Iter != eIter) {
-				int len = Iter->length();
-				if ((maxlen < len) && (strncmp(alias, Iter->c_str(), len)==0)) {
-					PTRACE(2, "Gateway " << (const unsigned char *)m_endpointIdentifier.GetValue() << " match " << Iter->c_str() );
-					maxlen = len;
-					matchedalias = i;
+				if (Iter->length() > std::abs(maxlen)) {
+					const int len = MatchPrefix(alias, Iter->c_str());
+					// replace the current match if the new prefix is longer
+					// or if lengths are equal and this is a blocking rule (!)
+					if (std::abs(len) > std::abs(maxlen)
+						|| (len < 0 && (len + maxlen) == 0)) {
+						pfxiter = Iter;
+						maxlen = len;
+						matchedalias = i;
+					}
 				}
 				++Iter;
 			}
 		}
 	}
 	
-	// if no match has been found and this is the default gateway,
-	// assume first dialedDigits or partyNumber alias match
-	if( maxlen == 0 ) {
+	if (maxlen < 0) {
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue() 
+			<< " skipped by prefix " << pfxiter->c_str()
+			);
+	} else if (maxlen > 0) {
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
+			<< " matched by prefix " << pfxiter->c_str()
+			);
+		return maxlen;
+	} else if (defaultGW) {
+		// if no match has been found and this is the default gateway,
+		// assume first dialedDigits or partyNumber alias match
 		for (PINDEX i = 0; i < aliases.GetSize(); i++)
 			if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits
 				|| aliases[i].GetTag() == H225_AliasAddress::e_partyNumber) {
 				matchedalias = i;
 				break;
 			}
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
+			<< " matched as a default gateway"
+			);
+		return 0;
 	}
-	return maxlen;
+
+	return -1;
 }
 
 /*

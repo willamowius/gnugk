@@ -1,5 +1,7 @@
 Changes from 2.2.0 to 2.2.1
 ===========================
+- enchanced prefix matching for gateways. A dot (.) matches any digit,
+  ! at the beginning disables the prefix
 - BUGFIX(radproto.cxx) VSA matching routing ignored a vendor identifier
   causing incorrect attributes to be matched
 - insert missing Calling-Party-Number-IE/Display-IE if corresponing
