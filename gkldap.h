@@ -61,6 +61,7 @@ public:
 protected:
 
 	DBAttributeNamesClass AN;	// names of the database attributes
+	mutable PReadWriteMutex AN_mutex;
 
 private:
 
