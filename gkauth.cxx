@@ -565,7 +565,8 @@ MySQLAuthBase::MySQLAuthBase(PConfig *cfg,
 			     const char *alias,
 			     const char *query,
 			     const char *extra
-	) : config(cfg), section_n(section),
+	) : mysql_connection(0), mysql_query(0),
+	    config(cfg), section_n(section),
 	    host_n(host), dbname_n(dbname), user_n(user), passwd_n(passwd),
 	    table_n(table), alias_n(alias), query_n(query), extra_n(extra)
 {
