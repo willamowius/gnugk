@@ -11,6 +11,12 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5.4.1  2004/10/20 09:10:12  zvision
+ * VC6 compilation errors fixed
+ *
+ * Revision 1.5  2004/08/02 10:52:07  zvision
+ * Ability to extract column names from a result set
+ *
  * Revision 1.4  2004/07/09 22:11:36  zvision
  * SQLAcct module ported from 2.0 branch
  *
@@ -149,7 +155,7 @@ public:
 	virtual ~GkPgSQLConnection();
 
 protected:
-	class PgSQLConnWrapper : public SQLConnWrapper
+	class PgSQLConnWrapper : public GkSQLConnection::SQLConnWrapper
 	{
 	public:
 		PgSQLConnWrapper(

@@ -980,7 +980,7 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	listLock.EndRead();
 
 	if (GWlist.size() > 0) {
-		std::list<GatewayRec*>::const_iterator endIter = GWlist.end();
+		std::list<GatewayRec*>::iterator endIter = GWlist.end();
 
 		// do we need here something better than a bubble-sort?		
 		int numSwaps;
