@@ -387,6 +387,8 @@ Toolkit::~Toolkit()
 	delete m_handlerlist;
 	m_handlerlist=NULL;
 	m_Config_mutex.Wait();
+	delete CallTable::Instance();
+	delete RegistrationTable::Instance();
 	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
@@ -598,7 +600,7 @@ void
 Toolkit::delete_gkclient()
 {
 	PWaitAndSignal lock(m_gkclient_mutex);
-	delete m_gkclient;
+//	delete m_gkclient;
 	m_gkclient=NULL;
 }
 
@@ -622,10 +624,11 @@ Toolkit::delete_neighbor()
 H323RasListener &
 Toolkit::GetMasterRASListener()
 {
-	PIPSocket::Address Home=GkConfig()->GetString("Home", INADDR_ANY);
 	PWaitAndSignal lock(m_raslistener_mutex);
-	if (NULL==m_raslistener)
+	if (NULL==m_raslistener) {
+		PIPSocket::Address Home=GkConfig()->GetString("Home", INADDR_ANY);
 		m_raslistener = new H323RasListener(Home);
+	}
 	return *m_raslistener;
 }
 
