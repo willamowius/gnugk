@@ -87,7 +87,6 @@ void ShutdownHandler(void)
 //        delete resourceManager::Instance();
 //        delete RegistrationTable::Instance();
 //        delete CallTable::Instance();
-//        delete SoftPBX::Instance();
         delete Toolkit::Instance();
 
 	return;

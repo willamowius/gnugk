@@ -27,12 +27,63 @@
 
 static int RequestNum = 1;	// this is the only place we are _generating_ sequence numbers at the moment
 
+namespace {  // anonymous namespace
+
+bool SendRasPDU(H225_RasMessage &ras_msg, const H225_TransportAddress & dest)
+{
+	if (dest.GetTag() != H225_TransportAddress::e_ipAddress) {
+		PTRACE(3, "No IP address to send!" );
+		return false;
+	}
+
+	PBYTEArray wtbuf(4096);
+	PPER_Stream wtstrm(wtbuf);
+	ras_msg.Encode(wtstrm);
+	wtstrm.CompleteEncoding();
+
+	const H225_TransportAddress_ipAddress & RasIpAddress = dest;
+	PIPSocket::Address ipaddress(RasIpAddress.m_ip[0], RasIpAddress.m_ip[1], RasIpAddress.m_ip[2], RasIpAddress.m_ip[3]);
+
+	PTRACE(2, "GK\tSend to " << ipaddress << " [" << RasIpAddress.m_port << "] : " << ras_msg.GetTagName());
+	PTRACE(3, "GK\t" << endl << setprecision(2) << ras_msg);
+	PUDPSocket Socket;
+	return Socket.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), ipaddress, RasIpAddress.m_port);
+}
+
+bool SendDRQ(const endptr &ep, CallRec *Call)
+{
+	if (!ep) {
+		PTRACE(2, "GK\tSoftPBX: Can't find endpoint registration");
+		return false;
+	}
+	H225_RasMessage ras_msg;
+	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
+	H225_DisengageRequest & drq = ras_msg;
+	drq.m_requestSeqNum.SetValue(RequestNum++);
+	drq.m_endpointIdentifier = ep->GetEndpointIdentifier();
+	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
+
+	if (Call != NULL) {
+		drq.m_callIdentifier = Call->m_callIdentifier;
+		drq.m_conferenceID = Call->m_conferenceIdentifier;
+	}
+	return SendRasPDU(ras_msg, ep->GetRasAddress());
+}
+
+bool SendDRQ(const endptr &ep)
+{
+	// find callId and conferenceId
+	CallRec * Call = (CallRec *)CallTable::Instance()->FindBySignalAdr(ep->GetCallSignalAddress());
+	return SendDRQ(ep, Call);
+}
+
+} // end of anonymous namespace
 
 void SoftPBX::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintAllRegistrations");
 	RegistrationTable::Instance()->PrintAllRegistrations(client, verbose);
-};
+}
 
 void SoftPBX::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose)
 {
@@ -40,89 +91,44 @@ void SoftPBX::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose)
 	CallTable::Instance()->PrintCurrentCalls(client, verbose);
 }
 
-// function object used by for_each
-// unregisters a single endpoint
-class UnregisterEP {
-  public:
-	UnregisterEP(H225_RasMessage *r) : ras_msg(r) {}
-	void operator()(const endpointRec &er);
-
-  private:
-	H225_RasMessage *ras_msg;
-};
- 
-void UnregisterEP::operator()(const endpointRec & er)
+// send URQ to the specify endpoint
+void SoftPBX::UnregisterEndpoint(const endptr &endpoints)
 {
-	PUDPSocket URQSocket;
-
-	// these values are specific for each endpoint
-	H225_UnregistrationRequest & urq = *ras_msg;
+	if (!endpoints) {
+		PTRACE(2, "GK\tSoftPBX Warning: unregister null pointer!");
+		return;
+	}
+	H225_RasMessage ras_msg;
+	ras_msg.SetTag(H225_RasMessage::e_unregistrationRequest);
+	H225_UnregistrationRequest & urq = ras_msg;
 	urq.m_requestSeqNum.SetValue(RequestNum++);
-	urq.m_callSignalAddress.SetSize(1);
+	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
+	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
 	urq.IncludeOptionalField(urq.e_endpointIdentifier);
+	urq.m_endpointIdentifier = endpoints->GetEndpointIdentifier();
+	urq.m_callSignalAddress.SetSize(1);
+	urq.m_callSignalAddress[0] = endpoints->GetCallSignalAddress();
 
-	const H225_TransportAddress_ipAddress & RasIpAddress = er.m_rasAddress;
-	PIPSocket::Address ipaddress(RasIpAddress.m_ip[0], RasIpAddress.m_ip[1], RasIpAddress.m_ip[2], RasIpAddress.m_ip[3]);
-	urq.m_callSignalAddress[0] = er.m_callSignalAddress;
-	urq.m_endpointIdentifier = er.m_endpointIdentifier;
-
-	// send URQ
-	PBYTEArray wtbuf(4096);
-	PPER_Stream wtstrm(wtbuf);
-	ras_msg->Encode(wtstrm);
-	wtstrm.CompleteEncoding();
-	PTRACE(2, "GK\tSend to " << ipaddress << " [" << RasIpAddress.m_port << "] : " << ras_msg->GetTagName());
-	PTRACE(3, "GK\t" << endl << setprecision(2) << (*ras_msg));
-	URQSocket.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), ipaddress, RasIpAddress.m_port);
+	SendRasPDU(ras_msg, endpoints->GetRasAddress());
 }
 
 // send URQ to all endpoints
 void SoftPBX::UnregisterAllEndpoints()
 {
-	H225_RasMessage ras_msg;
-	
-	ras_msg.SetTag(H225_RasMessage::e_unregistrationRequest);
-	H225_UnregistrationRequest & urq = ras_msg;
-	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
-	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
-
-	for_each(RegistrationTable::Instance()->EndpointList.begin(),
-		 RegistrationTable::Instance()->EndpointList.end(),
-		 UnregisterEP(&ras_msg));
-
-	RegistrationTable::Instance()->EndpointList.clear(); 
-	RegistrationTable::Instance()->GatewayPrefixes.clear();
-	RegistrationTable::Instance()->GatewayFlags.clear();
+	RegistrationTable::Instance()->ClearTable();
 }
 
 void SoftPBX::UnregisterAlias(PString Alias)
 {
-	H225_RasMessage ras_msg;
 	H225_AliasAddress EpAlias;	// alias of endpoint to be disconnected
-
 	H323SetAliasAddress(Alias, EpAlias);
 	PTRACE(3, "GK\tSoftPBX: Unregister " << EpAlias);
 
-	ras_msg.SetTag(H225_RasMessage::e_unregistrationRequest);
-	H225_UnregistrationRequest & urq = ras_msg;
-	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
-	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
+	const endptr ep = RegistrationTable::Instance()->FindByAlias(EpAlias);
+	SoftPBX::UnregisterEndpoint(ep);
 
-	endpointRec * ep = (endpointRec *)RegistrationTable::Instance()->FindByAlias(EpAlias);
-
-	if (ep == NULL)
-	{
-		PTRACE(2, "GK\tSoftPBX: Can't find endpoint registration for " << EpAlias);
-		return;
-	};
-
-#ifndef WIN32
-	(UnregisterEP(&ras_msg))(*ep);
-#else   // Create temporary object by hand, stupid bug of VC!!
-	UnregisterEP u(&ras_msg); u(*ep);
-#endif
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
-	RegistrationTable::Instance()->RemoveByEndpointId(ep->m_endpointIdentifier);
+	RegistrationTable::Instance()->RemoveByEndpointId(ep->GetEndpointIdentifier());
 
 	PString msg("Endpoint " + Alias + " disconnected.\n");
 	PTRACE(2, "GK\tSoftPBX: endpoint " << Alias << " disconnected.");
@@ -132,101 +138,43 @@ void SoftPBX::UnregisterAlias(PString Alias)
 // send a DRQ to this endpoint
 void SoftPBX::DisconnectIp(PString Ip)
 {
-	PUDPSocket SendSocket;
-	PIPSocket::Address ipaddress(Ip);
-	PBYTEArray * wtbuf = new PBYTEArray(4096);
-	PPER_Stream * wtstrm = new PPER_Stream(*wtbuf);
+        PIPSocket::Address ipaddress;
+        PINDEX p=Ip.Find(':');
+        PIPSocket::GetHostAddress(Ip.Left(p), ipaddress);
+	WORD port = (p!=P_MAX_INDEX) ? Ip.Mid(p+1).AsUnsigned() :
+		GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT);
+	H225_TransportAddress callSignalAddress = SocketToH225TransportAddr(ipaddress, port);
 
-	H225_TransportAddress callSignalAddress;
+	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << ipaddress << ':' << port);
 
-	callSignalAddress = SocketToH225TransportAddr(ipaddress, GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT));
-	endpointRec * ep = (endpointRec *)RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);
-
-	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << ipaddress);
-
-	if (ep == NULL)
-	{
-		PTRACE(2, "GK\tSoftPBX: Can't find endpoint registration");
-		return;
-	};
-	H225_TransportAddress rasAddress = ep->m_rasAddress;
-	H225_TransportAddress_ipAddress & ipRasAddress = rasAddress;
-	PTRACE(3, "GK\tSoftPBX: RAS address " << rasAddress);
-
-	H225_RasMessage ras_msg;
-	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
-	H225_DisengageRequest & drq = ras_msg;
-	drq.m_requestSeqNum.SetValue(RequestNum++);
-	drq.m_endpointIdentifier = ep->m_endpointIdentifier;
-	// find callId and conferenceId
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindBySignalAdr(callSignalAddress);
-	if (Call != NULL)
-	{
-		drq.m_callIdentifier = Call->m_callIdentifier;
-		drq.m_conferenceID = Call->m_conferenceIdentifier;
-	};
-	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
-
-	ras_msg.Encode(*wtstrm);
-	wtstrm->CompleteEncoding();
-	SendSocket.WriteTo(wtstrm->GetPointer(), wtstrm->GetSize(), ipaddress, ipRasAddress.m_port);
-	delete wtbuf;
-	delete wtstrm;
-};
+	SendDRQ( RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress) );
+}
 
 // send a DRQ to this endpoint
 void SoftPBX::DisconnectAlias(PString Alias)
 {
-	PUDPSocket SendSocket;
 	H225_AliasAddress EpAlias;	// alias of endpoint to be disconnected
-	PBYTEArray * wtbuf = new PBYTEArray(4096);
-	PPER_Stream * wtstrm = new PPER_Stream(*wtbuf);
-
 	H323SetAliasAddress(Alias, EpAlias);
 	PTRACE(3, "GK\tSoftPBX: DisconnectAlias " << EpAlias);
 
-	endpointRec * ep = (endpointRec *)RegistrationTable::Instance()->FindByAlias(EpAlias);
+	SendDRQ( RegistrationTable::Instance()->FindByAlias(EpAlias) );
+}
 
-	if (ep == NULL)
-	{
-		PTRACE(2, "GK\tSoftPBX: Can't find endpoint registration");
-		return;
-	};
-	H225_TransportAddress rasAddress = ep->m_rasAddress;
-	H225_TransportAddress_ipAddress & ipRasAddress = rasAddress;
-	PIPSocket::Address ipaddress(ipRasAddress.m_ip[0], ipRasAddress.m_ip[1], ipRasAddress.m_ip[2], ipRasAddress.m_ip[3]);
-	PTRACE(3, "GK\tSoftPBX: RAS address " << rasAddress);
+// send a DRQ to this endpoint
+void SoftPBX::DisconnectEndpoint(PString Id)
+{
+	H225_EndpointIdentifier EpId;	// id of endpoint to be disconnected
+	EpId = Id;
+	PTRACE(3, "GK\tSoftPBX: DisconnectEndpoint " << EpId);
 
-	H225_RasMessage ras_msg;
-	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
-	H225_DisengageRequest & drq = ras_msg;
-	drq.m_requestSeqNum.SetValue(RequestNum++);
-	drq.m_endpointIdentifier = ep->m_endpointIdentifier;
-	// find callId and conferenceId
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindBySignalAdr(ep->m_callSignalAddress);
-	if (Call != NULL)
-	{
-		drq.m_callIdentifier = Call->m_callIdentifier;
-		drq.m_conferenceID = Call->m_conferenceIdentifier;
-	};
-	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
-
-	ras_msg.Encode(*wtstrm);
-	wtstrm->CompleteEncoding();
-	SendSocket.WriteTo(wtstrm->GetPointer(), wtstrm->GetSize(), ipaddress, ipRasAddress.m_port);
-	delete wtbuf;
-	delete wtstrm;
-};
+        SendDRQ( RegistrationTable::Instance()->FindByEndpointId(EpId) );
+}
 
 // send a DRQ to caller of this call number, causing it to close the H.225 channel
 // this causes the gatekeeper to close the H.225 channel to the called party when
 // it recognises the caller has gone away
 void SoftPBX::DisconnectCall(PINDEX CallNumber)
 {
-	PUDPSocket SendSocket;
-	PBYTEArray * wtbuf = new PBYTEArray(4096);
-	PPER_Stream * wtstrm = new PPER_Stream(*wtbuf);
-
 	PTRACE(3, "GK\tSoftPBX: DisconnectCall " << CallNumber);
 
 	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(CallNumber);
@@ -250,98 +198,33 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 		return;
 	};
 
-	endpointRec * ep = (endpointRec *)RegistrationTable::Instance()->FindBySignalAdr(callep->m_callSignalAddress);
-	if (ep == NULL)
-	{
+	endptr ep = RegistrationTable::Instance()->FindBySignalAdr(callep->m_callSignalAddress);
+	if (!ep) {
 		PTRACE(2, "GK\tSoftPBX: Calling endpoint is already deregistered");
 		callep = Call->Called;
-		ep = (endpointRec *)RegistrationTable::Instance()->FindBySignalAdr(callep->m_callSignalAddress);
+		ep = RegistrationTable::Instance()->FindBySignalAdr(callep->m_callSignalAddress);
+		if (!ep) {
+			PTRACE(2, "GK\tSoftPBX: All endpoints of call number " << CallNumber << " are already deregistered");
+			return;
+		}
 	}
-	if (ep == NULL)
-	{
-		PTRACE(2, "GK\tSoftPBX: All endpoints of call number " << CallNumber << " are already deregistered");
-		return;
-	};
 
-	H225_TransportAddress rasAddress = ep->m_rasAddress;
-	H225_TransportAddress_ipAddress & ipRasAddress = rasAddress;
-	PIPSocket::Address ipaddress(ipRasAddress.m_ip[0], ipRasAddress.m_ip[1], ipRasAddress.m_ip[2], ipRasAddress.m_ip[3]);
-	PTRACE(3, "GK\tSoftPBX: RAS address " << rasAddress);
-
-	H225_RasMessage ras_msg;
-	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
-	H225_DisengageRequest & drq = ras_msg;
-	drq.m_requestSeqNum.SetValue(RequestNum++);
-	drq.m_endpointIdentifier = ep->m_endpointIdentifier;
-
-	drq.m_callIdentifier = Call->m_callIdentifier;
-	drq.m_conferenceID = Call->m_conferenceIdentifier;
-	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
-
-	ras_msg.Encode(*wtstrm);
-	wtstrm->CompleteEncoding();
-	SendSocket.WriteTo(wtstrm->GetPointer(), wtstrm->GetSize(), ipaddress, ipRasAddress.m_port);
-	delete wtbuf;
-	delete wtstrm;
+        SendDRQ( ep, Call );
 
 	PString msg(PString::Printf, "Call number %d disconnected.\n", CallNumber);
 	PTRACE(2, "GK\tSoftPBX: " << msg);
 	GkStatus::Instance()->SignalStatus(msg);
-};
-
-// send a DRQ to this endpoint
-void SoftPBX::DisconnectEndpoint(PString Id)
-{
-	PUDPSocket SendSocket;
-	H225_EndpointIdentifier EpId;	// id of endpoint to be disconnected
-	PBYTEArray * wtbuf = new PBYTEArray(4096);
-	PPER_Stream * wtstrm = new PPER_Stream(*wtbuf);
-
-	PTRACE(3, "GK\tSoftPBX: DisconnectEndpoint " << EpId);
-
-	EpId = Id;
-	endpointRec * ep = (endpointRec *)RegistrationTable::Instance()->FindByEndpointId(EpId);
-
-	if (ep == NULL)
-	{
-		PTRACE(2, "GK\tSoftPBX: Can't find endpoint registration");
-		return;
-	};
-	H225_TransportAddress rasAddress = ep->m_rasAddress;
-	H225_TransportAddress_ipAddress & ipRasAddress = rasAddress;
-	PIPSocket::Address ipaddress(ipRasAddress.m_ip[0], ipRasAddress.m_ip[1], ipRasAddress.m_ip[2], ipRasAddress.m_ip[3]);
-	PTRACE(3, "GK\tSoftPBX: RAS address " << rasAddress);
-
-	H225_RasMessage ras_msg;
-	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
-	H225_DisengageRequest & drq = ras_msg;
-	drq.m_requestSeqNum.SetValue(RequestNum++);
-	drq.m_endpointIdentifier = ep->m_endpointIdentifier;
-	// find callId and conferenceId
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindBySignalAdr(ep->m_callSignalAddress);
-	if (Call != NULL)
-	{
-		drq.m_callIdentifier = Call->m_callIdentifier;
-		drq.m_conferenceID = Call->m_conferenceIdentifier;
-	};
-	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
-
-	ras_msg.Encode(*wtstrm);
-	wtstrm->CompleteEncoding();
-	SendSocket.WriteTo(wtstrm->GetPointer(), wtstrm->GetSize(), ipaddress, ipRasAddress.m_port);
-	delete wtbuf;
-	delete wtstrm;
 }
 
 void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 {
 	PTRACE(1, "GK\tSoftPBX: TransferCall " << SourceAlias << " -> " << DestinationAlias);
 	PTRACE(1, "GK\tSoftPBX: TransferCall not implemented, yet");
-};
+}
 
 void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 {
 	PTRACE(1, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
 	PTRACE(1, "GK\tSoftPBX: MakeCall not implemented, yet");
-};
+}
 

@@ -13,22 +13,24 @@
 #define _SOFTPBX_H
 
 #include "GkStatus.h"
+class PString;
+class endptr;
 
-class SoftPBX : public Singleton<SoftPBX>
+namespace SoftPBX
 {
-public:
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
-	void DisconnectIp(PString Ip);
-	void DisconnectAlias(PString Alias);
-	void DisconnectCall(PINDEX CallNumber);
-	void DisconnectEndpoint(PString Id);
+	void UnregisterEndpoint(const endptr &Endpoints);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);
+	void DisconnectIp(PString Ip);
+	void DisconnectAlias(PString Alias);
+	void DisconnectEndpoint(PString Id);
+	void DisconnectCall(PINDEX CallNumber);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
 
-};
+}
 
 #endif
 

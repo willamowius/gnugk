@@ -96,7 +96,7 @@ void H323RasSrv::Close(void)
 
 void H323RasSrv::UnregisterAllEndpoints(void)
 {
-	SoftPBX::Instance()->UnregisterAllEndpoints();
+	SoftPBX::UnregisterAllEndpoints();
 }
 
 
@@ -365,7 +365,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	if (obj_rr.HasOptionalField(H225_RegistrationRequest::e_keepAlive) &&
 		obj_rr.m_keepAlive.GetValue())
 	{
-		if (EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier) != NULL)
+		if (endptr ep=EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier))
 		{
 			// endpoint was already registered
 			obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
@@ -379,16 +379,16 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			{
 				rcf.IncludeOptionalField(rcf.e_timeToLive);
 				rcf.m_timeToLive = TimeToLive;
-			};
+			}
 
 			// Alternate GKs
 			SetAlternateGK(rcf);
 
 			// forward lightweights, too
 			if(bShellForwardRequest) 
-				ForwardRasMsg(EndpointTable->FindByEndpointId
-					(obj_rr.m_endpointIdentifier)->GetCompleteRegistrationRequest());
+				ForwardRasMsg(ep->GetCompleteRegistrationRequest());
 
+			ep->Refresh();
 			return bShellSendReply;
 		}
 		else {
@@ -428,28 +428,28 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	}
 	
 	if (!bReject)
-		bAliasIsKnown = (EndpointTable->FindByAnyAliasInList(NewAliases) != NULL);
+		bAliasIsKnown = (EndpointTable->FindByAnyAliasInList(NewAliases));
 
 	if (!bReject &&
 	   bHasAlias && 
 	   bAliasIsKnown &&
-	   (EndpointTable->FindByAnyAliasInList(NewAliases)->m_callSignalAddress != SignalAdr)
+	   (EndpointTable->FindByAnyAliasInList(NewAliases)->GetCallSignalAddress() != SignalAdr)
 	   ) {
 		bReject = TRUE;
 		rejectReason.SetTag(H225_RegistrationRejectReason::e_duplicateAlias);
 	}
 
-	bAlreadyRegistered = (EndpointTable->FindBySignalAdr(SignalAdr) != NULL );
+	bAlreadyRegistered = (EndpointTable->FindBySignalAdr(SignalAdr));
 	// use the sent regId if possible
 	if(obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
 		NewEndpointId = obj_rr.m_endpointIdentifier;
-		endpointRec *ep = (endpointRec*)( EndpointTable->FindBySignalAdr(SignalAdr) ); 
-		if( ep != NULL) {
-			ep->m_endpointIdentifier = NewEndpointId;
+		endptr ep = EndpointTable->FindBySignalAdr(SignalAdr); 
+		if ( ep ) {
+			ep->SetEndpointIdentifier(NewEndpointId);
 		}
 	}
 	else if (bAlreadyRegistered)
-		NewEndpointId = EndpointTable->FindBySignalAdr(SignalAdr)->m_endpointIdentifier;
+		NewEndpointId = EndpointTable->FindBySignalAdr(SignalAdr)->GetEndpointIdentifier();
 	else
 		NewEndpointId = EndpointTable->GenerateEndpointId();
 	
@@ -546,9 +546,9 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		store_rr.m_endpointIdentifier = NewEndpointId;
 
 		// new endpoint registration.    
-		endpointRec er(obj_rr.m_rasAddress[0], SignalAdr, NewEndpointId, NewAliases, obj_rr.m_terminalType,
-					   store_rrq);
-		EndpointTable->Insert(er);
+		endpointRec *ep=new endpointRec(obj_rr.m_rasAddress[0], SignalAdr, NewEndpointId, NewAliases,
+						obj_rr.m_terminalType, store_rrq);
+		EndpointTable->Insert(ep);
 
 		for (PINDEX AliasIndex = 0; AliasIndex < NewAliases.GetSize(); ++AliasIndex)
 		{
@@ -620,14 +620,14 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_AliasAddress & alias) cons
 
 
 	// find gateway with longest prefix matching our dialled number
-	const endpointRec * GW = RegistrationTable::Instance()->FindByPrefix(alias);
+	endptr GW = EndpointTable->FindByPrefix(alias);
 
-	if (GW == NULL)
+	if (!GW)
 		return FALSE;
 
 	const PString & aliasStr = AsString (alias, FALSE);
-	const PString GWAliasStr = H323GetAliasAddressString((*GW).m_terminalAliases[0]);
-	const PStringArray *prefixes = RegistrationTable::Instance()->GatewayPrefixes[GWAliasStr];
+	const PString GWAliasStr = H323GetAliasAddressString(GW->GetAliases()[0]);
+	const PStringArray *prefixes = EndpointTable->GetGatewayPrefixes(GWAliasStr);
 
 
 	PINDEX max = prefixes->GetSize();
@@ -651,9 +651,9 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 {    
 	const H225_AdmissionRequest & obj_rr = obj_arq;
 	PTRACE(2, "GK\tOnARQ");
-	const endpointRec * RequestingEP = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
+	const endptr RequestingEP = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 
-	endpointRec * CalledEP = NULL;
+	endptr CalledEP = NULL;
 	int BWRequest = 640;
 
 	// We use #obj_rpl# for storing information about a potential reject (e.g. the
@@ -663,25 +663,27 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	obj_rpl.SetTag(H225_RasMessage::e_admissionReject); 
 	H225_AdmissionReject & arj = obj_rpl; 
 
-	if (obj_rr.m_destinationInfo.GetSize() >= 1)
-	{
+	// don't search endpoint table for an ARQ to an answerCall
+	if (obj_rr.m_answerCall) {
+		CalledEP = RequestingEP;
+	} else if (obj_rr.m_destinationInfo.GetSize() >= 1) {
 		// apply rewrite rules
 		Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
 
-		CalledEP = (endpointRec *)EndpointTable->FindByAlias(obj_rr.m_destinationInfo[0]);
+		CalledEP = EndpointTable->FindByAlias(obj_rr.m_destinationInfo[0]);
 
 		// try gw prefix match
-		if (CalledEP == NULL)
-			CalledEP = (endpointRec *)EndpointTable->FindByPrefix(obj_rr.m_destinationInfo[0]);
+		if (!CalledEP)
+			CalledEP = EndpointTable->FindByPrefix(obj_rr.m_destinationInfo[0]);
 	}
 
 	// if a destination address is provided, we check if we know it
 	if ( obj_rr.HasOptionalField( H225_AdmissionRequest::e_destCallSignalAddress) ) {
-		CalledEP = (endpointRec *)EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
+		CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
 	}
 
 	// allow overlap sending for incomplete prefixes
-	if (CalledEP == NULL && obj_rr.m_destinationInfo.GetSize() >= 1) {
+	if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {
 		const PString alias = AsString(obj_rr.m_destinationInfo[0], FALSE);
 		if (CheckForIncompleteAddress(obj_rr.m_destinationInfo[0])) {
 			bReject = TRUE;
@@ -689,14 +691,14 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	};  
 
-	if(!bReject && CalledEP == NULL)
+	if(!bReject && !CalledEP)
 	{
 		bReject = TRUE;
 		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 	}
 
 	// check if the endpoint requesting is registered with this gatekeeper
-	if (!bReject && RequestingEP == NULL)
+	if (!bReject && !RequestingEP)
 	{
 		bReject = TRUE;
 		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
@@ -737,7 +739,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
  	   Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures","ArjReasonRouteCallToSCN","TRUE")) ) 
  	{
  		// are the endpoints the same (GWs of course)?
- 		if( (CalledEP != NULL) && (RequestingEP != NULL) && (CalledEP == RequestingEP) && 
+ 		if( (CalledEP) && (RequestingEP) && (CalledEP == RequestingEP) && 
  			(!obj_rr.m_answerCall) // only first ARQ may be rejected with with 'routeCallToSCN'
  			) 
  		{
@@ -824,7 +826,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			  // if that were desired, we'd have to add a list with the callRef and
 			  // the callSignallAddress from the ARQ, to create the new proper
 			  // connection on SETUP
-			destAddress = CalledEP->m_callSignalAddress;
+			destAddress = CalledEP->GetCallSignalAddress();
 
 			pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec (obj_rr.m_callIdentifier);
 			if (pExistingCallRec != NULL)
@@ -836,8 +838,8 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			else
 			{
 				// add the new call to global table
-				EndpointCallRec Calling(RequestingEP->m_callSignalAddress, RequestingEP->m_rasAddress, obj_rr.m_callReferenceValue);
-				EndpointCallRec * pCalled = new EndpointCallRec(CalledEP->m_callSignalAddress, CalledEP->m_rasAddress, 0);
+				EndpointCallRec Calling(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_rr.m_callReferenceValue);
+				EndpointCallRec * pCalled = new EndpointCallRec(CalledEP->GetCallSignalAddress(), CalledEP->GetRasAddress(), 0);
 				CallTable::Instance()->Insert(Calling, *pCalled, BWRequest, obj_rr.m_callIdentifier, obj_rr.m_conferenceID);
 			};
 
@@ -859,7 +861,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			if (pExistingCallRec != NULL) {
 
 				// the call is already in the table hence this must be the 2. ARQ
-				EndpointCallRec newEP(RequestingEP->m_callSignalAddress, RequestingEP->m_rasAddress, obj_rr.m_callReferenceValue);
+				EndpointCallRec newEP(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_rr.m_callReferenceValue);
 
 				if (pExistingCallRec->Called)	// This test is not necessary - the second ARQ is from called
 					pExistingCallRec->SetCalling(newEP);
@@ -869,7 +871,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			else {
 				  // the call is not in the table hence this must be the 1. ARQ
 
-				EndpointCallRec Calling(RequestingEP->m_callSignalAddress, RequestingEP->m_rasAddress, obj_rr.m_callReferenceValue);
+				EndpointCallRec Calling(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_rr.m_callReferenceValue);
 
 				CallTable::Instance()->Insert(Calling, BWRequest, obj_rr.m_callIdentifier, obj_rr.m_conferenceID);
 			}
@@ -879,7 +881,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			if( obj_rr.HasOptionalField( H225_AdmissionRequest::e_destCallSignalAddress) )
 				acf.m_destCallSignalAddress = obj_rr.m_destCallSignalAddress;
 			else
-				acf.m_destCallSignalAddress = CalledEP->m_callSignalAddress;
+				acf.m_destCallSignalAddress = CalledEP->GetCallSignalAddress();
 		}
 
 		acf.IncludeOptionalField ( H225_AdmissionConfirm::e_irrFrequency );
@@ -890,9 +892,9 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			destinationInfoString = AsString(obj_rr.m_destinationInfo);
 		else if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
 			H225_TransportAddress DestSignalAdr = obj_rr.m_destCallSignalAddress;
-			const endpointRec * pEPRec = RegistrationTable::Instance()->FindBySignalAdr(DestSignalAdr);
-			if (pEPRec != NULL)
-				destinationInfoString = AsString(pEPRec->m_terminalAliases);
+			const endptr pEPRec = EndpointTable->FindBySignalAdr(DestSignalAdr);
+			if (pEPRec)
+				destinationInfoString = AsString(pEPRec->GetAliases());
 		}
 
 		// always signal ACF
@@ -900,7 +902,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		sprintf(callReferenceValueString, "%u", (unsigned) obj_rr.m_callReferenceValue);
 		PString msg(PString::Printf, "ACF|%s|%s|%s|%s|%s;\r\n", 
 				inet_ntoa(rx_addr),
-				(const unsigned char *) RequestingEP->m_endpointIdentifier.GetValue(),
+				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
 				callReferenceValueString,
 				(const unsigned char *) destinationInfoString,
 				(const unsigned char *) AsString(obj_rr.m_srcInfo)
@@ -1024,14 +1026,14 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 
-	const endpointRec* ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
+	endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 	if (ep)
 	{
 		// remove prefixes if existing
-		EndpointTable->RemovePrefixes(ep->m_terminalAliases[0]);
+		EndpointTable->RemovePrefixes(ep->GetAliases()[0]);
 
 		// Remove from the table
-		EndpointTable->RemoveByEndpointId(obj_rr.m_endpointIdentifier);	
+		EndpointTable->RemoveByEndpointId(obj_rr.m_endpointIdentifier);
 
 		// Return UCF
 		obj_rpl.SetTag(H225_RasMessage::e_unregistrationConfirm);
@@ -1087,6 +1089,8 @@ BOOL H323RasSrv::OnIRR(const PIPSocket::Address & rx_addr, const H225_RasMessage
 { 
 	const H225_InfoRequestResponse & obj_irr = obj_rr;
 
+	if (endptr ep = EndpointTable->FindByEndpointId(obj_irr.m_endpointIdentifier))
+		ep->Refresh();
 	if (obj_irr.HasOptionalField( H225_InfoRequestResponse::e_needResponse ))
 	{
 		obj_rpl.SetTag(H225_RasMessage::e_infoRequestAck);
@@ -1143,9 +1147,9 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	const H225_LocationRequest & obj_lrq = obj_rr;
 
  	// try to change FindByAlias to FindByPrefix 
-	const endpointRec * WantedEndPoint = EndpointTable->FindByAlias(obj_lrq.m_destinationInfo[0]);
+	endptr WantedEndPoint = EndpointTable->FindByAlias(obj_lrq.m_destinationInfo[0]);
 
-	if (WantedEndPoint == NULL)
+	if (!WantedEndPoint)
 		WantedEndPoint = EndpointTable->FindByPrefix(obj_lrq.m_destinationInfo[0]);
 
 	PString msg;
@@ -1153,14 +1157,14 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	// TODO: we should really send the reply to the reply address
 	//       we should modify the rx_addr
 
-	if ( WantedEndPoint != NULL )
+	if ( WantedEndPoint )
 	{
 		// Alias found
 		obj_rpl.SetTag(H225_RasMessage::e_locationConfirm);
 		H225_LocationConfirm & lcf = obj_rpl;
 		lcf.m_requestSeqNum = obj_lrq.m_requestSeqNum;
-		lcf.m_callSignalAddress = WantedEndPoint->m_callSignalAddress;
-		lcf.m_rasAddress = WantedEndPoint->m_rasAddress;
+		lcf.m_callSignalAddress = WantedEndPoint->GetCallSignalAddress();
+		lcf.m_rasAddress = WantedEndPoint->GetRasAddress();
 		lcf.m_nonStandardData = obj_lrq.m_nonStandardData;
 
 		PString sourceInfoString;
@@ -1171,7 +1175,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 		PString msg2(PString::Printf, "LCF|%s|%s|%s|%s;\r\n", 
 			     inet_ntoa(rx_addr),
-			     (const unsigned char *) WantedEndPoint->m_endpointIdentifier.GetValue(),
+			     (const unsigned char *) WantedEndPoint->GetEndpointIdentifier().GetValue(),
 			     (const unsigned char *) AsString(obj_lrq.m_destinationInfo),
 			     (const unsigned char *) sourceInfoString);
 		msg = msg2;
@@ -1197,7 +1201,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			     (const unsigned char *) sourceInfoString,
 			     (const unsigned char *) lrj.m_rejectReason.GetTagName() );
 		msg = msg2;
-	};
+	}
 
 	PTRACE(2,msg);
 	GkStatusThread->SignalStatus(msg);
@@ -1243,7 +1247,7 @@ void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address r
 void H323RasSrv::HandleConnections(void)
 {
 	PString err_msg("ERROR: Request received by gatekeeper: ");   
-    PTRACE(2, "GK\tEntering connection handling loop");
+	PTRACE(2, "GK\tEntering connection handling loop");
 
 	if (GKroutedSignaling)
 		sigListener = new SignalChannel(1000, GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
@@ -1254,7 +1258,7 @@ void H323RasSrv::HandleConnections(void)
 	if (!listener.IsOpen())
 	{
 		PTRACE(1,"GK\tBind to RAS port failed!");
-	};
+	}
 
 	while (listener.IsOpen())
 	{ 
@@ -1273,7 +1277,7 @@ void H323RasSrv::HandleConnections(void)
 
 			// TODO: "return" (terminate) on some errors (like the one at shutdown)
 			continue;
-		};
+		}
 		PTRACE(2, "GK\tRead from : " << rx_addr << " [" << rx_port << "]");    
     
 		if (!obj_req.Decode( rdstrm ))
@@ -1281,7 +1285,7 @@ void H323RasSrv::HandleConnections(void)
 			PTRACE(1, "GK\tCouldn't decode message!");
 
 			continue;
-		};
+		}
 		
 		PTRACE(3, "GK\t" << endl << setprecision(2) << obj_req);
  
@@ -1366,6 +1370,6 @@ void H323RasSrv::HandleConnections(void)
 
 		if (ShallSendReply)
 			SendReply( obj_rpl, rx_addr, rx_port, listener );
-	};
-};
+	}
+}
 

@@ -1,6 +1,9 @@
 Changes from 0.17 to 1.0
 ========================
 
+- new design of endpointRec (cwhuang)
+- add mutex to RegistrationTable for thread-safe (cwhuang)
+- almost rewrite SoftPBX.cxx (cwhuang)
 - add singleton.h, singleton.cxx, change all singleton objects to derive from a
   template singleton base to avoid code duplication and allow a better cleanup
   (cwhuang)

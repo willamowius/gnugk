@@ -317,46 +317,46 @@ void GkStatus::Client::Main()
 				case GkStatus::e_DisconnectIp:
 					// disconnect call on this IP number
 					if (Args.GetSize() == 2)
-						SoftPBX::Instance()->DisconnectIp(Args[1]);
+						SoftPBX::DisconnectIp(Args[1]);
 					else
 						WriteString("Syntax Error: DisconnectIp <ip address>\r\n");
 					break;
 				case GkStatus::e_DisconnectAlias:
 					// disconnect call on this alias
 					if (Args.GetSize() == 2)
-						SoftPBX::Instance()->DisconnectAlias(Args[1]);
+						SoftPBX::DisconnectAlias(Args[1]);
 					else
 						WriteString("Syntax Error: DisconnectAlias <h.323 alias>\r\n");
 					break;
 				case GkStatus::e_DisconnectCall:
 					// disconnect call with this call number
 					if (Args.GetSize() == 2)
-						SoftPBX::Instance()->DisconnectCall(atoi(Args[1]));
+						SoftPBX::DisconnectCall(atoi(Args[1]));
  					else
 						WriteString("Syntax Error: DisconnectCall <call number>\r\n");
  					break;
 				case GkStatus::e_DisconnectEndpoint:
 					// disconnect call on this alias
 					if (Args.GetSize() == 2)
-						SoftPBX::Instance()->DisconnectEndpoint(Args[1]);
+						SoftPBX::DisconnectEndpoint(Args[1]);
 					else
 						WriteString("Syntax Error: DisconnectEndpoint ID\r\n");
 					break;
 				case GkStatus::e_PrintAllRegistrations:
 					// print list of all registered endpoints
-					SoftPBX::Instance()->PrintAllRegistrations(*this);
+					SoftPBX::PrintAllRegistrations(*this);
 					break;
 				case GkStatus::e_PrintAllRegistrationsVerbose:
 					// print list of all registered endpoints verbose
-					SoftPBX::Instance()->PrintAllRegistrations(*this, TRUE);
+					SoftPBX::PrintAllRegistrations(*this, TRUE);
 					break;
 				case GkStatus::e_PrintCurrentCalls:
 					// print list of currently ongoing calls
-					SoftPBX::Instance()->PrintCurrentCalls(*this);
+					SoftPBX::PrintCurrentCalls(*this);
 					break;
 				case GkStatus::e_PrintCurrentCallsVerbose:
 					// print list of currently ongoing calls
-					SoftPBX::Instance()->PrintCurrentCalls(*this, TRUE);
+					SoftPBX::PrintCurrentCalls(*this, TRUE);
 					break;
 				case GkStatus::e_Yell:
 					StatusThread->SignalStatus(PString("  "+WhoAmI() + ": " + Line + "\r\n"));
@@ -386,25 +386,25 @@ void GkStatus::Client::Main()
 				  	exit_and_out = TRUE;
 					break;
 				case GkStatus::e_UnregisterAllEndpoints:
-					SoftPBX::Instance()->UnregisterAllEndpoints();
+					SoftPBX::UnregisterAllEndpoints();
 					WriteString("Done\n;\n");
 					break;
 				case GkStatus::e_UnregisterAlias:
 					// unregister this alias
 					if (Args.GetSize() == 2)
-						SoftPBX::Instance()->UnregisterAlias(Args[1]);
+						SoftPBX::UnregisterAlias(Args[1]);
 					else
 						WriteString("Syntax Error: UnregisterAlias Alias\r\n");
 					break;
 				case GkStatus::e_TransferCall:
 					if (Args.GetSize() == 3)
-						SoftPBX::Instance()->TransferCall(Args[1], Args[2]);
+						SoftPBX::TransferCall(Args[1], Args[2]);
 					else
 						WriteString("Syntax Error: TransferCall Source Destination\r\n");
 					break;
 				case GkStatus::e_MakeCall:
 					if (Args.GetSize() == 3)
-						SoftPBX::Instance()->MakeCall(Args[1], Args[2]);
+						SoftPBX::MakeCall(Args[1], Args[2]);
 					else
 						WriteString("Syntax Error: MakeCall Source Destination\r\n");
 					break;

@@ -74,35 +74,95 @@ protected:
 class endpointRec
 {
 public:
-	endpointRec( H225_TransportAddress rasAddress, H225_TransportAddress callSignalAddress, H225_EndpointIdentifier endpointId, H225_ArrayOf_AliasAddress terminalAliases, H225_EndpointType terminalType, const H225_RasMessage completeRRQ);
-	endpointRec(const endpointRec & other);
-	~endpointRec() { };
-	endpointRec & operator= (const endpointRec & other);
-	bool operator< (const endpointRec & other) const;
+	endpointRec(const H225_TransportAddress &rasAddress,
+		    const H225_TransportAddress &callSignalAddress,
+		    const H225_EndpointIdentifier &endpointId,
+		    const H225_ArrayOf_AliasAddress &terminalAliases,
+		    const H225_EndpointType &terminalType,
+		    const H225_RasMessage &completeRRQ,
+		    bool registered = true);
+	~endpointRec();
+//	bool operator< (const endpointRec & other) const;
 //	void PrintOn( ostream &strm ) const;
+
+	// public interface to access endpointRec
+	const H225_TransportAddress &GetRasAddress() const
+	{ return m_rasAddress; }
+	void SetRasAddress(const H225_TransportAddress &a)
+	{ m_rasAddress = a; }
+	const H225_TransportAddress &GetCallSignalAddress() const
+	{ return m_callSignalAddress; }
+	void SetCallSignalAddress(const H225_TransportAddress &a)
+	{ m_callSignalAddress = a; }
+	const H225_EndpointIdentifier &GetEndpointIdentifier() const
+	{ return m_endpointIdentifier; }
+	void SetEndpointIdentifier(const H225_EndpointIdentifier &i)
+	{ m_endpointIdentifier = i; }
+	const H225_ArrayOf_AliasAddress &GetAliases() const
+	{ return m_terminalAliases; }
+	void SetAliases(const H225_ArrayOf_AliasAddress &a)
+	{ m_terminalAliases = a; }
+	const H225_EndpointType &GetEndpointType() const
+	{ return m_terminalType; }
+	void SetEndpointType(const H225_EndpointType &t)
+	{ m_terminalType = t; }
+	bool IsRegistered() const
+	{ return m_registered; }
 
 	/** If this Endpoint would be register itself again with all the same data
 	 * how would this RRQ would look like? May be implemented with a 
 	 * built-together-RRQ, but for the moment a stored RRQ.
 	 */
-	H225_RasMessage GetCompleteRegistrationRequest() const
-		{ return m_completeRegistrationRequest; }
-	
+	const H225_RasMessage &GetCompleteRegistrationRequest() const
+	{ return m_completeRegistrationRequest; }
+
+	bool IsGateway() const
+	{ return m_terminalType.HasOptionalField(H225_EndpointType::e_gateway); }
+
+	PTime GetUpdatedTime() const { return m_updatedTime; }
+	void Refresh() { m_updatedTime = PTime(); }
+
+	friend class endptr;
+
+private:
+	endpointRec(const endpointRec & other);
+	endpointRec & operator= (const endpointRec & other);
 
 	H225_TransportAddress m_rasAddress;
 	H225_TransportAddress m_callSignalAddress;
-	H225_ArrayOf_AliasAddress m_terminalAliases;
 	H225_EndpointIdentifier m_endpointIdentifier;
+	H225_ArrayOf_AliasAddress m_terminalAliases;
 	H225_EndpointType m_terminalType;
 
-protected:
 	/**This field may disappear sometime when GetCompleteRegistrationRequest() can 
 	 * build its return value itself.
 	 * @see GetCompleteRegistrationRequest()
 	 */
 	H225_RasMessage m_completeRegistrationRequest;
+
+	bool m_registered;
+	int m_usedCount;
+	PMutex m_usedLock;
+
+	PTime m_updatedTime;
 };
 
+// smart pointer of endpointRec
+class endptr {
+public:
+	endptr(endpointRec * = NULL);
+	endptr(const endptr &);
+	~endptr();
+	endptr &operator=(const endptr &);
+	operator bool() const { return ep != NULL; }
+	endpointRec *operator->() const { return ep; }
+
+	bool operator==(const endptr &e) const { return ep == e.ep; }
+
+private:
+	endpointRec &operator*();
+	endpointRec *ep;
+};
 
 class RegistrationTable : public Singleton<RegistrationTable>
 {
@@ -111,38 +171,27 @@ public:
 protected:
 	RegistrationTable(const RegistrationTable &);
 public:
-	void Insert(const endpointRec & NewRec);
+	void Insert(endpointRec * NewRec);
 	void RemoveByEndpointId(const H225_EndpointIdentifier & endpointId);
-	const endpointRec * FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
-	const endpointRec * FindBySignalAdr(H225_TransportAddress SignalAdr) const;
-	const endpointRec * FindByAlias(H225_AliasAddress alias) const;
-	const endpointRec * FindByAnyAliasInList(H225_ArrayOf_AliasAddress aliases) const;
-	void UpdateAliasBySignalAdr(H225_TransportAddress SignalAdr, H225_ArrayOf_AliasAddress Aliases);
+	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
+	endptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
+	endptr FindByAlias(const H225_AliasAddress & alias) const;
+	endptr FindByAnyAliasInList(const H225_ArrayOf_AliasAddress & aliases) const;
+	void UpdateAliasBySignalAdr(const H225_TransportAddress &SignalAdr, const H225_ArrayOf_AliasAddress &Aliases);
 	H225_ArrayOf_AliasAddress GenerateAlias(const H225_EndpointIdentifier & endpointId) const;
 	H225_EndpointIdentifier GenerateEndpointId(void);
-	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE) const;
+	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
+
+	void ClearTable();
 
 //	void PrintOn( ostream &strm ) const;
 
-	list<endpointRec> EndpointList;
-	
 
 public:
-  /** A map from the aliases of GWs to the prefixes that alias feels responsible 
-   * for. The map return #NULL# if there is no such entry for prefixes. 
-   # Note: In OnARQ the FindByAlias search is done BEFORE FindByPrefix.
-   */
-  std::map<PString,PStringArray*> GatewayPrefixes; 
-
   enum enumGatewayFlags {
                 e_SCNType		// "trunk" or "residential"
   };
   
-  /** keeps additional per-gateway information (trunk or residential gw, etc.)
-   *  allow for multiple flags
-   */
-  std::map<PString,PStringArray*> GatewayFlags; 
-
   /** Add prefixes fo one gateway. 
    * @param prefixes is a list split by #PString.Tokenise(" ,;\t\n", FALSE));#
    */	  
@@ -162,10 +211,27 @@ public:
    * the prefixes in the GatewayPrefixes map. 
    * @return the matching gateway or #NULL#.
    */
-  const endpointRec * FindByPrefix(const H225_AliasAddress & alias);
+  endptr FindByPrefix(const H225_AliasAddress & alias);
 
+  const PStringArray *GetGatewayPrefixes(const PString &alias)
+	{ return GatewayPrefixes[alias]; }
 
-protected:
+private:
+  /** A map from the aliases of GWs to the prefixes that alias feels responsible 
+   * for. The map return #NULL# if there is no such entry for prefixes. 
+   # Note: In OnARQ the FindByAlias search is done BEFORE FindByPrefix.
+   */
+	std::map<PString,PStringArray*> GatewayPrefixes; 
+
+  /** keeps additional per-gateway information (trunk or residential gw, etc.)
+   *  allow for multiple flags
+   */
+	std::map<PString,PStringArray*> GatewayFlags; 
+
+	std::list<endpointRec *> EndpointList;
+	std::list<endpointRec *> RemovedList;
+	mutable PReadWriteMutex listLock;
+
 	// counter to generate endpoint identifier
 	// this is NOT the count of endpoints!
 	int recCnt;
@@ -247,6 +313,77 @@ protected:
 	std::set <CallRec> CallList;
 	PINDEX m_CallNumber;
 };
+
+class ReadLock {
+	PReadWriteMutex &mutex;
+  public:
+	ReadLock(PReadWriteMutex &m) : mutex(m) { mutex.StartRead(); }
+	~ReadLock() { mutex.EndRead(); }
+};
+
+class WriteLock {
+	PReadWriteMutex &mutex;
+  public:
+	WriteLock(PReadWriteMutex &m) : mutex(m) { mutex.StartWrite(); }
+	~WriteLock() { mutex.EndWrite(); }
+};
+
+#ifndef __GNUC__
+// Oops! Composition adaptor is not part of C++ standard
+template <class _Operation1, class _Operation2>
+class unary_compose
+  : public unary_function<typename _Operation2::argument_type,
+                          typename _Operation1::result_type> 
+{
+protected:
+  _Operation1 __op1;
+  _Operation2 __op2;
+public:
+  unary_compose(const _Operation1& __x, const _Operation2& __y) 
+    : __op1(__x), __op2(__y) {}
+  typename _Operation1::result_type
+  operator()(const typename _Operation2::argument_type& __x) const {
+    return __op1(__op2(__x));
+  }
+};
+
+template <class _Operation1, class _Operation2>
+inline unary_compose<_Operation1,_Operation2> 
+compose1(const _Operation1& __op1, const _Operation2& __op2)
+{
+  return unary_compose<_Operation1,_Operation2>(__op1, __op2);
+}
+#endif
+
+#ifdef WIN32
+// VC++ didn't define these
+template <class _Ret, class _Tp>
+class const_mem_fun_t : public unary_function<const _Tp*,_Ret> {
+public:
+  explicit const_mem_fun_t(_Ret (_Tp::*__pf)() const) : _M_f(__pf) {}
+  _Ret operator()(const _Tp* __p) const { return (__p->*_M_f)(); }
+private:
+  _Ret (_Tp::*_M_f)() const;
+};
+
+template <class _Ret, class _Tp>
+class const_mem_fun_ref_t : public unary_function<_Tp,_Ret> {
+public:
+  explicit const_mem_fun_ref_t(_Ret (_Tp::*__pf)() const) : _M_f(__pf) {}
+  _Ret operator()(const _Tp& __r) const { return (__r.*_M_f)(); }
+private:
+  _Ret (_Tp::*_M_f)() const;
+};
+
+template <class _Ret, class _Tp>
+inline const_mem_fun_t<_Ret,_Tp> mem_fun(_Ret (_Tp::*__f)() const)
+  { return const_mem_fun_t<_Ret,_Tp>(__f); }
+
+template <class _Ret, class _Tp>
+inline const_mem_fun_ref_t<_Ret,_Tp> mem_fun_ref(_Ret (_Tp::*__f)() const)
+  { return const_mem_fun_ref_t<_Ret,_Tp>(__f); }
+
+#endif
 
 #endif
 
