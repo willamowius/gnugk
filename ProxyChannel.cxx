@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // ProxyChannel.cxx
@@ -15,75 +14,64 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#define T302SECONDS 10 // will only be used in this file
-
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4355 ) // warning about using 'this' in initializer
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include "ANSI.h"
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
+
+#include <map>
+#include "gk.h"
 #include "gk_const.h"
 #include "h323util.h"
-#include "h323pdu.h"
 #include "Toolkit.h"
 #include "stl_supp.h"
+#include "RasSrv.h"
 #include "GkClient.h"
+#include "Neighbor.h"
 #include "ProxyChannel.h"
 #include <q931.h>
 #include <h245.h>
-#include "RasListener.h"
-#include "RasTbl.h"
-#include "gkDestAnalysis.h"
-#include "gkldap.h"
-#include "gkDatabase.h"
-
-#ifndef lint
-// mark object with version info in such a way that it is retrievable by
-// the std. version/revision control tools like RCS/CVS ident cmd. At
-// least the strings cmd will extract this info.
-static const char gkid[] = GKGVS;
-static const char vcid[] = "@(#) $Id$";
-static const char vcHid[] = PROXYCHANNEL_H;
-#endif /* lint */
+#include <h323pdu.h>
 
 const char *RoutedSec = "RoutedMode";
 const char *ProxySection = "Proxy";
 
-static BOOL ConvertNumberInternational(PString & number, unsigned int &TON, unsigned int & plan, unsigned int & SI, const CallProfile & profile);
+const char *H225_ProtocolID = "0.0.8.2250.0.2";
 
 class PortRange {
 public:
-       WORD GetPort();
-       void LoadConfig(const char *, const char *, const char * = "");
+	WORD GetPort();
+	void LoadConfig(const char *, const char *, const char * = "");
 
 private:
-       WORD port, minport, maxport;
-       PMutex mutex;
+	WORD port, minport, maxport;
+	PMutex mutex;
 };
 
 WORD PortRange::GetPort()
 {
-       WORD result = port;
-       if (port > 0) {
-               PWaitAndSignal lock(mutex);
-               ++port;
-               if (port > maxport)
-                       port = minport;
-       }
-       return result;
+	if (port == 0)
+		return 0;
+	PWaitAndSignal lock(mutex);
+	WORD result = port++;
+	if (port > maxport)
+		port = minport;
+	return result;
 }
 
 void PortRange::LoadConfig(const char *sec, const char *setting, const char *def)
 {
-       PStringArray cfgs = GkConfig()->GetString(sec, setting, def).Tokenise(",.:-/'", FALSE);
-       PWaitAndSignal lock(mutex);
-       if (cfgs.GetSize() >= 2) // no such a setting in config
-               port = minport = cfgs[0].AsUnsigned(), maxport = cfgs[1].AsUnsigned();
-       else
-               port = 0;
-       PTRACE_IF(2, port, setting << ": " << minport << '-' << maxport);
+	PStringArray cfgs = GkConfig()->GetString(sec, setting, def).Tokenise(",.:-/'", FALSE);
+	if (cfgs.GetSize() >= 2) // no such a setting in config
+		port = minport = cfgs[0].AsUnsigned(), maxport = cfgs[1].AsUnsigned();
+	else
+		port = 0;
+	PTRACE_IF(2, port, setting << ": " << minport << '-' << maxport);
 }
 
 static PortRange Q931PortRange;
@@ -93,46 +81,74 @@ static PortRange RTPPortRange;
 
 class H245Socket : public TCPProxySocket {
 public:
+#ifndef LARGE_FDSET
 	PCLASSINFO ( H245Socket, TCPProxySocket )
+#endif
 
 	H245Socket(CallSignalSocket *);
 	H245Socket(H245Socket *, CallSignalSocket *);
 	~H245Socket();
 
+	void ConnectTo();
+
 	// override from class ProxySocket
         virtual Result ReceiveData();
 	virtual bool EndSession();
 
-	// override from class TCPProxySocket
-	virtual TCPProxySocket *ConnectTo();
-
-	bool SetH245Address(H225_TransportAddress & h245addr, Address);
+	void SendEndSessionCommand();
+	H225_TransportAddress GetH245Address(const Address &);
+	bool SetH245Address(H225_TransportAddress & h245addr, const Address &);
+	bool Reverting(const H225_TransportAddress &);
 	void OnSignalingChannelClosed() { sigSocket = 0; }
-	// locking methods
-	virtual void Lock();
-	virtual void Unlock();
+	void SetSigSocket(CallSignalSocket *socket) { sigSocket = socket; }
 
-private:
+protected:
+	// override from class TCPProxySocket
+#ifdef LARGE_FDSET
+	virtual bool Accept(YaTCPSocket &);
+#else
+	virtual BOOL Accept(PSocket &);
+#endif
+	// new virtual function
+	virtual bool ConnectRemote();
 
 	CallSignalSocket *sigSocket;
-	H225_TransportAddress peerH245Addr;
-	PTCPSocket *listener;
-	mutable PMutex m_lock;
+	H225_TransportAddress *peerH245Addr;
+	TCPSocket *listener;
+
+private:
+	// override from class ServerSocket
+	virtual void Dispatch() { /* useless */ }
 };
 
-class UDPProxySocket : public PUDPSocket, public ProxySocket {
+class NATH245Socket : public H245Socket {
 public:
-	PCLASSINFO( UDPProxySocket, PUDPSocket )
+#ifndef LARGE_FDSET
+	PCLASSINFO ( NATH245Socket, H245Socket )
+#endif
+	NATH245Socket(CallSignalSocket *sig) : H245Socket(sig) {}
 
-		UDPProxySocket(const char *);
-	virtual ~UDPProxySocket() {}
+private:
+	// override from class H245Socket
+	virtual bool ConnectRemote();
+};
+
+class UDPProxySocket : public UDPSocket, public ProxySocket {
+public:
+#ifndef LARGE_FDSET
+	PCLASSINFO( UDPProxySocket, UDPSocket )
+#endif
+
+	UDPProxySocket(const char *);
 
 	void SetDestination(H245_UnicastAddress_iPAddress &);
-	void SetForwardDestination(Address, WORD, const H245_UnicastAddress_iPAddress &);
-	void SetReverseDestination(Address, WORD, const H245_UnicastAddress_iPAddress &);
-	typedef void (UDPProxySocket::*pMem)(Address, WORD, const H245_UnicastAddress_iPAddress &);
+	void SetForwardDestination(const Address &, WORD, const H245_UnicastAddress_iPAddress &);
+	void SetReverseDestination(const Address &, WORD, const H245_UnicastAddress_iPAddress &);
+	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, const H245_UnicastAddress_iPAddress &);
 
-	bool Bind(WORD pt) { return Listen(0, pt); }
+	bool Bind(WORD pt);
+	void SetNAT(bool);
+	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 
 	// override from class ProxySocket
 	virtual Result ReceiveData();
@@ -140,26 +156,28 @@ public:
 private:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
+	bool fnat, rnat;
 };
+
+class T120LogicalChannel;
 
 class T120ProxySocket : public TCPProxySocket {
 public:
+#ifndef LARGE_FDSET
 	PCLASSINFO ( T120ProxySocket, TCPProxySocket )
+#endif
 
+	T120ProxySocket(T120LogicalChannel *);
 	T120ProxySocket(T120ProxySocket * = 0, WORD = 0);
 
-	void SetDestination(Address, WORD);
-
 	// override from class ProxySocket
-	virtual bool ForwardData() { return WriteData(remote); }
-	virtual bool TransmitData() { return WriteData(this); }
-
-	// override from class TCPProxySocket
-	virtual TCPProxySocket *ConnectTo();
+	virtual bool ForwardData();
 
 private:
-	Address peerAddr;
-	WORD peerPort;
+	// override from class ServerSocket
+	virtual void Dispatch();
+
+	T120LogicalChannel *t120lc;
 };
 
 class LogicalChannel {
@@ -174,7 +192,7 @@ public:
 	void SetChannelNumber(WORD cn) { channelNumber = cn; }
 
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *) = 0;
-	virtual void StartReading(ProxyHandleThread *) = 0;
+	virtual void StartReading(ProxyHandler *) = 0;
 
 protected:
 	WORD channelNumber;
@@ -184,22 +202,25 @@ protected:
 
 class RTPLogicalChannel : public LogicalChannel {
 public:
-	RTPLogicalChannel(WORD);
-	RTPLogicalChannel(RTPLogicalChannel *, WORD);
+	RTPLogicalChannel(WORD, bool);
+	RTPLogicalChannel(RTPLogicalChannel *, WORD, bool);
 	virtual ~RTPLogicalChannel();
 
 	void SetSource(const H245_UnicastAddress_iPAddress &);
-	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, PIPSocket::Address, bool);
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, PIPSocket::Address, bool);
+	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool);
 
 	// override from class LogicalChannel
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
-	virtual void StartReading(ProxyHandleThread *);
+	virtual void StartReading(ProxyHandler *);
 	bool IsAttached() const { return (peer != 0); }
+	void OnHandlerSwapped(bool);
 
 	class NoPortAvailable {};
 
 private:
+	void SetNAT(bool);
+
 	bool reversed;
 	RTPLogicalChannel *peer;
 	UDPProxySocket *rtp, *rtcp;
@@ -216,1225 +237,1057 @@ public:
 
 	// override from class LogicalChannel
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
+	virtual void StartReading(ProxyHandler *);
 
-	virtual void StartReading(ProxyHandleThread *);
-
-	void AcceptCall();
+	void Create(T120ProxySocket *);
 	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
 
 private:
-	class T120Listener : public MyPThread {
+	class T120Listener : public TCPListenSocket {
 	public:
-		PCLASSINFO ( T120Listener, MyPThread )
-
-			T120Listener(T120LogicalChannel *lc) : t120lc(lc) { Resume(); }
-		// override from class MyPThread
-		virtual void Exec() { t120lc->AcceptCall(); }
+		T120Listener(T120LogicalChannel *lc);
 
 	private:
+		// override from class TCPListenSocket
+		virtual ServerSocket *CreateAcceptor() const;
+
 		T120LogicalChannel *t120lc;
 	};
 
-	static void delete_s(T120ProxySocket *s) { s->SetDeletable(); }
-
-	std::list<T120ProxySocket *> sockets;
-	T120Listener *listenThread;
-	PTCPSocket listener;
-	ProxyHandleThread *handler;
+	T120Listener *listener;
+	ProxyHandler *handler;
 	PIPSocket::Address peerAddr;
 	WORD peerPort;
+	list<T120ProxySocket *> sockets;
+	PMutex m_smutex;
 };
-
-inline void T120ProxySocket::SetDestination(Address ip, WORD pt)
-{
-	peerAddr = ip, peerPort = pt;
-}
-
-TCPProxySocket *ProxyListener::CreateSocket()
-{
-	return new CallSignalSocket();
-}
 
 class NATHandler {
 public:
-	NATHandler(PIPSocket::Address remote) : remoteAddr(remote) {}
+	NATHandler(const PIPSocket::Address & remote) : remoteAddr(remote) {}
 
 	void TranslateH245Address(H225_TransportAddress &);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
 	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
 
 private:
+	bool SetAddress(H245_UnicastAddress_iPAddress *);
 	PIPSocket::Address remoteAddr;
 };
 
+class H245Handler {
+// This class handles H.245 messages which can either be transmitted on their
+// own TCP connection or can be tunneled in the Q.931 connection
+public:
+	H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote);
+	virtual ~H245Handler();
 
-// CallSignalSocket
+	virtual void OnH245Address(H225_TransportAddress &);
+	virtual bool HandleMesg(PPER_Stream &);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
+	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &);
 
-const endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
+	PIPSocket::Address GetLocalAddr() const { return localAddr; }
+	void SetLocalAddr(const PIPSocket::Address & local) { localAddr = local; }
+	bool IsSessionEnded() const { return isH245ended; }
+
+protected:
+	virtual bool HandleRequest(H245_RequestMessage &);
+	virtual bool HandleResponse(H245_ResponseMessage &);
+	virtual bool HandleCommand(H245_CommandMessage &);
+	virtual bool HandleIndication(H245_IndicationMessage &);
+
+	NATHandler *hnat;
+
+private:
+	PIPSocket::Address localAddr, remoteAddr;
+	bool isH245ended;
+};
+
+class H245ProxyHandler : public H245Handler {
+public:
+	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
+	typedef std::map<WORD, LogicalChannel *>::const_iterator const_iterator;
+	typedef std::map<WORD, RTPLogicalChannel *>::iterator siterator;
+	typedef std::map<WORD, RTPLogicalChannel *>::const_iterator const_siterator;
+
+	H245ProxyHandler(const PIPSocket::Address &, const PIPSocket::Address &, H245ProxyHandler * = 0);
+	virtual ~H245ProxyHandler();
+
+	// override from class H245Handler
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
+
+	void SetHandler(ProxyHandler *);
+	LogicalChannel *FindLogicalChannel(WORD);
+	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
+	
+private:
+	// override from class H245Handler
+	virtual bool HandleRequest(H245_RequestMessage &);
+	virtual bool HandleResponse(H245_ResponseMessage &);
+
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD);
+	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
+	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
+	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
+	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
+
+	RTPLogicalChannel *CreateRTPLogicalChannel(WORD, WORD);
+	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD);
+	T120LogicalChannel *CreateT120LogicalChannel(WORD);
+	bool RemoveLogicalChannel(WORD flcn);
+
+	std::map<WORD, LogicalChannel *> logicalChannels;
+	std::map<WORD, RTPLogicalChannel *> sessionIDs;
+	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
+	ProxyHandler *handler;
+	H245ProxyHandler *peer;
+};
+
+
+// class ProxySocket
+ProxySocket::ProxySocket(IPSocket *s, const char *t) : USocket(s, t)
 {
-	PTRACE(6, "CallSignalSocket::GetCgEP start");
-	PString CallingPN;
-	H225_AliasAddress CallingEPA;
-	H225_ArrayOf_AliasAddress ACallingPN;
-	if(q931pdu.GetCallingPartyNumber(CallingPN)) {
-		H323SetAliasAddress(CallingPN,CallingEPA);
-		PTRACE(6, "CallSignalSocket::GetCgEP CallingPN:" << CallingPN);
- 		ACallingPN.SetSize(1);
-		ACallingPN[0]=CallingEPA;
-		PTRACE(6, "CallSignalSocket::GetCgEP CallingEP: " << RegistrationTable::Instance()->FindByAliases(ACallingPN));
-		if (RegistrationTable::Instance()->FindByAliases(ACallingPN)!=endptr(NULL))
-			return RegistrationTable::Instance()->FindByAliases(ACallingPN);
-	}
-	if (q931pdu.HasIE(Q931::UserUserIE)) {
-		H225_H323_UserInformation signal;
-		PPER_Stream q = q931pdu.GetIE(Q931::UserUserIE);
-		if (!signal.Decode(q)) {
-			PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
-			return endptr(NULL); // Urgs...
-		}
-		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
-		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-		H225_Setup_UUIE & Setup = body;
-		if (!Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
-			PTRACE(1, "Q931\tOnSetup() no callIdentifier!");
-			return endptr(NULL);
-		}
-		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
-		if (m_call) {
-			PTRACE(6, "Call found");
-			if (endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress())))
-				return RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress()));
-		}
-		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
-			PTRACE(6, "sourceCallSignalAddr: " << Setup.m_sourceCallSignalAddress);
-			if(endptr(NULL)!=RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress)) {
-				PTRACE(6, "Got EP by SourceCallSignalAddress");
-				return RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress);
-			} else if (endptr(NULL)!=RegistrationTable::Instance()->FindOZEPBySignalAdr(Setup.m_sourceCallSignalAddress)) {
-				PTRACE(6, "Got OZEP by SourceCallSignalAddress");
-				return RegistrationTable::Instance()->FindOZEPBySignalAdr(Setup.m_sourceCallSignalAddress);
-			}
-		}
-		// OZEP??
-		if(endptr(NULL)!=RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier.GetValue())))
-			return RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier.GetValue()));
-
-	}
-	PIPSocket::Address peeraddr;
-	GetPeerAddress(peeraddr);
-	if (endptr(NULL) != RegistrationTable::Instance()->FindOZEPByAdr(peeraddr))
-		return RegistrationTable::Instance()->FindOZEPByAdr(peeraddr);
-	PTRACE(1, "No endpoint found");
-	return endptr(NULL);
+	wbufsize = 1536; // 1.5KB
+	wbuffer = new BYTE[wbufsize];
+	buflen = 0;
+	connected = deletable = false;
 }
 
-CallSignalSocket::CallSignalSocket()
-	: TCPProxySocket("Q931s"), m_h245handler(NULL), m_h245socket(NULL), m_h245Tunneling(FALSE),
-	  isRoutable(FALSE), m_numbercomplete(FALSE), m_StatusEnquiryTimer(NULL),
-	  m_StatusTimer(NULL), m_replytoStatusMessage(TRUE), lastInformationMessage(FALSE)
+ProxySocket::~ProxySocket()
 {
-	m_call=callptr(NULL);
-	localAddr = peerAddr = INADDR_ANY;
-	m_receivedQ931 = NULL;
-	m_SetupPDU = NULL;
+	delete [] wbuffer;
 }
 
-void CallSignalSocket::Shutdown()
+ProxySocket::Result ProxySocket::ReceiveData()
 {
-	m_lock.Wait();
-
-	if(NULL!=m_StatusEnquiryTimer)
-		m_StatusEnquiryTimer->Stop();
-	delete m_StatusEnquiryTimer;
-	m_StatusEnquiryTimer = NULL;
-	if(NULL!=m_StatusTimer)
-		m_StatusTimer->Stop();
-	delete m_StatusTimer;
-	m_StatusTimer = NULL;
-
-	if(callptr(NULL)!=m_call) {
-		PTRACE(5, "Deleting Call " << m_call->GetCallIdentifier());
-		m_call->RemoveSocket();
-		CallTable::Instance()->RemoveCall(m_call);
-
+	if (!self->Read(wbuffer, wbufsize)) {
+		ErrorHandler(PSocket::LastReadError);
+		return NoData;
 	}
+	PTRACE(6, Type() << "\tReading from " << Name());
+	buflen = self->GetLastReadCount();
+	return Forwarding;
+}
 
-	if(NULL!=remote) {
-		m_lock.Signal();
-		PTRACE(5, "deleteing remote socket");
-		remote->SetConnected(FALSE);
+bool ProxySocket::ForwardData()
+{
+	return WriteData(wbuffer, buflen);
+}
+
+bool ProxySocket::EndSession()
+{
+	MarkBlocked(false);
+//	SetConnected(false);
+	return CloseSocket();
+}
+
+
+struct TPKTV3 {
+	TPKTV3() {}
+	TPKTV3(WORD);
+
+	BYTE header, padding;
+	WORD length;
+};
+
+inline TPKTV3::TPKTV3(WORD len)
+	: header(3), padding(0)
+{
+	length = PIPSocket::Host2Net(WORD(len + sizeof(TPKTV3)));
+}
+
+// class TCPProxySocket
+TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
+      : ServerSocket(p), ProxySocket(this, t), remote(s)
+{
+}
+
+TCPProxySocket::~TCPProxySocket()
+{
+	if (remote) {
+		remote->remote = 0; // detach myself from remote
 		remote->SetDeletable();
-		remote->UnlockUse("CallSignalSocket " + Name() + type);
-		m_lock.Wait();
-		remote=NULL;
 	}
-	m_lock.Signal();
 }
 
-CallSignalSocket::~CallSignalSocket()
+bool TCPProxySocket::ForwardData()
 {
-	PTRACE(1,"Trying Deletion CallSignalSocket " << this << " with condition: " << PString(m_usedCondition.Condition() ? "TRUE" : "FALSE"));
-	PTRACE(1, "Name(): " << Name());
-
-	if(NULL!=remote)
-		Shutdown();
-
-	PTRACE(5, "Waiting for Condition to come true");
-	m_usedCondition.WaitCondition();
-	m_lock.Wait();
-	if(remote!=NULL)
-		remote->remote=NULL;
-	remote=NULL;
-	m_lock.Signal();
-
-	PTRACE(1,"Deleteing CallSignalSocket " << this);
-
-	delete m_h245handler;
-	delete m_receivedQ931;
-	delete m_SetupPDU;
-
- 	if (m_t302.IsRunning())
- 		m_t302.Stop();
-
-	if (NULL!=m_h245socket) {
-		m_h245socket->EndSession();
-		m_h245socket->OnSignalingChannelClosed();
-		m_h245socket->SetDeletable();
-		m_h245socket->UnlockUse("CallSignalSocket " + Name() + type);
-		m_h245socket=NULL;
-	}
-	Close(); // Force the socket to be closed...
+	return (remote) ? remote->InternalWrite(buffer) : false;
 }
 
-CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
-	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(NULL), m_h245socket(NULL), m_h245Tunneling(FALSE),
-	  isRoutable(TRUE), m_numbercomplete(TRUE), m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL),
-	  m_replytoStatusMessage(TRUE), lastInformationMessage(FALSE)
-
+bool TCPProxySocket::TransmitData(const PBYTEArray & buf)
 {
+	return InternalWrite(buf);
+}
+
+#ifndef LARGE_FDSET
+BOOL TCPProxySocket::Accept(PSocket & socket)
+{
+//	SetReadTimeout(PMaxTimeInterval);
+	BOOL result = PTCPSocket::Accept(socket);
+	PTimeInterval timeout(100);
+	SetReadTimeout(timeout);
+	SetWriteTimeout(timeout);
+	// since GetName() may not work if socket closed,
+	// we save it for reference
+	Address ip;
+	WORD pt;
+	GetPeerAddress(ip, pt);
+	SetName(AsString(ip, pt));
+	return result;
+}
+
+BOOL TCPProxySocket::Connect(const Address & iface, WORD localPort, const Address & addr)
+{
+	SetName(AsString(addr, GetPort()));
+	SetReadTimeout(PTimeInterval(6000)); // TODO: read from config...
+	BOOL result = PTCPSocket::Connect(iface, localPort, addr);
+	PTimeInterval timeout(100);
+	SetReadTimeout(timeout);
+	SetWriteTimeout(timeout);
+	return result;
+}
+
+BOOL TCPProxySocket::Connect(const Address & addr)
+{
+	return Connect(INADDR_ANY, 0, addr);
+}
+
+#endif
+
+bool TCPProxySocket::ReadTPKT()
+{
+	PTRACE(5, Type() << "\tReading from " << GetName());
+	if (buflen == 0) {
+		TPKTV3 tpkt;
+		if (!ReadBlock(&tpkt, sizeof(TPKTV3)))
+			return ErrorHandler(PSocket::LastReadError);
+		//if (tpkt.header != 3 || tpkt.padding != 0)
+		// some bad endpoints don't set padding to 0, e.g., Cisco AS5300
+		if (tpkt.header != 3) {
+			PTRACE(2, "Proxy\t" << GetName() << " NOT TPKT PACKET!");
+			return false; // Only support version 3
+		}
+		buflen = PIPSocket::Net2Host(tpkt.length) - sizeof(TPKTV3);
+		if (buflen < 1) {
+			PTRACE(3, "Proxy\t" << GetName() << " PACKET TOO SHORT!");
+			buflen = 0;
+			return false;
+		}
+		if (!SetMinBufSize(buflen))
+			return false;
+		buffer = PBYTEArray(bufptr = wbuffer, buflen, false);
+	}
+
+#ifdef LARGE_FDSET
+	// some endpoints may send TPKT header and payload in separate
+	// packets, so we have to check again if data available
+	if (!YaSelectList(this).Select(YaSelectList::Read, 0))
+		return false;
+#endif
+	if (!Read(bufptr, buflen))
+		return ErrorHandler(PSocket::LastReadError);
+
+	if (!(buflen -= GetLastReadCount()))
+		return true;
+
+	bufptr += GetLastReadCount();
+	PTRACE(3, "Proxy\t" << GetName() << " read timeout?");
+	return false;
+}
+
+bool TCPProxySocket::InternalWrite(const PBYTEArray & buf)
+{
+	WORD len = buf.GetSize(), tlen = len + sizeof(TPKTV3);
+	PBYTEArray tbuf(tlen);
+	BYTE *bptr = tbuf.GetPointer();
+	new (bptr) TPKTV3(len); // placement operator
+	memcpy(bptr + sizeof(TPKTV3), buf, len);
+	return WriteData(bptr, tlen);
+}
+
+bool TCPProxySocket::SetMinBufSize(WORD len)
+{
+	if (wbufsize < len) {
+		delete [] wbuffer;
+		wbuffer = new BYTE[wbufsize = len];
+	}
+	return (wbuffer != 0);
+}
+
+
+// class CallSignalSocket
+CallSignalSocket::CallSignalSocket() : TCPProxySocket("Q931s")
+{
+	InternalInit();
+	localAddr = peerAddr = INADDR_ANY;
+	m_h245Tunneling = true;
+	SetHandler(RasServer::Instance()->GetProxyHandler());
+}
+
+CallSignalSocket::CallSignalSocket(CallSignalSocket *socket) : TCPProxySocket("Q931d", socket)
+{
+	InternalInit();
+	remote = socket;
 	m_call = socket->m_call;
-	socket->m_lock.Signal();
+}
+
+CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port) : TCPProxySocket("Q931d", socket, port)
+{
+	InternalInit();
+	SetRemote(socket);
+}
+
+void CallSignalSocket::InternalInit()
+{
+	m_h245handler = 0;
+	m_h245socket = 0;
+	m_isnatsocket = false;
+	m_lastQ931 = new Q931;
+	m_setupUUIE = 0;
+}
+
+void CallSignalSocket::SetRemote(CallSignalSocket *socket)
+{
+	remote = socket;
+	m_call = socket->m_call;
 	m_call->SetSocket(socket, this);
-	socket->m_lock.Wait();
-	m_crv = (socket->m_crv & 0x7fffu); // set the MSB to 0 -- this bit shows the 'direction' of the
-	                                   // call.
-	m_receivedQ931 = NULL;
-	socket->GetLocalAddress(localAddr);
+	m_crv = (socket->m_crv & 0x7fffu);
+	m_h245Tunneling = socket->m_h245Tunneling;
 	socket->GetPeerAddress(peerAddr, peerPort);
+	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr); //TODO
 	SetHandler(socket->GetHandler());
+	SetName(AsString(socket->peerAddr, GetPort()));
 
 	Address calling = INADDR_ANY, called = INADDR_ANY;
 	int type = m_call->GetNATType(calling, called);
-	PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " has NAT type " << type);
 	if (type & CallRec::calledParty)
 		socket->peerAddr = called;
 
+	if (type == CallRec::both && calling == called)
+		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "0")))
+			return;
+
 	// enable proxy if required, no matter whether H.245 routed
-	if (Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr)) {
-		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket, socket->localAddr, calling);
+	if (Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr) ||
+		((type != CallRec::none) && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1")))) {
+		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket->localAddr, calling);
 		socket->m_h245handler = proxyhandler;
-		m_h245handler = new H245ProxyHandler(this, localAddr, called, proxyhandler);
+		m_h245handler = new H245ProxyHandler(localAddr, called, proxyhandler);
+		proxyhandler->SetHandler(GetHandler());
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
 	} else if (m_call->IsH245Routed()) {
 		socket->m_h245handler = new H245Handler(socket->localAddr, calling);
 		m_h245handler = new H245Handler(localAddr, called);
 	}
-	m_SetupPDU = NULL;
-	remote->LockUse("CallSignalSocket " + Name() + static_cast<PString>(type));
 }
 
-namespace { // end of anonymous namespace
+CallSignalSocket::~CallSignalSocket()
+{
+	if (m_h245socket) {
+		if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote)) {
+			if (!m_h245handler->IsSessionEnded() && ret->m_h245socket)
+				ret->m_h245socket->SendEndSessionCommand();
+			if (!ret->m_h245handler->IsSessionEnded())
+				m_h245socket->SendEndSessionCommand();
+		}
+		m_h245socket->OnSignalingChannelClosed();
+		m_h245socket->EndSession();
+		m_h245socket->SetDeletable();
+	}
+	delete m_h245handler;
+	delete m_lastQ931;
+	delete m_setupUUIE;
+}
+
+#ifdef LARGE_FDSET
+bool CallSignalSocket::Connect(const Address & addr)
+#else
+BOOL CallSignalSocket::Connect(const Address & addr)
+#endif
+{
+	Address local = RasServer::Instance()->GetLocalAddress(addr); // TODO
+	return TCPProxySocket::Connect(local, Q931PortRange.GetPort(), addr);
+}
+
+namespace { // anonymous namespace
 #if PTRACING
 void PrintQ931(int tlevel, const PString & msg, const Q931 *q931, const H225_H323_UserInformation *uuie)
 {
-       PStringStream pstrm;
-       pstrm << "Q931\t" << msg << " {\n  q931pdu = " << setprecision(2) << *q931;
-       if (uuie)
-               pstrm << "\n  h225pdu = " << setprecision(2) << *uuie;
-       pstrm << "\n}";
-       PTRACE(tlevel, pstrm);
+	PStringStream pstrm;
+	pstrm << "Q931\t" << msg << " {\n  q931pdu = " << setprecision(2) << *q931;
+	if (uuie)
+		pstrm << "\n  h225pdu = " << setprecision(2) << *uuie;
+	pstrm << "\n}";
+	PTRACE(tlevel, pstrm);
 }
 #else
 inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserInformation *)
 {
-	// Nothing to do
+	// nothing to do
 }
 #endif
+
+bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie, const PString & name)
+{
+	if (q931.HasIE(Q931::UserUserIE)) {
+		PPER_Stream strm(q931.GetIE(Q931::UserUserIE));
+		if (uuie.Decode(strm))
+			return true;
+		PTRACE(3, "Q931\t" << name << " ERROR DECODING UUIE!");
+	}
+	return false;
+}
+
+void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
+{
+	PPER_Stream strm;
+	uuie.Encode(strm);
+	strm.CompleteEncoding();
+	q931.SetIE(Q931::UserUserIE, strm);
+}
+
 } // end of anonymous namespace
 
-void CallSignalSocket::DoRoutingDecision() {
-	lastInformationMessage=TRUE;
-	endptr CalledEP(NULL);
-	H225_AliasAddress h225address;
-	endptr CallingEP = endptr(NULL);
-	if(callptr(NULL)!=m_call)
-		CallingEP = m_call->GetCallingEP();
-
-	unsigned rsn;
-	isRoutable=FALSE;
-	H323SetAliasAddress(CalledNumber,h225address);
-
-	CalledEP = RegistrationTable::Instance()->getMsgDestination(h225address, CallingEP, rsn);
-	if(H225_AdmissionRejectReason::e_incompleteAddress == rsn) {
-		PTRACE(5, "DoRoutingDecision() incomplete");
-		return;
-	}
-	if (endptr(NULL)==CalledEP && Toolkit::Instance()->GkClientIsRegistered()) { // maybe we want to route via GkClient?
-		PTRACE(1,"GkClient?");
-		H225_ArrayOf_AliasAddress epaliases;
-		epaliases.SetSize(1);
-		H323SetAliasAddress(GkConfig()->GetString("Endpoint", "MasterH323ID",""), epaliases[0], H225_AliasAddress::e_h323_ID);
-		PTRACE(1, "Searching for EP: " << epaliases[0]);
-		if(CalledNumber.GetLength()>=GkConfig()->GetInteger("Endpoint", "MinimumPrefixLength", 0)) {
-			// Fake ARQ -- that's *really* ugly. I'm not sure if that feature is ok with the H.323 Standards.
-			PString destinationString;
-			H225_H323_UserInformation signal;
-			PPER_Stream q = GetSetupPDU()->GetIE(Q931::UserUserIE);
-			if (!signal.Decode(q)) {
-				PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
-				return;
-			}
-			H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
-			H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-			H225_Setup_UUIE & Setup = body;
-			PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
-			CallRec * call= new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString , sourceString, 0, Toolkit::Instance()->GetMasterRASListener().IsGKRoutedH245());
-			if (NULL==call)
-				return;
-			CalledEP=RegistrationTable::Instance()->FindByAliases(epaliases);
-			m_call=callptr(call);
-			m_call->SetCalled(CalledEP);
-			m_call->SetCalling(GetCgEP(*GetSetupPDU()));
-			CgPNConversion();
-			if(!Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) || Setup.m_sourceAddress.GetSize()!=1) {
-				PTRACE(5,"setting m_sourceAddress to size 1");
-				Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
-				Setup.m_sourceAddress.SetSize(1);
-			}
-			Setup.m_sourceAddress[0].SetTag(H225_AliasAddress::e_dialedDigits);
-			PTRACE(5,"setting m_sourceAddress to " << CalledNumber);
-			H323SetAliasAddress(CalledNumber, Setup.m_destinationAddress[0]);
-
-			CallTable::Instance()->Insert(call);
-			Toolkit::Instance()->GetGkClient().SendARQ(Setup, GetSetupPDU()->GetCallReference(), m_call, FALSE);
-			sleep(1);
-			PTRACE(1,"GkClient:" << CalledEP);
-		} else {
-			rsn=H225_AdmissionRejectReason::e_incompleteAddress;
-		}
-	}
-	if(CalledEP) {
-		PTRACE(5, "DoRoutingDecision() complete");
-		isRoutable=TRUE;
-		// Do CgPNConversion. We need the setup pdu and the setup UUIE (stored in m_SetupPDU)
-//		CgPNConversion();
-		// const H225_TransportAddress &ad  = CalledEP->GetCallSignalAddress();
-// 		if (ad.GetTag() == H225_TransportAddress::e_ipAddress) { // IP Address known?
-// 			const H225_TransportAddress_ipAddress & ip = ad;
-// 			peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-// 			peerPort = ip.m_port;
-// 			localAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr);
-			//SetPort(peerPort);
-		m_call->SetCalled(CalledEP);
-		BuildConnection();
-//		}
-		PTRACE(5, "Setting Profile.Number");
-		if(callptr(NULL)!=m_call) {
-			m_call->GetCalledProfile().SetCalledPN(CalledNumber); // are the dialed digits in international format?
-			m_call->GetCalledProfile().SetDialedPN(DialedDigits);
-		}
-		return;
-	}
-	if (H225_AdmissionRejectReason::e_incompleteAddress != rsn) {
-		PTRACE(1, "DoRoutingDecision() Error");
-		if(NULL!=remote) {
-			remote->SetDeletable();
-			remote->CloseSocket();
-			remote->UnlockUse("CallSignalSocket " + Name() + type);
-			remote=NULL;
-		}
-		SetDeletable();
-		CloseSocket();
-
-		// Disconnect
-	}
-}
-
-void CallSignalSocket::SendInformationMessages() {
-	if (NULL !=GetSetupPDU()) {
-		GetSetupPDU()->Encode(buffer);
-		if(!ForwardData())
-			return;
-		PTRACE(5, "fake setup sent" << *GetSetupPDU());
-		buffer.SetSize(0); // empty Buffer
-		PINDEX end=Q931InformationMessages.GetSize();
-		for(PINDEX i=0; i<end; i++) {
-			Q931InformationMessages[i]->Encode(buffer);
-			if(!ForwardData())
-				return;
-			PTRACE(5, "Sent: " << *(Q931InformationMessages[i]));
-			delete Q931InformationMessages[i];
-			Q931InformationMessages[i]=NULL;
-		}
-		Q931InformationMessages.SetSize(0);
-//		delete m_SetupPDU;
-//		m_SetupPDU = NULL;
-	}
-}
-
-void CallSignalSocket::BuildConnection() {
-	unsigned plan,type;
-	Q931 * pdu=GetSetupPDU();// Q931InformationMessages[0];
-	PString calledDigit;
-	pdu->GetCalledPartyNumber(calledDigit, &plan, &type);
-	pdu->SetCalledPartyNumber(DialedDigits,plan,type);
-	m_SetupPDU=pdu;
-
-       	const H225_TransportAddress *addr = m_call->GetCalledAddress();
-
-	const H225_TransportAddress_ipAddress & ip = *addr;
-	peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-	peerPort = ip.m_port;
-	remote = new CallSignalSocket(this, peerPort);
-
-	remote->LockUse("CallSignalSocket " + Name() + type);
-	GetHandler()->Insert(remote);
-	ConnectTo();
-}
-
-TCPProxySocket *CallSignalSocket::ConnectTo()
+ProxySocket::Result CallSignalSocket::ReceiveData()
 {
-	CgPNConversion(TRUE);
-	if (peerAddr == Address("0.0.0.0")) {
-		PTRACE(5, "peerAddr is INADDR_ANY");
-		if (NULL!=remote) {
-			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
-			if(NULL!=rem)
-				rem->SetConnected(false);
-			else
-				remote->SetConnected(false);
-		}
-		SetConnected(true);
-		MarkBlocked(false);
-		return NULL;
-	}
-	if(NULL==remote) {
-		SetDeletable();
-		if(callptr(NULL)!=m_call) {
-			m_call->RemoveSocket();
-			CallTable::Instance()->RemoveCall(m_call);
-		}
-		m_call=callptr(NULL);
-		return NULL;
-	}
-	PWaitAndSignal lock(m_lock);
-	if(!remote->IsConnected()) { // ignore already connected calls
-		if (remote->Connect(static_cast<PIPSocket::Address>(GkConfig()->GetString("Home", INADDR_ANY)), Q931PortRange.GetPort(),peerAddr)) {
-#ifdef WIN32
-			PTRACE(3, "Q931(" << GetCurrentThreadId() << ") Connect to " << peerAddr << " successful");
-#else
-			PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
-#endif
-			SetConnected(true);
-			remote->SetConnected(true);
-			SendInformationMessages();
-		} else {
-			PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
-			InternalEndSession();
-			// remote->SetDeletable(); // do not delete.
-// 			remote->UnlockUse("CallSignalSocket " + Name() + type);
-// 			remote=NULL;
-			if(callptr(NULL)!=m_call) {
-				m_call->RemoveSocket();
-				CallTable::Instance()->RemoveCall(m_call);
-			}
-			m_call=callptr(NULL);
-			MarkBlocked(false);
-			SetDeletable();
-			return NULL;
-		}
-	}
-	if (remote->IsConnected()) // NumberIE sent here?
- 		ForwardData();
-	return remote;
-}
-
-bool CallSignalSocket::FakeSetupACK(Q931 &setup) {
-	Q931 pdu;
-	H225_H323_UserInformation calledSignal;
-	H225_H323_UU_PDU  & uu = calledSignal.m_h323_uu_pdu;
-	pdu.BuildSetupAcknowledge(setup.GetCallReference());
- 	// Old message
-	H225_H323_UserInformation signal;
-	PPER_Stream q = setup.GetIE(Q931::UserUserIE);
-	signal.Decode(q);
-	H225_H323_UU_PDU & callingpdu = signal.m_h323_uu_pdu;
-	H225_Setup_UUIE & callingUUIE = callingpdu.m_h323_message_body;
-	// Old Message
-	H225_H323_UU_PDU_h323_message_body &mb = uu.m_h323_message_body;
-	mb.SetTag(H225_H323_UU_PDU_h323_message_body::e_setupAcknowledge);
-	H225_SetupAcknowledge_UUIE &uuie = mb;
-	uuie.m_protocolIdentifier = callingUUIE.m_protocolIdentifier;
-	uuie.m_callIdentifier = callingUUIE.m_callIdentifier;
-	PPER_Stream b;
-	b.SetSize(0);
-	b.SetPosition(0);
-	calledSignal.Encode(b);
-	b.CompleteEncoding();
-	pdu.SetIE(Q931::UserUserIE, b);
-	buffer.SetSize(0); // Clear Buffer
-	pdu.Encode(buffer);
-	// Start Timer T.302 (network side)
-	PTRACE(5, "Setting Timer T.302");
-	m_t302.SetNotifier(PCREATE_NOTIFIER(OnT302Timeout));
-	m_t302.SetInterval(0,T302SECONDS); // Q.931 says 10-15s.
-	return TransmitData();
-}
-
-void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
-{
-       H225_H323_UserInformation signal;
-       H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
-       H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-       body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
-       H225_ReleaseComplete_UUIE & uuie = body;
-       if (callptr(NULL)!=m_call) {
-	       uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
-               uuie.m_callIdentifier = m_call->GetCallIdentifier();
-       }
-       PPER_Stream strm;
-       signal.Encode(strm);
-       strm.CompleteEncoding();
-
-       ReleasePDU.BuildReleaseComplete(m_crv, m_crv & 0x8000u);
-       ReleasePDU.SetIE(Q931::UserUserIE, strm);
-       if(callptr(NULL)!=m_call && m_call->GetCalledProfile().ReleaseCauseIsSet())
-	       ReleasePDU.SetCause(m_call->GetCalledProfile().GetReleaseCause());
-}
-
-void CallSignalSocket::SendReleaseComplete(const enum Q931::CauseValues cause)
-{
-	PTRACE(5, "void CallSignalSocket::SendReleaseComplete(const enum Q931::CauseValues cause)");
-	PWaitAndSignal lock(m_lock);
-	InternalSendReleaseComplete(cause);
-}
-
-void
-CallSignalSocket::InternalSendReleaseComplete(const enum Q931::CauseValues cause)
-{
-	PTRACE(5, "void CallSignalSocket::InternalSendReleaseComplete(const enum Q931::CauseValues "<< cause <<")");
-	if (IsOpen()) {
-		Q931 ReleasePDU;
-		BuildReleasePDU(ReleasePDU);
-		ReleasePDU.SetCause(cause);
-		ReleasePDU.Encode(buffer);
-		PTRACE(5, "GK\tSend Release Complete to " << Name());
-		TransmitData();
-		PrintQ931(6, "Sending ", &ReleasePDU, 0);
-	}
-}
-
-bool CallSignalSocket::EndSession()
-{
-	PWaitAndSignal lock(m_lock);
-	return InternalEndSession();
-}
-
-bool
-CallSignalSocket::InternalEndSession()
-{
-	PTRACE(5, "Endsession");
-	if(callptr(NULL)!=m_call  && m_call->GetCalledProfile().ReleaseCauseIsSet())
-		InternalSendReleaseComplete(m_call->GetCalledProfile().GetReleaseCause());
-	else
-		InternalSendReleaseComplete(Q931::NormalCallClearing);
-
-	m_call=callptr(NULL);
-	return TCPProxySocket::EndSession();
-}
-
-
-ProxySocket::Result CallSignalSocket::ReceiveData() {
-	PWaitAndSignal lock(m_lock);
-	BOOL read_status=FALSE;
 	if (!ReadTPKT())
 		return NoData;
 
-	Q931 q931pdu;
-	if (!q931pdu.Decode(buffer)) {
-		PTRACE(4, "Q931\t" << Name() << " ERROR DECODING Q.931!");
+	if (!m_lastQ931->Decode(buffer)) {
+		PTRACE(4, "Q931\t" << GetName() << " ERROR DECODING Q.931!");
 		return Error;
 	}
 
-	delete m_receivedQ931;
+	bool changed = false;
+	PTRACE(3, Type() << "\tReceived: " << m_lastQ931->GetMessageTypeName() << " CRV=" << m_lastQ931->GetCallReference() << " from " << GetName());
 
-	m_receivedQ931 = new Q931(q931pdu);
+	m_result = Forwarding;
 
-	PTRACE(1, "Q931\t" << Name() << " Message type: " << q931pdu.GetMessageTypeName());
-	PTRACE(3, "Q931\t" << "Received: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference() << " from " << Name());
-	PTRACE(4, "Q931\t" << Name() << " Call reference: " << q931pdu.GetCallReference());
-	PTRACE(4, "Q931\t" << Name() << " From destination " << q931pdu.IsFromDestination());
-	PTRACE(5, "Q931\t" << Name() << " IsRoutable " << isRoutable);
-	PTRACE(5, ANSI::BYEL << "Q931\nMessage received: " << setprecision(2) << q931pdu << ANSI::OFF);
-
-	if (q931pdu.HasIE(Q931::UserUserIE)) {
-		H225_H323_UserInformation signal;
-		PPER_Stream q = q931pdu.GetIE(Q931::UserUserIE);
-		if (!signal.Decode(q)) {
-			PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
-			return Error;
-		}
-
+	H225_H323_UserInformation signal, *psignal = 0;
+	if (GetUUIE(*m_lastQ931, signal, GetName())) {
 		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
 		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+		if (m_h245Tunneling)
+			m_h245Tunneling = (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling) && pdu.m_h245Tunneling.GetValue());
 
-		PTRACE(6, ANSI::BYEL << "Q931\nUUIE received: " << setprecision(2) << pdu << ANSI::OFF);
+		PrintQ931(4, "Received:", m_lastQ931, psignal = &signal);
 
-		switch (body.GetTag()){
+		switch (body.GetTag())
+		{
 		case H225_H323_UU_PDU_h323_message_body::e_setup:
-			m_crv = (q931pdu.GetCallReference() | 0x8000u);
-			q931pdu.GetCalledPartyNumber(DialedDigits,&m_calledPLAN, &m_calledTON);
-			if (NULL==GetSetupPDU()) {
-				m_SetupPDU = new Q931(*(GetReceivedQ931()));
-				OnSetup(body);
+			if (remote || m_setupUUIE) {
+				PTRACE(3, "Warning: duplicate Setup? ignored!");
+				return NoData;
 			}
+			m_crv = (m_lastQ931->GetCallReference() | 0x8000u);
+			m_setupUUIE = new H225_H323_UserInformation(signal);
+			changed = OnSetup(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_callProceeding:
-			OnCallProceeding(body);
+			changed = OnCallProceeding(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_connect:
-			OnConnect(body);
+			changed = OnConnect(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_alerting:
-			OnAlerting(body);
+			changed = OnAlerting(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_information:
-			OnInformation(body);
+			changed = OnInformation(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_releaseComplete:
-			OnReleaseComplete(body);
+			changed = OnReleaseComplete(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_facility:
-			OnFacility(body);
+			changed = OnFacility(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_progress:
-			OnProgress(body);
+			changed = OnProgress(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_empty:
-			OnEmpty(body);
+			changed = OnEmpty(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_status:
-			PTRACE(5, "onstatus");
-			OnStatus(body);
-			read_status=TRUE;
+			changed = OnStatus(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_statusInquiry:
-			OnStatusInquiry(body);
+			changed = OnStatusInquiry(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_setupAcknowledge:
-			OnSetupAcknowledge(body);
+			changed = OnSetupAcknowledge(body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_notify:
-			OnNotify(body);
+			changed = OnNotify(body);
 			break;
 		default:
-			PTRACE(4, "Q931\t" << Name() << " UNKNOWN Q.931");
+			PTRACE(4, "Q931\t" << GetName() << " UNKNOWN Q.931");
 			break;
 		}
-
+		/* buggy
 		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardControl)) {
 			for (PINDEX n = 0; n < pdu.m_nonStandardControl.GetSize(); ++n)
-				OnNonStandardData(pdu.m_nonStandardControl[n].m_data);
-			PTRACE(5, "Q931\t" << Name() << " Rewriting nonStandardControl\n" << setprecision(2) << pdu);
+				if (OnNonStandardData(pdu.m_nonStandardControl[n].m_data))
+					changed = true;
+			PTRACE(5, "Q931\t" << GetName() << " Rewriting nonStandardControl");
 		}
+		*/
 		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control) && m_h245handler)
-			OnTunneledH245(pdu.m_h245Control);
+			if (OnTunneledH245(pdu.m_h245Control))
+				changed = true;
 
-		PTRACE(5, ANSI::BGRE << "Q931\nUUIE to sent: " << setprecision(2) << pdu << ANSI::OFF);
-
-		PPER_Stream sb;
-		signal.Encode(sb);
-		sb.CompleteEncoding();
-		q931pdu.SetIE(Q931::UserUserIE, sb);
-		if(q931pdu.GetMessageType()==Q931::SetupMsg) {
-			m_SetupPDU->SetIE(Q931::UserUserIE, sb);
-			PPER_Stream fakesetup;
-			GetSetupPDU()->Encode(fakesetup);
-			q931pdu.Decode(fakesetup);
-		}
+		if (changed)
+			SetUUIE(*m_lastQ931, signal);
+	} else { // not have UUIE
+		PrintQ931(4, "Received:", m_lastQ931, 0);
 	}
 /*
    Note: Openh323 1.7.9 or later required.
    The older version has an out of memory bug in Q931::GetCalledPartyNumber.
 */
-
-	// If a status response without a UUIE arives
-	if (q931pdu.GetMessageType()==Q931::StatusMsg) {
-		H225_Status_UUIE a;
-		OnStatus(a);
-	}
-
-
-	// NB: Rewriting Number!
-// 	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
-// 		unsigned plan, type;
-// 		PString calledNumber;
-// 		if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type) &&
-// 		    Toolkit::Instance()->RewritePString(calledNumber))
-// 			q931pdu.SetCalledPartyNumber(calledNumber, plan, type);
-// 	}
-/*
-	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
-		PBYTEArray n_array = q931pdu.GetIE(Q931::CalledPartyNumberIE);
-		if (n_array.GetSize() > 0) {
-			const char* n_bytes = (const char*) (n_array.GetPointer());
-			PString n_string(n_bytes+1, n_array.GetSize()-1);
-			if (Toolkit::Instance()->RewritePString(n_string))
-				q931pdu.SetCalledPartyNumber(n_string, Q931::ISDNPlan, Q931::NationalType);
+	if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+		unsigned plan, type;
+		PString calledNumber;
+		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+		    Toolkit::Instance()->RewritePString(calledNumber)) {
+			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+			changed = true;
 		}
 	}
-*/
- 	if (q931pdu.GetMessageType()==Q931::InformationMsg)
-		OnInformationMsg(q931pdu);
-	if(isRoutable && !(lastInformationMessage && q931pdu.GetMessageType()==Q931::InformationMsg)) {
-		q931pdu.Encode(buffer);
-		PTRACE(5, ANSI::BGRE << "Q931\nMessage to sent to " << setprecision(2) << q931pdu << ANSI::OFF);
-		{
-			unsigned int plan=0,
-				ton=0;
-			PString calledNumber = PString();
-			if(q931pdu.GetCalledPartyNumber(calledNumber, &plan, &ton)) {
-				calledNumber += " Numbering Plan: ";
-				if (plan==Q931::ISDNPlan)
-					calledNumber += "ISDN";
-				calledNumber += " TON: ";
-				if(ton==Q931::NationalType)
-					calledNumber += "national call";
-				if(ton==Q931::InternationalType)
-					calledNumber += "international call";
-				if(ton==Q931::SubscriberType)
-					calledNumber += "Subscriber Type";
-				PTRACE(5, ANSI::BGRE << "Q931-CalledPartyNumberIE: " << calledNumber << ANSI::OFF);
-			}
-			if(q931pdu.GetCallingPartyNumber(calledNumber, &plan, &ton)) {
-				calledNumber += " Numbering Plan: ";
-				if (plan==Q931::ISDNPlan)
-					calledNumber += "ISDN";
-				calledNumber += " TON: ";
-				if(ton==Q931::NationalType)
-					calledNumber += "national call";
-				if(ton==Q931::InternationalType)
-					calledNumber += "international call";
-				if(ton==Q931::SubscriberType)
-					calledNumber += "Subscriber Type";
-				PTRACE(5, ANSI::BGRE << "Q931-CallingPartyNumberIE: " << calledNumber << ANSI::OFF);
-			}
 
+	if (m_lastQ931->HasIE(Q931::DisplayIE)) {
+		PString display = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+		if (!display) {
+			m_lastQ931->SetDisplayName(display);
+			changed = true;
 		}
+	}
+	if (m_lastQ931->HasIE(Q931::CallingPartyNumberIE)) {
+		PString newnumber = GkConfig()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
+		if (!newnumber) {
+			unsigned plan, type;
+			PString oldnumber;
+			m_lastQ931->GetCallingPartyNumber(oldnumber, &plan, &type);
+			m_lastQ931->SetCallingPartyNumber(newnumber, plan, type);
+			changed = true;
+		}
+	}
 
+	if (changed) {
+		m_lastQ931->Encode(buffer);
+#if PTRACING
+		if (remote)
+			PrintQ931(5, "Send to " + remote->GetName(), m_lastQ931, psignal);
+#endif
+	}
 
-		switch (q931pdu.GetMessageType()) {
+	switch (m_lastQ931->GetMessageType())
+	{
 		case Q931::SetupMsg:
+			if (m_result == Error) {
+				CallTable::Instance()->RemoveCall(m_call);
+				EndSession();
+			}
 			break;
-		/* why don't forward Status? - see ProxyChannel.cxx
+		/* why don't forward Status? - by cwhuang 16.04.2002
 		case Q931::StatusMsg:
 			// don't forward status messages mm-30.04.2001
-			return NoData;
+			m_result = NoData;
 		*/
+		case Q931::InformationMsg:
+			OnInformationMsg(*m_lastQ931);
+			break;
 		case Q931::ReleaseCompleteMsg:
-			if (callptr(NULL)!=m_call) {
-				if(!CompareCRV(q931pdu.GetCallReference())) {
-					PString msg(PString::Printf,
-							    "Mismatched CallReferenceValue, not killing call! should: %i, is: %i",
-							    m_crv,
-							    q931pdu.GetCallReference());
-					PTRACE(1, msg);
-					GkStatus::Instance()->SignalStatus(msg);
-
-				}
-				PTRACE(5, "Removing Call");
-				m_call->RemoveSocket();
-				CallTable::Instance()->RemoveCall(m_call);
-				m_call=callptr(NULL);
-				if(NULL!=remote)
-					dynamic_cast<CallSignalSocket *> (remote)->m_call=callptr(NULL);
-			}
-			return Closing;
-		case Q931::StatusMsg:
-			if(!m_replytoStatusMessage) {
-				PTRACE(5, "Not replying StatusMsg");
-				m_replytoStatusMessage=TRUE;
-				return NoData;
-			}
+			CallTable::Instance()->RemoveCall(m_call);
+			m_result = Closing;
+			break;
 		default:
-			return Forwarding;
-		}
-
-		if (callptr(NULL)==m_call) {
-			PTRACE(3, "Q931\t" << Name() << " Setup destination not found!");
-			InternalEndSession();
-			SetDeletable();
- 			if(NULL!=remote) {
-				remote->SetDeletable();
-				remote->UnlockUse("CallSignalSocket " + Name() + type);
-				remote=NULL;
-			}
-			return Error;
-		}
-
-		// NB: Check for routable number
-		if ((peerAddr == INADDR_ANY) && (isRoutable)) {
-			PTRACE(3, "Q931\t" << Name() << " INVALID ADDRESS");
-			m_call->GetCalledProfile().SetReleaseCause(Q931::NoRouteToDestination);
-			InternalEndSession();
-			return Error;
-		}
-
-		//return (isRoutable) ? Connecting : NoData;
-		return Connecting;
+			break;
 	}
-	lastInformationMessage=FALSE;
-	return NoData;
+	return m_result;
 }
 
-void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
+void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTerminationCause *cause) const
 {
-	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-		if (GetReceivedQ931()->GetCalledPartyNumber(DialedDigits, &m_calledPLAN, &m_calledTON)) {
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
+	H225_ReleaseComplete_UUIE & uuie = body;
+	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	if (m_call) {
+		uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
+		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	}
+	if (cause) {
+		if (cause->GetTag() == H225_CallTerminationCause::e_releaseCompleteReason) {
+			uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_reason);
+			uuie.m_reason = *cause;
+		} else { // H225_CallTerminationCause::e_releaseCompleteCauseIE
+			PPER_Stream strm;
+			cause->Encode(strm);
+			strm.CompleteEncoding();
+			ReleasePDU.SetIE(Q931::CauseIE, strm);
+		}
+	}
+	ReleasePDU.BuildReleaseComplete(m_crv, m_crv & 0x8000u);
+	SetUUIE(ReleasePDU, signal);
+
+	PrintQ931(5, "Send to " + GetName(), &ReleasePDU, &signal);
+}
+
+void CallSignalSocket::SendReleaseComplete(const H225_CallTerminationCause *cause)
+{
+	if (IsOpen()) {
+		Q931 ReleasePDU;
+		BuildReleasePDU(ReleasePDU, cause);
+		PBYTEArray buf;
+		ReleasePDU.Encode(buf);
+		TransmitData(buf);
+	}
+}
+
+void CallSignalSocket::SendReleaseComplete(H225_ReleaseCompleteReason::Choices reason)
+{
+	H225_CallTerminationCause cause;
+	cause.SetTag(H225_CallTerminationCause::e_releaseCompleteReason);
+	H225_ReleaseCompleteReason & releaseReason = cause;
+	releaseReason.SetTag(reason);
+	SendReleaseComplete(&cause);
+}
+
+bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
+{
+	return m_h245handler->HandleMesg(strm);
+}
+
+void CallSignalSocket::SetPeerAddress(const Address & ip, WORD pt)
+{
+	peerAddr = ip, peerPort = pt;
+}
+
+bool CallSignalSocket::EndSession()
+{
+	SendReleaseComplete();
+
+	return TCPProxySocket::EndSession();
+}
+
+void CallSignalSocket::ForwardCall()
+{
+	MarkSocketBlocked lock(this);
+
+	H225_H323_UserInformation fuuie;
+	GetUUIE(*m_lastQ931, fuuie, Name());
+	H225_Facility_UUIE & Facility = fuuie.m_h323_uu_pdu.m_h323_message_body;
+
+	endptr forwarded;
+	Routing::FacilityRequest request(Facility, m_lastQ931, forwarded);
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases) // TODO: use rewritten as a policy
+		Toolkit::Instance()->RewriteE164(*aliases);
+	if (H225_TransportAddress *dest = request.Process()) {
+		PString forwarder;
+		if (Facility.HasOptionalField(H225_Facility_UUIE::e_featureSet) && Facility.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+			// get the forwarder
+			H225_ArrayOf_FeatureDescriptor & fd = Facility.m_featureSet.m_neededFeatures;
+			if ((fd.GetSize() > 0) && fd[0].HasOptionalField(H225_FeatureDescriptor::e_parameters))
+				if (fd[0].m_parameters.GetSize() > 0) {
+					H225_EnumeratedParameter & parm = fd[0].m_parameters[0];
+					if (parm.HasOptionalField(H225_EnumeratedParameter::e_content))
+						if (parm.m_content.GetTag() == H225_Content::e_alias)
+							forwarder = AsString(parm.m_content, FALSE) + ":forward";
+				}
+		}
+		PString altDestInfo(aliases ? AsString(*aliases) : AsDotString(*dest));
+		CallSignalSocket *fsocket = (Facility.m_reason.GetTag() == H225_FacilityReason::e_callForwarded) ? this : 0;
+		m_call->SetForward(fsocket, *dest, forwarded, forwarder, altDestInfo);
+		if (request.GetFlags() & Routing::SetupRequest::e_toParent)
+			m_call->SetRegistered(true);
+		PTRACE(3, "Q931\tCall " << m_call->GetCallNumber() << " is forwarded to " << altDestInfo << (!forwarder ? (" by " + forwarder) : PString()));
+	} else {
+		ForwardData();
+		return;
+	}
+
+	// disconnect from forwarder
+	SendReleaseComplete(H225_ReleaseCompleteReason::e_facilityCallDeflection);
+	Close();
+
+	CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote);
+	if (!ret) {
+		PTRACE(2, "Warning: " << GetName() << " has no remote party?");
+		return;
+	}
+	MarkSocketBlocked rlock(ret);
+	if (!ret->m_setupUUIE) {
+		PTRACE(1, "Error: " << GetName() << " no SetupUUIE!");
+		return;
+	}
+
+	Q931 fakeSetup, *Setup = ret->m_lastQ931;
+	H225_H323_UserInformation suuie = *ret->m_setupUUIE;
+	if (Setup->GetMessageType() != Q931::SetupMsg) {
+		fakeSetup.BuildSetup(m_crv);
+		Setup = &fakeSetup;
+	}
+	H225_Setup_UUIE & SetupUUIE = suuie.m_h323_uu_pdu.m_h323_message_body;
+	if (Facility.HasOptionalField(H225_Facility_UUIE::e_cryptoTokens)) {
+		SetupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+		SetupUUIE.m_cryptoTokens = Facility.m_cryptoTokens;
+	}
+	if (aliases) {
+		const H225_ArrayOf_AliasAddress & a = *aliases;
+		for (PINDEX n = 0; n < a.GetSize(); ++n)
+			if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
+				Setup->SetCalledPartyNumber(AsString(a[n], FALSE));
+				break;
+			}
+		SetupUUIE.HasOptionalField(H225_Setup_UUIE::e_destinationAddress);
+		SetupUUIE.m_destinationAddress = a;
+	}
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ShowForwarderNumber", "0")))
+		if (endptr forwarder = m_call->GetForwarder()) {
+			const H225_ArrayOf_AliasAddress & a = forwarder->GetAliases();
+			for (PINDEX n = 0; n < a.GetSize(); ++n)
+				if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
+					PString callingNumber(AsString(a[n], FALSE));
+					Setup->SetCallingPartyNumber(callingNumber);
+					SetupUUIE.HasOptionalField(H225_Setup_UUIE::e_sourceAddress);
+					SetupUUIE.m_sourceAddress.SetSize(1);
+					H323SetAliasAddress(callingNumber, SetupUUIE.m_sourceAddress[0]);
+					break;
+				}
+		}
+
+	// detach from the call
+	m_call->SetSocket(0, 0);
+	remote = ret->remote = 0;
+	delete ret->m_h245handler;
+	ret->m_h245handler = 0;
+
+	if (ret->CreateRemote(SetupUUIE)) {
+		SetUUIE(*Setup, suuie);
+		Setup->Encode(ret->buffer);
+		PrintQ931(5, "Forward Setup to " + ret->remote->GetName(), Setup, &suuie);
+		if (ret->m_result == Forwarding || ret->InternalConnectTo()) {
+			CallSignalSocket *result = static_cast<CallSignalSocket *>(ret->remote);
+			if (m_h245socket) {
+				m_h245socket->SetSigSocket(result);
+				result->m_h245socket = m_h245socket;
+				m_h245socket = 0;
+			}
+			if (ret->m_result == Forwarding)
+				ret->ForwardData();
+			else
+				GetHandler()->Insert(result);
+		}
+	} else {
+		ret->EndSession();
+		ret->SetConnected(false);
+		CallTable::Instance()->RemoveCall(m_call);
+	}
+
+	// let the socket be deletable
+	SetDeletable();
+}
+
+bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
+{
+	RasServer *RasSrv = RasServer::Instance();
+	m_result = Error;
+
+	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) || (Setup.m_destinationAddress.GetSize() < 1)) {
+		unsigned plan, type;
+		PString destination;
+		if (m_lastQ931->GetCalledPartyNumber(destination, &plan, &type)) {
 			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
 			// We create the destinationAddress according to it
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
 			Setup.m_destinationAddress.SetSize(1);
-			H323SetAliasAddress(DialedDigits, Setup.m_destinationAddress[0]);
-		}
-	} else {
-		GetReceivedQ931()->GetCalledPartyNumber(DialedDigits, &m_calledPLAN, &m_calledTON);
-		// Fake the CalledPartyNumber into the H225_Setup_UUIE
-		for (PINDEX i=0; i < Setup.m_destinationAddress.GetSize(); i++) {
-			if (H225_AliasAddress::e_dialedDigits==Setup.m_destinationAddress[i].GetTag() &&
-			    H323GetAliasAddressString(Setup.m_destinationAddress[i])!=DialedDigits) {
-				DialedDigits=H323GetAliasAddressString(Setup.m_destinationAddress[i]);
-				m_SetupPDU->SetCalledPartyNumber(DialedDigits, m_calledPLAN, m_calledTON);
-			}
+			H323SetAliasAddress(destination, Setup.m_destinationAddress[0]);
 		}
 	}
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+		Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress);
 
-	PString sourceDigits;
-	unsigned int sPLAN    = Q931::UnknownPlan,
-		sTON          = Q931::UnknownType,
-		sPresentation = H225_PresentationIndicator::e_presentationRestricted,
-		sScreening    = H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed;
-	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
-		if (GetReceivedQ931()->GetCallingPartyNumber(sourceDigits)) {
-			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
-			// We create the destinationAddress according to it
-			Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
-			Setup.m_sourceAddress.SetSize(1);
-			H323SetAliasAddress(DialedDigits, Setup.m_sourceAddress[0]);
-		}
-	} else {
-		GetReceivedQ931()->GetCallingPartyNumber(sourceDigits, &sPLAN, &sTON, &sPresentation, &sScreening);
-		// Fake the CalledPartyNumber into the H225_Setup_UUIE
-		for (PINDEX i=0; i < Setup.m_sourceAddress.GetSize(); i++) {
-			if (H225_AliasAddress::e_dialedDigits==Setup.m_sourceAddress[i].GetTag() &&
-			    H323GetAliasAddressString(Setup.m_sourceAddress[i])!=sourceDigits) {
-				sourceDigits=H323GetAliasAddressString(Setup.m_sourceAddress[i]);
-				m_SetupPDU->SetCallingPartyNumber(sourceDigits, sPLAN, sTON, sPresentation, sScreening);
-			}
-		}
-	}
-
-
-
-	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-		PINDEX last = Setup.m_destinationAddress.GetSize();
-		for( PINDEX i = 0; i<last; i++) {
-			Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress[i]);
-		}
-	}
+#if PTRACING
 	PString callid;
+#endif
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+#if PTRACING
 		callid = AsString(Setup.m_callIdentifier.m_guid);
-	} else {
+#endif
+	} else { // try CallReferenceValue
 		PTRACE(3, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
-		H225_CallIdentifier callIdentifier; // empty callIdentifier
 		H225_CallReferenceValue crv;
 		crv.SetValue(m_crv & 0x7fffu);
 		m_call = CallTable::Instance()->FindCallRec(crv);
+#if PTRACING
+		H225_CallIdentifier callIdentifier; // empty callIdentifier
 		callid = AsString(callIdentifier.m_guid);
+#endif
 	}
+
 	Address fromIP;
 	GetPeerAddress(fromIP);
-
-	isRoutable=FALSE;
-
+	GkClient *gkClient = RasSrv->GetGkClient();
 	if (m_call) {
-		if (m_call->IsRegistered()) {
-			if (Toolkit::Instance()->GkClientIsRegistered() && Toolkit::Instance()->GetGkClient().CheckGKIP(fromIP)) {
-				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << Name() << ')');
-				m_call = callptr(NULL);  // reject it
-				return;
+		if (m_call->IsSocketAttached()) {
+			PTRACE(2, "Q931\tWarning: socket already attached for callid " << callid);
+			return false;
+		} else if (m_call->IsRegistered() && !m_call->IsForwarded()) {
+			if (gkClient->CheckFrom(fromIP)) {
+				// looped call
+				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << GetName() << ')');
+				return false;
 			}
-			Toolkit::Instance()->GetGkClient().RewriteE164(*GetReceivedQ931(), Setup, true);
+			gkClient->RewriteE164(*m_lastQ931, Setup, true);
+		}
+		// TODO: check for facility
+		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
+		if (tokens.GetSize() > 0) {
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+			Setup.m_cryptoTokens = tokens;
 		}
 	} else {
-		bool fromParent;
-		if (!Toolkit::Instance()->GetMasterRASListener().AcceptUnregisteredCalls(fromIP, fromParent)) {
-			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
-			PTRACE(3, "Call was " << (fromParent ? "" : "not " ) << "from Parent");
-			return;
-		}
-		if (fromParent)
-			Toolkit::Instance()->GetGkClient().RewriteE164(*GetReceivedQ931(), Setup, false);
-
 		endptr called;
-		PString destinationString;
+		bool destFound = false;
+		H225_TransportAddress calledAddr;
 
-		endptr callingEP = GetCgEP(*GetSetupPDU());
-
-		if (endptr(NULL)==callingEP) {
-			PTRACE(1, "Unknown Calling Party -- giving up");
-			return ;
+		Routing::SetupRequest request(Setup, m_lastQ931, called);
+		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(fromIP);
+		if (useParent) {
+			gkClient->RewriteE164(*m_lastQ931, Setup, false);
+			if (!gkClient->SendARQ(request, true)) { // send answered ARQ
+				PTRACE(2, "Q931\tGot ARJ from parent for " << GetName());
+				return false;
+			}
+			request.SetFlag(Routing::RoutingRequest::e_fromParent);
 		}
 
-		// Rewrite sourceString
+		if (Setup.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && Setup.m_cryptoTokens.GetSize() > 0) {
+			PINDEX s = Setup.m_cryptoTokens.GetSize() - 1;
+			if ((destFound = Neighbors::DecodeAccessToken(Setup.m_cryptoTokens[s], fromIP, calledAddr))) {
+				called = RegistrationTable::Instance()->FindBySignalAdr(calledAddr);
+				PTRACE(3, "Q931\tGot destination " << AsDotString(calledAddr));
+				if (s > 0)
+					Setup.m_cryptoTokens.SetSize(s);
+				else
+					Setup.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 
-		// Get Strong type as used in H.225 Ras.
-		//// TODO
-		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
-		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, Toolkit::Instance()->GetMasterRASListener().IsGKRoutedH245());
-
-		call->SetCalling(callingEP);
-		CallTable::Instance()->Insert(call);
-		m_call = callptr(call);
-
-		unsigned int reason;
-
-		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
-			called = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_destCallSignalAddress);
-			destinationString = AsDotString(Setup.m_destCallSignalAddress);
-		}
-		if (!called ) {
-			// We have to convert the number to international format here.
-			CallingProfile & cgpf = m_call->GetCallingProfile();
-			PString CalledPartyNumber;
-			H225_AliasAddress calledAlias;
-			unsigned int CalledTON     = 0;
-			unsigned int CalledPLAN    = 0;
-			unsigned int CalledSI      = 0;
-			if(GetSetupPDU()->GetCalledPartyNumber(CalledPartyNumber, &CalledPLAN, &CalledTON)) {
-				PTRACE(5, "OnSetup read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << "preparing to change: " << cgpf.TreatCalledPartyNumberAs());
-				CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CalledTON : cgpf.TreatCalledPartyNumberAs());
-				PTRACE(5, "OnSetup read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON);
-				ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
-				PTRACE(5, "OnSetup converted CalledPartyNumber to int: " << CalledPartyNumber << " with TON: " << CalledTON);
-				calledAlias.SetTag(H225_AliasAddress::e_dialedDigits);
-				H323SetAliasAddress(CalledPartyNumber, calledAlias, H225_AliasAddress::e_dialedDigits);
-				if (callingEP)
-					called = RegistrationTable::Instance()->getMsgDestination(calledAlias,
-												  callingEP, reason);
-			}else if(Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)){ // check H225_Setup_UUIE::e_destinationAddress
-				for (PINDEX i=0; !called && i < Setup.m_destinationAddress.GetSize(); i++) {
-					if(H225_AliasAddress::e_h323_ID==Setup.m_destinationAddress[i].GetTag()) {
-						CalledPartyNumber=H323GetAliasAddressString(Setup.m_destinationAddress[i]);
-						CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ?
-							   CalledTON : cgpf.TreatCalledPartyNumberAs());
-						ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
-						calledAlias.SetTag(H225_AliasAddress::e_dialedDigits);
-						H323SetAliasAddress(CalledPartyNumber, calledAlias, H225_AliasAddress::e_dialedDigits);
-						if (callingEP)
-							called = RegistrationTable::Instance()->getMsgDestination(calledAlias,
-														  callingEP, reason);
+				if (!useParent) {
+					Address toIP;
+					GetIPFromTransportAddr(calledAddr, toIP);
+					useParent = gkClient->IsRegistered() && gkClient->CheckFrom(toIP);
+					if (useParent && !gkClient->SendARQ(request)) {
+						PTRACE(2, "Q931\tGot ARJ from parent for " << GetName());
+						return false;
 					}
 				}
 			}
-			destinationString = AsString(Setup.m_destinationAddress);
-		}
-
-		if (!called && reason!=H225_AdmissionRejectReason::e_incompleteAddress) {
-			m_call->RemoveSocket();
-			CallTable::Instance()->RemoveCall(m_call);
-			m_call=callptr(NULL); // delete callrec
-
-			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
-			return;
-		}
-
-		if(called) {
-			call->SetCalled(called, m_crv);
 		} else {
-			m_numbercomplete = FALSE;
-		}
-		if (fromParent) {
-			call->SetRegistered(true);
-			Toolkit::Instance()->GetGkClient().SendARQ(Setup, m_crv, m_call);
-		}
-	}
+			// for compatible to old version
+			if (!(useParent || RasSrv->AcceptUnregisteredCalls(fromIP))) {
+				PTRACE(3, "Q931\tReject unregistered call " << callid);
+				return false;
+			}
 
-       	const H225_TransportAddress *addr = m_call->GetCalledAddress();
+			if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
+				if (RasSrv->GetCallSignalAddress(fromIP) == Setup.m_destCallSignalAddress)
+					Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 
-	if (addr && Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
-		// in routed mode the caller may have put the GK address in destCallSignalAddress
-		// since it is optional, we just remove it if it contains the GK address (we could alternativly insert the real destinationAddress/destinationCallSignalAddress)
-		if (addr && Setup.m_destCallSignalAddress != *addr) {
-			Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-			isRoutable = FALSE;
-		} else {
-			PTRACE(5, "OnSetup: call should be routable");
-			isRoutable = TRUE;
-		}
-	}
-
-	if(!isRoutable && Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)){
-		// in routed mode the caller may have put the GK address in destCallSignalAddress
-		// since it is optional, we just remove it if it contains the GK address (we could alternativly insert the real destinationAddress/destinationCallSignalAddress)
-		//FIXME: the first destAlias need not be the name of gk!
-		if (H323GetAliasAddressString(Setup.m_destinationAddress[0]) == Toolkit::GKName()) {
-			Setup.RemoveOptionalField(H225_Setup_UUIE::e_destinationAddress);
-		} else {
-        		// if real destination address is given then check for incomplete address
-			//FIXME: the first destAlias need not be dialed digits!
-
-			for (PINDEX i=0; i<Setup.m_destinationAddress.GetSize() && !isRoutable; i++) {
-				PTRACE(5, "Setup.m_destinationAddress[" << i << "]: " << Setup.m_destinationAddress[i]);
-
-				DialedDigits = H323GetAliasAddressString(Setup.m_destinationAddress[i]);
- 				H225_AliasAddress h225address;
- 				H323SetAliasAddress(DialedDigits,h225address);
-				unsigned rsn=0;
-				endptr CalledEP = RegistrationTable::Instance()->getMsgDestination(h225address, m_call->GetCallingEP(), rsn);
-				if(CalledEP && (H225_AdmissionRejectReason::e_incompleteAddress != rsn) ) {
-					isRoutable=TRUE;
-					H323SetAliasAddress(m_call->GetCalledPartyNumber(), Setup.m_destinationAddress[i]);
-				} else {
-					m_numbercomplete = FALSE;
-				}
-				PTRACE(5,"isRoutable: " << isRoutable);
-				PTRACE(5,"DialedDigits: " << DialedDigits );
+			if (H225_TransportAddress *dest = request.Process()) {
+				destFound = true;
+				calledAddr = *dest;
+				if (!useParent)
+					useParent = request.GetFlags() & Routing::SetupRequest::e_toParent;
 			}
 		}
-	}
-	if (addr && addr->GetTag() == H225_TransportAddress::e_ipAddress) {
-		isRoutable = TRUE;
-	}
-	if (isRoutable) {
- 		if(m_call->GetCallingProfile().GetH323ID().IsEmpty()) {
-			PTRACE(5, "m_call->GetCallingProfile() " <<" H323ID: " << m_call->GetCallingProfile().GetH323ID());
-			m_call->GetCallingProfile().debugPrint();
-			PTRACE(1, "Removing unknown call");
-			m_call->GetCallingProfile().debugPrint();
-			m_call->RemoveSocket();
-			CallTable::Instance()->RemoveCall(m_call);
-			m_call=callptr(NULL);
-			return;
+
+		if (!destFound) {
+			PTRACE(3, "Q931\tNo destination for unregistered call " << callid);
+			return false;
 		}
-//		CgPNConversion();
-		m_call->GetCallingProfile().debugPrint();
-		if(callptr(NULL)==m_call) {
-			PTRACE(1, "Removing unknown call");
-			return;
-		}
-		if(NULL==addr) {
-			m_call->RemoveSocket();
-			m_call=callptr(NULL);
-			return;
-		}
-		const H225_TransportAddress_ipAddress & ip = *addr;
-		peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-		peerPort = ip.m_port;
-		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
-			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-		Setup.m_sourceCallSignalAddress = Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(peerAddr);
-		H225_TransportAddress_ipAddress & cip = Setup.m_sourceCallSignalAddress;
-		localAddr = PIPSocket::Address(cip.m_ip[0], cip.m_ip[1], cip.m_ip[2], cip.m_ip[3]);
-//		CgPNConversion(TRUE);
-		remote = new CallSignalSocket(this, peerPort);
-		remote->LockUse("CallSignalSocket " + Name() + type);
-	} else { // Overlap Sending
-		// re-route called endpoint signalling messages to gatekeeper
-		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
-			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-		Setup.m_sourceCallSignalAddress = Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(peerAddr);
-		if(GetSetupPDU()->HasIE(Q931::CalledPartyNumberIE)) {
-			GetSetupPDU()->GetCalledPartyNumber(DialedDigits,&m_calledPLAN,&m_calledTON);
-		}
-		FakeSetupACK(*m_SetupPDU);
-		remote=NULL;
+
+		// TODO: check the Setup_UUIE by gkauth modules
+
+		PString destinationString(Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) ? AsString(Setup.m_destinationAddress) : AsDotString(calledAddr));
+		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
+
+		// if I'm behind NAT and the call is from parent, always use H.245 routed
+		bool h245Routed = RasSrv->IsH245Routed() || (useParent && gkClient->IsNATed());
+		// workaround for bandwidth, as OpenH323 library :p
+		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, m_crv, destinationString, sourceString, 100000, h245Routed);
+		if (called)
+			call->SetCalled(called);
+		else
+			call->SetCalledAddress(calledAddr);
+
+		if (useParent)
+			call->SetRegistered(true);
+
+		CallTable::Instance()->Insert(call);
+		m_call = callptr(call);
 	}
 
-	// to compliance to MediaRing VR, we have to setup our H323ID
-	PString H323ID = GkConfig()->GetString("H323ID");
-	if (!H323ID) {
-		PINDEX s = 0;
-		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-			s = Setup.m_sourceAddress.GetSize();
-		else
-			Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
-		Setup.m_sourceAddress.SetSize(s+1);
-		H225_AliasAddress & alias = Setup.m_sourceAddress[s];
-		alias.SetTag(H225_AliasAddress::e_h323_ID);
-		(PASN_BMPString &)alias = H323ID;
+	// in routed mode the caller may have put the GK address in destCallSignalAddress
+	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
+		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+
+	return CreateRemote(Setup);
+}
+
+bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
+{
+	if (!m_call->GetCalledAddress(peerAddr, peerPort)) {
+		PTRACE(3, "Q931\t" << GetName() << " INVALID ADDRESS");
+		return false;
+	}
+	Address calling = INADDR_ANY;
+	int type = m_call->GetNATType(calling, peerAddr);
+
+	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+	Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
+	Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GetPort());
+
+	PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " is NAT type " << type);
+	if (type & CallRec::calledParty) {
+		// m_call->GetCalledParty() should not be null in the case
+		if (CallSignalSocket *socket = m_call->GetCalledParty()->GetSocket()) {
+			PTRACE(3, "Q931\tUsing NAT socket " << socket->GetName());
+
+			// it's dangerous if the remote socket has
+			// different handler than this
+			// so we move this socket to other handler
+			GetHandler()->MoveTo(socket->GetHandler(), this);
+
+			remote = socket;
+			socket->SetRemote(this);
+			SetConnected(true);
+			socket->SetConnected(true);
+			m_result = Forwarding;
+		}
+	}
+	if (!remote) {
+		remote = new CallSignalSocket(this, peerPort);
+		m_result = Connecting;
 	}
 
 	HandleH245Address(Setup);
-	HandleFastStart(Setup,true);
+	HandleFastStart(Setup, true);
+	return true;
 }
 
-void CallSignalSocket::OnInformationMsg(Q931 &pdu){
-	// Collect digits
-	m_t302.Stop(); // first of all stop the timer
-	if (!m_numbercomplete && pdu.HasIE(Q931::CalledPartyNumberIE)) {
-		PString calledDigit;
-		unsigned plan,type;
-		if(pdu.GetCalledPartyNumber(calledDigit, &plan, &type)) {
-			DialedDigits+=calledDigit;
-			CalledNumber=DialedDigits;
-			Toolkit::Instance()->RewritePString(CalledNumber);
-			GetSetupPDU()->SetCalledPartyNumber(DialedDigits,m_calledPLAN,m_calledTON);
-			if(!isRoutable)
-				DoRoutingDecision();
-			else {
-				PTRACE(5, "Setting Profile.Number");
-				m_call->GetCalledProfile().SetCalledPN(CalledNumber); // are the dialed digits in international format?
-				m_call->GetCalledProfile().SetDialedPN(DialedDigits, static_cast <Q931::NumberingPlanCodes> (m_calledPLAN),
-								       static_cast<Q931::TypeOfNumberCodes> (m_calledTON));
-			}
-		}
-	} else {
-		if(!isRoutable) {
-			Q931InformationMessages.Append(new Q931(pdu));
-			m_t302.SetInterval(0,T302SECONDS);  // 15s see FakeSetupACK
-		}
-	}
-}
-
-void CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceeding)
+bool CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceeding)
 {
-	HandleH245Address(CallProceeding);
-	HandleFastStart(CallProceeding, false);
+	bool changed = HandleH245Address(CallProceeding);
+	return HandleFastStart(CallProceeding, false) || changed;
 }
 
-void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
+bool CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 {
-	PTRACE(5, "Got ConnectIE");
+	if (m_call) // hmm... it should not be null
+		m_call->SetConnected(true);
 #ifndef NDEBUG
 	if (!Connect.HasOptionalField(H225_Connect_UUIE::e_callIdentifier)) {
 		PTRACE(1, "Q931\tConnect_UUIE doesn't contain CallIdentifier!");
-	} else if (m_call!=callptr(NULL) && m_call->GetCallIdentifier() != Connect.m_callIdentifier) {
+	} else if (m_call->GetCallIdentifier() != Connect.m_callIdentifier) {
 		PTRACE(1, "Q931\tWarning: CallIdentifier doesn't match?");
 	}
 #endif
-	if(callptr(NULL)==m_call) {
-		InternalSendReleaseComplete(Q931::ClearedRequestedCallIdentity);
-		return;
-	}
-	m_call->SetConnected(true);
-	if (!m_numbercomplete) {
-		if (callptr(NULL)==m_call) {// hmm... it should not be null
-			SetDeletable();
-			if(NULL!=remote) {
-				remote->SetDeletable();
-				remote->UnlockUse("CallSignalSocket " + Name() + type);
-				remote=NULL;
+	bool changed = HandleH245Address(Connect);
+	return HandleFastStart(Connect, false) || changed;
+}
+
+bool CallSignalSocket::OnAlerting(H225_Alerting_UUIE & Alerting)
+{
+	bool changed = HandleH245Address(Alerting);
+	return HandleFastStart(Alerting, false) || changed;
+}
+
+bool CallSignalSocket::OnInformation(H225_Information_UUIE &)
+{
+	return false; // do nothing
+}
+
+bool CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComplete)
+{
+	return false; // do nothing
+}
+
+bool CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
+{
+	switch (Facility.m_reason.GetTag())
+	{
+		case H225_FacilityReason::e_startH245:
+			if (Facility.HasOptionalField(H225_Facility_UUIE::e_h245Address) && Facility.m_protocolIdentifier.GetValue().IsEmpty())
+				if (m_h245socket && m_h245socket->Reverting(Facility.m_h245Address))
+					m_result = NoData;
+			break;
+		case H225_FacilityReason::e_callForwarded:
+		case H225_FacilityReason::e_routeCallToGatekeeper:
+		case H225_FacilityReason::e_routeCallToMC:
+			if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardOnFacility", "1")))
+				break;
+			// to avoid complicated handling of H.245 channel on forwarding,
+			// we only do forward if forwarder is the called party and
+			// H.245 channel is not established yet
+			if (m_setupUUIE || (m_h245socket && m_h245socket->IsConnected()))
+				break;
+			// make sure the call is still active
+			if (m_call && CallTable::Instance()->FindCallRec(m_call->GetCallNumber())) {
+				MarkBlocked(true);
+				CreateJob(this, &CallSignalSocket::ForwardCall, "ForwardCall");
+				m_result = NoData;
+				return false;
 			}
-			return;
-		}
-
-		// Stop collecting numbers. the telno is complete
-		m_numbercomplete = TRUE;
-		CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
-		if(NULL!=rem) {
-			PTRACE(5, "Setting DialedPN");
-			m_call->GetCalledProfile().SetDialedPN(rem->DialedDigits, static_cast<Q931::NumberingPlanCodes> (rem->m_calledPLAN),
-							       static_cast<Q931::TypeOfNumberCodes> (rem->m_calledTON));
-		}
+			break;
 	}
-	HandleH245Address(Connect);
-	HandleFastStart(Connect, false);
+	bool changed = false;
+	if (m_result != NoData)
+		changed = HandleH245Address(Facility);
+	return HandleFastStart(Facility, false) || changed;
 }
 
-void CallSignalSocket::OnAlerting(H225_Alerting_UUIE & Alerting)
+bool CallSignalSocket::OnProgress(H225_Progress_UUIE & Progress)
 {
-	HandleH245Address(Alerting);
-	HandleFastStart(Alerting, false);
-
+	bool changed = HandleH245Address(Progress);
+	return HandleFastStart(Progress, false) || changed;
 }
 
-void CallSignalSocket::OnInformation(H225_Information_UUIE &)
+bool CallSignalSocket::OnEmpty(H225_H323_UU_PDU_h323_message_body &)
 {
-	// do nothing
+	return false; // do nothing
 }
 
-void CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComplete)
+bool CallSignalSocket::OnStatus(H225_Status_UUIE &)
 {
-	PTRACE(5, "releaseComplete");
-	if(callptr(NULL)!=m_call) {
-		if(!((ReleaseComplete.HasOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier) &&
-		    ReleaseComplete.m_callIdentifier == m_call->GetCallIdentifier()) ||
-		   (CompareCRV(m_receivedQ931->GetCallReference())))) {
-			PString msg(PString::Printf,
-					    "Mismatched CallReferenceValue, not killing call! should: %i, is: %i",
-					    m_crv, m_receivedQ931->GetCallReference());
-			PTRACE(1, msg);
-			GkStatus::Instance()->SignalStatus(msg);
-		}
-		m_call->GetCalledProfile().SetReleaseCause(static_cast<Q931::CauseValues> (ReleaseComplete.m_reason.GetTag()));
-		m_call->SetDisconnected();
-	}
-	PTRACE(5, "releaseComplete");
+	return false; // do nothing
 }
 
-void CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
+bool CallSignalSocket::OnStatusInquiry(H225_StatusInquiry_UUIE &)
 {
-	HandleH245Address(Facility);
-	HandleFastStart(Facility, false);
+	return false; // do nothing
 }
 
-void CallSignalSocket::OnProgress(H225_Progress_UUIE & Progress)
+bool CallSignalSocket::OnSetupAcknowledge(H225_SetupAcknowledge_UUIE &)
 {
-	HandleH245Address(Progress);
-	HandleFastStart(Progress, false);
+	return false; // do nothing
 }
 
-void CallSignalSocket::OnEmpty(H225_H323_UU_PDU_h323_message_body &)
+bool CallSignalSocket::OnNotify(H225_Notify_UUIE &)
 {
-	// do nothing
+	return false; // do nothing
 }
 
-void CallSignalSocket::OnStatus(H225_Status_UUIE &)
+bool CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
 {
-	// reset timer
-	if(NULL != m_StatusTimer) {
-		m_replytoStatusMessage=FALSE;
-		PTRACE(5, "StatusTimer stopped" << this);
-		m_StatusTimer->Stop();
-		delete m_StatusTimer;
-		m_StatusTimer=NULL;
-	}
-	// do nothing
-}
-
-void CallSignalSocket::OnStatusInquiry(H225_StatusInquiry_UUIE &)
-{
-	// do nothing
-}
-
-void CallSignalSocket::OnSetupAcknowledge(H225_SetupAcknowledge_UUIE &)
-{
-	// do nothing
-}
-
-void CallSignalSocket::OnNotify(H225_Notify_UUIE &)
-{
-	// do nothing
-}
-
-void CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
-{
-	BOOL changed = FALSE;
+	bool changed = false;
 	BYTE buf[5000];
 	BYTE *pBuf  = buf;               // write pointer
 	BYTE *pOcts = octs.GetPointer(); // read pointer
@@ -1455,7 +1308,7 @@ void CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
 				pBuf[2] = pOcts[2];  // type of number, numbering plan id
 				memcpy(&(pBuf[3]), s, strlen(s));
 				pBuf += strlen(s)+3;
-				changed = TRUE;
+				changed = true;
 			} else {
 				// leave unchanged
 				memcpy(pBuf, pOcts, (len+2)*sizeof(BYTE));
@@ -1476,39 +1329,157 @@ void CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
 	// set new value if necessary
 	if (changed)
 		octs.SetValue(buf, pBuf-buf);
+	return changed;
 }
 
-void CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control)
+bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control)
 {
-	for(PINDEX i = 0; i < h245Control.GetSize(); ++i) {
+	bool changed = false;
+	for (PINDEX i = 0; i < h245Control.GetSize(); ++i) {
 		PPER_Stream strm = h245Control[i].GetValue();
-		if (HandleH245Mesg(strm))
+		if (HandleH245Mesg(strm)) {
 			h245Control[i].SetValue(strm);
+			changed = true;
+		}
 	}
+	return changed;
 }
 
-void CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bool fromCaller)
+bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bool fromCaller)
 {
+	bool changed = false;
 	PINDEX sz = fastStart.GetSize();
-	for(PINDEX i = 0; i < sz; ++i) {
-//     for(PINDEX i = sz; i-- > 0; ) {
+	for (PINDEX i = 0; i < sz; ++i) {
 		PPER_Stream strm = fastStart[i].GetValue();
 		H245_OpenLogicalChannel olc;
 		if (!olc.Decode(strm)) {
-			PTRACE(4, "Q931\t" << Name() << " ERROR DECODING FAST START ELEMENT " << i);
-                       return;
-               }
-               PTRACE(6, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
-               H245Handler::pMem handlefs = (fromCaller) ? &H245Handler::HandleFastStartSetup : &H245Handler::HandleFastStartResponse;
-               if ((m_h245handler->*handlefs)(olc)) {
-                       PBYTEArray wtbuf(4096);
-                       PPER_Stream wtstrm(wtbuf);
-                       olc.Encode(wtstrm);
-                       wtstrm.CompleteEncoding();
-                       fastStart[i].SetValue(wtstrm);
-               }
-               PTRACE(5, "Q931\nfastStart[" << i << "] to send " << setprecision(2) << olc);
+			PTRACE(4, "Q931\t" << GetName() << " ERROR DECODING FAST START ELEMENT " << i);
+			return false;
+		}
+		PTRACE(4, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
+		H245Handler::pMem handlefs = (fromCaller) ? &H245Handler::HandleFastStartSetup : &H245Handler::HandleFastStartResponse;
+		if ((m_h245handler->*handlefs)(olc)) {
+			PPER_Stream wtstrm;
+			olc.Encode(wtstrm);
+			wtstrm.CompleteEncoding();
+			fastStart[i].SetValue(wtstrm);
+			changed = true;
+			PTRACE(5, "Q931\nfastStart[" << i << "] to send " << setprecision(2) << olc);
+		}
 	}
+	return changed;
+}
+
+bool CallSignalSocket::OnInformationMsg(Q931 & q931pdu)
+{
+	PBYTEArray buf = q931pdu.GetIE(Q931::FacilityIE);
+	if (!remote && buf.GetSize() > 0) {
+		H225_EndpointIdentifier id;
+		PString epid((const char *)buf.GetPointer(), buf.GetSize());
+		id = epid;
+		PTRACE(3, "Q931\tEPID = " << epid);
+		endptr ep = RegistrationTable::Instance()->FindByEndpointId(id);
+		buf = q931pdu.GetIE(Q931::CallStateIE);
+		if (buf.GetSize() > 0 && buf[0] == Q931::CallState_DisconnectRequest) {
+			if (ep) {
+				ep->GetSocket();
+				SetDeletable();
+				PTRACE(3, "Q931\tClose NAT socket " << GetName());
+			}
+			Close();
+		} else if (ep) {
+			m_isnatsocket = true;
+			ep->SetSocket(this);
+			SetConnected(true); // avoid the socket be deleted
+		}
+		m_result = NoData;
+	}
+	return false; // unchanged
+}
+
+void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PObject *parm)
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_facility);
+	H225_Facility_UUIE & uuie = body;
+	// Don't set protocolID intentionally so the remote
+	// can determine whether this is a message generate by GnuGK
+	// uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	if (m_call) {
+		uuie.IncludeOptionalField(H225_Facility_UUIE::e_conferenceID);
+		uuie.m_conferenceID = m_call->GetConferenceIdentifier();
+		uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
+		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	}
+	uuie.m_reason.SetTag(reason);
+	switch (reason)
+	{
+		case H225_FacilityReason::e_startH245:
+			uuie.IncludeOptionalField(H225_Facility_UUIE::e_h245Address);
+			if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote))
+				uuie.m_h245Address = m_h245socket->GetH245Address(ret->localAddr);
+			else
+				PTRACE(2, "Warning: " << GetName() << " has no remote party?");
+			break;
+
+		case H225_FacilityReason::e_callForwarded:
+			uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+			if (const H225_TransportAddress *addr = dynamic_cast<const H225_TransportAddress *>(parm)) {
+				uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
+				uuie.m_alternativeAddress = *addr;
+			} else if (const PString *dest = dynamic_cast<const PString *>(parm)) {
+				uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
+				uuie.m_alternativeAliasAddress.SetSize(1);
+				H323SetAliasAddress(*dest, uuie.m_alternativeAliasAddress[0]);
+			}
+			if (m_call) {
+				uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
+				uuie.m_callIdentifier = m_call->GetCallIdentifier();
+			}
+			break;
+	}
+
+	FacilityPDU.BuildFacility(m_crv, m_crv & 0x8000u);
+	SetUUIE(FacilityPDU, signal);
+
+	PrintQ931(5, "Send to " + GetName(), &FacilityPDU, &signal);
+}
+
+void CallSignalSocket::Dispatch()
+{
+	int timeout = GkConfig()->GetInteger("SignalReadTimeout", 3000);
+	while (timeout > 0) {
+		if (!IsReadable(timeout))
+			break;
+		switch (ReceiveData())
+		{
+			case NoData:
+				if (m_isnatsocket) {
+					GetHandler()->Insert(this);
+					return;
+				}
+				timeout -= 10;
+				break;
+
+			case Connecting:
+				if (InternalConnectTo()) {
+					GetHandler()->Insert(this, remote);
+					return;
+				}
+
+			case Forwarding:
+				if (IsConnected()) { // remote is NAT socket
+					ForwardData();
+					return;
+				}
+
+			default:
+				timeout = 0;
+				break;
+		}
+	}
+	delete this; // oh!
 }
 
 bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
@@ -1516,550 +1487,52 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	if (m_h245Tunneling && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
 		return false;
 	if (!m_h245handler) // no H245 routed
-                return true;
-	CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote);
-	if (NULL!=ret) {
-		m_h245handler->OnH245Address(h245addr);
-		if (m_h245socket) {
-			if (m_h245socket->IsConnected()) {
-				PTRACE(4, "H245\t" << Name() << " H245 channel already established");
-				return false;
-			} else {
-				if (m_h245socket->SetH245Address(h245addr, localAddr))
-					std::swap(m_h245socket, ret->m_h245socket);
-				return true;
-			}
-		}
-		m_h245socket = new H245Socket(this);
-		ret->m_h245socket = new H245Socket(m_h245socket, ret);
-		m_h245socket->SetH245Address(h245addr, localAddr);
-		GetHandler()->ConnectTo(m_h245socket);
-	} else {
-		PTRACE(2, "H245\t" << Name() << " no remote party?");
+		return true;
+
+	CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote);
+	if (!ret) {
+		PTRACE(2, "Warning: " << GetName() << " has no remote party?");
 		return false;
 	}
-
+	m_h245handler->OnH245Address(h245addr);
+	if (m_h245socket) {
+		if (m_h245socket->IsConnected()) {
+			PTRACE(4, "H245\t" << GetName() << " H245 channel already established");
+			return false;
+		} else {
+			if (m_h245socket->SetH245Address(h245addr, localAddr))
+				std::swap(m_h245socket, ret->m_h245socket);
+			return true;
+		}
+	}
+	m_h245socket = ((2 - bool(m_crv & 0x8000u)) & m_call->GetNATType()) ? new NATH245Socket(this) : new H245Socket(this);
+	ret->m_h245socket = new H245Socket(m_h245socket, ret);
+	m_h245socket->SetH245Address(h245addr, localAddr);
+	CreateJob(m_h245socket, &H245Socket::ConnectTo, "H245Connector");
 	return true;
 }
 
-bool CallSignalSocket::CompareCRV(unsigned int crv) const {
-	return (m_crv & 0x7fff) == (crv & 0x7fff);
-}
-
-void CallSignalSocket::SetTimer(PTimeInterval timer) {
-	if(NULL!=m_StatusEnquiryTimer)
-		delete m_StatusEnquiryTimer;
-	m_StatusEnquiryTimer = new PTimer();
-	m_timeout=timer;
-}
-
-void CallSignalSocket::StartTimer() {
-	if(NULL != m_StatusEnquiryTimer) {
-		m_StatusEnquiryTimer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
-		m_StatusEnquiryTimer->RunContinuous(m_timeout);
-	}
-}
-
-void CallSignalSocket::StopTimer() {
-	if(NULL != m_StatusEnquiryTimer)
-		m_StatusEnquiryTimer->Stop();
-}
-
-void CallSignalSocket::OnTimeout() {
-	// Simply do nothing?
-}
-
-void CallSignalSocket::SendStatusEnquiryMessage() {
-	PWaitAndSignal lock(m_lock);
-	m_StatusEnquiryTimer->Pause();
-	Q931 pdu;
-	// Fold the MSB of the crv.
-	PTRACE(5, "Sending StatusEnquiryMessage with crv: " << (NULL!=GetSetupPDU() ? m_crv | 0x8000 : m_crv & 0x7fff)
-	       << " To " << GetName() );
-	pdu.BuildStatusEnquiry((NULL!=GetSetupPDU() ? m_crv | 0x8000 : m_crv & 0x7fff ) , NULL!=GetSetupPDU());
-	PTRACE(5, "Sending StatusEnquiryMessage: " << pdu);
-	pdu.Encode(buffer);
-	if(TransmitData()) {
-		delete m_StatusTimer;
-		m_StatusTimer = new PTimer(0,4); // This is Q.931 timer T322
-		m_StatusTimer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+bool CallSignalSocket::InternalConnectTo()
+{
+	if (remote->Connect(localAddr, Q931PortRange.GetPort(), peerAddr)) {
+		PTRACE(3, "Q931\tConnect to " << remote->GetName() << " successful");
+		SetConnected(true);
+		remote->SetConnected(true);
+		ForwardData();
+		return true;
 	} else {
-		PTRACE(5, "Could not send StatusEnquiry Ping");
-		if(NULL!=remote)
-			dynamic_cast<CallSignalSocket *> (remote)->InternalSendReleaseComplete(Q931::DestinationOutOfOrder);
-		if(callptr(NULL)!=m_call) {
-			m_call->GetCalledProfile().SetReleaseCause(Q931::DestinationOutOfOrder);
-			if(NULL!=remote) {
-				remote->SetDeletable();
-				remote->UnlockUse("CallSignalSocket " + Name() + type);
-			}
-			remote=NULL;
-		}
-		if(callptr(NULL)!=m_call) {
-			m_call->RemoveSocket();
-			CallTable::Instance()->RemoveCall(m_call);
-		}
-		m_call=callptr(NULL);
-		return;
-	}
-	m_StatusEnquiryTimer->Resume();
-}
-
-void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
-	PWaitAndSignal lock(m_lock);
-	if (NULL!=m_StatusEnquiryTimer && timer==*m_StatusEnquiryTimer) {
-		SendStatusEnquiryMessage();
-	}
-	if (NULL!= m_StatusTimer && timer==*m_StatusTimer) {
-		PTRACE(5, "Terminating call because lack of StatusMsg");
-		if(NULL!=remote)
-			dynamic_cast<CallSignalSocket *> (remote)->InternalSendReleaseComplete(Q931::NoRouteToDestination);
-		if(callptr(NULL)!=m_call) {
-			PTRACE(5, "setting failure codes");
-			m_call->GetCalledProfile().SetReleaseCause(Q931::NoRouteToDestination);
-		}
-		PTRACE(5, "removing Call");
-		if(callptr(NULL)!=m_call) {
-			m_call->RemoveSocket();
-			CallTable::Instance()->RemoveCall(m_call);
-		}
-		m_call=callptr(NULL);
-		if (NULL!=remote) {
-			remote->SetDeletable();
-			remote->UnlockUse("CallSignalSocket " + Name() + type);
-		}
-		remote=NULL;
-	}
-	if(!IsConnected()) {
-		dynamic_cast<CallSignalSocket *> (remote)->SendReleaseComplete();
-		if(callptr(NULL)!=m_call) {
-			m_call->RemoveSocket();
-			CallTable::Instance()->RemoveCall(m_call);
-		}
-		m_call=callptr(NULL);
-	}
-}
-
-void CallSignalSocket::OnT302Timeout(PTimer &timer, int extra) {
-	PTRACE(5, "Timer T.302 hit");
-	PWaitAndSignal lock(m_lock);
-	if(NULL!=remote) {
-		dynamic_cast<CallSignalSocket *>(remote)->InternalSendReleaseComplete(Q931::InvalidNumberFormat);
-		remote->SetDeletable();
-		remote->UnlockUse("CallSignalSocket " + Name() + type);
-		remote=NULL;
-	}
-	InternalSendReleaseComplete(Q931::InvalidNumberFormat);
-	if (callptr(NULL)!=m_call)
-		m_call->GetCalledProfile().SetReleaseCause(Q931::InvalidNumberFormat);
-}
-
-void CallSignalSocket::SetConnected(bool c) {
-	ProxySocket::SetConnected(c);
-	if (c) {
-		PTRACE(5, "Setting Timer " << this);
-		PTimeInterval timer  = (NULL==GetSetupPDU() ?
-					m_call->GetCalledProfile().GetStatusEnquiryInterval() :
-					m_call->GetCallingProfile().GetStatusEnquiryInterval());
-		SetTimer(timer);
-		StartTimer();
-	} else {
-		StopTimer();
-	}
-}
-
-void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsigned pi, unsigned si) {
-
-	PString out = "\t\t\t\t\t\t\t\t\tPN: " + callingPN;
-	out += "\n\t\t\t\t\t\t\t\t\tNumberingPlanIndicator: " + PString(npi) + " (";
-	switch (npi) {
-		case Q931::UnknownPlan:
-			out += "unknown";
-			break;
-		case Q931::ISDNPlan:
-			out += "ISDN";
-			break;
-		default:
-			out += "i don't know this value";
-			break;
-	}
-	out += ")\n\t\t\t\t\t\t\t\t\tTypeOfNumber: " + PString(ton) + " (";
-	switch (ton) {
-		case Q931::UnknownType:
-			out += "unknown";
-			break;
-		case Q931::NationalType:
-			out += "national";
-			break;
-		case Q931::InternationalType:
-			out += "international";
-			break;
-		default:
-			out += "i don't know this value";
-			break;
-	}
-	out += ")\n\t\t\t\t\t\t\t\t\tPresentation Indicator: " + PString(pi) + " (";
-	switch (pi) {
-		case H225_PresentationIndicator::e_presentationAllowed:
-			out += "allowed";
-			break;
-		case H225_PresentationIndicator::e_presentationRestricted:
-			out += "restricted";
-			break;
-		case H225_PresentationIndicator::e_addressNotAvailable:
-			out += "address not available";
-			break;
-		default:
-			out += "i don't know this value";
-			break;
-	}
-	out += ")\n\t\t\t\t\t\t\t\t\tScreening Indicator: " + PString(si) + " (";
-	switch (si) {
-		case H225_ScreeningIndicator::e_networkProvided:
-			out += "network provided";
-			break;
-		case H225_ScreeningIndicator::e_userProvidedVerifiedAndPassed:
-			out += "User Provided, Verified and Passed";
-			break;
-		case H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed:
-			out += "User Provided, Verified and Failed";
-			break;
-		case H225_ScreeningIndicator::e_userProvidedNotScreened:
-			out += "User Provided, Not Screened";
-			break;
-		default:
-			out += "i don't know this value";
-			break;
-	}
-	out += ")";
-
-        PTRACE(5, "Set PartyNumber" << endl << out);
-}
-
-
-
-static BOOL MatchAlias(const CallProfile &profile, const PString number);
-
-
-BOOL CallSignalSocket::CgPNConversion(BOOL connecting) {
-	// The variables to store the needed information:
-	PString CallingPartyNumber;
-	PString CalledPartyNumber;
-	PString CalledPartyNumberDD; // Not necessary Dialed Digits, but the Number from the Setup/Information messages
-	unsigned int CallingTON    = 0;
-	unsigned int CalledTON     = 0;
-	unsigned int CallingPLAN   = 0;
-	unsigned int CalledPLAN    = 0;
-	unsigned int CallingSI     = 0;
-	unsigned int CalledSI      = 0;
-	unsigned int CallingPI     = 0;
-
-	if(callptr(NULL) == m_call)
-		return FALSE;
-	PTRACE(5, "Beginning CgPNConversion()");
-	CallingProfile & cgpf = m_call->GetCallingProfile();
-	CalledProfile & cdpf = m_call->GetCalledProfile();
-	// Check if CallingPartyNumber is provided.
-	if (GetSetupPDU()->GetCallingPartyNumber(CallingPartyNumber, &CallingPLAN, &CallingTON, &CallingPI,&CallingSI)) {
-		// Convert CallingPartyNumber to international Format.
-		PTRACE(5, "CgPNConversion read CallingPartyNumber: " << CallingPartyNumber << " with TON: " << CallingTON << " preparing to change: " << cgpf.TreatCallingPartyNumberAs());
-		CallingTON=((cgpf.TreatCallingPartyNumberAs()==CallProfile::LeaveUntouched) ? CallingTON : cgpf.TreatCallingPartyNumberAs());
-		ConvertNumberInternational(CallingPartyNumber, CallingPLAN, CallingTON, CallingSI, cgpf);
-		PTRACE(5, "CgPNConversion converted CallingPartyNumber to int: " << CallingPartyNumber << " with TON: " << CallingTON);
-
-		// If number is provided by peer network all our work is done now.
-		// If the call is initiated by a CPE, we'll have to check the number
-		if(cgpf.IsCPE()) {
-			// Match agains the telephonenumber in Profile
-			PTRACE(5, "Calling EP is CPE");
-			if(!MatchAlias(cgpf, CallingPartyNumber)) {
-				// The number is not possible / right, so we have to provide a number.
-				CallingPartyNumber=cgpf.GetMainTelephoneNumber();
-				CallingTON=Q931::InternationalType;
-				CallingPLAN=Q931::ISDNPlan;
-				CallingSI=H225_ScreeningIndicator::e_networkProvided;
-			} else {
-				CallingSI=H225_ScreeningIndicator::e_userProvidedVerifiedAndPassed;
-			}
-		}
-	} else {
-		// No CallingPartyNumber provided
-		CallingPartyNumber=cgpf.GetMainTelephoneNumber();
-		if(CallingPartyNumber.IsEmpty()) {
-			// we cannot provide any number
-			CallingTON=Q931::UnknownType;
-			CallingPLAN=Q931::UnknownPlan;
-			CallingSI=H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed;
-		} else {
-			CallingTON=Q931::InternationalType;
-			CallingPLAN=Q931::ISDNPlan;
-			CallingSI=H225_ScreeningIndicator::e_networkProvided;
-		}
-	}
-
-	if(!(cgpf.GetClir().IsEmpty())) {
-		if(cgpf.GetClir() == "TRUE") {
-			CallingPI=H225_PresentationIndicator::e_presentationRestricted;
-		} else {
-			CallingPI=H225_PresentationIndicator::e_presentationAllowed;
-		}
-	}
-	// we are done with converting the CallingPN to international.
-
-	if (! GetSetupPDU()->GetCalledPartyNumber(CalledPartyNumber, &CalledPLAN, &CalledTON)) {
-		PTRACE(1, "Could not get CalledPartyNumberIE from setup PDU. \t Aborting NumberConversion");
+		PTRACE(3, "Q931\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
+		SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+		CallTable::Instance()->RemoveCall(m_call);
+		delete remote;
 		return false;
 	}
-	if(DialedDigits.IsEmpty()) { // The initial Setup did not contain any number. This should not happen.
-		DialedDigits = CalledPartyNumber;
-		m_calledPLAN = CalledPLAN;
-		m_calledTON = CalledTON;
-	}
-	PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << " preparing to change: " << cgpf.TreatCalledPartyNumberAs());
-	CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CalledTON : cgpf.TreatCalledPartyNumberAs());
-	PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON);
-	cgpf.debugPrint();
-	ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
-	PTRACE(5, "CgPNConversion converted CalledPartyNumber to int: " << CalledPartyNumber << " with TON: " << CalledTON);
-	// Check wether we are fooled with different ARQ-Number.
-	// we check only the left part we already have, because the ARQ could have provided one digit less than
-	// the setup.
-	// Sorry for the awful truth value...
-#if (PARANOIA_CHECK_REDIRECT==1)
-	if((!cdpf.GetCalledPN().IsEmpty()) && (cdpf.GetCalledPN().GetLength() > CalledPartyNumber.GetLength()) && // shrink of Number
-	     (cdpf.GetCalledPN() != CalledPartyNumber.Left(cdpf.GetCalledPN().GetSize()))) {
-		// Is the call redirected by network?
-		if(GetSetupPDU()->HasIE(Q931::RedirectingNumberIE)) {
-			PString redirectionPN;
-			unsigned int redirectionPLAN, redirectionTON, redirectionPI, redirectionSI, redirectionReason;
-			GetSetupPDU()->GetRedirectingNumber(redirectionPN, &redirectionPLAN, &redirectionTON, &redirectionPI, &redirectionSI, &redirectionReason);
-			PTRACE(5, "Redirected Call received. Redirection: " << redirectionPN << "numeric Reason: " << redirectionReason);
-			if((cdpf.GetCalledPN().GetSize() <=  redirectionPN.GetSize()) &&
-			   (cdpf.GetCalledPN() == redirectionPN.Left(cdpf.GetCalledPN().GetSize()))) {
-				// Ok, redirection is done by the right party
-				// Not yet implemented
-				PAssertAlways("Sorry, implementation missing");
-				// cdpf.SetRedirection(redirectionPN, redirectionPLAN, redirectionTON, redirectionPI, redirectionSI, redirectionReason);
-			} else {
-				// redirection is faked!
-				PTRACE(1, "Redirection is faked by " << redirectionPN << ". Aborting call");
-				m_call=callptr(NULL);
-				return FALSE;
-			}
-		} else {
-			PTRACE(1, "Mismatch between ARQ and Setup. Aborting Call");
-			PTRACE(1, "Profile says: " << cdpf.GetCalledPN() << "is empty: " <<
-			       cdpf.GetCalledPN().IsEmpty() << "dialed Number: " << CalledPartyNumber);
-			m_call=callptr(NULL);
-			return FALSE;
-		}
-	}
-#endif
-	E164_AnalysedNumber CalledE164Number=CalledPartyNumber;
-	E164_AnalysedNumber CallingE164Number=CallingPartyNumber;
-	m_call->GetCalledProfile().SetCalledPN(CalledPartyNumber);
-	if (cdpf.ConvertToLocal() && CalledE164Number.GetCC() == CallingE164Number.GetCC()) {
-		PTRACE(5, "Converting to local");
-// 		if (CalledE164Number.GetNDC_IC() == CallingE164Number.GetNDC_IC()) {
-// 			// Convert to local
-// 			CalledPartyNumber = CalledE164Number.GetGSN_SN();
-// 			CalledTON = Q931::SubscriberType;
-// 			CallingPartyNumber = CallingE164Number.GetGSN_SN();
-// 			CallingTON = Q931::SubscriberType;
-
-// 		} else {
-			// Convert to National
-			CalledPartyNumber = PString(CalledE164Number.GetNDC_IC()) + PString(CalledE164Number.GetGSN_SN());
-			CalledTON = Q931::NationalType;
-			CallingPartyNumber = PString(CallingE164Number.GetNDC_IC()) + PString(CallingE164Number.GetGSN_SN());
-			CallingTON = Q931::NationalType;
-// 		}
-	}
-	// Convert PartyNumber to dialable Digits
-	if(cdpf.GetPrependCallbackAC()) {
-		switch (CalledTON) {
-		case Q931::InternationalType:
-			CallingPartyNumber = cdpf.GetInac() + CallingPartyNumber;
-			CallingTON=Q931::UnknownType;
-			break;
-		case Q931::NationalType:
-			CallingPartyNumber = cdpf.GetNac() + CallingPartyNumber;
-			CallingTON=Q931::UnknownType;
-			break;
-		default:
-			// simply do nothing
-			break;
-		}
-	}
-	// Do CallingPartyNumber suppression
-	if(connecting) {
-		if(cdpf.IsCPE() && ((CallingPI == H225_PresentationIndicator::e_presentationRestricted) ||
-				    (CallingSI == H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed) ||
-				    (CallingSI == H225_ScreeningIndicator::e_userProvidedNotScreened))) {
-			CallingPartyNumber = "";
-			CallingPLAN = Q931::UnknownPlan;
-			CallingTON = Q931::UnknownType;
-		}
-	}
-	// Now reassemble the Setup PDU
-//	m_SetupPDU->RemoveIE(Q931::CallingPartyNumberIE);
-	m_SetupPDU->SetCallingPartyNumber(CallingPartyNumber,
-					  CallingPLAN,
-					  CallingTON,
-					  CallingPI,
-					  CallingSI);
-	PTRACE(5, "CallingPN");
-	PrintCallingPartyNumber(CallingPartyNumber, CallingPLAN, CallingTON, CallingPI, CallingSI);
-//	m_SetupPDU->RemoveIE(Q931::CalledPartyNumberIE);
-	m_SetupPDU->SetCalledPartyNumber(CalledPartyNumber,
-					 CalledPLAN,
-					 CalledTON);
-	PTRACE(5, "CalledPN");
-	PrintCallingPartyNumber(CalledPartyNumber, CalledPLAN, CalledTON, 0, 0);
-	// Fix the numbers in UUIE
-	SetNumbersInUUIE(CalledPartyNumber, CallingPartyNumber);
-	cdpf.SetCallingPN(CallingPartyNumber, static_cast<Q931::NumberingPlanCodes> (CallingPLAN),
-			  static_cast<Q931::TypeOfNumberCodes> (CallingTON),
-			  static_cast<H225_ScreeningIndicator::Enumerations> (CallingSI),
-			  static_cast<H225_PresentationIndicator::Choices> (CallingPI));
-	m_call->GetCalledProfile().SetDialedPN(DialedDigits, static_cast<Q931::NumberingPlanCodes> (m_calledPLAN),
-					       static_cast<Q931::TypeOfNumberCodes> (m_calledTON));
-	PString dd(DialedDigits);
-	Q931::TypeOfNumberCodes assumed_ton = static_cast<Q931::TypeOfNumberCodes>(m_calledTON);
-	assumed_ton = static_cast<Q931::TypeOfNumberCodes>((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ?
-							   static_cast<int>(assumed_ton) : cgpf.TreatCalledPartyNumberAs());
-	if(assumed_ton==Q931::UnknownType)
-		assumed_ton = Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(dd, cgpf);
-	m_call->GetCalledProfile().SetAssumedDialedPN(dd, static_cast<Q931::NumberingPlanCodes> (m_calledPLAN), assumed_ton);
-	CalledNumber=CalledPartyNumber;
-	return TRUE;
 }
 
-void
-CallSignalSocket::SetNumbersInUUIE(PString &CalledPartyNumber, PString & CallingPartyNumber)
-{
-	if (!m_SetupPDU->HasIE(Q931::UserUserIE)) {
-		return;
-	}
-	H225_H323_UserInformation signal;
-	PPER_Stream q = m_SetupPDU->GetIE(Q931::UserUserIE);
-	if (!signal.Decode(q)) {
-		PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
-		return ;
-	}
-	H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
-	H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-	H225_Setup_UUIE & Setup = body;
-	if(!CalledPartyNumber.IsEmpty()) {
-		if(!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
-			Setup.m_destinationAddress.SetSize(1);
-		}
-		for (PINDEX i=0; i<Setup.m_destinationAddress.GetSize(); i++) {
-			if(Setup.m_destinationAddress[i].GetTag()==H225_AliasAddress::e_dialedDigits) {
-				H323SetAliasAddress(CalledPartyNumber, Setup.m_destinationAddress[i]);
-			}
-		}
-	}
-	H225_ArrayOf_AliasAddress sourceaddresses;
-	if(!CallingPartyNumber.IsEmpty()) {
-		sourceaddresses.SetSize(1);
-		H323SetAliasAddress(CallingPartyNumber, sourceaddresses[0], H225_AliasAddress::e_dialedDigits);
-		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
-			for (PINDEX i=0; i<Setup.m_sourceAddress.GetSize(); i++) {
-				if(Setup.m_sourceAddress[i].GetTag()!=H225_AliasAddress::e_dialedDigits) {
-					sourceaddresses.SetSize(sourceaddresses.GetSize()+1);
-					sourceaddresses[sourceaddresses.GetSize()-1]=Setup.m_sourceAddress[i];
-				}
-			}
-			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
-		}
-	} else {
-		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
-			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
-		}
-		sourceaddresses.SetSize(1);
-		H323SetAliasAddress(GkConfig()->GetString(ProxySection, "SuppressedNumber", "unknown@mediaways.net"), sourceaddresses[0]);
-	}
-
-	Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
-	Setup.m_sourceAddress=sourceaddresses;
-
-	PPER_Stream str_new;
-	signal.Encode(str_new);
-	str_new.CompleteEncoding();
-	m_SetupPDU->SetIE(Q931::UserUserIE, str_new);
-	return;
-}
-
-BOOL MatchAlias(const CallProfile &profile, PString number) {
-	PStringList telephonenumbers = profile.GetTelephoneNumbers();
-	PString complete_number = number ;
-	int matches=0;
-
-	for(PINDEX i=0; i< telephonenumbers.GetSize(); i++) {
-		PTRACE(5, "telephonenumbers["<<i<<"]="<<telephonenumbers[i]);
-		if(telephonenumbers[i].GetLength() >= number.GetLength()) {
-			PINDEX amountPoints = 0;
-			int first_point = telephonenumbers[i].Find('.');
-			if( first_point != P_MAX_INDEX && first_point >= 0)
-				amountPoints = telephonenumbers[i].GetLength() - first_point;
-
-			PTRACE(5,"amountPoints: " << amountPoints);
-			if(0 == amountPoints && number == telephonenumbers[i].Right(number.GetLength())) {
-				// we found a match -- let's do a sanity check, wether is in international format
-				PTRACE(5,"matches nubmer " << telephonenumbers[i]);
-				if (number.GetLength() == telephonenumbers[i].GetLength()) {
-					PTRACE(5, "fullmatch");
-					return TRUE;
-				} else {
-					PTRACE(5, "partial match");
-					complete_number=telephonenumbers[i];
-					matches++;
-				}
-			} else if(0 < amountPoints) {
-				if(number.GetLength()>amountPoints) {
-					int overlap_digits = number.GetLength() - amountPoints; // the "significant" numbers
-					if (number.Left(overlap_digits) == telephonenumbers[i].Mid(first_point-overlap_digits, overlap_digits)) {
-						// Some of the mid overlaps. we have a match
-						matches++;
-						complete_number = telephonenumbers[i].Left(telephonenumbers[i].GetLength() - amountPoints)
-							+ number.Right(amountPoints);
-					}
-				} else if (number.GetLength()==amountPoints) {
-					// This matches in any case.
-					matches++;
-					complete_number = telephonenumbers[i].Left(telephonenumbers[i].GetLength() - amountPoints)
-						+ number;
-				} // else no match
-			}
-		}
-	}
-	// now check if exatly 1 match was found.
-
-	if(1==matches) {
-		number=complete_number;
-		return TRUE;
-	}
-	return FALSE;
-}
-
-BOOL
-ConvertNumberInternational(PString & number, unsigned int & plan, unsigned int &TON, unsigned int & SI, const CallProfile & profile)
-{
-	Q931::NumberingPlanCodes pl = static_cast <Q931::NumberingPlanCodes> (plan);
-	Q931::TypeOfNumberCodes tn  = static_cast <Q931::TypeOfNumberCodes> (TON);
-	H225_ScreeningIndicator::Enumerations screening = static_cast <H225_ScreeningIndicator::Enumerations> (SI);
-	BOOL result = Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, pl, tn, screening, profile);
-	plan=pl;
-	TON=tn;
-	SI=screening;
-	return result;
-}
 
 // class H245Handler
-H245Handler::H245Handler(PIPSocket::Address local, PIPSocket::Address remote)
-      : localAddr(local), remoteAddr(remote)
+H245Handler::H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote)
+      : localAddr(local), remoteAddr(remote), isH245ended(false)
 {
 	hnat = (remoteAddr != INADDR_ANY) ? new NATHandler(remoteAddr) : 0;
 }
@@ -2082,7 +1555,7 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg)
 		PTRACE(4, "H245\tERROR DECODING H.245");
 		return false;
 	}
-	PTRACE(6, "H245\tReceived: " << setprecision(2) << h245msg);
+	PTRACE(4, "H245\tReceived: " << setprecision(2) << h245msg);
 
 	bool changed = false;
 	switch (h245msg.GetTag())
@@ -2095,8 +1568,6 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg)
 			break;
 		case H245_MultimediaSystemControlMessage::e_command:
 			changed = HandleCommand(h245msg);
-			//if (((H245_CommandMessage &)h245msg).GetTag() == H245_CommandMessage::e_endSessionCommand)
-			//	res = ProxySocket::Closing;
 			break;
 		case H245_MultimediaSystemControlMessage::e_indication:
 			changed = HandleIndication(h245msg);
@@ -2106,25 +1577,23 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg)
 			break;
 	}
 	if (changed) {
-		PBYTEArray wtbuf(4096);
-               PPER_Stream wtstrm(wtbuf);
-               h245msg.Encode(wtstrm);
-               wtstrm.CompleteEncoding();
-               mesg = wtstrm;
+		mesg.BeginEncoding();
+		h245msg.Encode(mesg);
+		mesg.CompleteEncoding();
+		PTRACE(5, "H245\tTo send: " << setprecision(2) << h245msg);
 	}
 
-	PTRACE(5, ANSI::BGRE << "H245\nMessage to sent: " << h245msg << ANSI::OFF);
 	return changed;
 }
 
 bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 {
-       return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
+	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
 
 bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 {
-       return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
+	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
 
 bool H245Handler::HandleRequest(H245_RequestMessage & Request)
@@ -2154,28 +1623,52 @@ bool H245Handler::HandleIndication(H245_IndicationMessage & Indication)
 bool H245Handler::HandleCommand(H245_CommandMessage & Command)
 {
 	PTRACE(4, "H245\tCommand: " << Command.GetTagName());
+	if (Command.GetTag() == H245_CommandMessage::e_endSessionCommand)
+		isH245ended = true;
 	return false;
 }
 
 // class H245Socket
 H245Socket::H245Socket(CallSignalSocket *sig)
-: TCPProxySocket("H245s"), sigSocket(sig), listener(new PTCPSocket)
+      : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket)
 {
+	peerH245Addr = 0;
 	listener->Listen(1, H245PortRange.GetPort());
 	SetHandler(sig->GetHandler());
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
-      : TCPProxySocket("H245d", socket), sigSocket(sig), listener(0)
+      : TCPProxySocket("H245s", socket), sigSocket(sig), listener(0)
 {
+	peerH245Addr = 0;
 	socket->remote = this;
 }
 
 H245Socket::~H245Socket()
 {
 	delete listener;
+	delete peerH245Addr;
 	if (sigSocket)
 		sigSocket->OnH245ChannelClosed();
+}
+
+void H245Socket::ConnectTo()
+{
+	if (remote->Accept(*listener)) {
+		if (ConnectRemote()) {
+			SetConnected(true);
+			remote->SetConnected(true);
+			GetHandler()->Insert(this, remote);
+			return;
+		}
+	}
+	// establish H.245 channel failed, disconnect the call
+	if (sigSocket)
+		sigSocket->EndSession();
+	if (H245Socket *ret = static_cast<H245Socket *>(remote))
+		if (ret->sigSocket)
+			ret->sigSocket->EndSession();
+	GetHandler()->Insert(this, remote);
 }
 
 ProxySocket::Result H245Socket::ReceiveData()
@@ -2184,7 +1677,8 @@ ProxySocket::Result H245Socket::ReceiveData()
 		return NoData;
 
 	PPER_Stream strm(buffer);
-	if (sigSocket->HandleH245Mesg(strm))
+
+	if (sigSocket && sigSocket->HandleH245Mesg(strm))
 		buffer = strm;
 
 	return Forwarding;
@@ -2192,49 +1686,70 @@ ProxySocket::Result H245Socket::ReceiveData()
 
 bool H245Socket::EndSession()
 {
-	PWaitAndSignal lock(m_lock);
 	if (listener)
 		listener->Close();
 	return TCPProxySocket::EndSession();
 }
 
-TCPProxySocket *H245Socket::ConnectTo()
+void H245Socket::SendEndSessionCommand()
 {
-	if (remote->Accept(*listener)) {
-		PTRACE(3, "H245\tConnected from " << remote->Name());
-		listener->Close(); // don't accept other connection
-		if (peerH245Addr.GetTag() != H225_TransportAddress::e_ipAddress) {
-			PTRACE(3, "H245\tINVALID ADDRESS");
-			return false;
-		}
-		H225_TransportAddress_ipAddress & ip = peerH245Addr;
-		PIPSocket::Address peerAddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-		SetPort(ip.m_port);
-		if (Connect(static_cast<PIPSocket::Address>(GkConfig()->GetString("Home", INADDR_ANY)), H245PortRange.GetPort(), peerAddr)) {
-#ifdef WIN32
-			PTRACE(3, "H245(" << GetCurrentThreadId() << ") Connect to " << Name() << " successful");
-#else
-			PTRACE(3, "H245(" << getpid() << ") Connect to " << Name() << " successful");
-#endif
-			GetHandler()->Insert(this);
-			SetConnected(true);
-			CallSignalSocket *rem=dynamic_cast<CallSignalSocket *> (remote);
-			if(NULL!=rem) {
-				rem->SetConnected(true);
-			} else {
-				remote->SetConnected(true);
-			}
-			return remote;
-		}
-		PTRACE(3, "H245\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
-	}
-	GetHandler()->Insert(this);
-	GetHandler()->Insert(remote);
-	SetDeletable();
-	return 0;
+	if (!IsConnected())
+		return;
+	// generate EndSessionCommand
+	H245_MultimediaSystemControlMessage h245msg;
+	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
+	H245_CommandMessage & h245cmd = h245msg;
+	h245cmd.SetTag(H245_CommandMessage::e_endSessionCommand);
+	H245_EndSessionCommand & endcmd = h245cmd;
+	endcmd.SetTag(H245_EndSessionCommand::e_disconnect);
+	PPER_Stream wtstrm;
+	h245msg.Encode(wtstrm);
+	wtstrm.CompleteEncoding();
+	TransmitData(wtstrm);
+	PTRACE(4, "H245\tSend endSessionCommand to " << GetName());
 }
 
-bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, Address myip)
+#ifdef LARGE_FDSET
+bool H245Socket::Accept(YaTCPSocket & socket)
+#else
+BOOL H245Socket::Accept(PSocket & socket)
+#endif
+{
+	bool result = TCPProxySocket::Accept(socket);
+	if (result) {
+		PTRACE(3, "H245\tConnected from " << GetName());
+	} else if (peerH245Addr) {
+		result = H245Socket::ConnectRemote();
+	}
+	return result;
+}
+
+bool H245Socket::ConnectRemote()
+{
+	if (listener)
+		listener->Close(); // don't accept other connection
+	PIPSocket::Address peerAddr;
+	WORD peerPort;
+	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort)) {
+		PTRACE(3, "H245\tINVALID ADDRESS");
+		return false;
+	}
+	SetPort(peerPort);
+	bool result = Connect(INADDR_ANY, H245PortRange.GetPort(), peerAddr); // TODO
+	if (result) {
+		PTRACE(3, "H245\tConnect to " << GetName() << " successful");
+	} else {
+		PTRACE(3, "H245\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
+	}
+	return result;
+}
+
+H225_TransportAddress H245Socket::GetH245Address(const Address & myip)
+{
+	return SocketToH225TransportAddr(myip, listener ? listener->GetPort() : 0);
+}
+
+bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address & myip)
 {
 	bool swapped;
 	H245Socket *socket;
@@ -2242,26 +1757,45 @@ bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, Address myip)
 		socket = this;
 		swapped = false;
 	} else {
-		socket = dynamic_cast<H245Socket *>(remote);
+		socket = static_cast<H245Socket *>(remote);
 		swapped = true;
 		std::swap(this->sigSocket, socket->sigSocket);
 	}
-	socket->peerH245Addr = h245addr;
+	if (socket->peerH245Addr)
+		*socket->peerH245Addr = h245addr;
+	else
+		socket->peerH245Addr = new H225_TransportAddress(h245addr);
 	h245addr = SocketToH225TransportAddr(myip, socket->listener->GetPort());
 	PTRACE(3, "H245\tSet h245Address to " << AsDotString(h245addr));
 	return swapped;
 }
 
-void
-H245Socket::Lock()
+bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 {
-	m_lock.Wait();
+	PTRACE(3, "H245\tH.245 Reverting detected");
+	TCPSocket *socket = static_cast<H245Socket *>(remote)->listener;
+	if (socket && socket->IsOpen()) {
+		peerH245Addr = new H225_TransportAddress(h245addr);
+		socket->Close();
+		return true;
+	}
+	return false;
 }
 
-void
-H245Socket::Unlock()
+// class NATH245Socket
+bool NATH245Socket::ConnectRemote()
 {
-	m_lock.Signal();
+	if (!sigSocket || !listener)
+		return false;
+
+	Q931 q931;
+	sigSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_startH245);
+	q931.Encode(buffer);
+	sigSocket->TransmitData(buffer);
+	bool result = Accept(*listener);
+	PTRACE_IF(3, result, "H245\tChannel established for NAT EP");
+	listener->Close();
+	return result;
 }
 
 namespace { // anonymous namespace
@@ -2274,13 +1808,6 @@ H245_UnicastAddress_iPAddress *GetH245UnicastAddress(H245_TransportAddress & tsa
 			return &((H245_UnicastAddress_iPAddress &)uniaddr);
 	}
 	return 0;
-}
-
-void SetH245UnicastAddress(H245_UnicastAddress_iPAddress & addr, PIPSocket::Address ip, WORD port)
-{
-	for (int i = 0; i < 4; ++i)
-		addr.m_network[i] = ip[i];
-	addr.m_tsapIdentifier = port;
 }
 
 bool IsSeparateLANStack(const H245_DataType & data)
@@ -2329,12 +1856,12 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_
 		return false;
 	mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	if (!mediaControlChannel)
-               return false;
+		return false;
 	mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
 	return true;
 }
 
-inline H245_UnicastAddress_iPAddress & operator<<(H245_UnicastAddress_iPAddress & addr, PIPSocket::Address ip)
+inline H245_UnicastAddress_iPAddress & operator<<(H245_UnicastAddress_iPAddress & addr, const PIPSocket::Address & ip)
 {
 	for (int i = 0; i < 4; ++i)
 		addr.m_network[i] = ip[i];
@@ -2361,102 +1888,132 @@ inline const H245_UnicastAddress_iPAddress & operator>>(const H245_UnicastAddres
 
 inline bool compare_lc(std::pair<const WORD, RTPLogicalChannel *> p, LogicalChannel *lc)
 {
-       return p.second == lc;
-}
-
-inline void delete_lc(std::pair<const WORD, LogicalChannel *> & p)
-{
-	delete p.second;
-}
-
-inline void delete_rtplc(std::pair<const WORD, RTPLogicalChannel *> & p)
-{
-	delete p.second;
+	return p.second == lc;
 }
 
 } // end of anonymous namespace
 
 
-// class UDPProxySocket
-const WORD BufferSize = 2048;
+#ifndef IPTOS_PREC_CRITIC_ECP
+#define IPTOS_PREC_CRITIC_ECP (5 << 5)
+#endif
 
+#ifndef IPTOS_LOWDELAY
+#define IPTOS_LOWDELAY 0x10
+#endif
+
+// class UDPProxySocket
 UDPProxySocket::UDPProxySocket(const char *t) : ProxySocket(this, t)
 {
 	SetReadTimeout(PTimeInterval(50));
-        SetWriteTimeout(PTimeInterval(50));
-	SetMinBufSize(BufferSize);
+	SetWriteTimeout(PTimeInterval(50));
+	fnat = rnat = false;
 }
 
-void UDPProxySocket::SetForwardDestination(Address srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
+bool UDPProxySocket::Bind(WORD pt)
+{
+	if (!Listen(0, pt))
+		return false;
+
+	// Set the IP Type Of Service field for prioritisation of media UDP packets
+#ifdef WIN32
+	// Windows MultMedia stuff seems to need greater depth due to enormous
+	// latencies in its operation, need to use DirectSound maybe?
+	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
+#else
+	// Don't use IPTOS_PREC_CRITIC_ECP on Unix platforms as then need to be root
+	int rtpIpTypeofService = IPTOS_LOWDELAY;
+#endif
+	if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
+		PTRACE(1, Type() << "\tCould not set TOS field in IP header: " << GetErrorText(PSocket::LastGeneralError));
+	}
+	return true;
+}
+
+void UDPProxySocket::SetNAT(bool rev)
+{
+	// if the handler of lc is NATed,
+	// the destination of reverse direction should be changed
+	(rev ? fnat : rnat) = true;
+	PTRACE(5, Type() << "\tfnat=" << fnat << " rnat=" << rnat);
+}
+
+void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
 {
 	fSrcIP = srcIP, fSrcPort = srcPort;
 	addr >> fDestIP >> fDestPort;
 
-	SetName(srcIP, srcPort);
-	PTRACE(5, type << "UDP\tForward " << name << " to " << fDestIP << ':' << fDestPort);
+	SetName(AsString(srcIP, srcPort));
+	PTRACE(5, Type() << "\tForward " << GetName() << " to " << fDestIP << ':' << fDestPort);
 	SetConnected(true);
 }
 
-
-void UDPProxySocket::SetReverseDestination(Address srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
+void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
 {
 	rSrcIP = srcIP, rSrcPort = srcPort;
 	addr >> rDestIP >> rDestPort;
 
-	PTRACE(5, type << "UDP\tReverse " <<  srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
+	PTRACE(5, Type() << "\tReverse " << srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
 	SetConnected(true);
-	}
+}
 
 ProxySocket::Result UDPProxySocket::ReceiveData()
 {
-	Address fromIP;
-	WORD fromPort;
-	if (!ReadFrom(wbuffer, maxbufsize, fromIP, fromPort)) {
-		ErrorHandler(this, LastReadError);
+	if (!Read(wbuffer, wbufsize)) {
+		ErrorHandler(PSocket::LastReadError);
 		return NoData;
 	}
-
+	Address fromIP;
+	WORD fromPort;
+	GetLastReceiveAddress(fromIP, fromPort);
 	buflen = GetLastReadCount();
 
-//     if (fromIP == rSrcIP && (fromPort == rSrcPort || abs(fromPort - rSrcPort) == 2))
-       // Workaround: some bad endpoints don't send packets from the specified port
-	if ((fromIP == rSrcIP || fromIP == fDestIP) && (fromIP != fSrcIP || fromPort == rSrcPort)) {
-		PTRACE(6, type << "\tforward " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort);
-		SetSendAddress(rDestIP, rDestPort);               SetSendAddress(rDestIP, rDestPort);
-	} else {
-		PTRACE(6, type << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
+	// Workaround: some bad endpoints don't send packets from the specified port
+	if ((fromIP == fSrcIP || fromIP == rDestIP) && (fromIP != rSrcIP || fromPort == fSrcPort)) {
+		PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
 		SetSendAddress(fDestIP, fDestPort);
+		if (rnat)
+			rDestIP = fromIP, rDestPort = fromPort;
+	} else {
+		PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort);
+		SetSendAddress(rDestIP, rDestPort);
+		if (fnat)
+			fDestIP = fromIP, fDestPort = fromPort;
 	}
-       return Forwarding;
+	return Forwarding;
 }
+
 
 // class T120ProxySocket
-T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
-	: TCPProxySocket("T120", socket, pt)
+T120ProxySocket::T120ProxySocket(T120LogicalChannel *lc)
+      : TCPProxySocket("T120s"), t120lc(lc)
 {
-	SetMinBufSize(BufferSize);
 }
 
-TCPProxySocket *T120ProxySocket::ConnectTo()
+T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
+      : TCPProxySocket("T120d", socket, pt)
 {
-	remote = new T120ProxySocket(this, peerPort);
-	if (remote->Connect(static_cast<PIPSocket::Address>(GkConfig()->GetString("Home", INADDR_ANY)), T120PortRange.GetPort(), peerAddr)) {
-		PTRACE(3, "T120\tConnect to " << remote->Name() << " successful");
-		SetConnected(true);
-		remote->SetConnected(true);
-	} else {
-		PTRACE(3, "T120\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
-		// delete remote; // would close myself
-		remote->SetDeletable();
-	}
-	return remote;
+	socket->remote = this;
 }
+
+bool T120ProxySocket::ForwardData()
+{
+	return remote ? remote->ProxySocket::TransmitData(wbuffer, buflen) : false;
+}
+
+void T120ProxySocket::Dispatch()
+{
+	PTRACE(4, "T120\tConnected from " << GetName());
+	t120lc->Create(this);
+}
+
 
 // class RTPLogicalChannel
-RTPLogicalChannel::RTPLogicalChannel(WORD flcn) : LogicalChannel(flcn), reversed(false), peer(0)
+RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(0)
 {
 	rtp = new UDPProxySocket("RTP");
 	rtcp = new UDPProxySocket("RTCP");
+	SetNAT(nated);
 
 	// try to get an available port 10 times
 	for (int i = 0; i < 10; ++i) {
@@ -2464,6 +2021,7 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn) : LogicalChannel(flcn), reversed
 		// try to bind rtp to an even port and rtcp to the next one port
 		if (rtp->Bind(port) && rtcp->Bind(port + 1))
 			return;
+
 		PTRACE(3, "RTP\tPort " << port << " not available");
 		rtp->Close(), rtcp->Close();
 		// try next...
@@ -2474,12 +2032,13 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn) : LogicalChannel(flcn), reversed
 	throw NoPortAvailable();
 }
 
-RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn)
+RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
 {
 	memcpy(this, flc, sizeof(RTPLogicalChannel)); // bitwise copy :)
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
+	SetNAT(nated);
 }
 
 RTPLogicalChannel::~RTPLogicalChannel()
@@ -2488,9 +2047,9 @@ RTPLogicalChannel::~RTPLogicalChannel()
 		peer->peer = 0;
 	} else {
 		if (used) {
-		// the sockets will be deleted by ProxyHandler,
-		// so we don't need to delete it here
-		// don't close the sockets, or it causes crashing
+			// the sockets will be deleted by ProxyHandler,
+			// so we don't need to delete it here
+			// don't close the sockets, or it causes crashing
 			rtp->SetDeletable();
 			rtcp->SetDeletable();
 		} else {
@@ -2503,11 +2062,11 @@ RTPLogicalChannel::~RTPLogicalChannel()
 
 void RTPLogicalChannel::SetSource(const H245_UnicastAddress_iPAddress & addr)
 {
-        addr >> SrcIP >> SrcPort;
-        --SrcPort; // get the RTP port
+	addr >> SrcIP >> SrcPort;
+	--SrcPort; // get the RTP port
 }
 
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaControlChannel, H245_UnicastAddress_iPAddress *mediaChannel, PIPSocket::Address local, bool rev)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaControlChannel, H245_UnicastAddress_iPAddress *mediaChannel, const PIPSocket::Address & local, bool rev)
 {
 	// mediaControlChannel should be non-zero.
 	H245_UnicastAddress_iPAddress tmp, tmpmedia, *dest = mediaControlChannel;
@@ -2537,61 +2096,74 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 	}
 }
 
-bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, PIPSocket::Address local, bool rev)
+bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev)
 {
-       if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
-               return false;
-       H245_UnicastAddress_iPAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
-       H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
-       HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev);
-       return true;
+	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
+		return false;
+	H245_UnicastAddress_iPAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
+	H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev);
+	return true;
 }
 
 bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
 {
-       H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
-       if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
-               HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetLocalAddr(), false);
-               return true;
-        }
-       return false;
- }
+	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
+	if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
+		HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetLocalAddr(), false);
+		return true;
+	}
+	return false;
+}
 
-void RTPLogicalChannel::StartReading(ProxyHandleThread *handler)
+void RTPLogicalChannel::StartReading(ProxyHandler *handler)
 {
 	if (!used) {
-		handler->InsertLC(rtp);
-		handler->InsertLC(rtcp);
+		handler->Insert(rtp, rtcp);
 		used = true;
 		if (peer)
 			peer->used = true;
-
 	}
+}
+
+void RTPLogicalChannel::OnHandlerSwapped(bool nated)
+{
+	rtp->OnHandlerSwapped();
+	rtcp->OnHandlerSwapped();
+	SetNAT(nated);
+}
+
+void RTPLogicalChannel::SetNAT(bool nated)
+{
+	if (nated)
+		rtp->SetNAT(reversed), rtcp->SetNAT(reversed);
 }
 
 WORD RTPLogicalChannel::GetPortNumber()
 {
- 	WORD port = RTPPortRange.GetPort();
+	WORD port = RTPPortRange.GetPort();
 	if (port & 1) // make sure it is even
 		port = RTPPortRange.GetPort();
 	RTPPortRange.GetPort(); // skip one
 	return port;
 }
 
+
 // class T120LogicalChannel
 T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 {
-	listener.Listen(1, T120PortRange.GetPort());
-	port = listener.GetPort();
+	listener = new T120Listener(this);
+	port = listener->GetPort();
 	PTRACE(4, "T120\tOpen logical channel " << flcn << " port " << port);
 }
 
 T120LogicalChannel::~T120LogicalChannel()
 {
 	if (used) {
-		listener.Close();
-		listenThread->Destroy();
-		for_each(sockets.begin(), sockets.end(), delete_s);
+		RasServer::Instance()->CloseListener(listener);
+		ForEachInContainer(sockets, mem_vfun(&T120ProxySocket::SetDeletable));
+	} else {
+		delete listener;
 	}
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
@@ -2602,37 +2174,42 @@ bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245H
 		OnSeparateStack(olca.m_separateStack, handler) : false;
 }
 
-void T120LogicalChannel::StartReading(ProxyHandleThread *h)
+void T120LogicalChannel::StartReading(ProxyHandler *h)
 {
 	if (!used) {
-		handler = h;
 		used = true;
-		listenThread = new T120Listener(this);
+		handler = h;
+		RasServer::Instance()->AddListener(listener);
 	}
 }
 
-void T120LogicalChannel::AcceptCall()
+T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(lc)
 {
-	if (!listener.IsOpen())
-		return;
+	Listen(5, T120PortRange.GetPort());
+	SetName("T120:" + PString(GetPort()));
+}
 
-	T120ProxySocket *socket = new T120ProxySocket;
-	if (socket->Accept(listener)) {
-		PTRACE(4, "T120\tConnected from " << socket->Name());
-		socket->SetDestination(peerAddr, peerPort);
-		TCPProxySocket *remote = socket->ConnectTo();
-		if (remote) {
-			handler->InsertLC(socket);
-			handler->InsertLC(remote);
-			sockets.push_back(socket);
-			return;
-		}
+ServerSocket *T120LogicalChannel::T120Listener::CreateAcceptor() const
+{
+	return new T120ProxySocket(t120lc);
+}
+
+void T120LogicalChannel::Create(T120ProxySocket *socket)
+{
+	T120ProxySocket *remote = new T120ProxySocket(socket, peerPort);
+	if (remote->Connect(INADDR_ANY, T120PortRange.GetPort(), peerAddr)) { // TODO
+		PTRACE(3, "T120\tConnect to " << remote->GetName() << " successful");
+		socket->SetConnected(true);
+		remote->SetConnected(true);
+		handler->Insert(socket, remote);
+		PWaitAndSignal lock(m_smutex);
+		sockets.push_back(socket);
+		sockets.push_back(remote);
+	} else {
+		PTRACE(3, "T120\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
+		delete remote;
+		delete socket;
 	}
-
-	PChannel::Errors err = socket->GetErrorCode();
-	PTRACE_IF(3, err != PChannel::Interrupted,
-		  "T120\tError: " << PChannel::GetErrorText(err));
-	delete socket;
 }
 
 bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler *handler)
@@ -2649,9 +2226,10 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 	return changed;
 }
 
+
 // class H245ProxyHandler
-H245ProxyHandler::H245ProxyHandler(CallSignalSocket *sig, PIPSocket::Address local, PIPSocket::Address remote, H245ProxyHandler *pr)
-	: H245Handler(local, remote), handler(sig->GetHandler()), peer(pr)
+H245ProxyHandler::H245ProxyHandler(const PIPSocket::Address & local, const PIPSocket::Address & remote, H245ProxyHandler *pr)
+      : H245Handler(local, remote), peer(pr)
 {
 	if (peer)
 		peer->peer = this;
@@ -2659,24 +2237,24 @@ H245ProxyHandler::H245ProxyHandler(CallSignalSocket *sig, PIPSocket::Address loc
 
 H245ProxyHandler::~H245ProxyHandler()
 {
-	for_each(logicalChannels.begin(), logicalChannels.end(), delete_lc);
-	for_each(fastStartLCs.begin(), fastStartLCs.end(), delete_rtplc);
+	DeleteObjectsInMap(logicalChannels);
+	DeleteObjectsInMap(fastStartLCs);
 	if (peer)
 		peer->peer = 0;
-
 }
 
 bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request)
 {
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
-	if(peer)
-		switch (Request.GetTag()) {
-		case H245_RequestMessage::e_openLogicalChannel:
-			return HandleOpenLogicalChannel(Request);
-		case H245_RequestMessage::e_closeLogicalChannel:
-			return HandleCloseLogicalChannel(Request);
-		default:
-			break;
+	if (peer)
+		switch (Request.GetTag())
+		{
+			case H245_RequestMessage::e_openLogicalChannel:
+				return HandleOpenLogicalChannel(Request);
+			case H245_RequestMessage::e_closeLogicalChannel:
+				return HandleCloseLogicalChannel(Request);
+			default:
+				break;
 		}
 	return false;
 }
@@ -2684,15 +2262,15 @@ bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request)
 bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
-	if(peer)
-		switch (Response.GetTag()) {
-		case H245_ResponseMessage::e_openLogicalChannelAck:
-			return HandleOpenLogicalChannelAck(Response);
-		case H245_ResponseMessage::e_openLogicalChannelReject:
-			return HandleOpenLogicalChannelReject(Response);
-			break;
-		default:
-			break;
+	if (peer)
+		switch (Response.GetTag())
+		{
+			case H245_ResponseMessage::e_openLogicalChannelAck:
+				return HandleOpenLogicalChannelAck(Response);
+			case H245_ResponseMessage::e_openLogicalChannelReject:
+				return HandleOpenLogicalChannelReject(Response);
+			default:
+				break;
 		}
 	return false;
 }
@@ -2715,7 +2293,6 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params->m_mediaChannel);
 		if (addr)
 			*addr << GetLocalAddr() << lc->GetPort();
-
 	}
 	return true;
 }
@@ -2728,7 +2305,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 	if (IsT120Channel(olc)) {
 		T120LogicalChannel *lc = CreateT120LogicalChannel(flcn);
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)
-		    && lc && lc->OnSeparateStack(olc.m_separateStack, this)) {
+			&& lc && lc->OnSeparateStack(olc.m_separateStack, this)) {
 			lc->StartReading(handler);
 			return true;
 		}
@@ -2764,16 +2341,20 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 
 bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 {
-	if (clc.m_source.GetTag() == H245_CloseLogicalChannel_source::e_user)
-		RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber);
+	// due to bad implementation of some endpoints, we check the
+	// forwardLogicalChannelNumber on both sides
+	H245ProxyHandler *first, *second;
+	if (clc.m_source.GetTag() == H245_CloseLogicalChannel_source::e_lcse)
+		first = this, second = peer;
 	else
-		peer->RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber);
+		first = peer, second = this;
+	first->RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber) || second->RemoveLogicalChannel(clc.m_forwardLogicalChannelNumber);
 	return false; // nothing changed :)
 }
 
 bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 {
-	if(!peer)
+	if (!peer)
 		return false;
 	if (hnat)
 		hnat->HandleOpenLogicalChannel(olc);
@@ -2784,11 +2365,10 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 
 bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 {
-	if(!peer)
+	if (!peer)
 		return false;
 	if (hnat)
 		hnat->HandleOpenLogicalChannel(olc);
-
 	WORD flcn = olc.m_forwardLogicalChannelNumber;
 	bool changed = false, isReverseLC;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
@@ -2802,14 +2382,15 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 			if (!FindLogicalChannel(flcn)) {
 				logicalChannels[flcn] = sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
+				lc->OnHandlerSwapped(hnat != 0);
 				peer->fastStartLCs.erase(iter);
 			}
-		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id)) && !lc->IsAttached()) {
+		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
 			if (akalc)
-				lc = dynamic_cast<RTPLogicalChannel *>(akalc);
+				lc = static_cast<RTPLogicalChannel *>(akalc);
 			else
-				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn);
+				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 		}
 	} else {
 		if (lc) {
@@ -2821,14 +2402,21 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 		} else if ((lc = FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = peer->FindLogicalChannel(flcn);
 			if (akalc)
-				lc = dynamic_cast<RTPLogicalChannel *>(akalc);
+				lc = static_cast<RTPLogicalChannel *>(akalc);
 			else
-				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn);
+				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 		}
 	}
 	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetLocalAddr(), isReverseLC)))
 		lc->StartReading(handler);
 	return changed;
+}
+
+void H245ProxyHandler::SetHandler(ProxyHandler *h)
+{
+	handler = h;
+	if (peer)
+		peer->handler = h;
 }
 
 LogicalChannel *H245ProxyHandler::FindLogicalChannel(WORD flcn)
@@ -2850,21 +2438,22 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 		return 0;
 	}
 	RTPLogicalChannel *lc;
+	if ((lc = peer->FindRTPLogicalChannelBySessionID(id)) && !lc->IsAttached()) {
+		lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 	// if H.245 OpenLogicalChannel is received, the fast connect procedure
 	// should be disable. So we reuse the fast start logical channel here
-	if (!fastStartLCs.empty()) {
+	} else if (!fastStartLCs.empty()) {
 		siterator iter = fastStartLCs.begin();
 		(lc = iter->second)->SetChannelNumber(flcn);
 		fastStartLCs.erase(iter);
 	} else if (!peer->fastStartLCs.empty()){
 		siterator iter = peer->fastStartLCs.begin();
 		(lc = iter->second)->SetChannelNumber(flcn);
+		lc->OnHandlerSwapped(hnat != 0);
 		peer->fastStartLCs.erase(iter);
-	} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id)) && !lc->IsAttached()) {
-		lc = new RTPLogicalChannel(lc, flcn);
 	} else {
 		try {
-			lc = new RTPLogicalChannel(flcn);
+			lc = new RTPLogicalChannel(flcn, hnat != 0);
 		} catch (RTPLogicalChannel::NoPortAvailable) {
 			PTRACE(2, "Proxy\tError: Can't create RTP logical channel " << flcn);
 			return 0;
@@ -2872,7 +2461,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 	}
 
 	logicalChannels[flcn] = sessionIDs[id] = lc;
-	PTRACE(4, "RTP\tOpen logical channel " << flcn << " port " << lc->GetPort());
+	PTRACE(4, "RTP\tOpen logical channel " << flcn << " id " << id << " port " << lc->GetPort());
 	return lc;
 }
 
@@ -2884,7 +2473,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 		try {
 			// the LogicalChannelNumber of a fastStart logical channel is irrelevant
 			// it may be set later
-			lc = new RTPLogicalChannel(0);
+			lc = new RTPLogicalChannel(0, hnat != 0);
 		} catch (RTPLogicalChannel::NoPortAvailable) {
 			PTRACE(2, "Proxy\tError: Can't create fast start logical channel id " << id);
 			return 0;
@@ -2906,21 +2495,20 @@ T120LogicalChannel *H245ProxyHandler::CreateT120LogicalChannel(WORD flcn)
 	return lc;
 }
 
-void H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
+bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 {
 	iterator iter = logicalChannels.find(flcn);
-	if (iter != logicalChannels.end()) {
-		LogicalChannel *lc = iter->second;
-               siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(ptr_fun(compare_lc), lc));
-               if (i != sessionIDs.end())
-                       sessionIDs.erase(i);
-               logicalChannels.erase(iter);
-	       delete lc;
-#ifdef PTRACING
-	} else {
+	if (iter == logicalChannels.end()) {
 		PTRACE(3, "Proxy\tLogical channel " << flcn << " not found");
-#endif
+		return false;
 	}
+	LogicalChannel *lc = iter->second;
+	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(ptr_fun(compare_lc), lc));
+	if (i != sessionIDs.end())
+		sessionIDs.erase(i);
+	logicalChannels.erase(iter);
+	delete lc;
+	return true;
 }
 
 // class NATHandler
@@ -2928,7 +2516,8 @@ void NATHandler::TranslateH245Address(H225_TransportAddress & h245addr)
 {
 	if (h245addr.GetTag() == H225_TransportAddress::e_ipAddress) {
 		H225_TransportAddress_ipAddress & addr = h245addr;
-		h245addr = SocketToH225TransportAddr(remoteAddr, addr.m_port);
+		for (int i = 0; i < 4; ++i)
+			addr.m_ip[i] = remoteAddr[i];
 	}
 }
 
@@ -2936,30 +2525,15 @@ bool NATHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
 	bool changed = false;
 	if (IsT120Channel(olc) && olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)) {
-		if (olc.m_separateStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress) {
-			H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(olc.m_separateStack.m_networkAddress);
-			if (addr) {
-				*addr << remoteAddr << addr->m_tsapIdentifier;
-				changed = true;
-			}
-		}
+		if (olc.m_separateStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress)
+			changed = SetAddress(GetH245UnicastAddress(olc.m_separateStack.m_networkAddress));
 	} else {
 		bool nouse;
 		if (H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse)) {
-			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)) {
-				H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel);
-				if (addr) {
-					*addr << remoteAddr << addr->m_tsapIdentifier;
-					changed = true;
-				}
-			}
-			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
-				H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params->m_mediaChannel);
-				if (addr) {
-					*addr << remoteAddr << addr->m_tsapIdentifier;
-					changed = true;
-				}
-			}
+			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
+				changed = SetAddress(GetH245UnicastAddress(h225Params->m_mediaControlChannel));
+			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel))
+				changed |= SetAddress(GetH245UnicastAddress(h225Params->m_mediaChannel));
 		}
 	}
 	return changed;
@@ -2969,30 +2543,223 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 {
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) {
 		H245_NetworkAccessParameters & sepStack = olca.m_separateStack;
-		if (sepStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress) {
-			H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(sepStack.m_networkAddress);
-			if (addr) {
-				*addr << remoteAddr << addr->m_tsapIdentifier;
-				return true;
-			}
-		}
+		if (sepStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress)
+			return SetAddress(GetH245UnicastAddress(sepStack.m_networkAddress));
 	} else {
 		H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
 		if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
-			*mediaControlChannel << remoteAddr << mediaControlChannel->m_tsapIdentifier;
-			if (mediaChannel)
-				*mediaChannel << remoteAddr << mediaChannel->m_tsapIdentifier;
-			return true;
+			SetAddress(mediaChannel);
+			return SetAddress(mediaControlChannel);
 		}
 	}
 	return false;
 }
 
-// to avoid ProxyThread.cxx to include the large h225.h,
-// to avoid ProxyThread.cxx to include the large h225.h,
-// put the method here...
+bool NATHandler::SetAddress(H245_UnicastAddress_iPAddress * addr)
+{
+	return addr ? (*addr << remoteAddr, true) : false;
+}
+
+
+// class CallSignalListener
+CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
+{
+	unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
+	Listen(addr, queueSize, pt);
+	SetName(AsString(addr, GetPort()));
+}
+
+ServerSocket *CallSignalListener::CreateAcceptor() const
+{
+	return new CallSignalSocket;
+}
+
+
+// class ProxyHandler
+ProxyHandler::ProxyHandler(int id) : SocketsReader(100)
+{
+	SetName(PString(PString::Printf, "ProxyH(%d)", id));
+	Execute();
+}
+
+ProxyHandler::~ProxyHandler()
+{
+	DeleteObjectsInContainer(m_removedTime);
+}
+
+void ProxyHandler::Insert(TCPProxySocket *socket)
+{
+	socket->SetHandler(this);
+	AddSocket(socket);
+}
+
+void ProxyHandler::Insert(TCPProxySocket *first, TCPProxySocket *second)
+{
+	first->SetHandler(this);
+	second->SetHandler(this);
+	AddPairSockets(first, second);
+}
+
+void ProxyHandler::Insert(UDPProxySocket *rtp, UDPProxySocket *rtcp)
+{
+	//rtp->SetHandler(this);
+	//rtcp->SetHandler(this);
+	AddPairSockets(rtp, rtcp);
+}
+
+void ProxyHandler::MoveTo(ProxyHandler *dest, TCPProxySocket *socket)
+{
+	m_listmutex.StartWrite();
+	m_sockets.remove(socket);
+	m_listmutex.EndWrite();
+	dest->Insert(socket);
+}
+
+bool ProxyHandler::OnStart()
+{
+	PThread::Current()->SetPriority(PThread::HighPriority);
+	return true;
+}
+
+bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
+{
+	FlushSockets();
+	WriteLock lock(m_listmutex);
+	iterator i = m_sockets.begin(), j = m_sockets.end();
+	while (i != j) {
+		iterator k=i++;
+		ProxySocket *socket = dynamic_cast<ProxySocket *>(*k);
+		if (!socket->IsBlocked()) {
+			if (socket->IsSocketOpen())
+				slist.Append(*k);
+			else if (!socket->IsConnected()) {
+				Remove(k);
+				continue;
+			}
+			if (socket->IsDeletable())
+				Remove(k);
+		}
+	}
+	return slist.GetSize() > 0;
+}
+
+void ProxyHandler::ReadSocket(IPSocket *socket)
+{
+	ProxySocket *psocket = dynamic_cast<ProxySocket *>(socket);
+	switch (psocket->ReceiveData())
+	{
+		case ProxySocket::Connecting:
+			PTRACE(1, "Error\tcheck the code " << psocket->Type());
+			break;
+		case ProxySocket::Forwarding:
+			if (!psocket->ForwardData()) {
+				PTRACE(3, "Proxy\t" << psocket->Name() << " forward blocked");
+			}
+			break;
+		case ProxySocket::Closing:
+			psocket->ForwardData();
+			// then close the psocket
+		case ProxySocket::Error:
+			psocket->CloseSocket();
+			break;
+		default:
+			break;
+	}
+}
+
+void ProxyHandler::CleanUp()
+{
+	if (m_rmsize > 0) {
+		PTime now;
+		PWaitAndSignal lock(m_rmutex);
+PTRACE(1, GetName() << " removed sockets " << m_rmsize);
+		iterator i = m_removed.begin();
+		std::list<PTime *>::iterator ti = m_removedTime.begin();
+		while ((i != m_removed.end()) && ((now - **ti).GetSeconds() > 5)) {
+PTRACE(1, GetName() << " delete socket " << *i);
+			delete *i++;
+			delete *ti++;
+			--m_rmsize;
+PTRACE(1, GetName() << " after removed " << m_rmsize);
+		}
+
+		m_removed.erase(m_removed.begin(), i);
+		m_removedTime.erase(m_removedTime.begin(), ti);
+PTRACE(1, GetName() << " removed sockets " << m_removed.size() << '/' << m_removedTime.size());
+	}
+}
+
+void ProxyHandler::AddPairSockets(IPSocket *first, IPSocket *second)
+{
+	m_listmutex.StartWrite();
+	m_sockets.push_back(first);
+	m_sockets.push_back(second);
+	m_socksize += 2;
+	m_listmutex.EndWrite();
+	Signal();
+	PTRACE(5, GetName() << " total sockets " << m_socksize);
+}
+
+void ProxyHandler::FlushSockets()
+{
+	SocketSelectList wlist;
+	m_listmutex.StartRead();
+	iterator i = m_sockets.begin(), j = m_sockets.end();
+	while (i != j) {
+		if (dynamic_cast<ProxySocket *>(*i)->CanFlush())
+			wlist.Append(*i);
+		++i;
+	}
+	m_listmutex.EndRead();
+	if (wlist.IsEmpty())
+		return;
+
+	if (!wlist.Select(SocketSelectList::Write, PTimeInterval(10)))
+	       return;
+	
+	PTRACE(5, "Proxy\t" << wlist.GetSize() << " sockets to flush...");
+	for (int k = 0; k < wlist.GetSize(); ++k) {
+		ProxySocket *socket = dynamic_cast<ProxySocket *>(wlist[k]);
+		if (socket->Flush()) {
+			PTRACE(4, "Proxy\t" << socket->Name() << " flush ok");
+		}
+	}
+}
+
+void ProxyHandler::Remove(iterator i)
+{
+	// assume the list is locked for writing
+	m_sockets.erase(i);
+	--m_socksize;
+	PWaitAndSignal lock(m_rmutex);
+	m_removed.push_back(*i);
+	m_removedTime.push_back(new PTime);
+	++m_rmsize;
+PTRACE(1, GetName() << " remove sockets " << *i << " h=" << (*i)->GetHandle() << ' ' << m_socksize << '/' << m_rmsize);
+}
+
 
 // class HandlerList
+HandlerList::HandlerList()
+{
+	m_current = m_hsize = 0;
+	LoadConfig();
+}
+
+HandlerList::~HandlerList()
+{
+	ForEachInContainer(m_handlers, mem_vfun(&ProxyHandler::Stop));
+}
+
+ProxyHandler *HandlerList::GetHandler()
+{
+	PWaitAndSignal lock(m_hmutex);
+	ProxyHandler *result = m_handlers[m_current];
+	if (++m_current >= m_hsize)
+		m_current = 0;
+	return result;
+}
+
 void HandlerList::LoadConfig()
 {
 	Q931PortRange.LoadConfig(RoutedSec, "Q931PortRange");
@@ -3000,16 +2767,18 @@ void HandlerList::LoadConfig()
 	T120PortRange.LoadConfig(ProxySection, "T120PortRange");
 	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange", "10000-59999");
 
-	WORD port = GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
-	if (!listenerThread || (GKPort != port)) {
-		CloseListener();
-		unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
-		listenerThread = new ProxyListener(this, GKHome, port ? port : Q931PortRange.GetPort(), queueSize);
-		GKPort = port;
+	m_hsize = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 1);
+	if (m_hsize < 1)
+		m_hsize = 1;
+	int hs = m_handlers.size();
+	if (hs <= m_hsize) {
+		for (int i = hs; i < m_hsize; ++i)
+			m_handlers.push_back(new ProxyHandler(i));
+	} else {
+		int ds = hs - m_hsize;
+		for (int i = 0; i < hs && ds > 0; ++i) {
+			// TODO
+		}
+		m_current = 0;
 	}
-
-	// the handler number can only be increased
-	int s = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 1);
-	for (int i = handlers.size(); i < s; ++i)
-		handlers.push_back(new ProxyHandleThread(i));
 }

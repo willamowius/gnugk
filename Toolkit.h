@@ -1,353 +1,33 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
-// Toolkit base class for the OpenGK
+// Toolkit base class for the GnuGK
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// $Id$
-//
 // History:
-//      991227  initial version (Torsten Will, mediaWays)
-//      020202  adding digt analysis (Martin Fröhlich, mediaWays)
-//      020327  adding Shared Password crypto (Martin Fröhlich, mediaWays)
+// 	991227  initial version (Torsten Will, mediaWays)
 //
 //////////////////////////////////////////////////////////////////
 
-#if !defined(TOOLKIT_H)
+#ifndef TOOLKIT_H
 #define TOOLKIT_H "@(#) $Id$"
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>
-#include "h225.h"
-#include <q931.h>
+#include <vector>
 #include "singleton.h"
 
-
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 )
-#endif
-
-/// Helpfull definitions for platform independence
-#if !defined(GK_LINEBRK)
-#  if defined(WIN32)
-#    define GK_LINEBRK "\r\n"
-#  else
-#    define GK_LINEBRK "\n"
-#  endif
-#endif
-
-///////////////////////// Profiles for storing Data from Database calls
-class CallProfile;
-///////////////////////// Classes for GKClient and Neighbor GKs
-class GkClient;
-class Neighbor;
-class H323RasListener;
-class HandlerList;
-
-///////////////////////// Shared Secret Cryptography
-#if defined(MWBB1_TAG)
-#  include <MWCryptBB1.h>	// MWCrypt routines coding
-#endif // MWBB1_TAG
-#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
-#  include <openssl/evp.h> // variuos definitions
-#  include <openssl/bio.h>	// BIO type
-#endif // P_SSL
-
-class PTPW_Codec : public PObject
-{
-	PCLASSINFO(PTPW_Codec, PObject);
-public:
-	typedef enum {C_NULL=0,
-#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
-#  if !defined(NO_DES)
-		      C_DES, C_DES_EDE, C_DES_EDE3, C_DESX,
-#  endif // NO_DES
-#  if !defined(NO_RC4)
-		      C_RC4,
-#  endif // NO_RC4
-#  if !defined(NO_IDEA)
-		      C_IDEA,
-#  endif // NO_IDEA
-#  if !defined(NO_RC2)
-		      C_RC2,
-#  endif // NO_RC2
-#  if !defined(NO_BF)
-		      C_BF,
-#  endif // NO_BF
-#  if !defined(NO_CAST)
-		      C_CAST,
-#  endif // NO_CAST
-#  if !defined(NO_RC5)
-		      C_RC5,
-#  endif // NO_RC5
-#endif // P_SSL
-#if defined(MWBB1_TAG)
-		      C_MWBB1,
-#endif // MWBB1_TAG
-		      C_count} codec_kind;
-	typedef enum { CT_KEEP=-1, CT_DECODE=0, CT_ENCODE=1 } coding_style;
-
-	PTPW_Codec(codec_kind, coding_style);
-	virtual ~PTPW_Codec();
-	/// do the crypto stuff
-	virtual const PString * cipher(PString &str);
-	// service functions
-	static const PString & Info(PString & in);
-	static const char * const GetId(codec_kind k);
-	static codec_kind GetAlgo(const PString &str);
-protected:
-	static const char * const init_section_name;
-	static const char * PTPW_Ids[C_count];	// keep in sync with codec_kind
-	codec_kind algo;	// kind of algorithm to use
-	coding_style style;	// encoding, decoding?
-#if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
-	BIO * bio_stack;	// cipher stack
-	EVP_CIPHER * type;	// the cipher type information
-private:
-	unsigned char iv[EVP_MAX_IV_LENGTH];
-	unsigned char key[EVP_MAX_KEY_LENGTH];
-	unsigned char salt[PKCS5_SALT_LEN];
-#endif // P_SSL
-};
-
-
-///////////////////////// Digit Analysis according to E.164
-
-/** International Public Telecommunication Number in constrained string
- * representation. This is declared and implemented according to the
- * PASN_*String classes of PW-Lib.
- */
-class E164_IPTNString : public PASN_ConstrainedString
-{
-	PCLASSINFO(E164_IPTNString, PASN_ConstrainedString);
-public:
-	E164_IPTNString(const char * str = NULL);
-	E164_IPTNString(unsigned tag, TagClass tagClass);
-	E164_IPTNString & operator=(const char * str);
-        E164_IPTNString & operator=(const PString & str);
-	virtual PObject * Clone() const;
-	virtual PString GetTypeAsString() const;
-	/**Calculate a hash value for use in sets and dictionaries.
-	 *
-	 * Needed for fast access (Factor 3000).
-	 *
-	 * @return
-	 * hash value for International Public Telecommunication
-	 * Number.
-	 */
-	virtual PINDEX HashFunction() const;
-};
-
-
-
-/** A telecommunication number splitted in compliance with E.164 6.2 into
- * Country Code, National Destination Code/Identification code, (Global)
- * Subscriber Number, and also determining the kind of IPTN if possible.
- */
-class E164_AnalysedNumber {
-private:			// std helper
-	E164_AnalysedNumber & assign(const E164_AnalysedNumber &an); /// basic assigment
-public:				// Constructor/Destructor
-	E164_AnalysedNumber();	/// default const
-	E164_AnalysedNumber(const E164_AnalysedNumber & an); /// copy const
-	~E164_AnalysedNumber();	/// destructor
-
-	E164_AnalysedNumber(const char * str); /// from char *
-	E164_AnalysedNumber(const PString & pstr); /// from PString
-	E164_AnalysedNumber(const E164_IPTNString & istr); /// from E164_IPTNString
-public:				// operators
-	E164_AnalysedNumber & operator=(const E164_AnalysedNumber & an);
-	E164_AnalysedNumber & operator=(const char * str);
-	E164_AnalysedNumber & operator=(const PString & str);
-	E164_AnalysedNumber & operator=(const E164_IPTNString & istr);
-	operator E164_IPTNString();
-	operator PString();
-	PString GetAsDigitString() const;
-public:				// class based types
-	enum IPTN_kind_type     /// kinds of International Public
-			        /// Telecommunication Numbers
-	{
-		IPTN_unknown = 0, /// expressional completeness
-		IPTN_geographical_areas, /// E.164 6.2.1
-		IPTN_global_services, /// E.164 6.2.2
-		IPTN_networks	/// E.164 6.2.3
-	};
-protected:			// Members
-	E164_IPTNString CC;	/// Country Code
-	E164_IPTNString NDC_IC;	/// National Destination Code/Identification Code
-	E164_IPTNString GSN_SN;	/// (Global) Subscriber Number
-	IPTN_kind_type IPTN_kind; /// kind of IPTN detected here
-public:				// Access methods
-	const E164_IPTNString & GetCC() const; /// get Country Code
-	const E164_IPTNString & GetNDC_IC() const; /// get National Destination Code/Identification Code
-	const E164_IPTNString & GetGSN_SN() const; /// get (Global) Subscriber Number
-	IPTN_kind_type  GetIPTN_kind() const; /// get the E.164 6.2 type
-private:
-	E164_AnalysedNumber & analyse(PString pstr);
-	// matching all but dialable digits
-	static const PRegularExpression CleaningRegex;
-};
-
-
-/** In this class the information needed for a Digit Analysis is stored in
- * different Dictionaries (hence the naming 'library'). It is initialized
- * at construction from various files whose names are taken from the
- * configuration file(s) and therefore has to be instantiated after the
- * toolkit. The descent from the Singleton template class makes it possible
- * to assure a unique instantiation and protects us from wasting memory.
- */
-class DigitCodeLibrary : public Singleton<DigitCodeLibrary>
-{
-public: // con- and destructing
-	explicit DigitCodeLibrary();
-	virtual ~DigitCodeLibrary();
-	/// defining the general *pointer* type of a split function
-	typedef E164_IPTNString (*split_functor_type)(E164_IPTNString);
-protected:
-	/** This is a mapping type (i.e. integer function) between an IPTN
-	 *  code (E.164 well defined subsequences of IPTNs) and some
-	 *  descriptive string.
-	 */
-	PDICTIONARY(CodeDict, E164_IPTNString, PString);
-
-	class split_functor_class : public PObject
-	{
-		PCLASSINFO(split_functor_class, PObject);
-	public:
-		split_functor_class(split_functor_type x){ p = x; };
-		split_functor_type p;
-	};
-	class NDCAnalyserMethod : public PObject
-	{
-		PCLASSINFO(NDCAnalyserMethod, PObject);
-	public:
-		// Unions not allowed here, hence, if split_functor is
-		// NULL, then the CodeDict is to be queried
-		split_functor_type split_functor;
-		CodeDict NDCDict; // the national code dict
-	};
-
-	/** This is the Mapping type between the Country Codes and
-	 * registered directories or Numbering Plan based splitting
-	 * functions */
-	PDICTIONARY(MetaCodeDict, E164_IPTNString, NDCAnalyserMethod);
-
-	/** Providing a mapping between the National Destination Code functors and
-	 * their string indizes
-	 */
-	PDICTIONARY(FunctorDict, PString, split_functor_class);
-
-	/** Providing a mapping between Shared Network Codes and their
-	 * identification dics */
-	PDICTIONARY(SNCodeDict, E164_IPTNString, CodeDict);
-private:
-	/** This is a mapping (i.e. integer function) between the country
-	 * codes and their geographical area, global service or network as
-	 * set forth in 'List of ITU-T Recommendation E.164 Assigned Country
-	 * Codes' a 'Complement to ITU-T Recommendation E.164'
-	 */
-	CodeDict CCDict;
-	/** This is a mapping (i.e. integer function) between the country
-	 * codes and dictionaries or functonal operators (functors) which
-	 * contain or yield the National Destination Codes for a given
-	 * country code
-	 */
-	MetaCodeDict NDCMDict;
-	/** Dict of Shared Network Codes to the below */
-	SNCodeDict SNDict;
-	/** This is a mapping between the Network Identification Codes and
-	 * the network operators an their networks identifiers as set forth
-	 * in 'List of ITU-T Recommendation E.164 Assigned Country Codes' a
-	 * 'Complement to ITU-T Recommendation E.164'
-	 */
-	CodeDict * NICDict;
-	/** This is a mapping between the GMSS Network Identification Codes
-	 * and the network operators an their networks identifiers as set
-	 * forth in 'List of ITU-T Recommendation E.164 Assigned Country
-	 * Codes' a 'Complement to ITU-T Recommendation E.164'
-	 */
-	CodeDict * GMSSNICDict;
-	/** This is a mapping (i.e. integer function) between the string indices and
-	 *  National Destination Code functors
-	 */
-	FunctorDict FDict;
-public:
-	/** Test of existence of given Country Code in Country Code Map
-	 *
-	 * @return
-	 * existence of given Country Code in Country Code Map
-	 */
-	BOOL IsCC(const E164_IPTNString &cc) const;
-	/** Country of given Country Code in Country Code Map
-	 *
-	 * @return
-	 * Country of given Country Code in Country Code Map
-	 */
-	const PString & CountryOf(const E164_IPTNString &cc) const;
-
-	/** Test of existence of given National Destination Code in
-	 * National Destination Map
-	 *
-	 * @return
-	 * existence of given National Destination Code in National
-	 * Destination Code Map
-	 */
-	BOOL IsNDC(const E164_IPTNString &cc, const E164_IPTNString &ndc) const;
-	/** National Destination of given National Destination Code in
-	 * National Destination Code Map
-	 *
-	 * @return
-	 * National Destination of given National Destination Code in
-	 * National Destination Code Map
-	 */
-	const PString & NationalDestinationOf(const E164_IPTNString &cc,
-					      const E164_IPTNString &ndc) const;
-
-	/** Test of existence of given Network Identification Shared Code in
-	 * Network Identification Map
-	 *
-	 * @return
-	 * existence of given Network Identification Shared Code in Network
-	 * Identification Map
-	 */
-	BOOL IsNISC(const E164_IPTNString &nic) const;
-	/** Test of existence of given Network Identification Code in
-	 * Network Identification Shared Code range, using Network
-	 * Identification Map
-	 *
-	 * @return
-	 * existence of given Network Identification Code in given Network
-	 * Identification Shared Code
-	 */
-	BOOL IsNIC(const E164_IPTNString &nisc, const E164_IPTNString &nic) const;
-	/** Network Identification Code in Network Identification Shared
-	 * Code range, using Network Identification Map
-	 *
-	 * @return
-	 * Network Identification Code in given Network Identification
-	 * Shared Code
-	 */
-	const PString & NetworkIdentificationOf(const E164_IPTNString &nisc,
-						const E164_IPTNString &nic) const;
-
-private:
-	/* very local helper */
-	void InsertInCCDictAndNDCMDict(const E164_IPTNString &key,
-				       PString * const value);
-
-};
-
-///////////////////////  The Toolkit
+class H225_AliasAddress;
+class H225_ArrayOf_AliasAddress;
+class H225_H221NonStandard;
 
 class Toolkit : public Singleton<Toolkit>
 {
-public:
-        // con- and destructing
+ public:
+	// con- and destructing
 	explicit Toolkit();
 	virtual ~Toolkit();
 
@@ -363,29 +43,37 @@ public:
 
 	public:
 		RouteTable() : rtable_begin(0) { /* initialize later */ }
-		~RouteTable() { ClearTable(); }
+		virtual ~RouteTable() { ClearTable(); }
 		Address GetLocalAddress() const { return defAddr; };
-		Address GetLocalAddress(Address) const;
+		Address GetLocalAddress(const Address &) const;
 
 		void InitTable();
 		void ClearTable();
+		bool IsEmpty() const { return rtable_begin == 0; }
 
-	private:
+	protected:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:
 #ifndef WIN32
 			PCLASSINFO( RouteEntry, PIPSocket::RouteEntry )
 #endif
-			RouteEntry() :  PIPSocket::RouteEntry(Address()) {}
+			RouteEntry(const PString &);
 			RouteEntry(const PIPSocket::RouteEntry &, const InterfaceTable &);
-			bool Compare(Address) const;
+			bool Compare(const Address *) const;
 		};
 
-	        RouteEntry *rtable_begin, *rtable_end;
+		virtual bool CreateTable();
+
+		RouteEntry *rtable_begin, *rtable_end;
 		Address defAddr;
 	};
 
-	RouteTable *GetRouteTable() { return &m_RouteTable; }
+	class VirtualRouteTable : public RouteTable {
+		// override from class  RouteTable
+		virtual bool CreateTable();
+	};
+
+	RouteTable *GetRouteTable(bool = false);
 
 	class ProxyCriterion {
 		typedef PIPSocket::Address Address;
@@ -394,8 +82,8 @@ public:
 		ProxyCriterion() : network(0) { /* initialize later */ }
 		~ProxyCriterion() { ClearTable(); }
 
-		bool IsInternal(Address ip) const;
-		bool Required(Address, Address) const;
+		bool IsInternal(const Address & ip) const;
+		bool Required(const Address &, const Address &) const;
 
 		void LoadConfig(PConfig *);
 		void ClearTable();
@@ -405,44 +93,55 @@ public:
 		Address *network, *netmask;
 	};
 
-	bool ProxyRequired(PIPSocket::Address ip1, PIPSocket::Address ip2) const
-		{ return m_ProxyCriterion.Required(ip1, ip2); }
+	bool ProxyRequired(const PIPSocket::Address & ip1, const PIPSocket::Address & ip2) const
+	{ return m_ProxyCriterion.Required(ip1, ip2); }
+
+	// Since PStringToString is not thread-safe,
+	// I write this small class to replace that
+	class RewriteData {
+	public:
+		RewriteData(PConfig *, const PString &);
+		~RewriteData() { delete [] m_RewriteKey; }
+		PINDEX Size() const { return m_size; }
+		PString Key(PINDEX i) const { return m_RewriteKey[i]; }
+		PString Value(PINDEX i) const { return m_RewriteValue[i]; }
+
+	private:
+		PString *m_RewriteKey, *m_RewriteValue;
+		PINDEX m_size;
+	};
 
 	class RewriteTool {
 	public:
+		RewriteTool() : m_Rewrite(0) {}
+		~RewriteTool() { delete m_Rewrite; }
 		void LoadConfig(PConfig *);
-		bool RewritePString(PString &);
-		const BOOL PrefixAnalysis(PString & number, Q931::NumberingPlanCodes & plan, enum Q931::TypeOfNumberCodes & ton,
-					  H225_ScreeningIndicator::Enumerations & si, const CallProfile & profile) const;
-		const enum Q931::TypeOfNumberCodes PrefixAnalysis(PString & number, const CallProfile & profile) const;
+		bool RewritePString(PString &) const;
+
 	private:
 		PString m_RewriteFastmatch;
-		PStringToString m_RewriteRules;
 		char m_TrailingChar;
-		mutable PMutex m_RewriteRules_mutex;
-		mutable PMutex m_RewriteFastmatch_mutex;
+		RewriteData *m_Rewrite;
 	};
 
-
-public: // virtual tools
 	/// maybe modifies #alias#. returns true if it did
-	virtual BOOL  RewriteE164(H225_AliasAddress &alias);
+	bool RewriteE164(H225_AliasAddress & alias);
+	bool RewriteE164(H225_ArrayOf_AliasAddress & aliases);
 
-	/// Accessor method to the RewriteObject.
+	bool RewritePString(PString & s) { return m_Rewrite.RewritePString(s); }
 
-	const RewriteTool & GetRewriteTool() { return m_Rewrite ; }
+	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
+	void SetGKHome(const PStringArray &);
 
-	virtual BOOL RewritePString(PString &s);
-
-public: // accessors
-	/** Accessor and 'Factory' to the static Toolkit.
+	// accessors
+	/** Accessor and 'Factory' to the static Toolkit. 
 	 * If you want to use your own Toolkit class you have to
-	 * overwrite this method and ensure that your version is
+	 * overwrite this method and ensure that your version is 
 	 * called first -- before any other call to #Toolkit::Instance#.
-	 * Example:
+	 * Example: 
 	 * <pre>
 	 * class MyToolkit: public Toolkit {
-	 *  public:
+	 *  public: 
 	 *   static Toolkit& Instance() {
 	 *	   if (m_Instance == NULL) m_Instance = new MyToolkit();
 	 *     return m_Instance;
@@ -454,18 +153,24 @@ public: // accessors
 	 * </pre>
 	 */
 
-	/** Accessor and 'Factory' for the global (static) configuration.
-	 * With this we are able to implement out own Config-Loader
-	 * in the same way as #Instance()#. And we can use #Config()#
+	/** Accessor and 'Factory' for the global (static) configuration. 
+	 * With this we are able to implement out own Config-Loader 
+	 * in the same way as #Instance()#. And we can use #Config()# 
 	 * in the constructor of #Toolkit# (and its descentants).
 	 */
-	PConfig* Config();
-	PConfig* Config(const char *);
+	PConfig* Config(); 
+	PConfig* Config(const char *); 
 
 	/** Sets the config that the toolkit uses to a given config.
-	 *  A prior loaded Config is discarded.
+	 *  A prior loaded Config is discarded. 
 	 */
 	PConfig* SetConfig(const PFilePath &fp, const PString &section);
+
+	/* This method modifies the config from status port
+	 * Warning: don't modify the config via status port and change config file simultaneously,
+	 * or the config file may be messed up.
+	 */
+	void SetConfig(int act, const PString & sec, const PString & key = PString(), const PString & value = PString());
 
 	PConfig* ReloadConfig();
 
@@ -482,32 +187,35 @@ public: // accessors
 	 */
 	static BOOL MatchRegex(const PString &str, const PString &regexStr);
 
-	/** returns the #BOOL# that #str# represents.
+	/** returns the #BOOL# that #str# represents. 
 	 * Case insensitive, "t...", "y...", "a...", "1" are #TRUE#, all other values are #FALSE#.
 	 */
-	static BOOL AsBool(const PString &str);
+	static bool AsBool(const PString & str);
 
+	static void GetNetworkFromString(const PString &, PIPSocket::Address &, PIPSocket::Address &);
+
+	static PString CypherDecode(const PString &, const PString &, int);
 
 	/** you may add more extension codes in descendant classes. This codes will not be transferred
 	 * or something it will be the return code of some methods for handling switches easy. */
 	enum {
 		iecUnknown     = -1,  /// internal extension code for an unknown triple(cntry,ext,manuf)
 		iecFailoverRAS  = 1,   /// i.e.c. for "This RQ is a failover RQ" and must not be answerd.
-		iecUserbase    = 1000 /// first guaranteed unused 'iec' by OpenGK Toolkit.
+		iecUserbase    = 1000 /// first guaranteed unused 'iec' by GnuGK Toolkit.
 	};
 	/** t35 extension or definitions as field for H225_NonStandardIdentifier */
 	enum {
-		t35cOpenOrg = -1,       /// country code for the "Open Source Organisation" Country
+		t35cOpenOrg = 255,       /// country code for the "Open Source Organisation" Country
 		t35mOpenOrg = 4242,     /// manufacurers code for the "Open Source Organisation"
-		t35eFailoverRAS = 1001  /// Defined HERE!
+		t35eFailoverRAS = 255  /// Defined HERE! 
 	};
-	/** If the triple #(country,extension,manufacturer)# represents an
-	 * extension known to the OpenGK this method returns its 'internal extension code'
+	/** If the triple #(country,extension,manufacturer)# represents an 
+	 * extension known to the GnuGK this method returns its 'internal extension code' 
 	 # #iecXXX' or #iecUnknow# otherwise.
 	 *
 	 * Overwriting methods should use a simlilar scheme and call
 	 * <code>
-	 * if(inherited::OpenGKExtension(country,extension,menufacturer) == iecUnknown) {
+	 * if(inherited::GnuGKExtension(country,extension,menufacturer) == iecUnknown) {
 	 *   ...
 	 *   (handle own cases)
 	 *   ...
@@ -515,70 +223,42 @@ public: // accessors
 	 * </code>
 	 * This results in 'cascading' calls until a iec!=iecUnkown is returned.
 	 */
-	virtual int GetInternalExtensionCode(const unsigned &country,
-					     const unsigned &extension,
-					     const unsigned &manufacturer) const;
-
-
-	int GetInternalExtensionCode(const H225_H221NonStandard& data) const {
-		return GetInternalExtensionCode(data.m_t35CountryCode,
-						data.m_t35Extension,
-						data.m_manufacturerCode);
-	}
+	virtual int GetInternalExtensionCode(const unsigned &country, 
+										 const unsigned &extension, 
+										 const unsigned &manufacturer) const;
+	
+	int GetInternalExtensionCode(const H225_H221NonStandard& data) const;
 
 	/** A c-string (#char*#) hash function that considers the
 	 * whole string #name# ending with #\0#.
 	 */
 	inline static unsigned long HashCStr(const unsigned char *name) ;
 
+ protected:
+	void CreateConfig();
 
-	/** Accessor Methods to get Neighbor GK lists and GKClient up to date */
-	GkClient & GetGkClient();
-	const BOOL GkClientIsRegistered() const;
-	Neighbor & GetNeighbor();
-	H323RasListener & GetMasterRASListener();
-	HandlerList & GetHandlerList();
-	void StartGkClient(); // if needed.
-
-	void Close();
-
-	int GetRequestSeqNum();
-protected:
 	PFilePath m_ConfigFilePath;
 	PString   m_ConfigDefaultSection;
 	PConfig*  m_Config;
+	bool	  m_ConfigDirty;
 
-	/** e164s starting with this string are examined further for rewriting. */
 	RewriteTool m_Rewrite;
 	BOOL      m_EmergencyAccept;
 
 	RouteTable m_RouteTable;
+	VirtualRouteTable m_VirtualRouteTable;
 	ProxyCriterion m_ProxyCriterion;
 
-private:
-	PConfig* InternalReloadConfig();
+	std::vector<PIPSocket::Address> m_GKHome;
+	bool m_BindAll;
+
+ private:
 	PFilePath m_tmpconfig;
-	GkClient * m_gkclient;
-	mutable PMutex m_gkclient_mutex;
-	void delete_gkclient();
-	Neighbor * m_neighbor;
-	mutable PMutex m_neighbor_mutex;
-	void delete_neighbor();
-	H323RasListener * m_raslistener;
-	mutable PMutex m_raslistener_mutex;
-	void delete_raslistener();
-	HandlerList * m_handlerlist;
-	mutable PMutex m_handlerlist_mutex;
-
-
-	int m_requestseqnum;
-	mutable PMutex m_requestseqnum_mutex;
-	mutable PMutex m_Config_mutex;
 };
 
 
 inline unsigned long
-Toolkit::HashCStr(const unsigned char *name)
+Toolkit::HashCStr(const unsigned char *name) 
 {
 	register unsigned long h = 0, g;
 	while (*name) {
@@ -591,15 +271,12 @@ Toolkit::HashCStr(const unsigned char *name)
 
 inline PConfig *GkConfig()
 {
-	return InstanceOf<Toolkit>()->Config();
+	return Toolkit::Instance()->Config();
 }
 
 inline PConfig *GkConfig(const char *section)
 {
-	return InstanceOf<Toolkit>()->Config(section);
+	return Toolkit::Instance()->Config(section);
 }
 
-#if (!defined HAS_NEW_H323SETALIASADDRESS)
-void H323SetAliasAddress(const PString & name, H225_AliasAddress & alias, int tag);
-#endif
 #endif // TOOLKIT_H
