@@ -176,10 +176,7 @@ BOOL OverlapSendDestAnalysis::PrefixAnalysis(const CallingProfile &callingProfil
 int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, list<EndpointRec *> & EPList,
                                             PReadWriteMutex & listLock, const endptr & cgEP, endptr & cdEP, unsigned & reason)
 {
-/* returns:
-     cdEP!=0 for ACF
-     cdEP==0 for ARJ
- */
+	PTRACE(5, "OverlapSendDestAnalysis::getDestination(H225_AliasAddress)");
 	// get callRec
 	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
 
@@ -298,6 +295,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 	listLock.StartRead();
 	std::list<EndpointRec *>::const_iterator Iter = EPList.begin(), IterLast = EPList.end();
 	for (; Iter != IterLast && !partialMatchFound; Iter++) {
+		PTRACE(1, "Checking EP: " << (*Iter)->PrintOn(true));
 		partialMatchFound = (*Iter)->AliasIsIncomplete(destAlias, fullMatch);
 		if (!partialMatchFound && (*Iter)->IsGateway()) {
 			partialMatchFound = dynamic_cast<GatewayRec *>(*Iter)->PrefixIsIncomplete(destAlias, fullMatch);
@@ -441,6 +439,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 int OverlapSendDestAnalysis::getDestination(const H225_AdmissionRequest & arq, list<EndpointRec *> & EPList,
                                             PReadWriteMutex & listLock, endptr & cgEP, endptr & cdEP, unsigned & reason)
 {
+	PTRACE(5, "OverlapSendDestAnalysis::getDestination");
 	if (!cgEP) {
 		cgEP = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
 	}
@@ -614,6 +613,11 @@ int BlackListAnalysis::getDestination(const H225_AdmissionRequest &, list<Endpoi
 	PAssert(cgEP, "Cannot get List without CallingEndpoint");
 	BOOL found=FALSE;
 	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
+	if(callptr(NULL)==callRec) {
+		cdEP=endptr(NULL);
+		reason = H225_AdmissionRejectReason::e_invalidPermission;
+		return e_fail;
+	}
 	PString DialedDigits = callRec->GetCalledProfile().GetCalledPN();
 	CallingProfile cgpf = callRec->GetCallingProfile();
 	if(callRec->GetCallingProfile().WhiteListBeforeBlackList()) {
@@ -636,6 +640,11 @@ int BlackListAnalysis::getDestination(const H225_AliasAddress &, list<EndpointRe
 	PAssert(cgEP, "Cannot get List without CallingEndpoint");
 	BOOL found=FALSE;
 	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
+	if(callptr(NULL)==callRec) {
+		cdEP=endptr(NULL);
+		reason = H225_AdmissionRejectReason::e_invalidPermission;
+		return e_fail;
+	}
 	PString DialedDigits = callRec->GetCalledProfile().GetCalledPN();
 	CallingProfile cgpf = callRec->GetCallingProfile();
 	if(callRec->GetCallingProfile().WhiteListBeforeBlackList()) {
