@@ -24,6 +24,8 @@
 #include "stl_supp.h"
 #include "gktimer.h"
 #include "h323util.h"
+#include "gkconfig.h"
+#include "gksql.h"
 #include "Toolkit.h"
 
 
@@ -197,8 +199,7 @@ static const char *RewriteSection = "RasSrv::RewriteE164";
 
 Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 {
-	m_RewriteKey = 0;
-	m_RewriteValues = 0;
+	m_RewriteKey = NULL;
 	PStringToString cfgs(config->GetAllKeyValues(section));
 	m_size = cfgs.GetSize();
 	if (m_size > 0) {
@@ -215,7 +216,6 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 //			m_RewriteKey = new PString[m_size * 2];
 			m_RewriteKey = (PString*)(new BYTE[sizeof(PString) * m_size * 2]);
 			m_RewriteValue = m_RewriteKey + m_size;
-			m_RewriteValues = new PStringArray[m_size];
 			std::map<PString, PString, pstr_prefix_lesser>::iterator iter = rules.begin();
 			
 			// reverse the order
@@ -224,7 +224,6 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 				::new(m_RewriteKey + i) PString(iter->first);
 //				m_RewriteValue[i] = iter->second;
 				::new(m_RewriteValue + i) PString(iter->second);
-				m_RewriteValues[i] = iter->second.Tokenise(",:;&|\t ", false);;
 			}
 		}
 	}
@@ -237,10 +236,11 @@ Toolkit::RewriteData::~RewriteData()
 		for (int i = 0; i < m_size * 2; i++)
 			(m_RewriteKey+i)->~PString();
 	delete[] ((BYTE*)m_RewriteKey);
-	delete [] m_RewriteValues;
 }
 
-void Toolkit::RewriteTool::LoadConfig(PConfig *config)
+void Toolkit::RewriteTool::LoadConfig(
+	PConfig *config
+	)
 {
 	m_RewriteFastmatch = config->GetString(RewriteSection, "Fastmatch", "");
 	m_TrailingChar = config->GetString("RasSrv::ARQFeatures", "RemoveTrailingChar", " ")[0];
@@ -275,13 +275,6 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 			// new:  0521321999
 
 			const char *newprefix = m_Rewrite->Value(i);
-			const PStringArray & ts = m_Rewrite->Values(i);
-			// multiple targets possible
-			if (ts.GetSize() > 1) {
-				PINDEX j = rand() % ts.GetSize();
-				PTRACE(5, "GK\tRewritePString: randomly chosen [" << j << "] of " << newprefix << "");
-				newprefix = ts[j];
-			}
 
 			PString result;
 			if (len > 0)
@@ -488,6 +481,7 @@ Toolkit::~Toolkit()
 	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
+		PFile::Remove(m_extConfigFilePath);
 	}
 	delete m_timerManager;
 }
@@ -541,32 +535,342 @@ void Toolkit::SetConfig(int act, const PString & sec, const PString & key, const
 	m_ConfigDirty = true;
 }
 
+PString Toolkit::GetTempDir() const
+{
+	PString tmpdir;
+	
+#ifndef WIN32
+	// check if the directory exists and is accessible (access rights)
+	if (PFile::Exists("/tmp") && PFile::Access("/tmp", PFile::ReadWrite))
+		tmpdir = "/tmp";
+	else 
+#endif
+	{
+		PConfig cfg(PConfig::Environment);
+		
+		if (cfg.HasKey("TMP"))
+			tmpdir = cfg.GetString("TMP");
+		else if (cfg.HasKey("TEMP"))
+			tmpdir = cfg.GetString("TEMP");
+		else if (cfg.HasKey("TMPDIR"))
+			tmpdir = cfg.GetString("TMPDIR");
+	}
+	
+	if (!tmpdir.IsEmpty()) {
+		// strip trailing separator
+		if (tmpdir[tmpdir.GetLength()-1] == PDIR_SEPARATOR)
+			tmpdir = tmpdir.Left(tmpdir.GetLength()-1);
+			
+		// check if the directory exists and is accessible (access rights)
+		if (!(PFile::Exists(tmpdir) && PFile::Access(tmpdir, PFile::ReadWrite)))
+			tmpdir = PString();
+	}
+	
+	return tmpdir;
+}
+
 void Toolkit::CreateConfig()
 {
-	if (m_Config != NULL) {
-		delete m_Config;
+	if (m_Config != NULL)
 		PFile::Remove(m_tmpconfig);
-	}
 
+	PString tmpdir = GetTempDir();
+	
+#ifdef WIN32
+	if (tmpdir.IsEmpty())
+		if (PFile::Access(".", PFile::ReadWrite))
+			tmpdir = ".";
+		else {
+			const PFilePath fpath(m_ConfigFilePath);
+			tmpdir = fpath.GetDirectory();
+		}
+#else
+	if (tmpdir.IsEmpty())
+		tmpdir = ".";
+#endif
+	
 	// generate a unique name
 	do {
-#ifdef WIN32
-		m_tmpconfig = m_ConfigFilePath + "-" + PString(PString::Unsigned, rand()%10000);
-#else
-		m_tmpconfig = "/tmp/gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
-#endif
-		PTRACE(5, "Try name "<< m_tmpconfig);
+		m_tmpconfig = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
+		PTRACE(5, "GK\tTrying file name "<< m_tmpconfig << " for temp config");
 	} while (PFile::Exists(m_tmpconfig));
 
 #ifdef WIN32
 	// Does WIN32 support symlink?
-	if (PFile::Copy(m_ConfigFilePath, m_tmpconfig))
+	if (PFile::Copy(m_ConfigFilePath, m_tmpconfig)) {
 #else
-	if (symlink(m_ConfigFilePath, m_tmpconfig)==0)
+	if (symlink(m_ConfigFilePath, m_tmpconfig) == 0) {
 #endif
+		delete m_Config;
 		m_Config = new PConfig(m_tmpconfig, m_ConfigDefaultSection);
-	else // Oops! Create temporary config file failed, use the original one
+	} else { // Oops! Create temporary config file failed, use the original one
+		PTRACE(0, "CONFIG\tCould not create/link config to a temporary file " << m_tmpconfig);
+		delete m_Config;
 		m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
+	}
+
+	if (!m_extConfigFilePath)
+		PFile::Remove(m_extConfigFilePath);
+	
+	// generate a unique name
+	do {
+		m_extConfigFilePath = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
+		PTRACE(5, "GK\tTrying file name "<< m_extConfigFilePath << " for external config");
+	} while (PFile::Exists(m_extConfigFilePath));
+
+	m_Config = new GatekeeperConfig(
+		m_extConfigFilePath, m_ConfigDefaultSection, m_Config
+		);
+}
+
+void Toolkit::ReloadSQLConfig()
+{
+	const PString driverName = m_Config->GetString("SQLConfig", "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(0, "SQLCONF\tFailed to read config settings from SQL: no driver specified");
+		return;
+	}
+		
+	GkSQLConnection *sqlConn = GkSQLConnection::Create(driverName, "SQLCONF");
+	if (sqlConn == NULL) {
+		PTRACE(0, "SQLCONF\tFailed to create a connection: no driver found for "
+				<< driverName << " database"
+				);
+		return;
+	}
+	
+	if (!sqlConn->Initialize(m_Config, "SQLConfig")) {
+		delete sqlConn;
+		sqlConn = NULL;
+		PTRACE(0, "SQLCONF\tFailed to read config settings from SQL: could not connect to the database");
+		return;
+	}
+
+	PTRACE(3, "SQLCONF\tSQL config connection established");
+	
+	PString query;
+	GkSQLResult* queryResult;
+
+	query = m_Config->GetString("SQLConfig", "ConfigQuery", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading config key=>value pairs from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL)
+			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
+				"database: timeout or fatal error"
+				);
+		else if (!queryResult->IsValid())
+			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
+				"database (" << queryResult->GetErrorCode() << "): " 
+				<< queryResult->GetErrorMessage()
+				);
+		else if (queryResult->GetNumFields() < 3)
+			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
+				"database: at least 3 columns must be present in the result set"
+				);
+		else {
+			while (queryResult->FetchRow(params))
+				if (params[0].IsEmpty() || params[1].IsEmpty() || params[2].IsEmpty())
+					PTRACE(1, "SQLCONF\tInvalid config key=>value pair entry found "
+						"in the SQL database: '[" << params[0] << "] " 
+						<< params[1] << '=' << params[1] << '\''
+						);
+				else {
+					m_Config->SetString(params[0], params[1], params[2]);
+					PTRACE(6, "SQLCONF\tConfig entry read: '[" << params[0] 
+						<< "] " << params[1] << '=' << params[2] << '\''
+						);
+				}
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() 
+				<< " config key=>value pairs loaded from SQL database");
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+			
+
+	query = m_Config->GetString("SQLConfig", "RewriteE164Query", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading rewrite rules from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL)
+			PTRACE(0, "SQLCONF\tFailed to load rewrite rules from SQL database: "
+				"timeout or fatal error"
+				);
+		else if (!queryResult->IsValid())
+			PTRACE(0, "SQLCONF\tFailed to load rewrite rules from SQL database ("
+				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage()
+				);
+		else if (queryResult->GetNumFields() < 2)
+			PTRACE(0, "SQLCONF\tFailed to load rewrite rules from SQL database: "
+				"at least 2 columns must be present in the result set"
+				);
+		else {
+			while (queryResult->FetchRow(params))
+				if (params[0].IsEmpty() || params[1].IsEmpty())
+					PTRACE(1, "SQLCONF\tInvalid rewrite rule found in the SQL "
+						"database: '" << params[0] << '=' << params[1] << '\''
+						);
+				else {
+					m_Config->SetString("RasSrv::RewriteE164", params[0], params[1]);
+					PTRACE(6, "SQLCONF\tRewrite rule read: '" << params[0] 
+						<< '=' << params[1] << '\''
+						);
+				}
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " rewrite rules "
+				"loaded from SQL database"
+				);
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+
+	query = m_Config->GetString("SQLConfig", "NeighborsQuery", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading neighbors from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL)
+			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
+				"timeout or fatal error"
+				);
+		else if (!queryResult->IsValid())
+			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database ("
+				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage()
+				);
+		else if (queryResult->GetNumFields() < 6)
+			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
+				"at least 6 columns must be present in the result set"
+				);
+		else {
+			while (queryResult->FetchRow(params)) {
+				PString value;
+				if (!params[5])
+					value = ";" + params[5];
+				if (!(params[4].IsEmpty() && value.IsEmpty()))
+					value = ";" + params[4] + value;
+				if (!(params[3].IsEmpty() && value.IsEmpty()))
+					value = ";" + params[3] + value;
+				if (!params[2])
+					value = params[1] + ":" + params[2] + value;
+				else
+					value = params[1] + value;
+				if (params[0].IsEmpty() || params[1].IsEmpty())
+					PTRACE(1, "SQLCONF\tInvalid neighbor entry found in the SQL "
+						"database: '" << params[0] << '=' << value << '\''
+						);
+				else {
+					m_Config->SetString("RasSrv::Neighbors", params[0], value);
+					PTRACE(6, "SQLCONF\tNeighbor entry read: '" << params[0] 
+						<< '=' << value << '\''
+						);
+				}
+			}
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " neighbor entries "
+				"loaded from SQL database"
+				);
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+
+	query = m_Config->GetString("SQLConfig", "PermanentEndpointsQuery", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading permanent endpoints from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL)
+			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL "
+				"database: timeout or fatal error"
+				);
+		else if (!queryResult->IsValid())
+			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL database "
+				"("	<< queryResult->GetErrorCode() << "): " 
+				<< queryResult->GetErrorMessage()
+				);
+		else if (queryResult->GetNumFields() < 4)
+			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL database: "
+				"at least 4 columns must be present in the result set"
+				);
+		else {
+			PString key;
+			PString value;
+			while (queryResult->FetchRow(params)) {
+				key = params[0];
+				if (!params[1])
+					key += ":" + params[1];
+				value = params[2];
+				if (!params[3])
+					value += ";" + params[3];
+				if (key.IsEmpty() || value.IsEmpty())
+					PTRACE(1, "SQLCONF\tInvalid permanent endpoint entry found "
+						"in the SQL database: '" << key << '=' << value << '\''
+						);
+				else {
+					m_Config->SetString("RasSrv::PermanentEndpoints", key, value);
+					PTRACE(6, "SQLCONF\tPermanent endpoint read: '" << key 
+						<< '=' << value << '\''
+						);
+				}
+			}
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " permanent "
+				"endpoints loaded from SQL database"
+				);
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+
+	query = m_Config->GetString("SQLConfig", "GWPrefixesQuery", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading gateway prefixes from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL)
+			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database: "
+				"timeout or fatal error"
+				);
+		else if (!queryResult->IsValid())
+			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database ("
+				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage()
+				);
+		else if (queryResult->GetNumFields() < 2)
+			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database: "
+				"at least 2 columns must be present in the result set"
+				);
+		else {
+			while (queryResult->FetchRow(params))
+				if (params[0].IsEmpty() || params[1].IsEmpty())
+					PTRACE(1, "SQLCONF\tInvalid gateway prefixes entry found "
+						"in the SQL database: '" << params[0] << '=' 
+						<< params[1] << '\''
+						);
+				else {
+					m_Config->SetString("RasSrv::GWPrefixes", 
+						params[0], params[1]
+						);
+					PTRACE(6, "SQLCONF\tGateway prefixes read: '" << params[0]
+						<< '=' << params[1] << '\''
+						);
+				}
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " gateway prefixes "
+				"loaded from SQL database"
+				);
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+	
+	delete sqlConn;
+	sqlConn = NULL;
+	PTRACE(3, "SQLCONF\tSQL config connection closed");
 }
 
 PConfig* Toolkit::ReloadConfig()
@@ -576,6 +880,10 @@ PConfig* Toolkit::ReloadConfig()
 	else // the config have been changed via status port, use it directly
 		m_ConfigDirty = false;
 
+	m_GKName = GkConfig()->GetString("Name", "OpenH323GK");
+	
+	ReloadSQLConfig();
+	
 	m_RouteTable.InitTable();
 	m_VirtualRouteTable.InitTable();
 	m_ProxyCriterion.LoadConfig(m_Config);
@@ -584,7 +892,6 @@ PConfig* Toolkit::ReloadConfig()
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
-	m_GKName = GkConfig()->GetString("Name", "GNU Gatekeeper");
 	
 	m_timestampFormatStr = GkConfig()->GetString("TimestampFormat", "Cisco");
 	

@@ -104,11 +104,9 @@ class Toolkit : public Singleton<Toolkit>
 		PINDEX Size() const { return m_size; }
 		const PString & Key(PINDEX i) const { return m_RewriteKey[i]; }
 		const PString & Value(PINDEX i) const { return m_RewriteValue[i]; }
-		const PStringArray & Values(PINDEX i) const { return m_RewriteValues[i]; }
 
 	private:
 		PString *m_RewriteKey, *m_RewriteValue;
-		PStringArray *m_RewriteValues;
 		PINDEX m_size;
 	};
 
@@ -299,6 +297,11 @@ class Toolkit : public Singleton<Toolkit>
 	PString GenerateAcctSessionId();
 
 	/** @return
+	    A path to a temp directory.
+	*/
+	PString GetTempDir() const;
+	
+	/** @return
 	    A pointer to the GkTimerManager object that allows registration
 	    of time scheduled events.
 	*/
@@ -318,8 +321,10 @@ class Toolkit : public Singleton<Toolkit>
 
 protected:
 	void CreateConfig();
+	void ReloadSQLConfig();
 
 	PFilePath m_ConfigFilePath;
+	PFilePath m_extConfigFilePath;
 	PString   m_GKName;
 	PString   m_ConfigDefaultSection;
 	PConfig*  m_Config;
