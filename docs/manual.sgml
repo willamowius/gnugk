@@ -3715,7 +3715,7 @@ See the monitoring section for details on the messages and responses.
 <tt/VirtualQueueAliases/<newline>
 Default: none
 <p>
-This defines a list of H.323 aliases for the virtual queues.
+This defines a list of H.323 aliases for the virtual queues (used with the vqueue RoutingPolicy).
 
 <descrip>
 <tag/Example:/
@@ -3727,7 +3727,7 @@ This defines a list of H.323 aliases for the virtual queues.
 <tt/VirtualQueuePrefixes/<newline>
 Default: none
 <p>
-This defines a list of prefixes for the virtual queues.
+This defines a list of prefixes for the virtual queues (used with the vqueue RoutingPolicy).
 
 <descrip>
 <tag/Example:/
@@ -3739,7 +3739,7 @@ This defines a list of prefixes for the virtual queues.
 <tt/VirtualQueueRegex/<newline>
 Default: none
 <p>
-This defines a regular expression for the virtual queues.
+This defines a regular expression for the virtual queues (used with the vqueue RoutingPolicy).
 
 <descrip>
 <tag/Example (numbers starting with 001215 or 1215):/
