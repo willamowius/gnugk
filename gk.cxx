@@ -487,12 +487,13 @@ void Gatekeeper::Main()
 		Ws = args.GetOptionString(optW);	
 	}	
 	//int chdir(const char *path);
-	PTRACE(1, PString("Trying to change working dir to: ") + Ws);
 	if(0 != chdir((const char *)Ws)) {
-		PTRACE(1, "Failed to change working dir");
+		PTRACE(1, "GK\tFailed to change working dir");
+	} else {
+		PTRACE(1, PString("GK\tChanged working dir to: ") + Ws);
 	}
 	
-#endif
+#endif /* (P_LINUX || P_SOLARIS) && PTRACING  */
 
 #if defined(HAVE_DIGIT_ANALYSIS) && defined(PTRACING)
 	const char optX = 'X';
