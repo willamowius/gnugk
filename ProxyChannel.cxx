@@ -570,11 +570,10 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port) : TCPPro
 
 void CallSignalSocket::InternalInit()
 {
-	m_h245handler = 0;
-	m_h245socket = 0;
+	m_h245handler = NULL;
+	m_h245socket = NULL;
 	m_isnatsocket = false;
-	m_lastQ931 = new Q931;
-	m_setupUUIE = 0;
+	m_setupPdu = NULL;
 }
 
 void CallSignalSocket::SetRemote(CallSignalSocket *socket)
@@ -633,8 +632,7 @@ CallSignalSocket::~CallSignalSocket()
 		m_h245socket->SetDeletable();
 	}
 	delete m_h245handler;
-	delete m_lastQ931;
-	delete m_setupUUIE;
+	delete m_setupPdu;
 	
 	if (m_call) {
 		if (m_call->GetCallSignalSocketCalling() == this) {
@@ -714,28 +712,27 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	if (!ReadTPKT())
 		return IsOpen() ? NoData : Error;
 
-	Q931* q931pdu = new Q931();
+	Q931 q931pdu;
 
-	if (!q931pdu->Decode(buffer)) {
+	if (!q931pdu.Decode(buffer)) {
 		PTRACE(2, "Q931\t" << GetName() << " ERROR DECODING Q.931!");
-		delete q931pdu;
 		return Error;
 	}
 
 	bool changed = false;
-	PTRACE(3, Type() << "\tReceived: " << q931pdu->GetMessageTypeName() << " CRV=" << q931pdu->GetCallReference() << " from " << GetName());
+	PTRACE(3, Type() << "\tReceived: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference() << " from " << GetName());
 
 	m_result = Forwarding;
 
 	H225_H323_UserInformation signal, *psignal = 0;
-	if (GetUUIE(*q931pdu, signal, GetName())) {
+	if (GetUUIE(q931pdu, signal, GetName())) {
 		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
 		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
 
-		PrintQ931(4, "Received:", "", q931pdu, psignal = &signal);
+		PrintQ931(4, "Received:", "", &q931pdu, psignal = &signal);
 
 		if (remote && body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup) {
-			const WORD newcrv = (WORD)q931pdu->GetCallReference();
+			const WORD newcrv = (WORD)q931pdu.GetCallReference();
 			if (m_crv && newcrv == (m_crv & 0x7fffu))
 				PTRACE(2, "Q931\tWarning: duplicate Setup - ignored!");
 			else {
@@ -761,11 +758,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				else
 					PTRACE(3,"Q931\tFailed to encode message "<<releasePDU);
 			}
-			delete q931pdu;
 			return NoData;
-		} else {
-			delete m_lastQ931;
-			m_lastQ931 = q931pdu;
 		}
 
 		if (m_h245Tunneling)
@@ -778,107 +771,98 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		switch (body.GetTag())
 		{
 		case H225_H323_UU_PDU_h323_message_body::e_setup:
-			if (remote || m_setupUUIE) {
+			if (remote) {
 				PTRACE(3, "Warning: duplicate Setup? ignored!");
 				return NoData;
 			}
-			m_crv = (WORD)(m_lastQ931->GetCallReference() | 0x8000u);
-			m_setupUUIE = new H225_H323_UserInformation(signal);
-			changed = OnSetup(body, in_rewrite_id, out_rewrite_id);
+			m_crv = (WORD)(q931pdu.GetCallReference() | 0x8000u);
+			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardOnFacility", "1"))) {
+				// we need to store Setup message only if gatekeeper forwarding is enabled
+				delete m_setupPdu;
+				m_setupPdu = new Q931(q931pdu);
+			}
+			changed = OnSetup(q931pdu, body, in_rewrite_id, out_rewrite_id);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_callProceeding:
-			changed = OnCallProceeding(body);
+			changed = OnCallProceeding(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_connect:
-			changed = OnConnect(body);
+			changed = OnConnect(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_alerting:
-			changed = OnAlerting(body);
+			changed = OnAlerting(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_information:
-			changed = OnInformation(body);
+			changed = OnInformation(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_releaseComplete:
-			changed = OnReleaseComplete(body);
+			changed = OnReleaseComplete(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_facility:
-			changed = OnFacility(body);
+			changed = OnFacility(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_progress:
-			changed = OnProgress(body);
+			changed = OnProgress(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_empty:
-			changed = OnEmpty(body);
+			changed = OnEmpty(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_status:
-			changed = OnStatus(body);
+			changed = OnStatus(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_statusInquiry:
-			changed = OnStatusInquiry(body);
+			changed = OnStatusInquiry(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_setupAcknowledge:
-			changed = OnSetupAcknowledge(body);
+			changed = OnSetupAcknowledge(q931pdu, body);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_notify:
-			changed = OnNotify(body);
+			changed = OnNotify(q931pdu, body);
 			break;
 		default:
 			PTRACE(4, "Q931\t" << GetName() << " UNKNOWN Q.931");
 			break;
 		}
-		/* buggy
-		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardControl)) {
-			for (PINDEX n = 0; n < pdu.m_nonStandardControl.GetSize(); ++n)
-				if (OnNonStandardData(pdu.m_nonStandardControl[n].m_data))
-					changed = true;
-			PTRACE(5, "Q931\t" << GetName() << " Rewriting nonStandardControl");
-		}
-		*/
+
 		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control) && m_h245handler)
 			if (OnTunneledH245(pdu.m_h245Control))
 				changed = true;
 
 		if (changed)
-			SetUUIE(*m_lastQ931, signal);
+			SetUUIE(q931pdu, signal);
 	} else { // not have UUIE
-		delete m_lastQ931;
-		m_lastQ931 = q931pdu;
-		PrintQ931(4, "Received:", "", m_lastQ931, 0);
+		PrintQ931(4, "Received:", "", &q931pdu, 0);
 	}
-/*
-   Note: Openh323 1.7.9 or later required.
-   The older version has an out of memory bug in Q931::GetCalledPartyNumber.
-*/
 
 	PString display = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
 	if (!display) {
-		m_lastQ931->SetDisplayName(display);
+		q931pdu.SetDisplayName(display);
 		changed = true;
 	}
 	
 	PString cli = GkConfig()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
 	if (!cli) {
 		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
-		if (m_lastQ931->HasIE(Q931::CallingPartyNumberIE)) {
+		if (q931pdu.HasIE(Q931::CallingPartyNumberIE)) {
 			PString dummy;
-			m_lastQ931->GetCallingPartyNumber(dummy, &plan, &type);
+			q931pdu.GetCallingPartyNumber(dummy, &plan, &type);
 		}
-		m_lastQ931->SetCallingPartyNumber(cli, plan, type);
+		q931pdu.SetCallingPartyNumber(cli, plan, type);
 		changed = true;
 	}
 
 	if (changed) {
-		m_lastQ931->Encode(buffer);
+		q931pdu.Encode(buffer);
 #if PTRACING
 		if (remote)
-			PrintQ931(5, "Send to ", remote->GetName(), m_lastQ931, psignal);
+			PrintQ931(5, "Send to ", remote->GetName(), &q931pdu, psignal);
 #endif
 	}
 
-	switch (m_lastQ931->GetMessageType())
+	switch (q931pdu.GetMessageType())
 	{
 		case Q931::SetupMsg:
-			if( m_result == Error ) {
+			if (m_result == Error) {
 				CallTable::Instance()->RemoveCall(m_call);
 				EndSession();
 			}
@@ -889,7 +873,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			m_result = NoData;
 		*/
 		case Q931::InformationMsg:
-			OnInformationMsg(*m_lastQ931);
+			OnInformationMsg(q931pdu);
 			break;
 		case Q931::ReleaseCompleteMsg:
 			CallTable::Instance()->RemoveCall(m_call);
@@ -993,42 +977,49 @@ void CallSignalSocket::OnError()
 		remote->EndSession();
 }
 
-void CallSignalSocket::ForwardCall()
+void CallSignalSocket::ForwardCall(
+	Q931* q931pdu
+	)
 {
+	ReadLock configLock(ConfigReloadMutex);
 	MarkSocketBlocked lock(this);
 
 	H225_H323_UserInformation fuuie;
-	GetUUIE(*m_lastQ931, fuuie, GetName());
-	H225_Facility_UUIE & Facility = fuuie.m_h323_uu_pdu.m_h323_message_body;
+	GetUUIE(*q931pdu, fuuie, GetName());
+	H225_Facility_UUIE &Facility = fuuie.m_h323_uu_pdu.m_h323_message_body;
 
 	endptr forwarded;
-	Routing::FacilityRequest request(Facility, m_lastQ931, forwarded);
+	Routing::FacilityRequest request(Facility, q931pdu, forwarded);
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
 	if (aliases) // TODO: use rewritten as a policy
 		Toolkit::Instance()->RewriteE164(*aliases);
-	if (H225_TransportAddress *dest = request.Process()) {
-		PString forwarder;
-		if (Facility.HasOptionalField(H225_Facility_UUIE::e_featureSet) && Facility.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
-			// get the forwarder
-			H225_ArrayOf_FeatureDescriptor & fd = Facility.m_featureSet.m_neededFeatures;
-			if ((fd.GetSize() > 0) && fd[0].HasOptionalField(H225_FeatureDescriptor::e_parameters))
-				if (fd[0].m_parameters.GetSize() > 0) {
-					H225_EnumeratedParameter & parm = fd[0].m_parameters[0];
-					if (parm.HasOptionalField(H225_EnumeratedParameter::e_content))
-						if (parm.m_content.GetTag() == H225_Content::e_alias)
-							forwarder = AsString((const H225_AliasAddress&)parm.m_content, FALSE) + ":forward";
-				}
-		}
-		PString altDestInfo(aliases ? AsString(*aliases) : AsDotString(*dest));
-		CallSignalSocket *fsocket = (Facility.m_reason.GetTag() == H225_FacilityReason::e_callForwarded) ? this : 0;
-		m_call->SetForward(fsocket, *dest, forwarded, forwarder, altDestInfo);
-		if (request.GetFlags() & Routing::SetupRequest::e_toParent)
-			m_call->SetToParent(true);
-		PTRACE(3, "Q931\tCall " << m_call->GetCallNumber() << " is forwarded to " << altDestInfo << (!forwarder ? (" by " + forwarder) : PString()));
-	} else {
+		
+	H225_TransportAddress *dest = request.Process();
+	if (dest == NULL) {
 		ForwardData();
+		delete q931pdu;
 		return;
 	}
+
+	PString forwarder;
+	if (Facility.HasOptionalField(H225_Facility_UUIE::e_featureSet) && Facility.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+		// get the forwarder
+		H225_ArrayOf_FeatureDescriptor & fd = Facility.m_featureSet.m_neededFeatures;
+		if ((fd.GetSize() > 0) && fd[0].HasOptionalField(H225_FeatureDescriptor::e_parameters))
+			if (fd[0].m_parameters.GetSize() > 0) {
+				H225_EnumeratedParameter & parm = fd[0].m_parameters[0];
+				if (parm.HasOptionalField(H225_EnumeratedParameter::e_content))
+					if (parm.m_content.GetTag() == H225_Content::e_alias)
+						forwarder = AsString((const H225_AliasAddress&)parm.m_content, FALSE) + ":forward";
+			}
+	}
+	PString altDestInfo(aliases ? AsString(*aliases) : AsDotString(*dest));
+	CallSignalSocket *fsocket = (Facility.m_reason.GetTag() == H225_FacilityReason::e_callForwarded) ? this : 0;
+	m_call->SetForward(fsocket, *dest, forwarded, forwarder, altDestInfo);
+	if (request.GetFlags() & Routing::SetupRequest::e_toParent)
+		m_call->SetToParent(true);
+
+	PTRACE(3, "Q931\tCall " << m_call->GetCallNumber() << " is forwarded to " << altDestInfo << (!forwarder ? (" by " + forwarder) : PString()));
 
 	// disconnect from forwarder
 	SendReleaseComplete(H225_ReleaseCompleteReason::e_facilityCallDeflection);
@@ -1037,21 +1028,26 @@ void CallSignalSocket::ForwardCall()
 	CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote);
 	if (!ret) {
 		PTRACE(2, "Warning: " << GetName() << " has no remote party?");
+		delete q931pdu;
 		return;
 	}
 	MarkSocketBlocked rlock(ret);
-	if (!ret->m_setupUUIE) {
-		PTRACE(1, "Error: " << GetName() << " no SetupUUIE!");
+	if (!ret->m_setupPdu) {
+		PTRACE(1, "Error: " << GetName() << " no Setup message stored!");
+		delete q931pdu;
 		return;
 	}
 
-	Q931 fakeSetup, *Setup = ret->m_lastQ931;
-	H225_H323_UserInformation suuie = *ret->m_setupUUIE;
-	if (Setup->GetMessageType() != Q931::SetupMsg) {
-		fakeSetup.BuildSetup(m_crv);
-		Setup = &fakeSetup;
+	Q931 fakeSetup(*ret->m_setupPdu);
+	H225_H323_UserInformation suuie;
+	if (!GetUUIE(fakeSetup, suuie, GetName()) 
+			|| suuie.m_h323_uu_pdu.m_h323_message_body.GetTag() !=  H225_H323_UU_PDU_h323_message_body::e_setup) {
+		PTRACE(1, "Error: " << GetName() << " no Setup UUIE found!");
+		delete q931pdu;
+		return;
 	}
-	H225_Setup_UUIE & SetupUUIE = suuie.m_h323_uu_pdu.m_h323_message_body;
+	
+	H225_Setup_UUIE &SetupUUIE = suuie.m_h323_uu_pdu.m_h323_message_body;
 	if (Facility.HasOptionalField(H225_Facility_UUIE::e_cryptoTokens)) {
 		SetupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 		SetupUUIE.m_cryptoTokens = Facility.m_cryptoTokens;
@@ -1060,7 +1056,7 @@ void CallSignalSocket::ForwardCall()
 		const H225_ArrayOf_AliasAddress & a = *aliases;
 		for (PINDEX n = 0; n < a.GetSize(); ++n)
 			if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
-				Setup->SetCalledPartyNumber(AsString(a[n], FALSE));
+				fakeSetup.SetCalledPartyNumber(AsString(a[n], FALSE));
 				break;
 			}
 		SetupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
@@ -1072,7 +1068,7 @@ void CallSignalSocket::ForwardCall()
 			for (PINDEX n = 0; n < a.GetSize(); ++n)
 				if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
 					PString callingNumber(AsString(a[n], FALSE));
-					Setup->SetCallingPartyNumber(callingNumber);
+					fakeSetup.SetCallingPartyNumber(callingNumber);
 					SetupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
 					SetupUUIE.m_sourceAddress.SetSize(1);
 					H323SetAliasAddress(callingNumber, SetupUUIE.m_sourceAddress[0]);
@@ -1087,9 +1083,9 @@ void CallSignalSocket::ForwardCall()
 	ret->m_h245handler = 0;
 
 	if (ret->CreateRemote(SetupUUIE)) {
-		SetUUIE(*Setup, suuie);
-		Setup->Encode(ret->buffer);
-		PrintQ931(5, "Forward Setup to ", ret->remote->GetName(), Setup, &suuie);
+		SetUUIE(fakeSetup, suuie);
+		fakeSetup.Encode(ret->buffer);
+		PrintQ931(5, "Forward Setup to ", ret->remote->GetName(), &fakeSetup, &suuie);
 		if (ret->m_result == Forwarding || ret->InternalConnectTo()) {
 			CallSignalSocket *result = static_cast<CallSignalSocket *>(ret->remote);
 			if (m_h245socket) {
@@ -1110,6 +1106,7 @@ void CallSignalSocket::ForwardCall()
 
 	// let the socket be deletable
 	SetDeletable();
+	delete q931pdu;
 }
 
 PString CallSignalSocket::GetCallingStationId(
@@ -1215,7 +1212,12 @@ PString CallSignalSocket::GetCalledStationId(
 	return id;
 }
 
-bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, PString &out_rewrite_id)
+bool CallSignalSocket::OnSetup(
+	Q931 &q931pdu,
+	H225_Setup_UUIE &Setup,
+	PString &in_rewrite_id,
+	PString &out_rewrite_id
+	)
 {
 	// record the timestamp here since processing may take much time
 	time_t setupTime = time(0);
@@ -1226,7 +1228,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) || (Setup.m_destinationAddress.GetSize() < 1)) {
 		unsigned plan, type;
 		PString destination;
-		if (m_lastQ931->GetCalledPartyNumber(destination, &plan, &type)) {
+		if (q931pdu.GetCalledPartyNumber(destination, &plan, &type)) {
 			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
 			// We create the destinationAddress according to it
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
@@ -1251,7 +1253,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 	PString dialedNumber;
 	
-	m_lastQ931->GetCalledPartyNumber(dialedNumber);
+	q931pdu.GetCalledPartyNumber(dialedNumber);
 	
 	if (dialedNumber.IsEmpty()) {
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
@@ -1330,19 +1332,19 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress);
 	}
 
-	if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
 		unsigned plan, type;
 		PString calledNumber;
 
 		// Do per GW inbound rewrite before global rewrite
-		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+		if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type) &&
 			Toolkit::Instance()->GWRewritePString(in_rewrite_id,true,calledNumber))
-			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+			q931pdu.SetCalledPartyNumber(calledNumber, plan, type);
 
 		// Normal rewrite
-		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+		if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type) &&
 		    Toolkit::Instance()->RewritePString(calledNumber))
-			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+			q931pdu.SetCalledPartyNumber(calledNumber, plan, type);
 	}
 
 
@@ -1364,7 +1366,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				m_call->SetDisconnectCause(Q931::CallRejected);
 				rejectCall = true;
 			} else
-				gkClient->RewriteE164(*m_lastQ931, Setup, true);
+				gkClient->RewriteE164(q931pdu, Setup, true);
 		}
 		// TODO: check for facility
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
@@ -1378,11 +1380,11 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		SetupAuthData authData(m_call, true, fromIP, fromPort);
 		authData.m_dialedNumber = dialedNumber;
 		authData.SetRouteToAlias(m_call->GetRouteToAlias());
-		authData.m_callingStationId = GetCallingStationId(*m_lastQ931, Setup, authData);
-		authData.m_calledStationId = GetCalledStationId(*m_lastQ931, Setup, authData);
+		authData.m_callingStationId = GetCallingStationId(q931pdu, Setup, authData);
+		authData.m_calledStationId = GetCalledStationId(q931pdu, Setup, authData);
 		
 		// authenticate the call
-		if (!rejectCall && !RasSrv->ValidatePDU(*m_lastQ931, Setup, authData)) {
+		if (!rejectCall && !RasSrv->ValidatePDU(q931pdu, Setup, authData)) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
 				<<" due to Setup authentication failure"
 				);
@@ -1400,14 +1402,14 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			Setup.m_destinationAddress.SetSize(1);
 			Setup.m_destinationAddress[0] = *authData.m_routeToAlias;
 			const PString alias = AsString(Setup.m_destinationAddress[0], FALSE);
-			if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+			if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
 				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
 					unsigned plan, type;
 					PString calledNumber;
-					if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type))
-						m_lastQ931->SetCalledPartyNumber(alias, plan, type);
+					if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type))
+						q931pdu.SetCalledPartyNumber(alias, plan, type);
 				} else
-					m_lastQ931->RemoveIE(Q931::CalledPartyNumberIE);
+					q931pdu.RemoveIE(Q931::CalledPartyNumberIE);
 			}
 			authData.m_calledStationId = alias;
 			PTRACE(2, "Q931\tSetup destination set to " << alias);
@@ -1435,10 +1437,10 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	} else {
 		SetupAuthData authData(m_call, false, fromIP, fromPort);
 		authData.m_dialedNumber = dialedNumber;
-		authData.m_callingStationId = GetCallingStationId(*m_lastQ931, Setup, authData);
-		authData.m_calledStationId = GetCalledStationId(*m_lastQ931, Setup, authData);
+		authData.m_callingStationId = GetCallingStationId(q931pdu, Setup, authData);
+		authData.m_calledStationId = GetCalledStationId(q931pdu, Setup, authData);
 
-		if (!RasSrv->ValidatePDU(*m_lastQ931,Setup, authData)) {
+		if (!RasSrv->ValidatePDU(q931pdu, Setup, authData)) {
 			PTRACE(4,"Q931\tDropping call from " << fromIP << ':' << fromPort
 				<<" due to Setup authentication failure"
 				);
@@ -1452,14 +1454,14 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			Setup.m_destinationAddress.SetSize(1);
 			Setup.m_destinationAddress[0] = *authData.m_routeToAlias;
 			const PString alias = AsString(Setup.m_destinationAddress[0], FALSE);
-			if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+			if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
 				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
 					unsigned plan, type;
 					PString calledNumber;
-					if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type))
-						m_lastQ931->SetCalledPartyNumber(alias, plan, type);
+					if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type))
+						q931pdu.SetCalledPartyNumber(alias, plan, type);
 				} else
-					m_lastQ931->RemoveIE(Q931::CalledPartyNumberIE);
+					q931pdu.RemoveIE(Q931::CalledPartyNumberIE);
 			}
 			authData.m_calledStationId = alias;
 			PTRACE(2, "Q931\tSetup destination set to " << alias);
@@ -1468,7 +1470,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		endptr called;
 		bool destFound = false;
 		H225_TransportAddress calledAddr;
-		Routing::SetupRequest request(Setup, m_lastQ931, called);
+		Routing::SetupRequest request(Setup, &q931pdu, called);
 		
 		if (!rejectCall && authData.m_routeToIP != NULL) {
 			request.SetDestination(calledAddr, true);
@@ -1481,7 +1483,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(fromIP);
 		if (!rejectCall && useParent) {
-			gkClient->RewriteE164(*m_lastQ931, Setup, false);
+			gkClient->RewriteE164(q931pdu, Setup, false);
 			if (!gkClient->SendARQ(request, true)) { // send answered ARQ
 				PTRACE(2, "Q931\tGot ARJ from parent for " << GetName());
 				authData.m_rejectCause = Q931::CallRejected;
@@ -1543,7 +1545,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed
 		bool h245Routed = RasSrv->IsH245Routed() || (useParent && gkClient->IsNATed());
 		// workaround for bandwidth, as OpenH323 library :p
-		CallRec* call = new CallRec(*m_lastQ931, Setup, h245Routed, 
+		CallRec* call = new CallRec(q931pdu, Setup, h245Routed, 
 			destinationString, authData.m_proxyMode
 			);
 		call->SetSrcSignalAddr(SocketToH225TransportAddr(fromIP,fromPort));
@@ -1645,14 +1647,14 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 	}
 
-	if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
 		unsigned plan, type;
 		PString calledNumber;
 
 		// Do per GW outbound rewrite after global rewrite
-		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+		if (q931pdu.GetCalledPartyNumber(calledNumber, &plan, &type) &&
 			Toolkit::Instance()->GWRewritePString(out_rewrite_id,false,calledNumber))
-			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+			q931pdu.SetCalledPartyNumber(calledNumber, plan, type);
 	}
 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
@@ -1724,7 +1726,10 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
 	return true;
 }
 
-bool CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceeding)
+bool CallSignalSocket::OnCallProceeding(
+	Q931 &/*q931pdu*/,
+	H225_CallProceeding_UUIE &CallProceeding
+	)
 {
 	bool changed = HandleH245Address(CallProceeding);
 	if (CallProceeding.HasOptionalField(H225_CallProceeding_UUIE::e_multipleCalls)
@@ -1740,7 +1745,10 @@ bool CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceedin
 	return HandleFastStart(CallProceeding, false) || changed;
 }
 
-bool CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
+bool CallSignalSocket::OnConnect(
+	Q931 &/*q931pdu*/,
+	H225_Connect_UUIE &Connect
+	)
 {
 	if (m_call) {// hmm... it should not be null
 		m_call->SetConnected();
@@ -1767,7 +1775,10 @@ bool CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 	return HandleFastStart(Connect, false) || changed;
 }
 
-bool CallSignalSocket::OnAlerting(H225_Alerting_UUIE & Alerting)
+bool CallSignalSocket::OnAlerting(
+	Q931 &/*q931pdu*/,
+	H225_Alerting_UUIE &Alerting
+	)
 {
 	bool changed = HandleH245Address(Alerting);
 	if (Alerting.HasOptionalField(H225_Alerting_UUIE::e_multipleCalls)
@@ -1783,18 +1794,24 @@ bool CallSignalSocket::OnAlerting(H225_Alerting_UUIE & Alerting)
 	return HandleFastStart(Alerting, false) || changed;
 }
 
-bool CallSignalSocket::OnInformation(H225_Information_UUIE &)
+bool CallSignalSocket::OnInformation(
+	Q931 &/*q931pdu*/,
+	H225_Information_UUIE &/*information*/
+	)
 {
 	return false; // do nothing
 }
 
-bool CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComplete)
+bool CallSignalSocket::OnReleaseComplete(
+	Q931 &q931pdu,
+	H225_ReleaseComplete_UUIE &ReleaseComplete
+	)
 {
 	if( m_call ) {
 		m_call->SetDisconnectTime(time(NULL));
-		if( m_lastQ931 && m_lastQ931->HasIE(Q931::CauseIE) )
-			m_call->SetDisconnectCause(m_lastQ931->GetCause());
-		else if( ReleaseComplete.HasOptionalField(H225_ReleaseComplete_UUIE::e_reason) )
+		if (q931pdu.HasIE(Q931::CauseIE) )
+			m_call->SetDisconnectCause(q931pdu.GetCause());
+		else if (ReleaseComplete.HasOptionalField(H225_ReleaseComplete_UUIE::e_reason))
 			m_call->SetDisconnectCause(
 				MapH225ReasonToQ931Cause(ReleaseComplete.m_reason.GetTag())
 				);
@@ -1802,7 +1819,10 @@ bool CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComp
 	return false; // do nothing
 }
 
-bool CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
+bool CallSignalSocket::OnFacility(
+	Q931 &q931pdu,
+	H225_Facility_UUIE &Facility
+	)
 {
 	bool changed = false;
 	
@@ -1832,12 +1852,12 @@ bool CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
 			// to avoid complicated handling of H.245 channel on forwarding,
 			// we only do forward if forwarder is the called party and
 			// H.245 channel is not established yet
-			if (m_setupUUIE || (m_h245socket && m_h245socket->IsConnected()))
+			if (m_setupPdu || (m_h245socket && m_h245socket->IsConnected()))
 				break;
 			// make sure the call is still active
 			if (m_call && CallTable::Instance()->FindCallRec(m_call->GetCallNumber())) {
 				MarkBlocked(true);
-				CreateJob(this, &CallSignalSocket::ForwardCall, "ForwardCall");
+				CreateJob(this, &CallSignalSocket::ForwardCall, new Q931(q931pdu), "ForwardCall");
 				m_result = NoData;
 				return false;
 			}
@@ -1848,7 +1868,10 @@ bool CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
 	return HandleFastStart(Facility, false) || changed;
 }
 
-bool CallSignalSocket::OnProgress(H225_Progress_UUIE & Progress)
+bool CallSignalSocket::OnProgress(
+	Q931 &/*q931pdu*/,
+	H225_Progress_UUIE &Progress
+	)
 {
 	bool changed = HandleH245Address(Progress);
 	if (Progress.HasOptionalField(H225_Progress_UUIE::e_multipleCalls)
@@ -1864,79 +1887,45 @@ bool CallSignalSocket::OnProgress(H225_Progress_UUIE & Progress)
 	return HandleFastStart(Progress, false) || changed;
 }
 
-bool CallSignalSocket::OnEmpty(H225_H323_UU_PDU_h323_message_body &)
+bool CallSignalSocket::OnEmpty(
+	Q931 &/*q931pdu*/,
+	H225_H323_UU_PDU_h323_message_body &/*body*/
+	)
 {
 	return false; // do nothing
 }
 
-bool CallSignalSocket::OnStatus(H225_Status_UUIE &)
+bool CallSignalSocket::OnStatus(
+	Q931 &/*q931pdu*/,
+	H225_Status_UUIE &/*status*/
+	)
 {
 	return false; // do nothing
 }
 
-bool CallSignalSocket::OnStatusInquiry(H225_StatusInquiry_UUIE &)
+bool CallSignalSocket::OnStatusInquiry(
+	Q931 &/*q931pdu*/,
+	H225_StatusInquiry_UUIE &/*inquiry*/
+	)
 {
 	return false; // do nothing
 }
 
-bool CallSignalSocket::OnSetupAcknowledge(H225_SetupAcknowledge_UUIE &)
+bool CallSignalSocket::OnSetupAcknowledge(
+	Q931 &/*q931pdu*/,
+	H225_SetupAcknowledge_UUIE &/*setupack*/
+	)
 {
 	return false; // do nothing
 }
 
-bool CallSignalSocket::OnNotify(H225_Notify_UUIE &)
+bool CallSignalSocket::OnNotify(
+	Q931 &/*q931pdu*/,
+	H225_Notify_UUIE &/*notify*/
+	)
 {
 	return false; // do nothing
 }
-
-/*
-bool CallSignalSocket::OnNonStandardData(PASN_OctetString & octs)
-{
-	bool changed = false;
-	BYTE buf[5000];
-	BYTE *pBuf  = buf;               // write pointer
-	BYTE *pOcts = octs.GetPointer(); // read pointer
-	BYTE *mOcts = pOcts + octs.GetSize();
-	PString *CalledPN;
-
-	while (pOcts < mOcts) {
-		BYTE type  = pOcts[0];
-		BYTE len   = pOcts[1];
-		switch (type) {
-		case 0x70: // called party
-			CalledPN = new PString( (char*) (&(pOcts[3])), len-1);
-			if (Toolkit::Instance()->RewritePString(*CalledPN)) {
-				// change
-				const char* s = *CalledPN;
-				pBuf[0] = type;
-				pBuf[1] = strlen(s)+1;
-				pBuf[2] = pOcts[2];  // type of number, numbering plan id
-				memcpy(&(pBuf[3]), s, strlen(s));
-				pBuf += strlen(s)+3;
-				changed = true;
-			} else {
-				// leave unchanged
-				memcpy(pBuf, pOcts, (len+2)*sizeof(BYTE));
-				pBuf += len+2;  // incr write pointer
-			}
-			delete CalledPN;
-			break;
-		case 0x6c: // calling party
-		default: // copy through
-			memcpy(pBuf, pOcts, (len+2)*sizeof(BYTE));
-			pBuf += len+2;  // incr write pointer
-		}
-
-		// increment read pointer
-		pOcts += len+2;
-	}
-
-	// set new value if necessary
-	if (changed)
-		octs.SetValue(buf, pBuf-buf);
-	return changed;
-}
-*/
 
 bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control)
 {
@@ -1976,27 +1965,34 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 	return changed;
 }
 
-bool CallSignalSocket::OnInformationMsg(Q931 & q931pdu)
+bool CallSignalSocket::OnInformationMsg(
+	Q931 &q931pdu
+	)
 {
+	if (!q931pdu.HasIE(Q931::FacilityIE))
+		return false;
+		
 	PBYTEArray buf = q931pdu.GetIE(Q931::FacilityIE);
-	if (!remote && buf.GetSize() > 0) {
+	if (remote != NULL && buf.GetSize() > 0) {
 		H225_EndpointIdentifier id;
 		PString epid((const char *)buf.GetPointer(), buf.GetSize());
 		id = epid;
 		PTRACE(3, "Q931\tEPID = " << epid);
 		endptr ep = RegistrationTable::Instance()->FindByEndpointId(id);
-		buf = q931pdu.GetIE(Q931::CallStateIE);
-		if (buf.GetSize() > 0 && buf[0] == Q931::CallState_DisconnectRequest) {
-			if (ep) {
-				ep->GetSocket();
-				SetDeletable();
-				PTRACE(3, "Q931\tClose NAT socket " << GetName());
+		if (q931pdu.HasIE(Q931::CallStateIE)) {
+			buf = q931pdu.GetIE(Q931::CallStateIE);
+			if (buf.GetSize() > 0 && buf[0] == Q931::CallState_DisconnectRequest) {
+				if (ep) {
+					ep->GetSocket();
+					SetDeletable();
+					PTRACE(3, "Q931\tClose NAT socket " << GetName());
+				}
+				Close();
+			} else if (ep) {
+				m_isnatsocket = true;
+				ep->SetSocket(this);
+				SetConnected(true); // avoid the socket be deleted
 			}
-			Close();
-		} else if (ep) {
-			m_isnatsocket = true;
-			ep->SetSocket(this);
-			SetConnected(true); // avoid the socket be deleted
 		}
 		m_result = NoData;
 	}
@@ -2076,47 +2072,46 @@ void CallSignalSocket::Dispatch()
 			}
 		}
 		
-		switch (ReceiveData())
-		{
-			case NoData:
-				if (m_isnatsocket) {
-					GetHandler()->Insert(this);
-					return;
-				}
-				// update timeout to reflect remaing time
-				timeout = setupTimeout - (PTime() - channelStart).GetInterval();
-				break;
+		switch (ReceiveData()) {
+		case NoData:
+			if (m_isnatsocket) {
+				GetHandler()->Insert(this);
+				return;
+			}
+			// update timeout to reflect remaing time
+			timeout = setupTimeout - (PTime() - channelStart).GetInterval();
+			break;
 
-			case Connecting:
-				if (InternalConnectTo()) {
-					if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
-						remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-							GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
-							SOL_SOCKET
-							);
+		case Connecting:
+			if (InternalConnectTo()) {
+				if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
+					remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
+						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+						SOL_SOCKET
+						);
 							
-					ConfigReloadMutex.EndRead();
-					const bool isReadable = remote->IsReadable(2*setupTimeout);
-					ConfigReloadMutex.StartRead();
-					if (!isReadable) {
-						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-						if( m_call ) {
-							m_call->SetDisconnectCause(Q931::TimerExpiry);
-							CallTable::Instance()->RemoveCall(m_call);
-						}
+				ConfigReloadMutex.EndRead();
+				const bool isReadable = remote->IsReadable(2*setupTimeout);
+				ConfigReloadMutex.StartRead();
+				if (!isReadable) {
+					PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
+					if( m_call ) {
+						m_call->SetDisconnectCause(Q931::TimerExpiry);
+						CallTable::Instance()->RemoveCall(m_call);
 					}
-					GetHandler()->Insert(this, remote);
-					return;
 				}
+				GetHandler()->Insert(this, remote);
+				return;
+			}
 
-			case Forwarding:
-				if (remote && remote->IsConnected()) { // remote is NAT socket
-					if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
-						remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-							GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
-							SOL_SOCKET
-							);
-					ForwardData();
+		case Forwarding:
+			if (remote && remote->IsConnected()) { // remote is NAT socket
+				if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
+					remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
+						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+						SOL_SOCKET
+						);
+				ForwardData();
 // in case of NAT socket, IsReadable cause race condition if the remote socket
 // is selected by its proxy handler, thanks to Daniel Liu
 //
@@ -2128,13 +2123,13 @@ void CallSignalSocket::Dispatch()
 //						}
 //					}
 					return;
-				}
+			}
 
-			default:
-				timeout = 0;
-				break;
-		}
-	}
+		default:
+			timeout = 0;
+			break;
+		} /* switch */
+	} /* while */
 	if (m_call)
 		m_call->SetSocket(NULL, NULL);
 	delete this; // oh!

@@ -154,22 +154,21 @@ protected:
 	CallSignalSocket(CallSignalSocket *);
 	void SetRemote(CallSignalSocket *);
 	bool CreateRemote(H225_Setup_UUIE &);
-	void ForwardCall();
+	void ForwardCall(Q931* q931pdu);
 
-	bool OnSetup(H225_Setup_UUIE &, PString &in_rewrite_id, PString &out_rewrite_id);
-	bool OnCallProceeding(H225_CallProceeding_UUIE &);
-	bool OnConnect(H225_Connect_UUIE &);
-	bool OnAlerting(H225_Alerting_UUIE &);
-	bool OnInformation(H225_Information_UUIE &);
-	bool OnReleaseComplete(H225_ReleaseComplete_UUIE &);
-	bool OnFacility(H225_Facility_UUIE &);
-	bool OnProgress(H225_Progress_UUIE &);
-	bool OnEmpty(H225_H323_UU_PDU_h323_message_body &);
-	bool OnStatus(H225_Status_UUIE &);
-	bool OnStatusInquiry(H225_StatusInquiry_UUIE &);
-	bool OnSetupAcknowledge(H225_SetupAcknowledge_UUIE &);
-	bool OnNotify(H225_Notify_UUIE &);
-//	bool OnNonStandardData(PASN_OctetString &);
+	bool OnSetup(Q931& q931pdu, H225_Setup_UUIE &, PString &in_rewrite_id, PString &out_rewrite_id);
+	bool OnCallProceeding(Q931& q931pdu, H225_CallProceeding_UUIE &);
+	bool OnConnect(Q931& q931pdu, H225_Connect_UUIE &);
+	bool OnAlerting(Q931& q931pdu, H225_Alerting_UUIE &);
+	bool OnInformation(Q931& q931pdu, H225_Information_UUIE &);
+	bool OnReleaseComplete(Q931& q931pdu, H225_ReleaseComplete_UUIE &);
+	bool OnFacility(Q931& q931pdu, H225_Facility_UUIE &);
+	bool OnProgress(Q931& q931pdu, H225_Progress_UUIE &);
+	bool OnEmpty(Q931& q931pdu, H225_H323_UU_PDU_h323_message_body &);
+	bool OnStatus(Q931& q931pdu, H225_Status_UUIE &);
+	bool OnStatusInquiry(Q931& q931pdu, H225_StatusInquiry_UUIE &);
+	bool OnSetupAcknowledge(Q931& q931pdu, H225_SetupAcknowledge_UUIE &);
+	bool OnNotify(Q931& q931pdu, H225_Notify_UUIE &);
 	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
 	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
@@ -235,8 +234,8 @@ private:
 	H245Socket *m_h245socket;
 	bool m_h245Tunneling, m_isnatsocket;
 	Result m_result;
-	Q931 *m_lastQ931;
-	H225_H323_UserInformation *m_setupUUIE;
+	/// stored for use by ForwardCall, NULL if ForwardOnFacility is disabled
+	Q931 *m_setupPdu;
 };
 
 class CallSignalListener : public TCPListenSocket {
