@@ -169,9 +169,12 @@ public:
 
 	virtual PString PrintOn(bool verbose) const;
 
+	void SetNATAddress(PIPSocket::Address);
+
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const { return m_fromParent; }
+	bool IsNATed() const { return m_nat; }
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 
 	/** If this Endpoint would be register itself again with all the same data
@@ -218,7 +221,7 @@ protected:
 	mutable PMutex m_usedLock;
 
 	PTime m_updatedTime;
-	bool m_fromParent;
+	bool m_fromParent, m_nat;
 
 private: // not assignable
 	EndpointRec(const EndpointRec &);
@@ -398,6 +401,13 @@ public:
 	        const PString & srcInfo, int);
 	virtual ~CallRec();
 
+	enum NATType { // who is nated?
+		none = 0,
+		callingParty = 1,
+		calledParty = 2,
+		both = 3
+	};
+
 	PINDEX GetCallNumber() const
 	{ return m_CallNumber; }
 	const H225_CallIdentifier & GetCallIdentifier() const
@@ -409,6 +419,7 @@ public:
 	const H225_TransportAddress *GetCalledAddress() const
 	{ return (m_Called) ? &m_Called->GetCallSignalAddress() : 0; }
 	int GetBandWidth() const { return m_bandWidth; }
+	int GetNATType() const { return m_nattype; }
 
 	void SetCalling(const endptr & NewCalling, unsigned = 0);
 	void SetCalled(const endptr & NewCalled, unsigned = 0);
@@ -476,7 +487,8 @@ private:
 
 	int m_usedCount;
 	mutable PMutex m_usedLock;
-
+	int m_nattype;
+	
 	bool m_h245Routed;
 	bool m_registered;
 
@@ -606,12 +618,16 @@ inline void CallRec::SetTimer(int seconds)
 inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 {
 	InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
+	if (NewCalling->IsNATed())
+		m_nattype |= callingParty;
 }
 
 inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 {
 	InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
 	SetRegistered(m_Called && m_Called->IsFromParent());
+	if (NewCalled->IsNATed())
+		m_nattype |= calledParty;
 }
 
 inline void CallRec::Lock()

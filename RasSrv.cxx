@@ -392,10 +392,16 @@ void H323RasSrv::SetRoutedMode()
 	);
 }
 
+bool H323RasSrv::AcceptUnregisteredCalls(PIPSocket::Address ip, bool & fp) const
+{
+	return AcceptUnregCalls || (AcceptNBCalls ? (fp = (gkClient->IsRegistered() && gkClient->CheckGKIP(ip)) || NeighborsGK->CheckIP(ip)) : false);
+}
+
 void H323RasSrv::LoadConfig()
 {
 	PWaitAndSignal lock(loadLock);
 
+	AcceptNBCalls = Toolkit::AsBool(GkConfig()->GetString("AcceptNeighborsCalls", "1"));
 	AcceptUnregCalls = Toolkit::AsBool(GkConfig()->GetString("AcceptUnregisteredCalls", "0"));
 
 	// add authenticators
@@ -723,9 +729,18 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 
+	bool nated = false, validaddress = false;
 	if (obj_rr.m_callSignalAddress.GetSize() >= 1) {
 		SignalAdr = obj_rr.m_callSignalAddress[0];
-	} else if (!bReject) {
+		if (SignalAdr.GetTag() == H225_TransportAddress::e_ipAddress) {
+			H225_TransportAddress_ipAddress & ip = SignalAdr;
+			PIPSocket::Address ipaddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+			validaddress = (rx_addr == ipaddr);
+			if (!validaddress && Toolkit::AsBool(GkConfig()->GetString("SupportNATedEndpoints", "0")))
+				validaddress = nated = true;
+		}
+	}
+	if (!bReject && !validaddress) {
 		bReject = TRUE;
 		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
 	}
@@ -793,6 +808,8 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 		endptr ep = EndpointTable->InsertRec(store_rrq);
 		if ( ep ) {
+			if (nated)
+				ep->SetNATAddress(rx_addr);
 			//	
 			// OK, now send RCF
 			//	
@@ -932,11 +949,6 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress & ali
 bool H323RasSrv::SendLRQ(const H225_AdmissionRequest & arq, const endptr & reqEP)
 {
 	return arqPendingList->Insert(arq, reqEP);
-}
-
-bool H323RasSrv::CheckNBIP(PIPSocket::Address ip) const
-{
-	return NeighborsGK->CheckIP(ip);
 }
 
 /* Admission Request */
@@ -1483,7 +1495,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		lcf.m_nonStandardData = obj_lrq.m_nonStandardData;
 
 		WantedEndPoint->BuildLCF(obj_rpl);
-		if (GKRoutedSignaling && AcceptUnregCalls) {
+		if (GKRoutedSignaling && AcceptNBCalls) {
 			lcf.m_callSignalAddress = GetCallSignalAddress(rx_addr);
 			lcf.m_rasAddress = GetRasAddress(rx_addr);
 		}

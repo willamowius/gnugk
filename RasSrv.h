@@ -111,7 +111,8 @@ public:
 	bool Check();
 	bool IsGKRouted() const { return GKRoutedSignaling; }
 	bool IsGKRoutedH245() const { return GKRoutedH245; }
-	bool AcceptUnregisteredCalls() const { return AcceptUnregCalls; }
+
+	bool AcceptUnregisteredCalls(PIPSocket::Address, bool & fromParent) const;
 
 	void LoadConfig();
 
@@ -121,7 +122,6 @@ public:
 	GkClient * GetGkClient() const { return gkClient; }
 	NeighborList * GetNeighborsGK() const { return NeighborsGK; }
 	bool SendLRQ(const H225_AdmissionRequest &, const endptr &);
-	bool CheckNBIP(PIPSocket::Address) const;
 
 	WORD GetRequestSeqNum() { return ++requestSeqNum; }
 
@@ -140,7 +140,7 @@ protected:
 	void ProcessARQ(PIPSocket::Address rx_addr, const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl, BOOL bReject = FALSE);
 
 private:
-	bool GKRoutedSignaling, GKRoutedH245, AcceptUnregCalls;
+	bool GKRoutedSignaling, GKRoutedH245, AcceptNBCalls, AcceptUnregCalls;
 	WORD GKRasPort, GKCallSigPort;
         
 	PIPSocket::Address GKHome;

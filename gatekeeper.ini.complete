@@ -19,8 +19,10 @@ Name=OpenH323GK
 # overwritten from command line parameter
 #Home=195.71.129.69
 #TimeToLive=600
-AcceptUnregisteredCalls=1
+AcceptNeighborsCalls=1
+AcceptUnregisteredCalls=0
 TotalBandwidth=100000
+SupportNATedEndpoints=1
 
 [RoutedMode]
 GKRouted=1

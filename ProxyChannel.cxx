@@ -454,15 +454,11 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		if (m_call->IsRegistered())
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, true);
 	} else {
-		if (!RasThread->AcceptUnregisteredCalls()) {
-			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
-			return;
-		}
+		bool fromParent;
 		Address fromIP;
 		GetPeerAddress(fromIP);
-		bool fromParent = (gkClient->IsRegistered() && gkClient->CheckGKIP(fromIP));
-		if (!fromParent && !RasThread->CheckNBIP(fromIP)) {
-			PTRACE(2, "Q931\tWarning: call " << callid << " not from my neighbor or parent");
+		if (!RasThread->AcceptUnregisteredCalls(fromIP, fromParent)) {
+			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			return;
 		}
 		if (fromParent)

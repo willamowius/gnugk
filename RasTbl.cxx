@@ -114,7 +114,7 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 */
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0)
+      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -405,6 +405,17 @@ bool EndpointRec::SendIRQ()
 	RasThread->SendRas(ras_msg, GetRasAddress());
 
 	return true;
+}
+
+void EndpointRec::SetNATAddress(PIPSocket::Address /*ip*/)
+{
+/* need to do this?
+	if (m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)
+		m_rasAddress = SocketToH225TransportAddr(ip, ((H225_TransportAddress_ipAddress &)m_rasAddress).m_port);
+	if (m_callSignalAddress.GetTag() == H225_TransportAddress::e_ipAddress)
+		m_callSignalAddress = SocketToH225TransportAddr(ip, ((H225_TransportAddress_ipAddress &)m_callSignalAddress).m_port);
+*/
+	m_nat = true;
 }
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
@@ -980,7 +991,7 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_callingCRV(0), m_calledCRV(0),
 	m_startTime(0), m_timeout(0),
 	m_callingSocket(0), m_calledSocket(0),
-	m_usedCount(0)
+	m_usedCount(0), m_nattype(none)
 {
 }
 
