@@ -1168,7 +1168,8 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 // #endif
 
 				if (!bReject && !CalledEP &&
-				    rsn == H225_AdmissionRejectReason::e_securityDenial) {
+				    ( rsn == H225_AdmissionRejectReason::e_securityDenial ||
+					    rsn == H225_AdmissionRejectReason::e_resourceUnavailable)) {
 					if (gkClient->IsRegistered()) {
 						H225_ArrayOf_AliasAddress dest = obj_rr.m_destinationInfo;
 						H225_AdmissionRequest arq_fake=obj_rr;
