@@ -60,11 +60,11 @@ class search {
   bool is_search(char const *base, int scope, char const *filter, char **attrs, int attrsonly);
 };
   
-typedef vector<search> search_t;
+typedef vector<search> search_type
 
 typedef struct {
   LDAP * ld;
-  search_t search_cache;
+  search_type search_cache;
   int maxmem;
 } GK_LDAP;
 #else 
