@@ -37,10 +37,10 @@ public:
 	bool Exec(Job *);
 	void Destroy();
 
+private:
 	// override from class PThread
 	virtual void Main();
 
-private:
 	PTimeInterval m_timeout;
 	PSyncPoint m_sync;
 	bool m_closed;
@@ -76,6 +76,10 @@ Worker::Worker(int timeout) : PThread(5000, AutoDeleteThread),
 Worker::~Worker()
 {
 	PTRACE(1, "Worker\t" << m_id << " is fired");
+	if (m_job) {
+		PTRACE(1, "Error: Terminating a busy worker " << m_id << " with job " << m_job->GetName());
+		delete m_job;
+	}
 }
 
 void Worker::Main()
@@ -87,14 +91,11 @@ void Worker::Main()
 #endif
 	PTRACE(2, "Worker\t" << m_id << " is hired");
 	while (!m_closed) {
-		if (m_job == 0)
-			if (!m_sync.Wait(m_timeout)) {
-				Agent::Instance()->Remove(this);
-				if (m_job == 0)
-					break;
-				m_closed = true;
-				PTRACE(1, "Warning: Run job " << m_job->GetName() << " at closing thread " << m_id);
-			}
+		if (!m_job && !m_sync.Wait(m_timeout)) {
+			Agent::Instance()->Remove(this);
+			m_closed = true;
+			PTRACE_IF(1, m_job, "Warning: Run job " << m_job->GetName() << " at closing thread " << m_id);
+		}
 		if (m_job) {
 			PTRACE(5, "Job\tRun " << m_job->GetName() << " at thread " << m_id);
 
@@ -157,16 +158,19 @@ Agent::~Agent()
 
 void Agent::Exec(Job *job)
 {
-	m_wmutex.StartRead();
-	bool notfound = find_if(m_workers.begin(), m_workers.end(), bind2nd(mem_fun(&Worker::Exec), job)) == m_workers.end();
-	m_wmutex.EndRead();
+	bool notfound = false;
+	if (job) {
+		ReadLock lock(m_wmutex);
+		notfound = find_if(m_workers.begin(), m_workers.end(), bind2nd(mem_fun(&Worker::Exec), job)) == m_workers.end();
+	}
 	if (notfound) {
 		Worker *aworker = new Worker;
+		bool isregular = dynamic_cast<RegularJob *>(job);
 		aworker->Exec(job);
 		WriteLock lock(m_wmutex);
 		iterator ninsp = m_workers.insert(m_insp, aworker);
 		// always point to the beginning of thread of RegularJob
-		if (dynamic_cast<RegularJob *>(job))
+		if (isregular)
 			m_insp = ninsp;
 	}
 }
