@@ -106,7 +106,7 @@ LDAPCtrl::LDAPCtrl(LDAPAttributeNamesClass * AttrNames,
 		   unsigned int sizelimit = LDAP_NO_LIMIT,
 		   unsigned int timelimit = LDAP_NO_LIMIT,
 		   int ServerPort = LDAP_PORT):
-  AttributeNames(AttributeNames), timeout(default_timeout), ServerName(ServerName),
+  AttributeNames(AttrNames), timeout(default_timeout), ServerName(ServerName),
   ServerPort(ServerPort), SearchBaseDN(SearchBaseDN), BindUserDN(BindUserDN),
   BindUserPW(BindUserPW), sizelimit(sizelimit), timelimit(timelimit), 
   ldap(NULL), known_to_be_bound(false)
