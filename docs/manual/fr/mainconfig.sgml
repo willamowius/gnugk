@@ -1,4 +1,4 @@
-<!-- French translation from mainconfig.sgml v1.2 -->
+<!-- French translation from mainconfig.sgml v1.4 -->
 
 <sect1>Fichier de Configuration
 <label id="config">
@@ -247,6 +247,7 @@ D&#233;finit un octet de remplissage global &#224; utiliser pendant le cryptage/
 d&#233;cryptage de mot de passe. Il peut &#234;tre annul&#233; en positionnant
 <tt/KeyFilled/ dans une section de configuration particuli&#232;re.
 Habituellement, vous n'avez pas besoin de changer cette option.
+
 </itemize>
 
 La plupart des utilisateurs n'auront jamais besoin de modifier une des valeurs suivantes.

@@ -1,4 +1,4 @@
-<!-- French translation from monitoring.sgml v1.1 -->
+<!-- French translation from monitoring.sgml v1.2 -->
 
 <sect>Surveillance du Gatekeeper
 <label id="monitor">
@@ -137,7 +137,7 @@ num&#233;ro IP que le gatekeeper (vous ne pouvez pas le lancer en tant qu'applet
 depuis un fichier local).
 
 Le programme est disponible &#224;
-<url url="http://www.gnugk.org/h323gui.html">
+<url url="http://www.gnugk.org/h323gui.html" name="GnuGk Java GUI">
 
 <item>GkGUI<p>
 Un nouveau programme Java autonome d&#233;velopp&#233; par
@@ -156,7 +156,7 @@ Il n&#233;cessite Java 1.4. Les nouvelles fonctions comprennent:
 </itemize>
 
 Le GkGUI est distribu&#233; sous GNU General Public License, disponible &#224;
-<url url="http://www.gnugk.org/h323develop.html#java">
+<url url="http://www.gnugk.org/h323develop.html#java" name="GnuGk Development">
 </itemize>
 
 <sect1>Commandes (R&#233;f&#233;rence)
