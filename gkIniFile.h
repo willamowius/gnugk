@@ -30,7 +30,7 @@ extern const char *GK_DATABASES_SECTION_NAME;
 class GkIniFile : public GkDBHandler{
 	PCLASSINFO(GkIniFile, GkDBHandler)
 public:
-  
+
 	GkIniFile(PConfig &);
 	virtual ~GkIniFile();
 
@@ -41,7 +41,7 @@ public:
 
 	/** returns attribute values for a given alias and all attributes
 	    @returns #TRUE# if exactly 1 match is found
-	 */  
+	 */
 	virtual BOOL getAttributes(const PString &alias, DBAttributeValueClass &attr_map);
 
 	/** checks if an alias is a prefix of an attribute value in an entry.
@@ -49,8 +49,8 @@ public:
 	    #TRUE# if it is a full match.
 	    @returns #TRUE# if succeeds
 	 */
-	virtual BOOL prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name, 
-					BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound);
+	virtual BOOL prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name,
+					BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound, CalledProfile & calledProfile);
 
 	/** @returns database type
 	 */
@@ -58,7 +58,7 @@ public:
 
 private:
 
-	void checkMatch(const PString & H323ID, const PString & iniValue, const PString & refValue, 
+	void checkMatch(const PString & H323ID, const PString & iniValue, const PString & refValue,
 			    BOOL & partialMatch, BOOL & fullMatch, BOOL & gwFound);
 
 	PConfig * m_cfg;

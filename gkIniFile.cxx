@@ -56,7 +56,7 @@ BOOL GkIniFile::getAttribute(const PString &alias, const dctn::DBAttributeNamesE
 						if (key == GkDatabase::Instance()->attrNameAsString(attrName)) {
 							attrFound = TRUE;
 							// split for values at each ","
-							attrValues = value.Tokenise(",");	
+							attrValues = value.Tokenise(",");
 						}
 					}
 				}
@@ -87,7 +87,7 @@ BOOL GkIniFile::getAttributes(const PString &alias, DBAttributeValueClass & attr
 					PString key = dataArray[i].Left(pos);
 					PString value = dataArray[i].Mid(pos+1);
 					// split for values at each ","
-					PStringList values = value.Tokenise(",");	
+					PStringList values = value.Tokenise(",");
 					using namespace dctn;
 					attrMap.insert(DBAVValuePair(key, values));
 				}
@@ -98,7 +98,7 @@ BOOL GkIniFile::getAttributes(const PString &alias, DBAttributeValueClass & attr
 	return FALSE;
 }
 
-void GkIniFile::checkMatch(const PString & H323ID, const PString & iniValue, const PString & refValue, 
+void GkIniFile::checkMatch(const PString & H323ID, const PString & iniValue, const PString & refValue,
 			    BOOL & partialMatch, BOOL & fullMatch, BOOL & gwFound)
 {
 	// if attribute value equals ini entry
@@ -126,7 +126,8 @@ void GkIniFile::checkMatch(const PString & H323ID, const PString & iniValue, con
 	}
 }
 
-BOOL GkIniFile::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attrName, BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound)
+BOOL GkIniFile::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attrName,
+			    BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound, CalledProfile & calledProfile)
 {
 	// check endpoints for match
 	PString aliasStr = H323GetAliasAddressString(alias);
@@ -145,18 +146,18 @@ BOOL GkIniFile::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttri
 			if (pos != P_MAX_INDEX) {
 				PString key = dataArray[j].Left(pos);
 				PString value = dataArray[j].Mid(pos+1);
-				// if attribute found 
+				// if attribute found
 				using namespace dctn;
 				if (key == GkDatabase::Instance()->attrNameAsString(attrName)) {
 					attrFound = TRUE;
 					// split for values at each ","
-					PStringList values = value.Tokenise(",");	
+					PStringList values = value.Tokenise(",");
 					// for each attribute value
 					for (PINDEX k=0; k < values.GetSize() && !partialMatch; k++) {
 						// remove invalid characters from attribute value
 						PString attrValue(GkDatabase::Instance()->rmInvalidCharsFromTelNo(values[k]));
 						// check for match
-						checkMatch(allKeyValues.GetKeyAt(i), attrValue, 
+						checkMatch(allKeyValues.GetKeyAt(i), attrValue,
 								aliasStr, partialMatch, fullMatch, gwFound);
 					}
 				}
@@ -173,13 +174,13 @@ BOOL GkIniFile::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttri
 			// for each gw prefix
 			for (PINDEX j=0; j < prefixes.GetSize(); j++) {
 				// check for match
-				checkMatch(allKeyValuesGWPrefixes.GetKeyAt(i), prefixes[j], 
+				checkMatch(allKeyValuesGWPrefixes.GetKeyAt(i), prefixes[j],
 						aliasStr, partialMatch, fullMatch, gwFound);
 			}
 		}
 	}
-	
-	matchFound = (partialMatch || fullMatch || gwFound);	
+
+	matchFound = (partialMatch || fullMatch || gwFound);
 	return TRUE;
 }
 
