@@ -76,7 +76,6 @@ public:
 		}
 		// try next rule
 		//if(!next)
-		PTRACE(1, "CdEP: " << cdEP);
 		return (next) ? next->getMsgDestination(req, EPList, listLock, cgEP, cdEP, reason) : true;
 	}
 
