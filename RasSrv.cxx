@@ -63,8 +63,9 @@ class NeighborList {
 	class Neighbor {
 	public:
 		Neighbor(const PString &, const PString &);
-		bool CheckIP(PIPSocket::Address ip) const;
 		bool SendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
+		bool CheckIP(PIPSocket::Address ip) const;
+		PString GetPassword() const;
 
 	private:
 		bool InternalSendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
@@ -72,26 +73,46 @@ class NeighborList {
 
 		PString m_gkid;
 		PString m_name;
-		PString m_password;
 		PString m_prefix;
+		PString m_password;
+		bool m_dynamic;
 		PIPSocket::Address m_ip;
 		WORD m_port;
-		bool m_dynamic;
 	};
 
 public:
+	class NeighborPasswordAuth : public SimplePasswordAuth {
+	public:
+		NeighborPasswordAuth(PConfig *cfg, const char *n) : SimplePasswordAuth(cfg, n) {}
+
+	private:
+		virtual int Check(const H225_GatekeeperRequest &, unsigned &)     { return e_next; }
+		virtual int Check(const H225_RegistrationRequest &, unsigned &)   { return e_next; }
+		virtual int Check(const H225_UnregistrationRequest &, unsigned &) { return e_next; }
+		virtual int Check(const H225_AdmissionRequest &, unsigned &)      { return e_next; }
+		virtual int Check(const H225_BandwidthRequest &, unsigned &)      { return e_next; }
+		virtual int Check(const H225_DisengageRequest &, unsigned &)      { return e_next; }
+		virtual int Check(const H225_LocationRequest &, unsigned &);
+		virtual int Check(const H225_InfoRequest &, unsigned &)		  { return e_next; }
+
+		virtual PString GetPassword(const PString &);
+	};
+
 	typedef std::list<Neighbor>::iterator iterator;
 	typedef std::list<Neighbor>::const_iterator const_iterator;
 
 	NeighborList(H323RasSrv *, PConfig *);
 	int SendLRQ(int seqNum, const H225_AdmissionRequest &);
 	bool CheckIP(PIPSocket::Address ip) const;
+	// only valid after calling CheckIP
+	PString GetPassword() const { return tmppasswd; }
 
 	class InvalidNeighbor {};
 
 private:
 	list<Neighbor> nbList;
 	H323RasSrv *RasSrv;
+	mutable PString tmppasswd;
 };
 
 void PendingList::Check()
@@ -158,12 +179,14 @@ void NBPendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 
 NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m_gkid(gkid)
 {
-	PStringArray cfg(cfgs.Tokenise(",;", FALSE));
+	PStringArray cfg(cfgs.Tokenise(",;", TRUE));
 	PString ipAddr = cfg[0].Trim();
 	PINDEX p = ipAddr.Find(':');
 	m_name = ipAddr.Left(p);
 	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
 	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : PString("*");
+	if (m_prefix.IsEmpty())
+		m_prefix = PString("*");
 	if (cfg.GetSize() > 2)
 		m_password = cfg[2];
 	m_dynamic = (cfg.GetSize() > 3) ? Toolkit::AsBool(cfg[3]) : false;
@@ -176,6 +199,11 @@ NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m
 inline bool NeighborList::Neighbor::CheckIP(PIPSocket::Address ip) const
 {
 	return (!m_dynamic || ResolveName(ip)) ? ip == m_ip : false;
+}
+
+inline PString NeighborList::Neighbor::GetPassword() const
+{
+	return m_password;
 }
 
 bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
@@ -192,7 +220,7 @@ bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & o
 
 bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
 {
-	PIPSocket::Address ip;
+	PIPSocket::Address ip = m_ip;
 	if (m_dynamic && !ResolveName(ip))
 		return false;
 	H225_RasMessage lrq_ras;
@@ -255,8 +283,25 @@ bool NeighborList::CheckIP(PIPSocket::Address ip) const
 		nbList.begin(), nbList.end(),
 		bind2nd(mem_fun_ref(&Neighbor::CheckIP), ip)
 	);
-	return (Iter != nbList.end());
+	if (Iter != nbList.end()) {
+		tmppasswd = Iter->GetPassword();
+		return true;
+	}
+	return false;
 }
+
+int NeighborList::NeighborPasswordAuth::Check(const H225_LocationRequest & lrq, unsigned & rsn)
+{
+	PString nullid;
+	return (!GetPassword(nullid)) ? SimplePasswordAuth::Check(lrq, rsn) : e_next;
+}
+
+PString NeighborList::NeighborPasswordAuth::GetPassword(const PString &)
+{
+	return RasThread->GetNeighborsGK()->GetPassword();
+}
+
+static GkAuthInit<NeighborList::NeighborPasswordAuth> _NBA_("NeighborPasswordAuth");
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
       : PThread(10000, NoAutoDeleteThread)
@@ -860,6 +905,11 @@ bool H323RasSrv::SendLRQ(const H225_AdmissionRequest & arq, const endptr & reqEP
 	return arqPendingList->Insert(arq, reqEP);
 }
 
+bool H323RasSrv::CheckNBIP(PIPSocket::Address ip) const
+{
+	return NeighborsGK->CheckIP(ip);
+}
+
 /* Admission Request */
 BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arq, H225_RasMessage & obj_rpl)
 {    
@@ -1460,16 +1510,18 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 }
 
 /* Location Confirm */
-BOOL H323RasSrv::OnLCF(const PIPSocket::Address &, const H225_RasMessage &obj_rr, H225_RasMessage &)
+BOOL H323RasSrv::OnLCF(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
 {
-	arqPendingList->ProcessLCF(obj_rr);
+	if (NeighborsGK->CheckIP(rx_addr))
+		arqPendingList->ProcessLCF(obj_rr);
 	return FALSE;
 }
 
 /* Location Reject */
-BOOL H323RasSrv::OnLRJ(const PIPSocket::Address &, const H225_RasMessage &obj_rr, H225_RasMessage &)
+BOOL H323RasSrv::OnLRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
 {
-	arqPendingList->ProcessLRJ(obj_rr);
+	if (NeighborsGK->CheckIP(rx_addr))
+		arqPendingList->ProcessLRJ(obj_rr);
 	return FALSE;
 }
 

@@ -116,6 +116,7 @@ public:
 	GkClient * GetGkClient() const { return gkClient; }
 	NeighborList * GetNeighborsGK() const { return NeighborsGK; }
 	bool SendLRQ(const H225_AdmissionRequest &, const endptr &);
+	bool CheckNBIP(PIPSocket::Address) const;
 
 protected:
 	/** OnARQ checks if the dialled address (#aliasStr#) should be
