@@ -134,7 +134,7 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRRQ, bool Permanent)
 			m_callSignalAddress = rrq.m_callSignalAddress[0];
 		m_endpointIdentifier = rrq.m_endpointIdentifier;
 		m_terminalAliases = rrq.m_terminalAlias;
-		m_terminalType = rrq.m_terminalType;
+		m_terminalType = &rrq.m_terminalType;
 		if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
 			SetTimeToLive(rrq.m_timeToLive);
 		PTRACE(1, "New EP|" << PrintOn(false));
@@ -145,7 +145,7 @@ EndpointRec::EndpointRec(const H225_RasMessage &completeRRQ, bool Permanent)
 		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
 			m_terminalAliases = lcf.m_destinationInfo;
 		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
-			m_terminalType = lcf.m_destinationType;
+			m_terminalType = &lcf.m_destinationType;
 		m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	}
 	if (Permanent)
@@ -192,7 +192,7 @@ void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
 void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
 {
 	PWaitAndSignal lock(m_usedLock);
-        m_terminalType = t;
+        *m_terminalType = t;
 }
 
 void EndpointRec::Update(const H225_RasMessage & ras_msg)
@@ -332,7 +332,7 @@ void GatewayRec::Update(const H225_RasMessage & ras_msg)
         if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
 		const H225_RegistrationRequest & rrq = ras_msg;
 		if (!(rrq.HasOptionalField(H225_RegistrationRequest::e_keepAlive) &&
-			rrq.m_keepAlive.GetValue()) && (m_terminalType != rrq.m_terminalType)) {
+			rrq.m_keepAlive.GetValue()) && (*m_terminalType != rrq.m_terminalType)) {
 			SetEndpointType(rrq.m_terminalType);
 		}
 	} else if (ras_msg.GetTag() == H225_RasMessage::e_locationConfirm) {
@@ -374,8 +374,8 @@ bool GatewayRec::LoadConfig()
 {
 	PWaitAndSignal lock(m_usedLock);
 	Prefixes.clear();
-	if (m_terminalType.m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
-		AddPrefixes(m_terminalType.m_gateway.m_protocol);
+	if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+		AddPrefixes(m_terminalType->m_gateway.m_protocol);
 	for (PINDEX i=0; i<m_terminalAliases.GetSize(); i++) {
 		PStringArray p = (GkConfig()->GetString("RasSvr::GWPrefixes",
 				  H323GetAliasAddressString(m_terminalAliases[i]), "")
@@ -655,34 +655,40 @@ void RegistrationTable::GenerateAlias(H225_ArrayOf_AliasAddress & AliasList, con
 
 void RegistrationTable::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 {
-	client.WriteString("AllRegistrations\r\n");
-	InternalPrint(client, verbose, &EndpointList);
+	PString msg("AllRegistrations\r\n");
+	InternalPrint(client, verbose, &EndpointList, msg);
 }
 
 void RegistrationTable::PrintAllCached(GkStatus::Client &client, BOOL verbose)
 {
-	client.WriteString("AllCached\r\n");
-	InternalPrint(client, verbose, &OuterZoneList);
+	PString msg("AllCached\r\n");
+	InternalPrint(client, verbose, &OuterZoneList, msg);
 }
 
 void RegistrationTable::PrintRemoved(GkStatus::Client &client, BOOL verbose)
 {
-	client.WriteString("AllRemoved\r\n");
-	InternalPrint(client, verbose, &RemovedList);
+	PString msg("AllRemoved\r\n");
+	InternalPrint(client, verbose, &RemovedList, msg);
 }
 
-void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, list<EndpointRec *> * List)
+void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, list<EndpointRec *> * List, PString & msg)
 {
-	PString msg;
-
+	// copy the pointers into a temporary array to avoid a large lock
 	listLock.StartRead();
-	PINDEX i = List->size();
 	const_iterator IterLast = List->end();
+	PINDEX k =0, s = List->size();
+	endptr eptr[s];
 	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter)
-		msg += "RCF|" + (*Iter)->PrintOn(verbose);
+		eptr[k++] = endptr(*Iter);
 	listLock.EndRead();
+	// end of lock
+
+	if (s > 1000) // set buffer to avoid reallocate
+		msg.SetSize(s * (verbose ? 200 : 100));
+	for (k = 0; k < s; k++)
+		msg += "RCF|" + eptr[k]->PrintOn(verbose);
 	
-	msg += PString(PString::Printf, "Number of endpoints: %u\r\n;\r\n", i);
+	msg += PString(PString::Printf, "Number of endpoints: %u\r\n;\r\n", s);
 	client.WriteString(msg);
 	//PTRACE(2, msg);
 }
@@ -871,7 +877,6 @@ void CallRec::StopTimer()
 {
 	delete m_timer;
 	m_timer = 0;
-PTRACE(5, "CDR\tstop timer " << m_CallNumber);
 }
 
 void CallRec::OnTimeout(PTimer &, INT)
@@ -960,7 +965,7 @@ PString CallRec::GenerateCDR() const
 	} else
 		timeString = "0|unconnected| ";
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s\r\n",
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s;\r\n",
 		m_CallNumber,
 		(const char *)AsString(m_callIdentifier.m_guid),
 		(const char *)timeString,

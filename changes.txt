@@ -1,6 +1,8 @@
 Changes from 1.0 to now (by cwhuang)
 ========================================
-- send Release Complete to endpoints when tear down a call
+- change EndpointRec::m_terminalType to be a pointer to reduce memory
+  consumed (H225_EndpointType is a very large object, size=2552)
+- send Release Complete to endpoints when tear down a call (routed mode)
 - disconnect calls of a endpoint on URQ
 - add DefaultCallTimeout to remove staled calls
 - fix bug in DisconnectAlias

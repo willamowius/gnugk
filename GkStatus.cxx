@@ -379,7 +379,7 @@ void GkStatus::Client::Main()
 					DoDebug(Args);
 					break;
 				case GkStatus::e_Version:
-					WriteString("Version:\n\r");
+					WriteString("Version:\r\n");
 					WriteString(Toolkit::GKVersion());
 					WriteString("GkStatus: Version(1.0) Ext()\r\n");
 					WriteString("Toolkit: Version(1.0) Ext("
@@ -471,10 +471,10 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		}
 		else if (Args[1] *= "cfg") {
 			if (Args.GetSize()>=4)
-				WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
+				WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n;\r\n");
 			else if (Args.GetSize()>=3) {
 				PStringList cfgs(GkConfig()->GetKeys(Args[2]));
-				PString result;
+				PString result = "Section [" + Args[2] + "]\r\n";
 				for (PINDEX i=0; i < cfgs.GetSize(); ++i) {
 					PString v(GkConfig()->GetString(Args[2], cfgs[i], ""));
 					result += cfgs[i] + "=" + v + "\r\n";

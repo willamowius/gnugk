@@ -117,16 +117,16 @@ public:
 	virtual ~EndpointRec();
 
 	// public interface to access EndpointRec
-	const H225_TransportAddress &GetRasAddress() const
+	const H225_TransportAddress & GetRasAddress() const
 	{ return m_rasAddress; }
-	const H225_TransportAddress &GetCallSignalAddress() const
+	const H225_TransportAddress & GetCallSignalAddress() const
 	{ return m_callSignalAddress; }
-	const H225_EndpointIdentifier &GetEndpointIdentifier() const
+	const H225_EndpointIdentifier & GetEndpointIdentifier() const
 	{ return m_endpointIdentifier; }
-	const H225_ArrayOf_AliasAddress &GetAliases() const
+	const H225_ArrayOf_AliasAddress & GetAliases() const
 	{ return m_terminalAliases; }
-	const H225_EndpointType &GetEndpointType() const
-	{ return m_terminalType; }
+	const H225_EndpointType & GetEndpointType() const
+	{ return *m_terminalType; }
 	int GetTimeToLive() const
 	{ return m_timeToLive; }
 
@@ -179,7 +179,7 @@ protected:
 	H225_TransportAddress m_callSignalAddress;
 	H225_EndpointIdentifier m_endpointIdentifier;
 	H225_ArrayOf_AliasAddress m_terminalAliases;
-	H225_EndpointType m_terminalType;
+	H225_EndpointType *m_terminalType;
 	int m_timeToLive;   // seconds
 
 	int m_usedCount;
@@ -305,7 +305,7 @@ private:
 	endptr InternalInsertEP(H225_RasMessage & rrq);
 	endptr InternalInsertOZEP(H225_RasMessage & lcf);
 
-	void InternalPrint(GkStatus::Client &, BOOL, list<EndpointRec *> *);
+	void InternalPrint(GkStatus::Client &, BOOL, list<EndpointRec *> *, PString &);
 
 	template<class F> endptr InternalFind(const F & FindObject) const
 	{ return InternalFind(FindObject, &EndpointList); }
