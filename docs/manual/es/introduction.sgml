@@ -142,40 +142,50 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Mejorados los prefijos de sustitucion para las politicas de enrutamiento. Un punto (<tt/./) sustituye cualquier digito.
 Enchanced prefix matching for routing policies. A dot (<tt/./) matches any digit.
 
 <item>
+Mejorados los prefijos se sustitucion para vecinos. Un punto (<tt/./) sustituye cualquier digito.
 Enchanced prefix matching for neighbors. A dot (<tt/./) matches any digit,
 <tt/!/ at the beginning disables the prefix.
 
 <item>
+Un error de configuracion durante la recarga de la configuracion hace que el gatekeeper falle.
 A missing lock during config reload caused the gatekeeper to crash.
 
 <item>
+Seleccion de puertos mas fiable para rangos de puertos del Q.931, H.245, T.120 y RTP (anteriormente, una recarga  de la configuracion podia causar muchas llamanadas fallidas a causa de la imposibilidad de asignarles un nuevo socket).
 More reliable port number selection for Q.931, H.245, T.120 and RTP
 port ranges (earlier, a config reload could cause many calls to fail
 because of unability to allocate a new socket).
 
 <item>
+Ahora dejar al SO escojer el numero de puerto es el valor por defecto para RTPPortRange.
 Default value for RTPPortRange is now to let the OS select a port number.
 
 <item>
+Las reglas de reescritura son mas flexibles (tanto globales como para-gateway) con nuevos metacaracteres ('.' y '%').
 More flexible rewrite rules (both global and per-gw) with new '.' and '%'
 wildcard characters.
 
 <item>
+Mejorados los prefijos de sustitucion para gateways. Un punto (<tt/./) sustituye cualquier digito, un <tt/!/ al principio desactiva el prefijo.
 Enchanced prefix matching for gateways. A dot (<tt/./) matches any digit,
 <tt/!/ at the beginning disables the prefix.
 
 <item>
+Si las opciones correspondientes <tt/Screen.../  estan activadas se inserta el Calling-Party-Number-IE/Display-IE perdido.
 Insert missing Calling-Party-Number-IE/Display-IE if corresponing
 <tt/Screen.../ options are enabled.
 
 <item>
+El gatekeeper se cerrara si hay errores en la configuracion de los modulos de SQL auth/acct.
 Shutdown the gatekeeper if there are errors in SQL auth/acct modules
 configuration.
 
 <item>
+El tipo de numero Called-Station-Id puede ser seleccionado entre el original (el numero marcado) y el que ha sido reescrito. Nueva opcion <tt/UseDialedNumber/ a configurar para los modulos <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">/<ref id=radacct name="RadAcct">, nueva variable %{Dialed-Number} para los modulos <ref id=sqlacct name="SQLAcct"> y <ref id=fileacct name="FileAcct">.
 Called-Station-Id number type can be selected between the original one
 (dialed number) and the rewritten one. New <tt/UseDialedNumber/ config option
 for <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">
@@ -183,89 +193,110 @@ for <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth"
 for <ref id=sqlacct name="SQLAcct"> and <ref id=fileacct name="FileAcct"> modules.
 
 <item>
+Se posibilita la personalizacion del formato de fecha. Nuevas variables <tt/TimestampFormat/ a configurar para las secciones principal, <ref id="sqlacct" name="[SqlAcct]">, <ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]"> y <ref id="calltable" name="[CallTable]">.
 Ability to customize timestamp formats. New <tt/TimestampFormat/ config 
 variables for main, <ref id="sqlacct" name="[SqlAcct]">, 
 <ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
 and <ref id="calltable" name="[CallTable]"> sections.
 
 <item>
+Los modulos RadAuth/RadAliasAuth pueden añadir/eliminar alias de endpoint durante el registro endpoint (usando h323-ivr-in=terminal-alias: Cisco AV-Pair).
 RadAuth/RadAliasAuth modules can now add/remove endpoint aliases during
 endpoint registration (using h323-ivr-in=terminal-alias: Cisco AV-Pair).
 
 <item>
+Nueva opcion <tt/TcpKeepAlive/ para solventar el problema con los errores de red y llamadas colgando en la tabla de llamada. Consulte docs/keepalive.txt para mas detalles.
 New <tt/TcpKeepAlive/ option to solve the problem with network errors
 and calls hanging in the call table. See docs/keepalive.txt for more
 details.
 
 <item>
+Nuevo comando para mostrar el estado del puerto <tt/RouteToGateway/.
 New status port <tt/RouteToGateway/ command.
 
 </itemize>
 
 <p>
-The version 2.2.0 contains the following new features and bugfixes:
+La version 2.2.0 cotiene las siguientes novedades y correcciones: 
 
 <itemize>
 <item>
+Nueva opcion de configuracion <tt/RoundRobinGateways/.
 New <tt/RoundRobinGateways/ config option.
 
 <item>
+Limites de capacidad de llamada y prioridad de routing para gateways. Nuevas secciones de configuracion <tt/EP::/ para parametros de configuracion por-endpoint (consulte <ref id="epconfig" name="configuracion Por-Endpoint ">).
 Call capacity limits and priority routing for gateways. New <tt/EP::/
 config sections for per-endpoint configuration settings (see 
 <ref id="epconfig" name="Per-Endpoint Configuration Settings">).
 
 <item>
+El tratamiento de proxy RTP se ha movido a hilos separados para proxy RTP, asi el procesamiento de los mensajes de señalizacion no bloquea los paquetes RTP. Nueva opcion de configuracion <tt/RtpHandlerNumber/.
 RTP proxy handling moved to a separate RTP proxy threads, so processing
 of signaling messages does not block RTP packets. New <tt/RtpHandlerNumber/ 
 config option.
 
 <item>
+La opcion REUSE_ADDRESS ha sido activada para sockets de escucha en el modo non-LARGE_FDSET para solucionar un fallo que desabilitaba al gatekeeper para poder abrirp purestos de escucha despues de reiniciar.
 REUSE_ADDRESS option enabled on listening sockets in non-LARGE_FDSET mode 
 to fix a bug with the gatekeeper being unable to open listening ports after
 restart.
 
 <item>
+Habilidad para establecer el destino de la llamada en los modulos de autentificacion. Enrutamiento de llamada basado en RADIUS.
 Ability to set call destination in auth modules. RADIUS based call routing.
 
 <item>
+Soporte para importar la tabla de tarifas de SqlBill desde una hoja de calculo OpenOffice.org.
 Support for SqlBill tariff table import from an OpenOffice.org Calc spreadsheet.
 
 <item>
+Solucionada la gestion del campo sourceInfo LRQ -ahora contiene un identificador H.323 del gatekeeper. Los datos no estandar y campos gatekeeperIdentifier son establecidos solo cuando la otra parte es definida como GnuGk.
 Fixed sourceInfo LRQ field handling - now it contains an H.323 identifier 
 of the gatekeeper. Nonstandard data and gatekeeperIdentifier fields are set
 only when the neighbor is defined as GnuGk.
 
 <item>
+Habilidad para establecer secretos compartidos para cada servidor radius de forma separada.
 Ability to set shared secrets for each radius server separatelly.
 
 <item>
+Nueva, mucho mas rapida, implementacion del cliente para Radius.
 New, much faster, Radius client implementation.
 
 <item>
+Si la reescritura de Called-Party-Number-IE ocurrio demasiado tarde, los modulos auth/acct reciben el numero original en vez del reescrito.
 Called-Party-Number-IE rewrite occured too late, causing auth/acct modules 
 to receive the original number instead of the rewritten one.
 
 <item>
+Arreglado el proxying de paquetes RTP, asi los sockets RTP no estan cerrados en errores temporales (como el socket remoto no esta listo todavia). Este bug affecta especialmente al NAT transversal y de situacion, cuando se envia audio demasiado pronto, cuando el camido del proxy inverso no ha sido todavia establecido.
 Fixed proxying of RTP packets, so RTP sockets are not closed on temporary 
 errors (like remote socket not yet ready). This bug affected especially 
 NAT traversal and situation, when audio was sent very early, when reverse 
 proxy path has not been yet established.
 
 <item>
+Arreglada la manipulacion de RRJ desde un GnuGk alternativo.
 Fixed handling of RRJ from an alternate GnuGk.
 
 <item>
+Nuevo modulo de gestion de cuentas SQL directo (<ref id="sqlacct" name="[SQLAcct]">).
 New direct SQL accounting module (<ref id="sqlacct" name="[SQLAcct]">).
 
 <item>
+Arreglada la manipulacion de multiples mensajes de respuesta (RIP/LCF/LRJ) desde vecinos.
 Handling multiple reply messages (RIP/LCF/LRJ) from neighbors fixed.
 
 <item>
+Soporte para CallCreditServiceControl en mensajes RCF y ACF, que permite notificar el limite de duracion de la llamada y el balance de la cuenta de usuario a los endpoints.
+Actualmente los modules RadAuth y RadAliasAuth soportan esta caracteristica.
 Support for CallCreditServiceControl in RCF and ACF messages, which allows
 reporting call duration limit and user's account balance to endpoints. 
 Currently RadAuth and RadAliasAuth modules support this feature.
 
 <item>
+Rotacion del fichero log, nueva seccion de configuracion <tt/LogFile/, nuevos comandos de estado de la interface <tt/setlog/ y <tt/rotatelog/.
 Log file rotation, new <tt/LogFile/ config section, new <tt/setlog/ 
 and <tt/rotatelog/ status interface commands.
 
@@ -274,439 +305,133 @@ Do not include an invalid access token (with null object identifier)
 in LCF to prevent interoperability problems.
 
 <item>
+Mejor manejo de llamadas multiples sobre un unico canal de señalizacion mediante el establecimiento de los campos multipleCalls y maintainConnection H.225.0 a FALSE en todos los mensajes que pasan a traves del gatekeeper.
 Better handling of multiple calls over a single signalling channel 
 by setting multipleCalls and maintainConnection H.225.0 fields to FALSE 
 in all messages passing through the gatekeeper.
 
 <item>
+Mejor manipulacion de User-Name, Calling-Station-Id y Called-Station-Id.
 Better User-Name, Calling-Station-Id and Called-Station-Id handling.
 
 <item>
+La bandera IncludeEndpointIP para RadAuth, RadAliasAuth y RadAcct queda obsoleta, estos modulos enviaran siempre Framed-IP-Address.
 IncludeEndpointIP flag for RadAuth, RadAliasAuth and RadAcct is obsolete,
 these modules will always send Framed-IP-Address.
 
 <item>
+Nueva SetupUnreg bandera Gatekeeper:Auth para fijar que la autentificacion en Q.931 Setup solo este disponible para endpoints no registrados.
 New Gatekeeper::Auth flag SetupUnreg to toggle Q.931 Setup authentication
 for unregistered endpoints only.
 
 <item>
+Nuevo parametro h323-ivr-out=h323-call-id para RADIUS que contiene un identificador de llamada H.323.
 New RADIUS h323-ivr-out=h323-call-id parameter that contains 
 an H.323 Call Identifier.
 
 <item>
+El sistema de facturacion SQL de la seccion de contribuciones puede autentificar ahora usuario con soloamente su IP (ignorando el nombre de usuario) y tiene un nuevo y mas flexible motor de tarifas/valoracion.
 The SQL billing from the contrib section can now authenticate users only 
 by their IP (ignoring User-Name) and has a new, more flexible tariff/rating 
 engine.
 
 <item>
+RadAliasAuth ahora puede autentificar mensajes de Setup sin que tenga que estar el campo sourceAddress presente (usando en tal caso usara Calling-Party-Number).
 RadAliasAuth can authenticate now Setup messages without sourceAddress
 field present (it will use Calling-Party-Number instead).
 
 <item>
+Mejor manipulacion de la señal para prevenir cierres accidentales del gatekeeper (debido a SIGPIPE, por ejemplo).
 Better signal handling to prevent accidental gatekeeper crashes 
 (due to SIGPIPE, for example).
 
 <item>
+La rotacion CDR por numero de lineas fuciona correctamente.
 CDR rotation per number of lines works correctly.
 
-</itemize>
-
-<p>
-The version 2.2beta4 contains the following new features and bugfixes:
-
-<itemize>
-<item>
-Parametrized FileAcct CDR output.
-
-<item>
-Do not list H.235 Auth Procedure I support in GCF messages, as it is not
-fully implemented.
-
-<item>
-Fixed interoperability problem with some Cisco IOSes, because of copying
-nonStandardData field from RAS requests to RAS replies.
-
-<item>
-Multiple calls over a single signalling channel are now gracefully handled 
-using ReleaseComplete with the newConnectionNeeded indication
-
-<item>
-Permanent endpoints are correctly reloaded now, with removal
-of permanent endpoints for which config entries have been deleted
-
-<item>
-Support for <tt/ExternalPasswordAuth/ module finally removed (although
-the source code is only commented out for those who need this module).
-
-<item>
-SQL engine rewritten completelly to use a concept of SQL driver.
-New modules SQLPasswordAuth and SQLAliasAuth added. MySQL and PostgreSQL
-drivers implemented. Backward compatibility (MySQLAliasAuth and MySQLPasswordAuth) 
-is maintained.
-
-<item>
-Per gateway E.164 rewriting of dialedDigits in addition 
-to the global E.164 rewriting. Thanks to Ian Campbell!
-
-<item>
-A sample SQL/RADIUS billing example has been added to the contrib directory
-
-<item>
-A new config parameter ScreenSourceAddress introduced 
-to screen calling party aliases present in the UUIE Setup element
-
-<item>
-Q.931 Setup authentication added to RadAuth module to allow
-authentication based on crypto tokens carried inside Setup messages
-
-<item>
-Log rotation added
-
-<item>
-Applied the concept of output trace levels for the status interface. 
-It allows to select amount of information a status client receives
-(level 0 - silent mode + reloads; level 1 - CDRs, RouteRequests, reloads;
-level 2 - everything: the default mode)
-
-<item>
-The GNU Gatekeeper Service for Windows contributed by Franz J Ehrengruber
-
-<item>
-Makefile to force users running configure script before the compilation
-
-<item>
-Better LOG_OFF Windows event handling to prevent gatekeeper shutdown
-when the user logs out
-
-<item>
-Fixed SimplePasswordAuth module to read settings from 
-<tt/SimplePasswordAuth/ section instead of <tt/Password/ section. 
-Fixed MySQLPasswordAuth module to accept CacheTimeout parameter.
-Default CacheTimeout for MySQLPasswordAuth and MySQLAliasAuth set to 0
-(do not cache passwords/aliases at all).
-
-<item>
-RTP proxy fixed to (usually) not require RTCP channel and work better 
-with T.38 faxes
-
-<item>
-Treat MCUs as gateways and allow MCUs to register prefixes
-
-<item>
-Fixed referencing to a temporary PString object after it is destroyed
-when logging routing policy information
-
-<item>
-Flexible FileAcct CDR file rotation.
-
-</itemize>
-
-<p>
-The version 2.2beta3 contains the following new features and bugfixes:
-<itemize>
-<item>
-The config variable VirtualQueue has been renamed to VirtualQueueAliases 
-(backward compatibility is maintained)
-
-<item>
-New VirtualQueuePrefixes and VirtualQueueRegex config variables introduced
-
-<item>
-Handling of multiple accounting modules has changed (new "alternative" control type added)
-
-<item>
-PostgreSQL authenticator modules have been added to the contrib directory
-
-<item>
-Q.931/H.225 Setup authentication (RadAliasAuth module implementation) added
-
-<item>
-<bf/addpasswd/ utility changed to require section name 
-where the encrypted username/password will be stored
-
-<item>
-Fixed NULL reference in CallRec::SetSocket - caused crash in ForwardCall. Thanks to kubuqui cn!
-
-<item>
-Fixed invalid signed/unsigned conversions in RADIUS modules that caused
-some functions to return unexpected results under certain circumstances
-
-</itemize>
-
-<p>
-The version 2.2beta2 contains the following new features and bugfixes:
-<itemize>
-<item>
-configure script to detect and control system settings and the compilation
-
-<item>
-RADIUS auth/acct modules ported from 2.0 and optimized
-
-<item>
-Plain text CDR accounting logger module (FileAcct) from Tamas Jalsovszky
-
-<item>
-Added "run as user" feature
-
-<item>
-New CTI virtual queues implementation from Chih-Wei Huang
-
-<item>
-Status line improvements (command expansion, repeat last command,
-backspace handling for windows) from Hu Yuxin
-
-</itemize>
-
-<p>
-The version 2.2beta1 contains the following new features:
-<itemize>
-<item>
-A new method to detect NATed endpoints
-
-<item>
-Configurable, flexible routing policies
-
-<item>
-New neighboring system
-
-<item>
-Multithreaded RAS server
-
-<item>
-Support for multiple MySQL servers, MySQL can now be compiled on Windows
-</itemize>
-
-<p>
-The version 2.0.6 has became a base for the new 2.2 gatekeeper version.
-
-<p>
-The version 2.0.6 is a bugfix release, plus the following enchancements:
-<itemize>
-<item>
-RadAuth/RadAliasAuth modules can now add/remove endpoint aliases
-during endpoint registration (see radauth.txt for more info).
-
-<item>
-added utilities to the contrib dir that allow the gnugk ro run
-as a Windows service process. Thanks to Franz J Ehrengruber!
-
-<item>
-Windows improvements (project icon, version info, better console
-handler). Thanks to Franz J Ehrengruber!
-
-<item>
-Radius Q.931 Setup authentication routines optimized.
-
-<item>
-gateway and neighbor prefixes match can also occur with alias types
-(in addition to dialedDigits) partyNumber and h323_ID (containing only 0-9#*)
-
-<item>
-Added new VirtualQueuePrefixes and VirtualQueueRegex config variables.
-These make possible to call virtual queue
-not only with the exact alias name, but also with an alias that matches
-configured prefixes or configured regular expression. Thanks to Max Speransky
-
-<item>
-accounting updates for calls in progress. Currenly only RadAcct
-module implements this type of accounting event
-
-<item>
-improved Radius h323-xxx attributes handling (now understands
-attributes both with embedded name strings and without them)
-</itemize>
-
-<p>
-The version 2.0.6 is a bugfix release, plus the following enchancements:
-<itemize>
-<item>
-FileAcct - plain CDR text accounting logger module.
-
-<item>
-Commandline option (-u) to change the gatekeeper process owner.
-
-<item>
-Improved virtual queues.
-
-<item>
-Full pre-paid support - both for registered endpoints (ARQ)
-and for unregistered endpoints (Q.931 Setup). Call duration limit
-is fully supported by RADIUS authenticators at the moment.
-</itemize>
-
-The version 2.0.5 is a bugfix release, plus the following enchancements:
-<itemize>
-<item>
-a first TransferCall implementation
-
-<item>
-RADIUS H.235 (username/password) and alias authentication.
-
-<item>
-Modular accounting framework.
-
-<item>
-RADIUS accounting module.
-
-<item>
-Signalling channel authentication/authorization (Q.931/H.225.0 Setup).
-Call duration limit (pre-paid services) can be controlled using this
-authorization scheme. RADIUS Q.931 authentication/authorization
-module is provided.
-
-</itemize>
-
-The version 2.0.3 is a bugfix release, plus a little enhancement:
-<itemize>
-<item>
-Forward a call Setup to the specified endpoint directly on receiving
-Q.931 Facility with reason <bf/callForwarded/.
-
-<item>
-Allow specify NATed endpoints manually.
-
-<item>
-Added a simple form of inbound call distribution. Calls to
-a VirtualQueue can be routed to agents by an external distribution
-application.
-</itemize>
-
-The new features added to version 2.0.2 are:
-<itemize>
-<item>
-Add Citron's NAT Technology that allows transparently penetrate NAT boxes.Support multiple endpoints and calls concurrently.
-
-<item>
-The gatekeeper can sit behind an NAT box and registered by endpoints with
-public IPs.
-
-<item>
-New extended fd_set structure, which allow the gatekeeper to support
-thousands of concurrent calls in routed mode.
-
-<item>
-Support QoS by adding TOS flag to RTP/RTCP packets.
-
-<item>
-Login status port by username and password.
-</itemize>
-
-Of course, the major functions in version 2.0 are also included:
-<itemize>
-<item>
-The registration table and call record table are redesigned, thread-safe,
-and very efficient. Support ten thousands of registrations and thousands of
-concurrent calls.
-
-<item>
-A new routed mode architecture that support H.225.0/Q.931 routed and
-H.245 routed without forking additional threads. Thus the thread number
-limit will not restrict the number of concurrent calls.
-
-<item>
-Support H.323 proxy by routing all logical channels, including RTP/RTCP
-media channels and T.120 data channels. Logical channels opened by H.245
-tunnelling and fast-connect procedure are also supported. In proxy mode,
-there is no traffic between the calling and called parties directly. Thus
-it is very useful if you have some endpoints using private IP behind an
-NAT box and some endpoints using public IP outside the box.
-
-<item>
-Support gatekeepers cluster by exchanging LRQ/LCF/LRJ (neighboring function).
-If the destination of a received LRQ is unknown, the GnuGk can forward it
-to next hop. Therefore the GnuGk can work as a directory gatekeeper.
-
-<item>
-Support various authentication methods for selectable RAS requests, including
-H.235 password (MD5, SHA-1 and CAT), IP pattern and prefixes matching. MySQL and
-LDAP are supported as backend database for authentication.
-
-<item>
-Support alternate gatekeepers for redundancy and load balancing. If the
-GnuGk is overloaded, the endpoints can be redirected to other gatekeepers.
-
-<item>
-Can work as an endpoint (gateway or terminal) by resigtering with a parent
-gatekeeper. With this feature, building gatekeeper hierarchies is easily.
-
-<item>
-Monitor and control the GnuGk via TCP status port, including registration
-and call statistics.
-
-<item>
-Output CDR(call detail record) to status port for backend billing system.
-The CDR contains call identifier, calling and called IP, start and end time
-and call duration.
-
-<item>
-Most configurations are changeable at runtime. The GnuGk rereads the
-configurations on receiving <tt/reload/ command via status port, or on
-receiving <tt/HUP/ signal (Unix platform).
 </itemize>
 
 <sect1>Download
 <label id="download">
 <p>
+En <url url="http://www.gnugk.org/h323download.html" name="la pagina de descargas"> estan disponibles la ultima version estable y una version de desarrollo.
 The newest stable and a development version are available at
 <url url="http://www.gnugk.org/h323download.html" name="the download page">.
 
+La ultima version del codigo fuente esta en el CVS en <url url="http://sourceforge.net/cvs/?group_id=4797" name="Sourceforge"> (<url url="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/openh323gk/" name="Web-GUI">).
+Recuerde - Esta version puede contener muchos fallos.
 The very latest source code is in the CVS at
 <url url="http://sourceforge.net/cvs/?group_id=4797" name="Sourceforge">
 (<url url="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/openh323gk/" name="Web-GUI">).
 Beware - that's the bleeding edge.
 
+Tambien puede descargar algunos ejecutables desde <url url="http://www.gnugk.org/h323download.html" name="la pagina de descargas">.
+Solo se ponen a disposicion los ejecutables de algunas versiones.
 You can also download some executables from
 <url url="http://www.gnugk.org/h323download.html" name="the download page">.
 Only some versions are made available as executables.
 
-<sect1>Mailing Lists
+<sect1>Listas de correo
 <p>
+Existen dos listas de correo para el proyecto, una para los desarrolladores y otra para los usuarios.
 There are two mailing list for the project, one for the developers and one for the users.
 
+Las cuestiones de los usuarios deben de ser enviadas a <url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. Puede encontrar un archivo de la lista de correo pulse  
+<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="aqui">.
+Para apuntarse a la lista de correo, pulse
+<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="aqui">.
 General user questions should be send to the
 <url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. You can find the list archive
 <url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="here">.
 To join this mailing list, click
 <url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="here">.
 
-To report problems or submit bugs/patches, send mails to the
-<url url="mailto:Openh323gk-developer@sourceforge.net" name="developers mailing list">.
-The list archive is
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="here">. Please send user questions to the users mailinglist and keep this list to development! If you want to contribute to the project, please
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="join the mailing list">.
+
+Para notificar problemas o enviar bugs/parches, envie los mails a la <url url="mailto:Openh323gk-developer@sourceforge.net" name="lista para desarrolladores">.
+El archivo de la lista esta <url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="aqui">. Porfavor envie las cuestiones de usuario a la lista para usuarios y deje esta lista solo para desarrolladores! Si desea contribuir al proyecto, porfavor <url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="unase a la lista">.
 
 <bf/Note/:
+Porfavor no envie questiones a los mails privados de los desarrolladores. Normalmente estamos muy ocupados. <bf/no/ nos gustaria ser su asesor privado, a no ser que desee pagarnos.
+Envie sus problemas a la lista de correo publica apropiada para que todo el mundo pueda ayudarle.
 Please don't send your questions as private emails to individual developer.
 We are usually busy. We would <bf/not/ like to be your private consultant,
 unless you'd like to pay us.
 Send your problems to the appropriate public mailing list so everybody
 can help you.
 
+Porfavor, no envie tampoco los problemas especificos de GnuGk a la lista de OpenH323, o vice versa. 
+Son proyectos diferentes, aunque muy relacionados.
 Also please don't send the GnuGk specific problems to the OpenH323
 mailing list, or vice versa.
 They are different projects, though closely related.
 
+Antes de enviar un email, asegurese de que ha leido los documentos relaciondos detenidamente. Describa sus problemas de forma clara y precisa. Muestrenos los mensajes de error o registros si los hay.
 Before you sending an email, make sure you have read the related documents
 carefully. Describe your problems clearly and precisely. Show us the
 error messages or logs if there is any.
 
-<sect1>Contributors
+<sect1>Contribuidores
 <p>
+El coordinador del proyecto actual es
 The current project coordinator is
 <url url="http://www.willamowius.de/" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
-The main features and functions of version 2.0 are contributed by
+Las principales caracteristicas y funciones de la version 2.0 lo son gracias a 
 <url url="http://www.cwhuang.idv.tw/" name="Chih-Wei Huang">
 <tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
-and
+y
 <url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
+incluyendo el registro a traves de thread-safe y tablas de llamada, nueva arquitectura de modo de enrutado, proxy H.323, H.235 authentication and MySQL backend.
 including thread-safe registration and call tables,
 new routed mode architecture, H.323 proxy,
 H.235 authentication and MySQL backend.
 
-Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done some great work on Radius support and other improvements.
+Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> hizo un gran trabajo en el soporte de Radius y otras mejoras.
+has done some great work on Radius support and other improvements.
 
+La version inicial del gatekeeper fue desarrollada por 
 The initial version of the gatekeeper has been developed by
 Xiang Ping Chen, Joe Metzger and Rajat Todi.
+
 
