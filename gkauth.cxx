@@ -138,56 +138,16 @@ static GkAuthInit<MySQLPasswordAuth> _MPA_("MySQLPasswordAuth");
 
 #endif // HAS_MYSQL
 
+class RadiusAuth : public SimplePasswordAuth {
+public:
+	RadiusAuth(PConfig *, const char *);
+// TODO
+};
 
 // LDAP authentification
 #if defined(HAS_LDAP)		// shall use LDAP
-#include "ldaplink.h"		// link to LDAP functions
 
-class LDAPAuth : public Singleton<LDAPAuth>{
-public:
-  
-  /** LDAP initialisation must be done with method "Initialize". 
-      This is necessary because this class is singleton.
-   */
-  LDAPAuth();
-  void Initialize(PConfig &);
-  
-  virtual ~LDAPAuth();
-
-  /** returns attribute values for a given alias + attribute
-      @returns #TRUE# if LDAPQuery succeeds
-   */
-  bool getAttribute(const PString &alias, const int attr_name, PStringList &attr_values);
-
-  /** checks if all given dialedDigits exist in 
-      telephonNo attribute of LDAP entry (searched by H323ID)
-      @returns #TRUE# if aliases are valid
-   */
-  bool validAliases(const H225_ArrayOf_AliasAddress & aliases);
-
-private:
-
-  // Methods
-  void Destroy(void);
-  
-  /** converts a telephonNo from LDAP entry (E.123 string) to
-      dialedDigits
-      @returns dialedDigits
-   */
-  PString convertE123ToDialedDigits(PString e123);
-  
-  /** searchs an alias in LDAP
-      @returns pointer to the answer object.
-   */
-  virtual LDAPAnswer *doQuery(const PString &alias);
-
-  // Data
-  LDAPAttributeNamesClass AN;	// names of the LDAP attributes
-  LDAPCtrl *LDAPConn;		// a HAS-A relation is prefered over a IS-A relation
-				// because one can better steer the parameters  
-
-  PMutex m_usedLock;
-};
+#include "gkldap.h"
 
 class LDAPPasswordAuth : public SimplePasswordAuth {
 public:
@@ -196,7 +156,7 @@ public:
 
   virtual PString GetPassword(PString &alias);
   
-  int Check(const H225_RegistrationRequest & rrq, unsigned & reason);
+  virtual int Check(const H225_RegistrationRequest & rrq, unsigned & reason);
 };
 
 // ISO 14882:1998 (C++), ISO9899:1999 (C), ISO9945-1:1996 (POSIX) have a
@@ -208,7 +168,7 @@ public:
 	LDAPAliasAuth(PConfig *, const char *);
 	virtual ~LDAPAliasAuth();
 	
-	int Check(const H225_RegistrationRequest & rrq, unsigned &);
+	virtual int Check(const H225_RegistrationRequest & rrq, unsigned &);
 
 private:
 	/** Searchs for an alias in LDAP and converts it to a valid config
@@ -221,12 +181,6 @@ private:
 static GkAuthInit<LDAPAliasAuth> L_A_A ("LDAPAliasAuth");
 
 #endif // HAS_LDAP
-
-class RadiusAuth : public SimplePasswordAuth {
-public:
-	RadiusAuth(PConfig *, const char *);
-// TODO
-};
 
 //////////////////////////////////////////////////////////////////////
 
@@ -556,241 +510,79 @@ PString MySQLPasswordAuth::GetPassword(PString & id)
 // LDAP authentification
 #if defined(HAS_LDAP)
 
-// init file section name
-const char *ldap_attr_name_sec = "LDAPAuth::LDAPAttributeNames";
-const char *ldap_auth_sec = "LDAPAuth::Settings";
-
-// constructor
-LDAPAuth::LDAPAuth()
-{
-  LDAPConn=NULL;
-  //Initialisation must be done with method "Initialize"!
-} // LDAPAuth constructor
-
-// destructor
-LDAPAuth::~LDAPAuth()
-{
-  Destroy();
-} // LDAPAuth destructor
-
-void 
-LDAPAuth::Initialize(PConfig &cfg) // 'real', private constructor
-{
-  if(NULL!=LDAPConn)
-    return;
-  struct timeval default_timeout;
-  default_timeout.tv_sec = 10l;	// seconds
-  default_timeout.tv_usec = 0l;	// micro seconds
-  using namespace lctn;		// LDAP config tags and names
-  // The defaults are given by the constructor of LDAPAttributeNamesClass
-  AN.insert(LDAPANValuePair(LDAPAttrTags[H323ID],
- 		            cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[H323ID],
-					      "mail"))); // 0.9.2342.19200300.100.1.3
-  AN.insert(LDAPANValuePair(LDAPAttrTags[TelephonNo],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[TelephonNo],
-					      "telephoneNumber"))); // 2.5.4.20
-  AN.insert(LDAPANValuePair(LDAPAttrTags[H245PassWord],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[H245PassWord],
-					      "plaintextPassword")));	// 1.3.6.1.4.1.9564.2.1.1.8
-  AN.insert(LDAPANValuePair(LDAPAttrTags[IPAddress],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[IPAddress],
-					      "voIPIpAddress"))); // ...9564.2.5.2010
-  AN.insert(LDAPANValuePair(LDAPAttrTags[SubscriberNo],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[SubscriberNo],
-					      "voIPsubscriberNumber"))); // ...2050
-  AN.insert(LDAPANValuePair(LDAPAttrTags[LocalAccessCode],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[LocalAccessCode],
-					      "voIPlocalAccessCode"))); // ...2020
-  AN.insert(LDAPANValuePair(LDAPAttrTags[NationalAccessCode],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[NationalAccessCode],
-					      // ...9564.2.5.2030
-					      "voIPnationalAccessCode"))); // ...2030
-  AN.insert(LDAPANValuePair(LDAPAttrTags[InternationalAccessCode],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[InternationalAccessCode],
-					       // ...9564.2.5.2040
-					      "voIPinternationalAccessCode"))); // ...2040
-  AN.insert(LDAPANValuePair(LDAPAttrTags[CallingLineIdRestriction],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[CallingLineIdRestriction],
-					      "voIPcallingLineIdRestriction"))); // ...2060
-  AN.insert(LDAPANValuePair(LDAPAttrTags[SpecialDial],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[SpecialDial],
-					      "voIPspecialDial"))); // ...2070
-  AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixBlacklist],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[PrefixBlacklist],
-					      "voIPprefixBlacklist"))); // ...2070
-  AN.insert(LDAPANValuePair(LDAPAttrTags[PrefixWhitelist],
-			    cfg.GetString(ldap_attr_name_sec, 
-					      LDAPAttrTags[PrefixWhitelist],
-					      "voIPprefixWhitelist"))); // ...2090
-
-  PString ServerName = cfg.GetString(ldap_auth_sec, "ServerName", "ldap");
-  int ServerPort = cfg.GetString(ldap_auth_sec, "ServerPort", "389").AsInteger();
-  PString SearchBaseDN = cfg.GetString(ldap_auth_sec, "SearchBaseDN", 
-					   "o=University of Michigan, c=US");
-  PString BindUserDN = cfg.GetString(ldap_auth_sec, "BindUserDN", 
-					 "cn=Babs Jensen,o=University of Michigan, c=US");
-  PString BindUserPW = cfg.GetString(ldap_auth_sec, "BindUserPW", "RealySecretPassword");
-  unsigned int sizelimit = cfg.GetString(ldap_auth_sec, "sizelimit", "0").AsUnsigned();
-  unsigned int timelimit = cfg.GetString(ldap_auth_sec, "timelimit", "0").AsUnsigned();
-
-  LDAPConn = new LDAPCtrl(&AN, default_timeout, ServerName, 
-			  SearchBaseDN, BindUserDN, BindUserPW, 
-			  sizelimit, timelimit, ServerPort);
-} // Initialize
-
-void
-LDAPAuth::Destroy()		// 'real', private destructor
-{
-  delete LDAPConn;
-} // Destroy
-
-PString LDAPAuth::convertE123ToDialedDigits(PString e123) {
-  e123.Replace("+","");
-  // remove all whitespaces
-  e123.Replace(" ","", TRUE);
-  // remove all "."
-  e123.Replace(".","", TRUE);
-  return e123;
-}
-
-bool LDAPAuth::validAliases(const H225_ArrayOf_AliasAddress & aliases) {
-  PString aliasStr;
-  bool found = 0;
-  // search H323ID in aliases
-  for (PINDEX i = 0; i < aliases.GetSize() && !found; i++) {
-    if (aliases[i].GetTag() == H225_AliasAddress::e_h323_ID) {
-      aliasStr = H323GetAliasAddressString(aliases[i]);
-      found = 1;
-    }
-  }
-  if(!found) return false;
-  PStringList telephoneNumbers;
-  // get telephone numbers from LDAP for H323ID
-  using namespace lctn;		// LDAP config tags and names
-  if(getAttribute(aliasStr, TelephonNo, telephoneNumbers)) {
-    // for each alias == dialedDigits
-    for (PINDEX i = 0; i < aliases.GetSize(); i++) { 
-      if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-        aliasStr = H323GetAliasAddressString(aliases[i]);
-        // check if alias exists in telephoneNumbers from LDAP entry
-        for (PINDEX j = 0; j < telephoneNumbers.GetSize(); j++) {
-          if(aliasStr != convertE123ToDialedDigits(telephoneNumbers[j])) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
-  return false;
-}
-
-LDAPAnswer *LDAPAuth::doQuery(const PString & alias) {
-  return LDAPConn->DirectoryUserLookup(alias);
-}
-
-bool LDAPAuth::getAttribute(const PString &alias, const int attr_name, 
-                           PStringList &attr_values){
-  PWaitAndSignal lock(m_usedLock);
-  LDAPAnswer *answer = doQuery(alias);
-  // if LDAP succeeds
-  if(answer->status == 0){
-    using namespace lctn;
-    if (answer->LDAPec.size()){
-      LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
-      if((pFirstDN->second).count(AN[LDAPAttrTags[attr_name]])){
-	attr_values = (pFirstDN->second)[AN[LDAPAttrTags[attr_name]]];
-      }
-    }
-  }
-  return (answer->status == 0) ? true : false;
-} 
- 
-
-// constructor
 LDAPPasswordAuth::LDAPPasswordAuth(PConfig * cfg, const char * authName)
   : SimplePasswordAuth(cfg, authName)
 {
-  LDAPAuth::Instance()->Initialize(*cfg);
-} // LDAPAuth constructor
+}
 
-// destructor
 LDAPPasswordAuth::~LDAPPasswordAuth()
 {
-} // LDAPAuth destructor
+}
 
 PString LDAPPasswordAuth::GetPassword(PString & alias)
 {
-  PStringList attr_values;
-  using namespace lctn; // LDAP config tags and names
-  // get pointer to new answer object
-  if(LDAPAuth::Instance()->getAttribute(alias, H245PassWord, attr_values) && (!attr_values.IsEmpty())){
-    return attr_values[0];
-  }
-  return "";
+	PStringList attr_values;
+	using namespace lctn; // LDAP config tags and names
+	// get pointer to new answer object
+	if(GkLDAP::Instance()->getAttribute(alias, H245PassWord, attr_values) && 
+	   !attr_values.IsEmpty()){
+		return attr_values[0];
+	}
+	return "";
 }  
 
-int LDAPPasswordAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason) {
-  int result = SimplePasswordAuth::Check(rrq, reason);
-  if(result == e_ok) {
-    // check if all aliases in RRQ exists in LDAP entry
-    const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
-    if(!LDAPAuth::Instance()->validAliases(aliases)) {
-      result = e_fail;
-    }
-  }
-  return result;
+int LDAPPasswordAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason)
+{
+	int result = SimplePasswordAuth::Check(rrq, reason);
+	if(result == e_ok) {
+		// check if all aliases in RRQ exists in LDAP entry
+		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
+		if(!GkLDAP::Instance()->validAliases(aliases)) {
+			result = e_fail;
+		}
+	}
+	return result;
 }
 
-// LDAPAliasAuth
+
 LDAPAliasAuth::LDAPAliasAuth(PConfig *cfg, const char *authName) : AliasAuth(cfg, authName)
 {
-  LDAPAuth::Instance()->Initialize(*cfg);
-} // LDAPAliasAuth constructor
+}
 
-// destructor
-LDAPAliasAuth::~LDAPAliasAuth() {
-} // LDAPAliasAuth destructor
+LDAPAliasAuth::~LDAPAliasAuth()
+{
+}
 
 PString LDAPAliasAuth::getConfigString(const PString &alias) const
 {
-  PStringList attr_values;
-  using namespace lctn; // LDAP config tags and names
-  // get pointer to new answer object
-  if(LDAPAuth::Instance()->getAttribute(alias, IPAddress, attr_values) && (!attr_values.IsEmpty())){
-    PString ip = attr_values[0];
-    if(!ip.IsEmpty()){
-      PString port = GK_DEF_ENDPOINT_SIGNAL_PORT;    
-      return "sigip:" + ip + ":" + port;
-    }
-  }
-  return "";
+	PStringList attr_values;
+	using namespace lctn; // LDAP config tags and names
+	// get pointer to new answer object
+	if (GkLDAP::Instance()->getAttribute(alias, IPAddress, attr_values) && (!attr_values.IsEmpty())) {
+		PString ip = attr_values[0];
+    		if(!ip.IsEmpty()){
+      			PString port = GK_DEF_ENDPOINT_SIGNAL_PORT;    
+			return "sigip:" + ip + ":" + port;
+		}
+	}
+	return "";
 }
 
-int LDAPAliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason) {
-  int result = AliasAuth::Check(rrq, reason);
-  if(result == e_ok) {
-    // check if all aliases in RRQ exists in LDAP entry
-    const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
-    if(!LDAPAuth::Instance()->validAliases(aliases)) {
-      result = e_fail;
-    }
-  }
-  return result;
+int LDAPAliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason)
+{
+	int result = AliasAuth::Check(rrq, reason);
+	if(result == e_ok) {
+		// check if all aliases in RRQ exists in LDAP entry
+		const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
+		if(!GkLDAP::Instance()->validAliases(aliases)) {
+      			result = e_fail;
+    		}
+	}
+  	return result;
 }
 
 #endif // HAS_LDAP
+
 
 // AliasAuth
 AliasAuth::AliasAuth(PConfig *cfg, const char *authName) : GkAuthenticator(cfg, authName)
