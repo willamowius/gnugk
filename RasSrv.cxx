@@ -1063,15 +1063,18 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 						PString number = H323GetAliasAddressString(dest[0]);
 						Q931::NumberingPlanCodes plan = Q931::ISDNPlan;
 						Q931::TypeOfNumberCodes ton = Q931::UnknownType;
-						ton = static_cast<Q931::TypeOfNumberCodes> (
-							pCallRec->GetCallingProfile().TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
-							ton : pCallRec->GetCallingProfile().TreatCalledPartyNumberAs());
 						H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
+						CallProfile & profile=pCallRec->GetCallingProfile();
+						PTRACE(5, "foo");
+						profile.debugPrint();
+						ton = static_cast<Q931::TypeOfNumberCodes> (
+							profile.TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
+							ton : profile.TreatCalledPartyNumberAs());
 						Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
-												     pCallRec->GetCallingProfile());
+												     profile);
 						H323SetAliasAddress(number, dest[0], H225_AliasAddress::e_dialedDigits);
+						PTRACE(5, "rewriting destination " << dest[0]);
 						arq_fake.m_destinationInfo=dest;
-						//PrefixAnalysis(pCallRec->GetCallingProfile(), arq_fake); // Number should be long enough to dertermine
 						gkClient->SendARQ(arq_fake, RequestingEP);
 						return FALSE;
 
