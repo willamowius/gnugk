@@ -77,6 +77,10 @@ endif
 export LD_RUN_PATH
 endif				# HAS_MWBB1
 
+ifndef ANSI
+STDCCFLAGS	+= -DGK_NOANSI
+endif
+
 ifdef HAS_LEVEL_TWO_LDAPAPI
 SOURCES         += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
 		LDAP_SFilter.cxx  delete.cxx   init.cxx      options.cxx \
