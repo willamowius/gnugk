@@ -242,7 +242,8 @@ endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 			return endptr(0);
 		}
 		callptr m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
-		return RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress()));
+		if (m_call)
+			return RegistrationTable::Instance()->FindBySignalAdr(*(m_call->GetCallingAddress()));
 	}
 	PTRACE(1, "Something nasty happened");
 	return endptr(0);
@@ -696,6 +697,10 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	GkClient *gkClient = RasThread->GetGkClient();
 	Address fromIP;
 	GetPeerAddress(fromIP);
+
+	bool bOverlapSending = FALSE;
+	isRoutable=FALSE;
+
 	if (m_call) {
 		if (m_call->IsRegistered()) {
 			if (gkClient->CheckGKIP(fromIP)) {
@@ -709,6 +714,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		bool fromParent;
 		if (!RasThread->AcceptUnregisteredCalls(fromIP, fromParent)) {
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
+			PTRACE(3, "Call was " << (fromParent ? "" : "not " ) << "from Parent");
 			return;
 		}
 		if (fromParent)
@@ -717,35 +723,53 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		endptr called;
 		PString destinationString;
 
+		endptr callingEP = GetCgEP(*GetSetupPDU());
+		if (endptr(NULL)==callingEP) {
+			if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+				callingEP = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_sourceCallSignalAddress);
+			}
+		}
+		// TODO: check the Setup_UUIE by gkauth modules
+
+		if (!callingEP) {
+			PTRACE(1, "Unknown Calling Party -- giving up");
+			return ;
+		}
+
+		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
+		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, RasThread->IsGKRoutedH245());
+
+		call->SetCalling(callingEP);
+		CallTable::Instance()->Insert(call);
+		m_call = callptr(call);
+
+		unsigned int reason;
+
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 			called = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_destCallSignalAddress);
 			destinationString = AsDotString(Setup.m_destCallSignalAddress);
 		}
 		if (!called && Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-			called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
+			if (callingEP)
+				called = RegistrationTable::Instance()->getMsgDestination(Setup.m_destinationAddress[0], // should check all
+										  callingEP, reason);
 			destinationString = AsString(Setup.m_destinationAddress);
 		}
-		if (!called) {
+		if (!called && reason!=H225_AdmissionRejectReason::e_incompleteAddress) {
 			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
 			return;
 		}
 
-		// TODO: check the Setup_UUIE by gkauth modules
-
-		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
-		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, RasThread->IsGKRoutedH245());
-		call->SetCalled(called, m_crv);
-
-		CallTable::Instance()->Insert(call);
-		m_call = callptr(call);
+		if(called) {
+			call->SetCalled(called, m_crv);
+		} else {
+			bOverlapSending=TRUE;
+		}
 		if (fromParent) {
 			call->SetRegistered(true);
 			gkClient->SendARQ(Setup, m_crv, m_call);
 		}
 	}
-
-	bool bOverlapSending = FALSE;
-	isRoutable=FALSE;
 
 	const H225_TransportAddress *addr = m_call->GetCalledAddress();
 
@@ -1238,6 +1262,9 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 
 	PTRACE(1, "Begin of CgPNConversion");
 	callptr callRec = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
+
+	if(callRec==callptr(NULL))
+		return;
 
 	PString srcH323IDStr=callRec->GetCallingProfile().getH323ID();
 
