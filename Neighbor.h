@@ -101,7 +101,7 @@ public:
 protected:
 	void SetForwardedInfo(const PString &);
 
-	typedef std::map<PString, int> Prefixes;
+	typedef std::map<PString, int, pstr_prefix_lesser> Prefixes;
 
 	RasServer *m_rasSrv;
 	PString m_id, m_gkid, m_password, m_name;

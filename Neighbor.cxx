@@ -252,8 +252,13 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 		PString destination(AsString(alias, false));
 		while (iter != biter) {
 			--iter; // search in reverse order
-			int len = iter->first.GetLength();
-			if (strncmp(iter->first, destination, len) == 0) {
+			const int len = MatchPrefix(destination, iter->first);
+			if (len < 0) {
+				PTRACE(0, "XXX\tNo match for " << destination << " " << iter->first);
+				return nomatch;
+			}
+			else if (len > 0) {
+				PTRACE(0, "XXX\tMatch for " << destination << " " << iter->first);
 				dest.SetSize(1);
 				dest[0] = alias;
 				return PrefixInfo((short)len, (short)iter->second);
@@ -321,21 +326,27 @@ bool Neighbor::IsAcceptable(RasMsg *ras) const
 		H225_LocationRequest & lrq = (*ras)->m_recvRAS;
 		PINDEX i, j, sz = m_acceptPrefixes.GetSize();
 		H225_ArrayOf_AliasAddress & aliases = lrq.m_destinationInfo;
-		for (i = 0; i < sz; ++i)
-			if (m_acceptPrefixes[i] == "*")
-				return true;
 		for (j = 0; j < aliases.GetSize(); ++j) {
 			H225_AliasAddress & alias = aliases[j];
 			for (i = 0; i < sz; ++i)
 				if (m_acceptPrefixes[i] == alias.GetTagName())
 					return true;
 			PString destination(AsString(alias, false));
+			int maxlen = 0;
 			for (i = 0; i < sz; ++i) {
 				const PString & prefix = m_acceptPrefixes[i];
-				if (strncmp(prefix, destination, prefix.GetLength()) == 0)
-					return true;
+				const int len = MatchPrefix(destination, prefix);
+				if (len < 0)
+					return false;
+				else if (len > maxlen)
+					maxlen = len;
 			}
+			if (maxlen > 0)
+				return true;
 		}
+		for (i = 0; i < sz; ++i)
+			if (m_acceptPrefixes[i] == "*")
+				return true;
 	}
 	return false;
 }

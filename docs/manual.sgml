@@ -114,6 +114,13 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Enchanced prefix matching for routing policies. A dot (<tt/./) matches any digit.
+
+<item>
+Enchanced prefix matching for neighbors. A dot (<tt/./) matches any digit,
+<tt/!/ at the beginning disables the prefix.
+
+<item>
 A missing lock during config reload caused the gatekeeper to crash.
 
 <item>
@@ -1941,6 +1948,8 @@ If the destination of an ARQ is unknown, the gatekeeper sends LRQs to
 its neighbors to ask if they have the destination endpoint.
 A neighbor is selected if one of its prefixes matches the destination
 or it has ``<tt/*/'' prefix. More than one prefix can be specified.
+You can use special characters ``<tt/./'' and ``<tt/!/'' to do wildcard
+matching and disable a specific prefix.
 
 Conversely, the gatekeeper will only reply to LRQs sent from neighbors
 defined in this section.

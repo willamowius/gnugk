@@ -151,6 +151,28 @@ inline const _Tp& max(const _Tp& __a, const _Tp& __b)
 #endif // _MSC_VER <= 1200
 #endif // WIN32
 
+struct str_prefix_greater : public binary_function<std::string, std::string, bool> {
+
+	bool operator()(const std::string& s1, const std::string& s2) const 
+	{
+		if (s1.size() == s2.size())
+			return s1 > s2;
+		else
+			return s1.size() > s2.size();
+	}
+};
+
+struct pstr_prefix_lesser : public binary_function<PString, PString, bool> {
+
+	bool operator()(const PString& s1, const PString& s2) const 
+	{
+		if (s1.GetLength() == s2.GetLength())
+			return s1 < s2;
+		else
+			return s1.GetLength() < s2.GetLength();
+	}
+};
+
 // since VC6 didn't support partial specialization, use different names
 template <class _Tp>
 class mem_vfun_t : public unary_function<_Tp*,void> {

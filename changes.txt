@@ -1,5 +1,8 @@
 Changes from 2.2.0 to 2.2.1
 ===========================
+- enchanced prefix matching for routing policies. A dot (.) matches any digit
+- enchanced prefix matching for neighbors. A dot (.) matches any digit,
+  ! at the beginning disables the prefix
 - (ProxyChannel.cxx) critical fix - a missing lock during config reload
   caused the gatekeeper to crash
 - (ProxyChannel.cxx) more reliable port number selection for Q.931, H.245, 

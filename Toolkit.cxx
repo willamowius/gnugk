@@ -202,7 +202,7 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 	PStringToString cfgs(config->GetAllKeyValues(section));
 	m_size = cfgs.GetSize();
 	if (m_size > 0) {
-		std::map<PString, PString> rules;
+		std::map<PString, PString, pstr_prefix_lesser> rules;
 		for (PINDEX i = 0; i < m_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
 			if (!key && (isdigit(key[0]) || key[0]=='!' || key[0]=='.' || key[0]=='%' || key[0]=='*' || key[0]=='#'))
@@ -217,6 +217,7 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 			m_RewriteValue = m_RewriteKey + m_size;
 			m_RewriteValues = new PStringArray[m_size];
 			std::map<PString, PString>::iterator iter = rules.begin();
+			
 			// reverse the order
 			for (int i = m_size; i-- > 0 ; ++iter) {
 //				m_RewriteKey[i] = iter->first;

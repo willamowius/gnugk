@@ -614,7 +614,7 @@ void GatewayRec::AddPrefixes(const PString & prefixes)
 void GatewayRec::SortPrefixes()
 {
 	// remove duplicate aliases
-	sort(Prefixes.begin(), Prefixes.end(), greater<std::string>());
+	sort(Prefixes.begin(), Prefixes.end(), str_prefix_greater());
 	prefix_iterator Iter = unique(Prefixes.begin(), Prefixes.end());
 	Prefixes.erase(Iter, Prefixes.end());
 	defaultGW = (find(Prefixes.begin(), Prefixes.end(), std::string("*")) != Prefixes.end());

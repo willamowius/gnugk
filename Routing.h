@@ -207,7 +207,7 @@ public:
 	bool Parse(FacilityRequest &);
 
 private:
-	typedef std::map<PString, Policy *> Rules;
+	typedef std::map<PString, Policy *, pstr_prefix_lesser> Rules;
 
 	Policy *Create(const PString & policy);
 	Policy *ChoosePolicy(const H225_ArrayOf_AliasAddress *, Rules &);

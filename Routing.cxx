@@ -204,7 +204,7 @@ Policy *Analyzer::ChoosePolicy(const H225_ArrayOf_AliasAddress *aliases, Rules &
 			PString destination(AsString(alias, false));
 			while (iter != biter) {
 				--iter; // search in reverse order
-				if (strncmp(iter->first, destination, iter->first.GetLength()) == 0)
+				if (MatchPrefix(destination, iter->first) > 0)
 					return iter->second;
 			}
 		}
