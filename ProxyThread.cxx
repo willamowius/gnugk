@@ -416,6 +416,7 @@ bool ProxyConnectThread::Connect(ProxySocket *socket)
 
 void ProxyConnectThread::Exec()
 {
+	ConfigReloadMutex.StartRead(); // This is silly but will prevent the ConfigReloadMutex from beeing not Read.
 	if (!Wait())
 		return;
 

@@ -318,7 +318,7 @@ inline void ProxySocket::SetName(PIPSocket::Address ip, WORD pt)
 
 inline bool MyPThread::Wait()
 {
-//	ReadUnlock unlock(ConfigReloadMutex);
+	ReadUnlock unlock(ConfigReloadMutex);
 	sync.Wait();
 	return isOpen;
 }
