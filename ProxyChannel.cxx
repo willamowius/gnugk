@@ -3430,6 +3430,8 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 						);
 #else
 #ifdef LARGE_FDSET
+				// for some mystic reason not all compilers accept LARGE_FDSET macro inside PTRACE
+				const int large_fdset = (int)LARGE_FDSET;
 				if (socket->Self()->GetHandle() >= LARGE_FDSET)
 #else
 				if (socket->Self()->GetHandle() >= FD_SETSIZE)
@@ -3437,7 +3439,7 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 					PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
 						<< socket->Self()->GetHandle() << " (limit=" << 
 #ifdef LARGE_FDSET
-						((int)LARGE_FDSET) 
+						large_fdset
 #else
 						((int)FD_SETSIZE) 
 #endif
@@ -3529,6 +3531,8 @@ void ProxyHandler::FlushSockets()
 					);
 #else
 #ifdef LARGE_FDSET
+			// for some mystic reason not all compilers accept LARGE_FDSET macro inside PTRACE
+			const int large_fdset = (int)LARGE_FDSET;
 			if ((*i)->GetHandle() >= LARGE_FDSET)
 #else
 			if ((*i)->GetHandle() >= FD_SETSIZE)
@@ -3536,7 +3540,7 @@ void ProxyHandler::FlushSockets()
 				PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
 					<< (*i)->GetHandle() << " (limit=" << 
 #ifdef LARGE_FDSET
-					((int)LARGE_FDSET) 
+					large_fdset 
 #else
 					((int)FD_SETSIZE) 
 #endif
