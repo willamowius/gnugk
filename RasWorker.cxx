@@ -343,6 +343,7 @@ H323RasWorker::H323RasWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr
 	GK_RASWorker(initial_pdu, rx_addr, rx_port, listener)
 {
 	PTRACE(5, "H323RasWorker started");
+	authList=new GkAuthenticatorList(GkConfig());
 //	Resume();
 }
 
@@ -656,6 +657,7 @@ H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 		}
 	}
 	unsigned rsn = H225_RegistrationRejectReason::e_securityDenial;
+	PAssert(authList!=NULL, "authlist not ok");
 	if (!bReject && !authList->Check(rrq, rsn)) {
 		bReject = TRUE;
 		rejectReason.SetTag(rsn);
