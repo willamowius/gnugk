@@ -7,8 +7,7 @@ A. Command line options
 
 -h		help
 
--b <n>	limit the sum of bandwidth to be given to clients to n * 100 bit/sec,
-		default is 100000 which should roughly be (very) the capacity of a 100 MBit LAN
+-b <n>		limit the sum of bandwidth to be given to clients
 
 -r		use gatekeeper routed signaling
 
@@ -19,21 +18,23 @@ A. Command line options
 		the above options override the RoutedMode
 		setting in the config file
 
--i <ip>	gatekeeper will only listen on this IP number (eg. useful,
+-i <ip>		gatekeeper will only listen on this IP number (eg. useful,
 		when running client and gatekeeper on the same machine)
 		overrides the Home= setting in the config file
 
 -t		set trace verbosity: -t = a little , -tt = more, -ttt a lot, ...
 
--o <file> write trace to this file, default is to write on the console
+-o <file>	write trace to this file, default is to write on the console
 
--l <n>	limit TTL (time to live) for client registration to n
-	overrides the TimeToLive= setting in the config file
+-l <n>		limit TTL (time to live) for client registration to n
+		overrides the TimeToLive= setting in the config file
 
 -c <file>	specify which config file to use, default is to look for
-			gatekeeper.ini in the current directory or ~/.pwlib_config/Gatekeeper.ini (on Unix)
+		gatekeeper.ini in the current directory or
+		~/.pwlib_config/Gatekeeper.ini (on Unix)
 
--s <section>	specify which [Main] section to use in the config file, default is [Gatekeeper::Main]
+-s <section>	specify which [Main] section to use in the config file,
+		default is [Gatekeeper::Main]
 
 
 B. Configuration file reference
@@ -77,7 +78,7 @@ The fourth field specified the priority for this GK. Lower is better, usually th
 primary GK is considered to have priority 1.
 The last field specifies the alternate's gatekeeperId .
 
-sendto=1.2.3.4:1719
+SendTo=1.2.3.4:1719
 Although this information is contained in AlternateGKs, you must still
 specify which address to forward RRQs to. This might differ from AlternateGK's
 address, so it's a separate config option (think of multihomed machines).
@@ -96,9 +97,9 @@ primary one.
 Most users will never need to change any of the following values. They are mainly
 used for testing or very sophisticated applications.
 
-UnicastRasPort=1719			Default: 1719
+UnicastRasPort=1719		Default: 1719
 
-MulticastPort=1718			Default: 1718
+MulticastPort=1718		Default: 1718
 
 MulticastGroup=224.0.1.41	Default: 224.0.1.41
 
@@ -117,6 +118,10 @@ Time in ms when for read timeout on signaling channels (Q931).
 TimeToLive=300			Default: -1
 Time to live for client registration in seconds.
 Use -1 to disable this feature.
+
+TotalBandwidth=100000		Default: -1
+Total available bandwidth to be given to clients.
+
 
 B.2 Section [RoutedMode]
 
@@ -141,6 +146,57 @@ CallSignalHandlerNumber=1	Default: 1
 The number of call signaling handler. You may increase this number
 in a heavy loaded gatekeeper. The number can only be increased
 at runtime.
+
+RemoveH245AddressOnTunneling=1	Default: 0
+
+Some endpoints send h245Address in the UUIE of Q.931 even when h245Tunneling
+is set to TRUE. This may cause interoperability problems. If the option
+is TRUE, the gatekeeper will remove h245Address when h245Tunneling flag
+is TRUE. This enforces the remote party to stay in tunneling mode.
+
+AcceptNeighborsCalls=1		Default: 1
+
+With this feature enabled, the call signaling thread will accept calls
+without a pre-existing CallRec found in CallTable, provided an endpoint
+corresponding to the destinationAddress in Setup can be found in the
+RegistrationTable, and the calling party is its neighbors or parent GK.
+The GK will also use it's own call signaling address in LCF replied to
+an LRQ.  That means, the call signaling will be routed to GK2 in GK-GK
+calls. As a result, the CDRs in GK2 can correctly show the connected
+time, instead of 'unconnected'.
+
+AcceptUnregisteredCalls=1	Default: 0
+
+With this feature enabled, the call signaling thread will accept calls
+from any calling party. So the GK works exactly like a gateway.
+
+SupportNATedEndpoints=1		Default: 0
+
+Whether to allow an endpoint behind an NAT box register to the GK.
+If yes, the GK will translate the IP address in Q.931 and H.245
+into the IP of NAT box.
+
+DropCallsByReleaseComplete=1	Default: 0
+
+According to H.323 spec, the GK could tear down a call by sending RAS
+DisengageRequest to endpoints. However, some bad endpoints just ignore
+this command. With this option turning on, the GK will send Q.931
+Release Complete instead of RAS DRQ to both endpoints to force them
+drop the call.
+
+SendReleaseCompleteOnDRQ=1	Default: 0
+
+On hangup, the endpoint sends both, RELEASE COMPLETE within H.225/Q.931 and
+DRQ within RAS. It may happen that DRQ is processed first, causing the gk to
+close the call signalling channel, thus preventnig the RELEASE COMPLETE from
+being forwarding to the other endpoint.
+Though the gk closes the TCP channel to the destination, some endpoints (e.g.
+ Cisco CallManager) don't drop the call even if the call signalling channel
+is closed. This results in phones that keep ringing if the caller hangs up
+before the callee pickups.
+Setting this parameter to "1" makes the gk always send RELEASE COMPLETE
+to both endpoints before closing the call when it receives DRQ from one of
+the parties.
 
 
 B.3 Section [GkStatus::Auth]
@@ -171,10 +227,13 @@ fully implemented).
 
 
 B.7 Section [RasSvr::ARQFeatures]
-ArjReasonRouteCallToSCN=FALSE
-If TRUE, when a ARQ arrives from the very same gateway that this call
-would be routed back to, gatekeeper sends ARJ with Reason RouteCallToSCN
+ArjReasonRouteCallToSCN=FALSE		Default: FALSE
+If TRUE, when an ARQ arrives from the very same gateway that this call
+would be routed back to, gatekeeper sends ARJ with reason RouteCallToSCN.
 
+ArjReasonRouteCallToGatekeeper=TRUE	Default: TRUE
+If TRUE, when an answered ARQ arrives without a pre-existing CallRec
+found in CallTable, gatekeeper sends ARJ with reason RouteCallToGatekeeper.
 
 B.8 Section [RasSrv::RRQAuth]
 
@@ -185,18 +244,18 @@ First, the first alias (this will mostly be a h323id) of the endpoint to registe
 up in this section.  If a parameter is found the value will apply as a rule. If no parameter
 is found, the value of the parameter "default" will apply. If no "default" is found all
 registrations are accepted. A rule consists of conditions separated by "&". A registration
-is accepted when all conditions apply.
+is accepted when all conditions apply. 
 
 A condition has the notation authtype:param1[:param2[...]]. The number of params depends on
-the authtype. Currently the following authtypes are implemented:
+the authtype. Currently the following authtypes are implemented: 
 
-  confirm (or allow)        : allow this endpoint to register.
-  reject (or deny, forbid)  : may not register.
-  sigip:<a.b.c.d:p>         : allow registering if the signal address is <a.b.c.d:p>.
+  confirm (or allow)        : allow this endpoint to register. 
+  reject (or deny, forbid)  : may not register. 
+  sigip:<a.b.c.d:p>         : allow registering if the signal address is <a.b.c.d:p>. 
   sigaddr:<regex>           : allow registering only if the PString (see pwlib class)
                               representation of the signal address of the registering endpoint
 			      matches <regex>. This is a more general form then "sigip" and
-			      will allow future extension (ie by IPv6).
+			      will allow future extension (ie by IPv6). 
 
   Example:
   rossi-gt2=sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
@@ -235,8 +294,10 @@ Time between 'pings'
 B.11 Section [RasSvr::Neighbors]
 
 The GK would send LRQ to its neighbors if the destination of ARQ is unknown.
-A neighbor is selected if its prefix match the destination or
-it has prefix '*'.
+A neighbor is selected if its prefix match the destination or it has
+prefix '*'. If prefix is empty, no LRQs will be sent to that neighbor.
+This is useful if you want to only receive LRQs from that neighbor.
+
 Currently only one prefix is supported.
 
   Format:
@@ -245,11 +306,12 @@ Currently only one prefix is supported.
   Example:
     GK1=203.60.151.5:1719;*;gk1
     GK2=203.60.151.9:1719;02
+    GK3=203.60.152.6:1719;;
 
 B.12 Section [RasSvr::PermanentEndpoints]
 
 In this section you can put endpoints that don't have RAS support
-or that you don't want to be expired. The records will always
+or that you don't want to be expired. The records are always
 in GK's registration table.
 However, You can still unregister it via status thread.
 
@@ -267,50 +329,74 @@ default=reject				Default: allow
 Syntax:
    authrule=actions
 
-   <authrule> := SimplePasswordAuth | LDAPPasswordAuth
-                 | AliasAuth | LDAPAliasAuth | ...
+   <authrule> := SimplePasswordAuth | DBPasswordAuth
+                 | AliasAuth | DBAliasAuth | ...
    <actions>  := <control>[;<ras>,<ras>,...]
    <control>  := optional | required | sufficient
    <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
 
+Currently supported modules:
+
+   SimplePasswordAuth/
+   DBPasswordAuth      The module checks the tokens or cryptoTokens
+                       fields of RAS message. The tokens should contain
+                       at least generalID and password. For cryptoTokens,
+                       cryptoEPPwdHash tokens hashed by simple MD5 and
+                       nestedcryptoToken tokens hashed by HMAC-SHA1-96
+                       (libssl must be installed!) are supported now.
+                       The ID and password are read from [Password] section
+                       / Database. Support for other backend databases is
+                       easy to add.
+
+  AliasAuth/
+  MySQLAliasAuth/
+  DBAliasAuth         The IP of an endpoint with given alias should
+                      match a specified pattern. For AliasAuth the pattern 
+                      is defined in [RasSrv::RRQAuth] section.
+                      For MySQLAliasAuth, the pattern is retrieved from
+                      MySQL database, defined in [MySQLAliasAuth] section.
+                      For DBAliasAuth the alias (default: mail attribute)
+                      and IP (default: voIPIpAddress attribute) must be 
+                      found in one LDAP entry or, if using the .ini file
+		      as the database, the corresponding entry in the
+		      [RasSvr::EndpointOptions] section.
+		      (NOTE: MySQLAliasAuth will likely be integrated into
+		      DBAliasAuth in the near future).
+
+
 A rule may results in one of the three codes: ok, fail, pass.
 
   ok         The request is authenticated by this module
-  fail       The authentication fails and should be rejected
+  fail       The authentication fails and is rejected
   next       The rule cannot determine the request
 
-There are also three ways to control a rule:
+"Cannot determine" means the rule is not applicable, e.g:
+   a [Simple|DB]PasswordAuth rule cannot be applied if the request does not contain CryptoTokens
+   a DBAliasAuth cannot be applied if the database entry does not contain the alias field
 
-  optional      If the rule cannot determine the request, it is passed
-                to next rule.
-  required      The requests should be authenticated by this module,
-                or it would be rejected. The authenticated request would
-                then be passwd to next rule.
-  sufficient    If the request is authenticated, it is accepted,
-                or it would be rejected. That is, the rule determines
-                the fate of the request. No rule should be put after
-                a sufficient rule, since it won't take effect.
+There are also four ways to control a rule:
 
-Currently supported modules:
+   alternative   If this rule cannot determine the request, it is passed on
+                 to the next rule. If the result is positive, the request is
+                 authenticated and the request is NOT passed on to the next rule.
+		 If the result is negative, the request is passed on to the next rule.
+   optional      If this rule cannot determine the request, it is passed
+                 to next rule. Otherwise, the output determines the
+                 answer, i.e. the request is either authenticated or rejected.
+                 In that case, unlike "alternative", the request is NOT passed
+		 on to the next rule.
+   required      The request MUST be authenticated by this module,
+                 or it is rejected. If this rule cannot determine the request,
+		 it is rejected. An authenticated request is passed on to the next rule.
+   sufficient    If the request is authenticated, it is accepted,
+                 otherwise it gets rejected. If this rule cannot determine the
+		 request, it is rejected. No further rules are evaluated.
+		 That is, a "sufficient" rule determines the fate of the
+		 request. No rule should be put after a sufficient rule, since
+	 	 it won't take effect.
 
-  SimplePasswordAuth/
-  LDAPPasswordAuth    The module checks the tokens or cryptoTokens
-                      fields of RAS message. The tokens should contain
-                      at least generalID and password. For cryptoTokens,
-                      cryptoEPPwdHash tokens hashed by simple MD5 and
-                      nestedcryptoToken tokens hashed by HMAC-SHA1-96
-                      (libssl must be installed!) are supported now.
-                      The ID and password are read from [Password] section
-                      / LDAP. Support for other backend databases is
-                      easily to add.
 
-  AliasAuth/
-  LDAPAliasAuth       The IP of an endpoint with given alias should
-                      match a specified pattern. For AliasAuth the pattern
-                      is defined in [RasSrv::RRQAuth] section.
-                      For LDAPAliasAuth the alias (default: mail attribute)
-                      and IP (default: voIPIpAddress attribute) must be
-                      found in one LDAP entry.
+
 
 You can also configure a rule to check only for some particular RAS
 messages. For example, to configure SimplePasswordAuth as a required
@@ -322,7 +408,13 @@ SimplePasswordAuth=required;RRQ,ARQ,LRQ
     AliasAuth=sufficient;RRQ
     default=reject
 
+
 B.14 Section [Password]
+
+The section defines the userid and password pairs used by SimplePasswordAuth.
+Use 'make addpasswd' to generate the utility addpasswd.
+Usage:
+   addpasswd config userid password
 
 KeyFilled=123           Default: 0
 
@@ -331,6 +423,13 @@ Default value to initialize the encryption key.
 CkeckID=TRUE            Default: FALSE
 
 Check if the aliases match the ID in the tokens.
+
+PasswordTimeout=120	Default: -1
+
+SimplePasswordAuth will cache an authenticated password.
+This field define the cache timeout value in second.
+0 means never cache the password, while a negative value
+means the cache never expires.
 
 B.15 Section [CallTable]
 
@@ -380,12 +479,48 @@ PasswordField=Password
 
 The password field name.
 
-CheckEnableField=Active
+ExtraCriterion=Kind>0	Default: n/a
 
-If this variable is set, the GK will check whether if
-the id is disable or not from the specified field.
+Specify extra criterion.
 
-B.17 Section [GkAuthorize]
+The GK will issue the SQL command:
+SELECT $PasswordField FROM $Table WHERE $IDField = %alias [AND $ExtraCriterion]
+
+
+B.17 Section [MySQLAliasAuth]
+
+Host=localhost          Default: localhost
+Database=billing        Default: billing
+User=cwhuang
+Password=123456
+Table=customer
+IDField=IPN
+IPField=Address
+ExtraCriterion=Kind>0	Default: n/a
+
+The SQL command is
+SELECT $IPField FROM $Table WHERE $IDField = %alias [AND $ExtraCriterion]
+
+The format is exactly as MySQLAuth, except the selected result
+is used as a specified pattern to match the IP of endpoint,
+as described in section [RasSrv::RRQAuth].
+
+CacheTimeout=100	Default: -1
+
+Timeout value in second to cache the result. See option
+PasswordTimeout in section [SimplePasswordAuth] for details.
+
+B.18 Sectrion [Gatekeeper::Databases]
+
+# The databases which are used for endpoint configuration.
+# The databases are searched for a config in the same order as they
+# are listed here.
+[Gatekeeper::Databases]
+#IniFile=true
+#LDAP=true
+
+
+B.19 Section [GkAuthorize]
 
 This section authorizes arq by source call signal address.
 
@@ -413,7 +548,7 @@ allow ipv4:0/0
 #We choose the most specific prefix and then
 #we choose the most specific network from list
 
-B.18 Section [Proxy]
+B.20 Section [Proxy]
 
 The section defines the H.323 proxy features. It means the gatekeeper will
 route all the traffic between the calling and called endpoints, so there
@@ -431,7 +566,8 @@ InternalNetwork=10.0.1.0/24	Default: n/a
 
 Define the networks behind the proxy. Multiple internal networks are allow.
 The proxy route channels only of the communications between one endpoint
-in the internal network and one external.
+in the internal network and one external. If you don't specify it, all calls
+will be proxied.
 
   Format:
     InternalNetwork=network address/netmask[,network address/netmask,...]
@@ -439,12 +575,105 @@ in the internal network and one external.
     The netmask can be expressed in decimal dot notation or
     CIDR notation (prefix length), as shown in the example.
 
-    If you don't specify it, the proxy function will always be used.
-
   Example:
     InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24
 
-B.15 [Gatekeeper::DestAnalysis]
+B.21 Section [Endpoint]
+
+The gatekeeper can work as an endpoint by registering to another gatekeeper.
+With this feature, you can easily build gatekeeper hierarchies.
+The section defines the endpoint features for the gatekeeper.
+
+Gatekeeper=10.0.1.1		Default: no
+
+Define a parent gatekeeper for the endpoint(gatekeeper) to register to.
+Don't try to register to yourself, unless you want to be confusing.
+To disable this feature, set the field to be no.
+
+Type=Gateway			Default: Gateway
+
+Define the terminal type for the endpoint.
+The valid values are Gateway or Terminal.
+
+H323ID=CitronProxy
+E164=18888600000,18888700000
+
+Define the H.323 ID and E.164 (dialedDigits) aliases for the endpoint.
+Multiple aliases can be specified.
+
+Password=123456
+
+Specify a password to be sent to the parent gatekeeper.
+All RAS requests will contain the password in the cryptoTokens field.
+
+Besides, the password is also used in LRQs sent to neighbor gatekeepers.
+
+Prefix=188886,188887
+
+Register the specified prefixes to the parent gatekeeper.
+Only take effect when the Type is Gateway.
+
+TimeToLive=900
+
+Suggest a time-to-live value in second for the registration.
+Note that the real time-to-live value is assigned by the parent
+gatekeeper in the RCF replied to the RRQ.
+
+RRQRetryInterval=10		Default: 10
+
+Define a retry interval in second for RRQs if no response
+received from the parent gatekeeper.
+
+ARQTimeout=2			Default: 2
+
+Define the timeout value for ARQs in second.
+
+
+B.22 Section [Endpoint::RewriteE164]
+
+Once you specify prefix(es) for your gatekeeper endpoint, the parent
+gatekeeper will route calls with dialed digits beginning with that prefixes.
+The child gatekeeper can rewrite the destination according to the rules
+specified in this section. By contrast, when an internal endpoint calls
+an endpoint registered to the parent gatekeeper, the source will be
+rewritten reversely.
+
+  Format:
+    external prefix=internal prefix
+
+For example, if you have the following configuration,
+
+				[Parent GK]
+				ID=CitronGK
+				/	  \
+			       /	   \
+			      /		    \
+			     /		     \
+			[Child GK]	    [EP3]
+			ID=ProxyGK	    E164=18888200
+			Prefix=188886
+			/	\
+		       /	 \
+		      /		  \
+		   [EP1]	 [EP2]
+		   E164=601	 E164=602
+
+With this rule:
+
+    188886=6
+
+When EP1 calls EP3 by 18888200, the CallingPartyNumber in the Q.931 Setup
+will be rewritten to 18888601. Conversely, EP3 can reach EP1 and EP2
+by calling 18888601 and 18888602, respectively. In consequence, an
+endpoint registered to the child GK with prefix '6' will appear
+as an endpoint with prefix '188886', for endpoints registered to
+the parent gatekeeper.
+
+The section does not relate to the section RasSvr::RewriteE164,
+though the later will take effect first.
+
+
+B.23 Section [Gatekeeper::DestAnalysis]
 
  Destination analysis mechanism
 
@@ -462,14 +691,14 @@ Currently supported modules:
                              addresses (not fully implemented up to now).
 
   BlackWhiteListDestAnalysis This module checks for Blacklisted numbers
-			     (forbidden numbers) and *then* for Whitelisted
-			     numbers (exceptions from Blacklist). Default is
-			     allow connections.
+                             (forbidden numbers) and *then* for Whitelisted
+                             numbers (exceptions from Blacklist). Default is
+                             allow connections.
 
   WhiteBlackListDestAnalysis This module checks for Whitelisted numbers
-			     (allowed numbers) and *then* for Blacklisted
-			     numbers (exceptions from Whitelist). Default
-			     is deny connections.
+                             (allowed numbers) and *then* for Blacklisted
+                             numbers (exceptions from Whitelist). Default
+                             is deny connections.
 
 A rule may results in one of the three codes: ok, fail, pass.
 There are also three ways to control a rule: optional, required, sufficient.
@@ -491,3 +720,4 @@ forbidden!
 voIPprefixOutgoingBlackList (aka BlackList): 49190, 49800, 49700
 That means calls to 49190* (user dialed 0190...) is forbidden too. The rest of the
 world was forbidden in the WhiteList rule.
+
