@@ -266,7 +266,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		const char *prefix = m_Rewrite->Key(i);
 		const int len = MatchPrefix(s, prefix);
 		// try a prefix match through all keys
-		if (len >= 0) {
+		if (len > 0 || (len == 0 && prefix[0] == '!')) {
 			// Rewrite to #t#. Append the suffix, too.
 			// old:  01901234999
 			//               999 Suffix
@@ -332,7 +332,7 @@ bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString 
 		key = (*rule_iterator).first;
 			
 		const int len = MatchPrefix(data, key);
-		if (len >= 0) {
+		if (len > 0 || (len == 0 && key[0] == '!')) {
 			// Start rewrite
 			value = (*rule_iterator).second;
 				
