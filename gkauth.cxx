@@ -9,7 +9,7 @@
 //
 // History:
 //      2001/09/19      initial version (Chih-Wei Huang)
-//      2003/07/16      revision for thread-safed
+//      2003/07/16      revision for thread-safe
 //
 //////////////////////////////////////////////////////////////////
 
@@ -204,7 +204,7 @@ bool CacheManager::Retrieve(const PString & key, PString & value) const
 		if ((PTime() - i->second) > ttl)
 			return false; // cache expired
 	}
-	value = iter->second;
+	value = (const char *)iter->second;
 	PTRACE(5, "GkAuth\tCache found for " << key);
 	return true;
 }
@@ -1187,7 +1187,7 @@ GkAuthenticatorList::GkAuthenticatorList() : m_head(0)
 }
 
 GkAuthenticatorList::~GkAuthenticatorList()
-{	
+{
 	delete m_head;
 	delete m_mechanisms;
 	delete m_algorithmOIDs;
@@ -1345,7 +1345,7 @@ void GkAuthenticatorList::OnReload()
 	}
 
 	// now switch to new setting
-	// FIXME: not thread-safed
+	// FIXME: not thread-safe
 	*m_mechanisms = mechanisms;
 	*m_algorithmOIDs = algorithmOIDs;
 	swap(m_head, head);
