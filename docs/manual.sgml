@@ -114,6 +114,10 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Called-Party-Number-IE rewrite occured too late, causing auth/acct modules 
+to receive the original number instead of the rewritten one.
+
+<item>
 Fixed proxying of RTP packets, so RTP sockets are not closed on temporary 
 errors (like remote socket not yet ready). This bug affected especially 
 NAT traversal and situation, when audio was sent very early, when reverse 

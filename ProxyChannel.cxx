@@ -805,33 +805,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
    The older version has an out of memory bug in Q931::GetCalledPartyNumber.
 */
 
-	if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
-		unsigned plan, type;
-		PString calledNumber;
-
-		// Do per GW inbound rewrite before global rewrite
-		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
-			Toolkit::Instance()->GWRewritePString(in_rewrite_id,true,calledNumber)) {
-			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
-			changed = true;
-		}
-
-		// Normal rewrite
-		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
-		    Toolkit::Instance()->RewritePString(calledNumber)) {
-			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
-			changed = true;
-		}
-
-		// Do per GW outbound rewrite after global rewrite
-		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
-			Toolkit::Instance()->GWRewritePString(out_rewrite_id,false,calledNumber)) {
-			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
-			changed = true;
-		}
-
-	}
-
 	if (m_lastQ931->HasIE(Q931::DisplayIE)) {
 		PString display = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
 		if (!display) {
@@ -1116,23 +1089,17 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	}
 
 
-#if PTRACING
 	PString callid;
-#endif
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
-#if PTRACING
 		callid = AsString(Setup.m_callIdentifier.m_guid);
-#endif
 	} else { // try CallReferenceValue
 		PTRACE(3, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
 		H225_CallReferenceValue crv;
 		crv.SetValue(m_crv & 0x7fffu);
 		m_call = CallTable::Instance()->FindCallRec(crv);
-#if PTRACING
 		H225_CallIdentifier callIdentifier; // empty callIdentifier
 		callid = AsString(callIdentifier.m_guid);
-#endif
 	}
 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
@@ -1193,6 +1160,20 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress);
 	}
 
+	if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+		unsigned plan, type;
+		PString calledNumber;
+
+		// Do per GW inbound rewrite before global rewrite
+		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+			Toolkit::Instance()->GWRewritePString(in_rewrite_id,true,calledNumber))
+			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+
+		// Normal rewrite
+		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+		    Toolkit::Instance()->RewritePString(calledNumber))
+			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
+	}
 
 
 	Address fromIP;
@@ -1423,6 +1404,16 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			out_rewrite_id = source;
 		}
 
+	}
+
+	if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+		unsigned plan, type;
+		PString calledNumber;
+
+		// Do per GW outbound rewrite after global rewrite
+		if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type) &&
+			Toolkit::Instance()->GWRewritePString(out_rewrite_id,false,calledNumber))
+			m_lastQ931->SetCalledPartyNumber(calledNumber, plan, type);
 	}
 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
