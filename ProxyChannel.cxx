@@ -313,6 +313,7 @@ CallSignalSocket::CallSignalSocket()
 	: TCPProxySocket("Q931s"), m_h245handler(NULL), m_h245socket(NULL), isRoutable(FALSE), m_numbercomplete(FALSE),
 	  m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL), m_replytoStatusMessage(TRUE)
 {
+	m_call=callptr(NULL);
 	localAddr = peerAddr = INADDR_ANY;
 	m_receivedQ931 = NULL;
 	m_SetupPDU = NULL;
@@ -327,7 +328,7 @@ CallSignalSocket::~CallSignalSocket()
 	m_lock.Wait();
 
 	if(callptr(NULL)!=m_call) {
-		PTRACE(5, "Deleting Call" << m_call);
+		PTRACE(5, "Deleting Call " << m_call->GetCallIdentifier());
 		m_call->RemoveSocket();
 		CallTable::Instance()->RemoveCall(m_call);
 
@@ -573,8 +574,10 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 			remote->SetDeletable(); // do not delete.
 			remote->UnlockUse("CallSignalSocket " + Name() + type);
 			remote=NULL;
-			m_call->RemoveSocket();
-			CallTable::Instance()->RemoveCall(m_call);
+			if(callptr(NULL)!=m_call) {
+				m_call->RemoveSocket();
+				CallTable::Instance()->RemoveCall(m_call);
+			}
 			m_call=callptr(NULL);
 			MarkBlocked(false);
 			SetDeletable();
@@ -666,10 +669,13 @@ bool CallSignalSocket::EndSession()
 bool
 CallSignalSocket::InternalEndSession()
 {
+	PTRACE(5, "Endsession");
 	if(callptr(NULL)!=m_call  && m_call->GetCalledProfile().ReleaseCauseIsSet())
 		InternalSendReleaseComplete(m_call->GetCalledProfile().GetReleaseCause());
 	else
 		InternalSendReleaseComplete(Q931::NormalCallClearing);
+
+	m_call=callptr(NULL);
 	return TCPProxySocket::EndSession();
 }
 
@@ -854,6 +860,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 				PTRACE(5, "Removing Call");
 				m_call->RemoveSocket();
 				CallTable::Instance()->RemoveCall(m_call);
+				m_call=callptr(NULL);
 			}
 			return Closing;
 		case Q931::StatusMsg:
@@ -1047,7 +1054,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		isRoutable = TRUE;
 	}
 	if (isRoutable) {
-		if(m_call->GetCallingProfile().GetH323ID().IsEmpty()) {
+ 		if(m_call->GetCallingProfile().GetH323ID().IsEmpty()) {
 			PTRACE(5, "m_call->GetCallingProfile() " <<" H323ID: " << m_call->GetCallingProfile().GetH323ID());
 			m_call->GetCallingProfile().debugPrint();
 			PTRACE(1, "Removing unknown call");
@@ -1058,6 +1065,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			return;
 		}
 		CgPNConversion();
+		m_call->GetCallingProfile().debugPrint();
 		if(callptr(NULL)==m_call) {
 			PTRACE(1, "Removing unknown call");
 			return;
@@ -1188,6 +1196,7 @@ void CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComp
 	PTRACE(5, "releaseComplete");
 	if(callptr(NULL)!=m_call) {
 		m_call->GetCalledProfile().SetReleaseCause(static_cast<Q931::CauseValues> (ReleaseComplete.m_reason.GetTag()));
+		m_call->SetDisconnected();
 	}
 	PTRACE(5, "releaseComplete");
 }
