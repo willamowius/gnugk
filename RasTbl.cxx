@@ -195,7 +195,8 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
         if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
 		const H225_RegistrationRequest & rrq = ras_msg;
 
-		SetRasAddress(rrq.m_rasAddress[0]);
+		if (rrq.m_rasAddress.GetSize() >= 1)
+			SetRasAddress(rrq.m_rasAddress[0]);
 
 		if (rrq.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier))
 			SetEndpointIdentifier(rrq.m_endpointIdentifier);

@@ -29,7 +29,7 @@ STDCCFLAGS := -I${H323_INCDIR} -DPTRACING#-DPASN_NOPRINT
 ifndef NO_MYSQL
 ifndef MYSQLDIR
 
-ifneq (,$(wildcard /usr/include/mysql))
+ifneq (,$(wildcard /usr/include/mysql/mysql++))
 MYSQLDIR := /usr/include/mysql
 export MYSQLDIR
 endif
