@@ -67,9 +67,10 @@ using namespace std;            // <--- NOTE!
 
 // list of names (keys) as used in config file, keep in sync with LDAPAttributeNamesEnum
 const char *  lctn::LDAPAttrTags[lctn::MAX_ATTR_NO] =
-{"DN", "UserIdentity", "H323ID", "TelephonNo", "H245PassWord", "CountryCode", 
- "AreaCode", "LocalAccessCode", "NationalAccessCode", "InternationalAccessCode",
- "CallingLineIdPresentation", "PrefixBlacklist", "PrefixWhitelist"};
+{"DN", "UserIdentity", "H323ID", "TelephonNo", "H245PassWord", "aliasH323ID", 
+ "CountryCode", "AreaCode", "LocalAccessCode", "NationalAccessCode", 
+ "InternationalAccessCode", "CallingLineIdPresentation", "PrefixBlacklist", 
+ "PrefixWhitelist"};
 
 
 
@@ -243,6 +244,7 @@ LDAPCtrl::DirectoryUserLookup(LDAPQuery & q)
   while((!((result = DirectoryLookup(q))->complete())) && 
 	(maxretries>(retry++))) {
     // FIXME: modify q to complete result
+    if(result->AV[LDAPAttrTags[DN]][0].GetSize()) {}
   }
 
 #if defined(HAS_MWBB1)
