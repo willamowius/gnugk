@@ -1,5 +1,6 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(gkauth.cxx) gcc 2.95.x compilation errors fixed
 - BUGFIX(Neighbor.cxx) handling reply messages (RIP/LCF/LRJ) from neighbors 
   fixed, thanks to kubuqi cn (kubuqi@hotmail.com)
 - support for CallCreditServiceControl in RCF and ACF messages, which allows

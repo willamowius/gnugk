@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2004/07/05 16:39:45  zvision
+ * Support for CallCreditServiceControl
+ *
  * Revision 1.18  2004/06/25 13:33:19  zvision
  * Better Username, Calling-Station-Id and Called-Station-Id handling.
  * New SetupUnreg option in Gatekeeper::Auth section.
@@ -404,6 +407,7 @@ int RadAuthBase::Check(
 
 	pdu->SetCode(RadiusPDU::AccessRequest);
 
+	const bool hasCall = authData.m_call.operator->() != NULL;
 	PIPSocket::Address addr;
 	endptr callingEP, calledEP;
 	
@@ -411,11 +415,11 @@ int RadAuthBase::Check(
 	// (unregistered endpoints will not be present there)
 	if (arq.m_answerCall) {
 		calledEP = authData.m_requestingEP;
-		if (authData.m_call)
+		if (hasCall)
 			callingEP = authData.m_call->GetCallingParty();
 	} else {
 		callingEP = authData.m_requestingEP;
-		if (authData.m_call)
+		if (hasCall)
 			calledEP = authData.m_call->GetCalledParty();
 		if (!calledEP && arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
 			calledEP = RegistrationTable::Instance()->FindBySignalAdr(arq.m_destCallSignalAddress);
@@ -676,10 +680,11 @@ int RadAuthBase::Check(
 
 	pdu->SetCode(RadiusPDU::AccessRequest);
 
+	const bool hasCall = authData.m_call.operator->() != NULL;
 	PIPSocket::Address addr;
 	endptr callingEP, calledEP;
 	
-	if (authData.m_call)
+	if (hasCall)
 		callingEP = authData.m_call->GetCallingParty();
 	if (!callingEP && setup.HasOptionalField(H225_Setup_UUIE::e_endpointIdentifier))
 		callingEP = RegistrationTable::Instance()->FindByEndpointId(
@@ -714,7 +719,7 @@ int RadAuthBase::Check(
 	bool ipFound = false;
 	WORD dummyPort;
 		
-	if (authData.m_call && authData.m_call->GetSrcSignalAddr(addr, dummyPort) 
+	if (hasCall && authData.m_call->GetSrcSignalAddr(addr, dummyPort) 
 		&& addr.IsValid())
 		ipFound = true;	
 	else if (callingEP 

@@ -321,7 +321,7 @@ PString GkAuthenticator::GetUsername(
 	) const
 {
 	const H225_AdmissionRequest& arq = request;
-	
+	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString username;
 	
 	/// try to find h323_ID, email_ID or url_ID to use for User-Name
@@ -331,7 +331,7 @@ PString GkAuthenticator::GetUsername(
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 			);
-	else if (authData.m_call)
+	else if (hasCall)
 		username = GetBestAliasAddressString(authData.m_call->GetSourceAddress(), true,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
@@ -354,7 +354,7 @@ PString GkAuthenticator::GetUsername(
 				AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 					| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 				);
-		else if (authData.m_call)
+		else if (hasCall)
 			username = GetBestAliasAddressString(
 				authData.m_call->GetSourceAddress(), true,
 				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -387,10 +387,11 @@ PString GkAuthenticator::GetUsername(
 	GkAuthenticator::SetupAuthData& authData
 	) const
 {
+	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString username;				
 	endptr callingEP;
 	
-	if (authData.m_call)
+	if (hasCall)
 		callingEP = authData.m_call->GetCallingParty();
 	
 	if (setup.HasOptionalField(setup.e_sourceAddress)) {
@@ -404,7 +405,7 @@ PString GkAuthenticator::GetUsername(
 			username = PString();
 	}
 
-	if (username.IsEmpty() && authData.m_call) {
+	if (username.IsEmpty() && hasCall) {
 		username = GetBestAliasAddressString(
 			authData.m_call->GetSourceAddress(), true,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -423,7 +424,7 @@ PString GkAuthenticator::GetUsername(
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 			);
 	
-	if (username.IsEmpty() && authData.m_call)
+	if (username.IsEmpty() && hasCall)
 		username = GetBestAliasAddressString(
 			authData.m_call->GetSourceAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -446,7 +447,7 @@ PString GkAuthenticator::GetUsername(
 		WORD port = 0;
 		bool addrValid = false;
 	
-		if (authData.m_call)
+		if (hasCall)
 			addrValid = authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid();
 			
 		if (!addrValid && setup.HasOptionalField(setup.e_sourceCallSignalAddress))
@@ -475,6 +476,7 @@ PString GkAuthenticator::GetCallingStationId(
 		return authData.m_callingStationId;
 		
 	const H225_AdmissionRequest& arq = request;
+	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString id;
 
 	// Calling-Station-Id
@@ -483,13 +485,13 @@ PString GkAuthenticator::GetCallingStationId(
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
-	else if (authData.m_call)
+	else if (hasCall)
 		id = authData.m_call->GetCallingStationId();
 
 	if (!id)
 		return id;
 		
-	if (id.IsEmpty() && authData.m_call)
+	if (id.IsEmpty() && hasCall)
 		id = GetBestAliasAddressString(authData.m_call->GetSourceAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
@@ -502,7 +504,7 @@ PString GkAuthenticator::GetCallingStationId(
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
 			
-	if (id.IsEmpty() && arq.m_answerCall && authData.m_call) {
+	if (id.IsEmpty() && arq.m_answerCall && hasCall) {
 		const endptr callingEP = authData.m_call->GetCallingParty();
 		if (callingEP)
 			id = GetBestAliasAddressString(
@@ -512,7 +514,7 @@ PString GkAuthenticator::GetCallingStationId(
 				);
 	}
 				
-	if (id.IsEmpty() && authData.m_call) {
+	if (id.IsEmpty() && hasCall) {
 		PIPSocket::Address addr(0);
 		WORD port = 0;
 		if (authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid())
@@ -533,10 +535,11 @@ PString GkAuthenticator::GetCallingStationId(
 {
 	if (!authData.m_callingStationId)
 		return authData.m_callingStationId;
-		
+
+	const bool hasCall = authData.m_call.operator->() != NULL;		
 	PString id;
 	
-	if (authData.m_call)
+	if (hasCall)
 		id = authData.m_call->GetCallingStationId();
 
 	if (id.IsEmpty())
@@ -551,7 +554,7 @@ PString GkAuthenticator::GetCallingStationId(
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
 
-	if (authData.m_call) {
+	if (hasCall) {
 		if (id.IsEmpty())
 			id = GetBestAliasAddressString(
 				authData.m_call->GetSourceAddress(), false,
@@ -583,6 +586,7 @@ PString GkAuthenticator::GetCalledStationId(
 		return authData.m_calledStationId;
 
 	const H225_AdmissionRequest& arq = request;
+	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString id;
 				
 	if (!arq.m_answerCall) {
@@ -591,13 +595,13 @@ PString GkAuthenticator::GetCalledStationId(
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
-	} else if (authData.m_call)
+	} else if (hasCall)
 		id = authData.m_call->GetCalledStationId();
 
 	if (!id)
 		return id;
 
-	if (id.IsEmpty() && authData.m_call)
+	if (id.IsEmpty() && hasCall)
 		id = GetBestAliasAddressString(
 			authData.m_call->GetDestinationAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
@@ -648,9 +652,10 @@ PString GkAuthenticator::GetCalledStationId(
 	if (!authData.m_calledStationId)
 		return authData.m_calledStationId;
 		
+	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString id;
 	
-	if (authData.m_call)
+	if (hasCall)
 		id = authData.m_call->GetCalledStationId();
 
 	if (id.IsEmpty())
@@ -665,7 +670,7 @@ PString GkAuthenticator::GetCalledStationId(
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
 
-	if (id.IsEmpty() && authData.m_call)
+	if (id.IsEmpty() && hasCall)
 		id = GetBestAliasAddressString(
 			authData.m_call->GetDestinationAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
@@ -675,7 +680,7 @@ PString GkAuthenticator::GetCalledStationId(
 	if (id.IsEmpty()) {
 		PIPSocket::Address addr;
 		WORD port = 0;
-		if (authData.m_call	&& authData.m_call->GetDestSignalAddr(addr, port))
+		if (hasCall && authData.m_call->GetDestSignalAddr(addr, port))
 			id = AsString(addr, port);
 		// this does not work well in routed mode, when destCallSignalAddress
 		// is usually the gatekeeper address
