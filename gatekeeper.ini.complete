@@ -34,6 +34,9 @@ CallSignalHandlerNumber=1
 [Proxy]
 Enable=1
 InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
+#T120PortRange=40000-40999
+#RTPPortRange=50000-59999
+
 
 [Failover]
 ## Give a list of IP4-Addresses to forward the RRQ to that this
