@@ -1360,11 +1360,11 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 				peer->fastStartLCs.erase(iter);
 			}
 		} else if ((lc = FindRTPLogicalChannelBySessionID(id))) {
-			LogicalChannel *akalc = FindLogicalChannel(flcn);
+			LogicalChannel *akalc = peer->FindLogicalChannel(flcn);
 			if (akalc)
 				lc = dynamic_cast<RTPLogicalChannel *>(akalc);
 			else
-				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn);
+				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn);
 		}
 	}
 	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetLocalAddr(), isReverseLC)))
