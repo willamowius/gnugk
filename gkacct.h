@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2005/01/10 23:49:06  willamowius
+ * provide mechanism for accounting modules to escape the parameters
+ *
  * Revision 1.14  2005/01/05 15:42:40  willamowius
  * new accounting event 'connect', parameter substitution unified in parent class
  *
@@ -437,8 +440,6 @@ private:
 private:
 	/// head of the accounting loggers list
 	std::list<GkAcctLogger*> m_loggers;
-	/// mutex for thread-safe reload operation
-	PReadWriteMutex m_reloadMutex;
 	/// interval (seconds) between subsequent accounting updates for calls
 	long m_acctUpdateInterval;
 };

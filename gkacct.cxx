@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.23  2005/01/12 18:01:34  willamowius
+ * small cleanup
+ *
  * Revision 1.22  2005/01/12 17:55:00  willamowius
  * fix gkip accounting parameter
  *
@@ -852,15 +855,12 @@ GkAcctLoggerList::GkAcctLoggerList()
 
 GkAcctLoggerList::~GkAcctLoggerList()
 {
-	WriteLock lock(m_reloadMutex);
 	DeleteObjectsInContainer(m_loggers);
 	m_loggers.clear();
 }
 
 void GkAcctLoggerList::OnReload()
 {
-	WriteLock lock(m_reloadMutex);
-		
 	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, 
 		"AcctUpdateInterval", 0
 		);
@@ -895,7 +895,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 			
 	bool finalResult = true;
 	GkAcctLogger::Status status = GkAcctLogger::Ok;
-	ReadLock lock(m_reloadMutex);
 	list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
 	
 	while (iter != m_loggers.end()) {
