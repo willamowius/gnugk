@@ -13,11 +13,13 @@ avoid duplicate work.
 
 - feature: implement blacklists (caller-, callee-dependant)
 
+- fix: message length on RewriteE164 may be wrong if rewriting and rewritten
+       number differ in length
+
 - fix: GRQ should be authenticated against [DB][Alias|Password]Auth, too.
        (currently default=allow is required to stop GK from sending GRJ)
 
-- fix: message length on RewriteE164 may be wrong if rewriting and rewritten
-       number differ in length
+- fix: move MySQLAliasAuth into DBAliasAuth scheme
 
 - fix: re-implement Status Enquiry pings
   * implement per-destination configurable pings (honorsStatusEnquiry flag)
