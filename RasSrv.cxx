@@ -339,7 +339,7 @@ bool NeighborList::CheckIP(PIPSocket::Address ip) const
                tmppasswd = Iter->GetPassword();
                return true;
        }
-       set<PIPSocket::Address>::const_iterator it = siblingIPs.find(ip);
+       std::set<PIPSocket::Address>::const_iterator it = siblingIPs.find(ip);
        return (it != siblingIPs.end());
 }
 
@@ -372,7 +372,6 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	authList = 0;
 	destAnalysisList = 0;
 	NeighborsGK = 0;
-	GWR=NULL;
 
 	// we now use singelton instance mm-22.05.2001
 	GkStatusThread = GkStatus::Instance();
@@ -418,7 +417,6 @@ H323RasSrv::~H323RasSrv()
 	delete destAnalysisList;
 	delete NeighborsGK;
 	delete arqPendingList;
-	delete GWR;
 }
 
 void H323RasSrv::SetRoutedMode(bool routedSignaling, bool routedH245)
@@ -494,9 +492,6 @@ void H323RasSrv::LoadConfig()
 	delete NeighborsGK;
 	NeighborsGK = new NeighborList(this, GkConfig());
 
-	//add authorize
-	delete GWR;
-	GWR=new GkAuthorize(GkStatusThread);
 	if (gkClient) { // don't create GkClient object at the first time
 		if (gkClient->IsRegistered())
 			gkClient->SendURQ();
@@ -508,6 +503,9 @@ void H323RasSrv::LoadConfig()
 void H323RasSrv::Close(void)
 {
 	PTRACE(2, "GK\tClosing RasSrv");
+
+	// disconnect all calls
+	CallTable::Instance()->ClearTable();
 
 	if (gkClient->IsRegistered())
 		gkClient->SendURQ();
@@ -1032,40 +1030,45 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 	endptr CalledEP(NULL);
 
-	unsigned rsn = H225_AdmissionRejectReason::e_securityDenial;
-	if (!authList->Check(obj_rr, rsn)) {
-		bReject = TRUE;
-	} else if (obj_rr.m_answerCall) {
-		// don't search endpoint table for an answerCall ARQ
-		CalledEP = RequestingEP;
-	} else {
-		// if a destination address is provided, we check if we know it
-		if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
-			CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
+	if (RequestingEP) { // Is the ARQ from a registered endpoint?
+		bool bHasDestInfo = (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && obj_rr.m_destinationInfo.GetSize() >= 1);
+		if (bHasDestInfo) // apply rewriting rules
+			Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
 
-		// in routed mode, the EP may use my IP as the
-		// destCallSignalAddress, thus it is possible we
-		// can't find CalledEP in the RegistrationTable
-		// if so, try destinationInfo
-		if (!CalledEP && RequestingEP && obj_rr.m_destinationInfo.GetSize() >= 1) {
+		unsigned rsn = H225_AdmissionRejectReason::e_securityDenial;
+		if (!authList->Check(obj_rr, rsn)) {
+			bReject = TRUE;
+		} else if (obj_rr.m_answerCall) {
+			// don't search endpoint table for an answerCall ARQ
+			CalledEP = RequestingEP;
+		} else {
+			// if a destination address is provided, we check if we know it
+			if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
+				CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
+
+			// in routed mode, the EP may use my IP as the
+			// destCallSignalAddress, thus it is possible we
+			// can't find CalledEP in the RegistrationTable
+			// if so, try destinationInfo
+			if (!CalledEP && RequestingEP && obj_rr.m_destinationInfo.GetSize() >= 1) {
 
 //#ifdef WITH_DEST_ANALYSIS_LIST
 
-			// create new callRec, set callingEP and insert callRec in callTable
-			CallRec *pCallRec = new CallRec(obj_rr.m_callIdentifier, obj_rr.m_conferenceID,
-			      AsString(obj_rr.m_destinationInfo), AsString(obj_rr.m_srcInfo), 0, GKRoutedH245); //BWRequest will be set in ProcessARQ
-			pCallRec->SetCalling(RequestingEP, obj_rr.m_callReferenceValue);
-			CallTable::Instance()->Insert(pCallRec);
-			// get called ep
-			CalledEP = EndpointTable->getMsgDestination(obj_rr, RequestingEP, rsn, TRUE);
-			if (!CalledEP && rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
-				bReject = TRUE;
-			}
-			if (CalledEP!=endptr(NULL) && rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
-				PTRACE(1,"Setting CalledEP to NULL");
-				pCallRec->SetCalled(endptr(NULL), obj_rr.m_callReferenceValue);
-				CalledEP=endptr(NULL);
-			}
+				// create new callRec, set callingEP and insert callRec in callTable
+				CallRec *pCallRec = new CallRec(obj_rr.m_callIdentifier, obj_rr.m_conferenceID,
+								AsString(obj_rr.m_destinationInfo), AsString(obj_rr.m_srcInfo), 0, GKRoutedH245); //BWRequest will be set in ProcessARQ
+				pCallRec->SetCalling(RequestingEP, obj_rr.m_callReferenceValue);
+				CallTable::Instance()->Insert(pCallRec);
+				// get called ep
+				CalledEP = EndpointTable->getMsgDestination(obj_rr, RequestingEP, rsn, TRUE);
+				if (!CalledEP && rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
+					bReject = TRUE;
+				}
+				if (CalledEP!=endptr(NULL) && rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
+					PTRACE(1,"Setting CalledEP to NULL");
+					pCallRec->SetCalled(endptr(NULL), obj_rr.m_callReferenceValue);
+					CalledEP=endptr(NULL);
+				}
 // #else // default (old) code.
 
 // 			Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
@@ -1073,24 +1076,28 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 // #endif
 
-			if (!bReject && !CalledEP && RequestingEP) {
-				if (gkClient->IsRegistered()) {
-					PTRACE(1,"b");
-					gkClient->SendARQ(obj_rr, RequestingEP);
-					return FALSE;
-				} else if (arqPendingList->Insert(obj_rr, RequestingEP)) {
-					PTRACE(1,"b");
-					return FALSE;
+				if (!bReject && !CalledEP) {
+					if (gkClient->IsRegistered()) {
+						H225_ArrayOf_AliasAddress dest = obj_rr.m_destinationInfo;
+						if (gkClient->RewriteE164(dest, false))
+							CalledEP = EndpointTable->FindEndpoint(dest);
+						if (!CalledEP) {
+							gkClient->SendARQ(obj_rr, RequestingEP);
+							return FALSE;
+						}
+					} else if (arqPendingList->Insert(obj_rr, RequestingEP)) {
+						return FALSE;
+					}
 				}
 			}
 		}
-	}
 
-	if(bReject || CalledEP==endptr(NULL)) {
-		obj_rpl.SetTag(H225_RasMessage::e_admissionReject);
-		H225_AdmissionReject & arj = obj_rpl;
-		arj.m_rejectReason.SetTag(rsn);
-		PTRACE(1, "setting Reject Reason: " << arj.m_rejectReason.GetTagName());
+		if(bReject || CalledEP==endptr(NULL)) {
+			obj_rpl.SetTag(H225_RasMessage::e_admissionReject);
+			H225_AdmissionReject & arj = obj_rpl;
+			arj.m_rejectReason.SetTag(rsn);
+			PTRACE(1, "setting Reject Reason: " << arj.m_rejectReason.GetTagName());
+		}
 	}
 
 	ProcessARQ(rx_addr, RequestingEP, CalledEP, obj_rr, obj_rpl, bReject);
@@ -1160,7 +1167,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_resourceUnavailable);
 		}
 	}
-
+/*
 	//authorize arq
         if(!bReject && obj_arq.m_answerCall) {
             if(GWR->checkgw(obj_arq,RequestingEP,CalledEP)==FALSE) {
@@ -1168,7 +1175,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
                 arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_securityDenial);
             }
         }
-
+*/
 #ifdef ARJREASON_ROUTECALLTOSCN
  	//
  	// call from one GW to itself?
@@ -1609,7 +1616,8 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	for(PINDEX i=0; i<obj_lrq.m_destinationInfo.GetSize(); i++)
 		Toolkit::Instance()->RewriteE164(obj_lrq.m_destinationInfo[i]);
 	unsigned rsn = H225_LocationRejectReason::e_securityDenial;
-	bool bReject = (!NeighborsGK->CheckIP(rx_addr) || !authList->Check(obj_lrq, rsn));
+	bool fromRegEndpoint = (obj_lrq.HasOptionalField(H225_LocationRequest::e_endpointIdentifier) && EndpointTable->FindByEndpointId(obj_lrq.m_endpointIdentifier));
+	bool bReject = (!(fromRegEndpoint || NeighborsGK->CheckIP(rx_addr)) || !authList->Check(obj_lrq, rsn));
 
 	PString sourceInfoString((obj_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(obj_lrq.m_sourceInfo) : PString(" "));
 	if (!bReject) {
