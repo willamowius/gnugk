@@ -255,8 +255,10 @@ Time between 'pings'
 B.11 Section [RasSvr::Neighbors]
 
 The GK would send LRQ to its neighbors if the destination of ARQ is unknown.
-A neighbor is selected if its prefix match the destination or
-it has prefix '*'.
+A neighbor is selected if its prefix match the destination or it has
+prefix '*'. If prefix is empty, no LRQs will be sent to that neighbor.
+This is useful if you want to only receive LRQs from that neighbor.
+
 Currently only one prefix is supported.
 
   Format:
@@ -265,6 +267,7 @@ Currently only one prefix is supported.
   Example:
     GK1=203.60.151.5:1719;*;gk1
     GK2=203.60.151.9:1719;02
+    GK3=203.60.152.6:1719;;
 
 B.12 Section [RasSvr::PermanentEndpoints]
 

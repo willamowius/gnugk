@@ -49,14 +49,11 @@ const char *NeighborSection = "RasSvr::Neighbors";
 
 class NBPendingList : public PendingList {
 public:
-	NBPendingList(H323RasSrv *rs, int ttl) : PendingList(rs, ttl), seqNumber(1) {}
+	NBPendingList(H323RasSrv *rs, int ttl) : PendingList(rs, ttl) {}
 
 	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP);
 	void ProcessLCF(const H225_RasMessage & obj_ras);
 	void ProcessLRJ(const H225_RasMessage & obj_ras);
-
-private:
-	WORD seqNumber;
 };
 
 class NeighborList {
@@ -76,7 +73,7 @@ class NeighborList {
 		PString m_prefix;
 		PString m_password;
 		bool m_dynamic;
-		PIPSocket::Address m_ip;
+		mutable PIPSocket::Address m_ip;
 		WORD m_port;
 	};
 
@@ -128,12 +125,11 @@ void PendingList::Check()
 bool NBPendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP)
 {
 	// TODO: check if ARQ duplicate
-
+	int seqNumber = RasSrv->GetRequestSeqNum();
 	int nbCount = RasSrv->GetNeighborsGK()->SendLRQ(seqNumber, obj_arq);
 	if (nbCount > 0) {
 		PWaitAndSignal lock(usedLock);
 		arqList.push_back(new PendingARQ(seqNumber, obj_arq, reqEP, nbCount));
-		++seqNumber;
 		return true;
 	}
 	return false;
@@ -185,20 +181,18 @@ NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m
 	m_name = ipAddr.Left(p);
 	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
 	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : PString("*");
-	if (m_prefix.IsEmpty())
-		m_prefix = PString("*");
 	if (cfg.GetSize() > 2)
 		m_password = cfg[2];
 	m_dynamic = (cfg.GetSize() > 3) ? Toolkit::AsBool(cfg[3]) : false;
 
 	if (!m_dynamic && !PIPSocket::GetHostAddress(m_name, m_ip))
 		throw InvalidNeighbor();
-	PTRACE(1, "Add neighbor " << m_gkid << '(' << (m_dynamic ? m_name : m_ip.AsString()) << ':' << m_port << ") for prefix " << m_prefix);
+	PTRACE(1, "Add neighbor " << m_gkid << '(' << (m_dynamic ? m_name : m_ip.AsString()) << ':' << m_port << ')' << ((!m_prefix) ? (" for prefix " + m_prefix) : PString()));
 }
 
 inline bool NeighborList::Neighbor::CheckIP(PIPSocket::Address ip) const
 {
-	return (!m_dynamic || ResolveName(ip)) ? ip == m_ip : false;
+	return (!m_dynamic || ResolveName(m_ip)) ? ip == m_ip : false;
 }
 
 inline PString NeighborList::Neighbor::GetPassword() const
@@ -208,10 +202,12 @@ inline PString NeighborList::Neighbor::GetPassword() const
 
 bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
 {
-	if (m_prefix == "*")
+	if (m_prefix.IsEmpty())
+		return false;
+	else if (m_prefix == "*")
 		return InternalSendLRQ(seqNum, obj_arq, RasSrv);
 
-	for (PINDEX i=0; i < obj_arq.m_destinationInfo.GetSize(); ++i)
+	for (PINDEX i = 0; i < obj_arq.m_destinationInfo.GetSize(); ++i)
 		if (AsString(obj_arq.m_destinationInfo[i], FALSE).Find(m_prefix) == 0)
 			return InternalSendLRQ(seqNum, obj_arq, RasSrv);
 
