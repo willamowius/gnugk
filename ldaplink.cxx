@@ -306,10 +306,10 @@ LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList attrs, unsigned int scope)
 		for(PINDEX index=0; index<attrs.GetSize(); index++) {
 			LDAPEntryClass::iterator current=iter;
 			if(0==((*current).second.count(attrs[index])))
-				attribute_remainder.AppendString(attrs[index]);
+				attribute_remainder.AppendString(attrs[index]+" ");
 		}
 		PString DN=ODN(ODN.Find(",")+1,ODN.GetSize()); // delete first part of DN.
-		PTRACE(5, "looking for: " << attribute_remainder << " in " << DN);
+		PTRACE(5, "looking for: " << attribute_remainder << "in " << DN);
 		LDAPQuery new_query;
 		new_query.LDAPOperator=LDAPQuery::LDAPand;
 		PStringList pl=DN.Tokenise(",");
