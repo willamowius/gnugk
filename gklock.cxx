@@ -100,8 +100,8 @@ ProxyCondMutex::Unlock(const PString &name)
 			PTRACE(5, "Name: " << name << " StringsIndex: " << locker.GetStringsIndex(name));
 			if (locker.GetStringsIndex(name)!=P_MAX_INDEX) {
 				locker.RemoveAt(locker.GetStringsIndex(name));
-			} else
-				PTRACE(1, "removing non-locked");
+			}// else
+//				PTRACE(1, "removing non-locked");
 		} else {
 			locker.RemoveAt(locker.GetStringsIndex(name + PString(i)));
 		}
