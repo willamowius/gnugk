@@ -254,11 +254,9 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 			--iter; // search in reverse order
 			const int len = MatchPrefix(destination, iter->first);
 			if (len < 0) {
-				PTRACE(0, "XXX\tNo match for " << destination << " " << iter->first);
 				return nomatch;
 			}
 			else if (len > 0) {
-				PTRACE(0, "XXX\tMatch for " << destination << " " << iter->first);
 				dest.SetSize(1);
 				dest[0] = alias;
 				return PrefixInfo((short)len, (short)iter->second);
