@@ -356,6 +356,7 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 				passwdCache[id] = passwd;
 				return true;
 			}
+#ifdef P_SSL
 		}else if(tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken){
 			H235_CryptoToken & nestedCryptoToken = tokens[i];
 			H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
@@ -373,6 +374,7 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 				passwdCache[id] = passwd;
 				return true;
 			}
+#endif
 		}
 	}
 	return false;
