@@ -57,4 +57,27 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 
 bool IsLoopback(const PIPSocket::Address &);
 
+/** Find alias that matches best passed alias types,
+	in order of precedence. Example usage:
+	
+	GetBestAliasAddressString( aliases, 
+		H225_AliasAddress::e_dialedDigits,
+		H225_AliasAddress::e_partyNumber,
+		H225_AliasAddress::e_h323_ID
+		);
+		
+	Finds first alias that is of type dialedDigits. 
+	If dialedDigits is not found, it searches for the first
+	partyNumber type alias, then for H.323 ID. If no alias
+	is found, first alias from the array is returned or an empty
+	string, if zero-length array is passed.
+*/
+PString GetBestAliasAddressString( 
+	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
+	int tag = -1, /// the most wanted alias type
+	int tag2 = -1, /// if alias type #tag# not found
+	int tag3 = -1, /// if alias types #tag# and #tag2# not found
+	int tag4 = -1 /// if alias types #tag#, #tag2# and #tag3# not found
+	);
+	
 #endif // H323UTIL_H

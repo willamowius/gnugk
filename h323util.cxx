@@ -182,3 +182,39 @@ bool IsLoopback(const PIPSocket::Address & addr)
 	return addr == PIPSocket::Address(127,0,0,1);
 #endif
 }
+
+PString GetBestAliasAddressString( 
+	const H225_ArrayOf_AliasAddress& aliases,
+	int tag,
+	int tag2,
+	int tag3,
+	int tag4
+	)
+{
+	PINDEX i;
+	
+	if( tag != -1 )
+		for( i = 0; i < aliases.GetSize(); i++ )
+			if( aliases[i].GetTag() == (unsigned)tag )
+				return H323GetAliasAddressString(aliases[i]);
+			
+	if( tag2 != -1 )
+		for( i = 0; i < aliases.GetSize(); i++ )
+			if( aliases[i].GetTag() == (unsigned)tag2 )
+				return H323GetAliasAddressString(aliases[i]);
+				
+	if( tag3 != -1 )
+		for( i = 0; i < aliases.GetSize(); i++ )
+			if( aliases[i].GetTag() == (unsigned)tag3 )
+				return H323GetAliasAddressString(aliases[i]);
+				
+	if( tag4 != -1 )
+		for( i = 0; i < aliases.GetSize(); i++ )
+			if( aliases[i].GetTag() == (unsigned)tag4 )
+				return H323GetAliasAddressString(aliases[i]);
+
+	if( aliases.GetSize() > 0 )
+		return H323GetAliasAddressString(aliases[0]);
+	else
+		return PString::Empty();
+}
