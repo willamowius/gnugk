@@ -197,8 +197,8 @@ rule=allow
 #AcceptGatewayPrefixes=1
 
 [RasSrv::ARQFeatures]
-ArjReasonRouteCallToSCN=0
-ArjReasonRouteCallToGatekeeper=1
+#ArjReasonRouteCallToSCN=0
+#ArjReasonRouteCallToGatekeeper=1
 
 [RasSrv::LRQFeatures]
 #NeighborTimeout=2
@@ -310,22 +310,18 @@ default=allow
 ## Currently supported modules:
 ##
 ##   OverlapSendDestAnalysis    This module checks for incomplete destination
-##                              addresses (not fully implemented up to now).
+##                              addresses. It's also a superset of the "classic"
+##				destination analysis used in 2.0.
 ##
 ##   BlackListDestAnalysis      This module checks Blacklisted numbers. The
 ##				precedence of Blacklisting and Whitelisting
 ##				is per-endpoint configurable.
 ##
-## A rule may results in one of the three codes: ok, fail, pass.
-## There are also three ways to control a rule: optional, required, sufficient.
-## Additionally you can configure a rule to check only for some particular
-## messages.
-## (see Authentication mechanism for details informations).
-#
+
 [Gatekeeper::DestAnalysis]
-#OverlapSendDestAnalysis=required;ARQ
-#default=reject
-default=allow
+OverlapSendDestAnalysis=optional;ARQ
+#BlackListDestAnalysis=alternative;ARQ
+default=reject
 
 ##
 ## Use 'make addpasswd' to generate the utility addpasswd
@@ -356,8 +352,8 @@ default=allow
 # The databases are searched for a config in the same order as they
 # are listed here.
 [Gatekeeper::Databases]
-#IniFile=true
-#LDAP=true
+IniFile=TRUE
+#LDAP=TRUE
 
 # the attribute names used for database access, the default is the names
 # from the LDAP-VoIP-scheme which is provided within this distribution
