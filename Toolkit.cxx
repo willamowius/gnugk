@@ -203,8 +203,8 @@ void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 	m_TrailingChar = config->GetString("RasSvr::ARQFeatures", "RemoveTrailingChar", " ")[0];
 }
 
-const BOOL Toolkit::RewriteTool::PrefixAnalysis(PString & number, unsigned int & ton, unsigned int & plan,
-						unsigned int si, const CallProfile & profile) const
+const BOOL Toolkit::RewriteTool::PrefixAnalysis(PString & number, Q931::NumberingPlanCodes & plan, enum Q931::TypeOfNumberCodes & ton,
+						H225_ScreeningIndicator::Enumerations & si, const CallProfile & profile) const
 {
 	PString internationalNumber;
 	if(profile.GetInac() == number.Left(profile.GetInac().GetLength())) {

@@ -160,73 +160,17 @@ BOOL OverlapSendDestAnalysis::PrefixAnalysis(const CallingProfile &callingProfil
 		return TRUE;
 	}
 
-	// take first telephoneNumber from cgProfile and analyse it
-	PString cgAlias;
-	if (callingProfile.GetTelephoneNumbers().GetSize() > 0) {
-		cgAlias = callingProfile.GetTelephoneNumbers()[0];
-	}
+	enum Q931::NumberingPlanCodes plan = Q931::ISDNPlan;
+	enum Q931::TypeOfNumberCodes ton = static_cast<Q931::TypeOfNumberCodes>(callingProfile.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched ?
+					    Q931::UnknownType : callingProfile.TreatCalledPartyNumberAs());
+	enum H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
 
-	const PString lac = callingProfile.GetLac();
-	const PString prefixInternational = callingProfile.GetInac();
-	const PString subscriberNumber = callingProfile.GetSubscriberNumber();
-	const PString &countryCode = callingProfile.GetCC();
-	PString prefixNational = callingProfile.GetNac();
-	const PString &areaCode = callingProfile.GetNDC_IC();
-	bool bReject = FALSE;
-
-	int oldCdAliasLen = oldCdAlias.GetLength();
-	//inac match
-	int len = prefixInternational.GetLength();
-	//if full match
-	if (prefixInternational == oldCdAlias.Left(len)) {
-		//cut off international prefix
-		internationalCdAlias = oldCdAlias.Right(oldCdAliasLen - len);
-		PTRACE(5, "International call");
-	//else if partial match
-	} else if (oldCdAlias == prefixInternational.Left(oldCdAliasLen)) {
-		//ARJ (incomplete address)
-		reason = H225_AdmissionRejectReason::e_incompleteAddress;
-		bReject = TRUE;
-	//else if no match
-	} else {
-		//nac match
-		len = prefixNational.GetLength();
-		//if full match
-		if (prefixNational == oldCdAlias.Left(len)) {
-			//cut off national prefix and add country code of CgAlias
-			internationalCdAlias = countryCode + oldCdAlias.Right(oldCdAliasLen - len);
-			PTRACE(5, "National call");
-		//else if partial match
-		} else if (oldCdAlias == prefixNational.Left(oldCdAliasLen)) {
-			//ARJ (incomplete address)
-			reason = H225_AdmissionRejectReason::e_incompleteAddress;
-			bReject = TRUE;
-		//else if no match
-		} else {
-			//lac match
-			len = lac.GetLength();
-			//if full match
-			if(lac == oldCdAlias.Left(len)) {
-				//cut off lac and add country code, area code of CgAlias
-				internationalCdAlias = countryCode + areaCode +
-				          oldCdAlias.Right(oldCdAliasLen - len);
-				PTRACE(5, "Local call");
-			//else if partial match
-			} else if (oldCdAlias == lac.Left(oldCdAliasLen)) {
-				//ARJ (incomplete address)
-				reason = H225_AdmissionRejectReason::e_incompleteAddress;
-				bReject = TRUE;
-			//else if no match
-			} else {
-				//add calling alias
-//				internationalCdAlias = GkDatabase::Instance()->rmInvalidCharsFromTelNo(cgAlias) + oldCdAlias;
-				internationalCdAlias =  countryCode + areaCode + subscriberNumber +
-					oldCdAlias;
-				PTRACE(5, "Internal call");
-			}
-		}
+	if(Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(oldCdAlias, plan, ton, si, callingProfile)) {
+		internationalCdAlias=oldCdAlias;
+		return TRUE;
 	}
-	return !bReject;
+	reason=H225_AdmissionRejectReason::e_incompleteAddress;
+	return FALSE;
 }
 
 int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, list<EndpointRec *> & EPList,

@@ -1033,93 +1033,6 @@ bool H323RasSrv::SendLRQ(const H225_AdmissionRequest & arq, const endptr & reqEP
        return arqPendingList->Insert(arq, reqEP);
 }
 
-// PrefixAnalysis for rewriting the ARQ to gkclient
-
-static void PrefixAnalysis(CallingProfile &, H225_AdmissionRequest &);
-
-static void PrefixAnalysis(CallingProfile & callingProfile, H225_AdmissionRequest & obj_rr)
-{
-	PINDEX i=0;
-	H225_AliasAddress alias;
-	do {
-		alias=obj_rr.m_destinationInfo[i++];
-	} while (alias.GetTag() != H225_AliasAddress::e_dialedDigits && i < obj_rr.m_destinationInfo.GetSize());
-
-
-
-	// it makes only sence to analyse dialedDigits
-	if(alias.GetTag() != H225_AliasAddress::e_dialedDigits)
-		return ;
-	PString oldCdAlias = H323GetAliasAddressString(alias);
-	// take first telephoneNumber from cgProfile and analyse it
-	PString cgAlias;
-	if (callingProfile.GetTelephoneNumbers().GetSize() > 0) {
-		cgAlias = callingProfile.GetTelephoneNumbers()[0];
-	}
-	E164_AnalysedNumber tele(cgAlias);
-
-	const PString lac = callingProfile.GetLac();
-	const PString prefixInternational = callingProfile.GetInac();
-	const PString subscriberNumber = callingProfile.GetSubscriberNumber();
-	const PString &countryCode = tele.GetCC().GetValue();
-	PString prefixNational = callingProfile.GetNac();
-	const PString &areaCode = tele.GetNDC_IC().GetValue();
-	bool bReject = FALSE;
-
-	int oldCdAliasLen = oldCdAlias.GetLength();
-	//inac match
-	int len = prefixInternational.GetLength();
-	//if full match
-	if (prefixInternational == oldCdAlias.Left(len)) {
-		//cut off international prefix
-		H323SetAliasAddress(oldCdAlias.Right(oldCdAliasLen - len), obj_rr.m_destinationInfo[i-1], H225_AliasAddress::e_dialedDigits);
-		PTRACE(5, "International call");
-	//else if partial match
-	} else if (oldCdAlias == prefixInternational.Left(oldCdAliasLen)) {
-		//ARJ (incomplete address)
-		bReject = TRUE;
-	//else if no match
-	} else {
-		//nac match
-		len = prefixNational.GetLength();
-		//if full match
-		if (prefixNational == oldCdAlias.Left(len)) {
-			//cut off national prefix and add country code of CgAlias
-			 H323SetAliasAddress( countryCode + oldCdAlias.Right(oldCdAliasLen - len), obj_rr.m_destinationInfo[i-1] ,
-					      H225_AliasAddress::e_dialedDigits);
-			PTRACE(5, "National call");
-		//else if partial match
-		} else if (oldCdAlias == prefixNational.Left(oldCdAliasLen)) {
-			//ARJ (incomplete address)
-			bReject = TRUE;
-		//else if no match
-		} else {
-			//lac match
-			len = lac.GetLength();
-			//if full match
-			if(lac == oldCdAlias.Left(len)) {
-				//cut off lac and add country code, area code of CgAlias
-				H323SetAliasAddress (countryCode + areaCode +
-				          oldCdAlias.Right(oldCdAliasLen - len) , obj_rr.m_destinationInfo[i-1], H225_AliasAddress::e_dialedDigits);
-				PTRACE(5, "Local call");
-			//else if partial match
-			} else if (oldCdAlias == lac.Left(oldCdAliasLen)) {
-				//ARJ (incomplete address)
-				bReject = TRUE;
-			//else if no match
-			} else {
-				//add calling alias
-//				internationalCdAlias = GkDatabase::Instance()->rmInvalidCharsFromTelNo(cgAlias) + oldCdAlias;
-				H323SetAliasAddress(countryCode + areaCode + subscriberNumber +
-					oldCdAlias, obj_rr.m_destinationInfo[i-1], H225_AliasAddress::e_dialedDigits);
-				PTRACE(5, "Internal call");
-			}
-		}
-	}
-	return ;
-}
-
-
 /* Admission Request */
 BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arq, H225_RasMessage & obj_rpl)
 {
@@ -1185,7 +1098,15 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 						H225_AdmissionRequest arq_fake=obj_rr;
 						// The obj_rr is the non-rewritten H225_AdmissionRequest. We need to change the destination-address
 						// so we copy it to arq_fake and then build a new AdmissionRequest.
-						PrefixAnalysis(pCallRec->GetCallingProfile(), arq_fake); // Number should be long enough to dertermine
+						PString number = H323GetAliasAddressString(dest[0]);
+						Q931::NumberingPlanCodes plan = Q931::ISDNPlan;
+						Q931::TypeOfNumberCodes ton = Q931::UnknownType;
+						H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
+						Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
+												     pCallRec->GetCallingProfile());
+						H323SetAliasAddress(number, dest[0], H225_AliasAddress::e_dialedDigits);
+						arq_fake.m_destinationInfo=dest;
+						//PrefixAnalysis(pCallRec->GetCallingProfile(), arq_fake); // Number should be long enough to dertermine
 						gkClient->SendARQ(arq_fake, RequestingEP);
 						return FALSE;
 

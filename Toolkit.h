@@ -406,7 +406,8 @@ public:
 	public:
 		void LoadConfig(PConfig *);
 		bool RewritePString(PString &);
-		const BOOL PrefixAnalysis(PString & number, unsigned int & ton, unsigned int & plan, unsigned int si, const CallProfile & profile) const;
+		const BOOL PrefixAnalysis(PString & number, Q931::NumberingPlanCodes & plan, enum Q931::TypeOfNumberCodes & ton,
+					  H225_ScreeningIndicator::Enumerations & si, const CallProfile & profile) const;
 		const enum Q931::TypeOfNumberCodes PrefixAnalysis(PString & number, const CallProfile & profile) const;
 	private:
 		PString m_RewriteFastmatch;
