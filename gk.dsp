@@ -110,6 +110,10 @@ SOURCE=.\GkClient.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\gkconfig.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\gksql.cxx
 # End Source File
 # Begin Source File
@@ -178,6 +182,10 @@ SOURCE=.\Routing.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\sigmsg.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\singleton.cxx
 # End Source File
 # Begin Source File
@@ -231,6 +239,10 @@ SOURCE=.\gkauth.h
 # Begin Source File
 
 SOURCE=.\GkClient.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gkconfig.h
 # End Source File
 # Begin Source File
 
@@ -299,6 +311,10 @@ SOURCE=.\Routing.h
 # Begin Source File
 
 SOURCE=.\rwlock.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\sigmsg.h
 # End Source File
 # Begin Source File
 

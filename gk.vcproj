@@ -154,6 +154,9 @@
 				RelativePath="gkauth.cxx">
 			</File>
 			<File
+				RelativePath="gkconfig.cxx">
+			</File>
+			<File
 				RelativePath="GkClient.cxx">
 			</File>
 			<File
@@ -169,7 +172,7 @@
 				RelativePath="GkStatus.cxx">
 			</File>
 			<File
-				RelativePath=".\gktimer.cxx">
+				RelativePath="gktimer.cxx">
 			</File>
 			<File
 				RelativePath="h323util.cxx">
@@ -206,6 +209,9 @@
 			</File>
 			<File
 				RelativePath="Routing.cxx">
+			</File>
+			<File
+				RelativePath="sigmsg.cxx">
 			</File>
 			<File
 				RelativePath="singleton.cxx">
@@ -249,6 +255,9 @@
 			</File>
 			<File
 				RelativePath="GkClient.h">
+			</File>
+			<File
+				RelativePath="gkconfig.h">
 			</File>
 			<File
 				RelativePath="gksql.h">
@@ -303,6 +312,9 @@
 			</File>
 			<File
 				RelativePath="singleton.h">
+			</File>
+			<File
+				RelativePath="sigmsg.h">
 			</File>
 			<File
 				RelativePath="slist.h">
