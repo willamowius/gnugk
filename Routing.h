@@ -338,7 +338,7 @@ private:
 		PSyncPoint m_sync;
 	};
 
-	typedef list<RouteRequest *> RouteRequests;
+	typedef std::list<RouteRequest *> RouteRequests;
 
 	RouteRequest *InsertRequest(
 		/// identifier for the endpoint associated with this request
