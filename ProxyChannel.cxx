@@ -942,12 +942,16 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		*/
 		case Q931::ReleaseCompleteMsg:
 			if (callptr(NULL)!=m_call) {
-				PTRACE(5, "Removing Call");
-				m_call->RemoveSocket();
-				CallTable::Instance()->RemoveCall(m_call);
-				m_call=callptr(NULL);
-				if(NULL!=remote)
-					dynamic_cast<CallSignalSocket *> (remote)->m_call=callptr(NULL);
+				if(m_call->CompareCRV(q931pdu.GetCallReference())) {
+					PTRACE(5, "Removing Call");
+					m_call->RemoveSocket();
+					CallTable::Instance()->RemoveCall(m_call);
+					m_call=callptr(NULL);
+					if(NULL!=remote)
+						dynamic_cast<CallSignalSocket *> (remote)->m_call=callptr(NULL);
+				} else {
+					PTRACE(1, "Mismatched CallReferenceValue, not killing call");
+				}
 			}
 			return Closing;
 		case Q931::StatusMsg:
@@ -1362,8 +1366,14 @@ void CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComp
 {
 	PTRACE(5, "releaseComplete");
 	if(callptr(NULL)!=m_call) {
-		m_call->GetCalledProfile().SetReleaseCause(static_cast<Q931::CauseValues> (ReleaseComplete.m_reason.GetTag()));
-		m_call->SetDisconnected();
+		if((ReleaseComplete.HasOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier) &&
+		    ReleaseComplete.m_callIdentifier == m_call->GetCallIdentifier()) ||
+		   (m_call->CompareCRV(m_receivedQ931->GetCallReference()))) {
+			m_call->GetCalledProfile().SetReleaseCause(static_cast<Q931::CauseValues> (ReleaseComplete.m_reason.GetTag()));
+			m_call->SetDisconnected();
+		} else {
+			PTRACE(1, "Mismatched ReleaseComplete, not killing call.");
+		}
 	}
 	PTRACE(5, "releaseComplete");
 }
