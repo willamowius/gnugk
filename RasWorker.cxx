@@ -913,7 +913,7 @@ Abstract_H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 					profile.debugPrint();
 					ton = static_cast<Q931::TypeOfNumberCodes> (
 						profile.TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
-						ton : profile.TreatCalledPartyNumberAs());
+						static_cast<CallProfile::Conversions> (ton) : profile.TreatCalledPartyNumberAs());
 					Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
 											     profile);
 					H323SetAliasAddress(number, dest[0], H225_AliasAddress::e_dialedDigits);
