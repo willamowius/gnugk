@@ -745,6 +745,12 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_versionId);
 	vendor.m_versionId = "Version " + PProcess::Current().GetVersion();
 
+	PIPSocket::Address sigip;
+	if (GetIPFromTransportAddr(rrq.m_callSignalAddress[0], sigip)) {
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_nonStandardData);
+		rrq.m_nonStandardData.m_data = "IP=" + sigip.AsString();
+	}
+
 	// set user provided endpointIdentifier, if any
 	PString endpointId(GkConfig()->GetString(EndpointSection, "EndpointIdentifier", ""));
 	if (!endpointId) {

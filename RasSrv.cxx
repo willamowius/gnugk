@@ -1237,7 +1237,7 @@ bool RegistrationRequestPDU::Process()
 	H225_TransportAddress SignalAddr;
 	const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
 	bool bShellSendReply, bShellForwardRequest;
-	bShellSendReply = bShellForwardRequest = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
+	bShellSendReply = bShellForwardRequest = !RasSrv->IsForwardedRas(request, rx_addr);
 
 	// lightweight registration update
 	if (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && request.m_keepAlive) {
@@ -1294,10 +1294,10 @@ bool RegistrationRequestPDU::Process()
 		for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
 			SignalAddr = request.m_callSignalAddress[s];
 			if (GetIPFromTransportAddr(SignalAddr, ipaddr))
-				if ((validaddress = (m_msg->m_peerAddr == ipaddr)))
+				if ((validaddress = (rx_addr == ipaddr)))
 					break;
 		}
-		//validaddress = PIPSocket::IsLocalHost(m_msg->m_peerAddr.AsString());
+		//validaddress = PIPSocket::IsLocalHost(rx_addr.AsString());
 		if (!bShellSendReply) // is forwarded RRQ?
 			validaddress = true;
 		else if (!validaddress && !IsLoopback(ipaddr)) // do not allow nated from loopback
@@ -1356,13 +1356,13 @@ bool RegistrationRequestPDU::Process()
 					}
 				}
 			}
-			const PString & s = AsString(Alias[0], FALSE);
+			PString s = AsString(Alias[0], FALSE);
 			// reject the empty string
 			//if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') )
 			if (s.GetLength() < 1)
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
-			//if (!nated)
-			//	nated = Kit->Config()->HasKey("NATedEndpoints", s);
+			if (!nated)
+				nated = Kit->Config()->HasKey("NATedEndpoints", s);
 		}
 	} else {
 		// reject gw without alias
@@ -1383,22 +1383,16 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable);
 	}
 
-	if (!nated && request.HasOptionalField(H225_RegistrationRequest::e_featureSet) && request.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
-		H225_ArrayOf_FeatureDescriptor & fd = request.m_featureSet.m_neededFeatures;
-		if (fd.GetSize() > 0 && fd[0].HasOptionalField(H225_FeatureDescriptor::e_parameters)) {
-			H225_ArrayOf_EnumeratedParameter & parms = fd[0].m_parameters;
-			int i;
-			bool detecting = false;
-			for (i = 0; i < parms.GetSize(); ++i)
-				if (parms[i].HasOptionalField(H225_EnumeratedParameter::e_content))
-					if (parms[i].m_content.GetTag() == H225_Content::e_transport) {
-						H225_TransportAddress & addr = parms[i].m_content;
-						detecting = true;
-						if (addr == SignalAddr)
-							break;
-					}
-			if (detecting)
-				nated = (i >= parms.GetSize());
+	if (!nated && request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)) {
+		PString ipdata = request.m_nonStandardData.m_data.AsString();
+		if (strncmp(ipdata, "IP=", 3) == 0) {
+			PStringArray ips(ipdata.Mid(3).Tokenise(",:;", false));
+			PINDEX i;
+			for (i = 0; i < ips.GetSize(); ++i)
+				if (PIPSocket::Address(ips[i]) == rx_addr)
+					break;
+			nated = (i >= ips.GetSize());
+			request.RemoveOptionalField(H225_RegistrationRequest::e_nonStandardData);
 		}
 	}
 	request.m_callSignalAddress.SetSize(1);

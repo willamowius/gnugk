@@ -1,5 +1,8 @@
 Changes from 2.0.x to 2.2beta1 (by cwhuang)
 ===========================================
+- new method to detect NATed endpoints
+- better handling of call timeout
+- support multiple mysql servers
 - add authentication method selection for GkClient
 - the underlying architecture is almost rewritten entirely, includes
     object factory
