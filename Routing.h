@@ -184,7 +184,8 @@ protected:
 	virtual bool OnRequest(FacilityRequest &);
 
 	// new virtual function
-	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &) = 0;
+	virtual bool FindByAliases(RoutingRequest&, H225_ArrayOf_AliasAddress &) = 0;
+	virtual bool FindByAliases(LocationRequest&, H225_ArrayOf_AliasAddress&) = 0;
 };
 
 class Analyzer : public Singleton<Analyzer> {

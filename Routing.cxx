@@ -267,11 +267,18 @@ public:
 	InternalPolicy() { m_name = "Internal"; }
 protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
+	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 };
 
-bool InternalPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
+bool InternalPolicy::FindByAliases(RoutingRequest& request, H225_ArrayOf_AliasAddress & aliases)
 {
 	return request.SetCalledParty(RegistrationTable::Instance()->FindEndpoint(aliases, true));
+}
+
+bool InternalPolicy::FindByAliases(LocationRequest& request, H225_ArrayOf_AliasAddress & aliases)
+{
+	// do not apply round robin selection for gateways
+	return request.SetCalledParty(RegistrationTable::Instance()->FindEndpoint(aliases, false));
 }
 
 
@@ -332,6 +339,7 @@ public:
 	DNSPolicy() { m_name = "DNS"; }
 protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
+	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 };
 
 bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
@@ -351,6 +359,11 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		}
 	}
 	return false;
+}
+
+bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{
+	return DNSPolicy::FindByAliases((RoutingRequest&)request, aliases);
 }
 
 
