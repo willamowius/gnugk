@@ -1111,7 +1111,8 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
 
 void CallTable::RemoveCall(const callptr & call)
 {
-	InternalRemovePtr(call.operator->());
+	if (call)
+		InternalRemovePtr(call.operator->());
 }
 
 bool CallTable::InternalRemovePtr(CallRec *call)
