@@ -1295,8 +1295,8 @@ static const BOOL IPTN_good(E164_IPTNString & iptn)
 	E164_AnalysedNumber an(iptn); //  analyse it
 	if(E164_AnalysedNumber::IPTN_unknown != an.GetIPTN_kind()) {
 		result = TRUE;
-		E164_IPTNString well_formated(an.GetAsDigitString());
-		PTRACE(2, "CDR: rewriting " + iptn + " to " + PString(well_formated));
+		PString well_formated(an); // convert to '+CC NDC SN'
+		PTRACE(2, "CDR: rewriting " + iptn + " to " + well_formated);
 		iptn = well_formated;
 	}
 	return result;
