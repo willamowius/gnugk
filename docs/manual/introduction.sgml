@@ -93,6 +93,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+A new <tt/TranslateFacility/ config variable to enable Facility message conversion
+between H.323v4 and previous versions of the protocol.
+
+<item>
 <tt/SignalTimeout/, <tt/AlertingTimeout/ and %t, %p, %{ring-time}, %{alerting-time}
 accounting variables ported from 2.0 branch. <tt/ConnectTimeout/ config
 variable replaced with <tt/SignalTimeout/ and <tt/AlertingTimeout/.

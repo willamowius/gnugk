@@ -247,6 +247,8 @@ private:
 	Q931 *m_setupPdu;
 	/// true if the socket is connected to the caller, false if to the callee
 	bool m_callerSocket;
+	/// H.225.0 protocol version in use by the remote party
+	unsigned m_h225Version;
 };
 
 class CallSignalListener : public TCPListenSocket {

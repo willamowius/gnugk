@@ -41,6 +41,15 @@ namespace {
 // default timeout (ms) for initial Setup message,
 // if not specified in the config file
 const long DEFAULT_SETUP_TIMEOUT = 8000;
+
+template <class UUIE>
+inline unsigned GetH225Version(const UUIE &uuie)
+{
+	if (uuie.m_protocolIdentifier.GetSize() < 6)
+		return 0;
+	else
+		return uuie.m_protocolIdentifier[5];
+}
 }
 
 const char* RoutedSec = "RoutedMode";
@@ -579,6 +588,7 @@ void CallSignalSocket::InternalInit()
 	m_h245socket = NULL;
 	m_isnatsocket = false;
 	m_setupPdu = NULL;
+	m_h225Version = 0;
 }
 
 void CallSignalSocket::SetRemote(CallSignalSocket *socket)
@@ -1191,6 +1201,8 @@ void CallSignalSocket::OnSetup(
 	Q931 &q931 = msg->GetQ931();
 	H225_Setup_UUIE &setupBody = setup->GetUUIEBody();
 	
+	m_h225Version = GetH225Version(setupBody);
+	
 	// prevent from multiple calls over the same signaling channel	
 	if (remote) {
 		const WORD newcrv = (WORD)setup->GetCallReference();
@@ -1770,6 +1782,8 @@ void CallSignalSocket::OnCallProceeding(
 
 	H225_CallProceeding_UUIE &cpBody = callProceeding->GetUUIEBody();
 
+	m_h225Version = GetH225Version(cpBody);
+	
 	if (HandleH245Address(cpBody))
 		msg->SetUUIEChanged();
 
@@ -1801,6 +1815,8 @@ void CallSignalSocket::OnConnect(
 
 	H225_Connect_UUIE &connectBody = connect->GetUUIEBody();
 
+	m_h225Version = GetH225Version(connectBody);
+	
 	if (m_call) {// hmm... it should not be null
 		m_call->SetConnected();
 		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
@@ -1838,6 +1854,8 @@ void CallSignalSocket::OnAlerting(
 	}
 
 	H225_Alerting_UUIE &alertingBody = alerting->GetUUIEBody();
+	
+	m_h225Version = GetH225Version(alertingBody);
 	
 	if (HandleH245Address(alertingBody))
 		msg->SetUUIEChanged();
@@ -1932,6 +1950,9 @@ void CallSignalSocket::OnFacility(
 
 	H225_Facility_UUIE &facilityBody = facility->GetUUIEBody();
 	
+	if (m_h225Version == 0)
+		m_h225Version = GetH225Version(facilityBody);
+	
 	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_multipleCalls)
 			&& facilityBody.m_multipleCalls) {
 		facilityBody.m_multipleCalls = FALSE;
@@ -1971,6 +1992,21 @@ void CallSignalSocket::OnFacility(
 			return;
 		}
 		break;
+
+	case H225_FacilityReason::e_transportedInformation:
+		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateFacility", "0"))) {
+			CallSignalSocket *sigSocket = dynamic_cast<CallSignalSocket*>(remote);
+			if (sigSocket != NULL && sigSocket->m_h225Version > 0 
+					&& sigSocket->m_h225Version < 4) {
+				H225_H323_UserInformation *uuie = facility->GetUUIE();
+				uuie->m_h323_uu_pdu.m_h323_message_body.SetTag(
+					H225_H323_UU_PDU_h323_message_body::e_empty
+					);
+				msg->SetUUIEChanged();
+				return;
+			}
+		}
+		break;
 	}
 	
 	if (m_result != NoData)
@@ -1994,6 +2030,8 @@ void CallSignalSocket::OnProgress(
 
 	H225_Progress_UUIE &progressBody = progress->GetUUIEBody();
 
+	m_h225Version = GetH225Version(progressBody);
+	
 	if (HandleH245Address(progressBody))
 		msg->SetUUIEChanged();
 		

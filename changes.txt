@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- new TranslateFacility config variable to enable Facility message conversion
+  between H.323v4 and previous versions of the protocol
 - %t, %p, %{ring-time}, %{alerting-time} accounting variables ported from 2.0
   branch. ConnectTimeout config variable replaced with SignalTimeout and AlertingTimeout
 - new %r accounting variable to get who disconnected a call, thanks to Freddy Parra
