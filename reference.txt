@@ -78,7 +78,7 @@ The fourth field specified the priority for this GK. Lower is better, usually th
 primary GK is considered to have priority 1.
 The last field specifies the alternate's gatekeeperId .
 
-sendto=1.2.3.4:1719
+SendTo=1.2.3.4:1719
 Although this information is contained in AlternateGKs, you must still
 specify which address to forward RRQs to. This might differ from AlternateGK's
 address, so it's a separate config option (think of multihomed machines).
@@ -97,9 +97,9 @@ primary one.
 Most users will never need to change any of the following values. They are mainly
 used for testing or very sophisticated applications.
 
-UnicastRasPort=1719			Default: 1719
+UnicastRasPort=1719		Default: 1719
 
-MulticastPort=1718			Default: 1718
+MulticastPort=1718		Default: 1718
 
 MulticastGroup=224.0.1.41	Default: 224.0.1.41
 
@@ -184,6 +184,21 @@ this command. With this option turning on, the GK will send Q.931
 Release Complete instead of RAS DRQ to both endpoints to force them
 drop the call.
 
+SendReleaseCompleteOnDRQ=1	Default: 0
+
+On hangup, the endpoint sends both, RELEASE COMPLETE within H.225/Q.931 and
+DRQ within RAS. It may happen that DRQ is processed first, causing the gk to
+close the call signalling channel, thus preventnig the RELEASE COMPLETE from
+being forwarding to the other endpoint.
+Though the gk closes the TCP channel to the destination, some endpoints (e.g.
+ Cisco CallManager) don't drop the call even if the call signalling channel
+is closed. This results in phones that keep ringing if the caller hangs up
+before the callee pickups.
+Setting this parameter to "1" makes the gk always send RELEASE COMPLETE
+to both endpoints before closing the call when it receives DRQ from one of
+the parties.
+
+DisengageRequest to endpoints. However, some bad endpoints just ignore
 
 B.3 Section [GkStatus::Auth]
 

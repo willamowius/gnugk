@@ -31,6 +31,7 @@ AcceptNeighborsCalls=1
 AcceptUnregisteredCalls=0
 SupportNATedEndpoints=1
 DropCallsByReleaseComplete=1
+SendReleaseCompleteOnDRQ=0
 
 [Proxy]
 #Enable=1
@@ -52,17 +53,10 @@ DropCallsByReleaseComplete=1
 #188889000=9
 
 [Failover]
-## Give a list of IP4-Addresses to forward the RRQ to that this
-## Gatekeeper receives. Notation: "a.b.c.d:p[,a.b.c.d:p[,...]]" (all numbers)
-#Sendto=195.71.129.37:1719
-#EndpointIDSuffix=_skeeve
-# List of alternate GKs (current maximum: 1)
-# Notation: "a.b.c.d:port:regNeeded:prio(1..127)[:gkID]" (a..d,port = numbers)
-#AlternateGKs=195.71.129.37:1719:false:120:OpenH323GK2
-# when receiving from these IPs, we don't forward the packets to our
-# alternate GKs. Insert your alternate GKs here to prevent loops.
-# Notation: "a.b.c.d[,a.b.c.d[,...]]" (a..d = numbers)
-#SkipForwards=195.71.129.37
+#Sendto=1.2.3.4:1719
+#EndpointIDSuffix=_gk1
+#AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK2
+#SkipForwards=4.3.2.1
 
 ##
 ## This section should not be changed and loaded with the HUP signal at runtime 

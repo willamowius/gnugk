@@ -1081,7 +1081,7 @@ void CallRec::RemoveAll()
 
 void CallRec::RemoveSocket()
 {
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) {
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
                 if (m_callingSocket) {
                         m_callingSocket->EndSession();
 			PTRACE(4, "Sending ReleaseComplete to calling party ...");
