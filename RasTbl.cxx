@@ -1337,8 +1337,8 @@ static const PString AsCDRTimeString(const PTime & t)
   IPTN_good will return TRUE if the number is in a known format and will
   rewrite it to the proper analysis result.
  */
-static const BOOL IPTN_good(E164_IPTNString & iptn);
-static const BOOL IPTN_good(E164_IPTNString & iptn)
+static const BOOL IPTN_is_inter(E164_IPTNString & iptn);
+static const BOOL IPTN_is_inter(E164_IPTNString & iptn)
 {
 	BOOL result = FALSE;
 	E164_AnalysedNumber an(iptn); //  analyse it
@@ -1417,7 +1417,7 @@ PString CallRec::GenerateCDR()
 	if (!CalledP.getCalledPN().IsEmpty()) {
 		calledPN = CalledP.getCalledPN();
 #  if defined(CDR_RECHECK)
-		if(IPTN_good(calledPN)) {
+		if(IPTN_is_inter(calledPN)) {
 			PTRACE(2, "CDR: calledPN is in international type format");
 		} else {
 			PTRACE(2, PString("CDR: ") + ANSI::RED + "WARNING" + ANSI::OFF + 
