@@ -356,7 +356,11 @@ private:
 		);
 
 	/// an array of names (aliases) for the virtual queues
-	PStringArray m_virtualQueues;
+	PStringArray m_virtualQueueAliases;
+	/// an array of prefixes for the virtual queues
+	PStringArray m_virtualQueuePrefixes;
+	/// a regular expression for the virtual queues
+	PString m_virtualQueueRegex;
 	/// virtual queues enabled/disabled
 	bool m_active;
 	/// time (in milliseconds) to wait for a routing decision to be made

@@ -377,6 +377,7 @@ VirtualQueue::~VirtualQueue()
 void VirtualQueue::OnReload()
 {
 	PWaitAndSignal lock(m_listMutex);
+	
 	m_requestTimeout = GkConfig()->GetInteger(
 		CTIsection, 
 		GkConfig()->HasKey(CTIsection,"RequestTimeout")
@@ -384,14 +385,44 @@ void VirtualQueue::OnReload()
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;
 	m_requestTimeout = PMIN(PMAX(100,m_requestTimeout),20000);
-	const PString vqueues = GkConfig()->GetString(CTIsection, "VirtualQueue", "");
-	m_virtualQueues = vqueues.Tokenise(" ,;\t", false);
-	m_active = m_virtualQueues.GetSize() > 0;
-	if( m_active )
-		PTRACE(2,"VQueue\t(CTI) Virtual queues enabled ("<<vqueues
+	
+	m_active = false;
+	
+	m_virtualQueueAliases.RemoveAll();
+	PString vqueues = GkConfig()->GetString(CTIsection, "VirtualQueueAliases", "");
+	if( vqueues.IsEmpty() ) // backward compatibility
+		vqueues = GkConfig()->GetString(CTIsection, "VirtualQueue", "");
+	if( !vqueues.IsEmpty() ) {
+		m_virtualQueueAliases = vqueues.Tokenise(" ,;\t", false);
+		if( m_virtualQueueAliases.GetSize() > 0 ) {
+			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (aliases:"<<vqueues
+				<<"), request timeout: "<<m_requestTimeout/1000<<" s"
+				);
+			m_active = true;
+		}
+	}
+	
+	m_virtualQueuePrefixes.RemoveAll();
+	vqueues = GkConfig()->GetString(CTIsection, "VirtualQueuePrefixes", "");
+	if( !vqueues.IsEmpty() ) {
+		m_virtualQueuePrefixes = vqueues.Tokenise(" ,;\t", false);
+		if( m_virtualQueuePrefixes.GetSize() > 0 ) {
+			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (prefixes:"<<vqueues
+				<<"), request timeout: "<<m_requestTimeout/1000<<" s"
+				);
+			m_active = true;
+		}
+	}
+	
+	m_virtualQueueRegex = GkConfig()->GetString(CTIsection, "VirtualQueueRegex", "");
+	if( m_virtualQueueRegex.GetSize() > 0 ) {
+		PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (regex:"<<m_virtualQueueRegex
 			<<"), request timeout: "<<m_requestTimeout/1000<<" s"
 			);
-	else
+		m_active = true;
+	}
+	
+	if( !m_active )
 		PTRACE(2,"VQueue\t(CTI) Virtual queues disabled - no virtual queues configured");
 }
 
@@ -448,10 +479,16 @@ bool VirtualQueue::IsDestinationVirtualQueue(
 	) const
 {
 	PWaitAndSignal lock(m_listMutex);
-	for (PINDEX i = 0; i < m_virtualQueues.GetSize(); ++i)
-		if (m_virtualQueues[i] == destinationAlias)
+	PINDEX i;
+	for (i = 0; i < m_virtualQueueAliases.GetSize(); ++i)
+		if (m_virtualQueueAliases[i] == destinationAlias)
 			return true;
-	return false;
+	for (i = 0; i < m_virtualQueuePrefixes.GetSize(); ++i)
+		if (destinationAlias.Find(m_virtualQueuePrefixes[i]) == 0)
+			return true;
+	
+	return (!m_virtualQueueRegex.IsEmpty())
+		&& Toolkit::MatchRegex(destinationAlias,m_virtualQueueRegex);
 }
 
 bool VirtualQueue::RouteToAlias(

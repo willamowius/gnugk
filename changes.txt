@@ -1,3 +1,12 @@
+Changes from 2.2beta2 to 2.2beta3
+=================================
+- added new VirtualQueuePrefixes and VirtualQueueRegex config variables
+  to [CTI::Agents] section. These make possible to call virtual queue
+  not only with the exact alias name, but also with an alias that matches
+  configured prefixes or configured regular expression. Thanks to Max Speransky
+- renamed config variable VirtualQueue to VirtualQueueAliases 
+  (backward compatibility is maintained)
+
 Changes from 2.2beta1 to 2.2beta2
 =================================
 - BUGFIX(RasTbl.cxx) fixed connect/disconnect time handling and call duration
