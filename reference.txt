@@ -332,9 +332,12 @@ Currently supported modules:
                       easily to add.
 
   AliasAuth/
+  MySQLAliasAuth/
   LDAPAliasAuth       The IP of an endpoint with given alias should
                       match a specified pattern. For AliasAuth the pattern 
-                      is defined in [RasSrv::RRQAuth] section. 
+                      is defined in [RasSrv::RRQAuth] section.
+                      For MySQLAliasAuth, the pattern is retrieved from
+                      MySQL database, defined in [MySQLAliasAuth] section.
                       For LDAPAliasAuth the alias (default: mail attribute)
                       and IP (default: voIPIpAddress attribute) must be 
                       found in one LDAP entry.
@@ -423,7 +426,30 @@ ExtraCriterion=Kind>0	Default: n/a
 
 Specify extra criterion.
 
-B.17 Section [GkAuthorize]
+The GK will issue the SQL command:
+SELECT $PasswordField FROM $Table WHERE $IDField = %alias [AND $ExtraCriterion]
+
+
+B.17 Section [MySQLAliasAuth]
+
+Host=localhost          Default: localhost
+Database=billing        Default: billing
+User=cwhuang
+Password=123456
+Table=customer
+IDField=IPN
+IPField=Address
+ExtraCriterion=Kind>0	Default: n/a
+
+The SQL command is
+SELECT $IPField FROM $Table WHERE $IDField = %alias [AND $ExtraCriterion]
+
+The format is exactly as MySQLAuth, except the selected result
+is used as a specified pattern to match the IP of endpoint,
+as described in section [RasSrv::RRQAuth].
+
+
+B.18 Section [GkAuthorize]
 
 This section authorizes arq by source call signal address.
 
@@ -451,7 +477,7 @@ allow ipv4:0/0
 #We choose the most specific prefix and then
 #we choose the most specific network from list
 
-B.18 Section [Proxy]
+B.19 Section [Proxy]
 
 The section defines the H.323 proxy features. It means the gatekeeper will
 route all the traffic between the calling and called endpoints, so there
@@ -481,7 +507,7 @@ will be proxied.
   Example:
     InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24
 
-B.19 Section [Endpoint]
+B.20 Section [Endpoint]
 
 The gatekeeper can work as an endpoint by registering to another gatekeeper.
 With this feature, you can easily build gatekeeper hierarchies.
@@ -532,7 +558,7 @@ ARQTimeout=2			Default: 2
 Define the timeout value for ARQs in second.
 
 
-B.20 Section [Endpoint::RewriteE164]
+B.21 Section [Endpoint::RewriteE164]
 
 Once you specify prefix(es) for your gatekeeper endpoint, the parent
 gatekeeper will route calls with dialed digits beginning with that prefixes.

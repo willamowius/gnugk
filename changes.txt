@@ -1,5 +1,7 @@
 Changes from 2.0b3 to now (by cwhuang)
 ======================================
+- add MySQLAliasAuth module
+- add ExtraCriterion to MySQLAuth, remove CheckField
 - remove resourceManager, bandwidth management now in CallTable
 - allow set neighbors without prefix, no LRQs will be sent to such neighbors
 - send IRQ to an endpoint before expiring it

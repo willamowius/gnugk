@@ -66,14 +66,14 @@ private:
 	/** @returns the value for a given alias from section #RasSrv::RRQAuth# 
 	    in ini-file
 	 */
-	virtual PString getConfigString(const PString &alias) const;
+	virtual PString GetConfigString(const PString & alias) const;
 };
 
 static GkAuthInit<AliasAuth> _AA_("AliasAuth");
 
 #ifdef HAS_MYSQL
-#define MYSQL_NO_SHORT_NAMES  // use long names
-#include <mysql++>
+
+class MySQLAuthBase;
 
 class MySQLPasswordAuth : public SimplePasswordAuth {
 public:
@@ -82,14 +82,24 @@ public:
 
 private:
 	virtual PString GetPassword(const PString &);
-	bool MySQLInit();
-	void Cleanup();
 
-	MysqlConnection *connection;
-	MysqlQuery *query;
+	MySQLAuthBase *mysqlconn;
 };
 
 static GkAuthInit<MySQLPasswordAuth> _MPA_("MySQLPasswordAuth");
+
+class MySQLAliasAuth : public AliasAuth {
+public:
+	MySQLAliasAuth(PConfig *, const char *);
+	~MySQLAliasAuth();
+
+private:
+	virtual PString GetConfigString(const PString & alias) const;
+
+	MySQLAuthBase *mysqlconn;
+};
+
+static GkAuthInit<MySQLAliasAuth> _MAA_("MySQLAliasAuth");
 
 #endif // HAS_MYSQL
 
@@ -130,7 +140,7 @@ private:
 	    string (the expected return value from LDAP is only an IP-address!).
 	    @returns config-string (format: see description in ini-file)
 	 */
-	virtual PString getConfigString(const PString &alias) const;
+	virtual PString GetConfigString(const PString &alias) const;
 };
 
 static GkAuthInit<LDAPAliasAuth> L_A_A ("LDAPAliasAuth");
@@ -414,59 +424,116 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 
 
 #ifdef HAS_MYSQL
+#define MYSQL_NO_SHORT_NAMES  // use long names
+#include <mysql++>
 
-const char *mysqlsec = "MySQLAuth";
+class MySQLAuthBase {
+public:
+	MySQLAuthBase(PConfig *,
+		const char *section,
+		const char *host,
+		const char *dbname,
+		const char *user,
+		const char *passwd,
+		const char *table,
+		const char *alias,
+		const char *query,
+		const char *extra
+	);
+	~MySQLAuthBase();
+	bool Exec(const PString &, MysqlRes &);
+	PString GetString(const PString &);
 
-// MysqlPasswordAuth
-MySQLPasswordAuth::MySQLPasswordAuth(PConfig *cfg, const char *authName)
-	: SimplePasswordAuth(cfg, authName), connection(0), query(0)
+private:
+	bool MySQLInit();
+	void Cleanup();
+
+	MysqlConnection *mysql_connection;
+	MysqlQuery *mysql_query;
+
+	PConfig *config;
+	const char *section_n;
+	const char *host_n, *dbname_n, *user_n, *passwd_n;
+	const char *table_n, *alias_n, *query_n, *extra_n;
+};
+
+MySQLAuthBase::MySQLAuthBase(PConfig *cfg,
+		const char *section,
+		const char *host,
+		const char *dbname,
+		const char *user,
+		const char *passwd,
+		const char *table,
+		const char *alias,
+		const char *query,
+		const char *extra
+	) : config(cfg), section_n(section),
+	    host_n(host), dbname_n(dbname), user_n(user), passwd_n(passwd),
+	    table_n(table), alias_n(alias), query_n(query), extra_n(extra)
 {
 	MySQLInit();
 }
 
-MySQLPasswordAuth::~MySQLPasswordAuth()
+MySQLAuthBase::~MySQLAuthBase()
 {
 	Cleanup();
 }
 
-void MySQLPasswordAuth::Cleanup()
+bool MySQLAuthBase::Exec(const PString & id, MysqlRes & result)
 {
-	delete query;
-	query = 0;
-	delete connection;
-	connection = 0; // disable the authenticator
+	if (mysql_connection || MySQLInit()) {
+		try {
+			result = mysql_query->store(SQLString(id));
+			return true;
+		} catch (MysqlBadQuery er) {
+			PTRACE(1, "MySQL\tBadQuery: " << er.error);
+			Cleanup();
+		} catch (MysqlBadConversion er) {
+			PTRACE(1,  "MySQL\tBadConversion: Tried to convert \"" << er.data << "\" to a \"" << er.type_name << "\".");
+		} 
+	}
+	return false;
 }
 
-bool MySQLPasswordAuth::MySQLInit()
+PString MySQLAuthBase::GetString(const PString & id)
+{
+	PString str;
+	MysqlRes result;
+	if (Exec(id, result) && !result.empty())
+		str = (*result.begin())[0].c_str();
+	return str;
+}
+
+bool MySQLAuthBase::MySQLInit()
 {
 	try {
-		PString host = config->GetString(mysqlsec, "Host", "localhost");
-		PString dbname = config->GetString(mysqlsec, "Database", "billing");
-		PString user = config->GetString(mysqlsec, "User", "cwhuang");
-		PString passwd = config->GetString(mysqlsec, "Password", "123456");
+		PString host = config->GetString(section_n, host_n, "localhost");
+		PString dbname = config->GetString(section_n, dbname_n, "billing");
+		PString user = config->GetString(section_n, user_n, "cwhuang");
+		PString passwd = config->GetString(section_n, passwd_n, "123456");
 
-		PString table = config->GetString(mysqlsec, "Table", "customer");
-		PString id_field = config->GetString(mysqlsec, "IDField", "IPN");
-		PString passwd_field = config->GetString(mysqlsec, "PasswordField", "Password");
-		PString extra_criterion = config->GetString(mysqlsec, "ExtraCriterion", "");
+		PString table = config->GetString(section_n, table_n, "customer");
+		PString alias = config->GetString(section_n, alias_n, "IPN");
+		PString query = config->GetString(section_n, query_n, "Password");
+		PString extra = config->GetString(section_n, extra_n, "");
 
-		connection = new MysqlConnection(mysql_use_exceptions);
-		connection->connect(dbname, host, user, passwd);
+		mysql_connection = new MysqlConnection(mysql_use_exceptions);
+		mysql_connection->connect(dbname, host, user, passwd);
 
 		PTRACE(2, "MySQL\tConnect to server " << host << ", database " << dbname);
-		query = new MysqlQuery(connection, true);
-		PString selectString(PString::Printf,
+		mysql_query = new MysqlQuery(mysql_connection, true);
+		PString select_clause(PString::Printf,
 			"select %s from %s where %s = '%%0:id'",
-			(const char *)passwd_field,
+			(const char *)query,
 			(const char *)table,
-			(const char *)id_field
+			(const char *)alias
 		);
-		if (!extra_criterion)
-			selectString += " and " + extra_criterion;
-		PTRACE(3, "MySQL\t" << selectString);
+		if (!extra)
+			select_clause += " and " + extra;
+		PTRACE(2, "MySQL\t" << select_clause);
 
-		*query << selectString;
-		query->parse();
+		*mysql_query << select_clause;
+		mysql_query->parse();
 		PTRACE(1, "MySQL\tReady for query");
 		return true;
 	} catch (MysqlBadQuery er) { // any error?
@@ -476,22 +543,52 @@ bool MySQLPasswordAuth::MySQLInit()
 	}
 }
 
+void MySQLAuthBase::Cleanup()
+{
+	delete mysql_query;
+	mysql_query = 0;
+	delete mysql_connection;
+	mysql_connection = 0; // disable the authenticator
+}
+
+// MysqlPasswordAuth
+MySQLPasswordAuth::MySQLPasswordAuth(PConfig *cfg, const char *authName)
+	: SimplePasswordAuth(cfg, authName)
+{
+	mysqlconn = new MySQLAuthBase(cfg, "MySQLAuth",
+				"Host", "Database", "User", "Password",
+				"Table", "IDField", "PasswordField", "ExtraCriterion"
+			);
+}
+
+MySQLPasswordAuth::~MySQLPasswordAuth()
+{
+	delete mysqlconn;
+}
+
 PString MySQLPasswordAuth::GetPassword(const PString & id)
 {
-	PString passwd;
-	if (connection || MySQLInit()) {
-		try {
-			MysqlRes res = query->store(SQLString(id));
-			if (!res.empty())
-				passwd = (*res.begin())[0].c_str();
-		} catch (MysqlBadQuery er) {
-			PTRACE(1, "MySQL\tBadQuery: " << er.error);
-			Cleanup();
-		} catch (MysqlBadConversion er) {
-			PTRACE(1,  "MySQL\tBadConversion: Tried to convert \"" << er.data << "\" to a \"" << er.type_name << "\".");
-		} 
-	}
-	return passwd;
+	return mysqlconn->GetString(id);
+}
+
+// MysqlPasswordAuth
+MySQLAliasAuth::MySQLAliasAuth(PConfig *cfg, const char *authName)
+	: AliasAuth(cfg, authName)
+{
+	mysqlconn = new MySQLAuthBase(cfg, "MySQLAliasAuth",
+				"Host", "Database", "User", "Password",
+				"Table", "IDField", "IPField", "ExtraCriterion"
+			);
+}
+
+MySQLAliasAuth::~MySQLAliasAuth()
+{
+	delete mysqlconn;
+}
+
+PString MySQLAliasAuth::GetConfigString(const PString & alias) const
+{
+	return mysqlconn->GetString(alias);
 }
 
 #endif // HAS_MYSQL
@@ -542,7 +639,7 @@ LDAPAliasAuth::~LDAPAliasAuth()
 {
 }
 
-PString LDAPAliasAuth::getConfigString(const PString &alias) const
+PString LDAPAliasAuth::GetConfigString(const PString &alias) const
 {
 	PStringList attr_values;
 	using namespace lctn; // LDAP config tags and names
@@ -595,9 +692,9 @@ int AliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned &)
 	// alias is the config file entry of this endpoint
 	for (PINDEX i=0; !AliasFoundInConfig && i < NewAliases.GetSize(); ++i) {
 		PString alias = AsString(NewAliases[i], FALSE);
-		const PString cfgString = getConfigString(alias);
+		const PString cfgString = GetConfigString(alias);
 
-		if (cfgString != "") {
+		if (!cfgString) {
 			const PStringArray conditions = cfgString.Tokenise("&", FALSE);
 
 			for (PINDEX iCnd = 0; iCnd < conditions.GetSize(); ++iCnd) {
@@ -625,7 +722,8 @@ int AliasAuth::Check(const H225_LocationRequest &, unsigned &)
 	return e_next;
 }
 
-PString AliasAuth::getConfigString(const PString &alias) const {
+PString AliasAuth::GetConfigString(const PString &alias) const
+{
 	return config->GetString("RasSrv::RRQAuth", alias, "");
 }
 
