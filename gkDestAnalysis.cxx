@@ -716,7 +716,7 @@ BOOL BlackListAnalysis::BlackWhiteCheckNumberInList(const PString CalledPartyNum
 	PStringList BlackList=cgpf.getBlackList();
 	PStringList WhiteList=cgpf.getWhiteList();
 	PTRACE(5,"Starting Blacklist-search ");
-	if(found=CheckNumberInList(CalledPartyNumber, BlackList)) {
+	if((found=CheckNumberInList(CalledPartyNumber, BlackList))) {
 		PTRACE(5, "Blacklist hit");
 		found=!CheckNumberInList(CalledPartyNumber,WhiteList);
 	}
@@ -728,7 +728,7 @@ BOOL BlackListAnalysis::WhiteBlackCheckNumberInList(const PString CalledPartyNum
 	PStringList BlackList=cgpf.getBlackList();
 	PStringList WhiteList=cgpf.getWhiteList();
 	PTRACE(5,"Starting Whitelist-search ");
-	if(found=CheckNumberInList(CalledPartyNumber, WhiteList)) {
+	if((found=CheckNumberInList(CalledPartyNumber, WhiteList))) {
 		PTRACE(5, "Whitelist hit");
 		found=!CheckNumberInList(CalledPartyNumber, BlackList);
 	}
