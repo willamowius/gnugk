@@ -1,0 +1,460 @@
+<sect>Introduction
+<p>
+<!--
+Ce manuel est aussi disponible en Anglais, Portugais et Chinois traditionnel.
+La version Anglaise est le document maitre et sera mise a jour en premier.
+-->
+<sect1>A propos
+<p>
+<bf>
+<url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
+</bf>
+est un projet open-source qui impl&#233;mente un gatekeeper H.323.
+Un gatekeeper fournit des services de contr&#244;le d'appel pour les terminaux H.323.
+Il s'agit une partie essentielle de la plupart des installations de t&#233;l&#233;phonie
+sur internet qui sont bas&#233;es sur la norme H.323.
+
+Selon la recommandation H.323, un gatekeeper doit fournir les services suivants:
+<itemize>
+<item>Traduction d'Adresse
+<item>Contr&#244;le d'Admissions
+<item>Contr&#244;le de Bande Passante
+<item>Gestion de Zone
+<item>Call Control Signaling
+<item>Autorisation d'Appel
+<item>Gestion de Bande Passante
+<item>Gestion des Appels
+</itemize>
+
+Le GNU Gatekeeper impl&#233;mente la plupart des fonctions bas&#233;es sur
+la pile du procole
+<url url="http://sourceforge.net/projects/openh323" name="OpenH323">
+
+La recommandation H.323 est une norme internationale publi&#233;e par l'
+<url url="http://www.itu.int/" name="ITU">.
+Il s'agit d'une norme de communication pour l'audio, vid&#233;o et donn&#233;es sur Internet.
+Voir aussi
+<url url="http://www.packetizer.com/voip/h323/papers/primer" name="l'introduction &#224; la s&#233;rie de normes H.323">.
+de Paul Jones.
+
+Pour une description de ce que fait un gatekeeper, voir
+<url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="ici">.
+
+<sect1>Copyright
+<p>
+Il est couvert par la
+<htmlurl url="http://www.gnu.org/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
+En suppl&#233;ment de celle-ci, nous autorisons explicitement de lier ce code
+&#224; la librairie OpenH323 et OpenSSL.
+
+D'une mani&#232;re g&#233;n&#233;rale, la GNU GPL vous autorise &#224; copier,
+distribuer, revendre ou modifier les logiciels, mais elle requi&#232;re que toutes
+les cr&#233;ations d&#233;riv&#233;es soient aussi publi&#233;es sous GNU GPL.
+Ceci signifie que vous devez publier tout le code source de toutes les extensions
+&#224; gatekeeper et de tous les programmes qui incluent gatekeeper.
+Voir le fichier COPYING pour les d&#233;tails.
+
+Si ce n'est pas ce que vous voulez, vous devez vous interfacer au gatekeeper au
+travers du port d'&#233;tat et communiquer par TCP avec lui.
+De cette fa&#231;on vous devez seulement int&#233;grer les fonctions de base dans le
+gatekeeper (et en fournir les sources) et conserver les autres parties  priv&#233;es
+de votre application.
+
+<sect1>Nom
+<p>
+Le nom exact de ce projet est
+<em>OpenH323 Gatekeeper - The GNU Gatekeeper</em>,
+en r&#233;sum&#233; <em/GnuGk/.
+Merci de ne pas le confondre avec d'autres projets de gatekeeper.
+
+Il y a plusieurs projets gatekeeper open-source bas&#233;s sur la pile de protocole OpenH323.
+<itemize>
+<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper">
+<quote>Un gatekeeper disponible sous MPL. Le projet a &#233;t&#233; inactif pour une certaine dur&#233;e.</quote>
+<item><url url="http://sourceforge.net/projects/openh323" name="OpenGK">
+<quote>Only in a very primary grades.</quote>
+<item><url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
+<quote>Celui-ci, aussi appel&#233; GnuGk.</quote>
+</itemize>
+
+Avoir diff&#233;rents gatekeepers avec des noms similaires embrouille vraiment
+la plupart des utilisateurs.
+Comme notre "OpenH323 Gatekeeper" &#233;tait le premier sur sc&#232;ne,
+ce n'est pas notre faute si d'autres ont choisi des noms similaires.
+Mais pour rendre la distinction plus &#233;vidente sans embrouiller encore plus
+les gens, nous avons d&#233;cid&#233; de donner un sous-titre au projet
+"OpenH323 Gatekeeper - The GNU Gatekeeper" et commenc&#233; &#224;
+utiliser <tt/gnugk/ comme nom pour les ex&#233;cutables.
+
+<sect1>Caract&#233;ristiques
+<p>
+La version 2.2.2 contient les caract&#233;ristiques et corrections suivantes:
+
+<itemize>
+<item>
+New FileIPAuth module in the contrib/ipauth directory.
+
+<item>
+Call accounting updates/call disconnect handling is now more robust
+and does not lock the whole call table and (effectively) the gatekeeper
+for long time periods.
+
+<item>
+Do not support mutiple rewrite targets, as this feature does not work well
+if rewrite is performed more than once.
+
+<item>
+The gatekeeper could crash if the connection was closed before
+the welcome message has been sent to the client.
+
+<item>
+Different Username was reported during Setup auth
+and acct step, if no sourceAddress has been present for an unregistered call.
+
+<item>
+More missing config reload locks added to allow seamless config reload.
+
+<item>
+La valeur par d&#233;faut de la variable de configuration <tt/ForwardOnFacility/ a &#233;t&#233; chang&#233;e &#224; <tt/0/.
+
+<item>
+Possibilit&#233; d'encoder tous les mots de passe dans la configuration. Nouvelle variable de
+configuration<tt/EncrypAllPasswords/, utilisation &#233;tendue de la variable de configuration <tt/KeyFilled/.
+
+<item>
+La possibilit&#233; de lire les param&#232;tres de configuration depuis une base SQL
+a &#233;t&#233; port&#233;e depuis la branche 2.0.
+Lire <ref id="sqlconf" name="[SQLConfig]"> pour de plus amples informations.
+
+<item>
+Framed-IP-Address ne pouvait pas &#234;tre d&#233;termin&#233; pour les appels non
+enregistr&#233;s sans champ, Setup-UUIE.sourceCallSignalAddress, ce qui fait
+&#233;chouer l'authentification.
+
+<item>
+Fournit une gestion ad&#233;quate des alias du type partyNumber
+(e164Number ou privateNumber).
+
+<item>
+Une correction pour RTP/Q931/H245/T120PortRange pour corriger une anomalie avec
+le bouclage du domaine des ports si le dernier port est 65535. Ceci amenait le
+port suivant &#224; &#234;tre mis &#224; 0 et les allocation ult&#233;rieures de
+port &#233;chouaient.
+
+<item>
+L'allocation dynamique de ports RTP ne marchait pas, utilise un domaine de ports
+fig&#233; 1024-65535 comme valeur par d&#233; pour la variable de configuration
+<tt/RTPPortRange/.
+
+<item>
+Les modules auth obsol&#232;tes MySQLAliasAuth et MySQLPasswordAuth sont supprim&#233;s.
+
+<item>
+Les modules SQL acceptent un seul serveur de base de donn&#233;es dans le param&#232;tre <tt/Host/.
+</itemize>
+
+<p>
+La version 2.2.1 contient les caract&#233;ristiques et corrections suivantes:
+
+<itemize>
+<item>
+Am&#233;lioration de la correspondance des pr&#233;fixes pour les politiques de routage.
+Un point (<tt/./) correspond &#224; n'importe quel chiffre.
+
+<item>
+Am&#233;lioration de la correspondance des voisins.
+Un point (<tt/./) correspond &#224; n'importe quel chiffre.
+<tt/!/ au d&#233;but d&#233;sactive le pr&#233;fixe.
+
+<item>
+Un verrou manquant pendant le rechargement de la configuration faisait crasher le gatekeeper.
+
+<item>
+S&#233;lection plus fiable de num&#233;ro de port pour les plages de port de
+Q.931, H.245, T.120 et RTP (avant, un rechargement de la configuration pouvait
+cause des erreurs pour beaucoup d'appels &#224;, cause de l'impossibilit&#233;
+d'allouer une nouvelle socket).
+
+<item>
+La valeur par d&#233;faut de RTPPortRange est maintenant de laisser l'OS
+s&#233;lectionner un num&#233;ro de port.
+
+<item>
+R&#232;gles de r&#233;&#233;criture plus flexibles (global et par passerelle)
+avec les nouveaux caract&#232;res wildcard '.' et '%'.
+
+<item>
+Am&#233;lioration de la correspondance des pr&#233;fixes pour les passerelles.
+Un point (<tt/./) correspond &#224; n'importe quel chiffre.
+<tt/!/ au d&#233;but d&#233;sactive le pr&#233;fixe.
+
+<item>
+Ins&#232;re le Calling-Party-Number-IE/Display-IE manquant si les otpions
+correspondantes <tt/Screen.../ sont activ&#233;es.
+
+<item>
+Arr&#234;te le gatekeeper si il y a des erreurs dans la configurationd es
+modules SQL aut/acct
+
+<item>
+Le type de num&#233;ro Called-Station-Id peut &#234;tre s&#233;lectionn&#233;
+entre le num&#233;ro original (num&#233;ro compos&#233;) et le num&#233;ro
+r&#233;&#233;crit. Nouvelle option de configurgation <tt/UseDialedNumber/ pour les
+modules <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">
+/<ref id=radacct name="RadAcct">, nouvelle variable %{Dialed-Number} pour les modules
+<ref id=sqlacct name="SQLAcct"> et <ref id=fileacct name="FileAcct">.
+
+<item>
+Possibilit&#233; de modifier les formats d'horodate. Nouvelle variable de configuration
+<tt/TimestampFormat/ pour les parties main, <ref id="sqlacct" name="[SqlAcct]">, 
+<ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
+et <ref id="calltable" name="[CallTable]">.
+
+<item>
+Les modules RadAuth/RadAliasAuth peuvent maintenant ajouter/supprimer des
+alias de terminaux pendant l'enregistrement de terminaux (en utilisant
+h323-ivr-in=terminal-alias: Cisco AV-Pair).
+
+<item>
+Nouvelle option <tt/TcpKeepAlive/ pour r&#233;gler le probl&#232;me avec les
+erreurs r&#233;seau et les appels bloqu&#233;s dans la table d'appel. Voir
+docs/keepalive.txt pour de plus amples informations.
+
+<item>
+Nouvelle commande du port d'&#233;tat <tt/RouteToGateway/.
+
+</itemize>
+
+<p>
+La version 2.2.0 contient les caract&#233;ristiques et corrections suivantes:
+
+<itemize>
+<item>
+Nouvelle option de configuration <tt/RoundRobinGateways/.
+
+<item>
+Limites de capacit&#233; d'appel et routage des priorit&#233;s pour les passerelles.
+Nouvelles sections de configuration <tt/EP::/ pour des param&#232;tres de configuration
+par terminal (voir
+<ref id="epconfig" name="Per-Endpoint Configuration Settings">).
+
+<item>
+RTP proxy handling moved to a separate RTP proxy threads, so processing
+of signaling messages does not block RTP packets. New <tt/RtpHandlerNumber/ 
+config option.
+
+<item>
+REUSE_ADDRESS option enabled on listening sockets in non-LARGE_FDSET mode 
+to fix a bug with the gatekeeper being unable to open listening ports after
+restart.
+
+<item>
+Ability to set call destination in auth modules. RADIUS based call routing.
+
+<item>
+Support for SqlBill tariff table import from an OpenOffice.org Calc spreadsheet.
+
+<item>
+Fixed sourceInfo LRQ field handling - now it contains an H.323 identifier 
+of the gatekeeper. Nonstandard data and gatekeeperIdentifier fields are set
+only when the neighbor is defined as GnuGk.
+
+<item>
+Ability to set shared secrets for each radius server separatelly.
+
+<item>
+New, much faster, Radius client implementation.
+
+<item>
+Called-Party-Number-IE rewrite occured too late, causing auth/acct modules 
+to receive the original number instead of the rewritten one.
+
+<item>
+Fixed proxying of RTP packets, so RTP sockets are not closed on temporary 
+errors (like remote socket not yet ready). This bug affected especially 
+NAT traversal and situation, when audio was sent very early, when reverse 
+proxy path has not been yet established.
+
+<item>
+Fixed handling of RRJ from an alternate GnuGk.
+
+<item>
+New direct SQL accounting module (<ref id="sqlacct" name="[SQLAcct]">).
+
+<item>
+Handling multiple reply messages (RIP/LCF/LRJ) from neighbors fixed.
+
+<item>
+Support for CallCreditServiceControl in RCF and ACF messages, which allows
+reporting call duration limit and user's account balance to endpoints. 
+Currently RadAuth and RadAliasAuth modules support this feature.
+
+<item>
+Log file rotation, new <tt/LogFile/ config section, new <tt/setlog/ 
+and <tt/rotatelog/ status interface commands.
+
+<item>
+Do not include an invalid access token (with null object identifier) 
+in LCF to prevent interoperability problems.
+
+<item>
+Better handling of multiple calls over a single signalling channel 
+by setting multipleCalls and maintainConnection H.225.0 fields to FALSE 
+in all messages passing through the gatekeeper.
+
+<item>
+Better User-Name, Calling-Station-Id and Called-Station-Id handling.
+
+<item>
+IncludeEndpointIP flag for RadAuth, RadAliasAuth and RadAcct is obsolete,
+these modules will always send Framed-IP-Address.
+
+<item>
+New Gatekeeper::Auth flag SetupUnreg to toggle Q.931 Setup authentication
+for unregistered endpoints only.
+
+<item>
+New RADIUS h323-ivr-out=h323-call-id parameter that contains 
+an H.323 Call Identifier.
+
+<item>
+The SQL billing from the contrib section can now authenticate users only 
+by their IP (ignoring User-Name) and has a new, more flexible tariff/rating 
+engine.
+
+<item>
+RadAliasAuth can authenticate now Setup messages without sourceAddress
+field present (it will use Calling-Party-Number instead).
+
+<item>
+Better signal handling to prevent accidental gatekeeper crashes 
+(due to SIGPIPE, for example).
+
+<item>
+CDR rotation per number of lines works correctly.
+
+</itemize>
+
+<p>
+
+Of course, the major functions in version 2.0 are also included:
+<itemize>
+<item>
+The registration table and call record table are redesigned, thread-safe,
+and very efficient. Support ten thousands of registrations and thousands of
+concurrent calls.
+
+<item>
+A new routed mode architecture that support H.225.0/Q.931 routed and
+H.245 routed without forking additional threads. Thus the thread number
+limit will not restrict the number of concurrent calls.
+
+<item>
+Support H.323 proxy by routing all logical channels, including RTP/RTCP
+media channels and T.120 data channels. Logical channels opened by H.245
+tunnelling and fast-connect procedure are also supported. In proxy mode,
+there is no traffic between the calling and called parties directly. Thus
+it is very useful if you have some endpoints using private IP behind an
+NAT box and some endpoints using public IP outside the box.
+
+<item>
+Support gatekeepers cluster by exchanging LRQ/LCF/LRJ (neighboring function).
+If the destination of a received LRQ is unknown, the GnuGk can forward it
+to next hop. Therefore the GnuGk can work as a directory gatekeeper.
+
+<item>
+Support various authentication methods for selectable RAS requests, including
+H.235 password (MD5, SHA-1 and CAT), IP pattern and prefixes matching. MySQL and
+LDAP are supported as backend database for authentication.
+
+<item>
+Support alternate gatekeepers for redundancy and load balancing. If the
+GnuGk is overloaded, the endpoints can be redirected to other gatekeepers.
+
+<item>
+Can work as an endpoint (gateway or terminal) by resigtering with a parent
+gatekeeper. With this feature, building gatekeeper hierarchies is easily.
+
+<item>
+Monitor and control the GnuGk via TCP status port, including registration
+and call statistics.
+
+<item>
+Output CDR(call detail record) to status port for backend billing system.
+The CDR contains call identifier, calling and called IP, start and end time
+and call duration.
+
+<item>
+Most configurations are changeable at runtime. The GnuGk rereads the
+configurations on receiving <tt/reload/ command via status port, or on
+receiving <tt/HUP/ signal (Unix platform).
+</itemize>
+
+<sect1>T&#233;l&#233;chargement
+<label id="download">
+<p>
+La derni&#232;re version stable et une version de d&#233;veloppement sont disponibles sur
+<url url="http://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
+
+La toute derni&#232;re version du code source est sous CVS sur
+<url url="http://sourceforge.net/cvs/?group_id=4797" name="Sourceforge">
+(<url url="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/openh323gk/" name="Web-GUI">).
+Attention - il s'agit de la pointe de la technologie.
+
+Vous pouvez aussi t&#233;l&#233;charger certains ex&#233;cutables depuis
+<url url="http://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
+
+<sect1>Liste de Diffusion
+<p>
+Il y a deux listes de diffusion pour le projet, une pour les d&#233;veloppeurs et une pour les utilisateurs.
+
+Les questions d'ordre g&#233;n&#233;ral doivent &#234;tre envoy&#233;es &#224; la
+<url url="mailto:Openh323gk-users@sourceforge.net" name="liste de diffusion des utilisateurs">.
+Vous pouvez trouver les archives de la liste
+<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="ici">.
+Pour vous joindre &#224; cette liste de diffusion, cliquez
+<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="ici">.
+
+Pour signaler des probl&#232;mes ou des anomalies/patches, envoyer des mails &#224; la
+<url url="mailto:Openh323gk-developer@sourceforge.net" name="liste de diffusion des d&#233;veloppeurs">.
+Les archives de la liste sont
+<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="ici">.
+Veuillez envoyer les questions utilisateur &#224; la liste de diffusion des utilisateurs et garder cette liste pour le d&#233;veloppement! Si vous voulez contribuer au projet, veuillez
+<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="rejoindre la liste de diffusion">.
+
+<bf/Note/:
+Merci de ne pas envoyer vos questions par des mails priv&#233;s aux d&#233;veloppeurs.
+Nous sommes habituellement occup&#233;s. Nous ne voulons <bf/pas/ &#234;tre votre
+consultant personnel, &#224; moins que vous souhaitiez nous payer.
+Envoyez vos probl&#232;mes &#224; la liste de diffusion appropri&#233;e de telle
+sorte que tout le monde puisse vous aider.
+
+Merci aussi de ne pas envoyer les probl&#232;mes sp&#233;cifiques de GnuGk &#224;
+la liste de diffusion OpenH323, ou vice versa.
+Il s'agit de projet distincts, bien que tr&#232;s apparent&#233;s.
+
+Avant d'envoyer un mail, assurez-vous d'avoir lu les documents associ&#233;s
+m&#233;ticuleusement. D&#233;crivez votre probl&#232;me clairement et avec pr&#233;cision.
+Montrez nous les messages d'erreur ou les logs si il y en a.
+
+<sect1>Participants
+<p>
+Le coordinateur actuel du projet est
+<url url="http://www.willamowius.de/" name="Jan Willamowius">
+<tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
+
+Les principales caract&#233;ristiques et fonctions de la version 2.0 ont &#233;t&#233;
+contribu&#233;es par
+<url url="http://www.cwhuang.idv.tw/" name="Chih-Wei Huang">
+<tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
+et
+<url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
+incluant l'enregistrement et les tables d'appel thread safe,
+une nouvelle architecture de mode rout&#233;, proxy H.323,
+authentification H.235 et MySQL backend.
+
+Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> a fait du bon travail sur le support de Radius et d'autres am&#233;liorations.
+
+La version initiale de gatekeeper a &#233;t&#233; d&#233;velopp&#233;e par
+Xiang Ping Chen, Joe Metzger et Rajat Todi.
+

@@ -1,0 +1,389 @@
+<sect1>Configuration File
+<label id="config">
+<p>
+The configuration file is a standard text file. The basic format is:
+
+<tscreen><verb>
+[Section String]
+Key Name=Value String
+</verb></tscreen>
+
+Comments are marked with a hash (<tt/#/) or a semicolon (<tt/;/)
+at the beginning of a line.
+
+The file
+<tt/complete.ini/
+contains all available sections for the GnuGk.
+In most cases it doesn't make sense to use them all at once.
+The file is just meant as a collection of examples for many settings.
+
+The configuration file can be changed at runtime.
+Once you modify the configuration file, you may issue <tt/reload/ command
+via status port, or send a signal <tt/HUP/ to the gatekeeper process on Unix.
+For example,
+<tscreen><verb>
+kill -HUP `cat /var/run/gnugk.pid`
+</verb></tscreen>
+
+<sect2>Section &lsqb;Gatekeeper::Main&rsqb;
+<p>
+<itemize>
+<item><tt/Fourtytwo=42/<newline>
+Default: <tt>N/A</tt>
+<p>
+This setting is used to test the presence of the config file. If it
+is not found, a warning is issued.
+Make sure it's in all your config files.
+
+<item><tt/Name=OpenH323GK/<newline>
+Default: <tt/OpenH323GK/
+<p>
+Gatekeeper identifier of this gatekeeper. The gatekeeper will only respond to
+GRQs for this ID and will use it in a number of messages to its endpoints.
+
+<item><tt/Home=192.168.1.1/<newline>
+Default: <tt/0.0.0.0/
+<p>
+The gatekeeper will listen for requests on this IP number.
+By default, the gatekeeper listens on all interfaces of your host.
+You should leave out this option,
+unless you want the gatekeeper only to bind to a specified IP.
+
+<item><tt>NetworkInterfaces=192.168.1.1/24,10.0.0.1/0</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+Specify the network interfaces of the gatekeeper. By default the gatekeeper
+will detect the interfaces of your host automatically. There are two situations
+that you may want to use this option. One is automatical detection failed,
+another is the gatekeeper is behind an NAT box and allow endpoints with
+public IPs to register with. In this case you should set the option just as
+the gatekeeper is running on the NAT box.
+
+<item><tt/EndpointIDSuffix=_gk1/<newline>
+Default: <tt/_endp/
+<p>
+The gatekeeper will assign a unique identifier to each registered endpoint.
+This option can be used to specify a suffix to append to the endpoint identifier. This is only usefull when using more than one gatekeeper.
+
+<item><label id="ttl"><tt/TimeToLive=300/<newline>
+Default: <tt/-1/
+<p>
+An endpoint's registration with a gatekeeper may have a limited life span.
+The gatekeeper specifies the registration duration of an endpoint
+by including a <bf/timeToLive/ field in the RCF message.
+After the specified time, the registration has expired.
+The endpoint shall periodically send an RRQ having the <bf/keepAlive/
+bit set prior to the expiration time. Such a message may include a
+minimum amount of information as described in H.225.0.
+This is called a lightweight RRQ.
+
+This configuration setting specifies the time-to-live timer in seconds until the registration expires.
+Note the endpoint may request a shorter <bf/timeToLive/ in the RRQ message
+to the gatekeeper.
+To avoid an overload of RRQ messages,
+the gatekeeper automatically adjusts this timer
+to 60 seconds if you give a lesser value!
+
+After the expiration time,
+the gatekeeper will subsequently send two IRQ messages to query
+if the endpoint is still alive. If the endpoint responds with an IRR,
+the registration will be extended. Otherwise the gatekeeper will send
+a URQ with reason <bf/ttlExpired/ to the endpoint.
+The endpoint must then re-register with the gatekeeper using a full RRQ message.
+
+To disable this feature, set it to <tt/-1/.
+
+<item><tt/TotalBandwidth=100000/<newline>
+Default: <tt/-1/
+<p>
+Total bandwidth available to be given to endpoints.
+By default this feature is off. Be carefull when using it,
+because many endpoints have buggy implementations.
+
+<item><tt/RedirectGK=Endpoints > 100 || Calls > 50/<newline>
+Default: <tt>N/A</tt>
+<p>
+This option allow you to redirect endpoints to alternate gatekeepers
+when the gatekeeper overloaded.
+For example, with the above setting the gatekeeper will
+reject an RRQ if registered endpoints exceed 100,
+or reject an ARQ if concurrent calls exceed 50.
+
+Furthermore, you may explicitly redirect all endpoints by
+setting this option to <tt/temporary/ or <tt/permanent/.
+The gatekeeper will return an RAS rejection message with a list of
+alternate gatekeepers defined in <tt/AlternateGKs/.
+Note that a <tt/permanent/ redirection means that the redirected endpoints
+will not register with this gatekeeper again.
+Please also note the function only takes effect to H.323 version 4
+compliant endpoints.
+
+<item><tt/AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK/<newline>
+Default: <tt>N/A</tt>
+<p>
+We allow for existence of another gatekeeper to provide redundancy.
+This is implemented in a active-active manner. Actually, you might get
+into a (valid !) situation where some endpoints are registered with the
+first and some are registered with the second gatekeeper.
+You should even be able use the two gatekeepers in a round_robin fashion
+for load-sharing (that's untested, though :-)).
+If you read on, "primary GK" refers to the gatekeeper you're currently
+configuring and "alternate GK" means the other one.
+The primary GK includes a field in the RCF to tell endpoints which alternate
+IP and gatekeeper identifier to use.
+But the alternate GK needs to know about every
+registration with the primary GK or else it would reject calls.
+Therefore our gatekeeper can forward every RRQ to an alternate IP address.
+
+The AlternateGKs config option specifies the fields contained in
+the primary GK's RCF. The first and second fields of this string define
+where (IP, port) to forward to.
+The third tells endpoints whether they need to register with the alternate GK
+before placing calls. They usually don't because we forward their RRQs, so they
+get registered with the alternate GK, too.
+The fourth field specified the priority for this GK.
+Lower is better, usually the primary GK is considered to have priority 1.
+The last field specifies the alternate gatekeeper's identifier.
+
+<item><tt/SendTo=1.2.3.4:1719/<newline>
+Default: <tt>N/A</tt>
+<p>
+Although this information is contained in AlternateGKs, you must still
+specify which address to forward RRQs to. This might differ from AlternateGK's
+address, so it's a separate config option (think of multihomed machines).
+
+<item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
+Default: <tt>N/A</tt>
+<p>
+To avoid circular forwarding, you shouldn't forward RRQs you get from the
+other GK (this statement is true for both, primary and alternate GK).
+Two mechanisms are used to identify whether a request should be forwarded.
+The first one looks for a flag in RRQ. Since few endpoints implement this,
+we need a second, more reliable way.
+Specify the other gatekeeper's IP in this list.
+
+<item><tt/StatusPort=7000/<newline>
+Default: <tt/7000/
+<p>
+Status port to monitor the gatekeeper.
+See <ref id="monitor" name="this section"> for details.
+
+<item><tt/StatusTraceLevel=2/<newline>
+Default: <tt/2/
+<p>
+Default output trace level for new status interface clients.
+See <ref id="monitor" name="this section"> for details.
+
+<item><tt/TimestampFormat=ISO8601/<newline>
+Default: <tt/Cisco/
+<p>
+Control default format of timestamp strings generated by the gatekeeper.
+This option affects <ref id="sqlacct" name="[SqlAcct]">, 
+<ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
+and other modules, except <ref id="calltable" name="[CallTable]">.
+You can further customize timestamp formatting per-module by configuring
+per-module <tt/TimestampFormat/ setting.
+<p>
+There are four predefined formats:
+<itemize>
+<item><tt/RFC822/ - a default format used by the gatekeeper (example: Wed, 10 Nov 2004 16:02:01 +0100)
+<item><tt/ISO8601/ - standard ISO format (example: 2004-11-10 T 16:02:01 +0100)
+<item><tt/Cisco/ - format used by Cisco equipment (example: 16:02:01.534 CET Wed Nov 10 2004)
+<item><tt/MySQL/ - simple format that MySQL can understand (example: 2004-11-10 16:02:01)
+</itemize>
+<p>
+If you need another format, you can build your own format string, using
+rules known from <tt/strftime/ C function (see man strftime or search MSDN for strftime).
+In general, the format string consists of regular character and format codes, preceeded
+by a percent sign. Example: "%Y-%m-%d and percent %%" will result in "2004-11-10 and percent %".
+Some common format codes:
+<itemize>
+<item><tt/%a/ - abbreviated weekday name
+<item><tt/%A/ - full weekday name
+<item><tt/%b/ - abbreviated month name
+<item><tt/%B/ - full month name
+<item><tt/%d/ - day of month as decimal number
+<item><tt/%H/ - hour in 24-hour format
+<item><tt/%I/ - hour in 12-hour format
+<item><tt/%m/ - month as decimal number
+<item><tt/%M/ - minute as decimal number
+<item><tt/%S/ - second as decimal number
+<item><tt/%y/ - year without century
+<item><tt/%Y/ - year with century
+<item><tt/%u/ - microseconds as decimal number (<bf/this is a GnuGk extension/)
+<item><tt/%z/ - time zone abbreviation (+0100)
+<item><tt/%Z/ - time zone name
+<item><tt/%%/ - percent sign
+</itemize>
+
+<item><tt/EncryptAllPasswords=1/<newline>
+Default: <tt/0/
+<p>
+Enable encryption of all passwords in the config (SQL passwords, RADIUS
+passwords, [Password] passwords, [GkStatus::Auth] passwords). If enabled,
+all passwords have to be encrypted using <tt/addpasswd/ utility. Otherwise
+only [Password] and [GkStatus::Auth] passwords are encrypted (old behaviour).
+
+<item><tt/KeyFilled=0/<newline>
+Default: <tt/0/
+<p>
+Define a global padding byte to be used during password encryption/decryption. 
+It can be overriden by setting <tt/KeyFilled/ inside a particular config section.
+Usually, you do not need to change this option.
+</itemize>
+
+Most users will never need to change any of the following values.
+They are mainly used for testing or very sophisticated applications.
+
+<itemize>
+<item><tt/UseBroadcastListener=0/<newline>
+Default: <tt/1/
+<p>
+Defines whether to listen to broadcast RAS requests. This requires
+binding to all interfaces on a machine so if you want to run multiple
+instances of gatekeepers on the same machine you should turn this off.
+
+<item><tt/UnicastRasPort=1719/<newline>
+Default: <tt/1719/
+<p>
+The RAS channel TSAP identifier for unicast.
+
+<item><tt/MulticastPort=1718/<newline>
+Default: <tt/1718/
+<p>
+The RAS channel TSAP identifier for multicast.
+
+<item><tt/MulticastGroup=224.0.1.41/<newline>
+Default: <tt/224.0.1.41/
+<p>
+The multicast group for the RAS channel.
+
+<item><tt/EndpointSignalPort=1720/<newline>
+Default: <tt/1720/
+<p>
+Default port for call signalling channel of endpoints.
+
+<item><tt/ListenQueueLength=1024/<newline>
+Default: <tt/1024/
+<p>
+Queue length for incoming TCP connection.
+
+<item><tt/SignalReadTimeout=1000/<newline>
+Default: <tt/1000/
+<p>
+Time in miliseconds for read timeout on call signalling channels (Q931).
+
+<item><tt/StatusReadTimeout=3000/<newline>
+Default: <tt/3000/
+<p>
+Time in miliseconds for read timeout on status channel.
+
+<item><tt/StatusWriteTimeout=5000/<newline>
+Default: <tt/5000/
+<p>
+Time in miliseconds for write timeout on status channel.
+</itemize>
+
+
+<sect2>Section &lsqb;GkStatus::Auth&rsqb;
+<p>
+Define a number of rules who is allowed to connect to the status port.
+Whoever has access to the status port has full control over your gatekeeper. Make sure this is set correctly.
+<itemize>
+<item><tt/rule=allow/<newline>
+Default: <tt/forbid/
+<p>
+Possible values are
+<itemize>
+<item><tt/forbid/ - disallow any connection.
+<item><tt/allow/ - allow any connection
+<item><tt/explicit/ - reads the parameter <tt>ip=value</tt>
+where <tt/ip/ is the IP address of the peering client,
+<tt/value/ is <tt/1,0/ or <tt/allow,forbid/ or <tt/yes,no/.
+If <tt/ip/ is not listed the parameter <tt/default/ is used.
+<item><tt/regex/ - the IP of the client is matched against the given regular expression.
+<p><descrip>
+<tag/Example:/
+To allow client from 195.71.129.0/24 and 195.71.131.0/24:
+<quote><tt>regex=^195\.71\.(129|131)\.[0-9]+$</tt></quote>
+</descrip>
+<item><tt/password/ - the user has to input appropriate username and password to login. The format of username/password is the same as <ref id="password" name="[SimplePasswordAuth]"> section.
+
+</itemize>
+
+Moreover, these rules can be combined by "|" or "&amp;". For example,
+<itemize>
+<item><tt>rule=explicit | regex</tt><newline>
+The IP of client must match <tt/explicit/ <bf/or/ <tt/regex/ rule.
+<p>
+<item><tt>rule=regex & password</tt><newline>
+The IP of client must match <tt/regex/ rule, <bf/and/ the user has to login by username and password.
+</itemize>
+
+<item><tt/default=allow/<newline>
+Default: <tt/forbid/
+<p>
+Only used when <tt/rule=explicit/.
+
+<item><tt/Shutdown=forbid/<newline>
+Default: <tt/allow/
+<p>
+Whether to allow shutdown the gatekeeper via status port.
+
+<item><tt/DelayReject=5/<newline>
+Default: <tt/0/
+<p>
+How long (in seconds) to wait before rejecting invalid username/password
+for the status line access.
+</itemize>
+
+
+<sect2>Section &lsqb;LogFile&rsqb;
+<label id="logfile">
+<p>
+This section defines log file related parameters. Currently it allows
+users to specify log file rotation options.
+
+<itemize>
+<item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
+Default: <tt>N/A</tt>
+<p>
+If set, the log file will be rotated based on this setting. Hourly rotation
+enables rotation once per hour, daily - once per day, weekly - once per week
+and monthly - once per month. An exact rotation moment is determined by a combination
+of <tt/RotateDay/ and <tt/RotateTime/ variables. During rotation, an existing 
+file is renamed to CURRENT_FILENAME.YYYYMMDD-HHMMSS, where YYYYMMDD-HHMMSS 
+is replaced with the current timestamp, and new lines are logged to an empty 
+file. To disable the rotation, do not set <tt/Rotate/ parameter or set it to 0.
+
+<descrip>
+<tag/Example 1 - rotate every hour (00:45, 01:45, ..., 23:45):/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Hourly</tt><newline>
+<tt>RotateTime=45</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 2 - rotate every day at 23:00 (11PM):/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Daily</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 3 - rotate every Sunday at 00:59:/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Weekly</tt><newline>
+<tt>RotateDay=Sun</tt><newline>
+<tt>RotateTime=00:59</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 4 - rotate on the last day of each month:/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Monthly</tt><newline>
+<tt>RotateDay=31</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+</itemize>
+
