@@ -9,6 +9,8 @@
 #
 #
 # CHANGES:
+# 2002-01-07, storm
+#   minor corrections
 # 2002-01-03, storm
 #   removed CountryCode, AreaCode (moved into telephonenumber)
 #   refine syntax definition of telephonenumber, dn
@@ -47,8 +49,8 @@
 #  Feel free to replace "9564" by your own IANA-assigned OID.
 #
 # SYNTAX overview
-# binary                     1.3.6.1.4.1.1466.115.121.1.5 BER/DER data 
-# boolean		     1.3.6.1.4.1.1466.115.121.1.7 boolean value 
+# binary                     1.3.6.1.4.1.1466.115.121.1.5  BER/DER data 
+# boolean		     1.3.6.1.4.1.1466.115.121.1.7  boolean value 
 # distinguishedName          1.3.6.1.4.1.1466.115.121.1.12 DN 
 # directoryString	     1.3.6.1.4.1.1466.115.121.1.15 UTF-8 string 
 # Facsimile Telephone Number 1.3.6.1.4.1.1466.115.121.1.22
@@ -139,9 +141,9 @@
 # The 'userpassword' attribute is usually one-way-encrypted (crypt or SHA-1)
 # and therefore cannot be used.
 # To avoid storing cleartext passwords here, you may implement your own
-# 2-way encryption method. You should denote the used method in a manner similar
-# to the userpassword attribute, e.g. "plaintextPassword: {3DES}XXXXX" where XXX
-# is a triple-DES encrypted password.
+# 2-way encryption method. You should denote the used method within the value
+# like you do with the userpassword attribute, i.e.
+# "plaintextPassword: {3DES}XXXXX" means XXXXX is a triple-DES encrypted password.
 # 
 #
 # attributetype ( 1.3.6.1.4.1.9564.2.1.1.8 NAME 'plaintextPassword'
@@ -155,13 +157,12 @@
 
 # NOTE:
 # endpoints that do not support H.235 may be authenticated according to their
-# source IP address
+# source IP address. This attribute's values define allowed IP addresses.
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2010 
   NAME ( 'voIPIpAddress' 'voIPip' )
-  DESC 'A user's or gateway's IP address'
+  DESC 'A user or gateway IP address'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-  SINGLE-VALUE
  )
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2020 
@@ -210,8 +211,10 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2050
 
 # NOTE:
 # voIPspeedDial attributes must contain values of the format
-# <telephonenumber>=<telephonenumber>, e.g. "110=+49 5241 80 1000"
-# Multiple occurences are used to add speed dials.
+# <speeddial>=<telephonenumber>, e.g. "110=+49 5241 80 1000".
+# speeddial may be an arbitrary E.164 string while
+# telephonenumber must match the format used in the telephonenumber attribute.
+# This attribute is multi-valued to allow for multiple speed dials.
 # Emergency call numbers (110, 112 in Germany) are implemented using voIPspeedDial
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2060 NAME 'voIPspeedDial'
