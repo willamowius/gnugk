@@ -266,16 +266,12 @@ DECLARE
 	parsedval TEXT;
 	idx INT;
 BEGIN
-	RAISE LOG ''sqlbill: parse avpair (%;%;%)'', $1, $2, $3;
-	
 	IF avpair IS NULL OR attrname IS NULL THEN
 		RETURN NULL;
 	END IF;
 
 	parsedval := radius_xlat(avpair);
 
-	RAISE LOG ''sqlbill: parse avpair (%)'',  parsedval;
-		
 	idx := strpos(parsedval, attrname || ''='');
 	IF idx = 0 THEN
 		RETURN NULL;
