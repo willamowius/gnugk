@@ -46,8 +46,12 @@ Quick Overview
 To make everything working you need to:
 1. Install PostgreSQL and create a billing database schema.
 2. Fill the database with some data.
-3. Install FreeRADIUS server and configure it properly.
-4. Install GnuGk and enable RadAuth and RadAcct modules.
+Either:
+  3. Install FreeRADIUS server and configure it properly.
+  4. Install GnuGk and enable RadAuth and RadAcct modules.
+Or:
+  3. Install GnuGk (2.2 preferably) and enable SQLPasswordAuth, SQLAliasAuth
+     and SQLAcct modules.
 
 ad.1) PostgreSQL
 Detailed info is provided in sql/INSTALL and sql/README files.

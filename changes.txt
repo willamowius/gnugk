@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- (sqlbill) examples how to setup SQLAcct, SQLPasswordAuth and SQLAliasAuth
+  with the billing
 - direct SQL accounting module (SQLAcct) ported from 2.0 branch
 - BUGFIX(gkauth.cxx) gcc 2.95.x compilation errors fixed
 - BUGFIX(Neighbor.cxx) handling reply messages (RIP/LCF/LRJ) from neighbors 

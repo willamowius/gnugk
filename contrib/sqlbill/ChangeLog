@@ -1,3 +1,8 @@
+9 Jul 2004 -- zvision
+  * added GnuGk config examples how to use the billing systems with SQLAcct,
+    SQLPasswordAuth and SQLAuth modules instead of Radius. It does not provide
+    full functionality, like with Radius, but may be enough for some people
+
 22 Jun 2004 -- zvision
   * reject gracefully Access-Requests without Framed-IP-Address attribute
   * better handling of IP only authorization - changed user account binding 
