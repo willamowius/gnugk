@@ -57,6 +57,7 @@ void Toolkit::RouteTable::InitTable()
 		PTRACE(1, "Error: Can't get interface table");
 		return;
 	}
+	PTRACE(4, "InterfaceTable:\n" << setfill('\n') << if_table << setfill(' '));
 	PIPSocket::RouteTable r_table;
 	if (!PIPSocket::GetRouteTable(r_table)) {
 		PTRACE(1, "Error: Can't get route table");
@@ -67,6 +68,9 @@ void Toolkit::RouteTable::InitTable()
 	for (PINDEX r = 0; r < r_table.GetSize(); ++r) {
 		PIPSocket::RouteEntry & r_entry = r_table[r];
 		if (!r_entry.GetInterface())
+			// It's unusual to contruct an object twice,
+			// However, since RouteEntry is just a simple object,
+			// it won't hurt. :p
 			::new (rtable_end++) RouteEntry(r_entry, if_table);
 	}
 

@@ -20,7 +20,6 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include "ANSI.h"
 #include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
@@ -223,6 +222,23 @@ CallSignalSocket::~CallSignalSocket()
 	}
 }
 
+#if PTRACING
+void PrintQ931(int tlevel, const PString & msg, const Q931 *q931, const H225_H323_UserInformation *uuie)
+{
+	PStringStream pstrm;
+	pstrm << "Q931\t" << msg << " {\n  q931pdu = " << setprecision(2) << *q931;
+	if (uuie)
+		pstrm << "\n  h225pdu = " << setprecision(2) << *uuie;
+	pstrm << "\n}";
+	PTRACE(tlevel, pstrm);
+}
+#else
+inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserInformation *)
+{
+	// nothing to do
+}
+#endif
+
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
 	if (!ReadTPKT())
@@ -234,13 +250,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return Error;
 	}
 
-	PTRACE(3, "Q931\t" << Name() << " Message type: " << q931pdu.GetMessageTypeName());
-	PTRACE(4, "Q931\t" << Name() << " Call reference: " << q931pdu.GetCallReference());
-	PTRACE(4, "Q931\t" << Name() << " From destination " << q931pdu.IsFromDestination());
-	PTRACE(6, ANSI::BYEL << "Q931\nMessage received: " << setprecision(2) << q931pdu << ANSI::OFF);
+	PTRACE(3, "Q931\t" << " Received: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference());
 
+	H225_H323_UserInformation signal, *psignal = 0;
 	if (q931pdu.HasIE(Q931::UserUserIE)) {
-		H225_H323_UserInformation signal;
 		PPER_Stream q = q931pdu.GetIE(Q931::UserUserIE);
 		if (!signal.Decode(q)) {
 			PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
@@ -250,7 +263,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
 		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
 
-		PTRACE(6, ANSI::BYEL << "Q931\nUUIE received: " << setprecision(2) << pdu << ANSI::OFF);
+		PrintQ931(6, "Received:", &q931pdu, psignal = &signal);
 
 		switch (body.GetTag())
 		{
@@ -307,13 +320,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control) && m_h245handler)
 			OnTunneledH245(pdu.m_h245Control);
 
-		PTRACE(5, ANSI::BGRE << "Q931\nUUIE to sent: " << setprecision(2) << pdu << ANSI::OFF);
-
 		PPER_Stream strm;
 		signal.Encode(strm);
 		strm.CompleteEncoding();
 		q931pdu.SetIE(Q931::UserUserIE, strm);
-	} 
+	} else { // not have UUIE
+		PrintQ931(6, "Received:", &q931pdu, 0);
+	}
 /*
    Note: Openh323 1.7.9 or later required.
    The older version has an out of memory bug in Q931::GetCalledPartyNumber.
@@ -325,20 +338,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		    Toolkit::Instance()->RewritePString(calledNumber))
 			q931pdu.SetCalledPartyNumber(calledNumber, plan, type);
 	}
-/*
-	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
-		PBYTEArray n_array = q931pdu.GetIE(Q931::CalledPartyNumberIE);
-		if (n_array.GetSize() > 0) {
-			const char* n_bytes = (const char*) (n_array.GetPointer());
-			PString n_string(n_bytes+1, n_array.GetSize()-1);
-			if (Toolkit::Instance()->RewritePString(n_string))
-				q931pdu.SetCalledPartyNumber(n_string, Q931::ISDNPlan, Q931::NationalType);
-		}
-	}
-*/
 
 	q931pdu.Encode(buffer);
-	PTRACE(5, ANSI::BGRE << "Q931\nMessage to sent: " << setprecision(2) << q931pdu << ANSI::OFF);
+	PrintQ931(6, "Send to " + Name(), &q931pdu, psignal);
 
 	switch (q931pdu.GetMessageType())
 	{
@@ -642,7 +644,7 @@ void CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			strm.CompleteEncoding();
 			fastStart[i].SetValue(strm);
 		}
-		PTRACE(5, "Q931\nfastStart[" << i << "] to sent " << setprecision(2) << olc);
+		PTRACE(5, "Q931\nfastStart[" << i << "] to send " << setprecision(2) << olc);
 	}
 }
 
@@ -678,7 +680,7 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg)
 		PTRACE(4, "H245\tERROR DECODING H.245");
 		return false;
 	}
-	PTRACE(6, ANSI::BYEL << "H245\nMessage received: " << setprecision(2) << h245msg << ANSI::OFF);
+	PTRACE(6, "H245\tReceived: " << setprecision(2) << h245msg);
 
 	bool changed = false;
 	switch (h245msg.GetTag())
@@ -708,7 +710,7 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg)
 		mesg = strm;
 	}
 
-	PTRACE(5, ANSI::BGRE << "H245\nMessage to sent: " << setprecision(2) << h245msg << ANSI::OFF);
+	PTRACE(5, "H245\tTo send: " << setprecision(2) << h245msg);
 	return changed;
 }
 
