@@ -108,10 +108,12 @@ doc:	docs/manual.sgml
 
 # Use this to increment the build number
 increment:
-	-@BN=$(GNUGK_BUILD_NUMBER); \
+	-@BN=@GNUGK_BUILD_NUMBER@; \
         BNN=`expr "$$BN" + 1`; \
         echo "Upgrading from build $$BN to $$BNN"; \
-        cp $(GNUGK_VERSION_FILE) $(TMP)/$(GNUGK_VERSION_FILE); \
+        cp version.h $(TMP)/version.h; \
         sed -e 's/BUILD_NUMBER.*'"$$BN"'/BUILD_NUMBER '"$$BNN/" \
-                $(TMP)/$(GNUGK_VERSION_FILE) > $(GNUGK_VERSION_FILE); \
-        rm -f $(TMP)/$(GNUGK_VERSION_FILE)
+                $(TMP)/version.h > version.h; \
+        rm -f $(TMP)/version.h; \
+		echo "Rerunning configure utility"; \
+		./configure
