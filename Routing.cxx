@@ -812,6 +812,116 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 	return false;
 }
 
+class NumberAnalysisPolicy : public Policy {
+public:
+	struct PrefixEntry {
+		std::string m_prefix;
+		int m_minLength;
+		int m_maxLength;
+	};
+	
+	NumberAnalysisPolicy();
+
+protected:
+	virtual bool OnRequest(AdmissionRequest &);
+	// TODO
+	//virtual bool OnRequest(LocationRequest &);
+	//virtual bool OnRequest(SetupRequest &);
+	//virtual bool OnRequest(FacilityRequest &);
+
+private:
+	NumberAnalysisPolicy(const NumberAnalysisPolicy &);
+	NumberAnalysisPolicy& operator=(const NumberAnalysisPolicy &);
+	
+private:
+	typedef std::vector<PrefixEntry> Prefixes;
+
+	/// list of number prefixes, with min/max number length as values
+	Prefixes m_prefixes;
+};
+
+struct PrefixGreater : public binary_function<NumberAnalysisPolicy::PrefixEntry, NumberAnalysisPolicy::PrefixEntry, bool> {
+
+	bool operator()(const NumberAnalysisPolicy::PrefixEntry &e1, const NumberAnalysisPolicy::PrefixEntry &e2) const 
+	{
+		if (e1.m_prefix.size() == e2.m_prefix.size())
+			return e1.m_prefix > e2.m_prefix;
+		else 
+			return e1.m_prefix.size() > e2.m_prefix.size();
+	}
+};
+
+NumberAnalysisPolicy::NumberAnalysisPolicy()
+{
+	m_name = "NumberAnalysis";
+
+	PConfig *cfg = GkConfig();
+	PStringToString kv = cfg->GetAllKeyValues("Routing::NumberAnalysis");
+	m_prefixes.resize(kv.GetSize());
+	for (PINDEX i = 0; i < kv.GetSize(); i++) {
+		const PString &val = kv.GetDataAt(i);
+
+		m_prefixes[i].m_prefix = kv.GetKeyAt(i);
+
+		const PINDEX sepIndex = val.Find(':');
+		if (sepIndex == P_MAX_INDEX) {
+			m_prefixes[i].m_minLength = val.AsUnsigned();
+			m_prefixes[i].m_maxLength = -1;
+		} else {
+			m_prefixes[i].m_minLength = val.Left(sepIndex).AsUnsigned();
+			m_prefixes[i].m_maxLength = val.Mid(sepIndex + 1).AsUnsigned();
+		}
+	}
+	
+	std::stable_sort(m_prefixes.begin(), m_prefixes.end(), PrefixGreater());
+	
+	PTRACE(5, "ROUTING\t" << m_name << " policy loaded with " << m_prefixes.size()
+		<< " prefix entries"
+		);
+		
+#if PTRACING
+	if (PTrace::CanTrace(6)) {
+		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
+		strm << "ROUTING\t" << m_name << " policy prefixes:" << endl;
+		for (unsigned i = 0; i < m_prefixes.size(); i++)
+			strm << "\t" << m_prefixes[i].m_prefix << " => min len: "
+				<< m_prefixes[i].m_minLength << ", max len: "
+				<< m_prefixes[i].m_maxLength << endl;
+		PTrace::End(strm);
+	}
+#endif /* PTRACING */
+}
+
+bool NumberAnalysisPolicy::OnRequest(AdmissionRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases == NULL)
+		return false;
+
+	for (PINDEX i = 0; i < aliases->GetSize(); i++) {
+		const H225_AliasAddress &alias = (*aliases)[i];
+		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits
+				|| alias.GetTag() == H225_AliasAddress::e_partyNumber) {
+			const PString s = AsString(alias, FALSE);
+			for (unsigned i = 0; i < m_prefixes.size(); i++)
+				if (MatchPrefix(s, m_prefixes[i].m_prefix.c_str()) != 0) {
+					if (s.GetLength() < m_prefixes[i].m_minLength) {
+						request.SetCalledParty(endptr(NULL));
+						request.SetRejectReason(H225_AdmissionRejectReason::e_incompleteAddress);
+						return true;
+					} else if (m_prefixes[i].m_maxLength >= 0
+							&& s.GetLength() > m_prefixes[i].m_maxLength) {
+						request.SetCalledParty(endptr(NULL));
+						request.SetRejectReason(H225_AdmissionRejectReason::e_undefinedReason);
+						return true;
+					}
+					return false;
+				}
+		}
+	}
+	return false;
+}
+
 
 namespace { // anonymous namespace
 	SimpleCreator<ExplicitPolicy> ExplicitPolicyCreator("explicit");
@@ -819,6 +929,7 @@ namespace { // anonymous namespace
 	SimpleCreator<ParentPolicy> ParentPolicyCreator("parent");
 	SimpleCreator<DNSPolicy> DNSPolicyCreator("dns");
 	SimpleCreator<VirtualQueuePolicy> VirtualQueuePolicyCreator("vqueue");
+	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
 }
 
 

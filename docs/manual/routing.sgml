@@ -43,6 +43,10 @@ Use the virtual queue mechanism and generate a RouteRequest
 event to let an external application do the routing
 (can only be used OnARQ)
 
+<item><tt/numberanalysis/<newline>
+<p>
+Provides support for overlapped digit sending for ARQ messages.
+
 </itemize>
 
 If one policy does not match, the next policy is tried.
@@ -76,6 +80,12 @@ For the ARQ, LRQ, Setup and Facility messages one would use the
 [RoutingPolicy::OnARQ], [RoutingPolicy::OnLRQ],
 [RoutingPolicy::OnSetup] and [RoutingPolicy::OnFacility] sections
 using the syntax explained above.
+
+<descrip>
+<tag/Example:/
+<quote><tt>[RoutingPolicy::OnARQ]<newline>
+default=numberanalysis,internal,neighbor</tt></quote>
+</descrip>
 
 
 <sect1>Section &lsqb;RasSrv::RewriteE164&rsqb;
@@ -209,4 +219,38 @@ the parent gatekeeper.
 The section does not relate to the section
 <ref id="rewrite" name="RasSrv::RewriteE164">,
 though the later will take effect first.
+
+<sect1>Section &lsqb;Routing::NumberAnalysis&rsqb;
+<label id="numberanalysis">
+<p>
+This section defines rules for the <tt/numberanalysis/ routing policy.
+The policy checks a dialed number for minimum and/or maximum number of digits
+and sends ARJ, if neccessary (number of digits is out of range), to support
+overlapped digit sending.
+
+<descrip>
+<tag/Format:/
+<tt>prefix=MIN_DIGITS[:MAX_DIGITS]</tt>
+<p>
+If the number matches the <tt/prefix/, it is verified to consist of at least
+<tt/MIN_DIGITS/ digits and (if MAX_DIGITS is present) at most <tt/MAX_DIGITS/
+digits. Special wildcard characters (<tt/!/, <tt/'.'/ and <tt/'%'/) are available.
+If the number is too short, an ARJ is send with <tt/rejectReason/ set to <tt/incompleteAddress/.
+If the number is too long, an ARJ is send with <tt/rejectReason/ set to <tt/undefinedReason/.
+Prefix list is searched from the longest to the shortest prefix for a match.
+
+<tag/Example:/
+<tscreen><verb>
+[RoutingPolicy::OnARQ]
+default=numberanalysis,internal
+
+[Routing::NumberAnalysis]
+0048=12
+48=10
+.=6:20
+</verb></tscreen>
+<p>
+Calls to destinations starting with 0048 require at least 12 digits,
+to 48 - 10 digits and to all other at least 6 and at most 20 digits.
+</descrip>
 

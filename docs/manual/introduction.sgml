@@ -93,6 +93,9 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New <ref id="numberanalysis" name="numberanalysis"> routing policy.
+
+<item>
 New FileIPAuth module in the contrib/ipauth directory.
 
 <item>
