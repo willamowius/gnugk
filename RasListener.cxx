@@ -213,7 +213,7 @@ GK_RASListener::AcceptNBCalls()
 // Class H323RasListener (was part of RasSrv)
 H323RasListener::H323RasListener(PIPSocket::Address address) : GK_RASListener(address)
 {
-	GKRasPort = GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
+	LoadConfig();
 	PTRACE(1, "Starting RasListener");
 	Resume();
 	// GkClient()?
@@ -224,6 +224,12 @@ H323RasListener::~H323RasListener()
 	// Release all Calls
 	Close();
 	UnregisterAllEndpoints();
+}
+
+void
+H323RasListener::LoadConfig()
+{
+	GKRasPort = GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
 }
 
 void
@@ -275,9 +281,9 @@ H323RasListener::Close()
 	if (Toolkit::Instance()->GkClientIsRegistered())
 		Toolkit::Instance()->GetGkClient().SendURQ();
 
+	if(!listener_mutex.WillBlock())
+		listener_mutex.Wait();
 	listener.Close();
-
-	GkStatus::Instance()->Close();
 
 	PTRACE(1, "GK\tRasSrv closed");
 }

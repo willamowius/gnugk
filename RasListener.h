@@ -88,12 +88,14 @@ public:
 
 	virtual void Main(void); // Handle Connections.
 
+	virtual void LoadConfig();
 	virtual void UnregisterAllEndpoints(void);
 	virtual void Close(void);
 
 //	void LoadConfig();
 
 protected:
+	friend void Toolkit::delete_raslistener();
 	virtual ~H323RasListener();
 	PLIST(RasThreads, H323RasWorker);
 	RasThreads workers;
