@@ -1707,11 +1707,12 @@ void CallSignalSocket::OnSetup(
 	const PString cli = toolkit->Config()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
 	if (!cli) {
 		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
+		unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
 		if (q931.HasIE(Q931::CallingPartyNumberIE)) {
 			PString dummy;
-			q931.GetCallingPartyNumber(dummy, &plan, &type);
+			q931.GetCallingPartyNumber(dummy, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
 		}
-		q931.SetCallingPartyNumber(cli, plan, type);
+		q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
 	}
 	
 	CreateRemote(setupBody);

@@ -439,11 +439,12 @@ void CLIRewrite::Rewrite(
 	SetupAuthData *authData
 	) const
 {
-	unsigned plan = Q931::ISDNPlan, type = Q931::UnknownType;	
+	unsigned plan = Q931::ISDNPlan, type = Q931::UnknownType;
+	unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
 	PString cli, dno, cno;
 
 	// get ANI/CLI	
-	msg.GetQ931().GetCallingPartyNumber(cli, &plan, &type);
+	msg.GetQ931().GetCallingPartyNumber(cli, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
 	if (cli.IsEmpty() && msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
 		cli = GetBestAliasAddressString(msg.GetUUIEBody().m_sourceAddress, true,
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
@@ -521,7 +522,7 @@ void CLIRewrite::Rewrite(
 	if (newcli.IsEmpty())
 		return;
 
-	msg.GetQ931().SetCallingPartyNumber(newcli, plan, type);
+	msg.GetQ931().SetCallingPartyNumber(newcli, plan, type, presentation, screening);
 	msg.SetChanged();
 	if (m_processSourceAddress && msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		H225_ArrayOf_AliasAddress &sourceAddress = msg.GetUUIEBody().m_sourceAddress;
