@@ -645,7 +645,7 @@ bool SocketsReader::BuildSelectList(SocketSelectList & slist)
 {
 	ReadLock lock(m_listmutex);
 	ForEachInContainer(m_sockets, bind1st(mem_fun(&SocketSelectList::Append), &slist));
-	return slist.GetSize() > 0;
+	return !slist.IsEmpty();
 }
 
 void SocketsReader::CleanUp()

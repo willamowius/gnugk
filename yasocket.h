@@ -195,7 +195,7 @@ public:
 		Write
 	};
 	SocketSelectList(size_t) {};
-	SocketSelectList(PIPSocket *s = 0) { if (s) Append(s); }
+	SocketSelectList(PIPSocket *s = 0) { if (s && s->IsOpen()) Append(s); }
 	bool Select(SelectType, const PTimeInterval &);
 	PSocket *operator[](int i) const;
 };
