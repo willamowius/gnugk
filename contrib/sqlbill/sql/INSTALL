@@ -18,7 +18,7 @@ To create the schema, follow these steps:
    (where IP_ADDRESS is an address of a machine that is running PostgreSQL
     - 'localhost', for example)
    (do not forget to enable tcp connections in PostgreSQL config 
-    - 'tpip_socket = true')
+    - 'tcpip_socket = true')
 
 2. Create a new database for the prepaid system using c_voipdb.sql script:
 
