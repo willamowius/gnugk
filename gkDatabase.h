@@ -66,7 +66,7 @@ namespace dctn {
 }
 
 class GkDBHandler : public PObject{
-	PCLASSINFO(GkDBHandler, PObject)
+//	PCLASSINFO(GkDBHandler, PObject)
 		public:
 
 	GkDBHandler() {};
