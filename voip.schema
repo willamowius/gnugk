@@ -193,7 +193,7 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2040
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2050 
   NAME ( 'voIPsubscriberNumber' 'voIPsn' )
-  DESC 'The subscriber's base number (to be presented to the callee if no or wrong CLIs are given)'
+  DESC 'The subscriber base number (to be presented to the callee if no or wrong CLIs are given)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
   SINGLE-VALUE
  )
@@ -243,7 +243,8 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
   SUP top ABSTRACT
   DESC 'Objects of this class can be used to provide VoIP-Equipment with
         user-related access and authentification information'
-  MAY ( mail $ telephonenumber $ plaintextPassword $
+  MAY ( mail $ telephonenumber $ plaintextPassword $ voIPIpAddress $
+	voiIPsubscriberNumber $
 	voIPlocalAccessCode $ voIPnationalAccessCode $ voIPinternationalAccessCode $
 	voIPcallingLineIdRestriction $ voIPspecialDial $
 	voIPprefixBlacklist $ voIPprefixWhitelist ) )
