@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2003/10/08 12:40:48  zvision
+ * Realtime accounting updates added
+ *
  * Revision 1.6  2003/09/29 16:11:44  zvision
  * Added cvs Id keyword to header #define macro
  *
@@ -280,24 +283,22 @@ public:
 	*/
 	unsigned char GetVsaType() const
 	{
-		if( ((PINDEX)data[1] & 0xff) < VsaRfc2865FixedHeaderLength )
-			return 0;
-		return data[VsaFixedHeaderLength+0];
+		return (data[1] < VsaRfc2865FixedHeaderLength) 
+			? 0 : data[VsaFixedHeaderLength+0];
 	}
 
 	/** @return
 		Total length (bytes) of this attribute.
 	*/
-	PINDEX GetLength() const { return (PINDEX)(data[1]) & 0xff; }
+	PINDEX GetLength() const { return data[1]; }
 	
 	/** @return
 		Length of the Value field for this attribute.
 	*/
 	PINDEX GetValueLength() const 
 	{ 
-		const PINDEX len = (PINDEX)(data[1]) & 0xff;
-		const PINDEX headerLen 
-			= IsVsa() ? VsaFixedHeaderLength : FixedHeaderLength;
+		const PINDEX len = data[1];
+		const PINDEX headerLen = IsVsa() ? VsaFixedHeaderLength : FixedHeaderLength;
 		
 		return (len<=headerLen) ? 0 : (len-headerLen);
 	}
@@ -342,10 +343,10 @@ public:
 	*/
 	int GetVsaVendorId() const 
 	{
-		return (((DWORD)(data[FixedHeaderLength+0]) & 0xff) << 24)
-			| (((DWORD)(data[FixedHeaderLength+1]) & 0xff) << 16)
-			| (((DWORD)(data[FixedHeaderLength+2]) & 0xff) << 8)
-			| ((DWORD)(data[FixedHeaderLength+3]) & 0xff);
+		return (((DWORD)data[FixedHeaderLength+0]) << 24)
+			| (((DWORD)data[FixedHeaderLength+1]) << 16)
+			| (((DWORD)data[FixedHeaderLength+2]) << 8)
+			| ((DWORD)data[FixedHeaderLength+3]);
 	}
 
 	/** Get attribute Value as a string. Be aware that the string
@@ -450,7 +451,7 @@ public:
 		TRUE if successfully written (and 'written' receives number
 		of bytes written to the buffer).
 	*/
-	virtual BOOL Write( 
+	BOOL Write( 
 		PBYTEArray& buffer, /// buffer the attribute data will be written to
 		PINDEX& written, /// number of bytes written (if successful return)
 		PINDEX offset = 0 /// offset into the buffer, where writting starts
@@ -483,10 +484,10 @@ public:
 	*/
 	BOOL IsValid() const
 	{
-		return ((PINDEX)data[1] & 0xff) 
-			>= (((unsigned)data[0] == VendorSpecific) 
-				? VsaFixedHeaderLength : FixedHeaderLength
-				);
+		const PINDEX len = data[1];
+		return len >= ((data[0] == VendorSpecific) 
+			? VsaFixedHeaderLength : FixedHeaderLength
+			);
 	}
 
     /** Compares two attributes. Equality for two attributes is defined
@@ -527,7 +528,7 @@ protected:
 		TRUE if attribute has been sucessfully read. 
 		Call #GetLength()# to determine how many bytes have been read.
 	*/
-	virtual BOOL Read( 
+	BOOL Read( 
 		const void* rawData, /// raw buffer with attribute data
 		PINDEX rawLength /// length of the buffer
 		);
@@ -553,7 +554,7 @@ protected:
 		data[0] - attribute Type
 		data[1] - attribute Length (bytes)
 	*/
-	char data[MaxLength]; 
+	unsigned char data[MaxLength]; 
 };
 
 
@@ -727,7 +728,9 @@ public:
 		const RadiusAttr& attr /// attribute to be appended
 		) 
 	{
-		return AppendAttr( (RadiusAttr*)(attr.Clone()) );
+		return attr.IsValid()
+			? (attributes.Append( (RadiusAttr*)(attr.Clone()) ) != P_MAX_INDEX) 
+			: FALSE;
 	}
 	
 	/** Appends this attribute to the #attributes# list. No clone is made.
@@ -739,11 +742,10 @@ public:
 		RadiusAttr* attr 
 		)
 	{
-		if( !(attr && attr->IsValid()) )
-			return FALSE;
-		return attributes.Append( attr ) != P_MAX_INDEX;
+		return (attr && attr->IsValid())
+			? (attributes.Append( attr ) != P_MAX_INDEX) : FALSE;
 	}
-
+	
 	BOOL AppendAttributes(
 		const RadiusAttr::List& list
 		);
@@ -818,11 +820,10 @@ public:
 		PINDEX index /// index of the attribute to be retrieved
 		) const
 	{
-		return (index<attributes.GetSize())
+		return (index < attributes.GetSize())
 			? (RadiusAttr*)(attributes.GetAt(index)) : NULL;
 	}
 	
-
 	/** @return
 		Number of attributes associated with this RADIUS PDU.
 	*/

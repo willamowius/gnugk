@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2003/10/31 00:02:27  zvision
+ * A better tracing/error reporting
+ *
  * Revision 1.8  2003/10/21 10:47:16  zvision
  * Fixed minor compilation warnings about precision loss
  *
@@ -134,10 +137,7 @@ RadiusAttr::RadiusAttr(
 	const RadiusAttr& attr
 	)
 {
-	if( attr.data[1] >= FixedHeaderLength )
-		memcpy(data,attr.data,(PINDEX)(attr.data[1]) & 0xff);
-	else
-		data[0] = data[1] = 0;
+	memcpy(data,attr.data,attr.data[1]);
 }
 
 RadiusAttr::RadiusAttr( 
@@ -349,7 +349,6 @@ RadiusAttr::RadiusAttr(
 	PINDEX rawLength /// length (bytes) of the buffer
 	)
 {
-//	memset(data,0,sizeof(data));
 	data[0] = data[1] = 0;
 	Read( rawData, rawLength );
 }
@@ -367,7 +366,7 @@ BOOL RadiusAttr::Write(
 	if( !IsValid() )
 		return FALSE;
 
-	const PINDEX len = (PINDEX)(data[1]) & 0xff;
+	const PINDEX len = data[1];
 	memcpy( buffer.GetPointer(offset+len) + offset, data, len );
 	written = len;
 
@@ -387,10 +386,10 @@ BOOL RadiusAttr::Read( const void* rawData, PINDEX rawLength )
 	if( (rawData == NULL) || (rawLength < FixedHeaderLength) )
 		return FALSE;
 
-	const PINDEX len = (PINDEX)(((const BYTE*)rawData)[1]) & 0xff;
+	const PINDEX len = ((const unsigned char*)rawData)[1];
 	
 	if( (len < FixedHeaderLength) || (len > rawLength)
-		|| ( ((PINDEX)((const BYTE*)rawData)[0] == VendorSpecific)
+		|| ( (((const unsigned char*)rawData)[0] == VendorSpecific)
 			&& (len < VsaFixedHeaderLength) ) )
 		return FALSE;
 
@@ -407,9 +406,9 @@ void RadiusAttr::PrintOn(
 
 	if( !IsValid() ) {
 		strm << "(Invalid) {\n";
-		if( ((PINDEX)(data[1]) & 0xff) > 0 ) {
+		if( data[1] > 0 ) {
 			const _Ios_Fmtflags flags = strm.flags();
-			const PBYTEArray value( (const BYTE*)data, (PINDEX)(data[1]) & 0xff, FALSE );
+			const PBYTEArray value( (const BYTE*)data, data[1], FALSE );
 
 			strm << hex << setfill('0') << resetiosflags(ios::floatfield)
 				<< setprecision(indent) << setw(16);
@@ -434,11 +433,11 @@ void RadiusAttr::PrintOn(
 		
 #if PTRACING
 	strm << setw(indent+7) << "type = " << (unsigned)(data[0])
-		<< " (" << PMAP_ATTR_TYPE_TO_NAME((PINDEX)(data[0]) & 0xff) << ")\n";
+		<< " (" << PMAP_ATTR_TYPE_TO_NAME(data[0]) << ")\n";
 #else
 	strm << setw(indent+7) << "type = " << (unsigned)(data[0]) << '\n';
 #endif
-	const PINDEX totalLen = (PINDEX)(data[1]) & 0xff;
+	const PINDEX totalLen = data[1];
 	
 	strm << setw(indent+9) << "length = " << totalLen << " octets\n";
 	
@@ -499,13 +498,13 @@ void RadiusAttr::PrintOn(
 
 PINDEX RadiusAttr::GetVsaValueLength() const
 {
-	PINDEX len = (PINDEX)(data[1]) & 0xff;
+	PINDEX len = data[1];
 	len = (len<=VsaRfc2865FixedHeaderLength) 
 		? 0 : (len-VsaRfc2865FixedHeaderLength);
 	
 	PINDEX len2 = 0;
 	if( len > 0 ) {
-		len2 = (PINDEX)data[VsaFixedHeaderLength+1] & 0xff;
+		len2 = data[VsaFixedHeaderLength+1];
 		len2 = (len2<=2) ? 0 : (len2-2);
 	}
 	if( len2 < len )
@@ -549,8 +548,8 @@ PString RadiusAttr::AsString() const
 	if( !IsValid() )
 		return PString();
 
-	const PINDEX len = (PINDEX)data[1] & 0xff;
-	const PINDEX headerLen = ((PINDEX)data[0] == VendorSpecific) 
+	const PINDEX len = data[1];
+	const PINDEX headerLen = (data[0] == VendorSpecific) 
 			? VsaFixedHeaderLength : FixedHeaderLength;
 
 	if( len <= headerLen )
@@ -561,20 +560,18 @@ PString RadiusAttr::AsString() const
 
 int RadiusAttr::AsInteger() const
 {
-	if( (((PINDEX)data[1] & 0xff) < (FixedHeaderLength+4)) 
-		|| ((PINDEX)data[0] == VendorSpecific) )
+	if( data[1] < (FixedHeaderLength+4) || data[0] == VendorSpecific )
 		return 0;
 	
-	return ((DWORD)(data[FixedHeaderLength+0]) << 24)
-		| ((DWORD)(data[FixedHeaderLength+1]) << 16)
-		| ((DWORD)(data[FixedHeaderLength+2]) << 8)
-		| (DWORD)(data[FixedHeaderLength+3]);
+	return (((DWORD)data[FixedHeaderLength+0]) << 24)
+		| (((DWORD)data[FixedHeaderLength+1]) << 16)
+		| (((DWORD)data[FixedHeaderLength+2]) << 8)
+		| ((DWORD)data[FixedHeaderLength+3]);
 }
 
 PIPSocket::Address RadiusAttr::AsAddress() const
 {
-	if( (((PINDEX)data[1] & 0xff) < (FixedHeaderLength+4)) 
-		|| ((PINDEX)data[0] == VendorSpecific) )
+	if( data[1] < (FixedHeaderLength+4) || data[0] == VendorSpecific )
 		return 0;
 
 	DWORD addr = 0;
@@ -589,10 +586,10 @@ PIPSocket::Address RadiusAttr::AsAddress() const
 
 PString RadiusAttr::AsVsaString() const
 {
-	if( (!IsValid()) || ((PINDEX)data[0] != VendorSpecific) )
+	if( (!IsValid()) || (data[0] != VendorSpecific) )
 		return PString();
 		
-	const PINDEX len = (PINDEX)data[1] & 0xff;
+	const PINDEX len = data[1];
 
 	if( len <= VsaRfc2865FixedHeaderLength )
 		return PString();
@@ -604,20 +601,18 @@ PString RadiusAttr::AsVsaString() const
 
 int RadiusAttr::AsVsaInteger() const
 {
-	if( (((PINDEX)data[1] & 0xff) < (VsaRfc2865FixedHeaderLength+4)) 
-		|| ((PINDEX)data[0] != VendorSpecific) )
+	if( data[1] < (VsaRfc2865FixedHeaderLength+4) || data[0] != VendorSpecific )
 		return 0;
 		
-	return ((DWORD)(data[VsaRfc2865FixedHeaderLength+0]) << 24)
-		| ((DWORD)(data[VsaRfc2865FixedHeaderLength+1]) << 16)
-		| ((DWORD)(data[VsaRfc2865FixedHeaderLength+2]) << 8)
-		| (DWORD)(data[VsaRfc2865FixedHeaderLength+3]);
+	return (((DWORD)data[VsaRfc2865FixedHeaderLength+0]) << 24)
+		| (((DWORD)data[VsaRfc2865FixedHeaderLength+1]) << 16)
+		| (((DWORD)data[VsaRfc2865FixedHeaderLength+2]) << 8)
+		| ((DWORD)data[VsaRfc2865FixedHeaderLength+3]);
 }
 
 PIPSocket::Address RadiusAttr::AsVsaAddress() const
 {
-	if( (((PINDEX)data[1] & 0xff) < (VsaRfc2865FixedHeaderLength+4)) 
-		|| ((PINDEX)data[0] != VendorSpecific) )
+	if( data[1] < (VsaRfc2865FixedHeaderLength+4) || data[0] != VendorSpecific )
 		return 0;
 	
 	DWORD addr = 0;
@@ -647,16 +642,16 @@ PObject::Comparison RadiusAttr::Compare(
 	}
 
 	const RadiusAttr& attr = (const RadiusAttr&)obj;
-	const PINDEX thisType = (PINDEX)data[0] & 0xff;
-	const PINDEX attrType = (PINDEX)(attr.data[0]) & 0xff;
+	const PINDEX thisType = data[0];
+	const PINDEX attrType = attr.data[0];
 	
 	if( thisType > attrType )
 		return GreaterThan;
 	else if( thisType < attrType )
 		return LessThan;
 	else {
-		const PINDEX thisLen = (PINDEX)data[1] & 0xff;
-		const PINDEX attrLen = (PINDEX)(attr.data[1]) & 0xff;
+		const PINDEX thisLen = data[1];
+		const PINDEX attrLen = attr.data[1];
 		
 		if( (thisType == VendorSpecific) && (thisLen >= VsaFixedHeaderLength) 
 			&& (attrLen >= VsaFixedHeaderLength) ) {
@@ -691,8 +686,8 @@ PObject* RadiusAttr::Clone() const
 
 PObject::Comparison RadiusAttr::SameContents( const RadiusAttr& attr ) const
 {
-	const PINDEX thisLen = (PINDEX)data[1] & 0xff;
-	const PINDEX attrLen = (PINDEX)(attr.data[1] & 0xff);
+	const PINDEX thisLen = data[1];
+	const PINDEX attrLen = attr.data[1];
 	
 	if( thisLen < attrLen )
 		return LessThan;
@@ -712,10 +707,7 @@ void RadiusAttr::CopyContents(
 	const RadiusAttr& attr /// the attribute that contents will be assigned from
 	)
 {
-	if( attr.data[1] > FixedHeaderLength )
-		memcpy(&data,&(attr.data),(PINDEX)(attr.data[1]) & 0xff);
-	else
-		data[0] = data[1] = 0;
+	memcpy(&data,&(attr.data),attr.data[1]);
 }
 
 
@@ -724,6 +716,7 @@ RadiusPDU::RadiusPDU()
 	code( 0 ),
 	id( 0 )
 {
+//	memset(authenticator,0,sizeof(authenticator));
 }
 
 RadiusPDU::RadiusPDU( 
@@ -746,6 +739,7 @@ RadiusPDU::RadiusPDU(
 	code( packetCode ),
 	id( packetId )
 {
+//	memset(authenticator,0,sizeof(authenticator));
 }
 
 RadiusPDU::RadiusPDU( 
@@ -1088,6 +1082,7 @@ BOOL RadiusPDU::CopyContents( const RadiusPDU& pdu )
 	
 	return TRUE;
 }
+
 
 #ifndef DEFAULT_PERMANENT_SYNCPOINTS
 #define DEFAULT_PERMANENT_SYNCPOINTS 8
@@ -1569,8 +1564,7 @@ RadiusClient::RadiusClient(
 			PIPSocket::GetHostAddress( address, localAddress );
 
 #if PTRACING
-	if( PTrace::CanTrace(4) )
-	{
+	if( PTrace::CanTrace(4) ) {
 		ostream& s = PTrace::Begin(4,__FILE__,__LINE__);
 		const int indent = s.precision() + 2;
 		s << "RADIUS\tCreated instance of RADIUS client (local if: "
@@ -1786,7 +1780,7 @@ BOOL RadiusClient::MakeRequest(
 				delete clonedRequestPDU;
 				clonedRequestPDU = oldPDU;
 			}
-			
+
 #if PTRACING
 			if( PTrace::CanTrace(3) ) {
 				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
@@ -1938,7 +1932,7 @@ BOOL RadiusClient::SendRequest(
 		delete clonedRequestPDU;
 		return FALSE;
 	}
-			
+
 #if PTRACING
 	if( PTrace::CanTrace(3) ) {
 		ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
