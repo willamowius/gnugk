@@ -442,7 +442,6 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		obj_grj.m_gatekeeperIdentifier.SetValue( GetGKName() );
 		msg = PString(PString::Printf, "GRJ|%s;\r\n", inet_ntoa(rx_addr));
 	} else {
-
 		obj_rpl.SetTag(H225_RasMessage::e_gatekeeperConfirm); 
 		H225_GatekeeperConfirm & obj_gcf = obj_rpl;
 
@@ -453,11 +452,8 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		obj_gcf.IncludeOptionalField(obj_gcf.e_gatekeeperIdentifier);
 		obj_gcf.m_gatekeeperIdentifier.SetValue( GetGKName() );
 
-		PString aliasListString;
-		if (obj_gr.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias)) {
-			aliasListString = AsString(obj_gr.m_endpointAlias);
-		}
-		else aliasListString = " ";
+		PString aliasListString(obj_gr.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias) ?
+			AsString(obj_gr.m_endpointAlias) : PString());
 
 		if (bShellForwardRequest)
 			ForwardRasMsg(obj_grq);
@@ -468,7 +464,7 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			(const unsigned char *) AsString(obj_gr.m_endpointType) );
 	}
 
-	PTRACE(2,msg);
+	PTRACE(2, msg);
 	GkStatusThread->SignalStatus(msg);
 		
 	return TRUE;
@@ -477,63 +473,45 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 BOOL
 H323RasSrv::SetAlternateGK(H225_RegistrationConfirm &rcf)
 {
-	PTRACE(5, ANSI::BLU << "Alternating? " << ANSI::OFF);
-	BOOL result = FALSE;
-
+	//	PTRACE(5, ANSI::BLU << "Alternating? " << ANSI::OFF);
 	PString param = GkConfig()->GetString("AlternateGKs","");
-	if(!param) {
-		PTRACE(5, ANSI::BLU << "Alternating: yes, set AltGK in RCF! " << ANSI::OFF);
-		result = TRUE;
+	if (param.IsEmpty())
+		return FALSE;
 
-        const PStringArray &altgks = param.Tokenise(" ,;\t", FALSE);
-		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper);
-		rcf.m_alternateGatekeeper.SetSize(altgks.GetSize());
+	PTRACE(5, ANSI::BLU << "Alternating: yes, set AltGK in RCF! " << ANSI::OFF);
 
-		for(PINDEX idx=0; idx<altgks.GetSize(); idx++) {
-			const PString &altgk = altgks[idx];
-			const PStringArray &tokens = altgk.Tokenise(":", FALSE);
+	const PStringArray &altgks = param.Tokenise(" ,;\t", FALSE);
+	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper);
+	rcf.m_alternateGatekeeper.SetSize(altgks.GetSize());
 
-			if(tokens.GetSize() < 4) {
-				PTRACE(1,"GK\tFormat error in AlternateGKs");
-				continue; 
-			}
+	for (PINDEX idx=0; idx<altgks.GetSize(); idx++) {
+		const PString &altgk = altgks[idx];
+		const PStringArray &tokens = altgk.Tokenise(":", FALSE);
 
-			H225_AlternateGK &A = rcf.m_alternateGatekeeper[idx];
-			
-			const PStringArray &bytes = tokens[0].Tokenise(".", FALSE);
-			if(bytes.GetSize() != 4) {
-				PTRACE(1,"GK\tFormat error in AlternateGKs IP");
-				continue; 
-			}
-			
-			A.m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
-			H225_TransportAddress_ipAddress & ip = A.m_rasAddress;
-			ip.m_ip.SetSize(4);
-			ip.m_ip[0] = bytes[0].AsUnsigned();
-			ip.m_ip[1] = bytes[1].AsUnsigned();
-			ip.m_ip[2] = bytes[2].AsUnsigned();
-			ip.m_ip[3] = bytes[3].AsUnsigned();
-			ip.m_port  = tokens[1].AsUnsigned();
-			
-			A.m_needToRegister = Toolkit::AsBool(tokens[2]);
-			
-			A.m_priority = tokens[3].AsInteger();;
-			
-			if(tokens.GetSize() > 4) {
-				A.IncludeOptionalField(H225_AlternateGK::e_gatekeeperIdentifier);
-				A.m_gatekeeperIdentifier = tokens[4];
-			}
+		if(tokens.GetSize() < 4) {
+			PTRACE(1,"GK\tFormat error in AlternateGKs");
+			continue; 
+		}
+
+		H225_AlternateGK &A = rcf.m_alternateGatekeeper[idx];
+
+		PIPSocket::Address ip(tokens[0]);
+		A.m_rasAddress = SocketToH225TransportAddr(ip, tokens[1].AsUnsigned());
+		A.m_needToRegister = Toolkit::AsBool(tokens[2]);
+		A.m_priority = tokens[3].AsInteger();;
+		if(tokens.GetSize() > 4) {
+			A.IncludeOptionalField(H225_AlternateGK::e_gatekeeperIdentifier);
+			A.m_gatekeeperIdentifier = tokens[4];
 		}
 	}
-	
-	return result;
-}
 
+	return TRUE;
+}
 
 BOOL
 H323RasSrv::ForwardRasMsg(H225_RasMessage msg) // not passed as const, ref or pointer!
 {
-	PTRACE(5, ANSI::BLU << "Forwarding? " << ANSI::OFF);
+//	PTRACE(5, ANSI::BLU << "Forwarding? " << ANSI::OFF);
 	BOOL result = FALSE;
 
 	PString param = GkConfig()->GetString("SendTo","");
@@ -870,14 +848,12 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress & ali
 BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arq, H225_RasMessage & obj_rpl)
 {    
 	const H225_AdmissionRequest & obj_rr = obj_arq;
-	PTRACE(2, "GK\tOnARQ");
-
 	BOOL bReject = FALSE;
 
 	// find the caller
 	const endptr RequestingEP = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 
-	endptr CalledEP(NULL);
+	endptr CalledEP(0);
 
 	unsigned rsn = H225_AdmissionRejectReason::e_securityDenial;
 	if (!authList->Check(obj_rr, rsn)) {
@@ -936,8 +912,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	H225_AdmissionReject & arj = obj_rpl; 
 
 	// check if the endpoint requesting is registered with this gatekeeper
-	if (!bReject && !RequestingEP)
-	{
+	if (!bReject && !RequestingEP) {
 		bReject = TRUE;
 		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
 	}
@@ -953,8 +928,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	}
 */
 
-	if(!bReject && !CalledEP)
-	{
+	if(!bReject && !CalledEP) {
 		bReject = TRUE;
 		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 	}

@@ -222,6 +222,7 @@ CallSignalSocket::~CallSignalSocket()
 	}
 }
 
+namespace { // end of anonymous namespace
 #if PTRACING
 void PrintQ931(int tlevel, const PString & msg, const Q931 *q931, const H225_H323_UserInformation *uuie)
 {
@@ -238,6 +239,7 @@ inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserIn
 	// nothing to do
 }
 #endif
+} // end of anonymous namespace
 
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {

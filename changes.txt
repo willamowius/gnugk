@@ -5,6 +5,7 @@ Changes from 2.0b2 to 2.0b3 (by cwhuang)
 - fix GKHome not work for proxy
 - add AcceptUnregisteredCalls feature
 - fix problem of RouteTable in Linux with alias interfaces
+- show endtime in CDR even if call not connected
 
 Changes from 2.0b1 to 2.0b2 (by cwhuang)
 ====================================

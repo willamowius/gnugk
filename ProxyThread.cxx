@@ -465,6 +465,8 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 				Remove(k);
 			else if (socket->IsSocketOpen())
 				socket->AddToSelectList(result);
+			else if (!socket->IsConnected())
+				Remove(k);
 #ifdef PTRACING
 		} else {
 			PTRACE(5, socket->Name() << " is busy!");

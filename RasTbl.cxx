@@ -1039,16 +1039,17 @@ PString GetEPString(const endptr & ep)
 PString CallRec::GenerateCDR() const
 {
 	PString timeString;
+	PTime endTime;
 	if (m_startTime != 0) {
-		PTime endTime;
 		PTimeInterval callDuration = endTime - *m_startTime;
 		timeString = PString(PString::Printf, "%ld|%s|%s",
 			callDuration.GetSeconds(),
 			(const char *)m_startTime->AsString(),
 			(const char *)endTime.AsString()
 		);
-	} else
-		timeString = "0|unconnected| ";
+	} else {
+		timeString = "0|unconnected|" + endTime.AsString();
+	}
 
 	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s;\r\n",
 		m_CallNumber,
