@@ -1511,16 +1511,19 @@ void H323RasSrv::SendRas(const H225_RasMessage & obj_ras, const PIPSocket::Addre
 
 void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Address & rx_addr, WORD rx_port, PUDPSocket & BoundSocket)
 {
-	PBYTEArray wtbuf(4096);
-	PPER_Stream wtstrm(wtbuf);
+#if PTRACING
+	if (PTrace::CanTrace(3))
+		PTRACE(3, "GK\tSend to " << rx_addr << ':' << rx_port << '\n' << setprecision(2) << obj_rpl);
+	else
+		PTRACE(2, "GK\tSend " << obj_rpl.GetTagName() << " to " << rx_addr << ':' << rx_port);
+#endif
 
+	PPER_Stream wtstrm;
 	obj_rpl.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
-	PTRACE(2, "GK\tSend to "<< rx_addr << " [" << rx_port << "] : " << obj_rpl.GetTagName());
-	PTRACE(3, "GK\t" << endl << setprecision(2) << obj_rpl);
 
 	PWaitAndSignal lock(writeMutex);
-	if(! BoundSocket.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), rx_addr, rx_port) ) {
+	if(!BoundSocket.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), rx_addr, rx_port) ) {
 		PTRACE(4, "GK\tRAS thread: Write error: " << BoundSocket.GetErrorText());
 	} else {
 		PTRACE(5, "GK\tSent Successful");
@@ -1549,28 +1552,25 @@ void H323RasSrv::Main(void)
 		BOOL ShallSendReply = FALSE;
 
 		int iResult = listener.ReadFrom(buffer, buffersize, rx_addr, rx_port);
-		if (!iResult)
-		{
+		if (!iResult) {
 			PTRACE(1, "GK\tRAS thread: Read error: " << listener.GetErrorText());
 
 			// TODO: "return" (terminate) on some errors (like the one at shutdown)
 			continue;
 		}
-		PTRACE(2, "GK\tRead from : " << rx_addr << ':' << rx_port);    
+		PTRACE(2, "GK\tRead from " << rx_addr << ':' << rx_port);    
 
 		// get only bytes which are really read
 		PPER_Stream rawPDU(buffer, listener.GetLastReadCount());
 		// set rawPDU for authentication methods
                 authList->setLastReceivedRawPDU(rawPDU);
 
-                if (!obj_req.Decode( rawPDU ))
-		{
+                if (!obj_req.Decode(rawPDU)) {
 			PTRACE(1, "GK\tCouldn't decode message!");
-
 			continue;
 		}
 		
-		PTRACE(3, "GK\t" << endl << setprecision(2) << obj_req);
+		PTRACE(3, "GK\n" << setprecision(2) << obj_req);
  
 		switch (obj_req.GetTag())
 		{

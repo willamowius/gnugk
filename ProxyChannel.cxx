@@ -322,10 +322,11 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control) && m_h245handler)
 			OnTunneledH245(pdu.m_h245Control);
 
-		PPER_Stream strm;
-		signal.Encode(strm);
-		strm.CompleteEncoding();
-		q931pdu.SetIE(Q931::UserUserIE, strm);
+		PBYTEArray wtbuf(4096);
+		PPER_Stream wtstrm(wtbuf);
+		signal.Encode(wtstrm);
+		wtstrm.CompleteEncoding();
+		q931pdu.SetIE(Q931::UserUserIE, wtstrm);
 	} else { // not have UUIE
 		PrintQ931(6, "Received:", &q931pdu, 0);
 	}
@@ -641,10 +642,11 @@ void CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		PTRACE(6, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
 		H245Handler::pMem handlefs = (fromCaller) ? &H245Handler::HandleFastStartSetup : &H245Handler::HandleFastStartResponse;
 		if ((m_h245handler->*handlefs)(olc)) {
-			PPER_Stream strm;
-			olc.Encode(strm);
-			strm.CompleteEncoding();
-			fastStart[i].SetValue(strm);
+			PBYTEArray wtbuf(4096);
+			PPER_Stream wtstrm(wtbuf);
+			olc.Encode(wtstrm);
+			wtstrm.CompleteEncoding();
+			fastStart[i].SetValue(wtstrm);
 		}
 		PTRACE(5, "Q931\nfastStart[" << i << "] to send " << setprecision(2) << olc);
 	}
@@ -706,10 +708,11 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg)
 			break;
 	}
 	if (changed) {
-		PPER_Stream strm;
-		h245msg.Encode(strm);
-		strm.CompleteEncoding();
-		mesg = strm;
+		PBYTEArray wtbuf(4096);
+		PPER_Stream wtstrm(wtbuf);
+		h245msg.Encode(wtstrm);
+		wtstrm.CompleteEncoding();
+		mesg = wtstrm;
 	}
 
 	PTRACE(5, "H245\tTo send: " << setprecision(2) << h245msg);
