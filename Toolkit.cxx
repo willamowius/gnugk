@@ -24,8 +24,8 @@ const char *ProxySection = "Proxy";
 
 // class Toolkit::RouteTable::RouteEntry
 Toolkit::RouteTable::RouteEntry::RouteEntry(
-	PIPSocket::RouteEntry & re,
-	InterfaceTable & it
+	const PIPSocket::RouteEntry & re,
+	const InterfaceTable & it
 ) : PIPSocket::RouteEntry(re)
 {
 	for (PINDEX i = 0; i < it.GetSize(); ++i) {
@@ -63,7 +63,7 @@ void Toolkit::RouteTable::InitTable()
 	for (PINDEX r = 0; r < r_table.GetSize(); ++r) {
 		PIPSocket::RouteEntry & r_entry = r_table[r];
 		if (!r_entry.GetInterface())
-			new (rtable_end++) RouteEntry(r_entry, if_table);
+			::new (rtable_end++) RouteEntry(r_entry, if_table);
 	}
 
 	// Set default IP according to route table

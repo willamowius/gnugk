@@ -12,6 +12,10 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#endif
+
 #include "gkDestAnalysis.h"
 #include "stl_supp.h"
 #include "Toolkit.h"

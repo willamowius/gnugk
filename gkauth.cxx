@@ -12,6 +12,11 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#endif
+
 #include "gkauth.h"
 #include "gk_const.h"
 #include "h323util.h"

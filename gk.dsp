@@ -150,14 +150,6 @@ SOURCE=.\RasTbl.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\SignalChannel.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=.\SignalConnection.cxx
-# End Source File
-# Begin Source File
-
 SOURCE=.\singleton.cxx
 # End Source File
 # Begin Source File
@@ -211,14 +203,6 @@ SOURCE=.\RasSrv.h
 # Begin Source File
 
 SOURCE=.\RasTbl.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\SignalChannel.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\SignalConnection.h
 # End Source File
 # Begin Source File
 

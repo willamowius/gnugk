@@ -57,7 +57,7 @@ class Toolkit : public Singleton<Toolkit>
 			PCLASSINFO( RouteEntry, PIPSocket::RouteEntry )
 #endif
 			RouteEntry() : PIPSocket::RouteEntry(Address()) {}
-			RouteEntry(PIPSocket::RouteEntry &, InterfaceTable &);
+			RouteEntry(const PIPSocket::RouteEntry &, const InterfaceTable &);
 			bool Compare(Address) const;
 		};
 

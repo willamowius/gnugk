@@ -14,6 +14,12 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4355 ) // warning about using 'this' in initializer
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#endif
+
 #include "ANSI.h"
 #include "gk_const.h"
 #include "h323util.h"
@@ -466,7 +472,7 @@ bool CallSignalSocket::InternalSetH245Address(H225_TransportAddress & h245addr)
 			PTRACE(4, "H245\t" << Name() << " H245 channel already established");
 			return false;
 		} else {
-			if (m_h245socket->SetH245Address(h245addr, localAddr));
+			if (m_h245socket->SetH245Address(h245addr, localAddr))
 				std::swap(m_h245socket, ret->m_h245socket);
 			return true;
 		}
@@ -1014,7 +1020,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	LogicalChannel *lc = peer->FindLogicalChannel(flcn);
 	if (!lc) {
 		PTRACE(2, "Proxy\tWarning: logical channel " << flcn << " not found");
-		if (!(lc = peer->CreateRTPLogicalChannel(flcn)));
+		if (!(lc = peer->CreateRTPLogicalChannel(flcn)))
 			return false;
 	}
 	bool result = lc->SetDestination(olca, this);

@@ -158,6 +158,7 @@ using std::back_inserter;
 using std::bind1st;
 using std::bind2nd;
 using std::mem_fun;
+using std::mem_fun_ref;
 using std::compose1;
 using std::greater;
 using std::equal_to;
