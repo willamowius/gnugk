@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.31  2005/02/01 14:28:10  zvision
+ * Parts of signaling code rewritten
+ *
  * Revision 1.30  2005/01/28 11:19:42  zvision
  * All passwords in the config can be stored in an encrypted form
  *
@@ -1105,7 +1108,7 @@ int RadAuthBase::AppendUsernameAndPassword(
 	SetupMsg &/*setup*/,
 	endptr &/*callingEP*/,
 	SetupAuthData &/*authData*/,
-	PString */*username*/
+	PString * /*username*/
 	) const
 {
 	return GetDefaultStatus();

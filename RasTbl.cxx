@@ -2044,28 +2044,46 @@ void CallTable::CheckCalls(
 	RasServer* rassrv
 	)
 {
-	WriteLock lock(listLock);
-	iterator Iter = CallList.begin(), eIter = CallList.end();
-	const time_t now = time(0);
-	while (Iter != eIter) {
-		iterator i = Iter++;
-		if ( (*i)->IsTimeout(now) ) {
-			(*i)->SetDisconnectCause( (*i)->IsConnected()
-				? Q931::ResourceUnavailable : Q931::TemporaryFailure
-				);
-			(*i)->Disconnect();
-			InternalRemove(i);
-		} else if ( m_acctUpdateInterval && (*i)->IsConnected() ) {
-			if( (now - (*i)->GetLastAcctUpdateTime()) >= m_acctUpdateInterval ) {
-				callptr cptr(*i);
-				rassrv->LogAcctEvent( GkAcctLogger::AcctUpdate, cptr, now );
+	std::list<callptr> m_callsToDisconnect;
+	std::list<callptr> m_callsToUpdate;
+	time_t now;
+	
+	{	
+		WriteLock lock(listLock);
+		iterator Iter = CallList.begin(), eIter = CallList.end();
+		time_t now = time(0);
+		while (Iter != eIter) {
+			if ((*Iter)->IsTimeout(now))
+				m_callsToDisconnect.push_back(callptr(*Iter));
+			else if (m_acctUpdateInterval && (*Iter)->IsConnected()) {
+				if((now - (*Iter)->GetLastAcctUpdateTime()) >= m_acctUpdateInterval)
+					m_callsToUpdate.push_back(callptr(*Iter));
 			}
-		} 
-	}
+			Iter++;
+		}
 
-	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
-	DeleteObjects(Iter, RemovedList.end());
-	RemovedList.erase(Iter, RemovedList.end());
+		Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
+		DeleteObjects(Iter, RemovedList.end());
+		RemovedList.erase(Iter, RemovedList.end());
+	}
+	
+	std::list<callptr>::iterator call = m_callsToDisconnect.begin();
+	while (call != m_callsToDisconnect.end()) {
+		(*call)->SetDisconnectCause((*call)->IsConnected()
+			? Q931::ResourceUnavailable : Q931::TemporaryFailure
+			);
+		(*call)->Disconnect();
+		RemoveCall((*call));
+		call++;
+	}
+	
+	call = m_callsToUpdate.begin();
+	while (call != m_callsToUpdate.end()) {
+		if ((*call)->IsConnected())
+			rassrv->LogAcctEvent(GkAcctLogger::AcctUpdate, *call, now);
+		call++;
+	}
+	
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr & ep)

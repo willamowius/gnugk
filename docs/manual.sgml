@@ -115,6 +115,11 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Call accounting updates/call disconnect handling is now more robust
+and does not lock the whole call table and (effectively) the gatekeeper
+for long time periods.
+
+<item>
 Do not support mutiple rewrite targets, as this feature does not work well
 if rewrite is performed more than once.
 

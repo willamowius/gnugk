@@ -1,5 +1,8 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- (RasTbl.cxx) call accounting updates/disconnecting is now more robust
+  and does not lock up the call table and (effectively) the gatekeeper
+  for long time periods
 - Makefile for docs, make sure generated PDF manual is searchable
 - do not support mutiple rewrite targets, as this feature does not work well
   if rewrite is performed more than once
