@@ -13,8 +13,6 @@ avoid duplicate work.
   (mobile forwarded to office number while office number forwarded to mobile ...)
   Idea: only allow <n> calls from the same originating number within <m> seconds
 
-- feature: make DropCallsByReleaseComplete a per-endpoint option
-
 - feature: implement blacklists (caller-, callee-dependant)
            The order that black- and whitelist entries are applied is defined
            by the endpoint property voIPWhiteListBeforeBlackList. Default
@@ -46,10 +44,8 @@ avoid duplicate work.
      1. primary sorting key: carrier code
         A matching carrier code is preferred over the "all" carrier code.
         The default value is "all".
-
      2. secondary sorting key (to be applied if two items have the same primary key):
         longest match
-
      3. tertiary sorting key (to be applied if two items have the same secondary key):
 	metric
 
@@ -74,6 +70,8 @@ avoid duplicate work.
   the database yields a carrier code.
   That carrier code is a per-route per-gateway parameter (default: "all")
   that takes precedence over the other parameters (prefix length and metrics).
+
+- feature: make DropCallsByReleaseComplete a per-endpoint option
 
 - fix: GRQ should be authenticated against [DB][Alias|Password]Auth, too.
        (currently default=allow is required to stop GK from sending GRJ)
