@@ -415,7 +415,7 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 			retry_count++;
 			if(retry_count>4)
 				PTRACE(1, "Ooops -- retry_count reached");
-			sleep((int)pow(2.0,retry_count)); // exponential back off
+			sleep(static_cast<int>(pow(static_cast<float>(2.0),static_cast<int>(retry_count)))); // exponential back off
 			Destroy();
 			if(LDAP_SUCCESS!=Bind())
 				PTRACE(1,"Could not bind!");
