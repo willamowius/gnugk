@@ -72,14 +72,7 @@ if test "${PWLIBDIR:-unset}" = "unset" ; then
     echo "Cannot find ptlib-config - please install and try again"
     exit
   fi
-  PWLIBDIR=`$PTLIB_CONFIG --prefix`
-fi
-
-if test "x$PWLIBDIR" = "x/usr" -o "x$PWLIBDIR" = "x/usr/"; then
-  PWLIBDIR="/usr/share/pwlib/"
-fi
-if test "xPWLIBDIR" = "x/usr/local" -o "x$PWLIBDIR" = "x/usr/"; then
-  PWLIBDIR="/usr/local/share/pwlib/"
+  PWLIBDIR=`$PTLIB_CONFIG --pwlibdir`
 fi
 
 echo "PWLib prefix set to.... $PWLIBDIR"
