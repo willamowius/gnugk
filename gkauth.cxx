@@ -104,6 +104,25 @@ static GkAuthInit<MySQLAliasAuth> M_A_A("MySQLAliasAuth");
 
 #endif // HAS_MYSQL
 
+#ifndef WIN32
+#include <unistd.h>
+#include <procbuf.h>
+
+class ExternalPasswordAuth : public SimplePasswordAuth {
+public:
+	ExternalPasswordAuth(PConfig *, const char *);
+
+	virtual PString GetPassword(const PString &);
+private:
+	bool ExternalInit();
+
+	PString Program;
+};
+
+static GkAuthInit<ExternalPasswordAuth> E_P_A("ExternalPasswordAuth");
+
+#endif
+
 class RadiusAuth : public SimplePasswordAuth {
 public:
 	RadiusAuth(PConfig *, const char *);
@@ -628,6 +647,42 @@ PString MySQLAliasAuth::GetConfigString(const PString & alias) const
 }
 
 #endif // HAS_MYSQL
+
+#ifndef WIN32
+// ExternalPasswordAuth
+
+ExternalPasswordAuth::ExternalPasswordAuth(PConfig * cfg, const char * authName)
+      : SimplePasswordAuth(cfg, authName)
+{
+	ExternalInit();
+}
+
+bool ExternalPasswordAuth::ExternalInit()
+{
+	const char *ExternalSec = "ExternalAuth";
+
+	// Read the configuration
+	Program = config->GetString(ExternalSec, "PasswordProgram", "");
+	
+	return true;
+}
+
+PString ExternalPasswordAuth::GetPassword(const PString &id)
+{
+	if (!Program.IsEmpty()) {
+		const int BUFFSIZE = 32;
+		char buff[BUFFSIZE];
+		procbuf proc(Program + " " + "5451021", ios::in);
+		istream istr(&proc);
+		istr.getline(buff, BUFFSIZE);
+		return buff;
+	} else {
+		PTRACE(2, "Program is not defined");
+		return PString("Undefined");
+	}
+}
+
+#endif // WIN32
 
 // LDAP authentification
 #if defined(HAS_LDAP)

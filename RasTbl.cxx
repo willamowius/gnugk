@@ -337,10 +337,13 @@ void EndpointRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
 {
 	obj_lcf.m_callSignalAddress = GetCallSignalAddress();
 	obj_lcf.m_rasAddress = GetRasAddress();
-	obj_lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationInfo);
-	obj_lcf.m_destinationInfo = GetAliases();
-	obj_lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
-	obj_lcf.m_destinationType = GetEndpointType();
+	extern const char *LRQFeaturesSection;
+	if (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "IncludeDestinationInfoInLCF", "1"))) {
+		obj_lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationInfo);
+		obj_lcf.m_destinationInfo = GetAliases();
+		obj_lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
+		obj_lcf.m_destinationType = GetEndpointType();
+	}
 }
 
 PString EndpointRec::PrintOn(bool verbose) const

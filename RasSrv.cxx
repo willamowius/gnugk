@@ -45,8 +45,8 @@
 
 H323RasSrv *RasThread = 0;
 
-static const char *NeighborSection = "RasSvr::Neighbors";
-static const char *LRQFeaturesSection = "RasSvr::LRQFeatures";
+const char *NeighborSection = "RasSvr::Neighbors";
+const char *LRQFeaturesSection = "RasSvr::LRQFeatures";
 
 class NBPendingList : public PendingList {
 public:

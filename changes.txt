@@ -1,5 +1,8 @@
 Changes from 2.0b4 to now (by cwhuang)
 ======================================
+- add ExternalPasswordAuth module
+- accept unregistered call if Q.931 contains CalledPartyNumber
+- add IncludeDestinationInfoInLCF option
 - allow a second ARQ if srcCallSignalAddress is in SkipForwards
 - support forwarding LRQs
 - add call duration in seconds, thanks to Rodrigo Gonzalez

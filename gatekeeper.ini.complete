@@ -200,6 +200,7 @@ rule=allow
 [RasSvr::LRQFeatures]
 #NeighborTimeout=2
 #ForwordHopCount=2
+#IncludeDestinationInfoInLCF=1
 
 ##
 ## In this section you can put endpoints that don't have RAS support

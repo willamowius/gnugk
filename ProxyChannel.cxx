@@ -22,6 +22,7 @@
 
 #include "gk_const.h"
 #include "h323util.h"
+#include "h323pdu.h"
 #include "Toolkit.h"
 #include "stl_supp.h"
 #include "RasSrv.h"
@@ -363,9 +364,11 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	{
 		case Q931::SetupMsg:
 			break;
+		/* why don't forward Status? - by cwhuang 16.04.2002
 		case Q931::StatusMsg:
 			// don't forward status messages mm-30.04.2001
 			return NoData;
+		*/
 		case Q931::ReleaseCompleteMsg:
 			if (m_call)
 				CallTable::Instance()->RemoveCall(m_call);
@@ -470,11 +473,21 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
 
 		endptr called;
-		PString destinationString;
+		unsigned plan, type;
+		PString destination, destinationString;
+
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 			called = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_destCallSignalAddress);
 			destinationString = AsDotString(Setup.m_destCallSignalAddress);
 		} else if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+			called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
+			destinationString = AsString(Setup.m_destinationAddress);
+		} else if (GetReceivedQ931()->GetCalledPartyNumber(destination, &plan, &type)) {
+			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
+			// We create the destinationAddress according to it
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			Setup.m_destinationAddress.SetSize(1);
+			H323SetAliasAddress(destination, Setup.m_destinationAddress[0]);
 			called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
 			destinationString = AsString(Setup.m_destinationAddress);
 		}
