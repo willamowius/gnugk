@@ -74,6 +74,7 @@ WORD PortRange::GetPort()
 void PortRange::LoadConfig(const char *sec, const char *setting, const char *def)
 {
        PStringArray cfgs = GkConfig()->GetString(sec, setting, def).Tokenise(",.:-/'", FALSE);
+       PWaitAndSignal lock(mutex);
        if (cfgs.GetSize() >= 2) // no such a setting in config
                port = minport = cfgs[0].AsUnsigned(), maxport = cfgs[1].AsUnsigned();
        else
