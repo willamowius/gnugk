@@ -31,7 +31,7 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
  "LocalAccessCode", "NationalAccessCode",  "InternationalAccessCode",
  "MainTelephoneNo", "SubscriberTelephoneNumber", "CallingLineIdRestriction", "SpecialDials",
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
- "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "voIPprependCallbackAC", 
+ "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "voIPprependCallbackAC",
  "EPType", "CountryCode"};
 
 // section name for database names which shall be used
@@ -188,6 +188,10 @@ BOOL GkDatabase::getProfile(CallingProfile & cgProfile, PString & h323id, dctn::
 		cgProfile.setSpecialDials(spDialDict);
 		if (attrMap[attrNameAsString(TelephoneNo)].GetSize() > 0)
 			cgProfile.setTelephoneNumbers(attrMap[attrNameAsString(TelephoneNo)]);
+		if (attrMap[attrNameAsString(PrefixOutgoingBlacklist)].GetSize() > 0)
+			cgProfile.setBlackList(attrMap[attrNameAsString(PrefixOutgoingBlacklist)]);
+		if (attrMap[attrNameAsString(PrefixOutgoingWhitelist)].GetSize() > 0)
+			cgProfile.setWhiteList(attrMap[attrNameAsString(PrefixOutgoingWhitelist)]);
 		if (attrMap[attrNameAsString(HonorsARJincompleteAddress)].GetSize() > 0)
 			cgProfile.setHonorsARJincompleteAddress(Toolkit::AsBool(attrMap[attrNameAsString(HonorsARJincompleteAddress)][0]));
 		if (attrMap[attrNameAsString(H323ID)].GetSize() > 0)
