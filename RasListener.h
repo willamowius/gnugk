@@ -87,9 +87,6 @@ protected:
 	BOOL m_routedSignaling,	m_routedH245;
 	WORD GKRasPort, GKCallSigPort;
 	PUDPSocket listener;
-	mutable PMutex listener_mutex;
-	PUDPSocket alternate;
-	mutable PMutex alternate_mutex;
 	GkAuthenticatorList *m_gkauthenticator;
 	mutable PMutex m_gkauthenticator_mutex;
 };
@@ -109,10 +106,7 @@ public:
 protected:
 	friend void Toolkit::delete_raslistener();
 	virtual ~H323RasListener();
-	PLIST(RasThreads, H323RasWorker);
-	RasThreads workers;
 private:
-	mutable PMutex gkClient_mutex;
 };
 
 

@@ -132,12 +132,10 @@ void
 GK_RASListener::SendTo(PPER_Stream &buffer, const unsigned int &length, const PIPSocket::Address &rx_addr, const WORD &rx_port)
 {
 	PTRACE(5, "SendTo" << rx_addr << ":" << rx_port);
-	alternate_mutex.Wait();
-	if(!alternate.WriteTo(buffer.GetPointer(), length, rx_addr, rx_port))
-		PTRACE(4, "RASListener: Write error: " << alternate.GetErrorText());
+	if(!listener.WriteTo(buffer.GetPointer(), length, rx_addr, rx_port))
+		PTRACE(4, "RASListener: Write error: " << listener.GetErrorText());
 	else
 		PTRACE(4, "RASListener: Sent Successful");
-	alternate_mutex.Signal();
 }
 
 void
@@ -215,12 +213,10 @@ GK_RASListener::ForwardRasMsg(H225_RasMessage &msg)
 void
 GK_RASListener::SendForward(PPER_Stream &buffer, const unsigned int &length, const PIPSocket::Address &rx_addr, const WORD &rx_port)
 {
-	alternate_mutex.Wait();
-	if(!alternate.WriteTo(buffer.GetPointer(), length, rx_addr, rx_port))
-		PTRACE(4, "RASListener: Forward error: " << alternate.GetErrorText());
+	if(!listener.WriteTo(buffer.GetPointer(), length, rx_addr, rx_port))
+		PTRACE(4, "RASListener: Forward error: " << listener.GetErrorText());
 	else
 		PTRACE(4, "RASListener: Forwarded Successful");
-	alternate_mutex.Signal();
 }
 
 BOOL
@@ -263,32 +259,24 @@ H323RasListener::LoadConfig()
 void
 H323RasListener::Main()
 {
-	listener_mutex.Wait();
 	GKHome_mutex.Wait();
 	listener.Listen(GKHome, 0, GKRasPort, PSocket::CanReuseAddress);
 	GKHome_mutex.Signal();
-	listener_mutex.Signal();
-	listener_mutex.Wait();
 	while (listener.IsOpen()) {
-		listener_mutex.Signal();
 		const int buffersize = 4096;
 		BYTE buffer[buffersize];
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
 		rx_port=0;
-		listener_mutex.Wait();
 		int result=listener.ReadFrom(buffer, buffersize,  rx_addr, rx_port);
 		if(result!=0) {
-			listener_mutex.Signal();
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
 			// RasWorker will delete itself.
 			new H323RasWorker(stream, rx_addr, rx_port, *this);
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
-		listener_mutex.Wait();// before new truth value for while clause is computed
 	}
-	listener_mutex.Signal();
 }
 
 void
@@ -308,8 +296,6 @@ H323RasListener::Close()
 	if (Toolkit::Instance()->GkClientIsRegistered())
 		Toolkit::Instance()->GetGkClient().SendURQ();
 
-	if(!listener_mutex.WillBlock())
-		listener_mutex.Wait();
 	listener.Close();
 
 	PTRACE(1, "GK\tRasSrv closed");

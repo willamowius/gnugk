@@ -60,7 +60,7 @@ static const char vcHid[] = TOOLKIT_H;
 // NOTE: Do not use the Status-error function. (Not initialized yet)! This
 // environment provides its own error handling:
 #define DEBUGPRINT(stream) PTRACE(TK_DBG_LVL, "GK\t" << ANSI::DBG << stream << ANSI::OFF);
-#define ERRORPRINT(strpar) PTRACE(0, "GK\t" << ANSI::BRED << PString(strpar) << ANSI::OFF);
+#define ERRORPRINT(strpar) PTRACE(1, "GK\t" << ANSI::BRED << PString(strpar) << ANSI::OFF);
 
 static const PString empty("");	// a local empty PString
 static const char * const emptystr = ""; // a local empty String
