@@ -1094,7 +1094,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		m_call->SetSetupTime(setupTime);
 		
 		// log AcctStart accounting event
-		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
+		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
 				<<" due to accounting failure"
 				);
@@ -1181,7 +1181,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		m_call = callptr(call);
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
-		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
+		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
 				<<" due to accounting failure"
 				);
