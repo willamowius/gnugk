@@ -214,7 +214,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 
 	//store data from database in cgProfile
 	// if it is not done up to now
-	if (callRec->GetCallingProfile().GetH323ID().IsEmpty() || callRec->GetCallingProfile().GetH323ID()==srcH323IDStr) {
+	if (callRec->GetCallingProfile().GetH323ID().IsEmpty() || callRec->GetCallingProfile().GetH323ID()!=srcH323IDStr) {
 		// if no profile is found
 		if (!db->getProfile(callRec->GetCallingProfile(), srcH323IDStr, dbType)) {
 			// if section "Gatekeeper::Databases" exists in ini-file then a
