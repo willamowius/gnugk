@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // singleton.cxx
@@ -15,30 +14,21 @@
 
 #include "singleton.h"
 
-#ifndef lint
-// mark object with version info in such a way that it is retreivable by
-// the std. version/revision control tools like RCS/CVS ident cmd. At
-// least the strings cmd will extract this info.
-static const char gkid[] = GKGVS;
-static const char vcid[] = "@(#) $Id$";
-static const char vcHid[] = SINGLETON_H;
-#endif /* lint */
-
-#ifdef PTRACING
+#if PTRACING
 static int singleton_cnt=0;
 #endif
 
 listptr<SingletonBase> SingletonBase::_instance_list;
 
-SingletonBase::SingletonBase()
+SingletonBase::SingletonBase(const char *n) : m_name(n)
 {
-	PTRACE(5, "Create instance: " << ++singleton_cnt << endl);
+	PTRACE(2, "Create instance: " << m_name << '(' << ++singleton_cnt << ')');
         _instance_list.push_back(this);
 }
 
 SingletonBase::~SingletonBase()
 {
-//	PTRACE(5, "Delete instance: " << --singleton_cnt << endl);
+	PTRACE(2, "Delete instance: " << m_name << '(' << --singleton_cnt << ')');
 	if (!_instance_list.clear_list)
 		_instance_list.remove(this);
 }
