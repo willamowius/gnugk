@@ -1510,7 +1510,7 @@ void CallTable::CheckCalls()
 {
 	WriteLock lock(listLock);
 	iterator Iter = CallList.begin(), eIter = CallList.end();
-	const time_t now = time(NULL);
+	const time_t now = time(0);
 	while (Iter != eIter) {
 		iterator i = Iter++;
 		if ( (*i)->IsTimeout(now) ) {
@@ -1582,9 +1582,7 @@ void CallTable::InternalRemove(iterator Iter)
 	}
 
 	CallRec *call = *Iter;
-	
-	call->SetDisconnectTime(time(NULL));
-	
+
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
 		PString cdrString(call->GenerateCDR());
 		GkStatus::Instance()->SignalStatus(cdrString, 1);
