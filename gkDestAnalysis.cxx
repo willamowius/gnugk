@@ -341,7 +341,10 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 			PTRACE(1, "Database access failed!");
 		} else {
 			if (profileExists) {
-				PTRACE(3, "GkDatabase matches: " << matchFound << " " << fullMatch << " " << gwFound);
+				PTRACE(3, "GkDatabase matches: " <<
+				       PString(matchFound ? "any match found" : "no match found") << " " <<
+				       PString(fullMatch ? "is a full match" : "is no full match") << " " <<
+				       PString(gwFound ? "found a Gateway" : "no Gateway"));
 			}
 			if (profileExists && fullMatch) {
 				// ARJ (calledPartyNotRegistered)
