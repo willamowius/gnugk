@@ -61,9 +61,13 @@ void
 ProxyCondMutex::Lock(const PString & name)
 {
 	Wait();
-	locker.AppendString(name);
 	access_count +=1;
-//	PTRACE(5, "ProxyCondMutex: " << access_count << " from " << name );
+	PString myname=name;
+	int i=0;
+	while(locker.GetStringsIndex(myname)!=P_MAX_INDEX)
+		myname=name + PString(++i);
+	locker.AppendString(myname);
+	PTRACE(5, "ProxyCondMutex::Lock(this=" << this << ") " << access_count << " from " << name );
 	Signal();
 }
 
@@ -71,20 +75,45 @@ void
 ProxyCondMutex::Unlock(const PString &name)
 {
 	Wait();
+	PTRACE(5, "ProxyCondMutex::Unlock(this=" << this << ") " << access_count << " lockers: " << locker);
+	PAssert(access_count>0, "unlocking unlocked.");
  	if(access_count >0) {
-//		PTRACE(5, "deleting Lock of:" << name << " with place " << locker.GetStringsIndex(name));
-		access_count -=1;
-		if (locker.GetStringsIndex(name)!=P_MAX_INDEX)
-			locker.RemoveAt(locker.GetStringsIndex(name));
+		PTRACE(5, "deleting Lock of:" << name << " with place " << locker.GetStringsIndex(name));
+		int i=0;
+		while(locker.GetStringsIndex(name+PString(++i))!=P_MAX_INDEX)
+			;
+		if(0==--i) {
+			PTRACE(5, "Name: " << name << " StringsIndex: " << locker.GetStringsIndex(name));
+			if (locker.GetStringsIndex(name)!=P_MAX_INDEX) {
+				access_count -=1;
+				locker.RemoveAt(locker.GetStringsIndex(name));
+			} else
+				PTRACE(1, "removing non-locked");
+		} else {
+			access_count -= 1;
+			locker.RemoveAt(locker.GetStringsIndex(name + PString(i)));
+		}
 	}
-//	PTRACE(5, "ProxyCondMutex: " << access_count);
+	PAssert(locker.GetSize()==access_count, "unlocking wrong!");
 	Signal();
 }
 
 BOOL
 ProxyCondMutex::Condition()
 {
-	PTRACE(5, "access_count is: " << access_count);
-	PTRACE(5, "locks of: " << locker);
+	PTRACE(5, "ProxyCondMutex::Condition(this=" << this <<")" << "access_count is: " << access_count << "locks of: " << locker);
 	return access_count==0;
+}
+
+void
+ProxyCondMutex::OnWait()
+{
+	for(PINDEX i; i<locker.GetSize(); i++)
+		PTRACE(5,"locker[" << i << "]: " << locker[i]);
+}
+
+void ProxyCondMutex::WaitCondition()
+{
+	PTRACE(5, "ProxyCondMutex::WaitCondition()");
+	PCondMutex::WaitCondition();
 }

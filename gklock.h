@@ -35,6 +35,8 @@ public:
 	virtual BOOL Condition();
 	virtual void Lock(const PString &name);
 	virtual void Unlock(const PString &name);
+	virtual void OnWait();
+	virtual void WaitCondition();
 private:
 	PStringList locker;
 };
