@@ -54,7 +54,7 @@ CWD:=$(shell pwd)
 gkdefault: bothdepend bothshared
 
 # LD_RUN_LIST is the list form of the LD_RUN_PATH
-LD_RUN_LIST ?=
+LD_RUN_LIST := $(subst $(colon),$(space),$(LD_RUN_PATH))
 LD_RUN_LIST += $(PWLIBDIR)/lib $(OPENH323DIR)/lib
 
 
