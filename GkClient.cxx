@@ -16,6 +16,7 @@
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4291 ) // warning about no matching operator delete
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
@@ -23,7 +24,7 @@
 #include "gk_const.h"
 #include "Toolkit.h"
 #include "RasSrv.h"
-#include <h323pdu.h> 
+#include <h323pdu.h>
 
 const char *EndpointSection = "Endpoint";
 const char *RewriteE164Section = "Endpoint::RewriteE164";
@@ -291,7 +292,7 @@ bool GkClient::OnURQ(const H225_UnregistrationRequest & urq, PIPSocket::Address 
 int GkClient::BuildARQ(H225_AdmissionRequest & arq)
 {
 	// Don't set call model, let the GK decide it
-	arq.RemoveOptionalField(H225_AdmissionRequest::e_callModel); 
+	arq.RemoveOptionalField(H225_AdmissionRequest::e_callModel);
 
 	arq.m_endpointIdentifier = m_endpointId;
 
@@ -384,7 +385,7 @@ void GkClient::OnARJ(const H225_RasMessage & arj_ras, PIPSocket::Address gkip)
 		m_endpointId = PString();
 		SendRRQ();
 	}
-	
+
 	int reqNum = arj.m_requestSeqNum.GetValue();
 	H225_CallIdentifier callid;
 	if (m_arqPendingList->ProcessARJ(callid, reqNum))
@@ -409,9 +410,9 @@ bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 		if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue)) {
 			call->Disconnect(true);
 			H225_RasMessage dcf_ras;
-			dcf_ras.SetTag(H225_RasMessage::e_disengageConfirm); 
+			dcf_ras.SetTag(H225_RasMessage::e_disengageConfirm);
 			H225_DisengageConfirm & dcf = dcf_ras;
-			dcf.m_requestSeqNum = drq.m_requestSeqNum; 
+			dcf.m_requestSeqNum = drq.m_requestSeqNum;
 			SetPassword(dcf);
 			SendRas(dcf_ras);
 		}
@@ -434,9 +435,9 @@ void GkClient::SendDRQ(H225_RasMessage & drq_ras)
 
 bool GkClient::RewriteE164(H225_AliasAddress & alias, bool fromInternal)
 {
-	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) 
+	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits)
 		return false;
-		        
+
 	PString e164 = H323GetAliasAddressString(alias);
 
 	bool changed = RewriteString(e164, fromInternal);
@@ -465,7 +466,7 @@ bool GkClient::RewriteE164(Q931 & SetupMesg, H225_Setup_UUIE & Setup, bool fromI
 		if (RewriteString(Number, true)) {
 			SetupMesg.SetCallingPartyNumber(Number, plan, type);
 			if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-				RewriteE164(Setup.m_sourceAddress, true); 
+				RewriteE164(Setup.m_sourceAddress, true);
 			return true;
 		}
 	} else {
@@ -504,6 +505,5 @@ void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, cons
 //	auth.SetLocalId(m_h323Id);
 	auth.SetLocalId(id);
 	auth.SetPassword(m_password);
-	auth.Prepare(cryptoTokens); 
+	auth.Prepare(cryptoTokens);
 }
-
