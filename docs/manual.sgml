@@ -114,7 +114,7 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
-Rotation per number of lines works correctly.
+CDR rotation per number of lines works correctly.
 
 </itemize>
 
@@ -3144,7 +3144,7 @@ Use a CDR format compatible with the status interface CDR format (<tt/1/)
 or build a custom CDR strings from the <bf/CDRString/ parametrized string.
 
 <item>
-<tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-StationId}|%d|%c/<newline>
+<tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-Station-Id}|%d|%c/<newline>
 Default: N/A
 <p>
 If <bf/StandardCDRFormat/ is disabled (0) or not specified at all, 
