@@ -461,6 +461,7 @@ bool GnuGK::IsAcceptable(RasMsg *ras) const
 bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq)
 {
 	// Cisco GK needs these
+	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 	H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
 	h221.m_manufacturerCode = 18;
