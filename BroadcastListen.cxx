@@ -92,7 +92,8 @@ void BroadcastListen::Main(void)
 			listener_mutex.Signal();
 			if (result) {
 				PPER_Stream stream(buffer, listener.GetLastReadCount());
-				H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
+				// The RasWorker object will delete itself via the PThread-autodelete function.
+				new H323RasWorker(stream, rx_addr, rx_port, *this);
 			} else {
 				PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 			}
