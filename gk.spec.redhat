@@ -1,0 +1,62 @@
+# MySQL support
+%define mysql_dir /usr/include/mysql
+Summary: OpenH323 Gatekeeper
+Name: gk
+Version: 1.2
+Release: 3
+URL: http://www.willamowius.de/openh323gk.html
+Source0: gk.tar.gz
+License: GPL
+Group: System Environment/Libraries
+Requires: pwlib openh323
+BuildRequires: pwlib-devel openh323-devel
+%if "%{mysql_dir}" == "\%{mysql_dir}"
+%define mysql_dir /none
+%else
+BuildRequires: mysql-devel mysql++
+%endif
+BuildRoot: %{_tmppath}/%{name}-root
+
+%description
+While the  OpenH323  project works on a free H.323 protocol stack, this 
+project provides a freely available gatekeeper (GPL) based on OpenH323. 
+Both components together form the basis for a free IP telephony system.
+
+%prep
+%setup -q -n openh323gk
+
+%build
+. /etc/profile.d/pwlib.sh		# get PWLIBDIR
+. /etc/profile.d/openh323.sh		# get OPENH323DIR
+
+MYSQLDIR=%{mysql_dir} make optshared OPTCCFLAGS="$RPM_OPT_FLAGS" %{?_smp_mflags}
+make OPTCCFLAGS="$RPM_OPT_FLAGS" addpasswd
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT%{_sbindir}
+mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
+
+install -s -m 755 obj_linux_x86_r/gk $RPM_BUILD_ROOT%{_sbindir}/gk
+install -s -m 755 obj_linux_x86_r/addpasswd $RPM_BUILD_ROOT%{_sbindir}/gkaddpasswd
+install -m 644 gatekeeper.ini.complete $RPM_BUILD_ROOT/etc/gatekeeper.ini
+install -m 755 gk.initd.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/gk
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%doc gatekeeper.ini* *.txt
+%config /etc/gatekeeper.ini
+%{_sbindir}/gk
+%{_sbindir}/gkaddpasswd
+/etc/rc.d/init.d/gk
+
+%changelog
+* Fri Nov 02 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
+- Upgraded 1.2
+
+* Mon Oct  8 2001 Adi Linden <adi@adis.on.ca> 1.7.0-2
+- The first rpm
+
