@@ -49,6 +49,7 @@ public:
 	const BOOL WhiteListBeforeBlackList() const ;
 	const BOOL ConvertToLocal() const ;
 	const BOOL GetPrependCallbackAC() const ;
+	const BOOL SendReleaseCompleteOnDRQ() const {return FALSE ;} // Stub-funtion
         const PStringList & GetTelephoneNumbers() const ;
         const PStringToString & GetSpecialDials() const ;
         const PString & GetMainTelephoneNumber() const ;
