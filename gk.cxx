@@ -382,7 +382,7 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 		section = args.GetOptionString('s');
 
 	InstanceOf<Toolkit>()->SetConfig(fp, section);
-
+#ifdef RELEASE_CODE
 	if( (GkConfig()->GetInteger("Fourtytwo") ) != 42) {
 		PTRACE(0, "WARNING: No config file found!" GK_LINEBRK
 		       " - Does the config file exist? The default "
@@ -391,7 +391,11 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 		       " - Did you specify they the right 'Main' section with -s?" GK_LINEBRK
 		       " - Is the line 'Fourtytwo=42' present in this 'Main' section?");
 	}
-
+#else
+	PTRACE(5, "Version String: " << PProcess::Current().GetVersion(TRUE));
+	PAssert(GkConfig()->GetString("ConfigVersion") == PProcess::Current().GetVersion(TRUE),
+		"No Valid Configuration, Check \"ConfigVersion\" in your gatekeeper.ini");
+#endif
 	return TRUE;
 }
 
