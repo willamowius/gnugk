@@ -175,7 +175,7 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 								calledProfile.SetIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
 							}
 						// dialed number is prefix of LDAP entry
-						} else {
+						} else if (!gwFound && !fullMatch && telno.Left(aliasStr.GetLength()) == aliasStr) {
 							gwFound = FALSE;
 							fullMatch = FALSE;
 							partialMatch = TRUE;
@@ -183,7 +183,12 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 							  << alias << " matches endpoint "
 							       << iterDN->first
 							  << " (partial)" << ANSI::OFF);
+						} else {
+							PTRACE(2, ANSI::DBG << "TelephonNo "
+							       << aliasStr << " does NOT mach "
+							       << telno);
 						}
+
 					}
 				}
 			}

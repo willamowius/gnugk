@@ -414,8 +414,8 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 					CalledProfile cdProfile;
 					dctn::DBTypeEnum dbtype;
 					H225_AliasAddress cdalias;
-					PString cdh323id = H323GetAliasAddressString(cdalias);
 					e->GetH323ID(cdalias);
+					PString cdh323id = H323GetAliasAddressString(cdalias);
 					GkDatabase::Instance()->getProfile(cdProfile, cdh323id, dbtype);
 					if(cdProfile.GetMinPrefixLen() >= H323GetAliasAddressString(destAlias).GetLength()) {
 						reason = H225_AdmissionRejectReason::e_incompleteAddress;
