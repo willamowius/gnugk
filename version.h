@@ -46,7 +46,7 @@
 /* Release status for the gatekeeper */
 #ifndef BUILD_TYPE
 /* might be: AlphaCode, BetaCode, ReleaseCode */
-#define BUILD_TYPE AlphaCode
+#define BUILD_TYPE BetaCode
 /* Set this Macro if Release Code */
 #ifdef RELEASE_CODE
 # undef RELEASE_CODE
