@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 # sample program that demonstrates how one could attach a
 # billing interface to the OpenH323 Gatekeeper via the status port
+# use the CDR records for real billing applications !
 use strict;
 
 use IO::Socket;

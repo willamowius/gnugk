@@ -1,5 +1,5 @@
-Changes from 1.1 to now (by cwhuang)
-========================================
+Changes from 1.1 to 1.2 (by cwhuang)
+====================================
 - add MySQLPasswordAuth, need mysql++ to compile it
 - show left time of calls in PrintCurrentCalls
 - add 'Statistics' command
@@ -37,7 +37,7 @@ Changes from 1.1 to now (by cwhuang)
 - extend debug cfg SEC command to retrieve a whole section
 
 Changes from 1.0 to 1.1 (by cwhuang)
-========================================
+====================================
 - change neighbors structure
 - add class GkAuthInitializer for authenticators initialization
 - add authentication modules (gkauth.cxx, gkauth.h)
