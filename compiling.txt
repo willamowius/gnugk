@@ -3,6 +3,9 @@ How to compile the OpenH323 Gatekeeper
 
 To build the gatekeeper you need at least PWlib 1.1.33 and
 OpenH323 1.5.5 or later.
+The development version of the gatekeeper usually needs the
+most recent OpenH323 version available.
+
 You can put the gatekeeper code into a subdirectory of openh323
 or set the PWLIBDIR and OPENH323DIR environment variables and place
 the gatekeeper code anywhere you want.
@@ -18,4 +21,12 @@ Your gcc should not be too old, because we use some STL features
 (egcs-2.91.66 for example is too old).
 
 On Windows just compile the provided project for Visual C++ 6.0 (Visual C++ 5.0 is too old!).
+
+
+Development version:
+
+If you don't want mysql support, you may set NO_MYSQL environment
+before making:
+
+NO_MYSQL=1 make opt
 
