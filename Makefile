@@ -8,7 +8,7 @@ SOURCES  = Toolkit.cxx CountryCodeTables.cxx gk.cxx gkauth.cxx gkldap.cxx				\
            gkDestAnalysis.cxx RasSrv.cxx RasTbl.cxx GkClient.cxx MulticastGRQ.cxx			\
            BroadcastListen.cxx SoftPBX.cxx h323util.cxx GkStatus.cxx	\
            ProxyThread.cxx ProxyChannel.cxx singleton.cxx main.cxx	\
-           gkDatabase.cxx gkIniFile.cxx GkProfile.cxx
+           gkDatabase.cxx gkIniFile.cxx GkProfile.cxx gklock.cxx
 
 ifndef MANUFACTURER
 MANUFACTURER = "Willamowius"
