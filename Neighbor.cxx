@@ -72,7 +72,9 @@ PendingList::FindBySeqNum(int seqnum)
 		if (arqList[i].CompSeq(seqnum))
 			not_found = FALSE;
 	}
-	return --i;
+	if(not_found)
+		i=P_MAX_INDEX;
+	return i;
 }
 
 void
