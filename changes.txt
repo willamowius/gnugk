@@ -1,5 +1,9 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- BUGFIX(Neighbor.cxx) LCF is considered to come from a given neighbor
+  if either IP:PORT or neighbor identifier inside LCF nonstandarparam field matches
+  (was: neighbor identifier inside LCF nonstandarparam field or, if the field
+  is missing, IP:PORT)
 - added PostgreSQL authenticator modules to the contrib directory
 - API for AliasAuth has changed slightly
 - better checking of tokens/cryptoTokens by SimplePasswordAuth derived authenticators

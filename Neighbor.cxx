@@ -293,10 +293,14 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest &)
 
 bool Neighbor::CheckReply(RasMsg *ras) const
 {
-	if (H225_NonStandardParameter *params = ras->GetNonStandardParam())
-		return strncmp(m_id, params->m_data.AsString(), m_id.GetLength()) == 0;
-	else
-		return ras->IsFrom(GetIP(), m_port);
+	if( ras->IsFrom(GetIP(), m_port) )
+		return true;
+	else {
+		const H225_NonStandardParameter *params = ras->GetNonStandardParam();
+		return params
+			?(strncmp(m_id, params->m_data.AsString(), m_id.GetLength()) == 0)
+			:false;
+	}
 }
 
 bool Neighbor::IsAcceptable(RasMsg *ras) const
@@ -766,6 +770,7 @@ private:
 NeighborPolicy::NeighborPolicy() : m_neighbors(*RasServer::Instance()->GetNeighbors())
 {
 	m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
+	m_name = "Neighbor";
 }
 
 bool NeighborPolicy::IsActive()
