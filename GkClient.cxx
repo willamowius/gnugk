@@ -26,6 +26,7 @@
 #include "RasPDU.h"
 #include "RasSrv.h"
 #include "ProxyChannel.h"
+#include "sigmsg.h"
 #include "GkClient.h"
 
 namespace {
@@ -584,24 +585,39 @@ bool GkClient::RewriteE164(H225_ArrayOf_AliasAddress & aliases, bool fromInterna
 	return changed;
 }
 
-bool GkClient::RewriteE164(Q931 & SetupMesg, H225_Setup_UUIE & Setup, bool fromInternal)
+bool GkClient::RewriteE164(
+	SetupMsg &setup, 
+	bool fromInternal
+	)
 {
+	Q931 &q931 = setup.GetQ931();
+	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
 	unsigned plan, type;
-	PString Number;
+	PString number;
 
 	bool result = false;
 	if (fromInternal) {
-		bool r1 = SetupMesg.GetCallingPartyNumber(Number, &plan, &type);
-		if (r1 && (result = RewriteString(Number, true)))
-			SetupMesg.SetCallingPartyNumber(Number, plan, type);
-		if ((!r1 || result) && Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-			result = RewriteE164(Setup.m_sourceAddress, true) || result;
+		bool r1 = q931.GetCallingPartyNumber(number, &plan, &type);
+		if (r1 && (result = RewriteString(number, true))) {
+			q931.SetCallingPartyNumber(number, plan, type);
+			setup.SetChanged();
+		}
+		if ((!r1 || result) && setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+			if (RewriteE164(setupBody.m_sourceAddress, true)) {
+				result = true;
+				setup.SetUUIEChanged();
+			}
 	} else {
-		bool r1 = SetupMesg.GetCalledPartyNumber(Number, &plan, &type);
-		if (r1 && (result = RewriteString(Number, false)))
-			SetupMesg.SetCalledPartyNumber(Number, plan, type);
-		if ((!r1 || result) && Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
-			result = RewriteE164(Setup.m_destinationAddress, false) || result;
+		bool r1 = q931.GetCalledPartyNumber(number, &plan, &type);
+		if (r1 && (result = RewriteString(number, false))) {
+			q931.SetCalledPartyNumber(number, plan, type);
+			setup.SetChanged();
+		}
+		if ((!r1 || result) && setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+			if (RewriteE164(setupBody.m_destinationAddress, false)) {
+				result = true;
+				setup.SetUUIEChanged();
+			}
 	}
 	return result;
 }

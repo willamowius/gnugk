@@ -33,6 +33,10 @@ class H225_Facility_UUIE;
 class H225_TransportAddress;
 class H225_ArrayOf_AliasAddress;
 class Q931;
+class SignalingMsg;
+template <class> class H225SignalingMsg;
+typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
+typedef H225SignalingMsg<H225_Facility_UUIE> FacilityMsg;
 
 class RasMsg;
 class EndpointRec;
@@ -105,8 +109,8 @@ private:
 
 typedef Request<H225_AdmissionRequest, RasMsg> AdmissionRequest;
 typedef Request<H225_LocationRequest, RasMsg> LocationRequest;
-typedef Request<H225_Setup_UUIE, Q931> SetupRequest;
-typedef Request<H225_Facility_UUIE, Q931> FacilityRequest;
+typedef Request<H225_Setup_UUIE, SetupMsg> SetupRequest;
+typedef Request<H225_Facility_UUIE, FacilityMsg> FacilityRequest;
 
 
 class Policy : public SList<Policy> {
@@ -136,28 +140,8 @@ public:
 		return m_next && m_next->Handle(request);
 	}
 
-	template <class R> bool Handle(Request<R,Q931> & request)
-	{
-		if( IsActive() ) {
-#if PTRACING
-			const PString tagname = request.GetWrapper()
-				?request.GetWrapper()->GetMessageTypeName():PString("unknown");
-			const unsigned crv = request.GetWrapper()?request.GetWrapper()->GetCallReference():0;
-			PTRACE(5,"ROUTING\tChecking policy "<<m_name
-				<<" for request "<<tagname<<" CRV="<<crv
-				);
-#endif
-			if( OnRequest(request) ) {
-#if PTRACING
-				PTRACE(5,"ROUTING\tPolicy "<<m_name
-					<<" applied to the request "<<tagname<<" CRV="<<crv
-					);
-#endif
-				return true;
-			}
-		}
-		return m_next && m_next->Handle(request);
-	}
+	bool Handle(SetupRequest &request);
+	bool Handle(FacilityRequest &request);
 
 protected:
 	// new virtual function

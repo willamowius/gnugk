@@ -114,6 +114,9 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+A default value for the config variable <tt/ForwardOnFacility/ changed to <tt/0/.
+
+<item>
 Ability to encrypt all passwords in the config. A new <tt/EncryptAllPasswords/
 config variable, <tt/KeyFilled/ config variable usage extended.
 
@@ -1670,13 +1673,15 @@ Default: <tt>N/A</tt>
 Modify the sourceAddress field of UUIE element from Q.931 Setup message.
 
 <item><tt/ForwardOnFacility=1/<newline>
-Default: <tt>1</tt>
+Default: <tt/0/
 <p>
 If yes, on receiving Q.931 Facility with reason <bf/callForwarded/,
 the gatekeeper will forwards call Setup directly to the forwarded endpoint,
 instead of passing the message back to the caller.
 If you have broken endpoints that can't handle Q.931 Facility with reason
-<bf/callForwarded/, turn on this option.
+<bf/callForwarded/, turn on this option. Note that this feature
+may not always work correctly, as it does not provide any means
+of capability renegotiation and media channel reopening.
 
 <item><tt/ShowForwarderNumber=0/<newline>
 Default: <tt/0/

@@ -47,6 +47,11 @@ class H245Socket;
 class UDPProxySocket;
 class ProxyHandler;
 class HandlerList;
+class SignalingMsg;
+template <class> class H225SignalingMsg;
+typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
+typedef H225SignalingMsg<H225_Facility_UUIE> FacilityMsg;
+struct SetupAuthData;
 
 extern const char *RoutedSec;
 
@@ -115,13 +120,12 @@ private:
 	BYTE *bufptr;
 };
 
-struct SetupAuthData;
 
 class CallSignalSocket : public TCPProxySocket {
 public:
 	CallSignalSocket();
 	CallSignalSocket(CallSignalSocket *, WORD);
-	~CallSignalSocket();
+	virtual ~CallSignalSocket();
 
 #ifdef LARGE_FDSET
 	// override from class TCPProxySocket
@@ -133,7 +137,7 @@ public:
 #endif
 
 	// override from class ProxySocket
-        virtual Result ReceiveData();
+	virtual Result ReceiveData();
 	virtual bool EndSession();
 	virtual void OnError();
 
@@ -152,27 +156,25 @@ public:
 
 protected:
 	CallSignalSocket(CallSignalSocket *);
+	
 	void SetRemote(CallSignalSocket *);
-	bool CreateRemote(H225_Setup_UUIE &);
-	void ForwardCall(Q931* q931pdu);
+	bool CreateRemote(H225_Setup_UUIE &setupBody);
+	
+	void ForwardCall(FacilityMsg *msg);
 
-	bool OnSetup(Q931& q931pdu, H225_Setup_UUIE &, PString &in_rewrite_id, PString &out_rewrite_id);
-	bool OnCallProceeding(Q931& q931pdu, H225_CallProceeding_UUIE &);
-	bool OnConnect(Q931& q931pdu, H225_Connect_UUIE &);
-	bool OnAlerting(Q931& q931pdu, H225_Alerting_UUIE &);
-	bool OnInformation(Q931& q931pdu, H225_Information_UUIE &);
-	bool OnReleaseComplete(Q931& q931pdu, H225_ReleaseComplete_UUIE &);
-	bool OnFacility(Q931& q931pdu, H225_Facility_UUIE &);
-	bool OnProgress(Q931& q931pdu, H225_Progress_UUIE &);
-	bool OnEmpty(Q931& q931pdu, H225_H323_UU_PDU_h323_message_body &);
-	bool OnStatus(Q931& q931pdu, H225_Status_UUIE &);
-	bool OnStatusInquiry(Q931& q931pdu, H225_StatusInquiry_UUIE &);
-	bool OnSetupAcknowledge(Q931& q931pdu, H225_SetupAcknowledge_UUIE &);
-	bool OnNotify(Q931& q931pdu, H225_Notify_UUIE &);
+	/// signaling message handlers
+	void OnSetup(SignalingMsg *msg);
+	void OnCallProceeding(SignalingMsg *msg);
+	void OnConnect(SignalingMsg *msg);
+	void OnAlerting(SignalingMsg *msg);
+	void OnReleaseComplete(SignalingMsg *msg);
+	void OnFacility(SignalingMsg *msg);
+	void OnProgress(SignalingMsg *msg);
+	void OnInformation(SignalingMsg *msg);
+
 	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
 	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
-	bool OnInformationMsg(Q931 &);
 
 	template<class UUIE> bool HandleH245Address(UUIE & uu)
 	{
@@ -190,15 +192,10 @@ protected:
 			OnFastStart(uu.m_fastStart, fromCaller) : false;
 	}
 
-	callptr m_call;
-
-	// localAddr is NOT the local address the socket bind to,
-	// but the local address that remote socket bind to
-	// they may be different in multi-homed environment
-	Address localAddr, peerAddr;
-	WORD peerPort;
-
 private:
+	CallSignalSocket(const CallSignalSocket&);
+	CallSignalSocket& operator=(const CallSignalSocket&);
+	
 	void InternalInit();
 	void BuildReleasePDU(Q931 &, const H225_CallTerminationCause *) const;
 	// if return false, the h245Address field will be removed
@@ -209,10 +206,8 @@ private:
 	    A string that can be used to identify a calling number.
 	*/
 	PString GetCallingStationId(
-		/// Q.931 Setup message with additional data
-		const Q931& q931pdu,
-		/// Setup-UUIE element extracted from the Q.931 Setup message
-		const H225_Setup_UUIE& setup,
+		/// Q.931/H.225 Setup message with additional data
+		const SetupMsg& setup,
 		/// additional data
 		SetupAuthData& authData
 		) const;
@@ -221,18 +216,32 @@ private:
 	    A string that can be used to identify a calling number.
 	*/
 	PString GetCalledStationId(
-		/// Q.931 Setup message with additional data
-		const Q931& q931pdu,
-		/// Setup-UUIE element extracted from the Q.931 Setup message
-		const H225_Setup_UUIE& setup,
+		/// Q.931/H.225 Setup message with additional data
+		const SetupMsg& setup,
 		/// additional data
 		SetupAuthData& authData
 		) const;
 
+	/// @return	a number dialed by the user
+	PString GetDialedNumber(
+		/// Q.931/H.225 Setup message with additional data
+		const SetupMsg& setup
+		) const;
+
+protected:
+	callptr m_call;
+	// localAddr is NOT the local address the socket bind to,
+	// but the local address that remote socket bind to
+	// they may be different in multi-homed environment
+	Address localAddr, peerAddr;
+	WORD peerPort;
+
+private:
 	WORD m_crv;
 	H245Handler *m_h245handler;
 	H245Socket *m_h245socket;
-	bool m_h245Tunneling, m_isnatsocket;
+	bool m_h245Tunneling;
+	bool m_isnatsocket;
 	Result m_result;
 	/// stored for use by ForwardCall, NULL if ForwardOnFacility is disabled
 	Q931 *m_setupPdu;

@@ -46,6 +46,9 @@ class H235Authenticators;
 class H235Authenticator;
 class Q931;
 class H225_Setup_UUIE;
+class SignalingMsg;
+template <class> class H225SignalingMsg;
+typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
 class EndpointRec;
 class CallRec;
@@ -132,11 +135,7 @@ struct SetupAuthData
 		/// call associated with the message (if any)
 		const callptr& call,
 		/// is the Setup message from a registered endpoint
-		bool fromRegistered,
-		/// an IP address the Setup message has been received from
-		PIPSocket::Address addr,
-		/// a port number the Setup message has been received from
-		WORD port
+		bool fromRegistered
 		);
 	~SetupAuthData();
 		
@@ -159,10 +158,6 @@ struct SetupAuthData
 	callptr m_call;
 	/// is the Setup message from a registered endpoint
 	bool m_fromRegistered;
-	/// an IP address the Setup message has been received from
-	PIPSocket::Address m_peerAddr;
-	/// a port number the Setup message has been received from
-	WORD m_peerPort;
 	/// input/output - set or get Calling-Station-Id
 	PString m_callingStationId;		
 	/// input/output - set or get Called-Station-Id
@@ -334,10 +329,8 @@ public:
 		ARQAuthData& authData
 		);
 	virtual int Check(
-		/// received Q.931 Setup message
-		Q931& q931pdu, 
-		/// decoded H.225 Setup UUIE element of Q.931 Setup message
-		H225_Setup_UUIE& setup, 
+		/// Q.931/H.225 Setup to be authenticated
+		SetupMsg &setup, 
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData& authData
 		);
@@ -391,12 +384,10 @@ protected:
 		ARQAuthData& authData
 		) const;
 	virtual PString GetUsername(
-		/// Q.931 Setup message with additional data
-		const Q931& q931pdu,
-		/// Setup-UUIE element extracted from the Q.931 Setup message
-		const H225_Setup_UUIE& setup,
+		/// Q.931/H.225 Setup with additional data
+		const SetupMsg &setup, 
 		/// additional data
-		SetupAuthData& authData
+		SetupAuthData &authData
 		) const;
 
 	/** @return
@@ -409,10 +400,8 @@ protected:
 		ARQAuthData& authData
 		) const;
 	virtual PString GetCallingStationId(
-		/// Q.931 Setup message with additional data
-		const Q931& q931pdu,
-		/// Setup-UUIE element extracted from the Q.931 Setup message
-		const H225_Setup_UUIE& setup,
+		/// Q.931/H.225 Setup to be authenticated
+		const SetupMsg &setup, 
 		/// additional data
 		SetupAuthData& authData
 		) const;
@@ -427,10 +416,8 @@ protected:
 		ARQAuthData& authData
 		) const;
 	virtual PString GetCalledStationId(
-		/// Q.931 Setup message with additional data
-		const Q931& q931pdu,
-		/// Setup-UUIE element extracted from the Q.931 Setup message
-		const H225_Setup_UUIE& setup,
+		/// Q.931/H.225 Setup to be authenticated
+		const SetupMsg &setup, 
 		/// additional data
 		SetupAuthData& authData
 		) const;
@@ -445,10 +432,8 @@ protected:
 		
 	/// @return	Number actually dialed by the user (before rewrite)
 	virtual PString GetDialedNumber(
-		/// Q.931 Setup message with additional data
-		const Q931& q931pdu,
-		/// Setup-UUIE element extracted from the Q.931 Setup message
-		const H225_Setup_UUIE& setup,
+		/// Q.931/H.225 Setup to be authenticated
+		const SetupMsg &setup, 
 		/// additional data
 		SetupAuthData& authData
 		) const;
@@ -888,10 +873,8 @@ public:
 	    true if the call should be accepted, false to send ReleaseComplete.
 	*/
 	bool Validate(
-		/// received Q.931 Setup message
-		Q931& q931pdu,
-		///  H.225.0 Setup UUIE decoded from Q.931 SETUP
-		H225_Setup_UUIE& setup, 
+		/// Q.931/H.225 Setup to be authenticated
+		SetupMsg &setup, 
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData& authData
 		);

@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2004/11/15 23:57:43  zvision
+ * Ability to choose between the original and the rewritten dialed number
+ *
  * Revision 1.14  2004/07/26 12:19:41  zvision
  * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
  *
@@ -156,10 +159,8 @@ public:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
-		/// Q.931 Setup message to be authenticated
-		Q931& q931pdu, 
-		/// H.225 Setup UUIE to be authenticated
-		H225_Setup_UUIE& setup, 
+		/// Q.931/H.225 Setup message to be authenticated
+		SetupMsg &setup,
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData& authData
 		);
@@ -199,10 +200,9 @@ protected:
 		(rejectReason can be set to indicate a particular reason).
 	*/
 	virtual bool OnSendPDU(
-		RadiusPDU& pdu, /// PDU to be sent
-		Q931& q931pdu, /// Q.931 Setup being processed
-		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
-		SetupAuthData& authData /// authorization data 
+		RadiusPDU &pdu, /// PDU to be sent
+		SetupMsg &setup, /// Q.931/H.225 Setup being processed
+		SetupAuthData &authData /// authorization data 
 		);
 		
 	/** Hook for processing pdu after it is received.
@@ -239,10 +239,9 @@ protected:
 		(rejectReason can be set to indicate a particular reason).
 	*/
 	virtual bool OnReceivedPDU(
-		RadiusPDU& pdu, /// received PDU
-		Q931& q931pdu, /// Q.931 Setup being processed
-		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
-		SetupAuthData& authData /// authorization data 
+		RadiusPDU &pdu, /// received PDU
+		SetupMsg &setup, /// Q.931/H.225 Setup being processed
+		SetupAuthData &authData /// authorization data 
 		);
 	
 	/** Hook for appending username/password attributes 
@@ -287,12 +286,11 @@ protected:
 			e_next - required data not found
 	*/
 	virtual int AppendUsernameAndPassword(
-		RadiusPDU& pdu, /// append attribues to this pdu
-		Q931& q931pdu, /// Q.931 Setup being processed
-		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
-		endptr& callingEP, /// calling endpoint (if found in the registration table)
-		SetupAuthData& authData, /// authorization data 
-		PString* username = NULL /// if not NULL, store the username on return
+		RadiusPDU &pdu, /// append attribues to this pdu
+		SetupMsg &setup, /// Q.931/H.225 Setup being processed
+		endptr &callingEP, /// calling endpoint (if found in the registration table)
+		SetupAuthData &authData, /// authorization data 
+		PString *username = NULL /// if not NULL, store the username on return
 		) const;
 		
 private:
@@ -365,8 +363,7 @@ protected:
 		
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
-		Q931& q931pdu,
-		H225_Setup_UUIE& setup,
+		SetupMsg &setup,
 		endptr& callingEP,
 		SetupAuthData& authData,
 		PString* username = NULL
@@ -424,11 +421,10 @@ protected:
 		) const;
 	
 	virtual int AppendUsernameAndPassword(
-		RadiusPDU& pdu,
-		Q931& q931pdu,
-		H225_Setup_UUIE& setup,
-		endptr& callingEP,
-		SetupAuthData& authData,
+		RadiusPDU &pdu,
+		SetupMsg &setup,
+		endptr &callingEP,
+		SetupAuthData &authData,
 		PString* username = NULL
 		) const;
 		

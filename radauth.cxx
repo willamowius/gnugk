@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.30  2005/01/28 11:19:42  zvision
+ * All passwords in the config can be stored in an encrypted form
+ *
  * Revision 1.29  2005/01/26 23:50:26  zvision
  * Framed-IP-Address could not be determined to unregistered calls without
  * Setup-UUIE.sourceCallSignalAddress field
@@ -180,6 +183,7 @@
 #include "Toolkit.h"
 #include "RasTbl.h"
 #include "RasPDU.h"
+#include "sigmsg.h"
 #include "radproto.h"
 #include "gkauth.h"
 #include "radauth.h"
@@ -788,29 +792,29 @@ int RadAuthBase::Check(
 }
 
 int RadAuthBase::Check(
-	Q931& q931pdu,
-	H225_Setup_UUIE& setup,
-	SetupAuthData& authData
+	SetupMsg &setup,
+	SetupAuthData &authData
 	)
 {
 	// build RADIUS Access-Request packet
 	RadiusPDU* const pdu = new RadiusPDU(RadiusPDU::AccessRequest);
+	H225_Setup_UUIE& setupBody = setup.GetUUIEBody();
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PIPSocket::Address addr;
 	endptr callingEP, calledEP;
 	
 	if (hasCall)
 		callingEP = authData.m_call->GetCallingParty();
-	if (!callingEP && setup.HasOptionalField(H225_Setup_UUIE::e_endpointIdentifier))
+	if (!callingEP && setupBody.HasOptionalField(H225_Setup_UUIE::e_endpointIdentifier))
 		callingEP = RegistrationTable::Instance()->FindByEndpointId(
-			setup.m_endpointIdentifier
+			setupBody.m_endpointIdentifier
 			);
 		
 	// Append User-Name and a password related attributes
 	// (User-Password or Chap-Password and Chap-Timestamp)
 	PString username;				
-	const int status = AppendUsernameAndPassword(*pdu, q931pdu, setup, 
-		callingEP, authData, &username
+	const int status = AppendUsernameAndPassword(*pdu, setup, callingEP, 
+		authData, &username
 		);
 	if (status != e_ok) {
 		delete pdu;
@@ -839,13 +843,13 @@ int RadAuthBase::Check(
 		&& GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr)
 		&& addr.IsValid())
 		ipFound = true;
-	else if (setup.HasOptionalField(setup.e_sourceCallSignalAddress)
-		&& GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
+	else if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)
+		&& GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress, addr)
 		&& addr.IsValid())
 		ipFound = true;
-	else if (authData.m_peerAddr.IsValid()) {
-		addr = authData.m_peerAddr;
-		ipFound = true;
+	else {
+		setup.GetPeerAddr(addr);
+		ipFound = addr.IsValid();
 	}
 	if (!ipFound) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
@@ -858,13 +862,13 @@ int RadAuthBase::Check(
 		pdu->AppendAttr(RadiusAttr::FramedIpAddress, addr);
 				
 	// fill Calling-Station-Id and Called-Station-Id fields
-	PString stationId = GetCallingStationId(q931pdu, setup, authData);
+	PString stationId = GetCallingStationId(setup, authData);
 	if (!stationId) {
 		pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
 	}
 
-	const PString calledStationId = GetCalledStationId(q931pdu, setup, authData);
-	const PString dialedNumber = GetDialedNumber(q931pdu, setup, authData);
+	const PString calledStationId = GetCalledStationId(setup, authData);
+	const PString dialedNumber = GetDialedNumber(setup, authData);
 
 	stationId = m_useDialedNumber ? dialedNumber : calledStationId;
 	if (stationId.IsEmpty()) {
@@ -879,14 +883,14 @@ int RadAuthBase::Check(
 			
 	if (m_appendCiscoAttributes) {
 		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,
-			GetGUIDString(setup.m_conferenceID)
+			GetGUIDString(setupBody.m_conferenceID)
 			);
 		pdu->AppendAttr(m_attrH323CallOriginOriginate);
 		pdu->AppendAttr(m_attrH323CallType);
 		pdu->AppendAttr(m_attrH323GwId);
 	}
 				
-	if (!OnSendPDU(*pdu, q931pdu, setup, authData)) {
+	if (!OnSendPDU(*pdu, setup, authData)) {
 		delete pdu;
 		return e_fail;
 	}
@@ -1014,7 +1018,7 @@ int RadAuthBase::Check(
 	}
 			
 	if (result)
-		result = OnReceivedPDU(*response, q931pdu, setup, authData);
+		result = OnReceivedPDU(*response, setup, authData);
 	else
 		authData.m_rejectCause = Q931::CallRejected;
 					
@@ -1042,8 +1046,7 @@ bool RadAuthBase::OnSendPDU(
 
 bool RadAuthBase::OnSendPDU(
 	RadiusPDU& /*pdu*/,
-	Q931& /*q931pdu*/,
-	H225_Setup_UUIE& /*setup*/,
+	SetupMsg &/*setup*/,
 	SetupAuthData& /*authData*/
 	)
 {
@@ -1070,8 +1073,7 @@ bool RadAuthBase::OnReceivedPDU(
 
 bool RadAuthBase::OnReceivedPDU(
 	RadiusPDU& /*pdu*/,
-	Q931& /*q931pdu*/,
-	H225_Setup_UUIE& /*setup*/,
+	SetupMsg &/*setup*/,
 	SetupAuthData& /*authData*/
 	)
 {
@@ -1099,12 +1101,11 @@ int RadAuthBase::AppendUsernameAndPassword(
 }
 
 int RadAuthBase::AppendUsernameAndPassword(
-	RadiusPDU& /*pdu*/,
-	Q931& /*q931pdu*/,
-	H225_Setup_UUIE& /*setup*/,
-	endptr& /*callingEP*/,
-	SetupAuthData& /*authData*/,
-	PString* /*username*/
+	RadiusPDU &/*pdu*/,
+	SetupMsg &/*setup*/,
+	endptr &/*callingEP*/,
+	SetupAuthData &/*authData*/,
+	PString */*username*/
 	) const
 {
 	return GetDefaultStatus();
@@ -1261,21 +1262,21 @@ int RadAuth::AppendUsernameAndPassword(
 
 int RadAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
-	Q931& /*q931pdu*/,
-	H225_Setup_UUIE& setup,
+	SetupMsg &setup,
 	endptr& /*callingEP*/,
 	SetupAuthData& authData,
 	PString* username
 	) const
 {
+	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
 	// check for ClearTokens (CAT uses ClearTokens)
-	if (!setup.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " Setup auth failed: no tokens");
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_securityDenied;
 		return GetDefaultStatus();
 	}
 
-	const int result = CheckTokens(pdu, setup.m_tokens, NULL, username);
+	const int result = CheckTokens(pdu, setupBody.m_tokens, NULL, username);
 	if (result != e_ok)	
 		authData.m_rejectCause = Q931::CallRejected;
 	return result;
@@ -1370,14 +1371,13 @@ int RadAliasAuth::AppendUsernameAndPassword(
 
 int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
-	Q931& q931pdu, 
-	H225_Setup_UUIE& setup,
+	SetupMsg &setup,
 	endptr& /*callingEP*/,
 	SetupAuthData& authData,
 	PString* username
 	) const
 {
-	const PString id = GetUsername(q931pdu, setup, authData);
+	const PString id = GetUsername(setup, authData);
 	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " Setup check failed: "
 			"neither FixedUsername nor alias inside Setup were found"

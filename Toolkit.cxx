@@ -629,6 +629,9 @@ void Toolkit::CreateConfig()
 
 void Toolkit::ReloadSQLConfig()
 {
+	if (m_Config->GetSections().GetStringsIndex("SQLConfig") == P_MAX_INDEX)
+		return;
+
 	const PString driverName = m_Config->GetString("SQLConfig", "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(0, "SQLCONF\tFailed to read config settings from SQL: no driver specified");

@@ -29,6 +29,7 @@
 #include "RasSrv.h"
 #include "GkClient.h"
 #include "GkStatus.h"
+#include "sigmsg.h"
 #include "Routing.h"
 
 
@@ -99,16 +100,64 @@ template<> H225_ArrayOf_AliasAddress *LocationRequest::GetAliases()
 // class SetupRequest
 template<> H225_ArrayOf_AliasAddress *SetupRequest::GetAliases()
 {
-	return (m_request.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) && m_request.m_destinationAddress.GetSize() > 0) ? &m_request.m_destinationAddress : 0;
+	return (m_request.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)
+			&& m_request.m_destinationAddress.GetSize() > 0) 
+		? &m_request.m_destinationAddress : NULL;
 }
 
 
 // class FacilityRequest
 template<> H225_ArrayOf_AliasAddress *FacilityRequest::GetAliases()
 {
-	return (m_request.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress) && m_request.m_alternativeAliasAddress.GetSize() > 0) ? &m_request.m_alternativeAliasAddress : 0;
+	return (m_request.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress) 
+			&& m_request.m_alternativeAliasAddress.GetSize() > 0)
+		? &m_request.m_alternativeAliasAddress : NULL;
 }
 
+
+bool Policy::Handle(SetupRequest& request)
+{
+	if( IsActive() ) {
+#if PTRACING
+		const PString tagname = request.GetWrapper()->GetTagName();
+		const unsigned crv = request.GetWrapper()->GetCallReference();
+		PTRACE(5, "ROUTING\tChecking policy " << m_name
+			<< " for request " << tagname << " CRV=" << crv
+			);
+#endif
+		if (OnRequest(request)) {
+#if PTRACING
+			PTRACE(5, "ROUTING\tPolicy " << m_name
+				<< " applied to the request " << tagname << " CRV=" << crv
+				);
+#endif
+			return true;
+		}
+	}
+	return m_next && m_next->Handle(request);
+}
+
+bool Policy::Handle(FacilityRequest& request)
+{
+	if( IsActive() ) {
+#if PTRACING
+		const PString tagname = request.GetWrapper()->GetTagName();
+		const unsigned crv = request.GetWrapper()->GetCallReference();
+		PTRACE(5, "ROUTING\tChecking policy " << m_name
+			<< " for request " << tagname << " CRV=" << crv
+			);
+#endif
+		if (OnRequest(request)) {
+#if PTRACING
+			PTRACE(5, "ROUTING\tPolicy " << m_name
+				<< " applied to the request " << tagname << " CRV=" << crv
+				);
+#endif
+			return true;
+		}
+	}
+	return m_next && m_next->Handle(request);
+}
 
 // class Analyzer
 Analyzer::Analyzer() : Singleton<Analyzer>("Routing::Analyzer")

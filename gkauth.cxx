@@ -30,6 +30,7 @@
 #include "RasTbl.h"
 #include "RasPDU.h"
 #include "gksql.h"
+#include "sigmsg.h"
 #include "gkauth.h"
 
 namespace {
@@ -128,14 +129,9 @@ SetupAuthData::SetupAuthData(
 	/// call associated with the message (if any)
 	const callptr& call,
 	/// is the Setup message from a registered endpoint
-	bool fromRegistered,
-	/// an IP address the Setup message has been received from
-	PIPSocket::Address addr,
-	/// a port number the Setup message has been received from
-	WORD port
+	bool fromRegistered
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
 	m_call(call), m_fromRegistered(fromRegistered), 
-	m_peerAddr(addr), m_peerPort(port),
 	m_routeToAlias(NULL), m_routeToIP(NULL), m_proxyMode(CallRec::ProxyDetect)
 {
 }
@@ -144,9 +140,8 @@ SetupAuthData::SetupAuthData(
 	const SetupAuthData& obj
 	) : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
-	m_fromRegistered(obj.m_fromRegistered), m_peerAddr(obj.m_peerAddr), 
-	m_peerPort(obj.m_peerPort), m_routeToAlias(NULL), m_routeToIP(NULL),
-	m_proxyMode(obj.m_proxyMode)
+	m_fromRegistered(obj.m_fromRegistered),
+	m_routeToAlias(NULL), m_routeToIP(NULL), m_proxyMode(obj.m_proxyMode)
 {
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
@@ -161,8 +156,6 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 	m_callDurationLimit = obj.m_callDurationLimit;
 	m_call = obj.m_call;
 	m_fromRegistered = obj.m_fromRegistered;
-	m_peerAddr = obj.m_peerAddr;
-	m_peerPort = obj.m_peerPort;
 	m_proxyMode = obj.m_proxyMode;
 	
 	delete m_routeToAlias;
@@ -397,10 +390,7 @@ int GkAuthenticator::Check(RasPDU<H225_InfoRequest> &, unsigned &)
 }
 
 int GkAuthenticator::Check( 
-	/// received Q.931 Setup message
-	Q931& /*q931pdu*/, 
-	/// decoded H.225 Setup UUIE element of Q.931 Setup message
-	H225_Setup_UUIE& /*setup*/, 
+	SetupMsg &/*setup*/,
 	/// authorization data (call duration limit, reject reason, ...)
 	SetupAuthData& /*authData*/
 	)
@@ -561,10 +551,7 @@ PString GkAuthenticator::GetUsername(
 }
 
 PString GkAuthenticator::GetUsername(
-	/// Q.931 Setup message with additional data
-	const Q931& q931pdu,
-	/// Setup-UUIE element extracted from the Q.931 Setup message
-	const H225_Setup_UUIE& setup,
+	const SetupMsg &setup,
 	/// additional data
 	SetupAuthData& authData
 	) const
@@ -572,12 +559,14 @@ PString GkAuthenticator::GetUsername(
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString username;				
 	endptr callingEP;
+	Q931& q931pdu = setup.GetQ931();	
+	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
 	
 	if (hasCall)
 		callingEP = authData.m_call->GetCallingParty();
 	
-	if (setup.HasOptionalField(setup.e_sourceAddress)) {
-		username = GetBestAliasAddressString(setup.m_sourceAddress, true,
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		username = GetBestAliasAddressString(setupBody.m_sourceAddress, true,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
@@ -614,8 +603,8 @@ PString GkAuthenticator::GetUsername(
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 			);
 
-	if (username.IsEmpty() && setup.HasOptionalField(setup.e_sourceAddress))
-		username = GetBestAliasAddressString(setup.m_sourceAddress, false,
+	if (username.IsEmpty() && setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+		username = GetBestAliasAddressString(setupBody.m_sourceAddress, false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
@@ -632,8 +621,8 @@ PString GkAuthenticator::GetUsername(
 		if (hasCall)
 			addrValid = authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid();
 			
-		if (!addrValid && setup.HasOptionalField(setup.e_sourceCallSignalAddress))
-			addrValid = GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
+		if (!addrValid && setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
+			addrValid = GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress, addr)
 				&& addr.IsValid();
 
 		if (!addrValid && callingEP)
@@ -649,21 +638,18 @@ PString GkAuthenticator::GetUsername(
 
 PString GkAuthenticator::GetCallingStationId(
 	/// ARQ message with additional data
-	const RasPDU<H225_AdmissionRequest>& request,
+	const RasPDU<H225_AdmissionRequest> &/*request*/,
 	/// additional data
-	ARQAuthData& authData
+	ARQAuthData &authData
 	) const
 {
 	return authData.m_callingStationId;
 }
 
 PString GkAuthenticator::GetCallingStationId(
-	/// Q.931 Setup message with additional data
-	const Q931& q931pdu,
-	/// Setup-UUIE element extracted from the Q.931 Setup message
-	const H225_Setup_UUIE& setup,
+	const SetupMsg &/*setup*/,
 	/// additional data
-	SetupAuthData& authData
+	SetupAuthData &authData
 	) const
 {
 	return authData.m_callingStationId;
@@ -671,21 +657,18 @@ PString GkAuthenticator::GetCallingStationId(
 
 PString GkAuthenticator::GetCalledStationId(
 	/// ARQ message with additional data
-	const RasPDU<H225_AdmissionRequest>& request,
+	const RasPDU<H225_AdmissionRequest> &/*request*/,
 	/// additional data
-	ARQAuthData& authData
+	ARQAuthData &authData
 	) const
 {
 	return authData.m_calledStationId;
 }
 
 PString GkAuthenticator::GetCalledStationId(
-	/// Q.931 Setup message with additional data
-	const Q931& q931pdu,
-	/// Setup-UUIE element extracted from the Q.931 Setup message
-	const H225_Setup_UUIE& setup,
+	const SetupMsg &/*setup*/,
 	/// additional data
-	SetupAuthData& authData
+	SetupAuthData &authData
 	) const
 {
 	return authData.m_calledStationId;
@@ -693,21 +676,18 @@ PString GkAuthenticator::GetCalledStationId(
 
 PString GkAuthenticator::GetDialedNumber(
 	/// ARQ message with additional data
-	const RasPDU<H225_AdmissionRequest>& request,
+	const RasPDU<H225_AdmissionRequest> &/*request*/,
 	/// additional data
-	ARQAuthData& authData
+	ARQAuthData &authData
 	) const
 {
 	return authData.m_dialedNumber;
 }
 
 PString GkAuthenticator::GetDialedNumber(
-	/// Q.931 Setup message with additional data
-	const Q931& q931pdu,
-	/// Setup-UUIE element extracted from the Q.931 Setup message
-	const H225_Setup_UUIE& setup,
+	const SetupMsg &/*setup*/,
 	/// additional data
-	SetupAuthData& authData
+	SetupAuthData &authData
 	) const
 {
 	return authData.m_dialedNumber;
@@ -1031,10 +1011,7 @@ bool GkAuthenticatorList::Validate(
 }
 
 bool GkAuthenticatorList::Validate(
-	/// received Q.931 Setup message
-	Q931& q931pdu,
-	///  H.225.0 Setup UUIE decoded from Q.931 SETUP
-	H225_Setup_UUIE& setup, 
+	SetupMsg &setup,
 	/// authorization data (call duration limit, reject reason, ...)
 	SetupAuthData& authData
 	)
@@ -1047,7 +1024,7 @@ bool GkAuthenticatorList::Validate(
 			|| (!authData.m_fromRegistered 
 				&& auth->IsMiscCheckEnabled(GkAuthenticator::e_SetupUnreg))) {
 			const long oldDurationLimit = authData.m_callDurationLimit;
-			const int result = auth->Check(q931pdu, setup, authData);
+			const int result = auth->Check(setup, authData);
 			if (authData.m_callDurationLimit == 0) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check failed: "
 					"call duration limit 0"

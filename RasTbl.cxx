@@ -238,9 +238,11 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (m_natsocket != socket) {
-		PTRACE(3, "Q931\tAn NAT socket detected at " << socket->Name() << " for endpoint " << GetEndpointIdentifier().GetValue());
+		PTRACE(3, "Q931\tNAT socket detected at " << socket->Name() << " for endpoint " << GetEndpointIdentifier().GetValue());
 		if (m_natsocket) {
-			PTRACE(1, "Warning: natsocket is overwritten by " << socket->Name());
+			PTRACE(1, "Q931\tWarning: natsocket " << m_natsocket->Name()
+				<< " is overwritten by " << socket->Name()
+				);
 			m_natsocket->SetDeletable();
 		}
 		m_natsocket = socket;

@@ -28,6 +28,7 @@
 #include "Routing.h"
 #include "RasPDU.h"
 #include "RasSrv.h"
+#include "sigmsg.h"
 #include "Neighbor.h"
 
 

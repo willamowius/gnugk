@@ -44,6 +44,9 @@ class GkClientHandler;
 class CallRec;
 template<class> class SmartPtr;
 typedef SmartPtr<CallRec> callptr;
+class SignalingMsg;
+template <class> class H225SignalingMsg;
+typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
 class GkClient {
 public:
@@ -68,7 +71,7 @@ public:
 
 	bool RewriteE164(H225_AliasAddress & alias, bool);
 	bool RewriteE164(H225_ArrayOf_AliasAddress & alias, bool);
-	bool RewriteE164(Q931 &, H225_Setup_UUIE &, bool);
+	bool RewriteE164(SetupMsg &setup, bool);
 
 	/** Fills LRQ with approtiation tokens/cryptoTokens containing
 		configured username/password data. 

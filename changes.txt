@@ -1,5 +1,9 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- parts of signalling code rewritten
+- default value for config variable ForwardOnFacility changed to 0
+- BUGFIX(ProxyChannel.cxx) inbound rewrite code did not check for presence
+  of sourceCallSignalAddress field in Setup messages. Use real peer IP instead
 - ability to encrypt all passwords in the config (radius shared secrets,
   database passwords). A new EncryptAllPasswords config variable and KeyFilled
   usage extended

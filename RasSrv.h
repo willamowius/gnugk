@@ -36,6 +36,9 @@ class H225_TransportAddress;
 class H225_ArrayOf_AlternateGK;
 class H225_Setup_UUIE;
 class Q931;
+class SignalingMsg;
+template <class> class H225SignalingMsg;
+typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
 //struct GatekeeperMessage;
 class RasListener;
@@ -144,12 +147,11 @@ public:
 	}
 
 	bool ValidatePDU(
-		Q931& q931pdu,
-		H225_Setup_UUIE& setup,
-		SetupAuthData& authData
+		SetupMsg &setup,
+		SetupAuthData &authData
 		)
 	{
-		return authList->Validate(q931pdu, setup, authData);
+		return authList->Validate(setup, authData);
 	}
 
 	bool LogAcctEvent(
