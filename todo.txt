@@ -6,6 +6,11 @@ for people who wish to contribute to this project.
 I'll add a note if somebody is already working on a project to
 avoid duplicate work.
 
+- fix: Forwarding to alternate GK doesn't use GKHome as it's
+  sender address
+
+- implement H.235 SHA-1 hashing
+
 - fix: the ACF event signalled by PrintCurrentCalls should match
   the format of the regular ACF (needed for gkgui)
 
@@ -28,9 +33,6 @@ avoid duplicate work.
   grow ? when is the slowdown to high ?
 
 - we need a GUI client to visualize the status messages (Java GUI started)
-
-- manual registration via the status thread (might be needed for
-  H.323 endpoints without gatekeeper support)
 
 - Implement H.245 signal routing (command line option)
   Redirect all H.245 connections to gatekeeper and start another thread
