@@ -2166,10 +2166,22 @@ void CallTable::InternalRemove(iterator Iter)
 		return;
 	}
 
-	CallRec *call = *Iter;
-	
+	callptr call(*Iter);
 	call->SetDisconnectTime(time(NULL));
 
+	--m_activeCall;
+	if (call->IsConnected())
+		++m_successCall;
+	if (!call->GetCallingParty())
+		++(call->IsToParent() ? m_parentCall : m_neighborCall);
+	if (m_capacity >= 0)
+		m_capacity += call->GetBandwidth();
+
+	CallList.erase(Iter);
+	RemovedList.push_back(call.operator->());
+
+	WriteUnlock unlock(listLock);
+	
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
 		PString cdrString(call->GenerateCDR(m_timestampFormat) + "\r\n");
 		GkStatus::Instance()->SignalStatus(cdrString, STATUS_TRACE_LEVEL_CDR);
@@ -2183,24 +2195,10 @@ void CallTable::InternalRemove(iterator Iter)
 #endif
 	}
 
-	{
-		callptr cptr(call);
-		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop,cptr);
-	}
-	
-	--m_activeCall;
-	if (call->IsConnected())
-		++m_successCall;
-	if (!call->GetCallingParty())
-		++(call->IsToParent() ? m_parentCall : m_neighborCall);
+	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop, call);
 
 	call->RemoveAll();
 	call->RemoveSocket();
-	if (m_capacity >= 0)
-		m_capacity += call->GetBandwidth();
-
-	RemovedList.push_back(call);
-	CallList.erase(Iter);
 }
 
 void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, BOOL verbose) const
