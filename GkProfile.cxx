@@ -431,6 +431,7 @@ CallProfile::CallProfile() : m_PrependCallbackAC(FALSE),
 	m_honorsARJincompleteAddress = TRUE;
 	m_isCPE = FALSE;
 	m_WhiteListBeforeBlackList = FALSE; // BlacklistBeforeWhiteList, default nonblocking
+	m_minprefixlength=0;
 };
 
 void
