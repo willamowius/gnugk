@@ -341,6 +341,7 @@ public:
 
 	virtual bool Process() { return m_opdu->Process(); }
 
+	typedef typename RasPDU<RAS>::RasCreator RasCreator;
 	struct Creator : public RasPDU<RAS>::Creator {
 		Creator() { PAssert(m_old, "Error: Hook failed"); }
 		virtual RasMsg *operator()(GatekeeperMessage *m) const
