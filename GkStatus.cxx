@@ -455,6 +455,7 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		WriteString("  trc [+|-|n]       Show/modify trace level\r\n");
 		WriteString("  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n");
 		WriteString("  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n");
+		WriteString("  printrm VERBOSE   Print all removed endpoint records\r\n");
 	}
 	else {
 		if(Args[1] *= "trc") {
@@ -472,6 +473,8 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		else if((Args[1] *= "set") && (Args.GetSize()>=5)) {
 			GkConfig()->SetString(Args[2],Args[3],Args[4]);
 			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
+		} else if((Args[1] *= "printrm")) {
+			SoftPBX::PrintRemoved(*this, (Args.GetSize() >= 3));
 		}
 	}
 }

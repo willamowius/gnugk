@@ -74,6 +74,12 @@ void SoftPBX::PrintAllCached(GkStatus::Client &client, BOOL verbose)
 	RegistrationTable::Instance()->PrintAllCached(client, verbose);
 }
 
+void SoftPBX::PrintRemoved(GkStatus::Client &client, BOOL verbose)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintRemoved");
+	RegistrationTable::Instance()->PrintRemoved(client, verbose);
+}
+
 void SoftPBX::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintCurrentCalls");

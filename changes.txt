@@ -1,6 +1,10 @@
-Changes from 1.0pre8 to 1.0 (by cwhuang)
+Changes from 1.0pre9 (by cwhuang)
 ========================
+- add 'debug printrm' command
+- change EndpointRec::Ptr to template
 
+Changes from 1.0pre8 to 1.0pre9 (by cwhuang)
+========================
 - Neighbor function based on LRQ/LCF.
   GK would cache the records in a list.
   A command "PrintAllCached" is added to GkStatus.

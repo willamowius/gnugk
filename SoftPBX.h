@@ -20,6 +20,7 @@ namespace SoftPBX
 {
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
+	void PrintRemoved(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);

@@ -297,6 +297,18 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 	return SendRasPDU(ras_msg, GetRasAddress());
 }
 
+void EndpointRec::Lock()
+{
+	PWaitAndSignal lock(m_usedLock);
+	++m_usedCount;
+}
+
+void EndpointRec::Unlock()
+{
+	PWaitAndSignal lock(m_usedLock);
+	--m_usedCount;
+}
+
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false)
 {
@@ -358,7 +370,7 @@ void GatewayRec::SortPrefixes()
 {
 	// remove duplicate aliases
 	sort(Prefixes.begin(), Prefixes.end(), greater<string>());
-	std::vector<string>::iterator Iter = unique(Prefixes.begin(), Prefixes.end());
+	prefix_iterator Iter = unique(Prefixes.begin(), Prefixes.end());
 	Prefixes.erase(Iter, Prefixes.end());
 	defaultGW = (find_if(Prefixes.begin(), Prefixes.end(), bind2nd(equal_to<string>(), "*")) != Prefixes.end());
 }
@@ -386,8 +398,8 @@ int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &a) const
 	for (PINDEX i = 0; i < a.GetSize(); i++)
 		if (a[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
 			PString AliasStr = H323GetAliasAddressString(a[i]);
-			std::vector<string>::const_iterator Iter = Prefixes.begin();
-			while (Iter != Prefixes.end()) {
+			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
+			while (Iter != eIter) {
 				int len = Iter->length();
 				if ((maxlen < len) && (strncmp(AliasStr, Iter->c_str(), len)==0)) {
 					PTRACE(2, ANSI::DBG << "Gateway " << (const unsigned char *)m_endpointIdentifier.GetValue() << " match " << Iter->c_str() << ANSI::OFF);
@@ -408,7 +420,7 @@ void GatewayRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
 		H225_SupportedProtocols &protocol = obj_lcf.m_supportedProtocols[0];
 		protocol.SetTag(H225_SupportedProtocols::e_voice);
 		((H225_VoiceCaps &)protocol).m_supportedPrefixes.SetSize(as);
-		std::vector<string>::const_iterator Iter = Prefixes.begin();
+		const_prefix_iterator Iter = Prefixes.begin();
 		for (PINDEX p=0; p < as; ++p, ++Iter)
 			H323SetAliasAddress(Iter->c_str(), ((H225_VoiceCaps &)protocol).m_supportedPrefixes[p].m_prefix);
 	}
@@ -423,8 +435,8 @@ PString GatewayRec::PrintOn(bool verbose) const
 			msg += "<none>";
 		} else {
 			string m=Prefixes.front();
-			std::vector<string>::const_iterator Iter = Prefixes.begin();
-			while (++Iter != Prefixes.end())
+			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
+			while (++Iter != eIter)
 				m += "," + (*Iter);
 			msg += m.c_str();
 		}
@@ -452,31 +464,6 @@ OuterZoneGWRec::OuterZoneGWRec(const H225_RasMessage & completeLCF, const H225_E
 	PTRACE(1, "New OZGW|" << PrintOn(false));
 }
 
-EndpointRec::Ptr &EndpointRec::Ptr::operator=(const Ptr &e)
-{
-	if (ep != e.ep) {
-		Dec();
-		ep = e.ep;
-		Inc();
-	}
-	return *this;
-}
-
-void EndpointRec::Ptr::Inc()
-{
-	if (ep) {
-		PWaitAndSignal lock(ep->m_usedLock);
-		ep->m_usedCount++;
-	}
-}
-
-void EndpointRec::Ptr::Dec()
-{
-	if (ep) {
-		PWaitAndSignal lock(ep->m_usedLock);
-		ep->m_usedCount--;
-	}
-}
 
 RegistrationTable::RegistrationTable()
 {
@@ -569,10 +556,9 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 void RegistrationTable::RemoveByEndpointId(const H225_EndpointIdentifier & epId)
 {
 	WriteLock lock(listLock);
-	std::list<EndpointRec *>::iterator Iter =
-	find_if(EndpointList.begin(), EndpointList.end(),
-	  compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
-		   mem_fun(&EndpointRec::GetEndpointIdentifier)));
+	iterator Iter = find_if(EndpointList.begin(), EndpointList.end(),
+			compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
+			mem_fun(&EndpointRec::GetEndpointIdentifier)));
 	if (Iter != EndpointList.end()) {
 		RemovedList.push_back(*Iter);
 		EndpointList.erase(Iter);	// list<> is O(1), slist<> O(n) here
@@ -583,11 +569,10 @@ void RegistrationTable::RemoveByEndpointId(const H225_EndpointIdentifier & epId)
 
 /*
 template<class F> endptr RegistrationTable::InternalFind(const F & FindObject,
-	const std::list<EndpointRec *> *List) const
+	const list<EndpointRec *> *List) const
 {
 	ReadLock lock(listLock);
-	std::list<EndpointRec *>::const_iterator Iter =
-		find_if(List->begin(), List->end(), FindObject);
+	const_iterator Iter = find_if(List->begin(), List->end(), FindObject);
 	return endptr((Iter != List->end()) ? *Iter : NULL);
 }
 */
@@ -595,13 +580,13 @@ template<class F> endptr RegistrationTable::InternalFind(const F & FindObject,
 endptr RegistrationTable::FindByEndpointId(const H225_EndpointIdentifier & epId) const
 {
 	return InternalFind(compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
-		   mem_fun(&EndpointRec::GetEndpointIdentifier)));
+			mem_fun(&EndpointRec::GetEndpointIdentifier)));
 }
 
 endptr RegistrationTable::FindBySignalAdr(const H225_TransportAddress &sigAd) const
 {
 	return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
-		   mem_fun(&EndpointRec::GetCallSignalAddress)));
+			mem_fun(&EndpointRec::GetCallSignalAddress)));
 }
 
 
@@ -704,8 +689,8 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	int maxlen = 0;
 	list<EndpointRec *> GWlist;
 	listLock.StartRead();
-	std::list<EndpointRec *>::const_iterator Iter = List->begin();
-	while (Iter != List->end()) {
+	const_iterator Iter = List->begin(), IterLast = List->end();
+	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway()) {
 			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
 			if (maxlen < len) {
@@ -737,14 +722,14 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 /*
 endptr RegistrationTable::FindByPrefix(const H225_AliasAddress & alias)
 {
-	std::list<endpointRec *>::iterator EPIter;
+	iterator EPIter;
   
 	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits)
 		return endptr(NULL);
 
 	// Here is a bug. We find the first prefix, but no the longest one, so we have to fix it.
 
-	std::list<endpointRec *>::iterator EPmax;
+	iterator EPmax;
 	PINDEX maxprefix=0;
 
 	// note that found prefix has equal length to an other.
@@ -839,12 +824,18 @@ void RegistrationTable::PrintAllCached(GkStatus::Client &client, BOOL verbose)
 	InternalPrint(client, verbose, &OuterZoneList);
 }
 
+void RegistrationTable::PrintRemoved(GkStatus::Client &client, BOOL verbose)
+{
+	client.WriteString("AllRemoved\r\n");
+	InternalPrint(client, verbose, &RemovedList);
+}
+
 void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, list<EndpointRec *> * List)
 {
-	std::list<EndpointRec *>::const_iterator Iter;
+	const_iterator IterLast = List->end();
 
 	ReadLock lock(listLock);
-	for (Iter = List->begin(); Iter != List->end(); ++Iter) {
+	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter) {
 		PString msg = "RCF|" + (*Iter)->PrintOn(verbose);
 	//	PTRACE(2, msg);
 		client.WriteString(msg);
@@ -956,9 +947,8 @@ void RegistrationTable::CheckEndpoints()
 {
 	WriteLock lock(listLock);
 
-	std::list<EndpointRec *>::iterator Iter =
-	  partition(EndpointList.begin(), EndpointList.end(),
-		mem_fun(&EndpointRec::IsUpdated));
+	iterator Iter = partition(EndpointList.begin(), EndpointList.end(),
+			mem_fun(&EndpointRec::IsUpdated));
 #ifdef PTRACING
 	if (ptrdiff_t s = distance(Iter, EndpointList.end()))
 		PTRACE(2, s << " endpoint(s) expired.");

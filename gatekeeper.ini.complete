@@ -166,15 +166,16 @@ rule=allow
 
 ##
 ## The GK would send LRQ to its neighbors if the destination of ARQ is unknown.
-## A neighbor is selected if its prefix match the destination or it has prefix '*'.
+## A neighbor is selected if its prefix match the destination or
+## it has prefix '*'.
 ## Currently only one prefix is supported.
 ##
 #
-# ip:port=prefix
+# ip[:port]=prefix
 #
 [RasSvr::Neighbors]
-#203.60.251.9:1719=02
-#203.60.251.5:1719=*
+#203.60.151.5:1719=*
+#203.60.151.9:1719=02
 
 ##
 ## In this section you can put endpoints that don't have RAS support
@@ -183,7 +184,7 @@ rule=allow
 ## However, You can still unregister it via status thread.
 ##
 #
-# ip:port=alias,alias,...[;prefix,prefix,...]
+# ip[:port]=alias,alias,...[;prefix,prefix,...]
 #
 [RasSvr::PermanentEndpoints]
 # For gateway

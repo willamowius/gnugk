@@ -8,7 +8,8 @@ OpenH323 Gatekeeper            ! OpenGatekeeper
                                !
 - no H.245 routing             ! - H.245 routing
                                !
-- no neigbour option           ! - can send LRQ to neighbour gatekeepers
+- can send LRQ to neighbour GK ! - can send LRQ to neighbour GK
+  based on prefix              !
                                !
 - Alternate gatekeeper option  !
                                !

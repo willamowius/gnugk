@@ -39,16 +39,6 @@
 
 
 class PendingList {
-public:
-	PendingList(H323RasSrv *rs, int ttl) : theRasSrv(rs), pendingTTL(ttl), seqNumber(0) {}
-	~PendingList();
-
-	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP);
-	void ProcessLCF(const H225_RasMessage & obj_ras);
-	void ProcessLRJ(const H225_RasMessage & obj_ras);
-	void Check();
-
-private:
 	class PendingARQ {
 	public:
 		PendingARQ(int seqNum, const H225_AdmissionRequest & obj_arq, const endptr & reqEP, int nbCount)
@@ -69,6 +59,20 @@ private:
 		PTime m_reqTime;
 	};
 
+public:
+	typedef std::list<PendingARQ *>::iterator iterator;
+	typedef std::list<PendingARQ *>::const_iterator const_iterator;
+
+	PendingList(H323RasSrv *rs, int ttl) : theRasSrv(rs), pendingTTL(ttl), seqNumber(0) {}
+	~PendingList();
+
+	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP);
+	void ProcessLCF(const H225_RasMessage & obj_ras);
+	void ProcessLRJ(const H225_RasMessage & obj_ras);
+	void Check();
+	iterator FindBySeqNum(int);
+
+private:
 	H323RasSrv *theRasSrv;
 	int pendingTTL;
         int seqNumber;
@@ -100,13 +104,20 @@ inline bool PendingList::PendingARQ::IsStaled(int sec) const
 	return (PTime() - m_reqTime) > sec*1000;
 }
 
-PendingList::~PendingList()
+inline PendingList::~PendingList()
 {
 	for_each(arqList.begin(), arqList.end(), delete_arq);
 }
 
+inline PendingList::iterator PendingList::FindBySeqNum(int seqnum)
+{
+	return find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), seqnum));
+}
+
 bool PendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP)
 {
+	// TODO: check if ARQ duplicate
+
 	++seqNumber;
 
 	int nbCount = 0;
@@ -129,8 +140,7 @@ void PendingList::ProcessLCF(const H225_RasMessage & obj_ras)
 
 	// TODO: check if the LCF is sent from my neighbors
 	PWaitAndSignal lock(usedLock);
-	std::list<PendingARQ *>::iterator Iter =
-		find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), obj_lcf.m_requestSeqNum.GetValue()));
+	iterator Iter = FindBySeqNum(obj_lcf.m_requestSeqNum.GetValue());
 	if (Iter == arqList.end()) {
 		PTRACE(2, "GK\tUnknown LCF, ignore!");
 		return;
@@ -152,8 +162,7 @@ void PendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 
 	// TODO: check if the LRJ is sent from my neighbors
 	PWaitAndSignal lock(usedLock);
-	std::list<PendingARQ *>::iterator Iter =
-		find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), obj_lrj.m_requestSeqNum.GetValue()));
+	iterator Iter = FindBySeqNum(obj_lrj.m_requestSeqNum.GetValue());
 	if (Iter == arqList.end()) {
 		PTRACE(2, "GK\tUnknown LRJ, ignore!");
 		return;
@@ -933,7 +942,7 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 	//
 	// Do the reject or the confirm
 	//
-	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetRasAddress()) : PString(" ");
+	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
 	if (bReject)
 	{
 		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
@@ -1066,7 +1075,6 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 void H323RasSrv::ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq)
 {
 	H225_RasMessage obj_rpl;
-	ProcessARQ(RequestingEP, CalledEP, obj_arq, obj_rpl);
 	if (!RequestingEP) {
 		PTRACE(1, "Err: call ReplyARQ without RequestingEP!");
 		return;
@@ -1075,6 +1083,7 @@ void H323RasSrv::ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, 
 		PTRACE(1, "Err: RequestingEP doesn't have valid ras address!");
 		return;
 	}
+	ProcessARQ(RequestingEP, CalledEP, obj_arq, obj_rpl);
 
 	const H225_TransportAddress_ipAddress & ip = RequestingEP->GetRasAddress();
 	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
@@ -1554,5 +1563,6 @@ void H323RasSrv::Main(void)
 		if (ShallSendReply)
 			SendReply( obj_rpl, rx_addr, rx_port, listener );
 	}
+	PTRACE(1,"GK\tRasThread terminated!");
 }
 

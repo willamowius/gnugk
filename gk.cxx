@@ -115,6 +115,8 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 void UnixShutdownHandler(int sig)
 {
 	PTRACE(1, "GK\tGatekeeper shutdown (signal " << sig << ")");
+	if (ShutdownMutex.WillBlock())
+		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
 	ExitFlag = true;
 }

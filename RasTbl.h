@@ -87,6 +87,32 @@ protected:
 };
 
 
+// Template of smart pointer
+// The class T must have Lock() & Unlock() methods
+template<class T> class SmartPtr {
+public:
+	explicit SmartPtr(T *t = 0) : pt(t) { Inc(); }
+	SmartPtr(const SmartPtr<T> & p) : pt(p.pt) { Inc(); }
+	~SmartPtr() { Dec(); }
+	operator bool() const { return pt != 0; }
+	T *operator->() const { return pt; }
+
+	bool operator==(const SmartPtr<T> & p) const { return pt == p.pt; }
+	bool operator!=(const SmartPtr<T> & p) const { return pt != p.pt; }
+
+	SmartPtr<T> &operator=(const SmartPtr<T> & p) {
+		if (pt != p.pt)
+			Dec(), pt = p.pt, Inc();
+		return *this;
+	}
+
+private:
+	void Inc() { if (pt) pt->Lock(); }
+	void Dec() { if (pt) pt->Unlock(); }
+	T &operator*();
+	T *pt;
+};
+
 class EndpointRec
 {
 public:
@@ -136,27 +162,11 @@ public:
 	const H225_RasMessage &GetCompleteRegistrationRequest() const
 	{ return m_RasMsg; }
 
-// smart pointer for EndpointRec
-  class Ptr {
-  public:
-	explicit Ptr(EndpointRec *e = NULL) : ep(e) { Inc(); }
-	Ptr(const Ptr &e) : ep(e.ep) { Inc(); }
-	~Ptr() { Dec(); }
-	Ptr &operator=(const Ptr &);
-	operator bool() const { return ep != NULL; }
-	EndpointRec *operator->() const { return ep; }
+	void Lock();
+	void Unlock();
 
-	bool operator==(const Ptr &e) const { return ep == e.ep; }
-	bool operator!=(const Ptr &e) const { return ep != e.ep; }
-
-  private:
-	void Inc();
-	void Dec();
-	EndpointRec &operator*();
-	EndpointRec *ep;
-  };
-
-	friend class Ptr;
+	// smart pointer for EndpointRec
+	typedef SmartPtr<EndpointRec> Ptr;
 
 protected:
 
@@ -201,6 +211,9 @@ inline bool EndpointRec::IsUpdated() const
 
 class GatewayRec : public EndpointRec {
 public:
+	typedef std::vector<string>::iterator prefix_iterator;
+	typedef std::vector<string>::const_iterator const_prefix_iterator;
+
 	GatewayRec(const H225_RasMessage & completeRRQ, bool Permanent=false);
 
 	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
@@ -246,6 +259,9 @@ public:
 class RegistrationTable : public Singleton<RegistrationTable>
 {
 public:
+	typedef std::list<EndpointRec *>::iterator iterator;
+	typedef std::list<EndpointRec *>::const_iterator const_iterator;
+
 	RegistrationTable();
 	~RegistrationTable();
 
@@ -260,6 +276,7 @@ public:
 
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
+	void PrintRemoved(GkStatus::Client &client, BOOL verbose=FALSE);
 
 	void ClearTable();
 	void CheckEndpoints();
@@ -288,8 +305,7 @@ private:
 	{   //  The function body must be put here,
 	    //  or the Stupid VC would fail to instantiate it
         	ReadLock lock(listLock);
-        	std::list<EndpointRec *>::const_iterator Iter =
-			find_if(ListToBeFinded->begin(), ListToBeFinded->end(), FindObject);
+        	const_iterator Iter = find_if(ListToBeFinded->begin(), ListToBeFinded->end(), FindObject);
 	        return endptr((Iter != ListToBeFinded->end()) ? *Iter : NULL);
 	}
 
