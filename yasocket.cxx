@@ -34,7 +34,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 	const_iterator endIter = fds.end();
 	while (i != endIter)
 		fdset.add((*i++)->GetHandle());
-
+	
 	fd_set *readfds, *writefds;
 	if (t == Read)
 		readfds = fdset, writefds = 0;

@@ -171,8 +171,8 @@ public:
 
 	struct large_fd_set {
 		large_fd_set() { memset(this, 0, sizeof(large_fd_set)); }
-		void add(int fd) { if (fd > 0) FD_SET(fd, &__fdset__); }
-		bool has(int fd) { return (fd > 0) ? FD_ISSET(fd, &__fdset__) : false; }
+		void add(int fd) { if (fd >= 0 && fd < LARGE_FDSET) FD_SET(fd, &__fdset__); }
+		bool has(int fd) { return (fd >= 0 && fd < LARGE_FDSET) ? FD_ISSET(fd, &__fdset__) : false; }
 		operator fd_set *() { return &__fdset__; }
 
 		union {

@@ -494,8 +494,9 @@ bool TCPProxySocket::ReadTPKT()
 #ifdef LARGE_FDSET
 	// some endpoints may send TPKT header and payload in separate
 	// packets, so we have to check again if data available
-	if (!YaSelectList(this).Select(YaSelectList::Read, 0))
-		return false;
+	if (this->GetHandle() < FD_SETSIZE)
+		if (!YaSelectList(this).Select(YaSelectList::Read, 0))
+			return false;
 #endif
 	if (!Read(bufptr, buflen))
 		return ErrorHandler(PSocket::LastReadError);
@@ -3421,9 +3422,31 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 		iterator k=i++;
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(*k);
 		if (!socket->IsBlocked()) {
-			if (socket->IsSocketOpen())
-				slist.Append(*k);
-			else if (!socket->IsConnected()) {
+			if (socket->IsSocketOpen()) {
+#ifdef WIN32
+				if (slist.GetSize() >= FD_SETSIZE)
+					PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
+						"(FD_SETSIZE=" << ((int)FD_SETSIZE) << ")"
+						);
+#else
+#ifdef LARGE_FDSET
+				if (socket->Self()->GetHandle() >= LARGE_FDSET)
+#else
+				if (socket->Self()->GetHandle() >= FD_SETSIZE)
+#endif
+					PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
+						<< socket->Self()->GetHandle() << " (limit=" << 
+#ifdef LARGE_FDSET
+						((int)LARGE_FDSET) 
+#else
+						((int)FD_SETSIZE) 
+#endif
+						<< ")"
+						);
+#endif
+				else
+					slist.Append(*k);
+			} else if (!socket->IsConnected()) {
 				Remove(k);
 				continue;
 			}
@@ -3498,8 +3521,31 @@ void ProxyHandler::FlushSockets()
 	m_listmutex.StartRead();
 	iterator i = m_sockets.begin(), j = m_sockets.end();
 	while (i != j) {
-		if (dynamic_cast<ProxySocket *>(*i)->CanFlush())
-			wlist.Append(*i);
+		if (dynamic_cast<ProxySocket *>(*i)->CanFlush()) {
+#ifdef WIN32
+			if (wlist.GetSize() >= FD_SETSIZE)
+				PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
+					"(limit=" << ((int)FD_SETSIZE) << ")"
+					);
+#else
+#ifdef LARGE_FDSET
+			if ((*i)->GetHandle() >= LARGE_FDSET)
+#else
+			if ((*i)->GetHandle() >= FD_SETSIZE)
+#endif
+				PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
+					<< (*i)->GetHandle() << " (limit=" << 
+#ifdef LARGE_FDSET
+					((int)LARGE_FDSET) 
+#else
+					((int)FD_SETSIZE) 
+#endif
+					<< ")"
+					);
+#endif
+			else
+				wlist.Append(*i);
+		}
 		++i;
 	}
 	m_listmutex.EndRead();
