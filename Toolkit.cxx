@@ -379,6 +379,13 @@ Toolkit::~Toolkit()
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
 	}
+	// delete RAS Classes.
+	delete_gkclient();
+	delete_neighbor();
+	delete_raslistener();
+
+	delete m_handlerlist;
+	m_handlerlist=NULL;
 }
 
 PConfig* Toolkit::Config()
@@ -442,6 +449,22 @@ Toolkit::InternalReloadConfig()
 	m_RouteTable.InitTable();
 	m_ProxyCriterion.LoadConfig(m_Config);
 	m_Rewrite.LoadConfig(m_Config);
+
+// 	m_gkclient_mutex.Wait();
+// 	if(NULL!=m_gkclient)
+// 		m_gkclient->LoadConfig();
+// 	m_gkclient_mutex.Signal();
+
+// 	m_neighbor_mutex.Wait();
+// 	if(NULL!=m_neighbor)
+// 	m_neighbor->LoadConfig();
+// 	m_neighbor_mutex.Signal();
+
+	m_raslistener_mutex.Wait();
+	if(NULL!=m_raslistener)
+	m_raslistener->LoadConfig();
+	m_raslistener_mutex.Signal();
+
 	return m_Config;
 }
 
@@ -566,6 +589,14 @@ Toolkit::GkClientIsRegistered() const
 	return (NULL!=m_gkclient && m_gkclient->IsRegistered());
 }
 
+void
+Toolkit::delete_gkclient()
+{
+	PWaitAndSignal lock(m_gkclient_mutex);
+	delete m_gkclient;
+	m_gkclient=NULL;
+}
+
 Neighbor &
 Toolkit::GetNeighbor()
 {
@@ -575,6 +606,13 @@ Toolkit::GetNeighbor()
 	return *m_neighbor;
 }
 
+void
+Toolkit::delete_neighbor()
+{
+	PWaitAndSignal lock(m_neighbor_mutex);
+	delete m_neighbor;
+	m_neighbor=NULL;
+}
 
 H323RasListener &
 Toolkit::GetMasterRASListener()
@@ -584,6 +622,14 @@ Toolkit::GetMasterRASListener()
 	if (NULL==m_raslistener)
 		m_raslistener = new H323RasListener(Home);
 	return *m_raslistener;
+}
+
+void
+Toolkit::delete_raslistener()
+{
+	PWaitAndSignal lock(m_raslistener_mutex);
+	delete m_raslistener;
+	m_raslistener=NULL;
 }
 
 int
