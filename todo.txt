@@ -9,17 +9,16 @@ avoid duplicate work.
 - feature: make "browse up the LDAP tree for attributes not found in leaf" a
            configurable feature
 
+- fix: re-implement Status Enquiry pings
+  * implement per-destination configurable pings (honorsStatusEnquiry flag)
+  * add T309 (network timeout) and T322 (Status Enquiry) timer, too
+    (right now: interval = timeout)
+
 - feature: implement blacklists (caller-, callee-dependant)
            The order that black- and whitelist entries are applied is defined
            by the endpoint property voIPWhiteListBeforeBlackList. Default
            is that blacklist takes precedence.
            voIPIncoming*List needs to be implemented
-
-- fix: re-implement Status Enquiry pings
-  * implement per-destination configurable pings (honorsStatusEnquiry flag)
-  * add T309 (network timeout) and T322 (Status Enquiry) timer, too
-    (right now: interval = timeout)
-  * see H.323 Annex R "Robustness Methods"
 
 - feature: implement metric based routing
 
