@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2003/09/14 21:10:34  zvision
+ * Changes due to accounting API redesign.
+ *
  * Revision 1.2  2003/09/12 16:31:16  zvision
  * Accounting initially added to the 2.2 branch
  *
@@ -328,31 +331,22 @@ GkAcctLogger::Status RadAcct::Log(
 				);
 	
 			time_t tm = call->GetSetupTime();
-			
 			if( tm != 0 ) 					
 				*pdu += new RadiusAttr( 
 					PString("h323-setup-time=") + AsString(tm),
 					CiscoVendorId, 25
 					);
 			
-			if( evt & AcctStop ) {
-				if( tm == 0 ) {
-					tm = call->GetSetupTime();
-					
-					if( tm != 0 ) 					
-						*pdu += new RadiusAttr(
-							PString("h323-setup-time=") + AsString(tm),
-							CiscoVendorId,25
-							);
-				}
-				
+			if( evt & (AcctStop | AcctUpdate) ) {
 				tm = call->GetConnectTime();
 				if( tm != 0 )		
 					*pdu += new RadiusAttr(
 						PString("h323-connect-time=") + AsString(tm),
 						CiscoVendorId, 28
 						);
-	
+			}
+			
+			if( evt & AcctStop ) {
 				tm = call->GetDisconnectTime();
 				if( tm != 0 )
 					*pdu += new RadiusAttr(
