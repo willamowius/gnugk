@@ -11,11 +11,17 @@
 // 	990904	initial version (Jan Willamowius)
 // 	990924	bugfix: insert GK RAS adress (Jan Willamowius)
 // 	990924	bugfix: join multicast group after listen() (Jan Willamowius)
-//  000807  bugfix: GRQ multicast replies now go to specified RAS port, 
+//  000807  bugfix: GRQ multicast replies now go to specified RAS port,
 //					not source port (Denver Trouton)
 //
 //////////////////////////////////////////////////////////////////
 
+
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4291 ) // warning about no matching operator delete
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#endif
 
 #include "MulticastGRQ.h"
 #include "RasSrv.h"
@@ -29,7 +35,7 @@
 #endif
 
 MulticastGRQ::MulticastGRQ(PIPSocket::Address _GKHome, H323RasSrv * _RasSrv)
-	: PThread(1000, NoAutoDeleteThread), 
+	: PThread(1000, NoAutoDeleteThread),
 	  MulticastListener(WORD(GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
 {
 	GKHome = _GKHome;
@@ -51,8 +57,8 @@ void MulticastGRQ::Main(void)
 	struct ip_mreq mreq;
 	mreq.imr_multiaddr.s_addr = inet_addr(GkConfig()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
 	mreq.imr_interface.s_addr = GKHome;
-	MulticastListener.Listen(GKHome, 
-							 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
+	MulticastListener.Listen(GKHome,
+							 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
 							 MulticastListener.GetPort());
 	if (setsockopt(MulticastListener.GetHandle(), IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0)
 	{
@@ -61,7 +67,7 @@ void MulticastGRQ::Main(void)
 		//Suspend();
 	};
 	while (MulticastListener.IsOpen())
-	{ 
+	{
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
 
@@ -78,30 +84,30 @@ void MulticastGRQ::Main(void)
 			continue;
 		};
 		PTRACE(2, "GK\tRd from : " << rx_addr << " [" << rx_port << "]");
-    
-		H225_RasMessage obj_req;   
+
+		H225_RasMessage obj_req;
 		if (!obj_req.Decode( *rdstrm ))
 		{
 			PTRACE(1, "GK\tCouldn't decode message!");
 
 			delete rdbuf;
 			delete rdstrm;
- 
+
 			continue;
 		};
-		
+
 		PTRACE(2, "GK\t" << obj_req.GetTagName());
 		PTRACE(3, "GK\t" << endl << setprecision(2) << obj_req);
 
 		delete rdbuf;
 		delete rdstrm;
- 
+
 		H225_RasMessage obj_rpl;
 		H225_GatekeeperRequest & obj_grq = obj_req;
 		H225_TransportAddress_ipAddress & obj_grqip = obj_grq.m_rasAddress;
 		switch (obj_req.GetTag())
 		{
-		case H225_RasMessage::e_gatekeeperRequest:    
+		case H225_RasMessage::e_gatekeeperRequest:
 			PTRACE(1, "GK\tMulticast GRQ Received");
 			rx_port = obj_grqip.m_port;
 			if ( RasSrv->OnGRQ( rx_addr, obj_req, obj_rpl ) )
@@ -114,7 +120,7 @@ void MulticastGRQ::Main(void)
 			break;
 		default:
 			PTRACE(1, "GK\tUnknown RAS message received");
-			break;      
+			break;
 		}
 	};
 };
@@ -122,8 +128,7 @@ void MulticastGRQ::Main(void)
 void MulticastGRQ::Close(void)
 {
 	MulticastListener.Close();
-	
+
 	// terminate thread
 //	Terminate();
 };
-
