@@ -421,8 +421,7 @@ void VirtualQueue::OnReload()
 		m_virtualQueueAliases = vqueues.Tokenise(" ,;\t", false);
 		if( m_virtualQueueAliases.GetSize() > 0 ) {
 			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (aliases:"<<vqueues
-				<<"), request timeout: "<<m_requestTimeout/1000<<" s"
-				);
+				<<"), request timeout: "<<m_requestTimeout/1000<<" s");
 			m_active = true;
 		}
 	}
@@ -433,18 +432,22 @@ void VirtualQueue::OnReload()
 		m_virtualQueuePrefixes = vqueues.Tokenise(" ,;\t", false);
 		if( m_virtualQueuePrefixes.GetSize() > 0 ) {
 			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (prefixes:"<<vqueues
-				<<"), request timeout: "<<m_requestTimeout/1000<<" s"
-				);
+				<<"), request timeout: "<<m_requestTimeout/1000<<" s");
 			m_active = true;
 		}
 	}
 	
 	m_virtualQueueRegex = GkConfig()->GetString(CTIsection, "VirtualQueueRegex", "");
 	if( !m_virtualQueueRegex.IsEmpty() ) {
-		PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (regex:"<<m_virtualQueueRegex
-			<<"), request timeout: "<<m_requestTimeout/1000<<" s"
-			);
-		m_active = true;
+		// check if regex is valid
+		PRegularExpression regex(m_virtualQueueRegex, PRegularExpression::Extended);
+		if(regex.GetErrorCode() != PRegularExpression::NoError) {
+			PTRACE(2, "Error '"<< regex.GetErrorText() <<"' compiling regex: " << m_virtualQueueRegex);
+        } else {
+			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (regex:"<<m_virtualQueueRegex
+			<<"), request timeout: "<<m_requestTimeout/1000<<" s");
+			m_active = true;
+		}
 	}
 	
 	if( !m_active )
