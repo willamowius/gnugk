@@ -1,3 +1,7 @@
+6 Aug 2004 -- zvision
+  * support for tariff table import from an OpenOffice.org Calc spreadsheet 
+  - new tariffs.sxc, f_pricing.sql and f_merged.sql files
+
 5 Aug 2004 -- zvision
   * cost for calls longer than the initialincrement was incorrectly calculated
   * allow arbitraty prefix length

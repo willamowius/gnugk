@@ -114,6 +114,9 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Support for SqlBill tariff table import from an OpenOffice.org Calc spreadsheet.
+
+<item>
 Fixed sourceInfo LRQ field handling - now it contains an H.323 identifier 
 of the gatekeeper. Nonstandard data and gatekeeperIdentifier fields are set
 only when the neighbor is defined as GnuGk.

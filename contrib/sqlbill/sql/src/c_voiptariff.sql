@@ -27,5 +27,8 @@ CREATE TABLE voiptariff (
 	
 	PRIMARY KEY (id),
 	FOREIGN KEY (dstid) REFERENCES voiptariffdst(id),
-	FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id)
+	FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id),
+	UNIQUE (dstid, grpid, currencysym)
 );
+
+CREATE INDEX voiptariff_dstid_idx ON voiptariff(dstid);

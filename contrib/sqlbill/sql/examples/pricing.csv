@@ -1,0 +1,13 @@
+'Destination Name'	'Group'	'Net Price'	'VAT Tax'	'Final Price'	'Currency'	'Initial Increment'	'Regular Increment'
+'PC2PC'		0	0	0	'USD'	60	60
+'Australia'		0.1	0	0.1	'USD'	60	60
+'Australia - Mobiles'		0.4	0	0.4	'USD'	60	60
+'Germany'		0.05	0	0.05	'USD'	60	60
+'Germany - Premium'		15	0	15	'USD'	60	60
+'Germany - Mobiles'		0.4	0	0.4	'USD'	60	60
+'Germany - Special'		15	0	15	'USD'	60	60
+'Poland'		0.05	0	0.05	'USD'	60	60
+'Poland - Premium'		15	0	15	'USD'	60	60
+'Poland - Mobiles'		0.25	0	0.25	'USD'	60	60
+'Poland - Special'		15	0	15	'USD'	60	60
+'Poland - UMTS'		15	0	15	'USD'	60	60

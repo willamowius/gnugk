@@ -61,3 +61,39 @@ To create the schema, follow these steps:
    
    \i f_voiptariffdst.sql
    \i f_voiptariff.sql
+
+9. A more convenient way to manage tariff tables is to use a provided
+   spreadsheet named 'tariffs.sxc' (OpenOffice.org Calc) and f_pricing.sql
+   or f_merged.sql scripts.
+   In the spreadsheets you have the following sheets:
+   *) Parameters - default settings for values like billing units, VAT tax rate, etc.
+   *) Destinations - prefix table (used to build voiptariffdst)
+   *) Pricing - prices for Destinations (used to build voiptariff)
+   *) Merged - an advanced table, if Destinations and Pricing combination 
+      is not flexible enough (e.g. if one wants to assign different prices
+	  for each prefix, maintaing same destination name/group)
+
+   To build your own tariff table you fill either Destinations and Pricing sheets
+   and use f_pricing.sql script or fill Merged sheet and use f_merged.sql script.
+
+   After the sheets are filled with tariffs, you need to export Destinations/Pricing
+   or Merged sheets to a CSV file (using Save As... option for each sheet). 
+   The CSV file is expected to be Tab separated, with cell values surrounded with ' character.
+   To achieve this, you need to toggle "Edit filter settings" checkbox in the "Save As..." dialog.
+
+   The f_pricing.sql script expects two files: pricing.csv and destination.csv.
+   The f_merged.sql script expects only one file: merged.csv.
+
+   To insert/update you tariffs into a database, you run the following commands:
+
+     psql -U gkradius -h IP_ADDRESS voipdb
+
+   (at psql prompt):
+   
+     \i f_pricing.sql
+   or
+     \i f_merged.sql
+
+   The 'examples' directory contains tariffs.sxc spreadsheet with a sample
+   tariff table and pricing.csv, destinations.csv, merged.csv files generated
+   from the sample tariff table.
