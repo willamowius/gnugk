@@ -1059,14 +1059,14 @@ CallRec::~CallRec()
 void CallRec::Lock()
 {
 	PWaitAndSignal lock(m_usedLock);
-	PTRACE(5, "Locked deletion of CallRec: " << this);
+	PTRACE(5, "Locked deletion of CallRec: " << this << " with m_usedCount: " << m_usedCount);
 	++m_usedCount;
 }
 
 void CallRec::Unlock()
 {
 	PWaitAndSignal lock(m_usedLock);
-	PTRACE(5, "UnLocked deletion of CallRec: " << this);
+	PTRACE(5, "UnLocked deletion of CallRec: " << this << " with m_usedCount: " << m_usedCount);
 	--m_usedCount;
 }
 
@@ -1439,7 +1439,7 @@ PString CallRec::GenerateCDR()
 		destInfo = CalledP.GetCallingPN();
 	}
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s;" GK_LINEBRK,
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s|%u|%s;" GK_LINEBRK,
 		       m_CallNumber,
 		       (const char *)AsString(m_callIdentifier.m_guid),
 		       (const char *)timeString,
@@ -1450,7 +1450,9 @@ PString CallRec::GenerateCDR()
 		       (const char *)Toolkit::Instance()->GKName(),
 		       (unsigned int)dialedPN_TON,
 		       (const char *)((PString)dialedPN),
-		       (const char *)((PString)calledPN)
+		       (const char *)((PString)calledPN),
+		       static_cast<unsigned int>(GetCalledProfile().GetAssumedDialedPN_TON()),
+		       static_cast<const char *>(GetCalledProfile().GetAssumedDialedPN())
 		);
 }
 
