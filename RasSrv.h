@@ -123,6 +123,22 @@ public:
 
 	WORD GetRequestSeqNum() { return ++requestSeqNum; }
 
+	template<class RASType> void SetAlternateGK(RASType & ras) {
+		if (altGKsSize > 0) {
+			ras.IncludeOptionalField(RASType::e_alternateGatekeeper);
+			ras.m_alternateGatekeeper = altGKs;
+                }
+        }
+
+        template<class RASType> void SetAltGKInfo(RASType & ras) {
+                if (altGKsSize > 0) {
+                        ras.IncludeOptionalField(RASType::e_altGKInfo);
+                        ras.m_altGKInfo.m_altGKisPermanent = (redirectGK == e_permanentRedirect);
+                        ras.m_altGKInfo.m_alternateGatekeeper = altGKs;
+                }
+        }
+
+	virtual BOOL ForwardRasMsg(H225_RasMessage msg); // not passed as const, ref or pointer!
 
 protected:
 	/** OnARQ checks if the dialled address (#aliasStr#) should be
@@ -131,10 +147,6 @@ protected:
 	 * prefix of a registered GW.
 	 */
 	virtual BOOL CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress &alias) const;
-
-	virtual BOOL SetAlternateGK(H225_RegistrationConfirm &rcf);
-
-	virtual BOOL ForwardRasMsg(H225_RasMessage msg); // not passed as const, ref or pointer!
 
 	void ProcessARQ(PIPSocket::Address rx_addr, const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl, BOOL bReject = FALSE);
 
@@ -164,6 +176,19 @@ private:
 	NBPendingList * arqPendingList;
 
 	OnRAS rasHandler[H225_RasMessage::e_serviceControlResponse + 1];
+
+	// alternate GK support
+        H225_ArrayOf_AlternateGK altGKs;
+        std::vector<PIPSocket::Address> altGKsAddr, skipAddr;
+        std::vector<WORD> altGKsPort;
+        PINDEX altGKsSize;
+        int redirectGK;
+
+        enum {
+                e_noRedirect,
+                e_temporaryRedirect,
+                e_permanentRedirect
+        };
 
 	WORD requestSeqNum;
 

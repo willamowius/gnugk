@@ -617,44 +617,6 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 }
 
 BOOL
-H323RasSrv::SetAlternateGK(H225_RegistrationConfirm &rcf)
-{
-        //        PTRACE(5, ANSI::BLU << "Alternating? " << ANSI::OFF);
-	PString param = GkConfig()->GetString("AlternateGKs","");
-	if (param.IsEmpty())
-		return FALSE;
-	PTRACE(5, ANSI::BLU << "Alternating: yes, set AltGK in RCF! " << ANSI::OFF);
-
-        const PStringArray &altgks = param.Tokenise(" ,;\t", FALSE);
-	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper);
-	rcf.m_alternateGatekeeper.SetSize(altgks.GetSize());
-
-	for(PINDEX idx=0; idx<altgks.GetSize(); idx++) {
-		const PString &altgk = altgks[idx];
-		const PStringArray &tokens = altgk.Tokenise(":", FALSE);
-
-		if(tokens.GetSize() < 4) {
-			PTRACE(1,"GK\tFormat error in AlternateGKs");
-			continue;
-		}
-
-		H225_AlternateGK &A = rcf.m_alternateGatekeeper[idx];
-
-		PIPSocket::Address ip(tokens[0]);
-		A.m_rasAddress = SocketToH225TransportAddr(ip, tokens[1].AsUnsigned());
-
-		A.m_needToRegister = Toolkit::AsBool(tokens[2]);
-		A.m_priority = tokens[3].AsInteger();;
-
-		if(tokens.GetSize() > 4) {
-			A.IncludeOptionalField(H225_AlternateGK::e_gatekeeperIdentifier);
-			A.m_gatekeeperIdentifier = tokens[4];
-		}
-	}
-	return TRUE;
-}
-
-BOOL
 H323RasSrv::ForwardRasMsg(H225_RasMessage msg) // not passed as const, ref or pointer!
 {
 //	PTRACE(5, ANSI::BLU << "Forwarding? " << ANSI::OFF);
