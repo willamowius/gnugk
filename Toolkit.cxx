@@ -221,9 +221,9 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 			// reverse the order
 			for (int i = m_size; i-- > 0 ; ++iter) {
 //				m_RewriteKey[i] = iter->first;
-				new(m_RewriteKey + i) PString(iter->first);
+				::new(m_RewriteKey + i) PString(iter->first);
 //				m_RewriteValue[i] = iter->second;
-				new(m_RewriteValue + i) PString(iter->second);
+				::new(m_RewriteValue + i) PString(iter->second);
 				m_RewriteValues[i] = iter->second.Tokenise(",:;&|\t ", false);;
 			}
 		}
@@ -838,4 +838,79 @@ PString Toolkit::GenerateAcctSessionId()
 {
 	PWaitAndSignal lock( m_acctSessionMutex );
 	return psprintf("%08x%08x",m_acctSessionBase,++m_acctSessionCounter);
+}
+
+bool Toolkit::AsTimeInterval(
+	/// formatted time interval string
+	const char* inputString,
+	/// variable to store calculated time interval on success
+	PTimeInterval& interval
+	)
+{
+	if (inputString == NULL)
+		return false;
+
+	PTimeInterval result;
+	bool process_next = true;
+	bool valid = false;
+		
+	while (process_next) {
+		char* strend = const_cast<char*>(inputString);
+		long val = strtol(inputString, &strend, 10);
+		
+		// no tokens found?
+		if (strend == inputString)
+			break;
+		
+		// integer range overflow
+		if ((val == LONG_MIN || val == LONG_MAX) && errno == ERANGE) {
+			valid = false;
+			break;
+		}
+		
+		valid = true;
+		inputString = strend;
+		
+		// the last token
+		if (*inputString == 0) {
+			result += PTimeInterval(val);
+			break;
+		}
+
+		// unit specifier		
+		switch (*inputString)
+		{
+		case 's':
+			result += PTimeInterval(0,val);
+			break;
+		case 'm':
+			result += PTimeInterval(0,0,val);
+			break;
+		case 'h':
+			result += PTimeInterval(0,0,0,val);
+			break;
+		case 'd':
+			result += PTimeInterval(0,0,0,0,val);
+			break;
+		case 'w':
+			result += PTimeInterval(0,0,0,0,val*7);
+			break;
+		case 'M':
+			result += PTimeInterval(0,0,0,0,val*30);
+			break;
+		case 'y':
+			result += PTimeInterval(0,0,0,0,val*365);
+			break;
+		default:
+			result += PTimeInterval(val);
+			process_next = false;
+		}
+		
+		if (process_next)
+			inputString++;
+	}
+	
+	if (valid)
+		interval = result;
+	return valid;
 }

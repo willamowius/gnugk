@@ -223,6 +223,31 @@ class Toolkit : public Singleton<Toolkit>
 	 * Case insensitive, "t...", "y...", "a...", "1" are #TRUE#, all other values are #FALSE#.
 	 */
 	static bool AsBool(const PString & str);
+	
+	/** Convert a string to a time interval. The string should be formatted like:
+			"1d5h" (1 day and 5 hours) or "20s" (20 seconds) or "1h" (1 hour)
+			or "2000" (2000 milliseconds) or ...
+		General format is a sequence of number and unit specifier pairs.
+		Recognized unit specifiers:
+			y - years
+			M - months
+			w - weeks
+			d - days
+			h - hours
+			m - minutes
+			s - seconds
+			"empty" - milliseconds
+
+		@return
+		true if the input string contained properly formatted time interval,
+		false if no conversion has been made
+	*/
+	static bool AsTimeInterval(
+		/// formatted time interval string
+		const char* inputString,
+		/// variable to store calculated time interval on success
+		PTimeInterval& interval
+		);
 
 	static void GetNetworkFromString(const PString &, PIPSocket::Address &, PIPSocket::Address &);
 
