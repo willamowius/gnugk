@@ -22,12 +22,9 @@
 #include "version.h"
 
 
-#if PTRACING
-void ReopenLogFile();
-#endif
-
-
-class Gatekeeper : public PProcess {
+class GkTimer;
+class Gatekeeper : public PProcess 
+{
 	PCLASSINFO(Gatekeeper, PProcess)
  public:
 	Gatekeeper
@@ -39,6 +36,36 @@ class Gatekeeper : public PProcess {
 		 WORD buildNumber = GNUGK_BUILD_NUMBER);
 
 	virtual void Main();
+
+#if PTRACING
+	enum RotationIntervals {
+		Hourly,
+		Daily,
+		Weekly,
+		Monthly,
+		RotationIntervalMax
+	};
+	
+	static bool SetLogFilename(
+		const PString& filename
+		);
+		
+	static bool RotateLogFile();
+	
+	static void CloseLogFile();
+
+	static void EnableLogFileRotation(
+		bool enable = true
+		);
+
+	/** Rotate the log file, saving old file contents to a different
+	    file and starting with a new one. This is a callback function
+	    called when the rotation timer expires.
+	*/
+	static void RotateOnTimer(
+		GkTimer* timer /// timer object that triggered rotation
+		);
+#endif // PTRACING
 
  protected:
 	/** returns the template string for which the cmommand line is parsed */
@@ -76,6 +103,36 @@ class Gatekeeper : public PProcess {
 
 	//@}
 
+private:
+#if PTRACING
+	/// parse rotation interval from the config
+	static void GetRotateInterval(
+		PConfig& cfg, /// the config
+		const PString& section /// name of the config section to check
+		);
+#endif
+
+private:
+#if PTRACING
+	/// rotate file after the specified period of time (if >= 0)
+	static int m_rotateInterval;
+	/// a minute when the interval based rotation should occur
+	static int m_rotateMinute;
+	/// an hour when the interval based rotation should occur
+	static int m_rotateHour;
+	/// day of the month (or of the week) for the interval based rotation
+	static int m_rotateDay;
+	/// timer for rotation events
+	static GkTimer* m_rotateTimer;
+	/// gatekeeper log file
+	static PTextFile* m_logFile;
+	/// filename for the logfile
+	static PFilePath m_logFilename;
+	/// atomic log file operations (rotation, closing)
+	static PMutex m_logFileMutex;
+	/// human readable names for rotation intervals
+	static const char* const m_intervalNames[];
+#endif // PTRACING
 };
 
 #endif // GK_H

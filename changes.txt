@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- log file rotation, new LogFile config section, new setlog and rotatelog
+  status interface commands
 - BUGFIX(gkacct.cxx) a fix to rotation interval calculation for monthly 
   CDR file rotation
 - BUGFIX(gkacct.cxx) FileAcct monthly rotation rotated a CDR file unnecessary

@@ -27,6 +27,7 @@
 #include <signal.h>
 #endif
 #include <ptlib.h>
+#include <ptlib/sockets.h>
 #include <h225.h>
 #include "h323util.h"
 #include "Toolkit.h"
@@ -34,46 +35,8 @@
 #include "RasSrv.h"
 #include "RasTbl.h"
 #include "SoftPBX.h"
+#include "gktimer.h"
 #include "gk.h"
-
-
-#if PTRACING
-PTextFile *logfile = 0;
-PString logfilename;
-
-void ReopenLogFile()
-{
-	if (!logfilename) {
-		PTRACE_IF(1, logfile, "GK\tLogging closed.");
-		PTrace::SetStream(&cerr); // redirect to cerr
-		delete logfile;
-
-		PTime now;
-		PFilePath fileName;
-
-		logfile = new PTextFile(logfilename, PFile::WriteOnly, PFile::MustExist);
-		if (logfile->IsOpen()) {
-			// Backup of log file
-			fileName = logfile->GetFilePath();
-			fileName.Replace(".", "." + now.AsString("yyyyMMdd_hhmmss") + ".");
-			logfile->Move(logfile->GetFilePath(),fileName);
-		}
-		delete logfile;
-		
-		logfile = new PTextFile( logfilename, PFile::WriteOnly, PFile::Create);
-		if (!logfile->IsOpen()) {
-			cerr << "Warning: could not open trace output file \""
-			     << fileName << '"' << endl;
-			delete logfile;
-			logfile = 0;
-			return;
-		}
-		logfile->SetPosition(logfile->GetLength());
-		PTrace::SetStream(logfile); // redirect to logfile
-	}
-	PTRACE(1, "GK\tTrace logging restarted.");
-}
-#endif
 
 
 /*
@@ -81,6 +44,17 @@ void ReopenLogFile()
  */
 
 PReadWriteMutex ConfigReloadMutex;
+
+#if PTRACING
+PTextFile* Gatekeeper::m_logFile = NULL;
+PFilePath Gatekeeper::m_logFilename;
+PMutex Gatekeeper::m_logFileMutex;
+int Gatekeeper::m_rotateInterval = -1;
+int Gatekeeper::m_rotateMinute = 0;
+int Gatekeeper::m_rotateHour = 0;
+int Gatekeeper::m_rotateDay = 0;
+GkTimer* Gatekeeper::m_rotateTimer = GkTimerManager::INVALID_HANDLE;
+#endif // PTRACING
 
 namespace { // keep the global objects private
 
@@ -94,6 +68,9 @@ PString pidfile("/var/run/gnugk.pid");
 
 void ShutdownHandler()
 {
+#if PTRACING
+	Gatekeeper::EnableLogFileRotation(false);
+#endif
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
@@ -105,8 +82,7 @@ void ShutdownHandler()
 	PTRACE(3, "GK\tdelete ok");
 
 #if PTRACING
-	PTrace::SetStream(&cerr); // redirect to cerr
-	delete logfile;
+	Gatekeeper::CloseLogFile();
 #endif
 }
 
@@ -133,11 +109,14 @@ bool CheckSectionName(PConfig *cfg)
 // or we get core dump
 void ExitGK()
 {
+#if PTRACING
+	Gatekeeper::EnableLogFileRotation(false);
+#endif
+
 	delete Toolkit::Instance();
 
 #if PTRACING
-	PTrace::SetStream(&cerr); // redirect to cerr
-	delete logfile;
+	Gatekeeper::CloseLogFile();
 #endif
 	exit(0);
 }
@@ -176,6 +155,8 @@ void ReloadHandler()
 
 	RasServer::Instance()->LoadConfig();
 
+	Gatekeeper::EnableLogFileRotation();
+	
 	ConfigReloadMutex.EndWrite();
 
 	/*
@@ -281,9 +262,6 @@ void UnixShutdownHandler(int sig)
 void UnixReloadHandler(int sig) // For HUP Signal
 {
 	PTRACE(1, "GK\tGatekeeper Hangup (signal " << sig << ")");
-#if PTRACING
-	ReopenLogFile();
-#endif
 	ReloadHandler();
 }
 
@@ -386,8 +364,11 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel);
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o')) {
-		logfilename = args.GetOptionString('o');
-		ReopenLogFile();
+		if (!SetLogFilename(args.GetOptionString('o'))) {
+			cerr << "Warning: could not open the log file \""
+			     << args.GetOptionString('o') << '"' << endl;
+			return FALSE;
+		}
 	}
 #endif
 	
@@ -480,6 +461,8 @@ void Gatekeeper::Main()
 	if (!InitConfig(args) || !InitHandlers(args))
 		ExitGK();
 
+	EnableLogFileRotation();
+	
 	PString welcome("OpenH323 Gatekeeper - The GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
@@ -558,3 +541,306 @@ void Gatekeeper::Main()
 #endif // WIN32
 }
 
+#if PTRACING
+namespace {
+const char* const logConfigSectionName = "Logfile";
+}
+
+const char* const Gatekeeper::m_intervalNames[] =
+{
+	"Hourly", "Daily", "Weekly", "Monthly"
+};
+
+void Gatekeeper::GetRotateInterval(
+	PConfig& cfg,
+	const PString& section
+	)
+{
+	PString s;
+	
+	if (m_rotateInterval == Hourly)
+		m_rotateMinute = cfg.GetInteger(section, "RotateTime", 59);
+	else {
+		s = cfg.GetString(section, "RotateTime", "00:59");
+		m_rotateHour = s.AsInteger();
+		m_rotateMinute = 0;
+		if (s.Find(':') != P_MAX_INDEX)
+			m_rotateMinute = s.Mid(s.Find(':') + 1).AsInteger();
+			
+		if (m_rotateHour < 0 || m_rotateHour > 23 || m_rotateMinute < 0
+			|| m_rotateMinute > 59) {
+			PTRACE(1, "GK\tInvalid log file RotateTime specified: " << s);
+			m_rotateMinute = 59;
+			m_rotateHour = 0;
+		}
+	}
+			
+	if (m_rotateInterval == Weekly)	{
+		s = cfg.GetString(section, "RotateDay", "Sun");
+		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
+			m_rotateDay = s.AsInteger();
+		} else {
+			std::map<PCaselessString, int> dayNames;
+			dayNames["sun"] = 0; dayNames["sunday"] = 0;
+			dayNames["mon"] = 1; dayNames["monday"] = 1;
+			dayNames["tue"] = 2; dayNames["tuesday"] = 2;
+			dayNames["wed"] = 3; dayNames["wednesday"] = 3;
+			dayNames["thu"] = 4; dayNames["thursday"] = 4;
+			dayNames["fri"] = 5; dayNames["friday"] = 5;
+			dayNames["sat"] = 6; dayNames["saturday"] = 6;
+			std::map<PCaselessString, int>::const_iterator i = dayNames.find(s);
+			m_rotateDay = (i != dayNames.end()) ? i->second : -1;
+		}
+		if (m_rotateDay < 0 || m_rotateDay > 6) {
+			PTRACE(1, "GK\tInvalid log file RotateDay specified: " << s);
+			m_rotateDay = 0;
+		}
+	} else if (m_rotateInterval == Monthly) {
+		m_rotateDay = cfg.GetInteger(section, "RotateDay", 1);
+		if (m_rotateDay < 1 || m_rotateDay > 31) {
+			PTRACE(1, "GK\tInvalid RotateDay specified: " 
+				<< cfg.GetString(section, "RotateDay", "")
+				);
+			m_rotateDay = 1;
+		}
+	}
+}
+
+void Gatekeeper::EnableLogFileRotation(
+	bool enable
+	)
+{
+	PWaitAndSignal lock(m_logFileMutex);
+	
+	if (m_rotateTimer != GkTimerManager::INVALID_HANDLE) {
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_rotateTimer);
+		m_rotateTimer = GkTimerManager::INVALID_HANDLE;
+	}
+	
+	if (!enable)
+		return;
+		
+	PConfig* const config = GkConfig();
+	// determine rotation type (by lines, by size, by time)	
+	const PString rotateCondition = config->GetString(
+		logConfigSectionName, "Rotate", ""
+		).Trim();
+	if (rotateCondition.IsEmpty())
+		return;
+		
+	for (int i = 0; i < RotationIntervalMax; i++)
+		if (strcasecmp(rotateCondition, m_intervalNames[i]) == 0)
+			m_rotateInterval = i;
+
+	if (m_rotateInterval < 0 || m_rotateInterval >= RotationIntervalMax) {
+		PTRACE(1, "GK\tUnsupported log file rotation method: " 
+			<< rotateCondition << " - rotation disabled"
+			);
+		return;
+	}
+
+	// time based rotation
+	GetRotateInterval(*config, logConfigSectionName);
+
+	// setup rotation timer in case of time based rotation
+	PTime now, rotateTime;
+			
+	switch (m_rotateInterval) 
+	{
+	case Hourly:
+		rotateTime = PTime(0, m_rotateMinute, now.GetHour(), now.GetDay(), 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		if (rotateTime <= now)
+			rotateTime += PTimeInterval(0, 0, 0, 1); // 1 hour
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			&Gatekeeper::RotateOnTimer, rotateTime, 60*60
+			);
+		PTRACE(5, "GK\tHourly log file rotation enabled (first "
+			"rotation sheduled at " << rotateTime
+			);
+		break;
+		
+	case Daily:
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(), 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		if (rotateTime <= now)
+			rotateTime += PTimeInterval(0, 0, 0, 0, 1); // 1 day
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24
+			);
+		PTRACE(5, "GK\tDaily rotation enabled (first rotation sheduled at " 
+			<< rotateTime
+			);
+		break;
+		
+	case Weekly:
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(), 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		if (rotateTime.GetDayOfWeek() < m_rotateDay)
+			rotateTime += PTimeInterval(0, 0, 0, 0,
+				m_rotateDay - rotateTime.GetDayOfWeek() /* days */
+				);
+		else if (rotateTime.GetDayOfWeek() > m_rotateDay)
+			rotateTime -= PTimeInterval(0, 0, 0, 0,
+				rotateTime.GetDayOfWeek() - m_rotateDay /* days */
+				);
+		if (rotateTime <= now)
+			rotateTime += PTimeInterval(0, 0, 0, 0, 7); // 1 week
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24*7
+			);
+		PTRACE(5, "GK\tWeekly rotation enabled (first rotation sheduled at " 
+			<< rotateTime
+			);
+		break;
+		
+	case Monthly:
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1, 
+			now.GetMonth(), now.GetYear(), now.GetTimeZone()
+			);
+		rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
+		while (rotateTime.GetMonth() != now.GetMonth())				
+			rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
+
+		if (rotateTime <= now) {
+			rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1, 
+				now.GetMonth() + (now.GetMonth() == 12 ? -11 : 1), 
+				now.GetYear() + (now.GetMonth() == 12 ? 1 : 0), 
+				now.GetTimeZone()
+				);
+			const int month = rotateTime.GetMonth();
+			rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
+			while (rotateTime.GetMonth() != month)				
+				rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
+		}
+					
+		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			&Gatekeeper::RotateOnTimer, rotateTime
+			);
+		PTRACE(5, "GK\tMonthly rotation enabled (first rotation sheduled at " 
+			<< rotateTime
+			);
+		break;
+	}
+}
+
+void Gatekeeper::RotateOnTimer(
+	GkTimer* timer
+	)
+{
+	m_logFileMutex.Wait();
+	if (m_rotateInterval == Monthly) {
+		// setup next time for one-shot timer
+		const PTime& rotateTime = timer->GetExpirationTime();
+		PTime newRotateTime(rotateTime.GetSecond(), rotateTime.GetMinute(),
+			rotateTime.GetHour(), 1, 
+			rotateTime.GetMonth() < 12 ? rotateTime.GetMonth() + 1 : 1, 
+			rotateTime.GetMonth() < 12 ? rotateTime.GetYear() : rotateTime.GetYear() + 1,
+			rotateTime.GetTimeZone()
+			);
+	
+		newRotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
+		
+		const int month = newRotateTime.GetMonth();
+		while (newRotateTime.GetMonth() != month)				
+			newRotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
+		
+		timer->SetExpirationTime(newRotateTime);
+		timer->SetFired(false);
+	}	
+	m_logFileMutex.Signal();
+	RotateLogFile();
+}
+
+bool Gatekeeper::SetLogFilename(
+	const PString& filename
+	)
+{
+	if (filename.IsEmpty() || !PFilePath::IsValid(filename))
+		return false;
+		
+	PWaitAndSignal lock(m_logFileMutex);
+	if (!m_logFilename && m_logFile != NULL && m_logFile->IsOpen()
+		&& m_logFilename == filename)
+		return true;
+
+	if (m_logFile) {
+		PTRACE(1, "GK\tLogging redirected to the file '" << filename << '\'');
+		EnableLogFileRotation(false);
+	}
+	
+	PTrace::SetStream(&cerr);
+	
+	delete m_logFile;
+	
+	m_logFilename = filename;
+	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
+	if (!m_logFile->IsOpen()) {
+		delete m_logFile;
+		m_logFile = NULL;
+		return false;
+	}
+	m_logFile->SetPosition(0, PFile::End);
+	PTrace::SetStream(m_logFile);
+	return true;	
+}
+		
+bool Gatekeeper::RotateLogFile()
+{
+	PWaitAndSignal lock(m_logFileMutex);
+
+	if (m_logFile) {
+		PTRACE(1, "GK\tLogging closed (log file rotation)");
+		PTrace::SetStream(&cerr); // redirect to cerr
+		delete m_logFile;
+		m_logFile = NULL;
+	}
+
+	if (m_logFilename.IsEmpty())
+		return false;
+	
+	PFile* const oldLogFile = new PTextFile(m_logFilename, PFile::WriteOnly, 
+		PFile::MustExist
+		);
+	if (oldLogFile->IsOpen()) {
+		// Backup of log file
+		PFilePath filename = oldLogFile->GetFilePath();
+		const PString timeStr = PTime().AsString("yyyyMMdd_hhmmss");
+		const PINDEX lastDot = filename.FindLast('.');
+		if (lastDot != P_MAX_INDEX)
+			filename.Replace(".", "." + timeStr + ".", FALSE, lastDot);
+		else
+			filename += "." + timeStr;
+		oldLogFile->Move(oldLogFile->GetFilePath(), filename);
+	}
+	delete oldLogFile;
+		
+	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
+	if (!m_logFile->IsOpen()) {
+		cerr << "Warning: could not open the log file \""
+		     << m_logFilename << "\" after rotation" << endl;
+		delete m_logFile;
+		m_logFile = NULL;
+		return false;
+	}
+
+	m_logFile->SetPosition(0, PFile::End);
+	PTrace::SetStream(m_logFile);
+	PTRACE(1, "GK\tLogging restarted.");
+	return true;
+}
+	
+void Gatekeeper::CloseLogFile()
+{
+	PWaitAndSignal lock(m_logFileMutex);
+
+	if (m_logFile)
+		PTRACE(1, "GK\tLogging closed");
+	PTrace::SetStream(&cerr);
+	delete m_logFile;
+	m_logFile = NULL;
+}
+#endif // PTRACING

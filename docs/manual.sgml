@@ -114,6 +114,10 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Log file rotation, new <tt/LogFile/ config section, new <tt/setlog/ 
+and <tt/rotatelog/ status interface commands.
+
+<item>
 Do not include an invalid access token (with null object identifier) 
 in LCF to prevent interoperability problems.
 
@@ -551,10 +555,9 @@ H.235 authentication and MySQL backend.
 
 Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done some great work on Radius support and other improvements.
 
-A team at
-<url url="http://www.mediaways.net/" name="mediaWays">
-is working on LDAP database-subsystem, overlapped sending
-and advanced routing mechanisms.
+<!-- A team at url url="http://www.mediaways.net/" name="mediaWays" -->
+<!-- is working on LDAP database-subsystem, overlapped sending -->
+<!-- and advanced routing mechanisms. -->
 
 The initial version of the gatekeeper has been developed by
 Xiang Ping Chen, Joe Metzger and Rajat Todi.
@@ -1142,6 +1145,55 @@ Time in miliseconds for read timeout on status channel.
 Default: <tt/5000/
 <p>
 Time in miliseconds for write timeout on status channel.
+</itemize>
+
+<sect2>Section &lsqb;LogFile&rsqb;
+<label id="logfile">
+<p>
+This section defines log file related parameters. Currently it allows
+users to specify log file rotation options.
+
+<itemize>
+<item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
+Default: <tt>N/A</tt>
+<p>
+If set, the log file will be rotated based on this setting. Hourly rotation
+enables rotation once per hour, daily - once per day, weekly - once per week
+and monthly - once per month. An exact rotation moment is determined by a combination
+of <tt/RotateDay/ and <tt/RotateTime/ variables. During rotation, an existing 
+file is renamed to CURRENT_FILENAME.YYYYMMDD-HHMMSS, where YYYYMMDD-HHMMSS 
+is replaced with the current timestamp, and new lines are logged to an empty 
+file. To disable the rotation, do not set <tt/Rotate/ parameter or set it to 0.
+
+<descrip>
+<tag/Example 1 - rotate every hour (00:45, 01:45, ..., 23:45):/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Hourly</tt><newline>
+<tt>RotateTime=45</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 2 - rotate every day at 23:00 (11PM):/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Daily</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 3 - rotate every Sunday at 00:59:/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Weekly</tt><newline>
+<tt>RotateDay=Sun</tt><newline>
+<tt>RotateTime=00:59</tt><newline>
+</descrip>
+
+<descrip>
+<tag/Example 4 - rotate on the last day of each month:/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Monthly</tt><newline>
+<tt>RotateDay=31</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
 </itemize>
 
 <sect2>Section &lsqb;RoutedMode&rsqb;

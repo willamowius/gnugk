@@ -31,6 +31,7 @@
 #include "RasSrv.h"
 #include "Routing.h"
 #include "rwlock.h"
+#include "gk.h"
 #include "GkStatus.h"
 
 
@@ -662,6 +663,10 @@ void GkStatus::OnStart()
 	m_commands["quit"] = e_Exit;
 	m_commands["q"] = e_Exit;
 	m_commands["trace"] = e_Trace;
+#if PTRACING
+	m_commands["rotatelog"] = e_RotateLog;
+	m_commands["setlog"] = e_SetLogFilename;
+#endif
 }
 
 void GkStatus::ReadSocket(
@@ -1180,6 +1185,26 @@ void StatusClient::ExecCommand(
 		}
 		WriteString("Output trace level is " + PString(m_traceLevel) + "\r\n");
 		break;
+
+#if PTRACING
+	case GkStatus::e_RotateLog:
+	    if (Gatekeeper::RotateLogFile())
+			WriteString("Log file rotation succeeded\r\n");
+		else						
+			WriteString("Log file rotation failed\r\n");
+	    break;
+				
+	case GkStatus::e_SetLogFilename:
+		if (args.GetSize() == 2) {
+			if (Gatekeeper::SetLogFilename(args[1])) {
+				WriteString("Logging to the file '" + args[1] + "'\r\n");
+			} else						
+				WriteString("Failed to open the log file'" + args[1] + "'\r\n");
+		} else
+			WriteString("Syntax Error: setlogfilename <logfilepath>\r\n");
+		break;				
+#endif
+
 	default:
 		// commmand not recognized
 		WriteString("Error: Unknown command " + cmd + "\r\n");

@@ -129,7 +129,12 @@ public:
 		e_Shutdown,                    /// Shutdown the program
 		e_RouteToAlias,                /// Route a call upon ARQ to a specified alias eg. a free CTI agent
 		e_RouteReject,                 /// Reject to Route a call upon ARQ (send ARJ)
-		e_Trace                        /// change trace level for status interface output
+		e_Trace,                       /// change trace level for status interface output
+#if PTRACING
+		e_RotateLog,                   /// Force log file rotation
+		e_SetLogFilename,              /// Change log file location
+#endif
+		e_numCommands
 		/// Number of different strings
 	};
 

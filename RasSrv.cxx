@@ -1184,17 +1184,6 @@ void RasServer::HouseKeeping()
 			gkClient->CheckRegistration();
 
 			Toolkit::Instance()->GetTimerManager()->CheckTimers();
-
-			// Automatic daily logrotation of files
-#if PTRACING
-      			// Check if it's a new day, then rotate
-			PTime now;
-
-			if ( now.GetDay() != startUp.GetDay() ) {
-        			ReopenLogFile();
-				startUp = PTime::PTime();
-			}
-#endif
 		}
 }
 
