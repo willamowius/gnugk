@@ -1,5 +1,6 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- removed Makefile to force users running configure script before compilation
 - added per gateway E.164 rewriting of dialedDigits in addition to
   global E.164 rewriting
 
