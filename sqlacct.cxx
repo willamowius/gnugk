@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2004/12/15 14:43:25  zvision
+ * Shutdown the gatekeeper on SQL auth/acct module config errors.
+ * Thanks to Mikko Oilinki.
+ *
  * Revision 1.4  2004/11/15 23:57:43  zvision
  * Ability to choose between the original and the rewritten dialed number
  *
@@ -226,7 +230,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		return Next;
 		
 	if (!call) {
-		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event" << evt);
+		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
 	
