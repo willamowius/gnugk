@@ -86,7 +86,7 @@ public:
 class LDAPCtrl {
 public:
   LDAPCtrl(LDAPAttributeNamesClass *, // the Attribute names
-	   struct timeval *,	// the devault timeout for *_st operations
+	   struct timeval ,	// the devault timeout for *_st operations
 	   PString &,		// Name of the LDAP Server
 	   PString &,		// Distinguished Name (DN) from where to search
 	   PString &,		// UserDN of acting user
@@ -105,7 +105,7 @@ protected:
   // keep the connection details. At least they come handy during a
   // debugging session
   LDAPAttributeNamesClass * AttributeNames; // names of the LDAP attributes
-  struct timeval * timeout;	// timeout for *_st operations
+  struct timeval timeout;	// timeout for *_st operations
   PString ServerName;		// Name of the LDAP Server
   int ServerPort;		// Port of the LDAP Server
   PString SearchBaseDN;		// Distinguished Name (DN) from where to search

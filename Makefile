@@ -49,6 +49,9 @@ HAVE_LDAP1823_LIBS = 1
 endif
 
 # add test for HAS_LEVEL_TWO_LDAPAPI here
+ifneq (,$(wildcard ldap/include/ldapapi.h))
+HAS_LEVEL_TWO_LDAPAPI=1
+endif
 
 # This is needed for a locally used encoding lib.
 ifdef HAS_MWBB1
@@ -75,10 +78,92 @@ export LD_RUN_PATH
 endif				# HAS_MWBB1
 
 ifdef HAS_LEVEL_TWO_LDAPAPI
-SOURCES         += ldapapi.cxx
+SOURCES         += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
+		LDAP_SFilter.cxx  delete.cxx   init.cxx      options.cxx \
+		abandon.cxx       free.cxx     parse.cxx     modify.cxx \
+		add.cxx           getattr.cxx  result.cxx    getresults.cxx \
+		bind.cxx          getdn.cxx    messages.cxx  search.cxx ldaplink.cxx
+
+LDAP_SBindRequest_authentication.cxx: ldap/src/LDAP_SBindRequest_authentication.cxx LDAP_SBindRequest_authentication.h
+	cp ldap/src/LDAP_SBindRequest_authentication.cxx .
+
+LDAP_SBindRequest_authentication.h: ldap/src/LDAP_SBindRequest_authentication.h
+	cp ldap/src/LDAP_SBindRequest_authentication.h .
+
+ldap-int.h: ldap/src/ldap-int.h
+	cp ldap/src/ldap-int.h .
+
+ldapapi.h: ldap/include/ldapapi.h ber.h ldap_cdefs.h
+	cp ldap/include/ldapapi.h .
+
+ber.h: ldap/include/ber.h
+	cp ldap/include/ber.h .
+
+ldap_cdefs.h: ldap/include/ldap_cdefs.h
+	cp ldap/include/ldap_cdefs.h .
+
+compare.cxx: ldap/src/compare.cxx ldap-int.h ldapapi.h
+	cp ldap/src/compare.cxx .
+
+LDAP_SFilter.cxx: ldap/src/LDAP_SFilter.cxx LDAP_SFilter.h
+	cp ldap/src/LDAP_SFilter.cxx .
+
+LDAP_SFilter.h: ldap/src/LDAP_SFilter.h
+	cp ldap/src/LDAP_SFilter.h .
+
+delete.cxx: ldap/src/delete.cxx ldap-int.h ldapapi.h
+	cp ldap/src/delete.cxx .
+
+init.cxx: ldap/src/init.cxx ldap-int.h ldapapi.h
+	cp ldap/src/init.cxx .
+
+options.cxx: ldap/src/options.cxx ldap-int.h ldapapi.h
+	cp ldap/src/options.cxx .
+
+abandon.cxx: ldap/src/abandon.cxx ldap-int.h ldapapi.h
+	cp ldap/src/abandon.cxx .
+
+free.cxx: ldap/src/free.cxx ldap-int.h ldapapi.h
+	cp ldap/src/free.cxx .
+
+parse.cxx: ldap/src/parse.cxx ldap-int.h ldapapi.h
+	cp ldap/src/parse.cxx .
+
+modify.cxx: ldap/src/modify.cxx ldap-int.h ldapapi.h
+	cp ldap/src/modify.cxx .
+
+add.cxx: ldap/src/add.cxx ldap-int.h ldapapi.h
+	cp ldap/src/add.cxx .
+
+getattr.cxx: ldap/src/getattr.cxx ldap-int.h ldapapi.h
+	cp ldap/src/getattr.cxx .
+
+ldaptest.cxx: ldap/src/ldaptest.cxx ldap-int.h ldapapi.h
+	cp ldap/src/ldaptest.cxx .
+
+result.cxx: ldap/src/result.cxx ldap-int.h ldapapi.h
+	cp ldap/src/result.cxx .
+
+bind.cxx: ldap/src/bind.cxx ldap-int.h ldapapi.h
+	cp ldap/src/bind.cxx .
+
+getdn.cxx: ldap/src/getdn.cxx ldap-int.h ldapapi.h
+	cp ldap/src/getdn.cxx .
+
+messages.cxx: ldap/src/messages.cxx ldap-int.h ldapapi.h
+	cp ldap/src/messages.cxx .
+
+search.cxx: ldap/src/search.cxx ldap-int.h ldapapi.h
+	cp ldap/src/search.cxx .
+
+getresults.cxx: ldap/src/getresults.cxx ldap-int.h ldapapi.h
+	cp ldap/src/getresults.cxx .
+
 HAS_LDAP	= 1
-STDCCFLAGS	+= -D"HAS_LDAP=$(HAS_LDAP)" \
-                   -D"HAS_LEVEL_TWO_LDAPAPI=$(HAS_LEVEL_TWO_LDAPAPI)" 
+#STDCCFLAGS_stub := $(STDCCFLAGS)
+STDCCFLAGS	+= -I./ -D"HAS_LDAP=$(HAS_LDAP)" \
+                   -D"HAS_LEVEL_TWO_LDAPAPI=$(HAS_LEVEL_TWO_LDAPAPI)" -D"LDAPVERSION=2"
+
 else
 ifdef HAVE_LDAP1823_HDRS
 ifdef HAVE_LDAP1823_LIBS

@@ -556,7 +556,7 @@ LDAPAuth::Initialize(PConfig * cfg) // 'real', private constructor
   unsigned int sizelimit = config->GetString(ldap_auth_sec, "sizelimit", "0").AsUnsigned();
   unsigned int timelimit = config->GetString(ldap_auth_sec, "timelimit", "0").AsUnsigned();
 
-  LDAPConn = new LDAPCtrl(&AN, &default_timeout, ServerName, 
+  LDAPConn = new LDAPCtrl(&AN, default_timeout, ServerName, 
 			  SearchBaseDN, BindUserDN, BindUserPW, 
 			  sizelimit, timelimit, ServerPort);
 
@@ -574,6 +574,9 @@ PString LDAPAuth::GetPassword(PString & id)
   q.userH323ID = id;
   using namespace lctn;
   // FIXME: (?) always take first value for the H245PassWord attribute
+  LDAPAnswer *answer=LDAPConn->DirectoryUserLookup(q);
+  if(answer->status!=0) // LDAP_SUCCESS??
+    return PString(""); // FIXME: If a user HAS an ampty password?
   return (LDAPConn->DirectoryUserLookup(q)->AV[LDAPAttrTags[H245PassWord]])[0]; 
 }
 

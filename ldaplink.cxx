@@ -98,7 +98,7 @@ LDAPAnswer::complete(void)
 // CLASS: LDAPCtrl
 
 LDAPCtrl::LDAPCtrl(LDAPAttributeNamesClass * AttrNames,
-		   struct timeval * default_timeout,
+		   struct timeval default_timeout,
 		   PString & ServerName,
 		   PString & SearchBaseDN,
 		   PString & BindUserDN,
@@ -185,7 +185,8 @@ LDAPCtrl::Initialize(void)
     ldap = ld;
   }
 
-#if ((LDAP_API_VERSION >= 2004) && defined(LDAP_API_FEATURE_X_OPENLDAP))
+#if (((LDAP_API_VERSION >= 2004) && defined(LDAP_API_FEATURE_X_OPENLDAP)) || \
+ defined (HAS_LEVEL_TWO_LDAPAPI))
   // OpenLDAP API 2000+draft revision provides better controlled access
   int opt_ret = LDAP_OPT_SUCCESS;
   if(LDAP_OPT_SUCCESS != 
@@ -293,27 +294,37 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
 		 LDAPAttrTags[aliasH323ID],// attribute name (H323ID)
 		 (const char *)p.userH323ID // requested value (H323ID)
 		 );
-  DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ")");
+//   DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ", " << timeout.tv_sec << ":" << 
+// 	     timeout.tv_usec << ")");
   unsigned int retry_count = 0;
   do {
+    struct timeval * tm = new struct timeval;
+    memcpy(tm, &timeout, sizeof(struct timeval));
+    DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ", " << timeout.tv_sec << ":" << 
+	       timeout.tv_usec << ")");
+  
+    // The linux-implementation of select(2) will change the given value of
+    // struct timeval *. This syscall is used within ldap_search.
     if (LDAP_SUCCESS == 
 	(ldap_ret = ldap_search_st(ldap, SearchBaseDN, LDAP_SCOPE_SUBTREE, 
 				   filter, (char **)attrs, attrsonly,
-				   timeout, &res))) {
+				   tm, &res))) {
       DEBUGPRINT("ldap_search_st: OK " << PString(ldap_err2string(ldap_ret)));
     } else {
+      DEBUGPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
       ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
       result->status = ldap_ret;
       if(LDAP_UNAVAILABLE == ldap_ret) known_to_be_bound = false;
       sleep((int)pow(2.0,retry_count)); // exponential back off
       Bind();			// rebind 
     }
-  } while((LDAP_SUCCESS != ldap_ret)||(retry_count++ < 4));
+    delete tm;
+  } while((LDAP_SUCCESS != ldap_ret)&&(retry_count++ < 4));
 
   // analyze answer
-  if (0 > (ldap_ret = ldap_count_entries(ldap, res))) {
+  if (0 >= (ldap_ret = ldap_count_entries(ldap, res))) {
     ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
-    result->status = ldap_ret;
+    result->status = (0==ldap_ret) ? (-1) : ldap_ret;
     return result;
   } else {
     DEBUGPRINT("ldap_search: " << ldap_ret << " results");
