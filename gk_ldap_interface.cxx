@@ -22,7 +22,7 @@
 //
 
 
-#include <gk_ldap_interface.h>
+#include "gk_ldap_interface.h"
 #include <ptlib.h>
 #include <string.h>
 
