@@ -183,7 +183,7 @@ protected:
 
 	template <class Listener> void SetListener(WORD nport, WORD & oport, Listener *& listener, Listener *(GkInterface::*creator)())
 	{
-		if (!oport || oport != nport) {
+		if (!listener || !oport || oport != nport) {
 			oport = nport;
 			if (listener)
 				listener->Close();
