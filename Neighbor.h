@@ -1,169 +1,140 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
-// Copyright (C) 2002 Nils Bokermann <Nils.Bokermann@mediaWays.net>
+//////////////////////////////////////////////////////////////////
 //
-// PURPOSE OF THIS FILE: Neighboring features.
+// New Neighboring System for GNU Gatekeeper
 //
-// - Automatic Version Information via RCS:
-//   $Id$
-//   $Source$
+// Copyright (c) Citron Network Inc. 2002-2003
 //
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-//
+// This work is published under the GNU Public License (GPL)
+// see file COPYING for details.
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
+// initial author: Chih-Wei Huang <cwhuang@linux.org.tw>
+// initial version: 05/30/2003
+//
+//////////////////////////////////////////////////////////////////
 
 #ifndef NEIGHBOR_H
 #define NEIGHBOR_H "@(#) $Id$"
 
-#include "RasListener.h"
+#include <list>
+#include <ptlib.h>
+#include <ptlib/sockets.h>
+#include "Routing.h"
 
-extern const char *NeighborSection;
-extern const char *LRQFeaturesSection;
 
-class PendingList {
-protected:
-       class PendingARQ : public PObject{
-	       PCLASSINFO(PendingARQ, PObject);
-       public:
-               PendingARQ(int, const H225_AdmissionRequest &, const endptr &, int);
+class H225_RasMessage;
+class H225_AdmissionRequest;
+class H225_LocationRequest;
+class H225_Setup_UUIE;
+class H225_Facility_UUIE;
+class H225_TransportAddress;
+class H225_AliasAddress;
+class H225_ArrayOf_AliasAddress;
+class H225_CryptoH323Token;
 
-               bool DoACF(const endptr &) const;
-               bool DoARJ() const;
-               bool CompSeq(int seqNum) const;
-               bool IsStaled(int) const;
-               void GetRequest(H225_AdmissionRequest &, endptr &) const;
+class RasMsg;
+class RasServer;
 
-               int DecCount();
+namespace Neighbors {
 
-       private:
-               int m_seqNum;
-               H225_AdmissionRequest m_arq;
-               endptr m_reqEP;
-               int m_Count;
-               PTime m_reqTime;
-       };
 
-public:
-	PendingList(int ttl) : pendingTTL(ttl) {}
-	~PendingList();
+using Routing::AdmissionRequest;
+using Routing::LocationRequest;
+using Routing::SetupRequest;
+using Routing::FacilityRequest;
 
-	void Check();
-	PINDEX FindBySeqNum(int);
-	void RemoveAt(PINDEX i);
 
-protected:
-	int pendingTTL;
-	PLIST(ARQList, PendingARQ);
-        ARQList arqList;
-	PMutex usedLock;
+struct PrefixInfo {
+	PrefixInfo() {}
+	PrefixInfo(short int l, short int p) : m_length(l), m_priority(p) {}
+	operator bool() const { return m_length >= 0; }
+	bool operator<(PrefixInfo) const;
 
-        static void delete_arq(PendingARQ *p) { delete p; }
+	short int m_length;   // length of matched prefix
+	short int m_priority;
 };
 
-class NBPendingList : public PendingList {
-public:
-	NBPendingList(int ttl) : PendingList(ttl) {}
-	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP);
-	void ProcessLCF(const H225_RasMessage & obj_ras);
-	void ProcessLRJ(const H225_RasMessage & obj_ras);
-	int SendLRQ(int seqNumber, H225_AdmissionRequest arq);
-
-};
-
-class NeighborList {
-	class Neighbor {
-	public:
-		Neighbor(const PString &, const PString &);
-		bool SendLRQ(int seqNum, const H225_AdmissionRequest &) const;
-		bool ForwardLRQ(PIPSocket::Address, const H225_LocationRequest &) const;
-		bool CheckIP(PIPSocket::Address ip) const;
-		PString GetPassword() const;
-
-	private:
-		bool InternalSendLRQ(int seqNum, const H225_AdmissionRequest &) const;
-		bool InternalForwardLRQ(const H225_LocationRequest &) const;
-		bool ResolveName(PIPSocket::Address & ip) const;
-
-		PString m_gkid;
-		PString m_name;
-		PString m_prefix;
-		PString m_password;
-		bool m_dynamic;
-		mutable PIPSocket::Address m_ip;
-
-		WORD m_port;
-	};
-
-public:
-	class NeighborPasswordAuth : public GkAuthenticator {
-	public:
-		NeighborPasswordAuth(PConfig *cfg, const char *n) : GkAuthenticator(cfg, n) {}
-
-	private:
-		virtual int Check(const H225_GatekeeperRequest &, unsigned &)  { return e_next; }
-		virtual int Check(const H225_RegistrationRequest &, unsigned &) { return e_next; }
-		virtual int Check(const H225_UnregistrationRequest &, unsigned &) { return e_next; }
-		virtual int Check(const H225_AdmissionRequest &, unsigned &) { return e_next; }
-		virtual int Check(const H225_BandwidthRequest &, unsigned &) { return e_next; }
-		virtual int Check(const H225_DisengageRequest &, unsigned &) { return e_next; }
-		virtual int Check(const H225_LocationRequest &, unsigned &);
-		virtual int Check(const H225_InfoRequest &, unsigned &) { return e_next; }
-
-		virtual PString GetPassword(const PString &);
-	};
-
-	typedef std::list<Neighbor>::iterator iterator;
-	typedef std::list<Neighbor>::const_iterator const_iterator;
-
-	NeighborList(PConfig *);
-	int SendLRQ(int seqNum, const H225_AdmissionRequest &);
-	int ForwardLRQ(PIPSocket::Address, const H225_LocationRequest &);
-	bool CheckIP(PIPSocket::Address ip) const;
-	// only valid after calling CheckIP
-	PString GetPassword() const { return tmppasswd; }
-	void InsertSiblingIP(PIPSocket::Address ip) { siblingIPs.insert(ip); }
-
-	class InvalidNeighbor {};
-
-private:
-	list<Neighbor> nbList;
-	set<PIPSocket::Address> siblingIPs;
-	mutable PString tmppasswd;
-};
+inline bool PrefixInfo::operator<(PrefixInfo o) const
+{
+	return m_length > o.m_length || (m_length == o.m_length && m_priority < o.m_priority);
+}
 
 class Neighbor {
 public:
+	typedef Neighbor Base;	// for SimpleCreator template 
+
 	Neighbor();
-	virtual BOOL InsertARQ(const H225_AdmissionRequest &arq, endptr RequestingEP);
-	virtual void InsertSiblingIP(PIPSocket::Address &ipaddr);
-	virtual BOOL CheckIP(PIPSocket::Address addr);
-	virtual BOOL ForwardLRQ(PIPSocket::Address addr, H225_LocationRequest lrq);
-	virtual PString GetPassword();
-	virtual int SendLRQ(int seqnum, const H225_AdmissionRequest &arq );
-	virtual void ProcessLCF(const H225_RasMessage & pdu);
-	virtual void ProcessLRJ(const H225_RasMessage & pdu);
+	virtual ~Neighbor();
+
+	bool SendLRQ(H225_RasMessage &);
+	bool CheckReply(RasMsg *) const;
+	bool IsAcceptable(RasMsg *ras) const;
+	bool IsFrom(const PIPSocket::Address *ip) const { return GetIP() == *ip; }
+	bool ForwardResponse() const { return m_forwardResponse; }
+	int ForwardLRQ() const { return m_forwardto; }
+	PString GetId() const { return m_id; }
+	PIPSocket::Address GetIP() const;
+	H225_LocationRequest & BuildLRQ(H225_RasMessage &, WORD, const H225_ArrayOf_AliasAddress &);
+
+	// new virtual functions
+
+	// the real constructor, get profile of this neighbor
+	virtual bool SetProfile(const PString &, const PString &);
+
+	// get PrefixInfo for a given aliases
+	// if an alias is matched, set dest to the alias
+	virtual PrefixInfo GetPrefixInfo(const H225_ArrayOf_AliasAddress &, H225_ArrayOf_AliasAddress & dest);
+
+	// callbacks before sending LRQ
+	// LRQ will not be sent if false is returned
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &);
 
 protected:
-	virtual ~Neighbor();
-	friend void Toolkit::delete_neighbor();
+	void SetForwardedInfo(const PString &);
+	
+	typedef std::map<PString, int> Prefixes;
+
+	RasServer *m_rasSrv;
+	PString m_id, m_gkid, m_password, m_name;
+	mutable PIPSocket::Address m_ip;
+	mutable WORD m_port;
+	WORD m_forwardHopCount;
+	bool m_dynamic;
+	bool m_acceptForwarded;
+	bool m_forwardResponse;
+	int m_forwardto;
+	Prefixes m_sendPrefixes;
+	PStringArray m_acceptPrefixes;
+};
+
+class NeighborList {
+public:
+	typedef std::list<Neighbor *> List;
+
+	NeighborList();
+	~NeighborList();
+
+	void OnReload();
+
+	bool CheckLRQ(RasMsg *) const;
+	bool CheckIP(const PIPSocket::Address &) const;
+
+	operator List & () { return m_neighbors; }
+	operator const List & () const { return m_neighbors; }
 
 private:
-	NBPendingList *pending;
-	NeighborList *neighborGKs;
+	List m_neighbors;
 };
 
 
-#endif /* _NEIGHBOR_H */
+H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress &, const PIPSocket::Address &);
+bool DecodeAccessToken(const H225_CryptoH323Token &, const PIPSocket::Address &, H225_TransportAddress &);
+
+
+} // end of namespace Neighbors
+
+#endif // NEIGHBOR_H

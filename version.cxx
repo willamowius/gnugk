@@ -1,25 +1,15 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
-// Copyright (C) 2003 Nils.Bokermann@mediaways.net
+//////////////////////////////////////////////////////////////////
 //
 // PURPOSE OF THIS FILE: Give version info
 //
-// - Automatic Version Information via RCS:
-//   $Id$
-//   $Source$
+// Copyright (C) 2003 Nils.Bokermann@mediaways.net
 //
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
+// This work is published under the GNU Public License (GPL)
+// see file COPYING for details.
+// We also explicitely grant the right to link this code
+// with the OpenH323 library.
 //
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+//////////////////////////////////////////////////////////////////
 
 #include "version.h"
 #include "Toolkit.h"
@@ -39,14 +29,13 @@ static const char vcHid[] = GNUGK_VERSION_H;
 #define PTHREADS_MARK_STRING "0"
 #endif
 
-const PString
-Toolkit::GKVersion()
+const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
 		       "Gatekeeper(%s) Version(%s) Ext(pthreads="
 		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
-		       (const unsigned char*)(PProcess::Current().GetVersion(TRUE)),
+		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
 		       __DATE__, __TIME__,
 		       (const unsigned char*)(PProcess::GetOSName()),
 		       (const unsigned char*)(PProcess::GetOSHardware()),
