@@ -980,6 +980,7 @@ void RasServer::Run()
 	RasPDU<H225_LocationReject>::Creator LRJCreator;
 	RasPDU<H225_InfoRequest>::Creator IRQCreator;
 	RasPDU<H225_InfoRequestResponse>::Creator IRRCreator;
+	RasPDU<H225_UnknownMessageResponse>::Creator UMRCreator;
 	RasPDU<H225_RequestInProgress>::Creator RIPCreator;
 	RasPDU<H225_ResourcesAvailableIndicate>::Creator RAICreator;
 	RasPDU<H225_ServiceControlIndication>::Creator SCICreator;
