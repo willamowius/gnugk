@@ -143,7 +143,7 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 							DBAttributeValueClass::iterator h323id = (iterDN->second).find(PString(PString(GkDatabase::Instance()->attrNameAsString(H323ID))));
 							DBTypeEnum d;
 							PString h = h323id->second[0];
-							calledProfile.setIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
+							calledProfile.SetIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
 						// if no full match is found up to now and
 						// LDAP entry is prefix of dialed number
 						} else if (!fullMatch && telno == aliasStr.Left(telno.GetLength())) {
@@ -152,12 +152,12 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 							  << alias << " matches endpoint "
 							  << iterDN->first
 							  << " (gateway found)" << ANSI::OFF);
-							if(!calledProfile.isGK()) {
+							if(!calledProfile.IsGK()) {
 								using namespace dctn;
 								DBAttributeValueClass::iterator h323id = (iterDN->second).find(PString(PString(GkDatabase::Instance()->attrNameAsString(H323ID))));
 								DBTypeEnum d;
 								PString h = h323id->second[0];
-								calledProfile.setIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
+								calledProfile.SetIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
 							}
 						// dialed number is prefix of LDAP entry
 						} else {
