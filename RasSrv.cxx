@@ -795,6 +795,12 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			H225_TransportAddress_ipAddress & ip = SignalAdr;
 			PIPSocket::Address ipaddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 			validaddress = (rx_addr == ipaddr);
+
+		        const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
+		        if (!SkipForwards)
+               			if (SkipForwards.Find(rx_addr.AsString()) != P_MAX_INDEX)
+					validaddress = true;
+
 			if (!validaddress && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
 				validaddress = nated = true;
 		}
