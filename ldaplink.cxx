@@ -281,6 +281,7 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
   while((iter != AttributeNames->end()) && (MAX_ATTR_NO >= pos)) {
     // This cast is directly from hell, but pwlib is not nice to C APIs
     attrs[pos++] = (const char *)((*iter).second) ;
+    iter++;
   }
   attrs[pos] = NULL;		// C construct: array of unknown size 
                                 // terminated by NULL-pointer 
@@ -288,10 +289,10 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
   int attrsonly = 0;		/* 0: attr&value; 1: attr */
   PString filter;
   filter.sprintf("(|(%s=%s)(%s=%s))", // RFC 1558 conform template
-		 LDAPAttrTags[H323ID], // attribute name (H323ID)
+		 (const char *)(*AttributeNames)[LDAPAttrTags[H323ID]], // attribute name (H323ID)
 		 (const char *)p.userH323ID, // requested value(H323ID)
 		 // possible alternative
-		 LDAPAttrTags[aliasH323ID],// attribute name (H323ID)
+		 (const char *)(*AttributeNames)[LDAPAttrTags[aliasH323ID]],// attribute name (H323ID)
 		 (const char *)p.userH323ID // requested value (H323ID)
 		 );
 //   DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ", " << timeout.tv_sec << ":" << 

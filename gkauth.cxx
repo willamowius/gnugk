@@ -575,10 +575,12 @@ PString LDAPAuth::GetPassword(PString & id)
   using namespace lctn;
   // FIXME: (?) always take first value for the H245PassWord attribute
   LDAPAnswer *answer=LDAPConn->DirectoryUserLookup(q);
-  if(answer->status!=0) // LDAP_SUCCESS??
-    return PString(""); // FIXME: If a user HAS an ampty password?
-  return (LDAPConn->DirectoryUserLookup(q)->AV[LDAPAttrTags[H245PassWord]])[0]; 
-}
+  if(answer->status==0) { // LDAP_SUCCESS??
+    if(answer->AV.count(AN[LDAPAttrTags[H245PassWord]])>0)
+      return (answer->AV[AN[LDAPAttrTags[H245PassWord]]])[0];
+  }
+  return PString(""); // FIXME: If a user HAS an ampty password?
+}  
 
 #endif // HAS_LDAP
 
