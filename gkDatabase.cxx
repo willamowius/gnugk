@@ -38,6 +38,7 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
 const char *DB_NAMES_SEC = "Gatekeeper::Databases";
 const char *DB_ATTR_NAME_SEC = "GkDatabase::DBAttributeNames";
 const char *GK_EP_TYPE_TRUNK_GW = "trunk";
+const char *GK_EP_TYPE_GATEKEEPER = "gk";
 
 
 GkDatabase::GkDatabase()
@@ -214,6 +215,7 @@ BOOL GkDatabase::getProfile(CallingProfile & cgProfile, PString & h323id, dctn::
 			cgProfile.setIsCPE(TRUE);
 		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
 			cgProfile.setIsCPE( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_TRUNK_GW)) ? FALSE : TRUE);
+			cgProfile.setIsGK( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_GATEKEEPER)) ? FALSE : TRUE);
 		}
 
 		cgProfile.debugPrint();
@@ -233,12 +235,30 @@ BOOL GkDatabase::isCPE(PString &h323id, dctn::DBTypeEnum & dbType)
 		if (values[0] == GK_EP_TYPE_TRUNK_GW) {
 			PTRACE(5, "Call comes from a gateway");
 			isCPE = FALSE;
+		} else if (values[0] == GK_EP_TYPE_GATEKEEPER) {
+			PTRACE(5, "Call comes from a GK"); // should this ever happen?
+			isCPE=FALSE;
 		} else {
 			PTRACE(5, "Call comes from a CPE");
 			isCPE = TRUE;
 		}
 	}
         return isCPE;
+}
+
+BOOL GkDatabase::isGK(PString &h323id, dctn::DBTypeEnum & dbType)
+{
+	BOOL isGK = FALSE;
+	PStringList values;
+	using namespace dctn;
+	if (getAttribute(h323id, EPType, values, dbType)
+			&& values.GetSize() > 0) {
+		if (values[0] == GK_EP_TYPE_GATEKEEPER) {
+			PTRACE(5, "Is a gatekeeper");
+			isGK = TRUE;
+		}
+	}
+        return isGK;
 }
 
 
@@ -319,7 +339,7 @@ BOOL GkDatabase::getAttributes(const PString &alias, DBAttributeValueClass &attr
 }
 
 BOOL GkDatabase::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name,
-			   BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound, dctn::DBTypeEnum & dbType)
+			   BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound, dctn::DBTypeEnum & dbType, CalledProfile & calledProfile)
 {
 	PWaitAndSignal lock(m_usedLock);
 	dbType = dctn::e_TypeUnknown;
@@ -330,7 +350,7 @@ BOOL GkDatabase::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttr
 	matchFound = FALSE;
 	for (PINDEX i=0; i < m_dbList.GetSize(); i++) {
 		// if prefixMatch succeeds
-		if (m_dbList[i].prefixMatch(alias, attr_name, matchFound, fullMatch, gwFound)) {
+		if (m_dbList[i].prefixMatch(alias, attr_name, matchFound, fullMatch, gwFound, calledProfile)) {
 			if (matchFound){
 				// if first full match is found
 				if (fullMatch && !fullMatchOld) {

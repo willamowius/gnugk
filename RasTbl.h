@@ -104,6 +104,7 @@ public:
         // Get accessor methods
         const PString & getH323ID() const { return m_h323id; }
         const BOOL isCPE() const { return m_isCPE; } // Customer Promise Equipment
+        const BOOL isGK() const { return m_isGK; } // Gatekeeper client
         const BOOL honorsARJincompleteAddress() const { return m_honorsARJincompleteAddress; }
         const PStringList & getTelephoneNumbers() const { return m_telephoneNumbers; }
         const PStringToString & getSpecialDials() const { return m_specialDials; }
@@ -122,6 +123,7 @@ public:
         // Set accessor methods
         void setH323ID(PString &h323id) { m_h323id = h323id; }
         void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
+	void setIsGK(BOOL isGK) {m_isGK = isGK;}
         void setTelephoneNumbers(PStringList &telNums) { m_telephoneNumbers = telNums; }
         void setSpecialDials(PStringToString & spcDials) { m_specialDials = spcDials; }
         void setMainTelephoneNumber(PString &mainTelNum) { m_mainTelephoneNumber = mainTelNum; }
@@ -173,6 +175,7 @@ private:
         PString         m_cc;                         // country code
         PString         m_cgPN;                       // calling party number for CDR generation
         BOOL            m_isCPE;                      // CPE flag
+	BOOL            m_isGK;                       // Gatekeeper client Flag
 
 	PStringList     m_BlackList;                  // Blacklist of "bad" prefices
 	PStringList     m_WhiteList;                  // Whitelist of "good" prefices
@@ -185,11 +188,14 @@ public:
 
         // Get accessor methods
         const BOOL isCPE() const { return m_isCPE; } // Customer Promise Equipment
+	const BOOL isGK() const {return m_isGK; }
+	const BOOL isTrunkGW() const { return !(m_isCPE || m_isGK) ; }
         const PString & getDialedPN() const { return m_dialedPN; }
         const PString & getCalledPN() const { return m_calledPN; }
 
         // Set accessor methods
         void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
+	void setIsGK(BOOL isGK) { m_isGK = isGK;}
         void setDialedPN(PString &dialedPN) { m_dialedPN = dialedPN; }
         void setCalledPN(PString &calledPN) { m_calledPN = calledPN; }
 
@@ -197,6 +203,7 @@ private:
         PString m_dialedPN; // dialed party number
         PString m_calledPN; // called party number
         BOOL    m_isCPE;    // CPE flag
+	BOOL    m_isGK;
 }; // CalledProfile
 
 // End of: Classes to store information read from e.g. LDAP

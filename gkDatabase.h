@@ -85,7 +85,7 @@ public:
 	    @returns #TRUE# if succeeds
 	 */
 	virtual BOOL prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name,
-			   BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound) = 0;
+			   BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound, CalledProfile & calledProfile) = 0;
 
 	/** @returns database type
 	 */
@@ -111,6 +111,10 @@ public:
   /** @returns #TRUE# if the endpoint with given H323ID is an CPE.
    */
   virtual BOOL isCPE(PString &h323id, dctn::DBTypeEnum & dbType);
+
+  /** @returns #TRUE# if the endpoint with given H323ID is a GK.
+   */
+  virtual BOOL isGK(PString &h323id, dctn::DBTypeEnum & dbType);
 
   /** returns the attribute name as string
    */
@@ -153,7 +157,7 @@ public:
    */
   virtual BOOL prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name,
 			   BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound,
-			   dctn::DBTypeEnum & dbType);
+			   dctn::DBTypeEnum & dbType, CalledProfile &calledProfile);
 
 private:
 
