@@ -72,7 +72,7 @@ GK_RASWorker::Main()
 void
 GK_RASWorker::OnUnknown(H225_RasMessage & ras)
 {
-	PTRACE(5, "RasWorker got Unknown PDU: " << pdu);
+	PTRACE(5, "RasWorker got Unknown PDU: " << setprecision(2) << pdu);
 }
 
 void
@@ -363,7 +363,7 @@ H323RasWorker::Main()
 		PTRACE(5, "RasWorker: Did not decode message");
 		return;
 	}
-	PTRACE(5, "RasWorker got PDU: " << endl << pdu);
+	PTRACE(5, "RasWorker got PDU: " << setprecision(2) << pdu);
 	switch(pdu.GetTag()) {
 	case H225_RasMessage::e_gatekeeperRequest:
 		OnGRQ(pdu);
@@ -910,7 +910,6 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 					Q931::TypeOfNumberCodes ton = Q931::UnknownType;
 					H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
 					CallProfile & profile=pCallRec->GetCallingProfile();
-					PTRACE(5, "foo");
 					profile.debugPrint();
 					ton = static_cast<Q931::TypeOfNumberCodes> (
 						profile.TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
@@ -918,7 +917,6 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 					Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
 											     profile);
 					H323SetAliasAddress(number, dest[0], H225_AliasAddress::e_dialedDigits);
-					PTRACE(5, "rewriting destination " << dest[0]);
 					arq_fake.m_destinationInfo=dest;
 					if (Toolkit::Instance()->GkClientIsRegistered()) {
 						Toolkit::Instance()->GetGkClient().SendARQ(arq_fake, RequestingEP);
@@ -1055,9 +1053,9 @@ H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 				RegistrationTable::Instance()->FindByEndpointId(lrq.m_endpointIdentifier));
 	bool bReject = (!(fromRegEndpoint || Toolkit::Instance()->GetNeighbor().CheckIP(addr)) || !authList->Check(lrq, rsn));
 
-	PTRACE(5, "LRQ: fromRegEndpoint " << PString(fromRegEndpoint ? PString("YES") : PString("NO")) <<
-	       " From Neighbor: " << PString(Toolkit::Instance()->GetNeighbor().CheckIP(addr) ? PString("YES") : PString("NO")) <<
-	       " authenticated: " << PString(!authList->Check(lrq, rsn) ? PString("YES") : PString("NO")));
+// 	PTRACE(5, "LRQ: fromRegEndpoint " << PString(fromRegEndpoint ? PString("YES") : PString("NO")) <<
+// 	       " From Neighbor: " << PString(Toolkit::Instance()->GetNeighbor().CheckIP(addr) ? PString("YES") : PString("NO")) <<
+// 	       " authenticated: " << PString(!authList->Check(lrq, rsn) ? PString("YES") : PString("NO")));
 //	bReject = true; // Ignore LRQ for now
 
 	PString sourceInfoString((lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(lrq.m_sourceInfo) : PString(" "));
