@@ -38,7 +38,7 @@ SingletonBase::SingletonBase()
 
 SingletonBase::~SingletonBase()
 {
-	PTRACE(5, "Delete instance: " << --singleton_cnt << endl);
+//	PTRACE(5, "Delete instance: " << --singleton_cnt << endl);
 	if (!_instance_list.clear_list)
 		_instance_list.remove(this);
 }
