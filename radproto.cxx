@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2004/08/09 23:32:11  zvision
+ * VC6 compilation errors fixed
+ *
  * Revision 1.18  2004/08/09 10:08:28  zvision
  * Fixed missing curly brackets, thanks to Thomas!
  *
@@ -1215,7 +1218,8 @@ const RadiusAttr* RadiusPDU::FindVsaAttr(
 	) const
 {
 	const RadiusAttr* attr = GetAttr(prevAttr);
-	while (attr != NULL && (!attr->IsVsa() || attr->GetVsaType() != vendorType))
+	while (attr != NULL && (!attr->IsVsa() 
+		|| attr->GetVsaVendorId() != vendorId || attr->GetVsaType() != vendorType))
 		attr = GetAttr(attr);
 	return attr;
 }
