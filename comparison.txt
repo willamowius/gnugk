@@ -6,7 +6,8 @@ OpenH323 Gatekeeper            ! OpenGatekeeper
 - GPL: you must release source ! - MPL: you may keep your changes
   code for all enhancements    !   private
                                !
-- no H.245 routing             ! - H.245 routing
+- H.245 routing                ! - H.245 routing
+  (since version 2.0)          |
                                !
 - can send LRQ to neighbour GK ! - can send LRQ to neighbour GK
   based on prefix              !
@@ -14,6 +15,10 @@ OpenH323 Gatekeeper            ! OpenGatekeeper
 - authentication mechanism     !
                                !
 - Alternate gatekeeper option  !
+                               |
+- H.325 authentication         |
+                               !
+- LDAP support                 |
                                !
 - rewriting of E.164 numbers   !
                                !
