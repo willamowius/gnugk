@@ -122,13 +122,15 @@ const char *RasName[] = {
 	"IACK",				// Infomation Request Acknowledgement
 	"INAK",				// Infomation Request Negative Acknowledgement
 	"SCI",				// Service Control Indication
-	"SCR"				// Service Control Response
+	"SCR",				// Service Control Response
+	"NotRecognized"		// for new messages not recognized by the supported
+						// H.323 version
 };
 
 // struct GatekeeperMessage
 const char *GatekeeperMessage::GetTagName() const
 {
-	return RasName[GetTag()];
+	return (GetTag() <= MaxRasTag) ? RasName[GetTag()] : RasName[MaxRasTag+1];
 }
 
 bool GatekeeperMessage::Read(RasListener *socket)
