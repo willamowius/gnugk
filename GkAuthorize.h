@@ -66,4 +66,3 @@ class GkAuthorize:public PObject
 };
 
 #endif
-  

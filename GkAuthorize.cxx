@@ -255,27 +255,27 @@ BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq)
     return desi;
 }//GkAuthorizeions::checkgw
 
-PINDEX GkAuthorize::chkrule(const PString & or, const PString & src, REGEXMOD mode=RULE)
+PINDEX GkAuthorize::chkrule(const PString & orstr, const PString & src, REGEXMOD mode=RULE)
 {
     PString re;
     
     switch(mode)
     {
 	case RULE:
-            re="^[ \\t]*" + or + "[ \\t]\\{1,\\}";
+            re="^[ \\t]*" + orstr + "[ \\t]\\{1,\\}";
 	    break;
 	case FLAG:
-            re="[ \\t]\\{1,\\}" + or;
+            re="[ \\t]\\{1,\\}" + orstr;
 	    break;
 	case PREFIX:
-            re="^[ \\t]*" + or;
+            re="^[ \\t]*" + orstr;
 	    break;
 	default: 
 	    return FALSE;
     }
     
     PINDEX rp;
-    if((rp=src.FindRegEx(re))!=P_MAX_INDEX) return src.Find(or,rp);
+    if((rp=src.FindRegEx(re))!=P_MAX_INDEX) return src.Find(orstr,rp);
     return P_MAX_INDEX;
 }//GkAuthorize::chkrule
 
