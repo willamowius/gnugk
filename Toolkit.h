@@ -59,6 +59,7 @@ class Toolkit : public Singleton<Toolkit>
 	 * in the constructor of #Toolkit# (and its descentants).
 	 */
 	PConfig* Config(); 
+	PConfig* Config(const char *); 
 
 	/** Sets the config that the toolkit uses to a given config.
 	 *  A prior loaded Config is discarded. 
@@ -213,6 +214,11 @@ Toolkit::HashCStr(const unsigned char *name)
 inline PConfig *GkConfig()
 {
 	return InstanceOf<Toolkit>()->Config();
+}
+
+inline PConfig *GkConfig(const char *section)
+{
+	return InstanceOf<Toolkit>()->Config(section);
 }
 
 #endif

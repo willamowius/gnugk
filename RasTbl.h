@@ -115,11 +115,11 @@ public:
 	{ return m_completeRegistrationRequest; }
 
 	bool IsGateway() const
-	{ return (bool)m_terminalType.HasOptionalField(H225_EndpointType::e_gateway); }
+	{ return m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)!=0; }
 
 	bool IsRegistered() const
 	{ return m_registered; }
-	bool IsUsed() const; //{ return (m_usedCount != 0); }
+	bool IsUsed() const;
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 	void Refresh() { m_updatedTime = PTime(); }
 
@@ -148,10 +148,10 @@ private:
 	PTime m_updatedTime;
 };
 
-// smart pointer of endpointRec
+// smart pointer for endpointRec
 class endptr {
 public:
-	endptr(endpointRec * = NULL);
+	explicit endptr(endpointRec * = NULL);
 	endptr(const endptr &);
 	~endptr();
 	endptr &operator=(const endptr &);

@@ -32,6 +32,11 @@ PConfig* Toolkit::Config()
 	return (m_Config == NULL) ? ReloadConfig() : m_Config;
 }
 
+PConfig* Toolkit::Config(const char *section)
+{
+	Config()->SetDefaultSection(section);
+	return m_Config;
+}
 
 PConfig* Toolkit::SetConfig(const PFilePath &fp, const PString &section)
 { 

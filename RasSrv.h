@@ -25,6 +25,7 @@ class SignalChannel;
 class RegistrationTable;
 class resourceManager;
 class GkStatus;
+class Neighbor;
 
 
 class H323RasSrv : public PThread 
@@ -66,10 +67,14 @@ public:
 	BOOL OnBRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
 
 	BOOL OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
+
+	BOOL OnLCF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
       
 	BOOL OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
       
 	void SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address rx_addr, WORD rx_port, PUDPSocket & BoundSocket);
+
+	void LoadConfig();
 
 protected:
 	/** Checks for one condition (between '&`s) the SignalAddress. Used on RRQ in the moment.
@@ -106,6 +111,8 @@ protected:
 	RegistrationTable * EndpointTable;
 	resourceManager * GKManager; 
 	GkStatus * GkStatusThread;
+
+	std::list<Neighbor> NeighborGK;
 };
 
 #endif

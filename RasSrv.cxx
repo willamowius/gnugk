@@ -40,6 +40,11 @@
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define MAX(x,y) ((x) < (y) ? (y) : (x))
 
+class Neighbor {
+	PString prefix;
+	PIPSocket::Address ip;
+	WORD port;
+};
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
       : PThread(10000, NoAutoDeleteThread),
@@ -55,9 +60,7 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	TimeToLive = -1; 	// don't set the field
 	sigListener = NULL;
 
-	// own IP number
-	GKCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
-	GKRasAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
+	LoadConfig();
 
 	udpForwarding.SetWriteTimeout(PTimeInterval(300));
  
@@ -69,6 +72,14 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 
 H323RasSrv::~H323RasSrv()
 {
+}
+
+void H323RasSrv::LoadConfig()
+{
+	// own IP number
+	GKCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
+	GKRasAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
+
 }
 
 void H323RasSrv::Close(void)
@@ -647,7 +658,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	PTRACE(2, "GK\tOnARQ");
 	const endptr RequestingEP = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 
-	endptr CalledEP = NULL;
+	endptr CalledEP(NULL);
 	int BWRequest = 640;
 
 	// We use #obj_rpl# for storing information about a potential reject (e.g. the

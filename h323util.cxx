@@ -14,11 +14,6 @@
 #include "h323util.h"
 #include "ANSI.h"
 #include "h323pdu.h"
-#include "RasTbl.h"
-#include "Toolkit.h"
-
-
-PMutex ReloadMutex;
 
 
 PString AsString(const H225_TransportAddress & ta)
@@ -157,41 +152,3 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
     return Result;
 }
 
-
-void ReloadHandler(void)
-{
-	// only one thread must do this
-	if (ReloadMutex.WillBlock())
-		return;
-	
-	/*
-	** Enter critical Section
-	*/
-	PWaitAndSignal reload(ReloadMutex);
-
-	/*
-	** Force reloading config
-	*/
-	InstanceOf<Toolkit>()->ReloadConfig();
-	PTRACE(3, "GK\t\tConfig reloaded.");
-	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
-
-	/*
-	** Update all gateway prefixes
-	*/
-
-	RegistrationTable::Instance()->UpdatePrefixes();
-
-	/*
-	** Don't disengage current calls!
-	*/
-	PTRACE(3, "GK\t\tCarry on current calls.");
-
-	/*
-	** Leave critical Section
-	*/
-	// give other threads the chance to pass by this handler
-	PProcess::Current().Sleep(1000); 
-
-	return;
-}

@@ -624,8 +624,8 @@ void RegistrationTable::CheckEndpoints(int Seconds)
 	// Wow...! Too complex to understand? Thanks to powerful STL!
 	// Here is a brief explanation:
 	// EndpointList is divided into two parts by STL partition algorithm:
-	// the first part from begin() to --Iter that satisfy the predicate
-	// and the second part from Iter to end() that don't.
+	// the first part is [begin(), Iter) that satisfy the predicate
+	// and the second part is [Iter, end()) that don't.
 	// The predicate is composed by several STL adapters.
 	// It means: ( (PTime() - ep->GetUpdatedTime()) < Seconds*1000 )
 
@@ -634,7 +634,10 @@ void RegistrationTable::CheckEndpoints(int Seconds)
 		  partition(EndpointList.begin(), EndpointList.end(),
 			compose1(bind2nd(less<PTimeInterval>(), Seconds*1000),
 			compose1(bind1st(Minus<PTime, PTimeInterval>(), PTime()), mem_fun(&endpointRec::GetUpdatedTime))));
-		PTRACE(2, distance(Iter, EndpointList.end()) << " endpoint(s) expired.");
+#ifdef PTRACING
+		if (ptrdiff_t s = distance(Iter, EndpointList.end()))
+			PTRACE(2, s << " endpoint(s) expired.");
+#endif
 		transform(Iter, EndpointList.end(), back_inserter(RemovedList),
 			unregister_expired_endpoint);
 		EndpointList.erase(Iter, EndpointList.end());
@@ -923,21 +926,21 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 			H225_TransportAddress & addr = theCall.Calling->m_callSignalAddress;
 			const endptr rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
 			caller = PString(PString::Printf, "%s|%s",
-				(const unsigned char *) AsString(H225_TransportAddress_ipAddress(addr)),
-				(const unsigned char *) rec->GetEndpointIdentifier().GetValue());
+				(const char *) AsString(H225_TransportAddress_ipAddress(addr)),
+				(rec) ? (const char *)rec->GetEndpointIdentifier().GetValue() : "");
 		}
 		if (theCall.Called) {
 			H225_TransportAddress & addr = theCall.Called->m_callSignalAddress;
 			const endptr rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
 			callee = PString(PString::Printf, "%s|%s",
-				(const unsigned char *) AsString(H225_TransportAddress_ipAddress(addr)),
-				(const unsigned char *) rec->GetEndpointIdentifier().GetValue());
+				(const char *) AsString(H225_TransportAddress_ipAddress(addr)),
+				(rec) ? (const char *)rec->GetEndpointIdentifier().GetValue() : "");
 		}
 
 		callDuration = difftime(now, startTime);
 		PString cdrString(PString::Printf, "CDR|%s|%.0f|%s|%s|%s\n", callRefString, callDuration,
-				 (const unsigned char *)startTimeString,
-				 (const unsigned char *)caller, (const unsigned char *)callee);
+				 (const char *)startTimeString,
+				 (const char *)caller, (const char *)callee);
 
 		GkStatus::Instance()->SignalStatus(cdrString, 1);
 		PTRACE(3, cdrString);

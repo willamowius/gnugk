@@ -45,6 +45,7 @@ H323RasSrv * RasThread = NULL;
 MulticastGRQ * MulticastGRQThread = NULL;
 BroadcastListen * BroadcastThread = NULL;
 PMutex ShutdownMutex;
+PMutex ReloadMutex;
 
 int TimeToLive = -1;
 bool ExitFlag = false;
@@ -79,6 +80,7 @@ void ShutdownHandler(void)
 		RasThread->Close();
 		// send all registered clients a URQ
 		RasThread->UnregisterAllEndpoints();
+		RasThread->WaitForTermination();
 		delete RasThread;
 		RasThread = NULL;
 	}
@@ -106,10 +108,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 {
 	PTRACE(1, "GK\tGatekeeper shutdown");
 	PWaitAndSignal shutdown(ShutdownMutex);
-	ExitFlag = true;
-	//ShutdownHandler();
-	//exit(0);	// if we don't exit(), this handler gets called again and again - strange...
-	return TRUE;
+	return ExitFlag = true;
 }
 
 #else
@@ -354,4 +353,42 @@ void Gatekeeper::Main()
 
 	// graceful shutdown
 	ShutdownHandler();
+}
+
+void ReloadHandler(void)
+{
+	// only one thread must do this
+	if (ReloadMutex.WillBlock())
+		return;
+	
+	/*
+	** Enter critical Section
+	*/
+	PWaitAndSignal reload(ReloadMutex);
+
+	/*
+	** Force reloading config
+	*/
+	InstanceOf<Toolkit>()->ReloadConfig();
+	PTRACE(3, "GK\t\tConfig reloaded.");
+	GkStatus::Instance()->SignalStatus("Config reloaded.\r\n");
+
+	/*
+	** Update all gateway prefixes
+	*/
+
+	RegistrationTable::Instance()->UpdatePrefixes();
+
+	RasThread->LoadConfig();
+
+	/*
+	** Don't disengage current calls!
+	*/
+	PTRACE(3, "GK\t\tCarry on current calls.");
+
+	/*
+	** Leave critical Section
+	*/
+	// give other threads the chance to pass by this handler
+	PProcess::Current().Sleep(1000); 
 }
