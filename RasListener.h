@@ -21,7 +21,6 @@
 #include <ptlib/sockets.h>
 #include <h225.h>
 #include "RasWorker.h"
-#include "GkClient.h"
 
 
 class GK_RASListener : public PThread {
@@ -44,8 +43,6 @@ public:
 
 	const H225_TransportAddress GetRasAddress(PIPSocket::Address) const;
 	const H225_TransportAddress GetCallSignalAddress(PIPSocket::Address) const;
-
-	virtual const GkClient * GetGKClient() {return NULL;};
 
 	virtual void SendTo(PPER_Stream &buffer, const unsigned int &length,
 			    const PIPSocket::Address &rx_addr, const WORD &port);
