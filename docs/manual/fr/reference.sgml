@@ -1,4 +1,4 @@
-<!-- French translation from reference.sgml v1.1 -->
+<!-- French translation from reference.sgml v1.2 -->
 
 <sect>Configuration Basique du Gatekeeper
 <p>
@@ -44,6 +44,10 @@ Indique le fichier pid, valable uniquement pour les versions Unix.
 <tag/<tt/-u  --user name//
 Ex&#233;cute le processus gatekeeper avec cet utilisateur. Valable uniquement
 pour les version Unix.
+<tag/<tt/--core n//
+(Unix seulement) Permet l'&#233;criture de fichiers core dump quand l'application
+plante. Un fichier core dump ne d&#233;passera pas la taille de n octets. Une constante
+sp&#233;ciale "unlimited" peut &#234;tre utilis&#233;e pour ne pas imposer de limite.
 </descrip>
 
 <sect2>Mode du Gatekeeper
