@@ -24,8 +24,8 @@ CREATE TABLE voipuser (
 	-- clear text user password for RADIUS authentication
 	chappassword TEXT NOT NULL,
 	-- aliases (E.164) allowed for this H.323 ID
-	-- should be a regular expression
-	allowedaliases TEXT NOT NULL DEFAULT '$^',
+	-- should be a regular expression (examples: '.*', '^(john|48581234567)$')
+	allowedaliases TEXT NOT NULL DEFAULT '^$',
 	-- additional aliases that should be assigned for this user
 	assignaliases TEXT NOT NULL DEFAULT '',
 	-- if it isn't NULL, allow this user to login only from the given IP pool

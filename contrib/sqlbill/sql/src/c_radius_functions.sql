@@ -28,12 +28,16 @@ CREATE OR REPLACE FUNCTION radius_get_check_rrq_attrs(TEXT, INET, TEXT)
 DECLARE
 	framed_ip ALIAS FOR $2;
 	username TEXT;
-	h323ivrout TEXT;
+	h323ivrout ALIAS FOR $3;
 	reject_attr voipradattr%ROWTYPE;
 	check_attr voipradattr%ROWTYPE;
 	query_result RECORD;
 	userid INT;
+	aliasnum INT;
+	rrqalias TEXT;
 BEGIN
+	RAISE LOG ''sqlbill: RRQ(username: %; IP: %; aliases: %)'', $1, $2, $3;
+	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
 	reject_attr.attrname := ''Auth-Type'';
@@ -56,7 +60,7 @@ BEGIN
 	END IF;
 		
 	-- get user information
-	SELECT INTO query_result chappassword, allowedaliases, framedip 
+	SELECT INTO query_result h323id, chappassword, allowedaliases, framedip 
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
 		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
 	IF NOT FOUND OR query_result.chappassword IS NULL THEN
@@ -71,12 +75,21 @@ BEGIN
 			RETURN;
 		END IF;
 	END IF;
-	
-	-- check if all endpoint aliases are allowed
-	IF $3 IS NOT NULL THEN
-		h323ivrout := radius_xlat(trim($3));
-	END IF;
 
+	-- check the list of aliases being registered, if it is present
+	IF h323ivrout IS NOT NULL THEN
+		aliasnum := 1;
+		LOOP
+			rrqalias := split_part(h323ivrout, '','', aliasnum);
+			EXIT WHEN length(rrqalias) = 0;
+			aliasnum := aliasnum + 1;
+			IF NOT rrqalias = query_result.h323id AND NOT rrqalias ~ query_result.allowedaliases THEN
+				RETURN NEXT reject_attr;
+				RETURN;
+			END IF;
+		END LOOP;			
+	END IF;
+	
 	-- return User-Password check avp
 	check_attr.id := 0;
 	check_attr.attrname := ''User-Password'';
@@ -98,12 +111,14 @@ CREATE OR REPLACE FUNCTION radius_get_reply_rrq_attrs(TEXT, INET, TEXT)
 DECLARE
 	framed_ip ALIAS FOR $2;
 	username TEXT;
-	h323ivrout TEXT;
+	h323ivrout ALIAS FOR $3;
 	rcode_attr voipradattr%ROWTYPE;
 	reply_attr voipradattr%ROWTYPE;
 	attr_num INT := 1;
 	userid INT;
 	query_result RECORD;
+	aliasnum INT;
+	rrqalias TEXT;
 BEGIN
 	-- prepare h323-return-code avp, as it is referenced very often
 	rcode_attr.id := attr_num;
@@ -130,7 +145,7 @@ BEGIN
 	END IF;
 	
 	-- get user information
-	SELECT INTO query_result balance, currencysym, allowedaliases, 
+	SELECT INTO query_result h323id, balance, currencysym, allowedaliases, 
 			assignaliases, framedip 
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id
 		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
@@ -149,9 +164,19 @@ BEGIN
 		END IF;
 	END IF;
 	
-	-- check if all endpoint aliases are allowed
-	IF $3 IS NOT NULL THEN
-		h323ivrout := radius_xlat(trim($3));
+	-- check the list of aliases being registered, if it is present
+	IF h323ivrout IS NOT NULL THEN
+		aliasnum := 1;
+		LOOP
+			rrqalias := split_part(h323ivrout, '','', aliasnum);
+			EXIT WHEN length(rrqalias) = 0;
+			aliasnum := aliasnum + 1;
+			IF NOT rrqalias = query_result.h323id AND NOT rrqalias ~ query_result.allowedaliases THEN
+				rcode_attr.attrvalue := rcode_attr.attrvalue || ''7'';
+				RETURN NEXT rcode_attr;
+				RETURN;
+			END IF;
+		END LOOP;			
 	END IF;
 
 	rcode_attr.attrvalue := rcode_attr.attrvalue || ''0'';
@@ -214,6 +239,8 @@ DECLARE
 	trf voiptariff%ROWTYPE;
 	userid INT;
 BEGIN
+	RAISE LOG ''sqlbill: ARQ(username: %; IP: %; answer: %; calling: %; called: %)'', $1, $2, $3, $4, $5;
+	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
 	reject_attr.attrname := ''Auth-Type'';
@@ -228,8 +255,8 @@ BEGIN
 	
 	-- remove RADIUS escapes
 	username := radius_xlat($1);
-	calling_station_id := radius_xlat(trim($4));
-	called_station_id := radius_xlat(trim($5));
+	calling_station_id := radius_xlat($4);
+	called_station_id := radius_xlat($5);
 	
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN
@@ -324,8 +351,8 @@ BEGIN
 	
 	-- remove RADIUS escapes
 	username := radius_xlat($1);
-	calling_station_id := radius_xlat(trim($4));
-	called_station_id := radius_xlat(trim($5));
+	calling_station_id := radius_xlat($4);
+	called_station_id := radius_xlat($5);
 	
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN

@@ -1,3 +1,9 @@
+03 Nov 2004 -- zvision
+  * check RRQ aliases against voipuser h323id and allowedaliases fields
+  * updated postgresql.conf authorize_check and authorize_reply queries
+    to allow validation of endpoint aliases sent in h323-ivr-out=terminal-alias
+	attribute
+
 29 Oct 2004 -- zvision
   * don't trim usernames during checks to avoid problems with the billing
   * adjust voiptariffdst indexes to not include WHERE active condition

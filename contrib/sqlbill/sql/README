@@ -19,7 +19,8 @@ This database schema creates the following tables:
    - chap password - together with H.323 ID are used to enable H.235 authentication
    - a list of allowed aliases (allowedaliases column) that the endpoint
      can register with. This is a REGULAR EXPRESSION. H.323 ID
-	 is allowed by default
+	 is allowed by default. To allow an endpoint to register with any aliases,
+     write '.*', to allow 'john' and '48581234' aliases only, write '^(john|48581234)$'
    - a list of aliases to be automatically assigned to an endpoint inside RCF
      message (a comma separated list)
    - IP address restriction (NULL to ignore)

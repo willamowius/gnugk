@@ -249,5 +249,48 @@ CREATE OR REPLACE FUNCTION get_bool(TEXT)
 	RETURNS BOOLEAN AS
 '
 	SELECT CASE $1 WHEN ''T'' THEN TRUE ELSE FALSE END;
-' LANGUAGE SQL IMMUTABLE;
+' LANGUAGE SQL IMMUTABLE CALLED ON NULL INPUT SECURITY INVOKER;
+
+-- Parse nested attribute-value pairs and, optionally, extract
+-- a specific variable from the parsed attribute value
+-- $1 - av-pair to parse (example: 'h323-ivr-in=terminal-alias:123,456')
+-- $2 - attribute name to match (example: 'h323-ivr-in')
+-- $3 - NULL or a specific variable to extract from the value (example: 'terminal-alias')
+CREATE OR REPLACE FUNCTION parse_avpair(TEXT, TEXT, TEXT)	
+	RETURNS TEXT AS
+'
+DECLARE
+	avpair ALIAS FOR $1;
+	attrname ALIAS FOR $2;
+	varname ALIAS FOR $3;
+	parsedval TEXT;
+	idx INT;
+BEGIN
+	RAISE LOG ''sqlbill: parse avpair (%;%;%)'', $1, $2, $3;
 	
+	IF avpair IS NULL OR attrname IS NULL THEN
+		RETURN NULL;
+	END IF;
+
+	parsedval := radius_xlat(avpair);
+
+	RAISE LOG ''sqlbill: parse avpair (%)'',  parsedval;
+		
+	idx := strpos(parsedval, attrname || ''='');
+	IF idx = 0 THEN
+		RETURN NULL;
+	END IF;
+	
+	parsedval := substring(parsedval, idx + length(attrname) + 1);
+	IF varname IS NULL THEN
+		RETURN parsedval;
+	END IF;
+	
+	parsedval := substring(parsedval from varname || '':[^;]*'');
+	idx := strpos(parsedval, '':'');
+	IF idx > 0 THEN
+		parsedval := substring(parsedval, idx + 1);
+	END IF;
+	RETURN parsedval;
+END;
+' LANGUAGE 'plpgsql' IMMUTABLE CALLED ON NULL INPUT SECURITY INVOKER;
