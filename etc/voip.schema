@@ -69,6 +69,7 @@
 # voIPprependCallbackAccessCode     | HERE
 # voIPCountryCode                   | HERE
 # voIPEndpointType                  | HERE
+# voIPWhiteListBeforeBlackList      | HERE
 # voIPprefixOutgoingBlacklist       | HERE
 # voIPprefixOutgoingWhitelist       | HERE
 # voIPprefixIncomingBlacklist       | HERE
@@ -264,7 +265,7 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2110 NAME 'voIPhonorsStatusEnquiry'
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2120 NAME 'voIPCountryCode'
   EQUALITY numericStringMatch
-  DESC 'the ITU Country Code a gateway is located in (e.g. Germany: 49)'
+  DESC 'the ITU country code a gateway is located in; to be prepended to CdPN for incoming calls (if needed)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{3}
   SINGLE-VALUE
  )
@@ -275,29 +276,30 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2130 NAME 'voIPEndpointType'
   SINGLE-VALUE
  )
 
-# NOTE: reserved for future use only
-attributeType ( 1.3.6.1.4.1.9564.2.5.2140 NAME 'voIPprefixOutgoingBlacklist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2140 NAME 'voIPWhiteListBeforeBlackList'
+  DESC 'defines whether WhiteBlackListDestAnalysis should be applied instead of default BlackWhiteListDestAnalysis'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
+ )
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2150 NAME 'voIPprefixOutgoingBlacklist'
   EQUALITY numericStringMatch
   DESC 'A blocked destination prefix for this user'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-# NOTE: reserved for future use only
-attributeType ( 1.3.6.1.4.1.9564.2.5.2150 NAME 'voIPprefixOutgoingWhitelist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPprefixOutgoingWhitelist'
   EQUALITY numericStringMatch
   DESC 'An accessible destination prefix for this user (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-# NOTE: reserved for future use only
-attributeType ( 1.3.6.1.4.1.9564.2.5.2160 NAME 'voIPprefixIncomingBlacklist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPprefixIncomingBlacklist'
   EQUALITY numericStringMatch
   DESC 'Incoming callers to be blocked'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-# NOTE: reserved for future use only
-attributeType ( 1.3.6.1.4.1.9564.2.5.2170 NAME 'voIPprefixIncomingWhitelist'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2180 NAME 'voIPprefixIncomingWhitelist'
   EQUALITY numericStringMatch
   DESC 'Incoming callers to be allowed (overriding blacklisted entries)'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
