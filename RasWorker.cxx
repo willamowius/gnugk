@@ -345,11 +345,12 @@ Abstract_H323RasWorker::Abstract_H323RasWorker(PPER_Stream initial_pdu, PIPSocke
 	GK_RASWorker(initial_pdu, rx_addr, rx_port, listener)
 {
 	PTRACE(5, "Abstract_H323RasWorker started");
-	authList=new GkAuthenticatorList(GkConfig());
+//	authList=new GkAuthenticatorList(GkConfig());
 }
 
 Abstract_H323RasWorker::~Abstract_H323RasWorker() {
 	PTRACE(5, "Abstract_H323RasWorker exit");
+//	delete authList;
 };
 
 void Abstract_H323RasWorker::Terminate() {
@@ -452,7 +453,7 @@ Abstract_H323RasWorker::OnGRQ(H225_GatekeeperRequest &grq)
 
 	PString msg;
 	unsigned rsn = H225_GatekeeperRejectReason::e_securityDenial;
-	if (!authList->Check(grq, rsn)) {
+	if (!master.GetAuthenticator().Check(grq, rsn)) {
 		answer_pdu.SetTag(H225_RasMessage::e_gatekeeperReject);
 		H225_GatekeeperReject & grj = answer_pdu;
 		grj.m_requestSeqNum = grq.m_requestSeqNum;
@@ -661,8 +662,7 @@ Abstract_H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 		}
 	}
 	unsigned rsn = H225_RegistrationRejectReason::e_securityDenial;
-	PAssert(authList!=NULL, "authlist not ok");
-	if (!bReject && !authList->Check(rrq, rsn)) {
+	if (!bReject && !master.GetAuthenticator().Check(rrq, rsn)) {
 		bReject = TRUE;
 		rejectReason.SetTag(rsn);
 	}
@@ -865,7 +865,7 @@ Abstract_H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 			Toolkit::Instance()->RewriteE164(arq.m_destinationInfo[0]);
 
 		unsigned rsn = H225_AdmissionRejectReason::e_securityDenial;
-		if (!authList->Check(arq, rsn)) {
+		if (!master.GetAuthenticator().Check(arq, rsn)) {
 			bReject = TRUE;
 		} else if (arq.m_answerCall) {
 			// don't search endpoint table for an answerCall ARQ
@@ -1055,11 +1055,11 @@ Abstract_H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 	unsigned rsn = H225_LocationRejectReason::e_securityDenial;
 	bool fromRegEndpoint = (lrq.HasOptionalField(H225_LocationRequest::e_endpointIdentifier) &&
 				RegistrationTable::Instance()->FindByEndpointId(lrq.m_endpointIdentifier));
-	bool bReject = (!(fromRegEndpoint || Toolkit::Instance()->GetNeighbor().CheckIP(addr)) || !authList->Check(lrq, rsn));
+	bool bReject = (!(fromRegEndpoint || Toolkit::Instance()->GetNeighbor().CheckIP(addr)) || !master.GetAuthenticator().Check(lrq, rsn));
 
 // 	PTRACE(5, "LRQ: fromRegEndpoint " << PString(fromRegEndpoint ? PString("YES") : PString("NO")) <<
 // 	       " From Neighbor: " << PString(Toolkit::Instance()->GetNeighbor().CheckIP(addr) ? PString("YES") : PString("NO")) <<
-// 	       " authenticated: " << PString(!authList->Check(lrq, rsn) ? PString("YES") : PString("NO")));
+// 	       " authenticated: " << PString(!master.GetAuthenticator().Check(lrq, rsn) ? PString("YES") : PString("NO")));
 //	bReject = true; // Ignore LRQ for now
 
 	PString sourceInfoString((lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(lrq.m_sourceInfo) : PString(" "));
