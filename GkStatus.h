@@ -76,10 +76,9 @@ public:
 		e_Exit,		/// Close Connection
 		e_Reload,	/// Reload Config File
 		e_Shutdown,	/// Shutdown the program
-		e_CDB_Flush,	/// Flush the common gk database cache
-		NO_enumCommands	/// Number of different strings
+		e_CDB_Flush	/// Flush the common gk database cache
 	};
-	static const int NumberOfCommandStrings;
+	static const int NumberOfCommandStrings; // given by static initializer
 
 	/** Returns TRUE if a client from this #Socket# may conntect to the status channel.
 	 * This implementation uses the config and for authorization. The config section

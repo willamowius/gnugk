@@ -44,10 +44,11 @@ static const char vcHid[] = GKSTATUS_H;
 #endif /* lint */
 
 
-static const int GkStatus::NumberOfCommandStrings = GkStatus::NO_enumCommands;
+// static initializer
+const int GkStatus::NumberOfCommandStrings = 42;
 static const PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
 {
-	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
+	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},// 1
 	{"r",                        GkStatus::e_PrintAllRegistrations},
 	{"?",                        GkStatus::e_PrintAllRegistrations},
 	{"printallregistrationsverbose", GkStatus::e_PrintAllRegistrationsVerbose},
@@ -56,7 +57,7 @@ static const PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"printallcached",           GkStatus::e_PrintAllCached},
 	{"rc",                       GkStatus::e_PrintAllCached},
 	{"printcurrentcalls",        GkStatus::e_PrintCurrentCalls},
-	{"c",                        GkStatus::e_PrintCurrentCalls},
+	{"c",                        GkStatus::e_PrintCurrentCalls}, // 10
 	{"!",                        GkStatus::e_PrintCurrentCalls},
 	{"printcurrentcallsverbose", GkStatus::e_PrintCurrentCallsVerbose},
 	{"!!",                       GkStatus::e_PrintCurrentCallsVerbose},
@@ -66,7 +67,7 @@ static const PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"findverbose",              GkStatus::e_FindVerbose},
 	{"fv",                       GkStatus::e_FindVerbose},
 	{"disconnectip",             GkStatus::e_DisconnectIp},
-	{"disconnectcall",           GkStatus::e_DisconnectCall},
+	{"disconnectcall",           GkStatus::e_DisconnectCall}, // 20
 	{"disconnectalias",          GkStatus::e_DisconnectAlias},
 	{"disconnectendpoint",       GkStatus::e_DisconnectEndpoint},
 	{"unregisterallendpoints",   GkStatus::e_UnregisterAllEndpoints},
@@ -76,7 +77,7 @@ static const PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"makecall",                 GkStatus::e_MakeCall},
 	{"yell",                     GkStatus::e_Yell},
 	{"who",                      GkStatus::e_Who},
-	{"help",                     GkStatus::e_Help},
+	{"help",                     GkStatus::e_Help},	// 30
 	{"h",                        GkStatus::e_Help},
 	{"version",                  GkStatus::e_Version},
 	{"v",                        GkStatus::e_Version},
@@ -86,11 +87,12 @@ static const PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"reload",                   GkStatus::e_Reload},
 	{"shutdown",                 GkStatus::e_Shutdown},
 	{"exit",                     GkStatus::e_Exit},
-	{"quit",                     GkStatus::e_Exit},
+	{"quit",                     GkStatus::e_Exit},	// 40
 	{"q",                        GkStatus::e_Exit},
-	{"flush",                    GkStatus::e_CDB_Flush}
-
+	{"flush",                    GkStatus::e_CDB_Flush} // 42
 };
+// initializing from above values
+PStringToOrdinal GkStatus::Client::Commands(NumberOfCommandStrings, GkStatusClientCommands, TRUE);
 
 int GkStatus::Client::StaticInstanceNo = 0;
 
@@ -252,9 +254,8 @@ void GkStatus::CleanupClients()
 }
 
 
-namespace {
-
-PString PrintGkVersion()
+static PString PrintGkVersion(); // local helper
+static PString PrintGkVersion()
 {
 	return PString("Version:" GK_LINEBRK) + Toolkit::GKVersion() +
 		GK_LINEBRK "GkStatus: Version(1.0) Ext()" GK_LINEBRK
@@ -262,9 +263,9 @@ PString PrintGkVersion()
 		")" GK_LINEBRK + SoftPBX::Uptime() + GK_LINEBRK ";" GK_LINEBRK;
 }
 
-}
 
-PStringToOrdinal GkStatus::Client::Commands(NumberOfCommandStrings, GkStatusClientCommands, TRUE);
+// static initializer (See top of page)
+// PStringToOrdinal GkStatus::Client::Commands(NumberOfCommandStrings, GkStatusClientCommands, TRUE);
 
 GkStatus::Client::Client( GkStatus * _StatusThread, PTCPSocket * _Socket )
 	: PThread(1000, NoAutoDeleteThread),
@@ -475,7 +476,7 @@ void GkStatus::Client::Main()
 				case GkStatus::e_CDB_Flush:
 					PTRACE(3, "Flushing the common gk database cache");
 					GkDatabase::Instance()->flush_cache();
-					break
+					break;
 				default:
 					PTRACE(3, "WRONG COMMANDS TABLE ENTRY. PLEASE LOOK AT THE CODE.");
 					WriteString("Error: Internal Error." GK_LINEBRK);
