@@ -786,11 +786,14 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 {
 	EndpointRec *ep = eptr.operator->(); // evil
 	if (ep) {
-		RemovedList_mutex.StartWrite();
 		EndpointList_mutex.StartWrite();
-		RemovedList.push_back(ep);
+		size_t eplistsize=EndpointList.size();
 		EndpointList.remove(ep);
-		RemovedList_mutex.EndWrite();
+		if(eplistsize!=EndpointList.size()) {  // silently ignore already deleted EP's
+			RemovedList_mutex.StartWrite();
+			RemovedList.push_back(ep);
+			RemovedList_mutex.EndWrite();
+		}
 		EndpointList_mutex.EndWrite();
 
 	}
@@ -803,10 +806,13 @@ void RegistrationTable::RemoveByEndpointId(const H225_EndpointIdentifier & epId)
 			compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
 			mem_fun(&EndpointRec::GetEndpointIdentifier)));
 	if (Iter != EndpointList.end()) {
-		RemovedList_mutex.StartWrite();
-		RemovedList.push_back(*Iter);
-		RemovedList_mutex.EndWrite();
+		size_t eplistsize=EndpointList.size();
 		EndpointList.erase(Iter);	// list<> is O(1), slist<> O(n) here
+		if(eplistsize!=EndpointList.size()) {  // silently ignore already deleted EP's
+			RemovedList_mutex.StartWrite();
+			RemovedList.push_back(*Iter);
+			RemovedList_mutex.EndWrite();
+		}
 	} else {
 	        PTRACE(1, "Warning: RemoveByEndpointId " << epId << " failed.");
 	}
