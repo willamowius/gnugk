@@ -26,8 +26,11 @@
 #define snprintf _snprintf
 #endif
 
-#include <ptlib.h>
+#ifndef ARJREASON_ROUTECALLTOGATEKEEPER
+#define ARJREASON_ROUTECALLTOGATEKEEPER 1
+#endif
 
+#include <ptlib.h>
 #include "h323pdu.h"
 #include "gk_const.h"
 #include "gk.h"
@@ -877,7 +880,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {	
 			// apply rewrite rules
 			Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
-#if (WITH_DEST_ANALYSIS_LIST != 0)
+#if WITH_DEST_ANALYSIS_LIST
 			CalledEP = EndpointTable->getMsgDestination(obj_rr, rsn);
 			if (!CalledEP && 
 			    rsn == H225_AdmissionRejectReason::e_incompleteAddress) {
@@ -941,13 +944,10 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 		//
 		// Give bandwidth
 		// 
-		if (obj_arq.m_bandWidth.GetValue() < 100) {
-			/* hack for Netmeeting 3.0x */
-			BWRequest = std::min(1280u, GKManager->GetAvailableBW());
-		}
-		else {
-			BWRequest = std::min(obj_arq.m_bandWidth.GetValue(), GKManager->GetAvailableBW());
-		};
+
+		// hack for Netmeeting 3.0x
+		unsigned bw = (obj_arq.m_bandWidth.GetValue() < 100) ? 1280u : obj_arq.m_bandWidth.GetValue();
+		BWRequest = std::min(bw, GKManager->GetAvailableBW());
 		PTRACE(3, "GK\tARQ will request bandwith of " << BWRequest);
 		
 		//
@@ -983,8 +983,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
  			) 
  		{
  			// we have to extract the SCN from the destination. only EP-1 will be rejected this way
- 			if ( obj_arq.m_destinationInfo.GetSize() >= 1 ) 
- 			{
+ 			if ( obj_arq.m_destinationInfo.GetSize() >= 1 ) {
  				// PN will be the number that is set in the arj reason
  				H225_PartyNumber PN;
  				PN.SetTag(H225_PartyNumber::e_publicNumber);
@@ -1029,6 +1028,20 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
 	PString destinationInfoString = (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)) ?
 		AsString(obj_arq.m_destinationInfo) : PString("unknown");
+
+	// CallRecs should be looked for using callIdentifier instead of callReferenceValue
+	// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
+	callptr pExistingCallRec = (obj_arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)) ?
+		CallTable::Instance()->FindCallRec(obj_arq.m_callIdentifier) :
+	// since callIdentifier is optional, we might have to look for the callReferenceValue as well
+		CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
+
+#if ARJREASON_ROUTECALLTOGATEKEEPER
+	if (GKRoutedSignaling && obj_arq.m_answerCall && !pExistingCallRec) {
+		bReject = TRUE;
+		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
+	}
+#endif
 	if (bReject)
 	{
 		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
@@ -1049,13 +1062,6 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 
 		acf.m_requestSeqNum = obj_arq.m_requestSeqNum;
 		acf.m_bandWidth = BWRequest;
-
-		// CallRecs should be looked for using callIdentifier instead of callReferenceValue
-		// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
-		callptr pExistingCallRec = (obj_arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)) ?
-			CallTable::Instance()->FindCallRec(obj_arq.m_callIdentifier) :
-		// since callIdentifier is optional, we might have to look for the callReferenceValue as well
-			CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
 		if (pExistingCallRec) {
 			if (obj_arq.m_answerCall) // the second ARQ
@@ -1395,7 +1401,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	unsigned rsn;
 	if (authList->Check(obj_lrq, rsn) &&
 		// only search registered endpoints
-#if (WITH_DEST_ANALYSIS_LIST != 0)
+#if WITH_DEST_ANALYSIS_LIST
 		(WantedEndPoint = EndpointTable->getMsgDestination(obj_lrq, rsn, false)
 #else
 		(WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false)
