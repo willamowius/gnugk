@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gkauth.h
@@ -13,19 +12,22 @@
 //
 // History:
 //      2001/09/19      initial version (Chih-Wei Huang)
+//      2003/07/15      revision for thread-safed
 //
 //////////////////////////////////////////////////////////////////
-
 
 #ifndef GKAUTH_H
 #define GKAUTH_H "@(#) $Id$"
 
-
-#ifndef _PTLIB_H
-#include <ptlib.h>
+#ifndef NAME_H
+#include "name.h"
+#endif
+#ifndef SLIST_H
+#include "slist.h"
 #endif
 
 class H225_GatekeeperRequest;
+class H225_GatekeeperConfirm;
 class H225_RegistrationRequest;
 class H225_UnregistrationRequest;
 class H225_AdmissionRequest;
@@ -36,14 +38,20 @@ class H225_InfoRequest;
 class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
 class H225_ArrayOf_AliasAddress;
+class H225_ArrayOf_AuthenticationMechanism;
+class H225_ArrayOf_PASN_ObjectId;
+class H235_AuthenticationMechanism;
+class PASN_ObjectId;
+class H235Authenticators;
 
 class CacheManager;
+template<class> class RasPDU;
+template<class> struct RasInfo;
 
-class GkAuthenticator {
+class GkAuthenticator : public SList<GkAuthenticator>, public CNamedObject {
 public:
 	enum Control {
 		e_Optional,
-		e_Alternative,
 		e_Required,
 		e_Sufficient
 	};
@@ -54,172 +62,161 @@ public:
 		e_next = 0	// the request is undetermined
 	};
 
-	enum {
-		e_GRQ = 0x0001,
-		e_RRQ = 0x0002,
-		e_URQ = 0x0004,
-		e_ARQ = 0x0008,
-		e_BRQ = 0x0010,
-		e_DRQ = 0x0020,
-		e_LRQ = 0x0040,
-		e_IRQ = 0x0080,
-		e_ALL = 0x00FF
-	};
-
-	GkAuthenticator(PConfig *, const char *authName = "default");
+	GkAuthenticator(const char *);
 	virtual ~GkAuthenticator();
 
-	template<class RasType> bool CheckRas(PBYTEArray &rawPDU, const RasType & req, unsigned & reason)
+	template<class RAS> bool Validate(RasPDU<RAS> & req, unsigned & reason)
 	{
-		PWaitAndSignal lock(deleteMutex);
-		setLastReceivedRawPDU(rawPDU);
-		if (checkFlag & RasValue(req)) {
+		if (checkFlag & RasInfo<RAS>::flag) {
 			int r = Check(req, reason);
 			if (r == e_ok) {
-				PTRACE(4, "GkAuth\t" << name << " check ok");
+				PTRACE(4, "GkAuth\t" << GetName() << " check ok");
 				if (controlFlag != e_Required)
 					return true;
 			} else if (r == e_fail) {
-				PTRACE(2, "GkAuth\t" << name << " check failed");
-				if (controlFlag != e_Alternative)
-					return false;
+				PTRACE(2, "GkAuth\t" << GetName() << " check failed");
+				return false;
 			}
 		}
 		// try next rule
-		return (next) ? next->CheckRas(rawPDU, req, reason) : true;
+		return !m_next || m_next->Validate(req, reason);
 	}
 
-	const char *GetName() { return name; }
+	/** @return
+		TRUE if this authenticator provides H.235 compatible security.
+		It simply checks if h235Authenticators list is not empty.
+	*/
+	virtual bool IsH235Capable() const;
+	
+	/** If the authenticator supports H.235 security,
+		this call returns H.235 security capabilities
+		associated with it. It scans list pointed by h235Authenticators.
+		
+		@return
+		TRUE is H.235 security is supported and capabilities
+		has been set.
+	*/
+	virtual bool GetH235Capability(
+		/// append supported authentication mechanism to this array
+		H225_ArrayOf_AuthenticationMechanism& mechanisms,
+		/// append supported algorithm OIDs for the given authentication
+		/// mechanism
+		H225_ArrayOf_PASN_ObjectId& algorithmOIDs
+		) const;
+
+	/** Check if this authenticator supports the given
+		H.235 capability (mechanism+algorithmOID) by scanning
+		list pointed by h235Authenticators.
+		
+		@return
+		TRUE if the capability is supported.
+	*/
+	virtual bool IsH235Capability(
+		/// authentication mechanism
+		const H235_AuthenticationMechanism& mechanism,
+		/// algorithm OID for the given authentication mechanism
+		const PASN_ObjectId& algorithmOID
+		) const;
+
+	/** @return
+		Control flag determining authenticator behaviour
+		(optional,sufficient,required).
+	*/
+	Control GetControlFlag() const { return controlFlag; }
 
 protected:
 	// the second argument is the reject reason, if any
-	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
-	virtual int Check(const H225_RegistrationRequest &, unsigned &);
-	virtual int Check(const H225_UnregistrationRequest &, unsigned &);
-	virtual int Check(const H225_AdmissionRequest &, unsigned &);
-	virtual int Check(const H225_BandwidthRequest &, unsigned &);
-	virtual int Check(const H225_DisengageRequest &, unsigned &);
-	virtual int Check(const H225_LocationRequest &, unsigned &);
-	virtual int Check(const H225_InfoRequest &, unsigned &);
-
-	int RasValue(const H225_GatekeeperRequest &)     { return e_GRQ; }
-	int RasValue(const H225_RegistrationRequest &)   { return e_RRQ; }
-	int RasValue(const H225_UnregistrationRequest &) { return e_URQ; }
-	int RasValue(const H225_AdmissionRequest &)      { return e_ARQ; }
-	int RasValue(const H225_BandwidthRequest &)      { return e_BRQ; }
-	int RasValue(const H225_DisengageRequest &)      { return e_DRQ; }
-	int RasValue(const H225_LocationRequest &)       { return e_LRQ; }
-	int RasValue(const H225_InfoRequest &)           { return e_IRQ; }
-
-	PBYTEArray& getLastReceivedRawPDU(){ return m_lastReceivedRawPDU; }
+	virtual int Check(RasPDU<H225_GatekeeperRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_UnregistrationRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_BandwidthRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_InfoRequest> &, unsigned &);
 
 	Control controlFlag;
 	Status defaultStatus;
 	PConfig *config;
-	PMutex deleteMutex;
-private:
-	const char *name;
-	int checkFlag;
 
-	GkAuthenticator *next;
-	static GkAuthenticator *head;
+	H235Authenticators *h235Authenticators;
+	
+private:
+	DWORD checkFlag;
 
 	GkAuthenticator(const GkAuthenticator &);
 	GkAuthenticator & operator=(const GkAuthenticator &);
-
-	void setLastReceivedRawPDU(PBYTEArray &rawPDU){ m_lastReceivedRawPDU = rawPDU; }
-
-	PBYTEArray m_lastReceivedRawPDU;
-
-	friend class GkAuthenticatorList;
 };
 
 class SimplePasswordAuth : public GkAuthenticator {
 public:
-	SimplePasswordAuth(PConfig *, const char *);
+	SimplePasswordAuth(const char *);
 	~SimplePasswordAuth();
 
 protected:
-	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
-	virtual int Check(const H225_RegistrationRequest &, unsigned &);
-	virtual int Check(const H225_UnregistrationRequest &, unsigned &);
-	virtual int Check(const H225_AdmissionRequest &, unsigned &);
-	virtual int Check(const H225_BandwidthRequest &, unsigned &);
-	virtual int Check(const H225_DisengageRequest &, unsigned &);
-	virtual int Check(const H225_LocationRequest &, unsigned &);
-	virtual int Check(const H225_InfoRequest &, unsigned &);
+	// override from class GkAuthenticator
+	virtual int Check(RasPDU<H225_GatekeeperRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_UnregistrationRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_BandwidthRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_InfoRequest> &, unsigned &);
 
-	virtual PString GetPassword(const PString &);
-	virtual PString GetPassword(PString & tokenAlias, const H225_ArrayOf_AliasAddress & moreAliases, BOOL checkTokenAlias = TRUE);
+	// new virtual function
+	virtual bool GetPassword(const PString & id, PString & passwd);
+	virtual bool CheckAliases(const PString &, const H225_ArrayOf_AliasAddress *);
+	virtual bool CheckTokens(const H225_ArrayOf_ClearToken &, const H225_ArrayOf_AliasAddress *);
+	virtual bool CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token &, const H225_ArrayOf_AliasAddress *, const PBYTEArray &);
 
-	virtual bool CheckAliases(const PString &);
-	virtual bool CheckTokens(const H225_ArrayOf_ClearToken &);
-	virtual bool CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token &);
-
-	template<class RasType> int doCheck(const RasType & req)
+	template<class RAS> int doCheck(const RasPDU<RAS> & request, const H225_ArrayOf_AliasAddress *a = 0)
 	{
-		if (req.HasOptionalField(RasType::e_cryptoTokens))
-			return CheckCryptoTokens(req.m_cryptoTokens) ? e_ok : e_fail;
-	 	else if (req.HasOptionalField(RasType::e_tokens))
-			return CheckTokens(req.m_tokens) ? e_ok : e_fail;
-		return (controlFlag == e_Optional || controlFlag == e_Alternative) ? e_next : e_fail;
+		const RAS & req = request;
+		if (req.HasOptionalField(RAS::e_cryptoTokens))
+			return CheckCryptoTokens(req.m_cryptoTokens, a, request->m_rasPDU) ? e_ok : e_fail;
+	 	else if (req.HasOptionalField(RAS::e_tokens))
+			return CheckTokens(req.m_tokens, a) ? e_ok : e_fail;
+		return (controlFlag == e_Optional) ? e_next : e_fail;
 	}
+
+private:
+	PString InternalGetPassword(const PString & id);
 
 	int filled;
 	bool checkid;
-	const H225_ArrayOf_AliasAddress *aliases;
-	BOOL m_aliasesChecked;
-
-private:
-/*  	H235AuthSimpleMD5 authMD5; */
-
-/* #ifdef P_SSL */
-/*  	H235AuthProcedure1 authProcedure1; */
-/* #endif */
-
-  	PBYTEArray nullPDU;
 	CacheManager *cache;
 };
 
-class GkAuthInitializer {
-public:
-	GkAuthInitializer(const char *);
-	virtual ~GkAuthInitializer();
-	// virtual constructor
-	virtual GkAuthenticator *CreateAuthenticator(PConfig *) = 0;
-	bool Compare(PString n) const;
-
-protected:
-	const char *name;
-};
-
-template<class GkAuth> class GkAuthInit : public GkAuthInitializer {
-public:
-	GkAuthInit(const char *n) : GkAuthInitializer(n) {}
-	virtual GkAuthenticator *CreateAuthenticator(PConfig *config)
-	{ return new GkAuth(config, name); }
+template<class Auth>
+struct GkAuthCreator : public Factory<GkAuthenticator>::Creator0 {
+	GkAuthCreator(const char *n) : Factory<GkAuthenticator>::Creator0(n) {}
+	virtual GkAuthenticator *operator()() const { return new Auth(m_id); }
 };
 
 class GkAuthenticatorList {
 public:
-	GkAuthenticatorList(PConfig *);
-	virtual ~GkAuthenticatorList();
+	GkAuthenticatorList();
+	~GkAuthenticatorList();
 
-	template<class RasType> bool Check(const RasType & req, unsigned & reason)
+	void OnReload();
+	void SelectH235Capability(const H225_GatekeeperRequest &, H225_GatekeeperConfirm &) const;
+
+	template<class PDU> bool Validate(PDU & req, unsigned & reason)
 	{
-		return (GkAuthenticator::head) ? GkAuthenticator::head->CheckRas(getLastReceivedRawPDU(), req, reason) : true;
+		return !m_head || m_head->Validate(req, reason);
 	}
 
-	virtual void setLastReceivedRawPDU(PBYTEArray &rawPDU){ m_lastReceivedRawPDU = rawPDU; }
-
 private:
+	GkAuthenticator *m_head;
+
+	/// the most common authentication capabilities 
+	/// shared by all authenticators on the list
+	H225_ArrayOf_AuthenticationMechanism *m_mechanisms;
+	H225_ArrayOf_PASN_ObjectId *m_algorithmOIDs;
+
 	GkAuthenticatorList(const GkAuthenticatorList &);
 	GkAuthenticatorList & operator=(const GkAuthenticatorList &);
-
-	virtual PBYTEArray& getLastReceivedRawPDU(){ return m_lastReceivedRawPDU; }
-
-	PBYTEArray m_lastReceivedRawPDU;
 };
 
-
-#endif  /* GKAUTH_H */
+#endif  // GKAUTH_H

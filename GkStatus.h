@@ -1,8 +1,7 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // GkStatus.h	thread listening for connections to receive
-//				status updates from the gatekeeper
+//		status updates from the gatekeeper
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -12,143 +11,102 @@
 // History:
 // 	990913	initial version (Jan Willamowius)
 //	991025	Added command thread (Ashley Unitt)
+//	030511  redesign based on new architecture (cwhuang)
 //
 //////////////////////////////////////////////////////////////////
-
 
 #ifndef GKSTATUS_H
 #define GKSTATUS_H "@(#) $Id$"
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#endif
-
-#include <ptlib.h>
-#include <ptlib/sockets.h>
-#include <set>
+#include "yasocket.h"
 #include "singleton.h"
 
-class GkStatus : public PThread, public Singleton<GkStatus>
-{
-	PCLASSINFO(GkStatus, PThread)
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
+
+#include <map>
+
+class TelnetSocket;
+class StatusClient;
+
+class GkStatus : public Singleton<GkStatus>, public SocketsReader {
 public:
 	GkStatus();
-	virtual ~GkStatus();
 
-	void Initialize(PIPSocket::Address);
+	// authenticate and add a client
+	void AuthenticateClient(StatusClient *);
 
-	void Close(void);
+	// #level# is the 'status trace level'
+	void SignalStatus(const PString & Message, int level = 0);
 
-	/** controls wether there may be a client to delete or not */
-	void SetDirty(BOOL isDirty) { m_IsDirty = isDirty; }
-	BOOL IsDirty() const { return m_IsDirty; }
+	// disconnect a given session
+	bool DisconnectSession(int session, StatusClient *);
 
-	/** #level# is the 'status trace level'  */
-	void SignalStatus(const PString &Message, int level=0);
+	void ShowUsers(StatusClient *) const;
 
+	void PrintHelp(StatusClient *) const;
 
-	enum enumCommands {
+	enum {
 		e_PrintAllRegistrations,
 		e_PrintAllRegistrationsVerbose,/// extra line per reg starting with '#'. yeah #.
 		e_PrintAllCached,
 		e_PrintCurrentCalls,
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
-		e_Find,		/// find an endpoint
-		e_FindVerbose,	//
-		e_DisconnectIp,	/// disconnect a call by endpoint IP number
-		e_DisconnectAlias, /// disconnect a call by endpoint alias
-		e_DisconnectCall, /// disconnect a call by call number
-		e_DisconnectEndpoint, /// disconnect a call by endpoint ID
-		e_UnregisterAllEndpoints, /// force unregisterung of all andpoints
-		e_UnregisterAlias, /// force unregisterung of one andpoint by alias
-		e_UnregisterIp,	/// force unregisterung of one andpoint by IP number
-		e_TransferCall,	/// transfer call from one endpoint to another
-		e_MakeCall, /// establish a new call from endpoint A to endpoint B
-		e_Yell,		/// write a message to all status clients
-		e_Who,		/// list who is logged on at a status port
-		e_Help,		/// List all commands
-		e_Version,	/// GkStatus Protocol Info
-		e_Debug,	/// Debugging commands
-		e_Statistics,	/// Show Statistics
-		e_Exit,		/// Close Connection
-		e_Reload,	/// Reload Config File
-		e_Shutdown,	/// Shutdown the program
-		e_CDB_Flush	/// Flush the common gk database cache
-	};
-	static const int NumberOfCommandStrings; // given by static initializer
-
-	/** Returns TRUE if a client from this #Socket# may conntect to the status channel.
-	 * This implementation uses the config and for authorization. The config section
-	 * [GkStatus::Auth] is used.
-	 * The parameter "rule" may be one of the following:
-	 * - "forbid" disallow any connection (default when no rule us given)
-	 * - "allow" allow any connection
-	 * - "explicit" reads the parameter #"<ip>=<value>"# with ip is the ip4-address
-	 *    if the peering client. #<value># is resolved with #Toolkit::AsBool#. If the ip
-	 *    is not listed the param "default" is used.
-	 * - "regex" the #<ip># of the client is matched against the given regular expression.
-	 */
-	virtual BOOL AuthenticateClient(PIPSocket &Socket) const;
-
-
-// Visual C++ doesn't grok this:
-// protected:
-	// Client class handles status commands
-	class Client : public PThread
-	{
-		PCLASSINFO(Client, PThread)
-	public:
-		Client( GkStatus * _StatusThread, PTCPSocket * _Socket );
-		virtual ~Client();
-
-		/*
-		BOOL Write( const char * Message, size_t MsgLen );
-		*/
-		BOOL WriteString(const PString &Message, int level=0);
-		int Close(void);
-
-		PString WhoAmI() const {
-			return Socket->GetName();
-		}
-
-	public:
-		int          TraceLevel;
-		int          InstanceNo;
-		BOOL       PleaseDelete;
-		static int   StaticInstanceNo;
-
-		/** mutex to protect writing to the socket */
-		PMutex       Mutex;
-
-	protected:
-		virtual void Main();
-		PString ReadCommand();
-
-		PTCPSocket * Socket;
-		GkStatus   * StatusThread;
-
-		/// map for fast (and easy) 'parsing' the commands from the user
-		static PStringToOrdinal Commands;
-
-		/// prints out the GkStatus commands to the client
-		void PrintHelp();
-
-		/// handles the 'Debug' command. #Args# is the whole tokenised command line.
-		void DoDebug(const PStringArray &Args);
-
+		e_Find,                        /// find an endpoint
+		e_FindVerbose,
+		e_Disconnect,                  /// disconnect a call
+		e_DisconnectIp,                /// disconnect a call by endpoint IP number
+		e_DisconnectAlias,             /// disconnect a call by endpoint alias
+		e_DisconnectCall,              /// disconnect a call by call number
+		e_DisconnectEndpoint,          /// disconnect a call by endpoint ID
+		e_DisconnectSession,           /// disconnect a user from status port
+		e_ClearCalls,                  /// disconnect all calls
+		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
+		e_Unregister,                  /// force unregisterung of all andpoints
+		e_UnregisterIp,                /// force unregisterung of one andpoint by IP number
+		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
+		e_TransferCall,                /// transfer call from one endpoint to another
+		e_MakeCall,                    /// establish a new call from endpoint A to endpoint B
+		e_Yell,                        /// write a message to all status clients
+		e_Who,                         /// list who is logged on at a status port
+		e_GK,                          /// show my parent gatekeeper
+		e_Help,                        /// List all commands
+		e_Version,                     /// GkStatus Protocol Info
+		e_Debug,                       /// Debugging commands
+		e_Statistics,                  /// Show Statistics
+		e_Exit,                        /// Close Connection
+		e_Reload,                      /// Reload Config File
+		e_Shutdown,                    /// Shutdown the program
+		e_RouteToAlias,                /// Route a call upon ARQ to a specified alias eg. a free CTI agent
+		e_RouteReject                  /// Reject to Route a call upon ARQ (send ARJ)
+		/// Number of different strings
 	};
 
-	friend class Client;
+	int ParseCommand(const PString &, PStringArray &);
 
-	virtual void Main();
-	void RemoveClient( GkStatus::Client * Client );
+private:
+	// override from class RegularJob
+	virtual bool OnStart();
+	virtual void OnStop();
 
-	PIPSocket::Address GKHome;
-	PTCPSocket StatusListener;
-	PLIST(ClientList,Client);
-	ClientList Clients;
-	PMutex       ClientSetLock;
-	BOOL         m_IsDirty;
+	// override from class SocketsReader
+	virtual void ReadSocket(IPSocket *);
+	virtual void CleanUp();
+
+	// map for fast (and easy) 'parsing' the commands from the user
+	std::map<PString, int> m_commands;
+};
+
+class StatusListener : public TCPListenSocket {
+#ifndef LARGE_FDSET
+	PCLASSINFO ( StatusListener, TCPListenSocket )
+#endif
+public:
+	StatusListener(const Address &, WORD);
+
+	// override from class TCPListenSocket
+	virtual ServerSocket *CreateAcceptor() const;
 };
 
 #endif // GKSTATUS_H
