@@ -531,10 +531,10 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		} else if (Args[1] *= "remove") {
 			if (Args.GetSize()>=4) {
 				GkConfig()->DeleteKey(Args[2],Args[3]);
-				WriteString("Remove " + Args[3] + " in section " + Args[2] + "\r\n");
+				WriteString("Remove " + Args[3] + " in section " + Args[2] + GK_LINEBRK);
 			} else if (Args.GetSize()>=3) {
 				GkConfig()->DeleteSection(Args[2]);
-				WriteString("Remove section " + Args[2] + "\r\n");
+				WriteString("Remove section " + Args[2] + GK_LINEBRK);
 			}
 		} else if((Args[1] *= "printrm")) {
 			SoftPBX::PrintRemoved(*this, (Args.GetSize() >= 3));
