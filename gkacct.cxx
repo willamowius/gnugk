@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2004/05/22 12:17:12  zvision
+ * Parametrized FileAcct CDR format
+ *
  * Revision 1.11  2004/05/12 11:49:08  zvision
  * New flexible CDR file rotation
  *
@@ -720,6 +723,7 @@ void FileAcct::Rotate()
 				);
 	
 	m_cdrFile = OpenCDRFile(fn);
+	m_cdrLines = 0;
 }
 
 PTextFile* FileAcct::OpenCDRFile(
