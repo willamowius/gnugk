@@ -40,6 +40,7 @@ class H225_EndpointIdentifier;
 class H225_GatekeeperIdentifier;
 class H225_RegistrationRequest;
 class H225_AdmissionRequest;
+class H225_LocationRequest;
 class H225_Setup_UUIE;
 class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
@@ -79,6 +80,16 @@ public:
 	bool RewriteE164(H225_ArrayOf_AliasAddress & alias, bool);
 	bool RewriteE164(Q931 &, H225_Setup_UUIE &, bool);
 
+	/** Fills LRQ with approtiation tokens/cryptoTokens containing
+		configured username/password data. 
+		Declared outside SetPassword template because it should not 
+		depend on authMode.
+	*/
+	void SetPassword(
+		H225_LocationRequest& lrq, /// LRQ message to be filled with tokens
+		const PString& id // login name
+		);
+		
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
 		if (!m_password) {

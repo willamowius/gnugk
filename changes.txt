@@ -1,5 +1,7 @@
 Changes from 2.2beta1 to 2.2beta2
 =================================
+- BUGFIX(GkClient.cxx) changed SetPassword to fill LRQs with all recognized
+  tokens/cryptoTokens
 - better disconnect cause handling
 - BUGFIX(ProxyChannel.cxx) ReleaseComplete now always contains either CauseIE
   or H225_ReleaseCompleteReason, because one of these fields is mandatory

@@ -990,3 +990,16 @@ void GkClient::SetCallSignalAddress(H225_ArrayOf_TransportAddress & addr)
 	addr.SetSize(1);
 	addr[0] = m_rasSrv->GetCallSignalAddress(m_loaddr);
 }
+
+void GkClient::SetPassword(
+	H225_LocationRequest& lrq, /// LRQ message to be filled with tokens
+	const PString& id // login name
+	)
+{
+	if (!m_password) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_cryptoTokens), SetCryptoTokens(lrq.m_cryptoTokens, id);
+#ifdef OPENH323_NEWVERSION
+		lrq.IncludeOptionalField(H225_LocationRequest::e_tokens), SetClearTokens(lrq.m_tokens, id);
+#endif
+	}
+}
