@@ -384,6 +384,13 @@ void Gatekeeper::Main()
 	if(! InitLogging(args)) return;
 	if(! InitHandlers(args)) return;
 	if(! InitToolkit(args)) return;
+
+	if (args.HasOption('h')) {
+		PrintOpts();
+        	delete Toolkit::Instance();
+		exit(0);
+	}
+
 	if(! InitConfig(args)) return;
 #if defined(HAVE_DIGIT_ANALYSIS) && defined(PTRACING)
 	if(! InitDigitCodeLibrary(args)) return;
@@ -407,12 +414,6 @@ void Gatekeeper::Main()
                cout << myip << "\n\n";
 	}
 
-	if (args.HasOption('h')) {
-		PrintOpts();
-		delete DigitCodeLibrary::Instance();
-        	delete Toolkit::Instance();
-		exit(0);
-	}
 
 	// Copyright notice
 	cout <<
