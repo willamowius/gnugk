@@ -1617,8 +1617,11 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 			PTRACE(3, "GK\tWarning: CallRec doesn't belong to the requesting endpoint!");
 			return;
 		}
-		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0")))
+		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
+			if( obj_drq.m_disengageReason.GetTag() == H225_DisengageReason::e_normalDrop )
+				call->SetDisconnectCause(Q931::NormalCallClearing);
 			call->SendReleaseComplete(obj_drq.HasOptionalField(H225_DisengageRequest::e_terminationCause) ? &obj_drq.m_terminationCause : 0);
+		}
 		RemoveCall(call);
 	}
 }

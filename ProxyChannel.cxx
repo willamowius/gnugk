@@ -835,7 +835,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 			// remember disconnect cause for billing purposes
 			if( m_call && m_call->GetDisconnectCause() == 0 )
 				m_call->SetDisconnectCause(
-					MapH225ReasonToQ931Cause(cause->GetTag())
+					MapH225ReasonToQ931Cause(uuie.m_reason.GetTag())
 					);
 		} else { // H225_CallTerminationCause::e_releaseCompleteCauseIE
 			PPER_Stream strm;
@@ -1278,6 +1278,10 @@ bool CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComp
 		m_call->SetDisconnectTime(time(NULL));
 		if( m_lastQ931 && m_lastQ931->HasIE(Q931::CauseIE) )
 			m_call->SetDisconnectCause(m_lastQ931->GetCause());
+		else if( ReleaseComplete.HasOptionalField(H225_ReleaseComplete_UUIE::e_reason) )
+			m_call->SetDisconnectCause(
+				MapH225ReasonToQ931Cause(ReleaseComplete.m_reason.GetTag())
+				);
 	}
 	return false; // do nothing
 }

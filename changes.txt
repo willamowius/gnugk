@@ -1,5 +1,9 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- check ReleaseComplete for H225 reason field, if no Q.931 cause IE is found
+- set disconnect cause to "normal call clearing" on DRQ received with normalDrop
+  disengageReason and no termination cause set
+- BUGFIX(ProxyChannel.cxx) fixed h225 termination cause setting for ReleaseComplete
 - better hop count handling for neighbors - now LRQ m_hopCount field 
   is forwarded/generated correctly, according to an original hop count
   or a ForwardHopCount config settings
