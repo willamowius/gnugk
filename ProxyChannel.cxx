@@ -27,11 +27,11 @@
 #include "h323pdu.h"
 #include "Toolkit.h"
 #include "stl_supp.h"
-#include "RasSrv.h"
 #include "GkClient.h"
 #include "ProxyChannel.h"
 #include <q931.h>
 #include <h245.h>
+#include "RasListener.h"
 #include "RasTbl.h"
 #include "gkDestAnalysis.h"
 #include "gkldap.h"
@@ -340,13 +340,13 @@ CallSignalSocket::~CallSignalSocket()
 			rem->m_lock.Wait();
 			PTRACE(5, "deleteing remote socket");
 			if(NULL!=rem->remote) {
-				rem->remote->UnlockUse("CallSignalSocket " + Name() + type);
+				PAssert(rem->remote==this, "remote->remote != this");
+				rem->UnlockUse("CallSignalSocket " + Name() + type);
 				rem->remote=NULL;
 			}
 			rem->m_lock.Signal();
 		}
  		remote->SetDeletable();
-		remote->UnlockUse("CallSignalSocket " + Name() + type);
 		remote=NULL;
 	}
 	m_lock.Signal();
@@ -402,6 +402,7 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 		m_h245handler = new H245Handler(localAddr, called);
 	}
 	m_SetupPDU = NULL;
+	remote->LockUse("CallSignalSocket " + Name() + type);
 }
 
 // void
@@ -453,7 +454,9 @@ inline void PrintQ931(int, const PString &, const Q931 *, const H225_H323_UserIn
 void CallSignalSocket::DoRoutingDecision() {
 	endptr CalledEP(NULL);
 	H225_AliasAddress h225address;
-	endptr CallingEP = m_call->GetCallingEP();
+	endptr CallingEP = endptr(NULL);
+	if(callptr(NULL)!=m_call)
+		CallingEP = m_call->GetCallingEP();
 
 	unsigned rsn;
 	isRoutable=FALSE;
@@ -479,8 +482,10 @@ void CallSignalSocket::DoRoutingDecision() {
 			BuildConnection();
 		}
 		PTRACE(5, "Setting Profile.Number");
-		m_call->GetCalledProfile().SetCalledPN(CalledNumber); // are the dialed digits in international format?
-		m_call->GetCalledProfile().SetDialedPN(DialedDigits);
+		if(callptr(NULL)!=m_call) {
+			m_call->GetCalledProfile().SetCalledPN(CalledNumber); // are the dialed digits in international format?
+			m_call->GetCalledProfile().SetDialedPN(DialedDigits);
+		}
 		return;
 	}
 	if (H225_AdmissionRejectReason::e_incompleteAddress != rsn) {
@@ -488,7 +493,9 @@ void CallSignalSocket::DoRoutingDecision() {
 		if(NULL!=remote) {
 			remote->SetDeletable();
 			remote->CloseSocket();
-			remote->UnlockUse("CallSignalSocket " + Name() + type);
+			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
+			if (NULL!=rem)
+				rem->UnlockUse("CallSignalSocket " + Name() + type);
 			remote=NULL;
 		}
 		SetDeletable();
@@ -528,7 +535,9 @@ void CallSignalSocket::BuildConnection() {
 	pdu->SetCalledPartyNumber(DialedDigits,plan,type);
 	m_SetupPDU=pdu;
 	remote=new CallSignalSocket(this, peerPort);
-	remote->LockUse("CallSignalSocket " + Name() + type);
+	CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
+	if(NULL!=rem)
+		rem->LockUse("CallSignalSocket " + Name() + type);
 }
 
 TCPProxySocket *CallSignalSocket::ConnectTo()
@@ -549,8 +558,10 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 	}
 	if(NULL==remote) {
 		SetDeletable();
-		m_call->RemoveSocket();
-		CallTable::Instance()->RemoveCall(m_call);
+		if(callptr(NULL)!=m_call) {
+			m_call->RemoveSocket();
+			CallTable::Instance()->RemoveCall(m_call);
+		}
 		m_call=callptr(NULL);
 		return NULL;
 	}
@@ -572,7 +583,9 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 			PTRACE(3, "Q931\t" << peerAddr << " DIDN'T ACCEPT THE CALL");
 			InternalEndSession();
 			remote->SetDeletable(); // do not delete.
-			remote->UnlockUse("CallSignalSocket " + Name() + type);
+			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
+			if (NULL!=rem)
+				rem->UnlockUse("CallSignalSocket " + Name() + type);
 			remote=NULL;
 			if(callptr(NULL)!=m_call) {
 				m_call->RemoveSocket();
@@ -879,7 +892,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 			SetDeletable();
  			if(NULL!=remote) {
 				remote->SetDeletable();
-				remote->UnlockUse("CallSignalSocket " + Name() + type);
+				CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
+				if (NULL!=rem)
+					rem->UnlockUse("CallSignalSocket " + Name() + type);
 				remote=NULL;
 			}
 			return Error;
@@ -929,7 +944,6 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		m_call = CallTable::Instance()->FindCallRec(crv);
 		callid = AsString(callIdentifier.m_guid);
 	}
-	GkClient *gkClient = RasThread->GetGkClient();
 	Address fromIP;
 	GetPeerAddress(fromIP);
 
@@ -937,23 +951,22 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 	if (m_call) {
 		if (m_call->IsRegistered()) {
-			if (gkClient->CheckGKIP(fromIP)) {
+			if (Toolkit::Instance()->GkClientIsRegistered() && Toolkit::Instance()->GetGkClient().CheckGKIP(fromIP)) {
 				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << Name() << ')');
-				m_call->Unlock();
 				m_call = callptr(NULL);  // reject it
 				return;
 			}
-			gkClient->RewriteE164(*GetReceivedQ931(), Setup, true);
+			Toolkit::Instance()->GetGkClient().RewriteE164(*GetReceivedQ931(), Setup, true);
 		}
 	} else {
 		bool fromParent;
-		if (!RasThread->AcceptUnregisteredCalls(fromIP, fromParent)) {
+		if (!Toolkit::Instance()->GetMasterRASListener().AcceptUnregisteredCalls(fromIP, fromParent)) {
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			PTRACE(3, "Call was " << (fromParent ? "" : "not " ) << "from Parent");
 			return;
 		}
 		if (fromParent)
-			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
+			Toolkit::Instance()->GetGkClient().RewriteE164(*GetReceivedQ931(), Setup, false);
 
 		endptr called;
 		PString destinationString;
@@ -968,7 +981,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		// Rewrite sourceString
 
 		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
-		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, RasThread->IsGKRoutedH245());
+		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, Toolkit::Instance()->GetMasterRASListener().IsGKRoutedH245());
 
 		call->SetCalling(callingEP);
 		CallTable::Instance()->Insert(call);
@@ -1003,11 +1016,11 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		}
 		if (fromParent) {
 			call->SetRegistered(true);
-			gkClient->SendARQ(Setup, m_crv, m_call);
+			Toolkit::Instance()->GetGkClient().SendARQ(Setup, m_crv, m_call);
 		}
 	}
 
-	const H225_TransportAddress *addr = m_call->GetCalledAddress();
+       	const H225_TransportAddress *addr = m_call->GetCalledAddress();
 
 	if (addr && Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		// in routed mode the caller may have put the GK address in destCallSignalAddress
@@ -1070,15 +1083,22 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			PTRACE(1, "Removing unknown call");
 			return;
 		}
+		if(NULL==addr) {
+			m_call->RemoveSocket();
+			m_call=callptr(NULL);
+			return;
+		}
 		const H225_TransportAddress_ipAddress & ip = *addr;
 		peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		peerPort = ip.m_port;
 		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-		Setup.m_sourceCallSignalAddress = RasThread->GetCallSignalAddress(peerAddr);
+		Setup.m_sourceCallSignalAddress = Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(peerAddr);
 		H225_TransportAddress_ipAddress & cip = Setup.m_sourceCallSignalAddress;
 		localAddr = PIPSocket::Address(cip.m_ip[0], cip.m_ip[1], cip.m_ip[2], cip.m_ip[3]);
 		remote = new CallSignalSocket(this, peerPort);
-		remote->LockUse("CallSignalSocket " + Name() + type);
+		CallSignalSocket *rem = dynamic_cast<CallSignalSocket*>(remote);
+		if(NULL!=rem)
+			rem->LockUse("CallSignalSocket " + Name() + type);
 	} else { // Overlap Sending
 		// re-route called endpoint signalling messages to gatekeeper
 		Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
@@ -1156,7 +1176,9 @@ void CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 			SetDeletable();
 			if(NULL!=remote) {
 				remote->SetDeletable();
-				remote->UnlockUse("CallSignalSocket " + Name() + type);
+				CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
+				if (NULL!=rem)
+					rem->UnlockUse("CallSignalSocket " + Name() + type);
 				remote=NULL;
 			}
 			return;
@@ -1399,12 +1421,16 @@ void CallSignalSocket::SendStatusEnquiryMessage() {
 			m_call->GetCalledProfile().SetReleaseCause(Q931::DestinationOutOfOrder);
 			if(NULL!=remote) {
 				remote->SetDeletable();
-				remote->UnlockUse("CallSignalSocket " + Name() + type);
+				CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
+				if (NULL!=rem)
+					rem->UnlockUse("CallSignalSocket " + Name() + type);
 			}
 			remote=NULL;
 		}
-		m_call->RemoveSocket();
-		CallTable::Instance()->RemoveCall(m_call);
+		if(callptr(NULL)!=m_call) {
+			m_call->RemoveSocket();
+			CallTable::Instance()->RemoveCall(m_call);
+		}
 		m_call=callptr(NULL);
 		return;
 	}
@@ -1426,19 +1452,25 @@ void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
 			PTRACE(5, "setting failure codes");
 		}
 		PTRACE(5, "removing Call");
-		m_call->RemoveSocket();
-		CallTable::Instance()->RemoveCall(m_call);
+		if(callptr(NULL)!=m_call) {
+			m_call->RemoveSocket();
+			CallTable::Instance()->RemoveCall(m_call);
+		}
 		m_call=callptr(NULL);
 		if (NULL!=remote) {
 			remote->SetDeletable();
-			remote->UnlockUse("CallSignalSocket " + Name() + type);
+			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
+			if (NULL!=rem)
+				rem->UnlockUse("CallSignalSocket " + Name() + type);
 		}
 		remote=NULL;
 	}
 	if(!IsConnected()) {
 		dynamic_cast<CallSignalSocket *> (remote)->SendReleaseComplete();
-		m_call->RemoveSocket();
-		CallTable::Instance()->RemoveCall(m_call);
+		if(callptr(NULL)!=m_call) {
+			m_call->RemoveSocket();
+			CallTable::Instance()->RemoveCall(m_call);
+		}
 		m_call=callptr(NULL);
 	}
 }
