@@ -29,6 +29,7 @@ namespace SoftPBX
 	void PrintStatistics(GkStatus::Client &client, BOOL verbose=FALSE);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);
+	void UnregisterIp(PString Ip);
 	void DisconnectCall(PINDEX CallNumber);
 	void DisconnectIp(PString Ip);
 	void DisconnectAlias(PString Alias);

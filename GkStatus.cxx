@@ -34,7 +34,7 @@ using std::mem_fun;
 void ReloadHandler(void);
 
 
-const int GkStatus::NumberOfCommandStrings = 40;
+const int GkStatus::NumberOfCommandStrings = 41;
 const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
 {
 	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
@@ -61,6 +61,7 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"disconnectendpoint",       GkStatus::e_DisconnectEndpoint},
 	{"unregisterallendpoints",   GkStatus::e_UnregisterAllEndpoints},
 	{"unregisteralias",          GkStatus::e_UnregisterAlias},
+	{"unregisterip",             GkStatus::e_UnregisterIp},
 	{"transfercall",             GkStatus::e_TransferCall},
 	{"makecall",                 GkStatus::e_MakeCall},
 	{"yell",                     GkStatus::e_Yell},
@@ -429,6 +430,13 @@ void GkStatus::Client::Main()
 						SoftPBX::UnregisterAlias(Args[1]);
 					else
 						WriteString("Syntax Error: UnregisterAlias Alias\r\n");
+					break;
+				case GkStatus::e_UnregisterIp:
+					// unregister this IP
+					if (Args.GetSize() == 2)
+						SoftPBX::UnregisterIp(Args[1]);
+					else
+						WriteString("Syntax Error: UnregisterIp <ip addr>\r\n");
 					break;
 				case GkStatus::e_TransferCall:
 					if (Args.GetSize() == 3)

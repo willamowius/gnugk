@@ -63,6 +63,7 @@ public:
 		e_DisconnectEndpoint,          /// disconnect a call by endpoint ID
 		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
 		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
+		e_UnregisterIp,                /// force unregisterung of one andpoint by IP number
 		e_TransferCall,                /// transfer call from one endpoint to another
 		e_MakeCall,                    /// establish a new call from endpoint A to endpoint B
 		e_Yell,                        /// write a message to all status clients

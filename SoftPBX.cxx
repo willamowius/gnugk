@@ -92,7 +92,7 @@ void SoftPBX::UnregisterAlias(PString Alias)
 	H225_ArrayOf_AliasAddress EpAlias;
 	EpAlias.SetSize(1);
 	H323SetAliasAddress(Alias, EpAlias[0]);
-	PTRACE(3, "GK\tSoftPBX: Unregister " << Alias);
+	PTRACE(3, "GK\tSoftPBX: UnregisterAlias " << Alias);
 
 	const endptr ep = RegistrationTable::Instance()->FindByAliases(EpAlias);
 	if (!ep) {
@@ -107,6 +107,34 @@ void SoftPBX::UnregisterAlias(PString Alias)
 	RegistrationTable::Instance()->RemoveByEndptr(ep);
 
 	PString msg("SoftPBX: Endpoint " + Alias + " unregistered!");
+	PTRACE(2, "GK\t" + msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+}
+
+void SoftPBX::UnregisterIp(PString Ip)
+{
+	PIPSocket::Address ipaddress;
+	PINDEX p=Ip.Find(':');
+	PIPSocket::GetHostAddress(Ip.Left(p), ipaddress);
+	WORD port = (p!=P_MAX_INDEX) ? Ip.Mid(p+1).AsUnsigned() :
+		GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT);
+	H225_TransportAddress callSignalAddress = SocketToH225TransportAddr(ipaddress, port);
+
+	PTRACE(3, "GK\tSoftPBX: UnregisterIp " << AsDotString(callSignalAddress));
+
+	const endptr ep = RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);
+	if (!ep) {
+		PString msg("SoftPBX: ip " + AsDotString(callSignalAddress) + " not found!");
+		PTRACE(1, "GK\t" + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return;
+	}
+	ep->Unregister();
+
+	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
+	RegistrationTable::Instance()->RemoveByEndptr(ep);
+
+	PString msg("SoftPBX: Endpoint " + AsDotString(callSignalAddress) + " unregistered!");
 	PTRACE(2, "GK\t" + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }

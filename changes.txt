@@ -4,6 +4,7 @@ Changes from 1.3 to now (by cwhuang)
 - add H.245 routed support, including early connect
 - TimeToTive now can be specified in config file
 - improve multi-homed support
+- new command unregisterip (jan)
 - other minor cleanup
 
 Changes from 1.2 to 1.3 (by mmuehlen)

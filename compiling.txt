@@ -35,3 +35,7 @@ If you want to leave out LDAP support:
 
 NO_LDAP=1 make both		or 	env NO_LDAP=1 make both
 
+Or disable both with 
+
+NO_MYSQL=1 NO_LDAP=1 make both
+
