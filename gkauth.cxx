@@ -17,19 +17,23 @@
 #include <h235auth.h>
 #include <ptclib/cypher.h>
 #include <map>
+#include <list>
 
 using std::map;
+using std::list;
 
 const char *GkAuthSectionName = "Gatekeeper::Auth";
 
 GkAuthenticator *GkAuthenticator::head = 0;
+
+static GkAuthInit<GkAuthenticator> _defaultGKA_("default");
 
 //////////////////////////////////////////////////////////////////////
 // Definition of authentication rules
 
 class SimplePasswordAuth : public GkAuthenticator {
 public:
-	SimplePasswordAuth(PConfig *);
+	SimplePasswordAuth(PConfig *, const char *);
 
 protected:
 	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
@@ -63,6 +67,8 @@ private:
 	PBYTEArray nullPDU;
 };
 
+static GkAuthInit<SimplePasswordAuth> _SPA_("SimplePasswordAuth");
+
 class MysqlPasswordAuth : public SimplePasswordAuth {
 public:
 	MysqlPasswordAuth(PConfig *);
@@ -84,7 +90,7 @@ public:
 
 class AliasAuth : public GkAuthenticator {
 public:
-	AliasAuth(PConfig *);
+	AliasAuth(PConfig *, const char *);
 
 protected:
 //	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
@@ -98,6 +104,8 @@ protected:
 
 	virtual bool AuthCondition(const H225_TransportAddress &SignalAdr, const PString &);
 };
+
+static GkAuthInit<AliasAuth> _AA_("AliasAuth");
 
 //////////////////////////////////////////////////////////////////////
 
@@ -130,7 +138,7 @@ GkAuthenticator::GkAuthenticator(PConfig *cfg, const char *authName) : config(cf
 	next = head;
 	head = this;
 
-	PTRACE(1, "GkAuth\tAdd " << name << " rule with flag " << hex << checkFlag);
+	PTRACE(1, "GkAuth\tAdd " << name << " rule with flag " << hex << checkFlag << dec);
 }
 
 GkAuthenticator::~GkAuthenticator()
@@ -181,8 +189,8 @@ int GkAuthenticator::Check(const H225_InfoRequest &, unsigned &)
 
 
 // SimplePasswordAuth
-SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg)
-      : GkAuthenticator(cfg, "SimplePasswordAuth")
+SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
+      : GkAuthenticator(cfg, authName)
 {
 	filled = (config->GetString("Password", "KeyFilled", "0")).AsInteger();
 }
@@ -279,7 +287,7 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 
 
 // AliasAuth
-AliasAuth::AliasAuth(PConfig *cfg) : GkAuthenticator(cfg, "AliasAuth")
+AliasAuth::AliasAuth(PConfig *cfg, const char *authName) : GkAuthenticator(cfg, authName)
 {
 }
 
@@ -379,18 +387,40 @@ bool AliasAuth::AuthCondition(const H225_TransportAddress &SignalAdr, const PStr
 	return false;
 }
 
+static list<GkAuthInitializer *> *AuthNameList;
+
+GkAuthInitializer::GkAuthInitializer(const char *n) : name(n)
+{
+	static list<GkAuthInitializer *> aList;
+	AuthNameList = &aList;
+
+	AuthNameList->push_back(this);
+}
+
+GkAuthInitializer::~GkAuthInitializer()
+{
+}
+
+bool GkAuthInitializer::Compare(PString n) const
+{
+	return n == name;
+}
 
 GkAuthenticatorList::GkAuthenticatorList(PConfig *cfg)
 {
 	PStringList authList(cfg->GetKeys(GkAuthSectionName));
 
 	for (PINDEX i=authList.GetSize(); i-- > 0; ) {
-		if (authList[i] == "default")
-			new GkAuthenticator(cfg);
-		else if (authList[i] == "SimplePasswordAuth")
-			new SimplePasswordAuth(cfg);
-		else if (authList[i] == "AliasAuth")
-			new AliasAuth(cfg);
+		PString authName(authList[i]);
+		std::list<GkAuthInitializer *>::iterator Iter =
+			find_if(AuthNameList->begin(), AuthNameList->end(),
+				bind2nd(mem_fun(&GkAuthInitializer::Compare), authName));
+		if (Iter != AuthNameList->end())
+			(*Iter)->CreateAuthenticator(cfg);
+#ifdef PTRACING
+		else
+			PTRACE(1, "GkAuth\tUnknown auth " << authName << ", ignore!");
+#endif
 	}
 }
 

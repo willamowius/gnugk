@@ -25,6 +25,8 @@ class SignalChannel;
 class resourceManager;
 class GkStatus;
 class GkAuthenticatorList;
+class NeighborList;
+class PendingList;
 
 
 class H323RasSrv : public PThread 
@@ -78,6 +80,13 @@ public:
 
 	void LoadConfig();
 
+	PUDPSocket & GetRasSocket() { return listener; }
+	const H225_TransportAddress & GetCallSignalAddress() const
+	{ return GKCallSignalAddress; }
+	const H225_TransportAddress & GetRasAddress() const
+	{ return GKRasAddress; }
+	NeighborList * GetNeighborsGK() const { return NeighborsGK; }
+
 protected:
 	/** Checks for one condition (between '&`s) the SignalAddress. Used on RRQ in the moment.
 	 *  @returns TRUE if #SignalAdr# fulfills the #Condition#. #FALSE# if not. And returns 
@@ -98,6 +107,7 @@ protected:
 
 	void ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl, BOOL bReject = FALSE);
 
+private:
 	BOOL GKroutedSignaling;
 	H225_TransportAddress GKCallSignalAddress;
 	H225_TransportAddress GKRasAddress;
@@ -117,24 +127,8 @@ protected:
 
 	GkAuthenticatorList * authList;
 
-  class Neighbor {
-    public:
-	Neighbor(const PString & gatekeeper, const PString & prefix);
-	bool SendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
-
-    private:
-	bool InternalSendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
-
-        PString m_prefix;
-        PIPSocket::Address m_ip;
-        WORD m_port;
-  };
-
-	list<Neighbor> NeighborsGK;
-
-	friend class Neighbor;
-	friend class PendingList;
-	PendingList *arqPendingList;
+	NeighborList * NeighborsGK;
+	PendingList * arqPendingList;
 };
 
 #endif

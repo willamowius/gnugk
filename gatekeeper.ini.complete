@@ -171,11 +171,11 @@ rule=allow
 ## Currently only one prefix is supported.
 ##
 #
-# ip[:port]=prefix
+# GKID=ip[:port;prefix;password]
 #
 [RasSvr::Neighbors]
-#203.60.151.5:1719=*
-#203.60.151.9:1719=02
+#GK1=203.60.151.5:1719;*;gk1
+#GK2=203.60.151.9:1719;02
 
 ##
 ## In this section you can put endpoints that don't have RAS support

@@ -38,6 +38,7 @@
 #include "gkauth.h"
 #include "stl_supp.h"
 
+const char *NeighborSection = "RasSvr::Neighbors";
 
 class PendingList {
 	class PendingARQ {
@@ -64,7 +65,7 @@ public:
 	typedef std::list<PendingARQ *>::iterator iterator;
 	typedef std::list<PendingARQ *>::const_iterator const_iterator;
 
-	PendingList(H323RasSrv *rs, int ttl) : theRasSrv(rs), pendingTTL(ttl), seqNumber(0) {}
+	PendingList(H323RasSrv *rs, int ttl) : theRasSrv(rs), pendingTTL(ttl), seqNumber(1) {}
 	~PendingList();
 
 	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP);
@@ -76,12 +77,43 @@ public:
 private:
 	H323RasSrv *theRasSrv;
 	int pendingTTL;
-        int seqNumber;
+	int seqNumber;
         list<PendingARQ *> arqList;
 	PMutex usedLock;
 
         static void delete_arq(PendingARQ *p) { delete p; }
 };
+
+class NeighborList {
+	class Neighbor {
+	public:
+		Neighbor(const PString & gatekeeper, const PString & prefix);
+		bool SendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
+
+	private:
+		bool InternalSendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
+
+		PString m_gkid;
+		PString m_password;
+		PString m_prefix;
+		PIPSocket::Address m_ip;
+		WORD m_port;
+	};
+
+public:
+	typedef std::list<Neighbor>::iterator iterator;
+	typedef std::list<Neighbor>::const_iterator const_iterator;
+
+	NeighborList(H323RasSrv *, PConfig *);
+	int SendLRQ(int seqNum, const H225_AdmissionRequest &);
+
+	class InvalidNeighbor {};
+
+private:
+	list<Neighbor> nbList;
+	H323RasSrv *theRasSrv;
+};
+
 
 inline bool PendingList::PendingARQ::DoACF(H323RasSrv *theRasSrv, const endptr & called) const
 {
@@ -119,17 +151,11 @@ bool PendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & r
 {
 	// TODO: check if ARQ duplicate
 
-	++seqNumber;
-
-	int nbCount = 0;
-	std::list<H323RasSrv::Neighbor>::const_iterator Iter;
-	for (Iter=theRasSrv->NeighborsGK.begin(); Iter!=theRasSrv->NeighborsGK.end(); ++Iter)
-		if (Iter->SendLRQ(seqNumber, obj_arq, theRasSrv))
-			nbCount++;
-
+	int nbCount = theRasSrv->GetNeighborsGK()->SendLRQ(seqNumber, obj_arq);
 	if (nbCount > 0) {
 		PWaitAndSignal lock(usedLock);
 		arqList.push_back(new PendingARQ(seqNumber, obj_arq, reqEP, nbCount));
+		++seqNumber;
 		return true;
 	}
 	return false;
@@ -184,34 +210,63 @@ void PendingList::Check()
 	arqList.erase(arqList.begin(), Iter);
 }
 
-H323RasSrv::Neighbor::Neighbor(const PString & gatekeeper, const PString & prefix) : m_prefix(prefix)
+NeighborList::NeighborList(H323RasSrv *rs, PConfig *config) : theRasSrv(rs)
 {
-	PString ipAddr = gatekeeper.Trim();
-	PINDEX p = ipAddr.Find(':');
-	PIPSocket::GetHostAddress(ipAddr.Left(p), m_ip);
-	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
-	PTRACE(1, "Add neighbor " << m_ip << ':' << m_port << " for prefix " << prefix);
+	PStringToString cfgs = config->GetAllKeyValues(NeighborSection);
+	for (PINDEX i=0; i < cfgs.GetSize(); i++) {
+		try {
+			nbList.push_back(Neighbor(cfgs.GetKeyAt(i), cfgs.GetDataAt(i)));
+		} catch (InvalidNeighbor) {
+			PTRACE(1, "Bad neighbor " << cfgs.GetKeyAt(i));
+			// ignore it :p
+		}
+	}
 }
 
-bool H323RasSrv::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
+int NeighborList::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq)
+{
+	int nbCount = 0;
+	const_iterator Iter, eIter = nbList.end();
+	for (Iter=nbList.begin(); Iter != eIter; ++Iter)
+		if (Iter->SendLRQ(seqNum, obj_arq, theRasSrv))
+			++nbCount;
+
+	return nbCount;
+}
+
+NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m_gkid(gkid)
+{
+	PStringArray cfg(cfgs.Tokenise(",;", FALSE));
+	PString ipAddr = cfg[0].Trim();
+	PINDEX p = ipAddr.Find(':');
+	if (!PIPSocket::GetHostAddress(ipAddr.Left(p), m_ip))
+		throw InvalidNeighbor();
+	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
+	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : "*";
+	if (cfg.GetSize() > 2)
+		m_password = cfg[2];
+	PTRACE(1, "Add neighbor " << m_gkid << '(' << m_ip << ':' << m_port << ") for prefix " << m_prefix);
+}
+
+bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
 {
 	if (m_prefix == "*")
 		return InternalSendLRQ(seqNum, obj_arq, theRasSrv);
 
-	for (PINDEX i=0; i < obj_arq.m_destinationInfo.GetSize(); i++)
+	for (PINDEX i=0; i < obj_arq.m_destinationInfo.GetSize(); ++i)
 		if (AsString(obj_arq.m_destinationInfo[i], FALSE).Find(m_prefix) == 0)
 			return InternalSendLRQ(seqNum, obj_arq, theRasSrv);
 
 	return false;
 }
 
-bool H323RasSrv::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
+bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
 {
 	H225_RasMessage lrq_ras;
 	lrq_ras.SetTag(H225_RasMessage::e_locationRequest);
 	H225_LocationRequest & lrq_obj = lrq_ras;
 	lrq_obj.m_requestSeqNum.SetValue(seqNum);
-	lrq_obj.m_replyAddress = theRasSrv->GKRasAddress;
+	lrq_obj.m_replyAddress = theRasSrv->GetRasAddress();
 	lrq_obj.m_destinationInfo = obj_arq.m_destinationInfo;
 
 	// tell the neighbor who I am
@@ -219,7 +274,7 @@ bool H323RasSrv::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionReque
 	lrq_obj.m_sourceInfo.SetSize(1);
 	H323SetAliasAddress(theRasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
 
-	theRasSrv->SendReply(lrq_ras, m_ip, m_port, theRasSrv->listener);
+	theRasSrv->SendReply(lrq_ras, m_ip, m_port, theRasSrv->GetRasSocket());
 	return true;
 }
 
@@ -236,7 +291,8 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	GKroutedSignaling = FALSE;
 	sigListener = NULL;
 
-	authList = NULL;
+	authList = 0;
+	NeighborsGK = 0;
 
 	LoadConfig();
 
@@ -246,13 +302,14 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	GkStatusThread = GkStatus::Instance();
 	GkStatusThread->Initialize(_GKHome);
 
-	arqPendingList = new PendingList(this, GkConfig()->GetInteger("NeighborTimeout", 2));
+	arqPendingList = new PendingList(this, GkConfig()->GetInteger(NeighborSection, "NeighborTimeout", 2));
 }
 
 
 H323RasSrv::~H323RasSrv()
 {
 	delete authList;
+	delete NeighborsGK;
 	delete arqPendingList;
 }
 
@@ -265,14 +322,13 @@ void H323RasSrv::LoadConfig()
 	GKCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
 	GKRasAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
 
-	NeighborsGK.clear();
-	PStringToString cfgs = GkConfig()->GetAllKeyValues("RasSvr::Neighbors");
-	for (PINDEX i=0; i < cfgs.GetSize(); i++)
-		NeighborsGK.push_back(Neighbor(cfgs.GetKeyAt(i), cfgs.GetDataAt(i)));
-
 	// add authenticators
 	delete authList;
 	authList = new GkAuthenticatorList(GkConfig());
+
+	// add neighbors
+	delete NeighborsGK;
+	NeighborsGK = new NeighborList(this, GkConfig());
 }
 
 void H323RasSrv::Close(void)

@@ -21,9 +21,16 @@
 #ifndef _PTLIB_H
 #include <ptlib.h>
 #endif
-#ifndef __H225_H
-#include <h225.h>
-#endif
+
+
+class H225_GatekeeperRequest;
+class H225_RegistrationRequest;
+class H225_UnregistrationRequest;
+class H225_AdmissionRequest;
+class H225_BandwidthRequest;
+class H225_DisengageRequest;
+class H225_LocationRequest;
+class H225_InfoRequest;
 
 
 class GkAuthenticator {
@@ -111,6 +118,25 @@ private:
 	friend class GkAuthenticatorList;
 };
 
+
+class GkAuthInitializer {
+public:
+	GkAuthInitializer(const char *);
+	virtual ~GkAuthInitializer();
+	// virtual constructor
+	virtual GkAuthenticator *CreateAuthenticator(PConfig *) = 0;
+	bool Compare(PString n) const;
+
+protected:
+	const char *name;
+};
+
+template<class GkAuth> class GkAuthInit : public GkAuthInitializer {
+public:
+	GkAuthInit(const char *n) : GkAuthInitializer(n) {}
+	virtual GkAuthenticator *CreateAuthenticator(PConfig *config)
+	{ return new GkAuth(config, name); }
+};
 
 class GkAuthenticatorList {
 public:
