@@ -1081,10 +1081,18 @@ void CallRec::RemoveAll()
 
 void CallRec::RemoveSocket()
 {
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) {
+                if (m_callingSocket)
+                        m_callingSocket->EndSession();
+                if (m_calledSocket)
+                        m_calledSocket->EndSession();
+        }
+
 	if (m_callingSocket) {
 		m_callingSocket->SetDeletable();
 		m_callingSocket = 0;
 	}
+
 //	if (m_calledSocket)
 //		m_calledSocket->SetDeletable();
 }
