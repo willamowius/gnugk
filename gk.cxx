@@ -128,6 +128,7 @@ void ReopenLogFile()
 			logfile = 0;
 			return;
 		}
+		logfile->SetPosition(logfile->GetLength());
 		PTrace::SetStream(logfile); // redirect to logfile
 	}
 	PTRACE(1, "GK\tTrace logging restarted.");
