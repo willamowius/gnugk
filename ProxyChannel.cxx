@@ -329,8 +329,9 @@ const endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 }
 
 CallSignalSocket::CallSignalSocket()
-	: TCPProxySocket("Q931s"), m_h245handler(NULL), m_h245socket(NULL), isRoutable(FALSE), m_numbercomplete(FALSE),
-	  m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL), m_replytoStatusMessage(TRUE)
+	: TCPProxySocket("Q931s"), m_h245handler(NULL), m_h245socket(NULL), m_h245Tunneling(FALSE),
+	  isRoutable(FALSE), m_numbercomplete(FALSE), m_StatusEnquiryTimer(NULL),
+	  m_StatusTimer(NULL), m_replytoStatusMessage(TRUE), lastInformationMessage(FALSE)
 {
 	m_call=callptr(NULL);
 	localAddr = peerAddr = INADDR_ANY;
@@ -394,8 +395,10 @@ CallSignalSocket::~CallSignalSocket()
 }
 
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
-	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(NULL), m_h245socket(NULL), isRoutable(TRUE),
-	  m_numbercomplete(TRUE), m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL), m_replytoStatusMessage(TRUE)
+	: TCPProxySocket("Q931d", socket, peerPort), m_h245handler(NULL), m_h245socket(NULL), m_h245Tunneling(FALSE),
+	  isRoutable(TRUE), m_numbercomplete(TRUE), m_StatusEnquiryTimer(NULL), m_StatusTimer(NULL),
+	  m_replytoStatusMessage(TRUE), lastInformationMessage(FALSE)
+
 {
 	m_call = socket->m_call;
 	socket->m_lock.Signal();
@@ -908,8 +911,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		q931pdu.Encode(buffer);
 		PTRACE(5, ANSI::BGRE << "Q931\nMessage to sent to " << setprecision(2) << q931pdu << ANSI::OFF);
 		{
-			unsigned int plan, ton;
-			PString calledNumber;
+			unsigned int plan=0,
+				ton=0;
+			PString calledNumber = PString();
 			if(q931pdu.GetCalledPartyNumber(calledNumber, &plan, &ton)) {
 				calledNumber += " Numbering Plan: ";
 				if (plan==Q931::ISDNPlan)
@@ -1200,7 +1204,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 				DialedDigits = H323GetAliasAddressString(Setup.m_destinationAddress[i]);
  				H225_AliasAddress h225address;
  				H323SetAliasAddress(DialedDigits,h225address);
-				unsigned rsn;
+				unsigned rsn=0;
 				endptr CalledEP = RegistrationTable::Instance()->getMsgDestination(h225address, m_call->GetCallingEP(), rsn);
 				if(CalledEP && (H225_AdmissionRejectReason::e_incompleteAddress != rsn) ) {
 					isRoutable=TRUE;
