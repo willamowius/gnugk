@@ -1,5 +1,7 @@
 Changes from 2.2beta1 to 2.2beta2
 =================================
+- BUGFIX(RasTbl.cxx) fixed connect/disconnect time handling and call duration
+  calculation. Thanks to Aivis Olsteins
 - BUGFIX(GkClient.cxx) changed SetPassword to fill LRQs with all recognized
   tokens/cryptoTokens
 - better disconnect cause handling

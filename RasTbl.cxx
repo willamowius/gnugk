@@ -1318,7 +1318,7 @@ PString CallRec::GenerateCDR() const
 	if (m_connectTime != 0) {
 		const PTime startTime(m_connectTime);
 		timeString = PString(PString::Printf, "%ld|%s|%s",
-			(eTime - m_connectTime),
+			(eTime > m_connectTime)?(eTime - m_connectTime):1,
 			(const char *)startTime.AsString(),
 			(const char *)endTime.AsString()
 		);
@@ -1386,8 +1386,10 @@ void CallRec::SetConnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_connectTime == 0 ) {
-		m_connectTime = m_timer = tm;
+		m_timer = m_connectTime = tm;
 		m_timeout = m_durationLimit;
+		if( m_disconnectTime && m_disconnectTime <= m_connectTime )
+			m_disconnectTime = m_connectTime + 1;
 	}
 	// can be the case for direct signalling mode, 
 	// because CallRec is usually created after ARQ message 
@@ -1400,25 +1402,29 @@ void CallRec::SetDisconnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_disconnectTime == 0 )
-		m_disconnectTime = tm;
+		m_disconnectTime = (m_connectTime && m_connectTime >= tm)
+			? (m_connectTime + 1) : tm;
 }
 
 bool CallRec::IsDurationLimitExceeded() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	const long now = time(NULL);
-	return (m_durationLimit > 0 && m_connectTime != 0 
-		&& ((now - m_connectTime) > m_durationLimit));
+	return m_durationLimit > 0 && m_connectTime != 0 
+		&& now >= m_connectTime && (now - m_connectTime) > m_durationLimit;
 }
 
 long CallRec::GetDuration() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	return m_connectTime 
-		? (m_disconnectTime 
-			? (m_disconnectTime - m_connectTime) 
-			: ((long)time(NULL) - m_connectTime))
-		: 0;
+	if( m_connectTime ) {
+		if( m_disconnectTime )
+			return (m_disconnectTime > m_connectTime) 
+				? (m_disconnectTime-m_connectTime) : 1;
+		else
+			return (long)time(NULL) - m_connectTime;
+	} else
+		return 0;
 }
 
 /*

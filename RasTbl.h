@@ -863,7 +863,7 @@ inline void CallRec::SetDisconnectCause( unsigned causeCode )
 
 inline bool CallRec::IsTimeout(const time_t now) const
 {
-	return (m_timeout > 0) && ((now - m_timer) >= m_timeout);
+	return m_timeout > 0 && now >= m_timer && (now - m_timer) >= m_timeout;
 }
 
 #endif // RASTBL_H
