@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/09/16 11:25:10  zvision
+ * Optimization for configurations without accounting enabled
+ *
  * Revision 1.3  2003/09/14 21:09:29  zvision
  * Added new FileAcct logger from Tamas Jalsovszky. Thanks!
  * Fixed module stacking. Redesigned API.
@@ -23,8 +26,8 @@
  * Initial generic accounting support for GNU GK.
  *
  */
-#ifndef __GKACCT_H_
-#define __GKACCT_H_
+#ifndef __GKACCT_H
+#define __GKACCT_H "@(#) $Id$"
 
 #ifndef NAME_H
 #include "name.h"
@@ -320,4 +323,4 @@ private:
 	GkAcctLoggerList& operator=(const GkAcctLoggerList&);
 };
 
-#endif  /* __GKACCT_H_ */
+#endif  /* __GKACCT_H */

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2003/09/14 21:10:34  zvision
+ * Changes due to accounting API redesign.
+ *
  * Revision 1.2  2003/09/12 16:31:16  zvision
  * Accounting initially added to the 2.2 branch
  *
@@ -22,7 +25,7 @@
  *
  */
 #ifndef __RADACCT_H
-#define __RADACCT_H
+#define __RADACCT_H "@(#) $Id$"
 
 #include "RasTbl.h"
 #include "gkacct.h"

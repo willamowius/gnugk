@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/09/28 16:24:31  zvision
+ * Introduced call duration limit feature for registered endpoints (ARQ)
+ *
  * Revision 1.4  2003/08/25 12:53:38  zvision
  * Introduced includeTerminalAliases config option. Changed visibility
  * of some member variables to private.
@@ -49,7 +52,7 @@
  *
  */
 #ifndef __RADAUTH_H
-#define __RADAUTH_H
+#define __RADAUTH_H "@(#) $Id$"
 
 #include <ptlib.h>
 #include "gkauth.h"

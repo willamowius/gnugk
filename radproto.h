@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/09/24 00:22:03  zvision
+ * Removed time_t RadAttr constructors
+ *
  * Revision 1.4  2003/09/12 16:31:16  zvision
  * Accounting initially added to the 2.2 branch
  *
@@ -38,7 +41,7 @@
  *
  */
 #ifndef __RADPROTO_H
-#define __RADPROTO_H
+#define __RADPROTO_H "@(#) $Id$"
 
 #include <ptlib/sockets.h>
 #include <ptclib/cypher.h>
