@@ -5,7 +5,7 @@
 #
 
 PROG		= gk
-SOURCES		= gk.cxx gkauth.cxx RasSrv.cxx RasTbl.cxx \
+SOURCES		= gk.cxx gkauth.cxx gkldap.cxx gkDestAnalysis.cxx RasSrv.cxx RasTbl.cxx \
 		  MulticastGRQ.cxx BroadcastListen.cxx \
 		  SoftPBX.cxx Toolkit.cxx h323util.cxx GkStatus.cxx \
 		  ProxyThread.cxx ProxyChannel.cxx \
@@ -24,6 +24,9 @@ LDLIBS		= -l$(H323_LIB)
 
 STDCCFLAGS := -I${H323_INCDIR} -DPTRACING#-DPASN_NOPRINT
 
+# use destination analysis list
+WITH_DEST_ANALYSIS_LIST=1
+STDCCFLAGS += -D"WITH_DEST_ANALYSIS_LIST=$(WITH_DEST_ANALYSIS_LIST)"
 
 # LDAP support
 ifndef NO_LDAP
