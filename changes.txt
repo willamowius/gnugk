@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- WinSvc from Franz J Ehrengruber updated to work with GnuGk 2.2.2 and 2.0.10
 - new FileIPAuth module in the contrib/ipauth directory
 - (RasTbl.cxx) call accounting updates/disconnecting is now more robust
   and does not lock up the call table and (effectively) the gatekeeper
