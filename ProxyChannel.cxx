@@ -1465,7 +1465,7 @@ BOOL CallSignalSocket::CgPNConversion() {
 	// we check only the left part we already have, because the ARQ could have provided one digit less than
 	// the setup.
 	// Sorry for the awful truth value...
-#if (PARANOIA_CHECK_REDIRECT=1)
+#if (PARANOIA_CHECK_REDIRECT==1)
 	if((!cdpf.GetCalledPN().IsEmpty()) && (cdpf.GetCalledPN().GetLength() > CalledPartyNumber.GetLength()) && // shrink of Number
 	     (cdpf.GetCalledPN() != CalledPartyNumber.Left(cdpf.GetCalledPN().GetSize()))) {
 		// Is the call redirected by network?
