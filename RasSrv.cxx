@@ -1544,6 +1544,9 @@ bool AdmissionRequestPDU::Process()
 	bool answer = request.m_answerCall;
 
 	bool bHasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && request.m_destinationInfo.GetSize() > 0;
+	if (bHasDestInfo) // apply rewriting rules
+		Kit->RewriteE164(request.m_destinationInfo[0]);
+
 	destinationString = bHasDestInfo ? AsString(request.m_destinationInfo) :
 		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
 		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
@@ -1557,9 +1560,6 @@ bool AdmissionRequestPDU::Process()
 		PTRACE(1, "RAS\tWarning: Exceed call limit!!");
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 	}
-
-	if (bHasDestInfo) // apply rewriting rules
-		Kit->RewriteE164(request.m_destinationInfo[0]);
 
 	unsigned rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 	if (!RasSrv->ValidatePDU(*this, rejectReason))
