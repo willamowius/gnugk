@@ -1010,6 +1010,13 @@ endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, 
 	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r) : endptr(0);
 }
 
+namespace {
+bool GatewayCompareLesser(const GatewayRec *gw1, const GatewayRec *gw2)
+{
+	return gw1->GetPriority() < gw2->GetPriority();
+}
+} /* namespace */
+
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
 	std::list<EndpointRec *> *List, bool roundrobin)
 {
@@ -1038,26 +1045,11 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	listLock.EndRead();
 
 	if (GWlist.size() > 0) {
-		std::list<GatewayRec*>::iterator endIter = GWlist.end();
-
-		// do we need here something better than a bubble-sort?		
-		int numSwaps;
-		do {
-			numSwaps = 0;
-			std::list<GatewayRec*>::iterator i = GWlist.begin();
-			std::list<GatewayRec*>::iterator j = i;
-			while (++j != endIter) {
-				if ((*i)->GetPriority() > (*j)->GetPriority()) {
-					std::swap(*i, *j);
-					numSwaps++;
-				}
-				i++;
-			}
-		} while (numSwaps != 0);
+		GWlist.sort(GatewayCompareLesser);
 		
 		std::list<GatewayRec*>::const_iterator i = GWlist.begin();
 		GatewayRec *e = GWlist.front();
-		while (!e->HasAvailableCapacity() && ++i != endIter) {
+		while (!e->HasAvailableCapacity() && ++i != GWlist.end()) {
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
 			e = *i;
 		}
