@@ -7,13 +7,13 @@ $Id$
     status port among other information. They are typically
     discriminated by matching against the first letters 'CDR' as
     described by (1.1).
-    The field delimeter is the vertical bar '|' 
+    The field delimeter is the vertical bar '|'
     The record delimeter is the linefeed, either '\r\n' (M$-OS) or '\n'
     (POSIX OS).
 
  1.1) Tag 'CDR'
       [CDR]
-      Simply the literal tag 'CDR'. 
+      Simply the literal tag 'CDR'.
 
  1.2) Call Number
       [4]
@@ -27,7 +27,7 @@ $Id$
       [26.799]
       Fixed point representation in seconds with millisecond resolution
 
- 1.5) Call Start 
+ 1.5) Call Start
       [Wed, 13 Mar 2002 17:39:41 +0100]
       Textual time representation of the beginning of the billable call
       as specified in 'UseCDRFormat'-tag in the ini-file. Defaults to
@@ -87,7 +87,7 @@ $Id$
       possibility to discriminate between two GKs if the CDRs are merged
       into one file/stream.
 
-1.14) The dialed party number's TON (B Number TON) 
+1.14) The dialed party number's TON (B Number TON)
       [1]
       This is the type of called party number as dialed which follows in
       the next field. The number 0 is unknown, all others those specified
@@ -95,7 +95,7 @@ $Id$
       messages not from the H.xxx ones.
 
 
-1.15) The dialed party number (B Number as was) 
+1.15) The dialed party number (B Number as was)
       [00495246801581]
       This is the number of the called party as entered by the user. Its
       type (TON) is given in the field before this one. NOTE: INAC, NAC,
@@ -104,7 +104,7 @@ $Id$
       information is taken directly from the Q.931 messages not from the
       H.xxx ones.
 
-1.16) The called party number (B Number as is) 
+1.16) The called party number (B Number as is)
       [495246801581]
       This is the number of the called party in international format as
       resolved for the routing/destination decision. It is ommited if
@@ -113,6 +113,24 @@ $Id$
       provided in CodesDB.Numbers, especially rewritten ones, might be
       in the '+CC NDC SN' format (that is with leading '+' and
       components separated by spaces).
+
+1.17) The type of number as assumed by the prefix analysis
+      [2]
+      The type of number of the called party after prefix analysis.
+      There is a bit of magic in computing this value. If a TON other than
+      UnknownType is provided in Q.931 and the "TreatCalledNumberAS"
+      endpoint profile is set to "LeaveUntouched" the provided TON will be
+      used and the Number is written down as provided. If the
+      "TreatCalledNumberAs" profile element is set to any other than
+      "LeaveUntouched" the TON of this element is used here. If the
+      Q.931 packet does provide a unknown type of number, prefix
+      analysis will try to guess the number depending on the calling party
+      LAC/NAC/INAC values.
+
+1.18) The dialed party number as assumed by the prefix analysis
+      [5246801418]
+      This is the called party number after a prefix analysis. This is
+      the corresponding number to field 1.17.
 
 2) Notes on formats in ini-files
    Every value will be taken between the '=' equal-sign and the newline
