@@ -135,9 +135,6 @@ endif
 # * NO_LDAP:             Disable LDAP_Support.
 # * USE_EXTERNAL_LDAP:   Use the LDAP-Client-library on the system. if not set
 #                  	 the internal LDAP-client-library will be used.
-# * LDAP_PROVIDES_CACHE: Explicitly switch of the gk_ldap-cache (i.e.: Use the
-#			 caching provided by the client-library - none if the
-#			 client-library won't provide one
 
 # LDAP support
 ifndef NO_LDAP
