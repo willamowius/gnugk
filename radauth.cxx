@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2003/08/20 14:46:19  zvision
+ * Avoid PString reference copying. Small code improvements.
+ *
  * Revision 1.2  2003/08/19 10:47:37  zvision
  * Initially added to 2.2 brach. Completely redesigned.
  * Redundant code removed. Added h323-return-code, h323-credit-time
@@ -125,9 +128,9 @@ RadAuthBase::RadAuthBase(
 	)
 	:
 	GkAuthenticator( authName ),
-	radiusClient( NULL ),
 	portBase( 1024 ),
-	portMax( 65535 )
+	portMax( 65535 ),
+	radiusClient( NULL )
 {
 	// read settings from the config
 	radiusServers = config->GetString(
@@ -156,6 +159,9 @@ RadAuthBase::RadAuthBase(
 		));
 	appendCiscoAttributes = Toolkit::AsBool(config->GetString(
 		configSectionName,"AppendCiscoAttributes", "1"
+		));
+	includeTerminalAliases = Toolkit::AsBool(config->GetString(
+		configSectionName, "IncludeTerminalAliases", "1"
 		));
 	includeFramedIp = Toolkit::AsBool(config->GetString(
 		configSectionName, "IncludeEndpointIP", "1"
@@ -344,6 +350,19 @@ int RadAuthBase::doCheck(
 		}
 	}
 				
+	if( appendCiscoAttributes && includeTerminalAliases ) {
+		PString aliasList( "terminal-alias:" );
+		for( PINDEX i = 0; i < rrq.m_terminalAlias.GetSize(); i++ ) {
+			if( i > 0 )
+				aliasList += ",";
+			aliasList += H323GetAliasAddressString(rrq.m_terminalAlias[i]);
+		}
+		// Cisco-AV-Pair
+		*pdu += new RadiusAttr( 
+			PString("h323-ivr-out=") + aliasList + ";", 9, 1 
+			);
+	}
+	
 	// send request and wait for response
 	RadiusPDU* response = NULL;
 	bool result = OnSendPDU(*pdu,rrq,rejectReason)

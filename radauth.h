@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2003/08/20 14:46:19  zvision
+ * Avoid PString reference copying. Small code improvements.
+ *
  * Revision 1.2  2003/08/19 10:47:37  zvision
  * Initially added to 2.2 brach. Completely redesigned.
  * Redundant code removed. Added h323-return-code, h323-credit-time
@@ -235,12 +238,8 @@ private:
 protected:
 	/// if TRUE Cisco VSAs are appended to the RADIUS packets
 	bool appendCiscoAttributes;
-	/// if TRUE endpoint IP is placed inside Framed-IP-Address attribute
-	bool includeFramedIp;
 	/// Local interface RADIUS client should be bound to (multihomed hosts)
 	PString localInterface;	
-	/// RADIUS protocol client class associated with this authenticator
-	RadiusClient* radiusClient;
 	
 private:
 	/// array of configured RADIUS server names
@@ -269,6 +268,13 @@ private:
 	///		TRUE - transmit request to server A, then to server B, etc.
 	///				the whole procedure repeat #numRequestRetransmissions# times
 	bool roundRobin;
+	/// if true an h323-ivr-out attribute will be sent with every alias
+	/// found inside RRQ.m_terminalAlias
+	bool includeTerminalAliases;
+	/// if TRUE endpoint IP is placed inside Framed-IP-Address attribute
+	bool includeFramedIp;
+	/// RADIUS protocol client class associated with this authenticator
+	RadiusClient* radiusClient;
 };
 
 /**
