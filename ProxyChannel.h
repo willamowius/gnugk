@@ -195,11 +195,12 @@ private:
 	void BuildReleasePDU(Q931 &) const;
 	bool SetH245Address(H225_TransportAddress &);
 	void SetNumbersInUUIE(PString &CalledPartyNumber, PString & CallingPartyNumber);
+	bool CompareCRV(unsigned int crv) const;
 	// the method is only valid within ReceiveData()
 	Q931 *GetReceivedQ931() const;
 
 	callptr m_call;
-	WORD m_crv;
+	unsigned int m_crv;
 	H245Handler *m_h245handler;
 	H245Socket *m_h245socket;
 	bool m_h245Tunneling;
