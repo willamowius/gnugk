@@ -1,4 +1,4 @@
-<!-- French translation from mainconfig.sgml v1.1 -->
+<!-- French translation from mainconfig.sgml v1.2 -->
 
 <sect1>Fichier de Configuration
 <label id="config">
@@ -30,29 +30,31 @@ kill -HUP `cat /var/run/gnugk.pid`
 <p>
 <itemize>
 <item><tt/Fourtytwo=42/<newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt>
 <p>
 Ce param&#232;tre est utilis&#233; pour tester la pr&#233;sence du fichier de
 configuration. Si il n'est pas trouv&#233;, un avertissement est &#233;mis.
 Assurez-vous qu'il soit dans tous vos fichiers de configuration.
 
 <item><tt/Name=OpenH323GK/<newline>
-D&#233;fault: <tt/OpenH323GK/
+D&#233;faut: <tt/OpenH323GK/
 <p>
 Identifiant Gatekeeper de ce gatekeeper. Le gatekeeper r&#233;pondra uniquement aux
 GRQs pour cet ID et l'utilisera dans un certain nombre de messages &#224; ces
 terminaux.
 
 <item><tt/Home=192.168.1.1/<newline>
-D&#233;fault: <tt/0.0.0.0/
+D&#233;faut: <tt/0.0.0.0/
 <p>
 Le gatekeeper &#233;couter les requ&#234;tes sur ce num&#233;ro IP.
 Par d&#233;faut, le gatekeeper &#233;coute toutes les interfaces de votre hote.
 Vous devriez renoncer &#224; cette option, &#224 moins que vous ne souhaitiez que
-le gatekeeper ne s'attache qu'&#224; une IP sp&#233;cifique.
+le gatekeeper ne s'attache qu'&#224; une IP sp&#233;cifique. Des adresses
+multiples Home peuvent &#234;tre utilis&#233;es et doivent &#234;tre
+s&#233;par&#233;res par un point-virgule (;) ou une virgule (,).
 
 <item><tt>NetworkInterfaces=192.168.1.1/24,10.0.0.1/0</tt><newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt>
 <p>
 Indique les interfaces r&#233;seau du gatekeeper. Par d&#233;faut le gatekeeper
 d&#233;tectera les interfaces de vote hote automatiquement. Il y a deux situations
@@ -62,7 +64,7 @@ derri&#232;re un routeur et autorise les terminaux avec des IPs publiques &#224;
 s'enregistrer.
 
 <item><tt/EndpointIDSuffix=_gk1/<newline>
-D&#233;fault: <tt/_endp/
+D&#233;faut: <tt/_endp/
 <p>
 Le gatekeeper assignera un identifiant unique &#224; chaque terminal enregistr&#233;.
 Cette option peut &#234;tre utilis&#233;e pour pr&#233;ciser un suffixe &#224;
@@ -70,7 +72,7 @@ ajouter &#224; l'identifiant du terminal. Ceci est seulement utile quand vous ut
 plus d'un gatekeeper.
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
-Default: <tt/-1/
+D&#233;faut: <tt/-1/
 <p>
 L'enregistrement d'un terminal avec un gatekeeper peut avoir une dur&#233;e de vie
 limit&#233;e. Le gatekeeper pr&#233;cise la dur&#233;e de l'enregistrement d'un
@@ -98,14 +100,14 @@ un message RRQ complet.
 Pour d&#233;sactiver cette fonction, lui donner la valeur <tt/-1/.
 
 <item><tt/TotalBandwidth=100000/<newline>
-D&#233;fault: <tt/-1/
+D&#233;faut: <tt/-1/
 <p>
 La bande passante totale disponible &#224; donner aux terminaux.
 Par d&#233;faut cette fonction est d&#233;sactiv&#233;e. Fa&#238;tes attention quand
 vous l'utilisez car beaucoup de terminaux ont des impl&#233;mentations erron&#233;es.
 
 <item><tt/RedirectGK=Endpoints > 100 || Calls > 50/<newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt>
 <p>
 Cette option vous permet de rediriger des terminaux vers des gatekeepers alternatifs
 quand le gatekeeper est surcharg&#233;.
@@ -123,7 +125,7 @@ Veuillez aussi noter que la fonction entre en vigueur avec les terminaux respect
 la version 4 de H.323.
 
 <item><tt/AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK/<newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt>
 <p>
 Nous autorisons l'existence d'un autre gatekeeper pour fournir de la redondance.
 Ceci est impl&#233;ment&#233; de mani&#232;re active-active. En r&#233;alit&#233;,
@@ -153,7 +155,7 @@ priorit&#233; de 1.
 Le dernier champ indique l'identifiant du gatekeeper alternatif.
 
 <item><tt/SendTo=1.2.3.4:1719/<newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt>
 <p>
 Bien que cette information soit contenue dans AlternateGKs, vous devez quand m&#234;me
 indiquer &#224; quelle adresse transmettre les RRQs. Ceci peut &#234;tre diff&#233;rent
@@ -161,7 +163,7 @@ de l'adresse de AlternateGK, il s'agit donc d'une option de configuration
 s&#233;par&#233;e (penser aux machines &#224; plusieurs adresses).
 
 <item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt>
 <p>
 Pour &#233;viter les transmissions circulaires, vous ne devez pas transmettres les RRQs
 que vous recevez de l'autre GK (cette d&#233;claration est valable pour les deux, GK
@@ -173,19 +175,19 @@ ceci, nous avons besoin d'une deuxi&#232;me fa&#231;on plus fiable.
 Indiquez l'IP de l'autre gatekeeper dans cette liste.
 
 <item><tt/StatusPort=7000/<newline>
-D&#233;fault: <tt/7000/
+D&#233;faut: <tt/7000/
 <p>
 Port d'&#233;tat pour surveiller le gatekeeper.
 Se reporter &#224; <ref id="monitor" name="cette section"> pour plus de d&#233;tails.
 
 <item><tt/StatusTraceLevel=2/<newline>
-D&#233;fault: <tt/2/
+D&#233;faut: <tt/2/
 <p>
 Niveau de trace par d&#233;faut pour les clients de la nouvelle interface d'&#233;tat.
 Se reporter &#224; <ref id="monitor" name="cette section"> pour plus de d&#233;tails.
 
 <item><tt/TimestampFormat=ISO8601/<newline>
-D&#233;fault: <tt/Cisco/
+D&#233;faut: <tt/Cisco/
 <p>
 Contr&#244;le le format par d&#233;faut des cha&#238;nes horodate
 g&#233;n&#233;r&#233;es par le gatekeeper.
@@ -230,7 +232,7 @@ Quelques codes de format habituels:
 </itemize>
 
 <item><tt/EncryptAllPasswords=1/<newline>
-D&#233;fault: <tt/0/
+D&#233;faut: <tt/0/
 <p>
 Active le chiffrage de tous les mots de passe dans la configuration (mots de passe
 SQL, RADIUS, [Password], [GkStatus::Auth]). Si c'est activ&#233; tous les mots de
@@ -239,7 +241,7 @@ Autrement seuls les mots de passe de [Password] et [GkStatus::Auth] sont crypt&#
 (ancien comportement).
 
 <item><tt/KeyFilled=0/<newline>
-D&#233;fault: <tt/0/
+D&#233;faut: <tt>N/A</tt>
 <p>
 D&#233;finit un octet de remplissage global &#224; utiliser pendant le cryptage/
 d&#233;cryptage de mot de passe. Il peut &#234;tre annul&#233; en positionnant
@@ -253,7 +255,7 @@ sophistiqu&#233;es.
 
 <itemize>
 <item><tt/UseBroadcastListener=0/<newline>
-D&#233;fault: <tt/1/
+D&#233;faut: <tt/1/
 <p>
 Indique si on doit &#233;couter au requ&#234;tes RAS diffus&#233;es. Ceci implique de
 s'attacher &#224; toutes les interfaces sur la machine, donc si vous voulez lancer
@@ -261,42 +263,42 @@ plusieurs instances de gatekeepers sur la m&#234;me machine, vous devriez
 d&#233;sactiver cette option.
 
 <item><tt/UnicastRasPort=1719/<newline>
-D&#233;fault: <tt/1719/
+D&#233;faut: <tt/1719/
 <p>
 L'identifiant TSAP du canal RAS pour unicast(?).
 
 <item><tt/MulticastPort=1718/<newline>
-D&#233;fault: <tt/1718/
+D&#233;faut: <tt/1718/
 <p>
 L'identifiant TSAP du canal RAS pour multicast.
 
 <item><tt/MulticastGroup=224.0.1.41/<newline>
-D&#233;fault: <tt/224.0.1.41/
+D&#233;faut: <tt/224.0.1.41/
 <p>
 Le groupe de multicast pour le canal RAS.
 
 <item><tt/EndpointSignalPort=1720/<newline>
-D&#233;fault: <tt/1720/
+D&#233;faut: <tt/1720/
 <p>
 Default port for call signalling channel of endpoints.
 
 <item><tt/ListenQueueLength=1024/<newline>
-D&#233;fault: <tt/1024/
+D&#233;faut: <tt/1024/
 <p>
 Longueur de la queue pour les connections entrantes TCP.
 
 <item><tt/SignalReadTimeout=1000/<newline>
-D&#233;fault: <tt/1000/
+D&#233;faut: <tt/1000/
 <p>
 Temps en millisecondes pour le timeout de lecture sur les canaux de signal d'appel (Q931).
 
 <item><tt/StatusReadTimeout=3000/<newline>
-D&#233;fault: <tt/3000/
+D&#233;faut: <tt/3000/
 <p>
 Temps en millisecondes pour le timeout de lecture sur le canal d'&#233;tat.
 
 <item><tt/StatusWriteTimeout=5000/<newline>
-D&#233;fault: <tt/5000/
+D&#233;faut: <tt/5000/
 <p>
 Temps en millisecondes pour le timeout d'&#233;criture sur le canal d'&#233;tat.
 </itemize>
@@ -310,7 +312,7 @@ Chacun ayant acc&#232;s au port d'&#233;tat a le contr&#244;le total sur votre
 gatekeeper. Assurez vous de le d&#233;finir correctement.
 <itemize>
 <item><tt/rule=allow/<newline>
-D&#233;fault: <tt/forbid/
+D&#233;faut: <tt/forbid/
 <p>
 Les valeurs possibles sont
 <itemize>
@@ -345,17 +347,17 @@ doit saisir son nom d'utilisateur et son mot de passe.
 </itemize>
 
 <item><tt/default=allow/<newline>
-D&#233;fault: <tt/forbid/
+D&#233;faut: <tt/forbid/
 <p>
 Utilis&#233; uniquement quand <tt/rule=explicit/.
 
 <item><tt/Shutdown=forbid/<newline>
-D&#233;fault: <tt/allow/
+D&#233;faut: <tt/allow/
 <p>
 Indique si on peut arr&#234;ter le gatekeeper par le port d'&#233;tat.
 
 <item><tt/DelayReject=5/<newline>
-D&#233;fault: <tt/0/
+D&#233;faut: <tt/0/
 <p>
 Combien de temps (en secondes) avant de rejeter un usernam/password invalide pour
 l'acc&#232;s &#224; la ligne d'&#233;tat.
@@ -371,7 +373,7 @@ des fichiers de log.
 
 <itemize>
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt>
 <p>
 Si pr&#233;cis&#233;, le fichier de log tournera en se basant sur ce param&#232;tre.
 La rotation Hourly effectue une rotation par heure, daily - un par jour, weekly - une
