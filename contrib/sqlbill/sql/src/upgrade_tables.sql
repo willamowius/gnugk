@@ -4,7 +4,7 @@ DECLARE
 	s TEXT;
 	majorver INT := 1;
 	minorver INT := 0;
-	buildno INT := 4;
+	buildno INT := 5;
 	dbmajorver INT;
 	dbminorver INT;
 	dbbuildno INT;

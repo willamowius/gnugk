@@ -2,4 +2,4 @@
 \i c_all_functions.sql
 
 INSERT INTO voipglobals (majorversion, minorversion, buildnumber)
-	VALUES (1, 0, 4);
+	VALUES (1, 0, 5);
