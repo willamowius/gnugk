@@ -1551,12 +1551,12 @@ void CallSignalSocket::OnTimeout() {
 }
 
 void CallSignalSocket::SendStatusEnquiryMessage() {
-	PTRACE(1, "Sending Message" << this);
 	PWaitAndSignal lock(m_lock);
 	m_StatusEnquiryTimer->Pause();
 	Q931 pdu;
 	pdu.BuildStatusEnquiry(m_crv, NULL==GetSetupPDU());
 	pdu.Encode(buffer);
+	PTRACE(5, "Sending StatusEnquiryMessage to " << GetName());
 	if(TransmitData()) {
 		m_StatusTimer = new PTimer(0,4); // This is Q.931 timer T322
 		m_StatusTimer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
@@ -1582,7 +1582,6 @@ void CallSignalSocket::SendStatusEnquiryMessage() {
 }
 
 void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
-	PTRACE(5, "timer reached" << this);
 	PWaitAndSignal lock(m_lock);
 	if (NULL!=m_StatusEnquiryTimer && timer==*m_StatusEnquiryTimer) {
 		SendStatusEnquiryMessage();
@@ -1593,7 +1592,6 @@ void CallSignalSocket::OnTimeout(PTimer & timer, int extra) {
 		if(callptr(NULL)!=m_call) {
 			PTRACE(5, "setting failure codes");
 			m_call->GetCalledProfile().SetReleaseCause(Q931::NoRouteToDestination);
-			PTRACE(5, "setting failure codes");
 		}
 		PTRACE(5, "removing Call");
 		if(callptr(NULL)!=m_call) {
@@ -1634,7 +1632,7 @@ void CallSignalSocket::OnT302Timeout(PTimer &timer, int extra) {
 void CallSignalSocket::SetConnected(bool c) {
 	ProxySocket::SetConnected(c);
 	if (c) {
-		PTRACE(5, "Setting Timer" << this);
+		PTRACE(5, "Setting Timer " << this);
 		PTimeInterval timer  = (NULL==GetSetupPDU() ?
 					m_call->GetCalledProfile().GetStatusEnquiryInterval() :
 					m_call->GetCallingProfile().GetStatusEnquiryInterval());
