@@ -59,6 +59,7 @@ public:
 	RoutingRequest(endptr & called) : m_destination(0), m_neighbor_used(0), m_called(called), m_flags(0) {}
 	~RoutingRequest();
 
+	H225_TransportAddress* GetDestination() const { return m_destination; }
 	bool SetDestination(const H225_TransportAddress &, bool = false);
 	bool SetCalledParty(const endptr &);
 	void SetRejectReason(unsigned reason) { m_reason = (WORD)reason; }

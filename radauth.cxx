@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.21  2004/07/26 12:19:41  zvision
+ * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
+ *
  * Revision 1.20.2.2  2004/07/07 23:11:07  zvision
  * Faster and more elegant handling of Cisco VSA
  *
@@ -663,6 +666,45 @@ int RadAuthBase::Check(
 			}
 		}
 	}
+
+	// check for h323-redirect-number
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_redirect_number
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();
+			if (!value) {
+				authData.SetRouteToAlias(value);
+				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
+					"to the number " << value
+					);
+			}
+		}
+	}
+
+	// check for h323-redirect-ip-address
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_redirect_ip_address
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();
+			if (!value) {
+				PIPSocket::Address addr;
+				WORD port = 0;
+					
+				if (GetTransportAddress(value, GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
+						&& addr.IsValid() && port != 0) {
+					authData.SetRouteToIP(addr, port);
+					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
+						"to the address " << addr << ':' << port
+						);
+				}
+			}
+		}
+	}
+	
 	if (result)
 		result = OnReceivedPDU(*response, arqPdu, authData);
 	else
@@ -856,6 +898,44 @@ int RadAuthBase::Check(
 			}
 			if (authData.m_callDurationLimit == 0)
 				result = false;
+		}
+	}
+
+	// check for h323-redirect-number
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_redirect_number
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();
+			if (!value) {
+				authData.SetRouteToAlias(value);
+				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
+					"to the number " << value
+					);
+			}
+		}
+	}
+
+	// check for h323-redirect-ip-address
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+	 		RadiusAttr::CiscoVSA_h323_redirect_ip_address
+			);
+		if (attr != NULL) {
+			value = attr->AsCiscoString();
+			if (!value) {
+				PIPSocket::Address addr;
+				WORD port = 0;
+					
+				if (GetTransportAddress(value, GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
+						&& addr.IsValid() && port != 0) {
+					authData.SetRouteToIP(addr, port);
+					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
+						"to the address " << addr << ':' << port
+						);
+				}
+			}
 		}
 	}
 			

@@ -114,6 +114,9 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Ability to set call destination in auth modules. RADIUS based call routing.
+
+<item>
 Support for SqlBill tariff table import from an OpenOffice.org Calc spreadsheet.
 
 <item>

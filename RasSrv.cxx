@@ -22,6 +22,7 @@
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <h225.h>
+#include <h323pdu.h>
 #include "gk.h"
 #include "gk_const.h"
 #include "stl_supp.h"
@@ -1649,7 +1650,8 @@ bool AdmissionRequestPDU::Process()
 		// since callIdentifier is optional, we might have to look for the callReferenceValue as well
 		CallTbl->FindCallRec(request.m_callReferenceValue);
 
-	const bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
+	bool aliasesChanged = false;
+	bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
 		&& request.m_destinationInfo.GetSize() > 0;
 	if (hasDestInfo) { // apply rewriting rules
 
@@ -1669,10 +1671,13 @@ bool AdmissionRequestPDU::Process()
 		}
 
 	 	if (!in_rewrite_source.IsEmpty())
-	 		Kit->GWRewriteE164(in_rewrite_source, true, request.m_destinationInfo[0]);
+	 		if (Kit->GWRewriteE164(in_rewrite_source, true, request.m_destinationInfo[0])
+				&& !RasSrv->IsGKRouted())
+				aliasesChanged = true;
 
 		// Normal rewriting
-		Kit->RewriteE164(request.m_destinationInfo[0]);
+		if (Kit->RewriteE164(request.m_destinationInfo[0]) && !RasSrv->IsGKRouted())
+			aliasesChanged = true;
 	}
 
 	destinationString = hasDestInfo ? AsString(request.m_destinationInfo) :
@@ -1686,6 +1691,18 @@ bool AdmissionRequestPDU::Process()
 		return BuildReply(authData.m_rejectReason);
 	}
 
+	if (authData.m_routeToAlias != NULL) {
+		request.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
+		request.m_destinationInfo.SetSize(1);
+		request.m_destinationInfo[0] = *authData.m_routeToAlias;
+		authData.m_calledStationId = H323GetAliasAddressString(*authData.m_routeToAlias);
+		PTRACE(2, "RAS\tARQ destination set to " << authData.m_calledStationId);
+		hasDestInfo = true;
+		destinationString = AsString(request.m_destinationInfo);
+		if (!RasSrv->IsGKRouted())
+			aliasesChanged = true;
+	}
+	
 	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
 		if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1"))) {
 			bReject = true;
@@ -1731,15 +1748,16 @@ bool AdmissionRequestPDU::Process()
 
 	// routing decision
 	bool toParent = false;
-	bool aliasesChanged = false;
 	H225_TransportAddress CalledAddress;
 	if (!answer) {
 		Routing::AdmissionRequest arq(request, this, CalledEP);
-		if (H225_TransportAddress *dest = arq.Process()) {
-			CalledAddress = *dest;
+		if ((authData.m_routeToIP != NULL 
+				&& arq.SetDestination(*authData.m_routeToIP, true))
+			|| arq.Process() != NULL) {
+			CalledAddress = *arq.GetDestination();
 			toParent = arq.GetFlags() & Routing::AdmissionRequest::e_toParent;
-			aliasesChanged = arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged;
-
+			aliasesChanged = aliasesChanged || (arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged);
+	
 			// record neighbor used for rewriting purposes
 			if (arq.GetNeighborUsed() != 0) {
 				out_rewrite_source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(arq.GetNeighborUsed());
@@ -1811,9 +1829,10 @@ bool AdmissionRequestPDU::Process()
 				);
 		}
 
-		if (!out_rewrite_source.IsEmpty()) {
-			Kit->GWRewriteE164(out_rewrite_source,false,request.m_destinationInfo[0]);
-		}
+		if (!out_rewrite_source.IsEmpty())
+			if (Kit->GWRewriteE164(out_rewrite_source,false,request.m_destinationInfo[0])
+				&& !RasSrv->IsGKRouted())
+				aliasesChanged = true;
 
 	}
 
@@ -1846,6 +1865,8 @@ bool AdmissionRequestPDU::Process()
 			pCallRec->SetCallingStationId(authData.m_callingStationId);
 		if (!authData.m_calledStationId)
 			pCallRec->SetCalledStationId(authData.m_calledStationId);
+		if (authData.m_routeToAlias != NULL)
+			pCallRec->SetRouteToAlias(*authData.m_routeToAlias);
 
 		if (!RasSrv->IsGKRouted())
 			pCallRec->SetConnected();

@@ -1192,7 +1192,7 @@ CallRec::CallRec(
 	m_destInfo(destInfo), m_bandwidth(bandwidth), m_setupTime(0), 
 	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
-	m_callingSocket(NULL), m_calledSocket(NULL),
+	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), 
 	m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_forwarded(false)
@@ -1226,7 +1226,7 @@ CallRec::CallRec(
 	m_bandwidth(1280), m_setupTime(0), m_connectTime(0), 
 	m_disconnectTime(0), m_disconnectCause(0),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
-	m_callingSocket(NULL), m_calledSocket(NULL),
+	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), m_h245Routed(routeH245),
 	m_toParent(false), m_forwarded(false)
 {
@@ -1249,6 +1249,7 @@ CallRec::CallRec(
 CallRec::~CallRec()
 {
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
+	delete m_routeToAlias;
 }
 
 bool CallRec::GetSrcSignalAddr(
@@ -1669,6 +1670,25 @@ void CallRec::SetCalledStationId(
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_calledStationId = id;
+}
+
+H225_AliasAddress* CallRec::GetRouteToAlias() const
+{
+	if (m_routeToAlias != NULL) {
+		PWaitAndSignal lock(m_usedLock);
+		if (m_routeToAlias != NULL)
+			return new H225_AliasAddress(*m_routeToAlias);
+	}
+	return NULL;
+}
+
+void CallRec::SetRouteToAlias(
+	const H225_AliasAddress& alias /// alias to set
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+	delete m_routeToAlias;
+	m_routeToAlias = new H225_AliasAddress(alias);
 }
 
 /*

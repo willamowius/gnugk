@@ -37,6 +37,184 @@ const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 }
 
+GkAuthenticator::ARQAuthData::ARQAuthData(
+	/// an endpoint requesting admission
+	const endptr& ep,
+	/// call record matching this ARQ (if any)
+	const callptr& call
+	) : m_rejectReason(-1), m_callDurationLimit(-1), 
+	m_requestingEP(ep),	m_call(call), m_billingMode(-1),
+	m_routeToAlias(NULL), m_routeToIP(NULL)
+{
+}
+
+GkAuthenticator::ARQAuthData::ARQAuthData(
+	const ARQAuthData& obj
+	) : m_rejectReason(obj.m_rejectReason), 
+	m_callDurationLimit(obj.m_callDurationLimit), 
+	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call), 
+	m_billingMode(obj.m_billingMode), m_routeToAlias(NULL), m_routeToIP(NULL)
+{
+	if (obj.m_routeToAlias)
+		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
+	if (obj.m_routeToIP)
+		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
+}
+
+GkAuthenticator::ARQAuthData& GkAuthenticator::ARQAuthData::operator=(const ARQAuthData& obj)
+{
+	m_callDurationLimit = obj.m_callDurationLimit; 
+	m_requestingEP = obj.m_requestingEP;
+	m_call = obj.m_call;
+	m_billingMode = obj.m_billingMode;
+	
+	delete m_routeToAlias;
+	m_routeToAlias = NULL;
+	if (obj.m_routeToAlias)
+		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
+
+	delete m_routeToIP;
+	m_routeToIP = NULL;
+	if (obj.m_routeToIP)
+		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
+		
+	return *this;
+}
+
+GkAuthenticator::ARQAuthData::~ARQAuthData()
+{
+	delete m_routeToAlias;
+	delete m_routeToIP;
+}
+
+void GkAuthenticator::ARQAuthData::SetRouteToAlias(H225_AliasAddress* alias)
+{
+	delete m_routeToAlias;
+	m_routeToAlias = alias;
+}
+
+void GkAuthenticator::ARQAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
+{
+	SetRouteToAlias(new H225_AliasAddress(alias));
+}
+
+void GkAuthenticator::ARQAuthData::SetRouteToAlias(const PString& alias, int tag)
+{
+	SetRouteToAlias(new H225_AliasAddress);
+	H323SetAliasAddress(alias, *m_routeToAlias, tag);
+}
+
+void GkAuthenticator::ARQAuthData::SetRouteToIP(H225_TransportAddress* addr)
+{
+	delete m_routeToIP;
+	m_routeToIP = addr;
+}
+
+void GkAuthenticator::ARQAuthData::SetRouteToIP(const H225_TransportAddress& addr)
+{
+	SetRouteToIP(new H225_TransportAddress(addr));
+}
+
+void GkAuthenticator::ARQAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
+{
+	SetRouteToIP(new H225_TransportAddress(
+		SocketToH225TransportAddr(addr, port ? port : GK_DEF_ENDPOINT_SIGNAL_PORT)
+		));
+}
+
+GkAuthenticator::SetupAuthData::SetupAuthData(
+	/// call associated with the message (if any)
+	const callptr& call,
+	/// is the Setup message from a registered endpoint
+	bool fromRegistered,
+	/// an IP address the Setup message has been received from
+	PIPSocket::Address addr,
+	/// a port number the Setup message has been received from
+	WORD port
+	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
+	m_call(call), m_fromRegistered(fromRegistered), 
+	m_peerAddr(addr), m_peerPort(port),
+	m_routeToAlias(NULL), m_routeToIP(NULL)
+{
+}
+
+GkAuthenticator::SetupAuthData::SetupAuthData(
+	const SetupAuthData& obj
+	) : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
+	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
+	m_fromRegistered(obj.m_fromRegistered), m_peerAddr(obj.m_peerAddr), 
+	m_peerPort(obj.m_peerPort), m_routeToAlias(NULL), m_routeToIP(NULL)
+{
+	if (obj.m_routeToAlias)
+		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
+	if (obj.m_routeToIP)
+		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
+}
+
+GkAuthenticator::SetupAuthData& GkAuthenticator::SetupAuthData::operator=(const SetupAuthData& obj)
+{
+	m_rejectReason = obj.m_rejectReason;
+	m_rejectCause = obj.m_rejectCause;
+	m_callDurationLimit = obj.m_callDurationLimit;
+	m_call = obj.m_call;
+	m_fromRegistered = obj.m_fromRegistered;
+	m_peerAddr = obj.m_peerAddr;
+	m_peerPort = obj.m_peerPort;
+	
+	delete m_routeToAlias;
+	m_routeToAlias = NULL;
+	if (obj.m_routeToAlias)
+		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
+
+	delete m_routeToIP;
+	m_routeToIP = NULL;
+	if (obj.m_routeToIP)
+		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
+		
+	return *this;
+}
+
+GkAuthenticator::SetupAuthData::~SetupAuthData()
+{
+	delete m_routeToAlias;
+	delete m_routeToIP;
+}
+
+void GkAuthenticator::SetupAuthData::SetRouteToAlias(H225_AliasAddress* alias)
+{
+	delete m_routeToAlias;
+	m_routeToAlias = alias;
+}
+
+void GkAuthenticator::SetupAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
+{
+	SetRouteToAlias(new H225_AliasAddress(alias));
+}
+
+void GkAuthenticator::SetupAuthData::SetRouteToAlias(const PString& alias, int tag)
+{
+	SetRouteToAlias(new H225_AliasAddress);
+	H323SetAliasAddress(alias, *m_routeToAlias, tag);
+}
+
+void GkAuthenticator::SetupAuthData::SetRouteToIP(H225_TransportAddress* addr)
+{
+	delete m_routeToIP;
+	m_routeToIP = addr;
+}
+
+void GkAuthenticator::SetupAuthData::SetRouteToIP(const H225_TransportAddress& addr)
+{
+	SetRouteToIP(new H225_TransportAddress(addr));
+}
+
+void GkAuthenticator::SetupAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
+{
+	SetRouteToIP(new H225_TransportAddress(
+		SocketToH225TransportAddr(addr, port ? port : GK_DEF_ENDPOINT_SIGNAL_PORT)
+		));
+}
+
 // class GkAuthenticator
 GkAuthenticator::GkAuthenticator(
 	const char* name, /// a name for the module (to be used in the config file)

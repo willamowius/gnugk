@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- better disconnect cause reporting in Setup processing
+- ability to set call destination in auth modules. RADIUS based call routing
 - BUGFIX(Neighbor.cxx) fixed sourceInfo LRQ field handling - now it contains
   an H.323 identifier of the gatekeeper
 - (radproto.cxx) ability to set shared secrets for each radius server 

@@ -118,19 +118,31 @@ public:
 	struct ARQAuthData
 	{
 		ARQAuthData(
-			endptr& ep,
-			callptr& call
-			) : m_rejectReason(-1), m_callDurationLimit(-1), 
-				m_requestingEP(ep),	m_call(call), m_billingMode(-1) {}
+			const ARQAuthData& obj
+			);
+		ARQAuthData(
+			const endptr& ep,
+			const callptr& call
+			);
+		~ARQAuthData();
+		
+		ARQAuthData& operator=(const ARQAuthData& obj);
+		
+		void SetRouteToAlias(H225_AliasAddress* alias);
+		void SetRouteToAlias(const H225_AliasAddress& alias);
+		void SetRouteToAlias(const PString& alias, int tag = -1);
+		void SetRouteToIP(H225_TransportAddress* addr);
+		void SetRouteToIP(const H225_TransportAddress& addr);
+		void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
 		
 		/// -1 if not set, H225_AdmissionRejectReason enum otherwise
 		int m_rejectReason;
 		/// -1 if not set, max allowe call duration in seconds otherwise
 		long m_callDurationLimit;
 		/// endpoint that sent the request
-		endptr& m_requestingEP;
+		endptr m_requestingEP;
 		/// call associated with the request (if any, only for answering ARQ)
-		callptr& m_call;
+		callptr m_call;
 		/// input/output - set or get Calling-Station-Id
 		PString m_callingStationId;		
 		/// input/output - set or get Called-Station-Id
@@ -139,6 +151,10 @@ public:
 		PString m_amountString;
 		/// H225_CallCreditServiceControl_billingMode or -1, if not defined
 		int m_billingMode;
+		/// if not NULL, route the call to the specified alias
+		H225_AliasAddress* m_routeToAlias;
+		/// if not NULL, route the call to the specified IP
+		H225_TransportAddress* m_routeToIP;
 		
 	private:
 		ARQAuthData();
@@ -149,17 +165,28 @@ public:
 	struct SetupAuthData
 	{
 		SetupAuthData(
+			const SetupAuthData& obj
+			);
+		SetupAuthData(
 			/// call associated with the message (if any)
-			callptr& call,
+			const callptr& call,
 			/// is the Setup message from a registered endpoint
 			bool fromRegistered,
 			/// an IP address the Setup message has been received from
 			PIPSocket::Address addr,
 			/// a port number the Setup message has been received from
 			WORD port
-			) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
-				m_call(call), m_fromRegistered(fromRegistered), 
-				m_peerAddr(addr), m_peerPort(port) {}
+			);
+		~SetupAuthData();
+		
+		SetupAuthData& operator=(const SetupAuthData& obj);
+	
+		void SetRouteToAlias(H225_AliasAddress* alias);
+		void SetRouteToAlias(const H225_AliasAddress& alias);
+		void SetRouteToAlias(const PString& alias, int tag = -1);
+		void SetRouteToIP(H225_TransportAddress* addr);
+		void SetRouteToIP(const H225_TransportAddress& addr);
+		void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
 
 		/// -1 if not set, H225_ReleaseCompleteReason enum otherwise
 		int m_rejectReason;
@@ -168,7 +195,7 @@ public:
 		/// -1 if not set, max allowe call duration in seconds otherwise
 		long m_callDurationLimit;
 		/// call associated with the message (if any)
-		callptr& m_call;
+		callptr m_call;
 		/// is the Setup message from a registered endpoint
 		bool m_fromRegistered;
 		/// an IP address the Setup message has been received from
@@ -179,6 +206,10 @@ public:
 		PString m_callingStationId;		
 		/// input/output - set or get Called-Station-Id
 		PString m_calledStationId;
+		/// if not NULL, route the call to the specified alias
+		H225_AliasAddress* m_routeToAlias;
+		/// if not NULL, route the call to the specified IP
+		H225_TransportAddress* m_routeToIP;
 		
 	private:
 		SetupAuthData();

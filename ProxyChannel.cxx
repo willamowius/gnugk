@@ -1180,22 +1180,25 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	WORD fromPort = 1720;
 	GetPeerAddress(fromIP,fromPort);
 	GkClient *gkClient = RasSrv->GetGkClient();
-
+	bool rejectCall = false;
+	
 	if (m_call) {
 		if (m_call->IsSocketAttached()) {
 			PTRACE(2, "Q931\tWarning: socket already attached for callid " << callid);
-			return false;
+			m_call->SetDisconnectCause(Q931::CallRejected);
+			rejectCall = true;
 		} else if (m_call->IsToParent() && !m_call->IsForwarded()) {
 			if (gkClient->CheckFrom(fromIP)) {
 				// looped call
 				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << GetName() << ')');
-				return false;
-			}
-			gkClient->RewriteE164(*m_lastQ931, Setup, true);
+				m_call->SetDisconnectCause(Q931::CallRejected);
+				rejectCall = true;
+			} else
+				gkClient->RewriteE164(*m_lastQ931, Setup, true);
 		}
 		// TODO: check for facility
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
-		if (tokens.GetSize() > 0) {
+		if (!rejectCall && tokens.GetSize() > 0) {
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 			Setup.m_cryptoTokens = tokens;
 		}
@@ -1203,9 +1206,10 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		m_call->SetSetupTime(setupTime);
 
 		GkAuthenticator::SetupAuthData authData(m_call, true, fromIP, fromPort);
+		authData.SetRouteToAlias(m_call->GetRouteToAlias());
 
 		// authenticate the call
-		if( !RasSrv->ValidatePDU(*m_lastQ931, Setup, authData) ) {
+		if (!rejectCall && !RasSrv->ValidatePDU(*m_lastQ931, Setup, authData)) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
 				<<" due to Setup authentication failure"
 				);
@@ -1215,10 +1219,27 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				m_call->SetDisconnectCause(MapH225ReasonToQ931Cause(authData.m_rejectReason));
 			else
 				m_call->SetDisconnectCause(Q931::CallRejected);
-			return false;
+			rejectCall = true;
 		}
 
-		if (authData.m_callDurationLimit > 0)
+		if (!rejectCall && authData.m_routeToAlias != NULL) {
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			Setup.m_destinationAddress.SetSize(1);
+			Setup.m_destinationAddress[0] = *authData.m_routeToAlias;
+			const PString alias = H323GetAliasAddressString(Setup.m_destinationAddress[0]);
+			if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
+					unsigned plan, type;
+					PString calledNumber;
+					if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type))
+						m_lastQ931->SetCalledPartyNumber(alias, plan, type);
+				} else
+					m_lastQ931->RemoveIE(Q931::CalledPartyNumberIE);
+			}
+			authData.m_calledStationId = alias;
+			PTRACE(2, "Q931\tSetup destination set to " << alias);
+		}
+		if (!rejectCall && authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
 		if (!authData.m_callingStationId)
 			m_call->SetCallingStationId(authData.m_callingStationId);
@@ -1231,25 +1252,67 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 				<<" due to accounting failure"
 				);
 			m_call->SetDisconnectCause(Q931::TemporaryFailure);
-			return false;
+			rejectCall = true;
 		}
+		
+		if (rejectCall)
+			return false;
 	} else {
+		GkAuthenticator::SetupAuthData authData(m_call, false, fromIP, fromPort);
+
+		if (!RasSrv->ValidatePDU(*m_lastQ931,Setup, authData)) {
+			PTRACE(4,"Q931\tDropping call from " << fromIP << ':' << fromPort
+				<<" due to Setup authentication failure"
+				);
+			if (authData.m_rejectCause == -1 && authData.m_rejectReason == -1)
+				authData.m_rejectCause = Q931::CallRejected;
+			rejectCall = true;
+		}
+
+		if (!rejectCall && authData.m_routeToAlias != NULL) {
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			Setup.m_destinationAddress.SetSize(1);
+			Setup.m_destinationAddress[0] = *authData.m_routeToAlias;
+			const PString alias = H323GetAliasAddressString(Setup.m_destinationAddress[0]);
+			if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
+				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
+					unsigned plan, type;
+					PString calledNumber;
+					if (m_lastQ931->GetCalledPartyNumber(calledNumber, &plan, &type))
+						m_lastQ931->SetCalledPartyNumber(alias, plan, type);
+				} else
+					m_lastQ931->RemoveIE(Q931::CalledPartyNumberIE);
+			}
+			authData.m_calledStationId = alias;
+			PTRACE(2, "Q931\tSetup destination set to " << alias);
+		}
+
 		endptr called;
 		bool destFound = false;
 		H225_TransportAddress calledAddr;
-
 		Routing::SetupRequest request(Setup, m_lastQ931, called);
+		
+		if (!rejectCall && authData.m_routeToIP != NULL) {
+			request.SetDestination(calledAddr, true);
+			calledAddr = *authData.m_routeToIP;
+			destFound = true;
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+			Setup.m_destCallSignalAddress = calledAddr;
+			PTRACE(2, "Q931\tSetup destination address set to " << AsDotString(Setup.m_destCallSignalAddress));
+		}
+
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(fromIP);
-		if (useParent) {
+		if (!rejectCall && useParent) {
 			gkClient->RewriteE164(*m_lastQ931, Setup, false);
 			if (!gkClient->SendARQ(request, true)) { // send answered ARQ
 				PTRACE(2, "Q931\tGot ARJ from parent for " << GetName());
-				return false;
-			}
-			request.SetFlag(Routing::RoutingRequest::e_fromParent);
+				authData.m_rejectCause = Q931::CallRejected;
+				rejectCall = true;
+			} else
+				request.SetFlag(Routing::RoutingRequest::e_fromParent);
 		}
 
-		if (Setup.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && Setup.m_cryptoTokens.GetSize() > 0) {
+		if (!rejectCall && !destFound && Setup.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && Setup.m_cryptoTokens.GetSize() > 0) {
 			PINDEX s = Setup.m_cryptoTokens.GetSize() - 1;
 			destFound = Neighbors::DecodeAccessToken(Setup.m_cryptoTokens[s], fromIP, calledAddr);
 			if (destFound) {
@@ -1266,30 +1329,34 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 					useParent = gkClient->IsRegistered() && gkClient->CheckFrom(toIP);
 					if (useParent && !gkClient->SendARQ(request)) {
 						PTRACE(2, "Q931\tGot ARJ from parent for " << GetName());
-						return false;
+						authData.m_rejectCause = Q931::CallRejected;
+						rejectCall = true;
 					}
 				}
 			}
 		}
-		if (!destFound) {
+		
+		if (!rejectCall && !destFound) {
 			// for compatible to old version
 			if (!(useParent || RasSrv->AcceptUnregisteredCalls(fromIP))) {
 				PTRACE(3, "Q931\tReject unregistered call " << callid);
-				return false;
-			}
-
-			if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
-				if (RasSrv->GetCallSignalAddress(fromIP) == Setup.m_destCallSignalAddress)
-					Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-
-			if (H225_TransportAddress *dest = request.Process()) {
-				destFound = true;
-				calledAddr = *dest;
-				if (!useParent)
-					useParent = request.GetFlags() & Routing::SetupRequest::e_toParent;
+				authData.m_rejectCause = Q931::CallRejected;
+				rejectCall = true;
 			} else {
-				PTRACE(3, "Q931\tNo destination for unregistered call " << callid);
-				return false;
+				if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
+					if (RasSrv->GetCallSignalAddress(fromIP) == Setup.m_destCallSignalAddress)
+						Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+
+				if (H225_TransportAddress *dest = request.Process()) {
+					destFound = true;
+					calledAddr = *dest;
+					if (!useParent)
+						useParent = request.GetFlags() & Routing::SetupRequest::e_toParent;
+				} else {
+					PTRACE(3, "Q931\tNo destination for unregistered call " << callid);
+					authData.m_rejectCause = Q931::NoRouteToDestination;
+					rejectCall = true;
+				}
 			}
 		}
 
@@ -1316,22 +1383,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
 
-		GkAuthenticator::SetupAuthData authData(m_call, false, fromIP, fromPort);
-
-		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup, authData) ) {
-			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
-				<<" due to Setup authentication failure"
-				);
-			if (authData.m_rejectCause >= 0)
-				m_call->SetDisconnectCause(authData.m_rejectCause);
-			else if (authData.m_rejectReason >= 0)
-				m_call->SetDisconnectCause(MapH225ReasonToQ931Cause(authData.m_rejectReason));
-			else
-				m_call->SetDisconnectCause(Q931::CallRejected);
-			return false;
-		}
-
-		if( authData.m_callDurationLimit > 0 )
+		if (!rejectCall && authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
 		if (!authData.m_callingStationId)
 			m_call->SetCallingStationId(authData.m_callingStationId);
@@ -1342,11 +1394,20 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
 				<<" due to accounting failure"
 				);
-			m_call->SetDisconnectCause(Q931::TemporaryFailure);
+			authData.m_rejectCause = Q931::TemporaryFailure;
+			rejectCall = true;
+		}
+		
+		if (rejectCall) {
+			if (authData.m_rejectCause >= 0)
+				m_call->SetDisconnectCause(authData.m_rejectCause);
+			else if (authData.m_rejectReason >= 0)
+				m_call->SetDisconnectCause(MapH225ReasonToQ931Cause(authData.m_rejectReason));
+			else
+				m_call->SetDisconnectCause(Q931::CallRejected);
 			return false;
 		}
 	}
-
 
 	// Do outbound per GW rewrite
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {

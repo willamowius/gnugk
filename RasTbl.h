@@ -734,6 +734,16 @@ public:
 		const PString& id /// Called-Station-Id
 		);
 
+	/** @return
+	    Fixed destination address for the call (NULL if not set).
+	*/
+	H225_AliasAddress* GetRouteToAlias() const;
+	
+	/// Set fixed destination address for the call
+	void SetRouteToAlias(
+		const H225_AliasAddress& alias /// alias to set
+		);
+
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
 
@@ -807,6 +817,8 @@ private:
 	PString m_callingStationId;
 	/// called party's number
 	PString m_calledStationId;
+	/// fixed destination alias
+	H225_AliasAddress* m_routeToAlias;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
