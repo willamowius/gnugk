@@ -88,6 +88,7 @@ public:
 
 	// callbacks before sending LRQ
 	// LRQ will not be sent if false is returned
+	virtual bool OnSendingLRQ(H225_LocationRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);

@@ -46,16 +46,18 @@ class GnuGK : public Neighbor {
 	// override from class Neighbor
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &);
 };
 
 class CiscoGK : public Neighbor {
 	// override from class Neighbor
-	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
-	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
-	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
-	virtual bool OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &);
+};
 
-	bool BuildLRQ(H225_LocationRequest &);
+// stupid Clarent gatekeeper
+class ClarentGK : public Neighbor {
+	// override from class Neighbor
+	virtual bool OnSendingLRQ(H225_LocationRequest &);
 };
 
 // a gatekeeper by Korea vendor
@@ -73,6 +75,7 @@ namespace { // anonymous namespace
 	SimpleCreator<OldGK> OldGKCreator("OldGK");
 	SimpleCreator<GnuGK> GnuGKCreator("GnuGK");
 	SimpleCreator<CiscoGK> CiscoGKCreator("CiscoGK");
+	SimpleCreator<ClarentGK> ClarentGKCreator("ClarentGK");
 	SimpleCreator<GlonetGK> GlonetGKCreator("GlonetGK");
 
 	int challenge;
@@ -283,24 +286,29 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 	return PrefixInfo(0, iter->second);
 }
 
-bool Neighbor::OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &)
+bool Neighbor::OnSendingLRQ(H225_LocationRequest &)
 {
 	return true;
 }
 
-bool Neighbor::OnSendingLRQ(H225_LocationRequest &, const LocationRequest &)
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest &)
 {
-	return true;
+	return OnSendingLRQ(lrq);
 }
 
-bool Neighbor::OnSendingLRQ(H225_LocationRequest &, const SetupRequest &)
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest &)
 {
-	return true;
+	return OnSendingLRQ(lrq);
 }
 
-bool Neighbor::OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &)
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest &)
 {
-	return true;
+	return OnSendingLRQ(lrq);
+}
+
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest &)
+{
+	return OnSendingLRQ(lrq);
 }
 
 void Neighbor::SetForwardedInfo(const PString & section)
@@ -374,29 +382,16 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	return true;
 }
 
+bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & request)
+{
+	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
+	lrq.m_canMapAlias = true;
+	return true;
+}
+
 
 // class CiscoGK
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest &)
-{
-	return BuildLRQ(lrq);
-}
-
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest &)
-{
-	return BuildLRQ(lrq);
-}
-
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest &)
-{
-	return BuildLRQ(lrq);
-}
-
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest &)
-{
-	return BuildLRQ(lrq);
-}
-
-bool CiscoGK::BuildLRQ(H225_LocationRequest & lrq)
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq)
 {
 	// Cisco GK needs these
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -409,6 +404,14 @@ bool CiscoGK::BuildLRQ(H225_LocationRequest & lrq)
 	return true;
 }
 
+
+// class ClarentGK
+bool ClarentGK::OnSendingLRQ(H225_LocationRequest & lrq)
+{
+	// Clarent gatekeeper can't decode nonStandardData, stupid!
+	lrq.RemoveOptionalField(H225_LocationRequest::e_nonStandardData);
+	return true;
+}
 
 // class GlonetGK
 bool GlonetGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & request)
