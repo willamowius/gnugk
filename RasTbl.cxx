@@ -1043,11 +1043,9 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed),
 	m_registered(false), m_forwarded(false)
 {
-	m_creationTime = time(NULL);
-	m_durationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallDurationLimit", 0);
-	// backward compatibility - check DefaultCallTimeout
-	if( m_durationLimit == 0 )
-		m_durationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
+	m_timer = m_creationTime = time(0);
+	m_timeout = CallTable::Instance()->GetConnectTimeout() / 1000;
+	m_durationLimit = CallTable::Instance()->GetDefaultDurationLimit();
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
 }
 
@@ -1135,7 +1133,8 @@ void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 void CallRec::SetConnected()
 {
 	// set before any locks are acquired (locks may introduce delays)
-	SetConnectTime(time(0));
+	m_timeout = m_durationLimit;
+	SetConnectTime(m_timer = time(0));
 
 	if (m_Calling)
 		m_Calling->AddConnectedCall();
@@ -1143,14 +1142,14 @@ void CallRec::SetConnected()
 		m_Called->AddConnectedCall();
 }
 
-void CallRec::SetDurationLimit( long seconds )
+void CallRec::SetDurationLimit(long seconds)
 {
-	PWaitAndSignal lock(m_usedLock);
 	// allow only to restrict duration limit
-	if( m_durationLimit && seconds )
-		m_durationLimit = PMIN(m_durationLimit,seconds);
-	else
-		m_durationLimit = PMAX(m_durationLimit,seconds);
+	long sec = (m_durationLimit && seconds) ? PMIN(m_durationLimit,seconds) : PMAX(m_durationLimit,seconds);
+	PWaitAndSignal lock(m_usedLock);
+	m_durationLimit = sec;
+	if (IsConnected())
+		m_timeout = sec, m_timer = time(0);
 }
 
 void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
@@ -1311,18 +1310,9 @@ PString CallRec::GenerateCDR() const
 
 PString CallRec::PrintOn(bool verbose) const
 {
-	// timer value is related to the currently active timeout period
-	// for unconnected calls it is time since CallRec creation,
-	// for connected calls it is the call duration
-	const long timer = (m_disconnectTime ? m_disconnectTime : time(NULL))
-		- (m_connectTime ? m_connectTime : m_creationTime);
-	// left is number of seconds left before call will be timed out
-	// (due to waiting for Connect message or duration limit expiration)
-	const long connectTimeout = CallTable::Instance()->GetConnectTimeout() / 1000;
-	const long left = m_connectTime
-		? ((m_durationLimit > timer ) ? m_durationLimit - timer : 0)
-		: ((connectTimeout > timer ) ? connectTimeout - timer : 0);
-		
+	int timer = time(0) - m_timer;
+	int left = m_timeout > 0 ? m_timeout - timer : 0;
+
 	PString result(PString::Printf,
 		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%s|%d\r\nACF|%s|%s|%d\r\n",
 		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), timer, left,
@@ -1371,7 +1361,7 @@ void CallRec::SetDisconnectTime(time_t tm)
 	if( m_disconnectTime == 0 )
 		m_disconnectTime = tm;
 }
-
+/*
 bool CallRec::IsTimeout(
 	const time_t now,
 	const long connectTimeout
@@ -1404,6 +1394,7 @@ bool CallRec::IsTimeout(
 		
 	return false;
 }
+*/
 
 CallTable::CallTable() : Singleton<CallTable>("CallTable")
 {
@@ -1431,6 +1422,11 @@ void CallTable::LoadConfig()
 		GkConfig()->GetInteger(RoutedSec, "ConnectTimeout",DEFAULT_CONNECT_TIMEOUT),
 		5000
 		);
+
+	m_defaultDurationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallDurationLimit", 0);
+	// backward compatibility - check DefaultCallTimeout
+	if (m_defaultDurationLimit == 0)
+		m_defaultDurationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
 }
 
 void CallTable::Insert(CallRec * NewRec)
@@ -1517,7 +1513,7 @@ void CallTable::CheckCalls()
 	const time_t now = time(NULL);
 	while (Iter != eIter) {
 		iterator i = Iter++;
-		if ( (*i)->IsTimeout(now,m_connectTimeout) ) {
+		if ( (*i)->IsTimeout(now) ) {
 			(*i)->Disconnect();
 			InternalRemove(i);
 		}

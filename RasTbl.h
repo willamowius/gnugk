@@ -419,12 +419,12 @@ public:
 		0 if the disconnect cause could not be determined.
 	*/
 	unsigned GetDisconnectCause() const;
-	
+
 	/** Set Q.931 ReleaseComplete cause code associated with this call. */
 	void SetDisconnectCause(
 		unsigned causeCode
 		);
-		
+
 	/** Set maximum duration limit (in seconds) for this call */
 	void SetDurationLimit( 
 		long seconds /// duration limit to be set
@@ -435,7 +435,7 @@ public:
 		0 if call duration is not limited.
 	*/
 	long GetDurationLimit() const;
-		
+
 	/** This function can be used to determine, if the call has been
 		disconnected due to call duration limit excess.
 		
@@ -449,7 +449,7 @@ public:
 		(when this CallRec object has been instantiated).
 	*/
 	time_t GetCreationTime() const;
-		
+
 	/** @return
 		Timestamp (number of seconds since 1st January 1970) 
 		for the Setup message associated with this call. 0 if Setup
@@ -457,12 +457,12 @@ public:
 		Meaningful only in GK routed mode.
 	*/
 	time_t GetSetupTime() const;
-	
+
 	/** Set timestamp for a Setup message associated with this call. */
 	void SetSetupTime( 
 		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
-	
+
 	/** @return
 		Timestamp (number of seconds since 1st January 1970) 
 		for the Connect message associated with this call. 0 if Connect
@@ -470,19 +470,19 @@ public:
 		timestamp for ACF generated as a response to ARQ.
 	*/
 	time_t GetConnectTime() const;
-	
+
 	/** Set timestamp for a Connect (or ACF) message associated with this call. */
 	void SetConnectTime(
 		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
-	
+
 	/** @return
 		Timestamp (number of seconds since 1st January 1970) 
 		for the call disconnect event. 0 if call has not been yet disconnected
 		or connected.
 	*/
 	time_t GetDisconnectTime() const;
-	
+
 	/** Set timestamp for a disconnect event for this call. */
 	void SetDisconnectTime(
 		time_t tm /// timestamp (seconds since 1st January 1970)
@@ -500,13 +500,9 @@ public:
 	bool IsTimeout(
 		/// point in time for timeouts to be measured relatively to
 		/// (made as a parameter for performance reasons)
-		const time_t now,
-		/// timeout (in milliseconds) for a Connect message to be received,
-		/// a signalling channel to be opened after ARQ or call being connected
-		/// in direct signalling mode
-		const long connectTimeout
+		const time_t now
 		);
-			
+
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
 
@@ -528,6 +524,8 @@ private:
 	PString m_srcInfo; //added (MM 05.11.01)
 	int m_bandWidth;
 
+	long m_timeout;
+	time_t m_timer;
 	/// timestamp (seconds since 1st January, 1970) for the call creation
 	/// (triggered by ARQ or Setup)
 	time_t m_creationTime;
@@ -542,7 +540,7 @@ private:
 	long m_durationLimit;
 	/// Q.931 release complete cause code
 	unsigned m_disconnectCause;
-	
+
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
 	int m_usedCount;
@@ -606,7 +604,12 @@ public:
 		ConnectTimeout value (milliseconds).
 	*/
 	long GetConnectTimeout() const { return m_connectTimeout; }
-	
+
+	/** @return
+		DefaultDurationLimit value (seconds).
+	*/
+	long GetDefaultDurationLimit() const { return m_defaultDurationLimit; }
+
 private:
 	template<class F> callptr InternalFind(const F & FindObject) const
 	{
@@ -643,7 +646,8 @@ private:
 	/// and for a signalling channel to be opened after ACF/ARQ
 	/// (0 if GK is not in routed mode)
 	long m_connectTimeout;
-	
+	long m_defaultDurationLimit;
+
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };
@@ -770,6 +774,11 @@ inline unsigned CallRec::GetDisconnectCause() const
 inline void CallRec::SetDisconnectCause( unsigned causeCode )
 {
 	m_disconnectCause = causeCode;
+}
+
+inline bool CallRec::IsTimeout(const time_t now)
+{
+	return (m_timeout > 0) && ((now - m_timer) > m_timeout);
 }
 
 #endif // RASTBL_H
