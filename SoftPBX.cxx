@@ -92,10 +92,15 @@ void SoftPBX::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose)
 }
 
 // send URQ to the specify endpoint
-void SoftPBX::UnregisterEndpoint(const endptr &endpoints)
+void SoftPBX::UnregisterEndpoint(const endptr &endpoints, H225_UnregRequestReason::Choices reason)
 {
 	if (!endpoints) {
-		PTRACE(2, "GK\tSoftPBX Warning: unregister null pointer!");
+		PTRACE(2, "GK\tSoftPBX Warning: can't unregister null pointer!");
+		return;
+	}
+	// Only unregister registered endpoint
+	if (!endpoints->IsRegistered()) {
+		PTRACE(2, "GK\tSoftPBX: ignore unregistered endpoint!");
 		return;
 	}
 	H225_RasMessage ras_msg;
@@ -108,8 +113,16 @@ void SoftPBX::UnregisterEndpoint(const endptr &endpoints)
 	urq.m_endpointIdentifier = endpoints->GetEndpointIdentifier();
 	urq.m_callSignalAddress.SetSize(1);
 	urq.m_callSignalAddress[0] = endpoints->GetCallSignalAddress();
+	urq.IncludeOptionalField(urq.e_reason);
+	urq.m_reason.SetTag(reason);
 
 	SendRasPDU(ras_msg, endpoints->GetRasAddress());
+
+	PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
+			(const unsigned char *) AsString(H225_TransportAddress_ipAddress(endpoints->GetRasAddress())),
+			(const unsigned char *) endpoints->GetEndpointIdentifier().GetValue(),
+			(const unsigned char *) urq.m_reason.GetTagName());
+	GkStatus::Instance()->SignalStatus(msg);
 }
 
 // send URQ to all endpoints

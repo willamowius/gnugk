@@ -117,7 +117,7 @@ public:
 	{ return m_completeRegistrationRequest; }
 
 	bool IsGateway() const
-	{ return m_terminalType.HasOptionalField(H225_EndpointType::e_gateway); }
+	{ return static_cast<bool>(m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)); }
 
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 	void Refresh() { m_updatedTime = PTime(); }
@@ -183,6 +183,7 @@ public:
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 
 	void ClearTable();
+	void CheckEndpoints(int Seconds);
 
 //	void PrintOn( ostream &strm ) const;
 
@@ -293,10 +294,7 @@ class CallTable : public Singleton<CallTable>
 {
 public:
 	CallTable();
-protected:
-	CallTable(const CallTable &);
 
-public:
 	void Insert(const CallRec & NewRec);
 	void Insert(const EndpointCallRec & Calling, const EndpointCallRec & Called, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID);
 	void Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfID);
@@ -312,6 +310,10 @@ public:
 protected:
 	std::set <CallRec> CallList;
 	PINDEX m_CallNumber;
+
+private:
+	CallTable(const CallTable &);
+	CallTable& operator==(const CallTable &);
 };
 
 class ReadLock {

@@ -13,14 +13,16 @@
 #define _SOFTPBX_H
 
 #include "GkStatus.h"
-class PString;
+#include "h225.h"
+
 class endptr;
 
 namespace SoftPBX
 {
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
-	void UnregisterEndpoint(const endptr &Endpoints);
+	void UnregisterEndpoint(const endptr &Endpoints,
+		H225_UnregRequestReason::Choices reason = H225_UnregRequestReason::e_maintenance);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);
 	void DisconnectIp(PString Ip);

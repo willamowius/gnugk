@@ -21,15 +21,19 @@
 PMutex ReloadMutex;
 
 
-PString AsString(const H225_TransportAddress & ta) 
+PString AsString(const H225_TransportAddress & ta)
 {
 	PStringStream stream;
-
 	stream << ta;
-	PString string = (PString) stream;
-	return string;
+	return stream;
 }
 
+PString AsString(const H225_TransportAddress_ipAddress & ip)
+{
+	return PString(PString::Printf, "%d.%d.%d.%d:%u",
+		ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3],
+		ip.m_port.GetValue());
+}
 
 PString AsString(const H225_EndpointType & terminalType)
 {

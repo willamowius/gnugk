@@ -100,7 +100,7 @@ public:
 		BOOL Write( const char * Message, size_t MsgLen ); 
 		*/
 		BOOL WriteString(const PString &Message, int level=0);
-		void Close(void);
+		int Close(void);
 		
 		PString WhoAmI() const {
 			return Socket->GetName();

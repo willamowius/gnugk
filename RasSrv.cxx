@@ -1370,6 +1370,8 @@ void H323RasSrv::HandleConnections(void)
 
 		if (ShallSendReply)
 			SendReply( obj_rpl, rx_addr, rx_port, listener );
+
+		EndpointTable->CheckEndpoints(TimeToLive);
 	}
 }
 

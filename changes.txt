@@ -1,6 +1,7 @@
 Changes from 0.17 to 1.0
 ========================
 
+- add registration timeout
 - new design of endpointRec (cwhuang)
 - add mutex to RegistrationTable for thread-safe (cwhuang)
 - almost rewrite SoftPBX.cxx (cwhuang)

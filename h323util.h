@@ -21,6 +21,8 @@
 
 PString AsString(const H225_TransportAddress & ta);
 
+PString AsString(const H225_TransportAddress_ipAddress & ip);
+
 PString AsString(const H225_EndpointType & terminalType);
 
 PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasName = TRUE);

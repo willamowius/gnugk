@@ -14,7 +14,7 @@ avoid duplicate work.
   To get the broken version compile with -D GENERATE_CALL_PROCEEDING
 
 - cleanup: factor out common code from DisconnectXXX functions
-  in SoftPBX.cxx
+  in SoftPBX.cxx (DONE)
 
 - add a check to CDR generation if the call actually succeeded,
   don't generate a CDR if the call wasn't accepted
@@ -45,11 +45,11 @@ avoid duplicate work.
   add a command line option to limit time an endpoint registration
   is valid, so endpoints have to send updates, so we know they are alive
   Outline how to implement:
-  - add a time filed to the RegistrationTable
+  - add a time filed to the RegistrationTable (DONE)
   - add command line option to specify the value in the timeToLive filed
     of every RCF (DONE)
-  - update time in RegistrationTable on IRR from endpoint
-  - periodically remove endpoints that we haven't heard of
+  - update time in RegistrationTable on IRR from endpoint (DONE)
+  - periodically remove endpoints that we haven't heard of (not complete)
 
 - manual registration via the status thread (might be needed for
   H.323 endpoints without gatekeeper support)

@@ -570,12 +570,24 @@ inline endpointRec *unregister_endpoint(endpointRec *ep)
 	return ep;
 }
 
+inline endpointRec *unregister_expired_endpoint(endpointRec *ep)
+{
+	SoftPBX::UnregisterEndpoint(endptr(ep), H225_UnregRequestReason::e_ttlExpired);
+	return ep;
+}
+
 // stupid VC can't instantiate the template?
 // template <class T1, class T2> inline void delete_second(pair<T1, T2> &p)
 inline void delete_second(pair<const PString, PStringArray *> &p)
 {
 	delete p.second;
 }
+
+// Oops... the standard STL minus object is too restricted
+template <class _Tp, class R>
+struct Minus : public binary_function<_Tp,_Tp, R> {
+  R operator()(const _Tp& __x, const _Tp& __y) const { return __x - __y; }
+};
 
 }
 
@@ -590,6 +602,30 @@ void RegistrationTable::ClearTable()
 	GatewayPrefixes.clear();
 	for_each(GatewayFlags.begin(), GatewayFlags.end(), delete_second);
 	GatewayFlags.clear();
+}
+
+void RegistrationTable::CheckEndpoints(int Seconds)
+{
+	WriteLock lock(listLock);
+
+	// by cwhuang
+	//
+	// Wow...! Do you think it is complex? Thanks to powerful STL!
+	// Here is a brief explanation:
+	// The EndpointList is divided into two parts by STL partition algorithm:
+	// the first part from begin() to --Iter that satisfy the predicate
+	// and the second part from Iter to end() that don't.
+	// The predicate is composed by several STL adapters.
+	// It means: ( (PTime() - ep->GetUpdatedTime()) < Seconds*1000 )
+
+	list<endpointRec *>::iterator Iter =
+	  partition(EndpointList.begin(), EndpointList.end(),
+		compose1(bind2nd(less<PTimeInterval>(), Seconds*1000),
+		compose1(bind1st(Minus<PTime, PTimeInterval>(), PTime()), mem_fun(&endpointRec::GetUpdatedTime))));
+	transform(Iter, EndpointList.end(),
+		back_inserter(RemovedList), unregister_expired_endpoint);
+	EndpointList.erase(Iter, EndpointList.end());
+	// TODO: remove prefixes of expired endpoints
 }
 
 //void RegistrationTable::PrintOn(ostream & strm) const
@@ -733,17 +769,13 @@ int CallRec::CountEndpoints(void) const
 CallTable::CallTable()
 {
 	m_CallNumber = 1;
-};
+}
 
-CallTable::CallTable(const CallTable &)
-{
-};
-	
 void CallTable::Insert(const CallRec & NewRec)
 {
 	PTRACE(3, "CallTable::Insert(CALL)");
 	CallList.insert(NewRec);
-};
+}
 
 void CallTable::Insert(const EndpointCallRec & Calling, const EndpointCallRec & Called, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfId)
 {
@@ -758,7 +790,7 @@ void CallTable::Insert(const EndpointCallRec & Calling, const EndpointCallRec & 
 	Call.m_conferenceIdentifier = ConfId;
 	Call.m_CallNumber = m_CallNumber++;
 	Insert(Call);
-};
+}
 
 void CallTable::Insert(const EndpointCallRec & Calling, int Bandwidth, H225_CallIdentifier CallId, H225_ConferenceIdentifier ConfId)
 {
@@ -772,7 +804,7 @@ void CallTable::Insert(const EndpointCallRec & Calling, int Bandwidth, H225_Call
 	Call.m_conferenceIdentifier = ConfId;
 	Call.m_CallNumber = m_CallNumber++;
 	Insert(Call);
-};
+}
 
 void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 {
@@ -811,7 +843,7 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 	GkStatus::Instance()->SignalStatus("DEBUG\tcallRef:" + PString(callRefString) + "found&removed for calling\n\r", 1);
 	PTRACE(5, ANSI::PIN << "DEBUG\tCallRef:" << CallRef << "found&removed for calling\n" << ANSI::OFF);
 #endif
-		};
+		}
 
 		if (((*CallIter).Called != NULL) &&
 			((*CallIter).Called->m_callReference.GetValue() == CallRef.GetValue()))
@@ -829,7 +861,7 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 	GkStatus::Instance()->SignalStatus("DEBUG\tcallRef:" + PString(callRefString) + "found&removed for called\n\r", 1);
 	PTRACE(5, ANSI::PIN <<"DEBUG\tCallRef:" << CallRef << "found&removed for called...\n" << ANSI::OFF);
 #endif
-		};
+		}
 		
 		if((*CallIter).CountEndpoints() <= 1)
 		{
@@ -846,7 +878,7 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 		}
 		else
 			++CallIter;
-	};
+	}
 	if (hasRemoved) {
 		struct tm * timeStructStart;
 		struct tm * timeStructEnd;
@@ -869,15 +901,17 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 		PString caller, callee;
 		if (theCall.Calling) {
 			H225_TransportAddress & addr = theCall.Calling->m_callSignalAddress;
-			H225_TransportAddress_ipAddress & ip = addr;
 			const endptr rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
-			caller = PString(PString::Printf, "%d.%d.%d.%d:%u|%s", ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3], (unsigned)ip.m_port.GetValue(), (const unsigned char *)rec->GetEndpointIdentifier().GetValue());
+			caller = PString(PString::Printf, "%s|%s",
+				(const unsigned char *) AsString(H225_TransportAddress_ipAddress(addr)),
+				(const unsigned char *) rec->GetEndpointIdentifier().GetValue());
 		}
 		if (theCall.Called) {
 			H225_TransportAddress & addr = theCall.Called->m_callSignalAddress;
-			H225_TransportAddress_ipAddress & ip = addr;
 			const endptr rec=RegistrationTable::Instance()->FindBySignalAdr(addr);
-			callee = PString(PString::Printf, "%d.%d.%d.%d:%u|%s", ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3], (unsigned)ip.m_port.GetValue(), (const unsigned char *)rec->GetEndpointIdentifier().GetValue());
+			callee = PString(PString::Printf, "%s|%s",
+				(const unsigned char *) AsString(H225_TransportAddress_ipAddress(addr)),
+				(const unsigned char *) rec->GetEndpointIdentifier().GetValue());
 		}
 
 		callDuration = difftime(now, startTime);
@@ -892,7 +926,7 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 	GkStatus::Instance()->SignalStatus("DEBUG\tdone for "  + PString(callRefString) + "...\n\r", 1);
 	PTRACE(5, ANSI::PIN << "DEBUG\tdone for " + PString(callRefString) + "...\n" << ANSI::OFF);
 #endif
-};
+}
 
 
 const CallRec * CallTable::FindCallRec(const Q931 & m_q931) const
@@ -997,9 +1031,9 @@ const CallRec * CallTable::FindBySignalAdr(const H225_TransportAddress & SignalA
 		if ((*CallIter).Called != NULL)
 			if ((*CallIter).Called->m_callSignalAddress == SignalAdr)
 				return &(*CallIter);
-	};
+	}
 	return NULL;
-};
+}
 
 void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 {
@@ -1022,21 +1056,19 @@ void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 		{
 			sprintf(Val, " %02x", Call.m_callIdentifier.m_guid[i]);
 			strcat(MsgBuffer, Val);
-		};
+		}
 		strcat(MsgBuffer, "\r\n");
 		client.WriteString(PString(MsgBuffer));
 		if (Call.Calling)
 		{
-			H225_TransportAddress_ipAddress & ipAddressA = Call.Calling->m_callSignalAddress;
-			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d:%u\r\n", ipAddressA.m_ip[0], ipAddressA.m_ip[1], ipAddressA.m_ip[2], ipAddressA.m_ip[3], (unsigned)ipAddressA.m_port.GetValue());
-			client.WriteString(PString(MsgBuffer));
-		};
+			client.WriteString(PString(PString::Printf, "ACF|%s\r\n",
+				(const char *) AsString(H225_TransportAddress_ipAddress(Call.Calling->m_callSignalAddress))));
+		}
 		if (Call.Called)
 		{
-			H225_TransportAddress_ipAddress & ipAddressB = Call.Called->m_callSignalAddress;
-			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d:%u\r\n", ipAddressB.m_ip[0], ipAddressB.m_ip[1], ipAddressB.m_ip[2], ipAddressB.m_ip[3], (unsigned)ipAddressB.m_port.GetValue());
-			client.WriteString(PString(MsgBuffer));
-		};
+			client.WriteString(PString(PString::Printf, "ACF|%s\r\n",
+				(const char *) AsString(H225_TransportAddress_ipAddress(Call.Called->m_callSignalAddress))));
+		}
 		if (verbose)
 		{
 			PString from = "?";
@@ -1063,7 +1095,7 @@ void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 			sprintf(MsgBuffer, "# %s|%s|%d|%s", (const char*)from, (const char*)to, bw, ctime);
 			client.WriteString(PString(MsgBuffer));
 		}
-	};
+	}
 	client.WriteString(";\r\n");
 }
 

@@ -127,10 +127,7 @@ void GkStatus::Close(void)
 	
 	// close all connected clients
 	ClientSetLock.Wait();
-	for (ClientIter=Clients.begin(); ClientIter != Clients.end(); ++ClientIter)
-	{
-		(*ClientIter)->Close();
-	};
+	for_each(Clients.begin(), Clients.end(), mem_fun(&Client::Close));
 	ClientSetLock.Signal();
 
 	// Wait for client threads to die...
@@ -506,10 +503,11 @@ BOOL GkStatus::Client::WriteString(const PString &Message, int level) // level d
 	return result;
 }
 
-void GkStatus::Client::Close(void)
+int GkStatus::Client::Close(void)
 {
 	if ( (NULL != Socket) && Socket->IsOpen() )
 		Socket->Close();
+	return 0; // workaround for VC
 }
 
 
