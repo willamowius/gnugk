@@ -1167,10 +1167,8 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 // #endif
 
-
 				if (!bReject && !CalledEP &&
-				    rsn != H225_AdmissionRejectReason::e_invalidPermission &&
-				    rsn != H225_AdmissionRejectReason::e_callerNotRegistered ) {
+				    rsn == H225_AdmissionRejectReason::e_securityDenial) {
 					if (gkClient->IsRegistered()) {
 						H225_ArrayOf_AliasAddress dest = obj_rr.m_destinationInfo;
 						H225_AdmissionRequest arq_fake=obj_rr;
@@ -1191,7 +1189,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			obj_rpl.SetTag(H225_RasMessage::e_admissionReject);
 			H225_AdmissionReject & arj = obj_rpl;
 			arj.m_rejectReason.SetTag(rsn);
-			PTRACE(1, "setting Reject Reason: " << arj.m_rejectReason.GetTagName());
+			PTRACE(5, "setting Reject Reason: " << arj.m_rejectReason.GetTagName());
 		}
 	}
 
@@ -1233,7 +1231,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			PTRACE(3, "handling ARJ with cisco");
 		} else {
 			bReject = TRUE;
-			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
+//			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 		}
 	}
 
@@ -1293,7 +1291,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
  					break;
  				case H225_AliasAddress::e_partyNumber:
  					// ready-to-use party number
- 					PN = obj_arq.m_destinationInfo[0];
+ 					PN = obj_arq.m_destinationInfo[0]; // Gives a warning, nilsb
  					break;
  				default:
  					PTRACE(1,"Unsupported AliasAdress for ARQ reason 'routeCallToSCN': "
