@@ -50,7 +50,7 @@ public:
 	H245Handler(PIPSocket::Address l) : localAddr(l) {}
 	virtual ~H245Handler() {}
 
-	virtual bool HandleMesg(PPER_Stream &, ProxySocket::Result &);
+	virtual bool HandleMesg(PPER_Stream &);
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
 	void SetLocalAddr(PIPSocket::Address local) { localAddr = local; }
 
@@ -79,7 +79,7 @@ public:
 	// override from class TCPProxySocket
 	virtual TCPProxySocket *ConnectTo();
 
-	bool HandleH245Mesg(PPER_Stream &, Result &);
+	bool HandleH245Mesg(PPER_Stream &);
 	void OnH245ChannelClosed() { m_h245socket = 0; }
 
 protected:
@@ -274,9 +274,9 @@ private:
 	H245ProxyHandler *peer;
 };
 
-inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, Result & res)
+inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
 {
-	return m_h245handler->HandleMesg(strm, res);
+	return m_h245handler->HandleMesg(strm);
 }
 
 inline bool UDPProxySocket::Bind(Address ip, WORD pt)

@@ -444,8 +444,7 @@ void CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Contro
 {
 	for(PINDEX i = 0; i < h245Control.GetSize(); ++i) {
 		PPER_Stream strm = h245Control[i].GetValue();
-		Result res;
-		if (HandleH245Mesg(strm, res))
+		if (HandleH245Mesg(strm))
 			h245Control[i].SetValue(strm);
 	}
 }
@@ -485,9 +484,8 @@ bool CallSignalSocket::InternalSetH245Address(H225_TransportAddress & h245addr)
 }
 
 // class H245Handler
-bool H245Handler::HandleMesg(PPER_Stream & mesg, ProxySocket::Result & res)
+bool H245Handler::HandleMesg(PPER_Stream & mesg)
 {
-	res = ProxySocket::Forwarding;
 	H245_MultimediaSystemControlMessage h245msg;
 	h245msg.Decode(mesg);
 	PTRACE(6, ANSI::BYEL << "H245\nMessage received: " << setprecision(2) << h245msg << ANSI::OFF);
@@ -503,8 +501,8 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg, ProxySocket::Result & res)
 			break;
 		case H245_MultimediaSystemControlMessage::e_command:
 			changed = HandleCommand(h245msg);
-			if (((H245_CommandMessage &)h245msg).GetTag() == H245_CommandMessage::e_endSessionCommand)
-				res = ProxySocket::Closing;
+		//	if (((H245_CommandMessage &)h245msg).GetTag() == H245_CommandMessage::e_endSessionCommand)
+		//		res = ProxySocket::Closing;
 			break;
 		case H245_MultimediaSystemControlMessage::e_indication:
 			changed = HandleIndication(h245msg);
@@ -575,11 +573,10 @@ ProxySocket::Result H245Socket::ReceiveData()
 		return NoData;
 
 	PPER_Stream strm(buffer);
-	Result res;
-	if (sigSocket->HandleH245Mesg(strm, res))
+	if (sigSocket->HandleH245Mesg(strm))
 		buffer = strm;
 
-	return res;
+	return Forwarding;
 }
 
 bool H245Socket::EndSession()
