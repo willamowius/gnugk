@@ -20,6 +20,12 @@ avoid duplicate work.
            is that blacklist takes precedence.
            voIPIncoming*List needs to be implemented
 
+- feature: add ability to use routing via neighbour for known destinations, too
+           Neighbours should be configured && handled like gateways (i.e. they're
+           configured to be used as the destination if one of their prefixes matches),
+           just that they're contacted via LRQ before sending SETUP (unlike gateways
+           which are directly sent a SETUP).
+
 - feature: implement metric based routing
 
   A metric should be configurable as a per-route per-gateway parameter, too,
@@ -57,12 +63,6 @@ avoid duplicate work.
   Since RasSrv is single-threaded, latencies of external calls sum up and
   thus define a limit (e.g. if an external call takes 100 msec, then we can
   only do 10 calls per sec. before RasSrv starts queueing requests).
-
-- feature: add ability to use routing via neighbour for known destinations, too
-           Neighbours should be configured && handled like gateways (i.e. they're
-           configured to be used as the destination if one of their prefixes matches),
-           just that they're contacted via LRQ before sending SETUP (unlike gateways
-           which are directly sent a SETUP).
 
 - feature: route call to voicemail mailbox for calls to provisioned, but
   non-registered destinations (i.e. those that result in calledpartyNotRegistered)
