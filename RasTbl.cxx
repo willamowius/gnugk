@@ -610,22 +610,13 @@ RegistrationTable::RegistrationTable()
 	LoadConfig();
 }
 
-static void delete_call(CallRec *c);
-
-static PMutex deletemutex;
-
-static void delete_call(CallRec *c)
-{
-	PTRACE(5, "doing delete_call");
-	PWaitAndSignal lock(deletemutex);
-	delete c;
-}
-
 
 RegistrationTable::~RegistrationTable()
 {
 	ClearTable();
+	RemovedList_mutex.StartWrite();
 	for_each(RemovedList.begin(), RemovedList.end(), delete_ep);
+	RemovedList_mutex.EndWrite();
 }
 
 endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg)
@@ -676,8 +667,10 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 	H225_RegistrationRequest & rrq = ras_msg;
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
+		RemovedList_mutex.StartRead();
 		endptr e = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), rrq.m_callSignalAddress[0]),
 			mem_fun(&EndpointRec::GetCallSignalAddress)), &RemovedList);
+		RemovedList_mutex.EndRead();
 		if (e) // re-use the old endpoint identifier
 			rrq.m_endpointIdentifier = e->GetEndpointIdentifier();
 		else
@@ -690,8 +683,9 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 
 	EndpointRec *ep = rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_gateway) ?
 			  new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
-	WriteLock lock(listLock);
+	EndpointList_mutex.StartWrite();
 	EndpointList.push_back(ep);
+	EndpointList_mutex.EndWrite();
 	return endptr(ep);
 }
 
@@ -700,8 +694,9 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Adm
 	H225_EndpointIdentifier epID;
 	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
 	EndpointRec *ep = new OuterZoneEPRec(ras_msg, epID);
-	WriteLock lock(listLock);
+	OuterZoneList_mutex.StartWrite();
 	OuterZoneList.push_front(ep);
+	OuterZoneList_mutex.EndWrite();
 	return endptr(ep);
 }
 
@@ -717,33 +712,40 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Loc
 	else
 		ep = new OuterZoneEPRec(ras_msg, epID);
 
-	WriteLock lock(listLock);
+	OuterZoneList_mutex.StartWrite();
 	OuterZoneList.push_front(ep);
+	OuterZoneList_mutex.EndWrite();
 	return endptr(ep);
 }
 
 void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 {
 	EndpointRec *ep = eptr.operator->(); // evil
-	WriteLock lock(listLock);
 	if (ep) {
+		RemovedList_mutex.StartWrite();
 		RemovedList.push_back(ep);
+		RemovedList_mutex.EndWrite();
+		EndpointList_mutex.StartWrite();
 		EndpointList.remove(ep);
+		EndpointList_mutex.EndWrite();
 	}
 }
 
 void RegistrationTable::RemoveByEndpointId(const H225_EndpointIdentifier & epId)
 {
-	WriteLock lock(listLock);
+	EndpointList_mutex.StartWrite();
 	iterator Iter = find_if(EndpointList.begin(), EndpointList.end(),
 			compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
 			mem_fun(&EndpointRec::GetEndpointIdentifier)));
 	if (Iter != EndpointList.end()) {
+		RemovedList_mutex.StartWrite();
 		RemovedList.push_back(*Iter);
+		RemovedList_mutex.EndWrite();
 		EndpointList.erase(Iter);	// list<> is O(1), slist<> O(n) here
 	} else {
 	        PTRACE(1, "Warning: RemoveByEndpointId " << epId << " failed.");
 	}
+	EndpointList_mutex.EndWrite();
 }
 
 /*
@@ -770,6 +772,7 @@ endptr RegistrationTable::FindBySignalAdr(const H225_TransportAddress &sigAd) co
 
 endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress &sigAd) const
 {
+       ReadLock lock(OuterZoneList_mutex);
        return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
                        mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList);
 }
@@ -781,7 +784,10 @@ endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias)
 
 endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool s)
 {
+	EndpointList_mutex.StartRead();
 	endptr ep = InternalFindEP(alias, &EndpointList);
+	EndpointList_mutex.EndRead();
+	ReadLock lock(OuterZoneList_mutex);
 	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList) : endptr(0);
 }
 
@@ -796,7 +802,6 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 
         int maxlen = 0;
         list<EndpointRec *> GWlist;
-        listLock.StartRead();
         const_iterator Iter = List->begin(), IterLast = List->end();
         while (Iter != IterLast) {
                 if ((*Iter)->IsGateway()) {
@@ -810,13 +815,11 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
                 }
                 ++Iter;
         }
-        listLock.EndRead();
 
         if (GWlist.size() > 0) {
                 EndpointRec *e = GWlist.front();
                 if (GWlist.size() > 1) {
                         PTRACE(3, ANSI::DBG << "Prefix apply round robin" << ANSI::OFF);
-                        WriteLock lock(listLock);
                         List->remove(e);
                         List->push_back(e);
                 }
@@ -841,31 +844,35 @@ void RegistrationTable::GenerateAlias(H225_ArrayOf_AliasAddress & AliasList, con
 void RegistrationTable::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 {
 	PString msg("AllRegistrations" GK_LINEBRK);
+	EndpointList_mutex.StartRead();
 	InternalPrint(client, verbose, &EndpointList, msg);
+	EndpointList_mutex.EndRead();
 }
 
 void RegistrationTable::PrintAllCached(GkStatus::Client &client, BOOL verbose)
 {
 	PString msg("AllCached" GK_LINEBRK);
+	OuterZoneList_mutex.StartRead();
 	InternalPrint(client, verbose, &OuterZoneList, msg);
+	OuterZoneList_mutex.EndRead();
 }
 
 void RegistrationTable::PrintRemoved(GkStatus::Client &client, BOOL verbose)
 {
 	PString msg("AllRemoved" GK_LINEBRK);
+	RemovedList_mutex.StartRead();
 	InternalPrint(client, verbose, &RemovedList, msg);
+	RemovedList_mutex.EndRead();
 }
 
 void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, list<EndpointRec *> * List, PString & msg)
 {
 	// copy the pointers into a temporary array to avoid large lock
-	listLock.StartRead();
 	const_iterator IterLast = List->end();
 	unsigned k =0, s = List->size();
 	endptr *eptr = new endptr[s];
 	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter)
 		eptr[k++] = endptr(*Iter);
-	listLock.EndRead();
 	// end of lock
 
 	if (s > 1000) // set buffer to avoid reallocate
@@ -881,7 +888,6 @@ void RegistrationTable::InternalPrint(GkStatus::Client &client, BOOL verbose, li
 
 void RegistrationTable::InternalStatistics(const list<EndpointRec *> *List, unsigned & s, unsigned & t, unsigned & g) const
 {
-	ReadLock lock(listLock);
 	s = List->size(), t = 0, g = 0;
 	const_iterator IterLast = List->end();
 	for (const_iterator Iter = List->begin(); Iter != IterLast; ++Iter)
@@ -891,9 +897,13 @@ void RegistrationTable::InternalStatistics(const list<EndpointRec *> *List, unsi
 PString RegistrationTable::PrintStatistics() const
 {
 	unsigned es, et, eg;
+	EndpointList_mutex.StartRead();
 	InternalStatistics(&EndpointList, es, et, eg);
+	EndpointList_mutex.EndRead();
 	unsigned cs, ct, cg;
+	OuterZoneList_mutex.StartRead();
 	InternalStatistics(&OuterZoneList, cs, ct, cg);
+	OuterZoneList_mutex.EndRead();
 
 	return PString(PString::Printf, "-- Endpoint Statistics --" GK_LINEBRK
 		"Total Endpoints: %u  Terminals: %u  Gateways: %u" GK_LINEBRK
@@ -979,57 +989,76 @@ void RegistrationTable::LoadConfig()
 		}
 
 		PTRACE(2, "Add permanent endpoint " << AsDotString(rrq.m_callSignalAddress[0]));
-		WriteLock lock(listLock);
+		EndpointList_mutex.StartWrite();
 		EndpointList.push_back(ep);
+		EndpointList_mutex.EndWrite();
         }
 
 	// Load config for each endpoint
-	ReadLock lock(listLock);
+	EndpointList_mutex.StartRead();
 	for_each(EndpointList.begin(), EndpointList.end(),
 		 mem_fun(&EndpointRec::LoadConfig));
+	EndpointList_mutex.EndRead();
 }
 
 void RegistrationTable::ClearTable()
 {
-	WriteLock lock(listLock);
 	// Unregister all endpoints, and move the records into RemovedList
+	EndpointList_mutex.StartWrite();
+	RemovedList_mutex.StartWrite();
 	transform(EndpointList.begin(), EndpointList.end(),
 		back_inserter(RemovedList), mem_fun(&EndpointRec::Unregister));
 	EndpointList.clear();
+	EndpointList_mutex.EndWrite();
+	OuterZoneList_mutex.StartWrite();
 	copy(OuterZoneList.begin(), OuterZoneList.end(), back_inserter(RemovedList));
+	RemovedList_mutex.EndWrite();
 	OuterZoneList.clear();
+	OuterZoneList_mutex.EndWrite();
 }
 
 void RegistrationTable::CheckEndpoints()
 {
 	PTime now;
-	WriteLock lock(listLock);
 
+	EndpointList_mutex.StartWrite();
 	iterator Iter = EndpointList.begin(), eIter = EndpointList.end();
 	while (Iter != eIter) {
 		iterator i = Iter++;
 		EndpointRec *ep = *i;
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
 			ep->Expired();
+			RemovedList_mutex.StartWrite();
 			RemovedList.push_back(ep);
 			EndpointList.erase(i);
 			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier() << " expired.");
+
+			// Prevent ep to be deleted before PTRACE is done
+			RemovedList_mutex.EndWrite();
 		}
 	}
+	EndpointList_mutex.EndWrite();
 
+	OuterZoneList_mutex.StartRead();
 	Iter = partition(OuterZoneList.begin(), OuterZoneList.end(),
 		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 #ifdef PTRACING
 	if (ptrdiff_t s = distance(Iter, OuterZoneList.end()))
 		PTRACE(2, s << " outerzone endpoint(s) expired.");
 #endif
+
+	RemovedList_mutex.StartWrite();
 	copy(Iter, OuterZoneList.end(), back_inserter(RemovedList));
 	OuterZoneList.erase(Iter, OuterZoneList.end());
+	RemovedList_mutex.EndWrite();
+	OuterZoneList_mutex.EndWrite();
 
 	// Cleanup unused EndpointRec in RemovedList
+	RemovedList_mutex.StartWrite();
 	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&EndpointRec::IsUsed));
 	for_each(Iter, RemovedList.end(), delete_ep);
 	RemovedList.erase(Iter, RemovedList.end());
+	RemovedList_mutex.EndWrite();
 }
 
 CallRec::CallRec(const H225_CallIdentifier & CallId,
@@ -1068,19 +1097,21 @@ CallRec::~CallRec()
  		GkStatus::Instance()->SignalStatus(cdrString, 1);
  		PTRACE(3, cdrString);
 	}
+	RemoveAll();
+	m_usedLock.Signal();
+	m_access_count.WaitCondition();
+	m_usedLock.Wait();
+
 	if(NULL!=m_callingSocket) {
 		m_callingSocket->EndSession();
 		m_callingSocket->UnlockUse("CallRec");
 		m_callingSocket=NULL;
 	}
 	if(NULL!=m_calledSocket) {
-		m_callingSocket->EndSession();
+		m_calledSocket->EndSession();
 		m_calledSocket->UnlockUse("CallRec");
 		m_calledSocket=NULL;
 	}
-	m_usedLock.Signal();
-	m_access_count.WaitCondition();
-	m_usedLock.Wait();
 
 
 	// Writeback the timeout
@@ -1170,7 +1201,13 @@ endptr & CallRec::GetCalledEP()
 
 CalledProfile & CallRec::GetCalledProfile()
 {
-//	PWaitAndSignal lock(m_usedLock);
+	PWaitAndSignal lock(m_cdpfLock);
+	return InternalGetCalledProfile();
+}
+
+CalledProfile &
+CallRec::InternalGetCalledProfile()
+{
 	if (NULL != m_calledProfile && m_calledProfile->GetH323ID().IsEmpty()){
 		delete m_calledProfile;
 		m_calledProfile=NULL;
@@ -1190,7 +1227,13 @@ CalledProfile & CallRec::GetCalledProfile()
 
 CallingProfile & CallRec::GetCallingProfile()
 {
-	PWaitAndSignal lock(m_usedLock);
+	PWaitAndSignal lock(m_cgpfLock);
+	return InternalGetCallingProfile();
+}
+
+CallingProfile &
+CallRec::InternalGetCallingProfile()
+{
 	if (NULL != m_callingProfile && m_callingProfile->GetH323ID().IsEmpty()){
 		delete m_callingProfile;
 		m_callingProfile=NULL;
@@ -1202,7 +1245,8 @@ CallingProfile & CallRec::GetCallingProfile()
 		if ((endptr(NULL) != m_Calling) && (m_Calling->GetH323ID(adr))) {
 			PString h323id= H323GetAliasAddressString(adr);
 			PTRACE(1, "Looking for profile: " << h323id);
-			GkDatabase::Instance()->getProfile(*m_callingProfile, h323id,f);
+			if(!GkDatabase::Instance()->getProfile(*m_callingProfile, h323id,f))
+				PTRACE(1, "Could not find profile for: " << h323id);
 		}
 	}
 	return *m_callingProfile;
@@ -1243,7 +1287,7 @@ void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, uns
 
 void CallRec::RemoveAll()
 {
-	PWaitAndSignal lock(m_usedLock);
+//	PWaitAndSignal lock(m_usedLock);
 	if (m_registered) {
 		H225_RasMessage ras_msg;
 		ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
@@ -1466,7 +1510,7 @@ static const BOOL IPTN_is_inter(E164_IPTNString & iptn)
 }
 
 /** Generate the Call Detail Record for a finished call
- *  
+ *
  * The exact format and spezification of the elements in this record are to
  * be found in the file CDR.txt in the docs directory.
  */
@@ -1478,7 +1522,7 @@ PString CallRec::GenerateCDR()
 	E164_IPTNString dialedPN(""); // dialed party number, formatted
 	enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType;
 	E164_IPTNString calledPN(""); // called party number, formatted
-	CalledProfile & CalledP = GetCalledProfile();
+	CalledProfile & CalledP = InternalGetCalledProfile();
 
 	if (NULL == m_stopTime) // oops, no stop time generated by RAS or Q.931?
 		m_stopTime = new PTime();
@@ -1551,7 +1595,7 @@ PString CallRec::GenerateCDR()
 
 #if defined(CDR_MOD_INFO_FIELDS)
 	// if profile for calling endpoint exists
-	CallingProfile & CallingP = GetCallingProfile();
+	CallingProfile & CallingP = InternalGetCallingProfile();
 	if (!CallingP.GetH323ID().IsEmpty()) {
 		if (!CallingP.GetCgPN().IsEmpty()) {
 			PTRACE(4, "CDR: set CgPN to international format");
@@ -1569,8 +1613,8 @@ PString CallRec::GenerateCDR()
 		destInfo = CalledP.GetCallingPN();
 	}
 
-	return PString(PString::Printf, 
-		       "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s|%u|%s|%s%d.%d.%d-%s-%s-%s|%d;" 
+	return PString(PString::Printf,
+		       "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s|%u|%s|%s%d.%d.%d-%s-%s-%s|%d;"
 		       GK_LINEBRK,
 		       m_CallNumber,
 		       static_cast<const char *>(AsString(m_callIdentifier.m_guid)),
@@ -1583,8 +1627,8 @@ PString CallRec::GenerateCDR()
 		       static_cast<unsigned int>(dialedPN_TON),
 		       static_cast<const char *>(static_cast<PString>(dialedPN)),
 		       static_cast<const char *>(static_cast<PString>(calledPN)),
-		       static_cast<unsigned int>(GetCalledProfile().GetAssumedDialedPN_TON()),
-		       static_cast<const char *>(GetCalledProfile().GetAssumedDialedPN()),
+		       static_cast<unsigned int>(InternalGetCalledProfile().GetAssumedDialedPN_TON()),
+		       static_cast<const char *>(InternalGetCalledProfile().GetAssumedDialedPN()),
 		       // build string from constants via cpp
 		       PROGRAMMNAME
 #ifdef P_PTHREADS
@@ -1597,7 +1641,7 @@ PString CallRec::GenerateCDR()
 		       static_cast<const char *>(PProcess::GetOSName()),
 		       static_cast<const char *>(PProcess::GetOSHardware()),
 		       static_cast<const char *>(PProcess::GetOSVersion()),
-		       static_cast<int>(GetCalledProfile().GetReleaseCause())
+		       static_cast<int>(InternalGetCalledProfile().GetReleaseCause())
 		);
 }
 
@@ -1635,9 +1679,13 @@ CallTable::CallTable() : m_CallNumber(1), m_capacity(-1)
 
 CallTable::~CallTable()
 {
+	CallListMutex.Wait();
         for_each(CallList.begin(), CallList.end(),
 		bind1st(mem_fun(&CallTable::InternalRemovePtr), this));
-        for_each(RemovedList.begin(), RemovedList.end(), delete_call);
+	CallListMutex.Signal();
+	RemovedListMutex.Wait();
+        for_each(RemovedList.begin(), RemovedList.end(), &CallTable::delete_call);
+	RemovedListMutex.Signal();
 }
 
 void CallTable::LoadConfig()
@@ -1651,12 +1699,15 @@ void CallTable::Insert(CallRec * NewRec)
 {
 	PTRACE(3, "CallTable::Insert(CALL) Call No. " << m_CallNumber);
 	NewRec->SetCallNumber(m_CallNumber++);
-	WriteLock lock(listLock);
+	CallListMutex.Wait();
 	CallList.push_back(NewRec);
+	CallListMutex.Signal();
 	++m_CallCount;
 	if (m_capacity >= 0) {
 		m_capacity -= NewRec->GetBandWidth();
+		CallListMutex.Wait();
 		PTRACE(2, "GK\tTotal sessions : " << CallList.size() << ", Available BandWidth " << m_capacity);
+		CallListMutex.Signal();
 	}
 }
 
@@ -1664,10 +1715,11 @@ void CallTable::SetTotalBandWidth(int bw)
 {
 	if ((m_capacity = bw) >= 0) {
 		int used = 0;
-		WriteLock lock(listLock);
+		CallListMutex.Wait();
 		iterator Iter = CallList.begin(), eIter = CallList.end();
 		while (Iter != eIter)
 			used += (*Iter)->GetBandWidth();
+		CallListMutex.Signal();
 		if (bw > used)
 			m_capacity -= used;
 		else
@@ -1702,12 +1754,14 @@ callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) cons
 
 void CallTable::ClearTable()
 {
+	CallListMutex.Wait();
 	iterator Iter = CallList.begin(), eIter = CallList.end();
 	while (Iter != eIter) {
 		iterator i = Iter++;
 		(*i)->Disconnect();
 		InternalRemove(i);
 	}
+	CallListMutex.Signal();
 }
 
 void CallTable::CheckCalls()
@@ -1723,9 +1777,11 @@ void CallTable::CheckCalls()
 		}
 	}
 */
+	RemovedListMutex.Wait();
 	iterator Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
-	for_each(Iter, RemovedList.end(), delete_call);
+	for_each(Iter, RemovedList.end(), &CallTable::delete_call);
 	RemovedList.erase(Iter, RemovedList.end());
+	RemovedListMutex.Signal();
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
@@ -1733,10 +1789,9 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
 	callptr call = obj_drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? FindCallRec(obj_drq.m_callIdentifier) : FindCallRec(obj_drq.m_callReferenceValue.GetValue());
 	PTRACE(1, "CallTable::RemoveCall " << call);
 	if (call) {
-		call->SendReleaseComplete();
-		call->SetDisconnected();
 		RemoveCall(call);
 	}
+	// Keep in mind to give a status enquiry ping to check wether call is really down.
 }
 
 void CallTable::RemoveCall(const callptr & call)
@@ -1748,33 +1803,38 @@ void CallTable::RemoveCall(const callptr & call)
 bool CallTable::InternalRemovePtr(CallRec *call)
 {
 	PTRACE(6, ANSI::PIN << "GK\tRemoving callptr:" << AsString(call->GetCallIdentifier().m_guid) << "...\n" << ANSI::OFF);
-	WriteLock lock(listLock);
+	CallListMutex.Wait();
 	InternalRemove(find(CallList.begin(), CallList.end(), call));
+	CallListMutex.Signal();
 	return true; // useless, workaround for VC
 }
 
 void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
 {
 	PTRACE(5, ANSI::PIN << "GK\tRemoving CallId:" << AsString(CallId.m_guid) << "...\n" << ANSI::OFF);
-	WriteLock lock(listLock);
+	CallListMutex.Wait();
 	InternalRemove(
 		find_if(CallList.begin(), CallList.end(),
 		bind2nd(mem_fun(&CallRec::CompareCallId), &CallId))
 	);
+	CallListMutex.Signal();
 }
 
 void CallTable::InternalRemove(unsigned CallRef)
 {
 	PTRACE(5, ANSI::PIN << "GK\tRemoving CallRef:" << CallRef << "...\n" << ANSI::OFF);
-	WriteLock lock(listLock);
+	CallListMutex.Wait();
 	InternalRemove(
 		find_if(CallList.begin(), CallList.end(),
 		bind2nd(mem_fun(&CallRec::CompareCRV), CallRef))
 	);
+	CallListMutex.Signal();
 }
 
 void CallTable::InternalRemove(iterator Iter)
 {
+
+	// Do *not* CallListMutex.Wait(), because this method is called from within a CallListMutex lock.
 	if (Iter == CallList.end()) {
 		return;
 	}
@@ -1800,19 +1860,21 @@ void CallTable::InternalRemove(iterator Iter)
 
 ///	call->StopTimer();
 	PTRACE(5, "removing call: " << call);
-	call->RemoveAll();
-	call->RemoveSocket();
+//	call->RemoveAll();
+//	call->RemoveSocket();
 	if (m_capacity >= 0)
 		m_capacity += call->GetBandWidth();
 
+	RemovedListMutex.Wait();
 	RemovedList.push_back(call);
+	RemovedListMutex.Signal();
 	CallList.erase(Iter);
 }
 
 
 void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const
 {
-	ReadLock lock(listLock);
+	CallListMutex.Wait();
 	n = CallList.size(), act = 0, nb = 0;
 	const_iterator eIter = CallList.end();
 	for (const_iterator Iter = CallList.begin(); Iter != eIter; ++Iter) {
@@ -1823,6 +1885,7 @@ void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, 
 		if (!msg)
 			msg += (*Iter)->PrintOn(verbose);
 	}
+	CallListMutex.Signal();
 }
 
 void CallTable::PrintCurrentCalls(GkStatus::Client & client, BOOL verbose) const
@@ -1847,4 +1910,10 @@ PString CallTable::PrintStatistics() const
 		"Total Calls: %u  Successful: %u  From Neighbor: %u" GK_LINEBRK,
 		n, act, nb,
 		m_CallCount, m_successCall, m_neighborCall);
+}
+
+void CallTable::delete_call(CallRec *c)
+{
+	PTRACE(5, "doing delete_call" << c);
+	delete c;
 }

@@ -385,6 +385,7 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 				Iter = EPList.begin(), IterLast = EPList.end();
 				while (Iter != IterLast) {
 					if ((*Iter)->IsGateway()) {
+						PTRACE(5, "Checking GW/GK: " << (*Iter)->PrintOn(true));
 						int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(destAliases);
 						if (maxlen < len) {
 							GWlist.clear();
@@ -402,9 +403,10 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 					// if more than one longest match is found
 					if (GWlist.size() > 1) {
 						PTRACE(3, ANSI::DBG << "Prefix apply round robin" << ANSI::OFF);
-						WriteLock lock(listLock);
+						listLock.StartWrite();
 						EPList.remove(e);
 						EPList.push_back(e);
+						listLock.EndWrite();
 					}
 					// ACF
 					PTRACE(4, "Alias match for GW " << AsDotString(e->GetCallSignalAddress()));
