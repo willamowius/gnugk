@@ -5,7 +5,7 @@
 #
 
 PROG		= gk
-SOURCES		= gk.cxx RasSrv.cxx RasTbl.cxx MulticastGRQ.cxx SignalChannel.cxx \
+SOURCES		= gk.cxx gkauth.cxx RasSrv.cxx RasTbl.cxx MulticastGRQ.cxx SignalChannel.cxx \
 				SignalConnection.cxx GkStatus.cxx BroadcastListen.cxx \
 				SoftPBX.cxx h323util.cxx Toolkit.cxx singleton.cxx main.cxx
 

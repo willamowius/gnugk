@@ -192,5 +192,64 @@ rule=allow
 # For terminal
 #10.0.1.10=798
 
+##
+## Authentication mechanism
+##
+## Syntax:
+##   authrule=actions
+##
+##   <authrule> := SimplePasswordAuth | AliasAuth | ...
+##   <actions>  := <control>[;<ras>,<ras>,...]
+##   <control>  := optional | required | sufficient
+##   <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
+##
+## Currently supported modules:
+##
+##   SimplePasswordAuth  The module checks the tokens or cryptoTokens
+##                       fields of RAS message. The tokens should contain
+##                       at least generalID and password. For cryptoTokens,
+##                       only cryptoEPPwdHash tokens hashed by simple MD5
+##                       are supported now.
+##                       The ID and password are read from [Password] section.
+##                       Support for other backend databases is easily to add.
+##
+##   AliasAuth           The IP of an endpoint with given alias should
+##                       match a specified pattern. The pattern is defined
+##                       in [RasSrv::RRQAuth] section.
+##
+## A rule may results in one of the three codes: ok, fail, pass.
+##
+##   ok         The request is authenticated by this module
+##   fail       The authentication fails and should be rejected
+##   next       The rule cannot determine the request
+##
+## There are also three ways to control a rule:
+##
+##   optional      If the rule cannot determine the request, it is passed
+##                 to next rule.
+##   required      The requests should be authenticated by this module,
+##                 or it would be rejected. The authenticated request would
+##                 then be passwd to next rule.
+##   sufficient    If the request is authenticated, it is accepted,
+##                 or it would be rejected. That is, the rule determines
+##                 the fate of the request. No rule should be put after
+##                 a sufficient rule, since it won't take effect.
+##
+## You can also configure a rule to check only for some particular RAS
+## messages. For example, to configure SimplePasswordAuth as a required
+## rule to check RRQ, ARQ and LRQ:
+## SimplePasswordAuth=required;RRQ,ARQ,LRQ
+#
+[Gatekeeper::Auth]
+#SimplePasswordAuth=optional
+#AliasAuth=sufficient;RRQ
+#default=reject
+default=allow
+
+#[Password]
+#KeyFilled=123
+#(id=cwhuang, password=123456)
+#cwhuang=UGwUtpy837k=
+
 # EOF
 

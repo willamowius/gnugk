@@ -24,7 +24,7 @@
 class SignalChannel;
 class resourceManager;
 class GkStatus;
-
+class GkAuthenticatorList;
 
 
 class H323RasSrv : public PThread 
@@ -83,7 +83,7 @@ protected:
 	 *  @returns TRUE if #SignalAdr# fulfills the #Condition#. #FALSE# if not. And returns 
 	 *    #ON_ERROR# on a #Condition#-parse errors which may be #TRUE# (see code).
 	 */
-	virtual BOOL SigAuthCondition(const H225_TransportAddress &SignalAdr, const PString &Condition) const;
+	//virtual BOOL SigAuthCondition(const H225_TransportAddress &SignalAdr, const PString &Condition) const;
 
 	/** OnARQ checks if the dialled address (#aliasStr#) should be
 	 * rejected with the reason "incompleteAddress". This is the case whenever the
@@ -96,7 +96,7 @@ protected:
 
 	virtual BOOL ForwardRasMsg(H225_RasMessage msg); // not passed as const, ref or pointer!
 
-	void ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl);
+	void ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl, BOOL bReject = FALSE);
 
 	BOOL GKroutedSignaling;
 	H225_TransportAddress GKCallSignalAddress;
@@ -114,6 +114,8 @@ protected:
 	RegistrationTable * EndpointTable;
 	resourceManager * GKManager; 
 	GkStatus * GkStatusThread;
+
+	GkAuthenticatorList * authList;
 
   class Neighbor {
     public:

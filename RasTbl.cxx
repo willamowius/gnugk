@@ -263,7 +263,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		msg += GetUpdatedTime().AsString();
 		if (m_timeToLive == 0)
 			msg += " (permanent)";
-		msg += "\r\n";
+		msg += " <" + PString(PString::Unsigned, m_usedCount) + ">\r\n";
 	}
 	return msg;
 }

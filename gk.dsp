@@ -98,6 +98,10 @@ SOURCE=.\gk.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\gkauth.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\GkStatus.cxx
 # End Source File
 # Begin Source File
@@ -163,6 +167,10 @@ SOURCE=.\gk.h
 # Begin Source File
 
 SOURCE=.\gk_const.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gkauth.h
 # End Source File
 # Begin Source File
 
