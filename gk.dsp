@@ -102,10 +102,6 @@ SOURCE=.\GkClient.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\gkldap.cxx
-# End Source File
-# Begin Source File
-
 SOURCE=.\GkStatus.cxx
 # End Source File
 # Begin Source File
