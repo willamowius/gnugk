@@ -24,16 +24,16 @@ SingletonBase::SingletonBase(const char *n) : m_name(n)
 {
 #if PTRACING
 	++singleton_cnt;
-	PTRACE(2, "Create instance: " << m_name << '(' << singleton_cnt << ')');
+	PTRACE(2,"Create instance: "<<m_name<<'('<<singleton_cnt<<')');
 #endif
-        _instance_list.push_back(this);
+	_instance_list.push_back(this);
 }
 
 SingletonBase::~SingletonBase()
 {
 #if PTRACING
-	PTRACE(2, "Delete instance: " << m_name << '(' << singleton_cnt << ')');
 	--singleton_cnt;
+	PTRACE(2,"Delete instance: "<<m_name<<'('<<singleton_cnt<<" objects left)");
 #endif
 	if (!_instance_list.clear_list)
 		_instance_list.remove(this);
