@@ -123,7 +123,6 @@ SOURCE=.\main.cxx
 # Begin Source File
 
 SOURCE=.\mysqlcon.cxx
-# PROP Exclude_From_Build 1
 # End Source File
 # Begin Source File
 
