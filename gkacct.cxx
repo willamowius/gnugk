@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.22  2005/01/12 17:55:00  willamowius
+ * fix gkip accounting parameter
+ *
  * Revision 1.21  2005/01/10 23:49:06  willamowius
  * provide mechanism for accounting modules to escape the parameters
  *
@@ -197,10 +200,10 @@ void GkAcctLogger::SetupAcctParams(
 	params["d"] = call->GetDuration();
 	params["c"] = call->GetDisconnectCause();
 	params["s"] = call->GetAcctSessionId();
-	if (!interfaces.empty())
-		params["gkip"] = interfaces.front().AsString();
-	else
+	if (interfaces.empty())
 		params["gkip"] = "";
+	else
+		params["gkip"] = interfaces.front().AsString();
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
 	
