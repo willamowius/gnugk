@@ -1552,7 +1552,6 @@ void CallSignalSocket::SendStatusEnquiryMessage() {
 	Q931 pdu;
 	pdu.BuildStatusEnquiry(m_crv, NULL==GetSetupPDU());
 	pdu.Encode(buffer);
-	PTRACE(5, "Sending StatusEnquiryMessage to " << GetName());
 	if(TransmitData()) {
 		delete m_StatusTimer;
 		m_StatusTimer = new PTimer(0,4); // This is Q.931 timer T322
