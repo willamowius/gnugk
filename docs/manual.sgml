@@ -1302,11 +1302,16 @@ This section defines the rewriting rules for dialedDigits (E.164 number).
 <p>
 If the number is beginning with <tt/original-prefix/,
 it is rewritten to <tt/target-prefix/. Multi targets are possible.
-If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
+If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted
+and the target-prefix is prepended to the dialed number.
 <tag/Example:/
 <tt/08=18888/
 <p>
 If you dial <tt/08345718/, it is rewritten to <tt/18888345718/.
+<tag/Example:/
+<tt/!08=18888/
+<p>
+If you dial <tt/09345718/, it is rewritten to <tt/1888809345718/.
 </descrip>
 
 Option:
