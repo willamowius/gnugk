@@ -104,13 +104,11 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 	m_retry = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", 10);
 	m_arqPendingList = new GKPendingList(GkConfig()->GetInteger(EndpointSection, "ARQTimeout", 2));
 
-	listener_mutex.Wait();
 	listener.Listen(GKHome, 0, 0, PSocket::CanReuseAddress);
 	PIPSocket::Address addr;
 	WORD port;
 	listener.GetLocalAddress(addr);
 	port=listener.GetPort();
-	listener_mutex.Signal();
 
 	H225_TransportAddress rasadr;
         rasadr.SetTag(H225_TransportAddress::e_ipAddress);
@@ -140,16 +138,11 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 
 	rrq_ras.Encode(writestream);
 	writestream.CompleteEncoding();
-	listener_mutex.Wait();
 	listener.WriteTo(writestream,writestream.GetSize(), m_gkaddr, m_gkport);
 	m_registerTimer.SetNotifier(PCREATE_NOTIFIER(CheckRegistration));
 	m_registerTimer = PTimeInterval(0,(m_retry<=0 ? 50 : m_retry));
-	listener_mutex.Signal();
 
 
-	alternate_mutex.Wait();
-	alternate.SetSendAddress(addr, port);
-	alternate_mutex.Signal();
 }
 
 GkClient::~GkClient()
@@ -162,29 +155,23 @@ GkClient::~GkClient()
 void
 GkClient::Main()
 {
-	listener_mutex.Wait();
 	while (listener.IsOpen()) {
-		listener_mutex.Signal();
 		const int buffersize = 4096;
 		BYTE buffer[buffersize];
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
 		rx_port=0;
-		listener_mutex.Wait();
 		int result=listener.ReadFrom(buffer, buffersize,  rx_addr, rx_port);
 		if(result!=0) {
-			listener_mutex.Signal();
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
 			// The RasWorker object will delete itself via the PThread-autodelete function.
 			new GkClientWorker(stream, rx_addr, rx_port, *this);
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
-		listener_mutex.Wait();// before new truth value for while clause is computed
 	}
-	listener_mutex.Signal();
-
 }
+
 void GkClient::SendRas(const H225_RasMessage & ras_msg)
 {
 	PBYTEArray buffer(4096);

@@ -84,22 +84,15 @@ MulticastGRQ::~MulticastGRQ()
 
 void MulticastGRQ::Main(void)
 {
-	listener_mutex.Wait();
 	GKHome_mutex.Wait();
 	listener.Listen(GKHome, 0, GKRasPort, PSocket::CanReuseAddress);
 	GKHome_mutex.Signal();
-	listener_mutex.Signal();
-	listener_mutex.Wait();
 	while (listener.IsOpen()) {
-		listener_mutex.Signal();
 		const int buffersize = 4096;
 		BYTE buffer[buffersize];
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
-		listener_mutex.Wait();
-		listener_mutex.Wait();
 		BOOL result = listener.ReadFrom(buffer, buffersize,  rx_addr, rx_port);
-		listener_mutex.Signal();
 		if (result) {
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
 			// The RasWorker object will delete itself via the PThread-autodelete function.
@@ -107,9 +100,7 @@ void MulticastGRQ::Main(void)
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
-		listener_mutex.Wait();// before new truth value for while clause is computed
 	}
-	listener_mutex.Signal();
 }
 
 void MulticastGRQ::Close(void)
