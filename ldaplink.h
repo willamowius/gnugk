@@ -46,6 +46,8 @@ typedef struct berval {
 #endif
 
 #include <map>			// STL map
+#include <vector>               // STL vector
+#include "gk_ldap_interface.h"
 
 /** Class that holds the current names of the attribute names used for the
     LDAP access 
@@ -67,15 +69,20 @@ namespace lctn {
 }
 
 
+typedef map<PString, PStringList> LDAPAttributeValueClass;
+typedef LDAPAttributeValueClass::value_type LDAPAVValuePair;
 /** Class that contains search queries
 */
 class LDAPQuery {
 public:
+  enum LDAPQueryOp {
+    LDAPand, LDAPor, LDAPnot };
+  unsigned LDAPOperator;
   PString userH323ID;
+  LDAPAttributeValueClass LDAPAttributeValues;
+  LDAPQuery(): LDAPOperator(LDAPor) {}; // Default is "or"
 };
 
-typedef map<PString, PStringList> LDAPAttributeValueClass;
-typedef LDAPAttributeValueClass::value_type LDAPAVValuePair;
 /** Class that contains search answers
 */
 class LDAPAnswer {
@@ -119,7 +126,7 @@ protected:
   unsigned int timelimit;	// timeout for operations in seconds
   virtual LDAPAnswer * DirectoryLookup(LDAPQuery &); // internal look up
 private:
-  LDAP * ldap;			// The ldap connection
+  GK_LDAP * ldap;			// The ldap connection
   bool known_to_be_bound;	// _known_ status of binding
   void Initialize(void);	// initializer, called from constructors
   void Destroy(void);		// actual destructor called from formal one

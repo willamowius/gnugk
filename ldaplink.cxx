@@ -136,11 +136,11 @@ LDAPCtrl::Bind(bool force = false)
     // this is the local bind version
     DEBUGPRINT("Binding with " << BindUserDN << "pw length:" << BindUserPW.GetLength());
     if (LDAP_SUCCESS == 
-	(ldap_ret = ldap_simple_bind_s(ldap, BindUserDN, BindUserPW))) {
+	(ldap_ret = gk_ldap_simple_bind_s(ldap, BindUserDN, BindUserPW))) {
       known_to_be_bound = true;
       DEBUGPRINT("LDAPCtrl::Bind: OK bound");
     } else {
-      ERRORPRINT("LDAPCtrl::Bind: " + PString(ldap_err2string(ldap_ret)));
+      ERRORPRINT("LDAPCtrl::Bind: " + PString(gk_ldap_err2string(ldap_ret)));
     }
   }
   return ldap_ret;
@@ -156,9 +156,9 @@ LDAPCtrl::Unbind(bool force = false)
     DEBUGPRINT("Unbind: I think I'm already unbound, but action is forced");
 
   if((NULL != ldap) && (known_to_be_bound || force))
-    if(LDAP_SUCCESS != (ldap_ret = ldap_unbind(ldap))) {
+    if(LDAP_SUCCESS != (ldap_ret = gk_ldap_unbind(ldap))) {
       ERRORPRINT("Unbind: couldn't unbind: " 
-		 + PString(ldap_err2string(ldap_ret)));
+		 + PString(gk_ldap_err2string(ldap_ret)));
     } else {
       known_to_be_bound = false;
     }
@@ -170,8 +170,8 @@ void
 LDAPCtrl::Initialize(void)
 {
   // get ldap c-object
-  LDAP * ld = NULL;
-  if (NULL == (ld = ldap_init(ServerName, ServerPort))) {
+  GK_LDAP * ld = NULL;
+  if (NULL == (ld = gk_ldap_init(ServerName, ServerPort))) {
     DEBUGPRINT("Initialize: no connection on " << 
 	       ServerName << ":(" << ServerPort << ")" << 
 	       endl << vcid << endl << vcHid);
@@ -189,12 +189,12 @@ LDAPCtrl::Initialize(void)
   // OpenLDAP API 2000+draft revision provides better controlled access
   int opt_ret = LDAP_OPT_SUCCESS;
   if(LDAP_OPT_SUCCESS != 
-     (opt_ret = ldap_set_option(ldap, LDAP_OPT_TIMELIMIT, (void*)&timelimit))) {
+     (opt_ret = gk_ldap_set_option(ldap, LDAP_OPT_TIMELIMIT, (void*)&timelimit))) {
     DEBUGPRINT("ldap_set_option: Couln't set timelimit");
     ERRORPRINT("ldap_set_option: Couln't set timelimit");
   }
   if(LDAP_OPT_SUCCESS != 
-     (opt_ret = ldap_set_option(ldap, LDAP_OPT_SIZELIMIT, (void*)&sizelimit))) {
+     (opt_ret = gk_ldap_set_option(ldap, LDAP_OPT_SIZELIMIT, (void*)&sizelimit))) {
     DEBUGPRINT("ldap_set_option: Couln't set sizelimit");
     ERRORPRINT("ldap_set_option: Couln't set sizelimit");
   }
@@ -287,10 +287,36 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
 
   int attrsonly = 0;		/* 0: attr&value; 1: attr */
   PString filter;
+  if(p.LDAPAttributeValues.empty()) { // "Old" default behavior
   filter.sprintf("(%s=%s)", // RFC 1558 conform template
 		 (const char *)(*AttributeNames)[LDAPAttrTags[H323ID]], // attribute name (H323ID)
 		 (const char *)p.userH323ID // requested value(H323ID)
 		 );
+  } else {
+    filter="(";
+    switch(p.LDAPOperator) {
+      case (LDAPQuery::LDAPand):
+	filter+="&";
+	break;
+      case (LDAPQuery::LDAPor):
+	filter+="|";
+	break;
+      case (LDAPQuery::LDAPnot):
+	filter+="!";
+    }
+    for(LDAPAttributeValueClass::iterator iter=p.LDAPAttributeValues.begin(); iter!=p.LDAPAttributeValues.end();
+	iter++) {
+      PString attribute=(*iter).first;
+      for (PINDEX index=0; (*iter).second.GetSize(); index++) {
+	filter+="(";
+	filter+=attribute;
+	filter+="=";
+	filter+=(*iter).second[index];
+	filter+=")";
+      }
+    }
+    filter+=")";
+  }
 //   DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ", " << timeout.tv_sec << ":" << 
 // 	     timeout.tv_usec << ")");
   unsigned int retry_count = 0;
@@ -303,13 +329,13 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
     // The linux-implementation of select(2) will change the given value of
     // struct timeval *. This syscall is used within ldap_search.
     if (LDAP_SUCCESS == 
-	(ldap_ret = ldap_search_st(ldap, SearchBaseDN, LDAP_SCOPE_SUBTREE, 
+	(ldap_ret = gk_ldap_search_st(ldap, SearchBaseDN, LDAP_SCOPE_SUBTREE, 
 				   filter, (char **)attrs, attrsonly,
 				   tm, &res))) {
-      DEBUGPRINT("ldap_search_st: OK " << PString(ldap_err2string(ldap_ret)));
+      DEBUGPRINT("ldap_search_st: OK " << PString(gk_ldap_err2string(ldap_ret)));
     } else {
-      DEBUGPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
-      ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
+      DEBUGPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
+      ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
       result->status = ldap_ret;
       if(LDAP_UNAVAILABLE == ldap_ret) known_to_be_bound = false;
       sleep((int)pow(2.0,retry_count)); // exponential back off
@@ -319,19 +345,19 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
   } while((LDAP_SUCCESS != ldap_ret)&&(retry_count++ < 4));
 
   // analyze answer
-  if (0 >= (ldap_ret = ldap_count_entries(ldap, res))) {
-    ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
+  if (0 >= (ldap_ret = gk_ldap_count_entries(ldap, res))) {
+    ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
     result->status = (0==ldap_ret) ? (-1) : ldap_ret;
     return result;
   } else {
     DEBUGPRINT("ldap_search: " << ldap_ret << " results");
   }
   LDAPMessage * chain;		// iterate throught chain of answers
-  for(chain = ldap_first_entry(ldap, res);
+  for(chain = gk_ldap_first_entry(ldap, res);
       chain != NULL;		// NULL terminated
-      chain = ldap_next_entry(ldap, chain)) {
+      chain = gk_ldap_next_entry(ldap, chain)) {
     char * dn = NULL;
-    if(NULL == (dn = ldap_get_dn(ldap, chain))) {
+    if(NULL == (dn = gk_ldap_get_dn(ldap, chain))) {
       ERRORPRINT("ldap_get_dn: Could not get distinguished name.");
     }
     DEBUGPRINT("found DN: " << dn);
@@ -341,11 +367,11 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
     BerElement * ber = NULL;	// a 'void *' would do the same but RFC 1823
 				// indicates it to be a pointer to a BerElement
     char * attr = NULL;		// iterate throught list of attributes
-    for(attr = ldap_first_attribute(ldap, chain, &ber);
+    for(attr = gk_ldap_first_attribute(ldap, chain, &ber);
 	attr != NULL;		// NULL terminated
-	attr = ldap_next_attribute(ldap, chain, ber)) {
-      char ** valv = ldap_get_values(ldap, chain, attr); // vector
-      int valc = ldap_count_values(valv); // count
+	attr = gk_ldap_next_attribute(ldap, chain, ber)) {
+      char ** valv = gk_ldap_get_values(ldap, chain, attr); // vector
+      int valc = gk_ldap_count_values(valv); // count
       if(0 == valc) DEBUGPRINT("value handling: No values returned");
       // put list of values (of this partyicular attribute) into PStringList
       // which can be accessed by a STL map, indexed by attribute names.
@@ -353,7 +379,7 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
       // because it may NOT contain \0.
       result->AV.insert(LDAPAVValuePair(PString(attr),
 					PStringList(valc, valv, false)));
-      ldap_value_free(valv);	// remove value vector
+      gk_ldap_value_free(valv);	// remove value vector
     } // attr
   } // answer chain
   return result;

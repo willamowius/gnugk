@@ -86,7 +86,8 @@ SOURCES         += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
 		LDAP_SFilter.cxx  delete.cxx   init.cxx      options.cxx \
 		abandon.cxx       free.cxx     parse.cxx     modify.cxx \
 		add.cxx           getattr.cxx  result.cxx    getresults.cxx \
-		bind.cxx          getdn.cxx    messages.cxx  search.cxx ldaplink.cxx
+		bind.cxx          getdn.cxx    messages.cxx  search.cxx \
+		ldaplink.cxx 	  gk_ldap_interface.cxx
 
 CLEAN_FILES     += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
 		LDAP_SFilter.cxx  delete.cxx   init.cxx      options.cxx \
@@ -98,13 +99,13 @@ CLEAN_FILES     += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
 
 HAS_LDAP	= 1
 #STDCCFLAGS_stub := $(STDCCFLAGS)
-STDCCFLAGS	+= -I./ -D"HAS_LDAP=$(HAS_LDAP)" \
+STDCCFLAGS	+= -I./ -D"HAS_LDAP=$(HAS_LDAP)"  -DLDAP_HAS_CACHE \
                    -D"HAS_LEVEL_TWO_LDAPAPI=$(HAS_LEVEL_TWO_LDAPAPI)" -D"LDAPVERSION=2"
 
 else
 ifdef HAVE_LDAP1823_HDRS
 ifdef HAVE_LDAP1823_LIBS
-SOURCES         += ldaplink.cxx
+SOURCES         += ldaplink.cxx gk_ldap_interface.cxx
 ENDLDLIBS	+= -lldap
 HAS_LDAP	= 1
 export HAS_LDAP
