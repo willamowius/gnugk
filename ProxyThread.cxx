@@ -713,6 +713,13 @@ void ProxyHandleThread::Remove(iterator i)
 	sockList.erase(i);
 }
 
+void
+ProxyHandleThread::delete_socket(ProxySocket *s)
+{
+	delete dynamic_cast<TCPProxySocket*>(s);
+}
+
+
 HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)
 {
 	currentHandler = 0;
