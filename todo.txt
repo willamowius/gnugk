@@ -41,7 +41,7 @@ avoid duplicate work.
   b) select all gateways with that carrier code
   c) get metrics for the routes those selected gateways have to the destination
   d) Generate a list of gateways according to the following rules:
-     
+
      1. primary sorting key: carrier code
         A matching carrier code is preferred over the "all" carrier code.
         The default value is "all".
@@ -74,13 +74,13 @@ avoid duplicate work.
 - feature: loop detection & prevention
   (mobile forwarded to office number while office number forwarded to mobile ...)
   Idea: only allow <n> calls from the same originator within <m> seconds
-  
+
 - feature: implement portability database
   We need to run a (LDAP based ?) database of all numbers/numbering spaces
   of those carriers an ITSP is (VoIP-)interconnected to in order to
   decide whether and how to route a call to a destination that is owned by
   that carrier (i.e. the number is ported to his network).
-  Idea: Numbers are stored in the same format as CPE numbers are. Querying 
+  Idea: Numbers are stored in the same format as CPE numbers are. Querying
   the database yields a carrier code.
   That carrier code is a per-route per-gateway parameter (default: "all")
   that takes precedence over the other parameters (prefix length and metrics).
@@ -89,9 +89,6 @@ avoid duplicate work.
        (currently default=allow is required to stop GK from sending GRJ)
 
 - fix: move MySQLAliasAuth into DBAliasAuth scheme
-
-- feature: ability to use caller's cc, ndc, sn placeholders in RewriteE164
-  So e.g. emergency calls can be implemented as "911=<cc><ndc>911"
 
 - fix: honor Q.931 "sending complete" flag
 
@@ -138,4 +135,3 @@ avoid duplicate work.
 - load testing: how many concurrent calls can be made with the
   gatekeeper on what hardware ? how does the memory requirement
   grow ? when is the slowdown to high ?
-
