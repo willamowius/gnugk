@@ -489,6 +489,7 @@ void H323RasSrv::LoadConfig()
 	delete NeighborsGK;
 	NeighborsGK = new NeighborList(this, GkConfig());
 
+	//add authorize
 	if (gkClient) { // don't create GkClient object at the first time
 		if (gkClient->IsRegistered())
 			gkClient->SendURQ();
@@ -891,9 +892,11 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			rcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
 			rcf.m_protocolIdentifier =  obj_rr.m_protocolIdentifier;
 			rcf.m_nonStandardData = obj_rr.m_nonStandardData;
-			rcf.m_callSignalAddress.SetSize( obj_rr.m_callSignalAddress.GetSize() );
-			for( PINDEX cnt = 0; cnt < obj_rr.m_callSignalAddress.GetSize(); cnt ++ )
-				rcf.m_callSignalAddress[cnt] = obj_rr.m_callSignalAddress[cnt];
+			// This should copy all Addresses.
+			rcf.m_callSignalAddress = obj_rr.m_callSignalAddress;
+// 			rcf.m_callSignalAddress.SetSize( obj_rr.m_callSignalAddress.GetSize() );
+// 			for( PINDEX cnt = 0; cnt < obj_rr.m_callSignalAddress.GetSize(); cnt ++ )
+// 				rcf.m_callSignalAddress[cnt] = obj_rr.m_callSignalAddress[cnt];
 
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
 			rcf.m_terminalAlias = ep->GetAliases();
@@ -1041,16 +1044,16 @@ static void PrefixAnalysis(CallingProfile & callingProfile, H225_AdmissionReques
 	PString oldCdAlias = H323GetAliasAddressString(alias);
 	// take first telephoneNumber from cgProfile and analyse it
 	PString cgAlias;
-	if (callingProfile.getTelephoneNumbers().GetSize() > 0) {
-		cgAlias = callingProfile.getTelephoneNumbers()[0];
+	if (callingProfile.GetTelephoneNumbers().GetSize() > 0) {
+		cgAlias = callingProfile.GetTelephoneNumbers()[0];
 	}
 	E164_AnalysedNumber tele(cgAlias);
 
-	const PString lac = callingProfile.getLac();
-	const PString prefixInternational = callingProfile.getInac();
-	const PString subscriberNumber = callingProfile.getSubscriberNumber();
+	const PString lac = callingProfile.GetLac();
+	const PString prefixInternational = callingProfile.GetInac();
+	const PString subscriberNumber = callingProfile.GetSubscriberNumber();
 	const PString &countryCode = tele.GetCC().GetValue();
-	PString prefixNational = callingProfile.getNac();
+	PString prefixNational = callingProfile.GetNac();
 	const PString &areaCode = tele.GetNDC_IC().GetValue();
 	bool bReject = FALSE;
 
@@ -1134,17 +1137,15 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			CalledEP = RequestingEP;
 		} else {
 			// if a destination address is provided, we check if we know it
-			if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
+			if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) &&
+				GetCallSignalAddress(rx_addr) != obj_rr.m_destCallSignalAddress) { // if destAddr is the GK, ignore it
 				CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
-
-			// in routed mode, the EP may use my IP as the
-			// destCallSignalAddress, thus it is possible we
-			// can't find CalledEP in the RegistrationTable
-			// if so, try destinationInfo
+				if (!CalledEP && Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "CallUnregisteredEndpoints", "1"))) {
+					H225_RasMessage arq = obj_arq;
+					CalledEP = EndpointTable->InsertRec(arq);
+				}
+			}
 			if (!CalledEP && RequestingEP && obj_rr.m_destinationInfo.GetSize() >= 1) {
-
-//#ifdef WITH_DEST_ANALYSIS_LIST
-
 				// create new callRec, set callingEP and insert callRec in callTable
 				CallRec *pCallRec = new CallRec(obj_rr.m_callIdentifier, obj_rr.m_conferenceID,
 								AsString(obj_rr.m_destinationInfo), AsString(obj_rr.m_srcInfo), 0, GKRoutedH245); //BWRequest will be set in ProcessARQ
@@ -1891,6 +1892,8 @@ void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Add
 
 void H323RasSrv::Main(void)
 {
+	ReadLock cfglock(ConfigReloadMutex);
+
 	const int buffersize = 4096;
 	BYTE buffer[buffersize];
 
@@ -1909,7 +1912,13 @@ void H323RasSrv::Main(void)
 		H225_RasMessage obj_req;
 		H225_RasMessage obj_rpl;
 
+		// large mutex! only allow the reloadhandler be executed
+		// in the small block
+		ConfigReloadMutex.EndRead();
+
 		int iResult = listener.ReadFrom(buffer, buffersize, rx_addr, rx_port);
+		// not allow to reload below here
+		ConfigReloadMutex.StartRead();
 		if (!iResult) {
 			PTRACE(1, "GK\tRAS thread: Read error: " << listener.GetErrorText());
 
