@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- BUGFIX(gkauth.cxx) do not declare H.235 Auth Procedure I support as it is
+  not fully implemented
 - (RasSrv.cxx) do not copy nonStandardData field from RAS requests to RAS replies,
   as it does not make any sense and cause interoperability problems with some
   Cisco IOSes

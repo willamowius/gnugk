@@ -675,6 +675,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 	authenticator->SetRemoteId("dummy");
 	authenticator->SetPassword("dummy");
 	AppendH235Authenticator(authenticator);
+/*
 #if P_SSL
 	authenticator = new H235AuthProcedure1;
 	authenticator->SetLocalId("dummy");
@@ -682,6 +683,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 	authenticator->SetPassword("dummy");
 	AppendH235Authenticator(authenticator);
 #endif
+*/
 }
 
 SimplePasswordAuth::~SimplePasswordAuth()

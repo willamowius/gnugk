@@ -114,6 +114,10 @@ The version 2.2beta4 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Do not list H.235 Auth Procedure I support in GCF messages, as it is not
+fully implemented.
+
+<item>
 Fixed interoperability problem with some Cisco IOSes, because of copying
 nonStandardData field from RAS requests to RAS replies.
 
