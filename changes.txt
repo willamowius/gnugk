@@ -1,5 +1,7 @@
 Changes from 2.2beta5 to 2.2.0
 ==============================
+- BUGFIX(RasSrv.cxx) invalid/unsupported RAS/signaling addresses are ignored
+  in RRQ messages
 - GCC 3.4.2 compilation errors fixed
 - BUGFIX(gkauth.cxx) PrefixAuth module crashed when checking ARQ without
   a destinationInfo field

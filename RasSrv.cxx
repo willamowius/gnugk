@@ -1325,6 +1325,31 @@ bool RegistrationRequestPDU::Process()
 	bool bShellSendReply, bShellForwardRequest;
 	bShellSendReply = bShellForwardRequest = !RasSrv->IsForwardedRas(request, rx_addr);
 
+	PINDEX i;
+	/// remove invalid/unsupported entries from RAS and signaling addresses
+	for (i = 0; i < request.m_callSignalAddress.GetSize(); i++) {
+		PIPSocket::Address addr;
+		WORD port = 0;
+		if (!GetIPAndPortFromTransportAddr(request.m_callSignalAddress[i], addr, port)
+				|| !addr.IsValid() || port == 0) {
+			PTRACE(5, "RAS\tRemoving signaling address " 
+				<< AsString(request.m_callSignalAddress[i]) << " from RRQ"
+				);
+			request.m_callSignalAddress.RemoveAt(i--);
+		}
+	}
+	for (i = 0; i < request.m_rasAddress.GetSize(); i++) {
+		PIPSocket::Address addr;
+		WORD port = 0;
+		if (!GetIPAndPortFromTransportAddr(request.m_rasAddress[i], addr, port)
+				|| !addr.IsValid() || port == 0) {
+			PTRACE(5, "RAS\tRemoving RAS address " 
+				<< AsString(request.m_rasAddress[i]) << " from RRQ"
+				);
+			request.m_rasAddress.RemoveAt(i--);
+		}
+	}
+
 	// lightweight registration update
 	if (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && request.m_keepAlive) {
 		endptr ep = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
