@@ -21,10 +21,12 @@
 #include "h323.h"
 #include "Toolkit.h"
 #include "RasTbl.h"
+#include "h323util.h"
 #include "GkAuthorize.h"
 
 // forward references to avoid includes
-class SignalChannel;
+//class SignalChannel;
+class HandlerList;
 class resourceManager;
 class GkStatus;
 class GkAuthenticatorList;
@@ -44,8 +46,8 @@ public:
 
 	void UnregisterAllEndpoints(void);
 
-	// set signaling method
-	void SetGKSignaling(BOOL routedSignaling) { GKroutedSignaling = routedSignaling; };
+	// set routed method
+	void SetRoutedMode(bool routedSignaling, bool routedH245);
 
 	// set name of the gatekeeper.
 	const PString GetGKName() const { return Toolkit::GKName(); }
@@ -86,20 +88,12 @@ public:
 
 	void LoadConfig();
 
-//	PUDPSocket & GetRasSocket() { return listener; }
-	const H225_TransportAddress & GetCallSignalAddress() const
-	{ return GKCallSignalAddress; }
-	const H225_TransportAddress & GetRasAddress() const
-	{ return GKRasAddress; }
+	const H225_TransportAddress GetRasAddress(PIPSocket::Address) const;
+	const H225_TransportAddress GetCallSignalAddress(PIPSocket::Address) const;
+
 	NeighborList * GetNeighborsGK() const { return NeighborsGK; }
 
 protected:
-	/** Checks for one condition (between '&`s) the SignalAddress. Used on RRQ in the moment.
-	 *  @returns TRUE if #SignalAdr# fulfills the #Condition#. #FALSE# if not. And returns 
-	 *    #ON_ERROR# on a #Condition#-parse errors which may be #TRUE# (see code).
-	 */
-	//virtual BOOL SigAuthCondition(const H225_TransportAddress &SignalAdr, const PString &Condition) const;
-
 	/** OnARQ checks if the dialled address (#aliasStr#) should be
 	 * rejected with the reason "incompleteAddress". This is the case whenever the
 	 * destination address is not a registered alias AND not matching with
@@ -111,21 +105,20 @@ protected:
 
 	virtual BOOL ForwardRasMsg(H225_RasMessage msg); // not passed as const, ref or pointer!
 
-	void ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl, BOOL bReject = FALSE);
+	void ProcessARQ(PIPSocket::Address rx_addr, const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl, BOOL bReject = FALSE);
 
 private:
-	BOOL GKroutedSignaling;
-	H225_TransportAddress GKCallSignalAddress;
-	H225_TransportAddress GKRasAddress;
+	bool GKRoutedSignaling, GKRoutedH245;
+	WORD GKRasPort, GKCallSigPort;
         
 	PIPSocket::Address GKHome;
 	PUDPSocket listener;
-	PMutex writeMutex;
+	PMutex writeMutex, loadLock;
 
 	/** this is the upd port where all requests to the alternate GK are sent to */
 	PUDPSocket udpForwarding;
 
-	SignalChannel * sigListener;
+	HandlerList * sigHandler;
 
 	// just pointers to global singleton objects
 	RegistrationTable * EndpointTable;
@@ -139,6 +132,20 @@ private:
 	
 	GkAuthorize* GWR;
 };
+
+
+inline const H225_TransportAddress H323RasSrv::GetRasAddress(PIPSocket::Address peerAddr) const
+{
+	PIPSocket::Address localAddr((GKHome == INADDR_ANY) ? Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr) : GKHome);
+	return SocketToH225TransportAddr(localAddr, GKRasPort);
+}
+
+inline const H225_TransportAddress H323RasSrv::GetCallSignalAddress(PIPSocket::Address peerAddr) const
+{
+	PIPSocket::Address localAddr((GKHome == INADDR_ANY) ? Toolkit::Instance()->GetRouteTable()->GetLocalAddress(peerAddr) : GKHome);
+	return SocketToH225TransportAddr(localAddr, GKCallSigPort);
+}
+
 
 extern H323RasSrv *RasThread;  // I hate global object, but...
 

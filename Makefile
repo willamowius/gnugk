@@ -7,9 +7,9 @@
 PROG		= gk
 SOURCES		= gk.cxx gkauth.cxx RasSrv.cxx RasTbl.cxx \
 		  MulticastGRQ.cxx BroadcastListen.cxx \
-		  SignalChannel.cxx SignalConnection.cxx \
 		  SoftPBX.cxx Toolkit.cxx h323util.cxx GkStatus.cxx \
-		  singleton.cxx  GkAuthorize.cxx main.cxx
+		  ProxyThread.cxx ProxyChannel.cxx \
+		  singleton.cxx GkAuthorize.cxx main.cxx
 
 ifndef OPENH323DIR
 OPENH323DIR=$(HOME)/openh323
@@ -156,7 +156,8 @@ endif
 
 include $(PWLIBDIR)/make/ptlib.mak
 
-addpasswd: $(OBJDIR)/addpasswd
+addpasswd: $(OBJDIR)/addpasswd.o
+	$(CC) -s -o obj_linux_x86_r/addpasswd obj_linux_x86_r/addpasswd.o $(LDFLAGS) $(LDLIBS) $(ENDLDLIBS)
 
 # Extra dependencies
 RasSrv.o: RasSrv.cxx

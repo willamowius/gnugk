@@ -23,11 +23,42 @@
 class Toolkit : public Singleton<Toolkit>
 {
  public: // con- and destructing
-	explicit Toolkit() : m_Config(NULL) {}
+	explicit Toolkit();
 	virtual ~Toolkit();
 
 	/// returns #basic# for
 	virtual const PString GetName() const { return "basic"; }
+
+	// by cwhuang
+	// The idea was got from OpenGatekeeper,
+	// but entirely implemented from scratch. :)
+	class RouteTable {
+		typedef PIPSocket::Address Address;
+		typedef PIPSocket::InterfaceTable InterfaceTable;
+
+	public:
+		RouteTable() { InitTable(); }
+		~RouteTable() { ClearTable(); }
+		Address GetLocalAddress() const { return defAddr; };
+		Address GetLocalAddress(Address) const;
+
+		void InitTable();
+		void ClearTable();
+
+	private:
+		class RouteEntry : public PIPSocket::RouteEntry {
+		public:
+			PCLASSINFO( RouteEntry, PIPSocket::RouteEntry )
+			RouteEntry(PIPSocket::RouteEntry &, InterfaceTable &);
+			bool Compare(Address) const;
+		};
+		static void delete_entry(RouteEntry *e) { delete e; } 
+
+		std::list<RouteEntry *> rTable;
+		Address defAddr;
+	};
+
+	RouteTable *GetRouteTable() { return GKRouteTable; }
 
  public: // virtual tools
 	/// maybe modifies #alias#. returns true if it did
@@ -152,6 +183,8 @@ class Toolkit : public Singleton<Toolkit>
 	/** e164s starting with this string are examined further for rewriting. */
 	PString   m_RewriteFastmatch;
 	BOOL      m_EmergencyAccept;
+
+	RouteTable *GKRouteTable;
 
  private:
 	PFilePath m_tmpconfig;

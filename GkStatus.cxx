@@ -96,21 +96,18 @@ GkStatus::~GkStatus()
 
 void GkStatus::Initialize(PIPSocket::Address _GKHome)
 {
-	if (_GKHome.AsString() == PString("0.0.0.0")) {
-		PTRACE(1, "error in GkHome-IP-Address!");
-		exit(1);
-	}
 	GKHome = _GKHome;
 	Resume();	// start the thread
 }
 
 void GkStatus::Main()
 {
-	StatusListener.Listen
-		(GKHome, 
-		 GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
-		 GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT), 
-		 PSocket::CanReuseAddress);
+	unsigned qSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
+	WORD sPort = GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT);
+	if (GKHome == INADDR_ANY)
+		StatusListener.Listen(qSize, sPort, PSocket::CanReuseAddress);
+	else
+		StatusListener.Listen(GKHome, qSize, sPort, PSocket::CanReuseAddress);
 
 	StatusListener.SetReadTimeout(GkConfig()->GetInteger("StatusReadTimeout", 3000));
 	PTCPSocket * NewConnection = new PTCPSocket;

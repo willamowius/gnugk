@@ -1,5 +1,5 @@
-Reference-Manual for OpenH323 Gatekeeper
-========================================
+Reference-Manual for OpenH323 Gatekeeper v2.0
+=============================================
 
 
 A. Command line options
@@ -10,7 +10,14 @@ A. Command line options
 -b <n>	limit the sum of bandwidth to be given to clients to n * 100 bit/sec,
 		default is 100000 which should roughly be (very) the capacity of a 100 MBit LAN
 
--r		use gatekeeper routed signaling, default is direct signaling
+-r		use gatekeeper routed signaling
+
+-rr		use routed signaling and H.245
+
+-d		use direct signaling
+
+		the above options override the RoutedMode
+		setting in the config file
 
 -i <ip>	gatekeeper will only listen on this IP number (eg. useful,
 		when running client and gatekeeper on the same machine)
@@ -20,7 +27,8 @@ A. Command line options
 
 -o <file> write trace to this file, default is to write on the console
 
--l <n>	limit TTL (time to live) for client registration to n (not fully implemented, yet !)
+-l <n>	limit TTL (time to live) for client registration to n
+	overrides the TimeToLive= setting in the config file
 
 -c <file>	specify which config file to use, default is to look for
 			gatekeeper.ini in the current directory or ~/.pwlib_config/Gatekeeper.ini (on Unix)
@@ -95,8 +103,6 @@ MulticastPort=1718			Default: 1718
 
 MulticastGroup=224.0.1.41	Default: 224.0.1.41
 
-RouteSignalPort=1721		Default: 1721
-
 EndpointSignalPort=1720		Default: 1720
 
 StatusPort=7000				Default: 7000
@@ -108,6 +114,33 @@ Time in ms for read timeout on status channel.
 
 StatusReadTimeout=3000		Default: 3000
 Time in ms when for read timeout on signaling channels (Q931).
+
+TimeToLive=300			Default: -1
+Time to live for client registration in seconds.
+
+
+B.2 Section [RoutedMode]
+
+This section defines the gatekeeper routed mode options.
+The section is affected by reloading.
+
+GKRouted=1		Default: 0
+
+Whether to enable gatekeeper routed mode.
+
+H245Routed=1		Default: 0
+
+Whether to enable H.245 routed. Only take effect if GKRouted=1.
+
+CallSignalPort=1721	Default: 1721
+
+The call signaling port. You can set it to 0 to let the GK choose
+an arbitrary port (replace the old option RouteSignalPort).
+
+CallSignalHandlerNumber=1	Default: 1
+
+The number of call signaling handler. You may increase this number
+in a heavy loaded gatekeeper.
 
 
 B.3 Section [GkStatus::Auth]

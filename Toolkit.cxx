@@ -17,11 +17,82 @@
 #include "h323pdu.h"
 #include "Toolkit.h"
 #include "ANSI.h"
+#include "stl_supp.h"
 
+
+Toolkit::RouteTable::RouteEntry::RouteEntry(
+	PIPSocket::RouteEntry & re,
+	InterfaceTable & it
+) : PIPSocket::RouteEntry(re)
+{
+	for (PINDEX i = 0; i < it.GetSize(); ++i) {
+		if (it[i].GetName() == interfaceName) {
+			destination = it[i].GetAddress();
+			break;
+		}
+	}
+}
+
+inline bool Toolkit::RouteTable::RouteEntry::Compare(Address addr) const
+{
+	return ((addr & net_mask) == network);
+}
+
+void Toolkit::RouteTable::InitTable()
+{
+	ClearTable();
+	InterfaceTable if_table;
+	if (!PIPSocket::GetInterfaceTable(if_table)) {
+		PTRACE(1, "Error: Can't get route table");
+		return;
+	}
+	PIPSocket::RouteTable r_table;
+	if ( !PIPSocket::GetRouteTable(r_table)) {
+		PTRACE(1, "Error: Can't get route table");
+		return;
+	}
+	for (PINDEX r = 0; r < r_table.GetSize(); r++) {
+		PIPSocket::RouteEntry & r_entry = r_table[r];
+		if (!r_entry.GetInterface())
+			rTable.push_back(new RouteEntry(r_entry, if_table));
+	}
+
+	defAddr = GetLocalAddress(INADDR_ANY);
+
+#ifdef PTRACING
+	typedef std::list<RouteEntry *>::iterator iterator;
+	for (iterator i = rTable.begin(); i != rTable.end(); ++i)
+		PTRACE(2, "Network=" << (*i)->GetNetwork() <<
+			  ", Netmask=" << (*i)->GetNetMask() <<
+			  ", IP=" << (*i)->GetDestination());
+	PTRACE(2, "Default IP=" << defAddr);
+#endif
+}
+
+void Toolkit::RouteTable::ClearTable()
+{
+	for_each(rTable.begin(), rTable.end(), delete_entry);
+	rTable.clear();
+}
+
+PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(Address addr) const
+{
+	typedef std::list<RouteEntry *>::const_iterator const_iterator;
+	const_iterator iter = find_if(rTable.begin(), rTable.end(),
+			bind2nd(mem_fun(&RouteEntry::Compare), addr));
+	return (iter != rTable.end()) ? (*iter)->GetDestination() : defAddr;
+}
+
+
+Toolkit::Toolkit() : m_Config(0), GKRouteTable(0)
+{
+	PTRACE(1, "Toolkit::Toolkit");
+}
 
 Toolkit::~Toolkit()
 {
-	if (m_Config != NULL) {
+	delete GKRouteTable;
+	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
 	}
@@ -30,6 +101,7 @@ Toolkit::~Toolkit()
 PConfig* Toolkit::Config()
 {
 	// Make sure the config would not be called before SetConfig
+//cout << "Toolkit::Config()" << getpid() << endl;
 	PAssert(!m_ConfigDefaultSection, "Error: Call Config() before SetConfig()!");
 	return (m_Config == NULL) ? ReloadConfig() : m_Config;
 }
@@ -72,7 +144,12 @@ PConfig* Toolkit::ReloadConfig()
 	else // Oops! Create temporary config file failed, use the original one
 		m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
 	m_RewriteFastmatch = m_Config->GetString("RasSvr::RewriteE164","Fastmatch", "");
-	
+
+	if (GKRouteTable)
+		GKRouteTable->InitTable();
+	else
+		GKRouteTable = new RouteTable;
+
 	return m_Config; 
 }
 

@@ -30,7 +30,7 @@
 #include "Toolkit.h"
 #include "SoftPBX.h"
 #include "RasSrv.h"
-#include "SignalConnection.h"
+#include "ProxyChannel.h"
 #include "gk_const.h"
 #include "stl_supp.h"
 
@@ -936,7 +936,7 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_bandWidth(Bandwidth), m_CallNumber(0),
 	m_callingCRV(0), m_calledCRV(0),
 	m_startTime(0), m_timeout(0),
-	m_sigConnection(0),
+	m_callingSocket(0), m_calledSocket(0),
 	m_usedCount(0)
 {
 }
@@ -1013,12 +1013,16 @@ int CallRec::CountEndpoints() const
 	return result;
 }
 
-void CallRec::Disconnect(bool f)
+void CallRec::Disconnect(bool force)
 {
-	if (m_sigConnection && f)
-		m_sigConnection->SendReleaseComplete();
-	else
+	if (force && (m_callingSocket || m_calledSocket)) {
+		if (m_callingSocket)
+			m_callingSocket->CloseConnection();
+		if (m_calledSocket)
+			m_calledSocket->CloseConnection();
+	} else {
 		SendDRQ();
+	}
 
 	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
 }

@@ -40,6 +40,8 @@
  * many things here should be members of Gatkeeper. 
  */
 
+extern const char *RoutedSec;
+
 namespace { // keep the global objects private
 
 
@@ -97,10 +99,11 @@ void ShutdownHandler(void)
 	PTRACE(3, "GK\tDeleting global reference tables");
 
 	delete resourceManager::Instance();
-	delete RegistrationTable::Instance();
 	delete CallTable::Instance();
-        delete Toolkit::Instance();
+	delete RegistrationTable::Instance();
 	delete GkStatus::Instance();
+	delete Toolkit::Instance();
+	PTRACE(3, "GK\tdelete ok");
 
 #ifdef PTRACING
 	PTrace::SetStream(&cerr); // redirect to cerr
@@ -130,6 +133,16 @@ void ReopenLogFile()
 }
 #endif
 
+// set the signaling mode according to config file
+void SetSignalingMode() 
+{
+	RasThread->SetRoutedMode(
+		Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GKRouted", "0")),
+		Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H245Routed", "0"))
+	);
+}
+
+
 } // end of anonymous namespace
 
 void ReloadHandler(void)
@@ -154,10 +167,13 @@ void ReloadHandler(void)
 	** Update all gateway prefixes
 	*/
 
-	RegistrationTable::Instance()->LoadConfig();
+	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", -1);
+
 	CallTable::Instance()->LoadConfig();
+	RegistrationTable::Instance()->LoadConfig();
 
 	RasThread->LoadConfig();
+	SetSignalingMode();
 
 	/*
 	** Don't disengage current calls!
@@ -168,7 +184,7 @@ void ReloadHandler(void)
 	** Leave critical Section
 	*/
 	// give other threads the chance to pass by this handler
-	PProcess::Current().Sleep(1000); 
+	PProcess::Sleep(1000); 
 }
 
 #ifdef WIN32
@@ -220,6 +236,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 {
 	return PString
 		("r-routed."
+		 "d-direct."
 		 "b-bandwidth:"
 		 "i-interface:"
 #ifdef PTRACING
@@ -346,8 +363,7 @@ void Gatekeeper::Main()
 	args.Parse(GetArgumentsParseString());
 
 	int GKcapacity = 100000; // default gatekeeper capacity (in 100s bit)
-	BOOL GKroutedSignaling = FALSE;	// default: use direct signaling
-	PIPSocket::Address GKHome;
+	PIPSocket::Address GKHome = INADDR_ANY;
 
 	if(! InitLogging(args)) return;
 
@@ -357,29 +373,24 @@ void Gatekeeper::Main()
 
 	if(! InitConfig(args)) return;
 
-	if (args.HasOption('h')) {
-		cout << "OpenH323 gatekeeper '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome) << endl;
-		cout << Toolkit::GKVersion() << endl;
-		PrintOpts();
-        	delete Toolkit::Instance();
-		exit(0);
-	}
-
 	// read gatekeeper home address from commandline
 	if (args.HasOption('i'))
 		GKHome = args.GetOptionString('i');
 	else {
-		PString s = GkConfig()->GetString("Home", "x");
-		if (s == "x")
-			PIPSocket::GetHostAddress(GKHome);
-		else
-			GKHome = s;
+		PString home = GkConfig()->GetString("Home", "");
+		if (!home)
+			GKHome = home;
 	}
-	
-	cout << "OpenH323 gatekeeper with ID '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome) << endl;
-	cout << Toolkit::GKVersion() << endl;
-	PTRACE(1, "GK\tGatekeeper with ID '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome));
-	PTRACE(1, "GK\t"<<Toolkit::GKVersion());
+
+	PString welcome = "OpenH323 Gatekeeper with ID '" + Toolkit::GKName() + "' started on " + GKHome.AsString() + "\n" + Toolkit::GKVersion();
+	cout << welcome << endl;
+	PTRACE(1, welcome);
+
+	if (args.HasOption('h')) {
+		PrintOpts();
+        	delete Toolkit::Instance();
+		exit(0);
+	}
 
 	// Copyright notice
 	cout <<
@@ -388,14 +399,6 @@ void Gatekeeper::Main()
 		"as published by the Free Software Foundation; either version 2\n"
 		"of the License, or (at your option) any later version.\n"
 	    << endl;
-
-	// read signaling method from commandline
-	if (args.HasOption('r'))
-		GKroutedSignaling = TRUE;
-	if (GKroutedSignaling)
-		PTRACE(2, "GK\tUsing routed signalling");
-	else
-		PTRACE(2, "GK\tUsing direct signalling");
 
 	// read capacity from commandline
 	if (args.HasOption('b'))
@@ -406,10 +409,18 @@ void Gatekeeper::Main()
 	// read timeToLive from command line
 	if (args.HasOption('l'))
 		SoftPBX::TimeToLive = args.GetOptionString('l').AsInteger();
+	else
+		SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", -1);
 	PTRACE(2, "GK\tTimeToLive for Registrations: " << SoftPBX::TimeToLive);
   
 	RasThread = new H323RasSrv(GKHome);
-	RasThread->SetGKSignaling(GKroutedSignaling);
+	// read signaling method from commandline
+	if (args.HasOption('r'))
+		RasThread->SetRoutedMode(true, args.GetOptionCount('r') > 1);
+	else if (args.HasOption('d'))
+		RasThread->SetRoutedMode(false, false);
+	else
+		SetSignalingMode();
 
 	MulticastGRQThread = new MulticastGRQ(GKHome, RasThread);
 
@@ -420,7 +431,10 @@ void Gatekeeper::Main()
 	// On Windows NT we get all messages on the RAS socket, even
 	// if it's bound to a specific interface and thus don't have
 	// to start this thread.
-	BroadcastThread = new BroadcastListen(RasThread);
+	
+	// only start the thread if we don't bind to all interfaces
+	if (GKHome != INADDR_ANY)
+		BroadcastThread = new BroadcastListen(RasThread);
 #endif
 
 	// let's go

@@ -18,7 +18,17 @@ Fourtytwo=42
 Name=OpenH323GK
 # overwritten from command line parameter
 #Home=195.71.129.69
+#TimeToTive=600
 
+[RoutedMode]
+GKRouted=1
+H245Routed=1
+CallSignalPort=1721
+CallSignalHandlerNumber=1
+
+[Proxy]
+Enable=1
+InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
 
 [Failover]
 ## Give a list of IP4-Addresses to forward the RRQ to that this
@@ -261,6 +271,11 @@ rule=allow
 #default=reject
 default=allow
 
+##
+## Use the utility addpasswd (make addpasswd) to add users
+## Usage:
+##   addpasswd config userid password
+##
 #[Password]
 #KeyFilled=123
 #(id=cwhuang, password=123456)

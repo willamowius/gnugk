@@ -30,13 +30,12 @@
 
 #include "h323pdu.h"
 #include "gk_const.h"
-#include "h323util.h"
 #include "gk.h"
 #include "SoftPBX.h"
 #include "ANSI.h"
-#include "SignalChannel.h"
 #include "GkStatus.h"
 #include "RasSrv.h"
+#include "ProxyThread.h"
 #include "gkauth.h"
 #include "stl_supp.h"
 
@@ -270,7 +269,7 @@ bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionReq
 	lrq_ras.SetTag(H225_RasMessage::e_locationRequest);
 	H225_LocationRequest & lrq_obj = lrq_ras;
 	lrq_obj.m_requestSeqNum.SetValue(seqNum);
-	lrq_obj.m_replyAddress = theRasSrv->GetRasAddress();
+	lrq_obj.m_replyAddress = theRasSrv->GetRasAddress(m_ip);
 	lrq_obj.m_destinationInfo = obj_arq.m_destinationInfo;
 
 	// tell the neighbor who I am
@@ -283,17 +282,16 @@ bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionReq
 }
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
-      : PThread(10000, NoAutoDeleteThread),
-	listener(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)),
-	udpForwarding()
+      : PThread(10000, NoAutoDeleteThread)
 {
 	GKHome = _GKHome;
 	
+	GKRasPort = GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
+
 	EndpointTable = RegistrationTable::Instance();
 	GKManager = resourceManager::Instance();
 
-	GKroutedSignaling = FALSE;
-	sigListener = NULL;
+	sigHandler = 0;
 
 	authList = 0;
 	NeighborsGK = 0;
@@ -301,7 +299,7 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 
 	// we now use singelton instance mm-22.05.2001
 	GkStatusThread = GkStatus::Instance();
-	GkStatusThread->Initialize(_GKHome);
+	GkStatusThread->Initialize(GKHome);
 
 	LoadConfig();
 
@@ -319,14 +317,26 @@ H323RasSrv::~H323RasSrv()
 	delete GWR;
 }
 
+void H323RasSrv::SetRoutedMode(bool routedSignaling, bool routedH245)
+{
+	if (GKRoutedSignaling = routedSignaling) {
+		if (sigHandler)
+			sigHandler->LoadConfig();
+		else
+			sigHandler = new HandlerList(GKHome);
+		GKCallSigPort = sigHandler->GetCallSignalPort();
+	}
+	GKRoutedH245 = routedH245;
+
+	const char *modemsg = GKRoutedSignaling ? "Routed" : "Direct";
+	const char *h245msg = GKRoutedH245 ? "Enabled" : "Disabled";
+	PTRACE(2, "GK\tUsing " << modemsg << " Signalling");
+	PTRACE(2, "GK\tH.245 Routed " << h245msg);
+}
+
 void H323RasSrv::LoadConfig()
 {
-	static PMutex loadLock;
-
 	PWaitAndSignal lock(loadLock);
-	// own IP number
-	GKCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
-	GKRasAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
 
 	// add authenticators
 	delete authList;
@@ -335,7 +345,7 @@ void H323RasSrv::LoadConfig()
 	// add neighbors
 	delete NeighborsGK;
 	NeighborsGK = new NeighborList(this, GkConfig());
-	
+
 	//add authorize
 	delete GWR;
 	GWR=new GkAuthorize(GkStatusThread);
@@ -346,20 +356,16 @@ void H323RasSrv::Close(void)
 	PTRACE(2, "GK\tClosing RasSrv");
  
 	listener.Close();
-	if (GKroutedSignaling)
-	{
-		sigListener->Close();
-		sigListener->WaitForTermination();
-		delete sigListener;
-		sigListener = NULL;
-	};
-	if (GkStatusThread != NULL)
-	{
+	if (sigHandler) {
+		delete sigHandler;
+		sigHandler = NULL;
+	}
+	if (GkStatusThread != NULL) {
 		GkStatusThread->Close();
 		GkStatusThread->WaitForTermination();
 		delete GkStatusThread;
 		GkStatusThread = NULL;
-	};
+	}
  
 	PTRACE(1, "GK\tRasSrv closed");
 }
@@ -425,7 +431,7 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		obj_gcf.m_requestSeqNum = obj_gr.m_requestSeqNum;
 		obj_gcf.m_protocolIdentifier = obj_gr.m_protocolIdentifier;
 		obj_gcf.m_nonStandardData = obj_gr.m_nonStandardData;
-		obj_gcf.m_rasAddress = GKRasAddress;
+		obj_gcf.m_rasAddress = GetRasAddress(rx_addr);
 		obj_gcf.IncludeOptionalField(obj_gcf.e_gatekeeperIdentifier);
 		obj_gcf.m_gatekeeperIdentifier.SetValue( GetGKName() );
 
@@ -645,7 +651,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			SetAlternateGK(rcf);
 
 			// forward lightweights, too
-			if(bShellForwardRequest) 
+			if (bShellForwardRequest) 
 				ForwardRasMsg(ep->GetCompleteRegistrationRequest());
 
 			ep->Update(obj_rrq);
@@ -885,11 +891,11 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 
-	ProcessARQ(RequestingEP, CalledEP, obj_rr, obj_rpl, bReject);
+	ProcessARQ(rx_addr, RequestingEP, CalledEP, obj_rr, obj_rpl, bReject);
 	return TRUE;
 }
 
-void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq, H225_RasMessage & obj_rpl, BOOL bReject)
+void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq, H225_RasMessage & obj_rpl, BOOL bReject)
 {
 	int BWRequest = 640;
 
@@ -1067,14 +1073,16 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 			pCallRec->StartTimer();
 
 			pCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
+			pCallRec->SetH245Routed(GKRoutedH245);
+
 			if (!obj_arq.m_answerCall) // the first ARQ
 				pCallRec->SetCalling(RequestingEP, obj_arq.m_callReferenceValue);
-			if (!GKroutedSignaling)
+			if (!GKRoutedSignaling)
 				pCallRec->SetConnected(true);
 			CallTable::Instance()->Insert(pCallRec);
 		}
 			
-		if ( GKroutedSignaling ) {
+		if ( GKRoutedSignaling ) {
 /* comment out by cwhuang
    Does it have any difference from direct model?
 			H225_TransportAddress destAddress;
@@ -1104,7 +1112,7 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 			};
 */
 			acf.m_callModel.SetTag( H225_CallModel::e_gatekeeperRouted );
-			acf.m_destCallSignalAddress = GKCallSignalAddress;
+			acf.m_destCallSignalAddress = GetCallSignalAddress(rx_addr);
 		} else {
 			// direct signalling
 
@@ -1154,10 +1162,9 @@ void H323RasSrv::ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, 
 		PTRACE(1, "Err: RequestingEP doesn't have valid ras address!");
 		return;
 	}
-	ProcessARQ(RequestingEP, CalledEP, obj_arq, obj_rpl);
-
 	const H225_TransportAddress_ipAddress & ip = RequestingEP->GetRasAddress();
 	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	ProcessARQ(ipaddress, RequestingEP, CalledEP, obj_arq, obj_rpl);
 	SendReply(obj_rpl, ipaddress, ip.m_port, listener);
 }
 
@@ -1165,11 +1172,6 @@ void H323RasSrv::ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, 
 BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_drq, H225_RasMessage & obj_rpl)
 {    
 	const H225_DisengageRequest & obj_rr = obj_drq;
-
-	char callReferenceValueString[8];
-	sprintf(callReferenceValueString, "%u", (unsigned) obj_rr.m_callReferenceValue);
-		
-//	PTRACE(4,"DRQ");
 	PString msg;
 	
 	if ( GKManager->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID) )
@@ -1179,63 +1181,53 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		H225_DisengageConfirm & dcf = obj_rpl;
 		dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;    
 
-		if ( GKroutedSignaling )
-		{
-//			sigListener->m_callTable.HungUp(obj_rr.m_callReferenceValue);
-			CallTable::Instance()->RemoveCall(obj_rr);
-		} else {
-			// I do not know if more is to be done - if not then the routing type check is obsolete
-			CallTable::Instance()->RemoveCall(obj_rr);
-		}
-		PTRACE(4,"\tDRQ: removed first endpoint");
+		CallTable::Instance()->RemoveCall(obj_rr);
+		PTRACE(4, "GK\tDRQ: removed first endpoint");
 
 		// always signal DCF
-		PString msg2(PString::Printf, "DCF|%s|%s|%s|%s;\r\n", 
-				 inet_ntoa(rx_addr),
-				 (const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
-				 callReferenceValueString,
-				 (const unsigned char *) obj_rr.m_disengageReason.GetTagName() );	
-		msg = msg2;
+		msg = PString(PString::Printf, "DCF|%s|%s|%u|%s;\r\n", 
+				inet_ntoa(rx_addr),
+				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
+				(unsigned) obj_rr.m_callReferenceValue,
+				(const unsigned char *) obj_rr.m_disengageReason.GetTagName() );	
 	}
 	// The first EP that sends DRQ closes the conference and removes the CallTable entry -
 	// this should not exclude the second one
 	// from receiving DCF. This way we will not catch stray DRQs but we send the right messages ourselves
 	else if (EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier))
 	{
-		PTRACE(4,"\tDRQ: endpoint found");
+		PTRACE(4, "GK\tDRQ: endpoint found");
 		obj_rpl.SetTag(H225_RasMessage::e_disengageConfirm); 
 		H225_DisengageConfirm & dcf = obj_rpl;
 		dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
 
 		CallTable::Instance()->RemoveCall(obj_rr);
 
-		PTRACE(4,"\tDRQ: removed second endpoint");
+		PTRACE(4, "GK\tDRQ: removed second endpoint");
 
 		// always signal DCF
-		PString msg2(PString::Printf, "DCF|%s|%s|%s|%s;\r\n", 
-				 inet_ntoa(rx_addr),
-				 (const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
-				 callReferenceValueString,
-				 (const unsigned char *) obj_rr.m_disengageReason.GetTagName() );	
-		msg = msg2;
+		msg = PString(PString::Printf, "DCF|%s|%s|%u|%s;\r\n", 
+				inet_ntoa(rx_addr),
+				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
+				(unsigned) obj_rr.m_callReferenceValue,
+				(const unsigned char *) obj_rr.m_disengageReason.GetTagName() );	
 	}
 	else
 	{
-		PTRACE(4,"\tDRQ: reject");
+		PTRACE(4, "GK\tDRQ: reject");
 		obj_rpl.SetTag(H225_RasMessage::e_disengageReject); 
 		H225_DisengageReject & drj = obj_rpl;
 		drj.m_requestSeqNum = obj_rr.m_requestSeqNum;
 		drj.m_rejectReason.SetTag( drj.m_rejectReason.e_notRegistered );
 
-		PString msg2(PString::Printf, "DRJ|%s|%s|%s|%s;\r\n", 
-			     inet_ntoa(rx_addr),
-			     (const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
-			     callReferenceValueString,
-			     (const unsigned char *) drj.m_rejectReason.GetTagName() );
-		msg = msg2;
+		msg = PString(PString::Printf, "DRJ|%s|%s|%u|%s;\r\n", 
+				inet_ntoa(rx_addr),
+				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
+				(unsigned) obj_rr.m_callReferenceValue,
+				(const unsigned char *) drj.m_rejectReason.GetTagName() );
 	}
 
-	PTRACE(2,msg);
+	PTRACE(2, msg);
 	GkStatusThread->SignalStatus(msg);
 	return TRUE;
 }
@@ -1278,7 +1270,7 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		EndpointTable->FindBySignalAdr(obj_rr.m_callSignalAddress[0]);
 	if (ep)
 	{
-		// Disconnect the calls of the endpoint
+		// Disconnect all calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
 		// Remove from the table
 //		EndpointTable->RemoveByEndpointId(obj_rr.m_endpointIdentifier);
@@ -1486,6 +1478,8 @@ BOOL H323RasSrv::OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 bool H323RasSrv::Check()
 {
+	if (sigHandler)
+		sigHandler->Check();
 	arqPendingList->Check();
 	return !IsTerminated();
 }
@@ -1529,19 +1523,15 @@ void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Add
 
 void H323RasSrv::Main(void)
 {
+	const int buffersize = 4096;
+	BYTE buffer[buffersize];
+
 	PString err_msg("ERROR: Request received by gatekeeper: ");   
 	PTRACE(2, "GK\tEntering connection handling loop");
 
-	if (GKroutedSignaling)
-		sigListener = new SignalChannel(1000, GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
-	listener.Listen(GKHome, 
-			GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
-			listener.GetPort(), 
-			PSocket::CanReuseAddress);
-	if (!listener.IsOpen())
-	{
-		PTRACE(1,"GK\tBind to RAS port failed!");
-	}
+	// queueSize is useless for UDPSocket
+	listener.Listen(GKHome, 0, GKRasPort, PSocket::CanReuseAddress);
+	PTRACE_IF(1, !listener.IsOpen(), "GK\tBind to RAS port failed!");
 
 	while (listener.IsOpen())
 	{ 
@@ -1550,10 +1540,8 @@ void H323RasSrv::Main(void)
 		H225_RasMessage obj_req;   
 		H225_RasMessage obj_rpl;
 		BOOL ShallSendReply = FALSE;
-		PBYTEArray rdbuf(4096);
-		PPER_Stream rdstrm(rdbuf);
 
-		int iResult = listener.ReadFrom(rdstrm.GetPointer(), rdstrm.GetSize(), rx_addr, rx_port);
+		int iResult = listener.ReadFrom(buffer, buffersize, rx_addr, rx_port);
 		if (!iResult)
 		{
 			PTRACE(1, "GK\tRAS thread: Read error: " << listener.GetErrorText());
@@ -1561,10 +1549,10 @@ void H323RasSrv::Main(void)
 			// TODO: "return" (terminate) on some errors (like the one at shutdown)
 			continue;
 		}
-		PTRACE(2, "GK\tRead from : " << rx_addr << " [" << rx_port << "]");    
+		PTRACE(2, "GK\tRead from : " << rx_addr << ':' << rx_port);    
 
 		// get only bytes which are really read
-		PPER_Stream rawPDU(rdstrm.GetPointer(), listener.GetLastReadCount());
+		PPER_Stream rawPDU(buffer, listener.GetLastReadCount());
 		// set rawPDU for authentication methods
                 authList->setLastReceivedRawPDU(rawPDU);
 

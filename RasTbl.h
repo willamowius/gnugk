@@ -352,7 +352,7 @@ public:
 	// TODO: thread pointer (or NULL for direct calls)
 };
 
-class SignalConnection;
+class CallSignalSocket;
 
 // record of one active call
 class CallRec
@@ -377,7 +377,8 @@ public:
 	void SetCalled(const endptr & NewCalled, unsigned = 0);
 	void SetBandwidth(int Bandwidth) { m_bandWidth = Bandwidth; }
 	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
-	void SetSigConnection(SignalConnection *);
+	void SetSocket(CallSignalSocket *, CallSignalSocket *);
+	void SetH245Routed(bool h245Routed) { m_h245Routed = h245Routed; }
 
 	void SetConnected(bool c);
 	void SetTimer(int seconds);
@@ -398,6 +399,7 @@ public:
 	bool IsUsed() const;
 	bool IsConnected() const;
 	bool IsTimeout(const PTime *) const;
+	bool IsH245Routed() const;
 
 	PString GenerateCDR() const;
 	PString PrintOn(bool verbose) const;
@@ -430,10 +432,12 @@ private:
 	PTime *m_startTime, m_timer;
 	int m_timeout;
 
-	SignalConnection *m_sigConnection;
+	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
 	int m_usedCount;
 	mutable PMutex m_usedLock;
+
+	bool m_h245Routed;
 
 	CallRec(const CallRec & Other);
 	CallRec & operator= (const CallRec & other);
@@ -541,9 +545,9 @@ inline void EndpointRec::Unlock()
 }       
 
 // inline functions of CallRec
-inline void CallRec::SetSigConnection(SignalConnection *sigConnection)
+inline void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 {
-	m_sigConnection = sigConnection;
+	m_callingSocket = calling, m_calledSocket = called;
 }
 
 inline void CallRec::SetTimer(int seconds)
@@ -613,6 +617,11 @@ inline bool CallRec::IsConnected() const
 inline bool CallRec::IsTimeout(const PTime *now) const
 {       
 	return (m_timeout > 0 && ((*now - m_timer) > (DWORD)m_timeout*1000));
+}
+
+inline bool CallRec::IsH245Routed() const
+{
+	return m_h245Routed;
 }
 
 #endif
