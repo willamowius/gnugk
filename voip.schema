@@ -10,6 +10,8 @@
 #
 # CHANGES:
 # 2002-01-07, storm
+#   add speedDial attribute
+#   add recursive LDAP browsing hint
 #   minor corrections
 # 2002-01-03, storm
 #   removed CountryCode, AreaCode (moved into telephonenumber)
@@ -17,7 +19,6 @@
 #   voIPIAC -> voIPINAC
 #   remove unused attributes: cn, uid
 #   remove non-essential attributes: voIPnickname, pincode, facsimiletelephonenumber
-#   add speedDial attribute
 #   include all attributes as MAY in voIPProperty
 #   add info on semantics
 #
@@ -186,22 +187,6 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2040
   SINGLE-VALUE
  )
 
-# NOTE:
-#   Calling line identification verification (a.k.a. "screening") works as follows:
-#   The gatekeeper always sets the Q.931 A number (converted to international format).
-#   voIPclir = TRUE shall result in setting the Q.931 presentation indicator to "restricted",
-#   (meaning: DON'T display the caller's number to the callee). For on-net destinations, the
-#   gatekeeper will also enforce this setting (i.e., remove the number from Q.931).
-#   For off-net calls, the number stays set and the peer's network is responsible for
-#   enforcing the presentation indicator setting (i.e., remove the number).
-#   voIPclir = FALSE shall result in setting the Q.931 presentation indicator to "presentation
-#   allowed" (meaning: DO display the caller's number to the callee).
-#   If no Q.931 A number is sent (and thus no presentation indicator), the presentation
-#   indicator is set to "presentation allowed".
-#   voIPclir attribute not existant = "default", i.e. use existing Q.931 presentation
-#   indicator (set by caller). If no Q.931 A number is sent (and thus no presentation
-#   indicator), the presentation indicator is set to "restricted".
-
 attributeType ( 1.3.6.1.4.1.9564.2.5.2050
   NAME ( 'voIPcallingLineIdPresentation' 'voIPclir' )
   DESC 'Indicates whether the calling line ID is to be restricted'
@@ -212,8 +197,8 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2050
 # NOTE:
 # voIPspeedDial attributes must contain values of the format
 # <speeddial>=<telephonenumber>, e.g. "110=+49 5241 80 1000".
-# speeddial may be an arbitrary E.164 string while
-# telephonenumber must match the format used in the telephonenumber attribute.
+# speeddial may be an arbitrary E.164 string while # telephonenumber must match
+# the format used in the telephonenumber attribute.
 # This attribute is multi-valued to allow for multiple speed dials.
 # Emergency call numbers (110, 112 in Germany) are implemented using voIPspeedDial
 
@@ -262,10 +247,17 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # Go with something like OpenLDAP's back-meta if you need to tie multiple servers
 # together under a single root.
 # To allow for further, LDAP-like representation below this root, entries need not
-# be direct childs of the search root. In the following example, "ou=mediaways"
-# is a organizational unit representing. More ou like "ou=customerX,o=mediaways.net"
-# may exist and contain VoIP entries to be used.
+# be direct childs of the search root. In the following example, "ou=mediaWays"
+# is a organizational unit representing the customer "mediaWays". Other ou's like
+# "ou=customerX,o=mediaways.net" may exist and contain VoIP entries to be used.
 
+# NOTE: 
+# Default values may be stored as attributes to parent nodes, i.e.
+# Values stored further down the tree override values higher up in the tree.
+# Browsing up the tree can stop when encountering top nodes.
+# Top nodes are the highest nodes within a subtree that still contain the
+# voIPProperty objectclass.
+# 
 # The following LDAP entry
 #
 # dn: uid=sto36, ou=mediaways, o=mediaways.net
