@@ -178,7 +178,7 @@ public:
         // Set accessor methods
         void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
 	void setIsGK(BOOL isGK) { m_isGK = isGK;}
-        void setDialedPN(PString &dialedPN, 
+        void setDialedPN(PString &dialedPN,
 			 const enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType);
         void setDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON);
         void setCalledPN(PString &calledPN);
@@ -640,8 +640,6 @@ private:
 	void InternalRemove(iterator);
 
 	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const;
-
-	static void delete_call(CallRec *c) { delete c; }
 
 	list<CallRec *> CallList;
 	list<CallRec *> RemovedList;
