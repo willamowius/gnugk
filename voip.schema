@@ -2,16 +2,24 @@
 # Copyright (C) 2001 mediaWays GmbH, Verl, Germany
 # Authors: Dr.-Ing. Martin Froehlich <Martin.Froehlich@mediaWays.net>
 #          Based on ideas of Mathias Barkow and Markus Storm
-# Time-stamp: <2001-12-04 08:44:58 martinf>
 #
 # PURPOSE OF THIS FILE: 
-#    Definition of a LDAP-schema (OpenLDAP format) for VoIP user handling.
-#    STATUS: to be validated
+#    Definition of a LDAP-schema (OpenLDAP format) to represent VoIP users, i.e.
+#    terminals and small ("residential") gateways.
 #
-# - Automatic Version Information via CVS/RCS:
-#   $Id$
-#   $Source$
-#  
+#
+# CHANGES:
+# 2002-01-03, storm
+#   removed CountryCode, AreaCode (moved into telephonenumber)
+#   refine syntax definition of telephonenumber, dn
+#   voIPIAC -> voIPINAC
+#   remove unused attributes: cn, uid
+#   remove non-essential attributes: voIPnickname, pincode, facsimiletelephonenumber
+#   add speedDial attribute
+#   include all attributes as MAY in voIPProperty
+#   add info on semantics
+#
+#
 # This schema is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -31,19 +39,12 @@
 #  1.3.6.1.4.1.9564       = mediaWays
 #  1.3.6.1.4.1.9564.1     = object classes
 #  1.3.6.1.4.1.9564.1.1   = mediaWays object classes
-#  1.3.6.1.4.1.9564.1.2   = Netscape object classes
-#  1.3.6.1.4.1.9564.1.3   = DHCP object classes
-#  1.3.6.1.4.1.9564.1.4   = RWE object classes
-## 1.3.6.1.4.1.9564.1.5   = VoIP object classes
+#  1.3.6.1.4.1.9564.1.5   = VoIP object classes
 #  1.3.6.1.4.1.9564.2     = attributes
 #  1.3.6.1.4.1.9564.2.1   = mediaWays attributes
-#  1.3.6.1.4.1.9564.2.1.1 = mediaWays online-services attributes
-#  1.3.6.1.4.1.9564.2.1.2 = mediaWays mail attributes
-#  1.3.6.1.4.1.9564.2.1.3 = mediaWays Unified Messaging attr.
-#  1.3.6.1.4.1.9564.2.2   = Netscape attributes
-#  1.3.6.1.4.1.9564.2.3   = DHCP attributes
-#  1.3.6.1.4.1.9564.2.4   = RWE attributes
-## 1.3.6.1.4.1.9564.2.5   = mediaWays VoIP attributes
+#  1.3.6.1.4.1.9564.2.5   = VoIP attributes
+#
+#  Feel free to replace "9564" by your own IANA-assigned OID.
 #
 # SYNTAX overview
 # binary                     1.3.6.1.4.1.1466.115.121.1.5 BER/DER data 
@@ -58,93 +59,108 @@
 # OID			     1.3.6.1.4.1.1466.115.121.1.38 object identifier 
 # Octet String		     1.3.6.1.4.1.1466.115.121.1.40 arbitary octets 
 # Printable String           1.3.6.1.4.1.1466.115.121.1.44 printable string
-# Telephone Number           1.3.6.1.4.1.1466.115.121.1.50 
+# Telephone Number           1.3.6.1.4.1.1466.115.121.1.50 E.123 string
+#
+#
+# LDAP attribute		    | defined in
+# -----------------------------------------------------------------------------
+# mail 0.9.2342.19200300.100.1.3    | RFC 2256(core) 
+# telephoneNumber 2.5.4.20	    | RFC 2256(core)
+# plaintextPassword		    | your-own-class (mediaWays: umuser, mways)
+#
+# voIPlocalAccessCode		    | HERE
+# voIPnationalAccessCode	    | HERE
+# voIPinternationalAccessCode	    | HERE
+# voIPcallingLineIdPresentation	    | HERE
+# voIPspeedDial                     | HERE
+# voIPprefixBlacklist               | HERE
+# voIPprefixWhitelist               | HERE
 
-# LDAP-Attribute		    | defined	    | Field
-# -------------------------------------------------------------------------
-# uid 0.9.2342.19200300.100.1.1	    | RFC 1274	    | H.323 user
-# cn 2.5.4.3			    | RFC 2256(core)| valid H.323-ID
-# telephoneNumber 2.5.4.20	    | RFC 2256(core)| valid E164-IDs
-# facsimileTelephoneNumber 2.5.4.23 | RFC 2256(core)| for Unified Messaging
-# plaintextPassword		    | umuser, mways | H.235 password
-# pincode			    | umuser	    | for UMS
-#
-# voIPnickName			    | HERE	    | valid H.323-ID
-# voIPcountryCode		    | HERE	    | see DESC
-# voIPareaCode			    | HERE	    | see DESC
-# voIPlocalAccessCode		    | HERE	    | see DESC
-# voIPnationalAccessCode	    | HERE	    | see DESC
-# voIPinternationalAccessCode	    | HERE	    | see DESC
-# voIPcallingLineIdPresentation	    | HERE	    | see DESC
-# voIPprefixBlacklist		    | HERE	    | see DESC
-# voIPprefixWhitelist		    | HERE	    | see DESC
-#
 # This ObjectClass shall be used to extend objects which typically are
 # also of class 'person' or 'inetOrgPerson', 'mways' or 'umuser' or are
-# structural nodes like 'organizationalUnit' above of those user
-# representating objects.
+# structural nodes like 'organizationalUnit' above of those objects
+# representing user.
+
 
 # A) VoIP User
 # 
-# A.1) Attributes also used in other mediaWays or std. classes. You may
-#      need to remove the comment signs for some of them, if you do not
-#      have the 'mways.schema'-file.
+# A.1) Attributes also used in standard classes. Your LDAP server should know about these.
 # 
-# attributetype ( 0.9.2342.19200300.100.1.1 NAME ( 'uid' 'userid' )
-#   EQUALITY caseIgnoreMatch
-#   SUBSTR caseIgnoreSubstringsMatch
-#   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-# attributetype ( 2.5.4.3 NAME ( 'cn' 'commonName' )
-#   DESC 'common name(s) for which the entity is known by'
-#   SUP name )
+# NOTE:
+# In order to have a unique H.323 ID to avoid registration clashing, we use 
+# a user's primary e-mail address as his H.323 ID.
+# For gateways, that address needs to be artificially constructed.
+# We use <host>@voip.<yourdomain>. <host> is a DNS name without dots (i.e., the hostname).
+# That's SIP-compatible, by the way (Jehova !) :-)
+#
+# attributetype ( 0.9.2342.19200300.100.1.3 NAME ( 'mail' 'rfc822Mailbox' )
+#   DESC 'RFC1274: RFC822 Mailbox'
+#   EQUALITY caseIgnoreIA5Match
+#   SUBSTR caseIgnoreIA5SubstringsMatch
+#   SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} )
+#
+#
+# NOTE:
+# telephonenumber defines the prefix(es) and number(s) assigned to gateways
+# and terminals, respectively.
+# According to RFC 2256, E.123 defines the format to be used for
+# the telephonenumber attribute. See http://www.ngi.org/enum/pub/Draft_Rec_E123.htm
+#
+# We further refine this definition as follows:
+# telephonenumber: +49 5246 80 ....
+#                   cc  ac  sn  ext
+#
+# Spaces and dots are important. A single space is used to separate the
+# country code (cc), area code (ac), subscriber number (sn) and extension (ext)
+# from each other. Each dot is a placeholder for a single cipher, i.e. 0-9.
+# The above value of telephonenumber defines the number space for a gateway
+# starting with the base number 49524680 and allowing for an extension
+# of exactly four ciphers.
+# Multiple occurences of the telephonenumber attribute may be used to define
+# further prefixes / subscriber numbers.
+# A fully qualified number used to represent terminals would be e.g.
+# +49 5246 80 1867
+#
 # attributetype ( 2.5.4.20 NAME 'telephoneNumber'
+#   DESC 'telephonenumber in E.123 format'
 #   EQUALITY telephoneNumberMatch
 #   SUBSTR telephoneNumberSubstringsMatch
 #   SYNTAX 1.3.6.1.4.1.1466.115.121.1.50{32} )
-# attributetype ( 2.5.4.23 NAME ( 'facsimileTelephoneNumber' 'fax' )
-#   SYNTAX 1.3.6.1.4.1.1466.115.121.1.22 )
+#
+#
+# A.2) Attributes also used in other mediaWays classes. You may
+#      need to remove the comment signs for some of them if you do not
+#      have the 'mways.schema'-file.
+#
+# NOTE:
+# plaintextPassword contains the user's password in cleartext or
+# encrypted with a 2-way mechanism.
+# A plaintext password is needed to calculate H.235 hashes.
+# The 'userpassword' attribute is usually one-way-encrypted (crypt or SHA-1)
+# and therefore cannot be used.
+# To avoid storing cleartext passwords here, you may implement your own
+# 2-way encryption method. You should denote the used method in a manner similar
+# to the userpassword attribute, e.g. "plaintextPassword: {3DES}XXXXX" where XXX
+# is a triple-DES encrypted password.
 # 
+#
 # attributetype ( 1.3.6.1.4.1.9564.2.1.1.8 NAME 'plaintextPassword'
-#   DESC 'password of user -- always cleartext'
+#   DESC 'password of user -- cleartext or 2-way encrypted'
 #   EQUALITY octetStringMatch
 #   SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )
-# attributetype	( 1.3.6.1.4.1.9564.2.1.3.2 NAME 'pincode'
-#   DESC 'personal identification name'
-#   EQUALITY caseExactIA5Match
-#   SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-#   SINGLE-VALUE )
-# 
-# A.2) Own Attributes
 #
-# NOTE: H.225 defines (in ASN.1):
-#  "NumberDigits ::= IA5String (SIZE (1..128)) (FROM ("0123456789#*,"))"
-#  That rises the question, if one should map all those types as
-#  separate syntax to this specification.
 #
-# Remark: Because this identifierers are related to the ASN.1 nameing
-# rules, all identifierers are starting with a lower case letter,
-# seperating words by capital letters.
 #
+# A.3) Attributes dedicated to VoIP. They are defined HERE.
 
-
-attributeType ( 1.3.6.1.4.1.9564.2.5.1000 NAME 'voIPnickName'
-  DESC 'A H.323-Id the user is also known as'
-  EQUALITY caseExactIA5Match
-  SUBSTR caseExactIA5SubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{16}
- )
-
-attributeType ( 1.3.6.1.4.1.9564.2.5.2000 
-  NAME ( 'voIPcountryCode' 'voIPcc' )
-  DESC 'The prefix indicating the user"s country'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
-  SINGLE-VALUE
- )
+# NOTE:
+# endpoints that do not support H.235 may be authenticated according to their
+# source IP address
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2010 
-  NAME ( 'voIPareaCode' 'voIPac' )
-  DESC 'The prefix indicating the user"s area'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
+  NAME ( 'voIPIpAddress' 'voIPip' )
+  DESC 'A user's or gateway's IP address'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
   SINGLE-VALUE
  )
 
@@ -163,43 +179,122 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2030
  )
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2040 
-  NAME ( 'voIPinternationalAccessCode' 'voIPiac' )
+  NAME ( 'voIPinternationalAccessCode' 'voIPinac' )
   DESC 'The prefix code indicating the access to international calls'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
   SINGLE-VALUE
  )
 
+# NOTE:
+#   Calling line identification verification (a.k.a. "screening") works as follows:
+#   The gatekeeper always sets the Q.931 A number (converted to international format).
+#   voIPclir = TRUE shall result in setting the Q.931 presentation indicator to "restricted",
+#   (meaning: DON'T display the caller's number to the callee). For on-net destinations, the
+#   gatekeeper will also enforce this setting (i.e., remove the number from Q.931).
+#   For off-net calls, the number stays set and the peer's network is responsible for
+#   enforcing the presentation indicator setting (i.e., remove the number).
+#   voIPclir = FALSE shall result in setting the Q.931 presentation indicator to "presentation
+#   allowed" (meaning: DO display the caller's number to the callee).
+#   If no Q.931 A number is sent (and thus no presentation indicator), the presentation
+#   indicator is set to "presentation allowed".
+#   voIPclir attribute not existant = "default", i.e. use existing Q.931 presentation
+#   indicator (set by caller). If no Q.931 A number is sent (and thus no presentation
+#   indicator), the presentation indicator is set to "restricted".
+
 attributeType ( 1.3.6.1.4.1.9564.2.5.2050
   NAME ( 'voIPcallingLineIdPresentation' 'voIPclir' )
-  DESC 'Indicates, wether to present the calling line ID to the called
-        participant'
+  DESC 'Indicates whether the calling line ID is to be restricted'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2060 NAME 'voIPprefixBlacklist'
+# NOTE:
+# voIPspeedDial attributes must contain values of the format
+# <telephonenumber>=<telephonenumber>, e.g. "110=+49 5241 80 1000"
+# Multiple occurences are used to add speed dials.
+# Emergency call numbers (110, 112 in Germany) are implemented using voIPspeedDial
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2060 NAME 'voIPspeedDial'
   EQUALITY numericStringMatch
   DESC 'A blocked prefix for this user'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2070 NAME 'voIPprefixWhitelist'
+# NOTE: reserved for future use
+attributeType ( 1.3.6.1.4.1.9564.2.5.2070 NAME 'voIPprefixBlacklist'
+  EQUALITY numericStringMatch
+  DESC 'A blocked prefix for this user'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
+ )
+
+# NOTE: reserved for future use
+attributeType ( 1.3.6.1.4.1.9564.2.5.2080 NAME 'voIPprefixWhitelist'
   EQUALITY numericStringMatch
   DESC 'An accessible prefix for this user'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-# A.2) Object Classes
+
+# A.4) Object Classes
 
 objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
   SUP top ABSTRACT
   DESC 'Objects of this class can be used to provide VoIP-Equipment with
         user-related access and authentification information'
-  MAY ( voIPnickName $ voIPcountryCode $ voIPareaCode $ voIPlocalAccessCode $
-        voIPnationalAccessCode $ voIPinternationalAccessCode $
-	voIPcallingLineIdPresentation $ voIPprefixBlacklist $
-        voIPprefixWhitelist ))
+  MAY ( mail $ telephonenumber $ plaintextPassword $
+	voIPlocalAccessCode $ voIPnationalAccessCode $ voIPinternationalAccessCode $
+	voIPcallingLineIdPresentation $ voIPprefixBlacklist $ voIPprefixWhitelist ) )
+
+
+
+# B) recommended tree structure and examples
+#
+# You do not need to setup your LDAP tree like this. It's just a recommendation.
+# The exact format of the dn is irrelevant and therefore any existing format
+# can be used. 
+#
+# A common search root for both, the subtree containing all the terminals and
+# the subtree containing all the gateways, is assumed. In the following example,
+# this common search root is "o=mediaways.net".
+# Go with something like OpenLDAP's back-meta if you need to tie multiple servers
+# together under a single root.
+# To allow for further, LDAP-like representation below this root, entries need not
+# be direct childs of the search root. In the following example, "ou=mediaways"
+# is a organizational unit representing. More ou like "ou=customerX,o=mediaways.net"
+# may exist and contain VoIP entries to be used.
+
+# The following LDAP entry
+#
+# dn: uid=sto36, ou=mediaways, o=mediaways.net
+# objectclass:       voIPProperty
+# mail:              markus.storm@mediaways.net
+# telephonenumber:   +49 5246 80 1867
+# telephonenumber:   +49 5246 80 6867
+# plaintextpassword: {3DES}X1Y2Z3
+#
+# defines a terminal that may register with an H.323 ID of "markus.storm@mediaways.net"
+# and E.164 ID of +49 5246 80 1867 and +49 5246 80 6867.
+# H.235 is required and triple DES was used to create the encrypted password "X1Y2Z3".
+# 
+
+# Residential gateways are referenced by a LDAP-like representation of their DNS name.
+# Only the last element needs to be the search root common to both, terminal
+# and gateway subtrees. The following example represents a gateway.
+#  It's DNS name tbag-gtso-de01.voip.mediaways.net resolves to IP 1.2.3.4 .
 
 #
-# End of $Source$
+# (Residential) gateways are represented as follows:
 #
+# dn: dc=tbag-gtso-de01, dc=voip, o=mediaways.net
+# objectclass:     voIPProperty
+# mail:            tbag-gtso-de01@voip.mediaways.net
+# voIPip:          1.2.3.4
+# telephonenumber: +49 5241 80 ....
+# telephonenumber: +49 5241 80 20...
+
+# This gateway is not required to use H.235 but it is authenticated by it's
+# packets' source IP address which is 1.2.3.4.
+# Calls to +49 5241 80 XXXX and +49 5241 80 20XXX are routed to this gateway
+# (X being a single cipher).
+#  A Call to e.g. +49 5241 80 21234 is NOT routed to this gateway.
+
