@@ -123,6 +123,8 @@ void NATClient::Stop()
 
 void NATClient::Exec()
 {
+	ReadLock lockConfig(ConfigReloadMutex);
+	
 	socket = new CallSignalSocket;
 	socket->SetPort(gkport);
 	if (socket->Connect(gkip)) {
@@ -137,6 +139,8 @@ void NATClient::Exec()
 	delete socket;
 	socket = 0;
 	int retryInterval = GkConfig()->GetInteger(EndpointSection, "NATRetryInterval", 60);
+
+	ReadUnlock unlockConfig(ConfigReloadMutex);
 	Wait(retryInterval * 1000);
 }
 
@@ -147,6 +151,8 @@ bool NATClient::DetectIncomingCall()
 			EndpointSection, "NATKeepaliveInterval", 86400
 			); // one day
 		SendInfo(Q931::CallState_IncomingCallProceeding);
+
+		ReadUnlock unlockConfig(ConfigReloadMutex);
 		while (socket->IsOpen() && --retry > 0)
 			if (socket->IsReadable(1000)) // one second
 				return socket->IsOpen();

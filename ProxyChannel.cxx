@@ -70,9 +70,11 @@ WORD PortRange::GetPort()
 void PortRange::LoadConfig(const char *sec, const char *setting, const char *def)
 {
 	PStringArray cfgs = GkConfig()->GetString(sec, setting, def).Tokenise(",.:-/'", FALSE);
-	if (cfgs.GetSize() >= 2) // no such a setting in config
-		port = minport = (WORD)cfgs[0].AsUnsigned(), maxport = (WORD)cfgs[1].AsUnsigned();
-	else
+	if (cfgs.GetSize() >= 2) {
+		minport = (WORD)cfgs[0].AsUnsigned(), maxport = (WORD)cfgs[1].AsUnsigned();
+		if (port < minport || port > maxport)
+			port = minport;
+	} else
 		port = 0;
 	PTRACE_IF(2, port, setting << ": " << minport << '-' << maxport);
 }
@@ -2037,6 +2039,8 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 
 void CallSignalSocket::Dispatch()
 {
+	ReadLock lock(ConfigReloadMutex);
+	
 	const PTime channelStart;
 	const int setupTimeout = PMAX(GkConfig()->GetInteger(RoutedSec,"SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
 	int timeout = setupTimeout;
@@ -2049,11 +2053,14 @@ void CallSignalSocket::Dispatch()
 
 	while (timeout > 0) {
 
-		if (!IsReadable(timeout)) {
-			PTRACE(3, "Q931\tTimed out waiting for initial Setup message from " << GetName());
-			break;
+		{
+			ReadUnlock unlockConfig(ConfigReloadMutex);
+			if (!IsReadable(timeout)) {
+				PTRACE(3, "Q931\tTimed out waiting for initial Setup message from " << GetName());
+				break;
+			}
 		}
-
+		
 		switch (ReceiveData())
 		{
 			case NoData:
@@ -2072,7 +2079,11 @@ void CallSignalSocket::Dispatch()
 							GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
 							SOL_SOCKET
 							);
-					if (!remote->IsReadable(2*setupTimeout)) {
+							
+					ConfigReloadMutex.EndRead();
+					const bool isReadable = remote->IsReadable(2*setupTimeout);
+					ConfigReloadMutex.StartRead();
+					if (!isReadable) {
 						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
 						if( m_call ) {
 							m_call->SetDisconnectCause(Q931::TimerExpiry);
@@ -2766,6 +2777,7 @@ bool T120ProxySocket::ForwardData()
 
 void T120ProxySocket::Dispatch()
 {
+	ReadLock lock(ConfigReloadMutex);
 	PTRACE(4, "T120\tConnected from " << GetName());
 	t120lc->Create(this);
 }
@@ -2781,21 +2793,23 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 	rtcp = new UDPProxySocket("RTCP");
 	SetNAT(nated);
 
-	// try to get an available port 10 times
-	for (int i = 0; i < 10; ++i) {
-		port = GetPortNumber();
+	const int startport = port = GetPortNumber();
+	
+	do {
 		// try to bind rtp to an even port and rtcp to the next one port
 		if (rtp->Bind(port) && rtcp->Bind(port + 1))
 			return;
 
-		PTRACE(3, "RTP\tPort " << port << " not available");
+		PTRACE(2, "RTP\tPort " << port << " not available");
 		rtp->Close(), rtcp->Close();
-		// try next...
-	}
-	delete rtp;
-	delete rtcp;
-	// Oops...
-	throw NoPortAvailable();
+		
+		if (port == 0)
+			break;
+		else
+			port = GetPortNumber();
+	} while (port != startport);
+
+	PTRACE(2, "RTP\tLogical channel " << flcn << " could not be established - out of RTP sockets");
 }
 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
@@ -2926,7 +2940,8 @@ WORD RTPLogicalChannel::GetPortNumber()
 	WORD port = RTPPortRange.GetPort();
 	if (port & 1) // make sure it is even
 		port = RTPPortRange.GetPort();
-	RTPPortRange.GetPort(); // skip one
+	if (port != 0)
+		RTPPortRange.GetPort(); // skip one
 	return port;
 }
 
@@ -3614,7 +3629,7 @@ void HandlerList::LoadConfig()
 	Q931PortRange.LoadConfig(RoutedSec, "Q931PortRange");
 	H245PortRange.LoadConfig(RoutedSec, "H245PortRange");
 	T120PortRange.LoadConfig(ProxySection, "T120PortRange");
-	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange", "10000-59999");
+	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange");
 
 	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 1);
 	if (m_numSigHandlers < 1)

@@ -114,6 +114,17 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+A missing lock during config reload caused the gatekeeper to crash.
+
+<item>
+More reliable port number selection for Q.931, H.245, T.120 and RTP
+port ranges (earlier, a config reload could cause many calls to fail
+because of unability to allocate a new socket).
+
+<item>
+Default value for RTPPortRange is now to let the OS select a port number.
+
+<item>
 More flexible rewrite rules (both global and per-gw) with new '.' and '%'
 wildcard characters.
 
@@ -1573,13 +1584,13 @@ It's usually used for billing purpose.
 Only valid if <tt/ForwardOnFacility=1/.
 
 <item><tt/Q931PortRange=20000-20999/<newline>
-Default: <tt/0/ (random)
+Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for Q.931 signalling channels.
 Note the range size may limit the number of concurrent calls.
 
 <item><tt/H245PortRange=30000-30999/<newline>
-Default: <tt/0/ (random)
+Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for H.245 control channels.
 Note the range size may limit the number of concurrent calls.
@@ -1649,13 +1660,13 @@ CIDR notation (prefix length), as shown in the example.
 </descrip>
 
 <item><tt/T120PortRange=40000-40999/<newline>
-Default: <tt/0/ (random)
+Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for T.120 data channels.
 Note the range size may limit the number of concurrent calls.
 
 <item><tt/RTPPortRange=50000-59999/<newline>
-Default: <tt/10000-59999/
+Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of UDP port number for RTP/RTCP channels.
 Note the range size may limit the number of concurrent calls.

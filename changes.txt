@@ -1,5 +1,11 @@
 Changes from 2.2.0 to 2.2.1
 ===========================
+- (ProxyChannel.cxx) critical fix - a missing lock during config reload
+  caused the gatekeeper to crash
+- (ProxyChannel.cxx) more reliable port number selection for Q.931, H.245, 
+  T.120 and RTP port ranges (before, a config reload could cause many calls 
+  to fail because of unability to get a new socket)
+- (ProxyChannel.cxx) default setting for RTPPortRange is now to let the OS select a port number
 - more flexible rewrite rules (both global and per-gw) with '.' and '%'
   wildcard characters
 - security fix for socket handle/select oveflow issue
