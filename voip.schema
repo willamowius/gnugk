@@ -11,12 +11,12 @@
 # CHANGES:
 # 2002-01-07, storm
 #   add specialDial attribute
-#   add recursive LDAP browsing hint
+#   add examples
 #   minor corrections
 # 2002-01-03, storm
 #   removed CountryCode, AreaCode (moved into telephonenumber)
-#   refine syntax definition of telephonenumber, dn
-#   voIPIAC -> voIPINAC, voIPcallingLineIdPresentation -> voIPcallingLineIdRestriction
+#   precisely define telephonenumber syntax
+#   voIPiac -> voIPinac, voIPcallingLineIdPresentation -> voIPcallingLineIdRestriction
 #   remove unused attributes: cn, uid
 #   remove non-essential attributes: voIPnickname, pincode, facsimiletelephonenumber
 #   include all attributes as MAY in voIPProperty
@@ -74,6 +74,7 @@
 # voIPlocalAccessCode		    | HERE
 # voIPnationalAccessCode	    | HERE
 # voIPinternationalAccessCode	    | HERE
+# voIPsubscriberNumber	            | HERE
 # voIPcallingLineIdRestriction	    | HERE
 # voIPspecialDial                   | HERE
 # voIPprefixBlacklist               | HERE
@@ -190,7 +191,14 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2040
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2050
+attributeType ( 1.3.6.1.4.1.9564.2.5.2050 
+  NAME ( 'voIPsubscriberNumber' 'voIPsn' )
+  DESC 'The prefix code indicating the access to international calls'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
+  SINGLE-VALUE
+ )
+
+attributeType ( 1.3.6.1.4.1.9564.2.5.2060
   NAME ( 'voIPcallingLineIdRestriction' 'voIPclir' )
   DESC 'Indicates whether the calling line ID is to be restricted'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
@@ -199,35 +207,37 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2050
 
 # NOTE:
 # voIPspecialDial attributes must contain values of the format
-# <special>=<telephonenumber>, e.g. "110=+49 5241 80 1000".
+# <special>=<telephonenumber>, e.g. "110=+49 5241 80 1234".
 # special may be an arbitrary E.164 string while telephonenumber must match
 # the format used in the telephonenumber attribute.
 # This attribute is multi-valued to allow for multiple special number
-# conversions. Emergency call numbers (110, 112 in Germany) are implemented
-# like this
+# conversions. Emergency call numbers are implemented
+# like this to convert 911 (110, 112 in Germany) to the closest possible
+# local number.
+# 
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2060 NAME 'voIPspecialDial'
+attributeType ( 1.3.6.1.4.1.9564.2.5.2070 NAME 'voIPspecialDial'
+  EQUALITY numericStringMatch
+  DESC 'network-side, user specific number conversions'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
+ )
+
+# NOTE: reserved for future use only
+attributeType ( 1.3.6.1.4.1.9564.2.5.2080 NAME 'voIPprefixBlacklist'
   EQUALITY numericStringMatch
   DESC 'A blocked prefix for this user'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
-# NOTE: reserved for future use
-attributeType ( 1.3.6.1.4.1.9564.2.5.2070 NAME 'voIPprefixBlacklist'
-  EQUALITY numericStringMatch
-  DESC 'A blocked prefix for this user'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
- )
-
-# NOTE: reserved for future use
-attributeType ( 1.3.6.1.4.1.9564.2.5.2080 NAME 'voIPprefixWhitelist'
+# NOTE: reserved for future use only
+attributeType ( 1.3.6.1.4.1.9564.2.5.2090 NAME 'voIPprefixWhitelist'
   EQUALITY numericStringMatch
   DESC 'An accessible prefix for this user'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
  )
 
 
-# A.4) Object Classes
+# A.4) Object classes dedicated to VoIP. They are defined HERE.
 
 objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
   SUP top ABSTRACT
@@ -240,7 +250,9 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 
 
 
-# B) recommended tree structure and examples
+# B) LDAP tree structure
+
+# B.1) recommended tree structure
 #
 # You do not need to setup your LDAP tree like this. It's just a recommendation.
 # The exact format of the dn is irrelevant and therefore any existing format
@@ -254,18 +266,21 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # To allow for further, LDAP-like representation below this root, entries need not
 # be direct childs of the search root. In the following example, "ou=mediaWays"
 # is a organizational unit representing the customer "mediaWays". Other ou's like
-# "ou=customerX,o=mediaways.net" may exist and contain VoIP entries to be used.
+# "ou=customerX, o=mediaways.net" may exist and contain VoIP entries to be used.
 
 # NOTE: 
 # Default values may be stored as attributes to parent nodes, i.e.
-# Values stored further down the tree override values higher up in the tree.
+# Values stored down the tree override values higher up in the tree.
 # Browsing up the tree can stop when encountering top nodes.
 # Top nodes are the highest nodes within a subtree that still contain the
 # voIPProperty objectclass.
+
+
+# B.2) Examples
 # 
 # The following LDAP entry
 #
-# dn: uid=sto36, ou=mediaways, o=mediaways.net
+# dn: cn=Markus Storm, ou=mediaWays, o=mediaways.net
 # objectclass:       voIPProperty
 # mail:              markus.storm@mediaways.net
 # telephonenumber:   +49 5246 80 1867
@@ -278,9 +293,9 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # 
 
 # Residential gateways are referenced by a LDAP-like representation of their DNS name.
-# Only the last element needs to be the search root common to both, terminal
-# and gateway subtrees. The following example represents a gateway.
-#  It's DNS name tbag-gtso-de01.voip.mediaways.net resolves to IP 1.2.3.4 .
+# Only the last element needs to be common to both, terminal and gateway subtrees to serve
+# as the  search root. The following example represents a gateway.
+# It's DNS name tbag-gtso-de01.voip.mediaways.net resolves to IP address 1.2.3.4 .
 
 #
 # (Residential) gateways are represented as follows:
@@ -291,7 +306,11 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # voIPip:          1.2.3.4
 # telephonenumber: +49 5241 80 ....
 # telephonenumber: +49 5241 80 20...
-
+#
+# The dn is built of multiple dc parts (domain components) that represent
+# the gateway's DNS name. The o=mediaways.net is the search root common to
+# both subtrees, the one storing terminal and the other storing gateways.
+#
 # This gateway is not required to use H.235 but it is authenticated by it's
 # packets' source IP address which is 1.2.3.4.
 # Calls to +49 5241 80 XXXX and +49 5241 80 20XXX are routed to this gateway
