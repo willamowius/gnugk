@@ -276,6 +276,8 @@ public:
 	}
 #endif
 
+	IPSocket* Self() const { return self; }
+	
 protected:
 	virtual bool WriteData(const BYTE *, int);
 	bool InternalWriteData(const BYTE *, int);

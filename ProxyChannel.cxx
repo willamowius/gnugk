@@ -1891,6 +1891,12 @@ void CallSignalSocket::Dispatch()
 	const int setupTimeout = PMAX(GkConfig()->GetInteger(RoutedSec,"SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
 	int timeout = setupTimeout;
 
+	if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
+		Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
+			GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+			SOL_SOCKET
+			);
+
 	while (timeout > 0) {
 
 		if (!IsReadable(timeout)) {
@@ -1911,6 +1917,11 @@ void CallSignalSocket::Dispatch()
 
 			case Connecting:
 				if (InternalConnectTo()) {
+					if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
+						remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
+							GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+							SOL_SOCKET
+							);
 					if (!remote->IsReadable(2*setupTimeout)) {
 						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
 						if( m_call ) {
@@ -1923,7 +1934,12 @@ void CallSignalSocket::Dispatch()
 				}
 
 			case Forwarding:
-				if (remote && IsConnected()) { // remote is NAT socket
+				if (remote && remote->IsConnected()) { // remote is NAT socket
+					if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
+						remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
+							GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+							SOL_SOCKET
+							);
 					ForwardData();
 // in case of NAT socket, IsReadable cause race condition if the remote socket
 // is selected by its proxy handler, thanks to Daniel Liu

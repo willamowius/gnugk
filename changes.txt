@@ -1,5 +1,7 @@
 Changes from 2.2.0 to 2.2.1
 ===========================
+- new TcpKeepAlive option to remove problem with network errors and hanging
+  calls (see docs/keepalive.txt for more details)
 - RadAuth/RadAliasAuth modules can now add/remove endpoint aliases during
   endpoint registration (using h323-ivr-in=terminal-alias: Cisco AV-Pair)
 - per-call proxy control
