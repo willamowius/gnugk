@@ -1,3 +1,7 @@
+22 Jun 2004 -- zvision
+  * better handling of IP only authorization - changed user account binding 
+    order - IP only users are searched first, then search by h323id is performed
+
 17 Jun 2004 -- zvision
   * BUGFIX: accounting_update_query changed to not check h323id in order
     to allow IP only authorization

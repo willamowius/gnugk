@@ -131,10 +131,10 @@ DECLARE
 	userid INT := NULL;
 BEGIN
 	SELECT INTO userid id FROM voipuser
-		WHERE checkh323id AND h323id = userh323id AND NOT disabled;
+		WHERE NOT checkh323id AND userip >>= framedip AND NOT disabled;
 	IF NOT FOUND OR userid IS NULL THEN
 		SELECT INTO userid id FROM voipuser
-			WHERE NOT checkh323id AND userip >>= framedip AND NOT disabled;
+			WHERE checkh323id AND h323id = userh323id AND NOT disabled;
 	END IF;
 	RETURN userid;
 END;
