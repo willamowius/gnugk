@@ -779,6 +779,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		return Error;
 	}
 
+	delete m_receivedQ931;
+
 	m_receivedQ931 = new Q931(q931pdu);
 
 	PTRACE(1, "Q931\t" << Name() << " Message type: " << q931pdu.GetMessageTypeName());
