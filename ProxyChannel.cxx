@@ -668,27 +668,66 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	if (!ReadTPKT())
 		return IsOpen() ? NoData : Error;
 
-	if (!m_lastQ931->Decode(buffer)) {
-		PTRACE(4, "Q931\t" << GetName() << " ERROR DECODING Q.931!");
+	Q931* q931pdu = new Q931();
+	
+	if (!q931pdu->Decode(buffer)) {
+		PTRACE(2, "Q931\t" << GetName() << " ERROR DECODING Q.931!");
+		delete q931pdu;
 		return Error;
 	}
 
 	bool changed = false;
-	PTRACE(3, Type() << "\tReceived: " << m_lastQ931->GetMessageTypeName() << " CRV=" << m_lastQ931->GetCallReference() << " from " << GetName());
+	PTRACE(3, Type() << "\tReceived: " << q931pdu->GetMessageTypeName() << " CRV=" << q931pdu->GetCallReference() << " from " << GetName());
 
 	m_result = Forwarding;
 
 	H225_H323_UserInformation signal, *psignal = 0;
-	if (GetUUIE(*m_lastQ931, signal, GetName())) {
+	if (GetUUIE(*q931pdu, signal, GetName())) {
 		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
 		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+		
+		PrintQ931(4, "Received:", "", q931pdu, psignal = &signal);
+		
+		if (remote && body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup) {
+			const WORD newcrv = q931pdu->GetCallReference();
+			if (m_crv && newcrv == (m_crv & 0x7fffu))
+				PTRACE(2, "Q931\tWarning: duplicate Setup - ignored!");
+			else {
+				PTRACE(4, "Q931\tMultiple calls over single signalling channel not supported - new connection needed");
+				
+				Q931 releasePDU;
+				H225_H323_UserInformation userInfo;
+				H225_H323_UU_PDU_h323_message_body& msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
+				msgBody.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
+				H225_ReleaseComplete_UUIE& uuie = msgBody;
+				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+				uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_reason);
+				uuie.m_reason.SetTag(H225_ReleaseCompleteReason::e_newConnectionNeeded);
+				if (((H225_Setup_UUIE&)body).HasOptionalField(H225_Setup_UUIE::e_callIdentifier))
+					uuie.m_callIdentifier = ((H225_Setup_UUIE&)body).m_callIdentifier;
+				releasePDU.BuildReleaseComplete(newcrv, TRUE);
+				SetUUIE(releasePDU, userInfo);
+				PrintQ931(5, "Send to ", remote->GetName(), &releasePDU, &userInfo);
+				
+				PBYTEArray buf;
+				if( releasePDU.Encode(buf) )
+					TransmitData(buf);
+				else
+					PTRACE(3,"Q931\tFailed to encode message "<<releasePDU);
+			}
+			delete q931pdu;
+			return NoData;
+		} else {
+			delete m_lastQ931;
+			m_lastQ931 = q931pdu;
+		}
+
 		if (m_h245Tunneling)
 #if H225_PROTOCOL_VERSION >= 4
 			if(!pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
 #endif
 			m_h245Tunneling = (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling) && pdu.m_h245Tunneling.GetValue());
 
-		PrintQ931(4, "Received:", "", m_lastQ931, psignal = &signal);
 
 		switch (body.GetTag())
 		{
@@ -756,6 +795,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (changed)
 			SetUUIE(*m_lastQ931, signal);
 	} else { // not have UUIE
+		delete m_lastQ931;
+		m_lastQ931 = q931pdu;
 		PrintQ931(4, "Received:", "", m_lastQ931, 0);
 	}
 /*

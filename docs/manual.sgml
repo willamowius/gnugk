@@ -114,6 +114,10 @@ The version 2.2beta4 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Multiple calls over a single signalling channel are now gracefully handled 
+using ReleaseComplete with the newConnectionNeeded indication
+
+<item>
 Permanent endpoints are correctly reloaded now, with removal
 of permanent endpoints for which config entries have been deleted
 

@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- BUGFIX(ProxyChannel.cxx) multiple calls over a single signalling channel
+  are now gracefully handled using ReleaseComplete with newConnectionNeeded code.
 - (RasTbl.cxx) permanent endpoints are correctly reloaded now, with removal
   of permanent endpoints for which config entries have been deleted
 - (gkauth.cxx) depreciated ExternalPasswordAuth finally removed
