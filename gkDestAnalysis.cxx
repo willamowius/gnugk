@@ -230,10 +230,15 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 	// get callRec
 	callptr callRec = CallTable::Instance()->FindCallRec(cgEP);
 
+	if (callptr(NULL)==callRec)
+		return e_fail;
+
 	H225_AliasAddress destAlias = cdAlias;
 
 	// get srcH323ID from cgProfile (for searching cgEP in databases)
-	PString srcH323IDStr = callRec->GetCallingProfile().getH323ID();
+	CallingProfile cgpf = callRec->GetCallingProfile();
+
+	PString srcH323IDStr = cgpf.getH323ID();
 	// if srcH323ID was not found (destAnalysis is called the first time
 	//   for this cgEP)
 	if (srcH323IDStr.IsEmpty()) {
@@ -375,7 +380,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 		// if a profile exists we search for an endpoint in existing databases
 		PTRACE(3, "searching for EP in databases");
 		BOOL profileExists = !callRec->GetCallingProfile().getH323ID().IsEmpty();
-		if (profileExists && !db->prefixMatch(destAlias, TelephoneNo, matchFound, fullMatch, gwFound, dbType)) {
+		if (profileExists && !db->prefixMatch(destAlias, TelephoneNo, matchFound, fullMatch, gwFound, dbType, callRec->GetCalledProfile())) {
 			PTRACE(1, "Database access failed!");
 		} else {
 			if (profileExists) {
@@ -383,6 +388,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 			}
 			if (profileExists && fullMatch) {
 				// ARJ (calledPartyNotRegistered)
+				// Is GK?
 				reason = H225_AdmissionRejectReason::e_calledPartyNotRegistered;
 				cdEP = endptr(0);
 				statusRoutingDecision = e_fail;
