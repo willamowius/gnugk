@@ -84,6 +84,85 @@ SOURCES         += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
 		add.cxx           getattr.cxx  result.cxx    getresults.cxx \
 		bind.cxx          getdn.cxx    messages.cxx  search.cxx ldaplink.cxx
 
+CLEAN_FILES     += LDAP_SBindRequest_authentication.cxx      compare.cxx  \
+		LDAP_SFilter.cxx  delete.cxx   init.cxx      options.cxx \
+		abandon.cxx       free.cxx     parse.cxx     modify.cxx \
+		add.cxx           getattr.cxx  result.cxx    getresults.cxx \
+		bind.cxx          getdn.cxx    messages.cxx  search.cxx 
+
+HAS_LDAP	= 1
+#STDCCFLAGS_stub := $(STDCCFLAGS)
+STDCCFLAGS	+= -I./ -D"HAS_LDAP=$(HAS_LDAP)" \
+                   -D"HAS_LEVEL_TWO_LDAPAPI=$(HAS_LEVEL_TWO_LDAPAPI)" -D"LDAPVERSION=2"
+
+else
+ifdef HAVE_LDAP1823_HDRS
+ifdef HAVE_LDAP1823_LIBS
+SOURCES         += ldaplink.cxx
+ENDLDLIBS	+= -lldap
+HAS_LDAP	= 1
+export HAS_LDAP
+# due to the unwise naming of the libH323 header, the std. header 'ldap.h'
+# would be hooded, if the include search path would not PREpended
+STDCCFLAGS_stub := $(STDCCFLAGS)
+STDCCFLAGS	= -D"HAS_LDAP=$(HAS_LDAP)" -I$(LDAP1823DIR) $(STDCCFLAGS_stub)
+LDFLAGS         += -L$(LDAP1823LIBDIR)
+ifneq (,(LD_RUN_PATH))
+LD_RUN_stub     := $(LD_RUN_PATH)
+LD_RUN_PATH     += $(LD_RUN_stub):$(LDAP1823LIBDIR)
+else
+LD_RUN_PATH     += $(LDAP1823LIBDIR)
+endif
+export LD_RUN_PATH
+endif
+endif
+endif
+
+endif
+# end of LDAP configuration
+
+
+# MySQL support
+# has to be added after LDAP support because order of -I options is crucial
+ifndef NO_MYSQL
+ifndef MYSQLDIR
+ifneq (,$(wildcard /usr/include/mysql/mysql++))
+MYSQLDIR := /usr/include/mysql
+export MYSQLDIR
+endif
+endif
+
+ifdef MYSQLDIR
+ifneq (,$(wildcard $(MYSQLDIR)))
+STDCCFLAGS_stub := $(STDCCFLAGS)
+STDCCFLAGS	= -DHAS_MYSQL -I$(MYSQLDIR) $(STDCCFLAGS_stub)
+#LDFLAGS	+= -L$(MYSQLDIR)/lib
+ENDLDLIBS	+= -lsqlplus
+HAS_MYSQL	= 1
+endif
+endif
+endif
+
+ifndef PWLIBDIR
+PWLIBDIR=$(HOME)/pwlib
+endif
+
+include $(PWLIBDIR)/make/ptlib.mak
+
+addpasswd: $(OBJDIR)/addpasswd
+
+# Extra dependencies
+RasSrv.o: RasSrv.cxx
+RasSrv.cxx: RasSrv.h
+RasSrv.cxx: RasTbl.h
+RasTbl.cxx: RasTbl.h
+RasTbl.o: RasTbl.cxx
+SignalChannel.o: SignalChannel.h
+SignalConnection.o: SignalConnection.h
+CallTbl.o: CallTbl.h
+BroadcastListen.cxx: BroadcastListen.h
+
+ifdef HAS_LEVEL_TWO_LDAPAPI
 LDAP_SBindRequest_authentication.cxx: ldap/src/LDAP_SBindRequest_authentication.cxx LDAP_SBindRequest_authentication.h
 	cp ldap/src/LDAP_SBindRequest_authentication.cxx .
 
@@ -158,77 +237,6 @@ search.cxx: ldap/src/search.cxx ldap-int.h ldapapi.h
 
 getresults.cxx: ldap/src/getresults.cxx ldap-int.h ldapapi.h
 	cp ldap/src/getresults.cxx .
-
-HAS_LDAP	= 1
-#STDCCFLAGS_stub := $(STDCCFLAGS)
-STDCCFLAGS	+= -I./ -D"HAS_LDAP=$(HAS_LDAP)" \
-                   -D"HAS_LEVEL_TWO_LDAPAPI=$(HAS_LEVEL_TWO_LDAPAPI)" -D"LDAPVERSION=2"
-
-else
-ifdef HAVE_LDAP1823_HDRS
-ifdef HAVE_LDAP1823_LIBS
-SOURCES         += ldaplink.cxx
-ENDLDLIBS	+= -lldap
-HAS_LDAP	= 1
-export HAS_LDAP
-# due to the unwise naming of the libH323 header, the std. header 'ldap.h'
-# would be hooded, if the include search path would not PREpended
-STDCCFLAGS_stub := $(STDCCFLAGS)
-STDCCFLAGS	= -D"HAS_LDAP=$(HAS_LDAP)" -I$(LDAP1823DIR) $(STDCCFLAGS_stub)
-LDFLAGS         += -L$(LDAP1823LIBDIR)
-ifneq (,(LD_RUN_PATH))
-LD_RUN_stub     := $(LD_RUN_PATH)
-LD_RUN_PATH     += $(LD_RUN_stub):$(LDAP1823LIBDIR)
-else
-LD_RUN_PATH     += $(LDAP1823LIBDIR)
 endif
-export LD_RUN_PATH
-endif
-endif
-endif
-
-endif
-# end of LDAP configuration
-
-
-# MySQL support
-# has to be added after LDAP support because order of -I options is crucial
-ifndef NO_MYSQL
-ifndef MYSQLDIR
-ifneq (,$(wildcard /usr/include/mysql/mysql++))
-MYSQLDIR := /usr/include/mysql
-export MYSQLDIR
-endif
-endif
-
-ifdef MYSQLDIR
-ifneq (,$(wildcard $(MYSQLDIR)))
-STDCCFLAGS_stub := $(STDCCFLAGS)
-STDCCFLAGS	= -DHAS_MYSQL -I$(MYSQLDIR) $(STDCCFLAGS_stub)
-#LDFLAGS	+= -L$(MYSQLDIR)/lib
-ENDLDLIBS	+= -lsqlplus
-HAS_MYSQL	= 1
-endif
-endif
-endif
-
-ifndef PWLIBDIR
-PWLIBDIR=$(HOME)/pwlib
-endif
-
-include $(PWLIBDIR)/make/ptlib.mak
-
-addpasswd: $(OBJDIR)/addpasswd
-
-# Extra dependencies
-RasSrv.o: RasSrv.cxx
-RasSrv.cxx: RasSrv.h
-RasSrv.cxx: RasTbl.h
-RasTbl.cxx: RasTbl.h
-RasTbl.o: RasTbl.cxx
-SignalChannel.o: SignalChannel.h
-SignalConnection.o: SignalConnection.h
-CallTbl.o: CallTbl.h
-BroadcastListen.cxx: BroadcastListen.h
 
 # end
