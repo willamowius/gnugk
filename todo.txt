@@ -90,8 +90,8 @@ avoid duplicate work.
 
 - fix: move MySQLAliasAuth into DBAliasAuth scheme
 
-- feature: ability to use caller's cc, ac, sn placeholders in RewriteE164
-  So e.g. emergency calls can be implemented as "911=<cc><ac>911"
+- feature: ability to use caller's cc, ndc, sn placeholders in RewriteE164
+  So e.g. emergency calls can be implemented as "911=<cc><ndc>911"
 
 - fix: honor Q.931 "sending complete" flag
 
