@@ -812,6 +812,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTerminationCause *cause) const
 {
+	ReleasePDU.BuildReleaseComplete(m_crv, m_crv & 0x8000u);
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
@@ -832,7 +833,6 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 			ReleasePDU.SetIE(Q931::CauseIE, strm);
 		}
 	}
-	ReleasePDU.BuildReleaseComplete(m_crv, m_crv & 0x8000u);
 	SetUUIE(ReleasePDU, signal);
 
 	PrintQ931(5, "Send to " + GetName(), &ReleasePDU, &signal);
