@@ -170,6 +170,12 @@ void EndpointRec::SetTimeToLive(int seconds)
 	}
 }
 
+void EndpointRec::SetPermanent(bool b)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_timeToLive = (!b && SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 0;
+}
+
 void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -738,7 +744,8 @@ void RegistrationTable::LoadConfig()
 		rrq.m_callSignalAddress.SetSize(1);
 		SetIpAddress(cfgs.GetKeyAt(i), rrq.m_callSignalAddress[0]);
 		// is the endpoint exist?
-		if (FindBySignalAdr(rrq.m_callSignalAddress[0])) {
+		if (endptr e = FindBySignalAdr(rrq.m_callSignalAddress[0])) {
+			e->SetPermanent();
 			PTRACE(3, "Endpoint " << AsDotString(rrq.m_callSignalAddress[0]) << " exists, ignore!");
 			continue;
 		}
@@ -1160,7 +1167,7 @@ void CallTable::InternalRemove(iterator Iter)
 	if (call->GetCallingAddress() == 0)
 		++m_neighborCall;
 
-	call->StopTimer();
+//	call->StopTimer();
 	call->RemoveAll();
 
 	RemovedList.push_back(call);

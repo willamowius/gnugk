@@ -133,6 +133,7 @@ public:
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
 	virtual void SetTimeToLive(int);
+	virtual void SetPermanent(bool = true);
 	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
 	virtual void SetEndpointType(const H225_EndpointType &);
 

@@ -54,6 +54,7 @@ endif
 
 include $(PWLIBDIR)/make/ptlib.mak
 
+addpasswd:	obj_linux_x86_r/addpasswd
 
 # Extra dependencies
 RasSrv.o: RasSrv.cxx
