@@ -1442,7 +1442,7 @@ bool RegistrationRequestPDU::Process()
 			//if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') )
 			if (s.GetLength() < 1)
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
-			if (!nated)
+			if (!nated && !s)
 				nated = Kit->Config()->HasKey("NATedEndpoints", s);
 		}
 	} else {

@@ -504,8 +504,11 @@ bool GatewayRec::LoadConfig()
 	if (Toolkit::AsBool(GkConfig()->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
 		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
 			AddPrefixes(m_terminalType->m_gateway.m_protocol);
-	for (PINDEX i=0; i<m_terminalAliases.GetSize(); i++)
-		AddPrefixes(GkConfig()->GetString("RasSrv::GWPrefixes", H323GetAliasAddressString(m_terminalAliases[i]), ""));
+	for (PINDEX i=0; i<m_terminalAliases.GetSize(); i++) {
+		const PString alias = H323GetAliasAddressString(m_terminalAliases[i]);
+		if (!alias)
+			AddPrefixes(GkConfig()->GetString("RasSrv::GWPrefixes", alias, ""));
+	}
 	SortPrefixes();
 	return true;
 }

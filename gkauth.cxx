@@ -1190,6 +1190,8 @@ bool SimplePasswordAuth::GetPassword(
 	PString& passwd /// filled with the password on return
 	)
 {
+	if (id.IsEmpty())
+		return false;
 	if (!GetConfig()->HasKey(GetName(), id))
 		return false;
 	if (strcasecmp(id, "KeyFilled") == 0 || strcasecmp(id, "CheckID") == 0
@@ -1487,6 +1489,8 @@ bool AliasAuth::GetAuthConditionString(
 	PString& authCond
 	)
 {
+	if (alias.IsEmpty())
+		return false;
 	if (!GetConfig()->HasKey("RasSrv::RRQAuth", alias))
 		return false;
 	if (strcasecmp(alias, "CacheTimeout") == 0) {
