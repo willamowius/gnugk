@@ -193,6 +193,7 @@ private:
 	void StartTimer();
 	void StopTimer();
 	PDECLARE_NOTIFIER(PTimer, CallSignalSocket, OnTimeout);
+	PDECLARE_NOTIFIER(PTimer, CallSignalSocket, OnT302Timeout);
 	void OnTimeout();
 	void SendStatusEnquiryMessage();
 	void BuildReleasePDU(Q931 &) const;
@@ -227,6 +228,7 @@ private:
 	PTimer * m_StatusEnquiryTimer; // This timer will be set to the time between 2 ping (i.e. 1 minute)
 	PTimer * m_StatusTimer;        // This timer will be set to the maximum wait time for the status message
 	                               // (aka pong message)
+	PTimer m_t302;
 	BOOL m_replytoStatusMessage;
 
 	mutable PMutex m_lock;
