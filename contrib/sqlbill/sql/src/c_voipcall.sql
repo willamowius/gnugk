@@ -74,7 +74,7 @@ CREATE TABLE voipcall (
   acctstoptime TIMESTAMP WITH TIME ZONE,
   -- delay (seconds) for the acctstoptime
   acctstopdelay INT DEFAULT 0 NOT NULL,
-  
+
   PRIMARY KEY(id),
   FOREIGN KEY (accountid) REFERENCES voipaccount(id)
 ) WITHOUT OIDS;

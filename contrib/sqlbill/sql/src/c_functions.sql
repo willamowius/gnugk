@@ -76,24 +76,30 @@ DECLARE
 	accid ALIAS FOR $2;
 	curr ALIAS FOR $3;
 BEGIN
-	SELECT INTO trf NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL;
-	SELECT INTO dst NULL, NULL, NULL, NULL;
+	SELECT INTO trf.id NULL;
+	SELECT INTO dst.id NULL;
 	IF e164 IS NULL THEN
 		RETURN trf;
 	END IF;
-	-- find an active destination for the given e164 (longest prefix match)
-	IF length(e164) > 0 THEN
-		IF ascii(e164) >= 48 AND ascii(e164) <= 57 THEN
-			SELECT INTO dst * FROM voiptariffdst
-				WHERE active AND ascii(prefix) = ascii(e164)
-					AND (e164 LIKE (prefix || ''%''))
-				ORDER BY length(prefix) DESC
-				LIMIT 1;
-		ELSE
-			SELECT INTO dst * FROM voiptariffdst
-				WHERE active AND prefix = ''PC''
-				ORDER BY length(prefix) DESC
-				LIMIT 1;
+	-- first try to find an exact match
+	SELECT INTO dst * FROM voiptariffdst
+		WHERE active AND exactmatch AND prefix = e164
+		LIMIT 1;
+	-- then try a prefix like match
+	IF dst.id IS NULL THEN
+		-- find an active destination for the given e164 (longest prefix match)
+		IF length(e164) > 0 THEN
+			IF ascii(e164) >= 48 AND ascii(e164) <= 57 THEN
+				SELECT INTO dst * FROM voiptariffdst
+					WHERE active AND NOT exactmatch AND ascii(prefix) = ascii(e164)
+						AND (e164 LIKE (prefix || ''%''))
+					ORDER BY length(prefix) DESC
+					LIMIT 1;
+			ELSE
+				SELECT INTO dst * FROM voiptariffdst
+					WHERE active AND NOT exactmatch AND prefix = ''PC''
+					LIMIT 1;
+			END IF;
 		END IF;
 	END IF;
 	-- no active destination found
@@ -105,18 +111,59 @@ BEGIN
 			T.initialincrement, T.regularincrement, T.graceperiod, T.description, T.active
 		FROM voiptariff T JOIN voiptariffgrp G ON T.grpid = G.id 
 			JOIN voiptariffsel S ON G.id = S.grpid
-		WHERE dstid = dst.id AND currencysym = curr	AND S.accountid = accid
+		WHERE NOT T.terminating AND T.dstid = dst.id AND T.currencysym = curr
+			AND S.accountid = accid
 		ORDER BY G.priority DESC
 		LIMIT 1;
 	IF FOUND AND trf.id IS NOT NULL THEN
 		IF NOT trf.active THEN
-			SELECT INTO trf NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL;
+			SELECT INTO trf.id NULL;
 		END IF;
 		RETURN trf;
 	END IF;
 	
 	SELECT INTO trf * FROM voiptariff 
-		WHERE dstid = dst.id AND currencysym = curr AND grpid IS NULL AND active;
+		WHERE NOT terminating AND dstid = dst.id AND currencysym = curr
+			AND grpid IS NULL AND active;
+	RETURN trf;
+END;
+' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;
+
+-- This function tries to find a tariff with the longest prefix match
+-- $1 - voiptariffdst identifier
+-- $2 - account that the tariff should apply to
+-- $3 - currency for the tariff
+CREATE OR REPLACE FUNCTION match_terminating_tariff(INT, INT, TEXT)
+	RETURNS voiptariff AS
+'
+DECLARE
+	trf voiptariff%ROWTYPE;
+	dst_id ALIAS FOR $1;
+	acc_id ALIAS FOR $2;
+	curr ALIAS FOR $3;
+BEGIN
+	SELECT INTO trf.id NULL;
+	IF curr IS NULL OR dst_id IS NULL THEN
+		RETURN trf;
+	END IF;
+	
+	SELECT INTO trf T.id, T.dstid, T.grpid, T.price, T.currencysym,
+			T.initialincrement, T.regularincrement, T.graceperiod, T.description, T.active
+		FROM voiptariff T JOIN voiptariffgrp G ON T.grpid = G.id 
+			JOIN voiptariffsel S ON G.id = S.grpid
+		WHERE T.terminating AND T.dstid = dst_id AND T.currencysym = curr
+			AND S.accountid = acc_id
+		ORDER BY G.priority DESC
+		LIMIT 1;
+	IF FOUND AND trf.id IS NOT NULL THEN
+		IF NOT trf.active THEN
+			SELECT INTO trf.id NULL;
+		END IF;
+		RETURN trf;
+	END IF;
+	
+	SELECT INTO trf * FROM voiptariff 
+		WHERE terminating AND dstid = dst_id AND currencysym = curr AND grpid IS NULL AND active;
 	RETURN trf;
 END;
 ' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;
@@ -142,3 +189,38 @@ BEGIN
 	RETURN userid;
 END;
 ' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;
+
+-- This function tries to find a terminating user account based on the specified
+-- network address and/or H.323 identifier
+-- $1 - H.323 user's identifier or an E.164 number called
+-- $2 - whether the $1 is an H.323 Id or an E.164 number
+-- $3 - user's IP address 
+CREATE OR REPLACE FUNCTION match_terminating_user(TEXT, BOOLEAN, INET)
+	RETURNS voipuser AS
+'
+DECLARE
+	userh323id ALIAS FOR $1;
+	h323idmatch ALIAS FOR $2;
+	userip ALIAS FOR $3;
+	user voipuser%ROWTYPE;
+BEGIN
+	user.id := NULL;
+	IF h323idmatch THEN
+		SELECT INTO user * FROM voipuser
+			WHERE terminating AND h323id = userh323id AND NOT disabled;
+	END IF;
+	IF NOT FOUND OR user.id IS NULL THEN
+		SELECT INTO user * FROM voipuser
+			WHERE terminating AND framedip >>= userip AND NOT disabled;
+	END IF;
+	RETURN user;
+END;
+' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;
+
+-- Converts 'T'/'F' string into a boolean value
+CREATE OR REPLACE FUNCTION get_bool(TEXT)
+	RETURNS BOOLEAN AS
+'
+	SELECT CASE $1 WHEN ''T'' THEN TRUE ELSE FALSE END;
+' LANGUAGE SQL IMMUTABLE;
+	

@@ -1,13 +1,13 @@
-'Destination Name'	'Group'	'Net Price'	'VAT Tax'	'Final Price'	'Currency'	'Initial Increment'	'Regular Increment'	'Grace Period'
-'PC2PC'		0	0	0	'USD'	60	60	0
-'Australia'		0.1	0	0.1	'USD'	60	60	0
-'Australia - Mobiles'		0.4	0	0.4	'USD'	60	60	0
-'Germany'		0.05	0	0.05	'USD'	60	60	0
-'Germany - Premium'		15	0	15	'USD'	60	60	0
-'Germany - Mobiles'		0.4	0	0.4	'USD'	60	60	0
-'Germany - Special'		15	0	15	'USD'	60	60	0
-'Poland'		0.05	0	0.05	'USD'	60	60	0
-'Poland - Premium'		15	0	15	'USD'	60	60	0
-'Poland - Mobiles'		0.25	0	0.25	'USD'	60	60	0
-'Poland - Special'		15	0	15	'USD'	60	60	0
-'Poland - UMTS'		15	0	15	'USD'	60	60	0
+'Destination Name'	'Group'	'Net Price'	'VAT Tax'	'Final Price'	'Currency'	'Initial Increment'	'Regular Increment'	'Grace Period'	'Termination'
+'PC2PC'		0	0	0	'USD'	60	60	0	'F'
+'Australia'		0,1	0	0,1	'USD'	60	60	0	'F'
+'Australia - Mobiles'		0,4	0	0,4	'USD'	60	60	0	'F'
+'Germany'		0,05	0	0,05	'USD'	60	60	0	'F'
+'Germany - Premium'		15	0	15	'USD'	60	60	0	'F'
+'Germany - Mobiles'		0,4	0	0,4	'USD'	60	60	0	'F'
+'Germany - Special'		15	0	15	'USD'	60	60	0	'F'
+'Poland'		0,05	0	0,05	'USD'	60	60	0	'F'
+'Poland - Premium'		15	0	15	'USD'	60	60	0	'F'
+'Poland - Mobiles'		0,25	0	0,25	'USD'	60	60	0	'F'
+'Poland - Special'		15	0	15	'USD'	60	60	0	'F'
+'Poland - UMTS'		15	0	15	'USD'	60	60	0	'F'

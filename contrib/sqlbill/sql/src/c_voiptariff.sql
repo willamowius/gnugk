@@ -28,7 +28,9 @@ CREATE TABLE voiptariff (
 	description TEXT NOT NULL DEFAULT '',
 	-- block a destination associated with this tariff
 	active BOOLEAN NOT NULL DEFAULT TRUE,
-	
+	-- whether the tariff should apply to an originatin or terminating endpoint
+	terminating BOOLEAN NOT NULL DEFAULT FALSE,
+		
 	PRIMARY KEY (id),
 	FOREIGN KEY (dstid) REFERENCES voiptariffdst(id),
 	FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id),

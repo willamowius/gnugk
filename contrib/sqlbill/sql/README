@@ -23,13 +23,23 @@ This database schema creates the following tables:
    - a list of aliases to be automatically assigned to an endpoint inside RCF
      message (a comma separated list)
    - IP address restriction (NULL to ignore)
+   - 'terminating' flag to indicate that this user can terminate traffic 
+     and receive money to his account
 *) voiptariffdst - unique tariff destination (prefix). It separates pricing
    and billing information from rarely changing prefix information. A special 
    prefix 'PC' can be used to describe H.323 ID calls (to alias names beginning 
    with non-digit characters)
 *) voiptariff - a tariff that associates tariff destination (prefix) 
    with pricing and billing information. Tariffs can be of default type
-   or can belong to a particular tariff group.
+   or can belong to a particular tariff group. There are two main tariff types:
+   regular and "terminating". Regular tariffs are to give pricing information
+   for a caller, "terminating" tariffs are used to calculate pricing information
+   for a called party that is flagged as "terminating" gateway. Terminating gateways
+   are matched by their IP addresses (voipuser.framedip) or H.323 ID (voipuser.h323id)
+   in case of tariffs with exactmatch flag set.
+   Depending on whether you need terminations accounts, you should either use
+   regular tariffs or create two tariffs per destination - one for a caller
+   and the second for termination (a callee).
 *) voiptariffgrp - tariff group can be used to represent a set of 1 or more 
    tariffs. Such group can be then applied to an account in order to change
    tariff priority during tariff selection. If two or more tariffs are found

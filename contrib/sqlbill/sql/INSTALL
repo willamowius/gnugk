@@ -89,14 +89,19 @@ To create the schema, follow these steps:
      psql -U gkradius -h IP_ADDRESS voipdb
 
    (at psql prompt):
-   
+
+   BEGIN;
+      
      \i f_pricing.sql
    or
      \i f_merged.sql
 
+   COMMIT;
+   
    The 'examples' directory contains tariffs.sxc spreadsheet with a sample
    tariff table and pricing.csv, destinations.csv, merged.csv files generated
-   from the sample tariff table.
+   from the sample tariff table. In case of any problems, use ROLLBACK instead
+   of COMMIT to undo changes.
 
 Upgrading PostgreSQL Database Schema for GnuGk prepaid platform
 =====================================================
@@ -116,7 +121,9 @@ RADIUS server or GnuGk.
    This is a very important step - as it makes possible to rollback all changes
    in case of any failure.
 
-3. Delete old functions and triggers:
+3. Delete old functions and triggers, best if you use d_all_functions.sql script
+   from your existing SqlBill installation, not the one from the version being
+   installed:
 
    \i d_all_functions.sql
 
@@ -139,7 +146,7 @@ RADIUS server or GnuGk.
 
    In case of any errors - ROlLBACK.
 
-6. You are done, the database schema is upgraded. You can type:
+6. You are done, the database schema is upgraded. Type:
 
    COMMIT;
    

@@ -17,11 +17,13 @@ CREATE TABLE voiptariffdst (
 	prefix TEXT NOT NULL,
 	-- description (like country name)
 	description TEXT NOT NULL,
-	
+	-- FALSE for prefix like matching, TRUE for H.323 ID matching
+	exactmatch BOOLEAN NOT NULL DEFAULT FALSE,
+		
 	PRIMARY KEY (id),
 	UNIQUE (prefix)
 );
 
 CREATE UNIQUE INDEX voiptariffdst_activepfx_idx ON voiptariffdst(prefix) WHERE active;
+CREATE UNIQUE INDEX voiptariffdst_activeh323id_idx ON voiptariffdst(prefix) WHERE active AND exactmatch;
 CREATE INDEX voiptariffdst_activepc_idx ON voiptariffdst(prefix) WHERE prefix = 'PC' AND active;
-CREATE INDEX voiptariffdst_activeasciipfx ON voiptariffdst(ascii(prefix)) WHERE active;

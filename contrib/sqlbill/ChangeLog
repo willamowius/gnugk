@@ -1,5 +1,12 @@
+21 Sep 2004 -- zvision
+  * added support for termination accounts and tariffs
+
 15 Sep 2004 -- zvision
   * added database versioning and upgrade scripts
+  * new 'exactmatch' column in voiptariffdst to allow both prefix like matching
+    and exact H.323 ID like matching
+  * fixed missing graceperiod handling in tariff table import from an OpenOffice
+    Calc file
 
 26 Aug 2004 -- zvision
   * scripts to dump/restore data added
