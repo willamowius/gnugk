@@ -486,6 +486,21 @@ public:
 		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
 
+	/** @return
+		Timestamp for the most recent accounting update event logged for this call.
+	*/ 
+	time_t GetLastAcctUpdateTime() const { return m_acctUpdateTime; }
+	
+	/** Set timestamp for the most recent accounting update event logged 
+		for this call.
+	*/
+	void SetLastAcctUpdateTime(
+		const time_t tm /// timestamp of the recent accounting update operation
+		)
+	{
+		m_acctUpdateTime = tm;
+	}
+	
 	/** Check if:
 		- a signalling channel associated with this call is not timed out
 		  and the call should be disconnected (removed from CallTable);
@@ -604,7 +619,9 @@ private:
 	time_t m_connectTime;
 	/// timestamp (seconds since 1st January, 1970) for the call disconnect
 	time_t m_disconnectTime;
-	/// duration limit (seconds) for this call, 0 means no limit 
+	/// timestamp for the most recent accounting update event logged for this call
+	time_t m_acctUpdateTime;
+	/// duration limit (seconds) for this call, 0 means no limit
 	long m_durationLimit;
 	/// Q.931 release complete cause code
 	unsigned m_disconnectCause;
@@ -719,7 +736,9 @@ private:
 	long m_connectTimeout;
 	/// default call duration limit read from the config
 	long m_defaultDurationLimit;
-
+	/// default interval (seconds) for accounting updates to be logged
+	long m_acctUpdateInterval;
+	
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };

@@ -1048,7 +1048,8 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_registered(false), m_forwarded(false)
 {
 	m_acctSessionId = Toolkit::Instance()->GenerateAcctSessionId();
-	m_timer = m_creationTime = time(0);
+
+	m_timer = m_acctUpdateTime = m_creationTime = time(0);
 	m_timeout = CallTable::Instance()->GetConnectTimeout() / 1000;
 	m_durationLimit = CallTable::Instance()->GetDefaultDurationLimit();
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
@@ -1488,6 +1489,9 @@ void CallTable::LoadConfig()
 		m_defaultDurationLimit = GkConfig()->GetInteger(
 			CallTableSection, "DefaultCallTimeout", 0
 			);
+	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0);
+	if( m_acctUpdateInterval != 0 )
+		m_acctUpdateInterval = PMAX(m_acctUpdateInterval,10);
 }
 
 void CallTable::Insert(CallRec * NewRec)
@@ -1569,6 +1573,7 @@ void CallTable::ClearTable()
 
 void CallTable::CheckCalls()
 {
+	RasServer* rassrv = RasServer::Instance();
 	WriteLock lock(listLock);
 	iterator Iter = CallList.begin(), eIter = CallList.end();
 	const time_t now = time(0);
@@ -1577,7 +1582,12 @@ void CallTable::CheckCalls()
 		if ( (*i)->IsTimeout(now) ) {
 			(*i)->Disconnect();
 			InternalRemove(i);
-		}
+		} else if ( m_acctUpdateInterval && (*i)->IsConnected() ) {
+			if( (now - (*i)->GetLastAcctUpdateTime()) >= m_acctUpdateInterval ) {
+				callptr cptr(*i);
+				rassrv->LogAcctEvent( GkAcctLogger::AcctUpdate, cptr, now );
+			}
+		} 
 	}
 
 	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
