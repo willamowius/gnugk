@@ -1,0 +1,731 @@
+//////////////////////////////////////////////////////////////////
+//
+// yasocket.cxx
+//
+// Copyright (c) Citron Network Inc. 2002-2003
+//
+// This work is published under the GNU Public License (GPL)
+// see file COPYING for details.
+// We also explicitely grant the right to link this code
+// with the OpenH323 library.
+//
+// initial author: Chih-Wei Huang <cwhuang@linux.org.tw>
+// initial version: 03/14/2003
+//
+//////////////////////////////////////////////////////////////////
+
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#endif
+
+#include "rwlock.h"
+#include "yasocket.h"
+#include "stl_supp.h"
+
+
+#ifdef LARGE_FDSET
+
+#include "h323util.h"
+
+// class YaSelectList
+YaSelectList::YaSelectList(YaSocket *s) : maxfd(0)
+{
+	fds.reserve(512);
+	Append(s);
+}
+
+void YaSelectList::Append(YaSocket *s)
+{
+	if (s) {
+		fds.push_back(s);
+		if (s->GetHandle() > maxfd)
+			maxfd = s->GetHandle();
+		PAssert(maxfd < LARGE_FDSET, "Out of Range Error");
+	}
+}
+
+bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
+{
+	large_fd_set fdset;
+	for_each(fds.begin(), fds.end(),
+		 compose1(bind1st(mem_fun(&large_fd_set::add), &fdset), mem_fun(&YaSocket::GetHandle)));
+
+	fd_set *readfds, *writefds;
+	if (t == Read)
+		readfds = fdset, writefds = 0;
+	else
+		writefds = fdset, readfds = 0;
+
+	DWORD msec = timeout.GetInterval();
+	struct timeval tval;
+	tval.tv_usec = (msec % 1000) * 1000;
+	tval.tv_sec  = msec / 1000;
+	bool r = ::select(maxfd + 1, readfds, writefds, 0, &tval) > 0;
+	if (r) {
+		iterator last = remove_if(fds.begin(), fds.end(),
+					  not1(compose1(bind1st(mem_fun(&large_fd_set::has), &fdset), mem_fun(&YaSocket::GetHandle))));
+		fds.erase(last, fds.end());
+	}
+	return r;
+}
+
+
+// class YaSocket
+YaSocket::YaSocket() : os_handle(-1)
+{
+	lastReadCount = lastWriteCount = 0;
+}
+
+YaSocket::~YaSocket()
+{
+	Close();
+}
+
+bool YaSocket::Close()
+{
+	if (!IsOpen())
+		return false;
+
+	// send a shutdown to the other end
+	int handle = os_handle;
+	os_handle = -1;
+	::shutdown(handle, SHUT_RDWR);
+#ifdef WIN32
+	::closesocket(handle);
+#else
+	::close(handle);
+#endif
+	return true;
+}
+
+bool YaSocket::Read(void *buf, int sz)
+{
+	int r = os_recv(buf, sz);
+	lastReadCount = ConvertOSError(r, PSocket::LastReadError) ? r : 0;
+	return lastReadCount > 0;
+}
+
+bool YaSocket::ReadBlock(void *buf, int len)
+{
+	// lazy implementation, but it is enough for us...
+	return Read(buf, len) && (lastReadCount == len);
+}
+
+bool YaSocket::Write(const void *buf, int sz)
+{
+	lastWriteCount = 0;
+	if (!YaSelectList(this).Select(YaSelectList::Write, writeTimeout)) {
+		errno = EAGAIN;
+		return ConvertOSError(-1, PSocket::LastWriteError);
+	}
+	int r = os_send(buf, sz);
+	if (ConvertOSError(r, PSocket::LastWriteError))
+		lastWriteCount = r;
+	return lastWriteCount == sz;
+}
+
+void YaSocket::GetLocalAddress(Address & addr) const
+{
+	WORD pt;
+	GetLocalAddress(addr, pt);
+}
+
+void YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
+{
+	sockaddr_in inaddr;
+	socklen_t insize = sizeof(inaddr);
+	if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
+		addr = inaddr.sin_addr;
+		pt = ntohs(inaddr.sin_port);
+	}
+}
+
+bool YaSocket::SetOption(int option, int value, int level)
+{
+	return ConvertOSError(::setsockopt(os_handle, level, option, (char *)&value, sizeof(int)));
+}
+
+bool YaSocket::SetOption(int option, const void *value, int size, int level)
+{
+	return ConvertOSError(::setsockopt(os_handle, level, option, (char *)value, size));
+}
+
+PString YaSocket::GetErrorText(PSocket::ErrorGroup group) const
+{
+	return PSocket::GetErrorText(GetErrorCode(group));
+}
+
+bool YaSocket::ConvertOSError(int libReturnValue, PSocket::ErrorGroup group)
+{
+	if ((libReturnValue < 0) && (errno == EAGAIN)) {
+		lastErrorCode[group] = PSocket::Timeout;
+		lastErrorNumber[group] = errno;
+		return false;
+	}
+	return PSocket::ConvertOSError(libReturnValue, lastErrorCode[group], lastErrorNumber[group]);
+}
+
+bool YaSocket::SetNonBlockingMode()
+{
+	if (!IsOpen())
+		return false;
+	int cmd = 1;
+	if (::ioctl(os_handle, FIONBIO, &cmd) == 0 && ::fcntl(os_handle, F_SETFD, 1) == 0)
+		return true;
+	Close();
+	return false;
+
+}
+
+bool YaSocket::Bind(const Address & addr, WORD pt)
+{
+	if (IsOpen()) {
+		sockaddr_in inaddr;
+		memset(&inaddr, 0, sizeof(inaddr));
+		inaddr.sin_family = AF_INET;
+		inaddr.sin_addr.s_addr = addr;
+		inaddr.sin_port = htons(pt);
+		if (SetOption(SO_REUSEADDR, 1) && ConvertOSError(::bind(os_handle, (struct sockaddr *)&inaddr, sizeof(inaddr)))) {
+			socklen_t insize = sizeof(inaddr);
+			if (::getsockname(os_handle, (struct sockaddr *)&inaddr, &insize) == 0) {
+				port = ntohs(inaddr.sin_port);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
+// class YaTCPSocket
+YaTCPSocket::YaTCPSocket(WORD pt)
+{
+	peeraddr.sin_family = AF_INET;
+	SetPort(pt);
+}
+
+void YaTCPSocket::GetPeerAddress(Address & addr) const
+{
+	addr = peeraddr.sin_addr;
+}
+
+void YaTCPSocket::GetPeerAddress(Address & addr, WORD & pt) const
+{
+	addr = peeraddr.sin_addr;
+	pt = ntohs(peeraddr.sin_port);
+}
+
+bool YaTCPSocket::SetLinger()
+{
+	SetOption(TCP_NODELAY, 1, IPPROTO_TCP);
+	const linger ling = { 1, 3 };
+	return SetOption(SO_LINGER, &ling, sizeof(ling));
+}
+
+bool YaTCPSocket::Listen(unsigned qs, WORD pt)
+{
+	return Listen(INADDR_ANY, qs, pt);
+}
+
+bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt)
+{
+	os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
+	if (!ConvertOSError(os_handle))
+		return false;
+
+//	SetNonBlockingMode();
+	if (Bind(addr, pt) && ConvertOSError(::listen(os_handle, qs)))
+		return true;
+	Close();
+	return false;
+}
+
+bool YaTCPSocket::Accept(YaTCPSocket & socket)
+{
+	while (true) {
+		int fd = socket.GetHandle();
+		if (fd < 0) { // socket closed
+			errno = ENOTSOCK;
+			break;
+		}
+
+		YaSelectList::large_fd_set fdset;
+		fdset.add(fd);
+		struct timeval tval = { 1, 0 };
+		int r = ::select(fd + 1, fdset, 0, 0, &tval);
+		if (r < 0)
+			break;
+		else if (r == 0)
+			continue;
+
+		socklen_t addrsize = sizeof(peeraddr);
+		os_handle = ::accept(fd, (struct sockaddr *)&peeraddr, &addrsize);
+		if (os_handle < 0)
+			break;
+
+		SetLinger();
+		SetNonBlockingMode();
+		SetWriteTimeout(PTimeInterval(10));
+		SetName(AsString(peeraddr.sin_addr, ntohs(peeraddr.sin_port)));
+		port = socket.GetPort();
+		return true;
+	}
+	return ConvertOSError(-1);
+}
+
+bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address & addr)
+{
+	if (os_handle < 0) {
+		os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
+		if (!ConvertOSError(os_handle))
+			return false;
+	}
+
+	int optval;
+	socklen_t optlen = sizeof(optval);
+
+	WORD peerPort = port;
+	// bind local interface and port
+	if (iface != INADDR_ANY || localPort != 0)
+		if (!Bind(iface, localPort))
+			return false;
+
+	// connect in non-blocking mode
+	SetNonBlockingMode();
+	SetWriteTimeout(PTimeInterval(10));
+	peeraddr.sin_addr = addr;
+	peeraddr.sin_port = htons(port = peerPort);
+	SetName(AsString(addr, port));
+
+	int r = ::connect(os_handle, (struct sockaddr *)&peeraddr, sizeof(peeraddr));
+#ifdef WIN32
+	if ((r != 0) && (WSAGetLastError() != WSAEWOULDBLOCK))
+#else
+	if (r == 0 || errno != EINPROGRESS)
+#endif
+		return ConvertOSError(r);
+
+	YaSelectList::large_fd_set fdset;
+	fdset.add(os_handle);
+	YaSelectList::large_fd_set exset = fdset;
+	struct timeval tval = { 6, 0 }; // TODO: read from config...
+	if (::select(os_handle + 1, 0, fdset, exset, &tval) > 0) {
+		optval = -1;
+		::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, &optval, &optlen);
+		if (optval == 0) // connected
+			return SetLinger();
+		errno = optval;
+	}
+	return ConvertOSError(-1);
+}
+
+bool YaTCPSocket::Connect(const Address & addr)
+{
+	return YaTCPSocket::Connect(INADDR_ANY, 0, addr);
+}
+
+int YaTCPSocket::os_recv(void *buf, int sz)
+{
+	return ::recv(os_handle, buf, sz, MSG_NOSIGNAL);
+}
+
+int YaTCPSocket::os_send(const void *buf, int sz)
+{
+	return ::send(os_handle, buf, sz, MSG_NOSIGNAL);
+}
+
+
+// class YaUDPSocket
+YaUDPSocket::YaUDPSocket()
+{
+	sendaddr.sin_family = AF_INET;
+}
+
+bool YaUDPSocket::Listen(unsigned, WORD pt)
+{
+	return Listen(INADDR_ANY, 0, pt, 0);
+}
+
+bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, int)
+{
+	os_handle = ::socket(PF_INET, SOCK_DGRAM, 0);
+	if (!ConvertOSError(os_handle))
+		return false;
+
+	SetNonBlockingMode();
+	return Bind(addr, pt);
+}
+
+void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
+{
+	addr = recvaddr.sin_addr;
+	pt = ntohs(recvaddr.sin_port);
+}
+
+void YaUDPSocket::SetSendAddress(const Address & addr, WORD pt)
+{
+	sendaddr.sin_addr = addr;
+	sendaddr.sin_port = htons(pt);
+}
+
+bool YaUDPSocket::ReadFrom(void *buf, PINDEX len, Address & addr, WORD pt)
+{
+	bool result = Read(buf, len);
+	if (result)
+		GetLastReceiveAddress(addr, pt);
+	return result;
+}
+
+bool YaUDPSocket::WriteTo(const void *buf, PINDEX len, const Address & addr, WORD pt)
+{
+	SetSendAddress(addr, pt);
+	return Write(buf, len);
+}
+
+int YaUDPSocket::os_recv(void *buf, int sz)
+{
+	socklen_t addrlen = sizeof(recvaddr);
+	return ::recvfrom(os_handle, buf, sz, 0, (struct sockaddr *)&recvaddr, &addrlen);
+}
+
+int YaUDPSocket::os_send(const void *buf, int sz)
+{
+	return ::sendto(os_handle, buf, sz, 0, (struct sockaddr *)&sendaddr, sizeof(sendaddr));
+}
+
+#else // LARGE_FDSET
+
+SocketSelectList::SocketSelectList(PIPSocket *s)
+{
+	if (s && s->IsOpen())
+		Append(s);
+}
+
+bool SocketSelectList::Select(SelectType t, const PTimeInterval & timeout)
+{
+	if (IsEmpty())
+		return false;
+	SocketSelectList dumb, *rlist, *wlist;
+	if (t == Read)
+		rlist = this, wlist = &dumb;
+	else
+		wlist = this, rlist = &dumb;
+#if PTRACING
+	PSocket::Errors r = PSocket::Select(*rlist, *wlist, timeout);
+	PTRACE_IF(3, r != PSocket::NoError, "ProxyH\tSelect error: " << r);
+#endif
+	return !IsEmpty();
+}
+
+PSocket *SocketSelectList::operator[](int i) const
+{
+	typedef PSocket::SelectList PSocketSelectList; // stupid VC...
+	return &PSocketSelectList::operator[](i);
+}
+
+#endif // LARGE_FDSET
+
+
+// class USocket
+USocket::USocket(IPSocket *s, const char *t) : self(s), type(t)
+{
+	qsize = 0;
+	blocked = false;
+}
+
+USocket::~USocket()
+{
+	//PWaitAndSignal lock(writeMutex);
+	DeleteObjectsInContainer(queue);
+	PTRACE(3, type << "\tDelete socket " << Name());
+}
+
+bool USocket::TransmitData(const PBYTEArray & buf)
+{
+	return WriteData(buf, buf.GetSize());
+}
+
+bool USocket::TransmitData(const PString & str)
+{
+	return WriteData(str, str.GetLength());
+}
+
+bool USocket::TransmitData(const BYTE *buf, int len)
+{
+	return WriteData(buf, len);
+}
+
+bool USocket::Flush()
+{
+	bool result = true;
+	PWaitAndSignal lock(writeMutex);
+	while (result && qsize > 0) {
+		queueMutex.Wait();
+		PBYTEArray *pdata = queue.front();
+		queue.pop_front();
+		--qsize;
+		queueMutex.Signal();
+		result = InternalWriteData(*pdata, pdata->GetSize());
+		PTRACE_IF(4, result, type << '\t' << pdata->GetSize() << " bytes flushed to " << Name());
+		delete pdata;
+	}
+	return result;
+}
+
+bool USocket::IsReadable(int milisec)
+{
+	return SocketSelectList(self).Select(SocketSelectList::Read, milisec);
+}
+
+bool USocket::IsWriteable(int milisec)
+{
+	return SocketSelectList(self).Select(SocketSelectList::Write, milisec);
+}
+
+bool USocket::WriteData(const BYTE *buf, int len)
+{
+	if (IsSocketOpen()) {
+		if (qsize == 0 && !writeMutex.WillBlock()) {
+			PWaitAndSignal lock(writeMutex);
+			return InternalWriteData(buf, len);
+		}
+		if (qsize > 100) { // to be justitied
+			PTRACE(2, type << '\t' << Name() << " is dead and closed");
+			CloseSocket();
+		} else {
+			PTRACE(3, type << '\t' << Name() << " is busy, " << len << " bytes queued");
+			PWaitAndSignal lock(queueMutex);
+			queue.push_back(new PBYTEArray(buf, len));
+			++qsize;
+		}
+	}
+	return false;
+}
+
+bool USocket::ErrorHandler(PSocket::ErrorGroup group)
+{
+	PSocket::Errors e = self->GetErrorCode(group);
+
+	PString msg(PString(type) + "\t" + Name());
+	switch (e)
+	{
+		case PSocket::Timeout:
+			PTRACE(4, msg << " Error(" << group << "): Timeout");
+			break;
+		case PSocket::NoError:
+			if (group == PSocket::LastReadError) {
+				PTRACE(5, msg << " closed by remote");
+				CloseSocket();
+				break;
+			}
+		default:
+			PTRACE(3, msg << " Error(" << group << "): " << PSocket::GetErrorText(e) << " (" << e << ')');
+			CloseSocket();
+			break;
+	}
+	return false;
+}
+
+bool USocket::InternalWriteData(const BYTE *buf, int len)
+{
+	if (self->Write(buf, len)) {
+		PTRACE(6, Name() << ' ' << len << " bytes sent");
+		return true;
+	}
+
+	int wcount = self->GetLastWriteCount();
+	buf += wcount, len -= wcount;
+
+	if (wcount == 0)
+		ErrorHandler(PSocket::LastWriteError);
+	if (IsSocketOpen()) {
+		PTRACE(4, type << '\t' << Name() << " blocked, " << wcount << " bytes written, " << len << " bytes queued");
+		PWaitAndSignal lock(queueMutex);
+		queue.push_front(new PBYTEArray(buf, len));
+		++qsize;
+	}
+	return false;
+}
+
+
+// class SocketsReader
+SocketsReader::SocketsReader(int t) : m_timeout(t), m_socksize(0), m_rmsize(0)
+{
+	SetName("SocketsReader");
+}
+
+SocketsReader::~SocketsReader()
+{
+	RemoveClosed(false);
+	SocketsReader::CleanUp();
+	//DeleteObjectsInContainer(m_removed);
+	//DeleteObjectsInContainer(m_sockets);
+}
+
+void SocketsReader::Stop()
+{
+	PWaitAndSignal lock(m_smutex);
+	ReadLock llock(m_listmutex);
+	ForEachInContainer(m_sockets, mem_fun(&IPSocket::Close));
+	RegularJob::Stop();
+}
+
+void SocketsReader::AddSocket(IPSocket *socket)
+{
+	m_listmutex.StartWrite();
+	m_sockets.push_back(socket);
+	++m_socksize;
+	m_listmutex.EndWrite();
+	Signal();
+	PTRACE(5, GetName() << " total sockets " << m_socksize);
+}
+
+bool SocketsReader::BuildSelectList(SocketSelectList & slist)
+{
+	ReadLock lock(m_listmutex);
+	ForEachInContainer(m_sockets, bind1st(mem_fun(&SocketSelectList::Append), &slist));
+	return slist.GetSize() > 0;
+}
+
+void SocketsReader::CleanUp()
+{
+	PWaitAndSignal lock(m_rmutex);
+	DeleteObjectsInContainer(m_removed);
+	m_removed.clear();
+	m_rmsize = 0;
+}
+
+bool SocketsReader::SelectSockets(SocketSelectList & slist)
+{
+#if PTRACING
+	int ss = slist.GetSize();
+#endif
+	ReadUnlock cfglock(ConfigReloadMutex);
+	if (!slist.Select(SocketSelectList::Read, m_timeout))
+		return false;
+
+#if PTRACING
+	PString msg(PString::Printf, " %u sockets selected from %u, total %u/%u", slist.GetSize(), ss, m_socksize, m_rmsize);
+	PTRACE(5, GetName() << msg);
+#endif
+	return true;
+}
+
+void SocketsReader::RemoveClosed(bool bDeleteImmediately)
+{
+	WriteLock lock(m_listmutex);
+	iterator iter = partition(m_sockets.begin(), m_sockets.end(), mem_fun(&IPSocket::IsOpen));
+	if (ptrdiff_t rmsize = distance(iter, m_sockets.end())) {
+		if (bDeleteImmediately)
+			DeleteObjects(iter, m_sockets.end());
+		else {
+			PWaitAndSignal lock(m_rmutex);
+			copy(iter, m_sockets.end(), back_inserter(m_removed));
+			m_rmsize += rmsize;
+		}
+		m_sockets.erase(iter, m_sockets.end());
+		m_socksize -= rmsize;
+	}
+}
+
+void SocketsReader::RemoveSocket(iterator i)
+{
+	m_sockets.erase(i);
+	--m_socksize;
+	PWaitAndSignal lock(m_rmutex);
+	m_removed.push_back(*i);
+	++m_rmsize;
+}
+
+void SocketsReader::RemoveSocket(IPSocket *s)
+{
+	m_sockets.remove(s);
+	--m_socksize;
+	PWaitAndSignal lock(m_rmutex);
+	m_removed.push_back(s);
+	++m_rmsize;
+}
+
+void SocketsReader::Exec()
+{
+	ReadLock cfglock(ConfigReloadMutex);
+	SocketSelectList slist;
+
+	if (BuildSelectList(slist)) {
+		if (SelectSockets(slist)) {
+			int ss = slist.GetSize();
+			for (int i = 0; i < ss; ++i)
+#ifdef LARGE_FDSET
+				ReadSocket(slist[i]);
+#else
+				ReadSocket(dynamic_cast<IPSocket *>(slist[i]));
+#endif
+		}
+		CleanUp();
+	} else {
+		CleanUp();
+		ReadUnlock unlock(ConfigReloadMutex);
+		PTRACE(3, GetName() << " waiting...");
+		Wait();
+	}
+}
+
+
+// class TCPListenSocket
+TCPListenSocket::TCPListenSocket(int timeout)
+{
+	if (timeout > 0)
+		SetReadTimeout(timeout * 1000);
+}
+
+TCPListenSocket::~TCPListenSocket()
+{
+	PTRACE(3, "TCP\t" << "Delete listener " << GetName());
+}
+
+bool TCPListenSocket::IsTimeout(const PTime *now) const
+{
+	return IsOpen() ? ((readTimeout > 0) ? ((*now - start) > readTimeout) : false) : true;
+}
+
+
+// class TCPServer
+TCPServer::TCPServer()
+{
+	SetName("TCPServer");
+	Execute();
+}
+
+bool TCPServer::CloseListener(TCPListenSocket *socket)
+{
+	ReadLock lock(m_listmutex);
+	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
+	return (iter != m_sockets.end()) ? (*iter)->Close() : false;
+}
+
+void TCPServer::ReadSocket(IPSocket *socket)
+{
+	PTRACE(4, "TCP\t" << "Accept request on " << socket->GetName());
+	TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(socket);
+	ServerSocket *acceptor = listener->CreateAcceptor();
+	if (acceptor->Accept(*listener))
+		CreateJob(acceptor, &ServerSocket::Dispatch, "Acceptor");
+	else
+		delete acceptor;
+}
+
+void TCPServer::CleanUp()
+{
+	PTime now;
+	WriteLock lock(m_listmutex);
+	iterator iter = m_sockets.begin(), eiter = m_sockets.end();
+	while (iter != eiter) {
+		iterator i = iter++;
+		TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(*i);
+		if (listener && listener->IsTimeout(&now)) {
+			delete listener;
+			m_sockets.erase(i);
+			--m_socksize;
+		}
+	}
+}
