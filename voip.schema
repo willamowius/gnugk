@@ -92,6 +92,9 @@
 # NOTE:
 # In order to have a unique H.323 ID to avoid registration clashing, we use 
 # a user's primary e-mail address as his H.323 ID.
+# Neither uids nor cns are guaranteed to be unique.
+# Two users with the same uid trying to register with their uid as a H.323 alias would
+# result in RRJ for the second user, and he would certainly not understand why !
 # For gateways, that address needs to be artificially constructed.
 # We use <host>@voip.<yourdomain>. <host> is a DNS name without dots (i.e., the hostname).
 # That's SIP-compatible, by the way (Jehova !) :-)
