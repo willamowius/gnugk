@@ -29,6 +29,7 @@
 #include "RasPDU.h"
 #include "RasSrv.h"
 #include "sigmsg.h"
+#include "cisco.h"
 #include "Neighbor.h"
 
 
@@ -53,8 +54,11 @@ class GnuGK : public Neighbor {
 };
 
 class CiscoGK : public Neighbor {
+public:
 	// override from class Neighbor
-	virtual bool OnSendingLRQ(H225_LocationRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
 };
 
 // stupid Clarent gatekeeper
@@ -458,8 +462,23 @@ bool GnuGK::IsAcceptable(RasMsg *ras) const
 
 
 // class CiscoGK
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq)
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &req)
 {
+	const H225_AdmissionRequest &arq = req.GetRequest();
+	Cisco_LRQnonStandardInfo nonStandardData;
+	
+	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
+
+	nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
+	nonStandardData.m_gatewaySrcInfo.SetSize(arq.m_srcInfo.GetSize());
+	for (PINDEX i = 0; i < arq.m_srcInfo.GetSize(); i++)
+		nonStandardData.m_gatewaySrcInfo[i] = arq.m_srcInfo[i];
+
+	if (arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)) {
+		nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_callIdentifier);
+		nonStandardData.m_callIdentifier = arq.m_callIdentifier;
+	}
+		
 	// Cisco GK needs these
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -467,11 +486,101 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq)
 	h221.m_manufacturerCode = 18;
 	h221.m_t35CountryCode = 181;
 	h221.m_t35Extension = 0;
+	
+	PPER_Stream buff;
+	nonStandardData.Encode(buff);
+	buff.CompleteEncoding();
+	lrq.m_nonStandardData.m_data = buff;
+	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 	return true;
 }
 
+// class CiscoGK
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest &req)
+{
+	if (lrq.HasOptionalField(H225_LocationRequest::e_nonStandardData)
+			&& lrq.m_nonStandardData.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+		const H225_H221NonStandard &h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+		if (h221.m_manufacturerCode == 18 && h221.m_t35CountryCode == 181)
+			return true;
+			
+		lrq.RemoveOptionalField(H225_LocationRequest::e_nonStandardData);
+	}
+	
+	Cisco_LRQnonStandardInfo nonStandardData;
+	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
+
+	if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) {
+		nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
+		nonStandardData.m_gatewaySrcInfo.SetSize(lrq.m_sourceInfo.GetSize());
+		for (PINDEX i = 0; i < lrq.m_sourceInfo.GetSize(); i++)
+			nonStandardData.m_gatewaySrcInfo[i] = lrq.m_sourceInfo[i];
+	}
+	
+	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+	H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	h221.m_manufacturerCode = 18;
+	h221.m_t35CountryCode = 181;
+	h221.m_t35Extension = 0;
+	
+	PPER_Stream buff;
+	nonStandardData.Encode(buff);
+	buff.CompleteEncoding();
+	lrq.m_nonStandardData.m_data = buff;
+	
+	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
+	lrq.m_canMapAlias = TRUE;
+	return true;
+}
+
+// class CiscoGK
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
+{
+	const Q931 &setup = req.GetWrapper()->GetQ931();
+	const H225_Setup_UUIE &setupBody = req.GetRequest();
+	Cisco_LRQnonStandardInfo nonStandardData;
+	
+	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
+
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
+		nonStandardData.m_gatewaySrcInfo.SetSize(setupBody.m_sourceAddress.GetSize());
+		for (PINDEX i = 0; i < setupBody.m_sourceAddress.GetSize(); i++)
+			nonStandardData.m_gatewaySrcInfo[i] = setupBody.m_sourceAddress[i];
+	}
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+		nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_callIdentifier);
+		nonStandardData.m_callIdentifier = setupBody.m_callIdentifier;
+	}
+	
+	if (setup.HasIE(Q931::CallingPartyNumberIE)) {
+		PBYTEArray data = setup.GetIE(Q931::CallingPartyNumberIE);
+		if ((data[0] & 0x80) == 0x80 && data.GetSize() >= 2) {
+			nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_callingOctet3a);
+			nonStandardData.m_callingOctet3a = data[1];
+		}
+	}
+		
+	// Cisco GK needs these
+	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+	H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	h221.m_manufacturerCode = 18;
+	h221.m_t35CountryCode = 181;
+	h221.m_t35Extension = 0;
+	
+	PPER_Stream buff;
+	nonStandardData.Encode(buff);
+	buff.CompleteEncoding();
+	lrq.m_nonStandardData.m_data = buff;
+	
+	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
+	lrq.m_canMapAlias = TRUE;
+	return true;
+}
 
 // class ClarentGK
 bool ClarentGK::OnSendingLRQ(H225_LocationRequest & lrq)

@@ -1,0 +1,32 @@
+CISCO-MESSAGES DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+
+IMPORTS
+		CallIdentifier,
+		AliasAddress
+	FROM H225-MESSAGES;
+
+ARQnonStandardInfo ::= [2] SEQUENCE
+{
+	sourceAlias SEQUENCE OF AliasAddress, -- of calling proxy
+	sourceExtAlias SEQUENCE OF AliasAddress, -- of calling endpoint
+	...,
+	redirectIEinfo INTEGER(0..255) OPTIONAL,
+    callingOctet3a INTEGER(0..255) OPTIONAL,
+	displayInformationElement IA5String (SIZE (1..128)) OPTIONAL,
+	interfaceSpecificBillingId IA5String (SIZE (1..128)) OPTIONAL,
+	interfaceDescription IA5String (SIZE (1..128)) OPTIONAL
+}
+																	
+LRQnonStandardInfo ::= [4] SEQUENCE
+{
+	ttl INTEGER(1..255),
+	...,
+	callIdentifier CallIdentifier OPTIONAL,
+	redirectIEinfo INTEGER(0..255) OPTIONAL,
+	callingOctet3a INTEGER(0..255) OPTIONAL,
+	gatewaySrcInfo SEQUENCE OF AliasAddress OPTIONAL,
+	displayInformationElement IA5String (SIZE (1..128)) OPTIONAL
+}
+
+END
