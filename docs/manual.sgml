@@ -114,6 +114,10 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Better signal handling to prevent accidental gatekeeper crashes 
+(due to SIGPIPE, for example).
+
+<item>
 CDR rotation per number of lines works correctly.
 
 </itemize>

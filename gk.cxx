@@ -336,23 +336,37 @@ BOOL Gatekeeper::InitHandlers(const PArgList& args)
 #ifdef WIN32
 	SetConsoleCtrlHandler(WinCtrlHandlerProc, TRUE);
 #else
-	signal(SIGTERM, UnixShutdownHandler);
-	signal(SIGINT, UnixShutdownHandler);
-	signal(SIGQUIT, UnixShutdownHandler);
-	signal(SIGUSR1, UnixShutdownHandler);
+	struct sigaction sigact;
+	
+	memset(&sigact, 0, sizeof(sigact));
+	sigact.sa_handler = UnixShutdownHandler;
+	sigemptyset(&sigact.sa_mask);
+	sigaddset(&sigact.sa_mask, SIGTERM);
+	sigaddset(&sigact.sa_mask, SIGINT);
+	sigaddset(&sigact.sa_mask, SIGQUIT);
+	sigaddset(&sigact.sa_mask, SIGHUP);
+	sigaddset(&sigact.sa_mask, SIGUSR1);
+	
+	sigaction(SIGTERM, &sigact, NULL);
+	sigaction(SIGINT, &sigact, NULL);
+	sigaction(SIGQUIT, &sigact, NULL);
+
+	memset(&sigact, 0, sizeof(sigact));
+	sigact.sa_handler = SIG_IGN;
+	sigemptyset(&sigact.sa_mask);
 
 	// ignore these signals
-	signal(SIGPIPE, DumbHandler);
-	signal(SIGABRT, DumbHandler);
+	sigaction(SIGPIPE, &sigact, NULL);
+	sigaction(SIGABRT, &sigact, NULL);
 
-
-	struct sigaction sa;
-	sigemptyset(&sa.sa_mask);
-	sigaddset(&sa.sa_mask, SIGHUP); // ignore while in handler
-	sa.sa_flags = 0;
-	sa.sa_handler = UnixReloadHandler;
-
-	sigaction(SIGHUP, &sa, NULL);
+	memset(&sigact, 0, sizeof(sigact));
+	sigact.sa_handler = UnixReloadHandler;
+	sigemptyset(&sigact.sa_mask);
+	sigaddset(&sigact.sa_mask, SIGHUP);
+	sigaddset(&sigact.sa_mask, SIGUSR1);
+	
+	sigaction(SIGHUP, &sigact, NULL);
+	sigaction(SIGUSR1, &sigact, NULL);
 
 	if (args.HasOption("pid"))
 		pidfile = args.GetOptionString("pid");
