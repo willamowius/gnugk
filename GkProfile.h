@@ -64,6 +64,8 @@ public:
 	const PStringList & GetBlackList() const ;
 	const PStringList & GetWhiteList() const ;
 
+	const long int GetCallTimeout() {return -1 ; }
+
 	// These two will change the numbering conversion functions to treat the
 	// number as International (TreatAsInternational), National (TreatAsNational)
 	// Local (TreatAsLocal) or relay on the TON (LeaveUntouched).
