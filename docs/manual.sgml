@@ -114,6 +114,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Do not support mutiple rewrite targets, as this feature does not work well
+if rewrite is performed more than once.
+
+<item>
 The gatekeeper could crash if the connection was closed before
 the welcome message has been sent to the client.
 
@@ -1680,10 +1684,10 @@ This section defines the rewriting rules for dialedDigits (E.164 number).
 
 <descrip>
 <tag/Format:/
-<tt>[!]original-prefix=target-prefix[,target-prefix,...]</tt>
+<tt>[!]original-prefix=target-prefix</tt>
 <p>
 If the number is beginning with <tt/original-prefix/,
-it is rewritten to <tt/target-prefix/. Multiple targets are possible.
+it is rewritten to <tt/target-prefix/.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted
 and the target-prefix is prepended to the dialed number. Special wildcard
 characters (<tt/'.'/ and <tt/'%'/) are available.

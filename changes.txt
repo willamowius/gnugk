@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- do not support mutiple rewrite targets, as this feature does not work well
+  if rewrite is performed more than once
 - BUGFIX(GkStatus.cxx) the gatekeeper could crash if the connection
   was closed before the welcome message has been sent
 - BIGFIX(gkacct.cxx) different Username was reported during Setup auth
