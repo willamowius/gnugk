@@ -28,6 +28,7 @@
 #include "stl_supp.h"
 #include "CountryCodeTables.h"
 #include <h323pdu.h>
+#include "GkProfile.h"
 
 #if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  include <openssl/ssl.h>
@@ -54,7 +55,7 @@ static const char vcHid[] = TOOLKIT_H;
 
 static const PString empty("");	// a local empty PString
 static const char * const emptystr = ""; // a local empty String
-static const char * const ProxySection = "Proxy";
+extern const char * const ProxySection;
 
 // class Toolkit::RouteTable::RouteEntry
 Toolkit::RouteTable::RouteEntry::RouteEntry(
@@ -188,10 +189,127 @@ bool Toolkit::ProxyCriterion::IsInternal(Address ip) const
 	return false;
 }
 
+// class Toolkit::RewriteTool
+
+static const char *RewriteSection = "RasSvr::RewriteE164";
+
+void Toolkit::RewriteTool::LoadConfig(PConfig *config)
+{
+	m_RewriteFastmatch = config->GetString(RewriteSection, "Fastmatch", "");
+	m_RewriteRules = config->GetAllKeyValues(RewriteSection);
+	m_TrailingChar = config->GetString("RasSvr::ARQFeatures", "RemoveTrailingChar", " ")[0];
+}
+
+const BOOL Toolkit::RewriteTool::PrefixAnalysis(PString & number, unsigned int & ton, unsigned int & plan,
+						unsigned int si, const CallProfile & profile) const
+{
+	PString internationalNumber;
+	if(profile.GetInac() == number.Left(profile.GetInac().GetLength())) {
+		PTRACE(5, "International Call");
+		// It's a number in dialedDigits format (international)
+		internationalNumber = number.Right(number.GetLength()-profile.GetInac().GetLength());
+		ton = Q931::InternationalType;
+	} else if (profile.GetInac().Left(number.GetLength()) == number) {
+		// The number is a prefix of the INAC. So we cannot decide what TON it is.
+		ton=Q931::UnknownType;
+		return FALSE;
+	} else { // This is definitely not an international Call.
+		// Let's see, if it's a national call.
+		if (profile.GetNac() == number.Left(profile.GetNac().GetLength())) {
+			// Ok, it's a National Call.
+			PTRACE(5, "National Call");
+			internationalNumber = profile.GetCC() + number.Right(number.GetLength()-profile.GetNac().GetLength());
+			ton = Q931::InternationalType;
+		} else if (profile.GetNac().Left(number.GetLength()) == number) {
+			// The number is a prefix of the NAC. So we cannot decide what TON it is.
+			ton=Q931::UnknownType;
+			return FALSE;
+		} else { // Not an international nor a national Call.
+			// next is to determine wether it's a local call.
+			PTRACE(5, "Neither National nor International Call");
+			if (profile.GetLac() == number.Left(profile.GetLac().GetLength())) {
+				PTRACE(5, "LAC");
+				internationalNumber = profile.GetCC() + profile.GetNDC_IC() + number.Right(number.GetLength()-profile.GetLac().GetLength());
+				ton=Q931::InternationalType;
+			} else if (profile.GetLac().Left(number.GetLength()) == number) {
+				// The number is a prefix of the LAC. So we cannot decide what TON it is.
+				// I don't know if that may ever happen -- but we are well prepared for it :-)
+				ton=Q931::UnknownType;
+				return FALSE;
+			} else {
+				PTRACE(5, "No Prefix");
+				// This MUST be a internal call.
+				internationalNumber = profile.GetCC() + profile.GetNDC_IC() + profile.GetSubscriberNumber() + number;
+				ton=Q931::InternationalType;
+			}
+		}
+	}
+	PTRACE(5, "Returning number: " << internationalNumber);
+	number = internationalNumber; // This is for future replacement of number-types
+	return TRUE;
+}
+
+
+bool Toolkit::RewriteTool::RewritePString(PString & s)
+{
+	bool changed = false;
+	bool do_rewrite = false; // marker if a rewrite has to be done.
+
+	// remove trailing character
+	if (s[s.GetLength() - 1] == m_TrailingChar) {
+		s = s.Left(s.GetLength() - 1);
+		changed = true;
+	}
+	// startsWith?
+	if (strncmp(s, m_RewriteFastmatch, m_RewriteFastmatch.GetLength()) != 0)
+		return changed;
+
+	PString t;
+	for (PINDEX i = 0; i < m_RewriteRules.GetSize(); ++i) {
+		PString key = m_RewriteRules.GetKeyAt(i);
+		// try a prefix match through all keys
+		if (s.Find(key) == 0) { // startWith
+			// Rewrite to #t#. Append the suffix, too.
+			// old:  01901234999
+			//               999 Suffix
+			//       0190        Fastmatch
+			//       01901234    prefix, Config-Rule: 01901234=0521321
+			// new:  0521321999
+			t = m_RewriteRules.GetDataAt(i);
+			// multiple targets possible
+			if (!t) {
+				const PStringArray ts = t.Tokenise(",:;&|\t ", FALSE);
+				if (ts.GetSize() > 1) {
+					PINDEX j = rand() % ts.GetSize();
+                                       PTRACE(5, "GK\tRewritePString: randomly chosen [" << j << "] of " << t << "");
+                                       t = ts[j];
+                               }
+			}
+
+			// append the suffix
+			t += s.Mid(key.GetLength());
+
+			do_rewrite = true;
+			break;
+		}
+	}
+
+	//
+	// Do the rewrite.
+	// @param #t# will be written to #s#
+	//
+	if (do_rewrite) {
+               PTRACE(2, "\tRewritePString: " << s << " to " << t << "");
+               s = t;
+               changed = true;
+	}
+
+	return changed;
+}
+
 Toolkit::Toolkit() : m_Config(0)
 {
 	srand(time(0));
-//	PTRACE(1, "Toolkit::Toolkit");
 }
 
 Toolkit::~Toolkit()
@@ -250,11 +368,10 @@ PConfig* Toolkit::ReloadConfig()
 			m_Config = new PConfig(m_tmpconfig, m_ConfigDefaultSection);
 		else // Oops! Create temporary config file failed, use the original one
 			m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
-	m_RewriteFastmatch = m_Config->GetString("RasSvr::RewriteE164", "Fastmatch", "");
 
 	m_RouteTable.InitTable();
 	m_ProxyCriterion.LoadConfig(m_Config);
-
+	m_Rewrite.LoadConfig(m_Config);
 	return m_Config;
 }
 
@@ -276,8 +393,7 @@ BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 
 
 
-BOOL
-Toolkit::RewriteE164(H225_AliasAddress &alias)
+BOOL Toolkit::RewriteE164(H225_AliasAddress &alias)
 {
 	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits)
 		// there is nothing to do
@@ -297,65 +413,9 @@ Toolkit::RewriteE164(H225_AliasAddress &alias)
 
 
 
-BOOL
-Toolkit::RewritePString(PString &s)
+BOOL Toolkit::RewritePString(PString &s)
 {
-	BOOL changed = FALSE;
-	BOOL do_rewrite = FALSE; // marker if a rewrite has to be done.
-
-	// startsWith?
-	if(strncmp(s, m_RewriteFastmatch, m_RewriteFastmatch.GetLength()) != 0)
-		return changed;
-
-	// get the number to rewrite from config entry
-	PString t = Config()->GetString("RasSvr::RewriteE164",s, "");
-	if(t != "") {
-		// number found in config exactly => rewrite it.
-		// #t# is just right now!
-		do_rewrite = TRUE;
-	} else {
-		// not found directly, try a prefix match through all keys
-		const PStringList &keys = Config()->GetKeys("RasSvr::RewriteE164");
-		for(PINDEX i=0; i < keys.GetSize(); i++) {
-			if(s.Find(keys[i]) == 0) { // startWith
-				// Rewrite to #t#. Append the suffix, too.
-				// old:  01901234999
-				//               999 Suffix
-				//       0190        Fastmatch
-				//       01901234    prefix, Config-Rule: 01901234=0521321
-				// new:  0521321999
-				t = Config()->GetString("RasSvr::RewriteE164",keys[i], "");
-
-				// multiple targets possible
-				if (t != "") {
-					const PStringArray ts = t.Tokenise(",:;&|\t ", FALSE);
-					if(ts.GetSize() > 1) {
-						PINDEX i = rand()%ts.GetSize();
-						PTRACE(5, "\tRewritePString: randomly chosen [" << i << "] of " << t << "");
-						t = ts[i];
-					}
-				}
-
-				// append the suffix
-				t += s.Mid(keys[i].GetLength());
-
-				do_rewrite = TRUE;
-				break;
-			}
-		}
-	}
-
-	//
-	// Do the rewrite.
-	// @param #t# will be written to #s#
-	//
-	if(do_rewrite) {
-		PTRACE(2, "\tRewritePString: " << s << " to " << t << "");
-		s = t;
-		changed = TRUE;
-	}
-
-	return changed;
+	return m_Rewrite.RewritePString(s);
 }
 
 
@@ -659,28 +719,28 @@ E164_AnalysedNumber::GetAsDigitString() const
 
 // encapsuladed access method
 const E164_IPTNString &
-E164_AnalysedNumber::GetCC()
+E164_AnalysedNumber::GetCC() const
 {
 	return CC;
 }
 
 // encapsuladed access method
 const E164_IPTNString &
-E164_AnalysedNumber::GetNDC_IC()
+E164_AnalysedNumber::GetNDC_IC() const
 {
 	return NDC_IC;
 }
 
 // encapsuladed access method
 const E164_IPTNString &
-E164_AnalysedNumber::GetGSN_SN()
+E164_AnalysedNumber::GetGSN_SN() const
 {
 	return GSN_SN;
 }
 
 // encapsuladed access method
 E164_AnalysedNumber::IPTN_kind_type
-E164_AnalysedNumber::GetIPTN_kind()
+E164_AnalysedNumber::GetIPTN_kind() const
 {
 	return IPTN_kind;
 }
