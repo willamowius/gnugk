@@ -415,7 +415,7 @@ void VirtualQueue::OnReload()
 	}
 	
 	m_virtualQueueRegex = GkConfig()->GetString(CTIsection, "VirtualQueueRegex", "");
-	if( m_virtualQueueRegex.GetSize() > 0 ) {
+	if( !m_virtualQueueRegex.IsEmpty() ) {
 		PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (regex:"<<m_virtualQueueRegex
 			<<"), request timeout: "<<m_requestTimeout/1000<<" s"
 			);
