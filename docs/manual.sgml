@@ -114,6 +114,11 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Better handling of multiple calls over a single signalling channel 
+by setting multipleCalls and maintainConnection H.225.0 fields to FALSE 
+in all messages passing through the gatekeeper.
+
+<item>
 Better User-Name, Calling-Station-Id and Called-Station-Id handling.
 
 <item>

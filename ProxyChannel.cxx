@@ -1436,6 +1436,13 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
 		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_multipleCalls)
+		&& Setup.m_multipleCalls)
+		Setup.m_multipleCalls = FALSE;
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_maintainConnection)
+		&& Setup.m_maintainConnection)
+		Setup.m_maintainConnection = FALSE;
+
 	return CreateRemote(Setup);
 }
 
@@ -1489,6 +1496,16 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
 bool CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceeding)
 {
 	bool changed = HandleH245Address(CallProceeding);
+	if (CallProceeding.HasOptionalField(H225_CallProceeding_UUIE::e_multipleCalls)
+		&& CallProceeding.m_multipleCalls) {
+		CallProceeding.m_multipleCalls = FALSE;
+		changed = true;
+	}
+	if (CallProceeding.HasOptionalField(H225_CallProceeding_UUIE::e_maintainConnection)
+		&& CallProceeding.m_maintainConnection) {
+		CallProceeding.m_maintainConnection = FALSE;
+		changed = true;
+	}
 	return HandleFastStart(CallProceeding, false) || changed;
 }
 
@@ -1504,12 +1521,32 @@ bool CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 	}
 #endif
 	bool changed = HandleH245Address(Connect);
+	if (Connect.HasOptionalField(H225_Connect_UUIE::e_multipleCalls)
+		&& Connect.m_multipleCalls) {
+		Connect.m_multipleCalls = FALSE;
+		changed = true;
+	}
+	if (Connect.HasOptionalField(H225_Connect_UUIE::e_maintainConnection)
+		&& Connect.m_maintainConnection) {
+		Connect.m_maintainConnection = FALSE;
+		changed = true;
+	}
 	return HandleFastStart(Connect, false) || changed;
 }
 
 bool CallSignalSocket::OnAlerting(H225_Alerting_UUIE & Alerting)
 {
 	bool changed = HandleH245Address(Alerting);
+	if (Alerting.HasOptionalField(H225_Alerting_UUIE::e_multipleCalls)
+		&& Alerting.m_multipleCalls) {
+		Alerting.m_multipleCalls = FALSE;
+		changed = true;
+	}
+	if (Alerting.HasOptionalField(H225_Alerting_UUIE::e_maintainConnection)
+		&& Alerting.m_maintainConnection) {
+		Alerting.m_maintainConnection = FALSE;
+		changed = true;
+	}
 	return HandleFastStart(Alerting, false) || changed;
 }
 
@@ -1534,6 +1571,19 @@ bool CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComp
 
 bool CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
 {
+	bool changed = false;
+	
+	if (Facility.HasOptionalField(H225_Facility_UUIE::e_multipleCalls)
+		&& Facility.m_multipleCalls) {
+		Facility.m_multipleCalls = FALSE;
+		changed = true;
+	}
+	if (Facility.HasOptionalField(H225_Facility_UUIE::e_maintainConnection)
+		&& Facility.m_maintainConnection) {
+		Facility.m_maintainConnection = FALSE;
+		changed = true;
+	}
+
 	switch (Facility.m_reason.GetTag())
 	{
 		case H225_FacilityReason::e_startH245:
@@ -1560,15 +1610,24 @@ bool CallSignalSocket::OnFacility(H225_Facility_UUIE & Facility)
 			}
 			break;
 	}
-	bool changed = false;
 	if (m_result != NoData)
-		changed = HandleH245Address(Facility);
+		changed = HandleH245Address(Facility) || changed;
 	return HandleFastStart(Facility, false) || changed;
 }
 
 bool CallSignalSocket::OnProgress(H225_Progress_UUIE & Progress)
 {
 	bool changed = HandleH245Address(Progress);
+	if (Progress.HasOptionalField(H225_Progress_UUIE::e_multipleCalls)
+		&& Progress.m_multipleCalls) {
+		Progress.m_multipleCalls = FALSE;
+		changed = true;
+	}
+	if (Progress.HasOptionalField(H225_Progress_UUIE::e_maintainConnection)
+		&& Progress.m_maintainConnection) {
+		Progress.m_maintainConnection = FALSE;
+		changed = true;
+	}
 	return HandleFastStart(Progress, false) || changed;
 }
 

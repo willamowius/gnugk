@@ -1,5 +1,8 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(ProxyChannel.cxx) better handling of multiple calls over a single
+  signalling channel by setting multipleCalls and maintainConnection
+  H.225.0 fields to FALSE in all messages. Thanks to Ian Campbell!
 - better Username, Calling-Station-Id and Called-Station-Id determination,
   consistant across all auth/acct modules, redundant code removed
 - new Gatekeeper::Auth flag SetupUnreg to toggle Q.931 Setup authentication
