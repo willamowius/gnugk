@@ -20,8 +20,8 @@ CREATE TABLE voiptariffdst (
 	-- FALSE for prefix like matching, TRUE for H.323 ID matching
 	exactmatch BOOLEAN NOT NULL DEFAULT FALSE,
 		
-	PRIMARY KEY (id),
-	UNIQUE (prefix)
+	CONSTRAINT voiptariffdst_pkey PRIMARY KEY (id),
+	CONSTRAINT voiptariffdst_unique UNIQUE (prefix)
 );
 
 CREATE UNIQUE INDEX voiptariffdst_activepfx_idx ON voiptariffdst(prefix) WHERE active;

@@ -9,6 +9,8 @@ DECLARE
 	dbminorver INT;
 	dbbuildno INT;
 	attrfound INT;
+	constraintname TEXT;
+	query TEXT;
 BEGIN
 	SELECT INTO s relname FROM pg_catalog.pg_class 
 		WHERE relname = ''voipglobals'';
@@ -103,6 +105,7 @@ BEGIN
 		ALTER TABLE voipuser ALTER COLUMN terminating SET NOT NULL;
 	END IF;
 
+	-- create any missing voipuser indexes
 	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voipuser_terminatingh323id_idx'';
 	IF attrfound = 0 THEN
 		CREATE UNIQUE INDEX voipuser_terminatingh323id_idx ON voipuser(h323id) 
@@ -112,6 +115,169 @@ BEGIN
 	IF attrfound = 0 THEN
 		CREATE UNIQUE INDEX voipuser_terminatingip_idx ON voipuser(framedip) 
 			WHERE terminating;
+	END IF;
+
+	-- recreate voiptariff constraints
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariff_dstid_key'';
+	IF attrfound <> 0 THEN
+		ALTER TABLE voiptariff DROP CONSTRAINT voiptariff_dstid_key;
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariff_unique'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariff ADD CONSTRAINT voiptariff_unique UNIQUE (dstid, grpid, currencysym, terminating);
+	END IF;
+
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voiptariff''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voiptariffdst'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voiptariff DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariff_destination_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariff ADD CONSTRAINT voiptariff_destination_exists 
+			FOREIGN KEY (dstid) REFERENCES voiptariffdst(id) ON UPDATE CASCADE;
+	END IF;
+
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voiptariff''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voiptariffgrp'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voiptariff DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariff_group_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariff ADD CONSTRAINT voiptariff_group_exists 
+			FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id) ON UPDATE CASCADE;
+	END IF;
+		
+	-- recreate voiptariffdst constraints
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariffdst_prefix_key'';
+	IF attrfound <> 0 THEN
+		ALTER TABLE voiptariffdst DROP CONSTRAINT voiptariffdst_prefix_key;
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariffdst_unique'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariffdst ADD CONSTRAINT voiptariffdst_unique UNIQUE (prefix);
+	END IF;
+
+	-- recreate voiptariffsel constraints
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariffsel_grpid_key'';
+	IF attrfound <> 0 THEN
+		ALTER TABLE voiptariffsel DROP CONSTRAINT voiptariffsel_grpid_key;
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariffsel_unique'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariffsel ADD CONSTRAINT voiptariffsel_unique UNIQUE (grpid, accountid);
+	END IF;
+	
+	-- recreate voipuser constraints
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voipuser_h323id_key'';
+	IF attrfound <> 0 THEN
+		ALTER TABLE voipuser DROP CONSTRAINT voipuser_h323id_key;
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voipuser_unique'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voipuser ADD CONSTRAINT voipuser_unique UNIQUE (h323id);
+	END IF;
+
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voipuser''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voipaccount'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voipuser DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voipuser_account_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voipuser ADD CONSTRAINT voipuser_account_exists 
+			FOREIGN KEY (accountid) REFERENCES voipuser(id) ON UPDATE CASCADE;
+	END IF;
+
+	-- recreate voipcall constraints
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voipcall''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voipaccount'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voipcall DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voipcall_account_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voipcall ADD CONSTRAINT voipcall_account_exists 
+			FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE;
+	END IF;
+
+	-- recreate voipcalltermtariff constraints
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voipcalltermtariff''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voipaccount'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voipcalltermtariff DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voipcalltermtariff_account_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voipcalltermtariff ADD CONSTRAINT voipcalltermtariff_account_exists 
+			FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE;
+	END IF;
+
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voipcalltermtariff''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voipcall'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voipcalltermtariff DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voipcalltermtariff_call_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voipcalltermtariff ADD CONSTRAINT voipcalltermtariff_call_exists 
+			FOREIGN KEY (callid) REFERENCES voipcall(id) ON UPDATE CASCADE ON DELETE CASCADE;
+	END IF;
+
+	-- recreate voiptariffsel constraints
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voiptariffsel''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voiptariffgrp'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voiptariffsel DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariffsel_group_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariffsel ADD CONSTRAINT voiptariffsel_group_exists 
+			FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id) ON UPDATE CASCADE;
+	END IF;
+
+	constraintname := NULL;
+	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
+		JOIN pg_type T ON C.conrelid = T.typrelid WHERE T.typname = ''voiptariffsel''
+		AND C.contype = ''f'') AS CC JOIN pg_type TT ON CC.confrelid = TT.typrelid
+		AND TT.typname = ''voipaccount'';
+	IF constraintname IS NOT NULL THEN
+		EXECUTE ''ALTER TABLE voiptariffsel DROP CONSTRAINT ''
+			|| quote_ident(constraintname);
+	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariffsel_account_exists'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariffsel ADD CONSTRAINT voiptariffsel_account_exists 
+			FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE;
 	END IF;
 
 	RAISE INFO ''Upgrade complete'';

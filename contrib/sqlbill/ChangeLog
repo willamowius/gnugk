@@ -1,3 +1,7 @@
+26 Sep 2004 -- zvision
+  * associate names with table constraints to allow further easy modifications
+  * changed voiptariff multikey to contain the terminating column too
+
 21 Sep 2004 -- zvision
   * added support for termination accounts and tariffs
 

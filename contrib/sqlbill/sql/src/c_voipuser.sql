@@ -37,9 +37,9 @@ CREATE TABLE voipuser (
 	-- whether this endpoint can terminate tariffic too
 	terminating BOOLEAN DEFAULT FALSE NOT NULL,
 	
-	PRIMARY KEY (id),
-	UNIQUE (h323id),
-	FOREIGN KEY (accountid) REFERENCES voipaccount(id)
+	CONSTRAINT voipuser_pkey PRIMARY KEY (id),
+	CONSTRAINT voipuser_unique UNIQUE (h323id),
+	CONSTRAINT voipuser_account_exists FOREIGN KEY (accountid) REFERENCES voipaccount(id)
 );
 
 -- an index for fast access to active users

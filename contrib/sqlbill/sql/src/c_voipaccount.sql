@@ -27,7 +27,7 @@ CREATE TABLE voipaccount (
 	-- standard currency symbol for balance and balancelimit fields
 	currencysym CHAR(3) NOT NULL DEFAULT 'USD',
 	
-	PRIMARY KEY (id)
+	CONSTRAINT voipaccount_pkey PRIMARY KEY (id)
 );
 
 -- an index for fast access to all active and not disabled accounts

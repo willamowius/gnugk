@@ -31,10 +31,10 @@ CREATE TABLE voiptariff (
 	-- whether the tariff should apply to an originatin or terminating endpoint
 	terminating BOOLEAN NOT NULL DEFAULT FALSE,
 		
-	PRIMARY KEY (id),
-	FOREIGN KEY (dstid) REFERENCES voiptariffdst(id),
-	FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id),
-	UNIQUE (dstid, grpid, currencysym)
+	CONSTRAINT voiptariff_pkey PRIMARY KEY (id),
+	CONSTRAINT voiptariff_destination_exists FOREIGN KEY (dstid) REFERENCES voiptariffdst(id) ON UPDATE CASCADE,
+	CONSTRAINT voiptariff_group_exists FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id) ON UPDATE CASCADE,
+	CONSTRAINT voiptariff_unique UNIQUE (dstid, grpid, currencysym, terminating)
 );
 
 CREATE INDEX voiptariff_dstid_idx ON voiptariff(dstid);

@@ -33,7 +33,7 @@ CREATE TABLE voipcalltermtariff (
 	-- description
 	tariffdesc TEXT NOT NULL DEFAULT '',
 		
-	PRIMARY KEY (id),
-	FOREIGN KEY (callid) REFERENCES voipcall(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE
+	CONSTRAINT voipcalltermtariff_pkey PRIMARY KEY (id),
+	CONSTRAINT voipcalltermtariff_call_exists FOREIGN KEY (callid) REFERENCES voipcall(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	CONSTRAINT voipcalltermtariff_account_exists FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE
 );

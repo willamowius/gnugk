@@ -18,7 +18,7 @@ CREATE TABLE voiptariffgrp (
 	-- description (like 'Germany - 10% discount' or 'USA - Gold Tariff')
 	description TEXT NOT NULL,
 	
-	PRIMARY KEY (id)
+	CONSTRAINT voiptariffgrp_pkey PRIMARY KEY (id)
 );
 
 -- binding between an account and a tariff group
@@ -30,8 +30,8 @@ CREATE TABLE voiptariffsel (
 	-- account the tariff group applies to
 	accountid INT NOT NULL,
 	
-	PRIMARY KEY (id),
-	UNIQUE (grpid, accountid),
-	FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id),
-	FOREIGN KEY (accountid) REFERENCES voipaccount(id)
+	CONSTRAINT voiptariffsel_pkey PRIMARY KEY (id),
+	CONSTRAINT voiptariffsel_unique UNIQUE (grpid, accountid),
+	CONSTRAINT voiptariffsel_group_exists FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id) ON UPDATE CASCADE,
+	CONSTRAINT voiptariffsel_account_exists FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE
 );
