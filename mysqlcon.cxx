@@ -87,7 +87,7 @@ PString MySQLConnection::GetSelectClause(const PString & id) const
 
 bool MySQLConnection::Init()
 {
-	PString host = m_config->GetString(m_section, "Host", "localhost");
+	PStringArray host = m_config->GetString(m_section, "Host", "localhost").Tokenise(",:;", false);
 	unsigned port = m_config->GetInteger(m_section, "Port", MYSQL_PORT);
 	PString dbname = m_config->GetString(m_section, "Database", "mysql");
 	PString user = m_config->GetString(m_section, "User", "");
@@ -98,9 +98,15 @@ bool MySQLConnection::Init()
 	PString query = m_config->GetString(m_section, "DataField", "");
 	PString extra = m_config->GetString(m_section, "ExtraCriterion", "");
 
+	PINDEX i = 0, s = host.GetSize();
 	if ((m_connection = mysql_init(0))) {
-		if (!mysql_real_connect(m_connection, host, user, passwd, dbname, port, 0, 0)) {
+		while (i < s) {
+			if (mysql_real_connect(m_connection, host[i], user, passwd, dbname, port, 0, 0))
+				break;
 			PTRACE(1, "MySQL\tError: " << mysql_error(m_connection));
+			++i;
+		}
+		if (i == s) {
 			Cleanup();
 			return false;
 		}
@@ -109,7 +115,7 @@ bool MySQLConnection::Init()
 		return false;
 	}
 
-	PTRACE(2, "MySQL\tConnect to server " << host << ", database " << dbname);
+	PTRACE(2, "MySQL\tConnect to server " << host[i] << ", database " << dbname);
 	m_clause.sprintf(
 		"select %s from %s where %s = '%%s'",
 		(const char *)query,
