@@ -470,8 +470,8 @@ void ProxyHandleThread::BuildSelectList(PSocket::SelectList & result)
 			if (socket->IsDeletable())
 				Remove(k);
 #ifdef PTRACING
-		} else {
-			PTRACE(5, socket->Name() << " is busy!");
+	//	} else {
+	//		PTRACE(5, socket->Name() << " is busy!");
 #endif
 		}
 	}
