@@ -43,7 +43,7 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
  "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "PrependCallbackAC",
  "EndpointType", "CountryCode", "NationalDestnationCode", "OutgoingWhitelistBeforeBlacklist", "ConvertToLocal",
- "TreatCallingPartyNumberAs", "TreatCalledPartyNumberAs"};
+ "TreatCallingPartyNumberAs", "TreatCalledPartyNumberAs", "StatusEnquiryInterval", "CallTimeout"};
 
 // section name for database names which shall be used
 const char *DB_NAMES_SEC = "Gatekeeper::Databases";
@@ -155,6 +155,14 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 			    cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[ConvertToLocal],
 					      "voIPConvertToLocal")));
+	AN.insert(DBANValuePair(DBAttrTags[StatusEnquiryInterval],
+			    cfg.GetString(DB_ATTR_NAME_SEC,
+					      DBAttrTags[StatusEnquiryInterval],
+					      "voIPStatusEnquiryInterval")));
+	AN.insert(DBANValuePair(DBAttrTags[CallTimeout],
+			    cfg.GetString(DB_ATTR_NAME_SEC,
+					      DBAttrTags[CallTimeout],
+					      "voIPCallTimeout")));
 	AN.insert(DBANValuePair(DBAttrTags[TreatCallingPartyNumberAs],
 			    cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[TreatCallingPartyNumberAs],
@@ -277,6 +285,18 @@ BOOL GkDatabase::getProfile(CallProfile & cgProfile, PString & h323id, dctn::DBT
 		} else if (attrMap[attrNameAsString(ConvertToLocal)].GetSize() > 0) {
 			cgProfile.SetConvertToLocal(Toolkit::AsBool(attrMap[attrNameAsString(ConvertToLocal)][0]));
 		}
+		if (attrMap[attrNameAsString(StatusEnquiryInterval)].GetSize() == 0) {
+			cgProfile.SetStatusEnquiryInterval(0);
+		} else {
+			cgProfile.SetStatusEnquiryInterval(attrMap[attrNameAsString(StatusEnquiryInterval)][0].AsInteger());
+		}
+/*
+		if (attrMap[attrNameAsString(CallTimeout)].GetSize() == 0) {
+			cgProfile.SetCallTimeout(0);
+		} else {
+			cgProfile.SetCallTimeout(attrMap[attrNameAsString(CallTimeout)].AsInteger());
+		}
+*/
 		if (attrMap[attrNameAsString(TreatCallingPartyNumberAs)].GetSize() > 0)
 			cgProfile.SetTreatCallingPartyNumberAs(static_cast <CallProfile::Conversions>
 							       (attrMap[attrNameAsString(TreatCallingPartyNumberAs)][0].AsInteger()));

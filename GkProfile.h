@@ -65,8 +65,8 @@ public:
 	const PStringList & GetBlackList() const ;
 	const PStringList & GetWhiteList() const ;
 
-	const long int GetCallTimeout() {return -1 ; }
-	const PTimeInterval GetStatusEnquiryInterval() {return PTimeInterval(0,0,1);}
+	const long int GetCallTimeout();
+	const PTimeInterval GetStatusEnquiryInterval();
 
 	// These two will change the numbering conversion functions to treat the
 	// number as International (TreatAsInternational), National (TreatAsNational)
@@ -100,6 +100,9 @@ public:
 	void SetNDC_IC(const PString &ndc);
         void SetCgPN(PString &cgPN) ;
 
+	void SetStatusEnquiryInterval(int timeout); // Timeout in seconds
+	void SetCallTimeout(long int timeout); // Timeout in seconds
+
 	void SetBlackList(PStringList &bl) ;
 	void SetWhiteList(PStringList &wl) ;
 
@@ -123,6 +126,7 @@ protected:
 	BOOL            m_PrependCallbackAC;          // Prepend Callback AccessCode to the number.
 	BOOL            m_ConvertToLocal;             // Convert Numbers to most local numbers.
 	E164_AnalysedNumber m_e164number;             // The maintelephonenumber as E164Number
+	PTimeInterval   m_StatusEnquiryInterval;      // Timeinterval between 2 StatusEnquiry pings.
 
 	enum Conversions m_TreatCallingPartyNumberAs; // Treat Calling Party Number as international, national, local or use the TON-field
 	enum Conversions m_TreatCalledPartyNumberAs;  // See above but Called Party Number

@@ -189,6 +189,17 @@ CallProfile::GetWhiteList() const
 	return m_WhiteList;
 }
 
+const long int
+CallProfile::GetCallTimeout()
+{ // Not yet...
+	return -1 ;
+}
+const PTimeInterval
+CallProfile::GetStatusEnquiryInterval()
+{
+	PWaitAndSignal lock(m_lock);
+	return m_StatusEnquiryInterval;
+}
 
 // Set accessor methods
 void
@@ -336,6 +347,18 @@ CallProfile::SetWhiteList(PStringList &wl)
 {
 	PWaitAndSignal lock(m_lock);
 	m_WhiteList = wl;
+}
+
+void
+CallProfile::SetStatusEnquiryInterval(int timeout)
+{ // Timeout in seconds
+	PWaitAndSignal lock(m_lock);
+	m_StatusEnquiryInterval = PTimeInterval(0,timeout);
+}
+void
+CallProfile::SetCallTimeout(long int timeout)
+{ // Timeout in seconds
+// do nothing
 }
 
 void
