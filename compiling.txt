@@ -14,5 +14,8 @@ Order of compiling:
 4. gatekeeper
 
 On Unix do a "make debug" or "make opt" in the gatekeeper directory.
+Your gcc should not be too old, because we use some STL features
+(egcs-2.91.66 for example is too old).
+
 On Windows just compile the provided project for Visual C++ 6.0 (Visual C++ 5.0 is too old!).
 

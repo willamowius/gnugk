@@ -15,4 +15,5 @@ and with 2 PC with RADCOM H.323 Call Generator
 
 7 calls/sec
 Some memory leaks let GK breakdown after 4 hours (out of memory).
+(the memory leak is fixed in 1.0)
 
