@@ -611,8 +611,7 @@ inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 {
 	InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
-	if (m_Called && m_Called->IsFromParent())
-		SetRegistered(true);
+	SetRegistered(m_Called && m_Called->IsFromParent());
 }
 
 inline void CallRec::Lock()
