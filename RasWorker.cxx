@@ -35,6 +35,7 @@
 #include "gkDestAnalysis.h"
 #include "Neighbor.h"
 #include "GkClient.h"
+#include "gkDatabase.h"
 
 #ifndef lint
 // mark object with version info in such a way that it is retrievable by
@@ -547,6 +548,9 @@ Abstract_H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 				bReject = (ep->GetRasAddress() != rrq.m_rasAddress[0]);
 			// No call signal and ras address provided.
 			// TODO: check rx_addr?
+			else if (!check_aliases(ep->GetAliases()))
+				bReject = TRUE;
+
 			else
 				bReject = FALSE;
 		}
@@ -872,8 +876,8 @@ Abstract_H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 				master.GetCallSignalAddress(addr) != arq.m_destCallSignalAddress) { // if destAddr is the GK, ignore it
 				CalledEP = RegistrationTable::Instance()->FindBySignalAdr(arq.m_destCallSignalAddress);
 				if (!CalledEP && Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "CallUnregisteredEndpoints", "1"))) {
-					H225_RasMessage arq = arq;
-					CalledEP = RegistrationTable::Instance()->InsertRec(arq);
+					H225_RasMessage tarq = pdu;
+					CalledEP = RegistrationTable::Instance()->InsertRec(tarq);
 				}
 			}
 			if (!CalledEP && RequestingEP && arq.m_destinationInfo.GetSize() >= 1) {
@@ -913,7 +917,7 @@ Abstract_H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 					profile.debugPrint();
 					ton = static_cast<Q931::TypeOfNumberCodes> (
 						profile.TreatCalledPartyNumberAs() == CallProfile::LeaveUntouched ?
-						static_cast<CallProfile::Conversions> (ton) : profile.TreatCalledPartyNumberAs());
+						ton : profile.TreatCalledPartyNumberAs());
 					Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(number, plan, ton, si,
 											     profile);
 					H323SetAliasAddress(number, dest[0], H225_AliasAddress::e_dialedDigits);
@@ -1186,6 +1190,46 @@ void
 Abstract_H323RasWorker::OnUCF(H225_UnregistrationConfirm &ucf)
 {
 	PTRACE(1, "GK\tUCF Received" << endl << ucf);
+}
+
+BOOL
+Abstract_H323RasWorker::check_aliases(const H225_ArrayOf_AliasAddress & aliases)
+{
+	using namespace dctn;
+	// find H323ID
+	PString H323ID;
+	PStringList aliaseslist;
+	for (PINDEX i=0; i<aliases.GetSize(); i++) {
+		if(H323ID.IsEmpty() && aliases[i].GetTag()==H225_AliasAddress::e_h323_ID) {
+			H323ID=H323GetAliasAddressString(aliases[i]);
+		} else {
+			aliaseslist.AppendString(H323GetAliasAddressString(aliases[i]));
+		}
+	}
+
+
+	DBAttributeValueClass attr;
+	DBTypeEnum dbType;
+	PStringList database_alias_list;
+	if(GkDatabase::Instance()->getAttribute(H323ID, TelephoneNo, database_alias_list, dbType)) {
+		if(database_alias_list.GetSize()!=aliaseslist.GetSize())
+			return FALSE;
+		PTRACE(2, "got numbers: " << database_alias_list);
+		for(PINDEX j=0; j<database_alias_list.GetSize(); j++) {
+			PTRACE(5, "trying number: " << database_alias_list[j]);
+			if(aliaseslist.GetSize()==0 || aliaseslist.GetStringsIndex(database_alias_list[j]) ||
+			   aliaseslist.GetStringsIndex(database_alias_list[j])==P_MAX_INDEX)
+				return FALSE;
+		}
+		// now the other way around
+		for(PINDEX j=0; j<aliaseslist.GetSize(); j++) {
+			PTRACE(5, "trying number: " << aliaseslist[j]);
+			if(database_alias_list.GetSize()==0 || database_alias_list.GetStringsIndex(aliaseslist[j]) ||
+			   database_alias_list.GetStringsIndex(aliaseslist[j])==P_MAX_INDEX)
+				return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 // Derived class H323RasWorker

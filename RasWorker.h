@@ -69,6 +69,7 @@ protected:
 	virtual void OnUCF(H225_UnregistrationConfirm &ucf);
 private:
 	GkAuthenticatorList *authList;
+	BOOL check_aliases(const H225_ArrayOf_AliasAddress &aliases);
 };
 
 class H323RasWorker : public Abstract_H323RasWorker {
