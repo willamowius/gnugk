@@ -146,6 +146,8 @@ private:
 
 	int m_ttl, m_retry;
 	PTime m_registeredTime;
+	PTimer reRegisterTimer;
+	PDECLARE_NOTIFIER(PTimer, GkClient, OnTimeout);
 
 	PStringToString m_rewriteInfo;
 

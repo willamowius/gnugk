@@ -347,6 +347,10 @@ void GkClient::RegisterFather(const PString & endpointId, const PString & gateke
 	m_gatekeeperId = gatekeeperId;
 	m_ttl = ttl;
 
+	// Set Alarm
+	reRegisterTimer = PTimer(0,m_ttl);
+	reRegisterTimer.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+
 	// Register into EndpointTable
 	H225_RasMessage rrq_ras;
 	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
@@ -682,6 +686,22 @@ void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, cons
 	auth.SetLocalId(id);
 	auth.SetPassword(m_password);
 	auth.Prepare(cryptoTokens);
+}
+
+void
+GkClient::OnTimeout(PTimer &timer, int extra)
+{
+	H225_RasMessage rrq_ras;
+	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
+	H225_RegistrationRequest & rrq = rrq_ras;
+	BuildLightWeightRRQ(rrq);
+	PBYTEArray buffer(4096);
+	PPER_Stream writestream(buffer);
+	rrq_ras.Encode(writestream);
+	writestream.CompleteEncoding();
+	listener_mutex.Wait();
+	listener.WriteTo(writestream,writestream.GetSize(), m_gkaddr, m_gkport);
+	listener_mutex.Signal();
 }
 
 
