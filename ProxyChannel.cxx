@@ -159,6 +159,7 @@ public:
 protected:
 	virtual bool WriteData(const BYTE *, int);
 	virtual bool Flush();
+	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
 private:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
@@ -2307,7 +2308,8 @@ inline bool compare_lc(std::pair<const WORD, RTPLogicalChannel *> p, LogicalChan
 #endif
 
 // class UDPProxySocket
-UDPProxySocket::UDPProxySocket(const char *t) : ProxySocket(this, t)
+UDPProxySocket::UDPProxySocket(const char *t) 
+	: ProxySocket(this, t), fDestPort(0), rDestPort(0)
 {
 	SetReadTimeout(PTimeInterval(50));
 	SetWriteTimeout(PTimeInterval(50));
@@ -2392,38 +2394,30 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 	// Workaround: some bad endpoints don't send packets from the specified port
-	if( (fromIP == fSrcIP && fromPort == fSrcPort)
-		|| (fromIP == rDestIP && fromIP != rSrcIP) ) 
-	{
-		if ( fDestIP.IsLoopback() && ! rDestIP.IsLoopback() )
-		{
-			// Strange, fDestIP is uninitialized and rDest is not, maybe 
-			// the incoming traffic should go to rDest...
-			PTRACE( 6, Type() << "\tGot strange fDestIP, rewriting f* data from r* data" );
-			fDestIP = rDestIP;
-			fDestPort = rDestPort;
-		}
+	if ((fromIP == fSrcIP && fromPort == fSrcPort)
+		|| (fromIP == rDestIP && fromIP != rSrcIP)) {
+		if (fDestPort) {
+			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
+			SetSendAddress(fDestIP, fDestPort);
+		} else
+			PTRACE(6, Type() << "\tForward from " << fromIP << ':' << fromPort 
+				<< " blocked, remote socket (" << fDestIP << ':' << fDestPort
+				<< ") not yet known or ready"
+				);
 
-		PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
-
-		SetSendAddress(fDestIP, fDestPort);
 		if (rnat)
 			rDestIP = fromIP, rDestPort = fromPort;
-	} 
-	else 
-	{
-		if ( rDestIP.IsLoopback() && ! fDestIP.IsLoopback() )
-		{
-			// Strange, rDestIP is uninitialized and fDest is not, maybe 
-			// the incoming traffic should go to fDest...
-			PTRACE( 6, Type() << "\tGot strange rDestIP, rewriting r* data from f* data" );
-			rDestIP = fDestIP;
-			rDestPort = fDestPort;
-		}
-
-		PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort);
-
-		SetSendAddress(rDestIP, rDestPort);
+	} else {
+		if (rDestPort) {
+			PTRACE(6, Type() << "\tForward " << fromIP << ':' << fromPort << 
+				" to " << rDestIP << ':' << rDestPort
+				);
+			SetSendAddress(rDestIP, rDestPort);
+		} else 
+			PTRACE(6, Type() << "\tForward from " << fromIP << ':' << fromPort 
+				<< " blocked, remote socket (" << rDestIP << ':' << rDestPort
+				<< ") not yet known or ready"
+				);
 		if (fnat)
 			fDestIP = fromIP, fDestPort = fromPort;
 	}
@@ -2436,20 +2430,40 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 		return false;
 
 	const int queueSize = GetQueueSize();
-	if (queueSize == 0)
-		return InternalWriteData(buffer, len);
-	else if (queueSize > 100) {
-		PTRACE(2, Type() << '\t' << Name() << " is dead and closed");
-		CloseSocket();
-	} else {
-		PTRACE(3, Type() << '\t' << Name() << " is busy, " << len << " bytes queued");
+	if (queueSize > 0)
+		if (queueSize < 50) {
+			QueuePacket(buffer, len);
+			PTRACE(3, Type() << '\t' << Name() << " socket is busy, " << len << " bytes queued");
+			return false;
+		} else {
+			ClearQueue();
+			PTRACE(3, Type() << '\t' << Name() << " socket queue overflow, dropping queued packets");
+		}
+	
+	// check if the remote address to send data to has been already determined
+	PIPSocket::Address addr;
+	WORD port = 0;
+	GetSendAddress(addr, port);
+	if (port == 0) {
 		QueuePacket(buffer, len);
+		PTRACE(3, Type() << '\t' << Name() << " socket has no destination address yet, " << len << " bytes queued");
+		return false;
 	}
-	return false;
+	
+	return InternalWriteData(buffer, len);
 }
 
 bool UDPProxySocket::Flush()
 {
+	// check if the remote address to send data to has been already determined
+	PIPSocket::Address addr;
+	WORD port = 0;
+	GetSendAddress(addr, port);
+	if (port == 0) {
+		PTRACE(3, Type() << '\t' << Name() << " socket has no destination address yet, flush ignored");
+		return false;
+	}
+
 	bool result = true;
 	while (result && GetQueueSize() > 0) {
 		PBYTEArray* const pdata = PopQueuedPacket();
@@ -2461,6 +2475,32 @@ bool UDPProxySocket::Flush()
 			break;
 	}
 	return result;
+}
+
+bool UDPProxySocket::ErrorHandler(PSocket::ErrorGroup group)
+{
+	const PString msg = PString(Type()) + "\t" + Name();
+	const PSocket::Errors e = GetErrorCode(group);
+	
+	switch (e)
+	{
+	//	case PSocket::NoError:
+	//	// I don't know why there is error with code NoError
+	//		PTRACE(4, msg << " Error(" << group << "): No error?");
+	//		break;
+		case PSocket::Timeout:
+			PTRACE(4, msg << " Error(" << group << "): Timeout");
+			break;
+		case PSocket::NotOpen:
+			CloseSocket();
+		default:
+			PTRACE(3, msg << " Error(" << group << "): " 
+				<< PSocket::GetErrorText(e) << " (" << e << ':' 
+				<< GetErrorNumber(group) << ')'
+				);
+			break;
+	}
+	return false;
 }
 
 

@@ -114,6 +114,11 @@ public:
 	bool Listen(const Address &, unsigned, WORD, int);
 	void GetLastReceiveAddress(Address &, WORD &) const;
 	void SetSendAddress(const Address &, WORD);
+	/// Get the address to use for connectionless Write().
+	void GetSendAddress(
+		Address& address, /// IP address to send packets.
+		WORD& port /// Port to send packets.
+		);
 
 	virtual bool ReadFrom(void *, PINDEX, Address &, WORD);
 	virtual bool WriteTo(const void *, PINDEX, const Address &, WORD);
@@ -295,8 +300,9 @@ protected:
 		queueMutex.Signal();
 		return packet;
 	}
-	
-	bool ErrorHandler(PSocket::ErrorGroup);
+	void ClearQueue();
+		
+	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
 	IPSocket *self;
 

@@ -114,6 +114,12 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Fixed proxying of RTP packets, so RTP sockets are not closed on temporary 
+errors (like remote socket not yet ready). This bug affected especially 
+NAT traversal and situation, when audio was sent very early, when reverse 
+proxy path has not been yet established.
+
+<item>
 Fixed handling of RRJ from an alternate GnuGk.
 
 <item>

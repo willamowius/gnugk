@@ -81,8 +81,11 @@ public:
 		/// next task to be executed
 		Task* next
 		) 
-	{ 
-		m_next = next; 
+	{
+		if (m_next != NULL && m_next != this)
+			m_next->SetNext(next);
+		else
+			m_next = next; 
 	}
 
 	/** @return

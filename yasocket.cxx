@@ -416,6 +416,7 @@ int YaTCPSocket::os_send(const void *buf, int sz)
 YaUDPSocket::YaUDPSocket()
 {
 	sendaddr.sin_family = AF_INET;
+	sendaddr.sin_port = 0;
 }
 
 bool YaUDPSocket::Listen(unsigned, WORD pt)
@@ -443,6 +444,15 @@ void YaUDPSocket::SetSendAddress(const Address & addr, WORD pt)
 {
 	sendaddr.sin_addr = addr;
 	sendaddr.sin_port = htons(pt);
+}
+
+void YaUDPSocket::GetSendAddress(
+	Address& address, /// IP address to send packets.
+	WORD& port /// Port to send packets.
+	)
+{
+	address = sendaddr.sin_addr;
+	port = ntohs(sendaddr.sin_port);
 }
 
 bool YaUDPSocket::ReadFrom(void *buf, PINDEX len, Address & addr, WORD pt)
@@ -579,7 +589,10 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 				break;
 			}
 		default:
-			PTRACE(3, msg << " Error(" << group << "): " << PSocket::GetErrorText(e) << " (" << e << ')');
+			PTRACE(3, msg << " Error(" << group << "): " 
+				<< PSocket::GetErrorText(e) << " (" << e << ':'
+				<< self->GetErrorNumber(group) << ')'
+				);
 			CloseSocket();
 			break;
 	}
@@ -608,6 +621,15 @@ bool USocket::InternalWriteData(const BYTE *buf, int len)
 		++qsize;
 	}
 	return false;
+}
+
+void USocket::ClearQueue()
+{
+	queueMutex.Wait();
+	DeleteObjectsInContainer(queue);
+	queue.clear();
+	qsize = 0;
+	queueMutex.Signal();
 }
 
 

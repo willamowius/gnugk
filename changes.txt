@@ -1,5 +1,9 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(ProxyChannel.cxx) fixed proxying of RTP packets, so RTP sockets are
+  not closed on temporary errors (like remote socket not yet ready). This bug
+  affected especially NAT traversal and situation, when audio was sent very 
+  early, when reverse proxy path has not been yet established
 - BUGFIX(RasSrv.cxx) fixed handling of RRJ (fullRegistrationRequired)
   from an alternate GnuGk
 - BUGFIX(GkStatus.cxx) fixed bug in status client authentication introduced
