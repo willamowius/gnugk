@@ -482,6 +482,13 @@ CalledProfile::GetCallingPN() const
 }
 
 const enum Q931::TypeOfNumberCodes
+CalledProfile::GetCallingPN_TON() const
+{
+	PWaitAndSignal lock(m_lock);
+	return m_callingPN_TON;
+}
+
+const enum Q931::TypeOfNumberCodes
 CalledProfile::GetDialedPN_TON() const
 {
 	PWaitAndSignal lock(m_lock);
@@ -593,6 +600,7 @@ CalledProfile::SetCallingPN(PString &callingPN, const enum Q931::NumberingPlanCo
 	// for future use. Please do not change.
 	PWaitAndSignal lock(m_lock);
 	m_callingPN = callingPN;
+	m_callingPN_TON = callingPN_TON;
 }
 
 void

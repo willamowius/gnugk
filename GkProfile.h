@@ -174,6 +174,7 @@ public:
         const enum Q931::TypeOfNumberCodes  GetDialedPN_TON() const ;
 	const enum Q931::TypeOfNumberCodes  GetAssumedDialedPN_TON() const ;
 	const PString & GetAssumedDialedPN() const ;
+	const enum Q931::TypeOfNumberCodes GetCallingPN_TON() const;
 	BOOL ReleaseCauseIsSet() const;
 	const enum Q931::CauseValues GetReleaseCause() const ;
 	const H225_DisengageReason GetDisengageReason() const ;
@@ -214,6 +215,8 @@ private:
 	enum Q931::NumberingPlanCodes m_assumeddialedPN_PLAN;
 	enum Q931::CauseValues m_releasecause;
         PString m_assumeddialedPN; // dialed party number
+
+	enum Q931::TypeOfNumberCodes m_callingPN_TON; // type of number for calling PN
 
         PString m_calledPN; // called party number
 	PString m_callingPN; // calling party number as in Q.931-Setup after converting to international
