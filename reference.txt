@@ -152,6 +152,13 @@ The number of call signaling handler. You may increase this number
 in a heavy loaded gatekeeper. The number can only be increased
 at runtime.
 
+RemoveH245AddressOnTunneling=1	Default: 0
+
+Some endpoints send h245Address in the UUIE of Q.931 even when h245Tunneling
+is set to be TRUE. This may cause interoperability problems. If the option
+is TRUE, the gatekeeper will remove h245Address when h245Tunneling flag
+is TRUE. This enforces the remote party to stay in tunneling mode.
+
 
 B.3 Section [GkStatus::Auth]
 
@@ -262,7 +269,7 @@ Currently only one prefix is supported.
 B.12 Section [RasSvr::PermanentEndpoints]
 
 In this section you can put endpoints that don't have RAS support
-or that you don't want to be expired. The records will always
+or that you don't want to be expired. The records are always
 in GK's registration table.
 However, You can still unregister it via status thread.
 
@@ -444,7 +451,8 @@ InternalNetwork=10.0.1.0/24	Default: n/a
 
 Define the networks behind the proxy. Multiple internal networks are allow.
 The proxy route channels only of the communications between one endpoint
-in the internal network and one external.
+in the internal network and one external. If you don't specify it, all calls
+will be proxied.
 
   Format:
     InternalNetwork=network address/netmask[,network address/netmask,...]
@@ -452,8 +460,96 @@ in the internal network and one external.
     The netmask can be expressed in decimal dot notation or
     CIDR notation (prefix length), as shown in the example.
 
-    If you don't specify it, the proxy function will always be used.
-
   Example:
     InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24
 
+B.19 Section [Endpoint]
+
+The gatekeeper can work as an endpoint by registering to another gatekeeper.
+With this feature, you can easily build gatekeeper hierarchies.
+The section defines the endpoint features for the gatekeeper.
+
+Gatekeeper=10.0.1.1		Default: no
+
+Define a parent gatekeeper for the endpoint(gatekeeper) to register.
+Don't try to register to yourself, unless you want to be confusing.
+To disable this feature, set the field to be no.
+
+Type=Gateway			Default: Gateway
+
+Define the terminal type for the endpoint.
+The valid values are Gateway or Terminal.
+
+H323ID=CitronProxy
+E164=18888600000,18888700000
+
+Define the H.323 ID and E.164 (dialedDigits) aliases for the endpoint.
+Multiple aliases can be specified.
+
+Password=123456
+
+Specify a password to be sent to the parent gatekeeper.
+All RAS requests will contain the password in the cryptoTokens field.
+
+Prefix=188886,188887
+
+Register the specified prefixes to the parent gatekeeper.
+Only take effect when the Type is Gateway.
+
+TimeToLive=900
+
+Suggest a time-to-live value in second for the registration.
+Note that the real time-to-live value is assigned by the parent
+gatekeeper in the RCF replied to the RRQ.
+
+RRQRetryInterval=10		Default: 10
+
+Define a retry interval in second for RRQs if no response
+received from the parent gatekeeper.
+
+ARQTimeout=2			Default: 2
+
+Define the timeout value for ARQs in second.
+
+
+B.20 Section [Endpoint::RewriteE164]
+
+Once you specify prefix(es) for your gatekeeper endpoint, the parent
+gatekeeper will route calls with dialed digits beginning with that prefixes.
+The child gatekeeper can rewrite the destination according to the rules
+specified in this section. By contrast, when an internal endpoint calls
+an endpoint registered to the parent gatekeeper, the source will be
+rewritten reversely.
+
+  Format:
+    external prefix=internal prefix
+
+For example, if you have the following configuration,
+
+				[Parent GK]
+				ID=CitronGK
+				/	  \
+			       /	   \
+			      /		    \
+			     /		     \
+			[Child GK]	    [EP3]
+			ID=ProxyGK	    E164=18888200
+			Prefix=188886
+			/	\
+		       /	 \
+		      /		  \
+		   [EP1]	 [EP2]
+		   E164=601	 E164=602
+
+With this rule:
+
+    188886=6
+
+When EP1 calls EP3 by 18888200, the CallingPartyNumber in the Q.931 Setup
+will be rewritten to 18888601. Conversely, EP3 can reach EP1 and EP2
+by calling 18888601 and 18888602, respectively. In consequence, an
+endpoint registered to the child GK with prefix '6' will appear
+as an endpoint with prefix '188886', for endpoints registered to
+the parent gatekeeper.
+
+The section does not relate to the section RasSvr::RewriteE164.

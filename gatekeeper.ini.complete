@@ -32,7 +32,7 @@ RemoveH245AddressOnTunneling=0
 #Enable=1
 #InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
 
-[Endpoint]
+#[Endpoint]
 #Gatekeeper=auto
 #Gatekeeper=210.58.112.188
 #Type=Gateway
@@ -43,6 +43,9 @@ RemoveH245AddressOnTunneling=0
 #TimeToLive=900
 #RRQRetryInterval=10
 #ARQTimeout=2
+
+#[Endpoint::RewriteE164]
+#188889000=9
 
 [Failover]
 ## Give a list of IP4-Addresses to forward the RRQ to that this
