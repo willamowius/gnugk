@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2003/10/15 10:16:57  zvision
+ * Fixed VC6 compiler warnings. Thanks to Hu Yuxin.
+ *
  * Revision 1.5  2003/10/08 12:40:48  zvision
  * Realtime accounting updates added
  *
@@ -102,7 +105,14 @@ RadAcct::RadAcct(
 			);
 		localInterface = PString::Empty();
 	}
+	// get IP address for the local interface
+	if( localInterface.IsEmpty() )
+		localInterfaceAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress();
+	else
+		localInterfaceAddr = PIPSocket::Address(localInterface);
 
+	NASIdentifier = Toolkit::Instance()->GKName();
+	
 	/// build RADIUS client
 	radiusClient = new RadiusClient( 
 		radiusServers[0],
@@ -172,29 +182,25 @@ GkAcctLogger::Status RadAcct::Log(
 	// a workaround to prevent processing end on "sufficient" module
 	// if it is not interested in this event type
 	if( (evt & GetEnabledEvents() & GetSupportedEvents()) == 0 )
-		return (GetControlFlag() == Sufficient) ? Next : Ok;
+		return Next;
 		
 	if( radiusClient == NULL ) {
-		PTRACE(1,"RADACCT\tAcct "<<((GetDefaultStatus() == Fail)?"failed":"skipped")
-			<<" - null RADIUS client instance"
-			);
-		return GetDefaultStatus();
+		PTRACE(1,"RADACCT\t"<<GetName()<<" - null RADIUS client instance");
+		return Fail;
 	}
 
 	if( (evt & (AcctStart | AcctStop | AcctUpdate)) && (!call) ) {
-		PTRACE(2,"RADACCT\tAcct "<<((GetDefaultStatus() == Fail)?"failed":"skipped")
-			<<" - missing call info"
-			);
-		return GetDefaultStatus();
+		PTRACE(1,"RADACCT\t"<<GetName()<<" - missing call info for event"<<evt);
+		return Fail;
 	}
 	
 	// build RADIUS Accounting-Request
 	RadiusPDU* pdu = radiusClient->BuildPDU();
 	if( pdu == NULL ) {
-		PTRACE(2,"RADACCT\tAcct "<<((GetDefaultStatus()==Fail)?"failed":"skipped")
-			<<" - could not build Accounting-Request PDU"
+		PTRACE(2,"RADACCT\t"<<GetName()<<" - could not build Accounting-Request PDU"
+			<<" for event "<<evt<<", call no. "<<(call?call->GetCallNumber():0)
 			);
-		return GetDefaultStatus();
+		return Fail;
 	}
 
 	pdu->SetCode( RadiusPDU::AccountingRequest );
@@ -211,14 +217,8 @@ GkAcctLogger::Status RadAcct::Log(
 	WORD port;
 					
 	// Gk works as NAS point, so append NAS IP
-	if( localInterface.IsEmpty() )
-		addr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress();
-	else
-		addr = PIPSocket::Address(localInterface);
-	*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, addr );
-	*pdu += new RadiusAttr( RadiusAttr::NasIdentifier,
-		Toolkit::Instance()->GKName()
-		);
+	*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, localInterfaceAddr );
+	*pdu += new RadiusAttr( RadiusAttr::NasIdentifier, NASIdentifier );
 	*pdu += new RadiusAttr( RadiusAttr::NasPortType, 
 		RadiusAttr::NasPort_Virtual 
 		);
@@ -259,7 +259,9 @@ GkAcctLogger::Status RadAcct::Log(
 		if( !userName.IsEmpty() )					
 			*pdu += new RadiusAttr( RadiusAttr::UserName, userName );
 		else
-			PTRACE(1,"RADACCT\tCould not determine User-Name for the call "<<call->GetCallNumber());
+			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine User-Name"
+				<<" for the call no. "<<call->GetCallNumber()
+				);
 		
 		if( includeFramedIp && callerIP.IsValid() )
 			*pdu += new RadiusAttr( RadiusAttr::FramedIpAddress, callerIP );
@@ -290,20 +292,19 @@ GkAcctLogger::Status RadAcct::Log(
 				callingStationId
 				);
 		else
-			PTRACE(2,"RADACCT\tCould not determine Calling-Station-Id for the call "<<call->GetCallNumber());
-
+			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
+				<<" Calling-Station-Id for the call "<<call->GetCallNumber()
+				);
 		
 		PString calledStationId = call->GetDestInfo();
 								
-		if( !calledStationId.IsEmpty() )
-		{
+		if( !calledStationId.IsEmpty() ) {
 			const PINDEX index = calledStationId.FindOneOf(":");
 			if( index != P_MAX_INDEX )				
 				calledStationId = calledStationId.Left(index);
 		}
 		
-		if( calledStationId.IsEmpty() )
-		{
+		if( calledStationId.IsEmpty() ) {
 			endptr calledEP = call->GetCalledParty();
 			if( calledEP && (calledEP->GetAliases().GetSize() > 0) )
 				calledStationId = GetBestAliasAddressString(
@@ -319,13 +320,15 @@ GkAcctLogger::Status RadAcct::Log(
 				calledStationId = ::AsString(addr,port);
 		
 		if( calledStationId.IsEmpty() )
-			PTRACE(1,"GKACCT\tCould not determine Called-Station-Id for the call no "<<call->GetCallNumber());
+			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
+				<<" Called-Station-Id for the call no. "<<call->GetCallNumber()
+				);
 		else
 			*pdu += new RadiusAttr( RadiusAttr::CalledStationId, calledStationId );
 		
 		if( appendCiscoAttributes ) {
 			*pdu += new RadiusAttr(
-				PString("h323-gw-id=") + Toolkit::Instance()->GKName(),
+				PString("h323-gw-id=") + NASIdentifier,
 				CiscoVendorId, 33 
 				);
 			
@@ -399,13 +402,8 @@ GkAcctLogger::Status RadAcct::Log(
 	delete pdu;
 			
 	if( !result ) {
-		PTRACE(3,"RADACCT\tAcct "<<((GetDefaultStatus()==Fail)?"failed":"undetermined")
-			<<" - could not send Accounting-Request PDU (evt:"
-			<<PString(PString::Unsigned,(long)evt,16)<<", call no:"
-			<<(call?call->GetCallNumber():0)<<')'
-			);
 		delete response;
-		return GetDefaultStatus();
+		return Fail;
 	}
 				
 	if( response ) {
@@ -413,7 +411,11 @@ GkAcctLogger::Status RadAcct::Log(
 		result = (response->GetCode() == RadiusPDU::AccountingResponse);
 		if( result )
 			result = OnReceivedPDU(*response,evt,call);
-						
+		else
+			PTRACE(4,"RADACCT\t"<<GetName()<<" - received response is not "
+				" an AccountingResponse, event "<<evt<<", call no. "
+				<<(call?call->GetCallNumber():0)
+				);
 		delete response;
 	}
 	return result ? Ok : Fail;

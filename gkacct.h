@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2003/10/08 12:40:48  zvision
+ * Realtime accounting updates added
+ *
  * Revision 1.5  2003/09/29 16:11:44  zvision
  * Added cvs Id keyword to header #define macro
  *
@@ -49,32 +52,40 @@ public:
 	enum Control 
 	{
 		/// if cannot log an accounting event
-		/// ignore the module and process remaining acct modules
+		/// silently ignore the module and process remaining acct modules
 		Optional, 
 		/// if cannot log an accounting event do not allow futher 
 		/// call processing (e.g. call should not be connected, etc.)
 		/// always process remaining acct modules
 		Required,
-		/// if cannot log an accounting event
-		/// ignore the module and process remaining acct modules
+		/// if cannot log an accounting event do not allow futher 
+		/// call processing (e.g. call should not be connected, etc.)
+		/// - always process remaining acct modules,
 		/// if the event has been logged, do not process remaining acct modules
-		Sufficient
+		/// and allow further call processing
+		Sufficient,
+		/// if cannot log an accounting event ignore the module
+		/// and process remaining acct modules,
+		/// if the event has been logged, do not process remaining acct modules
+		/// and allow further call processing
+		Alternative
 	};
 
 	/// status of the acct event processing
 	enum Status 
 	{
-		Ok = 1,		/// acct even has been logged
-		Fail = -1,	/// acct even has not been logged (failure)
-		Next = 0	/// acct even has not been logged (undetermined status)
+		Ok = 1,		/// acct event has been logged
+		Fail = -1,	/// acct event has not been logged (failure)
+		Next = 0	/// acct event has not been logged because the event type
+					/// is not supported/not configured for this module
 	};
 
 	/// accounting event types
 	enum AcctEvent 
 	{
-		AcctStart = 0x0001, /// start accounting a call
-		AcctStop = 0x0002, /// stop accounting a call
-		AcctUpdate = 0x0004, /// interim update
+		AcctStart = 0x0001, /// log call start
+		AcctStop = 0x0002, /// log call stop (disconnect)
+		AcctUpdate = 0x0004, /// /// call progress update
 		AcctOn = 0x0008, /// accounting enabled (GK start)
 		AcctOff = 0x0010, /// accounting disabled (GK stop)
 		AcctAll = -1,
@@ -110,14 +121,15 @@ public:
 	int GetSupportedEvents() const { return supportedEvents; }
 
 	/** Log an accounting event with this logger and loggers
-		that following this one on the list.
+		that follows this one on the list.
 	
 		@return
-		true if the event has been logged successfully, false otherwise.
+		true if the event has been logged successfully by all loggers, 
+		false otherwise.
 	*/
 	virtual bool LogAcctEvent( 
 		AcctEvent evt, /// accounting event to log
-		callptr& call /// additional data for the event
+		callptr& call /// a call associated with the event (if any)
 		);
 
 	/** Format time string suitable for accounting logs.
@@ -141,12 +153,6 @@ public:
 		);
 
 protected:
-	/** @return
-		Default status that should be returned when the request
-		cannot be determined.
-	*/
-	Status GetDefaultStatus() const { return defaultStatus; }
-
 	/** @return
 		A pointer to configuration settings for this logger.
 	*/
@@ -186,7 +192,7 @@ protected:
 	*/
 	virtual Status Log(		
 		AcctEvent evt, /// accounting event to log
-		callptr& call /// additional data for the event
+		callptr& call /// a call associated with the event (if any)
 		);
 		
 private:
@@ -196,7 +202,7 @@ private:
 private:
 	/// processing behaviour (see #Control enum#)
 	Control controlFlag;
-	/// default processing status (see #Status enum#)
+	/// status for "default" logger - accept (Ok) or reject (Fail)
 	Status defaultStatus;
 	/// ORed #AcctEvent enum# constants - define which events are logged
 	int enabledEvents;

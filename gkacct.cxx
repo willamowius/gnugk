@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2003/10/15 10:16:57  zvision
+ * Fixed VC6 compiler warnings. Thanks to Hu Yuxin.
+ *
  * Revision 1.5  2003/10/08 12:40:48  zvision
  * Realtime accounting updates added
  *
@@ -137,13 +140,16 @@ GkAcctLogger::GkAcctLogger(
 
 	if( control.GetSize() < 1 )
 		PTRACE(1,"GKACCT\tEmpty config entry for module "<<moduleName);
-	else if (control[0] *= "optional") {
+	else if( strcmp(moduleName, "default") == 0 ) {
+		controlFlag = Required;
+		defaultStatus = Toolkit::AsBool(control[0]) ? Ok : Fail;
+		supportedEvents = AcctAll;
+	} else if (control[0] *= "optional")
 		controlFlag = Optional;
-		defaultStatus = Next;
-	} else if (control[0] *= "sufficient") {
+	else if (control[0] *= "sufficient")
 		controlFlag = Sufficient;
-		defaultStatus = Next;
-	}
+	else if (control[0] *= "alternative")
+		controlFlag = Alternative;
 	
 	if( control.GetSize() > 1 )
 		enabledEvents = GetEvents(control);
@@ -183,11 +189,10 @@ int GkAcctLogger::GetEvents(
 
 GkAcctLogger::Status GkAcctLogger::Log(
 	AcctEvent evt, /// accounting event to log
-	callptr& call /// additional data for the event
+	callptr& call /// a call associated with the event (if any)
 	)
 {
-	return (evt & enabledEvents & supportedEvents) 
-		? defaultStatus : ((controlFlag == Sufficient) ? Next : Ok);
+	return (evt & enabledEvents & supportedEvents) ? defaultStatus : Next;
 }
 
 bool GkAcctLogger::LogAcctEvent( 
@@ -195,29 +200,74 @@ bool GkAcctLogger::LogAcctEvent(
 	callptr& call /// additional data for the event
 	)
 {
-	Status result;
-	
-	if( evt & enabledEvents & supportedEvents ) {
-		result = Log(evt,call);
-		if( result == Ok ) {
-			PTRACE(4,"GKACCT\t"<<GetName()<<" logged event "
-				<<PString(PString::Unsigned,(long)evt,16)
-				<<" for call no. "<<(call?call->GetCallNumber():0)
-				);
-			if( controlFlag == Sufficient )
-				return true;
-		} else if( result == Fail || (result == Next && controlFlag == Required) )
-			PTRACE(2,"GKACCT\t"<<GetName()<<" failed to log event "
-				<<PString(PString::Unsigned,(long)evt,16)
-				<<" for call no. "<<(call?call->GetCallNumber():0)
-				);
-	} else
-		result = ((controlFlag == Sufficient) ? Next : Ok);
-		
-	if( m_next && !m_next->LogAcctEvent(evt,call) )
+	if( (evt & AcctUpdate) && !call )
 		return false;
+	
+	bool finalResult = true;
+	Status status = Ok;
+	GkAcctLogger* logger = this;
+	
+	// log the event with all modules on the list, starting from this one
+	while( logger ) {
+		if( (evt & logger->GetEnabledEvents() & logger->GetSupportedEvents()) == 0 ) {
+			logger = logger->m_next;
+			continue;
+		}
+			
+		switch( status = logger->Log( evt, call ) )
+		{
+		case Ok:
+#if PTRACING
+			if( PTrace::CanTrace(3) ) {
+				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
+				strm<<"GKACCT\t"<<logger->GetName()<<" logged event "<<evt;
+				if( call )
+					strm<<" for call no. "<<call->GetCallNumber();
+				PTrace::End(strm);
+			}
+#endif
+			break;
+			
+		default:
+#if PTRACING
+			if( PTrace::CanTrace(3) ) {
+				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
+				strm<<"GKACCT\t"<<logger->GetName()<<" failed to log event "<<evt;
+				if( call )
+					strm<<" for call no. "<<call->GetCallNumber();
+				PTrace::End(strm);
+			}
+#endif
+			// required and sufficient rules always determine 
+			// status of the request
+			if( logger->GetControlFlag() == Required
+				|| logger->GetControlFlag() == Sufficient )
+				finalResult = false;
+		}
 		
-	return result == Ok || (result == Next && controlFlag != Required); 
+		// sufficient and alternative are terminal rules (on log success)
+		if( status == Ok && (logger->GetControlFlag() == Sufficient
+			|| logger->GetControlFlag() == Alternative) )
+			break;
+			
+		logger = logger->m_next;
+	}
+
+	// a last rule determine status of the the request
+	if( finalResult && status != Ok )
+		finalResult = false;
+		
+#if PTRACING
+	if( PTrace::CanTrace(2) ) {
+		ostream& strm = PTrace::Begin(2,__FILE__,__LINE__);
+		strm<<"GKACCT\t"<<(finalResult?"Successfully logged event ":"Failed to log event ")
+			<<evt;
+		if( call )
+			strm<<" for call no. "<<call->GetCallNumber();
+		PTrace::End(strm);
+	}
+#endif
+	return finalResult;
 }
 
 
@@ -237,6 +287,8 @@ FileAcct::FileAcct(
 		));
 
 	Rotate();
+	if( cdrFile && cdrFile->IsOpen() );
+		PTRACE(2,"GKACCT\t"<<GetName()<<" CDR file: "<<cdrFile->GetFilePath());
 }
 
 FileAcct::~FileAcct()
@@ -254,45 +306,40 @@ GkAcctLogger::Status FileAcct::Log(
 	)
 {
 	if( (evt & GetEnabledEvents() & GetSupportedEvents()) == 0 )
-		return (GetControlFlag() == Sufficient) ? Next : Ok;
+		return Next;
 		
 	if( (evt & (AcctStart|AcctUpdate|AcctStop)) && (!call) ) {
-		PTRACE(1,"GKACCT\t"<<GetName()<<" log event "<<evt
-			<<((GetDefaultStatus() == Fail)?" failed":" skipped")
-			<<" - missing call info"
-			);
-		return GetDefaultStatus();
+		PTRACE(1,"GKACCT\t"<<GetName()<<" - missing call info for event"<<evt);
+		return Fail;
 	}
 	
 	PString cdrString;
 	
 	if( !GetCDRText(cdrString,evt,call) ) {
-		PTRACE(2,"GKACCT\t"<<GetName()<<" log event "<<evt
-			<<((GetDefaultStatus() == Fail)?" failed":" skipped")
-			<<" - unable to get CDR text"
+		PTRACE(2,"GKACCT\t"<<GetName()<<" - unable to get CDR text for event "<<evt
+			<<", call no. "<<call->GetCallNumber()
 			);
-		return GetDefaultStatus();
+		return Fail;
 	}
 	
-	PTRACE(5,"GKACCT\t"<<GetName()<<" CDR event "<<evt<<" text: "<<cdrString);
-
 	PWaitAndSignal lock(cdrFileMutex);
 	
 	if( cdrFile && cdrFile->IsOpen() ) {
-		if( cdrFile->WriteLine(PString(cdrString)) )
+		if( cdrFile->WriteLine(PString(cdrString)) ) {
+			PTRACE(5,"GKACCT\t"<<GetName()<<" - CDR string for event "<<evt
+				<<", call no. "<<call->GetCallNumber()<<": "<<cdrString
+				);
 			return Ok;
-		else
-			PTRACE(1,"GKACCT\t"<<GetName()<<" write CDR text failed for call no. "
-				<<(call?call->GetCallNumber():0)<<" - "
-				<<cdrFile->GetErrorText(PChannel::LastWriteError)
+		} else
+			PTRACE(1,"GKACCT\t"<<GetName()<<" - write CDR text for event "<<evt
+				<<", call no. "<<call->GetCallNumber()<<" failed: "<<cdrFile->GetErrorText()
 				);
 	} else
-		PTRACE(5,"GKACCT\t"<<GetName()
-			<<" CDR file is closed - log failed for call no. "
-			<<(call?call->GetCallNumber():0)
+		PTRACE(1,"GKACCT\t"<<GetName()<<" - write CDR text for event "<<evt
+			<<", for call no. "<<call->GetCallNumber()<<" failed: CDR file is closed"
 			);
 		
-	return GetDefaultStatus();
+	return Fail;
 }
 
 bool FileAcct::GetCDRText(
@@ -359,6 +406,7 @@ GkAcctLoggerList::~GkAcctLoggerList()
 {
 	WriteLock lock(m_reloadMutex);
 	delete m_head;
+	m_head = NULL;
 }
 
 void GkAcctLoggerList::OnReload()

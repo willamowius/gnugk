@@ -1,5 +1,7 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- small radius accounting/authentication module optimizations and better trace ouput
+- changed handling of multiple accounting modules (added new "alternative" control)
 - added new VirtualQueuePrefixes and VirtualQueueRegex config variables
   to [CTI::Agents] section. These make possible to call virtual queue
   not only with the exact alias name, but also with an alias that matches

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2003/10/21 15:55:27  zvision
+ * Fixed compiler warnings for gcc < 3
+ *
  * Revision 1.7  2003/10/15 10:16:57  zvision
  * Fixed VC6 compiler warnings. Thanks to Hu Yuxin.
  *
@@ -200,6 +203,14 @@ RadAuthBase::RadAuthBase(
 			);
 		localInterface = PString();
 	}
+	
+	if( localInterface.IsEmpty() )
+		localInterfaceAddr = Toolkit::Instance()->GetRouteTable()->GetLocalAddress();
+	else
+		localInterfaceAddr = PIPSocket::Address(localInterface);
+
+	NASIdentifier = Toolkit::Instance()->GKName();
+	
 	/// build RADIUS client
 	radiusClient = new RadiusClient( 
 		radiusServers[0],
@@ -310,7 +321,7 @@ int RadAuthBase::doCheck(
 	)
 {
 	if( radiusClient == NULL ) {
-		PTRACE(3,"RADAUTH\tRRQ Auth failed - NULL Radius client");
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" RRQ auth failed - NULL Radius client");
 		if( defaultStatus == e_fail )
 			rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
 		return defaultStatus;
@@ -319,7 +330,7 @@ int RadAuthBase::doCheck(
 	// build RADIUS Access-Request
 	RadiusPDU* pdu = radiusClient->BuildPDU();
 	if( pdu == NULL ) {
-		PTRACE(3,"RADAUTH\tRRQ auth failed - could not to create Access-Request PDU");
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" RRQ auth failed - could not to create Access-Request PDU");
 		rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
 		return defaultStatus;
 	}
@@ -335,18 +346,9 @@ int RadAuthBase::doCheck(
 	}
 		
 	// Gk works as NAS point, so append NAS IP
-	if( localInterface.IsEmpty() )
-		*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, 
-			Toolkit::Instance()->GetRouteTable()->GetLocalAddress()
-			);
-	else
-		*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, 
-			PIPSocket::Address(localInterface)
-			);
+	*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, localInterfaceAddr );
 	// NAS-Identifier as Gk name
-	*pdu += new RadiusAttr( RadiusAttr::NasIdentifier,
-		Toolkit::Instance()->GKName()
-		);
+	*pdu += new RadiusAttr( RadiusAttr::NasIdentifier, NASIdentifier );
 	// Gk does not have a concept of physical ports,
 	// so define port type as NAS-Port-Virtual
 	*pdu += new RadiusAttr( RadiusAttr::NasPortType, 
@@ -412,7 +414,7 @@ int RadAuthBase::doCheck(
 	)
 {
 	if( radiusClient == NULL ) {
-		PTRACE(3,"RADAUTH\tARQ Auth failed - NULL Radius client");
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ auth failed - NULL Radius client");
 		if( defaultStatus == e_fail )
 			rejectReason = H225_AdmissionRejectReason::e_undefinedReason;
 		return defaultStatus;
@@ -421,7 +423,7 @@ int RadAuthBase::doCheck(
 	// build RADIUS Access-Request packet
 	RadiusPDU* pdu = radiusClient->BuildPDU();
 	if( pdu == NULL ) {
-		PTRACE(3,"RADAUTH\tARQ auth failed - could not to create Access-Request PDU");
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ auth failed - could not to create Access-Request PDU");
 		return defaultStatus;
 	}
 
@@ -437,19 +439,9 @@ int RadAuthBase::doCheck(
 	}
 	
 	// Gk acts as NAS, so include NAS IP
-	if( localInterface.IsEmpty() )
-		*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, 
-			Toolkit::Instance()->GetRouteTable()->GetLocalAddress()
-			);
-	else
-		*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, 
-			PIPSocket::Address(localInterface)
-			);
-					
+	*pdu += new RadiusAttr( RadiusAttr::NasIpAddress, localInterfaceAddr );
 	// NAS-Identifier as Gk name
-	*pdu += new RadiusAttr( RadiusAttr::NasIdentifier,
-		Toolkit::Instance()->GKName()
-		);
+	*pdu += new RadiusAttr( RadiusAttr::NasIdentifier, NASIdentifier );
 	// NAS-Port-Type as Virtual, since Gk does
 	// not care about physical ports concept
 	*pdu += new RadiusAttr( RadiusAttr::NasPortType, 
@@ -494,7 +486,7 @@ int RadAuthBase::doCheck(
 	// has to be present in the RegistrationTable
 	if( arq.m_answerCall ? (!calledEP) : (!callingEP) ) {
 		delete pdu;
-		PTRACE(3,"RADAUTH\tARQ Auth failed - requesting endpoint "
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ auth failed - requesting endpoint "
 			<< arq.m_endpointIdentifier << " not registered"
 			);
 		return e_fail;
@@ -602,7 +594,7 @@ int RadAuthBase::doCheck(
 				
 	if( stationId.IsEmpty() ) {
 		delete pdu;
-		PTRACE(3,"RADAUTH\tARQ Auth failed - no suitable alias"
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ auth failed - no suitable alias"
 			" for Calling-Station-Id has been found"
 			);
 		return e_fail;
@@ -622,7 +614,7 @@ int RadAuthBase::doCheck(
 				);
 		*pdu += new RadiusAttr( PString("h323-call-type=VoIP"),	9, 27 );
 		*pdu += new RadiusAttr( 
-			PString("h323-gw-id=") + Toolkit::Instance()->GKName(),	9, 33 
+			PString("h323-gw-id=") + NASIdentifier, 9, 33 
 			);
 	}
 					
@@ -666,7 +658,7 @@ int RadAuthBase::doCheck(
 				}
 			}
 			if( !valid ) {
-				PTRACE(5,"RADAUTH\t"<<GetName()<<" check failed - invalid h323-return-code attribute");
+				PTRACE(3,"RADAUTH\t"<<GetName()<<" check failed - invalid h323-return-code attribute");
 				result = false;
 			}
 		}
@@ -693,7 +685,7 @@ int RadAuthBase::doCheck(
 				}
 			}
 			if( !found ) {
-				PTRACE(5,"RADAUTH\t"<<GetName()<<" ARQ check failed - invalid h323-credit-time attribute: ");
+				PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ check failed - invalid h323-credit-time attribute: ");
 				result = false;
 			}
 		}
@@ -716,7 +708,7 @@ int RadAuthBase::doCheck(
 					result = false;
 			}
 			if( !found ) {
-				PTRACE(5,"RADAUTH\t"<<GetName()<<" ARQ check failed - invalid Session-Timeout attribute");
+				PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ check failed - invalid Session-Timeout attribute");
 				result = false;
 			}
 		}
@@ -804,7 +796,7 @@ int RadAuth::AppendUsernameAndPassword(
 {
 	// RRQ has to carry at least one terminalAlias
 	if( !rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ) {
-		PTRACE(3,"RADAUTH\tRRQ Auth failed - no m_terminalAlias field");
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" RRQ auth failed - no m_terminalAlias field");
 		if( defaultStatus == e_fail )
 			rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return defaultStatus;
@@ -813,10 +805,10 @@ int RadAuth::AppendUsernameAndPassword(
 	// check for ClearTokens (CAT uses ClearTokens)
 	if( !rrq.HasOptionalField(H225_RegistrationRequest::e_tokens) ) {
 		if( defaultStatus == e_fail ) {
-			PTRACE(3,"RADAUTH\tRRQ Auth failed - no m_tokens");
+			PTRACE(3,"RADAUTH\t"<<GetName()<<" RRQ auth failed - no m_tokens");
 			rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		} else if( defaultStatus != e_ok )
-			PTRACE(4,"RADAUTH\tRRQ Auth undetermined - no m_tokens");
+			PTRACE(4,"RADAUTH\t"<<GetName()<<" RRQ auth undetermined - no m_tokens");
 		return defaultStatus;
 	}
 	
@@ -838,7 +830,7 @@ int RadAuth::AppendUsernameAndPassword(
 				&& token.HasOptionalField(H235_ClearToken::e_timeStamp)
 				&& token.HasOptionalField(H235_ClearToken::e_challenge)) ) 
 			{	
-				PTRACE(4,"RADAUTH\tRRQ Auth failed - CAT without all required fields");
+				PTRACE(4,"RADAUTH\t"<<GetName()<<" RRQ auth failed - CAT without all required fields");
 				rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 				return e_fail;
 			}
@@ -846,7 +838,7 @@ int RadAuth::AppendUsernameAndPassword(
 			// generalID should be present in the list of terminal aliases
 			const PString id = token.m_generalID;
 			if( !CheckAliases(aliases,id) ) {
-				PTRACE(4,"RADAUTH\tRRQ Auth failed - CAT m_generalID is not a valid alias");
+				PTRACE(4,"RADAUTH\t"<<GetName()<<" RRQ auth failed - CAT m_generalID is not a valid alias");
 				rejectReason = H225_RegistrationRejectReason::e_invalidTerminalAliases;
 				return e_fail;
 			}
@@ -855,14 +847,14 @@ int RadAuth::AppendUsernameAndPassword(
 			const int randomInt = token.m_random;
 					
 			if( (randomInt < -127) || (randomInt > 255) ) {
-				PTRACE(4,"RADAUTH\tRRQ Auth failed - CAT m_random out of range");
+				PTRACE(4,"RADAUTH\t"<<GetName()<<" RRQ auth failed - CAT m_random out of range");
 				rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 				return e_fail;
 			}
 					
 			// CAT challenge has to be 16 bytes
 			if( token.m_challenge.GetValue().GetSize() < 16 ) {
-				PTRACE(4,"RADAUTH\tRRQ Auth failed - m_challenge less than 16 bytes");
+				PTRACE(4,"RADAUTH\t"<<GetName()<<" RRQ auth failed - m_challenge less than 16 bytes");
 				rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 				return e_fail;
 			}
@@ -888,10 +880,10 @@ int RadAuth::AppendUsernameAndPassword(
 	}
 	
 	if( defaultStatus == e_fail ) {
-		PTRACE(3,"RADAUTH\tRRQ Auth failed - m_tokens without CAT");
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" RRQ auth failed - m_tokens without CAT");
 		rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 	} else if( defaultStatus != e_ok )
-		PTRACE(4,"RADAUTH\tRRQ Auth undetermined - m_tokens without CAT");
+		PTRACE(4,"RADAUTH\t"<<GetName()<<" RRQ auth undetermined - m_tokens without CAT");
 
 	return defaultStatus;
 }
@@ -906,10 +898,10 @@ int RadAuth::AppendUsernameAndPassword(
 	// check for ClearTokens
 	if( !arq.HasOptionalField(H225_AdmissionRequest::e_tokens) ) {
 		if( defaultStatus == e_fail ) {
-			PTRACE(3,"RADAUTH\tARQ Auth failed - no m_tokens");
+			PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ auth failed - no m_tokens");
 			rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		} else if( defaultStatus != e_ok )
-			PTRACE(4,"RADAUTH\tARQ Auth undetermined - no m_tokens");
+			PTRACE(4,"RADAUTH\t"<<GetName()<<" ARQ auth undetermined - no m_tokens");
 		return defaultStatus;
 	}
 	
@@ -930,7 +922,7 @@ int RadAuth::AppendUsernameAndPassword(
 				&& token.HasOptionalField(H235_ClearToken::e_timeStamp)
 				&& token.HasOptionalField(H235_ClearToken::e_challenge)) )
 			{
-				PTRACE(4,"RADAUTH\tARQ Auth failed - CAT without all required fields");
+				PTRACE(4,"RADAUTH\t"<<GetName()<<" ARQ auth failed - CAT without all required fields");
 				rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 				return e_fail;
 			}
@@ -941,14 +933,14 @@ int RadAuth::AppendUsernameAndPassword(
 			const int randomInt = token.m_random;
 					
 			if( (randomInt < -127) || (randomInt > 255) ) {
-				PTRACE(4,"RADAUTH\tARQ Auth failed - CAT m_random out of range");
+				PTRACE(4,"RADAUTH\t"<<GetName()<<" ARQ auth failed - CAT m_random out of range");
 				rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 				return e_fail;
 			}
 					
 			// CAT challenge has to be 16 bytes
 			if( token.m_challenge.GetValue().GetSize() < 16 ) {
-				PTRACE(4,"RADAUTH\tARQ Auth failed - CAT m_challenge less than 16 bytes");
+				PTRACE(4,"RADAUTH\t"<<GetName()<<" ARQ auth failed - CAT m_challenge less than 16 bytes");
 				rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 				return e_fail;
 			}
@@ -976,9 +968,9 @@ int RadAuth::AppendUsernameAndPassword(
 	}
 	
 	if( defaultStatus == e_fail )
-		PTRACE(3,"RADAUTH\tARQ Auth failed - m_tokens without CAT");
+		PTRACE(3,"RADAUTH\t"<<GetName()<<" ARQ auth failed - m_tokens without CAT");
 	else if( defaultStatus != e_ok )
-		PTRACE(4,"RADAUTH\tARQ Auth undetermined - m_tokens without CAT");
+		PTRACE(4,"RADAUTH\t"<<GetName()<<" ARQ auth undetermined - m_tokens without CAT");
 
 	if( defaultStatus == e_fail )
 		rejectReason = H225_AdmissionRejectReason::e_securityDenial;
@@ -1026,7 +1018,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		
 	if( id.IsEmpty() )
 	{
-		PTRACE(2,"RADAUTH\tRRQ AliasAuth failed - neither FixedUsername"
+		PTRACE(2,"RADAUTH\t"<<GetName()<<" RRQ check failed - neither FixedUsername"
 			" nor alias inside RRQ were found"
 			);
 		rejectReason = H225_RegistrationRejectReason::e_securityDenial;
@@ -1080,7 +1072,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		id = fixedUsername;
 		
 	if( id.IsEmpty() ) {
-		PTRACE(2,"RADAUTH\tARQ AliasAuth failed - neither FixedUsername"
+		PTRACE(2,"RADAUTH\t"<<GetName()<<" ARQ check failed - neither FixedUsername"
 			" nor alias inside ARQ were found"
 			);
 		rejectReason = H225_AdmissionRejectReason::e_securityDenial;

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/10/08 12:40:48  zvision
+ * Realtime accounting updates added
+ *
  * Revision 1.4  2003/09/29 16:11:44  zvision
  * Added cvs Id keyword to header #define macro
  *
@@ -131,8 +134,12 @@ private:
 	bool appendCiscoAttributes;
 	/// append IP address of the calling endpoint
 	bool includeFramedIp;
-	/// Local interface RADIUS client should be bound to (multihomed hosts)
+	/// local interface RADIUS client should be bound to (multihomed hosts)
 	PString localInterface;	
+	/// IP address for the local interface
+	PIPSocket::Address localInterfaceAddr;
+	/// NAS (GK) identifier
+	PString NASIdentifier;
 	/// Fixed value for User-Name attribute in outgoing requests
 	PString fixedUsername;
 	/// RADIUS protocol client class associated with this authenticator
