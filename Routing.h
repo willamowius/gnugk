@@ -108,7 +108,7 @@ public:
 		return (IsActive() && OnRequest(request)) || (m_next && m_next->Handle(request));
 	}
 
-private:
+protected:
 	// new virtual function
 	// if return false, the policy is disable
 	virtual bool IsActive() { return true; }
@@ -123,6 +123,7 @@ private:
 };
 
 class AliasesPolicy : public Policy {
+protected:
 	// override from class Policy
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);
