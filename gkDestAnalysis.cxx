@@ -475,12 +475,16 @@ int OverlapSendDestAnalysis::getDestination(const H225_LocationRequest & lrq, li
 	if (!cgEP) {
 		cgEP = RegistrationTable::Instance()->FindBySignalAdr(lrq.m_replyAddress);
 	}
-	PTRACE(1, "cgEP: " << lrq.m_replyAddress);
+	PTRACE(1, "cgEP: " << cgEP);
 	CallingProfile cgpf;
 	CalledProfile  cdpf;
 	dctn::DBTypeEnum f;
 	H225_AliasAddress adr;
-	PString h323id=AsString(lrq.m_replyAddress);
+	PString h323id;
+	for(PINDEX i = 0; i< cgEP->GetAliases().GetSize(); i++) {
+		if(H225_AliasAddress::e_h323_ID==cgEP->GetAliases()[i].GetTag())
+			h323id=H323GetAliasAddressString(cgEP->GetAliases()[i]);
+	}
 	PTRACE(1, "Looking for profile: " << h323id);
 	GkDatabase::Instance()->getProfile(cgpf, h323id,f);
 	// Fake profiles
