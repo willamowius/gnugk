@@ -56,7 +56,7 @@ PTextFile *logfile = 0;
 PString logfilename;
 #endif
 
-bool ExitFlag = false;
+volatile bool ExitFlag = false;	// used in signaling
 
 } // end of anonymous namespace
 
@@ -186,6 +186,13 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 
 #else
 
+// Prototypes for local but not static handlers
+// the entry in the symbol table is needed
+void UnixShutdownHandler(int sig);
+void UnixReloadHandler(int sig);
+void UnixReloadConfigHandler(int sig);
+void UnixCoreDumpHandler(int sig);
+
 void UnixShutdownHandler(int sig)
 {
 	PTRACE(1, "GK\tGatekeeper shutdown (signal " << sig << ")");
@@ -211,16 +218,23 @@ void UnixReloadConfigHandler(int sig) // For USR1 Signal
 	ReloadHandler();
 }
 
+void UnixCoreDumpHandler(int sig) // for USR2 Signal
+{
+	PTRACE(1, "GK\tGatekeeper USR12(signal " << sig << ")");
+	ExitFlag = true;
+	PFile::Remove(pidfile);
+	PAssertAlways("Requestet to dump core, doing so...");
+}
 #endif
 
 
 // default params for overwriting
 Gatekeeper::Gatekeeper(const char * manuf,
-					   const char * name,
-					   WORD majorVersion,
-					   WORD minorVersion,
-					   CodeStatus status,
-					   WORD buildNumber)
+		       const char * name,
+		       WORD majorVersion,
+		       WORD minorVersion,
+		       CodeStatus status,
+		       WORD buildNumber)
 	: PProcess(manuf, name, majorVersion, minorVersion, status, buildNumber)
 {
 }
@@ -263,6 +277,7 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 	signal(SIGINT, UnixShutdownHandler);
 	signal(SIGQUIT, UnixShutdownHandler);
 	signal(SIGUSR1, UnixReloadConfigHandler);
+	signal(SIGUSR2, UnixCoreDumpHandler);
 
 	struct sigaction sa;
 	sigemptyset(&sa.sa_mask);
