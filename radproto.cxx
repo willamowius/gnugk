@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2004/07/26 12:19:42  zvision
+ * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
+ *
  * Revision 1.16.2.3  2004/07/12 22:27:32  zvision
  * Ability to set a shared secret for each RADIUS server separatelly.
  * More RADIUS code optimizations.
@@ -177,26 +180,26 @@ struct CiscoAttrName {
 	size_t m_nameLen;
 	unsigned char m_type;
 } CiscoAttrNames[] = {
-	CISCO_ATTR_NAME("h323-remote-address"), RadiusAttr::CiscoVSA_h323_remote_address,
-	CISCO_ATTR_NAME("h323-conf-id"), RadiusAttr::CiscoVSA_h323_conf_id,
-	CISCO_ATTR_NAME("h323-setup-time"), RadiusAttr::CiscoVSA_h323_setup_time, 
-	CISCO_ATTR_NAME("h323-connect-time"), RadiusAttr::CiscoVSA_h323_connect_time,
-	CISCO_ATTR_NAME("h323-disconnect-time"), RadiusAttr::CiscoVSA_h323_disconnect_time,
-	CISCO_ATTR_NAME("h323-disconnect-cause"), RadiusAttr::CiscoVSA_h323_disconnect_cause,
-	CISCO_ATTR_NAME("h323-credit-amount"), RadiusAttr::CiscoVSA_h323_credit_amount, 
-	CISCO_ATTR_NAME("h323-credit-time"), RadiusAttr::CiscoVSA_h323_credit_time,
-	CISCO_ATTR_NAME("h323-return-code"), RadiusAttr::CiscoVSA_h323_return_code, 
-	CISCO_ATTR_NAME("h323-billing-model"), RadiusAttr::CiscoVSA_h323_billing_model, 
-	CISCO_ATTR_NAME("h323-currency"), RadiusAttr::CiscoVSA_h323_currency,
-	CISCO_ATTR_NAME("h323-redirect-number"), RadiusAttr::CiscoVSA_h323_redirect_number,
-	CISCO_ATTR_NAME("h323-redirect-ip-address"), RadiusAttr::CiscoVSA_h323_redirect_ip_address, 
-	CISCO_ATTR_NAME("h323-gw-id"), RadiusAttr::CiscoVSA_h323_gw_id,
-	CISCO_ATTR_NAME("h323-call-origin"), RadiusAttr::CiscoVSA_h323_call_origin,
-	CISCO_ATTR_NAME("h323-call-type"), RadiusAttr::CiscoVSA_h323_call_type, 
-	CISCO_ATTR_NAME("h323-voice-quality"), RadiusAttr::CiscoVSA_h323_voice_quality,
-	CISCO_ATTR_NAME("h323-incoming-conf-id"), RadiusAttr::CiscoVSA_h323_incoming_conf_id,
-	CISCO_ATTR_NAME("h323-preferred-lang"), RadiusAttr::CiscoVSA_h323_preferred_lang, 
-	NULL, 0, 0
+	{ CISCO_ATTR_NAME("h323-remote-address"), RadiusAttr::CiscoVSA_h323_remote_address },
+	{ CISCO_ATTR_NAME("h323-conf-id"), RadiusAttr::CiscoVSA_h323_conf_id },
+	{ CISCO_ATTR_NAME("h323-setup-time"), RadiusAttr::CiscoVSA_h323_setup_time }, 
+	{ CISCO_ATTR_NAME("h323-connect-time"), RadiusAttr::CiscoVSA_h323_connect_time },
+	{ CISCO_ATTR_NAME("h323-disconnect-time"), RadiusAttr::CiscoVSA_h323_disconnect_time },
+	{ CISCO_ATTR_NAME("h323-disconnect-cause"), RadiusAttr::CiscoVSA_h323_disconnect_cause },
+	{ CISCO_ATTR_NAME("h323-credit-amount"), RadiusAttr::CiscoVSA_h323_credit_amount }, 
+	{ CISCO_ATTR_NAME("h323-credit-time"), RadiusAttr::CiscoVSA_h323_credit_time },
+	{ CISCO_ATTR_NAME("h323-return-code"), RadiusAttr::CiscoVSA_h323_return_code }, 
+	{ CISCO_ATTR_NAME("h323-billing-model"), RadiusAttr::CiscoVSA_h323_billing_model }, 
+	{ CISCO_ATTR_NAME("h323-currency"), RadiusAttr::CiscoVSA_h323_currency },
+	{ CISCO_ATTR_NAME("h323-redirect-number"), RadiusAttr::CiscoVSA_h323_redirect_number },
+	{ CISCO_ATTR_NAME("h323-redirect-ip-address"), RadiusAttr::CiscoVSA_h323_redirect_ip_address }, 
+	{ CISCO_ATTR_NAME("h323-gw-id"), RadiusAttr::CiscoVSA_h323_gw_id },
+	{ CISCO_ATTR_NAME("h323-call-origin"), RadiusAttr::CiscoVSA_h323_call_origin },
+	{ CISCO_ATTR_NAME("h323-call-type"), RadiusAttr::CiscoVSA_h323_call_type }, 
+	{ CISCO_ATTR_NAME("h323-voice-quality"), RadiusAttr::CiscoVSA_h323_voice_quality },
+	{ CISCO_ATTR_NAME("h323-incoming-conf-id"), RadiusAttr::CiscoVSA_h323_incoming_conf_id },
+	{ CISCO_ATTR_NAME("h323-preferred-lang"), RadiusAttr::CiscoVSA_h323_preferred_lang }, 
+	{ NULL, 0, 0 }
 };
 
 
