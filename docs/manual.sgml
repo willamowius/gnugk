@@ -655,6 +655,23 @@ For example, if you do not need RADIUS just type: <tt/configure --disable-radius
 To build the gatekeeper that is statically linked with system and OpenH323 libraries,
 <tt/make optnoshared/ or <tt/make debugnoshared/ has to be used.
 
+In order to use the gatekeeper under heavy load, enabling LARGE_FDSET feature
+is recommended (configure --with-large-fdset=1024). Most systems also need 
+kernel reconfiguration/recompilation in order to allow more than 1024 sockets
+to be allocated for a single process. Note that the PWLib library starting
+from version 1.5.3 supports a similar feature too, so you can choose between
+LARGE_FDSET GnuGk and PWLib implementation. GnuGk native implementation gives
+better performance results. Maximum LARGE_FDSET value should be calculated 
+based upon predicted maximum sockets usage. A rule of thumb may be:
+<tscreen><verb>
+MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
+
+Where:
+10 = 2 sockets for Q.931 + 2 sockets for H.245 + 6 sockets for RTP and other stuff
+</verb></tscreen>
+So for 100 concurrent calls you don't need more than ca. 1024 sockets in the
+LARGE_FDSET.
+
 <sect1>Installing the Gatekeeper
 <p>
 There is no special installation procedure needed.
