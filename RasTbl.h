@@ -33,6 +33,8 @@ using std::list;
 using std::vector;
 using std::string;
 
+class GkDestAnalysisList;
+
 class ReadLock {
 	PReadWriteMutex &mutex;
   public:
@@ -266,6 +268,8 @@ public:
 
 	RegistrationTable();
 	~RegistrationTable();
+	
+	void Initialize(GkDestAnalysisList & list) { m_destAnalysisList = &list; }
 
 	endptr InsertRec(H225_RasMessage & rrq);
 	void RemoveByEndptr(const endptr & eptr);
@@ -275,6 +279,19 @@ public:
 	endptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool SearchOuterZone = true);
+	
+	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason, 
+	                                                 bool SearchOuterZone = true)
+	{
+	  endptr ep;
+	  bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
+	                                                      ep, reason);
+	  if (!ok && SearchOuterZone) {
+            ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock, 
+	                                                   ep, reason);
+	  }
+	  return (ok) ? ep : endptr(0);
+	}
 
 	void ClearTable();
 	void CheckEndpoints();
@@ -320,11 +337,13 @@ private:
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
 
 	static void delete_ep(EndpointRec *e) { delete e; }
+	GkDestAnalysisList & getGkDestAnalysisList() { return *m_destAnalysisList; }
 
 	list<EndpointRec *> EndpointList;
 	list<EndpointRec *> OuterZoneList;
 	list<EndpointRec *> RemovedList;
 	mutable PReadWriteMutex listLock;
+	GkDestAnalysisList * m_destAnalysisList;
 
 	// counter to generate endpoint identifier
 	// this is NOT the count of endpoints!

@@ -30,6 +30,7 @@ class HandlerList;
 class resourceManager;
 class GkStatus;
 class GkAuthenticatorList;
+class GkDestAnalysisList;
 class NeighborList;
 class PendingList;
 
@@ -126,6 +127,7 @@ private:
 	GkStatus * GkStatusThread;
 
 	GkAuthenticatorList * authList;
+	GkDestAnalysisList * destAnalysisList;
 
 	NeighborList * NeighborsGK;
 	PendingList * arqPendingList;

@@ -157,12 +157,12 @@ bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress 
 	PString reg_alias;
 	// for each given alias (dialedDigits) from request message 
 	for(PINDEX i = 0; i < aliases.GetSize() && !fullMatch; i++) {
-          if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+//          if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
 	    aliasStr = H323GetAliasAddressString(aliases[i]);
 	    aliasStr_len = aliasStr.GetLength();
 	    // for each alias (dialedDigits) which is stored for the endpoint in registration
 	    for (PINDEX i = 0; i < reg_aliases.GetSize() && !fullMatch; i++) {
-              if (reg_aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+//              if (reg_aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
 	        reg_alias = H323GetAliasAddressString(reg_aliases[i]);
                 // if alias from request message is prefix to alias which is 
 		//   stored in registration
@@ -179,9 +179,9 @@ bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress 
 		      << (const unsigned char *)m_endpointIdentifier.GetValue() << " (partial)" << ANSI::OFF);
 		  }
 	        }
-              }
+//	      }
 	    }
-	  }
+//	  }
 	}
 	return (partialMatch || fullMatch);
 }
@@ -638,86 +638,42 @@ endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, 
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
 	list<EndpointRec *> *List)
 {
-/*      
-	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);	
-	if (ep) {
-		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
-		return ep;
-	}
-*/	
+	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
+        if (ep) {
+                PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
+                return ep;
+        }
 
-        //check if given aliases contains incomplete addresses
-	//  (given aliases are prefixes of the aliases in registration table)
-	bool partialMatch_found = 0;
-	bool fullMatch;
-	endptr ep(0);
+        int maxlen = 0;
+        list<EndpointRec *> GWlist;
         listLock.StartRead();
-	const_iterator Iter = List->begin(), IterLast = List->end();
-        for (; Iter != IterLast && !partialMatch_found; Iter++) {
-	  if ((*Iter)->PrefixMatch_IncompleteAddress(alias, fullMatch)){
-	    if (!fullMatch) {
-	      partialMatch_found = 1;
-	    }
-  	    ep = endptr(*Iter);
-	  }
-	}
+        const_iterator Iter = List->begin(), IterLast = List->end();
+        while (Iter != IterLast) {
+                if ((*Iter)->IsGateway()) {
+                        int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
+                        if (maxlen < len) {
+                                GWlist.clear();
+                                maxlen = len;
+                        }
+                        if (maxlen == len)
+                                GWlist.push_back(*Iter);
+                }
+                ++Iter;
+        }
         listLock.EndRead();
-	if (ep) {
-   	  if (partialMatch_found) {
-            // TODO: ARJ (incomplete address)
-	    return endptr(0);
-	  } else {
-	    //TODO: ACF
-  	    PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
-  	    return ep;	    
-	  }
-	} else {
-	  //TODO: LDAPSearch (alias is prefix or equal to number in LDAP voIP-schema 
-	  //        (default attribute: telephoneNumber)
-	  //TODO: if equal
-	    //TODO: ARJ (calledPartyNotRegistered)
-	  //TODO: else if is prefix of telephoneNumber
-	    //TODO: ARJ (incomplete alias)
-	  //TODO: else if no match
-	    // search for gw (longest match) in registration table
-	    int maxlen = 0;
-	    list<EndpointRec *> GWlist;
-	    listLock.StartRead();
-	    Iter = List->begin(), IterLast = List->end();
-	    while (Iter != IterLast) {
-	          if ((*Iter)->IsGateway()) {
-	          	int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
-	          	if (maxlen < len) {
-	          		GWlist.clear();
-	          		maxlen = len;
-	          	}
-	          	if (maxlen == len)
-	          		GWlist.push_back(*Iter);
-	          }
-	          ++Iter;
-	    }
-	    listLock.EndRead();
-            // if more than one longest match is found
-	    if (GWlist.size() > 0) {
-	          EndpointRec *e = GWlist.front();
-	          if (GWlist.size() > 1) {
-	          	PTRACE(3, ANSI::DBG << "Prefix apply round robin" << ANSI::OFF);
-	          	WriteLock lock(listLock);
-	          	List->remove(e);
-	          	List->push_back(e);
-	          }
-	          PTRACE(4, "Alias match for GW " << AsDotString(e->GetCallSignalAddress()));
-	          // TODO: ACF
-	          return endptr(e);
-	    }
-	    //TODO: else search for gw in ini-file
-	    //TODO: if found
-	      //TODO: ARJ (calledPartyNotRegisterd) This shall never happen. If we
-	      //   fail here, the last core gateway is broken.
-	    //TODO: else if not found
-	      //TODO: ARJ (unreachable destination)
-	      return endptr(0);
-	}
+
+        if (GWlist.size() > 0) {
+                EndpointRec *e = GWlist.front();
+                if (GWlist.size() > 1) {
+                        PTRACE(3, ANSI::DBG << "Prefix apply round robin" << ANSI::OFF);
+                        WriteLock lock(listLock);
+                        List->remove(e);
+                        List->push_back(e);
+                }
+                PTRACE(4, "Alias match for GW " << AsDotString(e->GetCallSignalAddress()));
+                return endptr(e);
+        }
+        return endptr(0);
 }
 
 void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId)
@@ -924,7 +880,6 @@ void RegistrationTable::CheckEndpoints()
 	RemovedList.erase(Iter, RemovedList.end());
 }
 
-
 CallRec::CallRec(const H225_CallIdentifier & CallId,
 		 const H225_ConferenceIdentifier & ConfId,
 		 const PString & destInfo,
@@ -1091,8 +1046,8 @@ PString CallRec::GenerateCDR() const
 		(const char *)GetEPString(m_Calling),
 		(const char *)GetEPString(m_Called),
 		(const char *)m_destInfo,
-		(const char *)m_srcInfo, //added (MM 05.11.01)
-		(const char *)Toolkit::Instance()->GKName() //added (MM 06.11.01)
+		(const char *)m_srcInfo,
+		(const char *)Toolkit::Instance()->GKName()
 	);
 }
 
