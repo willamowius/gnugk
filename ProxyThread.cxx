@@ -130,10 +130,10 @@ bool ProxySocket::ErrorHandler(PSocket *socket, PChannel::ErrorGroup group)
 	PString msg(PString(type) + "\t" + dynamic_cast<ProxySocket *>(socket)->Name());
 	switch (e)
 	{
-		case PChannel::NoError:
-			// I don't know why there is error with code NoError
-			PTRACE(4, msg << " Error(" << group << "): No error?");
-			break;
+//		case PChannel::NoError:
+//			// I don't know why there is error with code NoError
+//			PTRACE(4, msg << " Error(" << group << "): No error?");
+//			break;
 		case PChannel::Timeout:
 			PTRACE(4, msg << " Error(" << group << "): Timeout");
 			break;
@@ -402,6 +402,7 @@ ProxyHandleThread::ProxyHandleThread(PINDEX i)
 	FindConnectThread(); // pre-fork a connect thread
 	lcHandler = new ProxyHandleThread;
 	lcHandler->SetID(PString(PString::Printf, "ProxyLC(%u)", i));
+	lcHandler->SetPriority(HighPriority);
 	lcHandler->Resume();
 }
 

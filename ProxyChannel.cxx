@@ -154,9 +154,11 @@ private:
 		T120LogicalChannel *t120lc;
 	};
 
+	static void delete_s(T120ProxySocket *s) { s->SetDeletable(); }
+
+	std::list<T120ProxySocket *> sockets;
 	T120Listener *listenThread;
 	PTCPSocket listener;
-	T120ProxySocket *t120socket;
 	ProxyHandleThread *handler;
 	PIPSocket::Address peerAddr;
 	WORD peerPort;
@@ -389,7 +391,7 @@ bool CallSignalSocket::EndSession()
 TCPProxySocket *CallSignalSocket::ConnectTo()
 {
 	if (remote->Connect(peerAddr)) {
-		PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
+		PTRACE(3, "Q931(" << getpid() << ") Connect to " << remote->Name() << " successful");
 		SetConnected(true);
 		remote->SetConnected(true);
 		ForwardData();
@@ -841,13 +843,14 @@ void UDPProxySocket::SetDestination(H245_UnicastAddress_iPAddress & addr)
 T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
       : TCPProxySocket("T120", socket, pt)
 {
+	SetMinBufSize(BufferSize);
 }
 
 TCPProxySocket *T120ProxySocket::ConnectTo()
 {
 	remote = new T120ProxySocket(this, peerPort);
 	if (remote->Connect(peerAddr)) {
-		PTRACE(3, "T120\tConnect to " << Name() << " successful");
+		PTRACE(3, "T120\tConnect to " << remote->Name() << " successful");
 		SetConnected(true);
 		remote->SetConnected(true);
 	} else {
@@ -956,8 +959,7 @@ WORD RTPLogicalChannel::GetPortNumber()
 }
 
 // class T120LogicalChannel
-T120LogicalChannel::T120LogicalChannel(WORD flcn)
-      : LogicalChannel(flcn), t120socket(0)
+T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 {
 	listener.Listen(1);
 	port = listener.GetPort();
@@ -969,9 +971,9 @@ T120LogicalChannel::~T120LogicalChannel()
 	if (used) {
 		listener.Close();
 		listenThread->Destroy();
-		if (t120socket)
-			t120socket->SetDeletable();
+		for_each(sockets.begin(), sockets.end(), delete_s);
 	}
+	PTRACE(4, "T120\tDelete T120 logical channel " << channelNumber);
 }
 
 bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
@@ -1000,11 +1002,9 @@ void T120LogicalChannel::AcceptCall()
 		socket->SetDestination(peerAddr, peerPort);
 		TCPProxySocket *remote = socket->ConnectTo();
 		if (remote) {
-			if (t120socket)
-				t120socket->SetDeletable();
-			t120socket = socket;
-			handler->InsertLC(t120socket);
+			handler->InsertLC(socket);
 			handler->InsertLC(remote);
+			sockets.push_back(socket);
 			return;
 		}
 	}
