@@ -2,8 +2,8 @@ Storage
 {
 	{ Format 1.31 }
 	{ GeneratedFrom TGD-version-2.01 }
-	{ WrittenBy mmuehlen }
-	{ WrittenOn "Mon May  6 13:31:28 2002" }
+	{ WrittenBy storm }
+	{ WrittenOn "Mon Nov 11 09:40:56 2002" }
 }
 
 Document 
@@ -26,7 +26,7 @@ Page
 
 Scale 
 {
-	{ ScaleValue 0.833333 }
+	{ ScaleValue 0.859975 }
 }
 
 # GRAPH NODES
@@ -145,7 +145,7 @@ GenericNode 54
 
 Comment 55
 {
-	{ Name "Prefix of:\r+49532 is prefix of +49532801520\rEqual:\r+49532 is not equal +49532801520\r+49542801520 is (only) equal to +49542801520" }
+	{ Name "Prefix of:\r+49532 is a prefix of +49532801520\rEqual:\r+49532 is not equal to +49532801520\r+49542801520 is (only) equal to +49542801520" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -177,7 +177,7 @@ GenericNode 82
 
 Comment 104
 {
-	{ Name "will choose one out\rof a list of possible routes\r(honors metrics, carrier codes)" }
+	{ Name "will choose one out\rof a list of possible routes\r(honors metrics, carrier codes)\rNOT YET IMPLEMENTED" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -234,6 +234,14 @@ GenericNode 115
 GenericNode 116
 {
 	{ Name "search for match against\rtelephoneNumber attribute\rin existing databases \r(CdPN is prefix of a number in a database entry\rOR\ra number in a database entry is  prefix of CdPN \rOR\rboth numbers are equal)" }
+	{ Annotation "" }
+	{ Parent 0 }
+	{ Index "" }
+}
+
+GenericNode 128
+{
+	{ Name "START" }
 	{ Annotation "" }
 	{ Parent 0 }
 	{ Index "" }
@@ -365,6 +373,15 @@ GenericEdge 125
 	{ Parent 0 }
 	{ Subject1 116 }
 	{ Subject2 115 }
+}
+
+GenericEdge 129
+{
+	{ Name "" }
+	{ Annotation "" }
+	{ Parent 0 }
+	{ Subject1 128 }
+	{ Subject2 1 }
 }
 
 # VIEWS AND GRAPHICAL SHAPES
@@ -662,7 +679,7 @@ TextBox 45
 	{ View 22 }
 	{ Subject 44 }
 	{ Position 80 730 }
-	{ Size 130 43 }
+	{ Size 127 37 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -680,7 +697,7 @@ TextBox 48
 	{ View 22 }
 	{ Subject 46 }
 	{ Position 400 760 }
-	{ Size 124 30 }
+	{ Size 120 26 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -698,7 +715,7 @@ TextBox 49
 	{ View 22 }
 	{ Subject 47 }
 	{ Position 520 320 }
-	{ Size 85 20 }
+	{ Size 84 20 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -715,8 +732,8 @@ TextBox 51
 {
 	{ View 22 }
 	{ Subject 50 }
-	{ Position 410 40 }
-	{ Size 233 33 }
+	{ Position 340 30 }
+	{ Size 232 32 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -812,7 +829,7 @@ TextBox 79
 	{ View 22 }
 	{ Subject 74 }
 	{ Position 320 1040 }
-	{ Size 601 43 }
+	{ Size 601 37 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -830,7 +847,7 @@ TextBox 81
 	{ View 22 }
 	{ Subject 80 }
 	{ Position 670 600 }
-	{ Size 165 43 }
+	{ Size 160 37 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -937,7 +954,7 @@ TextBox 107
 	{ View 22 }
 	{ Subject 104 }
 	{ Position 420 840 }
-	{ Size 142 43 }
+	{ Size 141 48 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -955,7 +972,7 @@ TextBox 108
 	{ View 22 }
 	{ Subject 105 }
 	{ Position 390 690 }
-	{ Size 165 43 }
+	{ Size 162 37 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -973,7 +990,7 @@ TextBox 109
 	{ View 22 }
 	{ Subject 106 }
 	{ Position 590 730 }
-	{ Size 127 43 }
+	{ Size 125 37 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -991,7 +1008,7 @@ TextBox 112
 	{ View 22 }
 	{ Subject 110 }
 	{ Position 660 240 }
-	{ Size 144 43 }
+	{ Size 140 37 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -1009,7 +1026,7 @@ TextBox 113
 	{ View 22 }
 	{ Subject 111 }
 	{ Position 90 240 }
-	{ Size 139 56 }
+	{ Size 136 48 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Invisible }
@@ -1161,6 +1178,47 @@ Line 127
 	{ Point 170 470 }
 	{ Point 160 514 }
 	{ NamePosition 242 460 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+RoundedBox 130
+{
+	{ View 22 }
+	{ Subject 128 }
+	{ Position 320 70 }
+	{ Size 110 38 }
+	{ Color "black" }
+	{ LineWidth 1 }
+	{ LineStyle Solid }
+	{ FillStyle Unfilled }
+	{ FillColor "white" }
+	{ FixedName False }
+	{ Font "-*-helvetica-medium-r-normal--10*" }
+	{ TextAlignment Center }
+	{ TextColor "black" }
+	{ NameUnderlined False }
+}
+
+Line 131
+{
+	{ View 22 }
+	{ Subject 129 }
+	{ FromShape 130 }
+	{ ToShape 23 }
+	{ Curved False }
+	{ End1 Empty }
+	{ End2 FilledArrow }
+	{ Points 2 }
+	{ Point 320 89 }
+	{ Point 320 111 }
+	{ NamePosition 306 100 }
 	{ Color "black" }
 	{ LineWidth 1 }
 	{ LineStyle Solid }
