@@ -203,25 +203,31 @@ rule=allow
 ## Syntax:
 ##   authrule=actions
 ##
-##   <authrule> := SimplePasswordAuth | AliasAuth | ...
+##   <authrule> := SimplePasswordAuth | LDAPPasswordAuth
+##                 | AliasAuth | LDAPAliasAuth | ...
 ##   <actions>  := <control>[;<ras>,<ras>,...]
 ##   <control>  := optional | required | sufficient
 ##   <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
 ##
 ## Currently supported modules:
 ##
-##   SimplePasswordAuth  The module checks the tokens or cryptoTokens
+##   SimplePasswordAuth/
+##   LDAPPasswordAuth    The module checks the tokens or cryptoTokens
 ##                       fields of RAS message. The tokens should contain
 ##                       at least generalID and password. For cryptoTokens,
 ##                       cryptoEPPwdHash tokens hashed by simple MD5 and 
 ##                       nestedcryptoToken tokens hashed by HMAC-SHA1-96
 ##                       (libssl must be installed!) are supported now.
-##                       The ID and password are read from [Password] section.
-##                       Support for other backend databases is easily to add.
+##                       The ID and password are read from [Password] section 
+##                       / LDAP. Support for other backend databases is 
+##                       easily to add.
 ##
-##   AliasAuth           The IP of an endpoint with given alias should
-##                       match a specified pattern. The pattern is defined
-##                       in [RasSrv::RRQAuth] section.
+##   AliasAuth/
+##   LDAPAliasAuth       The IP of an endpoint with given alias should
+##                       match a specified pattern. For AliasAuth the pattern 
+##                       is defined in [RasSrv::RRQAuth] section. 
+##                       For LDAPAliasAuth the alias and IP must be found in 
+##                       one LDAP entry as H323-ID and H323-alias.
 ##
 ## A rule may results in one of the three codes: ok, fail, pass.
 ##
@@ -248,7 +254,9 @@ rule=allow
 #
 [Gatekeeper::Auth]
 #SimplePasswordAuth=optional
+#LDAPPasswordAuth=optional
 #AliasAuth=sufficient;RRQ
+#LDAPAliasAuth=sufficient;RRQ
 #default=reject
 default=allow
 
