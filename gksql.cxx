@@ -305,61 +305,55 @@ PString GkSQLConnection::ReplaceQueryParams(
 	const PStringArray& queryParams
 	)
 {
+	const PINDEX numParams = queryParams.GetSize();
 	PString finalQuery(queryStr);
 	PINDEX queryLen = finalQuery.GetLength();
+	PINDEX pos = 0;
 	char* endChar;
-	PINDEX percentPos = 0;
 
-	for (PINDEX i = 0; i < queryParams.GetSize(); i++) {
-		while (percentPos != P_MAX_INDEX && percentPos < queryLen) {
-			percentPos = finalQuery.Find('%', percentPos);
-			if (percentPos == P_MAX_INDEX)
-				break;
-			percentPos++;
-			if (percentPos >= queryLen) {
-				percentPos = P_MAX_INDEX;
-				break;
+	while (pos != P_MAX_INDEX && pos < queryLen) {
+		pos = finalQuery.Find('%', pos);
+		if (pos++ == P_MAX_INDEX)
+			break;
+		if (pos >= queryLen) // strings ending with '%' - special case
+			break;
+		const char c = finalQuery[pos]; // char next after '%'
+		if (c == '%') { // replace %% with %
+			finalQuery.Delete(pos, 1);
+			queryLen--;
+		} else if (c >= '0' && c <= '9') { // simple syntax (%1)
+			const long paramNo = strtol((const char*)finalQuery + pos, &endChar, 10);
+			const long paramLen = endChar - (const char*)finalQuery - pos;
+			if (paramNo >= 1 && paramNo <= numParams) {
+				const PString escapedStr = EscapeString(conn, queryParams[paramNo-1]);
+				const PINDEX escapedLen = escapedStr.GetLength();
+				finalQuery.Splice(escapedStr, pos - 1, paramLen + 1);
+				queryLen = queryLen + escapedLen - paramLen - 1;
+				pos = pos - 1 + escapedLen;
+			} else if (paramNo && paramLen) {
+				// replace out of range parameter with an empty string
+				finalQuery.Delete(pos - 1, paramLen + 1);
+				queryLen -= paramLen + 1;
+				pos--;
 			}
-			if (finalQuery[percentPos] == '%') {
-				percentPos++;
-				continue;
-			}
-			if (finalQuery[percentPos] >= '0' && finalQuery[percentPos] <= '9') {
-				const long paramNo = strtol((const char*)finalQuery + percentPos, &endChar, 10);
-				if (paramNo == (i+1)) {
-					const PString escapedStr = EscapeString(conn, queryParams[i]);
-					finalQuery.Splice(escapedStr, percentPos - 1, 
-						endChar - (const char*)finalQuery - percentPos + 1
-						);
-					queryLen = finalQuery.GetLength();
-					percentPos += escapedStr.GetLength() - 1;
-					break;
-				} else if (paramNo > (i+1)) {
-					percentPos--;
-					break;
+		} else if (c == '{') { // escaped syntax (%{1})
+			const PINDEX closingBrace = finalQuery.Find('}', ++pos);
+			if (closingBrace != P_MAX_INDEX) {
+				const long paramNo = strtol((const char*)finalQuery + pos, &endChar, 10);
+				const long paramLen = endChar - (const char*)finalQuery - pos;
+				if (*endChar == '}' && paramNo >= 1 && paramNo <= numParams) {
+					const PString escapedStr = EscapeString(conn, queryParams[paramNo-1]);
+					const PINDEX escapedLen = escapedStr.GetLength();
+					finalQuery.Splice(escapedStr, pos - 2, paramLen + 3);
+					queryLen = queryLen + escapedLen - paramLen - 3;
+					pos = pos - 2 + escapedLen;
+				} else if (paramNo && paramLen) {
+					// replace out of range parameter with an empty string
+					finalQuery.Delete(pos - 2, paramLen + 3);
+					queryLen -= paramLen + 3;
+					pos -= 2;
 				}
-				continue;
 			}
-			if (finalQuery[percentPos] != '{')
-				continue;
-			
-			percentPos++;
-			const PINDEX closingBrace = finalQuery.Find('}', percentPos);
-			if (closingBrace == P_MAX_INDEX)
-				continue;
-
-			const int paramNo = strtol((const char*)finalQuery + percentPos, &endChar, 10);
-			if (*endChar == '}')
-				if (paramNo == (i+1)) {
-					const PString escapedStr = EscapeString(conn, queryParams[i]);
-					finalQuery.Splice(escapedStr, percentPos - 2, endChar - (const char*)finalQuery - percentPos + 3);
-					queryLen = finalQuery.GetLength();
-					percentPos += escapedStr.GetLength() - 2;
-					break;
-				} else if (paramNo > (i+1)) {
-					percentPos -= 2;
-					break;
-				}
 		}
 	}
 
