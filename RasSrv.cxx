@@ -1021,7 +1021,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 	}
 */
 
-	if(!bReject && !CalledEP) {
+	if (!bReject && !CalledEP) {
 		bReject = TRUE;
 		arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 	}
@@ -1130,7 +1130,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 		CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
 #if ARJREASON_ROUTECALLTOGATEKEEPER
-	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1")))
+	if (!bReject && Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1")))
 		if (GKRoutedSignaling && obj_arq.m_answerCall && !pExistingCallRec) {
 			bReject = TRUE;
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
