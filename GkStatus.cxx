@@ -20,7 +20,8 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include "GkStatus.h"
+#include <ptlib.h>
+#include <ptclib/telnet.h>
 #include "gk_const.h"
 #include "stl_supp.h"
 #include "SoftPBX.h"
@@ -28,7 +29,7 @@
 #include "RasSrv.h"
 #include "Routing.h"
 #include "rwlock.h"
-#include <ptclib/telnet.h>
+#include "GkStatus.h"
 
 
 void ReloadHandler(); // avoid to include...
@@ -37,6 +38,9 @@ static const char *authsec="GkStatus::Auth";
 
 // a very lightweight implementation of telnet socket
 class TelnetSocket : public ServerSocket {
+#ifndef LARGE_FDSET
+	PCLASSINFO(TelnetSocket, TCPSocket)
+#endif
 public:
 	typedef PTelnetSocket::Options Options;
 	typedef PTelnetSocket::Command Command;
@@ -47,7 +51,6 @@ public:
 #ifdef LARGE_FDSET
 	virtual bool Accept(YaTCPSocket &);
 #else
-	PCLASSINFO ( TelnetSocket, TCPSocket )
 	virtual BOOL Accept(PSocket &);
 #endif
 
@@ -59,7 +62,7 @@ public:
 	bool SendWont(BYTE);
 	bool SendCommand(Command, BYTE);
 
-	bool NeedEcho() const { return needEcho; }
+	bool NeedEcho() const { return m_needEcho; }
 
 private:
 	enum State {
@@ -80,13 +83,158 @@ private:
 	virtual void OnWill(BYTE);
 	virtual void OnWont(BYTE);
 
-	bool needEcho;
-	State state;
+	bool m_needEcho;
+	State m_state;
 };
 
-TelnetSocket::TelnetSocket() : needEcho(false)
+/** Class that manages a single status interface client connection.
+ */
+class StatusClient : public TelnetSocket, public USocket {
+#ifndef LARGE_FDSET
+	PCLASSINFO(StatusClient, TelnetSocket)
+#endif
+public:
+	StatusClient(
+		/// unique session ID (instance number) for this client
+		int instanceNo
+		);
+
+	bool ReadCommand(
+		/// command that has been read (if ReadCommand succeeded)
+		PString& cmd,
+		/// should the command be echoed (also NeedEcho() has to be true)
+		bool echo = true,
+		/// timeout (ms) for read operation
+		int readTimeout = 0
+		);
+		
+	/** Send the message (string) to the status interface client,
+		if the output trace level is lesser or equal to the one set
+		for this client.
+		
+		@return
+		true if the message has been sent (or ignored because of trace level).
+	*/
+	bool WriteString(
+		/// string to be sent through the socket
+		const PString& msg, 
+		/// output trace level assigned to the message
+		int level = MIN_STATUS_TRACE_LEVEL
+		);
+		
+	void FlushData();
+
+	/** @return
+		A string with connection information about this client.
+	*/
+	PString WhoAmI() const;
+	
+	/** Check the client with all configured status authentication rules.
+		Ask for username/password, if required.
+		
+		@return
+		true if the client has been granted access, false to reject the client.
+	*/
+	bool Authenticate();
+	
+	/** Executes the given command as a new Job (in a separate Worker thread).
+	*/
+	void OnCommand(
+		/// command to be executed
+		const PString& cmd
+		);
+
+	/** @return
+		Unique instance number (session identifier) for this client.
+	*/
+	int GetInstanceNo() const { return m_instanceNo; }
+	
+	/** @return
+		Output trace level for this status client. The trace level
+		decides what kind of information is allowed to be broadcasted
+		to this client.
+	*/
+	int GetTraceLevel() const { return m_traceLevel; }
+	
+	/** @return
+		true if one or more commands from this status interface client
+		are executing by Worker threads.
+	*/
+	bool IsBusy()
+	{ 
+		PWaitAndSignal lock(m_cmutex);
+		return m_numExecutingCommands > 0; 
+	}
+
+	const PString& GetUser() const { return m_user; }
+	
+private:
+	// override from class ServerSocket
+	virtual void Dispatch();
+
+	/// Handle the 'Debug' command (its many variants).
+	void DoDebug(
+		/// tokenized debug command
+		const PStringArray& args
+		);
+
+	/** Check a new client connection against the specified authentication
+		rule.
+		
+		@return
+		true if the client satisfied the rule (has been authenticated successfully
+		with this rule).
+	*/
+	bool CheckAuthRule(
+		/// authentication rule to be used
+		const PString& rule
+		);
+
+	/** Authenticate this status interface client through all authentication
+		rules and return the final result.
+		
+		@return
+		true if the use has been authenticated.
+	*/
+	bool AuthenticateUser();
+
+	/** @return
+		The decrypted password associated with the specified login.
+	*/	
+	PString GetPassword(
+		/// login the password is to be retrieved for
+		const PString& login
+		) const;
+
+	/** Parse and execute the given command. The function is called
+		in a separate Worker thread (as a Job).
+	*/
+	void ExecCommand(
+		/// the command to be executed
+		PString cmd
+		);
+
+	/// the most recent command
+	PString m_lastCmd;
+	/// command being currently entered (and not yet completed)
+	PString m_currentCmd;
+	/// GkStatus instance that created this client
+	GkStatus* m_gkStatus;
+	/// status interface user that is logged in
+	PString	m_user;
+	/// for atomic access to the m_numExecutingCommands counter
+	PMutex m_cmutex;
+	/// number of commands being currently executed by Worker threads
+	int m_numExecutingCommands;
+	/// unique identifier for this client
+	int m_instanceNo;
+	/// output trace level for this client
+	int m_traceLevel;
+};
+
+
+TelnetSocket::TelnetSocket() : m_needEcho(false), m_state(StateNormal)
 {
-	state = StateNormal;
 }
 
 #ifdef LARGE_FDSET
@@ -119,72 +267,75 @@ int TelnetSocket::ReadChar()
 	BYTE currentByte;
 
 	while (!hasData) {
-	       	if (!TCPSocket::Read(&currentByte, 1)) {
+		if (!TCPSocket::Read(&currentByte, 1)) {
 			if (GetErrorCode(PSocket::LastReadError) != PSocket::Timeout) {
-				PTRACE(2, "Telnet\t" << GetName() << " has disconnected");
+				PTRACE(3, "TELNET\t" << GetName() << " closed the connection ("
+					<< GetErrorText(PSocket::LastReadError) << ')'
+					);
 				Close();
 			}
 			break;
 		}
-		switch (state)
+		switch (m_state)
 		{
-			case StateCarriageReturn:
-				state = StateNormal;
-				if (currentByte == '\0' || currentByte == '\n')
-					break; // Ignore \0 \n after CR
-				// else fall through for normal processing
-			case StateNormal:
-				if (currentByte != PTelnetSocket::IAC) {
-					if (currentByte == '\r')
-						state = StateCarriageReturn;
-					hasData = true;
-				} else
-					state = StateIAC;
+		case StateCarriageReturn:
+			m_state = StateNormal;
+			if (currentByte == '\0' || currentByte == '\n')
+				break; // Ignore \0 \n after CR
+			// else fall through for normal processing
+		case StateNormal:
+			if (currentByte == PTelnetSocket::IAC)
+				m_state = StateIAC;
+			else {
+				if (currentByte == '\r')
+					m_state = StateCarriageReturn;
+				hasData = true;
+			}
+			break;
+		case StateIAC:
+			switch (currentByte)
+			{
+			case PTelnetSocket::IAC:
+				hasData = true;
+				m_state = StateNormal;
 				break;
-			case StateIAC:
-				switch (currentByte)
-				{
-					case PTelnetSocket::IAC :
-						hasData = true;
-						state = StateNormal;
-						break;
-					case PTelnetSocket::DO:
-						state = StateDo;
-						break;
-					case PTelnetSocket::DONT:
-						state = StateDont;
-						break;
-					case PTelnetSocket::WILL:
-						state = StateWill;
-						break;
-					case PTelnetSocket::WONT:
-						state = StateWont;
-						break;
-					default:
-						state = StateNormal;
-						break;
-				}
+			case PTelnetSocket::DO:
+				m_state = StateDo;
 				break;
-			case StateDo:
-				OnDo(currentByte);
-				state = StateNormal;
+			case PTelnetSocket::DONT:
+				m_state = StateDont;
 				break;
-			case StateDont:
-				OnDont(currentByte);
-				state = StateNormal;
+			case PTelnetSocket::WILL:
+				m_state = StateWill;
 				break;
-			case StateWill:
-				OnWill(currentByte);
-				state = StateNormal;
-				break;
-			case StateWont:
-				OnWont(currentByte);
-				state = StateNormal;
+			case PTelnetSocket::WONT:
+				m_state = StateWont;
 				break;
 			default:
-				PTRACE(5, "Telnet\t" << GetName() << " unsupported state");
-				state = StateNormal;
+				m_state = StateNormal;
 				break;
+			}
+			break;
+		case StateDo:
+			OnDo(currentByte);
+			m_state = StateNormal;
+			break;
+		case StateDont:
+			OnDont(currentByte);
+			m_state = StateNormal;
+			break;
+		case StateWill:
+			OnWill(currentByte);
+			m_state = StateNormal;
+			break;
+		case StateWont:
+			OnWont(currentByte);
+			m_state = StateNormal;
+			break;
+		default:
+			PTRACE(1, "TELNET\t" << GetName() << " telnet socket entered unrecognized state " << m_state);
+			m_state = StateNormal;
+			break;
 		}
 	}
 
@@ -220,85 +371,42 @@ bool TelnetSocket::SendCommand(Command cmd, BYTE opt)
 
 	switch (cmd)
 	{
-		case PTelnetSocket::DO:
-		case PTelnetSocket::DONT:
-		case PTelnetSocket::WILL:
-		case PTelnetSocket::WONT:
-			buffer[2] = opt;
-			length = 3;
-			break;
+	case PTelnetSocket::DO:
+	case PTelnetSocket::DONT:
+	case PTelnetSocket::WILL:
+	case PTelnetSocket::WONT:
+		buffer[2] = opt;
+		length = 3;
+		break;
 
-		default:
-			// do not support now
-			break;
+	default:
+		// do not support now
+		break;
 	}
 	return Write(buffer, length);
 }
 
 void TelnetSocket::OnDo(BYTE code)
 {
-	PTRACE(5, "Telnet\t" << GetName() << " get DO " << int(code));
+	PTRACE(6, "TELNET\t" << GetName() << " got DO " << int(code));
 }
 
 void TelnetSocket::OnDont(BYTE code)
 {
-	PTRACE(5, "Telnet\t" << GetName() << " get DONT " << int(code));
+	PTRACE(6, "TELNET\t" << GetName() << " got DONT " << int(code));
 }
 
 void TelnetSocket::OnWill(BYTE code)
 {
-	PTRACE(5, "Telnet\t" << GetName() << " get WILL " << int(code));
+	PTRACE(6, "TELNET\t" << GetName() << " got WILL " << int(code));
 }
 
 void TelnetSocket::OnWont(BYTE code)
 {
-	PTRACE(5, "Telnet\t" << GetName() << " get WONT " << int(code));
+	PTRACE(6, "TELNET\t" << GetName() << " got WONT " << int(code));
 	if (code == PTelnetSocket::EchoOption) // Windows client?
-		needEcho = true;
+		m_needEcho = true;
 }
-
-
-class StatusClient : public TelnetSocket, public USocket {
-#ifndef LARGE_FDSET
-	PCLASSINFO ( StatusClient, TelnetSocket )
-#endif
-public:
-	StatusClient(int);
-
-	bool ReadCommand(PString &, bool = true, int = 0);
-	bool WriteString(const PString &, int = 0);
-	void FlushData();
-
-	PString WhoAmI() const;
-	bool Authenticate();
-	void OnCommand(const PString &);
-
-	int GetInstanceNo() const { return m_instanceNo; }
-	int GetTraceLevel() const { return m_traceLevel; }
-	bool IsBusy() const { return m_executedCmd > 0; }
-
-private:
-	// override from class ServerSocket
-	virtual void Dispatch();
-
-	// handles the 'Debug' command. #Args# is the whole tokenised command line.
-	void DoDebug(const PStringArray & Args);
-
-	bool CheckRule(const PString &);
-	bool AuthenticateUser();
-	PString GetPassword(const PString & UserName) const;
-	void ExecCommand(PString);
-
-	PString m_lastCmd;
-	PString m_currentCmd;
-	GkStatus *m_gkStatus;
-	PString	m_user;
-	PMutex m_cmutex;
-	int m_executedCmd;
-	int m_instanceNo;
-	int m_traceLevel;
-};
-
 
 namespace {
 
@@ -316,193 +424,240 @@ PString PrintGkVersion()
 GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 {
 #ifdef LARGE_FDSET
-	PTRACE(1, "GK\tLarge fd_set(" << LARGE_FDSET << ") enabled");
+	PTRACE(1, "STATUS\tLarge fd_set(" << LARGE_FDSET << ") enabled");
 #endif
 
 	SetName("GkStatus");
 	Execute();
 }
 
-void GkStatus::AuthenticateClient(StatusClient *client)
+void GkStatus::AuthenticateClient(
+	StatusClient* newClient
+	)
 {
-	if (client->Authenticate()) {
-		AddSocket(client);
-		PTRACE(2, "Status\tnew client " << client->WhoAmI());
+	if (newClient->Authenticate()) {
+		AddSocket(newClient);
+		PTRACE(1, "STATUS\tNew client authenticated succesfully: " << newClient->WhoAmI()
+			<< ", login: " << newClient->GetUser()
+			);
 		// the welcome messages
-		client->WriteString(PrintGkVersion());
+		newClient->WriteString(PrintGkVersion());
 	} else {
-		client->WriteString("\r\nAccess forbidden!\r\n");
-		delete client;
+		PTRACE(3, "STATUS\tNew client rejected: " << newClient->WhoAmI()
+			<< ", login: " << newClient->GetUser()
+			);
+		newClient->WriteString("\r\nAccess forbidden!\r\n");
+		delete newClient;
 	}
 }
 
-// function object used by for_each
-class ClientSignalStatus {
-  public:
-	ClientSignalStatus(const PString & m, int l) : msg(m), level(l) {} 
-	void operator()(IPSocket *) const;
+/** Functor class used to send the message to the specified client.
+*/
+class ClientSignalStatus 
+{
+public:
+	ClientSignalStatus(
+		/// message to be sent
+		const PString& msg, 
+		/// output trace level assigned to the message
+		int level
+		) : m_message(msg), m_traceLevel(level) {}
+	
+	/** Actual function call operator that sends the message.
+	*/
+	void operator()(
+		/// socket to send the message through
+		IPSocket* clientSocket
+		) const
+	{
+		StatusClient* client = static_cast<StatusClient*>(clientSocket);
+		if (m_traceLevel <= client->GetTraceLevel()) 
+			client->WriteString(m_message);
+	}
 
-  private:
-	const PString & msg;
-	int level;
+private:
+	/// message to be sent
+	const PString& m_message;
+	/// output trace level assigned to the message
+	int m_traceLevel;
 };
 
-void ClientSignalStatus::operator()(IPSocket *socket) const
-{
-	StatusClient *client = static_cast<StatusClient *>(socket);
-	int ctl = client->GetTraceLevel();
-	if ((ctl <= 10) && (ctl >= 0) && (level >= ctl)) 
-		client->WriteString(msg);
-}
-
-void GkStatus::SignalStatus(const PString &Message, int level)
+void GkStatus::SignalStatus(
+	/// message string to be broadcasted
+	const PString& msg, 
+	/// trace level at which the message should be broadcasted
+	int level
+	)
 {
 	ReadLock lock(m_listmutex);
-	ForEachInContainer(m_sockets, ClientSignalStatus(Message, level));
+	ForEachInContainer(m_sockets, ClientSignalStatus(msg, level));
 }
 
-bool GkStatus::DisconnectSession(int InstanceNo, StatusClient *kicker)
+bool GkStatus::DisconnectSession(
+	/// session ID (instance number) for the status client to be disconnected
+	int instanceNo,
+	/// status interface client that requested disconnect
+	StatusClient* requestingClient
+	)
 {
-	PTRACE(1, "Disconnect Session " << InstanceNo);
 	ReadLock lock(m_listmutex);
 	for (iterator i = m_sockets.begin(); i != m_sockets.end(); ++i) {
 		StatusClient *client = static_cast<StatusClient *>(*i);
-		if (client->GetInstanceNo() == InstanceNo) {
-			client->WriteString("Disconnected by session " + kicker->WhoAmI());
+		if (client->GetInstanceNo() == instanceNo) {
+			client->WriteString("Disconnected by session " + requestingClient->WhoAmI());
+			PTRACE(1, "STATUS\tClient " << client->WhoAmI() << " (ID: " 
+				<< instanceNo << ") disconnected by " << requestingClient->WhoAmI()
+				);
 			return client->Close();
 		}
 	}
 	return false;
 }
 
-// function object used by for_each
-class WriteWhoAmI {
-  public:
-	WriteWhoAmI(StatusClient *c) : writeTo(c) {}
-	void operator()(const IPSocket *) const;
+/** Functor class used to gather a list of active status interface clients.
+*/
+class WriteWhoAmI 
+{
+public:
+	WriteWhoAmI(
+		/// status interface client to send the information to
+		StatusClient* requestingClient
+		) : m_requestingClient(requestingClient) {}
+	
+	void operator()(
+		/// status interface client to send the information to
+		const IPSocket* clientSocket
+		) const
+	{
+		const StatusClient* client = static_cast<const StatusClient *>(clientSocket);
+		m_requestingClient->WriteString("  " + client->WhoAmI() + "\r\n");
+	}
 
-  private:
-	StatusClient *writeTo;
+private:
+	/// status interface client to send the information to
+	StatusClient* m_requestingClient;
 };
 
-void WriteWhoAmI::operator()(const IPSocket *socket) const
-{
-	const StatusClient *client = static_cast<const StatusClient *>(socket);
-	writeTo->WriteString("  " + client->WhoAmI() + "\r\n");
-}
 
-void GkStatus::ShowUsers(StatusClient *c) const
+void GkStatus::ShowUsers(
+	/// client that requested the list of all active clients
+	StatusClient* requestingClient
+	) const
 {
 	ReadLock lock(m_listmutex);
-	ForEachInContainer(m_sockets, WriteWhoAmI(c));
+	ForEachInContainer(m_sockets, WriteWhoAmI(requestingClient));
 }
 
-void GkStatus::PrintHelp(StatusClient *client) const
+void GkStatus::PrintHelp(
+	/// client that requested the help message
+	StatusClient* requestingClient
+	) const
 {
-	client->WriteString("Commands:\r\n");
+	requestingClient->WriteString("Commands:\r\n");
 	std::map<PString, int>::const_iterator i = m_commands.begin();
 	while (i != m_commands.end())
-		client->WriteString(i->first + "\r\n"), ++i;
-	client->WriteString(";\r\n");
+		requestingClient->WriteString(i->first + "\r\n"), ++i;
+	requestingClient->WriteString(";\r\n");
 }
 
-int GkStatus::ParseCommand(const PString & cmd, PStringArray & args)
+int GkStatus::ParseCommand(
+	/// message to be parsed
+	const PString& msg,
+	/// message split into tokens upon successful return
+	PStringArray& args
+	)
 {
-	// the 'Tokenise' seems not correct for leading spaces
-	args = cmd.Trim().Tokenise(" \t", false);
-	if (args.GetSize() > 0) {
-		PString key = args[0].ToLower();
-		PTRACE(2, "Status\tgot command " << key);
-		if (m_commands.find(key) != m_commands.end())
-			return m_commands[key];
-		std::map<PString, int>::iterator it = m_commands.begin();
-		int expandedCmd = -1;
-#if PTRACING
-		PString expandedCmdStr;
-#endif
-		while (it != m_commands.end()) {
-			const PString& cmd = it->first;
-			if (key == cmd.Left(key.GetLength())) {
-				// if the key matches more than one command, do not expand
-				if( expandedCmd != -1 )
-					return -1;
-				else {
-					expandedCmd = it->second;
-#if PTRACING
-					expandedCmdStr = cmd;
-#endif
-				}
-			}
-			it ++;
+	// the 'Tokenise' doesn't seem to work correctly for leading spaces
+	args = msg.Trim().Tokenise(" \t", FALSE);
+	if (args.GetSize() == 0)
+		return -1;
+		
+	// try explicit match
+	const PString command = args[0].ToLower();
+	if (m_commands.find(command) != m_commands.end())
+		return m_commands[command];
+	
+	// try to find the closest match (expand command prefix)
+	std::map<PString, int>::iterator iter = m_commands.begin();
+	std::map<PString, int>::iterator expandedCmd = m_commands.end();
+	
+	while (iter != m_commands.end()) {
+		if (command == iter->first.Left(command.GetLength())) {
+			// if the key matches more than one command, do not expand
+			if( expandedCmd != m_commands.end() )
+				return -1;
+			else
+				expandedCmd = iter;
 		}
-		if( expandedCmd != -1 ) {
-			PTRACE(4, "Status\tExpanded "<<key<<" into command "<<expandedCmdStr);
-			return expandedCmd;
-		}
+		iter++;
+	}
+	if( expandedCmd != m_commands.end() ) {
+		PTRACE(6, "STATUS\tExpanded prefix '" << command << "' into command '" 
+			<< expandedCmd->first << "'"
+			);
+		return expandedCmd->second;
 	}
 	return -1;
 }
 
 void GkStatus::OnStart()
 {
-	m_commands["printallregistrations"] =	     e_PrintAllRegistrations;
-	m_commands["r"] =			     e_PrintAllRegistrations;
-	m_commands["?"] =			     e_PrintAllRegistrations;
+	m_commands["printallregistrations"] = e_PrintAllRegistrations;
+	m_commands["r"] = e_PrintAllRegistrations;
+	m_commands["?"] = e_PrintAllRegistrations;
 	m_commands["printallregistrationsverbose"] = e_PrintAllRegistrationsVerbose;
-	m_commands["rv"] =			     e_PrintAllRegistrationsVerbose;
-	m_commands["??"] =			     e_PrintAllRegistrationsVerbose;
-	m_commands["printallcached"] =		     e_PrintAllCached;
-	m_commands["rc"] =			     e_PrintAllCached;
-	m_commands["printcurrentcalls"] =	     e_PrintCurrentCalls;
-	m_commands["c"] =			     e_PrintCurrentCalls;
-	m_commands["!"] =			     e_PrintCurrentCalls;
-	m_commands["printcurrentcallsverbose"] =     e_PrintCurrentCallsVerbose;
-	m_commands["cv"] =			     e_PrintCurrentCallsVerbose;
-	m_commands["!!"] =			     e_PrintCurrentCallsVerbose;
-	m_commands["find"] =			     e_Find;
-	m_commands["f"] =			     e_Find;
-	m_commands["findverbose"] =		     e_FindVerbose;
-	m_commands["fv"] =			     e_FindVerbose;
-	m_commands["disconnectip"] =		     e_DisconnectIp;
-	m_commands["disconnectcall"] =		     e_DisconnectCall;
-	m_commands["disconnectalias"] =		     e_DisconnectAlias;
-	m_commands["disconnectendpoint"] =	     e_DisconnectEndpoint;
-	m_commands["disconnectsession"] =	     e_DisconnectSession;
-	m_commands["clearcalls"] =		     e_ClearCalls;
-	m_commands["unregisterallendpoints"] =	     e_UnregisterAllEndpoints;
-	m_commands["unregisterip"] =		     e_UnregisterIp;
-	m_commands["unregisteralias"] =		     e_UnregisterAlias;
-	m_commands["transfercall"] =		     e_TransferCall;
-	m_commands["makecall"] =		     e_MakeCall;
-	m_commands["yell"] =			     e_Yell;
-	m_commands["who"] =			     e_Who;
-	m_commands["gk"] =			     e_GK;
-	m_commands["help"] =			     e_Help;
-	m_commands["h"] =			     e_Help;
-	m_commands["version"] =			     e_Version;
-	m_commands["v"] =			     e_Version;
-	m_commands["debug"] =			     e_Debug;
-	m_commands["statistics"] =		     e_Statistics;
-	m_commands["s"] =			     e_Statistics;
-	m_commands["reload"] =			     e_Reload;
-	m_commands["routetoalias"] =		     e_RouteToAlias;
-	m_commands["rta"] =			     e_RouteToAlias;
-	m_commands["routereject"] =		     e_RouteReject;
-	m_commands["shutdown"] =		     e_Shutdown;
-	m_commands["exit"] =			     e_Exit;
-	m_commands["quit"] =			     e_Exit;
-	m_commands["q"] =			     e_Exit;
+	m_commands["rv"] = e_PrintAllRegistrationsVerbose;
+	m_commands["??"] = e_PrintAllRegistrationsVerbose;
+	m_commands["printallcached"] = e_PrintAllCached;
+	m_commands["rc"] = e_PrintAllCached;
+	m_commands["printcurrentcalls"] = e_PrintCurrentCalls;
+	m_commands["c"] = e_PrintCurrentCalls;
+	m_commands["!"] = e_PrintCurrentCalls;
+	m_commands["printcurrentcallsverbose"] = e_PrintCurrentCallsVerbose;
+	m_commands["cv"] = e_PrintCurrentCallsVerbose;
+	m_commands["!!"] = e_PrintCurrentCallsVerbose;
+	m_commands["find"] = e_Find;
+	m_commands["f"] = e_Find;
+	m_commands["findverbose"] = e_FindVerbose;
+	m_commands["fv"] = e_FindVerbose;
+	m_commands["disconnectip"] = e_DisconnectIp;
+	m_commands["disconnectcall"] = e_DisconnectCall;
+	m_commands["disconnectalias"] = e_DisconnectAlias;
+	m_commands["disconnectendpoint"] = e_DisconnectEndpoint;
+	m_commands["disconnectsession"] = e_DisconnectSession;
+	m_commands["clearcalls"] = e_ClearCalls;
+	m_commands["unregisterallendpoints"] = e_UnregisterAllEndpoints;
+	m_commands["unregisterip"] = e_UnregisterIp;
+	m_commands["unregisteralias"] = e_UnregisterAlias;
+	m_commands["transfercall"] = e_TransferCall;
+	m_commands["makecall"] = e_MakeCall;
+	m_commands["yell"] = e_Yell;
+	m_commands["who"] = e_Who;
+	m_commands["gk"] = e_GK;
+	m_commands["help"] = e_Help;
+	m_commands["h"] = e_Help;
+	m_commands["version"] = e_Version;
+	m_commands["v"] = e_Version;
+	m_commands["debug"] = e_Debug;
+	m_commands["statistics"] = e_Statistics;
+	m_commands["s"] = e_Statistics;
+	m_commands["reload"] = e_Reload;
+	m_commands["routetoalias"] = e_RouteToAlias;
+	m_commands["rta"] = e_RouteToAlias;
+	m_commands["routereject"] = e_RouteReject;
+	m_commands["shutdown"] = e_Shutdown;
+	m_commands["exit"] = e_Exit;
+	m_commands["quit"] = e_Exit;
+	m_commands["q"] = e_Exit;
+	m_commands["trace"] = e_Trace;
 }
 
-void GkStatus::OnStop()
-{
-	PTRACE(1, "GK\tGkStatus stopped");
-}
-
-void GkStatus::ReadSocket(IPSocket *socket)
+void GkStatus::ReadSocket(
+	IPSocket* clientSocket
+	)
 {
 	PString cmd;
-	StatusClient *client = static_cast<StatusClient *>(socket);
+	StatusClient* client = static_cast<StatusClient*>(clientSocket);
 	if (client->ReadCommand(cmd) && !cmd)
 		client->OnCommand(cmd);
 }
@@ -516,9 +671,9 @@ void GkStatus::CleanUp()
 			iterator i = iter++;
 			StatusClient *client = static_cast<StatusClient *>(*i);
 			if (!client->IsBusy()) {
-				delete client;
 				m_removed.erase(i);
 				--m_rmsize;
+				delete client;
 			}
 		}
 	}
@@ -526,17 +681,30 @@ void GkStatus::CleanUp()
 }
 
 
-// class StatusClient
-StatusClient::StatusClient(int i) : USocket(this, "Status"), m_instanceNo(i)
+StatusClient::StatusClient(
+	/// unique session ID (instance number) for this client
+	int instanceNo
+	) 
+	: 
+	USocket(this, "Status"), 
+	m_gkStatus(GkStatus::Instance()),
+	m_numExecutingCommands(0),
+	m_instanceNo(instanceNo),
+	m_traceLevel(MAX_STATUS_TRACE_LEVEL)
 {
-	m_gkStatus = GkStatus::Instance();
-	m_executedCmd = m_traceLevel = 0;
 	SetWriteTimeout(10);
 }
 
-bool StatusClient::ReadCommand(PString & cmd, bool echo, int timeout)
+bool StatusClient::ReadCommand(
+	/// command that has been read (if ReadCommand succeeded)
+	PString& cmd,
+	/// should the command be echoed (also NeedEcho() has to be true)
+	bool echo,
+	/// timeout (ms) for read operation, 0 means infinite
+	int readTimeout
+	)
 {
-	while (IsReadable(timeout)) {
+	while (IsReadable(readTimeout)) {
 		char byte;
 		int read = ReadChar();
 		switch (read)
@@ -582,14 +750,20 @@ bool StatusClient::ReadCommand(PString & cmd, bool echo, int timeout)
 	return false;
 }
 
-bool StatusClient::WriteString(const PString & msg, int level)
+bool StatusClient::WriteString(
+	/// string to be sent through the socket
+	const PString& msg, 
+	/// output trace level assigned to the message
+	int level
+	)
 {
-	if (level < m_traceLevel)
+	if (level > m_traceLevel)
 		return true;
 	if (CanFlush())
 		Flush();
 	return WriteData(msg, msg.GetLength());
 }
+
 /*
 void StatusClient::FlushData()
 {
@@ -607,6 +781,7 @@ void StatusClient::FlushData()
 	SetWriteTimeout(10);
 }
 */
+
 PString StatusClient::WhoAmI() const
 {
 	return PString(m_instanceNo) + '\t' + GetName() + '\t' + m_user;
@@ -614,30 +789,40 @@ PString StatusClient::WhoAmI() const
 
 bool StatusClient::Authenticate()
 {
-	PTRACE(4, "Status\tAuth client from " << GetName());
-
-	PINDEX p = 0;
+	PINDEX rule_start = 0;
 	bool result, logical_or;
 	const PString rules = GkConfig()->GetString(authsec, "rule", "forbid");
 	while (true) {
-		PINDEX q = rules.FindOneOf("&|", p);
-		result = CheckRule(rules(p, q - 1).Trim());
-		if (q == P_MAX_INDEX)
+		const PINDEX rule_end = rules.FindOneOf("&|", rule_start);
+		if (rule_end == P_MAX_INDEX) {
+			result = CheckAuthRule(rules(rule_start, P_MAX_INDEX).Trim());
 			break;
-		logical_or = (rules[q] == '|') ;
+		} else
+			result = CheckAuthRule(rules(rule_start, rule_end - 1).Trim());
+		logical_or = (rules[rule_end] == '|') ;
 		if ((logical_or && result) || !(logical_or || result))
 			break;
-		p = q + 1;
+		rule_start = rule_end + 1;
 	}
 
+	PTRACE(4, "STATUS\tNew connection from " << GetName() 
+		<< (result?" accepted":" rejected")
+		);
 	return result;
 }
 
-void StatusClient::OnCommand(const PString & cmd)
+void StatusClient::OnCommand(
+	/// command to be executed
+	const PString& cmd
+	)
 {
-	CreateJob(this, &StatusClient::ExecCommand, cmd, "Command " + cmd);
-	PWaitAndSignal lock(m_cmutex);
-	++m_executedCmd;
+	{
+		PWaitAndSignal lock(m_cmutex);
+		++m_numExecutingCommands;
+	}
+	// problem - if the ExecCommand does not get executed for some reason,
+	// m_numExecutingCommands will not decrement
+	CreateJob(this, &StatusClient::ExecCommand, cmd, "StatusCmd " + cmd);
 }
 
 void StatusClient::Dispatch()
@@ -645,37 +830,40 @@ void StatusClient::Dispatch()
 	m_gkStatus->AuthenticateClient(this);
 }
 
-void StatusClient::DoDebug(const PStringArray & Args)
+void StatusClient::DoDebug(
+	/// tokenized debug command
+	const PStringArray& args
+	)
 {
-	if (Args.GetSize() <= 1) {
+	if (args.GetSize() <= 1) {
 		WriteString("Debug options:\r\n"
-			    "  trc [+|-|n]       Show/modify trace level\r\n"
-				"  cfg               Read and print config sections\r\n"
-			    "  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n"
-			    "  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n"
-			    "  remove SEC PAR    Remove a config VALue PARameter in a SECtion\r\n"
-			    "  remove SEC        Remove a SECtion\r\n"
-			    "  printrm VERBOSE   Print all removed endpoint records\r\n");
+			"  trc [+|-|n]       Show/modify trace level for the log\r\n"
+			"  cfg               Read and print config sections\r\n"
+			"  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n"
+			"  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n"
+			"  remove SEC PAR    Remove a config VALue PARameter in a SECtion\r\n"
+			"  remove SEC        Remove a SECtion\r\n"
+			"  printrm VERBOSE   Print all removed endpoint records\r\n"
+			);
 	} else {
-		if (Args[1] *= "trc") {
-			if(Args.GetSize() >= 3) {
-				if((Args[2] == "-") && (PTrace::GetLevel() > 0)) 
+		if (args[1] *= "trc") {
+			if(args.GetSize() >= 3) {
+				if((args[2] == "-") && (PTrace::GetLevel() > 0)) 
 					PTrace::SetLevel(PTrace::GetLevel()-1);
-				else if(Args[2] == "+") 
+				else if(args[2] == "+") 
 					PTrace::SetLevel(PTrace::GetLevel()+1);
-				else PTrace::SetLevel(Args[2].AsInteger());
+				else PTrace::SetLevel(args[2].AsInteger());
 			}
 			WriteString(PString(PString::Printf, "Trace Level is now %d\r\n", PTrace::GetLevel()));
-		} else if (Args[1] *= "cfg") {
-			if (Args.GetSize()>=4)
-				WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n;\r\n");
-			else if (Args.GetSize()>=3) {
-				PStringList cfgs(GkConfig()->GetKeys(Args[2]));
-				PString result = "Section [" + Args[2] + "]\r\n";
-				for (PINDEX i=0; i < cfgs.GetSize(); ++i) {
-					PString v(GkConfig()->GetString(Args[2], cfgs[i], ""));
-					result += cfgs[i] + "=" + v + "\r\n";
-				}
+		} else if (args[1] *= "cfg") {
+			if (args.GetSize()>=4)
+				WriteString(GkConfig()->GetString(args[2],args[3],"") + "\r\n;\r\n");
+			else if (args.GetSize()>=3) {
+				const PStringList cfgs(GkConfig()->GetKeys(args[2]));
+				PString result = "Section [" + args[2] + "]\r\n";
+				for (PINDEX i=0; i < cfgs.GetSize(); ++i)
+					result += cfgs[i] + "=" 
+						+ GkConfig()->GetString(args[2], cfgs[i], "") + "\r\n";
 				WriteString(result + ";\r\n");
 			} else {
 				const PStringList secs(GkConfig()->GetSections());
@@ -684,274 +872,323 @@ void StatusClient::DoDebug(const PStringArray & Args)
 					result += "[" + secs[i] + "]\r\n";
 				WriteString(result);
 			}
-		} else if ((Args[1] *= "set") && (Args.GetSize()>=5)) {
-			Toolkit::Instance()->SetConfig(1, Args[2], Args[3], Args[4]);
-			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
-		} else if (Args[1] *= "remove") {
-			if (Args.GetSize()>=4) {
-				Toolkit::Instance()->SetConfig(2, Args[2], Args[3]);
-				WriteString("Remove " + Args[3] + " in section " + Args[2] + "\r\n");
-			} else if (Args.GetSize()>=3) {
-				Toolkit::Instance()->SetConfig(3, Args[2]);
-				WriteString("Remove section " + Args[2] + "\r\n");
+		} else if ((args[1] *= "set") && (args.GetSize()>=5)) {
+			Toolkit::Instance()->SetConfig(1, args[2], args[3], args[4]);
+			WriteString(GkConfig()->GetString(args[2],args[3],"") + "\r\n");
+		} else if (args[1] *= "remove") {
+			if (args.GetSize()>=4) {
+				Toolkit::Instance()->SetConfig(2, args[2], args[3]);
+				WriteString("Remove " + args[3] + " in section " + args[2] + "\r\n");
+			} else if (args.GetSize()>=3) {
+				Toolkit::Instance()->SetConfig(3, args[2]);
+				WriteString("Remove section " + args[2] + "\r\n");
 			}
-		} else if ((Args[1] *= "printrm")) {
-			SoftPBX::PrintRemoved(this, (Args.GetSize() >= 3));
+		} else if ((args[1] *= "printrm")) {
+			SoftPBX::PrintRemoved(this, (args.GetSize() >= 3));
 		} else {
 			WriteString("Unknown debug command!\r\n");
 		}
 	}
 }
 
-bool StatusClient::CheckRule(const PString & rule)
+bool StatusClient::CheckAuthRule(
+	/// authentication rule to be used
+	const PString& rule
+	)
 {
-	PIPSocket::Address PeerAddress;
-	GetPeerAddress(PeerAddress);
-	const PString peer = PeerAddress.AsString();
+	PIPSocket::Address peerAddress;
+	GetPeerAddress(peerAddress);
+	const PString peer = peerAddress.AsString();
 
-	PTRACE(5, "Auth client rule=" << rule);
 	bool result = false;
 	if (rule *= "forbid") { // "*=": case insensitive
 		result =  false;
 	} else if (rule *= "allow") {
 		result =  true;
 	} else if (rule *= "explicit") {
-		PString val = GkConfig()->GetString(authsec, peer, "");
+		const PString val = GkConfig()->GetString(authsec, peer, "");
 		if (val.IsEmpty()) { // use "default" entry
-			PTRACE(5,"Auth client rule=explicit, ip-param not found, using default");
-			result = Toolkit::AsBool(GkConfig()->GetString(authsec, "default", "FALSE"));
+			result = Toolkit::AsBool(GkConfig()->GetString(authsec, "default", "0"));
+			PTRACE(5, "STATUS\tClient IP " << peer << " not found for explicit rule, using default ("
+				<< result << ')'
+				);
 		} else 
 			result = Toolkit::AsBool(val);
 	} else if (rule *= "regex") {
-		PString val = GkConfig()->GetString(authsec, peer, "");
+		const PString val = GkConfig()->GetString(authsec, peer, "");
 		if (val.IsEmpty()) {
-			PTRACE(5,"Auth client rule=regex, ip-param not found, using regex");
 			result = Toolkit::MatchRegex(peer, GkConfig()->GetString(authsec, "regex", ""));
+			PTRACE(5, "STATUS\tClient IP " << peer << " not found for regex rule, using default ("
+				<< GkConfig()->GetString(authsec, "regex", "") << ')'
+				);
 		} else
 			result = Toolkit::AsBool(val);
 	} else if (rule *= "password") {
 		result = AuthenticateUser();
 	} else {
-		PTRACE(1, "Warning: Invalid [GkStatus::Auth].rule");
+		PTRACE(1, "STATUS\tERROR: Unrecognized [GkStatus::Auth] rule (" << rule << ')');
 	}
+	
+	PTRACE(4, "STATUS\tAuthentication rule '" << rule 
+		<< (result?"' accepted":"' rejected") << " the client " << Name() 
+		);
 	return result;
 }
 
 bool StatusClient::AuthenticateUser()
 {
-	PTime now;
-	int Delay = GkConfig()->GetInteger(authsec, "DelayReject", 0);
-	int LoginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120) * 1000;
+	const time_t now = time(NULL);
+	const int delay = GkConfig()->GetInteger(authsec, "DelayReject", 0);
+	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
 
 	for (int retries = 0; retries < 3; ++retries) {
-		PString UserName, Password;
+		PString login, password;
 		WriteString("\r\n" + Toolkit::GKName() + " login: ");
-		if (!ReadCommand(UserName, true, LoginTimeout))
+		if (!ReadCommand(login, true, loginTimeout * 1000))
 			break;
-		UserName = UserName.Trim();
+		login = login.Trim();
 
 		SendWill(PTelnetSocket::EchoOption);
 		WriteString("Password: ");
-		if (!ReadCommand(Password, false, LoginTimeout))
+		if (!ReadCommand(password, false, loginTimeout * 1000))
 			break;
-		Password = Password.Trim();
+		password = password.Trim();
 		WriteString("\r\n", 1);
 
 		SendWont(PTelnetSocket::EchoOption);
-		if (!Password && Password == GetPassword(UserName)) {
-			m_user = UserName;
-			PTRACE(1, "Status\tAuth: user " << UserName << " logged in");
+		
+		const PString storedPassword = GetPassword(login);
+		if (storedPassword.IsEmpty())
+			PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
+		else if (!password && password == storedPassword) {
+			m_user = login;
 			return true;
-		}
-		PProcess::Sleep(Delay * 1000);
+		} else
+			PTRACE(5, "STATUS\tPassword mismatch for user " << login);
+			
+		PProcess::Sleep(delay * 1000);
 
-		if ((PTime() - now) > LoginTimeout)
+		if ((time(NULL) - now) > loginTimeout)
 			break;
 	}
 	return false;
 }
 
-PString StatusClient::GetPassword(const PString & UserName) const
+PString StatusClient::GetPassword(
+	/// login the password is to be retrieved for
+	const PString& login
+	) const
 {
-	int filled = GkConfig()->GetInteger(authsec, "KeyFilled", 0);
-	return Toolkit::CypherDecode(UserName, GkConfig()->GetString(authsec, UserName, ""), filled);
+	return Toolkit::CypherDecode(login, 
+		GkConfig()->GetString(authsec, login, ""), 
+		GkConfig()->GetInteger(authsec, "KeyFilled", 0)
+		);
 }
 
-void StatusClient::ExecCommand(PString cmd)
+void StatusClient::ExecCommand(
+	/// the command to be executed
+	PString cmd
+	)
 {
-	PStringArray Args;
-	switch (m_gkStatus->ParseCommand(cmd, Args))
+	PTRACE(5, "STATUS\tGot command " << cmd << " from client " << Name());
+	
+	PStringArray args;
+	switch (m_gkStatus->ParseCommand(cmd, args))
 	{
-		case GkStatus::e_DisconnectIp:
-			// disconnect call on this IP number
-			if (Args.GetSize() == 2)
-				SoftPBX::DisconnectIp(Args[1]);
+	case GkStatus::e_DisconnectIp:
+		// disconnect call on this IP number
+		if (args.GetSize() == 2)
+			SoftPBX::DisconnectIp(args[1]);
+		else
+			WriteString("Syntax Error: DisconnectIp IP_ADDRESS\r\n");
+		break;
+	case GkStatus::e_DisconnectAlias:
+		// disconnect call on this alias
+		if (args.GetSize() == 2)
+			SoftPBX::DisconnectAlias(args[1]);
+		else
+			WriteString("Syntax Error: DisconnectAlias ALIAS\r\n");
+		break;
+	case GkStatus::e_DisconnectCall:
+		// disconnect call with this call number
+		if (args.GetSize() >= 2)
+			for (PINDEX p=1; p < args.GetSize(); ++p)
+				SoftPBX::DisconnectCall(args[p].AsInteger());
+		else
+			WriteString("Syntax Error: DisconnectCall CALL_NUMBER [CALL_NUMBER...]\r\n");
+		break;
+	case GkStatus::e_DisconnectEndpoint:
+		// disconnect call on this alias
+		if (args.GetSize() == 2)
+			SoftPBX::DisconnectEndpoint(args[1]);
+		else
+			WriteString("Syntax Error: DisconnectEndpoint ENDPOINT_IDENTIFIER\r\n");
+		break;
+	case GkStatus::e_DisconnectSession:
+		// disconnect a user from status port
+		if (args.GetSize() == 2)
+			if (m_gkStatus->DisconnectSession(args[1].AsInteger(), this))
+				WriteString("Session " + args[1] + " disconnected\r\n");
 			else
-				WriteString("Syntax Error: DisconnectIp <ip address>\r\n");
+				WriteString("Session " + args[1] + " not found\r\n");
+		else
+			WriteString("Syntax Error: DisconnectSession SESSION_ID\r\n");
+		break;
+	case GkStatus::e_ClearCalls:
+		SoftPBX::DisconnectAll();
+		break;
+	case GkStatus::e_PrintAllRegistrations:
+		// print list of all registered endpoints
+		SoftPBX::PrintAllRegistrations(this);
+		break;
+	case GkStatus::e_PrintAllRegistrationsVerbose:
+		// print list of all registered endpoints verbose
+		SoftPBX::PrintAllRegistrations(this, TRUE);
+		break;
+	case GkStatus::e_PrintAllCached:
+		// print list of all cached outer-zone endpoints
+		SoftPBX::PrintAllCached(this, (args.GetSize() > 1));
+		break;
+	case GkStatus::e_PrintCurrentCalls:
+		// print list of currently ongoing calls
+		SoftPBX::PrintCurrentCalls(this);
+		break;
+	case GkStatus::e_PrintCurrentCallsVerbose:
+		// print list of currently ongoing calls
+		SoftPBX::PrintCurrentCalls(this, TRUE);
+		break;
+	case GkStatus::e_Statistics:
+		SoftPBX::PrintStatistics(this, TRUE);
+		break;
+	case GkStatus::e_Find:
+		if (args.GetSize() == 2)
+			SoftPBX::PrintEndpoint(args[1], this, FALSE);
+		else
+			WriteString("Syntax Error: Find ALIAS\r\n");
+		break;
+	case GkStatus::e_FindVerbose:
+		if (args.GetSize() == 2)
+			SoftPBX::PrintEndpoint(args[1], this, TRUE);
+		else
+			WriteString("Syntax Error: FindVerbose ALIAS\r\n");
+		break;
+	case GkStatus::e_Yell:
+		m_gkStatus->SignalStatus(PString("  "+ WhoAmI() + ": " + cmd + "\r\n"));
+		break;
+	case GkStatus::e_Who:
+		m_gkStatus->ShowUsers(this);
+		WriteString(";\r\n");
+		break;
+	case GkStatus::e_GK:
+		WriteString(RasServer::Instance()->GetParent() + "\r\n;\r\n");
+		break;
+	case GkStatus::e_Help:
+		m_gkStatus->PrintHelp(this);
+		break;
+	case GkStatus::e_Debug:
+		DoDebug(args);
+		break;
+	case GkStatus::e_Version:
+		WriteString(PrintGkVersion());
+		break;
+	case GkStatus::e_Exit:
+		Close();
+		break;
+	case GkStatus::e_UnregisterAllEndpoints:
+		SoftPBX::UnregisterAllEndpoints();
+		WriteString("Done\n;\n");
+		break;
+	case GkStatus::e_UnregisterAlias:
+		// unregister this alias
+		if (args.GetSize() == 2)
+			SoftPBX::UnregisterAlias(args[1]);
+		else
+			WriteString("Syntax Error: UnregisterAlias ALIAS\r\n");
+		break;
+	case GkStatus::e_UnregisterIp:
+		// unregister this IP
+		if (args.GetSize() == 2)
+			SoftPBX::UnregisterIp(args[1]);
+		else
+			WriteString("Syntax Error: UnregisterIp IP_ADDRESS\r\n");
 			break;
-		case GkStatus::e_DisconnectAlias:
-			// disconnect call on this alias
-			if (Args.GetSize() == 2)
-				SoftPBX::DisconnectAlias(Args[1]);
-			else
-				WriteString("Syntax Error: DisconnectAlias <h.323 alias>\r\n");
+	case GkStatus::e_TransferCall:
+		if (args.GetSize() == 3)
+			SoftPBX::TransferCall(args[1], args[2]);
+		else
+			WriteString("Syntax Error: TransferCall SOURCE DESTINATION\r\n");
+		break;
+	case GkStatus::e_MakeCall:
+		if (args.GetSize() == 3)
+			SoftPBX::MakeCall(args[1], args[2]);
+		else
+			WriteString("Syntax Error: MakeCall SOURCE DESTINATION\r\n");
+		break;
+	case GkStatus::e_Reload:
+		ReloadHandler();
+		PTRACE(1, "STATUS\tConfig reloaded.");
+		m_gkStatus->SignalStatus("Config reloaded.\r\n");
+		break;
+	case GkStatus::e_Shutdown:
+		if (!Toolkit::AsBool(GkConfig()->GetString(authsec, "Shutdown", "1"))) {
+			WriteString("Shutdown not allowed!\r\n");
 			break;
-		case GkStatus::e_DisconnectCall:
-			// disconnect call with this call number
-			if (Args.GetSize() >= 2)
-				for (PINDEX p=1; p < Args.GetSize(); ++p)
-					SoftPBX::DisconnectCall(Args[p].AsInteger());
-			else
-				WriteString("Syntax Error: DisconnectCall <call number> ...\r\n");
-			break;
-		case GkStatus::e_DisconnectEndpoint:
-			// disconnect call on this alias
-			if (Args.GetSize() == 2)
-				SoftPBX::DisconnectEndpoint(Args[1]);
-			else
-				WriteString("Syntax Error: DisconnectEndpoint ID\r\n");
-			break;
-		case GkStatus::e_DisconnectSession:
-			// disconnect a user from status port
-			if (Args.GetSize() == 2)
-				if (m_gkStatus->DisconnectSession(Args[1].AsInteger(), this))
-					WriteString("Session " + Args[1] + " disconnected\r\n");
-				else
-					WriteString("Session " + Args[1] + " not found\r\n");
-			else
-				WriteString("Syntax Error: DisconnectSession SessionID\r\n");
-			break;
-		case GkStatus::e_ClearCalls:
-			SoftPBX::DisconnectAll();
-			break;
-		case GkStatus::e_PrintAllRegistrations:
-			// print list of all registered endpoints
-			SoftPBX::PrintAllRegistrations(this);
-			break;
-		case GkStatus::e_PrintAllRegistrationsVerbose:
-			// print list of all registered endpoints verbose
-			SoftPBX::PrintAllRegistrations(this, TRUE);
-			break;
-		case GkStatus::e_PrintAllCached:
-			// print list of all cached outer-zone endpoints
-			SoftPBX::PrintAllCached(this, (Args.GetSize() > 1));
-			break;
-		case GkStatus::e_PrintCurrentCalls:
-			// print list of currently ongoing calls
-			SoftPBX::PrintCurrentCalls(this);
-			break;
-		case GkStatus::e_PrintCurrentCallsVerbose:
-			// print list of currently ongoing calls
-			SoftPBX::PrintCurrentCalls(this, TRUE);
-			break;
-		case GkStatus::e_Statistics:
-			SoftPBX::PrintStatistics(this, TRUE);
-			break;
-		case GkStatus::e_Find:
-			if (Args.GetSize() == 2)
-				SoftPBX::PrintEndpoint(Args[1], this, FALSE);
-			else
-				WriteString("Syntax Error: Find alias\r\n");
-			break;
-		case GkStatus::e_FindVerbose:
-			if (Args.GetSize() == 2)
-				SoftPBX::PrintEndpoint(Args[1], this, TRUE);
-			else
-				WriteString("Syntax Error: FindVerbose alias\r\n");
-			break;
-		case GkStatus::e_Yell:
-			m_gkStatus->SignalStatus(PString("  "+ WhoAmI() + ": " + cmd + "\r\n"));
-			break;
-		case GkStatus::e_Who:
-			m_gkStatus->ShowUsers(this);
-			WriteString(";\r\n");
-			break;
-		case GkStatus::e_GK:
-			WriteString(RasServer::Instance()->GetParent() + "\r\n;\r\n");
-			break;
-		case GkStatus::e_Help:
-			m_gkStatus->PrintHelp(this);
-			break;
-		case GkStatus::e_Debug:
-			DoDebug(Args);
-			break;
-		case GkStatus::e_Version:
-			WriteString(PrintGkVersion());
-			break;
-		case GkStatus::e_Exit:
-			Close();
-			break;
-		case GkStatus::e_UnregisterAllEndpoints:
-			SoftPBX::UnregisterAllEndpoints();
-			WriteString("Done\n;\n");
-			break;
-		case GkStatus::e_UnregisterAlias:
-			// unregister this alias
-			if (Args.GetSize() == 2)
-				SoftPBX::UnregisterAlias(Args[1]);
-			else
-				WriteString("Syntax Error: UnregisterAlias Alias\r\n");
-			break;
-		case GkStatus::e_UnregisterIp:
-			// unregister this IP
-			if (Args.GetSize() == 2)
-				SoftPBX::UnregisterIp(Args[1]);
-			else
-				WriteString("Syntax Error: UnregisterIp <ip addr>\r\n");
-			break;
-		case GkStatus::e_TransferCall:
-			if (Args.GetSize() == 3)
-				SoftPBX::TransferCall(Args[1], Args[2]);
-			else
-				WriteString("Syntax Error: TransferCall Source Destination\r\n");
-			break;
-		case GkStatus::e_MakeCall:
-			if (Args.GetSize() == 3)
-				SoftPBX::MakeCall(Args[1], Args[2]);
-			else
-				WriteString("Syntax Error: MakeCall Source Destination\r\n");
-			break;
-		case GkStatus::e_Reload:
-			ReloadHandler();
-			PTRACE(3, "GK\tConfig reloaded.");
-			m_gkStatus->SignalStatus("Config reloaded.\r\n");
-			break;
-		case GkStatus::e_Shutdown:
-			if (!Toolkit::AsBool(GkConfig()->GetString(authsec, "Shutdown", "1"))) {
-				WriteString("Not allowed!\r\n");
-				break;
+		}
+		SoftPBX::PrintStatistics(this, true);
+		RasServer::Instance()->Stop();
+		break;
+	case GkStatus::e_RouteToAlias:
+		if (args.GetSize() == 4) {
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3].AsUnsigned());
+		} else
+			WriteString("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV\r\n");
+		break;
+	case GkStatus::e_RouteReject:
+		if (args.GetSize() == 3) {
+			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned());
+		} else
+			WriteString("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV\r\n");
+		break;
+	case GkStatus::e_Trace:
+		if (args.GetSize() == 2) {
+			if (args[1] *= "min")
+				m_traceLevel = MIN_STATUS_TRACE_LEVEL;
+			else if (args[1] *= "max")
+				m_traceLevel = MAX_STATUS_TRACE_LEVEL;
+			else {
+				unsigned level = args[1].AsUnsigned();
+				if (level >= MIN_STATUS_TRACE_LEVEL 
+					&& level <= MAX_STATUS_TRACE_LEVEL)
+					m_traceLevel = level;
+				else 
+					WriteString("Syntax Error: trace 0|1|2|\"min\"|\"max\"\r\n");
 			}
-			SoftPBX::PrintStatistics(this, true);
-			RasServer::Instance()->Stop();
-			break;
-		case GkStatus::e_RouteToAlias:
-			if (Args.GetSize() == 4) {
-				RasServer::Instance()->GetVirtualQueue()->RouteToAlias(Args[1], Args[2], Args[3].AsUnsigned());
-			} else
-				WriteString("Syntax Error: RouteToAlias <target agent> <calling endpoint ID> <callRef>\r\n");
-			break;
-		case GkStatus::e_RouteReject:
-			if (Args.GetSize() == 3) {
-				RasServer::Instance()->GetVirtualQueue()->RouteReject(Args[1], Args[2].AsUnsigned());
-			} else
-				WriteString("Syntax Error: RouteReject <calling endpoint ID> <callRef>\r\n");
-			break;
-		default:
-			// commmand not recognized
-			WriteString("Error: Unknown Command " + cmd + "\r\n");
-			PTRACE(3, "Status\tUnknown Command " << cmd);
-			break;
+		} else
+			WriteString("Syntax Error: trace 0|1|2|\"min\"|\"max\"\r\n");
+		break;
+	default:
+		// commmand not recognized
+		WriteString("Error: Unknown command " + cmd + "\r\n");
+		PTRACE(5, "STATUS\tUnknown command '" << cmd << "' from client " << Name());
+		break;
 	}
 	PWaitAndSignal lock(m_cmutex);
-	--m_executedCmd;
+	--m_numExecutingCommands;
 }
 
 
 // class StatusListener
-StatusListener::StatusListener(const Address & addr, WORD pt)
+StatusListener::StatusListener(
+	const Address& addr, 
+	WORD port
+	)
 {
-	unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
-	Listen(addr, queueSize, pt);
+	const unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
+	if (!Listen(addr, queueSize, port))
+		PTRACE(1, "STATUS\tCould not open listening socket at " << addr << ':' << port
+			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
+			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			);
 	SetName(AsString(addr, GetPort()));
 }
 

@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (GkStatus.cxx) some cleanup, better tracing, new trace command introduced
+  to support multiple output levels in the future
 - added missing addpasswd Visual Studio project files (dsp and dsw)
 - (configure.in) added check for MSG_NOSIGNAL flag support with send/recv calls
 - (configure.in) better pwlib/openh323 detection patches from Klaus Kaempf
