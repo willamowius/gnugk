@@ -47,7 +47,7 @@ BEGIN
 	END IF;
 	
 	-- remove RADIUS escapes
-	username := radius_xlat(trim($1));
+	username := radius_xlat($1);
 
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN
@@ -120,7 +120,7 @@ BEGIN
 	END IF;
 	
 	-- remove RADIUS escapes
-	username := radius_xlat(trim($1));
+	username := radius_xlat($1);
 
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN
@@ -227,7 +227,7 @@ BEGIN
 	END IF;
 	
 	-- remove RADIUS escapes
-	username := radius_xlat(trim($1));
+	username := radius_xlat($1);
 	calling_station_id := radius_xlat(trim($4));
 	called_station_id := radius_xlat(trim($5));
 	
@@ -323,7 +323,7 @@ BEGIN
 	END IF;
 	
 	-- remove RADIUS escapes
-	username := radius_xlat(trim($1));
+	username := radius_xlat($1);
 	calling_station_id := radius_xlat(trim($4));
 	called_station_id := radius_xlat(trim($5));
 	

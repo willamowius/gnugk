@@ -1,3 +1,6 @@
+29 Oct 2004 -- zvision
+  * don't trim usernames during checks to avoid problems with the billing
+
 25 Oct 2004 -- zvision
   * tariff matching extended to support more precise group tariff matching,
     ability to specify per group special destinations
