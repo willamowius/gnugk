@@ -97,16 +97,18 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 	ClearTable();
 	if (!AsBool(config->GetString(ProxySection, "Enable", "0"))) {
 		PTRACE(2, "GK\tH.323 Proxy disabled");
-		return;
-	}
-
-	PStringArray networks(config->GetString(ProxySection, "InternalNetwork", "").Tokenise(" ,;\t", FALSE));
-	if ((size = networks.GetSize()) == 0) {
-		PTRACE(2, "GK\tNo internal network? Proxy disabled");
+		size = -1;
 		return;
 	}
 
 	PTRACE(2, "GK\tH.323 Proxy enabled");
+
+	PStringArray networks(config->GetString(ProxySection, "InternalNetwork", "").Tokenise(" ,;\t", FALSE));
+	if ((size = networks.GetSize()) == 0) {
+		// no internal networks specified, always use proxy
+		return;
+	}
+
 	network = new Address[size * 2];
 	netmask = network + size;
 	for (int i = 0; i < size; ++i) {
@@ -133,7 +135,7 @@ void Toolkit::ProxyCriterion::ClearTable()
 
 bool Toolkit::ProxyCriterion::Required(Address ip1, Address ip2) const
 {
-	return (size > 0) && (IsInternal(ip1) != IsInternal(ip2));
+	return (size >= 0) ? ((size == 0) || (IsInternal(ip1) != IsInternal(ip2))) : false;
 }
 
 bool Toolkit::ProxyCriterion::IsInternal(Address ip) const

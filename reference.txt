@@ -445,7 +445,7 @@ in the internal network and one external.
     The netmask can be expressed in decimal dot notation or
     CIDR notation (prefix length), as shown in the example.
 
-    You can specify InternalNetwork to 0.0.0.0/0 to use proxy always.
+    If you don't specify it, the proxy function will always be used.
 
   Example:
     InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24

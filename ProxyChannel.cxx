@@ -675,12 +675,9 @@ void UDPProxySocket::SetDestination(H245_UnicastAddress_iPAddress & addr)
 	Address peerAddr = PIPSocket::Address(addr.m_network[0], addr.m_network[1], addr.m_network[2], addr.m_network[3]);
 	WORD peerPort = addr.m_tsapIdentifier;
 	SetSendAddress(peerAddr, peerPort);
+	SetName(peerAddr, peerPort);
 
-//	Address localAddr;
-//	WORD localPort;
-//	GetLocalAddress(localAddr, localPort);
 	SetH245UnicastAddress(addr, localAddr, localPort);
-	SetName(localAddr, localPort);
 	PTRACE(5, "UDP\tListen to " << name << ", Destination: " << peerAddr << ':' << peerPort);
 	SetConnected(true);
 }
@@ -692,12 +689,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		return NoData;
 	}
 
-#ifdef PTRACING
-	Address peerAddr;
-	WORD peerPort;
-	GetLastReceiveAddress(peerAddr, peerPort);
-	PTRACE(6, "UDP\tReading from " << peerAddr << ':' << peerPort);
-#endif
+	//GetLastReceiveAddress(peerAddr, peerPort);
+	PTRACE(6, "UDP\tReading from " << Name());
 
 	buflen = GetLastReadCount();
 	return Forwarding;
@@ -778,18 +771,18 @@ RTPLogicalChannel::~RTPLogicalChannel()
 bool RTPLogicalChannel::SetDestination(H245_H2250LogicalChannelAckParameters & h225Params)
 {
 	bool hasMediaControlChannel = false, hasMediaChannel = false;
-	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel)) {
-		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
-		if (addr) {
-			rtcp->SetDestination(*addr);
-			hasMediaControlChannel = true;
-		}
-	}
 	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
 		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params.m_mediaChannel);
 		if (addr) {
 			rtp->SetDestination(*addr);
 			hasMediaChannel = true;
+		}
+	}
+	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel)) {
+		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
+		if (addr) {
+			rtcp->SetDestination(*addr);
+			hasMediaControlChannel = true;
 		}
 	}
 	return (hasMediaControlChannel && hasMediaChannel);
