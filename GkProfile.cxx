@@ -229,7 +229,7 @@ void
 CallProfile::SetH323ID(const PString &h323id)
 {
 	PWaitAndSignal lock(m_lock);
-	m_h323id = *(dynamic_cast<PString *> (h323id.Clone()));;
+	m_h323id = h323id;
 }
 
 void
@@ -264,14 +264,14 @@ void
 CallProfile::SetSubscriberNumber(PString &SN)
 {
 	PWaitAndSignal lock(m_lock);
-	m_subscriberNumber = *(dynamic_cast<PString *> (SN.Clone()));
+	m_subscriberNumber = SN;
 }
 
 void
 CallProfile::SetClir(PString &clir)
 {
 	PWaitAndSignal lock(m_lock);
-	m_clir = *(dynamic_cast<PString *> (clir.Clone()));;
+	m_clir = clir;
 }
 
 void
