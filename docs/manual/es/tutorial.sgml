@@ -1,0 +1,236 @@
+<sect>Getting Started (Tutorial)
+<p>
+<sect1>A first simple experiment
+<p>
+To see that all components are up and running, get
+2 Linux workstations, both connected to the LAN.
+Make sure you have at least version 1.1 of OpenH323 and OhPhone installed.
+On the first machine run the gatekeeper and ohphone (on
+different consoles):
+
+<tscreen><verb>
+jan@machine1 > gnugk -ttt
+</verb></tscreen>
+
+Now the gatekeeper is running in direct mode.
+The "<tt/-ttt/" option tells the gatekeeper to do a lot of debug output
+on the console (you can direct that output to a file with "<tt/-o logfile/").
+
+<tscreen><verb>
+jan@machine1 > ohphone -l -a -u jan
+</verb></tscreen>
+
+Now this OhPhone is listening (<tt/-l/) for calls and will automatically
+accept them (<tt/-a/). It has registered as user jan with the gatekeeper
+that it will automatically detect. (If the auto detect fails for some
+reason use "<tt/-g 1.2.3.4/" to specify the IP number the gatekeeper
+is running on.)
+
+On the second machine run ohphone only:
+
+<tscreen><verb>
+peter@machine2 > ohphone -u peter jan
+</verb></tscreen>
+
+The second instance of OhPhone registers with the auto detected
+gatekeeper as user peter and tries to call user jan.
+The gatekeeper will resolve the username to the IP number from
+where user jan has registered (machine1 in this case) and OhPhone
+will call the other instance of OhPhone on machine one.
+
+The first instance of OhPhone will accept that call and Peter and Jan can chat.
+
+<sect1>Using the Status interface to monitor the gatekeeper
+<p>
+Now we try to see which messages are handled by the gatekeeper.
+On a new console on machine1 we use telnet to connect to the gatekeeper:
+
+<tscreen><verb>
+jan@machine1 > telnet machine1 7000
+</verb></tscreen>
+
+Most probably we'll get an "Access forbidden!" message, because
+not everybody is allowed to spy.
+
+Now we create a file called <tt/gatekeeper.ini/ and put it in the
+directory where we start the gatekeeper.
+<tt/gatekeeper.ini/ only contains 4 lines:
+
+<tscreen><verb>
+[Gatekeeper::Main]
+Fourtytwo=42
+[GkStatus::Auth]
+rule=allow
+</verb></tscreen>
+
+Stop the gatekeeper with Ctrl-C and restart it.
+When we do the telnet again, we stay connected with the gatekeeper.
+Now repeat the first experiment where Peter calls Jan and see which
+messages are handled by the gatekeeper in non-routed mode.
+There is a number of commands that can be issued in this telnet session:
+Type "help" to see them.
+To end the telnet session with the gatekeeper type "quit" and hit Enter.
+
+<sect1>Starting the gatekeeper in routed mode
+<p>
+Starting the gatekeeper in routed mode means that the gatekeeper
+uses "gatekeeper routed signalling" for all calls. In this
+mode the gatekeeper all signalling messages go through the gatekeeper
+and it has much greater control over the calls.
+
+<tscreen><verb>
+jan@machine1 > gnugk -r
+</verb></tscreen>
+
+Now the gatekeeper is running in routed mode. Telnet to the status port
+and make a call to see what messages are now handled by the gatekeeper.
+
+Note that all media packets (audio and video) are still sent
+directly between the endpoints (the 2 instances of ohphone).
+
+Since gatekeeper routed signalling is much more complicated you are
+much more likely to hit a bug n the gatekeeper in this mode.
+But if it breaks, you get to keep the pieces. ;-)
+
+<p>
+<sect1>A virtual PBX: Disconnecting calls
+<p>
+Until now the gatekeeper has only acted as a mechanism
+to resolve symbolic names to IP addresses. Thats an important
+function but hardly exciting.
+
+Since the gatekeeper has a lot of control over the calls,
+it can terminate them for example. When we are
+connected to the status port, we can list all active calls
+with "<tt/PrintCurrentCalls/". To terminate a call, we can
+say "<tt/Disconnectip 1.2.3.4/" for one of its endpoints.
+
+One could for example write a simple script that connects to
+the status port and listens for all ongoing calls and terminates
+them after 5 minutes, so no user can over use system resources.
+
+Take a look at the other telephony functions like TransferCall to see what else is available.
+
+<sect1>Routing calls over a gateway to reach external users
+<p>
+Without using a gateway you can only call other people with an
+IP phone over the Internet. To reach people with ordinary telephones
+you must use a gateway.
+
+<tscreen><verb>
+_________________          ______________
+| endpoint "jan"|          |            |
+| 192.168.88.35 |--------->| Gatekeeper |
+|_______________|          |            |
+_________________          |            |
+| gateway "gw1" | outgoing |            |
+| 192.168.88.37 |<---------|____________|
+|_______________|
+</verb></tscreen>
+
+The gatekeeper has to know which calls are supposed to be routed
+over the gateway and what numbers shall be called directly.
+Use the [RasSrv::GWPrefixes] section of the config file to tell
+the gatekeeper the prefix of numbers that shall be routed over the
+gateway.
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+gw1=0
+</verb></tscreen>
+
+This entry tells the gatekeeper to route all calls to E.164 numbers
+starting with 0 to the gateway that has registered with the H.323
+alias "gw1". If there is no registered gateway with that alias the
+call will fail. (Note that you must use the gateway alias - you
+can't just tell the gatekeeper the IP number of the gateway.)
+
+<p>
+A prefix can contain digits <tt/0-9/, <tt/#/ and <tt/*/. It can also
+contain a special character <tt/./ (a dot) that matches any digit
+and can be prefixed with <tt/!/ (an exclamation mark) to disable the prefix.
+Prefix matching is done accordingly to the longest matching prefix rule,
+with ! rules having higher priority if lengths are equal. Some examples:
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+; This entry will route numbers starting with 0048 (but not with 004850 and 004860)
+; to the gw1
+gw1=0048,!004850,!004860
+; This entry will match only 001 with 10 digits following
+gw2=001..........
+</verb></tscreen>
+
+<sect1>Rewriting E.164 numbers
+<p>
+When using a gateway you often have to use different numbers internally
+and rewrite them before sending them over a gateway into the telephone
+network. You can use the <ref id="rewrite" name="RasSrv::RewriteE164">
+section to configure that.
+
+Example:
+You want to call number 12345 with you IP Phone and would like to
+reach number 08765 behind a gateway called "gw1".
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+gw1=0
+
+[RasSrv::RewriteE164]
+12345=08765
+</verb></tscreen>
+
+You can also configure rewriting of E.164 numbers based on which gateway
+you are receiving a call from or sending a call to using the
+<ref id="gwrewrite" name="RasSrv::GWRewriteE164"> section.
+
+Example:
+You have two different gateways ("gw1" and "gw2") which you are sending
+calls with prefix 0044 to, but which require a different prefix to be
+added to the number after the routing has selected the gateway. This
+might be for identification purposes for example.
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+gw1=0044
+gw2=0044
+
+[RasSrv::GWRewriteE164]
+gw1=out=0044=77770044
+gw2=out=0044=88880044
+</verb></tscreen>
+
+Example:
+You want to identify calls from a particular gateway "gw1" with a specific
+prefix before passing these calls to another gateway "gw2".
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+gw2=1
+
+[RasSrv::GWRewriteE164]
+gw1=in=00=123400
+</verb></tscreen>
+
+Rewrite expressions accept dot <tt/'.'/ and percent sign <tt/'%'/ wildcard
+characters to allow building more general rules. The dot character can occur
+at both left and right hand sides of expressions, the percent sign can occur
+only at the left side only. Use <tt/'.'/ to match any character and copy it
+to the rewritten string and <tt/'%'/ to match any character and skip it.
+A few simple examples:
+
+<tscreen><verb>
+[RasSrv::RewriteE164]
+; Rewrite 0044 + min. 7 digits to 44 + min. 7 digits
+0044.......=44.......
+; Rewrite numbers starting with 11 + 4 digits + 11  to 22 + 4 digits + 22 (like 11333311 => 22333322, 110000112345 => 220000222345)
+11....11=22....22
+; strip the first four digits from all numbers (11114858345 => 4858345)
+; this is equivalent of 10 rules %%%%1=1, %%%%2=2, ... 
+%%%%.=.
+; insert two zeros in the middle of the number (111148581234 => 11110048581234)
+....48=....0048
+; even this is possible (415161 => 041051061)
+4.5.6=04.05.06
+</verb></tscreen>
+

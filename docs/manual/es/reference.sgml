@@ -1,0 +1,65 @@
+<sect>Basic Gatekeeper Configuration
+<p>
+The behavior of the gatekeeper is completely determined by the command line
+options and configuration file. Some command line options may override
+the setting of the configuration file.
+For example, the option <tt/-l/ overrides the setting <tt/TimeToLive/
+in the configuration file.
+
+<sect1>Command Line Options
+<label id="commandline">
+<p>
+Almost every option has a short and a long format, e.g.,
+<tt/-c/ is the same as <tt/--config/.
+<p>
+<sect2>Basic
+<p>
+<descrip>
+<tag/<tt/-h  --help//
+Show all available options and quit the program.
+<tag/<tt/-c  --config filename//
+Specify the configuration file to use.
+<tag/<tt/-s  --section section//
+Specify which main section to use in the configuration file. The default is [Gatekeeper::Main].
+<tag/<tt/-i  --interface IP//
+Specify the interface (IP number) that the gatekeeper listens to.
+You should leave out this option to let the gatekeeper automatically determine
+the IP it listens to, unless you want the gatekeeper only binds to
+a specified IP.
+<tag/<tt/-l  --timetolive n//
+Specify the time-to-live timer (in seconds) for endpoint registration.
+It overrides the setting <tt/TimeToLive/ in the configuration file.
+See <ref id="ttl" name="there"> for detailed explanations.
+<tag/<tt/-b  --bandwidth n//
+Specify the total bandwidth available for the gatekeeper.
+Without specifying this option, the bandwidth management
+is disable by default.
+<tag/<tt/--pid filename//
+Specify the pid file, only valid for Unix version.
+<tag/<tt/-u  --user name//
+Run the gatekeeper process as this user. Only valid for Unix versions.
+</descrip>
+
+<sect2>Gatekeeper Mode
+<p>
+The options in this subsection override the settings in the
+<ref id="routed" name="[RoutedMode] section"> of the configuration file.
+<descrip>
+<tag/<tt/-d  --direct//
+Use direct endpoint call signalling.
+<tag/<tt/-r  --routed//
+Use gatekeeper routed call signalling.
+<tag/<tt/-rr  --h245routed//
+Use gatekeeper routed call signalling and H.245 control channel.
+</descrip>
+
+<sect2>Debug Information
+<p>
+<descrip>
+<tag/<tt/-o  --output filename//
+Write trace log to the specified file.
+<tag/<tt/-t  --trace//
+Set trace verbosity. The more <tt/-t/ you add, the more verbose to output.
+For example, use <tt/-ttttt/ to set the trace level to 5.
+</descrip>
+

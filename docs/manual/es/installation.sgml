@@ -1,0 +1,101 @@
+<sect>Compiling and Installing
+<p>
+<sect1>Compiling the Gatekeeper
+<p>
+Para crear el gatekeeper necesita al menos PWLib 1.5.0 y OpenH323 1.12.0 o superior.
+To build the gatekeeper you need at least PWLib 1.5.0 and OpenH323 1.12.0 or later.
+La version en desarrollo del gatekeeper normalmente necesita la ultima version disponible de OpenH323.
+The development version of the gatekeeper usually needs the
+most recent OpenH323 version available.
+Esas librerias estan disponibles en 
+These libraries are available at
+<url url="http://www.openh323.org/code.html" name="OpenH323 Download Page">.
+Consulte las instrucciones en
+See the instructions on
+<url url="http://www.openh323.org/build.html" name="how to compile the OpenH323 code">.
+
+Orden de compilacion:
+Order of compiling:
+<enum>
+<item>PWLib (release + debug version)
+<item>OpenH323
+<item>OpenH323 test application (not needed, just to make sure everything works so far)
+<item>The Gatekeeper
+</enum>
+
+On Unix do a <tt/configure/ and <tt/make debug/ or <tt/make opt/
+in the gatekeeper directory to build debug or release version, respectively.
+Use <tt/make both/ to build both versions.
+Note you have to use GCC 3.3.x or later. The older version may not work.
+Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/
+in the gatekeeper directory before starting actual compilation (make debug or
+make opt) - these commands build approtiate dependency lists, so after
+you will update your sources from CVS, all affected files will get recompiled.
+Otherwise you can finish with the Gatekeeper partially compiled with the older
+headers and partially with the updated headers - a very bad thing.
+On Windows just open and compile the provided project (<tt/gk.dsw/) for
+Microsoft Visual C++ 6.0 or 7.0 (Visual C++ 5.0 is too old).<newline>
+
+Type <tt/configure --help/ to see a detailed list of all compile time
+options. You can use them to enable or disable some features of the gatekeeper.
+For example, if you do not need RADIUS just type: <tt/configure --disable-radius/.<newline>
+
+To build the gatekeeper that is statically linked with system and OpenH323 libraries,
+<tt/make optnoshared/ or <tt/make debugnoshared/ has to be used.
+
+In order to use the gatekeeper under heavy load, enabling LARGE_FDSET feature
+is recommended (configure --with-large-fdset=1024). Most systems also need 
+kernel reconfiguration/recompilation in order to allow more than 1024 sockets
+to be allocated for a single process. Note that the PWLib library starting
+from version 1.5.3 supports a similar feature too, so you can choose between
+LARGE_FDSET GnuGk and PWLib implementation. GnuGk native implementation gives
+better performance results. Maximum LARGE_FDSET value should be calculated 
+based upon predicted maximum sockets usage. A rule of thumb may be:
+<tscreen><verb>
+MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
+
+Where:
+10 = 2 sockets for Q.931 + 2 sockets for H.245 + 6 sockets for RTP and other stuff
+</verb></tscreen>
+So for 100 concurrent calls you don't need more than ca. 1024 sockets in the
+LARGE_FDSET.
+
+<sect1>Installing the Gatekeeper
+<p>
+There is no special installation procedure needed.
+Just copy the executable to the directory you like
+and create a config file for it.
+There are several config examples in the <tt>etc/</tt> subdirectory
+of source tree. See section <ref id="config" name="Configuration File">
+for detailed explanations.
+
+For example, in Linux x86 platform, the optimized executable <tt/gnugk/
+is produced in <tt>obj_linux_x86_r/</tt> subdirectory.
+You may copy it to <tt>/usr/sbin/</tt>, create a config in
+<tt>/etc/gnugk.ini</tt> and start it by
+<tscreen><verb>
+$ /usr/sbin/gnugk -c /etc/gnugk.ini -o /var/log/gnugk.log -ttt
+</verb></tscreen>
+See section <ref id="commandline" name="Command Line Options"> for details.
+
+<sect1>Pre-Built Binaries
+<p>
+If you do not wish to compile the gatekeeper from source,
+there are several pre-built `packages' available from
+<url url="http://sourceforge.net/project/showfiles.php?group_id=4797" name="SourceForge">.
+Not all versions will be made available as binaries - check what is avilable.
+
+<bf/Tar packages (.tgz or .tar.gz)/<p>
+Download the tar file and enter the following command as <tt/root/,
+substitute in the name of the file you downloaded.
+<tscreen><verb>
+$ tar xvzf gnugk-x.x.x.tar
+</verb></tscreen>
+
+<bf/Debian packages (.deb)/<p>
+Debian includes the gatekeeper as openh323gk package.
+You can install it by using the following command as <tt/root/:
+<tscreen><verb>
+$ apt-get install openh323gk
+</verb></tscreen>
+

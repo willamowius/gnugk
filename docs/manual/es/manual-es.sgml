@@ -1,0 +1,51 @@
+<!doctype linuxdoc system[
+<!ENTITY introduction SYSTEM "introduction.sgml">
+<!ENTITY installation SYSTEM "installation.sgml">
+<!ENTITY tutorial SYSTEM "tutorial.sgml">
+<!ENTITY reference SYSTEM "reference.sgml">
+<!ENTITY mainconfig SYSTEM "mainconfig.sgml">
+<!ENTITY routedmode SYSTEM "routedmode.sgml">
+<!ENTITY routing SYSTEM "routing.sgml">
+<!ENTITY ras SYSTEM "ras.sgml">
+<!ENTITY misc SYSTEM "misc.sgml">
+<!ENTITY neighbors SYSTEM "neighbors.sgml">
+<!ENTITY auth SYSTEM "auth.sgml">
+<!ENTITY acct SYSTEM "acct.sgml">
+<!ENTITY endpointconfig SYSTEM "endpointconfig.sgml">
+
+<!ENTITY monitoring SYSTEM "monitoring.sgml">
+]>
+<!-- This is the User Manual for OpenH323 Gatekeeper - The GNU Gatekeeper -->
+
+<article>
+<!-- Title information -->
+<title>OpenH323 Gatekeeper - The GNU Gatekeeper
+<author>Maintainer of this manual:
+<htmlurl url="http://www.willamowius.de/" name="Jan Willamowius">
+<tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
+
+<abstract>
+Este es el manual de usuario
+Como compilar, instalar, configurar and monitor
+OpenH323 Gatekeeper - The GNU Gatekeeper.
+</abstract>
+
+<toc>
+
+&introduction;
+&installation;
+&tutorial;
+&reference;
+&mainconfig;
+&routedmode;
+&routing;
+&ras;
+&auth;
+&acct;
+&neighbors;
+&endpointconfig;
+&misc;
+&monitoring;
+
+</article>
+

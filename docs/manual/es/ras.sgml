@@ -1,0 +1,125 @@
+<sect>RAS Configuration
+<p>
+<sect1>Section &lsqb;RasSrv::GWPrefixes&rsqb;
+<p>
+This section lists what E.164 numbers are routed to a specific gateway.
+
+<descrip>
+<tag/Format:/
+<tt>gw-alias=prefix[,prefix,...]</tt>
+<p>
+Note you have to specify the alias of the gateway.
+If a gateway registered with the alias, all numbers beginning with
+the prefixes are routed to this gateway. Special characters <tt/./ and <tt/!/
+can be used here to match any digit and disable the prefix.
+<tag/Example:/
+<tt/test-gw=02,03/
+</descrip>
+
+
+<sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
+<p>
+In this section you can put endpoints that don't have RAS support
+or that you don't want to be expired. The records will always
+keep in registration table of the gatekeeper.
+However, You can still unregister it via status port.
+Special characters <tt/./ and <tt/!/
+can be used with prefixes here to match any digit and disable the prefix.
+
+<descrip>
+<tag/Format:/
+<tt>IP[:port]=alias[,alias,...;prefix,prefix,...]</tt>
+<tag/Example:/
+For gateway,
+<quote/<tt/10.0.1.5=Citron;009,008//
+For terminal,
+<quote/<tt/10.0.1.10:1720=700//
+</descrip>
+
+
+<sect1>Section &lsqb;RasSrv::RRQFeatures&rsqb;
+<p>
+<itemize>
+<item><tt/AcceptEndpointIdentifier=1/<newline>
+Default: <tt/1/
+<p>
+Whether to accept <bf/endpointIdentifier/ specified in a full RRQ.
+
+<item><tt/AcceptGatewayPrefixes=1/<newline>
+Default: <tt/1/
+<p>
+A gateway can register its prefixes with the gatekeeper by containing
+<bf/supportedPrefixes/ in the <bf/terminalType/ field of RRQ.
+This option defines whether to accept the specified prefixes of a gateway.
+
+<item><tt/OverwriteEPOnSameAddress=1/<newline>
+Default: <tt/0/
+<p>
+In some networks an endpoint's IP address may change unexpectedly.  This
+may happen when an endpoint is using a PPP connection (e.g. modem or ADSL).
+This option defines how to handle a registration request (RRQ) from an IP
+address which does not match what we have stored.  The default action is
+to reject the request.  With this option enabled the conflicting request
+will cause an unregister request (URQ) to be sent for the existing IP
+address and the entry to be removed allowing the endpoint to register
+with the new address.
+</itemize>
+
+
+<sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
+<p>
+<itemize>
+<item><tt/ArjReasonRouteCallToSCN=0/<newline>
+Default: <tt/1/
+<p>
+If yes, the gatekeeper rejects a call from a gateway to itself by reason
+<bf/routeCallToSCN/.
+
+<item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
+Default: <tt/1/
+<p>
+If yes, the gatekeeper rejects an answered ARQ without a pre-existing
+CallRec found in the CallTable by reason <bf/routeCallToGatekeeper/
+in routed mode.
+The endpoint shall release the call immediately and re-send call Setup
+to the gatekeeper.
+
+<item><tt/CallUnregisteredEndpoints=0/<newline>
+Default: <tt/1/
+<p>
+With this option set on, the gatekeeper will accept an ARQ from a registered
+endpoint with <bf/destCallSignalAddress/, no matter the address is belongs
+to a registered endpoint or not.
+That means you can explicitly specify the IP of endpoint (registered or not)
+you want to call.
+
+<item><tt/RemoveTrailingChar=#/<newline>
+Default: <tt>N/A</tt>
+<p>
+Specify the trailing character to be removed in <bf/destinationInfo/.
+For example, if your endpoint incorrectly contains the termination character
+like `&num;' in <bf/destinationInfo/, you may remove it by this option.
+
+<item><tt/RoundRobinGateways=0/<newline>
+Default: <tt/1/
+<p>
+Enable/disable round-robin gateway selection, if more than one gateway
+matches a dialed number. If disabled, the first available gateway will be selected.
+Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
+
+</itemize>
+
+
+<sect1>Section &lsqb;NATedEndpoints&rsqb;
+<p>
+The gatekeeper can automatically detect whether an endpoint is behind NAT.
+However, if the detection fails, you can specify it manually in this section.
+
+<descrip>
+<tag/Format:/
+<tt/alias=true,yes,1,.../
+<tag/Example:/
+Specify an endpoint with alias 601 is behind NAT.
+<quote/<tt/601=true//
+</descrip>
+
