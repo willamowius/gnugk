@@ -873,7 +873,8 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 
 				if (!bReject && !CalledEP &&
 				    ( rsn == H225_AdmissionRejectReason::e_securityDenial ||
-					    rsn == H225_AdmissionRejectReason::e_resourceUnavailable)) {
+					    rsn == H225_AdmissionRejectReason::e_resourceUnavailable ||
+					    rsn == H225_AdmissionRejectReason::e_calledPartyNotRegistered)) {
 					if (Toolkit::Instance()->GkClientIsRegistered()) {
 						H225_ArrayOf_AliasAddress dest = arq.m_destinationInfo;
 						H225_AdmissionRequest arq_fake=arq;
@@ -1023,7 +1024,10 @@ H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 
 	PString sourceInfoString((lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) ? AsString(lrq.m_sourceInfo) : PString(" "));
 	if (!bReject) {
+		PTRACE(5, "LRQ from known endpoint");
 		if ((WantedEndPoint = RegistrationTable::Instance()->getMsgDestination(lrq, cgEP, rsn, FALSE))) {
+			PTRACE(5, "GK: Destination found!");
+
 			// Alias found
 			answer_pdu.SetTag(H225_RasMessage::e_locationConfirm);
 			H225_LocationConfirm & lcf = answer_pdu;
