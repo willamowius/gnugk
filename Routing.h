@@ -103,9 +103,50 @@ typedef Request<H225_Facility_UUIE, Q931> FacilityRequest;
 
 class Policy : public SList<Policy> {
 public:
-	template <class R> bool Handle(R & request)
+	Policy() : m_name("Undefined") {}
+	
+	template <class R> bool Handle(Request<R,RasMsg> & request)
 	{
-		return (IsActive() && OnRequest(request)) || (m_next && m_next->Handle(request));
+		if( IsActive() ) {
+#if PTRACING
+			const char* tagname = request.GetWrapper()?request.GetWrapper()->GetTagName():"unknown";
+			const unsigned seqnum = request.GetRequest().m_requestSeqNum.GetValue();
+			PTRACE(5,"ROUTING\tChecking policy "<<m_name
+				<<" for the request "<<tagname<<' '<<seqnum
+				);
+#endif
+			if( OnRequest(request) ) {
+#if PTRACING
+				PTRACE(5,"ROUTING\tPolicy "<<m_name
+					<<" applied to the request "<<tagname<<' '<<seqnum
+					);
+#endif
+				return true;
+			}
+		}
+		return m_next && m_next->Handle(request);
+	}
+	
+	template <class R> bool Handle(Request<R,Q931> & request)
+	{
+		if( IsActive() ) {
+#if PTRACING
+			const char* tagname = request.GetWrapper()?request.GetWrapper()->GetMessageTypeName():"unknown";
+			const unsigned crv = request.GetWrapper()?request.GetWrapper()->GetCallReference():0;
+			PTRACE(5,"ROUTING\tChecking policy "<<m_name
+				<<" for request "<<tagname<<" CRV="<<crv
+				);
+#endif
+			if( OnRequest(request) ) {
+#if PTRACING
+				PTRACE(5,"ROUTING\tPolicy "<<m_name
+					<<" applied to the request "<<tagname<<" CRV="<<crv
+					);
+#endif
+				return true;
+			}
+		}
+		return m_next && m_next->Handle(request);
 	}
 
 protected:
@@ -120,9 +161,17 @@ protected:
 	virtual bool OnRequest(LocationRequest &)  { return false; }
 	virtual bool OnRequest(SetupRequest &)	   { return false; }
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
+	
+protected:
+	/// human readable name for the policy - it should be set inside constructors
+	/// of derived policies, default value is "undefined"
+	const char* m_name;
 };
 
 class AliasesPolicy : public Policy {
+public:
+	AliasesPolicy() { m_name = "Aliases"; }
+	
 protected:
 	// override from class Policy
 	virtual bool OnRequest(AdmissionRequest &);
@@ -162,6 +211,159 @@ inline H225_TransportAddress *Request<R, W>::Process()
 {
 	return Analyzer::Instance()->Parse(*this) ? m_destination : 0;
 }
+
+/** A class that supports ACD (Automatic Call Distribution). A call
+    made to specified alias(-es) (called virtual queue) is signalled
+	via the GK status line to an external application (an ACD application)
+	that decides where the call should be routed (e.g. what agent should
+	answe the call). Basically, it rewrites virtual queue alias 
+	into the alias of the specified agent.
+	
+	The route request is uniquelly identified by (EndpointIdentifier,CRV)
+	values pair.
+*/
+class VirtualQueue 
+{
+public:
+	VirtualQueue();
+	~VirtualQueue();
+	
+	/// reload settings from the config file
+	void OnReload();
+
+	/** @return
+		True if there is at least one virtual queue configured.
+	*/
+	bool IsActive() const { return m_active; }
+
+	/** Send RouteRequest to the GK status line	and wait 
+		for a routing decision to be made by some external application
+		(ACD application).
+		
+		@return
+		True if the external application routed the call (either by specifying
+		an alias or by rejecting the call), false if timed out waiting 
+		for the routing decision.
+		If the request was rejected, destinationInfo is set to an epmty array
+		(0 elements).
+	*/
+	bool SendRouteRequest(
+		/// calling endpoint
+		const endptr& caller,
+		/// CRV (Call Reference Value) of the call associated with this request
+		unsigned crv,
+		/// destination (virtual queue) aliases as specified
+		/// by the calling endpoint (modified by this function on successful return)
+		H225_ArrayOf_AliasAddress* destinationInfo,
+		/// an actual virtual queue name (should be present in destinationInfo too)
+		const PString& vqueue,
+		/// a sequence of aliases for the calling endpoint
+		/// (in the "alias:type[=alias:type]..." format)
+		const PString& sourceInfo
+		);
+
+	/** Make a routing decision for a pending route request (inserted
+		by SendRequest).
+		
+		@return
+		True if the matching pending request has been found, false otherwise.
+	*/
+	bool RouteToAlias(
+		/// aliases for the routing target (an agent that the call will be routed to) 
+		/// that will replace the original destination info
+		const H225_ArrayOf_AliasAddress& agent,
+		/// identifier of the endpoint associated with the route request
+		const PString& callingEpId, 
+		/// CRV of the call associated with the route request
+		unsigned crv
+		);
+	
+	/** Make a routing decision for a pending route request (inserted
+		by SendRequest).
+		
+		@return
+		True if the matching pending request has been found, false otherwise.
+	*/
+	bool RouteToAlias(
+		/// alias for the routing target that
+		/// will replace the original destination info
+		const PString& agent, 
+		/// identifier of the endpoint associated with the route request
+		const PString& callingEpId, 
+		/// CRV of the call associated with the route request
+		unsigned crv
+		);
+	
+	/** Reject a pending route request (inserted by SendRequest).
+		
+		@return
+		True if the matching pending request has been found, false otherwise.
+	*/
+	bool RouteReject(
+		/// identifier of the endpoint associated with the route request
+		const PString& callingEpId, 
+		/// CRV of the call associated with the route request
+		unsigned crv
+		);
+	
+	/** @return
+		True if the specified alias matches a name of an existing virtual queue.
+	*/
+	bool IsDestinationVirtualQueue(
+		const PString& destinationAlias /// alias to be matched
+		) const;
+
+private:
+	/// a holder for a pending route request
+	struct RouteRequest 
+	{
+		RouteRequest(
+			const PString& callingEpId, 
+			unsigned crv, 
+			H225_ArrayOf_AliasAddress* agent
+			) 
+			: 
+			m_callingEpId((const char*)callingEpId), m_crv(crv), 
+			m_agent(agent) {}
+
+		/// identifier for the endpoint associated with this request
+		PString m_callingEpId;
+		/// CRV for the call associated with this request
+		unsigned m_crv;
+		/// aliases for the virtual queue matched (on input)
+		/// aliases for the target agent - target route (on output)
+		H225_ArrayOf_AliasAddress* m_agent;
+		/// a synchronization point for signalling that routing decision
+		/// has been made by the external application
+		PSyncPoint m_sync;
+	};
+
+	typedef list<RouteRequest *> RouteRequests;
+
+	RouteRequest *InsertRequest(
+		/// identifier for the endpoint associated with this request
+		const PString& callingEpId, 
+		/// CRV for the call associated with this request
+		unsigned crv, 
+		/// a pointer to an array to be filled with agent aliases
+		/// when the routing decision has been made
+		H225_ArrayOf_AliasAddress* agent,
+		/// set by the function to true if another route request for the same
+		/// call is pending
+		bool& duplicate
+		);
+
+	/// an array of names (aliases) for the virtual queues
+	PStringArray m_virtualQueues;
+	/// virtual queues enabled/disabled
+	bool m_active;
+	/// time (in milliseconds) to wait for a routing decision to be made
+	long m_requestTimeout;
+	/// a list of active (pending) route requests
+	RouteRequests m_pendingRequests;
+	/// a mutex protecting pending requests and virtual queues lists
+	PMutex m_listMutex;
+};
 
 
 } // end of namespace Routing

@@ -42,8 +42,6 @@ namespace SoftPBX
 	void DisconnectEndpoint(const endptr &);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
-	void RouteToAlias(PString TargetAlias, PString SourceEpId, PString CallRef);
-	void RouteReject(PString SourceEpId, PString CallRef);
 
 	PString Uptime();
 

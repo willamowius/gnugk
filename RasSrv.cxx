@@ -33,9 +33,6 @@
 #include "ProxyChannel.h"
 
 
-const char *CTIsection = "CTI::Agents";
-
-
 #ifndef NEED_BROADCASTLISTENER
 #if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS)
 // On some OS we don't get broadcasts on a socket that is
@@ -608,6 +605,7 @@ void RasRequester::AddReply(RasMsg *ras)
 		--m_iterator;
 }
 
+
 // class RasServer
 RasServer::RasServer() : Singleton<RasServer>("RasServer"), requestSeqNum(0),
 	acctList(NULL)
@@ -622,6 +620,7 @@ RasServer::RasServer() : Singleton<RasServer>("RasServer"), requestSeqNum(0),
 
 RasServer::~RasServer()
 {
+	delete vqueue;
 	delete authList;
 	delete acctList;
 	delete neighbors;
@@ -775,6 +774,7 @@ void RasServer::LoadConfig()
 	neighbors->OnReload();
 	authList->OnReload();
 	acctList->OnReload();
+	vqueue->OnReload();
 	Routing::Analyzer::Instance()->OnReload();
 
 	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", 1));
@@ -1008,7 +1008,8 @@ void RasServer::Run()
 	neighbors = new NeighborList;
 	authList = new GkAuthenticatorList;
 	acctList = new GkAcctLoggerList;
-
+	vqueue = new VirtualQueue;
+	
 	LoadConfig();
 	
 	callptr nullcall;
@@ -1553,11 +1554,6 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	return bShellSendReply;
 }
 
-#if HAS_WAITARQ
-#include <h323pdu.h>
-#include "WaitingARQ.h"
-#endif
-
 bool AdmissionRequestPDU::Process()
 {
 	// OnARQ
@@ -1639,12 +1635,15 @@ bool AdmissionRequestPDU::Process()
 
 	// routing decision
 	bool toParent = false;
+	bool aliasesChanged = false;
 	H225_TransportAddress CalledAddress;
 	if (!answer) {
 		Routing::AdmissionRequest arq(request, this, CalledEP);
-		if (H225_TransportAddress *dest = arq.Process())
-			CalledAddress = *dest, toParent = arq.GetFlags() & Routing::AdmissionRequest::e_toParent;
-		else
+		if (H225_TransportAddress *dest = arq.Process()) {
+			CalledAddress = *dest;
+			toParent = arq.GetFlags() & Routing::AdmissionRequest::e_toParent;
+			aliasesChanged = arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged;
+		} else
 			return BuildReply(arq.GetRejectReason());
 	}
 
@@ -1739,6 +1738,13 @@ bool AdmissionRequestPDU::Process()
 	acf.IncludeOptionalField(H225_AdmissionConfirm::e_irrFrequency);
 	acf.m_irrFrequency.SetValue(120);
 
+	if( !answer && aliasesChanged && request.m_canMapAlias
+		&& request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)
+		&& request.m_destinationInfo.GetSize() > 0 ) {
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
+		acf.m_destinationInfo = request.m_destinationInfo;
+	}
+	
 	return BuildReply(e_acf);
 }
 

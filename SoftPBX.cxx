@@ -320,15 +320,3 @@ PString SoftPBX::Uptime()
 			(const char *)SoftPBX::StartUp.AsString(),
 			days, hour, min, sec);
 }
- 
-#if HAS_WAITARQ
-void SoftPBX::RouteToAlias(PString TargetAlias, PString SourceEpId, PString CallRef)
-{
-	//RasThread->RouteToAlias(TargetAlias, SourceEpId, CallRef); TODO
-}
-
-void SoftPBX::RouteReject(PString SourceEpId, PString CallRef)
-{
-	//RasThread->RouteReject(SourceEpId, CallRef); TODO
-}
-#endif

@@ -26,6 +26,7 @@
 #include "SoftPBX.h"
 #include "Toolkit.h"
 #include "RasSrv.h"
+#include "Routing.h"
 #include "rwlock.h"
 #include <ptclib/telnet.h>
 
@@ -464,11 +465,9 @@ bool GkStatus::OnStart()
 	m_commands["statistics"] =		     e_Statistics;
 	m_commands["s"] =			     e_Statistics;
 	m_commands["reload"] =			     e_Reload;
-#if HAS_WAITARQ
 	m_commands["routetoalias"] =		     e_RouteToAlias;
 	m_commands["rta"] =			     e_RouteToAlias;
 	m_commands["routereject"] =		     e_RouteReject;
-#endif
 	m_commands["shutdown"] =		     e_Shutdown;
 	m_commands["exit"] =			     e_Exit;
 	m_commands["quit"] =			     e_Exit;
@@ -879,20 +878,18 @@ void StatusClient::ExecCommand(PString cmd)
 			SoftPBX::PrintStatistics(this, true);
 			RasServer::Instance()->Stop();
 			break;
-#if HAS_WAITARQ
 		case GkStatus::e_RouteToAlias:
 			if (Args.GetSize() == 4) {
-				SoftPBX::RouteToAlias(Args[1], Args[2], Args[3]);
+				RasServer::Instance()->GetVirtualQueue()->RouteToAlias(Args[1], Args[2], Args[3].AsUnsigned());
 			} else
 				WriteString("Syntax Error: RouteToAlias <target agent> <calling endpoint ID> <callRef>\r\n");
 			break;
 		case GkStatus::e_RouteReject:
 			if (Args.GetSize() == 3) {
-				SoftPBX::RouteReject(Args[1], Args[2]);
+				RasServer::Instance()->GetVirtualQueue()->RouteReject(Args[1], Args[2].AsUnsigned());
 			} else
 				WriteString("Syntax Error: RouteReject <calling endpoint ID> <callRef>\r\n");
 			break;
-#endif
 		default:
 			// commmand not recognized
 			WriteString("Error: Unknown Command " + cmd + "\r\n");

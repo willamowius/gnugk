@@ -27,6 +27,7 @@
 #include "stl_supp.h"
 #include "h323util.h"
 #include "gk_const.h"
+#include "GkStatus.h"
 #include <h323pdu.h>
 
 
@@ -221,6 +222,9 @@ bool AliasesPolicy::OnRequest(FacilityRequest & request)
 
 // the simplest policy, the destination has been explicitly specified
 class ExplicitPolicy : public Policy {
+public:
+	ExplicitPolicy() { m_name = "Explicit"; }
+protected:
 	virtual bool OnRequest(AdmissionRequest &);
 	// the policy doesn't apply to LocationRequest
 	virtual bool OnRequest(SetupRequest &);
@@ -248,6 +252,9 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 
 // the classical policy, find the dstionation from the RegistrationTable
 class InternalPolicy : public AliasesPolicy {
+public:
+	InternalPolicy() { m_name = "Internal"; }
+protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 };
 
@@ -279,6 +286,7 @@ private:
 ParentPolicy::ParentPolicy()
 {
 	m_gkClient = RasServer::Instance()->GetGkClient();
+	m_name = "Parent";
 }
 
 bool ParentPolicy::IsActive()
@@ -309,6 +317,9 @@ bool ParentPolicy::OnRequest(FacilityRequest & facility_obj)
 
 // a policy to look up the destination from DNS
 class DNSPolicy : public AliasesPolicy {
+public:
+	DNSPolicy() { m_name = "DNS"; }
+protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 };
 
@@ -330,11 +341,292 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 	return false;
 }
 
+
+#define DEFAULT_ROUTE_REQUEST_TIMEOUT 10
+const char* CTIsection = "CTI::Agents";
+
+VirtualQueue::VirtualQueue()
+	:
+	m_active(false),
+	m_requestTimeout(DEFAULT_ROUTE_REQUEST_TIMEOUT*1000)
+{
+}
+
+VirtualQueue::~VirtualQueue()
+{
+	m_listMutex.Wait();
+	
+	int numrequests = m_pendingRequests.size();
+	if( numrequests )
+		PTRACE(1,"VQueue\tDestroying virtual queue with "
+			<<numrequests<<" pending requests"
+			);
+	RouteRequests::iterator i = m_pendingRequests.begin();
+	while (i != m_pendingRequests.end()) {
+		RouteRequest *r = *i++;
+		r->m_sync.Signal();
+	}
+	
+	m_listMutex.Signal();
+
+	// wait a moment to give a chance to pending requests to cleanup
+	if( numrequests )
+		PThread::Sleep(500);
+}
+
+void VirtualQueue::OnReload()
+{
+	PWaitAndSignal lock(m_listMutex);
+	m_requestTimeout = GkConfig()->GetInteger(
+		CTIsection, 
+		GkConfig()->HasKey(CTIsection,"RequestTimeout")
+			?"RequestTimeout":"CTI_Timeout", 
+		DEFAULT_ROUTE_REQUEST_TIMEOUT
+		) * 1000;
+	m_requestTimeout = PMIN(PMAX(100,m_requestTimeout),20000);
+	const PString vqueues = GkConfig()->GetString(CTIsection, "VirtualQueue", "");
+	m_virtualQueues = vqueues.Tokenise(" ,;\t", false);
+	m_active = m_virtualQueues.GetSize() > 0;
+	if( m_active )
+		PTRACE(2,"VQueue\t(CTI) Virtual queues enabled ("<<vqueues
+			<<"), request timeout: "<<m_requestTimeout/1000<<" s"
+			);
+	else
+		PTRACE(2,"VQueue\t(CTI) Virtual queues disabled - no virtual queues configured");
+}
+
+bool VirtualQueue::SendRouteRequest(
+	/// calling endpoint
+	const endptr& caller, 
+	/// CRV (Call Reference Value) of the call associated with this request
+	unsigned crv,
+	/// destination (virtual queue) aliases as specified
+	/// by the calling endpoint (modified by this function on successful return)
+	H225_ArrayOf_AliasAddress* destinationInfo,
+	/// actual virtual queue name (should be present in destinationInfo too)
+	const PString& vqueue,
+	/// a sequence of aliases for the calling endpoint
+	/// (in the "alias:type[=alias:type]..." format)
+	const PString& sourceInfo
+	)
+{
+	bool result = false;
+	bool duprequest = false;
+	const PString epid(caller->GetEndpointIdentifier().GetValue());
+	if (RouteRequest *r = InsertRequest(epid, crv, destinationInfo, duprequest)) {
+		const PString msg(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;", 
+				(const char *)AsDotString(caller->GetCallSignalAddress()),
+				(const char *)epid,
+				crv,
+				(const char *)vqueue,
+				(const char *)sourceInfo
+			   );
+		// signal RouteRequest to the status line only once
+		if( duprequest )
+			PTRACE(4, "VQueue\tDuplicate request: "<<msg);
+		else {
+			PTRACE(2, msg);
+			GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		}
+
+		// wait for an answer from the status line (routetoalias,routereject)
+		result = r->m_sync.Wait(m_requestTimeout);
+		m_listMutex.Wait();
+		m_pendingRequests.remove(r);
+		m_listMutex.Signal();
+		if( !result )
+			PTRACE(5,"VQueue\tRoute request (EPID: "<<r->m_callingEpId
+				<<", CRV="<<r->m_crv<<") timed out"
+				);
+		delete r;
+	}
+	return result;
+}
+
+bool VirtualQueue::IsDestinationVirtualQueue(
+	const PString& destinationAlias /// alias to be matched
+	) const
+{
+	PWaitAndSignal lock(m_listMutex);
+	for (PINDEX i = 0; i < m_virtualQueues.GetSize(); ++i)
+		if (m_virtualQueues[i] == destinationAlias)
+			return true;
+	return false;
+}
+
+bool VirtualQueue::RouteToAlias(
+	/// aliases for the routing target (an agent that the call will be routed to) 
+	/// that will replace the original destination info
+	const H225_ArrayOf_AliasAddress& agent,
+	/// identifier of the endpoint associated with the route request
+	const PString& callingEpId, 
+	/// CRV of the call associated with the route request
+	unsigned crv
+	)
+{
+	PWaitAndSignal lock(m_listMutex);
+	
+	// signal the command to each pending request
+	bool foundrequest = false;
+	RouteRequests::iterator i = m_pendingRequests.begin();
+	while (i != m_pendingRequests.end()) {
+		RouteRequest *r = *i;
+		if (r->m_callingEpId == callingEpId && r->m_crv == crv) {
+			// replace virtual queue aliases info with agent aliases
+			*r->m_agent = agent;
+			r->m_sync.Signal();
+			if( !foundrequest ) {
+				foundrequest = true;
+				if( agent.GetSize() > 0 )
+					PTRACE(2,"VQueue\tRoute request (EPID :"<<callingEpId
+						<<", CRV="<<crv<<") accepted by agent "<<AsString(agent)
+						);
+				else				
+					PTRACE(2,"VQueue\tRoute request (EPID :"<<callingEpId
+						<<", CRV="<<crv<<") rejected"
+						);
+			}
+		}
+		++i;
+	}
+	
+	if( !foundrequest )
+		PTRACE(4,"VQueue\tPending route request (EPID:"<<callingEpId
+			<<", CRV="<<crv<<") not found - ignoring RouteToAlias command"
+			);
+	
+	return foundrequest;
+}
+
+bool VirtualQueue::RouteToAlias(
+	/// alias for the routing target that
+	/// will replace the original destination info
+	const PString& agent, 
+	/// identifier of the endpoint associated with the route request
+	const PString& callingEpId, 
+	/// CRV for the call associated with the route request
+	unsigned crv
+	)
+{
+	H225_ArrayOf_AliasAddress agentAlias;
+	agentAlias.SetSize(1);
+	H323SetAliasAddress(agent, agentAlias[0]);
+	return RouteToAlias(agentAlias, callingEpId, crv);
+}
+
+bool VirtualQueue::RouteReject(
+	/// identifier of the endpoint associated with the route request
+	const PString& callingEpId, 
+	/// CRV of the call associated with the route request
+	unsigned crv
+	)
+{
+	H225_ArrayOf_AliasAddress nullAgent;
+	return RouteToAlias(nullAgent, callingEpId, crv);
+}
+
+VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
+	/// identifier for the endpoint associated with this request
+	const PString& callingEpId, 
+	/// CRV for the call associated with this request
+	unsigned crv, 
+	/// a pointer to an array to be filled with agent aliases
+	/// when the routing decision has been made
+	H225_ArrayOf_AliasAddress* agent,
+	/// set by the function to true if another route request for the same
+	/// call is pending
+	bool& duplicate
+	)
+{
+	duplicate = false;
+	PWaitAndSignal lock(m_listMutex);
+	
+	// check if another route requests for the same EPID,CRV are pending
+	int duprequests = 0;
+	RouteRequests::iterator i = m_pendingRequests.begin();
+	while (i != m_pendingRequests.end()) {
+		RouteRequest *r = *i;
+		if (r->m_callingEpId == callingEpId && r->m_crv == crv)
+			duprequests++;
+		++i;
+	}
+	
+	if( duprequests ) {
+		duplicate = true;
+		PTRACE(5,"VQueue\tRoute request (EPID: "<<callingEpId
+			<<", CRV="<<crv<<") is already active - duplicate requests"
+			" waiting: "<<duprequests
+			);
+	}
+
+	// insert the new pending route request
+	RouteRequest* r = new RouteRequest(callingEpId, crv, agent);
+	m_pendingRequests.push_back(r);
+	return r;
+}
+
+
+// a policy to route call via external program
+class VirtualQueuePolicy : public Policy {
+public:
+	VirtualQueuePolicy();
+
+private:
+	// override from class Policy
+	virtual bool IsActive();
+
+	virtual bool OnRequest(AdmissionRequest &);
+	// TODO
+	//virtual bool OnRequest(LocationRequest &);
+	//virtual bool OnRequest(SetupRequest &);
+	//virtual bool OnRequest(FacilityRequest &);
+
+	VirtualQueue *m_vqueue;
+};
+
+VirtualQueuePolicy::VirtualQueuePolicy()
+{
+	m_vqueue = RasServer::Instance()->GetVirtualQueue();
+	m_name = "VirtualQueue";
+}
+
+bool VirtualQueuePolicy::IsActive()
+{
+	return m_vqueue->IsActive();
+}
+
+bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
+{
+	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
+		const PString agent(H323GetAliasAddressString((*aliases)[0]));
+		if (m_vqueue->IsDestinationVirtualQueue(agent)) {
+			H225_AdmissionRequest & arq = request.GetRequest();
+			PTRACE(5,"Routing\tPolicy "<<m_name<<" destination matched "
+				"a virtual queue "<<agent<<" (ARQ "
+				<<arq.m_requestSeqNum.GetValue()<<')'
+				);
+			endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
+			if (ep && m_vqueue->SendRouteRequest(ep, unsigned(arq.m_callReferenceValue), aliases, agent, AsString(arq.m_srcInfo)))
+				request.SetFlag(RoutingRequest::e_aliasesChanged);
+				// the trick: if empty, the request is rejected
+				// so we return true to terminate the routing
+				// decision process, otherwise the aliases is
+				// rewritten, we return false to let subsequent
+				// policies determine the request 
+				if (m_next == NULL || aliases->GetSize() == 0)
+					return true;
+		}
+	}
+	return false;
+}
+
+
 namespace { // anonymous namespace
 	SimpleCreator<ExplicitPolicy> ExplicitPolicyCreator("explicit");
 	SimpleCreator<InternalPolicy> InternalPolicyCreator("internal");
 	SimpleCreator<ParentPolicy> ParentPolicyCreator("parent");
 	SimpleCreator<DNSPolicy> DNSPolicyCreator("dns");
+	SimpleCreator<VirtualQueuePolicy> VirtualQueuePolicyCreator("vqueue");
 }
 
 

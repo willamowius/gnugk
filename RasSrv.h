@@ -53,6 +53,12 @@ namespace Neighbors {
 
 using Neighbors::NeighborList;
 
+namespace Routing {
+	class VirtualQueue;
+}
+
+using Routing::VirtualQueue;
+
 class RasServer : public Singleton<RasServer>, public SocketsReader {
 public:
 	typedef PIPSocket::Address Address;
@@ -103,8 +109,10 @@ public:
 	PString GetParent() const;
 	GkClient *GetGkClient() { return gkClient; }
 	NeighborList *GetNeighbors() { return neighbors; }
+	VirtualQueue *GetVirtualQueue() { return vqueue; }
 	const GkClient *GetGkClient() const { return gkClient; }
 	const NeighborList *GetNeighbors() const { return neighbors; }
+	const VirtualQueue *GetVirtualQueue() const { return vqueue; }
 
 	// get signalling handler
 	ProxyHandler *GetProxyHandler();
@@ -193,6 +201,7 @@ private:
 	GkAcctLoggerList* acctList;
 	GkClient *gkClient;
 	NeighborList *neighbors;
+	VirtualQueue *vqueue;
 
 	// alternate GK support
 	enum {
