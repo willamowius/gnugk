@@ -538,6 +538,12 @@ public:
 	*/
 	PString GetSrcInfo() const { return m_srcInfo; }
 
+	/** Set a new address for the calling party signalling channel.
+	*/
+	void SetSrcSignalAddr(
+		const H225_TransportAddress & addr /// new signalling transport address
+		);
+		
 	/** Set a new address for the called party signalling channel. 
 	*/
 	void SetDestSignalAddr(
@@ -583,12 +589,6 @@ public:
 	typedef SmartPtr<CallRec> Ptr;
 
 private:
-	/** Set a new address for the calling party signalling channel.
-	*/
-	void SetSrcSignalAddr(
-		const H225_TransportAddress & addr /// new signalling transport address
-		);
-
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
 
