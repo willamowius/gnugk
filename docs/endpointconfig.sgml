@@ -1,0 +1,62 @@
+<sect>Per-Endpoint Configuration
+<label id="epconfig">
+<p>
+In addition to the standard configuration file options, per-endpoint configuration
+settings can be specified in the config file. The syntax is as follows:
+
+<sect1>Section &lsqb;EP::...&rsqb;
+<p>
+<tscreen><verb>
+[EP::ALIAS]
+Key Name=Value String
+</verb></tscreen>
+
+<tt/ALIAS/ is replaced with an actual alias for an endpoint the settings
+should apply to. Currently, the following options are recognized:
+
+<itemize>
+<item><tt/Capacity=10/<newline>
+Default: <tt/-1/
+<p>
+Call capacity for an endpoint. No more than <tt/Capacity/ concurrent
+calls will be sent to this endpoint. In case of gateways, if more than one
+gateway matches a dialed number, a call will be sent to the first available
+gateway (that has available capacity).
+
+<item><tt/GatewayPriority=1/<newline>
+Default: <tt/1/
+<p>
+Apply only to gateways. Allow priority based routing in case, when more
+than one gateway matches a dialed number. The smaller value the higher priority
+is assigned to a gateway. A call is routed to the first available gateway
+(that has available capacity) with the highest priority (the smallest
+<tt/GatewayPriority/ values).
+
+<item><tt/GatewayPrefixes=0048,0049,0044/<newline>
+Default: <tt>N/A</tt>
+<p>
+Additional prefixes for this gateway. Apply only to gateways. 
+Special characters <tt/./ and <tt/!/ can be used here to match any digit 
+and disable the prefix.
+
+</itemize>
+
+Example:
+
+<tscreen><verb>
+[RasSrv::PermanentEndpoints]
+192.168.1.1=gw1;48
+192.168.1.2=gw2;48,!4850,!4860,!4869,!4888
+
+[EP::gw1]
+Capacity=60
+GatewayPriority=1
+
+[EP::gw2]
+Capacity=30
+GatewayPriority=2
+</verb></tscreen>
+
+In this example, calls will be sent to the gateway <tt/gw1/ until its
+capacity is fully utilized (60 concurrent calls) and then to the gateway <tt/gw2/.
+
