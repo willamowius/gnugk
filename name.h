@@ -18,7 +18,7 @@
 //////////////////////////////////////////////////////////////////
 
 #ifndef NAME_H
-#define NAME_H ""@(#) $Id$"
+#define NAME_H "@(#) $Id$"
 
 template<typename N>
 class NamedObj {
