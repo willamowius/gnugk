@@ -38,10 +38,16 @@
  * many things here should be members of Gatkeeper. 
  */
 
+namespace { // keep the global objects private
+
+
 H323RasSrv * RasThread = NULL;
 MulticastGRQ * MulticastGRQThread = NULL;
 BroadcastListen * BroadcastThread = NULL;
 PMutex ShutdownMutex;
+
+int TimeToLive = -1;
+bool ExitFlag = false;
 
 
 void ShutdownHandler(void)
@@ -58,7 +64,7 @@ void ShutdownHandler(void)
 		BroadcastThread->WaitForTermination();
 		delete BroadcastThread;
 		BroadcastThread = NULL;
-	};
+	}
 	if (MulticastGRQThread != NULL)
 	{
 		PTRACE(3, "GK\tClosing MulticastGRQThread");
@@ -66,7 +72,7 @@ void ShutdownHandler(void)
 		MulticastGRQThread->WaitForTermination();
 		delete MulticastGRQThread;
 		MulticastGRQThread = NULL;
-	};
+	}
 	if (RasThread != NULL)
 	{
 		PTRACE(3, "GK\tClosing RasThread");
@@ -75,7 +81,7 @@ void ShutdownHandler(void)
 		RasThread->UnregisterAllEndpoints();
 		delete RasThread;
 		RasThread = NULL;
-	};
+	}
 
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
@@ -92,37 +98,34 @@ void ShutdownHandler(void)
 	return;
 }
 
+} // end of anonymous namespace
 
 #ifdef WIN32
 
 BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 {
 	PTRACE(1, "GK\tGatekeeper shutdown");
-	ShutdownHandler();
-	exit(0);	// if we don't exit(), this handler gets called again and again - strange...
+	PWaitAndSignal shutdown(ShutdownMutex);
+	ExitFlag = true;
+	//ShutdownHandler();
+	//exit(0);	// if we don't exit(), this handler gets called again and again - strange...
 	return TRUE;
-};
+}
 
 #else
-
-PThread *mainThread = NULL;
 
 void UnixShutdownHandler(int sig)
 {
 	PTRACE(1, "GK\tGatekeeper shutdown (signal " << sig << ")");
-	// exit(2); // dump gprof info to gmon.out
-	if (PThread::Current() == mainThread) {
-		RasThread->Shutdown();
-	} else {
-		PTRACE(1, "This is not main thread, ignore!\n");
-	}
-};
+	PWaitAndSignal shutdown(ShutdownMutex);
+	ExitFlag = true;
+}
 
 void UnixReloadHandler(int sig) // For HUP Signal
 {
 	PTRACE(1, "GK\tGatekeeper Hangup (signal " << sig << ")");
 	ReloadHandler();
-};
+}
 
 #endif
 
@@ -174,9 +177,7 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 	sa.sa_handler = UnixReloadHandler;
 
 	sigaction(SIGHUP, &sa, NULL);
-	mainThread = PThread::Current();
 #endif
-
 	return TRUE;
 }
 
@@ -250,13 +251,24 @@ void Gatekeeper::PrintOpts(void)
 }
 
 
+void Gatekeeper::HouseKeeping(void)
+{
+	for (int count=1; !ExitFlag; count++) {	
+
+		if (!(count % 60)) // one minute
+			RegistrationTable::Instance()->CheckEndpoints(TimeToLive);
+
+		Sleep(1000);
+
+	}
+}
+
 void Gatekeeper::Main()
 {
 	PArgList & args = GetArguments();
 	args.Parse(GetArgumentsParseString());
 
 	int GKcapacity = 100000; // default gatekeeper capacity (in 100s bit)
-	int TimeToLive = -1;
 	BOOL GKroutedSignaling = FALSE;	// default: use direct signaling
 	PIPSocket::Address GKHome;
 
@@ -336,7 +348,9 @@ void Gatekeeper::Main()
 #endif
 
 	// let's go
-	RasThread->HandleConnections();
+	RasThread->Resume();
+
+	HouseKeeping();
 
 	// graceful shutdown
 	ShutdownHandler();

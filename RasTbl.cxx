@@ -141,6 +141,12 @@ endpointRec::~endpointRec()
 {
 }
 
+bool endpointRec::IsUsed() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return (m_usedCount != 0);
+}
+
 /*
 endpointRec::endpointRec(const endpointRec & other)
 {
@@ -387,6 +393,10 @@ endptr RegistrationTable::FindByAnyAliasInList(const H225_ArrayOf_AliasAddress &
 {
 	list<endpointRec *>::const_iterator EPIter;
 
+	PINDEX as = aliases.GetSize();
+	if (as == 0)
+		return endptr(NULL);
+
 	ReadLock lock(listLock);
 	// loop over endpoints
 	for (EPIter = EndpointList.begin(); EPIter != EndpointList.end(); ++EPIter)
@@ -395,7 +405,7 @@ endptr RegistrationTable::FindByAnyAliasInList(const H225_ArrayOf_AliasAddress &
 		// loop over alias list
 		for(PINDEX AliasIndex = 0; AliasIndex < s; ++AliasIndex)
 		{
-			for (PINDEX FindAliasIndex = 0; FindAliasIndex < aliases.GetSize(); ++ FindAliasIndex)
+			for (PINDEX FindAliasIndex = 0; FindAliasIndex < as; ++ FindAliasIndex)
 			{
 				if ((*EPIter)->IsGateway()) {
 				// for gateways we use a different comparison function,
@@ -537,6 +547,7 @@ void RegistrationTable::PrintAllRegistrations(GkStatus::Client &client, BOOL ver
 		
 		if (verbose)
 		{
+			client.WriteString((*Iter)->GetUpdatedTime().AsString() + "\r\n");
 			for (PINDEX i = 0; i < (*Iter)->GetAliases().GetSize(); i++)
 			{
 				const PString & alias = AsString((*Iter)->GetAliases()[i], FALSE);
@@ -610,22 +621,31 @@ void RegistrationTable::CheckEndpoints(int Seconds)
 
 	// by cwhuang
 	//
-	// Wow...! Do you think it is complex? Thanks to powerful STL!
+	// Wow...! Too complex to understand? Thanks to powerful STL!
 	// Here is a brief explanation:
-	// The EndpointList is divided into two parts by STL partition algorithm:
+	// EndpointList is divided into two parts by STL partition algorithm:
 	// the first part from begin() to --Iter that satisfy the predicate
 	// and the second part from Iter to end() that don't.
 	// The predicate is composed by several STL adapters.
 	// It means: ( (PTime() - ep->GetUpdatedTime()) < Seconds*1000 )
 
-	list<endpointRec *>::iterator Iter =
-	  partition(EndpointList.begin(), EndpointList.end(),
-		compose1(bind2nd(less<PTimeInterval>(), Seconds*1000),
-		compose1(bind1st(Minus<PTime, PTimeInterval>(), PTime()), mem_fun(&endpointRec::GetUpdatedTime))));
-	transform(Iter, EndpointList.end(),
-		back_inserter(RemovedList), unregister_expired_endpoint);
-	EndpointList.erase(Iter, EndpointList.end());
+	if (Seconds > 0) {
+		list<endpointRec *>::iterator Iter =
+		  partition(EndpointList.begin(), EndpointList.end(),
+			compose1(bind2nd(less<PTimeInterval>(), Seconds*1000),
+			compose1(bind1st(Minus<PTime, PTimeInterval>(), PTime()), mem_fun(&endpointRec::GetUpdatedTime))));
+		PTRACE(2, distance(Iter, EndpointList.end()) << " endpoint(s) expired.");
+		transform(Iter, EndpointList.end(), back_inserter(RemovedList),
+			unregister_expired_endpoint);
+		EndpointList.erase(Iter, EndpointList.end());
 	// TODO: remove prefixes of expired endpoints
+	}
+
+	// Cleanup unused endpointRec in RemovedList
+	list<endpointRec *>::iterator Iter =
+	  partition(RemovedList.begin(), RemovedList.end(),
+		mem_fun(&endpointRec::IsUsed));
+	RemovedList.erase(Iter, RemovedList.end());
 }
 
 //void RegistrationTable::PrintOn(ostream & strm) const

@@ -42,7 +42,8 @@
 
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
-  : listener(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)),
+      : PThread(10000, NoAutoDeleteThread),
+	listener(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)),
 	udpForwarding()
 {
 	GKHome = _GKHome;
@@ -322,9 +323,6 @@ H323RasSrv::ForwardRasMsg(H225_RasMessage msg) // not passed as const, ref or po
 BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rrq, H225_RasMessage & obj_rpl)
 {
 	const H225_RegistrationRequest & obj_rr = obj_rrq;
-	BOOL bHasAlias = FALSE;
-	BOOL bAliasIsKnown = TRUE;
-	BOOL bAlreadyRegistered;	// by someone else
 	BOOL bReject = FALSE;		// RRJ with any other reason from #rejectReason#
 	H225_RegistrationRejectReason rejectReason;
 
@@ -396,7 +394,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			bReject = TRUE;
 			rejectReason.SetTag(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		}
-	};
+	}
 
 	if (obj_rr.m_callSignalAddress.GetSize() >= 1)
 		SignalAdr = obj_rr.m_callSignalAddress[0];
@@ -405,7 +403,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
 	}
 
-	bHasAlias = (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (obj_rr.m_terminalAlias.GetSize() >= 1));
+	BOOL bHasAlias = (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (obj_rr.m_terminalAlias.GetSize() >= 1));
 
 	if (bHasAlias)
 		NewAliases = obj_rr.m_terminalAlias;
@@ -418,57 +416,51 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			bReject = TRUE;
 			rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
 			break;
-			/* only while debugging
+		/* only while debugging
 		default:  
 			bReject = TRUE;
 			rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
 			break;
-			*/
+		*/
 		}
 	}
-	
-	if (!bReject)
-		bAliasIsKnown = (EndpointTable->FindByAnyAliasInList(NewAliases));
 
-	if (!bReject &&
-	   bHasAlias && 
-	   bAliasIsKnown &&
-	   (EndpointTable->FindByAnyAliasInList(NewAliases)->GetCallSignalAddress() != SignalAdr)
-	   ) {
-		bReject = TRUE;
-		rejectReason.SetTag(H225_RegistrationRejectReason::e_duplicateAlias);
-	}
+	BOOL bAlreadyRegistered = FALSE;
+	BOOL bHasEndpointId = FALSE;
+	endptr ep;
 
-	bAlreadyRegistered = (EndpointTable->FindBySignalAdr(SignalAdr));
-	// use the sent regId if possible
-	if(obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
-		NewEndpointId = obj_rr.m_endpointIdentifier;
-		endptr ep = EndpointTable->FindBySignalAdr(SignalAdr); 
-		if ( ep ) {
-			ep->SetEndpointIdentifier(NewEndpointId);
+	if (!bReject) {
+		ep = EndpointTable->FindBySignalAdr(SignalAdr);
+		bAlreadyRegistered = (bool)ep;
+		if (bHasAlias) {
+			endptr e = EndpointTable->FindByAnyAliasInList(NewAliases);
+			if ( e && e != ep ) {
+				bReject = TRUE;
+				rejectReason.SetTag(H225_RegistrationRejectReason::e_duplicateAlias);
+			}
 		}
-	}
-	else if (bAlreadyRegistered)
-		NewEndpointId = EndpointTable->FindBySignalAdr(SignalAdr)->GetEndpointIdentifier();
-	else
-		NewEndpointId = EndpointTable->GenerateEndpointId();
-	
+		if (!bReject) {
+			bHasEndpointId = obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
+			NewEndpointId = (bHasEndpointId) ? obj_rr.m_endpointIdentifier :
+					(bAlreadyRegistered) ? ep->GetEndpointIdentifier() : EndpointTable->GenerateEndpointId();
+			if (!bHasAlias) // let it use old aliases if already registered
+				NewAliases = (bAlreadyRegistered) ? ep->GetAliases() : EndpointTable->GenerateAlias(NewEndpointId);
+		}
 
-	if (!bHasAlias)
-		NewAliases = EndpointTable->GenerateAlias(NewEndpointId);
+	}
 
 	// reject the empty string
 	for (PINDEX AliasIndex=0; AliasIndex < NewAliases.GetSize(); ++AliasIndex)
 	{
 		const PString & s = AsString(NewAliases[AliasIndex], FALSE);
-		if (s.GetLength() < 1 || !isalnum(s[0]) ) {
+		if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') ) {
 			bReject = TRUE;
 			rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
 		}
 	}
 
 	// Extended Registration Auth Rules
-	{
+	if (!bReject) {
 		BOOL AliasFoundInConfig = FALSE;
 
 		// alias is the config file entry of this endpoint
@@ -501,7 +493,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 				bReject = TRUE;
 				rejectReason.SetTag(H225_RegistrationRejectReason::e_securityDenial);
 				PTRACE(4, "Gk\tRRQAuth default condition rejected endpoint " << alias);
-			};
+			}
 	}
 
 	//
@@ -538,7 +530,13 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	// make a copy for modifying
 	H225_RasMessage store_rrq = obj_rrq;
 
-	if (!bAlreadyRegistered) { 
+	if (bAlreadyRegistered) { 
+		if (bHasEndpointId)
+			ep->SetEndpointIdentifier(NewEndpointId);
+		if (bHasAlias)
+			EndpointTable->UpdateAliasBySignalAdr(SignalAdr, NewAliases);
+		ep->Refresh();
+	} else {
 		H225_RegistrationRequest & store_rr = store_rrq;
 		
 		// we want to use the same 'endpoint id' in all GKs
@@ -556,10 +554,6 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			if (NewAliasStr != "")
 				EndpointTable->AddAlias(NewAliasStr);
 		}
-	}
-	else if ( bHasAlias ) {
-		// this registration request only updates the alias
-		EndpointTable->UpdateAliasBySignalAdr(SignalAdr, NewAliases);
 	}
 	
 	obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
@@ -580,7 +574,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	{
 		rcf.IncludeOptionalField(rcf.e_timeToLive);
 		rcf.m_timeToLive = TimeToLive;
-	};
+	}
 
 
 	// Alternate GKs
@@ -1244,7 +1238,7 @@ void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address r
 }
 
 
-void H323RasSrv::HandleConnections(void)
+void H323RasSrv::Main(void)
 {
 	PString err_msg("ERROR: Request received by gatekeeper: ");   
 	PTRACE(2, "GK\tEntering connection handling loop");
@@ -1252,9 +1246,9 @@ void H323RasSrv::HandleConnections(void)
 	if (GKroutedSignaling)
 		sigListener = new SignalChannel(1000, GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
 	listener.Listen(GKHome, 
-					GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
-					listener.GetPort(), 
-					PSocket::CanReuseAddress);
+			GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH), 
+			listener.GetPort(), 
+			PSocket::CanReuseAddress);
 	if (!listener.IsOpen())
 	{
 		PTRACE(1,"GK\tBind to RAS port failed!");
@@ -1370,8 +1364,6 @@ void H323RasSrv::HandleConnections(void)
 
 		if (ShallSendReply)
 			SendReply( obj_rpl, rx_addr, rx_port, listener );
-
-		EndpointTable->CheckEndpoints(TimeToLive);
 	}
 }
 

@@ -62,6 +62,9 @@ class Gatekeeper : public PProcess
 	/** print the available command-line-options **/
 	void PrintOpts(void);
 
+	/** do some routines **/
+	void HouseKeeping(void);
+
 	//@}
 
 };

@@ -27,19 +27,17 @@ class resourceManager;
 class GkStatus;
 
 
-class H323RasSrv : public PObject 
+class H323RasSrv : public PThread 
 {
-  PCLASSINFO(H323RasSrv, PObject)
+  PCLASSINFO(H323RasSrv, PThread)
 
 public:
 	H323RasSrv(PIPSocket::Address GKHome);
 	virtual ~H323RasSrv();
 	void Close(void);
 
-	// Close the listener terminate the HandleConnections loop
-	void Shutdown(void) { listener.Close(); }
+	void Main(void);  // original HandleConnections(); 
 
-	void HandleConnections(void); 
 	void UnregisterAllEndpoints(void);
 
 	// set signaling method
@@ -111,9 +109,3 @@ protected:
 };
 
 #endif
-
-
-
-
-
-

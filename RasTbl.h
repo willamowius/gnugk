@@ -106,8 +106,6 @@ public:
 	{ return m_terminalType; }
 	void SetEndpointType(const H225_EndpointType &t)
 	{ m_terminalType = t; }
-	bool IsRegistered() const
-	{ return m_registered; }
 
 	/** If this Endpoint would be register itself again with all the same data
 	 * how would this RRQ would look like? May be implemented with a 
@@ -117,8 +115,11 @@ public:
 	{ return m_completeRegistrationRequest; }
 
 	bool IsGateway() const
-	{ return static_cast<bool>(m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)); }
+	{ return (bool)m_terminalType.HasOptionalField(H225_EndpointType::e_gateway); }
 
+	bool IsRegistered() const
+	{ return m_registered; }
+	bool IsUsed() const; //{ return (m_usedCount != 0); }
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 	void Refresh() { m_updatedTime = PTime(); }
 
@@ -142,7 +143,7 @@ private:
 
 	bool m_registered;
 	int m_usedCount;
-	PMutex m_usedLock;
+	mutable PMutex m_usedLock;
 
 	PTime m_updatedTime;
 };
@@ -158,6 +159,7 @@ public:
 	endpointRec *operator->() const { return ep; }
 
 	bool operator==(const endptr &e) const { return ep == e.ep; }
+	bool operator!=(const endptr &e) const { return ep != e.ep; }
 
 private:
 	endpointRec &operator*();
