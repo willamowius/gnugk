@@ -115,10 +115,8 @@ versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323
 addpasswd: $(OBJDIR)/addpasswd.o
 	$(CXX) -o $(OBJDIR)/addpasswd $(CFLAGS) $(OBJDIR)/addpasswd.o $(LDFLAGS) -l$(PTLIB_BASE)$(LIB_TYPE) $(ENDLDLIBS) $(ENDLDFLAGS)
 
-doc:	docs/manual.sgml
-	cd docs; sgml2html manual.sgml; \
-	which bg5sgml2html > /dev/null 2>&1 && \
-	bg5sgml2html manual-zh.sgml || true
+doc:
+	$(MAKE) -C docs/manual html
 
 #
 # By this command the build number may be incremented
