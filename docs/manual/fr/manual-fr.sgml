@@ -15,13 +15,13 @@
 
 <!ENTITY monitoring SYSTEM "monitoring.sgml">
 ]>
-<!-- French translation from manual.sgml v1.83 -->
+<!-- French translation from manual.sgml v1.1 -->
 <!-- Ceci est le Manuel Utilisateur de OpenH323 Gatekeeper - The GNU Gatekeeper -->
 
 <article>
 <!-- Title information -->
 <title>OpenH323 Gatekeeper - The GNU Gatekeeper
-<author>Mainteneur de ce manuel:
+<author>Mainteneur de la version anglaise de ce manuel:
 <htmlurl url="http://www.willamowius.de/" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
@@ -49,4 +49,3 @@ OpenH323 Gatekeeper - The GNU Gatekeeper.
 &monitoring;
 
 </article>
-
