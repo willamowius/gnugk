@@ -27,6 +27,7 @@
 #endif
 
 #include <map>
+#include "gk_const.h"
 #include "Toolkit.h"
 #include "Routing.h"
 

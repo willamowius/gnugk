@@ -20,7 +20,6 @@
 #endif
 
 #include "GkClient.h"
-#include "gk_const.h"
 #include "RasPDU.h"
 #include "RasSrv.h"
 #include "stl_supp.h"
