@@ -117,7 +117,7 @@ RadAuth/RadAliasAuth modules can now add/remove endpoint aliases
 during endpoint registration (see radauth.txt for more info).
 
 <item>
-added utilities to the contrib dir that allow the gnugk ro run 
+added utilities to the contrib dir that allow the gnugk ro run
 as a Windows service process. Thanks to Franz J Ehrengruber!
 
 <item>
@@ -159,8 +159,8 @@ Commandline option (-u) to change the gatekeeper process owner.
 Improved virtual queues.
 
 <item>
-Full pre-paid support - both for registered endpoints (ARQ) 
-and for unregistered endpoints (Q.931 Setup). Call duration limit 
+Full pre-paid support - both for registered endpoints (ARQ)
+and for unregistered endpoints (Q.931 Setup). Call duration limit
 is fully supported by RADIUS authenticators at the moment.
 </itemize>
 
@@ -239,7 +239,7 @@ media channels and T.120 data channels. Logical channels opened by H.245
 tunnelling and fast-connect procedure are also supported. In proxy mode,
 there is no traffic between the calling and called parties directly. Thus
 it is very useful if you have some endpoints using private IP behind an
-NAT box and some endpoints using public IP outside the box. 
+NAT box and some endpoints using public IP outside the box.
 
 <item>
 Support gatekeepers cluster by exchanging LRQ/LCF/LRJ (neighboring function).
@@ -367,11 +367,11 @@ Order of compiling:
 <item>The Gatekeeper
 </enum>
 
-On Unix do a <tt/configure/ and <tt/make debug/ or <tt/make opt/ 
+On Unix do a <tt/configure/ and <tt/make debug/ or <tt/make opt/
 in the gatekeeper directory to build debug or release version, respectively.
 Use <tt/make both/ to build both versions.
 Note you have to use GCC 2.95.2 or later. The older version may not work.
-Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/ 
+Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/
 in the gatekeeper directory before starting actual compilation (make debug or
 make opt) - these commands build approtiate dependency lists, so after
 you will update your sources from CVS, all affected files will get recompiled.
@@ -595,6 +595,37 @@ gw1=0
 12345=08765
 </verb></tscreen>
 
+You can also configure rewriting of E.164 numbers based on which gateway
+you are receiving a call from or sending a call to using the
+<ref id="gwrewrite" name="RasSrv::GWRewriteE164"> section.
+
+Example:
+You have two different gateways ("gw1" and "gw2") which you are sending
+calls with prefix 0044 to, but which require a different prefix to be
+added to the number after the routing has selected the gateway. This
+might be for identification purposes for example.
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+gw1=0044
+gw2=0044
+
+[RasSrv::GWRewriteE164]
+gw1=out=0044=77770044
+gw2=out=0044=88880044
+</verb></tscreen>
+
+Example:
+You want to identify calls from a particular gateway "gw1" with a specific
+prefix before passing these calls to another gateway "gw2".
+
+<tscreen><verb>
+[RasSrv::GWPrefixes]
+gw2=1
+
+[RasSrv::GWRewriteE164]
+gw1=in=00=123400
+</verb></tscreen>
 
 <!----------          Reference Section          ---------->
 <sect>Using the Gatekeeper (Reference)
@@ -1075,7 +1106,7 @@ Timeout value in milliseconds to wait before removing
 unconnected calls from the call table. This is a guard timer
 that does not allow unconnected calls to hang forever
 in the call table.
-Note that making this value too short may result 
+Note that making this value too short may result
 in calls dropped before answered.
 </itemize>
 
@@ -1158,8 +1189,8 @@ from the same NAT box can communicate with each other.
 <sect2>Section &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
 <p>
-This section explains how the various possible routing 
-policies within the gatekeeper work. 
+This section explains how the various possible routing
+policies within the gatekeeper work.
 
 The incoming call requests can be routed using a number
 of routing providers:
@@ -1208,19 +1239,19 @@ h323_ID=dns,internal<newline>
 Default=internal,neighbor,parent</tt></quote>
 </descrip>
 
-When one of the messages is received which calls for a routing 
+When one of the messages is received which calls for a routing
 decision, all calls to an alias of the h323_ID type will be
-resolved using DNS. If DNS fails to resolve the alias, it is 
-matched against the internal registration table. If a call is 
-requested to an alias starting with 002, first the neighbours 
+resolved using DNS. If DNS fails to resolve the alias, it is
+matched against the internal registration table. If a call is
+requested to an alias starting with 002, first the neighbours
 are checked and then the internal registration table. If the
-requested alias is not an h323_ID or an alias starting with 
-002, the default policy is used by querying the internal 
+requested alias is not an h323_ID or an alias starting with
+002, the default policy is used by querying the internal
 registration table, then the neighbours, and if that fails the
 parent.
 
-For the ARQ, LRQ, Setup and Facility messages one would use the 
-[RoutingPolicy::OnARQ], [RoutingPolicy::OnLRQ], 
+For the ARQ, LRQ, Setup and Facility messages one would use the
+[RoutingPolicy::OnARQ], [RoutingPolicy::OnLRQ],
 [RoutingPolicy::OnSetup] and [RoutingPolicy::OnFacility] sections
 using the syntax explained above.
 
@@ -1322,6 +1353,53 @@ Default: <tt>N/A</tt>
 Only rewrite dialDigits beginning with the specified prefix.
 </itemize>
 
+<sect2>Section &lsqb;RasSrv::GWRewriteE164&rsqb;
+<label id="gwrewrite">
+<p>
+This section describes rewriting the dialedDigits E.164 number depending on
+the gateway a call has come from or is being sent to. This allows for more
+flexible manipulation of the dialedDigits for routing etc. In combination
+with the <ref id="rewrite" name="RasSrv::RewriteE164"> you can have triple
+stage rewriting:
+
+<tscreen><verb>
+Call from "gw1", dialedDigits 0867822
+		|
+		|
+		V
+Input rules for "gw1", dialedDigits now 550867822
+		|
+		|
+		V
+Global rules, dialedDigits now 440867822
+		|
+		|
+		V
+Gateway selection, dialedDigits now 440867822, outbound gateway "gw2"
+		|
+		|
+		V
+Output rules for "gw2", dialedDigits now 0867822
+		|
+		|
+		V
+Call to "gw2", dialedDigits 0867822
+</verb></tscreen>
+
+<descrip>
+<tag/Format:/
+<tt>gw-alias=in|out=[!]original-prefix=target-prefix</tt>
+<p>
+If the call matches the gateway, the direction and begins with
+<tt/original-prefix/ it is rewritten to <tt/target-prefix/.
+If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
+<tag/Example:/
+<tt/gw1=in=123=321/
+<p>
+If receive a call from "gw1" to <tt/12377897/, it is rewritten to <tt/32177897/
+before further action is taken.
+</descrip>
+
 <sect2>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
 <p>
 In this section you can put endpoints that don't have RAS support
@@ -1344,7 +1422,7 @@ For terminal,
 <p>
 If the destination of an ARQ is unknown, the gatekeeper sends LRQs to
 its neighbors to ask if they have the destination endpoint.
-A neighbor is selected if one of its prefixes matches the destination 
+A neighbor is selected if one of its prefixes matches the destination
 or it has ``<tt/*/'' prefix. More than one prefix can be specified.
 
 Conversely, the gatekeeper will only reply to LRQs sent from neighbors
@@ -1573,10 +1651,10 @@ This option defines whether to accept the specified prefixes of a gateway.
 <item><tt/OverwriteEPOnSameAddress=1/<newline>
 Default: <tt/0/
 <p>
-In some networks an endpoint's IP address may change unexpectedly.  This 
+In some networks an endpoint's IP address may change unexpectedly.  This
 may happen when an endpoint is using a PPP connection (e.g. modem or ADSL).
 This option defines how to handle a registration request (RRQ) from an IP
-address which does not match what we have stored.  The default action is 
+address which does not match what we have stored.  The default action is
 to reject the request.  With this option enabled the conflicting request
 will cause an unregister request (URQ) to be sent for the existing IP
 address and the entry to be removed allowing the endpoint to register
@@ -1650,10 +1728,10 @@ Default: <tt/0/
 <p>
 A time interval (seconds) for accounting updates to be logged
 for each call in progress. The exact details of the accounting updates
-depend on accounting logger modules selected (see section 
+depend on accounting logger modules selected (see section
 <ref id="gkacct" name="[Gatekeeper::Acct]">). In general, the accounting
 update is to provide backend services with incrementing call duration
-for connected calls. 
+for connected calls.
 The default value 0 tells the gatkeeper to not send accounting updates
 at all. Please note that setting short periods may decrease GK performance.
 </itemize>
@@ -1810,7 +1888,7 @@ authrule=actions
  <control>  := optional | required | sufficient
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
  <q931>     := Setup
- 
+
 </verb></tscreen>
 </descrip>
 A rule may results in one of the three codes: ok, fail, pass.
@@ -1821,7 +1899,7 @@ A rule may results in one of the three codes: ok, fail, pass.
 </itemize>
 There are also three ways to control a rule:
 <itemize>
-<item><tt/optional/ - If the rule cannot determine the request, it is passed to next rule. 
+<item><tt/optional/ - If the rule cannot determine the request, it is passed to next rule.
 <item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passwd to next rule.
 <item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
 </itemize>
@@ -1832,7 +1910,7 @@ Currently supported modules:
 <p>
 These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
 The tokens should contain at least generalID and password.
-For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and 
+For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
 <bf/nestedcryptoToken/ tokens hashed by HMAC-SHA1-96 (libssl must be installed!)
 are supported now. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
 and a clear text username/password are supported now.
@@ -1871,17 +1949,17 @@ AdmissionRequest (ARQ) and LocationRequest (LRQ).
 Provides authentication based on H.235 username/password
 security scheme. Authenticates RRQs and/or ARQs through remote
 RADIUS servers. It passes to RADIUS servers usernames and passwords
-extracted from CAT (Cisco Access Tokens) <bf/tokens/ carried 
+extracted from CAT (Cisco Access Tokens) <bf/tokens/ carried
 inside RRQ and ARQ packets. Therefore if your endpoints do not
 support CATs or you do not need authentication scheme based on
 individually assigned usernames/password - this module will not
-work for you (but you may check <tt/RadAliasAuth/ module). 
+work for you (but you may check <tt/RadAliasAuth/ module).
 See section <ref id="radauth" name="[RadAuth]"> for details.
 
 <item><tt>RadAliasAuth</tt>
 <p>
 Provides authentication based on endpoint aliases
-and/or call signalling IP addresses with remote RADIUS servers. 
+and/or call signalling IP addresses with remote RADIUS servers.
 It does not need any H.235 <bf/tokens/ inside RAS messages,
 so it can be used on a wider range of systems as compared to <tt/RadAuth/.
 RRQ, ARQ and Q.931 Setup messages can be authenticated using this module.
@@ -2000,7 +2078,7 @@ SELECT $DataField FROM $Table WHERE $KeyField = %id [AND $ExtraCriterion]
 <p>
 Specify an external program to retrieve the password.
 The program should accept ID from stdin and print the password to stdout.
-You can use this mechanism to integrate almost any external system for authentication. 
+You can use this mechanism to integrate almost any external system for authentication.
 But beware, this is not the fastest way to authenticate. <tt/This module is depreceated/.
 
 <itemize>
@@ -2017,7 +2095,7 @@ Specify the action on RRQ reception (confirm or deny) for <tt/AliasAuth/ module.
 The first alias (this will mostly be an H323ID) of the endpoint to
 register is looked up in this section. If a parameter is found the value will
 apply as a rule. A rule consists of conditions separated by "&".
-A registration is accepted when all conditions apply. 
+A registration is accepted when all conditions apply.
 
 <descrip>
 <tag/Syntax:/
@@ -2176,9 +2254,9 @@ is useful only for endpoints registered at the gatekeeper.
 <item><tt/Servers=SERVER1[:AUTH_PORT];SERVER2[:AUTH_PORT];.../<newline>
 Default: <tt>N/A</tt>
 <p>
-RADIUS servers to be used for authentication RAS requests. 
-The list can contain an arbitrary number of servers. 
-The order of servers is important, because servers will be queried 
+RADIUS servers to be used for authentication RAS requests.
+The list can contain an arbitrary number of servers.
+The order of servers is important, because servers will be queried
 by the RADIUS module in the order given. If no port information is given,
 port number from <tt/DefaultAuthPort/ will be used.
 If these attributes are not set, then os services file will be queried
@@ -2207,7 +2285,7 @@ Default: <tt>N/A</tt>
 <p>
 By default (if this option is not set) RADIUS client
 allocates ports dynamically as specified by the operating system.
-If you want to restrict RADIUS client to use ports from 
+If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
@@ -2225,7 +2303,7 @@ server. It should be a cryptographically strong password.
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
 <p>
-Timeout (miliseconds) for RADIUS server response to a request 
+Timeout (miliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
@@ -2246,8 +2324,8 @@ and therefore drop it.
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
 Default: <tt/60000/ (miliseconds) - 60 s
 <p>
-Timeout for unused RADIUS sockets to be closed. It is used 
-in conjunction with <tt/IdCacheTimeout/ - additional sockets 
+Timeout for unused RADIUS sockets to be closed. It is used
+in conjunction with <tt/IdCacheTimeout/ - additional sockets
 created during heavy GK load time periods for serving incoming
 requests are closed during idle periods.
 
@@ -2262,7 +2340,7 @@ method is defined by <tt/RoundRobinServers/ attribute.
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
 Default: <tt/1/
 <p>
-RADIUS requests retransmission method. 
+RADIUS requests retransmission method.
 <p>
 If set to 1, RADIUS request
 is transmitted in the following way (until response is received):
@@ -2315,16 +2393,16 @@ field or call signal address reported by the gatekeeper registration table.
 <p>
 This section defines configuration settings that enable
 RADIUS authentication based on endpoint aliases and/or IP adresses
-present in RRQ RAS requests, ARQ RAS request or Q.931 Setup request. 
-This authentication scheme is useful both for endpoints registered 
+present in RRQ RAS requests, ARQ RAS request or Q.931 Setup request.
+This authentication scheme is useful both for endpoints registered
 at the gatekeeper (ARQ,RRQ) and calls from unregistered endpoints (Setup).
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT];SERVER2[:AUTH_PORT];.../<newline>
 Default: <tt>N/A</tt>
 <p>
-RADIUS servers to be used for RAS requests authentication. 
-This list can contain an arbitrary number of servers. 
-The order of servers is important, because servers will be queried 
+RADIUS servers to be used for RAS requests authentication.
+This list can contain an arbitrary number of servers.
+The order of servers is important, because servers will be queried
 by the RADIUS module in the order given. If no port information is given,
 port number from <tt/DefaultAuthPort/ will be used.
 If these attributes are not set, then os services file will be queried
@@ -2353,7 +2431,7 @@ Default: <tt>N/A</tt>
 <p>
 By default (if this option is not set) RADIUS client
 allocates ports dynamically as specified by the operating system.
-If you want to restrict RADIUS client to use ports from 
+If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
@@ -2371,7 +2449,7 @@ server. It should be a cryptographically strong password.
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
 <p>
-Timeout (miliseconds) for RADIUS server response to a request 
+Timeout (miliseconds) for RADIUS server response to a request
 sent by GNU GK. If no response is received within this time period,
 next RADIUS server is queried.
 
@@ -2392,8 +2470,8 @@ and therefore drop it.
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
 Default: <tt/60000/ (miliseconds) - 60 s
 <p>
-Timeout for unused RADIUS sockets to be closed. It is used 
-in conjunction with <tt/IdCacheTimeout/ - additional sockets 
+Timeout for unused RADIUS sockets to be closed. It is used
+in conjunction with <tt/IdCacheTimeout/ - additional sockets
 created during heavy GK load time periods for serving incoming
 requests are closed during idle periods.
 
@@ -2408,7 +2486,7 @@ method is defined by <tt/RoundRobinServers/ attribute.
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
 Default: <tt/1/
 <p>
-RADIUS requests retransmission method. 
+RADIUS requests retransmission method.
 <p>
 If set to 1, RADIUS request
 is transmitted in the following way (until response is received):
@@ -2475,7 +2553,7 @@ always set to the value of <tt/FixedPassword/.
 <tscreen><verb>
 (Neither FixedUsername nor FixedPassword set)
 </verb></tscreen>
-All endpoints will be authenticated using their alias as the username 
+All endpoints will be authenticated using their alias as the username
 and the password. That means, for example, endpoint 'EP1' will be authenticated
 with the username 'EP1 and the password 'EP1'.
 </descrip>
@@ -2495,7 +2573,7 @@ All endpoints will be authenticated using their alias and the password 'ppp'.
 FixedUsername=ppp
 FixedPassword=ppp
 </verb></tscreen>
-All endpoints will be authenticated using the username 'ppp' 
+All endpoints will be authenticated using the username 'ppp'
 and the password 'ppp'.
 </descrip>
 
@@ -2522,7 +2600,7 @@ For now, only a single value is allowed here.
 
 <item><tt/H235PassWord/<newline>
 <p>
-The plain text password to be compared against when using H.235 
+The plain text password to be compared against when using H.235
 (<tt/LDAPPasswordAuth/ in Gatekeeper::Auth).
 For now, only a single value is allowed here.
 </itemize>
@@ -2584,7 +2662,7 @@ The section defines a list of modules that will be performing accounting.
 The accounting is for logging gatekeeper on/off events and call start/stop/update
 events. Each accounting module logs received events to a module specific storage.
 Such storage can be a plain text file or a RADIUS server and many
-more. The configuration is very similar to the one for gatekeeper authentication 
+more. The configuration is very similar to the one for gatekeeper authentication
 (see <ref id="gkauth" name="[Gatekeeper::Auth]">).
 
 
@@ -2607,7 +2685,7 @@ with the given accounting module (if an event type is supported by the module):
 <item><tt/start/ - a call has been started (that does not mean it has been
 	connected - either Setup message has been received or ACF has been sent
 	in direct GK mode),
-<item><tt/update/ - a call is active and the periodic update is performed 
+<item><tt/update/ - a call is active and the periodic update is performed
 	to reflect the new call duration. Frequency of such updates is determined
 	by <bf/AcctUpdateInterval/ variable from <ref id="calltable" name="[CallTable]">
 	section,
@@ -2615,7 +2693,7 @@ with the given accounting module (if an event type is supported by the module):
 <item><tt/on/ - the gatekeeper has been started,
 <item><tt/off/ - the gatekeeper has been shut down.
 </itemize>
-An event logging by a module may results in one of the three result codes: 
+An event logging by a module may results in one of the three result codes:
 <bf/ok/, <bf/fail/, <bf/next/.
 <itemize>
 <item><tt/ok/ - the event has been logged successfully by this module,
@@ -2642,7 +2720,7 @@ The following <bf/control/ flags are recognized:
 						Otherwise the final status is set to failure and the event
 						is passed down to any remaining modules,
 <item><tt/alternative/ - if the module logs an event successfully, no remaining
-                         modules are processed. Otherwise the final status is 
+                         modules are processed. Otherwise the final status is
 						 not modified and the event is passed down to any remaining
 						 modules.
 </itemize>
@@ -2652,15 +2730,15 @@ Currently supported accounting modules:
 <item><tt>FileAcct</tt>
 <label id="fileacct">
 <p>
-A plain CDR text file logger. It outputs status line like CDR lines to 
-a specified text file. This module supports only <bf/stop/ accounting event. 
+A plain CDR text file logger. It outputs status line like CDR lines to
+a specified text file. This module supports only <bf/stop/ accounting event.
 Configuration settings are read from <ref id="fileacct" name="[FileAcct]"> section.
 
 <item><tt>RadAcct</tt>
 <label id="radacct">
 <p>
 This module performs RADIUS accounting. It supports all event types
-(start, stop, update, on, off). 
+(start, stop, update, on, off).
 See the section <ref id="radacct" name="[RadAcct]"> for configuration details.
 
 <item><tt>default</tt>
@@ -2710,8 +2788,8 @@ server, if it fails for call stop event, use a CDR file to store call info):
 <tt/default=fail;start/<newline>
 </descrip>
 The <bf/default/ rule is optional here. If RadAcct returns <bf/fail/
-return code for <bf/start/ event, the code is passed down to FileAcct module. 
-FileAcct module does not support <bf/start/ events, so it returns <bf/next/ 
+return code for <bf/start/ event, the code is passed down to FileAcct module.
+FileAcct module does not support <bf/start/ events, so it returns <bf/next/
 return code. The <bf/default/ rule ensures, that the call is disconnected
 if call start event could not has been logged with RadAcct. But we want
 to store a CDR in a text file in case the RADIUS server is down when the call
@@ -2761,7 +2839,7 @@ for more details on the parameters).
 <item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT];SERVER2[:AUTH_PORT:ACCT_PORT];.../<newline>
 Default: <tt>N/A</tt>
 <p>
-RADIUS servers to send accounting data to. 
+RADIUS servers to send accounting data to.
 If no port information is given,
 port number from <tt/DefaultAcctPort/ is be used.
 If these attributes are not set, then OS services file will be queried
@@ -2778,13 +2856,13 @@ Default: <tt>N/A</tt>
 <p>
 By default (if this option is not set) RADIUS client
 allocates ports dynamically as specified by the operating system.
-If you want to restrict RADIUS client to use ports from 
+If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAcctPort=PORT_NO/<newline>
 Default: <tt>An entry for 'radius' service in services file or 1813</tt>
 <p>
-Default port number to be used for RADIUS accounting requests, 
+Default port number to be used for RADIUS accounting requests,
 if not overriden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
@@ -2796,7 +2874,7 @@ server. It should be a cryptographically strong password.
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
 <p>
-Timeout (miliseconds) for RADIUS server response to a request 
+Timeout (miliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
@@ -2804,12 +2882,12 @@ next RADIUS server is queried.
 Default: <tt/9000/ (miliseconds)
 <p>
 Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
-unique. 
+unique.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
 Default: <tt/60000/ (miliseconds) - 60 s
 <p>
-Timeout for unused RADIUS sockets to be closed. 
+Timeout for unused RADIUS sockets to be closed.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
 Default: <tt/2/
@@ -2820,7 +2898,7 @@ configured RADIUS server (if no response is received).
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
 Default: <tt/1/
 <p>
-RADIUS requests retransmission method. 
+RADIUS requests retransmission method.
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
 Default: <tt/0/
@@ -3026,7 +3104,7 @@ The program is available at
 <url url="http://www.gnugk.org/h323gui.html">
 
 <item>GkGUI<p>
-A new standalone Java program developed by 
+A new standalone Java program developed by
 <url url="http://www.citron.com.tw/" name="Citron Network Inc.">
 It requires Java 1.4. New features include:
 
@@ -3500,7 +3578,7 @@ finds the right one for you to use to call a specific number.
 
 A gatekeeper can also manage the bandwidth used by the clients.
 Currently we grant all bandwidth requests until a predefined limit is reached.
-In the future we could implement a more detailed schema. 
+In the future we could implement a more detailed schema.
 
 <item>What OS do I need to compile / run the gatekeeper?
 <p>
