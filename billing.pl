@@ -6,6 +6,8 @@ use strict;
 
 use IO::Socket;
 
+print "THIS IS NO REAL BILLING APPLICATION, JUST A DEMO HOW TO CONNECT TO THE GATEKEEPER.\nWRITE YOUR OWB CLIENT TO USE THE CDR MESSAGES!\n";
+
 if (@ARGV != 1) {
 	print "usage: billing.pl <gatekeeper_host>\n";
 	exit(1);
