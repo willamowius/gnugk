@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- BUGFIX(RasTbl.cxx) multithreading issues with an access to endpoint record
+  data fixed. Thanks to kubuqi cn!
 - BUGFIX(ProxyChannel.cxx) RTP proxy handling moved to a separate RTP proxy
   threads. New RtpHandlerNumber config option
 - BUGFIX(yasocket.cxx) enabled REUSE_ADDRESS option on listening sockets
