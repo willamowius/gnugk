@@ -205,6 +205,12 @@ void UnixReloadHandler(int sig) // For HUP Signal
 	ReloadHandler();
 }
 
+void UnixReloadConfigHandler(int sig) // For USR1 Signal
+{
+	PTRACE(1, "GK\tGatekeeper USR1 (signal " << sig << ")");
+	ReloadHandler();
+}
+
 #endif
 
 
@@ -256,7 +262,7 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 	signal(SIGTERM, UnixShutdownHandler);
 	signal(SIGINT, UnixShutdownHandler);
 	signal(SIGQUIT, UnixShutdownHandler);
-	signal(SIGUSR1, UnixShutdownHandler);
+	signal(SIGUSR1, UnixReloadConfigHandler);
 
 	struct sigaction sa;
 	sigemptyset(&sa.sa_mask);
