@@ -1235,16 +1235,20 @@ void CallRec::SendReleaseComplete()
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable()) {
-		m_callingSocket->MarkBlocked(TRUE);
-		PTRACE(4, "Sending ReleaseComplete to calling party ...");
+		//m_callingSocket->MarkBlocked(TRUE);
+		m_callingSocket->Lock();
+		PTRACE(4, "Sending ReleaseComplete to calling party ..." << m_callingSocket);
 		m_callingSocket->SendReleaseComplete();
 		m_callingSocket->MarkBlocked(FALSE);
+		m_callingSocket->Unlock();
 	}
 	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable()) {
-		m_calledSocket->MarkBlocked(TRUE);
+		m_calledSocket->Lock();
+		//m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete();
 		m_calledSocket->MarkBlocked(FALSE);
+		m_calledSocket->Unlock();
 	}
 }
 
