@@ -1374,9 +1374,7 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			// if it is the first ARQ then add the rest of informations in callRec
 			if (!obj_arq.m_answerCall) {
 				pExistingCallRec->SetBandwidth(BWRequest);
-				int timeout = GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0);
-				pExistingCallRec->SetTimer(timeout);
-				pExistingCallRec->StartTimer();
+				// No Timerhandling for called Party.
 // Routed mode is now in class RasSrv.
 //				pExistingCallRec->SetH245Routed(GKRoutedH245);
 				if (!GKRoutedSignaling) {
@@ -1394,17 +1392,23 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID,
 							destinationInfoString, AsString(obj_arq.m_srcInfo),
 							BWRequest, GKRoutedH245);
-			int timeout = GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0);
-			pCallRec->SetTimer(timeout);
-			pCallRec->StartTimer();
-
 			pCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
 
 			if (!obj_arq.m_answerCall) // the first ARQ
 				pCallRec->SetCalling(RequestingEP, obj_arq.m_callReferenceValue);
 			if (!GKRoutedSignaling)
 				pCallRec->SetConnected(true);
+
+			pCallRec->Lock();
+
 			CallTable::Instance()->Insert(pCallRec);
+
+			int timeout = (pCallRec->GetCallingProfile().GetCallTimeout()>=0 ?
+				       pCallRec->GetCallingProfile().GetCallTimeout() :
+				       GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0));
+			pCallRec->SetTimer(timeout);
+			pCallRec->StartTimer();
+			pCallRec->Unlock();
 		}
 
 		if ( GKRoutedSignaling ) {

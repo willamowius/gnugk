@@ -1047,6 +1047,8 @@ CallRec::~CallRec()
  		PTRACE(3, cdrString);
 	}
 
+	// Writeback the timeout
+	// GkDatabase::Instance()->WriteCallTimeout(m_timer.GetInterval());
 	m_usedLock.Wait();
         delete m_callingProfile;
         delete m_calledProfile;
@@ -1072,9 +1074,9 @@ void CallRec::Unlock()
 
 void CallRec::SetConnected(bool c)
 {
-	PTime *ts = (c) ? new PTime : 0;
+	PTime *ts = (c) ? new PTime : NULL;
 	delete m_startTime;
-	if ((m_startTime = ts) != 0)
+	if ((m_startTime = ts) != NULL)
 		StartTimer();
 	else
 		StopTimer();
@@ -1096,9 +1098,8 @@ void CallRec::StartTimer()
 {
 	if (m_timeout > 0) {
 		PWaitAndSignal lock(m_usedLock);
-		m_timer = PTime();
-//		m_timer = new PTimer(0, m_timeout);
-//		m_timer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+		m_timer = PTimer(0, m_timeout);
+		m_timer.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
 	}
 }
 
@@ -1138,13 +1139,20 @@ CallingProfile & CallRec::GetCallingProfile()
 	return *m_callingProfile;
 }
 
-/*
+
 void CallRec::OnTimeout()
 {
 	PTRACE(2, "GK\tCall No. " << m_CallNumber << " timeout!");
 	Disconnect();
 }
-*/
+
+void CallRec::OnTimeout(PTimer &timer, int extra) {
+	PTRACE(1, "CallRec::OnTimer(): " << timer << " : " << extra);
+	if(timer.GetInterval()==0.0)
+		OnTimeout();
+
+}
+
 
 void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, unsigned ncrv)
 {
@@ -1453,13 +1461,14 @@ PString CallRec::GenerateCDR()
 		       (const char *)((PString)calledPN),
 		       static_cast<unsigned int>(GetCalledProfile().GetAssumedDialedPN_TON()),
 		       static_cast<const char *>(GetCalledProfile().GetAssumedDialedPN())
+		       //, m_timer.GetInterval();
 		);
 }
 
 PString CallRec::PrintOn(bool verbose) const
 {
-	int time = (PTime() - m_timer).GetSeconds();
-	int left = (m_timeout > 0 ) ? m_timeout - time : 0;
+	int time = m_timeout - m_timer.GetSeconds();
+	int left = (m_timeout > 0 ) ? m_timer.GetSeconds() : 0;
 	PString result(PString::Printf,
 		       "Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
 		       m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), time, left,
@@ -1567,6 +1576,8 @@ void CallTable::ClearTable()
 
 void CallTable::CheckCalls()
 {
+
+	/*
 	PTime now;
 	WriteLock lock(listLock);
 	iterator Iter = CallList.begin(), eIter = CallList.end();
@@ -1581,6 +1592,9 @@ void CallTable::CheckCalls()
 	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
 	for_each(Iter, RemovedList.end(), delete_call);
 	RemovedList.erase(Iter, RemovedList.end());
+	*/
+
+	// The CallRec-Object does housekeeping on his own (via PTimer timeout);
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)

@@ -443,7 +443,7 @@ private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, unsigned &, const endptr &, unsigned);
 
-//	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
+	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
 	void OnTimeout();
 
 	H225_CallIdentifier m_callIdentifier;
@@ -461,7 +461,8 @@ private:
         CallingProfile *m_callingProfile;
         CalledProfile  *m_calledProfile;
 
-	PTime *m_startTime, m_timer;
+	PTime *m_startTime;
+	PTimer m_timer;
 	int m_timeout;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
@@ -659,7 +660,8 @@ inline bool CallRec::IsConnected() const
 
 inline bool CallRec::IsTimeout(const PTime *now) const
 {
-	return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > (long)m_timeout));
+	return m_timer.GetInterval()>0;
+	//return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > (long)m_timeout));
 }
 
 inline bool CallRec::IsH245Routed() const
