@@ -236,15 +236,16 @@ const PString Gatekeeper::GetArgumentsParseString() const
 {
 	return PString
 		("r-routed."
+		 "-h245routed."
 		 "d-direct."
-		 "b-bandwidth:"
 		 "i-interface:"
+		 "l-timetolive:"
+		 "b-bandwidth:"
 #ifdef PTRACING
 		 "t-trace."
 		 "o-output:"
 #endif
-		 "l-timetolive:"
-		 "c-configfile:"
+		 "c-config:"
 		 "s-section:"
 		 "-pid:"
 		 "h-help:"
@@ -334,10 +335,21 @@ void Gatekeeper::PrintOpts(void)
 {
 	PStringArray opts = GetArgumentsParseString().Tokenise(".:", FALSE);
 
-	cout << "Known options:" << endl;
-	for(PINDEX i=0; i< opts.GetSize(); i++){
-		cout << opts[i]<< endl;
-	}
+	cout << "Options:\n"
+		"  -r  --routed       : Use gatekeeper routed call signaling\n"
+		"  -rr --h245routed   : Use H.245 control channel routed\n"
+		"  -d  --direct       : Use direct endpoint call signaling\n"
+		"  -i  --interface IP : The IP that the gatekeeper listen to\n"
+		"  -l  --timetolive n : Time to live for client registration\n"
+		"  -b  --bandwidth n  : Specify the total bandwidth\n"
+#ifdef PTRACING
+		"  -t  --trace        : Set trace verbosity\n"
+		"  -o  --output file  : Write trace to this file\n"
+#endif
+		"  -c  --config file  : Specify which config file to use\n"
+		"  -s  --section sec  : Specify which main section to use in the config file\n"
+		"      --pid file     : Specify the pid file\n"
+		"  -h  --help         : Show this message\n" << endl;
 }
 
 
@@ -416,7 +428,7 @@ void Gatekeeper::Main()
 	RasThread = new H323RasSrv(GKHome);
 	// read signaling method from commandline
 	if (args.HasOption('r'))
-		RasThread->SetRoutedMode(true, args.GetOptionCount('r') > 1);
+		RasThread->SetRoutedMode(true, (args.GetOptionCount('r') > 1 || args.HasOption("h245routed")));
 	else if (args.HasOption('d'))
 		RasThread->SetRoutedMode(false, false);
 	else
