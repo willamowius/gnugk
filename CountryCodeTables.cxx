@@ -26,6 +26,15 @@
 #include <stddef.h>
 #include "CountryCodeTables.h"
 
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd.. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = COUNTRYCODESTABLES_H;
+#endif /* lint */
+
 using namespace ITU_T_E164_CodeTables;
 int a(){return 0;};
 const DictInitializer ITU_T_E164_CodeTables::AssignedCountyCodes[] = {

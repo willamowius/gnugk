@@ -13,8 +13,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef __GWRESTRICTIONS_H__
-#define __GWRESTRICTIONS_H__
+#ifndef GWRESTRICTIONS_H
+#define GWRESTRICTIONS_H "@(#) $Id$"
 
 #include "h225.h"
 #include "h323.h"

@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // GkClient.h
@@ -14,8 +15,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef __gkclient_h_
-#define __gkclient_h_
+#ifndef GKCLIENT_H
+#define GKCLIENT_H "@(#) $Id$"
 
 #ifndef _PTLIB_H
 #include <ptlib.h>

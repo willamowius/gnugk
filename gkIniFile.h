@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gkIniFile.h
@@ -16,8 +17,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef __gkIniFile_h_
-#define __gkIniFile_h_
+#ifndef GKINIFILE_H
+#define GKINIFILE_H "@(#) $Id$"
 
 #ifndef _PTLIB_H
 #include <ptlib.h>
@@ -64,4 +65,4 @@ private:
 	PConfig * m_cfg;
 };
 
-#endif  // __gkIniFile_h_
+#endif /* GKINIFILE_H */

@@ -17,8 +17,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef __gkauth_h_
-#define __gkauth_h_
+#ifndef GKAUTH_H
+#define GKAUTH_H "@(#) $Id$"
 
 
 #ifndef _PTLIB_H
@@ -222,4 +222,4 @@ private:
 };
 
 
-#endif  // __gkauth_h_
+#endif  /* GKAUTH_H */

@@ -14,8 +14,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef __rassrv_h_
-#define __rassrv_h_
+#ifndef RASSRV_H
+#define RASSRV_H "@(#) $Id$"
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>
@@ -281,4 +281,4 @@ inline void PendingList::Remove(iterator Iter)
 
 extern H323RasSrv *RasThread;  // I hate global object, but...
 
-#endif
+#endif /* RASSRV_H */

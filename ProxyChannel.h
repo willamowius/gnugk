@@ -15,8 +15,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef __proxychannel_h__
-#define __proxychannel_h__
+#ifndef PROXYCHANNEL_H
+#define PROXYCHANNEL_H "@(#) $Id$"
 
 #ifdef P_SOLARIS
 #define map stl_map
@@ -224,4 +224,4 @@ inline Q931 *CallSignalSocket::GetReceivedQ931() const
 	return m_receivedQ931;
 }
 
-#endif // __proxychannel_h__
+#endif // PROXYCHANNEL_H

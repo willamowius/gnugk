@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // H.323 utility functions that should migrate into the OpenH323 library
@@ -16,6 +17,15 @@
 #include "h323util.h"
 #include "h323pdu.h"
 //#include "q931.h"
+
+#ifndef lint
+// mark object with version info in such a way that it is retreivable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = H323UTIL_H;
+#endif /* lint */
 
 
 /*

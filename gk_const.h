@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gk_const.h	constants for gatekeeper ports etc.
@@ -15,7 +16,7 @@
 
 
 #ifndef GK_CONST_H
-#define GK_CONST_H
+#define GK_CONST_H "@(#) $Id$"
 
 /* all values can be set in the config file, section [Gatekeeper::<InstanceName>]
  * these are just the defaults
@@ -36,5 +37,5 @@
 #define GK_DEF_LISTEN_QUEUE_LENGTH		1024
 
 
-#endif
+#endif /* GK_CONST_H */
 

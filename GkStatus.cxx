@@ -32,6 +32,15 @@
 using std::for_each;
 using std::mem_fun;
 
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = GKSTATUS_H;
+#endif /* lint */
+
 // FIXME: this is very ugly because it is an import of local functions of
 //        gk.cxx which are not exported by gk.h
 void ReloadHandler(void);

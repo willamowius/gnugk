@@ -15,8 +15,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef __proxythread_h__
-#define __proxythread_h__
+#ifndef PROXYTHREAD_H
+#define PROXYTHREAD_H "@(#) $Id$"
 
 #include "rwlock.h"
 #include <list>
@@ -286,4 +286,4 @@ inline DWORD getpid()
 }
 #endif
 
-#endif // __proxythread_h__
+#endif // PROXYTHREAD_H

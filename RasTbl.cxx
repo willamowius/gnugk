@@ -41,6 +41,15 @@
 # include "gkldap.h"
 #endif
 
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = RASTBL_H;
+#endif /* lint */
+
 const char *CallTableSection = "CallTable";
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)

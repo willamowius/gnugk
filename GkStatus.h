@@ -17,7 +17,7 @@
 
 
 #ifndef GKSTATUS_H
-#define GKSTATUS_H
+#define GKSTATUS_H "@(#) $Id$"
 
 #if (_MSC_VER >= 1200)  
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off

@@ -18,8 +18,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef _singleton_h
-#define _singleton_h
+#ifndef SINGLETON_H
+#define SINGLETON_H "@(#) $Id$"
 
 // STL
 #include <list>
@@ -152,4 +152,4 @@ template<class T> SingletonBase *Singleton<T>::m_Instance=NULL;
 template<class T> PMutex Singleton<T>::m_CreationLock;
 
 
-#endif
+#endif /* SINGLETON_H */

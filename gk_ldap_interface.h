@@ -26,11 +26,8 @@
  * Non opaque part of the LDAP-C-API
  */
 
-
-
-
-#ifndef __GK_LDAP_H
-#define __GK_LDAP_H "@(#) $Id$"
+#ifndef GK_LDAP_H
+#define GK_LDAP_H "@(#) $Id$"
 
 #ifdef HAS_LEVEL_TWO_LDAPAPI
 # include <ldapapi.h>
@@ -577,7 +574,7 @@ void gk_ldap_cache_delete_oldest(GK_LDAP *ld);
 
 void gk_ldap_cache_delete(GK_LDAP *ld, int timeout, int maxmem);
 
-#endif /* __GK_LDAP_H */
+#endif /* GK_LDAP_H */
 //
 // End of gk_ldap_interface.h
 //

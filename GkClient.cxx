@@ -27,6 +27,15 @@
 #include "RasSrv.h"
 #include <h323pdu.h>
 
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = GKCLIENT_H;
+#endif /* lint */
+
 static const char *EndpointSection = "Endpoint";
 static const char *RewriteE164Section = "Endpoint::RewriteE164";
 static const char *H225_ProtocolID= "0.0.8.2250.0.2";

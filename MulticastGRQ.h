@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // MulticastGRQ.h thread for multicast gatekeeper discovery
@@ -14,7 +15,7 @@
 
 
 #ifndef MULTICASTGRQ_H
-#define MULTICASTGRQ_H
+#define MULTICASTGRQ_H "@(#) $Id$"
 
 #include "ptlib.h"
 #include "ptlib/sockets.h"

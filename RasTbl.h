@@ -16,8 +16,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef _rastbl_h__
-#define _rastbl_h__
+#ifndef RASTBL_H
+#define RASTBL_H "@(#) $Id$"
 
 #include "rwlock.h"
 #include "ptlib.h"
@@ -674,4 +674,4 @@ inline bool CallRec::IsRegistered() const
         return m_registered;
 }
 
-#endif
+#endif /* RASTBL_H */

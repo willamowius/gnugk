@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // BroadcastListen.cxx thread for listening to broadcasts (only needed on some OSs)
@@ -22,6 +23,16 @@
 #else
 #include <netinet/in.h>
 #endif
+
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = BROADCASTLISTEN_H;
+#endif /* lint */
+
 
 BroadcastListen::BroadcastListen(H323RasSrv * _RasSrv)
 	: PThread(1000, NoAutoDeleteThread),

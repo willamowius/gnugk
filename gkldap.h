@@ -17,8 +17,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef __gkldap_h_
-#define __gkldap_h_
+#ifndef GKLDAP_H
+#define GKLDAP_H "@(#) $Id$"
 
 // LDAP authentification
 #if defined(HAS_LDAP)		// shall use LDAP
@@ -70,4 +70,4 @@ private:
 
 #endif // HAS_LDAP
 
-#endif  // __gkldap_h_
+#endif /* GKLDAP_H */

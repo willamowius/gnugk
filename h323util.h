@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // H.323 utility functions that should migrate into the OpenH323 library
@@ -14,7 +15,7 @@
 
 
 #ifndef H323UTIL_H
-#define H323UTIL_H
+#define H323UTIL_H "@(#) $Id$"
 
 #include "ptlib.h"
 #include "ptlib/sockets.h"
@@ -54,4 +55,4 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 
 void GetNetworkFromString(const PString &, PIPSocket::Address &, PIPSocket::Address &);
 
-#endif
+#endif /* H323UTIL_H */

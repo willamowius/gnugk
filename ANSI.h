@@ -14,7 +14,7 @@
 //////////////////////////////////////////////////////////////////
 
 #ifndef ANSI_H
-#define ANSI_H
+#define ANSI_H "@(#) $Id$"
 
 /** You can disable the use of ANSI codes at compile time
  * defining GK_NOANSI

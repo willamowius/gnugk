@@ -12,8 +12,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef _SOFTPBX_H
-#define _SOFTPBX_H
+#ifndef SOFTPBX_H
+#define SOFTPBX_H "@(#) $Id$"
 
 #include <ptlib.h>
 #include "GkStatus.h"
@@ -46,5 +46,5 @@ namespace SoftPBX
 }
 
 
-#endif
+#endif /* SOFTPBX_H */
 

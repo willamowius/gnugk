@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // MulticastGRQ.cxx thread for multicast gatekeeper discovery
@@ -33,6 +34,17 @@
 #else
 #include <netinet/in.h>
 #endif
+
+
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = MULTICASTGRQ_H;
+#endif /* lint */
+
 
 MulticastGRQ::MulticastGRQ(PIPSocket::Address _GKHome, H323RasSrv * _RasSrv)
 	: PThread(1000, NoAutoDeleteThread),

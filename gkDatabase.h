@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // gkDatabase.h
@@ -16,8 +17,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef __gkDatabase_h_
-#define __gkDatabase_h_
+#ifndef GKDATABASE_H
+#define GKDATABASE_H "@(#) $Id$"
 
 #ifndef _PTLIB_H
 #include <ptlib.h>
@@ -169,4 +170,4 @@ private:
   DBListType m_dbList;
 };
 
-#endif  // __gkDatabase_h_
+#endif /* GKDATABASE_H */

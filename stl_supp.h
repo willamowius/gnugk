@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // stl_supp.h
@@ -15,8 +16,8 @@
 //////////////////////////////////////////////////////////////////
 
 
-#ifndef __stl_supp_h_
-#define __stl_supp_h_
+#ifndef STL_SUPP_H
+#define STL_SUPP_H "@(#) $Id$"
 
 #include <iterator>
 #include <algorithm>
@@ -175,4 +176,4 @@ using std::unique;
 using std::ptr_fun;
 
 
-#endif  // __stl_supp_h_
+#endif  /* STL_SUPP_H */

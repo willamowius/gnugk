@@ -18,9 +18,8 @@
 
 //#ifdef WITH_DEST_ANALYSIS_LIST
 
-#ifndef __gkDestAnalysis_h_
-#define __gkDestAnalysis_h_
-
+#ifndef GKDESTANALYSIS_H
+#define GKDESTANALYSIS_H "@(#) $Id$"
 
 #ifndef _PTLIB_H
 #include <ptlib.h>
@@ -167,6 +166,6 @@ private:
 };
 
 
-#endif  // __gkDestAnalysis_h_
+#endif /* GKDESTANALYSIS_H */
 
 //#endif // WITH_DEST_ANALYSIS_LIST

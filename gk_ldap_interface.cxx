@@ -27,6 +27,16 @@
 #include "gk_ldap_interface.h"
 #include "Toolkit.h"
 
+#ifndef lint
+// mark object with version info in such a way that it is retrievable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = GK_LDAP_H;
+#endif /* lint */
+
+
 GK_LDAP *gk_ldap_init (const char *hostname, int portno) {
 	GK_LDAP *ld=new GK_LDAP();
 	if (NULL==ld)

@@ -33,6 +33,10 @@ ifndef OPENH323DIR
 OPENH323DIR=$(HOME)/openh323
 endif
 
+# Gatekeeper Global Version String to mark object with version info in such
+# a way that it is retrievable by the std. version/revision control tools
+GKGVS="@(\#) $$Id$(VERSION_STATUS) of "$(PROGRAMMNAME)" v$(VERSION_MAJOR).$(VERSION_MINOR) build\#$(VERSION_BUILD) by "${MANUFACTURER}" at " __DATE__ " "  __TIME__ " $$"
+
 H323_INCDIR = ${OPENH323DIR}/include
 H323_LIBDIR = ${OPENH323DIR}/lib
 H323_LIB    = h323_$(PLATFORM_TYPE)_$(OBJ_SUFFIX)
@@ -46,10 +50,11 @@ STDCCFLAGS += -D'VERSION_MAJOR=${VERSION_MAJOR}'
 STDCCFLAGS += -D'VERSION_MINOR=${VERSION_MINOR}'
 STDCCFLAGS += -D'VERSION_STATUS=${VERSION_STATUS}'
 STDCCFLAGS += -D'VERSION_BUILD=${VERSION_BUILD}'
+STDCCFLAGS += -D'GKGVS=${GKGVS}'
 
 # Recheck if the International Public Telecommunication Numbers (IPTNs)
-# used for callING party number and callED party number ar in international
-# format (TON=internetaional), as they should be
+# used for callING party number and callED party number are in
+# international format (TON=international), as they should be
 STDCCFLAGS += -D'CDR_RECHECK'
 
 # Should the dialed digit fields in the src. or dest. information fields of

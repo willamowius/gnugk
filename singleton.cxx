@@ -1,3 +1,4 @@
+// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // singleton.cxx
@@ -13,6 +14,15 @@
 //////////////////////////////////////////////////////////////////
 
 #include "singleton.h"
+
+#ifndef lint
+// mark object with version info in such a way that it is retreivable by
+// the std. version/revision control tools like RCS/CVS ident cmd. At
+// least the strings cmd will extract this info.
+static const char gkid[] = GKGVS;
+static const char vcid[] = "@(#) $Id$";
+static const char vcHid[] = SINGLETON_H;
+#endif /* lint */
 
 #ifdef PTRACING
 static int singleton_cnt=0;
