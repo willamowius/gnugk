@@ -32,13 +32,19 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 	const InterfaceTable & it
 ) : PIPSocket::RouteEntry(re)
 {
-	for (PINDEX i = 0; i < it.GetSize(); ++i) {
+	PINDEX i;
+	for (i = 0; i < it.GetSize(); ++i) {
 		Address ip = it[i].GetAddress();
-		if (Compare(ip) || it[i].GetName() == interfaceName) {
+		if (Compare(ip)) {
 			destination = ip;
-			break;
+			return;
 		}
 	}
+	for (i = 0; i < it.GetSize(); ++i)
+		if (it[i].GetName() == interfaceName) {
+			destination = it[i].GetAddress();
+			return;
+		}
 }
 
 inline bool Toolkit::RouteTable::RouteEntry::Compare(Address ip) const
