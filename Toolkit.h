@@ -22,6 +22,7 @@ class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
 class H225_H221NonStandard;
 
+class GkTimerManager;
 class Toolkit : public Singleton<Toolkit>
 {
  public:
@@ -297,7 +298,13 @@ class Toolkit : public Singleton<Toolkit>
 	*/
 	PString GenerateAcctSessionId();
 
- protected:
+	/** @return
+	    A pointer to the GkTimerManager object that allows registration
+	    of time scheduled events.
+	*/
+	GkTimerManager* GetTimerManager() const { return m_timerManager; }
+	
+protected:
 	void CreateConfig();
 
 	PFilePath m_ConfigFilePath;
@@ -309,14 +316,11 @@ class Toolkit : public Singleton<Toolkit>
 	RewriteTool m_Rewrite;
 	GWRewriteTool m_GWRewrite; // GW Based RewriteTool
 
-	BOOL      m_EmergencyAccept;
-
 	RouteTable m_RouteTable;
 	VirtualRouteTable m_VirtualRouteTable;
 	ProxyCriterion m_ProxyCriterion;
 
 	std::vector<PIPSocket::Address> m_GKHome;
-	bool m_BindAll;
 
 	/// a counter incremented for each generated session id
 	long m_acctSessionCounter;
@@ -325,8 +329,10 @@ class Toolkit : public Singleton<Toolkit>
 	/// mutex for atomic session id generation (prevents from duplicates)
 	PMutex m_acctSessionMutex;
 
- private:
+private:
 	PFilePath m_tmpconfig;
+	/// global manager for time-based events
+	GkTimerManager* m_timerManager;
 };
 
 

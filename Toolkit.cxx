@@ -22,6 +22,7 @@
 #include <h323pdu.h>
 #include <map>
 #include "stl_supp.h"
+#include "gktimer.h"
 #include "Toolkit.h"
 
 
@@ -508,12 +509,11 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 
 
 
-Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit")
+Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"), 
+	m_Config(NULL), m_ConfigDirty(false),
+	m_acctSessionCounter(0), m_acctSessionBase((long)time(NULL)),
+	m_timerManager(new GkTimerManager())
 {
-	m_Config = 0;
-	m_ConfigDirty = false;
-	m_acctSessionBase = (long)time(NULL);
-	m_acctSessionCounter = 0;
 	srand(time(0));
 }
 
@@ -523,6 +523,7 @@ Toolkit::~Toolkit()
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
 	}
+	delete m_timerManager;
 }
 
 Toolkit::RouteTable *Toolkit::GetRouteTable(bool real)

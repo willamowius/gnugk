@@ -27,13 +27,13 @@ SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx          \
            Routing.cxx Neighbor.cxx GkClient.cxx gkauth.cxx         \
            RasSrv.cxx ProxyChannel.cxx gk.cxx version.cxx gkacct.cxx \
-           gksql.cxx sqlauth.cxx @SOURCES@
+           gksql.cxx sqlauth.cxx gktimer.cxx @SOURCES@
 
 HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            RasSrv.h RasTbl.h Routing.h SoftPBX.h Toolkit.h factory.h \
            gk.h gk_const.h gkacct.h gkauth.h job.h name.h \
            radacct.h radauth.h radproto.h rasinfo.h rwlock.h singleton.h \
-           slist.h stl_supp.h version.h yasocket.h gksql.h configure Makefile 
+           slist.h stl_supp.h version.h yasocket.h gksql.h gktimer.h configure Makefile 
 
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by

@@ -127,6 +127,10 @@ SOURCE=.\GkStatus.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\gktimer.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\h323util.cxx
 # End Source File
 # Begin Source File
@@ -232,6 +236,10 @@ SOURCE=.\gksql.h
 # Begin Source File
 
 SOURCE=.\GkStatus.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gktimer.h
 # End Source File
 # Begin Source File
 

@@ -35,6 +35,7 @@
 #include "ProxyChannel.h"
 #include "gkauth.h"
 #include "gkacct.h"
+#include "gktimer.h"
 #include "RasSrv.h"
 
 #ifndef NEED_BROADCASTLISTENER
@@ -1173,6 +1174,8 @@ void RasServer::HouseKeeping()
 			if( !IsRunning() )
 				break;
 
+			ReadLock lock(ConfigReloadMutex);
+			
 			if (!(count % 60)) // one minute
 				RegistrationTable::Instance()->CheckEndpoints();
 
@@ -1180,6 +1183,8 @@ void RasServer::HouseKeeping()
 
 			gkClient->CheckRegistration();
 
+			Toolkit::Instance()->GetTimerManager()->CheckTimers();
+			
 			// Automatic daily logrotation of files
 #if PTRACING
       			// Check if it's a new day, then rotate
