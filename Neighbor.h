@@ -141,6 +141,9 @@ public:
 	virtual BOOL ForwardLRQ(PIPSocket::Address addr, H225_LocationRequest lrq);
 	virtual PString GetPassword();
 	virtual int SendLRQ(int seqnum, const H225_AdmissionRequest &arq );
+	virtual void ProcessLCF(const H225_RasMessage & pdu);
+	virtual void ProcessLRJ(const H225_RasMessage & pdu);
+
 protected:
 	virtual ~Neighbor();
 	friend void Toolkit::delete_neighbor();

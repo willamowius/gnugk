@@ -17,6 +17,7 @@
 #include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
+#include "GkClient.h"
 
 #ifndef lint
 // mark object with version info in such a way that it is retrievable by
@@ -59,7 +60,7 @@ PendingList::FindBySeqNum(int seqnum)
 		if (arqList[i].CompSeq(seqnum))
 			not_found = FALSE;
 	}
-	return i;
+	return --i;
 }
 
 void
@@ -75,16 +76,28 @@ PendingList::PendingARQ::PendingARQ(int seqNum, const H225_AdmissionRequest & ob
 
 bool PendingList::PendingARQ::DoACF(const endptr & called) const
 {
-	PBYTEArray buffer(4096);
-	PPER_Stream stream(buffer);
+	PTRACE(1, "Doing ACF with EP: " << (endptr(NULL)==called ? PString("NULL"): called->GetEndpointIdentifier()));
+	PPER_Stream stream;
 
-	m_arq.Encode(stream);
-	stream.CompleteEncoding();
+	H225_RasMessage pdu;
+	pdu.SetTag(H225_RasMessage::e_admissionRequest);
+	H225_AdmissionRequest & arq = pdu;
+	arq=m_arq;
+       	pdu.Encode(stream);
+	H225_RasMessage abc;
+	stream.SetPosition(0);
+	if(abc.Decode(stream))
+		PTRACE(1, "dec: " << abc);
+	else
+		PTRACE(1, "didn't dec:");
+	stream.SetPosition(0);
+//	stream.CompleteEncoding();
 
 	const H225_TransportAddress_ipAddress & ip = m_reqEP->GetRasAddress();
 	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 
-	new NeighborWorker(stream, called, ipaddress, ip.m_port, (Toolkit::Instance()->GetMasterRASListener()));
+	NeighborWorker *n = new NeighborWorker(stream, called, ipaddress, ip.m_port, (Toolkit::Instance()->GetMasterRASListener()));
+	n->Resume();
 	return true;
 }
 
@@ -132,10 +145,11 @@ void NBPendingList::ProcessLCF(const H225_RasMessage & obj_ras)
 {
 	const H225_LocationConfirm & obj_lcf = obj_ras;
 
+	PTRACE(1, "ProcessingLCF");
 	// TODO: check if the LCF is sent from my neighbors
 	PWaitAndSignal lock(usedLock);
 	PINDEX nr = FindBySeqNum(obj_lcf.m_requestSeqNum.GetValue());
-	if (P_MAX_INDEX==nr) {
+	if (P_MAX_INDEX==nr || nr >= arqList.GetSize()) {
 		PTRACE(2, "GK\tUnknown LCF, ignore!");
 		return;
 	}
@@ -151,12 +165,17 @@ void NBPendingList::ProcessLCF(const H225_RasMessage & obj_ras)
 
 void NBPendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 {
+	PTRACE(1, "ProcessingLRJ");
 	const H225_LocationReject & obj_lrj = obj_ras;
 
 	// TODO: check if the LRJ is sent from my neighbors
 	PWaitAndSignal lock(usedLock);
+	PTRACE(1, "arqList: ");
+	for (PINDEX i=0; i<arqList.GetSize(); i++)
+		PTRACE(1, "arqlist["<<i<<"]:" << arqList[i]);
 	PINDEX nr = FindBySeqNum(obj_lrj.m_requestSeqNum.GetValue());
-	if (P_MAX_INDEX == nr) {
+	PTRACE(5, "Found nr: " << nr);
+	if (P_MAX_INDEX == nr || nr >= arqList.GetSize()) {
 		PTRACE(2, "GK\tUnknown LRJ, ignore!");
 		return;
 	}
@@ -391,4 +410,18 @@ int
 Neighbor::SendLRQ(int seqnum, const H225_AdmissionRequest &arq)
 {
 	return neighborGKs->SendLRQ(seqnum, arq);
+}
+
+void
+Neighbor::ProcessLCF(const H225_RasMessage & pdu)
+{
+	PTRACE(1, "Processing LCF!");
+	pending->ProcessLCF(pdu);
+}
+
+void
+Neighbor::ProcessLRJ(const H225_RasMessage & pdu)
+{
+	PTRACE(1, "Processing LRJ!");
+	pending->ProcessLRJ(pdu);
 }
