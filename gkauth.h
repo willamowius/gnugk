@@ -234,9 +234,9 @@ private:
 	/// cache timeout (seconds), 0 = do not cache, -1 = never expires
 	long ttl;
 	/// cached key-value pairs
-	map<PString, PString> cache;
+	std::map<PString, PString> cache;
 	/// timestamps for key-value pair expiration calculation
-	map<PString, long> ctime;
+	std::map<PString, long> ctime;
 	/// mutex for multiple read/mutual write access to the cache
 	mutable PReadWriteMutex rwmutex;
 
