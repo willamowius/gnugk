@@ -26,22 +26,30 @@
 #include <mysql.h>
 
 // class MySQLConnection::Result
-bool MySQLConnection::Result::Store(MYSQL *connection, const char *sqlcmd)
-{
-	if (mysql_query(connection, sqlcmd) == 0) {
-		m_result = mysql_store_result(connection);
-		return mysql_num_rows(m_result) > 0;
-	}
-	PTRACE(2, "MySQL\tExecute cmd '" << sqlcmd << "' failed") ;
-	return false;
-}
-
 MySQLConnection::Result::~Result()
 {
 	if (m_result)
 		mysql_free_result(m_result);
 }
 
+bool MySQLConnection::Result::Exec(MYSQL *connection, const char *sqlcmd)
+{
+	if (mysql_query(connection, sqlcmd) == 0)
+		return true;
+	PTRACE(2, "MySQL\tExecute cmd '" << sqlcmd << "' failed") ;
+	return false;
+}
+
+bool MySQLConnection::Result::Store(MYSQL *connection, const char *sqlcmd)
+{
+	if (!Exec(connection, sqlcmd))
+		return false;
+	m_result = mysql_store_result(connection);
+	return mysql_num_rows(m_result) > 0;
+}
+
+
+// class MySQLConnection
 MySQLConnection::MySQLConnection(PConfig *cfg, const char *section)
       : m_connection(0), m_config(cfg), m_section(section)
 {

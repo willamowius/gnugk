@@ -35,6 +35,7 @@ public:
 		~Result();
 
 		operator MYSQL_RES *() { return m_result; }
+		bool Exec(MYSQL *, const char *);
 		bool Store(MYSQL *, const char *);
 
 	private:
