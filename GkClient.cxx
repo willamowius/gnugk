@@ -349,6 +349,7 @@ void GkClient::SendRRQ()
 void GkClient::RegisterFather(const PString & endpointId, const PString & gatekeeperId, int ttl)
 {
 	// Register internally
+	m_registerTimer.Stop();
 	m_endpointId = endpointId;
 	m_gatekeeperId = gatekeeperId;
 	m_ttl = ttl;
@@ -406,6 +407,7 @@ GkClient::UnRegister()
 
 	RegistrationTable::Instance()->RemoveByEndpointId(ep);
 	m_endpointId = PString();
+	m_registerTimer = PTimeInterval(0,(m_retry<=0 ? 50 : m_retry));
 }
 
 /*
