@@ -18,15 +18,17 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
+#include <ptlib.h>
+#include <h235.h>
+#include <h323pdu.h>
+#include <h235auth.h>
+
 #include "gk_const.h"
 #include "h323util.h"
 #include "stl_supp.h"
 #include "RasTbl.h"
 #include "RasPDU.h"
 #include "Toolkit.h"
-#include <h235.h>
-#include <h323pdu.h>
-#include <h235auth.h>
 #include "gkauth.h"
 
 #ifdef P_SOLARIS
