@@ -1071,6 +1071,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			Setup.m_cryptoTokens = tokens;
 		}
 		
+		m_call->SetSetupTime(setupTime);
+		
 		// log AcctStart accounting event
 		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) )
 			return false;
@@ -1152,6 +1154,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			call->SetRegistered(true);
 
 		m_call = callptr(call);
+		m_call->SetSetupTime(setupTime);
 		// log AcctStart accounting event before inserting the call 
 		// to CallTable and connecting to a remote party
 		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
@@ -1170,8 +1173,6 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
 		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 
-	// m_call should be valid here
-	m_call->SetSetupTime(setupTime);
 	return CreateRemote(Setup);
 }
 
