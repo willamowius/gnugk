@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GR /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /G6 /MD /W3 /GR /GX /Og /Oi /Os /Oy /Ob2 /I "..\include" /D "NDEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FD /c
+# ADD CPP /nologo /G6 /MT /W3 /GR /GX /Og /Oi /Os /Oy /Ob2 /D "NDEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FD /c
 # SUBTRACT CPP /Ox /Ot
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -50,8 +50,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 ptclib.lib ptlibs.lib OpenH323s.lib snmpapi.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib wsock32.lib winmm.lib /nologo /subsystem:console /machine:I386 /out:"Release/gnugk.exe" /libpath:"..\..\lib"
+# ADD BASE LINK32 /nologo /subsystem:console /machine:I386
+# ADD LINK32 OpenH323s.lib ptclib.lib ptlibs.lib snmpapi.lib user32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib mpr.lib wsock32.lib /nologo /subsystem:console /machine:I386 /out:"Release/gnugk.exe"
 # SUBTRACT LINK32 /debug
 
 !ELSEIF  "$(CFG)" == "gk - Win32 Debug"
@@ -68,7 +68,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GR /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /G6 /MDd /W3 /Gm /GR /GX /Zi /Od /I "..\include" /D "_DEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FR /FD /GZ /c
+# ADD CPP /nologo /G6 /MDd /W3 /Gm /GR /GX /Zi /Od /D "_DEBUG" /D "PTRACING" /D HAS_RADIUS=1 /FR /FD /GZ /c
 # SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -76,9 +76,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 openh323sd.lib ptclibd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib wsock32.lib /nologo /subsystem:console /incremental:no /debug /machine:I386 /out:"Debug/gnugk.exe" /pdbtype:sept /libpath:"..\..\lib"
-# SUBTRACT LINK32 /nodefaultlib
+# ADD BASE LINK32 /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 openh323d.lib ptclibd.lib ptlibd.lib snmpapi.lib Winmm.lib mpr.lib user32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib wsock32.lib /nologo /subsystem:console /incremental:no /debug /machine:I386 /out:"Debug/gnugk.exe" /pdbtype:sept
 
 !ENDIF 
 
