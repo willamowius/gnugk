@@ -1,7 +1,11 @@
 26 Sep 2004 -- zvision
   * associate names with table constraints to allow further easy modifications
   * changed voiptariff multikey to contain the terminating column too
-
+  * fix an error in the c_all_tables.sql script that prevented from creation 
+    of voipcalltermtariff table
+  * fix an error in the d_all_tables.sql script that prevented from deleting
+    all tables in the database
+  
 21 Sep 2004 -- zvision
   * added support for termination accounts and tariffs
 
