@@ -449,17 +449,19 @@ void GkStatus::AuthenticateClient(
 {
 	if (newClient->Authenticate()) {
 		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
-		AddSocket(newClient);
 		PTRACE(1, "STATUS\tNew client authenticated succesfully: " << newClient->WhoAmI()
 			<< ", login: " << newClient->GetUser()
 			);
 		// the welcome messages
 		newClient->WriteString(PrintGkVersion());
+		newClient->Flush();
+		AddSocket(newClient);
 	} else {
 		PTRACE(3, "STATUS\tNew client rejected: " << newClient->WhoAmI()
 			<< ", login: " << newClient->GetUser()
 			);
 		newClient->WriteString("\r\nAccess forbidden!\r\n");
+		newClient->Flush();
 		delete newClient;
 	}
 }

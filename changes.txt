@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(GkStatus.cxx) the gatekeeper could crash if the connection
+  was closed before the welcome message has been sent
 - BIGFIX(gkacct.cxx) different Username was reported during Setup auth
   and acct step, if no sourceAddress has been present for an unregistered call
 - more missing config reload locks added to allow seamless config reload

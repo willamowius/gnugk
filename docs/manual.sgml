@@ -114,6 +114,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+The gatekeeper could crash if the connection was closed before
+the welcome message has been sent to the client.
+
+<item>
 Different Username was reported during Setup auth
 and acct step, if no sourceAddress has been present for an unregistered call.
 
