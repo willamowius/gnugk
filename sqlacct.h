@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2005/01/12 17:55:07  willamowius
+ * fix gkip accounting parameter
+ *
  * Revision 1.4  2005/01/05 15:42:41  willamowius
  * new accounting event 'connect', parameter substitution unified in parent class
  *
@@ -40,7 +43,7 @@ class SQLAcct : public GkAcctLogger
 public:
 	enum Constants {
 		/// events recognized by this module
-		SQLAcctEvents = AcctStart | AcctUpdate | AcctStop
+		SQLAcctEvents = AcctStart | AcctUpdate | AcctStop | AcctConnect
 	};
 	
 	/// Create a logger that sends accounting to an SQL database
