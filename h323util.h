@@ -123,7 +123,8 @@ PINDEX FindAlias(
 	);
 
 /** Check if the given alias matches the prefix. The prefix can be preceeded
-    with '!' to force negative match and contain dots ('.') to match any character.
+    with '!' to force negative match and contain dots ('.') or percent signs ('%')
+    to match any character.
 	
     @return
     0 if no match is found, a positive integer if normal match is found 
@@ -134,5 +135,33 @@ int MatchPrefix(
 	const char* alias,
 	const char* prefix
 	);
+	
+/** Rewrite the string #s# replacing #prefix# with #value#. The #prefix# 
+    and #value# strings can contain dots ('.') to copy source characters
+    to the destination string. The #prefix# string can also contain percent
+    signs ('%') to match any character and skip copying, as it is done in case
+    of dots. Examples (prefix=value):
+	
+    49=111149 - this will change numbers like 497654321 into 1111497654321
+	49..1=111149..1 - this will change numbers like 49771777 into 111149771777
+	%%%%49=49 - this will change numbers like 777749123456 into 49123456
+    %%%%.=. - tricky, but should work as a prefix stripper
+
+	There are some restrictions:
+	1.2.3=4.5.6 - this will work (112233 will be changed to 415263)
+	1..2=1.2.3 - this will work (1122 will be changed to 11223)
+	1.2.3=1..3 - this won't work
+	
+	The main idea is that "dot strips" on the right hand side of the rule
+    have to match "dot strips" of the same length on the left hand side of the rule.
+	
+    @return	Rewritten string.
+*/
+PString RewriteString(
+	const PString& s, /// original string to rewrite
+	const char *prefix, /// prefix string that matched
+	const char *value /// new string that replaces the prefix string
+	);
+	
 	
 #endif // H323UTIL_H

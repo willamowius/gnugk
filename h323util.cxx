@@ -323,11 +323,44 @@ int MatchPrefix(
 	int j = (negative ? 1 : 0);
 	
 	while (prefix[j] != 0) {
-		if (alias[i] == 0 || (prefix[j] != '.' && alias[i] != prefix[j]))
+		const char c = prefix[j];
+		if (alias[i] == 0 || (c != '.' && c != '%' && c != alias[i]))
 			return 0;
 		i++;
 		j++;
 	}
 	
 	return negative ? -j + 1 : j;
+}
+
+PString RewriteString(
+	const PString& s, /// original string to rewrite
+	const char *prefix, /// prefix string that matched
+	const char *value /// new string that replaces the prefix string
+	)
+{
+	if (prefix == NULL || value == NULL)
+		return s;
+	
+	PString result = value + s.Mid(strlen(prefix));
+
+	const char *lastSrcDot = prefix;
+	const char *lastDstDot = strchr(value, '.');
+	while (lastDstDot != NULL) {
+		lastSrcDot = strchr(lastSrcDot, '.');
+		if (lastSrcDot == NULL) {
+			PTRACE(0, "GK\tInvalid rewrite rule (dots do not match) - "
+				<< prefix << " = " << value
+				);
+			break;
+		}
+		int dotDstOffset = (long)lastDstDot - (long)value;
+		int dotSrcOffset = (long)lastSrcDot - (long)prefix;
+		while (*lastDstDot++ == '.' && *lastSrcDot++ == '.')
+			result[dotDstOffset++] = s[dotSrcOffset++];
+						
+		lastDstDot = strchr(lastDstDot, '.');
+	}
+	
+	return result;
 }

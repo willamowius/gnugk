@@ -114,6 +114,10 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+More flexible rewrite rules (both global and per-gw) with new '.' and '%'
+wildcard characters.
+
+<item>
 Enchanced prefix matching for gateways. A dot (<tt/./) matches any digit,
 <tt/!/ at the beginning disables the prefix.
 
@@ -978,6 +982,29 @@ gw2=1
 gw1=in=00=123400
 </verb></tscreen>
 
+Rewrite expressions accept dot <tt/'.'/ and percent sign <tt/'%'/ wildcard
+characters to allow building more general rules. The dot character can occur
+at both left and right hand sides of expressions, the percent sign can occur
+only at the left side only. Use <tt/'.'/ to match any character and copy it
+to the rewritten string and <tt/'%'/ to match any character and skip it.
+A few simple examples:
+
+<tscreen><verb>
+[RasSrv::RewriteE164]
+; Rewrite 0044 + min. 7 digits to 44 + min. 7 digits
+0044.......=44.......
+; Rewrite numbers starting with 11 + 4 digits + 11  to 22 + 4 digits + 22 (like 11333311 => 22333322, 110000112345 => 220000222345)
+11....11=22....22
+; strip the first four digits from all numbers (11114858345 => 4858345)
+; this is equivalent of 10 rules %%%%1=1, %%%%2=2, ... 
+%%%%.=.
+; insert two zeros in the middle of the number (111148581234 => 11110048581234)
+....48=....0048
+; even this is possible (415161 => 041051061)
+4.5.6=04.05.06
+</verb></tscreen>
+
+
 <!----------          Reference Section          ---------->
 <sect>Using the Gatekeeper (Reference)
 <p>
@@ -1806,9 +1833,10 @@ This section defines the rewriting rules for dialedDigits (E.164 number).
 <tt>[!]original-prefix=target-prefix[,target-prefix,...]</tt>
 <p>
 If the number is beginning with <tt/original-prefix/,
-it is rewritten to <tt/target-prefix/. Multi targets are possible.
+it is rewritten to <tt/target-prefix/. Multiple targets are possible.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted
-and the target-prefix is prepended to the dialed number.
+and the target-prefix is prepended to the dialed number. Special wildcard
+characters (<tt/'.'/ and <tt/'%'/) are available.
 <tag/Example:/
 <tt/08=18888/
 <p>
@@ -1867,6 +1895,7 @@ Call to "gw2", dialedDigits 0867822
 If the call matches the gateway, the direction and begins with
 <tt/original-prefix/ it is rewritten to <tt/target-prefix/.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
+Special wildcard characters (<tt/'.'/ and <tt/'%'/) are available.
 Multiple rules for the same gateway should be seperated by ';'.
 <tag/Example:/
 <tt/gw1=in=123=321/

@@ -23,6 +23,7 @@
 #include <map>
 #include "stl_supp.h"
 #include "gktimer.h"
+#include "h323util.h"
 #include "Toolkit.h"
 
 
@@ -204,7 +205,7 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 		std::map<PString, PString> rules;
 		for (PINDEX i = 0; i < m_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
-			if (!key && (isdigit(key[0]) || key[0]=='!'))
+			if (!key && (isdigit(key[0]) || key[0]=='!' || key[0]=='.' || key[0]=='%' || key[0]=='*' || key[0]=='#'))
 				rules[key] = cfgs.GetDataAt(i);
 		}
 		// now the rules are ascendantly sorted by the keys
@@ -261,13 +262,10 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 
 	PString t;
 	for (PINDEX i = 0; i < m_Rewrite->Size(); ++i) {
-		bool inverted = false;
-		const char *key = m_Rewrite->Key(i);
-		int len = m_Rewrite->Key(i).GetLength();
-		if (len > 0 && (inverted = (key[0] == '!')))
-			++key, --len;
+		const char *prefix = m_Rewrite->Key(i);
+		const int len = MatchPrefix(s, prefix);
 		// try a prefix match through all keys
-		if ((strncmp(s, key, len) == 0) ^ inverted) {
+		if (len != 0) {
 			// Rewrite to #t#. Append the suffix, too.
 			// old:  01901234999
 			//               999 Suffix
@@ -275,19 +273,23 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 			//       01901234    prefix, Config-Rule: 01901234=0521321
 			// new:  0521321999
 
-			const char *pre = m_Rewrite->Value(i);
+			const char *newprefix = m_Rewrite->Value(i);
 			const PStringArray & ts = m_Rewrite->Values(i);
 			// multiple targets possible
 			if (ts.GetSize() > 1) {
 				PINDEX j = rand() % ts.GetSize();
-				PTRACE(5, "GK\tRewritePString: randomly chosen [" << j << "] of " << pre << "");
-				pre = ts[j];
+				PTRACE(5, "GK\tRewritePString: randomly chosen [" << j << "] of " << newprefix << "");
+				newprefix = ts[j];
 			}
 
-			// append the suffix
-			PString t = pre + s.Mid(inverted ? 0 : len);
-			PTRACE(2, "\tRewritePString: " << s << " to " << t);
-			s = t;
+			PString result;
+			if (len > 0)
+				result = RewriteString(s, prefix, newprefix);
+			else
+				result = newprefix + s;
+				
+			PTRACE(2, "\tRewritePString: " << s << " to " << result);
+			s = result;
 			changed = true;
 
 			break;
@@ -311,85 +313,43 @@ Toolkit::GWRewriteTool::~GWRewriteTool() {
 bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString &data) {
 
 	GWRewriteEntry *gw_entry;
-	std::vector<std::pair<PString,PString> >::iterator rule_iterator;
-	PString key,value;
-	bool inverted;
-	int striplen;
+	PString key, value;
 
 	// First lookup the GW in the dictionary
 	gw_entry = m_GWRewrite.GetAt(gw);
 
-	if (gw_entry == NULL) {
+	if (gw_entry == NULL)
 		return false;
-	}
 
-	// True is "in" direction
-	if (direction == true) {
-		for (rule_iterator = gw_entry->m_entry_data.first.begin(); rule_iterator != gw_entry->m_entry_data.first.end(); ++rule_iterator) {
-			key = (*rule_iterator).first;
-			inverted = false;
+	std::vector<std::pair<PString,PString> >::iterator rule_iterator = direction
+		? gw_entry->m_entry_data.first.begin() : gw_entry->m_entry_data.second.begin();
+	std::vector<std::pair<PString,PString> >::iterator end_iterator = direction
+		? gw_entry->m_entry_data.first.end() : gw_entry->m_entry_data.second.end();
 
-			// Inverted match sense
-			if (key.GetLength() !=0 && key[0] == '!') {
-				inverted = true;
-				key = key.Mid(1);
-			}
+	for (; rule_iterator != end_iterator; ++rule_iterator) {
+	
+		key = (*rule_iterator).first;
+			
+		const int len = MatchPrefix(data, key);
+		if (len != 0) {
+			// Start rewrite
+			value = (*rule_iterator).second;
+				
+			if (len > 0)
+				value = RewriteString(data, key, value);
+			else
+				value = value + data;
 
-			// Attempt match
-			if ((strncmp(data, key, key.GetLength()) == 0) ^ inverted) {
+			// Log
+			PTRACE(2, "\tGWRewriteTool::RewritePString: " << data << " to " << value);
 
-				// Start rewrite
-				value = (*rule_iterator).second;
-				striplen = (inverted) ? 0 : key.GetLength();
-				value += data.Mid(striplen);
-
-				// Log
-				PTRACE(2, "\tGWRewriteTool::RewritePString: " << data << " to " << value);
-
-				// Finish rewrite
-				data = value;
-
-				break;
-			}
-
+			// Finish rewrite
+			data = value;
+			return true;
 		}
-
-	}
-	else {
-		for (rule_iterator = gw_entry->m_entry_data.second.begin(); rule_iterator != gw_entry->m_entry_data.second.end(); ++rule_iterator) {
-			key = (*rule_iterator).first;
-			inverted = false;
-
-			// Inverted match sense
-			if (key.GetLength() !=0 && key[0] == '!') {
-				inverted = true;
-				key = key.Mid(1);
-			}
-
-			// Attempt match
-			if ((strncmp(data, key, key.GetLength()) == 0) ^ inverted) {
-
-				// Start rewrite
-				value = (*rule_iterator).second;
-				striplen = (inverted) ? 0 : key.GetLength();
-				value += data.Mid(striplen);
-
-				// Log
-				PTRACE(2, "\tGWRewriteTool::RewritePString: " << data << " to " << value);
-
-				// Finish rewrite
-				data = value;
-
-				break;
-			}
-
-		}
-
 	}
 
-
-	return true;
-
+	return false;
 }
 
 void Toolkit::GWRewriteTool::PrintData() {
@@ -465,19 +425,22 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 				tokenised_line = lines[j].Tokenise(PString("="));
 
 				if (tokenised_line.GetSize() < 3) {
+					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - missing =, rule: " 
+						<< key << " => " << lines[j]
+						);
 					continue;
 				}
 
 				// Put into appropriate std::map
 
-				if (tokenised_line[0] == "in") {
+				if (tokenised_line[0] == "in")
 					in_strings[tokenised_line[1]] = tokenised_line[2];
-
-				}
-				if (tokenised_line[0] == "out") {
+				else if (tokenised_line[0] == "out")
 					out_strings[tokenised_line[1]] = tokenised_line[2];
-				}
-
+				else
+					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - unknown rule type ("
+						<< tokenised_line[0] << ", rule: " << key << " => " << lines[j]
+						);
 			}
 
 			// Put the map contents into reverse sorted vectors
