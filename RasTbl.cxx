@@ -451,6 +451,10 @@ void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols &protocols)
 			H225_H323Caps & v = p;
 			if (v.HasOptionalField(H225_H323Caps::e_supportedPrefixes))
 				supportedPrefixes = &v.m_supportedPrefixes;
+		} else if (p.GetTag() == H225_SupportedProtocols::e_h320) {
+			H225_H320Caps & v = p;
+			if (v.HasOptionalField(H225_H320Caps::e_supportedPrefixes))
+				supportedPrefixes = &v.m_supportedPrefixes;
 		}
 		if (supportedPrefixes)
 			for (PINDEX s = 0; s < supportedPrefixes->GetSize(); ++s) {
@@ -1132,9 +1136,7 @@ void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 
 void CallRec::SetConnected()
 {
-	// set before any locks are acquired (locks may introduce delays)
-	m_timeout = m_durationLimit;
-	SetConnectTime(m_timer = time(0));
+	SetConnectTime(time(NULL));
 
 	if (m_Calling)
 		m_Calling->AddConnectedCall();
@@ -1144,12 +1146,13 @@ void CallRec::SetConnected()
 
 void CallRec::SetDurationLimit(long seconds)
 {
-	// allow only to restrict duration limit
-	long sec = (m_durationLimit && seconds) ? PMIN(m_durationLimit,seconds) : PMAX(m_durationLimit,seconds);
 	PWaitAndSignal lock(m_usedLock);
+	// allow only to restrict duration limit
+	const long sec = (m_durationLimit && seconds) 
+		? PMIN(m_durationLimit,seconds) : PMAX(m_durationLimit,seconds);
 	m_durationLimit = sec;
 	if (IsConnected())
-		m_timeout = sec, m_timer = time(0);
+		m_timeout = sec;
 }
 
 void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
@@ -1342,6 +1345,8 @@ void CallRec::SetSetupTime(time_t tm)
 	PWaitAndSignal lock(m_usedLock);
 	if( m_setupTime == 0 )
 		m_setupTime = tm;
+	if( m_connectTime == 0 )
+		m_timer = tm;
 	if( m_creationTime > m_setupTime )
 		m_creationTime = m_setupTime;
 }
@@ -1349,8 +1354,10 @@ void CallRec::SetSetupTime(time_t tm)
 void CallRec::SetConnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
-	if( m_connectTime == 0 )
-		m_connectTime = tm;
+	if( m_connectTime == 0 ) {
+		m_connectTime = m_timer = tm;
+		m_timeout = m_durationLimit;
+	}
 	if( m_creationTime > m_connectTime )
 		m_creationTime = m_connectTime;
 }
@@ -1421,11 +1428,14 @@ void CallTable::LoadConfig()
 		GkConfig()->GetInteger(RoutedSec, "ConnectTimeout",DEFAULT_CONNECT_TIMEOUT),
 		5000
 		);
-
-	m_defaultDurationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallDurationLimit", 0);
+	m_defaultDurationLimit = GkConfig()->GetInteger(
+		CallTableSection, "DefaultCallDurationLimit", 0
+		);
 	// backward compatibility - check DefaultCallTimeout
 	if (m_defaultDurationLimit == 0)
-		m_defaultDurationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
+		m_defaultDurationLimit = GkConfig()->GetInteger(
+			CallTableSection, "DefaultCallTimeout", 0
+			);
 }
 
 void CallTable::Insert(CallRec * NewRec)

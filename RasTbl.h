@@ -501,7 +501,7 @@ public:
 		/// point in time for timeouts to be measured relatively to
 		/// (made as a parameter for performance reasons)
 		const time_t now
-		);
+		) const;
 
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
@@ -524,7 +524,9 @@ private:
 	PString m_srcInfo; //added (MM 05.11.01)
 	int m_bandWidth;
 
+	/// current timeout (or duration limit) for the call
 	long m_timeout;
+	/// timestamp for call timeout measuring
 	time_t m_timer;
 	/// timestamp (seconds since 1st January, 1970) for the call creation
 	/// (triggered by ARQ or Setup)
@@ -606,7 +608,7 @@ public:
 	long GetConnectTimeout() const { return m_connectTimeout; }
 
 	/** @return
-		DefaultDurationLimit value (seconds).
+		Default call duration limit value (seconds).
 	*/
 	long GetDefaultDurationLimit() const { return m_defaultDurationLimit; }
 
@@ -643,6 +645,7 @@ private:
 	/// and for a signalling channel to be opened after ACF/ARQ
 	/// (0 if GK is not in routed mode)
 	long m_connectTimeout;
+	/// default call duration limit read from the config
 	long m_defaultDurationLimit;
 
 	CallTable(const CallTable &);
@@ -773,7 +776,7 @@ inline void CallRec::SetDisconnectCause( unsigned causeCode )
 	m_disconnectCause = causeCode;
 }
 
-inline bool CallRec::IsTimeout(const time_t now)
+inline bool CallRec::IsTimeout(const time_t now) const
 {
 	return (m_timeout > 0) && ((now - m_timer) > m_timeout);
 }
