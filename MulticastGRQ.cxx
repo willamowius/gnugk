@@ -89,20 +89,15 @@ void MulticastGRQ::Main(void)
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
 		listener_mutex.Wait();
-		PSocket::SelectList list;
-		list += listener;
+		listener_mutex.Wait();
+		BOOL result = listener.ReadFrom(buffer, buffersize,  rx_addr, rx_port);
 		listener_mutex.Signal();
-		PChannel::Errors result=PSocket::Select(list);
-		if(result==PChannel::NoError) {
-			listener_mutex.Wait();
-			BOOL result = listener.ReadFrom(buffer, buffersize,  rx_addr, rx_port);
-			listener_mutex.Signal();
-			if (result) {
-				PPER_Stream stream(buffer, listener.GetLastReadCount());
-				H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
-			} else {
-				PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
-			}
+		if (result) {
+			PPER_Stream stream(buffer, listener.GetLastReadCount());
+			H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
+			r->Resume();
+		} else {
+			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}
 		listener_mutex.Wait();// before new truth value for while clause is computed
 	}
@@ -111,8 +106,9 @@ void MulticastGRQ::Main(void)
 
 void MulticastGRQ::Close(void)
 {
+	PTRACE(5, "MulticastGRQ::Close() " << getpid());
 	MulticastListener.Close();
 
 	// terminate thread
-//	Terminate();
+	Terminate();
 };
