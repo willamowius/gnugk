@@ -137,12 +137,8 @@ public:
 	// override from class TCPProxySocket
 	virtual TCPProxySocket *ConnectTo();
 	virtual void SetConnected(bool c);
-	virtual void LockUse(const PString &name);
-	virtual void UnlockUse(const PString &name);
-	virtual const BOOL IsInUse() {
-		return m_usedCondition.Condition();
-	}
-	friend class ProxyDeleter;
+
+	virtual void Shutdown();
 
 	bool HandleH245Mesg(PPER_Stream &);
 	void OnH245ChannelClosed() { PWaitAndSignal lock(m_lock); m_h245socket = 0; }
@@ -233,8 +229,6 @@ private:
 	BOOL m_replytoStatusMessage;
 	BOOL lastInformationMessage;
 
-	mutable PMutex m_lock;
-	mutable ProxyCondMutex m_usedCondition;
 };
 
 inline Q931 * CallSignalSocket::GetSetupPDU() const {
