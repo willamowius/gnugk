@@ -1354,14 +1354,14 @@ PString CallRec::PrintOn(bool verbose) const
 	return result;
 }
 
-void CallRec::SetDisconnectTime( const time_t& tm )
+void CallRec::SetDisconnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_disconnectTime == 0 )
 		m_disconnectTime = tm;
 }
 
-void CallRec::SetSetupTime( const time_t& tm )
+void CallRec::SetSetupTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_setupTime == 0 )
@@ -1370,7 +1370,7 @@ void CallRec::SetSetupTime( const time_t& tm )
 		m_creationTime = m_setupTime;
 }
 
-void CallRec::SetConnectTime( const time_t& tm )
+void CallRec::SetConnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_connectTime == 0 )

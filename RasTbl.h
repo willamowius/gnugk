@@ -432,7 +432,7 @@ public:
 		Duration limit (in seconds) set for this call.
 		0 if call duration is not limited.
 	*/
-	long GetDurationLimit();
+	long GetDurationLimit() const;
 		
 	/** This function can be used to determine, if the call has been
 		disconnected due to call duration limit excess.
@@ -446,7 +446,7 @@ public:
 		Timestamp (number of seconds since 1st January 1970) for the call creation
 		(when this CallRec object has been instantiated).
 	*/
-	time_t GetCreationTime();
+	time_t GetCreationTime() const;
 		
 	/** @return
 		Timestamp (number of seconds since 1st January 1970) 
@@ -454,11 +454,11 @@ public:
 		has not been yet received.
 		Meaningful only in GK routed mode.
 	*/
-	time_t GetSetupTime();
+	time_t GetSetupTime() const;
 	
 	/** Set timestamp for a Setup message associated with this call. */
 	void SetSetupTime( 
-		const time_t& tm /// timestamp (seconds since 1st January 1970)
+		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
 	
 	/** @return
@@ -467,11 +467,11 @@ public:
 		has not been yet received. If GK is not in routed mode, this is
 		timestamp for ACF generated as a response to ARQ.
 	*/
-	time_t GetConnectTime();
+	time_t GetConnectTime() const;
 	
 	/** Set timestamp for a Connect (or ACF) message associated with this call. */
 	void SetConnectTime(
-		const time_t& tm /// timestamp (seconds since 1st January 1970)
+		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
 	
 	/** @return
@@ -479,11 +479,11 @@ public:
 		for the call disconnect event. 0 if call has not been yet disconnected
 		or connected.
 	*/
-	time_t GetDisconnectTime();
+	time_t GetDisconnectTime() const;
 	
 	/** Set timestamp for a disconnect event for this call. */
 	void SetDisconnectTime(
-		const time_t& tm /// timestamp (seconds since 1st January 1970)
+		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
 
 	/** Check if:
@@ -735,33 +735,28 @@ inline bool CallRec::IsDurationLimitExceeded()
 		&& ((now - m_connectTime) > m_durationLimit));
 }
 
-inline long CallRec::GetDurationLimit()
+inline long CallRec::GetDurationLimit() const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return m_durationLimit;
 }
 
-inline time_t CallRec::GetCreationTime()
+inline time_t CallRec::GetCreationTime() const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return m_creationTime;
 }
 
-inline time_t CallRec::GetSetupTime()
+inline time_t CallRec::GetSetupTime() const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return m_setupTime;
 }
 
-inline time_t CallRec::GetConnectTime()
+inline time_t CallRec::GetConnectTime() const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return m_connectTime;
 }
 
-inline time_t CallRec::GetDisconnectTime()
+inline time_t CallRec::GetDisconnectTime() const
 {
-	PWaitAndSignal lock(m_usedLock);
 	return m_disconnectTime;
 }
 
