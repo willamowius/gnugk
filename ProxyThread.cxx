@@ -18,6 +18,11 @@
 #include <functional>
 #include "ANSI.h"
 #include "gk_const.h"
+#include "stl_supp.h"
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#pragma warning( disable : 4800 )
+#endif
 #include "ProxyThread.h"
 
 
@@ -359,7 +364,7 @@ ProxyHandleThread::ProxyHandleThread(PINDEX i)
 
 ProxyHandleThread::~ProxyHandleThread()
 {
-	std::for_each(connList.begin(), connList.end(), mem_fun(&MyPThread::Destroy));
+	std::for_each(connList.begin(), connList.end(), delete_thread);
 	std::for_each(sockList.begin(), sockList.end(), delete_socket);
 }
 
@@ -527,7 +532,7 @@ HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)
 HandlerList::~HandlerList()
 {
 	CloseListener();
-	std::for_each(handlers.begin(), handlers.end(), std::mem_fun(&MyPThread::Destroy));
+	std::for_each(handlers.begin(), handlers.end(), delete_thread);
 }
 
 void HandlerList::Insert(ProxySocket *socket)
@@ -540,7 +545,7 @@ void HandlerList::Insert(ProxySocket *socket)
 
 void HandlerList::Check()
 {
-	std::for_each(handlers.begin(), handlers.end(), std::mem_fun(&ProxyHandleThread::CloseUnusedThreads));
+	std::for_each(handlers.begin(), handlers.end(), close_threads);
 }
 
 void HandlerList::CloseListener()

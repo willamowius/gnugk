@@ -19,6 +19,11 @@
 #include "h225.h"
 #include "singleton.h"
 
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#pragma warning( disable : 4800 )
+#endif
+
 
 class Toolkit : public Singleton<Toolkit>
 {
@@ -48,7 +53,9 @@ class Toolkit : public Singleton<Toolkit>
 	private:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:
+#ifndef WIN32
 			PCLASSINFO( RouteEntry, PIPSocket::RouteEntry )
+#endif
 			RouteEntry(PIPSocket::RouteEntry &, InterfaceTable &);
 			bool Compare(Address) const;
 		};

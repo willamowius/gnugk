@@ -183,6 +183,7 @@ private:
 	void FlushSockets();
 	void BuildSelectList(PSocket::SelectList &);
 	static void delete_socket(ProxySocket *s) { delete s; }
+	static void delete_thread(MyPThread *t) { delete t; }
 	
 	std::list<ProxySocket *> sockList;
 	std::list<ProxyConnectThread *> connList;
@@ -203,6 +204,8 @@ public:
 
 private:
 	void CloseListener();
+	static void delete_thread(MyPThread *t) { delete t; }
+	static void close_threads(ProxyHandleThread *t) { t->CloseUnusedThreads(); }
 
 	std::vector<ProxyHandleThread *> handlers;
 	ProxyListener *listenerThread;

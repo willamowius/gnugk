@@ -35,13 +35,13 @@ class GkAuthorize:public PObject
     PCLASSINFO(GkAuthorize, PObject)
     
     private:
-    static const char* const loghead="AUTHORIZE";
-    static const char* const section="GkAuthorize";
-    static const char* const prfflag="prf:";
-    static const char* const allowflag="allow";
-    static const char* const denyflag="deny";
-    static const char* const ipflag="ipv4:";
-    static const char* const policy="default";
+    const static char * const loghead="AUTHORIZE";
+    const static char * const section="GkAuthorize";
+    const static char * const prfflag="prf:";
+    const static char * const allowflag="allow";
+    const static char * const denyflag="deny";
+    const static char * const ipflag="ipv4:";
+    const static char * const policy="default";
     
     BOOL dpolicy;
     BOOL no_config;

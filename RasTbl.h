@@ -28,6 +28,12 @@
 #include <vector>
 #include <string>
 
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#pragma warning( disable : 4800 )
+#endif
+
+
 using std::set;
 using std::list;
 using std::vector;

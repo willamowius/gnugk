@@ -529,7 +529,7 @@ void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 		PTRACE(3, "SignalConnection\tOnSetup() didn't find the call: " << AsString(m_callid.m_guid));
 		return;
 	};
-	pCallRec->SetSigConnection(this);
+//	pCallRec->SetSigConnection(this);
 /* comment out by cwhuang
    Is there any meaning to set callIdentifier & conferenceIdentifier again?
    Aren't them already set?
@@ -618,8 +618,8 @@ void SignalConnection::OnInformation( H225_Information_UUIE & Information )
  
 void SignalConnection::OnReleaseComplete( H225_ReleaseComplete_UUIE & ReleaseComplete )
 {
-	if (pCallRec)
-		pCallRec->SetSigConnection(0);
+//	if (pCallRec)
+//		pCallRec->SetSigConnection(0);
 // would be removed on CloseSignalConnection
 //	CallTable::Instance()->RemoveCall(pCallRec);
 }

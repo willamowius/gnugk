@@ -50,7 +50,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 ptclib.lib ptlib.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib OpenH323.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\lib"
+# ADD LINK32 ptclib.lib ptlibs.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib OpenH323s.lib mpr.lib wsock32.lib winmm.lib snmpapi.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\lib"
 # SUBTRACT LINK32 /debug
 
 !ELSEIF  "$(CFG)" == "gk - Win32 Debug"
@@ -102,6 +102,18 @@ SOURCE=.\gkauth.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\GkAuthorize.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\gkDestAnalysis.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\gkldap.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\GkStatus.cxx
 # End Source File
 # Begin Source File
@@ -119,6 +131,14 @@ SOURCE=.\MulticastGRQ.cxx
 # Begin Source File
 
 SOURCE=.\precompile.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ProxyChannel.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ProxyThread.cxx
 # End Source File
 # Begin Source File
 

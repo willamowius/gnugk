@@ -113,11 +113,11 @@ protected:
 	const char *name;
 };
 
-template<class GkDestAnalysis> class GkDestAnalysisInit : public GkDestAnalysisInitializer {
+template<class GkDestAnalysisT> class GkDestAnalysisInit : public GkDestAnalysisInitializer {
 public:
 	GkDestAnalysisInit(const char *n) : GkDestAnalysisInitializer(n) {}
 	virtual GkDestAnalysis *CreateDestAnalysis(PConfig *config)
-	{ return new GkDestAnalysis(config, name); }
+	{ return new GkDestAnalysisT(config, name); }
 };
 
 class GkDestAnalysisList {

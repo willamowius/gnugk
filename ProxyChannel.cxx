@@ -18,6 +18,7 @@
 #include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
+#include "stl_supp.h"
 #include "ProxyChannel.h"
 #include <q931.h>
 #include <h245.h>
@@ -69,7 +70,11 @@ CallSignalSocket::~CallSignalSocket()
 TCPProxySocket *CallSignalSocket::ConnectTo()
 {
 	if (remote->Connect(peerAddr)) {
+#ifdef WIN32
+		PTRACE(3, "Q931(" << GetCurrentThreadId() << ") Connect to " << peerAddr << " successful");
+#else
 		PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
+#endif
 		SetConnected(true);
 		remote->SetConnected(true);
 		ForwardData();
@@ -592,7 +597,11 @@ TCPProxySocket *H245Socket::ConnectTo()
 		PIPSocket::Address peerAddr(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 		SetPort(ip.m_port);
 		if (Connect(peerAddr)) {
+#ifdef WIN32
+			PTRACE(3, "H245(" << GetCurrentThreadId() << ") Connect to " << Name() << " successful");
+#else
 			PTRACE(3, "H245(" << getpid() << ") Connect to " << Name() << " successful");
+#endif
 			GetHandler()->Insert(this);
 			SetConnected(true);
 			remote->SetConnected(true);

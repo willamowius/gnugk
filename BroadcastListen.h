@@ -21,6 +21,11 @@
 #include "ptlib/sockets.h"
 #include "h225.h" 
 
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#pragma warning( disable : 4800 )
+#endif
+
 class H323RasSrv;
 
 class BroadcastListen : public PThread
