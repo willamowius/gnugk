@@ -254,8 +254,10 @@ H323RasListener::Main()
 			listener_mutex.Signal();
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
 			H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
-			r->Resume();
-			workers.Append(r);
+			if(NULL!=r) {
+				r->Resume();
+				r->SetAutoDelete(AutoDeleteThread);
+			}
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}

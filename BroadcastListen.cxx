@@ -81,6 +81,10 @@ void BroadcastListen::Main(void)
 			if (result) {
 				PPER_Stream stream(buffer, listener.GetLastReadCount());
 				H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
+				if(NULL!=r) {
+					r->Resume();
+					r->SetAutoDelete(AutoDeleteThread);
+				}
 			} else {
 				PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 			}
