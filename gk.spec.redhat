@@ -2,7 +2,7 @@
 %define mysql_dir /usr/include/mysql
 Summary: OpenH323 Gatekeeper
 Name: gk
-Version: 2.0beta2
+Version: 2.0beta4
 Release: 1
 URL: http://www.willamowius.de/openh323gk.html
 Source0: openh323gk.tgz
@@ -78,7 +78,10 @@ rm -rf $RPM_BUILD_ROOT
 /var/log/gk
 
 %changelog
-* Wed Feb 06 2001 Chih-Wei Huang <cwhuang@linux.org.tw>
+* Fri Mar 22 2002 Chih-Wei Huang <cwhuang@linux.org.tw>
+- Upgraded 2.0beta4
+
+* Wed Feb 06 2002 Chih-Wei Huang <cwhuang@linux.org.tw>
 - Upgraded 2.0beta2
 - add alpha support
 
