@@ -62,45 +62,6 @@ class WriteLock {
 	~WriteLock() { mutex.EndWrite(); }
 };
 
-// this data structure is obsolete !
-// all information about ongoing calls is in CallTable
-// it's still filled with correct information, but all
-// functions using it should be rewritten to use CallTable
-/*
-class conferenceRec
-{
-public:
-	conferenceRec(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw);
-
-	conferenceRec & operator= (const conferenceRec & other);
-	bool operator< (const conferenceRec & other) const;
-
-// protected:
-	H225_EndpointIdentifier m_src;
-	H225_ConferenceIdentifier m_cid;
-	H225_BandWidth m_bw;
-};
-
-
-// this data structure is obsolete !
-// all information about ongoing calls is in CallTable
-class resourceManager : public Singleton<resourceManager>
-{
-public:
-	resourceManager();
-protected:
-	resourceManager(const resourceManager &);
-public:
-	void SetBandWidth(int bw);
-	unsigned int GetAvailableBW(void) const;
-	BOOL GetAdmission(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw);
-	BOOL CloseConference(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid);
-
-protected:
-	H225_BandWidth m_capacity;
-	set<conferenceRec> ConferenceList;
-};
-*/
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -155,6 +116,9 @@ public:
         const PString & getCC() const { return m_cc; }
         const PString & getCgPN() { return m_cgPN; }
 
+	const PStringList & getBlackList() const { return m_BlackList; }
+	const PStringList & getWhiteList() const { return m_WhiteList; }
+
         // Set accessor methods
         void setH323ID(PString &h323id) { m_h323id = h323id; }
         void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
@@ -169,6 +133,10 @@ public:
         void setHonorsARJincompleteAddress(BOOL honor) { m_honorsARJincompleteAddress = honor; }
         void setCC(PString &cc) { m_cc = cc; }
         void setCgPN(PString &cgPN) { m_cgPN = cgPN; }
+
+	void setBlackList(PStringList &bl) { m_BlackList = bl; }
+	void setWhiteList(PStringList &wl) { m_WhiteList = wl; }
+
 	void debugPrint() {
 		PTRACE(5, "Calling profile:");
 		PTRACE(5, "H323ID=" << getH323ID());
@@ -187,6 +155,8 @@ public:
 		PTRACE(5, "Inac=" << getInac());
 		PTRACE(5, "HonorsARJIncompleteAddr=" << honorsARJincompleteAddress());
 		PTRACE(5, "CC=" << getCC());
+		PTRACE(5, "BlackList=" << getBlackList());
+		PTRACE(5, "WhiteList=" << getWhiteList());
 	}
 
 private:
@@ -203,6 +173,9 @@ private:
         PString         m_cc;                         // country code
         PString         m_cgPN;                       // calling party number for CDR generation
         BOOL            m_isCPE;                      // CPE flag
+
+	PStringList     m_BlackList;                  // Blacklist of "bad" prefices
+	PStringList     m_WhiteList;                  // Whitelist of "good" prefices
 }; // CallingProfile
 
 class CalledProfile {
@@ -507,19 +480,6 @@ private:
 
 
 
-// data about a single endpoint in a call
-class EndpointCallRec
-{
-public:
-	EndpointCallRec(H225_TransportAddress m_callSignalAddress, H225_TransportAddress m_rasAddress, H225_CallReferenceValue m_callReference);
-
-	bool operator< (const EndpointCallRec & other) const;
-
-	H225_TransportAddress m_callSignalAddress;
-	H225_TransportAddress m_rasAddress;	// is this redundant ? can this always be found via the RegistrationTable ?
-	H225_CallReferenceValue m_callReference;
-	// TODO: thread pointer (or NULL for direct calls)
-};
 
 //typedef PTCPSocket CallSignalSocket;
 class CallSignalSocket;
@@ -575,6 +535,7 @@ public:
 	void Disconnect(bool = false); // Send Release Complete?
 	void RemoveAll();
 	void RemoveSocket();
+	void SendReleaseComplete();
 
 	int CountEndpoints() const;
 
@@ -662,6 +623,7 @@ public:
 	callptr FindCallRec(const endptr &) const;
 	callptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
 
+	void ClearTable();
 	void CheckCalls();
 
 	void RemoveCall(const H225_DisengageRequest & obj_drq);
