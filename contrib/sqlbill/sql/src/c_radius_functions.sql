@@ -32,6 +32,7 @@ DECLARE
 	reject_attr voipradattr%ROWTYPE;
 	check_attr voipradattr%ROWTYPE;
 	query_result RECORD;
+	userid INT;
 BEGIN
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
@@ -47,11 +48,17 @@ BEGIN
 	
 	-- remove RADIUS escapes
 	username := radius_xlat(trim($1));
-	
+
+	userid := match_user(username, framed_ip);
+	IF userid IS NULL THEN
+		RETURN NEXT reject_attr;
+		RETURN;
+	END IF;
+		
 	-- get user information
-	SELECT INTO query_result chappassword, allowedaliases, framedip FROM voipuser u
-		JOIN voipaccount a ON u.accountid = a.id 
-		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled AND u.h323id = username;
+	SELECT INTO query_result chappassword, allowedaliases, framedip 
+		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
+		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
 	IF NOT FOUND OR query_result.chappassword IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
@@ -95,6 +102,7 @@ DECLARE
 	rcode_attr voipradattr%ROWTYPE;
 	reply_attr voipradattr%ROWTYPE;
 	attr_num INT := 1;
+	userid INT;
 	query_result RECORD;
 BEGIN
 	-- prepare h323-return-code avp, as it is referenced very often
@@ -113,11 +121,19 @@ BEGIN
 	
 	-- remove RADIUS escapes
 	username := radius_xlat(trim($1));
+
+	userid := match_user(username, framed_ip);
+	IF userid IS NULL THEN
+		rcode_attr.attrvalue := rcode_attr.attrvalue || ''1'';
+		RETURN NEXT rcode_attr;
+		RETURN;
+	END IF;
 	
 	-- get user information
-	SELECT INTO query_result balance, currencysym, allowedaliases, assignaliases, framedip 
+	SELECT INTO query_result balance, currencysym, allowedaliases, 
+			assignaliases, framedip 
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id
-		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled AND u.h323id = username;
+		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
 	IF NOT FOUND OR query_result.balance IS NULL THEN
 		rcode_attr.attrvalue := rcode_attr.attrvalue || ''1'';
 		RETURN NEXT rcode_attr;
@@ -196,6 +212,7 @@ DECLARE
 	check_attr voipradattr%ROWTYPE;
 	query_result RECORD;
 	trf voiptariff%ROWTYPE;
+	userid INT;
 BEGIN
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
@@ -214,12 +231,17 @@ BEGIN
 	calling_station_id := radius_xlat(trim($4));
 	called_station_id := radius_xlat(trim($5));
 	
+	userid := match_user(username, framed_ip);
+	IF userid IS NULL THEN
+		RETURN NEXT reject_attr;
+		RETURN;
+	END IF;
+	
 	-- get user information
 	SELECT INTO query_result a.id AS accid, balance, balancelimit, 
 			currencysym, chappassword, allowedaliases, framedip 
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
-		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled 
-			AND u.h323id = username;
+		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
 	IF NOT FOUND OR query_result.balance IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
@@ -282,6 +304,7 @@ DECLARE
 	rcode_attr voipradattr%ROWTYPE;
 	reply_attr voipradattr%ROWTYPE;
 	attr_num INT := 1;
+	userid INT;
 	query_result RECORD;
 	trf voiptariff%ROWTYPE;
 BEGIN
@@ -304,12 +327,19 @@ BEGIN
 	calling_station_id := radius_xlat(trim($4));
 	called_station_id := radius_xlat(trim($5));
 	
+	userid := match_user(username, framed_ip);
+	IF userid IS NULL THEN
+		rcode_attr.attrvalue := rcode_attr.attrvalue || ''1'';
+		RETURN NEXT rcode_attr;
+		RETURN;
+	END IF;
+	
 	-- get user information
 	SELECT INTO query_result a.id AS accid, balance, balancelimit, currencysym, 
 			chappassword, allowedaliases, framedip 
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
 		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled 
-			AND u.h323id = username;
+			AND u.id = userid;
 	IF NOT FOUND OR query_result.balance IS NULL THEN
 		rcode_attr.attrvalue := rcode_attr.attrvalue || ''1'';
 		RETURN NEXT rcode_attr;

@@ -1,5 +1,7 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- (sqlbill) added ability to authenticate users only by their IP 
+  (ignoring User-Name)
 - BUGFIX(radauth.cxx) RadAliasAuth will use Calling-Party-Number as User-Name
   if no sourceAddress inside is present in Setup-UUIE
 - (sqlbill) new, more flexible tariff/rating engine

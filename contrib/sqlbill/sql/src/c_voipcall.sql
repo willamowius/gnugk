@@ -16,7 +16,7 @@ CREATE TABLE voipcall (
     
   -- User-Name
   h323id TEXT NOT NULL,
-
+  
   -- Acct-Session-Id attribute
   acctsessionid VARCHAR(64) NOT NULL,  
   -- H.323 Conference Identifier string

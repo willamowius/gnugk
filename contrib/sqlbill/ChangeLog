@@ -1,3 +1,6 @@
+16 Jun 2004 -- zvision
+  * added ability to authenticate users only by their IP (ignoring User-Name)
+
 15 Jun 2004 -- zvision
   * BUGFIX: active flag for old voiptariff aparently did not work - all tariffs
     were counted as active

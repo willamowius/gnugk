@@ -114,6 +114,11 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+The SQL billing from the contrib section can now authenticate users only 
+by their IP (ignoring User-Name) and has a new, more flexible tariff/rating 
+engine.
+
+<item>
 RadAliasAuth can authenticate now Setup messages without sourceAddress
 field present (it will use Calling-Party-Number instead).
 

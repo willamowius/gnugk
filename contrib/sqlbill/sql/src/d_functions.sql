@@ -1,2 +1,3 @@
 DROP FUNCTION radius_xlat(TEXT);
-DROP FUNCTION match_tariff(TEXT);
+DROP FUNCTION match_tariff(TEXT, INT, TEXT);
+DROP FUNCTION match_user(TEXT, INET);

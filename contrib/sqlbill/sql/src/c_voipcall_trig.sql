@@ -12,17 +12,21 @@ CREATE OR REPLACE FUNCTION voipcall_preprocess_fields()
 	RETURNS TRIGGER AS
 '
 DECLARE
-	cid INT;
+	userid INT;
 BEGIN
 	NEW.h323id := radius_xlat(NEW.h323id);
 	NEW.gkid := radius_xlat(NEW.gkid);
 	NEW.callingstationid := radius_xlat(NEW.callingstationid);
 	NEW.calledstationid := radius_xlat(NEW.calledstationid);
-	
-	IF NEW.accountid IS NULL THEN
-		SELECT INTO NEW.accountid, NEW.currencysym U.accountid, A.currencysym 
-			FROM voipaccount A JOIN voipuser U ON A.id = U.accountid 
-			WHERE U.h323id = NEW.h323id;
+
+	userid := match_user(NEW.h323id, NEW.callingstationip);
+	IF userid IS NOT NULL THEN
+		IF NEW.accountid IS NULL THEN
+			SELECT INTO NEW.accountid, NEW.currencysym, NEW.h323id 
+					A.id, A.currencysym, U.h323id
+				FROM voipaccount A JOIN voipuser U ON A.id = U.accountid 
+				WHERE U.id = userid;
+		END IF;
 	END IF;
 
 	RETURN NEW;
@@ -34,18 +38,23 @@ CREATE OR REPLACE FUNCTION voipcall_match_tariff()
 	RETURNS TRIGGER AS
 '
 DECLARE
+	userid INT;
 BEGIN
 	IF NEW.price IS NOT NULL AND NEW.cost IS NOT NULL THEN
 		RETURN NEW;
 	END IF;
 
 	IF NEW.accountid IS NULL THEN
-		SELECT INTO NEW.accountid, NEW.currencysym A.id, A.currencysym 
-			FROM voipuser U JOIN voipaccount A ON U.accountid = A.id
-			WHERE U.h323id = NEW.h323id;
+		userid := match_user(NEW.h323id, NEW.callingstationip);
+		IF userid IS NOT NULL THEN
+			SELECT INTO NEW.accountid, NEW.currencysym, NEW.h323id
+					A.id, A.currencysym, U.h323id
+				FROM voipuser U JOIN voipaccount A ON U.accountid = A.id
+				WHERE U.id = userid;
+		END IF;
 	END IF;
 
-	IF NEW.price IS NULL THEN	
+	IF NEW.price IS NULL AND NEW.accountid IS NOT NULL THEN
 		SELECT INTO NEW.price, NEW.tariffdesc, NEW.initialincrement,
 				NEW.regularincrement T.price, D.description, T.initialincrement,
 				T.regularincrement

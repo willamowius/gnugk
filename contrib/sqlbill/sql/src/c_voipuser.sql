@@ -16,6 +16,11 @@ CREATE TABLE voipuser (
 	accountid INT NOT NULL,
 	-- can be used to disable the user temporarily
 	disabled BOOLEAN NOT NULL DEFAULT FALSE,
+	-- authentication type for this user:
+	--   TRUE - check username/password and/or framedip (if specified)
+	--   FALSE - check framedip/password only, match user account based 
+	--           on Framed-IP-Address
+	checkh323id BOOLEAN NOT NULL DEFAULT TRUE,
 	-- clear text user password for RADIUS authentication
 	chappassword TEXT NOT NULL,
 	-- aliases (E.164) allowed for this H.323 ID

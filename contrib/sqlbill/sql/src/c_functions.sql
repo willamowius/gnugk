@@ -117,3 +117,25 @@ BEGIN
 	RETURN trf;
 END;
 ' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;
+
+-- This function tries to find an user account based on the specified
+-- network address and/or H.323 identifier
+-- $1 - H.323 user's identifier to match
+-- $2 - user's IP address 
+CREATE OR REPLACE FUNCTION match_user(TEXT, INET)
+	RETURNS INT AS
+'
+DECLARE
+	userh323id ALIAS FOR $1;
+	userip ALIAS FOR $2;
+	userid INT := NULL;
+BEGIN
+	SELECT INTO userid id FROM voipuser
+		WHERE checkh323id AND h323id = userh323id AND NOT disabled;
+	IF NOT FOUND OR userid IS NULL THEN
+		SELECT INTO userid id FROM voipuser
+			WHERE NOT checkh323id AND userip >>= framedip AND NOT disabled;
+	END IF;
+	RETURN userid;
+END;
+' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;
