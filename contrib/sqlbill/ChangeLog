@@ -1,3 +1,6 @@
+13 Dec 2004 -- zvision
+  * allow an empty value for Calling-Station-Id
+
 07 Dec 2004 -- zvision
   * simple report query examples to get ASR, ACD and other statistics
     added to the 'examples' directory
