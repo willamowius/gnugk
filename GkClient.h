@@ -60,7 +60,6 @@ class GKPendingList;
 class GkClient {
 public:
 	GkClient();
-	~GkClient();
 
 	void SendGRQ();
 	void SendRRQ();
@@ -100,6 +99,10 @@ public:
 	{
 		SetPassword(rasmsg, !m_e164 ? m_e164 : m_h323Id);
 	}
+
+protected:
+	virtual ~GkClient();
+	friend void Toolkit::delete_gkclient();
 
 private:
 	typedef std::map<int, callptr>::iterator iterator;
