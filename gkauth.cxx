@@ -228,7 +228,7 @@ SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
 {
 	filled = config->GetInteger(passwdsec, "KeyFilled", 0);
 	checkid = Toolkit::AsBool(config->GetString(passwdsec, "CkeckID", "0"));
-	passwdTimeout = config->GetInteger(passwdsec, "PasswordTimeout", 0) * 1000;
+	passwdTimeout = config->GetInteger(passwdsec, "PasswordTimeout", -1) * 1000;
 }
 
 int SimplePasswordAuth::Check(const H225_GatekeeperRequest & grq, unsigned &)

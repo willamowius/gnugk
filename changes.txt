@@ -3,6 +3,7 @@ Changes from 2.0b3 to now (by cwhuang)
 - allow set neighbors without prefix, no LRQs will be sent to such neighbors
 - send IRQ to an endpoint before expiring it
 - only accept unregistered call from neighbors
+- in SimplePasswordAuth module, allow expire password cache
 - add NeighborPasswordAuth module
 - check if LRQs is from IP of my neighbors 
 - add dynamic resolving name for neighbors, thanks to Rodrigo Gonzalez

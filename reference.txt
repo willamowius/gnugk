@@ -365,7 +365,7 @@ PasswordTimeout=120	Default: -1
 SimplePasswordAuth will cache an authenticated password.
 This field define the cache timeout value in second.
 0 means never cache the password, while a negative value
-means the cache will never expired.
+means the cache never expires.
 
 B.15 Section [CallTable]
 
