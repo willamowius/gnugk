@@ -198,6 +198,7 @@ private:
 	std::list<ProxySocket *> sockList;
 	std::list<ProxySocket *> removedList;
 	mutable PReadWriteMutex mutex;
+	PMutex removedMutex;
 	std::list<ProxyConnectThread *> connList;
 	mutable PReadWriteMutex connMutex;
 	ProxyHandleThread *lcHandler;
@@ -269,17 +270,17 @@ inline void MyPThread::Go()
 inline void ProxyHandleThread::Remove(iterator i)
 {
 	removedList.push_back(*i);
-	mutex.StartWrite();
+	removedMutex.Wait();
 	sockList.erase(i);
-	mutex.EndWrite();
+	removedMutex.Signal();
 }
 
 inline void ProxyHandleThread::Remove(ProxySocket *socket)
 {
 	removedList.push_back(socket);
-	mutex.StartWrite();
+	removedMutex.Wait();
 	sockList.remove(socket);
-	mutex.EndWrite();
+	removedMutex.Signal();
 }
 
 #ifdef WIN32
