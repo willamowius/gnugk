@@ -74,6 +74,7 @@ public:
 	virtual ~LDAPAnswer();
 	int status;			// as LDAP.ld_errno
 	LDAPEntryClass LDAPec;	// the attributes and their values
+	mutable PMutex lock;
 };
 
 class LDAPCtrl : public PObject {

@@ -78,7 +78,7 @@ LDAPAnswer::LDAPAnswer():
 
 LDAPAnswer::~LDAPAnswer()
 {
-	// this space left blank intentionally
+	lock.Wait();
 }
 
 /*
@@ -283,6 +283,7 @@ LDAPCtrl::DirectoryLookup(LDAPQuery &q)
 	BaseDN_mutex.EndRead();
 	LDAPAnswer * answer=collectAttributes(q, attrs, DN);
 #ifdef ENCRYPTED_PASSWORD
+	PWaitAndSignal lock(answer->lock);
 	for(LDAPEntryClass::iterator iter = answer->LDAPec.begin(); iter!=answer->LDAPec.end(); iter++) {
 		LDAPAttributeValueClass AV=iter->second;
 	// Decode The Password.
@@ -303,12 +304,16 @@ LDAPCtrl::DirectoryLookup(LDAPQuery &q)
 LDAPAnswer *
 LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList &attrs, PString &DN, unsigned int scope) {
 	LDAPAnswer *query=InternalcollectAttributes(q, attrs, DN, scope);
+	query->lock.Wait();
 	if (query->status!=LDAP_SUCCESS) {
+		query->lock.Signal();
 		delete query;
 		return NULL; // emergency exit
 	}
-	if (query->LDAPec.empty())
+	if (query->LDAPec.empty()) {
+		query->lock.Signal();
 		return query;
+	}
 	for (map<PString, DBAttributeValueClass>::iterator iter=query->LDAPec.begin();
 	     iter!=query->LDAPec.end();
 	     iter++) {
@@ -325,17 +330,17 @@ LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList &attrs, PString &DN, unsig
 		new_query.LDAPOperator=LDAPQuery::LDAPNONE;
 		LDAPAnswer *subquery=collectAttributes(new_query, attribute_remainder, DN, LDAP_SCOPE_BASE);
 		// insert subquery to query
+		subquery->lock.Wait();
 		if(NULL!=subquery) {
 			for(PINDEX j=0; j<attribute_remainder.GetSize();j++) {
-				PTRACE(1, "Inserting: " << attribute_remainder[j] << ":" <<
-				       subquery->LDAPec[DN][attribute_remainder[j]] <<
-				       " into " << iter->first);
 				iter->second.insert(DBAVValuePair(attribute_remainder[j],
 									 subquery->LDAPec[DN][attribute_remainder[j]]));
 			}
+			subquery->lock.Signal();
 			delete subquery;
 		}
 	}
+	query->lock.Signal();
 	return query;
 }
 
@@ -412,7 +417,9 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 			gk_ldap_msgfree(res);
 			DEBUGPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
 			//ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
+			result->lock.Wait();
 			result->status = ldap_ret;
+			result->lock.Signal();
 			if(LDAP_UNAVAILABLE == ldap_ret) known_to_be_bound = false;
 			retry_count++;
 			if(retry_count>4)
@@ -426,15 +433,21 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 	} while((LDAP_SUCCESS != ldap_ret)&&(retry_count < 4));
 
 	if(retry_count>=4) {
+		result->lock.Wait();
 		result->status=ldap_ret;
+		result->lock.Signal();
 		PTRACE(1, "didn't get LDAP-Answer.");
 		return result;
 	}
+	result->lock.Wait();
 	result->status = ldap_ret;
+	result->lock.Signal();
 	// analyze answer
 	if (0 > (ldap_ret = gk_ldap_count_entries(ldap, res))) {
 		ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
+		result->lock.Wait();
 		result->status = ldap_ret;
+		result->lock.Signal();
 		return result;
 	} else {
 		DEBUGPRINT("ldap_search: " << ldap_ret << " results");
@@ -469,12 +482,11 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 			gk_ldap_memfree(attr); // remove attr
 		} // attr
 		gk_ber_free(ber,0);
-  		PString out="AV=";
-  		for (std::map<PString,PStringList>::iterator Iter=AV.begin();Iter!=AV.end(); Iter++)
-  			out += (*Iter).first + ":" + (*Iter).second[0] + " ";
-  		PTRACE(1, out);
-		if(!AV.empty())
+		if(!AV.empty()) {
+			result->lock.Wait();
 			result->LDAPec.insert(LDAPECValuePair(dn,AV));
+			result->lock.Signal();
+		}
 		gk_ldap_memfree(dn);
 	} // answer chain
 	gk_ldap_msgfree(res);

@@ -73,40 +73,51 @@ BOOL GkLDAP::getAttribute(const PString &alias, const dctn::DBAttributeNamesEnum
 	BOOL found = FALSE;
 	LDAPAnswer *answer = LDAPConn->DirectoryUserLookup(alias);
 	// if LDAP succeeds
-	if((NULL!=answer) && (answer->status == 0)){
-		if (answer->LDAPec.size()){
-			PString attrNameStr = GkDatabase::Instance()->attrNameAsString(attr_name);
-			LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
-			if((pFirstDN->second).count(attrNameStr)){
-				found = TRUE;
-				attr_values = (pFirstDN->second)[attrNameStr];
+
+	if(NULL!=answer) {
+		answer->lock.Wait();
+		if (answer->status == 0){
+			if (answer->LDAPec.size()){
+				PString attrNameStr = GkDatabase::Instance()->attrNameAsString(attr_name);
+				LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
+				if((pFirstDN->second).count(attrNameStr)){
+					found = TRUE;
+					attr_values = (pFirstDN->second)[attrNameStr];
+				}
 			}
 		}
+		answer->lock.Signal();
+		delete answer;
 	}
-	delete answer;
 	return found;
 }
 
 BOOL GkLDAP::getAttributes(const PString &alias, DBAttributeValueClass &attr_map)
 {
         LDAPAnswer *answer = LDAPConn->DirectoryUserLookup(alias);
-        if ((NULL!=answer) && (answer->status == 0) && (answer->LDAPec.size() == 1)) {
-        // LDAP succeeds and exactly 1 match
-                LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
-                attr_map =  pFirstDN->second;
-		delete answer;
-                return TRUE;
-        } else {
-        // not 1 match
-		delete answer;
-                return FALSE;
-        }
+        if (NULL!=answer) {
+		answer->lock.Wait();
+		if((answer->status == 0) && (answer->LDAPec.size() == 1)) {
+			// LDAP succeeds and exactly 1 match
+			LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
+			attr_map =  pFirstDN->second;
+			answer->lock.Signal();
+			delete answer;
+			return TRUE;
+		} else {
+			// not 1 match
+			answer->lock.Signal();
+			delete answer;
+			return FALSE;
+		}
 
+	}
 }
 
 BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name, BOOL & matchFound,
 			 BOOL & fullMatch, BOOL & gwFound, CalledProfile & calledProfile)
 {
+	BOOL rv=FALSE;
 	PString aliasStr = H323GetAliasAddressString(alias);
 	PString attrNameStr = GkDatabase::Instance()->attrNameAsString(attr_name);
 	BOOL partialMatch = (matchFound && !fullMatch && !gwFound);
@@ -134,68 +145,72 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 	LDAPAnswer *answer = LDAPConn->DirectoryLookup(query);
 	//LDAPAnswer *answer = LDAPConn->collectAttributes(query);
 	// if LDAP succeeds and an entry has been found
-	if(answer->status == 0 && answer->LDAPec.size()){
-		// check for full/partial match
-		// for each DN
-		LDAPEntryClass::iterator iterDN = answer->LDAPec.begin();
-		for(; iterDN != answer->LDAPec.end() && !partialMatch; iterDN++){
-			DBAttributeValueClass::iterator iterAttr = (iterDN->second).begin();
-			// for each attribute
-			for(; iterAttr != (iterDN->second).end() && !partialMatch; iterAttr++) {
-				if (iterAttr->first == attrNameStr) {
-					// for each value
-					for(PINDEX i=0; i < (iterAttr->second).GetSize() && !fullMatch; i++) {
-						PString telno(GkDatabase::Instance()->rmInvalidCharsFromTelNo((iterAttr->second)[i]));
-						// if dialed number equals LDAP entry
-						if (aliasStr == telno) {
-							gwFound = FALSE;
-							fullMatch = TRUE;
-							PTRACE(2, ANSI::DBG << "TelephoneNo "
-							  << alias << " matches endpoint "
-							  << iterDN->first
-							  << " (full)" << ANSI::OFF);
-							using namespace dctn;
-							DBAttributeValueClass::iterator h323id = (iterDN->second).find(PString(PString(GkDatabase::Instance()->attrNameAsString(H323ID))));
-							DBTypeEnum d;
-							PString h = h323id->second[0];
-							calledProfile.SetIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
-						// if no full match is found up to now and
-						// LDAP entry is prefix of dialed number
-						} else if (!fullMatch && telno == aliasStr.Left(telno.GetLength())) {
-							gwFound = TRUE;
-							PTRACE(2, ANSI::DBG << "TelephoneNo "
-							  << alias << " matches endpoint "
-							  << iterDN->first
-							  << " (gateway found)" << ANSI::OFF);
-							if(!calledProfile.IsGK()) {
+	if(answer!=NULL) {
+		answer->lock.Wait();
+		if(answer->status == 0 && answer->LDAPec.size()){
+			// check for full/partial match
+			// for each DN
+			LDAPEntryClass::iterator iterDN = answer->LDAPec.begin();
+			for(; iterDN != answer->LDAPec.end() && !partialMatch; iterDN++){
+				DBAttributeValueClass::iterator iterAttr = (iterDN->second).begin();
+				// for each attribute
+				for(; iterAttr != (iterDN->second).end() && !partialMatch; iterAttr++) {
+					if (iterAttr->first == attrNameStr) {
+						// for each value
+						for(PINDEX i=0; i < (iterAttr->second).GetSize() && !fullMatch; i++) {
+							PString telno(GkDatabase::Instance()->rmInvalidCharsFromTelNo((iterAttr->second)[i]));
+							// if dialed number equals LDAP entry
+							if (aliasStr == telno) {
+								gwFound = FALSE;
+								fullMatch = TRUE;
+								PTRACE(2, ANSI::DBG << "TelephoneNo "
+								       << alias << " matches endpoint "
+								       << iterDN->first
+								       << " (full)" << ANSI::OFF);
 								using namespace dctn;
 								DBAttributeValueClass::iterator h323id = (iterDN->second).find(PString(PString(GkDatabase::Instance()->attrNameAsString(H323ID))));
 								DBTypeEnum d;
 								PString h = h323id->second[0];
 								calledProfile.SetIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
+								// if no full match is found up to now and
+								// LDAP entry is prefix of dialed number
+							} else if (!fullMatch && telno == aliasStr.Left(telno.GetLength())) {
+								gwFound = TRUE;
+								PTRACE(2, ANSI::DBG << "TelephoneNo "
+								       << alias << " matches endpoint "
+								       << iterDN->first
+								       << " (gateway found)" << ANSI::OFF);
+								if(!calledProfile.IsGK()) {
+									using namespace dctn;
+									DBAttributeValueClass::iterator h323id = (iterDN->second).find(PString(PString(GkDatabase::Instance()->attrNameAsString(H323ID))));
+									DBTypeEnum d;
+									PString h = h323id->second[0];
+									calledProfile.SetIsGK(GkDatabase::Instance()->isGK(h323id->second[0],d));
+								}
+								// dialed number is prefix of LDAP entry
+							} else if (!gwFound && !fullMatch && telno.Left(aliasStr.GetLength()) == aliasStr) {
+								gwFound = FALSE;
+								fullMatch = FALSE;
+								partialMatch = TRUE;
+								PTRACE(2, ANSI::DBG << "TelephoneNo "
+								       << alias << " matches endpoint "
+								       << iterDN->first
+								       << " (partial)" << ANSI::OFF);
+							} else {
+								PTRACE(2, ANSI::DBG << "TelephonNo "
+								       << aliasStr << " does NOT mach "
+								       << telno);
 							}
-						// dialed number is prefix of LDAP entry
-						} else if (!gwFound && !fullMatch && telno.Left(aliasStr.GetLength()) == aliasStr) {
-							gwFound = FALSE;
-							fullMatch = FALSE;
-							partialMatch = TRUE;
-							PTRACE(2, ANSI::DBG << "TelephoneNo "
-							  << alias << " matches endpoint "
-							       << iterDN->first
-							  << " (partial)" << ANSI::OFF);
-						} else {
-							PTRACE(2, ANSI::DBG << "TelephonNo "
-							       << aliasStr << " does NOT mach "
-							       << telno);
-						}
 
+						}
 					}
 				}
 			}
 		}
+		rv = (answer->status == 0) ? TRUE : FALSE;
+		answer->lock.Signal();
+		delete answer;
 	}
-	BOOL rv = (answer->status == 0) ? TRUE : FALSE;
-	delete answer;
 	matchFound = (fullMatch || partialMatch || gwFound);
 	return rv;
 }
