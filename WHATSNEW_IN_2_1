@@ -1,0 +1,169 @@
+Hi *,
+
+
+we're happy to see some of you are already trying to use 2.1.
+We'd like to encourage anyone to jump the 2.1 bandwagon and
+highly appreciate your feedback.
+
+
+Some words of warning, though:
+2.1 is *complex* and it's still work in progress.
+You have to know about some concepts to configure it right.
+Some reasonable defaults are not yet set.
+
+Expect options and functionality to change without notice.
+
+AND DON'T EXPECT US TO HELP SOLVE YOUR CONFIG PROBLEMS.
+We won't. We're busy working on the code.
+
+Sorry we don't have the time to properly document all of this yet.
+We will as time permits.
+
+
+Anyway.
+If you're still willing to play around with 2.1, here's some hints.
+If you discover another hint that you think should be in here,
+send a mail to the developers mailinglist (openh323gk-developer@lists.sourceforge.net)
+and I'll pick it up.
+
+
+
+* DON'T USE YOUR 2.0 CONFIG
+  Start with a new gatekeeper.ini.complete !
+
+
+
+* explicitly use .ini:
+  Per-endpoint options can be stored in multiple databases (.ini and LDAP).
+  To search them in the order ".ini before LDAP" you should configure
+  [Gatekeeper::Databases]
+  IniFile=TRUE
+  LDAP=TRUE
+
+  If you don't configure this the IniFile will not be used !
+  Results of these database queries will be merged; for conflicting entries,
+  the first found is used.
+
+
+
+* provision your endpoints !!
+
+  This would normally require a lengthy explanation ...
+  Imagine you're a telephone (VoIP) carrier. You have a range of telephone numbers that
+  belong to you (numbers "ported" into your network). Other carriers you're interconnected
+  with (via VoIP or TDM) route calls to these number to your network.
+  Usually you have a range of ported but unallocated numbers.
+  Also, you commonly have some "trunk" gateways (those used to TDM-interconnect yourself
+  with the other carriers). You then have some routing prefix entries like
+  "route 11* to gateway A", "12* to gateway B" etc.
+  
+  Now say someone from the public PSTN calls "123". 123 is ported to us.
+  The call will be routed via PSTN to our network (because the other carriers know "123" is
+  ported to us).
+  But our gatekeeper does not necessarily need to know how to route it either because we have
+  not yet configured it to do so. This can be because we have not yet allocated the number to
+  a subscriber of ours or because the user is not registered with our gatekeeper (and maybe he's
+  using dynamic IPs so we cannot statically route his number).
+  Now if our gatekeeper didn't know the number is "ours", it would route the call to
+  gateway "B" because B has prefix "12". The call goes to the carrier attached to B but that
+  carrier sends the call back to us because he knows it's our number.
+  We end up in a loop !
+  The only way to prevent that is: the gatekeeper must know about "ported" numbers, and
+  not every routable number is a ported one !
+  We plan to route such a call to a voice announcement that either tells the caller he has
+  called a non-routed number. In the case of the non-registered user, we may route the
+  call to his voicemail. Both of that is not yet implemented, so don't ask.
+
+  Just make sure you understand that "porting" and "routing" are independent concepts.
+  Configuring ported numbers is called "provisioning".
+
+  Therefore:
+  You can **AND MUST** provision any endpoints you want to register.
+  You can configure per-endpoint options in the new section
+  [RasSrv::EndpointOptions].
+  Available options are documented in etc/voip.schema.
+
+  Loglines like "Could not find profile for: XXX" indicate you didn't properly provision
+  the endpoint.
+
+  NOTE: You need to have at least a line like "myendpoint=voIPEndpointType=cpe" per endpoint !
+
+  Use something like
+  [RasSrv::EndpointOptions]
+  # voIPTreat{Calling|Called}PartyNumberAs: 2=int, 3=nat, 4=local, 5=unchanged
+  myendpoint=voIPEndpointType=cpe;voIPcountryCode=49;voIPTreatCalledPartyNumberAs=5;
+  voIPTreatCallingPartyNumberAs=5;voIPConvertToLocal=0;voIPlocalAccessCode=;
+  voIPnationalAccessCode=0;voIPinternationalAccessCode=00
+
+  You should use the default option names but you can rename them via
+  [GkDatabase::DBAttributeNames].
+
+  We encourage you to use LDAP, enable it in [Gatekeeper::Databases], configure
+  [GkLDAP::Settings] and [LDAPCache] and follow the hints in etc/voip.schema.
+
+  
+
+* Read etc/voip.schema for an explanation of available per-endpoints options.
+  Read doc/*.pdf to understand the routing process ! Start with destAnalysis.pdf.
+
+  NOTE: while this shows what's happening when we receive an ARQ, the major
+  part of it is also being processed when we receive the SETUP. Some
+  input, especially the TypeOfNumber, is only available in Q.931, not in RAS.
+
+
+
+* use OverlapSendDestAnalysis
+  OverlapSendDestAnalysis implements "overlapped sending" AND ALSO the
+  "classic" destination analysis.
+  You have to explicitly USE it, though:
+
+  [Gatekeeper::DestAnalysis]
+  OverlapSendDestAnalysis=required;ARQ
+  default=allow
+
+  Without this, your calls will fail with "ARJ - called party not registered" !
+
+
+
+Some points to remember:
+
+* internally, numbers are converted to international E.164 numbers which are then used
+  for making routing decisions.
+  The gk tries to 'internationalize' the numbers you use. You can configure per-endpoint options
+  (using voIPTreat{Called|Calling}PartyNumberAs)
+  to determine how the calling and called party number of calls are treated.
+  Usually, you must set these options for the endpoint THE CALL IS COMING IN FROM.
+  See etc/voip.schema for more options.
+
+
+* we allow for "overlapped sending".
+  I'll try explaining with a short example:
+
+  Assume you have a gateway A with prefix 123456 and a Q.931 SETUP with
+  number 1234 comes in. You may *NOT* route the call to A yet because
+  you don't know whether "5" and "6" will arrive. If they don't arrive,
+  the number remains incomplete and may not be routed anywhere.
+  If 5 and 6 follow, you may route the call to A.
+
+  Now assume you have another gateway B with prefix 123 and the same
+  SETUP with 1234. Now, though "1234" matches "123" you may *STILL NOT*
+  route the call to B because there's still A !
+  If no more ciphers arrived, the call would have to be routed to B
+  If a cipher != 5 arrived, the call would have to be routed to B, too.
+  If 5 and another cipher != 6 arrived, the call would have to be routed
+  to B, too.
+  BUT if 5 and 6 arrived, the call would have to be routed to A !
+
+
+  Remember overlapped sending and read docs/*.pdf if you think a call
+  is incorrectly routed (or not-routed).
+
+
+* if all else fails: read the code !
+
+
+
+
+
+Hope that helps. Good luck!
+
