@@ -1417,7 +1417,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 				// check all endpoint aliases for a password
 				const H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
 				for (PINDEX i = 0; i < aliases.GetSize(); i++) {
-					id = H323GetAliasAddressString(aliases[i]);
+					id = AsString(aliases[i]);
 					passwordFound = InternalGetPassword(id, passwd);
 					if (passwordFound)
 						break;

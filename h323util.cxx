@@ -86,6 +86,13 @@ PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasName)
 		case H225_AliasAddress::e_transportID:
 		case H225_AliasAddress::e_partyNumber:
 			aliasString = H323GetAliasAddressString(terminalAlias);
+			// OpenH323 prepends a special prefix to partyNumbers
+			// to distinguish a number subtype - we don't need this
+			if (terminalAlias.GetTag() == H225_AliasAddress::e_partyNumber) {
+				const PINDEX prefixIndex = aliasString.Find(':');
+				if (prefixIndex != P_MAX_INDEX)
+					aliasString = aliasString.Mid(prefixIndex + 1);
+			}
 			if (includeAliasName) {
 				aliasString += ":" + terminalAlias.GetTagName();
 			}
@@ -111,45 +118,6 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, BOOL includeAl
 		}
 	}
 	return (aliasListString);
-}
-
-void FromString(
-	/// aliases with tag type names, separated with '='
-	const PString& aliasStr,
-	/// where to put the resulting array of aliases
-	H225_ArrayOf_AliasAddress& aliases
-	)
-{
-	PINDEX aliasIndex = 0;
-	aliases.SetSize(0);
-	
-	const PStringArray tokens = aliasStr.Tokenise("=");
-	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
-		const PINDEX separator = tokens[i].FindLast(':');
-		if (separator != P_MAX_INDEX) {
-			const PString name = tokens[i].Left(separator);
-			if (name == "invalid" || name == "none")
-				continue;
-				
-			aliases.SetSize(aliasIndex + 1);
-			const PString tagName = tokens[i].Mid(separator + 1);
-			int tag = -1;
-			if (tagName == "h323_ID")
-				tag = H225_AliasAddress::e_h323_ID;
-			else if (tagName == "dialedDigits")
-				tag = H225_AliasAddress::e_dialedDigits;
-			else if (tagName == "url_ID")
-				tag = H225_AliasAddress::e_url_ID;
-			else if (tagName == "email_ID")
-				tag = H225_AliasAddress::e_email_ID;
-			else if (tagName == "partyNumber")
-				tag = H225_AliasAddress::e_partyNumber;
-			else if (tagName == "transportID")
-				tag = H225_AliasAddress::e_transportID;
-			H323SetAliasAddress(name, aliases[aliasIndex], tag);
-			aliasIndex++;
-		}
-	}
 }
 
 PString AsString(const PASN_OctetString & Octets)
@@ -291,7 +259,7 @@ PString GetBestAliasAddressString(
 		primaryTags, secondaryTags
 		);
 	if (i != P_MAX_INDEX)
-		return H323GetAliasAddressString(aliases[i]);
+		return AsString(aliases[i]);
 	else
 		return PString();
 }
@@ -303,7 +271,7 @@ PINDEX FindAlias(
 {
 	const PINDEX sz = aliases.GetSize();
 	for (PINDEX i = 0; i < sz; i++)
-		if (alias == H323GetAliasAddressString(aliases[i]))
+		if (alias == AsString(aliases[i]))
 			return i;
 			
 	return P_MAX_INDEX;

@@ -114,6 +114,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Provide proper handling of aliases of type partyNumber
+(e164Number or privateNumber).
+
+<item>
 A fix for RTP/Q931/H245/T120PortRange to correct a bug with port range 
 wraparound if the last port is 65535. This caused a next port to be set 
 to 0 and any subsequent port allocation to fail.

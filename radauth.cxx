@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.26  2005/01/10 22:49:29  willamowius
+ * typo
+ *
  * Revision 1.25  2004/12/08 13:02:56  zvision
  * Better Calling/Called-Station-Id handling
  *
@@ -289,7 +292,7 @@ int RadAuthBase::Check(
 		for (PINDEX i = 0; i < rrq.m_terminalAlias.GetSize(); i++) {
 			if(i > 0)
 				aliasList += ",";
-			aliasList += H323GetAliasAddressString(rrq.m_terminalAlias[i]);
+			aliasList += AsString(rrq.m_terminalAlias[i]);
 		}
 		// Cisco-AV-Pair
 		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
@@ -421,7 +424,7 @@ int RadAuthBase::Check(
 					&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 					PINDEX i = 0;
 					while (i < rrq.m_terminalAlias.GetSize()) {
-						PINDEX j = aliases.GetStringsIndex(H323GetAliasAddressString(rrq.m_terminalAlias[i]));
+						PINDEX j = aliases.GetStringsIndex(AsString(rrq.m_terminalAlias[i]));
 						if( j == P_MAX_INDEX )
 							rrq.m_terminalAlias.RemoveAt(i);
 						else {

@@ -1883,7 +1883,7 @@ bool AdmissionRequestPDU::Process()
 		request.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
 		request.m_destinationInfo.SetSize(1);
 		request.m_destinationInfo[0] = *authData.m_routeToAlias;
-		authData.m_calledStationId = H323GetAliasAddressString(*authData.m_routeToAlias);
+		authData.m_calledStationId = AsString(*authData.m_routeToAlias);
 		PTRACE(2, "RAS\tARQ destination set to " << authData.m_calledStationId);
 		hasDestInfo = true;
 		destinationString = AsString(request.m_destinationInfo);

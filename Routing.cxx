@@ -393,7 +393,7 @@ protected:
 bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
-		PString alias(H323GetAliasAddressString(aliases[i]));
+		PString alias(AsString(aliases[i]));
 		PINDEX at = alias.Find('@');
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
 		H225_TransportAddress dest;
@@ -721,7 +721,7 @@ bool VirtualQueuePolicy::IsActive()
 bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 {
 	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
-		const PString agent(H323GetAliasAddressString((*aliases)[0]));
+		const PString agent(AsString((*aliases)[0]));
 		if (m_vqueue->IsDestinationVirtualQueue(agent)) {
 			H225_AdmissionRequest & arq = request.GetRequest();
 			PTRACE(5,"Routing\tPolicy "<<m_name<<" destination matched "
