@@ -27,6 +27,8 @@
 #include "ProxyThread.h"
 
 class H245Handler;
+class H245ProxyHandler;
+class NATHandler;
 class CallSignalSocket;
 class H245Socket;
 class UDPProxySocket;
@@ -34,7 +36,6 @@ class T120ProxySocket;
 class LogicalChannel;
 class RTPLogicalChannel;
 class T120LogicalChannel;
-class H245ProxyHandler;
 
 class H245_RequestMessage;
 class H245_ResponseMessage;
@@ -50,10 +51,10 @@ class H245Handler {
 // This class handles H.245 messages which can either be transmitted on their
 // own TCP connection or can be tunneled in the Q.931 connection
 public:
-	H245Handler(PIPSocket::Address l) : localAddr(l) {}
-	virtual ~H245Handler() {}
+	H245Handler(PIPSocket::Address local, PIPSocket::Address remote);
+	virtual ~H245Handler();
 
-	virtual void OnH245Address(H225_TransportAddress &) {}
+	virtual void OnH245Address(H225_TransportAddress &);
 	virtual bool HandleMesg(PPER_Stream &);
 	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
@@ -68,8 +69,10 @@ protected:
 	virtual bool HandleCommand(H245_CommandMessage &);
 	virtual bool HandleIndication(H245_IndicationMessage &);
 
+	NATHandler *hnat;
+
 private:
-	PIPSocket::Address localAddr;
+	PIPSocket::Address localAddr, remoteAddr;
 };
 
 class H245ProxyHandler : public H245Handler {
@@ -79,7 +82,7 @@ public:
 	typedef std::map<WORD, RTPLogicalChannel *>::iterator siterator;
 	typedef std::map<WORD, RTPLogicalChannel *>::const_iterator const_siterator;
 
-	H245ProxyHandler(CallSignalSocket *, PIPSocket::Address, H245ProxyHandler * = 0);
+	H245ProxyHandler(CallSignalSocket *, PIPSocket::Address, PIPSocket::Address, H245ProxyHandler * = 0);
 	virtual ~H245ProxyHandler();
 
 	// override from class H245Handler
@@ -110,26 +113,6 @@ private:
 	std::map<WORD, RTPLogicalChannel *> sessionIDs;
 	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
 	H245ProxyHandler *peer;
-};
-
-class NATHandler : public H245Handler {
-public:
-	NATHandler(PIPSocket::Address, PIPSocket::Address);
-
-	// override from class H245Handler
-	virtual void OnH245Address(H225_TransportAddress &);
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
-
-private:
-	// override from class H245Handler
-	virtual bool HandleRequest(H245_RequestMessage &);
-	virtual bool HandleResponse(H245_ResponseMessage &);
-
-	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
-	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
-
-	PIPSocket::Address remoteAddr;
 };
 
 #ifdef DOC_PLUS_PLUS
@@ -180,7 +163,7 @@ protected:
 
 	template<class UUIE> void HandleH245Address(UUIE & uu)
 	{
-		if (m_h245handler && uu.HasOptionalField(UUIE::e_h245Address))
+		if (uu.HasOptionalField(UUIE::e_h245Address))
 			if (!SetH245Address(uu.m_h245Address))
 				uu.RemoveOptionalField(UUIE::e_h245Address);
 	}

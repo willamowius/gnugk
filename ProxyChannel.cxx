@@ -199,6 +199,19 @@ TCPProxySocket *ProxyListener::CreateSocket()
 	return new CallSignalSocket();
 }
 
+class NATHandler {
+public:
+	NATHandler(PIPSocket::Address remote) : remoteAddr(remote) {}
+
+	void TranslateH245Address(H225_TransportAddress &);
+	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
+	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
+
+private:
+	PIPSocket::Address remoteAddr;
+};
+
+
 endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 {
 //	PTRACE(1, "CallSignalSocket::GetCgEP start");
@@ -261,20 +274,22 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD peerPort)
 	socket->GetLocalAddress(localAddr);
 	socket->GetPeerAddress(peerAddr, peerPort);
 	SetHandler(socket->GetHandler());
+
+	Address calling = INADDR_ANY, called = INADDR_ANY;
+	int type = m_call->GetNATType(calling, called);
+	PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " has NAT type " << type);
+	if (type & CallRec::calledParty)
+		socket->peerAddr = called;
+
 	// enable proxy if required, no matter whether H.245 routed
 	if (Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr)) {
-		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket, socket->localAddr);
+		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket, socket->localAddr, calling);
 		socket->m_h245handler = proxyhandler;
-		m_h245handler = new H245ProxyHandler(this, localAddr, proxyhandler);
+		m_h245handler = new H245ProxyHandler(this, localAddr, called, proxyhandler);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
 	} else if (m_call->IsH245Routed()) {
-		Address calling, called;
-		int type = m_call->GetNATType(calling, called);
-		if (type & CallRec::calledParty)
-			socket->peerAddr = called;
-		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " has NAT type " << type);
-		socket->m_h245handler = (type & CallRec::callingParty) ? new NATHandler(socket->localAddr, peerAddr) : new H245Handler(socket->localAddr);
-		m_h245handler = (type & CallRec::calledParty) ? new NATHandler(localAddr, socket->peerAddr) : new H245Handler(localAddr);
+		socket->m_h245handler = new H245Handler(socket->localAddr, calling);
+		m_h245handler = new H245Handler(localAddr, called);
 	}
 	m_SetupPDU = new Q931(*(socket->m_SetupPDU));
 	for(PINDEX i=0; socket->Q931InformationMessages.GetSize(); i++)
@@ -471,10 +486,11 @@ void CallSignalSocket::SendReleaseComplete()
                BuildReleasePDU(ReleasePDU);
                ReleasePDU.Encode(buffer);
                TransmitData();
-               PTRACE(4, "GK\tSend Release Complete to " << Name());
-	       PTRACE(5, "GK\tRelease Complete: " << ReleasePDU);
+	       PTRACE(5, "GK\tSend Release Complete to " << Name());
+	       PrintQ931(6, "Sending ", &ReleasePDU, 0);
        }
 }
+
 bool CallSignalSocket::EndSession()
 {
 	SendReleaseComplete();
@@ -494,6 +510,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 	m_receivedQ931 = &q931pdu;
 
 	PTRACE(1, "Q931\t" << Name() << " Message type: " << q931pdu.GetMessageTypeName());
+	PTRACE(3, "Q931\t" << "Received: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference() << " from " << Name());
 	PTRACE(4, "Q931\t" << Name() << " Call reference: " << q931pdu.GetCallReference());
 	PTRACE(4, "Q931\t" << Name() << " From destination " << q931pdu.IsFromDestination());
 	PTRACE(6, ANSI::BYEL << "Q931\nMessage received: " << setprecision(2) << q931pdu << ANSI::OFF);
@@ -679,13 +696,19 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		callid = AsString(callIdentifier.m_guid);
 	}
 	GkClient *gkClient = RasThread->GetGkClient();
+	Address fromIP;
+	GetPeerAddress(fromIP);
 	if (m_call) {
-		if (m_call->IsRegistered())
+		if (m_call->IsRegistered()) {
+			if (gkClient->CheckGKIP(fromIP)) {
+				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << Name() << ')');
+				m_call = callptr(0);  // reject it
+				return;
+			}
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, true);
+		}
 	} else {
 		bool fromParent;
-		Address fromIP;
-		GetPeerAddress(fromIP);
 		if (!RasThread->AcceptUnregisteredCalls(fromIP, fromParent)) {
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			return;
@@ -986,6 +1009,8 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
 	if (m_h245Tunneling && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
 		return false;
+	if (!m_h245handler) // no H245 routed
+                return true;
 	CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote);
 	if (!ret) {
 		PTRACE(2, "H245\t" << Name() << " no remote party?");
@@ -1463,6 +1488,23 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 }
 
 // class H245Handler
+H245Handler::H245Handler(PIPSocket::Address local, PIPSocket::Address remote)
+      : localAddr(local), remoteAddr(remote)
+{
+	hnat = (remoteAddr != INADDR_ANY) ? new NATHandler(remoteAddr) : 0;
+}
+
+H245Handler::~H245Handler()
+{
+	delete hnat;
+}
+
+void H245Handler::OnH245Address(H225_TransportAddress & addr)
+{
+	if (hnat)
+		hnat->TranslateH245Address(addr);
+}
+
 bool H245Handler::HandleMesg(PPER_Stream & mesg)
 {
 	H245_MultimediaSystemControlMessage h245msg;
@@ -1505,26 +1547,32 @@ bool H245Handler::HandleMesg(PPER_Stream & mesg)
 	return changed;
 }
 
-bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel &)
+bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 {
-       return false;
+       return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
 
-bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel &)
+bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 {
-       return false;
+       return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
 
 bool H245Handler::HandleRequest(H245_RequestMessage & Request)
 {
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
-	return false;
+	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel)
+		return hnat->HandleOpenLogicalChannel(Request);
+	else
+		return false;
 }
 
 bool H245Handler::HandleResponse(H245_ResponseMessage & Response)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
-	return false;
+	if (hnat && Response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck)
+		return hnat->HandleOpenLogicalChannelAck(Response);
+	else
+		return false;
 }
 
 bool H245Handler::HandleIndication(H245_IndicationMessage & Indication)
@@ -1775,19 +1823,17 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		return NoData;
 	}
 
-	//GetLastReceiveAddress(peerAddr, peerPort);
-	PTRACE(6, type << "\tReading from " << fromIP << ':' << fromPort);
-
 	buflen = GetLastReadCount();
 
 //     if (fromIP == rSrcIP && (fromPort == rSrcPort || abs(fromPort - rSrcPort) == 2))
        // Workaround: some bad endpoints don't send packets from the specified port
-       if (fromIP == rSrcIP && (fromIP != fSrcIP || fromPort == rSrcPort))
-       //      PTRACE(5, "UDP\tfrom " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort),
-               SetSendAddress(rDestIP, rDestPort);
-       else
-       //      PTRACE(5, "UDP\tfrom " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort),
-               SetSendAddress(fDestIP, fDestPort);
+	if ((fromIP == rSrcIP || fromIP == fDestIP) && (fromIP != fSrcIP || fromPort == rSrcPort)) {
+		PTRACE(6, "UDP\tforward " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort);
+		SetSendAddress(rDestIP, rDestPort);               SetSendAddress(rDestIP, rDestPort);
+	} else {
+		PTRACE(6, "UDP\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
+		SetSendAddress(fDestIP, fDestPort);
+	}
        return Forwarding;
 }
 
@@ -2017,8 +2063,8 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 }
 
 // class H245ProxyHandler
-H245ProxyHandler::H245ProxyHandler(CallSignalSocket *sig, PIPSocket::Address local, H245ProxyHandler *pr)
-      : H245Handler(local), handler(sig->GetHandler()), peer(pr)
+H245ProxyHandler::H245ProxyHandler(CallSignalSocket *sig, PIPSocket::Address local, PIPSocket::Address remote, H245ProxyHandler *pr)
+	: H245Handler(local, remote), handler(sig->GetHandler()), peer(pr)
 {
 	if (peer)
 		peer->peer = this;
@@ -2085,6 +2131,8 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
+	if (hnat)
+		hnat->HandleOpenLogicalChannel(olc);
 	WORD flcn = olc.m_forwardLogicalChannelNumber;
 	if (IsT120Channel(olc)) {
 		T120LogicalChannel *lc = CreateT120LogicalChannel(flcn);
@@ -2109,6 +2157,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelRej
 
 bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 {
+	if (hnat)
+		hnat->HandleOpenLogicalChannelAck(olca);
 	WORD flcn = olca.m_forwardLogicalChannelNumber;
 	LogicalChannel *lc = peer->FindLogicalChannel(flcn);
 	if (!lc) {
@@ -2132,6 +2182,8 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 
 bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 {
+	if (hnat)
+		hnat->HandleOpenLogicalChannel(olc);
 	bool nouse;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
 	return (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
@@ -2139,6 +2191,9 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 
 bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 {
+	if (hnat)
+		hnat->HandleOpenLogicalChannel(olc);
+
 	WORD flcn = olc.m_forwardLogicalChannelNumber;
 	bool changed = false, isReverseLC;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
@@ -2270,45 +2325,12 @@ void H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 }
 
 // class NATHandler
-NATHandler::NATHandler(PIPSocket::Address local, PIPSocket::Address remote)
-	: H245Handler(local), remoteAddr(remote)
-{
-}
-
-void NATHandler::OnH245Address(H225_TransportAddress & h245addr)
+void NATHandler::TranslateH245Address(H225_TransportAddress & h245addr)
 {
 	if (h245addr.GetTag() == H225_TransportAddress::e_ipAddress) {
 		H225_TransportAddress_ipAddress & addr = h245addr;
 		h245addr = SocketToH225TransportAddr(remoteAddr, addr.m_port);
 	}
-}
-
-bool NATHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
-{
-	return HandleOpenLogicalChannel(olc);
-}
-
-bool NATHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
-{
-	return HandleOpenLogicalChannel(olc);
-}
-
-bool NATHandler::HandleRequest(H245_RequestMessage & Request)
-{
-	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
-	if (Request.GetTag() == H245_RequestMessage::e_openLogicalChannel)
-		return HandleOpenLogicalChannel(Request);
-	else
-		return false;
-}
-
-bool NATHandler::HandleResponse(H245_ResponseMessage & Response)
-{
-	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
-	if (Response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck)
-		return HandleOpenLogicalChannelAck(Response);
-	else
-		return false;
 }
 
 bool NATHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
@@ -2346,12 +2368,23 @@ bool NATHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 
 bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 {
-	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
-	if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
-		*mediaControlChannel << remoteAddr << mediaControlChannel->m_tsapIdentifier;
-		if (mediaChannel)
-			*mediaChannel << remoteAddr << mediaChannel->m_tsapIdentifier;
-		return true;
+	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) {
+		H245_NetworkAccessParameters & sepStack = olca.m_separateStack;
+		if (sepStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress) {
+			H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(sepStack.m_networkAddress);
+			if (addr) {
+				*addr << remoteAddr << addr->m_tsapIdentifier;
+				return true;
+			}
+		}
+	} else {
+		H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
+		if (GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel)) {
+			*mediaControlChannel << remoteAddr << mediaControlChannel->m_tsapIdentifier;
+			if (mediaChannel)
+				*mediaChannel << remoteAddr << mediaChannel->m_tsapIdentifier;
+			return true;
+		}
 	}
 	return false;
 }
