@@ -748,7 +748,14 @@ TCPListenSocket::~TCPListenSocket()
 
 bool TCPListenSocket::IsTimeout(const PTime *now) const
 {
-	return IsOpen() ? ((readTimeout > 0) ? ((*now - start) > readTimeout) : false) : true;
+	if ( readTimeout < PMaxTimeInterval )
+	{
+		return IsOpen() ? ((readTimeout > 0) ? ((*now - start) > readTimeout) : false) : true;
+	}
+	else
+	{
+		return ! IsOpen();
+	}
 }
 
 
