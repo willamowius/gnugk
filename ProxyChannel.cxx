@@ -658,8 +658,6 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
 
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
-	const time_t eventTimestamp = time(NULL);
-	
 	if (!ReadTPKT())
 		return IsOpen() ? NoData : Error;
 
@@ -692,8 +690,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			m_crv = (m_lastQ931->GetCallReference() | 0x8000u);
 			m_setupUUIE = new H225_H323_UserInformation(signal);
 			changed = OnSetup(body);
-			if( m_call )
-				m_call->SetSetupTime(eventTimestamp);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_callProceeding:
 			changed = OnCallProceeding(body);
@@ -1159,6 +1155,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 
 bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
 {
+	// m_call should be valid here
+	m_call->SetSetupTime(time(0));
 	if (!m_call->GetCalledAddress(peerAddr, peerPort)) {
 		PTRACE(3, "Q931\t" << GetName() << " INVALID ADDRESS");
 		return false;
@@ -1468,22 +1466,14 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 
 void CallSignalSocket::Dispatch()
 {
-	const time_t channelStart = time(NULL);
-	const long setupTimeout 
-		= PMAX(GkConfig()->GetInteger("SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
-	long timeout = setupTimeout;
+	const PTime channelStart;
+	const int setupTimeout = PMAX(GkConfig()->GetInteger("SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
+	int timeout = setupTimeout;
 		
 	while (timeout > 0) {
 	
-		if( !IsReadable(timeout) ) {
-#if PTRACING
-			PIPSocket::Address raddr;
-			WORD rport;
-			GetPeerAddress(raddr,rport);
-			PTRACE(1,"Q931\tTimed out waiting for initial Setup message from "
-				<<raddr<<':'<<rport
-				);
-#endif
+		if (!IsReadable(timeout)) {
+			PTRACE(3, "Q931\tTimed out waiting for initial Setup message from " << GetName());
 			break;
 		}
 			
@@ -1495,20 +1485,13 @@ void CallSignalSocket::Dispatch()
 					return;
 				}
 				// update timeout to reflect remaing time
-				timeout = setupTimeout - ((long)time(NULL) - channelStart + 10);
+				timeout = setupTimeout - (PTime() - channelStart).GetInterval();
 				break;
 
 			case Connecting:
 				if (InternalConnectTo()) {
-					if( !remote->IsReadable(2*setupTimeout) ) {
-#if PTRACING
-						PIPSocket::Address raddr;
-						WORD rport;
-						GetPeerAddress(raddr,rport);
-						PTRACE(1,"Q931\tTimed out waiting for a response to Setup message from "
-							<<raddr<<':'<<rport
-							);
-#endif
+					if (!remote->IsReadable(2*setupTimeout)) {
+						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
 						CallTable::Instance()->RemoveCall(m_call);
 					}
 					GetHandler()->Insert(this, remote);
@@ -1518,15 +1501,8 @@ void CallSignalSocket::Dispatch()
 			case Forwarding:
 				if (IsConnected()) { // remote is NAT socket
 					ForwardData();
-					if( !remote->IsReadable(2*setupTimeout) ) {
-#if PTRACING
-						PIPSocket::Address raddr;
-						WORD rport;
-						GetPeerAddress(raddr,rport);
-						PTRACE(1,"Q931\tTimed out waiting for a response to Setup message from "
-							<<raddr<<':'<<rport
-							);
-#endif
+					if (!remote->IsReadable(2*setupTimeout)) {
+						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
 						CallTable::Instance()->RemoveCall(m_call);
 					}
 					return;
@@ -2723,8 +2699,7 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 			psocket->OnError();
 			socket->Close();
 			break;
-		case ProxySocket::NoData:
-			// do nothing
+		default:
 			break;
 	}
 }
