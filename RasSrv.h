@@ -22,7 +22,6 @@
 #include "Toolkit.h"
 #include "RasTbl.h"
 #include "h323util.h"
-#include "GkAuthorize.h"
 #include "stl_supp.h"
 
 // forward references to avoid includes
@@ -161,8 +160,6 @@ private:
 
 	NeighborList * NeighborsGK;
 	NBPendingList * arqPendingList;
-
-	GkAuthorize* GWR;
 
 	OnRAS rasHandler[H225_RasMessage::e_serviceControlResponse + 1];
 
