@@ -1,0 +1,61 @@
+Sample VoIP Billing Platform for GnuGk
+Copyright (c) 2004, Michal Zygmuntowicz
+
+This work is published under the GNU Public License (GPL)
+see file COPYING for details
+
+
+GnuGk Sample Billing Platform
+======================
+
+This is a system that can be used to provide AAA 
+(Authentication, Authorization and Accounting) services 
+to Voice over IP networks managed by the GNU Gatekeeper.
+
+It consists of three major components:
+	GnuGk (2.0 or 2.2) H.323 gatekeeper (http://www.gnugk.org)
+	FreeRADIUS RADIUS server (http://www.freeradius.org)
+	PostgreSQL database server (http://www.postgresql.org)
+	
+All these application are open source and have been proven
+to be stable, mature products.
+
+What you may expect from this system:
+1. Endpoint authentication based on a h323id/password pair.
+2. Automatic assignment of specified E.164/H.323 ID to endpoints.
+4. Restricting aliases an endpoint is allowed to register with.
+5. Restricting IP address a endpoint can register/call from.
+6. Call authorization:
+   - call duration limit based on available account balance
+   - allow only fixed set of destination numbers (tariff table)
+   - flat tariffs
+7. Call accounting:
+   - storing call info to the SQL database when the call is started,
+     disconnected and in progress (incremental accounting updates)
+   - automatic account balance update after call state is updated
+     or the call is disconnected
+	 
+What you will not find here:
+1. User interface (this package contains only SQL schema and configuration
+   files for FreeRADIUS and GnuGk).
+2. A detailed manual.
+
+Quick Overview
+==============
+
+To make everything working you need to:
+1. Install PostgreSQL and create a billing database schema.
+2. Fill the database with some data.
+3. Install FreeRADIUS server and configure it properly.
+4. Install GnuGk and enable RadAuth and RadAcct modules.
+
+ad.1) PostgreSQL
+Detailed info is provided in sql/INSTALL and sql/README files.
+
+ad.3) FreeRADIUS
+Detailed info is provided in conf/freeradius/INSTALL file.
+
+ad.4) GnuGk
+A sample (simple) configuration file (gnugk.ini) is provided 
+and can be found in conf/gnugk.
+

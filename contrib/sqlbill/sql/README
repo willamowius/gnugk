@@ -1,0 +1,49 @@
+VoIP Billing Platform for GnuGk
+Copyright (c) 2004, Michal Zygmuntowicz
+
+This work is published under the GNU Public License (GPL)
+see file COPYING for details
+
+Recommended versions of PostgreSQL are 7.3.4 or 7.3.5. The schemas
+should also run fine with 7.4.x.
+
+This database schema creates the following tables:
+*) voipaccount - corresponds to an account endpoints are associated with.
+   The account contains information about the current balance and
+   allowed prepaid/postpaid balance limit
+*) voipuser - corresponds to an H.323 endpoint. Each voipuser has voipaccount
+   assigned. There can be several users that use a single account.
+   voipuser contains information like:
+   - H.323 ID
+   - password - together with H.323 ID are used to enable H.235 authentication
+   - a list of allowed aliases (allowedaliases column) that the endpoint
+     can register with. This is a REGULAR EXPRESSION. H.323 ID
+	 is allowed by default
+   - a list of aliases to be automatically assigned to an endpoint inside RCF
+     message (a comma separated list)
+   - IP address restriction (NULL to ignore)
+*) voiptariff - a very simple tariff table that is a list of allowed/blocked
+   destination numbers together with pricing info. A special prefix 'PC' can
+   be used to describe H.323 ID calls (to alias names beginning with non-digit
+   characters)
+*) voipcall - a CDR (Call Detail Record) table. Approtiate triggers take care
+   about updating account balance when the call state is updated or the call
+   is disconnected
+
+To start with this system you need:
+1. Create an account (voipaccount) object. Example:
+
+	INSERT INTO voipaccount (balance) VALUES (10);
+	
+2. Create an user associated with this account (voipuser). Example:
+
+	INSERT INTO voipuser (h323id,accountid,password,firstname,surname)
+	  VALUES ('voip1',1,'secret','John','Smith');
+	INSERT INTO voipuser (h323id,accountid,password,firstname,surname)
+	  VALUES ('voip2',1,'secret','Joe','Smith');
+	  
+3. Fill tariff table with a list of allowed prefixes (voiptariff). Example:
+
+	INSERT INTO voiptariff (prefix,description,price)
+	  VALUES ('PC','PC2PC',0.01);
+	  

@@ -1,0 +1,31 @@
+VoIP Billing Platform for GnuGk
+Copyright (c) 2004, Michal Zygmuntowicz
+
+This work is published under the GNU Public License (GPL)
+see file COPYING for details
+
+
+Sample configuration for FreeRADIUS server to use with GnuGk prepaid platform
+=============================================================================
+
+1. Copy postgresql.conf file to FreeRADIUS configuration directory.
+
+2. Edit radiusd.conf to include postgresql.conf file and enable the sql
+   module for authorization and accounting (you can look at the sample 
+   radiusd.conf file in this directory).
+
+   IMPORTANT: Do not forget to enable with_cisco_vsa_hack = yes option
+   in radiusd.conf file
+   
+3. Edit postgresql.conf file to contain the proper address of the machine
+   that is running voipdb database, a valid login/password, etc.
+
+   (You may need to edit PostgreSQL configuration file pg_hba.conf to accept
+   database connections from the FreeRADIUS machine)
+   
+4. Do not forget to edit clients.conf and append an entry for GnuGk.
+
+5. Reload (or start) FreeRADIUS server.
+
+This has been tested with FreeRADIUS 0.9.x. You can find more info
+about FreeRADIUS server at http://www.freeradius.org.

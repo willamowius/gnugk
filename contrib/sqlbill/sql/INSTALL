@@ -1,0 +1,56 @@
+VoIP Billing Platform for GnuGk
+Copyright (c) 2004, Michal Zygmuntowicz
+
+This work is published under the GNU Public License (GPL)
+see file COPYING for details
+
+
+Installing PostgreSQL Database Schema for GnuGk prepaid platform
+=====================================================
+
+To create the schema, follow these steps:
+1. Change the current directory to 'src'. Connect to a database 'template1' 
+   running by PostgreSQL server as the admin user ('postgres'?) 
+   using the psql utility. Example:
+   
+   psql -U postgres -h IP_ADDRESS template1
+   
+   (where IP_ADDRESS is an address of a machine that is running PostgreSQL
+    - 'localhost', for example)
+   (do not forget to enable tcp connections in PostgreSQL config 
+    - 'tpip_socket = true')
+
+2. Create a new database for the prepaid system using c_voipdb.sql script:
+
+   \i c_voipdb.sql
+   
+   (if the current directory is not the one with c_voipdb.sql file, please
+    use full path here)
+	
+3. Exit psql utility (\q command).
+
+4. Enable PL/pgSQL procedural language for the new database (you may need
+   to install approtiate optional PostgreSQL module with PL/pgSQL package
+   - postgresql-pl).
+   Use this shell command:
+   
+   createlang -U postgres -h IP_ADDRESS plpgsql voipdb
+   
+5. Connect to the new database 'voipdb' as a new user 'gkradius'
+   (you may need to add an entry in pg_hba.conf PostgreSQL configuration
+   file for the pair (gkradius,voipdb) to allow database connections):
+
+   psql -U gkradius -h IP_ADDRESS voipdb
+   
+6. Create all tables, indices, triggers and procedures using c_all.sql script:
+
+   \i c_all.sql
+   
+7. You are done, the database schema is ready.
+
+8. You can see an example how to fetch a tariff table from a file
+   using f_voiptariff.sql script and voiptariff.asc file.
+   Change directory to 'examples', connect to the database 
+   and enter the command:
+   
+   \i f_voiptariff.sql
