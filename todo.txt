@@ -51,6 +51,11 @@ avoid duplicate work.
 
 - implement screening (based on authentification) functionality
 
+- implement alternate routing
+  watch for either TCP or PBX errors, i.e. TCP errors on H.225 connection
+  establishment or PBX side error codes in response to sending Q.931 SETUP
+  (like no circuit/channel available)
+
 - implement source based routing
 
 - The resourceManager should use the new CallTable and don't keep
