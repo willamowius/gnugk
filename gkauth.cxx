@@ -667,19 +667,18 @@ bool ExternalPasswordAuth::ExternalInit()
 	return true;
 }
 
-PString ExternalPasswordAuth::GetPassword(const PString &id)
+PString ExternalPasswordAuth::GetPassword(const PString & id)
 {
-	if (!Program.IsEmpty()) {
-		const int BUFFSIZE = 32;
-		char buff[BUFFSIZE];
-		procbuf proc(Program + " " + "5451021", ios::in);
+	const int BUFFSIZE = 256;
+	char buff[BUFFSIZE] = "";
+	if (!Program) {
+		procbuf proc(Program + " " + id, ios::in);
 		istream istr(&proc);
 		istr.getline(buff, BUFFSIZE);
-		return buff;
 	} else {
-		PTRACE(2, "Program is not defined");
-		return PString("Undefined");
+		PTRACE(2, "GkAuth\tProgram is not defined");
 	}
+	return PString(buff);
 }
 
 #endif // WIN32
