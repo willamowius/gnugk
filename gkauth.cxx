@@ -78,7 +78,11 @@ protected:
 
 private:
 	H235AuthSimpleMD5 authMD5;
+
+#ifdef P_SSL
 	H235AuthProcedure1 authProcedure1;
+#endif
+
 	PBYTEArray nullPDU;
 	const H225_ArrayOf_AliasAddress *aliases;
 };
