@@ -22,6 +22,12 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
+PROG	 = gnugk
+SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
+           Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx          \
+           Routing.cxx Neighbor.cxx GkClient.cxx gkauth.cxx         \
+           RasSrv.cxx ProxyChannel.cxx gk.cxx
+
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by
 # assigning it to a variable
@@ -58,47 +64,33 @@ LD_RUN_LIST := $(subst $(colon),$(space),$(LD_RUN_PATH))
 LD_RUN_LIST += $(PWLIBDIR)/lib $(OPENH323DIR)/lib
 
 
-PROG	 = gnugk
-SOURCES  = Toolkit.cxx CountryCodeTables.cxx gk.cxx gkauth.cxx gkldap.cxx \
-           gkDestAnalysis.cxx RasTbl.cxx GkClient.cxx MulticastGRQ.cxx	  \
-           BroadcastListen.cxx SoftPBX.cxx h323util.cxx GkStatus.cxx	  \
-           ProxyThread.cxx ProxyChannel.cxx singleton.cxx main.cxx	  \
-           gkDatabase.cxx gkIniFile.cxx GkProfile.cxx RasListener.cxx     \
-	   RasWorker.cxx Neighbor.cxx gklock.cxx version.cxx
-
 # the PWLib conform versioning file.
-VERSION_FILE = version.h
+GNUGK_VERSION_FILE = version.h
 
 ifndef MANUFACTURER
-  MANUFACTURER = "Willamowius"
+  MANUFACTURER = "GNU"
 endif
 ifndef PROGRAMMNAME
   PROGRAMMNAME = "Gatekeeper"
 endif
-ifndef MAJOR_VERSION
-  MAJOR_VERSION = $(shell grep 'define MAJOR_VERSION' $(VERSION_FILE) | cut -d ' ' -f 4-)
+ifndef GNUGK_MAJOR_VERSION
+  GNUGK_MAJOR_VERSION = $(shell grep 'define GNUGK_MAJOR_VERSION' $(GNUGK_VERSION_FILE) | cut -d ' ' -f 4-)
 endif
-ifndef MINOR_VERSION
-  MINOR_VERSION = $(shell grep 'define MINOR_VERSION' $(VERSION_FILE) | cut -d ' ' -f 4-)
+ifndef GNUGK_MINOR_VERSION
+  GNUGK_MINOR_VERSION = $(shell grep 'define GNUGK_MINOR_VERSION' $(GNUGK_VERSION_FILE) | cut -d ' ' -f 4-)
 endif
-ifndef BUILD_TYPE
+ifndef GNUGK_BUILD_TYPE
 # might be: AlphaCode, BetaCode, ReleaseCode
-  BUILD_TYPE = $(shell grep 'define BUILD_TYPE' $(VERSION_FILE) | cut -d ' ' -f 4-)
+  GNUGK_BUILD_TYPE = $(shell grep 'define GNUGK_BUILD_TYPE' $(GNUGK_VERSION_FILE) | cut -d ' ' -f 4-)
 endif
-ifndef BUILD_NUMBER
-  BUILD_NUMBER = $(shell grep 'define BUILD_NUMBER' $(VERSION_FILE) | cut -d ' ' -f 4-)
+ifndef GNUGK_BUILD_NUMBER
+  GNUGK_BUILD_NUMBER = $(shell grep 'define GNUGK_BUILD_NUMBER' $(GNUGK_VERSION_FILE) | cut -d ' ' -f 4-)
 endif
 
 # Gatekeeper Global Version String to mark object with version info in such
 # a way that it is retrievable by the std. version/revision control tools
 XID=$$Id
-GKGVS="@(\#) $(XID): $(BUILD_TYPE) of "$(PROGRAMMNAME)" v$(MAJOR_VERSION).$(MINOR_VERSION) build\#$(BUILD_NUMBER) by "${MANUFACTURER}" at " __DATE__ " "  __TIME__ " $$"
-
-H323_INCDIR = ${OPENH323DIR}/include
-H323_LIBDIR = ${OPENH323DIR}/lib
-H323_LIB    = h323_$(PLATFORM_TYPE)_$(OBJ_SUFFIX)
-
-STDCCFLAGS := -I${H323_INCDIR}
+GKGVS="@(\#) $(XID): $(GNUGK_BUILD_TYPE) of "$(PROGRAMMNAME)" v$(GNUGK_MAJOR_VERSION).$(GNUGK_MINOR_VERSION) build\#$(GNUGK_BUILD_NUMBER) by "${MANUFACTURER}" at " __DATE__ " "  __TIME__ " $$"
 
 # use for versioning
 STDCCFLAGS += -D'MANUFACTURER=${MANUFACTURER}'
@@ -108,7 +100,7 @@ STDCCFLAGS += -D'GKGVS=${GKGVS}'
 # Recheck if the International Public Telecommunication Numbers (IPTNs)
 # used for callING party number and callED party number are in
 # international format (TON=international), as they should be
-STDCCFLAGS += -D'CDR_RECHECK'
+#STDCCFLAGS += -D'CDR_RECHECK'
 
 # Should the dialed digit fields in the src. or dest. information fields of
 # the CDR should be appended by an 'dialedDigits'-subfield containing the
@@ -117,12 +109,12 @@ STDCCFLAGS += -D'CDR_RECHECK'
 #STDCCFLAGS += -D'CDR_MOD_INFO_FIELDS'
 
 # use for Digit Analysis
-STDCCFLAGS += -D'HAVE_DIGIT_ANALYSIS'
+#STDCCFLAGS += -D'HAVE_DIGIT_ANALYSIS'
 
 # If the "newer" OpenH323lib is used, the H323SetAliasAddress can get a tag,
 # so our overloaded H323SetAliasAddress is no longer needed.
 
-STDCCFLAGS +=-D'HAS_NEW_H323SETALIASADDRESS=1'
+#STDCCFLAGS +=-D'HAS_NEW_H323SETALIASADDRESS=1'
 
 # automatically include debugging code or not
 ifdef PASN_NOPRINT
@@ -131,13 +123,18 @@ else
   STDCCFLAGS += -DPTRACING
 endif
 
+# LDAP support
+#
 # Flags for LDAP:
 # * NO_LDAP:             Disable LDAP_Support.
 # * USE_EXTERNAL_LDAP:   Use the LDAP-Client-library on the system. if not set
 #                  	 the internal LDAP-client-library will be used.
 
-# LDAP support
 ifndef NO_LDAP
+NO_LDAP := 1
+endif
+
+ifeq ($(NO_LDAP),0)
   ifdef USE_EXTERNAL_LDAP
     ifndef LDAP1823DIR
       LDAP1823DIR := /usr/include
@@ -231,33 +228,55 @@ endif
 
 
 # MySQL support
+#
+# Flags for MySQL:
+# * NO_MYSQL:            Disable MySQL Support.
+
 # has to be added after LDAP support because order of -I options is crucial
 ifndef NO_MYSQL
-  ifndef MYSQLDIR
-    ifneq (,$(wildcard /usr/include/mysql/mysql++))
-      MYSQLDIR := /usr/include/mysql
+NO_MYSQL := 0
+endif
+
+ifeq ($(NO_MYSQL),0)
+  ifndef MYSQLINCDIR
+    ifneq (,$(wildcard /usr/include/mysql/mysql.h))
+      MYSQLINCDIR := /usr/include/mysql
+    endif
+  endif
+  ifndef MYSQLLIBDIR
+    ifneq (,$(wildcard /usr/lib/mysql/libmysqlclient.so))
+      MYSQLLIBDIR := /usr/lib/mysql
     endif
   endif
 
-  ifdef MYSQLDIR
-    ifneq (,$(wildcard $(MYSQLDIR)))
+  ifdef MYSQLINCDIR
+    ifneq (,$(wildcard $(MYSQLINCDIR)))
+      SOURCES	      += mysqlcon.cxx
       STDCCFLAGS_STUB := $(STDCCFLAGS)
-      STDCCFLAGS       = -DHAS_MYSQL -I$(MYSQLDIR) $(STDCCFLAGS_STUB)
-      #LDFLAGS	      += -L$(MYSQLDIR)/lib
-      ENDLDLIBS	      += -lsqlplus
+      STDCCFLAGS       = -DHAS_MYSQL -I$(MYSQLINCDIR) $(STDCCFLAGS_STUB)
+      ENDLDLIBS	      += -lmysqlclient
       HAS_MYSQL	       = 1
+      ifdef MYSQLLIBDIR
+	LDFLAGS	      += -L$(MYSQLLIBDIR)
+      endif
     endif
   endif
 endif
 
-# adding the OpenH323 lib before the PWLib and its dependencies
-LDFLAGS += -L$(H323_LIBDIR)
-LDLIBS  += -l$(H323_LIB)
+###
+### Including the general make rules of OpenH323
+###
 
-###
-### Including the general make rules of PWLib
-###
-include $(PWLIBDIR)/make/ptlib.mak
+VERSION_FILE := $(OPENH323DIR)/version.h
+
+include $(OPENH323DIR)/openh323u.mak
+
+STDCCFLAGS	+= -DMAJOR_VERSION=$(MAJOR_VERSION) -DMINOR_VERSION=$(MINOR_VERSION) -DBUILD_NUMBER=$(BUILD_NUMBER)
+
+ifdef LARGE_FDSET
+  STDCCFLAGS_STUB := $(STDCCFLAGS)
+  STDCCFLAGS	   = -DLARGE_FDSET=$(LARGE_FDSET) $(STDCCFLAGS_STUB)
+endif
 
 ifdef HAS_LEVEL_TWO_LDAPAPI
   TARGET_LIBS += $(LDAP_LIB)
@@ -275,10 +294,10 @@ ifdef HAS_LEVEL_TWO_LDAPAPI
 endif
 
 # delete time-stamp files on clean
-CLEAN_FILES += gktimestamp.c ldaplibtimestamp.c
+#CLEAN_FILES += gktimestamp.c ldaplibtimestamp.c
 
 # delete corefiles (also the Linux-kind)
-CLEAN_FILES += $(wildcard core.*)
+#CLEAN_FILES += $(wildcard core.*)
 
 
 #### a need HACK to support gcc version > 3
@@ -289,11 +308,11 @@ ifeq (,$(findstring $(CPLUS),g++))
   #GXX_MINOR_VERSION:=$(word 2,$(GXXVERSION))
   #GXX_BUILD_VERSION:=$(word 3,$(GXXVERSION))
   ifeq (,$(findstring $(GXX_MAJOR_VERSION), 0 1 2))
-    $(warning found GCC bigger 2 <$(GXX_MAJOR_VERSION)> special treatment enabled)
+    #$(warning found GCC bigger 2 <$(GXX_MAJOR_VERSION)> special treatment enabled)
     # My MySQL is not gcc 3.0 compatible, remove this if yours is
-    NO_MYSQL=1
-    FILTERED_FLAGS:=$(filter-out %HAS_MYSQL,$(STDCCFLAGS))
-    STDCCFLAGS = $(FILTERED_FLAGS)
+    #NO_MYSQL=1
+    #FILTERED_FLAGS:=$(filter-out %HAS_MYSQL,$(STDCCFLAGS))
+    #STDCCFLAGS = $(FILTERED_FLAGS)
     # the stdio lib has some nonstd parts, you may have to uncomment
     # the following to use them (depricated)
     #STDCCFLAGS += -idirafter /usr/include/g++-3
@@ -301,8 +320,14 @@ ifeq (,$(findstring $(CPLUS),g++))
 endif
 
 
+# extra targets
 addpasswd: $(OBJDIR)/addpasswd.o
-	$(CPLUS) -o $(OBJDIR)/addpasswd $(CFLAGS) $(OBJDIR)/addpasswd.o $(LDFLAGS) $(LDLIBS) $(ENDLDLIBS)
+	$(CXX) -o $(OBJDIR)/addpasswd $(CFLAGS) $(OBJDIR)/addpasswd.o $(LDFLAGS) -l$(PTLIB_BASE)$(LIB_TYPE) $(ENDLDLIBS) $(ENDLDFLAGS)
+
+doc:	docs/manual.sgml
+	cd docs; sgml2html manual.sgml; \
+	which bg5sgml2html > /dev/null 2>&1 && \
+	bg5sgml2html manual-zh.sgml || true
 
 #
 # By this command the build number may be incremented
@@ -311,17 +336,16 @@ addpasswd: $(OBJDIR)/addpasswd.o
 
 # Use this to increment the build number
 increment:
-	-@BN=$(BUILD_NUMBER); \
+	-@BN=$(GNUGK_BUILD_NUMBER); \
         BNN=`expr "$$BN" + 1`; \
         echo "Upgrading from build $$BN to $$BNN"; \
-        cp $(VERSION_FILE) $(TMP)/$(VERSION_FILE); \
+        cp $(GNUGK_VERSION_FILE) $(TMP)/$(GNUGK_VERSION_FILE); \
         sed -e 's/BUILD_NUMBER.*'"$$BN"'/BUILD_NUMBER '"$$BNN/" \
-                $(TMP)/$(VERSION_FILE) > $(VERSION_FILE); \
-        rm -f $(TMP)/$(VERSION_FILE)
+                $(TMP)/$(GNUGK_VERSION_FILE) > $(GNUGK_VERSION_FILE); \
+        rm -f $(TMP)/$(GNUGK_VERSION_FILE)
 
-doc: docs/manual.sgml
-	cd docs; sgml2html manual.sgml
 
+ifdef notused
 # These files are dummys to control the dependency of the GK and its
 # libraries like LDAP-API, OpenH323Lib and PWLib. The GKGVS
 # variable here is helpfull to monitor the operation
@@ -366,4 +390,6 @@ export HAS_LDAP
 export MWBB1_TAG
 export MYSQLDIR
 export MEMORY_CHECK
+
+endif # notused
 # end
