@@ -1288,8 +1288,8 @@ void GkAuthenticatorList::SelectH235Capability(const H225_GatekeeperRequest & gr
 	// if GRQ does not contain a list of authentication mechanisms simply return
 	if (!(grq.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability)
 			&& grq.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)
-			&& (grq.m_authenticationCapability.GetSize() > 0))
-			&& (grq.m_algorithmOIDs.GetSize() > 0))
+			&& grq.m_authenticationCapability.GetSize() > 0
+			&& grq.m_algorithmOIDs.GetSize() > 0))
 		return;
 
 	H225_ArrayOf_AuthenticationMechanism & mechanisms = *m_mechanisms;
