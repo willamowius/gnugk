@@ -165,7 +165,7 @@ BOOL OverlapSendDestAnalysis::PrefixAnalysis(const CallingProfile &callingProfil
 
 	enum Q931::NumberingPlanCodes plan = Q931::ISDNPlan;
 	enum Q931::TypeOfNumberCodes ton = static_cast<Q931::TypeOfNumberCodes>(callingProfile.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched ?
-					    CallProfile::TreatAsUnknown : callingProfile.TreatCalledPartyNumberAs());
+					    Q931::UnknownType : callingProfile.TreatCalledPartyNumberAs());
 	enum H225_ScreeningIndicator::Enumerations si = H225_ScreeningIndicator::e_userProvidedNotScreened;
 
 	if(Toolkit::Instance()->GetRewriteTool().PrefixAnalysis(oldCdAlias, plan, ton, si, callingProfile)) {
