@@ -121,8 +121,8 @@ ShutdownHandler(void)
 	PTRACE(3, "GkStatus::Instance()->Close();");
 	GkStatus::Instance()->Close();
 
-	delete CallTable::Instance();
-	delete RegistrationTable::Instance();
+//	delete CallTable::Instance();
+//	delete RegistrationTable::Instance();
 	PTRACE(3, "GK\tdelete ok");
 
 #ifdef PTRACING
@@ -420,6 +420,7 @@ void Gatekeeper::PrintOpts(void)
 
 void Gatekeeper::HouseKeeping(void)
 {
+	// THis is why polling is not what you really want!
 	for (unsigned count=1; !ExitFlag; count++) {
 		Sleep(1000);
 // 		if (!Toolkit::Instance()->GetMasterRASListener()->IsTerminated()) // return true if the thread running
