@@ -35,6 +35,7 @@
 #include "stl_supp.h"
 #include "ProxyChannel.h"
 #include "gk_const.h"
+#include "gkDatabase.h"
 
 #ifdef HAS_LDAP
 # include "ldaplink.h"
