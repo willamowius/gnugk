@@ -311,15 +311,21 @@ LDAPCtrl::collectAttributes(LDAPQuery &q, PStringList attrs, unsigned int scope)
 		PString DN=ODN(ODN.Find(",")+1,ODN.GetSize()); // delete first part of DN.
 		PTRACE(5, "looking for: " << attribute_remainder << "in " << DN);
 		LDAPQuery new_query;
-		new_query.LDAPOperator=LDAPQuery::LDAPand;
-		PStringList pl=DN.Tokenise(",");
-		for (PINDEX j=0; j<pl.GetSize(); j++) {
-			PStringList vp=pl[j].Tokenise("=");
-			PStringList p;
-			p.AppendString(vp[1]);
-			new_query.DBAttributeValues.insert(DBAVValuePair(vp[0],p));
-		}
+		new_query.LDAPOperator=LDAPQuery::LDAPNONE;
+//		new_query.LDAPOperator=LDAPQuery::LDAPand;
+// 		PStringList pl=DN.Tokenise(",");
+// 		for (PINDEX j=0; j<pl.GetSize(); j++) {
+// 			PStringList vp=pl[j].Tokenise("=");
+// 			PStringList p;
+// 			p.AppendString(vp[1]);
+// 			new_query.DBAttributeValues.insert(DBAVValuePair(vp[0],p));
+// 		}
+		m_baseLock.Wait();
+		PString origSearchBaseDN=SearchBaseDN;
+		SearchBaseDN=DN;
 		LDAPAnswer *subquery=collectAttributes(new_query,attribute_remainder,LDAP_SCOPE_BASE);
+		SearchBaseDN=origSearchBaseDN;
+		m_baseLock.Signal();
 		// insert subquery to query
 		if(NULL!=subquery) {
 			for(PINDEX j=0; j<attribute_remainder.GetSize();j++) {
@@ -382,7 +388,7 @@ LDAPCtrl::collectAttributes(LDAPQuery &p, unsigned int scope) {
 		filter+=")";
 
  	if (!gk_filter.IsEmpty())
- 		filter="(&(" + gk_filter + ")(" + filter + "))";
+ 		filter="(&(" + gk_filter + ")" + (( !filter.IsEmpty() ) ? ("(" + filter + "))") : PString(")")) ;
 
 	unsigned int retry_count = 0;
 	do {
