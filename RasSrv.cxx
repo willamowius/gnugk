@@ -242,10 +242,7 @@ NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m
 	if (!PIPSocket::GetHostAddress(ipAddr.Left(p), m_ip))
 		throw InvalidNeighbor();
 	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
-	if (cfg.GetSize() > 2)
-		m_prefix = cfg[1];
-	else
-		m_prefix = "*";
+	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : "*";
 	if (cfg.GetSize() > 2)
 		m_password = cfg[2];
 	PTRACE(1, "Add neighbor " << m_gkid << '(' << m_ip << ':' << m_port << ") for prefix " << m_prefix);
