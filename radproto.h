@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/09/12 16:31:16  zvision
+ * Accounting initially added to the 2.2 branch
+ *
  * Revision 1.3  2003/08/20 14:46:19  zvision
  * Avoid PString reference copying. Small code improvements.
  *
@@ -179,21 +182,12 @@ public:
 
 	/** Create TLV RADIUS attribute of a given type,
 		initializing #value# field with an integer value passed
-		with 'intValue' parameter.
+		with 'intValue' parameter. This constructor should be also used
+		for attributes carrying 32 bit timestamps.
 	*/
 	RadiusAttr( 
 		unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
 		int intValue /// 32 bit integer to be stored in the attribute Value
-		);
-
-	/** Create TLV RADIUS attribute of a given type,
-		initializing #value# field with 32 bit timestamp 
-		value passed with 'timeValue' parameter. Meaning
-		of the value is seconds since 00:00:00 UTC, January 1, 1970. 
-	*/
-	RadiusAttr( 
-		unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
-		const time_t timeValue /// timestamp to be stored in the attribute Value
 		);
 
 	/** Create TLV RADIUS attribute of a given type,
@@ -237,20 +231,6 @@ public:
 	*/
 	RadiusAttr( 
 		int intValue, /// 32 bit integer to be stored in the attribute Value
-		int vendorId, /// 32 bit vendor identifier
-		unsigned char vendorType /// vendor-specific attribute type
-		);
-
-	/** Create TLV RADIUS vendor-specific attribute of a given type,
-		initializing #value# data with 'vendorId' 32 bit identifier,
-		'vendorType' vendor-specific attribute type
-		32 bit timestamp specified by 'timeValue' parameter. 
-		Meaning of the value is number if seconds passed 
-		since 00:00:00 UTC, January 1, 1970.
-		#vsaVendorId# is set to 'vendorId'.
-	*/
-	RadiusAttr( 
-		const time_t timeValue, /// 32 bit timestamp to be stored in the attribute value
 		int vendorId, /// 32 bit vendor identifier
 		unsigned char vendorType /// vendor-specific attribute type
 		);

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/09/12 16:31:16  zvision
+ * Accounting initially added to the 2.2 branch
+ *
  * Revision 1.3  2003/08/20 14:46:19  zvision
  * Avoid PString reference copying. Small code improvements.
  *
@@ -224,23 +227,6 @@ RadiusAttr::RadiusAttr(
 
 RadiusAttr::RadiusAttr( 
 	unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
-	const time_t timeValue /// timestamp to be stored in the attribute Value
-	)
-{
-	data[0] = attrType;
-	data[1] = FixedHeaderLength + 4;
-
-	if( attrType == VendorSpecific )
-		PAssertAlways( PInvalidParameter );
-
-	data[FixedHeaderLength+0] = (BYTE)((timeValue>>24) & 0xff);
-	data[FixedHeaderLength+1] = (BYTE)((timeValue>>16) & 0xff);
-	data[FixedHeaderLength+2] = (BYTE)((timeValue>>8) & 0xff);
-	data[FixedHeaderLength+3] = (BYTE)(timeValue & 0xff);
-}
-
-RadiusAttr::RadiusAttr( 
-	unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
 	const PIPSocket::Address& addressValue /// IPv4 address to be stored in the attribute Value
 	)
 {
@@ -307,29 +293,6 @@ RadiusAttr::RadiusAttr(
 	data[VsaRfc2865FixedHeaderLength+1] = (BYTE)((intValue>>16) & 0xff);
 	data[VsaRfc2865FixedHeaderLength+2] = (BYTE)((intValue>>8) & 0xff);
 	data[VsaRfc2865FixedHeaderLength+3] = (BYTE)(intValue & 0xff);
-}
-
-RadiusAttr::RadiusAttr( 
-	const time_t timeValue, /// 32 bit timestamp to be stored in the attribute value
-	int vendorId, /// 32 bit vendor identifier
-	unsigned char vendorType /// vendor-specific attribute type
-	)
-{
-	data[0] = VendorSpecific;
-	data[1] = VsaRfc2865FixedHeaderLength + 4;
-
-	data[FixedHeaderLength+0] = (BYTE)((vendorId>>24) & 0xff);
-	data[FixedHeaderLength+1] = (BYTE)((vendorId>>16) & 0xff);
-	data[FixedHeaderLength+2] = (BYTE)((vendorId>>8) & 0xff);
-	data[FixedHeaderLength+3] = (BYTE)(vendorId & 0xff);
-	
-	data[VsaFixedHeaderLength+0] = vendorType;
-	data[VsaFixedHeaderLength+1] = 2 + 4;
-
-	data[VsaRfc2865FixedHeaderLength+0] = (BYTE)((timeValue>>24) & 0xff);
-	data[VsaRfc2865FixedHeaderLength+1] = (BYTE)((timeValue>>16) & 0xff);
-	data[VsaRfc2865FixedHeaderLength+2] = (BYTE)((timeValue>>8) & 0xff);
-	data[VsaRfc2865FixedHeaderLength+3] = (BYTE)(timeValue & 0xff);
 }
 
 RadiusAttr::RadiusAttr( 
