@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // SoftPBX.h
@@ -15,29 +14,36 @@
 #ifndef SOFTPBX_H
 #define SOFTPBX_H "@(#) $Id$"
 
-#include <ptlib.h>
-#include "GkStatus.h"
-#include "RasTbl.h"
+// nothing to include :)
 
+class PTime;
+class PString;
+class USocket;
+class EndpointRec;
+template<class> class SmartPtr;
+typedef SmartPtr<EndpointRec> endptr;
 
 namespace SoftPBX
 {
-	void PrintEndpoint(const PString & Alias, GkStatus::Client &client, BOOL verbose);
-	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
-	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
-	void PrintRemoved(GkStatus::Client &client, BOOL verbose=FALSE);
-	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
-	void PrintStatistics(GkStatus::Client &client, BOOL verbose=FALSE);
+	void PrintEndpoint(const PString & EpStr, USocket *client, bool verbose);
+	void PrintAllRegistrations(USocket *client, bool verbose=false);
+	void PrintAllCached(USocket *client, bool verbose=false);
+	void PrintRemoved(USocket *client, bool verbose=false);
+	void PrintCurrentCalls(USocket *client, bool verbose=false);
+	void PrintStatistics(USocket *client, bool verbose=false);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);
 	void UnregisterIp(PString Ip);
-	void DisconnectCall(PINDEX CallNumber);
+	void DisconnectAll();
+	void DisconnectCall(unsigned CallNumber);
 	void DisconnectIp(PString Ip);
 	void DisconnectAlias(PString Alias);
 	void DisconnectEndpoint(PString Id);
 	void DisconnectEndpoint(const endptr &);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
+	void RouteToAlias(PString TargetAlias, PString SourceEpId, PString CallRef);
+	void RouteReject(PString SourceEpId, PString CallRef);
 
 	PString Uptime();
 
@@ -45,6 +51,4 @@ namespace SoftPBX
 	extern PTime StartUp;
 }
 
-
-#endif /* SOFTPBX_H */
-
+#endif // SOFTPBX_H
