@@ -1,4 +1,4 @@
-;//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
 //
 // New Neighboring System for GNU Gatekeeper
 //
@@ -554,6 +554,10 @@ void LRQRequester::Process(RasMsg *ras)
 	for (Queue::iterator iter = m_requests.begin(); iter != m_requests.end(); ++iter) {
 		Request & req = iter->second;
 		if (req.m_neighbor->CheckReply(ras)) {
+			PTRACE(5,"NB\tReceived "<<ras->GetTagName()<<" message matched"
+				<<" pending LRQ for neighbor "<<req.m_neighbor->GetId()
+				<<':'<<req.m_neighbor->GetIP() 
+				);
 			--req.m_count;
 			unsigned tag = ras->GetTag();
 			if (tag == H225_RasMessage::e_requestInProgress) {
@@ -573,6 +577,9 @@ void LRQRequester::Process(RasMsg *ras)
 			} else { // should be H225_RasMessage::e_locationReject
 				delete ras;
 				if (req.m_count == 0 && req.m_reply == 0) {
+					PTRACE(5,"NB\tLRQ rejected for neighbor "<<req.m_neighbor->GetId()
+						<<':'<<req.m_neighbor->GetIP() 
+						);
 					m_requests.erase(iter);
 					if (m_requests.empty())
 						RasRequester::Stop();
