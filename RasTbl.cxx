@@ -189,45 +189,64 @@ bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress 
 }
 */
 
-void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_rasAddress = a;
-}
-
-void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_endpointIdentifier = i;
-}
-        
 void EndpointRec::SetTimeToLive(int seconds)
 {
+	PWaitAndSignal lock(m_usedLock);
+
 	if (m_timeToLive > 0 && !m_permanent) {
 		// To avoid bloated RRQ traffic, don't allow ttl < 60
 		if (seconds < 60)
 			seconds = 60;
-		PWaitAndSignal lock(m_usedLock);
 		m_timeToLive = (SoftPBX::TimeToLive > 0) ?
 			std::min(SoftPBX::TimeToLive, seconds) : 0;
 	}
 }
 
-void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
+void EndpointRec::SetSocket(CallSignalSocket *socket)
 {
 	PWaitAndSignal lock(m_usedLock);
-	m_terminalAliases = a;
+	if (m_natsocket != socket) {
+		PTRACE(3, "Q931\tAn NAT socket detected at " << socket->Name() << " for endpoint " << GetEndpointIdentifier().GetValue());
+		if (m_natsocket) {
+			PTRACE(1, "Warning: natsocket is overwritten by " << socket->Name());
+			m_natsocket->SetDeletable();
+		}
+		m_natsocket = socket;
+	}
 }
-        
-void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
+
+
+// due to strange bug of gcc, I have to pass pointer instead of reference
+bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 {
-	PWaitAndSignal lock(m_usedLock);
-	*m_terminalType = t;
+	for (PINDEX i = 0; i < a->GetSize(); i++) {
+		PWaitAndSignal lock(m_usedLock);
+		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
+			if ((*a)[i] == m_terminalAliases[j])
+				return true;
+	}
+	return false;
+}
+
+bool EndpointRec::MatchAlias(
+	const H225_ArrayOf_AliasAddress& aliases,
+	int& matchedalias
+	) const
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+		PWaitAndSignal lock(m_usedLock);
+		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
+			if (aliases[i] == m_terminalAliases[j]) {
+				matchedalias = i;
+				return true;
+			}
+	}
+	return false;
 }
 
 void EndpointRec::Update(const H225_RasMessage & ras_msg)
 {
-        if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
+	if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
 		const H225_RegistrationRequest & rrq = ras_msg;
 
 		// don't update rasAddress for nated endpoint
@@ -253,30 +272,6 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 	PWaitAndSignal lock(m_usedLock);
 	m_updatedTime = PTime();
 	m_pollCount = 2;
-}
-
-// due to strange bug of gcc, I have to pass pointer instead of reference
-bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
-{
-	for (PINDEX i = 0; i < a->GetSize(); i++)
-		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
-			if ((*a)[i] == m_terminalAliases[j])
-				return true;
-	return false;
-}
-
-bool EndpointRec::MatchAlias(
-	const H225_ArrayOf_AliasAddress& aliases,
-	int& matchedalias
-	) const
-{
-	for (PINDEX i = 0; i < aliases.GetSize(); i++)
-		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
-			if (aliases[i] == m_terminalAliases[j]) {
-				matchedalias = i;
-				return true;
-			}
-	return false;
 }
 
 EndpointRec *EndpointRec::Unregister()
@@ -323,9 +318,10 @@ PString EndpointRec::PrintOn(bool verbose) const
 		    (const unsigned char *) GetEndpointIdentifier().GetValue() );
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
-		if (m_permanent)
+		if (IsPermanent())
 			msg += " (permanent)";
-		PString natstring(m_nat ? m_natip.AsString() : PString());
+		PString natstring(IsNATed() ? m_natip.AsString() : PString());
+		PWaitAndSignal lock(m_usedLock);
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>\r\n", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
 	}
 	return msg;
@@ -382,42 +378,6 @@ bool EndpointRec::SendIRQ()
 	RasSrv->SendRas(ras_msg, GetRasAddress());
 
 	return true;
-}
-
-void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
-{
-	m_nat = true;
-	m_natip = ip;
-
-	// we keep the original private IP in signalling address,
-	// because we have to use it to identify different endpoints
-	// but from the same NAT box
-	if (m_rasAddress.GetTag() != H225_TransportAddress::e_ipAddress)
-		m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
-	H225_TransportAddress_ipAddress & rasip = m_rasAddress;
-	for (int i = 0; i < 4; ++i)
-		rasip.m_ip[i] = ip[i];
-}
-
-CallSignalSocket *EndpointRec::GetSocket()
-{
-	PWaitAndSignal lock(m_usedLock);
-	CallSignalSocket *socket = m_natsocket;
-	m_natsocket = 0;
-	return socket;
-}
-
-void EndpointRec::SetSocket(CallSignalSocket *socket)
-{
-	PWaitAndSignal lock(m_usedLock);
-	if (m_natsocket != socket) {
-		PTRACE(3, "Q931\tAn NAT socket detected at " << socket->Name() << " for endpoint " << GetEndpointIdentifier().GetValue());
-		if (m_natsocket) {
-			PTRACE(1, "Warning: natsocket is overwritten by " << socket->Name());
-			m_natsocket->SetDeletable();
-		}
-		m_natsocket = socket;
-	}
 }
 
 void EndpointRec::AddCallCreditServiceControl(
@@ -489,7 +449,7 @@ void GatewayRec::SetEndpointType(const H225_EndpointType &t)
 
 void GatewayRec::Update(const H225_RasMessage & ras_msg)
 {
-        if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
+    if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
 		const H225_RegistrationRequest & rrq = ras_msg;
 		if (!(rrq.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && rrq.m_keepAlive))
 			SetEndpointType(rrq.m_terminalType);

@@ -77,20 +77,13 @@ public:
 	virtual ~EndpointRec();
 
 	// public interface to access EndpointRec
-	const H225_TransportAddress & GetRasAddress() const
-	{ return m_rasAddress; }
-	const H225_TransportAddress & GetCallSignalAddress() const
-	{ return m_callSignalAddress; }
-	const H225_EndpointIdentifier & GetEndpointIdentifier() const
-	{ return m_endpointIdentifier; }
-	const H225_ArrayOf_AliasAddress & GetAliases() const
-	{ return m_terminalAliases; }
-	const H225_EndpointType & GetEndpointType() const
-	{ return *m_terminalType; }
-	int GetTimeToLive() const
-	{ return m_timeToLive; }
-	PIPSocket::Address GetNATIP() const
-	{ return m_natip; }
+	H225_TransportAddress GetRasAddress() const;
+	H225_TransportAddress GetCallSignalAddress() const;
+	H225_EndpointIdentifier GetEndpointIdentifier() const;
+	H225_ArrayOf_AliasAddress GetAliases() const;
+	H225_EndpointType GetEndpointType() const;
+	int GetTimeToLive() const;
+	PIPSocket::Address GetNATIP() const;
 	CallSignalSocket *GetSocket();
 
 	/** checks if the given aliases are prefixes of the aliases which are stored
@@ -98,8 +91,8 @@ public:
 	    a full match is found.
 	    @returns #TRUE# if a match is found
 	 */
-        bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases,
-	                                  bool &fullMatch) const;
+    bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases,
+	                                bool &fullMatch) const;
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
@@ -143,27 +136,26 @@ public:
 
 	virtual PString PrintOn(bool verbose) const;
 
-	void SetNAT(bool nat) { m_nat = nat; }
+	void SetNAT(bool nat);
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
 
 	/** @return
 		true if this is a permanent endpoint loaded from the config file entry.
 	*/
-	bool IsPermanent() const { return m_permanent; }
+	bool IsPermanent() const;
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
-	bool IsFromParent() const { return m_fromParent; }
-	bool IsNATed() const { return m_nat; }
-	bool HasNATSocket() const { return m_natsocket; }
-	PTime GetUpdatedTime() const { return m_updatedTime; }
+	bool IsFromParent() const;
+	bool IsNATed() const;
+	bool HasNATSocket() const;
+	PTime GetUpdatedTime() const;
 
 	/** If this Endpoint would be register itself again with all the same data
 	 * how would this RRQ would look like? May be implemented with a
 	 * built-together-RRQ, but for the moment a stored RRQ.
 	 */
-	const H225_RasMessage & GetCompleteRegistrationRequest() const
-	{ return m_RasMsg; }
+	H225_RasMessage GetCompleteRegistrationRequest() const;
 
 	void AddCall();
 	void AddConnectedCall();
@@ -174,7 +166,7 @@ public:
 
 	bool SendIRQ();
 
-	bool HasCallCreditCapabilities() const { return m_hasCallCreditCapabilities; }
+	bool HasCallCreditCapabilities() const;
 	
 	/** Append a call credit related service control descriptor to the array
 	    of service control sessions, if the endpoint supports call credit 
@@ -932,15 +924,148 @@ private:
 };
 
 // inline functions of EndpointRec
+inline H225_TransportAddress EndpointRec::GetRasAddress() const
+{ 
+	PWaitAndSignal lock(m_usedLock);
+	return m_rasAddress;
+}
+
+inline void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_rasAddress = a;
+}
+
+inline H225_TransportAddress EndpointRec::GetCallSignalAddress() const
+{ 
+	PWaitAndSignal lock(m_usedLock);
+	return m_callSignalAddress;
+}
+
+inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_endpointIdentifier;
+}
+
+inline void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_endpointIdentifier = i;
+}
+        
+inline int EndpointRec::GetTimeToLive() const
+{
+	return m_timeToLive;
+}
+
+inline H225_ArrayOf_AliasAddress EndpointRec::GetAliases() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_terminalAliases;
+}
+
+inline void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_terminalAliases = a;
+}
+        
+inline H225_EndpointType EndpointRec::GetEndpointType() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return *m_terminalType;
+}
+
+inline void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
+{
+	PWaitAndSignal lock(m_usedLock);
+	*m_terminalType = t;
+}
+
+inline void EndpointRec::SetNAT(bool nat)
+{ 
+	m_nat = nat;
+}
+
+inline bool EndpointRec::IsNATed() const
+{ 
+	return m_nat;
+}
+
+inline PIPSocket::Address EndpointRec::GetNATIP() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_natip;
+}
+
+inline void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	m_nat = true;
+	m_natip = ip;
+
+	// we keep the original private IP in signalling address,
+	// because we have to use it to identify different endpoints
+	// but from the same NAT box
+	if (m_rasAddress.GetTag() != H225_TransportAddress::e_ipAddress)
+		m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
+	H225_TransportAddress_ipAddress & rasip = m_rasAddress;
+	for (int i = 0; i < 4; ++i)
+		rasip.m_ip[i] = ip[i];
+}
+
+inline CallSignalSocket *EndpointRec::GetSocket() 
+{
+	PWaitAndSignal lock(m_usedLock);
+	CallSignalSocket *socket = m_natsocket;
+	m_natsocket = 0;
+	return socket;
+}
+
+inline bool EndpointRec::IsPermanent() const
+{
+	return m_permanent;
+}
+
 inline bool EndpointRec::IsUsed() const
 {
-//	PWaitAndSignal lock(m_usedLock);
+	PWaitAndSignal lock(m_usedLock);
 	return (m_activeCall > 0 || m_usedCount > 0);
 }
 
 inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return (!m_timeToLive || (*now - m_updatedTime).GetSeconds() < m_timeToLive);
+}
+
+inline bool EndpointRec::IsFromParent() const
+{
+	return m_fromParent;
+}
+
+inline bool EndpointRec::HasNATSocket() const
+{
+	return m_natsocket;
+}
+
+inline PTime EndpointRec::GetUpdatedTime() const
+{ 
+	PWaitAndSignal lock(m_usedLock);
+	return m_updatedTime;
+}
+
+inline H225_RasMessage EndpointRec::GetCompleteRegistrationRequest() const
+{ 
+	PWaitAndSignal lock(m_usedLock);
+	return m_RasMsg;
+}
+
+inline bool EndpointRec::HasCallCreditCapabilities() const
+{ 
+	return m_hasCallCreditCapabilities;
 }
 
 inline void EndpointRec::AddCall()

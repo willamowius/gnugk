@@ -258,9 +258,10 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 		endptr lCalling, lCalled;
 		lCalling = lCall->GetCallingParty();
 		lCalled = lCall->GetCalledParty();
-		if (lCalling && lCalling->CompareAlias(&lSrcForward->GetAliases())) {
+		H225_ArrayOf_AliasAddress aliases = lSrcForward->GetAliases();
+		if (lCalling && lCalling->CompareAlias(&aliases)) {
 			lForwardedSocket = lCall->GetCallSignalSocketCalling();
-		} else if (lCalled && lCalled->CompareAlias(&lSrcForward->GetAliases())) {
+		} else if (lCalled && lCalled->CompareAlias(&aliases)) {
 			lForwardedSocket = lCall->GetCallSignalSocketCalled();
 		}
 		if (!lForwardedSocket) {
