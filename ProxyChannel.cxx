@@ -2312,14 +2312,36 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 	// Workaround: some bad endpoints don't send packets from the specified port
 	if( (fromIP == fSrcIP && fromPort == fSrcPort)
-		|| (fromIP == rDestIP && fromIP != rSrcIP) ) {
-//	if ((fromIP == fSrcIP || fromIP == rDestIP) && (fromIP != rSrcIP || fromPort == fSrcPort)) {
+		|| (fromIP == rDestIP && fromIP != rSrcIP) ) 
+	{
+		if ( fDestIP.IsLoopback() && ! rDestIP.IsLoopback() )
+		{
+			// Strange, fDestIP is uninitialized and rDest is not, maybe 
+			// the incoming traffic should go to rDest...
+			PTRACE( 6, Type() << "\tGot strange fDestIP, rewriting f* data from r* data" );
+			fDestIP = rDestIP;
+			fDestPort = rDestPort;
+		}
+
 		PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
+
 		SetSendAddress(fDestIP, fDestPort);
 		if (rnat)
 			rDestIP = fromIP, rDestPort = fromPort;
-	} else {
+	} 
+	else 
+	{
+		if ( rDestIP.IsLoopback() && ! fDestIP.IsLoopback() )
+		{
+			// Strange, rDestIP is uninitialized and fDest is not, maybe 
+			// the incoming traffic should go to fDest...
+			PTRACE( 6, Type() << "\tGot strange rDestIP, rewriting r* data from f* data" );
+			rDestIP = fDestIP;
+			rDestPort = fDestPort;
+		}
+
 		PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << rDestIP << ':' << rDestPort);
+
 		SetSendAddress(rDestIP, rDestPort);
 		if (fnat)
 			fDestIP = fromIP, fDestPort = fromPort;
