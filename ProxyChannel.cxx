@@ -120,7 +120,7 @@ public:
 	H225_TransportAddress GetH245Address(const Address &);
 	bool SetH245Address(H225_TransportAddress & h245addr, const Address &);
 	bool Reverting(const H225_TransportAddress &);
-	void OnSignalingChannelClosed() { sigSocket = 0; }
+	void OnSignalingChannelClosed();
 	void SetSigSocket(CallSignalSocket *socket) { sigSocket = socket; }
 
 protected:
@@ -136,7 +136,8 @@ protected:
 	CallSignalSocket *sigSocket;
 	H225_TransportAddress *peerH245Addr;
 	TCPSocket *listener;
-
+	/// to avoid race condition inside calls between this socket and its signaling socket	
+	PMutex m_signalingSocketMutex;
 private:
 	// override from class ServerSocket
 	virtual void Dispatch() { /* useless */ }
@@ -629,8 +630,6 @@ CallSignalSocket::~CallSignalSocket()
 				m_h245socket->SendEndSessionCommand();
 		}
 		m_h245socket->OnSignalingChannelClosed();
-		m_h245socket->EndSession();
-		m_h245socket->SetDeletable();
 	}
 	
 	if (m_call) {
@@ -2346,8 +2345,17 @@ H245Socket::~H245Socket()
 {
 	delete listener;
 	delete peerH245Addr;
+	PWaitAndSignal lock(m_signalingSocketMutex);
 	if (sigSocket)
 		sigSocket->OnH245ChannelClosed();
+}
+
+void H245Socket::OnSignalingChannelClosed()
+{
+	PWaitAndSignal lock(m_signalingSocketMutex);
+	sigSocket = NULL;
+	EndSession();
+	SetDeletable();
 }
 
 void H245Socket::ConnectTo()
@@ -2365,6 +2373,7 @@ void H245Socket::ConnectTo()
 
 	ReadLock lockConfig(ConfigReloadMutex);
 
+	m_signalingSocketMutex.Wait();
 	// establish H.245 channel failed, disconnect the call
 	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
 	if (socket) {
@@ -2374,7 +2383,10 @@ void H245Socket::ConnectTo()
 		    socket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
 		socket->CloseSocket();
 	}
+	m_signalingSocketMutex.Signal();
+	
 	if (H245Socket *ret = static_cast<H245Socket *>(remote)) {
+		ret->m_signalingSocketMutex.Wait();
 		socket = ret->sigSocket;
 		if (socket) {
 			if (socket->IsConnected() && !socket->IsBlocked())
@@ -2382,6 +2394,7 @@ void H245Socket::ConnectTo()
 			socket->SetConnected(false);
 			socket->CloseSocket();
 		}
+		ret->m_signalingSocketMutex.Signal();
 	}
 	GetHandler()->Insert(this, remote);
 }
@@ -2500,6 +2513,7 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 // class NATH245Socket
 bool NATH245Socket::ConnectRemote()
 {
+	m_signalingSocketMutex.Wait();
 	if (!sigSocket || !listener)
 		return false;
 
@@ -2507,6 +2521,8 @@ bool NATH245Socket::ConnectRemote()
 	sigSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_startH245);
 	q931.Encode(buffer);
 	sigSocket->TransmitData(buffer);
+	m_signalingSocketMutex.Signal();
+	
 	bool result = Accept(*listener);
 	PTRACE_IF(3, result, "H245\tChannel established for NAT EP");
 	listener->Close();
