@@ -64,7 +64,7 @@ SOURCES  = Toolkit.cxx CountryCodeTables.cxx gk.cxx gkauth.cxx gkldap.cxx \
            BroadcastListen.cxx SoftPBX.cxx h323util.cxx GkStatus.cxx	  \
            ProxyThread.cxx ProxyChannel.cxx singleton.cxx main.cxx	  \
            gkDatabase.cxx gkIniFile.cxx GkProfile.cxx RasListener.cxx     \
-	   RasWorker.cxx Neighbor.cxx gklock.cxx
+	   RasWorker.cxx Neighbor.cxx gklock.cxx version.cxx
 
 # the PWLib conform versioning file.
 VERSION_FILE = version.h
@@ -349,6 +349,10 @@ $(OBJDIR)/gktimestamp.mark: $(SPECIAL_LIB_DEPENDENCIES)
 $(OBJDIR)/gktimestamp.mark: $(wildcard ldap/lib/libldapapi_$(PLATFORM_TYPE)_$(OBJ_SUFFIX)*)
 
 $(OBJDIR)/ldaplibtimestamp.mark: $(SPECIAL_LIB_DEPENDENCIES)
+
+$(OBJDIR)/version.o: FORCE
+
+FORCE:
 
 # set the run path only once from the run-list
 LD_RUN_PATH = $(subst $(space),$(colon),$(strip $(LD_RUN_LIST)))
