@@ -44,7 +44,7 @@ GkAuthenticator::ARQAuthData::ARQAuthData(
 	const callptr& call
 	) : m_rejectReason(-1), m_callDurationLimit(-1), 
 	m_requestingEP(ep),	m_call(call), m_billingMode(-1),
-	m_routeToAlias(NULL), m_routeToIP(NULL)
+	m_routeToAlias(NULL), m_routeToIP(NULL), m_proxyMode(CallRec::ProxyDetect)
 {
 }
 
@@ -53,7 +53,8 @@ GkAuthenticator::ARQAuthData::ARQAuthData(
 	) : m_rejectReason(obj.m_rejectReason), 
 	m_callDurationLimit(obj.m_callDurationLimit), 
 	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call), 
-	m_billingMode(obj.m_billingMode), m_routeToAlias(NULL), m_routeToIP(NULL)
+	m_billingMode(obj.m_billingMode), m_routeToAlias(NULL), m_routeToIP(NULL),
+	m_proxyMode(obj.m_proxyMode)
 {
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
@@ -67,6 +68,7 @@ GkAuthenticator::ARQAuthData& GkAuthenticator::ARQAuthData::operator=(const ARQA
 	m_requestingEP = obj.m_requestingEP;
 	m_call = obj.m_call;
 	m_billingMode = obj.m_billingMode;
+	m_proxyMode = obj.m_proxyMode;
 	
 	delete m_routeToAlias;
 	m_routeToAlias = NULL;
@@ -134,7 +136,7 @@ GkAuthenticator::SetupAuthData::SetupAuthData(
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
 	m_call(call), m_fromRegistered(fromRegistered), 
 	m_peerAddr(addr), m_peerPort(port),
-	m_routeToAlias(NULL), m_routeToIP(NULL)
+	m_routeToAlias(NULL), m_routeToIP(NULL), m_proxyMode(CallRec::ProxyDetect)
 {
 }
 
@@ -143,7 +145,8 @@ GkAuthenticator::SetupAuthData::SetupAuthData(
 	) : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
 	m_fromRegistered(obj.m_fromRegistered), m_peerAddr(obj.m_peerAddr), 
-	m_peerPort(obj.m_peerPort), m_routeToAlias(NULL), m_routeToIP(NULL)
+	m_peerPort(obj.m_peerPort), m_routeToAlias(NULL), m_routeToIP(NULL),
+	m_proxyMode(obj.m_proxyMode)
 {
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
@@ -160,6 +163,7 @@ GkAuthenticator::SetupAuthData& GkAuthenticator::SetupAuthData::operator=(const 
 	m_fromRegistered = obj.m_fromRegistered;
 	m_peerAddr = obj.m_peerAddr;
 	m_peerPort = obj.m_peerPort;
+	m_proxyMode = obj.m_proxyMode;
 	
 	delete m_routeToAlias;
 	m_routeToAlias = NULL;

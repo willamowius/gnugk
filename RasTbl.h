@@ -462,6 +462,13 @@ template<class> class RasPDU;
 // record of one active call
 class CallRec {
 public:
+	/// flag to overwrite proxy settings for the call
+	enum ProxyMode {
+		ProxyDetect, /// use global settings from the config
+		ProxyEnabled, /// force full proxy mode
+		ProxyDisabled /// disable full proxy mode
+	};
+
 	/// build a new call record from the received ARQ message
 	CallRec(
 		/// ARQ with call information
@@ -469,7 +476,9 @@ public:
 		/// bandwidth occupied by the call
 		int bandwidth,
 		/// called party's aliases in a string form
-		const PString& destInfo
+		const PString& destInfo,
+		/// override proxy mode global setting from the config
+		int proxyMode = ProxyDetect
 		);
 
 	/// build a new call record from the received Setup message
@@ -481,7 +490,9 @@ public:
 		/// force H.245 routed mode
 		bool routeH245,
 		/// called party's aliases in a string form
-		const PString& destInfo
+		const PString& destInfo,
+		/// override proxy mode global setting from the config
+		int proxyMode = ProxyDetect
 		);
 		
 	virtual ~CallRec();
@@ -516,6 +527,16 @@ public:
 		/// filled with NAT IP of the called party (if nat type is calledParty)
 		PIPSocket::Address& calledPartyNATIP
 		) const;
+
+	/** @return
+	    Current proxy mode flag (see #ProxyMode enum#).
+	*/
+	int GetProxyMode() const { return m_proxyMode; }
+	
+	/// Override proxy mode global setting from the config
+	void SetProxyMode(
+		int mode /// proxy mode flag (see #ProxyMode enum#)
+		);
 
 	CallSignalSocket *GetCallSignalSocketCalled() { return m_calledSocket; }
 	CallSignalSocket *GetCallSignalSocketCalling() { return m_callingSocket; }
@@ -879,6 +900,9 @@ private:
 	bool m_forwarded;
 	endptr m_Forwarder;
 
+	/// enable/disable proxy mode (override global settings from the config)
+	int m_proxyMode;
+	
 	H225_ArrayOf_CryptoH323Token m_accessTokens;
 };
 

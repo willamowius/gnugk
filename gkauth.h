@@ -155,6 +155,8 @@ public:
 		H225_AliasAddress* m_routeToAlias;
 		/// if not NULL, route the call to the specified IP
 		H225_TransportAddress* m_routeToIP;
+		/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
+		int m_proxyMode;
 		
 	private:
 		ARQAuthData();
@@ -210,6 +212,8 @@ public:
 		H225_AliasAddress* m_routeToAlias;
 		/// if not NULL, route the call to the specified IP
 		H225_TransportAddress* m_routeToIP;
+		/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
+		int m_proxyMode;
 		
 	private:
 		SetupAuthData();

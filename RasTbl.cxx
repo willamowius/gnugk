@@ -1264,7 +1264,9 @@ CallRec::CallRec(
 	/// bandwidth occupied by the call
 	int bandwidth,
 	/// called party's aliases in a string form
-	const PString& destInfo
+	const PString& destInfo,
+	/// override proxy mode global setting from the config
+	int proxyMode
 	) : m_CallNumber(0), 
 	m_callIdentifier(((const H225_AdmissionRequest&)arqPdu).m_callIdentifier),
 	m_conferenceIdentifier(((const H225_AdmissionRequest&)arqPdu).m_conferenceID), 
@@ -1277,7 +1279,7 @@ CallRec::CallRec(
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), 
 	m_h245Routed(RasServer::Instance()->IsH245Routed()),
-	m_toParent(false), m_forwarded(false)
+	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -1300,7 +1302,9 @@ CallRec::CallRec(
 	/// force H.245 routed mode
 	bool routeH245,
 	/// called party's aliases in a string form
-	const PString& destInfo
+	const PString& destInfo,
+	/// override proxy mode global setting from the config
+	int proxyMode
 	) : m_CallNumber(0), m_callIdentifier(setup.m_callIdentifier), 
 	m_conferenceIdentifier(setup.m_conferenceID), 
 	m_crv(q931pdu.GetCallReference() & 0x7fffU),
@@ -1310,7 +1314,7 @@ CallRec::CallRec(
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), m_h245Routed(routeH245),
-	m_toParent(false), m_forwarded(false)
+	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -1332,6 +1336,15 @@ CallRec::~CallRec()
 {
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 	delete m_routeToAlias;
+}
+
+void CallRec::SetProxyMode(
+	int mode /// proxy mode flag (see #ProxyMode enum#)
+	)
+{
+	if (m_proxyMode == ProxyDetect)
+		if (mode == ProxyEnabled || mode == ProxyDisabled)
+			m_proxyMode = mode;
 }
 
 bool CallRec::GetSrcSignalAddr(

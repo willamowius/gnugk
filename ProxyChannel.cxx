@@ -576,21 +576,28 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	if (type & CallRec::calledParty)
 		socket->peerAddr = called;
 
-	if (type == CallRec::both && calling == called)
-		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "0")))
+	if (m_call->GetProxyMode() != CallRec::ProxyEnabled
+		&& type == CallRec::both && calling == called)
+		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "0"))) {
+			m_call->SetProxyMode(CallRec::ProxyDisabled);
 			return;
+		}
 
 	// enable proxy if required, no matter whether H.245 routed
-	if (Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr) ||
-		((type != CallRec::none) && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1")))) {
+	if (m_call->GetProxyMode() == CallRec::ProxyEnabled
+		|| (m_call->GetProxyMode() == CallRec::ProxyDetect
+			&& (Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr) 
+				|| ((type != CallRec::none) && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1")))))) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket->localAddr, calling);
 		socket->m_h245handler = proxyhandler;
 		m_h245handler = new H245ProxyHandler(localAddr, called, proxyhandler);
 		proxyhandler->SetHandler(GetHandler());
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
+		m_call->SetProxyMode(CallRec::ProxyEnabled);
 	} else if (m_call->IsH245Routed()) {
 		socket->m_h245handler = new H245Handler(socket->localAddr, calling);
 		m_h245handler = new H245Handler(localAddr, called);
+		m_call->SetProxyMode(CallRec::ProxyDisabled);
 	}
 }
 
@@ -1374,7 +1381,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		bool h245Routed = RasSrv->IsH245Routed() || (useParent && gkClient->IsNATed());
 		// workaround for bandwidth, as OpenH323 library :p
 		CallRec* call = new CallRec(*m_lastQ931, Setup, h245Routed, 
-			destinationString
+			destinationString, authData.m_proxyMode
 			);
 		call->SetSrcSignalAddr(SocketToH225TransportAddr(fromIP,fromPort));
 		if (called)

@@ -1882,7 +1882,7 @@ bool AdmissionRequestPDU::Process()
 	} else {
 
 		// the call is not in the table
-		CallRec *pCallRec = new CallRec(*this, BWRequest, destinationString);
+		CallRec *pCallRec = new CallRec(*this, BWRequest, destinationString, authData.m_proxyMode);
 
 		if (CalledEP)
 			pCallRec->SetCalled(CalledEP);
