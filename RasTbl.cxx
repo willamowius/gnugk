@@ -1217,13 +1217,13 @@ void CallRec::Disconnect(bool force)
 void CallRec::SendReleaseComplete()
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_callingSocket && !m_callingSocket->IsDeletable() && m_callingSocket->IsOpen()) {
+	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable()) {
 		m_callingSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to calling party ...");
 		m_callingSocket->SendReleaseComplete();
 		m_callingSocket->MarkBlocked(FALSE);
 	}
-	if (m_calledSocket && !m_calledSocket->IsDeletable() && m_calledSocket->IsOpen()) {
+	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable()) {
 		m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete();
@@ -1579,6 +1579,7 @@ void CallTable::CheckCalls()
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
 {
 	callptr call = obj_drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? FindCallRec(obj_drq.m_callIdentifier) : FindCallRec(obj_drq.m_callReferenceValue.GetValue());
+	PTRACE(1, "CallTable::RemoveCall " << call);
 	if (call) {
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0")))
 			call->SendReleaseComplete();
