@@ -98,7 +98,7 @@ public:
 	bool RewriteE164(H225_ArrayOf_AliasAddress & alias, bool);
 	bool RewriteE164(Q931 &, H225_Setup_UUIE &, bool);
 
-	void CheckRegistration();
+
 	bool CheckGKIP(PIPSocket::Address gkip) { return m_gkaddr == gkip; }
 	bool CheckGKIPVerbose(PIPSocket::Address);
 
@@ -146,9 +146,10 @@ private:
 	PString m_endpointId, m_gatekeeperId;
 
 	int m_ttl, m_retry;
-	PTime m_registeredTime;
+	PTimer m_registerTimer;
 	PTimer reRegisterTimer;
 	PDECLARE_NOTIFIER(PTimer, GkClient, OnTimeout);
+	PDECLARE_NOTIFIER(PTimer, GkClient, CheckRegistration);
 
 	PStringToString m_rewriteInfo;
 

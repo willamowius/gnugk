@@ -133,7 +133,7 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 	rrq.m_rasAddress[0] = *m_rasAddr;
 
 	BuildFullRRQ(rrq);
-	m_registeredTime = PTime();
+
 
 	PBYTEArray buffer(4096);
 	PPER_Stream writestream(buffer);
@@ -142,7 +142,10 @@ GkClient::GkClient(PIPSocket::Address address) : GK_RASListener(address)
 	writestream.CompleteEncoding();
 	listener_mutex.Wait();
 	listener.WriteTo(writestream,writestream.GetSize(), m_gkaddr, m_gkport);
+	m_registerTimer.SetNotifier(PCREATE_NOTIFIER(CheckRegistration));
+	m_registerTimer = PTimeInterval(0,(m_retry<=0 ? 50 : m_retry));
 	listener_mutex.Signal();
+
 
 	alternate_mutex.Wait();
 	alternate.SetSendAddress(addr, port);
@@ -185,6 +188,7 @@ void GkClient::SendRas(const H225_RasMessage & ras_msg)
 {
 	PBYTEArray buffer(4096);
 	PPER_Stream writestream(buffer);
+	PTRACE(5, "Sending " << setprecision(2) << ras_msg);
 
 	ras_msg.Encode(writestream);
 	writestream.CompleteEncoding();
@@ -245,10 +249,10 @@ GkClient::GetRetry() const
 	return m_retry;
 }
 
-void GkClient::CheckRegistration()
+void GkClient::CheckRegistration(PTimer &timer, int extra)
 {
-	if (m_ttl > 0 && (PTime() - m_registeredTime) > m_ttl)
-		SendRRQ();
+	PTRACE(5, "Trying to reregister");
+	SendRRQ();
 	if (m_arqPendingList)
 		m_arqPendingList->Check();
 }
@@ -338,7 +342,7 @@ void GkClient::SendRRQ()
 	rrq.m_rasAddress[0] = *m_rasAddr;
 
 	IsRegistered() ? BuildLightWeightRRQ(rrq) : BuildFullRRQ(rrq);
-	m_registeredTime = PTime();
+	m_registerTimer = PTimeInterval(0,(m_retry<=0 ? 50 : m_retry));
 	SendRas(rrq_ras);
 }
 
