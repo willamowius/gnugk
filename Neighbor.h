@@ -71,6 +71,7 @@ public:
 	bool IsFrom(const PIPSocket::Address *ip) const { return GetIP() == *ip; }
 	bool ForwardResponse() const { return m_forwardResponse; }
 	int ForwardLRQ() const { return m_forwardto; }
+	WORD GetDefaultHopCount() const { return m_forwardHopCount; }
 	PString GetId() const { return m_id; }
 	PIPSocket::Address GetIP() const;
 	H225_LocationRequest & BuildLRQ(H225_RasMessage &, WORD, const H225_ArrayOf_AliasAddress &);

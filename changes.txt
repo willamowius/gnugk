@@ -1,5 +1,8 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- better hop count handling for neighbors - now LRQ m_hopCount field 
+  is forwarded/generated correctly, according to an original hop count
+  or a ForwardHopCount config settings
 - small radius accounting/authentication module optimizations and better trace ouput
 - changed handling of multiple accounting modules (added new "alternative" control)
 - added new VirtualQueuePrefixes and VirtualQueueRegex config variables

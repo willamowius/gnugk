@@ -135,6 +135,12 @@ PrefixInfo LRQForwarder::operator()(Neighbor *nb, WORD seqnum) const
 		// copy and forward
 		lrq = m_lrq.GetRequest();
 		lrq.m_destinationInfo = aliases;
+		// include hopCount if configured and not already included
+		if (nb->GetDefaultHopCount() >= 1
+			&& !lrq.HasOptionalField(H225_LocationRequest::e_hopCount)) {
+			lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
+			lrq.m_hopCount = nb->GetDefaultHopCount();
+		}
 		if (nb->OnSendingLRQ(lrq, m_lrq) && nb->SendLRQ(lrq_ras))
 			return info;
 	}
@@ -181,7 +187,7 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_data.SetValue(m_id);
 	m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
-	if (m_forwardHopCount > 1) { // what if set hopCount = 1?
+	if (m_forwardHopCount >= 1) { // what if set hopCount = 1?
 		lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
 		lrq.m_hopCount = m_forwardHopCount;
 	}
@@ -260,8 +266,18 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest &
 	return OnSendingLRQ(lrq);
 }
 
-bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest &)
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest &orig_lrq)
 {
+	// adjust hopCount to be lesser or equal to the original value
+	if( orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_hopCount) )
+		if( lrq.HasOptionalField(H225_LocationRequest::e_hopCount) ) {
+			if( lrq.m_hopCount > orig_lrq.GetRequest().m_hopCount )
+				lrq.m_hopCount = orig_lrq.GetRequest().m_hopCount;
+		} else {
+			lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
+			lrq.m_hopCount = orig_lrq.GetRequest().m_hopCount;
+		}
+		
 	return OnSendingLRQ(lrq);
 }
 
@@ -788,14 +804,16 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 			return false;
 		else if (requester->ForwardLRQ() > 0)
 			hopCount = 1;
-
+			
 	H225_LocationRequest & lrq = (*ras)->m_recvRAS;
-	if (lrq.HasOptionalField(H225_LocationRequest::e_hopCount))
+	if (lrq.HasOptionalField(H225_LocationRequest::e_hopCount)) {
 		hopCount = lrq.m_hopCount - 1;
+		if (hopCount)
+			lrq.m_hopCount = hopCount;
+	}
 	if (!hopCount)
 		return false;
-	lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
-	lrq.m_hopCount = hopCount;
+	
 
 	if (requester && !requester->ForwardResponse()) {
 		LRQForwarder functor(lrq_obj);
