@@ -188,6 +188,16 @@ GRQRequester::GRQRequester(const PString & gkid) : RasRequester(grq_ras)
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_gatekeeperIdentifier);
 		grq.m_gatekeeperIdentifier = gkid;
 	}
+	grq.IncludeOptionalField(H225_GatekeeperRequest::e_authenticationCapability);
+	grq.IncludeOptionalField(H225_GatekeeperRequest::e_algorithmOIDs);
+	H235AuthSimpleMD5 md5auth;
+	md5auth.SetPassword("dummy"); // activate it
+	md5auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+#ifdef OPENH323_NEWVERSION
+	H235AuthCAT catauth;
+	catauth.SetPassword("dummy"); // activate it
+	catauth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+#endif
 	m_rasSrv->RegisterHandler(this);
 }
 
@@ -278,6 +288,7 @@ GkClient::GkClient(RasServer *rasSrv) : m_rasSrv(rasSrv)
 
 	m_useAltGKPermanent = false;
 	m_gkList = new AlternateGKs(m_gkaddr, m_gkport);
+	m_authMode = H235_AuthenticationMechanism::e_pwdHash;
 
 	m_handlers[0] = new GkClientHandler(this, &GkClient::OnURQ, H225_RasMessage::e_unregistrationRequest);
 	m_handlers[1] = new GkClientHandler(this, &GkClient::OnBRQ, H225_RasMessage::e_bandwidthRequest);
@@ -586,6 +597,8 @@ bool GkClient::Discovery()
 			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier))
 				*m_gatekeeperId = gcf.m_gatekeeperIdentifier;
 			GetIPAndPortFromTransportAddr(gcf.m_rasAddress, m_gkaddr, m_gkport);
+			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_authenticationMode))
+				m_authMode = gcf.m_authenticationMode.GetTag();
 			PTRACE(2, "GKC\tDiscover GK " << AsString(m_gkaddr, m_gkport) << " at " << m_loaddr);
 			return true;
 		} else if (ras->GetTag() == H225_RasMessage::e_gatekeeperReject) {
@@ -930,6 +943,19 @@ bool GkClient::RewriteString(PString & alias, bool fromInternal) const
 	}
 	return false;
 }
+
+#ifdef OPENH323_NEWVERSION
+void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PString & id)
+{
+	clearTokens.RemoveAll();
+	H235AuthCAT auth;
+	// avoid copying for thread-safely
+	auth.SetLocalId((const char *)id);
+	auth.SetPassword((const char *)m_password);
+	H225_ArrayOf_CryptoH323Token dumbTokens;
+	auth.PrepareTokens(clearTokens, dumbTokens);
+}
+#endif
 
 void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id)
 {

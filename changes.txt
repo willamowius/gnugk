@@ -1,5 +1,6 @@
 Changes from 2.0.x to 2.2beta1 (by cwhuang)
 ===========================================
+- add authentication method selection for GkClient
 - the underlying architecture is almost rewritten entirely, includes
     object factory
     new thread model

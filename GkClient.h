@@ -40,6 +40,7 @@ class H225_GatekeeperIdentifier;
 class H225_RegistrationRequest;
 class H225_AdmissionRequest;
 class H225_Setup_UUIE;
+class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
 
 class RasMsg;
@@ -80,8 +81,11 @@ public:
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
 		if (!m_password) {
-			rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
-			SetCryptoTokens(rasmsg.m_cryptoTokens, id);
+			// 7 == H235_AuthenticationMechanism::e_authenticationBES, avoid including h235.h
+			if (m_authMode == 7)
+				rasmsg.IncludeOptionalField(RAS::e_tokens), SetClearTokens(rasmsg.m_tokens, id);
+			else
+				rasmsg.IncludeOptionalField(RAS::e_cryptoTokens), SetCryptoTokens(rasmsg.m_cryptoTokens, id);
 		}
 	}
 	template<class RAS> void SetPassword(RAS & rasmsg)
@@ -110,6 +114,7 @@ private:
 	bool OnIRQ(RasMsg *);
 
 	bool RewriteString(PString &, bool) const;
+	void SetClearTokens(H225_ArrayOf_ClearToken &, const PString &);
 	void SetCryptoTokens(H225_ArrayOf_CryptoH323Token &, const PString &);
 	void SetRasAddress(H225_ArrayOf_TransportAddress &);
 	void SetCallSignalAddress(H225_ArrayOf_TransportAddress &);
@@ -130,6 +135,7 @@ private:
 
 	AlternateGKs *m_gkList;
 	bool m_useAltGKPermanent;
+	unsigned m_authMode;
 
 	Toolkit::RewriteData *m_rewriteInfo;
 
