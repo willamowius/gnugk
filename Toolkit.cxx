@@ -448,7 +448,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 			sorted_out_strings.clear();
 
 			// Split the config data into seperate lines
-			lines = cfg_value.Tokenise(PString("\n"));
+			lines = cfg_value.Tokenise(PString(";"));
 
 			lines_size = lines.GetSize();
 
