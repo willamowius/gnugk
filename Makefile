@@ -47,6 +47,61 @@ endif
 
 endif
 
+# LDAP support
+ifndef NO_LDAP
+ifndef LDAP1823DIR
+LDAP1823DIR := /usr/include
+export LDAP1823DIR
+endif
+ifndef LDAP1823LIBDIR
+LDAP1823LIBDIR := /usr/lib
+export LDAP1823LIBDIR
+endif
+# this is the file name of the lib. To the linker always flag (-l) with
+# std. name 'ldap' is passed
+ifndef LDAP1823LIBNM
+LDAP1823LIBNM := libldap.so
+export LDAP1823LIBNM
+endif
+ifneq (,$(wildcard $(LDAP1823DIR)/ldap.h))
+HAVE_LDAP1823_HDRS = 1
+endif
+ifneq (,$(wildcard $(LDAP1823LIBDIR)/$(LDAP1823LIBNM)))
+HAVE_LDAP1823_LIBS = 1
+endif
+
+# add test for HAS_LEVEL_TWO_LDAPAPI here
+
+ifdef HAS_LEVEL_TWO_LDAPAPI
+SOURCES         += ldapapi.cxx
+HAS_LDAP	= 1
+STDCCFLAGS	+= -D"HAS_LDAP=$(HAS_LDAP)" \
+                   -D"HAS_LEVEL_TWO_LDAPAPI=$(HAS_LEVEL_TWO_LDAPAPI)" 
+else
+ifdef HAVE_LDAP1823_HDRS
+ifdef HAVE_LDAP1823_LIBS
+SOURCES         += ldaplink.cxx
+ENDLDLIBS	+= -lldap
+HAS_LDAP	= 1
+# due to the unwise naming of the libH323 header, the std. header 'ldap.h'
+# would be hooded, if the include search path would not PREpended
+STDCCFLAGS_stub := $(STDCCFLAGS)
+STDCCFLAGS	= -D"HAS_LDAP=$(HAS_LDAP)" -I$(LDAP1823DIR) $(STDCCFLAGS_stub)
+LDFLAGS         += -L$(LDAP1823LIBDIR)
+ifneq (,(LD_RUN_PATH))
+LD_RUN_stub     := $(LD_RUN_PATH)
+LD_RUN_PATH     += $(LD_RUN_stub):$(LDAP1823LIBDIR)
+else
+LD_RUN_PATH     += $(LDAP1823LIBDIR)
+endif
+export LD_RUN_PATH
+endif
+endif
+endif
+
+endif
+# end of LDAP configuration
+
 
 ifndef PWLIBDIR
 PWLIBDIR=$(HOME)/pwlib
@@ -66,4 +121,13 @@ SignalChannel.o: SignalChannel.h
 SignalConnection.o: SignalConnection.h
 CallTbl.o: CallTbl.h
 BroadcastListen.cxx: BroadcastListen.h
- 
+ifdef HAS_LDAP
+ldaplink.cxx: ldaplink.h
+gkauth.cxx: ldaplink.h
+ifdef HAS_LEVEL_TWO_LDAPAPI
+ldapapi.cxx: ldapapi.h
+ldaplink.cxx: ldapapi.h
+endif
+endif
+
+# end
