@@ -1243,7 +1243,7 @@ Although this information is contained in AlternateGKs, you must still
 specify which address to forward RRQs to. This might differ from AlternateGK's
 address, so it's a separate config option (think of multihomed machines).
 
-<item><tt/SkipForwards=1.2.3.4:5.6.7.8/<newline>
+<item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
 Default: <tt>N/A</tt>
 <p>
 To avoid circular forwarding, you shouldn't forward RRQs you get from the
