@@ -230,8 +230,10 @@ bool GkAuthenticator::Validate(
 		long newDurationLimit = -1;
 		if( !m_next->Validate(req, rejectReason,newDurationLimit) )
 			return false;
-		if( newDurationLimit >= 0 )
+		if( callDurationLimit >= 0 && newDurationLimit >= 0 )
 			callDurationLimit = PMIN(callDurationLimit,newDurationLimit);
+		else
+			callDurationLimit = PMAX(callDurationLimit,newDurationLimit);
 	}
 	if( callDurationLimit == 0 ) {
 		PTRACE(2,"GkAuth\t"<<GetName()<<" - call duration limit 0");
@@ -271,8 +273,10 @@ bool GkAuthenticator::Validate(
 		long newDurationLimit = -1;
 		if( !m_next->Validate(q931pdu, setup, releaseCompleteCause, newDurationLimit) )
 			return false;
-		if( newDurationLimit >= 0 )
+		if( callDurationLimit >= 0 && newDurationLimit >= 0 )
 			callDurationLimit = PMIN(callDurationLimit,newDurationLimit);
+		else
+			callDurationLimit = PMAX(callDurationLimit,newDurationLimit);
 	}
 	if( callDurationLimit == 0 ) {
 		PTRACE(2,"GkAuth\t"<<GetName()<<" - (Setup) call duration limit 0");

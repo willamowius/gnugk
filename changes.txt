@@ -1,5 +1,7 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- BUGFIX(gkauth.cxx) fixed call duration limit handling when multiple
+  authenticator modules are specified
 - BUGFIX(gkacct.cxx) changed accounting reload handling to first cleanup
   the old modules and then create the new ones. This allows the FileAcct 
   logger to work fine with the reload command
