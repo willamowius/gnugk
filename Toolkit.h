@@ -538,25 +538,9 @@ protected:
 	ProxyCriterion m_ProxyCriterion;
 
 private:
+	PConfig* InternalReloadConfig();
 	PFilePath m_tmpconfig;
-};
-
-
-/** this protects the block in where it is declared.
- * It automatically waits when the block is entered and signals
- * when it is leaved (in any way). You have to use a existing mutex
- */
-class GkProtectBlock
-{
-private: /* make sure no call to this constructors is generated -> cause link errors */
-	GkProtectBlock(const GkProtectBlock&); /*  {}  */
-	GkProtectBlock& operator=(const GkProtectBlock &abc); /* { return *this; }  */
-	GkProtectBlock(); /* {} */
-protected:
-	PMutex& mutex;
-public:
-	GkProtectBlock(PMutex &a_mutex) : mutex(a_mutex) { mutex.Wait(); }
-	~GkProtectBlock() { mutex.Signal(); }
+	mutable PMutex m_Config_mutex;
 };
 
 
