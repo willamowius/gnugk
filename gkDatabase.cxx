@@ -140,7 +140,7 @@ void GkDatabase::Initialize(PConfig &cfg) // 'real', private constructor
 	AN.insert(DBANValuePair(DBAttrTags[PrependCallbackAC],
 			    cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[PrependCallbackAC],
-					      "voIPprependCallbackAC"))); // ...2090
+					      "voIPprependCallbackAccessCode"))); // ...2090
 	AN.insert(DBANValuePair(DBAttrTags[EPType],
 			    cfg.GetString(DB_ATTR_NAME_SEC,
 					      DBAttrTags[EPType],
@@ -285,7 +285,7 @@ BOOL GkDatabase::getProfile(CallProfile & cgProfile, PString & h323id, dctn::DBT
 		if (attrMap[attrNameAsString(PrependCallbackAC)].GetSize() == 0 ||
 		    attrMap[attrNameAsString(PrependCallbackAC)][0].IsEmpty()) {
 			cgProfile.SetPrependCallbackAC(FALSE);
-		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
+		} else {
 			cgProfile.SetPrependCallbackAC(Toolkit::AsBool(attrMap[attrNameAsString(PrependCallbackAC)][0]));
 		}
 		if (attrMap[attrNameAsString(ConvertToLocal)].GetSize() == 0 ||
