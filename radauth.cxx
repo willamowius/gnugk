@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2003/10/08 12:40:48  zvision
+ * Realtime accounting updates added
+ *
  * Revision 1.5  2003/09/28 16:24:31  zvision
  * Introduced call duration limit feature for registered endpoints (ARQ)
  *
@@ -79,6 +82,10 @@
  * Initial revision
  *
  */
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug sumbol off
+#endif
+
 #include <ptlib.h>
 #include <h225ras.h>
 #include <h323pdu.h>

@@ -19,6 +19,7 @@
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4355 ) // warning about using 'this' in initializer
+#pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
 #include "job.h"

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/10/08 12:40:48  zvision
+ * Realtime accounting updates added
+ *
  * Revision 1.4  2003/09/17 19:23:01  zvision
  * Removed unnecessary setup-time double check.
  * Added h323-connect-time to AcctUpdate packets.
@@ -34,6 +37,10 @@
  * Added cvs Log keyword
  *
  */
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug sumbol off
+#endif
+
 #include <ptlib.h>
 #include <h323pdu.h>
 #include "gk_const.h"

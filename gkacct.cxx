@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/10/08 12:40:48  zvision
+ * Realtime accounting updates added
+ *
  * Revision 1.4  2003/09/28 15:45:49  zvision
  * Microsecond field added back to h323-xxx-time attributes
  *
@@ -26,6 +29,10 @@
  * Initial generic accounting support for GNU GK.
  *
  */
+#if (_MSC_VER >= 1200)
+#pragma warning( disable : 4786 ) // warning about too long debug sumbol off
+#endif
+
 #include <ptlib.h>
 #include "gk_const.h"
 #include "h323util.h"
