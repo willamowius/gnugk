@@ -691,6 +691,7 @@ BOOL BlackWhiteListAnalysis::CheckNumberInList(const PString CalledPartyNumber, 
 		PTRACE(6,"Checking for " << WhiteList[i]);
 		if(WhiteList[i].GetLength() <= CalledPartyNumber.GetLength() && WhiteList[i]==CalledPartyNumber.Left(WhiteList[i].GetLength())) {
 			PTRACE(5, "Hit Whitelist  " << WhiteList[i]);
+			reason=H225_AdmissionRejectReason::e_calledPartyNotRegistered;
 			found=FALSE;
 		}
 	}
