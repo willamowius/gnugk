@@ -372,14 +372,12 @@ bool GkAuthenticator::IsH235Capable() const
 }
 
 
-const char *passwdsec = "Password";
-
 // class SimplePasswordAuth
 SimplePasswordAuth::SimplePasswordAuth(const char *name) : GkAuthenticator(name)
 {
-	filled = config->GetInteger(passwdsec, "KeyFilled", 0);
-	checkid = Toolkit::AsBool(config->GetString(passwdsec, "CheckID", "0"));
-	cache = new CacheManager(config->GetInteger(passwdsec, "PasswordTimeout", -1));
+	filled = config->GetInteger(name, "KeyFilled", 0);
+	checkid = Toolkit::AsBool(config->GetString(name, "CheckID", "0"));
+	cache = new CacheManager(config->GetInteger(name, "PasswordTimeout", -1));
 	
 	h235Authenticators = new H235Authenticators;
 	H235Authenticator* authenticator;
@@ -453,9 +451,9 @@ int SimplePasswordAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 
 bool SimplePasswordAuth::GetPassword(const PString & id, PString & passwd)
 {
-	if (!config->HasKey(passwdsec, id))
+	if (!config->HasKey(GetName(), id))
 		return false;
-	passwd = Toolkit::CypherDecode(id, config->GetString(passwdsec, id, ""), filled);
+	passwd = Toolkit::CypherDecode(id, config->GetString(GetName(), id, ""), filled);
 	return true;
 }
 
@@ -775,6 +773,8 @@ bool AliasAuth::CheckAuthRule(
 MySQLPasswordAuth::MySQLPasswordAuth(const char *name)
       : SimplePasswordAuth(name), MySQLConnection(config, name)
 {
+	if (cache)
+		cache->SetTimeout(config->GetInteger(name, "CacheTimeout", 0)
 }
 
 bool MySQLPasswordAuth::GetPassword(const PString & id, PString & passwd)
@@ -786,7 +786,7 @@ bool MySQLPasswordAuth::GetPassword(const PString & id, PString & passwd)
 MySQLAliasAuth::MySQLAliasAuth(const char *name)
       : AliasAuth(name), MySQLConnection(config, name)
 {
-	cache = new CacheManager(config->GetInteger(name, "CacheTimeout", -1));
+	cache = new CacheManager(config->GetInteger(name, "CacheTimeout", 0));
 }
 
 MySQLAliasAuth::~MySQLAliasAuth()

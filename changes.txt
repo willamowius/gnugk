@@ -1,5 +1,12 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (manual.sgml) corrected MySQLPasswordAuth, MySQLAliasAuth sections,
+  removed NeighborPasswordAuth documentation (not necessary anymore)
+- (gkauth.cxx) fixed SimplePasswordAuth module to read settings from 
+  [SimplePasswordAuth] section instead of [Password] section. 
+  Fixed MySQLPasswordAuth module to accept CacheTimeout parameter.
+  Default CacheTimeout for MySQLPasswordAuth and MySQLAliasAuth set to 0
+  (do not cache passwords/aliases at all)
 - applied the concept of output trace levels for the status interface. 
   It allows to select amount of information a status client receives
   (level 0 - silent mode + reloads; level 1 - CDRs, RouteRequests, reloads;

@@ -276,6 +276,13 @@ public:
 		const PString& value /// a value to be associated with the key
 		);
 
+	void SetTimeout(
+		long newTimeout /// new cache expiration timeout
+		)
+	{
+		ttl = newTimeout;
+	}
+	
 private:
 	/// cache timeout (seconds), 0 = do not cache, -1 = never expires
 	long ttl;

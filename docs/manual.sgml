@@ -1932,11 +1932,6 @@ for <tt/SimplePasswordAuth/, <tt/MySQLPasswordAuth/, <tt/LDAPPasswordAuth/
 and <tt/ExternalPasswordAuth/ modules, respectively.
 Support for other backend databases is easy to add.
 
-<item><tt>NeighborPasswordAuth</tt>
-<p>
-The module is used only to authenticate LRQs from
-neighbors defined in section <ref id="neighbor" name="[RasSrv::Neighbors]">.
-
 <item><tt>AliasAuth/MySQLAliasAuth/LDAPAliasAuth</tt>
 <p>
 The module can only be used to authenticate RegistrationRequest (RRQ).
@@ -2073,10 +2068,12 @@ Default: <tt>N/A</tt>
 Specify extra criterion.
 
 <item><tt/CacheTimeout=30/<newline>
-Default: <tt>30</tt>
+Default: <tt>0</tt>
 <p>
 Timeout value after username/password pairs cached in memory
-will be refreshed from the database.
+will be refreshed from the database. Default is to not cache
+passwords at all (CacheTimeout=0). -1 means the cache does not
+expire - it will be refreshed only when the gatekeeper is reloaded.
 
 </itemize>
 
@@ -2191,10 +2188,12 @@ Default: <tt>N/A</tt>
 Specify extra criterion.
 
 <item><tt/CacheTimeout=30/<newline>
-Default: <tt>30</tt>
+Default: <tt>0</tt>
 <p>
 Timeout value after username/password pairs cached in memory
-will be refreshed from the database.
+will be refreshed from the database. Default is to not cache
+passwords at all (CacheTimeout=0). -1 means the cache does not
+expire - it will be refreshed only when the gatekeeper is reloaded.
 
 </itemize>
 
