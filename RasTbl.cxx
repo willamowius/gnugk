@@ -1106,7 +1106,7 @@ void CallTable::Insert(CallRec * NewRec)
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
 {
-	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), (H225_CallIdentifier *)&CallId));
+	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
 }
 
 callptr CallTable::FindCallRec(const H225_CallReferenceValue & CallRef) const
@@ -1121,12 +1121,12 @@ callptr CallTable::FindCallRec(PINDEX CallNumber) const
 
 callptr CallTable::FindCallRec(const endptr & ep) const
 {
-	return InternalFind(bind2nd(mem_fun(&CallRec::CompareEndpoint), (endptr *)&ep));
+	return InternalFind(bind2nd(mem_fun(&CallRec::CompareEndpoint), &ep));
 }
 
 callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) const
 {
-	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdr), (H225_TransportAddress *)&SignalAdr));
+	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdr), &SignalAdr));
 }
 
 void CallTable::CheckCalls()
@@ -1171,7 +1171,7 @@ void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
 	WriteLock lock(listLock);
 	InternalRemove(
 		find_if(CallList.begin(), CallList.end(),
-		bind2nd(mem_fun(&CallRec::CompareCallId), (H225_CallIdentifier *) &CallId))
+		bind2nd(mem_fun(&CallRec::CompareCallId), &CallId))
 	);
 }
 

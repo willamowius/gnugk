@@ -415,11 +415,11 @@ public:
 
 	int CountEndpoints() const;
 
-	bool CompareCallId(H225_CallIdentifier *CallId) const;
+	bool CompareCallId(const H225_CallIdentifier *CallId) const;
 	bool CompareCRV(unsigned crv) const;
 	bool CompareCallNumber(PINDEX CallNumber) const;
-	bool CompareEndpoint(endptr *) const;
-	bool CompareSigAdr(H225_TransportAddress *adr) const;
+	bool CompareEndpoint(const endptr *) const;
+	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 
 	bool IsUsed() const;
 	bool IsConnected() const;
@@ -602,7 +602,7 @@ inline void CallRec::Unlock()
 	--m_usedCount;
 }       
 
-inline bool CallRec::CompareCallId(H225_CallIdentifier *CallId) const
+inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const
 {
 	return (m_callIdentifier == *CallId);
 }
@@ -617,12 +617,12 @@ inline bool CallRec::CompareCallNumber(PINDEX CallNumber) const
 	return (m_CallNumber == CallNumber);
 }
 
-inline bool CallRec::CompareEndpoint(endptr *ep) const
+inline bool CallRec::CompareEndpoint(const endptr *ep) const
 {
 	return (m_Calling && m_Calling == *ep) || (m_Called && m_Called == *ep);
 }
 
-inline bool CallRec::CompareSigAdr(H225_TransportAddress *adr) const
+inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 {
 	return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
