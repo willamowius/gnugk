@@ -38,7 +38,16 @@ public:
 			MatchDestinationNumber, /// dailed number after global rewrite
 			MatchCallerNumber /// CLI/ANI
 		};
+		
+		/// how to perform number matching and rewritting
+		enum RewriteType {
+			PrefixToNumber, /// match by a prefix, replace with a complete number
+			PrefixToPrefix, /// match by a prefix, replace only the prefix part
+			NumberToNumber /// match by a complete number, replace with a complete number
+		};
+		
 		int m_matchType; /// match condition
+		int m_rewriteType; /// number matching/rewritting rule
 		std::string m_prefix; /// the prefix to match
 		std::vector<std::string> m_cli; /// list of new CLIs
 	};

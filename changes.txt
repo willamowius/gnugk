@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- (clirw.cxx) new CLI rewrite types - prefix replacement (*=) and an identity
+  match (~=)
 - don't lock the call table when logging accounting data on call disconnect,
   to prevent gatekeeper long lock periods when a backend is not working properly
 - new TranslateFacility config variable to enable Facility message conversion

@@ -33,7 +33,10 @@ const char * const RemoveH323Id = "RemoveH323Id";
 const char * const ReservedKeys[] = { ProcessSourceAddress, RemoveH323Id, NULL };
 }
 
-CLIRewrite::RewriteRule::RewriteRule() : m_matchType(MatchDialedNumber) {}
+CLIRewrite::RewriteRule::RewriteRule()
+	: m_matchType(MatchDialedNumber), m_rewriteType(PrefixToNumber) 
+{
+}
 
 PString CLIRewrite::RewriteRule::AsString() const
 {
@@ -46,7 +49,14 @@ PString CLIRewrite::RewriteRule::AsString() const
 		s += "caller number: ";
 
 	s += m_prefix.empty() ? "any" : m_prefix.c_str();
-	s += " => ";
+	if (m_rewriteType == PrefixToNumber)
+		s += " = ";
+	else if (m_rewriteType == PrefixToPrefix)
+		s += " *= ";
+	else if (m_rewriteType == NumberToNumber)
+		s += " ~= ";
+	else
+		s += " ?unknown rewrite rule type? ";
 
 	std::vector<std::string>::const_iterator cli = m_cli.begin();
 	while (cli != m_cli.end()) {
@@ -270,17 +280,42 @@ CLIRewrite::CLIRewrite()
 			}
 	
 			// extract prefix to be matched
+			PINDEX keyChars = sepIndex - keyIndex;
+			int rewriteType = RewriteRule::PrefixToNumber;
+			if (sepIndex > keyIndex)
+				if (data[sepIndex-1] == '*') {
+					rewriteType = RewriteRule::PrefixToPrefix;
+					--keyChars;
+				} else if (data[sepIndex-1] == '~') {
+					rewriteType = RewriteRule::NumberToNumber;
+					--keyChars;
+				}
+					
+			if (rewriteType == RewriteRule::PrefixToPrefix && matchType != RewriteRule::MatchCallerNumber) {
+				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax - cannot perform "
+					"*= rewrite on non 'cli:' rules: " << key << '=' 
+					<< kv.GetDataAt(i)
+					);
+				if (newsiprule)
+					if (inbound)
+						m_inboundRules.erase(siprule);
+					else
+						diprule->second.erase(siprule);
+				if (newdiprule)
+					m_outboundRules.erase(diprule);
+				continue;
+			}
 			
-			std::string prefix((const char*)(data.Mid(keyIndex, sepIndex - keyIndex)));
+			std::string prefix((const char*)(data.Mid(keyIndex, keyChars).Trim()));
 			if (prefix == "any")
 				prefix.erase();
-	
+
 			// get RHS of the rewrite rule, multiple targets will be selected
 			// in random order
 			PStringArray clis = data.Mid(sepIndex + 1).Tokenise(", ", FALSE);
 			if (clis.GetSize() < 1) {
-				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '=' 
-					<< kv.GetDataAt(i)
+				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax - at least 1 "
+					"target number has to be present: " << key << '=' << kv.GetDataAt(i)
 					);
 				if (newsiprule)
 					if (inbound)
@@ -295,7 +330,8 @@ CLIRewrite::CLIRewrite()
 			// check if the rule already exists			
 			RewriteRules::iterator rule = rules->begin();
 			while (rule != rules->end())
-				if (rule->m_matchType == matchType && rule->m_prefix.compare(prefix) == 0)
+				if (rule->m_matchType == matchType && rule->m_rewriteType == rewriteType
+						&& rule->m_prefix.compare(prefix) == 0)
 					break;
 				else
 					++rule;
@@ -306,6 +342,7 @@ CLIRewrite::CLIRewrite()
 			}
 	
 			rule->m_matchType = matchType;
+			rule->m_rewriteType = rewriteType;
 			rule->m_prefix = prefix;		
 			rule->m_cli.resize(clis.GetSize());
 			for (PINDEX j = 0; j < clis.GetSize(); j++)
@@ -478,24 +515,26 @@ void CLIRewrite::Rewrite(
 	while (rule != ipRule.second.end()) {
 		const RewriteRule &r = *rule++;
 		if (!r.m_prefix.empty()) {
-			if (r.m_matchType == RewriteRule::MatchCallerNumber) {
-				if (cli.IsEmpty() || MatchPrefix(cli, r.m_prefix.c_str()) <= 0)
-					continue;
-			} else if (r.m_matchType == RewriteRule::MatchDialedNumber) {
-				if (dno.IsEmpty() || MatchPrefix(dno, r.m_prefix.c_str()) <= 0)
-					continue;
-			} else if (!inbound && r.m_matchType == RewriteRule::MatchDestinationNumber) {
-				if (cno.IsEmpty() || MatchPrefix(cno, r.m_prefix.c_str()) <= 0)
-					continue;
-			} else
+			int matchLen = 0;
+			const char *number = NULL;
+			if (r.m_matchType == RewriteRule::MatchCallerNumber)
+				number = cli;
+			else if (r.m_matchType == RewriteRule::MatchDialedNumber)
+				number = dno;
+			else if (!inbound && r.m_matchType == RewriteRule::MatchDestinationNumber)
+				number = cno;
+			if (number != NULL) {
+				matchLen = MatchPrefix(number, r.m_prefix.c_str());
+				if (matchLen > 0 && r.m_rewriteType == RewriteRule::NumberToNumber
+						&& strlen(number) != (unsigned)matchLen)
+					matchLen = 0;
+			}
+			if (matchLen <= 0)
 				continue;
 		}
 		if (!r.m_cli.empty()) {
 			// get the new ANI/CLI
 			newcli = r.m_cli[rand() % r.m_cli.size()].c_str();
-			PTRACE(5, "CLIRW\t" << (inbound ? "Inbound" : "Outbound")
-				<< " CLI rewrite to '" << newcli << "' by the rule " << r.AsString()
-				);
 			// if this is a number range, choose the new ANI/CLI from the range
 			const PINDEX sepIndex = newcli.Find('-');
 			if (sepIndex != P_MAX_INDEX) {
@@ -511,10 +550,17 @@ void CLIRewrite::Rewrite(
 				diff = (low < high) ? (low + diff) : (high + diff);
 				newcli = PString(diff);
 				PTRACE(5, "CLIRW\t" << (inbound ? "Inbound" : "Outbound")
-					<< " CLI range rewrite to '" << newcli << "' by the rule "
+					<< " CLI range rewrite target is '" << newcli << "' selected by the rule "
 					<< r.AsString()
 					);
 			}
+			if (r.m_rewriteType == RewriteRule::PrefixToPrefix
+					&& r.m_matchType == RewriteRule::MatchCallerNumber)
+				newcli = RewriteString(cli, r.m_prefix.c_str(), newcli);
+			
+			PTRACE(5, "CLIRW\t" << (inbound ? "Inbound" : "Outbound")
+				<< " CLI rewrite to '" << newcli << "' by the rule " << r.AsString()
+				);
 			break;
 		}
 	}

@@ -273,13 +273,26 @@ or a CLI/ANI (after inbound rewrite).
 
 <descrip>
 <tag/Format for an inbound rule:/
-<tt>in:CALLER_IP=[cli:|dno:]number_prefix=NEW_CLI[,NEW_CLI]...</tt>
+<tt>in:CALLER_IP=[cli:|dno:]number_prefix(=|*=|~=)NEW_CLI[,NEW_CLI]...</tt>
 <p>
-The <tt/in:/ prefix tells that this is an inbound rule, the <tt/CALLER_IP/
-will be used to match the rule and can be a single IP or a whole network address.
-The prefix <tt/cli:/ or <tt/dno:/ (the default) selects what number will be used to match
-the <tt/number_prefix/ - a caller id (CLI/ANI) or a dialed number.
-After the equality sign, a list of new CLI values to be used follows.
+The <tt/in:/ prefix tells that this is an inbound rule and the <tt/CALLER_IP/
+will be used to match the rule (it can be a single IP or a whole subnet).
+The prefix <tt/cli:/ or <tt/dno:/ (the default) selects what number will be used
+to match the <tt/number_prefix/ - a caller id (CLI/ANI) or a dialed number.
+Number matching/rewritting can be done in three ways:
+<itemize>
+<item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
+               match against <tt/number_prefix/ and, if the match is found,
+               CLI will be replaced with NEW_CLI,
+<item><tt/~=/ - a <tt/cli/ or <tt/dno/ number will be matched using an identity
+               match against <tt/number_prefix/ and, if both numbers are the same,
+               CLI will be replaced with NEW_CLI,
+<item><tt/*=/ - (VALID ONLY FOR <tt/cli/) a <tt/cli/ number will be matched using
+               a prefix match against <tt/number_prefix/ and, if the match is found,
+               the matched CLI prefix (<tt/number_prefix/) will be replaced
+			   with a NEW_CLI prefix.
+</itemize>
+After the equality (=/~=/*=) sign, there follows a list of new CLI values to be used.
 If more than one value is specified, a one will be choosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999.
 There is a special string constant "any", that can be used in place
@@ -310,11 +323,24 @@ These rules tell that:
 1) for calls from the network 192.168.1.0/24, set CLI to 18001111,
 2) for calls from the network 192.168.2.0/24, set CLI to 18002222,
 3) for other calls, set CLI to 0.
+
+<tag/Example 3:/
+<tscreen><verb>
+[RewriteCLI]
+%r1% in:192.168.1.0/24=0048*=48
+%r2% in:192.168.1.0/24=0*=48
+in:any=100.~=48900900900
+</verb></tscreen>
+<p>
+These rules tell that:
+1) for calls from the network 192.168.1.0/24, rewrite 0048 to 48 (example - 0048900900900 => 48900900900),
+2) for other calls from the network 192.168.1.0/24, rewrite 0 to 48 (example - 0900900900 => 48900900900),
+3) for other calls, if CLI is 4 digits and starts with 100, set it to 48900900900.
 </descrip>
 
 <descrip>
 <tag/Format for an outbound rule:/
-<tt>out:CALLER_IP=CALLEE_IP [cli:|dno:|cno:]number_prefix=NEW_CLI[,NEW_CLI]...</tt>
+<tt>out:CALLER_IP=CALLEE_IP [cli:|dno:|cno:]number_prefix(=|~=|*=)NEW_CLI[,NEW_CLI]...</tt>
 <p>
 The <tt/out:/ prefix tells that this is an outbound rule, the <tt/CALLER_IP/
 and the <tt/CALLEE_IP/ will be used to match the rule and can be a single IP
@@ -322,7 +348,20 @@ or a whole network address.
 The prefix <tt/cli:/, <tt/dno:/ (the default) or <tt/cno:/ selects what number
 will be used to match the <tt/number_prefix/ - a caller id (CLI/ANI),
 a dialed number or a destination/called number (the dialed number after rewrite).
-After the equality sign, a list of new CLI values to be used follows.
+Number matching/rewritting can be done in three ways:
+<itemize>
+<item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
+               match against <tt/number_prefix/ and, if the match is found,
+               CLI will be replaced with NEW_CLI,
+<item><tt/~=/ - a <tt/cli/ or <tt/dno/ number will be matched using an identity
+               match against <tt/number_prefix/ and, if both numbers are the same,
+               CLI will be replaced with NEW_CLI,
+<item><tt/*=/ - (VALID ONLY FOR <tt/cli/) a <tt/cli/ number will be matched using
+               a prefix match against <tt/number_prefix/ and, if the match is found,
+               the matched CLI prefix (<tt/number_prefix/) will be replaced
+			   with a NEW_CLI prefix.
+</itemize>
+After the equality sign (=/~=/*=), a list of new CLI values to be used follows.
 If more than one value is specified, a one will be choosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999.
 There is a special string constant "any", that can be used in place
@@ -359,7 +398,7 @@ priority),
 <item>
 (outbound rules) the closest callee's IP match is determined,
 <item>
-the longest matching prefix is searched for the given IP/IP pair
+the longest matching prefix/number is searched for the given IP/IP pair
 in the following order:
 <enum>
 <item><tt/dno:/ type (dialed number) rules are searched,
@@ -368,7 +407,7 @@ in the following order:
 </enum>
 </enum>
 After a match for caller's/caller's IP is found, no more rules
-are checked, even if no prefix is matched inside the set of rules
+are checked, even if no prefix/number is matched inside the set of rules
 for these IPs.
 
 <p>
