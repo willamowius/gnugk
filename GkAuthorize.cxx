@@ -113,11 +113,12 @@ BOOL GkAuthorize::prefixip(const H225_AdmissionRequest & arq,const endptr & Requ
 		srcipaddr=(H225_TransportAddress_ipAddress)arq.m_srcCallSignalAddress;
 		srcaddrfound=1;
 	}
-	else if(arq.m_answerCall!=TRUE)	{
+	else if(arq.m_answerCall!=TRUE && RequestingEP->GetCallSignalAddress().GetTag()==H225_TransportAddress::e_ipAddress)	{
 		srcipaddr=(H225_TransportAddress_ipAddress)RequestingEP->GetCallSignalAddress();
 		srcaddrfound=1;
 	}
-	dstipaddr=(H225_TransportAddress_ipAddress)CalledEP->GetCallSignalAddress();
+	if(CalledEP->GetCallSignalAddress().GetTag()==H225_TransportAddress::e_ipAddress)
+		dstipaddr=(H225_TransportAddress_ipAddress)CalledEP->GetCallSignalAddress();
 
 	PINDEX lp=0;
 #ifdef CHECK_FOR_ALIAS0
