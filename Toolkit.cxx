@@ -959,7 +959,7 @@ PString Toolkit::AsString(
 				i += 2;
 				continue;
 			}
-			const PString us = PString((unsigned)(tm.GetMicrosecond()));
+			const PString us(PString::Printf, "%03d", (unsigned)tm.GetMicrosecond());
 			fmtStr.Splice(us, i, 2);
 			length += us.GetLength();
 			i += us.GetLength();
