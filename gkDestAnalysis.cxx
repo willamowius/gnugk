@@ -325,7 +325,7 @@ int OverlapSendDestAnalysis::getDestination(const H225_AliasAddress & cdAlias, l
 	// apply rewrite rules
 	Toolkit::Instance()->RewriteE164(destAlias);
 
-	// now we have an international calledPN (if a database exists)
+	// now we have an international calledPN (if a profile exists)
 	// and we can start with routing descision...
 
 	GkDestAnalysis::Status statusRoutingDecision = e_fail;

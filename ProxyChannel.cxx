@@ -1217,9 +1217,9 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 
 	PString srcH323IDStr=callRec->GetCallingProfile().getH323ID();
 
-	// if a database exists
+	// if a profile exists
 	if (!srcH323IDStr.IsEmpty()) {
-        	PTRACE(1,"Roy: CgPNConversion");
+        	PTRACE(1,"Start CgPNConversion");
 
 		// some bools to code the tricky flow chart
 		bool cgPNIncludedNotFromCPE = TRUE;
@@ -1243,8 +1243,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 				    );
 
 		if (!callRec->GetCallingProfile().isCPE()) {
-		// Gateway in gk.ini --> not from CPE
-			PTRACE(5, "Not from CPE");
+			PTRACE(5, "EP not from CPE");
 
 			if (cgPNIncluded) {
 				// CgPNs included

@@ -1359,12 +1359,14 @@ static const PString AsCDRTimeString(const PTime & t)
 	return t.AsString((const char *)format, zone);
 }
 
-PString CallRec::GenerateCDR() const
+PString CallRec::GenerateCDR()
 {
 	PString timeString;
 	PString startTimeStr;
 	PString endTimeStr;	
 	PTime endTime;
+	PString srcInfo(m_srcInfo);
+	PString destInfo(m_destInfo);
 	if (NULL != m_startTime) {
 		PTimeInterval callDuration = endTime - *m_startTime;
 		timeString = PString(PString::Printf, "%.3f|%s|%s",
@@ -1375,14 +1377,26 @@ PString CallRec::GenerateCDR() const
 	} else
 		timeString = "0|unconnected| " + endTime.AsString();;
 
+	// if profile for calling endpoint exists
+	if (!GetCallingProfile().getH323ID().IsEmpty()) {
+		if (!GetCallingProfile().getCgPN().IsEmpty()) {
+			PTRACE(2, "CDR: set CgPN to international format");
+			srcInfo = GetCallingProfile().getCgPN() + ":dialedDigits";
+		}
+		if (!GetCalledProfile().getCalledPN().IsEmpty()) {
+			PTRACE(2, "CDR: set CdPN to international format");
+			destInfo = GetCalledProfile().getCalledPN() + ":dialedDigits";
+		}
+	}
+
 	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s;" GK_LINEBRK,
 		       m_CallNumber,
 		       (const char *)AsString(m_callIdentifier.m_guid),
 		       (const char *)timeString,
 		       (const char *)GetEPString(m_Calling),
 		       (const char *)GetEPString(m_Called),
-		       (const char *)m_destInfo,
-		       (const char *)m_srcInfo,
+		       (const char *)destInfo,
+		       (const char *)srcInfo,
 		       (const char *)Toolkit::Instance()->GKName()
 		);
 }

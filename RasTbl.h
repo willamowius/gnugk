@@ -590,7 +590,7 @@ public:
 	bool IsH245Routed() const;
 	bool IsRegistered() const;
 
-	PString GenerateCDR() const;
+	PString GenerateCDR();
 	PString PrintOn(bool verbose) const;
 
 	void Lock();
