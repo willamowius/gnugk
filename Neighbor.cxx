@@ -610,10 +610,11 @@ bool LRQRequester::OnTimeout()
 	if (m_requests.empty())
 		return false;
 	Queue::iterator iter, biter = m_requests.begin(), eiter = m_requests.end();
-	for (iter = biter; iter != eiter; ++iter)
+	for (iter = biter; iter != eiter; ++iter) {
 		m_result = iter->second.m_reply;
 		if (m_result)
 			return false;
+	}
 	if (m_retry-- == 0)
 		return false;
 	// re-send LRQs
