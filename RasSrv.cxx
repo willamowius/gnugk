@@ -1183,13 +1183,14 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 	// mechanism 2: forwarding detection per "from"
-	{
-		const PString addr = rx_addr;
-		if(Toolkit::AsBool(GkConfig()->GetString("skipfrom-"+addr, ""))) {
+	const PString addr = rx_addr;
+	const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
+	if (!SkipForwards)
+		if (SkipForwards.Find(rx_addr.AsString()) != P_MAX_INDEX) {
+			PTRACE(5, "RRQ\tWill skip forwarding RRQ to other GK.");
 			bShellSendReply = FALSE;
 			bShellForwardRequest = FALSE;
 		}
-	}
 
 	endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 	if (ep)

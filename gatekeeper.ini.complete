@@ -22,11 +22,16 @@ Name=OpenH323GK
 
 [Failover]
 ## Give a list of IP4-Addresses to forward the RRQ to that this
-## Gatekeeper receives. Notation: "a.b.c.d:p[,a.b.c.d:p,...]" (all numbers)
+## Gatekeeper receives. Notation: "a.b.c.d:p[,a.b.c.d:p[,...]]" (all numbers)
 #Sendto=195.71.129.37:1719
 #EndpointIDSuffix=_skeeve
+# List of alternate GKs (current maximum: 1)
 # Notation: "a.b.c.d:port:regNeeded:prio(1..127)[:gkID]" (a..d,port = numbers)
 #AlternateGKs=195.71.129.37:1719:false:120:OpenH323GK2
+# when receiving from these IPs, we don't forward the packets to our
+# alternate GKs. Insert your alternate GKs here to prevent loops.
+# Notation: "a.b.c.d[,a.b.c.d[,...]]" (a..d = numbers)
+#SkipForwards=195.71.129.37
 
 ##
 ## This section should not be changed and loaded with the HUP signal at runtime 
