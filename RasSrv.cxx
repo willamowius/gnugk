@@ -1175,7 +1175,7 @@ void RasServer::HouseKeeping()
 				break;
 
 			ReadLock lock(ConfigReloadMutex);
-			
+
 			if (!(count % 60)) // one minute
 				RegistrationTable::Instance()->CheckEndpoints();
 
@@ -1184,7 +1184,7 @@ void RasServer::HouseKeeping()
 			gkClient->CheckRegistration();
 
 			Toolkit::Instance()->GetTimerManager()->CheckTimers();
-			
+
 			// Automatic daily logrotation of files
 #if PTRACING
       			// Check if it's a new day, then rotate
@@ -1626,6 +1626,7 @@ bool AdmissionRequestPDU::Process()
 	// OnARQ
 	bool bReject = false;
 	bool answer = request.m_answerCall;
+	PString in_rewrite_source, out_rewrite_source;
 
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
@@ -1640,18 +1641,16 @@ bool AdmissionRequestPDU::Process()
 	bool bHasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && request.m_destinationInfo.GetSize() > 0;
 	if (bHasDestInfo) { // apply rewriting rules
 
-		PString source;
-
 		if(RequestingEP->GetAliases().GetSize() > 0) {
-			source = GetBestAliasAddressString(RequestingEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+			in_rewrite_source = GetBestAliasAddressString(RequestingEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 		}
 
-     	if(source.IsEmpty() && (request.m_srcInfo.GetSize() > 0)) {
-        	source = GetBestAliasAddressString(request.m_srcInfo, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+     	if(in_rewrite_source.IsEmpty() && (request.m_srcInfo.GetSize() > 0)) {
+        	in_rewrite_source = GetBestAliasAddressString(request.m_srcInfo, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 		}
 
-	 	if (!source) {
-	 		Kit->GWRewriteE164(source,true,request.m_destinationInfo[0]);
+	 	if (!in_rewrite_source.IsEmpty()) {
+	 		Kit->GWRewriteE164(in_rewrite_source,true,request.m_destinationInfo[0]);
         }
 
 		// Normal rewriting
@@ -1730,6 +1729,11 @@ bool AdmissionRequestPDU::Process()
 			CalledAddress = *dest;
 			toParent = arq.GetFlags() & Routing::AdmissionRequest::e_toParent;
 			aliasesChanged = arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged;
+
+			// record neighbor used for rewriting purposes
+			if (arq.GetNeighborUsed() != 0) {
+				out_rewrite_source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(arq.GetNeighborUsed());
+			}
 		} else
 			return BuildReply(arq.GetRejectReason());
 	}
@@ -1787,14 +1791,13 @@ bool AdmissionRequestPDU::Process()
 
 	// Per GW outbound rewrite
 	if (bHasDestInfo && CalledEP && (RequestingEP != CalledEP)) {
-		PString source;
 
 		if(CalledEP->GetAliases().GetSize() > 0) {
-			source = GetBestAliasAddressString(CalledEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+			out_rewrite_source = GetBestAliasAddressString(CalledEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
 		}
 
-		if (!source.IsEmpty()) {
-			Kit->GWRewriteE164(source,false,request.m_destinationInfo[0]);
+		if (!out_rewrite_source.IsEmpty()) {
+			Kit->GWRewriteE164(out_rewrite_source,false,request.m_destinationInfo[0]);
 		}
 
 	}
@@ -1805,8 +1808,9 @@ bool AdmissionRequestPDU::Process()
 		if (authData.m_callDurationLimit > 0)
 			pExistingCallRec->SetDurationLimit(authData.m_callDurationLimit);
 	} else {
+
 		// the call is not in the table
-		CallRec *pCallRec = new CallRec(request.m_callIdentifier, request.m_conferenceID, 
+		CallRec *pCallRec = new CallRec(request.m_callIdentifier, request.m_conferenceID,
 			(WORD)request.m_callReferenceValue.GetValue(),
 			destinationString, AsString(request.m_srcInfo), BWRequest, RasSrv->IsH245Routed());
 
@@ -1827,6 +1831,11 @@ bool AdmissionRequestPDU::Process()
 		else if (acf.HasOptionalField(H225_AdmissionConfirm::e_cryptoTokens))
 			pCallRec->SetAccessTokens(acf.m_cryptoTokens);
 		CallTbl->Insert(pCallRec);
+
+		// Put rewriting information into call record
+		pCallRec->SetInboundRewriteId(in_rewrite_source);
+		pCallRec->SetOutboundRewriteId(out_rewrite_source);
+
 	}
 
 	if (RasSrv->IsGKRouted()) {

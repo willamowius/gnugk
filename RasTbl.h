@@ -20,8 +20,8 @@
 #include <list>
 #include <vector>
 #include <string>
-#include "rwlock.h" 
-#include "singleton.h" 
+#include "rwlock.h"
+#include "singleton.h"
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
@@ -68,11 +68,11 @@ public:
 	*/
 	EndpointRec(
 		/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
-		const H225_RasMessage& ras, 
+		const H225_RasMessage& ras,
 		/// permanent endpoint flag
 		bool permanent = false
 		);
-		
+
 	virtual ~EndpointRec();
 
 	// public interface to access EndpointRec
@@ -97,7 +97,7 @@ public:
 	    a full match is found.
 	    @returns #TRUE# if a match is found
 	 */
-        bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
+        bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases,
 	                                  bool &fullMatch) const;
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
@@ -108,9 +108,9 @@ public:
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return false; }
-	
+
 	/** Find if one of the given aliases matches any alias for this endpoint.
-		
+
 		@return
 		true if the match has been found, false otherwise.
 	*/
@@ -118,10 +118,10 @@ public:
 		/// aliases to be matched (one of them)
 		const H225_ArrayOf_AliasAddress* aliases
 		) const;
-	
+
 	/** Find if one of the given aliases matches any alias for this endpoint
 		and return an index for the matching alias.
-		
+
 		@return
 		true if the match has been found, false otherwise.
 	*/
@@ -131,7 +131,7 @@ public:
 		/// filled with an index into aliases for the matching alias (if found)
 		int& matchedalias
 		) const;
-		
+
 	virtual bool LoadConfig() { return true; } // workaround: VC need a return value
 
 	virtual EndpointRec *Unregister();
@@ -158,7 +158,7 @@ public:
 	PTime GetUpdatedTime() const { return m_updatedTime; }
 
 	/** If this Endpoint would be register itself again with all the same data
-	 * how would this RRQ would look like? May be implemented with a 
+	 * how would this RRQ would look like? May be implemented with a
 	 * built-together-RRQ, but for the moment a stored RRQ.
 	 */
 	const H225_RasMessage & GetCompleteRegistrationRequest() const
@@ -185,7 +185,7 @@ protected:
 
 	bool SendURQ(H225_UnregRequestReason::Choices);
 
-	/**This field may disappear sometime when GetCompleteRegistrationRequest() can 
+	/**This field may disappear sometime when GetCompleteRegistrationRequest() can
 	 * build its return value itself.
 	 * @see GetCompleteRegistrationRequest()
 	 */
@@ -230,10 +230,10 @@ public:
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
 	virtual bool LoadConfig();
-	
+
 	/** Find if at least one of the given aliases matches any prefix
 		for this gateway.
-		
+
 		@return
 		Length (number of characters) of the match, 0 if no match has been
 		found and this is the default gateway, -1 if no match has been found
@@ -243,10 +243,10 @@ public:
 		/// aliases to be matched (one of them)
 		const H225_ArrayOf_AliasAddress& aliases
 		) const;
-		
+
 	/** Find if at least one of the given aliases matches any prefix
 		for this gateway and return an index of the matched alias.
-		
+
 		@return
 		Length (number of characters) of the match, 0 if no match has been
 		found and this is the default gateway, -1 if no match has been found
@@ -269,7 +269,7 @@ public:
 
 protected:
 	// strange! can't compile in debug mode, anybody know why??
-	//vector<PString> Prefixes;  
+	//vector<PString> Prefixes;
 	std::vector<std::string> Prefixes;
 	bool defaultGW;
 };
@@ -300,7 +300,7 @@ public:
 
 	RegistrationTable();
 	~RegistrationTable();
-	
+
 	void Initialize(GkDestAnalysisList & list) { m_destAnalysisList = &list; }
 
 	endptr InsertRec(H225_RasMessage & rrq, PIPSocket::Address = INADDR_ANY);
@@ -312,15 +312,15 @@ public:
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone = true);
-	
-	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason, 
+
+	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason,
 	                                                 bool SearchOuterZone = true)
 	{
 	  endptr ep;
 	  bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
 	                                                      ep, reason);
 	  if (!ok && SearchOuterZone) {
-            ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock, 
+            ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock,
 	                                                   ep, reason);
 	  }
 	  return (ok) ? ep : endptr(0);
@@ -346,7 +346,7 @@ public:
   enum enumGatewayFlags {
                 e_SCNType		// "trunk" or "residential"
   };
-  
+
 private:
 
 	endptr InternalInsertEP(H225_RasMessage &);
@@ -422,6 +422,8 @@ public:
 	CallSignalSocket *GetCallSignalSocketCalled() { return m_calledSocket; }
 	CallSignalSocket *GetCallSignalSocketCalling() { return m_callingSocket; }
 	const H225_ArrayOf_CryptoH323Token & GetAccessTokens() const { return m_accessTokens; }
+	PString GetInboundRewriteId() const { return m_inbound_rewrite_id; }
+	PString GetOutboundRewriteId() const { return m_outbound_rewrite_id; }
 
 	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
 	void SetCalling(const endptr & NewCalling);
@@ -431,6 +433,8 @@ public:
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetRegistered(bool registered) { m_registered = registered; }
 	void SetAccessTokens(const H225_ArrayOf_CryptoH323Token & tokens) { m_accessTokens = tokens; }
+	void SetInboundRewriteId(PString id) { m_inbound_rewrite_id = id; }
+	void SetOutboundRewriteId(PString id) { m_outbound_rewrite_id = id; }
 
 	void SetConnected();
 
@@ -451,13 +455,13 @@ public:
 	bool IsUsed() const { return (m_usedCount != 0); }
 
 	/** @return
-		true if the call has been connected - a Connect message 
+		true if the call has been connected - a Connect message
 		has been received in gk routed signalling or the call has been admitted
 		(ARQ->ACF) in direct signalling. Does not necessary mean
 		that the call is still in progress (may have been already disconnected).
 	*/
 	bool IsConnected() const { return (m_connectTime != 0); }
-	
+
 	bool IsH245Routed() const { return m_h245Routed; }
 	bool IsRegistered() const { return m_registered; }
 	bool IsForwarded() const { return m_forwarded; }
@@ -470,7 +474,7 @@ public:
 	void Unlock();
 
 	/** @return
-		Q.931 ReleaseComplete cause code for the call. 
+		Q.931 ReleaseComplete cause code for the call.
 		0 if the disconnect cause could not be determined.
 	*/
 	unsigned GetDisconnectCause() const;
@@ -481,7 +485,7 @@ public:
 		);
 
 	/** Set maximum duration limit (in seconds) for this call */
-	void SetDurationLimit( 
+	void SetDurationLimit(
 		long seconds /// duration limit to be set
 		);
 
@@ -493,7 +497,7 @@ public:
 
 	/** This function can be used to determine, if the call has been
 		disconnected due to call duration limit excess.
-		
+
 		@return
 		true if the call duration limit has been exceeded, false otherwise.
 	*/
@@ -506,7 +510,7 @@ public:
 	time_t GetCreationTime() const;
 
 	/** @return
-		Timestamp (number of seconds since 1st January 1970) 
+		Timestamp (number of seconds since 1st January 1970)
 		for the Setup message associated with this call. 0 if Setup
 		has not been yet received.
 		Meaningful only in GK routed mode.
@@ -514,12 +518,12 @@ public:
 	time_t GetSetupTime() const;
 
 	/** Set timestamp for a Setup message associated with this call. */
-	void SetSetupTime( 
+	void SetSetupTime(
 		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
 
 	/** @return
-		Timestamp (number of seconds since 1st January 1970) 
+		Timestamp (number of seconds since 1st January 1970)
 		for the Connect message associated with this call. 0 if Connect
 		has not been yet received. If GK is not in routed mode, this is
 		timestamp for ACF generated as a response to ARQ.
@@ -532,7 +536,7 @@ public:
 		);
 
 	/** @return
-		Timestamp (number of seconds since 1st January 1970) 
+		Timestamp (number of seconds since 1st January 1970)
 		for the call disconnect event. 0 if call has not been yet disconnected
 		or connected.
 	*/
@@ -545,10 +549,10 @@ public:
 
 	/** @return
 		Timestamp for the most recent accounting update event logged for this call.
-	*/ 
+	*/
 	time_t GetLastAcctUpdateTime() const { return m_acctUpdateTime; }
-	
-	/** Set timestamp for the most recent accounting update event logged 
+
+	/** Set timestamp for the most recent accounting update event logged
 		for this call.
 	*/
 	void SetLastAcctUpdateTime(
@@ -557,13 +561,13 @@ public:
 	{
 		m_acctUpdateTime = tm;
 	}
-	
+
 	/** Check if:
 		- a signalling channel associated with this call is not timed out
 		  and the call should be disconnected (removed from CallTable);
 		- call duration limit has been exceeded
 		- call should be disconnected from other reason
-				
+
 		@return
 		true if call is timed out and should be disconnected, false otherwise.
 	*/
@@ -581,7 +585,7 @@ public:
 
 	/** @return
 		A string that identifies uniquelly this call for accounting
-		purposes. This string should be unique across subsequent GK 
+		purposes. This string should be unique across subsequent GK
 		start/stop events.
 	*/
 	PString GetAcctSessionId() const { return m_acctSessionId; }
@@ -600,8 +604,8 @@ public:
 	void SetSrcSignalAddr(
 		const H225_TransportAddress & addr /// new signalling transport address
 		);
-		
-	/** Set a new address for the called party signalling channel. 
+
+	/** Set a new address for the called party signalling channel.
 	*/
 	void SetDestSignalAddr(
 		const H225_TransportAddress & addr /// new signalling transport address
@@ -614,7 +618,7 @@ public:
 		@return
 		true if the address has been retrieved successfully, false otherwise.
 	*/
-	bool GetSrcSignalAddr( 
+	bool GetSrcSignalAddr(
 		PIPSocket::Address& addr, /// will receive the IP address
 		WORD& port /// will receive the port number
 		) const;
@@ -626,7 +630,7 @@ public:
 		@return
 		true if the address has been retrieved successfully, false otherwise.
 	*/
-	bool GetDestSignalAddr( 
+	bool GetDestSignalAddr(
 		PIPSocket::Address& addr, /// will receive the IP address
 		WORD& port /// will receive the port number
 		) const;
@@ -634,7 +638,7 @@ public:
 	/** @return
 		A string with ARQ.m_destinationInfo or ARQ.m_destCallSignalAddress
 		or "unknown" for registered endpoints
-		and Setup.m_destinationAddress or called endpoint IP address 
+		and Setup.m_destinationAddress or called endpoint IP address
 		for unregistered endpoints.
 		The string has alias type appended (example: '772:dialedDigits')
 		and for forwarded calls contains alias of forwarding
@@ -661,6 +665,10 @@ private:
 	PString m_destInfo;
 	PString m_srcInfo; //added (MM 05.11.01)
 	int m_bandWidth;
+	// rewrite id for inbound leg of call
+	PString m_inbound_rewrite_id;
+	// rewrite id for outbound leg of call
+	PString m_outbound_rewrite_id;
 
 	/// current timeout (or duration limit) for the call
 	long m_timeout;
@@ -684,9 +692,9 @@ private:
 	unsigned m_disconnectCause;
 	/// unique accounting session id associated with this call
 	PString m_acctSessionId;
-	/// signalling transport address of the calling party	
+	/// signalling transport address of the calling party
 	H225_TransportAddress m_srcSignalAddress;
-	/// signalling transport address of the called party	
+	/// signalling transport address of the called party
 	H225_TransportAddress m_destSignalAddress;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
@@ -694,7 +702,7 @@ private:
 	int m_usedCount;
 	mutable PMutex m_usedLock, m_sockLock;
 	int m_nattype;
-	
+
 	bool m_h245Routed;
 	bool m_registered;
 	bool m_forwarded;
@@ -797,7 +805,7 @@ private:
 	long m_defaultDurationLimit;
 	/// default interval (seconds) for accounting updates to be logged
 	long m_acctUpdateInterval;
-	
+
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };
@@ -815,47 +823,47 @@ inline bool EndpointRec::IsUpdated(const PTime *now) const
 }
 
 inline void EndpointRec::AddCall()
-{       
+{
 	PWaitAndSignal lock(m_usedLock);
 	++m_activeCall, ++m_totalCall;
-}       
+}
 
 inline void EndpointRec::AddConnectedCall()
-{       
+{
 	PWaitAndSignal lock(m_usedLock);
 	++m_connectedCall;
-}       
+}
 
 inline void EndpointRec::RemoveCall()
-{       
-	PWaitAndSignal lock(m_usedLock); 
+{
+	PWaitAndSignal lock(m_usedLock);
 	--m_activeCall;
-}       
+}
 
 inline void EndpointRec::Lock()
-{       
+{
 	PWaitAndSignal lock(m_usedLock);
 	++m_usedCount;
-}       
+}
 
 inline void EndpointRec::Unlock()
-{       
-	PWaitAndSignal lock(m_usedLock); 
+{
+	PWaitAndSignal lock(m_usedLock);
 	--m_usedCount;
-}       
+}
 
 // inline functions of CallRec
 inline void CallRec::Lock()
-{       
+{
 	PWaitAndSignal lock(m_usedLock);
 	++m_usedCount;
-}       
+}
 
 inline void CallRec::Unlock()
-{       
-	PWaitAndSignal lock(m_usedLock); 
+{
+	PWaitAndSignal lock(m_usedLock);
 	--m_usedCount;
-}       
+}
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const
 {

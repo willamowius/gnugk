@@ -488,6 +488,7 @@ public:
 	bool Send(NeighborList::List &, Neighbor * = 0);
 	int GetReqNumber() const { return m_requests.size(); }
 	H225_LocationConfirm *WaitForDestination(int);
+	PIPSocket::Address GetNeighborUsed() { return m_neighbor_used; }
 
 	// override from class RasRequester
 	virtual bool IsExpected(const RasMsg *) const;
@@ -509,6 +510,7 @@ private:
 	PMutex m_rmutex;
 	const LRQFunctor & m_sendto;
 	RasMsg *m_result;
+	PIPSocket::Address m_neighbor_used;
 };
 
 LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(0)
@@ -581,6 +583,7 @@ void LRQRequester::Process(RasMsg *ras)
 				if (iter == m_requests.begin()) // the highest priority
 					m_result = ras;
 				AddReply(req.m_reply = ras);
+				m_neighbor_used = req.m_neighbor->GetIP(); // record neighbor used
 				if (m_result)
 					m_sync.Signal();
 			} else { // should be H225_RasMessage::e_locationReject
@@ -836,6 +839,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			arq_obj.SetDestination(lcf->m_callSignalAddress);
+			arq_obj.SetNeighborUsed(request.GetNeighborUsed());
 			RasMsg *ras = arq_obj.GetWrapper();
 			(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_admissionConfirm);
 			H225_AdmissionConfirm & acf = (*ras)->m_replyRAS;

@@ -56,7 +56,7 @@ public:
 	};
 
 	// note this is not a polymorphic class
-	RoutingRequest(endptr & called) : m_destination(0), m_called(called), m_flags(0) {}
+	RoutingRequest(endptr & called) : m_destination(0), m_neighbor_used(0), m_called(called), m_flags(0) {}
 	~RoutingRequest();
 
 	bool SetDestination(const H225_TransportAddress &, bool = false);
@@ -65,9 +65,12 @@ public:
 	void SetFlag(unsigned f) { m_flags |= f; }
 	unsigned GetRejectReason() const { return m_reason; }
 	unsigned GetFlags() const { return m_flags; }
+	void SetNeighborUsed(PIPSocket::Address neighbor) { m_neighbor_used = neighbor; }
+	PIPSocket::Address GetNeighborUsed() { return m_neighbor_used; }
 
 protected:
 	H225_TransportAddress *m_destination;
+	PIPSocket::Address m_neighbor_used;
 
 private:
 	endptr & m_called;
@@ -106,7 +109,7 @@ typedef Request<H225_Facility_UUIE, Q931> FacilityRequest;
 class Policy : public SList<Policy> {
 public:
 	Policy() : m_name("Undefined") {}
-	
+
 	template <class R> bool Handle(Request<R,RasMsg> & request)
 	{
 		if( IsActive() ) {
@@ -129,7 +132,7 @@ public:
 		}
 		return m_next && m_next->Handle(request);
 	}
-	
+
 	template <class R> bool Handle(Request<R,Q931> & request)
 	{
 		if( IsActive() ) {
@@ -165,7 +168,7 @@ protected:
 	virtual bool OnRequest(LocationRequest &)  { return false; }
 	virtual bool OnRequest(SetupRequest &)	   { return false; }
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
-	
+
 protected:
 	/// human readable name for the policy - it should be set inside constructors
 	/// of derived policies, default value is "undefined"
@@ -175,7 +178,7 @@ protected:
 class AliasesPolicy : public Policy {
 public:
 	AliasesPolicy() { m_name = "Aliases"; }
-	
+
 protected:
 	// override from class Policy
 	virtual bool OnRequest(AdmissionRequest &);
@@ -221,18 +224,18 @@ inline H225_TransportAddress *Request<R, W>::Process()
     made to specified alias(-es) (called virtual queue) is signalled
 	via the GK status line to an external application (an ACD application)
 	that decides where the call should be routed (e.g. what agent should
-	answe the call). Basically, it rewrites virtual queue alias 
+	answe the call). Basically, it rewrites virtual queue alias
 	into the alias of the specified agent.
-	
+
 	The route request is uniquelly identified by (EndpointIdentifier,CRV)
 	values pair.
 */
-class VirtualQueue 
+class VirtualQueue
 {
 public:
 	VirtualQueue();
 	~VirtualQueue();
-	
+
 	/// reload settings from the config file
 	void OnReload();
 
@@ -241,13 +244,13 @@ public:
 	*/
 	bool IsActive() const { return m_active; }
 
-	/** Send RouteRequest to the GK status line	and wait 
+	/** Send RouteRequest to the GK status line	and wait
 		for a routing decision to be made by some external application
 		(ACD application).
-		
+
 		@return
 		True if the external application routed the call (either by specifying
-		an alias or by rejecting the call), false if timed out waiting 
+		an alias or by rejecting the call), false if timed out waiting
 		for the routing decision.
 		If the request was rejected, destinationInfo is set to an epmty array
 		(0 elements).
@@ -269,48 +272,48 @@ public:
 
 	/** Make a routing decision for a pending route request (inserted
 		by SendRequest).
-		
+
 		@return
 		True if the matching pending request has been found, false otherwise.
 	*/
 	bool RouteToAlias(
-		/// aliases for the routing target (an agent that the call will be routed to) 
+		/// aliases for the routing target (an agent that the call will be routed to)
 		/// that will replace the original destination info
 		const H225_ArrayOf_AliasAddress& agent,
 		/// identifier of the endpoint associated with the route request
-		const PString& callingEpId, 
+		const PString& callingEpId,
 		/// CRV of the call associated with the route request
 		unsigned crv
 		);
-	
+
 	/** Make a routing decision for a pending route request (inserted
 		by SendRequest).
-		
+
 		@return
 		True if the matching pending request has been found, false otherwise.
 	*/
 	bool RouteToAlias(
 		/// alias for the routing target that
 		/// will replace the original destination info
-		const PString& agent, 
+		const PString& agent,
 		/// identifier of the endpoint associated with the route request
-		const PString& callingEpId, 
+		const PString& callingEpId,
 		/// CRV of the call associated with the route request
 		unsigned crv
 		);
-	
+
 	/** Reject a pending route request (inserted by SendRequest).
-		
+
 		@return
 		True if the matching pending request has been found, false otherwise.
 	*/
 	bool RouteReject(
 		/// identifier of the endpoint associated with the route request
-		const PString& callingEpId, 
+		const PString& callingEpId,
 		/// CRV of the call associated with the route request
 		unsigned crv
 		);
-	
+
 	/** @return
 		True if the specified alias matches a name of an existing virtual queue.
 	*/
@@ -320,15 +323,15 @@ public:
 
 private:
 	/// a holder for a pending route request
-	struct RouteRequest 
+	struct RouteRequest
 	{
 		RouteRequest(
-			const PString& callingEpId, 
-			unsigned crv, 
+			const PString& callingEpId,
+			unsigned crv,
 			H225_ArrayOf_AliasAddress* agent
-			) 
-			: 
-			m_callingEpId((const char*)callingEpId), m_crv(crv), 
+			)
+			:
+			m_callingEpId((const char*)callingEpId), m_crv(crv),
 			m_agent(agent) {}
 
 		/// identifier for the endpoint associated with this request
@@ -347,9 +350,9 @@ private:
 
 	RouteRequest *InsertRequest(
 		/// identifier for the endpoint associated with this request
-		const PString& callingEpId, 
+		const PString& callingEpId,
 		/// CRV for the call associated with this request
-		unsigned crv, 
+		unsigned crv,
 		/// a pointer to an array to be filled with agent aliases
 		/// when the routing decision has been made
 		H225_ArrayOf_AliasAddress* agent,

@@ -159,7 +159,7 @@ public:
 protected:
 	virtual bool WriteData(const BYTE *, int);
 	virtual bool Flush();
-		
+
 private:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
@@ -1113,34 +1113,6 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			H323SetAliasAddress(destination, Setup.m_destinationAddress[0]);
 		}
 	}
-	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-
-		PString source;
-
-		// Do inbound per GWRewrite if we can before global rewrite
-		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
-
-			if(Setup.m_sourceAddress.GetSize() > 0 ) {
-         		source = GetBestAliasAddressString(Setup.m_sourceAddress, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
-			}
-
-            if (!source) {
-				Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
-                in_rewrite_id = source;
-			}
-
-		}
-
-		// Try lookup on neighbor list for rewrite source and perform another
-		source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(Setup.m_sourceCallSignalAddress);
-		if (source != "") {
-			Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
-			in_rewrite_id = source;
-		}
-
-		// Normal rewrite
-		Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress);
-	}
 
 
 #if PTRACING
@@ -1162,12 +1134,67 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 #endif
 	}
 
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+
+		// Do inbound per GWRewrite if we can before global rewrite
+
+		PString source;
+		#if PTRACING
+		PString rewrite_type;
+		#endif
+
+		// Try lookup on neighbor list for rewrite source first
+		source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(Setup.m_sourceCallSignalAddress);
+		#if PTRACING
+		if (!source.IsEmpty()) {
+			rewrite_type = "neighbor or explicit IP";
+		}
+		#endif
+
+		// Try call record rewrite identifier next
+		if (source.IsEmpty() && m_call) {
+			source = m_call->GetInboundRewriteId();
+			#if PTRACING
+			if (!source.IsEmpty()) {
+				rewrite_type = "call record";
+			}
+			#endif
+		}
+
+
+		// Try the Setup's source field if this exists
+		if (source.IsEmpty() && Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) && Setup.m_sourceAddress.GetSize() > 0) {
+			source = GetBestAliasAddressString(Setup.m_sourceAddress, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+			#if PTRACING
+			if (!source.IsEmpty()) {
+				rewrite_type = "setup H323 ID or E164";
+			}
+			#endif
+		}
+
+
+		if (!source.IsEmpty()) {
+			#if PTRACING
+			PTRACE(4, "\tGWRewrite source: " << rewrite_type);
+			#endif
+
+			Toolkit::Instance()->GWRewriteE164(source,true,Setup.m_destinationAddress);
+            in_rewrite_id = source;
+		}
+
+
+		// Normal rewrite
+		Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress);
+	}
+
+
+
 	Address fromIP;
 	WORD fromPort = 1720;
 	GetPeerAddress(fromIP,fromPort);
 	GkClient *gkClient = RasSrv->GetGkClient();
 	GkAuthenticator::SetupAuthData authData;
-	
+
 	if (m_call) {
 		if (m_call->IsSocketAttached()) {
 			PTRACE(2, "Q931\tWarning: socket already attached for callid " << callid);
@@ -1324,36 +1351,55 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 	// Do outbound per GW rewrite
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-		endptr rewriteEndPointOut = m_call->GetCalledParty();
-		if (rewriteEndPointOut) {
-			PString source;
 
-			if(rewriteEndPointOut->GetAliases().GetSize() > 0 ) {
-		        source = GetBestAliasAddressString(rewriteEndPointOut->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+		PIPSocket::Address neighbor_addr;
+		WORD port;
+		PString source;
+		#if PTRACING
+		PString rewrite_type;
+		#endif
+
+		// Try neighbor list first
+		if (m_call->GetDestSignalAddr(neighbor_addr,port)) {
+			source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(neighbor_addr);
+			#if PTRACING
+			if (!source.IsEmpty()) {
+				rewrite_type = "neighbor or explicit IP";
 			}
-
-			if (!source) {
-		        Toolkit::Instance()->GWRewriteE164(source,false,Setup.m_destinationAddress);
-			    out_rewrite_id = source;
-			}
-
+			#endif
 		}
-		else {
-			PIPSocket::Address neighbor_addr;
-			WORD port;
-			PString neighbor_alias;
 
-			// Try outbound per GK rewrite
-			if (m_call->GetDestSignalAddr(neighbor_addr,port)) {
+		// Try call record rewrite id
+		if (source.IsEmpty()) {
+			source = m_call->GetOutboundRewriteId();
+			#if PTRACING
+			if (!source.IsEmpty()) {
+				rewrite_type = "call record";
+			}
+			#endif
+		}
 
-				neighbor_alias = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(neighbor_addr);
-
-				if (neighbor_alias != "") {
-					Toolkit::Instance()->GWRewriteE164(neighbor_alias,false,Setup.m_destinationAddress);
-					out_rewrite_id = neighbor_alias;
+		// Try configured endpoint
+		if (source.IsEmpty()) {
+			endptr rewriteEndPointOut = m_call->GetCalledParty();
+			if (rewriteEndPointOut && rewriteEndPointOut->GetAliases().GetSize() > 0 ) {
+		 		source = GetBestAliasAddressString(rewriteEndPointOut->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+				#if PTRACING
+				if (!source.IsEmpty()) {
+					rewrite_type = "setup H323 ID or E164";
 				}
+				#endif
 			}
 		}
+
+		if (!source.IsEmpty()) {
+			#if PTRACING
+			PTRACE(4, "\tGWRewrite source: " << rewrite_type);
+			#endif
+		    Toolkit::Instance()->GWRewriteE164(source,false,Setup.m_destinationAddress);
+			out_rewrite_id = source;
+		}
+
 	}
 
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
@@ -2705,7 +2751,7 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 		first = this, second = peer;
 	else
 		first = peer, second = this;
-	first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber) 
+	first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber)
 		|| second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	return false; // nothing changed :)
 }
