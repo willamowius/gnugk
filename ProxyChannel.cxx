@@ -20,10 +20,6 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
 #include <map>
 #include "gk.h"
 #include "gk_const.h"
@@ -39,6 +35,10 @@
 #include <q931.h>
 #include <h245.h>
 #include <h323pdu.h>
+
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
 
 // default timeout (ms) for initial Setup message,
 // if not specified in the config file

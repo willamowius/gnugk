@@ -96,14 +96,14 @@ factory.h(135)   Init    Can't create SampleC with 3 parameter(s)
 #pragma warning( disable : 4355 ) // warning about using 'this' in initializer
 #endif
 
-#ifdef P_SOLARIS
-#define map stl_map
-#endif
-
 #include <map>
 #include <cstring>
 #ifndef _PTLIB_H
 #include <ptlib.h>
+#endif
+
+#ifdef P_SOLARIS
+#define map stl_map
 #endif
 
 namespace std {
