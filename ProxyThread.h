@@ -61,7 +61,7 @@ public:
 	bool IsBlocked() const { return blocked; }
 	void MarkBlocked(bool b) { blocked = b; }
 	bool IsConnected() const { return connected; }
-	void SetConnected(bool c) { connected = c; }
+	virtual void SetConnected(bool c) { connected = c; }
 	bool IsDeletable() const { return deletable; }
 	void SetDeletable() { deletable = true; }
 	ProxyHandleThread *GetHandler() const { return handler; }
