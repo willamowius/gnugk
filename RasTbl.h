@@ -131,6 +131,14 @@ public:
 	{ return *m_terminalType; }
 	int GetTimeToLive() const
 	{ return m_timeToLive; }
+	
+	/** checks if the given aliases are prefixes of the aliases which are stored
+	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
+	    only one full match is found.
+	    @returns #TRUE# if one alias partially matches
+	 */
+        bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
+	                                  bool &fullMatch) const;
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);

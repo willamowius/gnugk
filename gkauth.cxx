@@ -159,10 +159,22 @@ public:
    */
   bool getAttribute(const PString &alias, const int attr_name, PStringList &attr_values);
 
+  /** checks if all given dialedDigits exist in 
+      telephonNo attribute of LDAP entry (searched by H323ID)
+      @returns #TRUE# if aliases are valid
+   */
+  bool validAliases(const H225_ArrayOf_AliasAddress & aliases);
+
 private:
 
   // Methods
   void Destroy(void);
+  
+  /** converts a telephonNo from LDAP entry (E.123 string) to
+      dialedDigits
+      @returns dialedDigits
+   */
+  PString convertE123ToDialedDigits(PString e123);
   
   /** searchs an alias in LDAP
       @returns pointer to the answer object.
@@ -183,6 +195,8 @@ public:
   virtual ~LDAPPasswordAuth();
 
   virtual PString GetPassword(PString &alias);
+  
+  int Check(const H225_RegistrationRequest & rrq, unsigned & reason);
 };
 
 // ISO 14882:1998 (C++), ISO9899:1999 (C), ISO9945-1:1996 (POSIX) have a
@@ -193,6 +207,8 @@ class LDAPAliasAuth : public AliasAuth {
 public:
 	LDAPAliasAuth(PConfig *, const char *);
 	virtual ~LDAPAliasAuth();
+	
+	int Check(const H225_RegistrationRequest & rrq, unsigned &);
 
 private:
 	/** Searchs for an alias in LDAP and converts it to a valid config
@@ -571,7 +587,7 @@ LDAPAuth::Initialize(PConfig &cfg) // 'real', private constructor
   AN.insert(LDAPANValuePair(LDAPAttrTags[TelephonNo],
 			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[TelephonNo],
-					      "telephonenumber"))); // 2.5.4.20
+					      "telephoneNumber"))); // 2.5.4.20
   AN.insert(LDAPANValuePair(LDAPAttrTags[H245PassWord],
 			    cfg.GetString(ldap_attr_name_sec, 
 					      LDAPAttrTags[H245PassWord],
@@ -636,6 +652,47 @@ LDAPAuth::Destroy()		// 'real', private destructor
   delete LDAPConn;
 } // Destroy
 
+PString LDAPAuth::convertE123ToDialedDigits(PString e123) {
+  e123.Replace("+","");
+  // remove all whitespaces
+  e123.Replace(" ","", TRUE);
+  // remove all "."
+  e123.Replace(".","", TRUE);
+  return e123;
+}
+
+bool LDAPAuth::validAliases(const H225_ArrayOf_AliasAddress & aliases) {
+  PString aliasStr;
+  bool found = 0;
+  // search H323ID in aliases
+  for (PINDEX i = 0; i < aliases.GetSize() && !found; i++) {
+    if (aliases[i].GetTag() == H225_AliasAddress::e_h323_ID) {
+      aliasStr = H323GetAliasAddressString(aliases[i]);
+      found = 1;
+    }
+  }
+  if(!found) return false;
+  PStringList telephoneNumbers;
+  // get telephone numbers from LDAP for H323ID
+  using namespace lctn;		// LDAP config tags and names
+  if(getAttribute(aliasStr, TelephonNo, telephoneNumbers)) {
+    // for each alias == dialedDigits
+    for (PINDEX i = 0; i < aliases.GetSize(); i++) { 
+      if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+        aliasStr = H323GetAliasAddressString(aliases[i]);
+        // check if alias exists in telephoneNumbers from LDAP entry
+        for (PINDEX j = 0; j < telephoneNumbers.GetSize(); j++) {
+          if(aliasStr != convertE123ToDialedDigits(telephoneNumbers[j])) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 LDAPAnswer *LDAPAuth::doQuery(const PString & alias) {
   return LDAPConn->DirectoryUserLookup(alias);
 }
@@ -675,11 +732,23 @@ PString LDAPPasswordAuth::GetPassword(PString & alias)
   PStringList attr_values;
   using namespace lctn; // LDAP config tags and names
   // get pointer to new answer object
-  if(LDAPAuth::Instance()->getAttribute(alias, H245PassWord, attr_values)){
+  if(LDAPAuth::Instance()->getAttribute(alias, H245PassWord, attr_values) && (!attr_values.IsEmpty())){
     return attr_values[0];
   }
   return "";
 }  
+
+int LDAPPasswordAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason) {
+  int result = SimplePasswordAuth::Check(rrq, reason);
+  if(result == e_ok) {
+    // check if all aliases in RRQ exists in LDAP entry
+    const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
+    if(!LDAPAuth::Instance()->validAliases(aliases)) {
+      result = e_fail;
+    }
+  }
+  return result;
+}
 
 // LDAPAliasAuth
 LDAPAliasAuth::LDAPAliasAuth(PConfig *cfg, const char *authName) : AliasAuth(cfg, authName)
@@ -696,7 +765,7 @@ PString LDAPAliasAuth::getConfigString(const PString &alias) const
   PStringList attr_values;
   using namespace lctn; // LDAP config tags and names
   // get pointer to new answer object
-  if(LDAPAuth::Instance()->getAttribute(alias, IPAddress, attr_values)){
+  if(LDAPAuth::Instance()->getAttribute(alias, IPAddress, attr_values) && (!attr_values.IsEmpty())){
     PString ip = attr_values[0];
     if(!ip.IsEmpty()){
       PString port = GK_DEF_ENDPOINT_SIGNAL_PORT;    
@@ -704,6 +773,18 @@ PString LDAPAliasAuth::getConfigString(const PString &alias) const
     }
   }
   return "";
+}
+
+int LDAPAliasAuth::Check(const H225_RegistrationRequest & rrq, unsigned & reason) {
+  int result = AliasAuth::Check(rrq, reason);
+  if(result == e_ok) {
+    // check if all aliases in RRQ exists in LDAP entry
+    const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
+    if(!LDAPAuth::Instance()->validAliases(aliases)) {
+      result = e_fail;
+    }
+  }
+  return result;
 }
 
 #endif // HAS_LDAP

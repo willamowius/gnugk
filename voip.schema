@@ -16,8 +16,8 @@
 #   add examples
 #   minor corrections
 # 2002-01-03, storm
-#   removed CountryCode, AreaCode (moved into telephonenumber)
-#   precisely define telephonenumber syntax
+#   removed CountryCode, AreaCode (moved into telephoneNumber)
+#   precisely define telephoneNumber syntax
 #   voIPiac -> voIPinac, voIPcallingLineIdPresentation -> voIPcallingLineIdRestriction
 #   remove unused attributes: cn, uid
 #   remove non-essential attributes: voIPnickname, pincode
@@ -112,28 +112,28 @@
 #
 #
 # NOTE:
-# telephonenumber defines the prefix(es) and number(s) assigned to gateways
+# telephoneNumber defines the prefix(es) and number(s) assigned to gateways
 # and terminals, respectively.
 # According to RFC 2256, E.123 defines the format to be used for
-# the telephonenumber attribute. See http://www.ngi.org/enum/pub/Draft_Rec_E123.htm
+# the telephoneNumber attribute. See http://www.ngi.org/enum/pub/Draft_Rec_E123.htm
 #
 # We further refine this definition as follows:
-# telephonenumber: +49 5246 80 ....
+# telephoneNumber: +49 5246 80 ....
 #                   cc  ac  sn  ext
 #
 # Spaces and dots are important. A single space is used to separate the
 # country code (cc), area code (ac), subscriber number (sn) and extension (ext)
 # from each other. Each dot is a placeholder for a single cipher, i.e. 0-9.
-# The above value of telephonenumber defines the number space for a gateway
+# The above value of telephoneNumber defines the number space for a gateway
 # starting with the base number 49524680 and allowing for an extension
 # of exactly four ciphers.
-# Multiple occurences of the telephonenumber attribute may be used to define
+# Multiple occurences of the telephoneNumber attribute may be used to define
 # further prefixes / subscriber numbers.
 # A fully qualified number used to represent terminals would be e.g.
 # +49 5246 80 1867
 #
 # attributetype ( 2.5.4.20 NAME 'telephoneNumber'
-#   DESC 'telephonenumber in E.123 format'
+#   DESC 'telephoneNumber in E.123 format'
 #   EQUALITY telephoneNumberMatch
 #   SUBSTR telephoneNumberSubstringsMatch
 #   SYNTAX 1.3.6.1.4.1.1466.115.121.1.50{32} )
@@ -215,9 +215,9 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2060
 
 # NOTE:
 # voIPspecialDial attributes must contain values of the format
-# <special>=<telephonenumber>, e.g. "110=+49 5241 80 1234".
-# special may be an arbitrary E.164 string while telephonenumber must match
-# the format used in the telephonenumber attribute.
+# <special>=<telephoneNumber>, e.g. "110=+49 5241 80 1234".
+# special may be an arbitrary E.164 string while telephoneNumber must match
+# the format used in the telephoneNumber attribute.
 # This attribute is multi-valued to allow for multiple special number
 # conversions. Emergency call numbers are implemented
 # like this to convert 911 (110, 112 in Germany) to the closest possible
@@ -257,7 +257,7 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
   SUP top ABSTRACT
   DESC 'Objects of this class can be used to provide VoIP-Equipment with
         user-related access and authentification information'
-  MAY ( mail $ telephonenumber $ facsimiletelephonenumber $
+  MAY ( mail $ telephoneNumber $ facsimiletelephoneNumber $
 	plaintextPassword $ voIPIpAddress $ voIPsubscriberNumber $
 	voIPlocalAccessCode $ voIPnationalAccessCode $ voIPinternationalAccessCode $
 	voIPcallingLineIdRestriction $ voIPspecialDial $
@@ -298,8 +298,8 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # dn: cn=Markus Storm, ou=mediaWays, o=mediaways.net
 # objectclass:       voIPProperty
 # mail:              markus.storm@mediaways.net
-# telephonenumber:   +49 5246 80 1867
-# telephonenumber:   +49 5246 80 6867
+# telephoneNumber:   +49 5246 80 1867
+# telephoneNumber:   +49 5246 80 6867
 # plaintextpassword: {3DES}X1Y2Z3
 #
 # defines a terminal that may register with an H.323 ID of "markus.storm@mediaways.net"
@@ -319,8 +319,8 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # objectclass:     voIPProperty
 # mail:            tbag-gtso-de01@voip.mediaways.net
 # voIPip:          1.2.3.4
-# telephonenumber: +49 5241 80 ....
-# telephonenumber: +49 5241 80 20...
+# telephoneNumber: +49 5241 80 ....
+# telephoneNumber: +49 5241 80 20...
 #
 # The dn is built of multiple dc parts (domain components) that represent
 # the gateway's DNS name. The o=mediaways.net is the search root common to

@@ -874,7 +874,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		// destCallSignalAddress, thus it is possible we
 		// can't find CalledEP in the RegistrationTable
 		// if so, try destinationInfo
-		if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {
+		if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {	
 			// apply rewrite rules
 			Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
 			CalledEP = EndpointTable->FindEndpoint(obj_rr.m_destinationInfo);
@@ -1061,7 +1061,7 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 		} else {
 			// the call is not in the table		
 			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, 
-			        destinationInfoString, AsString(obj_arq.m_srcInfo), BWRequest);// added srcInfo (MM 05.11.01)
+			        destinationInfoString, AsString(obj_arq.m_srcInfo), BWRequest);
 			int timeout = GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0);
 			pCallRec->SetTimer(timeout);
 			pCallRec->StartTimer();

@@ -146,6 +146,44 @@ EndpointRec::~EndpointRec()
 	PTRACE(3, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
 }
 
+bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
+                                               bool &fullMatch) const
+{
+        fullMatch = 0;
+        int partialMatch = 0;
+        PString aliasStr;
+	unsigned int aliasStr_len;
+	const H225_ArrayOf_AliasAddress & reg_aliases = GetAliases();
+	PString reg_alias;
+	// for each given alias (dialedDigits) from request message 
+	for(PINDEX i = 0; i < aliases.GetSize() && !fullMatch; i++) {
+          if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+	    aliasStr = H323GetAliasAddressString(aliases[i]);
+	    aliasStr_len = aliasStr.GetLength();
+	    // for each alias (dialedDigits) which is stored for the endpoint in registration
+	    for (PINDEX i = 0; i < reg_aliases.GetSize() && !fullMatch; i++) {
+              if (reg_aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+	        reg_alias = H323GetAliasAddressString(reg_aliases[i]);
+                // if alias from request message is prefix to alias which is 
+		//   stored in registration
+	        if ((reg_alias.GetLength() >= aliasStr_len) && 
+		    (aliasStr == reg_alias.Left(aliasStr_len))) {
+		  PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
+		    << (const unsigned char *)m_endpointIdentifier.GetValue() << ANSI::OFF);
+		  // check if it is a full match 
+		  if (aliasStr == reg_alias) {
+		    fullMatch = 1;
+		  } else {
+		    partialMatch = 1;
+		  }
+	        }
+              }
+	    }
+	  }
+	}
+	return (partialMatch || fullMatch);
+}
+
 void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -598,42 +636,85 @@ endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, 
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
 	list<EndpointRec *> *List)
 {
-	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
+/*      
+	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);	
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
 		return ep;
 	}
+*/	
 
-	int maxlen = 0;
-	list<EndpointRec *> GWlist;
-	listLock.StartRead();
+        //check if given aliases contains incomplete addresses
+	//  (given aliases are prefixes of the aliases in registration table)
+	bool partialMatch_found = 0;
+	bool fullMatch;
+	endptr ep(0);
+        listLock.StartRead();
 	const_iterator Iter = List->begin(), IterLast = List->end();
-	while (Iter != IterLast) {
-		if ((*Iter)->IsGateway()) {
-			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
-			if (maxlen < len) {
-				GWlist.clear();
-				maxlen = len;
-			}
-			if (maxlen == len)
-				GWlist.push_back(*Iter);
-		}
-		++Iter;
+        for (; Iter != IterLast && !partialMatch_found; Iter++) {
+	  if ((*Iter)->PrefixMatch_IncompleteAddress(alias, fullMatch)){
+	    if (!fullMatch) {
+	      partialMatch_found = 1;
+	    }
+  	    ep = endptr(*Iter);
+	  }
 	}
-	listLock.EndRead();
-
-	if (GWlist.size() > 0) {
-		EndpointRec *e = GWlist.front();
-		if (GWlist.size() > 1) {
-			PTRACE(3, ANSI::DBG << "Prefix apply round robin" << ANSI::OFF);
-			WriteLock lock(listLock);
-			List->remove(e);
-			List->push_back(e);
-		}
-		PTRACE(4, "Alias match for GW " << AsDotString(e->GetCallSignalAddress()));
-		return endptr(e);
+        listLock.EndRead();
+	if (ep) {
+   	  if (partialMatch_found) {
+            // TODO: ARJ (incomplete address)
+	  } else {
+	    //TODO: ACF
+  	    PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
+	  }
+	  return ep;
+	} else {
+	  //TODO: LDAPSearch (alias is prefix or equal to number in LDAP voIP-schema 
+	  //        (default attribute: telephoneNumber)
+	  //TODO: if equal
+	    //TODO: ARJ (calledPartyNotRegistered)
+	  //TODO: else if is prefix of telephoneNumber
+	    //TODO: ARJ (incomplete alias)
+	  //TODO: else if no match
+	    // search for gw (longest match) in registration table
+	    int maxlen = 0;
+	    list<EndpointRec *> GWlist;
+	    listLock.StartRead();
+	    Iter = List->begin(), IterLast = List->end();
+	    while (Iter != IterLast) {
+	          if ((*Iter)->IsGateway()) {
+	          	int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
+	          	if (maxlen < len) {
+	          		GWlist.clear();
+	          		maxlen = len;
+	          	}
+	          	if (maxlen == len)
+	          		GWlist.push_back(*Iter);
+	          }
+	          ++Iter;
+	    }
+	    listLock.EndRead();
+            // if more than one longest match is found
+	    if (GWlist.size() > 0) {
+	          EndpointRec *e = GWlist.front();
+	          if (GWlist.size() > 1) {
+	          	PTRACE(3, ANSI::DBG << "Prefix apply round robin" << ANSI::OFF);
+	          	WriteLock lock(listLock);
+	          	List->remove(e);
+	          	List->push_back(e);
+	          }
+	          PTRACE(4, "Alias match for GW " << AsDotString(e->GetCallSignalAddress()));
+	          // TODO: ACF
+	          return endptr(e);
+	    }
+	    //TODO: else search for gw in ini-file
+	    //TODO: if found
+	      //TODO: ARJ (calledPartyNotRegisterd) This shall never happen. If we
+	      //   fail here, the last core gateway is broken.
+	    //TODO: else if not found
+	      //TODO: ARJ (unreachable destination)
+	      return endptr(0);
 	}
-	return endptr(0);
 }
 
 void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId)
