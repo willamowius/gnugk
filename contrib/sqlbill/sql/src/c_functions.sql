@@ -64,30 +64,56 @@ END;
 
 -- This function tries to find a tariff with the longest prefix match
 -- $1 - E.164 number to match
-CREATE FUNCTION match_tariff(TEXT)
+-- $2 - account that the tariff should apply to
+-- $3 - currency for the tariff
+CREATE OR REPLACE FUNCTION match_tariff(TEXT, INT, TEXT)
 	RETURNS voiptariff AS
 '
 DECLARE
 	trf voiptariff%ROWTYPE;
+	dst voiptariffdst%ROWTYPE;
 	e164 ALIAS FOR $1;
+	accid ALIAS FOR $2;
+	curr ALIAS FOR $3;
 BEGIN
-	SELECT INTO trf NULL,NULL,NULL,NULL,NULL,NULL;
+	SELECT INTO trf NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL;
+	SELECT INTO dst NULL, NULL, NULL, NULL;
 	IF e164 IS NULL THEN
 		RETURN trf;
 	END IF;
+	-- find an active destination for the given e164 (longest prefix match)
 	IF length(e164) > 0 THEN
 		IF ascii(e164) >= 48 AND ascii(e164) <= 57 THEN
-			SELECT INTO trf * FROM voiptariff
-				WHERE ascii(prefix) = ascii(e164) AND (e164 LIKE (prefix || ''%''))
+			SELECT INTO dst * FROM voiptariffdst
+				WHERE active AND ascii(prefix) = ascii(e164)
+					AND (e164 LIKE (prefix || ''%''))
 				ORDER BY length(prefix) DESC
 				LIMIT 1;
 		ELSE
-			SELECT INTO trf * FROM voiptariff
-				WHERE prefix = ''PC''
+			SELECT INTO dst * FROM voiptariffdst
+				WHERE active AND prefix = ''PC''
 				ORDER BY length(prefix) DESC
 				LIMIT 1;
 		END IF;
 	END IF;
+	-- no active destination found
+	IF dst.id IS NULL THEN
+		RETURN trf;
+	END IF;
+
+	SELECT INTO trf T.id, T.dstid, T.grpid, T.price, T.currencysym,
+			T.initialincrement, T.regularincrement, T.description
+		FROM voiptariff T JOIN voiptariffgrp G ON T.grpid = G.id 
+			JOIN voiptariffsel S ON G.id = S.grpid
+		WHERE dstid = dst.id AND currencysym = curr	AND S.accountid = accid
+		ORDER BY G.priority DESC
+		LIMIT 1;
+	IF FOUND AND trf.id IS NOT NULL THEN
+		RETURN trf;
+	END IF;
+	
+	SELECT INTO trf * FROM voiptariff 
+		WHERE dstid = dst.id AND currencysym = curr AND grpid IS NULL;
 	RETURN trf;
 END;
 ' LANGUAGE 'plpgsql' STABLE CALLED ON NULL INPUT SECURITY INVOKER;

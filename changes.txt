@@ -1,5 +1,6 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- (sqlbill) new, more flexible tariff/rating engine
 - BUGFIX(gk.cxx) fixed signal handling to use sigaction instead of signal
   to prevent accidental gatekeeper crashes because of restored signal handlers
 - BUGFIX(gkacct.cxx) rotation per number of lines works correctly now

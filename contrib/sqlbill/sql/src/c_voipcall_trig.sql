@@ -20,8 +20,9 @@ BEGIN
 	NEW.calledstationid := radius_xlat(NEW.calledstationid);
 	
 	IF NEW.accountid IS NULL THEN
-		SELECT INTO NEW.accountid accountid FROM voipuser
-			WHERE h323id = NEW.h323id;
+		SELECT INTO NEW.accountid, NEW.currencysym U.accountid, A.currencysym 
+			FROM voipaccount A JOIN voipuser U ON A.id = U.accountid 
+			WHERE U.h323id = NEW.h323id;
 	END IF;
 
 	RETURN NEW;
@@ -33,18 +34,23 @@ CREATE OR REPLACE FUNCTION voipcall_match_tariff()
 	RETURNS TRIGGER AS
 '
 DECLARE
-	trf voiptariff%ROWTYPE;
 BEGIN
 	IF NEW.price IS NOT NULL AND NEW.cost IS NOT NULL THEN
 		RETURN NEW;
 	END IF;
-	
-	SELECT INTO trf * FROM match_tariff(NEW.calledstationid);
-	
-	IF FOUND AND trf.price IS NOT NULL THEN
-		NEW.price := trf.price;
-		NEW.currencysym := trf.currencysym;
-		NEW.tariffdesc := trf.description;
+
+	IF NEW.accountid IS NULL THEN
+		SELECT INTO NEW.accountid, NEW.currencysym A.id, A.currencysym 
+			FROM voipuser U JOIN voipaccount A ON U.accountid = A.id
+			WHERE U.h323id = NEW.h323id;
+	END IF;
+
+	IF NEW.price IS NULL THEN	
+		SELECT INTO NEW.price, NEW.tariffdesc, NEW.initialincrement,
+				NEW.regularincrement T.price, D.description, T.initialincrement,
+				T.regularincrement
+			FROM match_tariff(NEW.calledstationid, NEW.accountid, NEW.currencysym) AS T
+				JOIN voiptariffdst D ON T.dstid = D.id;
 	END IF;
 		
 	RETURN NEW;
@@ -57,13 +63,20 @@ CREATE OR REPLACE FUNCTION voipcall_update_cost()
 	RETURNS TRIGGER AS
 '
 DECLARE
-	costdiff NUMERIC(9,2);
+	costdiff NUMERIC(12,4);
 BEGIN
 	IF NEW.price IS NOT NULL THEN
-		NEW.cost := round(
-			NEW.price::NUMERIC(9,3) * ((NEW.duration + 59::INT) / 60::INT)::NUMERIC(9,3),
-			2
-			);
+		IF NEW.duration = 0 THEN
+			NEW.cost := 0;
+		ELSE
+			NEW.cost := NEW.price::NUMERIC(12,4) * NEW.initialincrement::NUMERIC(12,4)
+				/ 60::NUMERIC(12,4);
+		END IF;
+		IF NEW.duration > NEW.initialincrement THEN
+			NEW.cost := NEW.cost + NEW.price::NUMERIC(12,4) 
+				* ((NEW.duration - NEW.initialincrement + NEW.regularincrement - 1)::INT 
+					* NEW.regularincrement::INT)::NUMERIC(12,4) / 60::NUMERIC(12,4);
+		END IF;
 		IF NEW.accountid IS NOT NULL THEN
 			IF TG_OP = ''UPDATE'' THEN
 				IF OLD.cost IS NULL THEN

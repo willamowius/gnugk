@@ -1,2 +1,16 @@
+15 Jun 2004 -- zvision
+  * BUGFIX: active flag for old voiptariff aparently did not work - all tariffs
+    were counted as active
+  * Billing unit configurable (previously it was fixed to 60 seconds). Now it is
+    possible to even to create tariffs for one-time event billing (initialincrement
+    set to 60 and regular increment set 0)
+  * Tariff engine redesigned - now a single tariff consists of three 
+    components: destination info (prefix), the actual tariff (pricing)
+	and an optional tariff group. Now is possible to set different pricing
+	to each account for the same destination
+  * voipuser.password column name changed to voipuser.chappassword to describe 
+    the purpose of this field better
+  * Currency precision increased from 2 to 4 decimal places
+  
 18 Feb 2004 -- zvision
   * Initial release

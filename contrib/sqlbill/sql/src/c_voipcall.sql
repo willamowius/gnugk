@@ -50,14 +50,18 @@ CREATE TABLE voipcall (
   -- while the call is in progress
   duration INT DEFAULT 0 NOT NULL,
   -- total call cost
-  cost NUMERIC(9,2),
+  cost NUMERIC(12,4),
   -- price per minute
-  price NUMERIC(8,3),
+  price NUMERIC(9,4),
   -- standard currency symbol for cost and price
   currencysym CHAR(3),
   -- description for the matched tariff
   tariffdesc TEXT NOT NULL DEFAULT '',
-   
+  -- the first billing unit (in seconds)
+  initialincrement INT,
+  -- remaining (2nd, 3rd, ...) billing units (in seconds)
+  regularincrement INT,
+  
   -- Acct-Start event timestamp
   acctstarttime TIMESTAMP(0) WITH TIME ZONE NOT NULL,
   -- delay (seconds) for the acctstarttime

@@ -16,8 +16,8 @@ CREATE TABLE voipuser (
 	accountid INT NOT NULL,
 	-- can be used to disable the user temporarily
 	disabled BOOLEAN NOT NULL DEFAULT FALSE,
-	-- clear text user password
-	password TEXT NOT NULL,
+	-- clear text user password for RADIUS authentication
+	chappassword TEXT NOT NULL,
 	-- aliases (E.164) allowed for this H.323 ID
 	-- should be a regular expression
 	allowedaliases TEXT NOT NULL DEFAULT '$^',

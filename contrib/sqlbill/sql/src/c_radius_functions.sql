@@ -49,10 +49,10 @@ BEGIN
 	username := radius_xlat(trim($1));
 	
 	-- get user information
-	SELECT INTO query_result password, allowedaliases, framedip FROM voipuser u
+	SELECT INTO query_result chappassword, allowedaliases, framedip FROM voipuser u
 		JOIN voipaccount a ON u.accountid = a.id 
 		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled AND u.h323id = username;
-	IF NOT FOUND OR query_result.password IS NULL THEN
+	IF NOT FOUND OR query_result.chappassword IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
 	END IF;
@@ -73,7 +73,7 @@ BEGIN
 	-- return User-Password check avp
 	check_attr.id := 0;
 	check_attr.attrname := ''User-Password'';
-	check_attr.attrvalue := query_result.password;
+	check_attr.attrvalue := query_result.chappassword;
 	check_attr.attrop := ''=='';
 	RETURN NEXT check_attr;
 	
@@ -215,9 +215,11 @@ BEGIN
 	called_station_id := radius_xlat(trim($5));
 	
 	-- get user information
-	SELECT INTO query_result balance, balancelimit, currencysym, password, allowedaliases, framedip 
+	SELECT INTO query_result a.id AS accid, balance, balancelimit, 
+			currencysym, chappassword, allowedaliases, framedip 
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
-		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled AND u.h323id = username;
+		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled 
+			AND u.h323id = username;
 	IF NOT FOUND OR query_result.balance IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
@@ -234,8 +236,8 @@ BEGIN
 	-- we do not need to check the account balance when answering the call
 	IF NOT answer_call THEN
 		-- get tariff for the destination called
-		SELECT INTO trf * FROM match_tariff(called_station_id) 
-			WHERE currencysym = query_result.currencysym;
+		SELECT INTO trf * FROM match_tariff(called_station_id, 
+			query_result.accid, query_result.currencysym);
 		IF NOT FOUND OR trf.id IS NULL THEN
 			RETURN NEXT reject_attr;
 			RETURN;
@@ -244,7 +246,8 @@ BEGIN
 		-- check if balance does not exceed the limit and there is enough money
 		-- to talk for at least one minute
 		IF trf.price > 0 THEN
-			IF (query_result.balance - trf.price) < query_result.balancelimit THEN
+			IF (query_result.balance - trf.price::NUMERIC(12,4)) 
+					< query_result.balancelimit THEN
 				RETURN NEXT reject_attr;
 				RETURN;
 			END IF;
@@ -253,7 +256,7 @@ BEGIN
 	
 	check_attr.id := 0;
 	check_attr.attrname := ''User-Password'';
-	check_attr.attrvalue := query_result.password;
+	check_attr.attrvalue := query_result.chappassword;
 	check_attr.attrop := ''=='';
 	RETURN NEXT check_attr;
 	
@@ -302,9 +305,11 @@ BEGIN
 	called_station_id := radius_xlat(trim($5));
 	
 	-- get user information
-	SELECT INTO query_result balance, balancelimit, currencysym, password, allowedaliases, framedip 
+	SELECT INTO query_result a.id AS accid, balance, balancelimit, currencysym, 
+			chappassword, allowedaliases, framedip 
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
-		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled AND u.h323id = username;
+		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled 
+			AND u.h323id = username;
 	IF NOT FOUND OR query_result.balance IS NULL THEN
 		rcode_attr.attrvalue := rcode_attr.attrvalue || ''1'';
 		RETURN NEXT rcode_attr;
@@ -323,8 +328,8 @@ BEGIN
 	-- we do not need to check the account balance when answering the call
 	IF NOT answer_call THEN
 		-- get tariff for the destination called
-		SELECT INTO trf * FROM match_tariff(called_station_id) 
-			WHERE currencysym = query_result.currencysym;
+		SELECT INTO trf * FROM match_tariff(called_station_id,
+			query_result.accid, query_result.currencysym);
 		IF NOT FOUND OR trf.id IS NULL THEN
 			rcode_attr.attrvalue := rcode_attr.attrvalue || ''9'';
 			RETURN NEXT rcode_attr;
@@ -334,7 +339,8 @@ BEGIN
 		-- check if balance does not exceed the limit and there is enough money
 		-- to talk for at least one minute
 		IF trf.price > 0 THEN
-			IF (query_result.balance - trf.price) < query_result.balancelimit THEN
+			IF (query_result.balance - trf.price::NUMERIC(12,4)) 
+					< query_result.balancelimit THEN
 				-- setup approtiate error code: 
 				--   zero balance, credit limit, insufficient balance
 				IF query_result.balance <= query_result.balancelimit THEN
@@ -356,8 +362,10 @@ BEGIN
 			reply_attr.id := attr_num;
 			reply_attr.attrname := ''h323-credit-time'';
 			reply_attr.attrvalue := ''h323-credit-time='' 
-				|| to_char(trunc((query_result.balance-query_result.balancelimit)/trf.price,0) 
-					* 60,''FM9999990'');
+				|| to_char(
+					trunc((query_result.balance - query_result.balancelimit)
+							/ trf.price::NUMERIC(12,4) * 60::NUMERIC(12,4), 0)
+					,''FM9999999990'');
 			reply_attr.attrop := ''='';
 			RETURN NEXT reply_attr;
 			attr_num := attr_num + 1;
@@ -366,7 +374,7 @@ BEGIN
 		reply_attr.id := attr_num;
 		reply_attr.attrname := ''h323-credit-amount'';
 		reply_attr.attrvalue := ''h323-credit-amount='' 
-			|| to_char(query_result.balance,''FM9999990.00'');
+			|| to_char(round(query_result.balance,2),''FM9999999990.00'');
 		reply_attr.attrop := ''='';
 		RETURN NEXT reply_attr;
 		attr_num := attr_num + 1;
@@ -417,18 +425,18 @@ DECLARE
 	avp voipradattr%ROWTYPE;
 BEGIN
 	IF registration THEN
-		FOR avp IN SELECT * FROM radius_get_check_rrq_attrs(username,framed_ip,h323ivrout) LOOP
+		FOR avp IN SELECT * FROM radius_get_check_rrq_attrs(username, framed_ip, h323ivrout) LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSIF answer_call THEN
 		FOR avp IN SELECT * FROM 
-			radius_get_check_arq_attrs(username,framed_ip,TRUE,calling_station_id,called_station_id) 
+			radius_get_check_arq_attrs(username, framed_ip, TRUE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSE
 		FOR avp IN SELECT * FROM 
-			radius_get_check_arq_attrs(username,framed_ip,FALSE,calling_station_id,called_station_id) 
+			radius_get_check_arq_attrs(username, framed_ip, FALSE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;
@@ -461,18 +469,18 @@ DECLARE
 	avp voipradattr%ROWTYPE;
 BEGIN
 	IF registration THEN
-		FOR avp IN SELECT * FROM radius_get_reply_rrq_attrs(username,framed_ip,h323ivrout) LOOP
+		FOR avp IN SELECT * FROM radius_get_reply_rrq_attrs(username, framed_ip, h323ivrout) LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSIF answer_call THEN
 		FOR avp IN SELECT * FROM 
-			radius_get_reply_arq_attrs(username,framed_ip,TRUE,calling_station_id,called_station_id) 
+			radius_get_reply_arq_attrs(username, framed_ip, TRUE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSE
 		FOR avp IN SELECT * FROM 
-			radius_get_reply_arq_attrs(username,framed_ip,FALSE,calling_station_id,called_station_id) 
+			radius_get_reply_arq_attrs(username, framed_ip, FALSE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;

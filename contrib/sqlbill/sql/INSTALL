@@ -9,8 +9,8 @@ Installing PostgreSQL Database Schema for GnuGk prepaid platform
 =====================================================
 
 To create the schema, follow these steps:
-1. Change the current directory to 'src'. Connect to a database 'template1' 
-   running by PostgreSQL server as the admin user ('postgres'?) 
+1. Change the current directory to 'src'. Connect to a database 'template1'
+   (or template0) running by PostgreSQL server as the admin user ('postgres'?)
    using the psql utility. Example:
    
    psql -U postgres -h IP_ADDRESS template1
@@ -42,15 +42,22 @@ To create the schema, follow these steps:
 
    psql -U gkradius -h IP_ADDRESS voipdb
    
+   It is recommended that after all 'gkradius' user is made more secure
+   (add md5 password, limit pool of IP addresses, etc).
+   
 6. Create all tables, indices, triggers and procedures using c_all.sql script:
 
    \i c_all.sql
-   
+
+   Some warnings (marked with NOTICE) may appear during database schema
+   creations, but can be ignored safely.
+
 7. You are done, the database schema is ready.
 
 8. You can see an example how to fetch a tariff table from a file
    using f_voiptariff.sql script and voiptariff.asc file.
    Change directory to 'examples', connect to the database 
-   and enter the command:
+   and enter the following commands:
    
+   \i f_voiptariffdst.sql
    \i f_voiptariff.sql

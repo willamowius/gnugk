@@ -15,17 +15,26 @@ This database schema creates the following tables:
    assigned. There can be several users that use a single account.
    voipuser contains information like:
    - H.323 ID
-   - password - together with H.323 ID are used to enable H.235 authentication
+   - chap password - together with H.323 ID are used to enable H.235 authentication
    - a list of allowed aliases (allowedaliases column) that the endpoint
      can register with. This is a REGULAR EXPRESSION. H.323 ID
 	 is allowed by default
    - a list of aliases to be automatically assigned to an endpoint inside RCF
      message (a comma separated list)
    - IP address restriction (NULL to ignore)
-*) voiptariff - a very simple tariff table that is a list of allowed/blocked
-   destination numbers together with pricing info. A special prefix 'PC' can
-   be used to describe H.323 ID calls (to alias names beginning with non-digit
-   characters)
+*) voiptariffdst - unique tariff destination (prefix). It separates pricing
+   and billing information from rarely changing prefix information. A special 
+   prefix 'PC' can be used to describe H.323 ID calls (to alias names beginning 
+   with non-digit characters)
+*) voiptariff - a tariff that associates tariff destination (prefix) 
+   with pricing and billing information. Tariffs can be of default type
+   or can belong to a particular tariff group.
+*) voiptariffgrp - tariff group can be used to represent a set of 1 or more 
+   tariffs. Such group can be then applied to an account in order to change
+   tariff priority during tariff selection. If two or more tariffs are found
+   for the same destination, a one that belongs to a group associated with
+   the particular account is selected (priority over a default tariff)
+*) voiptariffsel - a binding between a tariff group and an account
 *) voipcall - a CDR (Call Detail Record) table. Approtiate triggers take care
    about updating account balance when the call state is updated or the call
    is disconnected
@@ -37,13 +46,50 @@ To start with this system you need:
 	
 2. Create an user associated with this account (voipuser). Example:
 
-	INSERT INTO voipuser (h323id,accountid,password,firstname,surname)
-	  VALUES ('voip1',1,'secret','John','Smith');
-	INSERT INTO voipuser (h323id,accountid,password,firstname,surname)
-	  VALUES ('voip2',1,'secret','Joe','Smith');
+	INSERT INTO voipuser (h323id, accountid, chappassword, firstname, surname)
+	  VALUES ('voip1', 1, 'secret', 'John', 'Smith');
+	INSERT INTO voipuser (h323id, accountid, chappassword, firstname, surname)
+	  VALUES ('voip2', 1, 'secret', 'Joe', 'Smith');
 	  
-3. Fill tariff table with a list of allowed prefixes (voiptariff). Example:
+3. Build a tariff table - this consists of the following steps:
+   a) build a list of destinations (prefixes),
+   b) build tariffs associated with these destinations,
+   c) (optional) create tariff groups,
+   d) (optional) associate tariffs with tariff groups,
+   e) (optional) associate tariff groups with particular accounts
 
-	INSERT INTO voiptariff (prefix,description,price)
-	  VALUES ('PC','PC2PC',0.01);
-	  
+   Example:
+
+	INSERT INTO voiptariffdst (id, active, prefix, description)
+	  VALUES (1, TRUE, 'PC', 'PC2PC');
+	INSERT INTO voiptariffdst (id, active, prefix, description)
+	  VALUES (2, TRUE, '0048', 'Poland');
+	INSERT INTO voiptariffdst (id, active, prefix, description)
+	  VALUES (3, FALSE, '004850', 'Poland - Mobiles');
+
+	INSERT INTO voiptariff (id, dstid, grpid, price, currencysym, 
+			initialincrement, regularincrement, description)
+		VALUES (DEFAULT, 1, NULL, 0.01, 'USD', 1, 1, '1/1');
+	INSERT INTO voiptariff (id, dstid, grpid, price, currencysym, 
+			initialincrement, regularincrement, description)
+		VALUES (DEFAULT, 2, NULL, 0.04, 'USD', 60, 30, '60/30');
+
+   If someone would like to set a different tariff to Poland for some 
+   customers only (discount, for example):
+
+	INSERT INTO voiptariffgrp (id, discount, description)
+		VALUES (1, 10.0, 'Discount');
+		
+	INSERT INTO voiptariff (id, dstid, grpid, price, currencysym, 
+			initialincrement, regularincrement, description)
+		VALUES (DEFAULT, 2, 1, 0.04, 'USD', 60, 30, '60/30');
+	
+	INSERT INTO voiptariffsel (id, grpid, accountid)
+		VALUES (DEFAULT, 1, ACCOUNT_ID_TO_ASSOCIATE_WITH_THE_GROUP);
+
+   Using this technique you can even build separate tariff sets for each
+   account - just create one group per account and create a whole tariff set
+   for each group.
+
+   The directory 'examples' contains a sample scripts showing how to create
+   a tariff table.

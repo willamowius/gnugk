@@ -6,27 +6,26 @@
 -- This work is published under the GNU Public License (GPL)
 -- see file COPYING for details
 
--- tariff with a fixed price for a given prefix
+-- tariff with a fixed price for a given destination
 CREATE SEQUENCE voiptariff_id_seq CYCLE;
 CREATE TABLE voiptariff (
 	id INT DEFAULT nextval('voiptariff_id_seq'),
-	-- whether this destination (prefix) can be dialed
-	active BOOLEAN NOT NULL DEFAULT TRUE,
-	-- E.164 prefix or a special value 'PC' that specifies all
-	-- non-E.164 (H.323 id) aliases starting with a letter, not digit
-	prefix VARCHAR(8) NOT NULL,
-	-- description (like country name)
-	description TEXT NOT NULL,
+	-- tariff destination (prefix)
+	dstid INT NOT NULL,
+	-- group associated with this tariff (NULL if this is a default tariff)
+	grpid INT DEFAULT NULL,
 	-- price
-	price NUMERIC(8,3) NOT NULL,
+	price NUMERIC(9,4) NOT NULL,
 	-- standard currency symbol for the price
 	currencysym CHAR(3) NOT NULL DEFAULT 'USD',
+	-- first billing unit (seconds)
+	initialincrement INT NOT NULL DEFAULT 60,
+	-- regular (2dn, 3rd, ...) billing unit (seconds)
+	regularincrement INT NOT NULL DEFAULT 60,
+	-- description
+	description TEXT NOT NULL DEFAULT '',
 	
 	PRIMARY KEY (id),
-	UNIQUE (prefix)
+	FOREIGN KEY (dstid) REFERENCES voiptariffdst(id),
+	FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id)
 );
-
-CREATE UNIQUE INDEX voiptariff_activepfx_idx ON voiptariff(prefix) WHERE active;
-CREATE INDEX voiptariff_activecurrsym_idx ON voiptariff(currencysym) WHERE active;
-CREATE INDEX voiptariff_activepc_idx ON voiptariff(prefix) WHERE prefix = 'PC' AND active;
-CREATE INDEX voiptariff_activeasciipfx ON voiptariff(ascii(prefix)) WHERE active;

@@ -18,12 +18,12 @@ CREATE TABLE voipaccount (
 	-- can be use to disable the account temporarily 
 	disabled BOOLEAN NOT NULL DEFAULT FALSE,
 	-- current balance
-	balance NUMERIC(9,2) NOT NULL DEFAULT 0,
+	balance NUMERIC(12,4) NOT NULL DEFAULT 0,
 	-- minimal allowed balance: 
 	--   negative values are for postpaid accounts,
 	--   0 is for prepaid,
 	--   positive forces some minimal account balance to be kept
-	balancelimit NUMERIC(9,2) NOT NULL DEFAULT 0,
+	balancelimit NUMERIC(12,4) NOT NULL DEFAULT 0,
 	-- standard currency symbol for balance and balancelimit fields
 	currencysym CHAR(3) NOT NULL DEFAULT 'USD',
 	
