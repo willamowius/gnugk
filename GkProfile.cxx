@@ -416,6 +416,8 @@ CalledProfile::CalledProfile(PString &dialedPN, PString &calledPN)
         SetCalledPN(calledPN);
 	m_dialedPN_TON=Q931::UnknownType;
 	m_dialedPN_PLAN=Q931::UnknownPlan;
+	m_releasecause = Q931::UnknownCauseIE;
+	m_release_is_set = FALSE;
 }
 
 CalledProfile::~CalledProfile()
@@ -472,6 +474,26 @@ CalledProfile::GetReleaseCause() const
 	return m_releasecause;
 
 }
+
+BOOL CalledProfile::ReleaseCauseIsSet() const
+{
+	return m_release_is_set;
+}
+
+const H225_DisengageReason
+CalledProfile::GetDisengageReason() const
+{
+	H225_DisengageReason rsn;
+	if(Q931::UserBusy == m_releasecause ||
+	   Q931::NormalCallClearing == m_releasecause ||
+	   Q931::NormalUnspecified == m_releasecause) {
+		rsn.SetTag(H225_DisengageReason::e_normalDrop);
+	} else {
+		rsn.SetTag(H225_DisengageReason::e_forcedDrop);
+	}
+	return rsn;
+}
+
 void
 CalledProfile::SetDialedPN(PString &dialedPN,
 			   const enum Q931::TypeOfNumberCodes dialedPN_TON)
@@ -542,6 +564,32 @@ void
 CalledProfile::SetReleaseCause(const enum Q931::CauseValues cause)
 {
 	PWaitAndSignal lock(m_lock);
-	m_releasecause = cause;
+
+	if(!m_release_is_set){
+		m_release_is_set = TRUE;
+		m_releasecause = cause;
+	}
+}
+
+void
+CalledProfile::SetReleaseCause(const H225_DisengageReason cause)
+{
+	PWaitAndSignal lock(m_lock);
+	if(!m_release_is_set) {
+		m_release_is_set = TRUE;
+		switch(cause.GetTag()) {
+		case H225_DisengageReason::e_forcedDrop:
+			m_releasecause = Q931::CallRejected;
+			break;
+		case H225_DisengageReason::e_normalDrop:
+			m_releasecause = Q931::NormalCallClearing;
+			break;
+		case H225_DisengageReason::e_undefinedReason:
+			m_releasecause=Q931::UnknownCauseIE;
+			break;
+		default:
+			m_releasecause=Q931::UnknownCauseIE;
+		}
+	}
 }
 // End of: Classes to store information read from e.g. LDAP
