@@ -187,10 +187,16 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	Toolkit::Instance()->GWRewriteE164(m_id,false,lrq.m_destinationInfo[0]);
 
 	lrq.m_replyAddress = m_rasSrv->GetRasAddress(GetIP());
-	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
-	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
-	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
-	lrq.m_nonStandardData.m_data.SetValue(m_id);
+
+//	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
+//	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
+//	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+//	lrq.m_nonStandardData.m_data.SetValue(m_id);
+
+	lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
+	lrq.m_sourceInfo.SetSize(1);
+	H323SetAliasAddress(Toolkit::GKName(), lrq.m_sourceInfo[0], H225_AliasAddress::e_h323_ID);
+	
 	m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
 	if (m_forwardHopCount >= 1) { // what if set hopCount = 1?
 		lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
@@ -303,7 +309,7 @@ bool Neighbor::CheckReply(RasMsg *ras) const
 	else {
 		const H225_NonStandardParameter *params = ras->GetNonStandardParam();
 		return params
-			?(strncmp(m_id, params->m_data.AsString(), m_id.GetLength()) == 0)
+			?(strncmp(m_gkid, params->m_data.AsString(), m_id.GetLength()) == 0)
 			:false;
 	}
 }
@@ -383,6 +389,11 @@ bool OldGK::SetProfile(const PString & id, const PString & args)
 // class GnuGK
 bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & request)
 {
+	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
+	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
+	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_data.SetValue(m_id);
+
 	const H225_AdmissionRequest & arq = request.GetRequest();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 	lrq.m_sourceInfo = arq.m_srcInfo;
@@ -395,20 +406,31 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 
 bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & request)
 {
+	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
+	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
+	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_data.SetValue(m_id);
+
 	const H225_Setup_UUIE & setup = request.GetRequest();
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 		lrq.m_sourceInfo = setup.m_sourceAddress;
 	}
+	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
-	lrq.m_canMapAlias = true;
+	lrq.m_canMapAlias = TRUE;
 	return true;
 }
 
 bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*request*/)
 {
+	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
+	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
+	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_data.SetValue(m_id);
+	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
-	lrq.m_canMapAlias = true;
+	lrq.m_canMapAlias = TRUE;
 	return true;
 }
 
@@ -435,7 +457,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq)
 	h221.m_t35CountryCode = 181;
 	h221.m_t35Extension = 0;
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
-	lrq.m_canMapAlias = true;
+	lrq.m_canMapAlias = TRUE;
 	return true;
 }
 
@@ -472,8 +494,9 @@ bool GlonetGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & 
 
 bool GlonetGK::BuildLRQ(H225_LocationRequest & lrq, WORD crv)
 {
+	lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 	lrq.m_sourceInfo.SetSize(2);
-	H323SetAliasAddress(Toolkit::GKName(), lrq.m_sourceInfo[0]);
+	H323SetAliasAddress(Toolkit::GKName(), lrq.m_sourceInfo[0], H225_AliasAddress::e_h323_ID);
 	H323SetAliasAddress(PString(crv), lrq.m_sourceInfo[1]);
 	return true;
 }

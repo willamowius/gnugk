@@ -114,6 +114,11 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Fixed sourceInfo LRQ field handling - now it contains an H.323 identifier 
+of the gatekeeper. Nonstandard data and gatekeeperIdentifier fields are set
+only when the neighbor is defined as GnuGk.
+
+<item>
 Ability to set shared secrets for each radius server separatelly.
 
 <item>
