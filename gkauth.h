@@ -47,6 +47,12 @@ class H235Authenticator;
 class Q931;
 class H225_Setup_UUIE;
 
+class EndpointRec;
+class CallRec;
+template<class> class SmartPtr;
+typedef SmartPtr<EndpointRec> endptr;
+typedef SmartPtr<CallRec> callptr;
+
 template<class> class RasPDU;
 template<class> struct RasInfo;
 
@@ -89,37 +95,85 @@ public:
 
 	/// bit masks for event types other than RAS - see miscCheckFlags variable
 	enum MiscCheckEvents {
-		e_Setup = 0x0001 /// Q.931/H.225 Setup message
+		e_Setup = 0x0001, /// Q.931/H.225 Setup message
+		e_SetupUnreg = 0x0002 /// Q.931/H.225 Setup message only from an unregistered endpoint
+	};
+
+	/// Data read/written during RRQ processing by all configured 
+	/// authenticator modules
+	struct RRQAuthData
+	{
+		RRQAuthData() : m_rejectReason(-1) {}
+		
+		/// -1 if not set, H225_RegistrationRejectReason enum otherwise
+		int m_rejectReason;
 	};
 
 	/// Data read/written during ARQ processing by all configured 
 	/// authenticator modules
 	struct ARQAuthData
 	{
-		ARQAuthData() : m_rejectReason(-1), m_callDurationLimit(-1) {}
-		~ARQAuthData() {}
+		ARQAuthData(
+			endptr& ep,
+			callptr& call
+			) : m_rejectReason(-1), m_callDurationLimit(-1), 
+				m_requestingEP(ep),	m_call(call) {}
 		
 		/// -1 if not set, H225_AdmissionRejectReason enum otherwise
 		int m_rejectReason;
 		/// -1 if not set, max allowe call duration in seconds otherwise
 		long m_callDurationLimit;
+		/// endpoint that sent the request
+		endptr& m_requestingEP;
+		/// call associated with the request (if any, only for answering ARQ)
+		callptr& m_call;
+		/// input/output - set or get Calling-Station-Id
+		PString m_callingStationId;		
+		/// input/output - set or get Called-Station-Id
+		PString m_calledStationId;
+		
+	private:
+		ARQAuthData();
 	};
 	
 	/// Data read/written during Q.931/H.225.0 Setup processing 
 	/// by all authenticators
 	struct SetupAuthData
 	{
-		SetupAuthData() 
-			: m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1) {}
+		SetupAuthData(
+			/// call associated with the message (if any)
+			callptr& call,
+			/// is the Setup message from a registered endpoint
+			bool fromRegistered,
+			/// an IP address the Setup message has been received from
+			PIPSocket::Address addr,
+			/// a port number the Setup message has been received from
+			WORD port
+			) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
+				m_call(call), m_fromRegistered(fromRegistered), 
+				m_peerAddr(addr), m_peerPort(port) {}
 
-		~SetupAuthData() {}
-		
 		/// -1 if not set, H225_ReleaseCompleteReason enum otherwise
 		int m_rejectReason;
 		/// -1 if not set, Q931 cause value otherwise
 		int m_rejectCause;
 		/// -1 if not set, max allowe call duration in seconds otherwise
 		long m_callDurationLimit;
+		/// call associated with the message (if any)
+		callptr& m_call;
+		/// is the Setup message from a registered endpoint
+		bool m_fromRegistered;
+		/// an IP address the Setup message has been received from
+		PIPSocket::Address m_peerAddr;
+		/// a port number the Setup message has been received from
+		WORD m_peerPort;
+		/// input/output - set or get Calling-Station-Id
+		PString m_callingStationId;		
+		/// input/output - set or get Called-Station-Id
+		PString m_calledStationId;
+		
+	private:
+		SetupAuthData();
 	};
 	
 
@@ -205,14 +259,13 @@ public:
 	             or cannot be determined (SQL failure, no cryptoTokens, ...)
 	*/
 	virtual int Check(RasPDU<H225_GatekeeperRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_RegistrationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_UnregistrationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_BandwidthRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_DisengageRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
 
-	/** Authenticate/Authorize ARQ message.
+	/** Authenticate/Authorize RAS or signalling message.
 	
 	    @return
 	    e_fail - authentication rejected the request
@@ -221,20 +274,17 @@ public:
 	             or cannot be determined (SQL failure, no cryptoTokens, ...)
 	*/
 	virtual int Check(
+		/// RRQ to be authenticated/authorized
+		RasPDU<H225_RegistrationRequest>& request,
+		/// authorization data (reject reason, ...)
+		RRQAuthData& authData
+		);
+	virtual int Check(
 		/// ARQ to be authenticated/authorized
 		RasPDU<H225_AdmissionRequest>& request, 
 		/// authorization data (call duration limit, reject reason, ...)
 		ARQAuthData& authData
 		);
-		
-	/** Authenticate/Authorize Setup signalling message.
-	
-	    @return
-	    e_fail - authentication rejected the request
-	    e_ok - authentication accepted the request
-	    e_next - authentication is not supported for this request
-	             or cannot be determined (SQL failure, no cryptoTokens, ...)
-	*/
 	virtual int Check(
 		/// received Q.931 Setup message
 		Q931& q931pdu, 
@@ -277,6 +327,65 @@ protected:
 	void AppendH235Authenticator(
 		H235Authenticator* h235Auth /// H.235 authenticator to append
 		);
+
+	/** @return
+	    A string that can be used to identify an account name
+	    associated with the call.
+	*/
+	virtual PString GetUsername(
+		/// RRQ message with additional data
+		const RasPDU<H225_RegistrationRequest>& request
+		) const;
+	virtual PString GetUsername(
+		/// ARQ message with additional data
+		const RasPDU<H225_AdmissionRequest>& request,
+		/// additional data, like call record and requesting endpoint
+		ARQAuthData& authData
+		) const;
+	virtual PString GetUsername(
+		/// Q.931 Setup message with additional data
+		const Q931& q931pdu,
+		/// Setup-UUIE element extracted from the Q.931 Setup message
+		const H225_Setup_UUIE& setup,
+		/// additional data
+		SetupAuthData& authData
+		) const;
+
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	virtual PString GetCallingStationId(
+		/// ARQ message with additional data
+		const RasPDU<H225_AdmissionRequest>& request,
+		/// additional data, like call record and requesting endpoint
+		ARQAuthData& authData
+		) const;
+	virtual PString GetCallingStationId(
+		/// Q.931 Setup message with additional data
+		const Q931& q931pdu,
+		/// Setup-UUIE element extracted from the Q.931 Setup message
+		const H225_Setup_UUIE& setup,
+		/// additional data
+		SetupAuthData& authData
+		) const;
+
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	virtual PString GetCalledStationId(
+		/// ARQ message with additional data
+		const RasPDU<H225_AdmissionRequest>& request,
+		/// additional data, like call record and requesting endpoint
+		ARQAuthData& authData
+		) const;
+	virtual PString GetCalledStationId(
+		/// Q.931 Setup message with additional data
+		const Q931& q931pdu,
+		/// Setup-UUIE element extracted from the Q.931 Setup message
+		const H225_Setup_UUIE& setup,
+		/// additional data
+		SetupAuthData& authData
+		) const;
 
 private:
 	GkAuthenticator();
@@ -382,14 +491,14 @@ public:
 
 	// overriden from class GkAuthenticator
 	virtual int Check(RasPDU<H225_GatekeeperRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_RegistrationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_UnregistrationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_BandwidthRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_DisengageRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
 
-	/** Authenticate/Authorize ARQ message. Override from GkAuthenticator.
+	/** Authenticate/Authorize RAS or signalling message. 
+	    An override from GkAuthenticator.
 	
 	    @return
 	    e_fail - authentication rejected the request
@@ -397,6 +506,12 @@ public:
 	    e_next - authentication is not supported for this request
 	             or cannot be determined (SQL failure, no cryptoTokens, ...)
 	*/
+	virtual int Check(
+		/// ARQ to be authenticated/authorized
+		RasPDU<H225_RegistrationRequest>& request, 
+		/// authorization data (reject reason, ...)
+		RRQAuthData& authData
+		);
 	virtual int Check(
 		/// ARQ to be authenticated/authorized
 		RasPDU<H225_AdmissionRequest>& request, 
@@ -416,16 +531,6 @@ protected:
 		PString& passwd /// filled with the password on return
 		);
 	
-	/** Check if aliases contain the identifier.
-	
-	    @return
-	    true if the identifier is found within the given aliases.
-	*/
-	virtual bool CheckAliases(
-		const PString& id, /// the identifier to be checked
-		const H225_ArrayOf_AliasAddress* aliases /// aliases to be searched
-		);
-
 	/** Validate username/password carried inside the tokens. This method
 	    supports only CAT and clear text tokens.
 		
@@ -549,8 +654,13 @@ public:
 
 	virtual ~AliasAuth();
 	
-	// override from class GkAuthenticator
-	virtual int Check(RasPDU<H225_RegistrationRequest>& req, unsigned& rejectReason);
+	/// an override from GkAuthenticator
+	virtual int Check(
+		/// ARQ to be authenticated/authorized
+		RasPDU<H225_RegistrationRequest>& request, 
+		/// authorization data (reject reason, ...)
+		RRQAuthData& authData
+		);
 
 protected:
 	/** Validate that the signalling addresses match the given condition.
@@ -680,6 +790,18 @@ public:
 		return true;
 	}
 	
+	/** Authenticate and authorize RRQ through all configured authenticators.
+				
+	    @return
+	    true if the endpoint should be registered, false to send RRJ.
+	*/
+	bool Validate(
+		/// RRQ to be validated by authenticators
+		RasPDU<H225_RegistrationRequest>& request,
+		/// authorization data (reject reason, ...)
+		GkAuthenticator::RRQAuthData& authData
+		);
+		
 	/** Authenticate and authorize (set call duration limit) ARQ 
 	    through all configured authenticators.
 				

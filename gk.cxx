@@ -509,7 +509,7 @@ void Gatekeeper::Main()
 		GKcapacity = args.GetOptionString('b').AsInteger();
 	else
 		GKcapacity = GkConfig()->GetInteger("TotalBandwidth", -1);
-	CallTable::Instance()->SetTotalBandWidth(GKcapacity);
+	CallTable::Instance()->SetTotalBandwidth(GKcapacity);
 	if (GKcapacity < 0)
 		cout << "\nDisable Bandwidth Management" << endl;
 	else

@@ -13,6 +13,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2004/04/17 11:43:43  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.11  2004/03/17 00:00:38  zvision
  * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
  *
@@ -94,7 +98,7 @@ public:
 	enum SupportedChecks {
 		RadAuthBaseRasChecks = RasInfo<H225_RegistrationRequest>::flag
 			| RasInfo<H225_AdmissionRequest>::flag,
-		RadAuthBaseMiscChecks = e_Setup
+		RadAuthBaseMiscChecks = e_Setup | e_SetupUnreg
 	};
 
 	/// Create base authenticator for RADIUS protocol
@@ -120,10 +124,8 @@ public:
 	virtual int Check(
 		/// RRQ RAS message to be authenticated
 		RasPDU<H225_RegistrationRequest>& rrqPdu, 
-		/// reference to the variable, that can be set 
-		/// to custom H225_RegistrationRejectReason
-		/// if the check fails
-		unsigned& rejectReason
+		/// authorization data (reject reason, ...)
+		RRQAuthData& authData
 		);
 		
 	/** Authenticate using data from ARQ RAS message.
@@ -163,7 +165,7 @@ protected:
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
 		RasPDU<H225_RegistrationRequest>& rrqPdu, /// RRQ being processed
-		unsigned& rejectReason /// reject reason on return FALSE
+		RRQAuthData& authData /// authorization data
 		);
 
 	/** Hook for adding/modifying pdu before it is sent.
@@ -203,7 +205,7 @@ protected:
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// received PDU 
 		RasPDU<H225_RegistrationRequest>& rrqPdu, /// RRQ being processed
-		unsigned& rejectReason /// reject reason on return FALSE
+		RRQAuthData& authData /// authorization data
 		);
 
 	/** Hook for processing pdu after it is received.
@@ -245,10 +247,8 @@ protected:
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu, /// append attribues to this pdu
 		RasPDU<H225_RegistrationRequest>& rrqPdu, /// extract data from this RAS msg
-		unsigned& rejectReason, /// reject reason to be set on e_fail return code
-		/// if not NULL and return status is e_ok, then the string is filled
-		/// with appended username
-		PString* username = NULL 
+		RRQAuthData& authData, /// authorization data
+		PString* username = NULL /// if not NULL, store the username on return
 		) const;
 	
 	/** Hook for appending username/password attributes 
@@ -263,11 +263,8 @@ protected:
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu, /// append attribues to this pdu
 		RasPDU<H225_AdmissionRequest>& arqPdu, /// extract data from this RAS msg
-		endptr& originatingEP, /// endpoint that the ARQ originates from
 		ARQAuthData& authData, /// authorization data 
-		/// if not NULL and return status is e_ok, then the string is filled
-		/// with appended username
-		PString* username = NULL 
+		PString* username = NULL /// if not NULL, store the username on return
 		) const;
 	
 	/** Hook for appending username/password attributes 
@@ -285,21 +282,7 @@ protected:
 		H225_Setup_UUIE& setup, /// H.225 Setup UUIE being processed
 		endptr& callingEP, /// calling endpoint (if found in the registration table)
 		SetupAuthData& authData, /// authorization data 
-		/// if not NULL and return status is e_ok, then the string is filled
-		/// with appended username
-		PString* username = NULL 
-		) const;
-		
-	/** Scan the array of 'aliases' for 'id' alias.
-	
-		@return
-		TRUE if 'id' is found in the 'aliases' array.
-	*/
-	virtual bool CheckAliases( 
-		/// array of aliases to be searched
-		const H225_ArrayOf_AliasAddress& aliases, 
-		/// alias to be searched for
-		const PString& id 
+		PString* username = NULL /// if not NULL, store the username on return
 		) const;
 		
 private:
@@ -315,8 +298,6 @@ private:
 	/// if true an h323-ivr-out attribute will be sent with every alias
 	/// found inside RRQ.m_terminalAlias
 	bool m_includeTerminalAliases;
-	/// if TRUE endpoint IP is placed inside Framed-IP-Address attribute
-	bool m_includeFramedIp;
 	/// RADIUS protocol client class associated with this authenticator
 	RadiusClient* m_radiusClient;
 	/// NAS identifier (GK name)
@@ -349,17 +330,17 @@ public:
 	
 protected:		
 
+	/// Overriden from RadAuthBase
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		RasPDU<H225_RegistrationRequest>& rrqPdu,
-		unsigned& rejectReason,
+		RRQAuthData& authData,
 		PString* username = NULL 
 		) const;
 	
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		RasPDU<H225_AdmissionRequest>& arqPdu,
-		endptr& originatingEP,
 		ARQAuthData& authData,
 		PString* username = NULL 
 		) const;
@@ -409,18 +390,17 @@ public:
 	virtual ~RadAliasAuth();
 	
 protected:		
-
+	/// Overriden from RadAuthBase
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		RasPDU<H225_RegistrationRequest>& rrqPdu,
-		unsigned& rejectReason,
+		RRQAuthData& authData,
 		PString* username = NULL
 		) const;
 	
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		RasPDU<H225_AdmissionRequest>& arqPdu,
-		endptr& originatingEP,
 		ARQAuthData& authData,
 		PString* username = NULL
 		) const;

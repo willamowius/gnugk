@@ -33,7 +33,7 @@
 #include "gkauth.h"
 
 namespace {
-const char* GkAuthSectionName = "Gatekeeper::Auth";
+const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 }
 
@@ -83,6 +83,7 @@ GkAuthenticator::GkAuthenticator(
 		
 	std::map<PString, unsigned> miscmap;
 	miscmap["SETUP"] = e_Setup;
+	miscmap["SETUPUNREG"] = e_SetupUnreg;
 	
 	if (control.GetSize() > 1) {
 		m_enabledRasChecks = 0;
@@ -161,7 +162,12 @@ int GkAuthenticator::Check(RasPDU<H225_GatekeeperRequest> &, unsigned &)
 		? m_defaultStatus : e_next;
 }
 
-int GkAuthenticator::Check(RasPDU<H225_RegistrationRequest> &, unsigned &)
+int GkAuthenticator::Check(
+	/// a request to be authenticated
+	RasPDU<H225_RegistrationRequest>& /*request*/,
+	/// authorization data (reject reason, ...)
+	GkAuthenticator::RRQAuthData& /*authData*/
+	)
 {
 	return IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag) 
 		? m_defaultStatus : e_next;
@@ -217,7 +223,8 @@ int GkAuthenticator::Check(
 	SetupAuthData& /*authData*/
 	)
 {
-	return IsMiscCheckEnabled(e_Setup) ? m_defaultStatus : e_next;
+	return (IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg)) 
+		? m_defaultStatus : e_next;
 }
 
 bool GkAuthenticator::GetH235Capability(
@@ -273,6 +280,412 @@ void GkAuthenticator::AppendH235Authenticator(
 			m_h235Authenticators = new H235Authenticators();
 		m_h235Authenticators->Append(h235Auth);
 	}
+}
+
+PString GkAuthenticator::GetUsername(
+	/// RRQ message with additional data
+	const RasPDU<H225_RegistrationRequest>& request
+	) const
+{
+	const H225_RegistrationRequest& rrq = request;
+	
+	PString username;
+	
+	if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+		username = GetBestAliasAddressString(rrq.m_terminalAlias, false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+
+	if (username.IsEmpty()) {
+		PIPSocket::Address addr;
+		if (rrq.m_callSignalAddress.GetSize() > 0
+			&& GetIPFromTransportAddr(rrq.m_callSignalAddress[0], addr)
+			&& addr.IsValid())
+			username = addr.AsString();
+		else if (rrq.m_rasAddress.GetSize() > 0
+			&& GetIPFromTransportAddr(rrq.m_rasAddress[0], addr) 
+			&& addr.IsValid())
+			username = addr.AsString();
+	}
+	
+	return username;
+}
+
+PString GkAuthenticator::GetUsername(
+	/// ARQ message with additional data
+	const RasPDU<H225_AdmissionRequest>& request,
+	/// additional data
+	GkAuthenticator::ARQAuthData& authData
+	) const
+{
+	const H225_AdmissionRequest& arq = request;
+	
+	PString username;
+	
+	/// try to find h323_ID, email_ID or url_ID to use for User-Name
+	if (!arq.m_answerCall)
+		username = GetBestAliasAddressString(arq.m_srcInfo, true, 
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+	else if (authData.m_call)
+		username = GetBestAliasAddressString(authData.m_call->GetSourceAddress(), true,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+				
+	if (authData.m_requestingEP && (username.IsEmpty() 
+			|| FindAlias(authData.m_requestingEP->GetAliases(), username) == P_MAX_INDEX))
+		username = GetBestAliasAddressString(authData.m_requestingEP->GetAliases(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+
+	/// if no h323_ID, email_ID or url_ID has been found, try to find any alias
+	if (username.IsEmpty())
+		if (!arq.m_answerCall)
+			username = GetBestAliasAddressString(arq.m_srcInfo, false, 
+				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+				AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+					| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+				);
+		else if (authData.m_call)
+			username = GetBestAliasAddressString(
+				authData.m_call->GetSourceAddress(), true,
+				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+				AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+					| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+				);
+
+		
+	if (username.IsEmpty()) {
+		PIPSocket::Address addr;
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)
+			&& GetIPFromTransportAddr(arq.m_srcCallSignalAddress, addr)
+			&& addr.IsValid())
+			username = addr.AsString();
+		else if (authData.m_requestingEP 
+			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr) 
+			&& addr.IsValid())
+			username = addr.AsString();
+	}
+	
+	return username;
+}
+
+PString GkAuthenticator::GetUsername(
+	/// Q.931 Setup message with additional data
+	const Q931& q931pdu,
+	/// Setup-UUIE element extracted from the Q.931 Setup message
+	const H225_Setup_UUIE& setup,
+	/// additional data
+	GkAuthenticator::SetupAuthData& authData
+	) const
+{
+	PString username;				
+	endptr callingEP;
+	
+	if (authData.m_call)
+		callingEP = authData.m_call->GetCallingParty();
+	
+	if (setup.HasOptionalField(setup.e_sourceAddress)) {
+		username = GetBestAliasAddressString(setup.m_sourceAddress, true,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+		if (!username && callingEP 
+				&& FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX)
+			username = PString();
+	}
+
+	if (username.IsEmpty() && authData.m_call) {
+		username = GetBestAliasAddressString(
+			authData.m_call->GetSourceAddress(), true,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+		if (!username && callingEP 
+				&& FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX)
+			username = PString();
+	}
+	
+	if (username.IsEmpty() && callingEP)
+		username = GetBestAliasAddressString(callingEP->GetAliases(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+	
+	if (username.IsEmpty() && authData.m_call)
+		username = GetBestAliasAddressString(
+			authData.m_call->GetSourceAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+
+	if (username.IsEmpty() && setup.HasOptionalField(setup.e_sourceAddress))
+		username = GetBestAliasAddressString(setup.m_sourceAddress, false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+
+	if (username.IsEmpty())
+		q931pdu.GetCallingPartyNumber(username);
+		
+	if (username.IsEmpty()) {
+		PIPSocket::Address addr(0);
+		WORD port = 0;
+		bool addrValid = false;
+	
+		if (authData.m_call)
+			addrValid = authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid();
+			
+		if (!addrValid && setup.HasOptionalField(setup.e_sourceCallSignalAddress))
+			addrValid = GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
+				&& addr.IsValid();
+
+		if (!addrValid && callingEP)
+			addrValid = GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr)
+				&& addr.IsValid();
+
+		if (addrValid)
+			username = addr.AsString();
+	}
+	
+	return username;
+}
+
+PString GkAuthenticator::GetCallingStationId(
+	/// ARQ message with additional data
+	const RasPDU<H225_AdmissionRequest>& request,
+	/// additional data
+	GkAuthenticator::ARQAuthData& authData
+	) const
+{
+	if (!authData.m_callingStationId)
+		return authData.m_callingStationId;
+		
+	const H225_AdmissionRequest& arq = request;
+	PString id;
+
+	// Calling-Station-Id
+	if (!arq.m_answerCall) // srcInfo is meaningful only in an originating ARQ
+		id = GetBestAliasAddressString(arq.m_srcInfo, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+	else if (authData.m_call)
+		id = authData.m_call->GetCallingStationId();
+
+	if (!id)
+		return id;
+		
+	if (id.IsEmpty() && authData.m_call)
+		id = GetBestAliasAddressString(authData.m_call->GetSourceAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && authData.m_requestingEP && !arq.m_answerCall)
+		id = GetBestAliasAddressString(
+			authData.m_requestingEP->GetAliases(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+			
+	if (id.IsEmpty() && arq.m_answerCall && authData.m_call) {
+		const endptr callingEP = authData.m_call->GetCallingParty();
+		if (callingEP)
+			id = GetBestAliasAddressString(
+				callingEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	}
+				
+	if (id.IsEmpty() && authData.m_call) {
+		PIPSocket::Address addr(0);
+		WORD port = 0;
+		if (authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid())
+			id = AsString(addr, port);
+	}
+	
+	return id;
+}
+
+PString GkAuthenticator::GetCallingStationId(
+	/// Q.931 Setup message with additional data
+	const Q931& q931pdu,
+	/// Setup-UUIE element extracted from the Q.931 Setup message
+	const H225_Setup_UUIE& setup,
+	/// additional data
+	GkAuthenticator::SetupAuthData& authData
+	) const
+{
+	if (!authData.m_callingStationId)
+		return authData.m_callingStationId;
+		
+	PString id;
+	
+	if (authData.m_call)
+		id = authData.m_call->GetCallingStationId();
+
+	if (id.IsEmpty())
+		q931pdu.GetCallingPartyNumber(id);
+	
+	if (!id)
+		return id;
+
+	if (id.IsEmpty() && setup.HasOptionalField(setup.e_sourceAddress)) 
+		id = GetBestAliasAddressString(setup.m_sourceAddress, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (authData.m_call) {
+		if (id.IsEmpty())
+			id = GetBestAliasAddressString(
+				authData.m_call->GetSourceAddress(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		if (id.IsEmpty()) {
+			const endptr callingEP = authData.m_call->GetCallingParty();
+			if (callingEP)
+				id = GetBestAliasAddressString(callingEP->GetAliases(), false,
+					AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+						| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+					);
+		}
+	}
+	
+	return id;
+}
+
+PString GkAuthenticator::GetCalledStationId(
+	/// ARQ message with additional data
+	const RasPDU<H225_AdmissionRequest>& request,
+	/// additional data
+	GkAuthenticator::ARQAuthData& authData
+	) const
+{
+	if (!authData.m_calledStationId)
+		return authData.m_calledStationId;
+
+	const H225_AdmissionRequest& arq = request;
+	PString id;
+				
+	if (!arq.m_answerCall) {
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	} else if (authData.m_call)
+		id = authData.m_call->GetCalledStationId();
+
+	if (!id)
+		return id;
+
+	if (id.IsEmpty() && authData.m_call)
+		id = GetBestAliasAddressString(
+			authData.m_call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && arq.m_answerCall) {
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		if (id.IsEmpty() && authData.m_requestingEP)
+			id = GetBestAliasAddressString(
+				authData.m_requestingEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+
+		PIPSocket::Address addr;
+		if (id.IsEmpty() && authData.m_requestingEP
+			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr) 
+			&& addr.IsValid())
+			id = addr.AsString();
+	}
+		
+	// this does not work well in routed mode, when destCallSignalAddress
+	// is usually the gatekeeper address
+	if (id.IsEmpty() 
+		&& arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+		const H225_TransportAddress& tsap = arq.m_destCallSignalAddress;
+		id = AsDotString(tsap);
+	}
+	
+	return id;
+}
+
+PString GkAuthenticator::GetCalledStationId(
+	/// Q.931 Setup message with additional data
+	const Q931& q931pdu,
+	/// Setup-UUIE element extracted from the Q.931 Setup message
+	const H225_Setup_UUIE& setup,
+	/// additional data
+	GkAuthenticator::SetupAuthData& authData
+	) const
+{
+	if (!authData.m_calledStationId)
+		return authData.m_calledStationId;
+		
+	PString id;
+	
+	if (authData.m_call)
+		id = authData.m_call->GetCalledStationId();
+
+	if (id.IsEmpty())
+		q931pdu.GetCalledPartyNumber(id);
+	
+	if (!id)
+		return id;
+		
+	if (id.IsEmpty() && setup.HasOptionalField(setup.e_destinationAddress))
+		id = GetBestAliasAddressString(setup.m_destinationAddress, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty() && authData.m_call)
+		id = GetBestAliasAddressString(
+			authData.m_call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+	if (id.IsEmpty()) {
+		PIPSocket::Address addr;
+		WORD port = 0;
+		if (authData.m_call	&& authData.m_call->GetDestSignalAddr(addr, port))
+			id = AsString(addr, port);
+		// this does not work well in routed mode, when destCallSignalAddress
+		// is usually the gatekeeper address
+		else if (setup.HasOptionalField(setup.e_destCallSignalAddress) 
+			&& GetIPAndPortFromTransportAddr(setup.m_destCallSignalAddress, addr, port) 
+			&& addr.IsValid())
+			id = AsString(addr, port);
+	}
+	
+	return id;
 }
 
 
@@ -526,6 +939,32 @@ void GkAuthenticatorList::SelectH235Capability(
 }
 
 bool GkAuthenticatorList::Validate(
+	/// RRQ to be validated by authenticators
+	RasPDU<H225_RegistrationRequest>& request,
+	/// authorization data (reject reason, ...)
+	GkAuthenticator::RRQAuthData& authData
+	)
+{
+	ReadLock lock(m_reloadMutex);
+	std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
+	while (i != m_authenticators.end()) {
+		GkAuthenticator* auth = *i++;
+		if (auth->IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag)) {
+			const int result = auth->Check(request, authData);
+			if (result == GkAuthenticator::e_ok) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " RRQ check ok");
+				if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+					return true;
+			} else if (result == GkAuthenticator::e_fail) {
+				PTRACE(3, "GKAUTH\t" << auth->GetName() << " RRQ check failed");
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+bool GkAuthenticatorList::Validate(
 	/// ARQ to be validated by authenticators
 	RasPDU<H225_AdmissionRequest>& request,
 	/// authorization data (call duration limit, reject reason, ...)
@@ -579,7 +1018,9 @@ bool GkAuthenticatorList::Validate(
 	std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
 	while (i != m_authenticators.end()) {
 		GkAuthenticator* auth = *i++;
-		if (auth->IsMiscCheckEnabled(GkAuthenticator::e_Setup)) {
+		if (auth->IsMiscCheckEnabled(GkAuthenticator::e_Setup)
+			|| (!authData.m_fromRegistered 
+				&& auth->IsMiscCheckEnabled(GkAuthenticator::e_SetupUnreg))) {
 			const long oldDurationLimit = authData.m_callDurationLimit;
 			const int result = auth->Check(q931pdu, setup, authData);
 			if (authData.m_callDurationLimit == 0) {
@@ -696,9 +1137,12 @@ int SimplePasswordAuth::Check(RasPDU<H225_GatekeeperRequest> & request, unsigned
 	return doCheck(request);
 }
 
-int SimplePasswordAuth::Check(RasPDU<H225_RegistrationRequest> & request, unsigned &)
+int SimplePasswordAuth::Check(
+	RasPDU<H225_RegistrationRequest> & request, 
+	GkAuthenticator::RRQAuthData& /*authData*/
+	)
 {
-	H225_RegistrationRequest & rrq = request;
+	H225_RegistrationRequest& rrq = request;
 	return doCheck(request, 
 		rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) 
 			? &rrq.m_terminalAlias : NULL
@@ -779,18 +1223,6 @@ bool SimplePasswordAuth::InternalGetPassword(
 		return false;
 }
 
-bool SimplePasswordAuth::CheckAliases(
-	const PString& id, /// the identifier to be checked
-	const H225_ArrayOf_AliasAddress* aliases /// aliases to be searched
-	)
-{
-	if (aliases)
-		for (PINDEX i = 0; i < aliases->GetSize(); i++)
-			if (H323GetAliasAddressString((*aliases)[i]) == id)
-				return true;
-	return false;
-}
-
 int SimplePasswordAuth::CheckTokens(
 	/// an array of tokens to be checked
 	const H225_ArrayOf_ClearToken& tokens,
@@ -810,7 +1242,7 @@ int SimplePasswordAuth::CheckTokens(
 				return e_fail;
 			}
 			const PString id = token.m_generalID;
-			if (m_checkID && !CheckAliases(id, aliases)) {
+			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " generalID '" << id
 					<< "' of CAT token does not match any alias for the endpoint"
 					);
@@ -845,7 +1277,7 @@ int SimplePasswordAuth::CheckTokens(
 				return e_fail;
 			}
 			const PString id = token.m_generalID;
-			if (m_checkID && !CheckAliases(id, aliases)) {
+			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " generalID '"
 					<<"' does not match any alias for the endpoint"
 					);
@@ -887,7 +1319,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash& pwdhash = tokens[i];
 			const PString id = AsString(pwdhash.m_alias, false);
-			if (m_checkID && !CheckAliases(id, aliases)) {
+			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " alias '" << id 
 					<< "' of the cryptoEPPwdHash token does not match "
 					"any alias for the endpoint"
@@ -931,7 +1363,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 			}
 			
 			PString id = clearToken.m_sendersID; 
-			if (m_checkID && !CheckAliases(id, aliases)) {
+			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " sendersID '" << id 
 					<< "' of the cryptoHashedToken hasgedVals does not match "
 					"any alias for the endpoint"
@@ -1009,8 +1441,8 @@ AliasAuth::~AliasAuth()
 }
 
 int AliasAuth::Check(
-	RasPDU<H225_RegistrationRequest>& request, 
-	unsigned& /*rejectReason*/
+	RasPDU<H225_RegistrationRequest>& request,
+	GkAuthenticator::RRQAuthData& /*authData*/
 	)
 {
 	H225_RegistrationRequest& rrq = request;

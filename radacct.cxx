@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2004/06/17 10:47:13  zvision
+ * New h323-ivr-out=h323-call-id accounting attribute
+ *
  * Revision 1.9  2004/04/17 11:43:43  zvision
  * Auth/acct API changes.
  * Header file usage more consistent.
@@ -100,9 +103,6 @@ RadAcct::RadAcct(
 	m_appendCiscoAttributes = Toolkit::AsBool(cfg->GetString(
 		cfgSec, "AppendCiscoAttributes", "1"
 		));
-	m_includeFramedIp = Toolkit::AsBool(cfg->GetString(
-		cfgSec, "IncludeEndpointIP", "1"
-		));
 	m_fixedUsername = cfg->GetString(cfgSec, "FixedUsername", "");
 }
 
@@ -113,7 +113,7 @@ RadAcct::~RadAcct()
 
 GkAcctLogger::Status RadAcct::Log(
 	GkAcctLogger::AcctEvent evt, 
-	callptr& call
+	const callptr& call
 	)
 {
 	// a workaround to prevent processing end on "sufficient" module
@@ -126,7 +126,7 @@ GkAcctLogger::Status RadAcct::Log(
 		return Fail;
 	}
 
-	if( (evt & (AcctStart | AcctStop | AcctUpdate)) && (!call) ) {
+	if ((evt & (AcctStart | AcctStop | AcctUpdate)) && (!call)) {
 		PTRACE(1,"RADACCT\t"<<GetName()<<" - missing call info for event"<<evt);
 		return Fail;
 	}
@@ -160,161 +160,101 @@ GkAcctLogger::Status RadAcct::Log(
 		RadiusAttr::NasPort_Virtual 
 		);
 		
-	if( evt & (AcctStart | AcctStop | AcctUpdate) ) {
-		*pdu += new RadiusAttr( RadiusAttr::ServiceType, RadiusAttr::ST_Login );
-		*pdu += new RadiusAttr( RadiusAttr::AcctSessionId, 
-			call->GetAcctSessionId() 
+	if (evt & (AcctStart | AcctStop | AcctUpdate)) {
+		*pdu += new RadiusAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
+		*pdu += new RadiusAttr(RadiusAttr::AcctSessionId, 
+			call->GetAcctSessionId()
 			);
 
-		PString srcInfo = call->GetSrcInfo();
-		if( !srcInfo.IsEmpty() ) {
-			const PINDEX index = srcInfo.FindOneOf(":");
-			if( index != P_MAX_INDEX )
-				srcInfo = srcInfo.Left(index);
-		}
-	
 		endptr callingEP = call->GetCallingParty();
 		PIPSocket::Address callerIP(0);
 		WORD callerPort = 0;		
 		
-		call->GetSrcSignalAddr(callerIP,callerPort);
+		call->GetSrcSignalAddr(callerIP, callerPort);
 
-		PString userName;
-	
-		if( !m_fixedUsername.IsEmpty() )
-			userName = m_fixedUsername;
-		else if( callingEP && (callingEP->GetAliases().GetSize() > 0) )
-			userName = GetBestAliasAddressString(
-				callingEP->GetAliases(),
-				H225_AliasAddress::e_h323_ID
-				);
-		else if( !srcInfo.IsEmpty() )
-			userName = srcInfo;
-		else if( callerIP.IsValid() )
-			userName = ::AsString(callerIP,callerPort);
-
-		if( !userName.IsEmpty() )					
-			*pdu += new RadiusAttr( RadiusAttr::UserName, userName );
-		else
+		const PString username = GetUsername(call);
+		if (username.IsEmpty() && m_fixedUsername.IsEmpty())
 			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine User-Name"
 				<<" for the call no. "<<call->GetCallNumber()
 				);
+		else
+			*pdu += new RadiusAttr(RadiusAttr::UserName, 
+				m_fixedUsername.IsEmpty() ? username : m_fixedUsername
+				);
 		
-		if( m_includeFramedIp && callerIP.IsValid() )
-			*pdu += new RadiusAttr( RadiusAttr::FramedIpAddress, callerIP );
+		if (callerIP.IsValid())
+			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, callerIP);
 		
-		if( (evt & AcctStart) == 0 )
-			*pdu += new RadiusAttr( RadiusAttr::AcctSessionTime, 
+		if ((evt & AcctStart) == 0)
+			*pdu += new RadiusAttr(RadiusAttr::AcctSessionTime, 
 				call->GetDuration() 
 				);
 	
-		PString callingStationId;
-	
-		if( callingEP && callingEP->GetAliases().GetSize() > 0 )
-			callingStationId = GetBestAliasAddressString(
-				callingEP->GetAliases(),
-				H225_AliasAddress::e_dialedDigits,
-				H225_AliasAddress::e_partyNumber,
-				H225_AliasAddress::e_h323_ID
-				);
-					
-		if( callingStationId.IsEmpty() )
-			callingStationId = srcInfo;
-			
-		if( callingStationId.IsEmpty() && callerIP.IsValid() )
-			callingStationId = ::AsString(callerIP,callerPort);
-		
-		if( !callingStationId.IsEmpty() )
-			*pdu += new RadiusAttr( RadiusAttr::CallingStationId,
-				callingStationId
-				);
+		PString stationId = GetCallingStationId(call);
+		if (!stationId)
+			*pdu += new RadiusAttr(RadiusAttr::CallingStationId, stationId);
 		else
 			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
 				<<" Calling-Station-Id for the call "<<call->GetCallNumber()
 				);
-		
-		PString calledStationId = call->GetDestInfo();
-								
-		if( !calledStationId.IsEmpty() ) {
-			const PINDEX index = calledStationId.FindOneOf(":");
-			if( index != P_MAX_INDEX )				
-				calledStationId = calledStationId.Left(index);
-		}
-		
-		if( calledStationId.IsEmpty() ) {
-			endptr calledEP = call->GetCalledParty();
-			if( calledEP && (calledEP->GetAliases().GetSize() > 0) )
-				calledStationId = GetBestAliasAddressString(
-					calledEP->GetAliases(),
-					H225_AliasAddress::e_dialedDigits,
-					H225_AliasAddress::e_partyNumber,
-					H225_AliasAddress::e_h323_ID
-					);
-		}
-	
-		if( calledStationId.IsEmpty() )
-			if( call->GetDestSignalAddr(addr,port) )
-				calledStationId = ::AsString(addr,port);
-		
-		if( calledStationId.IsEmpty() )
+
+		stationId = GetCalledStationId(call);
+		if (!stationId)
+			*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
+		else
 			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
 				<<" Called-Station-Id for the call no. "<<call->GetCallNumber()
 				);
-		else
-			*pdu += new RadiusAttr( RadiusAttr::CalledStationId, calledStationId );
 		
-		if( m_appendCiscoAttributes ) {
-			*pdu += new RadiusAttr(
-				PString("h323-gw-id=") + m_nasIdentifier,
+		if (m_appendCiscoAttributes) {
+			*pdu += new RadiusAttr(PString("h323-gw-id=") + m_nasIdentifier,
 				CiscoVendorId, 33 
 				);
 			
-			*pdu += new RadiusAttr(
-				PString("h323-conf-id=") 
+			*pdu += new RadiusAttr(PString("h323-conf-id=") 
 					+ GetGUIDString(call->GetConferenceIdentifier()),
 				CiscoVendorId, 24
 				);
 						
-			*pdu += new RadiusAttr( PString("h323-call-origin=proxy"),
+			*pdu += new RadiusAttr(PString("h323-call-origin=proxy"),
 				CiscoVendorId, 26
 				);
 				
-			*pdu += new RadiusAttr(	PString("h323-call-type=VoIP"),
+			*pdu += new RadiusAttr(PString("h323-call-type=VoIP"),
 				CiscoVendorId, 27
 				);
 	
 			time_t tm = call->GetSetupTime();
-			if( tm != 0 ) 					
-				*pdu += new RadiusAttr( 
+			if (tm != 0)
+				*pdu += new RadiusAttr(
 					PString("h323-setup-time=") + AsString(tm),
 					CiscoVendorId, 25
 					);
 			
-			if( evt & (AcctStop | AcctUpdate) ) {
+			if (evt & (AcctStop | AcctUpdate)) {
 				tm = call->GetConnectTime();
-				if( tm != 0 )		
+				if (tm != 0)
 					*pdu += new RadiusAttr(
 						PString("h323-connect-time=") + AsString(tm),
 						CiscoVendorId, 28
 						);
 			}
 			
-			if( evt & AcctStop ) {
+			if (evt & AcctStop) {
 				tm = call->GetDisconnectTime();
-				if( tm != 0 )
+				if (tm != 0)
 					*pdu += new RadiusAttr(
 						PString("h323-disconnect-time=") + AsString(tm),
 						CiscoVendorId, 29
 						);
 				
-				*pdu += new RadiusAttr(
-					PString("h323-disconnect-cause=") 
+				*pdu += new RadiusAttr(PString("h323-disconnect-cause=") 
 						+ PString( PString::Unsigned, (long)(call->GetDisconnectCause()), 16 ),
 					CiscoVendorId, 30
 					);
 			}					
 			
-			if( call->GetDestSignalAddr(addr,port) )
+			if (call->GetDestSignalAddr(addr,port))
 				*pdu += new RadiusAttr(
 					PString("h323-remote-address=") + addr.AsString(),
 					CiscoVendorId, 23
@@ -326,37 +266,37 @@ GkAcctLogger::Status RadAcct::Log(
 				);
 		}
 	
-		*pdu += new RadiusAttr( RadiusAttr::AcctDelayTime, 0 );
+		*pdu += new RadiusAttr(RadiusAttr::AcctDelayTime, 0);
 	}
 		
 	// send request and wait for response
 	RadiusPDU* response = NULL;
-	bool result = OnSendPDU(*pdu,evt,call);
+	bool result = OnSendPDU(*pdu, evt, call);
 	
 	// accounting updates must be fast, so we are just sending
 	// the request to the server and are not waiting for a response
-	if( result )
-		if( evt & AcctUpdate )
-			result = m_radiusClient->SendRequest( *pdu );
+	if (result)
+		if (evt & AcctUpdate)
+			result = m_radiusClient->SendRequest(*pdu);
 		else
-			result = m_radiusClient->MakeRequest( *pdu, response ) && (response != NULL);
+			result = m_radiusClient->MakeRequest(*pdu, response) && (response != NULL);
 			
 	delete pdu;
 			
-	if( !result ) {
+	if (!result) {
 		delete response;
 		return Fail;
 	}
 				
-	if( response ) {
+	if (response) {
 		// check if Access-Request has been accepted
 		result = (response->GetCode() == RadiusPDU::AccountingResponse);
-		if( result )
-			result = OnReceivedPDU(*response,evt,call);
+		if (result)
+			result = OnReceivedPDU(*response, evt, call);
 		else
-			PTRACE(4,"RADACCT\t"<<GetName()<<" - received response is not "
-				" an AccountingResponse, event "<<evt<<", call no. "
-				<<(call?call->GetCallNumber():0)
+			PTRACE(4, "RADACCT\t" << GetName() << " - received response is not "
+				" an AccountingResponse, event " << evt << ", call no. "
+				<< (call ? call->GetCallNumber() : 0)
 				);
 		delete response;
 	}
@@ -366,7 +306,7 @@ GkAcctLogger::Status RadAcct::Log(
 bool RadAcct::OnSendPDU(
 	RadiusPDU& /*pdu*/,
 	GkAcctLogger::AcctEvent /*evt*/,
-	callptr& /*call*/
+	const callptr& /*call*/
 	)
 {
 	return true;
@@ -375,7 +315,7 @@ bool RadAcct::OnSendPDU(
 bool RadAcct::OnReceivedPDU(
 	RadiusPDU& /*pdu*/,
 	GkAcctLogger::AcctEvent /*evt*/,
-	callptr& /*call*/
+	const callptr& /*call*/
 	)
 {
 	return true;

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2004/05/31 22:45:52  zvision
+ * Fixed CDR rotation per number of lines
+ *
  * Revision 1.12  2004/05/22 12:17:12  zvision
  * Parametrized FileAcct CDR format
  *
@@ -198,10 +201,128 @@ int GkAcctLogger::GetEvents(
 
 GkAcctLogger::Status GkAcctLogger::Log(
 	AcctEvent evt, /// accounting event to log
-	callptr& /*call*/ /// a call associated with the event (if any)
+	const callptr& /*call*/ /// a call associated with the event (if any)
 	)
 {
 	return (evt & m_enabledEvents & m_supportedEvents) ? m_defaultStatus : Next;
+}
+
+PString GkAcctLogger::GetUsername(
+	/// call (if any) associated with the RAS message
+	const callptr& call
+	) const
+{
+	if (!call)
+		return PString();
+		
+	const endptr callingEP = call->GetCallingParty();
+	PString username;
+		
+	username = GetBestAliasAddressString(call->GetSourceAddress(), true,
+		AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+		AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+			| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+		);
+			
+	if (callingEP && (username.IsEmpty() 
+			|| FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX))
+		username = GetBestAliasAddressString(callingEP->GetAliases(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+		
+	if (username.IsEmpty())
+		username = GetBestAliasAddressString(call->GetSourceAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
+				
+	if (username.IsEmpty()) {
+		PIPSocket::Address callingSigAddr;
+		WORD callingSigPort;
+		if (call->GetSrcSignalAddr(callingSigAddr, callingSigPort) 
+			&& callingSigAddr.IsValid())
+			username = callingSigAddr.AsString();
+	}
+	
+	return username;
+}
+
+PString GkAcctLogger::GetCallingStationId(
+	/// call (if any) associated with the RAS message
+	const callptr& call
+	) const
+{
+	if (!call)
+		return PString();
+
+	PString id = call->GetCallingStationId();
+	if (!id)
+		return id;
+
+	if (id.IsEmpty())
+		id = GetBestAliasAddressString(call->GetSourceAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+				
+	if (id.IsEmpty()) {
+		const endptr callingEP = call->GetCallingParty();
+		id = GetBestAliasAddressString(callingEP->GetAliases(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+	}
+					
+	if (id.IsEmpty()) {
+		PIPSocket::Address callingSigAddr;
+		WORD callingSigPort = 0;
+		if (call->GetSrcSignalAddr(callingSigAddr, callingSigPort) 
+			&& callingSigAddr.IsValid())
+			id = ::AsString(callingSigAddr, callingSigPort);
+	}
+	
+	return id;
+}
+
+PString GkAcctLogger::GetCalledStationId(
+	/// call (if any) associated with the RAS message
+	const callptr& call
+	) const
+{
+	if (!call)
+		return PString();
+
+	PString id = call->GetCalledStationId();
+	if (!id)
+		return id;
+			
+	if (id.IsEmpty())
+		id = GetBestAliasAddressString(call->GetDestinationAddress(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+		
+	if (id.IsEmpty()) {
+		const endptr calledEP = call->GetCalledParty();
+		if (calledEP)
+			id = GetBestAliasAddressString(calledEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+	}
+	
+	if (id.IsEmpty()) {
+		PIPSocket::Address calledSigAddr;
+		WORD calledSigPort = 0;
+		if (call->GetDestSignalAddr(calledSigAddr, calledSigPort) 
+		 	&& calledSigAddr.IsValid())
+			id = ::AsString(calledSigAddr, calledSigPort);
+	}
+	
+	return id;
 }
 
 
@@ -426,7 +547,7 @@ void FileAcct::GetRotateInterval(
 
 GkAcctLogger::Status FileAcct::Log(
 	GkAcctLogger::AcctEvent evt, 
-	callptr& call
+	const callptr& call
 	)
 {
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
@@ -475,7 +596,7 @@ GkAcctLogger::Status FileAcct::Log(
 bool FileAcct::GetCDRText(
 	PString& cdrString,
 	AcctEvent evt,
-	callptr& call
+	const callptr& call
 	)
 {
 	if ((evt & AcctStop) != AcctStop || !call)
@@ -497,7 +618,7 @@ void FileAcct::SetupCDRParams(
 	/// CDR parameters (name => value) associations
 	std::map<PString, PString>& params,
 	/// call (if any) associated with an accounting event being logged
-	callptr& call
+	const callptr& call
 	) const
 {
 	PIPSocket::Address addr;
@@ -506,6 +627,7 @@ void FileAcct::SetupCDRParams(
 	
 	params["g"] = m_gkName;
 	params["n"] = PString(call->GetCallNumber());
+	params["u"] = GetUsername(call);
 	params["d"] = call->GetDuration();
 	params["c"] = call->GetDisconnectCause();
 	params["s"] = call->GetAcctSessionId();
@@ -527,53 +649,8 @@ void FileAcct::SetupCDRParams(
 		params["caller-port"] = port;
 	}
 	
-	PString srcInfo = call->GetSrcInfo();
-	params["src-info"] = srcInfo;
-
-	// Get User-name
-	if (!(srcInfo.IsEmpty() || srcInfo == "unknown")) {
-		const PINDEX index = srcInfo.FindOneOf(":");
-		if( index != P_MAX_INDEX )
-			srcInfo = srcInfo.Left(index);
-	}
-	
-	endptr callingEP = call->GetCallingParty();
-	PString userName;
-		
-	if (callingEP && callingEP->GetAliases().GetSize() > 0)
-		userName = GetBestAliasAddressString(
-			callingEP->GetAliases(),
-			H225_AliasAddress::e_h323_ID
-			);
-	else if (!srcInfo)
-		userName = srcInfo;
-	else if (addr.IsValid())
-		userName = addr.AsString();
-		
-	if (!userName)
-		params["u"] = userName;
-
-	PString stationId = srcInfo;
-
-	if (!stationId) {
-		const PINDEX index = stationId.FindOneOf(":");
-		if (index != P_MAX_INDEX)
-			stationId = stationId.Left(index);
-	}
-		
-	if (stationId.IsEmpty() && callingEP && callingEP->GetAliases().GetSize() > 0)
-		stationId = GetBestAliasAddressString(
-			callingEP->GetAliases(),
-			H225_AliasAddress::e_dialedDigits,
-			H225_AliasAddress::e_partyNumber,
-			H225_AliasAddress::e_h323_ID
-			);
-					
-	if (stationId.IsEmpty() && addr.IsValid() && port)
-		stationId = ::AsString(addr, port);
-
-	if (!stationId)
-		params["Calling-Station-Id"] = stationId;
+	params["src-info"] = call->GetSrcInfo();
+	params["Calling-Station-Id"] = GetCallingStationId(call);
 		
 	addr = (DWORD)0;
 	port = 0;
@@ -583,33 +660,8 @@ void FileAcct::SetupCDRParams(
 		params["callee-port"] = port;
 	}
 
-	PString destInfo = call->GetDestInfo();
-	params["dest-info"] = destInfo;
-
-	stationId = destInfo;
-	
-	if (!stationId) {
-		const PINDEX index = stationId.FindOneOf(":");
-		if (index != P_MAX_INDEX)
-			stationId = destInfo.Left(index);
-	}
-		
-	if (stationId.IsEmpty()) {
-		endptr calledEP = call->GetCalledParty();
-		if (calledEP && calledEP->GetAliases().GetSize() > 0)
-			stationId = GetBestAliasAddressString(
-				calledEP->GetAliases(),
-				H225_AliasAddress::e_dialedDigits,
-				H225_AliasAddress::e_partyNumber,
-				H225_AliasAddress::e_h323_ID
-				);
-	}
-	
-	if (stationId.IsEmpty() && addr.IsValid() && port)
-		stationId = ::AsString(addr, port);
-		
-	if (!stationId)
-		params["Called-Station-Id"] = stationId;
+	params["dest-info"] = call->GetDestInfo();
+	params["Called-Station-Id"] = GetCalledStationId(call);
 }
 
 PString FileAcct::ReplaceCDRParams(
@@ -788,7 +840,7 @@ void GkAcctLoggerList::OnReload()
 
 bool GkAcctLoggerList::LogAcctEvent( 
 	GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
-	callptr& call, /// a call associated with the event (if any)
+	const callptr& call, /// a call associated with the event (if any)
 	time_t now /// "now" timestamp for accounting update events
 	)
 {

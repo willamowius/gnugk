@@ -55,27 +55,40 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 
 bool IsLoopback(const PIPSocket::Address &);
 
-/** Find alias that matches best passed alias types,
-	in order of precedence. Example usage:
-	
-	GetBestAliasAddressString( aliases, 
-		H225_AliasAddress::e_dialedDigits,
-		H225_AliasAddress::e_partyNumber,
-		H225_AliasAddress::e_h323_ID
-		);
-		
-	Finds first alias that is of type dialedDigits. 
-	If dialedDigits is not found, it searches for the first
-	partyNumber type alias, then for H.323 ID. If no alias
-	is found, first alias from the array is returned or an empty
-	string, if zero-length array is passed.
+/** Find an alias which tag is of type specified by #primaryTags#.
+    If no such aliases are found, #secondaryTags# are examined.
+    If still no match is found and #exactMatch# is false, the first
+    alias on the list is returned.
+
+    @return
+    An index of the alias found or P_MAX_INDEX if there was no match.
 */
-PString GetBestAliasAddressString( 
+PINDEX GetBestAliasAddressIndex(
 	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
-	int tag = -1, /// the most wanted alias type
-	int tag2 = -1, /// if alias type #tag# not found
-	int tag3 = -1, /// if alias types #tag# and #tag2# not found
-	int tag4 = -1 /// if alias types #tag#, #tag2# and #tag3# not found
+	bool exactMatch, /// search only specified tags or find any alias
+	unsigned primaryTags, /// ORed tag flags (AliasAddressTagMask)
+	unsigned secondaryTags = 0 /// ORed tag flags (AliasAddressTagMask)
+	);
+
+/** @return
+    An alias tag converted to a bit flag suitable to use with primaryTags
+    or secondaryTags parameter to #GetBestAliasAddressIndex#.
+*/
+inline unsigned AliasAddressTagMask(unsigned tag) { return 1U << tag; }
+	
+/** Find an alias which tag is of type specified by #primaryTags#.
+    If no such aliases are found, #secondaryTags# are examined.
+    If still no match is found and #exactMatch# is false, the first
+    alias on the list is returned.
+
+    @return
+    A string with the alias found or an empty string if there was no match.
+*/
+PString GetBestAliasAddressString(
+	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
+	bool exactMatch, /// search only specified tags or find any alias
+	unsigned primaryTags, /// ORed tag flags (BestAliasTagMask)
+	unsigned secondaryTags = 0 /// ORed tag flags (BestAliasTagMask)
 	);
 	
 /** Map H225_ReleaseCompleteReason code to Q.931 cause value.
@@ -98,5 +111,15 @@ PString GetGUIDString(
 	const H225_GloballyUniqueID& id, /// 128-bit identifier to convert
 	bool fixedLength = false /// skip leading zeros (false) or not (true)
 	);
-	
+
+/** Check if the given #alias# is present on the list of #aliases#.
+
+    @return
+    An index of the alias on the list or P_MAX_INDEX if the alias is not found.
+*/
+PINDEX FindAlias(
+	const H225_ArrayOf_AliasAddress& aliases, /// the list of aliases to check
+	const PString& alias /// alias to find on the list
+	);
+
 #endif // H323UTIL_H

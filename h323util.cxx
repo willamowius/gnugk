@@ -113,6 +113,44 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, BOOL includeAl
 	return (aliasListString);
 }
 
+void FromString(
+	/// aliases with tag type names, separated with '='
+	const PString& aliasStr,
+	/// where to put the resulting array of aliases
+	H225_ArrayOf_AliasAddress& aliases
+	)
+{
+	PINDEX aliasIndex = 0;
+	aliases.SetSize(0);
+	
+	const PStringArray tokens = aliasStr.Tokenise("=");
+	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
+		const PINDEX separator = tokens[i].FindLast(':');
+		if (separator != P_MAX_INDEX) {
+			const PString name = tokens[i].Left(separator);
+			if (name == "invalid" || name == "none")
+				continue;
+				
+			aliases.SetSize(aliasIndex + 1);
+			const PString tagName = tokens[i].Mid(separator + 1);
+			int tag = -1;
+			if (tagName == "h323_ID")
+				tag = H225_AliasAddress::e_h323_ID;
+			else if (tagName == "dialedDigits")
+				tag = H225_AliasAddress::e_dialedDigits;
+			else if (tagName == "url_ID")
+				tag = H225_AliasAddress::e_url_ID;
+			else if (tagName == "email_ID")
+				tag = H225_AliasAddress::e_email_ID;
+			else if (tagName == "partyNumber")
+				tag = H225_AliasAddress::e_partyNumber;
+			else if (tagName == "transportID")
+				tag = H225_AliasAddress::e_transportID;
+			H323SetAliasAddress(name, aliases[aliasIndex], tag);
+			aliasIndex++;
+		}
+	}
+}
 
 PString AsString(const PASN_OctetString & Octets)
 {
@@ -179,42 +217,6 @@ bool IsLoopback(const PIPSocket::Address & addr)
 	return addr.IsLoopback() != 0;
 }
 
-PString GetBestAliasAddressString( 
-	const H225_ArrayOf_AliasAddress& aliases,
-	int tag,
-	int tag2,
-	int tag3,
-	int tag4
-	)
-{
-	PINDEX i;
-	
-	if( tag != -1 )
-		for( i = 0; i < aliases.GetSize(); i++ )
-			if( aliases[i].GetTag() == (unsigned)tag )
-				return H323GetAliasAddressString(aliases[i]);
-			
-	if( tag2 != -1 )
-		for( i = 0; i < aliases.GetSize(); i++ )
-			if( aliases[i].GetTag() == (unsigned)tag2 )
-				return H323GetAliasAddressString(aliases[i]);
-				
-	if( tag3 != -1 )
-		for( i = 0; i < aliases.GetSize(); i++ )
-			if( aliases[i].GetTag() == (unsigned)tag3 )
-				return H323GetAliasAddressString(aliases[i]);
-				
-	if( tag4 != -1 )
-		for( i = 0; i < aliases.GetSize(); i++ )
-			if( aliases[i].GetTag() == (unsigned)tag4 )
-				return H323GetAliasAddressString(aliases[i]);
-
-	if( aliases.GetSize() > 0 )
-		return H323GetAliasAddressString(aliases[0]);
-	else
-		return PString();
-}
-
 unsigned MapH225ReasonToQ931Cause(
 	int reason
 	)
@@ -253,4 +255,56 @@ PString GetGUIDString(
 	}
 
 	return idstr;
+}
+
+PINDEX GetBestAliasAddressIndex(
+	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
+	bool exactMatch, /// search only specified tags or find any alias
+	unsigned primaryTags, /// ORed tag flags (BestAliasTagMask)
+	unsigned secondaryTags /// ORed tag flags (BestAliasTagMask)
+	)
+{
+	if (primaryTags)
+		for (PINDEX i = 0; i < aliases.GetSize(); i++)
+			if (primaryTags & (1U << aliases[i].GetTag()))
+				return i;
+
+	if (secondaryTags)
+		for (PINDEX i = 0; i < aliases.GetSize(); i++)
+			if (secondaryTags & (1U << aliases[i].GetTag()))
+				return i;
+
+	if (!exactMatch && aliases.GetSize() > 0)
+		return 0;
+
+	return P_MAX_INDEX;
+}
+
+PString GetBestAliasAddressString(
+	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
+	bool exactMatch, /// search only specified tags or find any alias
+	unsigned primaryTags, /// ORed tag flags (BestAliasTagMask)
+	unsigned secondaryTags /// ORed tag flags (BestAliasTagMask)
+	)
+{
+	const PINDEX i = GetBestAliasAddressIndex(aliases, exactMatch,
+		primaryTags, secondaryTags
+		);
+	if (i != P_MAX_INDEX)
+		return H323GetAliasAddressString(aliases[i]);
+	else
+		return PString();
+}
+
+PINDEX FindAlias(
+	const H225_ArrayOf_AliasAddress& aliases, /// the list of aliases to check
+	const PString& alias /// alias to find on the list
+	)
+{
+	const PINDEX sz = aliases.GetSize();
+	for (PINDEX i = 0; i < sz; i++)
+		if (alias == H323GetAliasAddressString(aliases[i]))
+			return i;
+			
+	return P_MAX_INDEX;
 }

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2004/05/22 12:17:12  zvision
+ * Parametrized FileAcct CDR format
+ *
  * Revision 1.9  2004/05/12 11:49:08  zvision
  * New flexible CDR file rotation
  *
@@ -134,7 +137,7 @@ public:
 	*/
 	virtual Status Log(		
 		AcctEvent evt, /// accounting event to log
-		callptr& call /// a call associated with the event (if any)
+		const callptr& call /// a call associated with the event (if any)
 		);
 
 	/** Format time string suitable for accounting logs.
@@ -185,6 +188,31 @@ protected:
 	*/
 	int GetEvents( 
 		const PStringArray& tokens /// event names (start from index 1)
+		) const;
+
+	/** @return
+	    A string that can be used to identify an account name
+	    associated with the call.
+	*/
+	virtual PString GetUsername(
+		/// call (if any) associated with the RAS message
+		const callptr& call
+		) const;
+
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	virtual PString GetCallingStationId(
+		/// call (if any) associated with the RAS message
+		const callptr& call
+		) const;
+
+	/** @return
+	    A string that can be used to identify a calling number.
+	*/
+	virtual PString GetCalledStationId(
+		/// call (if any) associated with the RAS message
+		const callptr& call
 		) const;
 
 private:
@@ -244,7 +272,7 @@ public:
 	/// override from GkAcctLogger
 	virtual Status Log(
 		AcctEvent evt,
-		callptr& call
+		const callptr& call
 		);
 
 	/** Rotate the detail file, saving old file contents to a different
@@ -265,7 +293,7 @@ protected:
 	virtual bool GetCDRText(
 		PString& cdrString, /// PString for the resulting CDR line
 		AcctEvent evt, /// accounting event being processed
-		callptr& call /// call associated with this request (if any)
+		const callptr& call /// call associated with this request (if any)
 		);
 
 	/** Fill the map with CDR parameters (name => value associations).
@@ -277,7 +305,7 @@ protected:
 		/// query parameters (name => value) associations
 		std::map<PString, PString>& params,
 		/// call (if any) associated with an accounting event being logged
-		callptr& call
+		const callptr& call
 		) const;
 
 	/** Replace CDR parameters placeholders (%a, %{Name}, ...) with 
@@ -387,7 +415,7 @@ public:
 	*/
 	bool LogAcctEvent( 
 		GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
-		callptr& call, /// a call associated with the event (if any)
+		const callptr& call, /// a call associated with the event (if any)
 		time_t now = 0 /// "now" timestamp for accounting update events
 		);
 

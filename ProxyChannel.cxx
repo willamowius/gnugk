@@ -1005,7 +1005,7 @@ void CallSignalSocket::ForwardCall()
 		CallSignalSocket *fsocket = (Facility.m_reason.GetTag() == H225_FacilityReason::e_callForwarded) ? this : 0;
 		m_call->SetForward(fsocket, *dest, forwarded, forwarder, altDestInfo);
 		if (request.GetFlags() & Routing::SetupRequest::e_toParent)
-			m_call->SetRegistered(true);
+			m_call->SetToParent(true);
 		PTRACE(3, "Q931\tCall " << m_call->GetCallNumber() << " is forwarded to " << altDestInfo << (!forwarder ? (" by " + forwarder) : PString()));
 	} else {
 		ForwardData();
@@ -1164,7 +1164,12 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 		// Try the Setup's source field if this exists
 		if (source.IsEmpty() && Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) && Setup.m_sourceAddress.GetSize() > 0) {
-			source = GetBestAliasAddressString(Setup.m_sourceAddress, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+			source = GetBestAliasAddressString(
+				Setup.m_sourceAddress, false,
+				AliasAddressTagMask(H225_AliasAddress::e_h323_ID), 
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
 			#if PTRACING
 			if (!source.IsEmpty()) {
 				rewrite_type = "setup H323 ID or E164";
@@ -1193,13 +1198,12 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 	WORD fromPort = 1720;
 	GetPeerAddress(fromIP,fromPort);
 	GkClient *gkClient = RasSrv->GetGkClient();
-	GkAuthenticator::SetupAuthData authData;
 
 	if (m_call) {
 		if (m_call->IsSocketAttached()) {
 			PTRACE(2, "Q931\tWarning: socket already attached for callid " << callid);
 			return false;
-		} else if (m_call->IsRegistered() && !m_call->IsForwarded()) {
+		} else if (m_call->IsToParent() && !m_call->IsForwarded()) {
 			if (gkClient->CheckFrom(fromIP)) {
 				// looped call
 				PTRACE(2, "Q931\tWarning: a registered call from my GK(" << GetName() << ')');
@@ -1216,6 +1220,8 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 		m_call->SetSetupTime(setupTime);
 
+		GkAuthenticator::SetupAuthData authData(m_call, true, fromIP, fromPort);
+
 		// authenticate the call
 		if( !RasSrv->ValidatePDU(*m_lastQ931, Setup, authData) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
@@ -1230,9 +1236,13 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			return false;
 		}
 
-		if( authData.m_callDurationLimit > 0 )
+		if (authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
-
+		if (!authData.m_callingStationId)
+			m_call->SetCallingStationId(authData.m_callingStationId);
+		if (!authData.m_calledStationId)
+			m_call->SetCalledStationId(authData.m_calledStationId);
+			
 		// log AcctStart accounting event
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
@@ -1304,12 +1314,13 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		// TODO: check the Setup_UUIE by gkauth modules
 
 		PString destinationString(Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) ? AsString(Setup.m_destinationAddress) : AsDotString(calledAddr));
-		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed
 		bool h245Routed = RasSrv->IsH245Routed() || (useParent && gkClient->IsNATed());
 		// workaround for bandwidth, as OpenH323 library :p
-		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, m_crv, destinationString, sourceString, 100000, h245Routed);
+		CallRec* call = new CallRec(*m_lastQ931, Setup, h245Routed, 
+			destinationString
+			);
 		call->SetSrcSignalAddr(SocketToH225TransportAddr(fromIP,fromPort));
 		if (called)
 			call->SetCalled(called);
@@ -1317,11 +1328,13 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			call->SetDestSignalAddr(calledAddr);
 
 		if (useParent)
-			call->SetRegistered(true);
+			call->SetToParent(true);
 
 		m_call = callptr(call);
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
+
+		GkAuthenticator::SetupAuthData authData(m_call, false, fromIP, fromPort);
 
 		if( !RasSrv->ValidatePDU(*m_lastQ931,Setup, authData) ) {
 			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
@@ -1338,6 +1351,10 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 
 		if( authData.m_callDurationLimit > 0 )
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
+		if (!authData.m_callingStationId)
+			m_call->SetCallingStationId(authData.m_callingStationId);
+		if (!authData.m_calledStationId)
+			m_call->SetCalledStationId(authData.m_calledStationId);
 
 		if( !RasSrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
@@ -1383,7 +1400,12 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 		if (source.IsEmpty()) {
 			endptr rewriteEndPointOut = m_call->GetCalledParty();
 			if (rewriteEndPointOut && rewriteEndPointOut->GetAliases().GetSize() > 0 ) {
-		 		source = GetBestAliasAddressString(rewriteEndPointOut->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+		 		source = GetBestAliasAddressString(
+					rewriteEndPointOut->GetAliases(), false,
+					AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+					AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+						| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+					);
 				#if PTRACING
 				if (!source.IsEmpty()) {
 					rewrite_type = "setup H323 ID or E164";

@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2004/04/17 11:43:43  zvision
+ * Auth/acct API changes.
+ * Header file usage more consistent.
+ *
  * Revision 1.7  2004/03/17 00:00:38  zvision
  * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
  *
@@ -77,7 +81,7 @@ public:
 	/// overriden from GkAcctLogger
 	virtual Status Log(
 		AcctEvent evt,
-		callptr& call
+		const callptr& call
 		);
 		
 protected:
@@ -90,7 +94,7 @@ protected:
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
 		AcctEvent evt, /// accounting event being processed
-		callptr& call /// call associated with this request (if any)
+		const callptr& call /// call associated with this request (if any)
 		);
 
 	/** Called after Accounting-Response PDU is received.
@@ -102,7 +106,7 @@ protected:
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// PDU received from RADIUS server
 		AcctEvent evt, /// accounting event being processed
-		callptr& call /// call associated with this response (if any)
+		const callptr& call /// call associated with this response (if any)
 		);
 		
 private:
@@ -115,8 +119,6 @@ private:
 private:
 	/// if true Cisco VSAs are appended to the RADIUS packets
 	bool m_appendCiscoAttributes;
-	/// append IP address of the calling endpoint
-	bool m_includeFramedIp;
 	/// NAS (GK) identifier
 	PString m_nasIdentifier;
 	/// NAS IP address (local interface for RADIUS client)

@@ -47,9 +47,6 @@ class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
 class HandlerList;
-struct GkAuthenticator::ARQAuthData;
-struct GkAuthenticator::SetupAuthData;
-
 class WaitingARQlist;
 
 namespace Neighbors {
@@ -129,6 +126,14 @@ public:
 		return authList->Validate(ras, reason);
 	}
 
+	bool ValidatePDU(
+		RasPDU<H225_RegistrationRequest>& ras, 
+		GkAuthenticator::RRQAuthData& authData
+		)
+	{
+		return authList->Validate(ras, authData);
+	}
+	
 	bool ValidatePDU(
 		RasPDU<H225_AdmissionRequest>& ras, 
 		GkAuthenticator::ARQAuthData& authData

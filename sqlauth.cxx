@@ -286,7 +286,7 @@ MySQLAliasAuth::MySQLAliasAuth(
 			);
 		return;
 	}
-	
+
 	PConfig* cfg = GetConfig();
 	SetCacheTimeout(cfg->GetInteger(authName, "CacheTimeout", 0));
 	

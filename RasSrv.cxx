@@ -1406,9 +1406,10 @@ bool RegistrationRequestPDU::Process()
 			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
 	}
 
-	unsigned rejectReason = H225_RegistrationRejectReason::e_securityDenial;
-	if (!RasSrv->ValidatePDU(*this, rejectReason))
-		return BuildRRJ(rejectReason);
+	GkAuthenticator::RRQAuthData authData;
+	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+	if (!RasSrv->ValidatePDU(*this, authData))
+		return BuildRRJ(authData.m_rejectReason);
 
 	bool bNewEP = true;
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
@@ -1630,43 +1631,12 @@ bool AdmissionRequestPDU::Process()
 
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
-
 	if (!RequestingEP)
 		return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
+
 	if (RasSrv->IsRedirected(H225_RasMessage::e_admissionRequest) && !answer) {
 		PTRACE(1, "RAS\tWarning: Exceed call limit!!");
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
-	}
-
-	bool bHasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && request.m_destinationInfo.GetSize() > 0;
-	if (bHasDestInfo) { // apply rewriting rules
-
-		if(RequestingEP->GetAliases().GetSize() > 0) {
-			in_rewrite_source = GetBestAliasAddressString(RequestingEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
-		}
-
-     	if(in_rewrite_source.IsEmpty() && (request.m_srcInfo.GetSize() > 0)) {
-        	in_rewrite_source = GetBestAliasAddressString(request.m_srcInfo, H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
-		}
-
-	 	if (!in_rewrite_source.IsEmpty()) {
-	 		Kit->GWRewriteE164(in_rewrite_source,true,request.m_destinationInfo[0]);
-        }
-
-		// Normal rewriting
-		Kit->RewriteE164(request.m_destinationInfo[0]);
-
-	}
-
-	destinationString = bHasDestInfo ? AsString(request.m_destinationInfo) :
-		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
-		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
-
-	GkAuthenticator::ARQAuthData authData;
-	if (!RasSrv->ValidatePDU(*this, authData)) {
-		if (authData.m_rejectReason < 0)
-			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
-		return BuildReply(authData.m_rejectReason);
 	}
 
 	// CallRecs should be looked for using callIdentifier instead of callReferenceValue
@@ -1675,6 +1645,43 @@ bool AdmissionRequestPDU::Process()
 		CallTbl->FindCallRec(request.m_callIdentifier) :
 		// since callIdentifier is optional, we might have to look for the callReferenceValue as well
 		CallTbl->FindCallRec(request.m_callReferenceValue);
+
+	const bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
+		&& request.m_destinationInfo.GetSize() > 0;
+	if (hasDestInfo) { // apply rewriting rules
+
+		in_rewrite_source = GetBestAliasAddressString(
+			RequestingEP->GetAliases(), false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+			);
+
+     	if(in_rewrite_source.IsEmpty() && request.m_srcInfo.GetSize() > 0) {
+        	in_rewrite_source = GetBestAliasAddressString(request.m_srcInfo, false,
+				AliasAddressTagMask(H225_AliasAddress::e_h323_ID), 
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
+		}
+
+	 	if (!in_rewrite_source.IsEmpty())
+	 		Kit->GWRewriteE164(in_rewrite_source, true, request.m_destinationInfo[0]);
+
+		// Normal rewriting
+		Kit->RewriteE164(request.m_destinationInfo[0]);
+	}
+
+	destinationString = hasDestInfo ? AsString(request.m_destinationInfo) :
+		request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ?
+		AsDotString(request.m_destCallSignalAddress) : PString("unknown");
+
+	GkAuthenticator::ARQAuthData authData(RequestingEP, pExistingCallRec);
+	if (!RasSrv->ValidatePDU(*this, authData)) {
+		if (authData.m_rejectReason < 0)
+			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
+		return BuildReply(authData.m_rejectReason);
+	}
 
 	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
 		if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1"))) {
@@ -1700,7 +1707,7 @@ bool AdmissionRequestPDU::Process()
 	// check if it is the first arrived ARQ
 	if (pExistingCallRec) {
 		// request more bandwidth?
-		if (BWRequest > pExistingCallRec->GetBandWidth())
+		if (BWRequest > pExistingCallRec->GetBandwidth())
 			if (CallTbl->GetAdmission(BWRequest, pExistingCallRec))
 				pExistingCallRec->SetBandwidth(BWRequest);
 			else
@@ -1790,10 +1797,15 @@ bool AdmissionRequestPDU::Process()
 	acf.m_bandWidth = BWRequest;
 
 	// Per GW outbound rewrite
-	if (bHasDestInfo && CalledEP && (RequestingEP != CalledEP)) {
+	if (hasDestInfo && CalledEP && (RequestingEP != CalledEP)) {
 
 		if(CalledEP->GetAliases().GetSize() > 0) {
-			out_rewrite_source = GetBestAliasAddressString(CalledEP->GetAliases(), H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits, H225_AliasAddress::e_partyNumber);
+			out_rewrite_source = GetBestAliasAddressString(
+				CalledEP->GetAliases(), false,
+				AliasAddressTagMask(H225_AliasAddress::e_h323_ID), 
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+				);
 		}
 
 		if (!out_rewrite_source.IsEmpty()) {
@@ -1807,12 +1819,14 @@ bool AdmissionRequestPDU::Process()
 		PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
 		if (authData.m_callDurationLimit > 0)
 			pExistingCallRec->SetDurationLimit(authData.m_callDurationLimit);
+		if (!authData.m_callingStationId)
+			pExistingCallRec->SetCallingStationId(authData.m_callingStationId);
+		if (!authData.m_calledStationId)
+			pExistingCallRec->SetCalledStationId(authData.m_calledStationId);
 	} else {
 
 		// the call is not in the table
-		CallRec *pCallRec = new CallRec(request.m_callIdentifier, request.m_conferenceID,
-			(WORD)request.m_callReferenceValue.GetValue(),
-			destinationString, AsString(request.m_srcInfo), BWRequest, RasSrv->IsH245Routed());
+		CallRec *pCallRec = new CallRec(*this, BWRequest, destinationString);
 
 		if (CalledEP)
 			pCallRec->SetCalled(CalledEP);
@@ -1821,10 +1835,14 @@ bool AdmissionRequestPDU::Process()
 		if (!answer)
 			pCallRec->SetCalling(RequestingEP);
 		if (toParent)
-			pCallRec->SetRegistered(true);
+			pCallRec->SetToParent(true);
 
 		if (authData.m_callDurationLimit > 0)
 			pCallRec->SetDurationLimit(authData.m_callDurationLimit);
+		if (!authData.m_callingStationId)
+			pCallRec->SetCallingStationId(authData.m_callingStationId);
+		if (!authData.m_calledStationId)
+			pCallRec->SetCalledStationId(authData.m_calledStationId);
 
 		if (!RasSrv->IsGKRouted())
 			pCallRec->SetConnected();

@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2004/04/21 14:15:26  zvision
+ * Default ports are now set to fixes values (1812,1813), because of problems
+ * with getservbyname and multiple threads on some systems
+ *
  * Revision 1.14  2004/04/20 15:50:07  zvision
  * Descendancy check removed to enable compilation with RTTI enabled PWLib
  *
@@ -1869,7 +1873,7 @@ BOOL RadiusClient::MakeRequest(
 #if PTRACING
 			if( PTrace::CanTrace(3) ) {
 				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
-				strm<<"RADIUS\tSending PDU to RADIUS server "
+				strm<<"RADIUS\tSending PDU ( " << length << " bytes) to RADIUS server "
 					<<serverName<<" ("<<serverAddress<<':'<<serverPort<<')'<<" from "
 					<<(*socket)<<", PDU: ";
 				if( PTrace::CanTrace(5) )

@@ -1125,29 +1125,74 @@ void RegistrationTable::CheckEndpoints()
 	RemovedList.erase(Iter, RemovedList.end());
 }
 
-CallRec::CallRec(const H225_CallIdentifier & CallId,
-		 const H225_ConferenceIdentifier & ConfId,
-		 WORD crv,
-		 const PString & destInfo,
-		 const PString & srcInfo,
-		 int Bandwidth, bool h245Routed)
-      : m_callIdentifier(CallId), m_conferenceIdentifier(ConfId),
-        m_crv(crv & 0x7fffu),
-	m_destInfo(destInfo),
-	m_srcInfo(srcInfo), // added (MM 05.11.01)
-	m_bandWidth(Bandwidth), 
-	m_setupTime(0), m_connectTime(0), m_disconnectTime(0),
-	m_disconnectCause(0),
-	m_callingSocket(0), m_calledSocket(0),
-	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed),
-	m_registered(false), m_forwarded(false)
+CallRec::CallRec(
+	/// ARQ with call information
+	const RasPDU<H225_AdmissionRequest>& arqPdu,
+	/// bandwidth occupied by the call
+	int bandwidth,
+	/// called party's aliases in a string form
+	const PString& destInfo
+	) : m_CallNumber(0), 
+	m_callIdentifier(((const H225_AdmissionRequest&)arqPdu).m_callIdentifier),
+	m_conferenceIdentifier(((const H225_AdmissionRequest&)arqPdu).m_conferenceID), 
+	m_crv(((const H225_AdmissionRequest&)arqPdu).m_callReferenceValue.GetValue() & 0x7fffU),
+	m_sourceAddress(((const H225_AdmissionRequest&)arqPdu).m_srcInfo),
+	m_srcInfo(AsString(((const H225_AdmissionRequest&)arqPdu).m_srcInfo)), 
+	m_destInfo(destInfo), m_bandwidth(bandwidth), m_setupTime(0), 
+	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0),
+	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
+	m_callingSocket(NULL), m_calledSocket(NULL),
+	m_usedCount(0), m_nattype(none), 
+	m_h245Routed(RasServer::Instance()->IsH245Routed()),
+	m_toParent(false), m_forwarded(false)
 {
-	m_acctSessionId = Toolkit::Instance()->GenerateAcctSessionId();
+	const H225_AdmissionRequest& arq = arqPdu;
 
-	m_timer = m_acctUpdateTime = m_creationTime = time(0);
-	m_timeout = CallTable::Instance()->GetConnectTimeout() / 1000;
-	m_durationLimit = CallTable::Instance()->GetDefaultDurationLimit();
+	if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+		m_destinationAddress = arq.m_destinationInfo;
+		
+	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
+
+	CallTable* const ctable = CallTable::Instance();
+	m_timeout = ctable->GetConnectTimeout() / 1000;
+	m_durationLimit = ctable->GetDefaultDurationLimit();
+}
+
+CallRec::CallRec(
+	/// Q.931 Setup pdu with call information
+	const Q931& q931pdu,
+	/// H.225.0 Setup-UUIE pdu with call information
+	const H225_Setup_UUIE& setup,
+	/// force H.245 routed mode
+	bool routeH245,
+	/// called party's aliases in a string form
+	const PString& destInfo
+	) : m_CallNumber(0), m_callIdentifier(setup.m_callIdentifier), 
+	m_conferenceIdentifier(setup.m_conferenceID), 
+	m_crv(q931pdu.GetCallReference() & 0x7fffU),
+	m_destInfo(destInfo),
+	m_bandwidth(1280), m_setupTime(0), m_connectTime(0), 
+	m_disconnectTime(0), m_disconnectCause(0),
+	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
+	m_callingSocket(NULL), m_calledSocket(NULL),
+	m_usedCount(0), m_nattype(none), m_h245Routed(routeH245),
+	m_toParent(false), m_forwarded(false)
+{
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		m_sourceAddress = setup.m_sourceAddress;
+		m_srcInfo = AsString(setup.m_sourceAddress);
+	}
+
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+		m_destinationAddress = setup.m_destinationAddress;
+		
+	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
+	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
+
+	CallTable* const ctable = CallTable::Instance();
+	m_timeout = ctable->GetConnectTimeout() / 1000;
+	m_durationLimit = ctable->GetDefaultDurationLimit();
 }
 
 CallRec::~CallRec()
@@ -1165,23 +1210,28 @@ bool CallRec::GetSrcSignalAddr(
 
 bool CallRec::GetDestSignalAddr(
 	PIPSocket::Address& addr, 
-	WORD& pt
+	WORD& port
 	) const
 {
-	return GetIPAndPortFromTransportAddr(m_destSignalAddress, addr, pt);
+	return GetIPAndPortFromTransportAddr(m_destSignalAddress, addr, port);
 }
 
-int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address & called) const
+int CallRec::GetNATType(
+	/// filled with NAT IP of the calling party (if nat type is callingParty)
+	PIPSocket::Address& callingPartyNATIP, 
+	/// filled with NAT IP of the called party (if nat type is calledParty)
+	PIPSocket::Address& calledPartyNATIP
+	) const
 {
 	if (m_nattype & callingParty)
-		calling = m_Calling->GetNATIP();
+		callingPartyNATIP = m_Calling->GetNATIP();
 	if (m_nattype & calledParty)
-		called = m_Called->GetNATIP();
+		calledPartyNATIP = m_Called->GetNATIP();
 	return m_nattype;
 }
 
 void CallRec::SetSrcSignalAddr(
-	const H225_TransportAddress & addr
+	const H225_TransportAddress& addr
 	)
 {
 	m_srcSignalAddress = addr;
@@ -1189,14 +1239,16 @@ void CallRec::SetSrcSignalAddr(
 }
 
 void CallRec::SetDestSignalAddr(
-	const H225_TransportAddress & addr
+	const H225_TransportAddress& addr
 	)
 {
 	m_destSignalAddress = addr;
 	m_calleeAddr = AsDotString(addr);
 }
 
-void CallRec::SetCalling(const endptr & NewCalling)
+void CallRec::SetCalling(
+	const endptr& NewCalling
+	)
 {
 	InternalSetEP(m_Calling, NewCalling);
 	if (NewCalling) {
@@ -1210,7 +1262,9 @@ void CallRec::SetCalling(const endptr & NewCalling)
 	}
 }
 
-void CallRec::SetCalled(const endptr & NewCalled)
+void CallRec::SetCalled(
+	const endptr& NewCalled
+	)
 {
 	InternalSetEP(m_Called, NewCalled);
 	if (NewCalled) {
@@ -1221,7 +1275,13 @@ void CallRec::SetCalled(const endptr & NewCalled)
 	}
 }
 
-void CallRec::SetForward(CallSignalSocket *socket, const H225_TransportAddress & dest, const endptr & forwarded, const PString & forwarder, const PString & altDestInfo)
+void CallRec::SetForward(
+	CallSignalSocket* socket, 
+	const H225_TransportAddress& dest, 
+	const endptr& forwarded, 
+	const PString& forwarder, 
+	const PString& altDestInfo
+	)
 {
 	m_usedLock.Wait();
 	m_forwarded = true;
@@ -1244,7 +1304,10 @@ void CallRec::SetForward(CallSignalSocket *socket, const H225_TransportAddress &
 		SetDestSignalAddr(dest);
 }
 
-void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
+void CallRec::SetSocket(
+	CallSignalSocket* calling, 
+	CallSignalSocket* called
+	)
 {
 	PWaitAndSignal lock(m_sockLock); 
 	m_callingSocket = calling, m_calledSocket = called;
@@ -1295,7 +1358,7 @@ void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
 
 void CallRec::RemoveAll()
 {
-	if (IsRegistered())
+	if (IsToParent())
 		RasServer::Instance()->GetGkClient()->SendDRQ(callptr(this));
 	if (m_Calling)
 		m_Calling->RemoveCall();
@@ -1462,7 +1525,7 @@ PString CallRec::PrintOn(bool verbose) const
 		result += PString(PString::Printf, "# %s|%s|%d|%s <%d>\r\n",
 				(const char *)((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr),
 				(const char *)((m_Called) ? AsString(m_Called->GetAliases()) : m_calleeAddr),
-				m_bandWidth,
+				m_bandwidth,
 				m_connectTime ? (const char *)PTime(m_connectTime).AsString() : "unconnected",
 				m_usedCount
 			  );
@@ -1529,6 +1592,34 @@ long CallRec::GetDuration() const
 		return 0;
 }
 
+PString CallRec::GetCallingStationId()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_callingStationId;
+}
+
+void CallRec::SetCallingStationId(
+	const PString& id
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_callingStationId = id;
+}
+
+PString CallRec::GetCalledStationId()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_calledStationId;
+}
+
+void CallRec::SetCalledStationId(
+	const PString& id
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_calledStationId = id;
+}
+
 /*
 bool CallRec::IsTimeout(
 	const time_t now,
@@ -1581,7 +1672,7 @@ void CallTable::LoadConfig()
 {
 	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
 	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
-	SetTotalBandWidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
+	SetTotalBandwidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
 	// this timeout is stored in CallTable, not in CallRec
 	// because it is constant for all CallRecs and should not add another
 	// 4 bytes to each CallRec unnecessary
@@ -1611,14 +1702,14 @@ void CallTable::Insert(CallRec * NewRec)
 	PTRACE(2, "CallTable::Insert(CALL) Call No. " << m_CallNumber << ", total sessions : " << m_activeCall);
 }
 
-void CallTable::SetTotalBandWidth(int bw)
+void CallTable::SetTotalBandwidth(int bw)
 {
 	if ((m_capacity = bw) >= 0) {
 		int used = 0;
 		WriteLock lock(listLock);
 		iterator Iter = CallList.begin(), eIter = CallList.end();
 		while (Iter != eIter)
-			used += (*Iter++)->GetBandWidth();
+			used += (*Iter++)->GetBandwidth();
 		if (bw > used)
 			m_capacity -= used;
 		else
@@ -1640,7 +1731,7 @@ bool CallTable::GetAdmission(int bw)
 
 bool CallTable::GetAdmission(int bw, const callptr & call)
 {
-	return GetAdmission(bw - call->GetBandWidth());
+	return GetAdmission(bw - call->GetBandwidth());
 }
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
@@ -1794,12 +1885,12 @@ void CallTable::InternalRemove(iterator Iter)
 	if (call->IsConnected())
 		++m_successCall;
 	if (!call->GetCallingParty())
-		++(call->IsRegistered() ? m_parentCall : m_neighborCall);
+		++(call->IsToParent() ? m_parentCall : m_neighborCall);
 
 	call->RemoveAll();
 	call->RemoveSocket();
 	if (m_capacity >= 0)
-		m_capacity += call->GetBandWidth();
+		m_capacity += call->GetBandwidth();
 
 	RemovedList.push_back(call);
 	CallList.erase(Iter);
@@ -1815,7 +1906,7 @@ void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, 
 		if (call->IsConnected())
 			++act;
 		if (!call->GetCallingParty())
-			++(call->IsRegistered() ? np : nb);
+			++(call->IsToParent() ? np : nb);
 		if (!msg)
 			msg += call->PrintOn(verbose);
 	}

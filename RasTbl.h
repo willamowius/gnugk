@@ -32,6 +32,7 @@ class GkDestAnalysisList;
 class USocket;
 class CallSignalSocket;
 class RasServer;
+class Q931;
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -53,8 +54,8 @@ public:
 	}
 
 private:
-	void Inc() { if (pt) pt->Lock(); }
-	void Dec() { if (pt) pt->Unlock(); }
+	void Inc() const { if (pt) pt->Lock(); }
+	void Dec() const { if (pt) pt->Unlock(); }
 	T &operator*();
 	T *pt;
 };
@@ -393,10 +394,33 @@ private:
 };
 
 
+template<class> class RasPDU;
+
 // record of one active call
 class CallRec {
 public:
-	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, WORD, const PString &, const PString & srcInfo, int, bool);
+	/// build a new call record from the received ARQ message
+	CallRec(
+		/// ARQ with call information
+		const RasPDU<H225_AdmissionRequest>& arq,
+		/// bandwidth occupied by the call
+		int bandwidth,
+		/// called party's aliases in a string form
+		const PString& destInfo
+		);
+
+	/// build a new call record from the received Setup message
+	CallRec(
+		/// Q.931 Setup pdu with call information
+		const Q931& q931pdu,
+		/// H.225.0 Setup-UUIE pdu with call information
+		const H225_Setup_UUIE& setup,
+		/// force H.245 routed mode
+		bool routeH245,
+		/// called party's aliases in a string form
+		const PString& destInfo
+		);
+		
 	virtual ~CallRec();
 
 	enum NATType { // who is nated?
@@ -416,9 +440,20 @@ public:
 	endptr GetCallingParty() const { return m_Calling; }
 	endptr GetCalledParty() const { return m_Called; }
 	endptr GetForwarder() const { return m_Forwarder; }
-	int GetBandWidth() const { return m_bandWidth; }
+	int GetBandwidth() const { return m_bandwidth; }
+
+	/** @return
+	    A bit mask with NAT flags for calling and called parties. 
+	    See #NATType enum# for more details.
+	*/
 	int GetNATType() const { return m_nattype; }
-	int GetNATType(PIPSocket::Address &, PIPSocket::Address &) const;
+	int GetNATType(
+		/// filled with NAT IP of the calling party (if nat type is callingParty)
+		PIPSocket::Address& callingPartyNATIP, 
+		/// filled with NAT IP of the called party (if nat type is calledParty)
+		PIPSocket::Address& calledPartyNATIP
+		) const;
+
 	CallSignalSocket *GetCallSignalSocketCalled() { return m_calledSocket; }
 	CallSignalSocket *GetCallSignalSocketCalling() { return m_callingSocket; }
 	const H225_ArrayOf_CryptoH323Token & GetAccessTokens() const { return m_accessTokens; }
@@ -429,9 +464,9 @@ public:
 	void SetCalling(const endptr & NewCalling);
 	void SetCalled(const endptr & NewCalled);
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
-	void SetBandwidth(int Bandwidth) { m_bandWidth = Bandwidth; }
+	void SetBandwidth(int bandwidth) { m_bandwidth = bandwidth; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
-	void SetRegistered(bool registered) { m_registered = registered; }
+	void SetToParent(bool toParent) { m_toParent = toParent; }
 	void SetAccessTokens(const H225_ArrayOf_CryptoH323Token & tokens) { m_accessTokens = tokens; }
 	void SetInboundRewriteId(PString id) { m_inbound_rewrite_id = id; }
 	void SetOutboundRewriteId(PString id) { m_outbound_rewrite_id = id; }
@@ -463,7 +498,7 @@ public:
 	bool IsConnected() const { return (m_connectTime != 0); }
 
 	bool IsH245Routed() const { return m_h245Routed; }
-	bool IsRegistered() const { return m_registered; }
+	bool IsToParent() const { return m_toParent; }
 	bool IsForwarded() const { return m_forwarded; }
 	bool IsSocketAttached() const { return (m_callingSocket != 0); }
 
@@ -646,6 +681,43 @@ public:
 	*/
 	PString GetDestInfo() const { return m_destInfo; }
 
+	/** @return
+	    Calling party's aliases, as presented in ARQ or Setup messages.
+	    This does not change during the call.
+	*/
+	const H225_ArrayOf_AliasAddress& GetSourceAddress() const 
+		{ return m_sourceAddress; }
+		
+	/** @return
+	    Called party's aliases, as presented in ARQ or Setup messages.
+	    This does not change during the call now, but should be fixed
+	    to handle gatekeeper call forwarding properly.
+	*/
+	const H225_ArrayOf_AliasAddress& GetDestinationAddress() const
+		{ return m_destinationAddress; }
+
+	/** @return
+	    Calling party's number or an empty string, if the number has not been
+	    yet determined.
+	*/
+	PString GetCallingStationId();
+	
+	/// Set calling party's number
+	void SetCallingStationId(
+		const PString& id /// Calling-Station-Id
+		);
+		
+	/** @return
+	    Called party's number or an empty string, if the number has not been
+	    yet determined.
+	*/
+	PString GetCalledStationId();
+
+	/// Set calling party's number
+	void SetCalledStationId(
+		const PString& id /// Called-Station-Id
+		);
+
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
 
@@ -653,18 +725,37 @@ private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
 
-	PINDEX m_CallNumber;
-	H225_CallIdentifier m_callIdentifier;
-	H225_ConferenceIdentifier m_conferenceIdentifier;
+	CallRec(const CallRec & Other);
+	CallRec & operator= (const CallRec & other);
 
-	endptr m_Calling, m_Called;
+private:
+	/// internal call number generated by the gatekeeper
+	PINDEX m_CallNumber;
+	/// H.323 Call Identifier (identifies this particular call leg)
+	H225_CallIdentifier m_callIdentifier;
+	/// H.323 Conference Identifier
+	H225_ConferenceIdentifier m_conferenceIdentifier;
+	/// Call Reference Value for the call
 	WORD m_crv;
+	/// EndpointRec for the calling party (if it is a registered endpoint)
+	/// NOTE: it does not change during CallRec lifetime
+	endptr m_Calling;
+	/// EndpointRec for the called party (if it is a registered endpoint)
+	/// NOTE: it can change during CallRec lifetime
+	endptr m_Called;
+	/// aliases identifying a calling party (as presented in ARQ or Setup)
+	H225_ArrayOf_AliasAddress m_sourceAddress;
+	/// aliases identifying a called party (as presented in ARQ or Setup)
+	H225_ArrayOf_AliasAddress m_destinationAddress;
+	/// calling party aliases in a string form
+	PString m_srcInfo;
+	/// called party aliases in a string form
+	PString m_destInfo;
+	/// bandwidth occupied by this call (as declared in ARQ)
+	int m_bandwidth;
 
 	PString m_callerAddr, m_callerId;
 	PString m_calleeAddr, m_calleeId;
-	PString m_destInfo;
-	PString m_srcInfo; //added (MM 05.11.01)
-	int m_bandWidth;
 	// rewrite id for inbound leg of call
 	PString m_inbound_rewrite_id;
 	// rewrite id for outbound leg of call
@@ -696,6 +787,10 @@ private:
 	H225_TransportAddress m_srcSignalAddress;
 	/// signalling transport address of the called party
 	H225_TransportAddress m_destSignalAddress;
+	/// calling party's number
+	PString m_callingStationId;
+	/// called party's number
+	PString m_calledStationId;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
@@ -704,14 +799,12 @@ private:
 	int m_nattype;
 
 	bool m_h245Routed;
-	bool m_registered;
+	/// the call is routed to this gatekeeper's parent gatekeeper
+	bool m_toParent;
 	bool m_forwarded;
 	endptr m_Forwarder;
 
 	H225_ArrayOf_CryptoH323Token m_accessTokens;
-
-	CallRec(const CallRec & Other);
-	CallRec & operator= (const CallRec & other);
 };
 
 typedef CallRec::Ptr callptr;
@@ -729,7 +822,7 @@ public:
 	void Insert(CallRec * NewRec);
 
 	// bandwidth management
-	void SetTotalBandWidth(int bw);
+	void SetTotalBandwidth(int bw);
 	bool GetAdmission(int bw);
 	bool GetAdmission(int bw, const callptr &);
 	int GetAvailableBW() const { return m_capacity; }

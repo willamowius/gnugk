@@ -114,6 +114,17 @@ The version 2.2beta5 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Better User-Name, Calling-Station-Id and Called-Station-Id handling.
+
+<item>
+IncludeEndpointIP flag for RadAuth, RadAliasAuth and RadAcct is obsolete,
+these modules will always send Framed-IP-Address.
+
+<item>
+New Gatekeeper::Auth flag SetupUnreg to toggle Q.931 Setup authentication
+for unregistered endpoints only.
+
+<item>
 New RADIUS h323-ivr-out=h323-call-id parameter that contains 
 an H.323 Call Identifier.
 
@@ -2093,7 +2104,7 @@ authrule=actions
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
- <q931>     := Setup
+ <q931>     := Setup | SetupUnreg
 
 </verb></tscreen>
 </descrip>
@@ -2181,9 +2192,25 @@ The default is to accept all requests.
 <tt/AliasAuth=sufficient;RRQ/<newline>
 </descrip>
 
+The example below authenticates all calls, checking signalling Setup
+message details, using RadAliasAuth module.
+
 <descrip>
 <tag/Example 2:/
 <tt/RadAliasAuth=required;Setup/<newline>
+<tt/default=allow/
+</descrip>
+
+This example checks endpoint registrations (RRQ) and call admissions (ARQ)
+either by means of username/password (RadAuth) or alias/IP (RadAliasAuth).
+Additionally, if the call is from an unregistered endpoint (and therefore
+no RRQ or ARQ authentication has been performed), Setup message authentication
+using RadAliasAuth takes place (SetupUnreg).
+
+<descrip>
+<tag/Example 3:/
+<tt/RadAuth=optional;RRQ,ARQ/<newline>
+<tt/RadAliasAuth=required;RRQ,ARQ,SetupUnreg/<newline>
 <tt/default=allow/
 </descrip>
 

@@ -1,5 +1,11 @@
 Changes from 2.2beta4 to 2.2beta5
 =================================
+- better Username, Calling-Station-Id and Called-Station-Id determination,
+  consistant across all auth/acct modules, redundant code removed
+- new Gatekeeper::Auth flag SetupUnreg to toggle Q.931 Setup authentication
+  for unregistered endpoints only
+- IncludeEndpointIP flag for RadAuth, RadAliasAuth and RadAcct is obsolete,
+  these modules will always send Framed-IP-Address
 - (sqlbill) reject gracefully Access-Requests without Framed-IP-Address
 - (sqlbill) improvements for IP only authorization
 - BUGFIX(sqlbill) FreeRadius accounting_stop_query changed to not check h323id 

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2004/06/17 10:47:13  zvision
+ * New h323-ivr-out=h323-call-id accounting attribute
+ *
  * Revision 1.16  2004/06/17 10:03:17  zvision
  * Better Framed-IP-Address handling in RadAliasAuth Setup check
  *
@@ -139,9 +142,9 @@
 
 namespace {
 // Settings for H.235 based module will be stored inside [RadAuth] config section
-const char* RadAuthConfigSectionName = "RadAuth";
+const char* const RadAuthConfigSectionName = "RadAuth";
 // Settings for alias based module will be stored inside [RadAliasAuth] config section
-const char* RadAliasAuthConfigSectionName = "RadAliasAuth";
+const char* const RadAliasAuthConfigSectionName = "RadAliasAuth";
 }
 
 // OID for CAT (Cisco Access Token) algorithm
@@ -165,9 +168,6 @@ RadAuthBase::RadAuthBase(
 	m_includeTerminalAliases = Toolkit::AsBool(GetConfig()->GetString(
 		configSectionName, "IncludeTerminalAliases", "1"
 		));
-	m_includeFramedIp = Toolkit::AsBool(GetConfig()->GetString(
-		configSectionName, "IncludeEndpointIP", "1"
-		));
 	m_nasIdentifier = Toolkit::Instance()->GKName();
 	/// build RADIUS client
 	m_radiusClient = new RadiusClient(*GetConfig(), configSectionName);
@@ -189,24 +189,11 @@ RadAuthBase::~RadAuthBase()
 	delete m_radiusClient;
 }
 
-bool RadAuthBase::CheckAliases( 
-	const H225_ArrayOf_AliasAddress& aliases, 
-	const PString& id 
-	) const
-{
-	for (PINDEX i = 0; i < aliases.GetSize(); i++)
-		if (H323GetAliasAddressString(aliases[i]) == id)
-			return true;
-	return false;
-}
-
 int RadAuthBase::Check(
 	/// RRQ RAS message to be authenticated
 	RasPDU<H225_RegistrationRequest>& rrqPdu, 
-	/// reference to the variable, that can be set 
-	/// to custom H225_RegistrationRejectReason
-	/// if the check fails
-	unsigned& rejectReason
+	/// authorization data (reject reason, ...)
+	RRQAuthData& authData
 	)
 {
 	H225_RegistrationRequest& rrq = (H225_RegistrationRequest&)rrqPdu;
@@ -217,7 +204,7 @@ int RadAuthBase::Check(
 		PTRACE(2, "RADAUTH\t" << GetName() << " RRQ auth failed: "
 			"could not to create Access-Request PDU"
 			);
-		rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
 		return GetDefaultStatus();
 	}
 
@@ -225,7 +212,7 @@ int RadAuthBase::Check(
 
 	// Append User-Name and a password related attributes
 	// (User-Password or Chap-Password and Chap-Timestamp)
-	const int status = AppendUsernameAndPassword(*pdu, rrqPdu, rejectReason);
+	const int status = AppendUsernameAndPassword(*pdu, rrqPdu, authData);
 	if (status != e_ok) {
 		delete pdu;
 		return status;
@@ -244,30 +231,26 @@ int RadAuthBase::Check(
 	*pdu += new RadiusAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
 
 	// append Framed-IP-Address					
-	if (m_includeFramedIp) {
-		PIPSocket::Address addr;
-		bool ipFound = false;
-		if (rrq.m_callSignalAddress.GetSize() > 0) {
-			if (GetIPFromTransportAddr(rrq.m_callSignalAddress[0], addr)
-				&& addr.IsValid()) {
-				*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
-				ipFound = true;
-			}
-		} else if (rrq.m_rasAddress.GetSize() > 0) {
-			if (GetIPFromTransportAddr(rrq.m_rasAddress[0], addr) 
-				&& addr.IsValid()) {
-				*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
-				ipFound = true;
-			}
-		}
-		if (!ipFound) {
-			PTRACE(2, "RADAUTH\t" << GetName() << " RRQ auth failed: "
-				"could not determine Framed-IP-Address"
-				);
-			delete pdu;
-			return e_fail;
-		}
+	PIPSocket::Address addr;
+	bool ipFound = false;
+	if (rrq.m_callSignalAddress.GetSize() > 0) {
+		if (GetIPFromTransportAddr(rrq.m_callSignalAddress[0], addr)
+			&& addr.IsValid())
+			ipFound = true;
+	} else if (rrq.m_rasAddress.GetSize() > 0) {
+		if (GetIPFromTransportAddr(rrq.m_rasAddress[0], addr) 
+			&& addr.IsValid())
+			ipFound = true;
 	}
+	if (!ipFound) {
+		PTRACE(2, "RADAUTH\t" << GetName() << " RRQ auth failed: "
+			"could not determine Framed-IP-Address"
+			);
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_invalidCallSignalAddress;
+		delete pdu;
+		return e_fail;
+	} else
+		*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
 				
 	if (m_appendCiscoAttributes && m_includeTerminalAliases
 			&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
@@ -283,7 +266,7 @@ int RadAuthBase::Check(
 			);
 	}
 	
-	if (!OnSendPDU(*pdu, rrqPdu, rejectReason)) {
+	if (!OnSendPDU(*pdu, rrqPdu, authData)) {
 		delete pdu;
 		return e_fail;
 	}
@@ -298,14 +281,15 @@ int RadAuthBase::Check(
 			" could not receive or decode response from RADIUS"
 			);
 		delete response;
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
 		return GetDefaultStatus();
 	}
 				
 	result = (response->GetCode() == RadiusPDU::AccessAccept);
 	if (result)
-		result = OnReceivedPDU(*response, rrqPdu, rejectReason);
+		result = OnReceivedPDU(*response, rrqPdu, authData);
 	else
-		rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 				
 	delete response;
 	return result ? e_ok : e_fail;
@@ -359,36 +343,25 @@ int RadAuthBase::Check(
 	pdu->SetCode(RadiusPDU::AccessRequest);
 
 	PIPSocket::Address addr;
-	callptr call;
 	endptr callingEP, calledEP;
-	
-	// extract CallRec for the call being admitted (if it already exists)
-	if (arq.HasOptionalField(arq.e_callIdentifier))
-		call = CallTable::Instance()->FindCallRec(arq.m_callIdentifier);
-	else 
-		call = CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
 	
 	// try to extract calling/called endpoints from RegistrationTable
 	// (unregistered endpoints will not be present there)
 	if (arq.m_answerCall) {
-		calledEP = RegistrationTable::Instance()->FindByEndpointId(
-			arq.m_endpointIdentifier
-			);
-		if (call)
-			callingEP = call->GetCallingParty();
+		calledEP = authData.m_requestingEP;
+		if (authData.m_call)
+			callingEP = authData.m_call->GetCallingParty();
 	} else {
-		callingEP = RegistrationTable::Instance()->FindByEndpointId(
-			arq.m_endpointIdentifier
-			);
-		if (call)
-			calledEP = call->GetCalledParty();
-		if ((!calledEP) && arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
+		callingEP = authData.m_requestingEP;
+		if (authData.m_call)
+			calledEP = authData.m_call->GetCalledParty();
+		if (!calledEP && arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
 			calledEP = RegistrationTable::Instance()->FindBySignalAdr(arq.m_destCallSignalAddress);
 	}
 	
 	// at least requesting endpoint (the one that is sending ARQ)
 	// has to be present in the RegistrationTable
-	if (arq.m_answerCall ? (!calledEP) : (!callingEP)) {
+	if (arq.m_answerCall ? !calledEP : !callingEP) {
 		delete pdu;
 		PTRACE(3, "RADAUTH\t" << GetName() << " ARQ auth failed: "
 			"requesting endpoint " << arq.m_endpointIdentifier 
@@ -403,9 +376,7 @@ int RadAuthBase::Check(
 	// Append User-Name and a password related attributes
 	// (User-Password or Chap-Password and Chap-Timestamp)
 	PString username;				
-	const int status = AppendUsernameAndPassword(*pdu, arqPdu,
-		arq.m_answerCall ? calledEP : callingEP, authData, &username
-		);
+	const int status = AppendUsernameAndPassword(*pdu, arqPdu, authData, &username);
 	if (status != e_ok) {
 		delete pdu;
 		return status;
@@ -427,118 +398,45 @@ int RadAuthBase::Check(
 		);
 				
 	// append Frame-IP-Address					
-	if (m_includeFramedIp) {
-		bool ipFound = false;
-		if (arq.m_answerCall) {
-			if (calledEP 
-				&& GetIPFromTransportAddr(calledEP->GetCallSignalAddress(), addr)
-				&& addr.IsValid()) {
-				*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
-				ipFound = true;
-			} else if (arq.HasOptionalField(arq.e_destCallSignalAddress) 
-				&& GetIPFromTransportAddr(arq.m_destCallSignalAddress, addr)
-				&& addr.IsValid()) {
-				*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
-				ipFound = true;
-			}
-		} else {
-			if (callingEP 
-				&& GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr)
-				&& addr.IsValid()) {
-				*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
-				ipFound = true;
-			} else if(arq.HasOptionalField(arq.e_srcCallSignalAddress)
-				&& GetIPFromTransportAddr(arq.m_srcCallSignalAddress, addr) 
-				&& addr.IsValid()) {
-				*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
-				ipFound = true;
-			}
-		}
-		if (!ipFound) {
-			PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
-				"could not setup Framed-IP-Address"
-				);
-			delete pdu;
-			return e_fail;
-		}
+	bool ipFound = false;
+	if (arq.m_answerCall) {
+		if (calledEP 
+			&& GetIPFromTransportAddr(calledEP->GetCallSignalAddress(), addr)
+			&& addr.IsValid())
+			ipFound = true;
+		else if (arq.HasOptionalField(arq.e_destCallSignalAddress) 
+			&& GetIPFromTransportAddr(arq.m_destCallSignalAddress, addr)
+			&& addr.IsValid())
+			ipFound = true;
+	} else {
+		if (callingEP 
+			&& GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr)
+			&& addr.IsValid())
+			ipFound = true;
+		else if(arq.HasOptionalField(arq.e_srcCallSignalAddress)
+			&& GetIPFromTransportAddr(arq.m_srcCallSignalAddress, addr) 
+			&& addr.IsValid())
+			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
 	}
+	if (!ipFound) {
+		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
+			"could not setup Framed-IP-Address"
+			);
+		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
+		delete pdu;
+		return e_fail;
+	} else
+		*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
 					
 	// fill Calling-Station-Id and Called-Station-Id fields
-				
-	// Calling-Station-Id
-	// Priority:
-	//	ARQ.m_srcInfo (first dialedDigits alias, then first partyNumber alias,...)
-	//  first dialedDigits alias from registration table, then first partyNumber ...
-	//	generalID from CAT ClearToken (if the call originator)
-					
-	PString stationId;
-
-	// first try to extract Calling-Station-Id from m_srcInfo field
-	// (this field usually contains alias displayed to the remote party)
-	if (arq.m_srcInfo.GetSize() > 0) {
-		stationId = GetBestAliasAddressString(
-			arq.m_srcInfo,
-			H225_AliasAddress::e_dialedDigits, 
-			H225_AliasAddress::e_partyNumber,
-			H225_AliasAddress::e_h323_ID
-			);
-		// check for valid alias (some endpoint like NM place in m_srcInfo
-		// funny things). For gateways, skip the test.
-		if (callingEP && !stationId.IsEmpty())
-			if (!(callingEP->IsGateway()
-				|| CheckAliases(callingEP->GetAliases(), stationId)))
-				stationId = PString();
-	}
-
-	// if no alias found in m_srcInfo, then try to get alias
-	// that the calling party is registered with				
-	if (stationId.IsEmpty() && callingEP)
-		stationId = GetBestAliasAddressString(
-			callingEP->GetAliases(),
-			H225_AliasAddress::e_dialedDigits,
-			H225_AliasAddress::e_partyNumber,
-			H225_AliasAddress::e_h323_ID
-			);
-
-	// if no alias has been found, then use User-Name
-	if (stationId.IsEmpty() && !arq.m_answerCall)
-		stationId = username;
-				
-	if (!stationId)
+	PString stationId = GetCallingStationId(arqPdu, authData);
+	if (!stationId) {
 		*pdu += new RadiusAttr(RadiusAttr::CallingStationId, stationId);
+		if (authData.m_callingStationId.IsEmpty())
+			authData.m_callingStationId = stationId;
+	}
 						
-	stationId = PString();
-					
-	// Called-Station-Id
-	// Priority:
-	//	ARQ.m_destinationInfo[0] (first dialedDigits alias, then first partyNumber ...)
-	//  first dialedDigitst alias from registration table, first partyNumber ...
-	//  generalID from CAT token (if answering the call)
-	//	ARQ.m_destCallSignalAddress::e_ipAddress
-	if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
-		&& arq.m_destinationInfo.GetSize() > 0)
-		stationId = GetBestAliasAddressString(
-			arq.m_destinationInfo,
-			H225_AliasAddress::e_dialedDigits,
-			H225_AliasAddress::e_partyNumber,
-			H225_AliasAddress::e_h323_ID
-			);
-				
-	if (stationId.IsEmpty() && calledEP)
-		stationId = GetBestAliasAddressString(
-			calledEP->GetAliases(),
-			H225_AliasAddress::e_dialedDigits,
-			H225_AliasAddress::e_partyNumber,
-			H225_AliasAddress::e_h323_ID
-			);
-						
-	if (stationId.IsEmpty() && arq.m_answerCall)
-		stationId = username;
-		
-	if (stationId.IsEmpty() 
-		&& arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
-		stationId = AsDotString(arq.m_destCallSignalAddress);
-				
+	stationId = GetCalledStationId(arqPdu, authData);
 	if (stationId.IsEmpty()) {
 		delete pdu;
 		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
@@ -546,10 +444,12 @@ int RadAuthBase::Check(
 			);
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		return e_fail;
+	} else {
+		*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
+		if (authData.m_calledStationId.IsEmpty())
+			authData.m_calledStationId = stationId;
 	}
-				
-	*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
-			
+	
 	if (m_appendCiscoAttributes) {
 		*pdu += new RadiusAttr(
 			PString("h323-conf-id=") + GetGUIDString(arq.m_conferenceID),
@@ -581,6 +481,7 @@ int RadAuthBase::Check(
 			" could not receive or decode response from RADIUS"
 			);
 		delete response;
+		authData.m_rejectReason = H225_AdmissionRejectReason::e_undefinedReason;
 		return GetDefaultStatus();
 	}
 				
@@ -676,23 +577,14 @@ int RadAuthBase::Check(
 	pdu->SetCode(RadiusPDU::AccessRequest);
 
 	PIPSocket::Address addr;
-	callptr call;
 	endptr callingEP, calledEP;
 	
-	// extract CallRec for the call being admitted (if it already exists)
-	if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier))
-		call = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
-	else 
-		call = CallTable::Instance()->FindCallRec(q931pdu.GetCallReference());
-	
-	// try to extract calling/called endpoints from RegistrationTable
-	// (unregistered endpoints will not be present there)
-	if (setup.HasOptionalField(H225_Setup_UUIE::e_endpointIdentifier))
+	if (authData.m_call)
+		callingEP = authData.m_call->GetCallingParty();
+	if (!callingEP && setup.HasOptionalField(H225_Setup_UUIE::e_endpointIdentifier))
 		callingEP = RegistrationTable::Instance()->FindByEndpointId(
 			setup.m_endpointIdentifier
 			);
-	if ((!callingEP) && call)
-		callingEP = call->GetCallingParty();
 		
 	// Append User-Name and a password related attributes
 	// (User-Password or Chap-Password and Chap-Timestamp)
@@ -719,114 +611,40 @@ int RadAuthBase::Check(
 	*pdu += new RadiusAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login );
 				
 	// append Frame-IP-Address					
-	if (m_includeFramedIp) {
-		bool ipFound = false;
-		WORD dummyPort;
+	bool ipFound = false;
+	WORD dummyPort;
 		
-		if (call && call->GetSrcSignalAddr(addr, dummyPort) && addr.IsValid())
-			ipFound = true;	
-		else if (callingEP 
-			&& GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr)
-			&& addr.IsValid())
-			ipFound = true;
-		else if (setup.HasOptionalField(setup.e_sourceCallSignalAddress)
-			&& GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
-			&& addr.IsValid())
-			ipFound = true;
+	if (authData.m_call && authData.m_call->GetSrcSignalAddr(addr, dummyPort) 
+		&& addr.IsValid())
+		ipFound = true;	
+	else if (callingEP 
+		&& GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr)
+		&& addr.IsValid())
+		ipFound = true;
+	else if (setup.HasOptionalField(setup.e_sourceCallSignalAddress)
+		&& GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
+		&& addr.IsValid())
+		ipFound = true;
 			
-		if (!ipFound) {
-			PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
-				"could not setup Framed-IP-Address"
-				);
-			delete pdu;
-			return e_fail;
-		} else
-			*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
-	}
+	if (!ipFound) {
+		PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
+			"could not setup Framed-IP-Address"
+			);
+		delete pdu;
+		authData.m_rejectCause = Q931::CallRejected;
+		return e_fail;
+	} else
+		*pdu += new RadiusAttr(RadiusAttr::FramedIpAddress, addr);
 				
 	// fill Calling-Station-Id and Called-Station-Id fields
-	PString stationId;
-
-	if (q931pdu.HasIE(Q931::CallingPartyNumberIE)
-		&& q931pdu.GetCallingPartyNumber(stationId)) {
-		if (callingEP) {
-			H225_ArrayOf_AliasAddress cli;
-			cli.SetSize(1);
-			H323SetAliasAddress(stationId,cli[0]);
-			if (!(callingEP->CompareAlias(&cli) 
-				|| (callingEP->IsGateway() 
-				&& dynamic_cast<GatewayRec*>(callingEP.operator->())->PrefixMatch(cli) > 0)))
-				stationId = PString();
-		} else if (setup.HasOptionalField(setup.e_sourceAddress)) {
-			if (!CheckAliases(setup.m_sourceAddress, stationId))
-				stationId = PString();
-		} else
-			stationId = PString();
-	}
-	
-	// if no alias found in m_srcInfo, then try to get alias
-	// that the calling party is registered with				
-	if (stationId.IsEmpty() && callingEP) {
-		if (setup.HasOptionalField(setup.e_sourceAddress)) {
-			int matchedalias = -1;
-			if (callingEP->MatchAlias(setup.m_sourceAddress, matchedalias)
-				|| (callingEP->IsGateway() 
-					&& dynamic_cast<GatewayRec*>(callingEP.operator->())->PrefixMatch(setup.m_sourceAddress,matchedalias) > 0) )
-				if (matchedalias >= 0 && matchedalias < setup.m_sourceAddress.GetSize())
-					stationId = H323GetAliasAddressString(setup.m_sourceAddress[matchedalias]);
-		}
-		if (stationId.IsEmpty() && callingEP->GetAliases().GetSize() > 0)
-			stationId = GetBestAliasAddressString(
-				callingEP->GetAliases(),
-				H225_AliasAddress::e_dialedDigits,
-				H225_AliasAddress::e_partyNumber,
-				H225_AliasAddress::e_h323_ID
-				);
-	}
-
-	if (stationId.IsEmpty() && setup.HasOptionalField(setup.e_sourceAddress)
-		&& setup.m_sourceAddress.GetSize() > 0)
-		stationId = GetBestAliasAddressString(
-			setup.m_sourceAddress,
-			H225_AliasAddress::e_dialedDigits,
-			H225_AliasAddress::e_partyNumber,
-			H225_AliasAddress::e_h323_ID
-			);
-			
-	// if no alias has been found, then use User-Name
-	if (stationId.IsEmpty())
-		stationId = username;
-				
-	if (!stationId)		
+	PString stationId = GetCallingStationId(q931pdu, setup, authData);
+	if (!stationId) {
 		*pdu += new RadiusAttr(RadiusAttr::CallingStationId, stationId);
-						
-	stationId = PString();
-					
-	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)
-		&& q931pdu.GetCalledPartyNumber(stationId) && !stationId.IsEmpty())
-		if (setup.HasOptionalField(setup.e_destinationAddress)) {
-			if (!CheckAliases(setup.m_destinationAddress,stationId))
-				stationId = PString();
-		} else
-			stationId = PString();
-	
-	if (stationId.IsEmpty() && setup.HasOptionalField(setup.e_destinationAddress) 
-		&& setup.m_destinationAddress.GetSize() > 0)
-		stationId = GetBestAliasAddressString(
-			setup.m_destinationAddress,
-			H225_AliasAddress::e_dialedDigits,
-			H225_AliasAddress::e_partyNumber,
-			H225_AliasAddress::e_h323_ID
-			);
-	
-	if (stationId.IsEmpty() 
-		&& setup.HasOptionalField(setup.e_destCallSignalAddress)) {
-		addr = (DWORD)0;
-		if (GetIPFromTransportAddr(setup.m_destCallSignalAddress, addr) 
-			&& addr.IsValid())
-			stationId = addr.AsString();
+		if (authData.m_callingStationId.IsEmpty())
+			authData.m_callingStationId = stationId;
 	}
-	
+						
+	stationId = GetCalledStationId(q931pdu, setup, authData);
 	if (stationId.IsEmpty()) {
 		delete pdu;
 		PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
@@ -834,9 +652,11 @@ int RadAuthBase::Check(
 			);
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_badFormatAddress;
 		return e_fail;
+	} else {
+		*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
+		if (authData.m_calledStationId.IsEmpty())
+			authData.m_calledStationId = stationId;
 	}
-		
-	*pdu += new RadiusAttr(RadiusAttr::CalledStationId, stationId);
 			
 	if (m_appendCiscoAttributes) {
 		*pdu += new RadiusAttr(
@@ -948,7 +768,7 @@ int RadAuthBase::Check(
 bool RadAuthBase::OnSendPDU(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	unsigned& /*rejectReason*/
+	GkAuthenticator::RRQAuthData& /*authData*/
 	)
 {
 	return true;
@@ -976,7 +796,7 @@ bool RadAuthBase::OnSendPDU(
 bool RadAuthBase::OnReceivedPDU(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	unsigned& /*rejectReason*/
+	GkAuthenticator::RRQAuthData& /*authData*/
 	)
 {
 	return true;
@@ -1004,7 +824,7 @@ bool RadAuthBase::OnReceivedPDU(
 int RadAuthBase::AppendUsernameAndPassword(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	unsigned& /*rejectReason*/,
+	GkAuthenticator::RRQAuthData& /*authData*/,
 	PString* /*username*/
 	) const
 {
@@ -1014,7 +834,6 @@ int RadAuthBase::AppendUsernameAndPassword(
 int RadAuthBase::AppendUsernameAndPassword(
 	RadiusPDU& /*pdu*/,
 	RasPDU<H225_AdmissionRequest>& /*arqPdu*/,
-	endptr& /*originatingEP*/,
 	GkAuthenticator::ARQAuthData& /*authData*/,
 	PString* /*username*/
 	) const
@@ -1084,7 +903,7 @@ int RadAuth::CheckTokens(
 				
 		// generalID should be present in the list of terminal aliases
 		const PString id = token.m_generalID;
-		if (aliases && !CheckAliases(*aliases, id)) {
+		if (aliases && FindAlias(*aliases, id) == P_MAX_INDEX) {
 			PTRACE(3, "RADAUTH\t" << GetName() << " auth failed: "
 				"CAT m_generalID is not a valid alias"
 				);
@@ -1133,7 +952,7 @@ int RadAuth::CheckTokens(
 int RadAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_RegistrationRequest>& rrqPdu,
-	unsigned& rejectReason,
+	GkAuthenticator::RRQAuthData& authData,
 	PString* username
 	) const
 {
@@ -1144,7 +963,7 @@ int RadAuth::AppendUsernameAndPassword(
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ auth failed: "
 			"no m_terminalAlias field"
 			);
-		rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
 		
@@ -1153,20 +972,19 @@ int RadAuth::AppendUsernameAndPassword(
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ auth failed: "
 			"tokens not found"
 			);
-		rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
 
 	const int result = CheckTokens(pdu, rrq.m_tokens, &rrq.m_terminalAlias, username);
 	if (result != e_ok)	
-		rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 	return result;
 }
 
 int RadAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_AdmissionRequest>& arqPdu,
-	endptr& /*originatingEP*/,
 	GkAuthenticator::ARQAuthData& authData,
 	PString* username
 	) const
@@ -1231,34 +1049,23 @@ RadAliasAuth::~RadAliasAuth()
 int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_RegistrationRequest>& rrqPdu, 
-	unsigned& rejectReason,
+	GkAuthenticator::RRQAuthData& authData,
 	PString* username
 	) const
 {
-	H225_RegistrationRequest& rrq = (H225_RegistrationRequest&)rrqPdu;
-	
-	PString id;				
-
-	if (m_fixedUsername.IsEmpty()) {
-		if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) 
-			&& rrq.m_terminalAlias.GetSize() > 0)
-			id = GetBestAliasAddressString(
-				rrq.m_terminalAlias,
-				H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits
-				);
-	} else
-		id = m_fixedUsername;
-		
-	if (id.IsEmpty()) {
+	const PString id = GetUsername(rrqPdu);
+	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: "
 			"neither FixedUsername nor alias inside RRQ were found"
 			);
-		rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
 	
 	// append User-Name
-   	pdu += new RadiusAttr(RadiusAttr::UserName, id);
+   	pdu += new RadiusAttr(RadiusAttr::UserName, 
+		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
+		);
 	
 	if (username != NULL)
 		*username = (const char*)id;
@@ -1267,7 +1074,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	if (!m_fixedPassword)
 		pdu += new RadiusAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else 
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, id);
+		pdu += new RadiusAttr(RadiusAttr::UserPassword, 
+			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
+			);
 		
 	return e_ok;			
 }
@@ -1275,32 +1084,12 @@ int RadAliasAuth::AppendUsernameAndPassword(
 int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	RasPDU<H225_AdmissionRequest>& arqPdu,
-	endptr& originatingEP,
 	GkAuthenticator::ARQAuthData& authData,
 	PString* username
 	) const
 {
-	H225_AdmissionRequest& arq = (H225_AdmissionRequest&)arqPdu;
-	
-	PString id;				
-	PIPSocket::Address addr;
-
-	if (m_fixedUsername.IsEmpty()) {	
-		if (originatingEP && originatingEP->GetAliases().GetSize() > 0)
-			id = GetBestAliasAddressString(
-				originatingEP->GetAliases(),
-				H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits
-				);
-
-		if (id.IsEmpty() && arq.m_srcInfo.GetSize() > 0)
-			id = GetBestAliasAddressString(
-				arq.m_srcInfo,
-				H225_AliasAddress::e_h323_ID, H225_AliasAddress::e_dialedDigits
-				);
-	} else
-		id = m_fixedUsername;
-		
-	if (id.IsEmpty()) {
+	const PString id = GetUsername(arqPdu, authData);
+	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " ARQ check failed: "
 			"neither FixedUsername nor alias inside ARQ were found"
 			);
@@ -1309,7 +1098,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	}
 	
 	// append User-Name
-   	pdu += new RadiusAttr(RadiusAttr::UserName, id);
+   	pdu += new RadiusAttr(RadiusAttr::UserName, 
+		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
+		);
 
 	if (username != NULL)
 		*username = (const char*)id;
@@ -1317,7 +1108,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	if (!m_fixedPassword)
 		pdu += new RadiusAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, id);
+		pdu += new RadiusAttr(RadiusAttr::UserPassword, 
+			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
+			);
 			
 	return e_ok;
 }
@@ -1326,44 +1119,13 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU& pdu,
 	Q931& q931pdu, 
 	H225_Setup_UUIE& setup,
-	endptr& callingEP,
+	endptr& /*callingEP*/,
 	GkAuthenticator::SetupAuthData& authData,
 	PString* username
 	) const
 {
-	PString id;				
-	PIPSocket::Address addr;
-
-	if (m_fixedUsername.IsEmpty()) {	
-		if (callingEP && callingEP->GetAliases().GetSize() > 0)
-			id = GetBestAliasAddressString(callingEP->GetAliases(),
-				H225_AliasAddress::e_h323_ID,
-				H225_AliasAddress::e_dialedDigits
-				);
-	
-		if (id.IsEmpty() && setup.HasOptionalField(setup.e_sourceAddress)
-			&& setup.m_sourceAddress.GetSize() > 0)
-			id = GetBestAliasAddressString(setup.m_sourceAddress,
-				H225_AliasAddress::e_h323_ID,
-				H225_AliasAddress::e_dialedDigits
-				);
-		
-		if (id.IsEmpty() && q931pdu.HasIE(Q931::CallingPartyNumberIE))
-			q931pdu.GetCallingPartyNumber(id);
-		
-		if (id.IsEmpty() && setup.HasOptionalField(setup.e_sourceCallSignalAddress))
-			if (GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
-				&& addr.IsValid())
-				id = addr.AsString();
-	
-		if (id.IsEmpty() && callingEP)
-			if( GetIPFromTransportAddr(callingEP->GetCallSignalAddress(), addr) 
-				&& addr.IsValid())
-				id = addr.AsString();
-	} else
-		id = m_fixedUsername;
-		
-	if (id.IsEmpty()) {
+	const PString id = GetUsername(q931pdu, setup, authData);
+	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " Setup check failed: "
 			"neither FixedUsername nor alias inside Setup were found"
 			);
@@ -1372,7 +1134,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	}
 	
 	// append User-Name
-   	pdu += new RadiusAttr(RadiusAttr::UserName, id);
+   	pdu += new RadiusAttr(RadiusAttr::UserName, 
+		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
+		);
 
 	if (username != NULL)
 		*username = (const char*)id;
@@ -1380,7 +1144,9 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	if (!m_fixedPassword)
 		pdu += new RadiusAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else
-		pdu += new RadiusAttr(RadiusAttr::UserPassword, id);
+		pdu += new RadiusAttr(RadiusAttr::UserPassword, 
+			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
+			);
 			
 	return e_ok;
 }
