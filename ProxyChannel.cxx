@@ -49,6 +49,8 @@ static const char vcHid[] = PROXYCHANNEL_H;
 const char *RoutedSec = "RoutedMode";
 const char *ProxySection = "Proxy";
 
+static BOOL ConvertNumberInternational(PString & number, unsigned int &TON, unsigned int & plan, unsigned int & SI, const CallProfile & profile);
+
 class PortRange {
 public:
        WORD GetPort();
@@ -1025,13 +1027,43 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			called = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_destCallSignalAddress);
 			destinationString = AsDotString(Setup.m_destCallSignalAddress);
 		}
-		if (!called && Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-			if (callingEP)
-				called = RegistrationTable::Instance()->getMsgDestination(Setup.m_destinationAddress[0], // should check all
-										  callingEP, reason);
+		if (!called ) {
+			// We have to convert the number to international format here.
+			CallingProfile & cgpf = m_call->GetCallingProfile();
+			PString CalledPartyNumber;
+			H225_AliasAddress calledAlias;
+			unsigned int CalledTON     = 0;
+			unsigned int CalledPLAN    = 0;
+			unsigned int CalledSI      = 0;
+			if(GetSetupPDU()->GetCalledPartyNumber(CalledPartyNumber, &CalledPLAN, &CalledTON)) {
+				PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON << "preparing to change: " << cgpf.TreatCalledPartyNumberAs());
+				CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ? CalledTON : cgpf.TreatCalledPartyNumberAs());
+				PTRACE(5, "CgPNConversion read CalledPartyNumber: " << CalledPartyNumber << " with TON: " << CalledTON);
+				ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
+				PTRACE(5, "CgPNConversion converted CalledPartyNumber to int: " << CalledPartyNumber << " with TON: " << CalledTON);
+				calledAlias.SetTag(H225_AliasAddress::e_dialedDigits);
+				H323SetAliasAddress(CalledPartyNumber, calledAlias, H225_AliasAddress::e_dialedDigits);
+				if (callingEP)
+					called = RegistrationTable::Instance()->getMsgDestination(calledAlias,
+												  callingEP, reason);
+			}else if(Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)){ // check H225_Setup_UUIE::e_destinationAddress
+				for (PINDEX i=0; !called && i < Setup.m_destinationAddress.GetSize(); i++) {
+					if(H225_AliasAddress::e_h323_ID==Setup.m_destinationAddress[i].GetTag()) {
+						CalledPartyNumber=H323GetAliasAddressString(Setup.m_destinationAddress[i]);
+						CalledTON=((cgpf.TreatCalledPartyNumberAs()==CallProfile::LeaveUntouched) ?
+							   CalledTON : cgpf.TreatCalledPartyNumberAs());
+						ConvertNumberInternational(CalledPartyNumber, CalledPLAN, CalledTON, CalledSI, cgpf);
+						calledAlias.SetTag(H225_AliasAddress::e_dialedDigits);
+						H323SetAliasAddress(CalledPartyNumber, calledAlias, H225_AliasAddress::e_dialedDigits);
+						if (callingEP)
+							called = RegistrationTable::Instance()->getMsgDestination(calledAlias,
+														  callingEP, reason);
+					}
+				}
+			}
 			destinationString = AsString(Setup.m_destinationAddress);
-
 		}
+
 		if (!called && reason!=H225_AdmissionRejectReason::e_incompleteAddress) {
 			m_call->RemoveSocket();
 			CallTable::Instance()->RemoveCall(m_call);
@@ -1589,7 +1621,7 @@ void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsi
 
 
 static BOOL MatchAlias(const CallProfile &profile, const PString number);
-static BOOL ConvertNumberInternational(PString & number, unsigned int &TON, unsigned int & plan, unsigned int & SI, const CallProfile & profile);
+
 
 BOOL CallSignalSocket::CgPNConversion() {
 	// The variables to store the needed information:
