@@ -50,6 +50,30 @@ endif
 
 # add test for HAS_LEVEL_TWO_LDAPAPI here
 
+# This is needed for a locally used encoding lib.
+ifdef HAS_MWBB1
+ifndef MWBB1DIR
+MWBB1DIR := .
+endif				# MWBB1DIR
+ifndef MWBB1LIBDIR
+MWBB1LIBDIR := .
+endif				# MWBB1LIBDIR
+ifndef MWBB1_TAG
+MWBB1_TAG := "{TAG}"
+export MWBB1_TAG
+endif
+STDCCFLAGS	+= -D'MWBB1_TAG=$(MWBB1_TAG)' -I$(MWBB1DIR)
+LDFLAGS         += -L$(MWBB1LIBDIR)
+ENDLDLIBS	+= -lMWCrypt
+ifneq (,(LD_RUN_PATH))
+LD_RUN_stub     := $(LD_RUN_PATH)
+LD_RUN_PATH     += $(LD_RUN_stub):$(MWBB1LIBDIR)
+else
+LD_RUN_PATH     += $(MWBB1LIBDIR)
+endif
+export LD_RUN_PATH
+endif				# HAS_MWBB1
+
 ifdef HAS_LEVEL_TWO_LDAPAPI
 SOURCES         += ldapapi.cxx
 HAS_LDAP	= 1
