@@ -42,81 +42,6 @@
 #endif
 
 const char *CallTableSection = "CallTable";
-/*
-conferenceRec::conferenceRec(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw)
-{
-    m_src = src;
-    m_cid = cid;
-    m_bw = bw;
-}
-
-bool conferenceRec::operator< (const conferenceRec & other) const
-{
-	return (this->m_cid < other.m_cid);
-};
-
-resourceManager::resourceManager()
-{
-	m_capacity = 0;
-};
-
-
-void resourceManager::SetBandWidth(int bw)
-{
-	m_capacity = bw;
-	cout << endl << "Available BandWidth " << m_capacity  << endl;
-}
-
-
-unsigned int resourceManager::GetAvailableBW(void) const
-{
-	unsigned int RemainingBW = m_capacity.GetValue();
-	std::set<conferenceRec>::const_iterator Iter;
-
-	for (Iter = ConferenceList.begin(); Iter != ConferenceList.end(); ++Iter)
-	{
-		if( RemainingBW >= (*Iter).m_bw.GetValue() )
-			RemainingBW = RemainingBW - (*Iter).m_bw.GetValue();
-		else {
-			// we have already granted more bandwidth than we have capacity
-			// this sould not happen
-			// BUG: it happens now, because we count bandwidth twice, if both endpoints are registered with us
-			RemainingBW = 0;
-			return RemainingBW;
-		}
-	};
-	return RemainingBW;
-}
-
-
-BOOL resourceManager::GetAdmission(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid, const H225_BandWidth & bw)
-{
-    if( bw.GetValue() > GetAvailableBW() )
-		return FALSE;
-
-    conferenceRec cRec( src, cid, bw );
-	ConferenceList.insert(cRec);
-    PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable BandWidth " << GetAvailableBW());
-    return TRUE;
-}
-
-
-BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const H225_ConferenceIdentifier & cid)
-{
-	std::set<conferenceRec>::iterator Iter;
-
-	for (Iter = ConferenceList.begin(); Iter != ConferenceList.end(); ++Iter)
-	{
-		if( ((*Iter).m_src == src) && ((*Iter).m_cid == cid) )
-		{
-			ConferenceList.erase(Iter);
-    		PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable BandWidth " << GetAvailableBW());
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-*/
 // Classes to store information read form e.g. LDAP
 // necessary for e.g. routing decisions
 
@@ -511,9 +436,9 @@ bool GatewayRec::LoadConfig()
 {
 	PWaitAndSignal lock(m_usedLock);
 	Prefixes.clear();
-	if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol)) {
-		AddPrefixes(m_terminalType->m_gateway.m_protocol);
-	}
+	if (Toolkit::AsBool(GkConfig()->GetString("RasSvr::RRQFeatures", "AcceptGatewayPrefixes", "1")))
+		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+			AddPrefixes(m_terminalType->m_gateway.m_protocol);
 	for (PINDEX i=0; i<m_terminalAliases.GetSize(); i++) {
 		// Get terminal aliases from LDAP
 		PStringArray p = (GkConfig()->GetString("RasSvr::GWPrefixes",
@@ -653,7 +578,7 @@ OuterZoneGWRec::OuterZoneGWRec(const H225_RasMessage & completeLCF, const H225_E
 
 RegistrationTable::RegistrationTable()
 {
-	srand(time(0));
+//	srand(time(0));
 	recCnt = rand()%9000+1000;
 	ozCnt = 1000; // arbitrary chosen constant
 
@@ -1224,26 +1149,17 @@ void CallRec::RemoveAll()
 
 void CallRec::RemoveSocket()
 {
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
-                if (m_callingSocket) {
-                        m_callingSocket->SendReleaseComplete();
-			PTRACE(4, "Sending ReleaseComplete to calling party ...");
-		}
-                if (m_calledSocket) {
-			PTRACE(4, "Sending ReleaseComplete to called party ...");
-                        m_calledSocket->SendReleaseComplete();
-		}
-        }
-
+	PWaitAndSignal lock(m_usedLock);
 	if (m_callingSocket) {
 		m_callingSocket->SetDeletable();
 		m_callingSocket = 0;
 	}
 
-	if (m_calledSocket) {
-		m_calledSocket->SetDeletable();
+	// m_calledSocket may be an invalid pointer
+//	if (m_calledSocket) {
+//		m_calledSocket->SetDeletable();
 		m_calledSocket = 0;
-	}
+//	}
 }
 
 int CallRec::CountEndpoints() const
@@ -1259,16 +1175,25 @@ int CallRec::CountEndpoints() const
 
 void CallRec::Disconnect(bool force)
 {
-	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
-		if (m_callingSocket)
-			m_callingSocket->EndSession();
-		if (m_calledSocket)
-			m_calledSocket->EndSession();
-	} else {
+	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket))
+		SendReleaseComplete();
+	else
 		SendDRQ();
-	}
 
 	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
+}
+
+void CallRec::SendReleaseComplete()
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (m_callingSocket) {
+		PTRACE(4, "Sending ReleaseComplete to calling party ...");
+		m_callingSocket->SendReleaseComplete();
+	}
+	if (m_calledSocket) {
+		PTRACE(4, "Sending ReleaseComplete to called party ...");
+		m_calledSocket->SendReleaseComplete();
+	}
 }
 
 void CallRec::SendDRQ()
@@ -1297,14 +1222,14 @@ void CallRec::SendDRQ()
 	}
 }
 
-static PString GetEPString(const endptr & ep)
+static PString GetEPString(const endptr & ep, const CallSignalSocket *socket)
 {
 	if (ep) {
 		return PString(PString::Printf, "%s|%s",
 			(const char *)AsDotString(ep->GetCallSignalAddress()),
 			(const char *)ep->GetEndpointIdentifier().GetValue());
 	}
-	return PString(" | ");
+	return socket ? socket->Name() + "| " : PString(" | ");
 }
 
 // for user defined CDRs
@@ -1339,12 +1264,12 @@ static const char * const UseCDRFormat = "UseCDRFormat";
        \item[yyy/yyyy]  year with century
        \item[z]         the time zone description
 \end{description}
- 
+
 All other characters are copied to the output string unchanged.
-       
+
 Note if there is an 'a' character in the string, the hour will be in 12
 hour format, otherwise in 24 hour format.
- 
+
 This format applies to the following constant and analogical to the
 configuration file tag to which it is the default value.
 
@@ -1363,7 +1288,7 @@ PString CallRec::GenerateCDR()
 {
 	PString timeString;
 	PString startTimeStr;
-	PString endTimeStr;	
+	PString endTimeStr;
 	PTime endTime;
 	PString srcInfo(m_srcInfo);
 	PString destInfo(m_destInfo);
@@ -1393,8 +1318,8 @@ PString CallRec::GenerateCDR()
 		       m_CallNumber,
 		       (const char *)AsString(m_callIdentifier.m_guid),
 		       (const char *)timeString,
-		       (const char *)GetEPString(m_Calling),
-		       (const char *)GetEPString(m_Called),
+		       (const char *)GetEPString(m_Calling, m_callingSocket),
+		       (const char *)GetEPString(m_Called, m_calledSocket),
 		       (const char *)destInfo,
 		       (const char *)srcInfo,
 		       (const char *)Toolkit::Instance()->GKName()
@@ -1409,8 +1334,8 @@ PString CallRec::PrintOn(bool verbose) const
 		       "Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
 		       m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), time, left,
 		(const char *)m_destInfo,
-		(const char *)GetEPString(m_Calling), m_callingCRV,
-		(const char *)GetEPString(m_Called), m_calledCRV
+		(const char *)GetEPString(m_Calling, m_callingSocket), m_callingCRV,
+		(const char *)GetEPString(m_Called, m_calledSocket), m_calledCRV
 	);
 	if (verbose) {
 		result += PString(PString::Printf, "# %s|%s|%d|%s <%d>" GK_LINEBRK,
@@ -1500,6 +1425,16 @@ callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) cons
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdr), &SignalAdr));
 }
 
+void CallTable::ClearTable()
+{
+	iterator Iter = CallList.begin(), eIter = CallList.end();
+	while (Iter != eIter) {
+		iterator i = Iter++;
+		(*i)->Disconnect();
+		InternalRemove(i);
+	}
+}
+
 void CallTable::CheckCalls()
 {
 	PTime now;
@@ -1520,10 +1455,12 @@ void CallTable::CheckCalls()
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
 {
-	if (obj_drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier))
-		InternalRemove(obj_drq.m_callIdentifier);
-	else
-		InternalRemove(obj_drq.m_callReferenceValue.GetValue());
+	callptr call = obj_drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? FindCallRec(obj_drq.m_callIdentifier) : FindCallRec(obj_drq.m_callReferenceValue.GetValue());
+	if (call) {
+		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0")))
+			call->SendReleaseComplete();
+		RemoveCall(call);
+	}
 }
 
 void CallTable::RemoveCall(const callptr & call)
