@@ -487,10 +487,9 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		// TODO: check the Setup_UUIE by gkauth modules
 
 		PString sourceString(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) ? AsString(Setup.m_sourceAddress) : PString());
-		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0);
+		CallRec *call = new CallRec(Setup.m_callIdentifier, Setup.m_conferenceID, destinationString, sourceString, 0, RasThread->IsGKRoutedH245());
 		call->SetCalled(called, m_crv);
-		call->SetH245Routed(RasThread->IsGKRoutedH245());
-		// TODO: set timeout
+
 		CallTable::Instance()->Insert(call);
 		m_call = callptr(call);
 		if (fromParent) {

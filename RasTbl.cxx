@@ -984,7 +984,7 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 		 const H225_ConferenceIdentifier & ConfId,
 		 const PString & destInfo,
 		 const PString & srcInfo,
-		 int Bandwidth)
+		 int Bandwidth, bool h245Routed)
       : m_callIdentifier(CallId), m_conferenceIdentifier(ConfId),
 	m_destInfo(destInfo),
 	m_srcInfo(srcInfo), // added (MM 05.11.01)
@@ -992,8 +992,11 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
 	m_callingCRV(0), m_calledCRV(0),
 	m_startTime(0), m_timeout(0),
 	m_callingSocket(0), m_calledSocket(0),
-	m_usedCount(0), m_nattype(none)
+	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed)
 {
+	int timeout = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
+	SetTimer(timeout);
+	StartTimer();
 }
 
 CallRec::~CallRec()
@@ -1010,6 +1013,12 @@ void CallRec::SetConnected(bool c)
 		StartTimer();
 	else
 		StopTimer();
+}
+
+void CallRec::SetTimer(int seconds)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_timeout = seconds;
 }
 
 void CallRec::StartTimer()

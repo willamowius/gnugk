@@ -400,8 +400,7 @@ class CallSignalSocket;
 class CallRec
 {
 public:
-	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, const PString &, 
-	        const PString & srcInfo, int);
+	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, const PString &, const PString & srcInfo, int, bool);
 	virtual ~CallRec();
 
 	enum NATType { // who is nated?
@@ -429,7 +428,6 @@ public:
 	void SetBandwidth(int Bandwidth) { m_bandWidth = Bandwidth; }
 	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
-	void SetH245Routed(bool h245Routed) { m_h245Routed = h245Routed; }
 	void SetRegistered(bool registered) { m_registered = registered; }
 
 	void SetConnected(bool c);
@@ -620,11 +618,6 @@ inline int CallRec::GetNATType(PIPSocket::Address & calling, PIPSocket::Address 
 inline void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 {
 	m_callingSocket = calling, m_calledSocket = called;
-}
-
-inline void CallRec::SetTimer(int seconds)
-{
-	m_timeout = seconds;
 }
 
 inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
