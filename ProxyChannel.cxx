@@ -832,13 +832,30 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 		if (cause->GetTag() == H225_CallTerminationCause::e_releaseCompleteReason) {
 			uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_reason);
 			uuie.m_reason = *cause;
+			// remember disconnect cause for billing purposes
+			if( m_call && m_call->GetDisconnectCause() == 0 )
+				m_call->SetDisconnectCause(
+					MapH225ReasonToQ931Cause(cause->GetTag())
+					);
 		} else { // H225_CallTerminationCause::e_releaseCompleteCauseIE
 			PPER_Stream strm;
 			cause->Encode(strm);
 			strm.CompleteEncoding();
 			ReleasePDU.SetIE(Q931::CauseIE, strm);
+			// remember the cause for billing purposes
+			if( m_call && m_call->GetDisconnectCause() == 0 )
+				m_call->SetDisconnectCause(ReleasePDU.GetCause());
+		}
+	} else { // either CauseIE or H225_ReleaseComplete_UUIE is mandatory
+		if( m_call && m_call->GetDisconnectCause() )
+			// extract the stored disconnect cause, if not specified directly
+			ReleasePDU.SetCause( (Q931::CauseValues)(m_call->GetDisconnectCause()) );
+		else {
+			uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_reason);
+			uuie.m_reason = H225_ReleaseCompleteReason(H225_ReleaseCompleteReason::e_undefinedReason);
 		}
 	}
+		
 	SetUUIE(ReleasePDU, signal);
 
 	PrintQ931(5, "Send to ", GetName(), &ReleasePDU, &signal);
@@ -882,8 +899,10 @@ bool CallSignalSocket::EndSession()
 
 void CallSignalSocket::OnError()
 {
-	if( m_call )
+	if( m_call ) {
+		m_call->SetDisconnectCause(Q931::ProtocolErrorUnspecified);
 		CallTable::Instance()->RemoveCall(m_call);
+	}
 	EndSession();
 	if (remote)
 		remote->EndSession();
@@ -1075,9 +1094,13 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		m_call->SetSetupTime(setupTime);
 		
 		// log AcctStart accounting event
-		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) )
+		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
+			PTRACE(4,"Q931\tDropping call #"<<m_call->GetCallNumber()
+				<<" due to accounting failure"
+				);
+			m_call->SetDisconnectCause(Q931::TemporaryFailure);
 			return false;
-			
+		}
 	} else {
 		endptr called;
 		bool destFound = false;
@@ -1158,12 +1181,11 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		m_call = callptr(call);
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
-		// log AcctStart accounting event before inserting the call 
-		// to CallTable and connecting to a remote party
 		if( !RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStart,m_call) ) {
 			PTRACE(4,"Q931\tDropping call #"<<call->GetCallNumber()
 				<<" due to accounting failure"
 				);
+			m_call->SetDisconnectCause(Q931::TemporaryFailure);
 			return false;
 		}
 	}
@@ -1180,6 +1202,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
 {
 	if (!m_call->GetDestSignalAddr(peerAddr, peerPort)) {
 		PTRACE(3, "Q931\t" << GetName() << " INVALID ADDRESS");
+		m_call->SetDisconnectCause(Q931::IncompatibleDestination);
 		return false;
 	}
 	Address calling = INADDR_ANY;
@@ -1513,7 +1536,10 @@ void CallSignalSocket::Dispatch()
 				if (InternalConnectTo()) {
 					if (!remote->IsReadable(2*setupTimeout)) {
 						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-						CallTable::Instance()->RemoveCall(m_call);
+						if( m_call ) {
+							m_call->SetDisconnectCause(Q931::TimerExpiry);
+							CallTable::Instance()->RemoveCall(m_call);
+						}
 					}
 					GetHandler()->Insert(this, remote);
 					return;
@@ -1524,7 +1550,10 @@ void CallSignalSocket::Dispatch()
 					ForwardData();
 					if (!remote->IsReadable(2*setupTimeout)) {
 						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-						CallTable::Instance()->RemoveCall(m_call);
+						if( m_call ) {
+							m_call->SetDisconnectCause(Q931::TimerExpiry);
+							CallTable::Instance()->RemoveCall(m_call);
+						}
 					}
 					return;
 				}

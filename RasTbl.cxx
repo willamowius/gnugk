@@ -1566,6 +1566,7 @@ void CallTable::ClearTable()
 	iterator Iter = CallList.begin(), eIter = CallList.end();
 	while (Iter != eIter) {
 		iterator i = Iter++;
+		(*i)->SetDisconnectCause(Q931::TemporaryFailure);
 		(*i)->Disconnect();
 		InternalRemove(i);
 	}
@@ -1580,6 +1581,9 @@ void CallTable::CheckCalls()
 	while (Iter != eIter) {
 		iterator i = Iter++;
 		if ( (*i)->IsTimeout(now) ) {
+			(*i)->SetDisconnectCause( (*i)->IsConnected()
+				? Q931::ResourceUnavailable : Q931::TemporaryFailure
+				);
 			(*i)->Disconnect();
 			InternalRemove(i);
 		} else if ( m_acctUpdateInterval && (*i)->IsConnected() ) {
