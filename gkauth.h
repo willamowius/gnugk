@@ -23,7 +23,10 @@
 #ifndef _PTLIB_H
 #include <ptlib.h>
 #endif
-
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
+#include <map>
 
 class H225_GatekeeperRequest;
 class H225_RegistrationRequest;
@@ -33,7 +36,9 @@ class H225_BandwidthRequest;
 class H225_DisengageRequest;
 class H225_LocationRequest;
 class H225_InfoRequest;
-
+class H225_ArrayOf_ClearToken;
+class H225_ArrayOf_CryptoH323Token;
+class H225_ArrayOf_AliasAddress;
 
 class GkAuthenticator {
 public:
@@ -83,8 +88,6 @@ public:
 	}
 
 	const char *GetName() { return name; }
-	
-
 
 protected:
 	// the second argument is the reject reason, if any
@@ -129,6 +132,50 @@ private:
 	friend class GkAuthenticatorList;
 };
 
+class SimplePasswordAuth : public GkAuthenticator {
+public:
+	typedef std::map<PString, PString>::iterator iterator;
+	typedef std::map<PString, PString>::const_iterator const_iterator;
+
+	SimplePasswordAuth(PConfig *, const char *);
+
+protected:
+	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
+	virtual int Check(const H225_RegistrationRequest &, unsigned &);
+	virtual int Check(const H225_UnregistrationRequest &, unsigned &);
+	virtual int Check(const H225_AdmissionRequest &, unsigned &);
+	virtual int Check(const H225_BandwidthRequest &, unsigned &);
+	virtual int Check(const H225_DisengageRequest &, unsigned &);
+	virtual int Check(const H225_LocationRequest &, unsigned &);
+	virtual int Check(const H225_InfoRequest &, unsigned &);
+
+	virtual PString GetPassword(const PString & id);
+
+	virtual bool CheckAliases(const PString &);
+	virtual bool CheckTokens(const H225_ArrayOf_ClearToken &);
+	virtual bool CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token &);
+
+	template<class RasType> int doCheck(const RasType & req)
+	{
+		if (req.HasOptionalField(RasType::e_cryptoTokens))
+			return CheckCryptoTokens(req.m_cryptoTokens) ? e_ok : e_fail;
+	 	else if (req.HasOptionalField(RasType::e_tokens))
+			return CheckTokens(req.m_tokens) ? e_ok : e_fail;
+		return (controlFlag == e_Optional) ? e_next : e_fail;
+	}
+
+	bool InternalGetPassword(const PString & id, PString & passwd);
+	void SavePassword(const PString &, const PString &);
+
+	int filled;
+	bool checkid;
+	const H225_ArrayOf_AliasAddress *aliases;
+
+private:
+	std::map<PString, PString> passwdCache;
+	std::map<PString, PTime> cacheTime;
+	int passwdTimeout;
+};
 
 class GkAuthInitializer {
 public:

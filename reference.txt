@@ -344,6 +344,11 @@ SimplePasswordAuth=required;RRQ,ARQ,LRQ
 
 B.14 Section [Password]
 
+The section defines the userid and password pairs used by SimplePasswordAuth.
+Use 'make addpasswd' to generate the utility addpasswd.
+Usage:
+   addpasswd config userid password
+
 KeyFilled=123           Default: 0
 
 Default value to initialize the encryption key.
@@ -351,6 +356,13 @@ Default value to initialize the encryption key.
 CkeckID=TRUE            Default: FALSE
 
 Check if the aliases match the ID in the tokens.
+
+PasswordTimeout=120	Default: -1
+
+SimplePasswordAuth will cache an authenticated password.
+This field define the cache timeout value in second.
+0 means never cache the password, while a negative value
+means the cache will never expired.
 
 B.15 Section [CallTable]
 
@@ -400,10 +412,9 @@ PasswordField=Password
 
 The password field name.
 
-CheckEnableField=Active
+ExtraCriterion=Kind>0	Default: n/a
 
-If this variable is set, the GK will check whether if
-the id is disable or not from the specified field.
+Specify extra criterion.
 
 B.17 Section [GkAuthorize]
 

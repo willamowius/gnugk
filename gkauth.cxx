@@ -71,56 +71,6 @@ private:
 
 static GkAuthInit<AliasAuth> _AA_("AliasAuth");
 
-
-class SimplePasswordAuth : public GkAuthenticator {
-public:
-	typedef std::map<PString, PString>::iterator iterator;
-	typedef std::map<PString, PString>::const_iterator const_iterator;
-
-	SimplePasswordAuth(PConfig *, const char *);
-
-protected:
-	virtual int Check(const H225_GatekeeperRequest &, unsigned &);
-	virtual int Check(const H225_RegistrationRequest &, unsigned &);
-	virtual int Check(const H225_UnregistrationRequest &, unsigned &);
-	virtual int Check(const H225_AdmissionRequest &, unsigned &);
-	virtual int Check(const H225_BandwidthRequest &, unsigned &);
-	virtual int Check(const H225_DisengageRequest &, unsigned &);
-	virtual int Check(const H225_LocationRequest &, unsigned &);
-	virtual int Check(const H225_InfoRequest &, unsigned &);
-
-	virtual PString GetPassword(PString &);
-
-	virtual bool CheckAliases(const PString &);
-	virtual bool CheckTokens(const H225_ArrayOf_ClearToken &);
-	virtual bool CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token &);
-
-	template<class RasType> int doCheck(const RasType & req)
-	{
-		if (req.HasOptionalField(RasType::e_cryptoTokens))
-			return CheckCryptoTokens(req.m_cryptoTokens) ? e_ok : e_fail;
-	 	else if (req.HasOptionalField(RasType::e_tokens))
-			return CheckTokens(req.m_tokens) ? e_ok : e_fail;
-		return (controlFlag == e_Optional) ? e_next : e_fail;
-	}
-
-	map<PString, PString> passwdCache;
-	int filled;
-	bool checkid;
-
-private:
-	H235AuthSimpleMD5 authMD5;
-
-#ifdef P_SSL
-	H235AuthProcedure1 authProcedure1;
-#endif
-
-	PBYTEArray nullPDU;
-	const H225_ArrayOf_AliasAddress *aliases;
-};
-
-static GkAuthInit<SimplePasswordAuth> _SPA_("SimplePasswordAuth");
-
 #ifdef HAS_MYSQL
 #define MYSQL_NO_SHORT_NAMES  // use long names
 #include <mysql++>
@@ -131,7 +81,7 @@ public:
 	~MySQLPasswordAuth();
 
 private:
-	virtual PString GetPassword(PString &);
+	virtual PString GetPassword(const PString &);
 	bool MySQLInit();
 	void Cleanup();
 
@@ -159,7 +109,7 @@ public:
   LDAPPasswordAuth(PConfig *, const char *);
   virtual ~LDAPPasswordAuth();
 
-  virtual PString GetPassword(PString &alias);
+  virtual PString GetPassword(const PString &alias);
   
   virtual int Check(const H225_RegistrationRequest & rrq, unsigned & reason);
 };
@@ -268,12 +218,17 @@ int GkAuthenticator::Check(const H225_InfoRequest &, unsigned &)
 }
 
 
+static GkAuthInit<SimplePasswordAuth> _SPA_("SimplePasswordAuth");
+
+const char *passwdsec = "Password";
+
 // SimplePasswordAuth
 SimplePasswordAuth::SimplePasswordAuth(PConfig *cfg, const char *authName)
       : GkAuthenticator(cfg, authName), aliases(0)
 {
-	filled = config->GetInteger("Password", "KeyFilled", 0);
-	checkid = Toolkit::AsBool(config->GetString("Password", "CkeckID", "0"));
+	filled = config->GetInteger(passwdsec, "KeyFilled", 0);
+	checkid = Toolkit::AsBool(config->GetString(passwdsec, "CkeckID", "0"));
+	passwdTimeout = config->GetInteger(passwdsec, "PasswordTimeout", 0) * 1000;
 }
 
 int SimplePasswordAuth::Check(const H225_GatekeeperRequest & grq, unsigned &)
@@ -321,13 +276,40 @@ int SimplePasswordAuth::Check(const H225_InfoRequest & drq, unsigned &)
 	return doCheck(drq);
 }
 
-PString SimplePasswordAuth::GetPassword(PString & id)
+PString SimplePasswordAuth::GetPassword(const PString & id)
 {
 	PTEACypher::Key key;
 	memset(&key, filled, sizeof(PTEACypher::Key));
-	memcpy(&key, id.GetPointer(), std::min(sizeof(PTEACypher::Key), (size_t)id.GetLength()));
+	memcpy(&key, (const char *)id, std::min(sizeof(PTEACypher::Key), (size_t)id.GetLength()));
        	PTEACypher cypher(key);
-	return cypher.Decode(config->GetString("Password", id, ""));
+	return cypher.Decode(config->GetString(passwdsec, id, ""));
+}
+
+bool SimplePasswordAuth::InternalGetPassword(const PString & id, PString & passwd)
+{
+	iterator iter = passwdCache.find(id);
+	if (iter != passwdCache.end()) {
+		if (passwdTimeout > 0) {
+			std::map<PString, PTime>::iterator i = cacheTime.find(id);
+			if ((PTime() - i->second) > passwdTimeout) {
+				passwd = GetPassword(id);
+				return false;
+			}
+		}
+		passwd = iter->second;
+		PTRACE(5, "GkAuth\tPassword cache found");
+		return true;
+	}
+	passwd = GetPassword(id);
+	return false;
+}
+
+void SimplePasswordAuth::SavePassword(const PString & id, const PString & passwd)
+{
+	if (passwdTimeout != 0) {
+		passwdCache[id] = passwd;
+		cacheTime[id] = PTime();
+	}
 }
 
 bool SimplePasswordAuth::CheckAliases(const PString & id)
@@ -351,15 +333,12 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 			PString id = token.m_generalID;
 			if (aliases && !CheckAliases(id))
 				return false;
-			PString passwd = token.m_password;
-			iterator Iter = passwdCache.find(id);
-			if (Iter != passwdCache.end() && Iter->second == passwd) {
-				PTRACE(5, "GkAuth\t cache " << id << " found and match");
-				return true;
-			}
-			if (GetPassword(id) == passwd) {
+			PString passwd, tokenpasswd = token.m_password;
+			bool cached = InternalGetPassword(id, passwd);
+			if (passwd == tokenpasswd) {
 				PTRACE(4, "GkAuth\t" << id << " password match");
-				passwdCache[id] = passwd;
+				if (!cached)
+					SavePassword(id, passwd);
 				return true;
 			}
 		}
@@ -369,23 +348,27 @@ bool SimplePasswordAuth::CheckTokens(const H225_ArrayOf_ClearToken & tokens)
 
 bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & tokens)
 {
-	for (PINDEX i=0; i < tokens.GetSize(); ++i){
+	for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			PString id = AsString(pwdhash.m_alias, FALSE);
 			if (aliases && !CheckAliases(id))
 				return false;
-			iterator Iter = passwdCache.find(id);
-			PString passwd = (Iter == passwdCache.end()) ? GetPassword(id) : Iter->second;
+			PString passwd;
+			bool cached = InternalGetPassword(id, passwd);
+
+			H235AuthSimpleMD5 authMD5;
 			authMD5.SetLocalId(id);
 			authMD5.SetPassword(passwd);
+			PBYTEArray nullPDU;
 			if (authMD5.VerifyToken(tokens[i], nullPDU) == H235Authenticator::e_OK) {
 				PTRACE(4, "GkAuth\t" << id << " password match (MD5)");
-				passwdCache[id] = passwd;
+				if (!cached)
+					SavePassword(id, passwd);
 				return true;
 			}
 #ifdef P_SSL
-		}else if(tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken){
+		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken){
 			H235_CryptoToken & nestedCryptoToken = tokens[i];
 			H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
 			H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
@@ -394,8 +377,8 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 			PString ep_alias = clearToken.m_sendersID; 
 			if (aliases && !CheckAliases(ep_alias))
 				return false;
-			iterator Iter = passwdCache.find(ep_alias);
-			PString passwd = (Iter == passwdCache.end()) ? GetPassword(ep_alias) : Iter->second;
+			PString passwd;
+			bool cached = InternalGetPassword(ep_alias, passwd);
 			//if a password is not found: senderID == endpointIdentifier?
 			if (passwd.IsEmpty()){
 			 	//get endpoint by endpointIdentifier
@@ -409,17 +392,18 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 				H225_ArrayOf_AliasAddress ep_aliases = ep->GetAliases();
 				for (PINDEX i = 0; i < ep_aliases.GetSize(); i++){
 					ep_alias = H323GetAliasAddressString(ep_aliases[i]);
-					iterator Iter = passwdCache.find(ep_alias);
-					passwd = (Iter == passwdCache.end()) ? GetPassword(ep_alias) : Iter->second;
-					if(!passwd.IsEmpty())
+					cached = InternalGetPassword(ep_alias, passwd);
+					if (!passwd)
 						break;
 				}
 			}
+			H235AuthProcedure1 authProcedure1;
 			authProcedure1.SetLocalId(gk_id);
 			authProcedure1.SetPassword(passwd);
 			if (authProcedure1.VerifyToken(tokens[i], getLastReceivedRawPDU()) == H235Authenticator::e_OK) {
 				PTRACE(4, "GkAuth\t" << ep_alias << " password match (SHA-1)");
-				passwdCache[ep_alias] = passwd;
+				if (!cached)
+					SavePassword(ep_alias, passwd);
 				return true;
 			}
 #endif
@@ -464,7 +448,7 @@ bool MySQLPasswordAuth::MySQLInit()
 		PString table = config->GetString(mysqlsec, "Table", "customer");
 		PString id_field = config->GetString(mysqlsec, "IDField", "IPN");
 		PString passwd_field = config->GetString(mysqlsec, "PasswordField", "Password");
-		PString check_field = config->GetString(mysqlsec, "CheckEnableField", "");
+		PString extra_criterion = config->GetString(mysqlsec, "ExtraCriterion", "");
 
 		connection = new MysqlConnection(mysql_use_exceptions);
 		connection->connect(dbname, host, user, passwd);
@@ -477,8 +461,8 @@ bool MySQLPasswordAuth::MySQLInit()
 			(const char *)table,
 			(const char *)id_field
 		);
-		if (!check_field)
-			selectString += " and " + check_field + " = 1";
+		if (!extra_criterion)
+			selectString += " and " + extra_criterion;
 		PTRACE(3, "MySQL\t" << selectString);
 
 		*query << selectString;
@@ -492,7 +476,7 @@ bool MySQLPasswordAuth::MySQLInit()
 	}
 }
 
-PString MySQLPasswordAuth::GetPassword(PString & id)
+PString MySQLPasswordAuth::GetPassword(const PString & id)
 {
 	PString passwd;
 	if (connection || MySQLInit()) {
@@ -524,7 +508,7 @@ LDAPPasswordAuth::~LDAPPasswordAuth()
 {
 }
 
-PString LDAPPasswordAuth::GetPassword(PString & alias)
+PString LDAPPasswordAuth::GetPassword(const PString & alias)
 {
 	PStringList attr_values;
 	using namespace lctn; // LDAP config tags and names

@@ -63,16 +63,20 @@ class NeighborList {
 	class Neighbor {
 	public:
 		Neighbor(const PString &, const PString &);
+		bool CheckIP(PIPSocket::Address ip) const;
 		bool SendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
 
 	private:
 		bool InternalSendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
+		bool ResolveName(PIPSocket::Address & ip) const;
 
 		PString m_gkid;
+		PString m_name;
 		PString m_password;
 		PString m_prefix;
 		PIPSocket::Address m_ip;
 		WORD m_port;
+		bool m_dynamic;
 	};
 
 public:
@@ -81,6 +85,7 @@ public:
 
 	NeighborList(H323RasSrv *, PConfig *);
 	int SendLRQ(int seqNum, const H225_AdmissionRequest &);
+	bool CheckIP(PIPSocket::Address ip) const;
 
 	class InvalidNeighbor {};
 
@@ -151,6 +156,75 @@ void NBPendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 	}
 }
 
+NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m_gkid(gkid)
+{
+	PStringArray cfg(cfgs.Tokenise(",;", FALSE));
+	PString ipAddr = cfg[0].Trim();
+	PINDEX p = ipAddr.Find(':');
+	m_name = ipAddr.Left(p);
+	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
+	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : PString("*");
+	if (cfg.GetSize() > 2)
+		m_password = cfg[2];
+	m_dynamic = (cfg.GetSize() > 3) ? Toolkit::AsBool(cfg[3]) : false;
+
+	if (!m_dynamic && !PIPSocket::GetHostAddress(m_name, m_ip))
+		throw InvalidNeighbor();
+	PTRACE(1, "Add neighbor " << m_gkid << '(' << (m_dynamic ? m_name : m_ip.AsString()) << ':' << m_port << ") for prefix " << m_prefix);
+}
+
+inline bool NeighborList::Neighbor::CheckIP(PIPSocket::Address ip) const
+{
+	return (!m_dynamic || ResolveName(ip)) ? ip == m_ip : false;
+}
+
+bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
+{
+	if (m_prefix == "*")
+		return InternalSendLRQ(seqNum, obj_arq, RasSrv);
+
+	for (PINDEX i=0; i < obj_arq.m_destinationInfo.GetSize(); ++i)
+		if (AsString(obj_arq.m_destinationInfo[i], FALSE).Find(m_prefix) == 0)
+			return InternalSendLRQ(seqNum, obj_arq, RasSrv);
+
+	return false;
+}
+
+bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
+{
+	PIPSocket::Address ip;
+	if (m_dynamic && !ResolveName(ip))
+		return false;
+	H225_RasMessage lrq_ras;
+	lrq_ras.SetTag(H225_RasMessage::e_locationRequest);
+	H225_LocationRequest & lrq_obj = lrq_ras;
+	lrq_obj.m_requestSeqNum.SetValue(seqNum);
+	lrq_obj.m_replyAddress = RasSrv->GetRasAddress(ip);
+	lrq_obj.m_destinationInfo = obj_arq.m_destinationInfo;
+
+	// tell the neighbor who I am
+	lrq_obj.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
+	lrq_obj.m_sourceInfo.SetSize(1);
+	H323SetAliasAddress(RasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
+	RasSrv->GetGkClient()->SetPassword(lrq_obj, Toolkit::GKName());
+
+	RasSrv->SendRas(lrq_ras, ip, m_port);
+	return true;
+}
+
+bool NeighborList::Neighbor::ResolveName(PIPSocket::Address & ip) const
+{
+	PIPSocket::ClearNameCache();
+	// Retrieve the ip address at this time
+	if (PIPSocket::GetHostAddress(m_name, ip)) {
+		PTRACE(3, "Retrieve neighbor ip for " << m_name << '=' << ip);
+		return true;
+	} else {
+		PTRACE(1, "Can't get neighbor ip for " << m_name);
+		return false;
+	}
+}
+
 NeighborList::NeighborList(H323RasSrv *rs, PConfig *config) : RasSrv(rs)
 {
 	PStringToString cfgs(config->GetAllKeyValues(NeighborSection));
@@ -175,49 +249,13 @@ int NeighborList::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq)
 	return nbCount;
 }
 
-NeighborList::Neighbor::Neighbor(const PString & gkid, const PString & cfgs) : m_gkid(gkid)
+bool NeighborList::CheckIP(PIPSocket::Address ip) const
 {
-	PStringArray cfg(cfgs.Tokenise(",;", FALSE));
-	PString ipAddr = cfg[0].Trim();
-	PINDEX p = ipAddr.Find(':');
-	if (!PIPSocket::GetHostAddress(ipAddr.Left(p), m_ip))
-		throw InvalidNeighbor();
-	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
-	m_prefix = (cfg.GetSize() > 1) ? cfg[1] : PString("*");
-	if (cfg.GetSize() > 2)
-		m_password = cfg[2];
-	PTRACE(1, "Add neighbor " << m_gkid << '(' << m_ip << ':' << m_port << ") for prefix " << m_prefix);
-}
-
-bool NeighborList::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
-{
-	if (m_prefix == "*")
-		return InternalSendLRQ(seqNum, obj_arq, RasSrv);
-
-	for (PINDEX i=0; i < obj_arq.m_destinationInfo.GetSize(); ++i)
-		if (AsString(obj_arq.m_destinationInfo[i], FALSE).Find(m_prefix) == 0)
-			return InternalSendLRQ(seqNum, obj_arq, RasSrv);
-
-	return false;
-}
-
-bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *RasSrv) const
-{
-	H225_RasMessage lrq_ras;
-	lrq_ras.SetTag(H225_RasMessage::e_locationRequest);
-	H225_LocationRequest & lrq_obj = lrq_ras;
-	lrq_obj.m_requestSeqNum.SetValue(seqNum);
-	lrq_obj.m_replyAddress = RasSrv->GetRasAddress(m_ip);
-	lrq_obj.m_destinationInfo = obj_arq.m_destinationInfo;
-
-	// tell the neighbor who I am
-	lrq_obj.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
-	lrq_obj.m_sourceInfo.SetSize(1);
-	H323SetAliasAddress(RasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
-	RasSrv->GetGkClient()->SetPassword(lrq_obj, Toolkit::GKName());
-
-	RasSrv->SendRas(lrq_ras, m_ip, m_port);
-	return true;
+	const_iterator Iter = find_if(
+		nbList.begin(), nbList.end(),
+		bind2nd(mem_fun_ref(&Neighbor::CheckIP), ip)
+	);
+	return (Iter != nbList.end());
 }
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
@@ -1356,19 +1394,17 @@ BOOL H323RasSrv::OnBRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 /* Location Request */
 BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &obj_rpl)
-{ 
-	const H225_LocationRequest & obj_lrq = obj_rr;
-
-	endptr WantedEndPoint;
-
+{
 	PString msg;
+	endptr WantedEndPoint;
 
 	// TODO: we should really send the reply to the reply address
 	//       we should modify the rx_addr
 
+	const H225_LocationRequest & obj_lrq = obj_rr;
 	Toolkit::Instance()->RewriteE164(obj_lrq.m_destinationInfo[0]);
-	unsigned rsn;
-	if (authList->Check(obj_lrq, rsn) &&
+	unsigned rsn = H225_LocationRejectReason::e_requestDenied;
+	if (NeighborsGK->CheckIP(rx_addr) && authList->Check(obj_lrq, rsn) &&
 		// only search registered endpoints
 #if WITH_DEST_ANALYSIS_LIST
 		(WantedEndPoint = EndpointTable->getMsgDestination(obj_lrq, rsn, false))
@@ -1400,7 +1436,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		obj_rpl.SetTag(H225_RasMessage::e_locationReject);
 		H225_LocationReject & lrj = obj_rpl;
 		lrj.m_requestSeqNum = obj_lrq.m_requestSeqNum;
-		lrj.m_rejectReason.SetTag(H225_LocationRejectReason::e_requestDenied); // can't find the location
+		lrj.m_rejectReason.SetTag(rsn); // can't find the location
 		lrj.IncludeOptionalField(H225_LocationReject::e_nonStandardData);
 		lrj.m_nonStandardData = obj_lrq.m_nonStandardData;
 

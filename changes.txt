@@ -1,5 +1,6 @@
 Changes from 2.0b3 to now (by cwhuang)
 ======================================
+- add dynamic resolving name for neighbors, thanks to Rodrigo Gonzalez
 - add GkClient module
 - allow remove a key or a section in the config from status thread
 - remove isalnum check for aliases, we hope to use unicode. :)

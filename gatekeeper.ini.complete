@@ -307,6 +307,8 @@ default=allow
 ##
 #[Password]
 #KeyFilled=123
+#CkeckID=FALSE
+#PasswordTimeout=0
 #(id=cwhuang, password=123456)
 #cwhuang=UGwUtpy837k=
 
@@ -318,7 +320,7 @@ default=allow
 #Table=customer
 #IDField=IPN
 #PasswordField=Password
-#CheckEnableField=Active
+#ExtraCriterion=Kind < 2
 
 [CallTable]
 #GenerateNBCDR=TRUE
