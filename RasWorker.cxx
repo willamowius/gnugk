@@ -588,6 +588,7 @@ Abstract_H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 			ep->Update(pdu);
 			return ;
 		}
+		return;
 	}
 
 	bool nated = false, validaddress = false;
