@@ -682,6 +682,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
 		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
 		if (m_h245Tunneling)
+#if H225_PROTOCOL_VERSION >= 4
+			if(!pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
+#endif
 			m_h245Tunneling = (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling) && pdu.m_h245Tunneling.GetValue());
 
 		PrintQ931(4, "Received:", "", m_lastQ931, psignal = &signal);
@@ -1334,6 +1337,11 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & Setup)
 
 	HandleH245Address(Setup);
 	HandleFastStart(Setup, true);
+
+#if H225_PROTOCOL_VERSION >= 4
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_parallelH245Control) && m_h245handler)
+		OnTunneledH245(Setup.m_parallelH245Control);
+#endif
 	return true;
 }
 

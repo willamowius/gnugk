@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- (ProxyChannel.cxx) support for H.323 V4 provisionalRespToH245Tunneling
+  and parallelH245Control H.225.0 elements
 - log rotation now maintains the original filename and stores rotated
   log files with precise timestamp (YYYYMMDD_HHMMSS) to prevent overwritting. 
   Thanks to Rafael Costa dos Santos.
