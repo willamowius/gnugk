@@ -2043,7 +2043,7 @@ void CallTable::CheckCalls(
 	{	
 		WriteLock lock(listLock);
 		iterator Iter = CallList.begin(), eIter = CallList.end();
-		time_t now = time(0);
+		now = time(0);
 		while (Iter != eIter) {
 			if ((*Iter)->IsTimeout(now))
 				m_callsToDisconnect.push_back(callptr(*Iter));
