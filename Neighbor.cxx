@@ -99,18 +99,11 @@ bool PendingList::PendingARQ::DoACF(const endptr & called) const
        	pdu.Encode(stream);
 	H225_RasMessage abc;
 	stream.SetPosition(0);
-	if(abc.Decode(stream))
-		PTRACE(1, "dec: " << abc);
-	else
-		PTRACE(1, "didn't dec:");
-	stream.SetPosition(0);
-//	stream.CompleteEncoding();
 
 	const H225_TransportAddress_ipAddress & ip = m_reqEP->GetRasAddress();
 	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 
 	NeighborWorker *n = new NeighborWorker(stream, called, ipaddress, ip.m_port, (Toolkit::Instance()->GetMasterRASListener()));
-	n->Resume();
 	return true;
 }
 

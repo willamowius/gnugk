@@ -48,10 +48,10 @@ protected:
 	BOOL need_answer;
 };
 
-class H323RasWorker : public GK_RASWorker {
+class Abstract_H323RasWorker : public GK_RASWorker {
 public:
-	H323RasWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server);
-	virtual ~H323RasWorker();
+	Abstract_H323RasWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server);
+	virtual ~Abstract_H323RasWorker()=0;
 	virtual void Main(); // Do the actual work.
 	virtual void Terminate();
 protected:
@@ -69,6 +69,12 @@ protected:
 	virtual void OnUCF(H225_UnregistrationConfirm &ucf);
 private:
 	GkAuthenticatorList *authList;
+};
+
+class H323RasWorker : public Abstract_H323RasWorker {
+public:
+	H323RasWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server);
+	virtual ~H323RasWorker();
 };
 
 class NeighborWorker : public GK_RASWorker {

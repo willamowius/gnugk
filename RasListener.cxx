@@ -267,15 +267,6 @@ H323RasListener::Main()
 			PPER_Stream stream(buffer, listener.GetLastReadCount());
 			// This hack is necessary due to bugs in PWLib.
 			H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
-			if(NULL!=r) {
-				r->Resume(); // Start thread
-				// Autodelete is set here to avoid
-				// deletion of thread before Resume()
-				// is called -- might happen on
-				// AutoDelete-threads and fast working
-				// threads.
-				r->SetAutoDelete(AutoDeleteThread);
-			}
 		} else {
 			PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
 		}

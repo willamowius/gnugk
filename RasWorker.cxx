@@ -47,7 +47,7 @@ static const char vcHid[] = RASWORKER_H;
 
 
 GK_RASWorker::GK_RASWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener &listener) :
-	PThread(1000, NoAutoDeleteThread), raw_pdu(initial_pdu), addr(rx_addr), port(rx_port), master(listener),
+	PThread(1000, AutoDeleteThread), raw_pdu(initial_pdu), addr(rx_addr), port(rx_port), master(listener),
 	need_answer(FALSE)
 {
 	PTRACE(5, "RasWorker started");
@@ -72,7 +72,8 @@ GK_RASWorker::Main()
 void
 GK_RASWorker::OnUnknown(H225_RasMessage & ras)
 {
-	PTRACE(5, "RasWorker got Unknown PDU: " << setprecision(2) << pdu);
+	PTRACE(6, "RasWorker got PDU without callback defined");
+	PTRACE(5, "RasWorker got PDU: " << setprecision(2) << pdu);
 }
 
 void
@@ -337,26 +338,25 @@ GK_RASWorker::ProcessARQ(endptr &RequestingEP, endptr &CalledEP, H225_AdmissionR
 	}
 }
 
-// Derived Class H323RasWorker
+// Derived Class Abstract_H323RasWorker
 
-H323RasWorker::H323RasWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener &listener) :
+Abstract_H323RasWorker::Abstract_H323RasWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener &listener) :
 	GK_RASWorker(initial_pdu, rx_addr, rx_port, listener)
 {
-	PTRACE(5, "H323RasWorker started");
+	PTRACE(5, "Abstract_H323RasWorker started");
 	authList=new GkAuthenticatorList(GkConfig());
-//	Resume();
 }
 
-H323RasWorker::~H323RasWorker() {
-	PTRACE(5, "H323RasWorker exit");
+Abstract_H323RasWorker::~Abstract_H323RasWorker() {
+	PTRACE(5, "Abstract_H323RasWorker exit");
 };
 
-void H323RasWorker::Terminate() {
+void Abstract_H323RasWorker::Terminate() {
 	PTRACE(5, "Terminate()");
 }
 
 void
-H323RasWorker::Main()
+Abstract_H323RasWorker::Main()
 {
 	PTRACE(5, "RasWorker Main");
 	if(!pdu.Decode(raw_pdu)) {
@@ -414,7 +414,7 @@ H323RasWorker::Main()
 }
 
 void
-H323RasWorker::OnGRQ(H225_GatekeeperRequest &grq)
+Abstract_H323RasWorker::OnGRQ(H225_GatekeeperRequest &grq)
 {
 	PTRACE(1, "GK\tGRQ Received");
 
@@ -492,7 +492,7 @@ H323RasWorker::OnGRQ(H225_GatekeeperRequest &grq)
 }
 
 void
-H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
+Abstract_H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 {
 	PTRACE(1, "GK\tRRQ Received");
 	need_answer=TRUE;
@@ -753,7 +753,7 @@ H323RasWorker::OnRRQ(H225_RegistrationRequest &rrq)
 }
 
 void
-H323RasWorker::OnURQ(H225_UnregistrationRequest &urq)
+Abstract_H323RasWorker::OnURQ(H225_UnregistrationRequest &urq)
 {
 	PTRACE(1, "GK\tURQ Received");
 
@@ -843,7 +843,7 @@ H323RasWorker::OnURQ(H225_UnregistrationRequest &urq)
 }
 
 void
-H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
+Abstract_H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 {
 	PTRACE(2, "GK\tARQ Received:");
 
@@ -946,7 +946,7 @@ H323RasWorker::OnARQ(H225_AdmissionRequest &arq)
 }
 
 void
-H323RasWorker::OnDRQ(H225_DisengageRequest &drq)
+Abstract_H323RasWorker::OnDRQ(H225_DisengageRequest &drq)
 {
 	PTRACE(1, "GK\tDRQ Received ");
 
@@ -1002,7 +1002,7 @@ H323RasWorker::OnDRQ(H225_DisengageRequest &drq)
 }
 
 void
-H323RasWorker::OnBRQ(H225_BandwidthRequest &brq)
+Abstract_H323RasWorker::OnBRQ(H225_BandwidthRequest &brq)
 {
 	PTRACE(1, "GK\tBRQ Received");
 
@@ -1032,7 +1032,7 @@ H323RasWorker::OnBRQ(H225_BandwidthRequest &brq)
 }
 
 void
-H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
+Abstract_H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 {
   PTRACE(1, "GK\tLRQ Received");
 
@@ -1121,7 +1121,7 @@ H323RasWorker::OnLRQ(H225_LocationRequest &lrq)
 }
 
 void
-H323RasWorker::OnLCF(H225_RasMessage &lcf) // No conversion needed here!
+Abstract_H323RasWorker::OnLCF(H225_RasMessage &lcf) // No conversion needed here!
 {
 	PTRACE(1, "GK\tLCF Received");
 	need_answer = FALSE;
@@ -1131,7 +1131,7 @@ H323RasWorker::OnLCF(H225_RasMessage &lcf) // No conversion needed here!
 }
 
 void
-H323RasWorker::OnLRJ(H225_RasMessage &lrj) // No conversion needed here!
+Abstract_H323RasWorker::OnLRJ(H225_RasMessage &lrj) // No conversion needed here!
 {
 	PTRACE(1, "GK\tLRJ Received");
 	need_answer = FALSE;
@@ -1142,7 +1142,7 @@ H323RasWorker::OnLRJ(H225_RasMessage &lrj) // No conversion needed here!
 }
 
 void
-H323RasWorker::OnIRR(H225_InfoRequestResponse &irr)
+Abstract_H323RasWorker::OnIRR(H225_InfoRequestResponse &irr)
 {
 	PTRACE(1, "GK\tIRR Received");
 
@@ -1166,7 +1166,7 @@ H323RasWorker::OnIRR(H225_InfoRequestResponse &irr)
 }
 
 void
-H323RasWorker::OnRAI(H225_ResourcesAvailableIndicate &rai)
+Abstract_H323RasWorker::OnRAI(H225_ResourcesAvailableIndicate &rai)
 {
 	PTRACE(1, "GK\tRAI Received");
 
@@ -1183,10 +1183,22 @@ H323RasWorker::OnRAI(H225_ResourcesAvailableIndicate &rai)
 }
 
 void
-H323RasWorker::OnUCF(H225_UnregistrationConfirm &ucf)
+Abstract_H323RasWorker::OnUCF(H225_UnregistrationConfirm &ucf)
 {
 	PTRACE(1, "GK\tUCF Received" << endl << ucf);
 }
+
+// Derived class H323RasWorker
+H323RasWorker::H323RasWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener &listener) :
+	Abstract_H323RasWorker(initial_pdu, rx_addr, rx_port, listener)
+{
+	PTRACE(5, "H323RasWorker started");
+	Resume();
+}
+
+H323RasWorker::~H323RasWorker() {
+	PTRACE(5, "H323RasWorker exit");
+};
 
 // Class NeighborWorker
 
@@ -1194,12 +1206,14 @@ NeighborWorker::NeighborWorker(PPER_Stream initial_pdu, PIPSocket::Address rx_ad
 	: GK_RASWorker(initial_pdu, rx_addr, rx_port, server), m_called(NULL)
 {
 	PTRACE(5, "Neighbor Worker started");
+	Resume();
 }
 
 NeighborWorker::NeighborWorker(PPER_Stream initial_pdu, endptr called, PIPSocket::Address rx_addr, WORD rx_port, GK_RASListener & server)
 	: GK_RASWorker(initial_pdu, rx_addr, rx_port, server), m_called(called)
 {
 	PTRACE(5, "Neighbor Worker started");
+	Resume();
 }
 
 NeighborWorker::~NeighborWorker()
