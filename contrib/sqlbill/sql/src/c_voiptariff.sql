@@ -27,7 +27,7 @@ CREATE TABLE voiptariff (
 	-- description
 	description TEXT NOT NULL DEFAULT '',
 	-- block a destination associated with this tariff
-	active BOOLEAN NO NULL DEFAULT TRUE,
+	active BOOLEAN NOT NULL DEFAULT TRUE,
 	
 	PRIMARY KEY (id),
 	FOREIGN KEY (dstid) REFERENCES voiptariffdst(id),
