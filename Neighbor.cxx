@@ -318,7 +318,7 @@ bool Neighbor::CheckReply(RasMsg *ras) const
 	else {
 		const H225_NonStandardParameter *params = ras->GetNonStandardParam();
 		return params
-			?(strncmp(m_gkid, params->m_data.AsString(), m_id.GetLength()) == 0)
+			?(strncmp(m_id, params->m_data.AsString(), m_id.GetLength()) == 0)
 			:false;
 	}
 }
