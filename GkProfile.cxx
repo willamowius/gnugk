@@ -203,7 +203,7 @@ CallProfile::GetStatusEnquiryInterval()
 
 // Set accessor methods
 void
-CallProfile::SetH323ID(PString &h323id)
+CallProfile::SetH323ID(const PString &h323id)
 {
 	PWaitAndSignal lock(m_lock);
 	m_h323id = *(dynamic_cast<PString *> (h323id.Clone()));;

@@ -78,7 +78,7 @@ public:
 	void debugPrint(void) const;
 
         // Set accessor methods
-        void SetH323ID(PString &h323id) ;
+        void SetH323ID(const PString &h323id) ;
         void SetIsCPE(BOOL isCPE) ;
 	void SetIsGK(BOOL isGK) ;
         void SetTelephoneNumbers(PStringList &telNums) ;
