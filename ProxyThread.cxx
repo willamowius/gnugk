@@ -415,10 +415,12 @@ ProxyHandleThread::ProxyHandleThread(PINDEX i)
 
 ProxyHandleThread::~ProxyHandleThread()
 {
-	if (lcHandler)
-		lcHandler->Destroy();
 	std::for_each(connList.begin(), connList.end(), mem_fun(&MyPThread::Destroy));
 	std::for_each(sockList.begin(), sockList.end(), delete_socket);
+	// The RTP/RTCP sockets should be deleted after
+	// call signalling sockets being deleted
+	if (lcHandler)
+		lcHandler->Destroy();
 }
 
 void ProxyHandleThread::Insert(ProxySocket *socket)
