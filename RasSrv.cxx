@@ -86,6 +86,10 @@ private:
 	PString destinationString;
 };
 
+template<> H225_NonStandardParameter *RasPDU<H225_UnknownMessageResponse>::GetNonStandardParam()
+{
+	return 0;
+}
 
 // RAS message abbreviations
 const char *RasName[] = {
