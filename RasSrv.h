@@ -21,6 +21,7 @@
 #include "h323.h"
 #include "Toolkit.h"
 #include "RasTbl.h"
+#include "GkAuthorize.h"
 
 // forward references to avoid includes
 class SignalChannel;
@@ -135,6 +136,8 @@ private:
 
 	NeighborList * NeighborsGK;
 	PendingList * arqPendingList;
+	
+	GkAuthorize* GWR;
 };
 
 extern H323RasSrv *RasThread;  // I hate global object, but...

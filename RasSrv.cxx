@@ -297,15 +297,16 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 
 	authList = 0;
 	NeighborsGK = 0;
+	GWR=NULL;
+
+	// we now use singelton instance mm-22.05.2001
+	GkStatusThread = GkStatus::Instance();
+	GkStatusThread->Initialize(_GKHome);
 
 	LoadConfig();
 
 	udpForwarding.SetWriteTimeout(PTimeInterval(300));
  
-	// we now use singelton instance mm-22.05.2001
-	GkStatusThread = GkStatus::Instance();
-	GkStatusThread->Initialize(_GKHome);
-
 	arqPendingList = new PendingList(this, GkConfig()->GetInteger(NeighborSection, "NeighborTimeout", 2));
 }
 
@@ -315,6 +316,7 @@ H323RasSrv::~H323RasSrv()
 	delete authList;
 	delete NeighborsGK;
 	delete arqPendingList;
+	delete GWR;
 }
 
 void H323RasSrv::LoadConfig()
@@ -333,6 +335,10 @@ void H323RasSrv::LoadConfig()
 	// add neighbors
 	delete NeighborsGK;
 	NeighborsGK = new NeighborList(this, GkConfig());
+	
+	//add authorize
+	delete GWR;
+	GWR=new GkAuthorize(GkStatusThread);
 }
 
 void H323RasSrv::Close(void)
@@ -941,6 +947,16 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_resourceUnavailable);
 		}
 	}
+	
+	//authorize arq
+        if(!bReject)
+        {
+            if(GWR->checkgw(obj_arq)==FALSE)
+            {
+                bReject = TRUE;
+                arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_securityDenial);
+            }
+        }
 
 #ifdef ARJREASON_ROUTECALLTOSCN
  	//

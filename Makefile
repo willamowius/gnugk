@@ -9,7 +9,7 @@ SOURCES		= gk.cxx gkauth.cxx RasSrv.cxx RasTbl.cxx \
 		  MulticastGRQ.cxx BroadcastListen.cxx \
 		  SignalChannel.cxx SignalConnection.cxx \
 		  SoftPBX.cxx Toolkit.cxx h323util.cxx GkStatus.cxx \
-		  singleton.cxx main.cxx
+		  singleton.cxx  GkAuthorize.cxx main.cxx
 
 ifndef OPENH323DIR
 OPENH323DIR=$(HOME)/openh323
@@ -167,6 +167,8 @@ SignalChannel.o: SignalChannel.h
 SignalConnection.o: SignalConnection.h
 CallTbl.o: CallTbl.h
 BroadcastListen.cxx: BroadcastListen.h
+GkAuthorize.o: GkAuthorize.cxx
+GkAuthorize.cxx: GkAuthorize.h
 
 ifdef HAS_LEVEL_TWO_LDAPAPI
 gkauth.cxx: ldapapi.h

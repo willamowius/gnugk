@@ -349,3 +349,31 @@ CheckEnableField=Active
 
 If this variable is set, the GK will check whether if
 the id is disable or not from the specified field.
+
+B.17 Section [GkAuthorize]
+
+This section authorizes arq by source call signal address.
+
+default=deny  #Defaul: allow
+#default policy for unclassified arq
+
+prf: 555
+#phone prefix
+deny ipv4:10.0.0.0/27
+#deny access for network to the perfix
+allow ipv4:ALL
+#allow access for all to the prefix
+
+prf: 5555
+deny ipv4:192.168.1.0/255.255.255.0
+#deny access for network to the perfix
+allow ipv4:192.168.1.1
+#allow access for a host to the prefix
+
+prf: ALL
+allow ipv4:0/0
+#allow access for all networks to all prefixes
+
+
+#We choose the most specific prefix and then
+#we choose the most specific network from list
