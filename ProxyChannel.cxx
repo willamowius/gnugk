@@ -1261,6 +1261,9 @@ void CallSignalSocket::OnSetup(
 	msg->GetPeerAddr(_peerAddr, _peerPort);
 	msg->GetLocalAddr(_localAddr, _localPort);
 	
+	// perform inbound ANI/CLI rewrite
+	toolkit->RewriteCLI(*setup);
+	
 	// store dialed number
 	const PString dialedNumber = GetDialedNumber(*setup);
 
@@ -1345,6 +1348,7 @@ void CallSignalSocket::OnSetup(
 	
 	GkClient *gkClient = rassrv->GetGkClient();
 	bool rejectCall = false;
+	SetupAuthData authData(m_call, m_call ? true : false);
 	
 	if (m_call) {
 		m_call->SetSetupTime(setupTime);
@@ -1371,7 +1375,6 @@ void CallSignalSocket::OnSetup(
 			setupBody.m_cryptoTokens = tokens;
 		}
 
-		SetupAuthData authData(m_call, true);
 		authData.m_dialedNumber = dialedNumber;
 		authData.SetRouteToAlias(m_call->GetRouteToAlias());
 		authData.m_callingStationId = GetCallingStationId(*setup, authData);
@@ -1429,7 +1432,6 @@ void CallSignalSocket::OnSetup(
 			rejectCall = true;
 		}
 	} else {
-		SetupAuthData authData(m_call, false);
 		authData.m_dialedNumber = dialedNumber;
 		authData.m_callingStationId = GetCallingStationId(*setup, authData);
 		authData.m_calledStationId = GetCalledStationId(*setup, authData);
@@ -1599,6 +1601,12 @@ void CallSignalSocket::OnSetup(
 		m_result = Error;
 		return;
 	}
+
+	// perform outbound rewrite
+	PIPSocket::Address calleeAddr;
+	WORD calleePort = 0;
+	m_call->GetDestSignalAddr(calleeAddr, calleePort);
+	toolkit->RewriteCLI(*setup, authData, calleeAddr);
 
 	PString out_rewrite_id;
 	// Do outbound per GW rewrite

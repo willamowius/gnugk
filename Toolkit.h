@@ -21,6 +21,11 @@
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
 class H225_H221NonStandard;
+class H225_Setup_UUIE;
+class SignalingMsg;
+template <class> class H225SignalingMsg;
+typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
+struct SetupAuthData;
 
 /// Hold an address of a single host or a whole network
 struct NetworkAddress {
@@ -86,6 +91,7 @@ bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net);
 ostream & operator<<(ostream &strm, const NetworkAddress &addr);
 
 class GkTimerManager;
+class CLIRewrite;
 class Toolkit : public Singleton<Toolkit>
 {
  public:
@@ -397,6 +403,18 @@ class Toolkit : public Singleton<Toolkit>
 		bool forceEncrypted = false /// decrypt even if no KeyFilled is present
 		);
 
+	/// Inbound rewrite for ANI/CLI
+	void RewriteCLI(
+		SetupMsg &msg /// Q.931 Setup message to be rewritten
+		) const;
+		
+	/// Outbound rewrite for ANI/CLI
+	void RewriteCLI(
+		SetupMsg &msg, /// Q.931 Setup message to be rewritten
+		SetupAuthData &authData, /// additional data
+		const PIPSocket::Address &destAddr /// callee's IP
+		) const;
+		
 protected:
 	void CreateConfig();
 	void ReloadSQLConfig();
@@ -434,6 +452,8 @@ private:
 	int m_encKeyPaddingByte;
 	/// if true, all passwords in the config are encrypted
 	bool m_encryptAllPasswords;
+	/// set of ANI/CLI rewrite rules
+	CLIRewrite *m_cliRewrite;
 };
 
 

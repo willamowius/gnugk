@@ -93,6 +93,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New <ref id="clirewrite" name="[RewriteCLI]"> config section
+that allows arbitrary rewritting of ANI/CLI numbers.
+
+<item>
 New <ref id="numberanalysis" name="numberanalysis"> routing policy.
 
 <item>

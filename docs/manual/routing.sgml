@@ -254,3 +254,137 @@ Calls to destinations starting with 0048 require at least 12 digits,
 to 48 - 10 digits and to all other at least 6 and at most 20 digits.
 </descrip>
 
+<sect1>Section &lsqb;RewriteCLI&rsqb;
+<label id="clirewrite">
+<p>
+This section contains a set of rewrite rules for ANI/CLI numbers (caller id).
+The rewrite process is done at two stages - inbound rewrite and outbound rewrite.
+The inbound rewrite is done before any other Q.931 Setup message processing
+(like inbound GWRewrite, authentication, accounting, ...) and it will have
+visible effect inside auth/acct modules, as it affects Calling-Station-Id.
+The outbound rewrite takes place just before the Setup message is to be forwarded
+and its effect is visible only to the callee.
+<p>
+An inbound rewrite rule can be matched by a caller's IP and a dialed number
+or an original CLI/ANI.
+An outbound rewrite rule can be matched by a caller's IP, callee's IP and
+a dialed number or a destination number (the dialed number after rewrite)
+or a CLI/ANI (after inbound rewrite).
+
+<descrip>
+<tag/Format for an inbound rule:/
+<tt>in:CALLER_IP=[cli:|dno:]number_prefix=NEW_CLI[,NEW_CLI]...</tt>
+<p>
+The <tt/in:/ prefix tells that this is an inbound rule, the <tt/CALLER_IP/
+will be used to match the rule and can be a single IP or a whole network address.
+The prefix <tt/cli:/ or <tt/dno:/ (the default) selects what number will be used to match
+the <tt/number_prefix/ - a caller id (CLI/ANI) or a dialed number.
+After the equality sign, a list of new CLI values to be used follows.
+If more than one value is specified, a one will be choosen on a random basis.
+It's possible to specify whole number ranges, like 49173600000-49173699999.
+There is a special string constant "any", that can be used in place
+of the <tt/CALLER_IP/ or the <tt/number_prefix/.
+
+<tag/Example 1:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=dno:5551=3003
+in:192.168.1.1=cli:1001=2222
+in:192.168.1.1=any=1111
+</verb></tscreen>
+<p>
+These rules tell that for calls from the IP 192.168.1.1:
+1) if the user dialed a number beginning with 5551, set CLI to 3003,
+2) if the call is from user with CLI beginning with 1001, set CLI to 2222,
+3) for other calls from this IP, set CLI to 1111.
+
+<tag/Example 2:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=18001111
+in:192.168.2.0/24=any=18002222
+in:any=any=0
+</verb></tscreen>
+<p>
+These rules tell that:
+1) for calls from the network 192.168.1.0/24, set CLI to 18001111,
+2) for calls from the network 192.168.2.0/24, set CLI to 18002222,
+3) for other calls, set CLI to 0.
+</descrip>
+
+<descrip>
+<tag/Format for an outbound rule:/
+<tt>out:CALLER_IP=CALLEE_IP [cli:|dno:|cno:]number_prefix=NEW_CLI[,NEW_CLI]...</tt>
+<p>
+The <tt/out:/ prefix tells that this is an outbound rule, the <tt/CALLER_IP/
+and the <tt/CALLEE_IP/ will be used to match the rule and can be a single IP
+or a whole network address.
+The prefix <tt/cli:/, <tt/dno:/ (the default) or <tt/cno:/ selects what number
+will be used to match the <tt/number_prefix/ - a caller id (CLI/ANI),
+a dialed number or a destination/called number (the dialed number after rewrite).
+After the equality sign, a list of new CLI values to be used follows.
+If more than one value is specified, a one will be choosen on a random basis.
+It's possible to specify whole number ranges, like 49173600000-49173699999.
+There is a special string constant "any", that can be used in place
+of the <tt/CALLER_IP/, the <tt/CALLEE_IP/ or the <tt/number_prefix/.
+
+<tag/Example 1:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001
+out:any=192.168.1.2 any=1002
+</verb></tscreen>
+<p>
+These rules set a fixed ANI/CLI for each terminating IP:
+1) present myself with ANI 1001, when sending calls to IP 192.168.1.1,
+2) present myself with ANI 1002, when sending calls to IP 192.168.1.2.
+
+<tag/Example 2:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001-1999,3001-3999
+</verb></tscreen>
+<p>
+This rule randomly selects ANI/CLI from range 1001-1999, 3001-3999
+for calls sent to 192.168.1.1.
+</descrip>
+
+<p>
+Rule matching process has a strictly defined order:
+<enum>
+<item>
+the closest caller's IP match is determined (closest means with the longest
+network mask - single IPs have the highest priority, "any" has the lowest
+priority),
+<item>
+(outbound rules) the closest callee's IP match is determined,
+<item>
+the longest matching prefix is searched for the given IP/IP pair
+in the following order:
+<enum>
+<item><tt/dno:/ type (dialed number) rules are searched,
+<item><tt/cno:/ type (destination/called number) rules are searched,
+<item><tt/cli:/ type (caller id) rules are searched.
+</enum>
+</enum>
+After a match for caller's/caller's IP is found, no more rules
+are checked, even if no prefix is matched inside the set of rules
+for these IPs.
+
+<p>
+On Windows platform, there is a problem with duplicated config
+keys, so there is a workaround for this restriction. This example
+will not work because of the same key (<tt/in:192.168.1.1/):
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=1001=2001
+in:192.168.1.1=any=2000
+</verb></tscreen>
+As the workaround, you can use a string with percent signs (%) at the beginning
+and at the end before the key. This prefix will be automatically stripped
+from the key name before loading rules:
+<tscreen><verb>
+[RewriteCLI]
+%r1% in:192.168.1.1=1001=2001
+%r2% in:192.168.1.1=any=2000
+</verb></tscreen>

@@ -26,6 +26,7 @@
 #include "h323util.h"
 #include "gkconfig.h"
 #include "gksql.h"
+#include "clirw.h"
 #include "Toolkit.h"
 
 
@@ -644,7 +645,8 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_acctSessionCounter(0), m_acctSessionBase((long)time(NULL)),
 	m_timerManager(new GkTimerManager()),
 	m_timestampFormatStr("Cisco"),
-	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false)
+	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false),
+	m_cliRewrite(NULL)
 {
 	srand(time(0));
 }
@@ -657,6 +659,7 @@ Toolkit::~Toolkit()
 		PFile::Remove(m_extConfigFilePath);
 	}
 	delete m_timerManager;
+	delete m_cliRewrite;
 }
 
 Toolkit::RouteTable *Toolkit::GetRouteTable(bool real)
@@ -1078,6 +1081,9 @@ PConfig* Toolkit::ReloadConfig()
 		SetGKHome(GKHome.Tokenise(",:;", false));
 	
 	m_timestampFormatStr = Config()->GetString("TimestampFormat", "Cisco");
+
+	delete m_cliRewrite;
+	m_cliRewrite = new CLIRewrite;
 	
 	return m_Config;
 }
@@ -1499,4 +1505,20 @@ PString Toolkit::ReadPassword(
 			<< "] => " << cfgKey
 			);
 	return s;
+}
+
+void Toolkit::RewriteCLI(
+	SetupMsg &msg
+	) const
+{
+	m_cliRewrite->InRewrite(msg);
+}
+
+void Toolkit::RewriteCLI(
+	SetupMsg &msg,
+	SetupAuthData &authData,
+	const PIPSocket::Address &addr
+	) const
+{
+	m_cliRewrite->OutRewrite(msg, authData, addr);
 }
