@@ -112,7 +112,7 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_usedCount(0)
+      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -291,6 +291,7 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 	}
 	PWaitAndSignal lock(m_usedLock);
 	m_updatedTime = PTime();
+	m_pollCount = 2;
 }
 
 // due to strange bug of gcc, I have to pass pointer instead of reference
@@ -354,12 +355,10 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 	if (GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
 		return false;  // no valid ras address
 
-	static int RequestNum = 0;
-
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = ras_msg;
-	urq.m_requestSeqNum.SetValue(++RequestNum);
+	urq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
 	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
 	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
 	urq.IncludeOptionalField(urq.e_endpointIdentifier);
@@ -376,6 +375,26 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
         GkStatus::Instance()->SignalStatus(msg);
 
 	RasThread->SendRas(ras_msg, GetRasAddress());
+	return true;
+}
+
+bool EndpointRec::SendIRQ()
+{
+	if (m_pollCount-- == 0 || GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
+		return false;
+
+	H225_RasMessage ras_msg;
+	ras_msg.SetTag(H225_RasMessage::e_infoRequest);
+	H225_InfoRequest & irq = ras_msg;
+	irq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
+	irq.m_callReferenceValue.SetValue(0); // ask for each call
+
+	PString msg(PString::Printf, "IRQ|%s|%s;\r\n", 
+			(const unsigned char *) AsDotString(GetRasAddress()),
+			(const unsigned char *) GetEndpointIdentifier().GetValue());
+        GkStatus::Instance()->SignalStatus(msg);
+	RasThread->SendRas(ras_msg, GetRasAddress());
+
 	return true;
 }
 
@@ -913,15 +932,17 @@ void RegistrationTable::CheckEndpoints()
 	PTime now;
 	WriteLock lock(listLock);
 
-	iterator Iter = partition(EndpointList.begin(), EndpointList.end(),
-			bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
-#ifdef PTRACING
-	if (ptrdiff_t s = distance(Iter, EndpointList.end()))
-		PTRACE(2, s << " endpoint(s) expired.");
-#endif
-	transform(Iter, EndpointList.end(), back_inserter(RemovedList),
-		mem_fun(&EndpointRec::Expired));
-	EndpointList.erase(Iter, EndpointList.end());
+	iterator Iter = EndpointList.begin(), eIter = EndpointList.end();
+	while (Iter != eIter) {
+		iterator i = Iter++;
+		EndpointRec *ep = *i;
+		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
+			ep->Expired();
+			RemovedList.push_back(ep);
+			EndpointList.erase(i);
+			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier() << " expired.");
+		}
+	}
 
 	Iter = partition(OuterZoneList.begin(), OuterZoneList.end(),
 		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
@@ -1052,13 +1073,10 @@ void CallRec::Disconnect(bool force)
 
 void CallRec::SendDRQ()
 {
-	// this is the only place we are _generating_ sequence numbers at the moment
-	static int RequestNum = 0;
-
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
 	H225_DisengageRequest & drq = ras_msg;
-	drq.m_requestSeqNum.SetValue(++RequestNum);
+	drq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
 	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop);
 	drq.m_conferenceID = m_conferenceIdentifier;
 	drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);

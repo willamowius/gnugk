@@ -59,6 +59,8 @@ public:
 	// set name of the gatekeeper.
 	const PString GetGKName() const { return Toolkit::GKName(); }
 
+	typedef BOOL (H323RasSrv::*OnRAS)(const PIPSocket::Address &, const H225_RasMessage &, H225_RasMessage &);
+
 	// Deal with GRQ. obj_grq is the incoming RAS GRQ msg, and obj_rpl is the
 	// GCF or GRJ Ras msg.
 	BOOL OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_grq, H225_RasMessage & obj_rpl);
@@ -94,6 +96,10 @@ public:
 	BOOL OnLRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
       
 	BOOL OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
+
+	BOOL OnIgnored(const PIPSocket::Address &, const H225_RasMessage &, H225_RasMessage &);
+
+	BOOL OnUnknown(const PIPSocket::Address &, const H225_RasMessage &, H225_RasMessage &);
       
 	void ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq);
 
@@ -117,6 +123,8 @@ public:
 	NeighborList * GetNeighborsGK() const { return NeighborsGK; }
 	bool SendLRQ(const H225_AdmissionRequest &, const endptr &);
 	bool CheckNBIP(PIPSocket::Address) const;
+
+	WORD GetRequestSeqNum() { return ++requestSeqNum; }
 
 protected:
 	/** OnARQ checks if the dialled address (#aliasStr#) should be
@@ -158,6 +166,10 @@ private:
 	NBPendingList * arqPendingList;
 	
 	GkAuthorize* GWR;
+
+	OnRAS rasHandler[H225_RasMessage::e_serviceControlResponse + 1];
+
+	WORD requestSeqNum;
 };
 
 inline const H225_TransportAddress H323RasSrv::GetRasAddress(PIPSocket::Address peerAddr) const

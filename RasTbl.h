@@ -186,6 +186,8 @@ public:
 	void Lock();
 	void Unlock();
 
+	bool SendIRQ();
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -211,7 +213,7 @@ protected:
 	int m_timeToLive;   // seconds
 
 	int m_activeCall, m_totalCall;
-	int m_usedCount;
+	int m_pollCount, m_usedCount;
 	mutable PMutex m_usedLock;
 
 	PTime m_updatedTime;

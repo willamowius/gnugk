@@ -81,7 +81,7 @@ bool GKPendingList::ProcessARJ(H225_CallIdentifier & callid, int reqNum)
 	return false;
 }
 
-GkClient::GkClient(H323RasSrv *rasSrv) : m_rasSrv(rasSrv), m_seqNum(1)
+GkClient::GkClient(H323RasSrv *rasSrv) : m_rasSrv(rasSrv)
 {
 	PString gk(GkConfig()->GetString(EndpointSection, "Gatekeeper", "no"));
 	if (gk == "no") { // no gatekeeper to register
@@ -210,7 +210,7 @@ void GkClient::SendRRQ()
 	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
 	H225_RegistrationRequest & rrq = rrq_ras;
 
-	rrq.m_requestSeqNum = m_seqNum++;
+	rrq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
 	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	rrq.m_discoveryComplete = FALSE;
         rrq.m_rasAddress.SetSize(1);
@@ -253,7 +253,7 @@ void GkClient::SendURQ()
 	H225_RasMessage urq_ras;
 	urq_ras.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = urq_ras;
-	urq.m_requestSeqNum = m_seqNum++;
+	urq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
 	urq.m_gatekeeperIdentifier = m_gatekeeperId;
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointIdentifier);
@@ -301,7 +301,7 @@ int GkClient::BuildARQ(H225_AdmissionRequest & arq)
 	arq.m_gatekeeperIdentifier = m_gatekeeperId;
 	SetPassword(arq);
 
-	return (arq.m_requestSeqNum = m_seqNum++);
+	return (arq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum());
 }
 
 void GkClient::SendARQ(const H225_AdmissionRequest & arq, const endptr & reqEP)

@@ -115,8 +115,6 @@ private:
 
 	H323RasSrv *m_rasSrv;
 
-	WORD m_seqNum;
-
 	PIPSocket::Address m_gkaddr;
 	WORD m_gkport;
 	H225_TransportAddress *m_callAddr, *m_rasAddr;

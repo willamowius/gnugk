@@ -1,5 +1,6 @@
 Changes from 2.0b3 to now (by cwhuang)
 ======================================
+- send IRQ to an endpoint before expiring it
 - only accept unregistered call from neighbors
 - add NeighborPasswordAuth module
 - check if LRQs is from IP of my neighbors 

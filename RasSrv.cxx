@@ -304,7 +304,7 @@ PString NeighborList::NeighborPasswordAuth::GetPassword(const PString &)
 static GkAuthInit<NeighborList::NeighborPasswordAuth> _NBA_("NeighborPasswordAuth");
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
-      : PThread(10000, NoAutoDeleteThread)
+      : PThread(10000, NoAutoDeleteThread), requestSeqNum(0)
 {
 	GKHome = _GKHome;
 	
@@ -330,8 +330,32 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	udpForwarding.SetWriteTimeout(PTimeInterval(300));
  
 	arqPendingList = new NBPendingList(this, GkConfig()->GetInteger(NeighborSection, "NeighborTimeout", 2));
-}
 
+	// initialize the handler map
+	for (unsigned i = 0; i <= H225_RasMessage::e_serviceControlResponse; ++i)
+		rasHandler[i] = &H323RasSrv::OnUnknown;
+	rasHandler[H225_RasMessage::e_gatekeeperRequest] =	    &H323RasSrv::OnGRQ;
+	rasHandler[H225_RasMessage::e_registrationRequest] =	    &H323RasSrv::OnRRQ;
+	rasHandler[H225_RasMessage::e_registrationConfirm] =	    &H323RasSrv::OnRCF;
+	rasHandler[H225_RasMessage::e_registrationReject] =	    &H323RasSrv::OnRRJ;
+	rasHandler[H225_RasMessage::e_unregistrationRequest] =	    &H323RasSrv::OnURQ;
+	rasHandler[H225_RasMessage::e_unregistrationConfirm] =	    &H323RasSrv::OnIgnored;
+	rasHandler[H225_RasMessage::e_unregistrationReject] =	    &H323RasSrv::OnIgnored;
+	rasHandler[H225_RasMessage::e_admissionRequest] =	    &H323RasSrv::OnARQ;
+	rasHandler[H225_RasMessage::e_admissionConfirm] =	    &H323RasSrv::OnACF;
+	rasHandler[H225_RasMessage::e_admissionReject] =	    &H323RasSrv::OnARJ;
+	rasHandler[H225_RasMessage::e_bandwidthRequest] =	    &H323RasSrv::OnBRQ;
+	rasHandler[H225_RasMessage::e_bandwidthConfirm] =	    &H323RasSrv::OnIgnored;
+	rasHandler[H225_RasMessage::e_bandwidthReject] =	    &H323RasSrv::OnIgnored;
+	rasHandler[H225_RasMessage::e_disengageRequest] =	    &H323RasSrv::OnDRQ;
+	rasHandler[H225_RasMessage::e_disengageConfirm] =	    &H323RasSrv::OnIgnored;
+	rasHandler[H225_RasMessage::e_disengageReject] =	    &H323RasSrv::OnIgnored;
+	rasHandler[H225_RasMessage::e_locationRequest] =	    &H323RasSrv::OnLRQ;
+	rasHandler[H225_RasMessage::e_locationConfirm] =	    &H323RasSrv::OnLCF;
+	rasHandler[H225_RasMessage::e_locationReject] =		    &H323RasSrv::OnLRJ;
+	rasHandler[H225_RasMessage::e_infoRequestResponse] =	    &H323RasSrv::OnIRR;
+	rasHandler[H225_RasMessage::e_resourcesAvailableIndicate] = &H323RasSrv::OnRAI;
+}
 
 H323RasSrv::~H323RasSrv()
 {
@@ -439,6 +463,8 @@ void H323RasSrv::UnregisterAllEndpoints(void)
 /* Gatekeeper request */
 BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_grq, H225_RasMessage & obj_rpl)
 {
+	PTRACE(1, "GK\tGRQ Received");
+
 	const H225_GatekeeperRequest & obj_gr = obj_grq;
 
 	BOOL bShellForwardRequest = TRUE;
@@ -613,6 +639,8 @@ H323RasSrv::ForwardRasMsg(H225_RasMessage msg) // not passed as const, ref or po
 /* Registration Request */
 BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rrq, H225_RasMessage & obj_rpl)
 {
+	PTRACE(1, "GK\tRRQ Received");
+
 	const H225_RegistrationRequest & obj_rr = obj_rrq;
 	BOOL bReject = FALSE;		// RRJ with any other reason from #rejectReason#
 	H225_RegistrationRejectReason rejectReason;
@@ -848,6 +876,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 /* Registration Confirm */
 BOOL H323RasSrv::OnRCF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rcf, H225_RasMessage &)
 {
+	PTRACE(1, "GK\tRCF Received");
 	gkClient->OnRCF(obj_rcf, rx_addr);
 	return FALSE;
 }
@@ -856,6 +885,7 @@ BOOL H323RasSrv::OnRCF(const PIPSocket::Address & rx_addr, const H225_RasMessage
 /* Registration Reject */
 BOOL H323RasSrv::OnRRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rrj, H225_RasMessage &)
 {
+	PTRACE(1, "GK\tRRJ Received");
 	gkClient->OnRRJ(obj_rrj, rx_addr);
 	return FALSE;
 }
@@ -913,6 +943,8 @@ bool H323RasSrv::CheckNBIP(PIPSocket::Address ip) const
 /* Admission Request */
 BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arq, H225_RasMessage & obj_rpl)
 {    
+	PTRACE(1, "GK\tARQ Received");
+
 	const H225_AdmissionRequest & obj_rr = obj_arq;
 	BOOL bReject = FALSE;
 
@@ -1239,6 +1271,7 @@ void H323RasSrv::ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, 
 /* Admission Confirm */
 BOOL H323RasSrv::OnACF(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
 {
+	PTRACE(1, "GK\tACF Received");
 	if (gkClient->IsRegistered())
 		gkClient->OnACF(obj_rr, rx_addr);
 	return FALSE;
@@ -1247,6 +1280,7 @@ BOOL H323RasSrv::OnACF(const PIPSocket::Address & rx_addr, const H225_RasMessage
 /* Admission Reject */
 BOOL H323RasSrv::OnARJ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
 {
+	PTRACE(1, "GK\tARJ Received");
 	if (gkClient->IsRegistered())
 		gkClient->OnARJ(obj_rr, rx_addr);
 	return FALSE;
@@ -1254,7 +1288,9 @@ BOOL H323RasSrv::OnARJ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 /* Disengage Request */
 BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_drq, H225_RasMessage & obj_rpl)
-{    
+{
+	PTRACE(1, "GK\tDRQ Received");
+
 	const H225_DisengageRequest & obj_rr = obj_drq;
 	bool bReject = false;
 	
@@ -1307,6 +1343,8 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 /* Unregistration Request */
 BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_urq, H225_RasMessage &obj_rpl)
 { 
+	PTRACE(1, "GK\tURQ Received");
+
 	const H225_UnregistrationRequest & obj_rr = obj_urq;
 	PString msg;
 
@@ -1389,33 +1427,11 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 }
 
 
-/* Information Request Response */
-BOOL H323RasSrv::OnIRR(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &obj_rpl)
-{ 
-	const H225_InfoRequestResponse & obj_irr = obj_rr;
-
-	if (endptr ep = EndpointTable->FindByEndpointId(obj_irr.m_endpointIdentifier)) {
-		ep->Update(obj_rr);
-		if (obj_irr.HasOptionalField( H225_InfoRequestResponse::e_needResponse )) {
-			obj_rpl.SetTag(H225_RasMessage::e_infoRequestAck);
-			H225_InfoRequestAck & ira = obj_rpl;
-			ira.m_requestSeqNum = obj_irr.m_requestSeqNum;
-			ira.m_nonStandardData = obj_irr.m_nonStandardData;
-
-			PString msg(PString::Printf, "IRR|%s;\r\n", inet_ntoa(rx_addr) );
-			PTRACE(2,msg);
-			GkStatusThread->SignalStatus(msg);
-			return TRUE;
-		}
-	}
-	// otherwise don't respond
-	return FALSE;
-}
-
-
 /* Bandwidth Request */
 BOOL H323RasSrv::OnBRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &obj_rpl)
 { 
+	PTRACE(1, "GK\tBRQ Received");
+
 	const H225_BandwidthRequest & obj_brq = obj_rr;
 
 	obj_rpl.SetTag(H225_RasMessage::e_bandwidthConfirm);
@@ -1445,6 +1461,8 @@ BOOL H323RasSrv::OnBRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 /* Location Request */
 BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &obj_rpl)
 {
+	PTRACE(1, "GK\tLRQ Received");
+
 	PString msg;
 	endptr WantedEndPoint;
 
@@ -1512,6 +1530,7 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 /* Location Confirm */
 BOOL H323RasSrv::OnLCF(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
 {
+	PTRACE(1, "GK\tLCF Received");
 	if (NeighborsGK->CheckIP(rx_addr))
 		arqPendingList->ProcessLCF(obj_rr);
 	return FALSE;
@@ -1520,14 +1539,44 @@ BOOL H323RasSrv::OnLCF(const PIPSocket::Address & rx_addr, const H225_RasMessage
 /* Location Reject */
 BOOL H323RasSrv::OnLRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
 {
+	PTRACE(1, "GK\tLRJ Received");
 	if (NeighborsGK->CheckIP(rx_addr))
 		arqPendingList->ProcessLRJ(obj_rr);
 	return FALSE;
 }
 
+
+/* Information Request Response */
+BOOL H323RasSrv::OnIRR(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &obj_rpl)
+{ 
+	PTRACE(1, "GK\tIRR Received");
+
+	const H225_InfoRequestResponse & obj_irr = obj_rr;
+
+	if (endptr ep = EndpointTable->FindByEndpointId(obj_irr.m_endpointIdentifier)) {
+		ep->Update(obj_rr);
+		if (obj_irr.HasOptionalField( H225_InfoRequestResponse::e_needResponse) && obj_irr.m_needResponse.GetValue()) {
+			obj_rpl.SetTag(H225_RasMessage::e_infoRequestAck);
+			H225_InfoRequestAck & ira = obj_rpl;
+			ira.m_requestSeqNum = obj_irr.m_requestSeqNum;
+			ira.m_nonStandardData = obj_irr.m_nonStandardData;
+
+			PString msg(PString::Printf, "IACK|%s;", inet_ntoa(rx_addr));
+			PTRACE(2, msg);
+			GkStatusThread->SignalStatus(msg + "\r\n");
+			return TRUE;
+		}
+	}
+	// otherwise don't respond
+	return FALSE;
+}
+
+
 /* Resource Availability Indicate */
 BOOL H323RasSrv::OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &obj_rpl)
 { 
+	PTRACE(1, "GK\tRAI Received");
+
 	const H225_ResourcesAvailableIndicate & obj_rai = obj_rr;
 
 	/* accept all RAIs */
@@ -1538,6 +1587,18 @@ BOOL H323RasSrv::OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	rac.m_nonStandardData = obj_rai.m_nonStandardData;
     
 	return TRUE;
+}
+
+BOOL H323RasSrv::OnIgnored(const PIPSocket::Address &, const H225_RasMessage & obj_rr, H225_RasMessage &)
+{
+	PTRACE(2, "GK\t" << obj_rr.GetTagName() << " received and safely ignored");
+	return FALSE;
+}
+
+BOOL H323RasSrv::OnUnknown(const PIPSocket::Address &, const H225_RasMessage &, H225_RasMessage &)
+{
+	PTRACE(1, "GK\tUnknown RAS message received");
+	return FALSE;
 }
 
 bool H323RasSrv::Check()
@@ -1610,7 +1671,6 @@ void H323RasSrv::Main(void)
 		PIPSocket::Address rx_addr;
 		H225_RasMessage obj_req;   
 		H225_RasMessage obj_rpl;
-		BOOL ShallSendReply = FALSE;
 
 		int iResult = listener.ReadFrom(buffer, buffersize, rx_addr, rx_port);
 		if (!iResult) {
@@ -1632,116 +1692,13 @@ void H323RasSrv::Main(void)
 		}
 		
 		PTRACE(3, "GK\n" << setprecision(2) << obj_req);
- 
-		switch (obj_req.GetTag())
-		{
-		case H225_RasMessage::e_gatekeeperRequest:    
-			PTRACE(1, "GK\tGRQ Received");
-			ShallSendReply = OnGRQ( rx_addr, obj_req, obj_rpl );
-			break;
-			
-		case H225_RasMessage::e_registrationRequest:    
-			PTRACE(1, "GK\tRRQ Received");
-			ShallSendReply = OnRRQ( rx_addr, obj_req, obj_rpl );
-			break;
-			
-		case H225_RasMessage::e_registrationConfirm:    
-			PTRACE(1, "GK\tRCF Received");
-			ShallSendReply = OnRCF( rx_addr, obj_req, obj_rpl );
-			break;
-			
-		case H225_RasMessage::e_registrationReject:    
-			PTRACE(1, "GK\tRRJ Received");
-			ShallSendReply = OnRRJ( rx_addr, obj_req, obj_rpl );
-			break;
-			
-		case H225_RasMessage::e_unregistrationRequest :
-			PTRACE(1, "GK\tURQ Received");
-			ShallSendReply = OnURQ( rx_addr, obj_req, obj_rpl );
-			break;
-			
-		case H225_RasMessage::e_admissionRequest :
-			PTRACE(1, "GK\tARQ Received");
-			ShallSendReply = OnARQ( rx_addr, obj_req, obj_rpl );
-			break;
-    
-		case H225_RasMessage::e_admissionConfirm :
-			PTRACE(1, "GK\tACF Received");
-			ShallSendReply = OnACF( rx_addr, obj_req, obj_rpl );
-			break;
-    
-		case H225_RasMessage::e_admissionReject :
-			PTRACE(1, "GK\tARJ Received");
-			ShallSendReply = OnARJ( rx_addr, obj_req, obj_rpl );
-			break;
-    
-		case H225_RasMessage::e_bandwidthRequest :
-			PTRACE(1, "GK\tBRQ Received");
-			ShallSendReply = OnBRQ( rx_addr, obj_req, obj_rpl );
-			break;
-    
-		case H225_RasMessage::e_disengageRequest :
-			PTRACE(1, "GK\tDRQ Received");
-			ShallSendReply = OnDRQ( rx_addr, obj_req, obj_rpl );
-			break;
-    
-		case H225_RasMessage::e_locationRequest :
-			PTRACE(1, "GK\tLRQ Received");
-			ShallSendReply = OnLRQ( rx_addr, obj_req, obj_rpl );
-			break;
-    
-		case H225_RasMessage::e_locationConfirm :
-			PTRACE(1, "GK\tLCF Received");
-			ShallSendReply = OnLCF( rx_addr, obj_req, obj_rpl );
-			break;
 
-		case H225_RasMessage::e_locationReject :
-			PTRACE(1, "GK\tLRJ Received");
-			ShallSendReply = OnLRJ( rx_addr, obj_req, obj_rpl );
-			break;
-
-		case H225_RasMessage::e_infoRequestResponse :
-			PTRACE(1, "GK\tIRR Received");
-			ShallSendReply = OnIRR( rx_addr, obj_req, obj_rpl );
-			break;
-    
-		case H225_RasMessage::e_resourcesAvailableIndicate :
-			PTRACE(1, "GK\tRAI Received");
-			ShallSendReply = OnRAI( rx_addr, obj_req, obj_rpl );
-			break;
-
-		// we case safely ignore these messages and don't have to act upon them
-		case H225_RasMessage::e_unregistrationConfirm :		// happens when gk actively tries to unregister URQ
-		case H225_RasMessage::e_unregistrationReject :		// happens when gk actively tries to unregister URQ
-		case H225_RasMessage::e_bandwidthConfirm :
-		case H225_RasMessage::e_bandwidthReject :
-			PTRACE(2, "GK\t" << obj_req.GetTagName() << " received and safely ignored");
-			break;
-
-
-		// handling these is optional (action only necessary once we send GRQs)
-		case H225_RasMessage::e_nonStandardMessage :
-			PTRACE(2, "GK\t" << err_msg << obj_req.GetTagName());
-			break;
-    
-		// handling these messages is _mandatory_ ! (no action necessary)
-		case H225_RasMessage::e_disengageConfirm :			// happens eg. when gk tries to force call termination with DRQ
-		case H225_RasMessage::e_disengageReject :			// happens eg. when gk tries to force call termination with DRQ
-			PTRACE(2, "GK\t" << obj_req.GetTagName() << " received and safely ignored");
-			break;
-    
-		// handling this message is _mandatory_ !!  (any action necessary ??)
-		case H225_RasMessage::e_unknownMessageResponse :
-			PTRACE(1, "GK\tUnknownMessageResponse received - no action");
-			break;
-			
-		default:
-			PTRACE(1, "GK\tUnknown RAS message received");
-			break;      
+		if (obj_req.GetTag() <= H225_RasMessage::e_serviceControlResponse) {
+			if ((this->*rasHandler[obj_req.GetTag()])(rx_addr, obj_req, obj_rpl))
+				SendReply( obj_rpl, rx_addr, rx_port, listener );
+		} else {
+			PTRACE(1, "GK\tWarning: unknown RAS message tag");
 		}
-
-		if (ShallSendReply)
-			SendReply( obj_rpl, rx_addr, rx_port, listener );
 	}
 	PTRACE(1,"GK\tRasThread terminated!");
 }
