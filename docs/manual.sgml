@@ -51,7 +51,7 @@ following services:
 
 The GNU Gatekeeper implements most of these functions
 based on the
-<url url="http://www.openh323.org/" name="OpenH323">
+<url url="http://sourceforge.net/projects/openh323" name="OpenH323">
 protocol stack.
 
 Recommendation H.323 is an international standard published by the
@@ -92,11 +92,12 @@ Please don't confuse it with other gatekeeper projects.
 
 There are several open-source gatekeeper projects based on the OpenH323 protocol stack.
 <itemize>
-<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper"> - by <url url="http://www.egoboo.com/" name="Egoboo">
-<quote>A full featured gatekeeper freely available under MPL. The project has been inactive for a period of time now. There is an H.323 proxy based on OpenGatekeeper, see <url url="http://openh323proxy.sourceforge.net/" name="OpenH323Proxy">.</quote>
-<item><url url="http://www.openh323.org/code.html" name="OpenGK"> - by <url url="http://www.equival.com.au/" name="Equivalence">
+<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper">
+<quote>A gatekeeper available under MPL. The project has been inactive for a period of time now.</quote>
+<item><url url="http://sourceforge.net/projects/openh323" name="OpenGK">
 <quote>Only in a very primary grades.</quote>
-<item>OpenH323 Gatekeeper - this one.
+<item><url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
+<quote>This one, also called GnuGk.</quote>
 </itemize>
 
 To have different gatekeepers with very similar names is really
@@ -471,7 +472,7 @@ To build the gatekeeper you need at least PWLib 1.5.0 and OpenH323 1.12.0 or lat
 The development version of the gatekeeper usually needs the
 most recent OpenH323 version available.
 These libraries are available at
-<url url="http://www.openh323.org/code.html" name="OpenH323 Download Page">.
+<url url="http://sourceforge.net/projects/openh323" name="OpenH323 Download Page">.
 See the instructions on
 <url url="http://www.openh323.org/build.html" name="how to compile the OpenH323 code">.
 
