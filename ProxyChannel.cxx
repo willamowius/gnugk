@@ -1480,6 +1480,7 @@ void CallSignalSocket::CgPNConversion(Q931 &q931pdu, H225_Setup_UUIE &setup) {
 		);
 
 		PrintCallingPartyNumber(callingPN, npi, ton, pi, si);
+		callRec->GetCalledProfile().setDialedPN_TON((enum Q931::TypeOfNumberCodes)ton); // for CDR use mainly
 
 		if (callRec->GetCalledProfile().isCPE()) {
 		// call goes to CPE

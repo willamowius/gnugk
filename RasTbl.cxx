@@ -45,12 +45,58 @@ const char *CallTableSection = "CallTable";
 // Classes to store information read form e.g. LDAP
 // necessary for e.g. routing decisions
 
+//   callING Profile
+
+void
+CallingProfile::debugPrint(void) {
+		PTRACE(5, "Calling profile:");
+		PTRACE(5, "H323ID=" << getH323ID());
+		PTRACE(5, "CPE=" << isCPE());
+		PTRACE(5, "Telno=" << getTelephoneNumbers());
+		const PStringToString &spMap = getSpecialDials();
+		PTRACE(5, spMap.GetSize() << " SpecialDials:");
+		for (PINDEX i=0; i < spMap.GetSize(); i++) {
+			PTRACE(5, "\t" << spMap.GetKeyAt(i) << "--->" << spMap.GetDataAt(i));
+		}
+		PTRACE(5, "MainNo=" << getMainTelephoneNumber());
+		PTRACE(5, "SubsNo=" << getSubscriberNumber());
+		PTRACE(5, "CLIR=" << getClir());
+		PTRACE(5, "Lac=" << getLac());
+		PTRACE(5, "Nac=" << getNac());
+		PTRACE(5, "Inac=" << getInac());
+		PTRACE(5, "HonorsARJIncompleteAddr=" << honorsARJincompleteAddress());
+		PTRACE(5, "CC=" << getCC());
+		PTRACE(5, "BlackList=" << getBlackList());
+		PTRACE(5, "WhiteList=" << getWhiteList());
+}
+
+//   callED Profile
+
 CalledProfile::CalledProfile(PString &dialedPN, PString &calledPN)
 {
         setDialedPN(dialedPN);
         setCalledPN(calledPN);
 }
 
+void
+CalledProfile::setDialedPN(PString &dialedPN, 
+			   const enum Q931::TypeOfNumberCodes dialedPN_TON)
+{
+	m_dialedPN = dialedPN; 
+	m_dialedPN_TON = dialedPN_TON; 
+}
+
+void 
+CalledProfile::setDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON)
+{ 
+	m_dialedPN_TON = dialedPN_TON; 
+}
+
+void  
+CalledProfile::setCalledPN(PString &calledPN) 
+{ 
+	m_calledPN = calledPN; 
+}
 // End of: Classes to store information read from e.g. LDAP
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
@@ -1280,8 +1326,11 @@ static const PString AsCDRTimeString(const PTime & t)
 {
 	const PString format(GkConfig()->GetString(UseCDRFormat,UseCDRFormat_default));
 	const int zone = (GkConfig()->GetBoolean(UseUTCinCDR,UseUTCinCDR_default) ? PTime::UTC : PTime::Local);
-
-	return t.AsString((const char *)format, zone);
+	const PString & result = t.AsString((const char *)format, zone);
+	PTRACE(5, PString(ANSI::DBG) + "CDR: Time formated to " 
+	       + ANSI::PIN + result + ANSI::OFF);
+	return result;
+	//return t.AsString((const char *)format, zone);
 }
 
 /*
@@ -1296,7 +1345,8 @@ static const BOOL IPTN_good(E164_IPTNString & iptn)
 	if(E164_AnalysedNumber::IPTN_unknown != an.GetIPTN_kind()) {
 		result = TRUE;
 		PString well_formated(an); // convert to '+CC NDC SN'
-		PTRACE(2, "CDR: rewriting " + iptn + " to " + well_formated);
+		PTRACE(2, PString(ANSI::DBG) + "CDR: rewriting " + iptn + 
+		       " to " + ANSI::GRE +well_formated + ANSI::OFF);
 		iptn = well_formated;
 	}
 	return result;
@@ -1305,48 +1355,76 @@ static const BOOL IPTN_good(E164_IPTNString & iptn)
 
 PString CallRec::GenerateCDR()
 {
-	PString timeString;
-	PString startTimeStr;
-	PString endTimeStr;
-	PTime endTime;
-	PString srcInfo(m_srcInfo);
-	PString destInfo(m_destInfo);
-	E164_IPTNString CgPN(""); // callING party number, formatted
-	E164_IPTNString CdPN(""); // callED party number, formatted
-	CallingProfile & CallingP = GetCallingProfile();
+	PString timeString;	// holding the time part
+	PTime endTime;		// this is initialized to 'now'
+	PString srcInfo(m_srcInfo); // H.225 ARJ source info field
+	PString destInfo(m_destInfo); // H.225 ARJ destination info field
+	E164_IPTNString dialedPN(""); // dialed party number, formatted
+	enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType;
+	E164_IPTNString calledPN(""); // called party number, formatted
 	CalledProfile & CalledP = GetCalledProfile();
+
 	if (NULL != m_startTime) {
 		PTimeInterval callDuration = endTime - *m_startTime;
+		PString formattedStartTime(AsCDRTimeString(*m_startTime));
+		if(formattedStartTime.IsEmpty()) PTRACE(5, PString(ANSI::DBG) + "CDR could not get string for Start Time" + ANSI::OFF);
+		PString formattedEndTime(AsCDRTimeString(endTime));
+		if(formattedEndTime.IsEmpty()) PTRACE(5, PString(ANSI::DBG) + "CDR could not get string for End Time" + ANSI::OFF);
 		timeString = PString(PString::Printf, "%.3f|%s|%s",
 				     (callDuration.GetMilliSeconds() / 1000.0),
-				     (const char *)AsCDRTimeString(*m_startTime),//->AsString(),
-				     (const char *)AsCDRTimeString(endTime)//.AsString()
+				     (const char *)formattedStartTime,
+				     (const char *)formattedEndTime
 			);
 	} else
-		timeString = "0|unconnected| " + endTime.AsString();
+		timeString = "0|unconnected| " + AsCDRTimeString(endTime);
 
-	// get the proper CgPN and CdPN, they should be in international format
-	if (!CallingP.getCgPN().IsEmpty()) {
-		CgPN = GetCallingProfile().getCgPN();
+	// get the proper dialed party number and its Type of Number, they
+	// usually are not in international format
+	if (!CalledP.getDialedPN().IsEmpty()) {
+		dialedPN = CalledP.getDialedPN();
+		dialedPN_TON = CalledP.getDialedPN_TON();
 #  if defined(CDR_RECHECK)
-		if(IPTN_good(CgPN)) {
-			PTRACE(2, "CDR: CgPN is in international format");
-		} else {
-			PTRACE(2, "CDR: WARNING: CgPN " + CgPN + 
-			       " is NOT in international format; stripped!");
-			CgPN = "";
+		PString TONstr;
+		switch(dialedPN_TON) {
+		case Q931::InternationalType:
+			TONstr = "international type";
+			break;
+		case Q931::NationalType:
+			TONstr = "national type";
+			break;
+		case Q931::NetworkSpecificType:
+			TONstr = "network specific type";
+			break;
+		case Q931::SubscriberType:
+			TONstr = "subscriber type";
+			break;
+		case Q931::AbbreviatedType:
+			TONstr = "abbreviated type";
+			break;
+		case Q931::ReservedType:
+			TONstr = "reserved type";
+			break;
+		case Q931::UnknownType:
+		default:
+			TONstr = "unknown";
 		}
+		PTRACE(2, PString(ANSI::DBG)+"CDR: dialedPN is in " 
+		       + ANSI::GRE + TONstr + ANSI::DBG + " format" + ANSI::OFF);
 #  endif	
 	}
+	// get the proper called party number, they should be in
+	// international format
 	if (!CalledP.getCalledPN().IsEmpty()) {
-		CdPN = GetCalledProfile().getCalledPN();
+		calledPN = CalledP.getCalledPN();
 #  if defined(CDR_RECHECK)
-		if(IPTN_good(CdPN)) {
-			PTRACE(2, "CDR: CdPN is in international format");
+		if(IPTN_good(calledPN)) {
+			PTRACE(2, "CDR: calledPN is in international type format");
 		} else {
-			PTRACE(2, "CDR: WARNING: CdPN " + CdPN + 
-			       " is NOT in international format; stripped!");
-			CdPN = "";
+			PTRACE(2, PString("CDR: ") + ANSI::RED + "WARNING" + ANSI::OFF + 
+			       ": calledPN " + calledPN + 
+			       " is " + ANSI::RED + "NOT" + ANSI::OFF + 
+			       " in international format; stripped!");
+			calledPN = "";
 		}
 #  endif	
 	}
@@ -1354,19 +1432,20 @@ PString CallRec::GenerateCDR()
 
 #if defined(CDR_MOD_INFO_FIELDS)
 	// if profile for calling endpoint exists
+	CallingProfile & CallingP = GetCallingProfile();
 	if (!CallingP.getH323ID().IsEmpty()) {
 		if (!CallingP.getCgPN().IsEmpty()) {
-			PTRACE(2, "CDR: set CgPN to international format");
-			srcInfo = GetCallingProfile().getCgPN() + ":dialedDigits";
+			PTRACE(4, "CDR: set CgPN to international format");
+			srcInfo = CallingP.getCgPN() + ":dialedDigits";
 		}
 		if (!CalledP.getCalledPN().IsEmpty()) {
-			PTRACE(2, "CDR: set CdPN to international format");
-			destInfo = GetCalledProfile().getCalledPN() + ":dialedDigits";
+			PTRACE(4, "CDR: set CdPN to international format");
+			destInfo = CalledP.getCalledPN() + ":dialedDigits";
 		}
 	}
 #endif
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s;" GK_LINEBRK,
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s;" GK_LINEBRK,
 		       m_CallNumber,
 		       (const char *)AsString(m_callIdentifier.m_guid),
 		       (const char *)timeString,
@@ -1375,8 +1454,9 @@ PString CallRec::GenerateCDR()
 		       (const char *)destInfo,
 		       (const char *)srcInfo,
 		       (const char *)Toolkit::Instance()->GKName(),
-		       (const char *)((PString)CgPN),
-		       (const char *)((PString)CdPN)
+		       (unsigned int)dialedPN_TON,
+		       (const char *)((PString)dialedPN),
+		       (const char *)((PString)calledPN)
 		);
 }
 

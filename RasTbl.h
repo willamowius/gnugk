@@ -24,6 +24,7 @@
 #include "h225.h"
 #include "GkStatus.h"
 #include <h323pdu.h>
+#include <q931.h>
 #include "singleton.h"
 
 #ifdef P_SOLARIS
@@ -139,27 +140,7 @@ public:
 	void setBlackList(PStringList &bl) { m_BlackList = bl; }
 	void setWhiteList(PStringList &wl) { m_WhiteList = wl; }
 
-	void debugPrint() {
-		PTRACE(5, "Calling profile:");
-		PTRACE(5, "H323ID=" << getH323ID());
-		PTRACE(5, "CPE=" << isCPE());
-		PTRACE(5, "Telno=" << getTelephoneNumbers());
-		const PStringToString &spMap = getSpecialDials();
-		PTRACE(5, spMap.GetSize() << " SpecialDials:");
-		for (PINDEX i=0; i < spMap.GetSize(); i++) {
-			PTRACE(5, "\t" << spMap.GetKeyAt(i) << "--->" << spMap.GetDataAt(i));
-		}
-		PTRACE(5, "MainNo=" << getMainTelephoneNumber());
-		PTRACE(5, "SubsNo=" << getSubscriberNumber());
-		PTRACE(5, "CLIR=" << getClir());
-		PTRACE(5, "Lac=" << getLac());
-		PTRACE(5, "Nac=" << getNac());
-		PTRACE(5, "Inac=" << getInac());
-		PTRACE(5, "HonorsARJIncompleteAddr=" << honorsARJincompleteAddress());
-		PTRACE(5, "CC=" << getCC());
-		PTRACE(5, "BlackList=" << getBlackList());
-		PTRACE(5, "WhiteList=" << getWhiteList());
-	}
+	void debugPrint(void);
 
 private:
         PString         m_h323id;                     // H323ID
@@ -187,19 +168,23 @@ public:
         CalledProfile(PString &dialedPN, PString &calledPN);
 
         // Get accessor methods
-        const BOOL isCPE() const { return m_isCPE; } // Customer Promise Equipment
+        const BOOL isCPE() const { return m_isCPE; } // Customer Premise Equipment
 	const BOOL isGK() const {return m_isGK; }
 	const BOOL isTrunkGW() const { return !(m_isCPE || m_isGK) ; }
         const PString & getDialedPN() const { return m_dialedPN; }
         const PString & getCalledPN() const { return m_calledPN; }
+        const enum Q931::TypeOfNumberCodes & getDialedPN_TON() const { return m_dialedPN_TON; }
 
         // Set accessor methods
         void setIsCPE(BOOL isCPE) { m_isCPE = isCPE; }
 	void setIsGK(BOOL isGK) { m_isGK = isGK;}
-        void setDialedPN(PString &dialedPN) { m_dialedPN = dialedPN; }
-        void setCalledPN(PString &calledPN) { m_calledPN = calledPN; }
+        void setDialedPN(PString &dialedPN, 
+			 const enum Q931::TypeOfNumberCodes dialedPN_TON = Q931::UnknownType);
+        void setDialedPN_TON(const enum Q931::TypeOfNumberCodes dialedPN_TON);
+        void setCalledPN(PString &calledPN);
 
 private:
+	enum Q931::TypeOfNumberCodes m_dialedPN_TON; // type of number for dialed PN
         PString m_dialedPN; // dialed party number
         PString m_calledPN; // called party number
         BOOL    m_isCPE;    // CPE flag

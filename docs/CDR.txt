@@ -1,5 +1,5 @@
 -*- mode: outline; eval: (setq outline-regexp "[ \\.0-9]+) ") -*-
-Time-stamp: <02/06/03 14:20:13 martinf>
+Time-stamp: <02/06/05 20:33:53 martinf>
 $Id$
 
  1) Format of the current CDR
@@ -87,23 +87,32 @@ $Id$
       possibility to discriminate between two GKs if the CDRs are merged
       into one file/stream.
 
-1.14) The calling party number (A Number) 
-      [49524680321]
-      This is the number of the calling party in international
-      format. It is ommited if the compilation flag 'CDR_RECHECK' is set
-      and the number could not be validated by E.164 Number analysis
-      based on the dictonaries provided in CodesDB. Numbers, especially
-      rewritten ones, might be in the '+CC NDC SN' format (that is with
-      leading '+' and components separated by spaces).
+1.14) The dialed party number's TON (B Number TON) 
+      [1]
+      This is the type of called party number as dialed which follows in
+      the next field. The number 0 is unknown, all others those specified
+      in Q.931. This information is taken directly from the Q.931
+      messages not from the H.xxx ones.
 
-1.15) The called party number (B Number) 
+
+1.15) The dialed party number (B Number as was) 
+      [00495246801581]
+      This is the number of the called party as entered by the user. Its
+      type (TON) is given in the field before this one. NOTE: INAC, NAC,
+      LAC are still present in the digit string. They might be
+      identified by knowing the numbering plan and the TON. This
+      information is taken directly from the Q.931 messages not from the
+      H.xxx ones.
+
+1.16) The called party number (B Number as is) 
       [495246801581]
-      This is the number of the called party in international format. It
-      is ommited if the compilation flag 'CDR_RECHECK' is set and the
-      number could not be validated by E.164 Number analysis based on
-      the dictonaries provided in CodesDB.Numbers, especially
-      rewritten ones, might be in the '+CC NDC SN' format (that is with
-      leading '+' and components separated by spaces).
+      This is the number of the called party in international format as
+      resolved for the routing/destination decision. It is ommited if
+      the compilation flag 'CDR_RECHECK' is set and the number could not
+      be validated by E.164 Number analysis based on the dictonaries
+      provided in CodesDB.Numbers, especially rewritten ones, might be
+      in the '+CC NDC SN' format (that is with leading '+' and
+      components separated by spaces).
 
 2) Notes on formats in ini-files
    Every value will be taken between the '=' equal-sign and the newline

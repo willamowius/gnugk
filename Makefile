@@ -20,11 +20,11 @@ ifndef VERSION_MAJOR
 VERSION_MAJOR = 2
 endif
 ifndef VERSION_MINOR
-VERSION_MINOR = 0
+VERSION_MINOR = 1
 endif
 ifndef VERSION_STATUS
 # might be: AlphaCode, BetaCode, ReleaseCode
-VERSION_STATUS = BetaCode
+VERSION_STATUS = AlphaCode
 endif
 ifndef VERSION_BUILD
 VERSION_BUILD = 5
