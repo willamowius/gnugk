@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.25  2004/12/08 13:02:56  zvision
+ * Better Calling/Called-Station-Id handling
+ *
  * Revision 1.24  2004/11/15 23:57:42  zvision
  * Ability to choose between the original and the rewritten dialed number
  *
@@ -149,7 +152,7 @@
 #if HAS_RADIUS
 
 #if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug sumbol off
+#pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
 #include <vector>
