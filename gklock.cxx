@@ -121,8 +121,10 @@ ProxyCondMutex::Condition()
 void
 ProxyCondMutex::OnWait()
 {
+	Wait();
 	for(PINDEX i=0; i<locker.GetSize(); i++)
 		PTRACE(5,"locker[" << i << "]: " << locker[i]);
+	Signal();
 }
 
 void ProxyCondMutex::WaitCondition()
