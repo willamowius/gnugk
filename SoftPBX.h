@@ -19,6 +19,7 @@
 
 namespace SoftPBX
 {
+	void PrintEndpoint(const PString & Alias, GkStatus::Client &client, BOOL verbose);
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintRemoved(GkStatus::Client &client, BOOL verbose=FALSE);
@@ -34,6 +35,7 @@ namespace SoftPBX
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
 
 	extern int TimeToLive;
+	extern PTime StartUp;
 }
 
 

@@ -109,21 +109,8 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 }
 
 
-//void EndpointRec::PrintOn( ostream &strm ) const
-//{
-//    strm << "{";
-//    strm << endl << " callSignalAddress ";
-//    m_callSignalAddress.PrintOn( strm );
-//    strm << endl << " terminalAlias ";
-//    m_terminalAliases.PrintOn( strm );
-//    strm << endl << " endpointIdentifier ";
-//    m_endpointIdentifier.PrintOn( strm );
-//    strm << "}" << endl;
-//}
-
-
 EndpointRec::EndpointRec(const H225_RasMessage &completeRRQ, bool Permanent)
-      :	m_RasMsg(completeRRQ), m_timeToLive(1), m_usedCount(0)
+      :	m_RasMsg(completeRRQ), m_timeToLive(1), m_callCount(0), m_usedCount(0)
 {
 	SetTimeToLive(SoftPBX::TimeToLive);
 	if (m_RasMsg.GetTag() == H225_RasMessage::e_registrationRequest) {
@@ -269,7 +256,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		msg += GetUpdatedTime().AsString();
 		if (m_timeToLive == 0)
 			msg += " (permanent)";
-		msg += " <" + PString(PString::Unsigned, m_usedCount) + ">\r\n";
+		msg += PString(PString::Printf, " C(%d) <%d>\r\n", m_callCount, m_usedCount);
 	}
 	return msg;
 }
@@ -462,6 +449,7 @@ OuterZoneGWRec::OuterZoneGWRec(const H225_RasMessage & completeLCF, const H225_E
 
 RegistrationTable::RegistrationTable()
 {
+	srandom(time(0));
 	recCnt = rand()%9000+1000;
 
 	LoadConfig();
@@ -885,6 +873,26 @@ void CallRec::OnTimeout(PTimer &, INT)
 	Disconnect();
 }
 
+void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, unsigned ncrv)
+{
+	if (ep != nep) {
+		if (ep)
+			ep->RemoveCall();
+		PWaitAndSignal lock(m_usedLock);
+		ep = nep, crv = ncrv;
+		if (ep)
+			ep->AddCall();
+	}
+}
+
+void CallRec::RemoveAll()
+{
+	if (m_Calling)
+		m_Calling->RemoveCall();
+	if (m_Called)
+		m_Called->RemoveCall();
+}
+
 int CallRec::CountEndpoints() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -902,10 +910,11 @@ void CallRec::Disconnect()
 		m_sigConnection->SendReleaseComplete();
 	else
 		SendDRQ();
-	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
 
 	// remove the call directly so we don't have to handle DCF
 	CallTable::Instance()->RemoveCall(callptr(this));
+
+	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
 }
 
 void CallRec::SendDRQ()
@@ -977,6 +986,7 @@ PString CallRec::GenerateCDR() const
 
 PString CallRec::PrintOn(bool verbose) const
 {
+//	int left = (m_timer) ? m_timer->GetSeconds() : 0;
 	PString result(PString::Printf, "Call No. %d | CallID %s\r\nDial %s\r\nACF|%s|%d\r\nACF|%s|%d\r\n",
 		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid),
 		(const char *)m_destInfo,
@@ -1117,6 +1127,7 @@ void CallTable::InternalRemove(iterator Iter)
 	}
 
 	call->StopTimer();
+	call->RemoveAll();
 	RemovedList.push_back(call);
 	CallList.erase(Iter);
 

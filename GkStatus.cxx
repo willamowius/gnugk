@@ -32,7 +32,7 @@ using std::mem_fun;
 void ReloadHandler(void);
 
 
-const int GkStatus::NumberOfCommandStrings = 33;
+const int GkStatus::NumberOfCommandStrings = 38;
 const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
 {
 	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
@@ -49,6 +49,10 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"printcurrentcallsverbose", GkStatus::e_PrintCurrentCallsVerbose},
 	{"!!",                       GkStatus::e_PrintCurrentCallsVerbose},
 	{"cv",                       GkStatus::e_PrintCurrentCallsVerbose},
+	{"find",                     GkStatus::e_Find},
+	{"f",                        GkStatus::e_Find},
+	{"findverbose",              GkStatus::e_FindVerbose},
+	{"fv",                       GkStatus::e_FindVerbose},
 	{"disconnectip",             GkStatus::e_DisconnectIp},
 	{"disconnectcall",           GkStatus::e_DisconnectCall},
 	{"disconnectalias",          GkStatus::e_DisconnectAlias},
@@ -62,6 +66,7 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"help",                     GkStatus::e_Help},
 	{"h",                        GkStatus::e_Help},
 	{"version",                  GkStatus::e_Version},
+	{"v",                        GkStatus::e_Version},
 	{"debug",                    GkStatus::e_Debug},
 	{"reload",                   GkStatus::e_Reload},
 	{"shutdown",                 GkStatus::e_Shutdown},
@@ -235,6 +240,25 @@ void GkStatus::CleanupClients()
 }
 
 
+namespace {
+
+PString PrintGkVersion()
+{
+	long total = (PTime() - SoftPBX::StartUp).GetSeconds();
+	int days = total / (24*60*60);
+	int hour = (total % (24*60*60)) / (60*60);
+	int min  = (total % (60*60)) / 60;
+	int sec  = total % 60;
+
+	return PString("Version:\r\n") + Toolkit::GKVersion() +
+		"\r\nGkStatus: Version(1.0) Ext()\r\n"
+		"Toolkit: Version(1.0) Ext(" + InstanceOf<Toolkit>()->GetName() +
+		")\r\nStartup: " + SoftPBX::StartUp.AsString() + "  Running: " +
+		PString(PString::Printf, "%d days %02d:%02d:%02d", days, hour, min, sec) +
+		"\r\n;\r\n";
+}
+
+}
 
 PStringToOrdinal GkStatus::Client::Commands(NumberOfCommandStrings, GkStatusClientCommands, TRUE);
 
@@ -333,10 +357,11 @@ void GkStatus::Client::Main()
 					break;
 				case GkStatus::e_DisconnectCall:
 					// disconnect call with this call number
-					if (Args.GetSize() == 2)
-						SoftPBX::DisconnectCall(atoi(Args[1]));
+					if (Args.GetSize() >= 2)
+						for (PINDEX p=1; p < Args.GetSize(); ++p)
+							SoftPBX::DisconnectCall(Args[p].AsInteger());
  					else
-						WriteString("Syntax Error: DisconnectCall <call number>\r\n");
+						WriteString("Syntax Error: DisconnectCall <call number> ...\r\n");
  					break;
 				case GkStatus::e_DisconnectEndpoint:
 					// disconnect call on this alias
@@ -365,6 +390,18 @@ void GkStatus::Client::Main()
 					// print list of currently ongoing calls
 					SoftPBX::PrintCurrentCalls(*this, TRUE);
 					break;
+				case GkStatus::e_Find:
+					if (Args.GetSize() == 2)
+						SoftPBX::PrintEndpoint(Args[1], *this, FALSE);
+					else
+						WriteString("Syntax Error: Find alias\r\n");
+					break;
+				case GkStatus::e_FindVerbose:
+					if (Args.GetSize() == 2)
+						SoftPBX::PrintEndpoint(Args[1], *this, TRUE);
+					else
+						WriteString("Syntax Error: FindVerbose alias\r\n");
+					break;
 				case GkStatus::e_Yell:
 					StatusThread->SignalStatus(PString("  "+WhoAmI() + ": " + Line + "\r\n"));
 					break;
@@ -379,12 +416,7 @@ void GkStatus::Client::Main()
 					DoDebug(Args);
 					break;
 				case GkStatus::e_Version:
-					WriteString("Version:\r\n");
-					WriteString(Toolkit::GKVersion());
-					WriteString("GkStatus: Version(1.0) Ext()\r\n");
-					WriteString("Toolkit: Version(1.0) Ext("
-								+ InstanceOf<Toolkit>()->GetName() + ")\r\n");
-					WriteString(";\r\n");
+					WriteString(PrintGkVersion());
 					break;
 				case GkStatus::e_Exit:
 					Mutex.Wait();

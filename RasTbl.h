@@ -156,8 +156,11 @@ public:
 	 * how would this RRQ would look like? May be implemented with a 
 	 * built-together-RRQ, but for the moment a stored RRQ.
 	 */
-	const H225_RasMessage &GetCompleteRegistrationRequest() const
+	const H225_RasMessage & GetCompleteRegistrationRequest() const
 	{ return m_RasMsg; }
+
+	void AddCall();
+	void RemoveCall();
 
 	void Lock();
 	void Unlock();
@@ -182,6 +185,7 @@ protected:
 	H225_EndpointType *m_terminalType;
 	int m_timeToLive;   // seconds
 
+	int m_callCount;
 	int m_usedCount;
 	mutable PMutex m_usedLock;
 
@@ -193,29 +197,6 @@ private: // not assignable
 };
 
 typedef EndpointRec::Ptr endptr;
-
-inline bool EndpointRec::IsUsed() const
-{
-	PWaitAndSignal lock(m_usedLock);
-	return (m_usedCount != 0);
-}
-
-inline bool EndpointRec::IsUpdated() const
-{
-	return (!m_timeToLive || (PTime() - m_updatedTime) < (DWORD)m_timeToLive*1000);
-}
-
-inline void EndpointRec::Lock()
-{       
-	PWaitAndSignal lock(m_usedLock);
-	++m_usedCount;
-}       
-
-inline void EndpointRec::Unlock()
-{       
-	PWaitAndSignal lock(m_usedLock); 
-	--m_usedCount;
-}       
 
 
 class GatewayRec : public EndpointRec {
@@ -255,6 +236,7 @@ public:
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
 };
+
 
 class OuterZoneGWRec : public GatewayRec {
 public:
@@ -388,14 +370,8 @@ public:
 	void StopTimer();
 
 	void Disconnect();
-
-	/// deletes endpoint end marks it as invalid
-	void RemoveCalling();
-	/// deletes endpoint end marks it as invalid
-	void RemoveCalled();
-	/// remove all involved endpoints and marks then invalid
 	void RemoveAll();
-	/// counts the endpoints in this rec; currently #0 <= n <= 2#.
+
 	int CountEndpoints() const;
 
 	bool CompareCallId(H225_CallIdentifier *CallId) const;
@@ -418,6 +394,7 @@ public:
 
 private:
 	void SendDRQ();
+	void InternalSetEP(endptr &, unsigned &, const endptr &, unsigned);
 
 	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
 //	void OnTimeout(PTimer &, INT);
@@ -508,19 +485,43 @@ private:
 	CallTable& operator==(const CallTable &);
 };
 
+// inline functions of EndpointRec
+inline bool EndpointRec::IsUsed() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return (m_callCount > 0 || m_usedCount > 0);
+}
+
+inline bool EndpointRec::IsUpdated() const
+{
+	return (!m_timeToLive || m_callCount > 0 || (PTime() - m_updatedTime) < (DWORD)m_timeToLive*1000);
+}
+
+inline void EndpointRec::AddCall()
+{       
+	PWaitAndSignal lock(m_usedLock);
+	++m_callCount;
+}       
+
+inline void EndpointRec::RemoveCall()
+{       
+	PWaitAndSignal lock(m_usedLock); 
+	--m_callCount;
+}       
+
+inline void EndpointRec::Lock()
+{       
+	PWaitAndSignal lock(m_usedLock);
+	++m_usedCount;
+}       
+
+inline void EndpointRec::Unlock()
+{       
+	PWaitAndSignal lock(m_usedLock); 
+	--m_usedCount;
+}       
+
 // inline functions of CallRec
-inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_Calling = NewCalling, m_callingCRV = crv;
-}
-
-inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_Called = NewCalled, m_calledCRV = crv;
-}
-
 inline void CallRec::SetSigConnection(SignalConnection *sigConnection)
 {
 	m_sigConnection = sigConnection;
@@ -531,20 +532,14 @@ inline void CallRec::SetTimer(int seconds)
 	m_timeout = seconds;
 }
 
-inline void CallRec::RemoveCalling()
+inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 {
-	SetCalling(endptr(0));
+	InternalSetEP(m_Calling, m_callingCRV, NewCalling, crv);
 }
 
-inline void CallRec::RemoveCalled()
+inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 {
-	SetCalled(endptr(0));
-}
-
-inline void CallRec::RemoveAll()
-{
-	RemoveCalled();
-	RemoveCalling();
+	InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
 }
 
 inline void CallRec::Lock()

@@ -53,6 +53,8 @@ public:
 		e_PrintAllCached,
 		e_PrintCurrentCalls,
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
+		e_Find,
+		e_FindVerbose,
 		e_DisconnectIp,                /// disconnect a call by endpoint IP number
 		e_DisconnectAlias,             /// disconnect a call by endpoint alias
 		e_DisconnectCall,              /// disconnect a call by call number

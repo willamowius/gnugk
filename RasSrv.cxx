@@ -573,11 +573,20 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			bShellForwardRequest = FALSE;
 		}
 
+	if (obj_rr.m_callSignalAddress.GetSize() >= 1)
+		SignalAdr = obj_rr.m_callSignalAddress[0];
+	else {
+		bReject = TRUE;
+		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
+	}
+
 	// lightweight registration update
 	if (obj_rr.HasOptionalField(H225_RegistrationRequest::e_keepAlive) &&
 		obj_rr.m_keepAlive.GetValue())
 	{
-		if (endptr ep=EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier)) {
+		endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
+		// check if the RRQ was sent from the registered endpoint
+		if (ep && ep == EndpointTable->FindBySignalAdr(SignalAdr)) {
 			// endpoint was already registered
 			obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
 			H225_RegistrationConfirm & rcf = obj_rpl;
@@ -600,19 +609,12 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 			ep->Update(obj_rrq);
 			return bShellSendReply;
-		}
-		else {
+		} else {
+			PTRACE_IF(1, ep, "WARNING:\tPossibly endpointId collide or security attack!!");
 			// endpoint was NOT registered
 			bReject = TRUE;
 			rejectReason.SetTag(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		}
-	}
-
-	if (obj_rr.m_callSignalAddress.GetSize() >= 1)
-		SignalAdr = obj_rr.m_callSignalAddress[0];
-	else {
-		bReject = TRUE;
-		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
 	}
 
 	BOOL bHasAlias = (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (obj_rr.m_terminalAlias.GetSize() >= 1));
@@ -802,19 +804,26 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
  		arj.m_rejectReason.SetTag(rsn);
 		bReject = TRUE;
 	}
-
-	// if a destination address is provided, we check if we know it
-	else if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-		CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
-	} else if (obj_rr.m_answerCall) { // don't search endpoint table for an ARQ to an answerCall
+	// don't search endpoint table for an answerCall ARQ
+	else if (obj_rr.m_answerCall) {
 		CalledEP = RequestingEP;
-	} else if (obj_rr.m_destinationInfo.GetSize() >= 1) {
-		// apply rewrite rules
-		Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
-		CalledEP = EndpointTable->FindEndpoint(obj_rr.m_destinationInfo);
-		if (!CalledEP && RequestingEP) {
-			if (arqPendingList->Insert(obj_rr, RequestingEP))
-				return FALSE;
+	}
+	else {
+		// if a destination address is provided, we check if we know it
+		if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) 
+			CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
+		// in routed mode, the EP may use my IP as the
+		// destCallSignalAddress, thus it is possible we
+		// can't find CalledEP in the RegistrationTable
+		// if so, try destinationInfo
+		if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {
+			// apply rewrite rules
+			Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
+			CalledEP = EndpointTable->FindEndpoint(obj_rr.m_destinationInfo);
+			if (!CalledEP && RequestingEP) {
+				if (arqPendingList->Insert(obj_rr, RequestingEP))
+					return FALSE;
+			}
 		}
 	}
 
@@ -977,19 +986,22 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 			CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
 		if (pExistingCallRec) {
-			// the call is already in the table hence this must be the 2nd ARQ
-			pExistingCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
+			if (obj_arq.m_answerCall) // the second ARQ
+				pExistingCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
+			// else this may be a duplicate ARQ, ignore!
 			PTRACE(3, "Gk\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
 		} else {
-			  // the call is not in the table
+			// the call is not in the table
 			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString, BWRequest);
-			pCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
 			int timeout = GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0);
 			pCallRec->SetTimer(timeout);
-			if (!GKroutedSignaling)
-				pCallRec->SetConnected(true);
+			pCallRec->StartTimer();
+
+			pCallRec->SetCalled(CalledEP, obj_arq.m_callReferenceValue);
 			if (!obj_arq.m_answerCall) // the first ARQ
 				pCallRec->SetCalling(RequestingEP, obj_arq.m_callReferenceValue);
+			if (!GKroutedSignaling)
+				pCallRec->SetConnected(true);
 			CallTable::Instance()->Insert(pCallRec);
 		}
 			

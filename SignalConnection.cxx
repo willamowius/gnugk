@@ -547,6 +547,20 @@ void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 	}
 
+	// to compliance to MediaRing VR, we have to setup our H323ID
+	PString H323ID = GkConfig()->GetString("H323ID");
+	if (!H323ID) {
+		PINDEX s = 0;
+		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+			s = Setup.m_sourceAddress.GetSize();
+		else
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		Setup.m_sourceAddress.SetSize(s+1);
+		H225_AliasAddress & alias = Setup.m_sourceAddress[s];
+		alias.SetTag(H225_AliasAddress::e_h323_ID);
+		(PASN_BMPString &)alias = H323ID;
+	}
+
 	if (bH245Routing) {
 		// replace H.245 address with gatekeepers address
 	}

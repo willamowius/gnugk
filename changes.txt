@@ -1,5 +1,9 @@
 Changes from 1.0 to now (by cwhuang)
 ========================================
+- modify OnARQ to fix routed mode problem
+- add 'Find' and 'FindVerbose' commands
+- fix a bug in lightweightRRQ
+- add startup and running time to 'Version' command
 - change EndpointRec::m_terminalType to be a pointer to reduce memory
   consumed (H225_EndpointType is a very large object, size=2552)
 - send Release Complete to endpoints when tear down a call (routed mode)

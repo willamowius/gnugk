@@ -27,7 +27,24 @@
 
 
 int SoftPBX::TimeToLive = -1;
+PTime SoftPBX::StartUp;
 
+
+void SoftPBX::PrintEndpoint(const PString & Alias, GkStatus::Client &client, BOOL verbose)
+{
+	H225_ArrayOf_AliasAddress EpAlias;
+	EpAlias.SetSize(1);
+	H323SetAliasAddress(Alias, EpAlias[0]);
+	const endptr ep = RegistrationTable::Instance()->FindEndpoint(EpAlias, TRUE);
+
+	PString msg;
+	if (ep)
+		msg = "RCF|" + ep->PrintOn(verbose) + ";";
+	else
+		msg = "SoftPBX: alias " + Alias + " not found!";
+
+	client.WriteString(msg + "\r\n");
+}
 
 void SoftPBX::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 {
