@@ -93,6 +93,10 @@ endif
 
 include $(OPENH323DIR)/openh323u.mak
 
+### Remove -fdata-sections gcc option that cause problems during link step
+temp_STDCCFLAGS := $(subst -fdata-sections,,$(STDCCFLAGS))
+STDCCFLAGS = $(temp_STDCCFLAGS)
+
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
 
 ifneq (@HAS_LEVELTWO_LDAPAPI@,0)

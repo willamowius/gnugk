@@ -253,7 +253,7 @@ ifeq ($(NO_MYSQL),0)
     ifneq (,$(wildcard $(MYSQLINCDIR)))
       SOURCES	      += mysqlcon.cxx
       STDCCFLAGS_STUB := $(STDCCFLAGS)
-      STDCCFLAGS       = -DHAS_MYSQL -I$(MYSQLINCDIR) $(STDCCFLAGS_STUB)
+      STDCCFLAGS       = -DHAS_MYSQL=1 -I$(MYSQLINCDIR) $(STDCCFLAGS_STUB)
       ENDLDLIBS	      += -lmysqlclient
       HAS_MYSQL	       = 1
       ifdef MYSQLLIBDIR
@@ -275,7 +275,7 @@ endif
 ifeq ($(NO_RADIUS),0)
   SOURCES	      += radproto.cxx radauth.cxx radacct.cxx
   STDCCFLAGS_STUB := $(STDCCFLAGS)
-  STDCCFLAGS       = -DHAS_RADIUS $(STDCCFLAGS_STUB)
+  STDCCFLAGS       = -DHAS_RADIUS=1 $(STDCCFLAGS_STUB)
   HAS_RADIUS       = 1
 endif
 
@@ -286,6 +286,10 @@ endif
 VERSION_FILE := $(OPENH323DIR)/version.h
 
 include $(OPENH323DIR)/openh323u.mak
+
+### Remove -fdata-sections gcc option that cause problems during link step
+temp_STDCCFLAGS := $(subst -fdata-sections,,$(STDCCFLAGS))
+STDCCFLAGS = $(temp_STDCCFLAGS)
 
 STDCCFLAGS	+= -DMAJOR_VERSION=$(MAJOR_VERSION) -DMINOR_VERSION=$(MINOR_VERSION) -DBUILD_NUMBER=$(BUILD_NUMBER)
 

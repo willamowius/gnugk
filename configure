@@ -1125,10 +1125,10 @@ echo "PWLib prefix set to.... $PWLIBDIR"
 
 
 
-MAJOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
-MINOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
-BUILD_NUMBER=`cat ${PWLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
-PWLIB_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
+PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
+PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
+PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
+PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
 
 
 echo "PTLib version is ${PWLIB_VERSION}"
