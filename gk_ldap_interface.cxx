@@ -834,8 +834,8 @@ void gk_ldap_cache_delete_oldest(GK_LDAP *ld) {
 	if (NULL==ld)
 		return ;
 	ld->search_cache_mutex.Wait();
-	while (ld->search_cache.GetSize() > (unsigned) (ld->maxmem) || (ld->search_cache[0].get_insert_time()-PTime()>ld->max_cache_time)) {
-		gk_ldap_cache_search_class *obj=dynamic_cast <gk_ldap_cache_search_class *> (ld->search_cache.RemoveAt(1));
+	while ((ld->search_cache.GetSize() > 0) && (ld->search_cache.GetSize() > static_cast<PINDEX>(ld->maxmem) || (PTime()-ld->search_cache[0].get_insert_time()>ld->max_cache_time))) {
+		gk_ldap_cache_search_class *obj=dynamic_cast <gk_ldap_cache_search_class *> (ld->search_cache.RemoveAt(0));
 		delete obj;
 	}
 	ld->search_cache_mutex.Signal();
