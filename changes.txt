@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- fixed bug with aliases handling in various places, introduced by recent changes
 - BUGFIX(Toolkit.cxx) correct handling of '!' character in rewrite rules
 - provide proper handling of aliases of type partyNumber (e164Number or privateNumber)
 - BUGFIX(ProxyChannel.cxx) fix for RTP/Q931/H245/T120PortRange

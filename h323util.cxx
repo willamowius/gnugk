@@ -259,7 +259,7 @@ PString GetBestAliasAddressString(
 		primaryTags, secondaryTags
 		);
 	if (i != P_MAX_INDEX)
-		return AsString(aliases[i]);
+		return AsString(aliases[i], FALSE);
 	else
 		return PString();
 }
@@ -271,7 +271,7 @@ PINDEX FindAlias(
 {
 	const PINDEX sz = aliases.GetSize();
 	for (PINDEX i = 0; i < sz; i++)
-		if (alias == AsString(aliases[i]))
+		if (alias == AsString(aliases[i], FALSE))
 			return i;
 			
 	return P_MAX_INDEX;

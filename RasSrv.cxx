@@ -1292,7 +1292,9 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 	bool bShellSendReply = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
 
 	PString log;
-	PString alias(request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias) ? AsString(request.m_endpointAlias) : PString(" "));
+	PString alias(request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias)
+		? AsString(request.m_endpointAlias) : PString(" ")
+		);
 
 	unsigned rsn = H225_GatekeeperRejectReason::e_securityDenial;
 	bool bReject = !RasSrv->ValidatePDU(*this, rsn);
@@ -1883,7 +1885,7 @@ bool AdmissionRequestPDU::Process()
 		request.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
 		request.m_destinationInfo.SetSize(1);
 		request.m_destinationInfo[0] = *authData.m_routeToAlias;
-		authData.m_calledStationId = AsString(*authData.m_routeToAlias);
+		authData.m_calledStationId = AsString(*authData.m_routeToAlias, FALSE);
 		PTRACE(2, "RAS\tARQ destination set to " << authData.m_calledStationId);
 		hasDestInfo = true;
 		destinationString = AsString(request.m_destinationInfo);

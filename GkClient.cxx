@@ -566,7 +566,7 @@ bool GkClient::RewriteE164(H225_AliasAddress & alias, bool fromInternal)
 	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) 
 		return false;
 		        
-	PString e164 = AsString(alias);
+	PString e164 = AsString(alias, FALSE);
 
 	bool changed = RewriteString(e164, fromInternal);
 	if (changed)

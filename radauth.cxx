@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.27  2005/01/25 00:37:35  zvision
+ * Handle aliases of type partyNumber properly
+ *
  * Revision 1.26  2005/01/10 22:49:29  willamowius
  * typo
  *
@@ -292,7 +295,7 @@ int RadAuthBase::Check(
 		for (PINDEX i = 0; i < rrq.m_terminalAlias.GetSize(); i++) {
 			if(i > 0)
 				aliasList += ",";
-			aliasList += AsString(rrq.m_terminalAlias[i]);
+			aliasList += AsString(rrq.m_terminalAlias[i], FALSE);
 		}
 		// Cisco-AV-Pair
 		pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
@@ -424,7 +427,7 @@ int RadAuthBase::Check(
 					&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 					PINDEX i = 0;
 					while (i < rrq.m_terminalAlias.GetSize()) {
-						PINDEX j = aliases.GetStringsIndex(AsString(rrq.m_terminalAlias[i]));
+						PINDEX j = aliases.GetStringsIndex(AsString(rrq.m_terminalAlias[i], FALSE));
 						if( j == P_MAX_INDEX )
 							rrq.m_terminalAlias.RemoveAt(i);
 						else {

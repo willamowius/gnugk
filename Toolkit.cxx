@@ -613,7 +613,7 @@ bool Toolkit::RewriteE164(H225_AliasAddress &alias)
 	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits)
 		return FALSE;
 
-	PString E164 = ::AsString(alias);
+	PString E164 = ::AsString(alias, FALSE);
 
 	bool changed = RewritePString(E164);
 	if (changed)
@@ -639,7 +639,7 @@ bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_AliasAddress &alias
 		return false;
 	}
 
-	E164 = ::AsString(alias);
+	E164 = ::AsString(alias, FALSE);
 	changed = GWRewritePString(gw,direction,E164);
 
 	if (changed) {

@@ -163,7 +163,7 @@ void EndpointRec::LoadEndpointConfig()
 	const PStringList sections = cfg->GetSections();
 	
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
-		const PString key = "EP::" + AsString(m_terminalAliases[i]);
+		const PString key = "EP::" + AsString(m_terminalAliases[i], FALSE);
 		if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
 			m_capacity = cfg->GetInteger(key, "Capacity", -1);
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity);
@@ -185,12 +185,12 @@ bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress 
 	// for each given alias (dialedDigits) from request message 
 	for(PINDEX i = 0; i < aliases.GetSize() && !fullMatch; i++) {
 //          if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-	    aliasStr = AsString(aliases[i]);
+	    aliasStr = AsString(aliases[i], FALSE);
 	    aliasStr_len = aliasStr.GetLength();
 	    // for each alias (dialedDigits) which is stored for the endpoint in registration
 	    for (PINDEX i = 0; i < reg_aliases.GetSize() && !fullMatch; i++) {
 //              if (reg_aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-	        reg_alias = AsString(reg_aliases[i]);
+	        reg_alias = AsString(reg_aliases[i], FALSE);
                 // if alias from request message is prefix to alias which is 
 		//   stored in registration
 	        if ((reg_alias.GetLength() >= aliasStr_len) && 
@@ -530,10 +530,10 @@ void GatewayRec::LoadGatewayConfig()
 			AddPrefixes(m_terminalType->m_gateway.m_protocol);
 			
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
-		const PString alias = AsString(m_terminalAliases[i]);
+		const PString alias = AsString(m_terminalAliases[i], FALSE);
 		if (!alias) {
 			AddPrefixes(cfg->GetString("RasSrv::GWPrefixes", alias, ""));
-			const PString key = "EP::" + AsString(m_terminalAliases[i]);
+			const PString key = "EP::" + AsString(m_terminalAliases[i], FALSE);
 			if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
 				AddPrefixes(cfg->GetString(key, "GatewayPrefixes", ""));
 				priority = cfg->GetInteger(key, "GatewayPriority", 1);
@@ -632,7 +632,7 @@ int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &a) const
 			|| tag == H225_AliasAddress::e_partyNumber
 			|| tag == H225_AliasAddress::e_h323_ID) {
 
-			const PString alias = AsString(a[i]);
+			const PString alias = AsString(a[i], FALSE);
 
 			// we also allow h_323_ID aliases consisting only from digits
 			if( tag == H225_AliasAddress::e_h323_ID )
@@ -690,9 +690,9 @@ int GatewayRec::PrefixMatch(
 			|| tag == H225_AliasAddress::e_partyNumber
 			|| tag == H225_AliasAddress::e_h323_ID) {
 			
-			const PString alias = AsString(aliases[i]);
+			const PString alias = AsString(aliases[i], FALSE);
 			// we also allow h_323_ID aliases consisting only from digits
-			if( tag == H225_AliasAddress::e_h323_ID )
+			if (tag == H225_AliasAddress::e_h323_ID)
 				if( strspn(alias,"1234567890*#") != strlen(alias) )
 					continue;
 					

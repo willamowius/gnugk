@@ -1399,7 +1399,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
 			Setup.m_destinationAddress.SetSize(1);
 			Setup.m_destinationAddress[0] = *authData.m_routeToAlias;
-			const PString alias = AsString(Setup.m_destinationAddress[0]);
+			const PString alias = AsString(Setup.m_destinationAddress[0], FALSE);
 			if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
 				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
 					unsigned plan, type;
@@ -1451,7 +1451,7 @@ bool CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup, PString &in_rewrite_id, 
 			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
 			Setup.m_destinationAddress.SetSize(1);
 			Setup.m_destinationAddress[0] = *authData.m_routeToAlias;
-			const PString alias = AsString(Setup.m_destinationAddress[0]);
+			const PString alias = AsString(Setup.m_destinationAddress[0], FALSE);
 			if (m_lastQ931->HasIE(Q931::CalledPartyNumberIE)) {
 				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
 					unsigned plan, type;
