@@ -195,15 +195,26 @@ Default: <tt>N/A (let the OS allocate ports)</tt>
 Specify the range of TCP port number for H.245 control channels.
 Note the range size may limit the number of concurrent calls.
 
-<item><tt/ConnectTimeout=60000/<newline>
+<item><tt/SetupTimeout=4000/<newline>
+Default: <tt>8000</tt>
+<p>
+A timeout value (in milliseconds) to wait for a first message (Setup)
+to be received after a signaling TCP channel has been opended.
+
+<item><tt/SignalTimeout=10000/<newline>
+Default: <tt>15000</tt>
+<p>
+A timeout value (in milliseconds) to wait for a signalling channel
+to be opened after an ACF message is sent or to wait for an Alerting
+message after a signalling channel has been opened. This option
+can be thought as a maximum allowed PDD (Post Dial Delay) value.
+
+<item><tt/AlertingTimeout=60000/<newline>
 Default: <tt>180000</tt>
 <p>
-Timeout value in milliseconds to wait before removing
-unconnected calls from the call table. This is a guard timer
-that does not allow unconnected calls to hang forever
-in the call table.
-Note that making this value too short may result
-in calls dropped before answered.
+A timeout value (in milliseconds) to wait for a Connect message
+after a call entered Alerting state. This option can be thought
+as a maximum "ringing time".
 
 <item><tt/TcpKeepAlive=0/<newline>
 Default: <tt/1/

@@ -94,7 +94,8 @@ The version 2.2.2 contains the following new features and bugfixes:
 <itemize>
 <item>
 <tt/SignalTimeout/, <tt/AlertingTimeout/ and %t, %p, %{ring-time}, %{alerting-time}
-accounting variables ported from 2.0 branch.
+accounting variables ported from 2.0 branch. <tt/ConnectTimeout/ config
+variable replaced with <tt/SignalTimeout/ and <tt/AlertingTimeout/.
 
 <item>
 A new <tt/%r/ accounting variable to provide infomation about who
