@@ -933,7 +933,7 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 	//
 	// Do the reject or the confirm
 	//
-	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetRasAddress()) : " ";
+	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetRasAddress()) : PString(" ");
 	if (bReject)
 	{
 		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;

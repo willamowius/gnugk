@@ -48,7 +48,7 @@ PString AsString(const H225_TransportAddress & ta)
 PString AsDotString(const H225_TransportAddress & ip)
 {
 	return (ip.GetTag() == H225_TransportAddress::e_ipAddress) ?
-		AsString((const H225_TransportAddress_ipAddress &)ip) : "";
+		AsString((const H225_TransportAddress_ipAddress &)ip) : PString("");
 }
 
 PString AsString(const H225_TransportAddress_ipAddress & ip)
