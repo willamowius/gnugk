@@ -38,6 +38,10 @@
 #include <h245.h>
 #include <h323pdu.h>
 
+// default timeout (ms) for initial Setup message, 
+// if not specified in the config file
+#define DEFAULT_SETUP_TIMEOUT 8000
+
 const char *RoutedSec = "RoutedMode";
 const char *ProxySection = "Proxy";
 
@@ -654,6 +658,8 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
 
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
+	const time_t eventTimestamp = time(NULL);
+	
 	if (!ReadTPKT())
 		return IsOpen() ? NoData : Error;
 
@@ -686,6 +692,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			m_crv = (m_lastQ931->GetCallReference() | 0x8000u);
 			m_setupUUIE = new H225_H323_UserInformation(signal);
 			changed = OnSetup(body);
+			if( m_call )
+				m_call->SetSetupTime(eventTimestamp);
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_callProceeding:
 			changed = OnCallProceeding(body);
@@ -876,7 +884,8 @@ bool CallSignalSocket::EndSession()
 
 void CallSignalSocket::OnError()
 {
-	CallTable::Instance()->RemoveCall(m_call);
+	if( m_call )
+		CallTable::Instance()->RemoveCall(m_call);
 	EndSession();
 	if (remote)
 		remote->EndSession();
@@ -1198,7 +1207,7 @@ bool CallSignalSocket::OnCallProceeding(H225_CallProceeding_UUIE & CallProceedin
 bool CallSignalSocket::OnConnect(H225_Connect_UUIE & Connect)
 {
 	if (m_call) // hmm... it should not be null
-		m_call->SetConnected(true);
+		m_call->SetConnected();
 #ifndef NDEBUG
 	if (!Connect.HasOptionalField(H225_Connect_UUIE::e_callIdentifier)) {
 		PTRACE(1, "Q931\tConnect_UUIE doesn't contain CallIdentifier!");
@@ -1223,6 +1232,11 @@ bool CallSignalSocket::OnInformation(H225_Information_UUIE &)
 
 bool CallSignalSocket::OnReleaseComplete(H225_ReleaseComplete_UUIE & ReleaseComplete)
 {
+	if( m_call ) {
+		m_call->SetDisconnectTime(time(NULL));
+		if( m_lastQ931 && m_lastQ931->HasIE(Q931::CauseIE) )
+			m_call->SetDisconnectCause(m_lastQ931->GetCause());
+	}
 	return false; // do nothing
 }
 
@@ -1454,10 +1468,25 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 
 void CallSignalSocket::Dispatch()
 {
-	int timeout = GkConfig()->GetInteger("SignalReadTimeout", 3000);
+	const time_t channelStart = time(NULL);
+	const long setupTimeout 
+		= PMAX(GkConfig()->GetInteger("SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
+	long timeout = setupTimeout;
+		
 	while (timeout > 0) {
-		if (!IsReadable(timeout))
+	
+		if( !IsReadable(timeout) ) {
+#if PTRACING
+			PIPSocket::Address raddr;
+			WORD rport;
+			GetPeerAddress(raddr,rport);
+			PTRACE(1,"Q931\tTimed out waiting for initial Setup message from "
+				<<raddr<<':'<<rport
+				);
+#endif
 			break;
+		}
+			
 		switch (ReceiveData())
 		{
 			case NoData:
@@ -1465,11 +1494,23 @@ void CallSignalSocket::Dispatch()
 					GetHandler()->Insert(this);
 					return;
 				}
-				timeout -= 10;
+				// update timeout to reflect remaing time
+				timeout = setupTimeout - ((long)time(NULL) - channelStart + 10);
 				break;
 
 			case Connecting:
 				if (InternalConnectTo()) {
+					if( !remote->IsReadable(2*setupTimeout) ) {
+#if PTRACING
+						PIPSocket::Address raddr;
+						WORD rport;
+						GetPeerAddress(raddr,rport);
+						PTRACE(1,"Q931\tTimed out waiting for a response to Setup message from "
+							<<raddr<<':'<<rport
+							);
+#endif
+						CallTable::Instance()->RemoveCall(m_call);
+					}
 					GetHandler()->Insert(this, remote);
 					return;
 				}
@@ -1477,6 +1518,17 @@ void CallSignalSocket::Dispatch()
 			case Forwarding:
 				if (IsConnected()) { // remote is NAT socket
 					ForwardData();
+					if( !remote->IsReadable(2*setupTimeout) ) {
+#if PTRACING
+						PIPSocket::Address raddr;
+						WORD rport;
+						GetPeerAddress(raddr,rport);
+						PTRACE(1,"Q931\tTimed out waiting for a response to Setup message from "
+							<<raddr<<':'<<rport
+							);
+#endif
+						CallTable::Instance()->RemoveCall(m_call);
+					}
 					return;
 				}
 
@@ -2670,6 +2722,9 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 		case ProxySocket::Error:
 			psocket->OnError();
 			socket->Close();
+			break;
+		case ProxySocket::NoData:
+			// do nothing
 			break;
 	}
 }

@@ -375,10 +375,7 @@ public:
 	void SetRegistered(bool registered) { m_registered = registered; }
 	void SetAccessTokens(const H225_ArrayOf_CryptoH323Token & tokens) { m_accessTokens = tokens; }
 
-	void SetConnected(bool c);
-	void SetTimer(int seconds);
-	void StartTimer();
-	void StopTimer();
+	void SetConnected();
 
 	void Disconnect(bool = false); // Send Release Complete?
 	void RemoveAll();
@@ -395,8 +392,15 @@ public:
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 
 	bool IsUsed() const { return (m_usedCount != 0); }
-	bool IsConnected() const { return (m_startTime != 0); }
-	bool IsTimeout(const PTime *) const;
+
+	/** @return
+		true if the call has been connected - a Connect message 
+		has been received in gk routed signalling or the call has been admitted
+		(ARQ->ACF) in direct signalling. Does not necessary mean
+		that the call is still in progress (may have been already disconnected).
+	*/
+	bool IsConnected() const { return (m_connectTime != 0); }
+	
 	bool IsH245Routed() const { return m_h245Routed; }
 	bool IsRegistered() const { return m_registered; }
 	bool IsForwarded() const { return m_forwarded; }
@@ -408,15 +412,105 @@ public:
 	void Lock();
 	void Unlock();
 
+	/** @return
+		Q.931 ReleaseComplete cause code for the call. 
+		0 if the disconnect cause could not be determined.
+	*/
+	unsigned GetDisconnectCause() const;
+	
+	/** Set Q.931 ReleaseComplete cause code associated with this call. */
+	void SetDisconnectCause(
+		unsigned causeCode
+		);
+		
+	/** Set maximum duration limit (in seconds) for this call */
+	void SetDurationLimit( 
+		long seconds /// duration limit to be set
+		);
+
+	/** @return
+		Duration limit (in seconds) set for this call.
+		0 if call duration is not limited.
+	*/
+	long GetDurationLimit();
+		
+	/** This function can be used to determine, if the call has been
+		disconnected due to call duration limit excess.
+		
+		@return
+		true if the call duration limit has been exceeded, false otherwise.
+	*/
+	bool IsDurationLimitExceeded();
+
+	/** @return
+		Timestamp (number of seconds since 1st January 1970) for the call creation
+		(when this CallRec object has been instantiated).
+	*/
+	time_t GetCreationTime();
+		
+	/** @return
+		Timestamp (number of seconds since 1st January 1970) 
+		for the Setup message associated with this call. 0 if Setup
+		has not been yet received.
+		Meaningful only in GK routed mode.
+	*/
+	time_t GetSetupTime();
+	
+	/** Set timestamp for a Setup message associated with this call. */
+	void SetSetupTime( 
+		const time_t& tm /// timestamp (seconds since 1st January 1970)
+		);
+	
+	/** @return
+		Timestamp (number of seconds since 1st January 1970) 
+		for the Connect message associated with this call. 0 if Connect
+		has not been yet received. If GK is not in routed mode, this is
+		timestamp for ACF generated as a response to ARQ.
+	*/
+	time_t GetConnectTime();
+	
+	/** Set timestamp for a Connect (or ACF) message associated with this call. */
+	void SetConnectTime(
+		const time_t& tm /// timestamp (seconds since 1st January 1970)
+		);
+	
+	/** @return
+		Timestamp (number of seconds since 1st January 1970) 
+		for the call disconnect event. 0 if call has not been yet disconnected
+		or connected.
+	*/
+	time_t GetDisconnectTime();
+	
+	/** Set timestamp for a disconnect event for this call. */
+	void SetDisconnectTime(
+		const time_t& tm /// timestamp (seconds since 1st January 1970)
+		);
+
+	/** Check if:
+		- a signalling channel associated with this call is not timed out
+		  and the call should be disconnected (removed from CallTable);
+		- call duration limit has been exceeded
+		- call should be disconnected from other reason
+				
+		@return
+		true if call is timed out and should be disconnected, false otherwise.
+	*/
+	bool IsTimeout(
+		/// point in time for timeouts to be measured relatively to
+		/// (made as a parameter for performance reasons)
+		const time_t now,
+		/// timeout (in milliseconds) for a Connect message to be received,
+		/// a signalling channel to be opened after ARQ or call being connected
+		/// in direct signalling mode
+		const long connectTimeout
+		);
+			
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
 
 private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
-
-//	PDECLARE_NOTIFIER(PTimer, CallRec, OnTimeout);
-	void OnTimeout();
 
 	PINDEX m_CallNumber;
 	H225_CallIdentifier m_callIdentifier;
@@ -432,9 +526,21 @@ private:
 	PString m_srcInfo; //added (MM 05.11.01)
 	int m_bandWidth;
 
-	PTime *m_startTime, m_timer;
-	int m_timeout;
-
+	/// timestamp (seconds since 1st January, 1970) for the call creation
+	/// (triggered by ARQ or Setup)
+	time_t m_creationTime;
+	/// timestamp (seconds since 1st January, 1970) for a Setup message reception
+	time_t m_setupTime;
+	/// timestamp (seconds since 1st January, 1970) for a Connect (routed mode)
+	/// or ARQ/ACF (direct mode) message reception
+	time_t m_connectTime;
+	/// timestamp (seconds since 1st January, 1970) for the call disconnect
+	time_t m_disconnectTime;
+	/// duration limit (seconds) for this call, 0 means no limit 
+	long m_durationLimit;
+	/// Q.931 release complete cause code
+	unsigned m_disconnectCause;
+	
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
 	int m_usedCount;
@@ -494,6 +600,11 @@ public:
 
 	PINDEX Size() const { return m_activeCall; }
 
+	/** @return
+		ConnectTimeout value (milliseconds).
+	*/
+	long GetConnectTimeout() const { return m_connectTimeout; }
+	
 private:
 	template<class F> callptr InternalFind(const F & FindObject) const
 	{
@@ -526,6 +637,11 @@ private:
 	// statistics
 	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall;
 
+	/// timeout for a Connect message to be received
+	/// and for a signalling channel to be opened after ACF/ARQ
+	/// (0 if GK is not in routed mode)
+	long m_connectTimeout;
+	
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };
@@ -611,9 +727,52 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-inline bool CallRec::IsTimeout(const PTime *now) const
-{       
-	return (m_timeout > 0 && ((*now - m_timer).GetSeconds() > m_timeout));
+inline bool CallRec::IsDurationLimitExceeded()
+{
+	PWaitAndSignal lock(m_usedLock);
+	const long now = time(NULL);
+	return (m_durationLimit > 0 && m_connectTime != 0 
+		&& ((now - m_connectTime) > m_durationLimit));
+}
+
+inline long CallRec::GetDurationLimit()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_durationLimit;
+}
+
+inline time_t CallRec::GetCreationTime()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_creationTime;
+}
+
+inline time_t CallRec::GetSetupTime()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_setupTime;
+}
+
+inline time_t CallRec::GetConnectTime()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_connectTime;
+}
+
+inline time_t CallRec::GetDisconnectTime()
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_disconnectTime;
+}
+
+inline unsigned CallRec::GetDisconnectCause() const
+{
+	return m_disconnectCause;
+}
+
+inline void CallRec::SetDisconnectCause( unsigned causeCode )
+{
+	m_disconnectCause = causeCode;
 }
 
 #endif // RASTBL_H

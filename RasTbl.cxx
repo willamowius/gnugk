@@ -35,6 +35,9 @@
 #include "ProxyChannel.h"
 #include "gk_const.h"
 
+#define DEFAULT_SETUP_TIMEOUT 8000
+#define DEFAULT_CONNECT_TIMEOUT 180000
+
 const char *CallTableSection = "CallTable";
 const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
 
@@ -1032,21 +1035,24 @@ CallRec::CallRec(const H225_CallIdentifier & CallId,
         m_crv(crv & 0x7fffu),
 	m_destInfo(destInfo),
 	m_srcInfo(srcInfo), // added (MM 05.11.01)
-	m_bandWidth(Bandwidth), m_startTime(0), m_timeout(0),
+	m_bandWidth(Bandwidth), 
+	m_setupTime(0), m_connectTime(0), m_disconnectTime(0),
+	m_durationLimit(0),
+	m_disconnectCause(0),
 	m_callingSocket(0), m_calledSocket(0),
 	m_usedCount(0), m_nattype(none), m_h245Routed(h245Routed),
 	m_registered(false), m_forwarded(false)
 {
-	int timeout = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
-	SetTimer(timeout);
-	StartTimer();
-	// for backward compatibility
+	m_creationTime = time(NULL);
+	m_durationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallDurationLimit", 0);
+	// backward compatibility - check DefaultCallTimeout
+	if( m_durationLimit == 0 )
+		m_durationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
 }
 
 CallRec::~CallRec()
 {
-	SetConnected(false);
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 }
 
@@ -1123,51 +1129,35 @@ void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 		m_callerAddr = calling->GetName();
 }
 
-void CallRec::SetConnected(bool c)
+void CallRec::SetConnected()
 {
-	PTime *ts = (c) ? new PTime : 0;
-	delete m_startTime;
-	if ((m_startTime = ts) != 0)
-		StartTimer();
-	else
-		StopTimer();
-	if (c) {
-		if (m_Calling)
-			m_Calling->AddConnectedCall();
-		if (m_Called)
-			m_Called->AddConnectedCall();
-	}
-}
-
-void CallRec::SetTimer(int seconds)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_timeout = seconds;
-}
-
-void CallRec::StartTimer()
-{
-	if (m_timeout > 0) {
+	// should be declared before any locks are qcquired (locks may introduce delays)
+	const long now = time(NULL); 
+	
+	if (m_Calling)
+		m_Calling->AddConnectedCall();
+	if (m_Called)
+		m_Called->AddConnectedCall();
+		
+	{
 		PWaitAndSignal lock(m_usedLock);
-		m_timer = PTime();
-//		m_timer = new PTimer(0, m_timeout);
-//		m_timer->SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+		if( m_connectTime == 0 )
+			m_connectTime = now;
+		if( m_creationTime > m_connectTime )
+			m_creationTime = m_connectTime;
 	}
+
 }
 
-void CallRec::StopTimer()
+void CallRec::SetDurationLimit( long seconds )
 {
 	PWaitAndSignal lock(m_usedLock);
-	m_timeout = 0;
+	// allow only to restrict duration limit
+	if( m_durationLimit && seconds )
+		m_durationLimit = PMIN(m_durationLimit,seconds);
+	else
+		m_durationLimit = PMAX(m_durationLimit,seconds);
 }
-
-/*
-void CallRec::OnTimeout()
-{
-	PTRACE(2, "GK\tCall No. " << m_CallNumber << " timeout!");
-	Disconnect();
-}
-*/
 
 void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
 {
@@ -1296,12 +1286,16 @@ PString GetEPString(const endptr & ep, const CallSignalSocket *socket)
 PString CallRec::GenerateCDR() const
 {
 	PString timeString;
-	PTime endTime;
-	if (m_startTime != 0) {
-		PTimeInterval callDuration = endTime - *m_startTime;
+
+	PTime endTime(m_disconnectTime);
+	if( endTime.GetTimeInSeconds() == 0 )
+		endTime = PTime();
+		
+	if (m_connectTime != 0) {
+		const PTime startTime(m_connectTime);
 		timeString = PString(PString::Printf, "%ld|%s|%s",
-			callDuration.GetSeconds(),
-			(const char *)m_startTime->AsString(),
+			(m_disconnectTime - m_connectTime),
+			(const char *)startTime.AsString(),
 			(const char *)endTime.AsString()
 		);
 	} else {
@@ -1324,11 +1318,21 @@ PString CallRec::GenerateCDR() const
 
 PString CallRec::PrintOn(bool verbose) const
 {
-	int time = (PTime() - m_timer).GetSeconds();
-	int left = (m_timeout > 0 ) ? m_timeout - time : 0;
+	// timer value is related to the currently active timeout period
+	// for unconnected calls it is time since CallRec creation,
+	// for connected calls it is the call duration
+	const long timer = (m_disconnectTime ? m_disconnectTime : time(NULL))
+		- (m_connectTime ? m_connectTime : m_creationTime);
+	// left is number of seconds left before call will be timed out
+	// (due to waiting for Connect message or duration limit expiration)
+	const long connectTimeout = CallTable::Instance()->GetConnectTimeout() / 1000;
+	const long left = m_connectTime
+		? ((m_durationLimit > timer ) ? m_durationLimit - timer : 0)
+		: ((connectTimeout > timer ) ? connectTimeout - timer : 0);
+		
 	PString result(PString::Printf,
 		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%s|%d\r\nACF|%s|%s|%d\r\n",
-		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), time, left,
+		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), timer, left,
 		(const char *)m_destInfo,
 		(const char *)m_callerAddr,
 		(const char *)m_callerId,
@@ -1342,7 +1346,7 @@ PString CallRec::PrintOn(bool verbose) const
 				(const char *)((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr),
 				(const char *)((m_Called) ? AsString(m_Called->GetAliases()) : m_calleeAddr),
 				m_bandWidth,
-				(m_startTime) ? (const char *)m_startTime->AsString() : "unconnected",
+				m_connectTime ? (const char *)PTime(m_connectTime).AsString() : "unconnected",
 				m_usedCount
 			  );
 	}
@@ -1350,6 +1354,63 @@ PString CallRec::PrintOn(bool verbose) const
 	return result;
 }
 
+void CallRec::SetDisconnectTime( const time_t& tm )
+{
+	PWaitAndSignal lock(m_usedLock);
+	if( m_disconnectTime == 0 )
+		m_disconnectTime = tm;
+}
+
+void CallRec::SetSetupTime( const time_t& tm )
+{
+	PWaitAndSignal lock(m_usedLock);
+	if( m_setupTime == 0 )
+		m_setupTime = tm;
+	if( m_creationTime > m_setupTime )
+		m_creationTime = m_setupTime;
+}
+
+void CallRec::SetConnectTime( const time_t& tm )
+{
+	PWaitAndSignal lock(m_usedLock);
+	if( m_connectTime == 0 )
+		m_connectTime = tm;
+	if( m_creationTime > m_connectTime )
+		m_creationTime = m_connectTime;
+}
+
+bool CallRec::IsTimeout(
+	const time_t now,
+	const long connectTimeout
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	// check timeout for signalling channel creation after ARQ->ACF
+	// or for the call being connected in direct signalling mode
+	if( connectTimeout > 0 && m_setupTime == 0 && m_connectTime == 0 )
+		if( (now-m_creationTime)*1000 > connectTimeout ) {
+			PTRACE(2,"Q931\tCall #"<<m_CallNumber<<" timed out waiting for its signalling channel to be opened");
+			return true;
+		} else
+			return false;
+
+	// is signalling channel present?
+	if( m_setupTime && m_connectTime == 0 && connectTimeout > 0 )
+		if( (now-m_setupTime)*1000 > connectTimeout ) {
+			PTRACE(2,"Q931\tCall #"<<m_CallNumber<<" timed out waiting for a Connect message");
+			return true;
+		} else
+			return false;
+	
+	if( m_durationLimit > 0 && m_connectTime 
+		&& ((now - m_connectTime) >= m_durationLimit) ) {
+		PTRACE(4,"GK\tCall #"<<m_CallNumber<<" duration limit exceeded");
+		return true;
+	}
+		
+	return false;
+}
 
 CallTable::CallTable() : Singleton<CallTable>("CallTable")
 {
@@ -1370,6 +1431,13 @@ void CallTable::LoadConfig()
 	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
 	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
 	SetTotalBandWidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
+	// this timeout is stored in CallTable, not in CallRec
+	// because it is constant for all CallRecs and should not add another
+	// 4 bytes to each CallRec unnecessary
+	m_connectTimeout = PMAX(
+		GkConfig()->GetInteger(RoutedSec, "ConnectTimeout",DEFAULT_CONNECT_TIMEOUT),
+		5000
+		);
 }
 
 void CallTable::Insert(CallRec * NewRec)
@@ -1451,12 +1519,12 @@ void CallTable::ClearTable()
 
 void CallTable::CheckCalls()
 {
-	PTime now;
 	WriteLock lock(listLock);
 	iterator Iter = CallList.begin(), eIter = CallList.end();
+	const time_t now = time(NULL);
 	while (Iter != eIter) {
 		iterator i = Iter++;
-		if ((*i)->IsTimeout(&now)) {
+		if ( (*i)->IsTimeout(now,m_connectTimeout) ) {
 			(*i)->Disconnect();
 			InternalRemove(i);
 		}
@@ -1525,6 +1593,9 @@ void CallTable::InternalRemove(iterator Iter)
 	}
 
 	CallRec *call = *Iter;
+	
+	call->SetDisconnectTime(time(NULL));
+	
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
 		PString cdrString(call->GenerateCDR());
 		GkStatus::Instance()->SignalStatus(cdrString, 1);
@@ -1544,7 +1615,6 @@ void CallTable::InternalRemove(iterator Iter)
 	if (!call->GetCallingParty())
 		++(call->IsRegistered() ? m_parentCall : m_neighborCall);
 
-//	call->StopTimer();
 	call->RemoveAll();
 	call->RemoveSocket();
 	if (m_capacity >= 0)

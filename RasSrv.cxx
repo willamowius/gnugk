@@ -1699,7 +1699,7 @@ bool AdmissionRequestPDU::Process()
 			pCallRec->SetRegistered(true);
 
 		if (!RasSrv->IsGKRouted())
-			pCallRec->SetConnected(true);
+			pCallRec->SetConnected();
 		else if (acf.HasOptionalField(H225_AdmissionConfirm::e_cryptoTokens))
 			pCallRec->SetAccessTokens(acf.m_cryptoTokens);
 		CallTbl->Insert(pCallRec);
