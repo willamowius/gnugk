@@ -135,13 +135,16 @@ private:
 class Neighbor {
 public:
 	Neighbor();
-	virtual ~Neighbor();
 	virtual BOOL InsertARQ(const H225_AdmissionRequest &arq, endptr RequestingEP);
 	virtual void InsertSiblingIP(PIPSocket::Address &ipaddr);
 	virtual BOOL CheckIP(PIPSocket::Address addr);
 	virtual BOOL ForwardLRQ(PIPSocket::Address addr, H225_LocationRequest lrq);
 	virtual PString GetPassword();
 	virtual int SendLRQ(int seqnum, const H225_AdmissionRequest &arq );
+protected:
+	virtual ~Neighbor();
+	friend void Toolkit::delete_neighbor();
+
 private:
 	NBPendingList *pending;
 	NeighborList *neighborGKs;
