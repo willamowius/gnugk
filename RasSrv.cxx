@@ -1168,12 +1168,11 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 // #endif
 
 
-				if (!bReject && !CalledEP) {
+				if (!bReject && !CalledEP &&
+				    rsn != H225_AdmissionRejectReason::e_invalidPermission &&
+				    rsn != H225_AdmissionRejectReason::e_callerNotRegistered ) {
 					if (gkClient->IsRegistered()) {
 						H225_ArrayOf_AliasAddress dest = obj_rr.m_destinationInfo;
-// 						if (gkClient->RewriteE164(dest, false))
-// 							CalledEP = EndpointTable->FindEndpoint(dest);
-//						if (!CalledEP) {
 						H225_AdmissionRequest arq_fake=obj_rr;
 						// The obj_rr is the non-rewritten H225_AdmissionRequest. We need to change the destination-address
 						// so we copy it to arq_fake and then build a new AdmissionRequest.
