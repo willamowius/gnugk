@@ -42,6 +42,9 @@ using namespace std;            // <--- NOTE!
 #include <math.h>		/* ANSI C: C math library */
 #include "GkStatus.h"		// gatekeeper status port for error handling
 #include <ptlib.h>		// the PWlib
+#if defined(HAS_MWBB1)
+#  include <bb1.h>		// LDAP coding
+#endif
 
 
 // simplified output
@@ -59,12 +62,12 @@ using namespace std;            // <--- NOTE!
 //       own error handling:
 #define ERRORPRINT(strpar) GkStatus::Instance()->                    \
                            SignalStatus(PString(strpar) + LDAP_DBG_LINEEND);
-#define DEBUGPRINT(stream) PTRACE(LDAP_DBG_LVL, stream << endl);
+#define DEBUGPRINT(stream) PTRACE(LDAP_DBG_LVL, "GK\t" << stream << endl);
 
 
 // list of names (keys) as used in config file, keep in sync with LDAPAttributeNamesEnum
 const char *  lctn::LDAPAttrTags[lctn::MAX_ATTR_NO] =
-{"UserIdentity", "H323ID", "TelephonNo", "H245PassWord", "CountryCode", 
+{"DN", "UserIdentity", "H323ID", "TelephonNo", "H245PassWord", "CountryCode", 
  "AreaCode", "LocalAccessCode", "NationalAccessCode", "InternationalAccessCode",
  "CallingLineIdPresentation", "PrefixBlacklist", "PrefixWhitelist"};
 
@@ -232,10 +235,29 @@ LDAPAnswer *
 LDAPCtrl::DirectoryUserLookup(LDAPQuery & q) 
 {
   LDAPAnswer * result = new LDAPAnswer;
+  const unsigned int maxretries = 10; // we may migrate this into the object
+  unsigned int retry = 0;
+  using namespace lctn;
 
-  while(!((result = DirectoryLookup(q))->complete())) {
+  // search until found or out of retries
+  while((!((result = DirectoryLookup(q))->complete())) && 
+	(maxretries>(retry++))) {
     // FIXME: modify q to complete result
   }
+
+#if defined(HAS_MWBB1)
+  const char * const mwbb1 = MWBB1_TAG;	// MWBB1_TAG has to be a string literal
+  unsigned int mwbb1_len = strlen(mwbb1);
+  PString & pwlist = AV[LDAPAttrTags[H245PassWord]];
+  PINDEX pwlistsize = pwlist.GetSize();
+  for(PINDEX i = 0; i <= pwlistsize; i++) {
+    PString & pw = pwlist[i];
+    if(mwbb1 == pw.Left(mwbb1_len-1)) {
+      pw.Delete(0,mwbb1_len-1);	// remove the header
+      pw = PString(DeCryptBB1(pw)); // DeCryptBB1 is not thread save at all!
+    }
+  }
+#endif
 
   return result;
 }
@@ -304,7 +326,8 @@ LDAPCtrl::DirectoryLookup(LDAPQuery & p)
     }
     DEBUGPRINT("found DN: " << dn);
     // treating the dn as a kind of attribute
-    result->AV.insert(LDAPAVValuePair(PString("DN"),PStringList(1, &dn, false)));
+    result->AV.insert(LDAPAVValuePair(PString(LDAPAttrTags[DN]),
+				      PStringList(1, &dn, false)));
     BerElement * ber = NULL;	// a 'void *' would do the same but RFC 1823
 				// indicates it to be a pointer to a BerElement
     char * attr = NULL;		// iterate throught list of attributes
