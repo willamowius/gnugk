@@ -2348,19 +2348,21 @@ void H245Socket::ConnectTo()
 		}
 	}
 	// establish H.245 channel failed, disconnect the call
-	if (sigSocket) {
-		sigSocket->SetConnected(false);
-		sigSocket->RemoveCall();
-		if (!sigSocket->IsBlocked())
-		    sigSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
-		sigSocket->CloseSocket();
+	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
+	if (socket) {
+		socket->SetConnected(false);
+		socket->RemoveCall();
+		if (!socket->IsBlocked())
+		    socket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+		socket->CloseSocket();
 	}
 	if (H245Socket *ret = static_cast<H245Socket *>(remote))
-		if (ret->sigSocket) {
-			if (ret->sigSocket->IsConnected() && !ret->sigSocket->IsBlocked())
-				ret->sigSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
-			ret->sigSocket->SetConnected(false);
-			ret->sigSocket->CloseSocket();
+		socket = ret->sigSocket;
+		if (socket) {
+			if (socket->IsConnected() && !socket->IsBlocked())
+				socket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+			socket->SetConnected(false);
+			socket->CloseSocket();
 		}
 	GetHandler()->Insert(this, remote);
 }
