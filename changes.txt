@@ -1,5 +1,7 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- BUGFIXes: make sure we delete list items _after_ we have removed
+  them from the list
 - BUGFIX(RasTbl.cxx) make sure PrintCurrentCalls prints ACF messages
   in the same format as all ACFs
 - improved performance of the socket code (especially when LARGE_FDSET 

@@ -784,9 +784,9 @@ void TCPServer::CleanUp()
 		iterator i = iter++;
 		TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(*i);
 		if (listener && listener->IsTimeout(&now)) {
-			delete listener;
 			m_sockets.erase(i);
 			--m_socksize;
+			delete listener;
 		}
 	}
 }

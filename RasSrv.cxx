@@ -730,8 +730,9 @@ void RasServer::LoadConfig()
 				break;
 		if (i == hsize) {
 			// close unused listeners
-			delete *iter;
+			GkInterface * r = *iter;
 			interfaces.erase(iter);
+			delete r;
 		}
 	}
 	if (broadcastListener && !bUseBroadcastListener) {
@@ -755,8 +756,8 @@ void RasServer::LoadConfig()
 			GkInterface *gkif = *iter;
 			// re-create if changed
 			if (!gkif->CreateListeners(this)) {
-				delete gkif;
 				interfaces.erase(iter);
+				delete gkif;
 			}
 		}
 	}

@@ -652,8 +652,9 @@ void NeighborList::OnReload()
 			if ((*it)->GetId() == cfgs.GetKeyAt(i))
 				break;
 		if (i == sz) {
-			delete *it;
+			Neighbor * r = *it;
 			m_neighbors.erase(it);
+			delete r;
 		}
 	}
 	for (i = 0; i < sz; ++i) {

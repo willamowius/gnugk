@@ -3012,13 +3012,16 @@ void ProxyHandler::CleanUp()
 		iterator i = m_removed.begin();
 		std::list<PTime *>::iterator ti = m_removedTime.begin();
 		while ((i != m_removed.end()) && ((now - **ti).GetSeconds() > 5)) {
-			delete *i++;
-			delete *ti++;
+			IPSocket * s = *i;
+			PTime * t = *ti;
+			m_removed.erase(i);
+			m_removedTime.erase(ti);
+			delete s;
+			delete t;
+			i = m_removed.begin();
+			ti = m_removedTime.begin();
 			--m_rmsize;
 		}
-
-		m_removed.erase(m_removed.begin(), i);
-		m_removedTime.erase(m_removedTime.begin(), ti);
 	}
 }
 
