@@ -51,7 +51,7 @@ class Gatekeeper : public PProcess
 		);
 		
 	static bool RotateLogFile();
-	
+	static bool ReopenLogFile();	
 	static void CloseLogFile();
 
 	static void EnableLogFileRotation(

@@ -125,6 +125,8 @@ void ExitGK()
 
 void ReloadHandler()
 {
+	Gatekeeper::ReopenLogFile();
+
 	// only one thread must do this
 	if (ReloadMutex.WillBlock())
 		return;
@@ -834,6 +836,44 @@ bool Gatekeeper::RotateLogFile()
 	return true;
 }
 	
+bool Gatekeeper::ReopenLogFile()
+{
+	PWaitAndSignal lock(m_logFileMutex);
+
+	if (m_logFile) {
+		PTRACE(1, "GK\tLogging closed (reopen log file)");
+		PTrace::SetStream(&cerr); // redirect to cerr
+		delete m_logFile;
+		m_logFile = NULL;
+	}
+
+	if (m_logFilename.IsEmpty())
+		return false;
+	
+	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, 
+		PFile::MustExist
+		);
+	if (!m_logFile->IsOpen()) {
+		delete m_logFile;
+		m_logFile = NULL;
+	}
+	
+	if (m_logFile == NULL) {	
+		m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
+		if (!m_logFile->IsOpen()) {
+			cerr << "Warning: could not open the log file \""
+			     << m_logFilename << "\" after rotation" << endl;
+			delete m_logFile;
+			m_logFile = NULL;
+			return false;
+		}
+	}
+	m_logFile->SetPosition(0, PFile::End);
+	PTrace::SetStream(m_logFile);
+	PTRACE(1, "GK\tLogging restarted");
+	return true;
+}
+
 void Gatekeeper::CloseLogFile()
 {
 	PWaitAndSignal lock(m_logFileMutex);
