@@ -380,6 +380,11 @@ void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
 		return;
 
 	const H225_AdmissionReject & arj = obj_arj;
+	if (arj.m_rejectReason.GetTag() == H225_AdmissionRejectReason::e_callerNotRegistered) { // reregister again
+		m_endpointId = PString();
+		SendRRQ();
+	}
+	
 	int reqNum = arj.m_requestSeqNum.GetValue();
 	H225_CallIdentifier callid;
 	if (m_arqPendingList->ProcessARJ(callid, reqNum))
