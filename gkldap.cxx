@@ -83,6 +83,7 @@ BOOL GkLDAP::getAttribute(const PString &alias, const dctn::DBAttributeNamesEnum
 			}
 		}
 	}
+	delete answer;
 	return found;
 }
 
@@ -93,11 +94,14 @@ BOOL GkLDAP::getAttributes(const PString &alias, DBAttributeValueClass &attr_map
         // LDAP succeeds and exactly 1 match
                 LDAPEntryClass::iterator pFirstDN = answer->LDAPec.begin();
                 attr_map =  pFirstDN->second;
+		delete answer;
                 return TRUE;
         } else {
         // not 1 match
+		delete answer;
                 return FALSE;
         }
+
 }
 
 BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name, BOOL & matchFound,
@@ -114,7 +118,7 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 	if(alias.GetTag()==H225_AliasAddress::e_dialedDigits) {
 		E164_AnalysedNumber e164_alias(aliasStr);
 		if(e164_alias.GetIPTN_kind()!=E164_AnalysedNumber::IPTN_unknown) {
-			unsigned int len=e164_alias.GetGSN_SN().GetValue().GetLength();
+			PINDEX len=e164_alias.GetGSN_SN().GetValue().GetLength();
 			if(len!=0) {
 				query.LDAPOperator = LDAPQuery::LDAPor;
 				PString substr = aliasStr;
