@@ -1,5 +1,6 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- added PostgreSQL authenticator modules to the contrib directory
 - API for AliasAuth has changed slightly
 - better checking of tokens/cryptoTokens by SimplePasswordAuth derived authenticators
 - BUGFIX(RasTbl.cxx) fixed NULL reference in CallRec::SetSocket - caused crash
