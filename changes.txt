@@ -1,5 +1,8 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- removed duplicated build timestamp from 'version' command output.
+  Added special file versionts.h to ensure version.cxx is rebuilt each
+  time GnuGk is recompiled, in order to get proper build timestamp
 - (job.cxx) jobs simplified, optimised and checked for thread safety
 - (version.cxx) modified to list all extensions in the version string
 - (ProxyChannel.cxx) support for H.323 V4 provisionalRespToH245Tunneling

@@ -305,13 +305,9 @@ namespace {
 PString PrintGkVersion()
 {
 	return PString("Version:\r\n") + Toolkit::GKVersion() +
-#ifdef LARGE_FDSET
-		PString(PString::Printf, "Large fd_set(%d) enabled\r\n", LARGE_FDSET) +
-#endif
-		"\r\nGkStatus: Version(2.0) Ext()\r\n"
-		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() +
-		")\r\n" + SoftPBX::Uptime() + "\r\nBuilt:" + PString( __DATE__) + 
-		PString( " " ) + PString( __TIME__ ) + "\r\n;\r\n";
+		"GkStatus: Version(2.0) Ext()\r\n"
+		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() + ")\r\n" 
+		+ SoftPBX::Uptime() + "\r\n;\r\n";
 }
 
 }
