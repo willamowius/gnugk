@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.28  2005/01/25 18:59:08  zvision
+ * Aliases handling fixed, alias type is not appended anymore
+ *
  * Revision 1.27  2005/01/25 00:37:35  zvision
  * Handle aliases of type partyNumber properly
  *
@@ -836,7 +839,10 @@ int RadAuthBase::Check(
 		&& GetIPFromTransportAddr(setup.m_sourceCallSignalAddress, addr)
 		&& addr.IsValid())
 		ipFound = true;
-			
+	else if (authData.m_peerAddr.IsValid()) {
+		addr = authData.m_peerAddr;
+		ipFound = true;
+	}
 	if (!ipFound) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
 			"could not setup Framed-IP-Address"

@@ -1,5 +1,8 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(radauth.cxx) Framed-IP-Address could not be determined
+  for unregistered calls with no Setup-UUIE.sourceCallSignalAddress field,
+  causing authentication to fail
 - (ProxyChannel.cxx) small optimizations in signaling handling
 - fixed bug with aliases handling in various places, introduced by recent changes
 - BUGFIX(Toolkit.cxx) correct handling of '!' character in rewrite rules

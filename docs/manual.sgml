@@ -114,6 +114,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Framed-IP-Address could not be determined for unregistered calls with
+no Setup-UUIE.sourceCallSignalAddress field, causing authentication to fail.
+
+<item>
 Provide proper handling of aliases of type partyNumber
 (e164Number or privateNumber).
 
