@@ -33,7 +33,7 @@ const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
 		       "Gatekeeper(%s) Version(%s) Ext(pthreads="
-		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)",
+		       PTHREADS_MARK_STRING ") Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
 		       __DATE__, __TIME__,
