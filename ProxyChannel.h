@@ -166,7 +166,7 @@ protected:
 	bool OnStatusInquiry(H225_StatusInquiry_UUIE &);
 	bool OnSetupAcknowledge(H225_SetupAcknowledge_UUIE &);
 	bool OnNotify(H225_Notify_UUIE &);
-	bool OnNonStandardData(PASN_OctetString &);
+//	bool OnNonStandardData(PASN_OctetString &);
 	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
 	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
