@@ -1,109 +1,161 @@
-# File: ~/.pwlib_config/Gatekeeper.ini
-# comments may start with # or ;
-######################################
+###############################################################
+##
+## File: ~/gatekeeper.ini
+## comments may start with # or ;
+##
+## Boolean values are represented by a case insensitive string
+## - "t"..., "y"... or "1" for TRUE and all other for FALSE.
+##
+###############################################################
 
-## Boolean values.
-## Boolean Values are retresented by a case insensitive string
-## - "t"..., "y"... or "1" for TRUE
-## - all other for FALSE
 
 ##
-## Params used in  Gatekeeper::Main()
+## Params used in Gatekeeper::Main()
 ##
-## NOTE: This parameters may be loaded at program startup and not influenced by the HUP signal.
+## NOTE: These parameters are loaded at program startup and not influenced by a reload or HUP signal.
+##
+
 [Gatekeeper::Main]
-## 'config is present' indicator. Has to be 42.
+# 'config is present' indicator. Has to be 42.
 Fourtytwo=42
-## Config is uptodate indicator. Must be the version string of the gk (only for development versions)
-ConfigVersion=2.5beta123456
 # Includes in some RAS-Msgs
 Name=OpenH323GK
 # overwritten from command line parameter
 #Home=195.71.129.69
+#NetworkInterfaces=
 #TimeToLive=600
-# how to print CDRs: use local time or universal coordinates
-UseUTCinCDR=TRUE
-# how to print CDRs: the format string of the time stamps as defined by PTime
-UseCDRFormat=wwwe, dd MMME yyyy hh:mm:ss,uuuu z
+#TotalBandwidth=100000
+#StatusPort=7000
+#UseBroadcastListener=0
+##
+## Failover support
+##
+#AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK2
+#Sendto=1.2.3.4:1719
+#EndpointIDSuffix=_gk1
+#SkipForwards=4.3.2.1
+#RedirectGK=Calls > 50
+##
+## You should never need to change any of the following values.
+## They are mainly used for testing or very sophisticated applications.
+##
+#UnicastRasPort=1719
+#MulticastPort=1718
+#MulticastGroup=224.0.1.41
+#EndpointSignalPort=9999
+#EndpointSignalPort=1720
+#ListenQueueLength=1024
+# [ms], default 1000
+#SignalReadTimeout=3000
+# [ms], default 3000
+#StatusReadTimeout=5000
 
 
 [RoutedMode]
 GKRouted=1
-H245Routed=1
+H245Routed=0
 CallSignalPort=1721
 CallSignalHandlerNumber=1
+RemoveH245AddressOnTunneling=0
+AcceptNeighborsCalls=1
+AcceptUnregisteredCalls=0
+SupportNATedEndpoints=1
+DropCallsByReleaseComplete=1
+#RemoveCallOnDRQ=1
+#SendReleaseCompleteOnDRQ=0
+#Q931PortRange=20000-20999
+#H245PortRange=30000-30999
+
 
 [Proxy]
-Enable=1
-InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
+#Enable=1
+#InternalNetwork=10.0.1.0/255.255.255.0,127.0.0.0/8
 #T120PortRange=40000-40999
 #RTPPortRange=50000-59999
 
 
-[Failover]
-## Give a list of IP4-Addresses to forward the RRQ to that this
-## Gatekeeper receives. Notation: "a.b.c.d:p[,a.b.c.d:p[,...]]" (all numbers)
-#Sendto=195.71.129.37:1719
-#EndpointIDSuffix=_skeeve
-# List of alternate GKs (current maximum: 1)
-# Notation: "a.b.c.d:port:regNeeded:prio(1..127)[:gkID]" (a..d,port = numbers)
-#AlternateGKs=195.71.129.37:1719:false:120:OpenH323GK2
-# when receiving from these IPs, we don't forward the packets to our
-# alternate GKs. Insert your alternate GKs here to prevent loops.
-# Notation: "a.b.c.d[,a.b.c.d[,...]]" (a..d = numbers)
-#SkipForwards=195.71.129.37
-
 ##
-## This section should not be changed and loaded with the HUP signal at runtime
-## because only newly created connections are affected from the change.
-## You better restart the gatekeeper after changing something here.
-[Gatekeeper::TCP]
-UnicastRasPort=1719
-MulticastPort=1718
-MulticastGroup=224.0.1.41
-EndpointSignalPort=9999
-#EndpointSignalPort=1720
-StatusPort=7000
-ListenQueueLength=1024
-# [ms], default 1000
-SignalReadTimeout=3000
-# [ms], default 3000
-StatusReadTimeout=5000
+## used when registering our gk as a gateway with another gk
+##
+
+[Endpoint]
+#Gatekeeper=auto
+#Gatekeeper=210.58.112.188
+#Type=Gateway
+#H323ID=CitronProxy
+#E164=18888600000
+#Password=
+#Prefix=18888600,1888890003
+#TimeToLive=900
+#RRQRetryInterval=10
+#ARQTimeout=2
+#UnregisterOnReload=0
+#NATRetryInterval=60
+#NATKeepaliveInterval=86400
+
+
+#[Endpoint::RewriteE164]
+#188889000=9
+
 
 ##
 ## Prefixes of e164 numbers for gateways.
-## Separate list elements by one of " .,\t".
-## @see RasTbl::addPrefixes
-## This parameters should consider a HUP signal.
+## Left hand side is the H.323 Alias, right hand side the list of prefixes.
+## Separate prefixes by one of " .,\t".
+##
+#############################################################
+## NOTE: Use of this section is depreciated.
+## Use telephonenumber= in [RasSrv::EndpointOptions] instead.
+## For now, telephonenumbers from [RasSrv::EndpointOptions] and
+## entries here are merged together, but you REALLY SHOULD use 
+## [RasSrv::EndpointOptions].
+#############################################################
+##
+## These parameters honor a reload or HUP signal.
+##
+
 [RasSrv::GWPrefixes]
 ## Test-Gateways
-# 195.71.226.162
 #rossi-gt2=80,90
 #rossi-gt2=0
-# 195.71.226.165
 #rossi-gt3=80,90
 #rossi-gt3=05241,0521,5241,521
-# 195.71.129.254
-#ip400-v1=12
-#ip400-wi1=0
+
 
 ##
-## Options for endpoints.
-## For valid attribute names:
-## @see GkDatabase::DBAttributeNames
-## Attribute "voIPEndpointType" can be: "trunk"|"cpe".
+## Per-endpoint options.
+##
+#############################################################
+## NOTE: YOU NEED TO UNDERSTAND AND CONFIGURE THIS SECTION
+#############################################################
+##
+## For valid attribute names: see [GkDatabase::DBAttributeNames].
 ## Separate attributes by ";", key/value pairs by "=" and
 ## values (if there are more than one for one attribute) by ","
+## Attribute "voIPEndpointType" can be: "trunk" or "cpe".
+##
+## For a call ep1 -> GK -> ep2, you need to use this section to configure
+## profiles for both, ep1 and ep2.
+## This is also true if ep1 is a parent gatekeeper or neighbor.
+## If you don't, routing calls will very likely fail.
+##
+##
+
 [RasSrv::EndpointOptions]
-ep_1=voIPEndpointType=cpe;telephoneNumber=49524670567;voIPlocalAccessCode=0;voIPnationalAccessCode=00;voIPinternationalAccessCode=000;voIPspecialDial=110=49524675123,112=49524675456;plaintextPassword=asdf
+ep_1=voIPEndpointType=cpe;telephoneNumber=49524670567;voIPlocalAccessCode=0;voIPnationalAccessCode=00;voIPinternationalAccessCode=000;voIPspecialDial=110=49524675123,112=49524675456;plaintextPassword=abc123
 gw_1=voIPEndpointType=trunk;voIPCountryCode=49;voIPIpAddress=195.71.226.162
 
-[RasSrv::RRQAuth]
-## On a RRQ the h323-alias is queried from this section.
-## If there is an entry the endpint is authenticated against the given rules.
 
+##
+## Per-endpoint authentication.
+##
+
+[RasSrv::RRQAuth]
+## On RRQs, the h323-alias is retrieved from this section.
+## If there is an entry, the endpoint is authenticated against these rules.
 ## If there is no entry the default action is performed. The default action
 ## is to confirm the RRQ, unless the parameter "default=reject" is given.
+## These parameters honor a reload or HUP signal.
 ##
 ## Notation:
 ##   <authrules> :=  empty  |  <authrule> "&" <authrules>
@@ -111,14 +163,13 @@ gw_1=voIPEndpointType=trunk;voIPCountryCode=49;voIPIpAddress=195.71.226.162
 ##   <authtype>  := "sigaddr" | "sigip"
 ##   <autparams> := [!&]*
 ## The notation and meaning of <authparams> depends on <authtype>:
-## - sigaddr: extended regular expression that has to match agains the
+## - sigaddr: extended regular expression that has to match against the
 ##     "PrintOn(ostream)" representation of the signal address of the request.
 ##     Example: "sigaddr:.*ipAddress .* ip = .* c3 47 e2 a5 .*port = 1720.*"
 ## - sigip: specialized form of "sigaddr". Write the signalling ip adresse
 ##     using (commonly used) decimal notation: "byteA.byteB.byteC.byteD:port"
 ##     Example of the above sigaddr: "sigip:195.71.226.165:1720"
 ##
-## This parameters should consider a HUP signal.
 
 #rossi-gt2=sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
 #rossi-gt2=sigip:195.71.226.162:1720
@@ -129,96 +180,97 @@ gw_1=voIPEndpointType=trunk;voIPCountryCode=49;voIPIpAddress=195.71.226.162
 default=confirm
 
 
-
+##
 ## The parameter "rule" may be one of the following:
-## - "forbid" disallow any connection (default when no rule us given)
-## - "allow" allow any connection
-## - "explicit" reads the parameter #"<ip>=<value>"# with ip is the ip4-address
-##   if the peering client. #<value># is resolved with #Toolkit::AsBool#. If the ip
-##   is not listed the param "default" is used.
-## - "regex" the #<ip># of the client is matched against the given regular expression.
-##   First the ip-rules (like "explicit") are tested. Olny of no such param exists
-##   the regex is tried.
-##   Example: "regex=^195\.71\.(129|131)\.[0-9]+$"
+## - "forbid":    disallow any connection (default when no rule us given)
+## - "allow":     allow any connection
+## - "explicit":  read the parameter #"<ip>=<value>"# where ip is the ipv4-address
+##                of the client. #<value># is resolved using #Toolkit::AsBool#. If the
+##                ip is not listed the param "default" is used.
+## - "regex":     the #<ip># of the client is matched against the given regular expression.
+##                First the ip-rules (like "explicit") are tested. Only of no such param
+##                exists, the regex is tried.
+##                Example: "regex=^195\.71\.(129|131)\.[0-9]+$"
+##
+
 [GkStatus::Auth]
 rule=allow
 #rule=deny
 #rule=explicit
 #rule=regex
-# - 195.71.129.*
-# - 195.71.100.*
-# - 62.52.26.[1-2][0-9][0-9]
 #regex=^(195\.71\.(129|100)\.[0-9]+)|(62\.52\.26\.[1-2][0-9][0-9])$
 # only used when "rule=explicit"
 #default=forbid
 
 
-
-
 ##
-## Beside other things every number to rewrite has its
-## own key/value-line. The implemententation is such that
-## all numbers that shell be rewritten have to begin
-## with a common prefix given by 'Fastmatch'.
+## Number rewriting 
 ##
-## Doc From the code:
-## // Do rewrite to #newE164#. Append the suffix too.
-## // old:  01901234999
-## //               999 Suffix
-## //       0190        Fastmatch
-## //       01901234    prefix, Config-Rule: 01901234=0521321
-## // new:  0521321999
-##
+## This is the general number rewriting. There's also a number rewriting specific to
+## child/parent GK configurations, see #[Endpoint::RewriteE164]# for that one.
+## This is done within the Q.931 signalling channel, so it'll only work if you have
+## enabled routed mode !
+## Every number to be rewritten has its own key/value-line.
+## The implemententation is such that all numbers that shell be rewritten have to begin
+## with a common prefix given by 'Fastmatch'. Only one Fastmatch line can be given.
+## Leave Fastmatch empty (that's the default) to avoid hassle.
 ## The rewrite-numbers function take care of reloads/a HUP signal.
+##
 
 [RasSrv::RewriteE164]
-## Only if an e164 number begins with #Fastmatch# the
-## the further rewriting is done. Only one #Fastmatch# can be given.
 #Fastmatch=
 #0190703100=052418088663
 #01903142=0521178260
-#5241908601903142=521178260
 
 
 ##
-## The GK would send LRQ to its neighbors if the destination of ARQ is unknown.
-## A neighbor is selected if its prefix match the destination or
-## it has prefix '*'.
+## Neighborhood relations
+##
+## The GK send LRQ to its neighbors ***ONLY*** if the destination of ARQ is otherwise
+## unknown. For a gateway w/ prefix 123 and a neighbor w/ prefix 1234, 12345 is
+## routed to the gateway !! It's a TODO - DON'T ASK !
+## A neighbor is selected if its prefix match the destination or it has prefix '*'.
 ## Currently only one prefix is supported.
+## You can configure multiple lines for a single gatekeeper, though.
 ##
-#
-# GKID=ip[:port;prefix;password]
-#
+##
+## Syntax: GKID=ip[:port;prefix;password]
+##
+
 [RasSrv::Neighbors]
 #GK1=203.60.151.5:1719;*;gk1
 #GK2=203.60.151.9:1719;02
 
+
 [RasSrv::RRQFeatures]
 #AcceptGatewayPrefixes=1
+
 
 [RasSrv::ARQFeatures]
 #ArjReasonRouteCallToSCN=0
 #ArjReasonRouteCallToGatekeeper=1
+
 
 [RasSrv::LRQFeatures]
 #NeighborTimeout=2
 #ForwordHopCount=2
 #IncludeDestinationInfoInLCF=1
 
+
 ##
-## In this section you can put endpoints that don't have RAS support
-## or that you don't want to be expired. The records will always
-## in GK's registration table.
-## However, You can still unregister it via status thread.
+## In this section you can put endpoints that don't have RAS support or that
+## you don't want to be expired. The entries will always remain in GK's
+## registration table. However, You can still unregister them via status thread.
 ##
-#
-# ip[:port]=alias,alias,...[;prefix,prefix,...]
-#
+## Syntax: ip[:port]=alias,alias,...[;prefix,prefix,...]
+##
+
 [RasSrv::PermanentEndpoints]
 # For gateway
 #10.0.1.5=Citron;009,008
 # For terminal
 #10.0.1.10=798
+
 
 ##
 ## Authentication mechanism
@@ -261,24 +313,24 @@ rule=allow
 ##
 ## There are also four ways to control a rule:
 ##
-##   alternative   If this rule cannot determine the request, it is passed
+##   alternative   If this rule is not applicable to the request, it is passed
 ##                 to next rule. If the answer is positive, the request is
 ##		   confirmed. If the answer is negative, the request is passed
 ##		   on to the next rule.
-##   optional      If this rule cannot determine the request, it is passed
+##   optional      If this rule is not applicable to the request, it is passed
 ##                 to next rule. Otherwise, the output determines the
 ##		   answer, i.e. the request is either confirmed or denied.
 ##		   In that case, the request is NOT passed on to the next rule.
-##   required      The request should be authenticated by this module,
-##                 or it would be rejected. The authenticated request would
-##                 then be passwd to next rule.
+##   required      The request should be authenticated by this module, or it is
+##                 rejected. The authenticated request will then be passed on to
+##                 the next rule.
 ##   sufficient    If the request is authenticated, it is accepted,
-##                 or it would be rejected. That is, the rule determines
-##                 the fate of the request. No rule should be put after
-##                 a sufficient rule, since it won't take effect.
+##                 else it is rejected. The processing stops here. That is, the
+##                 rule determines the fate of the request. No rule should be put
+##                 after a sufficient rule, since it won't take effect.
 ##
 ##
-## "Cannot determine" means the rule is not applicable, e.g:
+##  A rule is not applicable if e.g
 ##    a [Simple|DB]PasswordAuth rule cannot be applied if the request does not contain CryptoTokens
 ##    a DBAliasAuth cannot be applied if the database entry does not contain the alias field
 ##
@@ -286,7 +338,9 @@ rule=allow
 ## messages. For example, to configure SimplePasswordAuth as a required
 ## rule to check RRQ, ARQ and LRQ:
 ## SimplePasswordAuth=required;RRQ,ARQ,LRQ
-#
+##
+
+
 [Gatekeeper::Auth]
 #SimplePasswordAuth=optional
 #DBPasswordAuth=optional
@@ -295,9 +349,14 @@ rule=allow
 #default=reject
 default=allow
 
+
 ##
 ## Destination analysis mechanism
-##  (must be enabled with compiler option WITH_DEST_ANALYSIS_LIST)
+##
+## *** NOTE: YOU NEED THIS SECTION ***
+##
+## You *must* configure a destination analysis mechanism, or your ARQs result
+## in "ARJ - called party not registered".
 ##
 ## Syntax:
 ##   authrule=actions
@@ -315,25 +374,47 @@ default=allow
 ##
 ##   BlackListDestAnalysis      This module checks Blacklisted numbers. The
 ##				precedence of Blacklisting and Whitelisting
-##				is per-endpoint configurable. BlackListDestAnalysis
-##				implies an OverlapSendDestAnalysis was also done before
-##				this to find an endpoint because blacklisting is a
+##				is per-endpoint configurable (voIPWhiteListBeforeBlackList).
+##                              BlackListDestAnalysis implies an OverlapSendDestAnalysis was also
+##                              done before this to find an endpoint because blacklisting is a
 ##				endpoint-dependant option.
+##
+##   Currently, only outbound calling can be blocked. Inbound blocking is not yet implemented.
+##
+
+## Example 1:
+## [RasSrv::EndpointOptions]
+## callingEP=voIPWhiteListBeforeBlackList=TRUE;voIPprefixOutgoingWhiteList=49;voIPprefixOutgoingBlackList=49190
+##
+## This means only calls to 49* (aka Germany) are allowed. Rest of the world is forbidden!
+## Calls to 49190* (German premium rate services) are forbidden too. The rest of the world was forbidden
+## in the WhiteList rule.
+
+## Example 2:
+## [RasSrv::EndpointOptions]
+## callingEP=voIPWhiteListBeforeBlackList=FALSE;voIPprefixOutgoingBlackList49;voIPprefixOutgoingWhiteList=49521;
+## voIPprefixOutgoingWhiteList=495246
+##
+## That means calls to 49* (aka Germany) are disallowed. Rest of the world is
+## allowed (do you really want this?)!
+## Only calls to 49521 (Bielefeld) and 495246 (Verl) are ok, the rest of germany is disallowed.
 
 [Gatekeeper::DestAnalysis]
 OverlapSendDestAnalysis=optional;ARQ
 #BlackListDestAnalysis=alternative;ARQ
 default=reject
 
+
 ##
 ## Use 'make addpasswd' to generate the utility addpasswd
-## Usage:
-##   addpasswd config userid password
+## Usage: addpasswd config userid password
 ##
-#[Password]
+
+[Password]
 #KeyFilled=123
 #(id=cwhuang, password=123456)
 #cwhuang=UGwUtpy837k=
+
 
 [MySQLAuth]
 #Host=localhost
@@ -345,28 +426,44 @@ default=reject
 #PasswordField=Password
 #CheckEnableField=Active
 
+
 [CallTable]
 #GenerateNBCDR=TRUE
 #GenerateUCCDR=TRUE
-#DefaultCallTimeout=21600  // 6hr
+# Default is to terminate every call after 6 hours
+#DefaultCallTimeout=21600
 
-# The databases which are used for endpoint configuration.
-# The databases are searched for a config in the same order as they
-# are listed here.
+
+##
+## The databases which are used for endpoint configuration.
+##
+## *** NOTE: YOU NEED THIS SECTION ***
+##
+## The databases are searched for a config in the same order as they
+## are listed here.
+##
+
 [Gatekeeper::Databases]
 IniFile=TRUE
 #LDAP=TRUE
 
-# the attribute names used for database access, the default is the names
-# from the LDAP-VoIP-scheme which is provided within this distribution
+
+##
+## the attribute names used for database access, the default is the names
+## from the LDAP-VoIP-schema which is provided in the etc/ directory
+## See that file for explanations of the fields.
+## Note that this applies to non-LDAP databases (.ini file, MySQL) as well !
+##
+
 [GkDatabase::DBAttributeNames]
 #H323ID=mail
 #TelephoneNumber=telephoneNumber
+# attribute "voIPEndpointType" can be: "trunk"|"cpe".
+#EndpointType=voIPEndpointType
 #FacsimileTelephoneNumber=facsimileTelephoneNumber
 #H235PassWord=plaintextPassword
 #IPAddress=voIPIpAddress
 #CountryCode=voIPCountryCode
-#EndpointType=voIPEndpointType
 #LocalAccessCode=voIPlocalAccessCode
 #NationalAccessCode=voIPnationalAccessCode
 #InternationalAccessCode=voIPinternationalAccessCode
@@ -381,7 +478,28 @@ IniFile=TRUE
 #PrefixIncomingWhitelist=voIPprefixIncomingWhitelist
 #PrependCallbackAccessCode=voIPprependCallbackAccessCode
 
-# Settings for LDAP access
+
+## 
+## Settings for LDAP access
+## 
+## ServerName:   The LDAP server's DNS name.
+## ServerPort:   The LDAP server's TCP port (usually 389).
+## SearchBaseDN: entry point into the server's LDAP tree structure.
+##               Searches are only made below this root node.
+## BindUserDN:   The distinguished name the gatekeeper uses to bind
+##               to the LDAP server. Leave empty if you want to access
+##               the LDAP server anonymously.
+## BindUserPW:   If you specified BindUserDN, then specify the corresponding
+##               password to be used for binding here.
+## sizelimit:    Maximum number of results the server may return in response
+##               to a single search query. The gatekeeper expects each LDAP
+##               to only yields one or zero results anyway, so this parameter
+##               is rather useless.
+##               Usually that's restricted on the server side, anyway.
+## timelimit:    maximum number of seconds a query may take until it's
+##               considered as "failed".
+## 
+
 [GkLDAP::Settings]
 #ServerName=ldap
 #ServerPort=389
@@ -391,45 +509,65 @@ IniFile=TRUE
 #sizelimit=0
 #timelimit=0
 
-#
-# LDAP Cache:
-#
-# Enable (boolean):    switch caching on/off. Default: off
-# MaxMemory (integer): maximum amount of memory used in cache
-#                      With internal cache the amount of
-#                      results is computed by:
-#		       maxresults=MaxMemory/CACHE_AVERAGE_SEARCH_SIZE
-#		       CACHE_AVERAGE_SEARCH_SIZE is set in
-#                      gk_ldap_interface.h to 10.
-# TTL (boolean):       maximum time (in seconds) a cache entry may have.
+
+##
+## LDAP Cache:
+##
+## Enable (boolean):    switch caching on/off. Default: off
+## TTL (boolean):       maximum time (in seconds) a cache entry may have.
+## MaxMemory (integer): maximum amount of memory used in cache
+##
+## With internal cache the amount of results is computed by:
+## maxresults=MaxMemory/CACHE_AVERAGE_SEARCH_SIZE
+## CACHE_AVERAGE_SEARCH_SIZE is set in gk_ldap_interface.h to 10.
+##
 
 [LDAPCache]
-#Enable=T
-#MaxMemory=10000
+Enable=TRUE
 #TTL=60
+#MaxMemory=10000
 
 
-# Digit Analysis general section,
+##
+## Digit Analysis general section,
+## You may specify to override(!) the file for the E.164 defined Country Codes,
+## in <code>;<descr> syntax.
+## Since most if not all country codes are compiled in, you shouldn't need to touch this.
+##
+
 [DigitAnalysis::General]
-#may specify the override(!) file for the E.164 defined Country Codes,
-#in <code>;<descr> syntax
 #CountryCodes=cc.dat
 
-# Digit Analysis special section: the keys here have to be E.164 defined
-# Country Codes and their value might either be a valid file name or an
-# valid function identifier. In case a file is specified, it must
-# contain the National Destination Codes (NDC) for that Country Code in
-# <code>;<descr> syntax. The function identifier selects a functional
-# way to extract the NDC from a given digit sequence.
+
+##
+## Digit Analysis special section: the keys here have to be E.164 defined
+## Country Codes and their value might either be a valid file name or a
+## valid function identifier. In case a file is specified, it must
+## contain the National Destination Codes (NDC) for that Country Code in
+## <code>;<descr> syntax. The function identifier selects a functional
+## way to extract the NDC from a given digit sequence.
+## Current supported functions are "NorthAmericanNumberingPlan"
+## and the "AustralianNumberingPlan".
+## The gatekeeper already knows how to use "simple" numbering plans like the
+## widely used North American and the Australian one.
+## More complicated ones, in particular those with variable-length area codes,
+## need to be defined in the appropriate file.
+## There is already a large number of national dialling plans available in
+## the CodesDB/ directory
+##
+
 [DigitAnalysis::Functor]
 1=NorthAmericanNumberingPlan
 #49=49.dat
 
-# the shared secret for the symetric ciphers used to secure 'plaintext'
-# passwords needed for challenge response authentification. LHS the
-# cipher's prefix (as used by LDAP for instance); RHS is the base64
-# encoded password (shared secret). The actual key used is the MD5
-# digest of the password.
+##
+## the shared secret for the symetric ciphers used to secure 'plaintext'
+## passwords needed for challenge response authentification. LHS the
+## cipher's prefix (as used by LDAP for instance); RHS is the base64
+## encoded password (shared secret). The actual key used is the MD5
+## digest of the password.
+##
+
 [PlaintextPasswd::SharedSecret]
 #{BF}=cHc=
 
