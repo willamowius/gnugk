@@ -1849,20 +1849,20 @@ BOOL CallSignalSocket::CgPNConversion(BOOL connecting) {
 	m_call->GetCalledProfile().SetCalledPN(CalledPartyNumber);
 	if (cdpf.ConvertToLocal() && CalledE164Number.GetCC() == CallingE164Number.GetCC()) {
 		PTRACE(5, "Converting to local");
-		if (CalledE164Number.GetNDC_IC() == CallingE164Number.GetNDC_IC()) {
-			// Convert to local
-			CalledPartyNumber = CalledE164Number.GetGSN_SN();
-			CalledTON = Q931::SubscriberType;
-			CallingPartyNumber = CallingE164Number.GetGSN_SN();
-			CallingTON = Q931::SubscriberType;
+// 		if (CalledE164Number.GetNDC_IC() == CallingE164Number.GetNDC_IC()) {
+// 			// Convert to local
+// 			CalledPartyNumber = CalledE164Number.GetGSN_SN();
+// 			CalledTON = Q931::SubscriberType;
+// 			CallingPartyNumber = CallingE164Number.GetGSN_SN();
+// 			CallingTON = Q931::SubscriberType;
 
-		} else {
+// 		} else {
 			// Convert to National
 			CalledPartyNumber = PString(CalledE164Number.GetNDC_IC()) + PString(CalledE164Number.GetGSN_SN());
 			CalledTON = Q931::NationalType;
 			CallingPartyNumber = PString(CallingE164Number.GetNDC_IC()) + PString(CallingE164Number.GetGSN_SN());
 			CallingTON = Q931::NationalType;
-		}
+// 		}
 	}
 	// Convert PartyNumber to dialable Digits
 	if(cdpf.GetPrependCallbackAC()) {
