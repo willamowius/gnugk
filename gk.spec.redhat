@@ -60,7 +60,7 @@ cat << EOF > $RPM_BUILD_ROOT/etc/logrotate.d/gnugk
     notifempty
     missingok
     postrotate
-	kill -HUP \`cat /var/run/gk.pid\`
+	kill -HUP \`cat /var/run/gnugk.pid\`
     endscript
 }
 EOF
@@ -83,7 +83,6 @@ rm -rf $RPM_BUILD_ROOT
 - Upgraded 2.0beta5
 - rename to gnugk
 
-* Wed Feb 06 2002 Chih-Wei Huang <cwhuang@linux.org.tw>
 * Fri Mar 22 2002 Chih-Wei Huang <cwhuang@linux.org.tw>
 - Upgraded 2.0beta4
 

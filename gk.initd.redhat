@@ -16,7 +16,7 @@
 . /etc/rc.d/init.d/functions
 
 GKEXE=/usr/sbin/gnugk
-GKPID=/var/run/gk.pid
+GKPID=/var/run/gnugk.pid
 GKCONFIG=/etc/gatekeeper.ini
 LOGFILE=/var/log/gk/gk.log
 LOCKFILE=/var/lock/subsys/gnugk
@@ -31,11 +31,12 @@ fi
 
 [ -f $GKCONFIG ] || exit 0
 
-prog=gk
+prog=gnugk
 
 RETVAL=0
 
 start () {
+    [ -f $LOGFILE ] && mv -f $LOGFILE $LOGFILE.bak
     echo -n $"Starting $prog: "
     # start daemon
     $GKEXE -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
@@ -51,7 +52,7 @@ stop () {
     killproc $GKEXE
     RETVAL=$?
     echo
-    rm -f $LOCKFILE # delete it anyway
+    rm -f $LOCKFILE $GKCONFIG-* # delete it anyway
     return $RETVAL
 }
 

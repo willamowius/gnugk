@@ -26,20 +26,20 @@ link=${base#*[SK][0-9][0-9]}
 return=$rc_done
 case "$1" in
     start)
-	echo -n "Starting OpenH323 gatekeeper"
+	echo -n "Starting GNU Gatekeeper"
 	## Start daemon with startproc(8). If this fails
 	## the echo return value is set appropriate.
 
-	startproc -q /usr/sbin/gk || return=$rc_failed
+	startproc -q /usr/sbin/gnugk || return=$rc_failed
 
 	echo -e "$return"
 	;;
     stop)
-	echo -n "Shutting down OpenH323 gatekeeper"
+	echo -n "Shutting down GNU Gatekeeper"
 	## Stop daemon with killproc(8) and if this fails
 	## set echo the echo return value.
 
-	killproc -TERM /usr/sbin/gk || return=$rc_failed
+	killproc -TERM /usr/sbin/gnugk || return=$rc_failed
 
 	echo -e "$return"
 	;;
@@ -52,11 +52,11 @@ case "$1" in
 	$0 stop  &&  $0 start  ||  return=$rc_failed
 	;;
     status)
-	echo -n "Checking for OpenH323 gatekeeper: "
+	echo -n "Checking for GNU Gatekeeper: "
 	## Check status with checkproc(8), if process is running
 	## checkproc will return with exit status 0.
 
-	checkproc /usr/sbin/gk && echo OK || echo No process
+	checkproc /usr/sbin/gnugk && echo OK || echo No process
 	;;
     *)
 	echo "Usage: $0 {start|stop|status|restart|reload}"

@@ -49,7 +49,7 @@ PMutex ShutdownMutex;
 PMutex ReloadMutex;
 
 #ifndef WIN32
-PString pidfile("/var/run/gk.pid");
+PString pidfile("/var/run/gnugk.pid");
 #endif
 #ifdef PTRACING
 PTextFile *logfile = 0;
