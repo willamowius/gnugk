@@ -276,7 +276,7 @@ default=allow
 [LDAPAuth::LDAPAttributeNames]
 #UserIdentity=uid
 #H323ID=cn
-#TelephonNr=telephoneNumber
+#TelephonNo=telephoneNumber
 #H245PassWord=plaintextPassword
 #aliasH3232ID=voIPnickName
 #CountryCode=voIPcountryCode
