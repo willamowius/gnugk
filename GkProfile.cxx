@@ -486,7 +486,7 @@ CalledProfile::GetDisengageReason() const
 	H225_DisengageReason rsn;
 	if(Q931::UserBusy == m_releasecause ||
 	   Q931::NormalCallClearing == m_releasecause ||
-	   Q931::Unspecified == m_releasecause) {
+	   Q931::NormalUnspecified == m_releasecause) {
 		rsn.SetTag(H225_DisengageReason::e_normalDrop);
 	} else {
 		rsn.SetTag(H225_DisengageReason::e_forcedDrop);
