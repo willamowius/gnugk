@@ -56,7 +56,7 @@ void SignalChannel::CleanupConnections(void)
 	SignalConnection * connection = NULL;
 	int num = connectionList.GetSize();
 
-	for(int i=0; i<num; i++)
+	for(int i=num; --i >= 0; )
 	{
 		connection = (SignalConnection*) connectionList.GetAt(i);
 		if (connection != NULL)
@@ -87,7 +87,7 @@ void SignalChannel::CloseConnections(void)
 	SignalConnection * connection = NULL;
 	int num = connectionList.GetSize();
 
-	for(int i=0; i<num; i++)
+	for(int i=num; --i >= 0; )
 	{
 		connection = (SignalConnection*) connectionList.GetAt(i);
 		if (connection != NULL)

@@ -152,7 +152,7 @@ Toolkit::RewritePString(PString &s)
 				}
 				
 				// append the suffix
-				t += s(t.GetLength(),10000); // 10000 is used for the rest of the string
+				t += s.Mid(keys[i].GetLength());
 
 				do_rewrite = TRUE;
 				break;

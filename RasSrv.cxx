@@ -398,9 +398,9 @@ BOOL H323RasSrv::OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	const PString SkipForwards = GkConfig()->GetString("SkipForwards", "");
 	if (!SkipForwards)
 		if (SkipForwards.Find(rx_addr.AsString()) != P_MAX_INDEX) {
-			PTRACE(5, "RRQ\tWill skip forwarding RRQ to other GK.");
+			PTRACE(5, "GRQ\tWill skip forwarding GRQ to other GK.");
 			bShellForwardRequest = FALSE;
-	}
+		}
 
 	PString msg;
 	unsigned rsn = H225_GatekeeperRejectReason::e_securityDenial;
@@ -644,38 +644,45 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 
-	BOOL bHasAlias = (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (obj_rr.m_terminalAlias.GetSize() >= 1));
-
-	if (bHasAlias) {
-		const H225_ArrayOf_AliasAddress & NewAliases = obj_rr.m_terminalAlias;
-		const endptr ep = EndpointTable->FindByAliases(NewAliases);
-		if (ep && ep->GetCallSignalAddress() != SignalAdr) {
-			bReject = TRUE;
-			rejectReason.SetTag(H225_RegistrationRejectReason::e_duplicateAlias);
-		}
-		// reject the empty string
-		for (PINDEX AliasIndex=0; AliasIndex < NewAliases.GetSize(); ++AliasIndex) {
-			const PString & s = AsString(NewAliases[AliasIndex], FALSE);
-			if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') ) {
+	if (!bReject && obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) && EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier)) {
+		bReject = TRUE;
+		// no reason named invalidEndpointIdentifier? :(
+		rejectReason.SetTag(H225_RegistrationRejectReason::e_securityDenial);
+	}
+	
+	if (!bReject) {
+		if (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) &&
+			(obj_rr.m_terminalAlias.GetSize() >= 1)) {
+			const H225_ArrayOf_AliasAddress & NewAliases = obj_rr.m_terminalAlias;
+			const endptr ep = EndpointTable->FindByAliases(NewAliases);
+			if (ep && ep->GetCallSignalAddress() != SignalAdr) {
+				bReject = TRUE;
+				rejectReason.SetTag(H225_RegistrationRejectReason::e_duplicateAlias);
+			}
+			// reject the empty string
+			for (PINDEX AliasIndex=0; AliasIndex < NewAliases.GetSize(); ++AliasIndex) {
+				const PString & s = AsString(NewAliases[AliasIndex], FALSE);
+				if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') ) {
+					bReject = TRUE;
+					rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
+				}
+			}
+		} else {
+			// reject gw without alias
+			switch (obj_rr.m_terminalType.GetTag()) {
+			case H225_EndpointType::e_gatekeeper:
+			case H225_EndpointType::e_gateway:
+			case H225_EndpointType::e_mcu:
 				bReject = TRUE;
 				rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
+				break;
+			/* only while debugging
+			default:  
+				bReject = TRUE;
+				rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
+				break;
+			*/
 			}
-		}
-	} else {
-		// reject gw without alias
-		switch (obj_rr.m_terminalType.GetTag()) {
-		case H225_EndpointType::e_gatekeeper:
-		case H225_EndpointType::e_gateway:
-		case H225_EndpointType::e_mcu:
-			bReject = TRUE;
-			rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
-			break;
-		/* only while debugging
-		default:  
-			bReject = TRUE;
-			rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
-			break;
-		*/
 		}
 	}
 

@@ -1,13 +1,21 @@
-Changes from 1.0 to now (by cwhuang)
+Changes from 1.1 to now (by cwhuang)
 ========================================
+- Rewrite destinationAddress in H225_Setup_UUIE
+- fix a bug in Toolkit::RewritePString
+- send DRQ to endpoints when tear down a call, give up send Release Complete
+  (in some situation it causes deadlock, very strange!!)
+  however, some buggy endpoints would ignore DRQ, sigh...
+  only send Release Complete on 'DisconnectCall' command
+- fix 'connectionList returned NULL' bug in SignalChannel.cxx
+- modify SignalConnection::Send to more thread-safe
 - modify OnARQ to fix routed mode problem
 - add 'Find' and 'FindVerbose' commands
-- fix a bug in lightweightRRQ
+- fix a (security) bug in lightweightRRQ
 - add startup and running time to 'Version' command
 - change EndpointRec::m_terminalType to be a pointer to reduce memory
-  consumed (H225_EndpointType is a very large object, size=2552)
+  consumed (H225_EndpointType is a very large object, size=2552 in x86)
 - send Release Complete to endpoints when tear down a call (routed mode)
-- disconnect calls of a endpoint on URQ
+- disconnect calls of an endpoint on URQ
 - add DefaultCallTimeout to remove staled calls
 - fix bug in DisconnectAlias
 - only use CallId to find CallRec if it presents, this fix a potential
@@ -22,6 +30,9 @@ Changes from 1.0 to now (by cwhuang)
   (must work in routed mode)
 - redesign CallRec & CallTable
 - extend debug cfg SEC command to retrieve a whole section
+
+Changes from 1.0 to 1.1 (by cwhuang)
+========================================
 - change neighbors structure
 - add class GkAuthInitializer for authenticators initialization
 - add authentication modules (gkauth.cxx, gkauth.h)

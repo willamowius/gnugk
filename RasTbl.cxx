@@ -809,19 +809,6 @@ void RegistrationTable::CheckEndpoints()
 	RemovedList.erase(Iter, RemovedList.end());
 }
 
-/*
-EndpointCallRec::EndpointCallRec(H225_TransportAddress callSignalAddress, H225_TransportAddress rasAddress, H225_CallReferenceValue callReference)
-  : m_callSignalAddress(callSignalAddress),
-	m_rasAddress(rasAddress),
-	m_callReference(callReference)
-{
-}
-
-bool EndpointCallRec::operator< (const EndpointCallRec & other) const
-{
-	return this->m_callSignalAddress <  other.m_callSignalAddress;
-}
-*/
 
 CallRec::CallRec(const H225_CallIdentifier & CallId,
 		 const H225_ConferenceIdentifier & ConfId,
@@ -879,8 +866,9 @@ void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, uns
 	if (ep != nep) {
 		if (ep)
 			ep->RemoveCall();
-		PWaitAndSignal lock(m_usedLock);
+		m_usedLock.Wait();
 		ep = nep, crv = ncrv;
+		m_usedLock.Signal();
 		if (ep)
 			ep->AddCall();
 	}
@@ -905,9 +893,10 @@ int CallRec::CountEndpoints() const
 	return result;
 }
 
-void CallRec::Disconnect()
+
+void CallRec::Disconnect(bool f)
 {
-	if (m_sigConnection)
+	if (m_sigConnection && f)
 		m_sigConnection->SendReleaseComplete();
 	else
 		SendDRQ();
@@ -1013,17 +1002,17 @@ CallTable::CallTable() : m_CallNumber(1)
 	LoadConfig();
 }
 
-void CallTable::LoadConfig()
-{
-	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
-	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
-}
-
 CallTable::~CallTable()
 {
         for_each(CallList.begin(), CallList.end(),
 		bind1st(mem_fun(&CallTable::InternalRemovePtr), this));
         for_each(RemovedList.begin(), RemovedList.end(), delete_call);
+}
+
+void CallTable::LoadConfig()
+{
+	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
+	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
 }
 
 void CallTable::Insert(CallRec * NewRec)

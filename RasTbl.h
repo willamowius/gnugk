@@ -369,7 +369,7 @@ public:
 	void StartTimer();
 	void StopTimer();
 
-	void Disconnect();
+	void Disconnect(bool = false); // Send ReleaseComplete?
 	void RemoveAll();
 
 	int CountEndpoints() const;

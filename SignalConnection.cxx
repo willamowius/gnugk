@@ -85,7 +85,6 @@ SignalConnection::~SignalConnection()
 	}
 }
 
-
 void SignalConnection::CloseSignalConnection(void)
 { 
 	PTRACE(5, "GK\t" << connectionName << "\tentering CloseSignalConnection");
@@ -110,7 +109,10 @@ void SignalConnection::CloseSignalConnection(void)
 		remoteConnection = NULL;
 	}
 
-	m_connection->Close();
+	if (m_connection->IsOpen())
+		m_connection->Close();
+	// else
+	// 	already closed, fine!
 
 	if (m_sigChannel) { // this indicates caller-thread
 // TODO: 
@@ -119,6 +121,7 @@ void SignalConnection::CloseSignalConnection(void)
         	// maipulate call-table
 		CallTable::Instance()->RemoveCall(pCallRec);
 	}
+	PTRACE(5, "GK\t" << connectionName << "\t" << " CloseSignalConnection done!");
 }
 
 void SignalConnection::SendReleaseComplete()
@@ -144,8 +147,9 @@ void SignalConnection::SendReleaseComplete()
 		Send(m_remote, releasePDU);
 	}
 	PTRACE(4, "GK\tSend Release Complete to " << connectionName);
-	
-	Sleep(100); // wait for the pdu to be sent
+
+// In some situation, the Sleep causes the thread unterminated. Strange!	
+//	Sleep(100); // wait for the pdu to be sent
 	CloseSignalConnection();
 }
 
@@ -283,7 +287,7 @@ void SignalConnection::Main(void)
 				break;
 			};
 
-		if ( m_q931.GetMessageType() == Q931::ReleaseCompleteMsg ) 	// RELEASE COMPLETE
+		if ( m_q931.GetMessageType() == Q931::ReleaseCompleteMsg ) // RELEASE COMPLETE
 		{
 			CloseSignalConnection();
 			break;
@@ -561,6 +565,9 @@ void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 		(PASN_BMPString &)alias = H323ID;
 	}
 
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+		Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress[0]);
+
 	if (bH245Routing) {
 		// replace H.245 address with gatekeepers address
 	}
@@ -644,18 +651,21 @@ BOOL SignalConnection::Send( PTCPSocket * socket, const Q931 & toSend )
 	//	m_q931.Encode(sbuf); // mm-27.04.2001
 	toSend.Encode(sbuf);
 	const PINDEX bufLen = sbuf.GetSize();
-	const BYTE *buf = sbuf.GetPointer();
+//	const BYTE *buf = sbuf.GetPointer();
 
-	// ...and the header to #header#
-	BYTE header[4];
-	header[0] = 3; // TPKT code
-  	header[1] = 0; // Must be zero
-  	header[2] = (BYTE)((bufLen+4) >> 8);
-  	header[3] = (BYTE)(bufLen+4);
+	PINDEX pktlen = bufLen + 4;
+	BYTE *pktbuf = new BYTE[pktlen];
+
+	pktbuf[0] = 3; // TPKT code
+  	pktbuf[1] = 0; // Must be zero
+  	pktbuf[2] = (BYTE)(pktlen >> 8);
+  	pktbuf[3] = (BYTE)(pktlen);
+	memcpy(pktbuf + 4, sbuf.GetPointer(), bufLen);
 
 #ifndef NDEBUG	
 	printf("data(4+%d): ", bufLen);
-	printf("%02x %02x %02x %02x.", header[0],header[1],header[2],header[3]);
+	printf("%02x %02x %02x %02x.", pktbuf[0],pktbuf[1],pktbuf[2],pktbuf[3]);
+	BYTE *buf = pktbuf + 4;
 	for(PINDEX i=0; i<bufLen; i++) {
 		if(isalnum(buf[i]))
 			printf("%s%c%s",ANSI::YEL, (char)(buf[i]), ANSI::OFF);
@@ -664,7 +674,10 @@ BOOL SignalConnection::Send( PTCPSocket * socket, const Q931 & toSend )
 	}
 	printf("\n");
 #endif	
-
+/* comment out by cwhuang
+   if we send the packet by two Write calls,
+   it's possible be interrupted by another thread
+   and disturb the packet.
 	if (!socket->Write(header, 4)) {
 		PTRACE(4, "GK\t" << connectionName << "\tPROBLEMS SENDING TPKT.");
 		return FALSE;
@@ -673,9 +686,12 @@ BOOL SignalConnection::Send( PTCPSocket * socket, const Q931 & toSend )
 		PTRACE(4, "GK\t" << connectionName << "\tPROBLEMS SENDING Q931 DATA.");
 		return FALSE;
 	}
-	
-	PTRACE(5, "GK\t" << connectionName << "\tSent.");
-	return TRUE;
-	
+*/	
+	BOOL result = socket->Write(pktbuf, pktlen);
+	delete [] pktbuf;
+
+	PTRACE_IF(4, !result, "GK\t" << connectionName << "\tPROBLEMS SENDING TPKT.");
+	PTRACE_IF(5, result, "GK\t" << connectionName << "\tSent.");
+	return result;
 }
 

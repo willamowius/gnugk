@@ -115,7 +115,7 @@ void SoftPBX::DisconnectCall(PINDEX CallNumber)
 		return;
 	}
 
-	Call->Disconnect();
+	Call->Disconnect(true);
 
 	PString msg(PString::Printf, "Call number %d disconnected.\n", CallNumber);
 	PTRACE(2, "GK\tSoftPBX: " << msg);
