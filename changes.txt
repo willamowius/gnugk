@@ -1,5 +1,7 @@
 Changes from 2.2.0 to 2.2.1
 ===========================
+- (gkslq.cxx) try to reconnect to the database, if the initial attempt
+  failed. Thanks to Mikko Oilinki
 - another changes to Calling/Called-Station-Id handling, always use
   Calling/Called-Party-Number IEs when available. Calling/Called-Station-Id
   is now set outside auth modules, so acct modules receive correct

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2004/08/02 10:52:07  zvision
+ * Ability to extract column names from a result set
+ *
  * Revision 1.3  2004/07/09 22:11:36  zvision
  * SQLAcct module ported from 2.0 branch
  *
@@ -446,6 +449,8 @@ private:
 	PSyncPoint m_connectionAvailable;
 	/// set to true when destructor is being invoked
 	bool m_destroying;
+	/// remain false while connection to the database not yet established
+	bool m_connected;
 };
 
 typedef Factory<GkSQLConnection>::Creator1<const char*> SQLCreator1;

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2004/07/09 22:11:36  zvision
+ * SQLAcct module ported from 2.0 branch
+ *
  */
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
@@ -38,7 +41,8 @@ GkSQLConnection::GkSQLConnection(
 	)
 	: NamedObject(name),
 	m_minPoolSize(GKSQL_DEFAULT_MIN_POOL_SIZE), 
-	m_maxPoolSize(GKSQL_DEFAULT_MAX_POOL_SIZE), m_destroying(false)
+	m_maxPoolSize(GKSQL_DEFAULT_MAX_POOL_SIZE),
+	m_destroying(false), m_connected(false)
 {
 }
 
@@ -145,6 +149,7 @@ bool GkSQLConnection::Connect()
 			<< m_idleConnections.size() << " SQL connections created, "
 			<< (m_minPoolSize - m_idleConnections.size()) << " failed"
 			);
+		m_connected = true;
 		return true;
 	}
 }
@@ -198,6 +203,14 @@ bool GkSQLConnection::AcquireSQLConnection(
 	if (m_destroying)
 		return false;
 		
+	if (!m_connected) {
+		PTRACE(2, GetName() << "\tAttempting to reconnect to the database");
+		if (!Connect()) {
+			PTRACE(2, GetName() << "\tFailed to reconnect to the database");
+			return false;
+		}
+	}
+	
 	const PTime timeStart;
 	connptr = NULL;
 	
