@@ -379,7 +379,7 @@ void Gatekeeper::Main()
 			GKHome = home;
 	}
 
-	PString welcome("OpenH323 Gatekeeper - GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started on " + GKHome.AsString() + "\n" + Toolkit::GKVersion());
+	PString welcome("OpenH323 Gatekeeper - The GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started on " + GKHome.AsString() + "\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
 

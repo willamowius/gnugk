@@ -945,6 +945,8 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
 		return false;
 	mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
+	if (!mediaControlChannel)
+		return false;
 	mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
 	return true;
 }
@@ -1603,7 +1605,6 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 	return false;
 }
 
-// to avoid ProxyThread.cxx to include the large h225.h,
 // to avoid ProxyThread.cxx to include the large h225.h,
 // put the method here...
 // class ProxyListener
