@@ -348,8 +348,11 @@ void GkClient::RegisterFather(const PString & endpointId, const PString & gateke
 	m_ttl = ttl;
 
 	// Set Alarm
-	reRegisterTimer = PTimer(0,m_ttl);
+	PTRACE(5, PString("Setting reregisterTimer to ") << PString(m_ttl-5) << PString("seconds"));
 	reRegisterTimer.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
+	reRegisterTimer.RunContinuous(PTimeInterval(0,(m_ttl<=0 ? 50 : m_ttl)));
+
+	PAssert(reRegisterTimer.IsRunning(), "Timer is not Running!");
 
 	// Register into EndpointTable
 	H225_RasMessage rrq_ras;
@@ -385,6 +388,7 @@ void GkClient::RegisterFather(const PString & endpointId, const PString & gateke
 	gkaddr_ip.m_ip[3] = m_gkaddr[3];
 	rrq.m_callSignalAddress.SetSize(1);
 	rrq.m_callSignalAddress[0] = gkaddr;
+	rrq.m_timeToLive = m_ttl;
 
 	PTRACE(5, "registering with: " << rrq_ras);
 	RegistrationTable::Instance()->InsertRec(rrq_ras);
@@ -432,6 +436,7 @@ void GkClient::OnRRJ(const H225_RegistrationReject & rrj, PIPSocket::Address gki
 */
 void GkClient::SendURQ()
 {
+	reRegisterTimer.Stop();
 	H225_RasMessage urq_ras;
 	urq_ras.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = urq_ras;
@@ -691,6 +696,7 @@ void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, cons
 void
 GkClient::OnTimeout(PTimer &timer, int extra)
 {
+	PTRACE(5, "ReRegistering");
 	H225_RasMessage rrq_ras;
 	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
 	H225_RegistrationRequest & rrq = rrq_ras;
@@ -699,9 +705,8 @@ GkClient::OnTimeout(PTimer &timer, int extra)
 	PPER_Stream writestream(buffer);
 	rrq_ras.Encode(writestream);
 	writestream.CompleteEncoding();
-	listener_mutex.Wait();
 	listener.WriteTo(writestream,writestream.GetSize(), m_gkaddr, m_gkport);
-	listener_mutex.Signal();
+	PTRACE(5, "Sent Reregister packet");
 }
 
 
@@ -783,7 +788,7 @@ GkClientWorker::OnRCF(H225_RegistrationConfirm &rcf)
 		PTRACE(2, "GKC\tRegister successfully to GK " << rcf.m_gatekeeperIdentifier);
 		GetMaster().RegisterFather(rcf.m_endpointIdentifier, rcf.m_gatekeeperIdentifier,
 				       rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive)
-				       ? (rcf.m_timeToLive - GetMaster().GetRetry()) * 1000 : 0);
+				       ? (rcf.m_timeToLive - GetMaster().GetRetry()) : 0);
 	}
 }
 
