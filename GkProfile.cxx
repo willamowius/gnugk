@@ -190,6 +190,13 @@ CallProfile::GetCgPN()
 	return m_cgPN;
 }
 
+const int
+CallProfile::GetMinPrefixLen() const
+{
+	PWaitAndSignal lock(m_lock);
+	return m_minprefixlength;
+}
+
 
 const PStringList &
 CallProfile::GetBlackList() const
@@ -336,6 +343,14 @@ CallProfile::SetCgPN(PString &cgPN)
 	PWaitAndSignal lock(m_lock);
 	m_cgPN = cgPN;
 }
+
+void
+CallProfile::SetMinPrefixLen(int len)
+{
+	PWaitAndSignal lock(m_lock);
+	m_minprefixlength = len;
+}
+
 
 void
 CallProfile::SetTreatCallingPartyNumberAs(enum CallProfile::Conversions tcpna)
