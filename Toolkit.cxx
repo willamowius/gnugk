@@ -71,8 +71,8 @@ void Toolkit::RouteTable::InitTable()
 		return;
 	}
 
-//	rtable_end = rtable_begin = new RouteEntry[r_table.GetSize()];
-	rtable_begin = new RouteEntry[r_table.GetSize()];
+	int i = r_table.GetSize();
+	rtable_begin = new RouteEntry[i];
 	rtable_end = rtable_begin; // workaround for Solaris
 	for (PINDEX r = 0; r < r_table.GetSize(); ++r) {
 		PIPSocket::RouteEntry & r_entry = r_table[r];
