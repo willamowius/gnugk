@@ -337,21 +337,27 @@ CallSignalSocket::~CallSignalSocket()
 	if(NULL!=remote) {
 		CallSignalSocket *rem=dynamic_cast<CallSignalSocket *>(remote);
 		if(NULL!=rem){
+			m_lock.Signal();
 			rem->m_lock.Wait();
 			PTRACE(5, "deleteing remote socket");
 			if(NULL!=rem->remote) {
 				PAssert(rem->remote==this, "remote->remote != this");
 				rem->UnlockUse("CallSignalSocket " + Name() + type);
-				rem->remote=NULL;
+				remote->SetDeletable();
 			}
 			rem->m_lock.Signal();
+			m_lock.Wait();
 		}
- 		remote->SetDeletable();
 		remote=NULL;
 	}
 	m_lock.Signal();
 	PTRACE(5, "Waiting for Condition to come true");
 	m_usedCondition.WaitCondition();
+	m_lock.Wait();
+	if(remote!=NULL)
+		remote->remote=NULL;
+	remote=NULL;
+	m_lock.Signal();
 
 	PTRACE(1,"Deleteing CallSignalSocket " << this);
 
@@ -874,6 +880,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 				m_call->RemoveSocket();
 				CallTable::Instance()->RemoveCall(m_call);
 				m_call=callptr(NULL);
+				if(NULL!=remote)
+					dynamic_cast<CallSignalSocket *> (remote)->m_call=callptr(NULL);
 			}
 			return Closing;
 		case Q931::StatusMsg:
@@ -1108,9 +1116,6 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		}
 		remote=NULL;
 	}
-
-	if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
-		Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 
 	// to compliance to MediaRing VR, we have to setup our H323ID
 	PString H323ID = GkConfig()->GetString("H323ID");
