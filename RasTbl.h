@@ -856,7 +856,9 @@ inline unsigned CallRec::GetDisconnectCause() const
 
 inline void CallRec::SetDisconnectCause( unsigned causeCode )
 {
-	m_disconnectCause = causeCode;
+	// set the cause only if it has not been already set
+	if( m_disconnectCause == 0 )
+		m_disconnectCause = causeCode;
 }
 
 inline bool CallRec::IsTimeout(const time_t now) const
