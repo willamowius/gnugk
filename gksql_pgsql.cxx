@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2005/01/16 15:22:35  zvision
+ * Database Host parameter accepts only one host now
+ *
  * Revision 1.6  2004/10/20 09:16:23  zvision
  * VC6 compilation errors fixed
  *
@@ -406,7 +409,7 @@ bool GkPgSQLResult::IsNullField(
 		|| fieldOffset < 0 || fieldOffset >= m_numFields)
 		return true;
 
-	return PQgetisnull(m_sqlResult, rowOffset, fieldOffset);
+	return PQgetisnull(m_sqlResult, rowOffset, fieldOffset) ? true : false;
 }
 
 
