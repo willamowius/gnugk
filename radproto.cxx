@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.20  2004/12/16 17:11:26  zvision
+ * FindVsaAttr ignored vendor identifier during attribute match
+ *
  * Revision 1.19  2004/08/09 23:32:11  zvision
  * VC6 compilation errors fixed
  *
@@ -112,6 +115,7 @@
 #include <ptlib/sockets.h>
 #include <ptclib/cypher.h>
 #include <ptclib/random.h>
+#include "Toolkit.h"
 #include "radproto.h"
 
 namespace {
@@ -1841,7 +1845,7 @@ RadiusClient::RadiusClient(
 	PConfig& config, /// config that contains RADIUS settings
 	const PString& sectionName /// config section with the settings
 	)
-	: m_sharedSecret(config.GetString(sectionName, "SharedSecret", "")),
+	: m_sharedSecret(Toolkit::Instance()->ReadPassword(sectionName, "SharedSecret")),
 	m_authPort((WORD)config.GetInteger(sectionName, "DefaultAuthPort", 
 		RadiusClient::GetDefaultAuthPort())),
 	m_acctPort((WORD)config.GetInteger(sectionName, "DefaultAcctPort", 

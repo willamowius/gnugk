@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2005/01/16 15:22:35  zvision
+ * Database Host parameter accepts only one host now
+ *
  * Revision 1.8  2004/12/25 15:38:45  zvision
  * Typos fixed
  *
@@ -32,6 +35,7 @@
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include "stl_supp.h"
+#include "Toolkit.h"
 #include "gksql.h"
 
 namespace {
@@ -81,7 +85,7 @@ bool GkSQLConnection::Initialize(
 	GetHostAndPort(cfg->GetString(cfgSectionName, "Host", "localhost"), m_host, m_port);
 	m_database = cfg->GetString(cfgSectionName, "Database", "");
 	m_username = cfg->GetString(cfgSectionName, "Username", "");
-	m_password = cfg->GetString(cfgSectionName, "Password", "");
+	m_password = Toolkit::Instance()->ReadPassword(cfgSectionName, "Password");
 	m_minPoolSize = cfg->GetInteger(cfgSectionName, "MinPoolSize", GKSQL_DEFAULT_MIN_POOL_SIZE);
 	m_minPoolSize = std::max(m_minPoolSize, 0);
 	m_maxPoolSize = cfg->GetInteger(cfgSectionName, "MaxPoolSize", m_minPoolSize);

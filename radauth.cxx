@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.29  2005/01/26 23:50:26  zvision
+ * Framed-IP-Address could not be determined to unregistered calls without
+ * Setup-UUIE.sourceCallSignalAddress field
+ *
  * Revision 1.28  2005/01/25 18:59:08  zvision
  * Aliases handling fixed, alias type is not appended anymore
  *
@@ -1286,8 +1290,8 @@ RadAliasAuth::RadAliasAuth(
 	m_fixedUsername = GetConfig()->GetString(
 		RadAliasAuthConfigSectionName, "FixedUsername", ""
 		);
-	m_fixedPassword = GetConfig()->GetString(
-		RadAliasAuthConfigSectionName, "FixedPassword", ""
+	m_fixedPassword = Toolkit::Instance()->ReadPassword(
+		RadAliasAuthConfigSectionName, "FixedPassword"
 		);
 }
 

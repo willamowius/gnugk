@@ -1226,9 +1226,7 @@ bool SimplePasswordAuth::GetPassword(
 			);
 		return false;
 	}
-	passwd = Toolkit::CypherDecode(
-		id, GetConfig()->GetString(GetName(), id, ""), m_encryptionKey
-		);
+	passwd = Toolkit::Instance()->ReadPassword(GetName(), id, true);
 	return true;
 }
 

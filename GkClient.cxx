@@ -333,7 +333,7 @@ void GkClient::OnReload()
 		else
 			Unregister();
 
-	m_password = GkConfig()->GetString(EndpointSection, "Password", "");
+	m_password = Toolkit::Instance()->ReadPassword(EndpointSection, "Password");
 	m_retry = m_resend = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY);
 	m_gkfailtime = m_retry * 128;
 	m_authMode = -1;

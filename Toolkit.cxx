@@ -31,6 +31,10 @@
 
 extern const char *ProxySection;
 
+namespace {
+const PString paddingByteConfigKey("KeyFilled");
+}
+
 // class Toolkit::RouteTable::RouteEntry
 Toolkit::RouteTable::RouteEntry::RouteEntry(
 	const PString & net
@@ -470,8 +474,8 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_Config(NULL), m_ConfigDirty(false),
 	m_acctSessionCounter(0), m_acctSessionBase((long)time(NULL)),
 	m_timerManager(new GkTimerManager()),
-	m_timestampFormatStr("Cisco")
-
+	m_timestampFormatStr("Cisco"),
+	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false)
 {
 	srand(time(0));
 }
@@ -880,8 +884,16 @@ PConfig* Toolkit::ReloadConfig()
 	else // the config have been changed via status port, use it directly
 		m_ConfigDirty = false;
 
-	m_GKName = GkConfig()->GetString("Name", "OpenH323GK");
+	m_GKName = Config()->GetString("Name", "OpenH323GK");
 	
+	m_encryptAllPasswords = Toolkit::AsBool(
+		Config()->GetString("EncryptAllPasswords", "0")
+		);
+	if (Config()->HasKey(paddingByteConfigKey))
+		m_encKeyPaddingByte = Config()->GetInteger(paddingByteConfigKey, 0);
+	else
+		m_encKeyPaddingByte = m_encryptAllPasswords ? 0 : -1;
+		
 	ReloadSQLConfig();
 	
 	m_RouteTable.InitTable();
@@ -893,7 +905,7 @@ PConfig* Toolkit::ReloadConfig()
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
 	
-	m_timestampFormatStr = GkConfig()->GetString("TimestampFormat", "Cisco");
+	m_timestampFormatStr = Config()->GetString("TimestampFormat", "Cisco");
 	
 	return m_Config;
 }
@@ -1248,4 +1260,43 @@ PString Toolkit::AsString(
 	
 	buf.MakeMinimumSize();
 	return buf;
+}
+
+PString Toolkit::ReadPassword(
+	const PString &cfgSection, /// config section to read
+	const PString &cfgKey, /// config key to read an encrypted password from
+	bool forceEncrypted
+	)
+{
+	if (cfgSection.IsEmpty() || cfgKey.IsEmpty())
+		return PString();
+		
+	PConfig* const cfg = Config();
+	if (!cfg->HasKey(cfgSection, cfgKey))
+		return PString();
+
+	int paddingByte = m_encKeyPaddingByte;
+	if (cfg->HasKey(cfgSection, paddingByteConfigKey))
+		paddingByte = cfg->GetInteger(cfgSection, paddingByteConfigKey, 0);
+
+	if (paddingByte == -1)
+		if (forceEncrypted || m_encryptAllPasswords)
+			paddingByte = 0;
+		else
+			return cfg->GetString(cfgSection, cfgKey, "");
+
+	PTEACypher::Key encKey;
+	memset(&encKey, paddingByte, sizeof(encKey));
+
+	const size_t keyLen = cfgKey.GetLength();
+	if (keyLen > 0)
+		memcpy(&encKey, (const char*)cfgKey, std::min(keyLen, sizeof(encKey)));
+
+	PTEACypher cypher(encKey);
+	PString s;
+	if (!cypher.Decode(cfg->GetString(cfgSection, cfgKey, ""), s))
+		PTRACE(1, "GK\tFailed to decode config password for [" << cfgSection
+			<< "] => " << cfgKey
+			);
+	return s;
 }

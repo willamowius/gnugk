@@ -1002,10 +1002,8 @@ PString StatusClient::GetPassword(
 	const PString& login
 	) const
 {
-	return !login ? Toolkit::CypherDecode(login, 
-		GkConfig()->GetString(authsec, login, ""), 
-		GkConfig()->GetInteger(authsec, "KeyFilled", 0)
-		) : PString();
+	return !login
+		? Toolkit::Instance()->ReadPassword(authsec, login, true) : PString();
 }
 
 void StatusClient::ExecCommand(

@@ -319,6 +319,20 @@ class Toolkit : public Singleton<Toolkit>
 		const PString& formatStr = PString() /// format string to use
 		);
 
+	/** Read and decrypt a password from the config. As a decryption key
+	    this function is using the given key name padded with bytes of value
+	    specified by the 'KeyFilled' config variable, if it is found
+	    in the given config section, or a global padding byte.
+		
+	    @return
+	    A decrypted password or an empty string, if the given key is missing.
+	*/	
+	PString ReadPassword(
+		const PString &cfgSection, /// config section to read
+		const PString &cfgKey, /// config key to read an encrypted password from
+		bool forceEncrypted = false /// decrypt even if no KeyFilled is present
+		);
+
 protected:
 	void CreateConfig();
 	void ReloadSQLConfig();
@@ -352,6 +366,10 @@ private:
 	GkTimerManager* m_timerManager;
 	/// a default timestamp format string
 	PString m_timestampFormatStr;
+	/// a padding byte used during config passwords decryption
+	int m_encKeyPaddingByte;
+	/// if true, all passwords in the config are encrypted
+	bool m_encryptAllPasswords;
 };
 
 

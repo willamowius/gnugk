@@ -114,6 +114,10 @@ The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Ability to encrypt all passwords in the config. A new <tt/EncryptAllPasswords/
+config variable, <tt/KeyFilled/ config variable usage extended.
+
+<item>
 Ability to read config settings from an SQL database ported from 2.0 branch.
 Read <ref id="sqlconf" name="[SQLConfig]"> for more details.
 
@@ -781,6 +785,47 @@ Where:
 So for 100 concurrent calls you don't need more than ca. 1024 sockets in the
 LARGE_FDSET.
 
+<sect1>The addpasswd Utility
+<p>
+Status line access authentication and SimplePasswordAuth module require
+encrypted passwords to be stored in the gatekeeper configuration file.
+Also since 2.2.2 version, the gatekeeper supports encryption of all passwords
+in the config. <tt/addpasswd/ utility is required to generate and store 
+these encrypted passwords. This utility is included with the gatekeeper 
+and can be compiled using:
+<tscreen><verb>
+$ make addpasswd
+</verb></tscreen>
+
+The usage is as follows:
+<tscreen><verb>
+$ addpasswd CONFIG SECTION KEYNAME PASSWORD
+</verb></tscreen>
+
+Example 1: 'gkadmin' user with 'secret' password has to be added 
+to [GkStatus::Auth] config section to enable status line interface 
+authentication:
+<tscreen><verb>
+$ addpasswd gnugk.ini GkStatus::Auth gkadmin secret
+</verb></tscreen>
+
+Example 2: 'joe' user with 'secret' password has to be added to [Password]
+config section to enable endpoint authentication:
+<tscreen><verb>
+$ addpasswd gnugk.ini Password joe secret
+</verb></tscreen>
+
+Example 3: An encrypted shared secret is added to a RadAuth config section:
+<tscreen><verb>
+$ addpasswd gnugk.ini RadAuth SharedSecret VerySecretPassword
+</verb></tscreen>
+
+IMPORTANT: <tt/KeyFilled/ variable defines a default initializer for password
+encryption keys. It can be ommited in the config (it is defined to 0 then),
+but if it is specified, each time it changes, encrypted passwords have to be
+regenerated (encrypted again using the <tt/addpasswd/ utility).
+</sect1>
+
 <sect1>Installing the Gatekeeper
 <p>
 There is no special installation procedure needed.
@@ -1350,6 +1395,20 @@ Some common format codes:
 <item><tt/%%/ - percent sign
 </itemize>
 
+<item><tt/EncryptAllPasswords=1/<newline>
+Default: <tt/0/
+<p>
+Enable encryption of all passwords in the config (SQL passwords, RADIUS
+passwords, [Password] passwords, [GkStatus::Auth] passwords). If enabled,
+all passwords have to be encrypted using <tt/addpasswd/ utility. Otherwise
+only [Password] and [GkStatus::Auth] passwords are encrypted (old behaviour).
+
+<item><tt/KeyFilled=0/<newline>
+Default: <tt/0/
+<p>
+Define a global padding byte to be used during password encryption/decryption. 
+It can be overriden by setting <tt/KeyFilled/ inside a particular config section.
+Usually, you do not need to change this option.
 </itemize>
 
 Most users will never need to change any of the following values.
@@ -2353,6 +2412,9 @@ All RAS requests will contain the password in the <bf/cryptoTokens/ field
 (MD5 & HMAC-SHA1-96) and the <bf/tokens/ field (CAT).
 To send RAS requests without both <bf/cryptoTokens/ and <bf/tokens/ fields,
 set the password to be empty.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 <p>
 Besides, the password is also used in LRQs sent to neighbor gatekeepers.
 
@@ -2613,12 +2675,12 @@ using RadAliasAuth takes place (SetupUnreg).
 <label id="password">
 <p>
 The section defines the userid and password pairs used by
-<tt/SimplePasswordAuth/ module.
-Use `<tt/make addpasswd/' to generate the utility <tt/addpasswd/.
+<tt/SimplePasswordAuth/ module. All passwords are encrypted
+using the <tt/addpasswd/ utility.
 
 Usage:
 <tscreen><verb>
-addpasswd config userid password
+addpasswd config section userid password
 </verb></tscreen>
 
 Options:
@@ -2626,7 +2688,7 @@ Options:
 <item><tt/KeyFilled=123/<newline>
 Default: <tt/0/
 <p>
-Default value to initialize the encryption key.
+Default value to use as a padding byte during password encryption/decryption.
 
 <item><tt/CheckID=1/<newline>
 Default: <tt/0/
@@ -2676,6 +2738,9 @@ The username used to connect to the database.
 The password used to connect to the database.
 If the password is not specified, a database connection attempt 
 without any password will be made.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in an encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/CacheTimeout=120/<newline>
 Default: <tt/0/
@@ -2797,6 +2862,9 @@ The username used to connect to the database.
 The password used to connect to the database.
 If the password is not specified, a database connection attempt 
 without any password will be made.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/CacheTimeout=120/<newline>
 Default: <tt/0/
@@ -2947,6 +3015,9 @@ Default: <tt>N/A (empty string)</tt>
 Secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -3089,6 +3160,9 @@ Default: <tt>N/A (empty string)</tt>
 Secret used to authenticate this GNU GK (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -3180,6 +3254,9 @@ If not set, User-Password is a copy of User-Name. For example, if User-Name
 is 'john' then User-Password will also be set to 'john'. Setting this
 parameter overrides this behavious and User-Password attribute will be
 always set to the value of <tt/FixedPassword/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <descrip>
 <tag/Example 1:/
@@ -3215,82 +3292,6 @@ Default: <tt/0/
 <p>
 Select Called-Station-Id number type between the original one (as dialed
 by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
-
-</itemize>
-
-<sect2>Section &lsqb;GkLDAP::LDAPAttributeNames&rsqb;
-<p>
-This section defines which LDAP attribute names to use.
-
-<itemize>
-<item><tt/H323ID/<newline>
-<p>
-The endpoint's H.323 alias. Needs to be unique within the used LDAP tree
-(this i why we use the mail address by default).
-
-<item><tt/TelephonNo/<newline>
-<p>
-The endpoint's E.164 alias.
-
-<item><tt/voIPIpAddress/<newline>
-<p>
-The IP address to be compared against when using <tt/LDAPAliasAuth/
-For now, only a single value is allowed here.
-
-<item><tt/H235PassWord/<newline>
-<p>
-The plain text password to be compared against when using H.235
-(<tt/LDAPPasswordAuth/ in Gatekeeper::Auth).
-For now, only a single value is allowed here.
-</itemize>
-
-<sect2>Section &lsqb;GkLDAP::Settings&rsqb;
-<p>
-This section defines the LDAP server and standard LDAP client operating
-parameters to be used.
-
-<itemize>
-<item><tt/ServerName/<newline>
-Default: <tt/ldap/
-<p>
-The LDAP server's DNS name.
-
-<item><tt/ServerPort/<newline>
-Default: <tt/389/
-<p>
-The LDAP server's TCP port (usually 389).
-
-<item><tt/SearchBaseDN/<newline>
-Default: <tt/o=University of Michigan, c=US/
-<p>
-Entry point into the server's LDAP tree structure.
-Searches are only made below this root node.
-
-<item><tt/BindUserDN/<newline>
-Default: <tt/cn=Babs Jensen,o=University of Michigan, c=US/
-<p>
-The distinguished name the gatekeeper uses to bind
-to the LDAP server. Leave empty if you want to access
-the LDAP server anonymously.
-
-<item><tt/BindUserPW/<newline>
-Default: <tt/ReallySecretPassword/
-<p>
-If you specified <tt/BindUserDN/, then specify the corresponding
-password to be used for binding here.
-
-<item><tt/sizelimit/<newline>
-Default: <tt/0/
-<p>
-Maximum number of results the server may return in response
-to a single search query. The gatekeeper expects each LDAP
-to only yields one or zero results anyway, so this parameter
-is rather useless.
-
-<item><tt/timelimit/<newline>
-Default: <tt/0/
-<p>
-Maximum number of seconds a query may take until it's considered as "failed".
 
 </itemize>
 
@@ -3623,6 +3624,9 @@ Default: <tt>N/A (empty string)</tt>
 A secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (miliseconds)
@@ -3926,6 +3930,9 @@ The username used to connect to the database.
 The password used to connect to the database.
 If the password is not specified, a database connection attempt 
 without any password will be made.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in encrypted form and should be created using
+the <tt/addpasswd/ utility.
 
 <item><tt/ConfigQuery=SELECT .../<newline>
 Default: <tt>N/A</tt>

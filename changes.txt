@@ -1,5 +1,8 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- ability to encrypt all passwords in the config (radius shared secrets,
+  database passwords). A new EncryptAllPasswords config variable and KeyFilled
+  usage extended
 - SQLConfig ported from 2.0
 - BUGFIX(radauth.cxx) Framed-IP-Address could not be determined
   for unregistered calls with no Setup-UUIE.sourceCallSignalAddress field,

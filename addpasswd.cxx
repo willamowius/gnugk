@@ -1,11 +1,8 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // addpasswd.cxx
 //
-// - Automatic Version Information via CVS:
-//   $Id$
-//   $Source$
+// $Id$
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -17,10 +14,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include <algorithm>
 #include <ptlib.h>
 #include <ptclib/cypher.h>
-#include "stl_supp.h"
-
 
 class Client : public PProcess
 {       
@@ -29,42 +25,46 @@ class Client : public PProcess
     void Main();
 };      
 
-
 PCREATE_PROCESS(Client)
 
-int keyFilled = 0;
-
-PString Encrypt(const PString &key, const PString &clear)
+PString Encrypt(
+	const PString& key, 
+	const PString& password,
+	int paddingByte
+	)
 {
-	PTEACypher::Key thekey;
-	memset(&thekey, keyFilled, sizeof(PTEACypher::Key));
-	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), std::min((long unsigned int)sizeof(PTEACypher::Key), static_cast<long unsigned int>(abs(key.GetLength()))));
-	PTEACypher cypher(thekey);
-	return cypher.Encode(clear);
-}
-
-PString Decrypt(const PString &key, const PString &encrypt)
-{
-	PTEACypher::Key thekey;
-	memset(&thekey, keyFilled, sizeof(PTEACypher::Key));
-	memcpy(&thekey, const_cast<PString &>(key).GetPointer(), std::min((long unsigned int)sizeof(PTEACypher::Key), static_cast<long unsigned int>(abs(key.GetLength()))));
-	PTEACypher cypher(thekey);
-	return cypher.Decode(encrypt);
+	PTEACypher::Key encKey;
+	memset(&encKey, paddingByte, sizeof(encKey));
+	memcpy(&encKey, (const char*)key, min(sizeof(encKey), size_t(key.GetLength())));
+	PTEACypher cypher(encKey);
+	return cypher.Encode(password);
 }
 
 void Client::Main()
 {
 	PArgList args(GetArguments());
 	if (args.GetCount() < 4) {
-		cout << "Usage: addpasswd config section userid password\n\n";
+		cout << "Usage: addpasswd config section key password\n\n";
 		return;
 	}
 
 	PConfig config(args[0], args[1]);
-	keyFilled=(config.GetString("KeyFilled", "0")).AsInteger();
-	PString userid = args[2], passwd = args[3];
-	PString encrypt = Encrypt(userid, passwd);
-	config.SetString(userid, encrypt);
-}
+	if (config.GetSections().GetStringsIndex(args[1]) == P_MAX_INDEX) {
+	    cerr << "Error: the specified config file does not contain a section "
+			"named " << args[1] << endl;
+	    return;
+	}
 
-// End of $Source$
+	int paddingByte = 0;
+	const PString paddingByteKeyName("KeyFilled");
+	
+	if (config.HasKey(paddingByteKeyName))
+		paddingByte = config.GetInteger(paddingByteKeyName, 0);
+	else if (config.HasKey("Gatekeeper::Main", paddingByteKeyName))
+		paddingByte = config.GetInteger("Gatekeeper::Main", paddingByteKeyName, 0);
+	
+	const PString key = args[2];
+	const PString password = args[3];
+	const PString encryptedPassword = Encrypt(key, password, paddingByte);
+	config.SetString(key, encryptedPassword);
+}
