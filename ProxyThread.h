@@ -46,7 +46,6 @@ public:
 		Error
 	};
 
-	friend class ProxyDeleter;
 	ProxySocket(PIPSocket *, const char *);
 	virtual ~ProxySocket() =0; // abstract class
 	PString Name() const { PWaitAndSignal lock(m_lock); return name; }
@@ -72,9 +71,7 @@ public:
 
 	void AddToSelectList(PSocket::SelectList &);
 
-	// Locking Functions
-// 	virtual void Lock();
-// 	virtual void Unlock();
+	virtual void Shutdown() {};
 
 	// These two function are used to lock the existance of
 	// the Object as long as a pointer to it is active. The
@@ -99,14 +96,14 @@ protected:
 	BYTE *wbuffer, *bufptr;
 	PString name;
 	const char *type;
+	mutable ProxyCondMutex m_usedCondition;
+	mutable PMutex m_lock; // lock over all member objects.
 
 private:
 	ProxyHandleThread *handler;
 	bool blocked;
 	bool connected;
 	bool deletable;
-	mutable PMutex m_lock; // lock over all member objects.
-	mutable ProxyCondMutex m_usedCondition;
 };
 
 class TCPProxySocket : public PTCPSocket, public ProxySocket {
@@ -130,19 +127,7 @@ public:
 	// new virtual function
 	virtual TCPProxySocket *ConnectTo() = 0;
 
-	// Locking Functions
-// 	virtual void Lock();
-// 	virtual void Unlock();
-
-	// These two function are used to lock the existance of
-	// the Object as long as a pointer to it is active. The
-	// user has to Lock/Unlock the Object.
-	virtual void LockUse(const PString &name);
-	virtual void UnlockUse(const PString &name);
-	virtual const BOOL IsInUse();
-
 	TCPProxySocket *remote;
-////    PROTECTED
 protected:
 	bool ReadTPKT();
 
@@ -151,8 +136,6 @@ protected:
 private:
 	bool InternalWrite();
 	void SetName();
-	mutable PMutex m_lock; // lock over all member objects.
-	mutable ProxyCondMutex m_usedCondition;
 };
 
 class MyPThread : public PThread {
@@ -200,28 +183,6 @@ private:
 
 	HandlerList *m_handler;
 };
-
-// Quick hack to avoid lock when deleting multiple ProxySockets from the handler thread.
-// The old version might produce a even a deadlock.
-// In longer terms we have to think about the handlerlist-locks.
-//
-// This class will take a proxysocket via constructor and delete it, when scheduler gives
-// time.
-
-class ProxyDeleter : public PThread {
-public:
-	PCLASSINFO (ProxyDeleter, PThread)
-
-	ProxyDeleter(ProxySocket *s);
-	~ProxyDeleter() { PTRACE(1,"Destructor of ProxyDeleter");}
-	virtual void Main();
-protected:
-	ProxySocket *delete_socket;
-	PTimer max_wait;
-
-	PDECLARE_NOTIFIER(PTimer, ProxyDeleter, OnTimeout);
-};
-
 
 class ProxyHandleThread : public MyPThread {
 public:
@@ -326,13 +287,6 @@ inline void MyPThread::Go()
 {
 	if (sync.WillBlock())
 		sync.Signal();
-}
-
-inline void ProxyHandleThread::Remove(ProxySocket *socket)
-{
-	PWaitAndSignal lock(removedMutex);
-	removedList.push_back(socket);
-	sockList.remove(socket);
 }
 
 #ifdef WIN32

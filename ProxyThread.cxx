@@ -174,18 +174,6 @@ bool ProxySocket::SetMinBufSize(WORD len)
 	return (wbuffer != 0);
 }
 
-// void
-// ProxySocket::Lock()
-// {
-// 	m_lock.Wait();
-// }
-
-// void
-// ProxySocket::Unlock()
-// {
-// 	m_lock.Signal();
-// }
-
 void
 ProxySocket::LockUse(const PString &name)
 {
@@ -205,8 +193,9 @@ ProxySocket::UnlockUse(const PString &name)
 const BOOL
 ProxySocket::IsInUse()
 {
-	PWaitAndSignal lock(m_lock);
-	return m_usedCondition.Condition();
+//	PWaitAndSignal lock(m_lock);
+	PTRACE(1,"ProxySocket::IsInUse()");
+	return !m_usedCondition.Condition();
 }
 
 
@@ -342,39 +331,7 @@ bool TCPProxySocket::InternalWrite()
 	// this could be a point where chunks of memory are lost.
 }
 
-// void
-// TCPProxySocket::Lock()
-// {
-// 	m_lock.Wait();
-// }
 
-// void
-// TCPProxySocket::Unlock()
-// {
-// 	m_lock.Signal();
-// }
-
-void
-TCPProxySocket::LockUse(const PString & name)
-{
-	PTRACE(5, "Locking " << this << " " << Name());
-	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Lock(name);
-}
-
-void TCPProxySocket::UnlockUse(const PString &name)
-{
-	PTRACE(5, "UnLocking " << this << " " << Name());
-	PWaitAndSignal lock(m_lock);
-	m_usedCondition.Unlock(name);
-}
-
-const BOOL
-TCPProxySocket::IsInUse()
-{
-	PWaitAndSignal lock(m_lock);
-	return m_usedCondition.Condition();
-}
 // class MyPThread
 MyPThread::MyPThread() : PThread(5000, NoAutoDeleteThread), isOpen(true)
 {
@@ -569,6 +526,14 @@ void ProxyHandleThread::FlushSockets()
 	}
 }
 
+void ProxyHandleThread::Remove(ProxySocket *socket)
+{
+	PWaitAndSignal lock(removedMutex);
+	removedList.push_back(socket);
+	sockList.remove(socket);
+}
+
+
 void ProxyHandleThread::RemoveSockets()
 {
 	if(!removedMutex.Wait(PTimeInterval(0,2))) {
@@ -580,7 +545,10 @@ void ProxyHandleThread::RemoveSockets()
 		return;
 	}
 	for(iterator Iter=removedList.begin(); Iter !=removedList.end(); Iter++) {
-		new ProxyDeleter(*Iter);
+		(*Iter)->Shutdown();
+	}
+	for(iterator Iter=removedList.begin(); Iter !=removedList.end(); Iter++) {
+		delete_socket(*Iter);
 	}
 	removedList.clear();
 	removedMutex.Signal();
@@ -743,53 +711,6 @@ void ProxyHandleThread::Remove(iterator i)
 	}
 	removedList.push_back(*i);
 	sockList.erase(i);
-}
-
-// Quick solution of locking the handler thread -- see ProxyThread.h too.
-void
-ProxyHandleThread::delete_socket(ProxySocket *s)
-{
-	new ProxyDeleter(s);
-}
-
-// Quick solution of locking the handler thread -- see ProxyThread.h too.
-
-void
-ProxyDeleter::Main()
-{
-#ifdef _DEBUG
-	max_wait = PTimer(0,25);
-	max_wait.SetNotifier(PCREATE_NOTIFIER(OnTimeout));
-#endif // _DEBUG
-	delete delete_socket;
-	PTRACE(1, "deleted socket");
-	delete_socket=NULL;
-#ifdef _DEBUG
-	max_wait.Stop();
-#endif
-	return;
-}
-
-void
-ProxyDeleter::OnTimeout(PTimer &timer, int extra)
-{
-	if(timer == max_wait)
-#ifdef DEBUG_ASSERT
-		PAssertAlways(PString("timeout in deleteion of ProxySocket ") +
-			      (delete_socket->IsInUse() ? PString("In Use") : PString("not in use")) +
-			(delete_socket->m_lock.WillBlock() ? PString(" Will Blocke") : PString(" Will not block")));
-#else
-	PTRACE(1,PString("timeout in deleteion of ProxySocket ") +
-			      (delete_socket->IsInUse() ? PString("In Use") : PString("not in use")) +
-			(delete_socket->m_lock.WillBlock() ? PString(" Will Blocke") : PString(" Will not block")));
-#endif
-}
-
-ProxyDeleter::ProxyDeleter(ProxySocket *s):
-	PThread(10,AutoDeleteThread), delete_socket(s)
-{
-	PTRACE(1, "Start of ProxyDeleter");
-	Resume();
 }
 
 HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)
