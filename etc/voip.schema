@@ -327,7 +327,7 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2200 NAME 'voIPConvertToLocal'
  )
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2210 NAME 'voIPCallTimeout'
-  DESC 'Treat CallingPartyNumber as a international/national/subscriber type number or rely on the ToN in Q.931'
+  DESC 'Maximum number of seconds left on the callers time account. If 0, call will be terminated by the network.'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE
 )
