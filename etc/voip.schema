@@ -3,7 +3,7 @@
 # Authors: Dr.-Ing. Martin Froehlich <Martin.Froehlich@mediaWays.net>
 #          Based on ideas of Mathias Barkow and Markus Storm
 #
-# PURPOSE OF THIS FILE:
+# PURPOSE OF THIS FILE: 
 #    Definition of a LDAP-schema (OpenLDAP format) to represent VoIP users, i.e.
 #    terminals and small ("residential") gateways.
 #
@@ -12,12 +12,12 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-#
+#  
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#
+#  
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
@@ -35,24 +35,24 @@
 #  Feel free to replace "9564" by your own IANA-assigned OID.
 #
 # SYNTAX overview
-# binary                     1.3.6.1.4.1.1466.115.121.1.5  BER/DER data
-# boolean		     1.3.6.1.4.1.1466.115.121.1.7  boolean value
-# distinguishedName          1.3.6.1.4.1.1466.115.121.1.12 DN
-# directoryString	     1.3.6.1.4.1.1466.115.121.1.15 UTF-8 string
+# binary                     1.3.6.1.4.1.1466.115.121.1.5  BER/DER data 
+# boolean		     1.3.6.1.4.1.1466.115.121.1.7  boolean value 
+# distinguishedName          1.3.6.1.4.1.1466.115.121.1.12 DN 
+# directoryString	     1.3.6.1.4.1.1466.115.121.1.15 UTF-8 string 
 # Facsimile Telephone Number 1.3.6.1.4.1.1466.115.121.1.22
-# IA5String		     1.3.6.1.4.1.1466.115.121.1.26 ASCII string
-# Integer	             1.3.6.1.4.1.1466.115.121.1.27 integer
-# Name and Optional UID      1.3.6.1.4.1.1466.115.121.1.34 DN plus UID
-# Numeric String	     1.3.6.1.4.1.1466.115.121.1.36 numeric string
-# OID			     1.3.6.1.4.1.1466.115.121.1.38 object identifier
-# Octet String		     1.3.6.1.4.1.1466.115.121.1.40 arbitary octets
+# IA5String		     1.3.6.1.4.1.1466.115.121.1.26 ASCII string 
+# Integer	             1.3.6.1.4.1.1466.115.121.1.27 integer 
+# Name and Optional UID      1.3.6.1.4.1.1466.115.121.1.34 DN plus UID 
+# Numeric String	     1.3.6.1.4.1.1466.115.121.1.36 numeric string 
+# OID			     1.3.6.1.4.1.1466.115.121.1.38 object identifier 
+# Octet String		     1.3.6.1.4.1.1466.115.121.1.40 arbitary octets 
 # Printable String           1.3.6.1.4.1.1466.115.121.1.44 printable string
 # Telephone Number           1.3.6.1.4.1.1466.115.121.1.50 E.123 string
 #
 #
 # LDAP attribute		    | defined in
 # -----------------------------------------------------------------------------
-# mail 0.9.2342.19200300.100.1.3    | RFC 2256(core)
+# mail 0.9.2342.19200300.100.1.3    | RFC 2256(core) 
 # telephoneNumber 2.5.4.20	    | RFC 2256(core)
 # facsimileTelephoneNumber 2.5.4.23 | RFC 2256(core)
 # plaintextPassword		    | your-own-class (mediaWays: umuser, mways)
@@ -70,9 +70,9 @@
 # voIPCountryCode                   | HERE
 # voIPEndpointType                  | HERE
 # voIPprefixOutgoingBlacklist       | HERE
-# voIPprefixCallingWhitelist        | HERE
-# voIPprefixCalledBlacklist         | HERE
-# voIPprefixCalledWhitelist         | HERE
+# voIPprefixOutgoingWhitelist       | HERE
+# voIPprefixIncomingBlacklist       | HERE
+# voIPprefixIncomingWhitelist       | HERE
 
 # This objectClass shall be used to extend entries which typically are
 # either also of class 'person' or 'inetOrgPerson', 'mways' or 'umuser'
@@ -81,11 +81,11 @@
 
 
 # A) VoIP User
-#
+# 
 # A.1) Attributes also used in standard classes. Your LDAP server should know about these.
-#
+# 
 # NOTE:
-# In order to have a unique H.323 ID to avoid registration clashing, we use
+# In order to have a unique H.323 ID to avoid registration clashing, we use 
 # a user's primary e-mail address as his H.323 ID.
 # Neither uids nor cns are guaranteed to be unique.
 # Two users with the same uid trying to register with their uid as a H.323 alias would
@@ -169,27 +169,27 @@
 # endpoints that do not support H.235 may be authenticated according to their
 # source IP address. This attribute's values define allowed source IP addresses.
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2010
+attributeType ( 1.3.6.1.4.1.9564.2.5.2010 
   NAME ( 'voIPIpAddress' 'voIPip' )
   DESC 'A user or gateway IP address'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2020
+attributeType ( 1.3.6.1.4.1.9564.2.5.2020 
   NAME ( 'voIPlocalAccessCode' 'voIPlac' )
   DESC 'The prefix code to be dialled to indicate a local area call destination'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2030
+attributeType ( 1.3.6.1.4.1.9564.2.5.2030 
   NAME ('voIPnationalAccessCode' 'voIPnac' )
   DESC 'The prefix code to be dialled to indicate a national call destination'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
   SINGLE-VALUE
  )
 
-attributeType ( 1.3.6.1.4.1.9564.2.5.2040
+attributeType ( 1.3.6.1.4.1.9564.2.5.2040 
   NAME ( 'voIPinternationalAccessCode' 'voIPinac' )
   DESC 'The prefix code to be dialled to indicate an international call destination'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
@@ -198,7 +198,7 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2040
 
 # NOTE: only sn is stored, i.e. for a number +49 5241 80-1234,
 # we store "80".
-attributeType ( 1.3.6.1.4.1.9564.2.5.2050
+attributeType ( 1.3.6.1.4.1.9564.2.5.2050 
   NAME ( 'voIPsubscriberTelephoneNumber' 'voIPsn' )
   DESC 'The subscriber base number to be prepended to internal calls'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
@@ -206,7 +206,7 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2050
  )
 
 # NOTE: to be stored in international format ("495241801234")
-attributeType ( 1.3.6.1.4.1.9564.2.5.2060
+attributeType ( 1.3.6.1.4.1.9564.2.5.2060 
   NAME ( 'voIPmainTelephoneNumber' )
   DESC 'The calling number to be presented to the callee if no or wrong CLIs are given'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{16}
@@ -229,7 +229,7 @@ attributeType ( 1.3.6.1.4.1.9564.2.5.2070
 # conversions. Emergency call numbers are implemented
 # like this to convert 911 (110, 112 in Germany) to the closest possible
 # (dependant on caller's number) local number.
-#
+# 
 
 attributeType ( 1.3.6.1.4.1.9564.2.5.2080 NAME 'voIPspecialDial'
   DESC 'network-side, user specific number conversions'
@@ -326,8 +326,8 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # B.1) recommended tree structure
 #
 # You do not need to setup your LDAP tree like this. It's just a recommendation.
-# The exact format of the dn is irrelevant and therefore any existing format
-# can be used.
+# The exact attributes used to compose the dn are irrelevant. If you intend to
+# use "default" values, however, DNs must represent the tree structure.
 #
 # A common search root for both, the subtree containing all the terminals and
 # the subtree containing all the gateways, is assumed. In the following example,
@@ -339,19 +339,21 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # is a organizational unit representing the customer "mediaWays". Other ou's like
 # "ou=customerX, o=mediaways.net" may exist and contain VoIP entries to be used.
 
-# NOTE:
+# NOTE: 
 # Default values may be stored as attributes to parent nodes, i.e.
 # values stored down the tree override values higher up in the tree.
-# Browsing up the tree can stop when encountering top nodes.
-# Top nodes are the highest nodes within a subtree that still contain the
-# voIPProperty objectclass.
+# An entry's parent node is "guessed" by eliminating the first component of
+# the entry's dn. Currently, there's no way to change this assumption.
+# Browsing up the tree can stop when encountering "top nodes".
+# Top nodes are the highest nodes within a subtree structure that still contain
+# the voIPProperty objectclass.
 
 
 # B.2) Examples
-#
+# 
 # The following LDAP entry
 #
-# dn: cn=Markus Storm, ou=mediaWays, o=mediaways.net
+# dn: cn=Markus Storm, ou=Technology, ou=mediaWays, o=mediaways.net
 # objectclass:       voIPProperty
 # mail:              markus.storm@mediaways.net
 # telephoneNumber:   495246801867
@@ -361,7 +363,17 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # defines a terminal that may register with an H.323 ID of "markus.storm@mediaways.net"
 # and E.164 ID of +49 5246 80 1867 and +49 5246 80 6867.
 # H.235 is required and triple DES was used to create the encrypted password "X1Y2Z3".
-#
+# (This is just an example, triple DES is NOT implemented !).
+
+# In case any attributes that are not defined within this entry but are
+# needed to perform a certain operation (e.g. Blacklist/Whitelist comparison),
+# can be extracted from this DN's parent nodes.
+# E.g. if looking for voIPprefixOutgoingWhiteList, the node "ou=Technology, ou=mediaWays,
+# o=mediaways.net" is being queried whether it has a voIPprefixOutgoingWhiteList
+# attribute; if is has not, the node "ou=mediaWays, o=mediaways.net" is queried.
+# This assumes that both nodes, "ou=Technology, ou=mediaWays, o=mediaways.net" and
+# "ou=mediaWays, o=mediaways.net", have the attribute "objectclass=voIPproperty" AND
+# the node "o=mediaways.net" does NOT have it.
 
 # Residential gateways are referenced by a LDAP-like representation of their DNS name.
 # Only the last element needs to be common to both, terminal and gateway subtrees to serve
@@ -387,3 +399,4 @@ objectClass ( 1.3.6.1.4.1.9564.1.5.1000 NAME 'voIPProperty'
 # Calls to +49 5241 80 XXXX and +49 5241 80 20XXX are routed to this gateway
 # (X being a single cipher).
 # A call to e.g. +49 5241 80 21234 is NOT routed to this gateway.
+
