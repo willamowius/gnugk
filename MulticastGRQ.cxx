@@ -25,7 +25,6 @@
 #endif
 
 #include "MulticastGRQ.h"
-#include "RasSrv.h"
 #include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
@@ -46,26 +45,12 @@ static const char vcHid[] = MULTICASTGRQ_H;
 #endif /* lint */
 
 
-MulticastGRQ::MulticastGRQ(PIPSocket::Address _GKHome, H323RasSrv * _RasSrv)
-	: PThread(1000, NoAutoDeleteThread),
-	  MulticastListener(WORD(GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
+MulticastGRQ::MulticastGRQ(PIPSocket::Address Home)
+	: GK_RASListener(Home), MulticastListener(WORD(GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
 {
-	GKHome = _GKHome;
-	RasSrv = _RasSrv;
-
 	// own IP number
 	GKRasAddress = SocketToH225TransportAddr(GKHome, WORD(GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)));
 
-	Resume();
-};
-
-MulticastGRQ::~MulticastGRQ()
-{
-};
-
-void MulticastGRQ::Main(void)
-{
-	ReadLock cfglock(ConfigReloadMutex);
 
 	// set socket to multicast
 	struct ip_mreq mreq;
@@ -80,66 +65,49 @@ void MulticastGRQ::Main(void)
 		MulticastListener.Close();
 		//Suspend();
 	};
-	while (MulticastListener.IsOpen())
-	{
+
+
+	Resume();
+};
+
+MulticastGRQ::~MulticastGRQ()
+{
+};
+
+void MulticastGRQ::Main(void)
+{
+	listener_mutex.Wait();
+	GKHome_mutex.Wait();
+	listener.Listen(GKHome, 0, GKRasPort, PSocket::CanReuseAddress);
+	GKHome_mutex.Signal();
+	listener_mutex.Signal();
+	listener_mutex.Wait();
+	while (listener.IsOpen()) {
+		listener_mutex.Signal();
+		const int buffersize = 4096;
+		BYTE buffer[buffersize];
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
-
-		PBYTEArray * rdbuf = new PBYTEArray(4096);
-		PPER_Stream * rdstrm = new PPER_Stream(*rdbuf);
-		ConfigReloadMutex.EndRead();
-		int iResult = MulticastListener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
-		ConfigReloadMutex.StartRead();
-		if (!iResult)
-		{
-    		PTRACE(1, "GK\tMulticast thread: Read error: " << MulticastListener.GetErrorText());
-
-			delete rdbuf;
-			delete rdstrm;
-
-			continue;
-		};
-		PTRACE(2, "GK\tRd from : " << rx_addr << " [" << rx_port << "]");
-
-		H225_RasMessage obj_req;
-		if (!obj_req.Decode( *rdstrm ))
-		{
-			PTRACE(1, "GK\tCouldn't decode message!");
-
-			delete rdbuf;
-			delete rdstrm;
-
-			continue;
-		};
-
-		PTRACE(2, "GK\t" << obj_req.GetTagName());
-		PTRACE(3, "GK\t" << endl << setprecision(2) << obj_req);
-
-		delete rdbuf;
-		delete rdstrm;
-
-		H225_RasMessage obj_rpl;
-		H225_GatekeeperRequest & obj_grq = obj_req;
-		H225_TransportAddress_ipAddress & obj_grqip = obj_grq.m_rasAddress;
-		switch (obj_req.GetTag())
-		{
-		case H225_RasMessage::e_gatekeeperRequest:
-			PTRACE(1, "GK\tMulticast GRQ Received");
-			rx_port = obj_grqip.m_port;
-			if ( RasSrv->OnGRQ( rx_addr, obj_req, obj_rpl ) )
-				RasSrv->SendReply( obj_rpl, rx_addr, rx_port, MulticastListener );
-			break;
-		case H225_RasMessage::e_locationRequest :
-			PTRACE(1, "GK\tMulticast LRQ Received");
-			if ( RasSrv->OnLRQ( rx_addr, obj_req, obj_rpl ) )
-				RasSrv->SendReply( obj_rpl, rx_addr, rx_port, MulticastListener );
-			break;
-		default:
-			PTRACE(1, "GK\tUnknown RAS message received");
-			break;
+		listener_mutex.Wait();
+		PSocket::SelectList list;
+		list += listener;
+		listener_mutex.Signal();
+		PChannel::Errors result=PSocket::Select(list);
+		if(result==PChannel::NoError) {
+			listener_mutex.Wait();
+			BOOL result = listener.ReadFrom(buffer, buffersize,  rx_addr, rx_port);
+			listener_mutex.Signal();
+			if (result) {
+				PPER_Stream stream(buffer, listener.GetLastReadCount());
+				H323RasWorker *r = new H323RasWorker(stream, rx_addr, rx_port, *this);
+			} else {
+				PTRACE(1, "RAS LISTENER: Read Error on : " << rx_addr << ":" << rx_port);
+			}
 		}
-	};
-};
+		listener_mutex.Wait();// before new truth value for while clause is computed
+	}
+	listener_mutex.Signal();
+}
 
 void MulticastGRQ::Close(void)
 {

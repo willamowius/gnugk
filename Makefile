@@ -8,11 +8,12 @@
 .DELETE_ON_ERROR:
 
 PROG	 = gnugk
-SOURCES  = Toolkit.cxx CountryCodeTables.cxx gk.cxx gkauth.cxx gkldap.cxx				\
-           gkDestAnalysis.cxx RasSrv.cxx RasTbl.cxx GkClient.cxx MulticastGRQ.cxx			\
-           BroadcastListen.cxx SoftPBX.cxx h323util.cxx GkStatus.cxx	\
-           ProxyThread.cxx ProxyChannel.cxx singleton.cxx main.cxx	\
-           gkDatabase.cxx gkIniFile.cxx GkProfile.cxx gklock.cxx
+SOURCES  = Toolkit.cxx CountryCodeTables.cxx gk.cxx gkauth.cxx gkldap.cxx \
+           gkDestAnalysis.cxx RasTbl.cxx GkClient.cxx MulticastGRQ.cxx	  \
+           BroadcastListen.cxx SoftPBX.cxx h323util.cxx GkStatus.cxx	  \
+           ProxyThread.cxx ProxyChannel.cxx singleton.cxx main.cxx	  \
+           gkDatabase.cxx gkIniFile.cxx GkProfile.cxx RasListener.cxx     \
+	   RasWorker.cxx Neighbor.cxx gklock.cxx
 
 ifndef MANUFACTURER
 MANUFACTURER = "Willamowius"

@@ -19,28 +19,24 @@
 
 #include "ptlib.h"
 #include "ptlib/sockets.h"
-#include "h225.h" 
+#include "h225.h"
+#include "RasListener.h"
 
-class H323RasSrv;
-
-class MulticastGRQ : public PThread
+class MulticastGRQ : public GK_RASListener
 {
 	  PCLASSINFO(MulticastGRQ, PThread)
 public:
-	MulticastGRQ(PIPSocket::Address _GKHome, H323RasSrv * _RasSrv);
+	MulticastGRQ(PIPSocket::Address GKHome);
 	virtual ~MulticastGRQ();
 
 	void Close(void);
+	virtual void Main(void);
 
 protected:
-	virtual void Main(void);
 
 protected:
 	PUDPSocket MulticastListener;
 	H225_TransportAddress GKRasAddress;
-	PIPSocket::Address GKHome;
-	H323RasSrv * RasSrv;
 };
 
 #endif // MULTICASTGRQ_H
-

@@ -42,6 +42,11 @@
 
 ///////////////////////// Profiles for storing Data from Database calls
 class CallProfile;
+///////////////////////// Classes for GKClient and Neighbor GKs
+class GkClient;
+class Neighbor;
+class H323RasListener;
+class HandlerList;
 
 ///////////////////////// Shared Secret Cryptography
 #if defined(MWBB1_TAG)
@@ -525,6 +530,15 @@ public: // accessors
 	 */
 	inline static unsigned long HashCStr(const unsigned char *name) ;
 
+
+	/** Accessor Methods to get Neighbor GK lists and GKClient up to date */
+	GkClient & GetGkClient();
+	const BOOL GkClientIsRegistered() const;
+	Neighbor & GetNeighbor();
+	H323RasListener & GetMasterRASListener();
+	HandlerList & GetHandlerList();
+
+	int GetRequestSeqNum();
 protected:
 	PFilePath m_ConfigFilePath;
 	PString   m_ConfigDefaultSection;
@@ -540,6 +554,17 @@ protected:
 private:
 	PConfig* InternalReloadConfig();
 	PFilePath m_tmpconfig;
+	GkClient * m_gkclient;
+	mutable PMutex m_gkclient_mutex;
+	Neighbor * m_neighbor;
+	mutable PMutex m_neighbor_mutex;
+	H323RasListener * m_raslistener;
+	mutable PMutex m_raslistener_mutex;
+	HandlerList * m_handlerlist;
+	mutable PMutex m_handlerlist_mutex;
+
+	int m_requestseqnum;
+	mutable PMutex m_requestseqnum_mutex;
 	mutable PMutex m_Config_mutex;
 };
 

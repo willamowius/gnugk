@@ -59,7 +59,7 @@ class GKPendingList;
 
 class GkClient {
 public:
-	GkClient(H323RasSrv *);
+	GkClient();
 	~GkClient();
 
 	void SendGRQ();
@@ -113,8 +113,6 @@ private:
 	bool GetAdmission(H225_RasMessage &, H225_RasMessage &);
 	bool RewriteString(PString &, bool);
 	void SetCryptoTokens(H225_ArrayOf_CryptoH323Token &, const PString &);
-
-	H323RasSrv *m_rasSrv;
 
 	PIPSocket::Address m_gkaddr;
 	WORD m_gkport;

@@ -21,29 +21,25 @@
 #include "ptlib.h"
 #include "ptlib/sockets.h"
 #include "h225.h"
+#include "RasListener.h"
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 )
 #endif
 
-class H323RasSrv;
 
-class BroadcastListen : public PThread
+class BroadcastListen : public GK_RASListener
 {
 	  PCLASSINFO(BroadcastListen, PThread)
 public:
-	BroadcastListen(H323RasSrv * _RasSrv);
+	BroadcastListen(PIPSocket::Address Home=INADDR_ANY);
 	virtual ~BroadcastListen();
 
-	void Close(void);
-
-protected:
+	virtual void Close(void);
 	virtual void Main(void);
 
 protected:
-	PUDPSocket BroadcastListener;
-	H323RasSrv * RasSrv;
 };
 
 #endif // BROADCASTLISTEN_H

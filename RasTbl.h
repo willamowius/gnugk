@@ -152,6 +152,8 @@ public:
 
 	bool SendIRQ();
 
+	void SendRas(const H225_RasMessage &);
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -185,7 +187,8 @@ protected:
 	bool m_fromParent, m_nat;
 	PIPSocket::Address m_natip;
 
-private: // not assignable
+private:
+	// not assignable
 	EndpointRec(const EndpointRec &);
 	EndpointRec & operator= (const EndpointRec &);
 };
@@ -281,12 +284,9 @@ public:
 
 	PString PrintStatistics() const;
 
-//	void PrintOn( ostream &strm ) const;
-
 	/** Updates Prefix + Flags for all aliases */
 	void LoadConfig();
 
-//#ifdef WITH_DEST_ANALYSIS_LIST
 
 	/** Returns the destination endpoint of the message.
 	    The calling endpoint must be given if MsgType == H225_AliasAddress. In
@@ -297,6 +297,7 @@ public:
 	{
 		endptr cdEP;
 		PTRACE(2, "Search for calledEP in registration table");
+		PTRACE(2, "GkDestanalysisList: " << m_destAnalysisList);
 		bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
 			cgEP, cdEP, reason);
 		if (!cdEP && (reason == H225_AdmissionRejectReason::e_resourceUnavailable) && SearchOuterZone) {
@@ -307,7 +308,6 @@ public:
 		return (cdEP) ? cdEP : endptr(0);
 	}
 
-//#endif
 
 public:
   enum enumGatewayFlags {

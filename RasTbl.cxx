@@ -30,7 +30,7 @@
 #include "h323util.h"
 #include "Toolkit.h"
 #include "SoftPBX.h"
-#include "RasSrv.h"
+#include "RasListener.h"
 #include "GkClient.h"
 #include "stl_supp.h"
 #include "ProxyChannel.h"
@@ -326,7 +326,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = ras_msg;
-	urq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
+	urq.m_requestSeqNum.SetValue(Toolkit::Instance()->GetRequestSeqNum());
 	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
 	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
 	urq.IncludeOptionalField(urq.e_endpointIdentifier);
@@ -342,8 +342,9 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 			(const unsigned char *) urq.m_reason.GetTagName());
         GkStatus::Instance()->SignalStatus(msg);
 
-	RasThread->ForwardRasMsg(ras_msg);
-	RasThread->SendRas(ras_msg, GetRasAddress());
+	Toolkit::Instance()->GetMasterRASListener().ForwardRasMsg(ras_msg);
+
+	SendRas(ras_msg);
 	return true;
 }
 
@@ -355,14 +356,15 @@ bool EndpointRec::SendIRQ()
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_infoRequest);
 	H225_InfoRequest & irq = ras_msg;
-	irq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
+	irq.m_requestSeqNum.SetValue(Toolkit::Instance()->GetRequestSeqNum());
 	irq.m_callReferenceValue.SetValue(0); // ask for each call
 
 	PString msg(PString::Printf, "IRQ|%s|%s;\r\n",
 		    (const unsigned char *) AsDotString(GetRasAddress()),
 		    (const unsigned char *) GetEndpointIdentifier().GetValue());
         GkStatus::Instance()->SignalStatus(msg);
-	RasThread->SendRas(ras_msg, GetRasAddress());
+
+	SendRas(ras_msg);
 
 	return true;
 }
@@ -379,6 +381,13 @@ void EndpointRec::SetNATAddress(PIPSocket::Address ip)
 	m_natip = ip;
 }
 
+void EndpointRec::SendRas(const H225_RasMessage &ras_msg)
+{
+	const H225_TransportAddress_ipAddress & adr = GetRasAddress();
+	PIPSocket::Address addr(adr.m_ip[0], adr.m_ip[1], adr.m_ip[2], adr.m_ip[3]);
+	WORD port = adr.m_port;
+	Toolkit::Instance()->GetMasterRASListener().SendTo(ras_msg, addr, port);
+}
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false)
@@ -1241,7 +1250,8 @@ void CallRec::RemoveAll()
 		drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
 		drq.m_callIdentifier = m_callIdentifier;
 		drq.m_callReferenceValue = (m_Calling) ? m_callingCRV : m_calledCRV;
-		RasThread->GetGkClient()->SendDRQ(ras_msg);
+		if(Toolkit::Instance()->GkClientIsRegistered())
+			Toolkit::Instance()->GetGkClient().SendDRQ(ras_msg);
 	}
 
 	if (m_Calling)
@@ -1308,13 +1318,15 @@ void CallRec::SendReleaseComplete()
 
 void CallRec::InternalSendReleaseComplete()
 {
-	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable() && GetCallingProfile().SendReleaseCompleteOnDRQ()) {
+	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable() && NULL!=m_callingProfile &&
+	    m_callingProfile->SendReleaseCompleteOnDRQ()) {
 		m_callingSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to calling party ..." << m_callingSocket);
 		m_callingSocket->SendReleaseComplete();
 		m_callingSocket->MarkBlocked(FALSE);
 	}
-	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable() && GetCallingProfile().SendReleaseCompleteOnDRQ()) {
+	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable() && NULL!=m_calledProfile &&
+	    m_calledProfile->SendReleaseCompleteOnDRQ()) {
 		m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete();
@@ -1331,10 +1343,11 @@ void CallRec::SetSocket(CallSignalSocket *calling, CallSignalSocket *called)
 	if(NULL!=m_callingSocket)
 		m_callingSocket->UnlockUse("CallRec");
 	if(NULL!=called)
-		calling->LockUse("CallRec");
+		called->LockUse("CallRec");
 	if(NULL!=m_calledSocket)
 		m_calledSocket->UnlockUse("CallRec");
-	m_callingSocket = calling, m_calledSocket = called;
+	m_callingSocket = calling;
+	m_calledSocket = called;
 }
 
 void
@@ -1343,7 +1356,7 @@ CallRec::SendDRQ()
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
 	H225_DisengageRequest & drq = ras_msg;
-	drq.m_requestSeqNum.SetValue(RasThread->GetRequestSeqNum());
+	drq.m_requestSeqNum.SetValue(Toolkit::Instance()->GetRequestSeqNum());
 	drq.m_disengageReason.SetTag(H225_DisengageReason::e_forcedDrop); // Set DisengageReason here
 	drq.m_conferenceID = m_conferenceIdentifier;
 	drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
@@ -1357,12 +1370,12 @@ CallRec::SendDRQ()
 	if (m_Calling) {
 		drq.m_endpointIdentifier = m_Calling->GetEndpointIdentifier();
 		drq.m_callReferenceValue = m_callingCRV;
-		RasThread->SendRas(ras_msg, m_Calling->GetRasAddress());
+		m_Calling->SendRas(ras_msg);
 	}
 	if (m_Called) {
 		drq.m_endpointIdentifier = m_Called->GetEndpointIdentifier();
 		drq.m_callReferenceValue = m_calledCRV;
-		RasThread->SendRas(ras_msg, m_Called->GetRasAddress());
+		m_Called->SendRas(ras_msg);
 	}
 }
 
@@ -1701,6 +1714,7 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
 	PTRACE(1, "CallTable::RemoveCall " << call);
 	if (call) {
 		call->SendReleaseComplete();
+		call->SetDisconnected();
 		RemoveCall(call);
 	}
 }

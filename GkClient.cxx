@@ -24,8 +24,9 @@
 #include "GkClient.h"
 #include "gk_const.h"
 #include "Toolkit.h"
-#include "RasSrv.h"
 #include <h323pdu.h>
+#include "Neighbor.h"
+#include "RasListener.h"
 
 #ifndef lint
 // mark object with version info in such a way that it is retrievable by
@@ -42,7 +43,7 @@ static const char *H225_ProtocolID= "0.0.8.2250.0.2";
 
 class GKPendingList : public PendingList {
 public:
-	GKPendingList(H323RasSrv *rs, int ttl) : PendingList(rs, ttl) {}
+	GKPendingList(int ttl) : PendingList(ttl) {}
 
 	bool Insert(const H225_AdmissionRequest &, const endptr &, int);
 	bool ProcessACF(const H225_RasMessage &, int);
@@ -52,19 +53,19 @@ public:
 bool GKPendingList::Insert(const H225_AdmissionRequest & arq_ras, const endptr & reqEP, int reqNum)
 {
 	PWaitAndSignal lock(usedLock);
-	arqList.push_back(new PendingARQ(reqNum, arq_ras, reqEP, 0));
+	arqList.Append(new PendingARQ(reqNum, arq_ras, reqEP, 0));
 	return true;
 }
 
 bool GKPendingList::ProcessACF(const H225_RasMessage & arq_ras, int reqNum)
 {
 	PWaitAndSignal lock(usedLock);
-	iterator Iter = FindBySeqNum(reqNum);
-	if (Iter != arqList.end()) {
+	PINDEX nr = FindBySeqNum(reqNum);
+	if (nr!=P_MAX_INDEX) {
 		endptr called = RegistrationTable::Instance()->InsertRec(const_cast<H225_RasMessage &>(arq_ras));
 		if (called) {
-			(*Iter)->DoACF(RasSrv, called);
-			Remove(Iter);
+			arqList[nr].DoACF(called);
+			RemoveAt(nr);
 		} else {
 			PTRACE(2, "GKC\tUnable to add EP for this ACF!");
 		}
@@ -76,23 +77,23 @@ bool GKPendingList::ProcessACF(const H225_RasMessage & arq_ras, int reqNum)
 bool GKPendingList::ProcessARJ(H225_CallIdentifier & callid, int reqNum)
 {
 	PWaitAndSignal lock(usedLock);
-	iterator Iter = FindBySeqNum(reqNum);
-	if (Iter != arqList.end()) {
+	PINDEX nr = FindBySeqNum(reqNum);
+	if (nr != P_MAX_INDEX) {
 		H225_AdmissionRequest arq;
 		endptr ep;
-		(*Iter)->GetRequest(arq, ep);
+		arqList[nr].GetRequest(arq, ep);
 		if (arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier))
 			callid = arq.m_callIdentifier;
 		// try neighbors...
-		if (!RasSrv->SendLRQ(arq, ep))
-			(*Iter)->DoARJ(RasSrv);
-		Remove(Iter);
+		if (Toolkit::Instance()->GetNeighbor().InsertARQ(arq, ep))
+			arqList[nr].DoARJ();
+		RemoveAt(nr);
 		return true;
 	}
 	return false;
 }
 
-GkClient::GkClient(H323RasSrv *rasSrv) : m_rasSrv(rasSrv)
+GkClient::GkClient()
 {
 	PString gk(GkConfig()->GetString(EndpointSection, "Gatekeeper", "no"));
 	if (gk == "no") { // no gatekeeper to register
@@ -106,12 +107,12 @@ GkClient::GkClient(H323RasSrv *rasSrv) : m_rasSrv(rasSrv)
 	m_gkport = (p != P_MAX_INDEX) ? gk.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
 
 	m_password = GkConfig()->GetString(EndpointSection, "Password", "");
-	m_callAddr = new H225_TransportAddress(rasSrv->GetCallSignalAddress(m_gkaddr));
-	m_rasAddr = new H225_TransportAddress(rasSrv->GetRasAddress(m_gkaddr));
+	m_callAddr = new H225_TransportAddress(Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(m_gkaddr));
+	m_rasAddr = new H225_TransportAddress(Toolkit::Instance()->GetMasterRASListener().GetRasAddress(m_gkaddr));
 
 	m_rewriteInfo = GkConfig()->GetAllKeyValues(RewriteE164Section);
 	m_retry = GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", 10);
-	m_arqPendingList = new GKPendingList(rasSrv, GkConfig()->GetInteger(EndpointSection, "ARQTimeout", 2));
+	m_arqPendingList = new GKPendingList(GkConfig()->GetInteger(EndpointSection, "ARQTimeout", 2));
 	SendRRQ();
 }
 
@@ -122,9 +123,14 @@ GkClient::~GkClient()
 	delete m_arqPendingList;
 }
 
-inline void GkClient::SendRas(const H225_RasMessage & ras)
+void GkClient::SendRas(const H225_RasMessage & ras_msg)
 {
-	m_rasSrv->SendRas(ras, m_gkaddr, m_gkport);
+	PBYTEArray buffer(4096);
+	PPER_Stream writestream(buffer);
+
+	ras_msg.Encode(writestream);
+	writestream.CompleteEncoding();
+	Toolkit::Instance()->GetMasterRASListener().SendTo(writestream, writestream.GetSize(), m_gkaddr, m_gkport);
 }
 
 bool GkClient::CheckGKIPVerbose(PIPSocket::Address gkip)
@@ -222,7 +228,7 @@ void GkClient::SendRRQ()
 	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
 	H225_RegistrationRequest & rrq = rrq_ras;
 
-	rrq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	rrq.m_requestSeqNum = Toolkit::Instance()->GetRequestSeqNum();
 	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	rrq.m_discoveryComplete = FALSE;
         rrq.m_rasAddress.SetSize(1);
@@ -238,7 +244,7 @@ void GkClient::RegisterFather()
 	H225_RasMessage rrq_ras;
 	rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
 	H225_RegistrationRequest &rrq = rrq_ras;
-	rrq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	rrq.m_requestSeqNum = Toolkit::Instance()->GetRequestSeqNum();
 	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	rrq.m_discoveryComplete = FALSE;
 
@@ -307,7 +313,7 @@ void GkClient::SendURQ()
 	H225_RasMessage urq_ras;
 	urq_ras.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = urq_ras;
-	urq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	urq.m_requestSeqNum = Toolkit::Instance()->GetRequestSeqNum();
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
 	urq.m_gatekeeperIdentifier = m_gatekeeperId;
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointIdentifier);
@@ -355,7 +361,7 @@ int GkClient::BuildARQ(H225_AdmissionRequest & arq)
 	arq.m_gatekeeperIdentifier = m_gatekeeperId;
 	SetPassword(arq);
 
-	return (arq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum());
+	return (arq.m_requestSeqNum = Toolkit::Instance()->GetRequestSeqNum());
 }
 
 void GkClient::SendARQ(const H225_AdmissionRequest & arq, const endptr & reqEP)
@@ -476,7 +482,7 @@ bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 void GkClient::SendDRQ(H225_RasMessage & drq_ras)
 {
 	H225_DisengageRequest & drq = drq_ras;
-	drq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	drq.m_requestSeqNum = Toolkit::Instance()->GetRequestSeqNum();
 	drq.m_disengageReason.SetTag(H225_DisengageReason::e_normalDrop);
 	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
 	drq.m_gatekeeperIdentifier = m_gatekeeperId;

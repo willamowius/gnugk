@@ -29,13 +29,15 @@
 #include <ptlib.h>
 #include <q931.h>
 #include "gk.h"
-#include "RasSrv.h"
+#include "RasListener.h"
 #include "SoftPBX.h"
 #include "MulticastGRQ.h"
 #include "BroadcastListen.h"
 #include "Toolkit.h"
 #include "h323util.h"
 #include "ANSI.h"
+#include "gkDatabase.h"
+#include "gkDestAnalysis.h"
 
 // FIXME: local debugging, please keep for a while. Off per default (see line 236).
 #if (defined(P_LINUX) || defined(P_SOLARIS)) && defined(PTRACING) && defined(COREDUMPHACK)
@@ -80,7 +82,7 @@ volatile bool ExitFlag = false;	// used in signaling
 
 } // end of anonymous namespace
 
-extern void 
+extern void
 ShutdownHandler(void)
 {
 	// we may get one shutdown signal for every thread; make sure we
@@ -104,16 +106,16 @@ ShutdownHandler(void)
 		delete MulticastGRQThread;
 		MulticastGRQThread = NULL;
 	}
-	if (RasThread != NULL)
-	{
-		PTRACE(3, "GK\tClosing RasThread");
-		RasThread->Close();
-		// send all registered clients a URQ
-		RasThread->UnregisterAllEndpoints();
-		RasThread->WaitForTermination();
-		delete RasThread;
-		RasThread = NULL;
-	}
+// 	if (Toolkit::Instance()->GetMasterRASListener() != NULL)
+// 	{
+// 		PTRACE(3, "GK\tClosing Toolkit::Instance()->GetMasterRASListener()");
+// 		Toolkit::Instance()->GetMasterRASListener()->Close();
+// 		// send all registered clients a URQ
+// 		Toolkit::Instance()->GetMasterRASListener()->UnregisterAllEndpoints();
+// 		Toolkit::Instance()->GetMasterRASListener()->WaitForTermination();
+// 		delete Toolkit::Instance()->GetMasterRASListener();
+// 		Toolkit::Instance()->GetMasterRASListener() = NULL;
+// 	}
 
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
@@ -156,7 +158,7 @@ void ReopenLogFile()
 }
 #endif
 
-extern void 
+extern void
 ReloadHandler(void)
 {
 	// only one thread must do this
@@ -186,8 +188,8 @@ ReloadHandler(void)
 	CallTable::Instance()->LoadConfig();
 	RegistrationTable::Instance()->LoadConfig();
 
-	RasThread->LoadConfig();
-	RasThread->SetRoutedMode();
+	Toolkit::Instance()->GetMasterRASListener().LoadConfig();
+	Toolkit::Instance()->GetMasterRASListener().SetRoutedMode();
 
 	ConfigReloadMutex.EndWrite();
 	/*
@@ -243,8 +245,8 @@ void UnixReloadConfigHandler(int sig) // For USR1 Signal
 {
 	PTRACE(1, "GK\tGatekeeper USR1 (signal " << sig << ")");
 	ReloadHandler();
-}
 
+}
 void UnixCoreDumpHandler(int sig) // for USR2 Signal
 {
 	PTRACE(1, "GK\tGatekeeper USR2(signal " << sig << ")");
@@ -419,15 +421,11 @@ void Gatekeeper::PrintOpts(void)
 void Gatekeeper::HouseKeeping(void)
 {
 	for (unsigned count=1; !ExitFlag; count++) {
-
 		Sleep(1000);
-
-		if (!RasThread->Check()) // return true if the thread running
-			break;
-
+// 		if (!Toolkit::Instance()->GetMasterRASListener()->IsTerminated()) // return true if the thread running
+// 			break;
 		if (!(count % 60)) // one minute
 			RegistrationTable::Instance()->CheckEndpoints();
-
 		CallTable::Instance()->CheckCalls();
 	}
 }
@@ -594,16 +592,16 @@ void Gatekeeper::Main()
 		SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", -1);
 	PTRACE(2, "GK\tTimeToLive for Registrations: " << SoftPBX::TimeToLive);
 
-	RasThread = new H323RasSrv(GKHome);
+	Toolkit::Instance()->GetMasterRASListener();
 	// read signaling method from commandline
 	if (args.HasOption('r'))
-		RasThread->SetRoutedMode(true, (args.GetOptionCount('r') > 1 || args.HasOption("h245routed")));
+		Toolkit::Instance()->GetMasterRASListener().SetRoutedMode(true, (args.GetOptionCount('r') > 1 || args.HasOption("h245routed")));
 	else if (args.HasOption('d'))
-		RasThread->SetRoutedMode(false, false);
+		Toolkit::Instance()->GetMasterRASListener().SetRoutedMode(false, false);
 	else
-		RasThread->SetRoutedMode();
+		Toolkit::Instance()->GetMasterRASListener().SetRoutedMode();
 
-	MulticastGRQThread = new MulticastGRQ(GKHome, RasThread);
+	MulticastGRQThread = new MulticastGRQ(GKHome);
 
 #if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS)
 	// On some OS we don't get broadcasts on a socket that is
@@ -615,11 +613,20 @@ void Gatekeeper::Main()
 
 	// only start the thread if we don't bind to all interfaces
 	if (GKHome != INADDR_ANY)
-		BroadcastThread = new BroadcastListen(RasThread);
+		BroadcastThread = new BroadcastListen();
 #endif
+	// Start Status Thread
+	GkStatus::Instance()->Initialize(GKHome);
+
+	// Initialize Database Module
+	GkDatabase::Instance()->Initialize(*GkConfig());
+
+	GkDestAnalysisList *dal = new GkDestAnalysisList(GkConfig());
+	PAssert(NULL!=dal, "No DestAnalysisList!");
+	RegistrationTable::Instance()->Initialize(*dal);
 
 	// let's go
-	RasThread->Resume();
+	Toolkit::Instance()->GetMasterRASListener().Resume();
 
 	HouseKeeping();
 

@@ -29,6 +29,9 @@
 #include "CountryCodeTables.h"
 #include <h323pdu.h>
 #include "GkProfile.h"
+#include "RasListener.h"
+#include "Neighbor.h"
+#include "ProxyThread.h"
 
 #if (defined(P_SSL) && (0 != P_SSL) && defined(USE_SCHARED_SECRET_CRYPT)) // do we have openssl access and want to use it?
 #  include <openssl/ssl.h>
@@ -362,7 +365,9 @@ bool Toolkit::RewriteTool::RewritePString(PString & s)
 	return changed;
 }
 
-Toolkit::Toolkit() : m_Config(0)
+Toolkit::Toolkit() : m_Config(NULL), m_gkclient(NULL), m_neighbor(NULL), m_raslistener(NULL), m_handlerlist(NULL),
+		     m_requestseqnum(1)
+
 {
 	srand(time(0));
 }
@@ -543,6 +548,59 @@ Toolkit::AsBool(const PString &str)
 	if (str.GetLength() < 1) return FALSE;
 	const unsigned char c = tolower(str[0]);
 	return ( c=='t' || c=='1' || c=='y' || c=='a' );
+}
+
+// Reference-Functions for RAS-Service.
+
+GkClient & Toolkit::GetGkClient()
+{
+	PWaitAndSignal lock(m_gkclient_mutex);
+	if(NULL==m_gkclient)
+		m_gkclient=new GkClient();
+	return *m_gkclient;
+}
+const BOOL
+Toolkit::GkClientIsRegistered() const
+{
+	PWaitAndSignal lock(m_gkclient_mutex);
+	return (NULL!=m_gkclient && m_gkclient->IsRegistered());
+}
+
+Neighbor &
+Toolkit::GetNeighbor()
+{
+	PWaitAndSignal lock(m_neighbor_mutex);
+	if(NULL==m_neighbor)
+		m_neighbor=new Neighbor();
+	return *m_neighbor;
+}
+
+
+H323RasListener &
+Toolkit::GetMasterRASListener()
+{
+	PIPSocket::Address Home=GkConfig()->GetString("Home", INADDR_ANY);
+	PWaitAndSignal lock(m_raslistener_mutex);
+	if (NULL==m_raslistener)
+		m_raslistener = new H323RasListener(Home);
+	return *m_raslistener;
+}
+
+int
+Toolkit::GetRequestSeqNum()
+{
+	PWaitAndSignal lock(m_requestseqnum_mutex);
+	return ++m_requestseqnum;
+}
+
+HandlerList &
+Toolkit::GetHandlerList()
+{
+	PIPSocket::Address Home=GkConfig()->GetString("Home", INADDR_ANY);
+	PWaitAndSignal lock(m_handlerlist_mutex);
+	if (NULL==m_handlerlist)
+		m_handlerlist = new HandlerList(Home);
+	return *m_handlerlist;
 }
 
 ///////////////////////// Digit Analysis according to E.164
