@@ -35,7 +35,8 @@ endif
 
 # Gatekeeper Global Version String to mark object with version info in such
 # a way that it is retrievable by the std. version/revision control tools
-GKGVS="@(\#) $$Id$(VERSION_STATUS) of "$(PROGRAMMNAME)" v$(VERSION_MAJOR).$(VERSION_MINOR) build\#$(VERSION_BUILD) by "${MANUFACTURER}" at " __DATE__ " "  __TIME__ " $$"
+XID=$$Id
+GKGVS="@(\#) $(XID): $(VERSION_STATUS) of "$(PROGRAMMNAME)" v$(VERSION_MAJOR).$(VERSION_MINOR) build\#$(VERSION_BUILD) by "${MANUFACTURER}" at " __DATE__ " "  __TIME__ " $$"
 
 H323_INCDIR = ${OPENH323DIR}/include
 H323_LIBDIR = ${OPENH323DIR}/lib
