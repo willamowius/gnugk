@@ -2859,10 +2859,9 @@ void ProxyHandler::MoveTo(ProxyHandler *dest, TCPProxySocket *socket)
 	dest->Insert(socket);
 }
 
-bool ProxyHandler::OnStart()
+void ProxyHandler::OnStart()
 {
 	PThread::Current()->SetPriority(PThread::HighPriority);
-	return true;
 }
 
 bool ProxyHandler::BuildSelectList(SocketSelectList & slist)

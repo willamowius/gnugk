@@ -564,7 +564,7 @@ SocketsReader::~SocketsReader()
 
 void SocketsReader::Stop()
 {
-	PWaitAndSignal lock(m_smutex);
+	PWaitAndSignal lock(m_deletionPreventer);
 	ReadLock llock(m_listmutex);
 	ForEachInContainer(m_sockets, mem_fun(&IPSocket::Close));
 	RegularJob::Stop();

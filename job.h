@@ -26,86 +26,181 @@
 #include "name.h"
 #endif
 
-// abstraction of a gatekeeper job
-class Job : public NamedObject {
+/** The base abstract class that represents job objects.
+    This class implements the way to execute the job.
+    Derived classes implement actual jobs (override Run()).
+	Jobs are executed and managed by internal Job managment system
+	consisting of the singleton Agent object and Worker threads
+	that accept and execute new Jobs.
+	
+	Specialized Job examples are:
+    Jobs - executes series of Tasks
+    RegularJob - executes a Task again and again until stopped
+    SimpleJob - calls some funtion with one pointer-type argument
+    SimpleJobA - calls some funtion with two arguments : pointer-type and reference
+    SimpleClassJob - calls a member function of some class that takes no arguments
+    SimpleClassJobA - calls a member function of some class that takes one 
+	                  argument of reference type
+*/
+class Job : public NamedObject 
+{
 public:
 	virtual ~Job();
 
-	// do the job
-	// return true if job is done
+	/// Perform the actual job, return when it is done
 	virtual void Run() = 0;
 
-	// stop the job
-	virtual void Stop() { /* nothing */ }
+	/// Stop a running job
+	virtual void Stop();
 
-	// execute the job in a free thread and delete it after done
+	/** Execute the job in a first idle Worker thread.
+		The function returns immediatelly and this object
+		is delete automatically, when the job is finished.
+	*/
 	void Execute();
 
-	// stop all jobs when gatekeeper exits
+	/// Stop all jobs being currently executed by Worker threads
 	static void StopAll();
 };
 
-// component of a series of jobs
-class Task {
+/** Similar to the Job, but is even more abstract. It does not contain
+	any Task management routines. Main purpose of this class it to provide
+	a way to represent a serie of Tasks that are to be executed one after another.
+*/
+class Task 
+{
 public:
-	Task() : m_next(0), m_done(false) {}
-	virtual ~Task() {}
+	Task() : m_next(NULL), m_done(false) {}
+	virtual ~Task();
 
+	/// Perform the actual task and return when it is finished
 	virtual void Exec() = 0;
 
+	/** @return
+	    true if the task is done and a next task is being processed.
+	*/
 	bool IsDone() const { return m_done; }
-	void SetNext(Task *n) { m_next = n; }
-	Task *GetNext() const { return m_next; }
-	Task *DoNext();
+	
+	/// Setup a task to be executed when this one is done
+	void SetNext(
+		/// next task to be executed
+		Task* next
+		) 
+	{ 
+		m_next = next; 
+	}
+
+	/** @return
+	    true if this is not the last task.
+	*/
+	bool HasNext() const { return m_next != NULL; }
+
+	/** Get a next task and mark this one as done.
+	    @return
+	    The task that is next or NULL if this is the last task.
+	*/
+	Task* DoNext()
+	{
+		Task* next = m_next;
+		if (next != this) // do not set m_done flag for circular task
+			m_done = true; 
+		return next;
+	}
 
 private:
-	Task *m_next;
+	/// next task to be executed when this one is done
+	Task* m_next;
+	/// true if the task is finished
 	bool m_done;
 };
 
-// a series of tasks
-class Jobs : public Job {
-public:
-	Jobs(Task *task) : m_current(task) {}
 
-	// override from class Job
+/// Execute a task or a serie of tasks
+class Jobs : public Job 
+{
+public:
+	Jobs(
+		/// task to be executed
+		Task* task
+		) : m_current(task) {}
+
+	/// process the associated task (override from Job)
 	virtual void Run();
 
 private:
-	Task *m_current;
+	/// task (or a serie of tasks) to be executed
+	Task* m_current;
 };
 
-// a regular job
-class RegularJob : public Jobs, protected Task {
+/** Regular job - executes the same task until it is stopped 
+	(by calling Stop()). The actual work is to be done in the virtual
+	Exec() method in derived classes. RegularJob is an abstract class.
+*/
+class RegularJob : public Job
+{
 public:
 	RegularJob();
 
-	bool IsRunning() const { return GetNext() != 0; }
+	/** @return
+		true if the job has not been yet stopped
+	*/
+	bool IsRunning() const { return !m_stop; }
 
-	// override from class Jobs
+	/// override from Job
 	virtual void Run();
+
+	/// repeated activity to be executed by this RegularJob
+	virtual void Exec() = 0;
+		
+	/** Stop this job. NOTE: Acquire m_deletionPreventer mutex first
+	    to make sure this object is not deleted before the method that
+		called Stop returns (if Stop is called from a derived class).
+	*/
 	virtual void Stop();
 
 protected:
 	// new virtual function
 
-	// called when the job is started
-	virtual bool OnStart() { return true; }
+	/// Callback function that is called before the job is started.
+	virtual void OnStart();
 
-	// called by the system when the job is stopped
-	virtual void OnStop() {}
+	/** Callback function that is called when the job is stopped.
+		NOTE: This function is called with m_deletionPreventer mutex acquired.
+	*/
+	virtual void OnStop();
 
-	// wait for an event before doing the task
-	// return true if an expected event is received
-	// default behavior: wait for a signal to the specified SyncPoint
-	virtual void Wait();
+	/// Wait for a signal (Signal())
+	void Wait() { m_sync.Wait(); }
+	
+	/** Wait for a signal (Signal()).
+		
+	    @return
+	    true if the sync point has been signalled.
+	*/
+	bool Wait(
+		/// time to wait for the sync point to be signalled
+		const PTimeInterval& timeout
+		) 
+	{ 
+		return m_sync.Wait(timeout); 
+	}
 
-	// go on doing the job
-	virtual void Signal();
+	/// Send a signal to the waiting task
+	void Signal() { m_sync.Signal(); }
 
+protected:
+	/// can be used when calling Stop to prevent the job to be deleted
+	/// (and invalid object being referenced) before the function 
+	/// that called Stop returns
+	PMutex m_deletionPreventer;
+	
+private:
+	/// used by Wait and Signal member functions
 	PSyncPoint m_sync;
-	PMutex m_smutex;
+	/// true if the job should be stopped
+	bool m_stop;
 };
+
 
 template<class F, class T>
 class SimpleJob : public Job {

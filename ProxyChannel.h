@@ -235,7 +235,7 @@ public:
 
 private:
 	// override from class RegularJob
-	virtual bool OnStart();
+	virtual void OnStart();
 
 	// override from class SocketsReader
 	virtual bool BuildSelectList(SocketSelectList &);

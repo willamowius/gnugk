@@ -251,14 +251,15 @@ public:
 
 BroadcastListener::BroadcastListener(WORD pt) : RasListener(INADDR_ANY, pt)
 {
-	SetName(AsString(INADDR_ANY, pt) + "(B)");
+	SetName(AsString(INADDR_ANY, pt) + "(Bcast)");
 	m_virtualInterface = true;
 }
 
 bool BroadcastListener::Filter(GatekeeperMessage *msg) const
 {
-	unsigned tag = msg->GetTag();
-	if (tag == H225_RasMessage::e_gatekeeperRequest || tag == H225_RasMessage::e_locationRequest)
+	const unsigned tag = msg->GetTag();
+	if (tag == H225_RasMessage::e_gatekeeperRequest 
+		|| tag == H225_RasMessage::e_locationRequest)
 		return true;
 	PTRACE(1, "RAS\tUnknown broadcasted RAS message tag " << tag);
 	return false;
@@ -276,7 +277,7 @@ public:
 
 MulticastListener::MulticastListener(const Address & addr, WORD pt, WORD upt) : RasListener(addr, pt)
 {
-	SetName(AsString(addr, pt) + "(M)");
+	SetName(AsString(addr, pt) + "(Mcast)");
 	Address multiaddr(GkConfig()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
 	struct ip_mreq mreq;
 	mreq.imr_multiaddr.s_addr = multiaddr;
@@ -291,7 +292,8 @@ MulticastListener::MulticastListener(const Address & addr, WORD pt, WORD upt) : 
 bool MulticastListener::Filter(GatekeeperMessage *msg) const
 {
 	unsigned tag = msg->GetTag();
-	if (tag == H225_RasMessage::e_gatekeeperRequest || tag == H225_RasMessage::e_locationRequest)
+	if (tag == H225_RasMessage::e_gatekeeperRequest 
+		|| tag == H225_RasMessage::e_locationRequest)
 		return true;
 	PTRACE(1, "RAS\tInvalid multicasted RAS message tag " << tag);
 	return false;
@@ -634,7 +636,7 @@ RasServer::~RasServer()
 void RasServer::Stop()
 {
 	PTRACE(1, "GK\tStopping RasServer...");
-	PWaitAndSignal lock(m_smutex);
+	PWaitAndSignal lock(m_deletionPreventer);
 	ForEachInContainer(handlers, mem_vfun(&RasHandler::Stop));
 	RegularJob::Stop();
 }
@@ -1160,7 +1162,7 @@ void RasServer::HouseKeeping()
 #endif
 
 	for (unsigned count = 0; IsRunning(); ++count)
-		if (!m_sync.Wait(1000)) {
+		if (!Wait(1000)) {
 			if( !IsRunning() )
 				break;
 

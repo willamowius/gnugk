@@ -447,7 +447,7 @@ int GkStatus::ParseCommand(const PString & cmd, PStringArray & args)
 	return -1;
 }
 
-bool GkStatus::OnStart()
+void GkStatus::OnStart()
 {
 	m_commands["printallregistrations"] =	     e_PrintAllRegistrations;
 	m_commands["r"] =			     e_PrintAllRegistrations;
@@ -496,8 +496,6 @@ bool GkStatus::OnStart()
 	m_commands["exit"] =			     e_Exit;
 	m_commands["quit"] =			     e_Exit;
 	m_commands["q"] =			     e_Exit;
-
-	return true;
 }
 
 void GkStatus::OnStop()

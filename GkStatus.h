@@ -85,7 +85,7 @@ public:
 
 private:
 	// override from class RegularJob
-	virtual bool OnStart();
+	virtual void OnStart();
 	virtual void OnStop();
 
 	// override from class SocketsReader

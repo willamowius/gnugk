@@ -110,7 +110,7 @@ NATClient::NATClient(const H225_TransportAddress & addr, const H225_EndpointIden
 
 void NATClient::Stop()
 {
-	PWaitAndSignal lock(m_smutex);
+	PWaitAndSignal lock(m_deletionPreventer);
 	RegularJob::Stop();
 	if (socket) {
 		SendInfo(Q931::CallState_DisconnectRequest);
@@ -134,7 +134,7 @@ void NATClient::Exec()
 	delete socket;
 	socket = 0;
 	int retryInterval = GkConfig()->GetInteger(EndpointSection, "NATRetryInterval", 60);
-	m_sync.Wait(retryInterval * 1000);
+	Wait(retryInterval * 1000);
 }
 
 bool NATClient::DetectIncomingCall()
