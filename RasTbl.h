@@ -34,9 +34,9 @@
 #define map stl_map
 #endif
 
+#include <vector>
 #include <set>
 #include <list>
-#include <vector>
 #include <string>
 #include <map>
 
