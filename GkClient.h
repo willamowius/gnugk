@@ -27,6 +27,7 @@
 #endif
 
 #include <map>
+#include <h235auth.h>
 #include "RasTbl.h"
 
 class H225_AliasAddress;
@@ -87,12 +88,16 @@ public:
 
 	void CheckRegistration();
 
-	template<class RAS> void SetPassword(RAS & rasmsg)
+	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
 		if (!m_password) {
 			rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
-			SetCryptoTokens(rasmsg.m_cryptoTokens);
+			SetCryptoTokens(rasmsg.m_cryptoTokens, id);
 		}
+	}
+	template<class RAS> void SetPassword(RAS & rasmsg)
+	{
+		SetPassword(rasmsg, m_e164);
 	}
 
 private:
@@ -106,7 +111,7 @@ private:
 	int  BuildARQ(H225_AdmissionRequest &);
 	bool GetAdmission(H225_RasMessage &, H225_RasMessage &);
 	bool RewriteString(PString &, bool);
-	void SetCryptoTokens(H225_ArrayOf_CryptoH323Token &);
+	void SetCryptoTokens(H225_ArrayOf_CryptoH323Token &, const PString &);
 
 	H323RasSrv *m_rasSrv;
 
@@ -126,6 +131,8 @@ private:
 
 	GKPendingList *m_arqPendingList;
 	std::map<int, callptr> m_arqAnsweredList;
+
+	H235AuthSimpleMD5 auth;
 };
 
 #endif // __gkclient_h_

@@ -62,7 +62,7 @@ private:
 class NeighborList {
 	class Neighbor {
 	public:
-		Neighbor(const PString & gatekeeper, const PString & prefix);
+		Neighbor(const PString &, const PString &);
 		bool SendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
 
 	private:
@@ -214,7 +214,7 @@ bool NeighborList::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionReq
 	lrq_obj.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 	lrq_obj.m_sourceInfo.SetSize(1);
 	H323SetAliasAddress(RasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
-	RasSrv->GetGkClient()->SetPassword(lrq_obj);
+	RasSrv->GetGkClient()->SetPassword(lrq_obj, Toolkit::GKName());
 
 	RasSrv->SendRas(lrq_ras, m_ip, m_port);
 	return true;

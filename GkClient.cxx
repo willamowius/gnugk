@@ -24,7 +24,6 @@
 #include "Toolkit.h"
 #include "RasSrv.h"
 #include <h323pdu.h> 
-#include <h235auth.h>
 
 const char *EndpointSection = "Endpoint";
 const char *RewriteE164Section = "Endpoint::RewriteE164";
@@ -129,7 +128,8 @@ void GkClient::CheckRegistration()
 {
 	if (m_ttl > 0 && (PTime() - m_registeredTime) > m_ttl)
 		SendRRQ();
-	m_arqPendingList->Check();
+	if (m_arqPendingList)
+		m_arqPendingList->Check();
 }
 
 void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
@@ -482,11 +482,10 @@ bool GkClient::RewriteString(PString & alias, bool fromInternal)
 	return false;
 }
 
-void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens)
+void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id)
 {
-	H235AuthSimpleMD5 auth;
 //	auth.SetLocalId(m_h323Id);
-	auth.SetLocalId(m_e164);
+	auth.SetLocalId(id);
 	auth.SetPassword(m_password);
 	auth.Prepare(cryptoTokens); 
 }
