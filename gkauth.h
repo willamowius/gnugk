@@ -82,6 +82,12 @@ public:
 		return !m_next || m_next->Validate(req, reason);
 	}
 
+	bool Validate(
+		RasPDU<H225_AdmissionRequest>& req, 
+		unsigned& reason, 
+		long& callDurationLimit
+		);
+	
 	/** @return
 		TRUE if this authenticator provides H.235 compatible security.
 		It simply checks if h235Authenticators list is not empty.
@@ -130,6 +136,7 @@ protected:
 	virtual int Check(RasPDU<H225_RegistrationRequest> &, unsigned &);
 	virtual int Check(RasPDU<H225_UnregistrationRequest> &, unsigned &);
 	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &);
+	virtual int Check(RasPDU<H225_AdmissionRequest> &, unsigned &, long &);
 	virtual int Check(RasPDU<H225_BandwidthRequest> &, unsigned &);
 	virtual int Check(RasPDU<H225_DisengageRequest> &, unsigned &);
 	virtual int Check(RasPDU<H225_LocationRequest> &, unsigned &);
@@ -205,6 +212,16 @@ public:
 	template<class PDU> bool Validate(PDU & req, unsigned & reason)
 	{
 		return !m_head || m_head->Validate(req, reason);
+	}
+	
+	bool Validate(
+		RasPDU<H225_AdmissionRequest>& req, 
+		unsigned& rejectReason, 
+		long& callDurationLimit
+		)
+	{
+		callDurationLimit = -1;
+		return !m_head || m_head->Validate(req, rejectReason, callDurationLimit);
 	}
 
 private:

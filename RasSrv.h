@@ -24,6 +24,8 @@
 #include "singleton.h"
 #include <vector>
 #include "RasTbl.h"
+#include "RasPDU.h"
+#include "gkauth.h"
 
 class H225_RasMessage;
 class H225_GatekeeperRequest;
@@ -32,12 +34,12 @@ class H225_NonStandardParameter;
 class H225_TransportAddress;
 class H225_ArrayOf_AlternateGK;
 
-struct GatekeeperMessage;
+//struct GatekeeperMessage;
 class RasListener;
-class RasMsg;
-class RasHandler;
+//class RasMsg;
+//class RasHandler;
 class GkInterface;
-class GkAuthenticatorList;
+//class GkAuthenticatorList;
 class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
@@ -112,6 +114,14 @@ public:
 	template<class PDU> bool ValidatePDU(PDU & ras, unsigned & reason)
 	{
 		return authList->Validate(ras, reason);
+	}
+	bool ValidatePDU(
+		RasPDU<H225_AdmissionRequest>& ras, 
+		unsigned& rejectReason, 
+		long& callDurationLimit
+		)
+	{
+		return authList->Validate(ras, rejectReason, callDurationLimit);
 	}
 
 	bool LogAcctEvent(

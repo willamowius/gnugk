@@ -263,6 +263,42 @@ GkAuthenticator::~GkAuthenticator()
 	PTRACE(1, "GkAuth\tRemove " << GetName() << " rule");
 }
 
+bool GkAuthenticator::Validate(
+	RasPDU<H225_AdmissionRequest>& req, 
+	unsigned& rejectReason,
+	long& callDurationLimit
+	)
+{
+	callDurationLimit = -1;
+	if (checkFlag & RasInfo<H225_AdmissionRequest>::flag) {
+		int r = Check(req, rejectReason, callDurationLimit);
+		if( callDurationLimit == 0 ) {
+			PTRACE(2,"GkAuth\t"<<GetName()<<" - call duration limit 0");
+			return false;
+		}
+		if (r == e_ok) {
+			PTRACE(4, "GkAuth\t" << GetName() << " check ok");
+			if (controlFlag != e_Required)
+				return true;
+		} else if (r == e_fail) {
+			PTRACE(2, "GkAuth\t" << GetName() << " check failed");
+			return false;
+		}
+	}
+	if( m_next ) {
+		long newDurationLimit = -1;
+		if( !m_next->Validate(req, rejectReason,newDurationLimit) )
+			return false;
+		if( newDurationLimit >= 0 )
+			callDurationLimit = PMIN(callDurationLimit,newDurationLimit);
+	}
+	if( callDurationLimit == 0 ) {
+		PTRACE(2,"GkAuth\t"<<GetName()<<" - call duration limit 0");
+		return false;
+	}
+	return true;
+}
+
 int GkAuthenticator::Check(RasPDU<H225_GatekeeperRequest> &, unsigned &)
 {
 	return defaultStatus;
@@ -281,6 +317,11 @@ int GkAuthenticator::Check(RasPDU<H225_UnregistrationRequest> &, unsigned &)
 int GkAuthenticator::Check(RasPDU<H225_AdmissionRequest> &, unsigned &)
 {
 	return defaultStatus;
+}
+
+int GkAuthenticator::Check(RasPDU<H225_AdmissionRequest>& req, unsigned& reason, long& limit)
+{
+	return Check(req,reason);
 }
 
 int GkAuthenticator::Check(RasPDU<H225_BandwidthRequest> &, unsigned &)
@@ -1410,7 +1451,6 @@ namespace { // anonymous namespace
 	GkAuthCreator<MySQLPasswordAuth> MySQLPasswordAuthCreator("MySQLPasswordAuth");
 	GkAuthCreator<MySQLAliasAuth> MySQLAliasAuthCreator("MySQLAliasAuth");
 #endif
-
 #if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
 	GkAuthCreator<ExternalPasswordAuth> ExternalPasswordAuthCreator("ExternalPasswordAuth");
 #endif

@@ -1562,7 +1562,8 @@ bool AdmissionRequestPDU::Process()
 	// OnARQ
 	bool bReject = false;
 	bool answer = request.m_answerCall;
-
+	long callDurationLimit = -1;
+	
 	bool bHasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && request.m_destinationInfo.GetSize() > 0;
 	if (bHasDestInfo) // apply rewriting rules
 		Kit->RewriteE164(request.m_destinationInfo[0]);
@@ -1582,7 +1583,7 @@ bool AdmissionRequestPDU::Process()
 	}
 
 	unsigned rejectReason = H225_AdmissionRejectReason::e_securityDenial;
-	if (!RasSrv->ValidatePDU(*this, rejectReason))
+	if (!RasSrv->ValidatePDU(*this, rejectReason, callDurationLimit))
 		return BuildReply(rejectReason);
 
 	// CallRecs should be looked for using callIdentifier instead of callReferenceValue
@@ -1700,6 +1701,8 @@ bool AdmissionRequestPDU::Process()
 	if (pExistingCallRec) {
 		// duplicate or answer ARQ
 		PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
+		if( callDurationLimit > 0 )
+			pExistingCallRec->SetDurationLimit(callDurationLimit);
 	} else {
 		// the call is not in the table		
 		CallRec *pCallRec = new CallRec(request.m_callIdentifier, request.m_conferenceID, request.m_callReferenceValue,
@@ -1714,6 +1717,9 @@ bool AdmissionRequestPDU::Process()
 		if (toParent)
 			pCallRec->SetRegistered(true);
 
+		if( callDurationLimit > 0 )
+			pCallRec->SetDurationLimit(callDurationLimit);
+		
 		if (!RasSrv->IsGKRouted())
 			pCallRec->SetConnected();
 		else if (acf.HasOptionalField(H225_AdmissionConfirm::e_cryptoTokens))

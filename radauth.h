@@ -13,6 +13,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/08/25 12:53:38  zvision
+ * Introduced includeTerminalAliases config option. Changed visibility
+ * of some member variables to private.
+ *
  * Revision 1.3  2003/08/20 14:46:19  zvision
  * Avoid PString reference copying. Small code improvements.
  *
@@ -126,7 +130,7 @@ protected:
 		RadiusPDU& pdu, /// received PDU
 		const H225_AdmissionRequest& rrq, /// ARQ being processed
 		unsigned& rejectReason, /// reject reason on return FALSE
-		int& durationLimit /// call duration limit to be set
+		long& durationLimit /// call duration limit to be set
 		);
 	
 	/** Hook for appending username/password attributes 
@@ -202,7 +206,10 @@ protected:
 		/// reference to the variable, that can be set 
 		/// to custom H225_AdmissionRejectReason
 		/// if the check fails
-		unsigned& rejectReason
+		unsigned& rejectReason,
+		/// call duration limit to be set for the call
+		/// (-1 stands for no limit)
+		long& callDurationLimit
 		);
 
 private:
@@ -227,7 +234,7 @@ private:
 		unsigned& rejectReason,
 		/// call duration limit to be set for the call
 		/// (-1 stands for no limit)
-		int& durationLimit
+		long& durationLimit
 		);
 		
 	/* No copy constructor allowed */

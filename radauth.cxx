@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/08/25 12:53:38  zvision
+ * Introduced includeTerminalAliases config option. Changed visibility
+ * of some member variables to private.
+ *
  * Revision 1.3  2003/08/20 14:46:19  zvision
  * Avoid PString reference copying. Small code improvements.
  *
@@ -278,11 +282,13 @@ int RadAuthBase::Check(
 	/// reference to the variable, that can be set 
 	/// to custom H225_AdmissionRejectReason
 	/// if the check fails
-	unsigned& rejectReason
+	unsigned& rejectReason,
+	/// call duration limit to be set for the call
+	/// (-1 stands for no limit)
+	long& callDurationLimit
 	)
 {
-	int dummyLimit = -1;
-	return doCheck(arq,rejectReason,dummyLimit);
+	return doCheck(arq,rejectReason,callDurationLimit);
 }
 
 int RadAuthBase::doCheck(
@@ -389,7 +395,7 @@ int RadAuthBase::doCheck(
 int RadAuthBase::doCheck(
 	const H225_AdmissionRequest& arq, 
 	unsigned& rejectReason,
-	int& durationLimit
+	long& durationLimit
 	)
 {
 	if( radiusClient == NULL ) {
@@ -634,8 +640,10 @@ int RadAuthBase::doCheck(
 			if( attr && attr->IsValid() ) {
 				PString s = attr->AsVsaString();
 				// Cisco prepends attribute name to the attribute value				
-				if( s.Find("h323-return-code=") == 0 ) {
+				if( s.Find("h323-return-code=") == 0 )
 					s = s.Mid( s.FindOneOf("=") + 1 );
+				if( s.GetLength() > 0 
+					&& strspn((const char*)s,"0123456789") == (size_t)s.GetLength() ) {
 					const unsigned retcode = s.AsUnsigned();
 					if( retcode != 0 ) {
 						PTRACE(5,"RADAUTH\t"<<GetName()<<" ARQ check failed - return code "<<retcode);
@@ -660,9 +668,11 @@ int RadAuthBase::doCheck(
 			if( attr && attr->IsValid() ) {
 				PString s = attr->AsVsaString();
 				// Cisco prepends attribute name to the attribute value
-				if( s.Find("h323-credit-time=") == 0 ) {
-					found = true;
+				if( s.Find("h323-credit-time=") == 0 )
 					s = s.Mid( s.FindOneOf("=") + 1 );
+				if( s.GetLength() > 0 
+					&& strspn((const char*)s,"0123456789") == (size_t)s.GetLength() ) {
+					found = true;
 					durationLimit = s.AsInteger();
 					PTRACE(5,"RADAUTH\t"<<GetName()<<" ARQ check set duration limit set: "<<durationLimit);
 					if( durationLimit == 0 )						
@@ -683,9 +693,8 @@ int RadAuthBase::doCheck(
 		if( index != P_MAX_INDEX ) {
 			attr = response->GetAttributeAt(index);
 			if( attr && attr->IsValid() ) {
-				PString s = attr->AsString();
 				found = true;
-				const int sessionTimeout = s.AsInteger();
+				const long sessionTimeout = attr->AsInteger();
 				if( (durationLimit < 0) || (durationLimit > sessionTimeout) ) {
 					durationLimit = sessionTimeout;
 					PTRACE(5,"RADAUTH\t"<<GetName()<<" ARQ check set duration limit set: "<<durationLimit);
@@ -740,7 +749,7 @@ bool RadAuthBase::OnReceivedPDU(
 	RadiusPDU& pdu,
 	const H225_AdmissionRequest& rrq,
 	unsigned& rejectReason,
-	int& durationLimit
+	long& durationLimit
 	)
 {
 	return true;
