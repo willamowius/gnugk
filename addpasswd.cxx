@@ -55,14 +55,14 @@ PString Decrypt(const PString &key, const PString &encrypt)
 void Client::Main()
 {
 	PArgList args(GetArguments());
-	if (args.GetCount() < 3) {
-		cout << "Usage: addpasswd config userid password\n\n";
+	if (args.GetCount() < 4) {
+		cout << "Usage: addpasswd config section userid password\n\n";
 		return;
 	}
 
-	PConfig config(args[0], "Password");
+	PConfig config(args[0], args[1]);
 	keyFilled=(config.GetString("KeyFilled", "0")).AsInteger();
-	PString userid = args[1], passwd = args[2];
+	PString userid = args[2], passwd = args[3];
 	PString encrypt = Encrypt(userid, passwd);
 	config.SetString(userid, encrypt);
 }

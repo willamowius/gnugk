@@ -1,5 +1,7 @@
 Changes from 2.2beta2 to 2.2beta3
 =================================
+- addpasswd utility changed to require section name where the encrypted 
+  username/password will be stored
 - BUGFIX(gkauth.cxx) fixed call duration limit handling when multiple
   authenticator modules are specified
 - BUGFIX(gkacct.cxx) changed accounting reload handling to first cleanup
