@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2003/10/31 00:01:25  zvision
+ * Improved accounting modules stacking control, optimized radacct/radauth a bit
+ *
  * Revision 1.5  2003/10/08 12:40:48  zvision
  * Realtime accounting updates added
  *
@@ -30,6 +33,8 @@
  * Added cvs Log keyword
  *
  */
+#if HAS_RADIUS
+
 #ifndef __RADACCT_H
 #define __RADACCT_H "@(#) $Id$"
 
@@ -147,3 +152,5 @@ private:
 };
 
 #endif /* __RADACCT_H */
+
+#endif /* HAS_RADIUS */

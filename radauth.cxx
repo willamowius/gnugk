@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2004/02/20 14:44:11  zvision
+ * Changed API for GkAuthenticator class. Modified RadAuth/RadAliasAuth classes.
+ * Added Q.931 Setup authentication for RadAuth module.
+ *
  * Revision 1.10  2003/11/14 00:27:30  zvision
  * Q.931/H.225 Setup authentication added
  *
@@ -94,6 +98,9 @@
  * Initial revision
  *
  */
+ 
+#if HAS_RADIUS
+
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug sumbol off
 #endif
@@ -1591,8 +1598,8 @@ int RadAliasAuth::AppendUsernameAndPassword(
 }
 	
 namespace {
-#ifdef HAS_RADIUS
 	GkAuthCreator<RadAuth> RadAuthCreator("RadAuth");
 	GkAuthCreator<RadAliasAuth> RadAliasAuthCreator("RadAliasAuth");
-#endif 
 }
+
+#endif /* HAS_RADIUS */

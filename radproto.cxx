@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2004/03/11 13:42:48  zvision
+ * 64-bit fixes from Klaus Kaempf
+ *
  * Revision 1.10  2003/11/11 11:14:21  zvision
  * Fixed invalid signed/unsigned integer conversions for radius attributes.
  * Optimized radius attributes handling.
@@ -66,6 +69,8 @@
  * Initial revision
  *
  */
+#if HAS_RADIUS
+
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <ptclib/random.h>
@@ -2372,3 +2377,5 @@ RadiusSocket* RadiusClient::CreateSocket(
 {
 	return new RadiusSocket( *this, port );
 }
+
+#endif /* HAS_RADIUS */

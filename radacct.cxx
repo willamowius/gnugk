@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2003/10/31 00:01:24  zvision
+ * Improved accounting modules stacking control, optimized radacct/radauth a bit
+ *
  * Revision 1.6  2003/10/15 10:16:57  zvision
  * Fixed VC6 compiler warnings. Thanks to Hu Yuxin.
  *
@@ -40,6 +43,8 @@
  * Added cvs Log keyword
  *
  */
+#if HAS_RADIUS
+
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug sumbol off
 #endif
@@ -443,3 +448,5 @@ namespace {
 	// append RADIUS based accounting logger to the global list of loggers
 	GkAcctLoggerCreator<RadAcct> RadAcctCreator("RadAcct");
 }
+
+#endif /* HAS_RADIUS */

@@ -12,6 +12,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2003/11/11 11:14:21  zvision
+ * Fixed invalid signed/unsigned integer conversions for radius attributes.
+ * Optimized radius attributes handling.
+ *
  * Revision 1.7  2003/10/08 12:40:48  zvision
  * Realtime accounting updates added
  *
@@ -46,6 +50,8 @@
  * Initial revision
  *
  */
+#if HAS_RADIUS
+
 #ifndef __RADPROTO_H
 #define __RADPROTO_H "@(#) $Id$"
 
@@ -1544,3 +1550,5 @@ protected:
 };
 
 #endif /* __RADPROTO_H */
+
+#endif /* HAS_RADIUS */

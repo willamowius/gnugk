@@ -13,6 +13,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2004/02/20 14:44:11  zvision
+ * Changed API for GkAuthenticator class. Modified RadAuth/RadAliasAuth classes.
+ * Added Q.931 Setup authentication for RadAuth module.
+ *
  * Revision 1.9  2003/11/14 00:27:30  zvision
  * Q.931/H.225 Setup authentication added
  *
@@ -63,6 +67,8 @@
  * Initial revision
  *
  */
+#if HAS_RADIUS
+
 #ifndef __RADAUTH_H
 #define __RADAUTH_H "@(#) $Id$"
 
@@ -461,3 +467,5 @@ protected:
 };
 
 #endif /* __RADAUTH_H */
+
+#endif /* HAS_RADIUS */
