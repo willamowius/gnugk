@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2004/08/09 10:08:28  zvision
+ * Fixed missing curly brackets, thanks to Thomas!
+ *
  * Revision 1.17  2004/07/26 12:19:42  zvision
  * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
  *
@@ -176,30 +179,33 @@ const char* const PMAP_CODE_TO_NAME(unsigned code)
 #define CISCO_ATTR_NAME(namestr) namestr, strlen(namestr)
 
 struct CiscoAttrName {
+	CiscoAttrName(const char* n, size_t l, unsigned char t) 
+		: m_name(n), m_nameLen(l), m_type(t) {} // workaround for VC6
+		
 	const char* const m_name;
 	size_t m_nameLen;
 	unsigned char m_type;
 } CiscoAttrNames[] = {
-	{ CISCO_ATTR_NAME("h323-remote-address"), RadiusAttr::CiscoVSA_h323_remote_address },
-	{ CISCO_ATTR_NAME("h323-conf-id"), RadiusAttr::CiscoVSA_h323_conf_id },
-	{ CISCO_ATTR_NAME("h323-setup-time"), RadiusAttr::CiscoVSA_h323_setup_time }, 
-	{ CISCO_ATTR_NAME("h323-connect-time"), RadiusAttr::CiscoVSA_h323_connect_time },
-	{ CISCO_ATTR_NAME("h323-disconnect-time"), RadiusAttr::CiscoVSA_h323_disconnect_time },
-	{ CISCO_ATTR_NAME("h323-disconnect-cause"), RadiusAttr::CiscoVSA_h323_disconnect_cause },
-	{ CISCO_ATTR_NAME("h323-credit-amount"), RadiusAttr::CiscoVSA_h323_credit_amount }, 
-	{ CISCO_ATTR_NAME("h323-credit-time"), RadiusAttr::CiscoVSA_h323_credit_time },
-	{ CISCO_ATTR_NAME("h323-return-code"), RadiusAttr::CiscoVSA_h323_return_code }, 
-	{ CISCO_ATTR_NAME("h323-billing-model"), RadiusAttr::CiscoVSA_h323_billing_model }, 
-	{ CISCO_ATTR_NAME("h323-currency"), RadiusAttr::CiscoVSA_h323_currency },
-	{ CISCO_ATTR_NAME("h323-redirect-number"), RadiusAttr::CiscoVSA_h323_redirect_number },
-	{ CISCO_ATTR_NAME("h323-redirect-ip-address"), RadiusAttr::CiscoVSA_h323_redirect_ip_address }, 
-	{ CISCO_ATTR_NAME("h323-gw-id"), RadiusAttr::CiscoVSA_h323_gw_id },
-	{ CISCO_ATTR_NAME("h323-call-origin"), RadiusAttr::CiscoVSA_h323_call_origin },
-	{ CISCO_ATTR_NAME("h323-call-type"), RadiusAttr::CiscoVSA_h323_call_type }, 
-	{ CISCO_ATTR_NAME("h323-voice-quality"), RadiusAttr::CiscoVSA_h323_voice_quality },
-	{ CISCO_ATTR_NAME("h323-incoming-conf-id"), RadiusAttr::CiscoVSA_h323_incoming_conf_id },
-	{ CISCO_ATTR_NAME("h323-preferred-lang"), RadiusAttr::CiscoVSA_h323_preferred_lang }, 
-	{ NULL, 0, 0 }
+	CiscoAttrName(CISCO_ATTR_NAME("h323-remote-address"), RadiusAttr::CiscoVSA_h323_remote_address),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-conf-id"), RadiusAttr::CiscoVSA_h323_conf_id),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-setup-time"), RadiusAttr::CiscoVSA_h323_setup_time), 
+	CiscoAttrName(CISCO_ATTR_NAME("h323-connect-time"), RadiusAttr::CiscoVSA_h323_connect_time),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-disconnect-time"), RadiusAttr::CiscoVSA_h323_disconnect_time),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-disconnect-cause"), RadiusAttr::CiscoVSA_h323_disconnect_cause),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-credit-amount"), RadiusAttr::CiscoVSA_h323_credit_amount), 
+	CiscoAttrName(CISCO_ATTR_NAME("h323-credit-time"), RadiusAttr::CiscoVSA_h323_credit_time),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-return-code"), RadiusAttr::CiscoVSA_h323_return_code), 
+	CiscoAttrName(CISCO_ATTR_NAME("h323-billing-model"), RadiusAttr::CiscoVSA_h323_billing_model), 
+	CiscoAttrName(CISCO_ATTR_NAME("h323-currency"), RadiusAttr::CiscoVSA_h323_currency),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-redirect-number"), RadiusAttr::CiscoVSA_h323_redirect_number),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-redirect-ip-address"), RadiusAttr::CiscoVSA_h323_redirect_ip_address), 
+	CiscoAttrName(CISCO_ATTR_NAME("h323-gw-id"), RadiusAttr::CiscoVSA_h323_gw_id),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-call-origin"), RadiusAttr::CiscoVSA_h323_call_origin),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-call-type"), RadiusAttr::CiscoVSA_h323_call_type), 
+	CiscoAttrName(CISCO_ATTR_NAME("h323-voice-quality"), RadiusAttr::CiscoVSA_h323_voice_quality),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-incoming-conf-id"), RadiusAttr::CiscoVSA_h323_incoming_conf_id),
+	CiscoAttrName(CISCO_ATTR_NAME("h323-preferred-lang"), RadiusAttr::CiscoVSA_h323_preferred_lang),
+	CiscoAttrName(NULL, 0, 0)
 };
 
 
@@ -1907,12 +1913,14 @@ RadiusClient::RadiusClient(
 RadiusClient::~RadiusClient()
 {
 	unsigned size = m_activeSockets.size();
-	for (unsigned i = 0; i < size; i++)
+	unsigned i;
+
+	for (i = 0; i < size; i++)
 		delete m_activeSockets[i];
 	m_activeSockets.clear();
 	
 	size = m_radiusServers.size();
-	for (unsigned i = 0; i < size; i++)
+	for (i = 0; i < size; i++)
 		delete m_radiusServers[i];
 	m_radiusServers.clear();
 }
