@@ -258,8 +258,6 @@ public:
 	ProxyHandler *GetHandler();
 	void LoadConfig();
 
-	void Check();
-
 private:
 	std::vector<ProxyHandler *> m_handlers;
 	int m_current, m_hsize;
