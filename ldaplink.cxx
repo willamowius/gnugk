@@ -26,16 +26,17 @@
 #include "ldaplink.h"		// First of includes: own interface
 
 #ifndef lint
+// mark object with version info
 static char vcid[] = "@(#) $Id$";
 static char vcHid[] = LDAPLINK_H;
 #endif /* lint */
 
 /* This is the place to include standardized headers */
 #if (defined(__cplusplus) && defined(USE_ISO_HEADERS))
-#  include <cstdlib>            // ISO C++: standard library
+#  include <cstdlib>            // ISO C++: C standard library
 using namespace std;            // <--- NOTE!
 #else /* either not C++ or the ISO headers shouldn't be used*/
-#  include <stdlib.h>           /* ANSI C: standard library */
+#  include <stdlib.h>           /* ANSI C: C standard library */
 #endif /* use of header type resolved */
 
 #include "GkStatus.h"		// gatekeeper status port for error handling
@@ -54,36 +55,31 @@ using namespace std;            // <--- NOTE!
 #endif
 // NOTE: Do not use the ldap_perror function! This environment provides its
 //       own error handling:
-#define ERRORPRINT(stream) GkStatus::Instance()->                    \
-                           SignalStatus(PString(stream) + LDAP_DBG_LINEEND);
-#define DEBUGPRINT(stream) PTRACE(LDAP_DBG_LVL, stream << LDAP_DBG_LINEEND);
+#define ERRORPRINT(strpar) GkStatus::Instance()->                    \
+                           SignalStatus(PString(strpar) + LDAP_DBG_LINEEND);
+#define DEBUGPRINT(stream) PTRACE(LDAP_DBG_LVL, stream << endl);
 
 
-// CLASS: LDAPAttributeNamesClass
-LDAPAttributeNamesClass::LDAPAttributeNamesClass() 
-{
-  // defaults from the supplied VoIP-Scheme (OID as comment)
-  UserIdentity_ldap_attr = "uid"; // 0.9.2342.19200300.100.1.1
-  H323ID_ldap_attr = "cn";	// 2.5.4.3
-  TelephonNr_ldap_attr = "telephoneNumber"; // 2.5.4.20
-  H245PassWord_ldap_attr = "plaintextPassword";	// ...9564.2.1.1.8
-  aliasH3232ID_ldap_attr = "voIPnickName"; // ...9564.2.5.1000
-  CountryCode_ldap_attr = "voIPcountryCode"; // ...9564.2.5.2000
-  AreaCode_ldap_attr = "voIPareaCode"; // ...9564.2.5.2010
-  LocalAccessCode_ldap_attr = "voIPlocalAccessCode"; // ...9564.2.5.2020
-  NationalAccessCode_ldap_attr = "voIPnationalAccessCode"; // ...9564.2.5.2030
-  InternationalAccessCode_ldap_attr = "voIPinternationalAccessCode"; // ...9564.2.5.2040
-  CallingLineIdPresentation_ldap_attr = "voIPcallingLineIdPresentation"; // ...2050
-  PrefixBlacklist_ldap_attr = "voIPprefixBlacklist"; // ...9564.2.5.2060
-  PrefixWhitelist_ldap_attr = "voIPprefixWhitelist"; // ...9564.2.5.2070
-}
+// list of names (keys) as used in config file, keep in sync with LDAPAttributeNamesEnum
+const char *  lctn::LDAPAttrTags[lctn::MAX_ATTR_NO] =
+{"UserIdentity", "H323ID", "TelephonNo", "H245PassWord", "CountryCode", 
+ "AreaCode", "LocalAccessCode", "NationalAccessCode", "InternationalAccessCode",
+ "CallingLineIdPresentation", "PrefixBlacklist", "PrefixWhitelist"};
 
-LDAPAttributeNamesClass::~LDAPAttributeNamesClass() 
-{
-  // do nothing
-}
+
 
 // CLASS: LDAPAnswer
+
+LDAPAnswer::LDAPAnswer(): 
+  status(LDAP_SUCCESS)
+{
+  // this space left blank intentionally
+}
+
+LDAPAnswer::~LDAPAnswer()
+{
+  // this space left blank intentionally
+}
 
 // CLASS: LDAPCtrl
 
@@ -114,9 +110,10 @@ LDAPCtrl::LDAPCtrl(LDAPAttributeNamesClass * AttrNames,
   LDAP * ld = NULL;
   if (NULL == (ld = ldap_init(ServerName, ServerPort))) {
     DEBUGPRINT("ldap_ctrl: no connection on " << 
-	       ServerName << ":(" << ServerPort << ")");
-    ERRORPRINT(PString("ldap_ctrl: no connection on " + 
-	       ServerName + ":(" + ServerPort + ")"));
+	       ServerName << ":(" << ServerPort << ")" << 
+	       endl << vcid << endl << vcHid);
+    ERRORPRINT(PString("ldap_ctrl: no connection on ") +
+	       ServerName + ":(" + ServerPort + ")");
     ldap = NULL;
   } else {
     DEBUGPRINT("ldap_ctrl: connection OK on" << 
@@ -150,26 +147,146 @@ LDAPCtrl::LDAPCtrl(LDAPAttributeNamesClass * AttrNames,
     ERRORPRINT("ldap_ctrl: error while trying to get cache(" 
 	       + PString(timelimit)
 	       + ", " + PString(LDAP_HAS_CACHE) + ")");
+  }
 #endif /* LDAP_USE_CACHE */
 
 } // constructor: LDAPCtrl
 
 LDAPCtrl::~LDAPCtrl()
 {
+  int ldap_ret;
 #if (defined(LDAP_USE_CACHE) && (LDAP_USE_CACHE < 1))
-    ldap_destroy_cache(ldap); // get rid of cache
+    if(LDAP_SUCCESS != (ldap_ret = ldap_destroy_cache(ldap)))
+      ERRORPRINT("~LDAPCtrl: couldn't get rid of cache: " 
+		 + PString(ldap_err2string(ldap_ret)));
 #endif /* LDAP_USE_CACHE */
-  if(NULL != ldap) {
-    int ld_errno;
-    if(LDAP_SUCCESS != (ld_errno = ldap_unbind(ldap)))
-      ERRORPRINT("~LDAPCtrl: couldn't get rid of cache:" 
-		 + PString(ldap_err2string(ld_errno)));
-  }
+  if(NULL != ldap)
+    if(LDAP_SUCCESS != (ldap_ret = ldap_unbind(ldap)))
+      ERRORPRINT("~LDAPCtrl: couldn't unbind: " 
+		 + PString(ldap_err2string(ldap_ret)));
 } // destructor: LDAPCtrl
 
+// searching for user
+LDAPAnswer * 
+LDAPCtrl::DirectoryUserLookup(LDAPQuery & p) 
+{
+  LDAPAnswer * result = new LDAPAnswer;
+  int ldap_ret = LDAP_SUCCESS;
+
+  // this is the local bind version
+  DEBUGPRINT("Binding with " << BindUserDN << "pw length:" << BindUserPW.GetLength());
+  if (LDAP_SUCCESS == 
+      (ldap_ret = ldap_simple_bind_s(ldap, BindUserDN, BindUserPW))) {
+    DEBUGPRINT("ldap_simple_bind: OK " << PString(ldap_err2string(ldap_ret)));
+  } else {
+    ERRORPRINT("ldap_simple_bind: " + PString(ldap_err2string(ldap_ret)));
+    result->status=ldap_ret;
+    return result;
+  }
+
+  result = DirectoryLookup(p);
+
+  DEBUGPRINT("Unbinding " << BindUserDN);
+  if (LDAP_SUCCESS == (ldap_ret = ldap_unbind(ldap))) {
+    DEBUGPRINT("ldap_unbind: OK " << PString(ldap_err2string(ldap_ret)));
+  } else {
+    ERRORPRINT("ldap_unbind: " + PString(ldap_err2string(ldap_ret)));
+    result->status=ldap_ret;
+    return result;
+  }
+
+  return result;
+}
+
+// searching for user
+LDAPAnswer * 
+LDAPCtrl::DirectoryLookup(LDAPQuery & p) 
+{
+  LDAPAnswer * result = new LDAPAnswer;
+  int ldap_ret = LDAP_SUCCESS;
+  LDAPMessage * res;		/* response */
+
+  // basic search
+  using namespace lctn;
+  const char * (attrs[MAX_ATTR_NO]);
+  unsigned int pos = 0;
+  LDAPAttributeNamesClass::iterator iter = AttributeNames->begin();
+  while((iter != AttributeNames->end()) && (MAX_ATTR_NO >= pos)) {
+    // This cast is directly from hell, but pwlib is not nice to C APIs
+    attrs[pos++] = (const char *)((*iter).second) ;
+  }
+  attrs[pos] = NULL;		// C construct: array of unknown size 
+                                // terminated by NULL-pointer 
+
+  int attrsonly = 0;		/* 0: attr&value; 1: attr */
+  PString filter;
+  filter.sprintf("(|(%s=%s)(%s=%s))", // RFC 1558 conform template
+		 LDAPAttrTags[H323ID], // attribute name (H323ID)
+		 (const char *)p.userH323ID, // requested value(H323ID)
+		 // possible alternative
+		 (char*)aliasH3232ID,// attribute name (H323ID)
+		 (const char *)p.userH323ID // requested value (H323ID)
+		 );
 
 
+  DEBUGPRINT("ldap_search_st(" << SearchBaseDN << ", " << filter << ")");
+
+  if (LDAP_SUCCESS == 
+      (ldap_ret = ldap_search_st(ldap, SearchBaseDN, LDAP_SCOPE_SUBTREE, 
+				 filter, (char **)attrs, attrsonly,
+				 timeout, &res))) {
+    DEBUGPRINT("ldap_search_st: OK " << PString(ldap_err2string(ldap_ret)));
+  } else {
+    ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
+    result->status = ldap_ret;
+    return result;
+  }
+
+  // analyze answer
+  if (0 > (ldap_ret = ldap_count_entries(ldap, res))) {
+    ERRORPRINT("ldap_search_st: " + PString(ldap_err2string(ldap_ret)));
+    result->status = ldap_ret;
+    return result;
+  } else {
+    DEBUGPRINT("ldap_search: " << ldap_ret << " results");
+  }
+
+  LDAPMessage * chain;		// iterate throght chain of answers
+  for(chain = ldap_first_entry(ldap, res);
+      chain != NULL;
+      chain = ldap_next_entry(ldap, chain)) {
+    char * attr = NULL;
+    char * dn = NULL;
+    BerElement * ber = NULL;
+    if(NULL == (dn = ldap_get_dn(ldap, chain))) {
+      ERRORPRINT("ldap_get_dn: Could not get distinguished name.");
+    }
+    DEBUGPRINT("found DN: " << dn);
+
+    for(attr = ldap_first_attribute(ldap, chain, &ber);
+	attr != NULL;
+	attr = ldap_next_attribute(ldap, chain, ber)) {
+      char ** valv = NULL;
+      int valc = 0;
+      if(NULL == (valv = ldap_get_values(ldap, chain, attr))) {
+	ERRORPRINT("ldap_get_values: Could not get attribute values");
+	result->status = LDAP_OTHER;
+	return result;
+      }
+      valc = ldap_count_values(valv);
+
+      //AV.insert(LDAPAVValuePair(attr,PStringList()));
+
+      ldap_value_free(valv);
+    } // attr
+  } // answer chain
+  return result;
+}
 
 //
 // End of ldaplink.cxx
 //
+
+
+
+

@@ -23,7 +23,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 //  
 
-#if !defined(LDAPLINK_H)		/* make idempotent */
+#if !defined(LDAPLINK_H)	/* make idempotent */
 #define LDAPLINK_H "@(#) $Id$"
 
 #if defined(HAS_LEVEL_TWO_LDAPAPI) 
@@ -40,38 +40,48 @@ typedef struct berval {
 #endif
 
 #include <ptlib.h>		// the PWlib
+#include <map>			// STL map
 
 /** Class that holds the current names of the attribute names used for the
     LDAP access 
 */
-class LDAPAttributeNamesClass {
+using std::map;
+typedef std::map<PString, PString> LDAPAttributeNamesClass;
+typedef LDAPAttributeNamesClass::value_type LDAPANValuePair;
+
+// LDAP config tags and names
+namespace lctn {
+  /// tags named after config file tags, used as indices to LDAPAttrTags
+  enum LDAPAttributeNamesEnum {
+    UserIdentity=0, H323ID, TelephonNo, H245PassWord, aliasH3232ID,
+    CountryCode, AreaCode, LocalAccessCode, NationalAccessCode,
+    InternationalAccessCode, CallingLineIdPresentation, PrefixBlacklist,
+    PrefixWhitelist, MAX_ATTR_NO };
+
+  /// list of names (keys) as used in config file
+  extern const char * LDAPAttrTags[MAX_ATTR_NO];
+}
+
+
+/** Class that contains search queries
+*/
+class LDAPQuery {
 public:
-  LDAPAttributeNamesClass();	// defaults to VoIP-Scheme
-  ~LDAPAttributeNamesClass();
-  // attribute names, mandatory attributes
-  PString UserIdentity_ldap_attr;
-  PString H323ID_ldap_attr;
-  PString TelephonNr_ldap_attr;
-  PString H245PassWord_ldap_attr;
-  PString aliasH3232ID_ldap_attr;
-  // attribute names, optional attributes
-  PString CountryCode_ldap_attr;
-  PString AreaCode_ldap_attr;
-  PString LocalAccessCode_ldap_attr;
-  PString NationalAccessCode_ldap_attr;
-  PString InternationalAccessCode_ldap_attr;
-  PString CallingLineIdPresentation_ldap_attr;
-  PString PrefixBlacklist_ldap_attr;
-  PString PrefixWhitelist_ldap_attr;
+  PString userH323ID;
 };
 
 /** Class that contains search answers
 */
 class LDAPAnswer {
+public:
+  LDAPAnswer();
+  ~LDAPAnswer();
+  int status;			// as LDAP.ld_errno
+  typedef map<PString, PStringList> LDAPAttributeValueClass;
+  typedef LDAPAttributeNamesClass::value_type LDAPAVValuePair;
+  LDAPAttributeValueClass AV;	// the attributes and their values
 };
 
-/** Class that encapsulates the LDAP functions 
-*/
 class LDAPCtrl {
 public:
   LDAPCtrl(LDAPAttributeNamesClass *, // the Attribute names
@@ -85,7 +95,10 @@ public:
 	   int			// Port of the LDAP Server (default IANA port)
 	   ); 
   ~LDAPCtrl();
-  
+
+  // searching for user accreditation
+  LDAPAnswer * DirectoryUserLookup(LDAPQuery &); 
+
 protected:
   LDAPAttributeNamesClass * AttributeNames; // names of the LDAP attributes
   struct timeval * timeout;	// timeout for *_st operations
@@ -98,6 +111,7 @@ protected:
   unsigned int timelimit;	// timeout for operations in seconds
 private:
   LDAP * ldap;			// The ldap connection
+  LDAPAnswer * DirectoryLookup(LDAPQuery &); // internal look up
 };
 
 #endif /* defined(LDAPLINK_H) */
