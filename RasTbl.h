@@ -195,6 +195,7 @@ private:
 	// not assignable
 	EndpointRec(const EndpointRec &);
 	EndpointRec & operator= (const EndpointRec &);
+	BOOL m_must_delete_terminal_type;
 };
 
 typedef EndpointRec::Ptr endptr;

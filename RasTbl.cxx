@@ -55,7 +55,7 @@ static const char vcHid[] = RASTBL_H;
 const char *CallTableSection = "CallTable";
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-	:        m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false)
+	:        m_RasMsg(completeRAS), m_terminalType(NULL), m_timeToLive(1), m_activeCall(0), m_totalCall(0), m_pollCount(2), m_usedCount(0), m_nat(false), m_must_delete_terminal_type(FALSE)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -149,6 +149,7 @@ void EndpointRec::SetEndpointRec(H225_LocationRequest & lrq)
 	m_callSignalAddress=lrq.m_replyAddress; // even if it's wrong
 	H225_TransportAddress_ipAddress &a = m_callSignalAddress;
 	a.m_port = GK_DEF_CALL_SIGNAL_PORT; // Not really what we want, but how to fake?
+	m_must_delete_terminal_type = TRUE;
 	m_terminalType = new H225_EndpointType;
 	m_terminalAliases = lrq.m_sourceInfo;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
@@ -158,6 +159,8 @@ void EndpointRec::SetEndpointRec(H225_LocationRequest & lrq)
 EndpointRec::~EndpointRec()
 {
 	PTRACE(3, "remove endpoint: " << (const unsigned char *)m_endpointIdentifier.GetValue() << " " << m_usedCount);
+	if (m_must_delete_terminal_type)
+		delete m_terminalType;
 }
 
 bool EndpointRec::GetH323ID(H225_AliasAddress &id) {
@@ -1688,7 +1691,7 @@ PString CallRec::GenerateCDR()
 	}
 
 	return PString(PString::Printf,
-		       "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s|%u|%s|%s%d.%d.%d-%s-%s-%s|%d;"
+		       "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%u|%s|%s|%u|%s|%s%d.%d.%d-%s-%s-%s|%d|%u|%s;"
 		       GK_LINEBRK,
 		       m_CallNumber,
 		       static_cast<const char *>(AsString(m_callIdentifier.m_guid)),
@@ -1715,7 +1718,9 @@ PString CallRec::GenerateCDR()
 		       static_cast<const char *>(PProcess::GetOSName()),
 		       static_cast<const char *>(PProcess::GetOSHardware()),
 		       static_cast<const char *>(PProcess::GetOSVersion()),
-		       static_cast<int>(InternalGetCalledProfile().GetReleaseCause())
+		       static_cast<int>(InternalGetCalledProfile().GetReleaseCause()),
+		       static_cast<unsigned int>(CalledP.GetCallingPN_TON()),
+		       static_cast<const char *>(CalledP.GetCallingPN())
 		);
 }
 
