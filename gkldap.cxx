@@ -194,8 +194,10 @@ BOOL GkLDAP::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttribut
 			}
 		}
 	}
+	BOOL rv = (answer->status == 0) ? TRUE : FALSE;
+	delete answer;
 	matchFound = (fullMatch || partialMatch || gwFound);
-	return (answer->status == 0) ? TRUE : FALSE;
+	return rv;
 }
 
 dctn::DBTypeEnum GkLDAP::dbType()
