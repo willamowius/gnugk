@@ -1849,7 +1849,9 @@ bool AdmissionRequestPDU::Process()
 	acf.IncludeOptionalField(H225_AdmissionConfirm::e_irrFrequency);
 	acf.m_irrFrequency.SetValue(120);
 
-	if( !answer && aliasesChanged && request.m_canMapAlias
+	if( !answer && aliasesChanged 
+		&& request.HasOptionalField(H225_AdmissionRequest::e_canMapAlias)
+		&& request.m_canMapAlias
 		&& request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)
 		&& request.m_destinationInfo.GetSize() > 0 ) {
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
