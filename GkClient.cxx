@@ -232,18 +232,36 @@ void GkClient::RegisterFather()
 	rrq.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	rrq.m_discoveryComplete = FALSE;
 
-	BuildFullRRQ(rrq);
+	// Build RRQ
+
+ 	rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+
+	PINDEX as, p;
+
+	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
+	// Is there any way to get the H323ID from the RCF?
+	PString h323id(GkConfig()->GetString(EndpointSection, "MasterH323ID", "OpenH323Gatekeeper"));
+	PStringArray h323ids=h323id.Tokenise(" ,;\t", FALSE);
+	rrq.m_terminalAlias.SetSize(1);
+	H323SetAliasAddress(h323ids[0], rrq.m_terminalAlias[0]);
+
+	// END
+
 
 	H225_TransportAddress gkaddr;
 	gkaddr.SetTag(H225_TransportAddress::e_ipAddress);
 	H225_TransportAddress_ipAddress & gkaddr_ip = gkaddr;
-	gkaddr_ip.m_port = 1721;
+	// Hopefully all GK will use the same port
+
+	gkaddr_ip.m_port = GkConfig()->GetInteger(EndpointSection, "MaserCallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
 	gkaddr_ip.m_ip[0] = m_gkaddr[0];
 	gkaddr_ip.m_ip[1] = m_gkaddr[1];
 	gkaddr_ip.m_ip[2] = m_gkaddr[2];
 	gkaddr_ip.m_ip[3] = m_gkaddr[3];
 	rrq.m_callSignalAddress.SetSize(1);
 	rrq.m_callSignalAddress[0] = gkaddr;
+
+	PTRACE(5, "registering with: " << rrq_ras);
 	RegistrationTable::Instance()->InsertRec(rrq_ras);
 }
 
