@@ -3884,7 +3884,7 @@ This defines a regular expression for the virtual queues (used with the vqueue R
 
 <descrip>
 <tag/Example (numbers starting with 001215 or 1215):/
-<quote/<tt/VirtualQueuePrefixes=^(001|1)215[0-9]*$//
+<quote/<tt/VirtualQueueRegex=^(001|1)215[0-9]*$//
 <newline>
 </descrip>
 
