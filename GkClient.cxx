@@ -313,6 +313,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	}
 
 	rrq.m_keepAlive = FALSE;
+	m_registerTimer = PTimeInterval(0,(m_retry<=0 ? 50 : m_retry));
 	SetPassword(rrq);
 }
 
@@ -325,6 +326,7 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
 	rrq.m_gatekeeperIdentifier = m_gatekeeperId;
 	rrq.m_keepAlive = TRUE;
+	m_registerTimer = PTimeInterval(0,(m_retry<=0 ? 50 : m_retry));
 	SetPassword(rrq);
 }
 
@@ -342,14 +344,13 @@ void GkClient::SendRRQ()
 	rrq.m_rasAddress[0] = *m_rasAddr;
 
 	IsRegistered() ? BuildLightWeightRRQ(rrq) : BuildFullRRQ(rrq);
-	m_registerTimer = PTimeInterval(0,(m_retry<=0 ? 50 : m_retry));
 	SendRas(rrq_ras);
 }
 
 void GkClient::RegisterFather(const PString & endpointId, const PString & gatekeeperId, int ttl)
 {
 	// Register internally
-	m_registerTimer.Stop();
+	m_registerTimer = PTimeInterval(0);
 	m_endpointId = endpointId;
 	m_gatekeeperId = gatekeeperId;
 	m_ttl = ttl;
