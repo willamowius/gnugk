@@ -5,7 +5,7 @@
 
 <H1>OpenH323 Gatekeeper Frequently Asked Questions</h1>
 
-Version 0.5. See also
+Version 0.6. See also
 <A HREF="http://www.willamowius.com/openh323gk.html">OpenH323 Gatekeeper</A>
 home page.
 
@@ -63,19 +63,7 @@ This is also a nice <a href="http://www.webproforum.com/h323/topic06.html">descr
 
 <A NAME="1_2"></A><H2>1.2. Can I use the gatekeeper for NAT/masquerading H323 calls through a firewall ?</H2>
 
-No, you can't. The H.323 protocol contains data streams with many
-dynamically allocated ports and is thus very hard to masquerade.
-<p>
-The only product I'm aware of that does this is PhonePatch by
-<a href="http://www.equival.com.au/phonepatch/">Equivalence</a>.
-<p>
-There is also a <a href="ftp://ftp.coritel.it/pub/Software/nat-h323/">very simple Linux masquerading module</a> being developed. Try your luck and maybe extend it to your needs...
-<p>
-There are also 2 products that have firewalling built into their other
-functionalities:
-<a href="http://openh323proxy.sourceforge.net/">OpenH323Proxy</a> and
-<a href="http://www.openh323.org/">OpenMCU</a>.
-These two work on a variety of platforms.
+Use the proxy function that has been introduced in version 2.0.
 <p>
 
 <A NAME="2"></A><H2>2. Why should I use a gatekeeper ?</H2>
@@ -138,19 +126,19 @@ There are a few pre-compiled binaries on the project homepage,
 but they might not be the most recent version.
 <p>
 
-<A NAME="5"></A><H2>5. gk and gktest usage</H2>
+<A NAME="5"></A><H2>5. gnugk and gktest usage</H2>
 
-gk is the gatekeeper program.
+gnugk is the gatekeeper program.
 
 <PRE>
-Usage: gk [-b bandwidth] [-r] [-h home-ip] [-t -t ...] [-o file]
+Usage: gnugk [-b bandwidth] [-r] [-h home-ip] [-t -t ...] [-o file]
 </PRE>
 
 gktest is a small endpoint test program. But if possible use a
-commercial endpoint or gateway or voxilla for testing the gatekeeper. 
+commercial endpoint or gateway or voxilla for testing the gatekeeper.
 
 <PRE>
-Usage:  gktest -k hostname [-g] [-r] [-a] [-d] 
+Usage:  gktest -k hostname [-g] [-r] [-a] [-d]
 
                  -k hostname     Gatekeeper Host Name  [--gatekeeper]
                  [-g ]           Discovery (send GRQ)  [--GRQ]
@@ -207,4 +195,3 @@ of your application private.
 Please send questions and comments to <a href="mailto:gatekeeper@willamowius.com">gatekeeper@willamowius.com</a> .
 
 </BODY></HTML>
-

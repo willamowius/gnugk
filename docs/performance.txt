@@ -24,3 +24,9 @@ Windows NT 4 with 95MB RAM Celleron 400 Mhz
 
 5-6 calls/sec
 
+----------------------------------------------------------
+
+Windows 2000 with 192 MB RAM Pentium III 450Mhz
+(GK 2.0 beta 6, mc@fonetglobal.com)
+
+6 calls/sec
