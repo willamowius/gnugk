@@ -16,6 +16,7 @@
 #include "gk_const.h"
 #include "h323util.h"
 #include "stl_supp.h"
+#include "RasTbl.h"
 #include "Toolkit.h"
 #include <h235auth.h>
 #include <h323pdu.h>
@@ -366,16 +367,36 @@ bool SimplePasswordAuth::CheckCryptoTokens(const H225_ArrayOf_CryptoH323Token & 
 			H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
 			H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
 			PString gk_id = clearToken.m_generalID;
-			PString id = clearToken.m_sendersID;
-			if (aliases && !CheckAliases(id))
+			//assumption: sendersID == endpoint alias (RRQ)
+			PString ep_alias = clearToken.m_sendersID; 
+			if (aliases && !CheckAliases(ep_alias))
 				return false;
-			iterator Iter = passwdCache.find(id);
-			PString passwd = (Iter == passwdCache.end()) ? GetPassword(id) : Iter->second;
+			iterator Iter = passwdCache.find(ep_alias);
+			PString passwd = (Iter == passwdCache.end()) ? GetPassword(ep_alias) : Iter->second;
+			//if a password is not found: senderID == endpointIdentifier?
+			if (passwd.IsEmpty()){
+			 	//get endpoint by endpointIdentifier
+				H225_EndpointIdentifier ep_id;
+				ep_id = clearToken.m_sendersID;
+				endptr ep = RegistrationTable::Instance()->FindByEndpointId(ep_id);
+				if(!ep){
+					return false;
+				}
+				//check all endpoint aliases for a password
+				H225_ArrayOf_AliasAddress ep_aliases = ep->GetAliases();
+				for (PINDEX i = 0; i < ep_aliases.GetSize(); i++){
+					ep_alias = H323GetAliasAddressString(ep_aliases[i]);
+					iterator Iter = passwdCache.find(ep_alias);
+					passwd = (Iter == passwdCache.end()) ? GetPassword(ep_alias) : Iter->second;
+					if(!passwd.IsEmpty())
+						break;
+				}
+			}
 			authProcedure1.SetLocalId(gk_id);
 			authProcedure1.SetPassword(passwd);
 			if (authProcedure1.VerifyToken(tokens[i], getLastReceivedRawPDU()) == H235Authenticator::e_OK) {
-				PTRACE(4, "GkAuth\t" << id << " password match (SHA-1)");
-				passwdCache[id] = passwd;
+				PTRACE(4, "GkAuth\t" << ep_alias << " password match (SHA-1)");
+				passwdCache[ep_alias] = passwd;
 				return true;
 			}
 #endif
