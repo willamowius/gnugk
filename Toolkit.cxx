@@ -949,6 +949,24 @@ PString Toolkit::AsString(
 		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
 	}
 
+	// replace %u with microseconds - this is our extension
+	PINDEX i = 0;
+	PINDEX length = fmtStr.GetLength();
+	do {
+		i = fmtStr.Find("%u", i);
+		if (i != P_MAX_INDEX) {
+			if (i > 0 && fmtStr[i-1] == '%') {
+				i += 2;
+				continue;
+			}
+			const PString us = PString((unsigned)(tm.GetMicrosecond()));
+			fmtStr.Splice(us, i, 2);
+			length += us.GetLength();
+			i += us.GetLength();
+			length -= 2;
+		}
+	} while (i != P_MAX_INDEX && i < length);
+	
 	PString buf;
 	
 	buf.SetSize(128);
