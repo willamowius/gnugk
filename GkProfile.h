@@ -95,7 +95,8 @@ public:
 	void SetTreatCallingPartyNumberAs(enum CallProfile::Conversions tcpna);
 	void SetTreatCalledPartyNumberAs(enum CallProfile::Conversions tcpna);
 
-	void SetCC(PString &cc) ;
+	void SetCC(const PString &cc) ;
+	void SetNDC_IC(const PString &ndc);
         void SetCgPN(PString &cgPN) ;
 
 	void SetBlackList(PStringList &bl) ;
@@ -113,6 +114,7 @@ protected:
         PString         m_nac;                        // national access code
         PString         m_inac;                       // international access code
         PString         m_cc;                         // country code
+	PString         m_ndc_ic;                     // national destination code
         PString         m_cgPN;                       // calling party number for CDR generation
         BOOL            m_isCPE;                      // CPE flag
 	BOOL            m_isGK;                       // Gatekeeper client Flag

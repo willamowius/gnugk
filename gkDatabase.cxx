@@ -42,7 +42,7 @@ const char *  dctn::DBAttrTags[dctn::MAX_ATTR_NO] =
  "MainTelephoneNumber", "SubscriberTelephoneNumber", "CallingLineIdRestriction", "SpecialDials",
  "HonorsARJincompleteAddress", "PrefixOutgoingBlacklist", "PrefixOutgoingWhitelist",
  "PrefixIncomingBlacklist", "PrefixIncomingWhitelist", "PrependCallbackAC",
- "EndpointType", "CountryCode", "OutgoingWhitelistBeforeBlacklist", "ConvertToLocal",
+ "EndpointType", "CountryCode", "NationalDestnationCode", "OutgoingWhitelistBeforeBlacklist", "ConvertToLocal",
  "TreatCallingPartyNumberAs", "TreatCalledPartyNumberAs"};
 
 // section name for database names which shall be used
@@ -236,22 +236,45 @@ BOOL GkDatabase::getProfile(CallProfile & cgProfile, PString & h323id, dctn::DBT
 			cgProfile.SetNac(attrMap[attrNameAsString(NationalAccessCode)][0]);
 		if (attrMap[attrNameAsString(InternationalAccessCode)].GetSize() > 0)
 			cgProfile.SetInac(attrMap[attrNameAsString(InternationalAccessCode)][0]);
-		if (attrMap[attrNameAsString(CountryCode)].GetSize() > 0)
+		if (attrMap[attrNameAsString(NationalDestinationCode)].GetSize() > 0 &&
+		    !attrMap[attrNameAsString(NationalDestinationCode)][0].IsEmpty()) {
+			cgProfile.SetNDC_IC(attrMap[attrNameAsString(NationalDestinationCode)][0]);
+		} else if (!cgProfile.GetMainTelephoneNumber().IsEmpty()) {
+			E164_AnalysedNumber number(cgProfile.GetMainTelephoneNumber());
+			cgProfile.SetNDC_IC(number.GetNDC_IC());
+		} else if (cgProfile.GetTelephoneNumbers().GetSize()==1) {
+			E164_AnalysedNumber number(cgProfile.GetTelephoneNumbers()[0]);
+			cgProfile.SetNDC_IC(number.GetNDC_IC());
+		}
+		if (attrMap[attrNameAsString(CountryCode)].GetSize() > 0 &&
+		    !attrMap[attrNameAsString(CountryCode)][0].IsEmpty()) {
 			cgProfile.SetCC(attrMap[attrNameAsString(CountryCode)][0]);
+		} else if (!cgProfile.GetMainTelephoneNumber().IsEmpty()) {
+			E164_AnalysedNumber number(cgProfile.GetMainTelephoneNumber());
+			cgProfile.SetCC(number.GetCC());
+		} else if (cgProfile.GetTelephoneNumbers().GetSize()==1) {
+			E164_AnalysedNumber number(cgProfile.GetTelephoneNumbers()[0]);
+			cgProfile.SetCC(number.GetCC());
+		} else { // No Country code can be found.
+			 // Use a unknown (spare) Country Code
+			cgProfile.SetCC("899");
+		}
 		if (attrMap[attrNameAsString(EPType)].GetSize() == 0) {
 			cgProfile.SetIsCPE(TRUE);
 		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
 			cgProfile.SetIsCPE( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_TRUNK_GW)) ? FALSE : TRUE);
 			cgProfile.SetIsGK( (attrMap[attrNameAsString(EPType)][0] == PString(GK_EP_TYPE_GATEKEEPER)) ? FALSE : TRUE);
 		}
-		if (attrMap[attrNameAsString(PrependCallbackAC)].GetSize() == 0) {
+		if (attrMap[attrNameAsString(PrependCallbackAC)].GetSize() == 0 ||
+		    attrMap[attrNameAsString(PrependCallbackAC)][0].IsEmpty()) {
 			cgProfile.SetPrependCallbackAC(FALSE);
 		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
 			cgProfile.SetPrependCallbackAC(Toolkit::AsBool(attrMap[attrNameAsString(PrependCallbackAC)][0]));
 		}
-		if (attrMap[attrNameAsString(ConvertToLocal)].GetSize() == 0) {
+		if (attrMap[attrNameAsString(ConvertToLocal)].GetSize() == 0 ||
+		    attrMap[attrNameAsString(ConvertToLocal)][0].IsEmpty()) {
 			cgProfile.SetConvertToLocal(FALSE);
-		} else if (attrMap[attrNameAsString(EPType)].GetSize() > 0) {
+		} else if (attrMap[attrNameAsString(ConvertToLocal)].GetSize() > 0) {
 			cgProfile.SetConvertToLocal(Toolkit::AsBool(attrMap[attrNameAsString(ConvertToLocal)][0]));
 		}
 		if (attrMap[attrNameAsString(TreatCallingPartyNumberAs)].GetSize() > 0)
@@ -417,4 +440,12 @@ BOOL GkDatabase::prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttr
 		}
 	}
 	return TRUE;
+}
+
+void
+GkDatabase::flush_cache()
+{
+	for (PINDEX i=0; i < m_dbList.GetSize(); i++) {
+		m_dbList[i].flush_cache();
+	}
 }

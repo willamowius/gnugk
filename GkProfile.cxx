@@ -49,7 +49,7 @@ const PString & CallProfile::GetLac() const { return m_lac; }
 const PString & CallProfile::GetNac() const { return m_nac; }
 const PString & CallProfile::GetInac() const { return m_inac; }
 const PString & CallProfile::GetCC() const { return m_cc; }
-const PString & CallProfile::GetNDC_IC() const { return m_e164number.GetNDC_IC().GetValue(); } // inconsistency with GetCC()
+const PString & CallProfile::GetNDC_IC() const { return m_ndc_ic; }
 const PString & CallProfile::GetCgPN() { return m_cgPN; }
 
 const PStringList & CallProfile::GetBlackList() const { return m_BlackList; }
@@ -70,7 +70,8 @@ void CallProfile::SetHonorsARJincompleteAddress(BOOL honor) { m_honorsARJincompl
 void CallProfile::SetWhiteListBeforeBlackList(BOOL wbb) {m_WhiteListBeforeBlackList = wbb; }
 void CallProfile::SetPrependCallbackAC(BOOL pcac) {m_PrependCallbackAC = pcac;}
 void CallProfile::SetConvertToLocal(BOOL cl) { m_ConvertToLocal = cl ;}
-void CallProfile::SetCC(PString &cc) { m_cc = cc; }
+void CallProfile::SetCC(const PString &cc) { m_cc = cc; }
+void CallProfile::SetNDC_IC(const PString &ndc) { m_ndc_ic = ndc;}
 void CallProfile::SetCgPN(PString &cgPN) { m_cgPN = cgPN; }
 void CallProfile::SetTreatCallingPartyNumberAs(enum CallProfile::Conversions tcpna) { m_TreatCallingPartyNumberAs = tcpna; }
 void CallProfile::SetTreatCalledPartyNumberAs(enum CallProfile::Conversions tcpna)  { m_TreatCalledPartyNumberAs = tcpna; }

@@ -473,6 +473,12 @@ LDAPCtrl::collectAttributes(LDAPQuery &p, unsigned int scope) {
 	return result;
 }
 
+void
+LDAPCtrl::flush_cache()
+{
+	gk_ldap_cache_delete(ldap,0,0); // delete old cache
+}
+
 //
 // End of ldaplink.cxx
 //

@@ -93,7 +93,7 @@ public:
 	virtual LDAPAnswer * DirectoryLookup(LDAPQuery &); // general lookup
 	virtual LDAPAnswer * collectAttributes(LDAPQuery &, PStringList, unsigned int scope=LDAP_SCOPE_SUBTREE);
 	virtual LDAPAnswer * collectAttributes(LDAPQuery &, unsigned int scope=LDAP_SCOPE_SUBTREE);
-
+	void flush_cache();
 
 
 protected:

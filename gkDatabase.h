@@ -57,8 +57,8 @@ enum DBAttributeNamesEnum {
 	MainTelephoneNo, SubscriberTelephoneNumber, CallingLineIdRestriction, SpecialDials,
 	HonorsARJincompleteAddress, PrefixOutgoingBlacklist, PrefixOutgoingWhitelist,
 	PrefixIncomingBlacklist, PrefixIncomingWhitelist, PrependCallbackAC, EPType, CountryCode,
-	OutgoingWhitelistBeforeBlacklist, ConvertToLocal, TreatCallingPartyNumberAs,
-	TreatCalledPartyNumberAs, MAX_ATTR_NO };
+	NationalDestinationCode, OutgoingWhitelistBeforeBlacklist, ConvertToLocal,
+	TreatCallingPartyNumberAs, TreatCalledPartyNumberAs, MAX_ATTR_NO };
 
 	/// list of names (keys) as used in config file
 extern const char * DBAttrTags[MAX_ATTR_NO];
@@ -92,6 +92,10 @@ public:
 	/** @returns database type
 	 */
 	virtual dctn::DBTypeEnum dbType() = 0;
+
+	/** flushes database caches, if provided by DBHandler.
+	 */
+	virtual void flush_cache() {};
 };
 
 PLIST(DBListType, GkDBHandler);
@@ -160,6 +164,12 @@ public:
   virtual BOOL prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name,
 			   BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound,
 			   dctn::DBTypeEnum & dbType, CalledProfile &calledProfile);
+
+
+	/** Flush all caches of the Databases.
+	 */
+	virtual void flush_cache();
+
 
 private:
 
