@@ -19,7 +19,7 @@
 #ifndef GKSTATUS_H
 #define GKSTATUS_H "@(#) $Id$"
 
-#if (_MSC_VER >= 1200)  
+#if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #endif
 
@@ -43,9 +43,6 @@ public:
 	void SetDirty(BOOL isDirty) { m_IsDirty = isDirty; }
 	BOOL IsDirty() const { return m_IsDirty; }
 
-	/** called frequently to erase clients from the list */
-	void CleanupClients();
-
 	/** #level# is the 'status trace level'  */
 	void SignalStatus(const PString &Message, int level=0);
 
@@ -57,7 +54,7 @@ public:
 		e_PrintCurrentCalls,
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
 		e_Find,		/// find an endpoint
-		e_FindVerbose,	// 
+		e_FindVerbose,	//
 		e_DisconnectIp,	/// disconnect a call by endpoint IP number
 		e_DisconnectAlias, /// disconnect a call by endpoint alias
 		e_DisconnectCall, /// disconnect a call by call number
@@ -104,12 +101,12 @@ public:
 		Client( GkStatus * _StatusThread, PTCPSocket * _Socket );
 		virtual ~Client();
 
-		/* 
-		BOOL Write( const char * Message, size_t MsgLen ); 
+		/*
+		BOOL Write( const char * Message, size_t MsgLen );
 		*/
 		BOOL WriteString(const PString &Message, int level=0);
 		int Close(void);
-		
+
 		PString WhoAmI() const {
 			return Socket->GetName();
 		}
@@ -129,7 +126,7 @@ public:
 
 		PTCPSocket * Socket;
 		GkStatus   * StatusThread;
-		
+
 		/// map for fast (and easy) 'parsing' the commands from the user
 		static PStringToOrdinal Commands;
 
@@ -148,14 +145,10 @@ public:
 
 	PIPSocket::Address GKHome;
 	PTCPSocket StatusListener;
-	std::set<Client*> Clients;
-	std::set<Client*>::const_iterator ClientIter;
+	PLIST(ClientList,Client);
+	ClientList Clients;
 	PMutex       ClientSetLock;
 	BOOL         m_IsDirty;
 };
 
 #endif // GKSTATUS_H
-
-
-
-

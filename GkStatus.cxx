@@ -106,6 +106,7 @@ GkStatus::GkStatus()
 
 GkStatus::~GkStatus()
 {
+	PTRACE(1, "Deleting GkStatusObject");
 }
 
 void GkStatus::Initialize(PIPSocket::Address _GKHome)
@@ -127,8 +128,6 @@ void GkStatus::Main()
 	PTCPSocket * NewConnection = new PTCPSocket;
 	while(StatusListener.IsOpen())
 	{
-		CleanupClients();
-
 		if(!NewConnection->Accept (StatusListener))
 			continue;
 
@@ -137,7 +136,7 @@ void GkStatus::Main()
 			// add new connection to connection list
 			Client * NewClient = new Client( this, NewConnection );
 			ClientSetLock.Wait();
-			Clients.insert(NewClient);
+			Clients.Append(NewClient);
 			ClientSetLock.Signal();
 			// Socket will be deleted by the client thread when it closes...
 			NewConnection = new PTCPSocket;
@@ -149,27 +148,18 @@ void GkStatus::Main()
 
 void GkStatus::Close(void)
 {
-	PTRACE(2, "GK\tClosing Status thread.");
-
 	// close all connected clients
 	ClientSetLock.Wait();
-	for_each(Clients.begin(), Clients.end(), mem_fun(&Client::Close));
+	for (PINDEX i=0; i< Clients.GetSize(); i++) {
+		Clients[i].Close();
+	}
 	ClientSetLock.Signal();
-
-	// Wait for client threads to die...
-	BOOL Empty;
-	PTimeInterval tenth(100); // 1/10 sec
-	do
-	{
-		ClientSetLock.Wait();
-		Empty = Clients.empty();
-		ClientSetLock.Signal();
-		Sleep(tenth);
-	} while ( !Empty );
+	// Clients do auto-delete.
 
 	// close my listening socket
 	StatusListener.Close();
 
+	Terminate();
 	PTRACE(2, "GK\tClosed Status thread.");
 }
 
@@ -210,48 +200,11 @@ void ClientSignalStatus::operator()(GkStatus::Client *pclient) const
 void GkStatus::SignalStatus(const PString &Message, int level)
 {
 //	ClientSetLock.Wait();
-	for_each(Clients.begin(),Clients.end(), ClientSignalStatus(Message, level));
+//	for_each(Clients.begin(),Clients.end(), ClientSignalStatus(Message, level));
+	for(PINDEX i=0; i<Clients.GetSize(); i++)
+		(ClientSignalStatus(Message, level))(&Clients[i]);
 //	ClientSetLock.Signal();
 };
-
-
-void GkStatus::RemoveClient( GkStatus::Client * Client )
-{
-	PTRACE(5,"RemoveClient");
-
-	Clients.erase(Client);
-	delete Client;
-}
-
-
-void GkStatus::CleanupClients()
-{
-	if(IsDirty()) {
-		/* we will only delete one client per round */
-
-		Client* deleteThis = NULL; // will be != NULL for deletition
-
-		for (ClientIter=Clients.begin(); ClientIter != Clients.end(); ++ClientIter)
-		{
-			if((*ClientIter)->PleaseDelete) {
-				deleteThis = *ClientIter;
-				break;
-			}
-		};
-
-		if(deleteThis != NULL)
-		{
-			ClientSetLock.Wait();
-			RemoveClient(deleteThis);
-			ClientSetLock.Signal();
-			// one more round: do not set SetDirty(FALSE);
-		}
-		else {
-			// no more cleanum rounds
-			SetDirty(FALSE);
-		}
-  }
-}
 
 
 static PString PrintGkVersion(); // local helper
@@ -272,7 +225,7 @@ static PString PrintGkVersion()
 // PStringToOrdinal GkStatus::Client::Commands(NumberOfCommandStrings, GkStatusClientCommands, TRUE);
 
 GkStatus::Client::Client( GkStatus * _StatusThread, PTCPSocket * _Socket )
-	: PThread(1000, NoAutoDeleteThread),
+	: PThread(1000, AutoDeleteThread),
 	  TraceLevel(0),
 	  PleaseDelete(FALSE),
 	  Socket(_Socket),
@@ -286,11 +239,12 @@ GkStatus::Client::Client( GkStatus * _StatusThread, PTCPSocket * _Socket )
 GkStatus::Client::~Client()
 {
 	Mutex.Wait();
+	StatusThread->Clients.Remove(this);
 	if(Socket->IsOpen())
 		Close();
 	delete Socket;
 	Socket = NULL;
-	Mutex.Signal();
+	Mutex.Signal(); // Who should I signal?? This instance *is* already dead.
 }
 
 
@@ -418,7 +372,9 @@ void GkStatus::Client::Main()
 					StatusThread->SignalStatus(PString("  "+WhoAmI() + ": " + Line + GK_LINEBRK));
 					break;
 				case GkStatus::e_Who:
-					for_each(StatusThread->Clients.begin(), StatusThread->Clients.end(), WriteWhoAmI(this));
+					//for_each(StatusThread->Clients.begin(), StatusThread->Clients.end(), WriteWhoAmI(this));
+					for (PINDEX i=0; i < StatusThread->Clients.GetSize(); i++)
+						(WriteWhoAmI(this))(&StatusThread->Clients[i]);
 					WriteString(";" GK_LINEBRK);
 					break;
 				case GkStatus::e_Help:
@@ -600,6 +556,7 @@ int GkStatus::Client::Close(void)
 {
 	if ( (NULL != Socket) && Socket->IsOpen() )
 		Socket->Close();
+	PleaseDelete = TRUE;
 	return 0; // workaround for VC
 }
 
