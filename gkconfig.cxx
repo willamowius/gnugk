@@ -1,7 +1,7 @@
 /*
  * gkconfig.cxx
  *
- * $Id$
+ * @(#) $Id$
  *
  * Custom PConfig implementation that allows chaining together more
  * than one config source (file) and access them through a single config instance.
@@ -14,6 +14,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2005/01/27 13:41:28  zvision
+ * SQLConfig ported from 2.0 branch
+ *
  * Revision 1.1.2.1  2004/06/28 00:16:20  zvision
  * All gatekeeper settings can be read from an SQL database
  *

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2005/01/16 15:22:35  zvision
+ * Database Host parameter accepts only one host now
+ *
  * Revision 1.5  2004/12/15 13:41:33  zvision
  * Reconnect to the database, if the initial attempt failed. Thanks to Mikko Oilinki
  *
@@ -22,7 +25,7 @@
  *
  */
 #ifndef GKSQL_H
-#define GKSQL_H "#(@) $Id$"
+#define GKSQL_H "@(#) $Id$"
 
 #include <list>
 #include <map>

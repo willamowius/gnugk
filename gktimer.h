@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2004/05/12 11:47:06  zvision
+ * Generic support for time-based events
+ *
  * Revision 1.1.2.2  2004/05/10 18:01:38  zvision
  * Fixed VC6 compilation errors regarding member templates
  *
@@ -19,7 +22,7 @@
  *
  */
 #ifndef GKTIMER_H
-#define GKTIMER_H "#(@) $Id$"
+#define GKTIMER_H "@(#) $Id$"
 
 #include <list>
 
