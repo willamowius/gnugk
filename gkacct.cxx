@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.21  2005/01/10 23:49:06  willamowius
+ * provide mechanism for accounting modules to escape the parameters
+ *
  * Revision 1.20  2005/01/05 15:42:31  willamowius
  * new accounting event 'connect', parameter substitution unified in parent class
  *
@@ -184,17 +187,22 @@ void GkAcctLogger::SetupAcctParams(
 	PIPSocket::Address addr;
 	WORD port = 0;
 	time_t t;
-	
-	params["g"] = Toolkit::Instance()->GKName();
+	vector<PIPSocket::Address> interfaces;
+	Toolkit* const toolkit = Toolkit::Instance();
+	toolkit->GetGKHome(interfaces);
+
+	params["g"] = toolkit->GKName();
 	params["n"] = PString(call->GetCallNumber());
 	params["u"] = GetUsername(call);
 	params["d"] = call->GetDuration();
 	params["c"] = call->GetDisconnectCause();
 	params["s"] = call->GetAcctSessionId();
+	if (!interfaces.empty())
+		params["gkip"] = interfaces.front().AsString();
+	else
+		params["gkip"] = "";
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
-	
-	Toolkit* const toolkit = Toolkit::Instance();
 	
 	t = call->GetSetupTime();
 	if (t)

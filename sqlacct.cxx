@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2005/01/05 15:42:41  willamowius
+ * new accounting event 'connect', parameter substitution unified in parent class
+ *
  * Revision 1.6  2005/01/04 18:13:42  willamowius
  * space in trace msg
  *
@@ -156,9 +159,7 @@ SQLAcct::SQLAcct(
 
 	std::vector<PIPSocket::Address> interfaces;
 	Toolkit::Instance()->GetGKHome(interfaces);
-	if (!interfaces.empty())
-		m_gkAddr = interfaces.front();
-	else {
+	if (interfaces.empty()) {
 		PTRACE(0, "GKACCT\t" << GetName() << " cannot determine gatekeeper IP address");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
