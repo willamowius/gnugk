@@ -400,22 +400,24 @@ void GkClient::OnARJ(const H225_RasMessage & obj_arj, PIPSocket::Address gkip)
 
 bool GkClient::OnDRQ(const H225_DisengageRequest & drq, PIPSocket::Address gkip)
 {
-	callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue);
 	if (m_gkaddr == gkip && drq.m_endpointIdentifier.GetValue() == m_endpointId) {
-		if (call)
+		if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue));
 			call->Disconnect(true);
 		return true;
-	} else if (call && call->IsRegistered()) {
-		H225_RasMessage drq_ras;
-		drq_ras.SetTag(H225_RasMessage::e_disengageRequest);
-		H225_DisengageRequest & drq_obj = drq_ras;
-		drq_obj = drq;
-		drq_obj.m_endpointIdentifier = m_endpointId;
-		drq_obj.m_gatekeeperIdentifier = m_gatekeeperId;
-		SetPassword(drq_obj);
-		SendRas(drq_ras);
 	}
 	return false;
+}
+
+void GkClient::SendDRQ(H225_RasMessage & drq_ras)
+{
+	H225_DisengageRequest & drq = drq_ras;
+	drq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	drq.m_disengageReason.SetTag(H225_DisengageReason::e_normalDrop);
+	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
+	drq.m_gatekeeperIdentifier = m_gatekeeperId;
+	drq.m_endpointIdentifier = m_endpointId;
+	SetPassword(drq);
+	SendRas(drq_ras);
 }
 
 bool GkClient::RewriteE164(H225_AliasAddress & alias, bool fromInternal)

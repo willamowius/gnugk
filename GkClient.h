@@ -69,6 +69,7 @@ public:
 	void SendURQ();
 	void SendARQ(const H225_AdmissionRequest &, const endptr &);
 	void SendARQ(const H225_Setup_UUIE &, unsigned, const callptr &);
+	void SendDRQ(H225_RasMessage &);
 
 	void OnGCF(const H225_GatekeeperConfirm &);
 	void OnGRJ(const H225_GatekeeperReject &);
@@ -87,6 +88,7 @@ public:
 	bool RewriteE164(Q931 &, H225_Setup_UUIE &, bool);
 
 	void CheckRegistration();
+	bool CheckGKIP(PIPSocket::Address);
 
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
@@ -105,7 +107,6 @@ private:
 	typedef std::map<int, callptr>::const_iterator const_iterator;
 
 	void SendRas(const H225_RasMessage &);
-	bool CheckGKIP(PIPSocket::Address);
 	void BuildFullRRQ(H225_RegistrationRequest &);
 	void BuildLightWeightRRQ(H225_RegistrationRequest &);
 	int  BuildARQ(H225_AdmissionRequest &);

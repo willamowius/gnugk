@@ -454,16 +454,15 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			return;
 		}
+		Address fromIP;
+		GetPeerAddress(fromIP);
+		if (!RasThread->CheckNBIP(fromIP) && !(gkClient->IsRegistered() && gkClient->CheckGKIP(fromIP))) {
+			PTRACE(2, "Q931\tWarning: call " << callid << " not from my neighbor or parent");
+			return;
+		}
 		if (gkClient->IsRegistered())
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
-		else {
-			Address fromIP;
-			GetPeerAddress(fromIP);
-			if (!RasThread->CheckNBIP(fromIP)) {
-				PTRACE(2, "Q931\tWarning: call " << callid << " not from my neighbor");
-				return;
-			}
-		}
+
 		endptr called;
 		PString destinationString;
 		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
@@ -488,8 +487,10 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		// TODO: set timeout
 		CallTable::Instance()->Insert(call);
 		m_call = callptr(call);
-		if (gkClient->IsRegistered())
+		if (gkClient->IsRegistered()) {
+			call->SetRegistered(true);
 			gkClient->SendARQ(Setup, m_crv, m_call);
+		}
 	}
 
 	const H225_TransportAddress *addr = m_call->GetCalledAddress();

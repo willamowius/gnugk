@@ -414,6 +414,7 @@ public:
 	void SetCallNumber(PINDEX i) { m_CallNumber = i; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetH245Routed(bool h245Routed) { m_h245Routed = h245Routed; }
+	void SetRegistered(bool registered) { m_registered = registered; }
 
 	void SetConnected(bool c);
 	void SetTimer(int seconds);
@@ -475,6 +476,7 @@ private:
 	mutable PMutex m_usedLock;
 
 	bool m_h245Routed;
+	bool m_registered;
 
 	CallRec(const CallRec & Other);
 	CallRec & operator= (const CallRec & other);
@@ -600,6 +602,8 @@ inline void CallRec::SetCalling(const endptr & NewCalling, unsigned crv)
 inline void CallRec::SetCalled(const endptr & NewCalled, unsigned crv)
 {
 	InternalSetEP(m_Called, m_calledCRV, NewCalled, crv);
+	if (m_Called && m_Called->IsFromParent())
+		SetRegistered(true);
 }
 
 inline void CallRec::Lock()
@@ -663,7 +667,7 @@ inline bool CallRec::IsH245Routed() const
 
 inline bool CallRec::IsRegistered() const
 {
-	return (!m_Calling || (m_Called && m_Called->IsFromParent()));
+	return m_registered;
 }
 
 #endif

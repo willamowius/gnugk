@@ -30,6 +30,7 @@
 #include "Toolkit.h"
 #include "SoftPBX.h"
 #include "RasSrv.h"
+#include "GkClient.h"
 #include "stl_supp.h"
 #include "ProxyChannel.h"
 #include "gk_const.h"
@@ -1030,6 +1031,16 @@ void CallRec::InternalSetEP(endptr & ep, unsigned & crv, const endptr & nep, uns
 
 void CallRec::RemoveAll()
 {
+	if (m_registered) {
+		H225_RasMessage ras_msg;
+		ras_msg.SetTag(H225_RasMessage::e_disengageRequest);
+		H225_DisengageRequest & drq = ras_msg;
+		drq.m_conferenceID = m_conferenceIdentifier;
+		drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
+		drq.m_callIdentifier = m_callIdentifier;
+		drq.m_callReferenceValue = (m_Calling) ? m_callingCRV : m_calledCRV;
+		RasThread->GetGkClient()->SendDRQ(ras_msg);
+	}
 	if (m_Calling)
 		m_Calling->RemoveCall();
 	if (m_Called)
