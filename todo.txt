@@ -49,15 +49,28 @@ avoid duplicate work.
 
 - implement carrier-grade routing (Assigned to: martinfroehlich, mmuehlen, rkeil, nilsb)
 
-- implement screening (based on authentification) functionality
+- implement screening (verification of A number, based on authentification) functionality
+  (Assigned to: martinfroehlich, mmuehlen, rkeil, nilsb)
+
+- implement blacklists (caller-, callee-dependant)
+
+- implement metric based routing (to allow for least cost routing decisions)
+
+- implement 'gateway of last resort' (to be taken if noone is registered)
 
 - implement alternate routing
   watch for either TCP or PBX errors, i.e. TCP errors on H.225 connection
   establishment or PBX side error codes in response to sending Q.931 SETUP
   (like no circuit/channel available)
 
-- implement source based routing
+- implement source based routing: for mobile numbers (and others, possibly), 
+  routing should be done based on *A* number
+  Since the breakout gateway doesn't make a difference in terms of cost,
+  routing to the breakout gateway closest to the originator minimizes on-net cost.
 
+- implement call interception (for legal purposes)
+
+- implement call distribution (static percentage, 
 - The resourceManager should use the new CallTable and don't keep
   it's on list of resource allocations.
 
