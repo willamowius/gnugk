@@ -56,8 +56,9 @@ BEGIN
 
 	IF NEW.price IS NULL AND NEW.accountid IS NOT NULL THEN
 		SELECT INTO NEW.price, NEW.tariffdesc, NEW.initialincrement,
-				NEW.regularincrement T.price, D.description, T.initialincrement,
-				T.regularincrement
+				NEW.regularincrement, NEW.graceperiod 
+				T.price, D.description, T.initialincrement, T.regularincrement,
+				T.graceperiod
 			FROM match_tariff(NEW.calledstationid, NEW.accountid, NEW.currencysym) AS T
 				JOIN voiptariffdst D ON T.dstid = D.id;
 	END IF;
