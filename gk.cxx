@@ -89,34 +89,38 @@ ShutdownHandler(void)
 	// delete objects only once
 	if (ShutdownMutex.WillBlock())
 		return;
+	ExitFlag=true;
 	PWaitAndSignal shutdown(ShutdownMutex);
 	if (BroadcastThread != NULL)
 	{
 		PTRACE(3, "GK\tClosing BroadcastThread");
 		BroadcastThread->Close();
 		BroadcastThread->WaitForTermination();
-		delete BroadcastThread;
+		//delete BroadcastThread;
 		BroadcastThread = NULL;
 	}
 	if (MulticastGRQThread != NULL)
 	{
-		PTRACE(3, "GK\tClosing MulticastGRQThread");
-		MulticastGRQThread->Close();
-		delete MulticastGRQThread;
-		MulticastGRQThread = NULL;
+
+ 		PTRACE(3, "GK\tClosing MulticastGRQThread");
+ 		MulticastGRQThread->Close();
+// 		delete MulticastGRQThread;
+// 		MulticastGRQThread = NULL;
 	}
+
+	PTRACE(3, "GK\tClosing Toolkit::Instance()->GetMasterRASListener().UnregisterAllEndpoints()");
+	Toolkit::Instance()->GetMasterRASListener().UnregisterAllEndpoints();
 
 	PTRACE(3, "GK\tClosing Toolkit::Instance()->GetMasterRASListener()");
 	Toolkit::Instance()->GetMasterRASListener().Close();
 	// send all registered clients a URQ
 
-	Toolkit::Instance()->GetMasterRASListener().WaitForTermination();
-	Toolkit::Instance()->GetMasterRASListener().UnregisterAllEndpoints();
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
-	Toolkit::Instance()->Close();
+	PTRACE(3, "GkStatus::Instance()->Close();");
 	GkStatus::Instance()->Close();
+
 	delete CallTable::Instance();
 	delete RegistrationTable::Instance();
 	PTRACE(3, "GK\tdelete ok");
