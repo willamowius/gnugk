@@ -23,8 +23,10 @@
 
 #include <ptlib.h>
 #include <h225.h>
+#include "gk.h"
 #include "gk_const.h"
 #include "GkStatus.h"
+#include "GkDatabase.h"
 #include "SoftPBX.h"
 #include "Toolkit.h"
 #include "ANSI.h"
@@ -41,14 +43,9 @@ static const char vcid[] = "@(#) $Id$";
 static const char vcHid[] = GKSTATUS_H;
 #endif /* lint */
 
-// FIXME: this is very ugly because it is an import of local functions of
-//        gk.cxx which are not exported by gk.h
-void ReloadHandler(void);
-void ShutdownHandler(void);
 
-
-const int GkStatus::NumberOfCommandStrings = 41;
-const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
+static const int GkStatus::NumberOfCommandStrings = GkStatus::NO_enumCommands;
+static const PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
 {
 	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
 	{"r",                        GkStatus::e_PrintAllRegistrations},
@@ -90,7 +87,8 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"shutdown",                 GkStatus::e_Shutdown},
 	{"exit",                     GkStatus::e_Exit},
 	{"quit",                     GkStatus::e_Exit},
-	{"q",                        GkStatus::e_Exit}
+	{"q",                        GkStatus::e_Exit},
+	{"flush",                    GkStatus::e_CDB_Flush}
 
 };
 
@@ -474,6 +472,10 @@ void GkStatus::Client::Main()
 					WriteString("BYE" GK_LINEBRK);
 					exit(0);
 					break;
+				case GkStatus::e_CDB_Flush:
+					PTRACE(3, "Flushing the common gk database cache");
+					GkDatabase::Instance()->flush_cache();
+					break
 				default:
 					PTRACE(3, "WRONG COMMANDS TABLE ENTRY. PLEASE LOOK AT THE CODE.");
 					WriteString("Error: Internal Error." GK_LINEBRK);

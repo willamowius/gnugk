@@ -56,27 +56,28 @@ public:
 		e_PrintAllCached,
 		e_PrintCurrentCalls,
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
-		e_Find,                        /// find an endpoint
-		e_FindVerbose,
-		e_DisconnectIp,                /// disconnect a call by endpoint IP number
-		e_DisconnectAlias,             /// disconnect a call by endpoint alias
-		e_DisconnectCall,              /// disconnect a call by call number
-		e_DisconnectEndpoint,          /// disconnect a call by endpoint ID
-		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
-		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
-		e_UnregisterIp,                /// force unregisterung of one andpoint by IP number
-		e_TransferCall,                /// transfer call from one endpoint to another
-		e_MakeCall,                    /// establish a new call from endpoint A to endpoint B
-		e_Yell,                        /// write a message to all status clients
-		e_Who,                         /// list who is logged on at a status port
-		e_Help,                        /// List all commands
-		e_Version,                     /// GkStatus Protocol Info
-		e_Debug,                       /// Debugging commands
-		e_Statistics,                  /// Show Statistics
-		e_Exit,                        /// Close Connection
-		e_Reload,                      /// Reload Config File
-		e_Shutdown,                    /// Shutdown the program
-		/// Number of different strings
+		e_Find,		/// find an endpoint
+		e_FindVerbose,	// 
+		e_DisconnectIp,	/// disconnect a call by endpoint IP number
+		e_DisconnectAlias, /// disconnect a call by endpoint alias
+		e_DisconnectCall, /// disconnect a call by call number
+		e_DisconnectEndpoint, /// disconnect a call by endpoint ID
+		e_UnregisterAllEndpoints, /// force unregisterung of all andpoints
+		e_UnregisterAlias, /// force unregisterung of one andpoint by alias
+		e_UnregisterIp,	/// force unregisterung of one andpoint by IP number
+		e_TransferCall,	/// transfer call from one endpoint to another
+		e_MakeCall, /// establish a new call from endpoint A to endpoint B
+		e_Yell,		/// write a message to all status clients
+		e_Who,		/// list who is logged on at a status port
+		e_Help,		/// List all commands
+		e_Version,	/// GkStatus Protocol Info
+		e_Debug,	/// Debugging commands
+		e_Statistics,	/// Show Statistics
+		e_Exit,		/// Close Connection
+		e_Reload,	/// Reload Config File
+		e_Shutdown,	/// Shutdown the program
+		e_CDB_Flush,	/// Flush the common gk database cache
+		NO_enumCommands	/// Number of different strings
 	};
 	static const int NumberOfCommandStrings;
 
