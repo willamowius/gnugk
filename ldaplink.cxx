@@ -348,7 +348,7 @@ LDAPAnswer *
 LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PString &DN, unsigned int scope) {
 	LDAPAnswer * result = new LDAPAnswer;
 	int ldap_ret = LDAP_SUCCESS;
-	LDAPMessage * res;		/* response */
+	LDAPMessage * res = NULL;		/* response */
 
 	// basic search
 	using namespace dctn;
@@ -414,7 +414,8 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 			DEBUGPRINT("ldap_search_st: OK " << PString(gk_ldap_err2string(ldap_ret)));
 		} else {
 			m_readLock.Signal();
-			gk_ldap_msgfree(res);
+			if(res!=NULL)
+				gk_ldap_msgfree(res);
 			DEBUGPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
 			//ERRORPRINT("ldap_search_st: " + PString(gk_ldap_err2string(ldap_ret)));
 			result->lock.Wait();
@@ -490,6 +491,7 @@ LDAPCtrl::InternalcollectAttributes(LDAPQuery &p, PStringList &want_attrs, PStri
 		gk_ldap_memfree(dn);
 	} // answer chain
 	gk_ldap_msgfree(res);
+	res=NULL;
 	return result;
 }
 
