@@ -368,7 +368,7 @@ OverlapSendDestAnalysis::getMsgDestination(const H225_AliasAddress &cdAlias, lis
 				cdEP = (CGprofile.HonorsARJincompleteAddress()) ? endptr(0) : cgEP;
 				statusRoutingDecision = e_fail;
 			// else if no match is found
-			} else if (!matchFound) {
+			} else if (matchFound) {
 				// ARJ (unreachable destination)
 				reason = H225_AdmissionRejectReason::e_resourceUnavailable;
 				cdEP = endptr(0);
