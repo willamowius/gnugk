@@ -81,12 +81,7 @@ template<class T> class Singleton : public SingletonBase {
 	Singleton(const char *);
 	~Singleton();
 
-#ifdef WIN32
   public:
-#else
-  private:
-	friend T *InstanceOf<T>();
-#endif
 	static T *m_Instance;
 	static PMutex m_CreationLock;
 };
