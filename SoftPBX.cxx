@@ -18,37 +18,20 @@
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include "gk_const.h"
+#include "h323pdu.h"
 #include "h323util.h"
 #include "h225.h"
-#include "h323pdu.h"
 #include "RasTbl.h"
 #include "Toolkit.h"
 #include "SoftPBX.h"
 
-static int RequestNum = 1;	// this is the only place we are _generating_ sequence numbers at the moment
+
+int SoftPBX::TimeToLive = -1;
+
 
 namespace {  // anonymous namespace
 
-bool SendRasPDU(H225_RasMessage &ras_msg, const H225_TransportAddress & dest)
-{
-	if (dest.GetTag() != H225_TransportAddress::e_ipAddress) {
-		PTRACE(3, "No IP address to send!" );
-		return false;
-	}
-
-	PBYTEArray wtbuf(4096);
-	PPER_Stream wtstrm(wtbuf);
-	ras_msg.Encode(wtstrm);
-	wtstrm.CompleteEncoding();
-
-	const H225_TransportAddress_ipAddress & RasIpAddress = dest;
-	PIPSocket::Address ipaddress(RasIpAddress.m_ip[0], RasIpAddress.m_ip[1], RasIpAddress.m_ip[2], RasIpAddress.m_ip[3]);
-
-	PTRACE(2, "GK\tSend to " << ipaddress << " [" << RasIpAddress.m_port << "] : " << ras_msg.GetTagName());
-	PTRACE(3, "GK\t" << endl << setprecision(2) << ras_msg);
-	PUDPSocket Socket;
-	return Socket.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), ipaddress, RasIpAddress.m_port);
-}
+int RequestNum = 1;  // this is the only place we are _generating_ sequence numbers at the moment
 
 bool SendDRQ(const endptr &ep, CallRec *Call)
 {
@@ -85,44 +68,16 @@ void SoftPBX::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose)
 	RegistrationTable::Instance()->PrintAllRegistrations(client, verbose);
 }
 
+void SoftPBX::PrintAllCached(GkStatus::Client &client, BOOL verbose)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintAllCached");
+	RegistrationTable::Instance()->PrintAllCached(client, verbose);
+}
+
 void SoftPBX::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintCurrentCalls");
 	CallTable::Instance()->PrintCurrentCalls(client, verbose);
-}
-
-// send URQ to the specify endpoint
-void SoftPBX::UnregisterEndpoint(const endptr &endpoints, H225_UnregRequestReason::Choices reason)
-{
-	if (!endpoints) {
-		PTRACE(2, "GK\tSoftPBX Warning: can't unregister null pointer!");
-		return;
-	}
-	// Only unregister registered endpoint
-	if (!endpoints->IsRegistered()) {
-		PTRACE(2, "GK\tSoftPBX: ignore unregistered endpoint!");
-		return;
-	}
-	H225_RasMessage ras_msg;
-	ras_msg.SetTag(H225_RasMessage::e_unregistrationRequest);
-	H225_UnregistrationRequest & urq = ras_msg;
-	urq.m_requestSeqNum.SetValue(RequestNum++);
-	urq.IncludeOptionalField(urq.e_gatekeeperIdentifier);
-	urq.m_gatekeeperIdentifier.SetValue( Toolkit::GKName() );
-	urq.IncludeOptionalField(urq.e_endpointIdentifier);
-	urq.m_endpointIdentifier = endpoints->GetEndpointIdentifier();
-	urq.m_callSignalAddress.SetSize(1);
-	urq.m_callSignalAddress[0] = endpoints->GetCallSignalAddress();
-	urq.IncludeOptionalField(urq.e_reason);
-	urq.m_reason.SetTag(reason);
-
-	SendRasPDU(ras_msg, endpoints->GetRasAddress());
-
-	PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
-			(const unsigned char *) AsString(H225_TransportAddress_ipAddress(endpoints->GetRasAddress())),
-			(const unsigned char *) endpoints->GetEndpointIdentifier().GetValue(),
-			(const unsigned char *) urq.m_reason.GetTagName());
-	GkStatus::Instance()->SignalStatus(msg);
 }
 
 // send URQ to all endpoints
@@ -133,15 +88,22 @@ void SoftPBX::UnregisterAllEndpoints()
 
 void SoftPBX::UnregisterAlias(PString Alias)
 {
-	H225_AliasAddress EpAlias;	// alias of endpoint to be disconnected
-	H323SetAliasAddress(Alias, EpAlias);
-	PTRACE(3, "GK\tSoftPBX: Unregister " << EpAlias);
+	H225_ArrayOf_AliasAddress EpAlias;
+	EpAlias.SetSize(1);
+	H323SetAliasAddress(Alias, EpAlias[0]);
+	PTRACE(3, "GK\tSoftPBX: Unregister " << Alias);
 
-	const endptr ep = RegistrationTable::Instance()->FindByAlias(EpAlias);
-	SoftPBX::UnregisterEndpoint(ep);
+	const endptr ep = RegistrationTable::Instance()->FindByAliases(EpAlias);
+	if (!ep) {
+		PString msg("GK\tSoftPBX: alias " + Alias + " not found!");
+		PTRACE(1, msg);
+		GkStatus::Instance()->SignalStatus(msg + "\n");
+		return;
+	}
+	ep->Unregister();
 
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
-	RegistrationTable::Instance()->RemoveByEndpointId(ep->GetEndpointIdentifier());
+	RegistrationTable::Instance()->RemoveByEndptr(ep);
 
 	PString msg("Endpoint " + Alias + " disconnected.\n");
 	PTRACE(2, "GK\tSoftPBX: endpoint " << Alias << " disconnected.");
@@ -166,11 +128,12 @@ void SoftPBX::DisconnectIp(PString Ip)
 // send a DRQ to this endpoint
 void SoftPBX::DisconnectAlias(PString Alias)
 {
-	H225_AliasAddress EpAlias;	// alias of endpoint to be disconnected
-	H323SetAliasAddress(Alias, EpAlias);
-	PTRACE(3, "GK\tSoftPBX: DisconnectAlias " << EpAlias);
+	H225_ArrayOf_AliasAddress EpAlias;
+	EpAlias.SetSize(1);
+	H323SetAliasAddress(Alias, EpAlias[0]);
+	PTRACE(3, "GK\tSoftPBX: DisconnectAlias " << Alias);
 
-	SendDRQ( RegistrationTable::Instance()->FindByAlias(EpAlias) );
+	SendDRQ( RegistrationTable::Instance()->FindByAliases(EpAlias) );
 }
 
 // send a DRQ to this endpoint

@@ -19,7 +19,11 @@
 #include "h225.h"
 
 
+bool SendRasPDU(H225_RasMessage & ras_msg, const H225_TransportAddress & dest);
+
 PString AsString(const H225_TransportAddress & ta);
+
+PString AsDotString(const H225_TransportAddress & ip);
 
 PString AsString(const H225_TransportAddress_ipAddress & ip);
 

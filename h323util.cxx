@@ -12,8 +12,30 @@
 
 
 #include "h323util.h"
-#include "ANSI.h"
 #include "h323pdu.h"
+
+
+bool SendRasPDU(H225_RasMessage &ras_msg, const H225_TransportAddress & dest)
+{
+	if (dest.GetTag() != H225_TransportAddress::e_ipAddress) {
+		PTRACE(3, "No IP address to send!" );
+		return false;
+	}
+
+	PBYTEArray wtbuf(4096);
+	PPER_Stream wtstrm(wtbuf);
+	ras_msg.Encode(wtstrm);
+	wtstrm.CompleteEncoding();
+
+	const H225_TransportAddress_ipAddress & ip = dest;
+	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+
+	PTRACE(2, "GK\tSend to " << ipaddress << " [" << ip.m_port << "] : " << ras_msg.GetTagName());
+	PTRACE(3, "GK\t" << endl << setprecision(2) << ras_msg);
+
+	PUDPSocket Sock;
+	return Sock.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), ipaddress, ip.m_port) != 0;
+}
 
 
 PString AsString(const H225_TransportAddress & ta)
@@ -21,6 +43,12 @@ PString AsString(const H225_TransportAddress & ta)
 	PStringStream stream;
 	stream << ta;
 	return stream;
+}
+
+PString AsDotString(const H225_TransportAddress & ip)
+{
+	return (ip.GetTag() == H225_TransportAddress::e_ipAddress) ?
+		AsString((const H225_TransportAddress_ipAddress &)ip) : "";
 }
 
 PString AsString(const H225_TransportAddress_ipAddress & ip)

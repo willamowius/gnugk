@@ -202,6 +202,10 @@ SOURCE=.\SoftPBX.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\stl_supp.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\Toolkit.h
 # End Source File
 # End Group

@@ -16,16 +16,15 @@
 
 #include <ptlib/sockets.h>
 #include "h225.h" 
-#include "h323.h" 
-
+#include "h323.h"
 #include "Toolkit.h"
+#include "RasTbl.h"
 
 // forward references to avoid includes
 class SignalChannel;
-class RegistrationTable;
 class resourceManager;
 class GkStatus;
-class Neighbor;
+
 
 
 class H323RasSrv : public PThread 
@@ -43,9 +42,6 @@ public:
 
 	// set signaling method
 	void SetGKSignaling(BOOL routedSignaling) { GKroutedSignaling = routedSignaling; };
-
-	// set timeToLive for RCF
-	void SetTimeToLive(int NewTimeToLive) { TimeToLive = NewTimeToLive; };
 
 	// set name of the gatekeeper.
 	const PString GetGKName() const { return Toolkit::GKName(); }
@@ -70,9 +66,15 @@ public:
 
 	BOOL OnLCF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
       
+	BOOL OnLRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
+      
 	BOOL OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rr, H225_RasMessage & obj_rpl);
       
 	void SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address rx_addr, WORD rx_port, PUDPSocket & BoundSocket);
+
+	void ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq);
+
+	bool Check();
 
 	void LoadConfig();
 
@@ -88,13 +90,14 @@ protected:
 	 * destination address is not a registered alias AND not matching with
 	 * prefix of a registered GW.
 	 */
-	virtual BOOL CheckForIncompleteAddress(const H225_AliasAddress &alias) const;
+	virtual BOOL CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress &alias) const;
 
 	virtual BOOL SetAlternateGK(H225_RegistrationConfirm &rcf);
 
 	virtual BOOL ForwardRasMsg(H225_RasMessage msg); // not passed as const, ref or pointer!
 
-	int TimeToLive; 
+	void ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_rr, H225_RasMessage & obj_rpl);
+
 	BOOL GKroutedSignaling;
 	H225_TransportAddress GKCallSignalAddress;
 	H225_TransportAddress GKRasAddress;
@@ -112,7 +115,24 @@ protected:
 	resourceManager * GKManager; 
 	GkStatus * GkStatusThread;
 
-	std::list<Neighbor> NeighborGK;
+  class Neighbor {
+    public:
+	Neighbor(const PString & gatekeeper, const PString & prefix);
+	bool SendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
+
+    private:
+	bool InternalSendLRQ(int seqNum, const H225_AdmissionRequest &, H323RasSrv *) const;
+
+        PString m_prefix;
+        PIPSocket::Address m_ip;
+        WORD m_port;
+  };
+
+	list<Neighbor> NeighborsGK;
+
+	friend class Neighbor;
+	friend class PendingList;
+	PendingList *arqPendingList;
 };
 
 #endif

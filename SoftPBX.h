@@ -12,17 +12,15 @@
 #ifndef _SOFTPBX_H
 #define _SOFTPBX_H
 
+#include <ptlib.h>
 #include "GkStatus.h"
-#include "h225.h"
 
-class endptr;
 
 namespace SoftPBX
 {
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
+	void PrintAllCached(GkStatus::Client &client, BOOL verbose=FALSE);
 	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
-	void UnregisterEndpoint(const endptr &Endpoints,
-		H225_UnregRequestReason::Choices reason = H225_UnregRequestReason::e_maintenance);
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(PString Alias);
 	void DisconnectIp(PString Ip);
@@ -32,7 +30,9 @@ namespace SoftPBX
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
 
+	extern int TimeToLive;
 }
+
 
 #endif
 

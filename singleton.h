@@ -27,8 +27,7 @@
 #include <ptlib.h>
 #endif
 
-
-using namespace std;
+using std::list;
 
 //
 // a list of pointers that would delete all objects
@@ -47,7 +46,7 @@ template<class T> class listptr : public list<void *> {
 template<class T> listptr<T>::~listptr()
 {
 	clear_list=true;
-	for_each(begin(), end(), delete_obj);
+	std::for_each(begin(), end(), delete_obj);
 }
 
 
@@ -99,7 +98,7 @@ template<class T> class Singleton : public SingletonBase {
 template<class T> Singleton<T>::Singleton()
 {
 	if (m_Instance != NULL)
-		throw runtime_error("Duplicate instances");
+		throw std::runtime_error("Duplicate instances");
 }
 
 template<class T> Singleton<T>::~Singleton()

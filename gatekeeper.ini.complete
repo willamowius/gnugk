@@ -163,10 +163,33 @@ rule=allow
 #01903142=0521178260
 #5241908601903142=521178260
 
-# prefix=ip:port
-[RasSvr::Neighbors]
-02=203.160.251.9:1719
 
+##
+## The GK would send LRQ to its neighbors if the destination of ARQ is unknown.
+## A neighbor is selected if its prefix match the destination or it has prefix '*'.
+## Currently only one prefix is supported.
+##
+#
+# ip:port=prefix
+#
+[RasSvr::Neighbors]
+#203.60.251.9:1719=02
+#203.60.251.5:1719=*
+
+##
+## In this section you can put endpoints that don't have RAS support
+## or that you don't want to be expired. The records will always
+## in GK's registration table.
+## However, You can still unregister it via status thread.
+##
+#
+# ip:port=alias,alias,...[;prefix,prefix,...]
+#
+[RasSvr::PermanentEndpoints]
+# For gateway
+#10.0.1.5=Citron;009,008
+# For terminal
+#10.0.1.10=798
 
 # EOF
 

@@ -56,7 +56,7 @@ void MulticastGRQ::Main(void)
 	{
 		PTRACE(1, "GK\tCan't join multicast group.");
 		MulticastListener.Close();
-		Suspend();
+		//Suspend();
 	};
 	while (MulticastListener.IsOpen())
 	{ 

@@ -1,13 +1,22 @@
-Changes from 0.17 to 1.0
+Changes from 1.0pre8 to 1.0 (by cwhuang)
 ========================
 
+- Neighbor function based on LRQ/LCF
+- add more information in LCF reply
+- re-design EndpointRec & Registration
+- add permanent endpoints support for endpoints without RAS
+- add gateway SupportedPrefix support
+- replace using directive by using declaration to avoid namespace pollution
+
+Changes from 0.17 to 1.0pre8
+======================== 
+- add destInfo to CallRec and CDR (cwhuang)
 - rewrite some codes in OnRRQ to be more clean and compact (cwhuang)
 - change H323RasSrv to be a separate thread, do housekeeping in the main thread (cwhuang)
 - shutdown handler refine (cwhuang)
 - allow aliases begin with '#' (cwhuang)
 - don't search endpoint table for an ARQ to an answerCall (cwhuang)
 - add registration timeout (cwhuang)
-- new design of endpointRec (cwhuang)
 - add mutex to RegistrationTable for thread-safe (cwhuang)
 - almost rewrite SoftPBX.cxx (cwhuang)
 - add singleton.h, singleton.cxx, change all singleton objects to derive from a

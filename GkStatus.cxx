@@ -27,8 +27,11 @@
 #include "ANSI.h"
 #include "h323util.h"
 
+using std::for_each;
+using std::mem_fun;
 
-const int GkStatus::NumberOfCommandStrings = 31;
+
+const int GkStatus::NumberOfCommandStrings = 33;
 const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
 {
 	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
@@ -37,6 +40,8 @@ const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::Numb
 	{"printallregistrationsverbose", GkStatus::e_PrintAllRegistrationsVerbose},
 	{"rv",                       GkStatus::e_PrintAllRegistrationsVerbose},
 	{"??",                       GkStatus::e_PrintAllRegistrationsVerbose},
+	{"printallcached",           GkStatus::e_PrintAllCached},
+	{"rc",                       GkStatus::e_PrintAllCached},
 	{"printcurrentcalls",        GkStatus::e_PrintCurrentCalls},
 	{"c",                        GkStatus::e_PrintCurrentCalls},
 	{"!",                        GkStatus::e_PrintCurrentCalls},
@@ -346,6 +351,10 @@ void GkStatus::Client::Main()
 				case GkStatus::e_PrintAllRegistrationsVerbose:
 					// print list of all registered endpoints verbose
 					SoftPBX::PrintAllRegistrations(*this, TRUE);
+					break;
+				case GkStatus::e_PrintAllCached:
+					// print list of all cached outer-zone endpoints
+					SoftPBX::PrintAllCached(*this, (Args.GetSize() > 1));
 					break;
 				case GkStatus::e_PrintCurrentCalls:
 					// print list of currently ongoing calls

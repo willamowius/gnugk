@@ -27,7 +27,6 @@
 #include <ptlib.h>
 
 #include "h323pdu.h"
-#include "RasSrv.h"
 #include "gk_const.h"
 #include "h323util.h"
 #include "gk.h"
@@ -35,16 +34,185 @@
 #include "ANSI.h"
 #include "SignalChannel.h"
 #include "GkStatus.h"
-#include "RasTbl.h"
+#include "RasSrv.h"
+#include "stl_supp.h"
 
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
-#define MAX(x,y) ((x) < (y) ? (y) : (x))
 
-class Neighbor {
-	PString prefix;
-	PIPSocket::Address ip;
-	WORD port;
+class PendingList {
+public:
+	PendingList(H323RasSrv *rs, int ttl) : theRasSrv(rs), pendingTTL(ttl), seqNumber(0) {}
+	~PendingList();
+
+	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP);
+	void ProcessLCF(const H225_RasMessage & obj_ras);
+	void ProcessLRJ(const H225_RasMessage & obj_ras);
+	void Check();
+
+private:
+	class PendingARQ {
+	public:
+		PendingARQ(int seqNum, const H225_AdmissionRequest & obj_arq, const endptr & reqEP, int nbCount)
+		  : m_seqNum(seqNum), m_arq(obj_arq), m_reqEP(reqEP), m_nbCount(nbCount) {}
+
+		bool DoACF(H323RasSrv *, const endptr &) const;
+		bool DoARJ(H323RasSrv *) const;
+		bool CompSeq(int seqNum) const;
+		bool IsStaled(int) const;
+
+		int DecCount() { return --m_nbCount; }
+
+	private:
+		int m_seqNum;
+		H225_AdmissionRequest m_arq;
+		endptr m_reqEP;
+		int m_nbCount;
+		PTime m_reqTime;
+	};
+
+	H323RasSrv *theRasSrv;
+	int pendingTTL;
+        int seqNumber;
+        list<PendingARQ *> arqList;
+	PMutex usedLock;
+
+        static void delete_arq(PendingARQ *p) { delete p; }
 };
+
+inline bool PendingList::PendingARQ::DoACF(H323RasSrv *theRasSrv, const endptr & called) const
+{
+	theRasSrv->ReplyARQ(m_reqEP, called, m_arq);
+	return true;
+}
+
+inline bool PendingList::PendingARQ::DoARJ(H323RasSrv *theRasSrv) const
+{
+	theRasSrv->ReplyARQ(m_reqEP, endptr(NULL), m_arq);
+	return true;
+}
+
+inline bool PendingList::PendingARQ::CompSeq(int seqNum) const
+{
+	return (m_seqNum == seqNum);
+}
+
+inline bool PendingList::PendingARQ::IsStaled(int sec) const
+{
+	return (PTime() - m_reqTime) > sec*1000;
+}
+
+PendingList::~PendingList()
+{
+	for_each(arqList.begin(), arqList.end(), delete_arq);
+}
+
+bool PendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP)
+{
+	++seqNumber;
+
+	int nbCount = 0;
+	std::list<H323RasSrv::Neighbor>::const_iterator Iter;
+	for (Iter=theRasSrv->NeighborsGK.begin(); Iter!=theRasSrv->NeighborsGK.end(); ++Iter)
+		if (Iter->SendLRQ(seqNumber, obj_arq, theRasSrv))
+			nbCount++;
+
+	if (nbCount > 0) {
+		PWaitAndSignal lock(usedLock);
+		arqList.push_back(new PendingARQ(seqNumber, obj_arq, reqEP, nbCount));
+		return true;
+	}
+	return false;
+}
+
+void PendingList::ProcessLCF(const H225_RasMessage & obj_ras)
+{
+	const H225_LocationConfirm & obj_lcf = obj_ras;
+
+	// TODO: check if the LCF is sent from my neighbors
+	PWaitAndSignal lock(usedLock);
+	std::list<PendingARQ *>::iterator Iter =
+		find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), obj_lcf.m_requestSeqNum.GetValue()));
+	if (Iter == arqList.end()) {
+		PTRACE(2, "GK\tUnknown LCF, ignore!");
+		return;
+	}
+	endptr called = RegistrationTable::Instance()->InsertRec(const_cast<H225_RasMessage &>(obj_ras));
+	if (!called) {
+		PTRACE(2, "GK\tUnable to add EP for this LCF!");
+		return;
+	}
+
+	(*Iter)->DoACF(theRasSrv, called);
+	delete *Iter;
+	arqList.erase(Iter);
+}
+
+void PendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
+{
+	const H225_LocationReject & obj_lrj = obj_ras;
+
+	// TODO: check if the LRJ is sent from my neighbors
+	PWaitAndSignal lock(usedLock);
+	std::list<PendingARQ *>::iterator Iter =
+		find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), obj_lrj.m_requestSeqNum.GetValue()));
+	if (Iter == arqList.end()) {
+		PTRACE(2, "GK\tUnknown LRJ, ignore!");
+		return;
+	}
+	if ((*Iter)->DecCount() == 0) {
+		(*Iter)->DoARJ(theRasSrv);
+		delete *Iter;
+		arqList.erase(Iter);
+	}
+}
+
+void PendingList::Check()
+{
+	PWaitAndSignal lock(usedLock);
+	std::list<PendingARQ *>::iterator Iter =
+		find_if(arqList.begin(), arqList.end(), not1(bind2nd(mem_fun(&PendingARQ::IsStaled), pendingTTL)));
+	for_each(arqList.begin(), Iter, bind2nd(mem_fun(&PendingARQ::DoARJ), theRasSrv));
+	for_each(arqList.begin(), Iter, delete_arq);
+	arqList.erase(arqList.begin(), Iter);
+}
+
+H323RasSrv::Neighbor::Neighbor(const PString & gatekeeper, const PString & prefix) : m_prefix(prefix)
+{
+	PString ipAddr = gatekeeper.Trim();
+	PINDEX p = ipAddr.Find(':');
+	PIPSocket::GetHostAddress(ipAddr.Left(p), m_ip);
+	m_port = (p != P_MAX_INDEX) ? ipAddr.Mid(p+1).AsUnsigned() : GK_DEF_UNICAST_RAS_PORT;
+	PTRACE(1, "Add neighbor " << m_ip << ':' << m_port << " for prefix " << prefix);
+}
+
+bool H323RasSrv::Neighbor::SendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
+{
+	if (m_prefix == "*")
+		return InternalSendLRQ(seqNum, obj_arq, theRasSrv);
+
+	for (PINDEX i=0; i < obj_arq.m_destinationInfo.GetSize(); i++)
+		if (AsString(obj_arq.m_destinationInfo[i], FALSE).Find(m_prefix) == 0)
+			return InternalSendLRQ(seqNum, obj_arq, theRasSrv);
+
+	return false;
+}
+
+bool H323RasSrv::Neighbor::InternalSendLRQ(int seqNum, const H225_AdmissionRequest & obj_arq, H323RasSrv *theRasSrv) const
+{
+	H225_RasMessage lrq_ras;
+	lrq_ras.SetTag(H225_RasMessage::e_locationRequest);
+	H225_LocationRequest & lrq_obj = lrq_ras;
+	lrq_obj.m_requestSeqNum.SetValue(seqNum);
+	lrq_obj.m_replyAddress = theRasSrv->GKRasAddress;
+	lrq_obj.m_destinationInfo = obj_arq.m_destinationInfo;
+
+	// tell the neighbor who I am
+	lrq_obj.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
+	lrq_obj.m_sourceInfo.SetSize(1);
+	H323SetAliasAddress(theRasSrv->GetGKName(), lrq_obj.m_sourceInfo[0]);
+
+	theRasSrv->SendReply(lrq_ras, m_ip, m_port, theRasSrv->listener);
+	return true;
+}
 
 H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
       : PThread(10000, NoAutoDeleteThread),
@@ -57,7 +225,6 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	GKManager = resourceManager::Instance();
 
 	GKroutedSignaling = FALSE;
-	TimeToLive = -1; 	// don't set the field
 	sigListener = NULL;
 
 	LoadConfig();
@@ -67,19 +234,29 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 	// we now use singelton instance mm-22.05.2001
 	GkStatusThread = GkStatus::Instance();
 	GkStatusThread->Initialize(_GKHome);
+
+	arqPendingList = new PendingList(this, GkConfig()->GetInteger("NeighborTimeout", 2));
 }
 
 
 H323RasSrv::~H323RasSrv()
 {
+	delete arqPendingList;
 }
 
 void H323RasSrv::LoadConfig()
 {
+	static PMutex loadLock;
+
+	PWaitAndSignal lock(loadLock);
 	// own IP number
 	GKCallSignalAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
 	GKRasAddress = SocketToH225TransportAddr(GKHome, GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT));
 
+	NeighborsGK.clear();
+	PStringToString cfgs = GkConfig()->GetAllKeyValues("RasSvr::Neighbors");
+	for (PINDEX i=0; i < cfgs.GetSize(); i++)
+		NeighborsGK.push_back(Neighbor(cfgs.GetKeyAt(i), cfgs.GetDataAt(i)));
 }
 
 void H323RasSrv::Close(void)
@@ -337,11 +514,9 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	BOOL bReject = FALSE;		// RRJ with any other reason from #rejectReason#
 	H225_RegistrationRejectReason rejectReason;
 
-	H225_ArrayOf_AliasAddress NewAliases;
 	PString alias;
 
 	H225_TransportAddress SignalAdr;
-	H225_EndpointIdentifier NewEndpointId;
 
 	BOOL bShellSendReply = TRUE;
 	BOOL bShellForwardRequest = TRUE;
@@ -374,8 +549,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	if (obj_rr.HasOptionalField(H225_RegistrationRequest::e_keepAlive) &&
 		obj_rr.m_keepAlive.GetValue())
 	{
-		if (endptr ep=EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier))
-		{
+		if (endptr ep=EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier)) {
 			// endpoint was already registered
 			obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
 			H225_RegistrationConfirm & rcf = obj_rpl;
@@ -384,10 +558,9 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			rcf.m_endpointIdentifier = obj_rr.m_endpointIdentifier;
 			rcf.IncludeOptionalField(rcf.e_gatekeeperIdentifier);
 			rcf.m_gatekeeperIdentifier.SetValue( GetGKName() );
-			if (TimeToLive != -1)
-			{
+			if (ep->GetTimeToLive() > 0) {
 				rcf.IncludeOptionalField(rcf.e_timeToLive);
-				rcf.m_timeToLive = TimeToLive;
+				rcf.m_timeToLive = ep->GetTimeToLive();
 			}
 
 			// Alternate GKs
@@ -397,7 +570,7 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			if(bShellForwardRequest) 
 				ForwardRasMsg(ep->GetCompleteRegistrationRequest());
 
-			ep->Refresh();
+			ep->Update(obj_rrq);
 			return bShellSendReply;
 		}
 		else {
@@ -414,11 +587,25 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidCallSignalAddress);
 	}
 
+	H225_ArrayOf_AliasAddress NewAliases;
 	BOOL bHasAlias = (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (obj_rr.m_terminalAlias.GetSize() >= 1));
 
-	if (bHasAlias)
+	if (bHasAlias) {
 		NewAliases = obj_rr.m_terminalAlias;
-	else {
+		const endptr ep = EndpointTable->FindByAliases(NewAliases);
+		if (ep && ep->GetCallSignalAddress() != SignalAdr) {
+			bReject = TRUE;
+			rejectReason.SetTag(H225_RegistrationRejectReason::e_duplicateAlias);
+		}
+		// reject the empty string
+		for (PINDEX AliasIndex=0; AliasIndex < NewAliases.GetSize(); ++AliasIndex) {
+			const PString & s = AsString(NewAliases[AliasIndex], FALSE);
+			if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') ) {
+				bReject = TRUE;
+				rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
+			}
+		}
+	} else {
 		// reject gw without alias
 		switch (obj_rr.m_terminalType.GetTag()) {
 		case H225_EndpointType::e_gatekeeper:
@@ -436,39 +623,6 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		}
 	}
 
-	BOOL bAlreadyRegistered = FALSE;
-	BOOL bHasEndpointId = FALSE;
-	endptr ep;
-
-	if (!bReject) {
-		ep = EndpointTable->FindBySignalAdr(SignalAdr);
-		bAlreadyRegistered = (bool)ep;
-		if (bHasAlias) {
-			endptr e = EndpointTable->FindByAnyAliasInList(NewAliases);
-			if ( e && e != ep ) {
-				bReject = TRUE;
-				rejectReason.SetTag(H225_RegistrationRejectReason::e_duplicateAlias);
-			}
-		}
-		if (!bReject) {
-			bHasEndpointId = obj_rr.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
-			NewEndpointId = (bHasEndpointId) ? obj_rr.m_endpointIdentifier :
-					(bAlreadyRegistered) ? ep->GetEndpointIdentifier() : EndpointTable->GenerateEndpointId();
-			if (!bHasAlias) // let it use old aliases if already registered
-				NewAliases = (bAlreadyRegistered) ? ep->GetAliases() : EndpointTable->GenerateAlias(NewEndpointId);
-		}
-
-	}
-
-	// reject the empty string
-	for (PINDEX AliasIndex=0; AliasIndex < NewAliases.GetSize(); ++AliasIndex)
-	{
-		const PString & s = AsString(NewAliases[AliasIndex], FALSE);
-		if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') ) {
-			bReject = TRUE;
-			rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
-		}
-	}
 
 	// Extended Registration Auth Rules
 	if (!bReject) {
@@ -507,112 +661,93 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			}
 	}
 
+	if (!bReject) {
+		// make a copy for modifying
+		H225_RasMessage store_rrq = obj_rrq;
+
+		endptr ep = EndpointTable->InsertRec(store_rrq);
+		if ( ep ) {
+			//	
+			// OK, now send RCF
+			//	
+			obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
+			H225_RegistrationConfirm & rcf = obj_rpl;
+			rcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
+			rcf.m_protocolIdentifier =  obj_rr.m_protocolIdentifier;
+			rcf.m_nonStandardData = obj_rr.m_nonStandardData;
+			rcf.m_callSignalAddress.SetSize( obj_rr.m_callSignalAddress.GetSize() );
+			for( PINDEX cnt = 0; cnt < obj_rr.m_callSignalAddress.GetSize(); cnt ++ )
+				rcf.m_callSignalAddress[cnt] = obj_rr.m_callSignalAddress[cnt];
+	
+			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+			rcf.m_terminalAlias = ep->GetAliases();
+			rcf.m_endpointIdentifier = ep->GetEndpointIdentifier();
+			rcf.IncludeOptionalField(rcf.e_gatekeeperIdentifier);
+			rcf.m_gatekeeperIdentifier.SetValue( GetGKName() );
+			if (ep->GetTimeToLive() > 0) {
+				rcf.IncludeOptionalField(rcf.e_timeToLive);
+				rcf.m_timeToLive = ep->GetTimeToLive();
+			}
+
+			// Alternate GKs
+			SetAlternateGK(rcf);
+
+			// forward heavyweight
+			if(bShellForwardRequest) {
+				ForwardRasMsg(store_rrq);
+			}
+
+			// Note that the terminalAlias is not optional here as we pass the auto generated alias if not were provided from
+			// the endpoint itself
+			PString msg(PString::Printf, "RCF|%s|%s|%s|%s;\r\n", 
+				    inet_ntoa(rx_addr),
+				    (const unsigned char *) AsString(rcf.m_terminalAlias),
+				    (const unsigned char *) AsString(obj_rr.m_terminalType),
+				    (const unsigned char *) ep->GetEndpointIdentifier().GetValue()
+				    );
+			PTRACE(2, msg);
+			GkStatusThread->SignalStatus(msg);
+
+			return bShellSendReply;
+		} else { // Oops! Should not happen...
+			bReject = TRUE;
+			rejectReason.SetTag(H225_RegistrationRejectReason::e_undefinedReason);
+			PTRACE(3, "Gk\tRRQAuth rejected by unknown reason " << alias);
+		}
+	}
 	//
 	// final rejection handling
 	//
-	if (bReject) {
-		obj_rpl.SetTag(H225_RasMessage::e_registrationReject); 
-		H225_RegistrationReject & rrj = obj_rpl;
- 
-		rrj.m_requestSeqNum = obj_rr.m_requestSeqNum;
-		rrj.m_protocolIdentifier =  obj_rr.m_protocolIdentifier;
-		rrj.m_nonStandardData = obj_rr.m_nonStandardData ;
-		rrj.IncludeOptionalField(rrj.e_gatekeeperIdentifier);
-		rrj.m_gatekeeperIdentifier.SetValue( GetGKName() );
-		rrj.m_rejectReason = rejectReason;
-			
-		PString aliasListString;
-		if (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
-			aliasListString = AsString(obj_rr.m_terminalAlias);
-		else
-			aliasListString = " ";
+	obj_rpl.SetTag(H225_RasMessage::e_registrationReject); 
+	H225_RegistrationReject & rrj = obj_rpl;
+
+	rrj.m_requestSeqNum = obj_rr.m_requestSeqNum;
+	rrj.m_protocolIdentifier =  obj_rr.m_protocolIdentifier;
+	rrj.m_nonStandardData = obj_rr.m_nonStandardData ;
+	rrj.IncludeOptionalField(rrj.e_gatekeeperIdentifier);
+	rrj.m_gatekeeperIdentifier.SetValue( GetGKName() );
+	rrj.m_rejectReason = rejectReason;
 		
-		PString msg(PString::Printf, "RRJ|%s|%s|%s|%s;\r\n", 
-			    inet_ntoa(rx_addr),
-			    (const unsigned char *) aliasListString,
-			    (const unsigned char *) AsString(obj_rr.m_terminalType),
-			    (const unsigned char *) rrj.m_rejectReason.GetTagName()
-			    );
-		PTRACE(2,msg);
-		GkStatusThread->SignalStatus(msg);
-		return bShellSendReply;
-	}   
+	PString aliasListString;
+	if (obj_rr.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+		aliasListString = AsString(obj_rr.m_terminalAlias);
+	else
+		aliasListString = " ";
 	
-	// make a copy for modifying
-	H225_RasMessage store_rrq = obj_rrq;
-
-	if (bAlreadyRegistered) { 
-		if (bHasEndpointId)
-			ep->SetEndpointIdentifier(NewEndpointId);
-		if (bHasAlias)
-			EndpointTable->UpdateAliasBySignalAdr(SignalAdr, NewAliases);
-		ep->Refresh();
-	} else {
-		H225_RegistrationRequest & store_rr = store_rrq;
-		
-		// we want to use the same 'endpoint id' in all GKs
-		store_rr.IncludeOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
-		store_rr.m_endpointIdentifier = NewEndpointId;
-
-		// new endpoint registration.    
-		endpointRec *ep=new endpointRec(obj_rr.m_rasAddress[0], SignalAdr, NewEndpointId, NewAliases,
-						obj_rr.m_terminalType, store_rrq);
-		EndpointTable->Insert(ep);
-
-		for (PINDEX AliasIndex = 0; AliasIndex < NewAliases.GetSize(); ++AliasIndex)
-		{
-			PString NewAliasStr = H323GetAliasAddressString(NewAliases[AliasIndex]);
-			if (NewAliasStr != "")
-				EndpointTable->AddAlias(NewAliasStr);
-		}
-	}
-	
-	obj_rpl.SetTag(H225_RasMessage::e_registrationConfirm); 
-	H225_RegistrationConfirm & rcf = obj_rpl;
-	rcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
-	rcf.m_protocolIdentifier =  obj_rr.m_protocolIdentifier;
-	rcf.m_nonStandardData = obj_rr.m_nonStandardData;
-	rcf.m_callSignalAddress.SetSize( obj_rr.m_callSignalAddress.GetSize() );
-	for( PINDEX cnt = 0; cnt < obj_rr.m_callSignalAddress.GetSize(); cnt ++ )
-		rcf.m_callSignalAddress[cnt] = obj_rr.m_callSignalAddress[cnt];
-	
-	rcf.IncludeOptionalField( H225_RegistrationConfirm::e_terminalAlias);
-	rcf.m_terminalAlias = NewAliases;
-	rcf.m_endpointIdentifier = NewEndpointId;
-	rcf.IncludeOptionalField(rcf.e_gatekeeperIdentifier);
-	rcf.m_gatekeeperIdentifier.SetValue( GetGKName() );
-	if (TimeToLive != -1)
-	{
-		rcf.IncludeOptionalField(rcf.e_timeToLive);
-		rcf.m_timeToLive = TimeToLive;
-	}
-
-
-	// Alternate GKs
-	SetAlternateGK(rcf);
-
-	// forward heavyweight
-	if(bShellForwardRequest) {
-		ForwardRasMsg(store_rrq);
-	}
-
-	// Note that the terminalAlias is not optional here as we pass the auto generated alias if not were provided from
-	// the endpoint itself
-	PString msg(PString::Printf, "RCF|%s|%s|%s|%s;\r\n", 
+	PString msg(PString::Printf, "RRJ|%s|%s|%s|%s;\r\n", 
 		    inet_ntoa(rx_addr),
-		    (const unsigned char *) AsString(rcf.m_terminalAlias),
+		    (const unsigned char *) aliasListString,
 		    (const unsigned char *) AsString(obj_rr.m_terminalType),
-		    (const unsigned char *) NewEndpointId.GetValue()
+		    (const unsigned char *) rrj.m_rejectReason.GetTagName()
 		    );
 	PTRACE(2,msg);
 	GkStatusThread->SignalStatus(msg);
-
 	return bShellSendReply;
 }
 
 
 
-BOOL H323RasSrv::CheckForIncompleteAddress(const H225_AliasAddress & alias) const
+BOOL H323RasSrv::CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress & alias) const
 {
 	// since this routine is only called when the routing decision has been made,
 	// finding a prefix that is longer than our dialled number implies the number is incomplete
@@ -625,11 +760,12 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_AliasAddress & alias) cons
 
 
 	// find gateway with longest prefix matching our dialled number
-	endptr GW = EndpointTable->FindByPrefix(alias);
+	endptr GW = EndpointTable->FindByAliases(alias);
 
 	if (!GW)
 		return FALSE;
-
+// TODO: how to port?
+/*
 	const PString & aliasStr = AsString (alias, FALSE);
 	const PString GWAliasStr = H323GetAliasAddressString(GW->GetAliases()[0]);
 	const PStringArray *prefixes = EndpointTable->GetGatewayPrefixes(GWAliasStr);
@@ -646,7 +782,7 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_AliasAddress & alias) cons
 			return TRUE;
 		}
 	}
-
+*/
 	return FALSE;
 }
 
@@ -656,9 +792,33 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 {    
 	const H225_AdmissionRequest & obj_rr = obj_arq;
 	PTRACE(2, "GK\tOnARQ");
+
+	// find the caller
 	const endptr RequestingEP = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 
 	endptr CalledEP(NULL);
+
+	// if a destination address is provided, we check if we know it
+	if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+		CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
+	} else if (obj_rr.m_answerCall) { // don't search endpoint table for an ARQ to an answerCall
+		CalledEP = RequestingEP;
+	} else if (obj_rr.m_destinationInfo.GetSize() >= 1) {
+		// apply rewrite rules
+		Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
+		CalledEP = EndpointTable->FindEndpoint(obj_rr.m_destinationInfo);
+		if (!CalledEP && RequestingEP) {
+			if (arqPendingList->Insert(obj_rr, RequestingEP))
+				return FALSE;
+		}
+	}
+
+	ProcessARQ(RequestingEP, CalledEP, obj_rr, obj_rpl);
+	return TRUE;
+}
+
+void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq, H225_RasMessage & obj_rpl)
+{
 	int BWRequest = 640;
 
 	// We use #obj_rpl# for storing information about a potential reject (e.g. the
@@ -668,33 +828,14 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	obj_rpl.SetTag(H225_RasMessage::e_admissionReject); 
 	H225_AdmissionReject & arj = obj_rpl; 
 
-	// don't search endpoint table for an ARQ to an answerCall
-	if (obj_rr.m_answerCall) {
-		CalledEP = RequestingEP;
-	} else if (obj_rr.m_destinationInfo.GetSize() >= 1) {
-		// apply rewrite rules
-		Toolkit::Instance()->RewriteE164(obj_rr.m_destinationInfo[0]);
-
-		CalledEP = EndpointTable->FindByAlias(obj_rr.m_destinationInfo[0]);
-
-		// try gw prefix match
-		if (!CalledEP)
-			CalledEP = EndpointTable->FindByPrefix(obj_rr.m_destinationInfo[0]);
-	}
-
-	// if a destination address is provided, we check if we know it
-	if ( obj_rr.HasOptionalField( H225_AdmissionRequest::e_destCallSignalAddress) ) {
-		CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
-	}
-
 	// allow overlap sending for incomplete prefixes
-	if (!CalledEP && obj_rr.m_destinationInfo.GetSize() >= 1) {
-		const PString alias = AsString(obj_rr.m_destinationInfo[0], FALSE);
-		if (CheckForIncompleteAddress(obj_rr.m_destinationInfo[0])) {
+	if (!CalledEP && obj_arq.m_destinationInfo.GetSize() >= 1) {
+		const PString alias = AsString(obj_arq.m_destinationInfo[0], FALSE);
+		if (CheckForIncompleteAddress(obj_arq.m_destinationInfo)) {
 			bReject = TRUE;
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_incompleteAddress);
 		}
-	};  
+	}
 
 	if(!bReject && !CalledEP)
 	{
@@ -717,19 +858,19 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		//
 		// Give bandwidth
 		// 
-		if (obj_rr.m_bandWidth.GetValue() < 100) {
+		if (obj_arq.m_bandWidth.GetValue() < 100) {
 			/* hack for Netmeeting 3.0x */
-			BWRequest = MIN(1280, GKManager->GetAvailableBW());
+			BWRequest = std::min(1280u, GKManager->GetAvailableBW());
 		}
 		else {
-			BWRequest = MIN(obj_rr.m_bandWidth.GetValue(), GKManager->GetAvailableBW());
+			BWRequest = std::min(obj_arq.m_bandWidth.GetValue(), GKManager->GetAvailableBW());
 		};
 		PTRACE(3, "GK\tARQ will request bandwith of " << BWRequest);
 		
 		//
 		// GkManager admission
 		//
-		if (!GKManager->GetAdmission(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID, BWRequest)) {
+		if (!GKManager->GetAdmission(obj_arq.m_endpointIdentifier, obj_arq.m_conferenceID, BWRequest)) {
 			bReject = TRUE;
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_resourceUnavailable);
 		}
@@ -745,11 +886,11 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
  	{
  		// are the endpoints the same (GWs of course)?
  		if( (CalledEP) && (RequestingEP) && (CalledEP == RequestingEP) && 
- 			(!obj_rr.m_answerCall) // only first ARQ may be rejected with with 'routeCallToSCN'
+ 			(!obj_arq.m_answerCall) // only first ARQ may be rejected with with 'routeCallToSCN'
  			) 
  		{
  			// we have to extract the SCN from the destination. only EP-1 will be rejected this way
- 			if ( obj_rr.m_destinationInfo.GetSize() >= 1 ) 
+ 			if ( obj_arq.m_destinationInfo.GetSize() >= 1 ) 
  			{
  				// PN will be the number that is set in the arj reason
  				H225_PartyNumber PN;
@@ -760,18 +901,18 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
  				PPN.m_publicNumberDigits = "";
  				
  				// there can be diffent information in the destination info
- 				switch(obj_rr.m_destinationInfo[0].GetTag()) {
+ 				switch(obj_arq.m_destinationInfo[0].GetTag()) {
  				case H225_AliasAddress::e_dialedDigits: 
  					// normal number, extract only the digits
- 					PPN.m_publicNumberDigits = AsString(obj_rr.m_destinationInfo[0], FALSE);
+ 					PPN.m_publicNumberDigits = AsString(obj_arq.m_destinationInfo[0], FALSE);
  					break;
  				case H225_AliasAddress::e_partyNumber: 
  					// ready-to-use party number
- 					PN = obj_rr.m_destinationInfo[0];
+ 					PN = obj_arq.m_destinationInfo[0];
  					break;
  				default:
  					PTRACE(1,"Unsupported AliasAdress for ARQ reason 'routeCallToSCN': "
- 						   << obj_rr.m_destinationInfo[0]);
+ 						   << obj_arq.m_destinationInfo[0]);
  				}
  				
  				// set the ARJ reason
@@ -792,25 +933,25 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	//
 	// Do the reject or the confirm
 	//
+	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetRasAddress()) : " ";
 	if (bReject)
 	{
-		arj.m_requestSeqNum = obj_rr.m_requestSeqNum;
+		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
 
 		PString destinationInfoString;
-		if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-			destinationInfoString = AsString(obj_rr.m_destinationInfo);
+		if (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+			destinationInfoString = AsString(obj_arq.m_destinationInfo);
 		else
 			destinationInfoString = " ";
 
 		PString msg(PString::Printf, "ARJ|%s|%s|%s|%s|%s;\r\n", 
-			    inet_ntoa(rx_addr),
+			    (const unsigned char *) srcInfoString,
 			    (const unsigned char *) destinationInfoString,
-			    (const unsigned char *) AsString(obj_rr.m_srcInfo),
-			    (obj_rr.m_answerCall) ? "true" : "false",
+			    (const unsigned char *) AsString(obj_arq.m_srcInfo),
+			    (obj_arq.m_answerCall) ? "true" : "false",
 			    (const unsigned char *) arj.m_rejectReason.GetTagName() );
 		PTRACE(2,msg);
 		GkStatusThread->SignalStatus(msg);
-		return TRUE;	// send reply message (ARJ) to sender
 	}   
 	else
 	{
@@ -818,7 +959,7 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		obj_rpl.SetTag(H225_RasMessage::e_admissionConfirm); // re-cast (see above)
 		H225_AdmissionConfirm & acf = obj_rpl;
 
-		acf.m_requestSeqNum = obj_rr.m_requestSeqNum;
+		acf.m_requestSeqNum = obj_arq.m_requestSeqNum;
 		acf.m_bandWidth = BWRequest;
 
 		CallRec * pExistingCallRec = NULL;
@@ -833,19 +974,22 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			  // connection on SETUP
 			destAddress = CalledEP->GetCallSignalAddress();
 
-			pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec (obj_rr.m_callIdentifier);
+			pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec (obj_arq.m_callIdentifier);
 			if (pExistingCallRec != NULL)
 			{
-				pExistingCallRec->Called->m_callReference.SetValue(obj_rr.m_callReferenceValue);
-				pExistingCallRec->Calling->m_callReference.SetValue(obj_rr.m_callReferenceValue);
-				pExistingCallRec->m_callIdentifier = obj_rr.m_callIdentifier;
+				pExistingCallRec->Called->m_callReference.SetValue(obj_arq.m_callReferenceValue);
+				pExistingCallRec->Calling->m_callReference.SetValue(obj_arq.m_callReferenceValue);
+				pExistingCallRec->m_callIdentifier = obj_arq.m_callIdentifier;
 			}
 			else
 			{
 				// add the new call to global table
-				EndpointCallRec Calling(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_rr.m_callReferenceValue);
-				EndpointCallRec * pCalled = new EndpointCallRec(CalledEP->GetCallSignalAddress(), CalledEP->GetRasAddress(), 0);
-				CallTable::Instance()->Insert(Calling, *pCalled, BWRequest, obj_rr.m_callIdentifier, obj_rr.m_conferenceID);
+				EndpointCallRec Calling(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_arq.m_callReferenceValue);
+				EndpointCallRec Called(CalledEP->GetCallSignalAddress(), CalledEP->GetRasAddress(), 0);
+				PString destinationInfoString = "unknown";
+				if (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+					destinationInfoString = AsString(obj_arq.m_destinationInfo);
+				CallTable::Instance()->Insert(Calling, Called, BWRequest, obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString);
 			};
 
 			acf.m_callModel.SetTag( H225_CallModel::e_gatekeeperRouted );
@@ -857,16 +1001,16 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 
 			// CallRecs should be looked for using callIdentifier instead of callReferenceValue
 			// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
-			pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec(obj_rr.m_callIdentifier);
+			pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec(obj_arq.m_callIdentifier);
 
 			// since callIdentifier is optional, we might have to look for the callReferenceValue as well
 			if (pExistingCallRec == NULL)
-				pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec(obj_rr.m_callReferenceValue);
+				pExistingCallRec = (CallRec *)CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
 			if (pExistingCallRec != NULL) {
 
 				// the call is already in the table hence this must be the 2. ARQ
-				EndpointCallRec newEP(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_rr.m_callReferenceValue);
+				EndpointCallRec newEP(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_arq.m_callReferenceValue);
 
 				if (pExistingCallRec->Called)	// This test is not necessary - the second ARQ is from called
 					pExistingCallRec->SetCalling(newEP);
@@ -876,15 +1020,18 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			else {
 				  // the call is not in the table hence this must be the 1. ARQ
 
-				EndpointCallRec Calling(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_rr.m_callReferenceValue);
+				EndpointCallRec Calling(RequestingEP->GetCallSignalAddress(), RequestingEP->GetRasAddress(), obj_arq.m_callReferenceValue);
 
-				CallTable::Instance()->Insert(Calling, BWRequest, obj_rr.m_callIdentifier, obj_rr.m_conferenceID);
+				PString destinationInfoString = "unknown";
+				if (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+					destinationInfoString = AsString(obj_arq.m_destinationInfo);
+				CallTable::Instance()->Insert(Calling, BWRequest, obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString);
 			}
 			
 			// Set ACF fields
 			acf.m_callModel.SetTag( H225_CallModel::e_direct );
-			if( obj_rr.HasOptionalField( H225_AdmissionRequest::e_destCallSignalAddress) )
-				acf.m_destCallSignalAddress = obj_rr.m_destCallSignalAddress;
+			if( obj_arq.HasOptionalField( H225_AdmissionRequest::e_destCallSignalAddress) )
+				acf.m_destCallSignalAddress = obj_arq.m_destCallSignalAddress;
 			else
 				acf.m_destCallSignalAddress = CalledEP->GetCallSignalAddress();
 		}
@@ -893,32 +1040,46 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		acf.m_irrFrequency.SetValue( 120 );
 
 		PString destinationInfoString = "unknown destination alias";
-		if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
-			destinationInfoString = AsString(obj_rr.m_destinationInfo);
-		else if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-			H225_TransportAddress DestSignalAdr = obj_rr.m_destCallSignalAddress;
+		if (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
+			destinationInfoString = AsString(obj_arq.m_destinationInfo);
+		else if (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+			H225_TransportAddress DestSignalAdr = obj_arq.m_destCallSignalAddress;
 			const endptr pEPRec = EndpointTable->FindBySignalAdr(DestSignalAdr);
 			if (pEPRec)
 				destinationInfoString = AsString(pEPRec->GetAliases());
 		}
 
 		// always signal ACF
-		char callReferenceValueString[8];
-		sprintf(callReferenceValueString, "%u", (unsigned) obj_rr.m_callReferenceValue);
-		PString msg(PString::Printf, "ACF|%s|%s|%s|%s|%s;\r\n", 
-				inet_ntoa(rx_addr),
+		PString msg(PString::Printf, "ACF|%s|%s|%u|%s|%s;\r\n", 
+				(const unsigned char *) srcInfoString,
 				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
-				callReferenceValueString,
+				(unsigned) obj_arq.m_callReferenceValue,
 				(const unsigned char *) destinationInfoString,
-				(const unsigned char *) AsString(obj_rr.m_srcInfo)
+				(const unsigned char *) AsString(obj_arq.m_srcInfo)
 				);
 		PTRACE(2,msg);
 		GkStatusThread->SignalStatus(msg);
 		
 	}
-	return TRUE;	// send reply to caller
 }
 
+void H323RasSrv::ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, const H225_AdmissionRequest & obj_arq)
+{
+	H225_RasMessage obj_rpl;
+	ProcessARQ(RequestingEP, CalledEP, obj_arq, obj_rpl);
+	if (!RequestingEP) {
+		PTRACE(1, "Err: call ReplyARQ without RequestingEP!");
+		return;
+	}
+	if (RequestingEP->GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress) {
+		PTRACE(1, "Err: RequestingEP doesn't have valid ras address!");
+		return;
+	}
+
+	const H225_TransportAddress_ipAddress & ip = RequestingEP->GetRasAddress();
+	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	SendReply(obj_rpl, ipaddress, ip.m_port, listener);
+}
 
 /* Disengage Request */
 BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_drq, H225_RasMessage & obj_rpl)
@@ -1034,9 +1195,6 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	endptr ep = EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier);
 	if (ep)
 	{
-		// remove prefixes if existing
-		EndpointTable->RemovePrefixes(ep->GetAliases()[0]);
-
 		// Remove from the table
 		EndpointTable->RemoveByEndpointId(obj_rr.m_endpointIdentifier);
 
@@ -1095,7 +1253,7 @@ BOOL H323RasSrv::OnIRR(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	const H225_InfoRequestResponse & obj_irr = obj_rr;
 
 	if (endptr ep = EndpointTable->FindByEndpointId(obj_irr.m_endpointIdentifier))
-		ep->Refresh();
+		ep->Update(obj_rr);
 	if (obj_irr.HasOptionalField( H225_InfoRequestResponse::e_needResponse ))
 	{
 		obj_rpl.SetTag(H225_RasMessage::e_infoRequestAck);
@@ -1151,11 +1309,8 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 { 
 	const H225_LocationRequest & obj_lrq = obj_rr;
 
- 	// try to change FindByAlias to FindByPrefix 
-	endptr WantedEndPoint = EndpointTable->FindByAlias(obj_lrq.m_destinationInfo[0]);
-
-	if (!WantedEndPoint)
-		WantedEndPoint = EndpointTable->FindByPrefix(obj_lrq.m_destinationInfo[0]);
+	// only search registered endpoints
+	const endptr WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false);
 
 	PString msg;
 
@@ -1168,25 +1323,23 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		obj_rpl.SetTag(H225_RasMessage::e_locationConfirm);
 		H225_LocationConfirm & lcf = obj_rpl;
 		lcf.m_requestSeqNum = obj_lrq.m_requestSeqNum;
-		lcf.m_callSignalAddress = WantedEndPoint->GetCallSignalAddress();
-		lcf.m_rasAddress = WantedEndPoint->GetRasAddress();
 		lcf.m_nonStandardData = obj_lrq.m_nonStandardData;
+
+		WantedEndPoint->BuildLCF(obj_rpl);
 
 		PString sourceInfoString;
 		if (obj_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) {
 			sourceInfoString = AsString(obj_lrq.m_sourceInfo);
 		}
-		else sourceInfoString = " ";
+		else
+			sourceInfoString = " ";
 
-		PString msg2(PString::Printf, "LCF|%s|%s|%s|%s;\r\n", 
+		msg = PString(PString::Printf, "LCF|%s|%s|%s|%s;\r\n", 
 			     inet_ntoa(rx_addr),
 			     (const unsigned char *) WantedEndPoint->GetEndpointIdentifier().GetValue(),
 			     (const unsigned char *) AsString(obj_lrq.m_destinationInfo),
 			     (const unsigned char *) sourceInfoString);
-		msg = msg2;
-	}
-	else
-	{
+	} else {
 		// Alias not found
 		obj_rpl.SetTag(H225_RasMessage::e_locationReject);
 		H225_LocationReject & lrj = obj_rpl;
@@ -1200,12 +1353,11 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		else
 			sourceInfoString = " ";
 
-		PString msg2(PString::Printf, "LRJ|%s|%s|%s|%s;\r\n", 
+		msg = PString(PString::Printf, "LRJ|%s|%s|%s|%s;\r\n", 
 			     inet_ntoa(rx_addr),
 			     (const unsigned char *) AsString(obj_lrq.m_destinationInfo),
 			     (const unsigned char *) sourceInfoString,
 			     (const unsigned char *) lrj.m_rejectReason.GetTagName() );
-		msg = msg2;
 	}
 
 	PTRACE(2,msg);
@@ -1214,6 +1366,19 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	return TRUE;
 }
 
+/* Location Confirm */
+BOOL H323RasSrv::OnLCF(const PIPSocket::Address &, const H225_RasMessage &obj_rr, H225_RasMessage &)
+{
+	arqPendingList->ProcessLCF(obj_rr);
+	return FALSE;
+}
+
+/* Location Reject */
+BOOL H323RasSrv::OnLRJ(const PIPSocket::Address &, const H225_RasMessage &obj_rr, H225_RasMessage &)
+{
+	arqPendingList->ProcessLRJ(obj_rr);
+	return FALSE;
+}
 
 /* Resource Availability Indicate */
 BOOL H323RasSrv::OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &obj_rpl)
@@ -1230,6 +1395,11 @@ BOOL H323RasSrv::OnRAI(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	return TRUE;
 }
 
+bool H323RasSrv::Check()
+{
+	arqPendingList->Check();
+	return !IsTerminated();
+}
 
 void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, PIPSocket::Address rx_addr, WORD rx_port, PUDPSocket & BoundSocket)
 {
@@ -1331,6 +1501,16 @@ void H323RasSrv::Main(void)
 			ShallSendReply = OnLRQ( rx_addr, obj_req, obj_rpl );
 			break;
     
+		case H225_RasMessage::e_locationConfirm :
+			PTRACE(1, "GK\tLCF Received");
+			ShallSendReply = OnLCF( rx_addr, obj_req, obj_rpl );
+			break;
+
+		case H225_RasMessage::e_locationReject :
+			PTRACE(1, "GK\tLRJ Received");
+			ShallSendReply = OnLRJ( rx_addr, obj_req, obj_rpl );
+			break;
+
 		case H225_RasMessage::e_infoRequestResponse :
 			PTRACE(1, "GK\tIRR Received");
 			ShallSendReply = OnIRR( rx_addr, obj_req, obj_rpl );
@@ -1351,8 +1531,6 @@ void H323RasSrv::Main(void)
 
 
 		// handling these is optional (action only necessary once we send GRQs)
-		case H225_RasMessage::e_locationConfirm :
-		case H225_RasMessage::e_locationReject :
 		case H225_RasMessage::e_nonStandardMessage :
 			PTRACE(2, "GK\t" << err_msg << obj_req.GetTagName());
 			break;

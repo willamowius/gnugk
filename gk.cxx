@@ -47,7 +47,6 @@ BroadcastListen * BroadcastThread = NULL;
 PMutex ShutdownMutex;
 PMutex ReloadMutex;
 
-int TimeToLive = -1;
 bool ExitFlag = false;
 
 
@@ -92,9 +91,9 @@ void ShutdownHandler(void)
 	// by destructor of listptr<SingletonBase *>
 	// However, I have to delete Toolkit instance here,
 	// or it will cause a core dump. I don't know why...
-//        delete resourceManager::Instance();
-//        delete RegistrationTable::Instance();
-//        delete CallTable::Instance();
+        // delete resourceManager::Instance();
+        // delete RegistrationTable::Instance();
+        // delete CallTable::Instance();
         delete Toolkit::Instance();
 
 	return;
@@ -254,10 +253,13 @@ void Gatekeeper::HouseKeeping(void)
 {
 	for (int count=1; !ExitFlag; count++) {	
 
-		if (!(count % 60)) // one minute
-			RegistrationTable::Instance()->CheckEndpoints(TimeToLive);
-
 		Sleep(1000);
+
+		if (!RasThread->Check()) // return true if the thread running
+			break;
+
+		if (!(count % 60)) // one minute
+			RegistrationTable::Instance()->CheckEndpoints();
 
 	}
 }
@@ -327,12 +329,11 @@ void Gatekeeper::Main()
 
 	// read timeToLive from command line
 	if (args.HasOption('l'))
-		TimeToLive = atoi(args.GetOptionString('l'));
-	PTRACE(2, "GK\tTimeToLive for Registrations: " << TimeToLive);
+		SoftPBX::TimeToLive = atoi(args.GetOptionString('l'));
+	PTRACE(2, "GK\tTimeToLive for Registrations: " << SoftPBX::TimeToLive);
   
 	RasThread = new H323RasSrv(GKHome);
 	RasThread->SetGKSignaling(GKroutedSignaling);
-	RasThread->SetTimeToLive(TimeToLive);
 
 	MulticastGRQThread = new MulticastGRQ(GKHome, RasThread);
 
@@ -377,7 +378,7 @@ void ReloadHandler(void)
 	** Update all gateway prefixes
 	*/
 
-	RegistrationTable::Instance()->UpdatePrefixes();
+	RegistrationTable::Instance()->LoadConfig();
 
 	RasThread->LoadConfig();
 
