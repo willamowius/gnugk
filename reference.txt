@@ -118,6 +118,16 @@ TimeToLive=300			Default: -1
 Time to live for client registration in seconds.
 Use -1 to disable this feature.
 
+AcceptUnregisteredCalls=1	Default: 0
+With this feature enabled, the call signaling thread will accept calls
+without a pre-existing CallRec found in CallTable, provided an endpoint
+corresponding to the destinationAddress in Setup can be found in the
+RegistrationTable. The GK will also use it's own call signaling address
+in LCF replied to an LRQ.  That means, the call signaling will be routed
+to GK2 in GK-GK calls. As a result, the CDRs in GK2 can correctly
+show the connected time, instead of 'unconnected'.
+
+
 B.2 Section [RoutedMode]
 
 This section defines the gatekeeper routed mode options.
