@@ -1,38 +1,43 @@
-<sect>RAS Configuration
+<!-- French translation from ras.sgml v1.1 -->
+
+<sect>Configuration RAS
 <p>
 <sect1>Section &lsqb;RasSrv::GWPrefixes&rsqb;
 <p>
-This section lists what E.164 numbers are routed to a specific gateway.
+Cette section liste quels num&#233;ros E.164 sont rout&#233;s vers une passerelle
+sp&#233;cifique.
 
 <descrip>
 <tag/Format:/
 <tt>gw-alias=prefix[,prefix,...]</tt>
 <p>
-Note you have to specify the alias of the gateway.
-If a gateway registered with the alias, all numbers beginning with
-the prefixes are routed to this gateway. Special characters <tt/./ and <tt/!/
-can be used here to match any digit and disable the prefix.
-<tag/Example:/
+Il faut noter que vous devez indiquer l'alias de la passerelle.
+Si une passerelle est enregistr&#233;e pour cet alias, tous les num&#233;ros
+commen&#231;ant par les pr&#233;fixes sont rout&#233;s vers cette passerelle.
+Les caract&#232;res sp&#233;ciaux <tt/./ et <tt/!/ peuvent &#234;tre utilis&#233;s
+ici pour correspondre &#224; n'importe quel chiffre et d&#233;sactiver le pr&#233;fixe.
+<tag/Exemple:/
 <tt/test-gw=02,03/
 </descrip>
 
 
 <sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
 <p>
-In this section you can put endpoints that don't have RAS support
-or that you don't want to be expired. The records will always
-keep in registration table of the gatekeeper.
-However, You can still unregister it via status port.
-Special characters <tt/./ and <tt/!/
-can be used with prefixes here to match any digit and disable the prefix.
+Dans cette section vous pouvez mettre des terminaux qui n'ont pas le support RAS ou
+que vous ne souhaitez pas voir expirer. Les enregistrements seront toujours
+conserv&#233;s dans le table d'enregistrements du gatekeeper.
+Cependant, vous pouvez toujours le d&#233;senregistrer par le port d'&#233;tat.
+Les caract&#232;res sp&#233;ciaux <tt/./ et <tt/!/ peuvent &#234;tre utilis&#233;s
+avec les pr&#233;fixes ici pour correspondre &#224; n'importe quel chiffre et
+d&#233;sactiver le pr&#233;fixe.
 
 <descrip>
 <tag/Format:/
 <tt>IP[:port]=alias[,alias,...;prefix,prefix,...]</tt>
-<tag/Example:/
-For gateway,
+<tag/Exemple:/
+Pour une passerelle,
 <quote/<tt/10.0.1.5=Citron;009,008//
-For terminal,
+Pour un terminal,
 <quote/<tt/10.0.1.10:1720=700//
 </descrip>
 
@@ -41,28 +46,29 @@ For terminal,
 <p>
 <itemize>
 <item><tt/AcceptEndpointIdentifier=1/<newline>
-Default: <tt/1/
+D&#233;fault: <tt/1/
 <p>
-Whether to accept <bf/endpointIdentifier/ specified in a full RRQ.
+Indique si on accepte <bf/endpointIdentifier/ indiqu&#233; dans un RRQ complet.
 
 <item><tt/AcceptGatewayPrefixes=1/<newline>
-Default: <tt/1/
+D&#233;fault: <tt/1/
 <p>
-A gateway can register its prefixes with the gatekeeper by containing
-<bf/supportedPrefixes/ in the <bf/terminalType/ field of RRQ.
-This option defines whether to accept the specified prefixes of a gateway.
+Une passerelle peut enregistrer ses pr&#233;fixes avec le gatekeeper  en contenant
+<bf/supportedPrefixes/ dans le champ <bf/terminalType/ du RRQ.
+Cette option indique si on accepte les pr&#233;fixes de cette passerelle.
 
 <item><tt/OverwriteEPOnSameAddress=1/<newline>
-Default: <tt/0/
+D&#233;fault: <tt/0/
 <p>
-In some networks an endpoint's IP address may change unexpectedly.  This
-may happen when an endpoint is using a PPP connection (e.g. modem or ADSL).
-This option defines how to handle a registration request (RRQ) from an IP
-address which does not match what we have stored.  The default action is
-to reject the request.  With this option enabled the conflicting request
-will cause an unregister request (URQ) to be sent for the existing IP
-address and the entry to be removed allowing the endpoint to register
-with the new address.
+Dans certains r&#233;seaux l'adresse IP d'un terminal peut changer de fa&#231;on
+inattendue. Ceci peut se produire quand un terminal utilise une connexion PPP
+(e.g. modem ou ADSL). Cette option indique comment g&#233;rer un demande
+d'enregistrement (RRQ) d'une adresse IP qui ne correspond pas &#224; ce que nous
+avons stock&#233;. L'action par d&#233;faut est de rejeter la requ&#234;te. Avec
+cette option activ&#233;e la requ&#234;te contradictoire entra&#238;nera une
+requ&#234;te non-enregistr&#233; (URQ) &#224; &#234;tre envoy&#233;e pour l'adresse IP
+existante et l'entr&#233;e est supprim&#233;e pour permettre le terminal de
+s'enregistrer avec la nouvelle adresse.
 </itemize>
 
 
@@ -70,56 +76,57 @@ with the new address.
 <p>
 <itemize>
 <item><tt/ArjReasonRouteCallToSCN=0/<newline>
-Default: <tt/1/
+D&#233;fault: <tt/1/
 <p>
-If yes, the gatekeeper rejects a call from a gateway to itself by reason
-<bf/routeCallToSCN/.
+Si oui, le gatekeeper rejette un appel d'une passerelle &#224; elle-m&#234;me avec
+la raison <bf/routeCallToSCN/.
 
 <item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
-Default: <tt/1/
+D&#233;fault: <tt/1/
 <p>
-If yes, the gatekeeper rejects an answered ARQ without a pre-existing
-CallRec found in the CallTable by reason <bf/routeCallToGatekeeper/
-in routed mode.
-The endpoint shall release the call immediately and re-send call Setup
-to the gatekeeper.
+Si oui, le gatekeeper rejette un ARQ r&#233;pondu sans un CallRec pr&#233;existant
+dans la CallTable avec la raison <bf/routeCallToGatekeeper/ en mode rout&#233;.
+Le terminal doit lib&#233;rer l'appel imm&#233;diatement et renvoyer l'appel Setup
+au gatekeeper.
 
 <item><tt/CallUnregisteredEndpoints=0/<newline>
-Default: <tt/1/
+D&#233;fault: <tt/1/
 <p>
-With this option set on, the gatekeeper will accept an ARQ from a registered
-endpoint with <bf/destCallSignalAddress/, no matter the address is belongs
-to a registered endpoint or not.
-That means you can explicitly specify the IP of endpoint (registered or not)
-you want to call.
+Avec cette option activ&#233;e, le gatekeeper acceptera un ARQ d'un terminal
+enregistr&#233; avec <bf/destCallSignalAddress/, que l'adresse appartienne &#224;
+un terminal enregistr&#233; ou non.
+Ceci signifie que vous pouvez explicitement indiquer l'IP du terminal (enregistr&#233;
+ou non) que vous voulez appeler.
 
 <item><tt/RemoveTrailingChar=#/<newline>
-Default: <tt>N/A</tt>
+D&#233;fault: <tt>N/A</tt>
 <p>
-Specify the trailing character to be removed in <bf/destinationInfo/.
-For example, if your endpoint incorrectly contains the termination character
-like `&num;' in <bf/destinationInfo/, you may remove it by this option.
+Indique le caract&#232;re de fin &#224; supprimer de <bf/destinationInfo/.
+Par exemple, si votre terminal contient de mani&#232;re erron&#233;e le caract&#232;re
+de fin tel que `&num;' dans <bf/destinationInfo/, vous pouvez le supprimer avec
+cette option.
 
 <item><tt/RoundRobinGateways=0/<newline>
-Default: <tt/1/
+D&#233;fault: <tt/1/
 <p>
-Enable/disable round-robin gateway selection, if more than one gateway
-matches a dialed number. If disabled, the first available gateway will be selected.
-Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
+Active/d&#233;sactive la s&#233;lection round-robin(?) de passerelle, si plus d'une
+passerelle correspond &#224; un num&#233;ro compos&#233;. Si d&#233;sactiv&#233;, la
+premi&#232;re passerelle disponible sera s&#233;lectionn&#233;e. Autrement, les
+appels suivants seront envoy&#233;s &#224; chaque passerelle &#224; son tour.
 
 </itemize>
 
 
 <sect1>Section &lsqb;NATedEndpoints&rsqb;
 <p>
-The gatekeeper can automatically detect whether an endpoint is behind NAT.
-However, if the detection fails, you can specify it manually in this section.
+Le gatekeeper peut d&#233;tecter automatiquement si un terminal est derri&#232;re
+un routeur. Cependant, si la d&#233;tection &#233;choue, vous pouvez l'indiquer
+manuellement dans cette section.
 
 <descrip>
 <tag/Format:/
 <tt/alias=true,yes,1,.../
-<tag/Example:/
-Specify an endpoint with alias 601 is behind NAT.
+<tag/Exemple:/
+Indique qu'un terminal avec l'alias 601 est derri&#232;re un routeur.
 <quote/<tt/601=true//
 </descrip>
-
