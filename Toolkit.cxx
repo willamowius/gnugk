@@ -22,12 +22,12 @@
 #pragma warning( disable : 4800 ) // warning about forcing value to bool
 #endif
 
-#include <ptlib.h>
-#include "h323pdu.h"
 #include "Toolkit.h"
+#include "h323util.h"
 #include "ANSI.h"
 #include "stl_supp.h"
 #include "CountryCodeTables.h"
+#include <h323pdu.h>
 
 #if (defined(P_SSL) && (0 != P_SSL)) // do we have openssl access?
 #  include <openssl/ssl.h>
@@ -162,16 +162,7 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 	network = new Address[size * 2];
 	netmask = network + size;
 	for (int i = 0; i < size; ++i) {
-		PStringArray net = networks[i].Tokenise("/", FALSE);
-		if (net[1].Find('.') == P_MAX_INDEX) {
-			// CIDR notation
-			DWORD n = (DWORD(~0) >> net[1].AsInteger());
-			netmask[i] = PIPSocket::Host2Net(~n);
-		} else {
-			// decimal dot notation
-			netmask[i] = net[1];
-		}
-		network[i] = Address(net[0]) & netmask[i]; // normalize
+		GetNetworkFromString(networks[i], network[i], netmask[i]);
 		PTRACE(2, "GK\tInternal Network " << i << " = " <<
 		       network[i] << '/' << netmask[i]);
 	}
@@ -199,7 +190,8 @@ bool Toolkit::ProxyCriterion::IsInternal(Address ip) const
 
 Toolkit::Toolkit() : m_Config(0)
 {
-	PTRACE(1, "Toolkit::Toolkit");
+	srand(time(0));
+//	PTRACE(1, "Toolkit::Toolkit");
 }
 
 Toolkit::~Toolkit()
@@ -241,7 +233,11 @@ PConfig* Toolkit::ReloadConfig()
 
 	// generate a unique name
 	do {
+#ifdef WIN32
 		m_tmpconfig = m_ConfigFilePath + "-" + PString(PString::Unsigned, rand()%10000);
+#else
+		m_tmpconfig = "/tmp/gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
+#endif
 		PTRACE(5, "Try name "<< m_tmpconfig);
 	} while (PFile::Exists(m_tmpconfig));
 
