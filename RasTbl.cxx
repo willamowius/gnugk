@@ -845,9 +845,11 @@ void RegistrationTable::CheckEndpoints()
 CallRec::CallRec(const H225_CallIdentifier & CallId,
 		 const H225_ConferenceIdentifier & ConfId,
 		 const PString & destInfo,
+		 const PString & srcInfo,
 		 int Bandwidth)
       : m_callIdentifier(CallId), m_conferenceIdentifier(ConfId),
 	m_destInfo(destInfo),
+	m_srcInfo(srcInfo), // added (MM 05.11.01)
 	m_bandWidth(Bandwidth), m_CallNumber(0),
 	m_callingCRV(0), m_calledCRV(0),
 	m_startTime(0), m_timeout(0),
@@ -995,13 +997,15 @@ PString CallRec::GenerateCDR() const
 	} else
 		timeString = "0|unconnected| ";
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s;\r\n",
+	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s;\r\n",
 		m_CallNumber,
 		(const char *)AsString(m_callIdentifier.m_guid),
 		(const char *)timeString,
 		(const char *)GetEPString(m_Calling),
 		(const char *)GetEPString(m_Called),
-		(const char *)m_destInfo
+		(const char *)m_srcInfo, //added (MM 05.11.01)
+		(const char *)m_destInfo,
+		(const char *)Toolkit::Instance()->GKName() //added (MM 06.11.01)
 	);
 }
 

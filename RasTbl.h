@@ -350,7 +350,8 @@ class SignalConnection;
 class CallRec
 {
 public:
-	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, const PString &, int);
+	CallRec(const H225_CallIdentifier &, const H225_ConferenceIdentifier &, const PString &, 
+	        const PString & srcInfo, int);
 	virtual ~CallRec();
 
 	PINDEX GetCallNumber() const
@@ -409,6 +410,7 @@ private:
 	H225_CallIdentifier m_callIdentifier;
 	H225_ConferenceIdentifier m_conferenceIdentifier;
 	PString m_destInfo;
+	PString m_srcInfo; //added (MM 05.11.01)
 	int m_bandWidth;
 	PINDEX m_CallNumber;
 

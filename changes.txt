@@ -1,3 +1,10 @@
+Changes from 1.2 to now (by mmuehlen 13.11.01)
+====================================
+- fix a bug in Toolkit::GKName 
+- add SrcInfo and GkName to CDR:
+    CDR|CallNo|CallId|Duration|Starttime|Endtime|CallerIP|CallerEndId|CalledIP|CalledEndId|SrcInfo|
+    Destinfo|GkName
+
 Changes from 1.2 to now (by cwhuang)
 ====================================
 - fix problem for lightweightRRQ without callSignalAddress

@@ -999,7 +999,9 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 	//
 	// Do the reject or the confirm
 	//
-	PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
+	// srcInfoString has now the same format as destinationInfoString (MM 05.11.01)
+	//PString srcInfoString = (RequestingEP) ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
+	PString srcInfoString = AsString(obj_arq.m_srcInfo);
 	PString destinationInfoString = (obj_arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)) ?
 		AsString(obj_arq.m_destinationInfo) : PString("unknown");
 	if (bReject)
@@ -1043,8 +1045,9 @@ void H323RasSrv::ProcessARQ(const endptr & RequestingEP, const endptr & CalledEP
 			// else this may be a duplicate ARQ, ignore!
 			PTRACE(3, "Gk\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
 		} else {
-			// the call is not in the table
-			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, destinationInfoString, BWRequest);
+			// the call is not in the table		
+			CallRec *pCallRec = new CallRec(obj_arq.m_callIdentifier, obj_arq.m_conferenceID, 
+			        destinationInfoString, srcInfoString, BWRequest);// added srcInfoString (MM 05.11.01)
 			int timeout = GkConfig()->GetInteger("CallTable", "DefaultCallTimeout", 0);
 			pCallRec->SetTimer(timeout);
 			pCallRec->StartTimer();
@@ -1644,4 +1647,3 @@ void H323RasSrv::Main(void)
 	}
 	PTRACE(1,"GK\tRasThread terminated!");
 }
-

@@ -179,7 +179,7 @@ Toolkit::RewritePString(PString &s)
 const PString 
 Toolkit::GKName() 
 {
-  return GkConfig()->GetString("Gatekeeper::Main", "Name", "OpenH323GK");
+  return GkConfig()->GetString("Name", "OpenH323GK"); //use default section (MM 06.11.01)
 }
 
 
