@@ -157,7 +157,7 @@ BOOL EndpointRec::AliasIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 {
         fullMatch = FALSE;
         bool partialMatch = FALSE;
-	unsigned int aliasStr_len;
+	int aliasStr_len;
 	const H225_ArrayOf_AliasAddress & reg_aliases = GetAliases();
 	PString reg_alias;
 	PString aliasStr = H323GetAliasAddressString(alias);
@@ -494,7 +494,7 @@ BOOL GatewayRec::PrefixIsIncomplete(const H225_AliasAddress & alias, BOOL &fullM
 	bool partialMatch = FALSE;
 	// check for gw prefixes
 	PString aliasStr = H323GetAliasAddressString(alias);
-	unsigned int aliasStrLen = aliasStr.GetLength();
+	int aliasStrLen = aliasStr.GetLength();
 	PString regPrefix;
 	// for each prefix which is stored for the endpoint in registration
 	for (const_prefix_iterator Iter = Prefixes.begin(); Iter != Prefixes.end() && !partialMatch; Iter++) {
@@ -1234,7 +1234,7 @@ void CallRec::Disconnect(bool force)
 void CallRec::SendReleaseComplete()
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable()) {
+	if (NULL!=m_callingSocket && !m_callingSocket->IsDeletable() && GetCallingProfile().SendReleaseCompleteOnDRQ()) {
 		//m_callingSocket->MarkBlocked(TRUE);
 		m_callingSocket->Lock();
 		PTRACE(4, "Sending ReleaseComplete to calling party ..." << m_callingSocket);
@@ -1242,7 +1242,7 @@ void CallRec::SendReleaseComplete()
 		m_callingSocket->MarkBlocked(FALSE);
 		m_callingSocket->Unlock();
 	}
-	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable()) {
+	if (NULL!=m_calledSocket && !m_calledSocket->IsDeletable() && GetCallingProfile().SendReleaseCompleteOnDRQ()) {
 		m_calledSocket->Lock();
 		//m_calledSocket->MarkBlocked(TRUE);
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
@@ -1615,8 +1615,7 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
 	callptr call = obj_drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? FindCallRec(obj_drq.m_callIdentifier) : FindCallRec(obj_drq.m_callReferenceValue.GetValue());
 	PTRACE(1, "CallTable::RemoveCall " << call);
 	if (call) {
-		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0")))
-			call->SendReleaseComplete();
+		call->SendReleaseComplete();
 		RemoveCall(call);
 	}
 }
