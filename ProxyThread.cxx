@@ -570,9 +570,7 @@ void ProxyHandleThread::RemoveSockets()
 		return;
 	}
 	for(iterator Iter=removedList.begin(); Iter !=removedList.end(); Iter++) {
-		ProxyDeleter *d = new ProxyDeleter(*Iter);
-		d->Resume();
-		d->SetAutoDelete();
+		new ProxyDeleter(*Iter);
 	}
 	removedList.clear();
 	removedMutex.Signal();
@@ -727,8 +725,10 @@ void ProxyHandleThread::Remove(iterator i)
 	iterator j = removedList.begin(), k = removedList.end();
 	while(j != k) {
 
-		if(*j == *i)
-			PAssertAlways("Booom, removing duplicate socket");
+		if(*j == *i) {
+			sockList.erase(i);
+			return;
+		}
 		j++;
 	}
 	removedList.push_back(*i);
@@ -739,9 +739,7 @@ void ProxyHandleThread::Remove(iterator i)
 void
 ProxyHandleThread::delete_socket(ProxySocket *s)
 {
-	ProxyDeleter *d = new ProxyDeleter(s);
-	d->SetAutoDelete();
-	d->Resume();
+	new ProxyDeleter(s);
 }
 
 // Quick solution of locking the handler thread -- see ProxyThread.h too.
@@ -773,9 +771,10 @@ ProxyDeleter::OnTimeout(PTimer &timer, int extra)
 }
 
 ProxyDeleter::ProxyDeleter(ProxySocket *s):
-	PThread(1000,NoAutoDeleteThread), delete_socket(s)
+	PThread(10,AutoDeleteThread), delete_socket(s)
 {
 	PTRACE(1, "Start of ProxyDeleter");
+	Resume();
 }
 
 HandlerList::HandlerList(PIPSocket::Address home) : GKHome(home), GKPort(0)
