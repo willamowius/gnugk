@@ -764,10 +764,15 @@ void
 ProxyDeleter::OnTimeout(PTimer &timer, int extra)
 {
 	if(timer == max_wait)
+#ifdef DEBUG_ASSERT
 		PAssertAlways(PString("timeout in deleteion of ProxySocket ") +
 			      (delete_socket->IsInUse() ? PString("In Use") : PString("not in use")) +
 			(delete_socket->m_lock.WillBlock() ? PString(" Will Blocke") : PString(" Will not block")));
-
+#else
+	PTRACE(1,PString("timeout in deleteion of ProxySocket ") +
+			      (delete_socket->IsInUse() ? PString("In Use") : PString("not in use")) +
+			(delete_socket->m_lock.WillBlock() ? PString(" Will Blocke") : PString(" Will not block")));
+#endif
 }
 
 ProxyDeleter::ProxyDeleter(ProxySocket *s):
