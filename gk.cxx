@@ -403,8 +403,6 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 void Gatekeeper::PrintOpts(void)
 {
 	cout << "Options:\n"
-		"  -r  --routed       : Use gatekeeper routed call signaling\n"
-		"  -rr --h245routed   : Use H.245 control channel routed\n"
 		"  -d  --direct       : Use direct endpoint call signaling\n"
 		"  -i  --interface IP : The IP that the gatekeeper listen to\n"
 		"  -l  --timetolive n : Time to live for client registration\n"
@@ -597,11 +595,8 @@ void Gatekeeper::Main()
 	Toolkit::Instance()->GetMasterRASListener();
 	// read signaling method from commandline
 	if (args.HasOption('r'))
-		Toolkit::Instance()->GetMasterRASListener().SetRoutedMode(true, (args.GetOptionCount('r') > 1 || args.HasOption("h245routed")));
-	else if (args.HasOption('d'))
-		Toolkit::Instance()->GetMasterRASListener().SetRoutedMode(false, false);
-	else
-		Toolkit::Instance()->GetMasterRASListener().SetRoutedMode();
+		PTRACE(1, "The -r switch is highly depricated and is no longer supported, as the configuration file has this option");
+	Toolkit::Instance()->GetMasterRASListener().SetRoutedMode();
 
 	MulticastGRQThread = new MulticastGRQ(GKHome);
 
