@@ -28,10 +28,11 @@
 #include "MulticastGRQ.h"
 #include "BroadcastListen.h"
 #include "Toolkit.h"
-#include "SoftPBX.h"
+#include "h323util.h"
+#include "RasTbl.h"
 
 
-/*towi:
+/*
  * many things here should be members of Gatkeeper. 
  */
 
@@ -40,40 +41,6 @@ MulticastGRQ * MulticastGRQThread = NULL;
 BroadcastListen * BroadcastThread = NULL;
 PMutex ShutdownMutex;
 
-
-PConfig* LoadReloadConfig()
-{
-	return Toolkit::ReloadConfig();
-	/* The following patch in pwlib is neccessary to reload the config file:
-	 * ### file: ~/openh323/gk/pwlib_src_ptlib_unix_config.cxx.patch ########
-	 * *** config.cxx.old      Tue Jan 11 08:57:55 2000
-	 * --- config.cxx.new      Tue Jan 11 08:57:20 2000
-	 * ***************
-	 * *** 444,450 ****
-	 *
-	 *      // decrement the instance count, but don't remove it yet
-	 *       PFilePath key = GetKeyAt(index);
-	 * !     instance->RemoveInstance(key);
-	 *     }
-	 *
-	 *     mutex.Signal();
-	 * --- 444,451 ----
-	 * 
-	 *       // decrement the instance count, but don't remove it yet
-	 *       PFilePath key = GetKeyAt(index);
-	 * !     if(instance->RemoveInstance(key)) //towi
-	 * !               RemoveAt(key);              // towi
-	 *     }
-	 * 
-	 *     mutex.Signal();
-	 * #######################################################################
-	 * You may apply the patch by saving the above in a patch file (without #-lines)
-	 * and use the following commands:
-	 * $> cd ~/pwlib/src/ptlib/unix
-	 * $> patch config.cxx ~/openh323/gk/pwlib_src_ptlib_unix_config.cxx.patch
-	 */
-}
-/*:towi*/
 
 void ShutdownHandler(void)
 {
@@ -119,46 +86,6 @@ void ShutdownHandler(void)
 }
 
 
-void ReloadHandler(void)
-{
-	// only one thread must do this
-	if (ShutdownMutex.WillBlock())
-		return;
-	
-	/*
-	** Enter critical Section
-	*/
-	ShutdownMutex.Wait();
-
-	/*
-	** Force reloading config
-	*/
-	LoadReloadConfig();
-	PTRACE(3, "GK\t\tConfig reloaded.");
-
-	/*
-	** Unregister all endpoints
-	*/
-	SoftPBX::Instance()->UnregisterAllEndpoints();
-	PTRACE(3, "GK\t\tEndpoints unregistered.");
-
-	/*
-	** Don't disengage current calls!
-	*/
-	PTRACE(3, "GK\t\tCarry on current calls.");
-
-	/*
-	** Leave critical Section
-	*/
-	// give other threads the chance to pass by this handler
-	PProcess::Current().Sleep(1000); 
-
-	ShutdownMutex.Signal();
-
-	return;
-}
-
-
 #ifdef WIN32
 
 BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
@@ -182,10 +109,6 @@ void UnixShutdownHandler(int sig)
 void UnixReloadHandler(int sig) // For HUP Signal
 {
 	PTRACE(1, "GK\tGatekeeper Hangup (signal " << sig << ")");
-#ifdef P_SOLARIS
-	// on Solaris the handler has to be reset
-	signal(SIGHUP, UnixReloadHandler);
-#endif
 	ReloadHandler();
 };
 
@@ -209,7 +132,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 	return PString
 		("r-routed."
 		 "b-bandwidth:"
-		 "h-home:"
+		 "i-interface:"
 #ifdef PTRACING
 		 "t-trace."
 		 "o-output:"
@@ -217,6 +140,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "l-timetolive:"
 		 "c-configfile:"
 		 "s-section:"
+		 "h-help:"
 		 );
 }
 
@@ -230,9 +154,16 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 	signal(SIGINT, UnixShutdownHandler);
 	signal(SIGQUIT, UnixShutdownHandler);
 	signal(SIGUSR1, UnixShutdownHandler);
-	signal(SIGHUP, UnixReloadHandler);
+
+	struct sigaction sa;
+	sigemptyset(&sa.sa_mask);
+	sigaddset(&sa.sa_mask, SIGHUP); // ignore while in handler
+	sa.sa_flags = 0;
+	sa.sa_handler = UnixReloadHandler;
+
+	sigaction(SIGHUP, &sa, NULL);
 #endif
-	
+
 	return TRUE;
 }
 
@@ -242,7 +173,7 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 #ifdef PTRACING
 	// PTrace::SetOptions(PTrace::Timestamp | PTrace::Thread);
 	// PTrace::SetOptions(PTrace::Timestamp);
-	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel); // towi
+	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel);
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o'))
 	{
@@ -271,10 +202,6 @@ BOOL Gatekeeper::InitToolkit(const PArgList &args)
 }
 
 
-/*towi: This is not complete now. We must not use LoadReloadConfig
- * like it is now. We have to think how to use signal handles
- * and (virtual or static) method functions.
- */
 BOOL Gatekeeper::InitConfig(const PArgList &args)
 {
 	// get the name of the config file
@@ -288,17 +215,26 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 		section = args.GetOptionString('s');
 
 	Toolkit::SetConfig(fp, section);
-	// not neccessary: LoadReloadConfig();Toolkit::m_Instance
-	
+
 	if( (Toolkit::Config()->GetInteger("Fourtytwo") ) != 42) { 
-		cerr << "CONFIG CHECK FAILED!\n"
-			 << "- Does the config file exist? The default or the one given with -c?\n"
+		cerr << "WARNING: No config file found!\n"
+			 << "- Does the config file exist? The default (~/.pwlib_config/Gatekeeper.ini or gatekeeper.ini in current directory) or the one given with -c?\n"
 			 << "- Did you specify they the right 'Main' section with -s?\n" 
 			 << "- Is the line 'Fourtytwo=42' present in this 'Main' section?"<<endl;
-		exit(1);
 	}
 	
 	return TRUE;
+}
+
+
+void Gatekeeper::PrintOpts(void)
+{
+	PStringArray opts = GetArgumentsParseString().Tokenise(".:", FALSE);
+
+	cout << "Known options:" << endl;
+	for(PINDEX i=0; i< opts.GetSize(); i++){
+		cout << opts[i]<< endl;
+	}
 }
 
 
@@ -312,6 +248,13 @@ void Gatekeeper::Main()
 	BOOL GKroutedSignaling = FALSE;	// default: use direct signaling
 	PIPSocket::Address GKHome;
 
+	if (args.HasOption('h')) {
+		cout << "OpenH323 gatekeeper '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome) << endl;
+		cout << Toolkit::GKVersion() << endl;
+		PrintOpts();
+		exit(0);
+	}
+
 	if(! InitHandlers(args)) return;
 
 	if(! InitToolkit(args)) return;
@@ -321,8 +264,8 @@ void Gatekeeper::Main()
 	if(! InitLogging(args)) return;
 
 	// read gatekeeper home address from commandline
-	if (args.HasOption('h'))
-		GKHome = PString(args.GetOptionString('h'));
+	if (args.HasOption('i'))
+		GKHome = PString(args.GetOptionString('i'));
 	else {
 		PString s = Toolkit::Config()->GetString("Home", "x");
 		if (s == "x")
@@ -331,9 +274,9 @@ void Gatekeeper::Main()
 			GKHome = s;
 	}
 	
-	cout << "OpenH323 gatekeeper '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome) << endl;
+	cout << "OpenH323 gatekeeper with ID '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome) << endl;
 	cout << Toolkit::GKVersion() << endl;
-	PTRACE(1, "GK\tGatekeeper '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome));
+	PTRACE(1, "GK\tGatekeeper with ID '" << Toolkit::GKName() << "' started on " << inet_ntoa(GKHome));
 	PTRACE(1, "GK\t"<<Toolkit::GKVersion());
 
 	// read signaling method from commandline

@@ -1,0 +1,65 @@
+Call establishment with direct routing
+======================================
+
+EP1				GK				EP2
+===             ==              ===
+
+----ARQ-------->
+<---ACF---------
+
+----Setup------------------------->
+<----------------Call Proceeding---
+
+                   <------ARQ------
+                   -------ACF----->
+
+<----------------Alerting----------
+<----------------Connect-----------
+
+
+Call establishment with GK routing (spec)
+=========================================
+
+EP1				GK				EP2
+===             ==              ===
+
+----ARQ-------->
+<---ACF---------
+
+----Setup------->
+<--Call Proceeding-
+                  ----Setup------->
+                 <-Call Proceeding-
+
+                   <------ARQ------
+                   -------ACF----->
+
+                   <---Alerting----
+<---Alerting---
+                   <---Connect-----
+<---Connect----
+
+
+Call establishment with GK routing (current implementation)
+===========================================================
+
+EP1				GK				EP2
+===             ==              ===
+
+----ARQ-------->
+<---ACF---------
+
+----Setup------->                                      !!!
+                  ----Setup------->                    !!!
+                 <-Call Proceeding-                    !!!
+<--Call Proceeding-                                    !!!
+
+                   <------ARQ------
+                   -------ACF----->
+
+                   <---Alerting----
+<---Alerting---
+                   <---Connect-----
+<---Connect----
+
+

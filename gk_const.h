@@ -15,7 +15,7 @@
 #ifndef GK_CONST_H
 #define GK_CONST_H
 
-/* all values can be set in the config file, [Gatekeeper::TCP]
+/* all values can be set in the config file, section [Gatekeeper::<InstanceName>]
  * these are just the defaults
  */
 

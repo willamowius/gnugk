@@ -11,9 +11,14 @@
 //////////////////////////////////////////////////////////////////
 
 #include "SignalChannel.h"
-#include "GkQ931.h"
+#include "q931.h"
 #include "ANSI.h"
 #include "Toolkit.h"
+#include "SignalConnection.h"
+#include "gk_const.h"
+
+
+
 
 SignalChannel::SignalChannel ( PINDEX stackSize, PIPSocket::Address _GKHome, WORD port ): 
 			PThread( stackSize, NoAutoDeleteThread ),
@@ -31,7 +36,7 @@ BOOL SignalChannel::Open(void)
 	return m_listener.Listen(GKHome,
 							 Toolkit::Config()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH),
 							 m_listener.GetPort(),
-							 PSocket::CanReuseAddress); //storm
+							 PSocket::CanReuseAddress);
 };
 
 SignalChannel::~SignalChannel()
@@ -48,11 +53,10 @@ void SignalChannel::CleanupConnections(void)
 {
 	PTRACE(6, ANSI::CYA << "SignalChannel::CleanupConnections" << ANSI::OFF);
 
-	int i, num;
 	SignalConnection * connection = NULL;
+	int num = connectionList.GetSize();
 
-	num = connectionList.GetSize();
-	for(i=0; i<num; i++)
+	for(int i=0; i<num; i++)
 	{
 		connection = (SignalConnection*) connectionList.GetAt(i);
 		if (connection != NULL)
@@ -68,7 +72,8 @@ void SignalChannel::CleanupConnections(void)
 		}
 		else
 		{
-			PTRACE(1,"SignalChannel\tconnectionList() returned NULL");
+			PTRACE(1,"SignalChannel\tWarning: connectionList() returned NULL");
+			break;
 		}
 	}
 }
@@ -79,11 +84,10 @@ void SignalChannel::CloseConnections(void)
 {
 	PTRACE(6, ANSI::CYA << "SignalChannel::CloseConnections" << ANSI::OFF);
 
-	int i, num;
 	SignalConnection * connection = NULL;
-	
-	num = connectionList.GetSize();
-	for(i=0; i<num; i++)
+	int num = connectionList.GetSize();
+
+	for(int i=0; i<num; i++)
 	{
 		connection = (SignalConnection*) connectionList.GetAt(i);
 		if (connection != NULL)

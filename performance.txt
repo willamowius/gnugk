@@ -1,0 +1,8 @@
+Preformance Measurements
+========================
+
+
+Sun Utra 5 / 333 Mhz (GK 0.18 pre5, storm@mediaways.net):
+20 calls/sec, max 15 MB memory usage
+
+

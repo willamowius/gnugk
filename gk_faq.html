@@ -58,9 +58,6 @@ on the OpenH323 source.
 
 <P>
 
-Databeam has a nice description on what a gatekeeper does
-<a href="http://www.databeam.com/h323/h323primer.html#gatekeepers">here</a>.
-<p>
 This is also a nice <a href="http://www.webproforum.com/h323/topic06.html">description</a> of what a gatekeeper does.
 <p>
 
@@ -72,7 +69,13 @@ dynamically allocated ports and is thus very hard to masquerade.
 The only product I'm aware of that does this is PhonePatch by
 <a href="http://www.equival.com.au/~equival/phonepatch/">Equivalence</a>.
 <p>
-There is also a <a href="ftp://ftp.coritel.it/pub/linux/ip_masq/">very simple Linux masquerading module</a> being developed. Try your luck and maybe extend it to your needs...
+There is also a <a href="ftp://ftp.coritel.it/pub/Software/nat-h323/">very simple Linux masquerading module</a> being developed. Try your luck and maybe extend it to your needs...
+<p>
+There are also 2 products that have firewalling built into their other
+functionalities:
+<a href="http://openh323proxy.sourceforge.net/">OpenH323Proxy</a> and
+<a href="ihttp://www.openh323.org/">OpenMCU</a>.
+These two work on a variety of platforms.
 <p>
 
 <A NAME="2"></A><H2>2. Why should I use a gatekeeper ?</H2>
@@ -131,14 +134,8 @@ perfectly ok) and some OS vendors don't even provide a compiler.
 Because of this some folks actually go through the trouble
 of providing pre-compiled OpenH323 Gatekeeper binaries.
 <p>
-You can find a
-<a href="http://www.telos.de/linux/h323/default_e.htm">Linux binary here</a>
-and a FreeBSD binary can be found in the FreeBSD Ports
-Collection in /usr/ports/net/gatekeeper.
-<p>
-In case somebody wants to provide a Windows binary, please let me know.
-<p>
-Please note that these binaries might not be the most recent version.
+There are a few pre-compiled binaries on the project homepage,
+but they might not be the most recent version.
 <p>
 
 <A NAME="5"></A><H2>5. gk and gktest usage</H2>
@@ -209,6 +206,5 @@ of your application private.
 
 Please send questions and comments to <a href="mailto:gatekeeper@willamowius.de">gatekeeper@willamowius.de</a> .
 
-<p>
 </BODY></HTML>
 

@@ -50,7 +50,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 ptclib.lib ptlib.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib ..\Release\OpenH323Lib.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\lib"
+# ADD LINK32 ptclib.lib ptlib.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib OpenH323.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\lib"
 # SUBTRACT LINK32 /debug
 
 !ELSEIF  "$(CFG)" == "gk - Win32 Debug"
@@ -76,7 +76,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 ptclibd.lib ptlibd.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib wsock32.lib ..\Debug\OpenH323Lib.lib /nologo /subsystem:console /incremental:no /debug /machine:I386 /pdbtype:sept /libpath:"..\..\lib"
+# ADD LINK32 ptclibd.lib ptlibd.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib wsock32.lib OpenH323.lib /nologo /subsystem:console /incremental:no /debug /machine:I386 /pdbtype:sept /libpath:"..\..\lib"
 # SUBTRACT LINK32 /nodefaultlib
 
 !ENDIF 
@@ -95,10 +95,6 @@ SOURCE=.\BroadcastListen.cxx
 # Begin Source File
 
 SOURCE=.\gk.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=.\gkmw.cxx
 # End Source File
 # Begin Source File
 
@@ -144,10 +140,6 @@ SOURCE=.\SoftPBX.cxx
 
 SOURCE=.\Toolkit.cxx
 # End Source File
-# Begin Source File
-
-SOURCE=.\Toolkit_Mediaways.cxx
-# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -162,23 +154,11 @@ SOURCE=.\BroadcastListen.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\CallTbl.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\gk.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\gk_const.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\gkmw.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\GkQ931.h
 # End Source File
 # Begin Source File
 
@@ -216,10 +196,6 @@ SOURCE=.\SoftPBX.h
 
 SOURCE=.\Toolkit.h
 # End Source File
-# Begin Source File
-
-SOURCE=.\Toolkit_Mediaways.h
-# End Source File
 # End Group
 # Begin Group "Resource Files"
 
@@ -238,7 +214,11 @@ SOURCE=.\compiling.txt
 # End Source File
 # Begin Source File
 
-SOURCE=.\data.txt
+SOURCE=.\gkstatus.txt
+# End Source File
+# Begin Source File
+
+SOURCE=.\performance.txt
 # End Source File
 # Begin Source File
 
@@ -246,7 +226,23 @@ SOURCE=.\readme.txt
 # End Source File
 # Begin Source File
 
+SOURCE=.\reference.txt
+# End Source File
+# Begin Source File
+
+SOURCE=.\signalling.txt
+# End Source File
+# Begin Source File
+
+SOURCE=".\test-status.txt"
+# End Source File
+# Begin Source File
+
 SOURCE=.\todo.txt
+# End Source File
+# Begin Source File
+
+SOURCE=.\tutorial.txt
 # End Source File
 # End Group
 # End Target

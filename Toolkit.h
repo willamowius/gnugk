@@ -137,12 +137,20 @@ class Toolkit
 										data.m_manufacturerCode);
 	}
 
+	/** A c-string (#char*#) hash function that considers the
+	 * whole string #name# ending with #\0#.
+	 */
+	inline static unsigned long HashCStr(const unsigned char *name) ;
+
  protected: // static fields
 	static PFilePath m_ConfigFilePath;
 	static PString   m_ConfigDefaultSection;
 	static PConfig*  m_Config;
 	static Toolkit * m_Instance;
 	
+	/** e164s starting with this string are examined further for rewriting. */
+	const PString  m_RewriteFastmatch;
+	BOOL           m_EmergencyAccept;
 };
 
 
@@ -189,8 +197,16 @@ Toolkit::for_each_with2(InputIterator first, InputIterator last, Function f,
 }
 
 
+inline unsigned long
+Toolkit::HashCStr(const unsigned char *name) 
+{
+	register unsigned long h = 0, g;
+	while (*name) {
+		h = (h << 4) + *name++;
+		if ( (g = (h & 0xf0000000)) ) h ^= g >> 24;
+		h &= ~g;
+	}
+	return h;
+}
+
 #endif
-
-
-
-

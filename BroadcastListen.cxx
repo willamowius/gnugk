@@ -13,6 +13,7 @@
 
 #include "BroadcastListen.h"
 #include "RasSrv.h"
+#include "Toolkit.h"
 #include "gk_const.h"
 #ifdef WIN32
 #include <winsock.h>
@@ -22,8 +23,7 @@
 
 BroadcastListen::BroadcastListen(H323RasSrv * _RasSrv)
 	: PThread(1000, NoAutoDeleteThread), 
-	  BroadcastListener(Toolkit::Config()->GetInteger
-						("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT))
+	  BroadcastListener(WORD(Toolkit::Config()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)))
 {
 	PTRACE(1, "GK\tBroadcast listener started");
 
@@ -49,13 +49,12 @@ void BroadcastListen::Main(void)
 	};
 	while (BroadcastListener.IsOpen())
 	{ 
-		int iResult;
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
 
 		PBYTEArray * rdbuf = new PBYTEArray(4096);
 		PPER_Stream * rdstrm = new PPER_Stream(*rdbuf);
-		iResult = BroadcastListener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
+		int iResult = BroadcastListener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
 		if (!iResult)
 		{
     		PTRACE(1, "GK\tBroadcast thread: Read error: " << BroadcastListener.GetErrorText());

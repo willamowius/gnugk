@@ -25,13 +25,16 @@
 #include "ptlib/mutex.h"
 #include <set>
 
-// using namespace std;
-
 class GkStatus : public PThread
 {
 	  PCLASSINFO(GkStatus, PThread)
 public:
+	static GkStatus * Instance(PIPSocket::Address _gkhome = PIPSocket::Address(PString("0.0.0.0")));
+
+private:
 	GkStatus(PIPSocket::Address _GKHome);
+
+public:
 	virtual ~GkStatus();
 
 	void Close(void);
@@ -52,10 +55,16 @@ public:
 		e_PrintAllRegistrationsVerbose,/// extra line per reg starting with '#'. yeah #.
 		e_PrintCurrentCalls,
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
-		e_Disconnect,
+		e_DisconnectIp,                /// disconnect a call by endpoint IP number
+		e_DisconnectAlias,             /// disconnect a call by endpoint alias
+		e_DisconnectCall,              /// disconnect a call by call number
+		e_DisconnectEndpoint,          /// disconnect a call by endpoint ID
+		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
+		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
+		e_TransferCall,                /// transfer call from one endpoint to another
+		e_MakeCall,                    /// establish a new call from endpoint A to endpoint B
 		e_Yell,                        /// write a message to all status clients
 		e_Who,                         /// list who is logged on at a status port
-		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
 		e_Help,                        /// List all commands
 		e_Version,                     /// GkStatus Protocol Info
 		e_Debug,                       /// Debugging commands
@@ -136,6 +145,10 @@ public:
 	std::set<Client*>::const_iterator ClientIter;
 	PMutex       ClientSetLock;
 	BOOL         m_IsDirty;
+
+protected:    // singelton instance and lock
+	static GkStatus * m_instance;
+	static PMutex m_CreationLock;
 };
 
 #endif // GKSTATUS_H

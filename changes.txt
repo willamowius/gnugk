@@ -1,3 +1,75 @@
+Changes from 0.17 to 1.0
+========================
+
+- more documentation
+- status thread: changed Disconnect command to DisconnectIp,
+  added DisconnectAlias, DisconnectCall, DisconnectEndpoint,
+  UnregisterAlias
+- better handling of DCF
+- better error checking for command arguments via status thread
+- dummy implementation for TransferCall and MakeCall (doesn't do anything, yet)
+- slightly different handling of SIGHUP
+- RewriteE164: multiple comma-separated targets, randomly chosen
+- simplified conversion between socket and H225 ip addresses
+- first steps to implement H.245-routing (doesn't do anything, yet)
+- commands via status thread are case insensitive
+- changed command line option -h (home interface) to -i, new option -h (help)
+- updated to latest OpenH323 version (pwlib 1.1.32, openh323 1.5.4)
+- use callIndentifiers instead of callReferences (the first are globally unique)
+- generate CallProceeding messages
+- using all aliases of endpoint, not only the first alias
+- generate CDRs, signal all ACFs
+- check H.225 connections with Q.931 StatusEnquiry heartbeat (optional)
+- changed default for RasSrv::RRQAuth back to confirm (so you can use
+  the gatekeeper without a config file)
+- compile fixes for Visual C++ 6.0
+
+Changes from 0.16 to 0.17
+=========================
+
+- fixed crash in status reporting of ACF in routed mode
+- fixed bug, where the destCallSignalAdress still pointed to the GK
+  after being forwarded in routed mode (prevented routed call from
+  OhPhone -> Netmeeting)
+- the config file gatekeeper.ini is no longer mandatory; simple
+  configurations will work without any config file, but you'll need
+  it for more complicated setups
+
+Changes from 0.15 to 0.16
+=========================
+
+- small fixes to make the gatekeeper compile under Visual C++ 6.0
+
+Changes from 0.14 to 0.15
+=========================
+
+- fixed unsafe cast from H323 alias to PASN_BMPString
+  Bacci Emiliano found it
+
+Changes from 0.13 to 0.14
+=========================
+
+- major bug-fix for ohphone compatibility
+  Christoph Stueckjuergen found it
+
+Changes from 0.12 to 0.13
+=========================
+
+- updated to compile with OpenH323 beta 3
+- small fix in SignalConnection for Windows NT
+  by rama@anwsi.com
+- multicast requests are answered to the specified port (not the
+  sender port
+  by Denver Trouton
+- RegistrationTable::FindByPrefix now finds the longest prefix, not
+  the first one
+  by Michael Rubashenkov
+- fix in H323RasSrv::OnLRQ to allow it to work with Cisco gatekeeper
+  by Michael Rubashenkov
+- fix to allow Netmeeting to call ohphone (the other always way has
+  been working)
+  by Andreas Hofmeister
+
 Changes from 0.11 to 0.12
 =========================
 
@@ -16,7 +88,7 @@ Changes from 0.11 to 0.12
 - rule based authentication for usage of the status port
 - alias rewriting: the gatekeeper has a list of E.164 aliases
   that are replaced by another E.164 number
-- many bugfixes...
+- many bug fixes...
 
 - the timeToLive filed in RCF can be set on the command line with -l
 
@@ -60,9 +132,9 @@ Changes from 0.9 to 0.10
   the E.164 address the gateway registered and assume that the gateway
   provides access to the whole address space (needs testing!)
   input from Frank Breitenbach
-- new commandline option -h <ip> to specify the ip number the
+- new command line option -h <ip> to specify the ip number the
   gatekeeper binds to. Now you can use IP aliases on Linux and
-  start as many gatekeeprs as you want.
+  start as many gatekeepers as you want.
   input from Markus Storm
 - status messages with ip numbers
   input from Seungoh Jhung
@@ -79,6 +151,6 @@ Changes from 0.8 to 0.9
   input by Markus Storm
 - gk sends status messages to all clients connected to TCP port 7000
   (eg. for SNMP agent) - this is experimental and may evolve into
-  a full-fledged interface to the gatekkeper
+  a full-fledged interface to the gatekeeper
 - all mandatory RAS messages implemented
 

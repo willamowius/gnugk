@@ -23,9 +23,15 @@ public:
 	static SoftPBX * Instance(void);
 
 	void PrintAllRegistrations(GkStatus::Client &client, BOOL verbose=FALSE);
-	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE); //towi: +verbose
-	void Disconnect(PString Ip);
+	void PrintCurrentCalls(GkStatus::Client &client, BOOL verbose=FALSE);
+	void DisconnectIp(PString Ip);
+	void DisconnectAlias(PString Alias);
+	void DisconnectCall(PINDEX CallNumber);
+	void DisconnectEndpoint(PString Id);
 	void UnregisterAllEndpoints();
+	void UnregisterAlias(PString Alias);
+	void TransferCall(PString SourceAlias, PString DestinationAlias);
+	void MakeCall(PString SourceAlias, PString DestinationAlias);
 
 protected:
 	static SoftPBX * m_instance;

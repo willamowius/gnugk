@@ -1,0 +1,207 @@
+Reference-Manual for OpenH323 Gatekeeper
+========================================
+
+
+A. Command line options
+-----------------------
+
+-h		help
+
+-b <n>	limit the sum of bandwidth to be given to clients to n * 100 bit/sec,
+		default is 100000 which should roughly be (very) the capacity of a 100 MBit LAN
+
+-r		use gatekeeper routed signaling, default is direct signaling
+
+-i <ip>	gatekeeper will only listen on this IP number (eg. useful,
+		when running client and gatekeeper on the same machine)
+		overrides the Home= setting in the config file
+
+-t		set trace verbosity: -t = a little , -tt = more, -ttt a lot, ...
+
+-o <file> write trace to this file, default is to write on the console
+
+-l <n>	limit TTL (time to live) for client registration to n (not fully implemented, yet !)
+
+-c <file>	specify which config file to use, default is to look for
+			gatekeeper.ini in the current directory or ~/.pwlib_config/Gatekeeper.ini (on Unix)
+
+-s <section>	specify which [Main] section to use in the config file, default is [Gatekeeper::Main]
+
+
+B. Configuration file reference
+-------------------------------
+
+Comments are marked with a hash (#) at the beginning of a line.
+
+B.1 Section [Gatekeeper::Main]
+
+Fourtytwo=42		Default: n/a
+This setting is used to test the presence of the config file. If none
+is found, a warning is issued.
+
+Name=OpenH323GK		Default: OpenH323GK
+Gatekeeper ID of this gatekeeper. The GK will only respond to GRQs
+for this ID and will use it in a number of messages to its endpoints.
+
+Home=195.71.129.69	Default: 0.0.0.0 (= all interfaces)
+The GK will listen fore requests on this IP number.
+This setting is most useful on multi-homed machines with more
+than one IP number. Note that the GK will _not_ listen on
+localhost (127.0.0.1) !
+
+AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK
+We allow for existence of another gatekeeper to allow for redundancy.
+This is implemented in a active-active manner. Actually, you might get
+into a (valid !) situation where some endpoints are registered with the
+first and some are registered with the second GK.
+You should even be able use the 2 GKs in a round_robin fashion for load-sharing
+(that's untested, though :-)).
+If you read on, "primary GK" refers to the GK you're currently configuring
+and "alternate GK" means the other one. Only ONE alternate GK may be specified.
+The primary GK includes a field in the RCF to tell endpoints which alternate IP and
+GK alias to use. But the alternate GK needs to know about every registration with
+the primary GK or else it would reject calls. Therefore our GK can forward every RRQ
+to an alternate IP address. The AlternateGKs config option specifies the fields
+contained in the primary GK's RCF. The first and second fields of this string define where (IP, port) to forward to.
+The third tells endpoints whether they need to register with the alternate GK
+before placing calls. They usually don't because we forward their RRQs, so they
+get registered with the alternate GK, too.
+The fourth field specified the priority for this GK. Lower is better, usually the
+primary GK is considered to have priority 1.
+The last field specifies the alternate's gatekeeperId .
+
+sendto=1.2.3.4:1719
+Although this information is contained in AlternateGKs, you must still
+specify which address to forward RRQs to. This might differ from AlternateGK's
+address, so it's a separate config option (think of multihomed machines).
+
+SkipForwards=1.2.3.4:5.6.7.8
+To avoid circular forwarding, you shouldn't forward RRQs you get from the
+other GK (this statement is true for both, primary and alternate GK).
+Two mechanisms are used to identify whether a request should be forwarded.
+The first one looks for a flag in RRQ. Since few endpoints implement this,
+we need a second, more reliable way. Specify the other GK's IP in this list
+
+EndpointIDSuffix=_gk1
+We need to identify which gatekeeper an endpoint currently thinks is his
+primary one.
+
+Most users will never need to change any of the following values. They are mainly
+used for testing or very sophisticated applications.
+
+UnicastRasPort=1719			Default: 1719
+
+MulticastPort=1718			Default: 1718
+
+MulticastGroup=224.0.1.41	Default: 224.0.1.41
+
+RouteSignalPort=1721		Default: 1721
+
+EndpointSignalPort=1720		Default: 1720
+
+StatusPort=7000				Default: 7000
+
+ListenQueueLength=1024		Default: 1024
+
+SignalReadTimeout=1000		Default: 1000
+Time in ms for read timeout on status channel.
+
+StatusReadTimeout=3000		Default: 3000
+Time in ms when for read timeout on signaling channels (Q931).
+
+
+B.3 Section [GkStatus::Auth]
+
+rule=allow		Default: forbid
+Define a number of rules who is allowed to connect to the status port.
+Possible values are...
+
+
+B.4 Section [RasSvr::GWPrefixes]
+
+This section lists what E.164 numbers are routed to a specific gateway.
+You can also defines the gateway as a trunk or residential gateway here.
+Calls coming in from residential gateways (or terminals) must be screened
+(e.g. verification of A number), calls coming in via trunk gateways
+may not be screened (not yet implemented).
+
+test-gw=0:trunk
+All numbers starting with 0 go to the gateway with the alias name
+"test-gw". It's a trunk gateway. The gateway must be currently registered
+with the gatekeeper.
+
+
+B.5 Section [RasSvr::ARQ]
+
+IncompleteAddresses=TRUE		Default = FALSE
+If TRUE, GK returns ARJ with reason incomplete addresses in response to
+ARQs with incomplete numbers.  This is needed to support overlapped sending
+of digits. The dialed number is considered to be incomplete if we have a
+gateway that is registered with a prefix that is potentially matching the
+dialed number, but is LONGER. Therefore, without collecting more digits,
+the GK can't decide whether the dialed number will evolve into a registered
+number. It might or might not - it depends on the next, yet-unknown digits.
+
+
+B.6 Section [RasSvr::RewriteE164]
+
+Fastmatch=xxx		Default: (empty)
+
+B.7 Section [RasSvr::ARQFeatures]
+ArjReasonRouteCallToSCN=FALSE
+If TRUE, when a ARQ arrives from the very same gateway that this call
+would be routed back to, gatekeeper sends ARJ with Reason RouteCallToSCN
+
+
+B.8 Section [RasSrv::RRQAuth]
+
+default=deny				Default: confirm
+
+Specify the default action on RRQ reception (confirm or deny).
+First, the first alias (this will mostly be a h323id) of the endpoint to register is looked
+up in this section.  If a parameter is found the value will apply as a rule. If no parameter
+is found, the value of the parameter "default" will apply. If no "default" is found all
+registrations are accepted. A rule consists of conditions separated by "&". A registration
+is accepted when all conditions apply. 
+
+A condition has the notation authtype:param1[:param2[...]]. The number of params depends on
+the authtype. Currently the following authtypes are implemented: 
+
+  confirm (or allow)        : allow this endpoint to register. 
+  reject (or deny, forbid)  : may not register. 
+  sigip:<a.b.c.d:p>         : allow registering if the signal address is <a.b.c.d:p>. 
+  sigaddr:<regex>           : allow registering only if the PString (see pwlib class)
+                              representation of the signal address of the registering endpoint
+			      matches <regex>. This is a more general form then "sigip" and
+			      will allow future extension (ie by IPv6). 
+
+  Example:
+  rossi-gt2=sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
+  rossi-gt3=sigip:195.71.226.165:1720
+  gkt1=confirm
+  gkt2=confirm
+  default=reject
+
+  Note that the "alias" is the PString representation of the RRQ.m_aliasAddress[0]. This
+  should be a h323id but it is thinkable to have any option of H225_AliasAddress
+  (e164, h323_ID, url_ID, transportID, email_ID, partyNumber).
+
+
+B.9 Section [RasSvr::RewriteE164]
+
+Fastmatch=0190		Default: (empty)
+Number rewriting rules only apply if the to-be-rewritten-number's matches one of
+the prefixes contained (string-wise) in Fastmatch
+
+B.10 Section [SignalConnection::StatusEnquiry]
+
+UsePing=TRUE		Default: FALSE
+Turn usage of Q.931 StatusEnquiry on or off. If the endpoint doesn't
+answer, the call will be terminated.
+Note that Netmeeting will not respond to StatusEnquiry, even though
+it is a mandatory feature!
+
+AllowedPendings=3	Default: 3
+
+Timeout=5			Default: 1
+
