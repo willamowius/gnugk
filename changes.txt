@@ -1,10 +1,10 @@
-Changes from 1.0pre9 (by cwhuang)
-========================
+Changes from 1.0pre9 to 1.0 (by cwhuang)
+========================================
 - add 'debug printrm' command
 - change EndpointRec::Ptr to template
 
 Changes from 1.0pre8 to 1.0pre9 (by cwhuang)
-========================
+============================================
 - Neighbor function based on LRQ/LCF.
   GK would cache the records in a list.
   A command "PrintAllCached" is added to GkStatus.
@@ -25,7 +25,7 @@ Changes from 1.0pre8 to 1.0pre9 (by cwhuang)
 - Replace using directive by using declaration to avoid namespace pollution.
 
 Changes from 0.17 to 1.0pre8
-======================== 
+============================
 - add destInfo to CallRec and CDR (cwhuang)
 - rewrite some codes in OnRRQ to be more clean and compact (cwhuang)
 - change H323RasSrv to be a separate thread, do housekeeping in the main thread (cwhuang)
