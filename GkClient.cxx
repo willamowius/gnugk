@@ -826,8 +826,15 @@ void GkClient::OnRCF(RasMsg *ras)
 			m_gkList->Set(rcf.m_alternateGatekeeper);
 		for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::RegisterHandler), m_rasSrv));
 	}
-	m_ttl = rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive) ?
-		(rcf.m_timeToLive - m_retry) * 1000 : 0;
+	
+	// Not all RCF contain TTL, in that case keep old value
+	if ( rcf.HasOptionalField( H225_RegistrationConfirm::e_timeToLive ) ) {
+		m_ttl = ( rcf.m_timeToLive - m_retry) * 1000;
+		// Have it reregister at 3/4 of TimeToLive, otherwise the parent
+		// might go out of sync and ends up sending an URQ
+		m_ttl = ( m_ttl / 4 ) * 3;
+	}
+	
 	m_resend = m_retry;
 
 	// NAT handling
