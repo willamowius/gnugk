@@ -1,4 +1,3 @@
-// -*- mode: c++; eval: (c-set-style "linux"); -*-
 //////////////////////////////////////////////////////////////////
 //
 // H.323 utility functions that should migrate into the OpenH323 library
@@ -15,64 +14,15 @@
 
 
 #include "h323util.h"
+#include "gk_const.h"
 #include "h323pdu.h"
-//#include "q931.h"
-
-#ifndef lint
-// mark object with version info in such a way that it is retreivable by
-// the std. version/revision control tools like RCS/CVS ident cmd. At
-// least the strings cmd will extract this info.
-static const char gkid[] = GKGVS;
-static const char vcid[] = "@(#) $Id$";
-static const char vcHid[] = H323UTIL_H;
-#endif /* lint */
 
 
-/*
-H225_CallIdentifier *GetCallIdentifier(const Q931 & m_q931)
+PString AsString(const PIPSocket::Address & ip, WORD pt)
 {
-	if (m_q931.HasIE(Q931::UserUserIE)) {
-		H225_H323_UserInformation signal;
-
-		PPER_Stream q(m_q931.GetIE(Q931::UserUserIE));
-		if (signal.Decode(q)) {
-			H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
-			H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
-			H225_Setup_UUIE & setup = body;
-
-			if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier))
-				return &setup.m_callIdentifier;
-		} else {
-			PTRACE(5, "GK\tERROR DECODING Q931.UserInformation!");
-		}
-	} else {
-		PTRACE(3, "GK\tERROR Q931 has no UUIE!!\n");
-	}
-	return 0; // no CallId
+	return PString(PString::Printf, "%d.%d.%d.%d:%u",
+		ip[0], ip[1], ip[2], ip[3], pt);
 }
-
-bool SendRasPDU(H225_RasMessage &ras_msg, const H225_TransportAddress & dest)
-{
-	if (dest.GetTag() != H225_TransportAddress::e_ipAddress) {
-		PTRACE(3, "No IP address to send!" );
-		return false;
-	}
-
-	PBYTEArray wtbuf(4096);
-	PPER_Stream wtstrm(wtbuf);
-	ras_msg.Encode(wtstrm);
-	wtstrm.CompleteEncoding();
-
-	const H225_TransportAddress_ipAddress & ip = dest;
-	PIPSocket::Address ipaddress(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
-
-	PTRACE(2, "GK\tSend to " << ipaddress << " [" << ip.m_port << "] : " << ras_msg.GetTagName());
-	PTRACE(3, "GK\t" << endl << setprecision(2) << ras_msg);
-
-	PUDPSocket Sock;
-	return Sock.WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), ipaddress, ip.m_port) != 0;
-}
-*/
 
 PString AsString(const H225_TransportAddress & ta)
 {
@@ -97,13 +47,13 @@ PString AsString(const H225_TransportAddress_ipAddress & ip)
 PString AsString(const H225_EndpointType & terminalType)
 {
 	PString terminalTypeString;
-
+			
 	if (terminalType.HasOptionalField(H225_EndpointType::e_terminal))
 		terminalTypeString = ",terminal";
 
 	if (terminalType.HasOptionalField(H225_EndpointType::e_gateway))
 		terminalTypeString += ",gateway";
-
+	
 	if (terminalType.HasOptionalField(H225_EndpointType::e_mcu))
 		terminalTypeString += ",mcu";
 
@@ -117,7 +67,7 @@ PString AsString(const H225_EndpointType & terminalType)
 
 	if (terminalTypeString.IsEmpty())
 		terminalTypeString = ",unknown";
-
+	
 	return terminalTypeString.Mid(1);
 }
 
@@ -175,49 +125,60 @@ PString AsString(const PASN_OctetString & Octets)
 	return result;
 }
 
-
-bool AliasEqualN(H225_AliasAddress AliasA, H225_AliasAddress AliasB, int n)
-{
-	if (AliasA.GetTag() != AliasB.GetTag())
-		return FALSE;	// not of same type
-	else
-	{
-		PString AliasStrA = H323GetAliasAddressString(AliasA);
-		PString AliasStrB = H323GetAliasAddressString(AliasB);
-		return (strncmp(AliasStrA, AliasStrB, n) == 0);
-	}
-};
-
-
 // convert a socket IP address into an H225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port)
 {
-    H225_TransportAddress Result;
+	H225_TransportAddress Result;
 
-    Result.SetTag( H225_TransportAddress::e_ipAddress );
-    H225_TransportAddress_ipAddress & ResultIP = Result;
+	Result.SetTag( H225_TransportAddress::e_ipAddress );
+	H225_TransportAddress_ipAddress & ResultIP = Result;
 
-    ResultIP.m_ip[0] = Addr.Byte1();
-    ResultIP.m_ip[1] = Addr.Byte2();
-    ResultIP.m_ip[2] = Addr.Byte3();
-    ResultIP.m_ip[3] = Addr.Byte4();
-    ResultIP.m_port  = Port;
+	for (int i = 0; i < 4; ++i)
+		ResultIP.m_ip[i] = Addr[i];
+	ResultIP.m_port  = Port;
 
-    return Result;
+	return Result;
 }
 
-void GetNetworkFromString(const PString & cfg, PIPSocket::Address & network, PIPSocket::Address & netmask)
+bool GetTransportAddress(const PString & addr, WORD def_port, PIPSocket::Address & ip, WORD & port)
 {
-	PStringArray net = cfg.Tokenise("/", FALSE);
-	if (net.GetSize() < 2) {
-		netmask = (DWORD(~0));
-	} else if (net[1].Find('.') == P_MAX_INDEX) {
-		// CIDR notation
-		DWORD n = (DWORD(~0) >> net[1].AsInteger());
-		netmask = PIPSocket::Host2Net(~n);
-	} else {
-		// decimal dot notation
-		netmask = net[1];
-	}
-	network = PIPSocket::Address(net[0]) & netmask; // normalize
+	PString ipAddr = addr.Trim();
+	PINDEX p = ipAddr.Find(':');
+	port = (p != P_MAX_INDEX) ? WORD(ipAddr.Mid(p+1).AsUnsigned()) : def_port;
+	return PIPSocket::GetHostAddress(ipAddr.Left(p), ip) != 0;
+}
+
+bool GetTransportAddress(const PString & addr, WORD def_port, H225_TransportAddress & Result)
+{
+	PIPSocket::Address ip;
+	WORD port;
+	bool res = GetTransportAddress(addr, def_port, ip, port);
+	if (res)
+		Result = SocketToH225TransportAddr(ip, port);
+	return res;
+}
+
+bool GetIPFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip)
+{
+	WORD port;
+	return GetIPAndPortFromTransportAddr(addr, ip, port);
+}
+
+bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip, WORD & port)
+{
+	if (addr.GetTag() != H225_TransportAddress::e_ipAddress)
+		return false;
+	const H225_TransportAddress_ipAddress & ipaddr = addr;
+	ip = *reinterpret_cast<const DWORD *>((const BYTE *)ipaddr.m_ip);
+	port = ipaddr.m_port;
+	return true;
+}
+
+bool IsLoopback(const PIPSocket::Address & addr)
+{
+#ifdef OPENH323_NEWVERSION
+	return addr.IsLoopback() != 0;
+#else
+	return addr == PIPSocket::Address(127,0,0,1);
+#endif
 }
