@@ -561,6 +561,7 @@ void CallSignalSocket::BuildConnection() {
 	CallSignalSocket *rem = dynamic_cast<CallSignalSocket *> (remote);
 	if(NULL!=rem)
 		rem->LockUse("CallSignalSocket " + Name() + type);
+	ConnectTo();
 }
 
 TCPProxySocket *CallSignalSocket::ConnectTo()
@@ -718,6 +719,7 @@ CallSignalSocket::InternalEndSession()
 
 ProxySocket::Result CallSignalSocket::ReceiveData() {
 	PWaitAndSignal lock(m_lock);
+	BOOL read_status=FALSE;
 	if (!ReadTPKT())
 		return NoData;
 
@@ -785,6 +787,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
 		case H225_H323_UU_PDU_h323_message_body::e_status:
 			PTRACE(5, "onstatus");
 			OnStatus(body);
+			read_status=TRUE;
 			break;
 		case H225_H323_UU_PDU_h323_message_body::e_statusInquiry:
 			OnStatusInquiry(body);
@@ -825,6 +828,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData() {
    Note: Openh323 1.7.9 or later required.
    The older version has an out of memory bug in Q931::GetCalledPartyNumber.
 */
+
+	// If a status response without a UUIE arives
+	if (q931pdu.GetMessageType()==Q931::StatusMsg) {
+		H225_Status_UUIE a;
+		OnStatus(a);
+	}
+
 
 	// NB: Rewriting Number!
 	if (q931pdu.HasIE(Q931::CalledPartyNumberIE)) {
