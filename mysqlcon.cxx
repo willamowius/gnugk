@@ -19,11 +19,11 @@
 #ifndef __mysqlcon_h_
 #include "mysqlcon.h"
 #endif
-#include <mysql.h>
 #ifdef WIN32
 #include <ptlib/socket.h>
 #pragma comment(lib, "libmySQL.lib")
 #endif
+#include <mysql.h>
 
 // class MySQLConnection::Result
 bool MySQLConnection::Result::Store(MYSQL *connection, const char *sqlcmd)
