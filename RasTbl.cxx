@@ -1083,12 +1083,12 @@ void CallRec::RemoveSocket()
 {
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
                 if (m_callingSocket) {
-                        m_callingSocket->EndSession();
+                        m_callingSocket->SendReleaseComplete();
 			PTRACE(4, "Sending ReleaseComplete to calling party ...");
 		}
                 if (m_calledSocket) {
 			PTRACE(4, "Sending ReleaseComplete to called party ...");
-                        m_calledSocket->EndSession();
+                        m_calledSocket->SendReleaseComplete();
 		}
         }
 
@@ -1097,8 +1097,10 @@ void CallRec::RemoveSocket()
 		m_callingSocket = 0;
 	}
 
-//	if (m_calledSocket)
-//		m_calledSocket->SetDeletable();
+	if (m_calledSocket) {
+		m_calledSocket->SetDeletable();
+		m_calledSocket = 0;
+	}
 }
 
 int CallRec::CountEndpoints() const

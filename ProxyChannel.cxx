@@ -405,7 +405,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
 	ReleasePDU.SetIE(Q931::UserUserIE, strm);
 }
 
-bool CallSignalSocket::EndSession()
+void CallSignalSocket::SendReleaseComplete()
 {
 	if (IsOpen()) {
 		Q931 ReleasePDU;
@@ -413,8 +413,14 @@ bool CallSignalSocket::EndSession()
 		ReleasePDU.Encode(buffer);
 		TransmitData();
 		PTRACE(4, "GK\tSend Release Complete to " << Name());
-//		PTRACE(5, "GK\tRelease Complete: " << ReleasePDU);
+		PTRACE(5, "GK\tRelease Complete: " << ReleasePDU);
 	}
+}
+
+bool CallSignalSocket::EndSession()
+{
+	SendReleaseComplete();
+
 	return TCPProxySocket::EndSession();
 }
 

@@ -142,6 +142,7 @@ public:
 	// override from class ProxySocket
         virtual Result ReceiveData();
 	virtual bool EndSession();
+	void SendReleaseComplete();
 
 	// override from class TCPProxySocket
 	virtual TCPProxySocket *ConnectTo();
