@@ -29,5 +29,9 @@ The development version need Mysql++.
 If you don't want mysql support, you may set NO_MYSQL environment
 before making:
 
-NO_MYSQL=1 make opt
+NO_MYSQL=1 make both
+
+If you want to leave out LDAP support:
+
+NO_LDAP=1 make both		or 	env NO_LDAP=1 make both
 
