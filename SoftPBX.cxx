@@ -101,6 +101,7 @@ void SoftPBX::UnregisterAlias(PString Alias)
 		GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 		return;
 	}
+	DisconnectEndpoint(ep);
 	ep->Unregister();
 
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
@@ -129,6 +130,7 @@ void SoftPBX::UnregisterIp(PString Ip)
 		GkStatus::Instance()->SignalStatus(msg + GK_LINEBRK);
 		return;
 	}
+	DisconnectEndpoint(ep);
 	ep->Unregister();
 
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
