@@ -112,35 +112,64 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 
 
 EndpointRec::EndpointRec(const H225_RasMessage &completeRAS, bool Permanent)
-      :	m_RasMsg(completeRAS), m_timeToLive(1), m_callCount(0), m_usedCount(0)
+      :	m_RasMsg(completeRAS), m_timeToLive(1), m_activeCall(0), m_usedCount(0)
 {
-	SetTimeToLive(SoftPBX::TimeToLive);
-	if (m_RasMsg.GetTag() == H225_RasMessage::e_registrationRequest) {
-		H225_RegistrationRequest & rrq = m_RasMsg;
-		if (rrq.m_rasAddress.GetSize() > 0)
-			m_rasAddress = rrq.m_rasAddress[0];
-		if (rrq.m_callSignalAddress.GetSize() > 0)
-			m_callSignalAddress = rrq.m_callSignalAddress[0];
-		m_endpointIdentifier = rrq.m_endpointIdentifier;
-		m_terminalAliases = rrq.m_terminalAlias;
-		m_terminalType = &rrq.m_terminalType;
-		if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
-			SetTimeToLive(rrq.m_timeToLive);
-		PTRACE(1, "New EP|" << PrintOn(false));
-	} else if (m_RasMsg.GetTag() == H225_RasMessage::e_locationConfirm) {
-		H225_LocationConfirm & lcf = m_RasMsg;
-		m_rasAddress = lcf.m_rasAddress;
-		m_callSignalAddress = lcf.m_callSignalAddress;
-		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
-			m_terminalAliases = lcf.m_destinationInfo;
-		if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
-			lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
-		m_terminalType = &lcf.m_destinationType;
-		m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+	switch (m_RasMsg.GetTag())
+	{
+		case H225_RasMessage::e_registrationRequest:
+			SetEndpointRec((H225_RegistrationRequest &)m_RasMsg);
+			PTRACE(1, "New EP|" << PrintOn(false));
+			break;
+		case H225_RasMessage::e_admissionConfirm:
+			SetEndpointRec((H225_AdmissionConfirm &)m_RasMsg);
+			break;
+		case H225_RasMessage::e_locationConfirm:
+			SetEndpointRec((H225_LocationConfirm &)m_RasMsg);
+			break;
+		default: // should not happen
+			break;
 	}
 	if (Permanent)
 		m_timeToLive = 0;
 }	
+
+void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
+{
+	if (rrq.m_rasAddress.GetSize() > 0)
+		m_rasAddress = rrq.m_rasAddress[0];
+	if (rrq.m_callSignalAddress.GetSize() > 0)
+		m_callSignalAddress = rrq.m_callSignalAddress[0];
+	m_endpointIdentifier = rrq.m_endpointIdentifier;
+	m_terminalAliases = rrq.m_terminalAlias;
+	m_terminalType = &rrq.m_terminalType;
+	if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
+		SetTimeToLive(rrq.m_timeToLive);
+	else
+		SetTimeToLive(SoftPBX::TimeToLive);
+}
+
+void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
+{
+	m_callSignalAddress = acf.m_destCallSignalAddress;
+	if (acf.HasOptionalField(H225_AdmissionConfirm::e_destinationInfo))
+		m_terminalAliases = acf.m_destinationInfo;
+	if (!acf.HasOptionalField(H225_AdmissionConfirm::e_destinationType))
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
+	m_terminalType = &acf.m_destinationType;
+	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+}
+
+void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
+{
+	m_rasAddress = lcf.m_rasAddress;
+	m_callSignalAddress = lcf.m_callSignalAddress;
+	if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
+		m_terminalAliases = lcf.m_destinationInfo;
+	if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
+		lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
+	m_terminalType = &lcf.m_destinationType;
+	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
+}
 
 EndpointRec::~EndpointRec()
 {
@@ -283,6 +312,14 @@ EndpointRec *EndpointRec::Expired()
 	return this;
 }
 
+void EndpointRec::BuildACF(H225_AdmissionConfirm & obj_acf) const
+{
+	obj_acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
+	obj_acf.m_destinationInfo = GetAliases();
+	obj_acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
+	obj_acf.m_destinationType = GetEndpointType();
+}
+
 void EndpointRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
 {
 	obj_lcf.m_callSignalAddress = GetCallSignalAddress();
@@ -304,7 +341,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		msg += GetUpdatedTime().AsString();
 		if (m_timeToLive == 0)
 			msg += " (permanent)";
-		msg += PString(PString::Printf, " C(%d) <%d>\r\n", m_callCount, m_usedCount);
+		msg += PString(PString::Printf, " C(%d/%d) <%d>\r\n", m_activeCall, m_totalCall, m_usedCount);
 	}
 	return msg;
 }
@@ -475,7 +512,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 	return msg;
 }
 
-OuterZoneEPRec::OuterZoneEPRec(const H225_RasMessage & completeLCF, const H225_EndpointIdentifier &epID) : EndpointRec(completeLCF, false)
+OuterZoneEPRec::OuterZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &epID) : EndpointRec(completeRAS, false)
 {
 	m_endpointIdentifier = epID;
 	PTRACE(1, "New OZEP|" << PrintOn(false));
@@ -499,6 +536,7 @@ RegistrationTable::RegistrationTable()
 {
 	srand(time(0));
 	recCnt = rand()%9000+1000;
+	ozCnt = 1000; // arbitrary chosen constant
 
 	LoadConfig();
 }
@@ -511,29 +549,37 @@ RegistrationTable::~RegistrationTable()
 
 endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg)
 {
+	endptr ep;
 	switch (ras_msg.GetTag())
 	{
 		case H225_RasMessage::e_registrationRequest: {
 			H225_RegistrationRequest & rrq = ras_msg;
-			if (endptr ep = FindBySignalAdr(rrq.m_callSignalAddress[0])) {
+			if (ep = FindBySignalAdr(rrq.m_callSignalAddress[0]))
 				ep->Update(ras_msg);
-				return ep;
-			} else
-				return InternalInsertEP(ras_msg);
+			else
+				ep = InternalInsertEP(ras_msg);
+			break;
+		}
+		case H225_RasMessage::e_admissionConfirm: {
+			H225_AdmissionConfirm & acf = ras_msg;
+			if (!(ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), acf.m_destCallSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList)))
+				ep = InternalInsertOZEP(ras_msg, acf);
+			break;
 		}
 		case H225_RasMessage::e_locationConfirm: {
 			H225_LocationConfirm & lcf = ras_msg;
-			endptr ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), lcf.m_callSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList);
-			if (ep) {
+			if (ep = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), lcf.m_callSignalAddress), mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList))
 				ep->Update(ras_msg);
-				return ep;
-			} else
-				return InternalInsertOZEP(ras_msg);
+			else
+				ep = InternalInsertOZEP(ras_msg, lcf);
+			break;
 		}
+		default:
+			PTRACE(1, "RegistrationTable: unable to insert " << ras_msg.GetTagName());
+			break;
 	}
 
-	PTRACE(1, "RegistrationTable: unable to insert " << ras_msg.GetTagName());
-	return endptr(0);
+	return ep;
 }
 
 endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
@@ -560,13 +606,21 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 	return endptr(ep);
 }
 
-endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg)
+endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_AdmissionConfirm &)
 {
-	static int ozCnt = 1000; // arbitrary chosen constant
+	H225_EndpointIdentifier epID;
+	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
+	EndpointRec *ep = new OuterZoneEPRec(ras_msg, epID);
+	WriteLock lock(listLock);
+	OuterZoneList.push_front(ep);
+	return endptr(ep);
+}
+
+endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_LocationConfirm & lcf)
+{
 	H225_EndpointIdentifier epID;
 	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
 
-	H225_LocationConfirm & lcf = ras_msg;
 	EndpointRec *ep;
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType) &&
 	    lcf.m_destinationType.HasOptionalField(H225_EndpointType::e_gateway))
@@ -1152,6 +1206,10 @@ void CallTable::CheckCalls()
 			InternalRemove(i);
 		}
 	}
+
+	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
+	for_each(Iter, RemovedList.end(), delete_call);
+	RemovedList.erase(Iter, RemovedList.end());
 }
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq)
@@ -1227,10 +1285,6 @@ void CallTable::InternalRemove(iterator Iter)
 
 	RemovedList.push_back(call);
 	CallList.erase(Iter);
-
-	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
-	for_each(Iter, RemovedList.end(), delete_call);
-	RemovedList.erase(Iter, RemovedList.end());
 }
 
 void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, PString & msg, BOOL verbose) const

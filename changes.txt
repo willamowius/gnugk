@@ -1,5 +1,12 @@
+Changes from 2.0b3 to now (by cwhuang)
+======================================
+- add GkClient module
+- allow remove a key or a section in the config from status thread
+- remove isalnum check for aliases, we hope to use unicode. :)
+- add total call counting for EndpointRec
+
 Changes from 2.0b2 to 2.0b3 (by cwhuang)
-====================================
+========================================
 - add AcceptUnregisteredCalls feature
 - fix problem of RouteTable in Linux with alias interfaces
 - show endtime in CDR even if call not connected
@@ -9,7 +16,7 @@ Changes from 2.0b2 to 2.0b3 (by cwhuang)
 - fix GKHome not work for proxy
 
 Changes from 2.0b1 to 2.0b2 (by cwhuang)
-====================================
+========================================
 - add proxy for T.120 logical channels
 - add proxy for RTP logical channels, add Proxy section
 
@@ -25,7 +32,7 @@ Changes from 1.3 to now (by mmuehlen)
     LDAPAuth::Settings -> GkLDAP::Settings
 
 Changes from 1.3 to 2.0b1 (by cwhuang)
-====================================
+======================================
 - redesign routed model, add RoutedMode section
 - add H.245 routed support, including early connect
 - TimeToLive now can be specified in config file

@@ -25,6 +25,7 @@
 #include "Toolkit.h"
 #include "stl_supp.h"
 #include "RasSrv.h"
+#include "GkClient.h"
 #include "ProxyChannel.h"
 #include <q931.h>
 #include <h245.h>
@@ -252,6 +253,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		PTRACE(4, "Q931\t" << Name() << " ERROR DECODING Q.931!");
 		return Error;
 	}
+	m_receivedQ931 = &q931pdu;
 
 	PTRACE(3, "Q931\t" << "Received: " << q931pdu.GetMessageTypeName() << " CRV=" << q931pdu.GetCallReference());
 
@@ -265,6 +267,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
 		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+
+		m_h245Tunneling = (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling) && pdu.m_h245Tunneling.GetValue());
 
 		PrintQ931(6, "Received:", &q931pdu, psignal = &signal);
 
@@ -318,7 +322,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardControl)) {
 			for (PINDEX n = 0; n < pdu.m_nonStandardControl.GetSize(); ++n)
 				OnNonStandardData(pdu.m_nonStandardControl[n].m_data);
-			PTRACE(5, "Q931\t" << Name() << " Rewriting nonStandardControl\n" << setprecision(2) << pdu);
+			PTRACE(5, "Q931\t" << Name() << " Rewriting nonStandardControl");
 		}
 		if (pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control) && m_h245handler)
 			OnTunneledH245(pdu.m_h245Control);
@@ -344,7 +348,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	}
 
 	q931pdu.Encode(buffer);
-	PrintQ931(6, "Passing Q.931 message on as ", &q931pdu, psignal);
+	PrintQ931(5, "To send: ", &q931pdu, psignal);
 
 	switch (q931pdu.GetMessageType())
 	{
@@ -384,8 +388,10 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
 	H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
 	H225_ReleaseComplete_UUIE & uuie = body;
-	uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
-	uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	if (m_call) {
+		uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
+		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	}
 	PPER_Stream strm;
 	signal.Encode(strm);
 	strm.CompleteEncoding();
@@ -396,7 +402,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU) const
 
 bool CallSignalSocket::EndSession()
 {
-	if (m_call && IsOpen()) {
+	if (IsOpen()) {
 		Q931 ReleasePDU;
 		BuildReleasePDU(ReleasePDU);
 		ReleasePDU.Encode(buffer);
@@ -428,25 +434,37 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 
 void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 {
-	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
-		PTRACE(1, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
-		return;
-	}
 	if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
 		for (PINDEX n = 0; n < Setup.m_destinationAddress.GetSize(); ++n)
 			Toolkit::Instance()->RewriteE164(Setup.m_destinationAddress[n]);
-	m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+
+	PString callid;
+	if (Setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+		m_call = CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+		callid = AsString(Setup.m_callIdentifier.m_guid);
+	} else { // try CallReferenceValue
+		PTRACE(3, "Q931\tSetup_UUIE doesn't contain CallIdentifier!");
+		H225_CallIdentifier callIdentifier; // empty callIdentifier
+		H225_CallReferenceValue crv;
+		crv.SetValue(m_crv & 0x7fffu);
+		m_call = CallTable::Instance()->FindCallRec(crv);
+		callid = AsString(callIdentifier.m_guid);
+	}
+	GkClient *gkClient = RasThread->GetGkClient();
+	if (gkClient->IsRegistered())
+		gkClient->RewriteE164(*GetReceivedQ931(), Setup, m_call);
+	else
+		gkClient = 0;
 	if (!m_call) {
-		PString callid(AsString(Setup.m_callIdentifier.m_guid));
 		if (!RasThread->AcceptUnregisteredCalls()) {
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			return;
 		}
-		if (!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-			PTRACE(3, "Q931\tNo destination address for the unregistered call " << callid);
-			return;
-		}
-		endptr called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
+		endptr called;
+		if (Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
+			called = RegistrationTable::Instance()->FindBySignalAdr(Setup.m_destCallSignalAddress);
+		else if (Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
+			called = RegistrationTable::Instance()->FindEndpoint(Setup.m_destinationAddress);
 		if (!called) {
 			PTRACE(3, "Q931\tDestination not found for the unregistered call " << callid);
 			return;
@@ -462,6 +480,8 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		// TODO: set timeout
 		CallTable::Instance()->Insert(call);
 		m_call = callptr(call);
+		if (gkClient)
+			gkClient->SendARQ(Setup, m_crv, m_call);
 	}
 
 	const H225_TransportAddress *addr = m_call->GetCalledAddress();
@@ -655,6 +675,8 @@ void CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 
 bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
+	if (m_h245Tunneling && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
+		return false;
 	CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote);
 	if (!ret) {
 		PTRACE(2, "H245\t" << Name() << " no remote party?");

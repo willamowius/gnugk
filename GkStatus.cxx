@@ -491,6 +491,8 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		WriteString("  trc [+|-|n]       Show/modify trace level\r\n");
 		WriteString("  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n");
 		WriteString("  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n");
+		WriteString("  remove SEC PAR    Remove a config VALue PARameter in a SECtion\r\n");
+		WriteString("  remove SEC        Remove a SECtion\r\n");
 		WriteString("  printrm VERBOSE   Print all removed endpoint records\r\n");
 	}
 	else {
@@ -503,8 +505,7 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 				else PTrace::SetLevel(Args[2].AsInteger());
 			}
 			WriteString(PString(PString::Printf, "Trace Level is now %d\r\n", PTrace::GetLevel()));
-		}
-		else if (Args[1] *= "cfg") {
+		} else if (Args[1] *= "cfg") {
 			if (Args.GetSize()>=4)
 				WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n;\r\n");
 			else if (Args.GetSize()>=3) {
@@ -519,6 +520,14 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		} else if((Args[1] *= "set") && (Args.GetSize()>=5)) {
 			GkConfig()->SetString(Args[2],Args[3],Args[4]);
 			WriteString(GkConfig()->GetString(Args[2],Args[3],"") + "\r\n");
+		} else if (Args[1] *= "remove") {
+			if (Args.GetSize()>=4) {
+				GkConfig()->DeleteKey(Args[2],Args[3]);
+				WriteString("Remove " + Args[3] + " in section " + Args[2] + "\r\n");
+			} else if (Args.GetSize()>=3) {
+				GkConfig()->DeleteSection(Args[2]);
+				WriteString("Remove section " + Args[2] + "\r\n");
+			}
 		} else if((Args[1] *= "printrm")) {
 			SoftPBX::PrintRemoved(*this, (Args.GetSize() >= 3));
 		}

@@ -40,8 +40,6 @@
  * many things here should be members of Gatkeeper. 
  */
 
-extern const char *RoutedSec;
-
 namespace { // keep the global objects private
 
 
@@ -121,26 +119,17 @@ void ReopenLogFile()
 		delete logfile;
 		logfile = new PTextFile(logfilename, PFile::WriteOnly);//, PFile::Create);
 		if (!logfile->IsOpen()) {
-			cout << "Warning: could not open trace output file \""
-				<< logfilename << '"' << endl;
+			cerr << "Warning: could not open trace output file \""
+			     << logfilename << '"' << endl;
 			delete logfile;
 			logfile = 0;
 			return;
 		}
 		PTrace::SetStream(logfile); // redirect to logfile
 	}
-	PTRACE(1, "GK\tTrace logging started.");
+	PTRACE(1, "GK\tTrace logging restarted.");
 }
 #endif
-
-// set the signaling mode according to config file
-void SetSignalingMode() 
-{
-	RasThread->SetRoutedMode(
-		Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GKRouted", "0")),
-		Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H245Routed", "0"))
-	);
-}
 
 
 } // end of anonymous namespace
@@ -167,13 +156,13 @@ void ReloadHandler(void)
 	** Update all gateway prefixes
 	*/
 
-	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", -1);
+	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
 
 	CallTable::Instance()->LoadConfig();
 	RegistrationTable::Instance()->LoadConfig();
 
 	RasThread->LoadConfig();
-	SetSignalingMode();
+	RasThread->SetRoutedMode();
 
 	/*
 	** Don't disengage current calls!
@@ -430,7 +419,7 @@ void Gatekeeper::Main()
 	else if (args.HasOption('d'))
 		RasThread->SetRoutedMode(false, false);
 	else
-		SetSignalingMode();
+		RasThread->SetRoutedMode();
 
 	MulticastGRQThread = new MulticastGRQ(GKHome, RasThread);
 

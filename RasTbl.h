@@ -163,6 +163,7 @@ public:
 	virtual EndpointRec *Unregister();
 	virtual EndpointRec *Expired();
 
+	virtual void BuildACF(H225_AdmissionConfirm &) const;
 	virtual void BuildLCF(H225_LocationConfirm &) const;
 
 	virtual PString PrintOn(bool verbose) const;
@@ -189,6 +190,10 @@ public:
 
 protected:
 
+	void SetEndpointRec(H225_RegistrationRequest &);
+	void SetEndpointRec(H225_AdmissionConfirm &);
+	void SetEndpointRec(H225_LocationConfirm &);
+
 	bool SendURQ(H225_UnregRequestReason::Choices);
 
 	/**This field may disappear sometime when GetCompleteRegistrationRequest() can 
@@ -204,7 +209,7 @@ protected:
 	H225_EndpointType *m_terminalType;
 	int m_timeToLive;   // seconds
 
-	int m_callCount;
+	int m_activeCall, m_totalCall;
 	int m_usedCount;
 	mutable PMutex m_usedLock;
 
@@ -320,8 +325,9 @@ public:
   
 private:
 
-	endptr InternalInsertEP(H225_RasMessage & rrq);
-	endptr InternalInsertOZEP(H225_RasMessage & lcf);
+	endptr InternalInsertEP(H225_RasMessage &);
+	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationConfirm &);
+	endptr InternalInsertOZEP(H225_RasMessage &, H225_AdmissionConfirm &);
 
 	void InternalPrint(GkStatus::Client &, BOOL, list<EndpointRec *> *, PString &);
 	void InternalStatistics(const list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g) const;
@@ -353,7 +359,7 @@ private:
 
 	// counter to generate endpoint identifier
 	// this is NOT the count of endpoints!
-	int recCnt;
+	int recCnt, ozCnt;
 	PString endpointIdSuffix; // Suffix of the generated Endpoint IDs
 
 	// not assignable
@@ -538,24 +544,24 @@ private:
 inline bool EndpointRec::IsUsed() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	return (m_callCount > 0 || m_usedCount > 0);
+	return (m_activeCall > 0 || m_usedCount > 0);
 }
 
 inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
-	return (!m_timeToLive || m_callCount > 0 || (*now - m_updatedTime) < (DWORD)m_timeToLive*1000);
+	return (!m_timeToLive || m_activeCall > 0 || (*now - m_updatedTime) < (DWORD)m_timeToLive*1000);
 }
 
 inline void EndpointRec::AddCall()
 {       
 	PWaitAndSignal lock(m_usedLock);
-	++m_callCount;
+	++m_activeCall, ++m_totalCall;
 }       
 
 inline void EndpointRec::RemoveCall()
 {       
 	PWaitAndSignal lock(m_usedLock); 
-	--m_callCount;
+	--m_activeCall;
 }       
 
 inline void EndpointRec::Lock()

@@ -26,6 +26,7 @@ GKRouted=1
 H245Routed=1
 CallSignalPort=1721
 CallSignalHandlerNumber=1
+RemoveH245AddressOnTunneling=0
 
 [Proxy]
 #Enable=1
@@ -40,6 +41,8 @@ CallSignalHandlerNumber=1
 #Password=
 #Prefix=18888600,1888890003
 #TimeToLive=900
+#RRQRetryInterval=10
+#ARQTimeout=2
 
 [Failover]
 ## Give a list of IP4-Addresses to forward the RRQ to that this
@@ -88,6 +91,9 @@ StatusReadTimeout=5000
 #ip400-v1=12
 #ip400-wi1=0
 
+[RasSvr::ARQFeatures]
+ArjReasonRouteCallToSCN=0
+ArjReasonRouteCallToGatekeeper=1
 
 [RasSrv::RRQAuth]
 ## On a RRQ the h323-alias is queried from this section. 

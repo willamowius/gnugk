@@ -5,7 +5,8 @@
 #
 
 PROG		= gk
-SOURCES		= gk.cxx gkauth.cxx gkldap.cxx gkDestAnalysis.cxx RasSrv.cxx RasTbl.cxx \
+SOURCES		= gk.cxx gkauth.cxx gkldap.cxx gkDestAnalysis.cxx \
+		  RasSrv.cxx RasTbl.cxx GkClient.cxx \
 		  MulticastGRQ.cxx BroadcastListen.cxx \
 		  SoftPBX.cxx Toolkit.cxx h323util.cxx GkStatus.cxx \
 		  ProxyThread.cxx ProxyChannel.cxx \
@@ -174,9 +175,6 @@ RasSrv.cxx: RasSrv.h
 RasSrv.cxx: RasTbl.h
 RasTbl.cxx: RasTbl.h
 RasTbl.o: RasTbl.cxx
-SignalChannel.o: SignalChannel.h
-SignalConnection.o: SignalConnection.h
-CallTbl.o: CallTbl.h
 BroadcastListen.cxx: BroadcastListen.h
 GkAuthorize.o: GkAuthorize.cxx
 GkAuthorize.cxx: GkAuthorize.h

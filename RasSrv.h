@@ -16,16 +16,17 @@
 #ifndef __rassrv_h_
 #define __rassrv_h_
 
+#include <ptlib.h>
 #include <ptlib/sockets.h>
 #include "h225.h" 
-#include "h323.h"
 #include "Toolkit.h"
 #include "RasTbl.h"
 #include "h323util.h"
 #include "GkAuthorize.h"
+#include "stl_supp.h"
 
 // forward references to avoid includes
-//class SignalChannel;
+
 class HandlerList;
 class resourceManager;
 class GkStatus;
@@ -33,14 +34,17 @@ class GkAuthenticatorList;
 class GkDestAnalysisList;
 class NeighborList;
 class PendingList;
+class NBPendingList;
+class GkClient;
 
-class H323RasSrv : public PThread
-{
-  PCLASSINFO(H323RasSrv, PThread)
-
+class H323RasSrv : public PThread {
 public:
+
+	PCLASSINFO(H323RasSrv, PThread)
+
 	H323RasSrv(PIPSocket::Address GKHome);
 	virtual ~H323RasSrv();
+
 	void Close(void);
 
 	void Main(void);  // original HandleConnections(); 
@@ -49,6 +53,8 @@ public:
 
 	// set routed method
 	void SetRoutedMode(bool routedSignaling, bool routedH245);
+	// set routed according to the config file
+	void SetRoutedMode();
 
 	// set name of the gatekeeper.
 	const PString GetGKName() const { return Toolkit::GKName(); }
@@ -57,11 +63,23 @@ public:
 	// GCF or GRJ Ras msg.
 	BOOL OnGRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_grq, H225_RasMessage & obj_rpl);
 
+	BOOL OnGCF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_gcf, H225_RasMessage & obj_rpl);
+
+	BOOL OnGRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_grj, H225_RasMessage & obj_rpl);
+
 	BOOL OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rrq, H225_RasMessage & obj_rpl);
+
+	BOOL OnRCF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rcf, H225_RasMessage & obj_rpl);
+
+	BOOL OnRRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rrj, H225_RasMessage & obj_rpl);
 
 	BOOL OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_urq, H225_RasMessage & obj_rpl);
 
 	BOOL OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arq, H225_RasMessage & obj_rpl);
+
+	BOOL OnACF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_acf, H225_RasMessage & obj_rpl);
+
+	BOOL OnARJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arj, H225_RasMessage & obj_rpl);
 
 	BOOL OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_drq, H225_RasMessage & obj_rpl);
 
@@ -95,7 +113,9 @@ public:
 	const H225_TransportAddress GetRasAddress(PIPSocket::Address) const;
 	const H225_TransportAddress GetCallSignalAddress(PIPSocket::Address) const;
 
+	GkClient * GetGkClient() const { return gkClient; }
 	NeighborList * GetNeighborsGK() const { return NeighborsGK; }
+	bool SendLRQ(const H225_AdmissionRequest &, const endptr &);
 
 protected:
 	/** OnARQ checks if the dialled address (#aliasStr#) should be
@@ -129,15 +149,15 @@ private:
 	resourceManager * GKManager; 
 	GkStatus * GkStatusThread;
 
+	GkClient * gkClient;
 	GkAuthenticatorList * authList;
 	GkDestAnalysisList * destAnalysisList;
 
 	NeighborList * NeighborsGK;
-	PendingList * arqPendingList;
+	NBPendingList * arqPendingList;
 	
 	GkAuthorize* GWR;
 };
-
 
 inline const H225_TransportAddress H323RasSrv::GetRasAddress(PIPSocket::Address peerAddr) const
 {
@@ -151,6 +171,100 @@ inline const H225_TransportAddress H323RasSrv::GetCallSignalAddress(PIPSocket::A
 	return SocketToH225TransportAddr(localAddr, GKCallSigPort);
 }
 
+class PendingList {
+protected:
+	class PendingARQ {
+	public:
+		PendingARQ(int, const H225_AdmissionRequest &, const endptr &, int);
+
+		bool DoACF(H323RasSrv *, const endptr &) const;
+		bool DoARJ(H323RasSrv *) const;
+		bool CompSeq(int seqNum) const;
+		bool IsStaled(int) const;
+		void GetRequest(H225_AdmissionRequest &, endptr &) const;
+
+		int DecCount();
+
+	private:
+		int m_seqNum;
+		H225_AdmissionRequest m_arq;
+		endptr m_reqEP;
+		int m_Count;
+		PTime m_reqTime;
+	};
+
+public:
+	typedef std::list<PendingARQ *>::iterator iterator;
+	typedef std::list<PendingARQ *>::const_iterator const_iterator;
+
+	PendingList(H323RasSrv *rs, int ttl) : RasSrv(rs), pendingTTL(ttl) {}
+	~PendingList();
+
+	void Check();
+	iterator FindBySeqNum(int);
+	void Remove(iterator);
+
+protected:
+	H323RasSrv *RasSrv;
+	int pendingTTL;
+        list<PendingARQ *> arqList;
+	PMutex usedLock;
+
+        static void delete_arq(PendingARQ *p) { delete p; }
+};
+
+inline PendingList::PendingARQ::PendingARQ(int seqNum, const H225_AdmissionRequest & obj_arq, const endptr & reqEP, int Count)
+      : m_seqNum(seqNum), m_arq(obj_arq), m_reqEP(reqEP), m_Count(Count)
+{
+}
+
+inline bool PendingList::PendingARQ::DoACF(H323RasSrv *RasSrv, const endptr & called) const
+{
+	RasSrv->ReplyARQ(m_reqEP, called, m_arq);
+	return true;
+}
+
+inline bool PendingList::PendingARQ::DoARJ(H323RasSrv *RasSrv) const
+{
+	RasSrv->ReplyARQ(m_reqEP, endptr(NULL), m_arq);
+	return true;
+}
+
+inline bool PendingList::PendingARQ::CompSeq(int seqNum) const
+{
+	return (m_seqNum == seqNum);
+}
+
+inline bool PendingList::PendingARQ::IsStaled(int sec) const
+{
+	return (PTime() - m_reqTime) > sec*1000;
+}
+
+inline void PendingList::PendingARQ::GetRequest(H225_AdmissionRequest & arq, endptr & ep) const
+{
+	arq = m_arq, ep = m_reqEP;
+}
+
+inline int PendingList::PendingARQ::DecCount()
+{
+	return --m_Count;
+}
+
+inline PendingList::~PendingList()
+{
+	for_each(arqList.begin(), arqList.end(), delete_arq);
+}
+
+inline PendingList::iterator PendingList::FindBySeqNum(int seqnum)
+{
+	return find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), seqnum));
+}
+
+inline void PendingList::Remove(iterator Iter)
+{
+	delete *Iter;
+	arqList.erase(Iter);
+}
 
 extern H323RasSrv *RasThread;  // I hate global object, but...
 

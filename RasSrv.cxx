@@ -30,66 +30,33 @@
 #define ARJREASON_ROUTECALLTOGATEKEEPER 1
 #endif
 
-#include <ptlib.h>
+#include "RasSrv.h"
 #include "h323pdu.h"
 #include "gk_const.h"
 #include "gk.h"
 #include "SoftPBX.h"
 #include "ANSI.h"
 #include "GkStatus.h"
-#include "RasSrv.h"
+#include "GkClient.h"
 #include "ProxyThread.h"
 #include "gkauth.h"
 #include "gkldap.h"
 #include "gkDestAnalysis.h"
-#include "stl_supp.h"
 
 H323RasSrv *RasThread = 0;
 
 const char *NeighborSection = "RasSvr::Neighbors";
 
-class PendingList {
-	class PendingARQ {
-	public:
-		PendingARQ(int seqNum, const H225_AdmissionRequest & obj_arq, const endptr & reqEP, int nbCount)
-		  : m_seqNum(seqNum), m_arq(obj_arq), m_reqEP(reqEP), m_nbCount(nbCount) {}
-
-		bool DoACF(H323RasSrv *, const endptr &) const;
-		bool DoARJ(H323RasSrv *) const;
-		bool CompSeq(int seqNum) const;
-		bool IsStaled(int) const;
-
-		int DecCount() { return --m_nbCount; }
-
-	private:
-		int m_seqNum;
-		H225_AdmissionRequest m_arq;
-		endptr m_reqEP;
-		int m_nbCount;
-		PTime m_reqTime;
-	};
-
+class NBPendingList : public PendingList {
 public:
-	typedef std::list<PendingARQ *>::iterator iterator;
-	typedef std::list<PendingARQ *>::const_iterator const_iterator;
-
-	PendingList(H323RasSrv *rs, int ttl) : theRasSrv(rs), pendingTTL(ttl), seqNumber(1) {}
-	~PendingList();
+	NBPendingList(H323RasSrv *rs, int ttl) : PendingList(rs, ttl), seqNumber(1) {}
 
 	bool Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP);
 	void ProcessLCF(const H225_RasMessage & obj_ras);
 	void ProcessLRJ(const H225_RasMessage & obj_ras);
-	void Check();
-	iterator FindBySeqNum(int);
 
 private:
-	H323RasSrv *theRasSrv;
-	int pendingTTL;
-	int seqNumber;
-        list<PendingARQ *> arqList;
-	PMutex usedLock;
-
-        static void delete_arq(PendingARQ *p) { delete p; }
+	WORD seqNumber;
 };
 
 class NeighborList {
@@ -122,44 +89,21 @@ private:
 	H323RasSrv *theRasSrv;
 };
 
-
-inline bool PendingList::PendingARQ::DoACF(H323RasSrv *theRasSrv, const endptr & called) const
+void PendingList::Check()
 {
-	theRasSrv->ReplyARQ(m_reqEP, called, m_arq);
-	return true;
+	PWaitAndSignal lock(usedLock);
+	iterator Iter = find_if(arqList.begin(), arqList.end(), not1(bind2nd(mem_fun(&PendingARQ::IsStaled), pendingTTL)));
+	for_each(arqList.begin(), Iter, bind2nd(mem_fun(&PendingARQ::DoARJ), RasSrv));
+	for_each(arqList.begin(), Iter, delete_arq);
+	arqList.erase(arqList.begin(), Iter);
 }
 
-inline bool PendingList::PendingARQ::DoARJ(H323RasSrv *theRasSrv) const
-{
-	theRasSrv->ReplyARQ(m_reqEP, endptr(NULL), m_arq);
-	return true;
-}
 
-inline bool PendingList::PendingARQ::CompSeq(int seqNum) const
-{
-	return (m_seqNum == seqNum);
-}
-
-inline bool PendingList::PendingARQ::IsStaled(int sec) const
-{
-	return (PTime() - m_reqTime) > sec*1000;
-}
-
-inline PendingList::~PendingList()
-{
-	for_each(arqList.begin(), arqList.end(), delete_arq);
-}
-
-inline PendingList::iterator PendingList::FindBySeqNum(int seqnum)
-{
-	return find_if(arqList.begin(), arqList.end(), bind2nd(mem_fun(&PendingARQ::CompSeq), seqnum));
-}
-
-bool PendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP)
+bool NBPendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & reqEP)
 {
 	// TODO: check if ARQ duplicate
 
-	int nbCount = theRasSrv->GetNeighborsGK()->SendLRQ(seqNumber, obj_arq);
+	int nbCount = RasSrv->GetNeighborsGK()->SendLRQ(seqNumber, obj_arq);
 	if (nbCount > 0) {
 		PWaitAndSignal lock(usedLock);
 		arqList.push_back(new PendingARQ(seqNumber, obj_arq, reqEP, nbCount));
@@ -169,7 +113,7 @@ bool PendingList::Insert(const H225_AdmissionRequest & obj_arq, const endptr & r
 	return false;
 }
 
-void PendingList::ProcessLCF(const H225_RasMessage & obj_ras)
+void NBPendingList::ProcessLCF(const H225_RasMessage & obj_ras)
 {
 	const H225_LocationConfirm & obj_lcf = obj_ras;
 
@@ -186,12 +130,11 @@ void PendingList::ProcessLCF(const H225_RasMessage & obj_ras)
 		return;
 	}
 
-	(*Iter)->DoACF(theRasSrv, called);
-	delete *Iter;
-	arqList.erase(Iter);
+	(*Iter)->DoACF(RasSrv, called);
+	Remove(Iter);
 }
 
-void PendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
+void NBPendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 {
 	const H225_LocationReject & obj_lrj = obj_ras;
 
@@ -203,19 +146,9 @@ void PendingList::ProcessLRJ(const H225_RasMessage & obj_ras)
 		return;
 	}
 	if ((*Iter)->DecCount() == 0) {
-		(*Iter)->DoARJ(theRasSrv);
-		delete *Iter;
-		arqList.erase(Iter);
+		(*Iter)->DoARJ(RasSrv);
+		Remove(Iter);
 	}
-}
-
-void PendingList::Check()
-{
-	PWaitAndSignal lock(usedLock);
-	iterator Iter = find_if(arqList.begin(), arqList.end(), not1(bind2nd(mem_fun(&PendingARQ::IsStaled), pendingTTL)));
-	for_each(arqList.begin(), Iter, bind2nd(mem_fun(&PendingARQ::DoARJ), theRasSrv));
-	for_each(arqList.begin(), Iter, delete_arq);
-	arqList.erase(arqList.begin(), Iter);
 }
 
 NeighborList::NeighborList(H323RasSrv *rs, PConfig *config) : theRasSrv(rs)
@@ -298,6 +231,7 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 
 	sigHandler = 0;
 
+	gkClient = 0;
 	authList = 0;
 	destAnalysisList = 0;
 	NeighborsGK = 0;
@@ -311,12 +245,13 @@ H323RasSrv::H323RasSrv(PIPSocket::Address _GKHome)
 
 	udpForwarding.SetWriteTimeout(PTimeInterval(300));
  
-	arqPendingList = new PendingList(this, GkConfig()->GetInteger(NeighborSection, "NeighborTimeout", 2));
+	arqPendingList = new NBPendingList(this, GkConfig()->GetInteger(NeighborSection, "NeighborTimeout", 2));
 }
 
 
 H323RasSrv::~H323RasSrv()
 {
+	delete gkClient;
 	delete authList;
 	delete destAnalysisList;
 	delete NeighborsGK;
@@ -341,12 +276,28 @@ void H323RasSrv::SetRoutedMode(bool routedSignaling, bool routedH245)
 	PTRACE(2, "GK\tH.245 Routed " << h245msg);
 }
 
+// set the signaling mode according to the config file
+// don't change it if not specified in the config
+void H323RasSrv::SetRoutedMode()
+{
+	PString gkrouted(GkConfig()->GetString(RoutedSec, "GKRouted", ""));
+	PString h245routed(GkConfig()->GetString(RoutedSec, "H245Routed", ""));
+	SetRoutedMode(
+		(!gkrouted) ? Toolkit::AsBool(gkrouted) : GKRoutedSignaling,
+		(!h245routed) ? Toolkit::AsBool(h245routed) : GKRoutedH245
+	);
+}
+
 void H323RasSrv::LoadConfig()
 {
 	PWaitAndSignal lock(loadLock);
 
 	AcceptUnregCalls = Toolkit::AsBool(GkConfig()->GetString("AcceptUnregisteredCalls", "0"));
 
+	if (gkClient) { // don't create GkClient object at the first time
+		delete gkClient;
+		gkClient = new GkClient(this);
+	}
 	// add authenticators
 	delete authList;
 	authList = new GkAuthenticatorList(GkConfig());
@@ -376,6 +327,9 @@ void H323RasSrv::Close(void)
 {
 	PTRACE(2, "GK\tClosing RasSrv");
  
+	if (gkClient->IsRegistered())
+		gkClient->SendURQ();
+
 	listener.Close();
 	if (sigHandler) {
 		delete sigHandler;
@@ -691,7 +645,8 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			// reject the empty string
 			for (PINDEX AliasIndex=0; AliasIndex < NewAliases.GetSize(); ++AliasIndex) {
 				const PString & s = AsString(NewAliases[AliasIndex], FALSE);
-				if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') ) {
+			//	if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') ) {
+				if (s.GetLength() < 1) {
 					bReject = TRUE;
 					rejectReason.SetTag(H225_RegistrationRejectReason::e_invalidAlias);
 				}
@@ -806,6 +761,21 @@ BOOL H323RasSrv::OnRRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 }
 
 
+/* Registration Confirm */
+BOOL H323RasSrv::OnRCF(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rcf, H225_RasMessage &)
+{
+	gkClient->OnRCF(obj_rcf, rx_addr);
+	return FALSE;
+}
+
+
+/* Registration Reject */
+BOOL H323RasSrv::OnRRJ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_rrj, H225_RasMessage &)
+{
+	gkClient->OnRRJ(obj_rrj, rx_addr);
+	return FALSE;
+}
+
 
 BOOL H323RasSrv::CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress & alias) const
 {
@@ -846,6 +816,10 @@ BOOL H323RasSrv::CheckForIncompleteAddress(const H225_ArrayOf_AliasAddress & ali
 	return FALSE;
 }
 
+bool H323RasSrv::SendLRQ(const H225_AdmissionRequest & arq, const endptr & reqEP)
+{
+	return arqPendingList->Insert(arq, reqEP);
+}
 
 /* Admission Request */
 BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_arq, H225_RasMessage & obj_rpl)
@@ -864,12 +838,10 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		H225_AdmissionReject & arj = obj_rpl; 
  		arj.m_rejectReason.SetTag(rsn);
 		bReject = TRUE;
-	}
-	// don't search endpoint table for an answerCall ARQ
-	else if (obj_rr.m_answerCall) {
+	} else if (obj_rr.m_answerCall) {
+		// don't search endpoint table for an answerCall ARQ
 		CalledEP = RequestingEP;
-	}
-	else {
+	} else {
 		// if a destination address is provided, we check if we know it
 		if (obj_rr.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) 
 			CalledEP = EndpointTable->FindBySignalAdr(obj_rr.m_destCallSignalAddress);
@@ -893,7 +865,10 @@ BOOL H323RasSrv::OnARQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			CalledEP = EndpointTable->FindEndpoint(obj_rr.m_destinationInfo);
 #endif
 			if (!bReject && !CalledEP && RequestingEP) {
-				if (arqPendingList->Insert(obj_rr, RequestingEP))
+				if (gkClient->IsRegistered()) {
+					gkClient->SendARQ(obj_rr, RequestingEP);
+					return FALSE;
+				} else if (arqPendingList->Insert(obj_rr, RequestingEP))
 					return FALSE;
 			}
 		}
@@ -1037,14 +1012,13 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 		CallTable::Instance()->FindCallRec(obj_arq.m_callReferenceValue);
 
 #if ARJREASON_ROUTECALLTOGATEKEEPER
-	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures","ArjReasonRouteCallToGatekeeper","TRUE")) )
+	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1")))
 		if (GKRoutedSignaling && obj_arq.m_answerCall && !pExistingCallRec) {
 			bReject = TRUE;
 			arj.m_rejectReason.SetTag(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
 		}
 #endif
-	if (bReject)
-	{
+	if (bReject) {
 		arj.m_requestSeqNum = obj_arq.m_requestSeqNum;
 		PString msg(PString::Printf, "ARJ|%s|%s|%s|%s|%s;\r\n", 
 			    (const unsigned char *) srcInfoString,
@@ -1054,15 +1028,15 @@ void H323RasSrv::ProcessARQ(PIPSocket::Address rx_addr, const endptr & Requestin
 			    (const unsigned char *) arj.m_rejectReason.GetTagName() );
 		PTRACE(2, msg);
 		GkStatusThread->SignalStatus(msg);
-	}   
-	else
-	{
+	} else {
 		// new connection admitted
 		obj_rpl.SetTag(H225_RasMessage::e_admissionConfirm); // re-cast (see above)
 		H225_AdmissionConfirm & acf = obj_rpl;
 
 		acf.m_requestSeqNum = obj_arq.m_requestSeqNum;
 		acf.m_bandWidth = BWRequest;
+
+	//	CalledEP->BuildACF(acf);
 
 		if (pExistingCallRec) {
 			if (obj_arq.m_answerCall) // the second ARQ
@@ -1173,52 +1147,43 @@ void H323RasSrv::ReplyARQ(const endptr & RequestingEP, const endptr & CalledEP, 
 	SendReply(obj_rpl, ipaddress, ip.m_port, listener);
 }
 
+/* Admission Confirm */
+BOOL H323RasSrv::OnACF(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
+{
+	if (gkClient->IsRegistered())
+		gkClient->OnACF(obj_rr, rx_addr);
+	return FALSE;
+}
+
+/* Admission Reject */
+BOOL H323RasSrv::OnARJ(const PIPSocket::Address & rx_addr, const H225_RasMessage &obj_rr, H225_RasMessage &)
+{
+	if (gkClient->IsRegistered())
+		gkClient->OnARJ(obj_rr, rx_addr);
+	return FALSE;
+}
+
 /* Disengage Request */
 BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage & obj_drq, H225_RasMessage & obj_rpl)
 {    
 	const H225_DisengageRequest & obj_rr = obj_drq;
-	PString msg;
+	bool bReject = false;
 	
-	if ( GKManager->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID) )
-	{
-		PTRACE(4,"\tDRQ: closed conference");
-		obj_rpl.SetTag(H225_RasMessage::e_disengageConfirm); 
-		H225_DisengageConfirm & dcf = obj_rpl;
-		dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;    
-
-		CallTable::Instance()->RemoveCall(obj_rr);
-		PTRACE(4, "GK\tDRQ: removed first endpoint");
-
-		// always signal DCF
-		msg = PString(PString::Printf, "DCF|%s|%s|%u|%s;\r\n", 
-				inet_ntoa(rx_addr),
-				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
-				(unsigned) obj_rr.m_callReferenceValue,
-				(const unsigned char *) obj_rr.m_disengageReason.GetTagName() );	
-	}
+	if (gkClient->IsRegistered() && gkClient->OnDRQ(obj_rr, rx_addr)) {
+		PTRACE(4,"GKC\tDRQ: from my GK");
+	} else if (GKManager->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID)) {
+		PTRACE(4,"GK\tDRQ: closed conference, removed first endpoint");
+	} else if (EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier)) {
 	// The first EP that sends DRQ closes the conference and removes the CallTable entry -
-	// this should not exclude the second one
-	// from receiving DCF. This way we will not catch stray DRQs but we send the right messages ourselves
-	else if (EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier))
-	{
-		PTRACE(4, "GK\tDRQ: endpoint found");
-		obj_rpl.SetTag(H225_RasMessage::e_disengageConfirm); 
-		H225_DisengageConfirm & dcf = obj_rpl;
-		dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;
-
-		CallTable::Instance()->RemoveCall(obj_rr);
-
+	// this should not exclude the second one from receiving DCF.
+	// This way we will not catch stray DRQs but we send the right messages ourselves
 		PTRACE(4, "GK\tDRQ: removed second endpoint");
-
-		// always signal DCF
-		msg = PString(PString::Printf, "DCF|%s|%s|%u|%s;\r\n", 
-				inet_ntoa(rx_addr),
-				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
-				(unsigned) obj_rr.m_callReferenceValue,
-				(const unsigned char *) obj_rr.m_disengageReason.GetTagName() );	
+	} else {
+		bReject = true;
 	}
-	else
-	{
+
+	PString msg;
+	if (bReject) {
 		PTRACE(4, "GK\tDRQ: reject");
 		obj_rpl.SetTag(H225_RasMessage::e_disengageReject); 
 		H225_DisengageReject & drj = obj_rpl;
@@ -1230,6 +1195,18 @@ BOOL H323RasSrv::OnDRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
 				(unsigned) obj_rr.m_callReferenceValue,
 				(const unsigned char *) drj.m_rejectReason.GetTagName() );
+	} else {
+		obj_rpl.SetTag(H225_RasMessage::e_disengageConfirm); 
+		H225_DisengageConfirm & dcf = obj_rpl;
+		dcf.m_requestSeqNum = obj_rr.m_requestSeqNum;    
+
+		// always signal DCF
+		msg = PString(PString::Printf, "DCF|%s|%s|%u|%s;\r\n", 
+				inet_ntoa(rx_addr),
+				(const unsigned char *) obj_rr.m_endpointIdentifier.GetValue(),
+				(unsigned) obj_rr.m_callReferenceValue,
+				(const unsigned char *) obj_rr.m_disengageReason.GetTagName() );	
+		CallTable::Instance()->RemoveCall(obj_rr);
 	}
 
 	PTRACE(2, msg);
@@ -1247,8 +1224,17 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	BOOL bShellSendReply = TRUE;
 	BOOL bShellForwardRequest = TRUE;
 
+	// check first if it comes from my GK
+	if (gkClient->IsRegistered() && gkClient->OnURQ(obj_rr, rx_addr)) {
+		// Return UCF
+		obj_rpl.SetTag(H225_RasMessage::e_unregistrationConfirm);
+		H225_UnregistrationConfirm & ucf = obj_rpl;
+		ucf.m_requestSeqNum = obj_rr.m_requestSeqNum;
+		return TRUE;
+	}
+	// OK, it comes from my endpoints
 	// mechanism 1: forwarding detection per "flag"
-	if(obj_rr.HasOptionalField(H225_UnregistrationRequest::e_nonStandardData)) {
+	if (obj_rr.HasOptionalField(H225_UnregistrationRequest::e_nonStandardData)) {
 		switch(obj_rr.m_nonStandardData.m_nonStandardIdentifier.GetTag()) {
 		case H225_NonStandardIdentifier::e_h221NonStandard:
 			const H225_H221NonStandard &nonStandard = 
@@ -1270,11 +1256,11 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 			bShellForwardRequest = FALSE;
 		}
 
+	PString endpointIdentifierString(obj_rr.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ? obj_rr.m_endpointIdentifier.GetValue() : PString(" "));
 	endptr ep = obj_rr.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ?
 		EndpointTable->FindByEndpointId(obj_rr.m_endpointIdentifier) :
 		EndpointTable->FindBySignalAdr(obj_rr.m_callSignalAddress[0]);
-	if (ep)
-	{
+	if (ep) {
 		// Disconnect all calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
 		// Remove from the table
@@ -1287,19 +1273,10 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		ucf.m_requestSeqNum = obj_rr.m_requestSeqNum;
 		ucf.m_nonStandardData = obj_rr.m_nonStandardData;
 
-		PString endpointIdentifierString;
-		if (obj_rr.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier))
-			endpointIdentifierString = obj_rr.m_endpointIdentifier.GetValue();
-		else
-			endpointIdentifierString = " ";
-
-		PString msg2(PString::Printf, "UCF|%s|%s;\r\n", 
-			     inet_ntoa(rx_addr),
-			     (const unsigned char *) endpointIdentifierString) ;
-		msg = msg2;
-	}
-	else
-	{
+		msg = PString(PString::Printf, "UCF|%s|%s;", 
+			inet_ntoa(rx_addr),
+			(const unsigned char *) endpointIdentifierString) ;
+	} else {
 		// Return URJ	
 		obj_rpl.SetTag(H225_RasMessage::e_unregistrationReject);
 		H225_UnregistrationReject & urj = obj_rpl;
@@ -1307,21 +1284,14 @@ BOOL H323RasSrv::OnURQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 		urj.m_nonStandardData = obj_rr.m_nonStandardData ;
 		urj.m_rejectReason.SetTag(H225_UnregRejectReason::e_notCurrentlyRegistered);
 
-		PString endpointIdentifierString;
-		if (obj_rr.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier))
-			endpointIdentifierString = obj_rr.m_endpointIdentifier.GetValue();
-		else
-			endpointIdentifierString = " ";
-
-		PString msg2(PString::Printf, "URJ|%s|%s|%s;\r\n", 
-			     inet_ntoa(rx_addr),
-			     (const unsigned char *) endpointIdentifierString,
-			     (const unsigned char *) urj.m_rejectReason.GetTagName() );
-		msg = msg2;
+		msg = PString(PString::Printf, "URJ|%s|%s|%s;", 
+			inet_ntoa(rx_addr),
+			(const unsigned char *) endpointIdentifierString,
+			(const unsigned char *) urj.m_rejectReason.GetTagName() );
 	}
 
-	PTRACE(2,msg);
-	GkStatusThread->SignalStatus(msg);
+	PTRACE(2, msg);
+	GkStatusThread->SignalStatus(msg + "\r\n");
 
 	if(bShellForwardRequest) 
 		ForwardRasMsg(obj_urq);
@@ -1363,16 +1333,13 @@ BOOL H323RasSrv::OnBRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	H225_BandwidthConfirm & bcf = obj_rpl;
 	bcf.m_requestSeqNum = obj_brq.m_requestSeqNum;
 	/* for now we grant whatever bandwidth was requested */
-	if (obj_brq.m_bandWidth.GetValue() < 100)
-	{
+	if (obj_brq.m_bandWidth.GetValue() < 100) {
 		/* hack for Netmeeting 3.0 */
 		bcf.m_bandWidth.SetValue ( 1280 );
-	}
-	else
-	{
+	} else {
 		/* otherwise grant what was asked for */
 		bcf.m_bandWidth = obj_brq.m_bandWidth;
-	};
+	}
 	bcf.m_nonStandardData = obj_brq.m_nonStandardData;
 
 	PString msg(PString::Printf, "BCF|%s|%s|%u;\r\n", 
@@ -1403,11 +1370,11 @@ BOOL H323RasSrv::OnLRQ(const PIPSocket::Address & rx_addr, const H225_RasMessage
 	if (authList->Check(obj_lrq, rsn) &&
 		// only search registered endpoints
 #if WITH_DEST_ANALYSIS_LIST
-		(WantedEndPoint = EndpointTable->getMsgDestination(obj_lrq, rsn, false)
+		(WantedEndPoint = EndpointTable->getMsgDestination(obj_lrq, rsn, false))
 #else
-		(WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false)
+		(WantedEndPoint = EndpointTable->FindEndpoint(obj_lrq.m_destinationInfo, false))
 #endif
-		)) {
+		) {
 		// Alias found
 		obj_rpl.SetTag(H225_RasMessage::e_locationConfirm);
 		H225_LocationConfirm & lcf = obj_rpl;
@@ -1488,6 +1455,7 @@ bool H323RasSrv::Check()
 {
 	if (sigHandler)
 		sigHandler->Check();
+	gkClient->CheckRegistration();
 	arqPendingList->Check();
 	return !IsTerminated();
 }
@@ -1519,7 +1487,8 @@ void H323RasSrv::SendReply(const H225_RasMessage & obj_rpl, const PIPSocket::Add
 		PTRACE(2, "GK\tSend " << obj_rpl.GetTagName() << " to " << rx_addr << ':' << rx_port);
 #endif
 
-	PPER_Stream wtstrm;
+	PBYTEArray wtbuf(4096);
+	PPER_Stream wtstrm(wtbuf);
 	obj_rpl.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
 
@@ -1543,6 +1512,8 @@ void H323RasSrv::Main(void)
 	// queueSize is useless for UDPSocket
 	listener.Listen(GKHome, 0, GKRasPort, PSocket::CanReuseAddress);
 	PTRACE_IF(1, !listener.IsOpen(), "GK\tBind to RAS port failed!");
+
+	gkClient = new GkClient(this);
 
 	while (listener.IsOpen())
 	{ 
@@ -1585,6 +1556,16 @@ void H323RasSrv::Main(void)
 			ShallSendReply = OnRRQ( rx_addr, obj_req, obj_rpl );
 			break;
 			
+		case H225_RasMessage::e_registrationConfirm:    
+			PTRACE(1, "GK\tRCF Received");
+			ShallSendReply = OnRCF( rx_addr, obj_req, obj_rpl );
+			break;
+			
+		case H225_RasMessage::e_registrationReject:    
+			PTRACE(1, "GK\tRRJ Received");
+			ShallSendReply = OnRRJ( rx_addr, obj_req, obj_rpl );
+			break;
+			
 		case H225_RasMessage::e_unregistrationRequest :
 			PTRACE(1, "GK\tURQ Received");
 			ShallSendReply = OnURQ( rx_addr, obj_req, obj_rpl );
@@ -1593,6 +1574,16 @@ void H323RasSrv::Main(void)
 		case H225_RasMessage::e_admissionRequest :
 			PTRACE(1, "GK\tARQ Received");
 			ShallSendReply = OnARQ( rx_addr, obj_req, obj_rpl );
+			break;
+    
+		case H225_RasMessage::e_admissionConfirm :
+			PTRACE(1, "GK\tACF Received");
+			ShallSendReply = OnACF( rx_addr, obj_req, obj_rpl );
+			break;
+    
+		case H225_RasMessage::e_admissionReject :
+			PTRACE(1, "GK\tARJ Received");
+			ShallSendReply = OnARJ( rx_addr, obj_req, obj_rpl );
 			break;
     
 		case H225_RasMessage::e_bandwidthRequest :

@@ -181,10 +181,13 @@ fully implemented).
 
 
 B.7 Section [RasSvr::ARQFeatures]
-ArjReasonRouteCallToSCN=FALSE
-If TRUE, when a ARQ arrives from the very same gateway that this call
-would be routed back to, gatekeeper sends ARJ with Reason RouteCallToSCN
+ArjReasonRouteCallToSCN=FALSE		Default: FALSE
+If TRUE, when an ARQ arrives from the very same gateway that this call
+would be routed back to, gatekeeper sends ARJ with reason RouteCallToSCN.
 
+ArjReasonRouteCallToGatekeeper=TRUE	Default: TRUE
+If TRUE, when an answered ARQ arrives without a pre-existing CallRec
+found in CallTable, gatekeeper sends ARJ with reason RouteCallToGatekeeper.
 
 B.8 Section [RasSrv::RRQAuth]
 

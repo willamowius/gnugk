@@ -25,8 +25,6 @@
 #include "RasTbl.h"
 #include "ProxyThread.h"
 
-extern const char *RoutedSec;
-
 class H245Handler;
 class CallSignalSocket;
 class H245Socket;
@@ -169,16 +167,25 @@ protected:
 private:
 	void BuildReleasePDU(Q931 &) const;
 	bool SetH245Address(H225_TransportAddress &);
-	
+	// the method is only valid within ReceiveData()
+	Q931 *GetReceivedQ931() const;
+
 	callptr m_call;
 	WORD m_crv;
 	H245Handler *m_h245handler;
 	H245Socket *m_h245socket;
+	bool m_h245Tunneling;
+	Q931 *m_receivedQ931;
 };
 
 inline bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
 {
 	return m_h245handler->HandleMesg(strm);
+}
+
+inline Q931 *CallSignalSocket::GetReceivedQ931() const
+{
+	return m_receivedQ931;
 }
 
 #endif // __proxychannel_h__

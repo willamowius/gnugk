@@ -106,6 +106,10 @@ SOURCE=.\GkAuthorize.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\GkClient.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\gkDestAnalysis.cxx
 # End Source File
 # Begin Source File
@@ -183,6 +187,14 @@ SOURCE=.\gk_const.h
 # Begin Source File
 
 SOURCE=.\gkauth.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\GkAuthorize.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\GkClient.h
 # End Source File
 # Begin Source File
 
