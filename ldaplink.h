@@ -40,6 +40,11 @@ typedef struct berval {
 #endif
 
 #include <ptlib.h>		// the PWlib
+
+#ifdef P_SOLARIS
+#define map stl_map
+#endif
+
 #include <map>			// STL map
 
 /** Class that holds the current names of the attribute names used for the
