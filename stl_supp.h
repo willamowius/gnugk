@@ -32,7 +32,7 @@ struct Minus : public binary_function<_Tp,_Tp, R> {
 };
 
 // Composition adaptor is not part of C++ standard
-#ifndef __GNUC__
+#if !defined(__GNUC__) || (defined(__GNUC__) && __GNUC__ >= 3)
 template <class _Operation1, class _Operation2>
 class unary_compose
   : public unary_function<typename _Operation2::argument_type,
@@ -172,6 +172,7 @@ using std::partition;
 using std::transform;
 using std::distance;
 using std::sort;
+using std::stable_sort;
 using std::unique;
 using std::ptr_fun;
 
