@@ -814,6 +814,7 @@ bool Gatekeeper::RotateLogFile()
 			filename.Replace(".", "." + timeStr + ".", FALSE, lastDot);
 		else
 			filename += "." + timeStr;
+		oldLogFile->Close();
 		oldLogFile->Move(oldLogFile->GetFilePath(), filename);
 	}
 	delete oldLogFile;
