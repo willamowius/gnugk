@@ -6,10 +6,10 @@ Rajat Todi and Joe Metzger.
 It is covered by the GNU Public License (GPL); for details
 see the file COPYING.
 
-It's currently maintained by Jan Willamowius (jan@willamowius.de,
-http://www.willamowius.de/openh323gk.html).
+It's currently maintained by Jan Willamowius (jan@willamowius.com,
+http://www.willamowius.com/openh323gk.html).
 
-Please send code updates, bugfixes etc. to gatekeeper@willamowius.de.
+Please send code updates, bugfixes etc. to gatekeeper@willamowius.com.
 
 There are a number of files that contain some documentation about
 the gatekeeper:

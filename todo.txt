@@ -26,9 +26,6 @@ avoid duplicate work.
 - debug: problems with FastStart in routed mode (eg. Siemens LP 5100
   or Netergy adapter)
 
-- look at the source from OpenGatekeeper, if we should implement
-  a similar Neighbor feature, seems to impact only OnARQ
-
 - implement gatekeeper performed H.450.2 Call Transfer ?
   gatekeeper routed, gatekeeper transparent mode works already
 
