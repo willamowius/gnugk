@@ -66,15 +66,14 @@ void PendingList::Check()
 PINDEX
 PendingList::FindBySeqNum(int seqnum)
 {
-	PINDEX i;
-	BOOL not_found = TRUE;
-	for (i=0; not_found && i<arqList.GetSize(); i++) {
-		if (arqList[i].CompSeq(seqnum))
-			not_found = FALSE;
-	}
-	if(not_found)
-		i=P_MAX_INDEX;
-	return i;
+        if(arqList.GetSize()==0)
+                return P_MAX_INDEX;
+        PINDEX i;
+        for (i=0; i < arqList.GetSize(); i++) {
+                if (arqList[i].CompSeq(seqnum))
+                        return i;
+        }
+        return P_MAX_INDEX;
 }
 
 void
