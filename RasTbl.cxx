@@ -20,12 +20,15 @@
 #define snprintf	_snprintf
 #endif
 
-#include "RasTbl.h"
-#include "ANSI.h"
 #include <time.h>
-#include <stdio.h>
+#include <ptlib.h>
+#include "h323pdu.h"
+#include "ANSI.h"
 #include "h323util.h"
 #include "Toolkit.h"
+#include "SoftPBX.h"
+#include "RasTbl.h"
+
 
 // initialize singleton instances and locks
 resourceManager * resourceManager::m_instance = NULL;
@@ -71,17 +74,7 @@ resourceManager::resourceManager()
 void resourceManager::SetBandWidth(int bw)
 {
 	m_capacity = bw;
-	cout << endl << "Available BandWidth " << m_capacity  << endl;
-}
-
-void resourceManager::Insert(const conferenceRec & NewRec)
-{
-	ConferenceList.insert(NewRec);
-};
-
-unsigned int resourceManager::GetConferenceCount(void) const
-{
-	return ConferenceList.size();
+	cout << endl << "Available bandwidth " << m_capacity  << endl;
 }
 
 
@@ -112,8 +105,8 @@ BOOL resourceManager::GetAdmission(const H225_EndpointIdentifier & src, const H2
 		return FALSE;
       
     conferenceRec cRec( src, cid, bw );
-    Insert( cRec );
-    PTRACE(2, "GK\tTotal sessions : " << GetConferenceCount()<< "\tAvailable BandWidth " << GetAvailableBW());
+	ConferenceList.insert(cRec);
+    PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable bandwidth " << GetAvailableBW());
     return TRUE;
 }
 
@@ -127,26 +120,26 @@ BOOL resourceManager::CloseConference(const H225_EndpointIdentifier & src, const
 		if( ((*Iter).m_src == src) && ((*Iter).m_cid == cid) )
 		{
 			ConferenceList.erase(Iter);
-			PTRACE(2, "GK\tTotal sessions : " << GetConferenceCount() << "\tAvailable BandWidth " << GetAvailableBW());
+    		PTRACE(2, "GK\tTotal sessions : " << ConferenceList.size() << "\tAvailable bandwidth " << GetAvailableBW());
 			return TRUE;
 		}
 	}
 	return FALSE;
 }
 
-/*
-void endpointRec::PrintOn( ostream &strm )
-{
-    strm << "{";
-    strm << endl << " callSignalAddress ";
-    m_callSignalAddress.PrintOn( strm );
-    strm << endl << " terminalAlias ";
-    m_terminalAlias.PrintOn( strm );
-    strm << endl << " endpointIdentifier ";
-    m_endpointIdentifier.PrintOn( strm );
-    strm << "}" << endl;
-}
-*/
+
+//void endpointRec::PrintOn( ostream &strm ) const
+//{
+//    strm << "{";
+//    strm << endl << " callSignalAddress ";
+//    m_callSignalAddress.PrintOn( strm );
+//    strm << endl << " terminalAlias ";
+//    m_terminalAliases.PrintOn( strm );
+//    strm << endl << " endpointIdentifier ";
+//    m_endpointIdentifier.PrintOn( strm );
+//    strm << "}" << endl;
+//}
+
 
 endpointRec::endpointRec(H225_TransportAddress rasAddress, H225_TransportAddress callSignalAddress, H225_EndpointIdentifier endpointId, H225_ArrayOf_AliasAddress terminalAliases, H225_EndpointType terminalType, const H225_RasMessage completeRRQ)
 {
@@ -191,7 +184,7 @@ bool endpointRec::operator< (const endpointRec & other) const
 
 void RegistrationTable::Insert(const endpointRec & NewRec)
 {
-	EndpointList.insert(NewRec);
+	EndpointList.push_back(NewRec);
 };
 
 
@@ -212,6 +205,7 @@ RegistrationTable * RegistrationTable::Instance(void)
 
 RegistrationTable::RegistrationTable()
 	: GatewayPrefixes(),  // TODO: how to define a default in the map for not-found elements?
+	  GatewayFlags(),
 	  endpointIdSuffix(Toolkit::Config()->GetString("EndpointIDSuffix", "_endp"))
 {
 	srand(time(0));
@@ -221,13 +215,13 @@ RegistrationTable::RegistrationTable()
 
 void RegistrationTable::RemoveByEndpointId(const H225_EndpointIdentifier & endpointId)
 {
-	set<endpointRec>::iterator Iter;
+	list<endpointRec>::iterator Iter;
 
 	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
 	{
 		if ((*Iter).m_endpointIdentifier == endpointId)
 		{
-			EndpointList.erase(Iter);
+			EndpointList.erase(Iter);	// list<> is O(1), slist<> O(n) here
 			return;
 		};
 	};
@@ -235,7 +229,7 @@ void RegistrationTable::RemoveByEndpointId(const H225_EndpointIdentifier & endpo
 
 const endpointRec * RegistrationTable::FindByEndpointId(const H225_EndpointIdentifier & endpointId) const
 {
-	set<endpointRec>::const_iterator Iter;
+	list<endpointRec>::const_iterator Iter;
 
 	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
 	{
@@ -247,7 +241,7 @@ const endpointRec * RegistrationTable::FindByEndpointId(const H225_EndpointIdent
 
 const endpointRec * RegistrationTable::FindBySignalAdr(H225_TransportAddress SignalAdr) const
 {
-	set<endpointRec>::const_iterator Iter;
+	list<endpointRec>::const_iterator Iter;
 
 	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
 	{
@@ -261,10 +255,10 @@ bool GWAliasEqual(H225_AliasAddress GWAlias, H225_AliasAddress OtherAlias)
 {
 	if(!GWAlias.IsValid()) return FALSE;
 	if(!OtherAlias.IsValid()) return FALSE;
-    PString GWAliasStr = ((PASN_BMPString&)GWAlias.GetObject()).GetValue();
-    PString OtherAliasStr = ((PASN_BMPString&)OtherAlias.GetObject()).GetValue();
+	PString GWAliasStr = H323GetAliasAddressString(GWAlias);
+	PString OtherAliasStr = H323GetAliasAddressString(OtherAlias);
 
-	if (GWAlias.GetTag() == H225_AliasAddress::e_e164)
+	if (GWAlias.GetTag() == H225_AliasAddress::e_dialedDigits)
 	{
 		// for E.164 aliases we only compare the prefix the gateway registered
 		// and assume they provide acces to the whole address space
@@ -276,30 +270,82 @@ bool GWAliasEqual(H225_AliasAddress GWAlias, H225_AliasAddress OtherAlias)
 };
 
 
-void RegistrationTable::AddPrefixes(const PString & NewAliasStr, const PString &prefixes)
+void RegistrationTable::AddPrefixes(const PString & NewAliasStr, const PString &prefixes, const PString &flags)
 {
 	// delete old if existing	
 	PStringArray *prefixArr = GatewayPrefixes[NewAliasStr];
-	if(prefixArr != NULL) {
+	if (prefixArr != NULL) {
 		delete prefixArr;
 		GatewayPrefixes[NewAliasStr] = NULL;
+	}
+	PStringArray *flagsArr = GatewayFlags[NewAliasStr];
+	if (flagsArr != NULL) {
+		delete flagsArr;
+		GatewayFlags[NewAliasStr] = NULL;
 	}
 
 	// create new
 	prefixArr = new PStringArray(prefixes.Tokenise(" ,;\t\n", FALSE));
 	GatewayPrefixes[NewAliasStr] = prefixArr;
-	
-	//TODO: delete the content of GatewayPrefixes somewhere.
-	//...or leave it alone -- it is used until the program ends.
+
+	// allow for multiple flags
+	flagsArr = new PStringArray(flags.Tokenise(" ,;\t\n", FALSE));
+	GatewayFlags[NewAliasStr] = flagsArr;
+}
+
+
+void RegistrationTable::AddAlias(const PString & NewAliasStr)
+{
+	PString gatewayline = Toolkit::Config()->GetString("RasSvr::GWPrefixes", NewAliasStr, "");
+	PString flags = "";
+
+	const PStringArray gateway = gatewayline.Tokenise(":", FALSE);
+	// gateway[0] = prefix, gateway[1] = flags
+	if (gatewayline != "") {
+		if (gateway.GetSize() == 2)
+			flags = gateway[1];
+		AddPrefixes(NewAliasStr, gateway[0], flags);
+
+		PTRACE(2, ANSI::DBG << "Gateway prefixes for '" << NewAliasStr << "' are now '" << gateway[0] << "'" << ANSI::OFF);
+		PTRACE(2, ANSI::DBG << "Gateway flags for '" << NewAliasStr << "' are now '" << flags << "'" << ANSI::OFF);
+	}
+}
+
+
+void RegistrationTable::UpdatePrefixes()
+{
+	PString Alias = "";
+
+	std::list<endpointRec>::const_iterator Iter;
+	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
+	{
+		if (!Iter->m_terminalType.HasOptionalField(H225_EndpointType::e_gateway))
+			continue;
+		// gibt uns das den gewuenschten Alias-Namen ?
+		for (PINDEX i = 0; i < Iter->m_terminalAliases.GetSize(); i++)
+		{
+			Alias = AsString(Iter->m_terminalAliases[i], FALSE);
+		        PTRACE(5, "Updating Alias " << i << ": " << Alias);
+
+			// if (GW in Config)
+			const PStringArray *prefixArr = GatewayPrefixes[Alias];
+			if (prefixArr != NULL)
+				// overwrites prefix & flags for this alias
+				AddAlias(Alias);
+			else
+				SoftPBX::Instance()->UnregisterAlias(Alias);
+		}
+	}
+        // all new gateways need to register themselves
 }
 
 
 void RegistrationTable::RemovePrefixes(const H225_AliasAddress & alias)
 {
-	if (alias.GetTag() != H225_AliasAddress::e_e164) 
+	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) 
 		return;
 	
-	PString AliasStr = ((PASN_IA5String&)(alias).GetObject()).GetValue();
+	PString AliasStr = H323GetAliasAddressString(alias);
 
 	// delete old if existing
 	PStringArray *prefixArr = GatewayPrefixes[AliasStr];
@@ -307,13 +353,18 @@ void RegistrationTable::RemovePrefixes(const H225_AliasAddress & alias)
 		delete prefixArr;
 		GatewayPrefixes[AliasStr] = NULL;
 	}
+	PStringArray *flagsArr = GatewayFlags[AliasStr];
+	if (flagsArr != NULL) {
+		delete flagsArr;
+		GatewayFlags[AliasStr] = NULL;
+	}
 }
 
 
 
 const endpointRec * RegistrationTable::FindByAlias(H225_AliasAddress alias) const
 {
-	set<endpointRec>::const_iterator EPIter;
+	list<endpointRec>::const_iterator EPIter;
 
 	// loop over endpoints
 	for (EPIter = EndpointList.begin(); EPIter != EndpointList.end(); ++EPIter)
@@ -341,7 +392,7 @@ const endpointRec * RegistrationTable::FindByAlias(H225_AliasAddress alias) cons
 
 const endpointRec * RegistrationTable::FindByAnyAliasInList(H225_ArrayOf_AliasAddress aliases) const
 {
-	set<endpointRec>::const_iterator EPIter;
+	list<endpointRec>::const_iterator EPIter;
 
 	// loop over endpoints
 	for (EPIter = EndpointList.begin(); EPIter != EndpointList.end(); ++EPIter)
@@ -370,14 +421,23 @@ const endpointRec * RegistrationTable::FindByAnyAliasInList(H225_ArrayOf_AliasAd
 };
 
 
-const endpointRec * RegistrationTable::FindByPrefix(const H225_AliasAddress & alias) const
+const endpointRec * RegistrationTable::FindByPrefix(const H225_AliasAddress & alias)
 {
-	set<endpointRec>::const_iterator EPIter;
+	list<endpointRec>::iterator EPIter;
   
-	if (alias.GetTag() != H225_AliasAddress::e_e164)
+	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits)
 		return NULL;
 
-	PString aliasStr = ((PASN_IA5String&)(alias).GetObject()).GetValue();
+	// Here is a bug. We find the first prefix, but no the longest one, so we have to fix it.
+
+	list<endpointRec>::iterator EPmax;
+	PINDEX maxprefix=0;
+
+	// note that found prefix has equal length to an other.
+	// if so, the found endpoint is moves to the end, so we get a round-robin.
+	bool maxprefixIsConcurrent = false;
+
+	PString aliasStr = H323GetAliasAddressString(alias);
 
 	// loop over endpoints
 	for (EPIter = EndpointList.begin(); EPIter != EndpointList.end(); ++EPIter)
@@ -386,23 +446,35 @@ const endpointRec * RegistrationTable::FindByPrefix(const H225_AliasAddress & al
 		for(unsigned int AliasIndex = 0; AliasIndex < (*EPIter).m_terminalAliases.GetSize(); ++AliasIndex)
 		{
 			if ((*EPIter).m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)) {
-				const PString GWAliasStr = ((PASN_BMPString&)((*EPIter).m_terminalAliases[AliasIndex]).GetObject()).GetValue();
+				const PString GWAliasStr = H323GetAliasAddressString((*EPIter).m_terminalAliases[AliasIndex]);
 
 				const PStringArray *prefixes = RegistrationTable::Instance()->GatewayPrefixes[GWAliasStr];
-				if (NULL == prefixes) {
+				if (prefixes == NULL) {
 					// no prefixes for this gw -> next endpoint
-				continue;
+					continue;
 				}
 				else {
 					// try all prefixes
 					int max = prefixes->GetSize();
 					for (int i=0; i < max; i++) {
 						const PString &prefix = (*prefixes)[i];
-						if (aliasStr.Find(prefix) == 0) {
+						if (aliasStr.Find(prefix) == 0) {	// TODO: lack of 'aliasStr.StartsWith(prefix)'
 							// found at position 0 => is a prefix
-							PTRACE(2, ANSI::DBG << "Gateway '" << GWAliasStr << "' prefix '"<<prefix
-								<< "' matched for '" << aliasStr << "'" << ANSI::OFF);
-							return &(*EPIter);
+							PINDEX prefixLength = prefix.GetLength();
+							if(prefixLength > maxprefix)
+							{
+								PTRACE(2, ANSI::DBG << "Gateway '" << GWAliasStr << "' prefix '"<<prefix
+									<< "' matched for '" << aliasStr << "'" << ANSI::OFF);
+								if (maxprefix)
+									PTRACE(2, ANSI::DBG << "Prefix '" << prefix
+										<< "' is longer than other" << ANSI::OFF);
+								maxprefix = prefix.GetLength();
+								EPmax = EPIter;
+								maxprefixIsConcurrent = false;
+							}
+							else if (prefixLength == maxprefix) {
+								maxprefixIsConcurrent = true;
+							}
 						}
 					}
 					// no prefix matched
@@ -411,14 +483,31 @@ const endpointRec * RegistrationTable::FindByPrefix(const H225_AliasAddress & al
 		};
 	};
 	// no gw matched with one of its prefixes
+
+	// if prefix is found
+	if (maxprefix) {
+		// round-robin
+		if(maxprefixIsConcurrent) {
+			PTRACE(3, ANSI::DBG << "Prefix apply round robin" << ANSI::OFF);
+			static PMutex mutex;
+			GkProtectBlock _using(mutex);
+
+			endpointRec aRec(*EPmax);
+			EndpointList.erase(EPmax);
+			EndpointList.push_back(aRec);
+			return &(*EndpointList.rbegin());
+		}
+
+		return &(*EPmax);
+	}
+
 	return NULL;
 };
 
 
-
 void RegistrationTable::UpdateAliasBySignalAdr(H225_TransportAddress SignalAdr, H225_ArrayOf_AliasAddress Aliases)
 {
-	set<endpointRec>::iterator Iter;
+	list<endpointRec>::iterator Iter;
 
 	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
 	{
@@ -427,7 +516,7 @@ void RegistrationTable::UpdateAliasBySignalAdr(H225_TransportAddress SignalAdr, 
 			endpointRec aRec(*Iter);
 			EndpointList.erase(Iter);
 			aRec.m_terminalAliases = Aliases;
-			EndpointList.insert(aRec);
+			EndpointList.push_back(aRec);
 			return;
 		};
 	};
@@ -447,7 +536,7 @@ H225_ArrayOf_AliasAddress RegistrationTable::GenerateAlias(const H225_EndpointId
 	H225_ArrayOf_AliasAddress AliasList;
 
 	NewAlias.SetTag( H225_AliasAddress::e_h323_ID); 
-	(PASN_BMPString &)NewAlias = endpointId;
+	H323SetAliasAddress(endpointId, NewAlias);
 
 	AliasList.SetSize(1);
 	AliasList[0] = NewAlias;
@@ -458,9 +547,9 @@ H225_ArrayOf_AliasAddress RegistrationTable::GenerateAlias(const H225_EndpointId
 void RegistrationTable::PrintAllRegistrations(GkStatus::Client &client, BOOL verbose) const
 {
 	static PMutex mutex;
-	GkProtectBlock _using(mutex); //towi: do we really need this mutex?
+	GkProtectBlock _using(mutex); // do we really need this mutex?
 
-	std::set<endpointRec>::const_iterator Iter;
+	std::list<endpointRec>::const_iterator Iter;
 	
 	client.WriteString("AllRegistrations\r\n");
 	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
@@ -476,19 +565,24 @@ void RegistrationTable::PrintAllRegistrations(GkStatus::Client &client, BOOL ver
 		
 		if (verbose)
 		{
-			const PString & alias = AsString(Iter->m_terminalAliases, FALSE);
-			PString s = "# " + alias;
-			// write prefixes of this alias
-			s += "|Px(";
-			const PStringArray *prefixes = RegistrationTable::Instance()->GatewayPrefixes[alias];
-			if (prefixes) {
-				if (prefixes->GetSize()>0) 
-					s += (*prefixes)[0];
-				for (PINDEX i=1; i<prefixes->GetSize(); i++) {
-					s += "," + (*prefixes)[i];
+			for (PINDEX i = 0; i < Iter->m_terminalAliases.GetSize(); i++)
+			{
+				const PString & alias = AsString(Iter->m_terminalAliases[i], FALSE);
+				PString s = "# " + alias;
+
+				// write prefixes of this alias
+				s += "|Px(";
+				const PStringArray *prefixes = RegistrationTable::Instance()->GatewayPrefixes[alias];
+				if (prefixes != NULL) {
+					if (prefixes->GetSize() > 0) 
+						s += (*prefixes)[0];
+					for (PINDEX i = 1; i < prefixes->GetSize(); i++) {
+						s += "," + (*prefixes)[i];
+					}
 				}
+
+				client.WriteString(s + ")\r\n");
 			}
-			client.WriteString(s + ")\r\n");
 		}
 		
 	}
@@ -496,17 +590,17 @@ void RegistrationTable::PrintAllRegistrations(GkStatus::Client &client, BOOL ver
 	client.WriteString(";\r\n");
 };
  
-/*
-void RegistrationTable::PrintOn( ostream &strm ) const
-{
-	std::set<endpointRec>::const_iterator Iter;
 
-	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
-	{
-      	(*Iter).PrintOn( strm );
-	};
-}
-*/
+//void RegistrationTable::PrintOn(ostream & strm) const
+//{
+//	list<endpointRec>::const_iterator Iter;
+//
+//	for (Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
+//	{
+//      	(*Iter).PrintOn( strm );
+//	};
+//}
+
 
 EndpointCallRec::EndpointCallRec(H225_TransportAddress callSignalAddress, H225_TransportAddress rasAddress, H225_CallReferenceValue callReference)
   : m_callSignalAddress(callSignalAddress),
@@ -527,6 +621,7 @@ CallRec::CallRec()
 {
 	m_conferenceIdentifier = "";
 	m_callIdentifier.m_guid = "";
+	m_CallNumber = 0;
 };
 
 
@@ -537,6 +632,7 @@ CallRec::CallRec(const CallRec & Other)
 	m_callIdentifier = Other.m_callIdentifier;
 	m_bandWidth = Other.m_bandWidth;
 	m_startTime = Other.m_startTime;
+	m_CallNumber = Other.m_CallNumber;
 
 	// copy EndpointCallrec
 	if (Other.Calling == NULL)
@@ -569,6 +665,8 @@ CallRec & CallRec::operator=(const CallRec & Other)
 	m_callIdentifier = Other.m_callIdentifier;
 	m_bandWidth = Other.m_bandWidth;
 	m_startTime = Other.m_startTime;
+	m_CallNumber = Other.m_CallNumber;
+
 	Calling = NULL;
 	Called = NULL;
 
@@ -586,7 +684,6 @@ CallRec & CallRec::operator=(const CallRec & Other)
 bool CallRec::operator< (const CallRec & other) const
 {
 	return this->m_callIdentifier < other.m_callIdentifier;
-	// return this->m_conferenceIdentifier.GetValue() < other.m_conferenceIdentifier.GetValue();
 };
 
 void CallRec::SetCalling(const EndpointCallRec & NewCalling)
@@ -652,6 +749,7 @@ CallTable * CallTable::Instance(void)
 
 CallTable::CallTable()
 {
+	m_CallNumber = 1;
 };
 
 CallTable::CallTable(const CallTable &)
@@ -660,7 +758,7 @@ CallTable::CallTable(const CallTable &)
 	
 void CallTable::Insert(const CallRec & NewRec)
 {
-	PTRACE(3, "CallTable::Insert");
+	PTRACE(3, "CallTable::Insert(CALL)");
 	CallList.insert(NewRec);
 };
 
@@ -668,13 +766,14 @@ void CallTable::Insert(const EndpointCallRec & Calling, const EndpointCallRec & 
 {
 	CallRec Call;
 
-	PTRACE(3, "CallTable::Insert");
+	PTRACE(3, "CallTable::Insert(EP,EP) Call No. " << m_CallNumber);
 	
 	Call.SetCalling(Calling);
 	Call.SetCalled(Called);
 	Call.SetBandwidth(Bandwidth);
 	Call.m_callIdentifier = CallId;
 	Call.m_conferenceIdentifier = ConfId;
+	Call.m_CallNumber = m_CallNumber++;
 	Insert(Call);
 };
 
@@ -682,21 +781,31 @@ void CallTable::Insert(const EndpointCallRec & Calling, int Bandwidth, H225_Call
 {
 	CallRec Call;
 
-	PTRACE(3, "CallTable::Insert");
+	PTRACE(3, "CallTable::Insert(EP)");
 	
 	Call.SetCalling(Calling);
 	Call.SetBandwidth(Bandwidth);
 	Call.m_callIdentifier = CallId;
 	Call.m_conferenceIdentifier = ConfId;
+	Call.m_CallNumber = m_CallNumber++;
 	Insert(Call);
 };
 
 void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 {
 	static PMutex mutex;
-	GkProtectBlock _using(mutex); //towi: Auto protect the whole method!
+	GkProtectBlock _using(mutex); // Auto protect the whole method!
+	BOOL hasRemoved = FALSE;
+	time_t startTime;
 
 	set<CallRec>::iterator CallIter;
+	char callRefString[10];
+	sprintf(callRefString, "%u", (unsigned)CallRef.GetValue());
+
+#ifndef NDEBUG
+	GkStatus::Instance()->SignalStatus("DEBUG\tremoving callRef:" + PString(callRefString) + "...\n\r", 1);
+	PTRACE(5, ANSI::PIN << "DEBUG\tremoving CallRef:" << CallRef << "...\n" << ANSI::OFF);
+#endif
 
 	// look at all calls
 	CallIter = CallList.begin();
@@ -711,9 +820,14 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 			rec.RemoveCalling();
 			CallList.insert(rec);
 			CallIter = CallList.begin();
-			//towi: continue;
-			
+			hasRemoved = TRUE;
+			startTime = rec.m_startTime;
+#ifndef NDEBUG
+	GkStatus::Instance()->SignalStatus("DEBUG\tcallRef:" + PString(callRefString) + "found&removed for calling\n\r", 1);
+	PTRACE(5, ANSI::PIN << "DEBUG\tCallRef:" << CallRef << "found&removed for calling\n" << ANSI::OFF);
+#endif
 		};
+
 		if (((*CallIter).Called != NULL) &&
 			((*CallIter).Called->m_callReference.GetValue() == CallRef.GetValue()))
 		{
@@ -722,26 +836,115 @@ void CallTable::RemoveEndpoint(const H225_CallReferenceValue & CallRef)
 			rec.RemoveCalled();
 			CallList.insert(rec);
 			CallIter = CallList.begin();
-			// towi: continue;
-			
+			hasRemoved = TRUE;
+			startTime = rec.m_startTime;
+#ifndef NDEBUG
+	GkStatus::Instance()->SignalStatus("DEBUG\tcallRef:" + PString(callRefString) + "found&removed for called\n\r", 1);
+	PTRACE(5, ANSI::PIN <<"DEBUG\tCallRef:" << CallRef << "found&removed for called...\n" << ANSI::OFF);
+#endif
 		};
 		
-		/*towi*1: remove whole call if only <=1 ("<="!) endpoint remains
-		// remove the whole thing if empty
-		if (((*CallIter).Calling == NULL) &&
-			((*CallIter).Called == NULL))
-		*/
-		if((*CallIter).CountEndpoints() <= 1) //towi*1
+		if((*CallIter).CountEndpoints() <= 1)
 		{
 			CallRec rec = *CallIter;
 			CallList.erase(CallIter);
 			rec.RemoveAll();
 			CallIter = CallList.begin();
+			hasRemoved = TRUE;
+			startTime = rec.m_startTime;
+#ifndef NDEBUG
+	GkStatus::Instance()->SignalStatus("DEBUG\tcall completely removed\n\r", 1);
+	PTRACE(5, ANSI::PIN << "DEBUG\tcall completely removed\n" << ANSI::OFF);
+#endif
 		}
 		else
 			++CallIter;
 	};
+	if (hasRemoved) {
+		struct tm * timeStructStart;
+		struct tm * timeStructEnd;
+		time_t now;
+		double callDuration;
+		char cdrString[100];
+
+		timeStructStart = gmtime(&startTime);
+		if (timeStructStart == NULL) 
+			PTRACE(1, "ERROR\t ##################### timeconversion-error(1)!!\n");
+		PString startTimeString(asctime(timeStructStart));
+		startTimeString.Replace("\n", "");
+
+		now = time(NULL);
+		timeStructEnd = gmtime(&now);
+		if (timeStructEnd == NULL) 
+			PTRACE(1, "ERROR\t ##################### timeconversion-error(2)!!\n");
+		PString endTimeString(asctime(timeStructEnd));
+		endTimeString.Replace("\n", "");
+
+		callDuration = difftime(now, startTime);
+		sprintf(cdrString, "CDR|%s|%.0f|%s|%s\n", callRefString, callDuration, (const unsigned char *)startTimeString, (const unsigned char *)endTimeString);
+
+		GkStatus::Instance()->SignalStatus(cdrString, 1);
+		PTRACE(3, cdrString);
+	}
+#ifndef NDEBUG
+	GkStatus::Instance()->SignalStatus("DEBUG\tdone for "  + PString(callRefString) + "...\n\r", 1);
+	PTRACE(5, ANSI::PIN << "DEBUG\tdone for " + PString(callRefString) + "...\n" << ANSI::OFF);
+#endif
 };
+
+
+const CallRec * CallTable::FindCallRec(const Q931 & m_q931) const
+{
+	set<CallRec>::const_iterator CallIter;
+	PObject::Comparison result;
+
+
+	if (m_q931.HasIE(Q931::UserUserIE)) {
+		H225_H323_UserInformation signal;
+
+		PPER_Stream q = m_q931.GetIE(Q931::UserUserIE);
+		if ( ! signal.Decode(q) ) {
+			PTRACE(4, "GK\tERROR DECODING Q931.UserInformation!");
+			return NULL;
+		}
+
+		H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
+		H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+		H225_Setup_UUIE & setup = body;
+
+		// look at all calls
+		for (CallIter = CallList.begin(); CallIter != CallList.end(); ++CallIter)
+		{
+			// look at each endpoint in this call if it has this call reference
+			if ((result = (*CallIter).m_callIdentifier.Compare(setup.m_callIdentifier)) == PObject::EqualTo)
+				return &(*CallIter);
+		};
+	} else
+		PTRACE(3, "ERROR\tQ931 has no UUIE!!\n");
+
+	// callIdentifier is optional, so in case we don't find it, look for the
+	// CallRec by its callReferenceValue
+	H225_CallReferenceValue m_crv = m_q931.GetCallReference();
+	return FindCallRec (m_crv);
+};
+
+
+const CallRec * CallTable::FindCallRec(const H225_CallIdentifier & m_callIdentifier) const
+{
+	set<CallRec>::const_iterator CallIter;
+	PObject::Comparison result;
+
+	// look at all calls
+	for (CallIter = CallList.begin(); CallIter != CallList.end(); ++CallIter)
+	{
+		// look at each endpoint in this call if it has this call reference
+		if ((result = (*CallIter).m_callIdentifier.Compare(m_callIdentifier)) == PObject::EqualTo)
+			return &(*CallIter);
+	};
+
+	return NULL;
+};
+
 
 const CallRec * CallTable::FindCallRec(const H225_CallReferenceValue & CallRef) const
 {
@@ -760,6 +963,23 @@ const CallRec * CallTable::FindCallRec(const H225_CallReferenceValue & CallRef) 
 	};
 	return NULL;
 };
+
+
+const CallRec * CallTable::FindCallRec(PINDEX CallNumber) const
+{
+	set<CallRec>::const_iterator CallIter;
+
+	// look at all calls
+	for (CallIter = CallList.begin(); CallIter != CallList.end(); ++CallIter)
+	{
+		// look at each call if it has this call number
+		if (CallIter->m_CallNumber == CallNumber)
+			return &(*CallIter);
+	};
+
+	return NULL;
+};
+
 
 const CallRec * CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) const
 {
@@ -786,30 +1006,32 @@ void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 
 	set<CallRec>::const_iterator CallIter;
 	char MsgBuffer[1024];
-	char HexVal[10];
+	char Val[10];
 
 	client.WriteString("CurrentCalls\r\n");
 	for (CallIter = CallList.begin(); CallIter != CallList.end(); ++CallIter)
 	{
 		const CallRec &Call = (*CallIter);
-		strcpy (MsgBuffer, "CallID");
+		strcpy (MsgBuffer, "Call No. ");
+		sprintf(Val, "%d", Call.m_CallNumber);
+		strcat (MsgBuffer, Val);
+		strcat (MsgBuffer, "  CallID");
 		for (PINDEX i = 0; i < Call.m_callIdentifier.m_guid.GetDataLength(); i++)
 		{
-			sprintf(HexVal, " %02x", Call.m_callIdentifier.m_guid[i]);
-			strcat(MsgBuffer, HexVal);
+			sprintf(Val, " %02x", Call.m_callIdentifier.m_guid[i]);
+			strcat(MsgBuffer, Val);
 		};
 		strcat(MsgBuffer, "\r\n");
-		// sprintf(MsgBuffer, "CallID %s\n", (const unsigned char *)AsString((*CallIter).m_callIdentifier.m_guid));
 		client.WriteString(PString(MsgBuffer));
 		if (Call.Calling)
 		{
-			const H225_TransportAddress_ipAddress & ipAddressA = (const H225_TransportAddress_ipAddress &) Call.Calling->m_rasAddress;
+			H225_TransportAddress_ipAddress & ipAddressA = Call.Calling->m_rasAddress;
 			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d\r\n", ipAddressA.m_ip[0], ipAddressA.m_ip[1], ipAddressA.m_ip[2], ipAddressA.m_ip[3]);
 			client.WriteString(PString(MsgBuffer));
 		};
 		if (Call.Called)
 		{
-			const H225_TransportAddress_ipAddress & ipAddressB = (const H225_TransportAddress_ipAddress &) Call.Called->m_rasAddress;
+			H225_TransportAddress_ipAddress & ipAddressB = Call.Called->m_rasAddress;
 			sprintf(MsgBuffer, "ACF|%d.%d.%d.%d\r\n", ipAddressB.m_ip[0], ipAddressB.m_ip[1], ipAddressB.m_ip[2], ipAddressB.m_ip[3]);
 			client.WriteString(PString(MsgBuffer));
 		};
@@ -819,11 +1041,13 @@ void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 			PString to   = "?";
 			if (Call.Calling) {
 				const endpointRec *e = RegistrationTable::Instance()->FindBySignalAdr(Call.Calling->m_callSignalAddress);
-				from = AsString(e->m_terminalAliases, FALSE);
+				if (e)
+					from = AsString(e->m_terminalAliases, FALSE);
 			}
 			if (Call.Called) {
 				const endpointRec *e = RegistrationTable::Instance()->FindBySignalAdr(Call.Called->m_callSignalAddress);
-				to = AsString(e->m_terminalAliases, FALSE);
+				if (e)
+					to = AsString(e->m_terminalAliases, FALSE);
 			}
 			int bw = Call.m_bandWidth;
 			char ctime[100];
@@ -838,6 +1062,6 @@ void CallTable::PrintCurrentCalls(GkStatus::Client &client, BOOL verbose) const
 			client.WriteString(PString(MsgBuffer));
 		}
 	};
-	client.WriteString(".\r\n");
+	client.WriteString(";\r\n");
 };
 

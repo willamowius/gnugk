@@ -18,23 +18,29 @@
 #include "RasTbl.h"
 #include "ANSI.h"
 #include "Toolkit.h"
+#include "h323util.h"
+#include "gk_const.h"
 
 
 /* This constructor is invoked from Main() thread below.
  * This new thread handles receiving data from remote to gatekeeper.
  */
-SignalConnection::SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHome, PTCPSocket * local, PTCPSocket * remote )
+SignalConnection::SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHome, PTCPSocket * local, PTCPSocket * remote, const Q931 & caller_m_q931 )
 	: PThread ( stackSize, NoAutoDeleteThread )
 {
 	PTRACE(6, ANSI::CYA << "SignalConnection::SignalConnection(1)" << ANSI::OFF);
 
+	bH245Routing = FALSE;	// TODO: read config
 	GKHome = _GKHome;
 	m_connection = local;
 	m_remote = remote;
-	m_sigChannel = NULL;
+	m_sigChannel = NULL;  // this also indicates remote-thread
 	// to fix memory leaks
 	// always NULL in this instance of SignalConnection
 	remoteConnection = NULL;
+	statusEnquiry.BuildStatusEnquiry(caller_m_q931.GetCallReference(), TRUE);
+	//mm-27.04.2001
+	connectionName = ANSI::RED + m_connection->GetName() + ANSI::OFF;
 	Resume();
 }
 
@@ -50,9 +56,16 @@ SignalConnection::SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHom
 	GKHome = _GKHome;
 	m_connection = caller;
 	m_remote = NULL;
-	m_sigChannel = sigChannel;
+	m_sigChannel = sigChannel;  // this also indicates caller-thread
 	// points to the instance of SignalConnection that handles receiving data from remote to gatekeeper.
-	remoteConnection = NULL;  
+	remoteConnection = NULL;
+	//mm-27.04.2001
+	connectionName = ANSI::GRE + m_connection->GetName() + ANSI::OFF;
+	if (bH245Routing) {
+		// start a H.245 thread for this connection
+		m_h245_thread = NULL;
+	}
+
 	Resume();
 }
 
@@ -65,11 +78,16 @@ SignalConnection::~SignalConnection()
 	 */
 	delete m_connection;     // delete connection to remote
 	m_connection = NULL;
+	if (bH245Routing) {
+		delete m_h245_thread;
+		m_h245_thread = NULL;
+	}
 }
 
 
 void SignalConnection::CloseSignalConnection(void)
 { 
+	PTRACE(5, "GK\t" << connectionName << "\tentering CloseSignalConnection");
 	// instance of SignalConnection that handles receiving data from caller to gatekeeper?
 	if (remoteConnection) 
 	{
@@ -94,33 +112,128 @@ void SignalConnection::CloseSignalConnection(void)
 	{
 		m_connection->Close();
 	}
+
+	if (m_sigChannel) { // this indicates caller-thread
+// TODO: 
+	  //	  resourceManager::Instance()->CloseConference(obj_rr.m_endpointIdentifier, obj_rr.m_conferenceID);
+
+        // maipulate call-table
+	if (m_q931.HasIE(Q931::UserUserIE)) {
+   		H225_H323_UserInformation signal;
+   
+   		PPER_Stream q = m_q931.GetIE(Q931::UserUserIE);
+   		if ( ! signal.Decode(q) ) {
+   			PTRACE(2, "GK\tERROR DECODING Q931.UserInformation!");
+   		} else {
+  		 	H225_CallReferenceValue m_crv = m_q931.GetCallReference();
+   
+       			// here we remove the endpoint
+   			CallTable::Instance()->RemoveEndpoint(m_crv);
+		}
+	} else 
+   		PTRACE(2, "GK\tERROR no Q931.UserInformation!");
+    }
 }
 
 void SignalConnection::Main(void)
 {
 	remoteConnection = NULL;
+	//detect dead calls
+	int allowedPendings = 0;
+	BOOL usePings = Toolkit::Config()->GetBoolean("SignalConnection::StatusEnquiry", "UsePing", FALSE);
+	if (usePings) {
+	  allowedPendings = Toolkit::Config()->GetInteger("SignalConnection::StatusEnquiry", "AllowedPendings", 3);
+	  PTRACE(6, "GK\t" << connectionName << "\tallowedPendings "<<allowedPendings);
+	  //constructor: long millisecs, long seconds, long minutes, long hours, int days
+	  //m_connection->SetReadTimeout(PTimeInterval(0l, 10l, 0l, 0l, 0));
+	  m_connection->SetReadTimeout(PTimeInterval(0l, (long)(Toolkit::Config()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1)), 0l, 0l, 0));
+	  PTRACE(6, "GK\t" << connectionName << "\treadTimeout "<< Toolkit::Config()->GetInteger("SignalConnection::StatusEnquiry", "Timeout", 1));
+	}
+	pendingCount = 0;
+	killMe = FALSE;
 
 	while ( m_connection->IsOpen() )
 	{
 		// Read incoming messages
 		if ( ! OnReceivedData() )
 		{
-			PTRACE(1, "GK\tREAD ERROR !!!\nCLOSING CONNECTION...");
+		  PTRACE(1, "GK\t" << connectionName << "\tREAD ERROR !!!\nCLOSING CONNECTION...");
 			CloseSignalConnection();
 			break;
 		}
+
+		if (usePings) {
+			// build only once in caller-thread (Q931-instances initialise with callReference = 0)
+			if (statusEnquiry.GetCallReference() == 0) {
+				PTRACE(5, "GK\t" << connectionName << "\tstatusEnquiryMsg not set");
+				if (m_q931.GetCallReference() == 0) {
+					PTRACE(5, "GK\t" << connectionName << "\tcallReference not set, continuing...");
+					if (pendingCount > 0) // prevent multiple timeouts before call-setup
+						--pendingCount;
+					continue; //while-loop
+				}
+
+				if (m_sigChannel) { //caller-thread
+					statusEnquiry.BuildStatusEnquiry(m_q931.GetCallReference(), FALSE);
+					PTRACE(5, "GK\t" << connectionName << "\tsetting statusEnquiryMsg: "
+						<< statusEnquiry.GetCallReference());
+				} else {
+					PTRACE(2, "GK\t" << connectionName << "\tERROR: not in caller-thread!!");
+					break;
+				}
+			};
+
+			if (remoteConnection)
+				if (remoteConnection->SouldBeTerminated()) {
+					CloseSignalConnection();
+					break;
+				};
+
+			if (pendingCount > 0) {
+				PTRACE(5, "GK\t" << connectionName << "\ttimeout no: " << pendingCount);
+				if (pendingCount <= allowedPendings) {
+					//allowed timeout -> send StatusEnquiry
+					PTRACE(5, "GK\t" << connectionName << "\tsending StatusEnquiry");
+					// send StatusEnquiry to this thread's endpoint
+					if ( !Send(m_connection, statusEnquiry) ) {
+						PTRACE(1, "GK\t" << connectionName << "\tSEND ERROR !\nCLOSING CONNECTION...");
+						CloseSignalConnection();
+			  		};
+
+					continue; //while-loop
+				} else if (pendingCount > allowedPendings) {
+
+					// too many timeouts - no answer to StatusEnquiry - cancel call
+					PTRACE(5, "GK\t" << connectionName << "\tclosing signal connection");
+					if (m_sigChannel)
+						CloseSignalConnection();  // kills both treads
+			  		else
+						// indicate remote thread to be killed (this will also terminate caller thread)
+						killMe = TRUE;
+			 		break;
+				};
+			};
+		};
+
+#ifdef GENERATE_CALL_PROCEEDING
+		if (m_q931.GetMessageType() == Q931::CallProceedingMsg )        // swallow CALL PROCEEDING
+			continue;
+#endif // GENERATE_CALL_PROCEEDING
 
 		if (m_q931.GetMessageType() == Q931::SetupMsg) // SETUP
 		{
 			// SETUP message received, open connection to remote endpoint
 
 			m_crv.SetValue(m_q931.GetCallReference());
-			PTRACE(4, "GK\tCALL REFERENCE VALUE : " << m_crv); 
-			CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(m_crv);
+			PTRACE(4, "GK\t" << connectionName << "\tCALL REFERENCE VALUE : " << m_crv); 
+
+			// CallRecs are looked for using callIdentifier; if non-existant
+			// (it's optional), FindCallRec uses callReferenceValue instead
+			CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(m_q931);
  
 			if (Call == NULL)
 			{
-				PTRACE(4, "GK\tCALL NOT REGISTERED");
+				PTRACE(4, "GK\t" << connectionName << "\tCALL NOT REGISTERED");
 				break;
 			};
 			
@@ -129,66 +242,65 @@ void SignalConnection::Main(void)
 			PIPSocket::Address calledIP( ipaddress.m_ip[0], ipaddress.m_ip[1], ipaddress.m_ip[2], ipaddress.m_ip[3]);
 			if ( !m_remote->Connect(calledIP) )
 			{
-				PTRACE(4, "GK\t" << calledIP << " DIDN'T ACCEPT THE CALL");
+				PTRACE(4, "GK\t" << connectionName << "\t" << calledIP << " DIDN'T ACCEPT THE CALL");
 				break;
 			};
-			PTRACE(4, "GK\t" << calledIP << " ACCEPTED THE CALL!");
-			remoteConnection = new SignalConnection( 1000, GKHome, m_remote, m_connection);
+
+			PTRACE(4, "GK\t" << connectionName << "\t" << calledIP << " ACCEPTED THE CALL!");
+			remoteConnection = new SignalConnection( 1000, GKHome, m_remote, m_connection, m_q931);
 		};
 
-		PTRACE(4, "GK\tQ931 Msg Type " << m_q931.GetMessageTypeName()); 
+		PTRACE(4, "GK\t" << connectionName << "\tQ931 Msg Type " << m_q931.GetMessageTypeName()); 
 
-		if ( !Send(m_remote) )
-		{
-			PTRACE(1, "GK\tSEND ERROR !\nCLOSING CONNECTION...");
-			CloseSignalConnection();
-			break;
-		};
+		if ( m_q931.GetMessageType() != Q931::StatusMsg) // don't forward status messages mm-30.04.2001
+			if ( !Send(m_remote, m_q931) )
+			{
+				PTRACE(1, "GK\t" << connectionName << "\tSEND ERROR !\nCLOSING CONNECTION...");
+				CloseSignalConnection();
+				break;
+			};
+
 		if ( m_q931.GetMessageType() == Q931::ReleaseCompleteMsg ) 	// RELEASE COMPLETE
 		{
 			CloseSignalConnection();
 			break;
 		};
 
+
+#ifdef GENERATE_CALL_PROCEEDING
 		// send CALL PROCEEDING to Caller !
-		// storm 20.01.00
 		if (m_q931.GetMessageType() == Q931::SetupMsg)
 		{
-			PTRACE(1, "GK\tSending CALL PROCEEDING to Caller ...");
+			H225_H323_UserInformation signal;
+			PTRACE(1, "GK\t" << connectionName << "\tSending CALL PROCEEDING to Caller ...");
 
-			// Save the identifiers sent by caller
-			GkQ931 proceeding;
-			proceeding.BuildCallProceeding(m_q931.GetCallReference());
-//			if (m_q931.HasOptionalField(H225_Setup_UUIE::e_callIdentifier))
-//				proceeding.m_callIdentifier.callIdentifier = m_q931.m_callIdentifier.m_guid;
+			if ( !Send(m_remote, m_q931) )
+			{
+				PTRACE(1, "GK\tSEND ERROR !\nCLOSING CONNECTION...");
+				CloseSignalConnection();
+				break;
+			};
 
-//			proceeding.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_callProceeding);
-//			proceeding.m_h323_message_body.m_protocolIdentifier.SetValue(H225_ProtocolID);
+			// re-use existing SETUP msg
+			H225_CallReferenceValue m_crv = m_q931.GetCallReference();
+			m_q931.BuildCallProceeding(m_crv);
 
-//			m_remote->SetEndpointTypeInfo(proceeding.m_h323_message_body.m_destinationInfo);
-//			if ( !Send(m_remote) )
-//			{
-//				PTRACE(1, "GK\tSEND ERROR !\nCLOSING CONNECTION...");
-//				CloseSignalConnection();
-//				break;
-//			};
+			// Since the CallReferenceValue is unique per-endpoint, we can use it to
+			// identify the call so we don't have to dig into the Q931 message to get
+			// callIdentifier (which is just optional)
+			// Do we need to set anything other than the CRV ?
 
+			if ( !Send(m_connection, m_q931) )
+			{
+				PTRACE(1, "GK\tSEND ERROR !\nCLOSING CONNECTION...");
+				CloseSignalConnection();
+				break;
+			};
 		};
+#endif // GENERATE_CALL_PROCEEDING
 	};
 }
 
-void H323SetAliasAddress(const PString & name, H225_AliasAddress & alias)
-{
-	alias.SetTag(H225_AliasAddress::e_e164);
-	PASN_IA5String & ia5 = (PASN_IA5String &)alias;
-	ia5 = name;
-	if (name == (PString)ia5)
-		return;
-	
-	// Could not encode it as a phone number, so do it as a full string.
-	alias.SetTag(H225_AliasAddress::e_h323_ID);
-	(PASN_BMPString &)alias = name;
-}            
 
 void Modify_NonStandardControlData(PASN_OctetString &octs)
 {
@@ -238,22 +350,33 @@ void Modify_NonStandardControlData(PASN_OctetString &octs)
 }
 
 
+// read incoming message and store it in m_q931
 BOOL SignalConnection::OnReceivedData(void)
 {
-	PTRACE(4, "GK\tReceiving data from " << m_connection->GetName() << "...");
-	//BOOL isUser = FALSE;
-	
+	PTRACE(4, "GK\t" << connectionName << "\tReceiving data");
 	// Read tpkt
 	BYTE tpkt[4];
-	PTRACE(5, "GK\t-\tTPKT...");
-  	if ( !m_connection->ReadBlock( tpkt, sizeof(tpkt) ) )
+	PTRACE(5, "GK\t" << connectionName << "\t-\tTPKT...");
+	if ( !m_connection->ReadBlock( tpkt, sizeof(tpkt) ) )
 	{
-		PTRACE(4, "GK\tREAD ERROR");
-		return FALSE;
+
+	  if (m_connection->GetErrorCode() == PTCPSocket::Timeout) {
+		  PTRACE(5, "GK\t" << connectionName << "\tTIMEOUT");
+		  ++pendingCount;
+		  return TRUE;
+	  } else {
+		  PTRACE(4, "GK\t" << connectionName << "\tREAD ERROR");
+		  return FALSE;
+	  }
 	};
- 	if (tpkt[0] != 3)  // Only support version 3
+
+	// indicate we received something on this channel, independent of message type
+	if (pendingCount > 0)
+	  --pendingCount;
+
+	if (tpkt[0] != 3)  // Only support version 3
 	{
-		PTRACE(4, "GK\tONLY TPKT VERSION 3 SUPPORTED");
+	  PTRACE(4, "GK\t" << connectionName << "\tONLY TPKT VERSION 3 SUPPORTED");
 		return FALSE;
 	};
 
@@ -265,16 +388,16 @@ BOOL SignalConnection::OnReceivedData(void)
 	
   	if ( packetLength < 5 )		// Packet too short
 	{
-		PTRACE(4, "GK\tPACKET TOO SHORT!");
+	  PTRACE(4, "GK\t" << connectionName << "\tPACKET TOO SHORT!");
     		return FALSE;
 	};
 
 	PBYTEArray byteArray(packetLength);
 	PPER_Stream streamBuffer(byteArray);
 
-	PTRACE(5, "GK\t-\tQ931...");
-	if ( !m_connection->Read(streamBuffer.GetPointer(), streamBuffer.GetSize() ) ) {
-		PTRACE(4, "GK\tPROBLEMS READING!");
+	PTRACE(5, "GK\t" << connectionName << "\t-\tQ931...");
+	if ( !m_connection->ReadBlock(byteArray.GetPointer(packetLength), packetLength ) ) {
+		PTRACE(4, "GK\t" << connectionName << "\tPROBLEMS READING!");
 		return FALSE;
 	};
 	
@@ -285,19 +408,19 @@ BOOL SignalConnection::OnReceivedData(void)
 #endif
 
 	m_q931.Decode(byteArray);
-	PTRACE(5, "GK\tReceived.");
+	PTRACE(5, "GK\t" << connectionName << "\tReceived.");
 
-	PTRACE(4, "GK\tCall reference : " << m_q931.GetCallReference());
-	PTRACE(4, "GK\tFrom destination " << m_q931.IsFromDestination());
-	PTRACE(4, "GK\tMessage type : " << (int)m_q931.GetMessageType());
+	PTRACE(4, "GK\t" << connectionName << "\tCall reference : " << m_q931.GetCallReference());
+	PTRACE(4, "GK\t" << connectionName << "\tFrom destination " << m_q931.IsFromDestination());
+	PTRACE(4, "GK\t" << connectionName << "\tMessage type : " << (int)m_q931.GetMessageType());
 	PTRACE(5, ANSI::BYEL << "Q931: " << m_q931 << ANSI::OFF << endl);
 
-	if(m_q931.HasField(GkQ931::UserUserField)) {
+	if(m_q931.HasIE(Q931::UserUserIE)) {
 		H225_H323_UserInformation signal;
 
-		PPER_Stream q = m_q931.GetField(GkQ931::UserUserField);
+		PPER_Stream q = m_q931.GetIE(Q931::UserUserIE);
 		if ( ! signal.Decode(q) ) {
-			PTRACE(4, "GK\tERROR DECODING Q931.UserInformation!");
+			PTRACE(4, "GK\t" << connectionName << "\tERROR DECODING Q931.UserInformation!");
 			return false;
 		}
 
@@ -306,15 +429,15 @@ BOOL SignalConnection::OnReceivedData(void)
 
 		PTRACE(5,"H225_H323_UU_PDU: " << pdu);
 		if(pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardControl)) {
-			PTRACE(5,"REWRITING");
+			PTRACE(5, connectionName << "\tREWRITING");
 			PASN_OctetString &octs = pdu.m_nonStandardControl[0].m_data;
 			Modify_NonStandardControlData(octs);
-			PTRACE(5, "H225_H323_UU_PDU: " << pdu);
+			PTRACE(5, connectionName << "\tH225_H323_UU_PDU: " << pdu);
 		}
 		
 		// give OnXXX methods a change to modify the message
 		// before forwarding them
-		PTRACE(4, "GK\t" << body.GetTag());
+		PTRACE(4, "GK\t" << connectionName << "\tTag = " << body.GetTag());
 		switch(body.GetTag()) {
 		case H225_H323_UU_PDU_h323_message_body::e_setup:
 			OnSetup(body);
@@ -354,15 +477,15 @@ BOOL SignalConnection::OnReceivedData(void)
 		signal.Encode(sb);
 		sb.CompleteEncoding();
 		
-		m_q931.SetField(GkQ931::UserUserField, sb);
+		m_q931.SetIE(Q931::UserUserIE, sb);
 	} 
 	
-	if (m_q931.HasField(GkQ931::CalledPartyNumberField)) {
-		PBYTEArray n_array = m_q931.GetField(GkQ931::CalledPartyNumberField);
+	if (m_q931.HasIE(Q931::CalledPartyNumberIE)) {
+		PBYTEArray n_array = m_q931.GetIE(Q931::CalledPartyNumberIE);
 		const char* n_bytes = (const char*) (n_array.GetPointer());
 		PString n_string(n_bytes+1, n_array.GetSize()-1);
-		if(Toolkit::Instance()->RewritePString(n_string))
-			m_q931.SetCalledPartyNumber(n_string, GkQ931::ISDNPlan, GkQ931::NationalType);
+		if (Toolkit::Instance()->RewritePString(n_string))
+			m_q931.SetCalledPartyNumber(n_string, Q931::ISDNPlan, Q931::NationalType);
 	}
 
 	PTRACE(5, ANSI::BGRE << "Q931: " << m_q931 << ANSI::OFF << endl);
@@ -371,83 +494,110 @@ BOOL SignalConnection::OnReceivedData(void)
 };
  
 
-
-void SignalConnection::OnSetup( H225_H323_UU_PDU_h323_message_body & body )
+void SignalConnection::OnSetup( H225_Setup_UUIE & Setup )
 {
-	H225_Setup_UUIE & setup = body;
-
 	// save callIdentifier + conferenceIdentifier
-	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(m_crv);
-	if (Call != NULL)
-	{
-		Call->m_callIdentifier = setup.m_callIdentifier;
-		Call->m_conferenceIdentifier = setup.m_conferenceID;
+	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(Setup.m_callIdentifier);
+	if (Call == NULL) {
+		PTRACE(3, "SignalConnection\tOnSetup() didn't find the call!");
+		return;
 	};
+	Call->m_callIdentifier = Setup.m_callIdentifier;
+	Call->m_conferenceIdentifier = Setup.m_conferenceID;
  
 	// re-route called endpoint signalling messages to gatekeeper	
-	if ( setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) )
+	if ( Setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) )
 	{
-		H225_TransportAddress_ipAddress & ipAddress = setup.m_sourceCallSignalAddress;
-		ipAddress.m_ip[0] = GKHome.Byte1();
-		ipAddress.m_ip[1] = GKHome.Byte2();
-		ipAddress.m_ip[2] = GKHome.Byte3();
-		ipAddress.m_ip[3] = GKHome.Byte4();
-		ipAddress.m_port = Toolkit::Config()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT);
+		Setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(GKHome, Toolkit::Config()->GetInteger("RouteSignalPort", GK_DEF_ROUTE_SIGNAL_PORT));
 	};
 
-	PTRACE(4, "GK\t" << setprecision(2) << setup);
+	// in routed mode the caller may have put the GK address in destCallSignalAddress
+	// since it is optional, we just remove it (we could alternativly insert the real destination SignalAdr)
+	if ( Setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress) )
+	{
+		Setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+	};
+
+	if (bH245Routing) {
+		// replace H.245 address with gatekeepers address
+	}
+	
+	PTRACE(4, "GK\t" << setprecision(2) << Setup);
 	PTRACE(4, "GK\tEND OF TRACED MESSAGE");
 };
  
-void SignalConnection::OnCallProceeding( H225_H323_UU_PDU_h323_message_body & body )
+void SignalConnection::OnCallProceeding( H225_CallProceeding_UUIE & CallProceeding )
+{
+	if (bH245Routing) {
+		// replace H.245 address with gatekeepers address
+		CallProceeding.IncludeOptionalField( H225_CallProceeding_UUIE::e_h245Address );
+//		CallProceeding.m_h245Address = Addr;
+	}
+};
+ 
+void SignalConnection::OnConnect( H225_Connect_UUIE & Connect )
+{
+	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(Connect.m_callIdentifier);
+	if (Call == NULL) {
+		PTRACE(3, "SignalConnection\tOnConnect() didn't find the call!");
+		return;
+	};
+
+//	Call->m_Q931StartTime = time(NULL);
+
+	if (bH245Routing) {
+		// replace H.245 address with gatekeepers address
+		Connect.IncludeOptionalField( H225_Connect_UUIE::e_h245Address );
+//		Connect.m_h245Address = Addr;
+	}
+};
+ 
+void SignalConnection::OnAlerting( H225_Alerting_UUIE & Alerting )
+{
+	if (bH245Routing) {
+		// replace H.245 address with gatekeepers address
+		Alerting.IncludeOptionalField( H225_Alerting_UUIE::e_h245Address );
+//		Alerting.m_h245Address = Addr;
+	}
+};
+ 
+void SignalConnection::OnInformation( H225_Information_UUIE & Information )
 {
 	// do nothing
 };
  
-void SignalConnection::OnConnect( H225_H323_UU_PDU_h323_message_body & body )
+void SignalConnection::OnReleaseComplete( H225_ReleaseComplete_UUIE & ReleaseComplete )
 {
-	// only in case of routed H245 control channel GK should add its Transport Address
-	// in other case only forward message
+	CallRec * Call = (CallRec *)CallTable::Instance()->FindCallRec(ReleaseComplete.m_callIdentifier);
+	if (Call == NULL) {
+		PTRACE(3, "SignalConnection\tOnReleaseComplete() didn't find the call!");
+		return;
+	};
+
+//	Call->m_Q931EndTime = time(NULL);
 };
  
-void SignalConnection::OnAlerting( H225_H323_UU_PDU_h323_message_body & body )
-{
-	// do nothing
-};
- 
-void SignalConnection::OnInformation( H225_H323_UU_PDU_h323_message_body & body )
-{
-	// do nothing
-};
- 
-void SignalConnection::OnReleaseComplete( H225_H323_UU_PDU_h323_message_body & body )
+void SignalConnection::OnFacility( H225_Facility_UUIE & Facility )
 {
 	// do nothing
 };
  
-void SignalConnection::OnFacility( H225_H323_UU_PDU_h323_message_body & body )
+void SignalConnection::OnProgress( H225_Progress_UUIE & Progress )
 {
 	// do nothing
 };
  
-void SignalConnection::OnProgress( H225_H323_UU_PDU_h323_message_body & body )
-{
-	// do nothing
-};
- 
-void SignalConnection::OnEmpty( H225_H323_UU_PDU_h323_message_body & body )
+void SignalConnection::OnEmpty( H225_H323_UU_PDU_h323_message_body & Empty )
 {
 	// do nothing
 };
 
-
-BOOL SignalConnection::Send( PTCPSocket * socket ) 
+BOOL SignalConnection::Send( PTCPSocket * socket, const Q931 & toSend ) 
 {
-	//towi-XXX	PTRACE(4, "GK\tSending data to " << socket->GetName() << "...");
-
 	// write the q931 data to #sbuf#
 	PBYTEArray sbuf;
-	m_q931.Encode(sbuf);
+	//	m_q931.Encode(sbuf); // mm-27.04.2001
+	toSend.Encode(sbuf);
 	const PINDEX bufLen = sbuf.GetSize();
 	const BYTE *buf = sbuf.GetPointer();
 
@@ -471,15 +621,15 @@ BOOL SignalConnection::Send( PTCPSocket * socket )
 #endif	
 
 	if (!socket->Write(header, 4)) {
-		PTRACE(4, "GK\tPROBLEMS SENDING TPKT.");
+		PTRACE(4, "GK\t" << connectionName << "\tPROBLEMS SENDING TPKT.");
 		return FALSE;
 	}
 	if (!socket->Write(buf, bufLen)) {
-		PTRACE(4, "GK\tPROBLEMS SENDING Q931 DATA.");
+		PTRACE(4, "GK\t" << connectionName << "\tPROBLEMS SENDING Q931 DATA.");
 		return FALSE;
 	}
 	
-	PTRACE(5, "GK\tSent.");
+	PTRACE(5, "GK\t" << connectionName << "\tSent.");
 	return TRUE;
 	
 };

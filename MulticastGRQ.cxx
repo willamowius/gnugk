@@ -9,6 +9,8 @@
 // 	990904	initial version (Jan Willamowius)
 // 	990924	bugfix: insert GK RAS adress (Jan Willamowius)
 // 	990924	bugfix: join multicast group after listen() (Jan Willamowius)
+//  000807  bugfix: GRQ multicast replies now go to specified RAS port, 
+//					not source port (Denver Trouton)
 //
 //////////////////////////////////////////////////////////////////
 
@@ -16,6 +18,7 @@
 #include "MulticastGRQ.h"
 #include "RasSrv.h"
 #include "gk_const.h"
+#include "h323util.h"
 #include "Toolkit.h"
 #ifdef WIN32
 #include <winsock.h>
@@ -25,19 +28,13 @@
 
 MulticastGRQ::MulticastGRQ(PIPSocket::Address _GKHome, H323RasSrv * _RasSrv)
 	: PThread(1000, NoAutoDeleteThread), 
-	  MulticastListener(Toolkit::Config()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT))
+	  MulticastListener(WORD(Toolkit::Config()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT)))
 {
 	GKHome = _GKHome;
 	RasSrv = _RasSrv;
-	GKRasAddress.SetTag(H225_TransportAddress::e_ipAddress);
-	H225_TransportAddress_ipAddress & ipAddress = GKRasAddress;
 
 	// own IP number
-	ipAddress.m_ip[0] = GKHome.Byte1();
-	ipAddress.m_ip[1] = GKHome.Byte2();
-	ipAddress.m_ip[2] = GKHome.Byte3();
-	ipAddress.m_ip[3] = GKHome.Byte4();
-	ipAddress.m_port = Toolkit::Config()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
+	GKRasAddress = SocketToH225TransportAddr(GKHome, WORD(Toolkit::Config()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT)));
 
 	Resume();
 };
@@ -63,13 +60,12 @@ void MulticastGRQ::Main(void)
 	};
 	while (MulticastListener.IsOpen())
 	{ 
-		int iResult;
 		WORD rx_port;
 		PIPSocket::Address rx_addr;
 
 		PBYTEArray * rdbuf = new PBYTEArray(4096);
 		PPER_Stream * rdstrm = new PPER_Stream(*rdbuf);
-		iResult = MulticastListener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
+		int iResult = MulticastListener.ReadFrom(rdstrm->GetPointer(), rdstrm->GetSize(), rx_addr, rx_port);
 		if (!iResult)
 		{
     		PTRACE(1, "GK\tMulticast thread: Read error: " << MulticastListener.GetErrorText());
@@ -99,11 +95,13 @@ void MulticastGRQ::Main(void)
 		delete rdstrm;
  
 		H225_RasMessage obj_rpl;
-
+		H225_GatekeeperRequest & obj_grq = obj_req;
+		H225_TransportAddress_ipAddress & obj_grqip = obj_grq.m_rasAddress;
 		switch (obj_req.GetTag())
 		{
 		case H225_RasMessage::e_gatekeeperRequest:    
 			PTRACE(1, "GK\tMulticast GRQ Received");
+			rx_port = obj_grqip.m_port;
 			if ( RasSrv->OnGRQ( rx_addr, obj_req, obj_rpl ) )
 				RasSrv->SendReply( obj_rpl, rx_addr, rx_port, MulticastListener );
 			break;

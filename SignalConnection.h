@@ -17,9 +17,7 @@
 #include <ptlib/sockets.h>
 #include <ptclib/asner.h>
 
-#include "SignalChannel.h"
-
-#include "GkQ931.h"
+#include "q931.h"
 #include "h225.h"
 
 class SignalChannel;
@@ -29,25 +27,25 @@ class SignalConnection:public PThread {
 	PCLASSINFO ( SignalConnection, PThread )
 
 	public:
-		SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHome, PTCPSocket * remote, PTCPSocket * local );
+		SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHome, PTCPSocket * remote, PTCPSocket * local, const Q931 & caller_m_q931 );
 		SignalConnection ( PINDEX stackSize, PIPSocket::Address _GKHome, PTCPSocket * caller, SignalChannel * sigChannel );
 		virtual ~SignalConnection();
  
 		void Main();
 		BOOL OnReceivedData ();
-		void OnSetup( H225_H323_UU_PDU_h323_message_body & body );
-		void OnCallProceeding( H225_H323_UU_PDU_h323_message_body & body );
-		void OnConnect( H225_H323_UU_PDU_h323_message_body & body );
-		void OnAlerting( H225_H323_UU_PDU_h323_message_body & body );
-		void OnInformation( H225_H323_UU_PDU_h323_message_body & body );
-		void OnReleaseComplete( H225_H323_UU_PDU_h323_message_body & body );
-		void OnFacility( H225_H323_UU_PDU_h323_message_body & body );
-		void OnProgress( H225_H323_UU_PDU_h323_message_body & body );
-		void OnEmpty( H225_H323_UU_PDU_h323_message_body & body );
-		BOOL Send(PTCPSocket *socket);
+		void OnSetup( H225_Setup_UUIE & Setup );
+		void OnCallProceeding( H225_CallProceeding_UUIE & CallProceeding );
+		void OnConnect( H225_Connect_UUIE & Connect );
+		void OnAlerting( H225_Alerting_UUIE & Alerting );
+		void OnInformation( H225_Information_UUIE & Information );
+		void OnReleaseComplete( H225_ReleaseComplete_UUIE & ReleaseComplete );
+		void OnFacility( H225_Facility_UUIE & Facility );
+		void OnProgress( H225_Progress_UUIE & Progress );
+		void OnEmpty( H225_H323_UU_PDU_h323_message_body & Empty );
+		BOOL Send(PTCPSocket *socket, const Q931 &toSend);
 		void CloseSignalConnection(void);  // cause thread to terminate
 		BOOL IsSignalConnectionOpen(void) { return m_connection->IsOpen(); };  // FALSE when thread is just about to terminate
-
+		BOOL SouldBeTerminated(void) { return killMe; };
 
 	protected:
 		PIPSocket::Address GKHome;
@@ -57,10 +55,17 @@ class SignalConnection:public PThread {
 		H225_CallReferenceValue m_crv;
 		H225_CallIdentifier		callid;
 
-		GkQ931 m_q931;
+		Q931 m_q931;
+		BOOL bH245Routing;
+		void* m_h245_thread;
 
 	private:
 		SignalConnection * remoteConnection;
+		int pendingCount;
+		PString connectionName;
+		Q931 statusEnquiry;
+		BOOL killMe;
+
 };
 
 #endif

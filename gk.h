@@ -26,8 +26,8 @@ class Gatekeeper : public PProcess
 	Gatekeeper
 		(const char * manuf = "Willamowius", 
 		 const char * name = "Gatekeeper", 
-		 WORD majorVersion = 0,
-		 WORD minorVersion = 0, 
+		 WORD majorVersion = 1,
+		 WORD minorVersion = 0,  
 		 CodeStatus status = AlphaCode, 
 		 WORD buildNumber = 6);
 
@@ -58,6 +58,9 @@ class Gatekeeper : public PProcess
 
 	/** initiates logging and tracing; Called after #InitConfig# */
 	virtual BOOL InitLogging(const PArgList &args);
+
+	/** print the available command-line-options **/
+	void PrintOpts(void);
 
 	//@}
 

@@ -7,7 +7,7 @@
 PROG		= gk
 SOURCES		= gk.cxx RasSrv.cxx RasTbl.cxx MulticastGRQ.cxx SignalChannel.cxx \
 				SignalConnection.cxx GkStatus.cxx BroadcastListen.cxx \
-				SoftPBX.cxx h323util.cxx Toolkit.cxx Toolkit_Mediaways.cxx main.cxx
+				SoftPBX.cxx h323util.cxx Toolkit.cxx main.cxx
 
 ifndef OPENH323DIR
 OPENH323DIR=$(HOME)/openh323
@@ -24,7 +24,7 @@ STDCCFLAGS := -I${H323_INCDIR} -DPTRACING  #-DPASN_NOPRINT
 
 
 ifndef PWLIBDIR
-PWLIBDIR=$(HOME)/pwlib
+	PWLIBDIR=$(HOME)/pwlib
 endif
 
 include $(PWLIBDIR)/make/ptlib.mak
@@ -40,4 +40,4 @@ SignalChannel.o: SignalChannel.h
 SignalConnection.o: SignalConnection.h
 CallTbl.o: CallTbl.h
 BroadcastListen.cxx: BroadcastListen.h
-
+ 

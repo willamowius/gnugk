@@ -15,7 +15,10 @@ The following commands can be sent to the gatekeeper via the
 status thread:
 "PrintAllRegistrations"		prints all registered endpoints
 "PrintCurrentCalls"			prints all ongoing calls
-"Disconnect <IP>"			will disconnect the call on this endpoint
+"DisconnectIp <IP>"			will disconnect the call on this endpoint
+"DisconnectAlias <Alias>"	will disconnect the call on this endpoint
+"UnregisterAllEndpoints"	will unregister all endpoints
+"UnregisterAlias <Alias>"	will unregister this endpoint
 
 See GkStatus.cxx for more commands.
 

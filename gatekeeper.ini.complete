@@ -1,0 +1,169 @@
+# File: ~/.pwlib_config/Gatekeeper.ini
+# comments may start with # or ;
+######################################
+
+## Boolean values.
+## Boolean Values are retresented by a case insensitive string
+## - "t"..., "y"... or "1" for TRUE
+## - all other for FALSE
+
+##
+## Params used in  Gatekeeper::Main()
+## 
+## NOTE: This parameters may be loaded at program startup and not influenced by the HUP signal.
+[Gatekeeper::Main]
+## 'config is present' indicator. Has to be 42.
+Fourtytwo=42
+# Includes in some RAS-Msgs
+Name=OpenH323GK
+# overwritten from command line parameter
+#Home=195.71.129.69
+
+
+[Failover]
+## Give a list of IP4-Addresses to forward the RRQ to that this
+## Gatekeeper receives. Notation: "a.b.c.d:p[,a.b.c.d:p,...]" (all numbers)
+#Sendto=195.71.129.37:1719
+#EndpointIDSuffix=_skeeve
+# Notation: "a.b.c.d:port:regNeeded:prio(1..127)[:gkID]" (a..d,port = numbers)
+#AlternateGKs=195.71.129.37:1719:false:120:OpenH323GK2
+
+##
+## This section should not be changed and loaded with the HUP signal at runtime 
+## because only newly created connections are affected from the change. Open
+## you better restart the gatekeeper then.
+[Gatekeeper::TCP]
+UnicastRasPort=1719 
+MulticastPort=1718
+MulticastGroup=224.0.1.41
+#RouteSignalPort=1721
+RouteSignalPort=1720
+EndpointSignalPort=9999
+#EndpointSignalPort=1720
+StatusPort=7000
+ListenQueueLength=1024
+# [ms], default 1000
+SignalReadTimeout=3000
+# [ms], default 3000
+StatusReadTimeout=5000
+
+##
+## Prefixes of e164 numbers for gateways.
+## Separate list elements by one of " .,\t". 
+## @see RasTbl::addPrefixes
+## This parameters should consider a HUP signal.
+[RasSvr::GWPrefixes]
+## Test-Gateways
+# 195.71.226.162
+#rossi-gt2=80,90
+#rossi-gt2=0
+# 195.71.226.165
+#rossi-gt3=80,90
+#rossi-gt3=05241,0521,5241,521
+# 195.71.129.254
+#ip400-v1=12
+#ip400-wi1=0
+
+
+[RasSvr::ARQAuth]
+## To allow ARQ based overlap sending a number/alias that 
+## - is not registerd or
+## - begins with a registerd GW-Prefix 
+## is searched in the list of #IncompleteAddresses#. The search is done
+## prepending a ":" to the dialed address and search the #IncompleteAddresses#
+## for it. If this string IS found, it is considered to reject with the
+## reject reason "incompleteAddress". This way you only have to give some
+## addresses. Example: If "0, 01, 019, 018, 017" should be rejected as 
+## incomplete addresses, then it is enough to set 
+## "IncompleteAddress=:019:018:017:" because the strings ":0" and ":01" 
+## are also found in this string.
+##
+## You have to separate list entries in #IncompleteAddresses# with ":" 
+## and also begin the line with ":". This speeds up the matching.
+#IncompleteAddresses=:00:019:018:017:
+
+
+[RasSrv::RRQAuth]
+## On a RRQ the h323-alias is queried from this section. 
+## If there is an entry the endpint is authenticated against the given rules. 
+
+## If there is no entry the default action is performed. The default action
+## is to confirm the RRQ, unless the parameter "default=reject" is given.
+##
+## Notation:
+##   <authrules> :=  empty  |  <authrule> "&" <authrules>
+##   <authrule>  := <authtype> ":" <authparams>
+##   <authtype>  := "sigaddr" | "sigip"
+##   <autparams> := [!&]*
+## The notation and meaning of <authparams> depends on <authtype>:
+## - sigaddr: extended regular expression that has to match agains the 
+##     "PrintOn(ostream)" representation of the signal address of the request.
+##     Example: "sigaddr:.*ipAddress .* ip = .* c3 47 e2 a5 .*port = 1720.*"
+## - sigip: specialized form of "sigaddr". Write the signalling ip adresse
+##     using (commonly used) decimal notation: "byteA.byteB.byteC.byteD:port"
+##     Example of the above sigaddr: "sigip:195.71.226.165:1720"
+##
+## This parameters should consider a HUP signal.
+
+#rossi-gt2=sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
+#rossi-gt2=sigip:195.71.226.162:1720
+
+#rossi-gt3=sigaddr:.*ipAddress .* ip = .* c3 47 e2 a5 .*port = 1720.*
+#rossi-gt3=sigip:195.71.226.165:1720
+
+default=confirm
+
+
+
+## The parameter "rule" may be one of the following:
+## - "forbid" disallow any connection (default when no rule us given)
+## - "allow" allow any connection
+## - "explicit" reads the parameter #"<ip>=<value>"# with ip is the ip4-address
+##   if the peering client. #<value># is resolved with #Toolkit::AsBool#. If the ip
+##   is not listed the param "default" is used.
+## - "regex" the #<ip># of the client is matched against the given regular expression.
+##   First the ip-rules (like "explicit") are tested. Olny of no such param exists 
+##   the regex is tried.
+##   Example: "regex=^195\.71\.(129|131)\.[0-9]+$"
+[GkStatus::Auth]
+rule=allow
+#rule=deny
+#rule=explicit
+#rule=regex
+# - 195.71.129.*      
+# - 195.71.100.*
+# - 62.52.26.[1-2][0-9][0-9]
+#regex=^(195\.71\.(129|100)\.[0-9]+)|(62\.52\.26\.[1-2][0-9][0-9])$
+# only used when "rule=explicit"
+#default=forbid
+
+
+
+
+##
+## Beside other things every number to rewrite has its
+## own key/value-line. The implemententation is such that
+## all numbers that shell be rewritten have to begin
+## with a common prefix given by 'Fastmatch'.
+##
+## Doc From the code:
+## // Do rewrite to #newE164#. Append the suffix too.
+## // old:  01901234999
+## //               999 Suffix
+## //       0190        Fastmatch
+## //       01901234    prefix, Config-Rule: 01901234=0521321
+## // new:  0521321999    
+##
+## The Rewrite-Numbers consider a HUP signal.
+[RasSvr::RewriteE164]
+## Only if an e164 number begins with #Fastmatch# the
+## the further rewriting is done. Only one #Fastmatch# can be given.
+## NOTE: The #Fastmatch# parameter is loaded at program startup and 
+##       not influenced by the HUP signal.
+#Fastmatch=
+#0190703100=052418088663
+#01903142=0521178260
+#5241908601903142=521178260
+
+# EOF
+

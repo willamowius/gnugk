@@ -23,44 +23,65 @@
 #include "SoftPBX.h"
 #include "Toolkit.h"
 #include "ANSI.h"
-
-// status trace
-#define STRACE(xxx)  cerr << ANSI::BRED << xxx << ANSI::OFF<<endl
-// client trace
-#define CTRACE(xxx)  cerr << ANSI::BRED<<"["<<InstanceNo<<"]\t"<< xxx <<ANSI::OFF<<endl
-
-/// this is a counter only useful while debugging!!!
-unsigned long countNitroBugfix = 0;
+#include "h323util.h"
 
 
-const int GkStatus::NumberOfCommandStrings = 22;
+const int GkStatus::NumberOfCommandStrings = 29;
 const static PStringToOrdinal::Initialiser GkStatusClientCommands[GkStatus::NumberOfCommandStrings] =
-{ // the leading spaces: PWLib Bug for PStringToOrdinal in Solaris for short strings?
-	{"  PrintAllRegistrations",    GkStatus::e_PrintAllRegistrations},
-	{"  r",                        GkStatus::e_PrintAllRegistrations},
-	{"  ?",                        GkStatus::e_PrintAllRegistrations},
-	{"  PrintAllRegistrationsVerbose", GkStatus::e_PrintAllRegistrationsVerbose},
-	{"  rv",                       GkStatus::e_PrintAllRegistrationsVerbose},
-	{"  ??",                       GkStatus::e_PrintAllRegistrationsVerbose},
-	{"  PrintCurrentCalls",        GkStatus::e_PrintCurrentCalls},
-	{"  c",                        GkStatus::e_PrintCurrentCalls},
-	{"  !",                        GkStatus::e_PrintCurrentCalls},
-	{"  PrintCurrentCallsVerbose", GkStatus::e_PrintCurrentCallsVerbose},
-	{"  !!",                       GkStatus::e_PrintCurrentCallsVerbose},
-	{"  cv",                       GkStatus::e_PrintCurrentCallsVerbose},
-	{"  Disconnect",               GkStatus::e_Disconnect},
-	{"  UnregisterAllEndpoints",   GkStatus::e_UnregisterAllEndpoints},
-	{"  Yell",                     GkStatus::e_Yell},
-	{"  Who",                      GkStatus::e_Who},
-	{"  Help",                     GkStatus::e_Help},
-	{"  h",                        GkStatus::e_Help},
-	{"  Version",                  GkStatus::e_Version},
-	{"  Debug",                    GkStatus::e_Debug},
-	{"  Exit",                     GkStatus::e_Exit},
-	{"  Quit",                     GkStatus::e_Exit}
+{
+	{"printallregistrations",    GkStatus::e_PrintAllRegistrations},
+	{"r",                        GkStatus::e_PrintAllRegistrations},
+	{"?",                        GkStatus::e_PrintAllRegistrations},
+	{"printallregistrationsverbose", GkStatus::e_PrintAllRegistrationsVerbose},
+	{"rv",                       GkStatus::e_PrintAllRegistrationsVerbose},
+	{"??",                       GkStatus::e_PrintAllRegistrationsVerbose},
+	{"printcurrentcalls",        GkStatus::e_PrintCurrentCalls},
+	{"c",                        GkStatus::e_PrintCurrentCalls},
+	{"!",                        GkStatus::e_PrintCurrentCalls},
+	{"printcurrentcallsverbose", GkStatus::e_PrintCurrentCallsVerbose},
+	{"!!",                       GkStatus::e_PrintCurrentCallsVerbose},
+	{"cv",                       GkStatus::e_PrintCurrentCallsVerbose},
+	{"disconnectip",             GkStatus::e_DisconnectIp},
+	{"disconnectcall",           GkStatus::e_DisconnectCall},
+	{"disconnectalias",          GkStatus::e_DisconnectAlias},
+	{"disconnectendpoint",       GkStatus::e_DisconnectEndpoint},
+	{"unregisterallendpoints",   GkStatus::e_UnregisterAllEndpoints},
+	{"unregisteralias",          GkStatus::e_UnregisterAlias},
+	{"transfercall",             GkStatus::e_TransferCall},
+	{"makecall",                 GkStatus::e_MakeCall},
+	{"yell",                     GkStatus::e_Yell},
+	{"who",                      GkStatus::e_Who},
+	{"help",                     GkStatus::e_Help},
+	{"h",                        GkStatus::e_Help},
+	{"version",                  GkStatus::e_Version},
+	{"debug",                    GkStatus::e_Debug},
+	{"exit",                     GkStatus::e_Exit},
+	{"quit",                     GkStatus::e_Exit},
+	{"q",                        GkStatus::e_Exit}
+
 };
 
 int GkStatus::Client::StaticInstanceNo = 0;
+
+// initialise singelton instance
+GkStatus * GkStatus::m_instance = NULL;
+PMutex GkStatus::m_CreationLock;
+
+GkStatus * GkStatus::Instance(PIPSocket::Address _gkhome ) {
+	if (m_instance == NULL)
+	{
+		m_CreationLock.Wait();
+		if (m_instance == NULL) {
+		  if (_gkhome.AsString() == PString("0.0.0.0")) {
+			PTRACE(1, "error in GkHome-IP-Address!");
+			exit(1);
+		  } else
+			m_instance = new GkStatus(_gkhome);
+		}
+		m_CreationLock.Signal();
+	};
+	return m_instance;
+};
 
 
 GkStatus::GkStatus(PIPSocket::Address _GKHome)
@@ -154,9 +175,6 @@ void ClientSignalStatus(const GkStatus::Client *pclient, void* p1, void* p2)
 		if (level >= ctl) 
 			((GkStatus::Client*)pclient)->WriteString(*msg);
 	}
-	else
-		countNitroBugfix++;
-		
 }
 
 
@@ -181,15 +199,9 @@ void GkStatus::SignalStatus(const PString &Message, int level)
 void GkStatus::RemoveClient( GkStatus::Client * Client )
 {
 	PTRACE(5,"RemoveClient");
-	STRACE("["<<Client->InstanceNo<<"]\tRemoveClient(c)");
-	//ClientSetLock.Wait();
 
-	/* towi-000217: doesn't erase call the destructor? 
-	 * So we have to wait for pending writes!
-	 */
 	Clients.erase(Client);
 	delete Client;
-	//ClientSetLock.Signal();
 }
 
 
@@ -235,26 +247,23 @@ GkStatus::Client::Client( GkStatus * _StatusThread, PTCPSocket * _Socket )
 	  StatusThread(_StatusThread)
 {
 	InstanceNo = ++StaticInstanceNo;
-	CTRACE("CONSTRUCT");
 	Resume();	// start the thread
 };
 
 
 GkStatus::Client::~Client()
 {
-	Mutex.Wait(); //x
-	CTRACE("DESTRUCT");
+	Mutex.Wait();
 	if(Socket->IsOpen())
 		Close();
 	delete Socket;
 	Socket = NULL;
-	Mutex.Signal(); //x
+	Mutex.Signal();
 };
 
 
 PString GkStatus::Client::ReadCommand()
 {
-	CTRACE("ReadCommand()");
 	PString Command;
 	int	CharRead;
 	
@@ -265,7 +274,7 @@ PString GkStatus::Client::ReadCommand()
 			throw -1;
 		if ( CharRead == '\n' )
 			break;	
-		if ( CharRead != '\r' )		// Ignore carriage return
+		if ( CharRead != '\r' )		// ignore carriage return
 			Command += CharRead;
 	}
 
@@ -274,8 +283,6 @@ PString GkStatus::Client::ReadCommand()
 
 void GkStatus::Client::Main()
 {
-	CTRACE("Main()");
-
 #ifdef PTRACING
 	PIPSocket::Address PeerAddress;
 	Socket->GetPeerAddress(PeerAddress);
@@ -288,7 +295,7 @@ void GkStatus::Client::Main()
 	}
 	else 
 	{
-	  BOOL exit_and_out = FALSE;
+		BOOL exit_and_out = FALSE;
 		while ( Socket->IsOpen() && !exit_and_out)
 		{
 			PString Line;
@@ -304,16 +311,40 @@ void GkStatus::Client::Main()
 			if(Args.GetSize() < 1) 
 				continue;
 			
-			const PString &Command = "  " + Args[0]; // PWLib Bug for Solaris; elongate short strings...
-			
+			const PCaselessString &Command = Args[0];
+
 			PTRACE(2, "GK\tGkStatus got command " << Command);
-			if(Commands.Contains(Command)) 
+			if(Commands.Contains(Command.ToLower())) 
 			{
 				PINDEX key = Commands[Command];
 				switch(key) {
-				case GkStatus::e_Disconnect:
+				case GkStatus::e_DisconnectIp:
 					// disconnect call on this IP number
-					SoftPBX::Instance()->Disconnect(Args[1]);
+					if (Args.GetSize() == 2)
+						SoftPBX::Instance()->DisconnectIp(Args[1]);
+					else
+						WriteString("Syntax Error: DisconnectIp <ip address>\r\n");
+					break;
+				case GkStatus::e_DisconnectAlias:
+					// disconnect call on this alias
+					if (Args.GetSize() == 2)
+						SoftPBX::Instance()->DisconnectAlias(Args[1]);
+					else
+						WriteString("Syntax Error: DisconnectAlias <h.323 alias>\r\n");
+					break;
+				case GkStatus::e_DisconnectCall:
+					// disconnect call with this call number
+					if (Args.GetSize() == 2)
+						SoftPBX::Instance()->DisconnectCall(atoi(Args[1]));
+ 					else
+						WriteString("Syntax Error: DisconnectCall <call number>\r\n");
+ 					break;
+				case GkStatus::e_DisconnectEndpoint:
+					// disconnect call on this alias
+					if (Args.GetSize() == 2)
+						SoftPBX::Instance()->DisconnectEndpoint(Args[1]);
+					else
+						WriteString("Syntax Error: DisconnectEndpoint ID\r\n");
 					break;
 				case GkStatus::e_PrintAllRegistrations:
 					// print list of all registered endpoints
@@ -365,14 +396,33 @@ void GkStatus::Client::Main()
 					WriteString(";\r\n");
 					break;
 				case GkStatus::e_Exit:
-					Mutex.Wait(); //x
-					Close(); //x
-					Mutex.Signal(); //x
+					Mutex.Wait();
+					Close();
+					Mutex.Signal();
 				  	exit_and_out = TRUE;
 					break;
 				case GkStatus::e_UnregisterAllEndpoints:
 					SoftPBX::Instance()->UnregisterAllEndpoints();
 					WriteString("Done\n;\n");
+					break;
+				case GkStatus::e_UnregisterAlias:
+					// unregister this alias
+					if (Args.GetSize() == 2)
+						SoftPBX::Instance()->UnregisterAlias(Args[1]);
+					else
+						WriteString("Syntax Error: UnregisterAlias Alias\r\n");
+					break;
+				case GkStatus::e_TransferCall:
+					if (Args.GetSize() == 3)
+						SoftPBX::Instance()->TransferCall(Args[1], Args[2]);
+					else
+						WriteString("Syntax Error: TransferCall Source Destination\r\n");
+					break;
+				case GkStatus::e_MakeCall:
+					if (Args.GetSize() == 3)
+						SoftPBX::Instance()->MakeCall(Args[1], Args[2]);
+					else
+						WriteString("Syntax Error: MakeCall Source Destination\r\n");
 					break;
 				default:
 					PTRACE(3, "WRONG COMMANDS TABLE ENTRY. PLEASE LOOK AT THE CODE.");
@@ -393,7 +443,7 @@ void GkStatus::Client::Main()
 	PleaseDelete = TRUE;
 	StatusThread->SetDirty(TRUE);
 
-	// returning from main will delete this thread   [towi: does it?]
+	// returning from main will delete this thread
 };
 
 
@@ -405,7 +455,6 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 
 	if(Args.GetSize() <= 1) {
 		WriteString("Debug options:\r\n");
-		WriteString("  nitro             Show number of applied nitro bugfixes\r\n");
 		WriteString("  trc [+|-|n]       Show/modify trace level\r\n");
 		WriteString("  cfg SEC PAR       Read and print a config PARameter in a SECtion\r\n");
 		WriteString("  set SEC PAR VAL   Write a config VALue PARameter in a SECtion\r\n");
@@ -424,13 +473,8 @@ void GkStatus::Client::DoDebug(const PStringArray &Args)
 		}
 		else if((Args[1] *= "cfg") && (Args.GetSize()>=4)) 
 			WriteString(Toolkit::Config()->GetString(Args[2],Args[3],"") + "\r\n");
-		else if(Args[1] *= "nitro") {
-			WriteString(PString(PString::Printf, "applied nitros: %lu\r\n", countNitroBugfix));
-		}
-		else if(Args[1] *= "reload") {
-			Toolkit::ReloadConfig();
-			WriteString("reloaded.\r\n");
-		}
+		else if(Args[1] *= "reload")
+			ReloadHandler();
 		else if((Args[1] *= "set") && (Args.GetSize()>=5)) {
 			Toolkit::Config()->SetString(Args[2],Args[3],Args[4]);
 			WriteString(Toolkit::Config()->GetString(Args[2],Args[3],"") + "\r\n");
@@ -458,14 +502,9 @@ void GkStatus::Client::PrintHelp()
 
 BOOL GkStatus::Client::WriteString(const PString &Message, int level) // level defaults to 0
 {
-	Mutex.Wait(); //x
-	//x StatusThread->ClientSetLock.Wait();
+	Mutex.Wait();
 
-	CTRACE("   WriteString()");
-	if ( (TraceLevel < 0) || (TraceLevel>10) ) {
-		countNitroBugfix++;
-		return TRUE;
-	} else if(level < TraceLevel)
+	if(level < TraceLevel)
 		return TRUE;
 
 	BOOL result;
@@ -474,15 +513,14 @@ BOOL GkStatus::Client::WriteString(const PString &Message, int level) // level d
 	else
 		result = FALSE;
 
-	//StatusThread->ClientSetLock.Signal();
-	Mutex.Signal(); //x
+	Mutex.Signal();
+
 	return result;
 }
 
 void GkStatus::Client::Close(void)
 {
-	CTRACE("Close()");
-	if ( (NULL != Socket) && Socket->IsOpen() ) //towi: was "Socket != NULL"
+	if ( (NULL != Socket) && Socket->IsOpen() )
 		Socket->Close();
 };
 

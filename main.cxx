@@ -15,14 +15,5 @@
  */
 
 
-#ifdef GK_MW
-
-#include "gkmw.h"
-PCREATE_PROCESS(Gatekeeper_Mediaways)
-
-#else // GK_OPEN
-
 #include "gk.h"
 PCREATE_PROCESS(Gatekeeper)
-
-#endif

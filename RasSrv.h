@@ -18,12 +18,13 @@
 #include "h225.h" 
 #include "h323.h" 
 
-#include "SignalChannel.h"
-#include "gk_const.h"
-#include "GkStatus.h"
-#include "RasTbl.h"
 #include "Toolkit.h"
 
+// forward references to avoid includes
+class SignalChannel;
+class RegistrationTable;
+class resourceManager;
+class GkStatus;
 
 
 class H323RasSrv : public PObject 
@@ -76,21 +77,15 @@ protected:
 	 */
 	virtual BOOL SigAuthCondition(const H225_TransportAddress &SignalAdr, const PString &Condition) const;
 
-	/** In OnARQ it is checkt if the dialed address (#aliasStr#) should be
-	 * rejected with the reason "incompleteAddress". This is checked when the
+	/** OnARQ checks if the dialled address (#aliasStr#) should be
+	 * rejected with the reason "incompleteAddress". This is the case whenever the
 	 * destination address is not a registered alias AND not matching with
 	 * prefix of a registered GW.
-	 *
-	 * This instance uses the config parameter "[RasSvr::ARQ].IncompleteAddresses" and checks
-	 * if it matches against the value. Example value is ":019:017:" for "0, 01, 019, 017".
-	 * @see config file for details.
 	 */
-	virtual BOOL CheckForIncompleteAddress(const PString &aliasStr) const;
+	virtual BOOL CheckForIncompleteAddress(const H225_AliasAddress &alias) const;
 
-	///towi-00-02-14
 	virtual BOOL SetAlternateGK(H225_RegistrationConfirm &rcf);
 
-	///towi-00-02-14
 	virtual BOOL ForwardRasMsg(H225_RasMessage msg); // not passed as const, ref or pointer!
 
 	int TimeToLive; 

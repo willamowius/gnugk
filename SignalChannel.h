@@ -17,13 +17,6 @@
 #include <ptlib/sockets.h>
 #include <ptclib/asner.h>
 
-#include "SignalConnection.h"
-#include "gk_const.h"
-
-
-class CallTable; // forward
-
-
 class SignalChannel:public PThread {
 
 	PCLASSINFO ( SignalChannel, PThread )
