@@ -215,7 +215,7 @@ private:
 	bool FakeSetupACK(Q931 &setup);
 	Q931 * GetSetupPDU() const;
 
-        BOOL CgPNConversion();
+        BOOL CgPNConversion(BOOL connecting=FALSE);
 
 	PString DialedDigits;
 	PString CalledNumber;

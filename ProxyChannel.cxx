@@ -316,8 +316,8 @@ const endptr CallSignalSocket::GetCgEP(Q931 &q931pdu)
 			}
 		}
 		// OZEP??
-		if(endptr(NULL)!=RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier)))
-			return RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier));
+		if(endptr(NULL)!=RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier.GetValue())))
+			return RegistrationTable::Instance()->FindOZEPByName(static_cast<PString>(Setup.m_endpointIdentifier.GetValue()));
 
 	}
 	PIPSocket::Address peeraddr;
@@ -640,6 +640,7 @@ TCPProxySocket *CallSignalSocket::ConnectTo()
 #else
 			PTRACE(3, "Q931(" << getpid() << ") Connect to " << peerAddr << " successful");
 #endif
+			CgPNConversion(TRUE);
 			SetConnected(true);
 			CallSignalSocket *rem = dynamic_cast<CallSignalSocket *>(remote);
 			if(NULL!=rem)
@@ -1007,12 +1008,40 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			Setup.m_destinationAddress.SetSize(1);
 			H323SetAliasAddress(DialedDigits, Setup.m_destinationAddress[0]);
 		}
-	} else if (GetReceivedQ931()->GetCalledPartyNumber(DialedDigits, &m_calledPLAN, &m_calledTON)) {
+	} else {
+		GetReceivedQ931()->GetCalledPartyNumber(DialedDigits, &m_calledPLAN, &m_calledTON);
 		// Fake the CalledPartyNumber into the H225_Setup_UUIE
 		for (PINDEX i=0; i < Setup.m_destinationAddress.GetSize(); i++) {
 			if (H225_AliasAddress::e_dialedDigits==Setup.m_destinationAddress[i].GetTag() &&
-			    H323GetAliasAddressString(Setup.m_destinationAddress[i])!=DialedDigits)
-				H323SetAliasAddress(DialedDigits, Setup.m_destinationAddress[i]);
+			    H323GetAliasAddressString(Setup.m_destinationAddress[i])!=DialedDigits) {
+				DialedDigits=H323GetAliasAddressString(Setup.m_destinationAddress[i]);
+				m_SetupPDU->SetCalledPartyNumber(DialedDigits, m_calledPLAN, m_calledTON);
+			}
+		}
+	}
+
+	PString sourceDigits;
+	unsigned int sPLAN    = Q931::UnknownPlan,
+		sTON          = Q931::UnknownType,
+		sPresentation = H225_PresentationIndicator::e_presentationRestricted,
+		sScreening    = H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed;
+	if (!Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		if (GetReceivedQ931()->GetCallingPartyNumber(sourceDigits)) {
+			// Setup_UUIE doesn't contain any destination information, but Q.931 has CalledPartyNumber
+			// We create the destinationAddress according to it
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+			Setup.m_sourceAddress.SetSize(1);
+			H323SetAliasAddress(DialedDigits, Setup.m_sourceAddress[0]);
+		}
+	} else {
+		GetReceivedQ931()->GetCallingPartyNumber(sourceDigits, &sPLAN, &sTON, &sPresentation, &sScreening);
+		// Fake the CalledPartyNumber into the H225_Setup_UUIE
+		for (PINDEX i=0; i < Setup.m_sourceAddress.GetSize(); i++) {
+			if (H225_AliasAddress::e_dialedDigits==Setup.m_sourceAddress[i].GetTag() &&
+			    H323GetAliasAddressString(Setup.m_sourceAddress[i])!=sourceDigits) {
+				sourceDigits=H323GetAliasAddressString(Setup.m_sourceAddress[i]);
+				m_SetupPDU->SetCallingPartyNumber(sourceDigits, sPLAN, sTON, sPresentation, sScreening);
+			}
 		}
 	}
 
@@ -1217,6 +1246,7 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 		Setup.m_sourceCallSignalAddress = Toolkit::Instance()->GetMasterRASListener().GetCallSignalAddress(peerAddr);
 		H225_TransportAddress_ipAddress & cip = Setup.m_sourceCallSignalAddress;
 		localAddr = PIPSocket::Address(cip.m_ip[0], cip.m_ip[1], cip.m_ip[2], cip.m_ip[3]);
+		CgPNConversion();
 		remote = new CallSignalSocket(this, peerPort);
 		CallSignalSocket *rem = dynamic_cast<CallSignalSocket*>(remote);
 		if(NULL!=rem)
@@ -1698,7 +1728,7 @@ void PrintCallingPartyNumber(PString callingPN, unsigned npi, unsigned ton, unsi
 static BOOL MatchAlias(const CallProfile &profile, const PString number);
 
 
-BOOL CallSignalSocket::CgPNConversion() {
+BOOL CallSignalSocket::CgPNConversion(BOOL connecting) {
 	// The variables to store the needed information:
 	PString CallingPartyNumber;
 	PString CalledPartyNumber;
@@ -1819,14 +1849,14 @@ BOOL CallSignalSocket::CgPNConversion() {
 			// Convert to local
 			CalledPartyNumber = CalledE164Number.GetGSN_SN();
 			CalledTON = Q931::SubscriberType;
-			CallingPartyNumber = CalledE164Number.GetGSN_SN();
+			CallingPartyNumber = CallingE164Number.GetGSN_SN();
 			CallingTON = Q931::SubscriberType;
 
 		} else {
 			// Convert to National
 			CalledPartyNumber = PString(CalledE164Number.GetNDC_IC()) + PString(CalledE164Number.GetGSN_SN());
 			CalledTON = Q931::NationalType;
-			CallingPartyNumber = PString(CallingE164Number.GetNDC_IC()) + PString(CalledE164Number.GetGSN_SN());
+			CallingPartyNumber = PString(CallingE164Number.GetNDC_IC()) + PString(CallingE164Number.GetGSN_SN());
 			CallingTON = Q931::NationalType;
 		}
 	}
@@ -1834,12 +1864,12 @@ BOOL CallSignalSocket::CgPNConversion() {
 	if(cdpf.GetPrependCallbackAC()) {
 		switch (CalledTON) {
 		case Q931::InternationalType:
-			CalledPartyNumber = cdpf.GetInac() + CalledPartyNumber;
-			CalledTON=Q931::UnknownType;
+			CallingPartyNumber = cdpf.GetInac() + CallingPartyNumber;
+			CallingTON=Q931::UnknownType;
 			break;
 		case Q931::NationalType:
-			CalledPartyNumber = cdpf.GetNac() + CalledPartyNumber;
-			CalledTON=Q931::UnknownType;
+			CallingPartyNumber = cdpf.GetNac() + CallingPartyNumber;
+			CallingTON=Q931::UnknownType;
 			break;
 		default:
 			// simply do nothing
@@ -1847,14 +1877,15 @@ BOOL CallSignalSocket::CgPNConversion() {
 		}
 	}
 	// Do CallingPartyNumber suppression
-	if(cdpf.IsCPE() && ((CallingPI == H225_PresentationIndicator::e_presentationRestricted) ||
-			    (CallingSI == H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed) ||
-			    (CallingSI == H225_ScreeningIndicator::e_userProvidedNotScreened))) {
-		CallingPartyNumber = "";
-		CallingPLAN = Q931::UnknownPlan;
-		CallingTON = Q931::UnknownType;
+	if(connecting) {
+		if(cdpf.IsCPE() && ((CallingPI == H225_PresentationIndicator::e_presentationRestricted) ||
+				    (CallingSI == H225_ScreeningIndicator::e_userProvidedVerifiedAndFailed) ||
+				    (CallingSI == H225_ScreeningIndicator::e_userProvidedNotScreened))) {
+			CallingPartyNumber = "";
+			CallingPLAN = Q931::UnknownPlan;
+			CallingTON = Q931::UnknownType;
+		}
 	}
-
 	// Now reassemble the Setup PDU
 //	m_SetupPDU->RemoveIE(Q931::CallingPartyNumberIE);
 	m_SetupPDU->SetCallingPartyNumber(CallingPartyNumber,
@@ -1870,6 +1901,8 @@ BOOL CallSignalSocket::CgPNConversion() {
 					 CalledTON);
 	PTRACE(5, "CalledPN");
 	PrintCallingPartyNumber(CalledPartyNumber, CalledPLAN, CalledTON, 0, 0);
+	// Fix the numbers in UUIE
+	SetNumbersInUUIE(CalledPartyNumber, CallingPartyNumber);
 	cdpf.SetCallingPN(CallingPartyNumber, static_cast<Q931::NumberingPlanCodes> (CallingPLAN),
 			  static_cast<Q931::TypeOfNumberCodes> (CallingTON),
 			  static_cast<H225_ScreeningIndicator::Enumerations> (CallingSI),
@@ -1886,6 +1919,63 @@ BOOL CallSignalSocket::CgPNConversion() {
 	m_call->GetCalledProfile().SetCalledPN(CalledPartyNumber);
 	CalledNumber=CalledPartyNumber;
 	return TRUE;
+}
+
+void
+CallSignalSocket::SetNumbersInUUIE(PString &CalledPartyNumber, PString & CallingPartyNumber)
+{
+	if (!m_SetupPDU->HasIE(Q931::UserUserIE)) {
+		return;
+	}
+	H225_H323_UserInformation signal;
+	PPER_Stream q = m_SetupPDU->GetIE(Q931::UserUserIE);
+	if (!signal.Decode(q)) {
+		PTRACE(4, "Q931\t" << Name() << " ERROR DECODING UUIE!");
+		return ;
+	}
+	H225_H323_UU_PDU & pdu = signal.m_h323_uu_pdu;
+	H225_H323_UU_PDU_h323_message_body & body = pdu.m_h323_message_body;
+	H225_Setup_UUIE & Setup = body;
+	if(!CalledPartyNumber.IsEmpty()) {
+		if(!Setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+			Setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			Setup.m_destinationAddress.SetSize(1);
+		}
+		for (PINDEX i=0; i<Setup.m_destinationAddress.GetSize(); i++) {
+			if(Setup.m_destinationAddress[i].GetTag()==H225_AliasAddress::e_dialedDigits) {
+				H323SetAliasAddress(CalledPartyNumber, Setup.m_destinationAddress[i]);
+			}
+		}
+	}
+	H225_ArrayOf_AliasAddress sourceaddresses;
+	if(!CallingPartyNumber.IsEmpty()) {
+		sourceaddresses.SetSize(1);
+		H323SetAliasAddress(CallingPartyNumber, sourceaddresses[0], H225_AliasAddress::e_dialedDigits);
+		if(Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+			for (PINDEX i=0; i<Setup.m_sourceAddress.GetSize(); i++) {
+				if(Setup.m_sourceAddress[i].GetTag()!=H225_AliasAddress::e_dialedDigits) {
+					sourceaddresses.SetSize(sourceaddresses.GetSize()+1);
+					sourceaddresses[sourceaddresses.GetSize()-1]=Setup.m_sourceAddress[i];
+				}
+			}
+			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		}
+	} else {
+		if (Setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+			Setup.RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		}
+		sourceaddresses.SetSize(1);
+		H323SetAliasAddress(GkConfig()->GetString(ProxySection, "SuppressedNumber", "unknown@mediaways.net"), sourceaddresses[0]);
+	}
+
+	Setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+	Setup.m_sourceAddress=sourceaddresses;
+
+	PPER_Stream str_new;
+	signal.Encode(str_new);
+	str_new.CompleteEncoding();
+	m_SetupPDU->SetIE(Q931::UserUserIE, str_new);
+	return;
 }
 
 BOOL MatchAlias(const CallProfile &profile, PString number) {
