@@ -116,10 +116,10 @@ void ShutdownHandler(void)
 void ReopenLogFile()
 {
 	if (!logfilename) {
-		PTRACE(1, "GK\tLogging closed.");
+		PTRACE_IF(1, logfile, "GK\tLogging closed.");
 		PTrace::SetStream(&cerr); // redirect to cerr
 		delete logfile;
-		logfile = new PTextFile(logfilename, PFile::WriteOnly, PFile::Create | PFile::Truncate);
+		logfile = new PTextFile(logfilename, PFile::WriteOnly);//, PFile::Create);
 		if (!logfile->IsOpen()) {
 			cout << "Warning: could not open trace output file \""
 				<< logfilename << '"' << endl;
@@ -258,8 +258,7 @@ BOOL Gatekeeper::InitHandlers(const PArgList &args)
 
 	if (args.HasOption("pid"))
 		pidfile = args.GetOptionString("pid");
-	PTextFile pid;
-	pid.Open(pidfile, PFile::WriteOnly);
+	PTextFile pid(pidfile, PFile::WriteOnly);
 	pid.WriteLine(PString(PString::Unsigned, getpid()));
 #endif
 	return TRUE;
