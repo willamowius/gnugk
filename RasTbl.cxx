@@ -349,7 +349,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue(),
 			(const unsigned char *) urq.m_reason.GetTagName());
-        GkStatus::Instance()->SignalStatus(msg);
+        GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
 
 	RasSrv->ForwardRasMsg(ras_msg);
 	if (reason == H225_UnregRequestReason::e_maintenance)
@@ -373,7 +373,7 @@ bool EndpointRec::SendIRQ()
 	PString msg(PString::Printf, "IRQ|%s|%s;\r\n", 
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue());
-        GkStatus::Instance()->SignalStatus(msg);
+        GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
 	RasSrv->SendRas(ras_msg, GetRasAddress());
 
 	return true;
@@ -1736,7 +1736,7 @@ void CallTable::InternalRemove(iterator Iter)
 
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
 		PString cdrString(call->GenerateCDR() + "\r\n");
-		GkStatus::Instance()->SignalStatus(cdrString, 1);
+		GkStatus::Instance()->SignalStatus(cdrString, STATUS_TRACE_LEVEL_CDR);
 		PTRACE(1, cdrString);
 #if PTRACING
 	} else {

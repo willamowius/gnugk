@@ -30,11 +30,14 @@
 /** The idea of status interface output trace levels
     allows to select the kind of output received by a status interface client.
 	Level 0 - no broadcast messages (except reload notifications and yell)
-	Level 1 - only CDRs
+	Level 1 - only CDRs and Route Requests
 	Level 2 - everything
 */
 #define MIN_STATUS_TRACE_LEVEL 0
 #define MAX_STATUS_TRACE_LEVEL 2
+#define STATUS_TRACE_LEVEL_CDR 1
+#define STATUS_TRACE_LEVEL_RAS 2
+#define STATUS_TRACE_LEVEL_ROUTEREQ 1
 
 class TelnetSocket;
 class StatusClient;

@@ -349,7 +349,7 @@ void RasMsg::Release()
 bool RasMsg::PrintStatus(const PString & log)
 {
 	PTRACE(2, log);
-	StatusPort->SignalStatus(log + "\r\n");
+	StatusPort->SignalStatus(log + "\r\n", STATUS_TRACE_LEVEL_RAS);
 	return true; // reply after logged
 }
 

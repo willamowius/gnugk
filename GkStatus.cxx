@@ -155,7 +155,16 @@ public:
 		to this client.
 	*/
 	int GetTraceLevel() const { return m_traceLevel; }
-	
+
+	/// Set the new output trace level for this status interface client
+	void SetTraceLevel(
+		/// new output trace level to be set
+		int newLevel
+		)
+	{
+		m_traceLevel = newLevel;
+	}
+		
 	/** @return
 		true if one or more commands from this status interface client
 		are executing by Worker threads.
@@ -436,6 +445,7 @@ void GkStatus::AuthenticateClient(
 	)
 {
 	if (newClient->Authenticate()) {
+		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
 		AddSocket(newClient);
 		PTRACE(1, "STATUS\tNew client authenticated succesfully: " << newClient->WhoAmI()
 			<< ", login: " << newClient->GetUser()
@@ -1160,11 +1170,13 @@ void StatusClient::ExecCommand(
 				if (level >= MIN_STATUS_TRACE_LEVEL 
 					&& level <= MAX_STATUS_TRACE_LEVEL)
 					m_traceLevel = level;
-				else 
+				else {
 					WriteString("Syntax Error: trace 0|1|2|\"min\"|\"max\"\r\n");
+					break;
+				}
 			}
-		} else
-			WriteString("Syntax Error: trace 0|1|2|\"min\"|\"max\"\r\n");
+		}
+		WriteString("Output trace level is " + PString(m_traceLevel) + "\r\n");
 		break;
 	default:
 		// commmand not recognized

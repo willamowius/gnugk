@@ -870,6 +870,12 @@ Default: <tt/7000/
 Status port to monitor the gatekeeper.
 See <ref id="monitor" name="this section"> for details.
 
+<item><tt/StatusTraceLevel=2/<newline>
+Default: <tt/2/
+<p>
+Default output trace level for new status interface clients.
+See <ref id="monitor" name="this section"> for details.
+
 </itemize>
 
 Most users will never need to change any of the following values.
@@ -3015,6 +3021,27 @@ The status port is the external interface for monitoring and controlling the gat
 The gatekeeper will send out messages about ongoing calls to all
 connected clients and it can receive commands via this interface.
 
+<p>
+The messages sent by the gatekeeper to the status port are groupped 
+into three <bf/output trace levels/:
+<itemize>
+<item>Level 0
+	<quote>
+	Reload notifications and direct replies to entered commands.
+	</quote>
+<item>Level 1
+	<quote>
+	Reload notifications, direct replies to entered commands, CDRs and Route Requests.
+	</quote>
+<item>Level 2
+	<quote>
+	Output everything (reload notifications, direct replies to entered commands, 
+	CDRs, Route Requests, RAS, ...). This is the <bf/default/ output level.
+	</quote>
+</itemize>
+The client connected to the status port can choose the output level it is interested in.
+
+<p>
 The interface is a simple TCP port (default: 7000), you can connect to with telnet or another client. One example of a different client is the Java GUI, aka GkGUI.
 Another example is the Automatic Call Distribution application, aka GnuGk ACD.
 
@@ -3400,6 +3427,18 @@ DisconnectAlias 601
 
 <item><tt/GK/
 <p>Show the information of the parent gatekeeper.
+
+<item><tt/Trace/
+<p>Set the status interface output trace level. It controls which messages
+are sent to this client:
+<itemize>
+<item><tt/trace 0/ or <tt/trace min/
+	<p>Only direct responses to commands and reload notifications.
+<item><tt/trace 1/
+	<p>CDRs, direct responses to commands and reload notifications.
+<item><tt/trace 2/ or <tt/trace max/
+	<p>Show all (RAS, CDRs, direct responses to commands, reload notifications, etc).
+</itemize>
 
 <item><tt/Debug/
 <p>Only used for debug purpose. Options:

@@ -457,7 +457,7 @@ bool VirtualQueue::SendRouteRequest(
 			PTRACE(4, "VQueue\tDuplicate request: "<<msg);
 		else {
 			PTRACE(2, msg);
-			GkStatus::Instance()->SignalStatus(msg + "\r\n");
+			GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_ROUTEREQ);
 		}
 
 		// wait for an answer from the status line (routetoalias,routereject)

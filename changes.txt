@@ -1,5 +1,9 @@
 Changes from 2.2beta3 to 2.2beta4
 =================================
+- applied the concept of output trace levels for the status interface. 
+  It allows to select amount of information a status client receives
+  (level 0 - silent mode + reloads; level 1 - CDRs, RouteRequests, reloads;
+   level 2 - everything: the default mode)
 - (GkStatus.cxx) some cleanup, better tracing, new trace command introduced
   to support multiple output levels in the future
 - added missing addpasswd Visual Studio project files (dsp and dsw)
