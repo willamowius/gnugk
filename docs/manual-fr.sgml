@@ -195,7 +195,7 @@ modules SQL aut/acct
 <item>
 Le type de num&#233;ro Called-Station-Id peut &#234;tre s&#233;lectionn&#233;
 entre le num&#233;ro original (num&#233;ro compos&#233;) et le num&#233;ro
-r&#233;&#233;crit. Nouvelle option de configurgation </tt/UseDialedNumber/ pour les
+r&#233;&#233;crit. Nouvelle option de configurgation <tt/UseDialedNumber/ pour les
 modules <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">
 /<ref id=radacct name="RadAcct">, nouvelle variable %{Dialed-Number} pour les modules
 <ref id=sqlacct name="SQLAcct"> et <ref id=fileacct name="FileAcct">.
