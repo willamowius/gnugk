@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/09/17 19:23:01  zvision
+ * Removed unnecessary setup-time double check.
+ * Added h323-connect-time to AcctUpdate packets.
+ *
  * Revision 1.3  2003/09/14 21:10:34  zvision
  * Changes due to accounting API redesign.
  *
@@ -158,6 +162,8 @@ GkAcctLogger::Status RadAcct::Log(
 	callptr& call
 	)
 {
+	// a workaround to prevent processing end on "sufficient" module
+	// if it is not interested in this event type
 	if( (evt & GetEnabledEvents() & GetSupportedEvents()) == 0 )
 		return (GetControlFlag() == Sufficient) ? Next : Ok;
 		
@@ -373,9 +379,15 @@ GkAcctLogger::Status RadAcct::Log(
 		
 	// send request and wait for response
 	RadiusPDU* response = NULL;
-	bool result = OnSendPDU(*pdu,evt,call) 
-		&& radiusClient->MakeRequest( *pdu, response ) 
-		&& (response != NULL);
+	bool result = OnSendPDU(*pdu,evt,call);
+	
+	// accounting updates must be fast, so we are just sending
+	// the request to the server and are not waiting for a response
+	if( result )
+		if( evt & AcctUpdate )
+			result = radiusClient->SendRequest( *pdu );
+		else
+			result = radiusClient->MakeRequest( *pdu, response ) && (response != NULL);
 			
 	delete pdu;
 			
@@ -389,12 +401,14 @@ GkAcctLogger::Status RadAcct::Log(
 		return GetDefaultStatus();
 	}
 				
-	// check if Access-Request has been accepted
-	result = (response->GetCode() == RadiusPDU::AccountingResponse);
-	if( result )
-		result = OnReceivedPDU(*response,evt,call);
+	if( response ) {
+		// check if Access-Request has been accepted
+		result = (response->GetCode() == RadiusPDU::AccountingResponse);
+		if( result )
+			result = OnReceivedPDU(*response,evt,call);
 						
-	delete response;
+		delete response;
+	}
 	return result ? Ok : Fail;
 }
 
@@ -417,6 +431,6 @@ bool RadAcct::OnReceivedPDU(
 }
 
 namespace {
-// append RADIUS based accounting logger to the global list of loggers
+	// append RADIUS based accounting logger to the global list of loggers
 	GkAcctLoggerCreator<RadAcct> RadAcctCreator("RadAcct");
 }

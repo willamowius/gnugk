@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/09/28 15:45:49  zvision
+ * Microsecond field added back to h323-xxx-time attributes
+ *
  * Revision 1.3  2003/09/14 21:09:29  zvision
  * Added new FileAcct logger from Tamas Jalsovszky. Thanks!
  * Fixed module stacking. Redesigned API.
@@ -43,7 +46,7 @@ using std::list;
 
 /// Name of the config file section for accounting configuration
 const char* GkAcctSectionName = "Gatekeeper::Acct";
-
+extern const char* CallTableSection;
 
 
 PString GkAcctLogger::AsString(
@@ -191,12 +194,16 @@ bool GkAcctLogger::LogAcctEvent(
 		result = Log(evt,call);
 		if( result == Ok ) {
 			PTRACE(4,"GKACCT\t"<<GetName()<<" logged event "
-				<<PString(PString::Unsigned,(long)evt,16));
+				<<PString(PString::Unsigned,(long)evt,16)
+				<<" for call no. "<<(call?call->GetCallNumber():0)
+				);
 			if( controlFlag == Sufficient )
 				return true;
 		} else if( result == Fail || (result == Next && controlFlag == Required) )
 			PTRACE(2,"GKACCT\t"<<GetName()<<" failed to log event "
-				<<PString(PString::Unsigned,(long)evt,16));
+				<<PString(PString::Unsigned,(long)evt,16)
+				<<" for call no. "<<(call?call->GetCallNumber():0)
+				);
 	} else
 		result = ((controlFlag == Sufficient) ? Next : Ok);
 		
@@ -268,11 +275,15 @@ GkAcctLogger::Status FileAcct::Log(
 		if( cdrFile->WriteLine(PString(cdrString)) )
 			return Ok;
 		else
-			PTRACE(1,"GKACCT\t"<<GetName()<<" write CDR text failed - "
-				<<cdrFile->GetErrorText()
+			PTRACE(1,"GKACCT\t"<<GetName()<<" write CDR text failed for call no. "
+				<<(call?call->GetCallNumber():0)<<" - "
+				<<cdrFile->GetErrorText(PChannel::LastWriteError)
 				);
 	} else
-		PTRACE(5,"GKACCT\t"<<GetName()<<" CDR file is closed - log failed");
+		PTRACE(5,"GKACCT\t"<<GetName()
+			<<" CDR file is closed - log failed for call no. "
+			<<(call?call->GetCallNumber():0)
+			);
 		
 	return GetDefaultStatus();
 }
@@ -329,8 +340,12 @@ void FileAcct::Rotate()
 
 GkAcctLoggerList::GkAcctLoggerList()
 	:
-	m_head(NULL)
+	m_head(NULL),
+	m_acctUpdateInterval(GkConfig()->GetInteger(CallTableSection,"AcctUpdateInterval",0))
 {
+	// should not be less than 10 seconds
+	if( m_acctUpdateInterval != 0 )
+		m_acctUpdateInterval = PMAX(10,m_acctUpdateInterval);
 }
 
 GkAcctLoggerList::~GkAcctLoggerList()
@@ -345,6 +360,12 @@ void GkAcctLoggerList::OnReload()
 		= GkAcctLogger::Create(GkConfig()->GetKeys(GkAcctSectionName));
 	{
 		WriteLock lock(m_reloadMutex);
+		
+		m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection,"AcctUpdateInterval",0);
+		// should not be less than 10 seconds
+		if( m_acctUpdateInterval != 0 )
+			m_acctUpdateInterval = PMAX(10,m_acctUpdateInterval);
+		
 		swap(m_head,head);
 	}
 	delete head;	

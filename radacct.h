@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2003/09/29 16:11:44  zvision
+ * Added cvs Id keyword to header #define macro
+ *
  * Revision 1.3  2003/09/14 21:10:34  zvision
  * Changes due to accounting API redesign.
  *
@@ -33,6 +36,10 @@
 class RadiusClient;
 class RadiusPDU;
 
+/** Accounting logger for RADIUS protocol. It sends
+	accounting call start/stop/update and NAS on/off events
+	to a remote RADIUS server.
+*/
 class RadAcct : public GkAcctLogger
 {
 public:
@@ -48,6 +55,8 @@ public:
 	RadAcct( 
 		/// name from Gatekeeper::Acct section
 		const char* moduleName,
+		/// config section name to be used with an instance of this module,
+		/// pass NULL to use a default section (named "moduleName")
 		const char* cfgSecName = NULL
 		);
 		
@@ -55,6 +64,7 @@ public:
 	virtual ~RadAcct();
 
 protected:
+	/// overriden from GkAcctLogger
 	virtual Status Log(
 		AcctEvent evt,
 		callptr& call
@@ -64,7 +74,7 @@ protected:
 		Can be used to introduce additional attributes etc.
 		
 		@return
-		TRUE to proceed, FALSE to fail and not send this pdu.
+		True to proceed, false to fail and not send this pdu.
 	*/
 	virtual bool OnSendPDU(
 		RadiusPDU& pdu, /// PDU to be sent
@@ -72,6 +82,12 @@ protected:
 		callptr& call /// call associated with this request (if any)
 		);
 
+	/** Called after Accounting-Response PDU is received.
+		Can be used to check for some additional attributes etc.
+		
+		@return
+		True to accept the response, false to return failure for this event.
+	*/
 	virtual bool OnReceivedPDU(
 		RadiusPDU& pdu, /// PDU received from RADIUS server
 		AcctEvent evt, /// accounting event being processed

@@ -963,10 +963,11 @@ void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_Ga
 
 bool RasServer::LogAcctEvent(
 	int evt,
-	callptr& call
+	callptr& call,
+	time_t now
 	)
 {
-	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt,call);
+	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt,call,now);
 }
 
 void RasServer::Run()

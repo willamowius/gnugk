@@ -13,6 +13,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2003/09/29 16:11:44  zvision
+ * Added cvs Id keyword to header #define macro
+ *
  * Revision 1.5  2003/09/28 16:24:31  zvision
  * Introduced call duration limit feature for registered endpoints (ARQ)
  *
@@ -307,7 +310,7 @@ public:
 		);
 		
 	/// Destroy the authenticator
-	virtual ~RadAuth() {}
+	virtual ~RadAuth();
 	
 protected:		
 
@@ -350,7 +353,7 @@ public:
 		);
 		
 	/// Destroy the authenticator
-	virtual ~RadAliasAuth() {}
+	virtual ~RadAliasAuth();
 	
 protected:		
 

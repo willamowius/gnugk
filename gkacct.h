@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/09/29 16:11:44  zvision
+ * Added cvs Id keyword to header #define macro
+ *
  * Revision 1.4  2003/09/16 11:25:10  zvision
  * Optimization for configurations without accounting enabled
  *
@@ -302,11 +305,20 @@ public:
 	*/
 	bool LogAcctEvent( 
 		GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
-		callptr& call /// a call associated with the event (if any)
+		callptr& call, /// a call associated with the event (if any)
+		time_t now = 0 /// "now" timestamp for accounting update events
 		) 
 	{
 		// microoptimization for configuration without accounting enabled
 		if( m_head ) {
+			// if this is an accounting update, check the interval
+			if( evt & GkAcctLogger::AcctUpdate )
+				if( m_acctUpdateInterval == 0 
+					|| (now - call->GetLastAcctUpdateTime()) < m_acctUpdateInterval )
+					return true;
+				else
+					call->SetLastAcctUpdateTime(now);
+					
 			ReadLock lock(m_reloadMutex);
 			return !m_head || m_head->LogAcctEvent(evt,call);
 		} else
@@ -317,7 +329,9 @@ private:
 	/// head of the accounting loggers list
 	GkAcctLogger* m_head;
 	/// mutex for thread-safe reload operation
-	PReadWriteMutex m_reloadMutex;	
+	PReadWriteMutex m_reloadMutex;
+	/// interval (seconds) between subsequent accounting updates for calls
+	long m_acctUpdateInterval;
 	
 	GkAcctLoggerList(const GkAcctLogger&);
 	GkAcctLoggerList& operator=(const GkAcctLoggerList&);

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2003/09/28 16:24:31  zvision
+ * Introduced call duration limit feature for registered endpoints (ARQ)
+ *
  * Revision 1.4  2003/08/25 12:53:38  zvision
  * Introduced includeTerminalAliases config option. Changed visibility
  * of some member variables to private.
@@ -633,9 +636,9 @@ int RadAuthBase::doCheck(
 	result = (response->GetCode() == RadiusPDU::AccessAccept);
 	// test for h323-return-code attribute (has to be 0 if accept)
 	if( result ) {
-		const PINDEX index = response->FindAttribute( 9, (unsigned char)103 );
+		const PINDEX index = response->FindVsaAttr( 9, 103 );
 		if( index != P_MAX_INDEX ) {
-			attr = response->GetAttributeAt(index);
+			attr = response->GetAttrAt(index);
 			bool valid = false;
 			if( attr && attr->IsValid() ) {
 				PString s = attr->AsVsaString();
@@ -662,9 +665,9 @@ int RadAuthBase::doCheck(
 	// check for h323-credit-time attribute (call duration limit)	
 	if( result ) {
 		found = false;
-		const PINDEX index = response->FindAttribute( 9, (unsigned char)102 );
+		const PINDEX index = response->FindVsaAttr( 9, 102 );
 		if( index != P_MAX_INDEX ) {
-			attr = response->GetAttributeAt(index);
+			attr = response->GetAttrAt(index);
 			if( attr && attr->IsValid() ) {
 				PString s = attr->AsVsaString();
 				// Cisco prepends attribute name to the attribute value
@@ -689,9 +692,9 @@ int RadAuthBase::doCheck(
 	// check for Session-Timeout attribute (alternate call duration limit)	
 	if( result ) {
 		found = false;
-		const PINDEX index = response->FindAttribute( RadiusAttr::SessionTimeout );
+		const PINDEX index = response->FindAttr( RadiusAttr::SessionTimeout );
 		if( index != P_MAX_INDEX ) {
-			attr = response->GetAttributeAt(index);
+			attr = response->GetAttrAt(index);
 			if( attr && attr->IsValid() ) {
 				found = true;
 				const long sessionTimeout = attr->AsInteger();
@@ -776,6 +779,10 @@ RadAuth::RadAuth(
 	authenticator->SetPassword("dummy");
 	h235Authenticators->Append(authenticator);
 #endif
+}
+
+RadAuth::~RadAuth() 
+{
 }
 
 int RadAuth::AppendUsernameAndPassword(
@@ -981,6 +988,10 @@ RadAliasAuth::RadAliasAuth(
 	fixedPassword = config->GetString(
 		RadAliasAuthConfigSectionName, "FixedPassword", ""
 		);
+}
+
+RadAliasAuth::~RadAliasAuth()
+{
 }
 
 int RadAliasAuth::AppendUsernameAndPassword(

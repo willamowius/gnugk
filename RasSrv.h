@@ -126,7 +126,8 @@ public:
 
 	bool LogAcctEvent(
 		int evt,
-		callptr& call
+		callptr& call,
+		time_t now = 0
 		);
 	
 	template<class RAS> bool IsForwardedRas(const RAS & ras, const Address & addr) const

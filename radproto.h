@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2003/09/29 16:11:44  zvision
+ * Added cvs Id keyword to header #define macro
+ *
  * Revision 1.5  2003/09/24 00:22:03  zvision
  * Removed time_t RadAttr constructors
  *
@@ -186,7 +189,7 @@ public:
 	/** Create TLV RADIUS attribute of a given type,
 		initializing #value# field with an integer value passed
 		with 'intValue' parameter. This constructor should be also used
-		for attributes carrying 32 bit timestamps.
+		for attributes carrying 32-bit timestamps.
 	*/
 	RadiusAttr( 
 		unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
@@ -275,7 +278,12 @@ public:
 		attribute is a VSA that conforms to RFC 2865 guidelines for VSAs
 		(has vendorId, vendorType and vendorLength fields).
 	*/
-	unsigned char GetVsaType() const;
+	unsigned char GetVsaType() const
+	{
+		if( ((PINDEX)data[1] & 0xff) < VsaRfc2865FixedHeaderLength )
+			return 0;
+		return data[VsaFixedHeaderLength+0];
+	}
 
 	/** @return
 		Total length (bytes) of this attribute.
@@ -350,7 +358,7 @@ public:
 		PString containing attribute Value.
 		If an error occurs an empty string is returned.
 	*/
-	virtual PString AsString() const;
+	PString AsString() const;
 
 	/** Get RFC 2865 guidelines conformant VSA Value as a string. 
 		Be aware that the string may contain embedded 0s. This call will
@@ -361,7 +369,7 @@ public:
 		PString containing attribute Value.
 		If an error occurs an empty string is returned.
 	*/
-	virtual PString AsVsaString() const;
+	PString AsVsaString() const;
 
 	/** Get attribute Value as a 32 bit integer. 
 		For VSA attributes this call will build the integer 
@@ -373,7 +381,7 @@ public:
 		An integer representing attribute Value.
 		If an error occurs 0 is returned.
 	*/
-	virtual int AsInteger() const;
+	int AsInteger() const;
 
 	/** Get RFC 2865 guidelines conformant VSA Value as a 32 bit integer. 
 		This call will build the integer from 4 bytes of data contained 
@@ -383,7 +391,7 @@ public:
 		An integer representing attribute Value. 
 		If an error occurs 0 is returned.
 	*/
-	virtual int AsVsaInteger() const;
+	int AsVsaInteger() const;
 
 	/** Get attribute Value as a 32 bit timestamp. 
 		For VSA attributes this call will build the timestamp
@@ -395,7 +403,7 @@ public:
 		PTime representing attribute Value. This timestamp
 		is interpreted as number of seconds passed since
 	*/
-	time_t AsTime() const { return AsVsaInteger(); }
+	time_t AsTime() const { return (time_t)AsVsaInteger(); }
 
 	/** Get RFC 2865 guidelines conformant VSA Value as a 32 bit timestamp. 
 		This call will build the timestamp from 4 bytes of data contained 
@@ -405,7 +413,7 @@ public:
 		PTime representing attribute Value. This timestamp
 		is interpreted as number of seconds passed since
 	*/
-	time_t AsVsaTime() const { return AsVsaInteger(); }
+	time_t AsVsaTime() const { return (time_t)AsVsaInteger(); }
 
 	/** Get attribute Value as a 32 bit IPv4 address. 
 		For VSA attributes this call will build the IPv4 address
@@ -416,7 +424,7 @@ public:
 		@return
 		IPv4 address representing attribute Value.
 	*/
-	virtual PIPSocket::Address AsAddress() const;
+	PIPSocket::Address AsAddress() const;
 
 	/** Get RFC 2865 guidelines conformant VSA Value as a 32 bit IPv4 address. 
 		This call will build the IPv4 address from 4 bytes of data contained 
@@ -425,7 +433,7 @@ public:
 		@return
 		IPv4 address representing attribute Value.
 	*/
-	virtual PIPSocket::Address AsVsaAddress() const;
+	PIPSocket::Address AsVsaAddress() const;
 
 	/** Check if two attributes (this one and the 'attr')
 		are identical (e.g. have the same type, length, value etc.).
@@ -473,7 +481,13 @@ public:
 		@return
 		TRUE if this attribute is "valid".
 	*/
-	virtual BOOL IsValid() const;
+	BOOL IsValid() const
+	{
+		return ((PINDEX)data[1] & 0xff) 
+			>= (((unsigned)data[0] == VendorSpecific) 
+				? VsaFixedHeaderLength : FixedHeaderLength
+				);
+	}
 
     /** Compares two attributes. Equality for two attributes is defined
 		as equality of their attribute types (e.g. only Type fields values
@@ -505,10 +519,7 @@ protected:
 	*/
 	virtual void CopyContents( 
 		const RadiusAttr& attr /// the attribute that contents will be assigned from
-		)
-	{
-		memcpy(&data,&(attr.data),sizeof(data));
-	}
+		);
 		
 	/** Read attribute data from the raw buffer.
 		
@@ -712,11 +723,11 @@ public:
 		@return
 		TRUE if the attribute has been appended.
 	*/
-	BOOL AppendAttribute( 
+	BOOL AppendAttr( 
 		const RadiusAttr& attr /// attribute to be appended
 		) 
 	{
-		return AppendAttribute( (RadiusAttr*)(attr.Clone()) );
+		return AppendAttr( (RadiusAttr*)(attr.Clone()) );
 	}
 	
 	/** Appends this attribute to the #attributes# list. No clone is made.
@@ -724,23 +735,28 @@ public:
 		@return
 		TRUE if the attribute has been appended.
 	*/
-	virtual BOOL AppendAttribute( 
+	BOOL AppendAttr( 
 		RadiusAttr* attr 
-		);
+		)
+	{
+		if( !(attr && attr->IsValid()) )
+			return FALSE;
+		return attributes.Append( attr ) != P_MAX_INDEX;
+	}
 
-	virtual BOOL AppendAttributes(
+	BOOL AppendAttributes(
 		const RadiusAttr::List& list
 		);
 		
 	RadiusPDU& operator +=( const RadiusAttr& attr )
 	{
-		AppendAttribute( attr );
+		AppendAttr( attr );
 		return (*this);
 	}
 
 	RadiusPDU& operator +=( RadiusAttr* attr )
 	{
-		AppendAttribute( attr );
+		AppendAttr( attr );
 		return (*this);
 	}
 
@@ -771,7 +787,7 @@ public:
 		An index of the attribute found or P_MAX_INDEX
 		if no attribute of this type has been found.
 	*/
-	PINDEX FindAttribute(
+	PINDEX FindAttr(
 		unsigned char attrType, /// attribute type to be matched
 		PINDEX offset = 0 /// start element for the search operation
 		) const;
@@ -784,7 +800,7 @@ public:
 		An index of the attribute found or P_MAX_INDEX
 		if no attribute of this type has been found.
 	*/
-	PINDEX FindAttribute(
+	PINDEX FindVsaAttr(
 		int vendorId, /// vendor identifier to be matched
 		unsigned char vendorType, /// vendor attribute type to be matched
 		PINDEX offset = 0 /// start element for the search operation
@@ -798,9 +814,14 @@ public:
 		specified. Be aware that this pointer should not be stored
 		for later use.
 	*/
-	RadiusAttr* GetAttributeAt(
+	RadiusAttr* GetAttrAt(
 		PINDEX index /// index of the attribute to be retrieved
-		) const;
+		) const
+	{
+		return (index<attributes.GetSize())
+			? (RadiusAttr*)(attributes.GetAt(index)) : NULL;
+	}
+	
 
 	/** @return
 		Number of attributes associated with this RADIUS PDU.
@@ -848,20 +869,6 @@ protected:
 		const PBYTEArray& buffer, /// buffer with RADIUS packet data
 		PINDEX offset = 0 /// offset into the buffer, where data starts
 		);
-
-	/** Create an instance of #RadiusAttr# derived class 
-		from the passed raw data buffer.
-
-		@return
-		Pointer to the new instance of the attribute.
-	*/
-	virtual RadiusAttr* BuildAttribute(
-		const void* rawData, /// raw buffer with attribute data
-		PINDEX rawLength /// length (bytes) of the raw buffer
-		) const
-	{
-		return new RadiusAttr( rawData, rawLength );
-	}
 
 	/** Copy content of RADIUS packet 'pdu' into this object.
 	*/
@@ -932,13 +939,13 @@ public:
 
 	virtual void PrintOn( ostream& strm ) const;
 	
-	/** Process RADIUS request/response sequense. It sends
+	/** Process RADIUS request/response sequence. It sends
 		'length' bytes from 'sendBuffer' to host 'serverAddress:remotePort'
-		and reads response into 'pdu'.
+		and reads the response into 'pdu'.
 		Use #SetReadTimeout()# to set timeout for this operation.
 		
 		@return
-		TRUE if RADIUS response has been successfully received
+		TRUE if the RADIUS response has been successfully received
 		and stored in a variable referenced by the 'pdu' param.
 	*/
 	virtual BOOL MakeRequest( 
@@ -949,6 +956,20 @@ public:
 		RadiusPDU*& pdu /// receives RADIUS Response PDU on success
 		);
 
+	/** Send RADIUS request and return immediatelly. It sends
+		'length' bytes from 'sendBuffer' to host 'serverAddress:remotePort'
+		and does not wait for a response.
+		
+		@return
+		TRUE if the request has been successfully sent.
+	*/
+	virtual BOOL SendRequest( 
+		const BYTE* sendBuffer, /// buffer with Request RADIUS packet
+		PINDEX length, /// length of the Request packet
+		const Address& serverAddress, /// RADIUS server address
+		WORD remotePort /// RADIUS server port
+		);
+		
 	/** Generate unique Id suitable for RadiusPDU identifiers.
 		This function automatically calls #RefreshIdCache()#.
 		
@@ -1000,15 +1021,9 @@ private:
 		);
 
 private:
-	struct ReadInfo
+	struct RadiusRequest
 	{
-		RadiusPDU*& pdu;
-		const BYTE* requestBuffer;
-		PINDEX requestLength;
-		const Address* address;
-		WORD port;
-
-		ReadInfo( 
+		RadiusRequest( 
 			RadiusPDU*& _pdu, 
 			const BYTE* req, 
 			PINDEX reqLen,
@@ -1017,15 +1032,20 @@ private:
 			)
 			: 
 			pdu( _pdu), requestBuffer( req ), 
-			requestLength( reqLen ),
-			address( _address ), port( _port )
+			requestLength( reqLen ), address( _address ), port( _port )
 		{}
+		
+		RadiusPDU*& pdu;
+		const BYTE* requestBuffer;
+		PINDEX requestLength;
+		const Address* address;
+		WORD port;
 	};
 
 	/** Table filled with requests being currently services
 		by this socket. Indexed by request Id.
 	*/
-	ReadInfo* pendingRequests[256];
+	RadiusRequest* pendingRequests[256];
 	
 	/** SyncPoint for socket read operations. SyncPoints
 		are allocated/freed on demand.
@@ -1046,6 +1066,8 @@ private:
 	PBYTEArray readBuffer;
 	/// mutex for mt synchronization
 	PMutex readMutex;
+	/// mutex for atomic WriteTo operation on the socket
+	PMutex writeMutex;
 	/// flag signalling that some request thread performs read operation
 	BOOL isReading;
 	/// number of pending requests
@@ -1137,7 +1159,7 @@ public:
 		@return
 		Shared secret for communication with RADIUS server
 	*/
-	PString GetSharedSecret() const 
+	PString GetSharedSecret()
 	{ 
 		PWaitAndSignal lock( socketMutex );
 		return sharedSecret; 
@@ -1317,6 +1339,17 @@ public:
 		RadiusPDU*& responsePDU /// filled with PDU received from RADIUS server
 		);
 
+	/** Sends a RADIUS request and does not wait for a response.
+		This can be used to send accounting updates, for example.
+		
+		@return
+		TRUE if the RADIUS request has been successfully sent 
+		(this does not mean it has arrived at the radius server).
+	*/
+	virtual BOOL SendRequest( 
+		const RadiusPDU& requestPDU /// PDU with request packet
+		);
+		
 	/** Build RadiusPDU-derived object from the raw data buffer.
 		Override this method to instantiate custom RadiusPDU-derived classes.
 	
@@ -1326,10 +1359,7 @@ public:
 	virtual RadiusPDU* BuildPDU( 
 		const void* rawData, /// raw data buffer
 		PINDEX rawLength /// length of the raw data buffer
-		) const
-	{
-		return new RadiusPDU( rawData, rawLength );
-	}
+		) const;
 
 	/** Create RadiusPDU-derived class instance. Can be overriden
 		(along with #BuildPDU(const void*,PINDEX)#) to support creation
@@ -1338,10 +1368,7 @@ public:
 		@return
 		RadiusPDU based class instance
 	*/
-	virtual RadiusPDU* BuildPDU() const
-	{
-		return new RadiusPDU();
-	}
+	virtual RadiusPDU* BuildPDU() const;
 
 	/** Verify Response Authenticator vector
 	    from received PDU. Provided here mainly
@@ -1470,10 +1497,7 @@ protected:
 	virtual RadiusSocket* CreateSocket( 
 		const PIPSocket::Address& addr, 
 		WORD port = 0 
-		)
-	{
-		return new RadiusSocket( *this, addr, port );
-	}
+		);
 	
 	/** Create new instance of RadiusSocket based class. Can be
 		overriden to provide custom RadiusSocket implementations.
@@ -1483,10 +1507,7 @@ protected:
 	*/
 	virtual RadiusSocket* CreateSocket( 
 		WORD port = 0 
-		)
-	{
-		return new RadiusSocket( *this, port );
-	}
+		);
 	
 protected:
 	/// list of RADIUS servers
@@ -1513,7 +1534,6 @@ protected:
 	/// 0: numRetries to server #1, numRetries to server #2, ...
 	/// 1: 1st packet to #1, 1st packet to #2, ..., 2nd packet to #1, ...
 	BOOL roundRobinServers;
-	
 	/// local address that the client should bind to when making requests
 	PIPSocket::Address localAddress;
 	/// array of active RADIUS client sockets
@@ -1521,6 +1541,5 @@ protected:
 	/// mutex for accessing #activeSockets# and other stuff
 	PMutex socketMutex;
 };
-
 
 #endif /* __RADPROTO_H */
