@@ -29,7 +29,7 @@ class Gatekeeper : public PProcess
 		 WORD majorVersion = 1,
 		 WORD minorVersion = 0,  
 		 CodeStatus status = AlphaCode, 
-		 WORD buildNumber = 6);
+		 WORD buildNumber = 8);
 
 	virtual void Main();
 
