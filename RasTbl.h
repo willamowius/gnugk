@@ -28,6 +28,7 @@
 #include <q931.h>
 #include "singleton.h"
 #include "GkProfile.h"
+#include "gklock.h"
 
 #ifdef P_SOLARIS
 #define map stl_map
@@ -128,7 +129,7 @@ public:
 	virtual PString PrintOn(bool verbose) const;
 	void SetNATAddress(PIPSocket::Address);
 
-	bool IsUsed() const;
+	bool IsUsed() const ;
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const { return m_fromParent; }
 	bool IsNATed() const { return m_nat; }
@@ -407,6 +408,7 @@ public:
 	void SetRegistered(bool registered) { m_registered = registered; }
 
 	void SetConnected(bool c);
+	void SetDisconnected();
 	void SetTimer(int seconds);
 
 	void Disconnect(bool = false); // Send Release Complete?
@@ -422,7 +424,7 @@ public:
 	bool CompareEndpoint(const endptr *) const;
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 
-	bool IsUsed() const;
+	bool IsUsed();
 	bool IsConnected() const;
 	bool IsTimeout(const PTime *) const;
 	bool IsH245Routed() const;
@@ -468,12 +470,12 @@ private:
         CalledProfile  *m_calledProfile;
 
 	PTime *m_startTime;
+	PTime *m_stopTime;
 	PTimer m_timer;
 	int m_timeout;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
-	int m_usedCount;
 	mutable PMutex m_usedLock;
 	int m_nattype;
 
@@ -482,6 +484,7 @@ private:
 
 	CallRec(const CallRec & Other);
 	CallRec & operator= (const CallRec & other);
+	GKCondMutex m_access_count;
 };
 
 typedef CallRec::Ptr callptr;
@@ -656,10 +659,10 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-inline bool CallRec::IsUsed() const
+inline bool CallRec::IsUsed()
 {
 	PWaitAndSignal lock(m_usedLock);
-	return (m_usedCount != 0);
+	return m_access_count.Condition();
 }
 
 inline bool CallRec::IsConnected() const
