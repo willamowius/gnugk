@@ -32,7 +32,7 @@
 class GkLDAP : public GkDBHandler{
 	PCLASSINFO(GkLDAP, GkDBHandler)
 public:
-  
+
 	GkLDAP(PConfig &, DBAttributeNamesClass & attrNames);
 	virtual ~GkLDAP();
 
@@ -43,7 +43,7 @@ public:
 
 	/** returns attribute values for a given alias and all attributes
 	    @returns #TRUE# if LDAPQuery succeeds and exactly 1 match is found
-	 */  
+	 */
 	virtual BOOL getAttributes(const PString &alias, DBAttributeValueClass &attr_map);
 
 	/** checks if an alias is a prefix of an attribute value in a LDAP entry.
@@ -51,8 +51,8 @@ public:
 	    #TRUE# if it is a full match.
 	    @returns #TRUE# if succeeds
 	 */
-	virtual BOOL prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name, 
-					BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound);
+	virtual BOOL prefixMatch(const H225_AliasAddress & alias, const dctn::DBAttributeNamesEnum attr_name,
+					BOOL & matchFound, BOOL & fullMatch, BOOL & gwFound, CalledProfile & calledProfile);
 	/** @returns database type
 	 */
 	virtual dctn::DBTypeEnum GkLDAP::dbType();
@@ -60,11 +60,11 @@ public:
 protected:
 
 	DBAttributeNamesClass AN;	// names of the database attributes
-  
+
 private:
 
 	LDAPCtrl *LDAPConn;		// a HAS-A relation is prefered over a IS-A relation
-				// because one can better steer the parameters  
+				// because one can better steer the parameters
 };
 
 #endif // HAS_LDAP
