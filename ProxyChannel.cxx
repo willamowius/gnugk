@@ -366,15 +366,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	}
 	
 	if (!m_call) {
-		PTRACE(3, "Q931\t" << Name() << " Setup destination not found!");
 		EndSession();
 		SetDeletable();
-		return Error;
-	}
-	if (peerAddr == INADDR_ANY) {
-		PTRACE(3, "Q931\t" << Name() << " INVALID ADDRESS");
-		EndSession();
-		CallTable::Instance()->RemoveCall(m_call);
 		return Error;
 	}
 
@@ -461,6 +454,12 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 			PTRACE(3, "Q931\tNo CallRec found in CallTable for callid " << callid);
 			return;
 		}
+		Address fromIP;
+		GetPeerAddress(fromIP);
+		if (!RasThread->CheckNBIP(fromIP)) {
+			PTRACE(2, "Q931\tWarning: call " << callid << " not from my neighbor");
+			return;
+		}
 		if (gkClient->IsRegistered())
 			gkClient->RewriteE164(*GetReceivedQ931(), Setup, false);
 		endptr called;
@@ -492,8 +491,12 @@ void CallSignalSocket::OnSetup(H225_Setup_UUIE & Setup)
 	}
 
 	const H225_TransportAddress *addr = m_call->GetCalledAddress();
-	if (!addr || addr->GetTag() != H225_TransportAddress::e_ipAddress)
+	if (!addr || addr->GetTag() != H225_TransportAddress::e_ipAddress) {
+		CallTable::Instance()->RemoveCall(m_call);
+		m_call = callptr(0);
+		PTRACE(3, "Q931\t" << Name() << " INVALID ADDRESS");
 		return;
+	}
 
 	const H225_TransportAddress_ipAddress & ip = *addr;
 	peerAddr = PIPSocket::Address(ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
