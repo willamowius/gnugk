@@ -1,0 +1,84 @@
+Changes from 0.11 to 0.12
+=========================
+
+- you must have a config file now to set the various new options
+  (eg. gatekeeper.ini in the current directory, or set a path on the
+  command line with -c)
+- support for failover to other gatekeepers
+- RAS messages can be forwarded to other gatekeepers
+- TCP parameters can be configured in the config file
+- what gateway to use on what E.164 prefix can be specified in the
+  config file
+- overlapped sending: specify in the config file when to send
+  "incompleteAddress" on ARQ and collect more digits
+- detailed authentication rules which endpoints may register based on
+  their IP numbers
+- rule based authentication for usage of the status port
+- alias rewriting: the gatekeeper has a list of E.164 aliases
+  that are replaced by another E.164 number
+- many bugfixes...
+
+- the timeToLive filed in RCF can be set on the command line with -l
+
+- more detailed status messages (see GkStatusMsgFmt.html)
+  many patches from Henrik Joerring
+
+Most of the changes in this release are donated by folks at MediaWays
+(Markus Storm and Torsten Will).
+They sent more stuff than I can mention here.
+
+
+Changes from 0.10 to 0.11
+=========================
+
+- many memory leaks fixed
+  by Damian Slee
+- LRQ implemented
+  patch by Ashley Unitt
+- accept LRQ as Multicast, too
+- when more bandwidth is requested than available we now grant ACF with
+  the bandwidth that's still available
+  input from Robert Jongbloed
+- more attempts for a clean shutdown handling
+- status thread accepts commands now (see gkstatus.txt)
+  patch by Ashley Unitt
+- more detailed status messages (see GkStatusMsgFmt.html)
+  input from Henrik Joerring
+- general code fixups
+  by nils@shkoo.com
+
+
+Changes from 0.9 to 0.10
+========================
+
+- trace messages now use the Pwlib trace facility (use -t or -tt ... to
+  turn them on and -o to write to a file)
+  patch from Seungoh Jhung
+- support for lightweight registration updates
+- on shutdown all registered endpoint receive a UnregistrationRequest
+- support for gateways: for gateways we only compare the prefix of
+  the E.164 address the gateway registered and assume that the gateway
+  provides access to the whole address space (needs testing!)
+  input from Frank Breitenbach
+- new commandline option -h <ip> to specify the ip number the
+  gatekeeper binds to. Now you can use IP aliases on Linux and
+  start as many gatekeeprs as you want.
+  input from Markus Storm
+- status messages with ip numbers
+  input from Seungoh Jhung
+- bugfixes
+  from many contributors...
+
+
+Changes from 0.8 to 0.9
+=======================
+
+- gatekeeper routed signaling implemented (only H.225; no H.245, yet)
+  provided by Sergio Artero Martinez
+- Bugfix: RRQ from Innovaphone IP400 now ok
+  input by Markus Storm
+- gk sends status messages to all clients connected to TCP port 7000
+  (eg. for SNMP agent) - this is experimental and may evolve into
+  a full-fledged interface to the gatekkeper
+- all mandatory RAS messages implemented
+
