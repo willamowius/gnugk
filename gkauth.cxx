@@ -29,7 +29,6 @@
 #include "Toolkit.h"
 #include "RasTbl.h"
 #include "RasPDU.h"
-#include "gksql.h"
 #include "sigmsg.h"
 #include "gkauth.h"
 

@@ -1674,6 +1674,7 @@ if test "x${radius}" != "xno" ; then
    HAS_RADIUS=1
    STDCCFLAGS="-DHAS_RADIUS=1 $STDCCFLAGS"
    SOURCES="$SOURCES radproto.cxx radauth.cxx radacct.cxx"
+   HEADERS="$HEADERS radproto.h radauth.h radacct.h"
    echo "RADIUS support enabled"
 else
    echo "RADIUS support disabled"
@@ -1743,7 +1744,7 @@ fi
 if test "x${mysql}" != "xno"; then
 
 	echo $ac_n "checking for compress in -lz""... $ac_c" 1>&6
-echo "configure:1747: checking for compress in -lz" >&5
+echo "configure:1748: checking for compress in -lz" >&5
 ac_lib_var=`echo z'_'compress | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1751,7 +1752,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lz  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1755 "configure"
+#line 1756 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -1762,7 +1763,7 @@ int main() {
 compress()
 ; return 0; }
 EOF
-if { (eval echo configure:1766: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1767: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1784,17 +1785,17 @@ fi
 
 
 	echo $ac_n "checking for mysql.h""... $ac_c" 1>&6
-echo "configure:1788: checking for mysql.h" >&5
+echo "configure:1789: checking for mysql.h" >&5
 
 	cat > conftest.$ac_ext <<EOF
-#line 1791 "configure"
+#line 1792 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1798: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1799: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE=" "
 else
@@ -1813,14 +1814,14 @@ rm -f conftest*
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat > conftest.$ac_ext <<EOF
-#line 1817 "configure"
+#line 1818 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1824: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1825: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE="-I$try"
 else
@@ -1848,7 +1849,7 @@ rm -f conftest*
 		echo "$ac_t""yes" 1>&6
 
 		echo $ac_n "checking for mysql_init in -lmysqlclient""... $ac_c" 1>&6
-echo "configure:1852: checking for mysql_init in -lmysqlclient" >&5
+echo "configure:1853: checking for mysql_init in -lmysqlclient" >&5
 
 		old_LIBS="$LIBS"
 
@@ -1856,14 +1857,14 @@ echo "configure:1852: checking for mysql_init in -lmysqlclient" >&5
 			if test -d $try; then
 				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
 				cat > conftest.$ac_ext <<EOF
-#line 1860 "configure"
+#line 1861 "configure"
 #include "confdefs.h"
 extern char mysql_init();
 int main() {
 mysql_init()
 ; return 0; }
 EOF
-if { (eval echo configure:1867: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1868: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
    MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
 					  MYSQL_LDFLAGS="-L$try"
@@ -1953,17 +1954,17 @@ fi
 if test "x${pgsql}" != "xno"; then
 
 	echo $ac_n "checking for libpq-fe.h""... $ac_c" 1>&6
-echo "configure:1957: checking for libpq-fe.h" >&5
+echo "configure:1958: checking for libpq-fe.h" >&5
 
 	cat > conftest.$ac_ext <<EOF
-#line 1960 "configure"
+#line 1961 "configure"
 #include "confdefs.h"
 #include <libpq-fe.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1967: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1968: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   PGSQL_INCLUDE=" "
 else
@@ -1982,14 +1983,14 @@ rm -f conftest*
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat > conftest.$ac_ext <<EOF
-#line 1986 "configure"
+#line 1987 "configure"
 #include "confdefs.h"
 #include <libpq-fe.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1993: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1994: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   PGSQL_INCLUDE="-I$try"
 else
@@ -2017,7 +2018,7 @@ rm -f conftest*
 		echo "$ac_t""yes" 1>&6
 
 		echo $ac_n "checking for PQconnectdb in -lpq""... $ac_c" 1>&6
-echo "configure:2021: checking for PQconnectdb in -lpq" >&5
+echo "configure:2022: checking for PQconnectdb in -lpq" >&5
 
 		old_LIBS="$LIBS"
 
@@ -2025,14 +2026,14 @@ echo "configure:2021: checking for PQconnectdb in -lpq" >&5
 			if test -d $try; then
 				LIBS="$old_LIBS -L$try -lpq -lcrypt ${PGSQL_LIBS}"
 				cat > conftest.$ac_ext <<EOF
-#line 2029 "configure"
+#line 2030 "configure"
 #include "confdefs.h"
 extern char PQconnectdb();
 int main() {
 PQconnectdb
 ; return 0; }
 EOF
-if { (eval echo configure:2036: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2037: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
    PGSQL_LIBS="-lpq -lcrypt ${PGSQL_LIBS}"
 					  PGSQL_LDFLAGS="-L$try"
@@ -2083,6 +2084,11 @@ else
 fi
 
 
+if test "x$pgsql" != "xno" -o "x$mysql" != "xno"; then
+	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
+	HEADERS="$HEADERS sqlacct.h gksql.h"
+fi
+
 
 GNUGK_MAJOR_VERSION=`cat version.h | grep "define GNUGK_MAJOR_VERSION" | cut -f4 -d' '`
 GNUGK_MINOR_VERSION=`cat version.h | grep "define GNUGK_MINOR_VERSION" | cut -f4 -d' '`
@@ -2098,6 +2104,7 @@ echo "GNU Gatkeeper version is ${GNUGK_VERSION}"
 
 MANUFACTURER="GNU"
 PROGRAMNAME="Gatekeeper"
+
 
 
 
@@ -2279,6 +2286,7 @@ s%@STDCCFLAGS@%$STDCCFLAGS%g
 s%@ENDLDLIBS@%$ENDLDLIBS%g
 s%@ENDLDFLAGS@%$ENDLDFLAGS%g
 s%@SOURCES@%$SOURCES%g
+s%@HEADERS@%$HEADERS%g
 s%@HAS_MSG_NOSIGNAL@%$HAS_MSG_NOSIGNAL%g
 s%@NEEDOPENH323PREFIX@%$NEEDOPENH323PREFIX%g
 s%@OPENH323INSTALLPREFIX@%$OPENH323INSTALLPREFIX%g

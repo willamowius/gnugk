@@ -25,7 +25,9 @@
 #include "gktimer.h"
 #include "h323util.h"
 #include "gkconfig.h"
+#if HAS_MYSQL || HAS_PGSQL
 #include "gksql.h"
+#endif
 #include "clirw.h"
 #include "Toolkit.h"
 
@@ -801,6 +803,7 @@ void Toolkit::CreateConfig()
 
 void Toolkit::ReloadSQLConfig()
 {
+#if HAS_MYSQL || HAS_PGSQL
 	if (m_Config->GetSections().GetStringsIndex("SQLConfig") == P_MAX_INDEX)
 		return;
 
@@ -1050,6 +1053,7 @@ void Toolkit::ReloadSQLConfig()
 	delete sqlConn;
 	sqlConn = NULL;
 	PTRACE(3, "SQLCONF\tSQL config connection closed");
+#endif // HAS_MYSQL || HAS_PGSQL
 }
 
 PConfig* Toolkit::ReloadConfig()

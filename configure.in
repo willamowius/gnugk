@@ -234,6 +234,7 @@ if test "x${radius}" != "xno" ; then
    HAS_RADIUS=1
    STDCCFLAGS="-DHAS_RADIUS=1 $STDCCFLAGS"
    SOURCES="$SOURCES radproto.cxx radauth.cxx radacct.cxx"
+   HEADERS="$HEADERS radproto.h radauth.h radacct.h"
    echo "RADIUS support enabled"
 else
    echo "RADIUS support disabled"
@@ -493,6 +494,11 @@ else
 fi
 AC_SUBST(HAS_PGSQL)
 
+if test "x$pgsql" != "xno" -o "x$mysql" != "xno"; then
+	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
+	HEADERS="$HEADERS sqlacct.h gksql.h"
+fi
+
 dnl ########################################################################
 dnl make directives
 
@@ -520,6 +526,7 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(ENDLDLIBS)
 AC_SUBST(ENDLDFLAGS)
 AC_SUBST(SOURCES)
+AC_SUBST(HEADERS)
 AC_SUBST(HAS_MSG_NOSIGNAL)
 AC_SUBST(NEEDOPENH323PREFIX)
 AC_SUBST(OPENH323INSTALLPREFIX)

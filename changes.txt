@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- exclude all SQL modules from build if no SQL support is enabled
 - BUGFIX(ProxyChannel.cxx) originate an H.245 TCP connection from the same IP
   as an associated signalling connection is established
 - (clirw.cxx) new CLI rewrite types - prefix replacement (*=) and an identity
