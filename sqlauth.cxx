@@ -617,7 +617,31 @@ int SQLAuth::Check(
 		return e_fail;
 	}
 
-	GkSQLResult::ResultRow::const_iterator iter = FindField(result, "credittime");
+	GkSQLResult::ResultRow::const_iterator iter = FindField(result, "billingmode");
+	if (iter != result.end()) {
+		const PString &s = iter->first;
+		if (!s) {
+			if (strspn((const char*)s,"0123456789.") == (size_t)s.GetLength()) {
+				const int intVal = s.AsInteger();
+				if (intVal == 0)
+					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
+				else if (intVal == 1 || intVal == 2)
+					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
+			} else {
+				PTRACE(3, traceStr << " - invalid billingmode attribute '"
+					<< s << '\''
+					);
+			}
+		}
+	}
+
+	iter = FindField(result, "creditamount");
+	if (iter != result.end()) {
+		if (!iter->first)
+			authData.m_amountString = iter->first;
+	}
+
+	iter = FindField(result, "credittime");
 	if (iter != result.end()) {
 		const PString &s = iter->first;
 		if (s.GetLength() > 0

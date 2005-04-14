@@ -520,6 +520,10 @@ result and get additional information:
 <item>If the request is authenticated successfully, remaining columns 
       are examined:
 <enum>
+	<item>If there exists a column called <tt/'billingmode'/, set a billing mode
+		associated with the endpoint (0 - credit, <>0 - debit)
+	<item>If there exists a column called <tt/'creditamount'/, set account balance
+		associated with the endpoint (this is an arbitrary string)
 	<item>If there exists a column called <tt/'credittime'/, use its integer
           value to set call duration limit
 	<item>If there exists a column called <tt/'redirectnumber'/, replace
