@@ -218,6 +218,12 @@ BEGIN
 			FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE;
 	END IF;
 
+	-- adjust indexes for voipcall
+	SELECT INTO attrfound COUNT(*) FROM pg_indexes WHERE indexname = ''voipcall_h323id_idx'';
+	IF attrfound <> 0 THEN
+		DROP INDEX voipcall_h323id_idx;
+	END IF;
+	
 	-- recreate voipcalltermtariff constraints
 	constraintname := NULL;
 	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 

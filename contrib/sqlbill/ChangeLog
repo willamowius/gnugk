@@ -1,3 +1,6 @@
+14 Apr 2005 -- zvision
+  * unneccessary voipcall_h323id_idx index removed
+
 07 Mar 2005 -- zvision
   * fixed syntax error in f_voiptariff.sql script
 

@@ -18,9 +18,9 @@ CREATE TABLE voipcall (
 	h323id TEXT NOT NULL,
   
 	-- Acct-Session-Id attribute
-	acctsessionid VARCHAR(64) NOT NULL,  
+	acctsessionid TEXT NOT NULL,
 	-- H.323 Conference Identifier string
-	h323confid VARCHAR(48) DEFAULT '' NOT NULL,
+	h323confid TEXT DEFAULT '' NOT NULL,
 
 	-- IP address of the gatekeeper
 	gkip INET NOT NULL,
@@ -83,7 +83,5 @@ CREATE TABLE voipcall (
 ) WITHOUT OIDS;
 -- we do not want PostgreSQL to generate OID for each call record
 
--- for fast access to call for a specified user
-CREATE INDEX voipcall_h323id_idx ON voipcall(h323id);
--- for fast RADIUS call update
+-- for fast call update
 CREATE UNIQUE INDEX voipcall_acctupdatestop_idx ON voipcall(acctsessionid, gkip) WHERE acctstoptime IS NULL;
