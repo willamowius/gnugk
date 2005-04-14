@@ -2509,14 +2509,18 @@ bool H245Socket::ConnectRemote()
 {
 	if (listener)
 		listener->Close(); // don't accept other connection
-	PIPSocket::Address peerAddr;
+	PIPSocket::Address peerAddr, localAddr(0);
 	WORD peerPort;
 	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort)) {
 		PTRACE(3, "H245\tINVALID ADDRESS");
 		return false;
 	}
-	SetPort(peerPort);
-	bool result = Connect(INADDR_ANY, H245PortRange.GetPort(), peerAddr); // TODO
+	SetPort(peerPort);	
+	m_signalingSocketMutex.Wait();
+	if (sigSocket != NULL)
+		sigSocket->GetLocalAddress(localAddr);
+	m_signalingSocketMutex.Signal();
+	bool result = Connect(localAddr, H245PortRange.GetPort(), peerAddr); // TODO
 	if (result) {
 		PTRACE(3, "H245\tConnect to " << GetName() << " successful");
 	} else {
