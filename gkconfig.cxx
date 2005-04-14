@@ -14,6 +14,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2005/02/11 17:23:04  zvision
+ * Write SCCS keyword correctly
+ *
  * Revision 1.2  2005/01/27 13:41:28  zvision
  * SQLConfig ported from 2.0 branch
  *
@@ -92,7 +95,8 @@ PStringToString GatekeeperConfig::GetAllKeyValues(const PString& section) const
 	if (m_chainedConfig != NULL) {
 		const PStringList keys = m_chainedConfig->GetKeys(section);
 		for (PINDEX i = 0; i < keys.GetSize(); i++)
-			dict.SetAt(keys[i], m_chainedConfig->GetString(section, keys[i], ""));
+			if (!dict.Contains(keys[i]))
+				dict.SetAt(keys[i], m_chainedConfig->GetString(section, keys[i], ""));
 	}
 
 	return dict;
