@@ -3217,10 +3217,14 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		changed = true;
 	}
 	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
-		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel)) ) {
+		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel))) {
 
-		lc->SetMediaChannelSource(*addr);
-		*addr << GetLocalAddr() << lc->GetPort();
+		if (addr->m_tsapIdentifier != 0) {
+			lc->SetMediaChannelSource(*addr);
+			*addr << GetLocalAddr() << lc->GetPort();
+		} else {
+			*addr << GetLocalAddr() << (WORD)0;
+		}
 		changed = true;
 	}
 
@@ -3289,9 +3293,24 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 		return false;
 	if (hnat)
 		hnat->HandleOpenLogicalChannel(olc);
+
+	bool changed = false;
+	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RemoveMCInFastStartTransmitOffer", "0"))) {
+		// for unicast transmit channels, mediaChannel should not be sent on offer
+		// it is responsibility of callee to provide mediaChannel in an answer
+		H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters &params = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
+		if (params.GetTag() == H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) {
+			H245_H2250LogicalChannelParameters &h225Params = (H245_H2250LogicalChannelParameters &)params;
+			if (h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
+				h225Params.RemoveOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
+				changed = true;
+			}
+		}
+	}
+	
 	bool nouse;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-	return (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
+	return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
 }
 
 bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)

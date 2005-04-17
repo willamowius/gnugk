@@ -1,5 +1,8 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- (ProxyChannel.cxx) ignore incorrect mediaChannel offers with port number 0,
+  internal option [Proxy] RemoveMCInFastStartTransmitOffer to enable removing
+  mediaChannel from fast start transmit channel open offers
 - creditamout and billingmode fields may appear in a result for SQLAuth CallQuery
 - exclude all SQL modules from build if no SQL support is enabled
 - BUGFIX(ProxyChannel.cxx) originate an H.245 TCP connection from the same IP
