@@ -1,5 +1,7 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- BUGFIX(radproto.cxx) GetSocket could use an invalidated iterators
+  under some circumstances. Thanks to kubuqi cn
 - (ProxyChannel.cxx) ignore incorrect mediaChannel offers with port number 0,
   internal option [Proxy] RemoveMCInFastStartTransmitOffer to enable removing
   mediaChannel from fast start transmit channel open offers

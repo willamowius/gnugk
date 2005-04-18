@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2004/07/26 12:19:42  zvision
+ * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
+ *
  * Revision 1.11.2.3  2004/07/12 22:27:32  zvision
  * Ability to set a shared secret for each RADIUS server separatelly.
  * More RADIUS code optimizations.
@@ -1426,8 +1429,8 @@ protected:
 		);
 	
 protected:
-	typedef std::vector<RadiusSocket*>::iterator socket_iterator;
-	typedef std::vector<RadiusSocket*>::const_iterator socket_const_iterator;
+	typedef std::list<RadiusSocket*>::iterator socket_iterator;
+	typedef std::list<RadiusSocket*>::const_iterator socket_const_iterator;
 	
 	/// An entry describing a signle radius server
 	typedef struct RadiusServer
@@ -1467,7 +1470,7 @@ protected:
 	/// local address that the client should bind to when making requests
 	PIPSocket::Address m_localAddress;
 	/// array of active RADIUS client sockets
-	std::vector<RadiusSocket*> m_activeSockets;
+	std::list<RadiusSocket*> m_activeSockets;
 	/// mutex for accessing #activeSockets# and other stuff
 	mutable PMutex m_socketMutex;
 };

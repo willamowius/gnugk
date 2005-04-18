@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.22  2005/03/15 15:24:28  zvision
+ * Removed compiler warning
+ *
  * Revision 1.21  2005/01/28 11:19:42  zvision
  * All passwords in the config can be stored in an encrypted form
  *
@@ -1923,15 +1926,14 @@ RadiusClient::RadiusClient(
 
 RadiusClient::~RadiusClient()
 {
-	unsigned size = m_activeSockets.size();
-	unsigned i;
-
-	for (i = 0; i < size; i++)
-		delete m_activeSockets[i];
-	m_activeSockets.clear();
-	
-	size = m_radiusServers.size();
-	for (i = 0; i < size; i++)
+	socket_iterator iter = m_activeSockets.begin();
+	while (iter != m_activeSockets.end()) {
+		RadiusSocket *s = *iter;
+		iter = m_activeSockets.erase(iter);
+		delete s;
+	}
+		
+	for (unsigned i = 0; i < m_radiusServers.size(); i++)
 		delete m_radiusServers[i];
 	m_radiusServers.clear();
 }
@@ -1990,9 +1992,11 @@ bool RadiusClient::SetIdCacheTimeout(
 		return false;
 		
 	m_idCacheTimeout = timeout;
-	const unsigned size = m_activeSockets.size();
-	for (unsigned i = 0; i < size; i++)
-		m_activeSockets[i]->SetIdCacheTimeout(timeout);
+	socket_const_iterator i = m_activeSockets.begin();
+	while (i != m_activeSockets.end()) {
+		(*i)->SetIdCacheTimeout(timeout);
+		++i;
+	}
 			
 	return true;
 }
@@ -2019,10 +2023,11 @@ bool RadiusClient::SetRequestTimeout(
 	PWaitAndSignal lock(m_socketMutex);
 		
 	m_requestTimeout = timeout;
-	const unsigned size = m_activeSockets.size();
-	for (unsigned i = 0; i < size; i++) {
-		m_activeSockets[i]->SetReadTimeout(timeout);
-		m_activeSockets[i]->SetWriteTimeout(timeout);
+	socket_const_iterator i = m_activeSockets.begin();
+	while (i != m_activeSockets.end()) {
+		(*i)->SetReadTimeout(timeout);
+		(*i)->SetWriteTimeout(timeout);
+		++i;
 	}
 			
 	return true;
@@ -2304,17 +2309,18 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 {
 	PWaitAndSignal lock(m_socketMutex);
 	
+	const socket_iterator endIter = m_activeSockets.end();
 	socket_iterator s = m_activeSockets.begin();
-
+	
 	// find a first socket that is not busy (has at least one ID that can
 	// be used for a request)
-	while (s != m_activeSockets.end()) {
+	while (s != endIter) {
 		const PINDEX newId = (*s)->GenerateNewId();
 		if (newId != P_MAX_INDEX) {
 			id = (unsigned char)newId;
 			break;
 		} else
-			s++;
+			++s;
 	}
 
 	// refresh state of remaining sockets (reclaim unused request IDs)
@@ -2322,21 +2328,22 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	const PTime now;
 	socket_iterator i = m_activeSockets.begin();
 	
-	while (i != m_activeSockets.end()) {
-		socket_iterator j = i++;
-
-		if (j == s)
+	while (i != endIter) {
+		if (i == s)
 			continue;
 		
-		(*j)->RefreshIdCache(now.GetTimeInSeconds());
-		if ((*j)->CanDestroy() 
-			&& ((*j)->GetRecentRequestTime() + m_socketDeleteTimeout) < now) {
-			delete *j;
-			m_activeSockets.erase(j);
-		}
+		(*i)->RefreshIdCache(now.GetTimeInSeconds());
+		
+		if ((*i)->CanDestroy() 
+			&& ((*i)->GetRecentRequestTime() + m_socketDeleteTimeout) < now) {
+			RadiusSocket *s = *i;
+			i = m_activeSockets.erase(i);
+			delete s;
+		} else
+			++i;
 	}
 
-	if (s != m_activeSockets.end()) {
+	if (s != endIter) {
 		socket = *s;
 		return true;	
 	}
