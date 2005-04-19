@@ -11,6 +11,10 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.23  2005/04/18 11:24:51  zvision
+ * Use list instead of vector in GetSocket to prevent from using invalidated
+ * iterators. Thanks to kubuqi cn
+ *
  * Revision 1.22  2005/03/15 15:24:28  zvision
  * Removed compiler warning
  *
@@ -2329,8 +2333,10 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	socket_iterator i = m_activeSockets.begin();
 	
 	while (i != endIter) {
-		if (i == s)
+		if (i == s) {
+			++i;
 			continue;
+		}
 		
 		(*i)->RefreshIdCache(now.GetTimeInSeconds());
 		
