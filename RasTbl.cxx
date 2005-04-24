@@ -16,9 +16,9 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if (_MSC_VER >= 1200)  
-#pragma warning( disable : 4800 ) // one performance warning off
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)  
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #define snprintf	_snprintf
 #endif
 
@@ -36,6 +36,19 @@
 #include "ProxyChannel.h"
 #include "gkacct.h"
 #include "RasTbl.h"
+
+using std::copy;
+using std::partition;
+using std::back_inserter;
+using std::transform;
+using std::mem_fun;
+using std::bind2nd;
+using std::equal_to;
+using std::find;
+using std::find_if;
+using std::distance;
+using std::sort;
+using std::string;
 
 const char *CallTableSection = "CallTable";
 const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
@@ -618,9 +631,9 @@ void GatewayRec::SortPrefixes()
 {
 	// remove duplicate aliases
 	sort(Prefixes.begin(), Prefixes.end(), str_prefix_greater());
-	prefix_iterator Iter = unique(Prefixes.begin(), Prefixes.end());
+	prefix_iterator Iter = std::unique(Prefixes.begin(), Prefixes.end());
 	Prefixes.erase(Iter, Prefixes.end());
-	defaultGW = (find(Prefixes.begin(), Prefixes.end(), std::string("*")) != Prefixes.end());
+	defaultGW = (std::find(Prefixes.begin(), Prefixes.end(), string("*")) != Prefixes.end());
 }
 
 int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &aliases) const
@@ -654,11 +667,11 @@ int GatewayRec::PrefixMatch(
 					
 			const_prefix_iterator Iter = Prefixes.begin();
 			while (Iter != eIter) {
-				if (Iter->length() > (unsigned)std::abs(maxlen)) {
+				if (Iter->length() > (unsigned)abs(maxlen)) {
 					const int len = MatchPrefix(alias, Iter->c_str());
 					// replace the current match if the new prefix is longer
 					// or if lengths are equal and this is a blocking rule (!)
-					if (std::abs(len) > std::abs(maxlen)
+					if (abs(len) > abs(maxlen)
 						|| (len < 0 && (len + maxlen) == 0)) {
 						pfxiter = Iter;
 						maxlen = len;
@@ -723,7 +736,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 		if (Prefixes.size() == 0) {
 			msg += "<none>";
 		} else {
-			std::string m=Prefixes.front();
+			string m=Prefixes.front();
 			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
 			while (++Iter != eIter)
 				m += "," + (*Iter);
@@ -965,10 +978,14 @@ endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, 
 }
 
 namespace {
-bool GatewayCompareLesser(const GatewayRec *gw1, const GatewayRec *gw2)
-{
-	return gw1->GetPriority() < gw2->GetPriority();
-}
+struct GWPtr {
+	GWPtr(GatewayRec *gw) : gwptr(gw) {}
+	GatewayRec* operator->() const { return gwptr; }
+	bool operator <(const GWPtr &gw) { return gwptr->GetPriority() < gw->GetPriority(); }
+	GatewayRec *gwptr;
+private:
+	GWPtr();
+};
 } /* namespace */
 
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
@@ -981,7 +998,7 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	}
 
 	int maxlen = 0;
-	std::list<GatewayRec *> GWlist;
+	std::list<GWPtr> GWlist;
 	listLock.StartRead();
 	const_iterator Iter = List->begin(), IterLast = List->end();
 	while (Iter != IterLast) {
@@ -992,20 +1009,20 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 				maxlen = len;
 			}
 			if (maxlen == len)
-				GWlist.push_back(dynamic_cast<GatewayRec*>(*Iter));
+				GWlist.push_back(GWPtr(dynamic_cast<GatewayRec*>(*Iter)));
 		}
 		++Iter;
 	}
 	listLock.EndRead();
 
 	if (GWlist.size() > 0) {
-		GWlist.sort(GatewayCompareLesser);
+		GWlist.sort();
 		
-		std::list<GatewayRec*>::const_iterator i = GWlist.begin();
-		GatewayRec *e = GWlist.front();
+		std::list<GWPtr>::const_iterator i = GWlist.begin();
+		GatewayRec *e = GWlist.front().gwptr;
 		while (!e->HasAvailableCapacity() && ++i != GWlist.end()) {
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
-			e = *i;
+			e = i->gwptr;
 		}
 		if ((GWlist.size() > 1) && roundrobin) {
 			PTRACE(3, "Prefix apply round robin");

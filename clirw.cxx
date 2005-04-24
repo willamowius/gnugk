@@ -12,6 +12,10 @@
  * We also explicitely grant the right to link this code
  * with the OpenH323 library.
  */
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4284)
+#endif
+
 #include <ptlib.h>
 #include <ptlib/ipsock.h>
 #include "clirw.h"
@@ -382,7 +386,7 @@ CLIRewrite::CLIRewrite()
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "Inbound CLI rewrite rules:" << endl;
 		for (unsigned i = 0; i < m_inboundRules.size(); i++) {
-			strm << "\tsrc " << m_inboundRules[i].first << ":" << endl;
+			strm << "\tsrc " << m_inboundRules[i].first.AsString() << ":" << endl;
 			for (unsigned j = 0; j < m_inboundRules[i].second.size(); j++)
 				strm << "\t\t" << m_inboundRules[i].second[j].AsString() << endl;
 		}
@@ -397,8 +401,8 @@ CLIRewrite::CLIRewrite()
 		strm << "Outbound CLI rewrite rules:" << endl;
 		for (unsigned i = 0; i < m_outboundRules.size(); i++)
 			for (unsigned j = 0; j < m_outboundRules[i].second.size(); j++) {
-				strm << "\tsrc " << m_outboundRules[i].first << " dst " 
-					<< m_outboundRules[i].second[j].first << ":" << endl;
+				strm << "\tsrc " << m_outboundRules[i].first.AsString() << " dst " 
+					<< m_outboundRules[i].second[j].first.AsString() << ":" << endl;
 				for (unsigned k = 0; k < m_outboundRules[i].second[j].second.size(); k++)
 					strm << "\t\t" << m_outboundRules[i].second[j].second[k].AsString() << endl;
 			}

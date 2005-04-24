@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2005/01/16 15:22:35  zvision
+ * Database Host parameter accepts only one host now
+ *
  * Revision 1.5  2004/08/02 10:52:07  zvision
  * Ability to extract column names from a result set
  *
@@ -20,8 +23,9 @@
  */
 #if HAS_MYSQL
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #ifdef _WIN32

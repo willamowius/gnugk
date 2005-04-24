@@ -1,6 +1,20 @@
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+/*
+ * sqlauth.cxx
+ *
+ * SQL authentication/authorization modules for GNU Gatekeeper
+ *
+ * $Id$
+ *
+ * Copyright (c) 2004, Michal Zygmuntowicz
+ *
+ * This work is published under the GNU Public License (GPL)
+ * see file COPYING for details.
+ * We also explicitely grant the right to link this code
+ * with the OpenH323 library.
+ */
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -21,6 +35,8 @@
 #include "h323util.h"
 #include "Neighbor.h"
 #include "gkauth.h"
+
+using std::map;
 
 /// Generic SQL authenticator for H.235 enabled endpoints
 class SQLPasswordAuth : public SimplePasswordAuth
@@ -191,7 +207,7 @@ bool RunQuery(
 	const PString &traceStr,
 	GkSQLConnection *conn,
 	const PString &query,
-	const std::map<PString, PString>& params,
+	const map<PString, PString>& params,
 	GkSQLResult::ResultRow& resultRow,
 	long timeout
 	)
@@ -312,7 +328,7 @@ bool SQLPasswordAuth::GetPassword(
 	)
 {
 	GkSQLResult::ResultRow result;
-	std::map<PString, PString> params;
+	map<PString, PString> params;
 	params["1"] = alias;
 	params["u"] = alias;
 	params["2"] = Toolkit::GKName();
@@ -384,7 +400,7 @@ bool SQLAliasAuth::GetAuthConditionString(
 	)
 {
 	GkSQLResult::ResultRow result;
-	std::map<PString, PString> params;
+	map<PString, PString> params;
 	params["1"] = alias;
 	params["u"] = alias;
 	params["2"] = Toolkit::GKName();
@@ -484,7 +500,7 @@ int SQLAuth::Check(
 	)
 {
 	H225_RegistrationRequest &rrq = rrqPdu;
-	std::map<PString, PString> params;
+	map<PString, PString> params;
 	
 	// get the username for User-Name attribute		
 	params["u"] = GetUsername(rrqPdu);
@@ -583,7 +599,7 @@ int SQLAuth::Check(
 	)
 {
 	const H225_AdmissionRequest &arq = arqPdu;
-	std::map<PString, PString> params;
+	map<PString, PString> params;
 	
 	PIPSocket::Address addr = (arqPdu.operator->())->m_peerAddr;
 
@@ -708,7 +724,7 @@ int SQLAuth::Check(
 	)
 {
 	H225_LocationRequest &lrq = lrqPdu;
-	std::map<PString, PString> params;
+	map<PString, PString> params;
 	
 	PIPSocket::Address addr = (lrqPdu.operator->())->m_peerAddr;
 
@@ -780,7 +796,7 @@ int SQLAuth::Check(
 	SetupAuthData& authData
 	)
 {
-	std::map<PString, PString> params;
+	map<PString, PString> params;
 	
 	PIPSocket::Address addr;
 	setup.GetPeerAddr(addr);

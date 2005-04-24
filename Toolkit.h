@@ -88,8 +88,6 @@ bool operator==(const PIPSocket::Address &addr, const NetworkAddress &net);
 /// @return	True if the given address is contained withing this network
 bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net);
 
-ostream & operator<<(ostream &strm, const NetworkAddress &addr);
-
 class GkTimerManager;
 class CLIRewrite;
 class Toolkit : public Singleton<Toolkit>
@@ -122,7 +120,7 @@ class Toolkit : public Singleton<Toolkit>
 	protected:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:
-#ifndef WIN32
+#ifndef _WIN32
 			PCLASSINFO( RouteEntry, PIPSocket::RouteEntry )
 #endif
 			RouteEntry(const PString &);

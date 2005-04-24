@@ -180,7 +180,7 @@ protected:
 		const PTimeInterval& timeout
 		) 
 	{ 
-		return m_sync.Wait(timeout); 
+		return m_sync.Wait(timeout) ? true : false; 
 	}
 
 	/// Send a signal to the waiting task

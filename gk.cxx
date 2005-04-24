@@ -17,14 +17,14 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if (_MSC_VER >= 1200)  
-#pragma warning( disable : 4800 ) // one performance warning off
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)  
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>
-#ifndef WIN32
+#ifndef _WIN32
 #define HAS_SETUSERNAME
 #include <signal.h>
 #endif
@@ -41,6 +41,8 @@
 #include "gktimer.h"
 #include "gk.h"
 
+using std::vector;
+using std::map;
 
 /*
  * many things here should be members of Gatkeeper. 
@@ -65,7 +67,7 @@ namespace { // keep the global objects private
 PMutex ShutdownMutex;
 PMutex ReloadMutex;
 
-#ifndef WIN32
+#ifndef _WIN32
 PString pidfile("/var/run/gnugk.pid");
 #endif
 
@@ -176,7 +178,7 @@ void ReloadHandler()
 	PProcess::Sleep(500);
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 
 BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 {
@@ -275,7 +277,7 @@ void DumbHandler(int sig)
 	PTRACE(1, "Warning: signal " << sig << " received and ignored!");
 }
 
-#endif // WIN32
+#endif // _WIN32
 
 
 // default params for overwriting
@@ -319,7 +321,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 
 BOOL Gatekeeper::InitHandlers(const PArgList& args)
 {
-#ifdef WIN32
+#ifdef _WIN32
 	SetConsoleCtrlHandler(WinCtrlHandlerProc, TRUE);
 #else
 	struct sigaction sigact;
@@ -507,7 +509,7 @@ void Gatekeeper::Main()
 	if (args.HasOption('i'))
 		Toolkit::Instance()->SetGKHome(args.GetOptionString('i').Lines());
 
-	std::vector<PIPSocket::Address> GKHome;
+	vector<PIPSocket::Address> GKHome;
 	PString home(Toolkit::Instance()->GetGKHome(GKHome));
 	if (GKHome.empty()) {
 		cerr << "Fatal: Cannot find any interface to run GnuGK!\n";
@@ -552,7 +554,7 @@ void Gatekeeper::Main()
 	else
 		RasSrv->SetRoutedMode();
 
-#if defined(WIN32)
+#if defined(_WIN32)
 	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT 
 	//    dialog box from being displayed. 
 	// 2) set process shutdown priority - we want as much time as possible
@@ -571,11 +573,11 @@ void Gatekeeper::Main()
 	ShutdownHandler();
 	cerr << "done\n";
 
-#ifdef WIN32
+#ifdef _WIN32
 	// remove control handler/close console
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)WinCtrlHandlerProc, FALSE);
 	FreeConsole();
-#endif // WIN32
+#endif // _WIN32
 }
 
 #if PTRACING
@@ -617,7 +619,7 @@ void Gatekeeper::GetRotateInterval(
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
 			m_rotateDay = s.AsInteger();
 		} else {
-			std::map<PCaselessString, int> dayNames;
+			map<PCaselessString, int> dayNames;
 			dayNames["sun"] = 0; dayNames["sunday"] = 0;
 			dayNames["mon"] = 1; dayNames["monday"] = 1;
 			dayNames["tue"] = 2; dayNames["tuesday"] = 2;

@@ -15,20 +15,12 @@
 // initial version: 04/21/2003
 //
 //////////////////////////////////////////////////////////////////
-
-
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4355 ) // warning about using 'this' in initializer
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
-#endif
-
 #include <list>
 #include <ptlib.h>
 #include "stl_supp.h"
 #include "rwlock.h"
 #include "singleton.h"
 #include "job.h"
-
 
 // timeout (seconds) for an idle Worker to be deleted
 #define DEFAULT_WORKER_IDLE_TIMEOUT (10*60)

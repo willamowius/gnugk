@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2005/03/15 11:49:38  zvision
+ * Make reconnect working correctly when a database server is down
+ *
  * Revision 1.9  2005/03/08 00:13:47  zvision
  * Support for connect event in SqlAcct module, thanks to Boian Bonev
  *
@@ -57,9 +60,9 @@
  * New direct SQL accounting module (SQLAcct)
  *
  */
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -73,6 +76,9 @@
 #include "gksql.h"
 #include "gkacct.h"
 #include "sqlacct.h"
+
+using std::vector;
+using std::map;
 
 
 SQLAcct::SQLAcct(
@@ -154,7 +160,7 @@ SQLAcct::SQLAcct(
 			<< m_stopQueryAlt
 			);
 
-	std::vector<PIPSocket::Address> interfaces;
+	vector<PIPSocket::Address> interfaces;
 	Toolkit::Instance()->GetGKHome(interfaces);
 	if (interfaces.empty()) {
 		PTRACE(0, "GKACCT\t" << GetName() << " cannot determine gatekeeper IP address");
@@ -222,7 +228,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		return Fail;
 	}
 
-	std::map<PString, PString> params;
+	map<PString, PString> params;
 	SetupAcctParams(params, call, m_timestampFormat);
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
 	if (result == NULL)

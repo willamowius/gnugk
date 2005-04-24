@@ -14,8 +14,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -23,6 +23,14 @@
 #include "stl_supp.h"
 #include "rwlock.h"
 #include "yasocket.h"
+
+using std::mem_fun;
+using std::bind1st;
+using std::partition;
+using std::distance;
+using std::copy;
+using std::back_inserter;
+using std::find;
 
 #ifdef LARGE_FDSET
 
@@ -48,10 +56,10 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 	bool r = ::select(maxfd + 1, readfds, writefds, 0, &tval) > 0;
 	if (r) {
 #if 1
-		std::vector<YaSocket*>::iterator last = std::remove_if(
+		std::vector<YaSocket*>::iterator last = remove_if(
 			fds.begin(), fds.end(),
-			std::not1(std::compose1(
-				std::bind1st(mem_fun(&large_fd_set::has), &fdset), 
+			not1(compose1(
+				bind1st(mem_fun(&large_fd_set::has), &fdset), 
 				mem_fun(&YaSocket::GetHandle)
 				)));
 		fds.erase(last, fds.end());
@@ -125,7 +133,7 @@ bool YaSocket::Close()
 	int handle = os_handle;
 	os_handle = -1;
 	::shutdown(handle, SHUT_RDWR);
-#ifdef WIN32
+#ifdef _WIN32
 	::closesocket(handle);
 #else
 	::close(handle);
@@ -371,7 +379,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	SetName(AsString(addr, port));
 
 	int r = ::connect(os_handle, (struct sockaddr *)&peeraddr, sizeof(peeraddr));
-#ifdef WIN32
+#ifdef _WIN32
 	if ((r != 0) && (WSAGetLastError() != WSAEWOULDBLOCK))
 #else
 	if (r == 0 || errno != EINPROGRESS)
@@ -800,7 +808,7 @@ bool TCPServer::CloseListener(TCPListenSocket *socket)
 {
 	ReadLock lock(m_listmutex);
 	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
-	return (iter != m_sockets.end()) ? (*iter)->Close() : false;
+	return (iter != m_sockets.end()) ? ((*iter)->Close() ? true : false) : false;
 }
 
 void TCPServer::ReadSocket(IPSocket *socket)

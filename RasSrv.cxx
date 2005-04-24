@@ -14,9 +14,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4800 ) // one performance warning off
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -38,6 +38,8 @@
 #include "gkacct.h"
 #include "gktimer.h"
 #include "RasSrv.h"
+
+using namespace std;
 
 #ifndef NEED_BROADCASTLISTENER
 #if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS)
@@ -733,7 +735,7 @@ void RasServer::LoadConfig()
 {
 	GetAlternateGK();
 
-	std::vector<Address> GKHome;
+	vector<Address> GKHome;
 	PString Home(Toolkit::Instance()->GetGKHome(GKHome));
 	PTRACE(2, "GK\tHome = " << Home);
 

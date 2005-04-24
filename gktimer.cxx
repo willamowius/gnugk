@@ -11,14 +11,23 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2004/05/12 11:47:06  zvision
+ * Generic support for time-based events
+ *
  * Revision 1.1.2.1  2004/05/10 16:43:26  zvision
  * Generic support for time-based events
  *
  */
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4284)
+#endif
+
 #include <ptlib.h>
 #include <list>
 #include "stl_supp.h"
 #include "gktimer.h"
+
+using std::find;
 
 /// A timer that calls a simple void function on its expiration
 class GkVoidFuncTimer : public GkTimer

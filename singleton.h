@@ -110,7 +110,7 @@ template<class T> T *Singleton<T>::Instance()
 	return m_Instance;
 }
 
-#ifndef WIN32  // VC++ doesn't support nested template?
+#ifndef _WIN32  // VC++ doesn't support nested template?
 template<class T> template <class U> T *Singleton<T>::Instance(const U &u)
 {
 	if (m_Instance == 0) {

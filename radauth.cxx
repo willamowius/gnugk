@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.32  2005/02/10 23:26:39  zvision
+ * Accounting updates/call disconnect handling does not lock the whole call table
+ *
  * Revision 1.31  2005/02/01 14:28:10  zvision
  * Parts of signaling code rewritten
  *
@@ -170,8 +173,8 @@
  
 #if HAS_RADIUS
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
 #endif
 
 #include <vector>
@@ -190,6 +193,8 @@
 #include "radproto.h"
 #include "gkauth.h"
 #include "radauth.h"
+
+using std::vector;
 
 namespace {
 // Settings for H.235 based module will be stored inside [RadAuth] config section
@@ -230,7 +235,7 @@ RadAuthBase::RadAuthBase(
 	m_radiusClient = new RadiusClient(*GetConfig(), configSectionName);
 	m_nasIpAddress = m_radiusClient->GetLocalAddress();
 	if (m_nasIpAddress == INADDR_ANY) {
-		std::vector<PIPSocket::Address> interfaces;
+		vector<PIPSocket::Address> interfaces;
 		Toolkit::Instance()->GetGKHome(interfaces);
 		if (!interfaces.empty())
 			m_nasIpAddress = interfaces.front();

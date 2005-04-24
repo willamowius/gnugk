@@ -13,9 +13,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -36,6 +36,12 @@ namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 }
+
+using std::map;
+using std::stable_sort;
+using std::for_each;
+using std::find_if;
+using std::greater;
 
 ARQAuthData::ARQAuthData(
 	/// an endpoint requesting admission
@@ -245,7 +251,7 @@ GkAuthenticator::GkAuthenticator(
 			<< GetName() << '\''
 			);
 
-	std::map<PString, unsigned> rasmap;
+	map<PString, unsigned> rasmap;
 	rasmap["GRQ"] = RasInfo<H225_GatekeeperRequest>::flag,
 	rasmap["RRQ"] = RasInfo<H225_RegistrationRequest>::flag,
 	rasmap["URQ"] = RasInfo<H225_UnregistrationRequest>::flag,
@@ -255,7 +261,7 @@ GkAuthenticator::GkAuthenticator(
 	rasmap["LRQ"] = RasInfo<H225_LocationRequest>::flag,
 	rasmap["IRQ"] = RasInfo<H225_InfoRequest>::flag;
 		
-	std::map<PString, unsigned> miscmap;
+	map<PString, unsigned> miscmap;
 	miscmap["SETUP"] = e_Setup;
 	miscmap["SETUPUNREG"] = e_SetupUnreg;
 	
@@ -1612,7 +1618,7 @@ class AuthObj;
 class PrefixAuth : public GkAuthenticator 
 {
 public:
-	typedef std::map< PString, AuthRule *, greater<PString> > Rules;
+	typedef map< PString, AuthRule *, greater<PString> > Rules;
 
 	enum SupportedRasChecks {
 		PrefixAuthRasChecks = RasInfo<H225_AdmissionRequest>::flag
@@ -2153,7 +2159,7 @@ namespace { // anonymous namespace
 } // end of anonymous namespace
 
 /* This is OBSOLETE
-#if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(WIN32))
+#if ((defined(__GNUC__) && __GNUC__ <= 2) && !defined(_WIN32))
 #include <unistd.h>
 #include <procbuf.h>
 

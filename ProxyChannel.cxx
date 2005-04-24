@@ -14,10 +14,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4355 ) // warning about using 'this' in initializer
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -36,6 +35,8 @@
 #include "Neighbor.h"
 #include "sigmsg.h"
 #include "ProxyChannel.h"
+
+using namespace std;
 
 namespace {
 // default timeout (ms) for initial Setup message,
@@ -376,9 +377,9 @@ private:
 	T120LogicalChannel *CreateT120LogicalChannel(WORD);
 	bool RemoveLogicalChannel(WORD flcn);
 
-	std::map<WORD, LogicalChannel *> logicalChannels;
-	std::map<WORD, RTPLogicalChannel *> sessionIDs;
-	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
+	map<WORD, LogicalChannel *> logicalChannels;
+	map<WORD, RTPLogicalChannel *> sessionIDs;
+	map<WORD, RTPLogicalChannel *> fastStartLCs;
 	ProxyHandler *handler;
 	H245ProxyHandler *peer;
 };
@@ -2677,7 +2678,7 @@ inline const H245_UnicastAddress_iPAddress & operator>>(const H245_UnicastAddres
 	return addr;
 }
 
-inline bool compare_lc(std::pair<const WORD, RTPLogicalChannel *> p, LogicalChannel *lc)
+inline bool compare_lc(pair<const WORD, RTPLogicalChannel *> p, LogicalChannel *lc)
 {
 	return p.second == lc;
 }
@@ -2708,7 +2709,7 @@ bool UDPProxySocket::Bind(WORD pt)
 		return false;
 
 	// Set the IP Type Of Service field for prioritisation of media UDP packets
-#ifdef WIN32
+#ifdef _WIN32
 	// Windows MultMedia stuff seems to need greater depth due to enormous
 	// latencies in its operation, need to use DirectSound maybe?
 	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
@@ -3453,7 +3454,7 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 		return false;
 	}
 	LogicalChannel *lc = iter->second;
-	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(ptr_fun(compare_lc), lc));
+	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(std::ptr_fun(compare_lc), lc));
 	if (i != sessionIDs.end())
 		sessionIDs.erase(i);
 	logicalChannels.erase(iter);
@@ -3583,7 +3584,7 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(*k);
 		if (!socket->IsBlocked()) {
 			if (socket->IsSocketOpen()) {
-#ifdef WIN32
+#ifdef _WIN32
 				if (slist.GetSize() >= FD_SETSIZE)
 					PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
 						"(FD_SETSIZE=" << ((int)FD_SETSIZE) << ")"
@@ -3682,7 +3683,7 @@ void ProxyHandler::FlushSockets()
 	iterator i = m_sockets.begin(), j = m_sockets.end();
 	while (i != j) {
 		if (dynamic_cast<ProxySocket *>(*i)->CanFlush()) {
-#ifdef WIN32
+#ifdef _WIN32
 			if (wlist.GetSize() >= FD_SETSIZE)
 				PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
 					"(limit=" << ((int)FD_SETSIZE) << ")"

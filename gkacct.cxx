@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.27  2005/03/18 14:54:47  zvision
+ * Various accounting variables ported from 2.0 branch
+ *
  * Revision 1.26  2005/02/02 22:16:46  zvision
  * Different Username was presented during auth and acct steps in some case
  *
@@ -94,8 +97,9 @@
  * Initial generic accounting support for GNU GK.
  *
  */
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -107,6 +111,10 @@
 #include "RasTbl.h"
 #include "gktimer.h"
 #include "gkacct.h"
+
+using std::map;
+using std::find;
+using std::vector;
 
 /// Name of the config file section for accounting configuration
 namespace {
@@ -192,7 +200,7 @@ GkAcctLogger::Status GkAcctLogger::Log(
 
 void GkAcctLogger::SetupAcctParams(
 	/// CDR parameters (name => value) associations
-	std::map<PString, PString>& params,
+	map<PString, PString>& params,
 	/// call (if any) associated with an accounting event being logged
 	const callptr& call,
 	/// timestamp formatting string
@@ -261,7 +269,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 	/// parametrized CDR string
 	const PString& cdrStr,
 	/// parameter values
-	const std::map<PString, PString>& params
+	const map<PString, PString>& params
 	) const
 {
 	PString finalCDR((const char*)cdrStr);
@@ -689,7 +697,7 @@ void FileAcct::GetRotateInterval(
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
 			m_rotateDay = s.AsInteger();
 		} else {
-			std::map<PCaselessString, int> dayNames;
+			map<PCaselessString, int> dayNames;
 			dayNames["sun"] = 0; dayNames["sunday"] = 0;
 			dayNames["mon"] = 1; dayNames["monday"] = 1;
 			dayNames["tue"] = 2; dayNames["tuesday"] = 2;
@@ -777,7 +785,7 @@ bool FileAcct::GetCDRText(
 	if (m_standardCDRFormat)	
 		cdrString = call->GenerateCDR(m_timestampFormat);
 	else {
-		std::map<PString, PString> params;
+		map<PString, PString> params;
 
 		SetupAcctParams(params, call, m_timestampFormat);
 		cdrString = ReplaceAcctParams(m_cdrString, params);
@@ -914,7 +922,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 			
 	bool finalResult = true;
 	GkAcctLogger::Status status = GkAcctLogger::Ok;
-	list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
+	std::list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
 	
 	while (iter != m_loggers.end()) {
 		GkAcctLogger* logger = *iter++;

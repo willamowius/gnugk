@@ -92,7 +92,7 @@ factory.h(135)   Init    Can't create SampleC with 3 parameter(s)
 *****************************************************************/
 
 
-#if (_MSC_VER >= 1200)
+#if defined(_WIN32) && (_MSC_VER >= 1200)
 #pragma warning( disable : 4355 ) // warning about using 'this' in initializer
 #endif
 
@@ -165,7 +165,7 @@ public:
 	protected:
 		Identifier m_id;
 		Creator m_old;
-#if defined(WIN32) && (_MSC_VER <= 1300)
+#if defined(_WIN32) && (_MSC_VER <= 1300)
 		Registrar(Identifier n, Creator c) : m_id(n) { m_old = Self::Register(n, c); }
 		~Registrar() { if (m_old) Self::Register(m_id, m_old); }
 #else
@@ -235,13 +235,13 @@ private:
 	static Creator m_default;
 };
 
-#if !defined(WIN32) || (_MSC_VER > 1300)
+#if !defined(_WIN32) || (_MSC_VER > 1300)
 // stupid VC can't instantiate these
 template<class Product, typename Identifier>
 Factory<Product, Identifier>::Registrar::Registrar(Identifier n, Creator c) : m_id(n)
 {
 // VS.NET fix
-#if defined(WIN32) && (_MSC_VER > 1300)
+#if defined(_WIN32) && (_MSC_VER > 1300)
 	m_old = Register(n, c);
 #else
 	m_old = Self::Register(n, c);
@@ -253,7 +253,7 @@ Factory<Product, Identifier>::Registrar::~Registrar()
 {
 	if (m_old)
 // VS.NET fix
-#if defined(WIN32) && (_MSC_VER > 1300)
+#if defined(_WIN32) && (_MSC_VER > 1300)
 		Register(m_id, m_old);
 #else
 		Self::Register(m_id, m_old);

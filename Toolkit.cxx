@@ -12,9 +12,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -31,6 +31,7 @@
 #include "clirw.h"
 #include "Toolkit.h"
 
+using namespace std;
 
 extern const char *ProxySection;
 
@@ -172,7 +173,7 @@ PString NetworkAddress::AsString() const
 
 bool NetworkAddress::IsAny() const
 {
-	return const_cast<NetworkAddress*>(this)->m_address.IsAny();
+	return const_cast<NetworkAddress*>(this)->m_address.IsAny() ? true : false;
 }
 
 bool NetworkAddress::operator<(const NetworkAddress &addr) const
@@ -203,11 +204,6 @@ bool operator==(const PIPSocket::Address &addr, const NetworkAddress &net)
 bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net)
 {
 	return net >> addr;
-}
-
-ostream & operator<<(ostream &strm, const NetworkAddress &addr)
-{
-	return strm << addr.AsString();
 }
 
 
@@ -351,7 +347,7 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 	for (PINDEX i = 0; i < networks.GetSize(); ++i) {
 		m_networks.resize(m_networks.size() + 1);
 		m_networks[m_networks.size() - 1] = NetworkAddress(networks[i]);
-		PTRACE(2, "GK\tInternal Network " << i << " = " << m_networks.back());
+		PTRACE(2, "GK\tInternal Network " << i << " = " << m_networks.back().AsString());
 	}
 }
 
@@ -379,7 +375,7 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 	PStringToString cfgs(config->GetAllKeyValues(section));
 	m_size = cfgs.GetSize();
 	if (m_size > 0) {
-		std::map<PString, PString, pstr_prefix_lesser> rules;
+		map<PString, PString, pstr_prefix_lesser> rules;
 		for (PINDEX i = 0; i < m_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
 			if (!key && (isdigit(key[0]) || key[0]=='!' || key[0]=='.' || key[0]=='%' || key[0]=='*' || key[0]=='#'))
@@ -491,9 +487,9 @@ bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString 
 	if (gw_entry == NULL)
 		return false;
 
-	std::vector<std::pair<PString,PString> >::iterator rule_iterator = direction
+	std::vector<pair<PString,PString> >::iterator rule_iterator = direction
 		? gw_entry->m_entry_data.first.begin() : gw_entry->m_entry_data.second.begin();
-	std::vector<std::pair<PString,PString> >::iterator end_iterator = direction
+	std::vector<pair<PString,PString> >::iterator end_iterator = direction
 		? gw_entry->m_entry_data.first.end() : gw_entry->m_entry_data.second.end();
 
 	for (; rule_iterator != end_iterator; ++rule_iterator) {
@@ -524,7 +520,7 @@ bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString 
 
 void Toolkit::GWRewriteTool::PrintData() {
 
-	std::vector<std::pair<PString,PString> >::iterator rule_iterator;
+	std::vector<pair<PString,PString> >::iterator rule_iterator;
 
 	PTRACE(2, "GK\tLoaded per GW rewrite data:");
 
@@ -558,10 +554,10 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 	PString key, cfg_value;
 	PStringArray lines, tokenised_line;
 	GWRewriteEntry *gw_entry;
-	std::map<PString,PString> in_strings, out_strings;
-	std::vector<std::pair<PString,PString> > sorted_in_strings, sorted_out_strings;
+	map<PString,PString> in_strings, out_strings;
+	vector<std::pair<PString,PString> > sorted_in_strings, sorted_out_strings;
 	std::map<PString,PString>::reverse_iterator strings_iterator;
-	std::pair<PString,PString> rule;
+	pair<PString,PString> rule;
 
 	PStringToString cfgs(config->GetAllKeyValues(GWRewriteSection));
 
@@ -717,7 +713,7 @@ PString Toolkit::GetTempDir() const
 {
 	PString tmpdir;
 	
-#ifndef WIN32
+#ifndef _WIN32
 	// check if the directory exists and is accessible (access rights)
 	if (PFile::Exists("/tmp") && PFile::Access("/tmp", PFile::ReadWrite))
 		tmpdir = "/tmp";
@@ -754,7 +750,7 @@ void Toolkit::CreateConfig()
 
 	PString tmpdir = GetTempDir();
 	
-#ifdef WIN32
+#ifdef _WIN32
 	if (tmpdir.IsEmpty())
 		if (PFile::Access(".", PFile::ReadWrite))
 			tmpdir = ".";
@@ -773,7 +769,7 @@ void Toolkit::CreateConfig()
 		PTRACE(5, "GK\tTrying file name "<< m_tmpconfig << " for temp config");
 	} while (PFile::Exists(m_tmpconfig));
 
-#ifdef WIN32
+#ifdef _WIN32
 	// Does WIN32 support symlink?
 	if (PFile::Copy(m_ConfigFilePath, m_tmpconfig)) {
 #else
@@ -1164,7 +1160,7 @@ bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddres
 }
 
 
-PString Toolkit::GetGKHome(std::vector<PIPSocket::Address> & GKHome) const
+PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
 {
 	GKHome = m_GKHome;
 	PString result;
@@ -1432,7 +1428,7 @@ PString Toolkit::AsString(
 	struct tm* tmptr = &_tm;
 	time_t t = tm.GetTimeInSeconds();
 
-#ifndef WIN32
+#ifndef _WIN32
 	if (localtime_r(&t, tmptr) != tmptr) {
 #else
 	tmptr = localtime(&t);
@@ -1500,7 +1496,7 @@ PString Toolkit::ReadPassword(
 
 	const size_t keyLen = cfgKey.GetLength();
 	if (keyLen > 0)
-		memcpy(&encKey, (const char*)cfgKey, std::min(keyLen, sizeof(encKey)));
+		memcpy(&encKey, (const char*)cfgKey, min(keyLen, sizeof(encKey)));
 
 	PTEACypher cypher(encKey);
 	PString s;

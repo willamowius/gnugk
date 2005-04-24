@@ -14,9 +14,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -32,6 +32,12 @@
 #include "cisco.h"
 #include "Neighbor.h"
 
+using std::multimap;
+using std::make_pair;
+using std::find_if;
+using std::bind2nd;
+using std::equal_to;
+using std::mem_fun;
 
 namespace Neighbors {
 
@@ -678,7 +684,7 @@ private:
 		int m_count;
 	};
 
-	typedef std::multimap<PrefixInfo, Request> Queue;
+	typedef multimap<PrefixInfo, Request> Queue;
 
 	Queue m_requests;
 	PMutex m_rmutex;
@@ -707,7 +713,7 @@ bool LRQRequester::Send(NeighborList::List & neighbors, Neighbor *requester)
 		Neighbor *nb = *iter++;
 		if (nb != requester)
 			if (PrefixInfo info = m_sendto(nb, m_seqNum))
-				m_requests.insert(std::make_pair(info, nb));
+				m_requests.insert(make_pair(info, nb));
 	}
 	if (m_requests.empty())
 		return false;

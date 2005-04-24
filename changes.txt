@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- restored MSVC6.0 compatibility
 - BUGFIX(radproto.cxx) GetSocket could use an invalidated iterators
   under some circumstances. Thanks to kubuqi cn
 - (ProxyChannel.cxx) ignore incorrect mediaChannel offers with port number 0,

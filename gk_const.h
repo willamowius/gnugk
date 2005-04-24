@@ -37,7 +37,7 @@
 
 extern const char *H225_ProtocolID;
 
-#ifdef WIN32
+#ifdef _WIN32
 #ifndef _OpenH323_VERSION_H
 #include <../../openh323/version.h> // get OpenH323 version
 #endif

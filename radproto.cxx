@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.24  2005/04/19 07:48:44  zvision
+ * Previous fix could cause infinite loops, thanks to kubuqi cn
+ *
  * Revision 1.23  2005/04/18 11:24:51  zvision
  * Use list instead of vector in GetSocket to prevent from using invalidated
  * iterators. Thanks to kubuqi cn
@@ -120,6 +123,10 @@
  *
  */
 #if HAS_RADIUS
+
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4284)
+#endif
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>

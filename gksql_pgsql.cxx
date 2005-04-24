@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2005/03/15 15:34:03  zvision
+ * Compiler warning removed
+ *
  * Revision 1.7  2005/01/16 15:22:35  zvision
  * Database Host parameter accepts only one host now
  *
@@ -28,9 +31,19 @@
  *
  */
 #if HAS_PGSQL
+
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
+#endif
+
 #include <ptlib.h>
 #include <libpq-fe.h>
 #include "gksql.h"
+
+#ifdef _WIN32
+#pragma comment( lib, "libpq.lib" )
+#endif
 
 /** Class that encapsulates SQL query result for PostgreSQL backend.
 	It does not provide any multithread safety, so should be accessed

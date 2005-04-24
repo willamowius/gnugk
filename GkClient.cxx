@@ -14,9 +14,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -30,6 +30,13 @@
 #include "cisco.h"
 #include "GkClient.h"
 
+using std::vector;
+using std::multimap;
+using std::make_pair;
+using std::for_each;
+using std::mem_fun;
+using std::bind1st;
+
 namespace {
 const char* const EndpointSection = "Endpoint";
 const char* const RewriteE164Section = "Endpoint::RewriteE164";
@@ -42,7 +49,7 @@ public:
 	bool Get(PIPSocket::Address &, WORD &);
 
 private:
-	typedef std::multimap<int, H225_TransportAddress> GKList;
+	typedef multimap<int, H225_TransportAddress> GKList;
 	GKList AltGKs;
 	GKList::iterator index;
 	PIPSocket::Address pgkaddr, pgkport;
@@ -58,7 +65,7 @@ void AlternateGKs::Set(const H225_ArrayOf_AlternateGK & agk)
 	AltGKs.clear();
 	for (PINDEX i = 0; i < agk.GetSize(); ++i) {
 		const H225_AlternateGK & gk = agk[i];
-		AltGKs.insert(std::make_pair(int(gk.m_priority), gk.m_rasAddress));
+		AltGKs.insert(make_pair(int(gk.m_priority), gk.m_rasAddress));
 	}
 	index = AltGKs.begin();
 }
@@ -221,7 +228,7 @@ bool GRQRequester::SendRequest(const Address & addr, WORD pt, int r)
 {
 	m_txAddr = addr, m_txPort = pt, m_retry = r;
 	H225_GatekeeperRequest & grq = grq_ras;
-	std::vector<Address> GKHome;
+	vector<Address> GKHome;
 	Toolkit::Instance()->GetGKHome(GKHome);
 	for (std::vector<Address>::iterator i = GKHome.begin(); i != GKHome.end(); ++i) {
 		if ((IsLoopback(addr) || IsLoopback(*i)) && addr != *i)
@@ -426,8 +433,6 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest &req)
 {
 	if (m_parentVendor == ParentVendor_Cisco) {
-		const H225_AdmissionRequest &orig_arq = req.GetRequest();
-		
 		Cisco_ARQnonStandardInfo nonStandardData;
 
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2005/01/05 15:42:41  willamowius
+ * new accounting event 'connect', parameter substitution unified in parent class
+ *
  * Revision 1.15  2005/01/04 16:47:12  willamowius
  * space in trace msg
  *
@@ -77,8 +80,9 @@
  */
 #if HAS_RADIUS
 
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -90,6 +94,9 @@
 #include "gkacct.h"
 #include "radproto.h"
 #include "radacct.h"
+
+using std::vector;
+
 
 RadAcct::RadAcct( 
 	const char* moduleName,
@@ -116,7 +123,7 @@ RadAcct::RadAcct(
 
 	m_nasIpAddress = m_radiusClient->GetLocalAddress();
 	if (m_nasIpAddress == INADDR_ANY) {
-		std::vector<PIPSocket::Address> interfaces;
+		vector<PIPSocket::Address> interfaces;
 		Toolkit::Instance()->GetGKHome(interfaces);
 		if (!interfaces.empty())
 			m_nasIpAddress = interfaces.front();

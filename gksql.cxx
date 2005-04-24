@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2005/01/28 11:19:42  zvision
+ * All passwords in the config can be stored in an encrypted form
+ *
  * Revision 1.9  2005/01/16 15:22:35  zvision
  * Database Host parameter accepts only one host now
  *
@@ -28,8 +31,9 @@
  * SQLAcct module ported from 2.0 branch
  *
  */
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
+#if defined(_WIN32) && (_MSC_VER <= 1200)
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -37,6 +41,10 @@
 #include "stl_supp.h"
 #include "Toolkit.h"
 #include "gksql.h"
+
+using std::max;
+using std::min;
+using std::map;
 
 namespace {
 const int GKSQL_DEFAULT_MIN_POOL_SIZE = 1;
@@ -87,10 +95,10 @@ bool GkSQLConnection::Initialize(
 	m_username = cfg->GetString(cfgSectionName, "Username", "");
 	m_password = Toolkit::Instance()->ReadPassword(cfgSectionName, "Password");
 	m_minPoolSize = cfg->GetInteger(cfgSectionName, "MinPoolSize", GKSQL_DEFAULT_MIN_POOL_SIZE);
-	m_minPoolSize = std::max(m_minPoolSize, 0);
+	m_minPoolSize = max(m_minPoolSize, 0);
 	m_maxPoolSize = cfg->GetInteger(cfgSectionName, "MaxPoolSize", m_minPoolSize);
 	if (m_maxPoolSize >= 0)
-		m_maxPoolSize = std::max(m_minPoolSize, m_maxPoolSize);
+		m_maxPoolSize = max(m_minPoolSize, m_maxPoolSize);
 		
 	if (m_host.IsEmpty() || m_database.IsEmpty()) {
 		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
@@ -112,11 +120,11 @@ bool GkSQLConnection::Initialize(
 {
 	PWaitAndSignal lock(m_connectionsMutex);
 	
-	m_minPoolSize = std::max(minPoolSize,0);
+	m_minPoolSize = max(minPoolSize,0);
 	if (maxPoolSize == -1)
 		m_maxPoolSize = -1;
 	else
-		m_maxPoolSize = std::max(maxPoolSize,m_minPoolSize);
+		m_maxPoolSize = max(maxPoolSize,m_minPoolSize);
 
 	m_host = host;
 	m_port = port;	
@@ -254,7 +262,7 @@ bool GkSQLConnection::AcquireSQLConnection(
 			}
 		
 			if (connptr == NULL && timeout != 0 && !m_destroying)
-				m_connectionAvailable.Wait(std::min(250L,timeout));
+				m_connectionAvailable.Wait(min(250L,timeout));
 		
 			if (connptr == NULL && timeout >= 0)
 				if ((PTime()-timeStart).GetMilliSeconds() >= timeout)
@@ -349,7 +357,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 
 GkSQLResult* GkSQLConnection::ExecuteQuery(
 	const char* queryStr,
-	const std::map<PString, PString>& queryParams,
+	const map<PString, PString>& queryParams,
 	long timeout
 	)
 {
@@ -443,7 +451,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 	/// parametrized query string
 	const char* queryStr,
 	/// parameter values
-	const std::map<PString, PString>& queryParams
+	const map<PString, PString>& queryParams
 	)
 {
 	PString finalQuery(queryStr);

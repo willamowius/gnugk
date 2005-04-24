@@ -14,9 +14,9 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if (_MSC_VER >= 1200)  
-#pragma warning( disable : 4786 ) // warning about too long debug symbol off
-#pragma warning( disable : 4800 ) // warning about forcing value to bool
+#if defined(_WIN32) && (_MSC_VER <= 1200)  
+#pragma warning(disable:4786) // warning about too long debug symbol off
+#pragma warning(disable:4284)
 #endif
 
 #include <ptlib.h>
@@ -32,6 +32,10 @@
 #include "sigmsg.h"
 #include "Routing.h"
 
+using std::string;
+using std::vector;
+using std::stable_sort;
+using std::binary_function;
 
 namespace Routing {
 
@@ -213,7 +217,7 @@ bool Analyzer::Parse(AdmissionRequest & request)
 	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[0]);
-	return policy ? policy->Handle(request) : false;
+	return policy ? policy->HandleRas(request) : false;
 }
 
 bool Analyzer::Parse(LocationRequest & request)
@@ -221,7 +225,7 @@ bool Analyzer::Parse(LocationRequest & request)
 	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_LocationRejectReason::e_requestDenied);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[1]);
-	return policy ? policy->Handle(request) : false;
+	return policy ? policy->HandleRas(request) : false;
 }
 
 bool Analyzer::Parse(SetupRequest & request)
@@ -815,7 +819,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 class NumberAnalysisPolicy : public Policy {
 public:
 	struct PrefixEntry {
-		std::string m_prefix;
+		string m_prefix;
 		int m_minLength;
 		int m_maxLength;
 	};
@@ -834,7 +838,7 @@ private:
 	NumberAnalysisPolicy& operator=(const NumberAnalysisPolicy &);
 	
 private:
-	typedef std::vector<PrefixEntry> Prefixes;
+	typedef vector<PrefixEntry> Prefixes;
 
 	/// list of number prefixes, with min/max number length as values
 	Prefixes m_prefixes;
@@ -873,7 +877,7 @@ NumberAnalysisPolicy::NumberAnalysisPolicy()
 		}
 	}
 	
-	std::stable_sort(m_prefixes.begin(), m_prefixes.end(), PrefixGreater());
+	stable_sort(m_prefixes.begin(), m_prefixes.end(), PrefixGreater());
 	
 	PTRACE(5, "ROUTING\t" << m_name << " policy loaded with " << m_prefixes.size()
 		<< " prefix entries"
@@ -884,7 +888,7 @@ NumberAnalysisPolicy::NumberAnalysisPolicy()
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "ROUTING\t" << m_name << " policy prefixes:" << endl;
 		for (unsigned i = 0; i < m_prefixes.size(); i++)
-			strm << "\t" << m_prefixes[i].m_prefix << " => min len: "
+			strm << "\t" << m_prefixes[i].m_prefix.c_str() << " => min len: "
 				<< m_prefixes[i].m_minLength << ", max len: "
 				<< m_prefixes[i].m_maxLength << endl;
 		PTrace::End(strm);

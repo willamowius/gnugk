@@ -126,7 +126,7 @@ class Policy : public SList<Policy> {
 public:
 	Policy() : m_name("Undefined") {}
 
-	template <class R> bool Handle(Request<R,RasMsg> & request)
+	template <class R> bool HandleRas(Request<R,RasMsg> & request)
 	{
 		if( IsActive() ) {
 #if PTRACING
@@ -146,7 +146,7 @@ public:
 				return true;
 			}
 		}
-		return m_next && m_next->Handle(request);
+		return m_next && m_next->HandleRas(request);
 	}
 
 	bool Handle(SetupRequest &request);

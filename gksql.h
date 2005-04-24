@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2005/02/11 17:23:05  zvision
+ * Write SCCS keyword correctly
+ *
  * Revision 1.6  2005/01/16 15:22:35  zvision
  * Database Host parameter accepts only one host now
  *
@@ -272,7 +275,7 @@ public:
 		long timeout = -1
 		);
 
-#if defined(WIN32) && (_MSC_VER < 1300)
+#if defined(_WIN32) && (_MSC_VER < 1300)
 public:
 #else
 protected:
