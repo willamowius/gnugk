@@ -850,7 +850,7 @@ void Toolkit::ReloadSQLConfig()
 				);
 		else {
 			while (queryResult->FetchRow(params))
-				if (params[0].IsEmpty() || params[1].IsEmpty() || params[2].IsEmpty())
+				if (params[0].IsEmpty() || params[1].IsEmpty())
 					PTRACE(1, "SQLCONF\tInvalid config key=>value pair entry found "
 						"in the SQL database: '[" << params[0] << "] " 
 						<< params[1] << '=' << params[1] << '\''
@@ -889,7 +889,7 @@ void Toolkit::ReloadSQLConfig()
 				);
 		else {
 			while (queryResult->FetchRow(params))
-				if (params[0].IsEmpty() || params[1].IsEmpty())
+				if (params[0].IsEmpty())
 					PTRACE(1, "SQLCONF\tInvalid rewrite rule found in the SQL "
 						"database: '" << params[0] << '=' << params[1] << '\''
 						);

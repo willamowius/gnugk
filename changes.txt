@@ -1,5 +1,6 @@
 Changes from 2.2.1 to 2.2.2
 ===========================
+- allow empty key values in SQLConfig ConfigQuery/RewriteE164Query
 - restored MSVC6.0 compatibility
 - BUGFIX(radproto.cxx) GetSocket could use an invalidated iterators
   under some circumstances. Thanks to kubuqi cn
