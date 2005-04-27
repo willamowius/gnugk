@@ -35,7 +35,7 @@ There are also three ways to control a rule:
 
 Currently supported modules:
 <itemize>
-<item><tt>SimplePasswordAuth/SQLPasswordAuth/LDAPPasswordAuth</tt>
+<item><tt>SimplePasswordAuth/SQLPasswordAuth</tt>
 <p>
 These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
 The tokens should contain at least generalID and password.
@@ -44,12 +44,11 @@ For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
 are supported now. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
 and a clear text username/password are supported now.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
-an SQL database or LDAP
-for <tt/SimplePasswordAuth/, <tt/SQLPasswordAuth/ and <tt/LDAPPasswordAuth/
-modules, respectively. <tt/MySQLPasswordAuth/
+an SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
+modules. <tt/MySQLPasswordAuth/
 module is supported for backward compatibility.
 
-<item><tt>AliasAuth/SQLAliasAuth/LDAPAliasAuth</tt>
+<item><tt>AliasAuth/SQLAliasAuth</tt>
 <p>
 The module can only be used to authenticate RegistrationRequest (RRQ).
 The IP of an endpoint with a given alias should match a specified pattern.
@@ -57,8 +56,6 @@ For <tt/AliasAuth/ the pattern is defined in
 <ref id="rrqauth" name="[RasSrv::RRQAuth]"> section.
 For <tt/SQLAliasAuth/, the pattern is retrieved from an SQL database, 
 defined in <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
-For <tt/LDAPAliasAuth/ the alias (default: mail attribute) and IP
-(default: voIPIpAddress attribute) must be found in one LDAP entry.
 
 <item><tt>PrefixAuth</tt>
 <p>

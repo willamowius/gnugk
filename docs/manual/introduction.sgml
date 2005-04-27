@@ -395,8 +395,7 @@ to next hop. Therefore the GnuGk can work as a directory gatekeeper.
 
 <item>
 Support various authentication methods for selectable RAS requests, including
-H.235 password (MD5, SHA-1 and CAT), IP pattern and prefixes matching. MySQL and
-LDAP are supported as backend database for authentication.
+H.235 password (MD5, SHA-1 and CAT), IP pattern and prefixes matching.
 
 <item>
 Support alternate gatekeepers for redundancy and load balancing. If the
