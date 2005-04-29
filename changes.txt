@@ -1,5 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- FileIPAuth module moved from the contrib section into the main branch
 
 Changes from 2.2.1 to 2.2.2
 ===========================

@@ -90,7 +90,12 @@ using <tt/gnugk/ as name for executables.
 <sect1>Features
 <p>
 The version 2.2.3 contains the following new features and bugfixes:
+
 <itemize>
+<item>
+<ref id="fileipauth" name="[FileIPAuth]"> module moved from the contrib
+section into the main branch.
+
 </itemize>
 
 <p>
