@@ -93,6 +93,9 @@ The version 2.2.3 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Tunnelled H.245 messages were not processed correctly (were ignored).
+
+<item>
 <ref id="fileipauth" name="[FileIPAuth]"> module moved from the contrib
 section into the main branch.
 

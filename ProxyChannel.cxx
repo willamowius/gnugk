@@ -803,7 +803,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return m_result;
 	}
 	
-	if (msg->GetUUIE() != NULL && msg->GetUUIE()->HasOptionalField(H225_H323_UU_PDU::e_h245Control)
+	if (msg->GetUUIE() != NULL && msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
 			&& m_h245handler)
 		if (OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control))
 			msg->SetUUIEChanged();

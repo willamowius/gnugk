@@ -1,6 +1,8 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
 - FileIPAuth module moved from the contrib section into the main branch
+- BUGFIX(ProxyChannel.cxx) tunnelled H.245 messages were not processed
+  correctly
 
 Changes from 2.2.1 to 2.2.2
 ===========================
