@@ -158,7 +158,7 @@ public:
 	/// build a select list for signle socket only
 	YaSelectList(
 		/// name for this select list
-		const PString &m_name,
+		const PString &name,
 		YaSocket* singleSocket /// socket to be put on the list
 		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()), m_name(name) {}
 
