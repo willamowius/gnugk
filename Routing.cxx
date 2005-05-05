@@ -577,20 +577,34 @@ bool VirtualQueue::SendRouteRequest(
 	const PString& vqueue,
 	/// a sequence of aliases for the calling endpoint
 	/// (in the "alias:type[=alias:type]..." format)
-	const PString& sourceInfo
+	const PString& sourceInfo,
+	/// the callID as string
+	const PString& callID
 	)
 {
 	bool result = false;
 	bool duprequest = false;
 	const PString epid(caller->GetEndpointIdentifier().GetValue());
 	if (RouteRequest *r = InsertRequest(epid, crv, destinationInfo, callSigAdr, duprequest)) {
-		const PString msg(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;", 
+		PString msg;
+		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
+			msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s|%s;", 
+				(const char *)AsDotString(caller->GetCallSignalAddress()),
+				(const char *)epid,
+				crv,
+				(const char *)vqueue,
+				(const char *)sourceInfo,
+				(const char *)callID
+			   );
+		} else {
+			msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;", 
 				(const char *)AsDotString(caller->GetCallSignalAddress()),
 				(const char *)epid,
 				crv,
 				(const char *)vqueue,
 				(const char *)sourceInfo
 			   );
+		}
 		// signal RouteRequest to the status line only once
 		if( duprequest )
 			PTRACE(4, "VQueue\tDuplicate request: "<<msg);
@@ -790,7 +804,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				);
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
 			PString * callSigAdr = new PString();
-			if (ep && m_vqueue->SendRouteRequest(ep, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, agent, AsString(arq.m_srcInfo)))
+			if (ep && m_vqueue->SendRouteRequest(ep, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, agent, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid)))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 			if (!callSigAdr->IsEmpty()) {
 				if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {

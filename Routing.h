@@ -265,7 +265,9 @@ public:
 		const PString& vqueue,
 		/// a sequence of aliases for the calling endpoint
 		/// (in the "alias:type[=alias:type]..." format)
-		const PString& sourceInfo
+		const PString& sourceInfo,
+		/// the callID as string
+		const PString& callID
 		);
 
 	/** Make a routing decision for a pending route request (inserted

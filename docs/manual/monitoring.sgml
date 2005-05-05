@@ -536,21 +536,25 @@ a RegistrationConfirm (RCF).
 <p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
 a RegistrationReject (RRJ).
 
-<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered;/
+<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered[|CallID];/
 <p>The gatekeeper receives an AdmissionRequest (ARQ) and responds with
 an AdmissionConfirm (ACF).
+The CallID is only sent when SignalCallId=1 is set.
 
-<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason;/
+<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason[|CallID];/
 <p>The gatekeeper receives an AdmissionRequest (ARQ) and responds with
 an AdmissionReject (ARJ).
+The CallID is only sent when SignalCallId=1 is set.
 
-<item><tt/DCF|IP|EndpointID|CRV|DisengageReason;/
+<item><tt/DCF|IP|EndpointID|CRV|DisengageReason[|CallID];/
 <p>The gatekeeper receives a DisengageRequest (DRQ) and responds with
 a DisengageConfirm (DCF).
+The CallID is only sent when SignalCallId=1 is set.
 
-<item><tt/DRJ|IP|EndpointID|CRV|RejectReason;/
+<item><tt/DRJ|IP|EndpointID|CRV|RejectReason[|CallID];/
 <p>The gatekeeper receives a DisengageRequest (DRQ) and responds with
 a DisengageReject (DRJ).
+The CallID is only sent when SignalCallId=1 is set.
 
 <item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/
 <p>The gatekeeper receives a LocationRequest (LRQ) and responds with
@@ -590,9 +594,10 @@ an UnregistrationConfirm (UCF).
 <newline><tt/CalledIP|CalledEndId|DestinationInfo|SrcInfo|GatekeeperID;/
 <p>After a call disconnected, the call detail record is shown (in one line).
 
-<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias;/
+<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias[|CallID];/
 <p>Request for an external application to route an incomming call on a virtual queue.
 This can be done with a RouteToAlias or RouteReject command.
+The CallID is only sent when SignalCallId=1 is set.
 
 </itemize>
 
