@@ -93,6 +93,9 @@ The version 2.2.3 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+NetMeeting compatibility problems fixed.
+
+<item>
 A new <tt/[RasSrv::RRQFeatures] IRQPollCount/ config variable. Default number
 of "poll" IRQ messages changed from 2 to 1 to allow faster endpoint unregistration.
 

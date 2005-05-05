@@ -141,11 +141,26 @@ public:
 		/// estimated number of sockets to be put in this select list
 		size_t reserve = 512
 	) : maxfd(0) { fds.reserve(reserve); }
+
+	/// build a select list for more than one socket
+	YaSelectList(
+		/// name for this select list
+		const PString &name,
+		/// estimated number of sockets to be put in this select list
+		size_t reserve = 512
+	) : maxfd(0), m_name(name) { fds.reserve(reserve); }
 	
 	/// build a select list for signle socket only
 	YaSelectList(
 		YaSocket* singleSocket /// socket to be put on the list
 		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()) {}
+
+	/// build a select list for signle socket only
+	YaSelectList(
+		/// name for this select list
+		const PString &m_name,
+		YaSocket* singleSocket /// socket to be put on the list
+		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()), m_name(name) {}
 
 	void Append(
 		YaSocket* s /// the socket to be appended
@@ -181,9 +196,12 @@ public:
 		};
 	};
 
+	PString GetName() const { return m_name; }
+	
 private:
 	std::vector<YaSocket *> fds;
 	int maxfd;
+	PString m_name;
 };
 
 typedef YaSelectList SocketSelectList;
@@ -201,8 +219,15 @@ public:
 	};
 	SocketSelectList(size_t) {};
 	SocketSelectList(PIPSocket *s = 0) { if (s && s->IsOpen()) Append(s); }
+	SocketSelectList(const PString &name, size_t) : m_name(name) {};
+	SocketSelectList(const PString &name, PIPSocket *s = NULL) : m_name(name) { if (s && s->IsOpen()) Append(s); }
 	bool Select(SelectType, const PTimeInterval &);
 	PSocket *operator[](int i) const;
+
+	PString GetName() const { return m_name; }	
+
+private:
+	PString m_name;
 };
 
 typedef PIPSocket IPSocket;

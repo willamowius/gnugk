@@ -53,8 +53,8 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 	struct timeval tval;
 	tval.tv_sec  = msec / 1000;
 	tval.tv_usec = (msec - tval.tv_sec * 1000) * 1000;
-	bool r = ::select(maxfd + 1, readfds, writefds, 0, &tval) > 0;
-	if (r) {
+	int r = ::select(maxfd + 1, readfds, writefds, 0, &tval);
+	if (r > 0) {
 #if 1
 		std::vector<YaSocket*>::iterator last = remove_if(
 			fds.begin(), fds.end(),
@@ -108,8 +108,9 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 		} else
 			fds.clear();
 #endif
-	}
-	return r;
+	} else if (r < 0)
+		PTRACE(3, GetName() << "\tSelect " << (t == Read ? "read" : "write") << " error - errno: " << errno);
+	return r > 0;
 }
 
 
@@ -505,8 +506,11 @@ bool SocketSelectList::Select(SelectType t, const PTimeInterval & timeout)
 	else
 		wlist = this, rlist = &dumb;
 	const PSocket::Errors r = PSocket::Select(*rlist, *wlist, timeout);
-	PTRACE_IF(3, r != PSocket::NoError, "ProxyH\tSelect " << (t == Read ? "read" : "write") << " error: " << r);
-	return !IsEmpty();
+	if (r != PSocket::NoError) {
+		PTRACE(3, GetName() << "\tSelect " << (t == Read ? "read" : "write") << " error: " << r);
+		return false;
+	} else
+		return !IsEmpty();
 }
 
 PSocket *SocketSelectList::operator[](int i) const
@@ -649,7 +653,7 @@ void USocket::ClearQueue()
 // class SocketsReader
 SocketsReader::SocketsReader(int t) : m_timeout(t), m_socksize(0), m_rmsize(0)
 {
-	SetName("SocketsReader");
+	SetName("SockRdr");
 }
 
 SocketsReader::~SocketsReader()
@@ -675,7 +679,7 @@ void SocketsReader::AddSocket(IPSocket *socket)
 	++m_socksize;
 	m_listmutex.EndWrite();
 	Signal();
-	PTRACE(5, GetName() << " total sockets " << m_socksize);
+	PTRACE(5, GetName() << "\tTotal sockets: " << m_socksize);
 }
 
 bool SocketsReader::BuildSelectList(SocketSelectList & slist)
@@ -705,7 +709,7 @@ bool SocketsReader::SelectSockets(SocketSelectList & slist)
 	}
 	ConfigReloadMutex.StartRead();
 #if PTRACING
-	PString msg(PString::Printf, " %u sockets selected from %u, total %u/%u", slist.GetSize(), ss, m_socksize, m_rmsize);
+	PString msg(PString::Printf, "\t%u sockets selected from %u, total %u/%u", slist.GetSize(), ss, m_socksize, m_rmsize);
 	PTRACE(5, GetName() << msg);
 #endif
 	return true;
@@ -749,7 +753,7 @@ void SocketsReader::RemoveSocket(IPSocket *s)
 void SocketsReader::Exec()
 {
 	ReadLock cfglock(ConfigReloadMutex);
-	SocketSelectList slist;
+	SocketSelectList slist(GetName());
 
 	if (BuildSelectList(slist)) {
 		if (SelectSockets(slist)) {
@@ -781,7 +785,7 @@ TCPListenSocket::TCPListenSocket(int timeout)
 
 TCPListenSocket::~TCPListenSocket()
 {
-	PTRACE(3, "TCP\t" << "Delete listener " << GetName());
+	PTRACE(3, "TCP\tDelete listener " << GetName());
 }
 
 bool TCPListenSocket::IsTimeout(const PTime *now) const
@@ -800,7 +804,7 @@ bool TCPListenSocket::IsTimeout(const PTime *now) const
 // class TCPServer
 TCPServer::TCPServer()
 {
-	SetName("TCPServer");
+	SetName("TCPSrv");
 	Execute();
 }
 
@@ -808,18 +812,26 @@ bool TCPServer::CloseListener(TCPListenSocket *socket)
 {
 	ReadLock lock(m_listmutex);
 	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
-	return (iter != m_sockets.end()) ? ((*iter)->Close() ? true : false) : false;
+	if (iter != m_sockets.end()) {
+		PTRACE(6, GetName() << "\tListener " << (*iter)->GetName() << " closed");
+		(*iter)->Close();
+		return true;
+	} else
+		return false;
 }
 
 void TCPServer::ReadSocket(IPSocket *socket)
 {
-	PTRACE(4, "TCP\t" << "Accept request on " << socket->GetName());
+	PTRACE(4, GetName() << "\tAccept request on " << socket->GetName());
 	TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(socket);
 	ServerSocket *acceptor = listener->CreateAcceptor();
-	if (acceptor->Accept(*listener))
+	if (acceptor->Accept(*listener)) {
+		PTRACE(6, GetName() << "\tAccepted new connection on " << socket->GetName() << " from " << acceptor->GetName());
 		CreateJob(acceptor, &ServerSocket::Dispatch, "Acceptor");
-	else
+	} else {
+		PTRACE(4, GetName() << "\tAccept failed on " << socket->GetName());
 		delete acceptor;
+	}
 }
 
 void TCPServer::CleanUp()

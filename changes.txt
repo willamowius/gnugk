@@ -1,5 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- NetMeeting compatibility problems fixed
 - new [RasSrv::RRQFeatures] IRQPollCount config variable, default number
   of "poll" IRQ messages changed from 2 to 1
 - FileIPAuth module moved from the contrib section into the main branch

@@ -471,8 +471,8 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 	SetWriteTimeout(timeout);
 	// since GetName() may not work if socket closed,
 	// we save it for reference
-	Address ip;
-	WORD pt;
+	Address ip((DWORD)0);
+	WORD pt = 0;
 	GetPeerAddress(ip, pt);
 	SetName(AsString(ip, pt));
 	return result;
@@ -524,7 +524,7 @@ bool TCPProxySocket::ReadTPKT()
 	// some endpoints may send TPKT header and payload in separate
 	// packets, so we have to check again if data available
 	if (this->GetHandle() < FD_SETSIZE)
-		if (!YaSelectList(this).Select(YaSelectList::Read, 0))
+		if (!YaSelectList(GetName(), this).Select(YaSelectList::Read, 0))
 			return false;
 #endif
 	if (!Read(bufptr, buflen))
@@ -3678,7 +3678,7 @@ void ProxyHandler::AddPairSockets(IPSocket *first, IPSocket *second)
 
 void ProxyHandler::FlushSockets()
 {
-	SocketSelectList wlist;
+	SocketSelectList wlist(GetName());
 	m_listmutex.StartRead();
 	iterator i = m_sockets.begin(), j = m_sockets.end();
 	while (i != j) {

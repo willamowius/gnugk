@@ -641,10 +641,10 @@ void RasRequester::AddReply(RasMsg *ras)
 
 
 // class RasServer
-RasServer::RasServer() : Singleton<RasServer>("RasServer"), requestSeqNum(0),
+RasServer::RasServer() : Singleton<RasServer>("RasSrv"), requestSeqNum(0),
 	acctList(NULL)
 {
-	SetName("RasServer");
+	SetName("RasSrv");
 
 	authList = 0;
 	sigHandler = 0;
