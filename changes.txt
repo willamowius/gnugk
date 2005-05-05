@@ -1,6 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
-- optionally signal call ids ion th status port with ACF/ARJ/DCF/DRJ/RouteRequest
+- optionally signal call ids in the status port with ACF/ARJ/DCF/DRJ/RouteRequest
   messages (switch on with SignalCallIds=1 in main section)
 - NetMeeting compatibility problems fixed
 - new [RasSrv::RRQFeatures] IRQPollCount config variable, default number
