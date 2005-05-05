@@ -505,7 +505,7 @@ bool SocketSelectList::Select(SelectType t, const PTimeInterval & timeout)
 	else
 		wlist = this, rlist = &dumb;
 	const PSocket::Errors r = PSocket::Select(*rlist, *wlist, timeout);
-	PTRACE_IF(3, r != PSocket::NoError, "ProxyH\tSelect error: " << r);
+	PTRACE_IF(3, r != PSocket::NoError, "ProxyH\tSelect " << (t == Read ? "read" : "write") << " error: " << r);
 	return !IsEmpty();
 }
 

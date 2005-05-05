@@ -93,6 +93,10 @@ The version 2.2.3 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+A new <tt/[RasSrv::RRQFeatures] IRQPollCount/ config variable. Default number
+of "poll" IRQ messages changed from 2 to 1 to allow faster endpoint unregistration.
+
+<item>
 Tunnelled H.245 messages were not processed correctly (were ignored).
 
 <item>

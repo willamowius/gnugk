@@ -56,6 +56,7 @@ const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
 namespace {
 const long DEFAULT_SIGNAL_TIMEOUT = 15000;
 const long DEFAULT_ALERTING_TIMEOUT = 180000;
+const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
 
 EndpointRec::EndpointRec(
@@ -66,8 +67,8 @@ EndpointRec::EndpointRec(
 	)
 	: m_RasMsg(ras), m_timeToLive(1),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
-	m_pollCount(2), m_usedCount(0),
-	m_nat(false), m_natsocket(0), m_permanent(permanent), 
+	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
+	m_usedCount(0), m_nat(false), m_natsocket(0), m_permanent(permanent), 
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
 	m_capacity(-1)
 {
@@ -366,7 +367,7 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 	}
 	PWaitAndSignal lock(m_usedLock);
 	m_updatedTime = PTime();
-	m_pollCount = 2;
+	m_pollCount = GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT);
 }
 
 EndpointRec *EndpointRec::Unregister()
@@ -456,9 +457,10 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 
 bool EndpointRec::SendIRQ()
 {
-	if (m_pollCount-- == 0 || GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
+	if (m_pollCount <= 0 || GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
 		return false;
-
+	--m_pollCount;
+	
 	RasServer *RasSrv = RasServer::Instance();
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_infoRequest);

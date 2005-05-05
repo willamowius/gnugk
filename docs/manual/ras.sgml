@@ -63,6 +63,17 @@ to reject the request.  With this option enabled the conflicting request
 will cause an unregister request (URQ) to be sent for the existing IP
 address and the entry to be removed allowing the endpoint to register
 with the new address.
+
+<item><tt/IRQPollCount=0/<newline>
+Default: <tt/1/
+<p>
+When the gatekeeper does not receive a keep-alive RRQ from an endpoint
+within TimeToLive time period, it sends an IRQ message to "poll" the endpoint
+and check if it is alive. After IRQPollCount messages are sent and no reply
+is receieved, the endpoint is unregistered. To disable this feature (and unregister
+endpoints immediatelly after TimeToLive timeout), set this variable to 0.
+IRQ poll interval is 60 seconds.
+
 </itemize>
 
 
