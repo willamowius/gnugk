@@ -1,4 +1,4 @@
-<!-- French translation from installation.sgml v1.1 -->
+<!-- French translation from installation.sgml v1.3 -->
 
 <sect>Compilation et Installation
 <p>
@@ -28,27 +28,36 @@ Une bonne habitude est de faire un <tt/make debugdepend/ ou <tt/make optdepend/
 dans le r&#233;pertoire du gatekeeper avant de commencer la compilation (make debug ou
 make opt) - ces commandes construisent les listes de d&#233;pendances appropri&#233;es, de telle sorte
 qu'apr&#232;s avoir mis &#224; jour vos sources depuis CVS, tous les fichiers affect&#233;s seront recompil&#233;s.
-Sinon vous pourriez obtenir un Gatekeeper  partiellement compil&#233; avec les vieux
-en-t&#234;tes et partiellement avec les nouveaux en-t&#234;tes - une mauvaise chose.
-Sous windows il suffit d'ouvrir et de compiler le project fourni (<tt/gk.dw/) pour
-Microsoft Visual C++ 6.0 ou 7.0 (Visual C++ 5.0 est trop ancien).<newline>
+Sinon vous pourriez obtenir un Gatekeeper partiellement compil&#233; avec les vieux
+en-t&#234;tes et partiellement avec les nouveaux en-t&#234;tes - une mauvaise chose.<newline>
+
+Sous Windows, ouvrez et compilez simplement la solution fournie (<tt/gk.sln/) pour
+Microsoft Visual Studio .NET 2003 ou le workspace (<tt/gk.dsw/) pour Microsoft
+Visual Studio 6.0 SP6. Bien sur, vous devez d&#233;j&#224; avoir compil&#233; PWLib
+et OpenH323 et configur&#233; les chemins appropri&#233;s pour les include/librairies.
+Si vous souhaitez le support MySQL ou PostgreSQL, installez/compilez les librairies
+clients appropri&#233;es et ajoutez HAS_MSQL=1 et/ou HAS_PGSQL=1 dans les macros du
+pr&#233;processeur du projet gatekeeper. Vous devez aussi indiquer au compilateur
+ou trouver les fichiers include/librairies et indiquer &#224; l'&#233;diteur de liens
+de linker avec ces librairies clients.
+<newline>
 
 Taper <tt/configure --help/ pour voir une liste d&#233;taill&#233;e de toutes les options
 de compilation. Vous pouvez les utiliser pour activer ou d&#233;sactiver certaines fonctions du gatekeeper.
 Par exemple, si vous n'avez pas besoin de RADIUS, taper juste: <tt/configure --disable-radius/.<newline>
 
 Les versions recommand&#233;es de PWLib/OpenH323 sont celles de la version Pandora
-(1.7.5.2/1.14.4.2) ou plus r&#233;cente. La version <tt/Janus/ (1.6.6.3/1.13.5.3) devrait aussi
-marcher, mais les versions plus anciennes ne sont plus support&#233;es et ne sont pas garanties de
-fonctionner avec le gatekeeper.
+(1.7.5.2/1.14.4.2) ou plus r&#233;cente. Les versions plus anciennes ne sont plus
+support&#233;es et ne sont pas garanties de fonctionner avec le gatekeeper.
 
 Pour construire le gatekeeper qui est li&#233; statiquement avec les librairies syst&#232;me et OpenH323,
 il faut utiliser <tt/make optnoshared/ ou <tt/make debugnoshared/.
 
-Pour utiliser le gatekeeper sous une charge lourde, activer la fonction LARGE_FDSET est
-recommand&#233; (configure --with-large-fdset=4096). Certains syst&#232;mes requi&#232;rent
-aussi l'utilisation de ulimit pour autoriser l'allocation de plus de 1024 sockets pour
-un seul processus. Il faut noter qu'&#224; partir de la version 1.5.3 la librairie PWLib support aussi une fonction similaire, vous pouvez donc choisir entre
+Pour utiliser le gatekeeper sous une charge lourde, activer la fonction LARGE_FDSET
+(SEULEMENT POUR LA VERSION UNIX) est recommand&#233; (configure --with-large-fdset=4096).
+Certains syst&#232;mes requi&#232;rent aussi l'utilisation de ulimit pour autoriser l'allocation
+de plus de 1024 sockets pour un seul processus. Il faut noter qu'&#224; partir de la version 1.5.3 la
+librairie PWLib support aussi une fonction similaire, vous pouvez donc choisir entre
 les impl&#233;mentations LARGE_FDSET GnuGk et PWLib. L'impl&#233;mentation native GnuGk donne
 de meilleures performances. La valeur maximale LARGE_FDSET devrait &#234;tra calcul&#233;e en se
 basant sur l'utilisation maximum pr&#233;vue de sockets. Un proc&#233;d&#233; empirique est:
