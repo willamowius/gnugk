@@ -1,4 +1,4 @@
-<!-- French translation from mainconfig.sgml v1.4 -->
+<!-- French translation from mainconfig.sgml v1.5 -->
 
 <sect1>Fichier de Configuration
 <label id="config">
@@ -179,6 +179,12 @@ D&#233;faut: <tt/7000/
 <p>
 Port d'&#233;tat pour surveiller le gatekeeper.
 Se reporter &#224; <ref id="monitor" name="cette section"> pour plus de d&#233;tails.
+
+<item><tt/SignalCallId=1/<newline>
+D&#233;faut: <tt/0/
+<p>
+IDs du signal d'appel dans les messages ACF/ARJ/DCF/DRJ/RouteRequest sur le port d'&#233;tat.
+Se reporter &#244; <ref id="monitor" name="cette section"> pour plus de d&#233;tails.
 
 <item><tt/StatusTraceLevel=2/<newline>
 D&#233;faut: <tt/2/
