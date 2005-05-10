@@ -1282,7 +1282,7 @@ if test "${PWLIBDIR:-unset}" = "unset" ; then
   PWLIBDIR=`$PTLIB_CONFIG --pwlibdir`
 fi
 
-echo "PWLib prefix set to.... $PWLIBDIR"
+echo "PWLib prefix set to $PWLIBDIR"
 
 
 
@@ -1352,14 +1352,34 @@ fi
   fi
 else
   PWLIB_VERSION=`${PTLIB_CONFIG} --version`
+  PWLIB_MAJOR_VERSION=`echo "${PWLIB_VERSION}" | sed -e "s/\([0-9]*\)\.[0-9]*\.[0-9]*.*/\1/"`
+  PWLIB_MINOR_VERSION=`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.\([0-9]*\)\.[0-9]*.*/\1/'`
+  PWLIB_BUILD_NUMBER=`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/'`
 fi
 if test "${PWLIB_VERSION:-unset}" = "unset" -o "${PWLIB_VERSION}" = ".."; then
   echo "Error: could not determine PWLib version"
   exit
 fi
 
-
 echo "PTLib version is ${PWLIB_VERSION}"
+
+if test ${PWLIB_MAJOR_VERSION} -lt 1; then
+  echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
+  exit
+fi
+if test ${PWLIB_MAJOR_VERSION} -eq 1; then
+  if test ${PWLIB_MINOR_VERSION} -lt 7; then
+    echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
+    exit
+  elif test ${PWLIB_MINOR_VERSION} -eq 7; then
+    if test ${PWLIB_BUILD_NUMBER} -lt 5; then
+      echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
+      exit
+    fi
+  fi
+fi
+
+
 
 
 NEEDOPENH323PREFIX=0
@@ -1369,7 +1389,7 @@ if test "${OPENH323DIR:-unset}" != "unset" ; then
     
 ac_safe=`echo "${OPENH323DIR}/openh323u.mak" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323DIR}/openh323u.mak""... $ac_c" 1>&6
-echo "configure:1373: checking for ${OPENH323DIR}/openh323u.mak" >&5
+echo "configure:1393: checking for ${OPENH323DIR}/openh323u.mak" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1398,7 +1418,7 @@ if test "${HAS_OPENH323:-unset}" = "unset" ; then
     
 ac_safe=`echo "${PWLIBDIR}/../openh323/version.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${PWLIBDIR}/../openh323/version.h""... $ac_c" 1>&6
-echo "configure:1402: checking for ${PWLIBDIR}/../openh323/version.h" >&5
+echo "configure:1422: checking for ${PWLIBDIR}/../openh323/version.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1428,7 +1448,7 @@ fi
       
 ac_safe=`echo "${HOME}/openh323/include/h323.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${HOME}/openh323/include/h323.h""... $ac_c" 1>&6
-echo "configure:1432: checking for ${HOME}/openh323/include/h323.h" >&5
+echo "configure:1452: checking for ${HOME}/openh323/include/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1458,7 +1478,7 @@ fi
         
 ac_safe=`echo "/usr/local/include/openh323/h323.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/local/include/openh323/h323.h""... $ac_c" 1>&6
-echo "configure:1462: checking for /usr/local/include/openh323/h323.h" >&5
+echo "configure:1482: checking for /usr/local/include/openh323/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1490,7 +1510,7 @@ fi
           
 ac_safe=`echo "/usr/include/openh323/h323.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for /usr/include/openh323/h323.h""... $ac_c" 1>&6
-echo "configure:1494: checking for /usr/include/openh323/h323.h" >&5
+echo "configure:1514: checking for /usr/include/openh323/h323.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1532,7 +1552,7 @@ if test -d "${OPENH323DIR}/share/openh323"; then
   OPENH323MAKEDIR=${OPENH323DIR}/share/openh323/
 fi
 
-echo "OpenH323 prefix set to.... $OPENH323DIR"
+echo "OpenH323 prefix set to $OPENH323DIR"
 
 if test "${OPENH323MAKEDIR:-unset}" = "unset"; then
   OPENH323MAKEDIR=${OPENH323DIR}
@@ -1545,7 +1565,7 @@ if test -d ${OPENH323DIR}; then
   
 ac_safe=`echo "${OPENH323DIR}/version.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323DIR}/version.h""... $ac_c" 1>&6
-echo "configure:1549: checking for ${OPENH323DIR}/version.h" >&5
+echo "configure:1569: checking for ${OPENH323DIR}/version.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1569,14 +1589,14 @@ fi
 
   if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
     OPENH323_VERSION_FILE=${OPENH323DIR}/version.h
-	MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MAJOR_VERSION | cut -f3 -d' '`
-	MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MINOR_VERSION | cut -f3 -d' '`
-	BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep BUILD_NUMBER | cut -f3 -d' '`
+	OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MAJOR_VERSION | cut -f3 -d' '`
+	OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MINOR_VERSION | cut -f3 -d' '`
+	OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep BUILD_NUMBER | cut -f3 -d' '`
   else
     
 ac_safe=`echo "${OPENH323MAKEDIR}/openh323buildopts.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323MAKEDIR}/openh323buildopts.h""... $ac_c" 1>&6
-echo "configure:1580: checking for ${OPENH323MAKEDIR}/openh323buildopts.h" >&5
+echo "configure:1600: checking for ${OPENH323MAKEDIR}/openh323buildopts.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1600,14 +1620,14 @@ fi
 
     if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
       OPENH323_VERSION_FILE=${OPENH323MAKEDIR}/openh323buildopts.h
-      MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f3 -d' '`
-      MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f3 -d' '`
-      BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_BUILD | cut -f3 -d' '`
+      OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f3 -d' '`
+      OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f3 -d' '`
+      OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_BUILD | cut -f3 -d' '`
     else
       
 ac_safe=`echo "${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h""... $ac_c" 1>&6
-echo "configure:1611: checking for ${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h" >&5
+echo "configure:1631: checking for ${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1631,25 +1651,41 @@ fi
 
       if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
         OPENH323_VERSION_FILE=${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h
-        MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f2 -d' '`
-        MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f2 -d' '`
-        BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "OPENH323_BUILD " | cut -f2 -d' '`
+        OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f2 -d' '`
+        OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f2 -d' '`
+        OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "OPENH323_BUILD " | cut -f2 -d' '`
       fi
-	fi
+    fi
   fi
 fi
 if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
-	if test "${MAJOR_VERSION}" = ""; then
-		MAJOR_VERSION=1
-		MINOR_VERSION=12
-		BUILD_NUMBER=0
-	fi
-	OPENH323_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
-	echo "OpenH323 version is ${OPENH323_VERSION}"
+  if test "${OPENH323_MAJOR_VERSION}" = ""; then
+    echo "Error: Could not determine OpenH323 version"
+    exit
+  fi
+  OPENH323_VERSION="${OPENH323_MAJOR_VERSION}.${OPENH323_MINOR_VERSION}.${OPENH323_BUILD_NUMBER}"
+  echo "OpenH323 version is ${OPENH323_VERSION}"
 else
-	echo "Error: Could not determine OpenH323 version"
-	exit
+  echo "Error: Could not determine OpenH323 version"
+  exit
 fi
+
+if test ${OPENH323_MAJOR_VERSION} -lt 1; then
+  echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+  exit
+fi
+if test ${OPENH323_MAJOR_VERSION} -eq 1; then
+  if test ${OPENH323_MINOR_VERSION} -lt 14; then
+    echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+    exit
+  elif test ${OPENH323_MINOR_VERSION} -eq 14; then
+    if test ${OPENH323_BUILD_NUMBER} -lt 4; then
+      echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+      exit
+    fi
+  fi
+fi
+
 
 
 if test "x$prefix" = "xNONE"; then
@@ -1744,7 +1780,7 @@ fi
 if test "x${mysql}" != "xno"; then
 
 	echo $ac_n "checking for compress in -lz""... $ac_c" 1>&6
-echo "configure:1748: checking for compress in -lz" >&5
+echo "configure:1784: checking for compress in -lz" >&5
 ac_lib_var=`echo z'_'compress | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1752,7 +1788,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lz  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1756 "configure"
+#line 1792 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -1763,7 +1799,7 @@ int main() {
 compress()
 ; return 0; }
 EOF
-if { (eval echo configure:1767: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1803: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1785,17 +1821,17 @@ fi
 
 
 	echo $ac_n "checking for mysql.h""... $ac_c" 1>&6
-echo "configure:1789: checking for mysql.h" >&5
+echo "configure:1825: checking for mysql.h" >&5
 
 	cat > conftest.$ac_ext <<EOF
-#line 1792 "configure"
+#line 1828 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1799: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1835: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE=" "
 else
@@ -1814,14 +1850,14 @@ rm -f conftest*
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat > conftest.$ac_ext <<EOF
-#line 1818 "configure"
+#line 1854 "configure"
 #include "confdefs.h"
 #include <mysql.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1825: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1861: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MYSQL_INCLUDE="-I$try"
 else
@@ -1849,7 +1885,7 @@ rm -f conftest*
 		echo "$ac_t""yes" 1>&6
 
 		echo $ac_n "checking for mysql_init in -lmysqlclient""... $ac_c" 1>&6
-echo "configure:1853: checking for mysql_init in -lmysqlclient" >&5
+echo "configure:1889: checking for mysql_init in -lmysqlclient" >&5
 
 		old_LIBS="$LIBS"
 
@@ -1857,14 +1893,14 @@ echo "configure:1853: checking for mysql_init in -lmysqlclient" >&5
 			if test -d $try; then
 				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
 				cat > conftest.$ac_ext <<EOF
-#line 1861 "configure"
+#line 1897 "configure"
 #include "confdefs.h"
 extern char mysql_init();
 int main() {
 mysql_init()
 ; return 0; }
 EOF
-if { (eval echo configure:1868: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1904: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
    MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
 					  MYSQL_LDFLAGS="-L$try"
@@ -1954,17 +1990,17 @@ fi
 if test "x${pgsql}" != "xno"; then
 
 	echo $ac_n "checking for libpq-fe.h""... $ac_c" 1>&6
-echo "configure:1958: checking for libpq-fe.h" >&5
+echo "configure:1994: checking for libpq-fe.h" >&5
 
 	cat > conftest.$ac_ext <<EOF
-#line 1961 "configure"
+#line 1997 "configure"
 #include "confdefs.h"
 #include <libpq-fe.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1968: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2004: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   PGSQL_INCLUDE=" "
 else
@@ -1983,14 +2019,14 @@ rm -f conftest*
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat > conftest.$ac_ext <<EOF
-#line 1987 "configure"
+#line 2023 "configure"
 #include "confdefs.h"
 #include <libpq-fe.h>
 int main() {
 int a = 1;
 ; return 0; }
 EOF
-if { (eval echo configure:1994: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2030: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   PGSQL_INCLUDE="-I$try"
 else
@@ -2018,7 +2054,7 @@ rm -f conftest*
 		echo "$ac_t""yes" 1>&6
 
 		echo $ac_n "checking for PQconnectdb in -lpq""... $ac_c" 1>&6
-echo "configure:2022: checking for PQconnectdb in -lpq" >&5
+echo "configure:2058: checking for PQconnectdb in -lpq" >&5
 
 		old_LIBS="$LIBS"
 
@@ -2026,14 +2062,14 @@ echo "configure:2022: checking for PQconnectdb in -lpq" >&5
 			if test -d $try; then
 				LIBS="$old_LIBS -L$try -lpq -lcrypt ${PGSQL_LIBS}"
 				cat > conftest.$ac_ext <<EOF
-#line 2030 "configure"
+#line 2066 "configure"
 #include "confdefs.h"
 extern char PQconnectdb();
 int main() {
 PQconnectdb
 ; return 0; }
 EOF
-if { (eval echo configure:2037: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2073: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
    PGSQL_LIBS="-lpq -lcrypt ${PGSQL_LIBS}"
 					  PGSQL_LDFLAGS="-L$try"

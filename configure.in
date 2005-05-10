@@ -75,7 +75,7 @@ if test "${PWLIBDIR:-unset}" = "unset" ; then
   PWLIBDIR=`$PTLIB_CONFIG --pwlibdir`
 fi
 
-echo "PWLib prefix set to.... $PWLIBDIR"
+echo "PWLib prefix set to $PWLIBDIR"
 
 AC_SUBST(PWLIBDIR)
 
@@ -99,14 +99,34 @@ if test "${PTLIB_CONFIG:-unset}" = "unset"; then
   fi
 else
   PWLIB_VERSION=`${PTLIB_CONFIG} --version`
+  PWLIB_MAJOR_VERSION=[`echo "${PWLIB_VERSION}" | sed -e "s/\([0-9]*\)\.[0-9]*\.[0-9]*.*/\1/"`]
+  PWLIB_MINOR_VERSION=[`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.\([0-9]*\)\.[0-9]*.*/\1/'`]
+  PWLIB_BUILD_NUMBER=[`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/'`]
 fi
 if test "${PWLIB_VERSION:-unset}" = "unset" -o "${PWLIB_VERSION}" = ".."; then
   echo "Error: could not determine PWLib version"
   exit
 fi
-AC_SUBST(PWLIB_VERSION)
 
 echo "PTLib version is ${PWLIB_VERSION}"
+
+if test ${PWLIB_MAJOR_VERSION} -lt 1; then
+  echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
+  exit
+fi
+if test ${PWLIB_MAJOR_VERSION} -eq 1; then
+  if test ${PWLIB_MINOR_VERSION} -lt 7; then
+    echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
+    exit
+  elif test ${PWLIB_MINOR_VERSION} -eq 7; then
+    if test ${PWLIB_BUILD_NUMBER} -lt 5; then
+      echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
+      exit
+    fi
+  fi
+fi
+
+AC_SUBST(PWLIB_VERSION)
 
 dnl ########################################################################
 dnl look for openh323, use a preference order of explicit OPENH323DIR, directory
@@ -162,7 +182,7 @@ if test -d "${OPENH323DIR}/share/openh323"; then
   OPENH323MAKEDIR=${OPENH323DIR}/share/openh323/
 fi
 
-echo "OpenH323 prefix set to.... $OPENH323DIR"
+echo "OpenH323 prefix set to $OPENH323DIR"
 
 if test "${OPENH323MAKEDIR:-unset}" = "unset"; then
   OPENH323MAKEDIR=${OPENH323DIR}
@@ -177,39 +197,55 @@ if test -d ${OPENH323DIR}; then
   AC_CHECK_FILE(${OPENH323DIR}/version.h, HAS_OPENH323_VERSIONFILE=1)
   if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
     OPENH323_VERSION_FILE=${OPENH323DIR}/version.h
-	MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MAJOR_VERSION | cut -f3 -d' '`
-	MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MINOR_VERSION | cut -f3 -d' '`
-	BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep BUILD_NUMBER | cut -f3 -d' '`
+	OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MAJOR_VERSION | cut -f3 -d' '`
+	OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MINOR_VERSION | cut -f3 -d' '`
+	OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep BUILD_NUMBER | cut -f3 -d' '`
   else
     AC_CHECK_FILE(${OPENH323MAKEDIR}/openh323buildopts.h, HAS_OPENH323_VERSIONFILE=1)
     if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
       OPENH323_VERSION_FILE=${OPENH323MAKEDIR}/openh323buildopts.h
-      MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f3 -d' '`
-      MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f3 -d' '`
-      BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_BUILD | cut -f3 -d' '`
+      OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f3 -d' '`
+      OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f3 -d' '`
+      OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_BUILD | cut -f3 -d' '`
     else
       AC_CHECK_FILE(${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h, HAS_OPENH323_VERSIONFILE=1)
       if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
         OPENH323_VERSION_FILE=${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h
-        MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f2 -d' '`
-        MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f2 -d' '`
-        BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "OPENH323_BUILD " | cut -f2 -d' '`
+        OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f2 -d' '`
+        OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f2 -d' '`
+        OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "OPENH323_BUILD " | cut -f2 -d' '`
       fi
-	fi
+    fi
   fi
 fi
 if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
-	if test "${MAJOR_VERSION}" = ""; then
-		MAJOR_VERSION=1
-		MINOR_VERSION=12
-		BUILD_NUMBER=0
-	fi
-	OPENH323_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
-	echo "OpenH323 version is ${OPENH323_VERSION}"
+  if test "${OPENH323_MAJOR_VERSION}" = ""; then
+    echo "Error: Could not determine OpenH323 version"
+    exit
+  fi
+  OPENH323_VERSION="${OPENH323_MAJOR_VERSION}.${OPENH323_MINOR_VERSION}.${OPENH323_BUILD_NUMBER}"
+  echo "OpenH323 version is ${OPENH323_VERSION}"
 else
-	echo "Error: Could not determine OpenH323 version"
-	exit
+  echo "Error: Could not determine OpenH323 version"
+  exit
 fi
+
+if test ${OPENH323_MAJOR_VERSION} -lt 1; then
+  echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+  exit
+fi
+if test ${OPENH323_MAJOR_VERSION} -eq 1; then
+  if test ${OPENH323_MINOR_VERSION} -lt 14; then
+    echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+    exit
+  elif test ${OPENH323_MINOR_VERSION} -eq 14; then
+    if test ${OPENH323_BUILD_NUMBER} -lt 4; then
+      echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+      exit
+    fi
+  fi
+fi
+
 AC_SUBST(OPENH323_VERSION)
 
 dnl ########################################################################
