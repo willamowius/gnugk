@@ -1,5 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- new ENUM routing policy from Simon Horne
 - added check for PWLib/OpenH323 minimum version supported
 - optionally signal call ids in the status port with ACF/ARJ/DCF/DRJ/RouteRequest
   messages (switch on with SignalCallIds=1 in main section)

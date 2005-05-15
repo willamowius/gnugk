@@ -20,6 +20,7 @@
 #endif
 
 #include <ptlib.h>
+#include <ptclib/enum.h>
 #include <h323pdu.h>
 #include "gk_const.h"
 #include "h323util.h"
@@ -39,7 +40,6 @@ using std::binary_function;
 
 namespace Routing {
 
-
 const char *SectionName[] = {
 	"RoutingPolicy::OnARQ",
 	"RoutingPolicy::OnLRQ",
@@ -47,6 +47,10 @@ const char *SectionName[] = {
 	"RoutingPolicy::OnFacility",
 	"RoutingPolicy"
 };
+
+const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
+const char* const CTIsection = "CTI::Agents";
+
 
 
 // class RoutingRequest
@@ -474,9 +478,6 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 	return DNSPolicy::FindByAliases((RoutingRequest&)request, aliases);
 }
 
-
-#define DEFAULT_ROUTE_REQUEST_TIMEOUT 10
-const char* CTIsection = "CTI::Agents";
 
 VirtualQueue::VirtualQueue()
 	:
@@ -940,6 +941,47 @@ bool NumberAnalysisPolicy::OnRequest(AdmissionRequest & request)
 	return false;
 }
 
+// a policy to look up the destination from ENUM Name Server
+class ENUMPolicy : public AliasesPolicy {
+public:
+	ENUMPolicy() { m_name = "ENUM"; }
+protected:
+	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
+	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+};
+
+bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{
+#if P_DNS
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		PString alias(AsString(aliases[i], FALSE));
+
+		// make sure the number has only digits
+		PINDEX i;
+		for (i = 0; i < alias.GetLength(); ++i)
+			if (!isdigit(alias[i]))
+				break;
+
+		if (i >= alias.GetLength()) {
+			PString str;
+			if (PDNS::ENUMLookup(alias, "E2U+h323", str)) {
+				PTRACE(4, "\tENUM converted remote party " << alias << " to " << str);
+				request.SetFlag(RoutingRequest::e_aliasesChanged);
+				H323SetAliasAddress(str, aliases[i]);
+				return true;
+		  	}
+		}
+	}
+#endif
+
+	return false;
+}
+
+bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{
+	return ENUMPolicy::FindByAliases((RoutingRequest&)request, aliases);
+}
+
 
 namespace { // anonymous namespace
 	SimpleCreator<ExplicitPolicy> ExplicitPolicyCreator("explicit");
@@ -948,6 +990,7 @@ namespace { // anonymous namespace
 	SimpleCreator<DNSPolicy> DNSPolicyCreator("dns");
 	SimpleCreator<VirtualQueuePolicy> VirtualQueuePolicyCreator("vqueue");
 	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
+	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("ENUM");
 }
 
 

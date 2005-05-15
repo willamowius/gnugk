@@ -47,8 +47,25 @@ event to let an external application do the routing
 <p>
 Provides support for overlapped digit sending for ARQ messages.
 
+<item><tt/ENUM/<newline>
+<p>
+ENUM (RFC3761) is a method to use DNS lookup to convert
+real IDD E164 numbers into H323 dialing information. The servers
+it looks up by default are <tt/e164.org/ and <tt/apra.org/.
+To specify your own server you have to specify an environmental
+variable PWLIB_ENUM_PATH with the address of your preferred
+enum servers separated by a semicolon (;).
+
 </itemize>
 
+<p>
+Default configuration for routing policies is as follows:
+<descrip>
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,parent,neighbor</tt></quote>
+</descrip>
+
+<p>
 If one policy does not match, the next policy is tried.
 
 These policies can be applied to a number of routing request types,
