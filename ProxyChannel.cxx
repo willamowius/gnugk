@@ -254,7 +254,7 @@ public:
 	bool IsAttached() const { return (peer != 0); }
 	void OnHandlerSwapped(bool);
 
-	class NoPortAvailable {};
+	bool IsOpen() const;
 
 private:
 	void SetNAT(bool);
@@ -2968,6 +2968,11 @@ RTPLogicalChannel::~RTPLogicalChannel()
 	PTRACE(4, "RTP\tDelete logical channel " << channelNumber);
 }
 
+bool RTPLogicalChannel::IsOpen() const
+{
+	return rtp->IsOpen() && rtcp->IsOpen();
+}
+
 void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress & addr)
 {
 	addr >> SrcIP >> SrcPort;
@@ -3340,8 +3345,11 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
 			if (akalc)
 				lc = static_cast<RTPLogicalChannel *>(akalc);
-			else
+			else {
 				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
+				if (!lc->IsOpen())
+					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
+			}
 		}
 	} else {
 		if (lc) {
@@ -3403,11 +3411,10 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 		lc->OnHandlerSwapped(hnat != 0);
 		peer->fastStartLCs.erase(iter);
 	} else {
-		try {
-			lc = new RTPLogicalChannel(flcn, hnat != 0);
-		} catch (RTPLogicalChannel::NoPortAvailable) {
-			PTRACE(2, "Proxy\tError: Can't create RTP logical channel " << flcn);
-			return 0;
+		lc = new RTPLogicalChannel(flcn, hnat != 0);
+		if (!lc->IsOpen()) {
+			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
+			return NULL;
 		}
 	}
 
@@ -3421,13 +3428,12 @@ RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 	siterator iter = fastStartLCs.find(id);
 	RTPLogicalChannel *lc = (iter != fastStartLCs.end()) ? iter->second : 0;
 	if (!lc) {
-		try {
-			// the LogicalChannelNumber of a fastStart logical channel is irrelevant
-			// it may be set later
-			lc = new RTPLogicalChannel(0, hnat != 0);
-		} catch (RTPLogicalChannel::NoPortAvailable) {
-			PTRACE(2, "Proxy\tError: Can't create fast start logical channel id " << id);
-			return 0;
+		// the LogicalChannelNumber of a fastStart logical channel is irrelevant
+		// it may be set later
+		lc = new RTPLogicalChannel(0, hnat != 0);
+		if (!lc->IsOpen()) {
+			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
+			return NULL;
 		}
 		fastStartLCs[id] = lc;
 		PTRACE(4, "RTP\tOpen fast start logical channel id " << id << " port " << lc->GetPort());
