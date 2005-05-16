@@ -16,6 +16,8 @@ Sample configuration for FreeRADIUS server to use with GnuGk prepaid platform
 
    IMPORTANT: Do not forget to enable with_cisco_vsa_hack = yes option
    in radiusd.conf file
+
+   You can also copy the included radiusd.conf file for a quick start up.
    
 3. Edit postgresql.conf file to contain the proper address of the machine
    that is running voipdb database, a valid login/password, etc.
@@ -24,8 +26,10 @@ Sample configuration for FreeRADIUS server to use with GnuGk prepaid platform
    database connections from the FreeRADIUS machine)
    
 4. Do not forget to edit clients.conf and append an entry for GnuGk.
+   You can also use the included clients.conf file, if the gatekeeper runs
+   on the same machine as FreeRADIUS.
 
 5. Reload (or start) FreeRADIUS server.
 
-This has been tested with FreeRADIUS 0.9.x. You can find more info
+This has been tested with FreeRADIUS 0.9.x and 1.0.x. You can find more info
 about FreeRADIUS server at http://www.freeradius.org.
