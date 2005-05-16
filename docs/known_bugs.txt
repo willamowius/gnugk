@@ -3,3 +3,7 @@ Known bugs:
   in H.245 routed mode - this makes a call to fail
 * authentication/accounting modules do not work fine for gatekeeper forwarded 
   calls (ForwardOnFacility=1), it is recommended to disable this flag
+* PostgreSQL driver for SQLxxx modules does not reconnect to the database
+  if the connection is lost until gatekeeper reload
+* the gatekeeper does not try to bind a socket again if a Q.931/H.245/T.120 port
+  is already in use, therefore some calls may fail under specific circumstances
