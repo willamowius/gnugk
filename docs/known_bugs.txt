@@ -1,0 +1,5 @@
+Known bugs:
+* a race condition occurs when both endpoints try to establish H.245 connection
+  in H.245 routed mode - this makes a call to fail
+* authentication/accounting modules do not work fine for gatekeeper forwarded 
+  calls (ForwardOnFacility=1), it is recommended to disable this flag
