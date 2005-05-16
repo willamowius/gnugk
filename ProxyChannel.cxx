@@ -1741,9 +1741,10 @@ bool CallSignalSocket::CreateRemote(
 	setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GetPort());
 	
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is NAT type " << type);
-	if (type & CallRec::calledParty) {
+	endptr calledep = m_call->GetCalledParty();
+	if (calledep) {
 		// m_call->GetCalledParty() should not be null in the case
-		if (CallSignalSocket *socket = m_call->GetCalledParty()->GetSocket()) {
+		if (CallSignalSocket *socket = calledep->GetSocket()) {
 			PTRACE(3, Type() << "\tUsing NAT socket " << socket->GetName());
 
 			// it's dangerous if the remote socket has
