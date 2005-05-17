@@ -1,0 +1,11 @@
+===============
+3 E1s of G.723.1 continuous traffic (90 calls)
+FastEthernet network, 2Mbit/s of full-duplex bandwidth (1Mbit/s in each direction)
+Toshiba Pentium M 1.6GHz, Linux kernel 2.6
+GnuGk 2.2.x (no LARGE_FDSET), full proxy mode, no external auth/acct modules (RADIUS/SQL)
+
+CPU utilization: 10-15% (with full tracing level 5 enabled + 10%)
+No delay/quality loss mesured as compared to an idle gatekeeper - measured by making
+test calls during peak time
+===============
+
