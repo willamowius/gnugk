@@ -20,3 +20,9 @@ test calls during peak time
 
 Using the same settings as above, except that GnuGk is compiled with LARGE_FDSET=1024,
 CPU utilization decreased to 20-30%
+===============
+The same configuration as above, except that the gatekeeper is in the signaling routed
+mode (no proxy).
+
+CPU utilization: 2-3%
+===============
