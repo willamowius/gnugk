@@ -2390,8 +2390,9 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 	WORD port = H245PortRange.GetPort();
 	if (!listener->Listen(1, port, PSocket::CanReuseAddress)) {
 		PTRACE(1, Type() << "\tCould not open H.245 listener at 0.0.0.0:" << port
-			<< ", error(" << listener->GetErrorCode(PSocket::LastGeneralError) << ", " 
-			<< listener->GetErrorText(PSocket::LastGeneralError) << ')'
+			<< " - error " << listener->GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< listener->GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< listener->GetErrorText(PSocket::LastGeneralError)
 			);
 		listener->Close();
 	}
@@ -2728,7 +2729,11 @@ bool UDPProxySocket::Bind(WORD pt)
 	int rtpIpTypeofService = IPTOS_LOWDELAY;
 #endif
 	if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
-		PTRACE(1, Type() << "\tCould not set TOS field in IP header: " << GetErrorText(PSocket::LastGeneralError));
+		PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
+			<< GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+			<< GetErrorText(PSocket::LastGeneralError)
+			);
 	}
 	return true;
 }
@@ -2941,16 +2946,20 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 		port = GetPortNumber();
 		// try to bind rtp to an even port and rtcp to the next one port
 		if (!rtp->Bind(port)) {
-			PTRACE(1, "RTP\tRTP port " << port << " not available, error("
-				<< rtp->GetErrorCode(PSocket::LastGeneralError) << ", " 
-				<< rtp->GetErrorText(PSocket::LastGeneralError) << ')');
+			PTRACE(1, "RTP\tRTP port " << port << " not available - error "
+				<< rtp->GetErrorCode(PSocket::LastGeneralError) << '/'
+				<< rtp->GetErrorNumber(PSocket::LastGeneralError) << ": " 
+				<< rtp->GetErrorText(PSocket::LastGeneralError)
+				);
 			rtp->Close();
 			continue;
 		}
 		if (!rtcp->Bind(port+1)) {
-			PTRACE(1, "RTP\tRTCP port " << port + 1 << " not available, error("
-				<< rtcp->GetErrorCode(PSocket::LastGeneralError) << ", " 
-				<< rtcp->GetErrorText(PSocket::LastGeneralError) << ')');
+			PTRACE(1, "RTP\tRTCP port " << port + 1 << " not available - error "
+				<< rtcp->GetErrorCode(PSocket::LastGeneralError) << '/'
+				<< rtcp->GetErrorNumber(PSocket::LastGeneralError) << ": " 
+				<< rtcp->GetErrorText(PSocket::LastGeneralError)
+				);
 			rtcp->Close();
 			rtp->Close();
 			continue;
@@ -3142,8 +3151,9 @@ T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(
 	SetName("T120:" + PString(port));
 	if (!Listen(5, port, PSocket::CanReuseAddress)) {
 		PTRACE(1, GetName() << "Could not open listening socket at 0.0.0.0:" << port
-			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
-			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
 	}
@@ -3555,8 +3565,9 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 	unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
 	if (!Listen(addr, queueSize, pt, PSocket::CanReuseAddress)) {
 		PTRACE(1, "Q931\tCould not open listening socket at " << addr << ':' << pt
-			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
-			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
 	}

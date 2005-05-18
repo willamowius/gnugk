@@ -163,14 +163,17 @@ bool GatekeeperMessage::Read(RasListener *socket)
 	const int buffersize = 4096;
 	BYTE buffer[buffersize];
 	if (!socket->Read(buffer, buffersize)) {
-		PTRACE(1, "RAS\tRead error: " << socket->GetErrorText(PSocket::LastReadError));
+		PTRACE(1, "RAS\tRead error " << socket->GetErrorCode(PSocket::LastReadError)
+			<< '/' << socket->GetErrorNumber(PSocket::LastReadError) << ": "
+			<< socket->GetErrorText(PSocket::LastReadError)
+			);
 		return false;
 	}
 	socket->GetLastReceiveAddress(m_peerAddr, m_peerPort);
 	PTRACE(2, "RAS\tRead from " << m_peerAddr << ':' << m_peerPort);
 	m_rasPDU = PPER_Stream(buffer, socket->GetLastReadCount());
 	bool result = m_recvRAS.Decode(m_rasPDU);
-	PTRACE_IF(1, !result, "RAS\tCouldn't decode message!");
+	PTRACE_IF(1, !result, "RAS\tCould not decode message from " << m_peerAddr << ':' << m_peerPort);
 	return result;
 }
 
@@ -185,8 +188,9 @@ RasListener::RasListener(const Address & addr, WORD pt) : m_ip(addr)
 {
 	if (!Listen(addr, 0, pt, PSocket::CanReuseAddress)) {
 		PTRACE(1, "RAS\tCould not open listening socket at " << addr << ':' << pt
-			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
-			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
 	}
@@ -240,7 +244,10 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 	if (result)
 		PTRACE(5, "RAS\tSent Successful");
 	else
-		PTRACE(4, "RAS\tWrite error: " << GetErrorText(PSocket::LastWriteError));
+		PTRACE(1, "RAS\tWrite error " << GetErrorCode(PSocket::LastWriteError) << '/'
+			<< GetErrorNumber(PSocket::LastWriteError) << ": "
+			<< GetErrorText(PSocket::LastWriteError)
+			);
 #endif
 	return result;
 }

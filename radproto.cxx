@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.26  2005/05/18 14:23:33  zvision
+ * Better error reporting on socket allocation
+ *
  * Revision 1.25  2005/04/24 16:39:44  zvision
  * MSVC6.0 compatibility fixed
  *
@@ -1436,8 +1439,9 @@ RadiusSocket::RadiusSocket(
 {
 	if (!Listen(0, port)) {
 		PTRACE(1, "RADIUS\tCould not bind socket to the port " << port
-			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
-			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
 	}
@@ -1471,8 +1475,9 @@ RadiusSocket::RadiusSocket(
 {
 	if (!Listen(addr, 0, port)) {
 		PTRACE(1, "RADIUS\tCould not bind socket to " << addr << ':' << port
-			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
-			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
 	}
@@ -1608,8 +1613,8 @@ bool RadiusSocket::MakeRequest(
 	BOOL result = WriteTo(request, length, serverAddress, serverPort);
 	if (!result)
 		PTRACE(5, "RADIUS\tError sending UDP packet ("
-			<< GetErrorCode(LastWriteError) << ':'
-			<< GetErrorNumber(LastWriteError) << ':'
+			<< GetErrorCode(LastWriteError) << '/'
+			<< GetErrorNumber(LastWriteError) << ": "
 			<< GetErrorText(LastWriteError) << " (id:" << (PINDEX)id << ')'
 			);
 	m_writeMutex.Signal();
@@ -1631,8 +1636,8 @@ bool RadiusSocket::MakeRequest(
 					PTRACE(6, "RADIUS\tTimed out reading socket " << *this);
 				else
 					PTRACE(5, "RADIUS\tError reading socket " << *this
-						<< " (" << GetErrorCode(LastReadError) << ':'
-						<< GetErrorNumber(LastReadError) << ':'
+						<< " (" << GetErrorCode(LastReadError) << '/'
+						<< GetErrorNumber(LastReadError) << ": "
 						<< GetErrorText(LastReadError) << ')'
 						);
 				delete response;
@@ -1791,8 +1796,8 @@ bool RadiusSocket::SendRequest(
 		return true;
 		
 	PTRACE(5, "RADIUS\tError sending UDP packet ("
-		<< GetErrorCode(LastWriteError) << ':'
-		<< GetErrorNumber(LastWriteError) << ':'
+		<< GetErrorCode(LastWriteError) << '/'
+		<< GetErrorNumber(LastWriteError) << ": "
 		<< GetErrorText(LastWriteError) << " (id:" 
 		<< (PINDEX)request->GetId() << ')'
 		);

@@ -228,6 +228,19 @@ bool YaSocket::SetOption(int option, const void *value, int size, int level)
 	return ConvertOSError(::setsockopt(os_handle, level, option, (char *)value, size));
 }
 
+bool YaSocket::GetOption(int option, int & value, int level)
+{
+	socklen_t valSize = sizeof(value);
+	return ConvertOSError(::getsockopt(os_handle, level, option, (char *)&value, &valSize));
+}
+
+bool YaSocket::GetOption(int option, void * valuePtr, PINDEX valueSize, int level)
+{
+	return ConvertOSError(::getsockopt(os_handle, level, option,
+		(char *)valuePtr, (socklen_t *)&valueSize)
+		);
+}
+
 PString YaSocket::GetErrorText(PSocket::ErrorGroup group) const
 {
 	return PSocket::GetErrorText(GetErrorCode(group));
@@ -247,8 +260,10 @@ bool YaSocket::SetNonBlockingMode()
 {
 	if (!IsOpen())
 		return false;
+	// is call to F_SETFD with F_CLOEXEC really neccessary?
 	int cmd = 1;
-	if (::ioctl(os_handle, FIONBIO, &cmd) == 0 && ::fcntl(os_handle, F_SETFD, 1) == 0)
+	if (ConvertOSError(::ioctl(os_handle, FIONBIO, &cmd))
+			&& ConvertOSError(::fcntl(os_handle, F_SETFD, 1)))
 		return true;
 	Close();
 	return false;
@@ -311,7 +326,8 @@ bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Re
 	if (!ConvertOSError(os_handle))
 		return false;
 
-	SetOption(SO_REUSEADDR, reuse == PSocket::CanReuseAddress ? 1 : 0);
+	if (!SetOption(SO_REUSEADDR, reuse == PSocket::CanReuseAddress ? 1 : 0))
+		return false;
 	
 //	SetNonBlockingMode();
 	if (Bind(addr, pt) && ConvertOSError(::listen(os_handle, qs)))
@@ -443,8 +459,10 @@ bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, int, PSocket::
 	if (!ConvertOSError(os_handle))
 		return false;
 
-	SetOption(SO_REUSEADDR, reuse == PSocket::CanReuseAddress ? 1 : 0);
-	SetNonBlockingMode();
+	if (!SetNonBlockingMode())
+		return false;
+	if (!SetOption(SO_REUSEADDR, reuse == PSocket::CanReuseAddress ? 1 : 0))
+		return false;
 	return Bind(addr, pt);
 }
 

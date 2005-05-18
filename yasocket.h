@@ -52,6 +52,8 @@ public:
 	void GetLocalAddress(Address &, WORD &) const;
 	bool SetOption(int, int, int = SOL_SOCKET);
 	bool SetOption(int, const void *, int, int = SOL_SOCKET);
+	bool GetOption(int, int &, int = SOL_SOCKET);
+	bool GetOption(int, void *, PINDEX, int);
 
 	PSocket::Errors GetErrorCode(PSocket::ErrorGroup group) const { return lastErrorCode[group]; }
 	int GetErrorNumber(PSocket::ErrorGroup group) const { return lastErrorNumber[group]; }

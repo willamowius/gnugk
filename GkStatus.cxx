@@ -281,6 +281,8 @@ int TelnetSocket::ReadChar()
 		if (!TCPSocket::Read(&currentByte, 1)) {
 			if (GetErrorCode(PSocket::LastReadError) != PSocket::Timeout) {
 				PTRACE(3, "TELNET\t" << GetName() << " closed the connection ("
+					<< GetErrorCode(PSocket::LastReadError) << '/' 
+					<< GetErrorNumber(PSocket::LastReadError) << ": "
 					<< GetErrorText(PSocket::LastReadError) << ')'
 					);
 				Close();
@@ -1243,8 +1245,9 @@ StatusListener::StatusListener(
 	const unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
 	if (!Listen(addr, queueSize, port, PSocket::CanReuseAddress)) {
 		PTRACE(1, "STATUS\tCould not open listening socket at " << addr << ':' << port
-			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
-			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
 	}
