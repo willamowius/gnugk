@@ -2387,7 +2387,14 @@ H245Socket::H245Socket(CallSignalSocket *sig)
       : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket)
 {
 	peerH245Addr = 0;
-	listener->Listen(1, H245PortRange.GetPort(), PSocket::CanReuseAddress);
+	WORD port = H245PortRange.GetPort();
+	if (!listener->Listen(1, port, PSocket::CanReuseAddress)) {
+		PTRACE(1, Type() << "\tCould not open H.245 listener at 0.0.0.0:" << port
+			<< ", error(" << listener->GetErrorCode(PSocket::LastGeneralError) << ", " 
+			<< listener->GetErrorText(PSocket::LastGeneralError) << ')'
+			);
+		listener->Close();
+	}
 	SetHandler(sig->GetHandler());
 }
 
@@ -2933,11 +2940,22 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 	for (int i = 0; i < numPorts; i += 2) {
 		port = GetPortNumber();
 		// try to bind rtp to an even port and rtcp to the next one port
-		if (rtp->Bind(port) && rtcp->Bind(port + 1))
-			return;
-
-		PTRACE(2, "RTP\tPort " << port << " not available");
-		rtp->Close(), rtcp->Close();
+		if (!rtp->Bind(port)) {
+			PTRACE(1, "RTP\tRTP port " << port << " not available, error("
+				<< rtp->GetErrorCode(PSocket::LastGeneralError) << ", " 
+				<< rtp->GetErrorText(PSocket::LastGeneralError) << ')');
+			rtp->Close();
+			continue;
+		}
+		if (!rtcp->Bind(port+1)) {
+			PTRACE(1, "RTP\tRTCP port " << port + 1 << " not available, error("
+				<< rtcp->GetErrorCode(PSocket::LastGeneralError) << ", " 
+				<< rtcp->GetErrorText(PSocket::LastGeneralError) << ')');
+			rtcp->Close();
+			rtp->Close();
+			continue;
+		}
+		return;
 	}
 
 	PTRACE(2, "RTP\tLogical channel " << flcn << " could not be established - out of RTP sockets");
@@ -3086,7 +3104,10 @@ T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 {
 	listener = new T120Listener(this);
 	port = listener->GetPort();
-	PTRACE(4, "T120\tOpen logical channel " << flcn << " port " << port);
+	if (listener->IsOpen())
+		PTRACE(4, "T120\tOpen logical channel " << flcn << " port " << port);
+	else
+		PTRACE(4, "T120\tFailed to open logical channel " << flcn << " port " << port);
 }
 
 T120LogicalChannel::~T120LogicalChannel()
@@ -3117,8 +3138,15 @@ void T120LogicalChannel::StartReading(ProxyHandler *h)
 
 T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(lc)
 {
-	Listen(5, T120PortRange.GetPort(), PSocket::CanReuseAddress);
-	SetName("T120:" + PString(GetPort()));
+	WORD port = T120PortRange.GetPort();
+	SetName("T120:" + PString(port));
+	if (!Listen(5, port, PSocket::CanReuseAddress)) {
+		PTRACE(1, GetName() << "Could not open listening socket at 0.0.0.0:" << port
+			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
+			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			);
+		Close();
+	}
 }
 
 ServerSocket *T120LogicalChannel::T120Listener::CreateAcceptor() const
@@ -3525,7 +3553,13 @@ bool NATHandler::SetAddress(H245_UnicastAddress_iPAddress * addr)
 CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 {
 	unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
-	Listen(addr, queueSize, pt, PSocket::CanReuseAddress);
+	if (!Listen(addr, queueSize, pt, PSocket::CanReuseAddress)) {
+		PTRACE(1, "Q931\tCould not open listening socket at " << addr << ':' << pt
+			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
+			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			);
+		Close();
+	}
 	SetName(AsString(addr, GetPort()));
 }
 

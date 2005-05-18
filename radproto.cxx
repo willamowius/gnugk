@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.25  2005/04/24 16:39:44  zvision
+ * MSVC6.0 compatibility fixed
+ *
  * Revision 1.24  2005/04/19 07:48:44  zvision
  * Previous fix could cause infinite loops, thanks to kubuqi cn
  *
@@ -1431,7 +1434,13 @@ RadiusSocket::RadiusSocket(
 	m_isReading(false), m_nestedCount(0), 
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
-	Listen(0, port);
+	if (!Listen(0, port)) {
+		PTRACE(1, "RADIUS\tCould not bind socket to the port " << port
+			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
+			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			);
+		Close();
+	}
 	
 	int i;
 	PRandom random;
@@ -1460,7 +1469,13 @@ RadiusSocket::RadiusSocket(
 	m_isReading(false), m_nestedCount(0),
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
-	Listen(addr, 0, port);
+	if (!Listen(addr, 0, port)) {
+		PTRACE(1, "RADIUS\tCould not bind socket to " << addr << ':' << port
+			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
+			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			);
+		Close();
+	}
 	
 	int i;
 	PRandom random;

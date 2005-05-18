@@ -302,7 +302,7 @@ bool YaTCPSocket::SetLinger()
 
 bool YaTCPSocket::Listen(unsigned qs, WORD pt, PSocket::Reusability reuse)
 {
-	return Listen(INADDR_ANY, qs, pt);
+	return Listen(INADDR_ANY, qs, pt, reuse);
 }
 
 bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Reusability reuse)

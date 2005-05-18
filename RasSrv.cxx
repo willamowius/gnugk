@@ -183,7 +183,13 @@ bool GatekeeperMessage::Reply() const
 // class RasListener
 RasListener::RasListener(const Address & addr, WORD pt) : m_ip(addr)
 {
-	Listen(addr, 0, pt, PSocket::CanReuseAddress);
+	if (!Listen(addr, 0, pt, PSocket::CanReuseAddress)) {
+		PTRACE(1, "RAS\tCould not open listening socket at " << addr << ':' << pt
+			<< ", error(" << GetErrorCode(PSocket::LastGeneralError) << ", " 
+			<< GetErrorText(PSocket::LastGeneralError) << ')'
+			);
+		Close();
+	}
 	SetWriteTimeout(1000); // TODO: read from config
 	SetName(AsString(addr, pt) + "(U)");
 	m_signalPort = 0;
@@ -796,10 +802,10 @@ void RasServer::LoadConfig()
 	if (bUseBroadcastListener && !broadcastListener) {
 		broadcastListener = new BroadcastListener(interfaces.front()->GetRasPort());
 		if (broadcastListener->IsOpen()) {
-			PTRACE(1, "RAS\tAdd broadcast listener");
+			PTRACE(1, "RAS\tBroadcast listener listening at " << broadcastListener->GetName());
 			AddSocket(broadcastListener);
 		} else {
-			PTRACE(1, "RAS\tUnable to open broadcast listener");
+			PTRACE(1, "RAS\tCannot start broadcast listener at " << broadcastListener->GetName());
 			delete broadcastListener;
 			broadcastListener = 0;
 		}

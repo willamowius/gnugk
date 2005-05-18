@@ -8,6 +8,9 @@ see file COPYING for details
 Installing PostgreSQL Database Schema for GnuGk prepaid platform
 =====================================================
 
+Make sure your PostgreSQL server has tcpip_socket = true option enabled in the config
+and you can access the default database (template1) with the user postgres.
+
 To create the schema, follow these steps:
 1. Change the current directory to 'src'. Connect to a database 'template1'
    (or template0) running by PostgreSQL server as the admin user ('postgres'?)
@@ -17,8 +20,6 @@ To create the schema, follow these steps:
    
    (where IP_ADDRESS is an address of a machine that is running PostgreSQL
     - 'localhost', for example)
-   (do not forget to enable tcp connections in PostgreSQL config 
-    - 'tcpip_socket = true')
 
 2. Create a new database for the prepaid system using c_voipdb.sql script:
 
@@ -36,9 +37,10 @@ To create the schema, follow these steps:
    
    createlang -U postgres -h IP_ADDRESS plpgsql voipdb
    
-5. Connect to the new database 'voipdb' as a new user 'gkradius'
-   (you may need to add an entry in pg_hba.conf PostgreSQL configuration
-   file for the pair (gkradius,voipdb) to allow database connections):
+5. Connect to the new database 'voipdb' as a new user 'gkradius'.
+   You may need to add an entry in pg_hba.conf PostgreSQL configuration
+   file for the pair (gkradius,voipdb) to allow database connections (something like
+   "host voipdb gkradius 127.0.0.1/32 md5"):
 
    psql -U gkradius -h IP_ADDRESS voipdb
    
