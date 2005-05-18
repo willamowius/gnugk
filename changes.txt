@@ -1,5 +1,7 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- BUGFIX(yasocket.cxx) fixed address reuse for UDP sockets in LARGE_FDSET mode,
+  broadcast RAS socket did not work previously
 - better error reporting on socket allocation
 - new ENUM routing policy from Simon Horne
 - added check for PWLib/OpenH323 minimum version supported

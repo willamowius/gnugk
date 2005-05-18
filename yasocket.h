@@ -113,7 +113,7 @@ public:
 	YaUDPSocket();
 
 	bool Listen(unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
-	bool Listen(const Address &, unsigned, WORD, int, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
+	bool Listen(const Address &, unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
 	void GetLastReceiveAddress(Address &, WORD &) const;
 	void SetSendAddress(const Address &, WORD);
 	/// Get the address to use for connectionless Write().

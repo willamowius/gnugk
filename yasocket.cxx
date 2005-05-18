@@ -450,10 +450,10 @@ YaUDPSocket::YaUDPSocket()
 
 bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
 {
-	return Listen(INADDR_ANY, 0, pt, 0, reuse);
+	return Listen(INADDR_ANY, 0, pt, reuse);
 }
 
-bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, int, PSocket::Reusability reuse)
+bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusability reuse)
 {
 	os_handle = ::socket(PF_INET, SOCK_DGRAM, 0);
 	if (!ConvertOSError(os_handle))
