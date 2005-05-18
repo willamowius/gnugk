@@ -93,6 +93,9 @@ The version 2.2.3 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+Broadcast request are handled correctly in the LARGE_FDSET mode.
+
+<item>
 New ENUM routing policy from Simon Horne.
 
 <item>
