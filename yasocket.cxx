@@ -93,7 +93,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 				hasfd = true;
 				break;
 			} else
-				j++;
+				++j;
 		}
 		// reorder remaining sockets, so non-selected sockets 
 		// are moved to the end of the vector
@@ -152,7 +152,7 @@ bool YaSocket::Read(void *buf, int sz)
 bool YaSocket::ReadBlock(void *buf, int len)
 {
 	// lazy implementation, but it is enough for us...
-	return Read(buf, len) && (lastReadCount == len);
+	return Read(buf, len) && lastReadCount == len;
 }
 
 bool YaSocket::CanRead(
@@ -235,7 +235,7 @@ PString YaSocket::GetErrorText(PSocket::ErrorGroup group) const
 
 bool YaSocket::ConvertOSError(int libReturnValue, PSocket::ErrorGroup group)
 {
-	if ((libReturnValue < 0) && (errno == EAGAIN)) {
+	if (libReturnValue < 0 && errno == EAGAIN) {
 		lastErrorCode[group] = PSocket::Timeout;
 		lastErrorNumber[group] = errno;
 		return false;
