@@ -1,0 +1,123 @@
+.\"  -*- nroff -*-
+.\"
+.\" gnugk.1
+.\"
+.\" Author: 
+.\"	Jan Willamowius <jan@willamowius.de> 
+.\" Man page Composer: 
+.\"     Ivan Lopez <ivan.n.lopez@gmail.com>
+.\"
+.\" Created: Tue May  15 2005 
+.\"
+.\"
+.Dd May 15, 2005
+.Dt GNUGK 1 
+.Os
+.Sh NAME
+.Nm gnugk
+.Nd Open H323 Gatekeeper - The GNU Gatekeeper
+.Sh SYNOPSIS
+.Nm gnugk
+.Op Fl hdrt
+.Op Fl c Ar filename
+.Op Fl s Ar section
+.Op Fl i Ar IP
+.Op Fl l Ar n
+.Op Fl b Ar n
+.Op Fl u Ar name
+.Op Fl d Ar name
+.Op Fl rr
+.Op Fl o Ar filename
+.Op Fl -pid Ar filename
+.Op Fl -core Ar n
+.Sh DESCRIPTION
+The GNU Gatekeeper is an open-source project that implements an H.323 gatekeeper. A gatekeeper provides call control services to the H.323 endpoints. It is an integral part of most usefull internet telephony installations that are based on the H.323 standard. 
+According to Recommendation H.323, a gatekeeper shall provide the following services: 
+.Bl -enum -compact
+.It 
+Address Translation 
+.It 
+Admissions Control 
+.It 
+Bandwidth Control 
+.It 
+Zone Management 
+.It 
+Call Control Signaling 
+.It 
+Call Authorization 
+.It 
+Bandwidth Management 
+.It 
+Call Management 
+.El
+.Bl -tag -width Ds
+The GNU Gatekeeper implements most of these functions based on the OpenH323 protocol stack. 
+The behavior of the gatekeeper is completely determined by the command line options and configuration file. Some command line options may override the setting of the configuration file. For example, the option -l overrides the setting TimeToLive in the configuration file. 
+.Sh OPTIONS
+Almost every option has a short and a long format, e.g., -c is the same as --config
+.It Fl h -help
+ Show all available options and quit the program. 
+.It Fl c -config Ar filename
+Specify the configuration file to use. 
+.It Fl s -section Ar section
+Specify which main section to use in the configuration file. The default is 
+.Em [Gatekeeper::Main]. 
+.It Fl i -interface Ar IP
+Specify the interface (IP number) that the gatekeeper listens to. You should leave out this option to let the gatekeeper automatically determine the IP it listens to, unless you want the gatekeeper only binds to a specified IP. 
+.It Fl l -timetolive Ar n
+Specify the time-to-live timer (in seconds) for endpoint registration. It overrides the setting TimeToLive in the configuration file. See there for detailed explanations. 
+.It Fl b -bandwidth Ar n
+Specify the total bandwidth available for the gatekeeper. Without specifying this option, the bandwidth management is disable by default. 
+.It Fl -pid Ar filename
+Specify the pid file, only valid for Unix version. 
+.It Fl u -user Ar name
+Run the gatekeeper process as this user. Only valid for Unix versions. 
+.It Fl -core Ar n
+(Unix only) Enable writting core dump files when the application crashes. A core dump file will not exceed n bytes in size. A special constant "unlimited" may be used to not enforce any particular limit. 
+.El
+.Ss Gatekeeper Mode
+.Bl -tag -width Ds
+The options in this subsection override the settings in the [RoutedMode] section of the configuration file. 
+.It Fl d -direct
+Use direct endpoint call signalling. 
+.It Fl r -routed
+Use gatekeeper routed call signalling. 
+.It Fl rr -h245routed
+Use gatekeeper routed call signalling and H.245 control channel. 
+.El
+.Ss Debug Information
+.Bl -tag -width Ds
+.It Fl o -output Ar filename
+Write trace log to the specified file.
+.It Fl t -trace
+Set trace verbosity. The more -t you add, the more verbose to output. For example, use -ttttt to set the trace level to 5. 
+.El
+.Sh FILES
+.Pa /etc/gatekeeper.ini
+.Sh AUTHORS
+The current project coordinator is 
+.Em Jan Willamowius 
+<jan@willamowius.de> 
+.Pp
+The main features and functions of version 2.0 are contributed by 
+.Em Chih-Wei Huang 
+<cwhuang@linux.org.tw> 
+and 
+.Em Citron Network Inc.
+, including thread-safe registration and call tables, new routed mode architecture, H.323 proxy, H.235 authentication and MySQL backend. 
+.Pp
+.Em Michal Zygmuntowicz 
+<m.zygmuntowicz@onet.pl> 
+has done some great work on Radius support and other improvements. 
+.Sh HISTORY
+The initial version of the gatekeeper has been developed by 
+.Em Xiang Ping Chen
+, 
+.Em Joe Metzger 
+and 
+.Em Rajat Todi. 
+.Sh SEE ALSO
+.Xr gatekeeper.ini 5 (To be done)
+.Pp
+http://www.gnugk.org
