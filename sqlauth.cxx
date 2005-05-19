@@ -36,7 +36,6 @@
 #include "Neighbor.h"
 #include "gkauth.h"
 
-using std::map;
 
 /// Generic SQL authenticator for H.235 enabled endpoints
 class SQLPasswordAuth : public SimplePasswordAuth
@@ -207,7 +206,7 @@ bool RunQuery(
 	const PString &traceStr,
 	GkSQLConnection *conn,
 	const PString &query,
-	const map<PString, PString>& params,
+	const std::map<PString, PString>& params,
 	GkSQLResult::ResultRow& resultRow,
 	long timeout
 	)
@@ -328,7 +327,7 @@ bool SQLPasswordAuth::GetPassword(
 	)
 {
 	GkSQLResult::ResultRow result;
-	map<PString, PString> params;
+	std::map<PString, PString> params;
 	params["1"] = alias;
 	params["u"] = alias;
 	params["2"] = Toolkit::GKName();
@@ -400,7 +399,7 @@ bool SQLAliasAuth::GetAuthConditionString(
 	)
 {
 	GkSQLResult::ResultRow result;
-	map<PString, PString> params;
+	std::map<PString, PString> params;
 	params["1"] = alias;
 	params["u"] = alias;
 	params["2"] = Toolkit::GKName();
@@ -500,7 +499,7 @@ int SQLAuth::Check(
 	)
 {
 	H225_RegistrationRequest &rrq = rrqPdu;
-	map<PString, PString> params;
+	std::map<PString, PString> params;
 	
 	// get the username for User-Name attribute		
 	params["u"] = GetUsername(rrqPdu);
@@ -599,7 +598,7 @@ int SQLAuth::Check(
 	)
 {
 	const H225_AdmissionRequest &arq = arqPdu;
-	map<PString, PString> params;
+	std::map<PString, PString> params;
 	
 	PIPSocket::Address addr = (arqPdu.operator->())->m_peerAddr;
 
@@ -724,7 +723,7 @@ int SQLAuth::Check(
 	)
 {
 	H225_LocationRequest &lrq = lrqPdu;
-	map<PString, PString> params;
+	std::map<PString, PString> params;
 	
 	PIPSocket::Address addr = (lrqPdu.operator->())->m_peerAddr;
 
@@ -796,7 +795,7 @@ int SQLAuth::Check(
 	SetupAuthData& authData
 	)
 {
-	map<PString, PString> params;
+	std::map<PString, PString> params;
 	
 	PIPSocket::Address addr;
 	setup.GetPeerAddr(addr);

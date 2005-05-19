@@ -42,7 +42,6 @@
 #include "gk.h"
 
 using std::vector;
-using std::map;
 
 /*
  * many things here should be members of Gatkeeper. 
@@ -619,7 +618,7 @@ void Gatekeeper::GetRotateInterval(
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
 			m_rotateDay = s.AsInteger();
 		} else {
-			map<PCaselessString, int> dayNames;
+			std::map<PCaselessString, int> dayNames;
 			dayNames["sun"] = 0; dayNames["sunday"] = 0;
 			dayNames["mon"] = 1; dayNames["monday"] = 1;
 			dayNames["tue"] = 2; dayNames["tuesday"] = 2;

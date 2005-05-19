@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2005/04/24 16:39:45  zvision
+ * MSVC6.0 compatibility fixed
+ *
  * Revision 1.10  2005/03/15 11:49:38  zvision
  * Make reconnect working correctly when a database server is down
  *
@@ -78,7 +81,6 @@
 #include "sqlacct.h"
 
 using std::vector;
-using std::map;
 
 
 SQLAcct::SQLAcct(
@@ -228,7 +230,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		return Fail;
 	}
 
-	map<PString, PString> params;
+	std::map<PString, PString> params;
 	SetupAcctParams(params, call, m_timestampFormat);
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
 	if (result == NULL)

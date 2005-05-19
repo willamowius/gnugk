@@ -37,7 +37,6 @@ const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 }
 
-using std::map;
 using std::stable_sort;
 using std::for_each;
 using std::find_if;
@@ -251,7 +250,7 @@ GkAuthenticator::GkAuthenticator(
 			<< GetName() << '\''
 			);
 
-	map<PString, unsigned> rasmap;
+	std::map<PString, unsigned> rasmap;
 	rasmap["GRQ"] = RasInfo<H225_GatekeeperRequest>::flag,
 	rasmap["RRQ"] = RasInfo<H225_RegistrationRequest>::flag,
 	rasmap["URQ"] = RasInfo<H225_UnregistrationRequest>::flag,
@@ -261,7 +260,7 @@ GkAuthenticator::GkAuthenticator(
 	rasmap["LRQ"] = RasInfo<H225_LocationRequest>::flag,
 	rasmap["IRQ"] = RasInfo<H225_InfoRequest>::flag;
 		
-	map<PString, unsigned> miscmap;
+	std::map<PString, unsigned> miscmap;
 	miscmap["SETUP"] = e_Setup;
 	miscmap["SETUPUNREG"] = e_SetupUnreg;
 	
@@ -1618,7 +1617,7 @@ class AuthObj;
 class PrefixAuth : public GkAuthenticator 
 {
 public:
-	typedef map< PString, AuthRule *, greater<PString> > Rules;
+	typedef std::map< PString, AuthRule *, greater<PString> > Rules;
 
 	enum SupportedRasChecks {
 		PrefixAuthRasChecks = RasInfo<H225_AdmissionRequest>::flag

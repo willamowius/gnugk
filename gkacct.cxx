@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.28  2005/04/24 16:39:44  zvision
+ * MSVC6.0 compatibility fixed
+ *
  * Revision 1.27  2005/03/18 14:54:47  zvision
  * Various accounting variables ported from 2.0 branch
  *
@@ -112,7 +115,6 @@
 #include "gktimer.h"
 #include "gkacct.h"
 
-using std::map;
 using std::find;
 using std::vector;
 
@@ -200,7 +202,7 @@ GkAcctLogger::Status GkAcctLogger::Log(
 
 void GkAcctLogger::SetupAcctParams(
 	/// CDR parameters (name => value) associations
-	map<PString, PString>& params,
+	std::map<PString, PString>& params,
 	/// call (if any) associated with an accounting event being logged
 	const callptr& call,
 	/// timestamp formatting string
@@ -269,7 +271,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 	/// parametrized CDR string
 	const PString& cdrStr,
 	/// parameter values
-	const map<PString, PString>& params
+	const std::map<PString, PString>& params
 	) const
 {
 	PString finalCDR((const char*)cdrStr);
@@ -697,7 +699,7 @@ void FileAcct::GetRotateInterval(
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
 			m_rotateDay = s.AsInteger();
 		} else {
-			map<PCaselessString, int> dayNames;
+			std::map<PCaselessString, int> dayNames;
 			dayNames["sun"] = 0; dayNames["sunday"] = 0;
 			dayNames["mon"] = 1; dayNames["monday"] = 1;
 			dayNames["tue"] = 2; dayNames["tuesday"] = 2;
@@ -785,7 +787,7 @@ bool FileAcct::GetCDRText(
 	if (m_standardCDRFormat)	
 		cdrString = call->GenerateCDR(m_timestampFormat);
 	else {
-		map<PString, PString> params;
+		std::map<PString, PString> params;
 
 		SetupAcctParams(params, call, m_timestampFormat);
 		cdrString = ReplaceAcctParams(m_cdrString, params);

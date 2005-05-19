@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2005/04/24 16:39:44  zvision
+ * MSVC6.0 compatibility fixed
+ *
  * Revision 1.10  2005/01/28 11:19:42  zvision
  * All passwords in the config can be stored in an encrypted form
  *
@@ -44,7 +47,6 @@
 
 using std::max;
 using std::min;
-using std::map;
 
 namespace {
 const int GKSQL_DEFAULT_MIN_POOL_SIZE = 1;
@@ -357,7 +359,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 
 GkSQLResult* GkSQLConnection::ExecuteQuery(
 	const char* queryStr,
-	const map<PString, PString>& queryParams,
+	const std::map<PString, PString>& queryParams,
 	long timeout
 	)
 {
@@ -451,7 +453,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 	/// parametrized query string
 	const char* queryStr,
 	/// parameter values
-	const map<PString, PString>& queryParams
+	const std::map<PString, PString>& queryParams
 	)
 {
 	PString finalQuery(queryStr);

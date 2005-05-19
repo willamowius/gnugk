@@ -377,9 +377,9 @@ private:
 	T120LogicalChannel *CreateT120LogicalChannel(WORD);
 	bool RemoveLogicalChannel(WORD flcn);
 
-	map<WORD, LogicalChannel *> logicalChannels;
-	map<WORD, RTPLogicalChannel *> sessionIDs;
-	map<WORD, RTPLogicalChannel *> fastStartLCs;
+	std::map<WORD, LogicalChannel *> logicalChannels;
+	std::map<WORD, RTPLogicalChannel *> sessionIDs;
+	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
 	ProxyHandler *handler;
 	H245ProxyHandler *peer;
 };

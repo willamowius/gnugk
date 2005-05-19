@@ -375,7 +375,7 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 	PStringToString cfgs(config->GetAllKeyValues(section));
 	m_size = cfgs.GetSize();
 	if (m_size > 0) {
-		map<PString, PString, pstr_prefix_lesser> rules;
+		std::map<PString, PString, pstr_prefix_lesser> rules;
 		for (PINDEX i = 0; i < m_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
 			if (!key && (isdigit(key[0]) || key[0]=='!' || key[0]=='.' || key[0]=='%' || key[0]=='*' || key[0]=='#'))
@@ -554,7 +554,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 	PString key, cfg_value;
 	PStringArray lines, tokenised_line;
 	GWRewriteEntry *gw_entry;
-	map<PString,PString> in_strings, out_strings;
+	std::map<PString,PString> in_strings, out_strings;
 	vector<std::pair<PString,PString> > sorted_in_strings, sorted_out_strings;
 	std::map<PString,PString>::reverse_iterator strings_iterator;
 	pair<PString,PString> rule;
