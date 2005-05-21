@@ -217,13 +217,17 @@ CLIRewrite::CLIRewrite()
 				// no address means wildcard "match any"
 				addr = NetworkAddress();
 				
-				PStringArray dataTokens = data.Tokenise(", ", FALSE);
-				if (dataTokens.GetSize() > 1) {
-					data = dataTokens[1];
-					if (!(dataTokens[0] == "*" || dataTokens[0] == "any"))
-						addr = NetworkAddress(dataTokens[0]);
+				PINDEX sepIndex = data.Find('=');
+				if (sepIndex != P_MAX_INDEX) {
+					PString lhs = data.Left(sepIndex).Trim();
+					sepIndex = lhs.FindOneOf(", ");
+					if (sepIndex != P_MAX_INDEX) {
+						lhs = lhs.Left(sepIndex).Trim();
+						data = data.Mid(sepIndex + 1).Trim();
+						if (!(lhs == "*" || lhs == "any"))
+							addr = NetworkAddress(lhs);
+					}
 				}
-				
 				// check if the address is already on the list
 				siprule = diprule->second.begin();
 				while (siprule != diprule->second.end()) {

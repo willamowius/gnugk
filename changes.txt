@@ -1,5 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- BUGFIX(clirw.cxx) random rewrite did not work for outbound rules and comma separated items
 - Solaris compilation errors fixed, thanks to Mikko Oilinki
 - BUGFIX(yasocket.cxx) fixed address reuse for UDP sockets in LARGE_FDSET mode,
   broadcast RAS socket did not work previously
