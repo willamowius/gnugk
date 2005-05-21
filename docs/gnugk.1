@@ -10,7 +10,7 @@
 .\" Created: Tue May  15 2005 
 .\"
 .\"
-.Dd May 15, 2005
+.Dd May 20, 2005
 .Dt GNUGK 1 
 .Os
 .Sh NAME
@@ -31,31 +31,16 @@
 .Op Fl -pid Ar filename
 .Op Fl -core Ar n
 .Sh DESCRIPTION
-The GNU Gatekeeper is an open-source project that implements an H.323 gatekeeper. A gatekeeper provides call control services to the H.323 endpoints. It is an integral part of most usefull internet telephony installations that are based on the H.323 standard. 
-According to Recommendation H.323, a gatekeeper shall provide the following services: 
-.Bl -enum -compact
-.It 
-Address Translation 
-.It 
-Admissions Control 
-.It 
-Bandwidth Control 
-.It 
-Zone Management 
-.It 
-Call Control Signaling 
-.It 
-Call Authorization 
-.It 
-Bandwidth Management 
-.It 
-Call Management 
-.El
 .Bl -tag -width Ds
-The GNU Gatekeeper implements most of these functions based on the OpenH323 protocol stack. 
-The behavior of the gatekeeper is completely determined by the command line options and configuration file. Some command line options may override the setting of the configuration file. For example, the option -l overrides the setting TimeToLive in the configuration file. 
+The GNU Gatekeeper is an open-source project that implements an H.323 gatekeeper. A H323 gatekeeper controls all H.323 clients in its zone. It allows you, among other things, to register devices, make calls, perform AAA (Authentication, Authorization and Auditing), manage config at runtime and traverse NAT.
 .Sh OPTIONS
-Almost every option has a short and a long format, e.g., -c is the same as --config
+The behavior of the gatekeeper is determined by the command line options and configuration file. Some command line options may override the setting of the configuration file. For example, the option 
+.Em -l 
+overrides the setting TimeToLive in the configuration file. 
+Almost every option has a short and a long format, e.g., 
+.Em -c 
+is the same as 
+.Em --config. 
 .It Fl h -help
  Show all available options and quit the program. 
 .It Fl c -config Ar filename
@@ -100,24 +85,16 @@ The current project coordinator is
 .Em Jan Willamowius 
 <jan@willamowius.de> 
 .Pp
-The main features and functions of version 2.0 are contributed by 
-.Em Chih-Wei Huang 
-<cwhuang@linux.org.tw> 
-and 
-.Em Citron Network Inc.
-, including thread-safe registration and call tables, new routed mode architecture, H.323 proxy, H.235 authentication and MySQL backend. 
-.Pp
+Major contributors include
 .Em Michal Zygmuntowicz 
-<m.zygmuntowicz@onet.pl> 
-has done some great work on Radius support and other improvements. 
-.Sh HISTORY
-The initial version of the gatekeeper has been developed by 
-.Em Xiang Ping Chen
-, 
-.Em Joe Metzger 
-and 
-.Em Rajat Todi. 
+<m.zygmuntowicz@onet.pl>,
+.Em Chih-Wei Huang
+<cwhuang@linux.org.tw>
+and many more.
 .Sh SEE ALSO
-.Xr gatekeeper.ini 5 (To be done)
+.Xr gatekeeper.ini 5 (to be done, see HTML manual)
 .Pp
-http://www.gnugk.org
+http://www.gnugk.org/ (project homepage)
+.Pp
+http://www.gnugk.org/gnugk-manual.html (manual for latest release)
+
