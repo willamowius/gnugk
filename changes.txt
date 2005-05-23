@@ -1,5 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- Unix man page in the docs folder by Ivan Lopez <ilopez@enress.gov.ar>
 - do not leave sockets open when proxy handlers are idle. Peform proper cleanup
   all the time
 - manual updated with notes on TIME_WAIT and Q931PortRange/H245PortRange/T120PortRange
@@ -19,6 +20,7 @@ Changes from 2.2.2 to 2.2.3
 - better error reporting on socket allocation
 - new ENUM routing policy from Simon Horne
 - added check for PWLib/OpenH323 minimum version supported
+>>>>>>> 1.254
 - optionally signal call ids in the status port with ACF/ARJ/DCF/DRJ/RouteRequest
   messages (switch on with SignalCallIds=1 in main section)
 - NetMeeting compatibility problems fixed
