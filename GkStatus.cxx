@@ -261,10 +261,11 @@ BOOL TelnetSocket::Accept(PSocket & socket)
 	SendWill(PTelnetSocket::StatusOption);
 	SendDont(PTelnetSocket::EchoOption);
 #ifndef LARGE_FDSET
-	Address addr;
-	WORD pt;
-	GetPeerAddress(addr, pt);
-	SetName(AsString(addr, pt));
+	Address raddr, laddr;
+	WORD rport = 0, lport = 0;
+	GetPeerAddress(raddr, rport);
+	GetLocalAddress(laddr, lport);
+	SetName(AsString(raddr, rport) + "=>" + AsString(laddr, lport));
 	SetReadTimeout(0);
 #else
 	// name already be set

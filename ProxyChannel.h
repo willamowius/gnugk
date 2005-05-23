@@ -272,7 +272,8 @@ public:
 	void Insert(UDPProxySocket *, UDPProxySocket *);
 	void MoveTo(ProxyHandler *, TCPProxySocket *);
 	bool IsEmpty() const { return m_socksize == 0; }
-
+	void LoadConfig();
+	
 private:
 	// override from class RegularJob
 	virtual void OnStart();
@@ -293,6 +294,8 @@ private:
 	
 private:
 	std::list<PTime *> m_removedTime;
+	/// time to wait before deleting a closed socket
+	PTimeInterval m_socketCleanupTimeout;
 };
 
 class HandlerList {

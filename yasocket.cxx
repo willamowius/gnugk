@@ -32,6 +32,11 @@ using std::copy;
 using std::back_inserter;
 using std::find;
 
+namespace {
+/// time to recheck state of closed sockets owned by a proxy handler
+const long SOCKETSREADER_IDLE_TIMEOUT = 1000;
+}
+
 #ifdef LARGE_FDSET
 
 bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
@@ -555,6 +560,9 @@ USocket::~USocket()
 		queue.clear();
 		qsize = 0;
 	}
+	PIPSocket::Address addr(0);
+	WORD port = 0;
+	self->GetLocalAddress(addr, port);
 	PTRACE(3, type << "\tDelete socket " << Name());
 }
 
@@ -787,8 +795,8 @@ void SocketsReader::Exec()
 	} else {
 		CleanUp();
 		ConfigReloadMutex.EndRead();
-		PTRACE(3, GetName() << " waiting...");
-		Wait();
+		PTRACE(6, GetName() << " waiting...");
+		Wait(SOCKETSREADER_IDLE_TIMEOUT);
 		ConfigReloadMutex.StartRead();
 	}
 }
@@ -808,14 +816,10 @@ TCPListenSocket::~TCPListenSocket()
 
 bool TCPListenSocket::IsTimeout(const PTime *now) const
 {
-	if ( readTimeout < PMaxTimeInterval )
-	{
+	if (readTimeout < PMaxTimeInterval)
 		return IsOpen() ? ((readTimeout > 0) ? ((*now - start) > readTimeout) : false) : true;
-	}
 	else
-	{
-		return ! IsOpen();
-	}
+		return !IsOpen();
 }
 
 

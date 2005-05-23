@@ -1192,9 +1192,12 @@ void Toolkit::SetGKHome(const PStringArray & home)
 					if (m_GKHome[n] == it[i].GetAddress())
 						break;
 				if (i == is) {
-					begin = m_GKHome.begin();
-					copy(begin + n + 1, begin + size, begin + n);
-					--size, --n;
+					PTRACE(1, "GK\tAddress " << m_GKHome[n] << " not found"
+						" in the PWLib interface table"
+						);
+					//begin = m_GKHome.begin();
+					//copy(begin + n + 1, begin + size, begin + n);
+					//--size, --n;
 				}
 			}
 		}

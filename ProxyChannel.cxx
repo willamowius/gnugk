@@ -42,6 +42,10 @@ namespace {
 // default timeout (ms) for initial Setup message,
 // if not specified in the config file
 const long DEFAULT_SETUP_TIMEOUT = 8000;
+// time to wait before deleting a closed socket
+const long DEFAULT_SOCKET_CLEANUP_TIMEOUT = 5000;
+// if socket bind fails, try next DEFAULT_NUM_SEQ_PORTS subsequent port numbers
+const int DEFAULT_NUM_SEQ_PORTS = 500;
 
 template <class UUIE>
 inline unsigned GetH225Version(const UUIE &uuie)
@@ -179,6 +183,7 @@ public:
 	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, const H245_UnicastAddress_iPAddress &);
 
 	bool Bind(WORD pt);
+	bool Bind(const Address &localAddr, WORD pt);
 	void SetNAT(bool);
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 
@@ -471,18 +476,25 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 	SetWriteTimeout(timeout);
 	// since GetName() may not work if socket closed,
 	// we save it for reference
-	Address ip((DWORD)0);
-	WORD pt = 0;
-	GetPeerAddress(ip, pt);
-	SetName(AsString(ip, pt));
+	Address raddr, laddr;
+	WORD rport = 0, lport = 0;
+	GetPeerAddress(raddr, rport);
+	GetLocalAddress(laddr, lport);
+	SetName(AsString(raddr, rport) + "=>" + AsString(laddr, lport));
 	return result;
 }
 
 BOOL TCPProxySocket::Connect(const Address & iface, WORD localPort, const Address & addr)
 {
-	SetName(AsString(addr, GetPort()));
+	SetName(AsString(iface, localPort) + "=>" + AsString(addr, GetPort()));
 	SetReadTimeout(PTimeInterval(6000)); // TODO: read from config...
 	BOOL result = PTCPSocket::Connect(iface, localPort, addr);
+	if (result) {
+		Address laddr;
+		WORD lport = 0;
+		GetLocalAddress(laddr, lport);
+		SetName(AsString(laddr, lport) + "=>" + AsString(addr, GetPort()));
+	}
 	PTimeInterval timeout(100);
 	SetReadTimeout(timeout);
 	SetWriteTimeout(timeout);
@@ -673,7 +685,27 @@ BOOL CallSignalSocket::Connect(const Address & addr)
 #endif
 {
 	Address local = RasServer::Instance()->GetLocalAddress(addr); // TODO
-	return TCPProxySocket::Connect(local, Q931PortRange.GetPort(), addr);
+	int numPorts = min(Q931PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
+	for (int i = 0; i < numPorts; ++i) {
+		WORD pt = Q931PortRange.GetPort();
+		if (TCPProxySocket::Connect(local, pt, addr))
+			return true;
+		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
+		PTRACE(1, Type() << "\tCould not open/connect Q.931 socket at " << local << ':' << pt
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
+			);
+		Close();
+#ifdef _WIN32
+		if ((errorNumber & PWIN32ErrorFlag) == 0
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+			break;
+#else
+		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
+			break;
+#endif
+	}
+	return false;
 }
 
 namespace { // anonymous namespace
@@ -910,9 +942,9 @@ bool CallSignalSocket::EndSession()
 
 void CallSignalSocket::OnError()
 {
-	if( m_call ) {
+	if (m_call) {
 		m_call->SetDisconnectCause(Q931::ProtocolErrorUnspecified);
-		CallTable::Instance()->RemoveCall(m_call);
+		RemoveCall();
 	}
 	EndSession();
 	if (remote)
@@ -1217,6 +1249,7 @@ void CallSignalSocket::OnSetup(
 				"(from " << Name() << ')'
 				);
 
+			/// we should perform accounting here for this new call
 			H225_H323_UserInformation userInfo;
 			H225_H323_UU_PDU_h323_message_body &msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
 			msgBody.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
@@ -2263,24 +2296,45 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 
 bool CallSignalSocket::InternalConnectTo()
 {
-	if (remote->Connect(localAddr, Q931PortRange.GetPort(), peerAddr)) {
-		PTRACE(3, "Q931\tConnect to " << remote->GetName() << " successful");
-		SetConnected(true);
-		remote->SetConnected(true);
-		ForwardData();
-		return true;
-	} else {
-		PTRACE(3, "Q931\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
-		SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
-		if (m_call) {
-			m_call->SetCallSignalSocketCalled(NULL);
-			m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
+	int numPorts = min(Q931PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
+	for (int i = 0; i < numPorts; ++i) {
+		WORD pt = Q931PortRange.GetPort();
+		if (remote->Connect(localAddr, pt, peerAddr)) {
+			PTRACE(3, "Q931\tConnect to " << remote->GetName() << " from "
+				<< localAddr << ':' << pt << " successful"
+				);
+			SetConnected(true);
+			remote->SetConnected(true);
+			ForwardData();
+			return true;
 		}
-		CallTable::Instance()->RemoveCall(m_call);
-		delete remote;
-		remote = NULL;
-		return false;
+		int errorNumber = remote->GetErrorNumber(PSocket::LastGeneralError);
+		PTRACE(1, remote->Type() << "\tCould not open/connect Q.931 socket at "
+			<< localAddr << ':' << pt
+			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
+			);
+		remote->Close();
+#ifdef _WIN32
+		if ((errorNumber & PWIN32ErrorFlag) == 0
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+			break;
+#else
+		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
+			break;
+#endif
 	}
+
+	PTRACE(3, "Q931\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
+	SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+	if (m_call) {
+		m_call->SetCallSignalSocketCalled(NULL);
+		m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
+	}
+	CallTable::Instance()->RemoveCall(m_call);
+	delete remote;
+	remote = NULL;
+	return false;
 }
 
 
@@ -2387,14 +2441,25 @@ H245Socket::H245Socket(CallSignalSocket *sig)
       : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket)
 {
 	peerH245Addr = 0;
-	WORD port = H245PortRange.GetPort();
-	if (!listener->Listen(1, port, PSocket::CanReuseAddress)) {
-		PTRACE(1, Type() << "\tCould not open H.245 listener at 0.0.0.0:" << port
+	const int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
+	for (int i = 0; i < numPorts; ++i) {
+		WORD pt = H245PortRange.GetPort();
+		if (listener->Listen(1, pt, PSocket::CanReuseAddress))
+			break;
+		int errorNumber = listener->GetErrorNumber(PSocket::LastGeneralError);
+		PTRACE(1, Type() << "\tCould not open H.245 listener at 0.0.0.0:" << pt
 			<< " - error " << listener->GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< listener->GetErrorNumber(PSocket::LastGeneralError) << ": " 
-			<< listener->GetErrorText(PSocket::LastGeneralError)
+			<< errorNumber << ": " << listener->GetErrorText(PSocket::LastGeneralError)
 			);
 		listener->Close();
+#ifdef _WIN32
+		if ((errorNumber & PWIN32ErrorFlag) == 0
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+			break;
+#else
+		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
+			break;
+#endif
 	}
 	SetHandler(sig->GetHandler());
 }
@@ -2532,13 +2597,33 @@ bool H245Socket::ConnectRemote()
 	if (sigSocket != NULL)
 		sigSocket->GetLocalAddress(localAddr);
 	m_signalingSocketMutex.Signal();
-	bool result = Connect(localAddr, H245PortRange.GetPort(), peerAddr); // TODO
-	if (result) {
-		PTRACE(3, "H245\tConnect to " << GetName() << " successful");
-	} else {
+	
+	int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
+	for (int i = 0; i < numPorts; ++i) {
+		WORD pt = H245PortRange.GetPort();
+		if (Connect(localAddr, pt, peerAddr)) {
+			PTRACE(3, "H245\tConnect to " << GetName() << " from " 
+				<< localAddr << ':' << pt << " successful"
+				);
+			return true;
+		}
+		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
+		PTRACE(1, Type() << "\tCould not open/connect H.245 socket at " << localAddr << ':' << pt
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
+			);
+		Close();
 		PTRACE(3, "H245\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
+#ifdef _WIN32
+		if ((errorNumber & PWIN32ErrorFlag) == 0
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+			break;
+#else
+		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
+			break;
+#endif
 	}
-	return result;
+	return false;
 }
 
 H225_TransportAddress H245Socket::GetH245Address(const Address & myip)
@@ -2716,7 +2801,12 @@ UDPProxySocket::UDPProxySocket(const char *t)
 
 bool UDPProxySocket::Bind(WORD pt)
 {
-	if (!Listen(0, pt))
+	return Bind(INADDR_ANY, pt);
+}
+
+bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
+{
+	if (!Listen(localAddr, 0, pt))
 		return false;
 
 	// Set the IP Type Of Service field for prioritisation of media UDP packets
@@ -2753,15 +2843,20 @@ void UDPProxySocket::SetNAT(bool rev)
 
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
 {
-	if( (DWORD)srcIP != 0 )
+	if ((DWORD)srcIP != 0)
 		fSrcIP = srcIP, fSrcPort = srcPort;
 	addr >> fDestIP >> fDestPort;
 
-	if( (DWORD)srcIP )
-		SetName(AsString(srcIP, srcPort));
-	else
+	if ((DWORD)srcIP) {
+		Address laddr;
+		WORD lport = 0;
+		GetLocalAddress(laddr, lport);
+		SetName(AsString(srcIP, srcPort) + "<=>" + AsString(laddr, lport) + "<=>" + AsString(fDestIP, fDestPort));
+	} else
 		SetName("(To be autodetected)");
-	PTRACE(5, Type() << "\tForward " << GetName() << " to " << fDestIP << ':' << fDestPort);
+	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort) 
+		<< " to " << fDestIP << ':' << fDestPort
+		);
 	SetConnected(true);
 }
 
@@ -2788,11 +2883,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	buflen = (WORD)GetLastReadCount();
 
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
-	if( rSrcIP == 0 && fromIP == fDestIP )
+	if (rSrcIP == 0 && fromIP == fDestIP)
 		rSrcIP = fromIP, rSrcPort = fromPort;
-	if( fSrcIP == 0 && fromIP == rDestIP ) {
+	if (fSrcIP == 0 && fromIP == rDestIP) {
 		fSrcIP = fromIP, fSrcPort = fromPort;
-		SetName(AsString(fSrcIP, fSrcPort));
+		Address laddr;
+		WORD lport = 0;
+		GetLocalAddress(laddr, lport);
+		SetName(AsString(fSrcIP, fSrcPort) + "=>" + AsString(laddr, lport));
 	}
 
 	// Workaround: some bad endpoints don't send packets from the specified port
@@ -2941,12 +3039,20 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 	rtcp = new UDPProxySocket("RTCP");
 	SetNAT(nated);
 
-	const int numPorts = RTPPortRange.GetNumPorts();
+	// if Home specifies only one local address, we want to bind
+	// only to this specified local address
+	PIPSocket::Address laddr(INADDR_ANY);
+	std::vector<PIPSocket::Address> home;
+	Toolkit::Instance()->GetGKHome(home);
+	if (home.size() == 1)
+		laddr = home[0];
+
+	int numPorts = min(RTPPortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS*2);
 	for (int i = 0; i < numPorts; i += 2) {
 		port = GetPortNumber();
 		// try to bind rtp to an even port and rtcp to the next one port
-		if (!rtp->Bind(port)) {
-			PTRACE(1, "RTP\tRTP port " << port << " not available - error "
+		if (!rtp->Bind(laddr, port)) {
+			PTRACE(1, "RTP\tRTP socket " << AsString(laddr, port) << " not available - error "
 				<< rtp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtp->GetErrorNumber(PSocket::LastGeneralError) << ": " 
 				<< rtp->GetErrorText(PSocket::LastGeneralError)
@@ -2954,8 +3060,8 @@ RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flc
 			rtp->Close();
 			continue;
 		}
-		if (!rtcp->Bind(port+1)) {
-			PTRACE(1, "RTP\tRTCP port " << port + 1 << " not available - error "
+		if (!rtcp->Bind(laddr, port+1)) {
+			PTRACE(1, "RTP\tRTCP socket " << AsString(laddr, port + 1) << " not available - error "
 				<< rtcp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtcp->GetErrorNumber(PSocket::LastGeneralError) << ": " 
 				<< rtcp->GetErrorText(PSocket::LastGeneralError)
@@ -3147,15 +3253,26 @@ void T120LogicalChannel::StartReading(ProxyHandler *h)
 
 T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(lc)
 {
-	WORD port = T120PortRange.GetPort();
-	SetName("T120:" + PString(port));
-	if (!Listen(5, port, PSocket::CanReuseAddress)) {
-		PTRACE(1, GetName() << "Could not open listening socket at 0.0.0.0:" << port
+	int numPorts = min(T120PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
+	for (int i = 0; i < numPorts; ++i) {
+		WORD pt = T120PortRange.GetPort();
+		SetName("T120:" + PString(pt));
+		if (Listen(5, pt, PSocket::CanReuseAddress))
+			break;
+		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
+		PTRACE(1, GetName() << "Could not open listening T.120 socket at 0.0.0.0:" << pt
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
-			<< GetErrorText(PSocket::LastGeneralError)
+			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
+#ifdef _WIN32
+		if ((errorNumber & PWIN32ErrorFlag) == 0
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+			break;
+#else
+		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
+			break;
+#endif
 	}
 }
 
@@ -3167,19 +3284,39 @@ ServerSocket *T120LogicalChannel::T120Listener::CreateAcceptor() const
 void T120LogicalChannel::Create(T120ProxySocket *socket)
 {
 	T120ProxySocket *remote = new T120ProxySocket(socket, peerPort);
-	if (remote->Connect(INADDR_ANY, T120PortRange.GetPort(), peerAddr)) { // TODO
-		PTRACE(3, "T120\tConnect to " << remote->GetName() << " successful");
-		socket->SetConnected(true);
-		remote->SetConnected(true);
-		handler->Insert(socket, remote);
-		PWaitAndSignal lock(m_smutex);
-		sockets.push_back(socket);
-		sockets.push_back(remote);
-	} else {
+	int numPorts = min(T120PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
+	for (int i = 0; i < numPorts; ++i) {
+		WORD pt = T120PortRange.GetPort();
+		if (remote->Connect(INADDR_ANY, pt, peerAddr)) { // TODO
+			PTRACE(3, "T120\tConnect to " << remote->GetName()
+				<< " from 0.0.0.0:" << pt << " successful"
+				);
+			socket->SetConnected(true);
+			remote->SetConnected(true);
+			handler->Insert(socket, remote);
+			PWaitAndSignal lock(m_smutex);
+			sockets.push_back(socket);
+			sockets.push_back(remote);
+			return;
+		}
+		int errorNumber = remote->GetErrorNumber(PSocket::LastGeneralError);
+		PTRACE(1, remote->Type() << "\tCould not open/connect T.120 socket at 0.0.0.0:" << pt
+			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
+			);
+		remote->Close();
 		PTRACE(3, "T120\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
-		delete remote;
-		delete socket;
+#ifdef _WIN32
+		if ((errorNumber & PWIN32ErrorFlag) == 0
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+			break;
+#else
+		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
+			break;
+#endif
 	}
+	delete remote;
+	delete socket;
 }
 
 bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler *handler)
@@ -3564,7 +3701,7 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 {
 	unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
 	if (!Listen(addr, queueSize, pt, PSocket::CanReuseAddress)) {
-		PTRACE(1, "Q931\tCould not open listening socket at " << addr << ':' << pt
+		PTRACE(1, "Q931\tCould not open Q.931 listening socket at " << addr << ':' << pt
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
 			<< GetErrorText(PSocket::LastGeneralError)
@@ -3584,7 +3721,7 @@ ServerSocket *CallSignalListener::CreateAcceptor() const
 ProxyHandler::ProxyHandler(
 	const PString& name
 	) 
-	: SocketsReader(100)
+	: SocketsReader(100), m_socketCleanupTimeout(DEFAULT_SOCKET_CLEANUP_TIMEOUT)
 {
 	SetName(name);
 	Execute();
@@ -3593,6 +3730,13 @@ ProxyHandler::ProxyHandler(
 ProxyHandler::~ProxyHandler()
 {
 	DeleteObjectsInContainer(m_removedTime);
+}
+
+void ProxyHandler::LoadConfig()
+{
+	m_socketCleanupTimeout = GkConfig()->GetInteger(
+		RoutedSec, "SocketCleanupTimeout", DEFAULT_SOCKET_CLEANUP_TIMEOUT
+		);
 }
 
 void ProxyHandler::Insert(TCPProxySocket *socket)
@@ -3705,7 +3849,7 @@ void ProxyHandler::CleanUp()
 		PWaitAndSignal lock(m_rmutex);
 		iterator i = m_removed.begin();
 		std::list<PTime *>::iterator ti = m_removedTime.begin();
-		while ((i != m_removed.end()) && ((now - **ti).GetSeconds() > 5)) {
+		while (i != m_removed.end() && (now - **ti) >= m_socketCleanupTimeout) {
 			IPSocket * s = *i;
 			PTime * t = *ti;
 			m_removed.erase(i);
@@ -3868,4 +4012,12 @@ void HandlerList::LoadConfig()
 //		}
 		m_currentRtpHandler = 0;
 	}
+	
+	std::vector<ProxyHandler *>::const_iterator i = m_sigHandlers.begin();
+	while (i != m_sigHandlers.end())
+		(*i++)->LoadConfig();
+
+	i = m_rtpHandlers.begin();
+	while (i != m_rtpHandlers.end())
+		(*i++)->LoadConfig();
 }

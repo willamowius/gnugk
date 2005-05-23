@@ -1,5 +1,17 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- do not leave sockets open when proxy handlers are idle. Peform proper cleanup
+  all the time
+- manual updated with notes on TIME_WAIT and Q931PortRange/H245PortRange/T120PortRange
+- new SocketCleanupTimeout config variable to control time to wait before
+  a socket is deleted
+- more reliable port allocation making better call throughput better on a heavily
+  loaded server or when using very small port ranges
+- more detailed description of network operations
+- if Home contains a single IP address, bind RTP sockets to this specific address,
+  instead of INADDR_ANY
+- do not remove addresses specified in Home that are not found in PWLib interface table,
+  just generate a warning
 - BUGFIX(clirw.cxx) random rewrite did not work for outbound rules and comma separated items
 - Solaris compilation errors fixed, thanks to Mikko Oilinki
 - BUGFIX(yasocket.cxx) fixed address reuse for UDP sockets in LARGE_FDSET mode,

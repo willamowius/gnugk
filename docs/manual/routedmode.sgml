@@ -188,12 +188,21 @@ Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for Q.931 signalling channels.
 Note the range size may limit the number of concurrent calls.
+Make sure this range is wide enough to take into account TIME_WAIT
+TCP socket timeout before a socket can be reused after closed.
+TIME_WAIT may vary from 15 seconds to a few minutes, depending on an OS.
+So if your range is 2000-2001 and you made two calls, next two can be
+made after TIME_WAIT timeout elapses and the sockets can be reused.
+The same applies to <tt/H245PortRange/ and <tt/T120PortRange/. TIME_WAIT
+can be usualy tuned down on most OSes.
 
 <item><tt/H245PortRange=30000-30999/<newline>
 Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for H.245 control channels.
 Note the range size may limit the number of concurrent calls.
+See remarks about TIME_WAIT socket state timeout in the <tt/Q931PortRange/
+description.
 
 <item><tt/SetupTimeout=4000/<newline>
 Default: <tt>8000</tt>
@@ -233,6 +242,15 @@ into Facility messages with an empty body, because some endpoints do not
 process tunneled H.245 messages inside Facility, if the body is not empty.
 The conversion is performed only when neccessary - if both endpoints are v4
 or both endpoints are pre-v4, nothing is changed.
+
+<item><tt/SocketCleanupTimeout=1000/<newline>
+Default: <tt/5000/
+<p>
+Define time to wait before an unused socket is closed (if it is not yet closed)
+and deleted (its memory is released). If you use very small port ranges, like 
+a few ports (e.g. RTPPortRange=2000-2009), you may want to decrease this value
+to get sockets reusable faster.
+
 </itemize>
 
 <p>
@@ -284,6 +302,8 @@ Default: <tt>N/A (let the OS allocate ports)</tt>
 <p>
 Specify the range of TCP port number for T.120 data channels.
 Note the range size may limit the number of concurrent calls.
+See remarks about TIME_WAIT socket state timeout in the <tt/Q931PortRange/
+description.
 
 <item><tt/RTPPortRange=50000-59999/<newline>
 Default: <tt>1024-65535</tt>
