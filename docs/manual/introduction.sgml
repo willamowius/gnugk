@@ -93,6 +93,10 @@ The version 2.2.3 contains the following new features and bugfixes:
 
 <itemize>
 <item>
+New CLIR/CLIP (Calling Line Identification Restriction/Presentation) features
+in the <tt/[RewriteCLI]/ module. Ability to hide CLI (enable CLIR/CLIP) per endpoint.
+
+<item>
 New <tt/[RoutedMode] SocketCleanupTimeout/ config variable. More reliable
 socket management and better network error reporting.
 

@@ -46,8 +46,16 @@ public:
 			NumberToNumber /// match by a complete number, replace with a complete number
 		};
 		
+		/// how to hide caller's number
+		enum ScreeningType {
+			NoScreening, /// leave as it is
+			HideFromTerminals, /// hide only if a callee is a terminal
+			AlwaysHide /// always hide
+		};
+		
 		int m_matchType; /// match condition
 		int m_rewriteType; /// number matching/rewritting rule
+		int m_screeningType; /// caller's number hiding
 		std::string m_prefix; /// the prefix to match
 		std::vector<std::string> m_cli; /// list of new CLIs
 	};

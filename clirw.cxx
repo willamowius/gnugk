@@ -38,7 +38,8 @@ const char * const ReservedKeys[] = { ProcessSourceAddress, RemoveH323Id, NULL }
 }
 
 CLIRewrite::RewriteRule::RewriteRule()
-	: m_matchType(MatchDialedNumber), m_rewriteType(PrefixToNumber) 
+	: m_matchType(MatchDialedNumber), m_rewriteType(PrefixToNumber),
+	m_screeningType(NoScreening)
 {
 }
 
@@ -68,6 +69,9 @@ PString CLIRewrite::RewriteRule::AsString() const
 		if (++cli != m_cli.end())
 			s += ", ";
 	}
+	if (m_cli.empty())
+		s += (m_screeningType == HideFromTerminals) ? "hide from terminals only" : "hide";
+
 	return s;
 }
 
@@ -318,23 +322,6 @@ CLIRewrite::CLIRewrite()
 			if (prefix == "any")
 				prefix.erase();
 
-			// get RHS of the rewrite rule, multiple targets will be selected
-			// in random order
-			PStringArray clis = data.Mid(sepIndex + 1).Tokenise(", ", FALSE);
-			if (clis.GetSize() < 1) {
-				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax - at least 1 "
-					"target number has to be present: " << key << '=' << kv.GetDataAt(i)
-					);
-				if (newsiprule)
-					if (inbound)
-						m_inboundRules.erase(siprule);
-					else
-						diprule->second.erase(siprule);
-				if (newdiprule)
-					m_outboundRules.erase(diprule);
-				continue;
-			}
-
 			// check if the rule already exists			
 			RewriteRules::iterator rule = rules->begin();
 			while (rule != rules->end())
@@ -349,12 +336,27 @@ CLIRewrite::CLIRewrite()
 				rule = rules->end() - 1;
 			}
 	
+			rule->m_screeningType = RewriteRule::NoScreening;
 			rule->m_matchType = matchType;
 			rule->m_rewriteType = rewriteType;
 			rule->m_prefix = prefix;		
-			rule->m_cli.resize(clis.GetSize());
-			for (PINDEX j = 0; j < clis.GetSize(); j++)
-				rule->m_cli[j] = clis[j];
+
+			// get RHS of the rewrite rule, multiple targets will be selected
+			// in random order
+			PStringArray clis = data.Mid(sepIndex + 1).Tokenise(", ", FALSE);
+			if (clis.GetSize() < 1)
+				rule->m_screeningType = RewriteRule::AlwaysHide;
+			else if (clis[0] *= PString("hide"))
+				rule->m_screeningType = RewriteRule::AlwaysHide;
+			else if (clis[0] *= PString("hidefromterminals"))
+				rule->m_screeningType = RewriteRule::HideFromTerminals;
+			
+			if (rule->m_screeningType == RewriteRule::NoScreening) {
+				rule->m_cli.resize(clis.GetSize());
+				for (PINDEX j = 0; j < clis.GetSize(); j++)
+					rule->m_cli[j] = clis[j];
+			} else
+				rule->m_cli.clear();
 
 			if (inbound)
 				inboundRules++;
@@ -521,28 +523,31 @@ void CLIRewrite::Rewrite(
 	PString newcli;
 	RewriteRules::const_iterator rule = ipRule.second.begin();
 	while (rule != ipRule.second.end()) {
-		const RewriteRule &r = *rule++;
-		if (!r.m_prefix.empty()) {
+		if (!rule->m_prefix.empty()) {
 			int matchLen = 0;
 			const char *number = NULL;
-			if (r.m_matchType == RewriteRule::MatchCallerNumber)
+			if (rule->m_matchType == RewriteRule::MatchCallerNumber)
 				number = cli;
-			else if (r.m_matchType == RewriteRule::MatchDialedNumber)
+			else if (rule->m_matchType == RewriteRule::MatchDialedNumber)
 				number = dno;
-			else if (!inbound && r.m_matchType == RewriteRule::MatchDestinationNumber)
+			else if (!inbound && rule->m_matchType == RewriteRule::MatchDestinationNumber)
 				number = cno;
 			if (number != NULL) {
-				matchLen = MatchPrefix(number, r.m_prefix.c_str());
-				if (matchLen > 0 && r.m_rewriteType == RewriteRule::NumberToNumber
+				matchLen = MatchPrefix(number, rule->m_prefix.c_str());
+				if (matchLen > 0 && rule->m_rewriteType == RewriteRule::NumberToNumber
 						&& strlen(number) != (unsigned)matchLen)
 					matchLen = 0;
 			}
-			if (matchLen <= 0)
+			if (matchLen <= 0) {
+				++rule;
 				continue;
+			}
 		}
-		if (!r.m_cli.empty()) {
+		if (rule->m_screeningType != RewriteRule::NoScreening)
+			break;
+		if (!rule->m_cli.empty()) {
 			// get the new ANI/CLI
-			newcli = r.m_cli[rand() % r.m_cli.size()].c_str();
+			newcli = rule->m_cli[rand() % rule->m_cli.size()].c_str();
 			// if this is a number range, choose the new ANI/CLI from the range
 			const PINDEX sepIndex = newcli.Find('-');
 			if (sepIndex != P_MAX_INDEX) {
@@ -559,21 +564,58 @@ void CLIRewrite::Rewrite(
 				newcli = PString(diff);
 				PTRACE(5, "CLIRW\t" << (inbound ? "Inbound" : "Outbound")
 					<< " CLI range rewrite target is '" << newcli << "' selected by the rule "
-					<< r.AsString()
+					<< rule->AsString()
 					);
 			}
-			if (r.m_rewriteType == RewriteRule::PrefixToPrefix
-					&& r.m_matchType == RewriteRule::MatchCallerNumber)
-				newcli = RewriteString(cli, r.m_prefix.c_str(), newcli);
+			if (rule->m_rewriteType == RewriteRule::PrefixToPrefix
+					&& rule->m_matchType == RewriteRule::MatchCallerNumber)
+				newcli = RewriteString(cli, rule->m_prefix.c_str(), newcli);
 			
 			PTRACE(5, "CLIRW\t" << (inbound ? "Inbound" : "Outbound")
-				<< " CLI rewrite to '" << newcli << "' by the rule " << r.AsString()
+				<< " CLI rewrite to '" << newcli << "' by the rule " << rule->AsString()
 				);
 			break;
 		}
+		++rule;
 	}
-	
-	if (newcli.IsEmpty())
+
+	bool isTerminal = false;	
+	if (rule->m_screeningType == RewriteRule::AlwaysHide) {
+		presentation = 1;
+		screening = 3;
+		newcli = "";
+		plan = Q931::UnknownPlan;
+		type = Q931::UnknownType;
+		if (msg.GetQ931().HasIE((Q931::InformationElementCodes)0x6d)) // calling party subaddress IE
+			msg.GetQ931().RemoveIE((Q931::InformationElementCodes)0x6d);
+		if (msg.GetQ931().HasIE(Q931::DisplayIE))
+			msg.GetQ931().RemoveIE(Q931::DisplayIE);
+		PTRACE(5, "CLIRW\tCLI hidden by the " << (inbound ? "inbound" : "outbound")
+			<< " rule " << rule->AsString()
+			);
+	} else if (rule->m_screeningType == RewriteRule::HideFromTerminals) {
+		presentation = 1;
+		msg.GetQ931().GetCallingPartyNumber(newcli);
+		if (authData && authData->m_call) {
+			endptr callee = authData->m_call->GetCalledParty();
+			if (callee && callee->GetEndpointType().HasOptionalField(H225_EndpointType::e_terminal)) {
+				isTerminal = true;
+				screening = 3;
+				newcli = "";
+				plan = Q931::UnknownPlan;
+				type = Q931::UnknownType;
+				if (msg.GetQ931().HasIE((Q931::InformationElementCodes)0x6d)) // calling party subaddress IE
+					msg.GetQ931().RemoveIE((Q931::InformationElementCodes)0x6d);
+				if (msg.GetQ931().HasIE(Q931::DisplayIE))
+					msg.GetQ931().RemoveIE(Q931::DisplayIE);
+				PTRACE(5, "CLIRW\tCLI hidden by the " << (inbound ? "inbound" : "outbound")
+					<< " rule " << rule->AsString()
+					);
+			}
+		}
+		if (screening == (unsigned)-1)
+			screening = 0;
+	} else if (newcli.IsEmpty())
 		return;
 
 	msg.GetQ931().SetCallingPartyNumber(newcli, plan, type, presentation, screening);
@@ -594,7 +636,23 @@ void CLIRewrite::Rewrite(
 					sourceAddress.RemoveAt(aliasIndex);
 			sourceAddress.SetSize(sourceAddress.GetSize() + 1);
 		}
-		H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
+		if (rule->m_screeningType == RewriteRule::AlwaysHide) {
+			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
+			msg.GetUUIEBody().m_presentationIndicator = H225_PresentationIndicator::e_presentationRestricted;
+			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
+			msg.GetUUIEBody().m_screeningIndicator = H225_ScreeningIndicator::e_networkProvided;
+			msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		} else if (rule->m_screeningType == RewriteRule::HideFromTerminals) {
+			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
+			msg.GetUUIEBody().m_presentationIndicator = H225_PresentationIndicator::e_presentationRestricted;
+			if (isTerminal && !newcli) {
+				msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
+				msg.GetUUIEBody().m_screeningIndicator = H225_ScreeningIndicator::e_networkProvided;
+				H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
+			} else
+				msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		} else
+			H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
 		msg.SetUUIEChanged();
 	}
 }

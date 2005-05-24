@@ -287,6 +287,9 @@ or an original CLI/ANI.
 An outbound rewrite rule can be matched by a caller's IP, callee's IP and
 a dialed number or a destination number (the dialed number after rewrite)
 or a CLI/ANI (after inbound rewrite).
+<p>
+This module also provides CLIR (Calling Line Identification Restriction)
+feature that can be configured for each endpoint (rule).
 
 <descrip>
 <tag/Format for an inbound rule:/
@@ -313,7 +316,9 @@ After the equality (=/~=/*=) sign, there follows a list of new CLI values to be 
 If more than one value is specified, a one will be choosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999.
 There is a special string constant "any", that can be used in place
-of the <tt/CALLER_IP/ or the <tt/number_prefix/.
+of the <tt/CALLER_IP/ or the <tt/number_prefix/. To enable <tt/CLIR/ for this rule,
+use a special string constant <tt/"hide"/ instead of the list of new CLI values.
+Note that CLIR is far more useful for outbound rules.
 
 <tag/Example 1:/
 <tscreen><verb>
@@ -353,6 +358,16 @@ These rules tell that:
 1) for calls from the network 192.168.1.0/24, rewrite 0048 to 48 (example - 0048900900900 => 48900900900),
 2) for other calls from the network 192.168.1.0/24, rewrite 0 to 48 (example - 0900900900 => 48900900900),
 3) for other calls, if CLI is 4 digits and starts with 100, set it to 48900900900.
+
+<tag/Example 4 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=hide
+</verb></tscreen>
+<p>
+This example causes caller's number to be removed from Setup messages
+originating from the 192.168.1.0/24 network. It also causes proper presentation
+and screening indicators to be set in Setup messages.
 </descrip>
 
 <descrip>
@@ -382,7 +397,9 @@ After the equality sign (=/~=/*=), a list of new CLI values to be used follows.
 If more than one value is specified, a one will be choosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999.
 There is a special string constant "any", that can be used in place
-of the <tt/CALLER_IP/, the <tt/CALLEE_IP/ or the <tt/number_prefix/.
+of the <tt/CALLER_IP/, the <tt/CALLEE_IP/ or the <tt/number_prefix/. 
+To enable <tt/CLIR/ for this rule, se a special string constant <tt/"hide"/
+or <tt/"hidefromterminals"/ instead of the list of new CLI values.
 
 <tag/Example 1:/
 <tscreen><verb>
@@ -403,6 +420,30 @@ out:any=192.168.1.1 any=1001-1999,3001-3999
 <p>
 This rule randomly selects ANI/CLI from range 1001-1999, 3001-3999
 for calls sent to 192.168.1.1.
+
+<tag/Example 3 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=any any=hidefromterminals
+out:192.168.1.1=any any=hide
+</verb></tscreen>
+<p>
+In this example each subscriber has enabled CLIR. So all calls to terminals
+will have a caller's number removed and presentation/screening indicators set.
+Calls to gateways will have only a presentation indicator set to "presention restricted"
+and the caller's number will not be removed to allow proper call routing and number
+removal at the destination equipment.<newline>
+One exception to these rules are calls from 192.168.1.1 which will have a caller's number
+always removed, no matter whether calling a terminal or a gateway.
+
+<tag/Example 4 (CLIP):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=hide
+</verb></tscreen>
+<p>
+In this example CLIP (Calling Line Identification Presentation) feature
+is disabled for the user 192.168.1.1.
 </descrip>
 
 <p>
