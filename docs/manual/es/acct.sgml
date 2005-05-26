@@ -60,7 +60,7 @@ o para crear configuraciones a prueba de fallos.
  <bf/control/ bandera para cada módulo, junto con los códigos de resultado,
  define lo que es el estado final del proceso del vento por el módulo apilado completo.
  Si el resultado final es <bf/failure/, algunas acciones especiales se harían en su
- lugar. Actualmente, si en un evento de llamada iniciada (<br/start/) 
+ lugar. Actualmente, si en un evento de llamada iniciada (<bf/start/) 
  la anotación falla, la llamada es desconectada inmediatamente.
 Los siguientes estados (banderas) de <bf/control/ están reconocidos:
 <itemize>
