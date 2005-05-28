@@ -1,4 +1,4 @@
-<!-- French translation from monitoring.sgml v1.2 -->
+<!-- French translation from monitoring.sgml v1.3 -->
 
 <sect>Surveillance du Gatekeeper
 <label id="monitor">
@@ -569,21 +569,25 @@ RegistrationConfirm (RCF).
 <p>Le gatekeeper re&#231;oit un RegistrationRequest (RRQ) et r&#233;pond avec un
 RegistrationReject (RRJ).
 
-<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered;/
+<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered[|CallID];/
 <p>Le gatekeeper re&#231;oit un AdmissionRequest (ARQ) et r&#233;pond avec un
 AdmissionConfirm (ACF).
+Le CallID est envoy&#233; seulement quand SignalCallId=1.
 
-<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason;/
+<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason[|CallID];/
 <p>Le gatekeeper re&#231;oit un AdmissionRequest (ARQ) et r&#233;pond avec un
 AdmissionReject (ARJ).
+Le CallID est envoy&#233; seulement quand SignalCallId=1.
 
-<item><tt/DCF|IP|EndpointID|CRV|DisengageReason;/
+<item><tt/DCF|IP|EndpointID|CRV|DisengageReason[|CallID];/
 <p>Le gatekeeper re&#231;oit un DisengageRequest (DRQ) et r&#233;pond avec un
 DisengageConfirm (DCF).
+Le CallID est envoy&#233; seulement quand SignalCallId=1.
 
-<item><tt/DRJ|IP|EndpointID|CRV|RejectReason;/
+<item><tt/DRJ|IP|EndpointID|CRV|RejectReason[|CallID];/
 <p>Le gatekeeper re&#231;oit un DisengageRequest (DRQ) et r&#233;pond avec un
 DisengageReject (DRJ).
+Le CallID est envoy&#233; seulement quand SignalCallId=1.
 
 <item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/
 <p>Le gatekeeper re&#231;oit un LocationRequest (LRQ) et r&#233;pond avec un
@@ -624,8 +628,9 @@ UnregistrationConfirm (UCF).
 <p>Apr&#232;s un appel d&#233;connect&#233;, l'enregistrement du d&#233;tail de
 l'appel est affich&#233; (sur une ligne).
 
-<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias;/
+<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias[|CallID];/
 <p>Demande &#224; une application externe de router un appel arrivant sur une file
 virtuelle. Ceci peut &#234;tre fait avec une commande RouteToAlias ou RouteReject.
+Le CallID est envoy&#233; seulement quand SignalCallId=1.
 
 </itemize>
