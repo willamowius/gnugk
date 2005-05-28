@@ -1,4 +1,4 @@
-<!-- French translation from ras.sgml v1.1 -->
+<!-- French translation from ras.sgml v1.2 -->
 
 <sect>Configuration RAS
 <p>
@@ -69,6 +69,18 @@ cette option activ&#233;e la requ&#234;te contradictoire entra&#238;nera une
 requ&#234;te non-enregistr&#233; (URQ) &#224; &#234;tre envoy&#233;e pour l'adresse IP
 existante et l'entr&#233;e est supprim&#233;e pour permettre le terminal de
 s'enregistrer avec la nouvelle adresse.
+
+<item><tt/IRQPollCount=0/<newline>
+D&#233;fault: <tt/1/
+<p>
+Quand le gatekeeper ne re&#231;oit pas un RRQ garder-en-vie d'un terminal pendant une
+p&#233;riode de temps TimeToLive, il envoie un message IRQ pour "sonder" le terminal et
+v&#233;rifier si il est en vie. Apr&#232;s que IRQPollCount messages aient &#233;t&#233;
+envoy&#233;s sans qu'aucune r&#233;ponse n'ait &#233;t&#233; re&#231;ue, le terminal est
+d&#233;senregistr&#233;. Pour d&#233;sactiver cette fonction (et d&#233;senregistrer les
+terminaux juste apr&#233;s TimeToLive), r&#233;gler cette variable &#224; 0.
+L'intervalle de sondage IRQ est de 60 secondes.
+
 </itemize>
 
 
