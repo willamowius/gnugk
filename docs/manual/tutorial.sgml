@@ -71,6 +71,24 @@ There is a number of commands that can be issued in this telnet session:
 Type "help" to see them.
 To end the telnet session with the gatekeeper type "quit" and hit Enter.
 
+But this is very insecure - everyboy could connect to the status interface and see this.
+Lets change the the configuration file to
+
+<tscreen><verb>
+[Gatekeeper::Main]
+Fourtytwo=42
+[GkStatus::Auth]
+rule=password
+gkadmin=QC7VyAo5jEw=
+</verb></tscreen>
+
+The 5th line is added by addpasswd utility, it creates a user "gkadmin" with 
+password "secret" which will limit access to the status port.
+Restart the gatekeeper with this new configuration and do the telnet again.
+Now you will be asked for a username and password before you can login.
+
+Take a look at the <ref id="gkstatusauth" name="GkStatus::Auth"> section for more details on securing the status ports.
+
 <sect1>Starting the gatekeeper in routed mode
 <p>
 Starting the gatekeeper in routed mode means that the gatekeeper

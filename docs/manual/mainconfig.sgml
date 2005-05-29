@@ -294,6 +294,7 @@ Time in miliseconds for write timeout on status channel.
 
 
 <sect2>Section &lsqb;GkStatus::Auth&rsqb;
+<label id="gkstatusauth">
 <p>
 Define a number of rules who is allowed to connect to the status port.
 Whoever has access to the status port has full control over your gatekeeper. Make sure this is set correctly.
