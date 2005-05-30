@@ -291,12 +291,49 @@ or a CLI/ANI (after inbound rewrite).
 This module also provides CLIR (Calling Line Identification Restriction)
 feature that can be configured for each endpoint (rule).
 
+<itemize>
+<item><tt/ProcessSourceInfo=1/<newline>
+Default: <tt/1/
+<p>
+In addition to rewritting a Calling-Party-Number IE also a sourceInfo
+element of a H.225.0 Setup message can be rewritten, so both contain
+consistent information.
+
+<item><tt/RemoveH323Id=1/<newline>
+Default: <tt/1/
+<p>
+When a sourceInfo element of an H.225.0 Setup message is rewritten,
+aliases of type H323_ID, email_ID and url_ID can be left untouched
+if this option is disabled.
+
+<item><tt/CLIRPolicy=apply/<newline>
+Default: <tt>N/A</tt>
+<p>
+Here a global presentation indicator processing policy can be set up.
+This policy will be applied to all CLI rewrite rules that do not override it.
+Possible choices are <tt/forward/ - just forward the received PI as is,
+<tt/apply/ - examine the received PI and hide CLI if it is set to "presentation
+restricted" and <tt/applyforterminals/ - similar to <tt/apply/ except that the number
+is removed only when the call is send to a terminal, not a gateway.
+
+</itemize>
+
 <descrip>
 <tag/Format for an inbound rule:/
-<tt>in:CALLER_IP=[cli:|dno:]number_prefix(=|*=|~=)NEW_CLI[,NEW_CLI]...</tt>
+<tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=)NEW_CLI[,NEW_CLI]...</tt>
 <p>
 The <tt/in:/ prefix tells that this is an inbound rule and the <tt/CALLER_IP/
-will be used to match the rule (it can be a single IP or a whole subnet).
+will be used to match the rule (it can be a single IP or a whole subnet).<newline>
+
+The optional <tt/pi=/ parameter controls CLIR (Calling Line Identification Restriction)
+features. Specifying either <tt/allow/ or <tt/restrict/ forces presentation indicator
+to be set to "presentation allowed" or "presentation restricted". <tt/forward/, <tt/apply/
+and <tt/applyforterminals/ controls how the received (if any) presentation indicator
+is processed by the gatekeeper. <tt/forward/ means just to forward it to the callee as is,
+<tt/apply/ means hiding CLI if the PI is set to "presentation restricted", <tt/applyforterminals/
+is similar to <tt/apply/, except that CLI is hidden only when sending the call to a terminal,
+not a gateway.<newline>
+
 The prefix <tt/cli:/ or <tt/dno:/ (the default) selects what number will be used
 to match the <tt/number_prefix/ - a caller id (CLI/ANI) or a dialed number.
 Number matching/rewritting can be done in three ways:
@@ -372,11 +409,21 @@ and screening indicators to be set in Setup messages.
 
 <descrip>
 <tag/Format for an outbound rule:/
-<tt>out:CALLER_IP=CALLEE_IP [cli:|dno:|cno:]number_prefix(=|~=|*=)NEW_CLI[,NEW_CLI]...</tt>
+<tt>out:CALLER_IP=CALLEE_IP [pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:|cno:]number_prefix(=|~=|*=)NEW_CLI[,NEW_CLI]...</tt>
 <p>
 The <tt/out:/ prefix tells that this is an outbound rule, the <tt/CALLER_IP/
 and the <tt/CALLEE_IP/ will be used to match the rule and can be a single IP
-or a whole network address.
+or a whole network address.<newline>
+
+The optional <tt/pi=/ parameter controls CLIR (Calling Line Identification Restriction)
+features. Specifying either <tt/allow/ or <tt/restrict/ forces presentation indicator
+to be set to "presentation allowed" or "presentation restricted". <tt/forward/, <tt/apply/
+and <tt/applyforterminals/ controls how the received (if any) presentation indicator
+is processed by the gatekeeper. <tt/forward/ means just to forward it to the callee as is,
+<tt/apply/ means hiding CLI if the PI is set to "presentation restricted", <tt/applyforterminals/
+is similar to <tt/apply/, except that CLI is hidden only when sending the call to a terminal,
+not a gateway.<newline>
+
 The prefix <tt/cli:/, <tt/dno:/ (the default) or <tt/cno:/ selects what number
 will be used to match the <tt/number_prefix/ - a caller id (CLI/ANI),
 a dialed number or a destination/called number (the dialed number after rewrite).
@@ -444,6 +491,18 @@ out:any=192.168.1.1 any=hide
 <p>
 In this example CLIP (Calling Line Identification Presentation) feature
 is disabled for the user 192.168.1.1.
+
+<tag/Example 5 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:192.168.1.1=any pi=restrict,apply cli:.*=.
+out:any=any pi=allow cli:.*=.
+</verb></tscreen>
+<p>
+These rules do not change CLI (.*=.) and:
+1) enable CLIR for an endpoint 192.168.1.1. <tt/apply/ tells the gatekeeper
+   to not only set the PI, but also to hide the number actually,
+2) force CLI presentation for other endpoints.
 </descrip>
 
 <p>

@@ -52,10 +52,27 @@ public:
 			HideFromTerminals, /// hide only if a callee is a terminal
 			AlwaysHide /// always hide
 		};
+
+		/// manual CLIR (presentatio indicator) control
+		enum CLIRType {
+			CLIRPassthrough, /// leave PI as received from a caller
+			RestrictPresentation, /// set PI to restricted
+			AllowPresentation /// set PI to allowed
+		};
+
+		/// how to process received CLIR (PI) information		
+		enum CLIRRule {
+			IgnoreCLIR, /// use the global settings to make the decission
+			ForwardCLIR, /// do nothing, just forward as received
+			ApplyCLIRForTerminals, /// hide caller's number, if the callee is a terminal and PI=restricted
+			AlwaysApplyCLIR /// always hide caller's number, if PI=restricted
+		};
 		
 		int m_matchType; /// match condition
 		int m_rewriteType; /// number matching/rewritting rule
 		int m_screeningType; /// caller's number hiding
+		int m_manualCLIR; /// CLIR settings override
+		int m_CLIRPolicy; /// how to process CLIR
 		std::string m_prefix; /// the prefix to match
 		std::vector<std::string> m_cli; /// list of new CLIs
 	};
@@ -98,6 +115,7 @@ private:
 	DoubleIpRules m_outboundRules; /// a set of outbound CLI/ANI rewrite rules
 	bool m_processSourceAddress; /// true to rewrite numbers in sourceAddress Setup-UUIE
 	bool m_removeH323Id; /// true to put in the sourceAddress Setup-UUIE field only rewritten ANI/CLI
+	int m_CLIRPolicy; /// how to process CLIR
 };
 
 #endif

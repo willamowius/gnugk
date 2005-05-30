@@ -1,5 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- new RewriteCLI options to control CLIR features precisely 
 - new CLIR/CLIP (Calling Line Identification Restriction/Presentation) features in RewriteCLI
   module. Ability to hide CLI (enable CLIR/CLIP) per endpoint
 - Unix man page in the docs folder by Ivan Lopez <ilopez@enress.gov.ar>

@@ -34,18 +34,39 @@ namespace {
 const char * const CLIRewriteSection = "RewriteCLI";
 const char * const ProcessSourceAddress = "ProcessSourceAddress";
 const char * const RemoveH323Id = "RemoveH323Id";
-const char * const ReservedKeys[] = { ProcessSourceAddress, RemoveH323Id, NULL };
+const char * const CLIRPolicy = "CLIRPolicy";
+const char * const ReservedKeys[] = { ProcessSourceAddress, RemoveH323Id, CLIRPolicy, NULL };
 }
 
 CLIRewrite::RewriteRule::RewriteRule()
 	: m_matchType(MatchDialedNumber), m_rewriteType(PrefixToNumber),
-	m_screeningType(NoScreening)
+	m_screeningType(NoScreening), m_manualCLIR(CLIRPassthrough),
+	m_CLIRPolicy(IgnoreCLIR)
 {
 }
 
 PString CLIRewrite::RewriteRule::AsString() const
 {
 	PString s;
+
+	if (m_manualCLIR == RestrictPresentation)
+		s = "restrict";
+	else if (m_manualCLIR == AllowPresentation)
+		s = "allow";
+
+	if (m_CLIRPolicy != IgnoreCLIR) {
+		if (!s)
+			s += ",";
+		if (m_CLIRPolicy == ForwardCLIR)
+			s += "forward";
+ 		else if (m_CLIRPolicy == ApplyCLIRForTerminals)
+			s += "applyforterminals";
+		else
+			s += "apply";
+	}
+	if (!s)
+		s = "pi=" + s + " ";
+	
 	if (m_matchType == MatchDialedNumber)
 		s += "dialed number: ";
 	else if (m_matchType == MatchDestinationNumber)
@@ -129,7 +150,8 @@ struct DoubleIpRule_greater : public std::binary_function<CLIRewrite::DoubleIpRu
 } /* namespace */
 
 CLIRewrite::CLIRewrite()
-	: m_processSourceAddress(true), m_removeH323Id(false)
+	: m_processSourceAddress(true), m_removeH323Id(false),
+	m_CLIRPolicy(RewriteRule::IgnoreCLIR)
 {
 	PConfig *cfg = GkConfig();
 
@@ -224,10 +246,10 @@ CLIRewrite::CLIRewrite()
 				PINDEX sepIndex = data.Find('=');
 				if (sepIndex != P_MAX_INDEX) {
 					PString lhs = data.Left(sepIndex).Trim();
-					sepIndex = lhs.FindOneOf(", ");
+					sepIndex = lhs.FindOneOf(" \t");
 					if (sepIndex != P_MAX_INDEX) {
 						lhs = lhs.Left(sepIndex).Trim();
-						data = data.Mid(sepIndex + 1).Trim();
+						data = data.Mid(sepIndex + 1);
 						if (!(lhs == "*" || lhs == "any"))
 							addr = NetworkAddress(lhs);
 					}
@@ -259,6 +281,36 @@ CLIRewrite::CLIRewrite()
 				continue;
 			}
 
+			// process CLIR options
+			int manualCLIR = RewriteRule::CLIRPassthrough;
+			int CLIRPolicy = RewriteRule::IgnoreCLIR;
+			
+			data = data.Trim();
+			if (data.Find("pi=") == 0) {
+				data = data.Mid(3);
+				PINDEX sepIndex = data.FindOneOf(" \t");
+				if (sepIndex != P_MAX_INDEX) {
+					PString lhs = data.Left(sepIndex).Trim();
+					data = data.Mid(sepIndex + 1).Trim();
+					PStringArray tokens = lhs.Tokenise(",;", FALSE);
+					for (PINDEX i = 0; i < tokens.GetSize(); ++i)
+						if (tokens[i] *= "allow")
+							manualCLIR = RewriteRule::AllowPresentation;
+						else if (tokens[i] *= "restrict")
+							manualCLIR = RewriteRule::RestrictPresentation;
+						else if (tokens[i] *= "forward")
+							CLIRPolicy = RewriteRule::ForwardCLIR;
+						else if (tokens[i] *= "apply")
+							CLIRPolicy = RewriteRule::AlwaysApplyCLIR;
+						else if (tokens[i] *= "applyforterminals")
+							CLIRPolicy = RewriteRule::ApplyCLIRForTerminals;
+						else
+							PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '=' 
+								<< kv.GetDataAt(i) << ", unreconized pi option '" << tokens[i]
+								<< "'"
+								);
+				}
+			}
 			// process CLI/ANI rewrite rule
 			
 			const PINDEX sepIndex = data.Find('=');
@@ -340,7 +392,9 @@ CLIRewrite::CLIRewrite()
 			rule->m_matchType = matchType;
 			rule->m_rewriteType = rewriteType;
 			rule->m_prefix = prefix;		
-
+			rule->m_manualCLIR = manualCLIR;
+			rule->m_CLIRPolicy = CLIRPolicy;
+			
 			// get RHS of the rewrite rule, multiple targets will be selected
 			// in random order
 			PStringArray clis = data.Mid(sepIndex + 1).Tokenise(", ", FALSE);
@@ -417,11 +471,27 @@ CLIRewrite::CLIRewrite()
 #endif
 
 	m_processSourceAddress = Toolkit::AsBool(
-		cfg->GetString(CLIRewriteSection, "ProcessSourceAddress", "1")
+		cfg->GetString(CLIRewriteSection, ProcessSourceAddress, "1")
 		);
 	m_removeH323Id = Toolkit::AsBool(
-		cfg->GetString(CLIRewriteSection, "RemoveH323Id", "1")
+		cfg->GetString(CLIRewriteSection, RemoveH323Id, "1")
 		);
+	
+	const PString clirPolicy = cfg->GetString(CLIRewriteSection, CLIRPolicy,
+		PString::Empty()
+		);
+	if (clirPolicy *= "applyforterminals")
+		m_CLIRPolicy = RewriteRule::ApplyCLIRForTerminals;
+	else if (clirPolicy *= "apply")
+		m_CLIRPolicy = RewriteRule::AlwaysApplyCLIR;
+	else if (clirPolicy *= "forward")
+		m_CLIRPolicy = RewriteRule::ForwardCLIR;
+	else if (clirPolicy.IsEmpty())
+		m_CLIRPolicy = RewriteRule::IgnoreCLIR;
+	else
+		PTRACE(1, "CLIRW\tSyntax error in the config - an unrecognized "
+			"CLIRPolicy value: '" << clirPolicy << "'"
+			);
 }
 
 void CLIRewrite::InRewrite(
@@ -580,7 +650,41 @@ void CLIRewrite::Rewrite(
 	}
 
 	bool isTerminal = false;	
-	if (rule->m_screeningType == RewriteRule::AlwaysHide) {
+	if (authData && authData->m_call) {
+		endptr callee = authData->m_call->GetCalledParty();
+		if (callee && callee->GetEndpointType().HasOptionalField(H225_EndpointType::e_terminal))
+			isTerminal = true;
+	}
+
+	if (rule->m_manualCLIR == RewriteRule::RestrictPresentation) {
+		presentation = 1;
+		PTRACE(5, "CLIRW\tCLIR forced to 'restricted' by the " << (inbound ? "inbound" : "outbound")
+			<< " rule " << rule->AsString()
+			);
+	} else if (rule->m_manualCLIR == RewriteRule::AllowPresentation) {
+		presentation = 0;
+		PTRACE(5, "CLIRW\tCLIR forced to 'allowed' by the " << (inbound ? "inbound" : "outbound")
+			<< " rule " << rule->AsString()
+			);
+	}
+	
+	int clirPolicy = rule->m_CLIRPolicy;
+	if (clirPolicy == RewriteRule::IgnoreCLIR)
+		clirPolicy = m_CLIRPolicy;
+
+	int screeningType = rule->m_screeningType;
+	if (rule->m_CLIRPolicy == RewriteRule::AlwaysApplyCLIR
+			|| (rule->m_CLIRPolicy == RewriteRule::ApplyCLIRForTerminals
+				&& isTerminal)) {
+		if (presentation == 1)
+			screeningType = RewriteRule::AlwaysHide;
+		else if (presentation == (unsigned)-1)
+			if (msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_presentationIndicator)
+					&& msg.GetUUIEBody().m_presentationIndicator.GetTag() == H225_PresentationIndicator::e_presentationRestricted)
+			screeningType = RewriteRule::AlwaysHide;
+	}
+	
+	if (screeningType == RewriteRule::AlwaysHide) {
 		presentation = 1;
 		screening = 3;
 		newcli = "";
@@ -593,30 +697,28 @@ void CLIRewrite::Rewrite(
 		PTRACE(5, "CLIRW\tCLI hidden by the " << (inbound ? "inbound" : "outbound")
 			<< " rule " << rule->AsString()
 			);
-	} else if (rule->m_screeningType == RewriteRule::HideFromTerminals) {
+	} else if (screeningType == RewriteRule::HideFromTerminals) {
 		presentation = 1;
 		msg.GetQ931().GetCallingPartyNumber(newcli);
-		if (authData && authData->m_call) {
-			endptr callee = authData->m_call->GetCalledParty();
-			if (callee && callee->GetEndpointType().HasOptionalField(H225_EndpointType::e_terminal)) {
-				isTerminal = true;
-				screening = 3;
-				newcli = "";
-				plan = Q931::UnknownPlan;
-				type = Q931::UnknownType;
-				if (msg.GetQ931().HasIE((Q931::InformationElementCodes)0x6d)) // calling party subaddress IE
-					msg.GetQ931().RemoveIE((Q931::InformationElementCodes)0x6d);
-				if (msg.GetQ931().HasIE(Q931::DisplayIE))
-					msg.GetQ931().RemoveIE(Q931::DisplayIE);
-				PTRACE(5, "CLIRW\tCLI hidden by the " << (inbound ? "inbound" : "outbound")
-					<< " rule " << rule->AsString()
-					);
-			}
+		if (isTerminal) {
+			isTerminal = true;
+			screening = 3;
+			newcli = "";
+			plan = Q931::UnknownPlan;
+			type = Q931::UnknownType;
+			if (msg.GetQ931().HasIE((Q931::InformationElementCodes)0x6d)) // calling party subaddress IE
+				msg.GetQ931().RemoveIE((Q931::InformationElementCodes)0x6d);
+			if (msg.GetQ931().HasIE(Q931::DisplayIE))
+				msg.GetQ931().RemoveIE(Q931::DisplayIE);
+			PTRACE(5, "CLIRW\tCLI hidden by the " << (inbound ? "inbound" : "outbound")
+				<< " rule " << rule->AsString()
+				);
 		}
-		if (screening == (unsigned)-1)
-			screening = 0;
 	} else if (newcli.IsEmpty())
 		return;
+
+	if (presentation != (unsigned)-1 && screening == (unsigned)-1)
+		screening = 0;
 
 	msg.GetQ931().SetCallingPartyNumber(newcli, plan, type, presentation, screening);
 	msg.SetChanged();
@@ -636,18 +738,26 @@ void CLIRewrite::Rewrite(
 					sourceAddress.RemoveAt(aliasIndex);
 			sourceAddress.SetSize(sourceAddress.GetSize() + 1);
 		}
-		if (rule->m_screeningType == RewriteRule::AlwaysHide) {
+		
+		if (presentation != (unsigned)-1) {
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
-			msg.GetUUIEBody().m_presentationIndicator = H225_PresentationIndicator::e_presentationRestricted;
+			msg.GetUUIEBody().m_presentationIndicator.SetTag(presentation);
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
-			msg.GetUUIEBody().m_screeningIndicator = H225_ScreeningIndicator::e_networkProvided;
-			msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
-		} else if (rule->m_screeningType == RewriteRule::HideFromTerminals) {
+			msg.GetUUIEBody().m_screeningIndicator.SetTag(screening);
+		}
+		
+		if (screeningType == RewriteRule::AlwaysHide) {
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
-			msg.GetUUIEBody().m_presentationIndicator = H225_PresentationIndicator::e_presentationRestricted;
+			msg.GetUUIEBody().m_presentationIndicator.SetTag(H225_PresentationIndicator::e_presentationRestricted);
+			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
+			msg.GetUUIEBody().m_screeningIndicator.SetTag(H225_ScreeningIndicator::e_networkProvided);
+			msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		} else if (screeningType == RewriteRule::HideFromTerminals) {
+			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
+			msg.GetUUIEBody().m_presentationIndicator.SetTag(H225_PresentationIndicator::e_presentationRestricted);
 			if (isTerminal && !newcli) {
 				msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
-				msg.GetUUIEBody().m_screeningIndicator = H225_ScreeningIndicator::e_networkProvided;
+				msg.GetUUIEBody().m_screeningIndicator.SetTag(H225_ScreeningIndicator::e_networkProvided);
 				H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
 			} else
 				msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
