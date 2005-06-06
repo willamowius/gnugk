@@ -957,12 +957,12 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 		PString alias(AsString(aliases[i], FALSE));
 
 		// make sure the number has only digits
-		PINDEX i;
-		for (i = 0; i < alias.GetLength(); ++i)
-			if (!isdigit(alias[i]))
+		PINDEX j;
+		for (j = 0; j < alias.GetLength(); ++j)
+			if (!isdigit(alias[j]))
 				break;
 
-		if (i >= alias.GetLength()) {
+		if (j >= alias.GetLength()) {
 			PString str;
 			if (PDNS::ENUMLookup(alias, "E2U+h323", str)) {
 				PTRACE(4, "\tENUM converted remote party " << alias << " to " << str);
