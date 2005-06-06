@@ -698,7 +698,7 @@ BOOL CallSignalSocket::Connect(const Address & addr)
 		Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
 			break;
 #else
 		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
@@ -2317,7 +2317,7 @@ bool CallSignalSocket::InternalConnectTo()
 		remote->Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
 			break;
 #else
 		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
@@ -2454,7 +2454,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 		listener->Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
 			break;
 #else
 		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
@@ -2616,7 +2616,7 @@ bool H245Socket::ConnectRemote()
 		PTRACE(3, "H245\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
 			break;
 #else
 		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
@@ -3267,7 +3267,7 @@ T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(
 		Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
 			break;
 #else
 		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
@@ -3308,7 +3308,7 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 		PTRACE(3, "T120\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAADDRINUSE)
+				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
 			break;
 #else
 		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
