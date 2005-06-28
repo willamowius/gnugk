@@ -2128,37 +2128,19 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 
 	PString log;
 	if (reason == e_routeRequest) {
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s|%s;",
-				(const unsigned char *) source,
-				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
-				(unsigned) request.m_callReferenceValue,
-				(const unsigned char *) destinationString,
-				(const unsigned char *) srcInfo,
-				(const char *)AsString(request.m_callIdentifier.m_guid)
-		      	);
-		} else {
-			log = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;",
+		log = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s",
 				(const unsigned char *) source,
 				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) destinationString,
 				(const unsigned char *) srcInfo
 		      	);
-		}
-	} else if (reason < 0) {
 		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString(PString::Printf, "ACF|%s|%s|%u|%s|%s|%s|%s;",
-				(const unsigned char *) source,
-				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
-				(unsigned) request.m_callReferenceValue,
-				(const unsigned char *) destinationString,
-				(const unsigned char *) srcInfo,
-				answerCall,
-				(const char *)AsString(request.m_callIdentifier.m_guid)
-		      	);
-		} else {
-			log = PString(PString::Printf, "ACF|%s|%s|%u|%s|%s|%s;",
+			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
+		}
+		log += PString(";");
+	} else if (reason < 0) {
+		log = PString(PString::Printf, "ACF|%s|%s|%u|%s|%s|%s",
 				(const unsigned char *) source,
 				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
 				(unsigned) request.m_callReferenceValue,
@@ -2166,29 +2148,25 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 				(const unsigned char *) srcInfo,
 				answerCall
 		      	);
+		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
+			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
 		}
+		log += PString(";");
 	} else {
 		H225_AdmissionReject & arj = BuildReject(reason);
 		if (reason == H225_AdmissionRejectReason::e_resourceUnavailable)
 			RasSrv->SetAltGKInfo(arj);
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString(PString::Printf, "ARJ|%s|%s|%s|%s|%s|%s;",
-				(const unsigned char *) source,
-				(const unsigned char *) destinationString,
-				(const unsigned char *) srcInfo,
-				answerCall,
-				(const unsigned char *) arj.m_rejectReason.GetTagName(),
-				(const char *)AsString(request.m_callIdentifier.m_guid)
-		      	);
-		} else {
-			log = PString(PString::Printf, "ARJ|%s|%s|%s|%s|%s;",
+		log = PString(PString::Printf, "ARJ|%s|%s|%s|%s|%s",
 				(const unsigned char *) source,
 				(const unsigned char *) destinationString,
 				(const unsigned char *) srcInfo,
 				answerCall,
 				(const unsigned char *) arj.m_rejectReason.GetTagName()
 		      	);
+		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
+			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
 		}
+		log += PString(";");
 	}
 	return PrintStatus(log);
 }
@@ -2258,41 +2236,29 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	PString log;
 	if (bReject) {
 		H225_DisengageReject & drj = BuildReject(rsn);
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString(PString::Printf, "DRJ|%s|%s|%u|%s|%s;",
-				inet_ntoa(m_msg->m_peerAddr),
-				(const unsigned char *) request.m_endpointIdentifier.GetValue(),
-				(unsigned) request.m_callReferenceValue,
-				(const unsigned char *) drj.m_rejectReason.GetTagName(),
-				(const char *)AsString(request.m_callIdentifier.m_guid)
-		      	);
-		} else {
-			log = PString(PString::Printf, "DRJ|%s|%s|%u|%s;",
+		log = PString(PString::Printf, "DRJ|%s|%s|%u|%s",
 				inet_ntoa(m_msg->m_peerAddr),
 				(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) drj.m_rejectReason.GetTagName()
 		      	);
+		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
+			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
 		}
+		log += PString(";");
 	} else {
 		BuildConfirm();
 		// always signal DCF
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString(PString::Printf, "DCF|%s|%s|%u|%s|%s;",
-				inet_ntoa(m_msg->m_peerAddr),
-				(const unsigned char *) request.m_endpointIdentifier.GetValue(),
-				(unsigned) request.m_callReferenceValue,
-				(const unsigned char *) request.m_disengageReason.GetTagName(),
-				(const char *)AsString(request.m_callIdentifier.m_guid)
-		      	);
-		} else {
-			log = PString(PString::Printf, "DCF|%s|%s|%u|%s;",
+		log = PString(PString::Printf, "DCF|%s|%s|%u|%s",
 				inet_ntoa(m_msg->m_peerAddr),
 				(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) request.m_disengageReason.GetTagName()
 		      	);
+		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
+			log += PString("|") + AsString(request.m_callIdentifier.m_guid);
 		}
+		log += PString(";");
 
 		if (!RasSrv->IsGKRouted() || RasSrv->RemoveCallOnDRQ())
 			CallTbl->RemoveCall(request, ep);

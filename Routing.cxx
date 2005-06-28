@@ -587,25 +587,17 @@ bool VirtualQueue::SendRouteRequest(
 	bool duprequest = false;
 	const PString epid(caller->GetEndpointIdentifier().GetValue());
 	if (RouteRequest *r = InsertRequest(epid, crv, destinationInfo, callSigAdr, duprequest)) {
-		PString msg;
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s|%s;", 
-				(const char *)AsDotString(caller->GetCallSignalAddress()),
-				(const char *)epid,
-				crv,
-				(const char *)vqueue,
-				(const char *)sourceInfo,
-				(const char *)callID
-			   );
-		} else {
-			msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s;", 
+		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s", 
 				(const char *)AsDotString(caller->GetCallSignalAddress()),
 				(const char *)epid,
 				crv,
 				(const char *)vqueue,
 				(const char *)sourceInfo
 			   );
+		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
+			msg += PString("|") + callID;
 		}
+		msg += PString(";");
 		// signal RouteRequest to the status line only once
 		if( duprequest )
 			PTRACE(4, "VQueue\tDuplicate request: "<<msg);
