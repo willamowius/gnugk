@@ -1222,7 +1222,7 @@ void StatusClient::ExecCommand(
 			} else						
 				WriteString("Failed to open the log file'" + args[1] + "'\r\n");
 		} else
-			WriteString("Syntax Error: setlogfilename <logfilepath>\r\n");
+			WriteString("Syntax Error: setlog <logfilepath>\r\n");
 		break;				
 #endif
 
