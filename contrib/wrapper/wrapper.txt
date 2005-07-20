@@ -1,0 +1,49 @@
+From: Valts Mazurs <valts@datatechlabs.com>
+Organization: Data Tech Labs
+To: openh323gk-users@lists.sourceforge.net
+Subject: [Openh323gk-users] gnugk wrapper
+
+Hello, Gnugk users!
+
+I made a wrapper for gnugk for our ("Data Tech Labs") purposes but I
+would like to share it with other gnugk users.
+This wrapper is written in Perl and requires Net::Telnet perl module
+installed.
+
+Wrapper's main function is to execute gnugk and check if it is alive. No
+offence, but gnugk often hangs up, terminates or freezes during serious
+load.
+
+Wrapper forks into 2 processes.
+The first one executes gnugk and waits until it exits. Then it executes
+gnugk again and so on and so on.
+The second process checks gnugk status port in different ways (refuse,
+access forbidden, timeout) and kills appropiate gnugk process if neccessary.
+Wrapper accepts all the gnugk cmd line options (execept "--pid" which is
+used in wrapper) and passes them to gnugk.
+It is possible to run wrapper in different ways: foreground, daemon,
+with or without additional debugging output.
+Wrapper uses logfile where it logs most important events (gnugk
+killing/restarting).
+To kill the wrapper properly along with it's gnugk instance you must
+kill first the wrapper and only after then - gnugk.
+Example:
+kill `cat /usr/local/var/run/gnugk_wrapper_127.0.0.1.pid` && kill `cat
+/usr/local/var/run/gnugk_127.0.0.1.pid`
+It is possible to run multiple gnugk instances which are tied to
+different IP addresses (aliases) on one server. Gnugkg wrapper extracts
+IP address information from gnugk config file (uses "Home" parameter in
+Main section)
+
+Wrapper is developed and tested on FreeBSD. It runs successfully on all
+our gatekeepers. It think that it will work on other *NIXes and Linux too.
+
+Take a look at attached gnugk_wrapper.pl and see the comments inside.
+Feel free to send me any feedback. I will wait for your critics and
+suggestions. I would be really happy if gnugk developers found this
+wrapper useful enough to include it in CVS.
+
+
+Best regards,
+Valts Mazurs
+
