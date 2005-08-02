@@ -1494,9 +1494,14 @@ bool RegistrationRequestPDU::Process()
 				if (bNewEP) {
 					if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0"))) {
 						// If the operators policy allows this case:
-						// 1) unregister the active ep - sends URQ and
+						// 1a) terminate all calls on active ep and
+						// 1b) unregister the active ep - sends URQ and
 						// 2) remove the ep from the EndpointTable, then
 						// 3) allow the new ep to register - see below
+						while (callptr call = CallTbl->FindCallRec(ep)) {
+							call->Disconnect();
+							CallTbl->RemoveCall(call);
+						}
 						ep->Unregister();
 						EndpointTbl->RemoveByEndptr(ep);
 					} else {
