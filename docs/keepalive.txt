@@ -14,6 +14,7 @@ side of the call. Then see if the call terminates after the configured timeout.
 
 Here are some hints:
 
+
 Linux systems
 =============
 Use sysctl -A to get a list of available kernel variables
@@ -33,23 +34,42 @@ This sample command changes tcp keepalive timeout to 60 seconds with 3 probes,
 10 seconds gap between each. With this, your application will detect dead tcp
 connections after 90 seconds (60 + 10 + 10 + 10).
 
+
 FreeBSD
 =======
-For the list of available tcp settings:
+For the list of available tcp settings (FreeBSD 4.8 an up and 5.4):
 
 sysctl -A | grep net.inet.tcp
 
-Keepalive related variables:
-- net.inet.tcp.keepidle - idle timeout
-- net.inet.tcp.keepintvl - interval between probes
-- net.inet.tcp.keepcnt (not on all systems) - number of keep alive probes (default 8)
-- net.inet.tcp.always_keepalive - enable keep alive feature on all sockets
+net.inet.tcp.keepidle - Amount of time, in milliseconds, that the (tcp) 
+connection must be idle before keepalive probes (if enabled) are sent.
 
-All values are usually in milliseconds.
+net.inet.tcp.keepintvl - The interval, in milliseconds, between 
+keepalive probes sent to remote machines. After TCPTV_KEEPCNT (default 
+8) probes are sent, with no response, the (tcp)connection is dropped.
 
-- net.inet.tcp.keepinit (net.inet.tcp.keepinittime on OpenBSD) - initial 
-  timeout for tcp connect operation (default is 75 seconds... - you may want
-  to change it)
+net.inet.tcp.always_keepalive - Assume that SO_KEEPALIVE is set on all 
+TCP connections, the kernel will periodically send a packet to the 
+remote host to verify the connection is still up.
+
+therefore formula to calculate maximum TCP inactive connection time is 
+following:
+
+net.inet.tcp.keepidle + (net.inet.tcp.keepintvl x 8)
+
+the result is in milliseconds.
+
+therefore, by setting
+net.inet.tcp.keepidle = 10000
+net.inet.tcp.keepintvl = 5000
+net.inet.tcp.always_keepalive =1 (must be 1 always)
+
+the system will disconnect a call when TCP connection is dead for:
+10000 + (5000 x 8) = 50000 msec (50 sec)
+
+To make system remember these settings at startup, you should add them 
+to /etc/sysctl.conf file
+
 
 Solaris
 =======
@@ -62,6 +82,7 @@ Keepalive related variables:
 
 Example:
 ndd -set /dev/tcp tcp_keepalive_interval 60000
+
 
 Windows
 =======
