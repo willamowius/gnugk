@@ -44,6 +44,18 @@ Default: <tt/RFC822/
 <p>
 Format of timestamp strings printed inside CDRs.
 
+<item><tt/IRRFrequency=60/<newline>
+Default: <tt/120/
+<p>
+Set the irrFrequency in ACF messages. 0 turns it off.
+
+<item><tt/IRRCheck=TRUE/<newline>
+Default: <tt/FALSE/
+<p>
+Check if both endpoints in a call send the requested IRRs.
+A call will be treminated if one of the endpoints didn't send
+an IRR after 2 * irrFrequency.
+
 </itemize>
 
 

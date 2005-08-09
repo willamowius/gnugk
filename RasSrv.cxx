@@ -2103,8 +2103,11 @@ bool AdmissionRequestPDU::Process()
 		acf.m_destCallSignalAddress = CalledAddress;
 	}
 
-	acf.IncludeOptionalField(H225_AdmissionConfirm::e_irrFrequency);
-	acf.m_irrFrequency.SetValue(120);
+	long irrFrq = GkConfig()->GetInteger("CallTable", "IRRFrequency", 120);
+	if (irrFrq > 0) {
+		acf.IncludeOptionalField ( H225_AdmissionConfirm::e_irrFrequency );
+		acf.m_irrFrequency.SetValue( irrFrq );
+	}
 
 	if( !answer && aliasesChanged 
 		&& request.HasOptionalField(H225_AdmissionRequest::e_canMapAlias)
@@ -2371,6 +2374,13 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 	// OnIRR
 	if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier)) {
 		ep->Update(m_msg->m_recvRAS);
+		callptr call;
+		if (request.HasOptionalField(H225_InfoRequestResponse::e_perCallInfo))
+			call = CallTbl->FindCallRec(request.m_perCallInfo[0].m_callIdentifier);
+		else
+			call = CallTbl->FindBySignalAdr(request.m_callSignalAddress[0]);
+		if (call)
+			call->Update(request);
 		if (request.HasOptionalField(H225_InfoRequestResponse::e_needResponse) && request.m_needResponse) {
 			BuildConfirm();
 			PrintStatus(PString(PString::Printf, "IACK|%s;", inet_ntoa(m_msg->m_peerAddr)));

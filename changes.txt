@@ -1,5 +1,6 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- IRR checking for active calls [CallTable] IRRFrequency=n, IRRCheck=TRUE
 - BUGFIX(RasSrv.cxx) terminate all calls before unregistering endpoint
   when OverwriteEPOnSameAddress=1
 - new RewriteCLI options to control CLIR features precisely 

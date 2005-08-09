@@ -874,6 +874,9 @@ public:
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
 
+	/// update IRR timers
+	void Update(const H225_InfoRequestResponse & irr);
+
 private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
@@ -969,6 +972,12 @@ private:
 	int m_proxyMode;
 	
 	H225_ArrayOf_CryptoH323Token m_accessTokens;
+
+	/// IRR checking
+	long m_irrFrequency;
+	bool m_irrCheck;
+	time_t m_irrCallerTimer;
+	time_t m_irrCalleeTimer;	
 };
 
 typedef CallRec::Ptr callptr;
@@ -1296,7 +1305,12 @@ inline void CallRec::SetDisconnectCause( unsigned causeCode )
 
 inline bool CallRec::IsTimeout(const time_t now) const
 {
-	return m_timeout > 0 && now >= m_timer && (now - m_timer) >= m_timeout;
+	bool result = (m_timeout > 0) && (now >= m_timer) && ((now - m_timer) >= m_timeout);
+	if (m_irrCheck && (m_irrFrequency > 0)) {
+		result |= (now >= m_irrCallerTimer) && ((now - m_irrCallerTimer) >= 2 * m_irrFrequency);
+		result |= (now >= m_irrCalleeTimer) && ((now - m_irrCalleeTimer) >= 2 * m_irrFrequency);
+	}
+	return result;
 }
 
 #endif // RASTBL_H

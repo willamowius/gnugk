@@ -1315,6 +1315,10 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+
+	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
+	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
+	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
 }
 
 CallRec::CallRec(
@@ -1353,6 +1357,10 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+
+	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
+	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
+	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
 }
 
 CallRec::~CallRec()
@@ -1918,6 +1926,22 @@ void CallRec::SetRouteToAlias(
 	PWaitAndSignal lock(m_usedLock);
 	delete m_routeToAlias;
 	m_routeToAlias = new H225_AliasAddress(alias);
+}
+
+void CallRec::Update(const H225_InfoRequestResponse & irr)
+{
+	if (irr.HasOptionalField(H225_InfoRequestResponse::e_perCallInfo) &&
+		irr.m_perCallInfo[0].HasOptionalField(H225_InfoRequestResponse_perCallInfo_subtype::e_originator)) {
+		if (irr.m_perCallInfo[0].m_originator)
+			m_irrCallerTimer = time(NULL);
+		else
+			m_irrCalleeTimer = time(NULL);
+	} else {
+		if (irr.m_endpointIdentifier == m_Calling->GetEndpointIdentifier())
+			m_irrCallerTimer = time(NULL);
+		else
+			m_irrCalleeTimer = time(NULL);
+	}
 }
 
 /*
