@@ -1,5 +1,7 @@
 Changes from 2.2.2 to 2.2.3
 ===========================
+- (ProxyChannel.cxx) use Calling-Party-Number to perform inbound per-gateway number rewrite
+  (GWRewriteE164), if no sourceAddress is present in H.225.0 Setup UUIE
 - IRR checking for active calls [CallTable] IRRFrequency=n, IRRCheck=TRUE
 - BUGFIX(RasSrv.cxx) terminate all calls before unregistering endpoint
   when OverwriteEPOnSameAddress=1

@@ -1361,6 +1361,13 @@ void CallSignalSocket::OnSetup(
 			#endif
 		}
 
+		if (in_rewrite_id.IsEmpty() && q931.GetCallingPartyNumber(in_rewrite_id)) {
+			#if PTRACING
+			if (!in_rewrite_id)
+				rewrite_type = "setup CLI";
+			#endif
+		}
+
 		if (!in_rewrite_id) {
 			#if PTRACING
 			PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
