@@ -1,0 +1,12 @@
+config.log
+config.cache
+config.status
+Makefile
+obj_*_*_r
+obj_*_*_d
+Release
+Debug
+gk.suo
+gk.ncb
+gk.plg
+gk.opt
