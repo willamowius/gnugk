@@ -181,15 +181,20 @@ parameters are recognized:
 <item><tt/%g/ - gatekeeper name
 <item><tt/%n/ - call number (not unique after gatekeeper restart)
 <item><tt/%d/ - call duration (seconds)
+<item><tt/%t/ - total call duration (from Setup to Release Complete)
 <item><tt/%c/ - Q.931 disconnect cause (decimal integer)
 <item><tt/%r/ - who disconnected the call (-1 - unknown, 0 - the gatekeeper, 1 - the caller, 2 - the callee)
+<item><tt/%p/ - PDD (Post Dial Delay) in seconds
 <item><tt/%s/ - unique (for this gatekeeper) session identifier (Acct-Session-Id)
 <item><tt/%u/ - H.323 ID of the calling party
+<item><tt/%{gkip}/ - IP address of the gatekeeper
 <item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
 <item><tt/%{ConfId}/ - H.323 conference identifier (16 hex 8-bit digits)
 <item><tt/%{setup-time}/ - timestamp string for Q.931 Setup message
+<item><tt/%{alerting-time}/ - timestamp string for Q.931 Alerting message
 <item><tt/%{connect-time}/ - timestamp string for a call connected event
 <item><tt/%{disconnect-time}/ - timestamp string for a call disconnect event
+<item><tt/%{ring-time}/ - time a remote phone was ringing for (from Alerting till Connect or Release Complete)
 <item><tt/%{caller-ip}/ - signaling IP addres of the caller
 <item><tt/%{caller-port}/ - signaling port of the caller
 <item><tt/%{callee-ip}/ - signaling IP addres of the called party
@@ -516,6 +521,12 @@ Default: <tt>N/A</tt>
 <p>
 Format of timestamp strings used in queries. If this setting
 is not specified, a global one from the main gatekeeper section is applied.
+
+<item><tt/MinPoolSize=5/<newline>
+Default: <tt>1</tt>
+<p>
+Number of concurrent SQL connections in the pool. The first available connection
+in the pool is used to store accounting data.
 
 </itemize>
 
