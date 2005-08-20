@@ -1,11 +1,11 @@
-<sect>Authentication Configuration
+<sect>Configuration de l'Authentication
 <p>
-The following sections in the config file can be used to configure authentication.
+La section suivante du fichier de configuration permet de configurer l'authentification.
 
 <sect1>Section &lsqb;Gatekeeper::Auth&rsqb;
 <label id="gkauth">
 <p>
-The section defines the authentication mechanism for the gatekeeper.
+La section définie le méchanisme d'authentification du gatekeeper.
 
 <descrip>
 <tag/Syntax:/
@@ -20,106 +20,72 @@ authrule=actions
 
 </verb></tscreen>
 </descrip>
-A rule may results in one of the three codes: ok, fail, pass.
+Une règle peut retourner un de ces trois codes: ok, fail, pass.
 <itemize>
-<item><tt/ok/ - The request is authenticated by this module.
-<item><tt/fail/ - The authentication fails and should be rejected.
-<item><tt/next/ - The rule cannot determine the request.
+<item><tt/ok/ - La requête est authentifié par le module.
+<item><tt/fail/ - L'authentification a echoué et doit être rejeté.
+<item><tt/next/ - La règle ne permet pas d'authentifié la requête.
 </itemize>
-There are also three ways to control a rule:
+Il existe aussi trois façons de contrôler une règle.
 <itemize>
-<item><tt/optional/ - If the rule cannot determine the request, it is passed to next rule.
-<item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passwd to next rule.
-<item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
+<item><tt/optional/ - Si la règle ne peut authentifié la requête, on passe à la règle suivante.
+<item><tt/required/ - Les requêtes doivent être authentifiées par ce module, ou elles seront rejetées. Une fois authentifiée par ce module, la requête passera à la règle suivante.
+<item><tt/sufficient/ - Si la règle est authentifié, elle est acceptée, sinon elle est rejetée. Aucune règle ne devrait suivre une règle 'sufficient' car elle ne servira jamais.
 </itemize>
 
-Currently supported modules:
+Modules actuellement supportés:
 <itemize>
 <item><tt>SimplePasswordAuth/SQLPasswordAuth/LDAPPasswordAuth</tt>
 <p>
-These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
-The tokens should contain at least generalID and password.
-For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
-<bf/nestedcryptoToken/ tokens hashed by HMAC-SHA1-96 (libssl must be installed!)
-are supported now. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
-and a clear text username/password are supported now.
-The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
-an SQL database or LDAP
-for <tt/SimplePasswordAuth/, <tt/SQLPasswordAuth/ and <tt/LDAPPasswordAuth/
-modules, respectively. <tt/MySQLPasswordAuth/
-module is supported for backward compatibility.
+Ces modules vérifient les champs <bf/tokens/ or <bf/cryptoTokens/ du message RAS.
+Les champs doivent au moins contenir generalID and password.
+Le hashage simple MD5 des champs <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ et le hashage HMAC-SHA1-96 (libssl doit être installé) du champ <bf/nestedcryptoToken/ sont maintenant supportés. les hashages des champs par CAT (Cisco Access Token) et en texte clair (username/password) sont aussi supportés.
+Le ID et le password sont lus depuis la section <ref id="password" name="[SimplePasswordAuth]">, une base de données SQL ou LDAP respectivement par les modules <tt/SimplePasswordAuth/, <tt/SQLPasswordAuth/ et <tt/LDAPPasswordAuth/. Le module <tt/MySQLPasswordAuth/ afin de conserver la compatibilité avec les versions précédentes.
 
 <item><tt>AliasAuth/SQLAliasAuth/LDAPAliasAuth</tt>
 <p>
-The module can only be used to authenticate RegistrationRequest (RRQ).
-The IP of an endpoint with a given alias should match a specified pattern.
-For <tt/AliasAuth/ the pattern is defined in
-<ref id="rrqauth" name="[RasSrv::RRQAuth]"> section.
-For <tt/SQLAliasAuth/, the pattern is retrieved from an SQL database, 
-defined in <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
-For <tt/LDAPAliasAuth/ the alias (default: mail attribute) and IP
-(default: voIPIpAddress attribute) must be found in one LDAP entry.
+Ce module ne peut être utilisé que pour l'authentification des RegistrationRequest (RRQ).
+L'adresse IP d'un terminal et un alias donné doit vérifier une pattern donnée.
+Pour <tt/AliasAuth/, la pattern est définie dans la section <ref id="rrqauth" name="[RasSrv::RRQAuth]">.
+Pour <tt/SQLAliasAuth/, la pattern est rappatrier à partir d'une base de données SQL, définie dans la section <ref id="sqlaliasauth" name="[SQLAliasAuth]">.
+Pour <tt/LDAPAliasAuth/, l'alias (par défaut: mail attribute) et l'adresse IP (par défaut: voIPIpAddress attribute) doivent être trouvé dans une entrée LDAP.
 
 <item><tt>PrefixAuth</tt>
 <p>
-Originally known as <tt/GkAuthorize/.
-The IP or aliases of a request with a given prefix must match a specified
-pattern. See section <ref id="prefixauth" name="[PrefixAuth]"> for details.
-Currently the module can only authorize
-AdmissionRequest (ARQ) and LocationRequest (LRQ).
+A l'origine ce module se nommait <tt/GkAuthorize/.
+L'adresse IP et l'alias de la requête et un préfix donné doivent vérifier une pattern donnée. Pour plus de détails voir la section <ref id="prefixauth" name="[PrefixAuth]">.
+Actuellement le module ne sait vérifier que les AdmissionRequest (ARQ) et les LocationRequest (LRQ).
 
 <item><tt>RadAuth</tt>
 <p>
-Provides authentication based on H.235 username/password
-security scheme. Authenticates RRQ, ARQ and Q.931 Setup through remote
-RADIUS servers. It passes to RADIUS servers usernames and passwords
-extracted from CAT (Cisco Access Tokens) <bf/tokens/ carried
-inside RRQ, ARQ or Setup packets. Therefore if your endpoints do not
-support CATs or you do not need authentication scheme based on
-individually assigned usernames/password - this module will not
-work for you (but you may check <tt/RadAliasAuth/ module).
-See section <ref id="radauth" name="[RadAuth]"> for details.
+Ce module permet l'authentification suivant le schéma de sécurité username/password d'H.235. Il authentifie RRQ, ARQ, Q931 Setup grâce à des serveurs RADIUS distants. Il envoie aux serveurs RADIUS les usernames/passwords extrait du <bf/tokens/ CAT (Cisco Access Tokens) se trouvant dans les paquets RRQ, ARQ et Setup. Donc si votre terminal ne supporte pas les CATs ou bien you n'avez pas besoin d'un schéma d'authentification basé des usernames/password individuels - ce n'est pas le module qu'il vous faut  (vous pouvez regarder du côté du <tt/RadAliasAuth/). Pour plus de détails se référer à la section <ref id="radauth" name="[RadAuth]">.
 
 <item><tt>RadAliasAuth</tt>
 <p>
-Provides authentication based on endpoint aliases
-and/or call signalling IP addresses with remote RADIUS servers.
-It does not need any H.235 <bf/tokens/ inside RAS messages,
-so it can be used on a wider range of systems as compared to <tt/RadAuth/.
-RRQ, ARQ and Q.931 Setup messages can be authenticated using this module.
-See section <ref id="radaliasauth" name="[RadAliasAuth]"> for details.
+Ce module permet d'authentifier à partir des alias de terminals et/ou des adresses IP "call signalling" avec l'aide de serveurs RADIUS. Il ne nécessite aucun <bf/tokens/ H.235 dans les messages RAS, il peut donc être uilisé avec une gamme plus large de systemes contrairement au module <tt/RadAuth/. Les messages RRQ, ARQ, et Q.931 Setup peuvent être authentifiés avec ce module. Pour plus de détails se référer à la section <ref id="radaliasauth" name="[RadAliasAuth]">.
 
 </itemize>
 
-You can also configure a rule to check only for some particular RAS messages.
-The following example configures <tt/SimplePasswordAuth/ as an optional rule
-to check RRQ and ARQ. If an RRQ is not checked (not contains
-<bf/tokens/ or <bf/cryptoTokens/ fields), it is checked by <tt/AliasAuth/.
-The default is to accept all requests.
+Vous pouvez aussi configurer une règle afin de vérifier seulement une partie du message RAS. L'exemple suivant montre comment vérifier uniquement les RRQ et ARQ à partir du module <tt/SimplePasswordAuth/ avec une règle optionnelle. Si un RRQ n'est pas vérifié (ne contient pas de champs <bf/tokens/ ou <bf/cryptoTokens/), il est passé à la règle suivante <tt/AliasAuth/. La règle par défaut est d'acepter toutes les requêtes.
 
 <descrip>
-<tag/Example 1:/
+<tag/Exemple 1:/
 <tt/SimplePasswordAuth=optional;RRQ,ARQ/<newline>
 <tt/AliasAuth=sufficient;RRQ/<newline>
 </descrip>
 
-The example below authenticates all calls, checking signalling Setup
-message details, using RadAliasAuth module.
+L'exemple ci-dessous authentifie tous les appels, vérifie le détils des messages de signalisation Setup avec le module RadAliasAuth.
 
 <descrip>
-<tag/Example 2:/
+<tag/Exemple 2:/
 <tt/RadAliasAuth=required;Setup/<newline>
 <tt/default=allow/
 </descrip>
 
-This example checks endpoint registrations (RRQ) and call admissions (ARQ)
-either by means of username/password (RadAuth) or alias/IP (RadAliasAuth).
-Additionally, if the call is from an unregistered endpoint (and therefore
-no RRQ or ARQ authentication has been performed), Setup message authentication
-using RadAliasAuth takes place (SetupUnreg).
+L'exemple suivant vérifie l'enregistrement des terminaux (RRQ) et l'admission d'appel (ARQ) soit par username/password (RadAuth) soit par alias/IP (RadAuthAlias). De plus, si l'ppel provient d'un terminal non enregistré (ET qu'aucune authentification par RRQ ou ARQ n'est été faite), le module RadAliasAuth vérifie alors le message Setup (SetupUnreg).
 
 <descrip>
-<tag/Example 3:/
+<tag/Exemple 3:/
 <tt/RadAuth=optional;RRQ,ARQ/<newline>
 <tt/RadAliasAuth=required;RRQ,ARQ,SetupUnreg/<newline>
 <tt/default=allow/
