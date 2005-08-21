@@ -184,6 +184,9 @@
 				RelativePath="h323util.cxx">
 			</File>
 			<File
+				RelativePath="ipauth.cxx">
+			</File>
+			<File
 				RelativePath="job.cxx">
 			</File>
 			<File
@@ -278,10 +281,13 @@
 				RelativePath="GkStatus.h">
 			</File>
 			<File
-				RelativePath=".\gktimer.h">
+				RelativePath="gktimer.h">
 			</File>
 			<File
 				RelativePath="h323util.h">
+			</File>
+			<File
+				RelativePath="ipauth.h">
 			</File>
 			<File
 				RelativePath="job.h">

@@ -146,6 +146,10 @@ SOURCE=.\h323util.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\ipauth.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\job.cxx
 # End Source File
 # Begin Source File
@@ -275,6 +279,10 @@ SOURCE=.\gktimer.h
 # Begin Source File
 
 SOURCE=.\h323util.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ipauth.h
 # End Source File
 # Begin Source File
 
