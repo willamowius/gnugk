@@ -36,7 +36,7 @@ Recommendation H.323 is an international standard published by the
 <url url="http://www.itu.int/" name="ITU">.
 It is a communications standard for audio, video, and data over the Internet.
 See also Paul Jones'
-<url url="http://www.packetizer.com/voip/h323/papers/primer" name="A Primer on the H.323 Series Standard">.
+<url url="http://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on the H.323 Series Standard">.
 
 For a detailed description of what a gatekeeper does, see
 <url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="here">.
@@ -44,7 +44,7 @@ For a detailed description of what a gatekeeper does, see
 <sect1>Copyright
 <p>
 It is covered by the
-<htmlurl url="http://www.gnu.org/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
+<htmlurl url="http://www.fsf.org/licensing/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
 In addition to that, we explicitely grant
 the right to link this code to the OpenH323 and OpenSSL library.
 

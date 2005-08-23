@@ -47,14 +47,14 @@ event to let an external application do the routing
 <p>
 Provides support for overlapped digit sending for ARQ messages.
 
-<item><tt/ENUM/<newline>
+<item><tt/enum/<newline>
 <p>
 ENUM (RFC3761) is a method to use DNS lookup to convert
 real IDD E164 numbers into H323 dialing information. The servers
 it looks up by default are <tt/e164.org/ and <tt/apra.org/.
 To specify your own server you have to specify an environmental
 variable PWLIB_ENUM_PATH with the address of your preferred
-enum servers separated by a semicolon (;).
+enum servers separated by a semicolon (;). (PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
 
 </itemize>
 
