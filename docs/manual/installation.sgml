@@ -8,7 +8,7 @@ most recent OpenH323 version available.
 These libraries are available at
 <url url="http://sourceforge.net/projects/openh323" name="OpenH323 Download Page">.
 See the instructions on
-<url url="http://www.openh323.org/build.html" name="how to compile the OpenH323 code">.
+<url url="http://www.voxgratia.org/docs/faq.html" name="how to compile the OpenH323 code">.
 
 Order of compiling:
 <enum>
