@@ -94,9 +94,7 @@ L'exemple suivant vérifie l'enregistrement des terminaux (RRQ) et l'admission d'
 <sect1>Section &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
 <p>
-The section defines the userid and password pairs used by
-<tt/SimplePasswordAuth/ module. All passwords are encrypted
-using the <tt/addpasswd/ utility.
+Cette section définie la paire userid/password utilisé par le module <tt/SimplePasswordAuth/. Tous les mots de passe sont cryptés avec le programme <tt/addpasswd/.
 
 Usage:
 <tscreen><verb>
@@ -106,93 +104,78 @@ addpasswd config section userid password
 Options:
 <itemize>
 <item><tt/KeyFilled=123/<newline>
-Default: <tt/0/
+Défaut: <tt/0/
 <p>
-Default value to use as a padding byte during password encryption/decryption.
+Valeur par défault à utiliser comme octets de remplissage pendant l'encryption/décryption du mot de passe.
 
 <item><tt/CheckID=1/<newline>
-Default: <tt/0/
+Défautt: <tt/0/
 <p>
-Check if the aliases match the ID in the tokens.
+Vérifie si les alias correspondent aux ID dans les marques.
 
 <item><tt/PasswordTimeout=120/<newline>
-Default: <tt/-1/
+Défaut: <tt/-1/
 <p>
-The module <tt/SimplePasswordAuth/ and all its descendants will cache an
-authenticated password. This field define the cache timeout value in second.
-<tt/0/ means never cache the password, while a negative value
-means the cache never expires.
+Le module <tt/SimplePasswordAuth/ et tous ses descandants mettent en cache un mot de passe authentifié. Ce champ définie le durée de vie du cache en seconde.
+<tt/0/ signifie qu'aucun cache ne sera utilisé, alors qu'une valeur négative indique que le cache n'expirera jamais.
 </itemize>
 
 <sect1>Section &lsqb;SQLPasswordAuth&rsqb;
 <label id="sqlpasswordauth">
 <p>
-Authenticate H.235 enabled endpoints using passwords stored
-in the SQL database. This section defines SQL driver to use,
-SQL database connection parameters and the query to use to retrieve passwords.
+Authentifie les terminaux compatibles H.235 à partir de mots de passe enregistrés dans une base de données SQL. Cette section définie les gestionnaires SQL à utiliser, les paramètres de connexion à la base de données SQL et la requête pour récupérer les mots de passe.
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Default: N/A
+Défaut: N/A
 <p>
-SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
-are implemented.
+Gestionnaire de base de données SQL à utiliser. Actuellement seul <tt/MySQL/ et <tt/PostgreSQL/ sont implémentés.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/
+Défaut: <tt/localhost/
 <p>
-SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
-Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+Adresse de l'hôte hébergeant la base de données SQL. Peut-être de la forme de <tt/DNS[:PORT]/ ou <tt/IP[:PORT]/.
+Par exemple <tt/sql.mycompany.com/ ou <tt/sql.mycompany.com:3306/ ou <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Default: <tt/billing/
+Défault: <tt/billing/
 <p>
-The database name to connect to.
+Nom de la base de données à laquelle se connecter.
 
 <item><tt/Username=gnugk/<newline>
 <p>
-The username used to connect to the database.
+Compte utilisé pour se connecter à la base de données.
 
 <item><tt/Password=secret/<newline>
 <p>
-The password used to connect to the database.
-If the password is not specified, a database connection attempt 
-without any password will be made.
-If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
-in this section, the password is in an encrypted form and should be created using
-the <tt/addpasswd/ utility.
+Mot de passe utilisé pour se connecter à la base de données.
+Si le mot de passe n'est pas indiqué, une connexion sans mot de passe sera tenter à la base de données.
+Si <tt/EncryptAllPasswords/ est actif, ou si la variable <tt/KeyFilled/ est définie dans cette section, le mot de passe sera sous une forme encrypté et doit être créé avec l'utilitaire <tt/addpasswd/.
 
 <item><tt/CacheTimeout=120/<newline>
-Default: <tt/0/
+Défaut: <tt/0/
 <p>
-This field defines how long (alias;password) pairs retrieved from the database 
-will be cached in the local memory. The cache timeout value is expressed in seconds.
-<tt/0/ means to not cache passwords, while a negative value
-means the cache never expires (only <tt/reload/ command will refresh the cache).
+Ce champ définie combien de temps la paire (alias:mot de passe) récupérée de la base de données sera conservée en cache en local. L'unité de base est la seconde. <tt/0/ signifie que le cache n'est pas actif, une valeur négative désactive l'expiration du cache (seule la commande <tt/reload/ forcera le rafraîchissement du cache).
 
 <item><tt/MinPoolSize=5/<newline>
-Default: <tt/1/
+Défaut: <tt/1/
 <p>
-Define the number of active SQL connections. This allows better peformance
-under heave load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour, 
-when access to the SQL database is serialized (one query at time).
+Définie le nombre de connexions SQL actives simultannées. Cela permet des performances accrues lors de charges élevées, car plusieurs requêtes concurrentes peuvent alors être exécutées en même temps. Si <tt/MinPoolSize=1/ le précédent comportement est recréé, les requêtes à la base de données sont sérialisées.
 
 <item><tt/Query=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Défaut: <tt>N/A</tt>
 <p>
-Defines SQL query used to retrieve H.235 password from the database. The query
-is parametrized - that means parameter replacement is made before each query
-is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
+Définie la requête SQL utilisée pour récupérer le mot de passe H.235 de la base de données. La requête est personnalisable - avant chaque requête les nouvelles valeurs sont substituées aux paramètres de remplacement.
+Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
 Specify %% to embed a percent character before a digit into string (like <bf/%%1/),
 specify <bf/%{1}/ to allow expansion inside complex expressions like <bf/%{1}123/.
 For <tt/SQLPasswordAuth/ two parameters are defined:
 <itemize>
-<item><tt/%1/ - the actual alias to query the password for
-<item><tt/%2/ - the gatekeeper identifier
+<item><tt/%1/ - l'alias pour lequel on demande le mot de passe
+<item><tt/%2/ - l'identification de la gatekeeper
 </itemize>
 <p>
-Sample query strings:
+Exemples:
 <tscreen><verb>
 SELECT h235password FROM users WHERE alias = '%1' AND active
 SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
@@ -203,11 +186,9 @@ SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
 <sect1>Section &lsqb;RasSrv::RRQAuth&rsqb;
 <label id="rrqauth">
 <p>
-Specify the action on RRQ reception (confirm or deny) for <tt/AliasAuth/ module.
-The first alias (this will mostly be an H323ID) of the endpoint to
-register is looked up in this section. If a parameter is found the value will
-apply as a rule. A rule consists of conditions separated by "&".
-A registration is accepted when all conditions apply.
+Spécify l'action lors de la réception d'un message RRQ (confirmation ou rejet) pour le module <tt/AliasAuth/.
+Le premier alias (le plus souvent un H323ID) du terminal à enregistrer est recherché dans la section. Si un paramètre est trouvé la valeur sera appliquée comme une règle. Une règle est constituée de condititions séparées par des '&'.
+Un enregistrement est accepté si toutes les conditions sont vérifiées.
 
 <descrip>
 <tag/Syntax:/
@@ -220,103 +201,89 @@ A registration is accepted when all conditions apply.
 </verb></tscreen>
 </descrip>
 
-The notation and meaning of <tt/&lt;authparams&gt;/ depends on
-<tt/&lt;authtype&gt;/:
+La notation et la signification des <tt/&lt;authparams&gt;/ dépendent de <tt/&lt;authtype&gt;/:
 
 <itemize>
-<item><tt/sigaddr/ - extended regular expression that has to match agains the
-``PrintOn(ostream)'' representation of the signal address of the request.
+<item><tt/sigaddr/ - expresson régulière étendue qui s'applique à ``PrintOn(ostream)'', la représentation de l'adresse du signal de la requête.
 <p>
-Example:
+Exemple:
 <tscreen><verb>
 sigaddr:.*ipAddress .* ip = .* c0 a8 e2 a5 .*port = 1720.*
 </verb></tscreen>
 
-<item><tt/sigip/ - specialized form of `<tt/sigaddr/'.
-Write the signalling ip adresse using (commonly used) decimal notation:
+<item><tt/sigip/ - forme spécialisée de `<tt/sigaddr/'.
+Ecrire l'adresse IP de la signalisation en notation décimal:
 ``<tt/byteA.byteB.byteC.byteD:port/''.
 <p>
-Example:
+Exemple:
 <tscreen><verb>
 sigip:192.168.242.165:1720
 </verb></tscreen>
 
-<item><tt/allow/ - always accept the alias.
+<item><tt/allow/ - toujours accepter l'alias.
 
-<item><tt/deny/ - always reject the alias.
+<item><tt/deny/ - toujours rejeter l'alias.
 
 </itemize>
 
 <sect1>Section &lsqb;SQLAliasAuth&rsqb;
 <label id="sqlaliasauth">
 <p>
-Authenticate endpoints using rules stored in the SQL database
-(the rules conform to the format defined in the <ref id="rrqauth" name="[RasSrv::RRQAuth]"> section). 
-This section defines SQL driver to use, SQL database connection parameters 
-and the query to use to retrieve the patterns.
+Authentifie les terminaux par des règles stockées dans base de données SQL (les règles doivent être conformes au format de la section <ref id="rrqauth" name="[RasSrv::RRQAuth]">).
+Cette section définie le gestionnaire SQL à utiliser, les paramètres de la connexion à la base de données and la requête à utiliser.
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Default: N/A
+Défaut: N/A
 <p>
-SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
-are implemented.
+Gestionnaire de base de données à utiliser, les versions pour <tt/MySQL/ et <tt/PostgreSQL/ sont implémentées.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/
+Défaut: <tt/localhost/
 <p>
-SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
-Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+Adresse de l'hôte hébergeant le serveur SQL. Peut être de la forme <tt/DNS[:PORT]/ ou <tt/IP[:PORT]/.
+Par exemple <tt/sql.mycompany.com/ ou <tt/sql.mycompany.com:3306/ ou <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Default: <tt/billing/
+Défaut: <tt/billing/
 <p>
-The database name to connect to.
+Nom de la base de données à laquelle se connecter.
 
 <item><tt/Username=gnugk/<newline>
 <p>
-The username used to connect to the database.
+Compte utilisé pour se connecter à la base de données.
 
 <item><tt/Password=secret/<newline>
 <p>
-The password used to connect to the database.
-If the password is not specified, a database connection attempt 
-without any password will be made.
-If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
-in this section, the password is in encrypted form and should be created using
-the <tt/addpasswd/ utility.
+Mot de passe utilisé pour se connecter à la base de données.
+Si aucun mot de passe n'est spécifié, une connexion sans mot de passe sera effectuée.
+Si <tt/EncryptAllPasswords/ est selectionné, ou la variable <tt/KeyFilled/ est définie dans cette section, le mot de passe sera sous une forme encryptée et peut être généré par l'utilitaire <tt/addpasswd/.
 
 <item><tt/CacheTimeout=120/<newline>
-Default: <tt/0/
+Défaut: <tt/0/
 <p>
-This field defines how long (alias;authrule) pairs retrieved from the database 
-will be cached in the local memory. The cache timeout value is expressed in seconds.
-<tt/0/ means to not cache rules, while a negative value
-means the cache never expires (only <tt/reload/ command will refresh the cache).
+Ce champ définie combien de temps le couple (alias;authrule) récupéré depuis la base de données sera conservé dans le cache local.
+La valeur à pour unité la seconde. <tt/0/ signifie qu'aucune règle ne sera mise en cache, et une valeur négative indique que le cache n'expire jamais (seule la commande <tt/reload/ forcera le rafraîchissement du cache).
 
 <item><tt/MinPoolSize=5/<newline>
-Default: <tt/1/
+Défaut: <tt/1/
 <p>
-Define the number of active SQL connections. This allows better peformance
-under heave load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour, 
-when access to the SQL database is serialized (one query at time).
+Définit le nombre de connexions simultanéés à la base de données SQL. Cela permet une performance accrue sous charge élevée (pusieurs requêtes sont alors exécutées en parallèle). Si <tt/MinPoolSize=1/ simule le conportement des versions précédentes (les requêtes sont lancées en série, une requête à la fois).
 
 <item><tt/Query=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Défaut: <tt>N/A</tt>
 <p>
-Defines SQL query used to retrieve alias rule from the database. The query
-is parametrized - that means parameter replacement is made before each query
-is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
+Définie la requête SQL utilisées pour récupérer la règle d'alias de la base de données. La requête est personnalisable - ce qui signifie que le remplacement des paramètres est fait à chaque nouvelle requête.
+Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
 Specify %% to embed a percent character before a digit into string (like <bf/%%1/),
 specify <bf/%{1}/ to allow expansion inside complex expressions like <bf/%{1}123/.
 For <tt/SQLAliasAuth/ two parameters are defined:
 <itemize>
-<item><tt/%1/ - the actual alias to query the rule for
-<item><tt/%2/ - the gatekeeper identifier
+<item><tt/%1/ - l'alias pour lequel on recherche la règle.
+<item><tt/%2/ - l'identification de la gatekeeper.
 </itemize>
 <p>
-Sample query strings:
+Exemple:
 <tscreen><verb>
 SELECT authrule FROM users WHERE alias = '%1' AND active
 SELECT 'sigip:' || host(ip) || port FROM users WHERE alias = '%1'
