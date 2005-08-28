@@ -982,7 +982,7 @@ namespace { // anonymous namespace
 	SimpleCreator<DNSPolicy> DNSPolicyCreator("dns");
 	SimpleCreator<VirtualQueuePolicy> VirtualQueuePolicyCreator("vqueue");
 	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
-	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("ENUM");
+	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("enum");
 }
 
 
