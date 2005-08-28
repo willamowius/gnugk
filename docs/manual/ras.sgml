@@ -41,19 +41,19 @@ For terminal,
 <p>
 <itemize>
 <item><tt/AcceptEndpointIdentifier=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Whether to accept <bf/endpointIdentifier/ specified in a full RRQ.
 
 <item><tt/AcceptGatewayPrefixes=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 A gateway can register its prefixes with the gatekeeper by containing
 <bf/supportedPrefixes/ in the <bf/terminalType/ field of RRQ.
 This option defines whether to accept the specified prefixes of a gateway.
 
 <item><tt/OverwriteEPOnSameAddress=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 In some networks an endpoint's IP address may change unexpectedly.  This
 may happen when an endpoint is using a PPP connection (e.g. modem or ADSL).
@@ -65,7 +65,7 @@ address and the entry to be removed allowing the endpoint to register
 with the new address.
 
 <item><tt/IRQPollCount=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 When the gatekeeper does not receive a keep-alive RRQ from an endpoint
 within TimeToLive time period, it sends an IRQ message to "poll" the endpoint
@@ -81,13 +81,13 @@ IRQ poll interval is 60 seconds.
 <p>
 <itemize>
 <item><tt/ArjReasonRouteCallToSCN=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 If yes, the gatekeeper rejects a call from a gateway to itself by reason
 <bf/routeCallToSCN/.
 
 <item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 If yes, the gatekeeper rejects an answered ARQ without a pre-existing
 CallRec found in the CallTable by reason <bf/routeCallToGatekeeper/
@@ -96,7 +96,7 @@ The endpoint shall release the call immediately and re-send call Setup
 to the gatekeeper.
 
 <item><tt/CallUnregisteredEndpoints=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 With this option set on, the gatekeeper will accept an ARQ from a registered
 endpoint with <bf/destCallSignalAddress/, no matter the address is belongs
@@ -105,14 +105,14 @@ That means you can explicitly specify the IP of endpoint (registered or not)
 you want to call.
 
 <item><tt/RemoveTrailingChar=#/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Specify the trailing character to be removed in <bf/destinationInfo/.
 For example, if your endpoint incorrectly contains the termination character
 like `&num;' in <bf/destinationInfo/, you may remove it by this option.
 
 <item><tt/RoundRobinGateways=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Enable/disable round-robin gateway selection, if more than one gateway
 matches a dialed number. If disabled, the first available gateway will be selected.

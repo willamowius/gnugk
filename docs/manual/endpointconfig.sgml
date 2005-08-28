@@ -16,7 +16,7 @@ should apply to. Currently, the following options are recognized:
 
 <itemize>
 <item><tt/Capacity=10/<newline>
-Default: <tt/-1/
+Default: <tt/-1/<newline>
 <p>
 Call capacity for an endpoint. No more than <tt/Capacity/ concurrent
 calls will be sent to this endpoint. In case of gateways, if more than one
@@ -24,7 +24,7 @@ gateway matches a dialed number, a call will be sent to the first available
 gateway (that has available capacity).
 
 <item><tt/GatewayPriority=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Apply only to gateways. Allow priority based routing in case, when more
 than one gateway matches a dialed number. The smaller value the higher priority
@@ -33,7 +33,7 @@ is assigned to a gateway. A call is routed to the first available gateway
 <tt/GatewayPriority/ values).
 
 <item><tt/GatewayPrefixes=0048,0049,0044/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Additional prefixes for this gateway. Apply only to gateways. 
 Special characters <tt/./ and <tt/!/ can be used here to match any digit 

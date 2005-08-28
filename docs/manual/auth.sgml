@@ -195,17 +195,17 @@ addpasswd config section userid password
 Options:
 <itemize>
 <item><tt/KeyFilled=123/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Default value to use as a padding byte during password encryption/decryption.
 
 <item><tt/CheckID=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Check if the aliases match the ID in the tokens.
 
 <item><tt/PasswordTimeout=120/<newline>
-Default: <tt/-1/
+Default: <tt/-1/<newline>
 <p>
 The module <tt/SimplePasswordAuth/ and all its descendants will cache an
 authenticated password. This field define the cache timeout value in second.
@@ -222,19 +222,19 @@ SQL database connection parameters and the query to use to retrieve passwords.
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/
+Default: <tt/localhost/<newline>
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Default: <tt/billing/
+Default: <tt/billing/<newline>
 <p>
 The database name to connect to.
 
@@ -252,7 +252,7 @@ in this section, the password is in an encrypted form and should be created usin
 the <tt/addpasswd/ utility.
 
 <item><tt/CacheTimeout=120/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 This field defines how long (alias;password) pairs retrieved from the database 
 will be cached in the local memory. The cache timeout value is expressed in seconds.
@@ -260,7 +260,7 @@ will be cached in the local memory. The cache timeout value is expressed in seco
 means the cache never expires (only <tt/reload/ command will refresh the cache).
 
 <item><tt/MinPoolSize=5/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Define the number of active SQL connections. This allows better peformance
 under heave load, because more than 1 concurrent query can be executed 
@@ -268,7 +268,7 @@ at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour,
 when access to the SQL database is serialized (one query at time).
 
 <item><tt/Query=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to retrieve H.235 password from the database. The query
 is parametrized - that means parameter replacement is made before each query
@@ -346,19 +346,19 @@ and the query to use to retrieve the patterns.
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/
+Default: <tt/localhost/<newline>
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Default: <tt/billing/
+Default: <tt/billing/<newline>
 <p>
 The database name to connect to.
 
@@ -376,7 +376,7 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/CacheTimeout=120/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 This field defines how long (alias;authrule) pairs retrieved from the database 
 will be cached in the local memory. The cache timeout value is expressed in seconds.
@@ -384,7 +384,7 @@ will be cached in the local memory. The cache timeout value is expressed in seco
 means the cache never expires (only <tt/reload/ command will refresh the cache).
 
 <item><tt/MinPoolSize=5/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Define the number of active SQL connections. This allows better peformance
 under heave load, because more than 1 concurrent query can be executed 
@@ -392,7 +392,7 @@ at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour,
 when access to the SQL database is serialized (one query at time).
 
 <item><tt/Query=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to retrieve alias rule from the database. The query
 is parametrized - that means parameter replacement is made before each query
@@ -421,19 +421,19 @@ Support for RRQ, ARQ, LRQ and Setup events is provided.
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/
+Default: <tt/localhost/<newline>
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Default: <tt/billing/
+Default: <tt/billing/<newline>
 <p>
 The database name to connect to.
 
@@ -451,7 +451,7 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/MinPoolSize=5/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Define the number of active SQL connections. This allows better peformance
 under heave load, because more than 1 concurrent query can be executed 
@@ -459,7 +459,7 @@ at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour,
 when access to the SQL database is serialized (one query at time).
 
 <item><tt/RegQuery=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL qeury to be used to perform authentication and authorization
 of endpoint registrations. The query is parametrized - that means parameter
@@ -499,7 +499,7 @@ SELECT * FROM get_registration_auth('%g', '%u', '%{callerip}', '%{aliases}') AS 
 </verb></tscreen>
 
 <item><tt/NbQuery=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL qeury to be used to perform authentication and authorization
 of location requests sent from neighbors. The query is parametrized - that means parameter
@@ -538,7 +538,7 @@ SELECT active FROM neighbors WHERE name = '%{nbid}' AND ip = '%{nbip}' UNION SEL
 </verb></tscreen>
 
 <item><tt/CallQuery=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL qeury to be used to perform authentication and authorization
 of calls (ARQ and Setup). The query is parametrized - that means parameter
@@ -652,7 +652,7 @@ RADIUS authentication based on H.235 CATs (Cisco Access Tokens)
 present in RRQ, ARQ RAS requests and Q.931 Setup messages.
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 RADIUS servers to be used for authentication. The list can contain an arbitrary 
 number of servers. The order of servers is important, because servers will 
@@ -672,7 +672,7 @@ Servers names can be IP addresses or DNS names.
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Particular local network interface that RADIUS client should
 use in order to communicate with RADIUS servers. This parameter
@@ -683,7 +683,7 @@ network interface. If you are not sure what you are doing, it is
 better to leave this option unset.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 By default (if this option is not set) RADIUS client
 allocates ports dynamically as specified by the operating system.
@@ -691,13 +691,13 @@ If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
-Default: <tt>1812</tt>
+Default: <tt>1812</tt><newline>
 <p>
 Default port number to be used for RADIUS authentication requests
 (Access-Request packets), if not overriden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
-Default: <tt>N/A (empty string)</tt>
+Default: <tt>N/A (empty string)</tt><newline>
 <p>
 Secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
@@ -707,14 +707,14 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)
+Default: <tt/2000/ (miliseconds)<newline>
 <p>
 Timeout (miliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)
+Default: <tt/9000/ (miliseconds)<newline>
 <p>
 Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
 unique. If all 8-bit identifier range is exhausted within this period,
@@ -728,7 +728,7 @@ too short timeout - RADIUS server may take incoming packets as duplicated
 and therefore drop it.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s
+Default: <tt/60000/ (miliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed. It is used
 in conjunction with <tt/IdCacheTimeout/ - additional sockets
@@ -736,7 +736,7 @@ created during heavy GK load time periods for serving incoming
 requests are closed during idle periods.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
-Default: <tt/2/
+Default: <tt/2/<newline>
 <p>
 How many times a single RADIUS request is transmissed to every
 configured RADIUS server (if no response is received). 1 means
@@ -744,7 +744,7 @@ no retransmission, 2 - single retransmission, ... . Exact retransmission
 method is defined by <tt/RoundRobinServers/ attribute.
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 RADIUS requests retransmission method.
 <p>
@@ -764,13 +764,13 @@ Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
 </verb></tscreen>
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 If set, Cisco Vendor Specific RADIUS attibutes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 If set, Cisco VSA 'h323-ivr-out' attribute is sent with a list of aliases
 the endpoint is registering (RRQ.m_terminalAlias). This attribute is provided
@@ -783,7 +783,7 @@ Example:
 </verb></tscreen>
 
 <item><tt/UseDialedNumber=BOOLEAN/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Select Called-Station-Id number type between the original one (as dialed
 by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
@@ -801,7 +801,7 @@ at the gatekeeper (ARQ,RRQ) and calls from unregistered endpoints (Setup).
 
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 RADIUS servers to be used for RAS requests authentication.
 This list can contain an arbitrary number of servers. The order of servers 
@@ -817,7 +817,7 @@ Servers can be IP addresses or DNS names.
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Particular local network interface that RADIUS client should
 use in order to communicate with RADIUS servers. This parameter
@@ -828,7 +828,7 @@ network interface. If you are not sure what you are doing, it is
 better to leave this option unset.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 By default (if this option is not set) RADIUS client
 allocates ports dynamically as specified by the operating system.
@@ -836,15 +836,15 @@ If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
-Default: <tt>1812</tt>
+Default: <tt>1812</tt><newline>
 <p>
 Default port number to be used for RADIUS authentication requests
 (Access-Request packets), if not overriden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
-Default: <tt>N/A (empty string)</tt>
+Default: <tt>N/A (empty string)</tt><newline>
 <p>
-Secret used to authenticate this GNU GK (NAS client) to RADIUS
+Secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
@@ -852,14 +852,14 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)
+Default: <tt/2000/ (miliseconds)<newline>
 <p>
 Timeout (miliseconds) for RADIUS server response to a request
-sent by GNU GK. If no response is received within this time period,
+sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)
+Default: <tt/9000/ (miliseconds)<newline>
 <p>
 Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
 unique. If all 8-bit identifier range is exhausted within this period,
@@ -873,7 +873,7 @@ too short timeout - RADIUS server may take incoming packets as duplicated
 and therefore drop it.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s
+Default: <tt/60000/ (miliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed. It is used
 in conjunction with <tt/IdCacheTimeout/ - additional sockets
@@ -881,7 +881,7 @@ created during heavy GK load time periods for serving incoming
 requests are closed during idle periods.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
-Default: <tt/2/
+Default: <tt/2/<newline>
 <p>
 How many times a single RADIUS request is transmissed to every
 configured RADIUS server (if no response is received). 1 means
@@ -889,7 +889,7 @@ no retransmission, 2 - single retransmission, ... . Exact retransmission
 method is defined by <tt/RoundRobinServers/ attribute.
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 RADIUS requests retransmission method.
 <p>
@@ -909,13 +909,13 @@ Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
 </verb></tscreen>
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 If set, Cisco Vendor Specific RADIUS attibutes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 If set, Cisco VSA 'h323-ivr-out' attribute is sent with a list of aliases
 the endpoint is registering (RRQ.m_terminalAlias). This attribute is provided
@@ -928,14 +928,14 @@ Example:
 </verb></tscreen>
 
 <item><tt/FixedUsername/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 If this parameter is set, it overwrites a value of User-Name RADIUS attribute
 for outgoing RADIUS request. That means every Access-Request will be
 authenticated as for user <tt/FixedUsername/.
 
 <item><tt/FixedPassword/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 If not set, User-Password is a copy of User-Name. For example, if User-Name
 is 'john' then User-Password will also be set to 'john'. Setting this
@@ -975,7 +975,7 @@ and the password 'ppp'.
 </descrip>
 
 <item><tt/UseDialedNumber=BOOLEAN/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Select Called-Station-Id number type between the original one (as dialed
 by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.

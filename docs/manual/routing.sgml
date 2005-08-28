@@ -132,7 +132,7 @@ If you dial <tt/09345718/, it is rewritten to <tt/1888809345718/.
 Option:
 <itemize>
 <item><tt/Fastmatch=08/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Only rewrite dialDigits beginning with the specified prefix.
 </itemize>
@@ -293,21 +293,21 @@ feature that can be configured for each endpoint (rule).
 
 <itemize>
 <item><tt/ProcessSourceInfo=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 In addition to rewritting a Calling-Party-Number IE also a sourceInfo
 element of a H.225.0 Setup message can be rewritten, so both contain
 consistent information.
 
 <item><tt/RemoveH323Id=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 When a sourceInfo element of an H.225.0 Setup message is rewritten,
 aliases of type H323_ID, email_ID and url_ID can be left untouched
 if this option is disabled.
 
 <item><tt/CLIRPolicy=apply/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Here a global presentation indicator processing policy can be set up.
 This policy will be applied to all CLI rewrite rules that do not override it.

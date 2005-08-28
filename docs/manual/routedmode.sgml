@@ -35,12 +35,12 @@ All settings in this section are affected by reloading.
 
 <itemize>
 <item><tt/GKRouted=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Whether to enable the gatekeeper routed signaling mode.
 
 <item><tt/H245Routed=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Whether to route the H.245 control channel through the gatekeeper too.
 Only takes effect if <tt/GKRouted=1/ and H.245 tunneling is disabled
@@ -49,7 +49,7 @@ takes effect, an H.245 channel is always routed through the gatekeeper
 for calls being proxied.
 
 <item><tt/CallSignalPort=0/<newline>
-Default: <tt/1721/
+Default: <tt/1721/<newline>
 <p>
 The port of call signalling for the gatekeeper.
 The default port is <tt/1721/. We don't use the well-known port <tt/1720/
@@ -57,7 +57,7 @@ so you can run an H.323 endpoint in the same machine of the gatekeeper.
 You may set it to <tt/0/ to let the gatekeeper choose an arbitrary port.
 
 <item><tt/CallSignalHandlerNumber=2/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 The number of threads dedicated to handle signaling/H.245 channels.
 You may increase this number in a heavy loaded gatekeeper. Each thread
@@ -67,7 +67,7 @@ of 64 sockets used by a single signaling thread, so each signaling thread
 is able to handle at most 32 calls (with H.245 tunneling enabled).
 
 <item><tt/RtpHandlerNumber=2/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 The number of RTP proxy handling threads. Increase this value only if you
 experience problems with RTP delay or jitter on a heavily loaded gatekeeper.
@@ -76,7 +76,7 @@ of the same limit of 64 sockets as signalling threads. Each RTP thread is
 able to handle at most 32 proxied calls (2 sockets per call).
 
 <item><tt/AcceptNeighborsCalls=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 With this feature enabled, the call signalling thread will accept calls
 without a pre-existing CallRec found in the CallTable, provided an endpoint
@@ -89,14 +89,14 @@ As a result, the CDRs in GK2 can correctly show the connected
 time, instead of 'unconnected'.
 
 <item><tt/AcceptUnregisteredCalls=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 With this feature enabled, the gatekeeper will accept calls
 from any unregistered endpoint.
 However, it raises security risks. Be careful to use it.
 
 <item><tt/RemoveH245AddressOnTunneling=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Some endpoints send h245Address in the UUIE of Q.931 even when h245Tunneling
 is set to TRUE. This may cause interoperability problems. If the option
@@ -104,7 +104,7 @@ is TRUE, the gatekeeper will remove h245Address when h245Tunneling flag
 is TRUE. This enforces the remote party to stay in tunnelling mode.
 
 <item><tt/RemoveCallOnDRQ=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 With this option turning off, the gatekeeper will not disconnect a call
 if it receives a DRQ for it. This avoids potential race conditions when
@@ -113,7 +113,7 @@ This is only meaningful in routed mode because in direct mode, the only
 mechanism to signal end-of-call is a DRQ.
 
 <item><tt/DropCallsByReleaseComplete=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 According to Recommendation H.323, the gatekeeper could tear down a call
 by sending RAS DisengageRequest to endpoints.
@@ -123,7 +123,7 @@ Release Complete instead of RAS DRQ to both endpoints to force them
 drop the call.
 
 <item><tt/SendReleaseCompleteOnDRQ=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 On hangup, the endpoint sends both Release Complete within H.225/Q.931 and
 DRQ within RAS. It may happen that DRQ is processed first, causing the
@@ -139,7 +139,7 @@ Release Complete to both endpoints before closing the call when
 it receives DRQ from one of the parties.
 
 <item><tt/SupportNATedEndpoints=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Whether to allow an endpoint behind an NAT box register to the gatekeeper.
 If yes, the gatekeeper will translate the IP address in Q.931 and H.245
@@ -151,22 +151,22 @@ of endpoints or NAT box. Just register the endpoint with the GnuGk
 and you can make call now.
 
 <item><tt/ScreenDisplayIE=MyID/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Modify the DisplayIE of Q.931 to the specified value.
 
 <item><tt/ScreenCallingPartyNumberIE=0965123456/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Modify the CallingPartyNumberIE of Q.931 to the specified value.
 
 <item><tt/ScreenSourceAddress=MyID/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Modify the sourceAddress field of UUIE element from Q.931 Setup message.
 
 <item><tt/ForwardOnFacility=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 If yes, on receiving Q.931 Facility with reason <bf/callForwarded/,
 the gatekeeper will forwards call Setup directly to the forwarded endpoint,
@@ -177,14 +177,14 @@ may not always work correctly, as it does not provide any means
 of capability renegotiation and media channel reopening.
 
 <item><tt/ShowForwarderNumber=0/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Whether to rewrite the calling party number to the number of forwarder.
 It's usually used for billing purpose.
 Only valid if <tt/ForwardOnFacility=1/.
 
 <item><tt/Q931PortRange=20000-20999/<newline>
-Default: <tt>N/A (let the OS allocate ports)</tt>
+Default: <tt>N/A (let the OS allocate ports)</tt><newline>
 <p>
 Specify the range of TCP port number for Q.931 signalling channels.
 Note the range size may limit the number of concurrent calls.
@@ -197,7 +197,7 @@ The same applies to <tt/H245PortRange/ and <tt/T120PortRange/. TIME_WAIT
 can be usualy tuned down on most OSes.
 
 <item><tt/H245PortRange=30000-30999/<newline>
-Default: <tt>N/A (let the OS allocate ports)</tt>
+Default: <tt>N/A (let the OS allocate ports)</tt><newline>
 <p>
 Specify the range of TCP port number for H.245 control channels.
 Note the range size may limit the number of concurrent calls.
@@ -205,13 +205,13 @@ See remarks about TIME_WAIT socket state timeout in the <tt/Q931PortRange/
 description.
 
 <item><tt/SetupTimeout=4000/<newline>
-Default: <tt>8000</tt>
+Default: <tt>8000</tt><newline>
 <p>
 A timeout value (in milliseconds) to wait for a first message (Setup)
 to be received after a signaling TCP channel has been opended.
 
 <item><tt/SignalTimeout=10000/<newline>
-Default: <tt>15000</tt>
+Default: <tt>15000</tt><newline>
 <p>
 A timeout value (in milliseconds) to wait for a signalling channel
 to be opened after an ACF message is sent or to wait for an Alerting
@@ -219,14 +219,14 @@ message after a signalling channel has been opened. This option
 can be thought as a maximum allowed PDD (Post Dial Delay) value.
 
 <item><tt/AlertingTimeout=60000/<newline>
-Default: <tt>180000</tt>
+Default: <tt>180000</tt><newline>
 <p>
 A timeout value (in milliseconds) to wait for a Connect message
 after a call entered Alerting state. This option can be thought
 as a maximum "ringing time".
 
 <item><tt/TcpKeepAlive=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Enable/disable keepalive feature on TCP signaling sockets. This can
 help to detect inactive signaling channels and prevent dead calls from hanging
@@ -234,7 +234,7 @@ in the call table. For this option to work, you also need to tweak system
 settings to adjust keep alive timeout. See docs/keepalive.txt for more details.
 
 <item><tt/TranslateFacility=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Enable this option if you have interoperability problems between H.323v4
 and non-H.323v4 endpoints. It converts Facility messages with reason = transportedInformation
@@ -244,7 +244,7 @@ The conversion is performed only when neccessary - if both endpoints are v4
 or both endpoints are pre-v4, nothing is changed.
 
 <item><tt/SocketCleanupTimeout=1000/<newline>
-Default: <tt/5000/
+Default: <tt/5000/<newline>
 <p>
 Define time to wait before an unused socket is closed (if it is not yet closed)
 and deleted (its memory is released). If you use very small port ranges, like 
@@ -272,7 +272,7 @@ to both networks of the caller and callee.
 
 <itemize>
 <item><tt/Enable=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Whether to enable the proxy function. You have to enable gatekeeper
 routed mode first (see the <ref id="routed" name="previous section">).
@@ -280,7 +280,7 @@ You don't have to specify H.245 routed.
 It will automatically be used if required.
 
 <item><tt>InternalNetwork=10.0.1.0/24</tt><newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define the networks behind the proxy. Multiple internal networks are allow.
 The proxy route channels only of the communications between one endpoint
@@ -298,7 +298,7 @@ CIDR notation (prefix length), as shown in the example.
 </descrip>
 
 <item><tt/T120PortRange=40000-40999/<newline>
-Default: <tt>N/A (let the OS allocate ports)</tt>
+Default: <tt>N/A (let the OS allocate ports)</tt><newline>
 <p>
 Specify the range of TCP port number for T.120 data channels.
 Note the range size may limit the number of concurrent calls.
@@ -306,13 +306,13 @@ See remarks about TIME_WAIT socket state timeout in the <tt/Q931PortRange/
 description.
 
 <item><tt/RTPPortRange=50000-59999/<newline>
-Default: <tt>1024-65535</tt>
+Default: <tt>1024-65535</tt><newline>
 <p>
 Specify the range of UDP port number for RTP/RTCP channels.
 Note the range size may limit the number of concurrent calls.
 
 <item><tt/ProxyForNAT=1/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 If yes, the gatekeeper will proxy for calls to which one of the endpoints
 participated is behind an NAT box. This ensure the RTP/RTCP stream can
@@ -324,7 +324,7 @@ you have better to disable this feature and let the NAT box forward
 RTP/RTCP stream for you.
 
 <item><tt/ProxyForSameNAT=0/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Whether to proxy for calls between endpoints from the same NAT box.
 You do not need to enable this feature in general, since usually endpoints

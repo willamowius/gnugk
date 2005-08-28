@@ -155,21 +155,21 @@ or a customized one (using parametrized query string).
 <itemize>
 <item>
 <tt/DetailFile=FULL_PATH_AND_FILENAME/<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 A full path to the CDR plain text file. If a file with the given name already 
 exists, new CDRs will be appended at the end of the file.
 
 <item>
 <tt/StandardCDRFormat=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Use a CDR format compatible with the status interface CDR format (<tt/1/)
 or build a custom CDR strings from the <bf/CDRString/ parametrized string.
 
 <item>
 <tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-Station-Id}|%d|%c/<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 If <bf/StandardCDRFormat/ is disabled (0) or not specified at all, 
 this paramterized string instructs the gatekeeper how to build a custom
@@ -207,14 +207,14 @@ parameters are recognized:
 </itemize><newline>
 
 <item><tt/TimestampFormat=Cisco/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings printed in CDR strings. If this setting
 is not specified, a global one from the main gatekeeper section is applied.
 
 <item>
 <tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 If set, the CDR file will be rotated based on this setting. Hourly rotation
 enables rotation once per hour, daily - once per day, weekly - once per week
@@ -294,7 +294,7 @@ for more details on the parameters).
 
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT[:SECRET]];SERVER2[:AUTH_PORT:ACCT_PORT[:SECRET]];.../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 RADIUS servers to send accounting data to. If no port information is given,
 port number from <tt/DefaultAcctPort/ is be used. If no secret is set, 
@@ -312,13 +312,13 @@ be either IP addresses or DNS names.
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Particular local network interface that RADIUS client should
 use in order to communicate with RADIUS servers.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 By default (if this option is not set) RADIUS client
 allocates ports dynamically as specified by the operating system.
@@ -326,13 +326,13 @@ If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAcctPort=PORT_NO/<newline>
-Default: <tt>1813</tt>
+Default: <tt>1813</tt><newline>
 <p>
 Default port number to be used for RADIUS accounting requests,
 if not overriden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
-Default: <tt>N/A (empty string)</tt>
+Default: <tt>N/A (empty string)</tt><newline>
 <p>
 A secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
@@ -342,48 +342,48 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)
+Default: <tt/2000/ (miliseconds)<newline>
 <p>
 Timeout (miliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)
+Default: <tt/9000/ (miliseconds)<newline>
 <p>
 Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
 unique.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s
+Default: <tt/60000/ (miliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
-Default: <tt/2/
+Default: <tt/2/<newline>
 <p>
 How many times a single RADIUS request is transmissed to every
 configured RADIUS server (if no response is received).
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 RADIUS requests retransmission method.
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 If set, Cisco Vendor Specific RADIUS attibutes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/TimestampFormat=ISO8601/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings sent in RADIUS attributes. If this setting
 is not specified, a global one from the main gatekeeper section is applied.
 
 <item><tt/UseDialedNumber=BOOLEAN/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Select Called-Station-Id number type between the original one (as dialed
 by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
@@ -399,19 +399,19 @@ other SQL modules.
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/
+Default: <tt/localhost/<newline>
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Default: <tt/billing/
+Default: <tt/billing/<newline>
 <p>
 The database name to connect to.
 
@@ -429,7 +429,7 @@ in this section, the password is in an encrypted form and should be created
 using the <tt/addpasswd/ utility.
 
 <item><tt/StartQuery=INSERT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to insert a new call record to the database. The query
 is parametrized - that means parameter replacement is made before each query
@@ -473,14 +473,14 @@ INSERT INTO call (gkname, sessid, username, calling, called)
 </verb></tscreen>
 
 <item><tt/StartQueryAlt=INSERT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to insert a new call record to the database in case
 the <tt/StartQuery/ failed for some reason (the call already exists, for example).
 The syntax and parameters are the same as for <tt/StartQuery/.
 
 <item><tt/UpdateQuery=UPDATE .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to update call record in the database with the current 
 call state. The syntax and parameters are the same as for <tt/StartQuery/.
@@ -491,7 +491,7 @@ UPDATE call SET duration = %d WHERE gkname = '%g' AND sessid = '%s'
 </verb></tscreen>
 
 <item><tt/StopQuery=UPDATE .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to update call record in the database when the call
 is finished (disconnected). The syntax and parameters are the same 
@@ -503,7 +503,7 @@ UPDATE call SET duration = %d, dtime = '%{disconnect-time}' WHERE gkname = '%g' 
 </verb></tscreen>
 
 <item><tt/StopQueryAlt=INSERT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to update call record in the database when the call
 is finished (disconnected) in case the regular <tt/StopQuery/ failed (because
@@ -517,13 +517,13 @@ INSERT INTO call (gkname, sessid, username, calling, called, duration)
 </verb></tscreen>
 
 <item><tt/TimestampFormat=MySQL/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings used in queries. If this setting
 is not specified, a global one from the main gatekeeper section is used.
 
 <item><tt/MinPoolSize=5/<newline>
-Default: <tt>1</tt>
+Default: <tt>1</tt><newline>
 <p>
 Number of concurrent SQL connections in the pool. The first available connection
 in the pool is used to store accounting data.
@@ -539,28 +539,28 @@ external systems in real time.
 
 <itemize>
 <item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
-Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt>
+Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
 Defines the event to display for a new call. The string is parametrized
 with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAacct]">).
 
 <item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
-Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt>
+Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
 Defines the event when a call is finished (disconnected). The syntax and parameters are the same as for <tt/StartEvent/. This event is equivalent to the old status port CDR event, but more flexible.
 
 <item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
-Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt>
+Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
 Defines event used to update the current call state. The syntax and parameters are the same as for <tt/StartEvent/.
 
 <item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
-Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt>
+Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
 Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
 
 <item><tt/TimestampFormat=MySQL/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings used in events. If this setting
 is not specified, a global one from the main gatekeeper section is used.

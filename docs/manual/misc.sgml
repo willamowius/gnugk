@@ -5,14 +5,14 @@
 <p>
 <itemize>
 <item><tt/GenerateNBCDR=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Generate CDRs for calls from neighbor zones.
 The IP and endpoint ID of the calling party is printed as empty.
 This is usually used for debug purpose.
 
 <item><tt/GenerateUCCDR=0/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Generate CDRs for calls that are unconnected. This is usually
 used for debug purpose. Note a call is considered unconnected
@@ -21,14 +21,14 @@ received by the gatekeeper. In direct mode, a call is always considered
 connected.
 
 <item><tt/DefaultCallDurationLimit=3600/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Default maximum call duration limit (seconds).
 Set it to <tt/0/ to disable this feature and not limit
 calls duration.
 
 <item><tt/AcctUpdateInterval=60/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 A time interval (seconds) for accounting updates to be logged
 for each call in progress. The exact details of the accounting updates
@@ -40,17 +40,17 @@ The default value 0 tells the gatkeeper to not send accounting updates
 at all. Please note that setting short periods may decrease GK performance.
 
 <item><tt/TimestampFormat=Cisco/<newline>
-Default: <tt/RFC822/
+Default: <tt/RFC822/<newline>
 <p>
 Format of timestamp strings printed inside CDRs.
 
 <item><tt/IRRFrequency=60/<newline>
-Default: <tt/120/
+Default: <tt/120/<newline>
 <p>
 Set the irrFrequency in ACF messages. 0 turns it off.
 
 <item><tt/IRRCheck=TRUE/<newline>
-Default: <tt/FALSE/
+Default: <tt/FALSE/<newline>
 <p>
 Check if both endpoints in a call send the requested IRRs.
 A call will be treminated if one of the endpoints didn't send
@@ -68,38 +68,38 @@ The section defines the endpoint features for the gatekeeper.
 
 <itemize>
 <item><tt/Gatekeeper=10.0.1.1/<newline>
-Default: <tt/no/
+Default: <tt/no/<newline>
 <p>
 Define a parent gatekeeper for the endpoint(gatekeeper) to register with.
 Don't try to register with yourself, unless you want to be confusing.
 To disable this feature, set the field to be <tt/no/.
 
 <item><tt/Type=Gateway/<newline>
-Default: <tt/Gateway/
+Default: <tt/Gateway/<newline>
 <p>
 Define the terminal type for the endpoint.
 The valid values are <tt/Gateway/ or <tt/Terminal/.
 
 <item><tt/Vendor=Cisco | GnuGk | Generic/<newline>
-Default: <tt/GnuGk/
+Default: <tt/GnuGk/<newline>
 <p>
 Choose parent gatekeeper type to enable vendor specific
 extensions.
 
 <item><tt/H323ID=CitronProxy/<newline>
-Default: <tt>&lt;Name&gt;</tt>
+Default: <tt>&lt;Name&gt;</tt><newline>
 <p>
 Specify the H.323 ID aliases for the endpoint.
 Multiple aliases can be separated by comma.
 
 <item><tt/E164=18888600000,18888700000/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define the E.164 (dialedDigits) aliases for the endpoint.
 Multiple aliases can be separated by comma.
 
 <item><tt/Password=123456/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Specify a password to be sent to the parent gatekeeper.
 All RAS requests will contain the password in the <bf/cryptoTokens/ field
@@ -113,45 +113,45 @@ the <tt/addpasswd/ utility.
 Besides, the password is also used in LRQs sent to neighbor gatekeepers.
 
 <item><tt/Prefix=188886,188887/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Register the specified prefixes with the parent gatekeeper.
 Only takes effect when the Type is <tt/Gateway/.
 
 <item><tt/TimeToLive=900/<newline>
-Default: <tt>60</tt>
+Default: <tt>60</tt><newline>
 <p>
 Suggest a time-to-live value in seconds for the registration.
 Note that the real time-to-live timer is assigned by the parent
 gatekeeper in the RCF replied to the RRQ.
 
 <item><tt/RRQRetryInterval=10/<newline>
-Default: <tt/3/
+Default: <tt/3/<newline>
 <p>
 Define a retry interval in seconds for resending an RRQ if no response 
 is received from the parent gatekeeper. This interval is doubled with each
 failure, up to a maximum RRQRetryInterval * 128 timeout.
 
 <item><tt/ARQTimeout=2/<newline>
-Default: <tt/2/
+Default: <tt/2/<newline>
 <p>
 Define the timeout value in second for ARQs.
 
 <item><tt/UnregisterOnReload=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Defines whether the child gatekeeper unregisters and re-registers with
 it's parent when receiving a Reload command.
 
 <item><tt/NATRetryInterval=60/<newline>
-Default: <tt/60/
+Default: <tt/60/<newline>
 <p>
 How long to wait before trying to reconnect TCP NAT signalling socket (seconds).
 This can happen when either the connection cannot be established or it has
 been broken.
 
 <item><tt/NATKeepaliveInterval=86400/<newline>
-Default: <tt/86400/
+Default: <tt/86400/<newline>
 <p>
 Define how often the TCP NAT signalling connection with a parent gatekeeper
 is refreshed. As NAT boxes usually keep TCP mappings for a definite time only,
@@ -161,12 +161,12 @@ If you NAT performs TCP port translation, you may need to set it to a values
 as short as 60 seconds.
 
 <item><tt/Discovery=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Decide whether to discover the parent gatekeeper by sending GRQ first.
 
 <item><tt/UseAlternateGK=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Enable alternate gatekeepers feature. If GRJ/GCF/RFC messages received 
 from a parent gatekeeper contain a list of alternate gatekeepers, this
@@ -175,7 +175,7 @@ in case of any failure. If you don't want to use this feature, set this
 variable to <tt/0/.
 
 <item><tt/GatekeeperIdentifier=ParentGK/<newline>
-Default: <tt/Not set/
+Default: <tt/Not set/<newline>
 <p>
 Define it if you want to accept only such parent gatekeepers that match
 this gatekeeper identifier. Useful with GRQ discovery and can prevent 
@@ -184,7 +184,7 @@ care about gatekeeper identifiers or you use alternate gatekeepers that
 can have different gatekeeper indentifiers set.
 
 <item><tt/EndpointIdentifier=OpenH323GK/<newline>
-Default: <tt/Not set/
+Default: <tt/Not set/<newline>
 <p>
 Set this if you want to use a specific endpoint identifier for this child
 gatekeeper. If this option is not set (default), the identifier is assigned
@@ -224,7 +224,7 @@ See the monitoring section for details on the messages and responses.
 <itemize>
 <item>
 <tt/VirtualQueueAliases/<newline>
-Default: none
+Default: <tt>none</tt><newline>
 <p>
 This defines a list of H.323 aliases for the virtual queues (used with the vqueue RoutingPolicy).
 
@@ -236,7 +236,7 @@ This defines a list of H.323 aliases for the virtual queues (used with the vqueu
 
 <item>
 <tt/VirtualQueuePrefixes/<newline>
-Default: none
+Default: <tt>none</tt><newline>
 <p>
 This defines a list of prefixes for the virtual queues (used with the vqueue RoutingPolicy).
 
@@ -248,7 +248,7 @@ This defines a list of prefixes for the virtual queues (used with the vqueue Rou
 
 <item>
 <tt/VirtualQueueRegex/<newline>
-Default: none
+Default: <tt>none</tt><newline>
 <p>
 This defines a regular expression for the virtual queues (used with the vqueue RoutingPolicy).
 
@@ -260,7 +260,7 @@ This defines a regular expression for the virtual queues (used with the vqueue R
 
 <item>
 <tt/RequestTimeout/<newline>
-Default: <tt/10/
+Default: <tt/10/<newline>
 Timeout in seconds for the external application to answer the RouteRequest.
 If no answer is received during this time an ARJ will be sent to
 the caller.
@@ -280,19 +280,19 @@ in the config file.
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Default: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/
+Default: <tt/localhost/<newline>
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Default: <tt/billing/
+Default: <tt/billing/<newline>
 <p>
 The database name to connect to.
 
@@ -310,7 +310,7 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/ConfigQuery=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to read gatekeeper settings from the database. 
 The query is parametrized - that means parameter replacement occurs before 
@@ -336,7 +336,7 @@ ConfigQuery=SELECT '[RasSrv::RRQAuth]', alias, rule FROM rrqauth WHERE gk = '%1'
 </verb></tscreen>
 
 <item><tt/RewriteE164Query=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve from the database rewrite rules 
 for <tt/[RasSrv::RewriteE164]/ section. The query is parametrized 
@@ -361,7 +361,7 @@ RewriteE164Query=SELECT rkey, rvalue FROM rewriterule WHERE gk = '%1'
 </verb></tscreen>
 
 <item><tt/NeighborsQuery=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve from the database neighbor entries
 for <tt/[RasSrv::Neighbors]/ section . The query is parametrized 
@@ -390,7 +390,7 @@ NeighborsQuery=SELECT nid, nip, nport, npfx, NULL, 0 FROM neighbor WHERE gk = '%
 </verb></tscreen>
 
 <item><tt/PermanentEndpointsQuery=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve permanent endpoints from the database 
 for <tt/[RasSrv::PermanentEndpoints]/ section . The query is parametrized 
@@ -417,7 +417,7 @@ PermanentEndpointsQuery=SELECT peip, 1720, pealias, NULL FROM permanentep WHERE 
 </verb></tscreen>
 
 <item><tt/GWPrefixesQuery=SELECT .../<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve gateway prefixes from the database 
 for <tt/[RasSrv::GWPrefixes]/ section . The query is parametrized 
