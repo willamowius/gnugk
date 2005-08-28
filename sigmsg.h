@@ -14,7 +14,7 @@
 #define SIGMSG_H "@(#) $Id$"
 
 
-class Q931;
+#include "q931.h"
 class H225_H323_UserInformation;
 class H225_Setup_UUIE;
 class H225_SetupAck_UUIE;
