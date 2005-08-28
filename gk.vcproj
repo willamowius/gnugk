@@ -235,6 +235,9 @@
 				RelativePath="sqlauth.cxx">
 			</File>
 			<File
+				RelativePath="statusacct.cxx">
+			</File>
+			<File
 				RelativePath="Toolkit.cxx">
 			</File>
 			<File
@@ -342,6 +345,9 @@
 			</File>
 			<File
 				RelativePath="sqlacct.h">
+			</File>
+			<File
+				RelativePath="statusacct.h">
 			</File>
 			<File
 				RelativePath="stl_supp.h">

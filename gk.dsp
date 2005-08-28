@@ -214,6 +214,10 @@ SOURCE=.\sqlauth.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\statusacct.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\Toolkit.cxx
 # End Source File
 # Begin Source File
@@ -355,6 +359,10 @@ SOURCE=.\SoftPBX.h
 # Begin Source File
 
 SOURCE=.\sqlacct.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\statusacct.h
 # End Source File
 # Begin Source File
 
