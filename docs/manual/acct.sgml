@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | connect | update | on | off
@@ -90,6 +90,12 @@ See the section <ref id="radacct" name="[RadAcct]"> for configuration details.
 This module performs direct SQL accounting. It supports (start, connect, stop, update)
 event types. 
 See the section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
+
+<item><tt>StatusAcct</tt>
+<p>
+This module logs all accounting events on the status port. It can be used to interface to external application in real-time. It supports (start, connect, stop, update)
+event types. 
+See the section <ref id="statusacct" name="[StatusAcct]"> for configuration details.
 
 <item><tt>default</tt>
 <p>
