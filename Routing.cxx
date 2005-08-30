@@ -949,6 +949,10 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 		PString alias(AsString(aliases[i], FALSE));
 
 		// make sure the number has only digits
+		alias.Replace("+","", true);
+		alias.Replace("*","", true);
+		alias.Replace("#","", true);
+		alias.Replace(",","", true);
 		PINDEX j;
 		for (j = 0; j < alias.GetLength(); ++j)
 			if (!isdigit(alias[j]))
