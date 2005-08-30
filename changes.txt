@@ -1,6 +1,7 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
-- new StatusAcct accounting odule for the status port
+- BUGFIX(Routing.cxx) fix ENUMPolicy implementation
+- new StatusAcct accounting module for the status port
 
 Changes from 2.2.2 to 2.2.3
 ===========================

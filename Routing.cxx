@@ -962,7 +962,6 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 				PTRACE(4, "\tENUM converted remote party " << alias << " to " << str);
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 				H323SetAliasAddress(str, aliases[i]);
-				return true;
 		  	}
 		}
 	}
