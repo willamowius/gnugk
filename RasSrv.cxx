@@ -722,7 +722,7 @@ bool RasServer::AcceptUnregisteredCalls(const PIPSocket::Address & addr) const
 {
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptUnregisteredCalls", "0")))
 		return true;
-	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptNeighborsCalls", "0")) ? neighbors->CheckIP(addr) : false;
+	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptNeighborsCalls", "1")) ? neighbors->CheckIP(addr) : false;
 }
 
 bool RasServer::RegisterHandler(RasHandler *handler)

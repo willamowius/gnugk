@@ -23,8 +23,10 @@ If you skip the semicolon, LRQs will be always sent to this neighbor.
 The <tt/password/ field is used to authenticate LRQs from that neighbor.
 See section <ref id="gkauth" name="[Gatekeeper::Auth]"> for details.
 
+If a call from a neighbor is accepted also depends on the AcceptNeighborsCalls switch in the <ref id="routed" name="[RoutedMode]"> section.
+
 Neighbor handling has changed significantly from version 2.0 to version 2.2.
-Neighbors can be specified now in two ways - the old one and the new one.
+Neighbors can be specified now the old or the new way.
 
 <descrip>
 <tag/Entry in the old format:/

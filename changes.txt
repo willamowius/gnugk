@@ -1,5 +1,7 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- BUGFIX(RasSrv.cxx) have AcceptNeighborsCalls default to 1 like
+  the documentation always said
 - BUGFIX(Routing.cxx) fix ENUMPolicy implementation
 - new StatusAcct accounting module for the status port
 
