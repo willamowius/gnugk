@@ -957,6 +957,8 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 		if (j >= alias.GetLength()) {
 			PString str;
 			if (PDNS::ENUMLookup(alias, "E2U+h323", str)) {
+				if (str.Left(5) *= "h323:")
+					str = str.Mid(5);
 				PTRACE(4, "\tENUM converted remote party " << alias << " to " << str);
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 				H323SetAliasAddress(str, aliases[i]);
