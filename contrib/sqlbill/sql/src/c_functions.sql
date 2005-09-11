@@ -120,7 +120,7 @@ BEGIN
 				WHERE NOT D.exactmatch AND (e164 LIKE (D.prefix || ''%'')) 
 					AND NOT T.terminating AND T.currencysym = curr  
 					AND (T.grpid IS NULL OR S.accountid = accid)
-				ORDER BY length(D.prefix) DESC, G.priority DESC
+				ORDER BY length(D.prefix) DESC, COALESCE(G.priority,-2147483648) DESC
 				LIMIT 1;
 		ELSE
 			SELECT INTO dst.id, dst.active, trf.id D.id, D.active, T.id 

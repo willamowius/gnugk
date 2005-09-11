@@ -1,3 +1,6 @@
+11 Sep 2005 -- zvision
+  * fixed bug, when a default tariff took priority over account specific tariffs
+
 14 Apr 2005 -- zvision
   * unneccessary voipcall_h323id_idx index removed
 
