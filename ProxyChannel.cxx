@@ -476,25 +476,18 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 	SetWriteTimeout(timeout);
 	// since GetName() may not work if socket closed,
 	// we save it for reference
-	Address raddr, laddr;
-	WORD rport = 0, lport = 0;
+	Address raddr;
+	WORD rport = 0;
 	GetPeerAddress(raddr, rport);
-	GetLocalAddress(laddr, lport);
-	SetName(AsString(raddr, rport) + "=>" + AsString(laddr, lport));
+	SetName(AsString(raddr, rport));
 	return result;
 }
 
 BOOL TCPProxySocket::Connect(const Address & iface, WORD localPort, const Address & addr)
 {
-	SetName(AsString(iface, localPort) + "=>" + AsString(addr, GetPort()));
+	SetName(AsString(addr, GetPort()));
 	SetReadTimeout(PTimeInterval(6000)); // TODO: read from config...
 	BOOL result = PTCPSocket::Connect(iface, localPort, addr);
-	if (result) {
-		Address laddr;
-		WORD lport = 0;
-		GetLocalAddress(laddr, lport);
-		SetName(AsString(laddr, lport) + "=>" + AsString(addr, GetPort()));
-	}
 	PTimeInterval timeout(100);
 	SetReadTimeout(timeout);
 	SetWriteTimeout(timeout);
