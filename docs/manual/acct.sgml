@@ -579,18 +579,18 @@ is not specified, a global one from the main gatekeeper section is used.
 The SQLAcct module is designed to adapt to whatever database structure you already have. You can define all queries so they fit your existing tables.
 But here is an example what those tables might look like in MySQL and you can use these as a starting point.
 <p>
-Create a new database; here we use the name 'GUNGK':
+Create a new database; here we use the name 'GNUGK':
 
 <tscreen><verb>
-create database GUNGK;
+create database GNUGK;
 </verb></tscreen>
 
 Then create a table in this database to store you accounting data; we call the table 'CDR'.
 
 <tscreen><verb>
-create table GUNGK.CDR (
+create table GNUGK.CDR (
         gatekeeper_name varchar(255),
-        call_number into zerofill,
+        call_number int zerofill,
         call_duration mediumint unsigned zerofill,
                 index duration_idx (call_duration),
         disconnect_cause smallint unsigned zerofill,
