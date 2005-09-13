@@ -577,7 +577,7 @@ is not specified, a global one from the main gatekeeper section is used.
 <label id="mysqlscheme">
 <p>
 The SQLAcct module is designed to adapt to whatever database structure you already have. You can define all queries so they fit your existing tables.
-Here is an example what those tables might look like in MySQL and you can use these as a starting point.
+But here is an example what those tables might look like in MySQL and you can use these as a starting point.
 <p>
 Create a new database; here we use the name 'GUNGK':
 
