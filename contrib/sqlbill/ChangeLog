@@ -1,3 +1,7 @@
+17 Sep 2005 -- zvision
+  * constraint check added to voiptariff to ensure initialincrement
+    and regularincrement are not 0
+
 11 Sep 2005 -- zvision
   * fixed bug, when a default tariff took priority over account specific tariffs
 
