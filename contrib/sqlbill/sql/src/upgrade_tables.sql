@@ -126,6 +126,10 @@ BEGIN
 	IF attrfound = 0 THEN
 		ALTER TABLE voiptariff ADD CONSTRAINT voiptariff_unique UNIQUE (dstid, grpid, currencysym, terminating);
 	END IF;
+	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariff_checkincrement'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voiptariff ADD CONSTRAINT voiptariff_checkincrement CHECK (initialincrement > 0 AND regularincrement > 0);
+	END IF;
 
 	constraintname := NULL;
 	SELECT INTO constraintname CC.conname FROM (SELECT C.conname, C.confrelid FROM pg_constraint C 
