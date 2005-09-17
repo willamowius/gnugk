@@ -186,7 +186,7 @@ SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
 <sect1>Section &lsqb;RasSrv::RRQAuth&rsqb;
 <label id="rrqauth">
 <p>
-Spécify l'action lors de la réception d'un message RRQ (confirmation ou rejet) pour le module <tt/AliasAuth/.
+Spécifie l'action lors de la réception d'un message RRQ (confirmation ou rejet) pour le module <tt/AliasAuth/.
 Le premier alias (le plus souvent un H323ID) du terminal à enregistrer est recherché dans la section. Si un paramètre est trouvé la valeur sera appliquée comme une règle. Une règle est constituée de condititions séparées par des '&'.
 Un enregistrement est accepté si toutes les conditions sont vérifiées.
 
@@ -295,17 +295,9 @@ SELECT 'sigip:' || host(ip) || port FROM users WHERE alias = '%1'
 <sect1>Section &lsqb;PrefixAuth&rsqb;
 <label id="prefixauth">
 <p>
-The section defines the authentication rule for <tt/PrefixAuth/ module.
-Currently, only ARQs and LRQs can be authorized by this module.
+Cette section définie les règles d'authentification pour le module <tt/PrefixAuth/. Actuellement, seuls les messages ARQs et LRQs peuvent être authentifiés par ce module.
 
-First, a most specific prefix is selected according to the <bf/destinationInfo/
-field of the received request. Then the request is accepted or rejected
-according to the matched rules with most specific netmask.
-If no matched prefix is found,
-and the <tt/default/ option is specified, the request is accepted
-or rejected according to that. Otherwise
-it is rejected or passed to next authentication module
-according to the module requirement.
+On débute par le préfix le plus spécifique du champ <bf/destinationInfo/ de la reqête reçue. Ensuite la requête est eccepté ou non suivant les règles dans l'ordre spécifique décroissant. Si aucune correspondance de préfix n'est trouvée, et que l'option par <tt/default/ est spécifié, cette dernière accepte ou non la reqête. Autrement la requête continue sont parcourt dans les modules d'authification suivant les conditions du module.
 
 <descrip>
 <tag/Format:/
@@ -321,9 +313,7 @@ prefix=authrule[|authrule|...]
   &lt;authrule&gt;  := [!]ipv4:&lt;iprule&gt; | [!]alias:&lt;aliasrule&gt;
 </verb></tscreen>
 </descrip>
-Where <tt/&lt;iprule&gt;/ can be specified in decimal dot notation or
-CIDR notation, <tt/&lt;aliasrule&gt;/ is expressed in regular expression.
-If the `<tt/!/' flag precedes the rule, the sense is inverted.
+Où <tt/&lt;iprule&gt;/ peut être noté en notation décimal ou CIDR, <tt/&lt;aliasrule&gt;/ est une expression régulière. Si `<tt/!/' précède la règle, le sens est inversé.
 
 <descrip>
 <tag/Example:/
@@ -336,33 +326,24 @@ ALL=allow ipv4:ALL
 </verb></tscreen>
 </descrip>
 
-In this configuration, all endpoints except from network <tt>10.0.0.0/27</tt>
-are allow to call prefix 555 (except 5555).
-Endpoints from <tt>192.168.1.0/24</tt> are not allowed to call prefix 5555,
-except <tt/192.168.1.1/.
-Endpoints <bf/not/ from <tt>172.16.0.0/24</tt> are denied to call prefix 86.
-Endpoints having an alias beginning with 188884 are not allowed to call
-prefix 09. All other situations are allowed.
+Dans cette configuration, tous les terminaux sauf ceux du réseau <tt>10.0.0.0/27</tt> sont autorisés à appeler le préfix 555 (execpté le 5555).
+Les terminaux du réseau <tt>192.168.1.0/24</tt> sont autorisés à appeler le préfix 5555, sauf <tt/192.168.1.1/.
+Les terminaux ne provenant pas de <tt>172.16.0.0/24</tt> ne sont pas autorisés à appeler le préfix 86.
+Les terminaux ayant un alias commençant par 188884 ne sont pas autorisés à appeler le préfix 09. Toutes les autres situations sont autorisées.
 
 <sect1>Section &lsqb;RadAuth&rsqb;
 <label id="radauth">
 <p>
-This section defines configuration settings that enable
-RADIUS authentication based on H.235 CATs (Cisco Access Tokens)
-present in RRQ, ARQ RAS requests and Q.931 Setup messages.
+Cette section définie les options qui permettent d'activer l'authentification RADIUS basé sur le H.235 CATs (Cisco Access Tokens) présent dans les requêtes RAS RRQ et ARQ et les messages Setup Q931.
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
 Default: <tt>N/A</tt>
 <p>
-RADIUS servers to be used for authentication. The list can contain an arbitrary 
-number of servers. The order of servers is important, because servers will 
-be queried by the RADIUS module in the given order. If no port information 
-is provided, port number from <tt/DefaultAuthPort/ will be used. If no secret is set, 
-the default shared secret from <tt/SharedSecret/ is taken. 
-Servers names can be IP addresses or DNS names.
+Définie les serveurs RADIUS utilisés pour l'authentification. Cette liste peut contenir un nombre arbitraire de serveurs. L'ordre des serveurs sera respecté par le module RADIUS lors du processus d'interrogation. Si aucun port UDP n'est indiqué, <tt/DefaultAuthPort/ sera utilisé. De même avec le secret et <tt/SharedSecret/.
+Adresses IP ou nom DNS peuvent être utilisés comme nom pour les serveurs RADIUS. 
 
 <descrip>
-<tag>Sample <tt/Servers/ lines:</tag>
+<tag>Exemple <tt/Servers/:</tag>
 <tt>Servers=192.168.1.1</tt><newline>
 <tt>Servers=192.168.1.1:1645</tt><newline>
 <tt>Servers=192.168.1.1:1645:1646:secret1</tt><newline>
@@ -372,7 +353,7 @@ Servers names can be IP addresses or DNS names.
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
-Default: <tt>N/A</tt>
+Défaut: <tt>N/A</tt>
 <p>
 Particular local network interface that RADIUS client should
 use in order to communicate with RADIUS servers. This parameter
