@@ -355,47 +355,30 @@ Adresses IP ou nom DNS peuvent être utilisés comme nom pour les serveurs RADIUS.
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
 Défaut: <tt>N/A</tt>
 <p>
-Particular local network interface that RADIUS client should
-use in order to communicate with RADIUS servers. This parameter
-can be useful on NAT machines to restrict number of network
-interfaces used for RADIUS communication. By default this value
-is empty and allows RADIUS requests to be sent on any (best suitable)
-network interface. If you are not sure what you are doing, it is
-better to leave this option unset.
+Interface réseau que le client RADIUS doit utiliser pour communiquer avec les serveurs RADIUS. Ce paramètre peut être utile sur les machines "NATées". By défaut cette valeur est vide et c'est la table de routage de l'OS qui choisit l'adresse IP source. Si vous n'êtes pas certain de ce que vous faîtes, il est préférable de laisser cette option vide.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
-Default: <tt>N/A</tt>
+Défaut: <tt>N/A</tt>
 <p>
-By default (if this option is not set) RADIUS client
-allocates ports dynamically as specified by the operating system.
-If you want to restrict RADIUS client to use ports from
-a particular range only - set this parameter.
+Par défaut (si cette option n'est pas définie), le client RADIUS alloue des ports dynamiquement comme indiqué par l'OS. Si vous désirez que le client RADIUS utilise des ports d'une plage particulière seulement - configurer ce paramètre.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
-Default: <tt>1812</tt>
+Défaut: <tt>1812</tt>
 <p>
-Default port number to be used for RADIUS authentication requests
-(Access-Request packets), if not overriden by <tt/Servers/ attribute.
+Ports UDP à utiliser pour les requêtes d'authentification RADIUS (paquets Access-Request), l'attribut <tt/Servers/ est prioritaire.
 
 <item><tt/SharedSecret=SECRET/<newline>
-Default: <tt>N/A (empty string)</tt>
+Défaut: <tt>N/A (chaîne vide)</tt>
 <p>
-Secret used to authenticate this GnuGk (NAS client) to RADIUS
-server. It should be a cryptographically strong password. This is the default
-value used, if no server-specific secret is set in the <tt/Servers/.
-If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
-in this section, the password is in encrypted form and should be created using
-the <tt/addpasswd/ utility.
+Secret utilisé pour authentifier ce GnuGK (client NAS) auprès d'un serveur RADIUS. Cela peut être un mot de passe à fort encryption. C'est la valeur par défaut, si aucun secret spécifique n'est indiqué dans la partie <tt/Servers/. Si <tt/EncryptAllPasswords/ est selectionné, or la variable <tt/KeyFilled/ est définie dans cette section, alors le mot de passe est sous une forme cryptée et peut être crée à partir de l'utilitaire <tt/addpasswd/.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)
+Défaut: <tt/2000/ (milisecondes)
 <p>
-Timeout (miliseconds) for RADIUS server response to a request
-sent by GnuGk. If no response is received within this time period,
-next RADIUS server is queried.
+Délai (en millisecondes) que la réponse du serveur RADIUS à une requête envoyée par GnuGK ne peut dépasser. Si il n'y a pas de réponse dans cette période, une nouvelle requête est envoyé au serveur RADIUS suivant.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)
+Défaut: <tt/9000/ (milisecondes)
 <p>
 Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
 unique. If all 8-bit identifier range is exhausted within this period,
@@ -409,96 +392,78 @@ too short timeout - RADIUS server may take incoming packets as duplicated
 and therefore drop it.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s
+Défaut: <tt/60000/ (milisecondes) - 60 s
 <p>
-Timeout for unused RADIUS sockets to be closed. It is used
-in conjunction with <tt/IdCacheTimeout/ - additional sockets
-created during heavy GK load time periods for serving incoming
-requests are closed during idle periods.
+Délai au bout duquel les sockets RADIUS inutilisées sont fermées. Utilisé en conjonction de <tt/IdCacheTimeout/ - les sockets supplémentaires créées pendant les périodes où GnuGK est fortement chargé afin de répondre aux requêtes entrantes, sont fermées pendant les périodes d'inactivités.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
-Default: <tt/2/
+Défaut: <tt/2/
 <p>
-How many times a single RADIUS request is transmissed to every
-configured RADIUS server (if no response is received). 1 means
-no retransmission, 2 - single retransmission, ... . Exact retransmission
-method is defined by <tt/RoundRobinServers/ attribute.
+Combien de fois une même requête RADIUS est envoyée à chaque serveur RADIUS configurés (si aucune réponse n'est reçue). 1 signifie aucune retransmission, 2 - une seule, ... . la méthode exacte de retransmission est définie par l'attribut <tt/RoundRobinServers/.
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
-Default: <tt/1/
+Défaut: <tt/1/
 <p>
-RADIUS requests retransmission method.
+Méthode de retransmission des requêtes RADIUS.
 <p>
-If set to 1, RADIUS request
-is transmitted in the following way (until response is received):
+Si définie à 1, la requête RADIUS est transmise de la façon suivante (jusqu'à ce qu'une réponse soit reçue):
 <tscreen><verb>
-Server #1 Attempt #1, Server #2 Attempt #1, ..., Server #N Attempt #1
+Serveur #1 Essai #1, Serveur #2 Essai #1, ..., Serveur #N Essai #1
 ...
-Server #1 Attempt #RequestRetransmissions, ..., Server #1 Attempt #RequestRetransmissions
+Serveur #1 Essai #RequêtesRetransmises, ..., Serveur #1 Essai #RequêtesRetransmises
 </verb></tscreen>
 <p>
-If set to 0, the following sequence is preserved:
+Si définie à 0, la séquence suivante est déroulée:
 <tscreen><verb>
-Server #1 Attempt #1, ..., Server #1 Attempt #RequestRetransmissions
+Serveur #1 Essai #1, ..., Serveur #1 Essai #RequêtesRetransmises
 ...
-Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
+Serveur #N Essai #1, ..., Serveur #N Essai #RequêtesRetransmises
 </verb></tscreen>
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
-Default: <tt/0/
+Défaut: <tt/0/
 <p>
-If set, Cisco Vendor Specific RADIUS attibutes are included
-in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
+Si définie, les attributs RADIUS spécifiques Cisco (en anglais: VendorSpecificAttribut) sont inclus dans les requêtes RADIUS(h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
-Default: <tt/1/
+Défaut: <tt/1/
 <p>
-If set, Cisco VSA 'h323-ivr-out' attribute is sent with a list of aliases
-the endpoint is registering (RRQ.m_terminalAlias). This attribute is provided
-in order to provide fine control over the list of aliases the endpoint
-is allowed to register with. Format of this attribute is:
+Si définie, l'attribut VSA Cisco 'h323-ivr-out' est envoyé avec la liste d'alias avec laquelle le terminal s'est enregistré(RRQ.m_terminalAlias). Cet attribut est fourni afin de permettre un contrôle fin sur la liste d'alias du terminal sous lesquels il a le droit de s'enregistrer. Le formadt e cet attribut est:
 <tscreen><verb>
 	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:" alias [,alias] [;]
-Example:
+Exemple:
 	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
 </verb></tscreen>
 
 <item><tt/UseDialedNumber=BOOLEAN/<newline>
-Default: <tt/0/
+Défaut: <tt/0/
 <p>
-Select Called-Station-Id number type between the original one (as dialed
-by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
+<tt/UseDialedNumber=1/: renseigne le nombre Called-Station-Id avec le numéro originellement appelé par l'utilisateur.
+<tt/UseDialedNumber=0/: le renseigne avec le numéro réécri.
 
 </itemize>
 
 <sect1>Section &lsqb;RadAliasAuth&rsqb;
 <label id="radaliasauth">
 <p>
-This section defines configuration settings that enable
-RADIUS authentication based on endpoint aliases and/or IP adresses
-present in RRQ RAS requests, ARQ RAS request or Q.931 Setup request.
-This authentication scheme is useful both for endpoints registered
-at the gatekeeper (ARQ,RRQ) and calls from unregistered endpoints (Setup).
+Cette section permet de configurer la partie qui s'occupe d'activer les authentification RADIUS des alias de terminal ou des adresses IP présents dans les requêtes RAS RRQ, ARQ ou Setup Q.931.
+Ce schéma authentification est utile à la fois pour les terminaux enregistrés auprès de la GateKeeper (ARQ,RRQ) et aussi pour les appels provenant de terminaux non-enregistrés (Setup).
 
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
-Default: <tt>N/A</tt>
+Défaut: <tt>N/A</tt>
 <p>
-RADIUS servers to be used for RAS requests authentication.
-This list can contain an arbitrary number of servers. The order of servers 
-is important, because servers will be queried by the RADIUS module 
-in the given order. If no port information is specified, port number from 
-<tt/DefaultAuthPort/ will be used. If no secret is set, 
-the default shared secret from <tt/SharedSecret/ is used.
-Servers can be IP addresses or DNS names.
+Serveurs RADIUS à utiliser pour les requêtes d'authentifcation RAS.
+Cette liste peut contenir un nombre arbitraire de serveurs. L'ordre des serveurs sera suivi par celui des requêtes. Si aucun port UDP n'est spécifié, c'est la valeur <tt/DefaultAuthPort/ qui est utilisée. Si aucun secret est indiqué, la valeur de <tt/SharedSecret/ sera utilisée.
+Des adresses IP comme des noms DNS peuvent être indiqués pour les serveurs.
 
 <descrip>
-<tag/Example:/
+<tag/Exemple:/
 <tt/Servers=192.168.3.1:1645;192.168.3.2:1812:1813:mysecret;radius.mycompany.com/
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
-Default: <tt>N/A</tt>
+Défaut: <tt>N/A</tt>
 <p>
 Particular local network interface that RADIUS client should
 use in order to communicate with RADIUS servers. This parameter
