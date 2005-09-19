@@ -1,5 +1,5 @@
 VoIP Billing Platform for GnuGk
-Copyright (c) 2004, Michal Zygmuntowicz
+Copyright (c) 2004-2005, Michal Zygmuntowicz
 
 This work is published under the GNU Public License (GPL)
 see file COPYING for details
@@ -26,6 +26,7 @@ This database schema creates the following tables:
    - IP address restriction (NULL to ignore)
    - 'terminating' flag to indicate that this user can terminate traffic 
      and receive money to his account
+   - optional NAS IP address, to restrict an endpoint to access only the specified NAS
 *) voiptariffdst - unique tariff destination (prefix). It separates pricing
    and billing information from rarely changing prefix information. A special 
    prefix 'PC' can be used to describe H.323 ID calls (to alias names beginning 
@@ -58,10 +59,10 @@ To start with this system you need:
 	
 2. Create an user associated with this account (voipuser). Example:
 
-	INSERT INTO voipuser (h323id, accountid, chappassword, firstname, surname)
-	  VALUES ('voip1', 1, 'secret', 'John', 'Smith');
-	INSERT INTO voipuser (h323id, accountid, chappassword, firstname, surname)
-	  VALUES ('voip2', 1, 'secret', 'Joe', 'Smith');
+	INSERT INTO voipuser (h323id, accountid, chappassword)
+	  VALUES ('voip1', 1, 'secret');
+	INSERT INTO voipuser (h323id, accountid, chappassword)
+	  VALUES ('voip2', 1, 'secret');
 	  
 3. Build a tariff table - this consists of the following steps:
    a) build a list of destinations (prefixes),

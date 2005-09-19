@@ -1,3 +1,11 @@
+-- Database upgrade scripts
+--
+-- VoIP Billing Platform for GnuGk
+-- Copyright (c) 2004-2005, Michal Zygmuntowicz
+--
+-- This work is published under the GNU Public License (GPL)
+-- see file COPYING for details
+
 CREATE OR REPLACE FUNCTION upgrade_db() RETURNS BOOLEAN AS
 '
 DECLARE
@@ -95,7 +103,7 @@ BEGIN
 		);
 	END IF;
 	
-	-- check for voipuser.termgateway column presence
+	-- check for voipuser.terminating column presence
 	SELECT INTO attrfound COUNT(*) FROM pg_class C JOIN pg_attribute A ON a.attrelid = C.oid
 		WHERE c.relname = ''voipuser'' AND A.attname = ''terminating'';
 	IF attrfound = 0 THEN
@@ -103,6 +111,13 @@ BEGIN
 		UPDATE voipuser SET terminating = FALSE;
 		ALTER TABLE voipuser ALTER COLUMN terminating SET DEFAULT FALSE;
 		ALTER TABLE voipuser ALTER COLUMN terminating SET NOT NULL;
+	END IF;
+
+	-- check for voipuser.nasaddress column presence
+	SELECT INTO attrfound COUNT(*) FROM pg_class C JOIN pg_attribute A ON a.attrelid = C.oid
+		WHERE c.relname = ''voipuser'' AND A.attname = ''nasaddress'';
+	IF attrfound = 0 THEN
+		ALTER TABLE voipuser ADD COLUMN nasaddress INET;
 	END IF;
 
 	-- create any missing voipuser indexes

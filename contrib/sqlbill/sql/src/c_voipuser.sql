@@ -1,7 +1,7 @@
 -- VoIP user (IP phone, gateway)
 --
 -- VoIP Billing Platform for GnuGk
--- Copyright (c) 2004, Michal Zygmuntowicz
+-- Copyright (c) 2004-2005, Michal Zygmuntowicz
 --
 -- This work is published under the GNU Public License (GPL)
 -- see file COPYING for details
@@ -30,13 +30,11 @@ CREATE TABLE voipuser (
 	assignaliases TEXT NOT NULL DEFAULT '',
 	-- if it isn't NULL, allow this user to login only from the given IP pool
 	framedip INET,
-	-- first name
-	firstname TEXT DEFAULT '' NOT NULL,
-	-- surname
-	surname TEXT DEFAULT '' NOT NULL,
 	-- whether this endpoint can terminate tariffic too
 	terminating BOOLEAN DEFAULT FALSE NOT NULL,
-	
+	-- if not NULL, this user can access only the specified NAS
+	nasaddress INET,
+
 	CONSTRAINT voipuser_pkey PRIMARY KEY (id),
 	CONSTRAINT voipuser_unique UNIQUE (h323id),
 	CONSTRAINT voipuser_account_exists FOREIGN KEY (accountid) REFERENCES voipaccount(id)

@@ -1,7 +1,7 @@
 -- RADIUS ARQ/RRQ processing functions
 --
 -- VoIP Billing Platform for GnuGk
--- Copyright (c) 2004, Michal Zygmuntowicz
+-- Copyright (c) 2004-2005, Michal Zygmuntowicz
 --
 -- This work is published under the GNU Public License (GPL)
 -- see file COPYING for details
@@ -21,14 +21,16 @@ CREATE TABLE voipradattr (
 -- build a list of RADIUS check attribute-value pairs for endpoint registration request
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
--- $3 - h323-ivr-in
-CREATE OR REPLACE FUNCTION radius_get_check_rrq_attrs(TEXT, INET, TEXT)
+-- $3 - NAS-IP-Address
+-- $4 - h323-ivr-in
+CREATE OR REPLACE FUNCTION radius_get_check_rrq_attrs(TEXT, INET, INET, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	framed_ip ALIAS FOR $2;
+	nasipaddress ALIAS FOR $3;
+	h323ivrout ALIAS FOR $4;
 	username TEXT;
-	h323ivrout ALIAS FOR $3;
 	reject_attr voipradattr%ROWTYPE;
 	check_attr voipradattr%ROWTYPE;
 	query_result RECORD;
@@ -36,7 +38,7 @@ DECLARE
 	aliasnum INT;
 	rrqalias TEXT;
 BEGIN
-	RAISE LOG ''sqlbill: RRQ(username: %; IP: %; aliases: %)'', $1, $2, $3;
+	RAISE LOG ''sqlbill: RRQ(username: %; IP: %; aliases: %)'', $1, $2, $4;
 	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
@@ -60,14 +62,22 @@ BEGIN
 	END IF;
 		
 	-- get user information
-	SELECT INTO query_result h323id, chappassword, allowedaliases, framedip 
+	SELECT INTO query_result h323id, chappassword, allowedaliases, framedip, nasaddress
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
 		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
 	IF NOT FOUND OR query_result.chappassword IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
 	END IF;
-	
+
+	-- check if the endpoint is allowed to access this NAS
+	IF query_result.nasaddress IS NOT NULL THEN
+		IF NOT (query_result.nasaddress >>= nasipaddress) THEN
+			RETURN NEXT reject_attr;
+			RETURN;
+		END IF;
+	END IF;
+		
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
 		IF NOT (query_result.framedip >>= framed_ip) THEN
@@ -104,14 +114,16 @@ END;
 -- build a list of RADIUS reply attribute-value pairs for endpoint registration request
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
--- $3 - h323-ivr-in
-CREATE OR REPLACE FUNCTION radius_get_reply_rrq_attrs(TEXT, INET, TEXT)
+-- $3 - NAS-IP-Address
+-- $4 - h323-ivr-in
+CREATE OR REPLACE FUNCTION radius_get_reply_rrq_attrs(TEXT, INET, INET, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	framed_ip ALIAS FOR $2;
+	nasipaddress ALIAS FOR $3;
+	h323ivrout ALIAS FOR $4;
 	username TEXT;
-	h323ivrout ALIAS FOR $3;
 	rcode_attr voipradattr%ROWTYPE;
 	reply_attr voipradattr%ROWTYPE;
 	attr_num INT := 1;
@@ -146,7 +158,7 @@ BEGIN
 	
 	-- get user information
 	SELECT INTO query_result h323id, balance, currencysym, allowedaliases, 
-			assignaliases, framedip 
+			assignaliases, framedip, nasaddress
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id
 		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
 	IF NOT FOUND OR query_result.balance IS NULL THEN
@@ -155,6 +167,15 @@ BEGIN
 		RETURN;
 	END IF;
 	
+	-- check if the endpoint is allowed to access this NAS
+	IF query_result.nasaddress IS NOT NULL THEN
+		IF NOT (query_result.nasaddress >>= nasipaddress) THEN
+			rcode_attr.attrvalue := rcode_attr.attrvalue || ''7'';
+			RETURN NEXT rcode_attr;
+			RETURN;
+		END IF;
+	END IF;
+
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
 		IF NOT (query_result.framedip >>= framed_ip) THEN
@@ -221,15 +242,17 @@ END;
 -- build a list of RADIUS check attribute-value pairs for endpoint call admission request
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
--- $3 - TRUE - the call is being answered, FALSE - the call is originated
--- $4 - calling station id
--- $5 - called station id
-CREATE OR REPLACE FUNCTION radius_get_check_arq_attrs(TEXT, INET, BOOLEAN, TEXT, TEXT)
+-- $3 - NAS-IP-Address
+-- $4 - TRUE - the call is being answered, FALSE - the call is originated
+-- $5 - calling station id
+-- $6 - called station id
+CREATE OR REPLACE FUNCTION radius_get_check_arq_attrs(TEXT, INET, INET, BOOLEAN, TEXT, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	framed_ip ALIAS FOR $2;
-	answer_call ALIAS FOR $3;
+	nasipaddress ALIAS FOR $3;
+	answer_call ALIAS FOR $4;
 	username TEXT;
 	calling_station_id TEXT;
 	called_station_id TEXT;
@@ -239,7 +262,7 @@ DECLARE
 	trf voiptariff%ROWTYPE;
 	userid INT;
 BEGIN
-	RAISE LOG ''sqlbill: ARQ(username: %; IP: %; answer: %; calling: %; called: %)'', $1, $2, $3, $4, $5;
+	RAISE LOG ''sqlbill: ARQ(username: %; IP: %; answer: %; calling: %; called: %)'', $1, $2, $4, $5, $6;
 	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
@@ -248,15 +271,15 @@ BEGIN
 	reject_attr.attrop := '':='';
 	
 	-- check input arguments
-	IF $1 IS NULL OR $2 IS NULL OR $3 IS NULL OR $4 IS NULL OR $5 IS NULL THEN
+	IF $1 IS NULL OR $2 IS NULL OR $4 IS NULL OR $5 IS NULL OR $6 IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
 	END IF;
 	
 	-- remove RADIUS escapes
 	username := radius_xlat($1);
-	calling_station_id := radius_xlat($4);
-	called_station_id := radius_xlat($5);
+	calling_station_id := radius_xlat($5);
+	called_station_id := radius_xlat($6);
 	
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN
@@ -266,7 +289,7 @@ BEGIN
 	
 	-- get user information
 	SELECT INTO query_result a.id AS accid, balance, balancelimit, 
-			currencysym, chappassword, allowedaliases, framedip 
+			currencysym, chappassword, allowedaliases, framedip, nasaddress
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
 		WHERE a.closed IS NULL AND NOT a.disabled AND u.id = userid;
 	IF NOT FOUND OR query_result.balance IS NULL THEN
@@ -274,6 +297,14 @@ BEGIN
 		RETURN;
 	END IF;
 	
+	-- check if the endpoint is allowed to access this NAS
+	IF query_result.nasaddress IS NOT NULL THEN
+		IF NOT (query_result.nasaddress >>= nasipaddress) THEN
+			RETURN NEXT reject_attr;
+			RETURN;
+		END IF;
+	END IF;
+
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
 		IF NOT (query_result.framedip >>= framed_ip) THEN
@@ -316,15 +347,17 @@ END;
 -- build a list of RADIUS reply attribute-value pairs for endpoint call admission request
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
--- $3 - TRUE - the call is being answered, FALSE - the call is originated
--- $4 - calling station id
--- $5 - called station id
-CREATE OR REPLACE FUNCTION radius_get_reply_arq_attrs(TEXT, INET, BOOLEAN, TEXT, TEXT)
+-- $3 - NAS-IP-Address
+-- $4 - TRUE - the call is being answered, FALSE - the call is originated
+-- $5 - calling station id
+-- $6 - called station id
+CREATE OR REPLACE FUNCTION radius_get_reply_arq_attrs(TEXT, INET, INET, BOOLEAN, TEXT, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	framed_ip ALIAS FOR $2;
-	answer_call ALIAS FOR $3;
+	nasipaddress ALIAS FOR $3;
+	answer_call ALIAS FOR $4;
 	username TEXT;
 	calling_station_id TEXT;
 	called_station_id TEXT;
@@ -343,7 +376,7 @@ BEGIN
 	attr_num := attr_num + 1;
 	
 	-- check input arguments
-	IF $1 IS NULL OR $2 IS NULL OR $3 IS NULL OR $4 IS NULL OR $5 IS NULL THEN
+	IF $1 IS NULL OR $2 IS NULL OR $4 IS NULL OR $5 IS NULL OR $6 IS NULL THEN
 		rcode_attr.attrvalue := rcode_attr.attrvalue || ''11'';
 		RETURN NEXT rcode_attr;
 		RETURN;
@@ -351,8 +384,8 @@ BEGIN
 	
 	-- remove RADIUS escapes
 	username := radius_xlat($1);
-	calling_station_id := radius_xlat($4);
-	called_station_id := radius_xlat($5);
+	calling_station_id := radius_xlat($5);
+	called_station_id := radius_xlat($6);
 	
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN
@@ -363,7 +396,7 @@ BEGIN
 	
 	-- get user information
 	SELECT INTO query_result a.id AS accid, balance, balancelimit, currencysym, 
-			chappassword, allowedaliases, framedip 
+			chappassword, allowedaliases, framedip, nasaddress
 		FROM voipuser u JOIN voipaccount a ON u.accountid = a.id 
 		WHERE a.closed IS NULL AND NOT a.disabled AND NOT u.disabled 
 			AND u.id = userid;
@@ -373,6 +406,15 @@ BEGIN
 		RETURN;
 	END IF;
 	
+	-- check if the endpoint is allowed to access this NAS
+	IF query_result.nasaddress IS NOT NULL THEN
+		IF NOT (query_result.nasaddress >>= nasipaddress) THEN
+			rcode_attr.attrvalue := rcode_attr.attrvalue || ''7'';
+			RETURN NEXT rcode_attr;
+			RETURN;
+		END IF;
+	END IF;
+
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
 		IF NOT (query_result.framedip >>= framed_ip) THEN
@@ -463,37 +505,39 @@ END;
 -- for either RRQ, originating ARQ or answering ARQ
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
--- $3 - is this RRQ (TRUE) or ARQ (FALSE)
--- $4 - is this answering ARQ (TRUE) or originating ARQ (FALSE)
--- $5 - Calling-Station-Id
--- $6 - Called-Station-Id
--- $7 - h323-ivr-out
-CREATE OR REPLACE FUNCTION radius_get_check_attrs(TEXT, INET, BOOLEAN, BOOLEAN, TEXT, TEXT, TEXT)
+-- $3 - NAS-IP-Address
+-- $4 - is this RRQ (TRUE) or ARQ (FALSE)
+-- $5 - is this answering ARQ (TRUE) or originating ARQ (FALSE)
+-- $6 - Calling-Station-Id
+-- $7 - Called-Station-Id
+-- $8 - h323-ivr-out
+CREATE OR REPLACE FUNCTION radius_get_check_attrs(TEXT, INET, INET, BOOLEAN, BOOLEAN, TEXT, TEXT, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	username ALIAS FOR $1;
 	framed_ip ALIAS FOR $2;
-	registration ALIAS FOR $3;
-	answer_call ALIAS FOR $4;
-	calling_station_id ALIAS FOR $5;
-	called_station_id ALIAS FOR $6;
-	h323ivrout ALIAS FOR $7;
+	nasipaddress ALIAS FOR $3;
+	registration ALIAS FOR $4;
+	answer_call ALIAS FOR $5;
+	calling_station_id ALIAS FOR $6;
+	called_station_id ALIAS FOR $7;
+	h323ivrout ALIAS FOR $8;
 	avp voipradattr%ROWTYPE;
 BEGIN
 	IF registration THEN
-		FOR avp IN SELECT * FROM radius_get_check_rrq_attrs(username, framed_ip, h323ivrout) LOOP
+		FOR avp IN SELECT * FROM radius_get_check_rrq_attrs(username, framed_ip, nasipaddress, h323ivrout) LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSIF answer_call THEN
 		FOR avp IN SELECT * FROM 
-			radius_get_check_arq_attrs(username, framed_ip, TRUE, calling_station_id, called_station_id) 
+			radius_get_check_arq_attrs(username, framed_ip, nasipaddress, TRUE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSE
 		FOR avp IN SELECT * FROM 
-			radius_get_check_arq_attrs(username, framed_ip, FALSE, calling_station_id, called_station_id) 
+			radius_get_check_arq_attrs(username, framed_ip, nasipaddress, FALSE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;
@@ -506,38 +550,40 @@ END;
 -- for either RRQ, originating ARQ or answering ARQ
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
--- $3 - is this RRQ (TRUE) or ARQ (FALSE)
--- $4 - is this answering ARQ (TRUE) or originating ARQ (FALSE)
--- $5 - Calling-Station-Id
--- $6 - Called-Station-Id
--- $7 - h323-ivr-out
+-- $3 - NAS-IP-Address
+-- $4 - is this RRQ (TRUE) or ARQ (FALSE)
+-- $5 - is this answering ARQ (TRUE) or originating ARQ (FALSE)
+-- $6 - Calling-Station-Id
+-- $7 - Called-Station-Id
+-- $8 - h323-ivr-out
 
-CREATE OR REPLACE FUNCTION radius_get_reply_attrs(TEXT, INET, BOOLEAN, BOOLEAN, TEXT, TEXT, TEXT)
+CREATE OR REPLACE FUNCTION radius_get_reply_attrs(TEXT, INET, INET, BOOLEAN, BOOLEAN, TEXT, TEXT, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	username ALIAS FOR $1;
 	framed_ip ALIAS FOR $2;
-	registration ALIAS FOR $3;
-	answer_call ALIAS FOR $4;
-	calling_station_id ALIAS FOR $5;
-	called_station_id ALIAS FOR $6;
-	h323ivrout ALIAS FOR $7;
+	nasipaddress ALIAS FOR $3;
+	registration ALIAS FOR $4;
+	answer_call ALIAS FOR $5;
+	calling_station_id ALIAS FOR $6;
+	called_station_id ALIAS FOR $7;
+	h323ivrout ALIAS FOR $8;
 	avp voipradattr%ROWTYPE;
 BEGIN
 	IF registration THEN
-		FOR avp IN SELECT * FROM radius_get_reply_rrq_attrs(username, framed_ip, h323ivrout) LOOP
+		FOR avp IN SELECT * FROM radius_get_reply_rrq_attrs(username, framed_ip, nasipaddress, h323ivrout) LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSIF answer_call THEN
 		FOR avp IN SELECT * FROM 
-			radius_get_reply_arq_attrs(username, framed_ip, TRUE, calling_station_id, called_station_id) 
+			radius_get_reply_arq_attrs(username, framed_ip, nasipaddress, TRUE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSE
 		FOR avp IN SELECT * FROM 
-			radius_get_reply_arq_attrs(username, framed_ip, FALSE, calling_station_id, called_station_id) 
+			radius_get_reply_arq_attrs(username, framed_ip, nasipaddress, FALSE, calling_station_id, called_station_id) 
 		LOOP
 			RETURN NEXT avp;
 		END LOOP;
