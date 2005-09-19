@@ -11,6 +11,7 @@ GnuGk Sample Billing Platform
 This is a system that can be used to provide AAA 
 (Authentication, Authorization and Accounting) services 
 to Voice over IP networks managed by the GNU Gatekeeper.
+It's also possible to use it with MERA and Cisco devices.
 
 It consists of three major components:
 	GnuGk (2.0 or 2.2) H.323 gatekeeper (http://www.gnugk.org)

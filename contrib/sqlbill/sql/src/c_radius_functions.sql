@@ -18,18 +18,89 @@ CREATE TABLE voipradattr (
 	attrop TEXT
 );
 
+-- Extract a specific variable from multiple Cisco-AVPair attributes
+-- $1 - a string of all value pairs from RADIUS request (%Z)
+-- $2 - Cisco-AVPair variable name
+CREATE OR REPLACE FUNCTION radius_get_ciscoavpair(TEXT, TEXT)
+	RETURNS TEXT AS
+'
+DECLARE
+	vplist ALIAS FOR $1;
+	varname ALIAS FOR $2;
+	s TEXT;
+	vpstring TEXT;
+	vpnum INT := 1;
+	sepindex INT;
+BEGIN
+	LOOP
+		-- extract next attriubute = value pair
+		vpstring := split_part(vplist, ''\n'', vpnum);
+		EXIT WHEN vpstring IS NULL;
+		EXIT WHEN length(vpstring) = 0;
+		sepindex := position(''='' in vpstring);
+		EXIT WHEN sepindex IS NULL;
+		IF sepindex > 1 THEN
+			-- get attribute name
+			s := substring(vpstring from 1 for (sepindex-1));
+			s := trim('' \t'' from s);
+			IF s = ''Cisco-AVPair'' THEN
+				-- get attribute value
+				vpstring := substring(vpstring from (sepindex + 1));
+				vpstring := trim('' \t"'' from vpstring);
+				sepindex := position(''='' in vpstring);
+				IF sepindex IS NOT NULL THEN
+					IF sepindex > 1 THEN
+						-- get variable name
+						s := substring(vpstring from 1 for (sepindex-1));
+						s := trim('' \t'' from s);
+						IF s = varname THEN
+							s := substring(vpstring from sepindex + 1);
+							RETURN radius_xlat(trim('' \t'' from s));
+						END IF;
+					END IF;
+				END IF;
+			END IF;
+		END IF;
+		vpnum := vpnum + 1;
+	END LOOP;
+	RETURN NULL;
+END;
+' LANGUAGE 'plpgsql' IMMUTABLE SECURITY INVOKER;
+
+-- Extract a specific variable from the h323-ivr-out string
+-- $1 - variable:value pairs to parse (example: 'terminal-alias:123,456')
+-- $2 - variable name to match (example: 'terminal-alias')
+CREATE OR REPLACE FUNCTION radius_get_ciscovar(TEXT, TEXT)
+	RETURNS TEXT AS
+'
+DECLARE
+	vplist ALIAS FOR $1;
+	varname ALIAS FOR $2;
+	parsedval TEXT;
+	idx INT;
+BEGIN
+	parsedval := substring(vplist from varname || '':[^;]*'');
+	idx := strpos(parsedval, '':'');
+	IF idx > 0 THEN
+		parsedval := substring(parsedval, idx + 1);
+		RETURN parsedval;
+	END IF;
+	RETURN NULL;
+END;
+' LANGUAGE 'plpgsql' IMMUTABLE SECURITY INVOKER;
+
 -- build a list of RADIUS check attribute-value pairs for endpoint registration request
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
 -- $3 - NAS-IP-Address
--- $4 - h323-ivr-in
+-- $4 - newline separated list of all a=v pairs in the request
 CREATE OR REPLACE FUNCTION radius_get_check_rrq_attrs(TEXT, INET, INET, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	framed_ip ALIAS FOR $2;
 	nasipaddress ALIAS FOR $3;
-	h323ivrout ALIAS FOR $4;
+	vplist ALIAS FOR $4;
 	username TEXT;
 	reject_attr voipradattr%ROWTYPE;
 	check_attr voipradattr%ROWTYPE;
@@ -37,8 +108,9 @@ DECLARE
 	userid INT;
 	aliasnum INT;
 	rrqalias TEXT;
+	aliases TEXT;
 BEGIN
-	RAISE LOG ''sqlbill: RRQ(username: %; IP: %; aliases: %)'', $1, $2, $4;
+	RAISE LOG ''sqlbill: RRQ(username: %; IP: %)'', $1, framed_ip;
 	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
@@ -47,7 +119,7 @@ BEGIN
 	reject_attr.attrop := '':='';
 	
 	-- check input parameters
-	IF $1 IS NULL OR $2 IS NULL THEN
+	IF $1 IS NULL OR nasipaddress IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
 	END IF;
@@ -80,6 +152,10 @@ BEGIN
 		
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
+		IF framed_ip IS NULL THEN
+			RETURN NEXT reject_attr;
+			RETURN;
+		END IF;
 		IF NOT (query_result.framedip >>= framed_ip) THEN
 			RETURN NEXT reject_attr;
 			RETURN;
@@ -87,10 +163,12 @@ BEGIN
 	END IF;
 
 	-- check the list of aliases being registered, if it is present
-	IF h323ivrout IS NOT NULL THEN
+	aliases := radius_get_ciscoavpair(vplist, ''h323-ivr-out'');
+	aliases := radius_get_ciscovar(aliases, ''terminal-alias'');
+	IF aliases IS NOT NULL THEN
 		aliasnum := 1;
 		LOOP
-			rrqalias := split_part(h323ivrout, '','', aliasnum);
+			rrqalias := split_part(aliases, '','', aliasnum);
 			EXIT WHEN length(rrqalias) = 0;
 			aliasnum := aliasnum + 1;
 			IF NOT rrqalias = query_result.h323id AND NOT rrqalias ~ query_result.allowedaliases THEN
@@ -115,14 +193,14 @@ END;
 -- $1 - User-Name
 -- $2 - Framed-IP-Address
 -- $3 - NAS-IP-Address
--- $4 - h323-ivr-in
+-- $4 - newline separated list of all a=v pairs in the request
 CREATE OR REPLACE FUNCTION radius_get_reply_rrq_attrs(TEXT, INET, INET, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	framed_ip ALIAS FOR $2;
 	nasipaddress ALIAS FOR $3;
-	h323ivrout ALIAS FOR $4;
+	vplist ALIAS FOR $4;
 	username TEXT;
 	rcode_attr voipradattr%ROWTYPE;
 	reply_attr voipradattr%ROWTYPE;
@@ -131,6 +209,7 @@ DECLARE
 	query_result RECORD;
 	aliasnum INT;
 	rrqalias TEXT;
+	aliases TEXT;
 BEGIN
 	-- prepare h323-return-code avp, as it is referenced very often
 	rcode_attr.id := attr_num;
@@ -140,7 +219,7 @@ BEGIN
 	attr_num := attr_num + 1;
 	
 	-- check input parameters
-	IF $1 IS NULL OR $2 IS NULL THEN
+	IF $1 IS NULL OR nasipaddress IS NULL THEN
 		rcode_attr.attrvalue := rcode_attr.attrvalue || ''11'';
 		RETURN NEXT rcode_attr;
 		RETURN;
@@ -178,6 +257,11 @@ BEGIN
 
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
+		IF framed_ip IS NULL THEN
+			rcode_attr.attrvalue := rcode_attr.attrvalue || ''7'';
+			RETURN NEXT rcode_attr;
+			RETURN;
+		END IF;
 		IF NOT (query_result.framedip >>= framed_ip) THEN
 			rcode_attr.attrvalue := rcode_attr.attrvalue || ''7'';
 			RETURN NEXT rcode_attr;
@@ -186,10 +270,12 @@ BEGIN
 	END IF;
 	
 	-- check the list of aliases being registered, if it is present
-	IF h323ivrout IS NOT NULL THEN
+	aliases := radius_get_ciscoavpair(vplist, ''h323-ivr-out'');
+	aliases := radius_get_ciscovar(aliases, ''terminal-alias'');
+	IF aliases IS NOT NULL THEN
 		aliasnum := 1;
 		LOOP
-			rrqalias := split_part(h323ivrout, '','', aliasnum);
+			rrqalias := split_part(aliases, '','', aliasnum);
 			EXIT WHEN length(rrqalias) = 0;
 			aliasnum := aliasnum + 1;
 			IF NOT rrqalias = query_result.h323id AND NOT rrqalias ~ query_result.allowedaliases THEN
@@ -262,7 +348,7 @@ DECLARE
 	trf voiptariff%ROWTYPE;
 	userid INT;
 BEGIN
-	RAISE LOG ''sqlbill: ARQ(username: %; IP: %; answer: %; calling: %; called: %)'', $1, $2, $4, $5, $6;
+	RAISE LOG ''sqlbill: ARQ(username: %; IP: %; answer: %; calling: %; called: %)'', $1, framed_ip, answer_call, $5, $6;
 	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
@@ -271,7 +357,7 @@ BEGIN
 	reject_attr.attrop := '':='';
 	
 	-- check input arguments
-	IF $1 IS NULL OR $2 IS NULL OR $4 IS NULL OR $5 IS NULL OR $6 IS NULL THEN
+	IF $1 IS NULL OR nasipaddress IS NULL OR answer_call IS NULL OR $5 IS NULL OR $6 IS NULL THEN
 		RETURN NEXT reject_attr;
 		RETURN;
 	END IF;
@@ -307,6 +393,10 @@ BEGIN
 
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
+		IF framed_ip IS NULL THEN
+			RETURN NEXT reject_attr;
+			RETURN;
+		END IF;
 		IF NOT (query_result.framedip >>= framed_ip) THEN
 			RETURN NEXT reject_attr;
 			RETURN;
@@ -376,7 +466,7 @@ BEGIN
 	attr_num := attr_num + 1;
 	
 	-- check input arguments
-	IF $1 IS NULL OR $2 IS NULL OR $4 IS NULL OR $5 IS NULL OR $6 IS NULL THEN
+	IF $1 IS NULL OR nasipaddress IS NULL OR answer_call IS NULL OR $5 IS NULL OR $6 IS NULL THEN
 		rcode_attr.attrvalue := rcode_attr.attrvalue || ''11'';
 		RETURN NEXT rcode_attr;
 		RETURN;
@@ -417,6 +507,11 @@ BEGIN
 
 	-- check if the endpoint IP address matches
 	IF query_result.framedip IS NOT NULL THEN
+		IF framed_ip IS NULL THEN
+			rcode_attr.attrvalue := rcode_attr.attrvalue || ''7'';
+			RETURN NEXT rcode_attr;
+			RETURN;
+		END IF;
 		IF NOT (query_result.framedip >>= framed_ip) THEN
 			rcode_attr.attrvalue := rcode_attr.attrvalue || ''7'';
 			RETURN NEXT rcode_attr;
@@ -510,23 +605,26 @@ END;
 -- $5 - is this answering ARQ (TRUE) or originating ARQ (FALSE)
 -- $6 - Calling-Station-Id
 -- $7 - Called-Station-Id
--- $8 - h323-ivr-out
+-- $8 - newline separated list of all Access-Request a=v pairs
 CREATE OR REPLACE FUNCTION radius_get_check_attrs(TEXT, INET, INET, BOOLEAN, BOOLEAN, TEXT, TEXT, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	username ALIAS FOR $1;
-	framed_ip ALIAS FOR $2;
+	framedipaddress ALIAS FOR $2;
 	nasipaddress ALIAS FOR $3;
 	registration ALIAS FOR $4;
 	answer_call ALIAS FOR $5;
 	calling_station_id ALIAS FOR $6;
 	called_station_id ALIAS FOR $7;
-	h323ivrout ALIAS FOR $8;
+	vplist ALIAS FOR $8;
+	framed_ip INET;
 	avp voipradattr%ROWTYPE;
 BEGIN
+	-- if Framed-IP-Address is not present, try to extract it from Cisco-AVPair
+	framed_ip := COALESCE(framedipaddress, radius_get_ciscoavpair(vplist, ''h323-gw-address'')::INET);
 	IF registration THEN
-		FOR avp IN SELECT * FROM radius_get_check_rrq_attrs(username, framed_ip, nasipaddress, h323ivrout) LOOP
+		FOR avp IN SELECT * FROM radius_get_check_rrq_attrs(username, framed_ip, nasipaddress, vplist) LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSIF answer_call THEN
@@ -555,24 +653,26 @@ END;
 -- $5 - is this answering ARQ (TRUE) or originating ARQ (FALSE)
 -- $6 - Calling-Station-Id
 -- $7 - Called-Station-Id
--- $8 - h323-ivr-out
-
+-- $8 - newline separated list of all Access-Request a=v pairs
 CREATE OR REPLACE FUNCTION radius_get_reply_attrs(TEXT, INET, INET, BOOLEAN, BOOLEAN, TEXT, TEXT, TEXT)
 	RETURNS SETOF voipradattr AS
 '
 DECLARE
 	username ALIAS FOR $1;
-	framed_ip ALIAS FOR $2;
+	framedipaddress ALIAS FOR $2;
 	nasipaddress ALIAS FOR $3;
 	registration ALIAS FOR $4;
 	answer_call ALIAS FOR $5;
 	calling_station_id ALIAS FOR $6;
 	called_station_id ALIAS FOR $7;
-	h323ivrout ALIAS FOR $8;
+	vplist ALIAS FOR $8;
+	framed_ip INET;
 	avp voipradattr%ROWTYPE;
 BEGIN
+	-- if Framed-IP-Address is not present, try to extract it from Cisco-AVPair
+	framed_ip := COALESCE(framedipaddress, radius_get_ciscoavpair(vplist, ''h323-gw-address'')::INET);
 	IF registration THEN
-		FOR avp IN SELECT * FROM radius_get_reply_rrq_attrs(username, framed_ip, nasipaddress, h323ivrout) LOOP
+		FOR avp IN SELECT * FROM radius_get_reply_rrq_attrs(username, framed_ip, nasipaddress, vplist) LOOP
 			RETURN NEXT avp;
 		END LOOP;
 	ELSIF answer_call THEN
