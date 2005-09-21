@@ -1,3 +1,6 @@
+21 Sep 2005 -- zvision
+  * dumpdata.sh/restoredata.sh scripts fixed
+
 19 Sep 2005 -- zvision
   * new voipuser.nasaddress field to restrict user's access to the given NAS only
   * firstname, surname voipuser fields removed. They should be rather a part
