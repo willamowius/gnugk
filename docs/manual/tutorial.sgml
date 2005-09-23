@@ -106,11 +106,6 @@ and make a call to see what messages are now handled by the gatekeeper.
 Note that all media packets (audio and video) are still sent
 directly between the endpoints (the 2 instances of ohphone).
 
-Since gatekeeper routed signaling is much more complicated you are
-much more likely to hit a bug in the gatekeeper in this mode.
-But if it breaks, you get to keep the pieces. ;-)
-
-<p>
 <sect1>A virtual PBX: Disconnecting calls
 <p>
 Until now the gatekeeper has only acted as a mechanism
