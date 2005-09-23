@@ -953,6 +953,8 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 		alias.Replace("*","", true);
 		alias.Replace("#","", true);
 		alias.Replace(",","", true);
+		if (alias.Left(2) *= "00")	// ENUM registries expect country codes without leading digits
+			alias = alias.Mid(2);
 		PINDEX j;
 		for (j = 0; j < alias.GetLength(); ++j)
 			if (!isdigit(alias[j]))

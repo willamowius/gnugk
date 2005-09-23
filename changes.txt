@@ -1,5 +1,6 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- BUGFIX(Routing.cxx) remove leading 00 for ENUM queries
 - BUGFIX(RasSrv.cxx) have AcceptNeighborsCalls default to 1 like
   the documentation always said
 - BUGFIX(Routing.cxx) fix ENUMPolicy implementation
