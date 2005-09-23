@@ -34,9 +34,9 @@ A time interval (seconds) for accounting updates to be logged
 for each call in progress. The exact details of the accounting updates
 depend on accounting logger modules selected (see section
 <ref id="gkacct" name="[Gatekeeper::Acct]">). In general, the accounting
-update is to provide backend services with incrementing call duration
+update is to provide back-end services with incrementing call duration
 for connected calls.
-The default value 0 tells the gatkeeper to not send accounting updates
+The default value 0 tells the gatekeeper to not send accounting updates
 at all. Please note that setting short periods may decrease GK performance.
 
 <item><tt/TimestampFormat=Cisco/<newline>
@@ -53,7 +53,7 @@ Set the irrFrequency in ACF messages. 0 turns it off.
 Default: <tt/FALSE/<newline>
 <p>
 Check if both endpoints in a call send the requested IRRs.
-A call will be treminated if one of the endpoints didn't send
+A call will be terminated if one of the endpoints didn't send
 an IRR after 2 * irrFrequency.
 
 </itemize>
@@ -146,14 +146,14 @@ it's parent when receiving a Reload command.
 <item><tt/NATRetryInterval=60/<newline>
 Default: <tt/60/<newline>
 <p>
-How long to wait before trying to reconnect TCP NAT signalling socket (seconds).
+How long to wait before trying to reconnect TCP NAT signaling socket (seconds).
 This can happen when either the connection cannot be established or it has
 been broken.
 
 <item><tt/NATKeepaliveInterval=86400/<newline>
 Default: <tt/86400/<newline>
 <p>
-Define how often the TCP NAT signalling connection with a parent gatekeeper
+Define how often the TCP NAT signaling connection with a parent gatekeeper
 is refreshed. As NAT boxes usually keep TCP mappings for a definite time only,
 it is good to set this to some value a bit shorter than NAT box mapping timeout.
 Refreshing is done by sending a special Q.931 IncomingCallProceeding message.
@@ -181,7 +181,7 @@ Define it if you want to accept only such parent gatekeepers that match
 this gatekeeper identifier. Useful with GRQ discovery and can prevent 
 an accidental gatekeeper match. Do not set this variable, if you do not
 care about gatekeeper identifiers or you use alternate gatekeepers that
-can have different gatekeeper indentifiers set.
+can have different gatekeeper identifiers set.
 
 <item><tt/EndpointIdentifier=OpenH323GK/<newline>
 Default: <tt/Not set/<newline>
@@ -313,7 +313,7 @@ the <tt/addpasswd/ utility.
 Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to read gatekeeper settings from the database. 
-The query is parametrized - that means parameter replacement occurs before 
+The query is parameterized - that means parameter replacement occurs before 
 the query is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
 strings. Specify %% to embed a percent character before a digit into string 
 (like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
@@ -339,7 +339,7 @@ ConfigQuery=SELECT '[RasSrv::RRQAuth]', alias, rule FROM rrqauth WHERE gk = '%1'
 Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve from the database rewrite rules 
-for <tt/[RasSrv::RewriteE164]/ section. The query is parametrized 
+for <tt/[RasSrv::RewriteE164]/ section. The query is parameterized 
 - that means parameter replacement occurs before each query is executed. 
 Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings. 
 Specify %% to embed a percent character before a digit into string 
@@ -364,7 +364,7 @@ RewriteE164Query=SELECT rkey, rvalue FROM rewriterule WHERE gk = '%1'
 Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve from the database neighbor entries
-for <tt/[RasSrv::Neighbors]/ section . The query is parametrized 
+for <tt/[RasSrv::Neighbors]/ section . The query is parameterized 
 - that means parameter replacement occurs before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
 strings. Specify %% to embed a percent character before a digit into string 
@@ -376,7 +376,7 @@ like <bf/%{1}123/. For <tt/NeighborsQuery/ one parameter is defined:
 It is expected that the query returns zero or more rows of data,
 with each row consisting of six columns:
 <itemize>
-<item><tt/column at index 0/ - neighbor name (idenitifier)
+<item><tt/column at index 0/ - neighbor name (identifier)
 <item><tt/column at index 1/ - neighbor IP address
 <item><tt/column at index 2/ - neighbor port number
 <item><tt/column at index 3/ - optional prefixes (comma separated)
@@ -393,7 +393,7 @@ NeighborsQuery=SELECT nid, nip, nport, npfx, NULL, 0 FROM neighbor WHERE gk = '%
 Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve permanent endpoints from the database 
-for <tt/[RasSrv::PermanentEndpoints]/ section . The query is parametrized 
+for <tt/[RasSrv::PermanentEndpoints]/ section . The query is parameterized 
 - that means parameter replacement occurs before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
 strings. Specify %% to embed a percent character before a digit into string 
@@ -420,7 +420,7 @@ PermanentEndpointsQuery=SELECT peip, 1720, pealias, NULL FROM permanentep WHERE 
 Default: <tt>N/A</tt><newline>
 <p>
 Define an SQL query used to retrieve gateway prefixes from the database 
-for <tt/[RasSrv::GWPrefixes]/ section . The query is parametrized 
+for <tt/[RasSrv::GWPrefixes]/ section . The query is parameterized 
 - that means parameter replacement is made before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
 strings. Specify %% to embed a percent character before a digit into string 

@@ -71,8 +71,8 @@ There is a number of commands that can be issued in this telnet session:
 Type "help" to see them.
 To end the telnet session with the gatekeeper type "quit" and hit Enter.
 
-But this is very insecure - everyboy could connect to the status interface and see this.
-Lets change the the configuration file to
+But this is very insecure - everybody could connect to the status interface and see this.
+Lets change the configuration file to
 
 <tscreen><verb>
 [Gatekeeper::Main]
@@ -92,8 +92,8 @@ Take a look at the <ref id="gkstatusauth" name="GkStatus::Auth"> section for mor
 <sect1>Starting the gatekeeper in routed mode
 <p>
 Starting the gatekeeper in routed mode means that the gatekeeper
-uses "gatekeeper routed signalling" for all calls. In this
-mode the gatekeeper all signalling messages go through the gatekeeper
+uses "gatekeeper routed signaling" for all calls. In this
+mode the gatekeeper all signaling messages go through the gatekeeper
 and it has much greater control over the calls.
 
 <tscreen><verb>
@@ -106,15 +106,15 @@ and make a call to see what messages are now handled by the gatekeeper.
 Note that all media packets (audio and video) are still sent
 directly between the endpoints (the 2 instances of ohphone).
 
-Since gatekeeper routed signalling is much more complicated you are
-much more likely to hit a bug n the gatekeeper in this mode.
+Since gatekeeper routed signaling is much more complicated you are
+much more likely to hit a bug in the gatekeeper in this mode.
 But if it breaks, you get to keep the pieces. ;-)
 
 <p>
 <sect1>A virtual PBX: Disconnecting calls
 <p>
 Until now the gatekeeper has only acted as a mechanism
-to resolve symbolic names to IP addresses. Thats an important
+to resolve symbolic names to IP addresses. That's an important
 function but hardly exciting.
 
 Since the gatekeeper has a lot of control over the calls,

@@ -24,7 +24,7 @@ Use <tt/make both/ to build both versions.
 Note you have to use GCC 3.3.x or later. The older version may not work.
 Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/
 in the gatekeeper directory before starting actual compilation (make debug or
-make opt) - these commands build approtiate dependency lists, so after
+make opt) - these commands build appropriate dependency lists, so after
 you will update your sources from CVS, all affected files will get recompiled.
 Otherwise you can finish with the Gatekeeper partially compiled with the older
 headers and partially with the updated headers - a very bad thing.<newline>
@@ -32,8 +32,8 @@ headers and partially with the updated headers - a very bad thing.<newline>
 On Windows just open and compile the provided solution (<tt/gk.sln/) for
 Microsoft Visual Studio .NET 2003 or the workspace (<tt/gk.dsw/) for Microsoft
 Visual Studio 6.0 SP6. Of course, you need to have PWLib
-and OpenH323 already compiled and approtiate include/library paths set up.
-If you want to get MySQL or PostgreSQL support, install/compile approtiate
+and OpenH323 already compiled and appropriate include/library paths set up.
+If you want to get MySQL or PostgreSQL support, install/compile appropriate
 client libraries and add HAS_MYSQL=1 and/or HAS_PGSQL=1 to preprocessor
 macros of the gatekeeper project. You also need to tell the compiler
 where to find include files/libraries and instruct the linker to link
@@ -103,7 +103,7 @@ $ addpasswd gnugk.ini RadAuth SharedSecret VerySecretPassword
 </verb></tscreen>
 
 IMPORTANT: <tt/KeyFilled/ variable defines a default initializer for password
-encryption keys. It can be ommited in the config (it is defined to 0 then),
+encryption keys. It can be omitted in the config (it is defined to 0 then),
 but if it is specified, each time it changes, encrypted passwords have to be
 regenerated (encrypted again using the <tt/addpasswd/ utility).
 </sect1>
@@ -131,7 +131,7 @@ See section <ref id="commandline" name="Command Line Options"> for details.
 If you do not wish to compile the gatekeeper from source,
 there are several pre-built `packages' available from
 <url url="http://sourceforge.net/project/showfiles.php?group_id=4797" name="SourceForge">.
-Not all versions will be made available as binaries - check what is avilable.
+Not all versions will be made available as binaries - check what is available.
 
 <bf/Tar packages (.tgz or .tar.gz)/<p>
 Download the tar file and enter the following command as <tt/root/,

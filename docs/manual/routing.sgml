@@ -86,11 +86,11 @@ When one of the messages is received which calls for a routing
 decision, all calls to an alias of the h323_ID type will be
 resolved using DNS. If DNS fails to resolve the alias, it is
 matched against the internal registration table. If a call is
-requested to an alias starting with 002, first the neighbours
+requested to an alias starting with 002, first the neighbors
 are checked and then the internal registration table. If the
 requested alias is not an h323_ID or an alias starting with
 002, the default policy is used by querying the internal
-registration table, then the neighbours, and if that fails the
+registration table, then the neighbors, and if that fails the
 parent.
 
 For the ARQ, LRQ, Setup and Facility messages one would use the
@@ -179,7 +179,7 @@ If the call matches the gateway, the direction and begins with
 <tt/original-prefix/ it is rewritten to <tt/target-prefix/.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
 Special wildcard characters (<tt/'.'/ and <tt/'%'/) are available.
-Multiple rules for the same gateway should be seperated by ';'.
+Multiple rules for the same gateway should be separated by ';'.
 <tag/Example:/
 <tt/gw1=in=123=321/
 <p>
@@ -242,7 +242,7 @@ though the later will take effect first.
 <p>
 This section defines rules for the <tt/numberanalysis/ routing policy.
 The policy checks a dialed number for minimum and/or maximum number of digits
-and sends ARJ, if neccessary (number of digits is out of range), to support
+and sends ARJ, if necessary (number of digits is out of range), to support
 overlapped digit sending.
 
 <descrip>
@@ -295,7 +295,7 @@ feature that can be configured for each endpoint (rule).
 <item><tt/ProcessSourceInfo=1/<newline>
 Default: <tt/1/<newline>
 <p>
-In addition to rewritting a Calling-Party-Number IE also a sourceInfo
+In addition to rewriting a Calling-Party-Number IE also a sourceInfo
 element of a H.225.0 Setup message can be rewritten, so both contain
 consistent information.
 
@@ -336,7 +336,7 @@ not a gateway.<newline>
 
 The prefix <tt/cli:/ or <tt/dno:/ (the default) selects what number will be used
 to match the <tt/number_prefix/ - a caller id (CLI/ANI) or a dialed number.
-Number matching/rewritting can be done in three ways:
+Number matching/rewriting can be done in three ways:
 <itemize>
 <item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
                match against <tt/number_prefix/ and, if the match is found,
@@ -350,7 +350,7 @@ Number matching/rewritting can be done in three ways:
 			   with a NEW_CLI prefix.
 </itemize>
 After the equality (=/~=/*=) sign, there follows a list of new CLI values to be used.
-If more than one value is specified, a one will be choosen on a random basis.
+If more than one value is specified, a one will be chosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999.
 There is a special string constant "any", that can be used in place
 of the <tt/CALLER_IP/ or the <tt/number_prefix/. To enable <tt/CLIR/ for this rule,
@@ -427,7 +427,7 @@ not a gateway.<newline>
 The prefix <tt/cli:/, <tt/dno:/ (the default) or <tt/cno:/ selects what number
 will be used to match the <tt/number_prefix/ - a caller id (CLI/ANI),
 a dialed number or a destination/called number (the dialed number after rewrite).
-Number matching/rewritting can be done in three ways:
+Number matching/rewriting can be done in three ways:
 <itemize>
 <item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
                match against <tt/number_prefix/ and, if the match is found,
@@ -441,11 +441,11 @@ Number matching/rewritting can be done in three ways:
 			   with a NEW_CLI prefix.
 </itemize>
 After the equality sign (=/~=/*=), a list of new CLI values to be used follows.
-If more than one value is specified, a one will be choosen on a random basis.
+If more than one value is specified, a one will be chosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999.
 There is a special string constant "any", that can be used in place
 of the <tt/CALLER_IP/, the <tt/CALLEE_IP/ or the <tt/number_prefix/. 
-To enable <tt/CLIR/ for this rule, se a special string constant <tt/"hide"/
+To enable <tt/CLIR/ for this rule, use a special string constant <tt/"hide"/
 or <tt/"hidefromterminals"/ instead of the list of new CLI values.
 
 <tag/Example 1:/
@@ -477,7 +477,7 @@ out:192.168.1.1=any any=hide
 <p>
 In this example each subscriber has enabled CLIR. So all calls to terminals
 will have a caller's number removed and presentation/screening indicators set.
-Calls to gateways will have only a presentation indicator set to "presention restricted"
+Calls to gateways will have only a presentation indicator set to "presentation restricted"
 and the caller's number will not be removed to allow proper call routing and number
 removal at the destination equipment.<newline>
 One exception to these rules are calls from 192.168.1.1 which will have a caller's number
@@ -536,7 +536,7 @@ will not work because of the same key (<tt/in:192.168.1.1/):
 in:192.168.1.1=1001=2001
 in:192.168.1.1=any=2000
 </verb></tscreen>
-As the workaround, you can use a string with percent signs (%) at the beginning
+As workaround, you can use a string with percent signs (%) at the beginning
 and at the end before the key. This prefix will be automatically stripped
 from the key name before loading rules:
 <tscreen><verb>

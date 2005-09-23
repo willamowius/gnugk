@@ -1,15 +1,15 @@
 <sect2>Section &lsqb;RoutedMode&rsqb;
 <label id="routed">
 <p>
-Call signalling messages may be passwd in two ways.
-The first method is Direct Endpoint Call Signalling, in which case
-the call signalling messages are passed directly between the endpoints.
-The second method is Gatekeeper Routed Call Signalling. In this method,
-the call signalling messages are routed through the gatekeeper
+Call signaling messages may be passwd in two ways.
+The first method is Direct Endpoint Call Signaling, in which case
+the call signaling messages are passed directly between the endpoints.
+The second method is Gatekeeper Routed Call Signaling. In this method,
+the call signaling messages are routed through the gatekeeper
 between the endpoints. The choice of which methods is used is made by
 the gatekeeper.
 
-When Gatekeeper Routed call signalling is used, the gatekeeper may choose
+When Gatekeeper Routed call signaling is used, the gatekeeper may choose
 whether to route the H.245 control channel and logical channels.
 
 <descrip>
@@ -51,7 +51,7 @@ for calls being proxied.
 <item><tt/CallSignalPort=0/<newline>
 Default: <tt/1721/<newline>
 <p>
-The port of call signalling for the gatekeeper.
+The port of call signaling for the gatekeeper.
 The default port is <tt/1721/. We don't use the well-known port <tt/1720/
 so you can run an H.323 endpoint in the same machine of the gatekeeper.
 You may set it to <tt/0/ to let the gatekeeper choose an arbitrary port.
@@ -72,18 +72,18 @@ Default: <tt/1/<newline>
 The number of RTP proxy handling threads. Increase this value only if you
 experience problems with RTP delay or jitter on a heavily loaded gatekeeper.
 A special care has to be taken on Windows, at RTP handling threads are subject
-of the same limit of 64 sockets as signalling threads. Each RTP thread is
+of the same limit of 64 sockets as signaling threads. Each RTP thread is
 able to handle at most 32 proxied calls (2 sockets per call).
 
 <item><tt/AcceptNeighborsCalls=1/<newline>
 Default: <tt/1/<newline>
 <p>
-With this feature enabled, the call signalling thread will accept calls
+With this feature enabled, the call signaling thread will accept calls
 without a pre-existing CallRec found in the CallTable, provided an endpoint
 corresponding to the destinationAddress in Setup can be found in the
 RegistrationTable, and the calling party is its neighbors or parent GK.
-The gatekeeper will also use it's own call signalling address in LCF
-in responding to an LRQ. That means, the call signalling will be routed
+The gatekeeper will also use it's own call signaling address in LCF
+in responding to an LRQ. That means, the call signaling will be routed
 to GK2 in GK-GK calls.
 As a result, the CDRs in GK2 can correctly show the connected
 time, instead of 'unconnected'.
@@ -101,7 +101,7 @@ Default: <tt/0/<newline>
 Some endpoints send h245Address in the UUIE of Q.931 even when h245Tunneling
 is set to TRUE. This may cause interoperability problems. If the option
 is TRUE, the gatekeeper will remove h245Address when h245Tunneling flag
-is TRUE. This enforces the remote party to stay in tunnelling mode.
+is TRUE. This enforces the remote party to stay in tunneling mode.
 
 <item><tt/RemoveCallOnDRQ=0/<newline>
 Default: <tt/1/<newline>
@@ -127,11 +127,11 @@ Default: <tt/0/<newline>
 <p>
 On hangup, the endpoint sends both Release Complete within H.225/Q.931 and
 DRQ within RAS. It may happen that DRQ is processed first, causing the
-gatekeeper to close the call signalling channel, thus preventing the
+gatekeeper to close the call signaling channel, thus preventing the
 Release Complete from being forwarding to the other endpoint.
 Though the gatekeeper closes the TCP channel to the destination,
 some endpoints (e.g. Cisco CallManager) don't drop the call even if
-the call signalling channel is closed.
+the call signaling channel is closed.
 This results in phones that keep ringing if the caller hangs up
 before the callee pickups.
 Setting this parameter to <tt/1/ makes the gatekeeper always send
@@ -186,7 +186,7 @@ Only valid if <tt/ForwardOnFacility=1/.
 <item><tt/Q931PortRange=20000-20999/<newline>
 Default: <tt>N/A (let the OS allocate ports)</tt><newline>
 <p>
-Specify the range of TCP port number for Q.931 signalling channels.
+Specify the range of TCP port number for Q.931 signaling channels.
 Note the range size may limit the number of concurrent calls.
 Make sure this range is wide enough to take into account TIME_WAIT
 TCP socket timeout before a socket can be reused after closed.
@@ -194,7 +194,7 @@ TIME_WAIT may vary from 15 seconds to a few minutes, depending on an OS.
 So if your range is 2000-2001 and you made two calls, next two can be
 made after TIME_WAIT timeout elapses and the sockets can be reused.
 The same applies to <tt/H245PortRange/ and <tt/T120PortRange/. TIME_WAIT
-can be usualy tuned down on most OSes.
+can be usually tuned down on most OSes.
 
 <item><tt/H245PortRange=30000-30999/<newline>
 Default: <tt>N/A (let the OS allocate ports)</tt><newline>
@@ -208,14 +208,14 @@ description.
 Default: <tt>8000</tt><newline>
 <p>
 A timeout value (in milliseconds) to wait for a first message (Setup)
-to be received after a signaling TCP channel has been opended.
+to be received after a signaling TCP channel has been opened.
 
 <item><tt/SignalTimeout=10000/<newline>
 Default: <tt>15000</tt><newline>
 <p>
-A timeout value (in milliseconds) to wait for a signalling channel
+A timeout value (in milliseconds) to wait for a signaling channel
 to be opened after an ACF message is sent or to wait for an Alerting
-message after a signalling channel has been opened. This option
+message after a signaling channel has been opened. This option
 can be thought as a maximum allowed PDD (Post Dial Delay) value.
 
 <item><tt/AlertingTimeout=60000/<newline>
@@ -240,7 +240,7 @@ Enable this option if you have interoperability problems between H.323v4
 and non-H.323v4 endpoints. It converts Facility messages with reason = transportedInformation
 into Facility messages with an empty body, because some endpoints do not
 process tunneled H.245 messages inside Facility, if the body is not empty.
-The conversion is performed only when neccessary - if both endpoints are v4
+The conversion is performed only when necessary - if both endpoints are v4
 or both endpoints are pre-v4, nothing is changed.
 
 <item><tt/SocketCleanupTimeout=1000/<newline>
@@ -265,7 +265,7 @@ endpoints using public IP outside the box.
 
 The gatekeeper can do proxy for logical channels of RTP/RTCP (audio and video)
 and T.120 (data). Logical channels opened by fast-connect procedures
-or H.245 tunnelling are also supported.
+or H.245 tunneling are also supported.
 
 Note to make proxy work, the gatekeeper must have <bf/direct connection/
 to both networks of the caller and callee.

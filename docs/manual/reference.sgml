@@ -39,7 +39,7 @@ Specify the pid file, only valid for Unix version.
 <tag/<tt/-u  --user name//
 Run the gatekeeper process as this user. Only valid for Unix versions.
 <tag/<tt/--core n//
-(Unix only) Enable writting core dump files when the application crashes. A core
+(Unix only) Enable writing core dump files when the application crashes. A core
 dump file will not exceed n bytes in size. A special constant "unlimited"
 may be used to not enforce any particular limit.
 </descrip>
@@ -50,11 +50,11 @@ The options in this subsection override the settings in the
 <ref id="routed" name="[RoutedMode] section"> of the configuration file.
 <descrip>
 <tag/<tt/-d  --direct//
-Use direct endpoint call signalling.
+Use direct endpoint call signaling.
 <tag/<tt/-r  --routed//
-Use gatekeeper routed call signalling.
+Use gatekeeper routed call signaling.
 <tag/<tt/-rr  --h245routed//
-Use gatekeeper routed call signalling and H.245 control channel.
+Use gatekeeper routed call signaling and H.245 control channel.
 </descrip>
 
 <sect2>Debug Information

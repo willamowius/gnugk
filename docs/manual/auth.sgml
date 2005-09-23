@@ -29,7 +29,7 @@ A rule may results in one of the three codes: ok, fail, pass.
 There are also three ways to control a rule:
 <itemize>
 <item><tt/optional/ - If the rule cannot determine the request, it is passed to next rule.
-<item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passwd to next rule.
+<item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passed to next rule.
 <item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
 </itemize>
 
@@ -84,7 +84,7 @@ See section <ref id="radauth" name="[RadAuth]"> for details.
 <item><tt>RadAliasAuth</tt>
 <p>
 Provides authentication based on endpoint aliases
-and/or call signalling IP addresses with remote RADIUS servers.
+and/or call signaling IP addresses with remote RADIUS servers.
 It does not need any H.235 <bf/tokens/ inside RAS messages,
 so it can be used on a wider range of systems as compared to <tt/RadAuth/.
 RRQ, ARQ and Q.931 Setup messages can be authenticated using this module.
@@ -95,7 +95,7 @@ See section <ref id="radaliasauth" name="[RadAliasAuth]"> for details.
 A powerful module to authenticate and authorize RRQ, ARQ, LRQ and Setup
 messages. It can perform checks based on various parameters, like
 caller's number, destination number, username and more. It also supports
-enforcing call duration limit, number rewritting, call routing, alias
+enforcing call duration limit, number rewriting, call routing, alias
 verification and assignment.
 See section <ref id="sqlauth" name="[SQLAuth]"> for more details.
 
@@ -113,7 +113,7 @@ The default is to accept all requests.
 <tt/AliasAuth=sufficient;RRQ/<newline>
 </descrip>
 
-The example below authenticates all calls, checking signalling Setup
+The example below authenticates all calls, checking signaling Setup
 message details, using RadAliasAuth module.
 
 <descrip>
@@ -144,7 +144,7 @@ to access gatekeeper resources. Supported Gatekeeper::Auth events are:
 of a single entry is:
 <p><tt/IP=[allow | reject]/
 <p>
-where IP is a single IP addresss, a network address (in A.B.C.D/M.M.M.M or A.B.C.D/LENGTH format) or a string <tt/'any'/ or <tt/'*'/ to match any address.
+where IP is a single IP address, a network address (in A.B.C.D/M.M.M.M or A.B.C.D/LENGTH format) or a string <tt/'any'/ or <tt/'*'/ to match any address.
 The access list can also be loaded from an external file using <tt/include/ directive. During authentication, network mask length defines a priority for each
 entry, so rule 192.168.1.1=allow takes precedence over 192.168.1.0/24=reject.
 
@@ -262,16 +262,16 @@ means the cache never expires (only <tt/reload/ command will refresh the cache).
 <item><tt/MinPoolSize=5/<newline>
 Default: <tt/1/<newline>
 <p>
-Define the number of active SQL connections. This allows better peformance
-under heave load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour, 
+Define the number of active SQL connections. This allows better performance
+under heavy load, because more than 1 concurrent query can be executed 
+at the same time. <tt/MinPoolSize=1/ setting simulates old behavior, 
 when access to the SQL database is serialized (one query at time).
 
 <item><tt/Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to retrieve H.235 password from the database. The query
-is parametrized - that means parameter replacement is made before each query
+is parameterized - that means parameter replacement is made before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
 Specify %% to embed a percent character before a digit into string (like <bf/%%1/),
 specify <bf/%{1}/ to allow expansion inside complex expressions like <bf/%{1}123/.
@@ -313,7 +313,7 @@ The notation and meaning of <tt/&lt;authparams&gt;/ depends on
 <tt/&lt;authtype&gt;/:
 
 <itemize>
-<item><tt/sigaddr/ - extended regular expression that has to match agains the
+<item><tt/sigaddr/ - extended regular expression that has to match against the
 ``PrintOn(ostream)'' representation of the signal address of the request.
 <p>
 Example:
@@ -322,7 +322,7 @@ sigaddr:.*ipAddress .* ip = .* c0 a8 e2 a5 .*port = 1720.*
 </verb></tscreen>
 
 <item><tt/sigip/ - specialized form of `<tt/sigaddr/'.
-Write the signalling ip adresse using (commonly used) decimal notation:
+Write the signaling IP address using (commonly used) decimal notation:
 ``<tt/byteA.byteB.byteC.byteD:port/''.
 <p>
 Example:
@@ -386,16 +386,16 @@ means the cache never expires (only <tt/reload/ command will refresh the cache).
 <item><tt/MinPoolSize=5/<newline>
 Default: <tt/1/<newline>
 <p>
-Define the number of active SQL connections. This allows better peformance
+Define the number of active SQL connections. This allows better performance
 under heave load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour, 
+at the same time. <tt/MinPoolSize=1/ setting simulates old behavior, 
 when access to the SQL database is serialized (one query at time).
 
 <item><tt/Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to retrieve alias rule from the database. The query
-is parametrized - that means parameter replacement is made before each query
+is parameterized - that means parameter replacement is made before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
 Specify %% to embed a percent character before a digit into string (like <bf/%%1/),
 specify <bf/%{1}/ to allow expansion inside complex expressions like <bf/%{1}123/.
@@ -453,16 +453,16 @@ the <tt/addpasswd/ utility.
 <item><tt/MinPoolSize=5/<newline>
 Default: <tt/1/<newline>
 <p>
-Define the number of active SQL connections. This allows better peformance
+Define the number of active SQL connections. This allows better performance
 under heave load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behaviour, 
+at the same time. <tt/MinPoolSize=1/ setting simulates old behavior, 
 when access to the SQL database is serialized (one query at time).
 
 <item><tt/RegQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL qeury to be used to perform authentication and authorization
-of endpoint registrations. The query is parametrized - that means parameter
+Define an SQL query to be used to perform authentication and authorization
+of endpoint registrations. The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
 <item><tt/%g/ - the gatekeeper identifier
@@ -501,8 +501,8 @@ SELECT * FROM get_registration_auth('%g', '%u', '%{callerip}', '%{aliases}') AS 
 <item><tt/NbQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL qeury to be used to perform authentication and authorization
-of location requests sent from neighbors. The query is parametrized - that means parameter
+Define an SQL query to be used to perform authentication and authorization
+of location requests sent from neighbors. The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
 <item><tt/%g/ - the gatekeeper identifier
@@ -540,8 +540,8 @@ SELECT active FROM neighbors WHERE name = '%{nbid}' AND ip = '%{nbip}' UNION SEL
 <item><tt/CallQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL qeury to be used to perform authentication and authorization
-of calls (ARQ and Setup). The query is parametrized - that means parameter
+Define an SQL query to be used to perform authentication and authorization
+of calls (ARQ and Setup). The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
 <item><tt/%g/ - the gatekeeper identifier
@@ -694,7 +694,7 @@ a particular range only - set this parameter.
 Default: <tt>1812</tt><newline>
 <p>
 Default port number to be used for RADIUS authentication requests
-(Access-Request packets), if not overriden by <tt/Servers/ attribute.
+(Access-Request packets), if not overridden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
 Default: <tt>N/A (empty string)</tt><newline>
@@ -707,28 +707,28 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)<newline>
+Default: <tt/2000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS server response to a request
+Timeout (milliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)<newline>
+Default: <tt/9000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
+Timeout (milliseconds) for RADIUS request 8-bit identifiers to be
 unique. If all 8-bit identifier range is exhausted within this period,
 new client socket (UDP socket) is allocation by RADIUS module. Let's
-take the example: we have approximatelly 60 RRQs/sec - after ca. 4 seconds
+take the example: we have approximately 60 RRQs/sec - after ca. 4 seconds
 8-bit identifiers range gets exhausted - new socket allocated - after next
-4 seconds the second 8-bit identifiers range gets exhauted - third socket
+4 seconds the second 8-bit identifiers range gets exhausted - third socket
 allocated - after 9th second identifiers from the pool 1 are available again
 - ... . In general, too long timeout - too much resources consumed,
 too short timeout - RADIUS server may take incoming packets as duplicated
 and therefore drop it.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s<newline>
+Default: <tt/60000/ (milliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed. It is used
 in conjunction with <tt/IdCacheTimeout/ - additional sockets
@@ -738,7 +738,7 @@ requests are closed during idle periods.
 <item><tt/RequestRetransmissions=NUMBER/<newline>
 Default: <tt/2/<newline>
 <p>
-How many times a single RADIUS request is transmissed to every
+How many times a single RADIUS request is transmitted to every
 configured RADIUS server (if no response is received). 1 means
 no retransmission, 2 - single retransmission, ... . Exact retransmission
 method is defined by <tt/RoundRobinServers/ attribute.
@@ -766,7 +766,7 @@ Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
 Default: <tt/0/<newline>
 <p>
-If set, Cisco Vendor Specific RADIUS attibutes are included
+If set, Cisco Vendor Specific RADIUS attributes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
@@ -794,7 +794,7 @@ by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNum
 <label id="radaliasauth">
 <p>
 This section defines configuration settings that enable
-RADIUS authentication based on endpoint aliases and/or IP adresses
+RADIUS authentication based on endpoint aliases and/or IP addresses
 present in RRQ RAS requests, ARQ RAS request or Q.931 Setup request.
 This authentication scheme is useful both for endpoints registered
 at the gatekeeper (ARQ,RRQ) and calls from unregistered endpoints (Setup).
@@ -839,7 +839,7 @@ a particular range only - set this parameter.
 Default: <tt>1812</tt><newline>
 <p>
 Default port number to be used for RADIUS authentication requests
-(Access-Request packets), if not overriden by <tt/Servers/ attribute.
+(Access-Request packets), if not overridden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
 Default: <tt>N/A (empty string)</tt><newline>
@@ -852,28 +852,28 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)<newline>
+Default: <tt/2000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS server response to a request
+Timeout (milliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)<newline>
+Default: <tt/9000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
+Timeout (milliseconds) for RADIUS request 8-bit identifiers to be
 unique. If all 8-bit identifier range is exhausted within this period,
 new client socket (UDP socket) is allocation by RADIUS module. Let's
-take the example: we have approximatelly 60 RRQs/sec - after ca. 4 seconds
+take the example: we have approximately 60 RRQs/sec - after ca. 4 seconds
 8-bit identifiers range gets exhausted - new socket allocated - after next
-4 seconds the second 8-bit identifiers range gets exhauted - third socket
+4 seconds the second 8-bit identifiers range gets exhausted - third socket
 allocated - after 9th second identifiers from the pool 1 are available again
 - ... . In general, too long timeout - too much resources consumed,
 too short timeout - RADIUS server may take incoming packets as duplicated
 and therefore drop it.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s<newline>
+Default: <tt/60000/ (milliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed. It is used
 in conjunction with <tt/IdCacheTimeout/ - additional sockets
@@ -883,7 +883,7 @@ requests are closed during idle periods.
 <item><tt/RequestRetransmissions=NUMBER/<newline>
 Default: <tt/2/<newline>
 <p>
-How many times a single RADIUS request is transmissed to every
+How many times a single RADIUS request is transmitted to every
 configured RADIUS server (if no response is received). 1 means
 no retransmission, 2 - single retransmission, ... . Exact retransmission
 method is defined by <tt/RoundRobinServers/ attribute.
@@ -911,7 +911,7 @@ Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
 Default: <tt/1/<newline>
 <p>
-If set, Cisco Vendor Specific RADIUS attibutes are included
+If set, Cisco Vendor Specific RADIUS attributes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
@@ -939,7 +939,7 @@ Default: <tt>N/A</tt><newline>
 <p>
 If not set, User-Password is a copy of User-Name. For example, if User-Name
 is 'john' then User-Password will also be set to 'john'. Setting this
-parameter overrides this behavious and User-Password attribute will be
+parameter overrides this behavior and User-Password attribute will be
 always set to the value of <tt/FixedPassword/.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
 in this section, the password is in encrypted form and should be created using

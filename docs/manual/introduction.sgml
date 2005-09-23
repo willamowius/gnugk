@@ -11,7 +11,7 @@ The English version is the master document and will get updated first.
 </bf>
 is an open-source project that implements an H.323 gatekeeper.
 A gatekeeper provides call control services to the H.323 endpoints.
-It is an integral part of most usefull internet telephony
+It is an integral part of most useful internet telephony
 installations that are based on the H.323 standard.
 
 According to Recommendation H.323, a gatekeeper shall provide the
@@ -45,11 +45,11 @@ For a detailed description of what a gatekeeper does, see
 <p>
 It is covered by the
 <htmlurl url="http://www.fsf.org/licensing/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
-In addition to that, we explicitely grant
+In addition to that, we explicitly grant
 the right to link this code to the OpenH323 and OpenSSL library.
 
 Generally speaking, the GNU GPL allows you to copy, distribute, resell or modify
-the softwares, but it requires that all derived works must be published
+the software, but it requires that all derived works must be published
 under GNU GPL also.
 That means that you must publish full source for all extensions to
 the gatekeeper and for all programs you include the gatekeeper into.
@@ -57,7 +57,7 @@ See the file COPYING for details.
 
 If that's not what you want, you must interface to the gatekeeper through
 the status port and communicate via TCP with it.
-That way you only have to integrate the basic funtionality into
+That way you only have to integrate the basic functionality into
 the gatekeeper (and provide source for that) and can keep other parts
 of your application private.
 
@@ -82,7 +82,7 @@ To have different gatekeepers with very similar names is really
 confusing for most users.
 Since our "OpenH323 Gatekeeper" was the first on the scene,
 it is not our fault that others have chosen similar names.
-But to make the destinction a little more clear without confusing
+But to make the distinction a little more clear without confusing
 people even more, we have decided to give the project a
 subtitle "OpenH323 Gatekeeper - The GNU Gatekeeper" and start
 using <tt/gnugk/ as name for executables.
@@ -105,7 +105,7 @@ socket management and better network error reporting.
 
 <item>
 The <tt/RewriteCLI/ module rewrites outbound rules correctly for random
-numbers separated by commans.
+numbers separated by commas.
 
 <item>
 Broadcast request are handled correctly in the LARGE_FDSET mode.
@@ -121,7 +121,7 @@ A new <tt/[RasSrv::RRQFeatures] IRQPollCount/ config variable. Default number
 of "poll" IRQ messages changed from 2 to 1 to allow faster endpoint unregistration.
 
 <item>
-Tunnelled H.245 messages were not processed correctly (were ignored).
+Tunneled H.245 messages were not processed correctly (were ignored).
 
 <item>
 <ref id="fileipauth" name="[FileIPAuth]"> module moved from the contrib
@@ -146,7 +146,7 @@ accounting variables ported from 2.0 branch. <tt/ConnectTimeout/ config
 variable replaced with <tt/SignalTimeout/ and <tt/AlertingTimeout/.
 
 <item>
-A new <tt/%r/ accounting variable to provide infomation about who
+A new <tt/%r/ accounting variable to provide information about who
 was the one that disconnected a call.
 
 <item>
@@ -165,7 +165,7 @@ LRQ nonStandardData field was not included for CiscoGK neighbors.
 
 <item>
 New <ref id="clirewrite" name="[RewriteCLI]"> config section
-that allows arbitrary rewritting of ANI/CLI numbers.
+that allows arbitrary rewriting of ANI/CLI numbers.
 
 <item>
 New <ref id="numberanalysis" name="numberanalysis"> routing policy.
@@ -179,7 +179,7 @@ and does not lock the whole call table and (effectively) the gatekeeper
 for long time periods.
 
 <item>
-Do not support mutiple rewrite targets, as this feature does not work well
+Do not support multiple rewrite targets, as this feature does not work well
 if rewrite is performed more than once.
 
 <item>
@@ -233,10 +233,10 @@ The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
-Enchanced prefix matching for routing policies. A dot (<tt/./) matches any digit.
+Enhanced prefix matching for routing policies. A dot (<tt/./) matches any digit.
 
 <item>
-Enchanced prefix matching for neighbors. A dot (<tt/./) matches any digit,
+Enhanced prefix matching for neighbors. A dot (<tt/./) matches any digit,
 <tt/!/ at the beginning disables the prefix.
 
 <item>
@@ -245,7 +245,7 @@ A missing lock during config reload caused the gatekeeper to crash.
 <item>
 More reliable port number selection for Q.931, H.245, T.120 and RTP
 port ranges (earlier, a config reload could cause many calls to fail
-because of unability to allocate a new socket).
+because of inability to allocate a new socket).
 
 <item>
 Default value for RTPPortRange is now to let the OS select a port number.
@@ -255,11 +255,11 @@ More flexible rewrite rules (both global and per-gw) with new '.' and '%'
 wildcard characters.
 
 <item>
-Enchanced prefix matching for gateways. A dot (<tt/./) matches any digit,
+Enhanced prefix matching for gateways. A dot (<tt/./) matches any digit,
 <tt/!/ at the beginning disables the prefix.
 
 <item>
-Insert missing Calling-Party-Number-IE/Display-IE if corresponing
+Insert missing Calling-Party-Number-IE/Display-IE if corresponding
 <tt/Screen.../ options are enabled.
 
 <item>
@@ -327,13 +327,13 @@ of the gatekeeper. Nonstandard data and gatekeeperIdentifier fields are set
 only when the neighbor is defined as GnuGk.
 
 <item>
-Ability to set shared secrets for each radius server separatelly.
+Ability to set shared secrets for each radius server separately.
 
 <item>
 New, much faster, Radius client implementation.
 
 <item>
-Called-Party-Number-IE rewrite occured too late, causing auth/acct modules 
+Called-Party-Number-IE rewrite occurred too late, causing auth/acct modules 
 to receive the original number instead of the rewritten one.
 
 <item>
@@ -365,7 +365,7 @@ Do not include an invalid access token (with null object identifier)
 in LCF to prevent interoperability problems.
 
 <item>
-Better handling of multiple calls over a single signalling channel 
+Better handling of multiple calls over a single signaling channel 
 by setting multipleCalls and maintainConnection H.225.0 fields to FALSE 
 in all messages passing through the gatekeeper.
 
@@ -419,7 +419,7 @@ limit will not restrict the number of concurrent calls.
 <item>
 Support H.323 proxy by routing all logical channels, including RTP/RTCP
 media channels and T.120 data channels. Logical channels opened by H.245
-tunnelling and fast-connect procedure are also supported. In proxy mode,
+tunneling and fast-connect procedure are also supported. In proxy mode,
 there is no traffic between the calling and called parties directly. Thus
 it is very useful if you have some endpoints using private IP behind an
 NAT box and some endpoints using public IP outside the box.
@@ -438,7 +438,7 @@ Support alternate gatekeepers for redundancy and load balancing. If the
 GnuGk is overloaded, the endpoints can be redirected to other gatekeepers.
 
 <item>
-Can work as an endpoint (gateway or terminal) by resigtering with a parent
+Can work as an endpoint (gateway or terminal) by registering with a parent
 gatekeeper. With this feature, building gatekeeper hierarchies is easily.
 
 <item>
@@ -483,7 +483,7 @@ To join this mailing list, click
 To report problems or submit bugs/patches, send mails to the
 <url url="mailto:Openh323gk-developer@sourceforge.net" name="developers mailing list">.
 The list archive is
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="here">. Please send user questions to the users mailinglist and keep this list to development! If you want to contribute to the project, please
+<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="here">. Please send user questions to the users mailing list and keep this list to development! If you want to contribute to the project, please
 <url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="join the mailing list">.
 
 <bf/Note/:
@@ -494,7 +494,7 @@ Send your problems to the appropriate public mailing list so everybody
 can help you.
 
 Also please don't send the GnuGk specific problems to the OpenH323
-mailing list, or vice versa.
+mailing list, or vice verse.
 They are different projects, though closely related.
 
 Before you sending an email, make sure you have read the related documents

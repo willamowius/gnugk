@@ -8,7 +8,7 @@ The gatekeeper will send out messages about ongoing calls to all
 connected clients and it can receive commands via this interface.
 
 <p>
-The messages sent by the gatekeeper to the status port are groupped 
+The messages sent by the gatekeeper to the status port are grouped 
 into three <bf/output trace levels/:
 <itemize>
 <item>Level 0
@@ -47,11 +47,11 @@ See GnuGk ACD.
 </quote>
 <item>Billing Applications
 <quote>
-Analyse the CDR messages and forward them to a billing application.
+Analyze the CDR messages and forward them to a billing application.
 </quote>
 <item>Interfacing external extensions
 <quote>
-If you don't want to publish the source code to additinal features, just publish the core functionality and interface to it through the status interface and keep the external part private.
+If you don't want to publish the source code to additional features, just publish the core functionality and interface to it through the status interface and keep the external part private.
 </quote>
 </itemize>
 <p>
@@ -111,7 +111,7 @@ There are several Graphical User Interface (GUI) frontends for the gatekeeper.
 <item>Java GUI<p>
 Developed by Jan Willamowius.
 You can monitor the registrations and calls that go through the gatekeeper.
-A right-click on a button gives you a popup menu for that endpoint.
+A right-click on a button gives you a pop up menu for that endpoint.
 
 This GUI works with Java 1.0 built into most web browsers.
 For security reasons the GUI must be run as a standalone application
@@ -133,7 +133,7 @@ It requires Java 1.4. New features include:
 <item>GK Status Log.
 <item>Different colors for different endpoint types.
 <item>Modify gatekeeper configuration.
-<item>Forcedly unregister endpoints.
+<item>Forced unregister endpoints.
 <item>Save and print status log and CDR.
 </itemize>
 
@@ -143,7 +143,7 @@ The GkGUI is released under GNU General Public License, available at
 
 <sect1>Commands (Reference)
 <p>
-This section lists all commands that you can isue to the status port (manually or with an external application). All commands are case-insensitive. But some parameters may be case-sensitive.
+This section lists all commands that you can issue to the status port (manually or with an external application). All commands are case-insensitive. But some parameters may be case-sensitive.
 <p>
 The command <tt/help/ or <tt/h/ will show you a list of all available commands.
 <p>
@@ -321,7 +321,7 @@ Prefixes: 02,09
 </descrip>
 
 <item><tt/UnregisterIP/
-<p>Forcedly unregister an endpoint by IP and call signalling port.
+<p>Forcefully unregister an endpoint by IP and call signaling port.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -336,7 +336,7 @@ SoftPBX: Endpoint 10.0.1.31:1720 unregistered!
 </descrip>
 
 <item><tt/UnregisterAlias/
-<p>Forcedly unregister an endpoint by one of its aliases.
+<p>Forcefully unregister an endpoint by one of its aliases.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -351,7 +351,7 @@ SoftPBX: Endpoint 601 unregistered!
 </descrip>
 
 <item><tt/UnregisterAllEndpoints/
-<p>Forcedly unregister all registered endpoints.
+<p>Forcefully unregister all registered endpoints.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -383,7 +383,7 @@ DisconnectCall 1533
 </descrip>
 
 <item><tt/DisconnectIP/
-<p>Disconnect all calls of an endpoint by IP and call signalling port.
+<p>Disconnect all calls of an endpoint by IP and call signaling port.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -595,7 +595,7 @@ an UnregistrationConfirm (UCF).
 <p>After a call disconnected, the call detail record is shown (in one line).
 
 <item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias[|CallID];/
-<p>Request for an external application to route an incomming call on a virtual queue.
+<p>Request for an external application to route an incoming call on a virtual queue.
 This can be done with a RouteToAlias or RouteReject command.
 The CallID is only sent when SignalCallId=1 is set.
 

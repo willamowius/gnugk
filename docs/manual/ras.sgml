@@ -70,8 +70,8 @@ Default: <tt/1/<newline>
 When the gatekeeper does not receive a keep-alive RRQ from an endpoint
 within TimeToLive time period, it sends an IRQ message to "poll" the endpoint
 and check if it is alive. After IRQPollCount messages are sent and no reply
-is receieved, the endpoint is unregistered. To disable this feature (and unregister
-endpoints immediatelly after TimeToLive timeout), set this variable to 0.
+is received, the endpoint is unregistered. To disable this feature (and unregister
+endpoints immediately after TimeToLive timeout), set this variable to 0.
 IRQ poll interval is 60 seconds.
 
 </itemize>

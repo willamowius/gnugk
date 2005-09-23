@@ -85,12 +85,12 @@ Default: <tt>N/A</tt><newline>
 If the gatekeeper receives an LRQ that the destination is either unknown,
 it may forward this message to its neighbors.
 When the gatekeeper receives an LRQ and decides that the message
-should be forwarded on to another gatekeeeper, it first decrements
+should be forwarded on to another gatekeeper, it first decrements
 <bf/hopCount/ field of the LRQ.
 If <bf/hopCount/ has reached 0, the gatekeeper shall not forward the message.
 This options defines the number of gatekeepers through which an LRQ
 may propagate. Note it only affects the sender of LRQ, not the forwarder.
-This setting can be overriden with configuration of a particular neighbor.
+This setting can be overridden with configuration of a particular neighbor.
 
 <item><tt/AlwaysForwardLRQ=1/<newline>
 Default: <tt>0</tt><newline>
@@ -104,7 +104,7 @@ the new one reads the settings from a neighbor-specific config section.
 Default: <tt/1/<newline>
 <p>
 Whether to accept an LRQ forwarded from neighbors.
-This setting can be overriden with configuration
+This setting can be overridden with configuration
 of a particular neighbor.
 
 <item><tt/IncludeDestinationInfoInLCF=0/<newline>
@@ -123,8 +123,8 @@ Default: <tt/0/<newline>
 <p>
 If the gatekeeper forwards received LRQ message it can decide either
 to receive the LCF response or to let it travel back directly to the LRQ
-origintator. Set this option to 1, if the gatekeeper needs to receive LCF
-messages for forwarded LRQs. This setting can be overriden with configuration
+originator. Set this option to 1, if the gatekeeper needs to receive LCF
+messages for forwarded LRQs. This setting can be overridden with configuration
 of a particular neighbor.
 
 <item><tt/ForwardLRQ=always | never | depends/<newline>
@@ -133,7 +133,7 @@ Default: <tt/depends/<newline>
 This settings determines whether the received LRQ should be forwarded
 or not. <tt/always/ forwards LRQ unconditionally, <tt/never/ blocks LRQ
 forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
-hop count is greater than 1. This setting can be overriden with configuration
+hop count is greater than 1. This setting can be overridden with configuration
 of a particular neighbor.
 </itemize>
 
@@ -191,7 +191,7 @@ Default: <tt>N/A</tt><newline>
 If the gatekeeper receives an LRQ that the destination is either unknown,
 it may forward this message to its neighbors.
 When the gatekeeper receives an LRQ and decides that the message
-should be forwarded on to another gatekeeeper, it first decrements
+should be forwarded on to another gatekeeper, it first decrements
 <bf/hopCount/ field of the LRQ.
 If <bf/hopCount/ has reached 0, the gatekeeper shall not forward the message.
 This options defines the number of gatekeepers through which an LRQ
@@ -207,7 +207,7 @@ Default: <tt/0/<newline>
 <p>
 If the gatekeeper forwards received LRQ message it can decide either
 to receive the LCF response or to let it travel back directly to the LRQ
-origintator. Set this option to 1, if the gatekeeper needs to receive LCF
+originator. Set this option to 1, if the gatekeeper needs to receive LCF
 messages for forwarded LRQs.
 
 <item><tt/ForwardLRQ=always | never | depends/<newline>
@@ -216,7 +216,7 @@ Default: <tt/depends/<newline>
 This settings determines whether the received LRQ should be forwarded
 or not. <tt/always/ forwards LRQ unconditionally, <tt/never/ blocks LRQ
 forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
-hop count is greater than 1. This setting can be overriden with configuration
+hop count is greater than 1. This setting can be overridden with configuration
 of a particular neighbor.
 
 </itemize>

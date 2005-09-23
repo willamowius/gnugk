@@ -100,7 +100,7 @@ See the section <ref id="statusacct" name="[StatusAcct]"> for configuration deta
 <item><tt>default</tt>
 <p>
 This is a special pseudo module - it is used to set the final status
-if preceeding modules have not determined it. The format is as follows:
+if preceding modules have not determined it. The format is as follows:
 <descrip>
 <tag/Syntax:/
 <tscreen><verb>
@@ -178,7 +178,7 @@ or build a custom CDR strings from the <bf/CDRString/ parametrized string.
 Default: <tt>N/A</tt><newline>
 <p>
 If <bf/StandardCDRFormat/ is disabled (0) or not specified at all, 
-this paramterized string instructs the gatekeeper how to build a custom
+this parametrized string instructs the gatekeeper how to build a custom
 CDRs. Parameters are specified using <tt/%/ character and can be one letter
 (like <tt/%n/) or longer (like <tt/%{CallId}/). Any remaining characters that
 are not parameter names are simply copied to a final CDR string. The following
@@ -201,9 +201,9 @@ parameters are recognized:
 <item><tt/%{connect-time}/ - timestamp string for a call connected event
 <item><tt/%{disconnect-time}/ - timestamp string for a call disconnect event
 <item><tt/%{ring-time}/ - time a remote phone was ringing for (from Alerting till Connect or Release Complete)
-<item><tt/%{caller-ip}/ - signaling IP addres of the caller
+<item><tt/%{caller-ip}/ - signaling IP address of the caller
 <item><tt/%{caller-port}/ - signaling port of the caller
-<item><tt/%{callee-ip}/ - signaling IP addres of the called party
+<item><tt/%{callee-ip}/ - signaling IP address of the called party
 <item><tt/%{callee-port}/ - signaling port of the called party
 <item><tt/%{src-info}/ - a colon separated list of source aliases
 <item><tt/%{dest-info}/ - a colon separated list of destination aliases
@@ -231,7 +231,7 @@ the current timestamp, and new CDRs are logged to an empty file.<newline>
 In addition, rotation per number of CDRs written (L...) and per file size (S...)
 is supported. The <tt/L/ prefix specifies a number of CDR lines written,
 the <tt/S/ prefix specifies CDR file size. <tt/k/ and <tt/m/ suffixes can
-be used to speficy throusands (kilobytes) and millions (megabytes). 
+be used to specify thousands (kilobytes) and millions (megabytes). 
 See the examples for more details.
 
 <descrip>
@@ -335,7 +335,7 @@ a particular range only - set this parameter.
 Default: <tt>1813</tt><newline>
 <p>
 Default port number to be used for RADIUS accounting requests,
-if not overriden by <tt/Servers/ attribute.
+if not overridden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
 Default: <tt>N/A (empty string)</tt><newline>
@@ -348,27 +348,27 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)<newline>
+Default: <tt/2000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS server response to a request
+Timeout (milliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)<newline>
+Default: <tt/9000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
+Timeout (milliseconds) for RADIUS request 8-bit identifiers to be
 unique.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s<newline>
+Default: <tt/60000/ (milliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
 Default: <tt/2/<newline>
 <p>
-How many times a single RADIUS request is transmissed to every
+How many times a single RADIUS request is transmitted to every
 configured RADIUS server (if no response is received).
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
@@ -379,7 +379,7 @@ RADIUS requests retransmission method.
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
 Default: <tt/0/<newline>
 <p>
-If set, Cisco Vendor Specific RADIUS attibutes are included
+If set, Cisco Vendor Specific RADIUS attributes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/TimestampFormat=ISO8601/<newline>
@@ -461,9 +461,9 @@ For <tt/SQLAcct/ the following parameters are defined:
 <item><tt/%{connect-time}/ - timestamp string for a call connected event
 <item><tt/%{disconnect-time}/ - timestamp string for a call disconnect event
 <item><tt/%{ring-time}/ - time a remote phone was ringing for (from Alerting till Connect or Release Complete)
-<item><tt/%{caller-ip}/ - signaling IP addres of the caller
+<item><tt/%{caller-ip}/ - signaling IP address of the caller
 <item><tt/%{caller-port}/ - signaling port of the caller
-<item><tt/%{callee-ip}/ - signaling IP addres of the called party
+<item><tt/%{callee-ip}/ - signaling IP address of the called party
 <item><tt/%{callee-port}/ - signaling port of the called party
 <item><tt/%{src-info}/ - a colon separated list of source aliases
 <item><tt/%{dest-info}/ - a colon separated list of destination aliases
@@ -618,7 +618,7 @@ create table GNUGK.CDR (
 );
 </verb></tscreen>
 
-Then you need to creat a username for accessing the data.
+Then you need to create a username for accessing the data.
 
 <tscreen><verb>
 GRANT delete,insert,select,update ON GNUGK.* TO 'YourDesiredUsername'@'localhost' IDENTIFIED BY 'APassword';

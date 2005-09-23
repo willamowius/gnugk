@@ -55,8 +55,8 @@ Default: <tt>N/A</tt><newline>
 <p>
 Specify the network interfaces of the gatekeeper. By default the gatekeeper
 will detect the interfaces of your host automatically. There are two situations
-that you may want to use this option. One is automatical detection failed,
-another is the gatekeeper is behind an NAT box and allow endpoints with
+that you may want to use this option. One is automatically detection failed,
+another is the gatekeeper is behind a NAT box and allow endpoints with
 public IPs to register with. In this case you should set the option just as
 the gatekeeper is running on the NAT box.
 
@@ -64,7 +64,7 @@ the gatekeeper is running on the NAT box.
 Default: <tt/_endp/<newline>
 <p>
 The gatekeeper will assign a unique identifier to each registered endpoint.
-This option can be used to specify a suffix to append to the endpoint identifier. This is only usefull when using more than one gatekeeper.
+This option can be used to specify a suffix to append to the endpoint identifier. This is only useful when using more than one gatekeeper.
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
 Default: <tt/-1/<newline>
@@ -98,7 +98,7 @@ To disable this feature, set it to <tt/-1/.
 Default: <tt/-1/<newline>
 <p>
 Total bandwidth available to be given to endpoints.
-By default this feature is off. Be carefull when using it,
+By default this feature is off. Be careful when using it,
 because many endpoints have buggy implementations.
 
 <item><tt/RedirectGK=Endpoints > 100 || Calls > 50/<newline>
@@ -201,7 +201,7 @@ There are four predefined formats:
 <p>
 If you need another format, you can build your own format string, using
 rules known from <tt/strftime/ C function (see man strftime or search MSDN for strftime).
-In general, the format string consists of regular character and format codes, preceeded
+In general, the format string consists of regular character and format codes, preceded
 by a percent sign. Example: "%Y-%m-%d and percent %%" will result in "2004-11-10 and percent %".
 Some common format codes:
 <itemize>
@@ -229,13 +229,13 @@ Default: <tt/0/<newline>
 Enable encryption of all passwords in the config (SQL passwords, RADIUS
 passwords, [Password] passwords, [GkStatus::Auth] passwords). If enabled,
 all passwords have to be encrypted using <tt/addpasswd/ utility. Otherwise
-only [Password] and [GkStatus::Auth] passwords are encrypted (old behaviour).
+only [Password] and [GkStatus::Auth] passwords are encrypted (old behavior).
 
 <item><tt/KeyFilled=0/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Define a global padding byte to be used during password encryption/decryption. 
-It can be overriden by setting <tt/KeyFilled/ inside a particular config section.
+It can be overridden by setting <tt/KeyFilled/ inside a particular config section.
 Usually, you do not need to change this option.
 
 </itemize>
@@ -269,7 +269,7 @@ The multicast group for the RAS channel.
 <item><tt/EndpointSignalPort=1720/<newline>
 Default: <tt/1720/<newline>
 <p>
-Default port for call signalling channel of endpoints.
+Default port for call signaling channel of endpoints.
 
 <item><tt/ListenQueueLength=1024/<newline>
 Default: <tt/1024/<newline>
@@ -279,17 +279,17 @@ Queue length for incoming TCP connection.
 <item><tt/SignalReadTimeout=1000/<newline>
 Default: <tt/1000/<newline>
 <p>
-Time in miliseconds for read timeout on call signalling channels (Q931).
+Time in milliseconds for read timeout on call signaling channels (Q931).
 
 <item><tt/StatusReadTimeout=3000/<newline>
 Default: <tt/3000/<newline>
 <p>
-Time in miliseconds for read timeout on status channel.
+Time in milliseconds for read timeout on status channel.
 
 <item><tt/StatusWriteTimeout=5000/<newline>
 Default: <tt/5000/<newline>
 <p>
-Time in miliseconds for write timeout on status channel.
+Time in milliseconds for write timeout on status channel.
 </itemize>
 
 
