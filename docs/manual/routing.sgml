@@ -56,6 +56,9 @@ To specify your own server you have to specify an environmental
 variable PWLIB_ENUM_PATH with the address of your preferred
 enum servers separated by a semicolon (;). (PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
 
+The enum policy replaces the destination with the information returned by ENUM server, so you must have the appropriate routing policies to finally route the call after the enum policy. Usually you should also have the dns policy after the enum policy, since the new location is often returned in the form of 'number@gatekeeper' and the dns policy is needed to resolve this.
+
+Finally keep in mind that each routing check with the enum policy requires a DNS lookup. To speed up your routing, make sure you resolve internal destinations before the enum policy is applied.
 </itemize>
 
 <p>
@@ -102,6 +105,13 @@ using the syntax explained above.
 <tag/Example:/
 <quote><tt>[RoutingPolicy::OnARQ]<newline>
 default=numberanalysis,internal,neighbor</tt></quote>
+</descrip>
+
+A typical ENUM routing setup would look like this:
+<descrip>
+<tag/Example:/
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,enum,dns,internal,parent,neighbor</tt></quote>
 </descrip>
 
 
