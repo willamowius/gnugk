@@ -1307,8 +1307,10 @@ inline bool CallRec::IsTimeout(const time_t now) const
 {
 	bool result = (m_timeout > 0) && (now >= m_timer) && ((now - m_timer) >= m_timeout);
 	if (m_irrCheck && (m_irrFrequency > 0)) {
-		result |= (now >= m_irrCallerTimer) && ((now - m_irrCallerTimer) >= 2 * m_irrFrequency);
-		result |= (now >= m_irrCalleeTimer) && ((now - m_irrCalleeTimer) >= 2 * m_irrFrequency);
+		if (m_Calling)
+			result |= (now >= m_irrCallerTimer) && ((now - m_irrCallerTimer) >= 2 * m_irrFrequency);
+		if (m_Called)
+			result |= (now >= m_irrCalleeTimer) && ((now - m_irrCalleeTimer) >= 2 * m_irrFrequency);
 	}
 	return result;
 }
