@@ -743,21 +743,21 @@ void CLIRewrite::Rewrite(
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
 			msg.GetUUIEBody().m_presentationIndicator.SetTag(presentation);
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
-			msg.GetUUIEBody().m_screeningIndicator.SetTag(screening);
+			msg.GetUUIEBody().m_screeningIndicator.SetValue(screening);
 		}
 		
 		if (screeningType == RewriteRule::AlwaysHide) {
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
 			msg.GetUUIEBody().m_presentationIndicator.SetTag(H225_PresentationIndicator::e_presentationRestricted);
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
-			msg.GetUUIEBody().m_screeningIndicator.SetTag(H225_ScreeningIndicator::e_networkProvided);
+			msg.GetUUIEBody().m_screeningIndicator.SetValue(H225_ScreeningIndicator::e_networkProvided);
 			msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
 		} else if (screeningType == RewriteRule::HideFromTerminals) {
 			msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_presentationIndicator);
 			msg.GetUUIEBody().m_presentationIndicator.SetTag(H225_PresentationIndicator::e_presentationRestricted);
 			if (isTerminal && !newcli) {
 				msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
-				msg.GetUUIEBody().m_screeningIndicator.SetTag(H225_ScreeningIndicator::e_networkProvided);
+				msg.GetUUIEBody().m_screeningIndicator.SetValue(H225_ScreeningIndicator::e_networkProvided);
 				H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
 			} else
 				msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);

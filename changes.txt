@@ -1,5 +1,6 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- BUGFIX(clirw.cxx) set presentationIndicator correctly in H.225.0 Setup UUIE
 - BUGFIX(RasTbl.h) when active, perform IRR checks for local
   endpoints only, others (parent, neighbor etc.) won't send us IRRs
 - BUGFIX(Routing.cxx) remove leading 00 for ENUM queries
