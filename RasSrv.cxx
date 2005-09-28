@@ -340,7 +340,7 @@ bool MulticastListener::Filter(GatekeeperMessage *msg) const
 // class RasMsg
 void RasMsg::Exec()
 {
-	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received");
+	PTRACE(2, "RAS\t" << m_msg->GetTagName() << " Received");
 	if (Process())
 		Reply();
 }
