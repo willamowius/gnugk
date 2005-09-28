@@ -664,7 +664,7 @@ int GatewayRec::PrefixMatch(
 			const PString alias = AsString(aliases[i], FALSE);
 			// we also allow h_323_ID aliases consisting only from digits
 			if (tag == H225_AliasAddress::e_h323_ID)
-				if( strspn(alias,"1234567890*#") != strlen(alias) )
+				if( strspn(alias,"1234567890*#+,") != strlen(alias) )
 					continue;
 					
 			const_prefix_iterator Iter = Prefixes.begin();

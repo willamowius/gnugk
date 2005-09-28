@@ -1455,7 +1455,7 @@ void CallSignalSocket::OnSetup(
 
 			const PString alias = AsString(setupBody.m_destinationAddress[0], FALSE);
 			if (q931.HasIE(Q931::CalledPartyNumberIE)) {
-				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
+				if (!alias && strspn(alias, "1234567890*#+,") == strlen(alias)) {
 					unsigned plan, type;
 					PString calledNumber;
 					if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
@@ -1506,7 +1506,7 @@ void CallSignalSocket::OnSetup(
 
 			const PString alias = AsString(setupBody.m_destinationAddress[0], FALSE);
 			if (q931.HasIE(Q931::CalledPartyNumberIE)) {
-				if (!alias && strspn(alias, "1234567890*#") == strlen(alias)) {
+				if (!alias && strspn(alias, "1234567890*#+,") == strlen(alias)) {
 					unsigned plan, type;
 					PString calledNumber;
 					if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
