@@ -1528,8 +1528,8 @@ void CallSignalSocket::OnSetup(
 		request.SetProxyMode(authData.m_proxyMode);
 		
 		if (!rejectCall && authData.m_routeToIP != NULL) {
-			request.SetDestination(calledAddr, true);
 			calledAddr = *authData.m_routeToIP;
+			request.SetDestination(calledAddr, true);
 			destFound = true;
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			setupBody.m_destCallSignalAddress = calledAddr;
