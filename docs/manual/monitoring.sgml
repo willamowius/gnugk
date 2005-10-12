@@ -281,7 +281,9 @@ Number of Calls: 1 Active: 1 From NB: 0
 </descrip>
 
 <item><tt/Find/, <tt/f/
-<p>Find a registered endpoint by an alias or a prefix.
+<p>Find a registered endpoint by an alias or a prefix. To find an alias
+of the specified type (h323_ID, dialedDigits), prepend the alias type name
+(h323, e164, url, email) to the alias, followed by a colon.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -296,11 +298,16 @@ RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
 ;
 f 801
 SoftPBX: alias 801 not found!
+f h323:Wei
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+;
 </verb></tscreen>
 </descrip>
 
 <item><tt/FindVerbose/, <tt/fv/
-<p>Find details of a registered endpoint by an alias or a prefix.
+<p>Find details of a registered endpoint by an alias or a prefix. To find an alias
+of the specified type (h323_ID, dialedDigits), prepend the alias type name
+(h323, e164, url, email) to the alias, followed by a colon.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -336,7 +343,9 @@ SoftPBX: Endpoint 10.0.1.31:1720 unregistered!
 </descrip>
 
 <item><tt/UnregisterAlias/
-<p>Forcefully unregister an endpoint by one of its aliases.
+<p>Forcefully unregister an endpoint by one of its aliases. To match an alias
+of the specified type (h323_ID, dialedDigits), prepend the alias type name
+(h323, e164, url, email) to the alias, followed by a colon.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -370,7 +379,8 @@ Done
 </descrip>
 
 <item><tt/DisconnectCall/
-<p>Disconnect a call with given number.
+<p>Disconnect a call with given number (internal, gatekeeper assigned call number,
+not the caller's, callee's phone number).
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -396,7 +406,9 @@ DisconnectIP 10.0.1.31:1720
 </descrip>
 
 <item><tt/DisconnectAlias/
-<p>Disconnect all calls of an endpoint by one of its aliases.
+<p>Disconnect all calls of an endpoint by one of its aliases. To match an alias
+of the specified type (h323_ID, dialedDigits), prepend the alias type name
+(h323, e164, url, email) to the alias, followed by a colon.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
