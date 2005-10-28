@@ -64,8 +64,7 @@ Neighbors can be specified now the old or the new way.
 <newline>
 </descrip>
 
-The new format specifies in <tt/[RasSrv::Neighbors]/ section only gatekeeper
-types and configuration for each neighbor is placed in a separate section.
+The new format specifies in the <tt/[RasSrv::Neighbors]/ section only the gatekeeper types. The configuration for each neighbor is placed in a separate section.
 
 
 <sect1>Section &lsqb;RasSrv::LRQFeatures&rsqb;
