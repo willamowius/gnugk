@@ -1930,10 +1930,10 @@ bool AdmissionRequestPDU::Process()
 	// Bandwidth
 	// and GkManager admission
 	//
-	int BWRequest = 1280;
+	int BWRequest = request.m_bandWidth.GetValue();
 	// hack for Netmeeting 3.0x
-	if (request.m_bandWidth.GetValue() >= 100)
-		BWRequest = request.m_bandWidth.GetValue();
+	if ((BWRequest > 0) && (BWRequest < 100))
+		BWRequest = 1280;
 	// check if it is the first arrived ARQ
 	if (pExistingCallRec) {
 		// request more bandwidth?
@@ -2182,8 +2182,10 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 template<> bool RasPDU<H225_BandwidthRequest>::Process()
 {
 	// OnBRQ
-	// hack for Netmeeting 3.0
-	int bandwidth = (request.m_bandWidth.GetValue() < 100) ? 1280 : int(request.m_bandWidth);
+	int bandwidth = request.m_bandWidth.GetValue();
+	// hack for Netmeeting 3.0x
+	if ((bandwidth > 0) && (bandwidth < 100))
+		bandwidth = 1280;
 
 	callptr pCall = request.HasOptionalField(H225_BandwidthRequest::e_callIdentifier) ?
 		CallTbl->FindCallRec(request.m_callIdentifier) :

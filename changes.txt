@@ -1,5 +1,6 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- BUGFIX(RasSrv.cxx) allow bandwidth=0 in ARQ / ACF
 - BUGFIX(ProxyChannel.cxx) fix bug when using RADIUS/SQL based routing
   for Setup messages
 - BUGFIX(clirw.cxx) set presentationIndicator correctly in H.225.0 Setup UUIE
