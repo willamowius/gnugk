@@ -2064,8 +2064,11 @@ bool AdmissionRequestPDU::Process()
 
 		if (CalledEP)
 			pCallRec->SetCalled(CalledEP);
-		else
+		else {
+			if (answer)
+				pCallRec->SetCalled(RequestingEP);
 			pCallRec->SetDestSignalAddr(CalledAddress);
+		}
 		if (!answer)
 			pCallRec->SetCalling(RequestingEP);
 		if (toParent)

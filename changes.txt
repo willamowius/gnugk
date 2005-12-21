@@ -1,5 +1,7 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- BUGFIX(RasSrv.cxx) remove call records correctly in direct signaling mode,
+  when only called party is registered. Thanks to Julius Bajzik
 - BUGFIX(RasTbl.cxx) fixed race condition when accessing endpoint records
 - BUGFIX(ProxyChannel.cxx) fixed race condition in H245Socket when H.245
   tunneling is disabled
