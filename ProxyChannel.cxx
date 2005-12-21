@@ -2474,8 +2474,8 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
 H245Socket::~H245Socket()
 {
 	delete listener;
-	delete peerH245Addr;
 	PWaitAndSignal lock(m_signalingSocketMutex);
+	delete peerH245Addr;
 	if (sigSocket)
 		sigSocket->OnH245ChannelClosed();
 }
@@ -2584,16 +2584,19 @@ BOOL H245Socket::Accept(PSocket & socket)
 
 bool H245Socket::ConnectRemote()
 {
-	if (listener)
-		listener->Close(); // don't accept other connection
 	PIPSocket::Address peerAddr, localAddr(0);
 	WORD peerPort;
+	
+	if (listener)
+		listener->Close(); // don't accept other connection
+	
+	m_signalingSocketMutex.Wait();
 	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort)) {
+		m_signalingSocketMutex.Signal();
 		PTRACE(3, "H245\tINVALID ADDRESS");
 		return false;
 	}
 	SetPort(peerPort);	
-	m_signalingSocketMutex.Wait();
 	if (sigSocket != NULL)
 		sigSocket->GetLocalAddress(localAddr);
 	m_signalingSocketMutex.Signal();
@@ -2635,6 +2638,8 @@ bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address 
 {
 	bool swapped;
 	H245Socket *socket;
+
+	m_signalingSocketMutex.Wait();
 	if (listener) {
 		socket = this;
 		swapped = false;
@@ -2647,6 +2652,8 @@ bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address 
 		*socket->peerH245Addr = h245addr;
 	else
 		socket->peerH245Addr = new H225_TransportAddress(h245addr);
+	m_signalingSocketMutex.Signal();
+	
 	h245addr = SocketToH225TransportAddr(myip, socket->listener->GetPort());
 	PTRACE(3, "H245\tSet h245Address to " << AsDotString(h245addr));
 	return swapped;
@@ -2657,7 +2664,9 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 	PTRACE(3, "H245\tH.245 Reverting detected");
 	TCPSocket *socket = static_cast<H245Socket *>(remote)->listener;
 	if (socket && socket->IsOpen()) {
+		m_signalingSocketMutex.Wait();
 		peerH245Addr = new H225_TransportAddress(h245addr);
+		m_signalingSocketMutex.Signal();
 		socket->Close();
 		return true;
 	}
