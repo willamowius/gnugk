@@ -1935,7 +1935,11 @@ void CallSignalSocket::OnInformation(
 			buf = q931.GetIE(Q931::CallStateIE);
 			if (buf.GetSize() > 0 && buf[0] == Q931::CallState_DisconnectRequest) {
 				if (ep) {
-					ep->GetSocket();
+					CallSignalSocket *natsocket = ep->GetSocket();
+					if (natsocket != this) {
+						natsocket->SetDeletable();
+						natsocket->Close();
+					}
 					SetDeletable();
 					PTRACE(3, Type() << "\tRequest to close NAT socket " << GetName());
 				}

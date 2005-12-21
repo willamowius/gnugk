@@ -414,10 +414,10 @@ PString EndpointRec::PrintOn(bool verbose) const
 		    (const unsigned char *) GetEndpointIdentifier().GetValue() );
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
+		PWaitAndSignal lock(m_usedLock);
 		if (IsPermanent())
 			msg += " (permanent)";
 		PString natstring(IsNATed() ? m_natip.AsString() : PString());
-		PWaitAndSignal lock(m_usedLock);
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>\r\n", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
 	}
 	return msg;
@@ -574,7 +574,7 @@ void GatewayRec::SetPriority(
 void GatewayRec::SetEndpointType(const H225_EndpointType &t)
 {
 	if (!t.HasOptionalField(H225_EndpointType::e_gateway)) {
-		PTRACE(1, "RRJ: terminal type changed|" << (const unsigned char *)m_endpointIdentifier.GetValue());
+		PTRACE(1, "RRJ: terminal type changed|" << (const unsigned char *)GetEndpointIdentifier().GetValue());
 		return;
 	}
 	EndpointRec::SetEndpointType(t);
@@ -686,11 +686,11 @@ int GatewayRec::PrefixMatch(
 	}
 	
 	if (maxlen < 0) {
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue() 
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)GetEndpointIdentifier().GetValue() 
 			<< " skipped by prefix " << pfxiter->c_str()
 			);
 	} else if (maxlen > 0) {
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)GetEndpointIdentifier().GetValue()
 			<< " matched by prefix " << pfxiter->c_str()
 			);
 		return maxlen;
@@ -703,7 +703,7 @@ int GatewayRec::PrefixMatch(
 				matchedalias = i;
 				break;
 			}
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)m_endpointIdentifier.GetValue()
+		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)GetEndpointIdentifier().GetValue()
 			<< " matched as a default gateway"
 			);
 		return 0;
