@@ -211,7 +211,7 @@ A timeout value (in milliseconds) to wait for a first message (Setup)
 to be received after a signaling TCP channel has been opened.
 
 <item><tt/SignalTimeout=10000/<newline>
-Default: <tt>15000</tt><newline>
+Default: <tt>30000</tt><newline>
 <p>
 A timeout value (in milliseconds) to wait for a signaling channel
 to be opened after an ACF message is sent or to wait for an Alerting
