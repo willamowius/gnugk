@@ -88,6 +88,18 @@ subtitle "OpenH323 Gatekeeper - The GNU Gatekeeper" and start
 using <tt/gnugk/ as name for executables.
 
 <sect1>Features
+
+<p>
+The version 2.2.4 contains the following new features and bugfixes:
+<itemize>
+<item>
+<tt/Default SignalTimeout value increased from 15 to 30 seconds.
+
+<item>
+New <tt/StatusAcct/ accounting module for the status port sponsored by Grupo Isec.
+
+</itemize>
+
 <p>
 The version 2.2.3 contains the following new features and bugfixes:
 

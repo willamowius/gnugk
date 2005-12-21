@@ -54,7 +54,7 @@ const char *CallTableSection = "CallTable";
 const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
 
 namespace {
-const long DEFAULT_SIGNAL_TIMEOUT = 15000;
+const long DEFAULT_SIGNAL_TIMEOUT = 30000;
 const long DEFAULT_ALERTING_TIMEOUT = 180000;
 const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
