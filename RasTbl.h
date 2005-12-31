@@ -377,7 +377,7 @@ public:
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone = true);
 
-	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason,
+/*	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason,
 	                                                 bool SearchOuterZone = true)
 	{
 	  endptr ep;
@@ -389,7 +389,7 @@ public:
 	  }
 	  return (ok) ? ep : endptr(0);
 	}
-
+*/
 	void ClearTable();
 	void CheckEndpoints();
 
