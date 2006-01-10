@@ -1936,7 +1936,7 @@ void CallSignalSocket::OnInformation(
 			if (buf.GetSize() > 0 && buf[0] == Q931::CallState_DisconnectRequest) {
 				if (ep) {
 					CallSignalSocket *natsocket = ep->GetSocket();
-					if (natsocket != this) {
+					if (natsocket != NULL && natsocket != this) {
 						natsocket->SetDeletable();
 						natsocket->Close();
 					}

@@ -161,8 +161,10 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 EndpointRec::~EndpointRec()
 {
 	PTRACE(3, "Gk\tDelete endpoint: " << m_endpointIdentifier.GetValue() << " " << m_usedCount);
-	if (m_natsocket)
+	if (m_natsocket) {
 		m_natsocket->SetDeletable();
+		m_natsocket->Close();
+	}
 }
 
 bool EndpointRec::LoadConfig()
@@ -259,6 +261,7 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 				<< " is overwritten by " << socket->Name()
 				);
 			m_natsocket->SetDeletable();
+			m_natsocket->Close();
 		}
 		m_natsocket = socket;
 	}
