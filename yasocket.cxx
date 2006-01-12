@@ -701,8 +701,12 @@ void SocketsReader::Stop()
 void SocketsReader::AddSocket(IPSocket *socket)
 {
 	m_listmutex.StartWrite();
-	m_sockets.push_back(socket);
-	++m_socksize;
+	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
+	if (iter == m_sockets.end()) {
+		m_sockets.push_back(socket);
+		++m_socksize;
+	} else
+		PTRACE(1, GetName() << "\tTrying to add an already existing socket to the handler");
 	m_listmutex.EndWrite();
 	Signal();
 	PTRACE(5, GetName() << "\tTotal sockets: " << m_socksize);

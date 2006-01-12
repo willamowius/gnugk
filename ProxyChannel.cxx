@@ -147,14 +147,20 @@ protected:
 	// new virtual function
 	virtual bool ConnectRemote();
 
+private:
+	H245Socket();
+	H245Socket(const H245Socket&);
+	H245Socket& operator=(const H245Socket&);
+
+	// override from class ServerSocket
+	virtual void Dispatch() { /* useless */ }
+
+protected:
 	CallSignalSocket *sigSocket;
 	H225_TransportAddress *peerH245Addr;
 	TCPSocket *listener;
 	/// to avoid race condition inside calls between this socket and its signaling socket	
 	PMutex m_signalingSocketMutex;
-private:
-	// override from class ServerSocket
-	virtual void Dispatch() { /* useless */ }
 };
 
 class NATH245Socket : public H245Socket {
@@ -165,6 +171,10 @@ public:
 	NATH245Socket(CallSignalSocket *sig) : H245Socket(sig) {}
 
 private:
+	NATH245Socket();
+	NATH245Socket(const NATH245Socket&);
+	NATH245Socket& operator=(const NATH245Socket&);
+
 	// override from class H245Socket
 	virtual bool ConnectRemote();
 };
@@ -196,6 +206,11 @@ protected:
 	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
 private:
+	UDPProxySocket();
+	UDPProxySocket(const UDPProxySocket&);
+	UDPProxySocket& operator=(const UDPProxySocket&);
+
+private:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
 	bool fnat, rnat;
@@ -216,9 +231,13 @@ public:
 	virtual bool ForwardData();
 
 private:
+	T120ProxySocket(const T120ProxySocket&);
+	T120ProxySocket& operator=(const T120ProxySocket&);
+
 	// override from class ServerSocket
 	virtual void Dispatch();
 
+private:
 	T120LogicalChannel *t120lc;
 };
 
@@ -391,12 +410,13 @@ private:
 
 
 // class ProxySocket
-ProxySocket::ProxySocket(IPSocket *s, const char *t) : USocket(s, t)
+ProxySocket::ProxySocket(
+	IPSocket *s,
+	const char *t,
+	WORD buffSize
+	) : USocket(s, t), wbuffer(new BYTE[buffSize]), wbufsize(buffSize), buflen(0),
+	connected(false), deletable(false), handler(NULL)
 {
-	wbufsize = 1536; // 1.5KB
-	wbuffer = new BYTE[wbufsize];
-	buflen = 0;
-	connected = deletable = false;
 }
 
 ProxySocket::~ProxySocket()
@@ -1920,6 +1940,8 @@ void CallSignalSocket::OnInformation(
 	if (remote != NULL)
 		return;
 		
+	m_result = Error;
+	
 	Q931 &q931 = msg->GetQ931();
 	if (!q931.HasIE(Q931::FacilityIE))
 		return;
@@ -1949,8 +1971,8 @@ void CallSignalSocket::OnInformation(
 				ep->SetSocket(this);
 				SetConnected(true); // avoid the socket be deleted
 			}
+			m_result = NoData;
 		}
-		m_result = NoData;
 	}
 }
 
@@ -3754,13 +3776,23 @@ void ProxyHandler::LoadConfig()
 
 void ProxyHandler::Insert(TCPProxySocket *socket)
 {
-	socket->SetHandler(this);
-	AddSocket(socket);
+	ProxyHandler *h = socket->GetHandler();
+	if (h == NULL) {
+		socket->SetHandler(this);
+		AddSocket(socket);
+	} else
+		h->MoveTo(this, socket);
 }
 
 void ProxyHandler::Insert(TCPProxySocket *first, TCPProxySocket *second)
 {
+	ProxyHandler *h = first->GetHandler();
+	if (h != NULL && h != this)
+		h->DetachSocket(first);
 	first->SetHandler(this);
+	h = second->GetHandler();
+	if (h != NULL && h != this)
+		h->DetachSocket(second);
 	second->SetHandler(this);
 	AddPairSockets(first, second);
 }
@@ -3775,7 +3807,11 @@ void ProxyHandler::Insert(UDPProxySocket *rtp, UDPProxySocket *rtcp)
 void ProxyHandler::MoveTo(ProxyHandler *dest, TCPProxySocket *socket)
 {
 	m_listmutex.StartWrite();
-	m_sockets.remove(socket);
+	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
+	if (iter != m_sockets.end()) {
+		m_sockets.erase(iter);
+		--m_socksize;
+	}
 	m_listmutex.EndWrite();
 	dest->Insert(socket);
 }
@@ -3879,9 +3915,18 @@ void ProxyHandler::CleanUp()
 void ProxyHandler::AddPairSockets(IPSocket *first, IPSocket *second)
 {
 	m_listmutex.StartWrite();
-	m_sockets.push_back(first);
-	m_sockets.push_back(second);
-	m_socksize += 2;
+	iterator iter = find(m_sockets.begin(), m_sockets.end(), first);
+	if (iter == m_sockets.end()) {
+		m_sockets.push_back(first);
+		++m_socksize;
+	} else 
+		PTRACE(1, GetName() << "\tTrying to add an already existing socket to the handler");
+	iter = find(m_sockets.begin(), m_sockets.end(), second);
+	if (iter == m_sockets.end()) {
+		m_sockets.push_back(second);
+		++m_socksize;
+	} else
+		PTRACE(1, GetName() << "\tTrying to add an already existing socket to the handler");
 	m_listmutex.EndWrite();
 	Signal();
 	PTRACE(5, GetName() << " total sockets " << m_socksize);
@@ -3944,6 +3989,21 @@ void ProxyHandler::Remove(iterator i)
 	m_removed.push_back(socket);
 	m_removedTime.push_back(new PTime);
 	++m_rmsize;
+}
+
+void ProxyHandler::DetachSocket(IPSocket *socket)
+{
+	m_listmutex.StartWrite();
+	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
+	if (iter != m_sockets.end()) {
+		dynamic_cast<ProxySocket*>(socket)->SetHandler(NULL);
+		m_sockets.erase(iter);
+		--m_socksize;
+	} else
+		PTRACE(1, GetName() << "\tTrying to detach a socket that does not belong to any handler");
+	m_listmutex.EndWrite();
+	Signal();
+	PTRACE(5, GetName() << "\tTotal sockets: " << m_socksize);
 }
 
 

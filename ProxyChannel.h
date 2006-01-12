@@ -65,7 +65,11 @@ public:
 		Error
 	};
 
-	ProxySocket(IPSocket *, const char *);
+	ProxySocket(
+		IPSocket *self,
+		const char *type,
+		WORD buffSize = 1536
+		);
 	~ProxySocket() = 0; // abstract class
 
 	// new virtual function
@@ -80,6 +84,11 @@ public:
 	void SetDeletable() { deletable = true; }
 	ProxyHandler *GetHandler() const { return handler; }
 	void SetHandler(ProxyHandler *h) { handler = h; }
+
+private:
+	ProxySocket();
+	ProxySocket(const ProxySocket&);
+	ProxySocket& operator=(const ProxySocket&);
 
 protected:
 	BYTE *wbuffer;
@@ -106,6 +115,11 @@ public:
 	// override from class ProxySocket
 	virtual bool ForwardData();
 	virtual bool TransmitData(const PBYTEArray &);
+
+private:
+	TCPProxySocket();
+	TCPProxySocket(const TCPProxySocket&);
+	TCPProxySocket& operator=(const TCPProxySocket&);
 
 protected:
 	bool ReadTPKT();
@@ -273,7 +287,7 @@ public:
 	void MoveTo(ProxyHandler *, TCPProxySocket *);
 	bool IsEmpty() const { return m_socksize == 0; }
 	void LoadConfig();
-	
+
 private:
 	// override from class RegularJob
 	virtual void OnStart();
@@ -287,6 +301,7 @@ private:
 	void FlushSockets();
 	void Remove(iterator);
 	void Remove(ProxySocket *socket);
+	void DetachSocket(IPSocket *socket);
 
 	ProxyHandler();
 	ProxyHandler(const ProxyHandler&);
