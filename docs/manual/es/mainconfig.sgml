@@ -1,31 +1,31 @@
-<sect1>Configuration File
+<sect1>Archivo de Configuración
 <label id="config">
 <p>
-The configuration file is a standard text file. The basic format is:
+El archivo de configuración es un archivo estándar de texto. El fomrato es el siguiente: 
 
 <tscreen><verb>
 [Section String]
 Key Name=Value String
 </verb></tscreen>
 
-Comments are marked with a hash (<tt/#/) or a semicolon (<tt/;/)
-at the beginning of a line.
+Los comentarios están marcados con un signo de numeral(<tt/#/) o un punto y coma(<tt/;/)
+al inicio de cada línea.
 
-The file
+El archivo
 <tt/complete.ini/
-contains all available sections for the GnuGk.
-In most cases it doesn't make sense to use them all at once.
-The file is just meant as a collection of examples for many settings.
+contiene todas las secciones disponibles para el GnuGk.
+En la mayoría de los casos no tiene sentido utilizarlas de repente.
+El archivo simplemente contiene una colección de ejemplos para muchas configuraciones.
 
-The configuration file can be changed at runtime.
-Once you modify the configuration file, you may issue <tt/reload/ command
-via status port, or send a signal <tt/HUP/ to the gatekeeper process on Unix.
-For example,
+El archivo de configuración puede ser cambiado en tiempo de ejecución (cuando el gnugk este ejecutándose).
+Una vez que haya modificado el archivo de configuración, usted puede editar el comando <tt/reload/
+desde el puerto de estado (en una conexion telnet), o enviar una señal <tt/HUP/ al proceso del gatekeeper en ambientes UNIX.
+Por ejemplo,
 <tscreen><verb>
 kill -HUP `cat /var/run/gnugk.pid`
 </verb></tscreen>
 
-<sect2>Section &lsqb;Gatekeeper::Main&rsqb;
+<sect2>Sección &lsqb;Gatekeeper::Main&rsqb;
 <p>
 <itemize>
 <item><tt/Fourtytwo=42/<newline>
@@ -170,14 +170,14 @@ IP del otro gatekeeper en esta lista.
 Default: <tt/7000/
 <p>
 Este es el puerto de estado para monitorear el gatekeeper.
-See <ref id="monitor" name="this section"> for details.
+Ver <ref id="monitor" name="this section"> para detalles.
 
 <item><tt/StatusTraceLevel=2/<newline>
 Default: <tt/2/
 <p>
 Aquí se especifica el nivel de rastreo de mensajes para nuevas interfaces
 clientes.
-See <ref id="monitor" name="this section"> for details.
+Ver <ref id="monitor" name="this section"> para detalles.
 
 <item><tt/TimestampFormat=ISO8601/<newline>
 Default: <tt/Cisco/
@@ -208,22 +208,22 @@ precedidos por un signo de porcentaje (%). Por ejemplo: "%Y-%m-%d and
 percent %%" dará como resultado "2004- 11- 10 and percent %". Algunos
 códigos formateados comúnes son:
 <itemize>
-<item><tt/%a/ - abbreviated weekday name
-<item><tt/%A/ - full weekday name
-<item><tt/%b/ - abbreviated month name
-<item><tt/%B/ - full month name
-<item><tt/%d/ - day of month as decimal number
-<item><tt/%H/ - hour in 24-hour format
-<item><tt/%I/ - hour in 12-hour format
-<item><tt/%m/ - month as decimal number
-<item><tt/%M/ - minute as decimal number
-<item><tt/%S/ - second as decimal number
-<item><tt/%y/ - year without century
-<item><tt/%Y/ - year with century
-<item><tt/%u/ - microseconds as decimal number (<bf/this is a GnuGk extension/)
-<item><tt/%z/ - time zone abbreviation (+0100)
-<item><tt/%Z/ - time zone name
-<item><tt/%%/ - percent sign
+<item><tt/%a/ - Nombre abreviado del día de la semana - abbreviated weekday name
+<item><tt/%A/ - Nombre completo del día de la semana - full weekday name
+<item><tt/%b/ - Nombre abreviado del mes - abbreviated month name
+<item><tt/%B/ - Nombre completo del mes - full month name
+<item><tt/%d/ - Dia del mes como un número decimal - day of month as decimal number
+<item><tt/%H/ - Hora en el formato 24 horas - hour in 24-hour format
+<item><tt/%I/ - Hora en el formato 12 horas - hour in 12-hour format
+<item><tt/%m/ - Mes en número decimal - month as decimal number
+<item><tt/%M/ - Minuto en número decimal - minute as decimal number
+<item><tt/%S/ - Segundo en número decimal - second as decimal number
+<item><tt/%y/ - Año sin siglo - year without century
+<item><tt/%Y/ - Año con siglo year with century
+<item><tt/%u/ - Microsegundos en número decimal - como un número decimal microseconds as decimal number (<bf/this is a GnuGk extension/)
+<item><tt/%z/ - Abreviación de la zona horaria - time zone abbreviation (+0100)
+<item><tt/%Z/ - Nombre de la zona horaria - time zone name
+<item><tt/%%/ - Signo de porcentaje - percent sign
 </itemize>
 
 <item><tt/EncryptAllPasswords=1/<newline>
@@ -298,10 +298,10 @@ Time in miliseconds for write timeout on status channel.
 </itemize>
 
 
-<sect2>Section &lsqb;GkStatus::Auth&rsqb;
+<sect2>Sección &lsqb;GkStatus::Auth&rsqb;
 <p>
 En esta sección se definen un número de reglas para determinar quienes están
-permitidos de conectarse al gatekeeper vía p uerto de estado. Quien quiera que tenga
+permitidos de conectarse al gatekeeper vía puerto de estado (vía telnet). Quien quiera que tenga
 acceso al puerto de estado tiene un control completo sobre el gatekeeper.
 Asegúrese de que ésta sección esté configurada correctamente.
 <itemize>
@@ -358,10 +358,10 @@ rechazar un username / pa s sword inválido.
 </itemize>
 
 
-<sect2>Section &lsqb;LogFile&rsqb;
+<sect2>Sección &lsqb;LogFile&rsqb;
 <label id="logfile">
 <p>
-En esta sección se define parámet ros relacionados con el archivo de log.
+En esta sección se define parámetros relacionados con el archivo de log.
 Actualmente se permite a los usuarios especificar las opciones de rotación.
 
 <itemize>
@@ -380,7 +380,7 @@ vacío. Para deshabilitar la rotación, no utilice la opción <tt/Rotate/ o establé
 a 0.
 
 <descrip>
-<tag/Ejemplo1: Rotaciçon cada hora (00:45, 01:45, ..., 23:45):/
+<tag/Ejemplo1: Rotación cada hora (00:45, 01:45, ..., 23:45):/
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Hourly</tt><newline>
 <tt>RotateTime=45</tt><newline>
