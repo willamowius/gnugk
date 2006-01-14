@@ -70,7 +70,7 @@ AdmissionRequest (ARQ) y LocationRequest (LRQ).
 <p>
 Provee autenticación basada en el esquema de seguridad H.235 
 username/password. Autentica RRQ, ARQ y Q.931 Setup mediante servidores
-RADIUS remotos. Éste pasa al Servidor RADIUS los usernames y passwords
+RADIUS remotos. �ste pasa al Servidor RADIUS los usernames y passwords
 extraídos desde los CAT (Cisco Access Tokens) <bf/tokens/ que viajan
 dentro de los paquetes RRQ, ARQ o Setup. Por consiguiente si sus endpoints no
 soportan CATs o usted no necesita el esquema de autenticación basado en usernames/password
@@ -278,7 +278,7 @@ sigip:192.168.242.165:1720
 
 </itemize>
 
-<sect1>SecciÓn &lsqb;SQLAliasAuth&rsqb;
+<sect1>Sección &lsqb;SQLAliasAuth&rsqb;
 <label id="sqlaliasauth">
 <p>
 Autentica endpoints utilizando reglas almacenadas en una base de datos
