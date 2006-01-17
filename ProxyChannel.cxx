@@ -3813,7 +3813,8 @@ void ProxyHandler::MoveTo(ProxyHandler *dest, TCPProxySocket *socket)
 		--m_socksize;
 	}
 	m_listmutex.EndWrite();
-	dest->Insert(socket);
+	socket->SetHandler(dest);
+	dest->AddSocket(socket);
 }
 
 void ProxyHandler::OnStart()
