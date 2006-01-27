@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | connect | update | on | off
@@ -96,6 +96,12 @@ See the section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 This module logs all accounting events on the status port. It can be used to interface to external application in real-time. It supports (start, connect, stop, update)
 event types. 
 See the section <ref id="statusacct" name="[StatusAcct]"> for configuration details.
+
+<item><tt>CapacityControl</tt>
+<p>
+This module performs inbound call volume logging, required for <tt/CapacityControl/
+authentication module to work correctly. See the section <ref id="capctrl" name="[CapacityControl]">
+for details.
 
 <item><tt>default</tt>
 <p>

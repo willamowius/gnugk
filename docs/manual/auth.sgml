@@ -12,7 +12,7 @@ The section defines the authentication mechanism for the gatekeeper.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
@@ -98,6 +98,12 @@ caller's number, destination number, username and more. It also supports
 enforcing call duration limit, number rewriting, call routing, alias
 verification and assignment.
 See section <ref id="sqlauth" name="[SQLAuth]"> for more details.
+
+<item><tt>CapacityControl</tt>
+<p>
+A flexible module to control inbound call volume with ability to configure
+various conditions. IMPORTANT: It has to be used in conjunction with <tt/CapacityControl/
+accounting module. See section <ref id="capctrl" name="[CapacityControl]"> for more details.
 
 </itemize>
 
@@ -982,3 +988,57 @@ by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNum
 
 </itemize>
 
+<sect1>Section &lsqb;CapacityControl&rsqb;
+<label id="capctrl">
+<p>
+This section contains a set of rules for controlling inbound call volume
+depending on various conditions. In order this module to work, CapacityControl
+authentication and accounting modules have to be enabled like this:
+<tscreen><verb>
+[Gatekeeper::Auth]
+CapacityControl=required;Setup
+
+[Gatekeeper::Acct]
+CapacityControl=required;start,stop
+</verb></tscreen>
+<p>
+A capacity rule can be matched by a caller's IP, caller's H.323 ID and/or
+caller's number (CLI) - in the order specified. In addition, the match can
+be narrowed by specifying a called number pattern. This module works by keeping
+lists of current call volume for each inbound route (rule) - this is done
+by having <tt/CapacityControl/ accounting module configured to add/remove
+active calls from matching routes. <tt/CapacityControl/ authentication module
+checks rules and accepts/rejects a call based on current/max call volume
+for a matching inbound route.
+<p>
+<descrip>
+<tag/Format for an inbound route rule:/
+<tt>[ip:CALLER_IP|h323id:CALLER_H323ID|cli:CALLER_NUMBER]=[CALLED NUMBER REGEX PATTERN] MAX_CAPACITY</tt>
+<p>
+<tt/ip:/, <tt/h323id:/ and <tt/cli:/ prefixes define rule type. An inbound call
+will be matched either by caller's IP, H.323ID or CLI. The optional <tt/CALLED NUMBER REGEX PATTERN/
+is a regular expression that the called number should match to apply this rule to.
+<tt/MAX_CAPACITY/ is maximum number of active calls for this route.
+
+<tag/Example 1:/
+<tscreen><verb>
+[CapacityControl]
+ip:192.168.1.0/24=30
+ip:any=120
+</verb></tscreen>
+<p>
+These rules tell that the 192.168.1.0/24 subnet can send up to 30 concurrent
+calls, while all other IPs can send up to 120 concurrent calls.
+
+<tag/Example 2:/
+<tscreen><verb>
+[RewriteCLI]
+%r1% cli:1001=30
+%r2% cli:1001=^48(50|51) 5
+</verb></tscreen>
+<p>
+These rules limit caller with CLI 1001 to send up to 5 calls to 4850/4851
+destinations and up to 30 calls to other destinations. %r1% and %r2% are
+special constructs to allow having the same <tt/cli:1001/ config key more
+than once.
+</descrip>

@@ -29,6 +29,7 @@
 #include "gksql.h"
 #endif
 #include "clirw.h"
+#include "capctrl.h"
 #include "Toolkit.h"
 
 using namespace std;
@@ -1085,6 +1086,8 @@ PConfig* Toolkit::ReloadConfig()
 	delete m_cliRewrite;
 	m_cliRewrite = new CLIRewrite;
 	
+	CapacityControl::Instance()->LoadConfig();
+
 	return m_Config;
 }
 
