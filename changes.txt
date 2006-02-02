@@ -1,5 +1,7 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- BUGFIX(ProxyChannel.cxx) check for poor NAT implementations, that might
+  have crashed GnuGk (by Simon Horne)
 - new CapacityControl auth/acct modules to control inbound traffic
 - BUGFIX(ProxyChannel.cxx) check added for a NULL pointer in NAT traversal code
 - (RasTbl.cxx) default SignalTimeout value increased from 15 to 30 seconds
