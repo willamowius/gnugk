@@ -1953,8 +1953,8 @@ void CallSignalSocket::OnInformation(
 		id = epid;
 		PTRACE(3, Type() << "\t" << GetName() << " NAT Information message from EPID = " << epid);
 		endptr ep = RegistrationTable::Instance()->FindByEndpointId(id);
-		if ((ep) && (!ep->IsNATed()))   // Fix for poor or bad implementations which send Facility message
-		return;                 // without checking the RCF message first
+		if ((ep) && (!ep->IsNATed()))	// Fix for poor or bad implementations which send Facility message
+			return;						// without checking the RCF message first
 
 		if (q931.HasIE(Q931::CallStateIE)) {
 			buf = q931.GetIE(Q931::CallStateIE);
