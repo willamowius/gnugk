@@ -1,5 +1,6 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- (clirw.cxx) process CLI ranges with leading zeros correctly
 - BUGFIX(ProxyChannel.cxx) check for poor NAT implementations, that might
   have crashed GnuGk (by Simon Horne)
 - new CapacityControl auth/acct modules to control inbound traffic
