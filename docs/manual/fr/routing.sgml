@@ -39,9 +39,9 @@ La destination est r&#233;solue par DNS, &#224; condition qu'elle soit r&#233;so
 
 <item><tt/vqueue/<newline>
 <p>
-Utilise la m&#233;canimse de queue virtuelle et g&#233;n&#232;re un
+Utilise le m&#233;canisme de queue virtuelle et g&#233;n&#232;re un
 &#233;v&#233;nement RouteRequest pour laisser une application externe faire le routage
-(ne peut &#234;tre utilis&#233; avec OnARQ)
+(ne peut &#234;tre utilis&#233; qu'avec OnARQ)
 
 <item><tt/numberanalysis/<newline>
 <p>
