@@ -37,6 +37,11 @@ HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            gkconfig.h configure Makefile sigmsg.h clirw.h cisco.h ipauth.h \
            statusacct.h capctrl.h @HEADERS@
 
+# add cleanup files for non-default targets
+CLEAN_FILES += $(OBJDIR)/addpasswd $(OBJDIR)/addpasswd.o docs/manual/*.html
+# add cleanup files for autoconf
+CLEAN_FILES += Makefile config.*
+
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by
 # assigning it to a variable
