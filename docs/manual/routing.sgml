@@ -361,7 +361,8 @@ Number matching/rewriting can be done in three ways:
 </itemize>
 After the equality (=/~=/*=) sign, there follows a list of new CLI values to be used.
 If more than one value is specified, a one will be chosen on a random basis.
-It's possible to specify whole number ranges, like 49173600000-49173699999.
+It's possible to specify whole number ranges, like 49173600000-49173699999
+(for number ranges CLIs should have a fixed length).
 There is a special string constant "any", that can be used in place
 of the <tt/CALLER_IP/ or the <tt/number_prefix/. To enable <tt/CLIR/ for this rule,
 use a special string constant <tt/"hide"/ instead of the list of new CLI values.

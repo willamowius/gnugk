@@ -621,20 +621,21 @@ void CLIRewrite::Rewrite(
 			// if this is a number range, choose the new ANI/CLI from the range
 			const PINDEX sepIndex = newcli.Find('-');
 			if (sepIndex != P_MAX_INDEX) {
-				PUInt64 low = newcli.Left(sepIndex).AsUnsigned64();
-				PUInt64 high = newcli.Mid(sepIndex + 1).AsUnsigned64();
+				PString lowStr(newcli.Left(sepIndex).Trim());
+				PString highStr(newcli.Mid(sepIndex + 1).Trim());
+				PUInt64 low = lowStr.AsUnsigned64();
+				PUInt64 high = highStr.AsUnsigned64();
 				PUInt64 diff = (low < high) ? (high - low) : (low - high);
 
 				int numLeadingZeros1 = 0;
-				while (numLeadingZeros1 < sepIndex
-						&& newcli[numLeadingZeros1] == '0')
+				while (numLeadingZeros1 < lowStr.GetLength()
+						&& lowStr[numLeadingZeros1] == '0')
 					++numLeadingZeros1;
 						
-				int numLeadingZeros2 = sepIndex + 1;
-				while (numLeadingZeros2 < newcli.GetLength()
-						&& newcli[numLeadingZeros2] == '0')
+				int numLeadingZeros2 = 0;
+				while (numLeadingZeros2 < highStr.GetLength()
+						&& highStr[numLeadingZeros2] == '0')
 					++numLeadingZeros2;
-				numLeadingZeros2 -= sepIndex + 1;
 				
 				if (diff >= RAND_MAX)
 					diff = PUInt64(rand());
@@ -644,9 +645,10 @@ void CLIRewrite::Rewrite(
 				diff = (low < high) ? (low + diff) : (high + diff);
 				newcli = PString(diff);
 
-				if (numLeadingZeros1 == numLeadingZeros2)
-					while (numLeadingZeros1-- > 0)
+				if (lowStr.GetLength() == highStr.GetLength() && (numLeadingZeros1 > 0 || numLeadingZeros2 > 0)) {
+					while (newcli.GetLength() < highStr.GetLength())
 						newcli = PString("0") + newcli;
+				}
 
 				PTRACE(5, "CLIRW\t" << (inbound ? "Inbound" : "Outbound")
 					<< " CLI range rewrite target is '" << newcli << "' selected by the rule "
