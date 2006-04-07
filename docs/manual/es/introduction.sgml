@@ -1,4 +1,4 @@
-<sect>Introduction
+<sect>Introducción
 <p>
 <!--
 Este manual tambien esta disponible en Portugues y Chino tradicional.
@@ -7,212 +7,129 @@ La version en ingles es la primaria y sera la que se actualize primero.
 <sect1>Acerca de
 <p>
 <bf>
-<url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
+<url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - El GNU Gatekeeper">
 </bf>
 es un proyecto de codigo abierto que implementa un gatekeeper H.323.
 Un gatekeeper ofrece de servicios de control de llamada a los clientes H.323.
-Es un parte integral de las mas instalaciones de telefono por internet mas utiles que estan basadas en el H.323 estandar.
-is an open-source project that implements an H.323 gatekeeper.
-A gatekeeper provides call control services to the H.323 endpoints.
-It is an integral part of most usefull internet telephony
-installations that are based on the H.323 standard.
+Es una parte integral de las instalaciones telefónicas en internet más utiles que están basadas en el estándar H.323.
 
-De acuerdo con la Recomendacion H.323, un gatekeeper devera ofrecer los siguientes servicios:
-According to Recommendation H.323, a gatekeeper shall provide the
-following services:
+De acuerdo con la Recomendacion H.323, un gatekeeper deberá ofrecer los siguientes servicios:
 <itemize>
 <item>Traduccion de direcciones
-Address Translation
 <item>Control de admisiones
-Admissions Control
 <item>Control del ancho de banda
-Bandwidth Control
 <item>Gestion de zona
-Zone Management
 <item>Señalizacion del control de llamada
-Call Control Signaling
 <item>Autorizacion de llamada
-Call Authorization
 <item>Gestion del ancho de banda
-Bandwidth Management
 <item>Gestion de llamada
-Call Management
 </itemize>
 
-El GNU Gatekeeper implementa la mayor parte de estas funciones basandose en la 
-The GNU Gatekeeper implements most of these functions
-based on the
+El GNU Gatekeeper implementa la mayor parte de estas funciones basandose en la pila de protocolos
 <url url="http://www.openh323.org/" name="OpenH323">
-pila de protocolo
-protocol stack.
 
 La recomendacion H.323 es un estandar internacional publicado por el
-Recommendation H.323 is an international standard published by the
 <url url="http://www.itu.int/" name="ITU">.
 Es un estandar de comunicaciones para audio, video y datos a traves de Internet.
-It is a communications standard for audio, video, and data over the Internet.
 Consultar tambien "Paul Jones"
-See also Paul Jones'
 <url url="http://www.packetizer.com/iptel/h323/" name="primer on H.323">.
 
 Para una descripcion detallada de lo que hace gatekeeper consulte 
-For a detailed description of what a gatekeeper does, see
 <url url="http://www.webproforum.com/h323/topic06.html" name="here">.
 
 <sect1>Copyright
 <p>
 Esta publicado bajo la licencia
-It is covered by the
 <htmlurl url="http://www.gnu.org/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
 Ademas, se garantiza explicitamente el derecho a enlazar este codigo a las librerias OpenH323 y OpenSSL.
-In addition to that, we explicitely grant
-the right to link this code to the OpenH323 and OpenSSL library.
 
 Generalmente hablando, la GNU GPL le permite copiar, distribuir, revender o modificar este software, pero requiere que los trabajos derivados sean publicados bajo la GNU GPL.
-Generally speaking, the GNU GPL allows you to copy, distribute, resell or modify
-the softwares, but it requires that all derived works must be published
-under GNU GPL also.
 Esto significa que debe publicar todo el codigo fuente de todas las extensiones al gatekeeper y de todos los programas que donde usted incluya el gatekeeper.
-That means that you must publish full source for all extensions to
-the gatekeeper and for all programs you include the gatekeeper into.
 Consulte el fichero COPYING para mas detalles.
-See the file COPYING for details.
 
-Si no es esto lo que usted quiere, debe crear una interface con el gatekeeper a traves del puerto de estado y comunicarse con el via TCP.
-If that's not what you want, you must interface to the gatekeeper through
-the status port and communicate via TCP with it.
+Si no es esto lo que usted quiere, debe crear una interface con el gatekeeper a traves del puerto de estado y comunicarse con éste via TCP.
 De esta forma usted solo tiene que integrar la funcionalidad basica dentro del gatekeeper (y facilitar el codigo fuente de esta) y puede mantener otras partes de su aplicacion bajo otra licencia.
-That way you only have to integrate the basic funtionality into
-the gatekeeper (and provide source for that) and can keep other parts
-of your application private.
 
 <sect1>Nombre
-Name
 <p>
 El nombre formal de este proyecto es 
-The formal name of this project is
-<em>OpenH323 Gatekeeper - The GNU Gatekeeper</em>,
+<em>OpenH323 Gatekeeper - El GNU Gatekeeper</em>,
 abreviado en 
-short <em/GnuGk/.
+<em/GnuGk/.
 Por favor no lo confunda con otros proyectos de gatekeeper.
-Please don't confuse it with other gatekeeper projects.
 
 Hay muchos proyectos de gatekeepers open-source basados en la pila del protocol OpenH323.
-There are several open-source gatekeeper projects based on the OpenH323 protocol stack.
 <itemize>
 <item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper"> - por <url url="http://www.egoboo.com/" name="Egoboo">
 <quote>Un completo gatekeeper disponible gratuitamente bajo MPL.Este proyecto ha estado inactivo por un tiempo. Existe un proxy H.323 basado en OpenGatekeeper, consulte
-A full featured gatekeeper freely available under MPL. The project has been inactive for a period of time now. There is an H.323 proxy based on OpenGatekeeper, see <url url="http://openh323proxy.sourceforge.net/" name="OpenH323Proxy">.</quote>
+<url url="http://openh323proxy.sourceforge.net/" name="OpenH323Proxy">.</quote>
 <item><url url="http://www.openh323.org/code.html" name="OpenGK"> - por <url url="http://www.equival.com.au/" name="Equivalence">
 <quote>Solo en fase inicial.
-Only in a very primary grades.</quote>
+</quote>
 <item>OpenH323 Gatekeeper - este mismo.
 </itemize>
-El haver diferentes gatekeepers con nombres muy similares es confuso para la mayoria de los usuarios.
-Como nuestro "OpenH323 Gatekeeper" fue el primero en aparecer, no es nuestro fallo el que otros hayan elegido nombres similares.
-Pero para que la distincion sea un poco mas clara sin confundir a la gente todavia mas hemos decidido darle un subtitulo al proyecto "OpenH323 Gatekeeper - El Gatekeeper GNU" y empezar a usar <tt/gnugk/ como nombre para los ejecutables.
-To have different gatekeepers with very similar names is really
-confusing for most users.
-Since our "OpenH323 Gatekeeper" was the first on the scene,
-it is not our fault that others have chosen similar names.
-But to make the destinction a little more clear without confusing
-people even more, we have decided to give the project a
-subtitle "OpenH323 Gatekeeper - The GNU Gatekeeper" and start
-using <tt/gnugk/ as name for executables.
+El tener diferentes gatekeepers con nombres muy similares es confuso para la mayoria de los usuarios.
+Como nuestro "OpenH323 Gatekeeper" fue el primero en aparecer, no es nuestra culpa que otros hayan elegido nombres similares.
+Pero para que la distincion sea un poco mas clara sin confundir a la gente todavia mas hemos decidido darle un subtitulo al proyecto "OpenH323 Gatekeeper - El GNU Gatekeeper" y empezar a usar <tt/gnugk/ como nombre para los ejecutables.
 
-<sect1>Caracteristicas
-Features
+<sect1>Características
 <p>
 La version 2.2.2 contiene las siguientes novedades y correcciones:
-The version 2.2.2 contains the following new features and bugfixes:
 
 <itemize>
 <item>
 Se han quitado los modulos obsoletos de autentificacion MySQLAliasAuth y MySQLPasswordAuth.
-Obsolete auth modules MySQLAliasAuth and MySQLPasswordAuth are now removed.
 
 <item>
 Los modulos de SQL aceptan solo un database host en el parametro <tt/Host/.
-SQL modules accept only one database host in the <tt/Host/ parameter.
 </itemize>
 
 <p>
 La version 2.2.1 cotiene las siguientes novedades y correcciones: 
-The version 2.2.1 contains the following new features and bugfixes:
 
 <itemize>
 <item>
 Mejorados los prefijos de sustitucion para las politicas de enrutamiento. Un punto (<tt/./) sustituye cualquier digito.
-Enchanced prefix matching for routing policies. A dot (<tt/./) matches any digit.
 
 <item>
-Mejorados los prefijos se sustitucion para vecinos. Un punto (<tt/./) sustituye cualquier digito.
-Enchanced prefix matching for neighbors. A dot (<tt/./) matches any digit,
-<tt/!/ at the beginning disables the prefix.
+Mejorados los prefijos se sustitucion para vecinos. Un punto (<tt/./) sustituye cualquier digito,
+<tt/!/ al inicio desactiva el prefijo.
 
 <item>
 Un error de configuracion durante la recarga de la configuracion hace que el gatekeeper falle.
-A missing lock during config reload caused the gatekeeper to crash.
 
 <item>
 Seleccion de puertos mas fiable para rangos de puertos del Q.931, H.245, T.120 y RTP (anteriormente, una recarga  de la configuracion podia causar muchas llamanadas fallidas a causa de la imposibilidad de asignarles un nuevo socket).
-More reliable port number selection for Q.931, H.245, T.120 and RTP
-port ranges (earlier, a config reload could cause many calls to fail
-because of unability to allocate a new socket).
 
 <item>
-Ahora dejar al SO escojer el numero de puerto es el valor por defecto para RTPPortRange.
-Default value for RTPPortRange is now to let the OS select a port number.
+Ahora se deja al SO escojer el numero de puerto por defecto para RTPPortRange.
 
 <item>
 Las reglas de reescritura son mas flexibles (tanto globales como para-gateway) con nuevos metacaracteres ('.' y '%').
-More flexible rewrite rules (both global and per-gw) with new '.' and '%'
-wildcard characters.
 
 <item>
 Mejorados los prefijos de sustitucion para gateways. Un punto (<tt/./) sustituye cualquier digito, un <tt/!/ al principio desactiva el prefijo.
-Enchanced prefix matching for gateways. A dot (<tt/./) matches any digit,
-<tt/!/ at the beginning disables the prefix.
 
 <item>
 Si las opciones correspondientes <tt/Screen.../  estan activadas se inserta el Calling-Party-Number-IE/Display-IE perdido.
-Insert missing Calling-Party-Number-IE/Display-IE if corresponing
-<tt/Screen.../ options are enabled.
 
 <item>
 El gatekeeper se cerrara si hay errores en la configuracion de los modulos de SQL auth/acct.
-Shutdown the gatekeeper if there are errors in SQL auth/acct modules
-configuration.
 
 <item>
 El tipo de numero Called-Station-Id puede ser seleccionado entre el original (el numero marcado) y el que ha sido reescrito. Nueva opcion <tt/UseDialedNumber/ a configurar para los modulos <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">/<ref id=radacct name="RadAcct">, nueva variable %{Dialed-Number} para los modulos <ref id=sqlacct name="SQLAcct"> y <ref id=fileacct name="FileAcct">.
-Called-Station-Id number type can be selected between the original one
-(dialed number) and the rewritten one. New <tt/UseDialedNumber/ config option
-for <ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">
-/<ref id=radacct name="RadAcct"> modules, new %{Dialed-Number} variable
-for <ref id=sqlacct name="SQLAcct"> and <ref id=fileacct name="FileAcct"> modules.
 
 <item>
 Se posibilita la personalizacion del formato de fecha. Nuevas variables <tt/TimestampFormat/ a configurar para las secciones principal, <ref id="sqlacct" name="[SqlAcct]">, <ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]"> y <ref id="calltable" name="[CallTable]">.
-Ability to customize timestamp formats. New <tt/TimestampFormat/ config 
-variables for main, <ref id="sqlacct" name="[SqlAcct]">, 
-<ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
-and <ref id="calltable" name="[CallTable]"> sections.
 
 <item>
 Los modulos RadAuth/RadAliasAuth pueden añadir/eliminar alias de endpoint durante el registro endpoint (usando h323-ivr-in=terminal-alias: Cisco AV-Pair).
-RadAuth/RadAliasAuth modules can now add/remove endpoint aliases during
-endpoint registration (using h323-ivr-in=terminal-alias: Cisco AV-Pair).
 
 <item>
 Nueva opcion <tt/TcpKeepAlive/ para solventar el problema con los errores de red y llamadas colgando en la tabla de llamada. Consulte docs/keepalive.txt para mas detalles.
-New <tt/TcpKeepAlive/ option to solve the problem with network errors
-and calls hanging in the call table. See docs/keepalive.txt for more
-details.
 
 <item>
 Nuevo comando para mostrar el estado del puerto <tt/RouteToGateway/.
-New status port <tt/RouteToGateway/ command.
 
 </itemize>
 
@@ -222,132 +139,83 @@ La version 2.2.0 cotiene las siguientes novedades y correcciones:
 <itemize>
 <item>
 Nueva opcion de configuracion <tt/RoundRobinGateways/.
-New <tt/RoundRobinGateways/ config option.
 
 <item>
 Limites de capacidad de llamada y prioridad de routing para gateways. Nuevas secciones de configuracion <tt/EP::/ para parametros de configuracion por-endpoint (consulte <ref id="epconfig" name="configuracion Por-Endpoint ">).
-Call capacity limits and priority routing for gateways. New <tt/EP::/
-config sections for per-endpoint configuration settings (see 
-<ref id="epconfig" name="Per-Endpoint Configuration Settings">).
 
 <item>
 El tratamiento de proxy RTP se ha movido a hilos separados para proxy RTP, asi el procesamiento de los mensajes de señalizacion no bloquea los paquetes RTP. Nueva opcion de configuracion <tt/RtpHandlerNumber/.
-RTP proxy handling moved to a separate RTP proxy threads, so processing
-of signaling messages does not block RTP packets. New <tt/RtpHandlerNumber/ 
-config option.
 
 <item>
 La opcion REUSE_ADDRESS ha sido activada para sockets de escucha en el modo non-LARGE_FDSET para solucionar un fallo que desabilitaba al gatekeeper para poder abrirp purestos de escucha despues de reiniciar.
-REUSE_ADDRESS option enabled on listening sockets in non-LARGE_FDSET mode 
-to fix a bug with the gatekeeper being unable to open listening ports after
-restart.
 
 <item>
 Habilidad para establecer el destino de la llamada en los modulos de autentificacion. Enrutamiento de llamada basado en RADIUS.
-Ability to set call destination in auth modules. RADIUS based call routing.
 
 <item>
 Soporte para importar la tabla de tarifas de SqlBill desde una hoja de calculo OpenOffice.org.
-Support for SqlBill tariff table import from an OpenOffice.org Calc spreadsheet.
 
 <item>
 Solucionada la gestion del campo sourceInfo LRQ -ahora contiene un identificador H.323 del gatekeeper. Los datos no estandar y campos gatekeeperIdentifier son establecidos solo cuando la otra parte es definida como GnuGk.
-Fixed sourceInfo LRQ field handling - now it contains an H.323 identifier 
-of the gatekeeper. Nonstandard data and gatekeeperIdentifier fields are set
-only when the neighbor is defined as GnuGk.
 
 <item>
 Habilidad para establecer secretos compartidos para cada servidor radius de forma separada.
-Ability to set shared secrets for each radius server separatelly.
 
 <item>
 Nueva, mucho mas rapida, implementacion del cliente para Radius.
-New, much faster, Radius client implementation.
 
 <item>
 Si la reescritura de Called-Party-Number-IE ocurrio demasiado tarde, los modulos auth/acct reciben el numero original en vez del reescrito.
-Called-Party-Number-IE rewrite occured too late, causing auth/acct modules 
-to receive the original number instead of the rewritten one.
 
 <item>
 Arreglado el proxying de paquetes RTP, asi los sockets RTP no estan cerrados en errores temporales (como el socket remoto no esta listo todavia). Este bug affecta especialmente al NAT transversal y de situacion, cuando se envia audio demasiado pronto, cuando el camido del proxy inverso no ha sido todavia establecido.
-Fixed proxying of RTP packets, so RTP sockets are not closed on temporary 
-errors (like remote socket not yet ready). This bug affected especially 
-NAT traversal and situation, when audio was sent very early, when reverse 
-proxy path has not been yet established.
 
 <item>
 Arreglada la manipulacion de RRJ desde un GnuGk alternativo.
-Fixed handling of RRJ from an alternate GnuGk.
 
 <item>
 Nuevo modulo de gestion de cuentas SQL directo (<ref id="sqlacct" name="[SQLAcct]">).
-New direct SQL accounting module (<ref id="sqlacct" name="[SQLAcct]">).
 
 <item>
 Arreglada la manipulacion de multiples mensajes de respuesta (RIP/LCF/LRJ) desde vecinos.
-Handling multiple reply messages (RIP/LCF/LRJ) from neighbors fixed.
 
 <item>
 Soporte para CallCreditServiceControl en mensajes RCF y ACF, que permite notificar el limite de duracion de la llamada y el balance de la cuenta de usuario a los endpoints.
 Actualmente los modules RadAuth y RadAliasAuth soportan esta caracteristica.
-Support for CallCreditServiceControl in RCF and ACF messages, which allows
-reporting call duration limit and user's account balance to endpoints. 
-Currently RadAuth and RadAliasAuth modules support this feature.
 
 <item>
 Rotacion del fichero log, nueva seccion de configuracion <tt/LogFile/, nuevos comandos de estado de la interface <tt/setlog/ y <tt/rotatelog/.
-Log file rotation, new <tt/LogFile/ config section, new <tt/setlog/ 
-and <tt/rotatelog/ status interface commands.
 
 <item>
-Do not include an invalid access token (with null object identifier) 
-in LCF to prevent interoperability problems.
+No se incluye un token de acceso inválido (con identificadores de objeto nulos) 
+en los mensajes LCF para prevenir problemas de interoperabilidad.
 
 <item>
 Mejor manejo de llamadas multiples sobre un unico canal de señalizacion mediante el establecimiento de los campos multipleCalls y maintainConnection H.225.0 a FALSE en todos los mensajes que pasan a traves del gatekeeper.
-Better handling of multiple calls over a single signalling channel 
-by setting multipleCalls and maintainConnection H.225.0 fields to FALSE 
-in all messages passing through the gatekeeper.
 
 <item>
 Mejor manipulacion de User-Name, Calling-Station-Id y Called-Station-Id.
-Better User-Name, Calling-Station-Id and Called-Station-Id handling.
 
 <item>
 La bandera IncludeEndpointIP para RadAuth, RadAliasAuth y RadAcct queda obsoleta, estos modulos enviaran siempre Framed-IP-Address.
-IncludeEndpointIP flag for RadAuth, RadAliasAuth and RadAcct is obsolete,
-these modules will always send Framed-IP-Address.
 
 <item>
 Nueva SetupUnreg bandera Gatekeeper:Auth para fijar que la autentificacion en Q.931 Setup solo este disponible para endpoints no registrados.
-New Gatekeeper::Auth flag SetupUnreg to toggle Q.931 Setup authentication
-for unregistered endpoints only.
 
 <item>
 Nuevo parametro h323-ivr-out=h323-call-id para RADIUS que contiene un identificador de llamada H.323.
-New RADIUS h323-ivr-out=h323-call-id parameter that contains 
-an H.323 Call Identifier.
 
 <item>
 El sistema de facturacion SQL de la seccion de contribuciones puede autentificar ahora usuario con soloamente su IP (ignorando el nombre de usuario) y tiene un nuevo y mas flexible motor de tarifas/valoracion.
-The SQL billing from the contrib section can now authenticate users only 
-by their IP (ignoring User-Name) and has a new, more flexible tariff/rating 
-engine.
 
 <item>
 RadAliasAuth ahora puede autentificar mensajes de Setup sin que tenga que estar el campo sourceAddress presente (usando en tal caso usara Calling-Party-Number).
-RadAliasAuth can authenticate now Setup messages without sourceAddress
-field present (it will use Calling-Party-Number instead).
 
 <item>
 Mejor manipulacion de la señal para prevenir cierres accidentales del gatekeeper (debido a SIGPIPE, por ejemplo).
-Better signal handling to prevent accidental gatekeeper crashes 
-(due to SIGPIPE, for example).
 
 <item>
 La rotacion CDR por numero de lineas fuciona correctamente.
-CDR rotation per number of lines works correctly.
 
 </itemize>
 
@@ -355,65 +223,37 @@ CDR rotation per number of lines works correctly.
 <label id="download">
 <p>
 En <url url="http://www.gnugk.org/h323download.html" name="la pagina de descargas"> estan disponibles la ultima version estable y una version de desarrollo.
-The newest stable and a development version are available at
-<url url="http://www.gnugk.org/h323download.html" name="the download page">.
 
 La ultima version del codigo fuente esta en el CVS en <url url="http://sourceforge.net/cvs/?group_id=4797" name="Sourceforge"> (<url url="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/openh323gk/" name="Web-GUI">).
 Recuerde - Esta version puede contener muchos fallos.
-The very latest source code is in the CVS at
-<url url="http://sourceforge.net/cvs/?group_id=4797" name="Sourceforge">
-(<url url="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/openh323gk/" name="Web-GUI">).
-Beware - that's the bleeding edge.
 
 Tambien puede descargar algunos ejecutables desde <url url="http://www.gnugk.org/h323download.html" name="la pagina de descargas">.
 Solo se ponen a disposicion los ejecutables de algunas versiones.
-You can also download some executables from
-<url url="http://www.gnugk.org/h323download.html" name="the download page">.
-Only some versions are made available as executables.
 
 <sect1>Listas de correo
 <p>
 Existen dos listas de correo para el proyecto, una para los desarrolladores y otra para los usuarios.
-There are two mailing list for the project, one for the developers and one for the users.
 
-Las cuestiones de los usuarios deben de ser enviadas a <url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. Puede encontrar un archivo de la lista de correo pulse  
+Las preguntas de los usuarios deben de ser enviadas a <url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. Puede encontrar un archivo de la lista de correo pulse  
 <url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="aqui">.
 Para apuntarse a la lista de correo, pulse
 <url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="aqui">.
-General user questions should be send to the
-<url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. You can find the list archive
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="here">.
-To join this mailing list, click
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="here">.
-
 
 Para notificar problemas o enviar bugs/parches, envie los mails a la <url url="mailto:Openh323gk-developer@sourceforge.net" name="lista para desarrolladores">.
-El archivo de la lista esta <url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="aqui">. Porfavor envie las cuestiones de usuario a la lista para usuarios y deje esta lista solo para desarrolladores! Si desea contribuir al proyecto, porfavor <url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="unase a la lista">.
+El archivo de la lista esta <url url="http://sourceforge.net/mailarchive/forum.php?forum_id=3079" name="aqui">. Porfavor envie las preguntas de usuario a la lista para usuarios y deje esta lista solo para desarrolladores! Si desea contribuir al proyecto, porfavor <url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="unase a la lista">.
 
-<bf/Note/:
-Porfavor no envie questiones a los mails privados de los desarrolladores. Normalmente estamos muy ocupados. <bf/no/ nos gustaria ser su asesor privado, a no ser que desee pagarnos.
-Envie sus problemas a la lista de correo publica apropiada para que todo el mundo pueda ayudarle.
-Please don't send your questions as private emails to individual developer.
-We are usually busy. We would <bf/not/ like to be your private consultant,
-unless you'd like to pay us.
-Send your problems to the appropriate public mailing list so everybody
-can help you.
+<bf/Nota/:
+Porfavor no envie preguntas a los mails privados de los desarrolladores. Normalmente estamos muy ocupados. <bf/no/ nos gustaria ser su asesor privado, a no ser que desee pagarnos.
+Envie sus problemas a la lista de correo pública apropiada para que todo el mundo pueda ayudarle.
 
 Porfavor, no envie tampoco los problemas especificos de GnuGk a la lista de OpenH323, o vice versa. 
 Son proyectos diferentes, aunque muy relacionados.
-Also please don't send the GnuGk specific problems to the OpenH323
-mailing list, or vice versa.
-They are different projects, though closely related.
 
 Antes de enviar un email, asegurese de que ha leido los documentos relaciondos detenidamente. Describa sus problemas de forma clara y precisa. Muestrenos los mensajes de error o registros si los hay.
-Before you sending an email, make sure you have read the related documents
-carefully. Describe your problems clearly and precisely. Show us the
-error messages or logs if there is any.
 
 <sect1>Contribuidores
 <p>
 El coordinador del proyecto actual es
-The current project coordinator is
 <url url="http://www.willamowius.de/" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
@@ -423,15 +263,8 @@ Las principales caracteristicas y funciones de la version 2.0 lo son gracias a
 y
 <url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
 incluyendo el registro a traves de thread-safe y tablas de llamada, nueva arquitectura de modo de enrutado, proxy H.323, H.235 authentication and MySQL backend.
-including thread-safe registration and call tables,
-new routed mode architecture, H.323 proxy,
-H.235 authentication and MySQL backend.
-
+	
 Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> hizo un gran trabajo en el soporte de Radius y otras mejoras.
-has done some great work on Radius support and other improvements.
 
 La version inicial del gatekeeper fue desarrollada por 
-The initial version of the gatekeeper has been developed by
-Xiang Ping Chen, Joe Metzger and Rajat Todi.
-
-
+Xiang Ping Chen, Joe Metzger y Rajat Todi.

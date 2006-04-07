@@ -3,65 +3,34 @@
 <sect1>Compilando el Gatekeeper
 <p>
 Para crear el gatekeeper se necesitan al menos PWLib 1.5.0 y OpenH323 1.12.0 o superiores.
-To build the gatekeeper you need at least PWLib 1.5.0 and OpenH323 1.12.0 or later.
 La version en desarrollo del gatekeeper normalmente necesita la ultima version disponible de OpenH323.
-The development version of the gatekeeper usually needs the
-most recent OpenH323 version available.
-Esas librerias estan disponibles en 
-These libraries are available at
-<url url="http://www.openh323.org/code.html" name="OpenH323 Download Page">.
-Consulte las instrucciones en
-See the instructions on
-<url url="http://www.openh323.org/build.html" name="how to compile the OpenH323 code">.
+Esas librerias estan disponibles en la
+<url url="http://www.openh323.org/code.html" name="página de descargas de OpenH323">.
+Consulte las instrucciones sobre
+<url url="http://www.openh323.org/build.html" name="como compilar el código OpenH323">.
 
 Orden de compilacion:
-Order of compiling:
 <enum>
-<item>PWLib (release + debug version)
-<item>OpenH323
-<item>OpenH323 test application (no es necesaria, solo para asegurarse de que todo funciona correctamente)
+<item>Librería PWLib (versiones release y/o debug)
+<item>Librería OpenH323
+<item>Pruebas a la aplicación OpenH323 (no es necesaria, solo para asegurarse de que todo funciona correctamente)
 <item>El Gatekeeper
 </enum>
 
 En Unix haga un <tt/configure/ y <tt/make debug/ o <tt/make opt/ en el directorio del gatekeeper para crear la version debug o release, respectivamente.
-On Unix do a <tt/configure/ and <tt/make debug/ or <tt/make opt/
-in the gatekeeper directory to build debug or release version, respectively.
 Use <tt/make both/ para crear ambas versiones.
-Use <tt/make both/ to build both versions.
 Recuerde que tiene que usar el GCC 3.3.x o superior. Las versiones anteriores pueden no funcionar.
-Note you have to use GCC 3.3.x or later. The older version may not work.
 Una buena practica es hacer un <tt/make debugdepend/ o <tt/make optdepend/
 en el directorio del gatekeeper antes de empezar la compilacion actual (make debug o make opt) - estos comandos crean las listas de dependencias apropiadas, asi despues de que actualice las fuentes desde el CVS, todos los ficheros afectados seran recompilados.
-Good practice is to do a <tt/make debugdepend/ or <tt/make optdepend/
-in the gatekeeper directory before starting actual compilation (make debug or
-make opt) - these commands build approtiate dependency lists, so after
-you will update your sources from CVS, all affected files will get recompiled.
 De lo contrario puede acabar con el Gatekeeper compilado parcialmente con las antiguas y nuevas cabeceras - algo muy malo.
-Otherwise you can finish with the Gatekeeper partially compiled with the older
-headers and partially with the updated headers - a very bad thing.
 En MS Windows simplemente abra y compile el proyecto facilidato (<tt/gk.dsw/) para Microsoft Visual C++ 6.0 o 7.0 (Visual C++ 5.0 es demasiado antiguo).<newline>
-On Windows just open and compile the provided project (<tt/gk.dsw/) for
-Microsoft Visual C++ 6.0 or 7.0 (Visual C++ 5.0 is too old).<newline>
 
 Teclee <tt/configure --help/ para ver una lista detallada de todas las opciones de compilacion. Puede usarlas para activar o desactivar algunas caracteristicas del gatekeeper.
-Type <tt/configure --help/ to see a detailed list of all compile time
-options. You can use them to enable or disable some features of the gatekeeper.
 Por ejemplo, si no necesita us RADIUS simplemente teclee: <tt/configure --disable-radius/.<newline>  
-For example, if you do not need RADIUS just type: <tt/configure --disable-radius/.<newline>
 
 Para crear el gatekeeper con las librerias de OpenH323 y del sistema enlazadas estaticamente, tiene que usar <tt/make optnoshared/ o <tt/make debugnoshared/ .
-To build the gatekeeper that is statically linked with system and OpenH323 libraries,
-<tt/make optnoshared/ or <tt/make debugnoshared/ has to be used.
 
 Para poder usar el gatekeeper en entornos de gran carga, se recomienda activar la caracteristica LARGE_FDSET (configure --with-large-fdset=1024). La mayoria de los sistemas tambien necesitan recompilar/reconfigurar el kernel para poder permitir que mas de 1024 sockets sean asignados a un solo proceso. Recuerde que la libreria PWLib tambien empieza a soportar desde la version 1.5.3 una caracteristica similar, asi que puede elegir entre LARGE_FDSET GnuGk y la implementacion de PWLib. La implementacion nativa de GnuGk da mejor rendimiento. El valor maximo de LARGE_FDSET debe de ser calculado basandose en la prediccion del maximo numero de sockets usados. Una regla a ojo podria ser:
-In order to use the gatekeeper under heavy load, enabling LARGE_FDSET feature
-is recommended (configure --with-large-fdset=1024). Most systems also need 
-kernel reconfiguration/recompilation in order to allow more than 1024 sockets
-to be allocated for a single process. Note that the PWLib library starting
-from version 1.5.3 supports a similar feature too, so you can choose between
-LARGE_FDSET GnuGk and PWLib implementation. GnuGk native implementation gives
-better performance results. Maximum LARGE_FDSET value should be calculated 
-based upon predicted maximum sockets usage. A rule of thumb may be:
 <tscreen><verb>
 MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
 
@@ -69,56 +38,34 @@ Donde:
 10 = 2 sockets para Q.931 + 2 sockets para H.245 + 6 sockets para RTP y otras cosas
 </verb></tscreen>
 Asi para 100 llamadas simultaneas no necesita mas de 1024 sockets en el LARGE_FDSET.
-So for 100 concurrent calls you don't need more than ca. 1024 sockets in the
-LARGE_FDSET.
 
 <sect1>Instalacion del Gatekeeper
 <p>
 No se necesita un procedimiento especial de instalacion.
-There is no special installation procedure needed.
 Simplemente copie el ejecutable en el directorio que usted quiera y cree un fichero de configuracion para este.
-Just copy the executable to the directory you like
-and create a config file for it.
 Hay muchos ejemplos de configuracion en el subdirectorio <tt>etc/</tt> del arbol del codigo fuente. Consulte la seccion <ref id="config" name="Fichero de Configuration"> para una explicacion mas detallada.
-There are several config examples in the <tt>etc/</tt> subdirectory
-of source tree. See section <ref id="config" name="Configuration File">
-for detailed explanations.
 
-Por ejemplo, en una plataforma Linux x86, el ejecutable <tt/gnugk/ optimizado es creado en el subdirectorio <tt>obj_linux_x86_r/</tt> .
+Por ejemplo, en una plataforma Linux x86, el ejecutable <tt/gnugk/ optimizado es creado en el subdirectorio <tt>obj_linux_x86_r/</tt>.
 Puede copiarlo a <tt>/usr/sbin/</tt>, crear una configuracion en <tt>/etc/gnugk.ini</tt> y ejecutarlo mediante 
-For example, in Linux x86 platform, the optimized executable <tt/gnugk/
-is produced in <tt>obj_linux_x86_r/</tt> subdirectory.
-You may copy it to <tt>/usr/sbin/</tt>, create a config in
-<tt>/etc/gnugk.ini</tt> and start it by
 <tscreen><verb>
 $ /usr/sbin/gnugk -c /etc/gnugk.ini -o /var/log/gnugk.log -ttt
 </verb></tscreen>
-Consulte la seccion <ref id="commandline" name="Opciones de linea de comandos"> para mas detalles.
-See section <ref id="commandline" name="Command Line Options"> for details.
+Consulte la seccion <ref id="commandline" name="Opciones de linea de comandos"> para más detalles.
 
 <sect1>Binarios pre-compilados
 <p>
 Si no desea compilar el gatekeeper desde las fuentes, hay muchos 'paquetes' pre-compilados disponibles desde <url url="http://sourceforge.net/project/showfiles.php?group_id=4797" name="SourceForge">.
-If you do not wish to compile the gatekeeper from source,
-there are several pre-built `packages' available from
-<url url="http://sourceforge.net/project/showfiles.php?group_id=4797" name="SourceForge">.
 No todas las versiones seran puestas a disposicion como binarios - compruebe cual esta disponible.
-Not all versions will be made available as binaries - check what is avilable.
 
 <bf/Paquetes Tar (.tgz or .tar.gz)/<p>
 Descarge el fichero tar y intruduzca el siguiente comando bajo <tt/root/, sustituya el nombre del fichero por el del que ha descargado.
-Download the tar file and enter the following command as <tt/root/,
-substitute in the name of the file you downloaded.
 <tscreen><verb>
 $ tar xvzf gnugk-x.x.x.tar
 </verb></tscreen>
 
 <bf/Paquetes Debian (.deb)/<p>
 Debian incluye el gatekeeper como el paquete openh323gk.
-Debian includes the gatekeeper as openh323gk package.
 Puede instalarlo usando el siguiente comando bajo <tt/root/:
-You can install it by using the following command as <tt/root/:
 <tscreen><verb>
 $ apt-get install openh323gk
 </verb></tscreen>
-
