@@ -794,6 +794,10 @@ public:
 		const H225_TransportAddress & addr /// new signalling transport address
 		);
 
+	/** Set the unregistered calling party signalling channel as NATed.
+	*/
+	void SetSrcNATed(PIPSocket::Address & natip);
+
 	/** Set a new address for the called party signalling channel.
 	*/
 	void SetDestSignalAddr(
@@ -1014,6 +1018,10 @@ private:
 	int m_usedCount;
 	mutable PMutex m_usedLock, m_sockLock;
 	int m_nattype;
+
+	/// unregistered caller NAT'd
+	bool m_unregNAT;
+	PIPSocket::Address m_srcunregNATAddress;
 
 	bool m_h245Routed;
 	/// the call is routed to this gatekeeper's parent gatekeeper

@@ -407,8 +407,8 @@ BOOL Gatekeeper::InitConfig(const PArgList &args)
 
 	InstanceOf<Toolkit>()->SetConfig(fp, section);
 
-	if( (GkConfig()->GetInteger("Fortytwo") ) != 42) &&
-		(GkConfig()->GetInteger("Fourtytwo") ) != 42) { 
+	if( (GkConfig()->GetInteger("Fortytwo")  != 42) &&
+		(GkConfig()->GetInteger("Fourtytwo") != 42)) { 
 		cerr << "WARNING: No config file found!\n"
 			 << "- Does the config file exist? The default (~/.pwlib_config/Gatekeeper.ini or gatekeeper.ini in current directory) or the one given with -c?\n"
 			 << "- Did you specify they the right 'Main' section with -s?\n" 

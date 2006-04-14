@@ -1,5 +1,7 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- NAT support for unregistered callers (patch by Simon Horne)
+- (gk.cxx) allow correct spelling for FortyTwo=42 entry
 - BUGFIX(yasocket.h) fix compilation with gcc 4.1
 - (clirw.cxx) process CLI ranges with leading zeros correctly
 - new CapacityControl auth/acct modules to control inbound traffic
