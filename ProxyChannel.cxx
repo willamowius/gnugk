@@ -267,6 +267,8 @@ public:
 	bool Bind(WORD pt);
 	bool Bind(const Address &localAddr, WORD pt);
 	void SetNAT(bool);
+	bool isMute() { return mute; };
+	void SetMute(bool toMute) { mute = toMute; }
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 
 	// override from class ProxySocket
@@ -286,6 +288,7 @@ private:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
 	bool fnat, rnat;
+	bool mute;
 };
 
 class T120LogicalChannel;
@@ -326,6 +329,7 @@ public:
 
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *) = 0;
 	virtual void StartReading(ProxyHandler *) = 0;
+	virtual void SetRTPMute(bool toMute) = 0;
 
 protected:
 	WORD channelNumber;
@@ -347,6 +351,7 @@ public:
 	// override from class LogicalChannel
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
 	virtual void StartReading(ProxyHandler *);
+	virtual void SetRTPMute(bool toMute);
 	bool IsAttached() const { return (peer != 0); }
 	void OnHandlerSwapped(bool);
 
@@ -372,6 +377,7 @@ public:
 	// override from class LogicalChannel
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
 	virtual void StartReading(ProxyHandler *);
+	virtual void SetRTPMute(bool toMute) {};   /// We do not Mute T.120 Channels
 
 	void Create(T120ProxySocket *);
 	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
@@ -461,12 +467,14 @@ private:
 	// override from class H245Handler
 	virtual bool HandleRequest(H245_RequestMessage &);
 	virtual bool HandleResponse(H245_ResponseMessage &);
+	virtual bool HandleIndication(H245_IndicationMessage &);
 
 	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
 	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
 	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
+	void HandleMuteRTPChannel();
 
 	RTPLogicalChannel *CreateRTPLogicalChannel(WORD, WORD);
 	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD);
@@ -478,6 +486,7 @@ private:
 	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
 	ProxyHandler *handler;
 	H245ProxyHandler *peer;
+	bool isMute;
 };
 
 
@@ -3348,7 +3357,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 {
 	SetReadTimeout(PTimeInterval(50));
 	SetWriteTimeout(PTimeInterval(50));
-	fnat = rnat = false;
+	fnat = rnat = mute = false;
 }
 
 bool UDPProxySocket::Bind(WORD pt)
@@ -3480,6 +3489,9 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 {
 	if (!IsSocketOpen())
 		return false;
+
+	if (isMute())
+		return true;
 
 	const int queueSize = GetQueueSize();
 	if (queueSize > 0)
@@ -3713,6 +3725,12 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 	}
 }
 
+void RTPLogicalChannel::SetRTPMute(bool toMute)
+{
+	if (rtp)
+		rtp->SetMute(toMute);
+}
+
 bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev)
 {
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
@@ -3892,6 +3910,7 @@ H245ProxyHandler::H245ProxyHandler(const PIPSocket::Address & local, const PIPSo
 {
 	if (peer)
 		peer->peer = this;
+	isMute = false;
 }
 
 H245ProxyHandler::~H245ProxyHandler()
@@ -4007,6 +4026,49 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	if (result)
 		lc->StartReading(handler);
 	return result;
+}
+
+bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication)
+{
+	PString value = PString();
+
+	if (Indication.GetTag() != H245_IndicationMessage::e_userInput)
+		return false;
+
+	const H245_UserInputIndication & ind = Indication;
+
+	switch (ind.GetTag()) {
+		case H245_UserInputIndication::e_alphanumeric :
+			value = (const PASN_GeneralString &)ind;
+			break;
+
+		case H245_UserInputIndication::e_signal :
+		{
+			const H245_UserInputIndication_signal & sig = ind;
+			value = PString(sig.m_signalType[0]);
+			break;
+		}
+	}
+	PTRACE(3, "Received Input: " << value);
+
+	if ((value == "*") &&
+		Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTPMute", "0"))) {  // now we have to do something
+		HandleMuteRTPChannel();
+	}
+	return false;
+}
+
+void H245ProxyHandler::HandleMuteRTPChannel()
+{
+	isMute = !isMute;
+
+	iterator eIter = logicalChannels.end();
+	for (iterator Iter = logicalChannels.begin(); Iter != eIter; ++Iter) {
+		LogicalChannel * lc = Iter->second;
+		lc->SetRTPMute(isMute);
+		PTRACE(3, (isMute ? "Mute": "Release") << " RTP Channel " << lc->GetChannelNumber() );
+	}
+// handler->SetMute(isMute);
 }
 
 bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
