@@ -350,5 +350,15 @@ Default: <tt/0/<newline>
 Whether to proxy for calls between endpoints from the same NAT box.
 You do not need to enable this feature in general, since usually endpoints
 from the same NAT box can communicate with each other.
+
+<item><tt/EnableRTPMute=1/<newline>
+Default: <tt/0/<newline>
+<p>
+This setting allows either call party in media proxy mode to mute the 
+audio/video by sending a * as either string or tone.userinput. The sending 
+of * mutes the audio/video and a subsequent send of * unmutes the 
+audio/video. Only the party who muted the call can unmute. This is designed 
+as a hold function for terminals which do not support H450.4.
+
 </itemize>
 
