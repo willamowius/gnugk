@@ -163,10 +163,10 @@
 				RelativePath="gkauth.cxx">
 			</File>
 			<File
-				RelativePath="gkconfig.cxx">
+				RelativePath="GkClient.cxx">
 			</File>
 			<File
-				RelativePath="GkClient.cxx">
+				RelativePath="gkconfig.cxx">
 			</File>
 			<File
 				RelativePath="gksql.cxx">
@@ -338,10 +338,10 @@
 				RelativePath="rwlock.h">
 			</File>
 			<File
-				RelativePath="singleton.h">
+				RelativePath="sigmsg.h">
 			</File>
 			<File
-				RelativePath="sigmsg.h">
+				RelativePath="singleton.h">
 			</File>
 			<File
 				RelativePath="slist.h">

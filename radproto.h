@@ -12,6 +12,16 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.13  2005/04/18 11:24:51  zvision
+ * Use list instead of vector in GetSocket to prevent from using invalidated
+ * iterators. Thanks to kubuqi cn
+ *
  * Revision 1.12  2004/07/26 12:19:42  zvision
  * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
  *

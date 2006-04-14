@@ -149,3 +149,17 @@ SignalingMsg* SignalingMsg::Create(
 	
 	return new SignalingMsg(q931pdu, uuie, localAddr, localPort, peerAddr, peerPort);
 }
+
+SignalingMsg& SignalingMsg::operator=(const SignalingMsg& obj)
+{
+	// TODO: check for equal objects, duplicate pointer content ?
+	m_q931 = obj.m_q931;
+	m_uuie = obj.m_uuie;
+	m_localAddr = obj.m_localAddr;
+	m_localPort = obj.m_localPort;
+	m_peerAddr = obj.m_peerAddr;
+	m_peerPort = obj.m_peerPort;
+	m_changed = false;
+	m_uuieChanged = false;
+	return *this;
+}

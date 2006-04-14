@@ -36,6 +36,7 @@ using std::make_pair;
 using std::for_each;
 using std::mem_fun;
 using std::bind1st;
+using Routing::Route;
 
 namespace {
 const char* const EndpointSection = "Endpoint";
@@ -610,7 +611,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 		unsigned tag = ras->GetTag();
 		if (tag == H225_RasMessage::e_locationConfirm) {
 			H225_LocationConfirm & lcf = (*ras)->m_recvRAS;
-			lrq_obj.SetDestination(lcf.m_callSignalAddress);
+			lrq_obj.AddRoute(Route("parent", lcf.m_callSignalAddress));
 			RasMsg *oras = lrq_obj.GetWrapper();
 			(*oras)->m_replyRAS.SetTag(H225_RasMessage::e_locationConfirm);
 			H225_LocationConfirm & nlcf = (*oras)->m_replyRAS;
@@ -990,8 +991,9 @@ bool GkClient::WaitForACF(RasRequester & request, Routing::RoutingRequest *robj)
 		if (ras->GetTag() == H225_RasMessage::e_admissionConfirm) {
 			if (robj) {
 				H225_AdmissionConfirm & acf = (*ras)->m_recvRAS;
-				robj->SetDestination(acf.m_destCallSignalAddress);
-				robj->SetFlag(Routing::RoutingRequest::e_toParent);
+				Route route("parent", acf.m_destCallSignalAddress);
+				route.m_flags |= Route::e_toParent;
+				robj->AddRoute(route);
 			}
 			return true;
 		}

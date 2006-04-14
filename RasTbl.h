@@ -22,17 +22,27 @@
 #include <string>
 #include "rwlock.h"
 #include "singleton.h"
+#include "h225.h"
+#include "sigmsg.h"
+#include "h323util.h"
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
 #pragma warning( disable : 4800 )
 #endif
 
+namespace Routing {
+struct Route;
+}
+
 class GkDestAnalysisList;
 class USocket;
 class CallSignalSocket;
 class RasServer;
 class Q931;
+class SignalingMsg;
+template <class> class H225SignalingMsg;
+typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -376,8 +386,15 @@ public:
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone = true);
+	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone, const list<H225_TransportAddress> & ignoreList);
+	void FindEndpoint(
+		const H225_ArrayOf_AliasAddress &aliases,
+		bool roundRobin,
+		bool searchOuterZone,
+		std::list<Routing::Route> &routes
+		);
 
-/*	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason,
+	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason,
 	                                                 bool SearchOuterZone = true)
 	{
 	  endptr ep;
@@ -389,7 +406,7 @@ public:
 	  }
 	  return (ok) ? ep : endptr(0);
 	}
-*/
+
 	void ClearTable();
 	void CheckEndpoints();
 
@@ -433,7 +450,8 @@ private:
 	        return endptr((Iter != ListToBeFound->end()) ? *Iter : 0);
 	}
 
-	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool);
+	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, const list<H225_TransportAddress> & ignoreList);
+	void InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, list<Routing::Route> &routes);
 
 	void GenerateEndpointId(H225_EndpointIdentifier &);
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
@@ -500,6 +518,10 @@ public:
 		const PString& destInfo,
 		/// override proxy mode global setting from the config
 		int proxyMode = ProxyDetect
+		);
+	
+	CallRec(
+		CallRec *oldCall
 		);
 		
 	virtual ~CallRec();
@@ -790,6 +812,8 @@ public:
 		WORD& port /// will receive the port number
 		) const;
 
+	H225_TransportAddress GetDestSignalAddr() const;
+
 	/** Get IP and port for the called party. It is a signal address
 		for registered endpoints and remote signalling socket address
 		for unregistered endpoints.
@@ -876,6 +900,35 @@ public:
 
 	/// update IRR timers
 	void Update(const H225_InfoRequestResponse & irr);
+
+	void SetNewRoutes(
+		const std::list<Routing::Route> &routes
+		);
+	void SetFailedRoutes(
+		const std::list<Routing::Route> &routes
+		);
+	const std::list<Routing::Route> &GetNewRoutes() const { return m_newRoutes; }
+	const std::list<Routing::Route> &GetFailedRoutes() const { return m_failedRoutes; }
+	bool MoveToNextRoute();
+
+	bool IsCallInProgress() const;
+	void SetCallInProgress();
+
+	bool IsH245ResponseReceived() const;
+	void SetH245ResponseReceived();
+	
+	bool IsFastStartResponseReceived() const;
+	void SetFastStartResponseReceived();
+
+	bool SingleFailoverCDR() const;
+	int GetNoCallAttempts() const;
+	int GetNoRemainingRoutes() const;
+
+	void SetCodec(const PString &codec);
+	PString GetCodec() const;
+
+	void SetMediaOriginatingIp(const PIPSocket::Address &addr);
+	bool GetMediaOriginatingIp(PIPSocket::Address &addr) const;
 
 private:
 	void SendDRQ();
@@ -977,7 +1030,17 @@ private:
 	long m_irrFrequency;
 	bool m_irrCheck;
 	time_t m_irrCallerTimer;
-	time_t m_irrCalleeTimer;	
+	time_t m_irrCalleeTimer;
+	
+	std::list<Routing::Route> m_failedRoutes;
+	std::list<Routing::Route> m_newRoutes;
+	bool m_callInProgress;
+	bool m_h245ResponseReceived;
+	bool m_fastStartResponseReceived;
+	bool m_singleFailoverCDR;
+	
+	PString m_codec;
+	PIPSocket::Address m_mediaOriginatingIp;
 };
 
 typedef CallRec::Ptr callptr;
@@ -1013,6 +1076,7 @@ public:
 
 	void RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &);
 	void RemoveCall(const callptr &);
+	void RemoveFailedLeg(const callptr &);
 
 	void PrintCurrentCalls(USocket *client, BOOL verbose=FALSE) const;
 	PString PrintStatistics() const;
@@ -1042,6 +1106,9 @@ public:
 	*/
 	long GetDefaultDurationLimit() const { return m_defaultDurationLimit; }
 
+	/// @return	True to log accounting for each call leg
+	bool SingleFailoverCDR() const { return m_singleFailoverCDR; }
+
 private:
 	template<class F> callptr InternalFind(const F & FindObject) const
 	{
@@ -1054,6 +1121,7 @@ private:
 	void InternalRemove(const H225_CallIdentifier & CallId);
 	void InternalRemove(WORD CallRef);
 	void InternalRemove(iterator);
+	void InternalRemoveFailedLeg(iterator);
 
 	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, BOOL verbose) const;
 
@@ -1083,7 +1151,9 @@ private:
 	long m_acctUpdateInterval;
 	/// timestamp formatting string for CDRs
 	PString m_timestampFormat;
-	
+	/// flag to trigger per call leg accounting
+	bool m_singleFailoverCDR;
+
 	CallTable(const CallTable &);
 	CallTable& operator==(const CallTable &);
 };

@@ -27,8 +27,8 @@ SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx Routing.cxx \
            Neighbor.cxx GkClient.cxx gkauth.cxx RasSrv.cxx ProxyChannel.cxx \
            gk.cxx version.cxx gkacct.cxx gktimer.cxx gkconfig.cxx \
-           sigmsg.cxx clirw.cxx cisco.cxx ipauth.cxx statusacct.cxx capctrl.cxx \
-           @SOURCES@
+           sigmsg.cxx clirw.cxx cisco.cxx ipauth.cxx statusacct.cxx \
+           capctrl.cxx @SOURCES@
 
 HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            RasSrv.h RasTbl.h Routing.h SoftPBX.h Toolkit.h factory.h \
@@ -40,7 +40,7 @@ HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
 # add cleanup files for non-default targets
 CLEAN_FILES += $(OBJDIR)/addpasswd $(OBJDIR)/addpasswd.o docs/manual/*.html
 # add cleanup files for autoconf
-CLEAN_FILES += Makefile config.*
+#CLEAN_FILES += Makefile config.*
 
 # colon, the empty variable and a single space are special characters to
 # MAKE and may cause trouble. Let's 'quote' the little bastards by

@@ -12,6 +12,18 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2005/12/05 13:29:02  zvision
+ * Accept multiple routes from RADIUS/SQL auth modules
+ *
+ * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.33  2005/04/24 16:39:44  zvision
+ * MSVC6.0 compatibility fixed
+ *
  * Revision 1.32  2005/02/10 23:26:39  zvision
  * Accounting updates/call disconnect handling does not lock the whole call table
  *
@@ -189,12 +201,14 @@
 #include "Toolkit.h"
 #include "RasTbl.h"
 #include "RasPDU.h"
+#include "Routing.h"
 #include "sigmsg.h"
 #include "radproto.h"
 #include "gkauth.h"
 #include "radauth.h"
 
 using std::vector;
+using Routing::Route;
 
 namespace {
 // Settings for H.235 based module will be stored inside [RadAuth] config section
@@ -776,15 +790,22 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (!value) {
-				PIPSocket::Address addr;
-				WORD port = 0;
+				PStringArray tokens(value.Tokenise("; \t", FALSE));
+				for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+					PIPSocket::Address addr;
+					WORD port = 0;
 					
-				if (GetTransportAddress(value, GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-						&& addr.IsValid() && port != 0) {
-					authData.SetRouteToIP(addr, port);
-					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
-						"to the address " << addr << ':' << port
-						);
+					if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
+							&& addr.IsValid() && port != 0) {
+						Route route("RADIUS", addr, port);
+						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+							SocketToH225TransportAddr(addr, port)
+							);
+						authData.m_destinationRoutes.push_back(route);
+						PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
+							"to the address " << route.AsString()
+							);
+					}
 				}
 			}
 		}
@@ -1011,15 +1032,22 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (!value) {
-				PIPSocket::Address addr;
-				WORD port = 0;
+				PStringArray tokens(value.Tokenise("; \t", FALSE));
+				for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+					PIPSocket::Address addr;
+					WORD port = 0;
 					
-				if (GetTransportAddress(value, GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-						&& addr.IsValid() && port != 0) {
-					authData.SetRouteToIP(addr, port);
-					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
-						"to the address " << addr << ':' << port
-						);
+					if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
+							&& addr.IsValid() && port != 0) {
+						Route route("RADIUS", addr, port);
+						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+							SocketToH225TransportAddr(addr, port)
+							);
+						authData.m_destinationRoutes.push_back(route);
+						PTRACE(5, "RADAUTH\t" << GetName() << " Setup check redirect "
+							"to the address " << route.AsString()
+							);
+					}
 				}
 			}
 		}

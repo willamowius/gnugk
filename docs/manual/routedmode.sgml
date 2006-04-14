@@ -1,4 +1,6 @@
-<sect2>Section &lsqb;RoutedMode&rsqb;
+<sect>Routed Mode and Proxy Configuration
+
+<sect1>Section &lsqb;RoutedMode&rsqb;
 <label id="routed">
 <p>
 Call signaling messages may be passwd in two ways.
@@ -111,6 +113,7 @@ if it receives a DRQ for it. This avoids potential race conditions when
 a DRQ overtakes a Release Complete.
 This is only meaningful in routed mode because in direct mode, the only
 mechanism to signal end-of-call is a DRQ.
+When using call failover this must be set to 0.
 
 <item><tt/DropCallsByReleaseComplete=1/<newline>
 Default: <tt/0/<newline>
@@ -251,10 +254,28 @@ and deleted (its memory is released). If you use very small port ranges, like
 a few ports (e.g. RTPPortRange=2000-2009), you may want to decrease this value
 to get sockets reusable faster.
 
+<item><tt/ActivateFailover=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Activate call failover: When activated, GnuGk will try to find
+other possible routes to a destination if the call fails on the
+first route. Currently only routes available via the 'internal'
+routing policy can be used as alternatives routes.
+
+For accounting of calls using failover, see the SingleFailoverCDR
+switch in the <ref id="calltable" name="[CallTable]"> section.
+
+<item><tt/FailoverCauses=1-15,21-127/<newline>
+Default: <tt/1-15,21-127/<newline>
+<p>
+Define which cause codes in a ReleaseComplete will trigger
+call failover.
+
+
 </itemize>
 
 <p>
-<sect2>Section &lsqb;Proxy&rsqb;
+<sect1>Section &lsqb;Proxy&rsqb;
 <label id="proxy">
 <p>
 The section defines the H.323 proxy features. It means the gatekeeper will

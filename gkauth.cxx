@@ -30,6 +30,7 @@
 #include "RasTbl.h"
 #include "RasPDU.h"
 #include "sigmsg.h"
+#include "Routing.h"
 #include "gkauth.h"
 
 namespace {
@@ -49,7 +50,7 @@ ARQAuthData::ARQAuthData(
 	const callptr& call
 	) : m_rejectReason(-1), m_callDurationLimit(-1), 
 	m_requestingEP(ep),	m_call(call), m_billingMode(-1),
-	m_routeToAlias(NULL), m_routeToIP(NULL), m_proxyMode(CallRec::ProxyDetect)
+	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect)
 {
 }
 
@@ -58,13 +59,11 @@ ARQAuthData::ARQAuthData(
 	) : m_rejectReason(obj.m_rejectReason), 
 	m_callDurationLimit(obj.m_callDurationLimit), 
 	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call), 
-	m_billingMode(obj.m_billingMode), m_routeToAlias(NULL), m_routeToIP(NULL),
-	m_proxyMode(obj.m_proxyMode)
+	m_billingMode(obj.m_billingMode), m_routeToAlias(NULL),
+	m_destinationRoutes(obj.m_destinationRoutes), m_proxyMode(obj.m_proxyMode)
 {
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
-	if (obj.m_routeToIP)
-		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
 }
 
 ARQAuthData& ARQAuthData::operator=(const ARQAuthData& obj)
@@ -80,18 +79,14 @@ ARQAuthData& ARQAuthData::operator=(const ARQAuthData& obj)
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
 
-	delete m_routeToIP;
-	m_routeToIP = NULL;
-	if (obj.m_routeToIP)
-		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
-		
+	m_destinationRoutes = obj.m_destinationRoutes;
+			
 	return *this;
 }
 
 ARQAuthData::~ARQAuthData()
 {
 	delete m_routeToAlias;
-	delete m_routeToIP;
 }
 
 void ARQAuthData::SetRouteToAlias(H225_AliasAddress* alias)
@@ -111,24 +106,6 @@ void ARQAuthData::SetRouteToAlias(const PString& alias, int tag)
 	H323SetAliasAddress(alias, *m_routeToAlias, tag);
 }
 
-void ARQAuthData::SetRouteToIP(H225_TransportAddress* addr)
-{
-	delete m_routeToIP;
-	m_routeToIP = addr;
-}
-
-void ARQAuthData::SetRouteToIP(const H225_TransportAddress& addr)
-{
-	SetRouteToIP(new H225_TransportAddress(addr));
-}
-
-void ARQAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
-{
-	SetRouteToIP(new H225_TransportAddress(
-		SocketToH225TransportAddr(addr, port ? port : GK_DEF_ENDPOINT_SIGNAL_PORT)
-		));
-}
-
 SetupAuthData::SetupAuthData(
 	/// call associated with the message (if any)
 	const callptr& call,
@@ -136,7 +113,7 @@ SetupAuthData::SetupAuthData(
 	bool fromRegistered
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
 	m_call(call), m_fromRegistered(fromRegistered), 
-	m_routeToAlias(NULL), m_routeToIP(NULL), m_proxyMode(CallRec::ProxyDetect)
+	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect)
 {
 }
 
@@ -145,12 +122,11 @@ SetupAuthData::SetupAuthData(
 	) : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
 	m_fromRegistered(obj.m_fromRegistered),
-	m_routeToAlias(NULL), m_routeToIP(NULL), m_proxyMode(obj.m_proxyMode)
+	m_routeToAlias(NULL), m_destinationRoutes(obj.m_destinationRoutes),
+	m_proxyMode(obj.m_proxyMode)
 {
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
-	if (obj.m_routeToIP)
-		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
 }
 
 SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
@@ -167,10 +143,7 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
 
-	delete m_routeToIP;
-	m_routeToIP = NULL;
-	if (obj.m_routeToIP)
-		m_routeToIP = new H225_TransportAddress(*obj.m_routeToIP);
+	m_destinationRoutes = obj.m_destinationRoutes;
 		
 	return *this;
 }
@@ -178,7 +151,6 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 SetupAuthData::~SetupAuthData()
 {
 	delete m_routeToAlias;
-	delete m_routeToIP;
 }
 
 void SetupAuthData::SetRouteToAlias(H225_AliasAddress* alias)
@@ -198,23 +170,6 @@ void SetupAuthData::SetRouteToAlias(const PString& alias, int tag)
 	H323SetAliasAddress(alias, *m_routeToAlias, tag);
 }
 
-void SetupAuthData::SetRouteToIP(H225_TransportAddress* addr)
-{
-	delete m_routeToIP;
-	m_routeToIP = addr;
-}
-
-void SetupAuthData::SetRouteToIP(const H225_TransportAddress& addr)
-{
-	SetRouteToIP(new H225_TransportAddress(addr));
-}
-
-void SetupAuthData::SetRouteToIP(const PIPSocket::Address& addr, WORD port)
-{
-	SetRouteToIP(new H225_TransportAddress(
-		SocketToH225TransportAddr(addr, port ? port : GK_DEF_ENDPOINT_SIGNAL_PORT)
-		));
-}
 
 // class GkAuthenticator
 GkAuthenticator::GkAuthenticator(

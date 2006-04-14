@@ -35,6 +35,7 @@
 
 using std::string;
 using std::vector;
+using std::list;
 using std::stable_sort;
 using std::binary_function;
 
@@ -51,84 +52,135 @@ const char *SectionName[] = {
 const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
 const char* const CTIsection = "CTI::Agents";
 
+Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+{
+	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
+}
 
+Route::Route(
+	const endptr &destEndpoint
+	) : m_destAddr(destEndpoint->GetCallSignalAddress()), m_destEndpoint(destEndpoint),
+	m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+{
+	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
+}
+
+Route::Route(
+	const PString &policyName,
+	const H225_TransportAddress &destAddr
+	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+{
+	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
+}
+
+Route::Route(
+	const PString &policyName,
+	const PIPSocket::Address &destIpAddr,
+	WORD destPort
+	) : m_destAddr(SocketToH225TransportAddr(destIpAddr, destPort)),
+	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+{
+	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
+}
+
+PString Route::AsString() const
+{
+	return AsDotString(m_destAddr) + " (policy: " + m_policy + ", proxy: "
+		+ PString(m_proxyMode) + ", flags: " + PString(m_flags) + ")";
+}
+
+bool Route::IsFailoverActive(
+	unsigned cause
+	) const
+{
+	cause = cause & 0x7f;
+	return m_rerouteCauses[cause >> 3] & (1UL << (cause & 7));
+}
 
 // class RoutingRequest
+RoutingRequest::RoutingRequest()
+	: m_reason(-1), m_flags(0)
+{
+}
+
 RoutingRequest::RoutingRequest(
-	endptr &called
-	) : m_destination(0), m_neighbor_used(0), m_called(called),
-	m_reason(-1), m_flags(0), m_proxyMode(CallRec::ProxyDetect)
+	const std::list<Route> &failedRoutes
+	)
+	: m_reason(-1), m_flags(0), m_failedRoutes(failedRoutes)
 {
 }
 
 RoutingRequest::~RoutingRequest()
 {
-	delete m_destination;
 }
 
-bool RoutingRequest::SetDestination(const H225_TransportAddress & dest, bool find_called)
+bool RoutingRequest::AddRoute(
+	const Route &route
+	)
 {
-	if (m_destination) {
-		PTRACE(1, "ROUTING\tError: destination overwritten!");
-		return false;
-	}
 	PIPSocket::Address addr;
 	WORD port;
-	if (!(dest.IsValid() && GetIPAndPortFromTransportAddr(dest, addr, port) 
+	if (!(route.m_destAddr.IsValid() && GetIPAndPortFromTransportAddr(route.m_destAddr, addr, port) 
 			&& addr.IsValid() && port != 0)) {
-		PTRACE(1, "ROUTING\tInvalid destination address: " << dest);
+		PTRACE(1, "ROUTING\tInvalid destination address: " << route.m_destAddr);
 		return false;
 	}
-	m_destination = new H225_TransportAddress(dest);
-	if (find_called)
-		m_called = RegistrationTable::Instance()->FindBySignalAdr(dest);
+	list<Route>::const_iterator i = m_failedRoutes.begin();
+	while (i != m_failedRoutes.end()) {
+		if (i->m_destAddr == route.m_destAddr && i->m_policy == route.m_policy
+				&& i->m_routeId == route.m_routeId) {
+			PTRACE(5, "ROUTING\tSkipping failed route " << route.AsString());
+			return true;
+		}
+		++i;
+	}
+	m_routes.push_back(route);
 	return true;
 }
 
-bool RoutingRequest::SetCalledParty(const endptr & called)
+bool RoutingRequest::GetFirstRoute(
+	Route &route
+	)
 {
-	m_called = called;
-	if (called)
-		return SetDestination(called->GetCallSignalAddress());
-	else {
-		delete m_destination;
-		m_destination = NULL;
+	if (m_routes.empty())
 		return false;
-	}
+
+	route = *m_routes.begin();
+	return true;
 }
 
+void RoutingRequest::RemoveAllRoutes()
+{
+	m_routes.clear();
+}
 
 // class AdmissionRequest
 template<> H225_ArrayOf_AliasAddress *AdmissionRequest::GetAliases()
 {
-	return (m_request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && m_request.m_destinationInfo.GetSize() > 0) ? &m_request.m_destinationInfo : 0;
+	return (m_request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) && m_request.m_destinationInfo.GetSize() > 0)
+		? &m_request.m_destinationInfo : NULL;
 }
-
 
 // class LocationRequest
 template<> H225_ArrayOf_AliasAddress *LocationRequest::GetAliases()
 {
-	return (m_request.m_destinationInfo.GetSize() > 0) ? &m_request.m_destinationInfo : 0;
+	return (m_request.m_destinationInfo.GetSize() > 0)
+		? &m_request.m_destinationInfo : NULL;
 }
-
 
 // class SetupRequest
 template<> H225_ArrayOf_AliasAddress *SetupRequest::GetAliases()
 {
-	return (m_request.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)
-			&& m_request.m_destinationAddress.GetSize() > 0) 
+	return (m_request.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) && m_request.m_destinationAddress.GetSize() > 0)
 		? &m_request.m_destinationAddress : NULL;
 }
-
 
 // class FacilityRequest
 template<> H225_ArrayOf_AliasAddress *FacilityRequest::GetAliases()
 {
-	return (m_request.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress) 
-			&& m_request.m_alternativeAliasAddress.GetSize() > 0)
+	return (m_request.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress) && m_request.m_alternativeAliasAddress.GetSize() > 0)
 		? &m_request.m_alternativeAliasAddress : NULL;
 }
-
 
 bool Policy::Handle(SetupRequest& request)
 {
@@ -316,19 +368,40 @@ protected:
 bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 {
 	H225_AdmissionRequest & arq = request.GetRequest();
-	return arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) ? request.SetDestination(arq.m_destCallSignalAddress, true) : false;
+	if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+		Route route(m_name, arq.m_destCallSignalAddress);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+			route.m_destAddr
+			);
+		return request.AddRoute(route);
+	}
+	return false;
 }
 
-bool ExplicitPolicy::OnRequest(SetupRequest & request)
+bool ExplicitPolicy::OnRequest(SetupRequest &request)
 {
-	H225_Setup_UUIE & setup = request.GetRequest();
-	return setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress) ? request.SetDestination(setup.m_destCallSignalAddress, true) : false;
+	H225_Setup_UUIE &setup = request.GetRequest();
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+		Route route(m_name, setup.m_destCallSignalAddress);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+			route.m_destAddr
+			);
+		return request.AddRoute(route);
+	}
+	return false;
 }
 
 bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 {
 	H225_Facility_UUIE & facility = request.GetRequest();
-	return facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress) ? request.SetDestination(facility.m_alternativeAddress, true) : false;
+	if (facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress)) {
+		Route route(m_name, facility.m_alternativeAddress);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+			route.m_destAddr
+			);
+		return request.AddRoute(route);
+	}
+	return false;
 }
 
 
@@ -359,11 +432,6 @@ bool InternalPolicy::OnRequest(AdmissionRequest & request)
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
 	if (aliases == NULL || !FindByAliases(request, *aliases))
 		return false;
-	if (request.GetCalledParty())
-		if (!request.GetCalledParty()->HasAvailableCapacity()) {
-			request.SetCalledParty(endptr(NULL));
-			request.SetRejectReason(H225_AdmissionRejectReason::e_resourceUnavailable);
-		}
 
 	return true;
 }
@@ -373,24 +441,43 @@ bool InternalPolicy::OnRequest(SetupRequest & request)
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
 	if (aliases == NULL || !FindByAliases(request, *aliases))
 		return false;
-	if (request.GetCalledParty())
-		if (!request.GetCalledParty()->HasAvailableCapacity()) {
-			request.SetCalledParty(endptr(NULL));
-			request.SetRejectReason(H225_ReleaseCompleteReason::e_gatewayResources);
-		}
 
 	return true;
 }
 
-bool InternalPolicy::FindByAliases(RoutingRequest& request, H225_ArrayOf_AliasAddress & aliases)
+bool InternalPolicy::FindByAliases(
+	RoutingRequest &request, 
+	H225_ArrayOf_AliasAddress &aliases
+	)
 {
-	return request.SetCalledParty(RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin));
+	list<Route> routes;
+	RegistrationTable::Instance()->FindEndpoint(
+		aliases, roundRobin, true, routes
+		);
+	list<Route>::iterator i = routes.begin();
+	while (i != routes.end()) {
+		i->m_policy = m_name;
+		request.AddRoute(*i++);
+	}
+	return !routes.empty();
 }
 
-bool InternalPolicy::FindByAliases(LocationRequest& request, H225_ArrayOf_AliasAddress & aliases)
+bool InternalPolicy::FindByAliases(
+	LocationRequest& request,
+	H225_ArrayOf_AliasAddress & aliases
+	)
 {
-	// do not apply round robin selection for gateways
-	return request.SetCalledParty(RegistrationTable::Instance()->FindEndpoint(aliases, false));
+	// do not apply round robin selection for Location ReQuests
+	list<Route> routes;
+	RegistrationTable::Instance()->FindEndpoint(
+		aliases, false, true, routes
+		);
+	list<Route>::iterator i = routes.begin();
+	while (i != routes.end()) {
+		i->m_policy = m_name;
+		request.AddRoute(*i++);
+	}
+	return !routes.empty();
 }
 
 
@@ -454,7 +541,10 @@ protected:
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 };
 
-bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
+bool DNSPolicy::FindByAliases(
+	RoutingRequest &request,
+	H225_ArrayOf_AliasAddress &aliases
+	)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
@@ -462,8 +552,12 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
 		H225_TransportAddress dest;
 		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
-			if (!request.SetDestination(dest, true))
+			PIPSocket::Address addr;
+			if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 				continue;
+			Route route(m_name, dest);
+			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+			request.AddRoute(route);
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
 			// remove the domain name part
 			H323SetAliasAddress(alias.Left(at), aliases[i]);
@@ -917,12 +1011,12 @@ bool NumberAnalysisPolicy::OnRequest(AdmissionRequest & request)
 			for (unsigned i = 0; i < m_prefixes.size(); i++)
 				if (MatchPrefix(s, m_prefixes[i].m_prefix.c_str()) != 0) {
 					if (s.GetLength() < m_prefixes[i].m_minLength) {
-						request.SetCalledParty(endptr(NULL));
+						request.RemoveAllRoutes();
 						request.SetRejectReason(H225_AdmissionRejectReason::e_incompleteAddress);
 						return true;
 					} else if (m_prefixes[i].m_maxLength >= 0
 							&& s.GetLength() > m_prefixes[i].m_maxLength) {
-						request.SetCalledParty(endptr(NULL));
+						request.RemoveAllRoutes();
 						request.SetRejectReason(H225_AdmissionRejectReason::e_undefinedReason);
 						return true;
 					}

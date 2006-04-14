@@ -59,6 +59,10 @@ typedef SmartPtr<CallRec> callptr;
 template<class> class RasPDU;
 template<class> struct RasInfo;
 
+namespace Routing {
+struct Route;
+}
+
 /// Data read/written during RRQ processing by all configured 
 /// authenticator modules
 struct RRQAuthData
@@ -91,9 +95,6 @@ struct ARQAuthData
 	void SetRouteToAlias(H225_AliasAddress* alias);
 	void SetRouteToAlias(const H225_AliasAddress& alias);
 	void SetRouteToAlias(const PString& alias, int tag = -1);
-	void SetRouteToIP(H225_TransportAddress* addr);
-	void SetRouteToIP(const H225_TransportAddress& addr);
-	void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
 		
 	/// -1 if not set, H225_AdmissionRejectReason enum otherwise
 	int m_rejectReason;
@@ -115,8 +116,8 @@ struct ARQAuthData
 	int m_billingMode;
 	/// if not NULL, route the call to the specified alias
 	H225_AliasAddress* m_routeToAlias;
-	/// if not NULL, route the call to the specified IP
-	H225_TransportAddress* m_routeToIP;
+	/// if not empty, route the call to the specified destinations
+	std::list<Routing::Route> m_destinationRoutes;
 	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
 	int m_proxyMode;
 		
@@ -144,9 +145,6 @@ struct SetupAuthData
 	void SetRouteToAlias(H225_AliasAddress* alias);
 	void SetRouteToAlias(const H225_AliasAddress& alias);
 	void SetRouteToAlias(const PString& alias, int tag = -1);
-	void SetRouteToIP(H225_TransportAddress* addr);
-	void SetRouteToIP(const H225_TransportAddress& addr);
-	void SetRouteToIP(const PIPSocket::Address& addr, WORD port = 0);
 
 	/// -1 if not set, H225_ReleaseCompleteReason enum otherwise
 	int m_rejectReason;
@@ -166,8 +164,8 @@ struct SetupAuthData
 	PString m_dialedNumber;
 	/// if not NULL, route the call to the specified alias
 	H225_AliasAddress* m_routeToAlias;
-	/// if not NULL, route the call to the specified IP
-	H225_TransportAddress* m_routeToIP;
+	/// if not empty, route the call to the specified destinations
+	std::list<Routing::Route> m_destinationRoutes;
 	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
 	int m_proxyMode;
 		

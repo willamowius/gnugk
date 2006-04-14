@@ -2,8 +2,6 @@ Changes from 2.2.3 to 2.2.4
 ===========================
 - BUGFIX(yasocket.h) fix compilation with gcc 4.1
 - (clirw.cxx) process CLI ranges with leading zeros correctly
-- BUGFIX(ProxyChannel.cxx) check for poor NAT implementations, that might
-  have crashed GnuGk (by Simon Horne)
 - new CapacityControl auth/acct modules to control inbound traffic
 - BUGFIX(ProxyChannel.cxx) check added for a NULL pointer in NAT traversal code
 - (RasTbl.cxx) default SignalTimeout value increased from 15 to 30 seconds
@@ -16,6 +14,11 @@ Changes from 2.2.3 to 2.2.4
 - BUGFIX(RasSrv.cxx) allow bandwidth=0 in ARQ / ACF
 - BUGFIX(ProxyChannel.cxx) fix bug when using RADIUS/SQL based routing
   for Setup messages
+- BUGFIX(ProxyChannel.cxx) check for poor NAT implementations, that might
+  have crashed GnuGk (by Simon Horne)
+- new accounting variables: %{media-oip}, %{codec}
+- new accounting variables: %{call-attemps}, %{last-cdr}, %{caller/callee-epid}
+- new feature: call failover (see manual)
 - BUGFIX(clirw.cxx) set presentationIndicator correctly in H.225.0 Setup UUIE
 - BUGFIX(RasTbl.h) when active, perform IRR checks for local
   endpoints only, others (parent, neighbor etc.) won't send us IRRs

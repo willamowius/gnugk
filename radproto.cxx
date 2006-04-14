@@ -11,6 +11,15 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2005/12/16 14:16:32  zvision
+ * Removed incorrect C/C++ language constructs
+ *
+ * Revision 1.1.1.1  2005/11/21 20:19:57  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
  * Revision 1.27  2005/05/18 20:56:01  zvision
  * Better checking and reporting of network errors
  *
@@ -437,10 +446,10 @@ RadiusAttr::RadiusAttr(
 				m_length = m_length + (unsigned char)CiscoAttrNames[i].m_nameLen;
 				m_vendorLength = m_vendorLength + (unsigned char)CiscoAttrNames[i].m_nameLen;
 				m_data[m_length++] = '=';
-				++m_vendorLength;
+				m_vendorLength++;
 				break;
 			} else
-				++i;
+				i++;
 	}
 	const PINDEX len = stringValue.GetLength();
 	if (((PINDEX)m_length + len) > MaxLength)
@@ -731,7 +740,7 @@ PString RadiusAttr::AsCiscoString() const
 					offset += CiscoAttrNames[i].m_nameLen + 1;
 			break;
 		} else
-			++i;
+			i++;
 			
 	if (offset >= len)
 		return PString();
@@ -836,7 +845,7 @@ void RadiusPDU::PrintOn(
 			strm << setw(aindent + 1) << "[" << i << "]= " 
 				<< setprecision(aindent) << *attr << setprecision(indent);
 			attr = GetAttr(attr);
-			++i;
+			i++;
 		}
 		strm << setw(aindent) << "}\n";
 	}
@@ -1182,7 +1191,7 @@ bool RadiusPDU::AppendCiscoAttr(
 				attr->m_vendorLength++;
 				break;
 			} else
-				++i;
+				i++;
 	}
 	const PINDEX strLen = stringValue.GetLength();
 	attrLen += strLen;
@@ -1204,7 +1213,7 @@ PINDEX RadiusPDU::GetNumAttributes() const
 	const RadiusAttr* attr = GetAttr();
 	while (attr != NULL) {
 		attr = GetAttr(attr);
-		++count;
+		count++;
 	}
 	return count;
 }
@@ -1374,7 +1383,7 @@ bool RadiusPDU::EncryptPasswords(
 	// XOR either byte-wise or dword-wise (if the memory block is aligned properly)
 	if ((reinterpret_cast<unsigned long>(buf2ptr) & 3) 
 		|| (reinterpret_cast<unsigned long>(buf1ptr) & 3)) {
-		for (int _i = 0; _i < 16; ++_i)
+		for (int _i = 0; _i < 16; _i++)
 			((BYTE*)buf1ptr)[_i] = ((BYTE*)buf1ptr)[_i] ^ ((const BYTE*)buf2ptr)[_i];
 		buf1ptr += 4;
 		buf2ptr += 4;
@@ -1404,7 +1413,7 @@ bool RadiusPDU::EncryptPasswords(
 		buf2ptr = reinterpret_cast<const DWORD*>(digest.GetPointer());
 		if ((reinterpret_cast<unsigned long>(buf2ptr) & 3) 
 			|| (reinterpret_cast<unsigned long>(buf1ptr) & 3)) {
-			for (int _i = 0; _i < 16; ++_i)
+			for (int _i = 0; _i < 16; _i++)
 				((BYTE*)buf1ptr)[_i] = ((BYTE*)buf1ptr)[_i] ^ ((const BYTE*)buf2ptr)[_i];
 			buf1ptr += 4;
 			buf2ptr += 4;
@@ -1469,10 +1478,10 @@ RadiusSocket::RadiusSocket(
 		memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
 		memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
 
-		for (i = 0; i < 256; ++i)
+		for (i = 0; i < 256; i++)
 			m_readSyncPointIndices[i] = P_MAX_INDEX;
 
-		for (i = 0; i < m_permanentSyncPoints; ++i)
+		for (i = 0; i < m_permanentSyncPoints; i++)
 			m_readSyncPoints[i] = new PSyncPoint();
 	}
 }
@@ -1505,10 +1514,10 @@ RadiusSocket::RadiusSocket(
 		memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
 		memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
 
-		for (i = 0; i < 256; ++i)
+		for (i = 0; i < 256; i++)
 			m_readSyncPointIndices[i] = P_MAX_INDEX;
 
-		for (i = 0; i < m_permanentSyncPoints; ++i)
+		for (i = 0; i < m_permanentSyncPoints; i++)
 			m_readSyncPoints[i] = new PSyncPoint();
 	}
 }
@@ -1517,7 +1526,7 @@ RadiusSocket::~RadiusSocket()
 {
 	PWaitAndSignal lock(m_readMutex);
 	
-	for (int i = 0; i < 256; ++i)
+	for (int i = 0; i < 256; i++)
 		delete m_readSyncPoints[i];
 }
 
@@ -1532,9 +1541,9 @@ PINDEX RadiusSocket::AllocReadSyncPoint()
 {
 	PINDEX idx = 0;
 	
-	for (PINDEX k = 0; k < 8; ++k)
+	for (PINDEX k = 0; k < 8; k++)
 		if (m_syncPointMap[k] != 0xffffffff) {
-			for (PINDEX i = 0, j = 1; i < 32; ++i, j <<= 1, ++idx)
+			for (PINDEX i = 0, j = 1; i < 32; i++, j <<= 1, idx++)
 				if ((m_syncPointMap[k] & ((DWORD)j)) == 0) {
 					m_syncPointMap[k] |= (DWORD)j;
 					if (m_readSyncPoints[idx] == NULL )
@@ -1613,7 +1622,7 @@ bool RadiusSocket::MakeRequest(
 				return false;
 			}
 			m_readSyncPointIndices[id] = index;
-			++m_nestedCount;
+			m_nestedCount++;
 		}
 		
 		requestInfo = m_pendingRequests[id] 
@@ -1711,7 +1720,7 @@ bool RadiusSocket::MakeRequest(
 				m_isReading = false;
 
 				if (m_nestedCount)
-					for (PINDEX i = 0, j = m_oldestId; i < 256; ++i, j = (j + 1) & 0xff)
+					for (PINDEX i = 0, j = m_oldestId; i < 256; i++, j = (j + 1) & 0xff)
 						if (m_readSyncPointIndices[j] != P_MAX_INDEX
 							&& m_readSyncPoints[m_readSyncPointIndices[j] & 0xff] != NULL)
 						{
@@ -1779,7 +1788,7 @@ bool RadiusSocket::MakeRequest(
 			m_isReading = false;
 
 			if (m_nestedCount)
-				for (PINDEX i = m_oldestId, j = 0; j < 256; ++j, i = (i + 1) & 0xff)
+				for (PINDEX i = m_oldestId, j = 0; j < 256; j++, i = (i + 1) & 0xff)
 					if (m_readSyncPointIndices[i] != P_MAX_INDEX
 						&& m_readSyncPoints[m_readSyncPointIndices[i] & 0xff] != NULL)
 					{
@@ -1878,7 +1887,7 @@ RadiusClient::RadiusClient(
 		s << "RADIUS\tCreated instance of RADIUS client (local if: "
 			<< m_localAddress << ", default ports: " << m_authPort << ',' 
 			<< m_acctPort << ") for RADIUS servers group:";
-		for (unsigned i = 0; i < m_radiusServers.size(); ++i)
+		for (unsigned i = 0; i < m_radiusServers.size(); i++)
 			s << '\n' << setw(indent + m_radiusServers[i]->m_serverAddress.GetLength()) 
 				<< m_radiusServers[i]->m_serverAddress << " (auth port: "
 				<< (m_radiusServers[i]->m_authPort == 0 ? m_authPort : m_radiusServers[i]->m_authPort)
@@ -1955,7 +1964,7 @@ RadiusClient::RadiusClient(
 		s << "RADIUS\tCreated instance of RADIUS client (local if: "
 			<< m_localAddress << ", default ports: " << m_authPort << ',' 
 			<< m_acctPort << ") for RADIUS servers group:";
-		for (unsigned i = 0; i < m_radiusServers.size(); ++i)
+		for (unsigned i = 0; i < m_radiusServers.size(); i++)
 			s << '\n' << setw(indent + m_radiusServers[i]->m_serverAddress.GetLength()) 
 				<< m_radiusServers[i]->m_serverAddress << " (auth port: "
 				<< (m_radiusServers[i]->m_authPort == 0 ? m_authPort : m_radiusServers[i]->m_authPort)
@@ -1975,7 +1984,7 @@ RadiusClient::~RadiusClient()
 		delete s;
 	}
 		
-	for (unsigned i = 0; i < m_radiusServers.size(); ++i)
+	for (unsigned i = 0; i < m_radiusServers.size(); i++)
 		delete m_radiusServers[i];
 	m_radiusServers.clear();
 }
@@ -1985,7 +1994,7 @@ void RadiusClient::GetServersFromString(
 	)
 {
 	const PStringArray tokens = servers.Tokenise(" ;,", FALSE);
-	for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		const PStringArray serverTokens = tokens[i].Tokenise(":");
 		if (serverTokens.GetSize() > 0) {
 			const PString serverAddress = serverTokens[0].Trim();
@@ -2089,7 +2098,7 @@ bool RadiusClient::MakeRequest(
 	const unsigned numServers = m_radiusServers.size();
 	const PString* secret = NULL;
 	
-	for (unsigned i = 0; i < (m_roundRobinServers ? m_numRetries * numServers : numServers); ++i)
+	for (unsigned i = 0; i < (m_roundRobinServers ? m_numRetries * numServers : numServers); i++)
 	{
 		const unsigned serverIndex = i % numServers;
 		const PTime now;
@@ -2114,7 +2123,7 @@ bool RadiusClient::MakeRequest(
 			continue;
 		}
 
-		for (unsigned j = 0; j < (m_roundRobinServers ? 1 : m_numRetries); ++j) {
+		for (unsigned j = 0; j < (m_roundRobinServers ? 1 : m_numRetries); j++) {
  			RadiusPDU* const clonedRequestPDU = new RadiusPDU(requestPDU);
 			
 			bool requireNewId = false;
@@ -2411,7 +2420,7 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 		} while ((newSocket == NULL || !newSocket->IsOpen()) && --randCount);
 
 	if (newSocket == NULL || !newSocket->IsOpen())
-		for (WORD p = m_portBase; p < m_portMax; ++p) {
+		for (WORD p = m_portBase; p < m_portMax; p++) {
 			delete newSocket;
 			newSocket = NULL;
 

@@ -11,6 +11,15 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.3  2005/04/24 16:39:44  zvision
+ * MSVC6.0 compatibility fixed
+ *
  * Revision 1.2  2004/05/12 11:47:06  zvision
  * Generic support for time-based events
  *

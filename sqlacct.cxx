@@ -11,6 +11,15 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.12  2005/05/19 16:41:17  zvision
+ * Solaris need explicit std::map
+ *
  * Revision 1.11  2005/04/24 16:39:45  zvision
  * MSVC6.0 compatibility fixed
  *

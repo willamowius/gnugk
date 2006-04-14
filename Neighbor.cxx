@@ -25,9 +25,10 @@
 #include "gk_const.h"
 #include "stl_supp.h"
 #include "GkClient.h"
-#include "Routing.h"
 #include "RasPDU.h"
 #include "RasSrv.h"
+#include "RasTbl.h"
+#include "Routing.h"
 #include "sigmsg.h"
 #include "cisco.h"
 #include "Neighbor.h"
@@ -38,6 +39,7 @@ using std::find_if;
 using std::bind2nd;
 using std::equal_to;
 using std::mem_fun;
+using Routing::Route;
 
 namespace Neighbors {
 
@@ -668,7 +670,7 @@ public:
 	bool Send(NeighborList::List &, Neighbor * = 0);
 	int GetReqNumber() const { return m_requests.size(); }
 	H225_LocationConfirm *WaitForDestination(int);
-	PIPSocket::Address GetNeighborUsed() { return m_neighbor_used; }
+	PString GetNeighborUsed() { return m_neighbor_used; }
 
 	// override from class RasRequester
 	virtual bool IsExpected(const RasMsg *) const;
@@ -690,7 +692,7 @@ private:
 	PMutex m_rmutex;
 	const LRQFunctor & m_sendto;
 	RasMsg *m_result;
-	PIPSocket::Address m_neighbor_used;
+	PString m_neighbor_used;
 };
 
 LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(0)
@@ -763,7 +765,7 @@ void LRQRequester::Process(RasMsg *ras)
 				if (iter == m_requests.begin()) // the highest priority
 					m_result = ras;
 				AddReply(req.m_reply = ras);
-				m_neighbor_used = req.m_neighbor->GetIP(); // record neighbor used
+				m_neighbor_used = req.m_neighbor->GetId(); // record neighbor used
 				if (m_result)
 					m_sync.Signal();
 			} else { // should be H225_RasMessage::e_locationReject
@@ -1020,8 +1022,10 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 	LRQRequester request(functor);
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
-			arq_obj.SetDestination(lcf->m_callSignalAddress);
-			arq_obj.SetNeighborUsed(request.GetNeighborUsed());
+			Route route(m_name, lcf->m_callSignalAddress);
+			route.m_routeId = request.GetNeighborUsed();
+			route.m_flags |= Route::e_toNeighbor;
+			arq_obj.AddRoute(route);
 			RasMsg *ras = arq_obj.GetWrapper();
 			(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_admissionConfirm);
 			H225_AdmissionConfirm & acf = (*ras)->m_replyRAS;
@@ -1074,7 +1078,10 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 		LRQRequester request(functor);
 		if (request.Send(m_neighbors, requester)) {
 			if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
-				lrq_obj.SetDestination(lcf->m_callSignalAddress);
+				Route route(m_name, lcf->m_callSignalAddress);
+				route.m_routeId = request.GetNeighborUsed();
+				route.m_flags |= Route::e_toNeighbor;
+				lrq_obj.AddRoute(route);
 				(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_locationConfirm);
 				H225_LocationConfirm & nlcf = (*ras)->m_replyRAS;
 				CopyCryptoTokens(lcf, nlcf);
@@ -1091,7 +1098,10 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 	LRQRequester request(functor);
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
-			setup_obj.SetDestination(lcf->m_callSignalAddress);
+			Route route(m_name, lcf->m_callSignalAddress);
+			route.m_routeId = request.GetNeighborUsed();
+			route.m_flags |= Route::e_toNeighbor;
+			setup_obj.AddRoute(route);
 			CopyCryptoTokens(lcf, setup_obj.GetRequest());
 			return true;
 		}
@@ -1105,7 +1115,10 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 	LRQRequester request(functor);
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
-			facility_obj.SetDestination(lcf->m_callSignalAddress);
+			Route route(m_name, lcf->m_callSignalAddress);
+			route.m_routeId = request.GetNeighborUsed();
+			route.m_flags |= Route::e_toNeighbor;
+			facility_obj.AddRoute(route);
 			CopyCryptoTokens(lcf, facility_obj.GetRequest());
 			return true;
 		}

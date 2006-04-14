@@ -35,6 +35,7 @@
 using namespace std;
 
 extern const char *ProxySection;
+extern const char *RoutedSec;
 
 namespace {
 
@@ -1085,10 +1086,38 @@ PConfig* Toolkit::ReloadConfig()
 
 	delete m_cliRewrite;
 	m_cliRewrite = new CLIRewrite;
-	
+
 	CapacityControl::Instance()->LoadConfig();
 
+	LoadCauseMap(m_Config);
+	
 	return m_Config;
+}
+
+void Toolkit::LoadCauseMap(
+	PConfig *cfg
+	)
+{
+	memset(m_causeMap, 0, 16);
+	
+	if (! Toolkit::AsBool(cfg->GetString(RoutedSec, "ActivateFailover", "0")))
+		return;
+
+	PStringArray causes(cfg->GetString(RoutedSec, "FailoverCauses", "1-15,21-127").Tokenise(", \t", FALSE));
+
+	for (PINDEX i = 0; i < causes.GetSize(); ++i)
+		if (causes[i].Find('-') == P_MAX_INDEX) {
+			unsigned c = causes[i].AsUnsigned() & 0x7f;
+			m_causeMap[c >> 3] |= (1UL << (c & 7));
+		} else {
+			PStringArray causeRange(causes[i].Tokenise("- ", FALSE));
+			if (causeRange.GetSize() == 2) {
+				unsigned cmin = causeRange[0].AsUnsigned() & 0x7f;
+				unsigned cmax = causeRange[1].AsUnsigned() & 0x7f;
+				for (; cmin <= cmax; ++cmin)
+					m_causeMap[cmin >> 3] |= (1UL << (cmin & 7));
+			}
+		}
 }
 
 BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
@@ -1527,4 +1556,11 @@ void Toolkit::RewriteCLI(
 	) const
 {
 	m_cliRewrite->OutRewrite(msg, authData, addr);
+}
+
+void Toolkit::SetRerouteCauses(
+	unsigned char *causeMap
+	)
+{
+	memcpy(causeMap, m_causeMap, 128/8);
 }

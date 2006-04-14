@@ -14,6 +14,15 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.4  2005/04/14 09:52:15  zvision
+ * Fix config precedence in GetAllKeyValues
+ *
  * Revision 1.3  2005/02/11 17:23:04  zvision
  * Write SCCS keyword correctly
  *

@@ -88,21 +88,24 @@ subtitle "OpenH323 Gatekeeper - The GNU Gatekeeper" and start
 using <tt/gnugk/ as name for executables.
 
 <sect1>Features
-
+ 
 <p>
 The version 2.2.4 contains the following new features and bugfixes:
 <itemize>
 <item>
+New call failover feature to retry failed calls on a different route.
+ 
+<item>
 New <tt/CapacityControl/ module for controlling inbound traffic.
-
+ 
 <item>
 Default <tt/SignalTimeout/ value increased from 15 to 30 seconds.
-
+ 
 <item>
 New <tt/StatusAcct/ accounting module for the status port sponsored by Grupo Isec.
-
+ 
 </itemize>
-
+ 
 <p>
 The version 2.2.3 contains the following new features and bugfixes:
 
@@ -523,8 +526,7 @@ The current project coordinator is
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
 The main features and functions of version 2.0 are contributed by
-<url url="http://www.cwhuang.idv.tw/" name="Chih-Wei Huang">
-<tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
+Chih-Wei Huang <tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
 and
 <url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
 including thread-safe registration and call tables,

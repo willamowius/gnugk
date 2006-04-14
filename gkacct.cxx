@@ -12,6 +12,21 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2006/01/19 11:48:45  zvision
+ * New media-ip and codec accounting variables for fast start calls
+ *
+ * Revision 1.2  2005/12/15 12:40:39  willamowius
+ * new accounting variables
+ *
+ * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.29  2005/05/19 16:41:16  zvision
+ * Solaris need explicit std::map
+ *
  * Revision 1.28  2005/04/24 16:39:44  zvision
  * MSVC6.0 compatibility fixed
  *
@@ -265,6 +280,21 @@ void GkAcctLogger::SetupAcctParams(
 	params["dest-info"] = call->GetDestInfo();
 	params["Called-Station-Id"] = GetCalledStationId(call);
 	params["Dialed-Number"] = GetDialedNumber(call);
+
+	endptr caller;
+	if (caller = call->GetCallingParty()) {
+		params["caller-epid"] = caller->GetEndpointIdentifier().GetValue();
+	}
+	endptr callee;
+	if (callee = call->GetCalledParty()) {
+		params["callee-epid"] = callee->GetEndpointIdentifier().GetValue();
+	}
+	params["call-attempts"] = PString(call->GetNoCallAttempts());
+	params["last-cdr"] = call->GetNoRemainingRoutes() > 0 ? "0" : "1";
+
+	if (call->GetMediaOriginatingIp(addr))
+		params["media-oip"] = addr.AsString();
+	params["codec"] = call->GetCodec();
 }
 
 PString GkAcctLogger::ReplaceAcctParams(

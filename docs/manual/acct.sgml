@@ -102,7 +102,7 @@ See the section <ref id="statusacct" name="[StatusAcct]"> for configuration deta
 This module performs inbound call volume logging, required for <tt/CapacityControl/
 authentication module to work correctly. See the section <ref id="capctrl" name="[CapacityControl]">
 for details.
-
+ 
 <item><tt>default</tt>
 <p>
 This is a special pseudo module - it is used to set the final status
@@ -216,6 +216,12 @@ parameters are recognized:
 <item><tt/%{Calling-Station-Id}/ - calling party number
 <item><tt/%{Called-Station-Id}/ - called party number (rewritten)
 <item><tt/%{Dialed-Number}/ - dialed number (as received from the calling party)
+<item><tt/%{caller-epid}/ - endpoint identifier of the calling party
+<item><tt/%{callee-epid}/ - endpoint identifier of the called party
+<item><tt/%{call-attempts}/ - number of attempts to establish the calls (with failover this can be > 1)
+<item><tt/%{last-cdr}/ - is this the last CDR for this call ? (0 / 1) only when using failover this can be 0
+<item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
+<item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
 </itemize><newline>
 
 <item><tt/TimestampFormat=Cisco/<newline>
@@ -476,6 +482,12 @@ For <tt/SQLAcct/ the following parameters are defined:
 <item><tt/%{Calling-Station-Id}/ - calling party number
 <item><tt/%{Called-Station-Id}/ - called party number (rewritten Dialed-Number)
 <item><tt/%{Dialed-Number}/ - dialed number (as received from the calling party)
+<item><tt/%{caller-epid}/ - endpoint identifier of the calling party
+<item><tt/%{callee-epid}/ - endpoint identifier of the called party
+<item><tt/%{call-attempts}/ - number of attempts to establish the calls (with failover this can be > 1)
+<item><tt/%{last-cdr}/ - is this the last CDR for this call ? (0 / 1) only when using failover this can be 0
+<item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
+<item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
 </itemize>
 <p>
 Sample query string:

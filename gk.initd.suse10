@@ -1,0 +1,51 @@
+#! /bin/sh
+# Copyright (c) 2005 Jan Willamowius
+
+. /etc/rc.status
+rc_reset
+
+# The echo return value for success (defined in /etc/rc.config).
+return=$rc_done
+case "$1" in
+    start)
+	echo -n "Starting GNU Gatekeeper"
+	## Start daemon with startproc(8). If this fails
+	## the echo return value is set appropriate.
+
+	startproc -q /usr/local/bin/gnugk || return=$rc_failed
+
+	echo -e "$return"
+	;;
+    stop)
+	echo -n "Shutting down GNU Gatekeeper"
+	## Stop daemon with killproc(8) and if this fails
+	## set echo the echo return value.
+
+	killproc -TERM /usr/local/bin/gnugk || return=$rc_failed
+
+	echo -e "$return"
+	;;
+    restart)
+	## If first returns OK call the second, if first or
+	## second command fails, set echo return value.
+	$0 stop  &&  $0 start  ||  return=$rc_failed
+	;;
+    reload)
+	$0 stop  &&  $0 start  ||  return=$rc_failed
+	;;
+    status)
+	echo -n "Checking for GNU Gatekeeper: "
+	## Check status with checkproc(8), if process is running
+	## checkproc will return with exit status 0.
+
+	checkproc /usr/local/bin/gnugk && echo OK || echo No process
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|restart|reload}"
+	exit 1
+	;;
+esac
+
+# Inform the caller not only verbosely and set an exit status.
+test "$return" = "$rc_done" || exit 1
+exit 0

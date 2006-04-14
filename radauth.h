@@ -13,6 +13,15 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.16  2005/02/01 14:28:11  zvision
+ * Parts of signaling code rewritten
+ *
  * Revision 1.15  2004/11/15 23:57:43  zvision
  * Ability to choose between the original and the rewritten dialed number
  *

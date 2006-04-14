@@ -56,6 +56,13 @@ Check if both endpoints in a call send the requested IRRs.
 A call will be terminated if one of the endpoints didn't send
 an IRR after 2 * irrFrequency.
 
+<item><tt/SingleFailoverCDR=FALSE/<newline>
+Default: <tt/TRUE/<newline>
+<p>
+When failover is active, more than one gateway may be tried to
+establish a call. This switch defines if one or multiple CDRs
+are generated for such a call.
+
 </itemize>
 
 

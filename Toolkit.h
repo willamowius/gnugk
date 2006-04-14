@@ -412,11 +412,16 @@ class Toolkit : public Singleton<Toolkit>
 		SetupAuthData &authData, /// additional data
 		const PIPSocket::Address &destAddr /// callee's IP
 		) const;
+
+	void SetRerouteCauses(
+		unsigned char *causeMap
+		);
 		
 protected:
 	void CreateConfig();
 	void ReloadSQLConfig();
-
+	void LoadCauseMap(PConfig *cfg);
+	
 	PFilePath m_ConfigFilePath;
 	PFilePath m_extConfigFilePath;
 	PString   m_GKName;
@@ -452,6 +457,8 @@ private:
 	bool m_encryptAllPasswords;
 	/// set of ANI/CLI rewrite rules
 	CLIRewrite *m_cliRewrite;
+	/// bit flag failover triggers for 128 Q931 causes
+	unsigned char m_causeMap[16];
 };
 
 

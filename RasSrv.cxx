@@ -40,6 +40,7 @@
 #include "RasSrv.h"
 
 using namespace std;
+using Routing::Route;
 
 #ifndef NEED_BROADCASTLISTENER
 #if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS)
@@ -340,7 +341,7 @@ bool MulticastListener::Filter(GatekeeperMessage *msg) const
 // class RasMsg
 void RasMsg::Exec()
 {
-	PTRACE(2, "RAS\t" << m_msg->GetTagName() << " Received");
+	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received");
 	if (Process())
 		Reply();
 }
@@ -1959,23 +1960,42 @@ bool AdmissionRequestPDU::Process()
 	// routing decision
 	bool toParent = false;
 	H225_TransportAddress CalledAddress;
+	Routing::AdmissionRequest arq(request, this);
 	if (!answer) {
-		Routing::AdmissionRequest arq(request, this, CalledEP);
-		arq.SetProxyMode(authData.m_proxyMode);
-		if ((authData.m_routeToIP != NULL 
-				&& arq.SetDestination(*authData.m_routeToIP, true))
-			|| arq.Process() != NULL) {
-			CalledAddress = *arq.GetDestination();
-			toParent = arq.GetFlags() & Routing::AdmissionRequest::e_toParent;
-			aliasesChanged = aliasesChanged || (arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged);
-	
-			// record neighbor used for rewriting purposes
-			if (arq.GetNeighborUsed() != 0) {
-				out_rewrite_source = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(arq.GetNeighborUsed());
-			}
+		if (!authData.m_destinationRoutes.empty()) {
+			list<Route>::const_iterator i = authData.m_destinationRoutes.begin();
+			while (i != authData.m_destinationRoutes.end())
+				arq.AddRoute(*i++);
 		} else
+			arq.Process();
+			
+		if (arq.GetRoutes().empty())
 			return BuildReply(arq.GetRejectReason());
-		authData.m_proxyMode = arq.GetProxyMode();
+			
+		list<Route>::iterator r = arq.GetRoutes().begin();
+		while (r != arq.GetRoutes().end()) {
+			// PTRACE(1, "JW route = " << r->AsString() );
+			if (authData.m_proxyMode != CallRec::ProxyDetect)
+				r->m_proxyMode = authData.m_proxyMode;
+			++r;
+		}
+		
+		Route route;
+		arq.GetFirstRoute(route);
+		
+		if (route.m_destEndpoint && !route.m_destEndpoint->HasAvailableCapacity())
+			return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
+
+		CalledEP = route.m_destEndpoint;
+		CalledAddress = route.m_destAddr;
+		toParent = route.m_flags & Route::e_toParent;
+		aliasesChanged = aliasesChanged || (arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged);
+	
+		// record neighbor used for rewriting purposes
+		if (route.m_flags & Route::e_toNeighbor)
+			out_rewrite_source = route.m_routeId;
+		
+		authData.m_proxyMode = route.m_proxyMode;
 	}
 
 #ifdef ARJREASON_ROUTECALLTOSCN
@@ -2074,6 +2094,8 @@ bool AdmissionRequestPDU::Process()
 		if (toParent)
 			pCallRec->SetToParent(true);
 
+		pCallRec->SetNewRoutes(arq.GetRoutes());
+		
 		if (authData.m_callDurationLimit > 0)
 			pCallRec->SetDurationLimit(authData.m_callDurationLimit);
 		if (!authData.m_callingStationId)
@@ -2313,12 +2335,19 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 
 	if (!bReject) {
 		endptr WantedEndPoint;
-		Routing::LocationRequest lrq(request, this, WantedEndPoint);
-		if (H225_TransportAddress *dest = lrq.Process()) {
-			H225_LocationConfirm & lcf = BuildConfirm();
-			GetRasAddress(lcf.m_rasAddress);
-			if (RasSrv->IsGKRouted()) {
-				GetCallSignalAddress(lcf.m_callSignalAddress);
+		Route route;
+		Routing::LocationRequest lrq(request, this);
+		lrq.Process();
+		if (lrq.GetFirstRoute(route)) {
+			WantedEndPoint = route.m_destEndpoint;
+			if (WantedEndPoint && !WantedEndPoint->HasAvailableCapacity()) {
+				bReject = true;
+				reason = H225_LocationRejectReason::e_resourceUnavailable;
+			} else {
+				H225_LocationConfirm & lcf = BuildConfirm();
+				GetRasAddress(lcf.m_rasAddress);
+				if (RasSrv->IsGKRouted()) {
+					GetCallSignalAddress(lcf.m_callSignalAddress);
 /* The access token should be standarized somehow and use a correct object 
    identifier. As it does not (currently), we disable it to remove interop problems.
 				PINDEX s = 0;
@@ -2329,15 +2358,16 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				lcf.m_cryptoTokens.SetSize(s + 1);
 				lcf.m_cryptoTokens[s] = Neighbors::BuildAccessToken(*dest, ipaddr);
 */
-			} else
-				lcf.m_callSignalAddress = *dest;
+				} else
+					lcf.m_callSignalAddress = route.m_destAddr;
 
-			log = PString(PString::Printf, "LCF|%s|%s|%s|%s;",
-				inet_ntoa(m_msg->m_peerAddr),
-				(const unsigned char *) (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(*dest)),
-				(const unsigned char *) AsString(request.m_destinationInfo),
-				(const unsigned char *) sourceInfoString
-			      );
+				log = PString(PString::Printf, "LCF|%s|%s|%s|%s;",
+					inet_ntoa(m_msg->m_peerAddr),
+					(const unsigned char *) (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr)),
+					(const unsigned char *) AsString(request.m_destinationInfo),
+					(const unsigned char *) sourceInfoString
+					);
+			}
 		} else {
 			if (m_msg->m_replyRAS.GetTag() == H225_RasMessage::e_requestInProgress) {
 				// LRQ is forwarded

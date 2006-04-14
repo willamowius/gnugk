@@ -115,6 +115,7 @@ protected:
 private:
 	SignalingMsg();
 	SignalingMsg(const SignalingMsg&);
+public:
 	SignalingMsg& operator=(const SignalingMsg&);
 
 protected:

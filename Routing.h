@@ -23,7 +23,7 @@
 #include <list>
 #include "slist.h"
 #include "singleton.h"
-
+#include "RasTbl.h"
 
 // forward references to avoid includes
 class H225_AdmissionRequest;
@@ -39,58 +39,86 @@ typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 typedef H225SignalingMsg<H225_Facility_UUIE> FacilityMsg;
 
 class RasMsg;
-class EndpointRec;
-template<class> class SmartPtr;
-typedef SmartPtr<EndpointRec> endptr;
 
 namespace Routing {
 
+/// An entry for a single call destination route
+struct Route {
+	// a policy can set flags to indicate extra status of a processed request
+	enum Flags {
+		e_toParent = 1,
+		e_toNeighbor = 2
+	};
+	
+	Route();
+	Route(
+		const endptr &destEndpoint
+		);
+	Route(
+		const PString &policyName,
+		const H225_TransportAddress &destAddr
+		);
+	Route(
+		const PString &policyName,
+		const PIPSocket::Address &destIpAddr,
+		WORD destPort
+		);
+		
+	PString AsString() const;
+
+	bool IsFailoverActive(
+		unsigned cause
+		) const;
+
+	H225_TransportAddress m_destAddr; /// destination address for signaling
+	endptr m_destEndpoint; /// destination endpoint record (if available)
+	H225_AliasAddress m_srcAddr; /// source alias that matched the route
+	PString m_policy; /// name of the policy that found the route
+	PString m_routeId; /// optional policy-specific route identifier
+	int m_proxyMode; /// per-route proxy mode flag
+	unsigned m_flags; /// additional route specific flags
+	unsigned char m_rerouteCauses[16]; /// bit flags to trigger rerouting on particular Q931 causes
+};
 
 class RoutingRequest {
 public:
-	// a policy can set flags to indicate extra status of a processed request
-	enum ExtraFlags {
+	enum Flags {
 		e_aliasesChanged = 1,
-		e_fromInternal	 = 2,
-		e_fromParent	 = 4,
-		e_fromNeighbor	 = 8,
-		e_toInternal	 = 16,
-		e_toParent	 = 32,
-		e_toNeighbor	 = 64
+		e_fromInternal = 2,
+		e_fromParent = 4,
+		e_fromNeighbor = 8
 	};
-
+	
 	// note this is not a polymorphic class
-	RoutingRequest(endptr &called);
+	RoutingRequest();
+	RoutingRequest(
+		const std::list<Route> &failedRoutes
+		);
 	~RoutingRequest();
 
-	H225_TransportAddress* GetDestination() const { return m_destination; }
-	bool SetDestination(const H225_TransportAddress &, bool = false);
-	bool SetCalledParty(const endptr &);
+	bool AddRoute(
+		const Route &route
+		);
+	bool GetFirstRoute(
+		Route &route
+		);
+	void RemoveAllRoutes();
+	std::list<Route> &GetRoutes() { return m_routes; }
+	
 	void SetRejectReason(unsigned reason) { m_reason = reason; }
 	void SetFlag(unsigned f) { m_flags |= f; }
 	unsigned GetRejectReason() const { return m_reason; }
 	unsigned GetFlags() const { return m_flags; }
-	endptr& GetCalledParty() { return m_called; }
-	void SetNeighborUsed(PIPSocket::Address neighbor) { m_neighbor_used = neighbor; }
-	PIPSocket::Address GetNeighborUsed() { return m_neighbor_used; }
-	int GetProxyMode() const { return m_proxyMode; }
-	void SetProxyMode(int mode) { m_proxyMode = mode; }
 
 private:
-	RoutingRequest();
 	RoutingRequest(const RoutingRequest&);
 	RoutingRequest& operator=(const RoutingRequest&);
 
-protected:
-	H225_TransportAddress *m_destination;
-	PIPSocket::Address m_neighbor_used;
-
 private:
-	endptr & m_called;
-	int m_reason;
-	unsigned m_flags;
-	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
-	int m_proxyMode;
+	int m_reason; /// reject reason, if no routes are found
+	unsigned m_flags; /// request specific flags
+	std::list<Route> m_routes;
+	std::list<Route> m_failedRoutes;
 };
 
 template<class R, class W>
@@ -99,9 +127,11 @@ public:
 	typedef R ReqObj;
 	typedef W Wrapper;
 
-	Request(ReqObj & r, Wrapper *w, endptr & c) : RoutingRequest(c), m_request(r), m_wrapper(w) {}
+	Request(ReqObj & r, Wrapper *w) : m_request(r), m_wrapper(w) {}
+	Request(ReqObj & r, Wrapper *w, const std::list<Route> &failedRoutes)
+		: RoutingRequest(failedRoutes), m_request(r), m_wrapper(w) {}
 
-	H225_TransportAddress *Process();
+	bool Process();
 
 	ReqObj & GetRequest() { return m_request; }
 	Wrapper *GetWrapper() { return m_wrapper; }
@@ -211,9 +241,9 @@ private:
 
 
 template<class R, class W>
-inline H225_TransportAddress *Request<R, W>::Process()
+inline bool Request<R, W>::Process()
 {
-	return Analyzer::Instance()->Parse(*this) ? m_destination : 0;
+	return Analyzer::Instance()->Parse(*this);
 }
 
 /** A class that supports ACD (Automatic Call Distribution). A call

@@ -11,6 +11,15 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
+ *
+ *
+ * Revision 1.4  2005/11/15 19:52:56  jan
+ * Michal v1 (works, but on in routed, not proxy mode)
+ *
+ * Revision 1.6  2005/03/08 14:31:13  zvision
+ * Support for Connect event added
+ *
  * Revision 1.5  2005/01/12 17:55:07  willamowius
  * fix gkip accounting parameter
  *

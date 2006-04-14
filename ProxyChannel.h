@@ -69,7 +69,7 @@ public:
 		IPSocket *self,
 		const char *type,
 		WORD buffSize = 1536
-		);
+	);
 	~ProxySocket() = 0; // abstract class
 
 	// new virtual function
@@ -116,6 +116,8 @@ public:
 	virtual bool ForwardData();
 	virtual bool TransmitData(const PBYTEArray &);
 
+	void RemoveRemoteSocket();
+	
 private:
 	TCPProxySocket();
 	TCPProxySocket(const TCPProxySocket&);
@@ -133,7 +135,6 @@ private:
 
 	BYTE *bufptr;
 };
-
 
 class CallSignalSocket : public TCPProxySocket {
 public:
@@ -167,7 +168,11 @@ public:
 
 	// override from class ServerSocket
 	virtual void Dispatch();
-
+	void DispatchNextRoute();
+	Result RetrySetup();
+	void TryNextRoute();
+	void RemoveH245Handler();
+	
 protected:
 	CallSignalSocket(CallSignalSocket *);
 	
@@ -193,6 +198,8 @@ protected:
 	template<class UUIE> bool HandleH245Address(UUIE & uu)
 	{
 		if (uu.HasOptionalField(UUIE::e_h245Address)) {
+			if (m_call)
+				m_call->SetH245ResponseReceived();
 			if (SetH245Address(uu.m_h245Address))
 				return (m_h245handler != 0);
 			uu.RemoveOptionalField(UUIE::e_h245Address);
@@ -200,10 +207,16 @@ protected:
 		}
 		return false;
 	}
+	
 	template<class UUIE> bool HandleFastStart(UUIE & uu, bool fromCaller)
 	{
-		return (m_h245handler && uu.HasOptionalField(UUIE::e_fastStart)) ?
-			OnFastStart(uu.m_fastStart, fromCaller) : false;
+		if (!uu.HasOptionalField(UUIE::e_fastStart))
+			return false;
+			
+		if (!fromCaller && m_call)
+			m_call->SetFastStartResponseReceived();
+			
+		return m_h245handler != NULL ? OnFastStart(uu.m_fastStart, fromCaller) : false;
 	}
 
 private:
@@ -215,6 +228,7 @@ private:
 	// if return false, the h245Address field will be removed
 	bool SetH245Address(H225_TransportAddress &);
 	bool InternalConnectTo();
+	bool ForwardCallConnectTo();
 
 	/** @return
 	    A string that can be used to identify a calling number.
@@ -263,6 +277,8 @@ private:
 	bool m_callerSocket;
 	/// H.225.0 protocol version in use by the remote party
 	unsigned m_h225Version;
+	/// raw Setup data as received from the caller
+	PBYTEArray m_rawSetup;
 };
 
 class CallSignalListener : public TCPListenSocket {
@@ -287,7 +303,9 @@ public:
 	void MoveTo(ProxyHandler *, TCPProxySocket *);
 	bool IsEmpty() const { return m_socksize == 0; }
 	void LoadConfig();
-
+	bool Detach(TCPProxySocket *);
+	void Remove(TCPProxySocket *);
+	
 private:
 	// override from class RegularJob
 	virtual void OnStart();
@@ -300,7 +318,6 @@ private:
 	void AddPairSockets(IPSocket *, IPSocket *);
 	void FlushSockets();
 	void Remove(iterator);
-	void Remove(ProxySocket *socket);
 	void DetachSocket(IPSocket *socket);
 
 	ProxyHandler();

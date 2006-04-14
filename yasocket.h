@@ -412,7 +412,7 @@ class TCPListenSocket : public TCPSocket {
 	PCLASSINFO ( TCPListenSocket, TCPSocket )
 #endif
 public:
-	TCPListenSocket(int seconds = 0);
+	TCPListenSocket::TCPListenSocket(int seconds = 0);
 	~TCPListenSocket();
 
 	bool IsTimeout(const PTime *) const;

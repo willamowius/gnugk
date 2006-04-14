@@ -104,7 +104,7 @@ See section <ref id="sqlauth" name="[SQLAuth]"> for more details.
 A flexible module to control inbound call volume with ability to configure
 various conditions. IMPORTANT: It has to be used in conjunction with <tt/CapacityControl/
 accounting module. See section <ref id="capctrl" name="[CapacityControl]"> for more details.
-
+ 
 </itemize>
 
 You can also configure a rule to check only for some particular RAS messages.
@@ -581,7 +581,8 @@ result and get additional information:
 	<item>If there exists a column called <tt/'redirectnumber'/, replace
           the original destination number with this one
 	<item>If there exists a column called <tt/'redirectip'/, force the call
-          to be sent to the specified IP
+          to be sent to the specified IP (one can put multiple destinations
+		  separated by a semicolon)
 	<item>If there exists a column called <tt/'proxy'/, force the gatekeeper
           to enable/disable (depends on the 'proxy' column value) RTP proxy
           for this call
@@ -997,7 +998,7 @@ authentication and accounting modules have to be enabled like this:
 <tscreen><verb>
 [Gatekeeper::Auth]
 CapacityControl=required;Setup
-
+ 
 [Gatekeeper::Acct]
 CapacityControl=required;start,stop
 </verb></tscreen>
@@ -1019,7 +1020,7 @@ for a matching inbound route.
 will be matched either by caller's IP, H.323ID or CLI. The optional <tt/CALLED NUMBER REGEX PATTERN/
 is a regular expression that the called number should match to apply this rule to.
 <tt/MAX_CAPACITY/ is maximum number of active calls for this route.
-
+ 
 <tag/Example 1:/
 <tscreen><verb>
 [CapacityControl]
@@ -1029,7 +1030,7 @@ ip:any=120
 <p>
 These rules tell that the 192.168.1.0/24 subnet can send up to 30 concurrent
 calls, while all other IPs can send up to 120 concurrent calls.
-
+ 
 <tag/Example 2:/
 <tscreen><verb>
 [RewriteCLI]

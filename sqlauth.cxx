@@ -28,6 +28,7 @@
 #include "stl_supp.h"
 #include "RasTbl.h"
 #include "RasPDU.h"
+#include "Routing.h"
 #include "Toolkit.h"
 #include "RasSrv.h"
 #include "gksql.h"
@@ -36,6 +37,7 @@
 #include "Neighbor.h"
 #include "gkauth.h"
 
+using Routing::Route;
 
 /// Generic SQL authenticator for H.235 enabled endpoints
 class SQLPasswordAuth : public SimplePasswordAuth
@@ -689,15 +691,22 @@ int SQLAuth::Check(
 	if (iter != result.end()) {
 		const PString &s = iter->first;
 		if (!s) {
-			PIPSocket::Address addr;
-			WORD port = 0;
+			PStringArray tokens(s.Tokenise("; \t", FALSE));
+			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+				PIPSocket::Address addr;
+				WORD port = 0;
 					
-			if (GetTransportAddress(s, GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-					&& addr.IsValid() && port != 0) {
-				authData.SetRouteToIP(addr, port);
-				PTRACE(5, traceStr << " - call redirected to the address "
-					<< addr << ':' << port
-					);
+				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
+						&& addr.IsValid() && port != 0) {
+					Route route("SQL", addr, port);
+					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+						SocketToH225TransportAddr(addr, port)
+						);
+					authData.m_destinationRoutes.push_back(route);
+					PTRACE(5, traceStr << " - call redirected to the address " <<
+						route.AsString()
+						);
+				}
 			}
 		}
 	}
@@ -865,15 +874,22 @@ int SQLAuth::Check(
 	if (iter != result.end()) {
 		const PString &s = iter->first;
 		if (!s) {
-			PIPSocket::Address addr;
-			WORD port = 0;
+			PStringArray tokens(s.Tokenise("; \t", FALSE));
+			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+				PIPSocket::Address addr;
+				WORD port = 0;
 					
-			if (GetTransportAddress(s, GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-					&& addr.IsValid() && port != 0) {
-				authData.SetRouteToIP(addr, port);
-				PTRACE(5, traceStr << " - call redirected to the address "
-					<< addr << ':' << port
-					);
+				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
+						&& addr.IsValid() && port != 0) {
+					Route route("SQL", addr, port);
+					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+						SocketToH225TransportAddr(addr, port)
+						);
+					authData.m_destinationRoutes.push_back(route);
+					PTRACE(5, traceStr << " - call redirected to the address " <<
+						route.AsString()
+						);
+				}
 			}
 		}
 	}

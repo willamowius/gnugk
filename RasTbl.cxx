@@ -49,6 +49,7 @@ using std::find_if;
 using std::distance;
 using std::sort;
 using std::string;
+using Routing::Route;
 
 const char *CallTableSection = "CallTable";
 const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
@@ -160,6 +161,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 
 EndpointRec::~EndpointRec()
 {
+	PWaitAndSignal lock(m_usedLock);
 	PTRACE(3, "Gk\tDelete endpoint: " << m_endpointIdentifier.GetValue() << " " << m_usedCount);
 	if (m_natsocket) {
 		m_natsocket->SetDeletable();
@@ -577,7 +579,7 @@ void GatewayRec::SetPriority(
 void GatewayRec::SetEndpointType(const H225_EndpointType &t)
 {
 	if (!t.HasOptionalField(H225_EndpointType::e_gateway)) {
-		PTRACE(1, "RRJ: terminal type changed|" << (const unsigned char *)GetEndpointIdentifier().GetValue());
+		PTRACE(1, "RRJ: terminal type changed|" << GetEndpointIdentifier().GetValue());
 		return;
 	}
 	EndpointRec::SetEndpointType(t);
@@ -689,11 +691,11 @@ int GatewayRec::PrefixMatch(
 	}
 	
 	if (maxlen < 0) {
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)GetEndpointIdentifier().GetValue() 
+		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue() 
 			<< " skipped by prefix " << pfxiter->c_str()
 			);
 	} else if (maxlen > 0) {
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)GetEndpointIdentifier().GetValue()
+		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue()
 			<< " matched by prefix " << pfxiter->c_str()
 			);
 		return maxlen;
@@ -706,7 +708,7 @@ int GatewayRec::PrefixMatch(
 				matchedalias = i;
 				break;
 			}
-		PTRACE(2, "RASTBL\tGateway " << (const unsigned char *)GetEndpointIdentifier().GetValue()
+		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue()
 			<< " matched as a default gateway"
 			);
 		return 0;
@@ -978,8 +980,27 @@ endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias)
 
 endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool r, bool s)
 {
-	endptr ep = InternalFindEP(alias, &EndpointList, r);
-	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r) : endptr(0);
+	list<H225_TransportAddress> emptyIgnoreList;
+	endptr ep = InternalFindEP(alias, &EndpointList, r, emptyIgnoreList);
+	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r, emptyIgnoreList) : endptr(0);
+}
+
+endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool r, bool s, const list<H225_TransportAddress> & ignoreList)
+{
+	endptr ep = InternalFindEP(alias, &EndpointList, r, ignoreList);
+	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r, ignoreList) : endptr(0);
+}
+
+void RegistrationTable::FindEndpoint(
+	const H225_ArrayOf_AliasAddress &aliases,
+	bool roundRobin,
+	bool searchOuterZone,
+	list<Route> &routes
+	)
+{
+	InternalFindEP(aliases, &EndpointList, roundRobin, routes);
+	if (searchOuterZone)
+		InternalFindEP(aliases, &OuterZoneList, roundRobin, routes);
 }
 
 namespace {
@@ -994,8 +1015,9 @@ private:
 } /* namespace */
 
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
-	std::list<EndpointRec *> *List, bool roundrobin)
+	std::list<EndpointRec *> *List, bool roundrobin, const list<H225_TransportAddress> & ignoreList)
 {
+	// TODO: temporarily remove all aliases in ignoreList from List for this search
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
@@ -1007,14 +1029,16 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	listLock.StartRead();
 	const_iterator Iter = List->begin(), IterLast = List->end();
 	while (Iter != IterLast) {
-		if ((*Iter)->IsGateway()) {
+		if ((*Iter)->IsGateway() &&
+			find(ignoreList.begin(), ignoreList.end(), (*Iter)->GetCallSignalAddress()) == ignoreList.end() ) {	// not on ignoreList
 			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
 			if (maxlen < len) {
 				GWlist.clear();
 				maxlen = len;
 			}
-			if (maxlen == len)
+			if (maxlen == len) {
 				GWlist.push_back(GWPtr(dynamic_cast<GatewayRec*>(*Iter)));
+			}
 		}
 		++Iter;
 	}
@@ -1040,6 +1064,74 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	}
 	
 	return endptr(0);
+}
+
+void RegistrationTable::InternalFindEP(
+	const H225_ArrayOf_AliasAddress &aliases,
+	list<EndpointRec*> *endpoints,
+	bool roundRobin,
+	list<Route> &routes
+	)
+{
+	// TODO: temporarily remove all aliases in ignoreList from List for this search
+	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &aliases), endpoints);
+	if (ep) {
+		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
+		routes.push_back(Route(ep));
+        return;
+	}
+
+	int maxlen = 0;
+	std::list<GWPtr> GWlist;
+	listLock.StartRead();
+	const_iterator Iter = endpoints->begin(), IterLast = endpoints->end();
+	while (Iter != IterLast) {
+		if ((*Iter)->IsGateway()) {	// not on ignoreList
+			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(aliases);
+			if (maxlen < len) {
+				GWlist.clear();
+				maxlen = len;
+			}
+			if (maxlen == len) {
+				GWlist.push_back(GWPtr(dynamic_cast<GatewayRec*>(*Iter)));
+			}
+		}
+		++Iter;
+	}
+	listLock.EndRead();
+
+	if (!GWlist.empty()) {
+		GWlist.sort();
+		
+		std::list<GWPtr>::const_iterator i = GWlist.begin();
+		GatewayRec *e = GWlist.front().gwptr;
+		++i;
+		while (!e->HasAvailableCapacity() && i != GWlist.end()) {
+			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
+			e = (i++)->gwptr;
+		}
+		if (GWlist.size() > 1 && roundRobin) {
+			PTRACE(3, "Prefix apply round robin");
+			WriteLock lock(listLock);
+			endpoints->remove(e);
+			endpoints->push_back(e);
+		}
+		routes.push_back(Route(endptr(e)));
+		while (i != GWlist.end())
+			routes.push_back(Route(endptr((*i++).gwptr)));
+#if PTRACING
+		if (PTrace::CanTrace(4)) {
+			ostream &strm = PTrace::Begin(4, __FILE__, __LINE__);
+			strm << "RASTBL\tPrefix match for gateways: ";
+			list<Route>::const_iterator r = routes.begin();
+			while (r != routes.end()) {
+				strm << endl << AsDotString(r->m_destAddr);
+				++r;
+			}
+			PTrace::End(strm);
+		}
+#endif
+	}
 }
 
 void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId)
@@ -1305,7 +1397,9 @@ CallRec::CallRec(
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), 
 	m_h245Routed(RasServer::Instance()->IsH245Routed()),
-	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode)
+	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
+	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -1318,6 +1412,7 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
@@ -1344,7 +1439,9 @@ CallRec::CallRec(
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none), m_h245Routed(routeH245),
-	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode)
+	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
+	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -1360,10 +1457,52 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
 	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
+}
+
+CallRec::CallRec(
+	CallRec *oldCall
+	) : m_CallNumber(0), 
+	m_callIdentifier(oldCall->m_callIdentifier),
+	m_conferenceIdentifier(oldCall->m_conferenceIdentifier), 
+	m_crv(oldCall->m_crv), m_Calling(oldCall->m_Calling),
+	m_sourceAddress(oldCall->m_sourceAddress),
+	m_destinationAddress(oldCall->m_destinationAddress),
+	m_srcInfo(oldCall->m_srcInfo),
+	m_destInfo(oldCall->m_destInfo), m_bandwidth(oldCall->m_bandwidth),
+	m_callerAddr(oldCall->m_callerAddr), m_callerId(oldCall->m_callerId),
+	m_inbound_rewrite_id(oldCall->m_inbound_rewrite_id),
+	m_setupTime(0), m_alertingTime(0), m_connectTime(0), m_disconnectTime(0),
+	m_disconnectCause(0), m_releaseSource(-1),
+	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
+	m_srcSignalAddress(oldCall->m_srcSignalAddress),
+	m_callingStationId(oldCall->m_callingStationId), m_calledStationId(oldCall->m_calledStationId),
+	m_dialedNumber(oldCall->m_dialedNumber),
+	m_routeToAlias(NULL), m_callingSocket(NULL /*oldCall->m_callingSocket*/), m_calledSocket(NULL),
+	m_usedCount(0), m_nattype(none), 
+	m_h245Routed(RasServer::Instance()->IsH245Routed()),
+	m_toParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
+	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
+	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
+	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY)
+{
+	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
+	m_calleeId = m_calleeAddr = " ";
+
+	CallTable* const ctable = CallTable::Instance();
+	m_timeout = ctable->GetSignalTimeout() / 1000;
+	m_durationLimit = oldCall->m_durationLimit;
+
+	m_irrFrequency = oldCall->m_irrFrequency;
+	m_irrCheck = oldCall->m_irrCheck;
+	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
+	
+	if (m_singleFailoverCDR)
+		m_setupTime = oldCall->m_setupTime;
 }
 
 CallRec::~CallRec()
@@ -1387,6 +1526,11 @@ bool CallRec::GetSrcSignalAddr(
 	) const
 {
 	return GetIPAndPortFromTransportAddr(m_srcSignalAddress, addr, port);
+}
+
+H225_TransportAddress CallRec::GetDestSignalAddr() const
+{
+	return m_destSignalAddress;
 }
 
 bool CallRec::GetDestSignalAddr(
@@ -1660,20 +1804,6 @@ void CallRec::SendDRQ()
 	}
 }
 
-namespace { // end of anonymous namespace
-
-PString GetEPString(const endptr & ep, const CallSignalSocket *socket)
-{
-	if (ep) {
-		return PString(PString::Printf, "%s|%s",
-			(const char *)AsDotString(ep->GetCallSignalAddress()),
-			(const char *)ep->GetEndpointIdentifier().GetValue());
-	}
-	return socket ? socket->Name() + "| " : PString(" | ");
-}
-
-} // end of anonymous namespace
-
 PString CallRec::GenerateCDR(
 	const PString& timestampFormat
 	) const
@@ -1747,13 +1877,13 @@ PString CallRec::PrintOn(bool verbose) const
 void CallRec::SetSetupTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
-	if( m_setupTime == 0 )
+	if (m_setupTime == 0)
 		m_setupTime = tm;
-	if( m_connectTime == 0 )
+	if (m_connectTime == 0)
 		m_timer = tm;
 	// can be the case, because CallRec is usually created
 	// after Setup message has been received
-	if( m_creationTime > m_setupTime )
+	if (m_creationTime > m_setupTime)
 		m_creationTime = m_setupTime;
 }
 
@@ -1947,6 +2077,112 @@ void CallRec::Update(const H225_InfoRequestResponse & irr)
 	}
 }
 
+void CallRec::SetNewRoutes(
+	const std::list<Routing::Route> &routes
+	)
+{
+	m_newRoutes = routes;
+}
+
+void CallRec::SetFailedRoutes(
+	const std::list<Routing::Route> &routes
+	)
+{
+	m_failedRoutes = routes;
+}
+
+bool CallRec::MoveToNextRoute()
+{
+	if (! Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
+		return false;
+
+	if (!m_newRoutes.empty()) {
+		m_failedRoutes.push_back(m_newRoutes.front());
+		m_newRoutes.pop_front();
+	}
+	return !m_newRoutes.empty();
+}
+
+bool CallRec::IsCallInProgress() const
+{
+	return m_callInProgress;
+}
+
+void CallRec::SetCallInProgress()
+{
+	m_callInProgress = true;
+}
+
+bool CallRec::IsH245ResponseReceived() const
+{
+	return m_h245ResponseReceived;
+}
+
+void CallRec::SetH245ResponseReceived()
+{
+	m_h245ResponseReceived = true;
+}
+	
+bool CallRec::IsFastStartResponseReceived() const
+{
+	return m_fastStartResponseReceived;
+}
+
+void CallRec::SetFastStartResponseReceived()
+{
+	m_fastStartResponseReceived = true;
+}
+
+bool CallRec::SingleFailoverCDR() const
+{
+	return m_singleFailoverCDR;
+}
+
+int CallRec::GetNoCallAttempts() const
+{
+	int attempts = m_failedRoutes.size();
+	if (m_newRoutes.size() > 0)
+		attempts += 1;
+	return attempts;
+}
+
+int CallRec::GetNoRemainingRoutes() const
+{
+	return m_newRoutes.size();
+}
+
+void CallRec::SetCodec(
+	const PString &codec
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_codec = codec;
+}
+
+PString CallRec::GetCodec() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_codec;
+}
+
+void CallRec::SetMediaOriginatingIp(
+	const PIPSocket::Address &addr
+	)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_mediaOriginatingIp = addr;
+}
+
+bool CallRec::GetMediaOriginatingIp(PIPSocket::Address &addr) const
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (m_mediaOriginatingIp.IsValid()) {
+		addr = m_mediaOriginatingIp;
+		return true;
+	} else
+		return false;
+}
+
 /*
 bool CallRec::IsTimeout(
 	const time_t now,
@@ -2021,6 +2257,7 @@ void CallTable::LoadConfig()
 		m_acctUpdateInterval = std::max(m_acctUpdateInterval, 10L);
 		
 	m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
+	m_singleFailoverCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "SingleFailoverCDR", "1"));
 }
 
 void CallTable::Insert(CallRec * NewRec)
@@ -2186,6 +2423,16 @@ bool CallTable::InternalRemovePtr(CallRec *call)
 	return true; // useless, workaround for VC
 }
 
+void CallTable::RemoveFailedLeg(const callptr & call)
+{
+	if (call) {
+		CallRec *callrec = call.operator->();
+		PTRACE(6, "GK\tRemoving callptr: " << AsString(call->GetCallIdentifier().m_guid));
+		WriteLock lock(listLock);
+		InternalRemoveFailedLeg(find(CallList.begin(), CallList.end(), callrec));
+	}
+}
+
 void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
 {
 	PTRACE(5, "GK\tRemoving CallId: " << AsString(CallId.m_guid));
@@ -2245,6 +2492,50 @@ void CallTable::InternalRemove(iterator Iter)
 
 	call->RemoveAll();
 	call->RemoveSocket();
+}
+
+void CallTable::InternalRemoveFailedLeg(iterator Iter)
+{
+	if (Iter == CallList.end()) {
+		return;
+	}
+
+	callptr call(*Iter);
+	call->SetDisconnectTime(time(NULL));
+
+	--m_activeCall;
+	
+	if (m_capacity >= 0)
+		m_capacity += call->GetBandwidth();
+
+	CallList.erase(Iter);
+	RemovedList.push_back(call.operator->());
+
+	WriteUnlock unlock(listLock);
+
+	if (call->SingleFailoverCDR() && !call->GetNewRoutes().empty())	{
+		PTRACE(2, "CDR\tIgnoring failed call leg");
+	} else {
+		if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
+			PString cdrString(call->GenerateCDR(m_timestampFormat) + "\r\n");
+			GkStatus::Instance()->SignalStatus(cdrString, STATUS_TRACE_LEVEL_CDR);
+			PTRACE(1, cdrString);
+#if PTRACING
+		} else {
+			if (!call->IsConnected())
+				PTRACE(2, "CDR\tignore not connected call");
+			else	
+				PTRACE(2, "CDR\tignore caller from neighbor");
+#endif
+		}
+
+		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop, call);
+	}
+	
+	if (call->GetCalledParty())
+		call->GetCalledParty()->RemoveCall();
+	
+	call->SetSocket(NULL, NULL);
 }
 
 void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, BOOL verbose) const
