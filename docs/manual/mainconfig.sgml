@@ -28,7 +28,7 @@ kill -HUP `cat /var/run/gnugk.pid`
 <sect2>Section &lsqb;Gatekeeper::Main&rsqb;
 <p>
 <itemize>
-<item><tt/Fourtytwo=42/<newline>
+<item><tt/Fortytwo=42/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 This setting is used to test the presence of the config file. If it

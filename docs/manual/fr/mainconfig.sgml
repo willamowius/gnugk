@@ -29,7 +29,7 @@ kill -HUP `cat /var/run/gnugk.pid`
 <sect2>Section &lsqb;Gatekeeper::Main&rsqb;
 <p>
 <itemize>
-<item><tt/Fourtytwo=42/<newline>
+<item><tt/Fortytwo=42/<newline>
 D&#233;faut: <tt>N/A</tt>
 <p>
 Ce param&#232;tre est utilis&#233; pour tester la pr&#233;sence du fichier de

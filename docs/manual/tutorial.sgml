@@ -58,7 +58,7 @@ directory where we start the gatekeeper.
 
 <tscreen><verb>
 [Gatekeeper::Main]
-Fourtytwo=42
+Fortytwo=42
 [GkStatus::Auth]
 rule=allow
 </verb></tscreen>
@@ -76,7 +76,7 @@ Lets change the configuration file to
 
 <tscreen><verb>
 [Gatekeeper::Main]
-Fourtytwo=42
+Fortytwo=42
 [GkStatus::Auth]
 rule=password
 gkadmin=QC7VyAo5jEw=

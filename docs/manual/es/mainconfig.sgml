@@ -28,7 +28,7 @@ kill -HUP `cat /var/run/gnugk.pid`
 <sect2>Sección &lsqb;Gatekeeper::Main&rsqb;
 <p>
 <itemize>
-<item><tt/Fourtytwo=42/<newline>
+<item><tt/Fortytwo=42/<newline>
 Default: <tt>N/A</tt>
 <p>
 Esta variable permite probar la existencia del archivo de configuración

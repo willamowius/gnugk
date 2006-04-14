@@ -46,7 +46,7 @@ Ahora crearemos un fichero llamado <tt/gatekeeper.ini/ y lo colocaremos en el di
 
 <tscreen><verb>
 [Gatekeeper::Main]
-Fourtytwo=42
+Fortytwo=42
 [GkStatus::Auth]
 rule=allow
 </verb></tscreen>

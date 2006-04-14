@@ -62,7 +62,7 @@ dans le r&#233;pertoire o&#249; nous d&#233;marrons le gatekeeper.
 
 <tscreen><verb>
 [Gatekeeper::Main]
-Fourtytwo=42
+Fortytwo=42
 [GkStatus::Auth]
 rule=allow
 </verb></tscreen>
