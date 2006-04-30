@@ -40,6 +40,7 @@
 #include "SoftPBX.h"
 #include "gktimer.h"
 #include "gk.h"
+#include "pwlib_compat.h"
 
 using std::vector;
 
@@ -64,7 +65,7 @@ namespace { // keep the global objects private
 
 
 PMutex ShutdownMutex;
-PMutex ReloadMutex;
+PTimedMutex ReloadMutex;
 
 #ifndef _WIN32
 PString pidfile("/var/run/gnugk.pid");

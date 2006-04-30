@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:59  willamowius
  *
  *
@@ -44,6 +47,7 @@
 #include <vector>
 #include "name.h"
 #include "factory.h"
+#include "pwlib_compat.h"
 
 /** Abstract base class that encapsulates SQL query result.
     Backend specific operations are performed by derived classes.
@@ -465,7 +469,7 @@ private:
 	/// FIFO queue of queries waiting to be executed when there is no idle connections
 	std::list<SQLConnPtr*> m_waitingRequests;
 	/// mutual access to the lists
-	PMutex m_connectionsMutex;
+	PTimedMutex m_connectionsMutex;
 	/// signalled when a connections moves from the busy to the idle list
 	PSyncPoint m_connectionAvailable;
 	/// set to true when destructor is being invoked

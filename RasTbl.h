@@ -25,6 +25,7 @@
 #include "h225.h"
 #include "sigmsg.h"
 #include "h323util.h"
+#include "pwlib_compat.h"
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
@@ -1016,7 +1017,7 @@ private:
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 
 	int m_usedCount;
-	mutable PMutex m_usedLock, m_sockLock;
+	mutable PTimedMutex m_usedLock, m_sockLock;
 	int m_nattype;
 
 	/// unregistered caller NAT'd

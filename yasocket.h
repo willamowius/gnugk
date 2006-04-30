@@ -20,6 +20,7 @@
 #include <list>
 #include <vector>
 #include "job.h"
+#include "pwlib_compat.h"
 
 //#define LARGE_FDSET 32768
 #ifdef LARGE_FDSET
@@ -341,7 +342,7 @@ private:
 	int qsize;
 
 	bool blocked;
-	PMutex writeMutex, queueMutex;
+	PTimedMutex writeMutex, queueMutex;
 	const char *type;
 };
 

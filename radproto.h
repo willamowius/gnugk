@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
  *
  *
@@ -91,6 +94,7 @@
 
 #include <vector>
 #include <ptlib/sockets.h>
+#include "pwlib_compat.h"
 
 class PRandom;
 class PMessageDigest5;
@@ -1093,7 +1097,7 @@ private:
 	/// These SyncPoints get freed on socket destruction
 	PINDEX m_permanentSyncPoints;
 	/// mutex for mt synchronization
-	PMutex m_readMutex;
+	PTimedMutex m_readMutex;
 	/// mutex for atomic WriteTo operation on the socket
 	PMutex m_writeMutex;
 	/// flag signalling that some request thread performs read operation
