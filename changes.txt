@@ -1,5 +1,6 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- (pwlib_compat.h) adapt to changed mutexes starting with PWLib 1.9.2
 - call mute in proxy modei using userinput * (patch by Simon Horne)
 - NAT support for unregistered callers (patch by Simon Horne)
 - (gk.cxx) allow correct spelling for FortyTwo=42 entry
