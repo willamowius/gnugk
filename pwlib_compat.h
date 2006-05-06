@@ -31,7 +31,7 @@
   #endif
 #endif
 #if PWLIB_MAJOR == 1
-  #if PWLIB_MINOR = 9
+  #if PWLIB_MINOR == 9
     #if PWLIB_BUILD < 2
       #define PTimedMutex PMutex
     #endif
