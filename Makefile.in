@@ -111,6 +111,8 @@ STDCCFLAGS = $(temp_STDCCFLAGS)
 # GK version infomation
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
 
+OPTCCFLAGS	= -O2
+
 # special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled
 # so the proper build timestamp is included
 versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PW_LIBDIR)/$(PTLIB_FILE)
@@ -122,6 +124,11 @@ addpasswd: $(OBJDIR)/addpasswd.o
 
 doc:
 	$(MAKE) -C docs/manual html
+
+install: install-addpasswd
+
+install-addpasswd: addpasswd
+	$(INSTALL) $(OBJDIR)/addpasswd $(INSTALLBIN_DIR)
 
 #
 # By this command the build number may be incremented
