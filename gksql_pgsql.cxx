@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:59  willamowius
  *
  *
@@ -164,9 +167,9 @@ protected:
 	PGresult* m_sqlResult;
 	/// the most recent row returned by fetch operation
 	int m_sqlRow;
-	/// MySQL specific error code (if the query failed)
+	/// PgSQL specific error code (if the query failed)
 	unsigned int m_errorCode;
-	/// MySQL specific error message text (if the query failed)
+	/// PgSQL specific error message text (if the query failed)
 	PString m_errorMessage;
 };
 
@@ -174,7 +177,7 @@ protected:
 class GkPgSQLConnection : public GkSQLConnection
 {
 public:
-	/// Build a new MySQL connection object
+	/// Build a new PgSQL connection object
 	GkPgSQLConnection(
 		/// name to use in the log
 		const char* name = "PostgreSQL"
