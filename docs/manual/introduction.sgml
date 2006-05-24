@@ -94,6 +94,12 @@ The version 2.2.4 contains the following new features and bugfixes:
 <itemize>
 <item>
 New call failover feature to retry failed calls on a different route.
+
+<item>
+NAT support for unregistred callers.
+
+<item>
+NumberAnalysis routing policy extended to support Setup messages.
  
 <item>
 New <tt/CapacityControl/ module for controlling inbound traffic.

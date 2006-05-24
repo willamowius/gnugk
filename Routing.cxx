@@ -929,9 +929,9 @@ public:
 
 protected:
 	virtual bool OnRequest(AdmissionRequest &);
+	virtual bool OnRequest(SetupRequest &);
 	// TODO
 	//virtual bool OnRequest(LocationRequest &);
-	//virtual bool OnRequest(SetupRequest &);
 	//virtual bool OnRequest(FacilityRequest &);
 
 private:
@@ -1018,6 +1018,36 @@ bool NumberAnalysisPolicy::OnRequest(AdmissionRequest & request)
 							&& s.GetLength() > m_prefixes[i].m_maxLength) {
 						request.RemoveAllRoutes();
 						request.SetRejectReason(H225_AdmissionRejectReason::e_undefinedReason);
+						return true;
+					}
+					return false;
+				}
+		}
+	}
+	return false;
+}
+
+bool NumberAnalysisPolicy::OnRequest(SetupRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases == NULL)
+		return false;
+
+	for (PINDEX i = 0; i < aliases->GetSize(); ++i) {
+		const H225_AliasAddress &alias = (*aliases)[i];
+		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits
+				|| alias.GetTag() == H225_AliasAddress::e_partyNumber) {
+			const PString s = AsString(alias, FALSE);
+			for (unsigned i = 0; i < m_prefixes.size(); ++i)
+				if (MatchPrefix(s, m_prefixes[i].m_prefix.c_str()) != 0) {
+					if (s.GetLength() < m_prefixes[i].m_minLength) {
+						request.RemoveAllRoutes();
+						request.SetRejectReason(H225_ReleaseCompleteReason::e_badFormatAddress);
+						return true;
+					} else if (m_prefixes[i].m_maxLength >= 0
+							&& s.GetLength() > m_prefixes[i].m_maxLength) {
+						request.RemoveAllRoutes();
+						request.SetRejectReason(H225_ReleaseCompleteReason::e_badFormatAddress);
 						return true;
 					}
 					return false;

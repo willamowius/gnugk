@@ -46,6 +46,8 @@ event to let an external application do the routing
 <item><tt/numberanalysis/<newline>
 <p>
 Provides support for overlapped digit sending for ARQ messages.
+It also partially supports Setup messages (no overlapped sending
+- only number length validation).
 
 <item><tt/enum/<newline>
 <p>
@@ -253,7 +255,8 @@ though the later will take effect first.
 This section defines rules for the <tt/numberanalysis/ routing policy.
 The policy checks a dialed number for minimum and/or maximum number of digits
 and sends ARJ, if necessary (number of digits is out of range), to support
-overlapped digit sending.
+overlapped digit sending. It also partially supports Setup messages (no overlapped sending
+- only number length validation).
 
 <descrip>
 <tag/Format:/
@@ -265,6 +268,8 @@ digits. Special wildcard characters (<tt/!/, <tt/'.'/ and <tt/'%'/) are availabl
 If the number is too short, an ARJ is send with <tt/rejectReason/ set to <tt/incompleteAddress/.
 If the number is too long, an ARJ is send with <tt/rejectReason/ set to <tt/undefinedReason/.
 Prefix list is searched from the longest to the shortest prefix for a match.
+For Setup messages, a Release Complete with "badFormatAddress" is sent when the number
+has an incorrect length.
 
 <tag/Example:/
 <tscreen><verb>
