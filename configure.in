@@ -535,6 +535,120 @@ if test "x$pgsql" != "xno" -o "x$mysql" != "xno"; then
 	HEADERS="$HEADERS sqlacct.h gksql.h"
 fi
 
+dnl #########################################################################
+dnl  Check for Firebird
+dnl ########################################################################
+AC_ARG_ENABLE(firebird, 
+[  --enable-firebird                enable Interbase/Firebird support (default=yes)], 
+[ firebird="${enableval}" ], [ firebird="yes" ]
+)
+
+AC_ARG_WITH(firebird-include-dir,
+[  --with-firebird-include-dir=DIR  directory where Firebird includes may be found ],
+[ firebird_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(firebird-lib-dir,
+[  --with-firebird-lib-dir=DIR      directory where Firebird libraries may be found ],
+[ firebird_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(firebird-dir,
+[  --with-firebird-dir=DIR          base directory where Firebird is installed ],
+[ firebird_lib_dir="$withval/lib"
+  firebird_include_dir="$withval/include"
+]
+)
+
+if test "x${firebird}" != "xno"; then
+
+	AC_MSG_CHECKING([for ibase.h])
+
+	AC_TRY_COMPILE([#include <ibase.h>], [int a = 1;],
+		FIREBIRD_INCLUDE=" ",
+		FIREBIRD_INCLUDE=
+	)
+
+	if test "x$FIREBIRD_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/include/firebird /usr/local/include/firebird /usr/local/firebird/include $firebird_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				AC_TRY_COMPILE([#include <ibase.h>], [int a = 1;],
+					FIREBIRD_INCLUDE="-I$try",
+					FIREBIRD_INCLUDE=
+				)
+				if test "x$FIREBIRD_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$FIREBIRD_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([Firebird headers not found. Use --with-firebird-include-dir=<path>])
+		firebird="no"
+	else
+		sql_firebird_cflags="${sql_firebird_cflags} ${FIREBIRD_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for isc_attach_database in -lfbclient])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/lib/firebird /usr/local/lib /usr/local/lib/firebird /usr/local/firebird/lib $firebird_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS -L$try -lfbclient ${FIREBIRD_LIBS}"
+				AC_TRY_LINK([extern char isc_attach_database();], [isc_attach_database()],
+					[ FIREBIRD_LIBS="-lfbclient ${FIREBIRD_LIBS}"
+					  FIREBIRD_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$FIREBIRD_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		dnl #  If one or the other isn't found, disable them both..
+		dnl #  If both are found, enable them both.
+		if test "x$FIREBIRD_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			FIREBIRD_INCLUDE=
+			AC_MSG_WARN([Firebird lib not found. Use --with-firebird-lib-dir=<path>])
+			firebird="no"
+		else
+			AC_MSG_RESULT(yes) 
+			sql_firebird_ldflags="$sql_firebird_ldflags $FIREBIRD_LDFLAGS"
+		fi
+	fi
+
+	sql_firebird_ldflags="$sql_firebird_ldflags $LIBS"
+
+	if test "x$firebird" = "xno"; then
+		AC_MSG_WARN([Firebird disabled])
+	fi
+else
+	firebird="no"
+fi
+
+if test "x$firebird" != "xno"; then
+	HAS_FIREBIRD=1
+	SOURCES="$SOURCES gksql_firebird.cxx"
+	STDCCFLAGS="${sql_firebird_cflags} -DHAS_FIREBIRD=1 $STDCCFLAGS"
+	LDFLAGS="$FIREBIRD_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$FIREBIRD_LIBS $ENDLDLIBS"
+    echo "Firebird support enabled"
+else
+    echo "Firebird support disabled"
+	HAS_FIREBIRD=0
+fi
+AC_SUBST(HAS_FIREBIRD)
+
 dnl ########################################################################
 dnl make directives
 

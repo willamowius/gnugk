@@ -227,10 +227,10 @@ in the SQL database. This section defines SQL driver to use,
 SQL database connection parameters and the query to use to retrieve passwords.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
@@ -351,10 +351,10 @@ This section defines SQL driver to use, SQL database connection parameters
 and the query to use to retrieve the patterns.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
@@ -426,10 +426,10 @@ Authenticate and authorize endpoints/calls using an SQL database.
 Support for RRQ, ARQ, LRQ and Setup events is provided.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>

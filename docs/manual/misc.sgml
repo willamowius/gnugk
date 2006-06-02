@@ -286,10 +286,10 @@ Entries read from the SQL database take precedence over settings found
 in the config file.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/ and <tt/PostgreSQL/ drivers
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>

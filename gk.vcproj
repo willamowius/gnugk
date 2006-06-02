@@ -172,6 +172,9 @@
 				RelativePath="gksql.cxx">
 			</File>
 			<File
+				RelativePath="gksql_firebird.cxx">
+			</File>
+			<File
 				RelativePath="gksql_mysql.cxx">
 			</File>
 			<File
