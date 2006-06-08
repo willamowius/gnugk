@@ -1256,7 +1256,7 @@ void RegistrationTable::LoadConfig()
 	}
 	
 	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
-		EndpointRec *ep;
+		EndpointRec *ep = NULL;
 		H225_RasMessage rrq_ras;
 		rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
 		H225_RegistrationRequest &rrq = rrq_ras;
