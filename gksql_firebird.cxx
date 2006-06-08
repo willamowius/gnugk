@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1  2006/06/02 09:21:34  zvision
+ * Firebird SQL driver
+ *
  */
 #if HAS_FIREBIRD
 
@@ -36,19 +39,19 @@ PString XSQLVARToPString(XSQLVAR *sqlvar)
 		return PString(sqlvar->sqldata, sqlvar->sqllen);
 	case SQL_SHORT:
 		return sqlvar->sqlscale < 0 
-			? PString(PString::Decimal, *(int*)(sqlvar->sqldata) * pow(10, sqlvar->sqlscale), abs(sqlvar->sqlscale)) 
+			? PString(PString::Decimal, *(int*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale)) 
 			: PString(*(short*)(sqlvar->sqldata));
 	case SQL_LONG:
 		return sqlvar->sqlscale < 0
-			? PString(PString::Decimal, *(long*)(sqlvar->sqldata) * pow(10, sqlvar->sqlscale), abs(sqlvar->sqlscale)) 
+			? PString(PString::Decimal, *(long*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale)) 
 			: PString(*(long*)(sqlvar->sqldata));
 	case SQL_DOUBLE:
 		return sqlvar->sqlscale < 0 
-			? PString(PString::Decimal, *(double*)(sqlvar->sqldata) * pow(10, sqlvar->sqlscale), abs(sqlvar->sqlscale))
+			? PString(PString::Decimal, *(double*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
 			: PString(PString::Printf, "%f", *(double*)(sqlvar->sqldata));
 	case SQL_INT64:
 		return sqlvar->sqlscale < 0 
-			? PString(PString::Decimal, *(ISC_INT64*)(sqlvar->sqldata) * pow(10, sqlvar->sqlscale), abs(sqlvar->sqlscale))
+			? PString(PString::Decimal, *(ISC_INT64*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
 			: PString(*(ISC_INT64*)(sqlvar->sqldata));
 	case SQL_FLOAT:
 		return PString(PString::Printf, "%f", (double)*(float*)(sqlvar->sqldata));
@@ -226,7 +229,7 @@ protected:
 	    
 	    @return
 	    NULL if database connection could not be established 
-	    or an object of PgSQLConnWrapper class.
+	    or an object of IBSQLConnWrapper class.
 	*/
 	virtual SQLConnPtr CreateNewConnection(
 		/// unique identifier for this connection
@@ -530,7 +533,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	std::string dbname(m_database);
 	
 	if (!m_host) {
-		dbname.insert(0, ':');
+		dbname.insert(0, ":");
 		dbname.insert(0, m_host);
 	}
 	
@@ -665,4 +668,4 @@ namespace {
 	GkSQLCreator<GkIBSQLConnection> IBSQLCreator("Firebird");
 }
 
-#endif /* HAS_PGSQL */
+#endif /* HAS_FIREBIRD */
