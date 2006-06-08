@@ -4668,7 +4668,7 @@ void HandlerList::LoadConfig()
 	if (hs <= m_numSigHandlers) {
 		for (unsigned i = hs; i < m_numSigHandlers; ++i)
 			m_sigHandlers.push_back(
-				new ProxyHandler(psprintf("ProxyH(%d)", i))
+				new ProxyHandler(psprintf(PString("ProxyH(%d)"), i))
 				);
 	} else {
 //		int ds = hs - m_numSigHandlers;
@@ -4687,7 +4687,7 @@ void HandlerList::LoadConfig()
 	if (hs <= m_numRtpHandlers) {
 		for (unsigned i = hs; i < m_numRtpHandlers; ++i)
 			m_rtpHandlers.push_back(
-				new ProxyHandler(psprintf("ProxyRTP(%d)", i))
+				new ProxyHandler(psprintf(PString("ProxyRTP(%d)"), i))
 				);
 	} else {
 //		unsigned ds = hs - m_numRtpHandlers;

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.34  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.2  2005/12/05 13:29:02  zvision
  * Accept multiple routes from RADIUS/SQL auth modules
  *
@@ -421,7 +424,7 @@ int RadAuthBase::Check(
 					PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
 						"without a decimal dot is ambiguous '" << value << '\''
 						);
-					authData.m_amountString = psprintf("%d.%d", 
+					authData.m_amountString = psprintf(PString("%d.%d"), 
 						value.AsInteger() / 100, value.AsInteger() % 100
 						);
 				} else
@@ -747,7 +750,7 @@ int RadAuthBase::Check(
 					PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
 						"without a decimal dot is ambiguous '" << value << '\''
 						);
-					authData.m_amountString = psprintf("%d.%d", 
+					authData.m_amountString = psprintf(PString("%d.%d"), 
 						value.AsInteger() / 100, value.AsInteger() % 100
 						);
 				} else
