@@ -1363,7 +1363,7 @@ PString Toolkit::CypherDecode(const PString & key, const PString & crypto, int s
 PString Toolkit::GenerateAcctSessionId()
 {
 	PWaitAndSignal lock( m_acctSessionMutex );
-	return psprintf("%08x%08x",m_acctSessionBase,++m_acctSessionCounter);
+	return psprintf(PString("%08x%08x"),m_acctSessionBase,++m_acctSessionCounter);
 }
 
 bool Toolkit::AsTimeInterval(
