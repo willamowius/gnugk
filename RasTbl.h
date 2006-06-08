@@ -395,19 +395,6 @@ public:
 		std::list<Routing::Route> &routes
 		);
 
-	template<class MsgType> endptr getMsgDestination(const MsgType & msg, unsigned int & reason,
-	                                                 bool SearchOuterZone = true)
-	{
-	  endptr ep;
-	  bool ok = getGkDestAnalysisList().getMsgDestination(msg, EndpointList, listLock,
-	                                                      ep, reason);
-	  if (!ok && SearchOuterZone) {
-            ok = getGkDestAnalysisList().getMsgDestination(msg, OuterZoneList, listLock,
-	                                                   ep, reason);
-	  }
-	  return (ok) ? ep : endptr(0);
-	}
-
 	void ClearTable();
 	void CheckEndpoints();
 
