@@ -71,7 +71,7 @@ EndpointRec::EndpointRec(
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
 	m_usedCount(0), m_nat(false), m_natsocket(0), m_permanent(permanent), 
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
-	m_capacity(-1)
+	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1), m_proxy(0)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -178,6 +178,8 @@ bool EndpointRec::LoadConfig()
 
 void EndpointRec::LoadEndpointConfig()
 {
+	const char* RoutedSec = "RoutedMode";
+	Toolkit* toolkit = Toolkit::Instance();
 	PConfig* const cfg = GkConfig();
 	const PStringList sections = cfg->GetSections();
 	
@@ -185,7 +187,21 @@ void EndpointRec::LoadEndpointConfig()
 		const PString key = "EP::" + AsString(m_terminalAliases[i], FALSE);
 		if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
 			m_capacity = cfg->GetInteger(key, "Capacity", -1);
-			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity);
+			int type = cfg->GetInteger(key, "CalledTypeOfNumber", -1);
+			if (type == -1)
+				m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
+			type = cfg->GetInteger(key, "CallingTypeOfNumber", -1);
+			if (type == -1)
+				m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
+			m_proxy = cfg->GetInteger(key, "Proxy", 0);
+			PString log;
+			if (m_calledTypeOfNumber > -1)
+				log += " Called Type Of Number: " +  PString(m_calledTypeOfNumber);
+			if (m_callingTypeOfNumber > -1)
+				log += " Calling Type Of Number: " + PString(m_callingTypeOfNumber);
+			if (m_proxy > 0)
+				log += " proxy: " + PString(m_proxy);
+			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 			break;
 		}
 	}

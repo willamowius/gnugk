@@ -271,6 +271,21 @@ Default: <tt/1-15,21-127/<newline>
 Define which cause codes in a ReleaseComplete will trigger
 call failover.
 
+<item><tt/CalledTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets Called-Party-Number type of number to the specified value
+for all calls
+(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType).
+
+<item><tt/CallingTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets Calling-Party-Number type of number to the specified value
+for all calls
+(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType).
 
 </itemize>
 

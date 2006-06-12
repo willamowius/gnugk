@@ -1981,6 +1981,7 @@ void CallSignalSocket::OnSetup(
 		q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
 	}
 	
+	SetCallTypePlan(&q931);
 	CreateRemote(setupBody);
 	msg->SetUUIEChanged();
 }
@@ -2935,6 +2936,70 @@ bool CallSignalSocket::ForwardCallConnectTo()
 	delete remote;
 	remote = NULL;
 	return false;
+}
+
+void CallSignalSocket::SetCallTypePlan(Q931 *q931)
+{
+	if (!q931 || !m_call)
+		return;
+
+	unsigned plan, type;
+	int dtype;
+	PIPSocket::Address calleeAddr;
+	WORD calleePort = 0;
+	PString Number;
+	Toolkit* toolkit = Toolkit::Instance();
+	m_call->GetDestSignalAddr(calleeAddr, calleePort);
+	H225_TransportAddress callerAddr = SocketToH225TransportAddr(calleeAddr, calleePort);
+	endptr called = RegistrationTable::Instance()->FindBySignalAdr(callerAddr);
+	const char* TypeOfNumber = " Type Of Number ";
+
+	if (q931->HasIE(Q931::CalledPartyNumberIE)) {
+		if (q931->GetCalledPartyNumber(Number, &plan, &type)) {
+			dtype = -1;
+			if (called) {
+				unsigned proxy = called->GetProxyType();
+				if (proxy > 0) {
+					m_call->SetProxyMode(proxy);
+					#if PTRACING
+					PTRACE(4, Type() << "Proxy mode set " << proxy);
+					#endif
+				}
+				dtype = called->GetCallTypeOfNumber(true);
+				if (dtype != -1)
+					type = dtype;
+			}
+			if (dtype == -1) {
+				dtype = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
+				if (dtype != -1)
+					type = dtype;
+			}
+			q931->SetCalledPartyNumber(Number, plan, type);
+			#if PTRACING
+			PTRACE(4, Type() << "Set Called Numbering Plan " << plan << TypeOfNumber << type);
+			#endif
+		}
+	}
+
+	if (q931->HasIE(Q931::CallingPartyNumberIE)) {
+		if (q931->GetCallingPartyNumber(Number, &plan, &type)) {
+			dtype = -1;
+			if (called) {
+				dtype = called->GetCallTypeOfNumber(false);
+				if (dtype != -1)
+					type = dtype;
+			}
+			if (dtype == -1) {
+				dtype = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
+				if (dtype != -1)
+					type = dtype;
+			}
+			q931->SetCallingPartyNumber(Number, plan, type);
+			#if PTRACING
+			PTRACE(4, Type() << "Set Calling Numbering Plan " << plan << TypeOfNumber << type);
+			#endif
+		}
+	}
 }
 
 // class H245Handler

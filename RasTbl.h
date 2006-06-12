@@ -97,6 +97,9 @@ public:
 	PIPSocket::Address GetNATIP() const;
 	CallSignalSocket *GetSocket();
 
+	int GetCallTypeOfNumber(bool called = true) const { return called ? m_calledTypeOfNumber : m_callingTypeOfNumber; }
+	unsigned GetProxyType() const { return m_proxy; }
+
 	/** checks if the given aliases are prefixes of the aliases which are stored
 	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
 	    a full match is found.
@@ -265,6 +268,8 @@ protected:
 	int m_callCreditSession;
 	/// endpoint call capacity, -1 means no limit
 	int m_capacity;
+	int m_calledTypeOfNumber, m_callingTypeOfNumber;
+	unsigned m_proxy;
 };
 
 typedef EndpointRec::Ptr endptr;

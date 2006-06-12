@@ -1,5 +1,7 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
+- new Calling/CalledTypeOfNumber and Proxy configuration variables
+  in [RouteMode] section and endpoint configuration. Thanks to Vladimir Voronin
 - (ipauth.cxx) added support for prefixes. Thanks to Vladimir Voronin
 - (gksql_firebird.cxx) Firebird/Interbase driver for SQL modules. Sponsored
   by Roitel Telecommunication S.A.

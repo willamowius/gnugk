@@ -256,6 +256,8 @@ private:
 		const SetupMsg& setup
 		) const;
 
+	void SetCallTypePlan(Q931 *q931);
+
 protected:
 	callptr m_call;
 	// localAddr is NOT the local address the socket bind to,

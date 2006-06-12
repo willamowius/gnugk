@@ -39,6 +39,27 @@ Additional prefixes for this gateway. Apply only to gateways.
 Special characters <tt/./ and <tt/!/ can be used here to match any digit 
 and disable the prefix.
 
+<item><tt/CalledTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets Called-Party-Number type of number to the specified value
+for calls sent to this endpoint
+(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType).
+
+<item><tt/CallingTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets Calling-Party-Number type of number to the specified value
+for calls sent to this endpoint
+(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType).
+
+<item><tt/Proxy=1/<newline>
+Default: <tt/0/<newline>
+Enables/disables proxying calls sent to this endpoint (0 - do not
+change global proxy settings, 1 - force proxy mode, 2 - disable proxy mode).
+
 </itemize>
 
 Example:
