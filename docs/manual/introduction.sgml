@@ -96,6 +96,9 @@ The version 2.2.4 contains the following new features and bugfixes:
 New call failover feature to retry failed calls on a different route.
 
 <item>
+<tt/FileIPAuth/ modules extended to support prefixes.
+
+<item>
 Firebird/Interbase driver for SQL modules.
 
 <item>

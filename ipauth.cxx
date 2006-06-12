@@ -24,10 +24,34 @@
 #include "sigmsg.h"
 #include "ipauth.h"
 
+class IPAuthPrefix {
+public:
+	IPAuthPrefix();
+	IPAuthPrefix(bool a, const PString &);
+	IPAuthPrefix(const IPAuthPrefix &);
+
+	void AddPrefix(const PString &);
+	void SortPrefix(bool greater = true);
+	int PrefixMatch(const PString &) const;
+	std::string PrintOn(void) const;
+	std::string PrintPrefix(void) const;
+
+	IPAuthPrefix& operator=(const IPAuthPrefix&);
+	IPAuthPrefix& operator=(bool);
+
+        typedef std::vector<std::string>::iterator prefix_iterator;
+        typedef std::vector<std::string>::const_iterator const_prefix_iterator;
+
+	bool auth;
+
+protected:
+	std::vector<std::string> Prefixs;
+};
+
 /// Text file based IP authentication
 class FileIPAuth : public IPAuthBase {
 public:
-	typedef std::pair<NetworkAddress, bool> IPAuthEntry;
+	typedef std::pair<NetworkAddress, IPAuthPrefix> IPAuthEntry;
 
 	
 	/// Create text file based authenticator
@@ -43,7 +67,8 @@ protected:
 	/// Overriden from IPAuthBase
 	virtual int CheckAddress(
 		const PIPSocket::Address &addr, /// IP address the request comes from
-		WORD port /// port number the request comes from
+		WORD port, /// port number the request comes from
+		const PString &number
 		);
 				
 private:
@@ -82,7 +107,7 @@ int IPAuthBase::Check(
 	unsigned &rejectReason
 	)
 {
-	return CheckAddress(grqPdu->m_peerAddr, grqPdu->m_peerPort);
+	return CheckAddress(grqPdu->m_peerAddr, grqPdu->m_peerPort, PString());
 }
 
 int IPAuthBase::Check(
@@ -92,9 +117,9 @@ int IPAuthBase::Check(
 	RRQAuthData &authData
 	)
 {
-	return CheckAddress(rrqPdu->m_peerAddr, rrqPdu->m_peerPort);
+	return CheckAddress(rrqPdu->m_peerAddr, rrqPdu->m_peerPort, PString());
 }
-		
+
 int IPAuthBase::Check(
 	/// LRQ nessage to be authenticated
 	RasPDU<H225_LocationRequest> &lrqPdu, 
@@ -102,7 +127,7 @@ int IPAuthBase::Check(
 	unsigned &rejectReason
 	)
 {
-	return CheckAddress(lrqPdu->m_peerAddr, lrqPdu->m_peerPort);
+	return CheckAddress(lrqPdu->m_peerAddr, lrqPdu->m_peerPort, PString());
 }
 
 int IPAuthBase::Check(
@@ -115,8 +140,10 @@ int IPAuthBase::Check(
 	PIPSocket::Address addr;
 	WORD port = 0;
 	setup.GetPeerAddr(addr, port);
-	
-	return CheckAddress(addr, port);
+	PString number;
+	setup.GetQ931().GetCalledPartyNumber(number);
+
+	return CheckAddress(addr, port, number);
 }
 
 
@@ -136,7 +163,7 @@ struct IPAuthEntry_greater : public binary_function<FileIPAuth::IPAuthEntry, Fil
 	{
 		const int diff = a.first.Compare(b.first);
 		if (diff == 0)
-			return !a.second;
+			return !a.second.auth;
 		return diff > 0;
 	}
 };
@@ -169,13 +196,27 @@ FileIPAuth::FileIPAuth(
 	
 	for (PINDEX i = 0; i < kv.GetSize(); i++) {
 		const PString &key = kv.GetKeyAt(i);
+		int position = 0;
 		if (key[0] == '#')
 			continue;
 		
 		IPAuthEntry entry;
 		
 		entry.first = (key == "*" || key == "any") ? NetworkAddress() : NetworkAddress(key);
-		entry.second = PCaselessString("allow") == kv.GetDataAt(i);
+
+		PString auth(kv.GetDataAt(i));
+		PString prefix(".");
+
+                if ((position = auth.Find(';', position)) != P_MAX_INDEX) {
+            		position++;
+                        prefix = auth(position, auth.GetLength());
+                        position--;
+			auth.Delete(position, auth.GetLength() - position);
+		}
+
+		entry.second.auth = PCaselessString("allow") == auth;
+		entry.second.AddPrefix(prefix);
+		entry.second.SortPrefix(false);
 		
 		m_authList.push_back(entry);
 	}
@@ -191,7 +232,8 @@ FileIPAuth::FileIPAuth(
 		IPAuthList::const_iterator entry = m_authList.begin();
 		while (entry != m_authList.end()) {
 			strm << "\t" << entry->first.AsString() << " = " 
-				<< (entry->second ? "allow" : "reject") << endl;
+				<< (entry->second.auth ? "allow" : "reject")
+				<< (entry->second.auth ? entry->second.PrintOn() : "") << endl;
 			entry++;
 		}
 		PTrace::End(strm);
@@ -202,28 +244,149 @@ FileIPAuth::FileIPAuth(
 		delete cfg;
 }
 
-
 FileIPAuth::~FileIPAuth()
 {
 }
 
 int FileIPAuth::CheckAddress(
 	const PIPSocket::Address &addr, /// IP address the request comes from
-	WORD port /// port number the request comes from
+	WORD port, /// port number the request comes from
+	const PString &number
 	)
 {
 	IPAuthList::const_iterator entry = m_authList.begin();
 	while (entry != m_authList.end()) {
 		if (entry->first.IsAny() || addr << entry->first) {
-			PTRACE(5, GetName() << "\tIP " << addr.AsString() 
-				<< (entry->second ? " accepted" : " rejected")
-				<< " by the rule " << entry->first.AsString()
-				);
-			return entry->second ? e_ok : e_fail;
+			if (entry->second.auth && !number.IsEmpty()) {
+				int len = entry->second.PrefixMatch(number);
+				PTRACE(5, GetName() << "\tIP " << addr.AsString() 
+					<< (len ? " accepted" : " rejected")
+					<< " for Called " << number
+					);
+				return len ? e_ok : e_fail;
+			}
+			return entry->second.auth ? e_ok : e_fail;
 		}
 		entry++;
 	}
 	return GetDefaultStatus();
+}
+
+
+IPAuthPrefix::IPAuthPrefix() :
+	auth(false)
+{}
+
+IPAuthPrefix::IPAuthPrefix(bool a, const PString & prefixes)
+{
+	auth = a;
+	AddPrefix(prefixes);
+}
+
+IPAuthPrefix::IPAuthPrefix(const IPAuthPrefix & obj)
+{
+	auth = obj.auth;
+
+	const_prefix_iterator Iter = obj.Prefixs.begin();
+	const_prefix_iterator eIter = obj.Prefixs.end();
+	while (Iter != eIter) {
+		Prefixs.push_back(Iter->c_str());
+		++Iter;
+	}
+}
+
+IPAuthPrefix& IPAuthPrefix::operator=(const IPAuthPrefix & obj)
+{
+	auth = obj.auth;
+	Prefixs.clear();
+
+	const_prefix_iterator Iter = obj.Prefixs.begin();
+	const_prefix_iterator eIter = obj.Prefixs.end();
+	while (Iter != eIter) {
+		Prefixs.push_back(Iter->c_str());
+		++Iter;
+	}
+
+	return *this;
+}
+
+IPAuthPrefix& IPAuthPrefix::operator=(bool a)
+{
+	auth = a;
+	return *this;
+}
+
+void IPAuthPrefix::AddPrefix(const PString & prefixes)
+{
+	PStringArray p(prefixes.Tokenise(" ,;\t\n", false));
+	for (PINDEX i = 0; i < p.GetSize(); ++i)
+		Prefixs.push_back((const char *)p[i]);
+}
+
+void IPAuthPrefix::SortPrefix(bool greater)
+{
+	// remove duplicate aliases
+	if (greater)
+		sort(Prefixs.begin(), Prefixs.end(), str_prefix_greater());
+	else
+		sort(Prefixs.begin(), Prefixs.end(), str_prefix_lesser());
+	prefix_iterator Iter = std::unique(Prefixs.begin(), Prefixs.end());
+	Prefixs.erase(Iter, Prefixs.end());
+}
+
+int IPAuthPrefix::PrefixMatch(const PString & number) const
+{
+	if (number.IsEmpty())
+		return 0;
+
+	const char * alias = (const char*)(number);
+
+	if (!alias)
+		return 0;
+
+	const_prefix_iterator Iter = Prefixs.begin();
+	const_prefix_iterator eIter = Prefixs.end();
+
+	if (Iter == eIter)
+		return 1;
+
+	while (Iter != eIter) {
+		const int len = MatchPrefix(alias, Iter->c_str());
+		if (len > 0) {
+			return len;
+		}
+		++Iter;
+	}
+
+	return 0;
+}
+
+std::string IPAuthPrefix::PrintOn(void) const
+{
+	if (!auth)
+		return std::string(" to called any");
+
+	std::string prefix = PrintPrefix();
+
+	if (prefix == ".")
+		prefix = "any";
+	std::string ret(" to called ");
+	ret += prefix;
+	return ret;
+}
+
+std::string IPAuthPrefix::PrintPrefix(void) const
+{
+	std::string prefix;
+	const_prefix_iterator Iter = Prefixs.begin();
+	const_prefix_iterator eIter = Prefixs.end();
+	while (Iter != eIter) {
+		prefix += *Iter;
+		prefix += ",";
+		++Iter;
+	}
+
+	return prefix;
 }
 				
 namespace { // anonymous namespace

@@ -1,6 +1,8 @@
 Changes from 2.2.3 to 2.2.4
 ===========================
-- (gksql_firebird.cxx) Firebird/Interbase driver for SQL modules
+- (ipauth.cxx) added support for prefixes. Thanks to Vladimir Voronin
+- (gksql_firebird.cxx) Firebird/Interbase driver for SQL modules. Sponsored
+  by Roitel Telecommunication S.A.
 - (Routing.cxx) NumberAnalysis routing policy can handle Setup messages now.
   Thanks to Vladimir (vl@kamatele.com)
 - (pwlib_compat.h) adapt to changed mutexes starting with PWLib 1.9.2

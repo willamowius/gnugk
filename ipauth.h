@@ -94,9 +94,10 @@ protected:
 	*/
 	virtual int CheckAddress(
 		const PIPSocket::Address &addr, /// IP address the request comes from
-		WORD port /// port number the request comes from
+		WORD port, /// port number the request comes from
+		const PString &number
 		) = 0;
-				
+
 private:
 	IPAuthBase();
 	/* No copy constructor allowed */
