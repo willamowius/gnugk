@@ -1,3 +1,6 @@
+13 Jun 2006 -- zvision
+  * postgresql.conf typo fixed
+
 21 Sep 2005 -- zvision
   * dumpdata.sh/restoredata.sh scripts fixed
 
