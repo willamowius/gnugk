@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
  *
  *
@@ -84,7 +87,7 @@ GkAcctLogger::Status StatusAcct::Log(
 	}
 
 	if (!eventTmpl.IsEmpty()) {		// don't send event if the template string is empty
-		map<PString, PString> params;
+		std::map<PString, PString> params;
 		SetupAcctParams(params, call, m_timestampFormat);
 		PString msg = ReplaceAcctParams(eventTmpl, params);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_CDR);
