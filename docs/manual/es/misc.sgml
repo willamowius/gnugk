@@ -313,7 +313,7 @@ en donde cada fila consiste de <bf/tres/ columnas:
 Ejemplos de consultas:
 <tscreen><verb>
 ConfigQuery=SELECT secname, seckey, secval FROM sqlconfig WHERE gk = '%1'
-ConfigQuery=SELECT '[RasSrv::RRQAuth]', alias, rule FROM rrqauth WHERE gk = '%1'
+ConfigQuery=SELECT 'RasSrv::RRQAuth', alias, rule FROM rrqauth WHERE gk = '%1'
 </verb></tscreen>
 
 <item><tt/RewriteE164Query=SELECT .../<newline>
