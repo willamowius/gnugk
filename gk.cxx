@@ -41,6 +41,7 @@
 #include "gktimer.h"
 #include "gk.h"
 #include "pwlib_compat.h"
+#include "capctrl.h"
 
 using std::vector;
 
@@ -80,6 +81,7 @@ void ShutdownHandler()
 	PTRACE(3, "GK\tDeleting global reference tables");
 
 	Job::StopAll();
+	delete CapacityControl::Instance();
 	delete CallTable::Instance();
 	delete RegistrationTable::Instance();
 	delete RasServer::Instance();
