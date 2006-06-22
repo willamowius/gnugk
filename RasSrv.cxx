@@ -39,6 +39,10 @@
 #include "gktimer.h"
 #include "RasSrv.h"
 
+#ifdef hasH460
+  #include <h4601.h>
+#endif
+
 using namespace std;
 using Routing::Route;
 
@@ -101,6 +105,14 @@ private:
 	    A string that can be used to identify a calling number.
 	*/
 	PString GetCalledStationId(
+		/// additional data, like call record and requesting endpoint
+		ARQAuthData& authData
+		) const;
+
+	/** @return
+	    A string that can be used to identify the billing number.
+	*/
+	PString GetCallLinkage(
 		/// additional data, like call record and requesting endpoint
 		ARQAuthData& authData
 		) const;
@@ -1461,6 +1473,12 @@ bool RegistrationRequestPDU::Process()
 	// or the request is sent from the original endpoint that has
 	// this EndpointIdentifier. Otherwise the request will be rejected.
 	if (request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
+
+	// Alternate Gatekeepers based on rules
+//	   if (ResolveAlternateGatekeeper(request.m_endpointIdentifier,rx_addr))
+//		  return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
+
+
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 		if (ep && ep->GetCallSignalAddress() != SignalAddr)
 			// no reason named invalidEndpointIdentifier? :(
@@ -1471,6 +1489,37 @@ bool RegistrationRequestPDU::Process()
 	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 	if (!RasSrv->ValidatePDU(*this, authData))
 		return BuildRRJ(authData.m_rejectReason);
+
+		// FeatureSet Code
+	bool supportNAT = false;
+	unsigned RegPrior =0;
+
+#ifdef hasH460
+// Presence Support
+// Support Presence information
+	OpalOID rPreFS = OpalOID("1.3.6.1.4.1.17090.0.3"); 
+	
+// Support for Remote Nated
+// Indicates that the Endpoint registering supports Nated EPs call it so proxying media may not be required
+	OpalOID rNaTFS = OpalOID("1.3.6.1.4.1.17090.0.5");    
+
+// Registration Priority
+// This allows the unregistration of duplicate aliases with lower priority 
+	OpalOID rPriFS = OpalOID("1.3.6.1.4.1.17090.0.6");    
+	OpalOID rPrior = OpalOID("1.3.6.1.4.1.17090.0.6.1");  // Priority Value 
+
+	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
+		H460_FeatureSet & fs = H460_FeatureSet(request.m_featureSet);
+
+		if (fs.HasFeature(rNaTFS)) 
+			 supportNAT = true;
+		if (fs.HasFeature(rPriFS)) {
+			H460_Feature * feat = fs.GetFeature(rPriFS);
+			if (feat->Contains(rPrior))
+				RegPrior = feat->Value(rPrior);
+		}
+	}
+#endif
 
 	bool bNewEP = true;
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
@@ -1491,9 +1540,10 @@ bool RegistrationRequestPDU::Process()
 
 			const endptr ep = EndpointTbl->FindByAliases(Alias);
 			if (ep) {
-				bNewEP = (ep->GetCallSignalAddress() != SignalAddr);
+				bNewEP = ((ep->GetCallSignalAddress() != SignalAddr) || ((RegPrior > 0) && (RegPrior > ep->Priority()))
 				if (bNewEP) {
-					if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0"))) {
+					if ((RegPrior > 0) || 
+					  (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
 						// If the operators policy allows this case:
 						// 1a) terminate all calls on active ep and
 						// 1b) unregister the active ep - sends URQ and
@@ -1564,8 +1614,15 @@ bool RegistrationRequestPDU::Process()
 
 	if (nated)
 		ep->SetNATAddress(rx_addr);
-	else
+	else {
 		ep->SetNAT(false);
+		if (supportNAT)
+		  ep->SetSupportNAT(true);
+	}
+
+	if (RegPrior > 0)
+		 ep->SetPriority(RegPrior);
+	 
 	if (bShellSendReply) {
 		//
 		// OK, now send RCF
@@ -1821,6 +1878,34 @@ PString AdmissionRequestPDU::GetCalledStationId(
 	return id;
 }
 
+PString AdmissionRequestPDU::GetCallLinkage( 
+	/// additional data
+	ARQAuthData& authData
+	) const
+{
+		if (!authData.m_callLinkage)
+		return authData.m_callLinkage;
+
+	const H225_AdmissionRequest& arq = request;
+	const bool hasCall = authData.m_call.operator->() != NULL;
+	PString id;
+				
+	if (!arq.m_answerCall) {
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_callLinkage)) {
+			const H225_CallLinkage & cl = arq.m_callLinkage;
+			if (cl.HasOptionalField(H225_CallLinkage::e_globalCallId))
+			   id = cl.m_globalCallId.AsString();
+		}
+	} else if (hasCall)
+		id = authData.m_call->GetCallLinkage();
+
+	if (!id)
+		return id;
+	else
+		return PString();  // No Call Linkage detected.
+
+}
+
 bool AdmissionRequestPDU::Process()
 {
 	// OnARQ
@@ -1895,6 +1980,7 @@ bool AdmissionRequestPDU::Process()
 
 	authData.m_callingStationId = GetCallingStationId(authData);
 	authData.m_calledStationId = GetCalledStationId(authData);
+	authData.m_callLinkage = GetCallLinkage(authData);
 	
 	if (!RasSrv->ValidatePDU(*this, authData)) {
 		if (authData.m_rejectReason < 0)

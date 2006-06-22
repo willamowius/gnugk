@@ -14,6 +14,7 @@
 #define PWLIB_COMPAT_H "@(#) $Id$"
 
 #include "ptbuildopts.h"
+#include "openh323buildopts.h"
 
 // use at least PWLib Pandora
 #if PWLIB_MAJOR == 1
@@ -37,6 +38,26 @@
     #endif
   #endif
 #endif
+
+///////////////////////////////////////////////
+// H460 and DNS SRV Support
+#ifdef H323_H460
+   #define hasH460 1
+#endif
+
+// DNS SRV 
+#ifdef P_DNS
+   #define hasSRV 1 
+#endif
+
+// Disable if below OpenH323 v1.19
+#if OPENH323_MAJOR == 1
+  #if OPENH323_MINOR < 19
+       #undef hasH460 
+       #undef hasSRV  
+  #endif
+#endif
+//////////////////////////////////////////////
 
 #endif // PWLIB_COMPAT_H
 

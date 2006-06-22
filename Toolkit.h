@@ -169,6 +169,7 @@ class Toolkit : public Singleton<Toolkit>
 	public:
 		RewriteData(PConfig *, const PString &);
 		~RewriteData();
+		void AddSection(PConfig *config, const PString & section);
 		PINDEX Size() const { return m_size; }
 		const PString & Key(PINDEX i) const { return m_RewriteKey[i]; }
 		const PString & Value(PINDEX i) const { return m_RewriteValue[i]; }

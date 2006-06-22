@@ -26,6 +26,7 @@
 #include "sigmsg.h"
 #include "h323util.h"
 #include "pwlib_compat.h"
+//#include "Routing.h"
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
@@ -33,7 +34,7 @@
 #endif
 
 namespace Routing {
-struct Route;
+	struct Route {};
 }
 
 class GkDestAnalysisList;
@@ -160,6 +161,8 @@ public:
 	void SetNAT(bool nat);
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
+	void SetSupportNAT(bool support);
+	void SetPriority(unsigned priority) { m_registrationPriority = priority; };
 
 	/** @return
 		true if this is a permanent endpoint loaded from the config file entry.
@@ -169,6 +172,8 @@ public:
 	bool IsUpdated(const PTime *) const;
 	bool IsFromParent() const;
 	bool IsNATed() const;
+	bool SupportNAT() const;
+	unsigned  Priority() const { return m_registrationPriority; }
 	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;
 
@@ -257,7 +262,7 @@ protected:
 	mutable PMutex m_usedLock;
 
 	PTime m_updatedTime;
-	bool m_fromParent, m_nat;
+	bool m_fromParent, m_nat, m_natsupport;
 	PIPSocket::Address m_natip;
 	CallSignalSocket *m_natsocket;
 	/// permanent (preconfigured) endpoint flag
@@ -269,6 +274,7 @@ protected:
 	/// endpoint call capacity, -1 means no limit
 	int m_capacity;
 	int m_calledTypeOfNumber, m_callingTypeOfNumber;
+	unsigned m_registrationPriority;
 	unsigned m_proxy;
 };
 
@@ -392,7 +398,7 @@ public:
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone = true);
-	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone, const list<H225_TransportAddress> & ignoreList);
+	endptr FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool RoundRobin, bool SearchOuterZone, const std::list<H225_TransportAddress> & ignoreList);
 	void FindEndpoint(
 		const H225_ArrayOf_AliasAddress &aliases,
 		bool roundRobin,
@@ -443,8 +449,8 @@ private:
 	        return endptr((Iter != ListToBeFound->end()) ? *Iter : 0);
 	}
 
-	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, const list<H225_TransportAddress> & ignoreList);
-	void InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, list<Routing::Route> &routes);
+	endptr InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, const std::list<H225_TransportAddress> & ignoreList);
+	void InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, std::list<Routing::Route> &routes);
 
 	void GenerateEndpointId(H225_EndpointIdentifier &);
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
@@ -866,6 +872,17 @@ public:
 	*/
 	PString GetCalledStationId();
 
+	/// Set call linkage This the party to be charged for the call. 
+	void SetCallLinkage(
+		const PString& id /// Calling-Station-Id (to be charged)
+		);
+
+	/** @return
+        Call party to be charged for the call.
+	*/
+	PString GetCallLinkage();
+
+
 	/// Set calling party's number
 	void SetCalledStationId(
 		const PString& id /// Called-Station-Id
@@ -1001,6 +1018,8 @@ private:
 	PString m_callingStationId;
 	/// called party's number
 	PString m_calledStationId;
+	/// party to be charged for the call
+	PString m_callLinkage;
 	/// dialed number (called party's number before rewrite)
 	PString m_dialedNumber;
 	/// fixed destination alias
@@ -1200,9 +1219,19 @@ inline void EndpointRec::SetNAT(bool nat)
 	m_nat = nat;
 }
 
+inline void EndpointRec::SetSupportNAT(bool support)
+{
+	m_natsupport = support;
+}
+
 inline bool EndpointRec::IsNATed() const
 { 
 	return m_nat;
+}
+
+inline bool EndpointRec::SupportNAT() const
+{
+	return m_natsupport;
 }
 
 inline PIPSocket::Address EndpointRec::GetNATIP() const

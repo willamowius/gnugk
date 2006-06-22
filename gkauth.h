@@ -106,6 +106,8 @@ struct ARQAuthData
 	callptr m_call;
 	/// input/output - set or get Calling-Station-Id
 	PString m_callingStationId;		
+	/// call party to be billed for the call (if other then Calling-Station-Id)
+	PString m_callLinkage;
 	/// input/output - set or get Called-Station-Id
 	PString m_calledStationId;
 	/// number dialed by the user (Called-Station-Id before rewrite)

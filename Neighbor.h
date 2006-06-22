@@ -79,6 +79,8 @@ public:
 
 	// the real constructor, get profile of this neighbor
 	virtual bool SetProfile(const PString &, const PString &);
+    // Sent profile based on SRV Record
+	virtual bool SetProfile(const PString &);
 
 	// get PrefixInfo for a given aliases
 	// if an alias is matched, set dest to the alias

@@ -180,6 +180,13 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 	return true;
 }
 
+bool IsRemoteNATSupport(const PString & addr)
+{
+	PString ipAddr = addr.Trim();
+	PINDEX p = ipAddr.Find('*');
+	return (p != P_MAX_INDEX);
+}
+
 bool IsLoopback(const PIPSocket::Address & addr)
 {
 	return addr.IsLoopback() != 0;

@@ -370,21 +370,29 @@ bool Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 // class Toolkit::RewriteTool
 
 static const char *RewriteSection = "RasSrv::RewriteE164";
+static const char *AliasRewriteSection = "RasSrv::RewriteAlias";
 
-Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
+void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
 {
-	m_RewriteKey = NULL;
 	PStringToString cfgs(config->GetAllKeyValues(section));
-	m_size = cfgs.GetSize();
-	if (m_size > 0) {
+	PINDEX n_size = cfgs.GetSize();
+	if (n_size > 0) {
 		std::map<PString, PString, pstr_prefix_lesser> rules;
-		for (PINDEX i = 0; i < m_size; ++i) {
+		for (PINDEX i = 0; i < n_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
-			if (!key && (isdigit(key[0]) || key[0]=='!' || key[0]=='.' || key[0]=='%' || key[0]=='*' || key[0]=='#'))
+			PCaselessString first = key[0];				
+			if (!key && (isdigit(key[0]) || (first.FindOneOf("!.%*#ABCDEFGHIGKLMNOPQRSTUVWXYZ") != P_MAX_INDEX)))			
 				rules[key] = cfgs.GetDataAt(i);
 		}
 		// now the rules are ascendantly sorted by the keys
-		if ((m_size = rules.size()) > 0) {
+		if ((n_size = rules.size()) > 0) {
+			// Add any existing rules to be resorted
+			if (m_size > 0) {
+             for (PINDEX j = 0; j < m_size; ++j) {
+				 rules[Key(j)] = Value(j);
+			 }
+			}
+			m_size = m_size + n_size;
 			// replace array constructor with explicit memory allocation
 			// and in-place new operators - workaround for VC compiler
 //			m_RewriteKey = new PString[m_size * 2];
@@ -401,6 +409,12 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 			}
 		}
 	}
+}
+Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
+{
+	m_RewriteKey = NULL;
+	m_size= 0;
+    AddSection(config, section);
 }
 
 Toolkit::RewriteData::~RewriteData()
@@ -420,6 +434,7 @@ void Toolkit::RewriteTool::LoadConfig(
 	m_TrailingChar = config->GetString("RasSrv::ARQFeatures", "RemoveTrailingChar", " ")[0];
 	delete m_Rewrite;
 	m_Rewrite = new RewriteData(config, RewriteSection);
+	m_Rewrite->AddSection(config,AliasRewriteSection);
 }
 
 bool Toolkit::RewriteTool::RewritePString(PString & s) const
@@ -438,6 +453,10 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	PString t;
 	for (PINDEX i = 0; i < m_Rewrite->Size(); ++i) {
 		const char *prefix = m_Rewrite->Key(i);
+		if (prefix == s){
+			s = m_Rewrite->Value(i);
+            return true;
+		}
 		const int len = MatchPrefix(s, prefix);
 		// try a prefix match through all keys
 		if (len > 0 || (len == 0 && prefix[0] == '!')) {
@@ -1139,7 +1158,8 @@ BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 
 bool Toolkit::RewriteE164(H225_AliasAddress &alias)
 {
-	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits)
+	if ((alias.GetTag() != H225_AliasAddress::e_dialedDigits) &&
+         (alias.GetTag() != H225_AliasAddress::e_h323_ID))
 		return FALSE;
 
 	PString E164 = ::AsString(alias, FALSE);

@@ -744,7 +744,8 @@ void GkClient::SendURQ()
 
 bool GkClient::RewriteE164(H225_AliasAddress & alias, bool fromInternal)
 {
-	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) 
+	if ((alias.GetTag() != H225_AliasAddress::e_dialedDigits) &&
+		(alias.GetTag() != H225_AliasAddress::e_h323_ID))
 		return false;
 		        
 	PString e164 = AsString(alias, FALSE);

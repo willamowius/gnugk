@@ -252,6 +252,20 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	return true;
 }
 
+bool Neighbor::SetProfile(const PString & addr)
+{
+  m_name = addr;
+
+  if (!GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) 
+	  return false;
+
+  m_id = "SRVrec";
+  m_dynamic = false;
+ 
+  return true;
+
+}
+
 PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H225_ArrayOf_AliasAddress & dest)
 {
 	Prefixes::iterator iter, biter = m_sendPrefixes.begin(), eiter = m_sendPrefixes.end();

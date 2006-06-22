@@ -32,6 +32,7 @@
 #include "GkStatus.h"
 #include "sigmsg.h"
 #include "Routing.h"
+#include "pwlib_compat.h"
 
 using std::string;
 using std::vector;
@@ -549,6 +550,39 @@ bool DNSPolicy::FindByAliases(
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
 		PINDEX at = alias.Find('@');
+
+#ifdef hasSRV
+	// DNS SRV Record lookup
+		if (at != P_MAX_INDEX) {
+		   PString number = alias;
+		   if (number.Left(5) != "h323:") 
+			  number = "h323:" + number;	  
+					
+   // CS SRV Lookup
+		   PStringList str;
+		   if (PDNS::LookupSRV(number,"_h323cs._tcp.",str)) {
+			   for (PINDEX j=0; j<str.GetSize(); j++) {
+				 PTRACE(4, "Routing\tDNS SRV converted remote party " << alias << " to " << str[j]);
+		         H225_TransportAddress dest;
+				 PINDEX in = str[j].Find('@');
+				 PString domain = str[j].Mid(in + 1);
+		         if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
+			       PIPSocket::Address addr;
+			       if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
+				                    continue;
+			       Route route(m_name, dest);
+			       route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+			       request.AddRoute(route);
+			       request.SetFlag(RoutingRequest::e_aliasesChanged);	
+				 }
+			   }
+			 // remove the domain name 
+		     H323SetAliasAddress(alias.Left(at), aliases[i]);
+		     return true;
+		   }
+		}
+#endif
+
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
 		H225_TransportAddress dest;
 		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
@@ -568,7 +602,38 @@ bool DNSPolicy::FindByAliases(
 }
 
 bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
-{
+{ 
+#ifdef hasSRV
+	// DNS SRV Record lookup
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		PString alias(AsString(aliases[i], FALSE));
+
+		PString number;
+		if (alias.Find('@') == P_MAX_INDEX) 
+		   number = "h323:t@" + alias;	
+		else
+		   number = "h323:" + alias;
+					
+        PStringList str;
+        if (PDNS::LookupSRV(number,"_h323ls._udp.",str)) {
+          for (PINDEX i=0; i<str.GetSize(); i++) {
+            PINDEX at = str[i].Find('@');
+            PString ipaddr = str[i].Mid(at + 1);
+            PTRACE(4, "Routing\tDNS SRV LRQ converted remote party " << alias << " to " << ipaddr);
+            H323TransportAddress addr = H323TransportAddress(ipaddr);
+            H225_TransportAddress dest;
+
+            addr.SetPDU(dest);
+            Route route(m_name, dest);
+            route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+            request.AddRoute(route);
+            request.SetFlag(RoutingRequest::e_aliasesChanged);			 
+		  }
+		  return true;
+		} 
+	}
+#endif
+
 	return DNSPolicy::FindByAliases((RoutingRequest&)request, aliases);
 }
 
