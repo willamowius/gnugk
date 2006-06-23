@@ -26,7 +26,7 @@
 #include "sigmsg.h"
 #include "h323util.h"
 #include "pwlib_compat.h"
-//#include "Routing.h"
+
 
 #if (_MSC_VER >= 1200)
 #pragma warning( disable : 4786 ) // warning about too long debug symbol off
@@ -34,7 +34,7 @@
 #endif
 
 namespace Routing {
-	struct Route {};
+	struct Route;
 }
 
 class GkDestAnalysisList;
