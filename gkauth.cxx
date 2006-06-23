@@ -32,6 +32,7 @@
 #include "sigmsg.h"
 #include "Routing.h"
 #include "gkauth.h"
+#include "pwlib_compat.h"
 
 namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
@@ -1064,9 +1065,19 @@ SimplePasswordAuth::SimplePasswordAuth(
 	m_encryptionKey = GetConfig()->GetInteger(name, "KeyFilled", 0);
 	m_checkID = Toolkit::AsBool(GetConfig()->GetString(name, "CheckID", "0"));
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
-	
+
+#ifdef OpenH323Factory
+    PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
+    PFactory<H235Authenticator>::KeyList_T::const_iterator r;
+    for (r = keyList.begin(); r != keyList.end(); ++r) {
+       H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+        if ((Auth->GetApplication() == H235Authenticator::GKAdmission) ||
+                  (Auth->GetApplication() == H235Authenticator::AnyApplication)) 
+                               AppendH235Authenticator(Auth);
+	}
+#else
 	H235Authenticator* authenticator;
-	
+
 	authenticator = new H235AuthSimpleMD5;
 	authenticator->SetLocalId("dummy");
 	authenticator->SetRemoteId("dummy");
@@ -1077,15 +1088,17 @@ SimplePasswordAuth::SimplePasswordAuth(
 	authenticator->SetRemoteId("dummy");
 	authenticator->SetPassword("dummy");
 	AppendH235Authenticator(authenticator);
-/*
-#if P_SSL
-	authenticator = new H235AuthProcedure1;
-	authenticator->SetLocalId("dummy");
-	authenticator->SetRemoteId("dummy");
-	authenticator->SetPassword("dummy");
-	AppendH235Authenticator(authenticator);
+
+//#if P_SSL
+//	authenticator = new H235AuthProcedure1;
+//	authenticator->SetLocalId("dummy");
+//	authenticator->SetRemoteId("dummy");
+//	authenticator->SetPassword("dummy");
+//	AppendH235Authenticator(authenticator);
+//#endif
+
 #endif
-*/
+
 }
 
 SimplePasswordAuth::~SimplePasswordAuth()
