@@ -880,7 +880,7 @@ public:
 	/** @return
         Call party to be charged for the call.
 	*/
-	PString GetCallLinkage();
+	PString GetCallLinkage()const { return m_callLinkage; };
 
 
 	/// Set calling party's number
