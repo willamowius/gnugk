@@ -1540,7 +1540,7 @@ bool RegistrationRequestPDU::Process()
 
 			const endptr ep = EndpointTbl->FindByAliases(Alias);
 			if (ep) {
-				bNewEP = ((ep->GetCallSignalAddress() != SignalAddr) || ((RegPrior > 0) && (RegPrior > ep->Priority()))
+				bNewEP = ((ep->GetCallSignalAddress() != SignalAddr) || ((RegPrior > 0) && (RegPrior > ep->Priority())));
 				if (bNewEP) {
 					if ((RegPrior > 0) || 
 					  (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
@@ -2415,6 +2415,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	if (request.HasOptionalField(H225_LocationRequest::e_endpointIdentifier))
 		if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier))
 			fromRegEndpoint = replyAddrMatch ? true : ep->IsNATed();
+
 	bool bReject = !((fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this)) && RasSrv->ValidatePDU(*this, reason));
 
 	PString sourceInfoString(fromRegEndpoint ? request.m_endpointIdentifier.GetValue() : request.HasOptionalField(H225_LocationRequest::e_gatekeeperIdentifier) ? request.m_gatekeeperIdentifier.GetValue() : m_msg->m_peerAddr.AsString());
