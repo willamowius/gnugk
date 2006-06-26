@@ -380,7 +380,7 @@ void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
 		std::map<PString, PString, pstr_prefix_lesser> rules;
 		for (PINDEX i = 0; i < n_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
-			PCaselessString first = key[0];				
+			PCaselessString first = PCaselessString(key[0]);				
 			if (!key && (isdigit(key[0]) || (first.FindOneOf("!.%*#ABCDEFGHIGKLMNOPQRSTUVWXYZ") != P_MAX_INDEX)))			
 				rules[key] = cfgs.GetDataAt(i);
 		}
