@@ -1500,7 +1500,7 @@ bool RegistrationRequestPDU::Process()
 	OpalOID rPreFS = OpalOID("1.3.6.1.4.1.17090.0.3"); 
 	
 // Support for Remote Nated
-// Indicates that the Endpoint registering supports Nated EPs call it so proxying media may not be required
+// Indicates that the Endpoint registering supports Nated EPs calling it so proxying media may not be required
 	OpalOID rNaTFS = OpalOID("1.3.6.1.4.1.17090.0.5");    
 
 // Registration Priority
@@ -1509,7 +1509,7 @@ bool RegistrationRequestPDU::Process()
 	OpalOID rPrior = OpalOID("1.3.6.1.4.1.17090.0.6.1");  // Priority Value 
 
 	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
-		H460_FeatureSet & fs = H460_FeatureSet(request.m_featureSet);
+		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 
 		if (fs.HasFeature(rNaTFS)) 
 			 supportNAT = true;
