@@ -20,6 +20,7 @@
 #define GK_H "@(#) $Id$"
 
 #include "version.h"
+#include <ptlib/pprocess.h>
 
 
 class GkTimer;
