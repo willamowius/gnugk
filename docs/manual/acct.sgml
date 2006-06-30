@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | CapacityControl | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | SyslogAcct | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | connect | update | on | off
@@ -96,6 +96,12 @@ See the section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 This module logs all accounting events on the status port. It can be used to interface to external application in real-time. It supports (start, connect, stop, update)
 event types. 
 See the section <ref id="statusacct" name="[StatusAcct]"> for configuration details.
+
+<item><tt>SyslogAcct</tt>
+<p>
+This module logs all accounting events on the Unix syslog. It supports (start, connect, stop, update)
+event types. 
+See the section <ref id="syslogacct" name="[SyslogAcct]"> for configuration details.
 
 <item><tt>CapacityControl</tt>
 <p>
@@ -560,6 +566,42 @@ in the pool is used to store accounting data.
 This accounting module sends all accounting information to the
 status port where it can be used to interface to
 external systems in real time.
+
+<itemize>
+<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
+Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event to display for a new call. The string is parametrized
+with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAacct]">).
+
+<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
+Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is finished (disconnected). The syntax and parameters are the same as for <tt/StartEvent/. This event is equivalent to the old status port CDR event, but more flexible.
+
+<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
+Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines event used to update the current call state. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
+Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings used in events. If this setting
+is not specified, a global one from the main gatekeeper section is used.
+
+</itemize>
+
+<sect1>Section &lsqb;SyslogAcct&rsqb;
+<label id="syslogacct">
+<p>
+This accounting module sends all accounting information to the
+Unix syslog and is not available on Windows.
 
 <itemize>
 <item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
