@@ -314,6 +314,9 @@
 				RelativePath="ProxyChannel.h">
 			</File>
 			<File
+				RelativePath="pwlib_compat.h">
+			</File>
+			<File
 				RelativePath="radacct.h">
 			</File>
 			<File
