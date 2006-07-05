@@ -61,12 +61,10 @@
 //////////////////////////////////////////////
 // Factory loader System
 
-#define OpenH323Factory 1
-
 // Disable if below OpenH323 v1.18
 #if OPENH323_MAJOR == 1
-  #if OPENH323_MINOR < 19
-       #undef OpenH323Factory
+  #if OPENH323_MINOR >= 19
+       #define OpenH323Factory 1
   #endif
 #endif
 
