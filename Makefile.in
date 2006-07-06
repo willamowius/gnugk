@@ -35,7 +35,7 @@ HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            gk.h gk_const.h gkacct.h gkauth.h job.h name.h rasinfo.h rwlock.h \
            singleton.h slist.h stl_supp.h version.h yasocket.h gktimer.h \
            gkconfig.h configure Makefile sigmsg.h clirw.h cisco.h ipauth.h \
-           statusacct.h isyslogacct.h capctrl.h @HEADERS@
+           statusacct.h syslogacct.h capctrl.h @HEADERS@
 
 # add cleanup files for non-default targets
 CLEAN_FILES += $(OBJDIR)/addpasswd $(OBJDIR)/addpasswd.o docs/manual/*.html
