@@ -1,5 +1,6 @@
 Changes from 2.2.4 to 2.2.5
 ===========================
+- BUGFIX(*.cxx) set all deleted pointers to NULL
 - new SyslogAcct accounting module for the Unix syslog
 
 Changes from 2.2.3 to 2.2.4
