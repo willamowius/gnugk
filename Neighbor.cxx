@@ -785,6 +785,7 @@ void LRQRequester::Process(RasMsg *ras)
 			} else { // should be H225_RasMessage::e_locationReject
 				--req.m_count;
 				delete ras;
+				ras = NULL;
 				if (req.m_count <= 0 && req.m_reply == 0) {
 					PTRACE(5,"NB\tLRQ rejected for neighbor "<<req.m_neighbor->GetId()
 						<<':'<<req.m_neighbor->GetIP()
@@ -802,6 +803,7 @@ void LRQRequester::Process(RasMsg *ras)
 
 	PTRACE(1, "RAS\tUnknown reply " << ras->GetTagName());
 	delete ras;
+	ras = NULL;
 }
 
 bool LRQRequester::OnTimeout()
@@ -855,6 +857,7 @@ void NeighborList::OnReload()
 			Neighbor * r = *it;
 			m_neighbors.erase(it);
 			delete r;
+			r = NULL;
 		}
 	}
 	for (i = 0; i < sz; ++i) {
@@ -871,6 +874,7 @@ void NeighborList::OnReload()
 		} else {
 			PTRACE(1, "NB\tCan't get profile for neighbor " << nbid);
 			delete nb;
+			nb = NULL;
 			if (!newnb)
 				m_neighbors.erase(iter);
 		}

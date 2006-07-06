@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.35  2006/06/08 08:58:48  willamowius
+ * gcc 4.1 compile fixes
+ *
  * Revision 1.34  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -355,6 +358,7 @@ int RadAuthBase::Check(
 			" could not receive or decode response from RADIUS"
 			);
 		delete response;
+		response = NULL;
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
 		return GetDefaultStatus();
 	}
@@ -495,6 +499,7 @@ int RadAuthBase::Check(
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 				
 	delete response;
+	response = NULL;
 	return result ? e_ok : e_fail;
 }
  
@@ -636,12 +641,13 @@ int RadAuthBase::Check(
 	bool result = m_radiusClient->MakeRequest(*pdu, response) && response;
 			
 	delete pdu;
-			
+
 	if (!result) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
 			" could not receive or decode response from RADIUS"
 			);
 		delete response;
+		response = NULL;
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_undefinedReason;
 		return GetDefaultStatus();
 	}
@@ -820,6 +826,7 @@ int RadAuthBase::Check(
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 					
 	delete response;
+	response = NULL;
 	return result ? e_ok : e_fail;
 }
 
@@ -937,6 +944,7 @@ int RadAuthBase::Check(
 			" could not receive or decode response from RADIUS"
 			);
 		delete response;
+		response = NULL;
 		authData.m_rejectCause = Q931::TemporaryFailure;
 		return GetDefaultStatus();
 	}
@@ -1062,6 +1070,7 @@ int RadAuthBase::Check(
 		authData.m_rejectCause = Q931::CallRejected;
 					
 	delete response;
+	response = NULL;
 	return result ? e_ok : e_fail;
 }		
 

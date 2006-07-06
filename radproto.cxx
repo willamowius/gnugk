@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.29  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.2  2005/12/16 14:16:32  zvision
  * Removed incorrect C/C++ language constructs
  *
@@ -1661,6 +1664,7 @@ bool RadiusSocket::MakeRequest(
 						<< GetErrorText(LastReadError) << ')'
 						);
 				delete response;
+				response = NULL;
 				break;
 			}
 			
@@ -1673,12 +1677,14 @@ bool RadiusSocket::MakeRequest(
 					<< bytesRead << ')'
 					);
 				delete response;
+				response = NULL;
 				continue;
 			}
 	
 			if (!response->IsValid()) {
 				PTRACE(5, "RADIUS\tReceived packet is not a valid Radius PDU");
 				delete response;
+				response = NULL;
 				continue;
 			}
 				
@@ -1689,6 +1695,7 @@ bool RadiusSocket::MakeRequest(
 					<< (PINDEX)newId
 					);
 				delete response;
+				response = NULL;
 				continue;
 			}
 				
@@ -1700,6 +1707,7 @@ bool RadiusSocket::MakeRequest(
 					<< (PINDEX)newId << ')'
 					);
 				delete response;
+				response = NULL;
 				continue;
 			}
 
@@ -1709,6 +1717,7 @@ bool RadiusSocket::MakeRequest(
 					<< remoteAddress << ':' << remotePort
 					);
 				delete response;
+				response = NULL;
 				continue;
 			}
 			
@@ -1729,6 +1738,7 @@ bool RadiusSocket::MakeRequest(
 						}
 					
 				delete requestInfo;
+				requestInfo = NULL;
 				return true;
 			} else if(m_readSyncPointIndices[newId] != P_MAX_INDEX
 				&& m_readSyncPoints[m_readSyncPointIndices[newId]] != NULL) {
@@ -1750,6 +1760,7 @@ bool RadiusSocket::MakeRequest(
 				if (m_nestedCount)
 					m_nestedCount--;
 				delete requestInfo;
+				requestInfo = NULL;
 				return true;
 			}
 
@@ -1799,6 +1810,7 @@ bool RadiusSocket::MakeRequest(
 	}
 
 	delete requestInfo;
+	requestInfo = NULL;
 	return result ? true : false;
 }
 
@@ -2208,6 +2220,7 @@ bool RadiusClient::MakeRequest(
 #endif
 			if (!OnReceivedPDU(*response)) {
 				delete response;
+				response = NULL;
 				continue;
 			}
 			

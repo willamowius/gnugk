@@ -817,6 +817,7 @@ bool Gatekeeper::SetLogFilename(
 	PTrace::SetStream(&cerr);
 	
 	delete m_logFile;
+	m_logFile = NULL;
 	
 	m_logFilename = filename;
 	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);

@@ -240,8 +240,10 @@ FileIPAuth::FileIPAuth(
 	}
 #endif
 
-	if (dynamicCfg)
+	if (dynamicCfg) {
 		delete cfg;
+		cfg = NULL;
+	}
 }
 
 FileIPAuth::~FileIPAuth()

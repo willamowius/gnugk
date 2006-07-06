@@ -1197,6 +1197,7 @@ void RegistrationTable::InternalPrint(USocket *client, BOOL verbose, std::list<E
 	for (k = 0; k < s; k++)
 		msg += "RCF|" + eptr[k]->PrintOn(verbose);
 	delete [] eptr;
+	eptr = NULL;
 
 	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", s);
 	client->TransmitData(msg);
@@ -1525,6 +1526,7 @@ CallRec::~CallRec()
 {
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 	delete m_routeToAlias;
+	m_routeToAlias = NULL;
 }
 
 void CallRec::SetProxyMode(

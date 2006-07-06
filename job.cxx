@@ -299,6 +299,7 @@ void Agent::Exec(
 		if (!m_active) {
 			PTRACE(5, "JOB\tAgent did not accept Job " << job->GetName());
 			delete job;
+			job = NULL;
 			return;
 		}
 		if (!m_idleWorkers.empty()) {
@@ -334,6 +335,7 @@ void Agent::Exec(
 	if (!(m_active && worker->Exec(job))) {
 		// should not ever happen, but...
 		delete job;
+		job = NULL;
 		PWaitAndSignal lock(m_wlistMutex);
 		m_busyWorkers.remove(worker);
 		if (m_active)

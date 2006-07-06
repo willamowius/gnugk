@@ -147,7 +147,7 @@ void NATClient::Exec()
 		}
 	}
 	delete socket;
-	socket = 0;
+	socket = NULL;
 	int retryInterval = GkConfig()->GetInteger(EndpointSection, "NATRetryInterval", 60);
 
 	ReadUnlock unlockConfig(ConfigReloadMutex);
@@ -292,6 +292,7 @@ void GkClientHandler::OnRequest(RasMsg *ras)
 	if ((client->*handlePDU)(ras))
 		ras->Reply();
 	delete ras;
+	ras = NULL;
 }
 
 namespace {

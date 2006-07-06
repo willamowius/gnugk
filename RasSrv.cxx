@@ -521,6 +521,7 @@ bool GkInterface::ValidateSocket(IPSocket *socket, WORD & port)
 		} else {
 			PTRACE(1, "Can't listen to " << socket->GetName());
 			delete socket;
+			socket = NULL;
 		}
 	}
 	return false;
@@ -570,6 +571,7 @@ void RasHandler::ProcessRAS(RasMsg *ras)
 {
 	ras->Exec();
 	delete ras;
+	ras = NULL;
 }
 
 // class RasRequester
@@ -630,6 +632,7 @@ void RasRequester::Process(RasMsg *ras)
 		m_timeout = rip.m_delay;
 		m_sentTime = PTime();
 		delete ras;
+		ras = NULL;
 	} else {
 		AddReply(ras);
 		m_timeout = 0;
@@ -719,7 +722,7 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 	} else {
 		// warning: dangerous
 		delete sigHandler;
-		sigHandler = 0;
+		sigHandler = NULL;
 	}
 	GKRoutedH245 = GKRoutedSignaling ? routedH245 : false;
 
@@ -804,12 +807,14 @@ void RasServer::LoadConfig()
 				interfaces.push_back(gkif);
 			else
 				delete gkif;
+				gkif = NULL;
 		} else {
 			GkInterface *gkif = *iter;
 			// re-create if changed
 			if (!gkif->CreateListeners(this)) {
 				interfaces.erase(iter);
 				delete gkif;
+				gkif = NULL;
 			}
 		}
 	}
@@ -827,7 +832,7 @@ void RasServer::LoadConfig()
 		} else {
 			PTRACE(1, "RAS\tCannot start broadcast listener at " << broadcastListener->GetName());
 			delete broadcastListener;
-			broadcastListener = 0;
+			broadcastListener = NULL;
 		}
 	}
 #endif
@@ -851,8 +856,10 @@ void RasServer::AddListener(TCPListenSocket *socket)
 {
 	if (socket->IsOpen())
 		listeners->AddListener(socket);
-	else
+	else {
 		delete socket;
+		socket = NULL;
+	}
 }
 
 bool RasServer::CloseListener(TCPListenSocket *socket)
@@ -1134,7 +1141,7 @@ void RasServer::OnStop()
 	listeners->Stop();
 
 	delete sigHandler;
-	sigHandler = 0;
+	sigHandler = NULL;
 
 	delete Routing::Analyzer::Instance();
 
@@ -1258,6 +1265,7 @@ void RasServer::ReadSocket(IPSocket *socket)
 					PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
 //					(*i)->SetNext(ras);
 					delete ras;
+					ras = NULL;
 				} else {
 					requests.push_back(ras);
 					Job *job = new Jobs(ras);

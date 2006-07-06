@@ -88,6 +88,7 @@ ARQAuthData& ARQAuthData::operator=(const ARQAuthData& obj)
 ARQAuthData::~ARQAuthData()
 {
 	delete m_routeToAlias;
+	m_routeToAlias = NULL;
 }
 
 void ARQAuthData::SetRouteToAlias(H225_AliasAddress* alias)
@@ -152,6 +153,7 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 SetupAuthData::~SetupAuthData()
 {
 	delete m_routeToAlias;
+	m_routeToAlias = NULL;
 }
 
 void SetupAuthData::SetRouteToAlias(H225_AliasAddress* alias)
@@ -1889,6 +1891,7 @@ int AuthRule::Check(
 inline void delete_rule(PrefixAuth::Rules::value_type r)
 {
 	delete r.second;
+	r.second = NULL;
 }
 
 IPv4AuthRule::IPv4AuthRule(
@@ -2005,6 +2008,7 @@ PrefixAuth::PrefixAuth(
 			rls[k-1]->SetNext(rls[k]);
 		m_prefrules[key] = rls[0];
 		delete [] rls;
+		rls = NULL;
 	}
 
 	if (m_prefrules.size() == 0)

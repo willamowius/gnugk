@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2006/06/08 07:38:42  willamowius
+ * compile fixes for gcc 3.3.x
+ *
  * Revision 1.1  2006/06/02 09:21:34  zvision
  * Firebird SQL driver
  *
@@ -320,12 +323,17 @@ GkIBSQLResult::~GkIBSQLResult()
 		isc_dsql_free_statement(status, &m_stmt, DSQL_drop);
 	if (m_sqlResult != NULL) {
 		for (int i = 0; i < m_sqlResult->sqld; ++i) {
-			if (m_sqlResult->sqlvar[i].sqldata != NULL)
+			if (m_sqlResult->sqlvar[i].sqldata != NULL) {
 				delete [] m_sqlResult->sqlvar[i].sqldata;
-			if (m_sqlResult->sqlvar[i].sqlind != NULL)
+				m_sqlResult->sqlvar[i].sqldata = NULL;
+			}
+			if (m_sqlResult->sqlvar[i].sqlind != NULL) {
 				delete m_sqlResult->sqlvar[i].sqlind;
+				m_sqlResult->sqlvar[i].sqlind = NULL;
+			}
 		}
 		delete [] reinterpret_cast<char*>(m_sqlResult);
+		m_sqlResult = NULL;
 	}
 	if (m_tr != NULL)
 		if (m_queryError)
@@ -632,6 +640,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 				isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
 			}
 			delete [] reinterpret_cast<char*>(result);
+			result = NULL;
 			return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
 		}
 	}
@@ -648,6 +657,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 			isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
 		}
 		delete [] reinterpret_cast<char*>(result);
+		result = NULL;
 		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
 	}
 

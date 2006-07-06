@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
  *
  *
@@ -308,7 +311,7 @@ GkAcctLogger::Status RadAcct::Log(
 			result = m_radiusClient->MakeRequest(*pdu, response) && (response != NULL);
 			
 	delete pdu;
-			
+
 	if (!result) {
 		delete response;
 		return Fail;

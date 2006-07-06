@@ -465,6 +465,7 @@ void GkStatus::AuthenticateClient(
 		newClient->WriteString("\r\nAccess forbidden!\r\n");
 		newClient->Flush();
 		delete newClient;
+		newClient = NULL;
 	}
 }
 
@@ -697,6 +698,7 @@ void GkStatus::CleanUp()
 				m_removed.erase(i);
 				--m_rmsize;
 				delete client;
+				client = NULL;
 			}
 		}
 	}

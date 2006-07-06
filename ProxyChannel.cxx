@@ -774,7 +774,9 @@ CallSignalSocket::~CallSignalSocket()
 	}
 
 	delete m_h245handler;
+	m_h245handler = NULL;
 	delete m_setupPdu;
+	m_setupPdu = NULL;
 }
 
 #ifdef LARGE_FDSET
@@ -864,6 +866,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	if (!q931pdu->Decode(buffer)) {
 		PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING Q.931!");
 		delete q931pdu;
+		q931pdu = NULL;
 		return m_result = Error;
 	}
 
@@ -884,7 +887,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				<< q931pdu->GetCallReference() << " from " << GetName()
 				);
 			delete uuie;
+			uuie = NULL;
 			delete q931pdu;
+			q931pdu = NULL;
 			return m_result = Error;
 		}
 	}
@@ -1147,6 +1152,7 @@ void CallSignalSocket::ForwardCall(
 	if (!request.GetFirstRoute(route)) {
 		ForwardData();
 		delete msg;
+		msg = NULL;
 		return;
 	}
 
@@ -1184,12 +1190,14 @@ void CallSignalSocket::ForwardCall(
 	if (!remoteSocket) {
 		PTRACE(1, Type() << "\tWarning: " << GetName() << " has no remote party?");
 		delete msg;
+		msg = NULL;
 		return;
 	}
 	MarkSocketBlocked rlock(remoteSocket);
 	if (!remoteSocket->m_setupPdu) {
 		PTRACE(1, Type() << "\tError: " << GetName() << " has no Setup message stored!");
 		delete msg;
+		msg = NULL;
 		return;
 	}
 
@@ -1199,6 +1207,7 @@ void CallSignalSocket::ForwardCall(
 			|| suuie.m_h323_uu_pdu.m_h323_message_body.GetTag() !=  H225_H323_UU_PDU_h323_message_body::e_setup) {
 		PTRACE(1, Type() << "\tError: " << GetName() << " has no Setup UUIE found!");
 		delete msg;
+		msg = NULL;
 		return;
 	}
 	
@@ -1264,6 +1273,7 @@ void CallSignalSocket::ForwardCall(
 	// let the socket be deletable
 	SetDeletable();
 	delete msg;
+	msg = NULL;
 }
 
 PString CallSignalSocket::GetCallingStationId(
@@ -2648,6 +2658,7 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 	if (!q931pdu->Decode(buffer)) {
 		PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING Q.931!");
 		delete q931pdu;
+		q931pdu = NULL;
 		return m_result = Error;
 	}
 
@@ -2668,7 +2679,9 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 				<< q931pdu->GetCallReference() << " from " << GetName()
 				);
 			delete uuie;
+			uuie = NULL;
 			delete q931pdu;
+			q931pdu = NULL;
 			return m_result = Error;
 		}
 	}
@@ -3951,7 +3964,9 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 #endif
 	}
 	delete remote;
+	remote = NULL;
 	delete socket;
+	socket = NULL;
 }
 
 bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler *handler)
