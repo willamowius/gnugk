@@ -886,11 +886,17 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				<< q931pdu->GetMessageTypeName() << " CRV=" 
 				<< q931pdu->GetCallReference() << " from " << GetName()
 				);
-			delete uuie;
-			uuie = NULL;
-			delete q931pdu;
-			q931pdu = NULL;
-			return m_result = Error;
+			if (q931pdu->GetMessageType() == Q931::NotifyMsg) {
+				PTRACE(1, "Unknown User-User IE in Notify, continuing");
+				uuie = NULL;
+				m_result = Forwarding;
+			} else {
+				delete uuie;
+				uuie = NULL;
+				delete q931pdu;
+				q931pdu = NULL;
+				return m_result = Error;
+			}
 		}
 	}
 	
@@ -959,7 +965,15 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			msg->SetChanged();
 		}
 	}
-	
+
+	// just copy unknow IEs in Notify
+	if ((q931pdu->GetMessageType() == Q931::NotifyMsg)
+		&& (q931pdu->HasIE(Q931::UserUserIE))
+		&& (uuie == NULL)) {
+		PTRACE(1, "Copy unknown User-User IE in Notify");
+		msg->GetQ931().SetIE(Q931::UserUserIE, q931pdu->GetIE(Q931::UserUserIE));
+	}
+
 	if (msg->IsChanged() && !msg->Encode(buffer))
 		m_result = Error;
 	else if (remote)

@@ -1,5 +1,7 @@
 Changes from 2.2.4 to 2.2.5
 ===========================
+- copy all unknown IEs in Notify messages when forwarding
+  (fixes some failed transfers)
 - BUGFIX(*.cxx) set all deleted pointers to NULL
 - new SyslogAcct accounting module for the Unix syslog
 
