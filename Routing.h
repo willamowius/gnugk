@@ -136,6 +136,7 @@ public:
 	ReqObj & GetRequest() { return m_request; }
 	Wrapper *GetWrapper() { return m_wrapper; }
 	H225_ArrayOf_AliasAddress *GetAliases();
+	void SetAliases(H225_ArrayOf_AliasAddress & aliases);
 	const ReqObj & GetRequest() const { return m_request; }
 	const Wrapper *GetWrapper() const { return m_wrapper; }
 	const H225_ArrayOf_AliasAddress *GetAliases() const
@@ -298,6 +299,32 @@ public:
 		const PString& sourceInfo,
 		/// the callID as string
 		const PString& callID
+		);
+
+	/** Send RouteRequest to the GK status line	and wait (LRQ version)
+		for a routing decision to be made by some external application
+		(ACD application).
+
+		@return
+		True if the external application routed the call (either by specifying
+		an alias or by rejecting the call), false if timed out waiting
+		for the routing decision.
+		If the request was rejected, destinationInfo is set to an epmty array
+		(0 elements).
+	*/
+	bool SendRouteRequest(
+		/// calling endpoint
+		const PString& epid,
+		/// irequestSeqNum of the request
+		unsigned seq,
+		/// destination (virtual queue) aliases as specified
+		/// by the calling endpoint (modified by this function on successful return)
+		H225_ArrayOf_AliasAddress* destinationInfo,
+		/// an actual virtual queue name (should be present in destinationInfo too)
+		const PString& vqueue,
+		/// a sequence of aliases for the calling endpoint
+		/// (in the "alias:type[=alias:type]..." format)
+		const PString& sourceInfo
 		);
 
 	/** Make a routing decision for a pending route request (inserted

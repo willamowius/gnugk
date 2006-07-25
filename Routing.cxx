@@ -162,6 +162,12 @@ template<> H225_ArrayOf_AliasAddress *AdmissionRequest::GetAliases()
 		? &m_request.m_destinationInfo : NULL;
 }
 
+template<> void AdmissionRequest::SetAliases(H225_ArrayOf_AliasAddress & aliases)
+{
+	m_request.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
+	m_request.m_destinationInfo = aliases;
+}
+
 // class LocationRequest
 template<> H225_ArrayOf_AliasAddress *LocationRequest::GetAliases()
 {
@@ -779,6 +785,56 @@ bool VirtualQueue::SendRouteRequest(
 	return result;
 }
 
+bool VirtualQueue::SendRouteRequest(
+	/// calling endpoint
+	const PString& epid,
+	/// requestSeqNum of the request
+	unsigned seq,
+	/// destination (virtual queue) aliases as specified
+	/// by the calling endpoint (modified by this function on successful return)
+	H225_ArrayOf_AliasAddress* destinationInfo,
+	/// actual virtual queue name (should be present in destinationInfo too)
+	const PString& vqueue,
+	/// a sequence of aliases for the calling endpoint
+	/// (in the "alias:type[=alias:type]..." format)
+	const PString& sourceInfo
+	)
+{
+	bool result = false;
+	PString * callSigAdr = new PString;
+	bool duprequest = false;
+	if (RouteRequest *r = InsertRequest(epid, seq, destinationInfo, callSigAdr, duprequest)) {
+		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s",
+				"0.0.0.0",
+				(const char *)epid,
+				seq,
+				(const char *)vqueue,
+				(const char *)sourceInfo
+			);
+		msg += PString(";");
+		// signal RouteRequest to the status line only once
+		if( duprequest )
+			PTRACE(4, "VQueue\tDuplicate request: " << msg);
+		else {
+			PTRACE(2, msg);
+			GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_ROUTEREQ);
+		}
+
+		// wait for an answer from the status line (routetoalias,routereject)
+		result = r->m_sync.Wait(m_requestTimeout);
+		m_listMutex.Wait();
+		m_pendingRequests.remove(r);
+		m_listMutex.Signal();
+		if( !result )
+			PTRACE(5,"VQueue\tRoute request (EPID: "<<r->m_callingEpId
+				<<", CRV="<<r->m_crv<<") timed out"
+				);
+		delete r;
+		delete callSigAdr;
+	}
+	return result;
+}
+
 bool VirtualQueue::IsDestinationVirtualQueue(
 	const PString& destinationAlias /// alias to be matched
 	) const
@@ -925,8 +981,8 @@ private:
 	virtual bool IsActive();
 
 	virtual bool OnRequest(AdmissionRequest &);
+	virtual bool OnRequest(LocationRequest &);
 	// TODO
-	//virtual bool OnRequest(LocationRequest &);
 	//virtual bool OnRequest(SetupRequest &);
 	//virtual bool OnRequest(FacilityRequest &);
 
@@ -975,6 +1031,33 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			// decision process, otherwise the aliases is
 			// rewritten, we return false to let subsequent
 			// policies determine the request 
+			if (m_next == NULL || aliases->GetSize() == 0)
+				return true;
+		}
+	}
+	return false;
+}
+
+bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
+{
+	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
+		const PString agent(AsString((*aliases)[0], FALSE));
+		if (m_vqueue->IsDestinationVirtualQueue(agent)) {
+			H225_LocationRequest & lrq = request.GetRequest();
+			PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
+				"a virtual queue " << agent << " (LRQ "
+				<< lrq.m_requestSeqNum.GetValue() << ')'
+				);
+			PString epid = lrq.m_endpointIdentifier.GetValue();
+			if (epid.IsEmpty())
+				epid = lrq.m_gatekeeperIdentifier.GetValue() + "_" + AsString(lrq.m_sourceInfo, false);
+			if (m_vqueue->SendRouteRequest(epid, unsigned(lrq.m_requestSeqNum), aliases, agent, AsString(lrq.m_sourceInfo)))
+				request.SetFlag(RoutingRequest::e_aliasesChanged);
+			// the trick: if empty, the request is rejected
+			// so we return true to terminate the routing
+			// decision process, otherwise the aliases is
+			// rewritten, we return false to let subsequent
+			// policies determine the request
 			if (m_next == NULL || aliases->GetSize() == 0)
 				return true;
 		}

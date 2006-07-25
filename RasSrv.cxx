@@ -2456,6 +2456,15 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				} else
 					lcf.m_callSignalAddress = route.m_destAddr;
 
+				// canMapAlias: include destinationInfo if it has been changed
+				if (lrq.GetFlags() & Routing::LocationRequest::e_aliasesChanged
+					&& request.HasOptionalField(H225_LocationRequest::e_canMapAlias)
+					&& request.m_canMapAlias) {
+					if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
+						lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationInfo);
+						lcf.m_destinationInfo = request.m_destinationInfo;
+				}
+
 				log = PString(PString::Printf, "LCF|%s|%s|%s|%s;",
 					inet_ntoa(m_msg->m_peerAddr),
 					(const unsigned char *) (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr)),

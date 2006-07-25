@@ -1,5 +1,7 @@
 Changes from 2.2.4 to 2.2.5
 ===========================
+- implement virtual queues for LRQs
+- implement canMapAlias for LCFs sponsored by TelecomUnity Ltd.
 - copy all unknown IEs in Notify messages when forwarding
   (fixes some failed transfers)
 - BUGFIX(*.cxx) set all deleted pointers to NULL

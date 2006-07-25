@@ -1043,6 +1043,10 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 			Route route(m_name, lcf->m_callSignalAddress);
 			route.m_routeId = request.GetNeighborUsed();
 			route.m_flags |= Route::e_toNeighbor;
+			if (lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)) {
+				arq_obj.SetAliases(lcf->m_destinationInfo);
+				arq_obj.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);
+			}
 			arq_obj.AddRoute(route);
 			RasMsg *ras = arq_obj.GetWrapper();
 			(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_admissionConfirm);
