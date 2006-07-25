@@ -207,10 +207,10 @@ allow inbound call distribution by an external application via the
 status port.
 A virtual queue has an H.323 alias that can be called like an endpoint.
 
-Upon arrival of an ARQ on a virtual queue, the gatekeeper signals
+Upon arrival of an ARQ or LRQ on a virtual queue, the gatekeeper signals
 a RouteRequest on the status port and waits for an external application
-to respond with either a RouteReject (then the ARQ will be rejected)
-or with RouteToAlias/RouteToGateway which leads to the ARQ being rewritten so the call
+to respond with either a RouteReject (then the ARQ/LRQ will be rejected)
+or with RouteToAlias/RouteToGateway which leads to the ARQ/LRQ being rewritten so the call
 will be routed to the alias (eg. call center agent) specified by
 the external application.
 
@@ -218,11 +218,11 @@ If no answer is received after a timeout period, the call is terminated.
 
 You can specify virtual queues in three ways:
 <itemize>
-<item><tt/exact alias name/ - a list of aliases is given. If an ARQ destination
+<item><tt/exact alias name/ - a list of aliases is given. If a request destination
   alias matches one these names, the virtual queue is activated,
-<item><tt/prefix/ - a list of prefixes is given. If an ARQ destination alias
+<item><tt/prefix/ - a list of prefixes is given. If a request destination alias
   starts with one these prefixes, the virtual queue is activated,
-<item><tt/regular expression/ - a regular expression is given. If an ARQ destination
+<item><tt/regular expression/ - a regular expression is given. If a request destination
   alias matches the expression, the virtual queue is activated.
 </itemize>
 
