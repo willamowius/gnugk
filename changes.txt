@@ -6,6 +6,12 @@ Changes from 2.2.4 to 2.2.5
   (fixes some failed transfers)
 - BUGFIX(*.cxx) set all deleted pointers to NULL
 - new SyslogAcct accounting module for the Unix syslog
+- (gkauth.cxx)Reapplied H235.1 (formally known as H235AnnexA) by using OpenH323 Authenticator factory loader
+- (rassrv.cxx)Registration Priority Added
+- (rassrv.cxx)TreatUnregisteredNat added. Treat unregistered calls unknown NAT status as being NAT
+- (routing.cxx)DNS SRV support to DNS Routing policy
+- (toolkit.cxx)RewriteAlias section added
+
 
 Changes from 2.2.3 to 2.2.4
 ===========================
