@@ -2453,16 +2453,18 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				lcf.m_cryptoTokens.SetSize(s + 1);
 				lcf.m_cryptoTokens[s] = Neighbors::BuildAccessToken(*dest, ipaddr);
 */
-				} else
+				} else {
 					lcf.m_callSignalAddress = route.m_destAddr;
+				}
 
 				// canMapAlias: include destinationInfo if it has been changed
 				if (lrq.GetFlags() & Routing::LocationRequest::e_aliasesChanged
 					&& request.HasOptionalField(H225_LocationRequest::e_canMapAlias)
 					&& request.m_canMapAlias) {
-					if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo))
+					if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo)) {
 						lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationInfo);
-						lcf.m_destinationInfo = request.m_destinationInfo;
+					}
+					lcf.m_destinationInfo = request.m_destinationInfo;
 				}
 
 				log = PString(PString::Printf, "LCF|%s|%s|%s|%s;",

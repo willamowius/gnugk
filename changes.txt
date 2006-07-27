@@ -1,5 +1,6 @@
 Changes from 2.2.4 to 2.2.5
 ===========================
+- Bugfix(Neighbor.cxx) copy canMapAlias when forwarding LRQs
 - implement virtual queues for LRQs
 - implement canMapAlias for LCFs sponsored by TelecomUnity Ltd.
 - copy all unknown IEs in Notify messages when forwarding

@@ -311,14 +311,21 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest &
 bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest &orig_lrq)
 {
 	// adjust hopCount to be lesser or equal to the original value
-	if( orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_hopCount) )
-		if( lrq.HasOptionalField(H225_LocationRequest::e_hopCount) ) {
-			if( lrq.m_hopCount > orig_lrq.GetRequest().m_hopCount )
+	if (orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_hopCount)) {
+		if (lrq.HasOptionalField(H225_LocationRequest::e_hopCount)) {
+			if (lrq.m_hopCount > orig_lrq.GetRequest().m_hopCount)
 				lrq.m_hopCount = orig_lrq.GetRequest().m_hopCount;
 		} else {
 			lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
 			lrq.m_hopCount = orig_lrq.GetRequest().m_hopCount;
 		}
+	}
+
+	// copy over canMapAlias
+	if (orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_canMapAlias)) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
+		lrq.m_canMapAlias = orig_lrq.GetRequest().m_canMapAlias;
+	}
 
 	return OnSendingLRQ(lrq);
 }
@@ -1105,6 +1112,13 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 				route.m_flags |= Route::e_toNeighbor;
 				lrq_obj.AddRoute(route);
 				(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_locationConfirm);
+				// canMapAlias: copy new destination if changed
+				if (lrq_obj.GetRequest().HasOptionalField(H225_LocationRequest::e_canMapAlias)
+					&& lrq_obj.GetRequest().m_canMapAlias
+					&& lrq_obj.GetRequest().m_destinationInfo != lcf->m_destinationInfo) {
+					lrq_obj.GetRequest().m_destinationInfo = lcf->m_destinationInfo;
+					lrq_obj.SetFlag(RoutingRequest::e_aliasesChanged);
+				}
 				H225_LocationConfirm & nlcf = (*ras)->m_replyRAS;
 				CopyCryptoTokens(lcf, nlcf);
 				return true;

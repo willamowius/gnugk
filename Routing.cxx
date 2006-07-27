@@ -1048,6 +1048,15 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				"a virtual queue " << agent << " (LRQ "
 				<< lrq.m_requestSeqNum.GetValue() << ')'
 				);
+
+			// only use vqueue if sender is able to handle changed destination
+			if (lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias)) {
+				if (!lrq.m_canMapAlias) {
+					PTRACE(5, "Sender can't map destination alias, skipping virtual queue");
+					return false;
+				}
+			}
+
 			PString epid = lrq.m_endpointIdentifier.GetValue();
 			if (epid.IsEmpty())
 				epid = lrq.m_gatekeeperIdentifier.GetValue() + "_" + AsString(lrq.m_sourceInfo, false);
