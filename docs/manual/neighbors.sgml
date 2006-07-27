@@ -106,17 +106,6 @@ Whether to accept an LRQ forwarded from neighbors.
 This setting can be overridden with configuration
 of a particular neighbor.
 
-<item><tt/IncludeDestinationInfoInLCF=0/<newline>
-Default: <tt/1/<newline>
-<p>
-The gatekeeper replies LCFs containing <bf/destinationInfo/ and
-<bf/destinationType/ fields, the aliases and terminal type of the destination
-endpoint. The neighbor gatekeeper can then save the information to suppress
-later LRQs. However, some vendors' gatekeepers misuse the information, thus
-result in interoperability problems.
-Only turn off this option if you encounter problems upon communicating
-with a third-party gatekeeper.
-
 <item><tt/ForwardResponse=0/<newline>
 Default: <tt/0/<newline>
 <p>

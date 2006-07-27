@@ -403,29 +403,6 @@ EndpointRec *EndpointRec::Expired()
 	return this;
 }
 
-/*
-void EndpointRec::BuildACF(H225_AdmissionConfirm & obj_acf) const
-{
-	obj_acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
-	obj_acf.m_destinationInfo = GetAliases();
-	obj_acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
-	obj_acf.m_destinationType = GetEndpointType();
-}
-
-void EndpointRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
-{
-	obj_lcf.m_callSignalAddress = GetCallSignalAddress();
-	obj_lcf.m_rasAddress = GetRasAddress();
-	extern const char *LRQFeaturesSection;
-	if (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "IncludeDestinationInfoInLCF", "1"))) {
-		obj_lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationInfo);
-		obj_lcf.m_destinationInfo = GetAliases();
-		obj_lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
-		obj_lcf.m_destinationType = GetEndpointType();
-	}
-}
-*/
-
 PString EndpointRec::PrintOn(bool verbose) const
 {
 	PString msg(PString::Printf, "%s|%s|%s|%s\r\n",

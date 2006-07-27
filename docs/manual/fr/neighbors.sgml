@@ -112,17 +112,6 @@ D&#233;fault: <tt/1/
 Indique si on doit accepter un LRQ transmis depuis les voisins.
 Ce param&#232;tre peut &#234;tre annul&#233; par la configuration d'un voisin donn&#233;.
 
-<item><tt/IncludeDestinationInfoInLCF=0/<newline>
-D&#233;fault: <tt/1/
-<p>
-Le gatekeeper r&#233;pond avec des LCFs contenant les champs <bf/destinationInfo/ et
-<bf/destinationType/, les alias et type de terminal du terminal de destination.
-Le gatekeeper voisin peut alors sauver cette information pour supprimer les LRQs
-ult&#233;rieurs. Cependant, certains fournisseurs de gatekeeper font mauvais usage de
-cette information, entra&#238;nant des probl&#232;mes d'interop&#233;rabilit&#233;.
-Ne d&#233;sactiver cette option que si vous rencontrez des probl&#232;mes de
-communication avec un gatekeeper tiers.
-
 <item><tt/ForwardResponse=0/<newline>
 D&#233;fault: <tt/0/
 <p>
