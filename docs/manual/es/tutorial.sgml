@@ -1,23 +1,29 @@
-<sect>Empezando(Tutorial)
+<sect>Empezando (Tutorial)
 <p>
 <sect1>Un simple primer experimento
 <p>
-Para ver que todos los componentes estan cargados y funcionando, coja 2 estaciones de trabajo Linux, ambas conectadasd a la LAN.
-Asegurese de que tiene al menos la version 1.1 de OpenH323 y OhPhone instalados.
-En la primera maquina ejecute el gatekeeper y ohphone (en consolas diferentes:
+Para ver que todos los componentes están levantados y funcionando, 
+escoja 2 estaciones de trabajo Linux, ambas conectadas a la LAN.
+Asegúrese de que tiene al menos la versión 1.1 de OpenH323 y OhPhone instalados.
+En la primera máquina ejecute el gatekeeper y el ohphone (en consolas diferentes:
 
 <tscreen><verb>
 jan@machine1 > gnugk -ttt
 </verb></tscreen>
 
-Ahora el gatekeeper está ejecutandose en modo directo.
-La opcion "<tt/-ttt/" le dice al gatekeeper que genere mucha salida para debug en la consola (puede dirigir esa salida a un fichero con "<tt/-o logfile/").
+Ahora el gatekeeper está ejecutándose en modo directo.
+La opción "<tt/-ttt/" le dice al gatekeeper que genere mucha salida para debug 
+en la consola (puede dirigir esa salida a un fichero con "<tt/-o logfile/").
 
 <tscreen><verb>
 jan@machine1 > ohphone -l -a -u jan
 </verb></tscreen>
 
-Ahora este OhPhone está escuchando (<tt/-l/) para recibir llamadas y las aceptara automaticamente (<tt/-a/). Se ha registrado como usuario jan con el gatekeeper que detectara automaticamente. (si la autodeteccion fallara por alguna razon, use "<tt/-g 1.2.3.4/" para especificar la IP donde esta escuchando el gatekeeper.)
+Ahora el OhPhone está escuchando (<tt/-l/) para recibir llamadas y las aceptará 
+automáticamente (<tt/-a/). Se ha registrado como usuario jan con el gatekeeper 
+que será detectado automáticamente. (si la autodetección fallara por alguna 
+razón, use "<tt/-g 1.2.3.4/" para especificar la IP donde está escuchando 
+el gatekeeper).
 
 En la segunda maquina ejecute solamente ohphone:
 
@@ -25,21 +31,25 @@ En la segunda maquina ejecute solamente ohphone:
 peter@machine2 > ohphone -u peter jan
 </verb></tscreen>
 
-La segunda instancia de OhPhone se registra con el gatekeeper auto detectado como usuario peter y intenta llamar al usuario jan.
-El gatekeeper resolvera el nombre de usuario a la IP desde donde el usuario jan se registro (maquina1 en este caso) y OhPhone llamara la otra instancia de OhPhone en la maquina uno.
+La segunda instancia de OhPhone se registra con el autodetectado gatekeeper  
+como usuario peter e intenta llamar al usuario jan.
+El gatekeeper resolverá el nombre de usuario a la IP desde 
+donde el usuario jan se registró (máquina1 en este caso) y OhPhone 
+llamará la otra instancia de OhPhone en la maquina uno.
 
-La primera instancia de OhPhone aceptara esta llamada y Peter y Jan podran hablar.
+La primera instancia de OhPhone aceptará esta llamada y Peter y Jan podran hablar.
 
-<sect1>Usando la interface de Status para monitorizar el gatekeeper
+<sect1>Utilizando la interfaz de Estado para monitorizar el gatekeeper
 <p>
-Ahora intente ver que mensajes han sido manejados por el gatekeeper.
+Ahora intente ver qué mensajes son manejados por el gatekeeper.
 En la nueva consola en maquina1 vamos a usar telnet para conectar al gatekeeper:
 
 <tscreen><verb>
 jan@machine1 > telnet machine1 7000
 </verb></tscreen>
 
-Probablemente recibiremos un mensaje de acceso denegado ("Access forbidden!"), porque no se le permite a todo el mundo espiar.
+Lo más probable es que recibiremos un mensaje de acceso denegado ("Access forbidden!"), porque 
+no se le permite a todo el mundo espiar.
 
 Ahora crearemos un fichero llamado <tt/gatekeeper.ini/ y lo colocaremos en el directorio donde arrancamos el gatekeeper.
 <tt/gatekeeper.ini/ solo contiene 4 lineas:
@@ -51,42 +61,73 @@ Fortytwo=42
 rule=allow
 </verb></tscreen>
 
-Pare el gatekeeper con Ctrl-C y ejecutelo de nuevo.
-Cuando hagamos el telnet de nuevo, permaneceremos conectados con el gatekeeper.
-Ahora repita el primer experimento donde Peter llama a Jan y observe que mensajes son manejados por el gatekeeper en el modo no-enrutado.
-En esta sesion de telnet pueden ser enviados algunos comandos:
+Detenga el gatekeeper con Ctrl-C y ejecútelo de nuevo.
+Cuando hagamos el telnet de nuevo, estaremos conectados con el gatekeeper.
+Ahora repita el primer experimento donde Peter llama a Jan y observe qué 
+mensajes son manejados por el gatekeeper en modo no enrutado.
+Hay un número de comandos que pueden ser emitidos en esta sesión telnet:
 Teclee "help" para verlos.
-Para finalizar la sesion de telnet con el gatekeeper teclee "quit" y presione Enter.
+Para finalizar la sesión de telnet con el gatekeeper teclee "quit" y presione Enter.
+
+Pero esto es muy inseguro, todos podrían conectarse hacia la interfaz de estado y ver ésta.
+Cambiemos entonces el archivo de configuración de la siguiente manera
+
+<tscreen><verb>
+[Gatekeeper::Main]
+Fortytwo=42
+[GkStatus::Auth]
+rule=password
+gkadmin=QC7VyAo5jEw=
+</verb></tscreen>
+
+La quinta (5) línea es agregada por la utilidad addpasswd, ésta crea un usuario llamado "gkadmin" con 
+una contraseña "secret" limitando de esta manera el acceso hacia el puerto de estado.
+Reinicie el gatekeeper con esta nueva configuración y realice telnet nuevamente.
+Ahora se le preguntará por un nombre de usuario (username) y una contraseña (password) antes de que pueda entrar.
+
+Tome una mirada a la sección <ref id="gkstatusauth" name="GkStatus::Auth"> para más detalle sobre seguridad del puerto de estado.
 
 <sect1>Arrancando el gatekeeper en modo enrutado.
 <p>
-Arrancando el gatekeeper en modo enrutado significa que el gatekeeper usa "señales de enrutado gatekeeper" para todas las llamadas. En este modo el gatekeeper todos los mensajes de señalicacion del gatekeeper pasaran a traves del gatekeeper y esto permite mucho mas control sobre las llamadas.
+Arrancando el gatekeeper en modo enrutado significa que el gatekeeper 
+utiliza "señales de enrutado gatekeeper" para todas las llamadas. En este 
+modo de gatekeeper todos los mensajes de señalización pasarán 
+a través del gatekeeper y esto permite mucho mas control sobre las llamadas.
 
 <tscreen><verb>
 jan@machine1 > gnugk -r
 </verb></tscreen>
 
-Ahora el gatekeeper esta ejecutandose en modo enrutado. Haga telnet al puerto de estado y realice una llamada para ver que mensajes son manejados ahora por el gatekeeper.
+Ahora el gatekeeper está ejecutándose en modo enrutado. Haga telnet al puerto de estado 
+y realice una llamada para ver que mensajes son manejados ahora por el gatekeeper.
 
-Recuerde que todos los paquetes multimedia (audio y video) son todavia enviados directamente entre los endpoints (las 2 instancias de ohphone).
-
-Desde que la señalicacion enrutada del gatekeeper es mucho mas complicada usted tiene mas posibilidades de encontrarse con un bug en el gatekeeper en este modo.
-Pero si se rompe, usted tiene que recoger las piezas. ;-)
+Recuerde que todos los paquetes multimedia (audio y video) son todavía enviados 
+directamente entre los endpoints (las 2 instancias de ohphone).
 
 <p>
-<sect1>Una centralita (PBX) virtual: desconectando llamadas
+<sect1>Un PBX virtual: Desconectando llamadas
 <p>
-Hasta ahora el gatekeeper ha actuado solamente como un mecanismo para resolver nombres simbolicos a direcciones IP. Es una funcion importante pero dificilmente excitante.
+Hasta ahora el gatekeeper ha actuado solamente como un mecanismo 
+para resolver nombres simbólicos a direcciones IP. Es una función 
+importante pero difícilmente excitante.
 
-Desde que el gatekeeper tiene un gran control sobre las llamdas, este puede finalizarlas por ejemplo. Cuando estamos conectados al puerto de estado, podemos listar todas las llamadas activas con "<tt/PrintCurrentCalls/". Para finalizar una llamada, podemos decir "<tt/Disconnectip 1.2.3.4/" para uno de estos endpoints.
+Puesto que el gatekeeper tiene un gran control sobre las llamdas, 
+éste puede finalizarlas por ejemplo. Cuando estamos conectados 
+al puerto de estado, podemos listar todas las llamadas activas 
+con "<tt/PrintCurrentCalls/". Para finalizar una llamada, podemos decir 
+"<tt/Disconnectip 1.2.3.4/" para uno de estos endpoints.
 
-Uno puede por ejemplo escribir un script simple que conecte al puerto de estado y escuche todas las llamadas entrantes y las termine despues de 5 minutos, asi ningun usuario puede sobrepasar los recursos del sistema.
+Uno puede por ejemplo escribir un script simple que conecte al 
+puerto de estado y escuche todas las llamadas entrantes y las termine 
+después de 5 minutos, así ningún usuario puede sobrepasar los recursos del sistema.
 
-Eche un vistazo a las otra funciones de telefonia como TransferCall para ver que mas hay disponible.
+Eche un vistazo a las otras funciones de telefonía como TransferCall para ver que mas hay disponible.
 
 <sect1>Enrutando llamadas sobre un gateway para alcanzar usuarios externos
 <p>
-Sin usar un gateway usted solo puede llamar a otras personas con un telefono IP a traves de internet. Para alcanzar gente con telefonos ordinarios debe de usar un gateway.
+Sin usar un gateway usted solo puede llamar a otras personas con un 
+teléfono IP a traves de internet. Para alcanzar gente con teléfonos 
+convencionales debe de usar un gateway.
 
 <tscreen><verb>
 _________________          ______________
@@ -99,36 +140,47 @@ _________________          |            |
 |_______________|
 </verb></tscreen>
 
-El gatekeeper tiene que conocer que llamadas deben de ser supuestamente enrutadas a traves del gateway y que numeros deben ser llamados directamente.
-Use la seccion [RasSrv::GWPrefixes] del fichero de configuracion para decirle al gatekeeper el prefijo de numeros que deben de ser enrutados a traves del gateway.
+El gatekeeper tiene que conocer qué llamadas deben de ser supuestamente enrutadas 
+a través del gateway y que números deben ser llamados directamente.
+Use la sección [RasSrv::GWPrefixes] del fichero de configuración para decirle 
+al gatekeeper el prefijo de números que deben de ser enrutados a través del gateway.
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
 gw1=0
 </verb></tscreen>
 
-Esta entrada le dira al gatekeeper que enrute todas las llamadas a numeros E.164 que empiezen por 0 al gateway que se ha registrado con el alias "gw1". Si no hay ningun gateway registrado con este alias la llamada fallara. (Recuerde que debe usar un aligas para el gateway - no puede simplemente decirle al gatekeeper la IP del gateway.)
+Esta entrada le dirá al gatekeeper que enrute todas las llamadas a numeros E.164 
+que empiezen por 0 al gateway que se ha registrado con el alias "gw1". 
+Si no hay ningun gateway registrado con este alias la llamada fallará. 
+Recuerde que debe usar un alias para el gateway - no puede simplemente 
+decirle al gatekeeper la IP del gateway.
 
 <p>
-Un prefijo puede contener los digitos <tt/0-9/, <tt/#/ y <tt/*/. Tambien puede contener un caracter especial <tt/./ (un punto) que sustituye cualquier digito y puede ser prefijado con <tt/!/ (un signo de exclamacion final) para desactivar el prefijo.
-La sustitucion de prefijos se hace de acuerdo a la regla de sustitucion de prefijos mas larga,
+Un prefijo puede contener los dígitos <tt/0-9/, <tt/#/ y <tt/*/. Tambien puede 
+contener un caracter especial <tt/./ (un punto) que sustituye cualquier dígito 
+y puede ser prefijado con <tt/!/ (un signo de exclamación final) para desactivar el prefijo.
+La sustitución de prefijos se hace de acuerdo a la regla de sustitución de prefijos mas larga,
 teniendo las reglas ! mayor prioridad si la longitud es igual. Algunos ejemplos:
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
-; Esta entrada enrutara numeros que empiecen con 0048 (pero no con 004850 y 004860)
+; Esta entrada enrutará numeros que empiecen con 0048 (pero no con 004850 y 004860)
 ; a gw1
 gw1=0048,!004850,!004860
-; Esta entrada sustituira solamente 001 y 10 digitos a continuacion
+; Esta entrada hará corresponder solamente 001 y 10 digitos a continuación
 gw2=001..........
 </verb></tscreen>
 
-<sect1>Reescribiendo numero E.164
+<sect1>Reescribiendo números E.164
 <p>
-Mientras este usando un gateway frecuentemente tendra que usar internamente numeros diferentes y reescribirlos antes de enviarlos a traves del gateway a una red telefonica. Puede usar la seccion <ref id="rewrite" name="RasSrv::RewriteE164"> para configurar esto.
+Mientras este usando un gateway frecuentemente tendrá que usar internamente numeros diferentes 
+y reescribirlos antes de enviarlos a través del gateway a una red telefónica. 
+Puede usar la sección <ref id="rewrite" name="RasSrv::RewriteE164"> para configurar ésto.
 
 Ejemplo:
-Usted quiere llamar el numero 12345 con su telefono IP y le gustaria alcanzar el numero 08765 detras de un gateway llamado "gw1".
+Usted quiere llamar el número 12345 con su telefono IP y le gustaría 
+alcanzar el número 08765 detrás de un gateway llamado "gw1".
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
@@ -138,7 +190,7 @@ gw1=0
 12345=08765
 </verb></tscreen>
 
-Usted puede además configurar la reescritura de números E.164 basándose desde que gateway
+Usted puede además configurar la reescritura de números E.164 basándose desde qué gateway
 usted está recibiendo la llamada o enviando una llamada para que utilice la sección
 <ref id="gwrewrite" name="RasSrv::GWRewriteE164">.
 
@@ -173,8 +225,8 @@ gw1=in=00=123400
 La reescritura de expresiones acepta los caracteres comodín como <tt/'.'/ y signos de porcentaje <tt/'%'/
 para permitir construír reglas más generales. El caracter punto puede estar
 en cuanquier lado de las expresiones (izquierda o derecha), el signo de porcentaje solo puede estar
-al la izquierda. Use <tt/'.'/ para corresponder cualquier caracter y copiar éste
-en la cadena reescrita y <tt/'%'/ para enparejar cualquier caracter e ignorar éste.
+a la izquierda. Use <tt/'.'/ para corresponder cualquier caracter y copiar éste
+en la cadena reescrita y <tt/'%'/ para emparejar cualquier caracter e ignorar éste.
 Aqui uno ejemplos simples:
 
 <tscreen><verb>

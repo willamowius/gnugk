@@ -1,13 +1,14 @@
-<sect>Compilacion e Instalacion
+<sect>Compilación e Instalación
 <p>
 <sect1>Compilando el Gatekeeper
 <p>
 Para crear el gatekeeper se necesitan al menos PWLib 1.5.0 y OpenH323 1.12.0 o superiores.
-La version en desarrollo del gatekeeper normalmente necesita la ultima version disponible de OpenH323.
+La version en desarrollo del gatekeeper normalmente necesita la 
+última version disponible de OpenH323.
 Esas librerias estan disponibles en la
-<url url="http://www.openh323.org/code.html" name="página de descargas de OpenH323">.
+<url url="http://sourceforge.net/projects/openh323" name="Página de descargas de OpenH323">.
 Consulte las instrucciones sobre
-<url url="http://www.openh323.org/build.html" name="como compilar el código OpenH323">.
+<url url="http://www.voxgratia.org/docs/faq.html" name="Cómo compilar el código OpenH323">.
 
 Orden de compilacion:
 <enum>
@@ -17,20 +18,46 @@ Orden de compilacion:
 <item>El Gatekeeper
 </enum>
 
-En Unix haga un <tt/configure/ y <tt/make debug/ o <tt/make opt/ en el directorio del gatekeeper para crear la version debug o release, respectivamente.
+En Unix haga un <tt/configure/ y <tt/make debug/ o <tt/make opt/
+en el directorio del gatekeeper para crear la version debug o release, respectivamente.
 Use <tt/make both/ para crear ambas versiones.
 Recuerde que tiene que usar el GCC 3.3.x o superior. Las versiones anteriores pueden no funcionar.
 Una buena practica es hacer un <tt/make debugdepend/ o <tt/make optdepend/
-en el directorio del gatekeeper antes de empezar la compilacion actual (make debug o make opt) - estos comandos crean las listas de dependencias apropiadas, asi despues de que actualice las fuentes desde el CVS, todos los ficheros afectados seran recompilados.
-De lo contrario puede acabar con el Gatekeeper compilado parcialmente con las antiguas y nuevas cabeceras - algo muy malo.
-En MS Windows simplemente abra y compile el proyecto facilidato (<tt/gk.dsw/) para Microsoft Visual C++ 6.0 o 7.0 (Visual C++ 5.0 es demasiado antiguo).<newline>
+en el directorio del gatekeeper antes de empezar la compilacion actual (make debug o
+make opt) - estos comandos crean las listas de dependencias apropiadas, asi despues de que
+actualice las fuentes desde el CVS, todos los ficheros afectados seran recompilados.
+De lo contrario puede acabar con el Gatekeeper compilado parcialmente con las antiguas
+cabeceras y parcialmente con las cabeceras actualizadas - algo muy malo.<newline>
 
-Teclee <tt/configure --help/ para ver una lista detallada de todas las opciones de compilacion. Puede usarlas para activar o desactivar algunas caracteristicas del gatekeeper.
+En MS Windows simplemente abra y compile la solución facilitada (<tt/gk.sln/) para
+Microsoft Visual Studio .NET 2003 o el workspace (<tt/gk.dsw/) para Microsoft
+Visual Studio 6.0 SP6. Por supuesto necesita tener las librerías PWLib
+y OpenH323 yá compiladas y establecidos los paths include/library apropiados.
+Si usted desea tener soporte para MYSQL o PostgreSQL instale/compile las librerias
+del cliente apropiadas y agregue HAS_MYSQL=1 y/o HAS_PGSQL=1 al preprocesor
+macros del proyecto del gatekeeper. Además necesita indicarle al compilador
+donde encontrar los include files/libraries y decirle al linker que se enlace
+con esas librerías del cliente.
+<newline>
+
+Teclee <tt/configure --help/ para ver una lista detallada de todas las opciones de
+compilacion. Puede usarlas para activar o desactivar algunas caracteristicas del gatekeeper.
 Por ejemplo, si no necesita us RADIUS simplemente teclee: <tt/configure --disable-radius/.<newline>  
 
-Para crear el gatekeeper con las librerias de OpenH323 y del sistema enlazadas estaticamente, tiene que usar <tt/make optnoshared/ o <tt/make debugnoshared/ .
+Las versiones recomendadas de las librerías PWLib/OpenH323 son aquellas de la release Pandora
+(1.7.5.2/1.14.4.2) o superiores. Versiones anteriores ya no son soportadas y no se
+garantiza que funcionen con el gatekeeper.
 
-Para poder usar el gatekeeper en entornos de gran carga, se recomienda activar la caracteristica LARGE_FDSET (configure --with-large-fdset=1024). La mayoria de los sistemas tambien necesitan recompilar/reconfigurar el kernel para poder permitir que mas de 1024 sockets sean asignados a un solo proceso. Recuerde que la libreria PWLib tambien empieza a soportar desde la version 1.5.3 una caracteristica similar, asi que puede elegir entre LARGE_FDSET GnuGk y la implementacion de PWLib. La implementacion nativa de GnuGk da mejor rendimiento. El valor maximo de LARGE_FDSET debe de ser calculado basandose en la prediccion del maximo numero de sockets usados. Una regla a ojo podria ser:
+Para construír el gatekeeper con las librerias de OpenH323 y del sistema enlazadas estaticamente,
+tiene que usar <tt/make optnoshared/ o <tt/make debugnoshared/.
+
+Para poder usar el gatekeeper en entornos de gran carga, es recomendado habilitar la caracteristica LARGE_FDSET
+(configure --with-large-fdset=1024) (SOLAMENTE PARA VERSIONES UNIX). Algunos sistemas
+además necesitan utilizar el "ulimit" para permitir que más de 1024 sockets sean asignados
+a un solo proceso. Tenga en cuenta que la librería PWLib, empezando desde la versión 1.5.3 soporta una característica similar también, de esta manera usted puede seleccionar entre
+el LARGE_FDSET del GnuGk y la implementación de la librería PWLib. La implementación nativa del GnuGk proporciona
+mejores resultados de rendimiento. El máximo valor de LARGE_FDSET debe ser calculado
+basándose en la predicción del máximo uso de sockets. Una regla al ojo puede ser:
 <tscreen><verb>
 MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
 
@@ -39,26 +66,77 @@ Donde:
 </verb></tscreen>
 Asi para 100 llamadas simultaneas no necesita mas de 1024 sockets en el LARGE_FDSET.
 
-<sect1>Instalacion del Gatekeeper
+<sect1>La Herramienta "addpasswd"
+<p>
+La autenticación del acceso a la línea de estado y el módulo SimplePasswordAuth requieren 
+que contraseñas encriptadas sean almacenadas en el archivo de configuración del gatekeeper. 
+Además desde la versión 2.2.2, el gatekeeper soporta encriptación de todas las contraseñas 
+en la configuración. La utilidad <tt/addpasswd/ ayuda a generar y almacenar 
+esas contraseñas encriptadas. Esta utilidad está incluída con el gatekeeper 
+y puede ser compilada empleando:
+<tscreen><verb>
+$ make addpasswd
+</verb></tscreen>
+
+El uso de esta utilidad es como se sigue:
+<tscreen><verb>
+$ addpasswd CONFIG SECTION KEYNAME PASSWORD
+</verb></tscreen>
+
+Ejemplo 1: El usuario 'gkadmin' con la contraseña 'secret' tiene que ser agregado 
+a la sección de configuración [GkStatus::Auth] para habilitar la autenticación de la 
+interfaz de la linea de estado:
+<tscreen><verb>
+$ addpasswd gnugk.ini GkStatus::Auth gkadmin secret
+</verb></tscreen>
+
+Ejemplo 2: El usuario 'joe' con la contraseña 'secret' tiene que ser agregado a 
+la sección de configuración [Password] para habilitar la autenticación de endpoints:
+<tscreen><verb>
+$ addpasswd gnugk.ini Password joe secret
+</verb></tscreen>
+
+Ejemplo 3: Una "secret" encriptada compartida es agregada a la sección de configuración RadAuth:
+<tscreen><verb>
+$ addpasswd gnugk.ini RadAuth SharedSecret VerySecretPassword
+</verb></tscreen>
+
+IMPORTANTE: La variable <tt/KeyFilled/ define un valor por defecto para la llave (key) de 
+encriptación de contraseñas. Esta puede omitirse en la configuración (entonces se define a 0), 
+pero si ésta es especificada, cada vez ésta cambia, las contraseñas encriptadas tiene que ser 
+regeneradas (encriptadas nuevamente utilizando la utilidad <tt/addpasswd/). Además tenga presente 
+que al usar esta utilidad se borrarán todas las líneas que estén comentadas dentro del archivo 
+de configuración.
+</sect1>
+
+<sect1>Instalación del Gatekeeper
 <p>
 No se necesita un procedimiento especial de instalacion.
-Simplemente copie el ejecutable en el directorio que usted quiera y cree un fichero de configuracion para este.
-Hay muchos ejemplos de configuracion en el subdirectorio <tt>etc/</tt> del arbol del codigo fuente. Consulte la seccion <ref id="config" name="Fichero de Configuration"> para una explicacion mas detallada.
+Simplemente copie el ejecutable en el directorio que usted quiera 
+y cree un fichero de configuración para este.
+Hay muchos ejemplos de configuracion en el subdirectorio <tt>etc/</tt> 
+del arbol del codigo fuente. Consulte la seccion <ref id="config" name="Fichero de Configuration"> 
+para una explicacion mas detallada.
 
-Por ejemplo, en una plataforma Linux x86, el ejecutable <tt/gnugk/ optimizado es creado en el subdirectorio <tt>obj_linux_x86_r/</tt>.
-Puede copiarlo a <tt>/usr/sbin/</tt>, crear una configuracion en <tt>/etc/gnugk.ini</tt> y ejecutarlo mediante 
+Por ejemplo, en una plataforma Linux x86, el ejecutable optimizado <tt/gnugk/ 
+es creado en el subdirectorio <tt>obj_linux_x86_r/</tt>.
+Puede copiarlo a <tt>/usr/sbin/</tt>, crear una configuracion en 
+<tt>/etc/gnugk.ini</tt> y ejecutarlo mediante 
 <tscreen><verb>
 $ /usr/sbin/gnugk -c /etc/gnugk.ini -o /var/log/gnugk.log -ttt
 </verb></tscreen>
-Consulte la seccion <ref id="commandline" name="Opciones de linea de comandos"> para más detalles.
+Consulte la seccion <ref id="commandline" name="Opciones de línea de comandos"> para más detalles.
 
-<sect1>Binarios pre-compilados
+<sect1>Binarios Pre-Construídos.
 <p>
-Si no desea compilar el gatekeeper desde las fuentes, hay muchos 'paquetes' pre-compilados disponibles desde <url url="http://sourceforge.net/project/showfiles.php?group_id=4797" name="SourceForge">.
-No todas las versiones seran puestas a disposicion como binarios - compruebe cual esta disponible.
+Si no desea compilar el gatekeeper desde el código fuente, 
+hay muchos 'paquetes' pre-construídos disponibles en 
+<url url="http://sourceforge.net/project/showfiles.php?group_id=4797" name="SourceForge">.
+No todas las versiones serán puestas a disposición como binarios, compruebe cual está disponible.
 
 <bf/Paquetes Tar (.tgz or .tar.gz)/<p>
-Descarge el fichero tar y intruduzca el siguiente comando bajo <tt/root/, sustituya el nombre del fichero por el del que ha descargado.
+Descarge el fichero tar e intruduzca el siguiente comando bajo <tt/root/, 
+sustituya el nombre del fichero por el del que ha descargado.
 <tscreen><verb>
 $ tar xvzf gnugk-x.x.x.tar
 </verb></tscreen>

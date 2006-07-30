@@ -13,26 +13,25 @@ dentro de tres <bf/Niveles de rastreo de salida/:
 <itemize>
 <item>Nivel 0
 	<quote>
-	Notificacione se recarga (Reload) y respuesta directa a comandos ejecutados.
+	Notificaciones de recarga (Reload) y respuesta directa a comandos ejecutados.
 	</quote>
 <item>Nivel 1
 	<quote>
-	Notificacione se recarga (Reload), respuesta directa a comandos ejecutados, CDRs y Route Requests.
+	Notificaciones de recarga (Reload), respuesta directa a comandos ejecutados, CDRs y Route Requests.
 	</quote>
 <item>Nivel 2
 	<quote>
 	Todas las salidas (Notificacione se recarga (Reload), respuesta directa a comandos ejecutados, 
-	CDRs, Route Requests,RAS, ...). Este es el nivel de salida por <bf/defecto/.
+	CDRs, Route Requests,RAS, ...). Éste es el nivel de salida por <bf/defecto/.
 	</quote>
 </itemize>
-El cliente que este conectado hacia el puerto de estado puede seleccionar el nivel de salida (output level) que él desee.
+El cliente que esté conectado hacia el puerto de estado puede seleccionar el nivel de salida (output level) que él desee.
 
 <p>
 La interfaz es un simple puerto TCP (por defecto: 7000), usted puede conectarse hacia éste mediante telnet u otro cliente. 
-Un ejemplo de un cliente diferente es el Java GUI, aka GkGUI.
-Otro ejemplo es la aplicación Automatic Call Distribution, aka GnuGk ACD.
+Un ejemplo de un cliente es el Java GUI, aka GkGUI. Otro ejemplo es la aplicación Automatic Call Distribution, aka GnuGk ACD.
 
-<sect2>Areas de aplicación
+<sect2>Áreas de aplicación
 <p>
 Depende de usted lo que haga con el poder del puerto de estado, pero aqui hay algunas ideas:
 <itemize>
@@ -120,7 +119,7 @@ o administrada por un servidor web sobre el mismo número de IP del gatekeeper
 (usted no puede ejecutar esta GUI como un applet mediante el archivo local).
 
 La aplicación está disponible en
-<url url="http://www.gnugk.org/h323gui.html">
+<url url="http://www.gnugk.org/h323gui.html" name="GnuGk Java GUI">
 
 <item>GkGUI<p>
 Una nueva aplicación standalone Java desarrollado por
@@ -139,12 +138,12 @@ Este requiere Java 1.4. Entre las nuevas características se incluyen:
 </itemize>
 
 El GkGUI esta lanzada bajo GNU General Public License, disponible en
-<url url="http://www.gnugk.org/h323develop.html#java">
+<url url="http://www.gnugk.org/h323develop.html#java" name="GnuGk Development">
 </itemize>
 
 <sect1>Comandos (Referencia)
 <p>
-Esta sección muestra todos los comandos que usted puede enviar al puerto de estado (manualmente o mediante una aplicación externa). Todos los comandos son case-insensitive. Pero algunos parámetros pueden ser case-sensitive.
+Esta sección muestra todos los comandos que usted puede enviar al puerto de estado (manualmente o mediante una aplicación externa). Todos los comandos son case-insensitive. Pero algunos parámetros pueden ser sensibles a mayúsculas.
 <p>
 El comando <tt/help/ o <tt/h/ le mostrará una lista de todos los comando disponibles.
 <p>
@@ -223,7 +222,7 @@ Number of Endpoints: 2
 </descrip>
 
 <item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/
-<p>Muestra todas las llamadas acuales utilizando la misma sintaxis de ACF como en el establecimiento de llamada.
+<p>Muestra todas las llamadas actuales utilizando la misma sintaxis de ACF como en el establecimiento de llamada.
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
@@ -282,7 +281,9 @@ Number of Calls: 1 Active: 1 From NB: 0
 </descrip>
 
 <item><tt/Find/, <tt/f/
-<p>Busca un endpoint registrado mediante el alias o un prefijo.
+<p>Busca un endpoint registrado mediante el alias o un prefijo. Para buscar una alias
+de un tipo específico (h323_ID, dialedDigits), anteponga el tipo de alias
+(h323, e164, url, email) al alias, seguido por dos puntos (:).
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
@@ -297,11 +298,16 @@ RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
 ;
 f 801
 SoftPBX: alias 801 not found!
+f h323:Wei
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+;
 </verb></tscreen>
 </descrip>
 
 <item><tt/FindVerbose/, <tt/fv/
-<p>Busca el detalle de un endpoint registrado mediante un alias o un prefijo.
+<p>Busca el detalle de un endpoint registrado mediante un alias o un prefijo. Para buscar una alias
+de un tipo específico (h323_ID, dialedDigits), anteponga el tipo de alias
+(h323, e164, url, email) al alias, seguido por dos puntos (:).
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
@@ -337,7 +343,9 @@ SoftPBX: Endpoint 10.0.1.31:1720 unregistered!
 </descrip>
 
 <item><tt/UnregisterAlias/
-<p>Obliga a desregistrar un endpoint mediante uno de sus alias.
+<p>Obliga a desregistrar un endpoint mediante uno de sus alias. Para emparejar un alias
+de un tipo específico (h323_ID, dialedDigits), anteponga el nombre del tipo de alias
+(h323, e164, url, email) al alias, seguido por dos puntos (:).
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
@@ -371,7 +379,8 @@ Done
 </descrip>
 
 <item><tt/DisconnectCall/
-<p>Desconecta una llamada mediante su número.
+<p>Desconecta una llamada mediante su número.(interno, número de llamada asignada por el gatekeeper,
+no el número de teléfono del emisor ni del receptor).
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
@@ -397,7 +406,9 @@ DisconnectIP 10.0.1.31:1720
 </descrip>
 
 <item><tt/DisconnectAlias/
-<p>Desconecta todas las llamadas de un endpoint mediante uno de sus alias.
+<p>Desconecta todas las llamadas de un endpoint mediante uno de sus alias.Para emparejar un alias
+de un tipo específico (h323_ID, dialedDigits), anteponga el nombre del tipo de alias
+(h323, e164, url, email) al alias, seguido de dos puntos (:).
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
@@ -416,7 +427,7 @@ DisconnectAlias 601
 <p>Muestra información del gatekeeper padre (parent gatekeeper).
 
 <item><tt/Trace/
-<p>Establece el nivel de rastreo de salida para la interfaz de estado. Este controla que mensajes
+<p>Establece el nivel de rastreo de salida para la interfaz de estado. Éste controla que mensajes
 son enviados a este cliente:
 <itemize>
 <item><tt/trace 0/ o <tt/trace min/
@@ -428,12 +439,12 @@ son enviados a este cliente:
 </itemize>
 
 <item><tt/Debug/
-<p>Solamente utilizado para propósito de debug. Opciones:
+<p>Solamente utilizado para propósito de depuración. Opciones:
 <itemize>
 <item><tt/trc [+|-|n]/
 <p>Muestra/modifica el nivel de rastreo.
 <item><tt/cfg SEC PAR/
-<p>Lee e muestra un parámetro de configuración de una sección.
+<p>Lee y muestra un parámetro de configuración de una sección.
 <item><tt/set SEC PAR VAL/
 <p>Escribe un valor a un parámetro de configuración de una sección.
 <item><tt/remove SEC PAR/
@@ -485,7 +496,7 @@ RouteToAlias Suzi endp_4711 1234
 <item><tt/RouteToGateway/, <tt/rtg/
 <p>Enruta esta llamada sobre una cola virtual hacia un alias especificado y establece el destinationSignallAddress.
 Este comando es utilizado como una respuesta al evento RouteRequest (ver más adelante).
-Usted puede utilizar este comando para rutear llamadas hacia gateways fuera de la zona (out-of-zone) o MCUs no registrados con el gatekeeper. Asegúese que las políticas 'vqueue' y 'explicit' esten en efecto para esas llamadas.
+Usted puede utilizar este comando para rutear llamadas hacia gateways fuera de la zona (out-of-zone) o MCUs no registrados con el gatekeeper. Asegúese que las políticas 'vqueue' y 'explicit' estén en efecto para esas llamadas.
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
@@ -540,18 +551,22 @@ a RegistrationReject (RRJ).
 <item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered;/
 <p>El gatekeeper recibe un AdmissionRequest (ARQ) y responde con
 un AdmissionConfirm (ACF).
+El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
 <item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason;/
 <p>El gatekeeper recibe un AdmissionRequest (ARQ) y responde con
 un AdmissionReject (ARJ).
+El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
 <item><tt/DCF|IP|EndpointID|CRV|DisengageReason;/
 <p>El gatekeeper recibe un DisengageRequest (DRQ) y responde con
 un DisengageConfirm (DCF).
+El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
 <item><tt/DRJ|IP|EndpointID|CRV|RejectReason;/
 <p>El gatekeeper recibe un DisengageRequest (DRQ) y responde con
 un DisengageReject (DRJ).
+El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
 <item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/
 <p>El gatekeeper recibe un LocationRequest (LRQ) y responde con
@@ -594,6 +609,7 @@ un UnregistrationConfirm (UCF).
 <item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias;/
 <p>Petición para que una aplicación externa enrute una llamada entrante sobre una cola virtual.
 Esto puede ser hecho con los comandos RouteToAlias o RouteReject.
+El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
 </itemize>
 

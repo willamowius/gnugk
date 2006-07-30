@@ -1,111 +1,117 @@
 <sect>Configuración de Accounting
 <p>
 Accounting se denomina a las operaciones que los usuarios realizarán en el sistema
-del gatekeeper: inicio de una llamada, parada y retroalimentación de la misma; e 
+del gatekeeper: inicio de una llamada, parada y retroalimentación de la misma; e
 incluso el inicio y parada del propio gatekeeper.
 
 <p>
-Las siguientes secciones en el fichero de configuración pueden ser usadas para
-configurar el accounting.
+Las siguientes secciones en el fichero de configuración pueden ser usadas para configurar el accounting.
 
 <sect1>Sección &lsqb;Gatekeeper::Acct&rsqb;
 <label id="gkacct">
 <p>
-La seción define una lista de módulos que serán los que realicen el accounting.
-Las cuentas son para anotar eventos de encendido/apagado del gatekeeper y eventos de
-inicio/parada/actualización de llamada. Cada módulo de accounting anota eventos
-recibidos a un módulo de almacenaje específico. Dicho almacenamiento puede ser en 
-texto plano o un servidor RADIUS y muchos más. La configuración es muy similar a la 
-de autenticación de gatekeeper (ver <ref id="gkauth" name="[Gatekeeper::Auth]">).
+Esta sección define una lista de módulos que serán los que realicen el accounting.
+El accounting es para registrar eventos de encendido/apagado del gatekeeper y eventos de inicio/parada/actualización
+de llamada. Cada módulo de accounting registra eventos recibidos a un módulo de almacenamiento específico.
+Dicho almacenamiento puede ser en texto plano o un servidor RADIUS y muchos más.
+La configuración es muy similar a la de autenticación de gatekeeper.
+Puede revisar la sección <ref id="gkauth" name="[Gatekeeper::Auth]"> para más detalle.
 
 
-Todos los CDRs serán también enviados al puerto de estado y pueden ser usados por
-aplicaciones externas.
+Todos los CDRs serán también enviados al puerto de estado y puedrán ser usados por aplicaciones externas.
 
 <descrip>
 <tag/Sintaxis:/
 <tscreen><verb>
 acctmod=acciones
 
- <acctmod>  := FileAcct | RadAcct | SQLAcct | ...
+ <acctmod>  := FileAcct | RadAcct | SQLAcct | StatusAcct | CapacityControl | ...
  <acciones> := <control>[;<evento>,<evento>,...]
  <control>  := optional | required | sufficient | alternative
  <evento>   := start | stop | connect | update | on | off
 </verb></tscreen>
 </descrip>
-La lista de eventos le dice al gatekeeper cual de los eventos debe realizar las
-anotaciones con el módulo de accounting dado (si un tipo de evento está soportado
-por el módulo):
+La lista de eventos le indica al gatekeeper cuales eventos debe capturar o registrar
+con el módulo de accounting dado (si un tipo de evento es soportado por el módulo):
 <itemize>
-<item><tt/start/ - una llamada ha sido iniciada y un mensaje de Configuración ha sido recibido (solo disponible en modo enrutado),
-<item><tt/connect/ - una llamada ha sido establecida (solo disponible en modo enrutado),
-<item><tt/update/ - una llamada está activa y se realizó la actualización periódica
+<item><tt/start/ - Una llamada ha sido iniciada y un mensaje de Configuración ha sido recibido (solo disponible en modo enrutado),
+<item><tt/connect/ - Una llamada ha sido establecida (solo disponible en modo enrutado),
+<item><tt/update/ - Una llamada está activa y se realizó la actualización periódica
 	para reflejar la duración de la nueva llamada. La Frecuencia de estas actualizaciones 
-  está determinada en la sección <bf/AcctUpdateInterval/ variable de <ref id="calltable"
-  name="[CallTable]">,
-<item><tt/stop/ - una llamada ha sido desconectada o parada (eliminada de la tabla de llamadas de GK),
-<item><tt/on/ - el gatekeeper ha sido iniciado,
-<item><tt/off/ - el gatekeeper ha sido apagado.
+  	está determinada por el parámetro <bf/AcctUpdateInterval/ definido en la sección
+	<ref id="calltable" name="[CallTable]">,
+<item><tt/stop/ - Una llamada ha sido desconectada o parada (eliminada de la tabla de llamadas de GK),
+<item><tt/on/ - El gatekeeper ha sido iniciado,
+<item><tt/off/ - El gatekeeper ha sido apagado.
 </itemize>
-Un evento anotado por un módulo puede obtener uno de estos tres códigos de resultado:
+Un evento registradop por un módulo puede resultar en uno de estos tres códigos:
 <bf/ok/, <bf/fail/, <bf/next/.
 <itemize>
-<item><tt/ok/ - el evento ha sido anotado correctamente por este módulo,
-<item><tt/fail/ - el módulo falló al anotar el evento,
-<item><tt/next/ - el evento no ha sido anotado por este módulo, porque el módulo
+<item><tt/ok/ - El evento ha sido registrado correctamente por este módulo,
+<item><tt/fail/ - El módulo falló al registrar el evento,
+<item><tt/next/ - El evento no ha sido registrado por este módulo, porque el módulo
   no está configurado para o no soporta este tipo de evento.
 </itemize>
-Los módulos de accounting pueden ser apilados para anotar eventos de multiples módulos
-o para crear configuraciones a prueba de fallos.
- <bf/control/ bandera para cada módulo, junto con los códigos de resultado,
- define lo que es el estado final del proceso del vento por el módulo apilado completo.
- Si el resultado final es <bf/failure/, algunas acciones especiales se harían en su
- lugar. Actualmente, si en un evento de llamada iniciada (<bf/start/) 
- la anotación falla, la llamada es desconectada inmediatamente.
-Los siguientes estados (banderas) de <bf/control/ están reconocidos:
+Los módulos de accounting pueden ser apilados para registrar eventos de multiples módulos o para crear
+configuraciones a prueba de fallos. La bandera <bf/control/ para cada módulo, junto con los códigos de resultado,
+definen lo que es el estado final del evento procesado por la pila completa de módulos.
+Si el resultado final es <bf/failure/, pueden tener lugar algunas acciones especiales. Actualmente,
+si la anotación de un evento de inicio de llamada (<bf/start/) falla, la llamada es desconectada inmediatamente.
+Los siguientes banderas <bf/control/ están reconocidas:
 <itemize>
-<item><tt/required/ - si el módulo falla al anotar un evento, el estado final es
-                      configurado a fallo y el evento es pasado a cualquiera
-                      de los restantes módulos,
-<item><tt/optional/ - el módulo intenta anotar un evento, pero el estado final
-                      no es afectado si sale bien o falla (a excepción de cuando el
-                      módulo es el último en la lista). El vento es siempre pasado
-                      a cualquiera de los módulos restantes,
-<item><tt/sufficient/ - el módulo determina el estado final. Si un evento es anotado
-                        satisfactoriamente, ningún módulo más es procesado. En caso
-                        contrario el estado final es configurado a fallo y el evento
-                        es pasado a cualquiera del resto de módulos,
-<item><tt/alternative/ - si el módulo anota un evento satisfactoriamente, ningún 
-                         módulo más será procesado. En caso contrario el estado final 
-                         no será modificado y el evento es pasado al resto de módulos.
+<item><tt/required/ - Si el módulo falla al aregistrar un evento, el estado final es
+                      	establecido a "Fallo" y el evento es pasado a cualquiera de los
+			módulos restantes,
+<item><tt/optional/ - El módulo intenta registrar un evento, pero el estado final
+                      	no es afectado por el éxito o fracaso (a excepción de cuando el
+                      	módulo es el último en la lista). El evento es siempre pasado
+                      	a cualquiera de los módulos restantes,
+<item><tt/sufficient/ - El módulo determina el estado final. Si un evento es registrado
+                        	satisfactoriamente, ningún módulo más es procesado. En caso
+	                        contrario el estado final es establecido como un "Fallo" y el evento
+        	                es pasado a cualquiera del resto de módulos,
+<item><tt/alternative/ - Si el módulo registra un evento satisfactoriamente, ningún
+                         	módulo más será procesado. En caso contrario el estado final
+	                        no será modificado y el evento es pasado a cualquiera de los módulos
+				restantes.
 </itemize>
 
-Los módulos de acconting actualmente soportados:
+Módulos de acconting actualmente soportados:
 <itemize>
 <item><tt>FileAcct</tt>
 <p>
-Un anotador de texto plano CDR. Este emite una línea de estado como líneas CDR a
-un fichero de texto especificado. Este modulo soporta solo el evento de accounting
-<bf/stop/.
-Las opciones de configuración serán leídas de la sección 
-<ref id="fileacct" name="[FileAcct]">.
+Un archivo de texto plano es el que registra los CDRs. Éste emite una línea de estado como líneas CDR a
+un fichero de texto especificado. Este modulo soporta solo el evento de accounting <bf/stop/.
+Las opciones de configuración serán revisadas en la sección <ref id="fileacct" name="[FileAcct]">.
 
 <item><tt>RadAcct</tt>
 <p>
-Este módulo realiza accounting a través de RADIUS. Este soporta todos los tipos
+Este módulo realiza accounting a través de RADIUS. Éste soporta todos los tipos
 de eventos (start, stop, update, on, off).
 Ver la sección <ref id="radacct" name="[RadAcct]"> para detalles de configuración.
 
 <item><tt>SQLAcct</tt>
 <p>
-Este módulo realiza accounting a través de SQL. Este soporta los tipos de evento (start, stop, update).
+Este módulo realiza accounting a través de SQL. Éste soporta los tipos de evento
+(start, connect, stop, update).
 Ver la sección <ref id="sqlacct" name="[SQLAcct]"> para detalles de configuración.
+
+<item><tt>StatusAcct</tt>
+<p>
+Este módulo registra todos los eventos de accounting en el puerto de estado. Éste puede ser utilizado como interfaz hacia
+aplicaciones externas en tiempo real. Soporta los tipos de evento (start, connect, stop, update).
+Ver la sección <ref id="statusacct" name="[StatusAcct]"> para detalles de configuración.
+
+<item><tt>CapacityControl</tt>
+<p>
+Este módulo realiza registro de volúmen de llamadas entrantes, es indispensable para que el módulo de autenticación
+<tt/CapacityControl/ funcione correctamente. Ver la sección <ref id="capctrl" name="[CapacityControl]">
+para mayor detalle.
 
 <item><tt>default</tt>
 <p>
-Este es un pseudo-módulo especial - este es usado para configurar el estado
-final si los módulos precedentes no lo han determinado. El formato es como
-sigue:
+Este es un pseudo-módulo especial y es usado para configurar el estado final
+si los módulos precedentes no lo han determinado. El formato es como sigue:
 <descrip>
 <tag/Sintaxis:/
 <tscreen><verb>
@@ -117,16 +123,16 @@ sigue:
 
 </itemize>
 
-Ejemplo de configuración 1 (intenta anotar el inicio/fin de una llamada
-con un servidor RADIUS, y siempre escribe un CDR a un fichero de texto):
+El ejemplo de configuración 1 intenta registrar el inicio/fin de una llamada
+con un servidor RADIUS, y siempre escribe un CDR a un fichero de texto:
 <descrip>
 <tag/Ejemplo:/
 <tt/RadAcct=optional;start,stop/<newline>
 <tt/FileAcct=required/<newline>
 </descrip>
 
-Ejemplo de configuración 2 (intenta anotar el inicio/fin de una llamada 
-con un servidor RADIUS, si este falla usa un fichero de anotaciones CDR):
+El ejemplo de configuración 2 intenta registrar el inicio/fin de una llamada 
+con un servidor RADIUS, si éste falla usa un fichero de anotaciones CDR:
 <descrip>
 <tag/Ejemplo:/
 <tt/RadAcct=alternative;start,stop/<newline>
@@ -140,9 +146,8 @@ el evento <bf/start/, así que retorna el código <bf/next/. Si no estuviese la re
 <bf/default/, el estado final sería failure, porque ningún módulo ha sido capaz de
 anotar el evento.
 
-Ejemplo de configuración 3 (siempre anota los eventos de inicio y fin de llamada con
-un servidor RADIUS, si este falla para el evento de fin de llamada, usa un fichero
-CDR para almacenar la información de la llamada):
+El ejemplo de configuración 3 siempre anota los eventos de inicio y fin de llamada con un servidor
+RADIUS, si este falla para el evento de fin de llamada, usa un fichero CDR para almacenar la información de la llamada:
 <descrip>
 <tag/Ejemplo:/
 <tt/RadAcct=alternative;start,stop/<newline>
@@ -153,89 +158,97 @@ La regla <bf/default/ es opcional aquí. Si RadAcct retorna el código <bf/fail/
 para el evento <bf/start/, el código es pasado al módulo FileAcct. El módulo
 FileAcct no soporta el evento <bf/start/, así que retorna el código <bf/next/.
 La regla <bf/default/ se asegura de que la llamada está desconectada si 
-el evento de inicio de llamada puede no haber sido anotado con RadAcct. Sino
-deseamos almacenar un CDR en un fichero de texto en caso de que el servidor
-RADIUS esté caído cuando la llamada se desconecte, así podemos ir a por la 
-duración de la llamada dentro del sistema de facturación más tarde.
+el evento de inicio de llamada puede no haber sido anotado con RadAcct. Pero deseamos
+almacenar un CDR en un fichero de texto en caso de que el servidor RADIUS esté caído cuando la llamada
+se desconecte, así podemos extraer la duración de la llamada dentro del sistema de facturación más tarde.
 
 <sect1>Sección &lsqb;FileAcct&rsqb;
 <label id="fileacct">
 <p>
 Este módulo de accounting escribe líneas CDR a un fichero de texto específicado.
-El formato CDR puede ser uno estándar (el mismo que se puede ver por la interfaz
-de estado) o uno personalizado (usando la cadena de consulta parametrizada).
+El formato CDR puede ser uno estándar (el mismo que se puede ver por la interfaz de estado)
+o uno personalizado (usando una cadena de consulta parametrizada).
 
 <itemize>
 <item>
 <tt/DetailFile=RUTA_COMPLETA_Y_NOMBRE_DE_FICHERO/<newline>
-Por defecto: N/A
+Default: <tt>N/A</tt><newline>
 <p>
-Una ruta completa para el fichero de texto plano CDR. Si un fichero con el 
-nombre dado ya existe, los nuevos CDRs serán añadidos al final del fichero.
+Defina la ruta completa para el fichero de texto plano CDR. Si un fichero con el nombre dado
+ya existe, los nuevos CDRs serán añadidos al final del fichero.
 
 <item>
 <tt/StandardCDRFormat=0/<newline>
-Por defecto: <tt/1/
+Default: <tt/1/<newline>
 <p>
-Usa un formato CDR compatible con el formato de la interfaz de estado CDR
-(<tt/1/) o crea cadenas CDR personalizadas desde la cadena parametrizada
-<bf/CDRString/.
+Utilice un formato CDR compatible con el formato de CDR de la interfaz de estado (<tt/1/)
+o cree cadenas CDR personalizadas desde la cadena parametrizada <bf/CDRString/.
 
 <item>
 <tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-Station-Id}|%d|%c/<newline>
-Por defecto: N/A
+Default: <tt>N/A</tt><newline>
 <p>
 Si <bf/StandardCDRFormat/ está desactivado (0) o no se especifica nada, 
-esta cadena parametrizada instruye al gatekeeper de como crear CDRs 
-personalizados. Los parámetros son especificados usando el caracter <tt/%/ y
-pueden ser una letra (como <tt/%n/) o más (como <tt/%{CallId}/). Cualquier
-caracter más que no sea nombre de parámetro será simplemente copiado al final
-de la cadena CDR. Los parámetros reconocidos son los siguientes:
+esta cadena parametrizada le indica al gatekeeper cómo crear CDRs personalizados.
+Los parámetros son especificados usando el caracter <tt/%/ y pueden ser una letra
+(como <tt/%n/) o más largos (como <tt/%{CallId}/). Cualquier caracter restante que no sea
+nombre de parámetro será simplemente copiado al final de la cadena CDR.
+Los parámetros reconocidos son los siguientes:
 <itemize>
-<item><tt/%g/ - nombre del gatekeeper
-<item><tt/%n/ - número de llamada (no es único después del reinicio del gatekeeper)
-<item><tt/%d/ - duración de la llamada (segundos)
-<item><tt/%c/ - causa de la desconexión Q.931 (entero decimal)
-<item><tt/%s/ - único (para este gatekeeper) identificador de sesión (Acct-Session-Id)
-<item><tt/%u/ - H.323 ID de la parte llamada
-<item><tt/%{CallId}/ - H.323 identificador de llamada (16 hex digitos de 8-bits)
-<item><tt/%{ConfId}/ - H.323 identificador de conferencia (16 hex digitos de 8-bits)
-<item><tt/%{setup-time}/ - cadena de hora y fecha para el mensaje de configuración Q.931
-<item><tt/%{connect-time}/ - cadena de hora y fecha para un evento de llamada conectada
-<item><tt/%{disconnect-time}/ - cadena de hora y fecha para un evento de llamada desconectada
-<item><tt/%{caller-ip}/ - dirección IP por la que llama el emisor
-<item><tt/%{caller-port}/ - puerto por el que llama el emisor
-<item><tt/%{callee-ip}/ - dirección IP por la que recibe la llamada el receptor
-<item><tt/%{callee-port}/ - puerto por el que recibe la llamada el receptor
-<item><tt/%{src-info}/ - una lista separada por comas de alias del emisor
-<item><tt/%{dest-info}/ - una lista separada por comas de alias del receptor
-<item><tt/%{Calling-Station-Id}/ - número del emisor
-<item><tt/%{Called-Station-Id}/ - número del receptor (reescrito)
-<item><tt/%{Dialed-Number}/ - número marcado (como es recibido por la parte llamada)
+<item><tt/%g/ - Nombre del gatekeeper.
+<item><tt/%n/ - Número de llamada (no es único después del reinicio del gatekeeper).
+<item><tt/%d/ - Duración de la llamada (segundos).
+<item><tt/%t/ - Duración total de la llamada (desde Setup hasta Release Complete).
+<item><tt/%c/ - Causa de desconexión Q.931 (entero decimal).
+<item><tt/%r/ - Quién desconecto la llamada (-1 - desconocido, 0 - el gatekeeper, 1 - el emisor, 2 - el receptor).
+<item><tt/%p/ - PDD (Post Dial Delay) en segundos.
+<item><tt/%s/ - Identificador de sesión, único (para este gatekeeper) (Acct-Session-Id).
+<item><tt/%u/ - H.323 ID de la parte llamada.
+<item><tt/%{gkip}/ - Dirección IP address del gatekeeper.
+<item><tt/%{CallId}/ - Identificador H.323 de la llamada (16 dígitos hex de 8-bits).
+<item><tt/%{ConfId}/ - Identificador H.323 de la conferencia (16 dígitos hex de 8-bits).
+<item><tt/%{setup-time}/ - Cadena de hora y fecha para el mensaje de Setup Q.931.
+<item><tt/%{alerting-time}/ - Cadena de hora y fecha para el mensaje de Alerting Q.931.
+<item><tt/%{connect-time}/ - Cadena de hora y fecha para un evento de llamada conectada.
+<item><tt/%{disconnect-time}/ - Cadena de hora y fecha para un evento de llamada desconectada.
+<item><tt/%{ring-time}/ - Tiempo que un teléfono remoto estuvo sonando (desde Alerting hasta Connect o Release Complete).
+<item><tt/%{caller-ip}/ - Dirección IP del emisor.
+<item><tt/%{caller-port}/ - Puerto de señalización por el que llama el emisor.
+<item><tt/%{callee-ip}/ - Dirección IP del receptor
+<item><tt/%{callee-port}/ - Puerto de señalización por el que recibe la llamada el receptor.
+<item><tt/%{src-info}/ - Una lista separada por comas de alias del emisor.
+<item><tt/%{dest-info}/ - Una lista separada por comas de alias del receptor.
+<item><tt/%{Calling-Station-Id}/ - Número del emisor
+<item><tt/%{Called-Station-Id}/ - Número del receptor (reescrito)
+<item><tt/%{Dialed-Number}/ - Número marcado (como es recibido por la parte llamada).
+<item><tt/%{caller-epid}/ - Identificador del endpoint del emisor.
+<item><tt/%{callee-epid}/ - Identificador del endpoint del receptor.
+<item><tt/%{call-attempts}/ - Número de intentos para establecer la llamada (con failover esta puede ser > 1).
+<item><tt/%{last-cdr}/ - Éste es el último CDR para esta llamada ? (0 / 1) solamente cuando utilice failover éste puede ser 0.
+<item><tt/%{media-oip}/ - Caller's RTP media IP (solamente para llamadas ruteadas o dirigidas con H.245).
+<item><tt/%{codec}/ - Codec de audio utilizado durante la llamada (solamente para llamadas ruteadas o dirigidas H.245).
 </itemize><newline>
 
 <item><tt/TimestampFormat=Cisco/<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Formato de cadena de fecha y hora impreso en cadenas CDR. Si esta configuración
-no es especificada, una global de la sección principal del gatekeeper será aplicada.
+Formato de las cadenas de fecha y hora impresas en las cadenas CDR. Si esta configuración
+no se especifica, una configuración global de la sección principal del gatekeeper será aplicada.
 
 <item>
 <tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
-Por defecto: N/A
+Default: <tt>N/A</tt><newline>
 <p>
-Si se configura, el fichero CDR será rotado basado en esta configuración. La
-rotación horaria activa una rotación por hora, la diaria - una por día, 
-semanal - una por semana y mensual - una por mes. El momento exacto de la rotación
-es determinado por una combinación de RotateDay y RotateTime. Durante la rotación,
-un fichero existente será renombrado a CURRENT_FILENAME.YYYYMMDD-HHMMSS, donde
-YYYYMMDD-HHMMSS es reemplazado con la hora y fecha actuales y un nuevo CDR es
-anotado a un fichero vacío.<newline>
-Además, la rotación por número de CDRs escritos (L...) y por tamaño de fichero 
-(S...) está soportado. El prefijo <tt/L/ especifica un número de líneas CDR 
-escritas, el prefijo <tt/S/ especifica el tamaño de un fichero CDR. Los sufijos 
-<tt/k/ y <tt/m/ pueden ser usados para especificar miles (kilobytes) y millones
-(megabytes) de bytes. 
+Si se configura, el fichero CDR será rotado basado en esta configuración. La rotación Hourly
+habilita una rotación por hora, la daily - una por día, weekly - una por semana
+y monthly - una por mes. El momento exacto de la rotación es determinado por una combinación
+de RotateDay y RotateTime. Durante la rotación, un fichero existente será renombrado
+a CURRENT_FILENAME.YYYYMMDD-HHMMSS, donde YYYYMMDD-HHMMSS es reemplazado con
+la hora y fecha actuales y nuevos CDRs son registrados a un fichero vacío.<newline>
+Además, la rotación por número de CDRs escritos (L...) y por tamaño de fichero (S...)
+están soportadas. El prefijo <tt/L/ especifica un número de líneas CDR escritas,
+el prefijo <tt/S/ especifica el tamaño de un fichero CDR. Los sufijos <tt/k/ y <tt/m/
+pueden ser usados para especificar miles (kilobytes) y millones (megabytes) de bytes.
 Ver los ejemplos para más detalles.
 
 <descrip>
@@ -286,7 +299,7 @@ Ver los ejemplos para más detalles.
 </descrip>
 
 <descrip>
-<tag/Ejemplo 7 - rota por encima de los 10 kilobytes:/
+<tag/Ejemplo 7 - rota cada 10 kilobytes:/
 <tt/&lsqb;FileAcct&rsqb;/<newline>
 <tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
 <tt>Rotate=S10k</tt><newline>
@@ -300,16 +313,16 @@ Ver los ejemplos para más detalles.
 Este módulo de accounting envía datos de accounting a un servidor RADIUS. La
 configuración del módulo es casi lo mismo que para los autenticadores RADIUS (ver
 <ref id="radauth" name="[RadAuth]"> y <ref id="radaliasauth" name="[RadAliasAuth]">
-para más detalles sobre los parámetros).
+para mayor detalles sobre los parámetros).
 
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT[:SECRET]];SERVER2[:AUTH_PORT:ACCT_PORT[:SECRET]];.../<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Servidores RADIUS a los que enviar los datos de accounting. Si no se da puerto de 
-información, el puerto usado se tomará de <tt/DefaultAcctPort/. Si SECRET no es
-configurado, por defecto se usará el secreto compartido de <tt/SharedSecret/. 
-El nombre del servidor puede ser tanto una dirección IP como un nombre DNS.
+Servidores RADIUS a los que se enviará los datos de accounting. Si no se especifica información sobre el puerto,
+el puerto usado se tomará del parámetro <tt/DefaultAcctPort/. Si SECRET no está configurado,
+por defecto se usará el secret compartido de <tt/SharedSecret/. El nombre del servidor puede
+ser tanto una dirección IP como un nombre DNS.
 
 <descrip>
 <tag>Líneas de <tt/Servidores/ de ejemplo:</tag>
@@ -322,80 +335,78 @@ El nombre del servidor puede ser tanto una dirección IP como un nombre DNS.
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Interfaz de red local en particular que el cliente RADIUS deberá
 usar para comunicarse con los servidores RADIUS.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Por defecto (si esta opción esta activa) el cliente RADIUS
+Por defecto (si esta opción no está establecida) el cliente RADIUS
 asigna los puertos dinámicamente como se especifique por el sistema operativo.
-Si tu deseas restringir el cliente RADIUS para usar puertos desde
-un rango particular solo - activa este parámetro.
+Si usted desea restringir al cliente RADIUS para que utilice puertos solamente
+desde un rango particular - active este parámetro.
 
 <item><tt/DefaultAcctPort=PORT_NO/<newline>
-Por defecto: <tt>1813</tt>
+Default: <tt>1813</tt><newline>
 <p>
-El puerto por defecto será usado por las solicitudes de accounting de RADIUS,
-si no se especifica por el atributo <tt/Servers/.
+El puerto por defecto que será usado para las peticiones de accounting de RADIUS,
+si no se superpone por el atributo <tt/Servers/.
 
 <item><tt/SharedSecret=SECRET/<newline>
-Por defecto: <tt>N/A (cadena vacía)</tt>
+Default: <tt>N/A (cadena vacía)</tt><newline>
 <p>
-Un secreto usado para autenticar este GnuGK (cliente NAS) para el servidor RADIUS.
-Esta debe ser una contraseña criptográficamente sólida. Este es el valor usado por
+Un secret usado para autenticar este GnuGK (cliente NAS) con el servidor RADIUS.
+Ésta debe ser una contraseña criptográficamente sólida. Este es el valor usado por
 defecto, si no se especifica secret en <tt/Servers/.
-Si <tt/EncryptAllPasswords/ está activado, o una variable <tt/KeyFilled/ se definida 
-en esta sección, la contraseña en formato encriptado y debe ser creada usando la
-utilidad <tt/addpasswd/.
+Si <tt/EncryptAllPasswords/ está activado, o la variable <tt/KeyFilled/ está definida
+en esta sección, la contraseña está en forma encriptada y debe ser creada usando la
+herramienta <tt/addpasswd/.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Por defecto: <tt/2000/ (milisegundos)
+Default: <tt/2000/ (milisegundos)<newline>
 <p>
-Tiempo de espera (milisegundos) para la respuesta de un servidor RADIUS a una
+Tiempo de espera (milisegundos) para que un servidor RADIUS responda a una
 solicitud enviada por GnuGK. Si no se recibe una respuesta dentro de este periodo
-de tiempo, es consultado el siguiente servidor RADIUS.
+de tiempo, se consultará al siguiente servidor RADIUS.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Por defecto: <tt/9000/ (milisegundos)
+Default: <tt/9000/ (milisegundos)<newline>
 <p>
-Tiempo de espera (milisegundos) para una solicitud RADIUS con identificadores de
-8-bits únicos.
+Tiempo de espera (milisegundos) para que identificadores de petición RADIUS de 8-bits 
+sean únicos.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Por defecto: <tt/60000/ (milisegundos) - 60 s
+Default: <tt/60000/ (milisegundos) - 60 s<newline>
 <p>
 Tiempo que se espera para cerrar sockets RADIUS no usados.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
-Por defecto: <tt/2/
+Default: <tt/2/<newline>
 <p>
 Cuantas veces una simple solicitud RADIUS es transmitida a cada
 servidor RADIUS configurado (si no se recibe una respuesta).
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
-Por defecto: <tt/1/
+Default: <tt/1/<newline>
 <p>
 Método de retransmisión de solicitudes RADIUS.
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
-Por defecto: <tt/0/
+Default: <tt/0/<newline>
 <p>
-Si está activa, los atributos RADIUS específicos de fabricante Cisco
-son incluídos en las solicitudes RADIUS (h323-conf-id,h323-call-origin,
-h323-call-type).
+Si está activa, los atributos RADIUS específicos de fabricante Cisco son incluídos
+en las solicitudes RADIUS (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/TimestampFormat=ISO8601/<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Formato de las cadenas de fecha y hora enviadas en los atributos RADIUS. Si este
-atributo no está especificado, uno global de la sección principal de gatekeeper
-será aplicado.
+Formato de las cadenas de fecha y hora enviadas en los atributos RADIUS. Si este atributo
+no está especificado, uno global de la sección principal de gatekeeper será aplicado.
 
 <item><tt/UseDialedNumber=BOOLEAN/<newline>
-Por defecto: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Selecciona el tipo de número Called-Station-Id entre el original (como fue marcado
 por el usuario) - <tt/UseDialedNumer=1/ - y el reescrito - <tt/UseDialedNumer=0/.
@@ -410,21 +421,22 @@ a una base de datos SQL. Muchas opciones de configuración son comunes con
 otros módulos SQL.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL/<newline>
-Por defecto: N/A
+<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
+Default: <tt>N/A</tt><newline>
 <p>
-Manejador de base de datos SQL a usar. Actualmente, los manejadores implementados
-son <tt/MySQL/ y <tt/PostgreSQL/.
+El driver de base de datos SQL a usar. Actualmente, los manejadores implementados
+son <tt/MySQL/, <tt/PostgreSQL/ y <tt/Firebird/.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Por defecto: <tt/localhost/
+Default: <tt/localhost/<newline>
 <p>
-Dirección de la máquina del servidor SQL. Puede está en forma de <tt/DNS[:PORT]/ o <tt/IP[:PORT]/. Como <tt/sql.mycompany.com/ o <tt/sql.mycompany.com:3306/ o <tt/192.168.3.100/.
+Dirección de la máquina del servidor SQL. Puede estar en forma de <tt/DNS[:PORT]/ o <tt/IP[:PORT]/.
+Como <tt/sql.mycompany.com/ o <tt/sql.mycompany.com:3306/ o <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Por defecto: <tt/billing/
+Default: <tt/billing/<newline>
 <p>
-El nombre de la base de datos a la que conectarse.
+El nombre de la base de datos a la cual se realiza la conexión.
 
 <item><tt/Username=gnugk/<newline>
 <p>
@@ -437,40 +449,50 @@ Si la contraseña no se especifica, se intentará una conexión a la
 base de datos sin ninguna contraseña.
 Si <tt/EncryptAllPasswords/ está activo, o una variable <tt/KeyFilled/ es definida
 en esta sección, la contraseña está en una forma encriptada y debe ser creada
-usando la utilidad <tt/addpasswd/.
+usando la herramienta <tt/addpasswd/.
 
 <item><tt/StartQuery=INSERT .../<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define una consulta SQL usada para insertar un nuevo registro de llamada a la base
 de datos. La consulta es parametrizada - eso significa que el reemplazo de parámetros
 se hace antes de que cada consulta sea ejecutada. Los parámetros son precedidos por 
 el caracter % y pueden ser una letra (como %u) o cadenas enteras (como %{src-info}).
-Especifica %% para añadir un caracter de porcentaje dentro de la cadena de consulta
-(como <bf/%%/).
+Especificar %% para añadir un caracter de porcentaje dentro de la cadena de consulta (como <bf/%%/).
 Para <tt/SQLAcct/ se pueden utilizar los siguientes parámetros:
 <itemize>
-<item><tt/%g/ - nombre del gatekeeper
-<item><tt/%n/ - número de llamada (no es único después del reinicio del gatekeeper)
-<item><tt/%d/ - duración de la llamada (segundos)
-<item><tt/%c/ - causa de la desconexión Q.931 (entero decimal)
-<item><tt/%s/ - único (para este gatekeeper) identificador de sesión (Acct-Session-Id)
-<item><tt/%u/ - H.323 ID de la parte llamada
-<item><tt/%{gkip}/ - dirección IP del gatekeeper
-<item><tt/%{CallId}/ - H.323 identificador de llamada (16 hex digitos de 8-bits)
-<item><tt/%{ConfId}/ - H.323 identificador de conferencia (16 hex digitos de 8-bits)
-<item><tt/%{setup-time}/ - cadena de hora y fecha para el mensaje de configuración Q.931
-<item><tt/%{connect-time}/ - cadena de hora y fecha para un evento de llamada conectada
-<item><tt/%{disconnect-time}/ - cadena de hora y fecha para un evento de llamada desconectada
-<item><tt/%{caller-ip}/ - dirección IP por la que llama el emisor
-<item><tt/%{caller-port}/ - puerto por el que llama el emisor
-<item><tt/%{callee-ip}/ - dirección IP por la que recibe la llamada el receptor
-<item><tt/%{callee-port}/ - puerto por el que recibe la llamada el receptor
-<item><tt/%{src-info}/ - una lista separada por comas de alias del emisor
-<item><tt/%{dest-info}/ - una lista separada por comas de alias del receptor
-<item><tt/%{Calling-Station-Id}/ - número del emisor
-<item><tt/%{Called-Station-Id}/ - número del receptor (reescrito)
-<item><tt/%{Dialed-Number}/ - número marcado (como es recibido por la parte llamada)
+<item><tt/%g/ - Nombre del gatekeeper.
+<item><tt/%n/ - Número de llamada (no es único después del reinicio del gatekeeper).
+<item><tt/%d/ - Duración de la llamada (segundos).
+<item><tt/%t/ - Duración total de la llamada (desde Setup hasta Release Complete).
+<item><tt/%c/ - Causa de desconexión Q.931 (entero decimal).
+<item><tt/%r/ - Quién desconecto la llamada (-1 - desconocido, 0 - el gatekeeper, 1 - el emisor, 2 - el receptor).
+<item><tt/%p/ - PDD (Post Dial Delay) en segundos.
+<item><tt/%s/ - Identificador de sesión, único (para este gatekeeper) (Acct-Session-Id).
+<item><tt/%u/ - H.323 ID de la parte llamada.
+<item><tt/%{gkip}/ - Dirección IP address del gatekeeper.
+<item><tt/%{CallId}/ - Identificador H.323 de la llamada (16 dígitos hex de 8-bits).
+<item><tt/%{ConfId}/ - Identificador H.323 de la conferencia (16 dígitos hex de 8-bits).
+<item><tt/%{setup-time}/ - Cadena de hora y fecha para el mensaje de Setup Q.931.
+<item><tt/%{alerting-time}/ - Cadena de hora y fecha para el mensaje de Alerting Q.931.
+<item><tt/%{connect-time}/ - Cadena de hora y fecha para un evento de llamada conectada.
+<item><tt/%{disconnect-time}/ - Cadena de hora y fecha para un evento de llamada desconectada.
+<item><tt/%{ring-time}/ - Tiempo que un teléfono remoto estuvo sonando (desde Alerting hasta Connect o Release Complete).
+<item><tt/%{caller-ip}/ - Dirección IP del emisor.
+<item><tt/%{caller-port}/ - Puerto de señalización por el que llama el emisor.
+<item><tt/%{callee-ip}/ - Dirección IP del receptor
+<item><tt/%{callee-port}/ - Puerto de señalización por el que recibe la llamada el receptor.
+<item><tt/%{src-info}/ - Una lista separada por comas de alias del emisor.
+<item><tt/%{dest-info}/ - Una lista separada por comas de alias del receptor.
+<item><tt/%{Calling-Station-Id}/ - Número del emisor
+<item><tt/%{Called-Station-Id}/ - Número del receptor (reescrito)
+<item><tt/%{Dialed-Number}/ - Número marcado (como es recibido por la parte llamada).
+<item><tt/%{caller-epid}/ - Identificador del endpoint del emisor.
+<item><tt/%{callee-epid}/ - Identificador del endpoint del receptor.
+<item><tt/%{call-attempts}/ - Número de intentos para establecer la llamada (con failover esta puede ser > 1).
+<item><tt/%{last-cdr}/ - Éste es el último CDR para esta llamada ? (0 / 1) solamente cuando utilice failover éste puede ser 0.
+<item><tt/%{media-oip}/ - Caller's RTP media IP (solamente para llamadas ruteadas o dirigidas con H.245).
+<item><tt/%{codec}/ - Codec de audio utilizado durante la llamada (solamente para llamadas ruteadas o dirigidas H.245).
 </itemize>
 <p>
 Consulta de ejemplo:
@@ -480,19 +502,17 @@ INSERT INTO call (gkname, sessid, username, calling, called)
 </verb></tscreen>
 
 <item><tt/StartQueryAlt=INSERT .../<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Define una consulta SQL usada para insertar un nuevo registro de llamada en la
-base de datos en caso de que <tt/StartQuery/ falle por alguna razón (la llamada
-ya existe, por ejemplo).
+Define una consulta SQL usada para insertar un nuevo registro de llamada en la base de datos en caso
+de que <tt/StartQuery/ falle por alguna razón (la llamada ya existe, por ejemplo).
 La sintaxis y parámetros son los mismos que para <tt/StartQuery/.
 
 <item><tt/UpdateQuery=UPDATE .../<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Define una consulta SQL usada para actualizar un registro de llamada en una base
-de datos con el estado de llamada actual. La sintaxis y parámetros son los mismos
-que para <tt/StartQuery/.
+Define una consulta SQL usada para actualizar un registro de llamada en una base de datos con el estado
+actual de llamada. La sintaxis y parámetros son los mismos que para <tt/StartQuery/.
 <p>
 Ejemplo de consulta:
 <tscreen><verb>
@@ -500,10 +520,10 @@ UPDATE call SET duration = %d WHERE gkname = '%g' AND sessid = '%s'
 </verb></tscreen>
 
 <item><tt/StopQuery=UPDATE .../<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define una consulta SQL usada para actualizar el registro de llamada en una base
-de datos cuando la llamada ha finalizado (desconectada). La sintaxis y parámetros
+de datos cuando la llamada ha finalizado (disconnected). La sintaxis y parámetros
 son los mismos que para <tt/StartQuery/.
 <p>
 Ejemplo de consulta:
@@ -512,10 +532,10 @@ UPDATE call SET duration = %d, dtime = '%{disconnect-time}' WHERE gkname = '%g' 
 </verb></tscreen>
 
 <item><tt/StopQueryAlt=INSERT .../<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Define una consulta SQL usada para actualizar un registro de llamada en una base
-de datos cuando la llamada ha finalizado (desconectada) en caso de que <tt/StopQuery/
+de datos cuando la llamada ha finalizado (disconnected) en caso de que <tt/StopQuery/
 falle (porque el registro de llamada no exista ya, por ejemplo). La sintaxis y
 parámetros son los mismos que para <tt/StartQuery/.
 <p>
@@ -526,11 +546,146 @@ INSERT INTO call (gkname, sessid, username, calling, called, duration)
 </verb></tscreen>
 
 <item><tt/TimestampFormat=MySQL/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Formato de cadena de fecha y hora usada en consultas. Si este atributo no es
-especificado, uno global de la sección principal de gatekeeper será aplicado.
+especificado, La confifuración global de la sección principal de gatekeeper será aplicada.
+
+<item><tt/MinPoolSize=5/<newline>
+Default: <tt>1</tt><newline>
+<p>
+Número de conecciones SQL concurrentes dentro del pool de conexiones. La primera conexión disponible
+dentro del pool es utilizada pata almacenar datos de accounting.
 
 </itemize>
 
+<sect1>Sección &lsqb;StatusAcct&rsqb;
+<label id="statusacct">
+<p>
+Este módulo de accounting envía toda la información del proceso de accounting hacia
+el puerto de estado donde podrá ser utilizada por sistemas externos en
+tiempo real.
 
+<itemize>
+<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
+Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Define el evento que se va a visualizar para una nueva llamada. La cadena está parametrizada
+con los mismos parámetros de otros módulos de accounting
+(Ver la sección <ref id="sqlacct" name="[SQLAacct]"> para más detalle).
+
+<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
+Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Define el evento que se va a mostrar cuando una llamada finaliza (disconnected). La sitaxis y parámetros son los mismos
+que para <tt/StartEvent/. Este evento es equivalente al antiguo evento CDR del puerto de estado, pero más fexible.
+
+<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
+Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Define el evento utilizado para actualizar el estado actual de la llamada. La sintáxis y parámetros son los mismos
+que para <tt/StartEvent/.
+
+<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
+Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Define el evento cuando una llamada es establecida (connected). La sintaxis y parámetros son los mismos
+que para <tt/StartEvent/.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Formato de la cadena de fecha y hora utilizada en cada evento. Si esta configuración no se especifica,
+se utilizará la configuración global establecida en la sección principal del gatekeeper.
+
+</itemize>
+
+<sect2>Ejemplo de un esquema MySQL para el módulo SQLAcct
+<label id="mysqlscheme">
+<p>
+El módulo SQLAcct está diseñado para ser adaptado a cualquier estructura de base de datos que usted ya tenga.
+Aquí se puede definir todas las consultas para que encajen en las tablas que se hayan definido.
+A continuación se presenta un ejemplo de cómo implementar éste módulo empleando el motor de base de datos MySQL
+y puede ser utilizado como punto de partida para su propia implementación.
+<p>
+Creamos una nueva base de datos; aquí utilizaremos el nombre 'GNUGK':
+
+<tscreen><verb>
+create database GNUGK;
+</verb></tscreen>
+
+Luego creamos una tabla dentro de esta base de datos para almacenar sus datos de accounting; llamaremos a esta tabla
+con el nombre de 'CDR'.
+
+<tscreen><verb>
+create table GNUGK.CDR (
+        gatekeeper_name varchar(255),
+        call_number int zerofill,
+        call_duration mediumint unsigned zerofill,
+                index duration_idx (call_duration),
+        disconnect_cause smallint unsigned zerofill,
+                index dcc_idx (disconnect_cause),
+        acct_session_id varchar(255),
+        h323_id varchar(255),
+        gkip varchar(15),
+        CallId varchar(255),
+        ConfID varchar(255),
+        setup_time datetime,
+        connect_time datetime,
+        disconnect_time datetime,
+        caller_ip varchar(15),
+                index srcip_idx (caller_ip),
+        caller_port smallint unsigned zerofill,
+        callee_ip varchar(15),
+                index destip_idx (callee_ip),
+        callee_port smallint unsigned zerofill,
+        src_info varchar(255),
+        dest_info varchar(255),
+        Calling_Station_Id varchar(255),
+        Called_Station_Id varchar(255),
+                index dialednumber_idx (Called_Station_Id (20)),
+        Dialed_Number varchar(255)
+);
+</verb></tscreen>
+
+Luego creamos un usuario que se encargará de manipular esta base de datos.
+
+<tscreen><verb>
+GRANT delete,insert,select,update ON GNUGK.* TO 'NombreQueUstedDesee'@'localhost' IDENTIFIED BY 'UnPassword';
+</verb></tscreen>
+
+Con este comando estaremos permitiendo el acceso solamente a los datos del servidor local. Si usted necesita acceder
+a estos datos desde cualquier otra computadora, se deben establecer las opciones de seguridad apropiadas.
+
+Luego agregamos la siguiente configuración al archivo gnugk.ini para que inserte y actualice el historial de las llamadas
+dentro de la base de datos. 
+
+<tscreen><verb>
+[Gatekeeper::Acct]
+SQLAcct=optional;start,stop,update
+FileAcct=sufficient;stop
+
+[FileAcct]
+DetailFile=Agregue aquí la ruta deseada. Algo como /var/log/cdr.log
+StandardCDRFormat=0
+CDRString=%g|%n|%d|%c|%s|%u|%{gkip}|%{CallId}|%{ConfId}|%{setup-time}|%{connect-time}|%{disconnect-time}|%{caller-ip}|%{caller-port}|%{callee-ip}|%{callee-port}|%{src-info}|%{dest-info}|%{Calling-Station-Id}|%{Called-Station-Id}|%{Dialed-Number}
+Rotate=daily
+RotateTime=23:59
+
+[SQLAcct]
+Driver=MySQL
+Database=GNUGK
+Username=NombreQueUstedDesee
+Password=UnPassword
+StartQuery= insert into CDR (gatekeeper_name, call_number, call_duration, disconnect_cause, acct_session_id, h323_id, gkip, CallId, ConfId, setup_time, connect_time, disconnect_time, caller_ip, caller_port, callee_ip, callee_port, src_info, dest_info, Calling_Station_Id, Called_Station_Id, Dialed_Number) values ('%g', '%n', %d, %c, '%s', '%u', '%{gkip}', '%{CallId}', '%{ConfId}', '%{setup-time}', '%{connect-time}', '%{disconnect-time}', '%{caller-ip}', '%{caller-port}', '%{callee-ip}', '%{callee-port}', '%{src-info}', '%{dest-info}', '%{Calling-Station-Id}', '%{Called-Station-Id}', '%{Dialed-Number}')
+
+StartQueryAlt= insert into CDR (gatekeeper_name, call_number, call_duration, disconnect_cause, acct_session_id, h323_id, gkip, CallId, ConfID, setup_time, connect_time, disconnect_time, caller_ip, caller_port, callee_ip, callee_port, src_info, dest_info, Calling_Station_Id, Called_Station_Id, Dialed_Number) values ('%g', '%n', %d, %c, '%s', '%u', '%{gkip}', '%{CallId}', '%{ConfID}', '%{setup-time}', '%{connect-time}', '%{disconnect-time}', '%{caller-ip}', '%{caller-port}', '%{callee-ip}', '%{callee-port}', '%{src-info}', '%{dest-info}', '%{Calling-Station-Id}', '%{Called-Station-Id}', '%{Dialed-Number}')
+
+UpdateQuery= update CDR set call_duration=%d where gatekeeper_name='%g' and acct_session_id='%s'
+
+StopQuery= update CDR set call_duration=%d, disconnect_cause=%c, disconnect_time='%{disconnect-time}' where gatekeeper_name='%g' and acct_session_id='%s'
+
+StopQueryAlt= insert into CDR (gatekeeper_name, call_number, call_duration, disconnect_cause, acct_session_id, h323_id, gkip, CallId, ConfID, setup_time, connect_time, disconnect_time, caller_ip, caller_port, callee_ip, callee_port, src_info, dest_info, Calling_Station_Id, Called_Station_Id, Dialed_Number) values ('%g STOP Alt', '%n', %d, %c, '%s', '%u', '%{gkip}', '%{CallId}', '%{ConfID}', '%{setup-time}', '%{connect-time}', '%{disconnect-time}', '%{caller-ip}', '%{caller-port}', '%{callee-ip}', '%{callee-port}', '%{src-info}', '%{dest-info}', '%{Calling-Station-Id}', '%{Called-Station-Id}', '%{Dialed-Number}')
+
+TimestampFormat=MySQL
+</verb></tscreen>

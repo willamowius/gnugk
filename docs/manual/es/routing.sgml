@@ -1,27 +1,32 @@
 <sect>Configuración de Enrutado
 <p>
-Las siguientes secciones del archivo de configuración pueden ser usadas para configurar el enrutamiento de las llamadas.
+Las siguientes secciones del archivo de configuración pueden ser utilizadas para configurar el enrutamiento de las llamadas.
 
-<sect1>Sección &lsqb;Políticas de enrutado&rsqb;
+<sect1>Sección &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
 <p>
-Esta sección explica el funcionamiento de las diversas políticas de enrutado del gatekeeper.
+Esta sección explica el funcionamiento de las diferentes 
+políticas de enrutado del gatekeeper.
 
-Las peticiones de llamada entrante pueden ser encaminadas usando un número de proovedores de enrutado:
+Las peticiones de llamada entrantes pueden ser encaminadas usando 
+un número de proovedores de ruta:
 
 <itemize>
 
 <item><tt/explicit/<newline>
 <p>
-El destinatario se detalla de manera explícita en la petición de enrutado.
+El destinatario se detalla de manera explícita en la petición 
+de enrutado.
 
 <item><tt/internal/<newline>
 <p>
-La regla clásica; buscar el destinatario en la tabla de registro RegistrationTable
+La regla clásica; buscar el destinatario en la 
+tabla de registro (RegistrationTable).
 
 <item><tt/parent/<newline>
 <p>
-Enruta la llamada con la información obtenida de la respuesta del GK padre a un ARQ enviado por el gatekeeper.
+Enruta la llamada utilizando información obtenida desde el GK padre 
+en respuesta a un mensaje ARQ enviado por el gatekeeper.
 
 <item><tt/neighbor/<newline>
 <p>
@@ -29,33 +34,67 @@ Enruta la llamada usando vecinos a través de mensajes LRQ
 
 <item><tt/dns/<newline>
 <p>
-El destino se obtiene del DNS, dado que es obtenible.
+El destino se obtiene del DNS, 
+dado que es obtenible.
 
 <item><tt/vqueue/<newline>
 <p>
+Usar el mecanismo de cola virtual y generar un evento RouteRequest
+para permitir manejar el enrutado a una aplicación externa 
+(sólo puede ser usada con OnARQ)
 
-Usar el mecanismo de cola virtual y generar un evento RouteRequest para permitir manejar el enrutado a una 
-aplicación externa (sólo puede ser usada OnARQ)
+<item><tt/numberanalysis/<newline>
+<p>
+Provee soporte para el envío de dígito enmascarado (overlapped digit) para mensajes ARQ.
+Además soporta parcialmente mensajes Setup (no overlapped sending
+- solamente validación de longitud de número).
+
+<item><tt/enum/<newline>
+<p>
+ENUM (RFC3761) es un método para utilizar DNS lookup para convertir
+números reales IDD E164 en información de marcado H323. Los servidores
+por defecto son <tt/e164.voxgratia.net/, <tt/e164.org/ y <tt/e164.arpa/.
+Para especificar su propio servidor, tiene que detallar la variable de
+ambiente PWLIB_ENUM_PATH con la dirección de sus servidores ENUM 
+preferidos separados por un punto u coma (;). 
+(Desde la versión 1.8.0 de PWLib soporta la valiabre PWLIB_ENUM_PATH; La versión 1.7.5.2 (Pandora) no soporta ésto.)
+
+La política "enum" remplaza el destino con la información devuelta por el servidor ENUM,
+así que usted debe tener las políticas de ruteo apropiadas para dirigir finalmente la llamada después de la política "enum".
+Generalmente usted debe tener la política "dns" después de la política "enum" puesto que
+la nueva ubicación es devuelta en la forma 'number@gatekeeper' entonces se necesita la política "dns" para resolver ésto.
+
+Finalmente no olvide que cada chequeo de ruta con la política "enum"  requiere un DNS lookup. 
+Para agilizar su ruteo, asegúrese de resolver internamente antes de aplicar la política "enum".
 </itemize>
 
-Las políticas se prueban de manera sucesiva hasta hallar la correcta.
+<p>
+La siguiente es la configuración por defecto para las políticas de enrutado (routing policies):
+<descrip>
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,parent,neighbor</tt></quote>
+</descrip>
 
-Estas políticas pueden ser aplicadas a diversos tipos de peticiones de enrutado, y datos de entrada de enrutado. 
-Éstos son los siguientes:
-ARQ, LRQ, Setup y Facility (con la razón callForwarded)
-Existe también una política general, que viene a ser la opción por defecto frente a los otros tipos.
+<p>
+Si una política no se cumple, se tratará con la siguiente política.
+
+Estas políticas pueden ser aplicadas a diversos tipos de peticiones de enrutado, 
+y datos de entrada de enrutado. Éstos son los siguientes:
+ARQ, LRQ, Setup y Facility (con razón callForwarded)
+Existe también una política general de enrutado, que viene a ser 
+la opción por defecto frente a los otros tipos.
 
 <descrip>
-<tag/Example:/
+<tag/Ejemplo:/
 <quote><tt>[RoutingPolicy]<newline>
 h323_ID=dns,internal<newline>
 002=neighbor,internal<newline>
 Default=internal,neighbor,parent</tt></quote>
 </descrip>
 
-Cuando un mensaje que llama a una decisión de enrutado se recibe, 
+Cuando se recibe uno de los mensajes que requiere una decisión de asignación de ruta 
 todas las llamadas a un alias del tipo h323_ID serán resueltas 
-a través de DNS. Si esto no soluciona el alias, se comprueba contra las 
+a través de DNS. Si ésto no soluciona el alias, se comprueba contra las 
 tablas de registro internas. Si se pide un alias que comience con 002, 
 los vecinos se comprueban antes de las tablas de registro. Si el 
 alias solicitado no es del tipo h323_ID o comienza por 002, se usa la 
@@ -63,10 +102,22 @@ política por defecto consultando las tablas de registro internas, tras
 ellas, a los vecinos, y, en caso de fallo, al padre.
 
 Para los mensajes ARQ, LRQ, Setup y Facility se deberían usar las secciones
- [RoutingPolicy::OnARQ], 
-[RoutingPolicy::OnLRQ], [RoutingPolicy::OnSetup] y [RoutingPolicy::OnFacility] 
-usando la sintaxis anteriormente explicada.
+[RoutingPolicy::OnARQ],[RoutingPolicy::OnLRQ], 
+[RoutingPolicy::OnSetup] y [RoutingPolicy::OnFacility] 
+utilizando la sintaxis anteriormente explicada.
 
+<descrip>
+<tag/Ejemplo:/
+<quote><tt>[RoutingPolicy::OnARQ]<newline>
+default=numberanalysis,internal,neighbor</tt></quote>
+</descrip>
+
+Una configuración típica de enrutado con ENUM podría quedar como lo que sigue:
+<descrip>
+<tag/Ejemplo:/
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,enum,dns,internal,parent,neighbor</tt></quote>
+</descrip>
 
 <sect1>Sección &lsqb;RasSrv::RewriteE164&rsqb;
 <label id="rewrite">
@@ -77,17 +128,16 @@ Esta sección define las reglas de reescritura para dialedDigits (números E.164)
 <tag/Format:/
 <tt>[!]original-prefix=target-prefix</tt>
 <p>
-
 Si el número comienza con <tt/original-prefix/,
 se reescribe a <tt/target-prefix/.
-Si la bandera `<tt/!/' precede a <tt/original-prefix/, se invierte el sentido
+Si el comodín `<tt/!/' precede a <tt/original-prefix/, se invierte el sentido
 y el prefijo del objetivo se antepone al número marcado. Se permiten los comodines especiales 
 (<tt/'.'/ y <tt/'%'/).
-<tag/Example:/
+<tag/Ejemplo:/
 <tt/08=18888/
 <p>
 Si se marca <tt/08345718/, se reescribe a <tt/18888345718/.
-<tag/Example:/
+<tag/Ejemplo:/
 <tt/!08=18888/
 <p>
 Si se marca <tt/09345718/, se reescribe a <tt/1888809345718/.
@@ -96,38 +146,38 @@ Si se marca <tt/09345718/, se reescribe a <tt/1888809345718/.
 Opción:
 <itemize>
 <item><tt/Fastmatch=08/<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Sólo reescribe dialDigits que comiencen con el prefijo especificado.
 </itemize>
-
 
 <sect1>Sección &lsqb;RasSrv::GWRewriteE164&rsqb;
 <label id="gwrewrite">
 <p>
 Esta sección describe la reescritura de números dialedDigits E.164 en función de
-si si llega o se envía la llamada de la puerta de enlace. Esto permite manipulación más flexible 
-de los dialedDigits para enrutado y demás. En combinación con el <ref id="rewrite" name="RasSrv::RewriteE164"> 
-se puede reescribir en tres fases:
+si llega o se envía la llamada desde el gateway. Esto permite una manipulación 
+más flexible de los dialedDigits para el enrutado. En combinación con el 
+<ref id="rewrite" name="RasSrv::RewriteE164"> se puede realizar la reescritura 
+en tres fases:
 
 <tscreen><verb>
-Llamada de "gw1", dialedDigits 0867822
+Llamada desde el "gw1", dialedDigits 0867822
 		|
 		|
 		V
-Reglas de entradas para "gw1", dialedDigits ahora son 550867822
+Reglas de entrada para "gw1", dialedDigits ahora es 550867822
 		|
 		|
 		V
-Reglas globales, dialedDigits ahora son 440867822
+Reglas globales, dialedDigits ahora es 440867822
 		|
 		|
 		V
-Selección de puerta de enlace, dialedDigits ahora son 440867822, puerta de enlace de cara al exterior "gw2"
+Selección de Gateway, dialedDigits ahora es 440867822, Gateway de cara al exterior "gw2"
 		|
 		|
 		V
-Reglas de salida para "gw2", dialedDigits ahora son 0867822
+Reglas de salida para "gw2", dialedDigits ahora es 0867822
 		|
 		|
 		V
@@ -135,38 +185,36 @@ Llamada a "gw2", dialedDigits 0867822
 </verb></tscreen>
 
 <descrip>
-<tag/Format:/
+<tag/Formato:/
 <tt>gw-alias=in|out=[!]original-prefix=target-prefix[;in|out...]</tt>
 <p>
-Si la llamada encaja con la puerta de enlace, la dirección y comienza con 
+Si la llamada encaja con el gateway, la dirección que comienza con 
 <tt/original-prefix/ se reescribe a <tt/target-prefix/.
 Si la bandera `<tt/!/' precede a <tt/original-prefix/, el sentido se invierte.
 Se permiten los caracteres especiales (<tt/'.'/ and <tt/'%'/).
-Es preciso separar con ';' las diversas reglas para una misma puerta de enlace.
-
+Es preciso separar con ';' las diversas reglas para un mismo gateway.
 <tag/Example:/
 <tt/gw1=in=123=321/
 <p>
-Si se recibe una llamada de "gw1" a <tt/12377897/, se reescribe a <tt/32177897/
-antes de acometer cualquier otra acción.
+Si se recibe una llamada desde "gw1" a <tt/12377897/, se reescribe a <tt/32177897/
+antes de completar cualquier otra acción.
 </descrip>
-
 
 <sect1>Sección &lsqb;Endpoint::RewriteE164&rsqb;
 <p>
-Una vez especificado el/los registro/s para el punto final de la puerta de enlace, 
-el gatekeeper padre enrutará las llamadas con <bf/dialedDigits/ comenzando con esos prefijos.
-
-El gatekeeper hijo puede reescribir el destino de acuerdo a las reglas especificadas en esta sección.
-En contraste, cuando un punto final interno llama a un punto final registrado en el padre, la fuente 
-se escribirá a inversas.
-
+Una vez especificado el/los prefijos para el gatekeeper que trabaja como endpoint, el gatekeeper 
+padre enrutará las llamadas con <bf/dialedDigits/ que empiezan con esos prefijos.
+El gatekeeper hijo puede reescribir el destino de acuerdo a las reglas 
+especificadas en esta sección. En contraste, cuando un endpoint interno llama a un 
+endpojnt registrado en el gatekeeper padre, el origen  
+se escribirá a la inversa.
+	
 <descrip>
-<tag/Format:/
+<tag/Formato:/
 <tt/external prefix=internal prefix/
 </descrip>
 
-Por ejemplo, con la siguiente configuración:
+Por ejemplo, Si se tiene la siguiente configuración:
 
 <tscreen><verb>
                         [Parent GK]
@@ -185,18 +233,328 @@ Por ejemplo, con la siguiente configuración:
            E164=601      E164=602
 </verb></tscreen>
 
-Con la regla:
+Con esta regla:
 <tscreen><verb>
 188886=6
 </verb></tscreen>
 
-Cuando EP1 llame EP3 por <tt/18888200/, el CallingPartyNumber en el Setup Q.931
-se reescribirá a <tt/18888601/. 
-A inversas, EP3 alcanza EP1 y EP2 llamando a <tt/18888601/ y <tt/18888602/, 
-respectivamente. Por tanto, un punto final registrado al GK hijo con prefijo '<tt/6/' aparecerá
-como un punto final con prefijo '<tt/188886/', para los puntos finales registrados al padre.
+Cuando EP1 llame a EP3 por <tt/18888200/, el CallingPartyNumber en el mensaje Setup Q.931
+se reescribirá a <tt/18888601/. A la inversa, EP3 alcanza EP1 y EP2 
+llamando a <tt/18888601/ y <tt/18888602/ respectivamente. Por tanto, 
+un endpoint registrado con el GK hijo con prefijo '<tt/6/' aparecerá
+como un endpoint con prefijo '<tt/188886/', para los endpoints registrados 
+con el gatekeeper padre.
 
 La sección no se relaciona con la sección
 <ref id="rewrite" name="RasSrv::RewriteE164">,
 aunque la última tendrá efecto antes.
 
+<sect1>Sección &lsqb;Routing::NumberAnalysis&rsqb;
+<label id="numberanalysis">
+<p>
+Esta sección define reglas para la política de enrutado <tt/numberanalysis/.
+Esta política revisa el mínimo y/o máximo número de dígitos que tiene un número marcado
+y envía un mensaje ARJ si es necesario (número de dígitos fuera de rango), permitiendo dar soporte
+al envío de dígitos superpuestos (overlapped digit). Se da un soporte parcial a los mensajes Setup (no al envio de dígitos superpuestos 
+- solamente a la validación de la longitud del número).
+
+<descrip>
+<tag/Formato:/
+<tt>prefix=MIN_DIGITS[:MAX_DIGITS]</tt>
+<p>
+Si el número empareja con <tt/prefix/, éste se verifica para ver si consiste de al menos
+<tt/MIN_DIGITS/ dígitos y (si también se agregó MAX_DIGITS) hasta un máximo de <tt/MAX_DIGITS/
+dígitos. Tambien se pueden utilizar caracteres especiales como <tt/!/, <tt/'.'/ y <tt/'%'/).
+Si el número es demasiado corto , se devolverá un mensaje ARJ con el campo <tt/rejectReason/ espablecido a <tt/incompleteAddress/.
+Si el número es demasiado largo, se devolverá un mensaje ARJ con el campo <tt/rejectReason/ establecido a <tt/undefinedReason/.
+Para buscar una correspondencia se busca en la lista de prefijos desde el prefijo más largo hasta el prefijo mas corto.
+En el caso de mensajes Setup, se devolverá un <tt/Release Complete/ con "badFormatAddress" cuando el número
+tiene una logitud incorrecta.
+
+<tag/Ejemplo:/
+<tscreen><verb>
+[RoutingPolicy::OnARQ]
+default=numberanalysis,internal
+
+[Routing::NumberAnalysis]
+0048=12
+48=10
+.=6:20
+</verb></tscreen>
+<p>
+Las llamadas que van hacia destinatarios que empiezan con 0048 deben tener por lo menos 12 dígitos,
+los que van hacia destinatarios que empiezan con 48 deben tener 10 dígitos y resto por lo menos 6 y como máximo 20 dígitos.
+</descrip>
+
+<sect1>Sección &lsqb;RewriteCLI&rsqb;
+<label id="clirewrite">
+<p>
+Esta sección contiene un conjunto de reglas de reescritura para números ANI/CLI (caller id).
+El proceso de reescritura es realizado en dos estados - reescritura entrante (inbound rewrite) y reescritura saliente (outbound rewrite).
+La reescritura entrante (inbound rewrite) se realiza antes que cualquier otro proceso de mensajes Q.931
+(como inbound GWRewrite, autenticación, accounting, ...) y éste tendrá
+efectos visibles dentro de los módulos auth/acct, puesto que éste afecta al Calling-Station-Id.
+La reescritura saliente (outbound rewrite) toma lugar justo antes de que el mensaje de Setup sea remitido
+y su efecto es visible solamente para el endpoint que recibe la llamada (callee).
+<p>
+Una regla de reescritura entrante (inbound rewrite) puede enparejarse con una IP del endpoint emisor (caller's IP) y un número marcado (dialed number)
+o un CLI/ANI original.
+Una regla de reescritura saliente (outbound rewrite) puede emparejarse con una IP del endpoint emisor (caller's IP), con la IP del receptor (callee's IP) y
+con un número marcado (dialed number) o con un número de destino (el número marcado después de la reescritura)
+o un CLI/ANI (después de la reescritura entrante).
+<p>
+Este módulo además provee la característica CLIR (Calling Line Identification Restriction)
+que puede ser configurada para cada endpoint (regla).
+
+<itemize>
+<item><tt/ProcessSourceInfo=1/<newline>
+Default: <tt/1/<newline>
+<p>
+Además de reescribir un Calling-Party-Number IE también se podrá reescribir el elemento
+sourceInfo del mensaje de Setup H.225.0, de esta manera ambos contienen
+información coherente.
+
+<item><tt/RemoveH323Id=1/<newline>
+Default: <tt/1/<newline>
+<p>
+Cuando se reescribe el elemento sourceInfo de un mensaje Setup H.225.0,
+los alias de tipo H323_ID, email_ID y url_ID pueden permanecer intactas
+si esta opción permanece deshabilitada.
+
+<item><tt/CLIRPolicy=apply/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Aquí puede establecerse un indicador de presentación global que procesa la política.
+Esta política puede ser aplicada a todas las reglas de reescritura CLI que no anulen a ésta.
+Las posibles selecciones son <tt/forward/ - solamente remite el PI recibido tal como está,
+<tt/apply/ - examina el PI recibido y oculta el CLI si éste esta establecido en "presentación 
+restringida" y <tt/applyforterminals/ - similar a <tt/apply/ excepto que el número
+es removido solamente cuando la llamada es enviada hacia un terminal y no hacia un gateway.
+</itemize>
+
+<descrip>
+<tag/Formato para una regla entrante:/
+<tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=)NEW_CLI[,NEW_CLI]...</tt>
+<p>
+El prefijo <tt/in:/ indica que ésta es una regla entrante y el <tt/CALLER_IP/
+será utilizado para emparejar la regla (éste puede ser una simple IP o una subred completa).<newline>
+
+El parámetro opcional <tt/pi=/ controla las características de CLIR (Calling Line Identification Restriction).
+Con los valores de <tt/allow/ o <tt/restrict/ establecemos que el indicador de presentación (presentation indicator)
+sea "presentación permitida" o "presentación restringida". Los indicadores <tt/forward/, <tt/apply/
+y <tt/applyforterminals/ controlan cómo el indicador de presentación recibido (si lo hay)
+es procesado por el gatekeeper. <tt/forward/ significa reenviar el indicador hacia el callee tal como está,
+<tt/apply/ significa ocultar el CLI si el PI está establecido en "presentación restringida", <tt/applyforterminals/
+es similar a <tt/apply/, excepto que el CLI se oculta solamente cuando la llamada es enviada hacia un terminal,
+y no a un gateway.<newline>
+
+El prefijo <tt/cli:/ o <tt/dno:/ (el valor predeterminado) selecciona el número que será utilizado
+para emparejar el <tt/number_prefix/ - un id de caller (CLI/ANI) o un número marcado (dialed number).
+El emparejado/reescritura de números puede realizarse de tres maneras:
+<itemize>
+<item><tt/=/ - Un número <tt/cli/ o <tt/dno/ se emparejará contra el <tt/number_prefix/,
+	       utilizando un prefijo (prefix match), si el prefijo es encontrado, el
+               CLI será reemplazado con el NEW_CLI,
+<item><tt/~=/ - Un número <tt/cli/ o <tt/dno/ se emparejará contra el <tt/number_prefix/,
+               utilizando una indetidad (identity match), si ambos números son los mismos, el
+               CLI será reemplazado con el NEW_CLI,
+<item><tt/*=/ - (VALIDO SOLAMENTE PARA <tt/cli/) Un número <tt/cli/ se emparejará contra el <tt/number_prefix/,
+               utilizando un prefijo (prefix match), si el prefijo es encontrado, el
+               prefijo emparejado CLI (<tt/number_prefix/) será reemplazado con un prefijo NEW_CLI.
+</itemize>
+Después del signo de igualdad (=/~=/*=), sigue una lista de valores nuevos de CLI a ser usados.
+Si se especifica mas de un valor, un único valor se escogerá de manera aleatoria.
+Está permitido especificar grandes rangos de números como 49173600000-49173699999
+(para rangos de números CLIs debe fijarse una longitud fija).
+Hay una cadena especial constante "any", que puede ser utilizada en lugar
+del <tt/CALLER_IP/ o el <tt/number_prefix/. Para habilitar la característica <tt/CLIR/ para esta regla,
+utilice la cadena especial constante <tt/"hide"/ en lugar de la lista de nuevos valores de CLI.
+Tenga presente que CLIR es más utilizado para reglas salientes (outbound rules).
+
+<tag/Ejemplo 1:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=dno:5551=3003
+in:192.168.1.1=cli:1001=2222
+in:192.168.1.1=any=1111
+</verb></tscreen>
+<p>
+Estas reglas indican que para aquellas llamadas que vienen desde la IP 192.168.1.1:
+(1) si el usuario marca un número que empieza con 5551, el CLI se establece en 3003,
+(2) si la llamada es de un usuario que empieza con CLI en 1001, el CLI se establece en 2222,
+(3) para el resto de llamadas que vienen de dicha IP, el CLI se establece en 1111.
+
+<tag/Ejemplo 2:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=18001111
+in:192.168.2.0/24=any=18002222
+in:any=any=0
+</verb></tscreen>
+<p>
+Estas reglas indican que:
+(1) para las llamadas que vienen desde la red 192.168.1.0/24, el CLI se establece en 18001111,
+(2) para las llamadas que vienen desde la red 192.168.2.0/24, el CLI se establece en 18002222,
+(3) para el resto de llamadas, el CLI se establece en 0.
+
+<tag/Ejemplo 3:/
+<tscreen><verb>
+[RewriteCLI]
+%r1% in:192.168.1.0/24=0048*=48
+%r2% in:192.168.1.0/24=0*=48
+in:any=100.~=48900900900
+</verb></tscreen>
+<p>
+Estas reglas indican que:
+(1) para las llamadas que vienen desde la red 192.168.1.0/24, reescriba los números que empiezan con 0048 a 48 (ejemplo - 0048900900900 => 48900900900),
+(2) para las llamadas que vienen desde la red 192.168.1.0/24, reescriba los números que empiezan con 0 a 48 (ejemplo - 0900900900 => 48900900900),
+(3) para el resto de llamadas, si CLI es de 4 dígitos y empieza con 100, establezca éste en 48900900900.
+
+<tag/Ejemplo 4 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=hide
+</verb></tscreen>
+<p>
+Este ejemplo provoca que el número del emisor (caller) sea removido de los mensajes de Setup
+originados en la red 192.168.1.0/24. Esto además provoca que sean establecidos de manera apropiada los indicadores
+de presentación y screening en los mensajes Setup.
+</descrip>
+
+<descrip>
+<tag/Formato para la regla saliente (outbound rule):/
+<tt>out:CALLER_IP=CALLEE_IP [pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:|cno:]number_prefix(=|~=|*=)NEW_CLI[,NEW_CLI]...</tt>
+<p>
+El prefijo <tt/out:/ indica que ésta es una regla saliente (outbound rule), el <tt/CALLER_IP/
+y el <tt/CALLEE_IP/ serán utilizados para emparejar la regla y puede ser una dirección IP simple
+o una dirección completa de red.<newline>
+
+El parámetro opcional <tt/pi=/ controla las características de CLIR (Calling Line Identification Restriction).
+Con los valores de <tt/allow/ o <tt/restrict/ establecemos que el indicador de presentación (presentation indicator)
+sea "presentación permitida" o "presentación restringida". Los indicadores <tt/forward/, <tt/apply/
+y <tt/applyforterminals/ controlan cómo el indicador de presentación recibido (si lo hay)
+es procesado por el gatekeeper. <tt/forward/ significa reenviar el indicador hacia el callee tal como está,
+<tt/apply/ significa ocultar el CLI si el PI está establecido en "presentación restringida", <tt/applyforterminals/
+es similar a <tt/apply/, excepto que el CLI se oculta solamente cuando la llamada es enviada hacia un terminal,
+y no a un gateway.<newline>
+
+
+El prefijo <tt/cli:/, <tt/dno:/ (el valor predeterminado) o <tt/cno:/ selecciona el número que será utilizado
+para emparejar el <tt/number_prefix/ - un id de caller (CLI/ANI), un número marcado (dialed number)
+o un número destino/called (el número marcado después de la reescritura).
+El emparejado/reescritura de números puede realizarse de tres maneras:
+<itemize>
+<item><tt/=/ - Un número <tt/cli/ o <tt/dno/ se emparejará contra el <tt/number_prefix/,
+	       utilizando un prefijo (prefix match), si el prefijo es encontrado, el
+               CLI será reemplazado con el NEW_CLI,
+<item><tt/~=/ - Un número <tt/cli/ o <tt/dno/ se emparejará contra el <tt/number_prefix/,
+               utilizando una indetidad (identity match), si ambos números son los mismos, el
+               CLI será reemplazado con el NEW_CLI,
+<item><tt/*=/ - (VALIDO SOLAMENTE PARA <tt/cli/) Un número <tt/cli/ se emparejará contra el <tt/number_prefix/,
+               utilizando un prefijo (prefix match), si el prefijo es encontrado, el
+               prefijo emparejado CLI (<tt/number_prefix/) será reemplazado con un prefijo NEW_CLI.
+</itemize>
+Después del signo de igualdad (=/~=/*=), sigue una lista de valores nuevos de CLI a ser usados.
+Si se especifica mas de un valor, un único valor se escogerá de manera aleatoria.
+Está permitido especificar grandes rangos de números como 49173600000-49173699999.
+Hay una cadena especial constante "any", que puede ser utilizada en lugar
+del <tt/CALLER_IP/, el <tt/CALLEE_IP/ o el <tt/number_prefix/. 
+Para habilitar la característica <tt/CLIR/ para esta regla, utilice la cadena especial constante <tt/"hide"/
+o <tt/"hidefromterminals"/ en lugar de la lista de nuevos valores de CLI.
+
+<tag/Ejemplo 1:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001
+out:any=192.168.1.2 any=1002
+</verb></tscreen>
+<p>
+Estas reglas establecen un ANI/CLI fijo para cada IP final:
+(1) presénteme con un ANI 1001, al enviar las llamadas a la IP 192.168.1.1,
+(2) presénteme con un ANI 1002, al enviar las llamadas a la IP 192.168.1.2.
+
+<tag/Ejemplo 2:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001-1999,3001-3999
+</verb></tscreen>
+<p>
+Esta regla selecciona de manera aleatoria un ANI/CLI de un rango de 1001-1999, 3001-3999
+para llamadas enviadas a 192.168.1.1.
+
+<tag/Ejemplo 3 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=any any=hidefromterminals
+out:192.168.1.1=any any=hide
+</verb></tscreen>
+<p>
+En este ejemplo cada suscriptor ha habilitado la característica CLIR. De esta manera todas las llamadas hacia los terminales
+tendrán un número de emisor (caller) removido y establecidos los indicadores de presentación/screening.
+Las llamadas que van hacia los gateways tendrán solamente un indicador de presentación establecido en "presentación restringida"
+y no será removido el número de emisor (caller) para permitir un ruteo apropiado y removimiento de número
+al equipo destino.<newline>
+Una excepción a estas reglas es que las llamadas que vienen desde 192.168.1.1 tendrán siempre removido
+el número de emisor (caller), sin importar si está llamando a un terminal o a un gateway.
+
+<tag/Ejemplo 4 (CLIP):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=hide
+</verb></tscreen>
+<p>
+En este ejemplo la característica CLIP (Calling Line Identification Presentation)
+está deshabilitada para el usuario 192.168.1.1.
+
+<tag/Ejemplo 5 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:192.168.1.1=any pi=restrict,apply cli:.*=.
+out:any=any pi=allow cli:.*=.
+</verb></tscreen>
+<p>
+Estas reglas no cambian el CLI (.*=.) y:
+(1) habilitan el CLIR para el endpoint 192.168.1.1. <tt/apply/ le indica al gatekeeper
+    que no solamente establezca el PI, sino que además oculte el número actual,
+(2) Forza la presentación CLI para el resto endpoints.
+</descrip>
+
+<p>
+El emparejamiento de reglas tiene un orden estrictamente definido:
+<enum>
+<item>
+Se determina la pareja de la IP del emisor más cercano - closets caller's IP (closest significa con la 
+máscara de red más larga - IPs simples tienen la prioridad más alta, "any" tiene la prioridad más
+baja),
+<item>
+(reglas salientes) Se determina la pareja de la IP del receptor más cercano - closest callee's IP,
+<item>
+Se busca el prefijo/numero más largo que empareje con el par IP/IP dado,
+en el siguiente órden:
+<enum>
+<item><tt/dno:/ Se buscan reglas de tipo (número marcado - dialed number),
+<item><tt/cno:/ Se buscan reglas de tipo (número destino/llamado - destination/called number),
+<item><tt/cli:/ Se buscan reglas de tipo (caller id).
+</enum>
+</enum>
+Después que ha sido encontrada una pareja para la IP del caller/callee, no se revisa ninguna
+otra regla, aun cuando ningún prefijo/número se empareja dentro del conjunto de reglas
+para éstas IPs.
+
+<p>
+Sobre plataforma Windows, hay un problema con config keys duplicadas,
+de esta manera hay un workaround para esta restricción. Este ejemplo
+no podrá trabajar debido a la misma clave (key) (<tt/in:192.168.1.1/):
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=1001=2001
+in:192.168.1.1=any=2000
+</verb></tscreen>
+Como workaround, puede utilizar una cadena con un signo de porcentaje (%) al inicio
+y al final antes de la clave (key). Este prefijo se separará automáticamente
+del nombre de la clave (key name) antes de la carga de las reglas:
+<tscreen><verb>
+[RewriteCLI]
+%r1% in:192.168.1.1=1001=2001
+%r2% in:192.168.1.1=any=2000
+</verb></tscreen>

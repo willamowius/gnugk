@@ -1,7 +1,7 @@
 <sect1>Archivo de Configuración
 <label id="config">
 <p>
-El archivo de configuración es un archivo estándar de texto. El formato es el siguiente: 
+El archivo de configuración es un archivo estándar de texto. El formato básico es el siguiente: 
 
 <tscreen><verb>
 [Section String]
@@ -17,9 +17,9 @@ contiene todas las secciones disponibles para el GnuGk.
 En la mayoría de los casos no tiene sentido utilizar todas las secciones al mismo tiempo.
 El archivo simplemente contiene una colección de ejemplos para muchas configuraciones.
 
-El archivo de configuración puede ser cambiado en tiempo de ejecución (cuando el gnugk este ejecutándose).
-Una vez que haya modificado el archivo de configuración, usted puede editar el comando <tt/reload/
-desde el puerto de estado (en una conexion telnet), o enviar una señal <tt/HUP/ al proceso del gatekeeper en ambientes UNIX.
+El archivo de configuración puede ser cambiado en tiempo de ejecución.
+Una vez que haya modificado el archivo de configuración, usted puede emitir el comando <tt/reload/
+vía puerto de estado, o enviar una señal <tt/HUP/ al gatekeeper en ambientes UNIX.
 Por ejemplo,
 <tscreen><verb>
 kill -HUP `cat /var/run/gnugk.pid`
@@ -29,9 +29,9 @@ kill -HUP `cat /var/run/gnugk.pid`
 <p>
 <itemize>
 <item><tt/Fortytwo=42/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Esta variable permite probar la existencia del archivo de configuración
+Esta configuración permite probar la existencia del archivo de configuración
 (gatekeeper.ini o cualquiera que sea su nombre) con el que va a trabajar el
 gatekeeper. Un mensaje de advertencia se mostrará en caso de que no
 existiera dicho archivo.
@@ -39,180 +39,183 @@ existiera dicho archivo.
 <item><tt/Name=OpenH323GK/<newline>
 Default: <tt/OpenH323GK/
 <p>
-Este es el identificador para el gatekeeper; es decir el nombre con que se lo
-conoce dentro del ambiente VOIP. Todos los mensajes enviados a los
-endpoints llevan este identificador.
+Identificador del gatekeeper. El gatekeeper responderá solamente a los
+mensages GRQs con este ID y utilizará éste en los mensajes enviados a sus endpoints.
 
 <item><tt/Home=192.168.1.1/<newline>
 Default: <tt/0.0.0.0/
 <p>
 El gatekeeper escuchará por peticiones desde esta dirección IP. Por defecto, el
-gatekeeper escucha desde todas las interfaces de sus equipos. Usted puede
-quitar esta opción a menos que usted desee que el gatekeeper esté
-escuchando desde direcciones específicas. Múltiples direcciones pueden
-agregarse separadas por punto y coma (;) o coma (,).
+gatekeeper escucha desde todas las interfaces de su equipo. Usted puede
+omitir esta opción a menos que usted desee que el gatekeeper se enlace
+solamente hacia una dirección IP específica. Pueden agregarse varias direcciones IP
+en este campo separadas por un punto y coma (;) o una coma (,).
 
 <item><tt>NetworkInterfaces=192.168.1.1/24,10.0.0.1/0</tt><newline>
 Default: <tt>N/A</tt>
 <p>
-Aquí se especifica las interfaces de red del gatekeeper. Por defecto el
-gatekeeper detectará las interfaces de sus equipos automáticamente. Existen
+Aquí especifique las interfaces de red del gatekeeper. Por defecto el
+gatekeeper detectará las interfaces de su equipo automáticamente. Existen
 dos situaciones en las que usted podría usar esta opción. Una es en el caso de
-que la detección automática fallara y la otra cuando el gatekeeper esta detrás
-de un NAT box y permite a endpoints con claves públicas registrarse con el
-gatekeeper.
+que la detección automática fallara y la otra cuando el gatekeeper está detrás
+de una NAT box y permite a los endpoints con Ips públicas registrarse con el
+gatekeeper. En este caso usted debe configurar esta opción solamente cuando
+el gatekeeper está ejecutándose sobre una NAT box.
 
 <item><tt/EndpointIDSuffix=_gk1/<newline>
 Default: <tt/_endp/
 <p>
 El gatekeeper asignará un único identificador a cada endpoint registrado. Esta
-opción puede ser usada para especificar un sufijo y añadirlo al identificador
+opción puede ser usada para especificar un sufijo que será añadido al identificador
 del endpoint. Esto es muy utilizado solamente cuando se utiliza más de un
 gatekeeper.
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
 Default: <tt/-1/
 <p>
-El registro del endpoint con el gatekeeper puede tener un límite en el tiempo
-de duración. El gatekeeper especifica la duración del registro de un endpoint
-incluyendo un campo <bf/timeToLive/ en el mensaje RCF. Después del tiempo
-especificado, el registro expira. Los endpoints enviarán periódicamente un
-mensaje RRQ con el bit <bf/keepAlive/ fijado antes del tiempo de expiración.
-Este tipo de mensajes incluyen un mínimo de información como esta descrito
-en H.225.0. Por eso es llamado como lightweight RRQ.
-Esta configuración realizada especifica el cronometro time- to- live en
-segundos hasta que el registro expira. Debe tener muy en cuenta que el
-endpoint puede pedir un <bf/timeToLive/ muy corto al gatekeeper en el mensaje
-RRQ. Para evitar una sobrecarga de mensajes RRQ, el gatekeeper ajusta
-automáticamente este tiempo a 60 segundos si usted estableció un valor
-menor.
+El registro de un endpoint con el gatekeeper puede tener un limitado tiempo de vida. 
+El gatekeeper especifica la duración del registro de un endpoint
+incluyendo un campo <bf/timeToLive/ en el mensaje RCF. 
+Después del tiempo especificado, el registro expira. 
+Los endpoints enviarán periódicamente un mensaje RRQ con el bit <bf/keepAlive/ 
+establecido antes del tiempo de expiración. Estos mensajes incluyen una 
+mínima cantidad de información como se describe en H.225.0. 
+Éste es conocido como lightweight RRQ.
 
-Después del tiempo de expiración, el gatekeeper enviará seguidamente dos
-mensajes IRQ para consultar si el endpoint esta aun levantado. Si el endpoint
-responde con un mensaje IRR, el registro se extenderá. En otro caso el
-gatekeeper enviará un mensaje URQ con razón <bf/ttlExpired/ hacia el endpoint.
-El endpoint debe entonces reintentar el registro con el gatekeeper usando un
-mensaje RRQ completo.
-Para deshabilitar esta opción, establezca como valor: - 1
+Esta opción de configuración especifica el contador time-to-live en segundos hasta que el registro expira. 
+Tenga presente que el endpoint puede requerir un <bf/timeToLive/ muy corto en el mensaje RRQ 
+enviado al gatekeeper. 
+Para evitar una sobrecarga de mensajes RRQ, 
+el gatekeeper ajusta automáticamente este contador 
+a 60 segundos si usted estableció un valor menor.
+
+Después del tiempo de expiración, 
+el gatekeeper enviará seguidamente dos mensajes IRQ para consultar
+si el endpoint esta aun levantado. Si el endpoint responde con un mensaje IRR, 
+el registro se extenderá. En otro caso el gatekeeper enviará 
+un mensaje URQ con razón <bf/ttlExpired/ hacia el endpoint.
+El endpoint debe entonces reintentar el registro con el gatekeeper usando un mensaje RRQ completo.
+
+Para deshabilitar esta opción, establezca esta opción a <tt/-1/
 
 <item><tt/TotalBandwidth=100000/<newline>
-Default: <tt/-1/
+Default: <tt/-1/<newline>
 <p>
-Aquí se define el total del ancho de banda para ser dado a los endpoints. Por
-defecto esta característica esta deshabilitada. Tenga cuidado cuando use ésta,
+Aquí se define el total del ancho de banda que va a ser asignado a los endpoints.
+Por defecto esta característica esta deshabilitada. Sea cuidadoso al usar esta opción,
 puesto que muchos endpoints tienen defectos de implementación.
 
 <item><tt/RedirectGK=Endpoints > 100 || Calls > 50/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Esta opción le permite redireccionar endpoints hacia gatekeeper alternos
-cuando el gatekeeper se sobrecarga. Por ejemplo, en la configuración
-anterior, el gatekeeper rechazará un RRQ si los endpoints registrados
-sobrepasan los 100 o rechazará un ARQ si las llamadas actuales sobrepasan
-las 50.
-Además, usted puede redireccionar todos los endpoints de manera explícita
-configurando esta opción ya sea de manera temporal o permanente. El
-gatekeeper devolverá un mensaje de rechazo RAS con una lista de
-gatekeepers alternos definida en <tt/AlternateGks/. Debe tener presente que un
-redireccionamiento permanente significa que los endpoints redireccionados
-no se registrarán nuevamente con este gatekeeper. Además tenga en cuenta
-que esta función solamente tiene efecto con el estándar H323 versión 4.
+cuando el gatekeeper se sobrecarga. 
+Por ejemplo, en la configuración anterior, el gatekeeper rechazará 
+un RRQ si los endpoints registrados sobrepasan los 100 
+o rechazará un ARQ si las llamadas actuales sobrepasan las 50.
 
+Además, usted puede redireccionar todos los endpoints de manera explícita
+configurando esta opción a <tt/temporary/ or <tt/permanent/.
+El gatekeeper devolverá un mensaje de rechazo RAS con una lista de
+gatekeepers alternos definida en <tt/AlternateGks/. 
+Tenga presente que un redireccionamiento permanente <tt/permanent/ significa que los endpoints redireccionados
+no se registrarán nuevamente con este gatekeeper. 
+Además tenga en cuenta que esta función solamente tiene efecto con endpoints que cumplen con el estándar H323 versión 4.
 
 <item><tt/AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Con esta opción nosotros permitimos la existencia de otro gatekeeper para
-proveer redundancia. Actualmente, usted podría encontrarse en una situación
-(válida por supuesto) donde algunos endpoints están registrados con el
-primer gatekeeper y algunos están registrados con el segundo. De igual
-manera usted debe ser capaz de usar los dos gatekeepers en un modo round
-robin para compartir la carga. Al hablar de gatekeeper primario se refiere al
-gatekeeper que estamos configurando actualmente y gatekeeper alterno
-significa el otro. El gatekeeper primario incluye un campo en el RFC que le
-indica al endpoint cual IP e identificación del gatekeeper alterno utilizar. Pero
-en cambio el gatekeeper alterno necesita conocer todos los registros
-realizados por el gatekeeper primario o sino este rechazará las llamadas. Por
-consiguiente nuestro gatekeeper puede remitir cada RRQ hacia una dirección
+Con esta opción nosotros permitimos la existencia de otro gatekeeper para proveer redundancia. 
+Esta opción está implementada de manera activa-activa. Actualmente, usted podría encontrarse 
+en una situación (válida por supuesto) donde algunos endpoints están registrados con el
+primer gatekeeper y algunos están registrados con el segundo gatekeeper. 
+Usted debe ser capaz de usar los dos gatekeepers en un modo round robin para 
+compartir la carga (load-sharing)(eso no está probado aún).
+Si continúa leyendo Al hablar de gatekeeper primario ("primary GK") se refiere al
+gatekeeper que estamos configurando actualmente y gatekeeper alterno ("alternate GK")
+se refiere a otro. 
+El gatekeeper primario incluye un campo en el RFC que le
+indica al endpoint cual dirección IP e identificación del gatekeeper alterno utilizar.
+Pero en cambio el gatekeeper alterno necesita conocer todos los registros
+realizados por el gatekeeper primario o sino este rechazará las llamadas. 
+Por consiguiente nuestro gatekeeper puede reenviar cada RRQ hacia una dirección
 IP alterna.
 
-La opción de configuración AlternateGKs especifica los campos contenidos en
-el RCF del gatekeeper primario . Los dos primeros campos del string definen
-donde (ip:port) se va a remitir la llamada. El tercer campo le indica a los
-endpoints si ellos necesitan registrarse con el gatekeeper alterno antes de de
-que tengan lugar las llamadas. Ellos normalmente no lo hacen puesto que
-nosotros remitimos sus mensajes RRQ, de esta manera ellos se registran con
-el gatekeeper alterno también. El cuarto campo especifica la prioridad para
-este gatekeeper. Si es pequeña, mejor, usualmente el gatekeeper primario es
-considerado para que tenga prioridad 1. Finalmente el último campo
-especifica el identificador del gatekeeper alterno.
+La opción de configuración AlternateGKs hace referencia a los campos contenidos en
+el mensaje RCF del gatekeeper primario . Los dos primeros campos del string definen
+hacia donde (ip:port) se va a redireccionar. 
+El tercer campo le indica a los endpoints si ellos necesitan registrarse con el gatekeeper alterno 
+antes de de que tengan lugar las llamadas. Ellos normalmente no lo hacen puesto que
+nosotros reenviamos sus mensajes RRQ, de esta manera ellos se registran con
+el gatekeeper alterno también. El cuarto campo especifica la prioridad para este gatekeeper. 
+Si es pequeña, mejor, usualmente el gatekeeper primario es considerado para que tenga prioridad 1. 
+Finalmente el último campo especifica el identificador del gatekeeper alterno.
 
 <item><tt/SendTo=1.2.3.4:1719/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 A pesar de que esta información esta incluida en el gatekeeper alterno
-(AlternateGKs), you must still specify which address to forward RRQs to. Esto
-podría diferir de las direcciones del gatekeeper alterno, de esta manera esta
+(AlternateGKs), usted debe especificar hacia que dirección reenviar los mensajes RRQs. 
+Esto podría diferir de las direcciones del gatekeeper alterno, de esta manera esta
 es una opción de configuración aparte (piense en máquinas multihomed ).
 
 <item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Para evitar reenvíos circulares, usted no debería reenviar los RRQs que usted
-obtiene desde otros gatekeepers (Esta declaración es verdadera para ambos el
-gatekeeper primario y alterno). Dos mecanismos son utilizados para
-identificar si una petición debería ser reenviada. El primero busca por una
-bandera en los mensajes RRQ. Puesto que pocos endpoints implementan esto,
-nosotros necesitamos una segunda manera que sea más fiable. Especificar la
-IP del otro gatekeeper en esta lista.
+Para evitar reenvíos circulares, usted no debe reenviar los RRQs que usted
+obtiene desde otros gatekeepers (Esta declaración es verdadera para ambos el gatekeeper primario y alterno). 
+Dos mecanismos son utilizados para identificar si una petición debería ser reenviada. 
+El primero busca una bandera en los mensajes RRQ. Debido a que pocos endpoints implementan esto,
+nosotros necesitamos una segunda manera que sea más fiable.
+Especificar la IP de otro gatekeeper en esta lista.
 
 <item><tt/StatusPort=7000/<newline>
-Default: <tt/7000/
+Default: <tt/7000/<newline>
 <p>
 Este es el puerto de estado para monitorear el gatekeeper.
-Ver <ref id="monitor" name="this section"> para más detalle.
+Ver <ref id="monitor" name="esta sección"> para más detalle.
+
+<item><tt/SignalCallId=1/<newline>
+Default: <tt/0/<newline>
+<p>
+IDs de señalización de llamadas ACF/ARJ/DCF/DRJ/RouteRequest en los mensajes del puerto de estado.
+Ver <ref id="monitor" name="esta sección"> para más detalle.
 
 <item><tt/StatusTraceLevel=2/<newline>
-Default: <tt/2/
+Default: <tt/2/<newline>
 <p>
-Aquí se especifica el nivel de rastreo de mensajes para nuevas interfaces
-clientes.
-Ver <ref id="monitor" name="this section"> para más detalle.
+Aquí se especifica el nivel de rastreo de mensajes para nuevas interfaces clientes.
+Ver <ref id="monitor" name="esta sección"> para más detalle.
 
 <item><tt/TimestampFormat=ISO8601/<newline>
-Default: <tt/Cisco/
+Default: <tt/Cisco/<newline>
 <p>
-Esta opción permite controlar el formato de impresión de los strings
-generados por el gatekeeper. Esta opción afecta a las secciones:
-<ref id="sqlacct" name="[SqlAcct]">, 
+Esta opción permite controlar el formato de impresión de los strings generados por el gatekeeper. 
+Esta opción afecta a las secciones:
+<ref id="sqlacct" name="[SqlAcct]">,
 <ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
-y otras, excepto a <ref id="calltable" name="[CallTable]">.
-Además usted puede adaptar este formato de acuerdo a sus necesidades.
+y otras secciones, excepto a <ref id="calltable" name="[CallTable]">.
+Usted puede adaptar de acuerdo a sus necesidades el formato de impresión de los strings.
 <p>
 Hay cuatro formatos predefinidos:
 <itemize>
-<item><tt/RFC822/ - Este es el formato por defecto utilizado por el gatekeeper
-(ejemplo: Wed, 10 Nov 2004 16:02:01 +0100).
-<item><tt/ISO8601/ - Formato estándar ISO (ejemplo: 2004- 11- 10 T 16:02:01
-+0100).
-<item><tt/Cisco/ - Formato utilizado por equipos Cisco (ejemplo: 16:02:01.534 CET
-Wed Nov 10 2004).
-<item><tt/MySQL/ - Formato simple que MySQL entiende perfectamente (ejemplo:
-2004- 11- 10 16:02:01).
+<item><tt/RFC822/ - Formato por defecto utilizado por el gatekeeper (ejemplo: Wed, 10 Nov 2004 16:02:01 +0100)
+<item><tt/ISO8601/ - Formato ISO estándar (ejemplo: 2004-11-10 T 16:02:01 +0100)
+<item><tt/Cisco/ - Formato utilizado por equipos Cisco (ejemplo: 16:02:01.534 CET Wed Nov 10 2004)
+<item><tt/MySQL/ - Formato simple que puede ser comprendido por MySQL (ejemplo: 2004-11-10 16:02:01)
 </itemize>
 <p>
-Si usted necesita otro formato, usted puede construir sus propios formatos,
-utilizando reglas conocidas desde la función <tt/strftime/ de C. En general, el
-formato del string consiste de caracteres regulares y códigos formateados,
-precedidos por un signo de porcentaje (%). Por ejemplo: "%Y-%m-%d and
-percent %%" dará como resultado "2004- 11- 10 and percent %". Algunos
-códigos formateados comúnes son:
+Si usted necesita otro formato, puede construir sus propios formatos utilizando 
+reglas de la función conocida de C <tt/strftime/ (Revise man strftime o busque en MSDN por strftime) 
+En general, el formato del string consiste de caracteres regulares y códigos formateados, precedidos 
+por un signo de porcentaje (%). Por ejemplo: "%Y-%m-%d y porcentaje %%" dará como resultado "2004- 11- 10 y porcentaje %". 
+Algunos códigos formateados comúnes son:
 <itemize>
 <item><tt/%a/ - Nombre abreviado del día de la semana
 <item><tt/%A/ - Nombre completo del día de la semana
 <item><tt/%b/ - Nombre abreviado del mes
 <item><tt/%B/ - Nombre completo del mes
-<item><tt/%d/ - Dia del mes como un número decimal
+<item><tt/%d/ - Día del mes como un número decimal
 <item><tt/%H/ - Hora en el formato 24 horas
 <item><tt/%I/ - Hora en el formato 12 horas
 <item><tt/%m/ - Mes en número decimal
@@ -220,111 +223,105 @@ códigos formateados comúnes son:
 <item><tt/%S/ - Segundo en número decimal
 <item><tt/%y/ - Año sin siglo
 <item><tt/%Y/ - Año con siglo
-<item><tt/%u/ - Microsegundos en número decimal (<bf/Esta es una extensión del gnugk/)
+<item><tt/%u/ - Microsegundos en número decimal (<bf/Ésta es una extensión del gnugk/)
 <item><tt/%z/ - Abreviación de la zona horaria (+0100)
 <item><tt/%Z/ - Nombre de la zona horaria
 <item><tt/%%/ - Signo de porcentaje
 </itemize>
 
 <item><tt/EncryptAllPasswords=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
-Esta opción habilita la encriptación de todos los passwords en la
-configuración (SQL passwords, RADIUS passwords, [Password] passwords,
-[GkStatus::Auth] passwords). Si habilitamos esta opción, todos los passwords
-deben estar encriptados utilizando la aplicación <tt/addpasswd/. De otra manera
-solo [Password] y [GkStatus::Auth] passwords son encriptados (antiguo
-comportamiento).
+Habilita la encriptación de todas las contraseñas en la configuración (SQL passwords, RADIUS passwords,
+[Password] passwords, [GkStatus::Auth] passwords). Si habilitamos 
+esta opción, todos las contraseñas deben estar encriptados utilizando la utilidad <tt/addpasswd/. De otra manera 
+sólo las contraseñas de [Password] y [GkStatus::Auth] son encriptadas (antiguo comportamiento).
 
 <item><tt/KeyFilled=0/<newline>
-Default: <tt/0/
+Default: <tt>N/A</tt><newline>
 <p>
-Define un byte de relleno global para ser utilizado durante la encriptación/
-desencriptación de passwords. Usualmente, usted no necesitará cambiar esta
-opción.
+Define un byte de relleno global para ser utilizado durante la encriptación/desencriptación de contraseñas. 
+Ésta puede ser sustituída por la configuración <tt/KeyFilled/ establecida dentro de cada sección particular de configuración.
+Usualmente, usted no necesitará cambiar esta opción.
 </itemize>
 
-La mayoría de los usuarios nunca necesitará cambiar cualquiera de los
-siguientes valores: Estos son utilizados para operaciones de testing o
-aplicaciones avanzadas.
+La mayoría de los usuarios nunca necesitará cambiar cualquiera de los siguientes valores: 
+Estos son utilizados para operaciones de testing o aplicaciones avanzadas.
 
 <itemize>
 <item><tt/UseBroadcastListener=0/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
-Define si se escucha las peticiones broadcast RAS. Esto requiere
-enlazarse hacia todas las interfaces en una máquina, de esta manera si usted desea ejecutar múltiples
+Define si se escucha o no las peticiones broadcast RAS. Esto requiere
+enlazarse hacia todas las interfaces en una máquina de tal manera si usted desea ejecutar múltiples
 instancias de gatekeepers sobre la misma máquina, usted debe deshabilitar esta opción.
 
 <item><tt/UnicastRasPort=1719/<newline>
-Default: <tt/1719/
+Default: <tt/1719/<newline>
 <p>
 El identificador del canal RAS TSAP para unicast.
 
 <item><tt/MulticastPort=1718/<newline>
-Default: <tt/1718/
+Default: <tt/1718/<newline>
 <p>
 El identificador del canal RAS TSAP para multicast.
 
 <item><tt/MulticastGroup=224.0.1.41/<newline>
-Default: <tt/224.0.1.41/
+Default: <tt/224.0.1.41/<newline>
 <p>
 El grupo multicast para el canal RAS.
 
 <item><tt/EndpointSignalPort=1720/<newline>
-Default: <tt/1720/
+Default: <tt/1720/<newline>
 <p>
 Puerto por defecto para el canal de señalización de llamadas de endpoints.
 
 <item><tt/ListenQueueLength=1024/<newline>
-Default: <tt/1024/
+Default: <tt/1024/<newline>
 <p>
 Longitud de la cola para conexiones TCP entrantes.
 
 <item><tt/SignalReadTimeout=1000/<newline>
-Default: <tt/1000/
+Default: <tt/1000/<newline>
 <p>
 Tiempo en milisegundos para leer la interrupción en canales de señalización de llamadas (Q931).
 
 <item><tt/StatusReadTimeout=3000/<newline>
-Default: <tt/3000/
+Default: <tt/3000/<newline>
 <p>
 Tiempo en milisegundos para leer la interrupción en canales de estado (status channel).
 
 <item><tt/StatusWriteTimeout=5000/<newline>
-Default: <tt/5000/
+Default: <tt/5000/<newline>
 <p>
 Tiempo en milisegundos para escribir la interrupción en canales de estado (status channel).
 </itemize>
 
 <sect2>Sección &lsqb;GkStatus::Auth&rsqb;
+<label id="gkstatusauth">
 <p>
-En esta sección se definen un número de reglas para determinar quienes están
-permitidos de conectarse al gatekeeper vía puerto de estado (vía telnet). Quien quiera que tenga
-acceso al puerto de estado tiene un control completo sobre el gatekeeper.
-Asegúrese de que ésta sección esté configurada correctamente.
+En esta sección se definen un número de reglas para determinar quienes están permitidos de conectarse al gatekeeper vía puerto de estado (vía telnet). 
+Quien quiera que tenga acceso al puerto de estado tiene un control completo sobre el gatekeeper. Asegúrese de que ésta sección esté configurada correctamente.
 <itemize>
 <item><tt/rule=allow/<newline>
-Default: <tt/forbid/
+Default: <tt/forbid/<newline>
 <p>
 Posibles valores son:
 <itemize>
-<item><tt/forbid/ - Prohíbe cualquier conexión.
+<item><tt/forbid/ - Niega cualquier conexión.
 <item><tt/allow/ - Permite cualquier conexión.
-<item><tt/explicit/ - Lee el parámetro <tt>ip=value</tt> donde <tt/ip/ es la dirección IP
-del cliente observado, value puede ser <tt/1,0/ o <tt/allow,forbid/ o <tt/yes,no/.
-Si ip no está en la lista el parámetro default es usado.
-<item><tt/regex/ - La IP del cliente se hace corresponder con la
-expression regular dada.
+<item><tt/explicit/ - Lee el parámetro <tt>ip=value</tt> 
+donde <tt/ip/ es la dirección IP del cliente observado, 
+<tt/value/ puede ser <tt/1,0/ o <tt/allow,forbid/ o <tt/yes,no/.
+Si <tt/ip/ no está en la lista el parámetro default es usado.
+<item><tt/regex/ - La IP del cliente se hace corresponder con la expression regular dada.
 <p><descrip>
 <tag/Ejemplo:/
-Para permitir clientes desde 195.71.129.0/24 y
-195.71.131.0/24:
+Para permitir clientes desde 195.71.129.0/24 y 195.71.131.0/24:
 <quote><tt>regex=^195\.71\.(129|131)\.[0-9]+$</tt></quote>
 </descrip>
-<item><tt/password/ - El usuario tiene un username y password apropiado
-para conectarse (login). El formato de username/password es el
-mismo que el de la sección <ref id="password" name="[SimplePasswordAuth]">.
+<item><tt/password/ - El usuario tiene un username y password apropiado para conectarse (login). 
+El formato de username/password es el mismo que el de la sección <ref id="password" name="[SimplePasswordAuth]">.
 </itemize>
 
 Por otra parte, estas reglas puede ser combinadas por "|" o "&amp;". Por ejemplo,
@@ -333,26 +330,23 @@ Por otra parte, estas reglas puede ser combinadas por "|" o "&amp;". Por ejemplo
 La IP del cliente debe validarse con las reglas <tt/explicit/ <bf/o/ <tt/regex/.
 <p>
 <item><tt>rule=regex & password</tt><newline>
-La IP del cliente debe validarse con las reglas <tt/regex/, <bf/y/ el
-usuario tiene que conectarse con un username y password.
+La IP del cliente debe validarse con las reglas <tt/regex/, <bf/y/ el usuario tiene que conectarse con un username y password.
 </itemize>
 
 <item><tt/default=allow/<newline>
-Default: <tt/forbid/
+Default: <tt/forbid/<newline>
 <p>
 Esta opción es utilizada solamente cuando <tt/rule=explicit/.
 
 <item><tt/Shutdown=forbid/<newline>
-Default: <tt/allow/
+Default: <tt/allow/<newline>
 <p>
-Esta opción es utilizada para especificar si se permite o no apagar el
-gatekeeper vía puerto de estado.
+Esta opción es utilizada para especificar si se permite o no apagar el gatekeeper vía puerto de estado.
 
 <item><tt/DelayReject=5/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
-Esta opción especifica que tiempo (en segundos) se debe esperar antes de
-rechazar un username / pa s sword inválido.
+Esta opción especifica que tiempo (en segundos) se debe esperar antes de rechazar un username / password inválido.
 </itemize>
 
 
@@ -364,21 +358,19 @@ Actualmente se permite a los usuarios especificar las opciones de rotación.
 
 <itemize>
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Si se utiliza esta opción. El archivo de log rotará basado en esta
-configuración. La rotación Hourly habilita la rotación una vez por hora, la
-rotación Daily, una vez por día, la Weekly, una vez por semana y la Monthly,
-una vez por mes. Para definir una rotación exacta ésta esta determinada por
-una combinación de las variables <tt/RotateDay/ y <tt/RotateTime/. Durante la rotación,
-un archivo existente es renombrado con el formato
-CURRENT_FILENAME.YYYYMMDD-HHMMSS, donde YYYYMMDD-HHMMSS es
-reemplazada con la fecha actual, y nuevas líneas son agregadas a un archivo
-vacío. Para deshabilitar la rotación, no utilice la opción <tt/Rotate/ o establézcala
+Si se utiliza esta opción. El archivo de log rotará basado en esta configuración. La rotación Hourly 
+habilita la rotación una vez por hora, la rotación daily, una vez por día, la Weekly, una vez por semana 
+y la monthly una vez por mes. Una rotación exacta esta determinada por la combinación 
+de las variables <tt/RotateDay/ y <tt/RotateTime/. Durante la rotación un archivo existente 
+es renombrado con el formato CURRENT_FILENAME.YYYYMMDD-HHMMSS, donde YYYYMMDD-HHMMSS es
+reemplazada con la fecha actual, se agregan y nuevas líneas a un archivo vacío. 
+Para deshabilitar la rotación, no utilice la opción <tt/Rotate/ o establézcala
 a 0.
 
 <descrip>
-<tag/Ejemplo1: Rotación cada hora (00:45, 01:45, ..., 23:45):/
+<tag/Ejemplo 1: Rotación cada hora (00:45, 01:45, ..., 23:45):/
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Hourly</tt><newline>
 <tt>RotateTime=45</tt><newline>

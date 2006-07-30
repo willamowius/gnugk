@@ -1,9 +1,8 @@
-<sect>Configuración Por-Terminal
+<sect>Configuración Por-Endpoint
 <label id="epconfig">
 <p>
-Para las opciones del fichero de configuración estándar, atributos de configuración 
-por terminal pueden ser especificados en el fichero de configuración. La sintaxis es
-como sigue:
+Adicionalmente a las opciones estándar del fichero de configuración, se puede especificar atributos de configuración 
+por-endpoint en el fichero de configuración. La sintaxis es como sigue:
 
 <sect1>Sección &lsqb;EP::...&rsqb;
 <p>
@@ -12,36 +11,54 @@ como sigue:
 Key Name=Value String
 </verb></tscreen>
 
-<tt/ALIAS/ es reemplazado con un alias actual para un terminal para que la
-configuración sea aplicada. Actualmente, están reconocidas las siguientes
-opciones:
+<tt/ALIAS/ es reemplazado con un alias actual para endpoint al cual se va a
+aplicar la configuración. Actualmente, están reconocidas las siguientes opciones:
 
 <itemize>
 <item><tt/Capacity=10/<newline>
-Por defecto: <tt/-1/
+Default: <tt/-1/<newline>
 <p>
-Capacidad de llamadas para un terminal. No más de <tt/Capacity/ llamadas 
-concurrentes serán enviadas a este terminal. En caso de puertas de enlace
-(gateways), si más de una puerta de enlace corresponde a un número marcado,
-la llamada será enviada a la primera puerta de enlace disponible (que tenga
-suficiente capacidad).
+Capacidad de llamadas para un endpoint. No más de <tt/Capacity/ llamadas 
+concurrentes serán enviadas a este endpoint. En caso de puertas de enlace (gateways), si más de un
+gateway se corresponde con un número marcado, la llamada será enviada al primer gateway
+disponible (que tenga suficiente capacidad).
 
 <item><tt/GatewayPriority=1/<newline>
-Por defecto: <tt/1/
+Default: <tt/1/<newline>
 <p>
-Aplicado solo a puertas de enlace (gateways). Permite la prioridad basada en
-casos de encaminado, cuando más de una puerta de enlace corresponde a un número
-marcado. El valor más pequeño es la prioridad más alta asignada a una puerta de
-enlace. Una llamada es encaminada a la primera puerta de enlace disponible
+Aplicado solo a gateways. Permite la prioridad basada en casos de encaminado,
+cuando más de un gateway se corresponde con un número marcado. El valor más pequeño es la prioridad más alta
+asignada a un gateway. Una llamada es encaminada hacia el primer gateway disponible
 (que tenga capacidad disponible) con la prioridad más alta (los valores más bajos
 en <tt/GatewayPriority/).
 
 <item><tt/GatewayPrefixes=0048,0049,0044/<newline>
-Por defecto: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Prefijos adicionales para esta puerta de enlace. Aplicado solo a puertas de enlace.
-Los caracteres especiales <tt/./ y <tt/!/ pueden ser usados aquí para la 
-correspondencia con cualquier dígito y desactivar el prefijo (respectivamente).
+Prefijos adicionales para este gateway. Aplicado solo a gateways.
+Los caracteres especiales <tt/./ y <tt/!/ pueden ser usados aquí para la correspondencia con cualquier dígito
+y desactivar el prefijo (respectivamente).
+
+<item><tt/CalledTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Fija el tipo de número para Called-Party-Number a un valor específicado
+por las llamadas enviadas a este endpoint
+(0 - UnknownType (Tipo Desconocido), 1 - InternationalType (Tipo Internacional), 2 - NationalType (Tipo Nacional),
+3 - NetworkSpecificType (Tipo Red Específico), 4 - SubscriberType (Tipo Suscriptor), 6 - AbbreviatedType (Tipo Abreviado), 7 - ReservedType (Tipo Reservado)).
+
+<item><tt/CallingTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Fija el tipo de número para Sets Calling-Party-Number a un valor especificado
+por las llamadas enviadas a este endpoint
+(0 - UnknownType (Tipo Desconocido), 1 - InternationalType (Tipo Internacional), 2 - NationalType (Tipo Nacional),
+3 - NetworkSpecificType (Tipo Red Específico), 4 - SubscriberType (Tipo Suscriptor), 6 - AbbreviatedType (Tipo Abreviado), 7 - ReservedType (Tipo Reservado)).
+
+<item><tt/Proxy=1/<newline>
+Default: <tt/0/<newline>
+Habilita o deshabilita el "proxying" de llamadas enviadas a este endpoint (0 - no cambia
+las configuraciones globales del proxy, 1 - forza el modo proxy, 2 - deshabilita el modo proxy).
 
 </itemize>
 
@@ -61,8 +78,6 @@ Capacity=30
 GatewayPriority=2
 </verb></tscreen>
 
-En este ejemplo, la llamada será enviada a la puerta de enlace <tt/gw1/ a menos que su
-capacidad esté completamente utilizada (60 llamadas concurrentes) y entonces pase a
-la puerta de enlace <tt/gw2/.
-
+En este ejemplo, la llamada será enviada al gateway <tt/gw1/ a menos que su
+capacidad esté completamente utilizada (60 llamadas concurrentes) y luego al gateway <tt/gw2/.
 

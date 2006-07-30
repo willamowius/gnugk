@@ -1,10 +1,10 @@
 <sect>Configuración Básica del Gatekeeper
 <p>
-El funcionamiento del gatekeeper está completamente determinado por las opciones de
-la línea de comandos y el fichero de configuración. Algunas opciones de la línea de
+El comportamiento del gatekeeper está completamente determinado por las opciones de
+la línea de comandos y del fichero de configuración. Algunas opciones de la línea de
 comandos pueden sustituir a opciones del fichero de configuración.
 Por ejemplo, la opción <tt/-l/ sustituye al atributo <tt/TimeToLive/
-del fichero de configuración, prevaleciendo la introducida en la línea de comandos.
+del fichero de configuración.
 
 <sect1>Opciones de la Línea de Comandos
 <label id="commandline">
@@ -20,49 +20,47 @@ Muestra todas las opciones disponibles y sale del programa.
 <tag/<tt/-c  --config filename//
 Especifica el fichero de configuración a usar.
 <tag/<tt/-s  --section section//
-Especifica cual sección principal usar en el fichero de configuración. Por defecto
-es [Gatekeeper::Main].
+Especifica cual sección del fichero de configuración será utilizada como principal. Por defecto es [Gatekeeper::Main].
 <tag/<tt/-i  --interface IP//
 Especifica la interfaz (número IP) por el que el gatekeeper escuchará.
-Puedes dejar esta opción para permitir al gatekeeper determinar automáticamente 
+Usted puede omitir esta opción para permitir que el gatekeeper determine automáticamente 
 la IP en la que escuchará, a menos que desees que el gatekeeper solo se enlace a
-una IP especificada.
+una IP específica.
 <tag/<tt/-l  --timetolive n//
-Especifica el tiempo de vida (en segundos) para el registro de los terminales.
+Especifica el contador tiempo de vida (en segundos) para el registro de los endpoints.
 Este prevalece sobre el atributo <tt/TimeToLive/ del fichero de configuración.
-Ver <ref id="ttl" name="aquí"> para explicaciones detalladas.
+Ver <ref id="ttl" name="aquí"> para una explicación detallada.
 <tag/<tt/-b  --bandwidth n//
 Especifica el total de ancho de banda disponible para el gatekeeper.
 Si no se especifica esta opción, la administración de ancho de banda
 se desactiva por defecto.
 <tag/<tt/--pid filename//
-Especifica el fichero para el pid, solo válido para versiones Unix.
+Especifica el archivo pid, solo válido para versiones Unix.
 <tag/<tt/-u  --user name//
-Ejecuta el proceso del gatekeeper como este usuario. Solo válido para versiones Unix.
+Ejecuta el gatekeeper como dicho usuario. Solo válido para versiones Unix.
 </descrip>
 
 <sect2>Modo del Gatekeeper
 <p>
-Las opciones de esta subsección prevalecen sobre los atributos de la 
-<ref id="routed" name="sección [RoutedMode]"> del fichero de configuración.
+Las opciones en esta subsección sustituyen la configuración en la sección
+<ref id="routed" name="[RoutedMode]"> del archivo de configuración.
 <descrip>
 <tag/<tt/-d  --direct//
-Usa marcado de llamada de terminal directo.
+Utiliza señalización de llamadas directamente entre endpoints.
 <tag/<tt/-r  --routed//
-Usa marcado de llamada encaminado a través del gatekeeper.
+Utiliza señalización de llamadas enrutadas a través del gatekeeper.
 <tag/<tt/-rr  --h245routed//
-Usa marcado de llamada y canal de control H.245 encaminado a través del gatekeeper.
+Utiliza señalización de llamadas y canal de control H.245 enrutadas a través del gatekeeper.
 </descrip>
 
 <sect2>Información de Depuración
 <p>
 <descrip>
 <tag/<tt/-o  --output filename//
-Escribe anotaciones de trazado al fichero especificado.
+Escribe anotaciones de trazado hacia un archivo específico.
 <tag/<tt/-t  --trace//
-Ver trazado verboso (verbosity). Cuantas más <tt/-t/ añadas, más verbosidad será
-lanzada a la salida. Por ejemplo, usa <tt/-ttttt/ para configurar el nivel de
-trazado al 5.
+Ver trazado detallado (verbosity). Cuantas más <tt/-t/ añadas, más detallada será
+la salida. Por ejemplo, usa <tt/-ttttt/ para configurar el nivel de
+detalle al 5.
 </descrip>
-
 
