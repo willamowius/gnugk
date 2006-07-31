@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1  2006/06/30 08:07:05  willamowius
+ * new accounting module SyslogAcct
+ *
  *
  */
  
@@ -25,6 +28,11 @@
 #include <h323pdu.h>
 #include "GkStatus.h"
 #include "syslogacct.h"
+#include "Toolkit.h"
+
+const char* const SyslogSec = "SyslogAcct";
+static int syslog_level = LOG_INFO;
+static int syslog_facility = LOG_USER;
 
 SyslogAcct::SyslogAcct( 
 	const char* moduleName,
@@ -66,6 +74,57 @@ GkAcctLogger::Status SyslogAcct::Log(
 		return Fail;
 	}
 
+	PString sysloglevelconfig = GkConfig()->GetString(SyslogSec, "SyslogLevel", "LOG_INFO");
+	PString syslogfacilityconfig = GkConfig()->GetString(SyslogSec, "SyslogFacility", "LOG_USER");
+
+	
+	if (sysloglevelconfig == "LOG_EMERG") {
+		syslog_level = LOG_EMERG;
+	} else if (sysloglevelconfig == "LOG_ALERT") {
+		syslog_level = LOG_ALERT;
+	} else if (sysloglevelconfig == "LOG_CRIT") {
+		syslog_level = LOG_CRIT;
+	} else if (sysloglevelconfig == "LOG_ERR") {
+	        syslog_level = LOG_ERR;
+	} else if (sysloglevelconfig == "LOG_WARNING") {
+	        syslog_level = LOG_WARNING;
+	} else if (sysloglevelconfig == "LOG_NOTICE") {
+	        syslog_level = LOG_NOTICE;
+	} else if (sysloglevelconfig == "LOG_INFO") {
+	        syslog_level = LOG_INFO;
+	} else if (sysloglevelconfig == "LOG_DEBUG") {
+	        syslog_level = LOG_DEBUG;
+	} else {
+		syslog_level = LOG_INFO;
+	}
+
+	if (syslogfacilityconfig == "LOG_DAEMON") {
+	        syslog_facility = LOG_DAEMON;
+	} else if (syslogfacilityconfig == "LOG_USER") {
+	        syslog_facility = LOG_USER;
+	} else if (syslogfacilityconfig == "LOG_AUTH") {
+	        syslog_facility = LOG_AUTH;
+	} else if (syslogfacilityconfig == "LOG_LOCAL0") {
+	        syslog_facility = LOG_LOCAL0;
+	} else if (syslogfacilityconfig == "LOG_LOCAL1") {
+        	syslog_facility = LOG_LOCAL1;
+	} else if (syslogfacilityconfig == "LOG_LOCAL2") {
+	        syslog_facility = LOG_LOCAL2;
+	} else if (syslogfacilityconfig == "LOG_LOCAL3") {
+	        syslog_facility = LOG_LOCAL3;
+	} else if (syslogfacilityconfig == "LOG_LOCAL4") {
+	        syslog_facility = LOG_LOCAL4;
+	} else if (syslogfacilityconfig == "LOG_LOCAL5") {
+	        syslog_facility = LOG_LOCAL5;
+	} else if (syslogfacilityconfig == "LOG_LOCAL6") {
+	        syslog_facility = LOG_LOCAL6;
+	} else if (syslogfacilityconfig == "LOG_LOCAL7") {
+	        syslog_facility = LOG_LOCAL7;
+	} else {
+		syslog_facility = LOG_USER;
+	}
+
+
 	PString eventTmpl;
 	if (evt == AcctStart) {
 		eventTmpl = m_startEvent;
@@ -81,8 +140,9 @@ GkAcctLogger::Status SyslogAcct::Log(
 		std::map<PString, PString> params;
 		SetupAcctParams(params, call, m_timestampFormat);
 		PString msg = ReplaceAcctParams(eventTmpl, params);
-		// TODO: allow configuration of log level ?
-		syslog(LOG_INFO, "%s", (const char *)msg);
+		openlog("GnuGk", LOG_PID, syslog_facility);
+		syslog(syslog_facility | syslog_level, "%s", (const char *)msg);
+		closelog();
 	}
 
 	return Ok;
@@ -94,7 +154,7 @@ PString SyslogAcct::EscapeAcctParam(const PString& param) const
 }
 
 namespace {
-	// append status port accounting logger to the global list of loggers
+	// append syslog accounting logger to the global list of loggers
 	GkAcctLoggerCreator<SyslogAcct> SyslogAcctCreator("SyslogAcct");
 }
 
