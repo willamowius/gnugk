@@ -1843,9 +1843,9 @@ void CallSignalSocket::OnSetup(
 
 		// if the peer address is a public address, but the advertised source address is a private address
 		// then there is a good chance the remote endpoint is behind a NAT.
+		PIPSocket::Address srcAddr;
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
 			H323TransportAddress sourceAddress(setupBody.m_sourceCallSignalAddress);
-			PIPSocket::Address srcAddr;
 			sourceAddress.GetIpAddress(srcAddr);
 
 			if (!_peerAddr.IsRFC1918() && srcAddr.IsRFC1918()) {
@@ -1853,15 +1853,27 @@ void CallSignalSocket::OnSetup(
 					PTRACE(4, Type() << "\tSource address " <<  srcAddr
 						<< " peer address " << _peerAddr << " caller is behind NAT");
 					call->SetSrcNATed(srcAddr);
-				} else if ((called) && (called->IsNATed())) {
-					// If called Party is Nated and the unregistered caller is NATed & no policy then reject.
-					PTRACE(4, Type() << "\tRemote party is NATed and is not supported by policy.");
+				} else {
+					// If unregistered caller is NATed & no policy then reject.
+					PTRACE(4, Type() << "\tUnregistered party is NATed. Not supported by policy.");
 					authData.m_rejectReason = Q931::NoRouteToDestination;
 					rejectCall = true;
 				}
 				// If the called Party is not NATed then the called EP must support NAT'd callers
 				// latter versions of OpenH323 and GnomeMeeting do also allow this condition.
+			} else {
+                PTRACE(4, Type() << "\tUnregistered party is not NATed"); 
 			}
+		} else {
+			   // If the party cannot be determined if behind NAT and we have support then just Treat as being NAT
+			     if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0")) &&
+				    Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "TreatUnregisteredNAT", "0"))) {
+					PTRACE(4, Type() << "\tUnregistered party " << _peerAddr << " cannot detect if NATed. Treated as if NATed");
+					srcAddr = "192.168.1.1";  // Just an arbitory internal address.
+					call->SetSrcNATed(srcAddr);
+				} else {
+					PTRACE(4, Type() << "\tWARNING: Unregistered party " << _peerAddr << " cannot detect if NATed");
+				}
 		}
 
 		if (called)
@@ -2172,6 +2184,8 @@ void CallSignalSocket::OnInformation(
 	SignalingMsg *msg
 	)
 {
+	PWaitAndSignal m(infomute);
+
 	if (remote != NULL)
 		return;
 	
