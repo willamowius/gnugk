@@ -13,6 +13,8 @@ Changes from 2.2.4 to 2.2.5
 - (routing.cxx)DNS SRV support to DNS Routing policy
 - (toolkit.cxx)RewriteAlias section added
 - BUGFIX(Proxychannel.cxx) WaitAndSignal added to OnInformation to avoid NAT support crash.
+- BUGFIX(Proxychannel.cxx) Check for NATSupport added.
+- BUGFIX(RasTbl.cxx) WaitAndSignal added to FindByEndPointid()
 
 
 Changes from 2.2.3 to 2.2.4
