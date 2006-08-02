@@ -281,7 +281,7 @@ private:
 	unsigned m_h225Version;
 	/// raw Setup data as received from the caller
 	PBYTEArray m_rawSetup;
-	PMutex infomute;    // Information PDU processing Mutex
+	PMutex infomutex;    // Information PDU processing Mutex
 };
 
 class CallSignalListener : public TCPListenSocket {

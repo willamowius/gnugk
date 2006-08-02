@@ -921,6 +921,8 @@ template<class F> endptr RegistrationTable::InternalFind(const F & FindObject,
 
 endptr RegistrationTable::FindByEndpointId(const H225_EndpointIdentifier & epId) const
 {
+	PWaitAndSignal m(findmutex);
+
 	return InternalFind(compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
 			mem_fun(&EndpointRec::GetEndpointIdentifier)));
 }

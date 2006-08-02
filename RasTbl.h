@@ -461,6 +461,7 @@ private:
 	std::list<EndpointRec *> RemovedList;
 	int regSize;
 	mutable PReadWriteMutex listLock;
+	PMutex findmutex;          // Endpoint Find Mutex
 	GkDestAnalysisList * m_destAnalysisList;
 
 	// counter to generate endpoint identifier
