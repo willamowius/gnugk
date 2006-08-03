@@ -272,6 +272,10 @@ void EndpointRec::SetTimeToLive(int seconds)
 void EndpointRec::SetSocket(CallSignalSocket *socket)
 {
 	PWaitAndSignal lock(m_usedLock);
+
+	if (!socket->IsConnected())
+		return;
+
 	if (m_natsocket != socket) {
 		PTRACE(3, "Q931\tNAT socket detected at " << socket->Name() << " for endpoint " << GetEndpointIdentifier().GetValue());
 		if (m_natsocket) {
