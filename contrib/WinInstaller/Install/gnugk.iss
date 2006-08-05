@@ -72,7 +72,7 @@ Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Main; Key: TimeToLive; Stri
 Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Main; Key: StatusTraceLevel; String: 0
 Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Main; Key: UseBroadcastListener; String: 0
 Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Main; Key: UseMulticastListener; String: 0
-Filename: {app}\gatekeeper.ini; Section: GkStatus::Auth; Key: rule; String: explicit
+Filename: {app}\gatekeeper.ini; Section: GkStatus::Auth; Key: rule; String: explicit|password; Tasks: status
 Filename: {app}\gatekeeper.ini; Section: GkStatus::Auth; Key: 127.0.0.1; String: allow
 Filename: {app}\gatekeeper.ini; Section: GkStatus::Auth; Key: default; String: forbid
 Filename: {app}\gatekeeper.ini; Section: GkStatus::Auth; Key: Shutdown; String: allow
@@ -114,6 +114,7 @@ Filename: {app}\pacGnuGkNTS.exe; Parameters: "-uninstall -sname=""GnuGkserv"" ";
 
 [Tasks]
 Name: securelogin; Description: Require User Passwords (Simple Password Authentication); Flags: unchecked
+Name: status; Description: Allow users access to status port
 Name: service; Description: Install as Service; Flags: checkedonce; MinVersion: 0,5.0.2195
 [Code]
 type
