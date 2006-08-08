@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2006/07/06 15:25:13  willamowius
+ * set all deleted pointers to NULL (most probably more than needed)
+ *
  * Revision 1.2  2006/06/08 07:38:42  willamowius
  * compile fixes for gcc 3.3.x
  *
@@ -666,12 +669,16 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 
 PString GkIBSQLConnection::EscapeString(
 	/// SQL connection to get escaping parameters from
-	SQLConnPtr conn,
+	SQLConnPtr /*conn*/,
 	/// string to be escaped
 	const char* str
 	)
 {
-	return str;
+	PString s(str);
+	
+	s.Replace("'", "''", TRUE);
+			
+	return s;
 }
 
 namespace {
