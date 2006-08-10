@@ -603,6 +603,7 @@ is not specified, a global one from the main gatekeeper section is used.
 This accounting module sends accounting information to the
 Unix syslog and is not available on Windows. The local syslog daemon will then route the messages according to the it's configuration (generally /etc/syslog.conf).
 
+<itemize>
 <item><tt/SyslogFacility=LOG_LOCAL1/<newline>
 Default: <tt>LOG_USER</tt><newline>
 <p>
@@ -613,7 +614,6 @@ Default: <tt>LOG_INFO</tt><newline>
 <p>
 Set the syslog level to on one LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG.
 
-<itemize>
 <item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
 Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
