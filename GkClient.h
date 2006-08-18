@@ -60,7 +60,7 @@ public:
 	bool CheckFrom(const RasMsg *) const;
 	bool CheckFrom(const PIPSocket::Address & ip) { return m_gkaddr == ip; }
 	bool IsRegistered() const { return m_registered; }
-	bool IsNATed() const { return m_natClient != 0; }
+	bool IsNATed() const { return m_natClient != NULL; }
 	PString GetParent() const;
 
 	bool OnSendingRRQ(H225_RegistrationRequest &rrq);
