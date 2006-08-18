@@ -160,6 +160,7 @@ Whether to allow an endpoint behind an NAT box that support GnuGK Nat Traversal
 technique to receive calls. Use this to block errant gateways that do not support
 GnuGK Nat Traversal technique properly from causing one way audio problems when 
 trying to call to the gateway. Calls to the gateways return caller unreachable.
+To be effective SupportNATedEndpoints must be set to 1.
 
 <item><tt/TreatUnregisteredNAT=1/<newline>
 Default: <tt/0/<newline>
