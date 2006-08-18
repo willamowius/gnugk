@@ -2184,22 +2184,28 @@ void CallSignalSocket::OnInformation(
 	SignalingMsg *msg
 	)
 {
-	PWaitAndSignal m(infomutex);
-   
+
 	if (remote != NULL)
 		return;
 
 	m_result = Error;
 	
+    // If NAT support disabled then ignore the message.
+	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
+		return;
+
+   // If calling NAT support disabled then ignore the message. 
+   // Use this to block errant gateways that don't support NAT mechanism properly.
+	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1")))
+		return;
+
 	Q931 &q931 = msg->GetQ931();
 
 	// We are only interested in the GnuGK NAT message everything else ignore.
 	if (!q931.HasIE(Q931::FacilityIE))
 		return;
 
-    // If NAT support disabled then ignore the message.
-	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
-		return;
+	PWaitAndSignal m(infomutex);
 
 	PBYTEArray buf = q931.GetIE(Q931::FacilityIE);
 	if (buf.GetSize() > 0) {
