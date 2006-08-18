@@ -149,6 +149,22 @@ Default: <tt>N/A</tt><newline>
 Only rewrite dialDigits beginning with the specified prefix.
 </itemize>
 
+<sect1>Section &lsqb;RasSrv::RewriteAlias&rsqb;
+<label id="rewrite">
+<p>
+This section defines the rewriting rules for aliases. This can be used to
+map gatekeeper assigned aliases to registered endpoints.
+
+<descrip>
+<tag/Format:/
+<tt>[!]original-alias=target-alias</tt>
+<p>
+If the alias is <tt/original-alias/,
+it is rewritten to <tt/target-alias/.
+<tag/Example:/
+<tt/bill=033123456/
+<p>
+
 
 <sect1>Section &lsqb;RasSrv::GWRewriteE164&rsqb;
 <label id="gwrewrite">

@@ -151,7 +151,26 @@ channel into the IP of NAT box.
 Since 2.0.2, the GnuGk supports NAT outbound calls (from an endpoint behind NAT
 to public networks) directly without any necessary modification
 of endpoints or NAT box. Just register the endpoint with the GnuGk
-and you can make call now.
+and you can make call now. 
+
+<item><tt/SupportCallingNATedEndpoints=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Whether to allow an endpoint behind an NAT box that support GnuGK Nat Traversal
+technique to receive calls. Use this to block errant gateways that do not support
+GnuGK Nat Traversal technique properly from causing one way audio problems when 
+trying to call to the gateway. Calls to the gateways return caller unreachable.
+
+<item><tt/TreatUnregisteredNAT=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Used in conjunction with AcceptUnregisteredCalls and SupportNATedEndpoints will
+automatically treat all unregistered calls which cannot be determined as
+being NAT are treated as being NAT. 
+
+Not all Endpoints send sourceSignalAddress in the setup message which can
+be used to determine whether a caller is NAT. This adds support to those that 
+don't.
 
 <item><tt/ScreenDisplayIE=MyID/<newline>
 Default: <tt>N/A</tt><newline>
