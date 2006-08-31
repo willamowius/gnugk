@@ -918,6 +918,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	switch (msg->GetTag()) {
 	case Q931::SetupMsg:
 		m_rawSetup = buffer;
+		m_rawSetup.MakeUnique();
 		OnSetup(msg);
 		break;
 	case Q931::CallProceedingMsg:
@@ -2302,6 +2303,7 @@ void CallSignalSocket::TryNextRoute()
 
 		callingSocket->m_call = callptr(newCall);
 		callingSocket->buffer = callingSocket->m_rawSetup;
+		callingSocket->buffer.MakeUnique();
 	}
 	
 	const Route &newRoute = newCall->GetNewRoutes().front();
@@ -2638,6 +2640,7 @@ void CallSignalSocket::Dispatch()
 				}
 				
 				buffer = m_rawSetup;
+				buffer.MakeUnique();
 				
 				ReadUnlock unlock(ConfigReloadMutex);
 				DispatchNextRoute();
@@ -2834,6 +2837,7 @@ void CallSignalSocket::DispatchNextRoute()
 			}
 				
 			buffer = m_rawSetup;
+			buffer.MakeUnique();
 				
 			ReadUnlock unlock(ConfigReloadMutex);
 			DispatchNextRoute();
