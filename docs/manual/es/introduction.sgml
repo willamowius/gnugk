@@ -379,8 +379,7 @@ La versión más estable y la versión en desarrollo están disponibles en
 <url url="http://www.gnugk.org/h323download.html" name="la página de descargas"> del GnuGk.
 
 La última versión del código fuente está en el CVS en 
-<url url="http://sourceforge.net/cvs/?group_id=4797" name="Sourceforge"> 
-(<url url="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/openh323gk/" name="Web-GUI">).
+<url url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/" name="Sourceforge Web-GUI">.
 Recuerde - Esta versión puede contener muchos fallos aun.
 
 También puede descargar algunos ejecutables desde 
