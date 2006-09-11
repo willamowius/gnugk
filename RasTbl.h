@@ -938,6 +938,7 @@ public:
 	bool SingleFailoverCDR() const;
 	int GetNoCallAttempts() const;
 	int GetNoRemainingRoutes() const;
+	bool DisableRetryChecks() const;
 
 	void SetCodec(const PString &codec);
 	PString GetCodec() const;

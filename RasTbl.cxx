@@ -2160,6 +2160,11 @@ int CallRec::GetNoRemainingRoutes() const
 	return m_newRoutes.size();
 }
 
+bool CallRec::DisableRetryChecks() const
+{
+	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DisableRetryChecks", "0"));
+}
+
 void CallRec::SetCodec(
 	const PString &codec
 	)

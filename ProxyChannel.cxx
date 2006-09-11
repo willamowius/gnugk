@@ -2269,8 +2269,9 @@ void CallSignalSocket::OnReleaseComplete(
 	}
 	
 	if (m_call && !m_callerSocket && m_call->MoveToNextRoute()) {
-		if (m_call->IsCallInProgress() || m_call->IsFastStartResponseReceived()
-				|| m_call->IsH245ResponseReceived() || m_h245socket != NULL) {
+		if (!m_call->DisableRetryChecks() &&
+			(m_call->IsCallInProgress() || m_call->IsFastStartResponseReceived()
+				|| m_call->IsH245ResponseReceived() || m_h245socket != NULL)) {
 			PTRACE(5, "Q931\tFailover disabled for call " << m_call->GetCallNumber());
 		} else if (m_call->GetFailedRoutes().back().IsFailoverActive(cause)) {
 			TryNextRoute();

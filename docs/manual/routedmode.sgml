@@ -291,6 +291,15 @@ Default: <tt/1-15,21-127/<newline>
 Define which cause codes in a ReleaseComplete will trigger
 call failover.
 
+<item><tt/DiableRetryChecks=1/<newline>
+Default: <tt/0/<newline>
+<p>
+This will disable all checks if a failed call has already received
+FastStart or H.245 messages. Caution: Using this switch enables you
+to retry more calls, but you run the risk that some of the retried
+calls will fail because the caller is already in a state where he
+can't talkt to a new partner.
+
 <item><tt/CalledTypeOfNumber=1/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
