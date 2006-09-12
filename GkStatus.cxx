@@ -23,6 +23,7 @@
 #include <ptlib/sockets.h>
 #include <ptclib/telnet.h>
 #include <h225.h>
+#include <vector>
 #include "gk_const.h"
 #include "stl_supp.h"
 #include "SoftPBX.h"
@@ -33,10 +34,10 @@
 #include "gk.h"
 #include "GkStatus.h"
 
-
 void ReloadHandler(); // avoid to include...
 
 static const char *authsec="GkStatus::Auth";
+static const char *filteringsec="GkStatus::Filtering";
 
 // a very lightweight implementation of telnet socket
 class TelnetSocket : public ServerSocket {
@@ -225,6 +226,50 @@ private:
 		PString cmd
 		);
 
+    // Adds regular expression filter
+    void AddFilter(
+	// filter vector
+	std::vector<PString>& regexFilters,
+	// Regex to be matched against messages
+	PString& regex
+	);
+
+    /** Remove regular expression filter located
+	at the given index from the specified vector
+    */
+    void RemoveFilter(
+	// filter vector
+	std::vector<PString>& regexFilters,
+	// Index of filter to be removed
+	const PINDEX index
+	);
+
+    // Checks whether the given string is to be exclude
+    bool IsExcludeMessage(
+	// String to be check against the exclude regular expressions
+	const PString &msg
+	) const;
+
+    // Print a list of all filters in the specified vector
+    void PrintFilters(
+	// filter vector
+	std::vector<PString>& regexFilters
+	);
+
+    // Checks whether the given string is to be include
+    bool IsIncludeMessage(
+	// String to be check against the include regular expressions
+	const PString &msg
+	) const;
+    
+    // Match the given string against filters held by the specified vector
+    bool MatchFilter(
+	// filter vector
+	const std::vector<PString>& regexFilters,
+	// String to be matched
+	const PString &msg
+	) const;
+
 	/// the most recent command
 	PString m_lastCmd;
 	/// command being currently entered (and not yet completed)
@@ -241,6 +286,13 @@ private:
 	int m_instanceNo;
 	/// output trace level for this client
 	int m_traceLevel;
+
+    	// vectors of regular expressions to be matched against Status messages
+    	std::vector<PString> m_excludeFilterRegex;
+        std::vector<PString> m_includeFilterRegex;		
+	
+        // This flag indicates whether filtering is active or not
+        bool m_isFilteringActive;
 };
 
 
@@ -674,6 +726,13 @@ void GkStatus::OnStart()
 	m_commands["rotatelog"] = e_RotateLog;
 	m_commands["setlog"] = e_SetLogFilename;
 #endif
+	m_commands["addincludefilter"] = e_AddIncludeFilter;
+	m_commands["removeincludefilter"] = e_RemoveIncludeFilter;
+	m_commands["addexcludefilter"] = e_AddExcludeFilter;
+	m_commands["removeexcludefilter"] = e_RemoveExcludeFilter;
+	m_commands["filter"] = e_Filter;
+	m_commands["printexcludefilters"] = e_PrintExcludeFilters;
+	m_commands["printincludefilters"] = e_PrintIncludeFilters;
 }
 
 void GkStatus::ReadSocket(
@@ -715,9 +774,25 @@ StatusClient::StatusClient(
 	m_gkStatus(GkStatus::Instance()),
 	m_numExecutingCommands(0),
 	m_instanceNo(instanceNo),
-	m_traceLevel(MAX_STATUS_TRACE_LEVEL)
+	m_traceLevel(MAX_STATUS_TRACE_LEVEL),
+	m_isFilteringActive(false)
 {
-	SetWriteTimeout(10);
+        PStringToString filters = GkConfig()->GetAllKeyValues(filteringsec);
+        SetWriteTimeout(10);
+	
+	PString key;
+	PString data;
+	for (PINDEX i = 0; i < filters.GetSize(); i++) {
+	    key = filters.GetKeyAt(i);
+	    data = filters.GetDataAt(i);
+	    PStringArray regexArray(data.Tokenise("\n", false));
+	    for (PINDEX k = 0; k < regexArray.GetSize(); ++k) {
+		if(filters.GetKeyAt(i) == "IncludeFilter")
+		    AddFilter(m_includeFilterRegex, regexArray[k]);
+		else if(filters.GetKeyAt(i) == "ExcludeFilter")
+		    AddFilter(m_excludeFilterRegex, regexArray[k]);
+	    }
+	}
 }
 
 bool StatusClient::ReadCommand(
@@ -785,8 +860,21 @@ bool StatusClient::WriteString(
 	if (level > m_traceLevel)
 		return true;
 	if (CanFlush())
-		Flush();
-	return WriteData(msg, msg.GetLength());
+	    Flush();
+
+	if (m_isFilteringActive == false)
+	    return WriteData(msg, msg.GetLength());
+
+	// If we use filters check if the message is to be ignored
+	if (IsExcludeMessage(msg))
+	    return true;
+	
+	// If we use filters check if the message is to be shown
+	if (IsIncludeMessage(msg))
+	    return WriteData(msg, msg.GetLength());
+
+	// Otherwise, do not show the message at all
+	return true;
 }
 
 /*
@@ -861,6 +949,9 @@ void StatusClient::DoDebug(
 	const PStringArray& args
 	)
 {
+        bool tmp = m_isFilteringActive;
+	m_isFilteringActive = false;
+
 	if (args.GetSize() <= 1) {
 		WriteString("Debug options:\r\n"
 			"  trc [+|-|n]       Show/modify trace level for the log\r\n"
@@ -915,6 +1006,7 @@ void StatusClient::DoDebug(
 			WriteString("Unknown debug command!\r\n");
 		}
 	}
+	m_isFilteringActive = tmp;
 }
 
 bool StatusClient::CheckAuthRule(
@@ -970,6 +1062,9 @@ bool StatusClient::AuthenticateUser()
 	const time_t now = time(NULL);
 	const int delay = GkConfig()->GetInteger(authsec, "DelayReject", 0);
 	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
+	bool tmp = m_isFilteringActive;
+	
+	m_isFilteringActive = false;
 
 	for (int retries = 0; retries < 3; ++retries) {
 		PString login, password;
@@ -992,6 +1087,7 @@ bool StatusClient::AuthenticateUser()
 			PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
 		else if (!password && password == storedPassword) {
 			m_user = login;
+			m_isFilteringActive = tmp;
 			return true;
 		} else
 			PTRACE(5, "STATUS\tPassword mismatch for user " << login);
@@ -1001,6 +1097,7 @@ bool StatusClient::AuthenticateUser()
 		if ((time(NULL) - now) > loginTimeout)
 			break;
 	}
+	m_isFilteringActive = tmp;
 	return false;
 }
 
@@ -1228,6 +1325,53 @@ void StatusClient::ExecCommand(
 		break;				
 #endif
 
+	case GkStatus::e_AddIncludeFilter:
+	    if (args.GetSize() == 2) {
+		AddFilter(m_includeFilterRegex, args[1]);
+	    } else
+		WriteString("Syntax Error: addincludefilter REGEX\r\n");
+	    break;
+	case GkStatus::e_RemoveIncludeFilter:
+	    if (args.GetSize() == 2) {
+		RemoveFilter(m_includeFilterRegex, atoi(args[1]));
+	    } else
+		WriteString("Syntax Error: removeincludefilter FILTER_INDEX\r\n");
+	    break;
+	case GkStatus::e_AddExcludeFilter:
+	    if (args.GetSize() == 2) {
+		AddFilter(m_excludeFilterRegex, args[1]);
+	    } else
+		WriteString("Syntax Error: addexcludefilter REGEX\r\n");
+	    break;
+	case GkStatus::e_RemoveExcludeFilter:
+	    if (args.GetSize() == 2) {
+		RemoveFilter(m_excludeFilterRegex, atoi(args[1]));
+	    } else
+		WriteString("Syntax Error: removeincludefilter FILTER_INDEX\r\n");
+	    break;
+	case GkStatus::e_Filter:
+	    if (args.GetSize() == 2) {
+		if (!(args[1] *= "0") && !(args[1] *= "1")) {
+		    WriteString("Syntax Error: filter 0|1\r\n");
+		    break;
+		}
+		m_isFilteringActive = Toolkit::AsBool(args[1]);
+	    }
+	    if (m_isFilteringActive) {
+		PString msg("Filtering is active\r\n");
+		WriteData(msg, msg.GetLength());
+	    }
+	    else {
+		PString msg("Filtering is not active\r\n");
+		WriteData(msg, msg.GetLength());
+	    }
+	    break;
+	case GkStatus::e_PrintExcludeFilters:
+	    PrintFilters(m_excludeFilterRegex);
+	    break;
+	case GkStatus::e_PrintIncludeFilters:
+	    PrintFilters(m_includeFilterRegex);
+	    break;
 	default:
 		// commmand not recognized
 		WriteString("Error: Unknown command " + cmd + "\r\n");
@@ -1238,6 +1382,102 @@ void StatusClient::ExecCommand(
 	--m_numExecutingCommands;
 }
 
+void StatusClient::AddFilter(
+    // vector of filters
+    std::vector<PString>& regexFilters,
+    // Regular expression
+    PString& regex
+    )
+{
+    regexFilters.push_back(regex);
+}
+
+void StatusClient::RemoveFilter(
+    // vector of filters
+    std::vector<PString>& regexFilters,
+    // Index of filter to be removed
+    const PINDEX index
+    )
+{
+    if (index < 0 || index >= (PINDEX) regexFilters.size()) {
+	PString msg("Index mismatch.\r\n");
+	WriteData(msg, msg.GetLength());
+	return;
+    }
+
+    std::vector<PString>::iterator it = regexFilters.begin();
+
+    PINDEX i = 0;
+    while(i != index) {
+	++it;
+	++i;
+    }
+
+    regexFilters.erase(it);
+}
+
+bool StatusClient::IsExcludeMessage(
+    // String to be chacked against exclude regular expressions 
+    const PString &msg
+    ) const
+{
+    return MatchFilter(m_excludeFilterRegex, msg);
+}
+
+bool StatusClient::MatchFilter(
+    // filter vector
+    const std::vector<PString>& regexFilters,
+    // String to be matched against filters
+    const PString &msg
+    ) const
+{
+    std::vector<PString>::const_iterator it = regexFilters.begin();
+    std::vector<PString>::const_iterator itEnd = regexFilters.end();
+
+    for(; it != itEnd; ++it) {
+	if (Toolkit::MatchRegex(msg, *it))
+	    return true;
+    }
+
+    return false;
+}
+
+bool StatusClient::IsIncludeMessage(
+    // String to be chacked against include regular expressions 
+    const PString &msg
+    ) const
+{
+    return MatchFilter(m_includeFilterRegex, msg);
+}
+
+void StatusClient::PrintFilters(
+    // filter vector
+    std::vector<PString>& regexFilters
+    )
+{
+    std::vector<PString>::const_iterator it = regexFilters.begin();
+    std::vector<PString>::const_iterator itEnd = regexFilters.end();
+    unsigned int index = 0;
+    PString count;
+
+    if (regexFilters.size() == 0) {
+	PString msg("No Filters are defined\r\n");
+	WriteData(msg, msg.GetLength());
+	return;
+    }
+
+    PString msg("Filter List:\r\n");
+    WriteData(msg, msg.GetLength());
+    for(; it != itEnd; ++it, ++index) {
+	count = index;
+	PString item(count);
+	item += ") " + *it + "\r\n";
+	WriteData(item, item.GetLength());
+    }
+    
+    msg = ";\r\n";
+    WriteData(msg, msg.GetLength());
+}
 
 // class StatusListener
 StatusListener::StatusListener(

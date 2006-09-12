@@ -1,5 +1,6 @@
 Changes from 2.2.4 to 2.2.5
 ===========================
+- new feature: StatusPort filtering by Doron Bleiberg
 - new switch: [RoutedMode]DisableRetryChecks retries all calls
 - BUGFIX(ProxyChannel.cxx) make sure we preserve the original Setup message for
   retries and not only copy the buffer address
