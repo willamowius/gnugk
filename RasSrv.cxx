@@ -38,11 +38,14 @@
 #include "gkacct.h"
 #include "gktimer.h"
 #include "RasSrv.h"
+#include "pwlib_compat.h"
 
 #ifdef hasH460
   #include <h4601.h>
 #endif
 
+const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
+const char *RRQFeatureSection = "RasSrv::RRQFeatures";
 using namespace std;
 using Routing::Route;
 
@@ -212,6 +215,9 @@ RasListener::RasListener(const Address & addr, WORD pt) : m_ip(addr)
 	m_signalPort = 0;
 	// note: this won't be affected by reloading
 	m_virtualInterface = GkConfig()->HasKey("NetworkInterfaces");
+    // Check if we have external IP setting 
+	if (!m_virtualInterface)  
+		m_virtualInterface = GkConfig()->HasKey("ExternalIP");
 }
 
 RasListener::~RasListener()
@@ -263,6 +269,12 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 			);
 #endif
 	return result;
+}
+
+PIPSocket::Address RasListener::GetPhysicalAddr(const Address & addr) const
+{
+	// Return the physical address. This is used when setting sockets
+	return m_ip;
 }
 
 PIPSocket::Address RasListener::GetLocalAddr(const Address & addr) const
@@ -887,7 +899,12 @@ const GkInterface *RasServer::SelectInterface(const Address & addr) const
 
 PIPSocket::Address RasServer::GetLocalAddress(const Address & addr) const
 {
-	return SelectInterface(addr)->GetRasListener()->GetLocalAddr(addr);
+	return SelectInterface(addr)->GetRasListener()->GetPhysicalAddr(addr);
+}
+
+PIPSocket::Address RasServer::GetMasqAddress(const Address & addr) const
+{
+	return SelectInterface(addr)->GetRasListener()->GetLocalAddr(addr);	
 }
 
 H225_TransportAddress RasServer::GetRasAddress(const Address & addr) const
@@ -1406,6 +1423,36 @@ bool RegistrationRequestPDU::Process()
 		}
 	}
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// H460 support Code
+	BOOL supportNAT = false;
+	unsigned RegPrior =0;
+	bool preemptsupport = false;
+	BOOL preempt = false;
+	unsigned ntype = 0;
+
+#ifdef hasH460
+
+// Registration Priority and Pre-emption
+// This allows the unregistration of duplicate aliases with lower priority 
+	OpalOID rPriFS = OpalOID(OID6);    
+
+	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
+		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+
+		if (fs.HasFeature(rPriFS)) {
+			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
+			if (feat->Contains(priorityOID))
+				RegPrior = feat->Value(priorityOID);
+			if (feat->Contains(preemptOID)) {
+				preemptsupport = true;
+                preempt = feat->Value(preemptOID);
+			}
+		}
+	}
+#endif
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 	// lightweight registration update
 	if (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && request.m_keepAlive) {
 		endptr ep = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
@@ -1439,8 +1486,18 @@ bool RegistrationRequestPDU::Process()
 		}
 
 		if (bReject) {
-			PTRACE_IF(1, ep && bShellSendReply, "RAS\tWarning: Possibly endpointId collide or security attack!!");
-			// endpoint was NOT registered
+			if (ep && bShellSendReply) {
+			 PTRACE(1, "RAS\tWarning: Possibly endpointId collide,security attack or IP change");
+			   if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
+			     PTRACE(1, "RAS\tDynamic IP? Removing existing Endpoint record and force reregistration.");
+   						while (callptr call = CallTbl->FindCallRec(ep)) {
+							call->Disconnect();
+							CallTbl->RemoveCall(call);
+						}
+						EndpointTbl->RemoveByEndptr(ep);                              
+			   }
+			}
+			// endpoint was NOT registered and force Full Registration
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		} else {
 			// forward lightweights, too
@@ -1498,37 +1555,6 @@ bool RegistrationRequestPDU::Process()
 	if (!RasSrv->ValidatePDU(*this, authData))
 		return BuildRRJ(authData.m_rejectReason);
 
-		// FeatureSet Code
-	bool supportNAT = false;
-	unsigned RegPrior =0;
-
-#ifdef hasH460
-// Presence Support
-// Support Presence information
-	OpalOID rPreFS = OpalOID("1.3.6.1.4.1.17090.0.3"); 
-	
-// Support for Remote Nated
-// Indicates that the Endpoint registering supports Nated EPs calling it so proxying media may not be required
-	OpalOID rNaTFS = OpalOID("1.3.6.1.4.1.17090.0.5");    
-
-// Registration Priority
-// This allows the unregistration of duplicate aliases with lower priority 
-	OpalOID rPriFS = OpalOID("1.3.6.1.4.1.17090.0.6");    
-	OpalOID rPrior = OpalOID("1.3.6.1.4.1.17090.0.6.1");  // Priority Value 
-
-	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
-		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
-
-		if (fs.HasFeature(rNaTFS)) 
-			 supportNAT = true;
-		if (fs.HasFeature(rPriFS)) {
-			H460_Feature * feat = fs.GetFeature(rPriFS);
-			if (feat->Contains(rPrior))
-				RegPrior = feat->Value(rPrior);
-		}
-	}
-#endif
-
 	bool bNewEP = true;
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
 		H225_ArrayOf_AliasAddress Alias, & Aliases = request.m_terminalAlias;
@@ -1548,9 +1574,9 @@ bool RegistrationRequestPDU::Process()
 
 			const endptr ep = EndpointTbl->FindByAliases(Alias);
 			if (ep) {
-				bNewEP = ((ep->GetCallSignalAddress() != SignalAddr) || ((RegPrior > 0) && (RegPrior > ep->Priority())));
+				bNewEP = ((ep->GetCallSignalAddress() != SignalAddr) || (preempt) || ((RegPrior > 0) && (RegPrior > ep->Priority())));
 				if (bNewEP) {
-					if ((RegPrior > 0) || 
+					if ((RegPrior > 0) || (preempt) ||
 					  (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
 						// If the operators policy allows this case:
 						// 1a) terminate all calls on active ep and
@@ -1561,11 +1587,29 @@ bool RegistrationRequestPDU::Process()
 							call->Disconnect();
 							CallTbl->RemoveCall(call);
 						}
-						ep->Unregister();
+						if (RegPrior > ep->Priority())
+						   ep->Unregisterpreempt(1);   // Unregistered by high priority
+						else if (preempt)
+						   ep->Unregisterpreempt(2);   // Unregistered by preempt notification 
+						else
+						   ep->Unregister();
+
 						EndpointTbl->RemoveByEndptr(ep);
 					} else {
 						BuildRRJ(H225_RegistrationRejectReason::e_duplicateAlias);
 						H225_RegistrationReject & rrj = m_msg->m_replyRAS;
+#ifdef hasH460
+						// notify that EP can pre-empt previous registration
+						if ((preemptsupport) && (RegPrior == ep->Priority())) {  
+							rrj.IncludeOptionalField(H225_RegistrationReject::e_genericData);
+							H460_FeatureOID pre = H460_FeatureOID(rPriFS);
+                            pre.Add(preNotOID,H460_FeatureContent(TRUE));
+		                    H225_ArrayOf_GenericData & data = rrj.m_genericData;
+				               PINDEX lastPos = data.GetSize();
+				               data.SetSize(lastPos+1);
+				               data[lastPos] = pre;
+						}
+#endif
 						H225_ArrayOf_AliasAddress & duplicateAlias = rrj.m_rejectReason;
 						duplicateAlias = Alias;
 						return true;
@@ -1620,6 +1664,11 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
 
+#ifdef h323v6
+	if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper) 
+             ep->SetAssignedGatekeeper(request.m_assignedGK);
+#endif
+
 	if (nated)
 		ep->SetNATAddress(rx_addr);
 	else {
@@ -1628,9 +1677,9 @@ bool RegistrationRequestPDU::Process()
 		  ep->SetSupportNAT(true);
 	}
 
-	if (RegPrior > 0)
-		 ep->SetPriority(RegPrior);
-	 
+	ep->SetPriority(RegPrior);
+	ep->SetPreemption(preemptsupport);
+
 	if (bShellSendReply) {
 		//
 		// OK, now send RCF
@@ -2424,7 +2473,13 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier))
 			fromRegEndpoint = replyAddrMatch ? true : ep->IsNATed();
 
-	bool bReject = !((fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this)) && RasSrv->ValidatePDU(*this, reason));
+    // Neighbors do not need Validation
+	bool bReject = !(fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this));
+
+	// If not Neighbor and support thirdparty LRQ's then validate the PDU
+	if (bReject && (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptThirdPartyLRQ", "0"))))
+		                   bReject = !RasSrv->ValidatePDU(*this, reason);
+
 
 	PString sourceInfoString(fromRegEndpoint ? request.m_endpointIdentifier.GetValue() : request.HasOptionalField(H225_LocationRequest::e_gatekeeperIdentifier) ? request.m_gatekeeperIdentifier.GetValue() : m_msg->m_peerAddr.AsString());
 
