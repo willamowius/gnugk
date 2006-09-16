@@ -518,7 +518,13 @@ void Gatekeeper::Main()
 		cerr << "Fatal: Cannot find any interface to run GnuGK!\n";
 		ExitGK();
 	}
-	cout << "Listen on " << home << "\n\n";
+	cout << "Listen on " << home << "\n";
+
+	PIPSocket::Address addr;
+	if (Toolkit::Instance()->isBehindNAT(addr))
+		cout << "Public IP: " << addr.AsString() << "\n\n";
+	else
+	    cout << "\n";
 
 	// Copyright notice
 	cout <<
