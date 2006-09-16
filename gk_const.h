@@ -43,4 +43,10 @@ extern const char *H225_ProtocolID;
 #endif
 #endif
 
+#define OID6  "1.3.6.1.4.1.17090.0.6"  // Registration priority & pre-emption
+#define priorityOID  "1"   // integer 8 Priority number highest priority gets registration
+#define preemptOID   "2"   // bool to instruct GK to preempt previous registration
+#define priNotOID    "3"   // bool to notify EP registration RRJ (priority) UCF (higher Priority)
+#define preNotOID    "4"   // bool to notify EP registration RRJ (can preempt) UCF (was preempted)
+
 #endif

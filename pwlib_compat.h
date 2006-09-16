@@ -50,24 +50,23 @@
    #define hasSRV 1 
 #endif
 
-// Disable if below OpenH323 v1.19
+// OpenH323 Factory Loader Auth
+#define OpenH323Factory 1
+
+// Version 6 features
+#define h323v6 1
+
+// Version matching
 #if OPENH323_MAJOR == 1
   #if OPENH323_MINOR < 19
        #undef hasH460 
-       #undef hasSRV  
+       #undef hasSRV 
+       #undef OpenH323Factory 
+  #endif
+
+ #if OPENH323_MINOR < 20
+       #undef h323v6
   #endif
 #endif
 
-//////////////////////////////////////////////
-// Factory loader System
-
-// Disable if below OpenH323 v1.18
-#if OPENH323_MAJOR == 1
-  #if OPENH323_MINOR >= 19
-       #define OpenH323Factory 1
-  #endif
 #endif
-
-
-#endif // PWLIB_COMPAT_H
-
