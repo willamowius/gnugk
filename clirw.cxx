@@ -408,7 +408,7 @@ CLIRewrite::CLIRewrite()
 			if (rule->m_screeningType == RewriteRule::NoScreening) {
 				rule->m_cli.resize(clis.GetSize());
 				for (PINDEX j = 0; j < clis.GetSize(); j++)
-					rule->m_cli[j] = clis[j];
+					rule->m_cli[j] = (string)clis[j];
 			} else
 				rule->m_cli.clear();
 

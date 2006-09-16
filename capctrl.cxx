@@ -173,8 +173,8 @@ void CapacityControl::LoadConfig()
 
 				cliCallVolumes.resize(cliCallVolumes.size() + 1);
 				cliRule = cliCallVolumes.end() - 1;
-				cliRule->first = cli;
-				cliRule->second.m_sourceCLI = cli;
+				cliRule->first = (string)cli;
+				cliRule->second.m_sourceCLI = (string)cli;
 				newCLIRule = true;
 				
 				rule = &(cliRule->second);
@@ -201,7 +201,7 @@ void CapacityControl::LoadConfig()
 	
 			unsigned tno = 0;
 			if (tokens.GetSize() >= 2)
-				rule->m_prefix = tokens[tno++];
+				rule->m_prefix = (string)tokens[tno++];
 			rule->m_maxVolume = tokens[tno++].AsUnsigned();
 			
 			if (newIpRule)
