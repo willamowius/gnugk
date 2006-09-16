@@ -20,6 +20,14 @@ Changes from 2.2.4 to 2.2.5
 - BUGFIX(ProxyChannel.cxx) Check for NATSupport added.
 - BUGFIX(RasTbl.cxx) WaitAndSignal added to FindByEndPointid()
 - BUGFIX(ProxyChannel.cxx) Added SupportCallingNATedEndpoints.
+- Moved DNS SRV to it's own seperate policy
+- Registration pre-emption support added
+- Support for EP's on dynamic IP's
+- fixed code to compile with the latest pwlib CVS (STL string conversion)
+- Added support for GnuGK to work behind NAT box
+- Added support for Third party (non-neighbor) Gatekeepers
+- Added support for GnuGK behind NAT box.
+
 
 Changes from 2.2.3 to 2.2.4
 ===========================
