@@ -279,6 +279,14 @@ void Toolkit::RouteTable::ClearTable()
 // can't pass a reference of Address, or STL complains...
 PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) const
 {
+  // If a dynamic external IP retrieve external IP from DNS entries
+	if (DynExtIP && !addr.IsRFC1918()) {
+	  PIPSocket::Address extip;
+	  H323TransportAddress ex = H323TransportAddress(ExtIP);
+	  ex.GetIpAddress(extip);
+	  return extip;
+	}
+
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
 			bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
 	return (entry != rtable_end) ? entry->GetDestination() : defAddr;
@@ -312,16 +320,50 @@ bool Toolkit::RouteTable::CreateTable()
 bool Toolkit::VirtualRouteTable::CreateTable()
 {
 	PString nets = GkConfig()->GetString("NetworkInterfaces", "");
-	if (nets.IsEmpty())
-		return false;
-	PStringArray networks(nets.Tokenise(" ,;\t", FALSE));
-	int i = networks.GetSize();
-	if (i > 0) {
-		rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
-		for (PINDEX r = 0; r < i ; ++r)
-			::new (rtable_end++) RouteEntry(networks[r]);
+	if (!nets) {		
+	   PStringArray networks(nets.Tokenise(" ,;\t", FALSE));
+	   int i = networks.GetSize();
+	   if (i > 0) {
+          rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
+		  for (PINDEX r = 0; r < i ; ++r) 
+             ::new (rtable_end++) RouteEntry(networks[r]);
+       }
+	   return true;
 	}
-	return true;
+
+	// If we have an external IP setting then load the detected Route Table and add a route for the external IP
+	// If dynamic IP then only store the PString value and resolve the DNS when required.
+	PString extip = GkConfig()->GetString("ExternalIP", "");
+	DynExtIP = AsBool(GkConfig()->GetString("ExternalIsDynamic", "0"));
+
+	PIPSocket::Address ext;
+	H323TransportAddress ex = H323TransportAddress(extip);
+	ex.GetIpAddress(ext);
+
+	if (ext.IsValid() && !ext.IsRFC1918()) {
+	   ExtIP = extip;
+	   RouteTable::CreateTable();
+	   if (!DynExtIP) {
+		  PString extroute = ext.AsString() + "/0";
+	      ::new (rtable_end++) RouteEntry(extroute);
+	   } 
+	   PTRACE(1,"External IP = " << ExtIP << " dynamic " << DynExtIP);
+	   return true;
+	} else
+        DynExtIP = false;
+
+	return false;
+}
+
+bool Toolkit::VirtualRouteTable::IsMasquerade(PIPSocket::Address & addr)
+{
+	if (!ExtIP) {
+	  H323TransportAddress ex = H323TransportAddress(ExtIP);
+	  ex.GetIpAddress(addr);
+	  return true;
+	}
+
+	return false; 
 }
 
 // class Toolkit::ProxyCriterion
@@ -1211,6 +1253,10 @@ bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddres
 	return changed;
 }
 
+bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) {
+
+   return (m_VirtualRouteTable.IsMasquerade(externalIP));
+}
 
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
 {

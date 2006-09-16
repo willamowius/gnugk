@@ -65,6 +65,7 @@ public:
 	void SetSignalPort(WORD pt) { m_signalPort = pt; }
 
 	Address GetLocalAddr(const Address &) const;
+	Address GetPhysicalAddr(const Address & addr) const;
 	H225_TransportAddress GetRasAddress(const Address &) const;
 	H225_TransportAddress GetCallSignalAddress(const Address &) const;
 
@@ -110,7 +111,10 @@ public:
 	void Release();
 
 	static void Initialize();
-
+	static RegistrationTable *GetEndpointTbl()
+	        { return EndpointTbl; };
+	static CallTable *GetCallTbl()
+	        { return CallTbl; }; 
 protected:
 	RasMsg(GatekeeperMessage *m) : m_msg(m) {}
 	RasMsg(const RasMsg &);

@@ -108,7 +108,7 @@ class Toolkit : public Singleton<Toolkit>
 		typedef PIPSocket::InterfaceTable InterfaceTable;
 
 	public:
-		RouteTable() : rtable_begin(0) { /* initialize later */ }
+		RouteTable() : rtable_begin(0), DynExtIP(false), ExtIP("") { /* initialize later */ }
 		virtual ~RouteTable() { ClearTable(); }
 		Address GetLocalAddress() const { return defAddr; };
 		Address GetLocalAddress(const Address &) const;
@@ -117,6 +117,7 @@ class Toolkit : public Singleton<Toolkit>
 		void ClearTable();
 		bool IsEmpty() const { return rtable_begin == 0; }
 
+	    virtual bool IsMasquerade(PIPSocket::Address &) { return false; };
 	protected:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:
@@ -132,11 +133,18 @@ class Toolkit : public Singleton<Toolkit>
 
 		RouteEntry *rtable_begin, *rtable_end;
 		Address defAddr;
+
+    	bool DynExtIP;
+		PString ExtIP;
 	};
 
 	class VirtualRouteTable : public RouteTable {
 		// override from class  RouteTable
+	public:
+		virtual bool IsMasquerade(PIPSocket::Address &);
+	protected:
 		virtual bool CreateTable();
+		
 	};
 
 	RouteTable *GetRouteTable(bool = false);
@@ -230,6 +238,8 @@ class Toolkit : public Singleton<Toolkit>
 
 	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
 	void SetGKHome(const PStringArray &);
+
+	bool isBehindNAT(PIPSocket::Address &);
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.

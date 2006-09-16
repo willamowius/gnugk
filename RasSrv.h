@@ -98,6 +98,7 @@ public:
 	GkInterface *SelectInterface(const Address &);
 	const GkInterface *SelectInterface(const Address &) const;
 	Address GetLocalAddress(const Address &) const;
+	Address GetMasqAddress(const Address &) const;
 	H225_TransportAddress GetRasAddress(const Address &) const;
 	H225_TransportAddress GetCallSignalAddress(const Address &) const;
 

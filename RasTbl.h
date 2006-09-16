@@ -110,6 +110,7 @@ public:
 	                                bool &fullMatch) const;
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
+	virtual void SetCallSignalAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
 	virtual void SetTimeToLive(int);
 	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
@@ -150,6 +151,7 @@ public:
 	*/
 	virtual bool LoadConfig();
 
+	virtual EndpointRec *Unregisterpreempt(int type);
 	virtual EndpointRec *Unregister();
 	virtual EndpointRec *Expired();
 
@@ -163,6 +165,9 @@ public:
 	void SetSocket(CallSignalSocket *);
 	void SetSupportNAT(bool support);
 	void SetPriority(unsigned priority) { m_registrationPriority = priority; };
+	void SetPreemption(bool support) { m_registrationPreemption = support; };
+	void SetAssignedGatekeeper(const H225_AlternateGK & gk) { m_assignedGatekeeper = gk; };
+
 
 	/** @return
 		true if this is a permanent endpoint loaded from the config file entry.
@@ -233,7 +238,7 @@ protected:
 	void SetEndpointRec(H225_AdmissionConfirm &);
 	void SetEndpointRec(H225_LocationConfirm &);
 
-	bool SendURQ(H225_UnregRequestReason::Choices);
+	bool SendURQ(H225_UnregRequestReason::Choices, int preemption);
 
 private:
 	/// Load general endpoint settings from the config
@@ -275,7 +280,10 @@ protected:
 	int m_capacity;
 	int m_calledTypeOfNumber, m_callingTypeOfNumber;
 	unsigned m_registrationPriority;
+	bool m_registrationPreemption;
 	unsigned m_proxy;
+    /// Assigned Gatekeeper
+	H225_AlternateGK m_assignedGatekeeper;
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -1185,6 +1193,18 @@ inline H225_TransportAddress EndpointRec::GetRasAddress() const
 { 
 	PWaitAndSignal lock(m_usedLock);
 	return m_rasAddress;
+}
+
+inline void EndpointRec::SetRasAddress(const H225_TransportAddress & addr)
+{ 
+	PWaitAndSignal lock(m_usedLock);
+	m_callSignalAddress = addr;
+}
+
+inline void EndpointRec::SetCallSignalAddress(const H225_TransportAddress & addr) 
+{
+	PWaitAndSignal lock(m_usedLock);
+    m_callSignalAddress = addr;
 }
 
 inline H225_TransportAddress EndpointRec::GetCallSignalAddress() const

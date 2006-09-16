@@ -163,6 +163,9 @@ public:
 	bool IsNATSocket() const { return m_isnatsocket; }
 	void OnH245ChannelClosed() { m_h245socket = 0; }
 	void SetPeerAddress(const Address &, WORD);
+	Address GetLocalAddr() { return localAddr; }
+	Address GetPeerAddr() { return peerAddr; }
+	Address GetMasqAddr() { return masqAddr; }
 	void BuildFacilityPDU(Q931 &, int, const PObject * = 0);
 	void RemoveCall();
 
@@ -263,7 +266,7 @@ protected:
 	// localAddr is NOT the local address the socket bind to,
 	// but the local address that remote socket bind to
 	// they may be different in multi-homed environment
-	Address localAddr, peerAddr;
+	Address localAddr, peerAddr, masqAddr;
 	WORD peerPort;
 
 private:

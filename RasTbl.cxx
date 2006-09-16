@@ -37,6 +37,10 @@
 #include "gkacct.h"
 #include "RasTbl.h"
 
+#ifdef hasH460
+  #include <h4601.h>
+#endif
+
 using std::copy;
 using std::partition;
 using std::back_inserter;
@@ -53,6 +57,7 @@ using Routing::Route;
 
 const char *CallTableSection = "CallTable";
 const char *RRQFeaturesSection = "RasSrv::RRQFeatures";
+const char *proxysection = "Proxy";
 
 namespace {
 const long DEFAULT_SIGNAL_TIMEOUT = 30000;
@@ -69,9 +74,10 @@ EndpointRec::EndpointRec(
 	: m_RasMsg(ras), m_timeToLive(1),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
-	m_usedCount(0), m_nat(false), m_natsocket(0), m_permanent(permanent), 
+	m_usedCount(0), m_nat(false), m_natsocket(NULL), m_permanent(permanent), 
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
-	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1), m_proxy(0)
+	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1), m_proxy(0),
+	m_registrationPriority(0), m_registrationPreemption(false)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -289,12 +295,6 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 	}
 }
 
-void EndpointRec::SetRasAddress(const H225_TransportAddress &a)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_rasAddress = a;
-}
-
 void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -395,15 +395,22 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 	m_pollCount = GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT);
 }
 
+EndpointRec *EndpointRec::Unregisterpreempt(int type)
+{
+	PTRACE(1, "EP\tUnregistering " << AsDotString(GetRasAddress()) << " Reason " << type);
+	SendURQ(H225_UnregRequestReason::e_maintenance,type);
+	return this;
+}
+
 EndpointRec *EndpointRec::Unregister()
 {
-	SendURQ(H225_UnregRequestReason::e_maintenance);
+	SendURQ(H225_UnregRequestReason::e_maintenance,0);
 	return this;
 }
 
 EndpointRec *EndpointRec::Expired()
 {
-	SendURQ(H225_UnregRequestReason::e_ttlExpired);
+	SendURQ(H225_UnregRequestReason::e_ttlExpired,0);
 	return this;
 }
 
@@ -425,7 +432,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 	return msg;
 }
 
-bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
+bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason,  int preemption)
 {
 	if (GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
 		return false;  // no valid ras address
@@ -443,6 +450,22 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason)
 	urq.m_callSignalAddress[0] = GetCallSignalAddress();
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_reason);
 	urq.m_reason.SetTag(reason);
+
+#ifdef hasH460
+	if (preemption > 0) {
+		urq.IncludeOptionalField(H225_UnregistrationRequest::e_genericData);
+		H460_FeatureOID pre = H460_FeatureOID(OpalOID(OID6));
+		if (preemption == 1)  // Higher Priority 
+           pre.Add(priNotOID,H460_FeatureContent(TRUE));          
+		else if (preemption == 2)  // Pre-empted
+           pre.Add(preNotOID,H460_FeatureContent(TRUE));
+
+		H225_ArrayOf_GenericData & data = urq.m_genericData;
+			PINDEX lastPos = data.GetSize();
+			data.SetSize(lastPos+1);
+			data[lastPos] = pre;
+	}
+#endif
 
 	PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
 			(const unsigned char *) AsDotString(GetRasAddress()),

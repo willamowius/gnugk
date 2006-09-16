@@ -419,7 +419,8 @@ class H245Handler {
 // This class handles H.245 messages which can either be transmitted on their
 // own TCP connection or can be tunneled in the Q.931 connection
 public:
-	H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote);
+	H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote,
+		             const PIPSocket::Address & masq);
 	virtual ~H245Handler();
 
 	virtual void OnH245Address(H225_TransportAddress &);
@@ -429,6 +430,9 @@ public:
 	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &);
 
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
+    PIPSocket::Address GetRemoteAddr() const { return remoteAddr; }
+    PIPSocket::Address GetMasqAddr() const { return masqAddr; }
+
 	void SetLocalAddr(const PIPSocket::Address & local) { localAddr = local; }
 	bool IsSessionEnded() const { return isH245ended; }
 
@@ -441,7 +445,7 @@ protected:
 	NATHandler *hnat;
 
 private:
-	PIPSocket::Address localAddr, remoteAddr;
+	PIPSocket::Address localAddr, remoteAddr, masqAddr;
 	bool isH245ended;
 };
 
@@ -452,7 +456,7 @@ public:
 	typedef std::map<WORD, RTPLogicalChannel *>::iterator siterator;
 	typedef std::map<WORD, RTPLogicalChannel *>::const_iterator const_siterator;
 
-	H245ProxyHandler(const PIPSocket::Address &, const PIPSocket::Address &, H245ProxyHandler * = 0);
+	H245ProxyHandler(const PIPSocket::Address &, const PIPSocket::Address &, const PIPSocket::Address &, H245ProxyHandler * = 0);
 	virtual ~H245ProxyHandler();
 
 	// override from class H245Handler
@@ -674,7 +678,7 @@ CallSignalSocket::CallSignalSocket()
 	: TCPProxySocket("Q931s"), m_callerSocket(true)
 {
 	InternalInit();
-	localAddr = peerAddr = INADDR_ANY;
+	localAddr = peerAddr = masqAddr = INADDR_ANY;
 	m_h245Tunneling = true;
 	SetHandler(RasServer::Instance()->GetSigProxyHandler());
 }
@@ -712,6 +716,8 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	m_h245Tunneling = socket->m_h245Tunneling;
 	socket->GetPeerAddress(peerAddr, peerPort);
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr); //TODO
+    masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+	
 	SetHandler(socket->GetHandler());
 	SetName(AsString(socket->peerAddr, GetPort()));
 
@@ -736,14 +742,14 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
 			
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
-		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket->localAddr, calling);
+		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket->localAddr, calling, socket->masqAddr);
 		socket->m_h245handler = proxyhandler;
-		m_h245handler = new H245ProxyHandler(localAddr, called, proxyhandler);
+		m_h245handler = new H245ProxyHandler(localAddr, called, masqAddr, proxyhandler);
 		proxyhandler->SetHandler(GetHandler());
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
 	} else if (m_call->IsH245Routed()) {
-		socket->m_h245handler = new H245Handler(socket->localAddr, calling);
-		m_h245handler = new H245Handler(localAddr, called);
+		socket->m_h245handler = new H245Handler(socket->localAddr, calling, socket->masqAddr);
+		m_h245handler = new H245Handler(localAddr, called, masqAddr);
 	}
 }
 
@@ -2038,6 +2044,8 @@ bool CallSignalSocket::CreateRemote(
 	int type = m_call->GetNATType(calling, peerAddr);
 
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+    masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+
 	setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 	setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GetPort());
 	
@@ -2906,7 +2914,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 			PTRACE(4, "H245\t" << GetName() << " H245 channel already established");
 			return false;
 		} else {
-			if (m_h245socket->SetH245Address(h245addr, localAddr))
+			if (m_h245socket->SetH245Address(h245addr, masqAddr))
 				std::swap(m_h245socket, ret->m_h245socket);
 			return true;
 		}
@@ -2914,7 +2922,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	bool userevert = m_isnatsocket || ((m_crv & 0x8000u) && (m_call->GetNATType() & CallRec::citronNAT));
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
 	ret->m_h245socket = new H245Socket(m_h245socket, ret);
-	m_h245socket->SetH245Address(h245addr, localAddr);
+	m_h245socket->SetH245Address(h245addr,masqAddr);
 	CreateJob(m_h245socket, &H245Socket::ConnectTo, "H245Connector");
 	return true;
 }
@@ -3061,8 +3069,8 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 }
 
 // class H245Handler
-H245Handler::H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote)
-      : localAddr(local), remoteAddr(remote), isH245ended(false)
+H245Handler::H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote,const PIPSocket::Address & masq)
+      : localAddr(local), remoteAddr(remote), masqAddr(masq), isH245ended(false)
 {
 	hnat = (remoteAddr != INADDR_ANY) ? new NATHandler(remoteAddr) : 0;
 }
@@ -3870,7 +3878,7 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
 	if (mediaControlChannel == NULL && mediaChannel == NULL)
 		return false;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetLocalAddr(), false);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false);
 	return true;
 }
 
@@ -4021,7 +4029,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(sepStack.m_networkAddress);
 		if (addr) {
 			*addr >> peerAddr >> peerPort;
-			*addr << handler->GetLocalAddr() << port;
+			*addr << handler->GetMasqAddr() << port;
 			changed = true;
 		}
 	}
@@ -4030,8 +4038,8 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 
 // class H245ProxyHandler
-H245ProxyHandler::H245ProxyHandler(const PIPSocket::Address & local, const PIPSocket::Address & remote, H245ProxyHandler *pr)
-      : H245Handler(local, remote), peer(pr)
+H245ProxyHandler::H245ProxyHandler(const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
+      : H245Handler(local, remote, masq), peer(pr)
 {
 	if (peer)
 		peer->peer = this;
@@ -4093,7 +4101,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
 
 		lc->SetMediaControlChannelSource(*addr);
-		*addr << GetLocalAddr() << (lc->GetPort() + 1);
+		*addr << GetMasqAddr() << (lc->GetPort() + 1);
 		changed = true;
 	}
 	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
@@ -4101,9 +4109,9 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 		if (addr->m_tsapIdentifier != 0) {
 			lc->SetMediaChannelSource(*addr);
-			*addr << GetLocalAddr() << lc->GetPort();
+			*addr << GetMasqAddr() << lc->GetPort();
 		} else {
-			*addr << GetLocalAddr() << (WORD)0;
+			*addr << GetMasqAddr() << (WORD)0;
 		}
 		changed = true;
 	}
@@ -4283,7 +4291,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 		}
 	}
-	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetLocalAddr(), isReverseLC)))
+	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC)))
 		lc->StartReading(handler);
 	return changed;
 }
