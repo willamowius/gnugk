@@ -322,6 +322,17 @@ GkClient::GkClient()
 	m_handlers[1] = new GkClientHandler(this, &GkClient::OnBRQ, H225_RasMessage::e_bandwidthRequest);
 	m_handlers[2] = new GkClientHandler(this, &GkClient::OnDRQ, H225_RasMessage::e_disengageRequest);
 	m_handlers[3] = new GkClientHandler(this, &GkClient::OnIRQ, H225_RasMessage::e_infoRequest);
+
+#ifdef OpenH323Factory
+	m_password = PString();
+    m_h235Authenticators = new H235Authenticators();
+    PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
+    PFactory<H235Authenticator>::KeyList_T::const_iterator r;
+    for (r = keyList.begin(); r != keyList.end(); ++r) {
+       H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+       m_h235Authenticators->Append(Auth);
+	}
+#endif
 }
 
 GkClient::~GkClient()

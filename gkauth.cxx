@@ -1073,9 +1073,7 @@ SimplePasswordAuth::SimplePasswordAuth(
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
     for (r = keyList.begin(); r != keyList.end(); ++r) {
        H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-        if ((Auth->GetApplication() == H235Authenticator::GKAdmission) ||
-                  (Auth->GetApplication() == H235Authenticator::AnyApplication)) 
-                               AppendH235Authenticator(Auth);
+       AppendH235Authenticator(Auth);
 	}
 #else
 	H235Authenticator* authenticator;
@@ -1397,6 +1395,56 @@ int SimplePasswordAuth::CheckCryptoTokens(
 		}
 	}
 	return e_next;
+}
+
+bool SimplePasswordAuth::ResolveUserName(
+		const H225_ArrayOf_ClearToken& tokens,
+	    const H225_ArrayOf_CryptoH323Token& cryptotokens,
+		PString & username
+		)
+{
+	for (PINDEX i = 0; i < cryptotokens.GetSize(); i++) {
+	  // MD5
+		if (cryptotokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
+			H225_CryptoH323Token_cryptoEPPwdHash& pwdhash = cryptotokens[i];
+			username = AsString(pwdhash.m_alias, false);
+			return true;
+		} else if (cryptotokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
+			H235_ClearToken clearToken;
+			bool found = false;
+			const H235_CryptoToken& nestedCryptoToken = cryptotokens[i];
+
+		    // H235.1
+			if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
+			  const H235_CryptoToken_cryptoHashedToken& cryptoHashedToken = nestedCryptoToken;
+			  clearToken = cryptoHashedToken.m_hashedVals;
+			  found = true;
+			}
+			// H235.2
+			if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoSignedToken) {			
+	          const H235_CryptoToken_cryptoSignedToken & cryptoSignedToken = nestedCryptoToken;;
+              H235_SIGNED<H235_EncodedGeneralToken> m_Signed = cryptoSignedToken.m_token;
+			  m_Signed.m_toBeSigned.DecodeSubType(clearToken);
+			  found = true;
+			}
+		
+			if (found && (clearToken.HasOptionalField(H235_ClearToken::e_sendersID))) {
+               username = clearToken.m_sendersID; 
+			   return true;
+			}
+		} 
+	}
+
+	for (PINDEX j = 0; j < cryptotokens.GetSize(); j++) {
+		H235_ClearToken& token = tokens[j];
+		// CAT
+			if (token.HasOptionalField(H235_ClearToken::e_generalID)) {
+                username = token.m_generalID;
+				return true;
+			}
+	}
+
+	return false;
 }
 
 // class AliasAuth

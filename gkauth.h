@@ -23,6 +23,7 @@
 #include <list>
 #include "name.h"
 #include "rwlock.h"
+#include <h235auth.h>
 
 class H225_GatekeeperRequest;
 class H225_GatekeeperConfirm;
@@ -438,6 +439,9 @@ protected:
 		SetupAuthData& authData
 		) const;
 
+	/// a list of H.235 capabilities supported by this module (if any)
+	H235Authenticators* m_h235Authenticators;
+
 private:
 	GkAuthenticator();
 	GkAuthenticator(const GkAuthenticator&);
@@ -459,8 +463,6 @@ private:
 	unsigned m_supportedMiscChecks;
 	/// authenticator config
 	PConfig* m_config;
-	/// a list of H.235 capabilities supported by this module (if any)
-	H235Authenticators* m_h235Authenticators;
 };
 
 /** Cache used by some authenticators to remember key-value associations,
@@ -615,6 +617,19 @@ protected:
 		const PBYTEArray& rawPDU
 		);
 
+	/** Retrieve username carried inside the tokens. 
+	    @return
+	    username carried inside the token
+	*/
+	bool ResolveUserName(
+		/// an array of tokens to be checked
+		const H225_ArrayOf_ClearToken& tokens,
+		/// aliases for the endpoint that generated the tokens
+	    const H225_ArrayOf_CryptoH323Token& crytotokens,
+		/// UserName detected.
+		PString & username
+		);
+
 	/** A family of template functions that check tokens/cryptoTokens
 	    inside RAS messages.
 		
@@ -632,8 +647,54 @@ protected:
 	{
 		const RAS& req = request;
 		bool finalResult = false;
-		int result;
 		
+#ifdef OpenH323Factory
+		PString username = PString();
+		PString password = PString();
+		if (!ResolveUserName(req.m_tokens, req.m_cryptoTokens,username)) {
+            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
+			return false;
+		}
+
+		if ((aliases == NULL) || (FindAlias(*aliases, username) == P_MAX_INDEX)) {
+            PTRACE(4, "GKAUTH\t" << GetName() << " Token username " << username << " does not match aliases for Endpoint");
+			return false;
+		}
+
+		if (!InternalGetPassword(username, password)) {
+				PTRACE(4, "GKAUTH\t" << GetName() << " password not found for " << username );
+			// do not return false let the authenticator decide whether it requires a password or not.
+		}
+
+        for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
+          H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
+
+		  authenticator->SetLocalId(username);
+		  authenticator->SetPassword(password);
+
+          H235Authenticator::ValidationResult result = authenticator->ValidateTokens(req.m_tokens, 
+			                                                        req.m_cryptoTokens, request->m_rasPDU);
+          switch (result) {
+             case H235Authenticator::e_OK :
+               PTRACE(4, "GKAUTH\tAuthenticator " << authenticator << " succeeded");
+               return e_ok;
+
+             case H235Authenticator::e_Absent :
+               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator << " absent from PDU");
+               break;
+
+             case H235Authenticator::e_Disabled :
+               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator << " disabled");
+               break;
+
+             default : // Various other failure modes
+               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator << " failed: " << (int)result);
+               return e_fail;
+           }
+
+         }
+#else
+		int result;
 		if (req.HasOptionalField(RAS::e_cryptoTokens)) {
 			if ((result = CheckCryptoTokens(req.m_cryptoTokens, aliases, 
 					request->m_rasPDU)) == e_fail)
@@ -645,6 +706,7 @@ protected:
 				return e_fail;
 			finalResult = finalResult || (result == e_ok);
 		}
+#endif
 		return finalResult ? e_ok : GetDefaultStatus();
 	}
 
