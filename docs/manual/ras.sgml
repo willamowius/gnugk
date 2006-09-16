@@ -74,6 +74,11 @@ is received, the endpoint is unregistered. To disable this feature (and unregist
 endpoints immediately after TimeToLive timeout), set this variable to 0.
 IRQ poll interval is 60 seconds.
 
+<item><tt/SupportDynamicIP=1/<newline>
+Default: <tt/0/<newline>
+<p>
+When the IP address of an endpoint changes, the gatekeeper can maintain registration. 
+This will force the EP to fully reregister if the IP Address changes. 
 </itemize>
 
 

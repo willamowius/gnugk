@@ -63,6 +63,13 @@ The enum policy replaces the destination with the information returned by ENUM s
 Finally keep in mind that each routing check with the enum policy requires a DNS lookup. To speed up your routing, make sure you resolve internal destinations before the enum policy is applied.
 </itemize>
 
+<item><tt/srv/<newline>
+<p>
+DNS SRV or H.323 Annex Q. allows for the routing of calls using the H.323 URI. 
+Addresses can be set as user (at) domain. The H.323 signalling addresses are
+stored in the DNS domain records. Addresses can be the signalling address or
+LRQ address. 
+
 <p>
 Default configuration for routing policies is as follows:
 <descrip>

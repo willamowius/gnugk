@@ -290,6 +290,23 @@ Time in milliseconds for read timeout on status channel.
 Default: <tt/5000/<newline>
 <p>
 Time in milliseconds for write timeout on status channel.
+
+<item><tt/ExternalIP=myip.no-ip.com/<newline>
+Default: <tt/N/A/<newline>
+<p>
+When using GnuGK behind a NAT you can set the external IP address 
+that you wish the GK to masquarade as. This will allow external EP's
+and other gatekeepers to contact the NATed GK. To work you must port
+forward the required ports to the GK IP or put the GK in the NAT box
+DMZ.
+
+<item><tt/ExternalIsDynamic=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Whether the external IP is dynamic and where queries are required to 
+keep the external IP up to date. To work you must specify the External IP
+with a DNS address maintained by a DDNS service such as www.dyndns.com or 
+www.no-ip.com.
 </itemize>
 
 
