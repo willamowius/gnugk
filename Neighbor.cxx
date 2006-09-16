@@ -20,6 +20,7 @@
 #endif
 
 #include <ptlib.h>
+#include <ptclib/pdns.h>
 #include <h323pdu.h>
 #include <ptclib/cypher.h>
 #include "gk_const.h"
@@ -32,6 +33,7 @@
 #include "sigmsg.h"
 #include "cisco.h"
 #include "Neighbor.h"
+#include "pwlib_compat.h"
 
 using std::multimap;
 using std::make_pair;
@@ -211,7 +213,9 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	lrq.m_sourceInfo.SetSize(1);
 	H323SetAliasAddress(Toolkit::GKName(), lrq.m_sourceInfo[0], H225_AliasAddress::e_h323_ID);
 	
-	m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
+	if (m_externalGK)
+	   m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
+
 	if (m_forwardHopCount >= 1) { // what if set hopCount = 1?
 		lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
 		lrq.m_hopCount = m_forwardHopCount;
@@ -227,6 +231,8 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	m_gkid = config->GetString(section, "GatekeeperIdentifier", id);
 	m_name = config->GetString(section, "Host", "");
 	m_dynamic = Toolkit::AsBool(config->GetString(section, "Dynamic", "0"));
+	m_externalGK = false;
+
 	if (!m_dynamic && !GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port))
 		return false;
 
@@ -252,15 +258,20 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	return true;
 }
 
-bool Neighbor::SetProfile(const PString & addr)
+bool Neighbor::SetProfile(const PString & name, const H225_TransportAddress & addr)
 {
-  m_name = addr;
 
-  if (!GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) 
+  if (!GetTransportAddress(H323TransportAddress(addr), GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) 
 	  return false;
 
   m_id = "SRVrec";
+  m_name = name;
   m_dynamic = false;
+  m_externalGK = true;
+
+  m_sendPrefixes.clear();
+  PString sprefix("*");
+  m_acceptPrefixes = PStringArray(sprefix.Tokenise(",", false));
  
   return true;
 
@@ -689,6 +700,7 @@ public:
 	~LRQRequester();
 
 	bool Send(NeighborList::List &, Neighbor * = 0);
+	bool Send(Neighbor * nb);
 	int GetReqNumber() const { return m_requests.size(); }
 	H225_LocationConfirm *WaitForDestination(int);
 	PString GetNeighborUsed() { return m_neighbor_used; }
@@ -743,6 +755,17 @@ bool LRQRequester::Send(NeighborList::List & neighbors, Neighbor *requester)
 
 	m_retry = 2; // TODO: configurable
 	PTRACE(2, "NB\t" << m_requests.size() << " LRQ(s) sent");
+	return true;
+}
+
+bool LRQRequester::Send(Neighbor * nb)
+{
+	PWaitAndSignal lock(m_rmutex);
+
+	if (PrefixInfo info = m_sendto(nb, m_seqNum))
+		   m_requests.insert(make_pair(info, nb));
+
+	PTRACE(2, "SRV\tLRQ sent to " << nb->GetIP());
 	return true;
 }
 
@@ -890,7 +913,7 @@ void NeighborList::OnReload()
 
 bool NeighborList::CheckLRQ(RasMsg *ras) const
 {
-	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsAcceptable), ras)) != m_neighbors.end();
+     return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsAcceptable), ras)) != m_neighbors.end();
 }
 
 bool NeighborList::CheckIP(const PIPSocket::Address & addr) const
@@ -1162,8 +1185,127 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 	return false;
 }
 
+
+#ifdef hasSRV
+class SRVPolicy : public AliasesPolicy {
+public:
+	SRVPolicy() { m_name = "SRV"; }
+
+protected:
+	// override from class Policy
+	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
+	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+
+private:
+	int m_Timeout;
+};
+
+bool SRVPolicy::FindByAliases(
+	RoutingRequest &request,
+	H225_ArrayOf_AliasAddress &aliases
+	)
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		PString alias(AsString(aliases[i], FALSE));
+		PINDEX at = alias.Find('@');
+
+	// DNS SRV Record lookup
+		if (at != P_MAX_INDEX) {
+		   PString number = alias;
+		   if (number.Left(5) != "h323:") 
+			  number = "h323:" + number;	  
+					
+   // CS SRV Lookup
+		   PStringList str;
+		   if (PDNS::LookupSRV(number,"_h323cs._tcp.",str)) {
+			   for (PINDEX j=0; j<str.GetSize(); j++) {
+				 PTRACE(4, "Routing\tDNS SRV converted remote party " << alias << " to " << str[j]);
+		         H225_TransportAddress dest;
+				 PINDEX in = str[j].Find('@');
+				 PString domain = str[j].Mid(in + 1);
+		         if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
+			       PIPSocket::Address addr;
+			       if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
+				                    continue;
+			       Route route(m_name, dest);
+			       route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+			       request.AddRoute(route);
+			       request.SetFlag(RoutingRequest::e_aliasesChanged);	
+				 }
+			   }
+			 // remove the domain name 
+		     H323SetAliasAddress(alias.Left(at), aliases[i]);
+		     return true;
+		   }
+		}
+	}
+	return SRVPolicy::FindByAliases((LocationRequest&)request, aliases);
+}
+
+
+bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{ 
+
+	// DNS SRV Record lookup
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		PString alias(AsString(aliases[i], FALSE));
+
+		PString number;
+		PString domain;
+		PINDEX at = alias.Find('@');
+		if (at == P_MAX_INDEX) {
+		   number = "h323:t@" + alias;	
+		   domain = alias;
+	    } else {
+		   number = "h323:" + alias;
+		   domain = alias.Mid(at);
+		}
+					
+        PStringList str;
+		// LS Record lookup
+        if (PDNS::LookupSRV(number,"_h323ls._udp.",str)) {
+          for (PINDEX i=0; i<str.GetSize(); i++) {
+            PINDEX at = str[i].Find('@');
+            PString ipaddr = str[i].Mid(at + 1);
+            PTRACE(4, "Routing\tDNS SRV LRQ converted remote party " << alias << " to " << ipaddr);
+            H323TransportAddress addr = H323TransportAddress(ipaddr);
+			H225_TransportAddress taddr;
+			addr.SetPDU(taddr);
+
+			// Create a gatekeeper object
+			GnuGK * nb = new GnuGK();
+			nb->SetProfile(domain,taddr);
+			int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+
+			// Send LRQ to retreive callers signalling address 
+	        LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
+	        LRQRequester Request(functor);
+	        if (Request.Send(nb)) {
+		        if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
+//			        route.m_routeId = request.GetNeighborUsed();
+//			        route.m_flags |= Route::e_toNeighbor;
+			     if (lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)) {
+//				    request.SetAliases(lcf->m_destinationInfo);
+				    Route route(m_name, lcf->m_callSignalAddress);
+			        request.AddRoute(route);
+				    request.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);
+			        return true;
+				 }
+		       }
+	        }
+		  }
+		} 
+	}
+	return false;  
+}
+#endif
+
 namespace {
 	SimpleCreator<NeighborPolicy> NeighborPolicyCreator("neighbor");
+
+#ifdef hasSRV
+	SimpleCreator<SRVPolicy> SRVPolicyCreator("srv");
+#endif
 }
 
 

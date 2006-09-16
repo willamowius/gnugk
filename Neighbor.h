@@ -80,7 +80,7 @@ public:
 	// the real constructor, get profile of this neighbor
 	virtual bool SetProfile(const PString &, const PString &);
     // Sent profile based on SRV Record
-	virtual bool SetProfile(const PString &);
+	virtual bool SetProfile(const PString &, const H225_TransportAddress &);
 
 	// get PrefixInfo for a given aliases
 	// if an alias is matched, set dest to the alias
@@ -116,6 +116,7 @@ protected:
 	int m_forwardto;
 	Prefixes m_sendPrefixes;
 	PStringArray m_acceptPrefixes;
+	bool m_externalGK;
 };
 
 class NeighborList {
