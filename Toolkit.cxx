@@ -292,7 +292,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 	return (entry != rtable_end) ? entry->GetDestination() : defAddr;
 }
 
-bool Toolkit::RouteTable::CreateTable()
+bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 {
 	InterfaceTable if_table;
 	if (!PIPSocket::GetInterfaceTable(if_table)) {
@@ -305,6 +305,9 @@ bool Toolkit::RouteTable::CreateTable()
 		PTRACE(1, "Error: Can't get route table");
 		return false;
 	}
+
+	if (!extroute)
+		r_table.Append(new PIPSocket::RouteEntry(extroute));
 
 	int i = r_table.GetSize();
 	rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
@@ -336,17 +339,17 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	PString extip = GkConfig()->GetString("ExternalIP", "");
 	DynExtIP = AsBool(GkConfig()->GetString("ExternalIsDynamic", "0"));
 
-	PIPSocket::Address ext;
+	PIPSocket::Address ext((DWORD)0);
 	H323TransportAddress ex = H323TransportAddress(extip);
 	ex.GetIpAddress(ext);
 
 	if (ext.IsValid() && !ext.IsRFC1918()) {
 	   ExtIP = extip;
-	   RouteTable::CreateTable();
-	   if (!DynExtIP) {
-		  PString extroute = ext.AsString() + "/0";
-	      ::new (rtable_end++) RouteEntry(extroute);
-	   } 
+	   PString extroute = PString(); 
+   	   if (!DynExtIP) 
+		  extroute = ext.AsString() + "/0";
+
+	   CreateRouteTable(extroute);
 	   PTRACE(1,"External IP = " << ExtIP << " dynamic " << DynExtIP);
 	   return true;
 	} else
