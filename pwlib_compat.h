@@ -59,12 +59,12 @@
 // Version matching
 #if OPENH323_MAJOR == 1
   #if OPENH323_MINOR < 19
-       #undef hasH460 
        #undef hasSRV 
        #undef OpenH323Factory 
   #endif
 
  #if OPENH323_MINOR < 20
+       #undef hasH460 
        #undef h323v6
   #endif
 #endif
