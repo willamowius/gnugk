@@ -299,6 +299,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 		PTRACE(1, "Error: Can't get interface table");
 		return false;
 	}
+
 	PTRACE(4, "InterfaceTable:\n" << setfill('\n') << if_table << setfill(' '));
 	PIPSocket::RouteTable r_table;
 	if (!PIPSocket::GetRouteTable(r_table)) {
@@ -306,17 +307,30 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 		return false;
 	}
 
-	if (!extroute)
-		r_table.Append(new PIPSocket::RouteEntry(extroute));
+	if (!extroute && AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
+	  for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
+		if (r_table[i].GetNetwork().IsRFC1918() && r_table[i].GetNetMask().AsString() != "255.255.255.255") {
+		  PString intAddr = r_table[i].GetNetwork().AsString() + "/" + r_table[i].GetNetMask().AsString();
+		  m_internalnetworks.resize( m_internalnetworks.size() + 1);
+		  m_internalnetworks[m_internalnetworks.size() - 1] = NetworkAddress(intAddr);
+		  PTRACE(2, "Internal Network Detected " << m_internalnetworks.back().AsString()); 
+		} 
+	  }
+	}
 
-	int i = r_table.GetSize();
+	int i = (!extroute) ? r_table.GetSize()+1 : r_table.GetSize();
+
 	rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
 	for (PINDEX r = 0; r < i ; ++r) {
-		PIPSocket::RouteEntry & r_entry = r_table[r];
-		if (r_entry.GetNetMask() != INADDR_ANY)
-			// placement operator
+		if (!extroute && (r==r_table.GetSize()))
+			::new (rtable_end++) RouteEntry(extroute);
+		else {
+		  PIPSocket::RouteEntry & r_entry = r_table[r];
+		  if (r_entry.GetNetMask() != INADDR_ANY) 
 			::new (rtable_end++) RouteEntry(r_entry, if_table);
+		}
 	}
+
 	return true;
 }
 
@@ -342,10 +356,9 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	PIPSocket::Address ext((DWORD)0);
 	H323TransportAddress ex = H323TransportAddress(extip);
 	ex.GetIpAddress(ext);
-
 	if (ext.IsValid() && !ext.IsRFC1918()) {
 	   ExtIP = extip;
-	   PString extroute = PString(); 
+	   PString extroute = PString();
    	   if (!DynExtIP) 
 		  extroute = ext.AsString() + "/0";
 
@@ -380,8 +393,6 @@ Toolkit::ProxyCriterion::~ProxyCriterion()
 
 void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 {
-	m_networks.clear();
-
 	m_enable = AsBool(config->GetString(ProxySection, "Enable", "0"));
 	if (!m_enable) {
 		PTRACE(2, "GK\tH.323 Proxy disabled");
@@ -390,12 +401,23 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 
 	PTRACE(2, "GK\tH.323 Proxy enabled");
 
+	m_networks.clear();
+
 	PStringArray networks(config->GetString(ProxySection, "InternalNetwork", "").Tokenise(" ,;\t", FALSE));
-	for (PINDEX i = 0; i < networks.GetSize(); ++i) {
+
+	// if no networks specified then use the detected values
+	if (networks.GetSize() == 0) {
+	  m_networks = Toolkit::Instance()->GetInternalNetworks();
+	  for (unsigned j = 0; j < m_networks.size(); ++j) 
+		PTRACE(2, "GK\tInternal Network " << j << " = " << m_networks[j].AsString());
+	  return;
+	} 
+
+	  for (PINDEX i = 0; i < networks.GetSize(); ++i) {
 		m_networks.resize(m_networks.size() + 1);
 		m_networks[m_networks.size() - 1] = NetworkAddress(networks[i]);
-		PTRACE(2, "GK\tInternal Network " << i << " = " << m_networks.back().AsString());
-	}
+		PTRACE(2, "GK\tINI Internal Network " << i << " = " << m_networks.back().AsString());
+	  }
 }
 
 bool Toolkit::ProxyCriterion::Required(const Address & ip1, const Address & ip2) const
@@ -1259,6 +1281,11 @@ bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddres
 bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) {
 
    return (m_VirtualRouteTable.IsMasquerade(externalIP));
+}
+
+std::vector<NetworkAddress> Toolkit::GetInternalNetworks() {
+
+    return GkConfig()->HasKey("ExternalIP") ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks(); 
 }
 
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const

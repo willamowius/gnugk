@@ -117,7 +117,9 @@ class Toolkit : public Singleton<Toolkit>
 		void ClearTable();
 		bool IsEmpty() const { return rtable_begin == 0; }
 
-	    virtual bool IsMasquerade(PIPSocket::Address &) { return false; };
+		std::vector<NetworkAddress> GetInternalNetworks() { return m_internalnetworks; }
+
+	    virtual bool IsMasquerade(PIPSocket::Address &) { return false; }
 	protected:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:
@@ -128,12 +130,13 @@ class Toolkit : public Singleton<Toolkit>
 			RouteEntry(const PIPSocket::RouteEntry &, const InterfaceTable &);
 			bool Compare(const Address *) const;
 		};
-
-		virtual bool CreateTable();
+		virtual bool CreateTable() { return CreateRouteTable(); }
+		bool CreateRouteTable(const PString & extroute=PString());
 
 		RouteEntry *rtable_begin, *rtable_end;
 		Address defAddr;
 
+		std::vector<NetworkAddress> m_internalnetworks;
     	bool DynExtIP;
 		PString ExtIP;
 	};
@@ -240,6 +243,7 @@ class Toolkit : public Singleton<Toolkit>
 	void SetGKHome(const PStringArray &);
 
 	bool isBehindNAT(PIPSocket::Address &);
+	std::vector<NetworkAddress> Toolkit::GetInternalNetworks();
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.
