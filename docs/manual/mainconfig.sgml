@@ -54,11 +54,11 @@ and have to be separated with a semicolon (;) or comma (,).
 Default: <tt>N/A</tt><newline>
 <p>
 Specify the network interfaces of the gatekeeper. By default the gatekeeper
-will detect the interfaces of your host automatically. There are two situations
-that you may want to use this option. One is automatically detection failed,
-another is the gatekeeper is behind a NAT box and allow endpoints with
-public IPs to register with. In this case you should set the option just as
-the gatekeeper is running on the NAT box.
+will detect the interfaces of your host automatically. There is situations
+that you may want to use this option. One is automatic detection fails. 
+If you are using GnuGk behind a NAT box then you should use the ExternalIP
+setting which will automatically configure GnuGK to operate as if it was
+on the NAT box and superceded using this entry.
 
 <item><tt/EndpointIDSuffix=_gk1/<newline>
 Default: <tt/_endp/<newline>
@@ -306,7 +306,7 @@ Default: <tt/0/<newline>
 Whether the external IP is dynamic and where queries are required to 
 keep the external IP up to date. To work you must specify the External IP
 with a DNS address maintained by a DDNS service such as www.dyndns.com or 
-www.no-ip.com.
+www.no-ip.com. 
 </itemize>
 
 

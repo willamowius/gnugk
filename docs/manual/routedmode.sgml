@@ -350,7 +350,9 @@ Default: <tt>N/A</tt><newline>
 Define the networks behind the proxy. Multiple internal networks are allow.
 The proxy route channels only of the communications between one endpoint
 in the internal network and one external. If you don't specify it, all calls
-will be proxied.
+will be proxied. If using GnuGk behind a NAT and the [Gatekeeper::Main] ExternalIP
+is set then there is not requirement to set this as it is auto-detected at startup. 
+Using this setting will simply override the default detected settings. 
 
 <descrip>
 <tag/Format:/
