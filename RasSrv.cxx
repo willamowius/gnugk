@@ -1462,10 +1462,10 @@ bool RegistrationRequestPDU::Process()
 		bool bReject = !ep;
 		// check if the RRQ was sent from the registered endpoint
 		if (ep && bShellSendReply) { // not forwarded RRQ
-			if (ep->IsNATed())
+			if (ep->IsNATed()) {
 				// for nated endpoint, only check rx_addr
-			       	bReject = (ep->GetNATIP() != rx_addr);
-			else {
+			    bReject = (ep->GetNATIP() != rx_addr);
+			} else {
 				PIPSocket::Address oaddr, raddr;
 				WORD oport, rport;
 				if (request.m_callSignalAddress.GetSize() >= 1) {
@@ -1475,16 +1475,16 @@ bool RegistrationRequestPDU::Process()
 						if (oaddr == raddr && oport == rport)
 							break;
 					}
-				} else if (request.m_rasAddress.GetSize() >= 1)
+				} else if (request.m_rasAddress.GetSize() >= 1) {
 					GetIPAndPortFromTransportAddr(ep->GetRasAddress(), oaddr, oport),
 					GetIPAndPortFromTransportAddr(request.m_rasAddress[0], raddr, rport);
-				else
+				} else {
 					GetIPAndPortFromTransportAddr(ep->GetCallSignalAddress(), oaddr, oport),
 					raddr = oaddr, rport = oport;
-				bReject = (oaddr != raddr) || (oport != rport) || (raddr != rx_addr);
+				}
+				 bReject = (oaddr != raddr) || (oport != rport) || (raddr != rx_addr);
 			}
-		}
-
+		} 
 		if (bReject) {
 			if (ep && bShellSendReply) {
 			 PTRACE(1, "RAS\tWarning: Possibly endpointId collide,security attack or IP change");
