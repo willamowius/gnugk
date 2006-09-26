@@ -1198,7 +1198,7 @@ inline H225_TransportAddress EndpointRec::GetRasAddress() const
 inline void EndpointRec::SetRasAddress(const H225_TransportAddress & addr)
 { 
 	PWaitAndSignal lock(m_usedLock);
-	m_callSignalAddress = addr;
+	m_rasAddress = addr;
 }
 
 inline void EndpointRec::SetCallSignalAddress(const H225_TransportAddress & addr) 
