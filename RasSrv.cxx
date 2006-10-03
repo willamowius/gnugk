@@ -1429,7 +1429,6 @@ bool RegistrationRequestPDU::Process()
 	unsigned RegPrior =0;
 	bool preemptsupport = false;
 	BOOL preempt = false;
-	unsigned ntype = 0;
 
 #ifdef hasH460
 
