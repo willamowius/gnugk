@@ -601,8 +601,24 @@ bool USocket::WriteData(const BYTE *buf, int len)
 {
 	if (IsSocketOpen()) {
 		if (qsize == 0 && !writeMutex.WillBlock()) {
+			const int MAX_SOCKET_CHUNK = 10240;	// send in 10K chunks
 			PWaitAndSignal lock(writeMutex);
-			return InternalWriteData(buf, len);
+			int remaining = len;
+			int sendnow = 0;
+			bool writeResult = true;
+			while ((remaining > 0) && writeResult) {
+				if (remaining > MAX_SOCKET_CHUNK)
+					sendnow = MAX_SOCKET_CHUNK;
+				else
+					sendnow = remaining;
+				writeResult = InternalWriteData(buf, sendnow);
+				remaining -= sendnow;
+				if (remaining > 0) {
+					PThread::Sleep(250);
+					buf += sendnow;
+				}
+			}
+			return writeResult;
 		}
 		if (qsize > 100) { // to be justitied
 			PTRACE(2, type << '\t' << Name() << " is dead and closed");
