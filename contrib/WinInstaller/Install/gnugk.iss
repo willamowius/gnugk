@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "GNU Gatekeeper"
-#define MyAppVerName "GNU Gatekeeper v2.2.4"
+#define MyAppVerName "GNU Gatekeeper v2.2.5"
 #define MyAppPublisher "www.gnugk.org"
 #define MyAppURL "http://www.gnugk.org"
 
@@ -16,7 +16,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=true
-OutputBaseFilename=GnuGkSetup224
+OutputBaseFilename=GnuGkSetup225
 Compression=lzma
 SolidCompression=true
 ShowLanguageDialog=yes
@@ -28,6 +28,7 @@ WindowResizable=false
 WindowVisible=false
 WizardImageFile=InternetClassic22.bmp
 WizardSmallImageFile=D:\gnugk\Install\logo.bmp
+MinVersion=0,5.0.2195
 
 [Languages]
 Name: english; MessagesFile: compiler:Default.isl
@@ -54,6 +55,7 @@ Source: ..\functions\mswinsck.ocx; DestDir: {sys}; Flags: regserver uninsneverun
 Source: ..\functions\GnuGkutil.exe; DestDir: {app}
 Source: user.ico; DestDir: {app}
 Source: reload.ICO; DestDir: {app}
+
 [Icons]
 ;Name: {group}\GnuGk Gatekeeper; Filename: {app}\GnuGk.exe; IconFilename: {app}\GnuGk.ico; Comment: GnuGk Gatekeeper; IconIndex: 0; WorkingDir: {app}
 Name: {group}\Configuration\gatekeeper.ini; Filename: {app}\gatekeeper.ini; WorkingDir: {app}; Comment: Gatekeeper Configuration File
@@ -96,6 +98,20 @@ Filename: {app}\gatekeeper.ini; Section: RasSrv::ARQFeatures; Key: CallUnregiste
 Filename: {app}\gatekeeper.ini; Section: CallTable; Key: GenerateNBCDR; String: 0
 Filename: {app}\gatekeeper.ini; Section: CallTable; Key: GenerateUCCDR; String: 1
 Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Auth; Key: SimplePasswordAuth; String: "required;RRQ"; Tasks: securelogin
+
+; Behind NAT support
+Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Main; Key: UnicastRasPort; String: {code:GetUDP}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Main; Key: ExternalIP; String: {code:GetIPAddress}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: Gatekeeper::Main; Key: ExternalIsDynamic; String: {code:GetDDNS}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: RoutedMode; Key: CallSignalPort; String: {code:GetTCP}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: RoutedMode; Key: Q931PortRange; String: {code:GetQ931}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: RoutedMode; Key: H245PortRange; String: {code:GetH245}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: Proxy; Key: Enable; String: 1; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: Proxy; Key: T120PortRange; String: {code:GetRTP}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: Proxy; Key: RTPPortRange; String: {code:GetRTP}; Tasks: nat
+Filename: {app}\gatekeeper.ini; Section: RasSrv::RRQFeatures; Key: SupportDynamicIP; String: 1; Tasks: nat
+
+
 Filename: {app}\GnuGk.url; Section: InternetShortcut; Key: URL; String: http://www.GnuGk.org/
 [_ISTool]
 EnableISX=true
@@ -113,9 +129,10 @@ Filename: {app}\GnuGkutil.exe; Parameters: kill=GnuGk.exe; Flags: runhidden; Tas
 Filename: {app}\pacGnuGkNTS.exe; Parameters: "-uninstall -sname=""GnuGkserv"" "; Flags: runhidden waituntilidle; Tasks: service
 
 [Tasks]
-Name: securelogin; Description: Require User Passwords (Simple Password Authentication); Flags: unchecked
-Name: status; Description: Allow users access to status port
-Name: service; Description: Install as Service; Flags: checkedonce; MinVersion: 0,5.0.2195
+Name: securelogin; Description: Require User Passwords (Simple Password Authentication); Flags: checkedonce
+Name: status; Description: Allow users access to status port; Flags: unchecked
+Name: nat; Description: Install on private LAN; Flags: unchecked
+Name: service; Description: Install as Service; Flags: checkedonce; MinVersion: 0,4.0.1381sp4; Languages: 
 [Code]
 type
  SERVICE_STATUS = record
@@ -371,3 +388,351 @@ begin
 
  Result := true;
 end;
+
+///////////////////////////////////////////////////////////////////////
+
+  [CustomMessages]
+  gnugk_lanCaption=GnuGk LAN installation
+  gnugk_lanDescription=GnuGk installed behind a NAT box but still can access the public internet
+
+  [Code]
+  var
+    Label1: TLabel;
+    Label9: TLabel;
+    ipaddress: TEdit;
+    ddns: TCheckBox;
+    Panel1: TPanel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    tcp: TEdit;
+    udp: TEdit;
+    q931: TEdit;
+    h245: TEdit;
+    rtp: TEdit;
+
+  procedure gnugk_lan_Activate(Page: TWizardPage);
+  begin
+  end;
+
+  function gnugk_lan_ShouldSkipPage(Page: TWizardPage): Boolean;
+  begin
+    Result := False;
+  end;
+
+  function gnugk_lan_BackButtonClick(Page: TWizardPage): Boolean;
+  begin
+    Result := True;
+  end;
+
+  function gnugk_lan_NextButtonClick(Page: TWizardPage): Boolean;
+  begin
+    Result := True;
+  end;
+
+  procedure gnugk_lan_CancelButtonClick(Page: TWizardPage; var Cancel, Confirm: Boolean);
+  begin
+  end;
+
+  function gnugk_lan_CreatePage(PreviousPageId: Integer): Integer;
+  var
+    Page: TWizardPage;
+  begin
+    Page := CreateCustomPage(
+      PreviousPageId,
+      ExpandConstant('{cm:gnugk_lanCaption}'),
+      ExpandConstant('{cm:gnugk_lanDescription}')
+    );
+
+    { Label1 }
+    Label1 := TLabel.Create(Page);
+    with Label1 do
+    begin
+      Parent := Page.Surface;
+      Left := ScaleX(29);
+      Top := ScaleY(24);
+      Width := ScaleX(82);
+      Height := ScaleY(13);
+      Alignment := taRightJustify;
+      Caption := 'Public IP Address';
+    end;
+
+    { Label9 }
+    Label9 := TLabel.Create(Page);
+    with Label9 do
+    begin
+      Parent := Page.Surface;
+      Left := ScaleX(16);
+      Top := ScaleY(0);
+      Width := ScaleX(234);
+      Height := ScaleY(13);
+      Caption := 'Information if you are Installing GnuGk on a private LAN';
+      Color := -16777201;
+      Font.Color := 16711680;
+      Font.Height := ScaleY(-11);
+      Font.Name := 'Tahoma';
+    end;
+
+    { ipaddress }
+    ipaddress := TEdit.Create(Page);
+    with ipaddress do
+    begin
+      Parent := Page.Surface;
+      Left := ScaleX(120);
+      Top := ScaleY(24);
+      Width := ScaleX(137);
+      Height := ScaleY(21);
+      TabOrder := 0;
+      Text := 'gk.mydomain.com';
+    end;
+
+    { ddns }
+    ddns := TCheckBox.Create(Page);
+    with ddns do
+    begin
+      Parent := Page.Surface;
+      Left := ScaleX(120);
+      Top := ScaleY(48);
+      Width := ScaleX(137);
+      Height := ScaleY(17);
+      Caption := 'Dynamic DNS Service';
+      TabOrder := 1;
+    end;
+
+    { Panel1 }
+    Panel1 := TPanel.Create(Page);
+    with Panel1 do
+    begin
+      Parent := Page.Surface;
+      Left := ScaleX(16);
+      Top := ScaleY(72);
+      Width := ScaleX(377);
+      Height := ScaleY(145);
+      BevelOuter := bvLowered;
+      TabOrder := 2;
+    end;
+
+    { Label2 }
+    Label2 := TLabel.Create(Page);
+    with Label2 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(6);
+      Top := ScaleY(18);
+      Width := ScaleX(91);
+      Height := ScaleY(13);
+      Caption := 'TCP Listening Port:';
+    end;
+
+    { Label3 }
+    Label3 := TLabel.Create(Page);
+    with Label3 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(25);
+      Top := ScaleY(48);
+      Width := ScaleX(70);
+      Height := ScaleY(13);
+      Caption := 'UDP RAS Port:';
+    end;
+
+    { Label4 }
+    Label4 := TLabel.Create(Page);
+    with Label4 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(176);
+      Top := ScaleY(18);
+      Width := ScaleX(89);
+      Height := ScaleY(13);
+      Caption := 'TCP  Q.931 Range';
+    end;
+
+    { Label5 }
+    Label5 := TLabel.Create(Page);
+    with Label5 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(176);
+      Top := ScaleY(42);
+      Width := ScaleX(88);
+      Height := ScaleY(13);
+      Caption := 'TCP  H.245 Range';
+    end;
+
+    { Label6 }
+    Label6 := TLabel.Create(Page);
+    with Label6 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(176);
+      Top := ScaleY(67);
+      Width := ScaleX(79);
+      Height := ScaleY(13);
+      Caption := 'UDP  RTP Range';
+    end;
+
+    { Label7 }
+    Label7 := TLabel.Create(Page);
+    with Label7 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(32);
+      Top := ScaleY(96);
+      Width := ScaleX(308);
+      Height := ScaleY(13);
+      Alignment := taCenter;
+      Caption := 'Note: These ports must be port forward to the internal IP of the';
+      Color := -16777201;
+      Font.Color := 128;
+      Font.Height := ScaleY(-11);
+      Font.Name := 'Tahoma';
+    end;
+
+    { Label8 }
+    Label8 := TLabel.Create(Page);
+    with Label8 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(40);
+      Top := ScaleY(110);
+      Width := ScaleX(304);
+      Height := ScaleY(13);
+      Alignment := taCenter;
+      Caption := 'Gatekeeper or the Gatekeeper placed in the DMZ of the router.';
+      Color := -16777201;
+      Font.Color := 128;
+      Font.Height := ScaleY(-11);
+      Font.Name := 'Tahoma';
+    end;
+
+    { tcp }
+    tcp := TEdit.Create(Page);
+    with tcp do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(104);
+      Top := ScaleY(16);
+      Width := ScaleX(57);
+      Height := ScaleY(21);
+      TabOrder := 0;
+      Text := '1721';
+    end;
+
+    { udp }
+    udp := TEdit.Create(Page);
+    with udp do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(104);
+      Top := ScaleY(43);
+      Width := ScaleX(57);
+      Height := ScaleY(21);
+      TabOrder := 1;
+      Text := '1719';
+    end;
+
+    { q931 }
+    q931 := TEdit.Create(Page);
+    with q931 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(272);
+      Top := ScaleY(16);
+      Width := ScaleX(73);
+      Height := ScaleY(21);
+      TabOrder := 2;
+      Text := '30000-30999';
+    end;
+
+    { h245 }
+    h245 := TEdit.Create(Page);
+    with h245 do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(272);
+      Top := ScaleY(40);
+      Width := ScaleX(73);
+      Height := ScaleY(21);
+      TabOrder := 3;
+      Text := '31000-31999';
+    end;
+
+    { rtp }
+    rtp := TEdit.Create(Page);
+    with rtp do
+    begin
+      Parent := Panel1;
+      Left := ScaleX(272);
+      Top := ScaleY(64);
+      Width := ScaleX(73);
+      Height := ScaleY(21);
+      TabOrder := 4;
+      Text := '50000-59999';
+    end;
+
+
+    with Page do
+    begin
+      OnActivate := @gnugk_lan_Activate;
+      OnShouldSkipPage := @gnugk_lan_ShouldSkipPage;
+      OnBackButtonClick := @gnugk_lan_BackButtonClick;
+      OnNextButtonClick := @gnugk_lan_NextButtonClick;
+      OnCancelButtonClick := @gnugk_lan_CancelButtonClick;
+    end;
+
+    Result := Page.ID;
+  end;
+
+  function GetIPAddress(Param: String): String;
+  begin
+     { Return the selected IPAddress }
+     Result := ipaddress.Text;
+  end;
+
+  function GetDDNS(Param: String): String;
+  begin
+     { Return the whether DDNS }
+     if ddns.Checked
+     then Result := '1'
+     else Result := '0';
+  end;
+
+  function GetTCP(Param: String): String;
+  begin
+     { Return the selected TCP port range }
+     Result := tcp.Text;
+  end;
+
+  function GetUDP(Param: String): String;
+  begin
+     { Return the selected UDP port range }
+     Result := udp.Text;
+  end;
+
+  function GetQ931(Param: String): String;
+  begin
+     { Return the selected Q931 range }
+     Result := q931.Text;
+  end;
+
+  function GetH245(Param: String): String;
+  begin
+     { Return the selected H.245 range }
+     Result := h245.Text;
+  end;
+
+  function GetRTP(Param: String): String;
+  begin
+     { Return the selected rtp range }
+     Result := rtp.Text;
+  end;
+
+  procedure InitializeWizard();
+  begin
+    gnugk_lan_CreatePage(wpSelectTasks);
+  end;
