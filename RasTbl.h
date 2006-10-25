@@ -279,9 +279,13 @@ protected:
 	/// endpoint call capacity, -1 means no limit
 	int m_capacity;
 	int m_calledTypeOfNumber, m_callingTypeOfNumber;
-	int m_registrationPriority;
-	bool m_registrationPreemption;
+	/// Proxy Type
 	int m_proxy;
+	/// Registration Priority Number
+	int m_registrationPriority;
+	/// Support Registration PreEmption
+	bool m_registrationPreemption;
+
     /// Assigned Gatekeeper
 	H225_AlternateGK m_assignedGatekeeper;
 };
