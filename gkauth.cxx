@@ -183,7 +183,7 @@ GkAuthenticator::GkAuthenticator(
 	: NamedObject(name), m_defaultStatus(e_fail), m_controlFlag(e_Required),
 	m_enabledRasChecks(~0U), m_supportedRasChecks(supportedRasChecks), 
 	m_enabledMiscChecks(~0U), m_supportedMiscChecks(supportedMiscChecks),
-	m_config(GkConfig()), m_h235Authenticators(NULL)
+	m_config(GkConfig())
 {
 	const PStringArray control(
 		m_config->GetString(GkAuthSectionName, name, "").Tokenise(";,")
@@ -285,6 +285,8 @@ GkAuthenticator::GkAuthenticator(
 		<< rasFlagsStr << ", OTHER: " << miscFlagsStr
 		);
 #endif	
+
+	m_h235Authenticators = NULL;
 }
 
 GkAuthenticator::~GkAuthenticator()

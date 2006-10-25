@@ -1426,7 +1426,7 @@ bool RegistrationRequestPDU::Process()
 ///////////////////////////////////////////////////////////////////////////////////////////
 // H460 support Code
 	BOOL supportNAT = false;
-	unsigned RegPrior =0;
+	int RegPrior =0;
 	bool preemptsupport = false;
 	BOOL preempt = false;
 
@@ -1441,8 +1441,10 @@ bool RegistrationRequestPDU::Process()
 
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
-			if (feat->Contains(priorityOID))
-				RegPrior = feat->Value(priorityOID);
+			if (feat->Contains(priorityOID)) {
+				unsigned prior = feat->Value(priorityOID);
+				RegPrior = (int)prior;  
+			}
 			if (feat->Contains(preemptOID)) {
 				preemptsupport = true;
                 preempt = feat->Value(preemptOID);

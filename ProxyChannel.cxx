@@ -3024,7 +3024,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 		if (q931->GetCalledPartyNumber(Number, &plan, &type)) {
 			dtype = -1;
 			if (called) {
-				unsigned proxy = called->GetProxyType();
+				int proxy = called->GetProxyType();
 				if (proxy > 0) {
 					m_call->SetProxyMode(proxy);
 					#if PTRACING

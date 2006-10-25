@@ -99,7 +99,7 @@ public:
 	CallSignalSocket *GetSocket();
 
 	int GetCallTypeOfNumber(bool called = true) const { return called ? m_calledTypeOfNumber : m_callingTypeOfNumber; }
-	unsigned GetProxyType() const { return m_proxy; }
+	int GetProxyType() const { return m_proxy; }
 
 	/** checks if the given aliases are prefixes of the aliases which are stored
 	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
@@ -164,7 +164,7 @@ public:
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
 	void SetSupportNAT(bool support);
-	void SetPriority(unsigned priority) { m_registrationPriority = priority; };
+	void SetPriority(int priority) { m_registrationPriority = priority; };
 	void SetPreemption(bool support) { m_registrationPreemption = support; };
 	void SetAssignedGatekeeper(const H225_AlternateGK & gk) { m_assignedGatekeeper = gk; };
 
@@ -178,7 +178,7 @@ public:
 	bool IsFromParent() const;
 	bool IsNATed() const;
 	bool SupportNAT() const;
-	unsigned  Priority() const { return m_registrationPriority; }
+	int  Priority() const { return m_registrationPriority; }
 	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;
 
@@ -279,9 +279,9 @@ protected:
 	/// endpoint call capacity, -1 means no limit
 	int m_capacity;
 	int m_calledTypeOfNumber, m_callingTypeOfNumber;
-	unsigned m_registrationPriority;
+	int m_registrationPriority;
 	bool m_registrationPreemption;
-	unsigned m_proxy;
+	int m_proxy;
     /// Assigned Gatekeeper
 	H225_AlternateGK m_assignedGatekeeper;
 };
