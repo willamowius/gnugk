@@ -306,6 +306,10 @@ SOURCE=.\ProxyChannel.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\pwlib_compat.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\radacct.h
 # End Source File
 # Begin Source File
