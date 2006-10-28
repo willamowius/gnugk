@@ -40,33 +40,22 @@
 #endif
 
 ///////////////////////////////////////////////
-// H460 and DNS SRV Support
-#ifdef H323_H460
-   #define hasH460 1
-#endif
 
-// DNS SRV 
-#ifdef P_DNS
-   #define hasSRV 1 
-#endif
-
-// OpenH323 Factory Loader Auth
-#define OpenH323Factory 1
-
-// Version 6 features
-#define h323v6 1
-
-// Version matching
+// OpenH323 version matching
 #if OPENH323_MAJOR == 1
-  #if OPENH323_MINOR < 19
-       #undef hasSRV 
-       #undef OpenH323Factory 
-  #endif
+	#if OPENH323_MINOR >= 19
+		#ifdef P_DNS
+			#define hasSRV 1	// DNS SRV
+		#endif
+		#define OpenH323Factory 1 // OpenH323 Factory Loader Auth
+	#endif
 
- #if OPENH323_MINOR < 20
-       #undef hasH460 
-       #undef h323v6
-  #endif
+	#if OPENH323_MINOR >= 20
+		#ifdef H323_H460
+			#define hasH460 1	// H460 support
+		#endif
+		#define h323v6 1		// Version 6 features
+	#endif
 #endif
 
 #endif
