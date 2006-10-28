@@ -690,6 +690,8 @@ RasServer::RasServer() : Singleton<RasServer>("RasSrv"), requestSeqNum(0),
 	authList = 0;
 	sigHandler = 0;
 	broadcastListener = 0;
+	GKRoutedSignaling = false;
+	GKRoutedH245 = false;
 	altGKs = new H225_ArrayOf_AlternateGK;
 }
 
