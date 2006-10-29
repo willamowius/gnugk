@@ -700,10 +700,13 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port)
 
 void CallSignalSocket::InternalInit()
 {
+	m_crv = 0;
 	m_h245handler = NULL;
 	m_h245socket = NULL;
 	m_isnatsocket = false;
+	m_result = NoData;
 	m_setupPdu = NULL;
+	// m_callerSocket is always initialized in init list
 	m_h225Version = 0;
 }
 
@@ -4698,10 +4701,14 @@ void ProxyHandler::Remove(iterator i)
 	IPSocket *socket = *i;
 	m_sockets.erase(i);
 	--m_socksize;
+
 	PWaitAndSignal lock(m_rmutex);
-	m_removed.push_back(socket);
-	m_removedTime.push_back(new PTime);
-	++m_rmsize;
+	// avoid double insert
+	if (find(m_removed.begin(), m_removed.end(), socket) == m_removed.end()) {
+		m_removed.push_back(socket);
+		m_removedTime.push_back(new PTime);
+		++m_rmsize;
+	}
 }
 
 void ProxyHandler::Remove(TCPProxySocket *socket)
@@ -4715,9 +4722,12 @@ void ProxyHandler::Remove(TCPProxySocket *socket)
 	m_listmutex.EndWrite();
 	
 	PWaitAndSignal lock(m_rmutex);
-	m_removed.push_back(socket);
-	m_removedTime.push_back(new PTime);
-	++m_rmsize;
+	// avoid double insert
+	if (find(m_removed.begin(), m_removed.end(), socket) == m_removed.end()) {
+		m_removed.push_back(socket);
+		m_removedTime.push_back(new PTime);
+		++m_rmsize;
+	}
 }
 
 bool ProxyHandler::Detach(TCPProxySocket *socket)
