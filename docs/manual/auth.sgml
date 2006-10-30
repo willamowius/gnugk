@@ -199,6 +199,11 @@ Usage:
 addpasswd config section userid password
 </verb></tscreen>
 
+Example:
+<tscreen><verb>
+addpasswd config.ini SimplePasswordAuth frank secret
+</verb></tscreen>
+
 Options:
 <itemize>
 <item><tt/KeyFilled=123/<newline>
