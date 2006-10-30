@@ -2373,6 +2373,7 @@ void CallTable::ClearTable()
 		(*i)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		(*i)->Disconnect();
 		InternalRemove(i);
+		Iter = CallList.begin(); // reset invalidated iterator
 	}
 }
 
