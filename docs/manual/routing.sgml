@@ -61,7 +61,6 @@ enum servers separated by a semicolon (;). (PWLIB_ENUM_PATH is supported startin
 The enum policy replaces the destination with the information returned by ENUM server, so you must have the appropriate routing policies to finally route the call after the enum policy. Usually you should also have the dns policy after the enum policy, since the new location is often returned in the form of 'number@gatekeeper' and the dns policy is needed to resolve this.
 
 Finally keep in mind that each routing check with the enum policy requires a DNS lookup. To speed up your routing, make sure you resolve internal destinations before the enum policy is applied.
-</itemize>
 
 <item><tt/srv/<newline>
 <p>
@@ -69,6 +68,8 @@ DNS SRV or H.323 Annex Q. allows for the routing of calls using the H.323 URI.
 Addresses can be set as user (at) domain. The H.323 signalling addresses are
 stored in the DNS domain records. Addresses can be the signalling address or
 LRQ address. 
+
+</itemize>
 
 <p>
 Default configuration for routing policies is as follows:
@@ -170,7 +171,7 @@ If the alias is <tt/original-alias/,
 it is rewritten to <tt/target-alias/.
 <tag/Example:/
 <tt/bill=033123456/
-<p>
+</descrip>
 
 
 <sect1>Section &lsqb;RasSrv::GWRewriteE164&rsqb;
