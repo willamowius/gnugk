@@ -2366,8 +2366,8 @@ callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) cons
 void CallTable::ClearTable()
 {
 	WriteLock lock(listLock);
-	iterator Iter = CallList.begin(), eIter = CallList.end();
-	while (Iter != eIter) {
+	iterator Iter = CallList.begin();
+	while (Iter != CallList.end()) {
 		iterator i = Iter++;
 		(*i)->SetDisconnectCause(Q931::TemporaryFailure);
 		(*i)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
