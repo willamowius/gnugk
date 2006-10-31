@@ -363,6 +363,10 @@ How long (in seconds) to wait before rejecting invalid username/password
 for the status line access.
 </itemize>
 
+<sect2>Section &lsqb;GkStatus::Filtering&rsqb;
+<label id="gkstatusfilteringsect">
+<p>
+See <ref id="statusportfiltering" name="Status Port Filtering">.
 
 <sect2>Section &lsqb;LogFile&rsqb;
 <label id="logfile">

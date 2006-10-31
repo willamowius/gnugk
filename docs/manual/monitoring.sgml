@@ -148,13 +148,13 @@ This section lists all commands that you can issue to the status port (manually 
 The command <tt/help/ or <tt/h/ will show you a list of all available commands.
 <p>
 <itemize>
-<item><tt/Reload/
+<item><tt/Reload/<newline>
 <p>Reload the configuration.
 
-<item><tt/Version/, <tt/v/
+<item><tt/Version/, <tt/v/<newline>
 <p>Show the version and OS information of the gatekeeper.
 
-<item><tt/Statistics/, <tt/s/
+<item><tt/Statistics/, <tt/s/<newline>
 <p>Show the statistics information of the gatekeeper.
 <descrip>
 <tag/Example:/
@@ -171,7 +171,7 @@ Startup: Fri, 21 Jun 2002 10:50:22 +0800   Running: 11 days 04:22:59
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/
+<item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/<newline>
 <p>Show all registered endpoints.
 <descrip>
 <tag/Format:/
@@ -193,7 +193,7 @@ Number of Endpoints: 3
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintAllRegistrationsVerbose/, <tt/rv/, <tt/??/
+<item><tt/PrintAllRegistrationsVerbose/, <tt/rv/, <tt/??/<newline>
 <p>Show details of all registered endpoints.
 <descrip>
 <tag/Format:/
@@ -221,7 +221,7 @@ Number of Endpoints: 2
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/
+<item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/<newline>
 <p>Show all current calls using the same ACF syntax as in call establishment.
 <descrip>
 <tag/Format:/
@@ -252,7 +252,7 @@ Number of Calls: 2 Active: 2 From Neighbor: 0 From Parent: 0
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintCurrentCallsVerbose/, <tt/cv/, <tt/!!/
+<item><tt/PrintCurrentCallsVerbose/, <tt/cv/, <tt/!!/<newline>
 <p>Show details of all current calls.
 <descrip>
 <tag/Format:/
@@ -280,7 +280,7 @@ Number of Calls: 1 Active: 1 From NB: 0
 </verb></tscreen>
 </descrip>
 
-<item><tt/Find/, <tt/f/
+<item><tt/Find/, <tt/f/<newline>
 <p>Find a registered endpoint by an alias or a prefix. To find an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name
 (h323, e164, url, email) to the alias, followed by a colon.
@@ -304,7 +304,7 @@ RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
 </verb></tscreen>
 </descrip>
 
-<item><tt/FindVerbose/, <tt/fv/
+<item><tt/FindVerbose/, <tt/fv/<newline>
 <p>Find details of a registered endpoint by an alias or a prefix. To find an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name
 (h323, e164, url, email) to the alias, followed by a colon.
@@ -327,7 +327,7 @@ Prefixes: 02,09
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterIP/
+<item><tt/UnregisterIP/<newline>
 <p>Forcefully unregister an endpoint by IP and call signaling port.
 <descrip>
 <tag/Format:/
@@ -342,7 +342,7 @@ SoftPBX: Endpoint 10.0.1.31:1720 unregistered!
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterAlias/
+<item><tt/UnregisterAlias/<newline>
 <p>Forcefully unregister an endpoint by one of its aliases. To match an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name
 (h323, e164, url, email) to the alias, followed by a colon.
@@ -359,7 +359,7 @@ SoftPBX: Endpoint 601 unregistered!
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterAllEndpoints/
+<item><tt/UnregisterAllEndpoints/<newline>
 <p>Forcefully unregister all registered endpoints.
 <descrip>
 <tag/Format:/
@@ -378,7 +378,7 @@ Done
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectCall/
+<item><tt/DisconnectCall/<newline>
 <p>Disconnect a call with given number (internal, gatekeeper assigned call number,
 not the caller's, callee's phone number).
 <descrip>
@@ -392,7 +392,7 @@ DisconnectCall 1533
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectIP/
+<item><tt/DisconnectIP/<newline>
 <p>Disconnect all calls of an endpoint by IP and call signaling port.
 <descrip>
 <tag/Format:/
@@ -405,7 +405,7 @@ DisconnectIP 10.0.1.31:1720
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectAlias/
+<item><tt/DisconnectAlias/<newline>
 <p>Disconnect all calls of an endpoint by one of its aliases. To match an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name
 (h323, e164, url, email) to the alias, followed by a colon.
@@ -420,38 +420,38 @@ DisconnectAlias 601
 </verb></tscreen>
 </descrip>
 
-<item><tt/ClearCalls/
+<item><tt/ClearCalls/<newline>
 <p>Disconnect all calls on the gatekeeper.
 
-<item><tt/GK/
+<item><tt/GK/<newline>
 <p>Show the information of the parent gatekeeper.
 
-<item><tt/Trace/
+<item><tt/Trace/<newline>
 <p>Set the status interface output trace level. It controls which messages
 are sent to this client:
 <itemize>
-<item><tt/trace 0/ or <tt/trace min/
+<item><tt/trace 0/ or <tt/trace min/<newline>
 	<p>Only direct responses to commands and reload notifications.
-<item><tt/trace 1/
+<item><tt/trace 1/<newline>
 	<p>CDRs, direct responses to commands and reload notifications.
-<item><tt/trace 2/ or <tt/trace max/
+<item><tt/trace 2/ or <tt/trace max/<newline>
 	<p>Show all (RAS, CDRs, direct responses to commands, reload notifications, etc).
 </itemize>
 
-<item><tt/Debug/
+<item><tt/Debug/<newline>
 <p>Only used for debug purpose. Options:
 <itemize>
-<item><tt/trc [+|-|n]/
+<item><tt/trc [+|-|n]/<newline>
 <p>Show/modify trace level.
-<item><tt/cfg SEC PAR/
+<item><tt/cfg SEC PAR/<newline>
 <p>Read and print a config parameter in a section.
-<item><tt/set SEC PAR VAL/
+<item><tt/set SEC PAR VAL/<newline>
 <p>Write a config value parameter in a section.
-<item><tt/remove SEC PAR/
+<item><tt/remove SEC PAR/<newline>
 <p>Remove a config value parameter in a section.
-<item><tt/remove SEC/
+<item><tt/remove SEC/<newline>
 <p>Remove a section.
-<item><tt/printrm VERBOSE/
+<item><tt/printrm VERBOSE/<newline>
 <p>Print all removed endpoint records.
 </itemize>
 <descrip>
@@ -462,10 +462,10 @@ debug set RoutedMode H245Routed 1
 </verb></tscreen>
 </descrip>
 
-<item><tt/Who/
+<item><tt/Who/<newline>
 <p>Show all people on the status port.
 
-<item><tt/RouteReject/
+<item><tt/RouteReject/<newline>
 <p>Terminate this call on a virtual queue.
 This command is used as a response to a RouteRequest event (see below).
 <descrip>
@@ -479,7 +479,7 @@ RouteReject endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/RouteToAlias/, <tt/rta/
+<item><tt/RouteToAlias/, <tt/rta/<newline>
 <p>Route this call on a virtual queue to the specified alias.
 This command is used as a response to a RouteRequest event (see below).
 <descrip>
@@ -493,7 +493,7 @@ RouteToAlias Suzi endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/RouteToGateway/, <tt/rtg/
+<item><tt/RouteToGateway/, <tt/rtg/<newline>
 <p>Route this call on a virtual queue to the specified alias and set the destinationSignallAddress.
 This command is used as a response to a RouteRequest event (see below).
 You can use this command to route calls to out-of-zone gateways or MCUs not registered with the gatekeeper. Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
@@ -508,10 +508,10 @@ RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/Exit/, <tt/q/
+<item><tt/Exit/, <tt/q/<newline>
 <p>Quit the status port.
 
-<item><tt/TransferCall/
+<item><tt/TransferCall/<newline>
 <p>Transfer an established call from alias A to alias B. When before alias A is talking with alias X, then alias A is talking with alias B after the TransferCall.
 <p>Currently this works only with endpoints that properly support
 Q.931 Facility messages (so it doesn't work with Netmeeting).
@@ -532,84 +532,139 @@ TransferCall Frank Peter
 <p>The section describes the messages output to the status interface.
 
 <itemize>
-<item><tt/GCF|IP|Aliases|Endpoint_Type;/
+<item><tt/GCF|IP|Aliases|Endpoint_Type;/<newline>
 <p>The gatekeeper receives a GatekeeperRequest (GRQ) and responds with
 a GatekeeperConfirm (GCF).
 
-<item><tt/GRJ|IP|Aliases|Endpoint_Type|RejectReason;/
+<item><tt/GRJ|IP|Aliases|Endpoint_Type|RejectReason;/<newline>
 <p>The gatekeeper receives a GatekeeperRequest (GRQ) and responds with
 a GatekeeperReject (GRJ).
 
-<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/
+<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/<newline>
 <p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
 a RegistrationConfirm (RCF).
 
-<item><tt/RRJ|IP|Aliases|Endpoint_Type|RejectReason;/
+<item><tt/RRJ|IP|Aliases|Endpoint_Type|RejectReason;/<newline>
 <p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
 a RegistrationReject (RRJ).
 
-<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered[|CallID];/
+<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered[|CallID];/<newline>
 <p>The gatekeeper receives an AdmissionRequest (ARQ) and responds with
 an AdmissionConfirm (ACF).
 The CallID is only sent when SignalCallId=1 is set.
 
-<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason[|CallID];/
+<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason[|CallID];/<newline>
 <p>The gatekeeper receives an AdmissionRequest (ARQ) and responds with
 an AdmissionReject (ARJ).
 The CallID is only sent when SignalCallId=1 is set.
 
-<item><tt/DCF|IP|EndpointID|CRV|DisengageReason[|CallID];/
+<item><tt/DCF|IP|EndpointID|CRV|DisengageReason[|CallID];/<newline>
 <p>The gatekeeper receives a DisengageRequest (DRQ) and responds with
 a DisengageConfirm (DCF).
 The CallID is only sent when SignalCallId=1 is set.
 
-<item><tt/DRJ|IP|EndpointID|CRV|RejectReason[|CallID];/
+<item><tt/DRJ|IP|EndpointID|CRV|RejectReason[|CallID];/<newline>
 <p>The gatekeeper receives a DisengageRequest (DRQ) and responds with
 a DisengageReject (DRJ).
 The CallID is only sent when SignalCallId=1 is set.
 
-<item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/
+<item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/<newline>
 <p>The gatekeeper receives a LocationRequest (LRQ) and responds with
 a LocationConfirm (LCF).
 
-<item><tt/LRJ|IP|DestinationInfo|SrcInfo|RejectReason;/
+<item><tt/LRJ|IP|DestinationInfo|SrcInfo|RejectReason;/<newline>
 <p>The gatekeeper receives a LocationRequest (LRQ) and responds with
 a LocationReject (LRJ).
 
-<item><tt/BCF|IP|EndpointID|Bandwidth;/
+<item><tt/BCF|IP|EndpointID|Bandwidth;/<newline>
 <p>The gatekeeper receives a BandwidthRequest (BRQ) and responds with
 a BandwidthConfirm (BCF).
 
-<item><tt/BRJ|IP|EndpointID|Bandwidth|RejectReason;/
+<item><tt/BRJ|IP|EndpointID|Bandwidth|RejectReason;/<newline>
 <p>The gatekeeper receives a BandwidthRequest (BRQ) and responds with
 a BandwidthReject (BRJ).
 
-<item><tt/UCF|IP|EndpointID;/
+<item><tt/UCF|IP|EndpointID;/<newline>
 <p>The gatekeeper receives an UnregistrationRequest (URQ) and responds with
 an UnregistrationConfirm (UCF).
 
-<item><tt/URJ|IP|EndpointID|RejectReason;/
+<item><tt/URJ|IP|EndpointID|RejectReason;/<newline>
 <p>The gatekeeper receives an UnregistrationRequest (URQ) and responds with
 an UnregistrationReject (URJ).
 
-<item><tt/IRQ|IP:Port|EndpointID;/
+<item><tt/IRQ|IP:Port|EndpointID;/<newline>
 <p>The gatekeeper sends an InfoRequest (IRQ) to an endpoint to query if it
 is still alive. The endpoint shall respond with an InfoRequestResponse (IRR)
 immediately.
 
-<item><tt/URQ|IP:Port|EndpointID|Reason;/
+<item><tt/URQ|IP:Port|EndpointID|Reason;/<newline>
 <p>The gatekeeper sends an UnregistrationRequest (URQ) to an endpoint to
 cancel its registration. The endpoint shall respond with
 an UnregistrationConfirm (UCF).
 
 <item><tt/CDR|CallNo|CallId|Duration|Starttime|Endtime|CallerIP|CallerEndId|/ \
-<newline><tt/CalledIP|CalledEndId|DestinationInfo|SrcInfo|GatekeeperID;/
-<p>After a call disconnected, the call detail record is shown (in one line).
+<newline><tt/CalledIP|CalledEndId|DestinationInfo|SrcInfo|GatekeeperID;/<newline>
+<p>
+After a call disconnected, the call detail record is shown (in one line).
 
-<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias[|CallID];/
+<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias[|CallID];/<newline>
 <p>Request for an external application to route an incoming call on a virtual queue.
 This can be done with a RouteToAlias or RouteReject command.
 The CallID is only sent when SignalCallId=1 is set.
 
 </itemize>
+
+<sect1>Status Port Filtering
+<label id="statusportfiltering">
+<p>
+Status port filtering facilitates control on the amount and type of output messages shown to the end user.
+Filtering is done using regular expressions which are used to decide whether to include (show) or
+exclude (ignore) an output message.
+Filtering control is done using the following set of commands:
+
+<itemize>
+<item><tt/addincludefilter REGEX/<newline>
+Adds regular expression to the include list
+
+<item><tt/addexcludefilter REGEX/<newline>
+Adds regular expression to the exclude list
+
+<item><tt/removeincludefilter INDEX/<newline>
+Removes filter at given INDEX from the include list
+
+<item><tt/removeexcludefilter INDEX/<newline>
+Removes filter at given INDEX from the exclude list
+
+<item><tt/filter 1|0/<newline>
+Enable/Disable message filtering
+
+<item><tt/printincludefilters/<newline>
+Print include filter list
+
+<item><tt/printexcludefilters/<newline>
+Print exclude filter list
+
+</itemize>
+<p>
+In order to enable usage of predefined filters, new section named <ref id="gkstatusfilteringsect" name="[GkStatus::Filtering]"> has been
+introduced. At this section, users can put all their predefined filters to be load when status port starts.
+<p>
+<descrip>
+<tag/Example:/
+<tscreen><verb>
+[GkStatus::Filtering]
+IncludeFilter=.+
+ExcludeFilter=.RQ
+</verb></tscreen>
+</descrip>
+<p>
+When filtering come active, by <tt/filter 1/ command, all messages will be shown but lines with ARQ, LRQ etc.
+Same effect can be achieved by using the command line:
+<tscreen><verb>
+addincludefilter .+
+addexcludefilter .RQ
+filter 1
+</verb></tscreen>
+<p>
+Note that enable filtering when no filters are defined, automatically excludes all message output.
 
