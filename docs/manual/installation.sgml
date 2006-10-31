@@ -141,9 +141,9 @@ $ tar xvzf gnugk-x.x.x.tar
 </verb></tscreen>
 
 <bf/Debian packages (.deb)/<p>
-Debian includes the gatekeeper as openh323gk package.
+Debian includes the gatekeeper as gnugk package.
 You can install it by using the following command as <tt/root/:
 <tscreen><verb>
-$ apt-get install openh323gk
+$ apt-get install gnugk
 </verb></tscreen>
 
