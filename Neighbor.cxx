@@ -888,6 +888,7 @@ void NeighborList::OnReload()
 			m_neighbors.erase(it);
 			delete r;
 			r = NULL;
+			iter = m_neighbors.begin();	// reset iterator after changing container
 		}
 	}
 	for (i = 0; i < sz; ++i) {

@@ -880,14 +880,15 @@ void TCPServer::CleanUp()
 {
 	PTime now;
 	WriteLock lock(m_listmutex);
-	iterator iter = m_sockets.begin(), eiter = m_sockets.end();
-	while (iter != eiter) {
+	iterator iter = m_sockets.begin();
+	while (iter != m_sockets.end()) {
 		iterator i = iter++;
 		TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(*i);
 		if (listener && listener->IsTimeout(&now)) {
 			m_sockets.erase(i);
 			--m_socksize;
 			delete listener;
+			iter = m_sockets.begin();
 		}
 	}
 }

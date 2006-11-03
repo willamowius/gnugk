@@ -1274,6 +1274,7 @@ void RegistrationTable::LoadConfig()
 				EndpointList.erase(epIter);
 				--regSize;
 				PTRACE(2, "Permanent endpoint " << ep->GetEndpointIdentifier().GetValue() << " removed");
+				// TODO JW: check if we need to reset iterator here
 			}
 		}
 	}
@@ -1379,6 +1380,7 @@ void RegistrationTable::CheckEndpoints()
 			ep->Expired();
 			RemovedList.push_back(ep);
 			EndpointList.erase(i);
+			// TODO JW: check if we need to reset iterator here
 			--regSize;
 			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " expired.");
 		}
