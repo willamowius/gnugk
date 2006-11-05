@@ -2480,7 +2480,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	bool bReject = !(fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this));
 
 	// If not Neighbor and support thirdparty LRQ's then validate the PDU
-	if (bReject && (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptThirdPartyLRQ", "0"))))
+	if (bReject && (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptNonNeighborLRQ", "0"))))
 		                   bReject = !RasSrv->ValidatePDU(*this, reason);
 
 

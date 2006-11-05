@@ -124,7 +124,7 @@ forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
 hop count is greater than 1. This setting can be overridden with configuration
 of a particular neighbor.
 
-<item><tt/AcceptThirdPartyLRQ=1/<newline>
+<item><tt/AcceptNonNeighborLRQ=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Whether to accept an LRQ forwarded from parties not defined as Neighbors.
