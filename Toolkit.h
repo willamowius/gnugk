@@ -243,7 +243,7 @@ class Toolkit : public Singleton<Toolkit>
 	void SetGKHome(const PStringArray &);
 
 	bool isBehindNAT(PIPSocket::Address &);
-	std::vector<NetworkAddress> Toolkit::GetInternalNetworks();
+	std::vector<NetworkAddress> GetInternalNetworks();
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.
