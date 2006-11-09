@@ -758,6 +758,7 @@ void GkStatus::CleanUp()
 				--m_rmsize;
 				delete client;
 				client = NULL;
+				iter = m_removed.begin();	// reset iterator after changing list
 			}
 		}
 	}
@@ -1270,21 +1271,30 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_RouteToAlias:
 		if (args.GetSize() == 4) {
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned());
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), "");
+		} else if (args.GetSize() == 5) {
+			args[4].Replace("-", " ", true);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4]);
 		} else
-			WriteString("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV\r\n");
+			WriteString("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
 		break;
 	case GkStatus::e_RouteToGateway:
 		if (args.GetSize() == 5) {
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned());
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), "");
+		} else if (args.GetSize() == 6) {
+			args[5].Replace("-", " ", true);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5]);
 		} else
-			WriteString("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV\r\n");
+			WriteString("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
 		break;
 	case GkStatus::e_RouteReject:
 		if (args.GetSize() == 3) {
-			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned());
+			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned(), "");
+		} else if (args.GetSize() == 4) {
+			args[3].Replace("-", " ", true);
+			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned(), args[3]);
 		} else
-			WriteString("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV\r\n");
+			WriteString("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
 		break;
 	case GkStatus::e_Trace:
 		if (args.GetSize() == 2) {
@@ -1400,17 +1410,17 @@ void StatusClient::RemoveFilter(
     )
 {
     if (index < 0 || index >= (PINDEX) regexFilters.size()) {
-	PString msg("Index mismatch.\r\n");
-	WriteData(msg, msg.GetLength());
-	return;
+		PString msg("Index mismatch.\r\n");
+		WriteData(msg, msg.GetLength());
+		return;
     }
 
     std::vector<PString>::iterator it = regexFilters.begin();
 
     PINDEX i = 0;
     while(i != index) {
-	++it;
-	++i;
+		++it;
+		++i;
     }
 
     regexFilters.erase(it);
@@ -1461,18 +1471,18 @@ void StatusClient::PrintFilters(
     PString count;
 
     if (regexFilters.size() == 0) {
-	PString msg("No Filters are defined\r\n");
-	WriteData(msg, msg.GetLength());
-	return;
+		PString msg("No Filters are defined\r\n");
+		WriteData(msg, msg.GetLength());
+		return;
     }
 
     PString msg("Filter List:\r\n");
     WriteData(msg, msg.GetLength());
     for(; it != itEnd; ++it, ++index) {
-	count = index;
-	PString item(count);
-	item += ") " + *it + "\r\n";
-	WriteData(item, item.GetLength());
+		count = index;
+		PString item(count);
+		item += ") " + *it + "\r\n";
+		WriteData(item, item.GetLength());
     }
     
     msg = ";\r\n";

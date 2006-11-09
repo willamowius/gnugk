@@ -790,8 +790,8 @@ void RasServer::LoadConfig()
 	}
 
 	SocketsReader::CleanUp();
-	ifiterator biter = interfaces.begin(), eiter = interfaces.end();
-	while (biter != eiter) {
+	ifiterator biter = interfaces.begin();
+	while (biter != interfaces.end()) {
 		ifiterator iter = biter++;
 		int i = -1;
 		while (++i < hsize)
@@ -802,6 +802,7 @@ void RasServer::LoadConfig()
 			GkInterface * r = *iter;
 			interfaces.erase(iter);
 			delete r;
+			biter = interfaces.begin();
 		}
 	}
 	if (broadcastListener && !bUseBroadcastListener) {
@@ -813,9 +814,9 @@ void RasServer::LoadConfig()
 
 	for (int i = 0; i < hsize; ++i) {
 		Address addr(GKHome[i]);
-		biter = interfaces.begin(), eiter = interfaces.end();
-		ifiterator iter = find_if(biter, eiter, bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
-		if (iter == eiter) {
+		biter = interfaces.begin();
+		ifiterator iter = find_if(biter, interfaces.end(), bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
+		if (iter == interfaces.end()) {
 			GkInterface *gkif = CreateInterface(addr);
 			if (gkif->CreateListeners(this))
 				interfaces.push_back(gkif);
@@ -1139,6 +1140,9 @@ void RasServer::Run()
 	if (m_socksize > 0) {
 		CreateJob(this, &RasServer::HouseKeeping, "HouseKeeping");
 		RegularJob::Run();
+	} else {
+		cerr << "FATAL: No valid interfaces to listen! Shutdown!" << endl;
+		PTRACE(0, "FATAL: No valid interfaces to listen! Shutdown!");
 	}
 	acctList->LogAcctEvent(GkAcctLogger::AcctOff,nullcall);
 }
@@ -2315,7 +2319,9 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 				(const unsigned char *) srcInfo
 		      	);
 		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
+			PString callid = AsString(request.m_callIdentifier.m_guid);
+			callid.Replace(" ", "-", true);
+			log += PString("|") + callid;
 		}
 		log += PString(";");
 	} else if (reason < 0) {
@@ -2328,7 +2334,9 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 				answerCall
 		      	);
 		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
+			PString callid = AsString(request.m_callIdentifier.m_guid);
+			callid.Replace(" ", "-", true);
+			log += PString("|") + callid;
 		}
 		log += PString(";");
 	} else {
@@ -2343,7 +2351,9 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 				(const unsigned char *) arj.m_rejectReason.GetTagName()
 		      	);
 		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
+			PString callid = AsString(request.m_callIdentifier.m_guid);
+			callid.Replace(" ", "-", true);
+			log += PString("|") + callid;
 		}
 		log += PString(";");
 	}
@@ -2424,7 +2434,9 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 				(const unsigned char *) drj.m_rejectReason.GetTagName()
 		      	);
 		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log = PString("|") + AsString(request.m_callIdentifier.m_guid);
+			PString callid = AsString(request.m_callIdentifier.m_guid);
+			callid.Replace(" ", "-", true);
+			log += PString("|") + callid;
 		}
 		log += PString(";");
 	} else {
@@ -2437,7 +2449,9 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 				(const unsigned char *) request.m_disengageReason.GetTagName()
 		      	);
 		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			log += PString("|") + AsString(request.m_callIdentifier.m_guid);
+			PString callid = AsString(request.m_callIdentifier.m_guid);
+			callid.Replace(" ", "-", true);
+			log += PString("|") + callid;
 		}
 		log += PString(";");
 

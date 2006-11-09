@@ -688,7 +688,7 @@ bool VirtualQueue::SendRouteRequest(
 	bool result = false;
 	bool duprequest = false;
 	const PString epid(caller->GetEndpointIdentifier().GetValue());
-	if (RouteRequest *r = InsertRequest(epid, crv, destinationInfo, callSigAdr, duprequest)) {
+	if (RouteRequest *r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, duprequest)) {
 		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s", 
 				(const char *)AsDotString(caller->GetCallSignalAddress()),
 				(const char *)epid,
@@ -697,7 +697,9 @@ bool VirtualQueue::SendRouteRequest(
 				(const char *)sourceInfo
 			   );
 		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			msg += PString("|") + callID;
+			PString cid = callID;
+			cid.Replace(" ", "-", true);
+			msg += PString("|") + cid;
 		}
 		msg += PString(";");
 		// signal RouteRequest to the status line only once
@@ -740,7 +742,7 @@ bool VirtualQueue::SendRouteRequest(
 	bool result = false;
 	PString * callSigAdr = new PString;
 	bool duprequest = false;
-	if (RouteRequest *r = InsertRequest(epid, seq, destinationInfo, callSigAdr, duprequest)) {
+	if (RouteRequest *r = InsertRequest(epid, seq, "", destinationInfo, callSigAdr, duprequest)) {
 		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s",
 				"0.0.0.0",
 				(const char *)epid,
@@ -749,7 +751,7 @@ bool VirtualQueue::SendRouteRequest(
 				(const char *)sourceInfo
 			);
 		msg += PString(";");
-		// signal RouteRequest to the status line only once
+		// signal RouteRequest to the status port only once
 		if( duprequest )
 			PTRACE(4, "VQueue\tDuplicate request: " << msg);
 		else {
@@ -799,7 +801,9 @@ bool VirtualQueue::RouteToAlias(
 	/// identifier of the endpoint associated with the route request
 	const PString& callingEpId, 
 	/// CRV of the call associated with the route request
-	unsigned crv
+	unsigned crv,
+	/// callID of the call associated with the route request
+	const PString& callID
 	)
 {
 	PWaitAndSignal lock(m_listMutex);
@@ -809,7 +813,12 @@ bool VirtualQueue::RouteToAlias(
 	RouteRequests::iterator i = m_pendingRequests.begin();
 	while (i != m_pendingRequests.end()) {
 		RouteRequest *r = *i;
-		if (r->m_callingEpId == callingEpId && r->m_crv == crv) {
+		bool match = ((r->m_callingEpId == callingEpId) && (r->m_crv == crv));
+		if (!callID.IsEmpty()) {
+			// backward compatibility: only check if set
+			match = match && (r->m_callID == callID);
+		}
+		if (match) {
 			// replace virtual queue aliases info with agent aliases
 			*r->m_agent = agent;
 			if (!destinationip.IsEmpty())	// RoteToGateway
@@ -844,31 +853,37 @@ bool VirtualQueue::RouteToAlias(
 	/// identifier of the endpoint associated with the route request
 	const PString& callingEpId, 
 	/// CRV for the call associated with the route request
-	unsigned crv
+	unsigned crv,
+	/// callID of the call associated with the route request
+	const PString& callID
 	)
 {
 	H225_ArrayOf_AliasAddress alias;
 	alias.SetSize(1);
 	H323SetAliasAddress(targetAlias, alias[0]);
-	return RouteToAlias(alias, destinationIp, callingEpId, crv);
+	return RouteToAlias(alias, destinationIp, callingEpId, crv, callID);
 }
 
 bool VirtualQueue::RouteReject(
 	/// identifier of the endpoint associated with the route request
 	const PString& callingEpId, 
 	/// CRV of the call associated with the route request
-	unsigned crv
+	unsigned crv,
+	/// callID of the call associated with the route request
+	const PString& callID
 	)
 {
 	H225_ArrayOf_AliasAddress nullAgent;
-	return RouteToAlias(nullAgent, "", callingEpId, crv);
+	return RouteToAlias(nullAgent, "", callingEpId, crv, callID);
 }
 
 VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	/// identifier for the endpoint associated with this request
-	const PString& callingEpId, 
+	const PString& callingEpId,
 	/// CRV for the call associated with this request
-	unsigned crv, 
+	unsigned crv,
+	/// callID for the call associated with this request
+	const PString& callID,
 	/// a pointer to an array to be filled with agent aliases
 	/// when the routing decision has been made
 	H225_ArrayOf_AliasAddress* agent,
@@ -888,7 +903,7 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	RouteRequests::iterator i = m_pendingRequests.begin();
 	while (i != m_pendingRequests.end()) {
 		RouteRequest *r = *i;
-		if (r->m_callingEpId == callingEpId && r->m_crv == crv)
+		if (r->m_callingEpId == callingEpId && r->m_crv == crv && r->m_callID == callID)
 			duprequests++;
 		++i;
 	}
@@ -902,7 +917,7 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	}
 
 	// insert the new pending route request
-	RouteRequest* r = new RouteRequest(callingEpId, crv, agent, callSigAdr);
+	RouteRequest* r = new RouteRequest(callingEpId, crv, callID, agent, callSigAdr);
 	m_pendingRequests.push_back(r);
 	return r;
 }

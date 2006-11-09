@@ -343,7 +343,9 @@ public:
 		/// identifier of the endpoint associated with the route request
 		const PString& callingEpId,
 		/// CRV of the call associated with the route request
-		unsigned crv
+		unsigned crv,
+		/// callID of the call associated with the route request
+		const PString& callID
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -361,7 +363,9 @@ public:
 		/// identifier of the endpoint associated with the route request
 		const PString& callingEpId,
 		/// CRV of the call associated with the route request
-		unsigned crv
+		unsigned crv,
+		/// callID of the call associated with the route request
+		const PString& callID
 		);
 
 	/** Reject a pending route request (inserted by SendRequest).
@@ -373,7 +377,9 @@ public:
 		/// identifier of the endpoint associated with the route request
 		const PString& callingEpId,
 		/// CRV of the call associated with the route request
-		unsigned crv
+		unsigned crv,
+		/// callID of the call associated with the route request
+		const PString& callID
 		);
 
 	/** @return
@@ -390,17 +396,20 @@ private:
 		RouteRequest(
 			const PString& callingEpId,
 			unsigned crv,
+			const PString& callID,
 			H225_ArrayOf_AliasAddress* agent,
 			PString* callsignaladdr
 			)
 			:
-			m_callingEpId((const char*)callingEpId), m_crv(crv),
+			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
 			m_agent(agent), m_callsignaladdr(callsignaladdr) {}
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
 		/// CRV for the call associated with this request
 		unsigned m_crv;
+		/// callID for the call associated with this request
+		PString m_callID;
 		/// aliases for the virtual queue matched (on input)
 		/// aliases for the target agent - target route (on output)
 		H225_ArrayOf_AliasAddress* m_agent;
@@ -418,6 +427,8 @@ private:
 		const PString& callingEpId,
 		/// CRV for the call associated with this request
 		unsigned crv,
+		/// callID for the call associated with this request
+		const PString& callID,
 		/// a pointer to an array to be filled with agent aliases
 		/// when the routing decision has been made
 		H225_ArrayOf_AliasAddress* agent,

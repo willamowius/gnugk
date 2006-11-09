@@ -1,5 +1,7 @@
 Changes from 2.2.4 to 2.2.5
 ===========================
+- implement optional call-id parameter for Routing commands
+- Bugfix(RasSrv.cxx) fix SignalCallID=1
 - Bugfix(Proxychannel.cxx) avoid inserting same socket twice in cleanup list
 - Bugfix(Proxychannel.cxx) make sure all members of CallSignalSocket are
   initialized on creation
