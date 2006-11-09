@@ -468,10 +468,12 @@ debug set RoutedMode H245Routed 1
 <item><tt/RouteReject/<newline>
 <p>Terminate this call on a virtual queue.
 This command is used as a response to a RouteRequest event (see below).
+The CallID parameter is optional; if it is given it has to be the same format as
+signaled by RouteRequest with parameter SignalCallID=1.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteReject CallingEndpointID CallRef
+RouteReject CallingEndpointID CallRef [CallID]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -482,10 +484,12 @@ RouteReject endp_4711 1234
 <item><tt/RouteToAlias/, <tt/rta/<newline>
 <p>Route this call on a virtual queue to the specified alias.
 This command is used as a response to a RouteRequest event (see below).
+The CallID parameter is optional; if it is given it has to be the same format as
+signaled by RouteRequest with parameter SignalCallID=1.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteToAlias Alias CallingEndpointID CallRef
+RouteToAlias Alias CallingEndpointID CallRef [CallID]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -497,10 +501,12 @@ RouteToAlias Suzi endp_4711 1234
 <p>Route this call on a virtual queue to the specified alias and set the destinationSignallAddress.
 This command is used as a response to a RouteRequest event (see below).
 You can use this command to route calls to out-of-zone gateways or MCUs not registered with the gatekeeper. Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
+The CallID parameter is optional; if it is given it has to be the same format as
+signaled by RouteRequest with parameter SignalCallID=1.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteToGateway Alias IP:Port CallingEndpointID CallRef
+RouteToGateway Alias IP:Port CallingEndpointID CallRef [CallID]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
