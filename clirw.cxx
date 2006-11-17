@@ -667,6 +667,9 @@ void CLIRewrite::Rewrite(
 		++rule;
 	}
 
+	if (rule == ipRule.second.end())
+		return;
+
 	bool isTerminal = false;	
 	if (authData && authData->m_call) {
 		endptr callee = authData->m_call->GetCalledParty();
