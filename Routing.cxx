@@ -1075,7 +1075,7 @@ NumberAnalysisPolicy::NumberAnalysisPolicy()
 	for (PINDEX i = 0; i < kv.GetSize(); i++) {
 		const PString &val = kv.GetDataAt(i);
 
-		m_prefixes[i].m_prefix = (string)kv.GetKeyAt(i);
+		m_prefixes[i].m_prefix = string((const char*)(kv.GetKeyAt(i)));
 
 		const PINDEX sepIndex = val.Find(':');
 		if (sepIndex == P_MAX_INDEX) {
