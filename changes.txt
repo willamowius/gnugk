@@ -34,7 +34,7 @@ Changes from 2.2.4 to 2.2.5
 - Support for EP's on dynamic IP's
 - fixed code to compile with the latest pwlib CVS (STL string conversion)
 - Added support for GnuGK to work behind NAT box
-- Added support for Third party (non-neighbor) Gatekeepers
+- Added support for Third party (non-neighbor) Gatekeepers (AcceptNonNeighborLRQ=1)
 - Added auto-detection on internal network for proxy mode.
 
 
