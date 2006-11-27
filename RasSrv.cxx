@@ -1672,8 +1672,8 @@ bool RegistrationRequestPDU::Process()
 	}
 
 #ifdef h323v6
-	if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper) 
-             ep->SetAssignedGatekeeper(request.m_assignedGK);
+	if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) 
+             ep->SetAssignedGatekeeper(request.m_assignedGatekeeper);
 #endif
 
 	if (nated)
@@ -2493,7 +2493,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
     // Neighbors do not need Validation
 	bool bReject = !(fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this));
 
-	// If not Neighbor and support thirdparty LRQ's then validate the PDU
+	// If not Neighbor and support non neighbor LRQ's then validate the PDU
 	if (bReject && (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptNonNeighborLRQ", "0"))))
 		                   bReject = !RasSrv->ValidatePDU(*this, reason);
 

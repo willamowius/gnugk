@@ -258,10 +258,10 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	return true;
 }
 
-bool Neighbor::SetProfile(const PString & name, const H225_TransportAddress & addr)
+bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & addr)
 {
 
-  if (!GetTransportAddress(H323TransportAddress(addr), GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) 
+  if (!GetTransportAddress(addr, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) 
 	  return false;
 
   m_id = "SRVrec";
@@ -1270,12 +1270,14 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
             PString ipaddr = str[i].Mid(at + 1);
             PTRACE(4, "Routing\tDNS SRV LRQ converted remote party " << alias << " to " << ipaddr);
             H323TransportAddress addr = H323TransportAddress(ipaddr);
-			H225_TransportAddress taddr;
-			addr.SetPDU(taddr);
 
-			// Create a gatekeeper object
+			// Create a SRV gatekeeper object
 			GnuGK * nb = new GnuGK();
-			nb->SetProfile(domain,taddr);
+			if (!nb->SetProfile(domain,addr)) {
+				PTRACE(4, "Routing\tERROR setting SRV neighbor profile " << domain << " at " << addr);
+				return false;
+			}
+
 			int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 			// Send LRQ to retreive callers signalling address 
