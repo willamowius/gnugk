@@ -814,7 +814,7 @@ bool VirtualQueue::RouteToAlias(
 	while (i != m_pendingRequests.end()) {
 		RouteRequest *r = *i;
 		bool match = ((r->m_callingEpId == callingEpId) && (r->m_crv == crv));
-		if (!callID.IsEmpty()) {
+		if (!r->m_callID.IsEmpty() && !callID.IsEmpty()) {
 			// backward compatibility: only check if set
 			match = match && (r->m_callID == callID);
 		}
