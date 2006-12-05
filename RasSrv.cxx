@@ -2291,9 +2291,6 @@ bool AdmissionRequestPDU::Process()
 		&& request.m_destinationInfo.GetSize() > 0 ) {
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
 		acf.m_destinationInfo = request.m_destinationInfo;
-		if (request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-			acf.m_destCallSignalAddress = request.m_destCallSignalAddress;
-		}
 	}
 
 	if (RequestingEP->HasCallCreditCapabilities()) {

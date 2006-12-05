@@ -1,6 +1,5 @@
 Changes from 2.2.4 to 2.2.5
 ===========================
-- BUGFIX(RasSrv.cxx) fix problem with RouteToGateway in routed mode
 - BUGFIX(clirw.cxx) missing iterator check, that could cause an invalid
   memory access, fixed - thanks to Vladimir Voronin
 - implement optional call-id parameter for Routing commands
