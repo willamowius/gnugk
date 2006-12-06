@@ -725,6 +725,8 @@ bool VirtualQueue::SendRouteRequest(
 }
 
 bool VirtualQueue::SendRouteRequest(
+	/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
+	const PString& source,
 	/// calling endpoint
 	const PString& epid,
 	/// requestSeqNum of the request
@@ -744,7 +746,7 @@ bool VirtualQueue::SendRouteRequest(
 	bool duprequest = false;
 	if (RouteRequest *r = InsertRequest(epid, seq, "", destinationInfo, callSigAdr, duprequest)) {
 		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s",
-				"0.0.0.0",
+				(const char *)source,
 				(const char *)epid,
 				seq,
 				(const char *)vqueue,
@@ -1009,10 +1011,11 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				}
 			}
 
+			PString source = AsDotString(lrq.m_replyAddress);
 			PString epid = lrq.m_endpointIdentifier.GetValue();
 			if (epid.IsEmpty())
 				epid = lrq.m_gatekeeperIdentifier.GetValue() + "_" + AsString(lrq.m_sourceInfo, false);
-			if (m_vqueue->SendRouteRequest(epid, unsigned(lrq.m_requestSeqNum), aliases, agent, AsString(lrq.m_sourceInfo)))
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, agent, AsString(lrq.m_sourceInfo)))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 			// the trick: if empty, the request is rejected
 			// so we return true to terminate the routing

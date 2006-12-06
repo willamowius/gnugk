@@ -313,6 +313,8 @@ public:
 		(0 elements).
 	*/
 	bool SendRouteRequest(
+		/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
+		const PString& source,
 		/// calling endpoint
 		const PString& epid,
 		/// irequestSeqNum of the request
