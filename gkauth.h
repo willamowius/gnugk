@@ -123,7 +123,9 @@ struct ARQAuthData
 	std::list<Routing::Route> m_destinationRoutes;
 	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
 	int m_proxyMode;
-		
+	/// RADIUS Class attribute, if found in Access-Accept/Access-Reject
+	PBYTEArray m_radiusClass;
+	
 private:
 	ARQAuthData();
 };
@@ -171,6 +173,8 @@ struct SetupAuthData
 	std::list<Routing::Route> m_destinationRoutes;
 	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
 	int m_proxyMode;
+	/// RADIUS Class attribute, if found in Access-Accept/Access-Reject
+	PBYTEArray m_radiusClass;
 		
 private:
 	SetupAuthData();

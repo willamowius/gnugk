@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2006/07/06 15:25:13  willamowius
+ * set all deleted pointers to NULL (most probably more than needed)
+ *
  * Revision 1.18  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -207,6 +210,10 @@ GkAcctLogger::Status RadAcct::Log(
 	if (evt & (AcctStart | AcctStop | AcctUpdate)) {
 		pdu->AppendAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
 		pdu->AppendAttr(RadiusAttr::AcctSessionId, call->GetAcctSessionId());
+		
+		PBYTEArray classAttr(call->GetRADIUSClass());
+		if (classAttr.GetSize() > 0)
+			pdu->AppendAttr(RadiusAttr::AttrTypeClass, (const BYTE*)classAttr, classAttr.GetSize());
 
 		endptr callingEP = call->GetCallingParty();
 		PIPSocket::Address callerIP(0);

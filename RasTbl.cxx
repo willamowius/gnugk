@@ -2222,6 +2222,24 @@ bool CallRec::GetMediaOriginatingIp(PIPSocket::Address &addr) const
 		return false;
 }
 
+void CallRec::SetRADIUSClass(const PBYTEArray &bytes)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_radiusClass = bytes;
+}
+
+void CallRec::SetRADIUSClass(void * bytes, PINDEX len)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_radiusClass = PBYTEArray(static_cast<const BYTE*>(bytes), len);
+}
+
+PBYTEArray CallRec::GetRADIUSClass() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_radiusClass;
+}
+
 /*
 bool CallRec::IsTimeout(
 	const time_t now,

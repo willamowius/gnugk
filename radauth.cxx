@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.36  2006/07/06 15:25:13  willamowius
+ * set all deleted pointers to NULL (most probably more than needed)
+ *
  * Revision 1.35  2006/06/08 08:58:48  willamowius
  * gcc 4.1 compile fixes
  *
@@ -658,6 +661,16 @@ int RadAuthBase::Check(
 	PString value;
 	const RadiusAttr* attr;
 	
+	// check for Class attribute
+	if (result) {
+		attr = response->FindAttr(RadiusAttr::AttrTypeClass);
+		if (attr != NULL) {
+			PBYTEArray classData;
+			if (attr->GetValue(classData))
+				authData.m_radiusClass = classData;
+		}
+	}
+	
 	// test for h323-return-code attribute (has to be 0 if accept)
 	if (result) {
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
@@ -955,6 +968,16 @@ int RadAuthBase::Check(
 	PString value;
 	const RadiusAttr* attr;
 	
+	// check for Class attribute
+	if (result) {
+		attr = response->FindAttr(RadiusAttr::AttrTypeClass);
+		if (attr != NULL) {
+			PBYTEArray classData;
+			if (attr->GetValue(classData))
+				authData.m_radiusClass = classData;
+		}
+	}
+
 	// test for h323-return-code attribute (has to be 0 if accept)
 	if (result) {
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 

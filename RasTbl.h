@@ -958,6 +958,10 @@ public:
 	void SetMediaOriginatingIp(const PIPSocket::Address &addr);
 	bool GetMediaOriginatingIp(PIPSocket::Address &addr) const;
 
+	void SetRADIUSClass(const PBYTEArray &bytes);
+	void SetRADIUSClass(void * bytes, PINDEX len);
+	PBYTEArray GetRADIUSClass() const;
+
 private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
@@ -1075,6 +1079,7 @@ private:
 	
 	PString m_codec;
 	PIPSocket::Address m_mediaOriginatingIp;
+	PBYTEArray m_radiusClass;
 };
 
 typedef CallRec::Ptr callptr;
