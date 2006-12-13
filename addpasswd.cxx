@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <ptlib.h>
 #include <ptclib/cypher.h>
+#include <ptlib/pprocess.h>
 
 class Client : public PProcess
 {       
