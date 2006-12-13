@@ -499,6 +499,7 @@ void Toolkit::RewriteTool::LoadConfig(
 {
 	m_RewriteFastmatch = config->GetString(RewriteSection, "Fastmatch", "");
 	m_TrailingChar = config->GetString("RasSrv::ARQFeatures", "RemoveTrailingChar", " ")[0];
+	m_defaultDomain = config->GetString("Gatekeeper::Main", "DefaultDomain", "");
 	delete m_Rewrite;
 	m_Rewrite = new RewriteData(config, RewriteSection);
 	m_Rewrite->AddSection(config,AliasRewriteSection);
@@ -511,7 +512,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	// If URL remove the domain if default domain
 	 PINDEX at = s.Find('@');
 	 if (at != P_MAX_INDEX) {
-	   if (s.Mid(at+1) == config->GetString("Gatekeeper::Main", "DefaultDomain", ""))
+	   if (s.Mid(at+1) == m_defaultDomain)
 		   s = s.Left(at);
 	 }
 
