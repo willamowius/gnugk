@@ -307,6 +307,16 @@ Whether the external IP is dynamic and where queries are required to
 keep the external IP up to date. To work you must specify the External IP
 with a DNS address maintained by a DDNS service such as www.dyndns.com or 
 www.no-ip.com. 
+
+<item><tt/DefaultDomain=gnugk.org/<newline>
+Default: <tt/N/A/<newline>
+<p>
+When receiving a request for an address in the format user@domain.com. 
+This option will strip the domain from the address matching this value
+and process the request as the user component only. This is handy when dealing 
+with interdomain calls placed via srv routing policy where the full URI is received.
+It can also be used in conjunction with the [RasSrv::RewriteAlias] section to
+convert the received URI into a E164 number for routing. 
 </itemize>
 
 
