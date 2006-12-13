@@ -261,9 +261,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & addr)
 {
 
-  if (!GetTransportAddress(addr, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) 
-	  return false;
-
+  addr.GetIpAndPort(m_ip,m_port);
   m_id = "SRVrec";
   m_name = name;
   m_dynamic = false;
@@ -271,7 +269,11 @@ bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & add
 
   m_sendPrefixes.clear();
   PString sprefix("*");
-  m_acceptPrefixes = PStringArray(sprefix.Tokenise(",", false));
+  PStringArray sprefixes = sprefix.Tokenise(",", false);
+	for (PINDEX i = 0; i < sprefixes.GetSize(); ++i) {
+		PStringArray p(sprefixes[i].Tokenise(":=", false));
+		m_sendPrefixes[p[0]] = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
+	}
  
   return true;
 
@@ -765,6 +767,11 @@ bool LRQRequester::Send(Neighbor * nb)
 	if (PrefixInfo info = m_sendto(nb, m_seqNum))
 		   m_requests.insert(make_pair(info, nb));
 
+	if (m_requests.empty()) {
+		PTRACE(2, "SRV\tError Sending LRQ to " << nb->GetIP());
+		return false;
+	}
+
 	PTRACE(2, "SRV\tLRQ sent to " << nb->GetIP());
 	return true;
 }
@@ -1220,7 +1227,7 @@ bool SRVPolicy::FindByAliases(
 		   PStringList str;
 		   if (PDNS::LookupSRV(number,"_h323cs._tcp.",str)) {
 			   for (PINDEX j=0; j<str.GetSize(); j++) {
-				 PTRACE(4, "Routing\tDNS SRV converted remote party " << alias << " to " << str[j]);
+				 PTRACE(4, "ROUTING\tDNS SRV converted remote party " << alias << " to " << str[j]);
 		         H225_TransportAddress dest;
 				 PINDEX in = str[j].Find('@');
 				 PString domain = str[j].Mid(in + 1);
@@ -1259,7 +1266,7 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		   domain = alias;
 	    } else {
 		   number = "h323:" + alias;
-		   domain = alias.Mid(at);
+		   domain = alias.Mid(at+1);
 		}
 					
         PStringList str;
@@ -1268,13 +1275,13 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
           for (PINDEX i=0; i<str.GetSize(); i++) {
             PINDEX at = str[i].Find('@');
             PString ipaddr = str[i].Mid(at + 1);
-            PTRACE(4, "Routing\tDNS SRV LRQ converted remote party " << alias << " to " << ipaddr);
+            PTRACE(4, "ROUTING\tDNS SRV LRQ located domain " << domain << " at " << ipaddr);
             H323TransportAddress addr = H323TransportAddress(ipaddr);
 
 			// Create a SRV gatekeeper object
 			GnuGK * nb = new GnuGK();
 			if (!nb->SetProfile(domain,addr)) {
-				PTRACE(4, "Routing\tERROR setting SRV neighbor profile " << domain << " at " << addr);
+				PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
 				return false;
 			}
 
@@ -1285,10 +1292,7 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 	        LRQRequester Request(functor);
 	        if (Request.Send(nb)) {
 		        if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
-//			        route.m_routeId = request.GetNeighborUsed();
-//			        route.m_flags |= Route::e_toNeighbor;
 			     if (lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)) {
-//				    request.SetAliases(lcf->m_destinationInfo);
 				    Route route(m_name, lcf->m_callSignalAddress);
 			        request.AddRoute(route);
 				    request.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);
