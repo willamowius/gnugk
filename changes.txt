@@ -1,3 +1,6 @@
+Changes from 2.2.5 to 2.2.6
+===========================
+
 Changes from 2.2.4 to 2.2.5
 ===========================
 - RADIUS AAA module now handles a Class attribute correctly
