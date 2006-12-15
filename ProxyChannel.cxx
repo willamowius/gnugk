@@ -2278,8 +2278,12 @@ void CallSignalSocket::OnReleaseComplete(
 			}
 		}
 	}
-	
-	if (m_call && !m_callerSocket && m_call->GetReleaseSource() == CallRec::ReleasedByCallee
+
+	if (m_callerSocket)
+		if (remote != NULL)
+			remote->RemoveRemoteSocket();
+
+	if (m_call && remote != NULL && !m_callerSocket && m_call->GetReleaseSource() == CallRec::ReleasedByCallee
 		&& m_call->MoveToNextRoute()) {
 		if (!m_call->DisableRetryChecks() &&
 			(m_call->IsCallInProgress() || m_call->IsFastStartResponseReceived()
