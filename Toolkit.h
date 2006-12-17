@@ -164,7 +164,7 @@ class Toolkit : public Singleton<Toolkit>
 		void LoadConfig(PConfig *);
 
 	protected:
-		bool IsInternal(const Address & ip) const;
+		int IsInternal(const Address & ip) const;
 	
 	private:
 		bool m_enable;
@@ -173,6 +173,9 @@ class Toolkit : public Singleton<Toolkit>
 
 	bool ProxyRequired(const PIPSocket::Address & ip1, const PIPSocket::Address & ip2) const
 	{ return m_ProxyCriterion.Required(ip1, ip2); }
+
+	bool IsInternal(const PIPSocket::Address & ip1)
+	{ return (m_ProxyCriterion.IsInternal(ip1) > 0);  }
 
 	// Since PStringToString is not thread-safe,
 	// I write this small class to replace that

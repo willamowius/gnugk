@@ -425,13 +425,17 @@ bool Toolkit::ProxyCriterion::Required(const Address & ip1, const Address & ip2)
 	return m_enable ? (m_networks.empty() || (IsInternal(ip1) != IsInternal(ip2))) : false;
 }
 
-bool Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
+int Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 {
+   // Return the network Id. Addresses may be on different internal networks
+	int retval = 0;
 	std::vector<NetworkAddress>::const_iterator i = m_networks.begin();
-	while (i != m_networks.end())
+	while (i != m_networks.end()) {
+		retval++;
 		if (ip << *i++)
-			return true;
-	return false;
+			return retval;
+    }
+	return 0;
 }
 
 // class Toolkit::RewriteTool
