@@ -163,7 +163,6 @@ class Toolkit : public Singleton<Toolkit>
 
 		void LoadConfig(PConfig *);
 
-	protected:
 		int IsInternal(const Address & ip) const;
 	
 	private:
