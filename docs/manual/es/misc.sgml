@@ -14,7 +14,7 @@ Esto es frecuentemente utilizado para propósitos de depuración.
 <item><tt/GenerateUCCDR=0/<newline>
 Default: <tt/0/<newline>
 <p>
-Genere CDRs para llamadas que son desconectadas (unconnected). Es es frecuentemente
+Genere CDRs para llamadas que son desconectadas (unconnected). Esto es frecuentemente
 utilizado para propósitos de depuración. Tenga presente que una llamada se considera desconectada (unconnected)
 solamente si el gatekeeper utiliza modo enrutado (routed mode) y no recibe un mensaje 
 de conexión Q.931 (Q.931 Connect). En modo directo (direct mode), siempre una llamada es considerada conectada
@@ -151,18 +151,18 @@ Define si el gatekeeper hijo se desregistra y re-registra con
 su gatekeeper padre cuando recibe el comando Reload.
 
 <item><tt/NATRetryInterval=60/<newline>
-Default: <tt/60/
+Default: <tt/60/<newline>
 <p>
 Tiempo que se debe esperar antes de tratar de reconectar el TCP NAT signalling socket (en segundos).
-Esto puede pasar por cualquiera de estas razones:la conexión no puede ser establecida o ésta
+Esto puede pasar por cualquiera de estas razones: la conexión no puede ser establecida o ésta
 ha sido rota.
 
 <item><tt/NATKeepaliveInterval=86400/<newline>
 Default: <tt/86400/<newline>
 <p>
 Define que tan a menudo es refrescada la conexión de señalización TCP NAT con un gatekeeper 
-padre. Puesto que las cajas NAT usualmente mantienen TCP mappings solamente por un tiempo definido,
-es bueno establecer éste con un valor un poco mas pequeñoque el de la caja NAT.
+padre. Puesto que las NAT box usualmente mantienen TCP mappings solamente por un tiempo definido,
+es bueno establecer éste, con un valor un poco mas pequeño que el de la NAT box.
 El refresco de la conexión es realizado enviando un mensaje Q.931 IncomingCallProceeding.
 Si su NAT realiza traducción de puertos TCP, usted podría necesitar establecer éste a un valor
 cercano a 60 segundos.
@@ -203,7 +203,7 @@ asignará el identificador en un mensaje GCF/RCF.
 <sect1>Sección &lsqb;CTI::Agents&rsqb;
 <p>
 Esta sección permite la configuración de las llamadas colas virtuales (virtual queues) para
-permitir distribuciónde llamadas entrantes por una aplicación externa, mediante el
+permitir distribución de llamadas entrantes por una aplicación externa, mediante el
 puerto de estado.
 Una cola virtual tiene un alias H.323 que puede ser llamado como un endpoint.
 
@@ -221,12 +221,12 @@ Usted puede definir colas virtuales de tres maneras:
 <item><tt/nombre exacto de alias/ - Una lista de alias es asignada. Si un alias destino ARQ
   corresponde a uno de estos nombres, la cola virtual es activada,
 <item><tt/prefijo/ - Una lista de prefijos es dada. Si un alias destino ARQ
-  inicia con uno de estos prefijo, la cola virtual es activada,
+  inicia con uno de estos prefijos, la cola virtual es activada,
 <item><tt/expresión regular/ - Una expresión regular es dada. Si un alias destino ARQ
   corresponde a la expresión, la cola virtual es activada.
 </itemize>
 
-Ver la sección de monitoreso (monitoring section) para detalles sobre los mensajes y respuestas.
+Ver la sección de monitoreo (monitoring section) para detalles sobre los mensajes y respuestas.
 
 <itemize>
 <item>
@@ -305,7 +305,7 @@ El nombre de la base de datos a la cual se realiza la conexión.
 
 <item><tt/Username=gnugk/<newline>
 <p>
-El username utilizado para conectarse a la base de datos.
+El nombre de usuario utilizado para conectarse a la base de datos.
 
 <item><tt/Password=secret/<newline>
 <p>
@@ -339,7 +339,7 @@ en donde cada fila consiste de <bf/tres/ columnas:
 Ejemplos de consultas:
 <tscreen><verb>
 ConfigQuery=SELECT secname, seckey, secval FROM sqlconfig WHERE gk = '%1'
-ConfigQuery=SELECT '[RasSrv::RRQAuth]', alias, rule FROM rrqauth WHERE gk = '%1'
+ConfigQuery=SELECT 'RasSrv::RRQAuth', alias, rule FROM rrqauth WHERE gk = '%1'
 </verb></tscreen>
 
 <item><tt/RewriteE164Query=SELECT .../<newline>

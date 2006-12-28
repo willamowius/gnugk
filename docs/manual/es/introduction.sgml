@@ -11,18 +11,20 @@ La versión en ingles es el documento maestro y será la que se actualize primero.
 </bf>
 es un proyecto de código abierto que implementa un Gatekeeper H.323. 
 Un gatekeeper ofrece servicios de control de llamada a los clientes H.323. 
-Éste es una parte integral de las instalaciones telefónicas en internet más utilizadas basadas en el estándar H.323.
+Éste es una parte integral de las instalaciones telefónicas
+en internet más utilizadas basadas en el estándar H.323.
 
-De acuerdo con la Recomendación H.323, un gatekeeper debe ofrecer los siguientes servicios:
+De acuerdo con la Recomendación H.323, un gatekeeper debe ofrecer
+los siguientes servicios:
 <itemize>
-<item>Traducción de direcciones
-<item>Control de admisiones
-<item>Control de ancho de banda
-<item>Administración de zonas
-<item>Control de señalizacion de las llamadas
-<item>Autorizacion de llamadas
-<item>Administración de ancho de banda
-<item>Administración de llamadas
+<item>Traducción de direcciones.
+<item>Control de admisiones.
+<item>Control de ancho de banda.
+<item>Administración de zonas.
+<item>Control de señalizacion de las llamadas.
+<item>Autorizacion de llamadas.
+<item>Administración de ancho de banda.
+<item>Administración de llamadas.
 </itemize>
 
 El GNU Gatekeeper implementa la mayor parte de estas funciones basadas en la pila de protocolos 
@@ -75,304 +77,7 @@ Pero para que la distinción sea un poco mas clara sin confundir a la gente todav
 hemos decidido darle un subtítulo al proyecto "OpenH323 Gatekeeper - El GNU Gatekeeper" 
 y empezar a usar <tt/gnugk/ como nombre para los ejecutables.
 
-<sect1>Características
-
-<p>
-La versión 2.2.4 contiene las siguientes características y correcciones nuevas:
-<itemize>
-<item>
-Nueva característica "call failover" para recuperar llamadas fallidas en una ruta diferente.
-<item>
-Nuevas variables de configuración "Calling/CalledTypeOfNumber" en las secciones <tt/RoutedMode/ 
-y en la configuración de endpoint.
-<item>
-Módulo <tt/FileIPAuth/ extendido para soportar prefijos.
-<item>
-Driver Firebird/Interbase para los módulos SQL.
-<item>
-Soporte NAT para emisores (callers) no registrados.
-<item>
-Agragada política de ruteo NumberAnalysis para soportar mensajes de Setup.
-<item>
-Nuevo módulo <tt/CapacityControl/ para controlar el tráfico entrante. 
-<item>
-Valor por defecto <tt/SignalTimeout/ incrementado de 15 a 30 segundos. 
-<item>
-Nuevo módulo de accounting <tt/StatusAcct/ para el puerto de estado patrocinado por el grupo Isec. 
-</itemize>
- 
-<p>
-La versión 2.2.3 contiene las siguientes características y correcciones nuevas:
-<itemize>
-<item>
-Nuevas opciones en <tt/[RewriteCLI]/ para controlar de manera precisa las características CLIR.
-<item>
-Nuevas características CLIR/CLIP (Calling Line Identification Restriction/Presentation) 
-en el módulo <tt/[RewriteCLI]/. Habilidad para ocultar CLI (enable CLIR/CLIP) por endpoint.
-<item>
-Nueva variable de configuración <tt/[RoutedMode] SocketCleanupTimeout/. Un administrador de socket 
-mas confiable y mejor reportando errores.
-<item>
-El módulo <tt/RewriteCLI/ reescribe las reglas salientes correctamente para los números al azar 
-separados por comas.
-<item>
-Petición de transmición es manejada correctamente en el modo LARGE_FDSET.
-<item>
-Nueva política de ruteo ENUM realizada por Simon Horne.
-<item>
-Problemas de compatibilidad con NetMeeting corregidos.
-<item>
-Una variable de configuración nueva <tt/[RasSrv::RRQFeatures] IRQPollCount/. Número de "poll" mensajes IRQ 
-por defecto cambiado de 2 a 1 para permitir una desregistración de endpoints más rápida.
-<item>
-No fueron procesados correctamente los mensajes de Tunneled H.245 (fueron ignorados).
-<item>
-Módulo <ref id="fileipauth" name="[FileIPAuth]"> movido desde la sección contrib 
-dentro de la rama principal.
-</itemize>
-
-<p>
-La versión 2.2.2 contiene las siguientes novedades y correcciones:
-<itemize>
-<item>
-Nuevos tipos de reescritura CLI - reemplazo de prefijos (*=) y correspondencia de identidad (~=).
-<item>
-Una nueva variable de configuración <tt/TranslateFacility/ para habilitar la conversión de mensajes Facility 
-entre H.323v4 y versiones previas del protocolo.
-<item>
-Variables de accounting <tt/SignalTimeout/, <tt/AlertingTimeout/ and %t, %p, %{ring-time}, %{alerting-time} 
-puestas desde las versiones 2.0. Variable de configuración <tt/ConnectTimeout/ 
-reemplazada con <tt/SignalTimeout/ y <tt/AlertingTimeout/.
-<item>
-Una nueva variable de accounting <tt/%r/ para proveer información acerca de quien 
-fué el que desconectó la llamada.
-<item>
-Un nuevo módulo genérico, <ref id="sqlauth" name="SQLAuth"> para Autenticación y Autorización 
-RRQ, ARQ, LRQ y Setup.
-<item>
-Nuevo argumento de línea de comando --core parahabilitar la generación de core dump para Unix.
-<item>
-Una nueva variable de configuración <tt/Vendor/ para la sección <ref id="endpoint" name="[Endpoint]"> 
-para proveer extensiones especiíficas de vendedor cuando se registre con un gatekeeper padre.
-<item>
-Campo LRQ nonStandardData no fué incluído para vecinos CiscoGK.
-<item>
-Nueva sección de configuración <ref id="clirewrite" name="[RewriteCLI]"> 
-que permite reescribir arbitrariamente números ANI/CLI.
-<item>
-Nueva política de ruteo <ref id="numberanalysis" name="numberanalysis">.
-<item>
-Nuevo módulo FileIPAuth en el directorio contrib/ipauth.
-<item>
-Manejo de accounting en desconección de llamadas es ahora más robusto 
-y no bloquea completamente la tabla de la llamada y (efectivamente) el gatekeeper 
-por períodos largos de tiempo.
-<item>
-No soporta reescritura de múltiples destinos, esta característica no funciona correctamente 
-si se la reescritura es realizada más de una vez.
-<item>
-El gatekeeper puede caerse si la conexión se cerró antes 
-que el mensaje de bienvenida haya sido enviado al cleinte.
-<item>
-Si no se ha presentado un sourceAddress para una llamada no registrada (unregistered call) se 
-informó un Username diferente durante el establecimiento de la autenticación y en 
-el paso de accounting.
-<item>
-Se han agregado más bloqueos para recargas de configuraciones (config reload) fracasadas permitiendo así 
-recargas de configuraciones (config reload) perfectas.
-<item>
-El valor por defecto de la variable de configuración <tt/ForwardOnFacility/ cambió a <tt/0/.
-<item>
-Habilidad para encriptar todas las contraseñas en la configuración. Se han agregado las variables de configuración 
-<tt/EncryptAllPasswords/ y <tt/KeyFilled/.
-<item>
-Habilidad para leer opciones de configuración desde una base de datos SQL integrada desde las versiones 2.0. 
-Revise <ref id="sqlconf" name="[SQLConfig]"> para mayor detalle.
-<item>
-Framed-IP-Address no pueden ser determinadas por llamadas no registradas con el 
-campo Setup-UUIE.sourceCallSignalAddress, provocando que la autenticación falle.
-<item>
-Proporciona un manejo apropiado de alias del tipo partyNumber(e164Number or privateNumber).
-<item>
-Un arreglo para RTP/Q931/H245/T120PortRange para corregir un error con el rango de puertos 
-si el último puerto es 65535. Esto provoca que el siguiente puerto sea establecido 
-a 0 y cualquier asignación del puerto siguiente falle.
-<item>
-Asignación dinámica de puertos RTP no funciona, utilice un rango de puertos entre 
-1024-65535 como valor por defecto para la variable de configuración <tt/RTPPortRange/.
-<item>
-Han sido removidos los módulos obsoletos MySQLAliasAuth y MySQLPasswordAuth.
-<item>
-Los módulos SQL aceptan solamente un host de base de datos en el parámetro <tt/Host/.
-</itemize>
-
-<p>
-La versión 2.2.1 contiene las siguientes novedades y correcciones: 
-<itemize>
-<item>
-Mejorados los prefijos de sustitución para las políticas de enrutamiento. Un punto (<tt/./) sustituye cualquier dígito.
-<item>
-Mejorados los prefijos se sustitución para vecinos. Un punto (<tt/./) sustituye cualquier dígito, 
-<tt/!/ al inicio desactiva el prefijo.
-<item>
-Un error de bloqueo durante la recarga de la configuración hace que el gatekeeper falle.
-<item>
-Selección de puertos más fiable para rangos de puertos del Q.931, H.245, T.120 y RTP 
-(anteriormente, una recarga  de la configuración podía causar muchas llamanadas fallidas 
-a causa de la imposibilidad de asignarles un nuevo socket).
-<item>
-Ahora se deja al SO escojer el número de puerto por defecto para RTPPortRange.
-<item>
-Las reglas de reescritura son mas flexibles (tanto globales como para-gateway) con nuevos metacaracteres ('.' y '%').
-<item>
-Mejorados los prefijos de sustitución para gateways. Un punto (<tt/./) sustituye cualquier dígito, 
-un <tt/!/ al principio desactiva el prefijo.
-<item>
-Si las opciones correspondientes <tt/Screen.../  están activadas se inserta el Calling-Party-Number-IE/Display-IE perdido.
-<item>
-El gatekeeper se cerrará si hay errores en la configuración de los modulos de SQL auth/acct.
-<item>
-El tipo de numero Called-Station-Id puede ser seleccionado entre el original (el número marcado) 
-y el que ha sido reescrito. Nueva opción <tt/UseDialedNumber/ a configurar para los módulos 
-<ref id="radauth" name="RadAuth">/<ref id="radaliasauth" name="RadAliasAuth">/<ref id=radacct name="RadAcct">, 
-nueva variable %{Dialed-Number} para los modulos <ref id=sqlacct name="SQLAcct"> y <ref id=fileacct name="FileAcct">.
-<item>
-Se posibilita la personalización del formato de fecha. Nuevas variables <tt/TimestampFormat/ a 
-configurar para las secciones principal, <ref id="sqlacct" name="[SqlAcct]">, <ref id="radacct" name="[RadAcct]">, 
-<ref id="fileacct" name="[FileAcct]"> y <ref id="calltable" name="[CallTable]">.
-<item>
-Los modulos RadAuth/RadAliasAuth pueden añadir/eliminar alias de endpoint durante el registro del endpoint 
-(usando h323-ivr-in=terminal-alias: Cisco AV-Pair).
-<item>
-Nueva opción <tt/TcpKeepAlive/ para solucionar el problema con los errores de red 
-y llamadas terminadas en la tabla de llamadas. Ver docs/keepalive.txt para más 
-detalle.
-<item>
-Nuevo comando para mostrar el estado del puerto <tt/RouteToGateway/.
-</itemize>
-
-<p>
-La versión 2.2.0 contiene las siguientes novedades y correcciones: 
-<itemize>
-<item>
-Nueva opción de configuración <tt/RoundRobinGateways/.
-<item>
-Limites de capacidad de llamada y prioridad de routing para gateways. 
-Nuevas secciones de configuración <tt/EP::/ para parametros de configuración por-endpoint 
-(consulte <ref id="epconfig" name="Configuración Por-Endpoint ">).
-<item>
-El manejo de proxy RTP se ha movido a hilos separados para proxy RTP, 
-asi el procesamiento de los mensajes de señalización no bloquea los paquetes RTP. 
-Nueva opción de configuración <tt/RtpHandlerNumber/.
-<item>
-La opción REUSE_ADDRESS ha sido activada para sockets de escucha en el modo non-LARGE_FDSET 
-para solucionar un fallo que desabilitaba al gatekeeper para poder abrir puertos de escucha despues de reiniciar.
-<item>
-Habilidad para establecer el destino de la llamada en los módulos de autentificación. 
-Enrutamiento de llamada basado en RADIUS.
-<item>
-Soporte para importar la tabla de tarifas de SqlBill desde una hoja de calculo OpenOffice.org.
-<item>
-Solucionada la gestión del campo sourceInfo LRQ -ahora contiene un identificador H.323 del gatekeeper. 
-Los datos no estandar y campos gatekeeperIdentifier son establecidos solo cuando la otra parte es definida como GnuGk.
-<item>
-Habilidad para establecer secretos compartidos para cada servidor radius de forma separada.
-<item>
-Implementacion nueva y mucho mas rápida del cliente para Radius.
-<item>
-Si la reescritura de Called-Party-Number-IE ocurrió demasiado tarde, los módulos auth/acct reciben el número original 
-en vez del reescrito.
-<item>
-Arreglado el proxying de paquetes RTP, asi los sockets RTP no están cerrados en errores temporales 
-(como el socket remoto no esta listo todavia). Este bug affecta especialmente al NAT transversal y de situacion, 
-cuando se envía audio demasiado pronto, cuando el camino del proxy inverso no ha sido todavia establecido.
-<item>
-Arreglada la manipulación de RRJ desde un GnuGk alternativo.
-<item>
-Nuevo módulo de gestión de cuentas SQL directo (<ref id="sqlacct" name="[SQLAcct]">).
-<item>
-Arreglada la manipulación de multiples mensajes de respuesta (RIP/LCF/LRJ) desde vecinos.
-<item>
-Soporte para CallCreditServiceControl en mensajes RCF y ACF, que permite notificar el limite de duración de la llamada 
-y el balance de la cuenta de usuario a los endpoints. 
-Actualmente los modules RadAuth y RadAliasAuth soportan esta característica.
-<item>
-Rotación del fichero log, nueva sección de configuración <tt/LogFile/, nuevos comandos de estado de la interface 
-<tt/setlog/ y <tt/rotatelog/.
-<item>
-No se incluye un token de acceso inválido (con identificadores de objeto nulos) 
-en los mensajes LCF para prevenir problemas de interoperabilidad.
-<item>
-Mejor manejo de llamadas múltiples sobre un único canal de señalización mediante el establecimiento de los campos 
-multipleCalls y maintainConnection H.225.0 a FALSE en todos los mensajes que pasan a traves del gatekeeper.
-<item>
-Mejor manipulación de User-Name, Calling-Station-Id y Called-Station-Id.
-<item>
-La bandera IncludeEndpointIP para RadAuth, RadAliasAuth y RadAcct queda obsoleta, estos módulos enviaran siempre 
-Framed-IP-Address.
-<item>
-Nueva SetupUnreg bandera Gatekeeper:Auth para fijar que la autentificacion en Q.931 Setup solo este disponible 
-para endpoints no registrados.
-<item>
-Nuevo parametro h323-ivr-out=h323-call-id para RADIUS que contiene un identificador de llamada H.323.
-<item>
-El sistema de facturación SQL de la sección de contribuciones puede autentificar ahora usuario con soloamente su IP 
-(ignorando el nombre de usuario) y tiene un nuevo y más flexible motor de tarifas/valoración.
-<item>
-RadAliasAuth ahora puede autentificar mensajes de Setup sin que tenga que estar el campo sourceAddress presente 
-(usando en tal caso usara Calling-Party-Number).
-<item>
-Mejor manipulación de la señal para prevenir cierres accidentales del gatekeeper (debido a SIGPIPE, por ejemplo).
-<item>
-La rotacion CDR por numero de líneas fuciona correctamente.
-</itemize>
-
-
-<p>
-Por supuesto, las funciones principales de la versión 2.0 tambien están incluídas:
-<itemize>
-<item>
-Las tablas de registro (registration) y la de registro de llamadas están rediseñadas de manera segura 
-y muy eficiente. Soportan diez miles de registros (de endpoits) y miles de 
-llamadas concurrentes.
-<item>
-Una nueva arquitectura para el modo ruteo (routed mode) que soporta ruteo H.225.0/Q.931 y 
-ruteo H.245 sin dividir hilos adicionales. De esta manera en límite de número de hilos 
-no restringe el número de llamadas concurrentes.
-<item>
-Soporte para proxy H.323 enrutando todos los canales lógicos, incluyendo los 
-canales RTP/RTCP y los canales de datos T.120. Además hay soporte para canales 
-lógicos abiertos por el tunneling H.245 y para procedimientos de conección más rápidos. 
-No existe tráfico entre el emisor (calling) y el receptor (called) directamente en el modo Proxy (proxy mode). 
-De esta manera es muy ampliamente utilizado si usted tiene algunos endpoints usando IP privadas detrás de 
-una NAT box y algunos endpoints usando IP públicas fuera de la misma.
-<item>
-Soporte para sobrecarga de gatekeepers (gatekeepers cluster) intercambiando LRQ/LCF/LRJ (funciones de vecino). 
-Si el destino de un mensaje LRQ es desconocido, el GnuGk puede reenviar éste 
-hacia el siguiente salto. Por tanto el GnuGk puede trabajar como un directorio de gatekeepers (directory gatekeeper).
-<item>
-Soporte para varios métodos de autenticación para peticiones RAS, incluyendo 
-soporte para H.235 password (MD5, SHA-1 y CAT), correspondencia entre IP pattern y prefijos.
-<item>
-Soporte para gatekeepers alternos para redundancia y balanceo de carga. Si el 
-GnuGk está sobrecargado, los endpoints pueden ser redireccionados hacia otros gatekeepers.
-<item>
-Puede trabajar como un endpoint (gateway o terminal) registrándose con un gatekeeper 
-padre. Con esta característica se puede crear facilmente jerarquías de gatekeepers.
-<item>
-Monitoreo y control del GnuGk via TCP puerto de estado (status port), incluyendo estadísticas 
-de registro de endpoints y llamadas.
-<item>
-Envío de un CDR(call detail record) hacia el puerto de estado para sistemas de facturación. 
-El CDR contiene el identificador de llamada, IP del emisor (calling) y receptor (called), 
-fecha de inicio y fin de la llamada, duración de la llamada, etc.
-<item>
-La gran parte de configuraciones pueden ser cambiadas en tiempo de ejecución del GnuGk. El GnuGk reinicia las
-configuraciones recibiendo el comando <tt/reload/ mediante el puerto de estado, o recibiendo la señal 
-<tt/HUP/ (plataformas Unix).
-</itemize>
-
-<sect1>Download
+<sect1>Descargas
 <label id="download">
 <p>
 La versión más estable y la versión en desarrollo están disponibles en 
@@ -390,7 +95,7 @@ También puede descargar algunos ejecutables desde
 Existen dos listas de correo para el proyecto, una para los desarrolladores y otra para usuarios.
 
 Las preguntas de los usuarios deben de ser enviadas a 
-<url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. 
+<url url="mailto:Openh323gk-users@sourceforge.net" name="lista para usuarios">. 
 Puede encontrar un archivo de la lista de correo 
 <url url="http://sourceforge.net/mailarchive/forum.php?forum_id=8549" name="aqui">.
 Para unirse a la lista de correo, pulse
@@ -411,10 +116,10 @@ Envíe sus problemas a la lista de correo pública apropiada para que todo el mund
 Por favor, no envíe tampoco los problemas especificos de GnuGk a la lista de OpenH323, o viceversa. 
 Son proyectos diferentes, aunque muy relacionados.
 
-Antes de enviar un email, asegurese de que ha leido los documentos relaciondos detenidamente. 
+Antes de enviar un email, asegúrese de que ha leido los documentos relacionados detenidamente. 
 Describa sus problemas de forma clara y precisa. Muestrenos los mensajes de error o registros si los hay.
 
-<sect1>Contribuidores
+<sect1>Colaboradores
 <p>
 El coordinador del proyecto actual es
 <url url="http://www.willamowius.de/" name="Jan Willamowius">

@@ -2,7 +2,7 @@
 <p>
 <sect1>Compilando el Gatekeeper
 <p>
-Para crear el gatekeeper se necesitan al menos PWLib 1.5.0 y OpenH323 1.12.0 o superiores.
+Para construír el gatekeeper se necesitan al menos PWLib 1.5.0 y OpenH323 1.12.0 o superiores.
 La version en desarrollo del gatekeeper normalmente necesita la 
 última version disponible de OpenH323.
 Esas librerias estan disponibles en la
@@ -22,14 +22,14 @@ En Unix haga un <tt/configure/ y <tt/make debug/ o <tt/make opt/
 en el directorio del gatekeeper para crear la version debug o release, respectivamente.
 Use <tt/make both/ para crear ambas versiones.
 Recuerde que tiene que usar el GCC 3.3.x o superior. Las versiones anteriores pueden no funcionar.
-Una buena practica es hacer un <tt/make debugdepend/ o <tt/make optdepend/
+Una buena práctica es hacer un <tt/make debugdepend/ o <tt/make optdepend/
 en el directorio del gatekeeper antes de empezar la compilacion actual (make debug o
 make opt) - estos comandos crean las listas de dependencias apropiadas, asi despues de que
 actualice las fuentes desde el CVS, todos los ficheros afectados seran recompilados.
 De lo contrario puede acabar con el Gatekeeper compilado parcialmente con las antiguas
 cabeceras y parcialmente con las cabeceras actualizadas - algo muy malo.<newline>
 
-En MS Windows simplemente abra y compile la solución facilitada (<tt/gk.sln/) para
+En Windows simplemente abra y compile la solución facilitada (<tt/gk.sln/) para
 Microsoft Visual Studio .NET 2003 o el workspace (<tt/gk.dsw/) para Microsoft
 Visual Studio 6.0 SP6. Por supuesto necesita tener las librerías PWLib
 y OpenH323 yá compiladas y establecidos los paths include/library apropiados.
@@ -101,9 +101,9 @@ Ejemplo 3: Una "secret" encriptada compartida es agregada a la sección de config
 $ addpasswd gnugk.ini RadAuth SharedSecret VerySecretPassword
 </verb></tscreen>
 
-IMPORTANTE: La variable <tt/KeyFilled/ define un valor por defecto para la llave (key) de 
+IMPORTANTE: La variable <tt/KeyFilled/ define un valor por defecto para la clave (key) de 
 encriptación de contraseñas. Esta puede omitirse en la configuración (entonces se define a 0), 
-pero si ésta es especificada, cada vez ésta cambia, las contraseñas encriptadas tiene que ser 
+pero si ésta es especificada, cada vez ésta cambia, las contraseñas encriptadas tienen que ser 
 regeneradas (encriptadas nuevamente utilizando la utilidad <tt/addpasswd/). Además tenga presente 
 que al usar esta utilidad se borrarán todas las líneas que estén comentadas dentro del archivo 
 de configuración.
@@ -115,7 +115,7 @@ No se necesita un procedimiento especial de instalacion.
 Simplemente copie el ejecutable en el directorio que usted quiera 
 y cree un fichero de configuración para este.
 Hay muchos ejemplos de configuracion en el subdirectorio <tt>etc/</tt> 
-del arbol del codigo fuente. Consulte la seccion <ref id="config" name="Fichero de Configuration"> 
+del arbol del codigo fuente. Consulte la seccion <ref id="config" name="Archivo de Configuration"> 
 para una explicacion mas detallada.
 
 Por ejemplo, en una plataforma Linux x86, el ejecutable optimizado <tt/gnugk/ 

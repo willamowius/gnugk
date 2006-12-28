@@ -12,7 +12,6 @@
 <!ENTITY auth SYSTEM "auth.sgml">
 <!ENTITY acct SYSTEM "acct.sgml">
 <!ENTITY endpointconfig SYSTEM "endpointconfig.sgml">
-
 <!ENTITY monitoring SYSTEM "monitoring.sgml">
 ]>
 <!-- Este es el manual de usuario del OpenH323 Gatekeeper - El GNU Gatekeeper -->
@@ -20,14 +19,16 @@
 <article>
 <!-- Title information -->
 <title>OpenH323 Gatekeeper - El GNU Gatekeeper
-<author>Este manual es mantenido y actualizado por:
-<htmlurl url="http://www.willamowius.de/" name="Jan Willamowius">
-<tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
+<author>Este manual es traducido al español por:
+Luis Fernando Ramirez Cueva.
+<tt><htmlurl url="mailto:lufer_ramirez@yahoo.es" name="&lt;lufer_ramirez@yahoo.es&gt;"></tt>
+
+<date>Version 2.2.5, December 2006</date>
 
 <abstract>
-Éste es el manual de usuario de 
-cómo compilar, instalar, configurar y monitorear el 
-OpenH323 Gatekeeper - El GNU Gatekeeper.
+Éste Manual de Usuario
+explica cómo compilar, instalar, configurar y monitorear
+el GNU Gatekeeper (GnuGk).
 </abstract>
 
 <toc>

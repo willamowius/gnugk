@@ -11,7 +11,7 @@ por-endpoint en el fichero de configuración. La sintaxis es como sigue:
 Key Name=Value String
 </verb></tscreen>
 
-<tt/ALIAS/ es reemplazado con un alias actual para endpoint al cual se va a
+<tt/ALIAS/ es reemplazado con un alias actual para el endpoint al cual se va a
 aplicar la configuración. Actualmente, están reconocidas las siguientes opciones:
 
 <itemize>
@@ -26,7 +26,7 @@ disponible (que tenga suficiente capacidad).
 <item><tt/GatewayPriority=1/<newline>
 Default: <tt/1/<newline>
 <p>
-Aplicado solo a gateways. Permite la prioridad basada en casos de encaminado,
+Aplicado solo para gateways. Permite la prioridad basada en casos de encaminado,
 cuando más de un gateway se corresponde con un número marcado. El valor más pequeño es la prioridad más alta
 asignada a un gateway. Una llamada es encaminada hacia el primer gateway disponible
 (que tenga capacidad disponible) con la prioridad más alta (los valores más bajos
@@ -50,14 +50,14 @@ por las llamadas enviadas a este endpoint
 <item><tt/CallingTypeOfNumber=1/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Fija el tipo de número para Sets Calling-Party-Number a un valor especificado
+Fija el tipo de número para Calling-Party-Number a un valor especificado
 por las llamadas enviadas a este endpoint
 (0 - UnknownType (Tipo Desconocido), 1 - InternationalType (Tipo Internacional), 2 - NationalType (Tipo Nacional),
 3 - NetworkSpecificType (Tipo Red Específico), 4 - SubscriberType (Tipo Suscriptor), 6 - AbbreviatedType (Tipo Abreviado), 7 - ReservedType (Tipo Reservado)).
 
 <item><tt/Proxy=1/<newline>
 Default: <tt/0/<newline>
-Habilita o deshabilita el "proxying" de llamadas enviadas a este endpoint (0 - no cambia
+Habilita o deshabilita el "proxiado" de llamadas enviadas a este endpoint (0 - no cambia
 las configuraciones globales del proxy, 1 - forza el modo proxy, 2 - deshabilita el modo proxy).
 
 </itemize>

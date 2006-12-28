@@ -6,8 +6,8 @@
 Si el destino de un ARQ es desconocido, el gatekeeper envía LRQs hacia
 sus vecinos para preguntarles si ellos tienen este endpoint destino.
 Un vecino es seleccionado si uno de sus prefijos se corresponde con el destino
-o si éste tiene el prefijo ``<tt/*/''. Se pueden especificar más de un prefijo.
-Usted puede utilizar caracteres especiales como ``<tt/./'' y ``<tt/!/'' para 
+o si éste tiene el prefijo "<tt/*/". Se pueden especificar más de un prefijo.
+Usted puede utilizar caracteres especiales como "<tt/./"' y "<tt/!/" para 
 emparejar mediante comodines (wildcards) y deshabilitar un prefijo específico.
 
 Recíprocamente, el gatekeeper solamente contestará a los LRQs enviados desde los vecinos
@@ -21,13 +21,12 @@ se añade un punto y coma a la entrada del vecino. Ejemplo:<newline>
 Si usted no pone el punto y coma, LRQs serán siempre enviados hacia este vecino.
 
 El campo <tt/password/ es utilizado pata autenticar LRQs desde ese vecino.
-Ver la sección <ref id="gkauth" name="[Gatekeeper::Auth]"> para más información.
+Revise la sección <ref id="gkauth" name="[Gatekeeper::Auth]"> para más información.
 
-Si una llamada que viene desde un vecino es aceptada o no depende también del parámetro AcceptNeighborsCalls
-configurado en la sección <ref id="routed" name="[RoutedMode]">.
+Si una llamada que viene desde un vecino es aceptada o no depende también del parámetro AcceptNeighborsCalls configurado en la sección <ref id="routed" name="[RoutedMode]">.
 
 El manejo de los vecinos ha cambiado significativamente desde la versión 2.0 hasta la version 2.2.
-Actualmente los vecinos puedes ser configurados de dos maneras - de la forma anteriormente conocida y de una nueva manera.
+Actualmente los vecinos pueden ser configurados de dos maneras - de la forma anteriormente conocida y de una nueva manera.
 
 <descrip>
 <tag/Configuración en el formato anterior:/
@@ -65,8 +64,7 @@ Actualmente los vecinos puedes ser configurados de dos maneras - de la forma ant
 <newline>
 </descrip>
 
-El nuevo formato especifica dentro de la sección <tt/[RasSrv::Neighbors]/ solamente tipos de gatekeeper
-y las configuraciones para cada vecino se ubican en una sección separada.
+El nuevo formato especifica dentro de la sección <tt/[RasSrv::Neighbors]/ solamente tipos de gatekeeper y las configuraciones para cada vecino se ubican en una sección separada.
 
 
 <sect1>Sección &lsqb;RasSrv::LRQFeatures&rsqb;
@@ -76,7 +74,7 @@ Define algunas características de los eventos LRQ y LCF.
 <item><tt/NeighborTimeout=1/<newline>
 Default: <tt/2/<newline>
 <p>
-Tiempo de descanso en segundos para esperar respuestas desde los vecinos.
+Tiempo de espera en segundos para esperar respuestas desde los vecinos.
 Si no hay respuesta desde todos los vecinos después de este tiempo, el gatekeeper
 contestará con un ARJ al endpoint que envió el ARQ.
 
@@ -108,17 +106,6 @@ Definir si aceptar o no un LRQ reenviado desde los vecinos.
 Esta configuración puede ser superpuesta o deshabilitada con la configuración
 de un vecino particular.
 
-<item><tt/IncludeDestinationInfoInLCF=0/<newline>
-Default: <tt/1/<newline>
-<p>
-El gatekeeper responde LCFs que contiene los campos <bf/destinationInfo/ y
-<bf/destinationType/, los alias y el tipo de terminal del endpoint
-destino. El gatekeeper vecino puede entonces guardar la información para suprimir
-LRQs atrasados. Sin embargo, algunos proveedores de gatekeepers emplean mal esta información, de esta manera
-resultan en problemas de interoperabilidad.
-Solamente desactive esta opción si usted encuentra problemas en la comunicación
-con un gatekeeper de terceras partes.
-
 <item><tt/ForwardResponse=0/<newline>
 Default: <tt/0/<newline>
 <p>
@@ -136,6 +123,13 @@ Esta configuración determina si el LRQ recibido debería o no ser reenviado. Si s
 reenviados, y si es <tt/depends/ le indica al gatekeeper que reenviará LRQ solamente si su
 contador de saltos (hop count) es mayor a 1. Esta configuración puede ser superpuesta o deshabilitada con la configuración
 de un vecino particular.
+
+<item><tt/AcceptNonNeighborLRQ=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Definir si aceptar o no un mensaje LRQ enviado desde GKs que no han sido definidos como vecinos.
+Eso puede ser utilizado con la política de enrutado "SRV routing policy" para ubicar llamadas hacia GKs de terceros.
+Esto debe ser utilizado conjuntamente con una política "LRQ Authentication".
 </itemize>
 
 <sect2>Sección &lsqb;Neighbor::...&rsqb;
@@ -180,7 +174,7 @@ SendPrefixes=h323_ID,dialedDigits,001<newline>
 <item><tt/AcceptPrefixes=*/<newline>
 Default: <tt>*</tt><newline>
 <p>
-Una lista de prefijos que el gatekeeper debería aceptar en los LRQs recibidos
+Una lista de prefijos que el gatekeeper aceptará en los LRQs recibidos
 desde este vecino. Si se especifica '*' , todos los LRQs serán aceptados desde este vecino.
 Uno puede también dirigir al gatekeeper para que acepte LRQ desde este vecino
 basándose en el tipo de alias:<newline>
@@ -214,7 +208,7 @@ de los LRQs reenviados.
 <item><tt/ForwardLRQ=always | never | depends/<newline>
 Default: <tt/depends/<newline>
 <p>
-Esta configuración determina si el LRQ recibido debería o no ser reenviado.
+Esta configuración determina si el LRQ recibido deberá o no ser reenviado.
 Si es <tt/always/, reenvía LRQs de manera incondicional, si es <tt/never/, bloquea los LRQ
 reenviados ys is es <tt/depends/ le indica al gatekeeper que reenviará LRQ solamente si su
 contador de saltos (hop count) es mayor a 1. Este ajuste puede ser superpuesto o deshabilitado con la configuración

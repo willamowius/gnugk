@@ -31,7 +31,7 @@ El cliente que esté conectado hacia el puerto de estado puede seleccionar el niv
 La interfaz es un simple puerto TCP (por defecto: 7000), usted puede conectarse hacia éste mediante telnet u otro cliente. 
 Un ejemplo de un cliente es el Java GUI, aka GkGUI. Otro ejemplo es la aplicación Automatic Call Distribution, aka GnuGk ACD.
 
-<sect2>Áreas de aplicación
+<sect2>Áreas de aplicación.
 <p>
 Depende de usted lo que haga con el poder del puerto de estado, pero aqui hay algunas ideas:
 <itemize>
@@ -47,7 +47,7 @@ Ver GnuGk ACD.
 </quote>
 <item>Aplicaciones de facturación
 <quote>
-Analice de los mensajes CDR messages y administrelos luego desde una aplicación de facturación.
+Analice los mensajes CDR y adminístrelos luego desde una aplicación de facturación.
 </quote>
 <item>Interfaz con aplicaciones externas
 <quote>
@@ -137,11 +137,11 @@ Este requiere Java 1.4. Entre las nuevas características se incluyen:
 <item>Guarda e imprime el estado del log y del CDR.
 </itemize>
 
-El GkGUI esta lanzada bajo GNU General Public License, disponible en
+El GkGUI está lanzada bajo GNU General Public License, disponible en
 <url url="http://www.gnugk.org/h323develop.html#java" name="GnuGk Development">
 </itemize>
 
-<sect1>Comandos (Referencia)
+<sect1>Comandos de Referencia
 <p>
 Esta sección muestra todos los comandos que usted puede enviar al puerto de estado (manualmente o mediante una aplicación externa). Todos los comandos son case-insensitive. Pero algunos parámetros pueden ser sensibles a mayúsculas.
 <p>
@@ -152,7 +152,7 @@ El comando <tt/help/ o <tt/h/ le mostrará una lista de todos los comando disponi
 <p>Recarga o reinicia la configuración.
 
 <item><tt/Version/, <tt/v/
-<p>Muestra la versión e información del OS del gatekeeper.
+<p>Muestra la versión e información del Sistema Operativo donde está ejecutándose el gatekeeper.
 
 <item><tt/Statistics/, <tt/s/
 <p>Muestra información estadística del gatekeeper.
@@ -280,7 +280,7 @@ Number of Calls: 1 Active: 1 From NB: 0
 </verb></tscreen>
 </descrip>
 
-<item><tt/Find/, <tt/f/
+<item><tt/Find/, <tt/f/newline>
 <p>Busca un endpoint registrado mediante el alias o un prefijo. Para buscar una alias
 de un tipo específico (h323_ID, dialedDigits), anteponga el tipo de alias
 (h323, e164, url, email) al alias, seguido por dos puntos (:).
@@ -304,7 +304,7 @@ RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
 </verb></tscreen>
 </descrip>
 
-<item><tt/FindVerbose/, <tt/fv/
+<item><tt/FindVerbose/, <tt/fv/<newline>
 <p>Busca el detalle de un endpoint registrado mediante un alias o un prefijo. Para buscar una alias
 de un tipo específico (h323_ID, dialedDigits), anteponga el tipo de alias
 (h323, e164, url, email) al alias, seguido por dos puntos (:).
@@ -327,7 +327,7 @@ Prefixes: 02,09
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterIP/
+<item><tt/UnregisterIP/<newline>
 <p>Obliga a desregistrar un endpoint mediante su dirección IP y su puerto de señalización de llamada.
 <descrip>
 <tag/Formato:/
@@ -342,7 +342,7 @@ SoftPBX: Endpoint 10.0.1.31:1720 unregistered!
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterAlias/
+<item><tt/UnregisterAlias/<newline>
 <p>Obliga a desregistrar un endpoint mediante uno de sus alias. Para emparejar un alias
 de un tipo específico (h323_ID, dialedDigits), anteponga el nombre del tipo de alias
 (h323, e164, url, email) al alias, seguido por dos puntos (:).
@@ -359,7 +359,7 @@ SoftPBX: Endpoint 601 unregistered!
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterAllEndpoints/
+<item><tt/UnregisterAllEndpoints/<newline>
 <p>Obliga a desregistrar todos los endpoints registrados.
 <descrip>
 <tag/Formato:/
@@ -378,7 +378,7 @@ Done
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectCall/
+<item><tt/DisconnectCall/<newline>
 <p>Desconecta una llamada mediante su número.(interno, número de llamada asignada por el gatekeeper,
 no el número de teléfono del emisor ni del receptor).
 <descrip>
@@ -392,7 +392,7 @@ DisconnectCall 1533
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectIP/
+<item><tt/DisconnectIP/<newline>
 <p>Desconecta todas las llamadas de un endpoint mediante su IP y su puerto de señalización de llamada.
 <descrip>
 <tag/Formato:/
@@ -405,8 +405,8 @@ DisconnectIP 10.0.1.31:1720
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectAlias/
-<p>Desconecta todas las llamadas de un endpoint mediante uno de sus alias.Para emparejar un alias
+<item><tt/DisconnectAlias/<newline>
+<p>Desconecta todas las llamadas de un endpoint mediante uno de sus alias. Para emparejar un alias
 de un tipo específico (h323_ID, dialedDigits), anteponga el nombre del tipo de alias
 (h323, e164, url, email) al alias, seguido de dos puntos (:).
 <descrip>
@@ -420,38 +420,38 @@ DisconnectAlias 601
 </verb></tscreen>
 </descrip>
 
-<item><tt/ClearCalls/
+<item><tt/ClearCalls/<newline>
 <p>Desconecta todas las llamadas existentes en el gatekeeper.
 
-<item><tt/GK/
+<item><tt/GK/<newline>
 <p>Muestra información del gatekeeper padre (parent gatekeeper).
 
-<item><tt/Trace/
-<p>Establece el nivel de rastreo de salida para la interfaz de estado. Éste controla que mensajes
+<item><tt/Trace/<newline>
+<p>Establece el nivel de rastreo de salida para la interfaz de estado. Éste controla qué mensajes
 son enviados a este cliente:
 <itemize>
-<item><tt/trace 0/ o <tt/trace min/
+<item><tt/trace 0/ o <tt/trace min/<newline>
 	<p>Solamente respuestas directas a comandos y notificaciones de recarga (reload).
 <item><tt/trace 1/
 	<p>CDRs, respuestas directas a comandos y notificaciones de recarga (reload).
-<item><tt/trace 2/ or <tt/trace max/
+<item><tt/trace 2/ or <tt/trace max/<newline>
 	<p>Muestra todo (RAS, CDRs, respuestas directas a comandos y notificaciones de recarga (reload), etc).
 </itemize>
 
-<item><tt/Debug/
+<item><tt/Debug/<newline>
 <p>Solamente utilizado para propósito de depuración. Opciones:
 <itemize>
-<item><tt/trc [+|-|n]/
+<item><tt/trc [+|-|n]/<newline>
 <p>Muestra/modifica el nivel de rastreo.
-<item><tt/cfg SEC PAR/
+<item><tt/cfg SEC PAR/<newline>
 <p>Lee y muestra un parámetro de configuración de una sección.
-<item><tt/set SEC PAR VAL/
+<item><tt/set SEC PAR VAL/<newline>
 <p>Escribe un valor a un parámetro de configuración de una sección.
-<item><tt/remove SEC PAR/
+<item><tt/remove SEC PAR/<newline>
 <p>Remueve el valor de un parámetro de configuración de una sección.
-<item><tt/remove SEC/
+<item><tt/remove SEC/<newline>
 <p>Remueve una sección.
-<item><tt/printrm VERBOSE/
+<item><tt/printrm VERBOSE/<newline>
 <p>Muestra todos los registros de un endpoint removido.
 </itemize>
 <descrip>
@@ -462,16 +462,19 @@ debug set RoutedMode H245Routed 1
 </verb></tscreen>
 </descrip>
 
-<item><tt/Who/
+<item><tt/Who/<newline>
 <p>Muestra todos las personas que se encuentran en el puerto de estado.
 
-<item><tt/RouteReject/
+<item><tt/RouteReject/<newline>
 <p>Termina esta llamada sobre una cola virtual.
 Este comando es utilizado como respuesta a un evento RouteRequest (ver más adelante).
+El CallingEndpointID y el CallRef deben ser devueltos tal como están en el correspondiente RouteRequest.
+El parámetro CallID es opcional; si se dá, éste tiene que tener el mismo formato que el
+señalado por el RouteRequest con el parámetro SignalCallID=1.
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
-RouteReject CallingEndpointID CallRef
+RouteReject CallingEndpointID CallRef [CallID]
 </verb></tscreen>
 <tag/Ejemplo:/
 <tscreen><verb>
@@ -479,28 +482,34 @@ RouteReject endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/RouteToAlias/, <tt/rta/
+<item><tt/RouteToAlias/, <tt/rta/<newline>
 <p>Enruta esta llamada sobre una cola virtual hacia el alias especificado.
 Este comando es utilizado como respuesta a un evento RouteRequest (ver más adelante).
+El CallingEndpointID y el CallRef deben ser devueltos tal como están en el correspondiente RouteRequest.
+El parámetro CallID es opcional; si se dá, éste tiene que tener el mismo formato que el
+señalado por el RouteRequest con el parámetro SignalCallID=1.
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
-RouteToAlias Alias CallingEndpointID CallRef
+RouteToAlias Alias CallingEndpointID CallRef [CallID]
 </verb></tscreen>
-<tag/Example:/
+<tag/Ejemplo:/
 <tscreen><verb>
 RouteToAlias Suzi endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/RouteToGateway/, <tt/rtg/
+<item><tt/RouteToGateway/, <tt/rtg/<newline>
 <p>Enruta esta llamada sobre una cola virtual hacia un alias especificado y establece el destinationSignallAddress.
 Este comando es utilizado como una respuesta al evento RouteRequest (ver más adelante).
 Usted puede utilizar este comando para rutear llamadas hacia gateways fuera de la zona (out-of-zone) o MCUs no registrados con el gatekeeper. Asegúese que las políticas 'vqueue' y 'explicit' estén en efecto para esas llamadas.
+El CallingEndpointID y el CallRef deben ser devueltos tal como están en el correspondiente RouteRequest.
+El parámetro CallID es opcional; si se dá, éste tiene que tener el mismo formato que el
+señalado por el RouteRequest con el parámetro SignalCallID=1.
 <descrip>
 <tag/Formato:/
 <tscreen><verb>
-RouteToGateway Alias IP:Port CallingEndpointID CallRef
+RouteToGateway Alias IP:Port CallingEndpointID CallRef [CallID]
 </verb></tscreen>
 <tag/Ejemplo:/
 <tscreen><verb>
@@ -508,11 +517,11 @@ RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/Exit/, <tt/q/
+<item><tt/Exit/, <tt/q/<newline>
 <p>Cierra el puerto de estado.
 
-<item><tt/TransferCall/
-<p>Trasfiere una llamada establecida desde el alias A hacia el alias B. En un momento dado el alias A esta hablandocon el alias X, entonces el alias A eta hablando con el alias B después del TransferCall.
+<item><tt/TransferCall/<newline>
+<p>Trasfiere una llamada establecida desde el alias A hacia el alias B. En un momento dado el alias A está hablando con el alias X, entonces el alias A está hablando con el alias B después del TransferCall.
 <p>Actualmente éste trabaja solamente con endpoints que soportan
 mensajes Q.931 Facility (por consiguiente éste comando no funciona con Netmeeting).
 <descrip>
@@ -528,88 +537,143 @@ TransferCall Frank Peter
 
 </itemize>
 
-<sect1>Mensajes (Referencia)
+<sect1>Mensajes de Referencia
 <p>Esta sección describe los mensajes de salida hacia la interfaz de estado.
 
 <itemize>
-<item><tt/GCF|IP|Aliases|Endpoint_Type;/
+<item><tt/GCF|IP|Aliases|Endpoint_Type;/<newline>
 <p>El gatekeeper recibe un GatekeeperRequest (GRQ) y responde con
 un GatekeeperConfirm (GCF).
 
-<item><tt/GRJ|IP|Aliases|Endpoint_Type|RejectReason;/
+<item><tt/GRJ|IP|Aliases|Endpoint_Type|RejectReason;/<newline>
 <p>El gatekeeper recibe un GatekeeperRequest (GRQ) y responde con
 un GatekeeperReject (GRJ).
 
-<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/
+<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/<newline>
 <p>El gatekeeper recibe un RegistrationRequest (RRQ) y responde con
 un RegistrationConfirm (RCF).
 
-<item><tt/RRJ|IP|Aliases|Endpoint_Type|RejectReason;/
+<item><tt/RRJ|IP|Aliases|Endpoint_Type|RejectReason;/<newline>
 <p>El gatekeeper recibe un RegistrationRequest (RRQ) y responde con
 a RegistrationReject (RRJ).
 
-<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered;/
+<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered[|CallID];/<newline>
 <p>El gatekeeper recibe un AdmissionRequest (ARQ) y responde con
 un AdmissionConfirm (ACF).
 El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
-<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason;/
+<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason[|CallID];/<newline>
 <p>El gatekeeper recibe un AdmissionRequest (ARQ) y responde con
 un AdmissionReject (ARJ).
 El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
-<item><tt/DCF|IP|EndpointID|CRV|DisengageReason;/
+<item><tt/DCF|IP|EndpointID|CRV|DisengageReason[|CallID];/<newline>
 <p>El gatekeeper recibe un DisengageRequest (DRQ) y responde con
 un DisengageConfirm (DCF).
 El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
-<item><tt/DRJ|IP|EndpointID|CRV|RejectReason;/
+<item><tt/DRJ|IP|EndpointID|CRV|RejectReason[|CallID];/<newline>
 <p>El gatekeeper recibe un DisengageRequest (DRQ) y responde con
 un DisengageReject (DRJ).
 El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
-<item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/
+<item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/<newline>
 <p>El gatekeeper recibe un LocationRequest (LRQ) y responde con
 un LocationConfirm (LCF).
 
-<item><tt/LRJ|IP|DestinationInfo|SrcInfo|RejectReason;/
+<item><tt/LRJ|IP|DestinationInfo|SrcInfo|RejectReason;/<newline>
 <p>El gatekeeper recibe un LocationRequest (LRQ) y responde con
 un LocationReject (LRJ).
 
-<item><tt/BCF|IP|EndpointID|Bandwidth;/
+<item><tt/BCF|IP|EndpointID|Bandwidth;/<newline>
 <p>El gatekeeper recibe un BandwidthRequest (BRQ) y responde con
 un BandwidthConfirm (BCF).
 
-<item><tt/BRJ|IP|EndpointID|Bandwidth|RejectReason;/
+<item><tt/BRJ|IP|EndpointID|Bandwidth|RejectReason;/<newline>
 <p>El gatekeeper recibe un BandwidthRequest (BRQ) y responde con
 un BandwidthReject (BRJ).
 
-<item><tt/UCF|IP|EndpointID;/
+<item><tt/UCF|IP|EndpointID;/<newline>
 <p>El gatekeeper recibe un UnregistrationRequest (URQ) y responde con
 un UnregistrationConfirm (UCF).
 
-<item><tt/URJ|IP|EndpointID|RejectReason;/
+<item><tt/URJ|IP|EndpointID|RejectReason;/<newline>
 <p>El gatekeeper recibe un UnregistrationRequest (URQ) y responde con
 un UnregistrationReject (URJ).
 
-<item><tt/IRQ|IP:Port|EndpointID;/
+<item><tt/IRQ|IP:Port|EndpointID;/<newline>
 <p>El gatekeeper envía un InfoRequest (IRQ) hacia un endpoint para consultarle si éste
-esta aún en actividad. El endpoint debe responder con un InfoRequestResponse (IRR)
+está aún en actividad. El endpoint debe responder con un InfoRequestResponse (IRR)
 inmediatamente.
 
-<item><tt/URQ|IP:Port|EndpointID|Reason;/
+<item><tt/URQ|IP:Port|EndpointID|Reason;/<newline>
 <p>El gatekeeper envía un UnregistrationRequest (URQ) hacia un endpoint para
 cancelar su registro. El endpoint debe responder con
 un UnregistrationConfirm (UCF).
 
 <item><tt/CDR|CallNo|CallId|Duration|Starttime|Endtime|CallerIP|CallerEndId|/ \
 <newline><tt/CalledIP|CalledEndId|DestinationInfo|SrcInfo|GatekeeperID;/
-<p>Después de una llamada desconectada, el registro de detalle de llamada (call detail record) es mostrado (en una línea).
+<p>
+Después de una llamada desconectada, el registro de detalle de llamada (call detail record) es mostrado (en una línea).
 
-<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias;/
+<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias[|CallID];/<newline>
 <p>Petición para que una aplicación externa enrute una llamada entrante sobre una cola virtual.
 Esto puede ser hecho con los comandos RouteToAlias o RouteReject.
 El CallID es solamente enviado cuando el SignalCallId=1 está configurado.
 
 </itemize>
+
+<sect1>Filtrado del Puerto de Estado
+<label id="statusportfiltering">
+<p>
+Esta sección facilita el control de la cantidad y tipo de los mensajes de salida presentados al usuario final.
+El Filtrado (Filtering) se realiza utilizando expresiones regulares, las mismas que son utilizadas para decidir si incluír (mostrar) o
+excluír (ignorar) un mensaje de salida.
+El control del Filtrado (Filtering) es realizado utilizando el siguiente conjunto de comandos:
+
+<itemize>
+<item><tt/addincludefilter REGEX/<newline>
+Agrega una expresión regular a la lista de lo que se va a incluír (include list)
+
+<item><tt/addexcludefilter REGEX/<newline>
+Agrega una expresión regular a la lista de lo que se va a excluír (exclude list)
+
+<item><tt/removeincludefilter INDEX/<newline>
+Quita el filtro dado INDEX de la lista de inclusiones (include list)
+
+<item><tt/removeexcludefilter INDEX/<newline>
+Quita el filtro dado INDEX de la lista de exclusiones (exclude list)
+
+<item><tt/filter 1|0/<newline>
+Habilita/Deshabilita el filtrado de Mensajes
+
+<item><tt/printincludefilters/<newline>
+Presenta la lista de filtros incluídos (include filter list)
+
+<item><tt/printexcludefilters/<newline>
+Presenta la lista de filtros excluídos (exclude filter list)
+
+</itemize>
+<p>
+Para habilitar el uso de filtros predeterminados, se ha añadido la sección <ref id="gkstatusfilteringsect" name="[GkStatus::Filtering]">.
+En esta sección, los usuarios pueden poner sus filtros predeterminados que serán cargados cuando se inicie el Puerto de estado.
+<p>
+<descrip>
+<tag/Ejemplo:/
+<tscreen><verb>
+[GkStatus::Filtering]
+IncludeFilter=.+
+ExcludeFilter=.RQ
+</verb></tscreen>
+</descrip>
+<p>
+Cuando el Filtrado es activado, mediante el comando <tt/filter 1/, se mostrarán todos los mensajes, pero no aquellas líneas con ARQ, LRQ etc.
+El mismo efecto puede lograrse utilizando el comando line:
+<tscreen><verb>
+addincludefilter .+
+addexcludefilter .RQ
+filter 1
+</verb></tscreen>
+<p>
+Tenga en cuenta que habilitar el Filtrado cuando no se han definido filtros, automáticamente excluye todos los mensajes de salida.
 

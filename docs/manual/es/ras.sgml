@@ -69,12 +69,18 @@ Default: <tt/1/<newline>
 <p>
 Cuando el gatekeeper no recibe un keep-alive RRQ desde el endpoint
 dentro del período de tiempo TimeToLive, el gatekeeper envía un mensaje IRQ para registrar el estado ("poll") del endpoint
-y revisa si éste está activo. Después de que sean enviados los mensajes IRQPollCount y no se reciva
+y revisa si éste está activo. Después de que sean enviados los mensajes IRQPollCount y no se obtenga
 una respuesta, el endpoint es des-registrado. Para deshabilitar esta característica (y des-registrar los
 endpoints inmediatamente después de que el contador TimeToLive termine), establezca esta variable en 0.
 El intervalo IRQ poll es 60 segundos.
 
+<item><tt/SupportDynamicIP=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Cuando la dirección IP de un endpoint cambie, el gatekeeper puede mantener el registro del mismo. 
+Esto forzará al EndPoint a registrarse nuevamente de manera completa si la dirección IP cambia. 
 </itemize>
+
 
 <sect1>Sección &lsqb;RasSrv::ARQFeatures&rsqb;
 <p>
@@ -128,7 +134,7 @@ Sin embargo, si la detección falla, usted puede especificar éste manualmente en 
 <descrip>
 <tag/Formato:/
 <tt/alias=true,yes,1,.../
-<tag/Example:/
+<tag/Ejemplo:/
 Especifique que un endpoint con alias 601 está detrás de la NAT.
 <quote/<tt/601=true//
 </descrip>

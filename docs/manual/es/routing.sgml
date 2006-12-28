@@ -1,6 +1,6 @@
-<sect>Configuración de Enrutado
+<sect>Configuración del Enrutado
 <p>
-Las siguientes secciones del archivo de configuración pueden ser utilizadas para configurar el enrutamiento de las llamadas.
+Las siguientes secciones del Archivo de Configuración son utilizadas para configurar el enrutamiento de las llamadas.
 
 <sect1>Sección &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
@@ -41,12 +41,12 @@ dado que es obtenible.
 <p>
 Usar el mecanismo de cola virtual y generar un evento RouteRequest
 para permitir manejar el enrutado a una aplicación externa 
-(sólo puede ser usada con OnARQ)
+(sólo puede ser usada con OnARQ o OnLRQ)
 
 <item><tt/numberanalysis/<newline>
 <p>
 Provee soporte para el envío de dígito enmascarado (overlapped digit) para mensajes ARQ.
-Además soporta parcialmente mensajes Setup (no overlapped sending
+Además soporta parcialmente mensajes Setup (no al envio de dígitos superpuestos
 - solamente validación de longitud de número).
 
 <item><tt/enum/<newline>
@@ -56,16 +56,19 @@ números reales IDD E164 en información de marcado H323. Los servidores
 por defecto son <tt/e164.voxgratia.net/, <tt/e164.org/ y <tt/e164.arpa/.
 Para especificar su propio servidor, tiene que detallar la variable de
 ambiente PWLIB_ENUM_PATH con la dirección de sus servidores ENUM 
-preferidos separados por un punto u coma (;). 
-(Desde la versión 1.8.0 de PWLib soporta la valiabre PWLIB_ENUM_PATH; La versión 1.7.5.2 (Pandora) no soporta ésto.)
+preferidos separados por un punto u coma (;). (Desde la versión 1.8.0 de PWLib soporta la valiabre PWLIB_ENUM_PATH; La versión 1.7.5.2 (Pandora) no soporta ésto.)
 
-La política "enum" remplaza el destino con la información devuelta por el servidor ENUM,
-así que usted debe tener las políticas de ruteo apropiadas para dirigir finalmente la llamada después de la política "enum".
-Generalmente usted debe tener la política "dns" después de la política "enum" puesto que
-la nueva ubicación es devuelta en la forma 'number@gatekeeper' entonces se necesita la política "dns" para resolver ésto.
+La política "enum" remplaza el destino con la información devuelta por el servidor ENUM, así que usted debe tener las políticas de ruteo apropiadas para dirigir finalmente la llamada después de la política "enum". Generalmente usted debe tener la política "dns" después de la política "enum" puesto que la nueva ubicación es devuelta en la forma 'number@gatekeeper' entonces se necesita la política "dns" para resolver ésto.
 
-Finalmente no olvide que cada chequeo de ruta con la política "enum"  requiere un DNS lookup. 
-Para agilizar su ruteo, asegúrese de resolver internamente antes de aplicar la política "enum".
+Finalmente no olvide que cada chequeo de ruta con la política "enum"  requiere un DNS lookup. Para agilizar su ruteo, asegúrese de resolver internamente antes de aplicar la política "enum".
+
+<item><tt/srv/<newline>
+<p>
+DNS SRV o H.323 Anexo Q. permite el enrutado de llamadas utilizando el H.323 URI. 
+La direcciones pueden establecerce como usuario (a) dominio. Las direcciones de señalización H.323 son
+almacenadas en los registros del dominio DNS. Estas direcciones pueden ser direcciones de señalización (signalling address) o
+direcciones LRQ (LRQ address).
+
 </itemize>
 
 <p>
@@ -92,14 +95,16 @@ h323_ID=dns,internal<newline>
 Default=internal,neighbor,parent</tt></quote>
 </descrip>
 
-Cuando se recibe uno de los mensajes que requiere una decisión de asignación de ruta 
-todas las llamadas a un alias del tipo h323_ID serán resueltas 
-a través de DNS. Si ésto no soluciona el alias, se comprueba contra las 
-tablas de registro internas. Si se pide un alias que comience con 002, 
-los vecinos se comprueban antes de las tablas de registro. Si el 
-alias solicitado no es del tipo h323_ID o comienza por 002, se usa la 
-política por defecto consultando las tablas de registro internas, tras 
-ellas, a los vecinos, y, en caso de fallo, al padre.
+Cuando se recibe uno de los mensajes que requiere una decisión de asignación de ruta
+todas las llamadas con un alias del tipo h323_ID serán resueltas
+utilizando DNS. Si el DNS no resuelve el alias, se comprueba con las
+tablas de registro internas. Si se pide un alias que comience con 002,
+los vecinos son comprobados antes de las tablas de registro. Si el
+alias solicitado no es del tipo h323_ID o comienza
+por 002, se usa la política por defecto consultando 
+las tablas de registro internas, tras 
+ellas, a los vecinos, y, en caso de fallo,
+al padre.
 
 Para los mensajes ARQ, LRQ, Setup y Facility se deberían usar las secciones
 [RoutingPolicy::OnARQ],[RoutingPolicy::OnLRQ], 
@@ -119,19 +124,20 @@ Una configuración típica de enrutado con ENUM podría quedar como lo que sigue:
 default=explicit,internal,enum,dns,internal,parent,neighbor</tt></quote>
 </descrip>
 
+
 <sect1>Sección &lsqb;RasSrv::RewriteE164&rsqb;
 <label id="rewrite">
 <p>
-Esta sección define las reglas de reescritura para dialedDigits (números E.164)
+Esta sección define las reglas de reescritura para números dialedDigits (números E.164)
 
 <descrip>
-<tag/Format:/
+<tag/Formato:/
 <tt>[!]original-prefix=target-prefix</tt>
 <p>
 Si el número comienza con <tt/original-prefix/,
 se reescribe a <tt/target-prefix/.
 Si el comodín `<tt/!/' precede a <tt/original-prefix/, se invierte el sentido
-y el prefijo del objetivo se antepone al número marcado. Se permiten los comodines especiales 
+y el prefijo del objetivo se antepone al número marcado. Se permiten los comodines especiales
 (<tt/'.'/ y <tt/'%'/).
 <tag/Ejemplo:/
 <tt/08=18888/
@@ -150,6 +156,23 @@ Default: <tt>N/A</tt><newline>
 <p>
 Sólo reescribe dialDigits que comiencen con el prefijo especificado.
 </itemize>
+
+<sect1>Sección &lsqb;RasSrv::RewriteAlias&rsqb;
+<label id="rewrite">
+<p>
+Esta sección define las reglas de reescritura de alias. Esto puede ser utilizado para
+mapear los alias asignados por el gatekeeper a los endpoints registrados.
+
+<descrip>
+<tag/Formato:/
+<tt>[!]original-alias=target-alias</tt>
+<p>
+Si el alias es <tt/original-alias/,
+éste es reescrito a <tt/target-alias/.
+<tag/Ejemplo:/
+<tt/bill=033123456/
+</descrip>
+
 
 <sect1>Sección &lsqb;RasSrv::GWRewriteE164&rsqb;
 <label id="gwrewrite">
@@ -188,17 +211,18 @@ Llamada a "gw2", dialedDigits 0867822
 <tag/Formato:/
 <tt>gw-alias=in|out=[!]original-prefix=target-prefix[;in|out...]</tt>
 <p>
-Si la llamada encaja con el gateway, la dirección que comienza con 
+Si la llamada re corresponde al gateway, la dirección que comienza con 
 <tt/original-prefix/ se reescribe a <tt/target-prefix/.
 Si la bandera `<tt/!/' precede a <tt/original-prefix/, el sentido se invierte.
 Se permiten los caracteres especiales (<tt/'.'/ and <tt/'%'/).
 Es preciso separar con ';' las diversas reglas para un mismo gateway.
-<tag/Example:/
+<tag/Ejemplo:/
 <tt/gw1=in=123=321/
 <p>
 Si se recibe una llamada desde "gw1" a <tt/12377897/, se reescribe a <tt/32177897/
 antes de completar cualquier otra acción.
 </descrip>
+
 
 <sect1>Sección &lsqb;Endpoint::RewriteE164&rsqb;
 <p>
@@ -330,6 +354,7 @@ Las posibles selecciones son <tt/forward/ - solamente remite el PI recibido tal 
 <tt/apply/ - examina el PI recibido y oculta el CLI si éste esta establecido en "presentación 
 restringida" y <tt/applyforterminals/ - similar a <tt/apply/ excepto que el número
 es removido solamente cuando la llamada es enviada hacia un terminal y no hacia un gateway.
+
 </itemize>
 
 <descrip>
@@ -360,7 +385,8 @@ El emparejado/reescritura de números puede realizarse de tres maneras:
                CLI será reemplazado con el NEW_CLI,
 <item><tt/*=/ - (VALIDO SOLAMENTE PARA <tt/cli/) Un número <tt/cli/ se emparejará contra el <tt/number_prefix/,
                utilizando un prefijo (prefix match), si el prefijo es encontrado, el
-               prefijo emparejado CLI (<tt/number_prefix/) será reemplazado con un prefijo NEW_CLI.
+               prefijo emparejado CLI (<tt/number_prefix/) será reemplazado con
+		un prefijo NEW_CLI.
 </itemize>
 Después del signo de igualdad (=/~=/*=), sigue una lista de valores nuevos de CLI a ser usados.
 Si se especifica mas de un valor, un único valor se escogerá de manera aleatoria.
@@ -452,7 +478,8 @@ El emparejado/reescritura de números puede realizarse de tres maneras:
                CLI será reemplazado con el NEW_CLI,
 <item><tt/*=/ - (VALIDO SOLAMENTE PARA <tt/cli/) Un número <tt/cli/ se emparejará contra el <tt/number_prefix/,
                utilizando un prefijo (prefix match), si el prefijo es encontrado, el
-               prefijo emparejado CLI (<tt/number_prefix/) será reemplazado con un prefijo NEW_CLI.
+               prefijo emparejado CLI (<tt/number_prefix/) será reemplazado con
+		un prefijo NEW_CLI.
 </itemize>
 Después del signo de igualdad (=/~=/*=), sigue una lista de valores nuevos de CLI a ser usados.
 Si se especifica mas de un valor, un único valor se escogerá de manera aleatoria.

@@ -33,17 +33,16 @@ Default: <tt>N/A</tt><newline>
 <p>
 Esta configuración permite probar la existencia del archivo de configuración
 (gatekeeper.ini o cualquiera que sea su nombre) con el que va a trabajar el
-gatekeeper. Un mensaje de advertencia se mostrará en caso de que no
-existiera dicho archivo.
+gatekeeper. Un mensaje de advertencia se mostrará en caso de que no existiera dicho archivo.
 
 <item><tt/Name=OpenH323GK/<newline>
-Default: <tt/OpenH323GK/
+Default: <tt/OpenH323GK/<newline>
 <p>
 Identificador del gatekeeper. El gatekeeper responderá solamente a los
 mensages GRQs con este ID y utilizará éste en los mensajes enviados a sus endpoints.
 
 <item><tt/Home=192.168.1.1/<newline>
-Default: <tt/0.0.0.0/
+Default: <tt/0.0.0.0/<newline>
 <p>
 El gatekeeper escuchará por peticiones desde esta dirección IP. Por defecto, el
 gatekeeper escucha desde todas las interfaces de su equipo. Usted puede
@@ -52,26 +51,23 @@ solamente hacia una dirección IP específica. Pueden agregarse varias direcciones
 en este campo separadas por un punto y coma (;) o una coma (,).
 
 <item><tt>NetworkInterfaces=192.168.1.1/24,10.0.0.1/0</tt><newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 Aquí especifique las interfaces de red del gatekeeper. Por defecto el
 gatekeeper detectará las interfaces de su equipo automáticamente. Existen
-dos situaciones en las que usted podría usar esta opción. Una es en el caso de
-que la detección automática fallara y la otra cuando el gatekeeper está detrás
-de una NAT box y permite a los endpoints con Ips públicas registrarse con el
-gatekeeper. En este caso usted debe configurar esta opción solamente cuando
-el gatekeeper está ejecutándose sobre una NAT box.
+dos situaciones en las que usted podría usar esta opción. Una es en el caso de que la detección automática fallara.
+Si usted está utilizando el GnuGk detrás de una NAT box entonces deberá utilizar la coniguración de IP externa
+la cual configurará automáticamente el GnuGK para que opere como si éste estuviera
+sobre la NAT box.
 
 <item><tt/EndpointIDSuffix=_gk1/<newline>
-Default: <tt/_endp/
+Default: <tt/_endp/<newline>
 <p>
-El gatekeeper asignará un único identificador a cada endpoint registrado. Esta
-opción puede ser usada para especificar un sufijo que será añadido al identificador
-del endpoint. Esto es muy utilizado solamente cuando se utiliza más de un
-gatekeeper.
+El gatekeeper asignará un único identificador a cada endpoint registrado.
+Esta opción puede ser utilizada para especificar un sufijo que será añadido al identificador del endpoint. Esto es muy utilizado solamente cuando se utiliza más de un gatekeeper.
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
-Default: <tt/-1/
+Default: <tt/-1/<newline>
 <p>
 El registro de un endpoint con el gatekeeper puede tener un limitado tiempo de vida. 
 El gatekeeper especifica la duración del registro de un endpoint
@@ -91,7 +87,7 @@ a 60 segundos si usted estableció un valor menor.
 
 Después del tiempo de expiración, 
 el gatekeeper enviará seguidamente dos mensajes IRQ para consultar
-si el endpoint esta aun levantado. Si el endpoint responde con un mensaje IRR, 
+si el endpoint esta aun ejecutándose. Si el endpoint responde con un mensaje IRR, 
 el registro se extenderá. En otro caso el gatekeeper enviará 
 un mensaje URQ con razón <bf/ttlExpired/ hacia el endpoint.
 El endpoint debe entonces reintentar el registro con el gatekeeper usando un mensaje RRQ completo.
@@ -102,7 +98,7 @@ Para deshabilitar esta opción, establezca esta opción a <tt/-1/
 Default: <tt/-1/<newline>
 <p>
 Aquí se define el total del ancho de banda que va a ser asignado a los endpoints.
-Por defecto esta característica esta deshabilitada. Sea cuidadoso al usar esta opción,
+Por defecto esta característica está deshabilitada. Sea cuidadoso al usar esta opción,
 puesto que muchos endpoints tienen defectos de implementación.
 
 <item><tt/RedirectGK=Endpoints > 100 || Calls > 50/<newline>
@@ -120,7 +116,8 @@ El gatekeeper devolverá un mensaje de rechazo RAS con una lista de
 gatekeepers alternos definida en <tt/AlternateGks/. 
 Tenga presente que un redireccionamiento permanente <tt/permanent/ significa que los endpoints redireccionados
 no se registrarán nuevamente con este gatekeeper. 
-Además tenga en cuenta que esta función solamente tiene efecto con endpoints que cumplen con el estándar H323 versión 4.
+Además tenga en cuenta que esta función solamente tiene efecto con endpoints
+que cumplen con el estándar H323 versión 4.
 
 <item><tt/AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK/<newline>
 Default: <tt>N/A</tt><newline>
@@ -132,14 +129,12 @@ primer gatekeeper y algunos están registrados con el segundo gatekeeper.
 Usted debe ser capaz de usar los dos gatekeepers en un modo round robin para 
 compartir la carga (load-sharing)(eso no está probado aún).
 Si continúa leyendo Al hablar de gatekeeper primario ("primary GK") se refiere al
-gatekeeper que estamos configurando actualmente y gatekeeper alterno ("alternate GK")
-se refiere a otro. 
-El gatekeeper primario incluye un campo en el RFC que le
-indica al endpoint cual dirección IP e identificación del gatekeeper alterno utilizar.
+gatekeeper que estamos configurando actualmente y gatekeeper alterno ("alternate GK") se refiere a otro. 
+El gatekeeper primario incluye un campo en el RFC que le indica al endpoint cual dirección IP
+e identificación del gatekeeper alterno utilizar.
 Pero en cambio el gatekeeper alterno necesita conocer todos los registros
 realizados por el gatekeeper primario o sino este rechazará las llamadas. 
-Por consiguiente nuestro gatekeeper puede reenviar cada RRQ hacia una dirección
-IP alterna.
+Por consiguiente nuestro gatekeeper puede reenviar cada RRQ hacia una dirección IP alterna.
 
 La opción de configuración AlternateGKs hace referencia a los campos contenidos en
 el mensaje RCF del gatekeeper primario . Los dos primeros campos del string definen
@@ -154,10 +149,9 @@ Finalmente el último campo especifica el identificador del gatekeeper alterno.
 <item><tt/SendTo=1.2.3.4:1719/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-A pesar de que esta información esta incluida en el gatekeeper alterno
-(AlternateGKs), usted debe especificar hacia que dirección reenviar los mensajes RRQs. 
-Esto podría diferir de las direcciones del gatekeeper alterno, de esta manera esta
-es una opción de configuración aparte (piense en máquinas multihomed ).
+A pesar de que esta información esta incluida en el gatekeeper alterno (AlternateGKs),
+usted debe especificar hacia que dirección reenviar los mensajes RRQs. Esto podría diferir de las direcciones del gatekeeper
+alterno (AlternateGKs), de esta manera esta es una opción de configuración aparte (piense en máquinas multihomed ).
 
 <item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
 Default: <tt>N/A</tt><newline>
@@ -173,29 +167,29 @@ Especificar la IP de otro gatekeeper en esta lista.
 Default: <tt/7000/<newline>
 <p>
 Este es el puerto de estado para monitorear el gatekeeper.
-Ver <ref id="monitor" name="esta sección"> para más detalle.
+Revisar <ref id="monitor" name="esta sección"> para más detalle.
 
 <item><tt/SignalCallId=1/<newline>
 Default: <tt/0/<newline>
 <p>
 IDs de señalización de llamadas ACF/ARJ/DCF/DRJ/RouteRequest en los mensajes del puerto de estado.
-Ver <ref id="monitor" name="esta sección"> para más detalle.
+Revisar <ref id="monitor" name="esta sección"> para más detalle.
 
 <item><tt/StatusTraceLevel=2/<newline>
 Default: <tt/2/<newline>
 <p>
 Aquí se especifica el nivel de rastreo de mensajes para nuevas interfaces clientes.
-Ver <ref id="monitor" name="esta sección"> para más detalle.
+Revisar <ref id="monitor" name="esta sección"> para más detalle.
 
 <item><tt/TimestampFormat=ISO8601/<newline>
 Default: <tt/Cisco/<newline>
 <p>
-Esta opción permite controlar el formato de impresión de los strings generados por el gatekeeper. 
-Esta opción afecta a las secciones:
-<ref id="sqlacct" name="[SqlAcct]">,
-<ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
-y otras secciones, excepto a <ref id="calltable" name="[CallTable]">.
-Usted puede adaptar de acuerdo a sus necesidades el formato de impresión de los strings.
+Esta opción permite controlar el formato de impresión de las cadenas de fecha y hora generados por el gatekeeper. 
+Esta opción afecta a lon módulos:
+<ref id="sqlacct" name="[SqlAcct]">, <ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
+y otros módulos, excepto a <ref id="calltable" name="[CallTable]">.
+Usted puede adaptar de acuerdo a sus necesidades el formato de impresión de los strings
+configurando manualmente el parámetro <tt/TimestampFormat/.
 <p>
 Hay cuatro formatos predefinidos:
 <itemize>
@@ -243,6 +237,7 @@ Default: <tt>N/A</tt><newline>
 Define un byte de relleno global para ser utilizado durante la encriptación/desencriptación de contraseñas. 
 Ésta puede ser sustituída por la configuración <tt/KeyFilled/ establecida dentro de cada sección particular de configuración.
 Usualmente, usted no necesitará cambiar esta opción.
+
 </itemize>
 
 La mayoría de los usuarios nunca necesitará cambiar cualquiera de los siguientes valores: 
@@ -295,7 +290,35 @@ Tiempo en milisegundos para leer la interrupción en canales de estado (status ch
 Default: <tt/5000/<newline>
 <p>
 Tiempo en milisegundos para escribir la interrupción en canales de estado (status channel).
+
+<item><tt/ExternalIP=myip.no-ip.com/<newline>
+Default: <tt/N/A/<newline>
+<p>
+Cuando utilice el GnuGK detrás de una NAT, usted puede establecer la dirección IP externa
+con la que usted desee enmascarar al GK. Ésto permitirá que EP's externos y
+otros gatekeepers contacten al GK NATeado. Para que esto funcione, se debe habilitar
+los puertos requeridos por la IP del GK, o ubicar el GK en la NAT box
+DMZ.
+
+<item><tt/ExternalIsDynamic=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Defina si la IP externa es dinámica y donde serán pedidas las consultas para
+mantener la IP externa actualizada. Para que esto funcione, se debe especificar la IP externa
+con una dirección DNS mantenida por un servicio DDNS tal como www.dyndns.com o
+www.no-ip.com. 
+
+<item><tt/DefaultDomain=gnugk.org/<newline>
+Default: <tt/N/A/<newline>
+<p>
+Al recibir una petición de una dirección en el formato user@domain.com. 
+Esta opción despojará el dominio de la dirección que corresponda a este valor
+y procesa la petición como si se tratara solamente de un usuario. Esto es muy cómodo cuando tratamos 
+con llamadas interdominio ubicadas mediante la política "srv routing policy" donde se recibe la URI completa.
+Esto además puede ser utilizado conjuntamente con la sección [RasSrv::RewriteAlias] para
+convertir la URI recibida en un número E164 para opciones de enrutado.
 </itemize>
+
 
 <sect2>Sección &lsqb;GkStatus::Auth&rsqb;
 <label id="gkstatusauth">
@@ -320,8 +343,8 @@ Si <tt/ip/ no está en la lista el parámetro default es usado.
 Para permitir clientes desde 195.71.129.0/24 y 195.71.131.0/24:
 <quote><tt>regex=^195\.71\.(129|131)\.[0-9]+$</tt></quote>
 </descrip>
-<item><tt/password/ - El usuario tiene un username y password apropiado para conectarse (login). 
-El formato de username/password es el mismo que el de la sección <ref id="password" name="[SimplePasswordAuth]">.
+<item><tt/password/ - El usuario tiene un username y password apropiado para conectarse (login). El formato de username/password es el mismo que el de la sección <ref id="password" name="[SimplePasswordAuth]">.
+
 </itemize>
 
 Por otra parte, estas reglas puede ser combinadas por "|" o "&amp;". Por ejemplo,
@@ -346,9 +369,14 @@ Esta opción es utilizada para especificar si se permite o no apagar el gatekeepe
 <item><tt/DelayReject=5/<newline>
 Default: <tt/0/<newline>
 <p>
-Esta opción especifica que tiempo (en segundos) se debe esperar antes de rechazar un username / password inválido.
+Esta opción especifica que tiempo (en segundos) se debe esperar antes de rechazar un username / password inválido
+para acceder vía puerto de estado.
 </itemize>
 
+<sect2>Sección &lsqb;GkStatus::Filtering&rsqb;
+<label id="gkstatusfilteringsect">
+<p>
+Revisar <ref id="statusportfiltering" name="Filtrado del Puerto de Estado"> para más detalle.
 
 <sect2>Sección &lsqb;LogFile&rsqb;
 <label id="logfile">
@@ -366,8 +394,7 @@ y la monthly una vez por mes. Una rotación exacta esta determinada por la combin
 de las variables <tt/RotateDay/ y <tt/RotateTime/. Durante la rotación un archivo existente 
 es renombrado con el formato CURRENT_FILENAME.YYYYMMDD-HHMMSS, donde YYYYMMDD-HHMMSS es
 reemplazada con la fecha actual, se agregan y nuevas líneas a un archivo vacío. 
-Para deshabilitar la rotación, no utilice la opción <tt/Rotate/ o establézcala
-a 0.
+Para deshabilitar la rotación, no utilice la opción <tt/Rotate/ o establézcala a 0.
 
 <descrip>
 <tag/Ejemplo 1: Rotación cada hora (00:45, 01:45, ..., 23:45):/
@@ -399,3 +426,4 @@ a 0.
 <tt>RotateTime=23:00</tt><newline>
 </descrip>
 </itemize>
+

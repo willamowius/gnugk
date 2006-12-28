@@ -1,6 +1,6 @@
 <sect>Configuración de la Autenticación
 <p>
-Las siguientes secciones en el archivo de configuración pueden ser utilizadas para configurar la Autentificación.
+Las siguientes secciones en el Archivo de Configuración pueden ser utilizadas para configurar la Autentificación.
 
 <sect1>Sección &lsqb;Gatekeeper::Auth&rsqb;
 <label id="gkauth">
@@ -10,10 +10,10 @@ Esta sección define el mecanismo de autenticación para el gatekeeper.
 <descrip>
 <tag/Sintaxis:/
 <tscreen><verb>
-authrule=actions
+authrule=acciones
 
  <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | CapacityControl | ...
- <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
+ <acciones>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
  <q931>     := Setup | SetupUnreg
@@ -45,6 +45,8 @@ hay soporte actualmente. Para <bf/tokens/ separados (hashed) por CAT (Cisco Acce
 y un username/password en texto claro son soportados actualmente.
 El ID y password son leídos desde la sección <ref id="password" name="[SimplePasswordAuth]">,
 y desde una base de datos SQL para los módulos <tt/SimplePasswordAuth/ y <tt/SQLPasswordAuth/.
+El módulo <tt/MySQLPasswordAuth/ también es soportado
+para compatibilidades con versiones anteriores.
 
 <item><tt>AliasAuth/SQLAliasAuth</tt>
 <p>
@@ -63,7 +65,7 @@ basándose en la dirección IP o red del emisor (caller).
 <item><tt>PrefixAuth</tt>
 <p>
 La dirección IP o alias de una petición con un prefijo dado deben corresponderse o emparejarse con un patrón 
-específico. Ver la sección <ref id="prefixauth" name="[PrefixAuth]"> para más detalle.
+específico. Revisar la sección <ref id="prefixauth" name="[PrefixAuth]"> para más detalle.
 Actualmente el módulo puede autorizar solamente
 AdmissionRequest (ARQ) y LocationRequest (LRQ).
 
@@ -77,7 +79,7 @@ dentro de los paquetes RRQ, ARQ o Setup. Por consiguiente si sus endpoints no
 soportan CATs o usted no necesita el esquema de autenticación basado en usernames/password
 asignados individualmente - este módulo no le servirá
 (pero puede chequear además el módulo <tt/RadAliasAuth/).
-Ver la sección <ref id="radauth" name="[RadAuth]"> para más detalle.
+Revisar la sección <ref id="radauth" name="[RadAuth]"> para más detalle.
 
 <item><tt>RadAliasAuth</tt>
 <p>
@@ -85,23 +87,23 @@ Provee autenticación basada en alias de endpoints
 y/o señalización de llamada IP dirigida con servidores remotos RADIUS.
 Esto no necesita ningún <bf/tokens/ H.235 dentro de los mensajes RAS,
 de esta manera esto puede ser utilizado sobre una amplia variedad de sistemas de igual manera como <tt/RadAuth/.
-Los mensajes RRQ, ARQ y Q.931 Setup pueden ser autentificados utilizando este modulo.
-Ver la sección <ref id="radaliasauth" name="[RadAliasAuth]"> para más detalle.
+Los mensajes RRQ, ARQ y Q.931 Setup pueden ser autentificados utilizando este módulo.
+Revisar la sección <ref id="radaliasauth" name="[RadAliasAuth]"> para más detalle.
 
 <item><tt>SQLAuth</tt>
 <p>
-Un potente módulo para autentica y autorizar mensajes RRQ, ARQ, LRQ y Setup
+Un potente módulo para autenticar y autorizar mensajes RRQ, ARQ, LRQ y Setup
 Con este módulo se podrá realizar verificación basada en varios parámetros, como
-número de emisor (caller's number), número destino (destination number), username y más. Además soporta
-firzar el límite de duración de llamada, reescritura de números, ruteo de llamada, verificación y
+número de emisor (caller's number), número destino (destination number), username y más. Además tiene soporte para
+forzar el límite de duración de llamada, reescritura de números, ruteo de llamada, verificación y
 asignación de alias.
-Ver la sección <ref id="sqlauth" name="[SQLAuth]"> para más detalle.
+Revisar la sección <ref id="sqlauth" name="[SQLAuth]"> para más detalle.
 
 <item><tt>CapacityControl</tt>
 <p>
-Un módulo flexible para controlar el volúmen de llamadas entrante con la capacidad de configurar
+Un módulo flexible para controlar el volúmen de llamadas entrantes con la capacidad de configurar
 varias condiciones. IMPORTANTE: Este módulo tiene que ser utilizado conjuntamente con el módulo de
-accounting <tt/CapacityControl/. Ver la sección <ref id="capctrl" name="[CapacityControl]"> para más detalle.
+accounting <tt/CapacityControl/. Revisar la sección <ref id="capctrl" name="[CapacityControl]"> para más detalle.
 
 </itemize>
 
@@ -188,13 +190,18 @@ any=reject
 <sect1>Sección &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
 <p>
-Esta sección define el par de userid y password utilizados por
-el módulo <tt/SimplePasswordAuth/. Todos los passwords estan encriptados
+Esta sección define el par de "userid" y "password" utilizados por
+el módulo <tt/SimplePasswordAuth/. Todos los passwords están encriptados
 utilizando la herramienta <tt/addpasswd/.
 
 Modo de uso:
 <tscreen><verb>
 addpasswd config section userid password
+</verb></tscreen>
+
+Ejemplo:
+<tscreen><verb>
+addpasswd config.ini SimplePasswordAuth frank secret
 </verb></tscreen>
 
 Opciones:
@@ -205,7 +212,7 @@ Default: <tt/0/<newline>
 Valor por defecto para utilizar un byte de relleno durante la encriptación/desencriptación de passwords.
 
 <item><tt/CheckID=1/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Verifica si el alias se corresponde con el ID en los tokens.
 
@@ -245,21 +252,21 @@ El nombre de la base de datos a la cual se realiza la conexión.
 
 <item><tt/Username=gnugk/<newline>
 <p>
-El username utilizado para conectarse a la base de datos.
+El nombre de usuario utilizado para conectarse a la base de datos.
 
 <item><tt/Password=secret/<newline>
 <p>
 El password utilizado para conectarse a la base de datos.
 Si el password no está especificado, se realiza un intento de conexión 
 a la base de datos sin un password.
-Si <tt/EncryptAllPasswords/ está habilitada, o una variable <tt/KeyFilled/ esta definida
+Si <tt/EncryptAllPasswords/ está habilitada, o la variable <tt/KeyFilled/ esta definida
 en esta sección, el password esta en forma encriptada y puede ser creado utilizando la 
 herramienta <tt/addpasswd/.
 
 <item><tt/CacheTimeout=120/<newline>
 Default: <tt/0/<newline>
 <p>
-Este campo define qué tiempo el par (alias;password) recuperados desde la base de datos 
+Este campo define el tiempo en que el par (alias;password) recuperados desde la base de datos 
 estarán cacheados en la memoria local. Este valor es expresado en segundos.
 <tt/0/ significa no cachear las passwords, mientras que un valor negativo
 significa que la caché nunca expira (solamente el comando <tt/reload/ refrescará la caché).
@@ -276,14 +283,14 @@ cuando el acceso a la base de datos es serializada (una consulta a la vez).
 Default: <tt>N/A</tt><newline>
 <p>
 Define la consulta SQL utilizada para recuperar passwords H.235 desde la base de datos. La consulta
-es parametrizada, eso significa que el reemplazo de parámetros es realizado antes de que cada consulta
+es parametrizada, esto significa que el reemplazo de parámetros es realizado antes de que cada consulta
 es ejecutada. Los parámetros están denotados por cadenas <bf/%1/, <bf/%2/, ...
 Especifique %% para insertar un caracter de porcentaje antes de un dígito dentro de un string (así <bf/%%1/),
 especifique <bf/%{1}/ para permitir expansión dentro de expresiones complejas como <bf/%{1}123/.
 Para <tt/SQLPasswordAuth/ se han definido dos parámetros:
 <itemize>
-<item><tt/%1/ - El alias actual para el cual se consultará el password
-<item><tt/%2/ - El identificador del gatekeeper
+<item><tt/%1/ - El alias actual para el cual se consultará el password.
+<item><tt/%2/ - El identificador del gatekeeper.
 </itemize>
 <p>
 Aquí algunas cadenas de ejemplo:
@@ -297,7 +304,7 @@ SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
 <sect1>Sección &lsqb;RasSrv::RRQAuth&rsqb;
 <label id="rrqauth">
 <p>
-Especifica la acción sobre los mensajes de recepción RRQ (confirm or deny) para el módulo <tt/AliasAuth/.
+Especifica la acción realizada sobre los mensajes de recepción RRQ (confirm or deny) para el módulo <tt/AliasAuth/.
 El primer alias (éste será principalmente un H323ID) del endpoint a ser
 registrado es buscado en esta sección. Si un parámetro es encontrado, el valor sera
 aplicado por regla general. Una regla consiste de condiciones separadas por "&".
@@ -346,7 +353,7 @@ sigip:192.168.242.165:1720
 <p>
 Autentica endpoints utilizando reglas almacenadas en una base de datos
 (Las reglas tienen el mismo formato definido en la sección <ref id="rrqauth" name="[RasSrv::RRQAuth]">).
-Esta sección define el driver SQL a ser utilizado, los parámetros de conexión a la base de datoS
+Esta sección define el driver SQL a ser utilizado, los parámetros de conexión a la base de datos
 y las consultas a utilizar para recuperar los patroneS.
 
 <itemize>
@@ -383,7 +390,7 @@ herramienta <tt/addpasswd/.
 <item><tt/CacheTimeout=120/<newline>
 Default: <tt/0/<newline>
 <p>
-Este campo define que tiempo el par (alias;authrule) recuperados desde la base de datos 
+Este campo define el tiempo en que el par (alias;authrule) recuperados desde la base de datos 
 estarán cacheados en la memoria local. Este valor es expresado en segundos.
 <tt/0/ significa no cachear las passwords, mientras que un valor negativo
 significa que la caché nunca expira (solamente el comando <tt/reload/ refrescará la caché).
@@ -400,14 +407,14 @@ cuando el acceso a la base de datos es serializada (una consulta a la vez).
 Default: <tt>N/A</tt><newline>
 <p>
 Define la consulta SQL utilizada para recuperar alias desde la base de datos. La consulta
-es parametrizada, eso significa que el reemplazo de parámetros es realizado antes de que cada consulta
+es parametrizada, esto significa que el reemplazo de parámetros es realizado antes de que cada consulta
 es ejecutada. Los parámetros están denotados por cadenas <bf/%1/, <bf/%2/, ...
 Especifique %% para insertar un caracter de porcentaje antes de un dígito dentro de un string (así <bf/%%1/),
 especifique <bf/%{1}/ para permitir expansión dentro de expresiones complejas como <bf/%{1}123/.
 Para <tt/SQLAliasAuth/ se han definido dos parámetros:
 <itemize>
-<item><tt/%1/ - El alias actual para el cual se consultará el password
-<item><tt/%2/ - El identificador del gatekeeper
+<item><tt/%1/ - El alias actual para el cual se consultará el password.
+<item><tt/%2/ - El identificador del gatekeeper.
 </itemize>
 <p>
 Aquí algunas consultas de ejemplo:
@@ -444,7 +451,7 @@ El nombre de la base de datos a la cual se realiza la conexión.
 
 <item><tt/Username=gnugk/<newline>
 <p>
-El username utilizado para conectarse a la base de datos.
+El nombre de usuario utilizado para conectarse a la base de datos.
 
 <item><tt/Password=secret/<newline>
 <p>
@@ -490,7 +497,7 @@ el resultado de la autenticación y obtener información adicional:
 	<item>Si existe una columna llamada <tt/'aliases'/, reemplazar el alias del endpoint original
 		con los alias nuevos.
 	<item>Si existe una columna llamada <tt/'billingmode'/, establezca un modo de billing
-		asociado con el endpoint (0 - credit, 0 - debit) ???
+		asociado con el endpoint (0 - credit, <>0 - debit)
 	<item>Si existe una columna llamada <tt/'creditamount'/, establezca el balance de cuenta
 		asociado con el endpoint (Ésta es una cadena arbritaria)
 </enum>
@@ -572,7 +579,7 @@ el resultado de la autenticación y obtener información adicional:
       columnas restantes:
 <enum>
 	<item>Si existe una columna con el nombre <tt/'billingmode'/, establecer un modo de billing
-		asociado con el endpoint (0 - credit, 0 - debit) ???.
+		asociado con el endpoint (0 - credit, <>0 - debit).
 	<item>Si existe una columna con el nombre <tt/'creditamount'/, establecer el balance de cuenta
 		asociado con el endpoint (Ésta es una cadena arbitraria).
 	<item>Si existe una columna con el nombre <tt/'credittime'/, utilizar su valor entero
@@ -715,14 +722,14 @@ la herramienta <tt/addpasswd/.
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (milisegundos)<newline>
 <p>
-Contador (tiempo en milisegundos) para que el servidor RADIUS responda a una petición
+Tiempo en milisegundos que se debe esperar para que el servidor RADIUS responda a una petición
 enviada por el GnuGk. Si no se recibe ninguna respuesta dentro de este período de tiempo,
 se consultará al siguiente servidor RADIUS.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
 Default: <tt/9000/ (milisegundos)<newline>
 <p>
-Contador (tiempo en milisegundos) para que identificadores de petición RADIUS de 8-bits 
+Tiempo en milisegundos que se debe esperar para que identificadores de petición RADIUS de 8-bits 
 sean únicos. Si el rango de identificadores de 8-bits se agota dentro de este período de tiempo
 un nuevo socket cliente (socket UDP) es asignado por el módulo RADIUS. Tomemos
 el ejemplo: Tenemos aproximadamente 60 RRQs/segundo; después de 4 segundos
@@ -736,7 +743,7 @@ y por lo tanto borrarlos.
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
 Default: <tt/60000/ (milisegundos) - 60 s<newline>
 <p>
-Contador (milisegundos) para que aquellos sockets RADIUS no utilizados se cierren. Éste parámetro es utilizado
+Tiempo en milisegundos que se debe esperar para que aquellos sockets RADIUS no utilizados se cierren. Éste parámetro es utilizado
 conjuntamente con <tt/IdCacheTimeout/ - sockets adicionales
 creados durante los períodos pesados de carga del GK para atender peticiones
 entrantes. Estos sockets son cerrados durante los períodos ociosos. 
@@ -860,14 +867,14 @@ la herramienta <tt/addpasswd/.
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (milisegundos)<newline>
 <p>
-Contador (milisegundos) para que el servidor RADIUS responda a una petición
+Tiempo en milisegundos para que el servidor RADIUS responda a una petición
 enviada por el GnuGk. Si no se recibe ninguna respuesta dentro de este período de tiempo,
 se consultará al siguiente servidor RADIUS.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
 Default: <tt/9000/ (milisegundos)<newline>
 <p>
-Contador (milisegundos) para que identificadores de petición RADIUS de 8-bits
+Tiempo en  milisegundos para que identificadores de petición RADIUS de 8-bits
 sean únicos. Si el rango de identificadores de 8-bits se agota dentro de este período de tiempo
 un nuevo socket cliente (socket UDP) es asignado por el módulo RADIUS. Tomemos
 el ejemplo: Tenemos aproximadamente 60 RRQs/segundo; después de 4 segundos
@@ -881,10 +888,10 @@ y por lo tanto borrarlos.
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
 Default: <tt/60000/ (miliseconds) - 60 s<newline>
 <p>
-Contador (milisegundos) para que sockets RADIUS no utilizados sean cerrados. Éste parámetro es utilizado
+Tiempo en milisegundos para que sockets RADIUS no utilizados sean cerrados. Éste parámetro es utilizado
 conjuntamente con <tt/IdCacheTimeout/ - sockets adicionales
 creados durante los períodos pesados de carga del GK para atender peticiones
-entrantes. Estos sockets son cerrados durante los períodos ociosos. 
+entrantes. Estos sockets se cierran durante los períodos ociosos. 
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
 Default: <tt/2/<newline>
