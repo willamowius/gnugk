@@ -283,8 +283,10 @@ public:
 		(0 elements).
 	*/
 	bool SendRouteRequest(
+		/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
+		const PString& source,
 		/// calling endpoint
-		const endptr& caller,
+		const PString& epid,
 		/// CRV (Call Reference Value) of the call associated with this request
 		unsigned crv,
 		/// destination (virtual queue) aliases as specified
@@ -299,34 +301,6 @@ public:
 		const PString& sourceInfo,
 		/// the callID as string
 		const PString& callID
-		);
-
-	/** Send RouteRequest to the GK status line	and wait (LRQ version)
-		for a routing decision to be made by some external application
-		(ACD application).
-
-		@return
-		True if the external application routed the call (either by specifying
-		an alias or by rejecting the call), false if timed out waiting
-		for the routing decision.
-		If the request was rejected, destinationInfo is set to an epmty array
-		(0 elements).
-	*/
-	bool SendRouteRequest(
-		/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
-		const PString& source,
-		/// calling endpoint
-		const PString& epid,
-		/// irequestSeqNum of the request
-		unsigned seq,
-		/// destination (virtual queue) aliases as specified
-		/// by the calling endpoint (modified by this function on successful return)
-		H225_ArrayOf_AliasAddress* destinationInfo,
-		/// an actual virtual queue name (should be present in destinationInfo too)
-		const PString& vqueue,
-		/// a sequence of aliases for the calling endpoint
-		/// (in the "alias:type[=alias:type]..." format)
-		const PString& sourceInfo
 		);
 
 	/** Make a routing decision for a pending route request (inserted

@@ -666,8 +666,10 @@ void VirtualQueue::OnReload()
 }
 
 bool VirtualQueue::SendRouteRequest(
+	/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
+	const PString& source,
 	/// calling endpoint
-	const endptr& caller, 
+	const PString& epid,
 	/// CRV (Call Reference Value) of the call associated with this request
 	unsigned crv,
 	/// destination (virtual queue) aliases as specified
@@ -687,10 +689,9 @@ bool VirtualQueue::SendRouteRequest(
 {
 	bool result = false;
 	bool duprequest = false;
-	const PString epid(caller->GetEndpointIdentifier().GetValue());
 	if (RouteRequest *r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, duprequest)) {
 		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s", 
-				(const char *)AsDotString(caller->GetCallSignalAddress()),
+				(const char *)source,
 				(const char *)epid,
 				crv,
 				(const char *)vqueue,
@@ -716,62 +717,10 @@ bool VirtualQueue::SendRouteRequest(
 		m_pendingRequests.remove(r);
 		m_listMutex.Signal();
 		if( !result )
-			PTRACE(5,"VQueue\tRoute request (EPID: "<<r->m_callingEpId
-				<<", CRV="<<r->m_crv<<") timed out"
+			PTRACE(5,"VQueue\tRoute request (EPID: " << r->m_callingEpId
+				<< ", CRV=" << r->m_crv << ") timed out"
 				);
 		delete r;
-	}
-	return result;
-}
-
-bool VirtualQueue::SendRouteRequest(
-	/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
-	const PString& source,
-	/// calling endpoint
-	const PString& epid,
-	/// requestSeqNum of the request
-	unsigned seq,
-	/// destination (virtual queue) aliases as specified
-	/// by the calling endpoint (modified by this function on successful return)
-	H225_ArrayOf_AliasAddress* destinationInfo,
-	/// actual virtual queue name (should be present in destinationInfo too)
-	const PString& vqueue,
-	/// a sequence of aliases for the calling endpoint
-	/// (in the "alias:type[=alias:type]..." format)
-	const PString& sourceInfo
-	)
-{
-	bool result = false;
-	PString * callSigAdr = new PString;
-	bool duprequest = false;
-	if (RouteRequest *r = InsertRequest(epid, seq, "", destinationInfo, callSigAdr, duprequest)) {
-		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s",
-				(const char *)source,
-				(const char *)epid,
-				seq,
-				(const char *)vqueue,
-				(const char *)sourceInfo
-			);
-		msg += PString(";");
-		// signal RouteRequest to the status port only once
-		if( duprequest )
-			PTRACE(4, "VQueue\tDuplicate request: " << msg);
-		else {
-			PTRACE(2, msg);
-			GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_ROUTEREQ);
-		}
-
-		// wait for an answer from the status line (routetoalias,routereject)
-		result = r->m_sync.Wait(m_requestTimeout);
-		m_listMutex.Wait();
-		m_pendingRequests.remove(r);
-		m_listMutex.Signal();
-		if( !result )
-			PTRACE(5,"VQueue\tRoute request (EPID: "<<r->m_callingEpId
-				<<", CRV="<<r->m_crv<<") timed out"
-				);
-		delete r;
-		delete callSigAdr;
 	}
 	return result;
 }
@@ -965,21 +914,25 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				<<arq.m_requestSeqNum.GetValue()<<')'
 				);
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
-			PString * callSigAdr = new PString();
-			if (ep && m_vqueue->SendRouteRequest(ep, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, agent, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid)))
-				request.SetFlag(RoutingRequest::e_aliasesChanged);
-			if (!callSigAdr->IsEmpty()) {
-				if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-					arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
+			if (ep) {
+				PString source = AsDotString(ep->GetCallSignalAddress());
+				PString epid = ep->GetEndpointIdentifier().GetValue();
+				PString * callSigAdr = new PString();
+				if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, agent, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid)))
+					request.SetFlag(RoutingRequest::e_aliasesChanged);
+				if (!callSigAdr->IsEmpty()) {
+					if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+						arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
+					}
+					PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
+					PString ip = adr_parts[0];
+					WORD port = (WORD)(adr_parts[1].AsInteger());
+					if (port == 0)
+						port = 1720;
+					arq.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 				}
-				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
-				PString ip = adr_parts[0];
-				WORD port = (WORD)(adr_parts[1].AsInteger());
-				if (port == 0)
-					port = 1720;
-				arq.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
+				delete callSigAdr;
 			}
-			delete callSigAdr;
 			// the trick: if empty, the request is rejected
 			// so we return true to terminate the routing
 			// decision process, otherwise the aliases is
@@ -1015,8 +968,11 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			PString epid = lrq.m_endpointIdentifier.GetValue();
 			if (epid.IsEmpty())
 				epid = lrq.m_gatekeeperIdentifier.GetValue() + "_" + AsString(lrq.m_sourceInfo, false);
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, agent, AsString(lrq.m_sourceInfo)))
+			PString * callSigAdr = new PString(); /* unused for LRQs */
+			PString callID = "-";	/* not available for LRQs */
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, agent, AsString(lrq.m_sourceInfo), callID))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
+			delete callSigAdr;
 			// the trick: if empty, the request is rejected
 			// so we return true to terminate the routing
 			// decision process, otherwise the aliases is
