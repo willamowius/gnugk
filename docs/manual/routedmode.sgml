@@ -58,10 +58,10 @@ The default port is <tt/1721/. We don't use the well-known port <tt/1720/
 so you can run an H.323 endpoint in the same machine of the gatekeeper.
 You may set it to <tt/0/ to let the gatekeeper choose an arbitrary port.
 
-<item><tt/CallSignalHandlerNumber=2/<newline>
-Default: <tt/1/<newline>
+<item><tt/CallSignalHandlerNumber=10/<newline>
+Default: <tt/5/<newline>
 <p>
-The number of threads dedicated to handle signaling/H.245 channels.
+The number of threads dedicated to handle signaling/H.245 channels (between 1-200).
 You may increase this number in a heavy loaded gatekeeper. Each thread
 can process one signaling message at time, so increasing this number
 will increase call throughput. Under Windows, there exists a default limit

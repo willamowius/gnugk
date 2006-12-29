@@ -4807,7 +4807,7 @@ void HandlerList::LoadConfig()
 	T120PortRange.LoadConfig(ProxySection, "T120PortRange");
 	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange", "1024-65535");
 
-	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 1);
+	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 5);
 	if (m_numSigHandlers < 1)
 		m_numSigHandlers = 1;
 	if (m_numSigHandlers > 200)
