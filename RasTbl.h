@@ -295,8 +295,8 @@ typedef EndpointRec::Ptr endptr;
 
 class GatewayRec : public EndpointRec {
 public:
-	typedef std::vector<std::string>::iterator prefix_iterator;
-	typedef std::vector<std::string>::const_iterator const_prefix_iterator;
+	typedef std::map<std::string, int>::iterator prefix_iterator;
+	typedef std::map<std::string, int>::const_iterator const_prefix_iterator;
 
 	GatewayRec(const H225_RasMessage & completeRAS, bool Permanent=false);
 
@@ -333,7 +333,9 @@ public:
 		/// aliases to be matched (one of them)
 		const H225_ArrayOf_AliasAddress& aliases,
 		/// filled with an index of the matching alias (if found)
-		int& matchedalias
+		int& matchedalias,
+		/// priority of matched prefix
+		int& priority
 		) const;
 
 	//virtual void BuildLCF(H225_LocationConfirm &) const;
@@ -364,9 +366,8 @@ private:
 	GatewayRec& operator=(const GatewayRec&);
 
 protected:
-	// strange! can't compile in debug mode, anybody know why??
-	//vector<PString> Prefixes;
-	std::vector<std::string> Prefixes;
+	std::map<std::string, int> Prefixes;
+
 	bool defaultGW;
 	/// priority for this gateway (when more than one gw matches a dialed number)
 	int priority;

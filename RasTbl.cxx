@@ -549,7 +549,6 @@ void EndpointRec::AddCallCreditServiceControl(
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false)
 {
-	Prefixes.reserve(8);
 	LoadGatewayConfig(); // static binding
 }
 
@@ -642,36 +641,43 @@ void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols &protocols)
 			for (PINDEX s = 0; s < supportedPrefixes->GetSize(); ++s) {
 				H225_AliasAddress &a = (*supportedPrefixes)[s].m_prefix;
 				if (a.GetTag() == H225_AliasAddress::e_dialedDigits)
-					Prefixes.push_back((const char *)AsString(a, false));
+					Prefixes[(const char *)AsString(a, false)] = 1;
 			}
 	}
 }
 
 void GatewayRec::AddPrefixes(const PString & prefixes)
 {
-	PStringArray p(prefixes.Tokenise(" ,;\t\n", false));
-	for (PINDEX i = 0; i < p.GetSize(); ++i)
-		Prefixes.push_back((const char *)p[i]);
+	PStringArray prefix(prefixes.Tokenise(" ,;\t\n", false));
+	for (PINDEX i = 0; i < prefix.GetSize(); ++i) {
+		PStringArray p(prefix[i].Tokenise(":=", false));
+		int priority = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
+		if (priority < 1)
+			priority = 1;
+		if (!Prefixes[(const char *)p[0]] || Prefixes[(const char *)p[0]] > priority)
+			Prefixes[(const char *)p[0]] = priority;
+	}
 }
 
 void GatewayRec::SortPrefixes()
 {
 	// remove duplicate aliases
-	sort(Prefixes.begin(), Prefixes.end(), str_prefix_greater());
-	prefix_iterator Iter = std::unique(Prefixes.begin(), Prefixes.end());
-	Prefixes.erase(Iter, Prefixes.end());
-	defaultGW = (std::find(Prefixes.begin(), Prefixes.end(), string("*")) != Prefixes.end());
+//	sort(Prefixes.begin(), Prefixes.end(), str_prefix_greater());
+//	prefix_iterator Iter = std::unique(Prefixes.begin(), Prefixes.end());
+//	Prefixes.erase(Iter, Prefixes.end());
+	defaultGW = (Prefixes.find("*") != Prefixes.end());
 }
 
 int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &aliases) const
 {
 	int dummy;
-	return PrefixMatch(aliases, dummy);
+	return PrefixMatch(aliases, dummy, dummy);
 }
 
 int GatewayRec::PrefixMatch(
 	const H225_ArrayOf_AliasAddress& aliases,
-	int& matchedalias
+	int& matchedalias,
+	int& priority
 	) const
 {
 	int maxlen = 0;
@@ -679,6 +685,7 @@ int GatewayRec::PrefixMatch(
 	const_prefix_iterator eIter = Prefixes.end();
 
 	matchedalias = 0;
+	priority = 1;
 	
 	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
 		const unsigned tag = aliases[i].GetTag();
@@ -694,8 +701,8 @@ int GatewayRec::PrefixMatch(
 					
 			const_prefix_iterator Iter = Prefixes.begin();
 			while (Iter != eIter) {
-				if (Iter->length() > (unsigned)abs(maxlen)) {
-					const int len = MatchPrefix(alias, Iter->c_str());
+				if (Iter->first.length() > (unsigned)abs(maxlen)) {
+					const int len = MatchPrefix(alias, Iter->first.c_str());
 					// replace the current match if the new prefix is longer
 					// or if lengths are equal and this is a blocking rule (!)
 					if (abs(len) > abs(maxlen)
@@ -703,6 +710,7 @@ int GatewayRec::PrefixMatch(
 						pfxiter = Iter;
 						maxlen = len;
 						matchedalias = i;
+						priority = Iter->second;
 					}
 				}
 				++Iter;
@@ -712,11 +720,11 @@ int GatewayRec::PrefixMatch(
 	
 	if (maxlen < 0) {
 		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue() 
-			<< " skipped by prefix " << pfxiter->c_str()
+			<< " skipped by prefix " << pfxiter->first.c_str()
 			);
 	} else if (maxlen > 0) {
 		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue()
-			<< " matched by prefix " << pfxiter->c_str()
+			<< " matched by prefix " << pfxiter->first.c_str() << ", priority: " << priority
 			);
 		return maxlen;
 	} else if (defaultGW) {
@@ -763,11 +771,16 @@ PString GatewayRec::PrintOn(bool verbose) const
 		if (Prefixes.size() == 0) {
 			msg += "<none>";
 		} else {
-			string m=Prefixes.front();
+			PString m = PString(Prefixes.begin()->first);
+			if (Prefixes.begin()->second != 1)
+				m += ":=" + PString(Prefixes.begin()->second);
 			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
-			while (++Iter != eIter)
-				m += "," + (*Iter);
-			msg += m.c_str();
+			while (++Iter != eIter) {
+				m += "," + PString(Iter->first);
+				if (Iter->second != 1)
+					m += ":=" + PString(Iter->second);
+			}
+			msg += m;
 		}
 		msg += "\r\n";
 	}
@@ -1029,7 +1042,7 @@ namespace {
 struct GWPtr {
 	GWPtr(GatewayRec *gw) : gwptr(gw) {}
 	GatewayRec* operator->() const { return gwptr; }
-	bool operator <(const GWPtr &gw) { return gwptr->GetPriority() < gw->GetPriority(); }
+	bool operator <(const GWPtr &gw) const { return gwptr->GetPriority() < gw->GetPriority(); }
 	GatewayRec *gwptr;
 private:
 	GWPtr();
@@ -1047,19 +1060,22 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	}
 
 	int maxlen = 0;
-	std::list<GWPtr> GWlist;
+	int matchedalias;
+	int priority;
+
+	std::list<std::pair<int, GWPtr> > GWlist;
 	listLock.StartRead();
 	const_iterator Iter = List->begin(), IterLast = List->end();
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway() &&
 			find(ignoreList.begin(), ignoreList.end(), (*Iter)->GetCallSignalAddress()) == ignoreList.end() ) {	// not on ignoreList
-			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias);
+			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias, matchedalias, priority);
 			if (maxlen < len) {
 				GWlist.clear();
 				maxlen = len;
 			}
 			if (maxlen == len) {
-				GWlist.push_back(GWPtr(dynamic_cast<GatewayRec*>(*Iter)));
+				GWlist.push_back(std::pair<int, GWPtr>(priority, GWPtr(dynamic_cast<GatewayRec*>(*Iter))));
 			}
 		}
 		++Iter;
@@ -1069,11 +1085,11 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	if (GWlist.size() > 0) {
 		GWlist.sort();
 		
-		std::list<GWPtr>::const_iterator i = GWlist.begin();
-		GatewayRec *e = GWlist.front().gwptr;
+		std::list<std::pair<int, GWPtr> >::const_iterator i = GWlist.begin();
+		GatewayRec *e = GWlist.front().second.gwptr;
 		while (!e->HasAvailableCapacity() && ++i != GWlist.end()) {
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
-			e = i->gwptr;
+			e = i->second.gwptr;
 		}
 		if ((GWlist.size() > 1) && roundrobin) {
 			PTRACE(3, "Prefix apply round robin");
@@ -1104,18 +1120,21 @@ void RegistrationTable::InternalFindEP(
 	}
 
 	int maxlen = 0;
-	std::list<GWPtr> GWlist;
+	int matchedalias;
+	int priority;
+
+	std::list<std::pair<int, GWPtr> > GWlist;
 	listLock.StartRead();
 	const_iterator Iter = endpoints->begin(), IterLast = endpoints->end();
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway()) {	// not on ignoreList
-			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(aliases);
+			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(aliases, matchedalias, priority);
 			if (maxlen < len) {
 				GWlist.clear();
 				maxlen = len;
 			}
 			if (maxlen == len) {
-				GWlist.push_back(GWPtr(dynamic_cast<GatewayRec*>(*Iter)));
+				GWlist.push_back(std::pair<int, GWPtr>(priority, GWPtr(dynamic_cast<GatewayRec*>(*Iter))));
 			}
 		}
 		++Iter;
@@ -1125,12 +1144,12 @@ void RegistrationTable::InternalFindEP(
 	if (!GWlist.empty()) {
 		GWlist.sort();
 		
-		std::list<GWPtr>::const_iterator i = GWlist.begin();
-		GatewayRec *e = GWlist.front().gwptr;
+		std::list<std::pair<int, GWPtr> >::const_iterator i = GWlist.begin();
+		GatewayRec *e = GWlist.front().second.gwptr;
 		++i;
 		while (!e->HasAvailableCapacity() && i != GWlist.end()) {
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
-			e = (i++)->gwptr;
+			e = (i++)->second.gwptr;
 		}
 		if (GWlist.size() > 1 && roundRobin) {
 			PTRACE(3, "Prefix apply round robin");
@@ -1140,7 +1159,7 @@ void RegistrationTable::InternalFindEP(
 		}
 		routes.push_back(Route(endptr(e)));
 		while (i != GWlist.end())
-			routes.push_back(Route(endptr((*i++).gwptr)));
+			routes.push_back(Route(endptr((*i++).second.gwptr)));
 #if PTRACING
 		if (PTrace::CanTrace(4)) {
 			ostream &strm = PTrace::Begin(4, __FILE__, __LINE__);
