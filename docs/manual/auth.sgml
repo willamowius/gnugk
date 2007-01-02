@@ -33,7 +33,7 @@ There are also three ways to control a rule:
 <item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
 </itemize>
 
-Currently supported modules:
+Currently supported modules: (most of them only support a subset of the ras or q931 actions)
 <itemize>
 <item><tt>SimplePasswordAuth/SQLPasswordAuth</tt>
 <p>
