@@ -560,89 +560,6 @@ in the pool is used to store accounting data.
 
 </itemize>
 
-<sect1>Section &lsqb;StatusAcct&rsqb;
-<label id="statusacct">
-<p>
-This accounting module sends all accounting information to the
-status port where it can be used to interface to
-external systems in real time.
-
-<itemize>
-<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
-Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines the event to display for a new call. The string is parametrized
-with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAacct]">).
-
-<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
-Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines the event when a call is finished (disconnected). The syntax and parameters are the same as for <tt/StartEvent/. This event is equivalent to the old status port CDR event, but more flexible.
-
-<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
-Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines event used to update the current call state. The syntax and parameters are the same as for <tt/StartEvent/.
-
-<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
-Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
-
-<item><tt/TimestampFormat=MySQL/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-Format of timestamp strings used in events. If this setting
-is not specified, a global one from the main gatekeeper section is used.
-
-</itemize>
-
-<sect1>Section &lsqb;SyslogAcct&rsqb;
-<label id="syslogacct">
-<p>
-This accounting module sends accounting information to the
-Unix syslog and is not available on Windows. The local syslog daemon will then route the messages according to the it's configuration (generally /etc/syslog.conf).
-
-<itemize>
-<item><tt/SyslogFacility=LOG_LOCAL1/<newline>
-Default: <tt>LOG_USER</tt><newline>
-<p>
-Set the syslog facility to one of LOG_USER, LOG_DAEMON, LOG_AUTH, LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4, LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7.
-
-<item><tt/SyslogLevel=LOG_NOTICE/<newline>
-Default: <tt>LOG_INFO</tt><newline>
-<p>
-Set the syslog level to on one LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG.
-
-<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
-Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines the event to display for a new call. The string is parametrized
-with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAacct]">).
-
-<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
-Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines the event when a call is finished (disconnected). The syntax and parameters are the same as for <tt/StartEvent/. This event is equivalent to the old status port CDR event, but more flexible.
-
-<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
-Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines event used to update the current call state. The syntax and parameters are the same as for <tt/StartEvent/.
-
-<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
-Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
-<p>
-Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
-
-<item><tt/TimestampFormat=MySQL/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-Format of timestamp strings used in events. If this setting
-is not specified, a global one from the main gatekeeper section is used.
-
-</itemize>
-
 <sect2>A Sample MySQL Schema
 <label id="mysqlscheme">
 <p>
@@ -728,3 +645,86 @@ StopQueryAlt= insert into CDR (gatekeeper_name, call_number, call_duration, disc
 TimestampFormat=MySQL
 </verb></tscreen>
 
+
+<sect1>Section &lsqb;StatusAcct&rsqb;
+<label id="statusacct">
+<p>
+This accounting module sends all accounting information to the
+status port where it can be used to interface to
+external systems in real time.
+
+<itemize>
+<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
+Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event to display for a new call. The string is parametrized
+with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAacct]">).
+
+<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
+Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is finished (disconnected). The syntax and parameters are the same as for <tt/StartEvent/. This event is equivalent to the old status port CDR event, but more flexible.
+
+<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
+Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines event used to update the current call state. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
+Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings used in events. If this setting
+is not specified, a global one from the main gatekeeper section is used.
+
+</itemize>
+
+<sect1>Section &lsqb;SyslogAcct&rsqb;
+<label id="syslogacct">
+<p>
+This accounting module sends accounting information to the
+Unix syslog and is not available on Windows. The local syslog daemon will then route the messages according to the it's configuration (generally /etc/syslog.conf).
+
+<itemize>
+<item><tt/SyslogFacility=LOG_LOCAL1/<newline>
+Default: <tt>LOG_USER</tt><newline>
+<p>
+Set the syslog facility to one of LOG_USER, LOG_DAEMON, LOG_AUTH, LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4, LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7.
+
+<item><tt/SyslogLevel=LOG_NOTICE/<newline>
+Default: <tt>LOG_INFO</tt><newline>
+<p>
+Set the syslog level to on one LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG.
+
+<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
+Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event to display for a new call. The string is parametrized
+with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAacct]">).
+
+<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
+Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is finished (disconnected). The syntax and parameters are the same as for <tt/StartEvent/. This event is equivalent to the old status port CDR event, but more flexible.
+
+<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
+Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines event used to update the current call state. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
+Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings used in events. If this setting
+is not specified, a global one from the main gatekeeper section is used.
+
+</itemize>
