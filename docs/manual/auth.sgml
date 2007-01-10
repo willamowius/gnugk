@@ -1039,7 +1039,7 @@ calls, while all other IPs can send up to 120 concurrent calls.
  
 <tag/Example 2:/
 <tscreen><verb>
-[RewriteCLI]
+[CapacityControl]
 %r1% cli:1001=30
 %r2% cli:1001=^48(50|51) 5
 </verb></tscreen>

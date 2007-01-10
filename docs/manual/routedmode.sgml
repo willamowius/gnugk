@@ -291,7 +291,7 @@ Default: <tt/1-15,21-127/<newline>
 Define which cause codes in a ReleaseComplete will trigger
 call failover.
 
-<item><tt/DiableRetryChecks=1/<newline>
+<item><tt/DisableRetryChecks=1/<newline>
 Default: <tt/0/<newline>
 <p>
 This will disable all checks if a failed call has already received

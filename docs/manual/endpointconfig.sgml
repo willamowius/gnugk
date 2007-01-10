@@ -30,14 +30,17 @@ Apply only to gateways. Allow priority based routing in case, when more
 than one gateway matches a dialed number. The smaller value the higher priority
 is assigned to a gateway. A call is routed to the first available gateway
 (that has available capacity) with the highest priority (the smallest
-<tt/GatewayPriority/ values).
+<tt/GatewayPriority/ values). In case whe gateway priority contradicts prefix priority (see section <ref id="gwprefixes" name="[RasSrv::GWPrefixes]">)  
+ for details) prefix one has the preference.
 
-<item><tt/GatewayPrefixes=0048,0049,0044/<newline>
+<item><tt/GatewayPrefixes=0048,0049:=2,0044/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Additional prefixes for this gateway. Apply only to gateways. 
 Special characters <tt/./ and <tt/!/ can be used here to match any digit 
 and disable the prefix.
+You may use the := syntax to set a prefix priority in the same manner as in <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> section.
+
 
 <item><tt/CalledTypeOfNumber=1/<newline>
 Default: <tt>N/A</tt><newline>

@@ -163,7 +163,7 @@ A prefix can contain digits <tt/0-9/, <tt/#/ and <tt/*/. It can also
 contain a special character <tt/./ (a dot) that matches any digit
 and can be prefixed with <tt/!/ (an exclamation mark) to disable the prefix.
 Prefix matching is done accordingly to the longest matching prefix rule,
-with ! rules having higher priority if lengths are equal. Some examples:
+with ! rules having higher priority if lengths are equal. You may also use := syntax to set the priority between several gateways matching the same prefix (see section <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> for details). Some examples:
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
