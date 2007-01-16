@@ -1188,6 +1188,8 @@ PConfig* Toolkit::ReloadConfig()
 	CapacityControl::Instance()->LoadConfig();
 
 	LoadCauseMap(m_Config);
+
+	LoadReasonMap(m_Config);
 	
 	return m_Config;
 }
@@ -1216,6 +1218,29 @@ void Toolkit::LoadCauseMap(
 					m_causeMap[cmin >> 3] |= (1UL << (cmin & 7));
 			}
 		}
+}
+
+// load H.225 reason to Q.931 cause mapping
+void Toolkit::LoadReasonMap(
+	PConfig *cfg
+	)
+{
+	// default to ITU-T Recommendation H.225
+	unsigned DefaultH225ReasonToQ931Cause[] =	{
+		34, 47, 3, 16, 88, 111, 38, 42, 28, 41, 17, 31, 16, 31, 20, 31, 47, 127,
+		31, 31, 31, 127
+	};
+	m_H225ReasonToQ931Cause.assign(&DefaultH225ReasonToQ931Cause[0], &DefaultH225ReasonToQ931Cause[22]);
+
+	for(int reason = 0; reason < H225_ReleaseCompleteReason::e_tunnelledSignallingRejected; reason++) {
+		PString str_reason;
+		str_reason.sprintf("%d", reason);
+		PString cause = cfg->GetString("H225toQ931", str_reason, "");
+		if (!cause.IsEmpty()) {
+			m_H225ReasonToQ931Cause[reason] = cause.AsInteger();
+		}
+	}
+
 }
 
 BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
@@ -1671,4 +1696,15 @@ void Toolkit::SetRerouteCauses(
 	)
 {
 	memcpy(causeMap, m_causeMap, 128/8);
+}
+
+
+unsigned Toolkit::MapH225ReasonToQ931Cause(
+	int reason
+	)
+{
+	if( reason < 0 || reason > H225_ReleaseCompleteReason::e_tunnelledSignallingRejected )
+		return 0;
+	else
+		return m_H225ReasonToQ931Cause[reason];
 }

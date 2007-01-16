@@ -1012,7 +1012,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 			// remember disconnect cause for billing purposes
 			if( m_call && m_call->GetDisconnectCause() == 0 )
 				m_call->SetDisconnectCause(
-					MapH225ReasonToQ931Cause(uuie.m_reason.GetTag())
+					Toolkit::Instance()->MapH225ReasonToQ931Cause(uuie.m_reason.GetTag())
 					);
 		} else { // H225_CallTerminationCause::e_releaseCompleteCauseIE
 			PPER_Stream strm;
@@ -1666,7 +1666,7 @@ void CallSignalSocket::OnSetup(
 			if (authData.m_rejectCause >= 0)
 				m_call->SetDisconnectCause(authData.m_rejectCause);
 			else if (authData.m_rejectReason >= 0)
-				m_call->SetDisconnectCause(MapH225ReasonToQ931Cause(authData.m_rejectReason));
+				m_call->SetDisconnectCause(Toolkit::Instance()->MapH225ReasonToQ931Cause(authData.m_rejectReason));
 			else
 				m_call->SetDisconnectCause(Q931::CallRejected);
 			rejectCall = true;
@@ -1921,7 +1921,7 @@ void CallSignalSocket::OnSetup(
 			if (authData.m_rejectCause >= 0)
 				m_call->SetDisconnectCause(authData.m_rejectCause);
 			else if (authData.m_rejectReason >= 0)
-				m_call->SetDisconnectCause(MapH225ReasonToQ931Cause(authData.m_rejectReason));
+				m_call->SetDisconnectCause(Toolkit::Instance()->MapH225ReasonToQ931Cause(authData.m_rejectReason));
 			else
 				m_call->SetDisconnectCause(Q931::CallRejected);
 		}
@@ -2273,7 +2273,7 @@ void CallSignalSocket::OnReleaseComplete(
 		} else if (rc != NULL) {
 			H225_ReleaseComplete_UUIE& rcBody = rc->GetUUIEBody();
 			if (rcBody.HasOptionalField(H225_ReleaseComplete_UUIE::e_reason)) {
-				cause = MapH225ReasonToQ931Cause(rcBody.m_reason.GetTag());
+				cause = Toolkit::Instance()->MapH225ReasonToQ931Cause(rcBody.m_reason.GetTag());
 				m_call->SetDisconnectCause(cause);
 			}
 		}

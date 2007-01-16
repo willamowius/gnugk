@@ -65,6 +65,35 @@ are generated for such a call.
 
 </itemize>
 
+<sect1>Section &lsqb;H225toQ931&rsqb;
+<label id="h225toq931">
+<p>
+When converting between H.225 reasons and Q.931 cause codes, GnuGk
+uses a conversion table. Using this section you can change this mapping.
+
+<quote><tt>[H225toQ931]<newline>
+;0=34 # noBandwidth<newline>
+;1=47 # gatekeeperResources<newline>
+2=34 # unreachableDestination => NoCircuitChannelAvailable (default 3)<newline>
+;3=16 # destinationRejection<newline>
+;4=88 # invalidRevision<newline>
+;5=111 # noPermission<newline>
+;6=38 # unreachableGatekeeper<newline>
+;7=42 # gatewayResources<newline>
+;8=28 # badFormatAddress<newline>
+;9=41 # adaptiveBusy<newline>
+;10=17 # inConf<newline>
+;11=31 # undefinedReason<newline>
+;12=16 # facilityCallDeflection<newline>
+;13=31 # securityDenied<newline>
+14=34 # calledPartyNotRegistered => NoCircuitChannelAvailable (default 20)<newline>
+;15=31 # callerNotRegistered<newline>
+;16=47 # newConnectionNeeded<newline>
+;17=127 # nonStandardReason<newline>
+;18=31 # replaceWithConferenceInvite<newline>
+;19=31 # genericDataReason<newline>
+;20=31 # neededFeatureNotSupported<newline>
+;21=127 # tunnelledSignallingRejected<newline></tt></quote>
 
 <sect1>Section &lsqb;Endpoint&rsqb;
 <label id="endpoint">

@@ -92,15 +92,6 @@ PString GetBestAliasAddressString(
 	unsigned primaryTags, /// ORed tag flags (BestAliasTagMask)
 	unsigned secondaryTags = 0 /// ORed tag flags (BestAliasTagMask)
 	);
-	
-/** Map H225_ReleaseCompleteReason code to Q.931 cause value.
-	
-	@return
-	The corresponding Q.931 cause value or 0, if there is no direct mapping.
-*/
-unsigned MapH225ReasonToQ931Cause(
-	int reason /// H225_ReleaseCompleteReason code to map
-	);
 
 /** Return 128-bit globally unique identifier as a string composed of four 
     32-bit hex numbers, with leading zeros skipped or not. This format is 
