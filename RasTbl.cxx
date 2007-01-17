@@ -2123,7 +2123,7 @@ void CallRec::Update(const H225_InfoRequestResponse & irr)
 		else
 			m_irrCalleeTimer = time(NULL);
 	} else {
-		if (irr.m_endpointIdentifier == m_Calling->GetEndpointIdentifier())
+		if (m_Calling && irr.m_endpointIdentifier == m_Calling->GetEndpointIdentifier())
 			m_irrCallerTimer = time(NULL);
 		else
 			m_irrCalleeTimer = time(NULL);
