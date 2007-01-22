@@ -1297,6 +1297,7 @@ void StatusClient::ExecCommand(
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), "");
 		} else if (args.GetSize() == 5) {
 			args[4].Replace("-", " ", true);
+			args[4] = args[4].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4]);
 		} else {
 			WriteString("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
@@ -1308,6 +1309,7 @@ void StatusClient::ExecCommand(
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), "");
 		} else if (args.GetSize() == 6) {
 			args[5].Replace("-", " ", true);
+			args[5] = args[5].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5]);
 		} else {
 			WriteString("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
@@ -1319,6 +1321,7 @@ void StatusClient::ExecCommand(
 			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned(), "");
 		} else if (args.GetSize() == 4) {
 			args[3].Replace("-", " ", true);
+			args[3] = args[3].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned(), args[3]);
 		} else {
 			WriteString("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV [CALLID]\r\n");

@@ -969,7 +969,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			if (epid.IsEmpty())
 				epid = lrq.m_gatekeeperIdentifier.GetValue() + "_" + AsString(lrq.m_sourceInfo, false);
 			PString * callSigAdr = new PString(); /* unused for LRQs */
-			PString callID = "-";	/* not available for LRQs */
+			PString callID = "";	/* not available for LRQs */
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, agent, AsString(lrq.m_sourceInfo), callID))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 			delete callSigAdr;
