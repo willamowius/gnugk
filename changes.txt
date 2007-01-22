@@ -1,6 +1,9 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
-- new config section [H225toQ931] to change the H.225 reason to Q.931 cause code mapping
+- BUGFIX(Neighbor.cxx,ProxyChannel.cxx): fix canMapAlias for LRQs with
+  unregistered endpoints
+- new config section [H225toQ931] to change the H.225 reason to Q.931
+  cause code mapping
 - optional priorities for gateway prefixes: gw-alias=prefix[:=priority][,prefix[:=priority],...] (patch by Alex Golyshev and Andrey Pasukov)
 - change default value for CallSignalHandler to 5
 - BUGFIX(Toolkit.cxx): fix for calling between 2 internal networks

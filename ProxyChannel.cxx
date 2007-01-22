@@ -1809,7 +1809,7 @@ void CallSignalSocket::OnSetup(
 				}
 			}
 		}
-		
+
 		if (!rejectCall && !destFound) {
 			// for compatible to old version
 			if (!(useParent || rassrv->AcceptUnregisteredCalls(_peerAddr))) {
@@ -1821,6 +1821,23 @@ void CallSignalSocket::OnSetup(
 			} else {
 				Route route;
 				request.Process();
+				// check if destination has changed in the routing process
+				// eg. via canMapAlias in LRQ
+				if (request.GetFlags() & Routing::SetupRequest::e_aliasesChanged) {
+					setupBody.m_destinationAddress = request.GetRequest().m_destinationAddress;
+					const PString newCalledParty = AsString(setupBody.m_destinationAddress[0], FALSE);
+					if (q931.HasIE(Q931::CalledPartyNumberIE)) {
+						if (!newCalledParty && strspn(newCalledParty, "1234567890*#+,") == strlen(newCalledParty)) {
+							unsigned plan, type;
+							PString calledNumber;
+							if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
+								q931.SetCalledPartyNumber(newCalledParty, plan, type);
+							else
+								q931.RemoveIE(Q931::CalledPartyNumberIE);
+						}
+						authData.m_calledStationId = newCalledParty;
+					}
+				}
 				if (request.GetFirstRoute(route)) {
 					destFound = true;
 					calledAddr = route.m_destAddr;

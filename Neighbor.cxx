@@ -1146,7 +1146,8 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 				// canMapAlias: copy new destination if changed
 				if (lrq_obj.GetRequest().HasOptionalField(H225_LocationRequest::e_canMapAlias)
 					&& lrq_obj.GetRequest().m_canMapAlias
-					&& lrq_obj.GetRequest().m_destinationInfo != lcf->m_destinationInfo) {
+					&& lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)
+					&& (lrq_obj.GetRequest().m_destinationInfo != lcf->m_destinationInfo)) {
 					lrq_obj.GetRequest().m_destinationInfo = lcf->m_destinationInfo;
 					lrq_obj.SetFlag(RoutingRequest::e_aliasesChanged);
 				}
@@ -1170,6 +1171,12 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 			route.m_flags |= Route::e_toNeighbor;
 			setup_obj.AddRoute(route);
 			CopyCryptoTokens(lcf, setup_obj.GetRequest());
+			// canMapAlias: adjust new destination
+			if (lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)
+				&& (setup_obj.GetRequest().m_destinationAddress != lcf->m_destinationInfo)) {
+				setup_obj.GetRequest().m_destinationAddress = lcf->m_destinationInfo;
+				setup_obj.SetFlag(RoutingRequest::e_aliasesChanged);
+			}
 			return true;
 		}
 	}
