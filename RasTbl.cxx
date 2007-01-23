@@ -189,9 +189,11 @@ void EndpointRec::LoadEndpointConfig()
 	PConfig* const cfg = GkConfig();
 	const PStringList sections = cfg->GetSections();
 	
+	bool setDefaults = true;
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
 		const PString key = "EP::" + AsString(m_terminalAliases[i], FALSE);
 		if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
+			setDefaults = false;
 			m_capacity = cfg->GetInteger(key, "Capacity", -1);
 			int type = cfg->GetInteger(key, "CalledTypeOfNumber", -1);
 			if (type == -1)
@@ -210,6 +212,13 @@ void EndpointRec::LoadEndpointConfig()
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 			break;
 		}
+	}
+	
+	if (setDefaults) {
+		m_capacity = -1;
+		m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
+		m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
+		m_proxy = 0;
 	}
 }
 
@@ -547,7 +556,7 @@ void EndpointRec::AddCallCreditServiceControl(
 
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
-      : EndpointRec(completeRRQ, Permanent), defaultGW(false)
+      : EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1)
 {
 	LoadGatewayConfig(); // static binding
 }
@@ -570,7 +579,8 @@ void GatewayRec::LoadGatewayConfig()
 	if (Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
 		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
 			AddPrefixes(m_terminalType->m_gateway.m_protocol);
-			
+		
+	bool setDefaults = true;	
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
 		const PString alias = AsString(m_terminalAliases[i], FALSE);
 		if (!alias) {
@@ -579,11 +589,15 @@ void GatewayRec::LoadGatewayConfig()
 			if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
 				AddPrefixes(cfg->GetString(key, "GatewayPrefixes", ""));
 				priority = cfg->GetInteger(key, "GatewayPriority", 1);
+				setDefaults = false;
 				PTRACE(5, "RAS\tGateway " << key << " priority: " << priority);
 				break;
 			}
 		}
 	}
+
+	if (setDefaults)
+		priority = 1;
 
 	SortPrefixes();
 }
