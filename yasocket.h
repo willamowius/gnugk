@@ -295,12 +295,12 @@ public:
 #else
 	bool IsReadable(int milisec = 0)
 	{
-		return SocketSelectList(self).Select(SocketSelectList::Read, milisec);
+		return self->IsOpen() && SocketSelectList(self).Select(SocketSelectList::Read, milisec);
 	}
 
 	bool IsWriteable(int milisec = 0)
 	{
-		return SocketSelectList(self).Select(SocketSelectList::Write, milisec);
+		return self->IsOpen() && SocketSelectList(self).Select(SocketSelectList::Write, milisec);
 	}
 #endif
 
