@@ -2133,7 +2133,8 @@ bool AdmissionRequestPDU::Process()
 		Route route;
 		arq.GetFirstRoute(route);
 		
-		if (route.m_destEndpoint && !route.m_destEndpoint->HasAvailableCapacity())
+		if (arq.GetRoutes().size() == 1 && route.m_destEndpoint
+				&& !route.m_destEndpoint->HasAvailableCapacity())
 			return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 
 		CalledEP = route.m_destEndpoint;
@@ -2507,7 +2508,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		lrq.Process();
 		if (lrq.GetFirstRoute(route)) {
 			WantedEndPoint = route.m_destEndpoint;
-			if (WantedEndPoint && !WantedEndPoint->HasAvailableCapacity()) {
+			if (lrq.GetRoutes().size() == 1 && WantedEndPoint
+					&& !WantedEndPoint->HasAvailableCapacity()) {
 				bReject = true;
 				reason = H225_LocationRejectReason::e_resourceUnavailable;
 			} else {
