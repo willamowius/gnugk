@@ -1,5 +1,7 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
+- BUGFIX(ProxyChannel.cxx) preserve presentation and screening indicators
+  in Calling-Party-Number IEs
 - BUGFIX(RasTbl.cxx) restore default value for capacity and priority
   on config reload, if removed from an EP section (or if the whole section
   has been removed)

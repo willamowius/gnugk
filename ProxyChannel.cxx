@@ -3073,7 +3073,8 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 	}
 
 	if (q931->HasIE(Q931::CallingPartyNumberIE)) {
-		if (q931->GetCallingPartyNumber(Number, &plan, &type)) {
+		unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
+		if (q931->GetCallingPartyNumber(Number, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1)) {
 			dtype = -1;
 			if (called) {
 				dtype = called->GetCallTypeOfNumber(false);
@@ -3085,7 +3086,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 				if (dtype != -1)
 					type = dtype;
 			}
-			q931->SetCallingPartyNumber(Number, plan, type);
+			q931->SetCallingPartyNumber(Number, plan, type, presentation, screening);
 			#if PTRACING
 			PTRACE(4, Type() << "Set Calling Numbering Plan " << plan << TypeOfNumber << type);
 			#endif
