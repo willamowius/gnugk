@@ -307,7 +307,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 		return false;
 	}
 
-	if (!extroute && AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
+	if (/*!extroute &&*/ AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
 	  for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
 		if (r_table[i].GetNetwork().IsRFC1918() && r_table[i].GetNetMask().AsString() != "255.255.255.255") {
 		  PString intAddr = r_table[i].GetNetwork().AsString() + "/" + r_table[i].GetNetMask().AsString();
