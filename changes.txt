@@ -1,5 +1,7 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
+- BUGFIX(RasTbl.cxx) ensure that full gateways are eliminated, when failover
+  is active and remaining gateways are sorted due to their priority correctly
 - BUGFIX(ProxyChannel.cxx) preserve presentation and screening indicators
   in Calling-Party-Number IEs
 - BUGFIX(RasTbl.cxx) restore default value for capacity and priority

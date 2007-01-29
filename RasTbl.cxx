@@ -1053,15 +1053,12 @@ void RegistrationTable::FindEndpoint(
 }
 
 namespace {
-struct GWPtr {
-	GWPtr(GatewayRec *gw) : gwptr(gw) {}
-	GatewayRec* operator->() const { return gwptr; }
-	bool operator <(const GWPtr &gw) const { return gwptr->GetPriority() < gw->GetPriority(); }
-	GatewayRec *gwptr;
-private:
-	GWPtr();
-};
-} /* namespace */
+// a specialized comparision operator to have a gwlist sorted by increasing priority value
+inline bool ComparePriority(const pair<int, GatewayRec*>& x, const pair<int, GatewayRec*>& y)
+{
+	return x.first < y.first;
+}
+}
 
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
 	std::list<EndpointRec *> *List, bool roundrobin, const list<H225_TransportAddress> & ignoreList)
@@ -1074,38 +1071,35 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	}
 
 	int maxlen = 0;
-	int matchedalias;
-	int priority;
-
-	std::list<std::pair<int, GWPtr> > GWlist;
+	std::list<std::pair<int, GatewayRec*> > GWlist;
 	listLock.StartRead();
 	const_iterator Iter = List->begin(), IterLast = List->end();
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway() &&
-			find(ignoreList.begin(), ignoreList.end(), (*Iter)->GetCallSignalAddress()) == ignoreList.end() ) {	// not on ignoreList
-			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias, matchedalias, priority);
+				find(ignoreList.begin(), ignoreList.end(), (*Iter)->GetCallSignalAddress()) == ignoreList.end() ) {	// not on ignoreList
+			int dummymatchedalias, priority = 1;
+			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias, dummymatchedalias, priority);
 			if (maxlen < len) {
 				GWlist.clear();
 				maxlen = len;
 			}
-			if (maxlen == len) {
-				GWlist.push_back(std::pair<int, GWPtr>(priority, GWPtr(dynamic_cast<GatewayRec*>(*Iter))));
-			}
+			if (maxlen == len)
+				GWlist.push_back(std::pair<int, GatewayRec*>(priority, dynamic_cast<GatewayRec*>(*Iter)));
 		}
 		++Iter;
 	}
 	listLock.EndRead();
 
-	if (GWlist.size() > 0) {
-		GWlist.sort();
+	if (!GWlist.empty()) {
+		GWlist.sort(ComparePriority);
 		
-		std::list<std::pair<int, GWPtr> >::const_iterator i = GWlist.begin();
-		GatewayRec *e = GWlist.front().second.gwptr;
+		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
+		GatewayRec *e = GWlist.front().second;
 		while (!e->HasAvailableCapacity() && ++i != GWlist.end()) {
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
-			e = i->second.gwptr;
+			e = i->second;
 		}
-		if ((GWlist.size() > 1) && roundrobin) {
+		if (GWlist.size() > 1 && roundrobin) {
 			PTRACE(3, "Prefix apply round robin");
 			WriteLock lock(listLock);
 			List->remove(e);
@@ -1134,36 +1128,33 @@ void RegistrationTable::InternalFindEP(
 	}
 
 	int maxlen = 0;
-	int matchedalias;
-	int priority;
 
-	std::list<std::pair<int, GWPtr> > GWlist;
+	std::list<std::pair<int, GatewayRec*> > GWlist;
 	listLock.StartRead();
 	const_iterator Iter = endpoints->begin(), IterLast = endpoints->end();
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway()) {	// not on ignoreList
+			int matchedalias, priority = 1;
 			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(aliases, matchedalias, priority);
 			if (maxlen < len) {
 				GWlist.clear();
 				maxlen = len;
 			}
-			if (maxlen == len) {
-				GWlist.push_back(std::pair<int, GWPtr>(priority, GWPtr(dynamic_cast<GatewayRec*>(*Iter))));
-			}
+			if (maxlen == len)
+				GWlist.push_back(std::pair<int, GatewayRec*>(priority, dynamic_cast<GatewayRec*>(*Iter)));
 		}
 		++Iter;
 	}
 	listLock.EndRead();
 
 	if (!GWlist.empty()) {
-		GWlist.sort();
+		GWlist.sort(ComparePriority);
 		
-		std::list<std::pair<int, GWPtr> >::const_iterator i = GWlist.begin();
-		GatewayRec *e = GWlist.front().second.gwptr;
-		++i;
-		while (!e->HasAvailableCapacity() && i != GWlist.end()) {
+		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
+		GatewayRec *e = GWlist.front().second;
+		while (!e->HasAvailableCapacity() && ++i != GWlist.end()) {
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
-			e = (i++)->second.gwptr;
+			e = i->second;
 		}
 		if (GWlist.size() > 1 && roundRobin) {
 			PTRACE(3, "Prefix apply round robin");
@@ -1172,8 +1163,13 @@ void RegistrationTable::InternalFindEP(
 			endpoints->push_back(e);
 		}
 		routes.push_back(Route(endptr(e)));
-		while (i != GWlist.end())
-			routes.push_back(Route(endptr((*i++).second.gwptr)));
+		while (i != GWlist.end()) {
+			if (i->second->HasAvailableCapacity())
+				routes.push_back(Route(endptr(i->second)));
+			else
+				PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
+			++i;
+		}
 #if PTRACING
 		if (PTrace::CanTrace(4)) {
 			ostream &strm = PTrace::Begin(4, __FILE__, __LINE__);
