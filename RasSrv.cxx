@@ -1460,6 +1460,10 @@ bool RegistrationRequestPDU::Process()
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+   // If calling NAT support disabled. 
+   // Use this to block errant gateways that don't support NAT mechanism properly.
+	bool supportcallingNAT = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1"));
+	
 	// lightweight registration update
 	if (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && request.m_keepAlive) {
 		endptr ep = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
@@ -1581,9 +1585,9 @@ bool RegistrationRequestPDU::Process()
 
 			const endptr ep = EndpointTbl->FindByAliases(Alias);
 			if (ep) {
-				bNewEP = ((ep->GetCallSignalAddress() != SignalAddr) || (preempt) || ((RegPrior > 0) && (RegPrior > ep->Priority())));
+				bNewEP = (ep->GetCallSignalAddress() != SignalAddr); 
 				if (bNewEP) {
-					if ((RegPrior > 0) || (preempt) ||
+					if ((RegPrior > ep->Priority()) || (preempt) ||
 					  (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
 						// If the operators policy allows this case:
 						// 1a) terminate all calls on active ep and
@@ -1693,10 +1697,36 @@ bool RegistrationRequestPDU::Process()
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-		if (nated) {
+		if (supportcallingNAT && nated) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
+		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+/*		    H225_H221NonStandard & h221 = rcf.m_nonStandardData.m_nonStandardIdentifier;
+		      h221.m_t35CountryCode = ?;
+		      h221.m_manufacturerCode = ?;
+		      h221.m_t35Extension = ?; 
+		    or..
+		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_object);
+		    PASN_ObjectId & oid = rcf.m_nonStandardData.m_nonStandardIdentifier;
+			oid = "1.1.1.1.1"; 
+		      */
 			rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
+
+
+#ifdef hasH460
+		   H225_ArrayOf_GenericData & gd = rcf.m_genericData;
+
+		   // if the client supports Registration PreEmption then notify the client that we do too
+		   if ((preemptsupport) &&
+			  (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && (!request.m_keepAlive))) {
+              H460_FeatureOID pre = H460_FeatureOID(rPriFS);
+			  PINDEX lPos = gd.GetSize();
+			  gd.SetSize(lPos+1);
+			  gd[lPos] = pre;
+			}
+			if (gd.GetSize() > 0)		  
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
+#endif
 		}
 		// Alternate GKs
 		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK))
