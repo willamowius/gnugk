@@ -41,7 +41,7 @@
 #include "pwlib_compat.h"
 
 #ifdef hasH460
-  #include <h4601.h>
+  #include <h460/h4601.h>
 #endif
 
 const char *LRQFeaturesSection = "RasSrv::LRQFeatures";

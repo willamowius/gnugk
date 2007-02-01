@@ -38,7 +38,7 @@
 #include "RasTbl.h"
 
 #ifdef hasH460
-  #include <h4601.h>
+  #include <h460/h4601.h>
 #endif
 
 using std::copy;
