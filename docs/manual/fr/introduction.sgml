@@ -34,7 +34,7 @@ La recommandation H.323 est une norme internationale publi&#233;e par l'
 <url url="http://www.itu.int/" name="ITU">.
 Il s'agit d'une norme de communication pour l'audio, vid&#233;o et donn&#233;es sur Internet.
 Voir aussi
-<url url="http://www.packetizer.com/voip/h323/papers/primer" name="l'introduction &#224; la s&#233;rie de normes H.323">.
+<url url="http://www.packetizer.com/voip/h323/papers/primer/" name="l'introduction &#224; la s&#233;rie de normes H.323">.
 de Paul Jones.
 
 Pour une description de ce que fait un gatekeeper, voir
