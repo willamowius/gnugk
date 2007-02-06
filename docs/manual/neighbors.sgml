@@ -132,6 +132,22 @@ This can be used with SRV routing policy to place calls to third party GKs.
 This should be used in conjuction with a LRQ Authentication policy.
 </itemize>
 
+<item><tt/AcceptNonNeighborLCF=1/<newline>
+Default: <tt/0/<newline>
+<p>
+This setting disables matching of the LRQ responder's IP address and
+specified neighbor IP addresses in order to accept LCF message responses
+from any IP address. This has primary importance when a
+multiple level gatekeeper hierarchy is used without routed Q.931 signaling.
+As a minimal security, only LRQ/LCF sequence numbers will be checked accordingly. This feature is required by the
+national gatekeepers connected to the Global Dialing Scheme (GDS), see
+http://commons.internet2.edu/gds.html for more information.
+WARNING: Enabling receiving LCF from other than the LRQ destination IP is a significant security risk. 
+Use this setting with extreme caution.
+</itemize>
+
+
+
 <sect2>Section &lsqb;Neighbor::...&rsqb;
 <p>
 Sections starting with <tt/[Neighbor::/ are for neighbor specific configuration.
