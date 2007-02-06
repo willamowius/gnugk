@@ -797,7 +797,8 @@ void LRQRequester::Process(RasMsg *ras)
 	PWaitAndSignal lock(m_rmutex);
 	for (Queue::iterator iter = m_requests.begin(); iter != m_requests.end(); ++iter) {
 		Request & req = iter->second;
-		if (req.m_neighbor->CheckReply(ras)) {
+		if (req.m_neighbor->CheckReply(ras) ||
+			Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptNonNeighborLCF", "0"))) {
 			PTRACE(5,"NB\tReceived "<<ras->GetTagName()<<" message matched"
 				<<" pending LRQ for neighbor "<<req.m_neighbor->GetId()
 				<<':'<<req.m_neighbor->GetIP()
