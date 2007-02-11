@@ -1700,16 +1700,9 @@ bool RegistrationRequestPDU::Process()
 		if (supportcallingNAT && nated) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
-		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
-/*		    H225_H221NonStandard & h221 = rcf.m_nonStandardData.m_nonStandardIdentifier;
-		      h221.m_t35CountryCode = ?;
-		      h221.m_manufacturerCode = ?;
-		      h221.m_t35Extension = ?; 
-		    or..
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_object);
 		    PASN_ObjectId & oid = rcf.m_nonStandardData.m_nonStandardIdentifier;
-			oid = "1.1.1.1.1"; 
-		      */
+			oid = GnuGkOID; 
 			rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
 
 
