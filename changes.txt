@@ -15,6 +15,7 @@ Changes from 2.2.5 to 2.2.6
 - change default value for CallSignalHandler to 5
 - BUGFIX(Toolkit.cxx): fix for calling between 2 internal networks
 - Added GnuGk OID
+- BUGFIX(Toolkit.cxx): fix to allow URI rewriting on ARQ processing
 
 
 Changes from 2.2.4 to 2.2.5

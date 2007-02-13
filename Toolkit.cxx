@@ -516,8 +516,10 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	// If URL remove the domain if default domain
 	 PINDEX at = s.Find('@');
 	 if (at != P_MAX_INDEX) {
-	   if (s.Mid(at+1) == m_defaultDomain)
+		 if (s.Mid(at+1) == m_defaultDomain) {
+		   PTRACE(2, "\tRewriteDomain: " << s << " to " << s.Left(at));
 		   s = s.Left(at);
+		 }
 	 }
 
 	// remove trailing character
@@ -1263,7 +1265,8 @@ BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 bool Toolkit::RewriteE164(H225_AliasAddress &alias)
 {
 	if ((alias.GetTag() != H225_AliasAddress::e_dialedDigits) &&
-         (alias.GetTag() != H225_AliasAddress::e_h323_ID))
+         (alias.GetTag() != H225_AliasAddress::e_h323_ID) &&
+		 (alias.GetTag() != H225_AliasAddress::e_url_ID))
 		return FALSE;
 
 	PString E164 = ::AsString(alias, FALSE);
