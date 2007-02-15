@@ -48,7 +48,7 @@
 			#define hasSRV 1	// DNS SRV
 	  #endif
 	  #define OpenH323Factory 1 // OpenH323 Factory Loader Auth
-	  #if OPENH323_BUILD > 1
+	  #if OPENH323_BUILD > 4
 		#ifdef H323_H460
 			#define hasH460 1	// H460 support
 		#endif
