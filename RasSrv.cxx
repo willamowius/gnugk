@@ -2560,6 +2560,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					&& request.m_canMapAlias) {
 					if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationInfo)) {
 						lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationInfo);
+						lcf.m_destinationInfo.SetSize(1);
 					}
 					lcf.m_destinationInfo = request.m_destinationInfo;
 				}
