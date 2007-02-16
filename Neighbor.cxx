@@ -1082,7 +1082,9 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 			Route route(m_name, lcf->m_callSignalAddress);
 			route.m_routeId = request.GetNeighborUsed();
 			route.m_flags |= Route::e_toNeighbor;
-			if (lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)) {
+			if ((lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo))
+				&& (lcf->m_destinationInfo.GetSize() > 0)) 
+			{
 				arq_obj.SetAliases(lcf->m_destinationInfo);
 				arq_obj.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);
 			}
@@ -1148,6 +1150,7 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 				if (lrq_obj.GetRequest().HasOptionalField(H225_LocationRequest::e_canMapAlias)
 					&& lrq_obj.GetRequest().m_canMapAlias
 					&& lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)
+				    && (lcf->m_destinationInfo.GetSize() > 0)
 					&& (lrq_obj.GetRequest().m_destinationInfo != lcf->m_destinationInfo)) {
 					lrq_obj.GetRequest().m_destinationInfo = lcf->m_destinationInfo;
 					lrq_obj.SetFlag(RoutingRequest::e_aliasesChanged);
@@ -1174,6 +1177,7 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 			CopyCryptoTokens(lcf, setup_obj.GetRequest());
 			// canMapAlias: adjust new destination
 			if (lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)
+				&& (lcf->m_destinationInfo.GetSize() > 0)
 				&& (setup_obj.GetRequest().m_destinationAddress != lcf->m_destinationInfo)) {
 				setup_obj.GetRequest().m_destinationAddress = lcf->m_destinationInfo;
 				setup_obj.SetFlag(RoutingRequest::e_aliasesChanged);
