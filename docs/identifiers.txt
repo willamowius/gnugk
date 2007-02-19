@@ -1,0 +1,10 @@
+The GnuGk project has been assigned following codes to be used
+to identify proprietary extensions in H.323 protocol messages:
+
+OIDs:
+1.3.6.1.4.1.27938
+
+T.35:
+138.2
+
+Currently, the project uses following identifiers:
