@@ -820,9 +820,10 @@ void RasServer::LoadConfig()
 			GkInterface *gkif = CreateInterface(addr);
 			if (gkif->CreateListeners(this))
 				interfaces.push_back(gkif);
-			else
+			else {
 				delete gkif;
 				gkif = NULL;
+			}
 		} else {
 			GkInterface *gkif = *iter;
 			// re-create if changed
@@ -833,7 +834,7 @@ void RasServer::LoadConfig()
 			}
 		}
 	}
-	if (m_socksize == 0) {
+	if ((m_socksize == 0) || (interfaces.size() == 0)) {
 		PTRACE(1, "Error: No valid RAS socket!");
 		return;
 	}
@@ -1135,16 +1136,18 @@ void RasServer::Run()
 
 	LoadConfig();
 
-	callptr nullcall;
-	acctList->LogAcctEvent(GkAcctLogger::AcctOn,nullcall);
-	if (m_socksize > 0) {
+	if ((m_socksize > 0) && (interfaces.size() > 0)) {
+		callptr nullcall;
+		acctList->LogAcctEvent(GkAcctLogger::AcctOn,nullcall);
+
 		CreateJob(this, &RasServer::HouseKeeping, "HouseKeeping");
 		RegularJob::Run();
+
+		acctList->LogAcctEvent(GkAcctLogger::AcctOff,nullcall);
 	} else {
 		cerr << "FATAL: No valid interfaces to listen! Shutdown!" << endl;
 		PTRACE(0, "FATAL: No valid interfaces to listen! Shutdown!");
 	}
-	acctList->LogAcctEvent(GkAcctLogger::AcctOff,nullcall);
 }
 
 void RasServer::OnStop()
