@@ -1719,7 +1719,7 @@ bool RegistrationRequestPDU::Process()
 			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 			t35.m_t35Extension = Toolkit::t35eNATTraversal;
 			rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
-
+		}
 
 #ifdef hasH460
 		   H225_ArrayOf_GenericData & gd = rcf.m_genericData;
@@ -1735,7 +1735,7 @@ bool RegistrationRequestPDU::Process()
 			if (gd.GetSize() > 0)		  
 				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
 #endif
-		}
+
 		// Alternate GKs
 		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK))
 			RasSrv->SetAlternateGK(rcf);
