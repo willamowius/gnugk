@@ -1658,15 +1658,25 @@ bool RegistrationRequestPDU::Process()
 	}
 
 	if (!nated && request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)) {
-		PString ipdata = request.m_nonStandardData.m_data.AsString();
-		if (strncmp(ipdata, "IP=", 3) == 0) {
-			PStringArray ips(ipdata.Mid(3).Tokenise(",:;", false));
-			PINDEX i;
-			for (i = 0; i < ips.GetSize(); ++i)
-				if (PIPSocket::Address(ips[i]) == rx_addr)
-					break;
-			nated = (i >= ips.GetSize());
-			request.RemoveOptionalField(H225_RegistrationRequest::e_nonStandardData);
+		int iec = Toolkit::iecUnknown;
+		if (request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+			iec = Toolkit::Instance()->GetInternalExtensionCode(request.m_nonStandardData.m_nonStandardIdentifier);
+		} else if (request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+			PASN_ObjectId &oid = request.m_nonStandardData.m_nonStandardIdentifier;
+			if (oid.GetDataLength() == 0)
+				iec = Toolkit::iecNATTraversal;
+		}
+		if (iec == Toolkit::iecNATTraversal) {
+			PString ipdata = request.m_nonStandardData.m_data.AsString();
+			if (strncmp(ipdata, "IP=", 3) == 0) {
+				PStringArray ips(ipdata.Mid(3).Tokenise(",:;", false));
+				PINDEX i;
+				for (i = 0; i < ips.GetSize(); ++i)
+					if (PIPSocket::Address(ips[i]) == rx_addr)
+						break;
+				nated = (i >= ips.GetSize());
+				request.RemoveOptionalField(H225_RegistrationRequest::e_nonStandardData);
+			}
 		}
 	}
 	request.m_callSignalAddress.SetSize(1);
@@ -1703,9 +1713,11 @@ bool RegistrationRequestPDU::Process()
 		if (supportcallingNAT && nated) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
-		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_object);
-		    PASN_ObjectId & oid = rcf.m_nonStandardData.m_nonStandardIdentifier;
-			oid = GnuGkOID; 
+		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+			H225_H221NonStandard &t35 = rcf.m_nonStandardData.m_nonStandardIdentifier;
+			t35.m_t35CountryCode = Toolkit::t35cPoland;
+			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
+			t35.m_t35Extension = Toolkit::t35eNATTraversal;
 			rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
 
 
@@ -2579,9 +2591,22 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 			if (m_msg->m_replyRAS.GetTag() == H225_RasMessage::e_requestInProgress) {
 				// LRQ is forwarded
 				H225_RequestInProgress & rip = m_msg->m_replyRAS;
+				PString ripData;
+				if (rip.HasOptionalField(H225_RequestInProgress::e_nonStandardData)) {
+					int iec = Toolkit::iecUnknown;
+					if (rip.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+						iec = Toolkit::Instance()->GetInternalExtensionCode(rip.m_nonStandardData.m_nonStandardIdentifier);
+					} else if (rip.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+						PASN_ObjectId &oid = rip.m_nonStandardData.m_nonStandardIdentifier;
+						if (oid.GetDataLength() == 0)
+							iec = Toolkit::iecNeighborId;
+					}
+					if (iec == Toolkit::iecNeighborId)
+						ripData = rip.m_nonStandardData.m_data.AsString();
+				}
 				log = PString(PString::Printf, "RIP|%s|%s|%s|%s;",
 					inet_ntoa(m_msg->m_peerAddr),
-					(const unsigned char *) rip.m_nonStandardData.m_data.AsString(),
+					(const unsigned char *) ripData,
 					(const unsigned char *) AsString(request.m_destinationInfo),
 					(const unsigned char *) sourceInfoString
 				      );
@@ -2647,20 +2672,20 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 template<> bool RasPDU<H225_RegistrationReject>::Process()
 {
 	// OnRRJ
-	if ( request.HasOptionalField( H225_RegistrationReject::e_nonStandardData ) ) {
-		if ( request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard ) {
-//			const H225_H221NonStandard & nonStandard = request.m_nonStandardData.m_nonStandardIdentifier;
-			// RRJ from alternateGKs
-			H225_EndpointIdentifier id;
-			id = request.m_nonStandardData.m_data.AsString();
+	if (request.HasOptionalField(H225_RegistrationReject::e_nonStandardData)
+		&& request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard
+		&& Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)request.m_nonStandardData.m_nonStandardIdentifier) == Toolkit::iecFailoverRAS) {
 
-			if ( endptr ep = EndpointTbl->FindByEndpointId( id ) )  {
-				m_msg->m_replyRAS = ep->GetCompleteRegistrationRequest();
-				if (m_msg->m_replyRAS.GetTag() == H225_RasMessage::e_registrationRequest) {
-          				CopyNonStandardData(request, (H225_RegistrationRequest &)m_msg->m_replyRAS);
-					PTRACE(3, "RAS\tSending full RRQ to " << m_msg->m_peerAddr );
-					return true;
-				}
+		// RRJ from alternateGKs
+		H225_EndpointIdentifier id;
+		id = request.m_nonStandardData.m_data.AsString();
+
+		if (endptr ep = EndpointTbl->FindByEndpointId(id))  {
+			m_msg->m_replyRAS = ep->GetCompleteRegistrationRequest();
+			if (m_msg->m_replyRAS.GetTag() == H225_RasMessage::e_registrationRequest) {
+				CopyNonStandardData(request, (H225_RegistrationRequest &)m_msg->m_replyRAS);
+				PTRACE(3, "RAS\tSending full RRQ to " << m_msg->m_peerAddr);
+				return true;
 			}
 		}
 	}

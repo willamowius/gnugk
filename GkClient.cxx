@@ -437,6 +437,11 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 		if (rrq.m_callSignalAddress.GetSize() > 0
 				&& GetIPFromTransportAddr(rrq.m_callSignalAddress[0], sigip)) {
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_nonStandardData);
+			rrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+			H225_H221NonStandard &t35 = rrq.m_nonStandardData.m_nonStandardIdentifier;
+			t35.m_t35CountryCode = Toolkit::t35cPoland;
+			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
+			t35.m_t35Extension = Toolkit::t35eNATTraversal;
 			rrq.m_nonStandardData.m_data = "IP=" + sigip.AsString();
 		}
 	}
@@ -451,8 +456,8 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionReques
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);
 		arq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 		H225_H221NonStandard & h221 = arq.m_nonStandardData.m_nonStandardIdentifier;
-		h221.m_manufacturerCode = 18;
-		h221.m_t35CountryCode = 181;
+		h221.m_manufacturerCode = Toolkit::t35mCisco;
+		h221.m_t35CountryCode = Toolkit::t35cUSA;
 		h221.m_t35Extension = 0;
 	
 		PPER_Stream buff;
@@ -494,8 +499,8 @@ bool GkClient::OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest 
 		lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 		lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 		H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
-		h221.m_manufacturerCode = 18;
-		h221.m_t35CountryCode = 181;
+		h221.m_manufacturerCode = Toolkit::t35mCisco;
+		h221.m_t35CountryCode = Toolkit::t35cUSA;
 		h221.m_t35Extension = 0;
 	
 		PPER_Stream buff;
@@ -523,8 +528,8 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::SetupRequest &r
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);
 		arq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 		H225_H221NonStandard & h221 = arq.m_nonStandardData.m_nonStandardIdentifier;
-		h221.m_manufacturerCode = 18;
-		h221.m_t35CountryCode = 181;
+		h221.m_manufacturerCode = Toolkit::t35mCisco;
+		h221.m_t35CountryCode = Toolkit::t35cUSA;
 		h221.m_t35Extension = 0;
 	
 		PPER_Stream buff;
@@ -543,8 +548,8 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);
 		arq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 		H225_H221NonStandard & h221 = arq.m_nonStandardData.m_nonStandardIdentifier;
-		h221.m_manufacturerCode = 18;
-		h221.m_t35CountryCode = 181;
+		h221.m_manufacturerCode = Toolkit::t35mCisco;
+		h221.m_t35CountryCode = Toolkit::t35cUSA;
 		h221.m_t35Extension = 0;
 	
 		PPER_Stream buff;
@@ -1061,10 +1066,21 @@ void GkClient::OnRCF(RasMsg *ras)
 	m_resend = m_retry;
 
 	// NAT handling
-	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_nonStandardData))
-		if (rcf.m_nonStandardData.m_data.AsString().Find("NAT=") == 0)
-			if (!m_natClient && rcf.m_callSignalAddress.GetSize() > 0)
-				m_natClient = new NATClient(rcf.m_callSignalAddress[0], m_endpointId);
+	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_nonStandardData)) {
+		int iec = Toolkit::iecUnknown;
+		if (rcf.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+			iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)rcf.m_nonStandardData.m_nonStandardIdentifier);
+		} else if (rcf.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+			PASN_ObjectId &oid = rcf.m_nonStandardData.m_nonStandardIdentifier;
+			if (oid.GetDataLength() == 0)
+				iec == Toolkit::iecNATTraversal;
+		}
+		if (iec == Toolkit::iecNATTraversal) {
+			if (rcf.m_nonStandardData.m_data.AsString().Find("NAT=") == 0)
+				if (!m_natClient && rcf.m_callSignalAddress.GetSize() > 0)
+					m_natClient = new NATClient(rcf.m_callSignalAddress[0], m_endpointId);
+		}
+	}
 }
 
 void GkClient::OnRRJ(RasMsg *ras)

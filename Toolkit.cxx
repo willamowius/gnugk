@@ -1406,14 +1406,29 @@ Toolkit::GetInternalExtensionCode( const unsigned &country,
 				   const unsigned &extension,
 				   const unsigned &manufacturer) const
 {
-	switch(country) {
+	switch (country) {
 	case t35cOpenOrg:
-		switch(manufacturer) {
+		switch (manufacturer) {
 		case t35mOpenOrg:
-			switch(extension) {
+			switch (extension) {
 				case t35eFailoverRAS: return iecFailoverRAS;
 			}
+			break;
 		}
+		break;
+		
+	case t35cPoland:
+		switch (manufacturer) {
+		case t35mGnuGk:
+			switch (extension) {
+			case t35eNeighborId:
+				return iecNeighborId;
+			case t35eNATTraversal:
+				return iecNATTraversal;
+			}
+			break;
+		}
+		break;
 	}
 
 	// default for all other cases

@@ -43,10 +43,6 @@ extern const char *H225_ProtocolID;
 #endif
 #endif
 
-///////////////////////////////////////
-//OIDs
-#define GnuGkOID "1.3.6.1.4.1.27938"
-
 // Packetizer H460 Features
 #define OID6  "1.3.6.1.4.1.17090.0.6"  // Registration priority & pre-emption
 #define priorityOID  "1"   // integer 8 Priority number highest priority gets registration

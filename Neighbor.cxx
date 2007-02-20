@@ -357,12 +357,23 @@ bool Neighbor::CheckReply(RasMsg *ras) const
 {
 	if( ras->IsFrom(GetIP(), 0 /*m_port*/) )
 		return true;
-	else {
-		const H225_NonStandardParameter *params = ras->GetNonStandardParam();
-		return params
-			?(strncmp(m_id, params->m_data.AsString(), m_id.GetLength()) == 0)
-			:false;
+
+	const H225_NonStandardParameter *param = ras->GetNonStandardParam();
+	if (param == NULL)
+		return false;
+
+	int iec = Toolkit::iecUnknown;
+	if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+		iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)param->m_nonStandardIdentifier);
+	} else if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+		const PASN_ObjectId &oid = param->m_nonStandardIdentifier;
+		if (oid.GetDataLength() == 0)
+			iec = Toolkit::iecNeighborId;
 	}
+	
+	return iec == Toolkit::iecNeighborId
+		? strncmp(m_id, param->m_data.AsString(), m_id.GetLength()) == 0
+		: false;
 }
 
 bool Neighbor::IsAcceptable(RasMsg *ras) const
@@ -449,6 +460,11 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+	H225_H221NonStandard &t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	t35.m_t35CountryCode = Toolkit::t35cPoland;
+	t35.m_manufacturerCode = Toolkit::t35mGnuGk;
+	t35.m_t35Extension = Toolkit::t35eNeighborId;
 	lrq.m_nonStandardData.m_data.SetValue(m_id);
 
 	const H225_AdmissionRequest & arq = request.GetRequest();
@@ -466,6 +482,11 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+	H225_H221NonStandard &t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	t35.m_t35CountryCode = Toolkit::t35cPoland;
+	t35.m_manufacturerCode = Toolkit::t35mGnuGk;
+	t35.m_t35Extension = Toolkit::t35eNeighborId;
 	lrq.m_nonStandardData.m_data.SetValue(m_id);
 
 	const H225_Setup_UUIE & setup = request.GetRequest();
@@ -484,6 +505,11 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
+	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+	H225_H221NonStandard &t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	t35.m_t35CountryCode = Toolkit::t35cPoland;
+	t35.m_manufacturerCode = Toolkit::t35mGnuGk;
+	t35.m_t35Extension = Toolkit::t35eNeighborId;
 	lrq.m_nonStandardData.m_data.SetValue(m_id);
 	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
@@ -526,8 +552,8 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &re
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 	H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
-	h221.m_manufacturerCode = 18;
-	h221.m_t35CountryCode = 181;
+	h221.m_manufacturerCode = Toolkit::t35mCisco;
+	h221.m_t35CountryCode = Toolkit::t35cUSA;
 	h221.m_t35Extension = 0;
 	
 	PPER_Stream buff;
@@ -546,7 +572,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest &req
 	if (lrq.HasOptionalField(H225_LocationRequest::e_nonStandardData)
 			&& lrq.m_nonStandardData.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 		const H225_H221NonStandard &h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
-		if (h221.m_manufacturerCode == 18 && h221.m_t35CountryCode == 181)
+		if (h221.m_manufacturerCode == Toolkit::t35mCisco && h221.m_t35CountryCode == Toolkit::t35cUSA)
 			return true;
 			
 		lrq.RemoveOptionalField(H225_LocationRequest::e_nonStandardData);
@@ -565,8 +591,8 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest &req
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 	H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
-	h221.m_manufacturerCode = 18;
-	h221.m_t35CountryCode = 181;
+	h221.m_manufacturerCode = Toolkit::t35mCisco;
+	h221.m_t35CountryCode = Toolkit::t35cUSA;
 	h221.m_t35Extension = 0;
 	
 	PPER_Stream buff;
@@ -611,8 +637,8 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 	H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
-	h221.m_manufacturerCode = 18;
-	h221.m_t35CountryCode = 181;
+	h221.m_manufacturerCode = Toolkit::t35mCisco;
+	h221.m_t35CountryCode = Toolkit::t35cUSA;
 	h221.m_t35Extension = 0;
 	
 	PPER_Stream buff;
@@ -642,7 +668,7 @@ bool CiscoGK::CheckReply(RasMsg *msg) const
 		return false;
 	
 	H225_H221NonStandard &h221 = nonStandardData->m_nonStandardIdentifier;
-	if (h221.m_manufacturerCode != 18 || h221.m_t35CountryCode != 181)
+	if (h221.m_manufacturerCode != Toolkit::t35mCisco || h221.m_t35CountryCode != Toolkit::t35cUSA)
 		return false;
 	
 	PPER_Stream strm(nonStandardData->m_data);
@@ -805,10 +831,20 @@ void LRQRequester::Process(RasMsg *ras)
 				);
 			unsigned tag = ras->GetTag();
 			if (tag == H225_RasMessage::e_requestInProgress) {
-				if (H225_NonStandardParameter *params = ras->GetNonStandardParam()) {
-					PStringArray param(params->m_data.AsString().Tokenise(":", false));
-					if (param.GetSize() > 1)
-						req.m_count += param[1].AsInteger();
+				if (H225_NonStandardParameter *param = ras->GetNonStandardParam()) {
+					int iec = Toolkit::iecUnknown;
+					if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+						iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)param->m_nonStandardIdentifier);
+					} else if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+						PASN_ObjectId &oid = param->m_nonStandardIdentifier;
+						if (oid.GetDataLength() == 0)
+							iec = Toolkit::iecNeighborId;
+					}
+					if (iec == Toolkit::iecNeighborId) {
+						PStringArray ttl(param->m_data.AsString().Tokenise(":", false));
+						if (ttl.GetSize() > 1)
+							req.m_count += ttl[1].AsInteger();
+					}
 				}
 				RasRequester::Process(ras);
 			} else if (tag == H225_RasMessage::e_locationConfirm) {
@@ -1129,10 +1165,25 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 			H225_RequestInProgress & rip = (*ras)->m_replyRAS;
 			rip.m_requestSeqNum = ras->GetSeqNum();
 			rip.m_delay = m_neighborTimeout;
-			if (H225_NonStandardParameter *params = ras->GetNonStandardParam()) {
-				PString data = params->m_data.AsString() + ":" + PString(request.GetReqNumber());
-				rip.IncludeOptionalField(H225_RequestInProgress::e_nonStandardData);
-				rip.m_nonStandardData.m_data.SetValue(data);
+			if (H225_NonStandardParameter *param = ras->GetNonStandardParam()) {
+				int iec = Toolkit::iecUnknown;
+				if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+					iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)param->m_nonStandardIdentifier);
+				} else if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+					PASN_ObjectId &oid = param->m_nonStandardIdentifier;
+					if (oid.GetDataLength() == 0)
+						iec = Toolkit::iecNeighborId;
+				}
+				if (iec == Toolkit::iecNeighborId) {
+					PString data = param->m_data.AsString() + ":" + PString(request.GetReqNumber());
+					rip.IncludeOptionalField(H225_RequestInProgress::e_nonStandardData);
+					rip.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+					H225_H221NonStandard &t35 = rip.m_nonStandardData.m_nonStandardIdentifier;
+					t35.m_t35CountryCode = Toolkit::t35cPoland;
+					t35.m_manufacturerCode = Toolkit::t35mGnuGk;
+					t35.m_t35Extension = Toolkit::t35eNeighborId;
+					rip.m_nonStandardData.m_data.SetValue(data);
+				}
 			}
 			return true;
 		}

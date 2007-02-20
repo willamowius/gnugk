@@ -7,4 +7,8 @@ OIDs:
 T.35:
 138.2
 
-Currently, the project uses following identifiers:
+Currently, the project uses following identifiers:e
+
+(T.35) 255.4242.255 - for identifying RAS messages forwarded to alternate GKs
+(T.35) 138.2.1 - for sending neighbor ID inside LRQ/LCF nonStandardData field
+(T.35) 138.2.2 - for NAT detection based on nonStandardData field inside RRQ/RCF

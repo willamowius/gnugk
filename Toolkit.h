@@ -339,16 +339,31 @@ class Toolkit : public Singleton<Toolkit>
 	/** you may add more extension codes in descendant classes. This codes will not be transferred
 	 * or something it will be the return code of some methods for handling switches easy. */
 	enum {
-		iecUnknown     = -1,  /// internal extension code for an unknown triple(cntry,ext,manuf)
+		iecUnknown     = -1,   /// internal extension code for an unknown triple(cntry,ext,manuf)
 		iecFailoverRAS  = 1,   /// i.e.c. for "This RQ is a failover RQ" and must not be answerd.
+		iecNeighborId = 2,     /// i.e.c. for neighbor id sent inside LRQ/LCF nonStandardData parameter
+		iecNATTraversal = 3,   /// i.e.c. for IP=/NAT= parameters sent inside RRQ/RCF nonStandardData 
 		iecUserbase    = 1000 /// first guaranteed unused 'iec' by GnuGK Toolkit.
 	};
 	/** t35 extension or definitions as field for H225_NonStandardIdentifier */
-	enum {
+	enum T35CountryCodes {
 		t35cOpenOrg = 255,       /// country code for the "Open Source Organisation" Country
+		t35cPoland = 138,
+		t35cUSA = 181
+	};
+	enum T35ManufacturerCodes {
 		t35mOpenOrg = 4242,     /// manufacurers code for the "Open Source Organisation"
+		t35mGnuGk = 2,
+		t35mCisco = 18
+	};
+	enum T35OpenOrgExtensions {
 		t35eFailoverRAS = 255  /// Defined HERE!
 	};
+	enum T35GnuGkExtensions {
+		t35eNeighborId = 1,
+		t35eNATTraversal = 2
+	};
+	
 	/** If the triple #(country,extension,manufacturer)# represents an
 	 * extension known to the GnuGK this method returns its 'internal extension code'
 	 # #iecXXX' or #iecUnknow# otherwise.
