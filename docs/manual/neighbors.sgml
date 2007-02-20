@@ -130,7 +130,6 @@ Default: <tt/0/<newline>
 Whether to accept an LRQ forwarded from parties not defined as Neighbors.
 This can be used with SRV routing policy to place calls to third party GKs.
 This should be used in conjuction with a LRQ Authentication policy.
-</itemize>
 
 <item><tt/AcceptNonNeighborLCF=1/<newline>
 Default: <tt/0/<newline>
