@@ -1073,7 +1073,7 @@ void GkClient::OnRCF(RasMsg *ras)
 		} else if (rcf.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
 			PASN_ObjectId &oid = rcf.m_nonStandardData.m_nonStandardIdentifier;
 			if (oid.GetDataLength() == 0)
-				iec == Toolkit::iecNATTraversal;
+				iec = Toolkit::iecNATTraversal;
 		}
 		if (iec == Toolkit::iecNATTraversal) {
 			if (rcf.m_nonStandardData.m_data.AsString().Find("NAT=") == 0)
