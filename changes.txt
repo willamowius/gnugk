@@ -1,5 +1,6 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
+- move status port examples to contrib/statusport/
 - fix nonStandardData field usage, make use of assigned T.35 codes
 - BUGFIX(RasTbl.cxx) ensure that full gateways are eliminated, when failover
   is active and remaining gateways are sorted due to their priority correctly
