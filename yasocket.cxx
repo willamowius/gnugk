@@ -35,6 +35,8 @@ using std::find;
 namespace {
 /// time to recheck state of closed sockets owned by a proxy handler
 const long SOCKETSREADER_IDLE_TIMEOUT = 1000;
+const long SOCKET_CHUNK_PAUSE = 250;	// send in 10K chunks
+const int MAX_SOCKET_CHUNK = 10240;	// send in 10K chunks
 }
 
 #ifdef LARGE_FDSET
@@ -589,7 +591,8 @@ bool USocket::Flush()
 		PBYTEArray* const pdata = PopQueuedPacket();
 		if (pdata) {
 			result = InternalWriteData(*pdata, pdata->GetSize());
-			PTRACE_IF(4, result, type << '\t' << pdata->GetSize() << " bytes flushed to " << Name());
+			unsigned bytesSent = self->GetLastWriteCount();
+			PTRACE_IF(4, bytesSent > 0, type << '\t' << bytesSent << " bytes flushed to " << Name());
 			delete pdata;
 		} else
 			break;
@@ -599,34 +602,36 @@ bool USocket::Flush()
 
 bool USocket::WriteData(const BYTE *buf, int len)
 {
-	if (IsSocketOpen()) {
-		if (qsize == 0 && !writeMutex.WillBlock()) {
-			const int MAX_SOCKET_CHUNK = 10240;	// send in 10K chunks
-			PWaitAndSignal lock(writeMutex);
-			int remaining = len;
-			int sendnow = 0;
-			bool writeResult = true;
-			while ((remaining > 0) && writeResult) {
-				if (remaining > MAX_SOCKET_CHUNK)
-					sendnow = MAX_SOCKET_CHUNK;
-				else
-					sendnow = remaining;
-				writeResult = InternalWriteData(buf, sendnow);
+	if (!IsSocketOpen())
+		return false;
+		
+	int remaining = len;
+	if (qsize == 0 && !writeMutex.WillBlock()) {
+		PWaitAndSignal lock(writeMutex);
+		while (remaining > 0) {
+			int sendnow = remaining > MAX_SOCKET_CHUNK
+				? MAX_SOCKET_CHUNK : remaining;
+			if (!InternalWriteData(buf, sendnow)) {
+				unsigned bytesSent = self->GetLastWriteCount();
+				remaining -= bytesSent;
+				buf += bytesSent;
+				break;
+			} else {
 				remaining -= sendnow;
-				if (remaining > 0) {
-					PThread::Sleep(250);
-					buf += sendnow;
-				}
+				buf += sendnow;
+				if (remaining > 0)
+					PThread::Sleep(SOCKET_CHUNK_PAUSE);
 			}
-			return writeResult;
 		}
-		if (qsize > 100) { // to be justitied
-			PTRACE(2, type << '\t' << Name() << " is dead and closed");
-			CloseSocket();
-		} else {
-			PTRACE(3, type << '\t' << Name() << " is busy, " << len << " bytes queued");
-			QueuePacket(buf, len);
-		}
+		if (remaining == 0)
+			return true;
+	}
+	if (qsize > 100) { // to be justitied
+		PTRACE(2, type << '\t' << Name() << " is dead and closed");
+		CloseSocket();
+	} else if (remaining > 0 && IsSocketOpen()) {
+		PTRACE(3, type << '\t' << Name() << " is busy, " << len << " bytes queued");
+		QueuePacket(buf, remaining);
 	}
 	return false;
 }
@@ -676,8 +681,15 @@ bool USocket::InternalWriteData(const BYTE *buf, int len)
 		// either when flushing the queue (so any remaining unflushed data
 		// should be put back at the queue front) or when the queue is epmty
 		PWaitAndSignal lock(queueMutex);
-		queue.push_front(new PBYTEArray(buf, len));
-		++qsize;
+		std::list<PBYTEArray*>::iterator i = queue.begin();
+		while (len > 0) {
+			int chunk = len > MAX_SOCKET_CHUNK ? MAX_SOCKET_CHUNK : len;
+			i = queue.insert(i, new PBYTEArray(buf, chunk));
+			++i;
+			++qsize;
+			len -= chunk;
+			buf += chunk;
+		}
 	}
 	return false;
 }
