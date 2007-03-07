@@ -2067,7 +2067,7 @@ bool CallSignalSocket::CreateRemote(
     masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 
 	setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-	setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(localAddr, GetPort());
+	setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 	
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is NAT type " << type);
 	endptr calledep = m_call->GetCalledParty();
