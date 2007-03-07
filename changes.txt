@@ -20,6 +20,7 @@ Changes from 2.2.5 to 2.2.6
 - BUGFIX(Toolkit.cxx): fix for calling between 2 internal networks
 - Added GnuGk OID
 - BUGFIX(Toolkit.cxx): fix to allow URI rewriting on ARQ processing
+- BUGFIX(ProxyChannel.cxx): fix to show correct Setup CallSignallingAddress when behind NAT
 
 
 Changes from 2.2.4 to 2.2.5
