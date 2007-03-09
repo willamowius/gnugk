@@ -2642,9 +2642,9 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 	if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier)) {
 		ep->Update(m_msg->m_recvRAS);
 		callptr call;
-		if (request.HasOptionalField(H225_InfoRequestResponse::e_perCallInfo))
+		if (request.HasOptionalField(H225_InfoRequestResponse::e_perCallInfo) && request.m_perCallInfo.GetSize() > 0)
 			call = CallTbl->FindCallRec(request.m_perCallInfo[0].m_callIdentifier);
-		else
+		else if (request.m_callSignalAddress.GetSize() > 0)
 			call = CallTbl->FindBySignalAdr(request.m_callSignalAddress[0]);
 		if (call)
 			call->Update(request);

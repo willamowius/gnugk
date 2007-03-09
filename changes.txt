@@ -1,5 +1,6 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
+- BUGFIX(RasSrv.cxx) fixed crash inside IRR handler
 - BUGFIX(yasocket.cxx) due to recent changes, it was impossible to send
   more than 10240 bytes of data when data queuing had to be involved
 - move status port examples to contrib/statusport/
