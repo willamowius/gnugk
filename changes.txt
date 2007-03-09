@@ -19,10 +19,12 @@ Changes from 2.2.5 to 2.2.6
 - optional priorities for gateway prefixes: gw-alias=prefix[:=priority][,prefix[:=priority],...] (patch by Alex Golyshev and Andrey Pasukov)
 - change default value for CallSignalHandler to 5
 - BUGFIX(Toolkit.cxx): fix for calling between 2 internal networks
-- Added GnuGk OID
+- Added AcceptNonNeighborLCF to LRQFeatures settings
+- Added GnuGk OID & T.35 Codes
 - BUGFIX(Toolkit.cxx): fix to allow URI rewriting on ARQ processing
 - BUGFIX(ProxyChannel.cxx): fix to show correct Setup CallSignallingAddress when behind NAT
-
+- Added RemoveH235Call & RemoveH460Call Settings
+- BUGFIX(ProxyChannel.cxx): H.245 addresses being incorrectly written in NATHandler for public proxies.
 
 Changes from 2.2.4 to 2.2.5
 ===========================

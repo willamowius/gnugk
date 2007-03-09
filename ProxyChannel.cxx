@@ -412,6 +412,7 @@ public:
 
 private:
 	bool SetAddress(H245_UnicastAddress_iPAddress *);
+    bool ChangeAddress(H245_UnicastAddress_iPAddress * addr);
 	PIPSocket::Address remoteAddr;
 };
 
@@ -2068,6 +2069,20 @@ bool CallSignalSocket::CreateRemote(
 
 	setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 	setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
+
+	// For compatibility with endpoints which do not support large Setup messages
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
+		 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+		 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+	}
+
+	// For compatibility to call pre-H323v4 devices that do not support H.460
+	// This strips the Feature Advertisements from the PDU.
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH460Call", "0"))) {
+		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_desiredFeatures);
+		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
+	}
 	
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is NAT type " << type);
 	endptr calledep = m_call->GetCalledParty();
@@ -4465,7 +4480,26 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 
 bool NATHandler::SetAddress(H245_UnicastAddress_iPAddress * addr)
 {
-	return addr ? (*addr << remoteAddr, true) : false;
+	if (!ChangeAddress(addr))
+	    return addr ? (*addr << remoteAddr, true) : false;
+	else
+		return TRUE;
+}
+
+bool NATHandler::ChangeAddress(H245_UnicastAddress_iPAddress * addr)
+{
+   PIPSocket::Address olcAddr = 
+	   PIPSocket::Address(addr->m_network.GetSize(), addr->m_network.GetValue());
+
+   // Is NATed Endpoint
+   if (olcAddr.IsRFC1918())
+	   return FALSE;
+
+   // if the OLC address differs from the remote NAT address
+   if (remoteAddr != olcAddr) 
+      remoteAddr = olcAddr;
+
+   return true;
 }
 
 
