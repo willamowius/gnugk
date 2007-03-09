@@ -534,6 +534,13 @@ void Gatekeeper::Main()
 		"of the License, or (at your option) any later version.\n"
 	     << endl;
 
+#ifdef hasH460
+	// License notice
+	cout << "\nThis program contains patent pending P2Pnat Media technology\n"
+            "under special royalty-free license to the GnuGk Project\n"
+		 << endl;
+#endif
+
 	// read capacity from commandline
 	int GKcapacity;
 	if (args.HasOption('b'))

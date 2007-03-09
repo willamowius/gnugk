@@ -35,6 +35,10 @@
 #include "Neighbor.h"
 #include "pwlib_compat.h"
 
+#ifdef hasH460
+  #include <h460/h4601.h>
+#endif
+
 using std::multimap;
 using std::make_pair;
 using std::find_if;
@@ -60,6 +64,7 @@ class GnuGK : public Neighbor {
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &);
+	virtual bool OnSendingLRQ(H225_LocationRequest &, const RegistrationRequest &);
 	virtual bool IsAcceptable(RasMsg *ras) const;
 };
 
@@ -353,6 +358,11 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest &)
 	return OnSendingLRQ(lrq);
 }
 
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const RegistrationRequest &)
+{
+	return OnSendingLRQ(lrq);
+}
+
 bool Neighbor::CheckReply(RasMsg *ras) const
 {
 	if( ras->IsFrom(GetIP(), 0 /*m_port*/) )
@@ -474,6 +484,19 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 		lrq.m_canMapAlias = arq.m_canMapAlias;
 	}
+
+#ifdef hasH460
+       lrq.IncludeOptionalField(H225_LocationRequest::e_genericData); 
+       H225_ArrayOf_GenericData & data = lrq.m_genericData;
+       PINDEX lastPos = 0;
+       
+	   /// OID5  'NAT Support
+	   H460_FeatureOID foid5 = H460_FeatureOID(OID5);
+	   lastPos++;
+	   data.SetSize(lastPos);
+	   data[lastPos-1] = foid5;
+	     		
+#endif
 	return true;
 }
 
@@ -515,6 +538,11 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 	return true;
+}
+
+bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const RegistrationRequest & request)
+{
+      return false;
 }
 
 bool GnuGK::IsAcceptable(RasMsg *ras) const
@@ -1082,6 +1110,7 @@ private:
 	virtual bool OnRequest(LocationRequest &);
 	virtual bool OnRequest(SetupRequest &);
 	virtual bool OnRequest(FacilityRequest &);
+	virtual bool OnRequest(RegistrationRequest &);
 
 	typedef NeighborList::List List;
 	List & m_neighbors;
@@ -1116,6 +1145,15 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
+#ifdef hasH460
+			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+			  H225_RasMessage ras;
+			  ras.SetTag(H225_RasMessage::e_locationConfirm);
+              H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+			  con = *lcf;
+			  route.m_destEndpoint = endptr(new EndpointRec(ras));	
+			}
+#endif
 			route.m_routeId = request.GetNeighborUsed();
 			route.m_flags |= Route::e_toNeighbor;
 			if ((lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo))
@@ -1256,6 +1294,24 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 	return false;
 }
 
+bool NeighborPolicy::OnRequest(RegistrationRequest & setup_obj)
+{
+	LRQSender<RegistrationRequest> functor(setup_obj);
+	LRQRequester request(functor);
+	if (request.Send(m_neighbors)) {
+		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
+			Route route(m_name, lcf->m_callSignalAddress);
+			route.m_routeId = request.GetNeighborUsed();
+			route.m_flags |= Route::e_toNeighbor;
+			setup_obj.AddRoute(route);
+			CopyCryptoTokens(lcf, setup_obj.GetRequest());
+			return true;
+		}
+	}
+	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef hasSRV
 class SRVPolicy : public AliasesPolicy {

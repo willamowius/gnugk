@@ -189,6 +189,16 @@ template<> H225_ArrayOf_AliasAddress *FacilityRequest::GetAliases()
 		? &m_request.m_alternativeAliasAddress : NULL;
 }
 
+// class SetupRequest
+template<> H225_ArrayOf_AliasAddress *RegistrationRequest::GetAliases()
+{
+#if hasH460
+
+#endif
+
+	return NULL;
+}
+
 bool Policy::Handle(SetupRequest& request)
 {
 	if( IsActive() ) {
@@ -230,6 +240,28 @@ bool Policy::Handle(FacilityRequest& request)
 			return true;
 		}
 	}
+	return m_next && m_next->Handle(request);
+}
+
+bool Policy::Handle(RegistrationRequest& request)
+{
+/*	if( IsActive() ) {
+#if PTRACING
+		const PString tagname = request.GetWrapper()->GetTagName();
+		const unsigned crv = request.GetWrapper()->GetCallReference();
+		PTRACE(5, "ROUTING\tChecking policy " << m_name
+			<< " for request " << tagname << " CRV=" << crv
+			);
+#endif
+		if (OnRequest(request)) {
+#if PTRACING
+			PTRACE(5, "ROUTING\tPolicy " << m_name
+				<< " applied to the request " << tagname << " CRV=" << crv
+				);
+#endif
+			return true;
+		}
+	} */
 	return m_next && m_next->Handle(request);
 }
 
@@ -307,6 +339,14 @@ bool Analyzer::Parse(FacilityRequest & request)
 	return policy ? policy->Handle(request) : false;
 }
 
+bool Analyzer::Parse(RegistrationRequest & request)
+{
+	ReadLock lock(m_reloadMutex);
+	request.SetRejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered);
+	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[2]);
+	return policy ? policy->Handle(request) : false;
+}
+
 Policy *Analyzer::Create(const PString & cfg)
 {
 	return Policy::Create(cfg.ToLower().Tokenise(",;|", false));
@@ -360,6 +400,12 @@ bool AliasesPolicy::OnRequest(FacilityRequest & request)
 	return aliases && FindByAliases(request, *aliases);
 }
 
+bool AliasesPolicy::OnRequest(RegistrationRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	return aliases && FindByAliases(request, *aliases);
+}
+
 
 // the simplest policy, the destination has been explicitly specified
 class ExplicitPolicy : public Policy {
@@ -370,6 +416,7 @@ protected:
 	// the policy doesn't apply to LocationRequest
 	virtual bool OnRequest(SetupRequest &);
 	virtual bool OnRequest(FacilityRequest &);
+	virtual bool OnRequest(RegistrationRequest &);
 };
 
 bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
@@ -411,6 +458,19 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 	return false;
 }
 
+bool ExplicitPolicy::OnRequest(RegistrationRequest &request)
+{
+/*	H225_Registration_UUIE &reg = request.GetRequest();
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+		Route route(m_name, setup.m_destCallSignalAddress);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+			route.m_destAddr
+			);
+		return request.AddRoute(route);
+	}*/
+	return false;
+}
+
 
 // the classical policy, find the dstionation from the RegistrationTable
 class InternalPolicy : public AliasesPolicy {
@@ -420,6 +480,7 @@ public:
 protected:
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(SetupRequest &);
+	virtual bool OnRequest(RegistrationRequest &);
 
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
@@ -444,6 +505,15 @@ bool InternalPolicy::OnRequest(AdmissionRequest & request)
 }
 
 bool InternalPolicy::OnRequest(SetupRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases == NULL || !FindByAliases(request, *aliases))
+		return false;
+
+	return true;
+}
+
+bool InternalPolicy::OnRequest(RegistrationRequest & request)
 {
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
 	if (aliases == NULL || !FindByAliases(request, *aliases))

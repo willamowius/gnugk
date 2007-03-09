@@ -147,6 +147,7 @@ private:
 	Wrapper *m_wrapper;
 };
 
+typedef Request<H225_RegistrationRequest, RasMsg> RegistrationRequest;
 typedef Request<H225_AdmissionRequest, RasMsg> AdmissionRequest;
 typedef Request<H225_LocationRequest, RasMsg> LocationRequest;
 typedef Request<H225_Setup_UUIE, SetupMsg> SetupRequest;
@@ -182,6 +183,7 @@ public:
 
 	bool Handle(SetupRequest &request);
 	bool Handle(FacilityRequest &request);
+	bool Handle(RegistrationRequest &request);
 
 protected:
 	// new virtual function
@@ -195,6 +197,7 @@ protected:
 	virtual bool OnRequest(LocationRequest &)  { return false; }
 	virtual bool OnRequest(SetupRequest &)	   { return false; }
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
+	virtual bool OnRequest(RegistrationRequest &) { return false; }
 
 protected:
 	/// human readable name for the policy - it should be set inside constructors
@@ -212,6 +215,7 @@ protected:
 	virtual bool OnRequest(LocationRequest &);
 	virtual bool OnRequest(SetupRequest &);
 	virtual bool OnRequest(FacilityRequest &);
+	virtual bool OnRequest(RegistrationRequest &);
 
 	// new virtual function
 	virtual bool FindByAliases(RoutingRequest&, H225_ArrayOf_AliasAddress &) = 0;
@@ -229,6 +233,7 @@ public:
 	bool Parse(LocationRequest &);
 	bool Parse(SetupRequest &);
 	bool Parse(FacilityRequest &);
+	bool Parse(RegistrationRequest &);
 
 private:
 	typedef std::map<PString, Policy *, pstr_prefix_lesser> Rules;
