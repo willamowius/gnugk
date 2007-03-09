@@ -15,6 +15,7 @@
 #ifdef P_ODBC
 
 #include <ptlib.h>
+#include <ptlib/podbc.h>
 
 
 /** Class that encapsulates SQL query result for odbc backend.
