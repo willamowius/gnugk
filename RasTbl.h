@@ -615,7 +615,7 @@ public:
 	bool CompareEndpoint(const endptr *) const;
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 
-	bool IsUsed() const { return (m_usedCount != 0); }
+	bool IsUsed() const;
 
 	/** @return
 		true if the call has been connected - a Connect message
@@ -1365,6 +1365,12 @@ inline void CallRec::Unlock()
 {
 	PWaitAndSignal lock(m_usedLock);
 	--m_usedCount;
+}
+
+inline bool CallRec::IsUsed() const
+{ 
+	PWaitAndSignal lock(m_usedLock);
+	return (m_usedCount != 0); 
 }
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const
