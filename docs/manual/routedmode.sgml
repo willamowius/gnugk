@@ -397,6 +397,18 @@ Whether to proxy for calls between endpoints from the same NAT box.
 You do not need to enable this feature in general, since usually endpoints
 from the same NAT box can communicate with each other.
 
+<item><tt/DisableH235Call=1/<newline>
+Default: <tt/0/<newline>
+<p>
+This setting removes the cryptoTokens and clearTokens off the Setup Message.
+Use this when working with IP Phones that do not support large Setup messages
+
+<item><tt/DisableH460Call=1/<newline>
+Default: <tt/0/<newline>
+<p>
+This setting removes the H.460 features from the Setup Message. Use this with
+pre-H.323v4 Endpoints and Gateways which cannot decode these messages.
+
 <item><tt/EnableRTPMute=1/<newline>
 Default: <tt/0/<newline>
 <p>
