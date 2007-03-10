@@ -164,23 +164,6 @@ public:
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
 	void SetSupportNAT(bool support);
-
-	enum EPNatTypes {
-            NatUnknown,
-            NatOpen,
-            NatCone,
-            NatRestricted,
-            NatPortRestricted,
-            NatSymmetric,
-            FirewallSymmetric,
-            NatBlocked,
-            NatPartialBlocked
-       };
-
-	void SetEPNATType(int nattype) {m_epnattype = (EPNatTypes)nattype; }
-	void SetNATProxy(BOOL support) {m_natproxy = support; }
-	void SetInternal(BOOL internal) { m_internal = internal; }
-
 	void SetPriority(int priority) { m_registrationPriority = priority; };
 	void SetPreemption(bool support) { m_registrationPreemption = support; };
 	void SetAssignedGatekeeper(const H225_AlternateGK & gk) { m_assignedGatekeeper = gk; };
@@ -195,15 +178,6 @@ public:
 	bool IsFromParent() const;
 	bool IsNATed() const;
 	bool SupportNAT() const;
-
-	bool HasNATProxy() const;
-	bool IsInternal() const;
-	bool IsRemote() const;
-	int GetEPNATType() {return (int)m_epnattype; }
-	static PString GetEPNATTypeString(EPNatTypes nat);
-	bool SupportPreemption() const { return m_registrationPreemption; }
-	H225_AlternateGK GetAssignedGatekeeper() { return m_assignedGatekeeper; }
-
 	int  Priority() const { return m_registrationPriority; }
 	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;
@@ -293,7 +267,7 @@ protected:
 	mutable PMutex m_usedLock;
 
 	PTime m_updatedTime;
-	bool m_fromParent, m_nat;
+	bool m_fromParent, m_nat, m_natsupport;
 	PIPSocket::Address m_natip;
 	CallSignalSocket *m_natsocket;
 	/// permanent (preconfigured) endpoint flag
@@ -314,10 +288,6 @@ protected:
 
     /// Assigned Gatekeeper
 	H225_AlternateGK m_assignedGatekeeper;
-
-	EPNatTypes m_epnattype;
-	bool m_natsupport, m_natproxy, m_internal, m_remote;
-
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -600,39 +570,6 @@ public:
 		PIPSocket::Address& calledPartyNATIP
 		) const;
 
-	/** Can the call party be used to bypass proxy for NAT
-	*/
-	enum NatStrategy {
-		e_natUnknown,
-		e_natNoassist,
-		e_natLocalMaster,
-	    e_natRemoteMaster,
-		e_natLocalProxy,
-	    e_natRemoteProxy,
-		e_natFullProxy,
-		e_natSameNAT,
-		e_natFailure = 100
-	};
-
-	/** Return whether a call can be offloaded from having to proxy
-	  */
-	bool NATOffLoad(bool iscalled, NatStrategy & natinst);
-
-	/** Get String representation of the NATStrategy */
-	PString GetNATOffloadString(NatStrategy nat);
-
-	/** Get the NATStrategy Default is Unknown */
-	NatStrategy GetNATStrategy() { return m_natstrategy; }
-
-	/** Set the NATStrategy */
-	void SetNATStrategy(NatStrategy strategy) { m_natstrategy = strategy; }
-
-
-	/** Return whether the endpoints are registered at the same gatekeeper so
-	    only 1 gatekeeper is involved in the call
-	  */
-	bool SingleGatekeeper();
-
 	/** @return
 	    Current proxy mode flag (see #ProxyMode enum#).
 	*/
@@ -678,7 +615,7 @@ public:
 	bool CompareEndpoint(const endptr *) const;
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 
-	bool IsUsed() const;
+	bool IsUsed() const { return (m_usedCount != 0); }
 
 	/** @return
 		true if the call has been connected - a Connect message
@@ -1112,7 +1049,6 @@ private:
 	int m_usedCount;
 	mutable PTimedMutex m_usedLock, m_sockLock;
 	int m_nattype;
-	NatStrategy m_natstrategy;
 
 	/// unregistered caller NAT'd
 	bool m_unregNAT;
@@ -1330,41 +1266,6 @@ inline bool EndpointRec::SupportNAT() const
 	return m_natsupport;
 }
 
-inline bool EndpointRec::HasNATProxy() const
-{
-	return m_natproxy;
-}
-
-inline bool EndpointRec::IsInternal() const
-{
-	return m_internal;
-}
-
-inline bool EndpointRec::IsRemote() const
-{
-	return m_remote;
-}
-
-inline PString EndpointRec::GetEPNATTypeString(EPNatTypes nat)
-{
-  static const char * const Names[9] = {
-    "Unknown NAT",
-    "Open NAT",
-    "Cone NAT",
-    "Restricted NAT",
-    "Port Restricted NAT",
-    "Symmetric NAT",
-    "Symmetric Firewall",
-    "Blocked",
-    "Partially Blocked"
-  };
-
-  if (nat < 9)
-    return Names[nat];
-  
-  return PString((unsigned)nat);
-}
-
 inline PIPSocket::Address EndpointRec::GetNATIP() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1464,12 +1365,6 @@ inline void CallRec::Unlock()
 {
 	PWaitAndSignal lock(m_usedLock);
 	--m_usedCount;
-}
-
-inline bool CallRec::IsUsed() const
-{ 
-	PWaitAndSignal lock(m_usedLock);
-	return (m_usedCount != 0); 
 }
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const

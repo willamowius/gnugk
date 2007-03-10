@@ -36,10 +36,6 @@
 #include "sigmsg.h"
 #include "ProxyChannel.h"
 
-#ifdef hasH460
-  #include <h460/h4601.h>
-#endif
-
 using namespace std;
 using Routing::Route;
 
@@ -1635,7 +1631,6 @@ void CallSignalSocket::OnSetup(
 	if (m_call) {
 		// existing CallRec
 		m_call->SetSetupTime(setupTime);
-		m_call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
 		
 		if (m_call->IsSocketAttached()) {
 			PTRACE(2, Type() << "\tWarning: socket (" << Name() << ") already attached for callid " << callid);
@@ -1868,42 +1863,11 @@ void CallSignalSocket::OnSetup(
 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed
 		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient->IsNATed());
-
-		int proxyMode = authData.m_proxyMode;
-		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
-#ifdef hasH460
-
-	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
-	   proxyMode != CallRec::ProxyDisabled) {  
-		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];
-          /// OID5
-		  if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5))) {
-			 H460_FeatureOID & foid5 = (H460_FeatureOID &)feat;
-			 if (foid5.Contains(NATInstOID)) {
-			   unsigned natstat = foid5.Value(NATInstOID);
-			   natoffloadsupport = (CallRec::NatStrategy)natstat;
-			 }
-		  }
-		}
-
-	    // If not already set disable the proxy support function for this call
-		if (natoffloadsupport == CallRec::e_natLocalMaster || 
-			  natoffloadsupport == CallRec::e_natRemoteMaster ||
-			  natoffloadsupport == CallRec::e_natNoassist ||
-			  natoffloadsupport == CallRec::e_natRemoteProxy) {
-			    PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
-				proxyMode = CallRec::ProxyDisabled;
-	    }
-	}
-#endif
 		// workaround for bandwidth, as OpenH323 library :p
 		CallRec* call = new CallRec(q931, setupBody, h245Routed, 
-			destinationString, proxyMode
+			destinationString, authData.m_proxyMode
 			);
 		call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
-		call->SetNATStrategy(natoffloadsupport);
 
 		// if the peer address is a public address, but the advertised source address is a private address
 		// then there is a good chance the remote endpoint is behind a NAT.
@@ -2118,33 +2082,6 @@ bool CallSignalSocket::CreateRemote(
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_desiredFeatures);
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
-#ifdef hasH460
-	} else {
-		// Add NAT offload support to older non supporting Endpoints (>H323v4)
-		// This will allow NAT endpoints who support the NAT offload feature
-		// to avoid proxying twice (remote and local) 
-		if (m_call->GetNATStrategy() == CallRec::e_natLocalProxy) {
-		    bool natfound = false;
-			H225_ArrayOf_FeatureDescriptor & fsn = setupBody.m_supportedFeatures;
-			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
-
-			for (PINDEX i=0; i < fsn.GetSize(); i++) {
-				H460_Feature & feat = (H460_Feature &)fsn[i];
-				if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5)))
-					natfound = true; break;
-			}
-
-			if (!natfound) {
-				PTRACE(5, Type() << "Added NAT Support to Outbound Call.");
-				H460_FeatureOID foid5 = H460_FeatureOID(OID5);
-				int remoteconfig = CallRec::e_natRemoteProxy;
-				foid5.Add(NATInstOID,H460_FeatureContent(remoteconfig,8));
-				PINDEX lastpos = fsn.GetSize();
-				fsn.SetSize(lastpos+1);
-				fsn[lastpos] = foid5;    
-			} 
-		}
-#endif
 	}
 	
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is NAT type " << type);

@@ -42,7 +42,6 @@ using Routing::AdmissionRequest;
 using Routing::LocationRequest;
 using Routing::SetupRequest;
 using Routing::FacilityRequest;
-using Routing::RegistrationRequest;
 
 
 struct PrefixInfo {
@@ -94,7 +93,6 @@ public:
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const FacilityRequest &);
-	virtual bool OnSendingLRQ(H225_LocationRequest &, const RegistrationRequest &);
 
 	// check if the given message is a valid reply from this neighbor
 	virtual bool CheckReply(RasMsg *) const;
