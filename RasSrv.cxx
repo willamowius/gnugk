@@ -2162,7 +2162,7 @@ bool AdmissionRequestPDU::Process()
 			
 		list<Route>::iterator r = arq.GetRoutes().begin();
 		while (r != arq.GetRoutes().end()) {
-			// PTRACE(1, "JW route = " << r->AsString() );
+			// PTRACE(1, "route = " << r->AsString() );
 			if (authData.m_proxyMode != CallRec::ProxyDetect)
 				r->m_proxyMode = authData.m_proxyMode;
 			++r;

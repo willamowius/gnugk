@@ -211,19 +211,6 @@ public:
 		);
 
 	/** @return
-	    Maximum call capacity for this endpoint. -1 if there is not capacity
-	    limit set.
-	*/
-	int GetCapacity() const { return m_capacity; }
-	
-	/** Set maximum number of concurrent calls this endpoint can handle.
-	    Pass -1 to disable the limit.
-	*/
-	void SetCapacity(
-		int newCapacity /// max number of concurrent calls, -1 means no limit
-		);
-
-	/** @return
 	    True if the endpoint can handle at least one more concurrent call.
 	*/
 	bool HasAvailableCapacity() const { return m_capacity == -1 || m_activeCall < m_capacity; }

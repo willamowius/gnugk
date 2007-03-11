@@ -264,13 +264,6 @@ bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress 
 }
 */
 
-void EndpointRec::SetCapacity(
-	int newCapacity /// max number of concurrent calls, -1 means no limit
-	) 
-{ 
-	m_capacity = newCapacity; 
-}
-
 void EndpointRec::SetTimeToLive(int seconds)
 {
 	PWaitAndSignal lock(m_usedLock);
