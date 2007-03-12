@@ -863,19 +863,14 @@ bool StatusClient::WriteString(
 	if (CanFlush())
 	    Flush();
 
-	if (m_isFilteringActive == false)
-	    return WriteData(msg, msg.GetLength());
-
-	// If we use filters check if the message is to be ignored
-	if (IsExcludeMessage(msg))
-	    return true;
+	if (m_isFilteringActive && (IsExcludeMessage(msg) || !IsIncludeMessage(msg)))
+	    return false;
 	
-	// If we use filters check if the message is to be shown
-	if (IsIncludeMessage(msg))
-	    return WriteData(msg, msg.GetLength());
+	if (!WriteData(msg, msg.GetSize()))
+	    while (CanFlush())
+		Flush();
 
-	// Otherwise, do not show the message at all
-	return true;
+	return IsOpen();
 }
 
 /*
