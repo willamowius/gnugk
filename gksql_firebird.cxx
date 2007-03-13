@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2006/08/08 12:24:36  zvision
+ * Escape quote characters in query strings
+ *
  * Revision 1.3  2006/07/06 15:25:13  willamowius
  * set all deleted pointers to NULL (most probably more than needed)
  *
@@ -541,11 +544,11 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	
 	ISC_STATUS status[20];
 	isc_db_handle conn = NULL;
-	std::string dbname(m_database);
+	std::string dbname = m_database;
 	
 	if (!m_host) {
 		dbname.insert(0, ":");
-		dbname.insert(0, m_host);
+		dbname.insert(0, (const char *)m_host);
 	}
 	
 	isc_attach_database(status, 0, const_cast<char*>(dbname.c_str()), &conn, dpb_offset, &(dpb[0]));
