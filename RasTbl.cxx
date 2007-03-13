@@ -2140,13 +2140,6 @@ void CallRec::SetNewRoutes(
 	m_newRoutes = routes;
 }
 
-void CallRec::SetFailedRoutes(
-	const std::list<Routing::Route> &routes
-	)
-{
-	m_failedRoutes = routes;
-}
-
 bool CallRec::MoveToNextRoute()
 {
 	if (! Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))

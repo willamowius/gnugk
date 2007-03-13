@@ -919,9 +919,6 @@ public:
 	void SetNewRoutes(
 		const std::list<Routing::Route> &routes
 		);
-	void SetFailedRoutes(
-		const std::list<Routing::Route> &routes
-		);
 	const std::list<Routing::Route> &GetNewRoutes() const { return m_newRoutes; }
 	const std::list<Routing::Route> &GetFailedRoutes() const { return m_failedRoutes; }
 	bool MoveToNextRoute();
