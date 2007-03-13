@@ -658,11 +658,11 @@ void GatewayRec::AddPrefixes(const PString & prefixes)
 	PStringArray prefix(prefixes.Tokenise(" ,;\t\n", false));
 	for (PINDEX i = 0; i < prefix.GetSize(); ++i) {
 		PStringArray p(prefix[i].Tokenise(":=", false));
-		int priority = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
-		if (priority < 1)
-			priority = 1;
-		if (!Prefixes[(const char *)p[0]] || Prefixes[(const char *)p[0]] > priority)
-			Prefixes[(const char *)p[0]] = priority;
+		int prefix_priority = (p.GetSize() > 1) ? p[1].AsInteger() : priority;
+		if (prefix_priority < 1)
+			prefix_priority = 1;
+		if (!Prefixes[(const char *)p[0]] || Prefixes[(const char *)p[0]] > prefix_priority)
+			Prefixes[(const char *)p[0]] = prefix_priority;
 	}
 }
 
@@ -684,7 +684,7 @@ int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &aliases) const
 int GatewayRec::PrefixMatch(
 	const H225_ArrayOf_AliasAddress& aliases,
 	int& matchedalias,
-	int& priority
+	int& priority_out
 	) const
 {
 	int maxlen = 0;
@@ -692,7 +692,7 @@ int GatewayRec::PrefixMatch(
 	const_prefix_iterator eIter = Prefixes.end();
 
 	matchedalias = 0;
-	priority = 1;
+	priority_out = priority;
 	
 	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
 		const unsigned tag = aliases[i].GetTag();
@@ -717,7 +717,7 @@ int GatewayRec::PrefixMatch(
 						pfxiter = Iter;
 						maxlen = len;
 						matchedalias = i;
-						priority = Iter->second;
+						priority_out = Iter->second;
 					}
 				}
 				++Iter;
@@ -731,7 +731,7 @@ int GatewayRec::PrefixMatch(
 			);
 	} else if (maxlen > 0) {
 		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue()
-			<< " matched by prefix " << pfxiter->first.c_str() << ", priority: " << priority
+			<< " matched by prefix " << pfxiter->first.c_str() << ", priority: " << priority_out
 			);
 		return maxlen;
 	} else if (defaultGW) {
