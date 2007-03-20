@@ -680,6 +680,10 @@ void GkAuthenticatorList::OnReload()
 	// from another thread
 	WriteLock lock(m_reloadMutex);
 
+	// first destroy old authenticators
+	DeleteObjectsInContainer(m_authenticators);
+	m_authenticators.clear();
+	
 	std::list<GkAuthenticator*> authenticators;	
 	GkAuthenticator *auth;
 	
@@ -690,6 +694,8 @@ void GkAuthenticatorList::OnReload()
 			authenticators.push_back(auth);
 	}
 
+	m_authenticators = authenticators;
+	
 	H225_ArrayOf_AuthenticationMechanism mechanisms;
 	H225_ArrayOf_PASN_ObjectId algorithmOIDs;
 
@@ -850,9 +856,6 @@ void GkAuthenticatorList::OnReload()
 	// now switch to new setting
 	*m_mechanisms = mechanisms;
 	*m_algorithmOIDs = algorithmOIDs;
-	DeleteObjectsInContainer(m_authenticators);
-	m_authenticators.clear();
-	m_authenticators = authenticators;
 }
 
 void GkAuthenticatorList::SelectH235Capability(
