@@ -516,9 +516,19 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	// If URL remove the domain if default domain
 	 PINDEX at = s.Find('@');
 	 if (at != P_MAX_INDEX) {
+		 PString num = s.Left(at);
+         // Check if we have a default domain and strip it
 		 if (s.Mid(at+1) == m_defaultDomain) {
-		   PTRACE(2, "\tRewriteDomain: " << s << " to " << s.Left(at));
-		   s = s.Left(at);
+		   PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
+		   s = num;
+		 } else {
+			 // Check if all numeric then is E164 then strip the domain
+ 		     for (PINDEX j = 0; j < num.GetLength(); ++j)
+			       if (!isdigit(num[j]))
+			   	         break;
+
+			 if (j >= num.GetLength())  // is numeric
+                   s = num;
 		 }
 	 }
 
