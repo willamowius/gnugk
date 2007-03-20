@@ -523,7 +523,8 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		   s = num;
 		 } else {
 			 // Check if all numeric then is E164 then strip the domain
- 		     for (PINDEX j = 0; j < num.GetLength(); ++j)
+			 PINDEX j;
+ 		     for (j = 0; j < num.GetLength(); ++j)
 			       if (!isdigit(num[j]))
 			   	         break;
 
