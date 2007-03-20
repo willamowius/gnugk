@@ -1144,18 +1144,6 @@ void RegistrationTable::InternalFindEP(
 		GWlist.sort(ComparePriority);
 		
 		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
-		GatewayRec *e = GWlist.front().second;
-		while (!e->HasAvailableCapacity() && ++i != GWlist.end()) {
-			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
-			e = i->second;
-		}
-		if (GWlist.size() > 1 && roundRobin) {
-			PTRACE(3, "Prefix apply round robin");
-			WriteLock lock(listLock);
-			endpoints->remove(e);
-			endpoints->push_back(e);
-		}
-		routes.push_back(Route(endptr(e)));
 		while (i != GWlist.end()) {
 			if (i->second->HasAvailableCapacity())
 				routes.push_back(Route(endptr(i->second)));
@@ -1163,6 +1151,17 @@ void RegistrationTable::InternalFindEP(
 				PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
 			++i;
 		}
+
+		if (routes.empty())
+			routes.push_back(Route(endptr(GWlist.front().second)));
+
+		if (GWlist.size() > 1 && roundRobin) {
+			PTRACE(3, "Prefix apply round robin");
+			WriteLock lock(listLock);
+			endpoints->remove(routes.front().m_destEndpoint.operator->());
+			endpoints->push_back(routes.front().m_destEndpoint.operator->());
+		}
+
 #if PTRACING
 		if (PTrace::CanTrace(4)) {
 			ostream &strm = PTrace::Begin(4, __FILE__, __LINE__);

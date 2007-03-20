@@ -1,5 +1,7 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
+- BUGFIX(RasTbl.cxx) the first route was duplicated and a call was sent twice to the same gw.
+  Thanks to Alex Golyshev for pointing this out!
 - BUGFIX(RasSrv.cxx) fixed crash inside IRR handler
 - BUGFIX(yasocket.cxx) due to recent changes, it was impossible to send
   more than 10240 bytes of data when data queuing had to be involved
