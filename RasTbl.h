@@ -421,11 +421,6 @@ public:
 
 	PINDEX Size() const { return regSize; }
 
-public:
-  enum enumGatewayFlags {
-                e_SCNType		// "trunk" or "residential"
-  };
-
 private:
 
 	endptr InternalInsertEP(H225_RasMessage &);
