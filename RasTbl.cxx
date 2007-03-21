@@ -1022,15 +1022,8 @@ endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias)
 
 endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool r, bool s)
 {
-	list<H225_TransportAddress> emptyIgnoreList;
-	endptr ep = InternalFindEP(alias, &EndpointList, r, emptyIgnoreList);
-	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r, emptyIgnoreList) : endptr(0);
-}
-
-endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool r, bool s, const list<H225_TransportAddress> & ignoreList)
-{
-	endptr ep = InternalFindEP(alias, &EndpointList, r, ignoreList);
-	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r, ignoreList) : endptr(0);
+	endptr ep = InternalFindEP(alias, &EndpointList, r);
+	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r) : endptr(0);
 }
 
 void RegistrationTable::FindEndpoint(
@@ -1054,9 +1047,8 @@ inline bool ComparePriority(const pair<int, GatewayRec*>& x, const pair<int, Gat
 }
 
 endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
-	std::list<EndpointRec *> *List, bool roundrobin, const list<H225_TransportAddress> & ignoreList)
+	std::list<EndpointRec *> *List, bool roundrobin)
 {
-	// TODO: temporarily remove all aliases in ignoreList from List for this search
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
@@ -1068,8 +1060,7 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 	listLock.StartRead();
 	const_iterator Iter = List->begin(), IterLast = List->end();
 	while (Iter != IterLast) {
-		if ((*Iter)->IsGateway() &&
-				find(ignoreList.begin(), ignoreList.end(), (*Iter)->GetCallSignalAddress()) == ignoreList.end() ) {	// not on ignoreList
+		if ((*Iter)->IsGateway()) {
 			int dummymatchedalias, priority = 1;
 			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias, dummymatchedalias, priority);
 			if (maxlen < len) {
@@ -1112,7 +1103,6 @@ void RegistrationTable::InternalFindEP(
 	list<Route> &routes
 	)
 {
-	// TODO: temporarily remove all aliases in ignoreList from List for this search
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &aliases), endpoints);
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
@@ -1126,7 +1116,7 @@ void RegistrationTable::InternalFindEP(
 	listLock.StartRead();
 	const_iterator Iter = endpoints->begin(), IterLast = endpoints->end();
 	while (Iter != IterLast) {
-		if ((*Iter)->IsGateway()) {	// not on ignoreList
+		if ((*Iter)->IsGateway()) {
 			int matchedalias, priority = 1;
 			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(aliases, matchedalias, priority);
 			if (maxlen < len) {
