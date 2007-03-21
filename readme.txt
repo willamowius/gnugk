@@ -9,14 +9,13 @@ Project homepage: http://www.gnugk.org/
 Project coordinator: Jan Willamowius <jan@willamowius.de>
 
 To ask questions or submit bugs, please use either the
-users or the developers mailing list and don't send mail to 
-individual developers.
+users or the developers mailing list.
 You will find the mailing lists and archives of past messages
 on the project homepage.
 
 There are a number of documents in docs/ subdirectory to get you
 started working with the gatekeeper. The most important is the
-user's manual. It's in SGML (linuxdoc) format. You can convert
+users manual. It's in SGML (linuxdoc) format. You can convert
 it into HTML, plain text or LaTeX format by sgmltools:
 
 $ sgml2html manual.sgml
@@ -24,5 +23,5 @@ $ sgml2txt manual.sgml
 $ sgml2latex manual.sgml
 
 There are a number of useful configuration examples in
-etc/ subdirectory. Modify them to suit for you.
+the etc/ subdirectory. Modify them to suit your needs.
 
