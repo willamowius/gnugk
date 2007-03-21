@@ -222,48 +222,6 @@ void EndpointRec::LoadEndpointConfig()
 	}
 }
 
-/*
-bool EndpointRec::PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases, 
-                                               bool &fullMatch) const
-{
-        fullMatch = 0;
-        int partialMatch = 0;
-        PString aliasStr;
-	PINDEX aliasStr_len;
-	const H225_ArrayOf_AliasAddress & reg_aliases = GetAliases();
-	PString reg_alias;
-	// for each given alias (dialedDigits) from request message 
-	for(PINDEX i = 0; i < aliases.GetSize() && !fullMatch; i++) {
-//          if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-	    aliasStr = AsString(aliases[i], FALSE);
-	    aliasStr_len = aliasStr.GetLength();
-	    // for each alias (dialedDigits) which is stored for the endpoint in registration
-	    for (PINDEX i = 0; i < reg_aliases.GetSize() && !fullMatch; i++) {
-//              if (reg_aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
-	        reg_alias = AsString(reg_aliases[i], FALSE);
-                // if alias from request message is prefix to alias which is 
-		//   stored in registration
-	        if ((reg_alias.GetLength() >= aliasStr_len) && 
-		    (aliasStr == reg_alias.Left(aliasStr_len))) {
-		  // check if it is a full match 
-		  if (aliasStr == reg_alias) {
-		    fullMatch = 1;
-  		    PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
-		      << (const unsigned char *)m_endpointIdentifier.GetValue() << " (full)" << ANSI::OFF);
-  		  } else {
-		    partialMatch = 1;
-  		    PTRACE(2, ANSI::DBG << "Alias " << aliasStr << " matches endpoint " 
-		      << (const unsigned char *)m_endpointIdentifier.GetValue() << " (partial)" << ANSI::OFF);
-		  }
-	        }
-//	      }
-	    }
-//	  }
-	}
-	return (partialMatch || fullMatch);
-}
-*/
-
 void EndpointRec::SetTimeToLive(int seconds)
 {
 	PWaitAndSignal lock(m_usedLock);
