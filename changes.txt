@@ -1,5 +1,6 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
+- BUGFIX(Toolkit.cxx) enable SQLConfig also if only Firebird is available
 - BUGFIX(RasTbl.cxx) reject the call if no gateway has capacity, don't just use the first matching gateway
 - BUGFIX(RasTbl.cxx) the first route was duplicated and a call was sent twice to the same gw.
   Thanks to Alex Golyshev for pointing this out!
