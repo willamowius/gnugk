@@ -2187,53 +2187,6 @@ bool AdmissionRequestPDU::Process()
 		authData.m_proxyMode = route.m_proxyMode;
 	}
 
-#ifdef ARJREASON_ROUTECALLTOSCN
- 	//
- 	// call from one GW to itself?
- 	// generate ARJ-reason: 'routeCallToSCN'
- 	//
- 	if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToSCN", "1"))) {
- 		// are the endpoints the same (GWs of course)?
-		// only first ARQ may be rejected with with 'routeCallToSCN
- 		if (CalledEP == RequestingEP && !answer) {
- 			// we have to extract the SCN from the destination. only EP-1 will be rejected this way
-			if (bHasDestInfo) {
-				// set the ARJ reason
-				BuildReply(H225_AdmissionRejectReason::e_routeCallToSCN);
-				H225_AdmissionReject & arj = m_msg->m_replyRAS;
-				H225_ArrayOf_PartyNumber & APN = arj.m_rejectReason;
-				APN.SetSize(1);
-				// PN will be the number that is set in the arj reason
-				H225_PartyNumber & PN = APN[0];
-				PN.SetTag(H225_PartyNumber::e_publicNumber);
-				H225_PublicPartyNumber & PPN = PN;
-				// set defaults
-				PPN.m_publicTypeOfNumber.SetTag(H225_PublicTypeOfNumber::e_unknown);
-				PPN.m_publicNumberDigits = "";
-
-				// there can be diffent information in the destination info
-				switch(request.m_destinationInfo[0].GetTag())
-				{
-					case H225_AliasAddress::e_dialedDigits:
-						// normal number, extract only the digits
-						PPN.m_publicNumberDigits = AsString(request.m_destinationInfo[0], FALSE);
-						break;
-					case H225_AliasAddress::e_partyNumber:
-						// ready-to-use party number
-						PN = request.m_destinationInfo[0];
-						break;
-					default:
-						PTRACE(1, "Unsupported AliasAdress for ARQ reason 'routeCallToSCN': " << request.m_destinationInfo[0]);
-				}
-				return true;
-			} else {
- 				// missing destination info. is this possible at this point?
- 			}
- 		}
- 	}
- 	//:towi
-#endif
-
 	// new connection admitted
 	H225_AdmissionConfirm & acf = BuildConfirm();
 	acf.m_bandWidth = BWRequest;

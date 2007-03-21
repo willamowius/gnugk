@@ -89,12 +89,6 @@ This will force the EP to fully reregister if the IP Address changes.
 <sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
 <p>
 <itemize>
-<item><tt/ArjReasonRouteCallToSCN=0/<newline>
-Default: <tt/1/<newline>
-<p>
-If yes, the gatekeeper rejects a call from a gateway to itself by reason
-<bf/routeCallToSCN/.
-
 <item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
 Default: <tt/1/<newline>
 <p>
