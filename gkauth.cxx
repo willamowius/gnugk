@@ -1427,7 +1427,7 @@ bool SimplePasswordAuth::ResolveUserName(
 			}
 			// H235.2
 			if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoSignedToken) {			
-	          const H235_CryptoToken_cryptoSignedToken & cryptoSignedToken = nestedCryptoToken;;
+	          const H235_CryptoToken_cryptoSignedToken & cryptoSignedToken = nestedCryptoToken;
               H235_SIGNED<H235_EncodedGeneralToken> m_Signed = cryptoSignedToken.m_token;
 			  m_Signed.m_toBeSigned.DecodeSubType(clearToken);
 			  found = true;
