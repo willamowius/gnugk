@@ -349,7 +349,7 @@ void GkClient::OnReload()
 	
 	if (IsRegistered())
 		if (Toolkit::AsBool(cfg->GetString(EndpointSection, "UnregisterOnReload", "0")))
-			SendURQ(); // TODO
+			SendURQ();
 		else
 			Unregister();
 
@@ -1166,7 +1166,6 @@ bool GkClient::OnBRQ(RasMsg *ras)
 
 bool GkClient::OnIRQ(RasMsg *ras)
 {
-	// TODO
 	H225_InfoRequest & irq = (*ras)->m_recvRAS;
 	(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_infoRequestResponse);
 	H225_InfoRequestResponse & irr = (*ras)->m_replyRAS;

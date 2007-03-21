@@ -719,7 +719,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	m_crv = (socket->m_crv & 0x7fffu);
 	m_h245Tunneling = socket->m_h245Tunneling;
 	socket->GetPeerAddress(peerAddr, peerPort);
-	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr); //TODO
+	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
     masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 	
 	SetHandler(socket->GetHandler());
@@ -795,7 +795,7 @@ bool CallSignalSocket::Connect(const Address & addr)
 BOOL CallSignalSocket::Connect(const Address & addr)
 #endif
 {
-	Address local = RasServer::Instance()->GetLocalAddress(addr); // TODO
+	Address local = RasServer::Instance()->GetLocalAddress(addr);
 	int numPorts = min(Q931PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = Q931PortRange.GetPort();
@@ -1169,7 +1169,7 @@ void CallSignalSocket::ForwardCall(
 	endptr forwarded;
 	Routing::FacilityRequest request(facilityBody, msg);
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
-	if (aliases) // TODO: use rewritten as a policy
+	if (aliases)
 		Toolkit::Instance()->RewriteE164(*aliases);
 		
 	request.Process();
@@ -1645,8 +1645,6 @@ void CallSignalSocket::OnSetup(
 			} else
 				gkClient->RewriteE164(*setup, true);
 		}
-
-		// TODO: check for facility
 
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
 		if (!rejectCall && tokens.GetSize() > 0) {
@@ -4871,10 +4869,6 @@ void HandlerList::LoadConfig()
 				new ProxyHandler(psprintf(PString("ProxyH(%d)"), i))
 				);
 	} else {
-//		int ds = hs - m_numSigHandlers;
-//		for (int i = 0; i < hs && ds > 0; ++i) {
-			// TODO
-//		}
 		m_currentSigHandler = 0;
 	}
 
@@ -4890,10 +4884,6 @@ void HandlerList::LoadConfig()
 				new ProxyHandler(psprintf(PString("ProxyRTP(%d)"), i))
 				);
 	} else {
-//		unsigned ds = hs - m_numRtpHandlers;
-//		for (int i = 0; i < hs && ds > 0; ++i) {
-			// TODO
-//		}
 		m_currentRtpHandler = 0;
 	}
 	
