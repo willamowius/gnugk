@@ -7,12 +7,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-//  990500	initial version (Xiang Ping Chen, Rajat Todi, Joe Metzger)
-//  990600	ported to OpenH323 V. 1.08 (Jan Willamowius)
-//  991003	switched to STL (Jan Willamowius)
-//  000215	call removed from table when <=1 ep remains; marked with "towi*1" (towi)
-//
 //////////////////////////////////////////////////////////////////
 
 

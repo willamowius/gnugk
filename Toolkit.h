@@ -7,9 +7,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-// 	991227  initial version (Torsten Will, mediaWays)
-//
 //////////////////////////////////////////////////////////////////
 
 #ifndef TOOLKIT_H

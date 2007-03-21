@@ -8,11 +8,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-// 	990913	initial version (Jan Willamowius)
-//	991025	Added command thread (Ashley Unitt)
-//	030511  redesign based on new architecture (cwhuang)
-//
 //////////////////////////////////////////////////////////////////
 
 #ifndef GKSTATUS_H

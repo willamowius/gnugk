@@ -7,13 +7,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-// 	990500	initial version (Xiang Ping Chen, Rajat Todi, Joe Metzger)
-//	990600	ported to OpenH323 V. 1.08 (Jan Willamowius)
-//	990702	code cleanup (Jan Willamowius)
-//	990924	clean shutdown (Jan Willamowius)
-//	991016	clean shutdown (Jan Willamowius)
-//
 //////////////////////////////////////////////////////////////////
 
 

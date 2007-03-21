@@ -9,11 +9,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-//
-// History:
-//      2001/09/19      initial version (Chih-Wei Huang)
-//      2003/07/15      revision for thread-safed
-//
 //////////////////////////////////////////////////////////////////
 
 #ifndef GKAUTH_H

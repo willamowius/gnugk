@@ -9,9 +9,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-//      2001/09/27      initial version (Chih-Wei Huang)
-//
 //////////////////////////////////////////////////////////////////
 
 #include <algorithm>

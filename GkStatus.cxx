@@ -7,11 +7,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-// 	990924	initial version (Jan Willamowius)
-//	991025	added command thread (Ashley Unitt)
-//	030511  redesign based on new architecture (cwhuang)
-//
 //////////////////////////////////////////////////////////////////
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)

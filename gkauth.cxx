@@ -7,10 +7,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-//      2001/09/19      initial version (Chih-Wei Huang)
-//      2003/07/16      revision for thread-safe
-//
 //////////////////////////////////////////////////////////////////
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)

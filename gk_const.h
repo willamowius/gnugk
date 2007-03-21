@@ -7,10 +7,6 @@
 // We also explicitely grant the right to link this code
 // with the OpenH323 library.
 //
-// History:
-// 	991002	initial version (Jan Willamowius)
-//	990127  moved all to config file (towi)
-//
 //////////////////////////////////////////////////////////////////
 
 
