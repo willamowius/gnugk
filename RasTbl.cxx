@@ -1152,9 +1152,6 @@ void RegistrationTable::InternalFindEP(
 			++i;
 		}
 
-		if (routes.empty())
-			routes.push_back(Route(endptr(GWlist.front().second)));
-
 		if (GWlist.size() > 1 && roundRobin) {
 			PTRACE(3, "Prefix apply round robin");
 			WriteLock lock(listLock);
