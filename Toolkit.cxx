@@ -912,7 +912,7 @@ void Toolkit::CreateConfig()
 
 void Toolkit::ReloadSQLConfig()
 {
-#if HAS_MYSQL || HAS_PGSQL
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 	if (m_Config->GetSections().GetStringsIndex("SQLConfig") == P_MAX_INDEX)
 		return;
 
