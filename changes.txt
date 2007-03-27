@@ -1,5 +1,8 @@
 Changes from 2.2.5 to 2.2.6
 ===========================
+- BUGFIX(toolkit.cxx) Fixed DefaultDomain Alias rewrite
+- BUGFIX(routing.cxx) ENUM policy not to be used with LRQ
+- BUGFIX(Neighbors.cxx) Fixed SRV policy to try both CS and LR records and not use with LRQ request
 - remove ArjReasonRouteCallToSCN (was inactive + broken for a long time)
 - BUGFIX(Toolkit.cxx) enable SQLConfig also if only Firebird is available
 - BUGFIX(RasTbl.cxx) reject the call if no gateway has capacity, don't just use the first matching gateway
