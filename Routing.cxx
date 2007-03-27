@@ -1170,7 +1170,8 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 
 bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
-	return ENUMPolicy::FindByAliases((RoutingRequest&)request, aliases);
+    PTRACE(4, "ROUTING\tPolicy ENUM not supported for LRQ");
+	return false; // ENUMPolicy::FindByAliases((RoutingRequest&)request, aliases);
 }
 
 
