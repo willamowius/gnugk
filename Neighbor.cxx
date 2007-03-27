@@ -1278,49 +1278,8 @@ bool SRVPolicy::FindByAliases(
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
-		PINDEX at = alias.Find('@');
 
 	// DNS SRV Record lookup
-		if (at != P_MAX_INDEX) {
-		   PString number = alias;
-		   if (number.Left(5) != "h323:") 
-			  number = "h323:" + number;	  
-					
-   // CS SRV Lookup
-		   PStringList str;
-		   if (PDNS::LookupSRV(number,"_h323cs._tcp.",str)) {
-			   for (PINDEX j=0; j<str.GetSize(); j++) {
-				 PTRACE(4, "ROUTING\tDNS SRV converted remote party " << alias << " to " << str[j]);
-		         H225_TransportAddress dest;
-				 PINDEX in = str[j].Find('@');
-				 PString domain = str[j].Mid(in + 1);
-		         if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
-			       PIPSocket::Address addr;
-			       if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
-				                    continue;
-			       Route route(m_name, dest);
-			       route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
-			       request.AddRoute(route);
-			       request.SetFlag(RoutingRequest::e_aliasesChanged);	
-				 }
-			   }
-			 // remove the domain name 
-		     H323SetAliasAddress(alias.Left(at), aliases[i]);
-		     return true;
-		   }
-		}
-	}
-	return SRVPolicy::FindByAliases((LocationRequest&)request, aliases);
-}
-
-
-bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
-{ 
-
-	// DNS SRV Record lookup
-	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
-		PString alias(AsString(aliases[i], FALSE));
-
 		PString number;
 		PString domain;
 		PINDEX at = alias.Find('@');
@@ -1331,41 +1290,68 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		   number = "h323:" + alias;
 		   domain = alias.Mid(at+1);
 		}
-					
-        PStringList str;
+	
 		// LS Record lookup
-        if (PDNS::LookupSRV(number,"_h323ls._udp.",str)) {
-          for (PINDEX i=0; i<str.GetSize(); i++) {
-            PINDEX at = str[i].Find('@');
-            PString ipaddr = str[i].Mid(at + 1);
-            PTRACE(4, "ROUTING\tDNS SRV LRQ located domain " << domain << " at " << ipaddr);
-            H323TransportAddress addr = H323TransportAddress(ipaddr);
+		PStringList ls;
+			if (PDNS::LookupSRV(number,"_h323ls._udp.",ls)) {
+			 for (PINDEX i=0; i<ls.GetSize(); i++) {
+				PINDEX at = ls[i].Find('@');
+				PString ipaddr = ls[i].Mid(at + 1);
+				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
+				H323TransportAddress addr = H323TransportAddress(ipaddr);
 
-			// Create a SRV gatekeeper object
-			GnuGK * nb = new GnuGK();
-			if (!nb->SetProfile(domain,addr)) {
-				PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
-				return false;
-			}
+				// Create a SRV gatekeeper object
+				GnuGK * nb = new GnuGK();
+				if (!nb->SetProfile(domain,addr)) {
+					PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
+					return false;
+				}
 
-			int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
-			// Send LRQ to retreive callers signalling address 
-	        LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
-	        LRQRequester Request(functor);
-	        if (Request.Send(nb)) {
-		        if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
-			     if (lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo)) {
-				    Route route(m_name, lcf->m_callSignalAddress);
-			        request.AddRoute(route);
-				    request.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);
-			        return true;
+				// Send LRQ to retreive callers signalling address 
+				LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
+				LRQRequester Request(functor);
+				if (Request.Send(nb)) {
+					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
+							Route route(m_name, lcf->m_callSignalAddress);
+							request.AddRoute(route);
+							request.SetFlag(RoutingRequest::e_aliasesChanged);
+							return true;
+				    }
+				}
+				PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
+			 }
+			}  
+
+        // CS SRV Lookup
+		PStringList cs;
+		   if (PDNS::LookupSRV(number,"_h323cs._tcp.",cs)) {
+			   for (PINDEX j=0; j<cs.GetSize(); j++) {
+				 PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
+		         H225_TransportAddress dest;
+				 PINDEX in = cs[j].Find('@');
+                 PString dom = cs[j].Mid(in+1);
+		         if (GetTransportAddress(dom, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
+			       PIPSocket::Address addr;
+			       if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
+				                    continue;
+			       Route route(m_name, dest);
+			       route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+			       request.AddRoute(route);
+			       request.SetFlag(RoutingRequest::e_aliasesChanged);	
 				 }
-		       }
-	        }
-		  }
-		} 
-	}
+			   }
+		     return true;
+		   } 
+	} 
+  return false; 
+}
+
+
+bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{ 
+    PTRACE(4, "ROUTING\tPolicy SRV not supported for LRQ");
 	return false;  
 }
 #endif
