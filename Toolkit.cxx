@@ -518,6 +518,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		 if (s.Mid(at+1) == m_defaultDomain) {
 		   PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
 		   s = num;
+		   changed = true;
 		 } else {
 			 // Check if all numeric then is E164 then strip the domain
 			 PINDEX j;
@@ -525,8 +526,11 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 			       if (!isdigit(num[j]))
 			   	         break;
 
-			 if (j >= num.GetLength())  // is numeric
-                   s = num;
+			 if (j >= num.GetLength()) { // is numeric
+				PTRACE(2, "\tRewriteToE164: " << s << " to " << num);
+                s = num;
+				changed = true;
+			 }
 		 }
 	 }
 
