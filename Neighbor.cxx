@@ -781,7 +781,7 @@ bool LRQRequester::Send(NeighborList::List & neighbors, Neighbor *requester)
 	if (m_requests.empty())
 		return false;
 
-	m_retry = 2; // TODO: configurable
+	m_retry = GkConfig()->GetInteger(LRQFeaturesSection, "SendRetries", 2); 
 	PTRACE(2, "NB\t" << m_requests.size() << " LRQ(s) sent");
 	return true;
 }
@@ -798,6 +798,7 @@ bool LRQRequester::Send(Neighbor * nb)
 		return false;
 	}
 
+	m_retry = GkConfig()->GetInteger(LRQFeaturesSection, "SendRetries", 2);
 	PTRACE(2, "SRV\tLRQ sent to " << nb->GetIP());
 	return true;
 }
@@ -1278,6 +1279,7 @@ bool SRVPolicy::FindByAliases(
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
+	    if (!alias) continue;
 
 	// DNS SRV Record lookup
 		PString number;
