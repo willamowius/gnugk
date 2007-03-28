@@ -1279,7 +1279,7 @@ bool SRVPolicy::FindByAliases(
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
-	    if (!alias) continue;
+	    if (alias.GetLength() == 0) continue;
 
 	// DNS SRV Record lookup
 		PString number;
