@@ -577,7 +577,8 @@ bool DNSPolicy::FindByAliases(
 
 bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 { 
-	return DNSPolicy::FindByAliases((RoutingRequest&)request, aliases);
+	PTRACE(4, "ROUTING\tPolicy DNS not supported for LRQ");
+	return false; // DNSPolicy::FindByAliases((RoutingRequest&)request, aliases);
 }
 
 
