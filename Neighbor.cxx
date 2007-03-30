@@ -275,6 +275,8 @@ bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & add
 		m_sendPrefixes[p[0]] = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
 	}
  
+  SetForwardedInfo(LRQFeaturesSection);
+
   return true;
 
 }
