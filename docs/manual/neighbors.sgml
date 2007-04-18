@@ -78,6 +78,13 @@ Timeout value in seconds to wait responses from neighbors.
 If no response from all neighbors after timeout, the gatekeeper will
 reply an ARJ to the endpoint sending the ARQ.
 
+<item><tt/SendRetries=4/<newline>
+Default: <tt/2/<newline>
+<p>
+Number of tries to send LRQ to neighbors.
+If no response from neighbors after retries timeout, the gatekeeper will
+reply an LRJ to the endpoint sending the LRQ.
+
 <item><tt/ForwardHopCount=2/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
