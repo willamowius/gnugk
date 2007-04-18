@@ -56,7 +56,7 @@ real IDD E164 numbers into H323 dialing information. The servers
 it looks up by default are <tt/e164.voxgratia.net/, <tt/e164.org/ and <tt/e164.arpa/.
 To specify your own server you have to specify an environmental
 variable PWLIB_ENUM_PATH with the address of your preferred
-enum servers separated by a semicolon (;). (PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
+enum servers separated by a colon(:) on Linus and a semicolon (;) on windows. (PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
 
 The enum policy replaces the destination with the information returned by ENUM server, so you must have the appropriate routing policies to finally route the call after the enum policy. Usually you should also have the dns policy after the enum policy, since the new location is often returned in the form of 'number@gatekeeper' and the dns policy is needed to resolve this.
 
