@@ -652,12 +652,12 @@ protected:
 		PString password = PString();
 		if (!ResolveUserName(req.m_tokens, req.m_cryptoTokens,username)) {
             PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
-			return false;
+			return e_fail;
 		}
 
 		if ((aliases == NULL) || (FindAlias(*aliases, username) == P_MAX_INDEX)) {
             PTRACE(4, "GKAUTH\t" << GetName() << " Token username " << username << " does not match aliases for Endpoint");
-			return false;
+			return e_fail;
 		}
 
 		if (!InternalGetPassword(username, password)) {
@@ -668,7 +668,8 @@ protected:
         for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
           H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
 
-		  authenticator->SetLocalId(username);
+		  authenticator->SetLocalId(Toolkit::GKName());
+		  authenticator->SetRemoteId(username);
 		  authenticator->SetPassword(password);
 
           H235Authenticator::ValidationResult result = authenticator->ValidateTokens(req.m_tokens, 
@@ -951,8 +952,12 @@ private:
 	PReadWriteMutex m_reloadMutex;
 	/// the most common authentication capabilities 
 	/// shared by all authenticators on the list
+#ifdef OpenH323Factory
+    H235Authenticators authenticators;
+#else
 	H225_ArrayOf_AuthenticationMechanism* m_mechanisms;
 	H225_ArrayOf_PASN_ObjectId* m_algorithmOIDs;
+#endif
 };
 
 /** A factory template for authenticator objects. When you create

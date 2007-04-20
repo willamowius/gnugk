@@ -656,9 +656,19 @@ PString GkAuthenticator::GetDialedNumber(
 
 // class GkAuthenticatorList
 GkAuthenticatorList::GkAuthenticatorList() 
+#ifndef OpenH323Factory
 	: m_mechanisms(new H225_ArrayOf_AuthenticationMechanism),
 	m_algorithmOIDs(new H225_ArrayOf_PASN_ObjectId)
+#endif
 {
+#ifdef OpenH323Factory
+  PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
+  PFactory<H235Authenticator>::KeyList_T::const_iterator r;
+  for (r = keyList.begin(); r != keyList.end(); ++r) {
+     H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+	 authenticators.Append(Auth);
+  }
+#endif
 }
 
 GkAuthenticatorList::~GkAuthenticatorList()
@@ -666,8 +676,11 @@ GkAuthenticatorList::~GkAuthenticatorList()
 	WriteLock lock(m_reloadMutex);
 	DeleteObjectsInContainer(m_authenticators);
 	m_authenticators.clear();
+#ifndef OpenH323Factory
 	delete m_mechanisms;
 	delete m_algorithmOIDs;
+#else
+#endif
 }
 
 void GkAuthenticatorList::OnReload()
@@ -840,6 +853,9 @@ void GkAuthenticatorList::OnReload()
 			PTrace::End(strm);
 #endif
 		}
+#ifdef OpenH323Factory
+	}
+#else
 	} else {
 		PTRACE(4, "GKAUTH\tH.235 security is not active or conflicting "
 			"H.235 capabilities are active - GCF will not select "
@@ -852,6 +868,7 @@ void GkAuthenticatorList::OnReload()
 	// now switch to new setting
 	*m_mechanisms = mechanisms;
 	*m_algorithmOIDs = algorithmOIDs;
+#endif
 }
 
 void GkAuthenticatorList::SelectH235Capability(
@@ -871,6 +888,31 @@ void GkAuthenticatorList::SelectH235Capability(
 			&& grq.m_algorithmOIDs.GetSize() > 0))
 		return;
 
+#ifdef OpenH323Factory
+    for (PINDEX auth = 0; auth < authenticators.GetSize(); auth++) {
+     for (PINDEX cap = 0; cap < grq.m_authenticationCapability.GetSize(); cap++) {
+      for (PINDEX alg = 0; alg < grq.m_algorithmOIDs.GetSize(); alg++) {
+        if (authenticators[auth].IsCapability(grq.m_authenticationCapability[cap],
+                                              grq.m_algorithmOIDs[alg])) {
+			std::list<GkAuthenticator*>::const_iterator iter = m_authenticators.begin();
+			while (iter != m_authenticators.end()) {
+			 GkAuthenticator* gkauth = *iter++;
+			  if (gkauth->IsH235Capable() && gkauth->IsH235Capability(grq.m_authenticationCapability[cap],grq.m_algorithmOIDs[alg])) {
+				PTRACE(4, "GKAUTH\tGRQ accepted on " << H323TransportAddress(gcf.m_rasAddress)
+						<< " using authenticator " << authenticators[auth]);
+				  gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
+				  gcf.m_authenticationMode = grq.m_authenticationCapability[cap];
+				  gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
+				  gcf.m_algorithmOID = grq.m_algorithmOIDs[alg];
+				  return;
+			  }
+		   }
+        }
+      }
+    }
+   }
+
+#else
 	H225_ArrayOf_AuthenticationMechanism & mechanisms = *m_mechanisms;
 	H225_ArrayOf_PASN_ObjectId & algorithmOIDs = *m_algorithmOIDs;
 
@@ -904,6 +946,7 @@ void GkAuthenticatorList::SelectH235Capability(
 								<< algorithmOIDs[l] << " removed from GCF list"
 								);
 						}
+#endif
 }
 
 bool GkAuthenticatorList::Validate(
