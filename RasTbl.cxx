@@ -182,6 +182,8 @@ void EndpointRec::LoadEndpointConfig()
 	Toolkit* toolkit = Toolkit::Instance();
 	PConfig* const cfg = GkConfig();
 	const PStringList sections = cfg->GetSections();
+	m_prefixCapacities.clear(); // clear capacity settings
+	m_activePrefixCalls.clear(); // we loose call stats on Reload, but capacities may have changed
 	
 	bool setDefaults = true;
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
@@ -189,6 +191,7 @@ void EndpointRec::LoadEndpointConfig()
 		if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
 			setDefaults = false;
 			m_capacity = cfg->GetInteger(key, "Capacity", -1);
+			AddPrefixCapacities(cfg->GetString(key, "PrefixCapacities", ""));
 			int type = cfg->GetInteger(key, "CalledTypeOfNumber", -1);
 			if (type == -1)
 				m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
@@ -213,6 +216,113 @@ void EndpointRec::LoadEndpointConfig()
 		m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
 		m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
 		m_proxy = 0;
+	}
+}
+
+void EndpointRec::AddPrefixCapacities(const PString & prefixes)
+{
+	PStringArray prefix(prefixes.Tokenise(" ,;\t\n", false));
+	for (PINDEX i = 0; i < prefix.GetSize(); ++i) {
+		PStringArray p(prefix[i].Tokenise(":=", false));
+		if (p.GetSize() > 1) {
+			string prefix = (const char *)p[0];
+			int capacity = p[1].AsInteger();
+			m_prefixCapacities.push_back(pair<std::string,int>(prefix,capacity));
+			m_activePrefixCalls[prefix] = 0;
+			PTRACE(5, "RAS\tEndpoint prefix: " << prefix << " capacity: " << capacity);
+		} else {
+			PTRACE(1, "RAS\tEndpoint Syntax error in PrefixCapacities " << prefix[i]);
+		}
+	}
+}
+
+bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases) const
+{
+	string matched_prefix = "";
+	int prefix_capacity = -1;
+
+	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+		const unsigned tag = aliases[i].GetTag();
+		if (tag == H225_AliasAddress::e_dialedDigits
+			|| tag == H225_AliasAddress::e_partyNumber
+			|| tag == H225_AliasAddress::e_h323_ID) {
+			const PString alias = AsString(aliases[i], FALSE);
+			matched_prefix = LongestPrefixMatch(alias, &prefix_capacity);
+		}
+	}
+	// check if matched prefix has capacity available
+	if ((matched_prefix.length() > 0) && (prefix_capacity > 0)) {
+		map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(matched_prefix);
+		if ((calls_iter != m_activePrefixCalls.end())
+			&& (calls_iter->second >= prefix_capacity)) {
+			PTRACE(5, "Prefix capacity for " << matched_prefix << " reached (max. " << prefix_capacity << ")");
+			return FALSE;
+		}
+	}
+
+	// check if total gateway has capacity
+	return m_capacity == -1 || m_activeCall < m_capacity;
+}
+
+//void EndpointRec::DumpPrefixCapacity() const
+//{
+//	PTRACE(1, "JW: Dumping current prefix capacities for " << AsString(m_terminalAliases, FALSE) << " (" << AsDotString(GetCallSignalAddress()) << "):");
+//	PTRACE(1, "JW: Total calls = " << m_activeCall);
+//	list<pair<string, int> >::const_iterator Iter = m_prefixCapacities.begin();
+//	while (Iter != m_prefixCapacities.end()) {
+//		string prefix = Iter->first;
+//		int capacity = Iter->second;
+//		int calls = 0;
+//		map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(prefix);
+//		if (calls_iter != m_activePrefixCalls.end()) {
+//			calls = calls_iter->second;
+//		} else {
+//			PTRACE(1, "CODING ERROR no stats for prefix " << prefix);
+//		}
+//		PTRACE(1, "JW PREFIXCAP prefix/capacity/curr: " << prefix << "/" << capacity << "/" << calls);
+//		++Iter;
+//	}
+//}
+
+string EndpointRec::LongestPrefixMatch(const PString & alias, int * capacity) const
+{
+	int maxlen = 0;	// longest match
+	string matched_prefix;
+	int prefix_capacity = -1;
+
+	list<pair<string, int> >::const_iterator Iter = m_prefixCapacities.begin();
+	while (Iter != m_prefixCapacities.end()) {
+		string prefix = Iter->first;
+		if (prefix.length() > (unsigned)abs(maxlen)) {
+			PINDEX offset, len;
+			if (!alias.FindRegEx(PRegularExpression(prefix.c_str(), PRegularExpression::Extended), offset, len)) {
+				// ok, ignore
+			} else {
+				if (len > maxlen) {
+					maxlen = len;
+					matched_prefix = prefix;
+					prefix_capacity = Iter->second;
+				}
+			}
+		}
+		++Iter;
+	}
+	// two return values
+	*capacity = prefix_capacity;
+	return matched_prefix;
+}
+
+void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
+{
+	int capacity;
+	string longest_match = LongestPrefixMatch(dest, &capacity);
+	if (longest_match.length() > 0) {
+		m_activePrefixCalls[longest_match] += update;
+		// avoid neg. call numbers; can happen we config is reloaded while calls are standing
+		if (m_activePrefixCalls[longest_match] < 0)
+			m_activePrefixCalls[longest_match] = 0;
+	} else {
+		// ignore if prefix is not limited (or this is the calling endpoint)
 	}
 }
 
@@ -1031,7 +1141,8 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 		
 		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
 		GatewayRec *e = GWlist.front().second;
-		while (!e->HasAvailableCapacity() && ++i != GWlist.end()) {
+		// TODO: bug ? HasCapacity && !end
+		while (!e->HasAvailableCapacity(alias) && ++i != GWlist.end()) {
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
 			e = i->second;
 		}
@@ -1087,7 +1198,7 @@ void RegistrationTable::InternalFindEP(
 		
 		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
 		while (i != GWlist.end()) {
-			if (i->second->HasAvailableCapacity())
+			if (i->second->HasAvailableCapacity(aliases))
 				routes.push_back(Route(endptr(i->second)));
 			else
 				PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
@@ -1692,12 +1803,12 @@ void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
 {
 	if (ep != nep) {
 		if (ep)
-			ep->RemoveCall();
+			ep->RemoveCall(StripAliasType(GetDialedNumber()));
 		m_usedLock.Wait();
 		ep = nep;
 		m_usedLock.Signal();
 		if (ep)
-			ep->AddCall();
+			ep->AddCall(StripAliasType(GetDestInfo()));
 	}
 }
 
@@ -1706,9 +1817,9 @@ void CallRec::RemoveAll()
 	if (IsToParent())
 		RasServer::Instance()->GetGkClient()->SendDRQ(callptr(this));
 	if (m_Calling)
-		m_Calling->RemoveCall();
+		m_Calling->RemoveCall(StripAliasType(GetDialedNumber()));
 	if (m_Called)
-		m_Called->RemoveCall();
+		m_Called->RemoveCall(StripAliasType(GetDialedNumber()));
 }
 
 void CallRec::RemoveSocket()
@@ -2544,7 +2655,7 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 	}
 	
 	if (call->GetCalledParty())
-		call->GetCalledParty()->RemoveCall();
+		call->GetCalledParty()->RemoveCall(StripAliasType(call->GetDialedNumber()));
 	
 	call->SetSocket(NULL, NULL);
 }

@@ -183,9 +183,9 @@ public:
 	 */
 	H225_RasMessage GetCompleteRegistrationRequest() const;
 
-	void AddCall();
+	void AddCall(const PString & dest);
 	void AddConnectedCall();
-	void RemoveCall();
+	void RemoveCall(const PString & dest);
 
 	void Lock();
 	void Unlock();
@@ -208,8 +208,11 @@ public:
 	/** @return
 	    True if the endpoint can handle at least one more concurrent call.
 	*/
-	bool HasAvailableCapacity() const { return m_capacity == -1 || m_activeCall < m_capacity; }
-	
+	bool HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases) const;
+	// void DumpPrefixCapacity() const;
+	string LongestPrefixMatch(const PString & alias, int * capacity) const;
+	void UpdatePrefixStats(const PString & dest, int update);
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -225,6 +228,7 @@ protected:
 private:
 	/// Load general endpoint settings from the config
 	void LoadEndpointConfig();
+	void AddPrefixCapacities(const PString & prefixes);
 
 	EndpointRec();
 	EndpointRec(const EndpointRec &);
@@ -245,6 +249,9 @@ protected:
 	int m_timeToLive;   // seconds
 
 	int m_activeCall, m_connectedCall, m_totalCall;
+	/// active calls per prefix (regex)
+	map<string, int> m_activePrefixCalls;
+
 	int m_pollCount, m_usedCount;
 	mutable PMutex m_usedLock;
 
@@ -260,6 +267,8 @@ protected:
 	int m_callCreditSession;
 	/// endpoint call capacity, -1 means no limit
 	int m_capacity;
+	/// capacity per prefix (regex)
+	list<pair<string, int> > m_prefixCapacities;
 	int m_calledTypeOfNumber, m_callingTypeOfNumber;
 	/// Proxy Type
 	int m_proxy;
@@ -1297,10 +1306,13 @@ inline bool EndpointRec::HasCallCreditCapabilities() const
 	return m_hasCallCreditCapabilities;
 }
 
-inline void EndpointRec::AddCall()
+void UpdatePrefixStats(const PString & dest, int update);
+
+inline void EndpointRec::AddCall(const PString & dest)
 {
 	PWaitAndSignal lock(m_usedLock);
 	++m_activeCall, ++m_totalCall;
+	UpdatePrefixStats(dest, +1);
 }
 
 inline void EndpointRec::AddConnectedCall()
@@ -1309,10 +1321,11 @@ inline void EndpointRec::AddConnectedCall()
 	++m_connectedCall;
 }
 
-inline void EndpointRec::RemoveCall()
+inline void EndpointRec::RemoveCall(const PString & dest)
 {
 	PWaitAndSignal lock(m_usedLock);
 	--m_activeCall;
+	UpdatePrefixStats(dest, -1);
 }
 
 inline void EndpointRec::Lock()

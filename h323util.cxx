@@ -68,12 +68,12 @@ PString AsString(const H225_EndpointType & terminalType)
 	return terminalTypeString.Mid(1);
 }
 
-PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasName)
+PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasType)
 {
 	PString aliasString;
 
 	if(!terminalAlias.IsValid())
-		return includeAliasName ? "invalid:UnknownType" : "invalid";
+		return includeAliasType ? "invalid:UnknownType" : "invalid";
 
 	switch (terminalAlias.GetTag()) {
 		case H225_AliasAddress::e_dialedDigits:
@@ -90,14 +90,14 @@ PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasName)
 				if (prefixIndex != P_MAX_INDEX)
 					aliasString = aliasString.Mid(prefixIndex + 1);
 			}
-			if (includeAliasName) {
+			if (includeAliasType) {
 				aliasString += ":" + terminalAlias.GetTagName();
 			}
 			return aliasString;
 			break;
 	}
 
-	return includeAliasName ? "none:UnknownType" : "none";
+	return includeAliasType ? "none:UnknownType" : "none";
 }
 
 
@@ -126,6 +126,17 @@ PString AsString(const PASN_OctetString & Octets)
 			result += PString(PString::Printf, " %02x", Octets[i]);
 	}
 	return result;
+}
+
+PString StripAliasType(const PString & alias)
+{
+	const PINDEX nameIndex = alias.FindLast(':');
+	if (nameIndex != P_MAX_INDEX) {
+		return alias.Left(nameIndex);
+	} else {
+		// nothing to strip
+		return alias;
+	}
 }
 
 // convert a socket IP address into an H225 transport address

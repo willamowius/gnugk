@@ -23,6 +23,14 @@ calls will be sent to this endpoint. In case of gateways, if more than one
 gateway matches a dialed number, a call will be sent to the first available
 gateway (that has available capacity).
 
+<item><tt/PrefixCapacities=^0049:=10,^(0044|0045):=20/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Limit the capacity for certain prefixes. Regular expressions can be used to specify
+the prefix and specify a combined capacity for a group of prefixes. For a gateway to
+be considered available a.) the prefix must have capacity left and b.) the total gateway
+capacity (see above) may not be reached.
+
 <item><tt/GatewayPriority=1/<newline>
 Default: <tt/1/<newline>
 <p>

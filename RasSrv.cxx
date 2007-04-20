@@ -2172,7 +2172,7 @@ bool AdmissionRequestPDU::Process()
 		arq.GetFirstRoute(route);
 		
 		if ((arq.GetRoutes().size() == 1 || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
-				&& route.m_destEndpoint	&& !route.m_destEndpoint->HasAvailableCapacity())
+				&& route.m_destEndpoint	&& !route.m_destEndpoint->HasAvailableCapacity(request.m_destinationInfo))
 			return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 
 		CalledEP = route.m_destEndpoint;
@@ -2500,7 +2500,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		if (lrq.GetFirstRoute(route)) {
 			WantedEndPoint = route.m_destEndpoint;
 			if ((lrq.GetRoutes().size() == 1 || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
-					&& WantedEndPoint && !WantedEndPoint->HasAvailableCapacity()) {
+					&& WantedEndPoint && !WantedEndPoint->HasAvailableCapacity(request.m_destinationInfo)) {
 				bReject = true;
 				reason = H225_LocationRejectReason::e_resourceUnavailable;
 			} else {

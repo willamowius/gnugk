@@ -39,6 +39,8 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, BOOL includeAl
 
 PString AsString(const PASN_OctetString & Octets);
 
+PString StripAliasType(const PString & alias);
+
 // convert a socket IP address into an H225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port);
 
