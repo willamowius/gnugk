@@ -1094,7 +1094,7 @@ void RegistrationTable::InternalFindEP(
 			++i;
 		}
 
-		if (GWlist.size() > 1 && roundRobin) {
+		if (routes.size() > 1 && roundRobin) {
 			PTRACE(3, "Prefix apply round robin");
 			WriteLock lock(listLock);
 			endpoints->remove(routes.front().m_destEndpoint.operator->());
