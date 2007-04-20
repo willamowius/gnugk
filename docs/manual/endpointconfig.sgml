@@ -39,7 +39,7 @@ Default: <tt>N/A</tt><newline>
 Additional prefixes for this gateway. Apply only to gateways. 
 Special characters <tt/./ and <tt/!/ can be used here to match any digit 
 and disable the prefix.
-You may use the := syntax to set a prefix priority in the same manner as in <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> section.
+You may use the := syntax to set a prefix priority in the same manner as in <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> section. If no priority is set explicitely for a Prefix, the gateway priority is used.
 
 
 <item><tt/CalledTypeOfNumber=1/<newline>
