@@ -28,4 +28,4 @@ txt-es:
 	cd es ; sgml2txt --language=es --charset=latin manual-es.sgml
 
 clean:
-	rm -f *.html *.pdf *.dvi *.txt fr/*.html fr/*.pdf fr/*.dvi fr/*.txt es/*.html es/*.pdf es/*.dvi es/*.txt
+	rm -f *.html *.pdf *.dvi *.txt fr/*.html fr/*.pdf fr/*.dvi fr/[a-zA-Z]*.txt es/*.html es/*.pdf es/*.dvi es/*.txt
