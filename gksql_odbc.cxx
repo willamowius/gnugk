@@ -15,7 +15,7 @@
 #ifdef P_ODBC
 
 #include <ptlib.h>
-#include <ptlib/podbc.h>
+#include <ptclib/podbc.h>
 
 
 /** Class that encapsulates SQL query result for odbc backend.
@@ -212,6 +212,7 @@ protected:
 private:
 	GkodbcConnection(const GkodbcConnection&);
 	GkodbcConnection& operator=(const GkodbcConnection&);
+
 };
 
 
@@ -380,4 +381,4 @@ namespace {
 	GkSQLCreator<GkodbcConnection> PgSQLCreator("odbc");
 }
 
-#endif /* HAS_PGSQL */
+#endif /* P_ODBC */
