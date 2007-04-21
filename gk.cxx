@@ -155,6 +155,9 @@ void ReloadHandler()
 	// don't put this in LoadConfig()
 	RasServer::Instance()->SetRoutedMode();
 
+	// Load ENUM servers
+	RasServer::Instance()->SetENUMServers();
+
 	RasServer::Instance()->LoadConfig();
 
 	Gatekeeper::EnableLogFileRotation();
@@ -555,6 +558,9 @@ void Gatekeeper::Main()
 		RasSrv->SetRoutedMode(false, false);
 	else
 		RasSrv->SetRoutedMode();
+   
+	// Load ENUM servers
+	RasSrv->SetENUMServers();
 
 #if defined(_WIN32)
 	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT 

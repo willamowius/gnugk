@@ -2,6 +2,7 @@ Changes from 2.2.6 to 2.2.7
 ===========================
 - [EP::xxx] PrefixCapacities: limit capacity by prefix on an endpoint
 - BUGFIX (gkauth.cxx) Fixed H.235.1 Authenticator
+- [RoutedMode] added ENUMservers setting
 
 Changes from 2.2.5 to 2.2.6
 ===========================

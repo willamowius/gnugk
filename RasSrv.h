@@ -79,6 +79,9 @@ public:
 	// set routed method
 	void SetRoutedMode(bool, bool);
 
+	// Set the ENUM Servers
+	void SetENUMServers();
+
 	bool IsGKRouted() const { return GKRoutedSignaling; }
 	bool IsH245Routed() const { return GKRoutedH245; }
 	bool AcceptUnregisteredCalls(const PIPSocket::Address &) const;

@@ -54,20 +54,25 @@ It also partially supports Setup messages (no overlapped sending
 ENUM (RFC3761) is a method to use DNS lookup to convert
 real IDD E164 numbers into H323 dialing information. The servers
 it looks up by default are <tt/e164.voxgratia.net/, <tt/e164.org/ and <tt/e164.arpa/.
-To specify your own server you have to specify an environmental
-variable PWLIB_ENUM_PATH with the address of your preferred
-enum servers separated by a colon(:) on Linus and a semicolon (;) on windows. (PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
+To specify your own server you have may either specify the list in via the ENUMserver variable in
+the RoutedMode section or specify an environmental variable PWLIB_ENUM_PATH with the address of your preferred
+enum servers separated by a colon(:) on Linus and a semicolon (;) on windows. 
+(PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
 
-The enum policy replaces the destination with the information returned by ENUM server, so you must have the appropriate routing policies to finally route the call after the enum policy. Usually you should also have the dns policy after the enum policy, since the new location is often returned in the form of 'number@gatekeeper' and the dns policy is needed to resolve this.
+The enum policy replaces the destination with the information returned by ENUM server, 
+so you must have the appropriate routing policies to finally route the call after the enum policy. 
+Usually you should also have the srv and dns policy after the enum policy, since the new location is often 
+returned in the form of 'number@gatekeeper' and the these policies are needed to resolve this.
 
-Finally keep in mind that each routing check with the enum policy requires a DNS lookup. To speed up your routing, make sure you resolve internal destinations before the enum policy is applied.
+Finally keep in mind that each routing check with the enum policy requires a DNS lookup. 
+To speed up your routing, make sure you resolve internal destinations before the enum policy is applied.
 
 <item><tt/srv/<newline>
 <p>
-DNS SRV or H.323 Annex Q. allows for the routing of calls using the H.323 URI. 
-Addresses can be set as user (at) domain. The H.323 signalling addresses are
-stored in the DNS domain records. Addresses can be the signalling address or
-LRQ address. 
+DNS SRV or H.323 Annex O. allows for the routing of calls using the H.323 URI. 
+Addresses can be set as user (at) domain. The H.323 URI are stored in the 
+DNS domain records of the domain and are queried to find destination. 
+Records can be for the signalling address or for LRQ address. 
 
 </itemize>
 

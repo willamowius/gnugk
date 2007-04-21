@@ -21,6 +21,7 @@
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>
+#include <ptclib/enum.h>
 #include <h225.h>
 #include <h323pdu.h>
 #include "gk.h"
@@ -745,6 +746,19 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 	const char *h245msg = GKRoutedH245 ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tUsing " << modemsg << " Signalling");
 	PTRACE(2, "GK\tH.245 Routed " << h245msg);
+#endif
+}
+
+void RasServer::SetENUMServers()
+{
+#if P_DNS
+  PString servers = GkConfig()->GetString(RoutedSec, "ENUMservers", "");
+  PStringArray serverlist(servers.Tokenise(",", false));
+
+  if (servers.GetSize() > 0) {
+	   PDNS::SetENUMServers(servers);
+       PTRACE(2, "GK\tLoaded ENUM servers");
+  }
 #endif
 }
 

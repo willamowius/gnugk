@@ -316,6 +316,13 @@ for all calls
 (0 - UnknownType, 1 - InternationalType, 2 - NationalType,
 3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType).
 
+<item><tt/ENUMservers=e164.org,e164.arpa/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets the eum server list in priority order seperated by (,) for the enum policy. 
+This overrides the PWLIB_ENUM_PATH environmental variable.
+
+
 </itemize>
 
 <p>
