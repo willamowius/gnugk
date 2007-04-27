@@ -51,7 +51,7 @@ using namespace std;
 using Routing::Route;
 
 #ifndef NEED_BROADCASTLISTENER
-#if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS)
+#if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS) || (defined P_OPENBSD)
 // On some OS we don't get broadcasts on a socket that is
 // bound to a specific interface. For those we have to start
 // a listener just for those broadcasts.
