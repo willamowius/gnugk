@@ -348,6 +348,8 @@ public:
 		int newPriority
 		);
 
+	//void DumpPriorities() const;
+
 private:
 	/// Load gateway specific settings from the config
 	void LoadGatewayConfig();

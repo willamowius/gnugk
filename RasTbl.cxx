@@ -639,15 +639,15 @@ void GatewayRec::LoadGatewayConfig()
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
 		const PString alias = AsString(m_terminalAliases[i], FALSE);
 		if (!alias) {
-			AddPrefixes(cfg->GetString("RasSrv::GWPrefixes", alias, ""));
 			const PString key = "EP::" + AsString(m_terminalAliases[i], FALSE);
 			if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
-				AddPrefixes(cfg->GetString(key, "GatewayPrefixes", ""));
 				priority = cfg->GetInteger(key, "GatewayPriority", 1);
+				AddPrefixes(cfg->GetString(key, "GatewayPrefixes", ""));
 				setDefaults = false;
 				PTRACE(5, "RAS\tGateway " << key << " priority: " << priority);
 				break;
 			}
+			AddPrefixes(cfg->GetString("RasSrv::GWPrefixes", alias, ""));
 		}
 	}
 
@@ -710,7 +710,7 @@ void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols &protocols)
 			for (PINDEX s = 0; s < supportedPrefixes->GetSize(); ++s) {
 				H225_AliasAddress &a = (*supportedPrefixes)[s].m_prefix;
 				if (a.GetTag() == H225_AliasAddress::e_dialedDigits)
-					Prefixes[(const char *)AsString(a, false)] = 1;
+					Prefixes[(const char *)AsString(a, false)] = priority;
 			}
 	}
 }
@@ -736,6 +736,19 @@ void GatewayRec::SortPrefixes()
 //	Prefixes.erase(Iter, Prefixes.end());
 	defaultGW = (Prefixes.find("*") != Prefixes.end());
 }
+
+//void GatewayRec::DumpPriorities() const
+//{
+//      PTRACE(1, "JW Priorities for GW " << AsString(m_terminalAliases, FALSE) << " (" << AsDotString(GetCallSignalAddress()) << "):");
+//      PTRACE(1, "JW GatewayPriority = " << priority);
+//      map<std::string, int>::const_iterator Iter = Prefixes.begin();
+//      while (Iter != Prefixes.end()) {
+//              string prefix = Iter->first;
+//              int prefix_priority = Iter->second;
+//              PTRACE(1, "JW " << prefix << ":=" << prefix_priority);
+//              ++Iter;
+//      }
+//}
 
 int GatewayRec::PrefixMatch(const H225_ArrayOf_AliasAddress &aliases) const
 {
@@ -841,8 +854,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 			msg += "<none>";
 		} else {
 			PString m = PString(Prefixes.begin()->first);
-			if (Prefixes.begin()->second != 1)
-				m += ":=" + PString(Prefixes.begin()->second);
+			m += ":=" + PString(Prefixes.begin()->second);
 			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
 			while (++Iter != eIter) {
 				m += "," + PString(Iter->first);
