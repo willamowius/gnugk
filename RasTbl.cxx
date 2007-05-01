@@ -1696,8 +1696,8 @@ void CallRec::SetCalling(
 	if (NewCalling) {
 		if (NewCalling->IsNATed()) {
 			m_nattype |= callingParty, m_h245Routed = true;
-			if (NewCalling->HasNATSocket())
-				m_nattype |= citronNAT;
+//			if (NewCalling->HasNATSocket())
+//				m_nattype |= citronNAT;
 		}
 		SetSrcSignalAddr(NewCalling->GetCallSignalAddress());
 		m_callerId = NewCalling->GetEndpointIdentifier().GetValue();
