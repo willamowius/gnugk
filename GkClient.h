@@ -100,7 +100,7 @@ public:
 		H225_LocationRequest& lrq /// LRQ message to be filled with tokens
 		)
 	{
-#ifdef OpenH323factory
+#ifdef OpenH323Factory
         SetPassword(lrq);
 #else
 		SetNBPassword(lrq, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
@@ -112,23 +112,23 @@ public:
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
 
-#ifdef OpenH323factory
+#ifdef OpenH323Factory
          for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
              H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
 
-		   if (authenticator->IsSecuredPDU(rasmsg.GetChoice().GetTag(), FALSE) {
+		   if (authenticator->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
 		     authenticator->SetLocalId(id);
 		     authenticator->SetPassword(m_password);
 
-             if (authenticator.PrepareTokens(rasmsg.m_tokens, rasmsg.m_cryptoTokens)) {
+             if (authenticator->PrepareTokens(rasmsg.m_tokens, rasmsg.m_cryptoTokens)) {
                  PTRACE(4, "GKClient\tPrepared PDU with authenticator " << authenticator);
 	 		 }
 		   }
-		  }
-          if (clearTokens.GetSize() > 0)
+		}
+          if (rasmsg.m_tokens.GetSize() > 0)
               rasmsg.IncludeOptionalField(RAS::e_tokens);
 
-          if (cryptoTokens.GetSize() > 0)
+          if (rasmsg.m_cryptoTokens.GetSize() > 0)
               rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
 #else
 		if (!m_password) {
