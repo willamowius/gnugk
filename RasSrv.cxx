@@ -1397,10 +1397,19 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		GetRasAddress(gcf.m_rasAddress);
 		gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier);
 		gcf.m_gatekeeperIdentifier = Toolkit::GKName();
-		if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
+
+#ifdef h323v6
+	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
+            RasSrv->HasAssignedGK(alias,m_msg->m_peerAddr,gcf))
+			  PTRACE(2, "GCF\t" << alias << " redirected to assigned Gatekeeper");
+		else
+#endif
+		{
+		  if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
 			RasSrv->SetAlternateGK(gcf);
 
-		RasSrv->SelectH235Capability(request, gcf);
+		  RasSrv->SelectH235Capability(request, gcf);
+		}
 
 		log = PString(PString::Printf, "GCF|%s|%s|%s;",
 			inet_ntoa(m_msg->m_peerAddr),
@@ -1701,11 +1710,6 @@ bool RegistrationRequestPDU::Process()
 		PTRACE(3, "RAS\tRRQ rejected by unknown reason from " << rx_addr);
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
-
-#ifdef h323v6
-	if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) 
-             ep->SetAssignedGatekeeper(request.m_assignedGatekeeper);
-#endif
 
 	if (nated)
 		ep->SetNATAddress(rx_addr);

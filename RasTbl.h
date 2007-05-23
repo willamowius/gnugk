@@ -162,6 +162,7 @@ public:
 	void SetPriority(int priority) { m_registrationPriority = priority; };
 	void SetPreemption(bool support) { m_registrationPreemption = support; };
 	void SetAssignedGatekeeper(const H225_AlternateGK & gk) { m_assignedGatekeeper = gk; };
+	bool SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned);
 
 
 	/** @return
@@ -173,6 +174,9 @@ public:
 	bool IsFromParent() const;
 	bool IsNATed() const;
 	bool SupportNAT() const;
+
+	H225_AlternateGK GetAssignedGatekeeper() { return m_assignedGatekeeper; }
+
 	int  Priority() const { return m_registrationPriority; }
 	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;

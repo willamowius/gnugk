@@ -10,8 +10,11 @@
 //////////////////////////////////////////////////////////////////
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
+  #pragma warning(disable:4786) // warning about too long debug symbol off
+  #pragma warning(disable:4284)
+#endif
+#if defined(_WIN32) && (_MSC_VER > 1300)
+  #pragma warning(disable:4244) // warning about possible loss of data
 #endif
 
 #include <ptlib.h>
@@ -28,6 +31,7 @@
 #include "clirw.h"
 #include "capctrl.h"
 #include "Toolkit.h"
+#include "gk_const.h"
 
 using namespace std;
 
@@ -439,6 +443,8 @@ int Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 
 static const char *RewriteSection = "RasSrv::RewriteE164";
 static const char *AliasRewriteSection = "RasSrv::RewriteAlias";
+static const char *AssignedAliasSection = "RasSrv::AssignedAlias";
+static const char *AssignedGatekeeperSection = "RasSrv::AssignedGatekeeper";
 
 void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
 {
@@ -521,6 +527,8 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		   changed = true;
 		 } else {
 			 // Check if all numeric then is E164 then strip the domain
+			 // this is used with SRV policy which includes the domain when 
+			 // sending the LRQ. 
 			 PINDEX j;
  		     for (j = 0; j < num.GetLength(); ++j)
 			       if (!isdigit(num[j]))
@@ -982,38 +990,116 @@ void Toolkit::ReloadSQLConfig()
 		queryResult = NULL;
 	}
 			
-
+// Rewrite E164
 	query = m_Config->GetString("SQLConfig", "RewriteE164Query", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading E164 rewrite rules from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL)
+			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database: "
+				"timeout or fatal error"
+				);
+		else if (!queryResult->IsValid())
+			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database ("
+				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage()
+				);
+		else if (queryResult->GetNumFields() < 2)
+			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database: "
+				"at least 2 columns must be present in the result set"
+				);
+		else {
+			while (queryResult->FetchRow(params))
+				if (params[0].IsEmpty())
+					PTRACE(1, "SQLCONF\tInvalid E164 rewrite rule found in the SQL "
+						"database: '" << params[0] << '=' << params[1] << '\''
+						);
+				else {
+					m_Config->SetString("RasSrv::RewriteE164", params[0], params[1]);
+					PTRACE(6, "SQLCONF\tRewriteE164 rule read: '" << params[0] 
+						<< '=' << params[1] << '\''
+						);
+				}
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " E164 rewrite rules "
+				"loaded from SQL database"
+				);
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+
+// Rewrite Alias Query
+	query = m_Config->GetString("SQLConfig", "RewriteAliasQuery", "");
 	if (!query.IsEmpty()) {
 		PTRACE(4, "SQLCONF\tLoading rewrite rules from SQL database");
 		PStringArray params;
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL)
-			PTRACE(0, "SQLCONF\tFailed to load rewrite rules from SQL database: "
+			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database: "
 				"timeout or fatal error"
 				);
 		else if (!queryResult->IsValid())
-			PTRACE(0, "SQLCONF\tFailed to load rewrite rules from SQL database ("
+			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage()
 				);
 		else if (queryResult->GetNumFields() < 2)
-			PTRACE(0, "SQLCONF\tFailed to load rewrite rules from SQL database: "
+			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database: "
 				"at least 2 columns must be present in the result set"
 				);
 		else {
 			while (queryResult->FetchRow(params))
 				if (params[0].IsEmpty())
-					PTRACE(1, "SQLCONF\tInvalid rewrite rule found in the SQL "
+					PTRACE(1, "SQLCONF\tInvalid Alias rewrite rule found in the SQL "
 						"database: '" << params[0] << '=' << params[1] << '\''
 						);
 				else {
-					m_Config->SetString("RasSrv::RewriteE164", params[0], params[1]);
-					PTRACE(6, "SQLCONF\tRewrite rule read: '" << params[0] 
+					m_Config->SetString("RasSrv::RewriteAlias", params[0], params[1]);
+					PTRACE(6, "SQLCONF\tRewriteAlias rule read: '" << params[0] 
 						<< '=' << params[1] << '\''
 						);
 				}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " rewrite rules "
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Alias rewrite rules "
+				"loaded from SQL database"
+				);
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+
+// Assigned Alias Query
+	query = m_Config->GetString("SQLConfig", "AssignedAliasQuery", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading Assigned Alias rules from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL)
+			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database: "
+				"timeout or fatal error"
+				);
+		else if (!queryResult->IsValid())
+			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database ("
+				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage()
+				);
+		else if (queryResult->GetNumFields() < 2)
+			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database: "
+				"at least 2 columns must be present in the result set"
+				);
+		else {
+			while (queryResult->FetchRow(params))
+				if (params[0].IsEmpty())
+					PTRACE(1, "SQLCONF\tInvalid Assigned Alias rule found in the SQL "
+						"database: '" << params[0] << '=' << params[1] << '\''
+						);
+				else {
+					m_Config->SetString("RasSrv::AssignedAlias", params[0], params[1]);
+					PTRACE(6, "SQLCONF\tAssignedAlias rule read: '" << params[0] 
+						<< '=' << params[1] << '\''
+						);
+				}
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Assigned Alias rules "
 				"loaded from SQL database"
 				);
 		}
@@ -1190,6 +1276,10 @@ PConfig* Toolkit::ReloadConfig()
 	m_ProxyCriterion.LoadConfig(m_Config);
 	m_Rewrite.LoadConfig(m_Config);
 	m_GWRewrite.LoadConfig(m_Config);
+	m_AssignedEPAliases.LoadConfig(m_Config);
+#ifdef h323v6
+	m_AssignedGKs.LoadConfig(m_Config);
+#endif
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
@@ -1273,6 +1363,133 @@ BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 }
 
 
+void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
+{
+   	const PStringToString kv = m_config->GetAllKeyValues(AssignedAliasSection);
+	for (PINDEX i=0; i < kv.GetSize(); i++) {
+		PString data = kv.GetDataAt(i);
+		PStringArray datalines = data.Tokenise(" ,;\t");
+		for (PINDEX j=0; j < datalines.GetSize(); j++) 
+		   gkAssignedAliases.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),datalines[j]));
+	}
+}
+
+bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStringArray & aliases)
+{
+	return false;
+}
+
+bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alias, H225_ArrayOf_AliasAddress & aliaslist)
+{
+
+	if (alias.GetSize() == 0)
+		    return false;
+
+    PStringArray newaliases;
+	bool found = false;
+	for (PINDEX h=0; h < alias.GetSize(); h++) {
+	  if (QueryAssignedAliases(H323GetAliasAddressString(alias[h]), newaliases))
+		    found = true;
+	}
+
+	if (!found) {
+		for (PINDEX i=0; i < alias.GetSize(); i++) {
+		  PString search = H323GetAliasAddressString(alias[i]);
+		  
+		  for (unsigned j=0; j < gkAssignedAliases.size(); j++) {
+             PTRACE(5,"Alias\tCompare " << gkAssignedAliases[j].first << " to " << search);
+			  if (gkAssignedAliases[j].first == search) {
+				   newaliases.AppendString(gkAssignedAliases[j].second);
+				   if (!found) found = true;
+			  }
+		  }
+		}
+	}
+
+	// Create the Assigned Alias List
+	if (found) {
+	  // add existing items to the end of the list
+		if (aliaslist.GetSize() > 0) {
+			for (PINDEX l=0; l < aliaslist.GetSize(); l++) {
+			  PString a = H323GetAliasAddressString(aliaslist[l]);
+			    found = false;
+			    for (PINDEX m=0; m < newaliases.GetSize(); m++) {
+                       if (newaliases[m] == a) found = true;
+				}
+			   if (!found)
+                  newaliases.AppendString(a);
+			}
+		}
+
+		aliaslist.RemoveAll();
+
+		for (PINDEX k=0; k < newaliases.GetSize(); k++) {
+			H225_AliasAddress * aliasaddress = new H225_AliasAddress;
+			H323SetAliasAddress(newaliases[k], *aliasaddress);
+			aliaslist.Append(aliasaddress);
+		}
+	}
+
+	return found;
+}
+
+#ifdef h323v6
+void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
+{
+	// At present we only do assigned gatekeeper by prefix
+	const PStringToString kv = m_config->GetAllKeyValues(AssignedGatekeeperSection);
+	for (PINDEX i=0; i < kv.GetSize(); i++) 
+		   assignedGKList.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),kv.GetDataAt(i)));
+}
+
+bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
+{
+	return false;
+}
+
+bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
+{
+	bool found = false;
+	PStringArray assignedGK;
+	found = QueryAssignedGK(alias,ip,assignedGK);
+
+	if (!found) {
+		  for (unsigned j=0; j < assignedGKList.size(); j++) {
+		    PString match = assignedGKList[j].first.Trim();
+			if (match.Left(1) != "^") {
+			  // Do prefix match
+			  if (MatchPrefix(alias,assignedGKList[j].first)) {
+				   assignedGK.AppendString(assignedGKList[j].second);
+				   if (!found) found = true;
+			  }
+			} else {
+	          // Do Regex match for IP address
+			  if (MatchRegex(ip.AsString(),match)) {
+				   assignedGK.AppendString(assignedGKList[j].second);
+				   if (!found) found = true;
+		      }
+			}
+		  }
+	}
+
+	if (found) {
+		for (PINDEX k=0; k < assignedGK.GetSize(); k++) {
+           WORD port = GK_DEF_UNICAST_RAS_PORT;
+		   PStringArray tokens = assignedGK[k].Tokenise(":", FALSE);
+		   if (tokens.GetSize() == 2) 
+               port = (WORD)tokens[1].AsUnsigned();
+	        
+		   H225_AlternateGK * alt = new H225_AlternateGK;
+		     alt->m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
+		     alt->m_needToRegister = true;
+		     alt->m_priority = k;
+		   gklist.Append(alt);
+		}
+	}
+		
+	return found;
+}
+#endif
 
 bool Toolkit::RewriteE164(H225_AliasAddress &alias)
 {
@@ -1738,3 +1955,13 @@ unsigned Toolkit::MapH225ReasonToQ931Cause(
 	else
 		return m_H225ReasonToQ931Cause[reason];
 }
+
+#ifdef OpenH323Factory
+PStringList Toolkit::GetAuthenticatorList()
+{
+  PString auth = GkConfig()->GetString("Gatekeeper::Main", "Authenticators", "");
+  PStringArray authlist(auth.Tokenise(" ,;\t"));
+
+  return authlist;
+}
+#endif

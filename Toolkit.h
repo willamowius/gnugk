@@ -14,9 +14,11 @@
 
 #include <vector>
 #include "singleton.h"
+#include "pwlib_compat.h"
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
+class H225_ArrayOf_AlternateGK;
 class H225_H221NonStandard;
 class H225_Setup_UUIE;
 class SignalingMsg;
@@ -202,6 +204,32 @@ class Toolkit : public Singleton<Toolkit>
 		PString m_defaultDomain;
 		RewriteData *m_Rewrite;
 	};
+
+	class AssignedAliases {
+	 public:
+	    void LoadConfig(PConfig *);
+		bool QueryAssignedAliases(const PString & alias, PStringArray & aliases);
+		bool GetAliases(const H225_ArrayOf_AliasAddress & alias, H225_ArrayOf_AliasAddress & aliaslist);
+
+	 protected:
+		 std::vector< std::pair<PString, PString> > gkAssignedAliases;
+	};
+
+	AssignedAliases GetAssignedEPAliases() { return m_AssignedEPAliases; }
+
+#ifdef h323v6
+	class AssignedGatekeepers {
+	 public:
+	    void LoadConfig(PConfig *);
+		bool QueryAssignedGK(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses);
+        bool GetAssignedGK(const PString & alias,const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist);
+
+	 protected:
+		 std::vector< std::pair<PString, PString> > assignedGKList;
+	};
+
+	AssignedGatekeepers AssignedGKs() { return m_AssignedGKs; }
+#endif
 
 	/// maybe modifies #alias#. returns true if it did
 	bool RewriteE164(H225_AliasAddress & alias);
@@ -455,6 +483,10 @@ class Toolkit : public Singleton<Toolkit>
 	unsigned MapH225ReasonToQ931Cause(
 		int reason
 		);
+
+#ifdef OpenH323Factory
+	PStringList GetAuthenticatorList();
+#endif
 		
 protected:
 	void CreateConfig();
@@ -471,7 +503,10 @@ protected:
 
 	RewriteTool m_Rewrite;
 	GWRewriteTool m_GWRewrite; // GW Based RewriteTool
-
+	AssignedAliases m_AssignedEPAliases;  // Assigned Aliases
+#ifdef h323v6
+	AssignedGatekeepers m_AssignedGKs;
+#endif
 	RouteTable m_RouteTable;
 	VirtualRouteTable m_VirtualRouteTable;
 	ProxyCriterion m_ProxyCriterion;

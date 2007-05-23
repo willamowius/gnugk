@@ -11,9 +11,12 @@
 
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)  
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#define snprintf	_snprintf
+	#pragma warning(disable:4786) // warning about too long debug symbol off
+	#pragma warning(disable:4284)
+	#define snprintf	_snprintf
+#endif
+#if defined(_WIN32) && (_MSC_VER > 1300)
+	#pragma warning(disable:4244) // warning about possible loss of data
 #endif
 
 #include <time.h>
@@ -372,6 +375,21 @@ void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
 		m_terminalAliases = a;
 	}
 	LoadConfig(); // update settings for the new aliases
+}
+
+bool EndpointRec::SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned)
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	bool newalias = Toolkit::Instance()->GetAssignedEPAliases().GetAliases(m_terminalAliases,assigned);
+	// If we have assigned Aliases then replace the existing list of aliases
+	if (newalias) {
+		m_terminalAliases.RemoveAll();
+		m_terminalAliases = assigned;
+		LoadConfig(); // update settings for the new aliases
+	}
+
+	return newalias;
 }
 
 void EndpointRec::SetEndpointType(const H225_EndpointType &t) 

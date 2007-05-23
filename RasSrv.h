@@ -186,6 +186,39 @@ public:
 		}
 	}
 
+#ifdef h323v6
+	template<class RAS> BOOL HasAssignedGK(const PString & alias,const PIPSocket::Address & ip, RAS & ras)
+	{
+
+        H225_ArrayOf_AlternateGK * assignedGK = new H225_ArrayOf_AlternateGK;
+		assignedGK->SetSize(0);
+
+		// Put query in here....
+		// Queries a DB for gatekeeper registrations with the first being
+		// the assigned gatekeeper. The alternates are then in preference order
+		// Note: If an assigned gatekeeper is found then the registration is not
+		// handled by this gatekeeper but by the assigned gatekeeper.
+		if (!Toolkit::Instance()->AssignedGKs().GetAssignedGK(alias,ip,*assignedGK))
+			return false;
+
+		if (assignedGK->GetSize() == 0)
+			return false;
+
+        ras.IncludeOptionalField(RAS::e_assignedGatekeeper);
+		ras.m_assignedGatekeeper = (*assignedGK)[0];
+
+		if (assignedGK->GetSize() > 1) {
+			for (PINDEX i=1; i< assignedGK->GetSize(); i++) {
+			   ras.m_alternateGatekeeper.SetSize(i);
+			   ras.m_alternateGatekeeper[i-1] = (*assignedGK)[i];
+			}
+		  ras.IncludeOptionalField(RAS::e_alternateGatekeeper);
+		}
+
+		return true;
+	}
+#endif
+
 	// override from class RegularJob
 	virtual void Run();
 
