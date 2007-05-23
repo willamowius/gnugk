@@ -648,6 +648,12 @@ protected:
 		bool finalResult = false;
 		
 #ifdef OpenH323Factory
+
+		if (m_h235Authenticators == NULL) {
+			PTRACE(4, "GKAUTH\tSuccess: No Loaded Authenticators");
+			return e_ok;
+		}
+
 		PString username = PString();
 		PString password = PString();
 		if (!ResolveUserName(req.m_tokens, req.m_cryptoTokens,username)) {
@@ -676,19 +682,19 @@ protected:
 			                                                        req.m_cryptoTokens, request->m_rasPDU);
           switch (result) {
              case H235Authenticator::e_OK :
-               PTRACE(4, "GKAUTH\tAuthenticator " << authenticator << " succeeded");
+               PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
                return e_ok;
 
              case H235Authenticator::e_Absent :
-               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator << " absent from PDU");
+               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " absent from PDU");
                break;
 
              case H235Authenticator::e_Disabled :
-               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator << " disabled");
+               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " disabled");
                break;
 
              default : // Various other failure modes
-               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator << " failed: " << (int)result);
+               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " failed: " << (int)result);
                return e_fail;
            }
 

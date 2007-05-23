@@ -662,12 +662,22 @@ GkAuthenticatorList::GkAuthenticatorList()
 #endif
 {
 #ifdef OpenH323Factory
-  PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
-  PFactory<H235Authenticator>::KeyList_T::const_iterator r;
-  for (r = keyList.begin(); r != keyList.end(); ++r) {
-     H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-	 authenticators.Append(Auth);
-  }
+	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
+
+    PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
+    PFactory<H235Authenticator>::KeyList_T::const_iterator r;
+    for (r = keyList.begin(); r != keyList.end(); ++r) {
+      H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+      if (authlist.GetSize() > 0) {
+		for (PINDEX i=0; i< authlist.GetSize(); i++) {
+			if (PString(Auth->GetName()) == authlist[i]) {
+			   PTRACE(4,"GKAUTH\tLoaded Authenticator " << Auth->GetName() << " from Policy");
+               authenticators.Append(Auth);
+			}
+		}
+	  } else
+	        authenticators.Append(Auth);
+	}
 #endif
 }
 
@@ -1113,11 +1123,19 @@ SimplePasswordAuth::SimplePasswordAuth(
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
 
 #ifdef OpenH323Factory
+	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
+
     PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
     for (r = keyList.begin(); r != keyList.end(); ++r) {
-       H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-       AppendH235Authenticator(Auth);
+      H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+       if (authlist.GetSize() > 0) {
+		for (PINDEX i=0; i< authlist.GetSize(); i++) {
+			if (PString(Auth->GetName()) == authlist[i])
+               AppendH235Authenticator(Auth);
+		}
+	   } else
+	       AppendH235Authenticator(Auth);
 	}
 #else
 	H235Authenticator* authenticator;
