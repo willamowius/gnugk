@@ -317,6 +317,15 @@ and process the request as the user component only. This is handy when dealing
 with interdomain calls placed via srv routing policy where the full URI is received.
 It can also be used in conjunction with the [RasSrv::RewriteAlias] section to
 convert the received URI into a E164 number for routing. 
+
+<item><tt/Authenticators=H.235.1,CAT/<newline>
+Default: <tt/N/A/<newline>
+<p>
+Selecting the specific authenticators to use when authenticating endpoints. 
+The default options are: H.235.1 (HMAC SHA1 old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 
+If this setting is omitted, all authenticators are loaded by default. 
+If you are using plugin authenticators, then you may want to disable the default authenticators to provide optimum security.
+Note: H.235.1 requires OpenSSL support compiled into GnuGk.
 </itemize>
 
 

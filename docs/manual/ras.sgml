@@ -123,6 +123,27 @@ Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
 
 </itemize>
 
+<sect1>Section &lsqb;RasSrv::AssignedAlias&rsqb;
+<p>
+This allows the assigning of aliases to registering endpoints. This 
+allows endpoints to be assigned fully qualified E164 or URI addresses apon registraton.
+
+example
+[RasSrv::AssignedAlias]
+1234=3323465777,me@mysite.com 
+
+<sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
+<p>
+This allows the assigning of a gatekeeper based apon the H323ID or the
+apparent source IP address of the registering endpoint. The received H323ID in the GRQ is checked to see if it has a prefix for an assigned gatekeeper or the IP is in a range of an assigned gatekeeper. The gatekeeper is then advised in the GCF to register with that gatekeeper. You may have muliple gatekeepers for a specific prefix the first is assigned the assigned and the others are assigned alternates. (requires H.323v6)
+
+Examples
+[RasSrv::AssignedGKs]
+;; For Endpoint with H323ID starting with 01234
+01234=x.x.x.x:1719
+;; For Endpoint in the range of 195.71.129.0/24 to 195.71.131.0/24
+^195\.71\.(129|131)\.[0-9]+$=x.x.x.x:1719
+
 
 <sect1>Section &lsqb;NATedEndpoints&rsqb;
 <p>
