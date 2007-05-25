@@ -1412,11 +1412,11 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 		if (aliaslist.GetSize() > 0) {
 			for (PINDEX l=0; l < aliaslist.GetSize(); l++) {
 			  PString a = H323GetAliasAddressString(aliaslist[l]);
-			    found = false;
+			    bool located = false;
 			    for (PINDEX m=0; m < newaliases.GetSize(); m++) {
-                       if (newaliases[m] == a) found = true;
+                       if (newaliases[m] == a) located = true;
 				}
-			   if (!found)
+			   if (!located)
                   newaliases.AppendString(a);
 			}
 		}

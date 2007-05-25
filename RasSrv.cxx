@@ -1754,6 +1754,17 @@ bool RegistrationRequestPDU::Process()
 				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
 #endif
 
+		// Gatekeeper assigned Aliases if the client supplied aliases
+		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) &&
+			                              ep->SetAssignedAliases(rcf.m_terminalAlias))
+			     rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+
+#ifdef h323v6
+        // Assigned GKs
+	    if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) 
+            ep->SetAssignedGatekeeper(rcf.m_assignedGatekeeper);
+#endif
+
 		// Alternate GKs
 		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK))
 			RasSrv->SetAlternateGK(rcf);
