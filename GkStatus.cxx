@@ -978,7 +978,7 @@ void StatusClient::DoDebug(
 				PString result = "Config sections\r\n";
 				for (PINDEX i = 0; i < secs.GetSize(); i++)
 					result += "[" + secs[i] + "]\r\n";
-				WriteString(result);
+				WriteString(result + ";\r\n");
 			}
 		} else if ((args[1] *= "set") && (args.GetSize()>=5)) {
 			Toolkit::Instance()->SetConfig(1, args[2], args[3], args[4]);
