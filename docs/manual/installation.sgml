@@ -2,7 +2,7 @@
 <p>
 <sect1>Compiling the Gatekeeper
 <p>
-To build the gatekeeper you need at least PWLib 1.5.0 and OpenH323 1.12.0 or later.
+To build the gatekeeper you need at least PWLib 1.7.5.2 and OpenH323 1.14.4.2 or later.
 The development version of the gatekeeper usually needs the
 most recent OpenH323 version available.
 These libraries are available at
@@ -44,12 +44,8 @@ Type <tt/configure --help/ to see a detailed list of all compile time
 options. You can use them to enable or disable some features of the gatekeeper.
 For example, if you do not need RADIUS just type: <tt/configure --disable-radius/.<newline>
 
-The recommended PWLib/OpenH323 versions are these from the Pandora release
-(1.7.5.2/1.14.4.2) or newer. Older versions are not supported anymore and are not
-guaranteed to work with the gatekeeper.
-
-To build the gatekeeper that is statically linked with system and OpenH323 libraries,
-<tt/make optnoshared/ or <tt/make debugnoshared/ has to be used.
+To build the gatekeeper statically linked with the OpenH323 libraries, use
+<tt/make optnoshared/.
 
 In order to use the gatekeeper under heavy load, enabling LARGE_FDSET feature
 (ONLY FOR UNIX VERSION) is recommended (configure --with-large-fdset=4096). Some systems
