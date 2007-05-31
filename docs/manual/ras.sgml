@@ -126,7 +126,7 @@ Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
 <sect1>Section &lsqb;RasSrv::AssignedAlias&rsqb;
 <p>
 This allows the assigning of aliases to registering endpoints. This 
-allows endpoints to be assigned fully qualified E164 or URI addresses apon registraton.
+allows endpoints to be assigned fully qualified E164 or URI addresses upon registraton.
 
 <descrip>
 <tag/Example:/
