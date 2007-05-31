@@ -139,7 +139,14 @@ allows endpoints to be assigned fully qualified E164 or URI addresses upon regis
 <sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
 <p>
 This allows the assigning of a gatekeeper based apon the H323ID or the
-apparent source IP address of the registering endpoint. The received H323ID in the GRQ is checked to see if it has a prefix for an assigned gatekeeper or the IP is in a range of an assigned gatekeeper. The gatekeeper is then advised in the GCF to register with that gatekeeper. You may have muliple gatekeepers for a specific prefix the first is assigned the assigned and the others are assigned alternates. (requires H.323v6)
+apparent source IP address of the registering endpoint.
+The received H323ID in the GRQ is checked to see if it has a prefix
+for an assigned gatekeeper or the IP is in a range of an assigned
+gatekeeper.
+The gatekeeper is then advised in the GCF to register with that gatekeeper.
+You may have multiple gatekeepers for a specific prefix the first
+is assigned the assigned and the others are assigned alternates.
+(requires H.323v6)
 
 <descrip>
 <tag/Examples:/
