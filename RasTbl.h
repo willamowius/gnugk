@@ -202,12 +202,19 @@ public:
 	    of service control sessions, if the endpoint supports call credit 
 	    capabilities.
 	*/
-	virtual void AddCallCreditServiceControl(
+	virtual bool AddCallCreditServiceControl(
 		H225_ArrayOf_ServiceControlSession& sessions, /// array to add the service control descriptor to
 		const PString& amountStr, /// user's account balance amount string
 		int billingMode, /// user's account billing mode (-1 if not set)
 		long callDurationLimit /// call duration limit (-1 if not set)
 		);
+
+	/** Append a URL related service control descriptor to the array
+	    of service control sessions
+	*/
+    virtual bool AddHTTPServiceControl(
+	    H225_ArrayOf_ServiceControlSession& sessions  /// array to add the service control descriptor to
+	    );
 
 	/** @return
 	    True if the endpoint can handle at least one more concurrent call.

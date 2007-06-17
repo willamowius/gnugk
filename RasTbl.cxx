@@ -584,13 +584,17 @@ bool EndpointRec::SendIRQ()
 	return true;
 }
 
-void EndpointRec::AddCallCreditServiceControl(
+bool EndpointRec::AddCallCreditServiceControl(
 	H225_ArrayOf_ServiceControlSession& sessions, /// array to add the service control descriptor to
 	const PString& amountStr, /// user's account balance amount string
 	int billingMode, /// user's account billing mode (-1 if not set)
 	long callDurationLimit /// call duration limit (-1 if not set)
 	)
 {
+
+	if (!HasCallCreditCapabilities()) 
+		return false;
+
 	const PINDEX sessionIndex = sessions.GetSize();
 	sessions.SetSize(sessionIndex + 1);
 	H225_ServiceControlSession& session = sessions[sessionIndex];
@@ -625,6 +629,31 @@ void EndpointRec::AddCallCreditServiceControl(
 	}
 	callCreditSession.IncludeOptionalField(H225_CallCreditServiceControl::e_callStartingPoint);
 	callCreditSession.m_callStartingPoint.SetTag(H225_CallCreditServiceControl_callStartingPoint::e_connect);
+
+	return true;
+}
+
+bool EndpointRec::AddHTTPServiceControl(
+	H225_ArrayOf_ServiceControlSession& sessions 
+	)
+{
+		PString url = GkConfig()->GetString(RRQFeaturesSection, "AccHTTPLink", "");
+		if (url.IsEmpty())
+			return false;
+
+	    const PINDEX sessionIndex = sessions.GetSize();
+	    sessions.SetSize(sessionIndex + 1);
+
+	    H225_ServiceControlSession& session = sessions[sessionIndex];
+        // URL session ID is 1  
+		session.m_sessionId = 1;
+		session.m_reason = H225_ServiceControlSession_reason::e_open;
+		session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
+		session.m_contents.SetTag(H225_ServiceControlDescriptor::e_url);
+		PASN_IA5String & pdu = session.m_contents;
+        pdu = url;   
+
+		return true;
 }
 
 

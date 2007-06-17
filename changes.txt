@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- Added HTTP Service control via [RasSrv::RRQFeatures] AccHTTPLink 
 - BUGFIX (GkStatus.cxx) add semicolon after status port 'debug cfg' output for consistency
 - Added [RasSrv::AssignedAlias] to gatekeeper assign aliases
 - Added [RasSrv::AssignedGKs] to assign gatekeepers based on alias or IP.(req. H.323v6)
