@@ -2257,6 +2257,13 @@ bool CallRec::MoveToNextRoute()
 		m_failedRoutes.push_back(m_newRoutes.front());
 		m_newRoutes.pop_front();
 	}
+	
+	while (!m_newRoutes.empty() && m_newRoutes.front().m_destEndpoint && !m_newRoutes.front().m_destEndpoint->HasAvailableCapacity(m_destinationAddress)) {
+		PTRACE(5, "Capacity exceeded in GW " << AsDotString(m_newRoutes.front().m_destEndpoint->GetCallSignalAddress()));
+		m_failedRoutes.push_back(m_newRoutes.front());
+		m_newRoutes.pop_front();
+	}
+
 	return !m_newRoutes.empty();
 }
 

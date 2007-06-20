@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- BUGFIX (RasTbl.cxx) check route capacity just before t is used fro failover, not only at the beginning of the call (patch by Vladimir Voronin)
 - Added HTTP Service control via [RasSrv::RRQFeatures] AccHTTPLink 
 - BUGFIX (GkStatus.cxx) add semicolon after status port 'debug cfg' output for consistency
 - Added [RasSrv::AssignedAlias] to gatekeeper assign aliases
