@@ -85,6 +85,15 @@ When the IP address of an endpoint changes, the gatekeeper can maintain registra
 This will force the EP to fully reregister if the IP Address changes. 
 </itemize>
 
+<item><tt>AccHTTPLink=https://billing.mysite.com?account=%a&password=%p</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+You can assign a URL for clients to access to view billing information.
+If using PacPhone you can also add wildcards for the client to use so the clients 
+H323ID and password can be used to directly access their account information.
+    %a - H323ID   %p - password 
+</itemize>
+
 
 <sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
 <p>
