@@ -83,9 +83,8 @@ Default: <tt/0/<newline>
 <p>
 When the IP address of an endpoint changes, the gatekeeper can maintain registration. 
 This will force the EP to fully reregister if the IP Address changes. 
-</itemize>
 
-<item><tt>AccHTTPLink=https://billing.mysite.com?account=%a&password=%p</tt><newline>
+<item><tt>AccHTTPLink=https://billing.mysite.com?account=%a&amp;password=%p</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 You can assign a URL for clients to access to view billing information.
