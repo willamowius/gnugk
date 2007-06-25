@@ -1,6 +1,11 @@
 <sect>Routing Configuration
 <p>
 The following sections in the config file can be used to configure how calls are routed.
+<p>
+Each call gets passed down a chain of routing policies.
+Each policy may route the call and terminate the chain or modify it and
+pass it on. You can use the setting in the following sections to
+specify which policies to use and modify their behavior.
 
 <sect1>Section &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
