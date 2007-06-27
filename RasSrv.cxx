@@ -762,6 +762,19 @@ void RasServer::SetENUMServers()
 #endif
 }
 
+void RasServer::SetRDSServers()
+{
+#if hasRDS
+  PString servers = GkConfig()->GetString(RoutedSec, "RDSservers", "");
+  PStringArray serverlist(servers.Tokenise(",", false));
+
+  if (servers.GetSize() > 0) {
+	   PDNS::SetRDSServers(servers);
+       PTRACE(2, "GK\tLoaded RDS servers");
+  }
+#endif
+}
+
 bool RasServer::AcceptUnregisteredCalls(const PIPSocket::Address & addr) const
 {
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptUnregisteredCalls", "0")))

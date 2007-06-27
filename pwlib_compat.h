@@ -39,6 +39,17 @@
   #endif
 #endif
 
+#ifdef P_DNS
+// define hasRDS for PWLib >= 1.11.3
+ #if PWLIB_MAJOR == 1
+  #if PWLIB_MINOR >= 11
+    #if PWLIB_BUILD > 2     
+       #define hasRDS 1
+    #endif
+  #endif
+ #endif
+#endif
+
 ///////////////////////////////////////////////
 
 // OpenH323 version matching

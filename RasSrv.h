@@ -82,6 +82,9 @@ public:
 	// Set the ENUM Servers
 	void SetENUMServers();
 
+	// Set the RDS Servers
+	void SetRDSServers();
+
 	bool IsGKRouted() const { return GKRoutedSignaling; }
 	bool IsH245Routed() const { return GKRoutedH245; }
 	bool AcceptUnregisteredCalls(const PIPSocket::Address &) const;

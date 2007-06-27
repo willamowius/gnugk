@@ -24,6 +24,7 @@
 
 #include <ptlib.h>
 #include <ptclib/pdns.h>
+#include <ptclib/enum.h>
 #include <h323pdu.h>
 #include <ptclib/cypher.h>
 #include "gk_const.h"
@@ -1363,11 +1364,106 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 }
 #endif
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// RDS policy
+#ifdef hasRDS
+
+class RDSPolicy : public AliasesPolicy {
+public:
+	RDSPolicy() { m_name = "RDS"; }
+
+protected:
+	// override from class Policy
+	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
+	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+
+private:
+	int m_Timeout;
+};
+
+bool RDSPolicy::FindByAliases(
+	RoutingRequest &request,
+	H225_ArrayOf_AliasAddress &aliases
+	)
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		PString alias(AsString(aliases[i], FALSE));
+	    if (alias.GetLength() == 0) continue;
+
+	// DNS RDS Record lookup
+		PString number;
+		PString domain;
+		PINDEX at = alias.Find('@');
+		if (at == P_MAX_INDEX) {
+		   number = "h323:t@" + alias;	
+		   domain = alias;
+	    } else {
+		   number = "h323:" + alias;
+		   domain = alias.Mid(at+1);
+		}
+	
+		// LS Record lookup
+		PStringList ls;
+		 if (PDNS::RDSLookup(number,"H323+D2U",ls)) {
+			 for (PINDEX i=0; i<ls.GetSize(); i++) {
+				PINDEX at = ls[i].Find('@');
+				PString ipaddr = ls[i].Mid(at + 1);
+				PTRACE(4, "ROUTING\tRDS LS located domain " << domain << " at " << ipaddr);
+				H323TransportAddress addr = H323TransportAddress(ipaddr);
+
+				// Create a RDS gatekeeper object
+				GnuGK * nb = new GnuGK();
+				if (!nb->SetProfile(domain,addr)) {
+					PTRACE(4, "ROUTING\tERROR setting RDS neighbor profile " << domain << " at " << addr);
+					return false;
+				}
+
+				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+
+				// Send LRQ to retreive callers signalling address 
+				LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
+				LRQRequester Request(functor);
+				if (Request.Send(nb)) {
+					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
+							Route route(m_name, lcf->m_callSignalAddress);
+#ifdef hasH460
+			                if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+			                    H225_RasMessage ras;
+			                    ras.SetTag(H225_RasMessage::e_locationConfirm);
+                                H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+			                    con = *lcf;
+			                    route.m_destEndpoint = endptr(new EndpointRec(ras));	
+			                }
+#endif
+							request.AddRoute(route);
+							request.SetFlag(RoutingRequest::e_aliasesChanged);
+							return true;
+				    }
+				}
+				PTRACE(4, "ROUTING\tDNS RDS LRQ Error for " << domain << " at " << ipaddr);
+			 }
+			}  
+	} 
+  return false; 
+}
+
+
+bool RDSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{ 
+    PTRACE(4, "ROUTING\tPolicy RDS not supported for LRQ");
+	return false;  
+}
+#endif
+
 namespace {
 	SimpleCreator<NeighborPolicy> NeighborPolicyCreator("neighbor");
 
 #ifdef hasSRV
 	SimpleCreator<SRVPolicy> SRVPolicyCreator("srv");
+#endif
+
+#ifdef hasRDS
+	SimpleCreator<RDSPolicy> RDSPolicyCreator("rds");
 #endif
 }
 

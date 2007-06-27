@@ -158,6 +158,9 @@ void ReloadHandler()
 	// Load ENUM servers
 	RasServer::Instance()->SetENUMServers();
 
+	// Load RDS servers
+	RasServer::Instance()->SetRDSServers();
+
 	RasServer::Instance()->LoadConfig();
 
 	Gatekeeper::EnableLogFileRotation();
@@ -561,6 +564,9 @@ void Gatekeeper::Main()
    
 	// Load ENUM servers
 	RasSrv->SetENUMServers();
+
+	// Load RDS servers
+	RasSrv->SetRDSServers();	
 
 #if defined(_WIN32)
 	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT 
