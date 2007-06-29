@@ -61,7 +61,7 @@ real IDD E164 numbers into H323 dialing information. The servers
 it looks up by default are <tt/e164.voxgratia.net/, <tt/e164.org/ and <tt/e164.arpa/.
 To specify your own server you have may either specify the list in via the ENUMserver variable in
 the RoutedMode section or specify an environmental variable PWLIB_ENUM_PATH with the address of your preferred
-enum servers separated by a colon(:) on Linus and a semicolon (;) on windows. 
+enum servers separated by a colon(:) on Linux and a semicolon (;) on windows. 
 (PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
 
 The enum policy replaces the destination with the information returned by ENUM server, 
@@ -79,6 +79,12 @@ Addresses can be set as user (at) domain. The H.323 URI are stored in the
 DNS domain records of the domain and are queried to find destination. 
 Records can be for the signalling address or for LRQ address. 
 
+<item><tt/rds/<newline>
+<p>
+URN RDS or Universal resources name resolver discovery system is a system (as defined in RFC 2915 Sect 7.2 
+whereby domain names SRV records are hosted on other domains. In this policy the servers set by 
+[RoutedMode] RDSServers are queried to resolve URI's which domains do not have SRV records. This can be used
+to virtually host URL domains or centralise the control of SRV records.
 </itemize>
 
 <p>
