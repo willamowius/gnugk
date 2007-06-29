@@ -93,6 +93,15 @@ H323ID and password can be used to directly access their account information.
     %a - H323ID   %p - password 
 </itemize>
 
+<item><tt>AliasTypeFilter=h323id</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Where gateways send multiple H225_AliasAddress and some Aliases are shared across 
+multiple registrations. You can filter out the shared alias types. 
+Valid filters are: h323id, dialeddigits, url, transport, email, partynumber
+NOTE: If no alias is found that match the filter than all aliases are registered.
+</itemize>
+
 
 <sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
 <p>
