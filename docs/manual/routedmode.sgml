@@ -322,6 +322,13 @@ Default: <tt>N/A</tt><newline>
 Sets the eum server list in priority order seperated by (,) for the enum policy. 
 This overrides the PWLIB_ENUM_PATH environmental variable.
 
+<item><tt/RDSServers=myvirtualhost.com/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Use this to set RDS server to query for rds routing policy. 
+This set the domains to use to resolve URI's which do not have SRV records and 
+maybe virtually hosted or SRV records are stored in another host.
+This overrides the PWLIB_RDS_PATH environmental variable.
 
 </itemize>
 
