@@ -100,6 +100,41 @@ EndpointRec::EndpointRec(
 	LoadEndpointConfig();
 }	
 
+ const int aliasCount = 6;
+ const static POrdinalToString::Initialiser H225AliasTypes[aliasCount] =
+ {
+	 {H225_AliasAddress::e_h323_ID,        "h323id"},
+	 {H225_AliasAddress::e_dialedDigits,   "dialeddigits"},
+	 {H225_AliasAddress::e_url_ID,         "url"},
+	 {H225_AliasAddress::e_transportID,    "transport"},
+ 	 {H225_AliasAddress::e_email_ID,       "email"},
+ 	 {H225_AliasAddress::e_partyNumber,    "partynumber"}
+ };
+
+const static POrdinalToString h225aliastypes(aliasCount, H225AliasTypes);
+
+void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress& aliases) 
+{
+	PString filter = GkConfig()->GetString(RRQFeaturesSection, "AliasTypeFilter", "");
+	if (!filter) {
+	 PStringList filterlist = filter.ToLower().Tokenise(",:;", false);   
+	 for (PINDEX i=0; i< aliases.GetSize(); i++) {
+        PString aliasType = h225aliastypes[aliases[i].GetTag()];
+         for (PINDEX j=0; j < filterlist.GetSize(); j++) {
+			 if (aliasType == filterlist[j]) {
+				 m_terminalAliases.Append(&aliases[i]);
+			 }
+		 }
+	  }
+	}
+	  
+	// If no filter or none match the filter than just add whatever is there
+	if (m_terminalAliases.GetSize() == 0)
+          m_terminalAliases = aliases;
+
+}
+
+
 void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 {
 	if (rrq.m_rasAddress.GetSize() > 0)
@@ -111,7 +146,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	else
 		m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
 	m_endpointIdentifier = rrq.m_endpointIdentifier;
-	m_terminalAliases = rrq.m_terminalAlias;
+    LoadAliases(rrq.m_terminalAlias);
 	m_terminalType = &rrq.m_terminalType;
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
 		SetTimeToLive(rrq.m_timeToLive);

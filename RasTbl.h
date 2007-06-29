@@ -137,6 +137,11 @@ public:
 		int& matchedalias
 		) const;
 
+	virtual void LoadAliases(
+		/// aliases to be matched (one of them)
+	    H225_ArrayOf_AliasAddress& aliases
+		);
+
 	/** Load additional endpoint settings from the config file.
 	    Derived classes should call LoadConfig method of their base class
 	    at the beginning of the overriden LoadConfig.
