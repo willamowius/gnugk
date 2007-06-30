@@ -91,13 +91,14 @@ You can assign a URL for clients to access to view billing information.
 If using PacPhone you can also add wildcards for the client to use so the clients 
 H323ID and password can be used to directly access their account information.
     %a - H323ID   %p - password 
-</itemize>
 
-<item><tt>AliasTypeFilter=h323id</tt><newline>
+<item><tt>AliasTypeFilter=terminal;h323id,dialeddigits</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Where gateways send multiple H225_AliasAddress and some Aliases are shared across 
-multiple registrations. You can filter out the shared alias types. 
+Where endpoints send multiple H225_AliasAddress and some Aliases are shared across 
+multiple registrations. You can filter out the shared alias types for any given
+endpoint type. You must had seperate AliasTypeFilter entries for each endpoint type.
+Valid endpoint types are: gatekeeper,gateway,mcu,terminal
 Valid filters are: h323id, dialeddigits, url, transport, email, partynumber
 NOTE: If no alias is found that match the filter than all aliases are registered.
 </itemize>

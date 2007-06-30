@@ -113,19 +113,38 @@ EndpointRec::EndpointRec(
 
 const static POrdinalToString h225aliastypes(aliasCount, H225AliasTypes);
 
-void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress& aliases) 
+const int endpointcount = 4;
+const static PStringToOrdinal::Initialiser H225EndpointTypes[aliasCount] =
 {
-	PString filter = GkConfig()->GetString(RRQFeaturesSection, "AliasTypeFilter", "");
-	if (!filter) {
-	 PStringList filterlist = filter.ToLower().Tokenise(",:;", false);   
-	 for (PINDEX i=0; i< aliases.GetSize(); i++) {
-        PString aliasType = h225aliastypes[aliases[i].GetTag()];
-         for (PINDEX j=0; j < filterlist.GetSize(); j++) {
-			 if (aliasType == filterlist[j]) {
-				 m_terminalAliases.Append(&aliases[i]);
-			 }
-		 }
-	  }
+	{"gatekeeper",      H225_EndpointType::e_gatekeeper},
+	{"gateway",         H225_EndpointType::e_gateway},
+	{"mcu",             H225_EndpointType::e_mcu},
+	{"terminal",        H225_EndpointType::e_terminal}
+};
+const static PStringToOrdinal h225endpointtypes(endpointcount, H225EndpointTypes, false);
+ 
+void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress& aliases, H225_EndpointType & type) 
+{
+	PStringToString kv = GkConfig()->GetAllKeyValues(RRQFeaturesSection);
+	for (PINDEX r = 0; r < kv.GetSize(); r++) {
+		if (kv.GetKeyAt(r) == "AliasTypeFilter") {
+	        PStringList filtertype = kv.GetDataAt(r).ToLower().Tokenise(";", false); 
+			// Malformed key
+			if (filtertype.GetSize() != 2) 
+				continue;
+            // filter does not match endpoint type
+			if (!type.HasOptionalField(h225endpointtypes[filtertype[0]]))
+				continue;
+          
+			PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false); 
+			for (PINDEX i=0; i< aliases.GetSize(); i++) {
+				PString aliasType = h225aliastypes[aliases[i].GetTag()];
+				for (PINDEX j=0; j < filterlist.GetSize(); j++) {
+					if (aliasType == filterlist[j])
+						m_terminalAliases.Append(&aliases[i]);
+				}
+			}
+	    }
 	}
 	  
 	// If no filter or none match the filter than just add whatever is there
@@ -146,7 +165,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	else
 		m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
 	m_endpointIdentifier = rrq.m_endpointIdentifier;
-    LoadAliases(rrq.m_terminalAlias);
+    LoadAliases(rrq.m_terminalAlias,rrq.m_terminalType);
 	m_terminalType = &rrq.m_terminalType;
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
 		SetTimeToLive(rrq.m_timeToLive);
