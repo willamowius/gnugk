@@ -2353,28 +2353,39 @@ void CallSignalSocket::TryNextRoute()
 		callingSocket->buffer = callingSocket->m_rawSetup;
 		callingSocket->buffer.MakeUnique();
 	}
-	
+
 	const Route &newRoute = newCall->GetNewRoutes().front();
 	PTRACE(1, "MZ\tNew route: " << 	newRoute.AsString());
 	if (newRoute.m_destEndpoint)
 		newCall->SetCalled(newRoute.m_destEndpoint);
 	else
 		newCall->SetDestSignalAddr(newRoute.m_destAddr);
-				
+
 	if (newRoute.m_flags & Route::e_toParent)
 		newCall->SetToParent(true);
+
+	if(!newRoute.m_destNumber.IsEmpty()) {
+		H225_AliasAddress *destAlias = new H225_AliasAddress();
+		try {
+		H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
+		newCall->SetRouteToAlias(*destAlias);
+		} catch(...) {
+			PTRACE(0, "MZ\tRoute Error: " << newRoute.AsString());
+		}
+		delete destAlias;
+	}
+
 				
 	CallTable::Instance()->Insert(newCall);
-	
+
 	remote = NULL;
-	
 	TCPProxySocket::EndSession();
 	GetHandler()->Remove(this);
-	
+
 	PTRACE(5, GetName() << "\tDispatching new call leg to " << newRoute.AsString());
 	CreateJob(callingSocket, &CallSignalSocket::DispatchNextRoute, "Failover");
 
-	m_result = NoData;				
+	m_result = NoData;
 }
 
 void CallSignalSocket::OnFacility(
@@ -2666,21 +2677,33 @@ void CallSignalSocket::Dispatch()
 
 				const Route &newRoute = m_call->GetNewRoutes().front();
 				PTRACE(1, "MZ\tNew route: " << 	newRoute.AsString());
-				
+
 				CallRec *newCall = new CallRec(m_call.operator ->());
 				CallTable::Instance()->RemoveFailedLeg(m_call);
 				m_call = callptr(newCall);
-				
+
 				if (newRoute.m_destEndpoint)
 					m_call->SetCalled(newRoute.m_destEndpoint);
 				else
 					m_call->SetDestSignalAddr(newRoute.m_destAddr);
-				
+
 				if (newRoute.m_flags & Route::e_toParent)
 					m_call->SetToParent(true);
+
+				if(!newRoute.m_destNumber.IsEmpty()) {
+					H225_AliasAddress *destAlias = new H225_AliasAddress();
+					try {
+					H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
+					newCall->SetRouteToAlias(*destAlias);
+					} catch(...) {
+						PTRACE(0, "MZ\tRoute Error: " << newRoute.AsString());
+					}
+					delete destAlias;
+				}
+
 				
 				CallTable::Instance()->Insert(newCall);
-				
+
 				if (remote != NULL) {
 					remote->RemoveRemoteSocket();
 					delete remote;
@@ -2872,18 +2895,29 @@ void CallSignalSocket::DispatchNextRoute()
 				m_call->SetCalled(newRoute.m_destEndpoint);
 			else
 				m_call->SetDestSignalAddr(newRoute.m_destAddr);
-				
+
 			if (newRoute.m_flags & Route::e_toParent)
 				m_call->SetToParent(true);
-				
+
+			if(!newRoute.m_destNumber.IsEmpty()) {
+				H225_AliasAddress *destAlias = new H225_AliasAddress();
+				try {
+				H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
+				newCall->SetRouteToAlias(*destAlias);
+				} catch(...) {
+					PTRACE(0, "MZ\tRoute Error: " << newRoute.AsString());
+				}
+				delete destAlias;
+			}
+
 			CallTable::Instance()->Insert(newCall);
-				
+
 			if (remote != NULL) {
 				remote->RemoveRemoteSocket();
 				delete remote;
 				remote = NULL;
 			}
-				
+
 			buffer = m_rawSetup;
 			buffer.MakeUnique();
 				

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.37  2006/12/06 16:34:04  zvision
+ * Handle RADIUS Class attribute correctly
+ *
  * Revision 1.36  2006/07/06 15:25:13  willamowius
  * set all deleted pointers to NULL (most probably more than needed)
  *
@@ -787,7 +790,7 @@ int RadAuthBase::Check(
 			}
 		}
 	}
-
+	PStringArray numbersToDial;
 	// check for h323-redirect-number
 	if (result) {
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
@@ -796,7 +799,8 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (!value) {
-				authData.SetRouteToAlias(value);
+				numbersToDial = value.Tokenise("; \t", FALSE);
+				authData.SetRouteToAlias(numbersToDial[0]);
 				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
 					"to the number " << value
 					);
@@ -823,6 +827,7 @@ int RadAuthBase::Check(
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 							SocketToH225TransportAddr(addr, port)
 							);
+						route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
 						authData.m_destinationRoutes.push_back(route);
 						PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
 							"to the address " << route.AsString()
@@ -1042,6 +1047,7 @@ int RadAuthBase::Check(
 		}
 	}
 
+	PStringArray numbersToDial;
 	// check for h323-redirect-number
 	if (result) {
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
@@ -1050,7 +1056,8 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (!value) {
-				authData.SetRouteToAlias(value);
+				numbersToDial = value.Tokenise("; \t", FALSE);
+				authData.SetRouteToAlias(numbersToDial[0]);
 				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
 					"to the number " << value
 					);
@@ -1077,6 +1084,7 @@ int RadAuthBase::Check(
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 							SocketToH225TransportAddr(addr, port)
 							);
+						route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
 						authData.m_destinationRoutes.push_back(route);
 						PTRACE(5, "RADAUTH\t" << GetName() << " Setup check redirect "
 							"to the address " << route.AsString()
@@ -1086,7 +1094,7 @@ int RadAuthBase::Check(
 			}
 		}
 	}
-			
+
 	if (result)
 		result = OnReceivedPDU(*response, setup, authData);
 	else

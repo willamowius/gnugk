@@ -78,6 +78,7 @@ struct Route {
 	int m_proxyMode; /// per-route proxy mode flag
 	unsigned m_flags; /// additional route specific flags
 	unsigned char m_rerouteCauses[16]; /// bit flags to trigger rerouting on particular Q931 causes
+	PString m_destNumber;
 };
 
 class RoutingRequest {
