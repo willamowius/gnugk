@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- new accounting variable %{bandwidth}
 - allow Radius server to send multiple destinations in "h323-redirect-number" attribute for call failover (patch by Lucas Martinez)
 - Added Alias Filter via [RasSrv::RRQFeatures] AliasTypeFilter
 - Added RDS (resolver discovery service) Routing policy

@@ -228,6 +228,7 @@ parameters are recognized:
 <item><tt/%{last-cdr}/ - is this the last CDR for this call ? (0 / 1) only when using failover this can be 0
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
+<item><tt/%{bandwidth}/ - bandwidth for this call
 </itemize><newline>
 
 <item><tt/TimestampFormat=Cisco/<newline>
@@ -494,6 +495,7 @@ For <tt/SQLAcct/ the following parameters are defined:
 <item><tt/%{last-cdr}/ - is this the last CDR for this call ? (0 / 1) only when using failover this can be 0
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
+<item><tt/%{bandwidth}/ - bandwidth for this call
 </itemize>
 <p>
 Sample query string:

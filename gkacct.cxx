@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.30  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.3  2006/01/19 11:48:45  zvision
  * New media-ip and codec accounting variables for fast start calls
  *
@@ -295,6 +298,7 @@ void GkAcctLogger::SetupAcctParams(
 	if (call->GetMediaOriginatingIp(addr))
 		params["media-oip"] = addr.AsString();
 	params["codec"] = call->GetCodec();
+	params["bandwidth"] = call->GetBandwidth();
 }
 
 PString GkAcctLogger::ReplaceAcctParams(
