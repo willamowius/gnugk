@@ -100,21 +100,21 @@ EndpointRec::EndpointRec(
 	LoadEndpointConfig();
 }	
 
- const int aliasCount = 6;
- const static POrdinalToString::Initialiser H225AliasTypes[aliasCount] =
- {
-	 {H225_AliasAddress::e_h323_ID,        "h323id"},
-	 {H225_AliasAddress::e_dialedDigits,   "dialeddigits"},
-	 {H225_AliasAddress::e_url_ID,         "url"},
-	 {H225_AliasAddress::e_transportID,    "transport"},
- 	 {H225_AliasAddress::e_email_ID,       "email"},
- 	 {H225_AliasAddress::e_partyNumber,    "partynumber"}
- };
+const int aliasCount = 6;
+const static POrdinalToString::Initialiser H225AliasTypes[aliasCount] =
+{
+	{H225_AliasAddress::e_h323_ID,        "h323id"},
+	{H225_AliasAddress::e_dialedDigits,   "dialeddigits"},
+	{H225_AliasAddress::e_url_ID,         "url"},
+	{H225_AliasAddress::e_transportID,    "transport"},
+ 	{H225_AliasAddress::e_email_ID,       "email"},
+ 	{H225_AliasAddress::e_partyNumber,    "partynumber"}
+};
 
 const static POrdinalToString h225aliastypes(aliasCount, H225AliasTypes);
 
 const int endpointcount = 4;
-const static PStringToOrdinal::Initialiser H225EndpointTypes[aliasCount] =
+const static PStringToOrdinal::Initialiser H225EndpointTypes[endpointcount] =
 {
 	{"gatekeeper",      H225_EndpointType::e_gatekeeper},
 	{"gateway",         H225_EndpointType::e_gateway},
@@ -122,37 +122,43 @@ const static PStringToOrdinal::Initialiser H225EndpointTypes[aliasCount] =
 	{"terminal",        H225_EndpointType::e_terminal}
 };
 const static PStringToOrdinal h225endpointtypes(endpointcount, H225EndpointTypes, false);
- 
-void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress& aliases, H225_EndpointType & type) 
+
+void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress& aliases, H225_EndpointType & type)
 {
 	PStringToString kv = GkConfig()->GetAllKeyValues(RRQFeaturesSection);
 	for (PINDEX r = 0; r < kv.GetSize(); r++) {
 		if (kv.GetKeyAt(r) == "AliasTypeFilter") {
-	        PStringList filtertype = kv.GetDataAt(r).ToLower().Tokenise(";", false); 
-			// Malformed key
-			if (filtertype.GetSize() != 2) 
-				continue;
-            // filter does not match endpoint type
-			if (!type.HasOptionalField(h225endpointtypes[filtertype[0]]))
-				continue;
-          
-			PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false); 
-			for (PINDEX i=0; i< aliases.GetSize(); i++) {
-				PString aliasType = h225aliastypes[aliases[i].GetTag()];
-				for (PINDEX j=0; j < filterlist.GetSize(); j++) {
-					if (aliasType == filterlist[j])
-						m_terminalAliases.Append(&aliases[i]);
+	        PStringList entries = kv.GetDataAt(r).ToLower().Tokenise("\r\n", false);
+	        for (PINDEX e = 0; e < entries.GetSize(); e++) {
+				PStringList filtertype = entries[e].Tokenise(";", false); 
+				// Malformed key
+				if (filtertype.GetSize() != 2) {
+					PTRACE(3, "Malformed AliasTypeFilter: " << entries[e]);
+					continue;
+				}
+				// filter does not match endpoint type
+				if (!type.HasOptionalField(h225endpointtypes[filtertype[0]])) {
+					continue;
+				}
+
+				PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false); 
+				for (PINDEX i=0; i< aliases.GetSize(); i++) {
+					PString aliasType = h225aliastypes[aliases[i].GetTag()];
+					for (PINDEX j=0; j < filterlist.GetSize(); j++) {
+						if (aliasType == filterlist[j]) {
+							m_terminalAliases.Append(&aliases[i]);
+						}
+					}
 				}
 			}
 	    }
 	}
 	  
 	// If no filter or none match the filter than just add whatever is there
-	if (m_terminalAliases.GetSize() == 0)
+	if (m_terminalAliases.GetSize() == 0) {
           m_terminalAliases = aliases;
-
+	}
 }
-
 
 void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 {
