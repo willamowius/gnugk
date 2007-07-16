@@ -230,8 +230,6 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	endptr lDestForward;
 	endptr lSrcForward;
 	callptr lCall;
-	PString lForwarder = SourceAlias + ":forward";
-	PString lAltDestInfo = DestinationAlias;
 	CallSignalSocket *lForwardedSocket = 0;
 
 	PStringList lBufferAliasArrayString;
