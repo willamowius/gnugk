@@ -1792,6 +1792,13 @@ bool RegistrationRequestPDU::Process()
 		   !rcf.HasOptionalField(H225_RegistrationConfirm::e_serviceControl))
 			      rcf.IncludeOptionalField(H225_RegistrationConfirm::e_serviceControl);
 
+#ifdef H323_H350
+		// H.350 link
+		if (ep->AddH350ServiceControl(rcf.m_serviceControl) &&
+		   !rcf.HasOptionalField(H225_RegistrationConfirm::e_serviceControl))
+			      rcf.IncludeOptionalField(H225_RegistrationConfirm::e_serviceControl);
+#endif
+
 	} else {
 		PIPSocket::Address rasip, sigip;
 		if (GetIPFromTransportAddr(request.m_rasAddress[0], rasip) && GetIPFromTransportAddr(SignalAddr, sigip) && rasip != sigip)

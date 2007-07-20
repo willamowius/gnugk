@@ -1,5 +1,7 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- Added [GkH350::Settings] H.350 LDAP directory support (req. OpenLDAP,OpenH323 v1.19.5)
+- Added H.350 Authenticator module (req. OpenLDAP,OpenH323 v1.19.5)
 - new accounting variable %{bandwidth}
 - allow Radius server to send multiple destinations in "h323-redirect-number" attribute for call failover (patch by Lucas Martinez)
 - Added Alias Filter via [RasSrv::RRQFeatures] AliasTypeFilter

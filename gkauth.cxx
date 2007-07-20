@@ -33,6 +33,11 @@
 #include "gkauth.h"
 #include "pwlib_compat.h"
 
+#if H323_H350
+  extern const char *H350Section;
+  #include "h350/h350.h"
+#endif
+
 namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
@@ -1512,6 +1517,62 @@ bool SimplePasswordAuth::ResolveUserName(
 	return false;
 }
 
+#ifdef H323_H350
+
+H350PasswordAuth::H350PasswordAuth(const char* authName)
+: SimplePasswordAuth(authName)
+{
+
+}
+	
+H350PasswordAuth::~H350PasswordAuth()
+{
+
+}
+
+bool H350PasswordAuth::GetPassword(const PString& alias,PString& password)
+{
+
+// Search the Directory
+	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
+
+	H225_AliasAddress aliasaddress;
+	H323SetAliasAddress(alias, aliasaddress);
+
+	PString filter = "h235IdentityEndpointID=" + alias;
+
+	H350_Session session;
+	if (!Toolkit::Instance()->CreateH350Session(&session)) {
+	   PTRACE(4,"H350\tH235Auth: Could not connect to Server.");
+	   return false;
+	}
+
+	H350_Session::LDAP_RecordList rec;
+	int count = session.Search(search,filter,rec);
+	if (count <= 0) {
+	   PTRACE(4,"H350\tH235Auth:No Record Found");
+	   session.Close();
+	   return false;
+	}
+
+// Locate the record
+	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
+       H350_Session::LDAP_Record entry = x->second;
+	   if (session.GetAttribute(entry,"h235IdentityPassword",password)) {
+           PTRACE(2,"H350\tH235Auth:Password Located.");
+	       session.Close();
+		   return true;
+	   }
+	}
+
+	PTRACE(4,"H350\tH235Auth: No Password found.");
+	session.Close();
+	return false;
+
+}
+
+#endif
+
 // class AliasAuth
 AliasAuth::AliasAuth(
 	const char* name,
@@ -2238,6 +2299,9 @@ int PrefixAuth::doCheck(
 namespace { // anonymous namespace
 	GkAuthCreator<GkAuthenticator> DefaultAuthenticatorCreator("default");
 	GkAuthCreator<SimplePasswordAuth> SimplePasswordAuthCreator("SimplePasswordAuth");
+#if H323_H350
+	GkAuthCreator<H350PasswordAuth> SQLPasswordAuthCreator("H350PasswordAuth");
+#endif
 	GkAuthCreator<AliasAuth> AliasAuthCreator("AliasAuth");
 	GkAuthCreator<PrefixAuth> PrefixAuthCreator("PrefixAuth");
 } // end of anonymous namespace

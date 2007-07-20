@@ -222,6 +222,15 @@ public:
 	    H225_ArrayOf_ServiceControlSession& sessions  /// array to add the service control descriptor to
 	    );
 
+#if H323_H350
+	/** Append a H.350 related service control descriptor to the array
+	    of service control sessions
+	*/
+    virtual bool AddH350ServiceControl(
+	    H225_ArrayOf_ServiceControlSession& sessions  /// array to add the service control descriptor to
+	    );
+#endif
+
 	/** @return
 	    True if the endpoint can handle at least one more concurrent call.
 	*/

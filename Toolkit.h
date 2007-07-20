@@ -87,6 +87,9 @@ bool operator==(const PIPSocket::Address &addr, const NetworkAddress &net);
 /// @return	True if the given address is contained withing this network
 bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net);
 
+#ifdef H323_H350
+class H350_Session;
+#endif
 class GkTimerManager;
 class CLIRewrite;
 class Toolkit : public Singleton<Toolkit>
@@ -209,6 +212,9 @@ class Toolkit : public Singleton<Toolkit>
 	 public:
 	    void LoadConfig(PConfig *);
 		bool QueryAssignedAliases(const PString & alias, PStringArray & aliases);
+#ifdef H323_H350
+		bool QueryH350Directory(const PString & alias, PStringArray & aliases);
+#endif
 		bool GetAliases(const H225_ArrayOf_AliasAddress & alias, H225_ArrayOf_AliasAddress & aliaslist);
 
 	 protected:
@@ -222,6 +228,9 @@ class Toolkit : public Singleton<Toolkit>
 	 public:
 	    void LoadConfig(PConfig *);
 		bool QueryAssignedGK(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses);
+#ifdef H323_H350
+		bool QueryH350Directory(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses);
+#endif
         bool GetAssignedGK(const PString & alias,const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist);
 
 	 protected:
@@ -229,6 +238,11 @@ class Toolkit : public Singleton<Toolkit>
 	};
 
 	AssignedGatekeepers AssignedGKs() { return m_AssignedGKs; }
+#endif
+
+#ifdef H323_H350
+	// Create H350 connection
+    bool CreateH350Session(H350_Session * session);
 #endif
 
 	/// maybe modifies #alias#. returns true if it did

@@ -33,6 +33,11 @@
 #include "Toolkit.h"
 #include "gk_const.h"
 
+#if H323_H350
+  const char *H350Section = "GkH350::Settings";
+  #include "h350/h350.h"
+#endif
+
 using namespace std;
 
 extern const char *ProxySection;
@@ -1374,8 +1379,113 @@ void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
 	}
 }
 
+#ifdef H323_H350
+
+bool Toolkit::CreateH350Session(H350_Session * session)
+{
+	PString ldap = GkConfig()->GetString(H350Section, "ServerName", "127.0.0.1");
+	PString port = GkConfig()->GetString(H350Section, "ServerPort", "389");
+	PString server = ldap + ":" + port;
+
+	PString user = GkConfig()->GetString(H350Section, "BindUserDN", "");
+	PString password = Toolkit::Instance()->ReadPassword(H350Section, "BindUserPW");
+    PCaselessString mode = GkConfig()->GetString(H350Section, "BindAuthMode", "simple");
+
+	PLDAPSession::AuthenticationMethod authMethod = PLDAPSession::AuthSimple;
+	if (mode == "sasl")
+		authMethod = PLDAPSession::AuthSASL;
+	else if (mode == "kerberos")
+		authMethod = PLDAPSession::AuthKerberos;
+
+	if (!session->Open(server)) {
+	   PTRACE(4,"H350\tCannot locate H.350 Server");
+	   return false;
+	}
+	if (!user.IsEmpty())
+	    session->Bind(user,password,authMethod);
+
+	return true;
+}
+
+bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PStringArray & aliases)
+{
+// Support Assigned Aliases
+    if (!GkConfig()->GetString(H350Section, "AssignedAliases", "0"))
+		   return false;
+
+// Search the Directory
+	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
+
+	H225_AliasAddress aliasaddress;
+	H323SetAliasAddress(alias, aliasaddress);
+
+	PString filter;
+	switch (aliasaddress.GetTag()) {
+	  case H225_AliasAddress::e_dialedDigits:
+            filter = "h323IdentitydialedDigits=" + alias;
+	  case H225_AliasAddress::e_h323_ID:
+            filter = "h323Identityh323-ID=" + alias;
+	  case H225_AliasAddress::e_url_ID:
+		    filter = "h323IdentityURL-ID=" + alias;
+	  default:
+		  return false;
+	}
+
+	H350_Session session;
+	if (!Toolkit::Instance()->CreateH350Session(&session)) {
+	   PTRACE(4,"H350\tAssigned Alias: Could not connect to Server.");
+	   return false;
+	}
+
+	H350_Session::LDAP_RecordList rec;
+	int count = session.Search(search,filter,rec);
+	if (count <= 0) {
+	   PTRACE(4,"H350\tAssigned Alias: No Record Found");
+	   session.Close();
+	   return false;
+	}
+
+// Locate the record
+	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
+       H350_Session::LDAP_Record entry = x->second;
+	   PString al;
+	   PINDEX i;
+       if (session.GetAttribute(entry,"h323Identityh323-ID",al)) {
+		   	PStringList als = al.Lines();
+			for (i=0; i< als.GetSize(); i++)
+				aliases.AppendString(als[i]);
+	   }
+       if (session.GetAttribute(entry,"h323IdentitydialedDigits",al)) {
+		   	PStringList als = al.Lines();
+			for (i=0; i< als.GetSize(); i++)
+				aliases.AppendString(als[i]);
+	   }
+       if (session.GetAttribute(entry,"h323IdentityURL-ID",al)) {
+		   	PStringList als = al.Lines();
+			for (i=0; i< als.GetSize(); i++)
+				aliases.AppendString(als[i]);
+	   }
+	   session.Close();
+	   if (aliases.GetSize() > 0) {
+		   PTRACE(2,"H350\tAssigned Alias: Located " << aliases.GetSize() << " Aliases.");
+		   session.Close();
+		   return true;
+	   }
+	}
+
+	PTRACE(4,"H350\tAssigned Alias: No valid Assigned GK found.");
+	session.Close();
+	return false;
+}
+#endif
+
 bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStringArray & aliases)
 {
+#ifdef H323_H350
+	if (QueryH350Directory(alias,aliases))
+		return true;
+#endif
+
 	return false;
 }
 
@@ -1442,8 +1552,71 @@ void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 		   assignedGKList.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),kv.GetDataAt(i)));
 }
 
+#ifdef H323_H350
+bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
+{
+
+// Support Gatekeeper discovery
+    if (!GkConfig()->GetString(H350Section, "GatekeeperDiscovery", "0"))
+		   return false;
+
+// Search the Directory
+	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
+
+	H225_AliasAddress aliasaddress;
+	H323SetAliasAddress(alias, aliasaddress);
+
+	PString filter;
+	switch (aliasaddress.GetTag()) {
+	  case H225_AliasAddress::e_dialedDigits:
+            filter = "h323IdentitydialedDigits=" + alias;
+	  case H225_AliasAddress::e_h323_ID:
+            filter = "h323Identityh323-ID=" + alias;
+	  case H225_AliasAddress::e_url_ID:
+		    filter = "h323IdentityURL-ID=" + alias;
+	  default:
+		  return false;
+	}
+
+	H350_Session session;
+	if (!Toolkit::Instance()->CreateH350Session(&session)) {
+	   PTRACE(4,"H350\tAssigned GK: Could not connect to Server.");
+	   return false;
+	}
+
+	H350_Session::LDAP_RecordList rec;
+	int count = session.Search(search,filter,rec);
+	if (count <= 0) {
+	   PTRACE(4,"H350\tAssigned GK: No Record Found");
+	   session.Close();
+	   return false;
+	}
+
+// Locate the record
+	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
+       H350_Session::LDAP_Record entry = x->second;
+	   PString gk;
+	   if (session.GetAttribute(entry,"h323IdentityGKDomain",gk)) {
+           PTRACE(2,"H350\tAssigned GK: GK located " << gk);
+		   addresses = gk.Lines();
+		   session.Close();
+		   return true;
+	   }
+	}
+
+	PTRACE(4,"H350\tAssigned GK: No valid Assigned GK found.");
+	session.Close();
+	return false;
+}
+#endif
+
 bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
 {
+#ifdef H323_H350
+	if (QueryH350Directory(alias,ip,addresses))
+		return true;
+#endif
+
 	return false;
 }
 

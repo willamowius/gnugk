@@ -35,7 +35,7 @@ There are also three ways to control a rule:
 
 Currently supported modules: (most of them only support a subset of the ras or q931 actions)
 <itemize>
-<item><tt>SimplePasswordAuth/SQLPasswordAuth</tt>
+<item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth</tt>
 <p>
 These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
 The tokens should contain at least generalID and password.
@@ -46,7 +46,8 @@ and a clear text username/password are supported now.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
 an SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
 modules. <tt/MySQLPasswordAuth/
-module is supported for backward compatibility.
+module is supported for backward compatibility. For H.350.2 authentication ie. 
+<tt/H350PasswordAuth/ the <tt/GkH350::Settings/ section connection information must be completed.
 
 <item><tt>AliasAuth/SQLAliasAuth</tt>
 <p>
@@ -1049,3 +1050,67 @@ destinations and up to 30 calls to other destinations. %r1% and %r2% are
 special constructs to allow having the same <tt/cli:1001/ config key more
 than once.
 </descrip>
+
+
+<sect1>Section &lsqb;GkH350::Settings&rsqb;
+<p>
+This section defines the LDAP server and standard H.350 directory operating
+parameters to be used.
+
+<itemize>
+<item><tt/ServerName/<newline>
+Default: <tt/127.0.0.1/
+<p>
+The LDAP server IP address.
+
+<item><tt/ServerPort/<newline>
+Default: <tt/389/
+<p>
+The LDAP server's TCP port (usually 389).
+
+<item><tt/SearchBaseDN/<newline>
+Default: <tt>N/A</tt>
+<p>
+Entry point into the server's H.350 directory structure.
+Searches are only made below this root node.
+
+<item><tt/BindUserDN/<newline>
+Default: <tt>N/A</tt>
+<p>
+The distinguished name the gatekeeper uses to bind
+to the LDAP server. Leave empty if you want to access
+the LDAP server anonymously.
+
+<item><tt/BindUserPW/<newline>
+Default: <tt>N/A</tt>
+<p>
+If you specified <tt/BindUserDN/, then specify the corresponding
+password to be used for binding here.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in an encrypted form and should be created 
+using the <tt/addpasswd/ utility.
+
+<item><tt/BindAuthMode/<newline>
+Default: <tt>simple</tt>
+<p>
+Bind Authentication method choices are <tt/simple,sasl,kerberos/
+
+<item><tt/ServiceControl=BOOLEAN/<newline>
+Default: <tt/0/<newline>
+<p>
+Use RRQ/RCF service control field to advise an endpoint of the H.350 directory 
+and searchDN to use for white page lookups.
+
+<item><tt/AssignedAliases=BOOLEAN/<newline>
+Default: <tt/0/<newline>
+<p>
+Use H.350.1 to advise endpoints of their assigned aliases.
+
+<item><tt/GatekeeperDiscovery=BOOLEAN/<newline>
+Default: <tt/0/<newline>
+<p>
+Use H.350.1 to resolve on GRQ/GCF the registering endpoints assigned gatekeeper 
+(h323IdentityGKDomain).
+
+</itemize>
+

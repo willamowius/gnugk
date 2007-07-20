@@ -751,6 +751,38 @@ private:
 };
 
 
+#ifdef H323_H350
+
+/// Generic SQL authenticator for H.235 enabled endpoints
+class H350PasswordAuth : public SimplePasswordAuth
+{
+public:
+	/// build authenticator reading settings from the config
+	H350PasswordAuth(
+		/// name for this authenticator and for the config section to read settings from
+		const char* authName
+		);
+	
+	virtual ~H350PasswordAuth();
+
+protected:
+	/** Override from SimplePasswordAuth.
+	
+	    @return
+	    True if the password has been found for the given alias.
+	*/
+	virtual bool GetPassword(
+		/// alias to check the password for
+		const PString& alias,
+		/// password string, if the match is found
+		PString& password
+		);
+
+};
+
+#endif
+
+
 /** A base class for all authenticators that validate endpoints (requests)
     by alias and/or IP address only.
 	

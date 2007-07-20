@@ -716,6 +716,54 @@ bool EndpointRec::AddHTTPServiceControl(
 		return true;
 }
 
+#ifdef H323_H350
+static const char * LDAPServiceOID = "1.3.6.1.4.1.17090.2.1";
+
+bool EndpointRec::AddH350ServiceControl(
+	H225_ArrayOf_ServiceControlSession& sessions 
+	)
+{
+	if (!Toolkit::AsBool(GkConfig()->GetString("GkH350::Settings", "ServiceControl", "1")))
+		   return false;
+
+	PString ldap = GkConfig()->GetString("GkH350::Settings", "ServerName", "");
+		if (ldap.IsEmpty()) return false;
+
+	PString port = GkConfig()->GetString("GkH350::Settings", "ServerPort", "389");
+	PString server = ldap + ":" + port;
+
+	PString search = GkConfig()->GetString("GkH350::Settings", "SearchBaseDN", "");
+		if (search.IsEmpty()) return false;
+	   
+	const PINDEX sessionIndex = sessions.GetSize();
+	sessions.SetSize(sessionIndex + 1);
+
+	H225_ServiceControlSession& session = sessions[sessionIndex];
+    // H350 session ID is 2  
+    session.m_sessionId = 2;
+	session.m_reason = H225_ServiceControlSession_reason::e_open;
+	session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
+
+    session.m_contents.SetTag(H225_ServiceControlDescriptor::e_nonStandard);
+
+	H225_NonStandardParameter & pdu = session.m_contents;
+	H225_NonStandardIdentifier & id = pdu.m_nonStandardIdentifier;
+	id.SetTag(H225_NonStandardIdentifier::e_object);
+	PASN_ObjectId i = id;
+	i.SetValue(LDAPServiceOID);
+
+	PASN_OctetString & data = pdu.m_data;
+
+	H225_H350ServiceControl svc;
+		svc.m_ldapURL = server;
+		svc.m_ldapDN = search;
+
+	data.EncodeSubType(svc);
+	return true;
+}
+#endif
+
+
 
 GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1)
