@@ -28,6 +28,8 @@ If a call from a neighbor is accepted also depends on the AcceptNeighborsCalls s
 Neighbor handling has changed significantly from version 2.0 to version 2.2.
 Neighbors can be specified now the old or the new way.
 
+NOTE: Make sure you get the capitalization of the gatekeeper types right. It matters...
+
 <descrip>
 <tag/Entry in the old format:/
 <tt>GKID=ip[:port;prefixes;password;dynamic]</tt>
