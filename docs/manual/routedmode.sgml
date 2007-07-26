@@ -156,9 +156,9 @@ and you can make call now.
 <item><tt/SupportCallingNATedEndpoints=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Whether to allow an endpoint behind an NAT box that support GnuGK Nat Traversal
+Whether to allow an endpoint behind an NAT box that support GnuGk Nat Traversal
 technique to receive calls. Use this to block errant gateways that do not support
-GnuGK Nat Traversal technique properly from causing one way audio problems when 
+GnuGk Nat Traversal technique properly from causing one way audio problems when 
 trying to call to the gateway. Calls to the gateways return caller unreachable.
 To be effective SupportNATedEndpoints must be set to 1.
 

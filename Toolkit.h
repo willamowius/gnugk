@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //
-// Toolkit base class for the GnuGK
+// Toolkit base class for the GnuGk
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -382,7 +382,7 @@ class Toolkit : public Singleton<Toolkit>
 		iecFailoverRAS  = 1,   /// i.e.c. for "This RQ is a failover RQ" and must not be answerd.
 		iecNeighborId = 2,     /// i.e.c. for neighbor id sent inside LRQ/LCF nonStandardData parameter
 		iecNATTraversal = 3,   /// i.e.c. for IP=/NAT= parameters sent inside RRQ/RCF nonStandardData 
-		iecUserbase    = 1000 /// first guaranteed unused 'iec' by GnuGK Toolkit.
+		iecUserbase    = 1000 /// first guaranteed unused 'iec' by GnuGk Toolkit.
 	};
 	/** t35 extension or definitions as field for H225_NonStandardIdentifier */
 	enum T35CountryCodes {
@@ -404,7 +404,7 @@ class Toolkit : public Singleton<Toolkit>
 	};
 	
 	/** If the triple #(country,extension,manufacturer)# represents an
-	 * extension known to the GnuGK this method returns its 'internal extension code'
+	 * extension known to the GnuGk this method returns its 'internal extension code'
 	 # #iecXXX' or #iecUnknow# otherwise.
 	 *
 	 * Overwriting methods should use a simlilar scheme and call

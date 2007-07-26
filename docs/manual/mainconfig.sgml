@@ -57,7 +57,7 @@ Specify the network interfaces of the gatekeeper. By default the gatekeeper
 will detect the interfaces of your host automatically. There is situations
 that you may want to use this option. One is automatic detection fails. 
 If you are using GnuGk behind a NAT box then you should use the ExternalIP
-setting which will automatically configure GnuGK to operate as if it was
+setting which will automatically configure GnuGk to operate as if it was
 on the NAT box and superceded using this entry.
 
 <item><tt/EndpointIDSuffix=_gk1/<newline>
@@ -294,7 +294,7 @@ Time in milliseconds for write timeout on status channel.
 <item><tt/ExternalIP=myip.no-ip.com/<newline>
 Default: <tt/N/A/<newline>
 <p>
-When using GnuGK behind a NAT you can set the external IP address 
+When using GnuGk behind a NAT you can set the external IP address 
 that you wish the GK to masquarade as. This will allow external EP's
 and other gatekeepers to contact the NATed GK. To work you must port
 forward the required ports to the GK IP or put the GK in the NAT box

@@ -514,7 +514,7 @@ void Gatekeeper::Main()
 	vector<PIPSocket::Address> GKHome;
 	PString home(Toolkit::Instance()->GetGKHome(GKHome));
 	if (GKHome.empty()) {
-		cerr << "Fatal: Cannot find any interface to run GnuGK!\n";
+		cerr << "Fatal: Cannot find any interface to run GnuGk!\n";
 		ExitGK();
 	}
 	cout << "Listen on " << home << "\n";

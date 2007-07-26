@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //
-// Toolkit base class for the GnuGK
+// Toolkit base class for the GnuGk
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
