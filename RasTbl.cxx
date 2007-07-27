@@ -123,7 +123,7 @@ const static PStringToOrdinal::Initialiser H225EndpointTypes[endpointcount] =
 };
 const static PStringToOrdinal h225endpointtypes(endpointcount, H225EndpointTypes, false);
 
-void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress& aliases, H225_EndpointType & type)
+void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress & aliases, H225_EndpointType & type)
 {
 	PStringToString kv = GkConfig()->GetAllKeyValues(RRQFeaturesSection);
 	for (PINDEX r = 0; r < kv.GetSize(); r++) {
@@ -146,7 +146,8 @@ void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress& aliases, H225_EndpointT
 					PString aliasType = h225aliastypes[aliases[i].GetTag()];
 					for (PINDEX j=0; j < filterlist.GetSize(); j++) {
 						if (aliasType == filterlist[j]) {
-							m_terminalAliases.Append(&aliases[i]);
+							m_terminalAliases.SetSize(m_terminalAliases.GetSize() + 1);
+							m_terminalAliases[m_terminalAliases.GetSize() - 1] = aliases[i];
 						}
 					}
 				}
