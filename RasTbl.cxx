@@ -2558,8 +2558,8 @@ void CallTable::LoadConfig()
 
 void CallTable::Insert(CallRec * NewRec)
 {
-	NewRec->SetCallNumber(++m_CallNumber);
 	WriteLock lock(listLock);
+	NewRec->SetCallNumber(++m_CallNumber);
 	CallList.push_back(NewRec);
 	++m_CallCount, ++m_activeCall;
 	PTRACE(2, "CallTable::Insert(CALL) Call No. " << m_CallNumber << ", total sessions : " << m_activeCall);

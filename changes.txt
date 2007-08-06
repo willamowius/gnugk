@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- BUGFIX (RasTbl.cxx) fix race condition where same call number could be assigned multiple times
 - BUGFIX (RasTbl.cxx) avoid memory reference in AliasTypeFilter that causes crash on endpoint delete
 - Added [GkH350::Settings] H.350 LDAP directory support (req. OpenLDAP,OpenH323 v1.19.5)
 - Added H.350 Authenticator module (req. OpenLDAP,OpenH323 v1.19.5)
