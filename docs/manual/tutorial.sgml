@@ -64,6 +64,11 @@ rule=allow
 </verb></tscreen>
 
 Stop the gatekeeper with Ctrl-C and restart it.
+
+<tscreen><verb>
+jan@machine1 > gnugk -ttt -c ./gatekeeper.ini
+</verb></tscreen>
+
 When we do the telnet again, we stay connected with the gatekeeper.
 Now repeat the first experiment where Peter calls Jan and see which
 messages are handled by the gatekeeper in non-routed mode.
