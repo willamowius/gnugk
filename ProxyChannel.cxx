@@ -634,7 +634,7 @@ bool TCPProxySocket::ReadTPKT()
 #ifdef LARGE_FDSET
 	// some endpoints may send TPKT header and payload in separate
 	// packets, so we have to check again if data available
-	if (this->GetHandle() < FD_SETSIZE)
+	if (this->GetHandle() < (int)FD_SETSIZE)
 		if (!YaSelectList(GetName(), this).Select(YaSelectList::Read, 0))
 			return false;
 #endif
