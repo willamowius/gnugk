@@ -752,6 +752,7 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 void RasServer::SetENUMServers()
 {
 #if P_DNS
+#if hasSETENUMSERVERS
   PString servers = GkConfig()->GetString(RoutedSec, "ENUMservers", "");
   PStringArray serverlist(servers.Tokenise(",", false));
 
@@ -759,6 +760,9 @@ void RasServer::SetENUMServers()
 	   PDNS::SetENUMServers(servers);
        PTRACE(2, "GK\tLoaded ENUM servers");
   }
+#else
+  PTRACE(3, "SetENUMServers not available, using defaults");
+#endif
 #endif
 }
 

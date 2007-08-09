@@ -48,6 +48,14 @@
     #endif
   #endif
  #endif
+// define hasSETENUMSERVERS for PWLib >= 1.9.3
+ #if PWLIB_MAJOR == 1
+  #if PWLIB_MINOR >= 9
+    #if PWLIB_BUILD > 2     
+       #define hasSETENUMSERVERS 1
+    #endif
+  #endif
+ #endif
 #endif
 
 ///////////////////////////////////////////////
