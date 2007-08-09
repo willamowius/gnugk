@@ -1205,6 +1205,7 @@ private:
 
 SqlPolicy::SqlPolicy()
 {
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 	PString section = "Routing::Sql";
 	m_name = "SqlPolicy";
 	m_active = true;
@@ -1246,6 +1247,9 @@ SqlPolicy::SqlPolicy()
 			);
 		return;
 	}
+#else
+	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
+#endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 }
 
 SqlPolicy::~SqlPolicy()
@@ -1276,6 +1280,7 @@ bool SqlPolicy::FindByAliases(
 	H225_ArrayOf_AliasAddress &aliases
 	)
 {
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["c"] = AsString(aliases[0], FALSE);
@@ -1314,6 +1319,7 @@ bool SqlPolicy::FindByAliases(
 	}
 	delete result;
 	return false;
+#endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 }
 
 bool SqlPolicy::FindByAliases(
