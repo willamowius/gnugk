@@ -42,6 +42,10 @@ Route the call using neighbors by exchanging LRQ messages
 The destination is resolved from DNS, provided it is
 resolvable
 
+<item><tt/sql/<newline>
+<p>
+Route calls by rewriting the called alias with a database query. The database parameters are specified in the <ref id="routingsql" name="Routing::Sql"> section.
+
 <item><tt/vqueue/<newline>
 <p>
 Use the virtual queue mechanism and generate a RouteRequest
@@ -288,6 +292,61 @@ the parent gatekeeper.
 The section does not relate to the section
 <ref id="rewrite" name="RasSrv::RewriteE164">,
 though the later will take effect first.
+
+<sect1>Section &lsqb;Routing::Sql&rsqb;
+<label id="routingsql">
+<p>
+Rewrite the called alias with an SQL query.
+Supports routing OnARQ, OnLRQ and OnSetup.
+
+<itemize>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
+are implemented.
+
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
+Default: <tt/localhost/<newline>
+<p>
+SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
+Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+
+<item><tt/Database=gnugk/<newline>
+Default: <tt/billing/<newline>
+<p>
+The database name to connect to.
+
+<item><tt/Username=gnugk/<newline>
+<p>
+The username used to connect to the database.
+
+<item><tt/Password=secret/<newline>
+<p>
+The password used to connect to the database.
+If the password is not specified, a database connection attempt 
+without any password will be made.
+
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define an SQL query to fetch the new destination number.
+The query is parameterized - that means parameter
+replacement is made before each query is executed. The following parameters are defined:
+<itemize>
+<item><tt/%c/ - the called alias
+</itemize>
+<p>
+If the query returns no rows, the current alias is used.
+Otherwise, the first result row is used.
+<p>
+Query string examples:
+<tscreen><verb>
+SELECT destination FROM routes WHERE called = '%c'
+SELECT concat(prefix,'%c') FROM routes WHERE route = substr('%c', 5)
+</verb></tscreen>
+
+</itemize>
 
 <sect1>Section &lsqb;Routing::NumberAnalysis&rsqb;
 <label id="numberanalysis">

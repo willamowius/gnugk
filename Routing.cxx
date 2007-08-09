@@ -33,6 +33,7 @@
 #include "sigmsg.h"
 #include "Routing.h"
 #include "pwlib_compat.h"
+#include "gksql.h"
 
 using std::string;
 using std::vector;
@@ -1176,6 +1177,162 @@ bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddr
 }
 
 
+// a policy to route call via an SQL database
+class SqlPolicy : public AliasesPolicy {
+public:
+	SqlPolicy();
+	virtual ~SqlPolicy();
+
+protected:
+	virtual bool IsActive() { return m_active; };
+
+	virtual bool OnRequest(AdmissionRequest &);
+	virtual bool OnRequest(SetupRequest &);
+
+	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
+	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+
+private:
+	// connection to the SQL database
+	GkSQLConnection* m_sqlConn;
+	// parametrized query string for the auth condition string retrieval
+	PString m_query;
+	// active ?
+	bool m_active;
+	// query timeout
+	long m_timeout;
+};
+
+SqlPolicy::SqlPolicy()
+{
+	PString section = "Routing::Sql";
+	m_name = "SqlPolicy";
+	m_active = true;
+	m_timeout = -1;
+
+	PConfig* cfg = GkConfig();
+
+	const PString driverName = cfg->GetString(section, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"no SQL driver selected"
+			);
+		m_active = false;
+		return;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
+	if (m_sqlConn == NULL) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"could not find " << driverName << " database driver"
+			);
+		m_active = false;
+		return;
+	}
+
+	m_query = cfg->GetString(section, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"no query configured"
+			);
+		m_active = false;
+		return;
+	} else
+		PTRACE(4, m_name << "\tQuery: " << m_query);
+		
+	if (!m_sqlConn->Initialize(cfg, section)) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"could not connect to the database"
+			);
+		return;
+	}
+}
+
+SqlPolicy::~SqlPolicy()
+{
+	delete m_sqlConn;
+}
+
+bool SqlPolicy::OnRequest(AdmissionRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases == NULL || !FindByAliases(request, *aliases))
+		return false;
+
+	return true;
+}
+
+bool SqlPolicy::OnRequest(SetupRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	if (aliases == NULL || !FindByAliases(request, *aliases))
+		return false;
+
+	return true;
+}
+
+bool SqlPolicy::FindByAliases(
+	RoutingRequest &request, 
+	H225_ArrayOf_AliasAddress &aliases
+	)
+{
+	GkSQLResult::ResultRow resultRow;
+	std::map<PString, PString> params;
+	params["c"] = AsString(aliases[0], FALSE);
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
+	if (result == NULL) {
+		PTRACE(2, m_name << ": query failed - timeout or fatal error");
+		return false;
+	}
+
+	if (!result->IsValid()) {
+		PTRACE(2, m_name << ": query failed (" << result->GetErrorCode()
+			<< ") - " << result->GetErrorMessage()
+			);
+		delete result;
+		return false;
+	}
+	
+	if (result->GetNumRows() < 1)
+		PTRACE(3, m_name << ": query returned no rows");
+	else if (result->GetNumFields() < 1)
+		PTRACE(2, m_name << ": bad-formed query - "
+			"no columns found in the result set"
+			);
+	else if (!result->FetchRow(resultRow) || resultRow.empty())
+		PTRACE(2, m_name << ": query failed - could not fetch the result row");
+	else {
+		delete result;
+//GkSQLResult::ResultRow::iterator i = resultRow.begin();
+//while (i != resultRow.end()) {
+//	PTRACE(1, "JW DB result " << i->first << ":" << i->second);
+//	i++;
+//}
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+		H323SetAliasAddress(resultRow.begin()->first, aliases[0]);
+		return false;
+	}
+	delete result;
+	return false;
+}
+
+bool SqlPolicy::FindByAliases(
+	LocationRequest& request,
+	H225_ArrayOf_AliasAddress & aliases
+	)
+{
+	H225_LocationRequest & lrq = request.GetRequest();
+	// check if sender is able to handle changed destinations
+	if (lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias)) {
+		if (!lrq.m_canMapAlias) {
+			PTRACE(3, "WARNING: Sender can't map destination alias via SqlPolicy");
+		}
+	}
+	RoutingRequest & rr = request;
+	return FindByAliases(rr, aliases);
+}
+
+
 namespace { // anonymous namespace
 	SimpleCreator<ExplicitPolicy> ExplicitPolicyCreator("explicit");
 	SimpleCreator<InternalPolicy> InternalPolicyCreator("internal");
@@ -1184,6 +1341,7 @@ namespace { // anonymous namespace
 	SimpleCreator<VirtualQueuePolicy> VirtualQueuePolicyCreator("vqueue");
 	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
 	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("enum");
+	SimpleCreator<SqlPolicy> SqlPolicyCreator("sql");
 }
 
 
