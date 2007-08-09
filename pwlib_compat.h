@@ -19,9 +19,7 @@
 // use at least PWLib Pandora
 #if PWLIB_MAJOR == 1
   #if PWLIB_MINOR < 7
-    #if PWLIB_BUILD < 5
-      #error "PWLib too old, use at least 1.7.5.2"
-    #endif
+    #error "PWLib too old, use at least 1.7.5.2"
   #endif
 #endif
 
@@ -51,9 +49,7 @@
 // define hasSETENUMSERVERS for PWLib >= 1.9.3
  #if PWLIB_MAJOR == 1
   #if PWLIB_MINOR >= 9
-    #if PWLIB_BUILD > 2     
-       #define hasSETENUMSERVERS 1
-    #endif
+     #define hasSETENUMSERVERS 1
   #endif
  #endif
 #endif
