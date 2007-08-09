@@ -25,7 +25,7 @@
 #include "gktimer.h"
 #include "h323util.h"
 #include "gkconfig.h"
-#if HAS_MYSQL || HAS_PGSQL
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 #include "gksql.h"
 #endif
 #include "clirw.h"
@@ -1254,7 +1254,7 @@ void Toolkit::ReloadSQLConfig()
 	delete sqlConn;
 	sqlConn = NULL;
 	PTRACE(3, "SQLCONF\tSQL config connection closed");
-#endif // HAS_MYSQL || HAS_PGSQL
+#endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 }
 
 PConfig* Toolkit::ReloadConfig()
