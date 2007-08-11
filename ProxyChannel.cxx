@@ -2355,7 +2355,7 @@ void CallSignalSocket::TryNextRoute()
 	}
 
 	const Route &newRoute = newCall->GetNewRoutes().front();
-	PTRACE(1, "MZ\tNew route: " << 	newRoute.AsString());
+	PTRACE(1, "Q931\tNew route: " << 	newRoute.AsString());
 	if (newRoute.m_destEndpoint)
 		newCall->SetCalled(newRoute.m_destEndpoint);
 	else
@@ -2370,7 +2370,7 @@ void CallSignalSocket::TryNextRoute()
 		H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
 		newCall->SetRouteToAlias(*destAlias);
 		} catch(...) {
-			PTRACE(0, "MZ\tRoute Error: " << newRoute.AsString());
+			PTRACE(0, "Q931\tRoute Error: " << newRoute.AsString());
 		}
 		delete destAlias;
 	}
@@ -2676,7 +2676,7 @@ void CallSignalSocket::Dispatch()
 				RemoveH245Handler();
 
 				const Route &newRoute = m_call->GetNewRoutes().front();
-				PTRACE(1, "MZ\tNew route: " << 	newRoute.AsString());
+				PTRACE(1, "Q931\tNew route: " << 	newRoute.AsString());
 
 				CallRec *newCall = new CallRec(m_call.operator ->());
 				CallTable::Instance()->RemoveFailedLeg(m_call);
@@ -2696,7 +2696,7 @@ void CallSignalSocket::Dispatch()
 					H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
 					newCall->SetRouteToAlias(*destAlias);
 					} catch(...) {
-						PTRACE(0, "MZ\tRoute Error: " << newRoute.AsString());
+						PTRACE(0, "Q931\tRoute Error: " << newRoute.AsString());
 					}
 					delete destAlias;
 				}
@@ -2885,7 +2885,7 @@ void CallSignalSocket::DispatchNextRoute()
 			m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 				
 			const Route &newRoute = m_call->GetNewRoutes().front();
-			PTRACE(1, "MZ\tNew route: " << 	newRoute.AsString());
+			PTRACE(1, "Q931\tNew route: " << 	newRoute.AsString());
 				
 			CallRec *newCall = new CallRec(m_call.operator ->());
 			CallTable::Instance()->RemoveFailedLeg(m_call);
@@ -2905,7 +2905,7 @@ void CallSignalSocket::DispatchNextRoute()
 				H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
 				newCall->SetRouteToAlias(*destAlias);
 				} catch(...) {
-					PTRACE(0, "MZ\tRoute Error: " << newRoute.AsString());
+					PTRACE(0, "Q931\tRoute Error: " << newRoute.AsString());
 				}
 				delete destAlias;
 			}
