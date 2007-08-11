@@ -921,6 +921,8 @@ WORD RasServer::GetRequestSeqNum()
 GkInterface *RasServer::SelectInterface(const Address & addr)
 {
 	ifiterator iter, eiter = interfaces.end();
+	if (interfaces.size() == 0)
+		return NULL;
 	iter = find_if(interfaces.begin(), eiter, bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
 	return (iter != eiter) ? *iter : interfaces.front();
 }
@@ -952,8 +954,13 @@ H225_TransportAddress RasServer::GetCallSignalAddress(const Address & addr) cons
 
 bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, RasListener *socket)
 {
-	if (socket == 0)
-		socket = SelectInterface(addr)->GetRasListener();
+	if (socket == 0) {
+		GkInterface * interface = SelectInterface(addr);
+		if (interface == NULL)
+			return false;
+		else
+			socket = interface->GetRasListener();
+	}
 	return socket->SendRas(rasobj, addr, pt);
 }
 
@@ -969,7 +976,13 @@ bool RasServer::SendRas(const H225_RasMessage & rasobj, const H225_TransportAddr
 
 bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, const Address & local)
 {
-	return SelectInterface(local)->GetRasListener()->SendRas(rasobj, addr, pt);
+	GkInterface * interface = SelectInterface(local);
+	if (interface == NULL)
+		return false;
+	RasListener * listener = interface->GetRasListener();
+	if (listener == NULL)
+		return false;
+	return listener->SendRas(rasobj, addr, pt);
 }
 
 bool RasServer::IsRedirected(unsigned tag) const

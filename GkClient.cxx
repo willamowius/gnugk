@@ -234,7 +234,10 @@ bool GRQRequester::SendRequest(const Address & addr, WORD pt, int r)
 	for (std::vector<Address>::iterator i = GKHome.begin(); i != GKHome.end(); ++i) {
 		if ((IsLoopback(addr) || IsLoopback(*i)) && addr != *i)
 			continue;
-		RasListener *socket = m_rasSrv->SelectInterface(*i)->GetRasListener();
+		GkInterface * interface = m_rasSrv->SelectInterface(*i);
+		if (interface == NULL)
+			return false;
+		RasListener *socket = interface->GetRasListener();
 		grq.m_rasAddress = socket->GetRasAddress(addr == INADDR_BROADCAST ? *i : addr);
 		if (addr == INADDR_BROADCAST)
 			socket->SetOption(SO_BROADCAST, 1);
