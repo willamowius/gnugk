@@ -123,8 +123,11 @@ const static PStringToOrdinal::Initialiser H225EndpointTypes[endpointcount] =
 };
 const static PStringToOrdinal h225endpointtypes(endpointcount, H225EndpointTypes, false);
 
-void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress & aliases, H225_EndpointType & type)
+void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H225_EndpointType & type)
 {
+	PWaitAndSignal lock(m_usedLock);
+	m_terminalAliases.SetSize(0);	// clear current alias
+
 	PStringToString kv = GkConfig()->GetAllKeyValues(RRQFeaturesSection);
 	for (PINDEX r = 0; r < kv.GetSize(); r++) {
 		if (kv.GetKeyAt(r) == "AliasTypeFilter") {
@@ -140,6 +143,7 @@ void EndpointRec::LoadAliases(H225_ArrayOf_AliasAddress & aliases, H225_Endpoint
 				if (!type.HasOptionalField(h225endpointtypes[filtertype[0]])) {
 					continue;
 				}
+				PTRACE(5, "Filter rule matched: AliasTypeFilter=" << entries[e]);
 
 				PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false); 
 				for (PINDEX i=0; i< aliases.GetSize(); i++) {
@@ -524,8 +528,10 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 		// timeToLive for a lightweightRRQ
 		if (!(rrq.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && rrq.m_keepAlive)) {
 			if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)
-				&& (rrq.m_terminalAlias.GetSize() >= 1))
-				SetAliases(rrq.m_terminalAlias);
+				&& (rrq.m_terminalAlias.GetSize() >= 1)) {
+				LoadAliases(rrq.m_terminalAlias, rrq.m_terminalType);
+				LoadConfig(); // update settings for the new aliases
+			}
 		}
 	} else if (ras_msg.GetTag() == H225_RasMessage::e_locationConfirm) {
 		const H225_LocationConfirm & lcf = ras_msg;

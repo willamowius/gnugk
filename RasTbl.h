@@ -139,8 +139,8 @@ public:
 
 	virtual void LoadAliases(
 		/// aliases to be matched (one of them)
-	    H225_ArrayOf_AliasAddress& aliases,
-		H225_EndpointType & type
+	    const H225_ArrayOf_AliasAddress& aliases,
+		const H225_EndpointType & type
 		);
 
 	/** Load additional endpoint settings from the config file.
