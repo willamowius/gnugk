@@ -1318,8 +1318,8 @@ bool SqlPolicy::FindByAliases(
 		return false;
 	}
 	delete result;
-	return false;
 #endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	return false;
 }
 
 bool SqlPolicy::FindByAliases(
