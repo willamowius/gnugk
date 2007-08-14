@@ -352,6 +352,28 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 //	}
 //}
 
+PString EndpointRec::PrintPrefixCapacities() const
+{
+	PString msg;
+	msg += PString("-- Endpoint: ") + AsString(m_terminalAliases, FALSE) + " (" + AsDotString(GetCallSignalAddress()) + ") --\n";
+	msg += "Total calls = " + PString(m_activeCall) + "\n";
+	list<pair<string, int> >::const_iterator Iter = m_prefixCapacities.begin();
+	while (Iter != m_prefixCapacities.end()) {
+		string prefix = Iter->first;
+		int capacity = Iter->second;
+		int calls = 0;
+		map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(prefix);
+		if (calls_iter != m_activePrefixCalls.end()) {
+			calls = calls_iter->second;
+		} else {
+			PTRACE(1, "CODING ERROR no stats for prefix " << prefix);
+		}
+		msg += PString("prefix/capacity/curr: ") + prefix + "/" + PString(capacity) + "/" + PString(calls) + "\n";
+		++Iter;
+	}
+	return msg;
+}
+
 string EndpointRec::LongestPrefixMatch(const PString & alias, int * capacity) const
 {
 	int maxlen = 0;	// longest match
@@ -1429,6 +1451,21 @@ void RegistrationTable::PrintRemoved(USocket *client, BOOL verbose)
 {
 	PString msg("AllRemoved\r\n");
 	InternalPrint(client, verbose, &RemovedList, msg);
+}
+
+void RegistrationTable::PrintPrefixCapacities(USocket *client, PString alias) const
+{
+	PString msg = "PrefixCapacities\n";
+	listLock.StartRead();
+	for (const_iterator Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter) {
+		if (alias.IsEmpty() || (AsString((*Iter)->GetAliases()[0], FALSE).ToLower() == alias.ToLower()))
+			msg += (*Iter)->PrintPrefixCapacities();
+	}
+	listLock.EndRead();
+	// end of lock
+
+	msg += ";\n";
+	client->TransmitData(msg);
 }
 
 void RegistrationTable::InternalPrint(USocket *client, BOOL verbose, std::list<EndpointRec *> * List, PString & msg)

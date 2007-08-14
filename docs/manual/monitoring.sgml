@@ -280,6 +280,34 @@ Number of Calls: 1 Active: 1 From NB: 0
 </verb></tscreen>
 </descrip>
 
+<item><tt/PrintPrefixCapacities/, <tt/printpc/<newline>
+<p>Print the prefix capacities and current counter values for all endpoints
+or the specified alias.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+PrintPrefixCapacities [Alias]
+PrefixCapacities
+-- Endpoint: Alias (1.2.3.4:1720) --
+Total calls = 0
+prefix/capacity/curr: 125/5/0
+-- Endpoint: Alias2 (1.2.3.5:1720) --
+Total calls = 0
+prefix/capacity/curr: 125/5/0
+;
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+PrintPrefixCapacities OpenMCU
+PrefixCapacities
+-- Endpoint: OpenMCU (192.168.1.100:1720) --
+Total calls = 0
+prefix/capacity/curr: ^(123|124)/2/0
+prefix/capacity/curr: 125/5/0
+;
+</verb></tscreen>
+</descrip>
+
 <item><tt/Find/, <tt/f/<newline>
 <p>Find a registered endpoint by an alias or a prefix. To find an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name

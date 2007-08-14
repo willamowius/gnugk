@@ -307,6 +307,12 @@ void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 	PTRACE(1, "GK\tSoftPBX: MakeCall not implemented, yet");
 }
 
+void SoftPBX::PrintPrefixCapacities(USocket *client, PString alias)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintPrefixCapacities(" << alias << ")");
+	RegistrationTable::Instance()->PrintPrefixCapacities(client, alias);
+}
+
 PString SoftPBX::Uptime()
 {
 	long total = (PTime() - SoftPBX::StartUp).GetSeconds();

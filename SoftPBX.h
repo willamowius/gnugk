@@ -42,6 +42,7 @@ namespace SoftPBX
 	void DisconnectEndpoint(const endptr &);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
+	void PrintPrefixCapacities(USocket *client, PString alias);
 
 	PString Uptime();
 

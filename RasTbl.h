@@ -160,6 +160,7 @@ public:
 	//virtual void BuildLCF(H225_LocationConfirm &) const;
 
 	virtual PString PrintOn(bool verbose) const;
+	PString PrintPrefixCapacities() const;
 
 	void SetNAT(bool nat);
 	void SetNATAddress(const PIPSocket::Address &);
@@ -443,6 +444,7 @@ public:
 	void PrintAllRegistrations(USocket *client, BOOL verbose=FALSE);
 	void PrintAllCached(USocket *client, BOOL verbose=FALSE);
 	void PrintRemoved(USocket *client, BOOL verbose=FALSE);
+	void PrintPrefixCapacities(USocket *client, PString alias) const;
 
 	PString PrintStatistics() const;
 

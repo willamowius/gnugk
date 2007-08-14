@@ -728,6 +728,8 @@ void GkStatus::OnStart()
 	m_commands["filter"] = e_Filter;
 	m_commands["printexcludefilters"] = e_PrintExcludeFilters;
 	m_commands["printincludefilters"] = e_PrintIncludeFilters;
+	m_commands["printprefixcapacities"] = e_PrintPrefixCapacities;
+	m_commands["printpc"] = e_PrintPrefixCapacities;
 }
 
 void GkStatus::ReadSocket(
@@ -1418,6 +1420,16 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_PrintIncludeFilters:
 	    PrintFilters(m_includeFilterRegex);
 	    break;
+	case GkStatus::e_PrintPrefixCapacities:
+		if (args.GetSize() == 1)
+			SoftPBX::PrintPrefixCapacities(this, "");
+		else if (args.GetSize() == 2)
+			SoftPBX::PrintPrefixCapacities(this, args[1]);
+		else {
+			WriteString("Syntax Error: PrintPrefixCapacities [ALIAS]\r\n");
+			PTRACE(2, "Syntax Error: PrintPrefixCapacities [ALIAS]");
+		}
+		break;
 	default:
 		// commmand not recognized
 		WriteString("Error: Unknown command " + cmd + "\r\n");

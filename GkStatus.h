@@ -122,8 +122,8 @@ public:
 		e_Exit,                        /// Close Connection
 		e_Reload,                      /// Reload Config File
 		e_Shutdown,                    /// Shutdown the program
-		e_RouteToAlias,                /// Route a call upon ARQ to a specified alias eg. a free CTI agent
-		e_RouteToGateway,              /// Route a call upon ARQ to a specified alias + destinationCallSignalAddr
+		e_RouteToAlias,                /// Route a call to a specified alias
+		e_RouteToGateway,              /// Route a call to a specified alias + destinationCallSignalAddr
 		e_RouteReject,                 /// Reject to Route a call upon ARQ (send ARJ)
 		e_Trace,                       /// change trace level for status interface output
 #if PTRACING
@@ -137,6 +137,7 @@ public:
 		e_Filter,                      /// Activate Status Port filtering
 		e_PrintExcludeFilters,         /// Print list of all exclude filters
 		e_PrintIncludeFilters,         /// Print list of all include filters
+		e_PrintPrefixCapacities,       /// Print prefix capacity settings with their current counters
 		e_numCommands
 		/// Number of different strings
 	};
