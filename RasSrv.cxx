@@ -955,11 +955,11 @@ H225_TransportAddress RasServer::GetCallSignalAddress(const Address & addr) cons
 bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, RasListener *socket)
 {
 	if (socket == 0) {
-		GkInterface * interface = SelectInterface(addr);
-		if (interface == NULL)
+		GkInterface * inter = SelectInterface(addr);
+		if (inter == NULL)
 			return false;
 		else
-			socket = interface->GetRasListener();
+			socket = inter->GetRasListener();
 	}
 	return socket->SendRas(rasobj, addr, pt);
 }
@@ -976,10 +976,10 @@ bool RasServer::SendRas(const H225_RasMessage & rasobj, const H225_TransportAddr
 
 bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, const Address & local)
 {
-	GkInterface * interface = SelectInterface(local);
-	if (interface == NULL)
+	GkInterface * inter = SelectInterface(local);
+	if (inter == NULL)
 		return false;
-	RasListener * listener = interface->GetRasListener();
+	RasListener * listener = inter->GetRasListener();
 	if (listener == NULL)
 		return false;
 	return listener->SendRas(rasobj, addr, pt);
