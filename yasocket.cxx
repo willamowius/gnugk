@@ -23,6 +23,7 @@
 #include "stl_supp.h"
 #include "rwlock.h"
 #include "yasocket.h"
+#include "Toolkit.h"
 
 using std::mem_fun;
 using std::bind1st;
@@ -859,6 +860,8 @@ bool TCPListenSocket::IsTimeout(const PTime *now) const
 TCPServer::TCPServer()
 {
 	SetName("TCPSrv");
+	cps_limit = GkConfig()->GetInteger("RoutedMode", "CpsLimit", 0);
+	check_interval = GkConfig()->GetInteger("RoutedMode", "CpsCheckInterval", 5);
 	Execute();
 }
 
@@ -877,6 +880,26 @@ bool TCPServer::CloseListener(TCPListenSocket *socket)
 void TCPServer::ReadSocket(IPSocket *socket)
 {
 	PTRACE(4, GetName() << "\tAccept request on " << socket->GetName());
+	// rate limiting
+	if (cps_limit > 0) {
+		time_t now = time(NULL);
+		// clear old values
+		one_sec.remove_if(bind2nd(not_equal_to<int>(), now));
+		many_sec.remove_if(bind2nd(less<int>(), now - check_interval));
+PTRACE(1, GetName() << "\tJW one_sec=" << one_sec.size() << " many_sec = " << many_sec.size());
+		if ((many_sec.size() > (cps_limit *  check_interval)) && (one_sec.size() > cps_limit)) {
+			// reject call
+			PTRACE(1, GetName() << "\tJW Rate limit reached (max " << cps_limit << " cps) - rejecting call on " << socket->GetName());
+			int rej = ::accept(socket->GetHandle(), NULL, NULL);
+			::shutdown(rej, 2 /* SHUT_RDWR */ );
+			::close(rej);
+			return;
+		}
+		// add accepted calls to stats list
+		one_sec.push_back(now);
+		many_sec.push_back(now);
+	}
+
 	TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(socket);
 	ServerSocket *acceptor = listener->CreateAcceptor();
 	if (acceptor->Accept(*listener)) {

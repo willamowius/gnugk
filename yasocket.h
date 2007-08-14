@@ -442,6 +442,12 @@ private:
 	// override from class SocketsReader
 	virtual void ReadSocket(IPSocket *);
 	virtual void CleanUp();
+	
+	// rate limiting
+	unsigned int cps_limit;	// max cps per one sec
+	unsigned int check_interval; // number of sec. to check if cps_limit applies
+	std::list<time_t> one_sec;
+	std::list<time_t> many_sec;
 };
 
 #endif // YASOCKET_H

@@ -330,6 +330,22 @@ This set the domains to use to resolve URI's which do not have SRV records and
 maybe virtually hosted or SRV records are stored in another host.
 This overrides the PWLIB_RDS_PATH environmental variable.
 
+<item><tt/CpsLimit=10/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Limit the rate of incomming calls to n calls per second. If more calls are received they are
+rejected on TCP level without H.323 error messages and they won't show up in CDRs.
+A value of zero (default) disables the feature.
+<p>
+The limit only applies if the calls in the check interval are greater than check-interval * CPS-rate. This allows small call spikes on a machine without much load, but will apply strict limits when the overall load is high.
+<p>
+This feature is meant to shield the gatekeeper from overload and to avoid as much resource usage a possible in an overload situation.
+
+<item><tt/CpsCheckInterval=1/<newline>
+Default: <tt>5</tt><newline>
+<p>
+Define the check interval in seconds before the CpsLimit is applied.
+
 </itemize>
 
 <p>

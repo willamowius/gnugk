@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- implement rate limiting, configured by CpsLimit and CpsCheckInterval in the [RoutedMode] section, defaults to OFF
 - BUGFIX (RasSrv.cxx, GkClient.cxx) deal better with having no RAS interfaces at all
 - BUGFIX (RasSrv.cxx) ensure compatibility with PWLib < 1.9.3
 - new 'sql' routing policy configured via [Routing::Sql], sponsored by CoProSys
