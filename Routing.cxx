@@ -88,7 +88,7 @@ Route::Route(
 PString Route::AsString() const
 {
 	return AsDotString(m_destAddr) + " (policy: " + m_policy + ", proxy: "
-		+ PString(m_proxyMode) + ", flags: " + PString(m_flags) + ", DialNumber: " + m_destNumber + ")";
+		+ PString(m_proxyMode) + ", flags: " + PString(m_flags) + ", DialedNumber: " + m_destNumber + ")";
 }
 
 bool Route::IsFailoverActive(
