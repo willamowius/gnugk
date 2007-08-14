@@ -130,7 +130,7 @@ public:
 		e_RotateLog,                   /// Force log file rotation
 		e_SetLogFilename,              /// Change log file location
 #endif
-		e_AddIncludeFilter,            /// Add includse filter
+		e_AddIncludeFilter,            /// Add include filter
 		e_RemoveIncludeFilter,         /// Remove include filter
 		e_AddExcludeFilter,            /// Add exclude filter
 		e_RemoveExcludeFilter,         /// Remove exclude filter
