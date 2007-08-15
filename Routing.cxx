@@ -686,7 +686,9 @@ bool VirtualQueue::SendRouteRequest(
 	/// (in the "alias:type[=alias:type]..." format)
 	const PString& sourceInfo,
 	/// the callID as string
-	const PString& callID
+	const PString& callID,
+	/// the called IP for unregistered calls
+	const PString& calledip
 	)
 {
 	bool result = false;
@@ -699,11 +701,10 @@ bool VirtualQueue::SendRouteRequest(
 				(const char *)vqueue,
 				(const char *)sourceInfo
 			   );
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			PString cid = callID;
-			cid.Replace(" ", "-", true);
-			msg += PString("|") + cid;
-		}
+		PString cid = callID;
+		cid.Replace(" ", "-", true);
+		msg += PString("|") + cid;
+		msg += PString("|") + calledip;
 		msg += PString(";");
 		// signal RouteRequest to the status line only once
 		if( duprequest )
@@ -780,19 +781,19 @@ bool VirtualQueue::RouteToAlias(
 			if( !foundrequest ) {
 				foundrequest = true;
 				if( agent.GetSize() > 0 )
-					PTRACE(2,"VQueue\tRoute request (EPID :"<<callingEpId
-						<<", CRV="<<crv<<") accepted by agent "<<AsString(agent));
+					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
+						<< ", CRV=" << crv << ") accepted by agent " << AsString(agent));
 				else
-					PTRACE(2,"VQueue\tRoute request (EPID :"<<callingEpId
-						<<", CRV="<<crv<<") rejected");
+					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
+						<< ", CRV=" << crv << ") rejected");
 			}
 		}
 		++i;
 	}
 	
 	if( !foundrequest )
-		PTRACE(4,"VQueue\tPending route request (EPID:"<<callingEpId
-			<<", CRV="<<crv<<") not found - ignoring RouteToAlias / RouteToGateway command");
+		PTRACE(4,"VQueue\tPending route request (EPID:" << callingEpId
+			<< ", CRV=" << crv << ") not found - ignoring RouteToAlias / RouteToGateway command");
 	
 	return foundrequest;
 }
@@ -887,8 +888,8 @@ private:
 
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);
+	virtual bool OnRequest(SetupRequest &);
 	// TODO
-	//virtual bool OnRequest(SetupRequest &);
 	//virtual bool OnRequest(FacilityRequest &);
 
 	VirtualQueue *m_vqueue;
@@ -908,20 +909,23 @@ bool VirtualQueuePolicy::IsActive()
 bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 {
 	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
-		const PString agent(AsString((*aliases)[0], FALSE));
-		if (m_vqueue->IsDestinationVirtualQueue(agent)) {
+		const PString vq(AsString((*aliases)[0], FALSE));
+		if (m_vqueue->IsDestinationVirtualQueue(vq)) {
 			H225_AdmissionRequest & arq = request.GetRequest();
-			PTRACE(5,"Routing\tPolicy "<<m_name<<" destination matched "
-				"a virtual queue "<<agent<<" (ARQ "
-				<<arq.m_requestSeqNum.GetValue()<<')'
+			PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
+				"a virtual queue " << vq << " (ARQ "
+				<< arq.m_requestSeqNum.GetValue() << ')'
 				);
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
 			if (ep) {
 				PString source = AsDotString(ep->GetCallSignalAddress());
 				PString epid = ep->GetEndpointIdentifier().GetValue();
 				PString * callSigAdr = new PString();
-				if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, agent, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid)))
+				if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid)))
 					request.SetFlag(RoutingRequest::e_aliasesChanged);
+				if (aliases->GetSize() == 0) {
+					request.SetFlag(RoutingRequest::e_Reject);
+				}
 				if (!callSigAdr->IsEmpty()) {
 					if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
 						arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
@@ -950,11 +954,11 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 {
 	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
-		const PString agent(AsString((*aliases)[0], FALSE));
-		if (m_vqueue->IsDestinationVirtualQueue(agent)) {
+		const PString vq(AsString((*aliases)[0], FALSE));
+		if (m_vqueue->IsDestinationVirtualQueue(vq)) {
 			H225_LocationRequest & lrq = request.GetRequest();
 			PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
-				"a virtual queue " << agent << " (LRQ "
+				"a virtual queue " << vq << " (LRQ "
 				<< lrq.m_requestSeqNum.GetValue() << ')'
 				);
 
@@ -972,8 +976,11 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				epid = lrq.m_gatekeeperIdentifier.GetValue() + "_" + AsString(lrq.m_sourceInfo, false);
 			PString * callSigAdr = new PString(); /* unused for LRQs */
 			PString callID = "";	/* not available for LRQs */
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, agent, AsString(lrq.m_sourceInfo), callID))
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, vq, AsString(lrq.m_sourceInfo), callID))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
+			if (aliases->GetSize() == 0) {
+				request.SetFlag(RoutingRequest::e_Reject);
+			}
 			delete callSigAdr;
 			// the trick: if empty, the request is rejected
 			// so we return true to terminate the routing
@@ -982,6 +989,70 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			// policies determine the request
 			if (m_next == NULL || aliases->GetSize() == 0)
 				return true;
+		}
+	}
+	return false;
+}
+
+bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
+{
+	bool reject = FALSE;
+	H225_ArrayOf_AliasAddress *aliases = new H225_ArrayOf_AliasAddress;
+	aliases->SetSize(1);
+	PString vq = "";
+	if (request.GetAliases()) {
+		vq = AsString((*request.GetAliases())[0], FALSE);
+	}
+	if (m_vqueue->IsDestinationVirtualQueue(vq)) {
+		H225_Setup_UUIE &setup = request.GetRequest();
+		PString callerip = AsDotString(setup.m_sourceCallSignalAddress);
+		PString epid = "unregistered";
+		const unsigned crv = request.GetWrapper()->GetCallReference();
+		PString * callSigAdr = new PString();
+		PString callid = AsString(setup.m_callIdentifier.m_guid);
+		PString src = AsString(setup.m_sourceAddress);
+		PIPSocket::Address localAddr;
+		WORD localPort;
+		request.GetWrapper()->GetLocalAddr(localAddr, localPort);
+		PString calledIP = localAddr;
+		PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
+			"a virtual queue " << vq << " (Setup "
+			<< crv << ')'
+			);
+
+		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, vq, src, callid, calledIP))
+			request.SetFlag(RoutingRequest::e_aliasesChanged);
+		
+		if (aliases->GetSize() == 0) {
+			request.SetFlag(RoutingRequest::e_Reject);
+			reject = TRUE;
+		}
+		if (!reject && callSigAdr->IsEmpty()) {
+			if (!setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+				setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			}
+			setup.m_destinationAddress = *aliases;
+		}
+		if (!reject && !callSigAdr->IsEmpty()) {
+			if (!setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+				setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+			}
+			PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
+			PString ip = adr_parts[0];
+			WORD port = (WORD)(adr_parts[1].AsInteger());
+			if (port == 0)
+				port = 1720;
+			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
+		}
+		delete aliases;
+		delete callSigAdr;
+		// the trick: if empty, the request is rejected
+		// so we return true to terminate the routing
+		// decision process, otherwise the aliases is
+		// rewritten, we return false to let subsequent
+		// policies determine the request
+		if (m_next == NULL || reject) {
+			return true;
 		}
 	}
 	return false;

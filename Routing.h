@@ -87,7 +87,8 @@ public:
 		e_aliasesChanged = 1,
 		e_fromInternal = 2,
 		e_fromParent = 4,
-		e_fromNeighbor = 8
+		e_fromNeighbor = 8,
+		e_Reject = 16
 	};
 	
 	// note this is not a polymorphic class
@@ -301,7 +302,9 @@ public:
 		/// (in the "alias:type[=alias:type]..." format)
 		const PString& sourceInfo,
 		/// the callID as string
-		const PString& callID
+		const PString& callID,
+		/// the called IP for unregistered calls
+		const PString& calledip = "unknown"
 		);
 
 	/** Make a routing decision for a pending route request (inserted

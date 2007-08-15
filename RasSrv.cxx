@@ -2378,11 +2378,9 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 				(const unsigned char *) destinationString,
 				(const unsigned char *) srcInfo
 		      	);
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			PString callid = AsString(request.m_callIdentifier.m_guid);
-			callid.Replace(" ", "-", true);
-			log += PString("|") + callid;
-		}
+		PString callid = AsString(request.m_callIdentifier.m_guid);
+		callid.Replace(" ", "-", true);
+		log += PString("|") + callid;
 		log += PString(";");
 	} else if (reason < 0) {
 		log = PString(PString::Printf, "ACF|%s|%s|%u|%s|%s|%s",
@@ -2393,11 +2391,9 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 				(const unsigned char *) srcInfo,
 				answerCall
 		      	);
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			PString callid = AsString(request.m_callIdentifier.m_guid);
-			callid.Replace(" ", "-", true);
-			log += PString("|") + callid;
-		}
+		PString callid = AsString(request.m_callIdentifier.m_guid);
+		callid.Replace(" ", "-", true);
+		log += PString("|") + callid;
 		log += PString(";");
 	} else {
 		H225_AdmissionReject & arj = BuildReject(reason);
@@ -2410,11 +2406,9 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 				answerCall,
 				(const unsigned char *) arj.m_rejectReason.GetTagName()
 		      	);
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			PString callid = AsString(request.m_callIdentifier.m_guid);
-			callid.Replace(" ", "-", true);
-			log += PString("|") + callid;
-		}
+		PString callid = AsString(request.m_callIdentifier.m_guid);
+		callid.Replace(" ", "-", true);
+		log += PString("|") + callid;
 		log += PString(";");
 	}
 	return PrintStatus(log);
@@ -2493,11 +2487,9 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) drj.m_rejectReason.GetTagName()
 		      	);
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			PString callid = AsString(request.m_callIdentifier.m_guid);
-			callid.Replace(" ", "-", true);
-			log += PString("|") + callid;
-		}
+		PString callid = AsString(request.m_callIdentifier.m_guid);
+		callid.Replace(" ", "-", true);
+		log += PString("|") + callid;
 		log += PString(";");
 	} else {
 		BuildConfirm();
@@ -2508,11 +2500,9 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) request.m_disengageReason.GetTagName()
 		      	);
-		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "SignalCallId", 0))) {
-			PString callid = AsString(request.m_callIdentifier.m_guid);
-			callid.Replace(" ", "-", true);
-			log += PString("|") + callid;
-		}
+		PString callid = AsString(request.m_callIdentifier.m_guid);
+		callid.Replace(" ", "-", true);
+		log += PString("|") + callid;
 		log += PString(";");
 
 		if (!RasSrv->IsGKRouted() || RasSrv->RemoveCallOnDRQ())

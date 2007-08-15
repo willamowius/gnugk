@@ -234,12 +234,13 @@ by a parent gatekeeper in a GCF/RCF message.
 This section allows the configuration of a so called virtual queues to
 allow inbound call distribution by an external application via the
 status port.
-A virtual queue has an H.323 alias that can be called like an endpoint.
+A virtual queue has an H.323 alias that can be called like an endpoint
+or it can answer to a set of aliases.
 
-Upon arrival of an ARQ or LRQ on a virtual queue, the gatekeeper signals
+Upon arrival of a call on a virtual queue, the gatekeeper signals
 a RouteRequest on the status port and waits for an external application
-to respond with either a RouteReject (then the ARQ/LRQ will be rejected)
-or with RouteToAlias/RouteToGateway which leads to the ARQ/LRQ being rewritten so the call
+to respond with either a RouteReject (then the call will be rejected)
+or with RouteToAlias/RouteToGateway which leads to destination rewritten so the call
 will be routed to the alias (eg. call center agent) specified by
 the external application.
 
@@ -298,8 +299,7 @@ This defines a regular expression for the virtual queues (used with the vqueue R
 <tt/RequestTimeout/<newline>
 Default: <tt/10/<newline>
 Timeout in seconds for the external application to answer the RouteRequest.
-If no answer is received during this time an ARJ will be sent to
-the caller.
+If no answer is received during this time the call will be rejected.
 </itemize>
 
 

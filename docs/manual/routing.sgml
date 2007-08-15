@@ -50,7 +50,6 @@ Route calls by rewriting the called alias with a database query. The database pa
 <p>
 Use the virtual queue mechanism and generate a RouteRequest
 event to let an external application do the routing
-(can only be used OnARQ or OnLRQ)
 
 <item><tt/numberanalysis/<newline>
 <p>

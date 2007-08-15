@@ -169,12 +169,6 @@ Default: <tt/7000/<newline>
 Status port to monitor the gatekeeper.
 See <ref id="monitor" name="this section"> for details.
 
-<item><tt/SignalCallId=1/<newline>
-Default: <tt/0/<newline>
-<p>
-Signal call IDs in ACF/ARJ/DCF/DRJ/RouteRequest messages on the status port.
-See <ref id="monitor" name="this section"> for details.
-
 <item><tt/StatusTraceLevel=2/<newline>
 Default: <tt/2/<newline>
 <p>

@@ -1,5 +1,7 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- extend virtual queue functionality to unregistered calls (anonymous sponsor)
+- remove SignalCallId switch, now call ID is always sent with status port events
 - new status port command: PrintPrefixCapacities/printpc
 - implement rate limiting, configured by CpsLimit and CpsCheckInterval in the [RoutedMode] section, defaults to OFF
 - BUGFIX (RasSrv.cxx, GkClient.cxx) deal better with having no RAS interfaces at all

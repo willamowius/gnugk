@@ -1824,34 +1824,46 @@ void CallSignalSocket::OnSetup(
 				// check if destination has changed in the routing process
 				// eg. via canMapAlias in LRQ
 				if (request.GetFlags() & Routing::SetupRequest::e_aliasesChanged) {
-					setupBody.m_destinationAddress = request.GetRequest().m_destinationAddress;
-					const PString newCalledParty = AsString(setupBody.m_destinationAddress[0], FALSE);
-					if (q931.HasIE(Q931::CalledPartyNumberIE)) {
-						if (!newCalledParty && strspn(newCalledParty, "1234567890*#+,") == strlen(newCalledParty)) {
-							unsigned plan, type;
-							PString calledNumber;
-							if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
-								q931.SetCalledPartyNumber(newCalledParty, plan, type);
-							else
-								q931.RemoveIE(Q931::CalledPartyNumberIE);
+					if (request.GetFlags() & Routing::SetupRequest::e_Reject) {
+						PTRACE(3, Type() << "\tRejecting unregistered call "
+							<< callid << " from " << Name()
+							);
+						authData.m_rejectReason = request.GetRejectReason();
+						rejectCall = true;
+					} else {
+						if (request.GetAliases() && request.GetAliases()->GetSize() > 0) {
+							setupBody.m_destinationAddress = request.GetRequest().m_destinationAddress;
+							const PString newCalledParty = AsString(setupBody.m_destinationAddress[0], FALSE);
+							if (q931.HasIE(Q931::CalledPartyNumberIE)) {
+								if (!newCalledParty && strspn(newCalledParty, "1234567890*#+,") == strlen(newCalledParty)) {
+									unsigned plan, type;
+									PString calledNumber;
+									if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
+										q931.SetCalledPartyNumber(newCalledParty, plan, type);
+									else
+										q931.RemoveIE(Q931::CalledPartyNumberIE);
+								}
+								authData.m_calledStationId = newCalledParty;
+							}
 						}
-						authData.m_calledStationId = newCalledParty;
 					}
 				}
-				if (request.GetFirstRoute(route)) {
-					destFound = true;
-					calledAddr = route.m_destAddr;
-					called = route.m_destEndpoint;
-					if (authData.m_proxyMode == CallRec::ProxyDetect)
-						authData.m_proxyMode = route.m_proxyMode;
-					if (!useParent)
-						useParent = route.m_flags & Route::e_toParent;
-				} else {
-					PTRACE(3, Type() << "\tNo destination for unregistered call "
-						<< callid << " from " << Name()
-						);
-					authData.m_rejectReason = request.GetRejectReason();
-					rejectCall = true;
+				if (!rejectCall) {
+					if (request.GetFirstRoute(route)) {
+						destFound = true;
+						calledAddr = route.m_destAddr;
+						called = route.m_destEndpoint;
+						if (authData.m_proxyMode == CallRec::ProxyDetect)
+							authData.m_proxyMode = route.m_proxyMode;
+						if (!useParent)
+							useParent = route.m_flags & Route::e_toParent;
+					} else {
+						PTRACE(3, Type() << "\tNo destination for unregistered call "
+							<< callid << " from " << Name()
+							);
+						authData.m_rejectReason = request.GetRejectReason();
+						rejectCall = true;
+					}
 				}
 			}
 		}
@@ -2594,13 +2606,39 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
 				uuie.m_alternativeAddress = *addr;
 			} else if (const PString *dest = dynamic_cast<const PString *>(parm)) {
-				uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
-				uuie.m_alternativeAliasAddress.SetSize(1);
-				H323SetAliasAddress(*dest, uuie.m_alternativeAliasAddress[0]);
-			}
-			if (m_call) {
-				uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
-				uuie.m_callIdentifier = m_call->GetCallIdentifier();
+				PString destination = *dest;
+				PString alias = "";
+				PString ip = "";
+				WORD port = 1720;
+				PINDEX at = destination.Find('@');
+				if (at != P_MAX_INDEX) {
+					alias = destination.Left(at);
+					destination = destination.Right(destination.GetLength() - (at + 1));
+				}
+				if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
+					ip = destination;
+				} else if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
+					PINDEX colon = destination.Find(':');
+					ip = destination.Left(colon);
+					port = destination.Right(destination.GetLength() - (colon + 1)).AsInteger();
+				}
+
+				if (!ip.IsEmpty()) {
+					H225_TransportAddress addr;
+					if (GetTransportAddress(ip, port, addr)) {
+						uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
+						uuie.m_alternativeAddress = addr;
+					} else {
+						PTRACE(2, "Warning: Invalid transport address (" << ip << ":" << port << ")");
+					}
+				} else {
+					alias = destination;
+				}
+				if (!alias.IsEmpty()) {
+					uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
+					uuie.m_alternativeAliasAddress.SetSize(1);
+					H323SetAliasAddress(alias, uuie.m_alternativeAliasAddress[0]);
+				}
 			}
 			break;
 	}
