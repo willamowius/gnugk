@@ -317,7 +317,8 @@ void CapacityControl::LoadConfig()
 
 PString CapacityControl::PrintRules()
 {
-	std::stringstream strm;
+//	std::stringstream strm;   VS2005 version leaks memory!!
+	PStringStream strm;
 	
 	strm << "Per IP call volume rules:" << endl;
 	for (unsigned i = 0; i < m_ipCallVolumes.size(); ++i) {
@@ -337,7 +338,7 @@ PString CapacityControl::PrintRules()
 		strm << "    " << m_cliCallVolumes[i].second.AsString() << endl;
 	}
 	
-	return strm.str();
+	return strm;
 }
 
 CapacityControl::IpCallVolumes::iterator CapacityControl::FindByIp(
