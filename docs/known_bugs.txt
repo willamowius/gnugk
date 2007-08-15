@@ -11,3 +11,5 @@ Known bugs:
   is already in use, therefore some calls may fail under specific circumstances
 * (2.2.2, fixed in 2.2.3cvs) tunnelled H.245 messages were ignored
 * (2.2.x, fixed in 2.2.3cvs) broadcast RAS messages were ignored in the LARGE_FDSET mode
+* (2.2.x, fixed in 2.2.7cvs) GK CallNumber could be set incorrectly during high load periods
+* (>=2.2.4) CapacityControl does not work well when failover is active
