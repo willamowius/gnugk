@@ -24,7 +24,7 @@
 #include "RasSrv.h"
 #include "ProxyChannel.h"
 #include "SoftPBX.h"
-
+#include "capctrl.h"
 
 int SoftPBX::TimeToLive = -1;
 PTime SoftPBX::StartUp;
@@ -311,6 +311,14 @@ void SoftPBX::PrintPrefixCapacities(USocket *client, PString alias)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintPrefixCapacities(" << alias << ")");
 	RegistrationTable::Instance()->PrintPrefixCapacities(client, alias);
+}
+
+void SoftPBX::PrintCapacityControlRules(USocket *client)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintCapacityControlRules");
+	PString msg(CapacityControl::Instance()->PrintRules());
+	msg += ";\r\n";
+	client->TransmitData(msg);
 }
 
 PString SoftPBX::Uptime()

@@ -43,7 +43,8 @@ namespace SoftPBX
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
 	void PrintPrefixCapacities(USocket *client, PString alias);
-
+	void PrintCapacityControlRules(USocket *client);
+	
 	PString Uptime();
 
 	extern int TimeToLive;

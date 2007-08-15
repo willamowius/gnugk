@@ -69,6 +69,9 @@ public:
 	/// Load/Update settings from the config
 	void LoadConfig();
 
+	/// @return	a string containing all active rules and their current capacity values
+	PString PrintRules();
+	
 	/// Record call start/stop events for a matching inbound route
 	void LogCall(
 		const NetworkAddress &srcIp, /// caller's IP

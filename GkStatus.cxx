@@ -730,6 +730,7 @@ void GkStatus::OnStart()
 	m_commands["printincludefilters"] = e_PrintIncludeFilters;
 	m_commands["printprefixcapacities"] = e_PrintPrefixCapacities;
 	m_commands["printpc"] = e_PrintPrefixCapacities;
+	m_commands["printcc"] = e_PrintCapacityControlRules;
 }
 
 void GkStatus::ReadSocket(
@@ -1429,6 +1430,9 @@ void StatusClient::ExecCommand(
 			WriteString("Syntax Error: PrintPrefixCapacities [ALIAS]\r\n");
 			PTRACE(2, "Syntax Error: PrintPrefixCapacities [ALIAS]");
 		}
+		break;
+	case GkStatus::e_PrintCapacityControlRules:
+		SoftPBX::PrintCapacityControlRules(this);
 		break;
 	default:
 		// commmand not recognized

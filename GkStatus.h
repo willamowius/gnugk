@@ -138,6 +138,7 @@ public:
 		e_PrintExcludeFilters,         /// Print list of all exclude filters
 		e_PrintIncludeFilters,         /// Print list of all include filters
 		e_PrintPrefixCapacities,       /// Print prefix capacity settings with their current counters
+		e_PrintCapacityControlRules,   /// Print CapacityControl rules and their current capacities
 		e_numCommands
 		/// Number of different strings
 	};

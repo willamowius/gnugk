@@ -315,6 +315,31 @@ void CapacityControl::LoadConfig()
 #endif
 }
 
+PString CapacityControl::PrintRules()
+{
+	std::stringstream strm;
+	
+	strm << "Per IP call volume rules:" << endl;
+	for (unsigned i = 0; i < m_ipCallVolumes.size(); ++i) {
+		strm << "  src " << m_ipCallVolumes[i].first.AsString() << ":" << endl;
+		strm << "    " << m_ipCallVolumes[i].second.AsString() << endl;
+	}
+
+	strm << "Per H.323 ID call volume rules:" << endl;
+	for (unsigned i = 0; i < m_h323IdCallVolumes.size(); i++) {
+		strm << "  src " << H323GetAliasAddressString(m_h323IdCallVolumes[i].first) << ":" << endl;
+		strm << "    " << m_h323IdCallVolumes[i].second.AsString() << endl;
+	}
+
+	strm << "Per CLI call volume rules:" << endl;
+	for (unsigned i = 0; i < m_cliCallVolumes.size(); i++) {
+		strm << "  src " << m_cliCallVolumes[i].first << ":" << endl;
+		strm << "    " << m_cliCallVolumes[i].second.AsString() << endl;
+	}
+	
+	return strm.str();
+}
+
 CapacityControl::IpCallVolumes::iterator CapacityControl::FindByIp(
 	const NetworkAddress &srcIp,
 	const PString &calledStationId
