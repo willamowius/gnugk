@@ -56,6 +56,14 @@ A gateway can register its prefixes with the gatekeeper by containing
 <bf/supportedPrefixes/ in the <bf/terminalType/ field of RRQ.
 This option defines whether to accept the specified prefixes of a gateway.
 
+<item><tt/AcceptMCUPrefixes=1/<newline>
+Default: <tt/1/<newline>
+<p>
+A MCU can register its prefixes with the gatekeeper by containing
+<bf/supportedPrefixes/ in the <bf/terminalType/ field of RRQ.
+This option defines whether to accept the specified prefixes of a MCU.
+
+
 <item><tt/OverwriteEPOnSameAddress=1/<newline>
 Default: <tt/0/<newline>
 <p>
