@@ -1,5 +1,7 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- BUGFIX (RasTbl.cxx) added missing include file for H.350 support
+- added Prefix support for MCU's
 - extend virtual queue functionality to unregistered calls (anonymous sponsor)
 - remove SignalCallId switch, now call ID is always sent with status port events
 - new status port command: PrintPrefixCapacities/printpc

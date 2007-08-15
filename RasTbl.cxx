@@ -34,6 +34,10 @@
 #include "gkacct.h"
 #include "RasTbl.h"
 
+#ifdef H323_H350
+  #include <h350/h350_service.h>
+#endif
+
 #ifdef hasH460
   #include <h460/h4601.h>
 #endif
@@ -815,9 +819,15 @@ void GatewayRec::LoadGatewayConfig()
 	
 	Prefixes.clear();
 	
-	if (Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
+	if (m_terminalType->HasOptionalField(H225_EndpointType::e_gateway) &&
+		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
 		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
 			AddPrefixes(m_terminalType->m_gateway.m_protocol);
+
+	if (m_terminalType->HasOptionalField(H225_EndpointType::e_mcu) &&
+		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptMCUPrefixes", "1")))
+		if (m_terminalType->m_mcu.HasOptionalField(H225_McuInfo::e_protocol))
+			AddPrefixes(m_terminalType->m_mcu.m_protocol);
 		
 	bool setDefaults = true;	
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
