@@ -2620,7 +2620,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				} else if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
 					PINDEX colon = destination.Find(':');
 					ip = destination.Left(colon);
-					port = destination.Right(destination.GetLength() - (colon + 1)).AsInteger();
+					port = (WORD)destination.Right(destination.GetLength() - (colon + 1)).AsInteger();
 				}
 
 				if (!ip.IsEmpty()) {
