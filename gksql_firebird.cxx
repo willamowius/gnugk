@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2007/03/13 18:39:43  willamowius
+ * compile fix for PWLib 1.11.3CVS
+ *
  * Revision 1.4  2006/08/08 12:24:36  zvision
  * Escape quote characters in query strings
  *
@@ -544,7 +547,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	
 	ISC_STATUS status[20];
 	isc_db_handle conn = NULL;
-	std::string dbname = m_database;
+	std::string dbname((const char*)m_database);
 	
 	if (!m_host) {
 		dbname.insert(0, ":");
