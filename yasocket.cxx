@@ -886,10 +886,10 @@ void TCPServer::ReadSocket(IPSocket *socket)
 		// clear old values
 		one_sec.remove_if(bind2nd(not_equal_to<int>(), now));
 		many_sec.remove_if(bind2nd(less<int>(), now - check_interval));
-PTRACE(1, GetName() << "\tJW one_sec=" << one_sec.size() << " many_sec = " << many_sec.size());
+		PTRACE(4, GetName() << "\tcurrent cps=" << one_sec.size() << " calls in interval=" << many_sec.size());
 		if ((many_sec.size() > (cps_limit *  check_interval)) && (one_sec.size() > cps_limit)) {
 			// reject call
-			PTRACE(1, GetName() << "\tJW Rate limit reached (max " << cps_limit << " cps) - rejecting call on " << socket->GetName());
+			PTRACE(1, GetName() << "\tRate limit reached (max " << cps_limit << " cps) - rejecting call on " << socket->GetName());
 			int rej = ::accept(socket->GetHandle(), NULL, NULL);
 			::shutdown(rej, 2 /* SHUT_RDWR */ );
 			::close(rej);
