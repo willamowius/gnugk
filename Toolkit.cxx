@@ -449,7 +449,9 @@ int Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 static const char *RewriteSection = "RasSrv::RewriteE164";
 static const char *AliasRewriteSection = "RasSrv::RewriteAlias";
 static const char *AssignedAliasSection = "RasSrv::AssignedAlias";
+#ifdef h323v6
 static const char *AssignedGatekeeperSection = "RasSrv::AssignedGatekeeper";
+#endif
 
 void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
 {
