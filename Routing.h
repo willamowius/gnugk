@@ -85,9 +85,9 @@ class RoutingRequest {
 public:
 	enum Flags {
 		e_aliasesChanged = 1,
-		e_fromInternal = 2,
+		e_fromInternal = 2,	// currently not used
 		e_fromParent = 4,
-		e_fromNeighbor = 8,
+		e_fromNeighbor = 8,	// currently not used
 		e_Reject = 16
 	};
 	

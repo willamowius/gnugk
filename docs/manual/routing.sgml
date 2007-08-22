@@ -298,6 +298,12 @@ though the later will take effect first.
 Rewrite the called alias with an SQL query.
 Supports routing OnARQ, OnLRQ and OnSetup.
 
+If the string returned from the database is 'REJECT' (upper or lower case),
+the call is rejected. If the string matches a dotted IP address, it is
+taken as destination IP and else it is treated as new destination alias.
+
+If the database returns nothing, the call is passed on unchanged.
+
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
 Default: <tt>N/A</tt><newline>
@@ -334,7 +340,12 @@ The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
 <item><tt/%c/ - the called alias
+<item><tt/%p/ - the called IP (only available OnSetup, empty otherwise)
+<item><tt/%s/ - the calling IP
+<item><tt/%r/ - the calling alias
+<item><tt/%i/ - the call ID
 </itemize>
+Some of these can be empty if they aren't included in The ARQ, LRQ or Setup message.
 <p>
 If the query returns no rows, the current alias is used.
 Otherwise, the first result row is used.

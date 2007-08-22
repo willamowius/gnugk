@@ -2530,7 +2530,6 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		Kit->RewriteE164(request.m_destinationInfo[0]);
 	}
 
-
 	unsigned reason = H225_LocationRejectReason::e_securityDenial;
 	PIPSocket::Address ipaddr;
 	WORD port;
@@ -2546,7 +2545,6 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	// If not Neighbor and support non neighbor LRQ's then validate the PDU
 	if (bReject && (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptNonNeighborLRQ", "0"))))
 		                   bReject = !RasSrv->ValidatePDU(*this, reason);
-
 
 	PString sourceInfoString(fromRegEndpoint ? request.m_endpointIdentifier.GetValue() : request.HasOptionalField(H225_LocationRequest::e_gatekeeperIdentifier) ? request.m_gatekeeperIdentifier.GetValue() : m_msg->m_peerAddr.AsString());
 

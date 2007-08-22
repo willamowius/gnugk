@@ -52,6 +52,8 @@ bool GetIPFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Addre
 
 bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip, WORD & port);
 
+bool IsIPAddress(const PString & addr);
+
 bool IsRemoteNATSupport(const PString & addr);
 
 bool IsLoopback(const PIPSocket::Address &);

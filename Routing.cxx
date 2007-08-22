@@ -623,9 +623,9 @@ void VirtualQueue::OnReload()
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;
 	m_requestTimeout = PMIN(PMAX(100,m_requestTimeout),20000);
-	
+
 	m_active = false;
-	
+
 	m_virtualQueueAliases.RemoveAll();
 	PString vqueues = GkConfig()->GetString(CTIsection, "VirtualQueueAliases", "");
 	if( vqueues.IsEmpty() ) // backward compatibility
@@ -638,7 +638,7 @@ void VirtualQueue::OnReload()
 			m_active = true;
 		}
 	}
-	
+
 	m_virtualQueuePrefixes.RemoveAll();
 	vqueues = GkConfig()->GetString(CTIsection, "VirtualQueuePrefixes", "");
 	if( !vqueues.IsEmpty() ) {
@@ -778,9 +778,9 @@ bool VirtualQueue::RouteToAlias(
 			if (!destinationip.IsEmpty())	// RoteToGateway
 				*r->m_callsignaladdr = destinationip;
 			r->m_sync.Signal();
-			if( !foundrequest ) {
+			if (!foundrequest) {
 				foundrequest = true;
-				if( agent.GetSize() > 0 )
+				if (agent.GetSize() > 0)
 					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
 						<< ", CRV=" << crv << ") accepted by agent " << AsString(agent));
 				else
@@ -792,7 +792,7 @@ bool VirtualQueue::RouteToAlias(
 	}
 	
 	if( !foundrequest )
-		PTRACE(4,"VQueue\tPending route request (EPID:" << callingEpId
+		PTRACE(4, "VQueue\tPending route request (EPID:" << callingEpId
 			<< ", CRV=" << crv << ") not found - ignoring RouteToAlias / RouteToGateway command");
 	
 	return foundrequest;
@@ -882,9 +882,9 @@ class VirtualQueuePolicy : public Policy {
 public:
 	VirtualQueuePolicy();
 
-private:
+protected:
 	// override from class Policy
-	virtual bool IsActive();
+	virtual bool IsActive() const;
 
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);
@@ -892,6 +892,7 @@ private:
 	// TODO
 	//virtual bool OnRequest(FacilityRequest &);
 
+private:
 	VirtualQueue *m_vqueue;
 };
 
@@ -901,7 +902,7 @@ VirtualQueuePolicy::VirtualQueuePolicy()
 	m_name = "VirtualQueue";
 }
 
-bool VirtualQueuePolicy::IsActive()
+bool VirtualQueuePolicy::IsActive() const
 {
 	return m_vqueue->IsActive();
 }
@@ -963,23 +964,42 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				);
 
 			// only use vqueue if sender is able to handle changed destination
-			if (lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias)) {
-				if (!lrq.m_canMapAlias) {
-					PTRACE(5, "Sender can't map destination alias, skipping virtual queue");
-					return false;
-				}
+			if (!lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias) || !lrq.m_canMapAlias) {
+				PTRACE(5, "Sender can't map destination alias, skipping virtual queue");
+				return false;
 			}
 
 			PString source = AsDotString(lrq.m_replyAddress);
 			PString epid = lrq.m_endpointIdentifier.GetValue();
-			if (epid.IsEmpty())
-				epid = lrq.m_gatekeeperIdentifier.GetValue() + "_" + AsString(lrq.m_sourceInfo, false);
+			if (epid.IsEmpty()) {
+				epid = lrq.m_gatekeeperIdentifier.GetValue();
+				if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
+					epid += "_" + AsString(lrq.m_sourceInfo, false);
+			}
 			PString * callSigAdr = new PString(); /* unused for LRQs */
+			PString sourceInfo = "";
+			if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
+				sourceInfo = AsString(lrq.m_sourceInfo);
 			PString callID = "";	/* not available for LRQs */
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, vq, AsString(lrq.m_sourceInfo), callID))
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, vq, sourceInfo, callID))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 			if (aliases->GetSize() == 0) {
 				request.SetFlag(RoutingRequest::e_Reject);
+			}
+			if ((aliases->GetSize() != 0) && !callSigAdr->IsEmpty()) {
+				// 'explicit' policy can't handle LRQs, so we do it directly
+				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
+				PString ip = adr_parts[0];
+				WORD port = (WORD)(adr_parts[1].AsInteger());
+				if (port == 0)
+					port = 1720;
+				Route route("vqueue", SocketToH225TransportAddr(ip, port));
+				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+					route.m_destAddr
+				);
+				request.AddRoute(route);					
+				delete callSigAdr;
+				return true;	// stop processing
 			}
 			delete callSigAdr;
 			// the trick: if empty, the request is rejected
@@ -1248,43 +1268,56 @@ bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddr
 }
 
 
-// a policy to route call via an SQL database
-class SqlPolicy : public AliasesPolicy {
+// a policy to route calls via an SQL database
+class SqlPolicy : public Policy {
 public:
 	SqlPolicy();
 	virtual ~SqlPolicy();
 
 protected:
-	virtual bool IsActive() { return m_active; };
+	virtual bool IsActive() const { return m_active; };
 
 	virtual bool OnRequest(AdmissionRequest &);
+	virtual bool OnRequest(LocationRequest &);
 	virtual bool OnRequest(SetupRequest &);
+	// TODO
+	//virtual bool OnRequest(FacilityRequest &);
 
-	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
-	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+	virtual void DatabaseLookup(
+		/*in */
+		const PString & source,
+		const PString & calledAlias,
+		const PString & calledIP,
+		const PString & caller,
+		const PString & callid,
+		/* out: */
+		H225_ArrayOf_AliasAddress ** newAliases,	/* DatabaseLookup will allocate, caller must delete */
+		H225_TransportAddress ** newCallSigAdr,		/* DatabaseLookup will allocate, caller must delete */
+		bool * reject);
 
 private:
+	// active ?
+	bool m_active;
 	// connection to the SQL database
 	GkSQLConnection* m_sqlConn;
 	// parametrized query string for the auth condition string retrieval
 	PString m_query;
-	// active ?
-	bool m_active;
 	// query timeout
 	long m_timeout;
 };
 
 SqlPolicy::SqlPolicy()
 {
+	m_active = false;
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
-	PString section = "Routing::Sql";
-	m_name = "SqlPolicy";
 	m_active = true;
+	static const char *sqlsection = "Routing::Sql";
+	m_name = "SqlPolicy";
 	m_timeout = -1;
 
 	PConfig* cfg = GkConfig();
 
-	const PString driverName = cfg->GetString(section, "Driver", "");
+	const PString driverName = cfg->GetString(sqlsection, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"no SQL driver selected"
@@ -1302,7 +1335,7 @@ SqlPolicy::SqlPolicy()
 		return;
 	}
 
-	m_query = cfg->GetString(section, "Query", "");
+	m_query = cfg->GetString(sqlsection, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"no query configured"
@@ -1312,7 +1345,7 @@ SqlPolicy::SqlPolicy()
 	} else
 		PTRACE(4, m_name << "\tQuery: " << m_query);
 		
-	if (!m_sqlConn->Initialize(cfg, section)) {
+	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"could not connect to the database"
 			);
@@ -1331,34 +1364,175 @@ SqlPolicy::~SqlPolicy()
 bool SqlPolicy::OnRequest(AdmissionRequest & request)
 {
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
-	if (aliases == NULL || !FindByAliases(request, *aliases))
-		return false;
+	H225_AdmissionRequest & arq = request.GetRequest();
+	endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
+	if (ep) {
+		PString source = AsDotString(ep->GetCallSignalAddress());
+		PString calledAlias = "";
+		if (aliases && !aliases->GetSize() == 0)
+			calledAlias = AsString((*aliases)[0], FALSE);
+		PString calledIP = "";	/* not available for ARQs */
+		PString caller = AsString(arq.m_srcInfo, FALSE);
+		PString callid = AsString(arq.m_callIdentifier.m_guid);
+		H225_ArrayOf_AliasAddress * newAliases = NULL;
+		H225_TransportAddress * newCallSigAdr = NULL;
+		bool reject = false;
 
-	return true;
+		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
+						/* out: */ &newAliases, &newCallSigAdr, &reject);
+
+		if (reject) {
+			request.SetFlag(RoutingRequest::e_Reject);
+		}
+
+		if (newAliases) {
+			request.SetFlag(RoutingRequest::e_aliasesChanged);
+			arq.m_destinationInfo = *newAliases;
+			delete newAliases;
+		}
+
+		if (newCallSigAdr) {
+			request.SetFlag(RoutingRequest::e_aliasesChanged);
+			if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+				arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
+			}
+			arq.m_destCallSignalAddress = *newCallSigAdr;
+			delete newCallSigAdr;
+		}
+
+		if (m_next == NULL || reject)
+			return true;
+	}
+	return false;
+}
+
+bool SqlPolicy::OnRequest(LocationRequest & request)
+{
+	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	H225_LocationRequest & lrq = request.GetRequest();
+	if (!lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias) || !lrq.m_canMapAlias) {
+			PTRACE(3, "WARNING: Sender can't map destination alias via SqlPolicy");
+	}
+	PString source = AsDotString(lrq.m_replyAddress);
+	PString calledAlias = "";
+	if (aliases && !aliases->GetSize() == 0)
+		calledAlias = AsString((*aliases)[0], FALSE);
+	PString calledIP = "";	/* not available for LRQs */
+	PString caller = "";
+	if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
+		caller = AsString(lrq.m_sourceInfo[0], FALSE);
+	PString callid = "";	/* not available for LRQs */
+
+	H225_ArrayOf_AliasAddress * newAliases = NULL;
+	H225_TransportAddress * newCallSigAdr = NULL;
+	bool reject = false;
+
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
+					/* out: */ &newAliases, &newCallSigAdr, &reject);
+
+	if (reject) {
+		request.SetFlag(RoutingRequest::e_Reject);
+	}
+
+	if (newAliases) {
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+		lrq.m_destinationInfo = *newAliases;
+		delete newAliases;
+	}
+
+	if (newCallSigAdr) {
+		// 'explicit' policy can't handle LRQs, so we do it directly
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+		Route route("Sql", *newCallSigAdr);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
+			route.m_destAddr
+			);
+		request.AddRoute(route);
+		delete newCallSigAdr;
+		return true;	// stop processing
+	}
+
+	if (m_next == NULL || reject)
+		return true;
+
+	return false;
 }
 
 bool SqlPolicy::OnRequest(SetupRequest & request)
 {
-	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
-	if (aliases == NULL || !FindByAliases(request, *aliases))
-		return false;
+	H225_Setup_UUIE &setup = request.GetRequest();
 
-	return true;
+	PString source = AsDotString(setup.m_sourceCallSignalAddress);
+	PString calledAlias = "";
+	if (request.GetAliases() && (!request.GetAliases()->GetSize() == 0)) {
+		calledAlias = AsString((*request.GetAliases())[0], FALSE);
+	}
+	PIPSocket::Address localAddr;
+	WORD localPort;
+	request.GetWrapper()->GetLocalAddr(localAddr, localPort);
+	PString calledIP = localAddr;
+	PString caller = AsString(setup.m_sourceAddress, FALSE);
+	PString callid = AsString(setup.m_callIdentifier.m_guid);
+
+	H225_ArrayOf_AliasAddress * newAliases = NULL;
+	H225_TransportAddress * newCallSigAdr = NULL;
+	bool reject = false;
+
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
+					/* out: */ &newAliases, &newCallSigAdr, &reject);
+
+	if (reject) {
+		request.SetFlag(RoutingRequest::e_Reject);
+	}
+
+	if (newAliases) {
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+		if (!setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+			setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+		}
+		setup.m_destinationAddress = *newAliases;
+		delete newAliases;
+	}
+
+	if (newCallSigAdr) {
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+		if (!setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+			setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		}
+		setup.m_destCallSignalAddress = *newCallSigAdr;
+		delete newCallSigAdr;
+	}
+
+	if (m_next == NULL || reject)
+		return true;
+
+	return false;
 }
 
-bool SqlPolicy::FindByAliases(
-	RoutingRequest &request, 
-	H225_ArrayOf_AliasAddress &aliases
-	)
+void SqlPolicy::DatabaseLookup(
+		/*in */
+		const PString & source,
+		const PString & calledAlias,
+		const PString & calledIP,
+		const PString & caller,
+		const PString & callid,
+		/* out: */
+		H225_ArrayOf_AliasAddress ** newAliases,	/* DatabaseLookup will allocate, caller must delete */
+		H225_TransportAddress ** newCallSigAdr,	/* DatabaseLookup will allocate, caller must delete */
+		bool * reject)
 {
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
-	params["c"] = AsString(aliases[0], FALSE);
+	params["s"] = source;
+	params["c"] = calledAlias;
+	params["p"] = calledIP;
+	params["r"] = caller;
+	params["i"] = callid;
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, m_name << ": query failed - timeout or fatal error");
-		return false;
+		return;
 	}
 
 	if (!result->IsValid()) {
@@ -1366,7 +1540,7 @@ bool SqlPolicy::FindByAliases(
 			<< ") - " << result->GetErrorMessage()
 			);
 		delete result;
-		return false;
+		return;
 	}
 	
 	if (result->GetNumRows() < 1)
@@ -1378,35 +1552,27 @@ bool SqlPolicy::FindByAliases(
 	else if (!result->FetchRow(resultRow) || resultRow.empty())
 		PTRACE(2, m_name << ": query failed - could not fetch the result row");
 	else {
-		delete result;
-//GkSQLResult::ResultRow::iterator i = resultRow.begin();
-//while (i != resultRow.end()) {
-//	PTRACE(1, "JW DB result " << i->first << ":" << i->second);
-//	i++;
-//}
-		request.SetFlag(RoutingRequest::e_aliasesChanged);
-		H323SetAliasAddress(resultRow.begin()->first, aliases[0]);
-		return false;
+		PString newDestination = resultRow.begin()->first;
+		PTRACE(5, m_name << "\tQuery result: " << newDestination);
+		*reject = FALSE;
+		if (newDestination.ToUpper() == "REJECT") {
+			*reject = TRUE;
+		} else if (IsIPAddress(newDestination)) {
+			*newCallSigAdr = new H225_TransportAddress();
+			PStringArray adr_parts = newDestination.Tokenise(":", FALSE);
+			PString ip = adr_parts[0];
+			WORD port = (WORD)(adr_parts[1].AsInteger());
+			if (port == 0)
+				port = 1720;
+			**newCallSigAdr = SocketToH225TransportAddr(ip, port);
+		} else {
+			*newAliases = new H225_ArrayOf_AliasAddress();
+			(*newAliases)->SetSize(1);
+			H323SetAliasAddress(newDestination, (**newAliases)[0]);
+		}
 	}
 	delete result;
 #endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
-	return false;
-}
-
-bool SqlPolicy::FindByAliases(
-	LocationRequest& request,
-	H225_ArrayOf_AliasAddress & aliases
-	)
-{
-	H225_LocationRequest & lrq = request.GetRequest();
-	// check if sender is able to handle changed destinations
-	if (lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias)) {
-		if (!lrq.m_canMapAlias) {
-			PTRACE(3, "WARNING: Sender can't map destination alias via SqlPolicy");
-		}
-	}
-	RoutingRequest & rr = request;
-	return FindByAliases(rr, aliases);
 }
 
 

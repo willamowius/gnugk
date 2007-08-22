@@ -188,6 +188,14 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 	return true;
 }
 
+bool IsIPAddress(const PString & addr)
+{
+	static PRegularExpression ipPattern("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended);
+	static PRegularExpression ipAndPortPattern("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+$", PRegularExpression::Extended);
+
+	return ((addr.FindRegEx(ipPattern) != P_MAX_INDEX) || (addr.FindRegEx(ipAndPortPattern) != P_MAX_INDEX));
+}
+
 bool IsRemoteNATSupport(const PString & addr)
 {
 	PString ipAddr = addr.Trim();
