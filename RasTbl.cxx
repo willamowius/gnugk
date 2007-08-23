@@ -579,7 +579,8 @@ EndpointRec *EndpointRec::Unregisterpreempt(int type)
 
 EndpointRec *EndpointRec::Unregister()
 {
-	SendURQ(H225_UnregRequestReason::e_maintenance,0);
+	if (!IsPermanent())
+		SendURQ(H225_UnregRequestReason::e_maintenance,0);
 	return this;
 }
 
