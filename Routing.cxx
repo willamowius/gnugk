@@ -935,7 +935,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 					PString ip = adr_parts[0];
 					WORD port = (WORD)(adr_parts[1].AsInteger());
 					if (port == 0)
-						port = 1720;
+						port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 					arq.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 				}
 				delete callSigAdr;
@@ -992,7 +992,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				PString ip = adr_parts[0];
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 				if (port == 0)
-					port = 1720;
+					port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 				Route route("vqueue", SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 					route.m_destAddr
