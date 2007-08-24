@@ -860,9 +860,21 @@ bool TCPListenSocket::IsTimeout(const PTime *now) const
 TCPServer::TCPServer()
 {
 	SetName("TCPSrv");
-	cps_limit = GkConfig()->GetInteger("RoutedMode", "CpsLimit", 0);
-	check_interval = GkConfig()->GetInteger("RoutedMode", "CpsCheckInterval", 5);
+	LoadConfig();
 	Execute();
+}
+
+void TCPServer::LoadConfig()
+{
+	cps_limit = GkConfig()->GetInteger("RoutedMode", "CpsLimit", 0);
+	if (cps_limit == 0)
+		PTRACE(4, "TCPSrv\tCpsLimit disabled");
+	else
+		PTRACE(4, "TCPSrv\tCpsLimit set to " << cps_limit);
+	if (cps_limit > 0) {
+		check_interval = GkConfig()->GetInteger("RoutedMode", "CpsCheckInterval", 5);
+		PTRACE(4, "TCPSrv\tCpsCheckInterval set to " << check_interval);
+	}
 }
 
 bool TCPServer::CloseListener(TCPListenSocket *socket)

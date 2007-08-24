@@ -431,6 +431,9 @@ class TCPServer : public SocketsReader {
 public:
 	TCPServer();
 
+	// read config settings
+	void LoadConfig();
+
 	// add a TCP listener
 	void AddListener(TCPListenSocket *socket) { AddSocket(socket); }
 
