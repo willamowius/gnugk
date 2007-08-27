@@ -861,7 +861,8 @@ void GatewayRec::SetPriority(
 
 void GatewayRec::SetEndpointType(const H225_EndpointType &t)
 {
-	if (!t.HasOptionalField(H225_EndpointType::e_gateway)) {
+	if (!t.HasOptionalField(H225_EndpointType::e_gateway) ||
+		!t.HasOptionalField(H225_EndpointType::e_mcu)) {
 		PTRACE(1, "RRJ: terminal type changed|" << GetEndpointIdentifier().GetValue());
 		return;
 	}
