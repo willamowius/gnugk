@@ -340,6 +340,10 @@ A value of zero (default) disables the feature.
 The limit only applies if the calls in the check interval are greater than check-interval * CPS-rate. This allows small call spikes on a machine without much load, but will apply strict limits when the overall load is high.
 <p>
 This feature is meant to shield the gatekeeper from overload and to avoid as much resource usage a possible in an overload situation.
+<p>
+Currently the calls are blocked when the first message comes in on the signalling port. This makes it
+very effective for unregistered calls. But so far ARQs are not blocked, so it will be less effective with
+registered calls.
 
 <item><tt/CpsCheckInterval=1/<newline>
 Default: <tt>5</tt><newline>
