@@ -1,5 +1,8 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- BUGFIX (RasTbl.cxx) preserve internal call number for each failed call record
+  if we have SingleFailoverCDR option enabled. This allow CapacityControl and other
+  modules to work fine with failover enabled
 - BUGFIX (RasTbl.cxx) don't send URQ to permanent endpoints on shutdown
 - BUGFIX (Routing.cxx) fix LRQ canMapAlias detection for vqueue
 - BUGFIX (RasTbl.cxx) added missing include file for H.350 support

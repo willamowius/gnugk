@@ -1820,8 +1820,10 @@ CallRec::CallRec(
 	m_irrCheck = oldCall->m_irrCheck;
 	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
 	
-	if (m_singleFailoverCDR)
+	if (m_singleFailoverCDR) {
 		m_setupTime = oldCall->m_setupTime;
+		m_CallNumber = oldCall->m_CallNumber; // if we have 1 CDR, we need to preserve internal call number
+	}
 }
 
 CallRec::~CallRec()
@@ -2614,10 +2616,13 @@ void CallTable::LoadConfig()
 void CallTable::Insert(CallRec * NewRec)
 {
 	WriteLock lock(listLock);
-	NewRec->SetCallNumber(++m_CallNumber);
+	if (NewRec->GetCallNumber() == 0) {
+		NewRec->SetCallNumber(++m_CallNumber);
+		++m_CallCount;
+	}
 	CallList.push_back(NewRec);
-	++m_CallCount, ++m_activeCall;
-	PTRACE(2, "CallTable::Insert(CALL) Call No. " << m_CallNumber << ", total sessions : " << m_activeCall);
+	++m_activeCall;
+	PTRACE(2, "CallTable::Insert(CALL) Call No. " << NewRec->GetCallNumber() << ", total sessions : " << m_activeCall);
 }
 
 void CallTable::SetTotalBandwidth(int bw)
