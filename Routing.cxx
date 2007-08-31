@@ -770,7 +770,7 @@ bool VirtualQueue::RouteToAlias(
 		bool match = ((r->m_callingEpId == callingEpId) && (r->m_crv == crv));
 		if (!r->m_callID.IsEmpty() && !callID.IsEmpty()) {
 			// backward compatibility: only check if set
-			match = match && (r->m_callID == callID);
+			match = (r->m_callID == callID);
 		}
 		if (match) {
 			// replace virtual queue aliases info with agent aliases
