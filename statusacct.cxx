@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2006/06/19 22:06:58  willamowius
+ * compile fix for gcc 3.3.1 on Solaris
+ *
  * Revision 1.2  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -98,7 +101,7 @@ GkAcctLogger::Status StatusAcct::Log(
 
 PString StatusAcct::EscapeAcctParam(const PString& param) const
 {
-	return "\"" + param + "\"";	// test: quote
+	return param;	// don't quote here, quote in template if needed
 }
 
 namespace {
