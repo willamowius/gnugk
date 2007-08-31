@@ -660,7 +660,7 @@ external systems in real time.
 Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
 Defines the event to display for a new call. The string is parametrized
-with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAacct]">).
+with the same variables as the other accounting modules (See <ref id="sqlacct" name="[SQLAcct]">).
 
 <item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
 Default: <tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
