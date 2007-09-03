@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- new status port command: printcc
 - BUGFIX (RasTbl.cxx) preserve internal call number for each failed call record
   if we have SingleFailoverCDR option enabled. This allow CapacityControl and other
   modules to work fine with failover enabled
