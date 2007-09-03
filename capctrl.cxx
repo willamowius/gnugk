@@ -443,65 +443,85 @@ void CapacityControl::LogCall(
 	bool callStart
 	)
 {
-	IpCallVolumes::iterator bestIpMatch = FindByIp(srcIp, calledStationId);
-	if (bestIpMatch != m_ipCallVolumes.end()) {
-		PTRACE(5, "CAPCTRL\tCall #" << callNumber
-			<< " to " << calledStationId << " matched IP rule " << bestIpMatch->first.AsString()
-			<< "\t" << bestIpMatch->second.AsString()
-			);
-		PWaitAndSignal lock(m_updateMutex);
-		if (callStart) {
+	if (callStart) {
+		IpCallVolumes::iterator bestIpMatch = FindByIp(srcIp, calledStationId);
+		if (bestIpMatch != m_ipCallVolumes.end()) {
+			PTRACE(5, "CAPCTRL\tCall #" << callNumber
+				<< " to " << calledStationId << " matched IP rule " << bestIpMatch->first.AsString()
+				<< "\t" << bestIpMatch->second.AsString()
+				);
+			PWaitAndSignal lock(m_updateMutex);
 			++(bestIpMatch->second.m_currentVolume);
 			bestIpMatch->second.m_calls.push_back(callNumber);
-		} else {
-			if (find(bestIpMatch->second.m_calls.begin(), bestIpMatch->second.m_calls.end(), 
-					callNumber) != bestIpMatch->second.m_calls.end()) {
-				--(bestIpMatch->second.m_currentVolume);
-				bestIpMatch->second.m_calls.remove(callNumber);
-			}
+			return;
 		}
-		return;
-	}
 
-	H323IdCallVolumes::iterator bestH323IdMatch = FindByH323Id(srcAlias, calledStationId);
-	if (bestH323IdMatch != m_h323IdCallVolumes.end()) {
-		PTRACE(5, "CAPCTRL\tCall #" << callNumber
-			<< " to " << calledStationId << " matched H323.ID rule " << H323GetAliasAddressString(bestH323IdMatch->first)
-			<< "\t" << bestH323IdMatch->second.AsString()
-			);
-		PWaitAndSignal lock(m_updateMutex);
-		if (callStart) {
+		H323IdCallVolumes::iterator bestH323IdMatch = FindByH323Id(srcAlias, calledStationId);
+		if (bestH323IdMatch != m_h323IdCallVolumes.end()) {
+			PTRACE(5, "CAPCTRL\tCall #" << callNumber
+				<< " to " << calledStationId << " matched H323.ID rule " << H323GetAliasAddressString(bestH323IdMatch->first)
+				<< "\t" << bestH323IdMatch->second.AsString()
+				);
+			PWaitAndSignal lock(m_updateMutex);
 			++(bestH323IdMatch->second.m_currentVolume);
 			bestH323IdMatch->second.m_calls.push_back(callNumber);
-		} else {
-			if (find(bestH323IdMatch->second.m_calls.begin(), bestH323IdMatch->second.m_calls.end(), 
-					callNumber) != bestH323IdMatch->second.m_calls.end()) {
-				--(bestH323IdMatch->second.m_currentVolume);
-				bestH323IdMatch->second.m_calls.remove(callNumber);
-			}
+			return;
 		}
-		return;
-	}
 
-	CLICallVolumes::iterator bestCliMatch = FindByCli(srcCli, calledStationId);
-	if (bestCliMatch != m_cliCallVolumes.end()) {
-		PTRACE(5, "CAPCTRL\tCall #" << callNumber
-			<< " to " << calledStationId << " matched CLI rule " << bestCliMatch->first
-			<< "\t" << bestCliMatch->second.AsString()
-			);
-		PWaitAndSignal lock(m_updateMutex);
-		if (callStart) {
+		CLICallVolumes::iterator bestCliMatch = FindByCli(srcCli, calledStationId);
+		if (bestCliMatch != m_cliCallVolumes.end()) {
+			PTRACE(5, "CAPCTRL\tCall #" << callNumber
+				<< " to " << calledStationId << " matched CLI rule " << bestCliMatch->first
+				<< "\t" << bestCliMatch->second.AsString()
+				);
+			PWaitAndSignal lock(m_updateMutex);
 			++(bestCliMatch->second.m_currentVolume);
 			bestCliMatch->second.m_calls.push_back(callNumber);
-		} else {
-			if (find(bestCliMatch->second.m_calls.begin(), bestCliMatch->second.m_calls.end(), 
-					callNumber) != bestCliMatch->second.m_calls.end()) {
-				--(bestCliMatch->second.m_currentVolume);
-				bestCliMatch->second.m_calls.remove(callNumber);
-			}
+			return;
 		}
-		return;
+	} else { // call stop
+		PWaitAndSignal lock(m_updateMutex);
+		
+		IpCallVolumes::iterator bestIpMatch = m_ipCallVolumes.begin();
+		while (bestIpMatch != m_ipCallVolumes.end()) {
+			std::list<PINDEX>::iterator i = find(bestIpMatch->second.m_calls.begin(),
+				bestIpMatch->second.m_calls.end(), callNumber
+				);
+			if (i != bestIpMatch->second.m_calls.end()) {
+				--(bestIpMatch->second.m_currentVolume);
+				bestIpMatch->second.m_calls.erase(i);
+				return;
+			}
+			++bestIpMatch;
+		}
+
+		H323IdCallVolumes::iterator bestH323IdMatch = m_h323IdCallVolumes.begin();
+		if (bestH323IdMatch != m_h323IdCallVolumes.end()) {
+			std::list<PINDEX>::iterator i = find(bestH323IdMatch->second.m_calls.begin(),
+				bestH323IdMatch->second.m_calls.end(), callNumber
+				);
+			if (i != bestH323IdMatch->second.m_calls.end()) {
+				--(bestH323IdMatch->second.m_currentVolume);
+				bestH323IdMatch->second.m_calls.erase(i);
+				return;
+			}
+			++bestH323IdMatch;
+		}
+
+		CLICallVolumes::iterator bestCliMatch = m_cliCallVolumes.begin();
+		if (bestCliMatch != m_cliCallVolumes.end()) {
+			std::list<PINDEX>::iterator i = find(bestCliMatch->second.m_calls.begin(),
+				bestCliMatch->second.m_calls.end(), callNumber
+				);
+			if (i != bestCliMatch->second.m_calls.end()) {
+				--(bestCliMatch->second.m_currentVolume);
+				bestCliMatch->second.m_calls.erase(i);
+				return;
+			}
+			++bestCliMatch;
+		}
 	}
+	
 }
 
 bool CapacityControl::CheckCall(
