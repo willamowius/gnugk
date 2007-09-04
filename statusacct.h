@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:59  willamowius
  *
  *
@@ -61,6 +64,14 @@ public:
 
 	/// overriden from GkAcctLogger
 	virtual PString EscapeAcctParam(const PString& param) const;
+
+	/// overriden from GkAcctLogger
+	PString ReplaceAcctParams(
+		/// parametrized accounting string
+		const PString& cdrStr,
+		/// parameter values
+		const std::map<PString, PString>& params
+	) const;
 		
 private:
 	StatusAcct();

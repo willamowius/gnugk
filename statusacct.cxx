@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2007/08/31 22:30:43  willamowius
+ * don't quote each parameter, quote in template if needed
+ *
  * Revision 1.3  2006/06/19 22:06:58  willamowius
  * compile fix for gcc 3.3.1 on Solaris
  *
@@ -103,6 +106,23 @@ PString StatusAcct::EscapeAcctParam(const PString& param) const
 {
 	return param;	// don't quote here, quote in template if needed
 }
+
+// override output format of callid
+PString StatusAcct::ReplaceAcctParams(
+		/// parametrized accounting string
+		const PString& cdrStr,
+		/// parameter values
+		const std::map<PString, PString>& params
+	) const
+{
+	std::map<PString, PString> new_params = params;
+	std::map<PString, PString>::iterator i = new_params.find("CallId");
+	if (i != new_params.end()) {
+		i->second.Replace(" ", "-", TRUE);
+	}
+	return GkAcctLogger::ReplaceAcctParams(cdrStr, new_params);
+}
+
 
 namespace {
 	// append status port accounting logger to the global list of loggers
