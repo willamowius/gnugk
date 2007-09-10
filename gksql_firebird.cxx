@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2007/08/15 09:43:14  zvision
+ * Compilation error fixed
+ *
  * Revision 1.5  2007/03/13 18:39:43  willamowius
  * compile fix for PWLib 1.11.3CVS
  *
@@ -96,7 +99,7 @@ public:
 	GkIBSQLResult(
 		/// Firebird specific error code
 		unsigned int errorCode,
-		/// PostgreSQL specific error message text
+		/// Firebird specific error message text
 		const char* errorMsg,
 		/// transaction handle
 		isc_tr_handle tr = NULL,
