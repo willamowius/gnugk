@@ -1,5 +1,19 @@
 #! /bin/sh
-# Copyright (c) 2005 Jan Willamowius
+# Copyright (c) 2005-2007 Jan Willamowius
+#
+# /etc/init.d/gnugk
+#
+### BEGIN INIT INFO
+# Provides:         	gnugk
+# Required-Start:       $local_fs $remote_fs $network 
+# X-UnitedLinux-Should-Start:   postgresql mysql
+# Required-Stop:        $local_fs $remote_fs $network
+# X-UnitedLinux-Should-Stop:    
+# Default-Start:        3 5
+# Default-Stop:         0 1 2 6
+# Short-Description:    GNU Gatekeeper
+# Description:          Start the GNU Gatekeeper
+### END INIT INFO
 
 . /etc/rc.status
 rc_reset
@@ -12,7 +26,7 @@ case "$1" in
 	## Start daemon with startproc(8). If this fails
 	## the echo return value is set appropriate.
 
-	startproc -q /usr/local/bin/gnugk || return=$rc_failed
+	startproc -q /usr/local/bin/gnugk -c /etc/gatekeeper.ini -tt -o /var/log/gnugk.log || return=$rc_failed
 
 	echo -e "$return"
 	;;
