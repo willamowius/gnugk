@@ -305,10 +305,10 @@ taken as destination IP and else it is treated as new destination alias.
 If the database returns nothing, the call is passed on unchanged.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird | odbc/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/ and <tt/ODBC/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
