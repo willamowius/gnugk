@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:59  willamowius
  *
  *
@@ -84,12 +87,6 @@ public:
 	*/	
 	virtual long GetErrorCode();
 	
-	/** @return
-	    True if rows can be fetched in random access order, false if
-	    rows have to be fethed sequentially and can be retrieved only once.
-	*/
-	virtual bool HasRandomAccess();
-
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
 		
@@ -103,46 +100,6 @@ public:
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
 		ResultRow& result
-		);
-
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    fetched most recently.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset
-		);
-			
-	/** Fetch a single row from the result set. This function requires
-		that the backend supports random row access.
-		
-	    @return
-	    True if the row has been fetched, false if a row at the given offset
-		does not exists or SQL backend does not support random row access.
-	*/
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		PStringArray& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		);
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		ResultRow& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		);
-		
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    at the specified index.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset,
-		/// index (0 based) of the row to check
-		long rowOffset
 		);
 
 private:
@@ -256,8 +213,6 @@ GkMySQLResult::GkMySQLResult(
 		m_numFields = mysql_num_fields(m_sqlResult);
 	} else
 		m_queryError = true;
-		
-	m_selectType = true;
 }
 
 GkMySQLResult::GkMySQLResult(
@@ -268,7 +223,6 @@ GkMySQLResult::GkMySQLResult(
 	m_sqlRowLengths(NULL), m_errorCode(0)
 {
 	m_numRows = numRowsAffected;
-	m_selectType = false;
 }
 	
 GkMySQLResult::GkMySQLResult(
@@ -286,11 +240,6 @@ GkMySQLResult::~GkMySQLResult()
 {
 	if (m_sqlResult)
 		mysql_free_result(m_sqlResult);
-}
-
-bool GkMySQLResult::HasRandomAccess()
-{
-	return true;
 }
 
 PString GkMySQLResult::GetErrorMessage()
@@ -352,98 +301,6 @@ bool GkMySQLResult::FetchRow(
 	}
 	
 	return true;
-}
-
-bool GkMySQLResult::IsNullField(
-	/// index of the column to check
-	long fieldOffset
-	)
-{
-	return m_sqlRow == NULL || fieldOffset < 0 || fieldOffset >= m_numFields
-		|| m_sqlRow[fieldOffset] == NULL;
-}
-
-bool GkMySQLResult::FetchRow(
-	/// array to be filled with string representations of the row fields
-	PStringArray& result,
-	/// index (0 based) of the row to fetch
-	long rowOffset
-	)
-{
-	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows)
-		return false;
-
-	// remember the current cursor position and restore it on exit
-	const MYSQL_ROW_OFFSET oldRowOffset = mysql_row_tell(m_sqlResult);
-	mysql_data_seek(m_sqlResult, rowOffset);
-
-	MYSQL_ROW row = mysql_fetch_row(m_sqlResult);
-	unsigned long* rowLen = mysql_fetch_lengths(m_sqlResult);
-	if (row == NULL || rowLen == NULL) {
-		mysql_row_seek(m_sqlResult, oldRowOffset);
-		return false;
-	}
-		
-	result.SetSize(m_numFields);
-	
-	for (PINDEX i = 0; i < m_numFields; i++)
-		result[i] = PString(row[i], rowLen[i]);
-	
-	mysql_row_seek(m_sqlResult, oldRowOffset);	
-	return true;
-}
-
-bool GkMySQLResult::FetchRow(
-	/// array to be filled with string representations of the row fields
-	ResultRow& result,
-	/// index (0 based) of the row to fetch
-	long rowOffset
-	)
-{
-	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows)
-		return false;
-
-	// remember the current cursor position and restore it on exit
-	const MYSQL_ROW_OFFSET oldRowOffset = mysql_row_tell(m_sqlResult);
-	mysql_data_seek(m_sqlResult, rowOffset);
-
-	MYSQL_ROW row = mysql_fetch_row(m_sqlResult);
-	unsigned long* rowLen = mysql_fetch_lengths(m_sqlResult);
-	MYSQL_FIELD* fields = mysql_fetch_fields(m_sqlResult);
-	if (row == NULL || rowLen == NULL || fields == NULL) {
-		mysql_row_seek(m_sqlResult, oldRowOffset);
-		return false;
-	}
-		
-	result.resize(m_numFields);
-	
-	for (PINDEX i = 0; i < m_numFields; i++) {
-		result[i].first = PString(row[i], rowLen[i]);
-		result[i].second = fields[i].name;
-	}
-	
-	mysql_row_seek(m_sqlResult, oldRowOffset);	
-	return true;
-}
-
-bool GkMySQLResult::IsNullField(
-	/// index of the column to check
-	long fieldOffset,
-	/// index (0 based) of the row to check
-	long rowOffset
-	)
-{
-	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows
-		|| fieldOffset < 0 || fieldOffset >= m_numFields)
-		return true;
-
-	// preserve current row cursor position	
-	const MYSQL_ROW_OFFSET oldRowOffset = mysql_row_tell(m_sqlResult);
-	mysql_data_seek(m_sqlResult, rowOffset);
-	MYSQL_ROW row = mysql_fetch_row(m_sqlResult);
-	mysql_row_seek(m_sqlResult, oldRowOffset);
-	
-	return row == NULL || row[fieldOffset] == NULL;
 }
 
 

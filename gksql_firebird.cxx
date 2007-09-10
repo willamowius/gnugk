@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2007/09/10 11:17:21  willamowius
+ * fix comment
+ *
  * Revision 1.6  2007/08/15 09:43:14  zvision
  * Compilation error fixed
  *
@@ -121,12 +124,6 @@ public:
 	*/	
 	virtual long GetErrorCode();
 	
-	/** @return
-	    True if rows can be fetched in random access order, false if
-	    rows have to be fethed sequentially and can be retrieved only once.
-	*/
-	virtual bool HasRandomAccess();
-
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
 		
@@ -141,47 +138,7 @@ public:
 		/// array to be filled with string representations of the row fields
 		ResultRow& result
 		);
-
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    fetched most recently.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset
-		);
 			
-	/** Fetch a single row from the result set. This function requires
-		that the backend supports random row access.
-		
-	    @return
-	    True if the row has been fetched, false if a row at the given offset
-		does not exists or SQL backend does not support random row access.
-	*/
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		PStringArray& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		);
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		ResultRow& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		);
-		
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    at the specified index.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset,
-		/// index (0 based) of the row to check
-		long rowOffset
-		);
-
 private:
 	GkIBSQLResult();
 	GkIBSQLResult(const GkIBSQLResult&);
@@ -306,8 +263,6 @@ GkIBSQLResult::GkIBSQLResult(
 		}
 	} else
 		m_queryError = true;
-		
-	m_selectType = (m_numFields != 0);
 }
 
 GkIBSQLResult::GkIBSQLResult(
@@ -352,11 +307,6 @@ GkIBSQLResult::~GkIBSQLResult()
 			isc_rollback_transaction(status, &m_tr);
 		else
 			isc_commit_transaction(status, &m_tr);
-}
-
-bool GkIBSQLResult::HasRandomAccess()
-{
-	return false;
 }
 
 PString GkIBSQLResult::GetErrorMessage()
@@ -462,46 +412,6 @@ bool GkIBSQLResult::FetchRow(
 	m_sqlRow++;
 	
 	return true;
-}
-
-bool GkIBSQLResult::IsNullField(
-	/// index of the column to check
-	long fieldOffset
-	)
-{
-	return m_sqlResult == NULL || m_sqlRow < 0 || m_sqlRow >= m_numRows
-		|| fieldOffset < 0 || fieldOffset >= m_numFields
-		|| ((m_sqlResult->sqlvar[fieldOffset].sqltype & 1) && *(m_sqlResult->sqlvar[fieldOffset].sqlind) == -1);
-}
-
-bool GkIBSQLResult::FetchRow(
-	/// array to be filled with string representations of the row fields
-	PStringArray& result,
-	/// index (0 based) of the row to fetch
-	long rowOffset
-	)
-{
-	return false;
-}
-
-bool GkIBSQLResult::FetchRow(
-	/// array to be filled with string representations of the row fields
-	ResultRow& result,
-	/// index (0 based) of the row to fetch
-	long rowOffset
-	)
-{
-	return false;
-}
-
-bool GkIBSQLResult::IsNullField(
-	/// index of the column to check
-	long fieldOffset,
-	/// index (0 based) of the row to check
-	long rowOffset
-	)
-{
-	return false;
 }
 
 

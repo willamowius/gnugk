@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2006/05/07 12:22:59  willamowius
+ * fix comments
+ *
  * Revision 1.10  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -96,12 +99,6 @@ public:
 	*/	
 	virtual long GetErrorCode();
 	
-	/** @return
-	    True if rows can be fetched in random access order, false if
-	    rows have to be fethed sequentially and can be retrieved only once.
-	*/
-	virtual bool HasRandomAccess();
-
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
 		
@@ -115,46 +112,6 @@ public:
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
 		ResultRow& result
-		);
-
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    fetched most recently.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset
-		);
-			
-	/** Fetch a single row from the result set. This function requires
-		that the backend supports random row access.
-		
-	    @return
-	    True if the row has been fetched, false if a row at the given offset
-		does not exists or SQL backend does not support random row access.
-	*/
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		PStringArray& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		);
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		ResultRow& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		);
-		
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    at the specified index.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset,
-		/// index (0 based) of the row to check
-		long rowOffset
 		);
 
 private:
@@ -266,8 +223,6 @@ GkPgSQLResult::GkPgSQLResult(
 		m_numFields = PQnfields(m_sqlResult);
 	} else
 		m_queryError = true;
-		
-	m_selectType = true;
 }
 
 GkPgSQLResult::GkPgSQLResult(
@@ -278,7 +233,6 @@ GkPgSQLResult::GkPgSQLResult(
 	m_errorCode(0)
 {
 	m_numRows = numRowsAffected;
-	m_selectType = false;
 }
 	
 GkPgSQLResult::GkPgSQLResult(
@@ -296,11 +250,6 @@ GkPgSQLResult::~GkPgSQLResult()
 {
 	if (m_sqlResult)
 		PQclear(m_sqlResult);
-}
-
-bool GkPgSQLResult::HasRandomAccess()
-{
-	return true;
 }
 
 PString GkPgSQLResult::GetErrorMessage()
@@ -367,74 +316,6 @@ bool GkPgSQLResult::FetchRow(
 	m_sqlRow++;
 	
 	return true;
-}
-
-bool GkPgSQLResult::IsNullField(
-	/// index of the column to check
-	long fieldOffset
-	)
-{
-	return m_sqlResult == NULL || m_sqlRow < 0 || m_sqlRow >= m_numRows
-		|| fieldOffset < 0 || fieldOffset >= m_numFields
-		|| PQgetisnull(m_sqlResult, m_sqlRow, fieldOffset);
-}
-
-bool GkPgSQLResult::FetchRow(
-	/// array to be filled with string representations of the row fields
-	PStringArray& result,
-	/// index (0 based) of the row to fetch
-	long rowOffset
-	)
-{
-	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows)
-		return false;
-
-	result.SetSize(m_numFields);
-	
-	for (PINDEX i = 0; i < m_numFields; i++)
-		result[i] = PString(
-			PQgetvalue(m_sqlResult, rowOffset, i), 
-			PQgetlength(m_sqlResult, rowOffset, i)
-			);
-	
-	return true;
-}
-
-bool GkPgSQLResult::FetchRow(
-	/// array to be filled with string representations of the row fields
-	ResultRow& result,
-	/// index (0 based) of the row to fetch
-	long rowOffset
-	)
-{
-	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows)
-		return false;
-
-	result.resize(m_numFields);
-	
-	for (PINDEX i = 0; i < m_numFields; i++) {
-		result[i].first = PString(
-			PQgetvalue(m_sqlResult, rowOffset, i), 
-			PQgetlength(m_sqlResult, rowOffset, i)
-			);
-		result[i].second = PQfname(m_sqlResult, i);
-	}
-	
-	return true;
-}
-
-bool GkPgSQLResult::IsNullField(
-	/// index of the column to check
-	long fieldOffset,
-	/// index (0 based) of the row to check
-	long rowOffset
-	)
-{
-	if (m_sqlResult == NULL || rowOffset < 0 || rowOffset >= m_numRows
-		|| fieldOffset < 0 || fieldOffset >= m_numFields)
-		return true;
-
-	return PQgetisnull(m_sqlResult, rowOffset, fieldOffset) ? true : false;
 }
 
 

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2006/04/30 09:22:56  willamowius
+ * PTimedMutex patch for PWLib >= 1.9.2
+ *
  * Revision 1.9  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -58,9 +61,9 @@ protected:
 	GkSQLResult(
 		/// true if the query failed and no result is available
 		bool queryError = false
-		) : m_numRows(0), m_numFields(0), m_selectType(true), 
+		) : m_numRows(0), m_numFields(0),
 			m_queryError(queryError) {}
-	
+
 public:
 	/// the first element of the pair is a field value and the second 
 	/// is a field name
@@ -74,12 +77,6 @@ public:
 	    are meaningful.
 	*/
 	bool IsValid() const { return !m_queryError; }
-	
-	/** @return
-	    True if the query was SELECT-like and there are 0 or more rows
-	    to be fetched, otherwise false (INSERT, DELETE, UPDATE).
-	*/
-	bool IsSelectType() const { return m_selectType; }
 	
 	/** @return
 	    Number of rows in the result set (to be fetched) for SELECT-like
@@ -102,12 +99,6 @@ public:
 	*/	
 	virtual long GetErrorCode() = 0;
 	
-	/** @return
-	    True if rows can be fetched in random access order, false if
-	    rows have to be fethed sequentially and can be retrieved only once.
-	*/
-	virtual bool HasRandomAccess() = 0;
-
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
 		
@@ -122,47 +113,7 @@ public:
 		/// array to be filled with string representations of the row fields
 		ResultRow& result
 		) = 0;
-
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    fetched most recently.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset
-		) = 0;
 			
-	/** Fetch a single row from the result set. This function requires
-		that the backend supports random row access.
-		
-	    @return
-	    True if the row has been fetched, false if a row at the given offset
-		does not exists or SQL backend does not support random row access.
-	*/
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		PStringArray& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		) = 0;
-	virtual bool FetchRow(
-		/// array to be filled with string representations of the row fields
-		ResultRow& result,
-		/// index (0 based) of the row to fetch
-		long rowOffset
-		) = 0;
-		
-	/** @return
-	    True if the column at the index #fieldOffset# is NULL in the row 
-	    at the specified index.
-	*/
-	virtual bool IsNullField(
-		/// index of the column to check
-		long fieldOffset,
-		/// index (0 based) of the row to check
-		long rowOffset
-		) = 0;
-
 private:
 	GkSQLResult(const GkSQLResult&);
 	GkSQLResult& operator=(const GkSQLResult&);
@@ -172,8 +123,6 @@ protected:
 	long m_numRows;
 	/// number of columns in each row in the result set
 	long m_numFields;
-	/// true for SELECT type query, false for INSERT, DELETE and UPDATE
-	bool m_selectType;
 	/// true if query execution failed
 	bool m_queryError;
 };
