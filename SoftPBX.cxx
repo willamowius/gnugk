@@ -25,6 +25,7 @@
 #include "ProxyChannel.h"
 #include "SoftPBX.h"
 #include "capctrl.h"
+#include "h323util.h"
 
 int SoftPBX::TimeToLive = -1;
 PTime SoftPBX::StartUp;

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
  *
  *
@@ -32,7 +35,6 @@
 #endif
 
 #include <ptlib.h>
-#include <list>
 #include "stl_supp.h"
 #include "gktimer.h"
 

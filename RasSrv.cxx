@@ -35,6 +35,7 @@
 #include "GkStatus.h"
 #include "Neighbor.h"
 #include "ProxyChannel.h"
+#include "h323util.h"
 #include "gkauth.h"
 #include "gkacct.h"
 #include "gktimer.h"

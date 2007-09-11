@@ -27,6 +27,7 @@
 #include "Routing.h"
 #include "rwlock.h"
 #include "gk.h"
+#include "h323util.h"
 #include "GkStatus.h"
 
 void ReloadHandler(); // avoid to include...

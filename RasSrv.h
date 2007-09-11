@@ -21,7 +21,6 @@
 
 #include <vector>
 #include <list>
-#include "h323util.h"
 #include "yasocket.h"
 #include "singleton.h"
 #include "RasTbl.h"

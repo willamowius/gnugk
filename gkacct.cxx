@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.31  2007/07/14 09:47:42  willamowius
+ * new accounting variable %{bandwidth}
+ *
  * Revision 1.30  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -129,7 +132,6 @@
 #include "h323util.h"
 #include "stl_supp.h"
 #include "Toolkit.h"
-#include "RasTbl.h"
 #include "gktimer.h"
 #include "gkacct.h"
 

@@ -28,7 +28,6 @@
 #include "h323util.h"
 #include "Toolkit.h"
 #include "stl_supp.h"
-#include "RasTbl.h"
 #include "gkacct.h"
 #include "RasSrv.h"
 #include "GkClient.h"

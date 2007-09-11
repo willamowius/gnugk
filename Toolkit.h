@@ -13,6 +13,7 @@
 #define TOOLKIT_H "@(#) $Id$"
 
 #include <vector>
+#include <ptlib/sockets.h>
 #include "singleton.h"
 #include "pwlib_compat.h"
 

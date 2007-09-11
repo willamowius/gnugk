@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.20  2006/12/06 16:34:04  zvision
+ * Handle RADIUS Class attribute correctly
+ *
  * Revision 1.19  2006/07/06 15:25:13  willamowius
  * set all deleted pointers to NULL (most probably more than needed)
  *
@@ -105,8 +108,6 @@
 #include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
-#include "RasTbl.h"
-#include "gkacct.h"
 #include "radproto.h"
 #include "radacct.h"
 

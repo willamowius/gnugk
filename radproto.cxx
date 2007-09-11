@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.30  2006/07/06 15:25:13  willamowius
+ * set all deleted pointers to NULL (most probably more than needed)
+ *
  * Revision 1.29  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -150,7 +153,6 @@
 #endif
 
 #include <ptlib.h>
-#include <ptlib/sockets.h>
 #include <ptclib/cypher.h>
 #include <ptclib/random.h>
 #include "Toolkit.h"

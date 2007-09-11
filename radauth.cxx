@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.38  2007/07/10 19:33:27  willamowius
+ * allow Radius server to send multiple destinations in "h323-redirect-number" attribute for call failover (patch by Lucas Martinez)
+ *
  * Revision 1.37  2006/12/06 16:34:04  zvision
  * Handle RADIUS Class attribute correctly
  *
@@ -216,7 +219,6 @@
 #include "Routing.h"
 #include "sigmsg.h"
 #include "radproto.h"
-#include "gkauth.h"
 #include "radauth.h"
 
 using std::vector;

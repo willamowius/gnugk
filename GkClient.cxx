@@ -26,6 +26,7 @@
 #include "RasPDU.h"
 #include "RasSrv.h"
 #include "ProxyChannel.h"
+#include "h323util.h"
 #include "sigmsg.h"
 #include "cisco.h"
 #include "GkClient.h"

@@ -13,13 +13,11 @@
 #define RASTBL_H "@(#) $Id$"
 
 #include <list>
-#include <vector>
 #include <string>
 #include "rwlock.h"
 #include "singleton.h"
 #include "h225.h"
 #include "sigmsg.h"
-#include "h323util.h"
 #include "pwlib_compat.h"
 
 
