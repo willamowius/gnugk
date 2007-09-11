@@ -1206,15 +1206,6 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 	InternalRemove(find(EndpointList.begin(), EndpointList.end(), ep));
 }
 
-void RegistrationTable::RemoveByEndpointId(const H225_EndpointIdentifier & epId)
-{
-	WriteLock lock(listLock);
-	InternalRemove( find_if(EndpointList.begin(), EndpointList.end(),
-			compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
-			mem_fun(&EndpointRec::GetEndpointIdentifier)))
-	);
-}
-
 void RegistrationTable::InternalRemove(iterator Iter)
 {
 	if (Iter == EndpointList.end()) {
@@ -2063,17 +2054,6 @@ void CallRec::RemoveSocket()
 	}
 }
 
-int CallRec::CountEndpoints() const
-{
-	PWaitAndSignal lock(m_usedLock);
-	int result = 0;
-	if (m_Calling)
-		++result;
-	if (m_Called)
-		++result;
-	return result;
-}
-
 void CallRec::Disconnect(bool force)
 {
 	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket))
@@ -2307,14 +2287,6 @@ void CallRec::SetReleaseSource(
 {
 	if (m_releaseSource == -1)
 		m_releaseSource = releaseSource;
-}
-
-bool CallRec::IsDurationLimitExceeded() const
-{
-	PWaitAndSignal lock(m_usedLock);
-	const long now = time(NULL);
-	return m_durationLimit > 0 && m_connectTime != 0 
-		&& now >= m_connectTime && (now - m_connectTime) > m_durationLimit;
 }
 
 long CallRec::GetDuration() const

@@ -80,8 +80,6 @@ public:
 
 	/// @return	true if the Q.931 message has been modified	
 	bool IsChanged() const { return m_changed; }
-	/// @return	true if the H.225 User Information element has been modified	
-	bool IsUUIEChanged() const { return m_uuieChanged; }
 
 	/** Encode the Q.931 message back into a binary form.
 	

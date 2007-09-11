@@ -22,7 +22,6 @@
 #include "job.h"
 #include "pwlib_compat.h"
 
-//#define LARGE_FDSET 32768
 #ifdef LARGE_FDSET
 
 // yet another socket class to replace PSocket

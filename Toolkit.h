@@ -345,31 +345,6 @@ class Toolkit : public Singleton<Toolkit>
 	 * Case insensitive, "t...", "y...", "a...", "1" are #TRUE#, all other values are #FALSE#.
 	 */
 	static bool AsBool(const PString & str);
-	
-	/** Convert a string to a time interval. The string should be formatted like:
-			"1d5h" (1 day and 5 hours) or "20s" (20 seconds) or "1h" (1 hour)
-			or "2000" (2000 milliseconds) or ...
-		General format is a sequence of number and unit specifier pairs.
-		Recognized unit specifiers:
-			y - years
-			M - months
-			w - weeks
-			d - days
-			h - hours
-			m - minutes
-			s - seconds
-			"empty" - milliseconds
-
-		@return
-		true if the input string contained properly formatted time interval,
-		false if no conversion has been made
-	*/
-	static bool AsTimeInterval(
-		/// formatted time interval string
-		const char* inputString,
-		/// variable to store calculated time interval on success
-		PTimeInterval& interval
-		);
 
 	static void GetNetworkFromString(const PString &, PIPSocket::Address &, PIPSocket::Address &);
 
@@ -422,11 +397,6 @@ class Toolkit : public Singleton<Toolkit>
 						 const unsigned &manufacturer) const;
 
 	int GetInternalExtensionCode(const H225_H221NonStandard& data) const;
-
-	/** A c-string (#char*#) hash function that considers the
-	 * whole string #name# ending with #\0#.
-	 */
-	inline static unsigned long HashCStr(const unsigned char *name) ;
 
 	/** Generate a call id for accounting purposes, that is unique
 		during subsequent GK start/stop events.
@@ -552,18 +522,6 @@ private:
 	vector<unsigned> m_H225ReasonToQ931Cause;
 };
 
-
-inline unsigned long
-Toolkit::HashCStr(const unsigned char *name)
-{
-	register unsigned long h = 0, g;
-	while (*name) {
-		h = (h << 4) + *name++;
-		if ( (g = (h & 0xf0000000)) ) h ^= g >> 24;
-		h &= ~g;
-	}
-	return h;
-}
 
 inline PConfig *GkConfig()
 {

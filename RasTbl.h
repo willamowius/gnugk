@@ -96,14 +96,6 @@ public:
 	int GetCallTypeOfNumber(bool called = true) const { return called ? m_calledTypeOfNumber : m_callingTypeOfNumber; }
 	int GetProxyType() const { return m_proxy; }
 
-	/** checks if the given aliases are prefixes of the aliases which are stored
-	    for the endpoint in the registration table. #fullMatch# returns #TRUE# if
-	    a full match is found.
-	    @returns #TRUE# if a match is found
-	 */
-    bool PrefixMatch_IncompleteAddress(const H225_ArrayOf_AliasAddress &aliases,
-	                                bool &fullMatch) const;
-
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetCallSignalAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
@@ -178,9 +170,7 @@ public:
 	bool IsPermanent() const;
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
-	bool IsFromParent() const;
 	bool IsNATed() const;
-	bool SupportNAT() const;
 
 	H225_AlternateGK GetAssignedGatekeeper() { return m_assignedGatekeeper; }
 
@@ -420,11 +410,8 @@ public:
 	RegistrationTable();
 	~RegistrationTable();
 
-	void Initialize(GkDestAnalysisList & list) { m_destAnalysisList = &list; }
-
 	endptr InsertRec(H225_RasMessage & rrq, PIPSocket::Address = INADDR_ANY);
 	void RemoveByEndptr(const endptr & eptr);
-	void RemoveByEndpointId(const H225_EndpointIdentifier & endpointId);
 
 	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
 	endptr FindBySignalAdr(const H225_TransportAddress &, PIPSocket::Address = INADDR_ANY) const;
@@ -483,14 +470,12 @@ private:
 	void GenerateEndpointId(H225_EndpointIdentifier &);
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
 
-	GkDestAnalysisList & getGkDestAnalysisList() { return *m_destAnalysisList; }
 	std::list<EndpointRec *> EndpointList;
 	std::list<EndpointRec *> OuterZoneList;
 	std::list<EndpointRec *> RemovedList;
 	int regSize;
 	mutable PReadWriteMutex listLock;
 	PMutex findmutex;          // Endpoint Find Mutex
-	GkDestAnalysisList * m_destAnalysisList;
 
 	// counter to generate endpoint identifier
 	// this is NOT the count of endpoints!
@@ -622,8 +607,6 @@ public:
 	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
 	void BuildDRQ(H225_DisengageRequest &, unsigned reason) const;
 
-	int CountEndpoints() const;
-
 	bool CompareCallId(const H225_CallIdentifier *CallId) const;
 	bool CompareCRV(WORD crv) const;
 	bool CompareCallNumber(PINDEX CallNumber) const;
@@ -677,26 +660,6 @@ public:
 	void SetDurationLimit(
 		long seconds /// duration limit to be set
 		);
-
-	/** @return
-		Duration limit (in seconds) set for this call.
-		0 if call duration is not limited.
-	*/
-	long GetDurationLimit() const;
-
-	/** This function can be used to determine, if the call has been
-		disconnected due to call duration limit excess.
-
-		@return
-		true if the call duration limit has been exceeded, false otherwise.
-	*/
-	bool IsDurationLimitExceeded() const;
-
-	/** @return
-		Timestamp (number of seconds since 1st January 1970) for the call creation
-		(when this CallRec object has been instantiated).
-	*/
-	time_t GetCreationTime() const;
 
 	/** @return
 		Timestamp (number of seconds since 1st January 1970)
@@ -910,7 +873,6 @@ public:
         Call party to be charged for the call.
 	*/
 	PString GetCallLinkage()const { return m_callLinkage; };
-
 
 	/// Set calling party's number
 	void SetCalledStationId(
@@ -1133,9 +1095,6 @@ public:
 	void PrintCurrentCalls(USocket *client, BOOL verbose=FALSE) const;
 	PString PrintStatistics() const;
 
-	void AddForwardedCall(const callptr &);
-	endptr IsForwardedCall(const callptr &);
-
 	void LoadConfig();
 
 	PINDEX Size() const { return m_activeCall; }
@@ -1273,11 +1232,6 @@ inline bool EndpointRec::IsNATed() const
 	return m_nat;
 }
 
-inline bool EndpointRec::SupportNAT() const
-{
-	return m_natsupport;
-}
-
 inline PIPSocket::Address EndpointRec::GetNATIP() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1307,11 +1261,6 @@ inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return (!m_timeToLive || (*now - m_updatedTime).GetSeconds() < m_timeToLive);
-}
-
-inline bool EndpointRec::IsFromParent() const
-{
-	return m_fromParent;
 }
 
 inline bool EndpointRec::HasNATSocket() const
@@ -1407,16 +1356,6 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 {
 	return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
-}
-
-inline long CallRec::GetDurationLimit() const
-{
-	return m_durationLimit;
-}
-
-inline time_t CallRec::GetCreationTime() const
-{
-	return m_creationTime;
 }
 
 inline time_t CallRec::GetSetupTime() const
