@@ -653,6 +653,7 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 				CloseSocket();
 				break;
 			}
+			// TODO: add break ? fallthrough intended ?
 		default:
 			PTRACE(3, msg << " Error(" << group << "): " 
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
