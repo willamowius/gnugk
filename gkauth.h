@@ -19,6 +19,8 @@
 #include "name.h"
 #include "rwlock.h"
 #include <h235auth.h>
+#include "Toolkit.h"
+#include "h323util.h"
 
 class H225_GatekeeperRequest;
 class H225_GatekeeperConfirm;
