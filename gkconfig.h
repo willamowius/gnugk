@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
  *
  *
@@ -59,7 +62,7 @@ public:
 
 	/** Get a list of all the keys in the section. */
 	virtual PStringList GetKeys(
-		const PString& section /// Section to use instead of the default.
+		const PString& theSection /// Section to use instead of the default.
 		) const;
 
 	/** Get all of the keys in the section and their values.
@@ -76,7 +79,7 @@ public:
 	    appear in the GetSections() function.
 	*/
 	virtual void DeleteSection(
-		const PString& section /// Name of section to delete.
+		const PString& theSection /// Name of section to delete.
 		);
 
 	/** Delete the particular variable in the specified section.
@@ -87,8 +90,8 @@ public:
 	    string.
 	*/
 	virtual void DeleteKey(
-		const PString& section, /// Section to use instead of the default.
-		const PString& key /// Key of the variable to delete.
+		const PString& theSection, /// Section to use instead of the default.
+		const PString& theKey /// Key of the variable to delete.
     );
 
 	/** Determine if the particular variable in the section is actually present.
@@ -100,8 +103,8 @@ public:
 	    value "DefVal" into the PConfig.
 	*/
 	virtual BOOL HasKey(
-		const PString& section, /// Section to use instead of the default.
-		const PString& key /// Key of the variable.
+		const PString& theSection, /// Section to use instead of the default.
+		const PString& theKey /// Key of the variable.
 		) const;
 	//@}
 
@@ -117,8 +120,8 @@ public:
 	    @return string value of the variable.
 	*/
 	virtual PString GetString(
-		const PString& section,  /// Section to use instead of the default.
-		const PString& key,      /// The key name for the variable.
+		const PString& theSection,  /// Section to use instead of the default.
+		const PString& theKey,      /// The key name for the variable.
 		const PString& dflt      /// Default value for the variable.
 		) const;
 
