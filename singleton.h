@@ -76,7 +76,7 @@ template<class T> class Singleton : public SingletonBase {
 
   protected:
 	Singleton(const char *);
-	~Singleton();
+	virtual ~Singleton();
 
   public:
 	static T *m_Instance;

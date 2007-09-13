@@ -45,7 +45,7 @@ public:
 		long idleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT
 		);
 	
-	~Worker();
+	virtual ~Worker();
 
 	/** Tell this Worker to execute a new Job. The function returns
 		immediatelly and the job is executed under control of the Worker thread.
@@ -93,7 +93,7 @@ class Agent : public Singleton<Agent>
 {
 public:
 	Agent();
-	~Agent();
+	virtual ~Agent();
 
 	/** Execute the job by the first idle Worker or a new Worker.
 		Delete the Job object after it is done.
