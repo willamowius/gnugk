@@ -238,6 +238,7 @@ class TCPSocket : public PTCPSocket, public NamedObject {
 public:
 	PCLASSINFO( TCPSocket, PTCPSocket )
 	TCPSocket(WORD pt = 0) : PTCPSocket(pt) {}
+	virtual ~TCPSocket() {}
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
 };
@@ -348,7 +349,7 @@ private:
 class SocketsReader : public RegularJob {
 public:
 	SocketsReader(int = 1000);
-	~SocketsReader();
+	virtual ~SocketsReader();
 
 	// override from class RegularJob
 	virtual void Stop();
@@ -413,7 +414,7 @@ class TCPListenSocket : public TCPSocket {
 #endif
 public:
 	TCPListenSocket(int seconds = 0);
-	~TCPListenSocket();
+	virtual ~TCPListenSocket();
 
 	bool IsTimeout(const PTime *) const;
 
