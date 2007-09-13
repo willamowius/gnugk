@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.31  2007/09/11 01:02:29  willamowius
+ * clean up includes
+ *
  * Revision 1.30  2006/07/06 15:25:13  willamowius
  * set all deleted pointers to NULL (most probably more than needed)
  *
@@ -1471,7 +1474,6 @@ RadiusSocket::RadiusSocket(
 		Close();
 	}
 	
-	int i;
 	PRandom random;
 	const unsigned _id_ = random;
 	m_oldestId = m_nextId = (BYTE)(_id_^(_id_>>8)^(_id_>>16)^(_id_>>24));
@@ -1483,10 +1485,10 @@ RadiusSocket::RadiusSocket(
 		memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
 		memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
 
-		for (i = 0; i < 256; i++)
+		for (int i = 0; i < 256; i++)
 			m_readSyncPointIndices[i] = P_MAX_INDEX;
 
-		for (i = 0; i < m_permanentSyncPoints; i++)
+		for (int i = 0; i < m_permanentSyncPoints; i++)
 			m_readSyncPoints[i] = new PSyncPoint();
 	}
 }
@@ -1973,18 +1975,18 @@ RadiusClient::RadiusClient(
 
 #if PTRACING
 	if (PTrace::CanTrace(4)) {
-		ostream& s = PTrace::Begin(4, __FILE__, __LINE__);
-		const int indent = s.precision() + 2;
-		s << "RADIUS\tCreated instance of RADIUS client (local if: "
+		ostream& os = PTrace::Begin(4, __FILE__, __LINE__);
+		const int indent = os.precision() + 2;
+		os << "RADIUS\tCreated instance of RADIUS client (local if: "
 			<< m_localAddress << ", default ports: " << m_authPort << ',' 
 			<< m_acctPort << ") for RADIUS servers group:";
 		for (unsigned i = 0; i < m_radiusServers.size(); i++)
-			s << '\n' << setw(indent + m_radiusServers[i]->m_serverAddress.GetLength()) 
+			os << '\n' << setw(indent + m_radiusServers[i]->m_serverAddress.GetLength()) 
 				<< m_radiusServers[i]->m_serverAddress << " (auth port: "
 				<< (m_radiusServers[i]->m_authPort == 0 ? m_authPort : m_radiusServers[i]->m_authPort)
 				<< ", acct port: " << (m_radiusServers[i]->m_acctPort == 0 ? m_acctPort : m_radiusServers[i]->m_acctPort)
 				<< ')';
-		PTrace::End(s);
+		PTrace::End(os);
 	}
 #endif
 }
@@ -2376,17 +2378,17 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	PWaitAndSignal lock(m_socketMutex);
 	
 	const socket_iterator endIter = m_activeSockets.end();
-	socket_iterator s = m_activeSockets.begin();
+	socket_iterator si = m_activeSockets.begin();
 	
 	// find a first socket that is not busy (has at least one ID that can
 	// be used for a request)
-	while (s != endIter) {
-		const PINDEX newId = (*s)->GenerateNewId();
+	while (si != endIter) {
+		const PINDEX newId = (*si)->GenerateNewId();
 		if (newId != P_MAX_INDEX) {
 			id = (unsigned char)newId;
 			break;
 		} else
-			++s;
+			++si;
 	}
 
 	// refresh state of remaining sockets (reclaim unused request IDs)
@@ -2395,7 +2397,7 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	socket_iterator i = m_activeSockets.begin();
 	
 	while (i != endIter) {
-		if (i == s) {
+		if (i == si) {
 			++i;
 			continue;
 		}
@@ -2411,8 +2413,8 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 			++i;
 	}
 
-	if (s != endIter) {
-		socket = *s;
+	if (si != endIter) {
+		socket = *si;
 		return true;	
 	}
 
