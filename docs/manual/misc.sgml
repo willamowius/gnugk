@@ -95,6 +95,33 @@ uses a conversion table. Using this section you can change this mapping.
 ;20=31 # neededFeatureNotSupported<newline>
 ;21=127 # tunnelledSignallingRejected<newline></tt></quote>
 
+<sect1>Section &lsqb;GkQoSMonitor&rsqb;
+<label id="gkqosmonitor">
+<p>
+Use H.460.9 to collect quality of service information from endpoints. 
+Endpoints must support H.460.9 for this service to function.
+
+<itemize>
+<item><tt/Enable=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Define whether to enable or disable the feature. If enabled this function
+with respond to supportedFeature request from clients so clients know to
+send QoS Information to the gatekeeper.
+
+<item><tt/CallEndOnly=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Define whether to collect the information via IRR messages or to only collect 
+QoS information at the end of a call. 
+
+<item><tt/DefaultFile=qos.txt/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define the output file to log QoS information to. If a file is not defined the
+QoS information is outputted as an item in the Trace File trace level 4
+</itemize>
+
 <sect1>Section &lsqb;Endpoint&rsqb;
 <label id="endpoint">
 <p>
