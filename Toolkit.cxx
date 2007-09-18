@@ -1287,6 +1287,9 @@ PConfig* Toolkit::ReloadConfig()
 #ifdef h323v6
 	m_AssignedGKs.LoadConfig(m_Config);
 #endif
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	m_qosMonitor.LoadConfig(m_Config);
+#endif
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
@@ -1369,9 +1372,121 @@ BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 	return TRUE;
 }
 
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+Toolkit::AssignedAliases::AssignedAliases()
+  : m_sqlConn(NULL), m_sqlactive(false)
+{
+}
+
+Toolkit::AssignedAliases::~AssignedAliases()
+{
+	delete m_sqlConn;
+}
+
+bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
+{
+	delete m_sqlConn;
+	PString authName = "AssignedAliases::SQL";
+
+	const PString driverName = cfg->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(0, "AliasSQL\tModule creation failed: "
+			"no SQL driver selected"
+			);
+		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
+		return false;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(0, "AliasSQL\tModule creation failed: "
+			"Could not find " << driverName << " database driver"
+			);
+		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
+		return false;
+	}
+		
+	m_query = cfg->GetString(authName, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(0, "AliasSQL\tModule creation failed: No query configured"
+			);
+		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
+		return false;
+	} else
+		PTRACE(4, "AliasSQL\tQuery: " << m_query);
+		
+	if (!m_sqlConn->Initialize(cfg, authName)) {
+		PTRACE(0, "AliasSQL\tModule creation failed: Could not connect to the database"
+			);
+		return false;
+	}
+
+	return true;
+}
+
+bool Toolkit::AssignedAliases::DatabaseLookup(
+		const PString & alias,
+		PStringArray & newAliases	
+        )
+{
+	if (!m_sqlactive) 
+		return false;
+
+	GkSQLResult::ResultRow resultRow;
+	std::map<PString, PString> params;
+	params["u"] = alias;
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
+	if (result == NULL) {
+		PTRACE(2, "AliasSQL\tQuery failed - timeout or fatal error");
+		return false;
+	}
+
+	if (!result->IsValid()) {
+		PTRACE(2, "AliasSQL\tQuery failed (" << result->GetErrorCode()
+			<< ") - " << result->GetErrorMessage()
+			);
+		delete result;
+		return false;
+	}
+	
+	bool reject = true;
+
+	if (result->GetNumRows() < 1)
+		PTRACE(3, "AliasSQL\tQuery returned no rows");
+	else if (result->GetNumFields() < 1)
+		PTRACE(2, "AliasSQL\tBad-formed query - "
+			"no columns found in the result set"
+			);
+	else if (resultRow.empty())
+		PTRACE(2, "AliasSQL\tQuery failed - could not fetch the result row");
+	else {
+		PStringArray retval;
+		while (result->FetchRow(retval)) {
+			if (retval[0].IsEmpty()) {
+				PTRACE(1, "AliasSQL\tQuery Invalid value found.");
+				continue;
+			} 
+		    if (reject) reject = false;
+		    PTRACE(5, "AliasSQL\tQuery result: " << retval[0]);
+		    newAliases.AppendString(retval[0]);
+		}
+	}
+	delete result;
+
+   return reject;
+}
+#endif   // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 
 void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
 {
+	gkAssignedAliases.clear();
+
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+  if (LoadSQL(m_config)) {
+	  m_sqlactive = true;
+  } else 
+#endif
+  {
    	const PStringToString kv = m_config->GetAllKeyValues(AssignedAliasSection);
 	for (PINDEX i=0; i < kv.GetSize(); i++) {
 		PString data = kv.GetDataAt(i);
@@ -1379,6 +1494,7 @@ void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
 		for (PINDEX j=0; j < datalines.GetSize(); j++) 
 		   gkAssignedAliases.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),datalines[j]));
 	}
+  }
 }
 
 #ifdef H323_H350
@@ -1483,6 +1599,10 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 
 bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStringArray & aliases)
 {
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	if (DatabaseLookup(alias, aliases))
+		return true;
+#endif
 #ifdef H323_H350
 	if (QueryH350Directory(alias,aliases))
 		return true;
@@ -1545,13 +1665,129 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 	return found;
 }
 
+////////////////////////////////////////////////////////////////////////
 #ifdef h323v6
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+Toolkit::AssignedGatekeepers::AssignedGatekeepers()
+  : m_sqlConn(NULL), m_sqlactive(false)
+{
+}
+
+Toolkit::AssignedGatekeepers::~AssignedGatekeepers()
+{
+	delete m_sqlConn;
+}
+
+bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
+{
+	delete m_sqlConn;
+	PString authName = "AssignedGatekeepers::SQL";
+
+	const PString driverName = cfg->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(0, "AssignSQL\tModule creation failed: "
+			"no SQL driver selected"
+			);
+		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
+		return false;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(0, "AssignSQL\tModule creation failed: "
+			"Could not find " << driverName << " database driver"
+			);
+		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
+		return false;
+	}
+		
+	m_query = cfg->GetString(authName, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(0, "AssignSQL\tModule creation failed: No query configured"
+			);
+		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
+		return false;
+	} else
+		PTRACE(4, "AssignSQL\tQuery: " << m_query);
+		
+	if (!m_sqlConn->Initialize(cfg, authName)) {
+		PTRACE(0, "AssignSQL\tModule creation failed: Could not connect to the database"
+			);
+		return false;
+	}
+
+	return true;
+}
+
+bool Toolkit::AssignedGatekeepers::DatabaseLookup(
+		const PString & alias,
+		const PIPSocket::Address & ipaddr,
+		PStringArray & newGks	
+        )
+{
+	if (!m_sqlactive) 
+		return false;
+
+	GkSQLResult::ResultRow resultRow;
+	std::map<PString, PString> params;
+	params["u"] = alias;
+	params["i"] = ipaddr.AsString();
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
+	if (result == NULL) {
+		PTRACE(2, "AssignSQL\tQuery failed - timeout or fatal error");
+		return false;
+	}
+
+	if (!result->IsValid()) {
+		PTRACE(2, "AssignSQL\tQuery failed (" << result->GetErrorCode()
+			<< ") - " << result->GetErrorMessage()
+			);
+		delete result;
+		return false;
+	}
+	
+	bool reject = true;
+
+	if (result->GetNumRows() < 1)
+		PTRACE(3, "AssignSQL\tQuery returned no rows");
+	else if (result->GetNumFields() < 1)
+		PTRACE(2, "AssignSQL\tBad-formed query - "
+			"no columns found in the result set"
+			);
+	else if (resultRow.empty())
+		PTRACE(2, "AssignSQL\tQuery failed - could not fetch the result row");
+	else {
+		PStringArray retval;
+		while (result->FetchRow(retval)) {
+			if (retval[0].IsEmpty()) {
+				PTRACE(1, "AssignSQL\tQuery Invalid value found.");
+				continue;
+			} 
+		    if (reject) reject = false;
+		    PTRACE(5, "AssignSQL\tQuery result: " << retval[0]);
+		    newGks.AppendString(retval[0]);
+		}
+	}
+	delete result;
+
+   return reject;
+}
+#endif   // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+
 void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 {
-	// At present we only do assigned gatekeeper by prefix
+	assignedGKList.clear();
+
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+  if (LoadSQL(m_config)) {
+	  m_sqlactive = true;
+  } else 
+#endif
+  {
 	const PStringToString kv = m_config->GetAllKeyValues(AssignedGatekeeperSection);
 	for (PINDEX i=0; i < kv.GetSize(); i++) 
 		   assignedGKList.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),kv.GetDataAt(i)));
+  }
 }
 
 #ifdef H323_H350
@@ -1614,6 +1850,10 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias,cons
 
 bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
 {
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	if (DatabaseLookup(alias,ip,addresses))
+		return true;
+#endif
 #ifdef H323_H350
 	if (QueryH350Directory(alias,ip,addresses))
 		return true;
@@ -1665,6 +1905,96 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 	return found;
 }
 #endif
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+Toolkit::QoSMonitor::QoSMonitor()
+  : m_sqlConn(NULL), m_sqlactive(false)
+{
+}
+
+Toolkit::QoSMonitor::~QoSMonitor()
+{
+   delete m_sqlConn;
+}
+	    
+void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
+{
+	delete m_sqlConn;
+	PString authName = "GkQoSMonitor::SQL";
+
+	const PString driverName = cfg->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(0, "QoSSQL\tModule creation failed: "
+			"no SQL driver selected"
+			);
+		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
+		return;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(0, "QoSSQL\tModule creation failed: "
+			"Could not find " << driverName << " database driver"
+			);
+		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
+		return;
+	}
+		
+	m_query = cfg->GetString(authName, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(0, "QoSSQL\tModule creation failed: No query configured"
+			);
+		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
+		return;
+	} else
+		PTRACE(4, "QoSSQL\tQuery: " << m_query);
+		
+	if (!m_sqlConn->Initialize(cfg, authName)) {
+		PTRACE(0, "QoSSQL\tModule creation failed: Could not connect to the database"
+			);
+		return;
+	}
+
+	m_sqlactive = true;
+
+}
+
+bool Toolkit::QoSMonitor::PostRecord(const std::map<PString, PString>& params)
+{
+	if (!m_sqlactive) 
+		return false;
+
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
+
+	if (result == NULL) {
+		PTRACE(2, "QoSSQL\tFailed to store QoS Data: Timeout or fatal error");
+		return false;
+	}
+	
+	if (result) {
+		if (result->IsValid()) {
+			if (result->GetNumRows() < 1) {
+				PTRACE(4, "QoSSQL\tFailed to store QoS Data: No rows have been updated"
+					);
+				delete result;
+				return false;
+			}
+		} else {
+			PTRACE(2, "QoSSQL\tfailed to store QoS Data: Err(" << result->GetErrorCode() << ") "
+				<< result->GetErrorMessage() );
+			delete result;
+			return false;
+		}
+	}
+    
+	delete result;
+	return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 bool Toolkit::RewriteE164(H225_AliasAddress &alias)
 {

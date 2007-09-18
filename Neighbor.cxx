@@ -39,6 +39,10 @@
 #include "Neighbor.h"
 #include "pwlib_compat.h"
 
+#ifdef hasH460
+  #include <h460/h4601.h>
+#endif
+
 using std::multimap;
 using std::make_pair;
 using std::find_if;
@@ -480,6 +484,19 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 		lrq.m_canMapAlias = arq.m_canMapAlias;
 	}
+
+#ifdef hasH460
+       lrq.IncludeOptionalField(H225_LocationRequest::e_genericData); 
+       H225_ArrayOf_GenericData & data = lrq.m_genericData;
+       PINDEX lastPos = 0;
+
+	   /// OID9  'Remote application info
+	   H460_FeatureOID foid9 = H460_FeatureOID(OID9);
+	   lastPos++;
+	   data.SetSize(lastPos);
+	   data[lastPos-1] = foid9;
+	     		
+#endif
 	return true;
 }
 
@@ -1123,6 +1140,15 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
+#ifdef hasH460
+			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+			  H225_RasMessage ras;
+			  ras.SetTag(H225_RasMessage::e_locationConfirm);
+              H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+			  con = *lcf;
+			  route.m_destEndpoint = endptr(new EndpointRec(ras));	
+			}
+#endif
 			route.m_routeId = request.GetNeighborUsed();
 			route.m_flags |= Route::e_toNeighbor;
 			if ((lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo))
@@ -1323,6 +1349,15 @@ bool SRVPolicy::FindByAliases(
 				if (Request.Send(nb)) {
 					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
 							Route route(m_name, lcf->m_callSignalAddress);
+#ifdef hasH460
+			                if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+			                    H225_RasMessage ras;
+			                    ras.SetTag(H225_RasMessage::e_locationConfirm);
+                                H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+			                    con = *lcf;
+			                    route.m_destEndpoint = endptr(new EndpointRec(ras));	
+			                }
+#endif
 							request.AddRoute(route);
 							request.SetFlag(RoutingRequest::e_aliasesChanged);
 							return true;

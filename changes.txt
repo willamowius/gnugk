@@ -1,5 +1,7 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- added H.460.interop support for interworking of NetMeeting with everything else (req. OpenH323 v1.19.5)
+- added [GkQoSMonitor] H.460.9 realtime QoS monitoring (req. OpenH323 v1.19.5)
 - BUGFIX (statusacct.*) output callID in same format as other status port events (spaces replaced with dashes)
 - new status port command: printcc
 - BUGFIX (RasTbl.cxx) preserve internal call number for each failed call record

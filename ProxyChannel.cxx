@@ -1631,6 +1631,7 @@ void CallSignalSocket::OnSetup(
 	if (m_call) {
 		// existing CallRec
 		m_call->SetSetupTime(setupTime);
+		m_call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
 		
 		if (m_call->IsSocketAttached()) {
 			PTRACE(2, Type() << "\tWarning: socket (" << Name() << ") already attached for callid " << callid);

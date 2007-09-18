@@ -33,6 +33,7 @@
 #include "ProxyChannel.h"
 #include "gkacct.h"
 #include "RasTbl.h"
+#include "gk_const.h"
 
 #ifdef H323_H350
   #include <h350/h350_service.h>
@@ -40,6 +41,7 @@
 
 #ifdef hasH460
   #include <h460/h4601.h>
+  #include <h460/h4609.h>
 #endif
 
 using std::copy;
@@ -72,7 +74,7 @@ EndpointRec::EndpointRec(
 	/// permanent endpoint flag
 	bool permanent
 	)
-	: m_RasMsg(ras), m_timeToLive(1),
+	: m_RasMsg(ras), m_endpointVendor(NULL), m_timeToLive(1),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
 	m_usedCount(0), m_nat(false), m_natsocket(NULL), m_permanent(permanent), 
@@ -182,6 +184,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	m_endpointIdentifier = rrq.m_endpointIdentifier;
     LoadAliases(rrq.m_terminalAlias,rrq.m_terminalType);
 	m_terminalType = &rrq.m_terminalType;
+	m_endpointVendor = &rrq.m_endpointVendor;
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
 		SetTimeToLive(rrq.m_timeToLive);
 	else
@@ -229,6 +232,25 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 	m_terminalType = &lcf.m_destinationType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = false;
+
+#ifdef hasH460
+	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
+		H225_ArrayOf_GenericData & data = lcf.m_genericData;
+
+		for (PINDEX i=0; i < data.GetSize(); i++) {
+		  H460_Feature & feat = (H460_Feature &)data[i];
+		   /// OID9 Vendor Information
+		   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
+			   H460_FeatureOID & oid9 = (H460_FeatureOID &)data[i];
+			   PString m_vendor = oid9.Value(VendorProdOID);  // Vendor Information
+               PString m_version = oid9.Value(VendorVerOID);  // Version Information
+			   SetEndpointInfo(m_vendor,m_version);
+		   }
+
+		}
+	}
+#endif
+
 }
 
 EndpointRec::~EndpointRec()
@@ -2507,6 +2529,200 @@ PBYTEArray CallRec::GetRADIUSClass() const
 	PWaitAndSignal lock(m_usedLock);
 	return m_radiusClass;
 }
+
+#ifdef hasH460
+
+static PTextFile* OpenQoSFile(
+	const PFilePath& fn
+	)
+{
+	PTextFile* qosFile = new PTextFile(fn, PFile::ReadWrite, 
+		PFile::Create | PFile::DenySharedWrite
+		);
+	if (!qosFile->IsOpen()) {
+   	    PTRACE(1, "QoS\tCould not open log file "
+			<< fn << "\" :" << qosFile->GetErrorText()
+			);
+		delete qosFile;
+	    return NULL;
+	}
+	qosFile->SetPermissions(PFileInfo::UserRead | PFileInfo::UserWrite);
+	qosFile->SetPosition(qosFile->GetLength());
+	return qosFile;
+}
+
+void CallRec::OnQosMonitoringReport(endptr & ep, H4609_QosMonitoringReportData & qosdata)
+{
+
+	Toolkit* const toolkit = Toolkit::Instance();
+	PString m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
+
+	if (!Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0")))
+		return;
+
+	H4609_ArrayOf_RTCPMeasures report;
+
+	if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
+        H4609_PeriodicQoSMonReport & rep = qosdata;
+		H4609_ArrayOf_PerCallQoSReport & percall = rep.m_perCallInfo;
+        report = percall[0].m_mediaChannelsQoS; 
+	} else if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_final) {
+        H4609_FinalQosMonReport & rep = qosdata;
+        report = rep.m_mediaInfo;
+	} 
+
+	for (PINDEX i=0; i < report.GetSize(); i++) {
+
+		int worstdelay = 0; int meandelay = 0; int packetlost=0; int packetlossrate = 0; 
+		int packetlosspercent = 0; int bandwidth = 0; int maxjitter = 0; int meanjitter = 0;
+
+		H4609_RTCPMeasures & info = report[i];	
+
+		H225_TransportChannelInfo & addr = info.m_rtpAddress;
+
+		PString send;
+		if (ep->IsNATed()) {  // Rewrite to External IP
+		   PIPSocket::Address calling = INADDR_ANY, called = INADDR_ANY;
+	       GetNATType(calling, called);
+		   if (calling != called) {   // if not same NAT
+			  PIPSocket::Address orgIP; WORD orgport;
+			  GetIPAndPortFromTransportAddr(addr.m_sendAddress,orgIP,orgport);
+			  send = ep->GetNATIP().AsString() + ":" + (PString)orgport + "*";
+		   } else {
+              send = AsString(addr.m_sendAddress);
+		   }
+		} else
+		   send = AsString(addr.m_sendAddress);
+           
+
+		PString recv = AsString(addr.m_recvAddress);
+
+		if (info.HasOptionalField(H4609_RTCPMeasures::e_mediaSenderMeasures)) {
+			H4609_RTCPMeasures_mediaSenderMeasures & send = info.m_mediaSenderMeasures;
+
+			if (send.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_worstEstimatedEnd2EndDelay))
+				worstdelay = send.m_worstEstimatedEnd2EndDelay;
+			if (send.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_meanEstimatedEnd2EndDelay))
+				meandelay = send.m_meanEstimatedEnd2EndDelay;
+		}
+
+		if (info.HasOptionalField(H4609_RTCPMeasures::e_mediaReceiverMeasures)) {
+			H4609_RTCPMeasures_mediaReceiverMeasures & recv = info.m_mediaReceiverMeasures;
+
+			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_cumulativeNumberOfPacketsLost))
+				packetlost = recv.m_cumulativeNumberOfPacketsLost;
+			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_packetLostRate))
+				packetlossrate = recv.m_packetLostRate;
+			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_worstJitter))
+				maxjitter = recv.m_worstJitter;
+			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_estimatedThroughput))
+				bandwidth = recv.m_estimatedThroughput;
+			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_fractionLostRate))
+				packetlosspercent = recv.m_fractionLostRate;
+			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_meanJitter))
+				meanjitter = recv.m_meanJitter;
+		}
+
+		//write report to database
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+
+		if (toolkit->QoS().Enabled()) {
+          std::map<PString, PString> params;
+		  PIPSocket::Address addr = (DWORD)0;
+	      WORD port = 0;
+	      time_t t;
+
+		   params["g"] = toolkit->GKName();
+	       params["n"] = PString(GetCallNumber());
+	       params["src-info"] = GetSrcInfo();
+		   if (GetSrcSignalAddr(addr, port)) 
+	           params["caller-ip"] = addr.AsString();
+
+   	       params["dest-info"] = GetDestInfo();
+		   addr = (DWORD)0;
+	       port = 0;	
+	       if (GetDestSignalAddr(addr, port)) 
+	            params["callee-ip"] = addr.AsString();
+
+	       t = GetConnectTime();
+	       if (t)
+		     params["connect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
+	       t = GetDisconnectTime();
+	       if (t)
+		     params["disconnect-time"] = toolkit->AsString(PTime(t), m_timestampFormat);
+		   params["d"] = GetDuration();
+
+	       params["avgdelay"] = meandelay;
+	       params["packetloss"] = packetlost;
+	       params["packetloss-percent"] = packetlosspercent;
+	       params["avgjitter"] = meanjitter;
+	       params["bandwidth"] = bandwidth;
+
+		  toolkit->QoS().PostRecord(params);
+		  return;
+	}
+#endif  // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+
+
+		//Write report to file
+	   PString fn = GkConfig()->GetString("GkQoSMonitor", "DetailFile", "");
+		bool fileoutput = !fn.IsEmpty();
+		bool newfile = fileoutput ? !PFile::Exists(fn) : false;
+ 
+		PTextFile* qosFile;
+		if (fileoutput) {
+			qosFile = OpenQoSFile(fn);
+			if (qosFile && qosFile->IsOpen()) {
+				if (newfile) {
+				 PString headerstr = 
+					"Timestamps|Source|SrcAddr|Destination|DestAddr|AvgDelay|PacketLost|PacketLoss%|AvgJitter|Bandwidth";
+				 qosFile->WriteLine(headerstr);
+				}
+			} else {
+                PTRACE(4,"QoS\tError opening QoS output File");
+			}
+		}
+
+		PString timeString;
+	
+	    const time_t eTime = m_disconnectTime ? m_disconnectTime : time(0);
+	    const PTime endTime(eTime);
+
+		if (m_connectTime != 0) {
+			const PTime startTime(m_connectTime);
+			timeString = PString((unsigned)(eTime > m_connectTime
+				? (eTime - m_connectTime) : 1)) + "|"
+				+ toolkit->AsString(startTime, m_timestampFormat) + "|"
+				+ toolkit->AsString(endTime, m_timestampFormat);
+		} else {
+			timeString = "0|unconnected|" + toolkit->AsString(endTime, m_timestampFormat);
+		}
+
+		PString outstr = PString(PString::Printf, "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s;",
+						(const char *)timeString,
+						(const char *)m_srcInfo,
+                        (const char *)send,
+						(const char *)m_destInfo,
+						(const char *)recv,
+						(const char *)PString(meandelay),
+						(const char *)PString(packetlost),
+						(const char *)PString(packetlosspercent),
+						(const char *)PString(meanjitter),
+						(const char *)PString(bandwidth)
+					);
+		 
+		    PTRACE(4,"QoS\tQoS Report" << "\r\n" << outstr);
+
+			if (qosFile && qosFile->IsOpen()) {
+				if (!qosFile->WriteLine(outstr)) {
+                PTRACE(4,"QoS\tError writing QoS information to File");
+			    } 
+		       qosFile->Close();
+		       delete qosFile;
+		    }
+	}
+}
+#endif
 
 /*
 bool CallRec::IsTimeout(

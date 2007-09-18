@@ -44,6 +44,7 @@
 
 #ifdef hasH460
   #include <h460/h4601.h>
+  #include <h460/h4609.h>
 #endif
 
 const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
@@ -2185,6 +2186,24 @@ bool AdmissionRequestPDU::Process()
 		}
 	}
 
+#ifdef hasH460
+    bool QoSReporting = false;
+	bool vendorInfo = false;
+	PString m_vendor,m_version = PString();
+	if (request.HasOptionalField(H225_AdmissionRequest::e_genericData)) {  
+		H225_ArrayOf_GenericData & data = request.m_genericData;
+		for (PINDEX i =0; i < data.GetSize(); i++) {
+          H460_Feature & feat = (H460_Feature &)data[i];
+		  /// Vendor Information
+  		  if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
+		     vendorInfo = true;
+          /// H.460.9 QoS Reporting
+		  if (feat.GetFeatureID() == H460_FeatureID(9)) 
+             QoSReporting = true;
+		}
+	}
+#endif
+
 	//
 	// Bandwidth
 	// and GkManager admission
@@ -2361,6 +2380,38 @@ bool AdmissionRequestPDU::Process()
 			   	acf.IncludeOptionalField(H225_AdmissionConfirm::e_serviceControl);
 	        }
 
+#ifdef hasH460
+	// If we have a call record and the remote party needs NAT support 
+	// and the requesting EP can provide it then notify the EP to lend assistance.
+	if (!answer) {	
+	   PINDEX lastPos = 0;
+       H225_ArrayOf_GenericData & data = acf.m_genericData;
+   /// OID9 Vendor Information
+	   if (vendorInfo && !m_vendor.IsEmpty()) {
+	      H460_FeatureOID fs = H460_FeatureOID(OID9);
+          fs.Add(VendorProdOID,H460_FeatureContent(m_vendor));
+          fs.Add(VendorVerOID,H460_FeatureContent(m_version));
+          lastPos++;
+	      data.SetSize(lastPos);
+	      data[lastPos-1] = fs; 
+	   }
+   /// H.460.9 QoS Reporting
+	   if (QoSReporting && 
+		 Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+	     H460_FeatureStd fs = H460_FeatureStd(9);
+
+		 if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "DRQOnly", "1")))
+	                 fs.Add(0,H460_FeatureContent(0,8));
+         lastPos++;
+	     data.SetSize(lastPos);
+	     data[lastPos-1] = fs;   
+	   }
+
+	   if (lastPos > 0) 
+		  acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
+	}
+#endif
+
 	return BuildReply(e_acf);
 }
 
@@ -2479,6 +2530,36 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 		rsn = H225_DisengageRejectReason::e_notRegistered;
 	}
 
+#if hasH460
+	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {  
+		H225_ArrayOf_GenericData & data = request.m_genericData;
+		for (PINDEX i =0; i < data.GetSize(); i++) {
+          H460_Feature & feat = (H460_Feature &)data[i];
+    /// H.460.9 QoS Feature
+           if (feat.GetFeatureID() == H460_FeatureID(9)) {
+			   H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
+			   if (qosfeat.Contains(1)) {  
+			      PASN_OctetString & rawstats = qosfeat.Value(1);
+				    PPER_Stream argStream(rawstats);
+                    H4609_QosMonitoringReportData report;
+					if (report.Decode(argStream)) {
+	                   callptr call = request.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? 
+						      CallTbl->FindCallRec(request.m_callIdentifier) : 
+					          CallTbl->FindCallRec(request.m_callReferenceValue.GetValue());
+					   if (call && (report.GetTag() == H4609_QosMonitoringReportData::e_final)) {
+							call->OnQosMonitoringReport(ep,report);
+					   } else {
+						   PTRACE(4,"QoS\tDRQ Call Statistics could not be found.");
+					   }
+					} else {
+					   PTRACE(4,"QoS\tDRQ Call Statistics decode failure.");
+					}	  
+			   }
+		   }
+		}
+	}
+#endif
+
 	PString log;
 	if (bReject) {
 		H225_DisengageReject & drj = BuildReject(rsn);
@@ -2590,6 +2671,33 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					lcf.m_destinationInfo = request.m_destinationInfo;
 				}
 
+#ifdef hasH460
+               H225_ArrayOf_GenericData & data = lcf.m_genericData;
+               PINDEX lastPos = 0;
+				if ((WantedEndPoint) && (request.HasOptionalField(H225_LocationRequest::e_genericData))) {
+                  H225_ArrayOf_GenericData & locdata = request.m_genericData; 
+				  for (PINDEX i = 0; i < locdata.GetSize(); i++) {
+				   
+				  H460_Feature & feat = (H460_Feature &)locdata[i];
+				   /// OID9 Vendor Interoperability
+			       if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
+	                  PString m_vendor,m_version = PString();
+	                  if (WantedEndPoint->GetEndpointInfo(m_vendor,m_version)) {
+						 H460_FeatureOID foid9 = H460_FeatureOID(OID9);
+						 foid9.Add(VendorProdOID,H460_FeatureContent(m_vendor));
+						 foid9.Add(VendorVerOID,H460_FeatureContent(m_version));
+						 lastPos++;
+						 data.SetSize(lastPos);
+						 data[lastPos-1] = foid9;
+				      }
+				   }
+				 }
+				}
+	            if (lastPos > 0) 
+		            lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData); 
+#endif		            
+
+
 				log = PString(PString::Printf, "LCF|%s|%s|%s|%s;",
 					inet_ntoa(m_msg->m_peerAddr),
 					(const unsigned char *) (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr)),
@@ -2658,6 +2766,29 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 			call = CallTbl->FindBySignalAdr(request.m_callSignalAddress[0]);
 		if (call)
 			call->Update(request);
+#if hasH460
+		if (call && request.HasOptionalField(H225_InfoRequestResponse::e_genericData)) {  
+			H225_ArrayOf_GenericData & data = request.m_genericData;
+			for (PINDEX i =0; i < data.GetSize(); i++) {
+			  H460_Feature & feat = (H460_Feature &)data[i];
+		/// H.460.9 QoS Feature
+				if (feat.GetFeatureID() == H460_FeatureID(9)) {
+					H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
+					if (qosfeat.Contains(1)) {  
+						PASN_OctetString & rawstats = qosfeat.Value(1);
+							PPER_Stream argStream(rawstats);
+							H4609_QosMonitoringReportData report;
+							if (report.Decode(argStream) && 
+							   (report.GetTag() == H4609_QosMonitoringReportData::e_periodic)) {
+                                  call->OnQosMonitoringReport(ep,report);
+							} else {
+							    PTRACE(4,"QoS\tIRR Call Statistics failure.");
+							}	  
+					}
+				}
+			}
+		}
+#endif
 		if (request.HasOptionalField(H225_InfoRequestResponse::e_needResponse) && request.m_needResponse) {
 			BuildConfirm();
 			PrintStatus(PString(PString::Printf, "IACK|%s;", inet_ntoa(m_msg->m_peerAddr)));

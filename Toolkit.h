@@ -91,6 +91,9 @@ bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net);
 #ifdef H323_H350
 class H350_Session;
 #endif
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+class GkSQLConnection;
+#endif
 class GkTimerManager;
 class CLIRewrite;
 class Toolkit : public Singleton<Toolkit>
@@ -211,6 +214,13 @@ class Toolkit : public Singleton<Toolkit>
 
 	class AssignedAliases {
 	 public:
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	    AssignedAliases();
+		~AssignedAliases();
+
+		bool LoadSQL(PConfig *);
+		bool DatabaseLookup(const PString &,PStringArray &);
+#endif
 	    void LoadConfig(PConfig *);
 		bool QueryAssignedAliases(const PString & alias, PStringArray & aliases);
 #ifdef H323_H350
@@ -220,6 +230,17 @@ class Toolkit : public Singleton<Toolkit>
 
 	 protected:
 		 std::vector< std::pair<PString, PString> > gkAssignedAliases;
+
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+     private:
+	   bool m_sqlactive;
+	   // connection to the SQL database
+	   GkSQLConnection* m_sqlConn;
+	   // parametrized query string for the auth condition string retrieval
+	   PString m_query;
+	   // query timeout
+	   long m_timeout;
+#endif
 	};
 
 	AssignedAliases GetAssignedEPAliases() { return m_AssignedEPAliases; }
@@ -227,6 +248,13 @@ class Toolkit : public Singleton<Toolkit>
 #ifdef h323v6
 	class AssignedGatekeepers {
 	 public:
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	    AssignedGatekeepers();
+		~AssignedGatekeepers();
+
+		bool LoadSQL(PConfig *);
+		bool DatabaseLookup(const PString &, const PIPSocket::Address &, PStringArray &);
+#endif
 	    void LoadConfig(PConfig *);
 		bool QueryAssignedGK(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses);
 #ifdef H323_H350
@@ -236,10 +264,45 @@ class Toolkit : public Singleton<Toolkit>
 
 	 protected:
 		 std::vector< std::pair<PString, PString> > assignedGKList;
+
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+     private:
+	   bool m_sqlactive;
+	   // connection to the SQL database
+	   GkSQLConnection* m_sqlConn;
+	   // parametrized query string for the auth condition string retrieval
+	   PString m_query;
+	   // query timeout
+	   long m_timeout;
+#endif
+
 	};
 
 	AssignedGatekeepers AssignedGKs() { return m_AssignedGKs; }
 #endif
+
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	class QoSMonitor {
+	  public:
+        QoSMonitor();
+		~QoSMonitor();
+	    void LoadConfig(PConfig *);
+		bool PostRecord(const std::map<PString, PString>& params);
+		bool Enabled() { return m_sqlactive; }
+
+     private:
+	   bool m_sqlactive;
+	   // connection to the SQL database
+	   GkSQLConnection* m_sqlConn;
+	   // parametrized query string for the auth condition string retrieval
+	   PString m_query;
+	   // query timeout
+	   long m_timeout;
+	};
+
+	QoSMonitor QoS() { return m_qosMonitor; }
+#endif
+
 
 #ifdef H323_H350
 	// Create H350 connection
@@ -491,6 +554,9 @@ protected:
 	AssignedAliases m_AssignedEPAliases;  // Assigned Aliases
 #ifdef h323v6
 	AssignedGatekeepers m_AssignedGKs;
+#endif
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+	QoSMonitor m_qosMonitor;
 #endif
 	RouteTable m_RouteTable;
 	VirtualRouteTable m_VirtualRouteTable;

@@ -48,16 +48,29 @@ extern const char *H225_ProtocolID;
 #define GnuGkOID "1.3.6.1.4.1.27938"
 
 // Packetizer H460 Features
+//+++++++++++++++++++++++++++++++++++++++++++++
+
+///////////////////////////////////////////
+// Presence
 #define OID3 "1.3.6.1.4.1.17090.0.3"  // Presence
+
+///////////////////////////////////////////
+// NAT Type Detection
 
 #define OID5 "1.3.6.1.4.1.17090.0.5"  // NAT Traversal support   
 #define NATInstOID       "7"   // integer 8 Instruction on how NAT is to be Traversed
+
+//////////////////////////////////////////
+// Registration Priority and Pre-Emption
 
 #define OID6  "1.3.6.1.4.1.17090.0.6"  // Registration priority & pre-emption
 #define priorityOID  "1"   // integer 8 Priority number highest priority gets registration
 #define preemptOID   "2"   // bool to instruct GK to preempt previous registration
 #define priNotOID    "3"   // bool to notify EP registration RRJ (priority) UCF (higher Priority)
 #define preNotOID    "4"   // bool to notify EP registration RRJ (can preempt) UCF (was preempted)
+
+//////////////////////////////////////////
+// P2Pnat Media
 
 #define OID7 "1.3.6.1.4.1.17090.0.7"  // NAT Type detection support
 #define localNATOID      "1"    // bool if endpoint is NATed
@@ -68,5 +81,13 @@ extern const char *H225_ProtocolID;
 #define remoteNATOID     "6"    // bool if endpoint has remote NAT support
 
 #define GK_DEF_STUN_PORT		3478
+
+///////////////////////////////////////////
+// Remote Vendor Information
+
+#define OID9 "1.3.6.1.4.1.17090.0.9"  // Remote Vendor Information
+#define VendorProdOID      "1"    // PASN_String of productID
+#define VendorVerOID       "2"    // PASN_String of versionID
+//+++++++++++++++++++++++++++++++++++++++++++++
 
 #endif

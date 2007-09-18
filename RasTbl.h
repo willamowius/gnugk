@@ -87,6 +87,7 @@ public:
 	H225_EndpointIdentifier GetEndpointIdentifier() const;
 	H225_ArrayOf_AliasAddress GetAliases() const;
 	H225_EndpointType GetEndpointType() const;
+    bool GetEndpointInfo(PString & vendor, PString & version) const;
 	int GetTimeToLive() const;
 	PIPSocket::Address GetNATIP() const;
 	CallSignalSocket *GetSocket();
@@ -100,6 +101,7 @@ public:
 	virtual void SetTimeToLive(int);
 	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
 	virtual void SetEndpointType(const H225_EndpointType &);
+    virtual void SetEndpointInfo(const PString & vendor, const PString & version);
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return false; }
@@ -261,6 +263,7 @@ protected:
 	H225_EndpointIdentifier m_endpointIdentifier;
 	H225_ArrayOf_AliasAddress m_terminalAliases;
 	H225_EndpointType *m_terminalType;
+	H225_VendorIdentifier *m_endpointVendor;
 	int m_timeToLive;   // seconds
 
 	int m_activeCall, m_connectedCall, m_totalCall;
@@ -489,6 +492,9 @@ private:
 template<class> class RasPDU;
 
 // record of one active call
+#ifdef hasH460
+ class H4609_QosMonitoringReportData;
+#endif
 class CallRec {
 public:
 	/// flag to overwrite proxy settings for the call
@@ -935,6 +941,10 @@ public:
 	void SetRADIUSClass(void * bytes, PINDEX len);
 	PBYTEArray GetRADIUSClass() const;
 
+#if hasH460
+	void OnQosMonitoringReport(endptr & ep, H4609_QosMonitoringReportData & qosdata);
+#endif
+
 private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
@@ -1213,6 +1223,35 @@ inline H225_EndpointType EndpointRec::GetEndpointType() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return *m_terminalType;
+}
+
+inline bool EndpointRec::GetEndpointInfo(PString & vendor, PString & version ) const
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	if (!m_endpointVendor)
+		return false;
+
+	PTRACE(2,"TEST\t" << *m_endpointVendor);
+
+	if (m_endpointVendor->HasOptionalField(H225_VendorIdentifier::e_productId))
+		vendor = m_endpointVendor->m_productId.AsString();
+	if (m_endpointVendor->HasOptionalField(H225_VendorIdentifier::e_versionId))
+		version = m_endpointVendor->m_versionId.AsString();
+
+	return true;
+}
+
+inline void EndpointRec::SetEndpointInfo(const PString & vendor, const PString & version )
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	m_endpointVendor = new H225_VendorIdentifier();
+
+	m_endpointVendor->IncludeOptionalField(H225_VendorIdentifier::e_productId);
+	   m_endpointVendor->m_productId.SetValue(vendor); 
+	m_endpointVendor->IncludeOptionalField(H225_VendorIdentifier::e_versionId);
+	   m_endpointVendor->m_versionId.SetValue(version);
 }
 
 inline void EndpointRec::SetNAT(bool nat)
