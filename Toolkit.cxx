@@ -1380,13 +1380,15 @@ Toolkit::AssignedAliases::AssignedAliases()
 
 Toolkit::AssignedAliases::~AssignedAliases()
 {
-	delete m_sqlConn;
 }
 
 bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 {
 	delete m_sqlConn;
 	PString authName = "AssignedAliases::SQL";
+
+   if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+		return false;
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
@@ -1449,7 +1451,7 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 		return false;
 	}
 	
-	bool reject = true;
+	bool success = false;
 
 	if (result->GetNumRows() < 1)
 		PTRACE(3, "AliasSQL\tQuery returned no rows");
@@ -1457,8 +1459,6 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 		PTRACE(2, "AliasSQL\tBad-formed query - "
 			"no columns found in the result set"
 			);
-	else if (resultRow.empty())
-		PTRACE(2, "AliasSQL\tQuery failed - could not fetch the result row");
 	else {
 		PStringArray retval;
 		while (result->FetchRow(retval)) {
@@ -1466,14 +1466,14 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 				PTRACE(1, "AliasSQL\tQuery Invalid value found.");
 				continue;
 			} 
-		    if (reject) reject = false;
+		    if (!success) success = true;
 		    PTRACE(5, "AliasSQL\tQuery result: " << retval[0]);
 		    newAliases.AppendString(retval[0]);
 		}
 	}
 	delete result;
 
-   return reject;
+   return success;
 }
 #endif   // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 
@@ -1675,13 +1675,15 @@ Toolkit::AssignedGatekeepers::AssignedGatekeepers()
 
 Toolkit::AssignedGatekeepers::~AssignedGatekeepers()
 {
-	delete m_sqlConn;
 }
 
 bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 {
 	delete m_sqlConn;
 	PString authName = "AssignedGatekeepers::SQL";
+
+   if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+		return false;
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
@@ -1746,7 +1748,7 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 		return false;
 	}
 	
-	bool reject = true;
+	bool success = false;
 
 	if (result->GetNumRows() < 1)
 		PTRACE(3, "AssignSQL\tQuery returned no rows");
@@ -1754,8 +1756,6 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 		PTRACE(2, "AssignSQL\tBad-formed query - "
 			"no columns found in the result set"
 			);
-	else if (resultRow.empty())
-		PTRACE(2, "AssignSQL\tQuery failed - could not fetch the result row");
 	else {
 		PStringArray retval;
 		while (result->FetchRow(retval)) {
@@ -1763,14 +1763,14 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 				PTRACE(1, "AssignSQL\tQuery Invalid value found.");
 				continue;
 			} 
-		    if (reject) reject = false;
+		    if (!success) success = true;
 		    PTRACE(5, "AssignSQL\tQuery result: " << retval[0]);
 		    newGks.AppendString(retval[0]);
 		}
 	}
 	delete result;
 
-   return reject;
+   return success;
 }
 #endif   // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 
@@ -1916,13 +1916,15 @@ Toolkit::QoSMonitor::QoSMonitor()
 
 Toolkit::QoSMonitor::~QoSMonitor()
 {
-   delete m_sqlConn;
 }
 	    
 void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 {
 	delete m_sqlConn;
 	PString authName = "GkQoSMonitor::SQL";
+
+   if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+		return;
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
