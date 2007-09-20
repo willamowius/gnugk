@@ -1399,7 +1399,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 
 	PString log;
 	PString alias(request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias)
-		? AsString(request.m_endpointAlias) : PString(" ")
+		? AsString(request.m_endpointAlias[0],false) : PString(" ")
 		);
 
 	unsigned rsn = H225_GatekeeperRejectReason::e_securityDenial;
