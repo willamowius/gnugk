@@ -1374,7 +1374,7 @@ BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 Toolkit::AssignedAliases::AssignedAliases()
-  : m_sqlConn(NULL), m_sqlactive(false)
+  : m_sqlactive(false), m_sqlConn(NULL)
 {
 }
 
@@ -1910,7 +1910,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 Toolkit::QoSMonitor::QoSMonitor()
-  : m_sqlConn(NULL), m_sqlactive(false)
+  : m_sqlactive(false), m_sqlConn(NULL)
 {
 }
 
