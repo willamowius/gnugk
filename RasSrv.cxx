@@ -1559,7 +1559,7 @@ bool RegistrationRequestPDU::Process()
 					GetIPAndPortFromTransportAddr(ep->GetCallSignalAddress(), oaddr, oport),
 					raddr = oaddr, rport = oport;
 				}
-				 bReject = (oaddr != raddr) || (oport != rport) || (raddr != rx_addr);
+				bReject = (oaddr != raddr) || (oport != rport) || (IsLoopback(rx_addr) ? false : (raddr != rx_addr));
 			}
 		} 
 		if (bReject) {
@@ -1595,7 +1595,7 @@ bool RegistrationRequestPDU::Process()
 		for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
 			SignalAddr = request.m_callSignalAddress[s];
 			if (GetIPFromTransportAddr(SignalAddr, ipaddr)) {
-				validaddress = (rx_addr == ipaddr);
+				validaddress = ((rx_addr == ipaddr) || IsLoopback(rx_addr));  
 				if (validaddress)
 					break;
 			}
