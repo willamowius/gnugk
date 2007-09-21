@@ -1256,6 +1256,8 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 		  	}
 		}
 	}
+#else
+	PTRACE(4, "\tENUM policy unavailable as no DNS support.");
 #endif
 
 	return false;

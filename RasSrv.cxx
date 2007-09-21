@@ -753,17 +753,23 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 
 void RasServer::SetENUMServers()
 {
+#if hasSETENUMSERVERS
   PString servers = GkConfig()->GetString(RoutedSec, "ENUMservers", "");
   PStringArray serverlist(servers.Tokenise(",", false));
 
-  if (servers.GetSize() > 0) {
-#if hasSETENUMSERVERS
-	   PDNS::SetENUMServers(servers);
-       PTRACE(2, "GK\tLoaded ENUM servers");
-#else
-	  PTRACE(2, "GK\tSetENUMServers not available, using defaults");
-#endif
+  if (serverlist.GetSize() > 0) {
+	   PDNS::SetENUMServers(serverlist);
+       PTRACE(2, "GK\tLoaded ENUM servers " << serverlist);
+  } else {
+	   PTRACE(2, "GK\tNo ENUMservers set, using defaults");
   }
+#else
+#if P_DNS
+	   PTRACE(2, "GK\tSetENUMServers not available, using defaults");
+#else
+	   PTRACE(2, "GK\tNo ENUM Routing policy available.");
+#endif
+#endif
 }
 
 void RasServer::SetRDSServers()
@@ -772,10 +778,14 @@ void RasServer::SetRDSServers()
   PString servers = GkConfig()->GetString(RoutedSec, "RDSservers", "");
   PStringArray serverlist(servers.Tokenise(",", false));
 
-  if (servers.GetSize() > 0) {
-	   PDNS::SetRDSServers(servers);
-       PTRACE(2, "GK\tLoaded RDS servers");
+  if (serverlist.GetSize() > 0) {
+	   PDNS::SetRDSServers(serverlist);
+       PTRACE(2, "GK\tLoaded RDS servers " << serverlist);
+  } else {
+ 	   PTRACE(2, "GK\tNo RDSservers set, using defaults"); 	
   }
+#else
+	   PTRACE(2, "GK\tNo RDS Routing policy available.");
 #endif
 }
 
