@@ -144,7 +144,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="_DEBUG;PTRACING;HAS_RADIUS=1;HAS_PGSQL=1"
+				PreprocessorDefinitions="_DEBUG;PTRACING;HAS_RADIUS=1"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				StructMemberAlignment="0"
@@ -162,7 +162,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="openh323sd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
+				AdditionalDependencies="openh323d.lib ptlibd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
 				SuppressStartupBanner="TRUE"
@@ -210,7 +210,7 @@
 				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="1"
 				OptimizeForProcessor="3"
-				PreprocessorDefinitions="NDEBUG;PTRACING;HAS_RADIUS=1;HAS_PGSQL=1"
+				PreprocessorDefinitions="NDEBUG;PTRACING;HAS_RADIUS=1"
 				RuntimeLibrary="2"
 				StructMemberAlignment="0"
 				BufferSecurityCheck="FALSE"
@@ -273,7 +273,7 @@
 				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="1"
 				OptimizeForProcessor="3"
-				PreprocessorDefinitions="NDEBUG;PTRACING;H323PLUS_LIB;PTLIB_LOAD;HAS_RADIUS=1;HAS_PGSQL=1"
+				PreprocessorDefinitions="NDEBUG;PTRACING;H323PLUS_LIB;PTLIB_LOAD;HAS_RADIUS=1"
 				RuntimeLibrary="2"
 				StructMemberAlignment="0"
 				BufferSecurityCheck="FALSE"
@@ -349,7 +349,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="h323plusd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
+				AdditionalDependencies="h323plusd.lib ptlibd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
 				SuppressStartupBanner="TRUE"
@@ -424,9 +424,6 @@
 			</File>
 			<File
 				RelativePath="gksql_mysql.cxx">
-			</File>
-			<File
-				RelativePath=".\gksql_odbc.cxx">
 			</File>
 			<File
 				RelativePath="gksql_pgsql.cxx">
