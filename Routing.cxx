@@ -1553,8 +1553,8 @@ void SqlPolicy::DatabaseLookup(
 			);
 	else if (!result->FetchRow(resultRow) || resultRow.empty())
 		PTRACE(2, m_name << ": query failed - could not fetch the result row");
-	else {
-		PString newDestination = resultRow.begin()->first;
+	else if (result->GetNumFields() == 1) {
+		PString newDestination = resultRow[0].first;
 		PTRACE(5, m_name << "\tQuery result: " << newDestination);
 		*reject = FALSE;
 		if (newDestination.ToUpper() == "REJECT") {
@@ -1572,6 +1572,20 @@ void SqlPolicy::DatabaseLookup(
 			(*newAliases)->SetSize(1);
 			H323SetAliasAddress(newDestination, (**newAliases)[0]);
 		}
+	} else if (result->GetNumFields() == 2) {
+		PString newDestinationAlias = resultRow[0].first;
+		PString newDestinationIP = resultRow[1].first;
+		PTRACE(5, m_name << "\tQuery result: " << newDestinationAlias << ", " << newDestinationIP);
+		*newAliases = new H225_ArrayOf_AliasAddress();
+		(*newAliases)->SetSize(1);
+		H323SetAliasAddress(newDestinationAlias, (**newAliases)[0]);
+		*newCallSigAdr = new H225_TransportAddress();
+		PStringArray adr_parts = newDestinationIP.Tokenise(":", FALSE);
+		PString ip = adr_parts[0];
+		WORD port = (WORD)(adr_parts[1].AsInteger());
+		if (port == 0)
+			port = 1720;
+		**newCallSigAdr = SocketToH225TransportAddr(ip, port);
 	}
 	delete result;
 #endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD

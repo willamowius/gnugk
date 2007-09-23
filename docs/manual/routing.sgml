@@ -301,6 +301,8 @@ Supports routing OnARQ, OnLRQ and OnSetup.
 If the string returned from the database is 'REJECT' (upper or lower case),
 the call is rejected. If the string matches a dotted IP address, it is
 taken as destination IP and else it is treated as new destination alias.
+If 2 colums are returned, the first is treated as the new destination alias
+and the second is treated as new destination IP.
 
 If the database returns nothing, the call is passed on unchanged.
 
