@@ -941,10 +941,6 @@ public:
 	void SetRADIUSClass(void * bytes, PINDEX len);
 	PBYTEArray GetRADIUSClass() const;
 
-#if hasH460
-	void OnQosMonitoringReport(endptr & ep, H4609_QosMonitoringReportData & qosdata);
-#endif
-
 private:
 	void SendDRQ();
 	void InternalSetEP(endptr &, const endptr &);
@@ -1068,6 +1064,8 @@ private:
 typedef CallRec::Ptr callptr;
 
 // all active calls
+
+class H4609_QosMonitoringReportData;
 class CallTable : public Singleton<CallTable>
 {
 public:
@@ -1102,6 +1100,12 @@ public:
 
 	void PrintCurrentCalls(USocket *client, BOOL verbose=FALSE) const;
 	PString PrintStatistics() const;
+
+#ifdef hasH460
+	void OnQosMonitoringReport(const PString &,const endptr &, H4609_QosMonitoringReportData &);
+    void QoSReport(const H225_DisengageRequest &, const endptr &, const PASN_OctetString &);
+    void QoSReport(const H225_InfoRequestResponse &, const callptr &, const endptr &, const PASN_OctetString &);
+#endif
 
 	void LoadConfig();
 
@@ -1231,8 +1235,6 @@ inline bool EndpointRec::GetEndpointInfo(PString & vendor, PString & version ) c
 
 	if (!m_endpointVendor)
 		return false;
-
-	PTRACE(2,"TEST\t" << *m_endpointVendor);
 
 	if (m_endpointVendor->HasOptionalField(H225_VendorIdentifier::e_productId))
 		vendor = m_endpointVendor->m_productId.AsString();

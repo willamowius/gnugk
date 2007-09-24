@@ -44,7 +44,6 @@
 
 #ifdef hasH460
   #include <h460/h4601.h>
-  #include <h460/h4609.h>
 #endif
 
 const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
@@ -2550,20 +2549,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 			   H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
 			   if (qosfeat.Contains(1)) {  
 			      PASN_OctetString & rawstats = qosfeat.Value(1);
-				    PPER_Stream argStream(rawstats);
-                    H4609_QosMonitoringReportData report;
-					if (report.Decode(argStream)) {
-	                   callptr call = request.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? 
-						      CallTbl->FindCallRec(request.m_callIdentifier) : 
-					          CallTbl->FindCallRec(request.m_callReferenceValue.GetValue());
-					   if (call && (report.GetTag() == H4609_QosMonitoringReportData::e_final)) {
-							call->OnQosMonitoringReport(ep,report);
-					   } else {
-						   PTRACE(4,"QoS\tDRQ Call Statistics could not be found.");
-					   }
-					} else {
-					   PTRACE(4,"QoS\tDRQ Call Statistics decode failure.");
-					}	  
+                  CallTbl->QoSReport(*this, ep, rawstats);
 			   }
 		   }
 		}
@@ -2785,15 +2771,8 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 				if (feat.GetFeatureID() == H460_FeatureID(9)) {
 					H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
 					if (qosfeat.Contains(1)) {  
-						PASN_OctetString & rawstats = qosfeat.Value(1);
-							PPER_Stream argStream(rawstats);
-							H4609_QosMonitoringReportData report;
-							if (report.Decode(argStream) && 
-							   (report.GetTag() == H4609_QosMonitoringReportData::e_periodic)) {
-                                  call->OnQosMonitoringReport(ep,report);
-							} else {
-							    PTRACE(4,"QoS\tIRR Call Statistics failure.");
-							}	  
+			           PASN_OctetString & rawstats = qosfeat.Value(1);
+                       CallTbl->QoSReport(*this, call, ep , rawstats);
 					}
 				}
 			}
