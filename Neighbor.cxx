@@ -1296,7 +1296,9 @@ public:
 	SRVPolicy() { m_name = "SRV"; }
 
 protected:
-	// override from class Policy
+    virtual bool OnRequest(SetupRequest &) { return false; }
+    virtual bool OnRequest(FacilityRequest &) { return false; }
+
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
@@ -1408,7 +1410,9 @@ public:
 	RDSPolicy() { m_name = "RDS"; }
 
 protected:
-	// override from class Policy
+    virtual bool OnRequest(SetupRequest &) { return false; }
+    virtual bool OnRequest(FacilityRequest &) { return false; }
+
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
