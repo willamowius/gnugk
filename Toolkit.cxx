@@ -18,6 +18,7 @@
 #endif
 
 #include <ptlib.h>
+#include <ptclib/pdns.h>
 #include <ptclib/cypher.h>
 #include <h323pdu.h>
 #include <map>
@@ -1862,6 +1863,15 @@ bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias,const P
 	return false;
 }
 
+static PString DNStoIP(const PString & dns)
+{
+   H323TransportAddress iface(dns);
+   PIPSocket::Address ip;
+   WORD port = GK_DEF_UNICAST_RAS_PORT;
+   iface.GetIpAndPort(ip, port); 
+   return PString(ip + ":" + port);
+}
+
 bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
 {
 	bool found = false;
@@ -1888,9 +1898,37 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 	}
 
 	if (found) {
+      PStringArray ipaddresses;
 		for (PINDEX k=0; k < assignedGK.GetSize(); k++) {
+           PString number = assignedGK[k];
+
+			if (IsIPAddress(number)) 
+				ipaddresses.AppendString(number);
+#ifdef hasSRV
+			else {
+				PString xnum = assignedGK[k];
+				if (xnum.Left(5) != "h323:") 
+						xnum = "h323:user@" + xnum;
+
+				PStringList str;
+				if (PDNS::LookupSRV(xnum,"_h323rs._udp.",str)) {
+					PTRACE(4, "AssignGK\t" << str.GetSize() << " SRV Records found" );
+					for (PINDEX i = 0; i < str.GetSize(); i++) {
+						PString newhost = str[i].Right(str[i].GetLength()-5);
+						PTRACE(4, "AssignGK\tDNS SRV converted GK address " << number << " to " << newhost );
+						ipaddresses.AppendString(newhost);
+					}
+				} else {
+						ipaddresses.AppendString(DNStoIP(number));
+				}
+			}
+#endif   
+		}
+
+		for (PINDEX k=0; k < ipaddresses.GetSize(); k++) {
+           PString num = ipaddresses[k];
            WORD port = GK_DEF_UNICAST_RAS_PORT;
-		   PStringArray tokens = assignedGK[k].Tokenise(":", FALSE);
+		   PStringArray tokens = num.Tokenise(":", FALSE);
 		   if (tokens.GetSize() == 2) 
                port = (WORD)tokens[1].AsUnsigned();
 	        
