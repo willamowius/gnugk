@@ -1054,6 +1054,10 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 			setup.m_destinationAddress = *aliases;
 		}
 		if (!reject && !callSigAdr->IsEmpty()) {
+			if (!setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+				setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			}
+			setup.m_destinationAddress = *aliases;
 			if (!setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 				setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			}
