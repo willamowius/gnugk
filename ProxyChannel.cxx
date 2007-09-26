@@ -1887,7 +1887,7 @@ void CallSignalSocket::OnSetup(
 			H323TransportAddress sourceAddress(setupBody.m_sourceCallSignalAddress);
 			sourceAddress.GetIpAddress(srcAddr);
 
-			if (!_peerAddr.IsRFC1918() && srcAddr.IsRFC1918()) {
+			if (_peerAddr != srcAddr) {  // We have a NAT?
 				if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"))) {
 					PTRACE(4, Type() << "\tSource address " <<  srcAddr
 						<< " peer address " << _peerAddr << " caller is behind NAT");
@@ -2143,7 +2143,10 @@ void CallSignalSocket::OnCallProceeding(
 	H225_CallProceeding_UUIE &cpBody = callProceeding->GetUUIEBody();
 
 	m_h225Version = GetH225Version(cpBody);
-	
+
+	if (HandleFastStart(cpBody, false))
+		msg->SetUUIEChanged();
+
 	if (HandleH245Address(cpBody))
 		msg->SetUUIEChanged();
 
@@ -2158,8 +2161,6 @@ void CallSignalSocket::OnCallProceeding(
 		msg->SetUUIEChanged();
 	}
 	
-	if (HandleFastStart(cpBody, false))
-		msg->SetUUIEChanged();
 }
 
 void CallSignalSocket::OnConnect(
@@ -2182,6 +2183,9 @@ void CallSignalSocket::OnConnect(
 		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
 	}
 
+	if (HandleFastStart(connectBody, false))
+		msg->SetUUIEChanged();
+
 	if (HandleH245Address(connectBody))
 		msg->SetUUIEChanged();
 		
@@ -2196,8 +2200,6 @@ void CallSignalSocket::OnConnect(
 		msg->SetUUIEChanged();
 	}
 	
-	if (HandleFastStart(connectBody, false))
-		msg->SetUUIEChanged();
 }
 
 void CallSignalSocket::OnAlerting(
@@ -2217,6 +2219,9 @@ void CallSignalSocket::OnAlerting(
 	
 	m_h225Version = GetH225Version(alertingBody);
 	
+	if (HandleFastStart(alertingBody, false))
+		msg->SetUUIEChanged();
+
 	if (HandleH245Address(alertingBody))
 		msg->SetUUIEChanged();
 		
@@ -2231,8 +2236,6 @@ void CallSignalSocket::OnAlerting(
 		msg->SetUUIEChanged();
 	}
 	
-	if (HandleFastStart(alertingBody, false))
-		msg->SetUUIEChanged();
 }
 
 void CallSignalSocket::OnInformation(
@@ -2469,12 +2472,13 @@ void CallSignalSocket::OnFacility(
 		break;
 	}
 	
+	if (HandleFastStart(facilityBody, false))
+		msg->SetUUIEChanged();
+
 	if (m_result != NoData)
 		if (HandleH245Address(facilityBody))
 			msg->SetUUIEChanged();
 
-	if (HandleFastStart(facilityBody, false))
-		msg->SetUUIEChanged();
 }
 
 void CallSignalSocket::OnProgress(
@@ -2492,6 +2496,9 @@ void CallSignalSocket::OnProgress(
 
 	m_h225Version = GetH225Version(progressBody);
 	
+	if (HandleFastStart(progressBody, false))
+		msg->SetUUIEChanged();
+
 	if (HandleH245Address(progressBody))
 		msg->SetUUIEChanged();
 		
@@ -2506,8 +2513,6 @@ void CallSignalSocket::OnProgress(
 		msg->SetUUIEChanged();
 	}
 	
-	if (HandleFastStart(progressBody, false))
-		msg->SetUUIEChanged();
 }
 
 bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control)
