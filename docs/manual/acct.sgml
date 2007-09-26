@@ -208,6 +208,7 @@ parameters are recognized:
 <item><tt/%{gkip}/ - IP address of the gatekeeper
 <item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
 <item><tt/%{ConfId}/ - H.323 conference identifier (16 hex 8-bit digits)
+<item><tt/%{CallLink}/ - Linked H.323 conference identifier (billing account for H.450 call transfer)
 <item><tt/%{setup-time}/ - timestamp string for Q.931 Setup message
 <item><tt/%{alerting-time}/ - timestamp string for Q.931 Alerting message
 <item><tt/%{connect-time}/ - timestamp string for a call connected event

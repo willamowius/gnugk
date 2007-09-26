@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.32  2007/09/11 01:02:29  willamowius
+ * clean up includes
+ *
  * Revision 1.31  2007/07/14 09:47:42  willamowius
  * new accounting variable %{bandwidth}
  *
@@ -251,6 +254,7 @@ void GkAcctLogger::SetupAcctParams(
 		params["gkip"] = interfaces.front().AsString();
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
+	params["CallLink"] = call->GetCallLinkage();  
 	
 	t = call->GetSetupTime();
 	if (t)
