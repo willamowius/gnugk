@@ -1,6 +1,8 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
-- BUGFIX (RasSrv.cxx) Endpoint registered on same machine as GnuGk are not treated as being NAT.
+- Added %{CallLink} SQL parameter for correct billing of H.450 call transfer
+- BUGFIX (proxychannel.cxx) Detect call signalling is using H.245 Tunneling but says it doesn't
+- BUGFIX (RasSrv.cxx) Endpoint registered on same machine as GnuGk should not be treated as being NAT.
 - added H.460.interop support for interworking of NetMeeting with everything else (req. OpenH323 v1.19.5)
 - added [GkQoSMonitor] H.460.9 realtime QoS monitoring (req. OpenH323 v1.19.5)
 - BUGFIX (statusacct.*) output callID in same format as other status port events (spaces replaced with dashes)
