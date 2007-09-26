@@ -124,15 +124,6 @@ in routed mode.
 The endpoint shall release the call immediately and re-send call Setup
 to the gatekeeper.
 
-<item><tt/CallUnregisteredEndpoints=0/<newline>
-Default: <tt/1/<newline>
-<p>
-With this option set on, the gatekeeper will accept an ARQ from a registered
-endpoint with <bf/destCallSignalAddress/, no matter the address is belongs
-to a registered endpoint or not.
-That means you can explicitly specify the IP of endpoint (registered or not)
-you want to call.
-
 <item><tt/RemoveTrailingChar=#/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
