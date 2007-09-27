@@ -30,14 +30,10 @@ namespace Routing {
 	struct Route;
 }
 
-class GkDestAnalysisList;
 class USocket;
 class CallSignalSocket;
 class RasServer;
 class Q931;
-class SignalingMsg;
-template <class> class H225SignalingMsg;
-typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods

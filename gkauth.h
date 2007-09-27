@@ -42,7 +42,6 @@ class H235_AuthenticationMechanism;
 class PASN_ObjectId;
 class H235Authenticators;
 class H235Authenticator;
-class Q931;
 class H225_Setup_UUIE;
 class SignalingMsg;
 template <class> class H225SignalingMsg;
@@ -353,11 +352,6 @@ protected:
 		unsigned supportedRasChecks, /// RAS checks supported by this module
 		unsigned supportedMiscChecks /// non-RAS checks supported by this module
 		);
-
-	/** @return
-	    Bitmask for RAS checks supported/implemented by this authenticator.
-	*/
-	unsigned GetSupportedRasChecks() const { return m_supportedRasChecks; }
 
 	/** @return
 	    Bitmask for non-RAS checks supported/implemented by this authenticator.
