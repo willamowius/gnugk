@@ -20,19 +20,6 @@
 #ifndef RASINFO_H
 #define RASINFO_H "@(#) $Id$"
 
-#ifndef __STL_TEMPLATE_NULL
-// explicit specialization
-#define __STL_TEMPLATE_NULL template<>
-#endif
-
-#ifndef __explicit_specialization
-#define __explicit_specialization __STL_TEMPLATE_NULL
-#endif
-
-// compile time assertion
-template<bool> struct CTAssert;
-template<> struct CTAssert<true> {};
-
 // define a type for an RAS tag
 template<int I> struct RasTag {
 	operator unsigned() const { return I; }

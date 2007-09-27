@@ -13,7 +13,6 @@
 #if defined(_WIN32) && (_MSC_VER <= 1200)  
 	#pragma warning(disable:4786) // warning about too long debug symbol off
 	#pragma warning(disable:4284)
-	#define snprintf	_snprintf
 #endif
 #if defined(_WIN32) && (_MSC_VER > 1300)
 	#pragma warning(disable:4244) // warning about possible loss of data
