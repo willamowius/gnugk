@@ -1076,8 +1076,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 			const_prefix_iterator Iter = Prefixes.begin(), eIter= Prefixes.end();
 			while (++Iter != eIter) {
 				m += "," + PString(Iter->first);
-				if (Iter->second != 1)
-					m += ":=" + PString(Iter->second);
+				m += ":=" + PString(Iter->second);
 			}
 			msg += m;
 		}
