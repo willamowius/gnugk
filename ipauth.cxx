@@ -18,7 +18,6 @@
 #include "gk_const.h"
 #include "h323util.h"
 #include "stl_supp.h"
-#include "Toolkit.h"
 #include "RasPDU.h"
 #include "RasTbl.h"
 #include "sigmsg.h"
