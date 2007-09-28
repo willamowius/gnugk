@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
  *
  *
@@ -77,16 +80,10 @@
 #pragma warning(disable:4284)
 #endif
 
+#include <vector>
 #include <ptlib.h>
-#include <ptlib/sockets.h>
-#include <h225.h>
-#include "gk_const.h"
-#include "h323util.h"
-#include "Toolkit.h"
-#include "RasTbl.h"
 #include "RasSrv.h"
 #include "gksql.h"
-#include "gkacct.h"
 #include "sqlacct.h"
 
 using std::vector;

@@ -14,6 +14,7 @@
 #define SIGMSG_H "@(#) $Id$"
 
 
+#include <ptlib/sockets.h>
 #include "q931.h"
 class H225_H323_UserInformation;
 class H225_Setup_UUIE;

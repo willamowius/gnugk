@@ -19,6 +19,7 @@
 
 #include <list>
 #include <vector>
+#include <ptlib/sockets.h>
 #include "job.h"
 #include "pwlib_compat.h"
 
