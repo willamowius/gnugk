@@ -184,6 +184,12 @@ Default: <tt/1/<newline>
 <p>
 Use a CDR format compatible with the status interface CDR format (<tt/1/)
 or build a custom CDR strings from the <bf/CDRString/ parametrized string.
+<p>
+The StandardCDRFormat is equivalent to this definition:
+<descrip>
+<tt/TimestampFormat=RFC822/<newline>
+<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|{callee-epid}|%{dest-info}|%{src-info}|%g;</tt><newline>
+</descrip>
 
 <item>
 <tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-Station-Id}|%d|%c/<newline>
