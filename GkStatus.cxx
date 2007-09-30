@@ -865,7 +865,7 @@ bool StatusClient::WriteString(
 	if (m_isFilteringActive && (IsExcludeMessage(msg) || !IsIncludeMessage(msg)))
 	    return false;
 	
-	if (!WriteData(msg, msg.GetSize()))
+	if (!WriteData(msg, msg.GetLength()))
 	    while (CanFlush())
 		Flush();
 
