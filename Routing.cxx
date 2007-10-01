@@ -976,11 +976,14 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 					epid += "_" + AsString(lrq.m_sourceInfo, false);
 			}
+			if (epid.IsEmpty()) {
+				epid = "unknown";	// make sure its not empty
+			}
 			PString * callSigAdr = new PString(); /* unused for LRQs */
 			PString sourceInfo = "";
 			if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 				sourceInfo = AsString(lrq.m_sourceInfo);
-			PString callID = "";	/* not available for LRQs */
+			PString callID = "-";	/* not available for LRQs */
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, vq, sourceInfo, callID))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 			if (aliases->GetSize() == 0) {
