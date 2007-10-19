@@ -149,35 +149,26 @@ void CapacityControl::LoadConfig()
 				if (!(ip == "*" || ip == "any"))
 					addr = NetworkAddress(ip);
 
-				ipCallVolumes.resize(ipCallVolumes.size() + 1);
-				ipRule = ipCallVolumes.end() - 1;
-				ipRule->first = addr;
-				ipRule->second.m_sourceAddress = addr;
+				ipCallVolumes.push_back(IpCallVolume(addr, InboundIPCallVolume(addr)));
 				newIpRule = true;
 	
-				rule = &(ipRule->second);
+				rule = &(ipCallVolumes.back().second);
 			} else if (key.Find("h323id:") == 0) {
 				H225_AliasAddress alias;
 				const PString h323id = key.Mid(7).Trim();
 				H323SetAliasAddress(h323id, alias, H225_AliasAddress::e_h323_ID);
 
-				h323IdCallVolumes.resize(h323IdCallVolumes.size() + 1);
-				h323IdRule = h323IdCallVolumes.end() - 1;
-				h323IdRule->first = alias;
-				h323IdRule->second.m_sourceH323Id = alias;
+				h323IdCallVolumes.push_back(H323IdCallVolume(alias, InboundH323IdCallVolume(alias)));
 				newH323IdRule = true;
 				
-				rule = &(h323IdRule->second);
+				rule = &(h323IdCallVolumes.back().second);
 			} else if (key.Find("cli:") == 0) {
-				const PString cli = key.Mid(4).Trim();
+				const std::string cli((const char*)(key.Mid(4).Trim()));
 
-				cliCallVolumes.resize(cliCallVolumes.size() + 1);
-				cliRule = cliCallVolumes.end() - 1;
-				cliRule->first = string((const char*)cli);
-				cliRule->second.m_sourceCLI = string((const char*)cli);
+				cliCallVolumes.push_back(CLICallVolume(cli, InboundCLICallVolume(cli)));
 				newCLIRule = true;
 				
-				rule = &(cliRule->second);
+				rule = &(cliCallVolumes.back().second);
 			} else {
 				PTRACE(1, "CAPCTRL\tUknown CapacityControl rule: " << key << '=' 
 					<< kv.GetDataAt(i)
@@ -191,11 +182,11 @@ void CapacityControl::LoadConfig()
 					<< kv.GetDataAt(i)
 					);
 				if (newIpRule)
-					ipCallVolumes.erase(ipRule);
+					ipCallVolumes.pop_back();
 				else if (newH323IdRule)
-					h323IdCallVolumes.erase(h323IdRule);
+					h323IdCallVolumes.pop_back();
 				else if (newCLIRule)
-					cliCallVolumes.erase(cliRule);
+					cliCallVolumes.pop_back();
 				continue;
 			}
 	
@@ -219,49 +210,43 @@ void CapacityControl::LoadConfig()
 	std::stable_sort(cliCallVolumes.begin(), cliCallVolumes.end(), CLIRule_greater());
 
 	// update route entries that have not changed
-	for (unsigned i = 0; i < ipCallVolumes.size(); ++i) {
-		IpCallVolumes::iterator rule = m_ipCallVolumes.begin();
+	{
+		IpCallVolumes::const_iterator rule = m_ipCallVolumes.begin();
 		while (rule != m_ipCallVolumes.end()) {
-			rule = find(
-				rule, m_ipCallVolumes.end(), ipCallVolumes[i]
+			IpCallVolumes::iterator matchingRule = find(
+				ipCallVolumes.begin(), ipCallVolumes.end(), *rule
 				);
-			if (rule == m_ipCallVolumes.end())
-				break;
-			if (rule->second == ipCallVolumes[i].second) {
-				ipCallVolumes[i].second.m_currentVolume = rule->second.m_currentVolume;
-				ipCallVolumes[i].second.m_calls = rule->second.m_calls;
+			if (matchingRule != ipCallVolumes.end() && matchingRule->second == rule->second) {
+				matchingRule->second.m_currentVolume = rule->second.m_currentVolume;
+				matchingRule->second.m_calls = rule->second.m_calls;
 			}
 			++rule;
 		}
 	}
 
-	for (unsigned i = 0; i < h323IdCallVolumes.size(); ++i) {
-		H323IdCallVolumes::iterator rule = m_h323IdCallVolumes.begin();
+	{
+		H323IdCallVolumes::const_iterator rule = m_h323IdCallVolumes.begin();
 		while (rule != m_h323IdCallVolumes.end()) {
-			rule = find(
-				rule, m_h323IdCallVolumes.end(), h323IdCallVolumes[i]
+			H323IdCallVolumes::iterator matchingRule = find(
+				h323IdCallVolumes.begin(), h323IdCallVolumes.end(), *rule
 				);
-			if (rule == m_h323IdCallVolumes.end())
-				break;
-			if (rule->second == h323IdCallVolumes[i].second) {
-				h323IdCallVolumes[i].second.m_currentVolume = rule->second.m_currentVolume;
-				h323IdCallVolumes[i].second.m_calls = rule->second.m_calls;
+			if (matchingRule != h323IdCallVolumes.end() && matchingRule->second == rule->second) {
+				matchingRule->second.m_currentVolume = rule->second.m_currentVolume;
+				matchingRule->second.m_calls = rule->second.m_calls;
 			}
 			++rule;
 		}
 	}
 
-	for (unsigned i = 0; i < cliCallVolumes.size(); ++i) {
-		CLICallVolumes::iterator rule = m_cliCallVolumes.begin();
+	{
+		CLICallVolumes::const_iterator rule = m_cliCallVolumes.begin();
 		while (rule != m_cliCallVolumes.end()) {
-			rule = find(
-				rule, m_cliCallVolumes.end(), cliCallVolumes[i]
+			CLICallVolumes::iterator matchingRule = find(
+				cliCallVolumes.begin(), cliCallVolumes.end(), *rule
 				);
-			if (rule == m_cliCallVolumes.end())
-				break;
-			if (rule->second == cliCallVolumes[i].second) {
-				cliCallVolumes[i].second.m_currentVolume = rule->second.m_currentVolume;
-				cliCallVolumes[i].second.m_calls = rule->second.m_calls;
+			if (matchingRule != cliCallVolumes.end() && matchingRule->second == rule->second) {
+				matchingRule->second.m_currentVolume = rule->second.m_currentVolume;
+				matchingRule->second.m_calls = rule->second.m_calls;
 			}
 			++rule;
 		}
@@ -521,7 +506,6 @@ void CapacityControl::LogCall(
 			++bestCliMatch;
 		}
 	}
-	
 }
 
 bool CapacityControl::CheckCall(

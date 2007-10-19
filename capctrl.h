@@ -39,18 +39,24 @@ public:
 	};
 
 	struct InboundIPCallVolume : public InboundCallVolume {
+		InboundIPCallVolume(const NetworkAddress &addr) : m_sourceAddress(addr) {}
+		
 		bool operator==(const InboundIPCallVolume &) const;
 		
 		NetworkAddress m_sourceAddress; /// source IP address to match
 	};
 
 	struct InboundH323IdCallVolume : public InboundCallVolume {
+		InboundH323IdCallVolume(const H225_AliasAddress &alias) : m_sourceH323Id(alias) {}
+		
 		bool operator==(const InboundH323IdCallVolume &) const;
 		
 		H225_AliasAddress m_sourceH323Id; /// source alias to match
 	};
 
 	struct InboundCLICallVolume : public InboundCallVolume {
+		InboundCLICallVolume(const std::string &cli) : m_sourceCLI(cli) {}
+		
 		bool operator==(const InboundCLICallVolume &) const;
 		
 		std::string m_sourceCLI; /// source CLI to match
