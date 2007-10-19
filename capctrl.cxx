@@ -481,7 +481,7 @@ void CapacityControl::LogCall(
 		}
 
 		H323IdCallVolumes::iterator bestH323IdMatch = m_h323IdCallVolumes.begin();
-		if (bestH323IdMatch != m_h323IdCallVolumes.end()) {
+		while (bestH323IdMatch != m_h323IdCallVolumes.end()) {
 			std::list<PINDEX>::iterator i = find(bestH323IdMatch->second.m_calls.begin(),
 				bestH323IdMatch->second.m_calls.end(), callNumber
 				);
@@ -494,7 +494,7 @@ void CapacityControl::LogCall(
 		}
 
 		CLICallVolumes::iterator bestCliMatch = m_cliCallVolumes.begin();
-		if (bestCliMatch != m_cliCallVolumes.end()) {
+		while (bestCliMatch != m_cliCallVolumes.end()) {
 			std::list<PINDEX>::iterator i = find(bestCliMatch->second.m_calls.begin(),
 				bestCliMatch->second.m_calls.end(), callNumber
 				);
