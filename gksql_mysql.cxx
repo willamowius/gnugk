@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2007/09/10 18:13:48  willamowius
+ * clean up sql driver interface and remove unused methods from all drivers
+ *
  * Revision 1.8  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -333,6 +336,11 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 		return NULL;
 	}
 	mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&CONNECT_TIMEOUT);
+
+#if (MYSQL_VERSION_ID >= 50013)
+	my_bool reconnect = 1;	// enable auto-reconnect, older versions have it on by default
+	mysql_options(conn, MYSQL_OPT_RECONNECT, &reconnect);
+#endif
 
 	// connect to the MySQL database, try each host on the list in case of failure
 	if (mysql_real_connect(conn, m_host, m_username, 
