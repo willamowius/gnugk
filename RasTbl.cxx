@@ -380,8 +380,8 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 PString EndpointRec::PrintPrefixCapacities() const
 {
 	PString msg;
-	msg += PString("-- Endpoint: ") + AsString(m_terminalAliases, FALSE) + " (" + AsDotString(GetCallSignalAddress()) + ") --\n";
-	msg += "Total calls = " + PString(m_activeCall) + "\n";
+	msg += PString("-- Endpoint: ") + AsString(m_terminalAliases, FALSE) + " (" + AsDotString(GetCallSignalAddress()) + ") --\r\n";
+	msg += "Total calls = " + PString(m_activeCall) + "\r\n";
 	list<pair<string, int> >::const_iterator Iter = m_prefixCapacities.begin();
 	while (Iter != m_prefixCapacities.end()) {
 		string prefix = Iter->first;
@@ -393,7 +393,7 @@ PString EndpointRec::PrintPrefixCapacities() const
 		} else {
 			PTRACE(1, "CODING ERROR no stats for prefix " << prefix);
 		}
-		msg += PString("prefix/capacity/curr: ") + prefix + "/" + PString(capacity) + "/" + PString(calls) + "\n";
+		msg += PString("prefix/capacity/curr: ") + prefix + "/" + PString(capacity) + "/" + PString(calls) + "\r\n";
 		++Iter;
 	}
 	return msg;
@@ -1478,7 +1478,7 @@ void RegistrationTable::PrintRemoved(USocket *client, BOOL verbose)
 
 void RegistrationTable::PrintPrefixCapacities(USocket *client, PString alias) const
 {
-	PString msg = "PrefixCapacities\n";
+	PString msg = "PrefixCapacities\r\n";
 	listLock.StartRead();
 	for (const_iterator Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter) {
 		if (alias.IsEmpty() || (AsString((*Iter)->GetAliases()[0], FALSE).ToLower() == alias.ToLower()))
@@ -1487,7 +1487,7 @@ void RegistrationTable::PrintPrefixCapacities(USocket *client, PString alias) co
 	listLock.EndRead();
 	// end of lock
 
-	msg += ";\n";
+	msg += ";\r\n";
 	client->TransmitData(msg);
 }
 

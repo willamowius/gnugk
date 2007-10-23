@@ -834,6 +834,8 @@ bool StatusClient::ReadCommand(
 				byte = char(read);
 				m_currentCmd += byte;
 				cmd = m_currentCmd.Right(3);
+				// Note: this only works if the telnet client doesn't buffer characters
+				// Windows doesn't, my Linux telnet does
 				if (cmd == "\x1b\x5b\x41") { // Up Arrow
 					if (echo && NeedEcho()) {
 						for(PINDEX i = 0; i < m_currentCmd.GetLength() - 3; i ++)
@@ -1232,7 +1234,7 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_UnregisterAllEndpoints:
 		SoftPBX::UnregisterAllEndpoints();
-		WriteString("Done\n;\n");
+		WriteString("Done\r\n;\r\n");
 		break;
 	case GkStatus::e_UnregisterAlias:
 		// unregister this alias
