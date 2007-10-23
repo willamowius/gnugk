@@ -1067,7 +1067,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 	PString msg = EndpointRec::PrintOn(verbose);
 	if (verbose) {
 		msg += "Prefixes: ";
-		if (Prefixes.size() == 0) {
+		if (Prefixes.empty()) {
 			msg += "<none>";
 		} else {
 			PString m = PString(Prefixes.begin()->first);
@@ -2463,7 +2463,7 @@ bool CallRec::SingleFailoverCDR() const
 int CallRec::GetNoCallAttempts() const
 {
 	int attempts = m_failedRoutes.size();
-	if (m_newRoutes.size() > 0)
+	if (!m_newRoutes.empty())
 		attempts += 1;
 	return attempts;
 }

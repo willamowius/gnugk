@@ -74,7 +74,7 @@ void AlternateGKs::Set(const H225_ArrayOf_AlternateGK & agk)
 
 bool AlternateGKs::Get(PIPSocket::Address & gkaddr, WORD & gkport)
 { 
-	if (AltGKs.size() > 0) {
+	if (!AltGKs.empty()) {
 		if (index == AltGKs.end()) {
 			index = AltGKs.begin();
 			// switch back to original GK

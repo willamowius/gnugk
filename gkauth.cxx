@@ -2185,7 +2185,7 @@ PrefixAuth::PrefixAuth(
 		rls = NULL;
 	}
 
-	if (m_prefrules.size() == 0)
+	if (m_prefrules.empty())
 		PTRACE(1, "GKAUTH\t" << GetName() << " contains no rules - "
 			"check the config"
 			);

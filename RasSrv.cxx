@@ -874,7 +874,7 @@ void RasServer::LoadConfig()
 			}
 		}
 	}
-	if ((m_socksize == 0) || (interfaces.size() == 0)) {
+	if ((m_socksize == 0) || (interfaces.empty())) {
 		PTRACE(1, "Error: No valid RAS socket!");
 		return;
 	}
@@ -932,7 +932,7 @@ WORD RasServer::GetRequestSeqNum()
 GkInterface *RasServer::SelectInterface(const Address & addr)
 {
 	ifiterator iter, eiter = interfaces.end();
-	if (interfaces.size() == 0)
+	if (interfaces.empty())
 		return NULL;
 	iter = find_if(interfaces.begin(), eiter, bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
 	return (iter != eiter) ? *iter : interfaces.front();
@@ -1189,7 +1189,7 @@ void RasServer::Run()
 
 	LoadConfig();
 
-	if ((m_socksize > 0) && (interfaces.size() > 0)) {
+	if ((m_socksize > 0) && (!interfaces.empty())) {
 		callptr nullcall;
 		acctList->LogAcctEvent(GkAcctLogger::AcctOn,nullcall);
 

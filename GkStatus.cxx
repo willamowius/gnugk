@@ -1523,7 +1523,7 @@ void StatusClient::PrintFilters(
     unsigned int index = 0;
     PString count;
 
-    if (regexFilters.size() == 0) {
+    if (regexFilters.empty()) {
 		PString msg("No Filters are defined\r\n");
 		WriteData(msg, msg.GetLength());
 		return;
