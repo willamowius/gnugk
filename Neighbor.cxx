@@ -947,17 +947,16 @@ void NeighborList::OnReload()
 	PINDEX i, sz = cfgs.GetSize();
 	List::iterator iter = m_neighbors.begin();
 	while (iter != m_neighbors.end()) {
-		List::iterator it = iter++;
 		for (i = 0; i < sz; ++i)
-			if ((*it)->GetId() == cfgs.GetKeyAt(i))
+			if ((*iter)->GetId() == cfgs.GetKeyAt(i))
 				break;
 		if (i == sz) {
-			Neighbor * r = *it;
-			m_neighbors.erase(it);
+			Neighbor * r = *iter;
+			iter = m_neighbors.erase(iter);
 			delete r;
 			r = NULL;
-			iter = m_neighbors.begin();	// reset iterator after changing container
 		}
+		else ++iter;
 	}
 	for (i = 0; i < sz; ++i) {
 		const PString & nbid = cfgs.GetKeyAt(i);

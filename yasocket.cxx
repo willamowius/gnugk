@@ -930,13 +930,12 @@ void TCPServer::CleanUp()
 	WriteLock lock(m_listmutex);
 	iterator iter = m_sockets.begin();
 	while (iter != m_sockets.end()) {
-		iterator i = iter++;
-		TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(*i);
+		TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(*iter);
 		if (listener && listener->IsTimeout(&now)) {
-			m_sockets.erase(i);
+			iter = m_sockets.erase(iter);
 			--m_socksize;
 			delete listener;
-			iter = m_sockets.begin();
 		}
+		else ++iter;
 	}
 }

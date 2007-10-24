@@ -830,9 +830,8 @@ void RasServer::LoadConfig()
 	}
 
 	SocketsReader::CleanUp();
-	ifiterator biter = interfaces.begin();
-	while (biter != interfaces.end()) {
-		ifiterator iter = biter++;
+	ifiterator iter = interfaces.begin();
+	while (iter != interfaces.end()) {
 		int i = -1;
 		while (++i < hsize)
 			if ((*iter)->IsBoundTo(&GKHome[i]))
@@ -840,10 +839,10 @@ void RasServer::LoadConfig()
 		if (i == hsize) {
 			// close unused listeners
 			GkInterface * r = *iter;
-			interfaces.erase(iter);
+			iter = interfaces.erase(iter);
 			delete r;
-			biter = interfaces.begin();
 		}
+		else ++iter;
 	}
 	if (broadcastListener && !bUseBroadcastListener) {
 		broadcastListener->Close();
@@ -854,8 +853,7 @@ void RasServer::LoadConfig()
 
 	for (int i = 0; i < hsize; ++i) {
 		Address addr(GKHome[i]);
-		biter = interfaces.begin();
-		ifiterator iter = find_if(biter, interfaces.end(), bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
+		ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
 		if (iter == interfaces.end()) {
 			GkInterface *gkif = CreateInterface(addr);
 			if (gkif->CreateListeners(this))

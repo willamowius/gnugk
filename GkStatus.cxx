@@ -750,15 +750,14 @@ void GkStatus::CleanUp()
 		PWaitAndSignal lock(m_rmutex);
 		iterator iter = m_removed.begin();
 		while (iter != m_removed.end()) {
-			iterator i = iter++;
-			StatusClient *client = static_cast<StatusClient *>(*i);
+			StatusClient *client = static_cast<StatusClient *>(*iter);
 			if (!client->IsBusy()) {
-				m_removed.erase(i);
+				iter = m_removed.erase(iter);
 				--m_rmsize;
 				delete client;
 				client = NULL;
-				iter = m_removed.begin();	// reset iterator after changing list
 			}
+			else ++iter;
 		}
 	}
 	RemoveClosed(false);

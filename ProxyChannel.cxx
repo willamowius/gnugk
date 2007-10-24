@@ -4745,17 +4745,13 @@ void ProxyHandler::CleanUp()
 	if (m_rmsize > 0) {
 		PTime now;
 		PWaitAndSignal lock(m_rmutex);
-		iterator i = m_removed.begin();
-		std::list<PTime *>::iterator ti = m_removedTime.begin();
-		while (i != m_removed.end() && (now - **ti) >= m_socketCleanupTimeout) {
-			IPSocket * s = *i;
-			PTime * t = *ti;
-			m_removed.erase(i);
-			m_removedTime.erase(ti);
+		while (!m_removed.empty() && (now - **m_removedTime.begin()) >= m_socketCleanupTimeout) {
+			IPSocket * s = *m_removed.begin();
+			PTime * t = *m_removedTime.begin();
+			m_removed.erase(m_removed.begin());
+			m_removedTime.erase(m_removedTime.begin());
 			delete s;
 			delete t;
-			i = m_removed.begin();
-			ti = m_removedTime.begin();
 			--m_rmsize;
 		}
 	}

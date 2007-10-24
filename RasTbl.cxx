@@ -1556,9 +1556,8 @@ void RegistrationTable::LoadConfig()
 	// first, remove permanent endpoints deleted from the config
 	{
 		WriteLock lock(listLock);
-		iterator iter = EndpointList.begin(), endIter = EndpointList.end();
-		while (iter != endIter) {
-			iterator epIter = iter++;
+		iterator epIter = EndpointList.begin();
+		while (epIter != EndpointList.end()) {
 			EndpointRec *ep = *epIter;
 			if (!ep->IsPermanent())
 				continue;
@@ -1576,11 +1575,11 @@ void RegistrationTable::LoadConfig()
 				SoftPBX::DisconnectEndpoint(endptr(ep));
 				ep->Unregister();
 				RemovedList.push_back(ep);
-				EndpointList.erase(epIter);
+				epIter = EndpointList.erase(epIter);
 				--regSize;
 				PTRACE(2, "Permanent endpoint " << ep->GetEndpointIdentifier().GetValue() << " removed");
-				// TODO: check if we need to reset iterator here
 			}
+			else ++epIter;
 		}
 	}
 	
@@ -1676,19 +1675,18 @@ void RegistrationTable::CheckEndpoints()
 	PTime now;
 	WriteLock lock(listLock);
 
-	iterator Iter = EndpointList.begin(), eIter = EndpointList.end();
-	while (Iter != eIter) {
-		iterator i = Iter++;
-		EndpointRec *ep = *i;
+	iterator Iter = EndpointList.begin();
+	while (Iter != EndpointList.end()) {
+		EndpointRec *ep = *Iter;
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
 			SoftPBX::DisconnectEndpoint(endptr(ep));
 			ep->Expired();
 			RemovedList.push_back(ep);
-			EndpointList.erase(i);
-			// TODO: check if we need to reset iterator here
+			Iter = EndpointList.erase(Iter);
 			--regSize;
 			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " expired.");
 		}
+		else ++Iter;
 	}
 
 	Iter = partition(OuterZoneList.begin(), OuterZoneList.end(),
