@@ -222,6 +222,10 @@ private:
 		PString cmd
 		);
 
+	/** Print error message to status port and trace
+	*/
+	void CommandError(const PString & msg);
+
     // Adds regular expression filter
     void AddFilter(
 	// filter vector
@@ -237,7 +241,7 @@ private:
 	// filter vector
 	std::vector<PString>& regexFilters,
 	// Index of filter to be removed
-	const PINDEX index
+	unsigned int index
 	);
 
     // Checks whether the given string is to be exclude
@@ -1106,6 +1110,12 @@ PString StatusClient::GetPassword(
 		? Toolkit::Instance()->ReadPassword(authsec, login, true) : PString();
 }
 
+void StatusClient::CommandError(const PString & msg)
+{
+	WriteString(msg + "\r\n");
+	PTRACE(2, "STATUS\t" + msg + " from client " << Name());
+}
+
 void StatusClient::ExecCommand(
 	/// the command to be executed
 	PString cmd
@@ -1122,38 +1132,30 @@ void StatusClient::ExecCommand(
 		// disconnect call on this IP number
 		if (args.GetSize() == 2)
 			SoftPBX::DisconnectIp(args[1]);
-		else {
-			WriteString("Syntax Error: DisconnectIp IP_ADDRESS\r\n");
-			PTRACE(2, "Syntax Error: DisconnectIp IP_ADDRESS");
-		}
+		else
+			CommandError("Syntax Error: DisconnectIp IP_ADDRESS");
 		break;
 	case GkStatus::e_DisconnectAlias:
 		// disconnect call on this alias
 		if (args.GetSize() == 2)
 			SoftPBX::DisconnectAlias(args[1]);
-		else {
-			WriteString("Syntax Error: DisconnectAlias ALIAS\r\n");
-			PTRACE(2, "Syntax Error: DisconnectAlias ALIAS");
-		}
+		else
+			CommandError("Syntax Error: DisconnectAlias ALIAS");
 		break;
 	case GkStatus::e_DisconnectCall:
 		// disconnect call with this call number
 		if (args.GetSize() >= 2)
 			for (PINDEX p=1; p < args.GetSize(); ++p)
 				SoftPBX::DisconnectCall(args[p].AsInteger());
-		else {
-			WriteString("Syntax Error: DisconnectCall CALL_NUMBER [CALL_NUMBER...]\r\n");
-			PTRACE(2, "Syntax Error: DisconnectCall CALL_NUMBER [CALL_NUMBER...]");
-		}
+		else
+			CommandError("Syntax Error: DisconnectCall CALL_NUMBER [CALL_NUMBER...]");
 		break;
 	case GkStatus::e_DisconnectEndpoint:
 		// disconnect call on this alias
 		if (args.GetSize() == 2)
 			SoftPBX::DisconnectEndpoint(args[1]);
-		else {
-			WriteString("Syntax Error: DisconnectEndpoint ENDPOINT_IDENTIFIER\r\n");
-			PTRACE(2, "Syntax Error: DisconnectEndpoint ENDPOINT_IDENTIFIER");
-		}
+		else
+			CommandError("Syntax Error: DisconnectEndpoint ENDPOINT_IDENTIFIER");
 		break;
 	case GkStatus::e_DisconnectSession:
 		// disconnect a user from status port
@@ -1162,10 +1164,8 @@ void StatusClient::ExecCommand(
 				WriteString("Session " + args[1] + " disconnected\r\n");
 			else
 				WriteString("Session " + args[1] + " not found\r\n");
-		else {
-			WriteString("Syntax Error: DisconnectSession SESSION_ID\r\n");
-			PTRACE(2, "Syntax Error: DisconnectSession SESSION_ID");
-		}
+		else
+			CommandError("Syntax Error: DisconnectSession SESSION_ID");
 		break;
 	case GkStatus::e_ClearCalls:
 		SoftPBX::DisconnectAll();
@@ -1196,18 +1196,14 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_Find:
 		if (args.GetSize() == 2)
 			SoftPBX::PrintEndpoint(args[1], this, FALSE);
-		else {
-			WriteString("Syntax Error: Find ALIAS\r\n");
-			PTRACE(2, "Syntax Error: Find ALIAS");
-		}
+		else
+			CommandError("Syntax Error: Find ALIAS");
 		break;
 	case GkStatus::e_FindVerbose:
 		if (args.GetSize() == 2)
 			SoftPBX::PrintEndpoint(args[1], this, TRUE);
-		else {
-			WriteString("Syntax Error: FindVerbose ALIAS\r\n");
-			PTRACE(2, "Syntax Error: FindVerbose ALIAS");
-		}
+		else
+			CommandError("Syntax Error: FindVerbose ALIAS");
 		break;
 	case GkStatus::e_Yell:
 		m_gkStatus->SignalStatus(PString("  "+ WhoAmI() + ": " + cmd + "\r\n"));
@@ -1239,35 +1235,27 @@ void StatusClient::ExecCommand(
 		// unregister this alias
 		if (args.GetSize() == 2)
 			SoftPBX::UnregisterAlias(args[1]);
-		else {
-			WriteString("Syntax Error: UnregisterAlias ALIAS\r\n");
-			PTRACE(2, "Syntax Error: UnregisterAlias ALIAS");
-		}
+		else
+			CommandError("Syntax Error: UnregisterAlias ALIAS");
 		break;
 	case GkStatus::e_UnregisterIp:
 		// unregister this IP
 		if (args.GetSize() == 2)
 			SoftPBX::UnregisterIp(args[1]);
-		else {
-			WriteString("Syntax Error: UnregisterIp IP_ADDRESS\r\n");
-			PTRACE(2, "Syntax Error: UnregisterIp IP_ADDRESS");
-		}
+		else
+			CommandError("Syntax Error: UnregisterIp IP_ADDRESS");
 		break;
 	case GkStatus::e_TransferCall:
 		if (args.GetSize() == 3)
 			SoftPBX::TransferCall(args[1], args[2]);
-		else {
-			WriteString("Syntax Error: TransferCall SOURCE DESTINATION\r\n");
-			PTRACE(2, "Syntax Error: TransferCall SOURCE DESTINATION");
-		}
+		else
+			CommandError("Syntax Error: TransferCall SOURCE DESTINATION");
 		break;
 	case GkStatus::e_MakeCall:
 		if (args.GetSize() == 3)
 			SoftPBX::MakeCall(args[1], args[2]);
-		else {
-			WriteString("Syntax Error: MakeCall SOURCE DESTINATION\r\n");
-			PTRACE(2, "Syntax Error: MakeCall SOURCE DESTINATION");
-		}
+		else
+			CommandError("Syntax Error: MakeCall SOURCE DESTINATION");
 		break;
 	case GkStatus::e_Reload:
 		{
@@ -1280,8 +1268,7 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_Shutdown:
 		if (!Toolkit::AsBool(GkConfig()->GetString(authsec, "Shutdown", "1"))) {
-			WriteString("Shutdown not allowed!\r\n");
-			PTRACE(2, "Shutdown not allowed!");
+			CommandError("Shutdown not allowed!");
 			break;
 		}
 		SoftPBX::PrintStatistics(this, true);
@@ -1294,10 +1281,8 @@ void StatusClient::ExecCommand(
 			args[4].Replace("-", " ", true);
 			args[4] = args[4].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4]);
-		} else {
-			WriteString("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
-			PTRACE(2, "Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID]");
-		}
+		} else
+			CommandError("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID]");
 		break;
 	case GkStatus::e_RouteToGateway:
 		if (args.GetSize() == 5) {
@@ -1306,10 +1291,8 @@ void StatusClient::ExecCommand(
 			args[5].Replace("-", " ", true);
 			args[5] = args[5].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5]);
-		} else {
-			WriteString("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
-			PTRACE(2, "Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]");
-		}
+		} else
+			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]");
 		break;
 	case GkStatus::e_RouteReject:
 		if (args.GetSize() == 3) {
@@ -1318,10 +1301,8 @@ void StatusClient::ExecCommand(
 			args[3].Replace("-", " ", true);
 			args[3] = args[3].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned(), args[3]);
-		} else {
-			WriteString("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV [CALLID]\r\n");
-			PTRACE(2, "Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV [CALLID]");
-		}
+		} else
+			CommandError("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV [CALLID]");
 		break;
 	case GkStatus::e_Trace:
 		if (args.GetSize() == 2) {
@@ -1335,8 +1316,7 @@ void StatusClient::ExecCommand(
 					&& level <= MAX_STATUS_TRACE_LEVEL)
 					m_traceLevel = level;
 				else {
-					WriteString("Syntax Error: trace 0|1|2|\"min\"|\"max\"\r\n");
-					PTRACE(2, "Syntax Error: trace 0|1|2|\"min\"|\"max\"");
+					CommandError("Syntax Error: trace 0|1|2|\"min\"|\"max\"");
 					break;
 				}
 			}
@@ -1356,65 +1336,51 @@ void StatusClient::ExecCommand(
 		if (args.GetSize() == 2) {
 			if (Gatekeeper::SetLogFilename(args[1])) {
 				WriteString("Logging to the file '" + args[1] + "'\r\n");
-			} else {					
-				WriteString("Failed to open the log file'" + args[1] + "'\r\n");
-				PTRACE(2, "Failed to open the log file'" + args[1] + "'");
-			}
-		} else {
-			WriteString("Syntax Error: setlog <logfilepath>\r\n");
-			PTRACE(2, "Syntax Error: setlog <logfilepath>");
-		}
+			} else
+				CommandError("Failed to open the log file'" + args[1] + "'");
+		} else
+			CommandError("Syntax Error: setlog <logfilepath>");
 		break;				
 #endif
 
 	case GkStatus::e_AddIncludeFilter:
 	    if (args.GetSize() == 2) {
-		AddFilter(m_includeFilterRegex, args[1]);
-	    } else {
-			WriteString("Syntax Error: addincludefilter REGEX\r\n");
-			PTRACE(2, "Syntax Error: addincludefilter REGEX");
-		}
+			AddFilter(m_includeFilterRegex, args[1]);
+	    } else
+			CommandError("Syntax Error: addincludefilter REGEX");
 	    break;
 	case GkStatus::e_RemoveIncludeFilter:
 	    if (args.GetSize() == 2) {
-		RemoveFilter(m_includeFilterRegex, atoi(args[1]));
-	    } else {
-			WriteString("Syntax Error: removeincludefilter FILTER_INDEX\r\n");
-			PTRACE(2, "Syntax Error: removeincludefilter FILTER_INDEX");
-		}
+			RemoveFilter(m_includeFilterRegex, atoi(args[1]));
+	    } else
+			CommandError("Syntax Error: removeincludefilter FILTER_INDEX");
 	    break;
 	case GkStatus::e_AddExcludeFilter:
 	    if (args.GetSize() == 2) {
-		AddFilter(m_excludeFilterRegex, args[1]);
-	    } else {
-			WriteString("Syntax Error: addexcludefilter REGEX\r\n");
-			PTRACE(2, "Syntax Error: addexcludefilter REGEX");
-		}
+			AddFilter(m_excludeFilterRegex, args[1]);
+	    } else
+			CommandError("Syntax Error: addexcludefilter REGEX");
 	    break;
 	case GkStatus::e_RemoveExcludeFilter:
 	    if (args.GetSize() == 2) {
-		RemoveFilter(m_excludeFilterRegex, atoi(args[1]));
-	    } else {
-			WriteString("Syntax Error: removeincludefilter FILTER_INDEX\r\n");
-			PTRACE(2, "Syntax Error: removeincludefilter FILTER_INDEX");
-		}
+			RemoveFilter(m_excludeFilterRegex, atoi(args[1]));
+	    } else
+			CommandError("Syntax Error: removeincludefilter FILTER_INDEX");
 	    break;
 	case GkStatus::e_Filter:
 	    if (args.GetSize() == 2) {
-		if (!(args[1] *= "0") && !(args[1] *= "1")) {
-		    WriteString("Syntax Error: filter 0|1\r\n");
-			PTRACE(2, "Syntax Error: filter 0|1");
-		    break;
-		}
-		m_isFilteringActive = Toolkit::AsBool(args[1]);
+			if (!(args[1] *= "0") && !(args[1] *= "1")) {
+				CommandError("Syntax Error: filter 0|1");
+				break;
+			}
+			m_isFilteringActive = Toolkit::AsBool(args[1]);
 	    }
 	    if (m_isFilteringActive) {
-		PString msg("Filtering is active\r\n");
-		WriteData(msg, msg.GetLength());
-	    }
-	    else {
-		PString msg("Filtering is not active\r\n");
-		WriteData(msg, msg.GetLength());
+			PString msg("Filtering is active\r\n");
+			WriteData(msg, msg.GetLength());
+	    } else {
+			PString msg("Filtering is not active\r\n");
+			WriteData(msg, msg.GetLength());
 	    }
 	    break;
 	case GkStatus::e_PrintExcludeFilters:
@@ -1428,18 +1394,15 @@ void StatusClient::ExecCommand(
 			SoftPBX::PrintPrefixCapacities(this, "");
 		else if (args.GetSize() == 2)
 			SoftPBX::PrintPrefixCapacities(this, args[1]);
-		else {
-			WriteString("Syntax Error: PrintPrefixCapacities [ALIAS]\r\n");
-			PTRACE(2, "Syntax Error: PrintPrefixCapacities [ALIAS]");
-		}
+		else
+			CommandError("Syntax Error: PrintPrefixCapacities [ALIAS]");
 		break;
 	case GkStatus::e_PrintCapacityControlRules:
 		SoftPBX::PrintCapacityControlRules(this);
 		break;
 	default:
 		// commmand not recognized
-		WriteString("Error: Unknown command " + cmd + "\r\n");
-		PTRACE(2, "STATUS\tUnknown command '" << cmd << "' from client " << Name());
+		CommandError("Error: Unknown command '" + cmd + "'");
 		break;
 	}
 	PWaitAndSignal lock(m_cmutex);
@@ -1460,10 +1423,10 @@ void StatusClient::RemoveFilter(
     // vector of filters
     std::vector<PString>& regexFilters,
     // Index of filter to be removed
-    const PINDEX index
+    unsigned int index
     )
 {
-    if (index < 0 || index >= (PINDEX) regexFilters.size()) {
+    if (index < 0 || index >= regexFilters.size()) {
 		PString msg("Index mismatch.\r\n");
 		WriteData(msg, msg.GetLength());
 		return;
