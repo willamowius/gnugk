@@ -1469,7 +1469,7 @@ void StatusClient::RemoveFilter(
 		return;
     }
 
-    regexFilters.erase(regexFilters.begin() + index, regexFilters.begin() + index + 1);
+    regexFilters.erase(regexFilters.begin() + index);
 }
 
 bool StatusClient::IsExcludeMessage(
@@ -1488,11 +1488,10 @@ bool StatusClient::MatchFilter(
     ) const
 {
     std::vector<PString>::const_iterator it = regexFilters.begin();
-    std::vector<PString>::const_iterator itEnd = regexFilters.end();
 
-    for(; it != itEnd; ++it) {
-	if (Toolkit::MatchRegex(msg, *it))
-	    return true;
+    for(; it != regexFilters.end(); ++it) {
+		if (Toolkit::MatchRegex(msg, *it))
+			return true;
     }
 
     return false;
@@ -1511,24 +1510,19 @@ void StatusClient::PrintFilters(
     std::vector<PString>& regexFilters
     )
 {
-    std::vector<PString>::const_iterator it = regexFilters.begin();
-    std::vector<PString>::const_iterator itEnd = regexFilters.end();
-    unsigned int index = 0;
-    PString count;
+	PString msg;
 
     if (regexFilters.empty()) {
-		PString msg("No Filters are defined\r\n");
+		msg = "No Filters are defined\r\n";
 		WriteData(msg, msg.GetLength());
 		return;
     }
 
-    PString msg("Filter List:\r\n");
+    msg = "Filter List:\r\n";
     WriteData(msg, msg.GetLength());
-    for(; it != itEnd; ++it, ++index) {
-		count = index;
-		PString item(count);
-		item += ") " + *it + "\r\n";
-		WriteData(item, item.GetLength());
+    for(unsigned int index = 0; index < regexFilters.size(); index++) {
+		msg = PString(index) + ") " + regexFilters[index] + "\r\n";
+		WriteData(msg, msg.GetLength());
     }
     
     msg = ";\r\n";
