@@ -2787,7 +2787,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		session = info.m_sessionId;
 		PTRACE(4,"QoS\tPreparing QoS Report Session " << session);
 
-		H225_TransportChannelInfo & addr = info.m_rtpAddress;
+//		H225_TransportChannelInfo & addr = info.m_rtpAddress;
 
 	    H225_TransportChannelInfo & rtp = info.m_rtpAddress;
 	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_sendAddress))
