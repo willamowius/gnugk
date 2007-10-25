@@ -212,7 +212,7 @@ RasListener::RasListener(const Address & addr, WORD pt) : m_ip(addr)
 			);
 		Close();
 	}
-	SetWriteTimeout(1000); // TODO: read from config
+	SetWriteTimeout(1000);
 	SetName(AsString(addr, pt) + "(U)");
 	m_signalPort = 0;
 	// note: this won't be affected by reloading

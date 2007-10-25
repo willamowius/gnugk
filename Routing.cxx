@@ -889,8 +889,6 @@ protected:
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);
 	virtual bool OnRequest(SetupRequest &);
-	// TODO
-	//virtual bool OnRequest(FacilityRequest &);
 
 private:
 	VirtualQueue *m_vqueue;
@@ -1098,9 +1096,6 @@ public:
 protected:
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(SetupRequest &);
-	// TODO
-	//virtual bool OnRequest(LocationRequest &);
-	//virtual bool OnRequest(FacilityRequest &);
 
 private:
 	NumberAnalysisPolicy(const NumberAnalysisPolicy &);
@@ -1292,8 +1287,6 @@ protected:
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);
 	virtual bool OnRequest(SetupRequest &);
-	// TODO
-	//virtual bool OnRequest(FacilityRequest &);
 
 	virtual void DatabaseLookup(
 		/*in */

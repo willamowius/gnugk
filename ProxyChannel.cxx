@@ -591,7 +591,7 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 BOOL TCPProxySocket::Connect(const Address & iface, WORD localPort, const Address & addr)
 {
 	SetName(AsString(addr, GetPort()));
-	SetReadTimeout(PTimeInterval(6000)); // TODO: read from config...
+	SetReadTimeout(PTimeInterval(6000));
 	BOOL result = PTCPSocket::Connect(iface, localPort, addr);
 	PTimeInterval timeout(100);
 	SetReadTimeout(timeout);
@@ -4105,7 +4105,7 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 	int numPorts = min(T120PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = T120PortRange.GetPort();
-		if (remote->Connect(INADDR_ANY, pt, peerAddr)) { // TODO
+		if (remote->Connect(INADDR_ANY, pt, peerAddr)) {
 			PTRACE(3, "T120\tConnect to " << remote->GetName()
 				<< " from 0.0.0.0:" << pt << " successful"
 				);

@@ -414,7 +414,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	YaSelectList::large_fd_set fdset;
 	fdset.add(os_handle);
 	YaSelectList::large_fd_set exset = fdset;
-	struct timeval tval = { 6, 0 }; // TODO: read from config...
+	struct timeval tval = { 6, 0 };
 	if (::select(os_handle + 1, 0, fdset, exset, &tval) > 0) {
 		optval = -1;
 		::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, &optval, &optlen);
@@ -654,6 +654,7 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 				break;
 			}
 			// TODO: add break ? fallthrough intended ?
+			// has always been this way since code was written in 2003
 		default:
 			PTRACE(3, msg << " Error(" << group << "): " 
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
