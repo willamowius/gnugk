@@ -1960,7 +1960,7 @@ void CallRec::SetForward(
 		m_srcInfo += "=" + forwarder;
 	m_destInfo = altDestInfo;
 	m_nattype &= ~calledParty;
-	// FIXME: how about m_registered and m_h245Routed?
+	// TODO: how about m_registered and m_h245Routed?
 	m_usedLock.Signal();
 	if (forwarded)
 		SetCalled(forwarded);
@@ -2120,7 +2120,7 @@ void CallRec::SendDRQ()
 	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
 	drq.m_gatekeeperIdentifier = Toolkit::GKName();
 
-	// FIXME: for an outer zone endpoint, the endpoint identifier may not correct
+	// TODO: for an outer zone endpoint, the endpoint identifier may not correct
 	if (m_Called) {
 		drq.m_endpointIdentifier = m_Called->GetEndpointIdentifier();
 		RasSrv->SendRas(drq_ras, m_Called->GetRasAddress());

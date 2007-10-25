@@ -916,7 +916,7 @@ bool GkClient::GetAltGK()
 		// increase our resent time to avoid flooding the parent
 		m_timer = (m_resend *= 2) * 1000;
 		if (m_resend >= m_gkfailtime) {
-			// FIXME: not thread-safed
+			// TODO: not thread-safed
 			Toolkit::Instance()->GetRouteTable()->InitTable();
 			m_resend = m_gkfailtime;
 		}
