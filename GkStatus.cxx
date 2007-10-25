@@ -1469,15 +1469,7 @@ void StatusClient::RemoveFilter(
 		return;
     }
 
-    std::vector<PString>::iterator it = regexFilters.begin();
-
-    PINDEX i = 0;
-    while(i != index) {
-		++it;
-		++i;
-    }
-
-    regexFilters.erase(it);
+    regexFilters.erase(regexFilters.begin() + index, regexFilters.begin() + index + 1);
 }
 
 bool StatusClient::IsExcludeMessage(
