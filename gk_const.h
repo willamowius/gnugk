@@ -58,27 +58,27 @@ extern const char *H225_ProtocolID;
 // NAT Type Detection
 
 #define OID5 "1.3.6.1.4.1.17090.0.5"  // NAT Traversal support   
-#define NATInstOID       "7"   // integer 8 Instruction on how NAT is to be Traversed
+#define NATInstOID       7   // integer 8 Instruction on how NAT is to be Traversed
 
 //////////////////////////////////////////
 // Registration Priority and Pre-Emption
 
 #define OID6  "1.3.6.1.4.1.17090.0.6"  // Registration priority & pre-emption
-#define priorityOID  "1"   // integer 8 Priority number highest priority gets registration
-#define preemptOID   "2"   // bool to instruct GK to preempt previous registration
-#define priNotOID    "3"   // bool to notify EP registration RRJ (priority) UCF (higher Priority)
-#define preNotOID    "4"   // bool to notify EP registration RRJ (can preempt) UCF (was preempted)
+#define priorityOID  1   // integer 8 Priority number highest priority gets registration
+#define preemptOID   2   // bool to instruct GK to preempt previous registration
+#define priNotOID    3   // bool to notify EP registration RRJ (priority) UCF (higher Priority)
+#define preNotOID    4   // bool to notify EP registration RRJ (can preempt) UCF (was preempted)
 
 //////////////////////////////////////////
 // P2Pnat Media
 
 #define OID7 "1.3.6.1.4.1.17090.0.7"  // NAT Type detection support
-#define localNATOID      "1"    // bool if endpoint is NATed
-#define STUNServOID      "2"    // H225_TransportAddress of STUN Server 
-#define NATTypeOID       "3"    // integer 8 Endpoint NAT Type
-#define NATProxyOID      "4"    // Proxy for NAT support
-#define NATMustProxyOID  "5"    // Media must proxy
-#define remoteNATOID     "6"    // bool if endpoint has remote NAT support
+#define localNATOID      1    // bool if endpoint is NATed
+#define STUNServOID      2    // H225_TransportAddress of STUN Server 
+#define NATTypeOID       3    // integer 8 Endpoint NAT Type
+#define NATProxyOID      4    // Proxy for NAT support
+#define NATMustProxyOID  5    // Media must proxy
+#define remoteNATOID     6    // bool if endpoint has remote NAT support
 
 #define GK_DEF_STUN_PORT		3478
 
@@ -86,8 +86,8 @@ extern const char *H225_ProtocolID;
 // Remote Vendor Information
 
 #define OID9 "1.3.6.1.4.1.17090.0.9"  // Remote Vendor Information
-#define VendorProdOID      "1"    // PASN_String of productID
-#define VendorVerOID       "2"    // PASN_String of versionID
+#define VendorProdOID      1    // PASN_String of productID
+#define VendorVerOID       2    // PASN_String of versionID
 //+++++++++++++++++++++++++++++++++++++++++++++
 
 #endif
