@@ -46,12 +46,26 @@
     #endif
   #endif
  #endif
+
 // define hasSETENUMSERVERS for PWLib >= 1.9.3
  #if PWLIB_MAJOR == 1
   #if PWLIB_MINOR >= 9
      #define hasSETENUMSERVERS 1
   #endif
  #endif
+#endif
+
+#if PWLIB_MAJOR == 1
+ #if PWLIB_MINOR == 12
+     #define hasRDS 1 
+     #define hasSETENUMSERVERS 1    
+ #endif
+#endif
+
+// for Ptlib v2.x
+#ifdef PTLIB_MAJOR 
+  #define hasRDS 1 
+  #define hasSETENUMSERVERS 1    
 #endif
 
 ///////////////////////////////////////////////
@@ -65,15 +79,15 @@
 	   #endif
 	   #if OPENH323_BUILD > 4
 		#ifdef H323_H460
-			#define hasH460 1            // H460 support
+			#define hasH460 1    // H460 support
 		#endif
-		#define h323v6 1                 // Version 6 features
+		#define h323v6 1             // Version 6 features
        #endif
-     #else
+     #else // h323plus v1.20
  	   #define OpenH323Factory 1         // OpenH323 Factory Loader Auth 
-       #define h323v6 1              // Version 6 features  
-	     #ifdef H323_H460
-           #define hasH460 1	     // H460 support 
+           #define h323v6 1                  // Version 6 features  
+	 #ifdef H323_H460
+           #define hasH460 1	             // H460 support 
          #endif
 	     #ifdef P_DNS
 	       #define hasSRV 1	             // DNS SRV
