@@ -38,7 +38,7 @@ void SoftPBX::PrintEndpoint(const PString & EpStr, USocket *client, bool verbose
 	H323SetAliasAddress(EpStr, EpAlias[0]);
 	// Apply rewriting rules
 	Toolkit::Instance()->RewriteE164(EpAlias[0]);
-	endptr ep = RegistrationTable::Instance()->FindEndpoint(EpAlias, false, true);
+	endptr ep = RegistrationTable::Instance()->FindFirstEndpoint(EpAlias);
 	if (!ep) {
 		H225_EndpointIdentifier id;
 		id = EpStr;
@@ -240,7 +240,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	lBufferAliasArrayString.AppendString(SourceAlias);
 	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
 
-	lSrcForward = RegistrationTable::Instance()->FindEndpoint(lBufferAliasArray, true, true);
+	lSrcForward = RegistrationTable::Instance()->FindFirstEndpoint(lBufferAliasArray);
 	lBufferAliasArrayString.RemoveAll();
 	lBufferAliasArray.RemoveAll();
 
@@ -280,7 +280,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	lBufferAliasArrayString.AppendString(DestinationAlias);
 	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
 
-	lDestForward = RegistrationTable::Instance()->FindEndpoint(lBufferAliasArray, true, true);
+	lDestForward = RegistrationTable::Instance()->FindFirstEndpoint(lBufferAliasArray);
 	lBufferAliasArrayString.RemoveAll();
 	lBufferAliasArray.RemoveAll();
 

@@ -1301,10 +1301,10 @@ endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias)
 	return InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias));
 }
 
-endptr RegistrationTable::FindEndpoint(const H225_ArrayOf_AliasAddress & alias, bool r, bool s)
+endptr RegistrationTable::FindFirstEndpoint(const H225_ArrayOf_AliasAddress & alias)
 {
-	endptr ep = InternalFindEP(alias, &EndpointList, r);
-	return (ep) ? ep : s ? InternalFindEP(alias, &OuterZoneList, r) : endptr(0);
+	endptr ep = InternalFindFirstEP(alias, &EndpointList);
+	return (ep) ? ep : InternalFindFirstEP(alias, &OuterZoneList);
 }
 
 void RegistrationTable::FindEndpoint(
@@ -1327,8 +1327,8 @@ inline bool ComparePriority(const pair<int, GatewayRec*>& x, const pair<int, Gat
 }
 }
 
-endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias,
-	std::list<EndpointRec *> *List, bool roundrobin)
+endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & alias,
+	std::list<EndpointRec *> *List)
 {
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
 	if (ep) {
@@ -1360,17 +1360,6 @@ endptr RegistrationTable::InternalFindEP(const H225_ArrayOf_AliasAddress & alias
 		
 		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
 		GatewayRec *e = GWlist.front().second;
-		// TODO: bug ? HasCapacity && !end
-		while (!e->HasAvailableCapacity(alias) && ++i != GWlist.end()) {
-			PTRACE(5, "Capacity exceeded in GW " << AsDotString(e->GetCallSignalAddress()));
-			e = i->second;
-		}
-		if (GWlist.size() > 1 && roundrobin) {
-			PTRACE(3, "Prefix apply round robin");
-			WriteLock lock(listLock);
-			List->remove(e);
-			List->push_back(e);
-		}
 		PTRACE(4, "Prefix match for GW " << AsDotString(e->GetCallSignalAddress()));
 		return endptr(e);
 	}
