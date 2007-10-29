@@ -344,7 +344,7 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 		}
 	}
 	// check if matched prefix has capacity available
-	if ((matched_prefix.length() > 0) && (prefix_capacity > 0)) {
+	if ((matched_prefix.length() > 0) && (prefix_capacity >= 0)) {
 		map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(matched_prefix);
 		if ((calls_iter != m_activePrefixCalls.end())
 			&& (calls_iter->second >= prefix_capacity)) {
