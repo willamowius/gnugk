@@ -1511,12 +1511,12 @@ bool RegistrationRequestPDU::Process()
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
 			if (feat->Contains(priorityOID)) {
-				unsigned prior = feat->Value(priorityOID);
+				unsigned prior = feat->Value(PString(priorityOID));
 				RegPrior = (int)prior;  
 			}
 			if (feat->Contains(preemptOID)) {
 				preemptsupport = true;
-                preempt = feat->Value(preemptOID);
+                preempt = feat->Value(PString(preemptOID));
 			}
 		}
 	}
@@ -1677,7 +1677,7 @@ bool RegistrationRequestPDU::Process()
 						if ((preemptsupport) && (RegPrior == ep->Priority())) {  
 							rrj.IncludeOptionalField(H225_RegistrationReject::e_genericData);
 							H460_FeatureOID pre = H460_FeatureOID(rPriFS);
-                            pre.Add(preNotOID,H460_FeatureContent(TRUE));
+                            pre.Add(PString(preNotOID),H460_FeatureContent(TRUE));
 		                    H225_ArrayOf_GenericData & data = rrj.m_genericData;
 				               PINDEX lastPos = data.GetSize();
 				               data.SetSize(lastPos+1);
@@ -2396,8 +2396,8 @@ bool AdmissionRequestPDU::Process()
    /// OID9 Vendor Information
 	   if (vendorInfo && !m_vendor.IsEmpty()) {
 	      H460_FeatureOID fs = H460_FeatureOID(OID9);
-          fs.Add(VendorProdOID,H460_FeatureContent(m_vendor));
-          fs.Add(VendorVerOID,H460_FeatureContent(m_version));
+          fs.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
+          fs.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
           lastPos++;
 	      data.SetSize(lastPos);
 	      data[lastPos-1] = fs; 
@@ -2678,8 +2678,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	                  PString m_vendor,m_version = PString();
 	                  if (WantedEndPoint->GetEndpointInfo(m_vendor,m_version)) {
 						 H460_FeatureOID foid9 = H460_FeatureOID(OID9);
-						 foid9.Add(VendorProdOID,H460_FeatureContent(m_vendor));
-						 foid9.Add(VendorVerOID,H460_FeatureContent(m_version));
+						 foid9.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
+						 foid9.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
 						 lastPos++;
 						 data.SetSize(lastPos);
 						 data[lastPos-1] = foid9;

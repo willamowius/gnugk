@@ -241,8 +241,8 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		   /// OID9 Vendor Information
 		   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
 			   H460_FeatureOID & oid9 = (H460_FeatureOID &)data[i];
-			   PString m_vendor = oid9.Value(VendorProdOID);  // Vendor Information
-               PString m_version = oid9.Value(VendorVerOID);  // Version Information
+			   PString m_vendor = oid9.Value(PString(VendorProdOID));  // Vendor Information
+               PString m_version = oid9.Value(PString(VendorVerOID));  // Version Information
 			   SetEndpointInfo(m_vendor,m_version);
 		   }
 
@@ -653,9 +653,9 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason,  int preempti
 		urq.IncludeOptionalField(H225_UnregistrationRequest::e_genericData);
 		H460_FeatureOID pre = H460_FeatureOID(OpalOID(OID6));
 		if (preemption == 1)  // Higher Priority 
-           pre.Add(priNotOID,H460_FeatureContent(TRUE));          
+           pre.Add(PString(priNotOID),H460_FeatureContent(TRUE));          
 		else if (preemption == 2)  // Pre-empted
-           pre.Add(preNotOID,H460_FeatureContent(TRUE));
+           pre.Add(PString(preNotOID),H460_FeatureContent(TRUE));
 
 		H225_ArrayOf_GenericData & data = urq.m_genericData;
 			PINDEX lastPos = data.GetSize();
