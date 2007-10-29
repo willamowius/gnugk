@@ -298,14 +298,16 @@ IPAuthPrefix::IPAuthPrefix(const IPAuthPrefix & obj)
 
 IPAuthPrefix& IPAuthPrefix::operator=(const IPAuthPrefix & obj)
 {
-	auth = obj.auth;
-	Prefixs.clear();
+	if (this != &obj) {
+		auth = obj.auth;
+		Prefixs.clear();
 
-	const_prefix_iterator Iter = obj.Prefixs.begin();
-	const_prefix_iterator eIter = obj.Prefixs.end();
-	while (Iter != eIter) {
-		Prefixs.push_back(Iter->c_str());
-		++Iter;
+		const_prefix_iterator Iter = obj.Prefixs.begin();
+		const_prefix_iterator eIter = obj.Prefixs.end();
+		while (Iter != eIter) {
+			Prefixs.push_back(Iter->c_str());
+			++Iter;
+		}
 	}
 
 	return *this;
