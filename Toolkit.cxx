@@ -1670,7 +1670,7 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 #ifdef h323v6
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 Toolkit::AssignedGatekeepers::AssignedGatekeepers()
-  : m_sqlConn(NULL), m_sqlactive(false)
+  : m_sqlactive(false), m_sqlConn(NULL)
 {
 }
 
@@ -1863,6 +1863,7 @@ bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias,const P
 	return false;
 }
 
+#ifdef hasSRV
 static PString DNStoIP(const PString & dns)
 {
    H323TransportAddress iface(dns);
@@ -1871,6 +1872,7 @@ static PString DNStoIP(const PString & dns)
    iface.GetIpAndPort(ip, port); 
    return PString(ip + ":" + port);
 }
+#endif
 
 bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
 {

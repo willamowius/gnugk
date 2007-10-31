@@ -2851,7 +2851,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		bool fileoutput = !fn.IsEmpty();
 		bool newfile = fileoutput ? !PFile::Exists(fn) : false;
  
-		PTextFile* qosFile;
+		PTextFile* qosFile = NULL;
 		if (fileoutput) {
 			qosFile = OpenQoSFile(fn);
 			if (qosFile && qosFile->IsOpen()) {
