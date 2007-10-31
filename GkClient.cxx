@@ -341,6 +341,9 @@ GkClient::GkClient()
 
 GkClient::~GkClient()
 {
+#ifdef OpenH323Factory
+    delete m_h235Authenticators;
+#endif
 	DeleteObjectsInArray(m_handlers, m_handlers + 4);
 	delete m_gkList;
 	delete m_rewriteInfo;
