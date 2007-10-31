@@ -1548,8 +1548,10 @@ void RegistrationTable::LoadConfig()
 		iterator epIter = EndpointList.begin();
 		while (epIter != EndpointList.end()) {
 			EndpointRec *ep = *epIter;
-			if (!ep->IsPermanent())
+			if (!ep->IsPermanent()) {
+				++epIter;
 				continue;
+			}
 			// find a corresponing permanent endpoint entry in the config file
 			const H225_TransportAddress& epSigAddr = ep->GetCallSignalAddress();
 			PINDEX i;
