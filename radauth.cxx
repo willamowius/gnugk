@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.39  2007/09/11 01:02:29  willamowius
+ * clean up includes
+ *
  * Revision 1.38  2007/07/10 19:33:27  willamowius
  * allow Radius server to send multiple destinations in "h323-redirect-number" attribute for call failover (patch by Lucas Martinez)
  *
@@ -316,6 +319,7 @@ int RadAuthBase::Check(
 
 	// append Framed-IP-Address					
 	PIPSocket::Address addr;
+	const PIPSocket::Address & rx_addr = rrqPdu->m_peerAddr;
 	bool ipFound = false;
 	if (rrq.m_callSignalAddress.GetSize() > 0) {
 		if (GetIPFromTransportAddr(rrq.m_callSignalAddress[0], addr)
@@ -334,7 +338,7 @@ int RadAuthBase::Check(
 		delete pdu;
 		return e_fail;
 	} else
-		pdu->AppendAttr(RadiusAttr::FramedIpAddress, addr);
+		pdu->AppendAttr(RadiusAttr::FramedIpAddress, (rx_addr != addr)? rx_addr : addr);
 				
 	if (m_appendCiscoAttributes && m_includeTerminalAliases
 			&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
@@ -576,7 +580,8 @@ int RadAuthBase::Check(
 		arq.m_answerCall ? RadiusAttr::ST_CallCheck : RadiusAttr::ST_Login
 		);
 				
-	// append Frame-IP-Address					
+	// append Frame-IP-Address	
+    const PIPSocket::Address & rx_addr = arqPdu->m_peerAddr;
 	bool ipFound = false;
 	if (arq.m_answerCall) {
 		if (calledEP 
@@ -605,7 +610,7 @@ int RadAuthBase::Check(
 		delete pdu;
 		return e_fail;
 	} else
-		pdu->AppendAttr(RadiusAttr::FramedIpAddress, addr);
+		pdu->AppendAttr(RadiusAttr::FramedIpAddress, (rx_addr != addr)? rx_addr : addr);
 					
 	// fill Calling-Station-Id and Called-Station-Id fields
 	PString stationId = GetCallingStationId(arqPdu, authData);
