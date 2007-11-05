@@ -622,6 +622,7 @@ int SQLAuth::Check(
 	params["bandwidth"] = PString(arq.m_bandWidth.GetValue());
 	params["answer"] = arq.m_answerCall ? "1" : "0";
 	params["arq"] = "1";
+	params["CallId"] = AsString(arq.m_callIdentifier.m_guid);
 	
 	GkSQLResult::ResultRow result;	
 	if (!RunQuery(traceStr, m_sqlConn, m_callQuery, params, result, -1)) {
@@ -826,6 +827,7 @@ int SQLAuth::Check(
 	params["Dialed-Number"] = GetDialedNumber(setup, authData);
 	params["answer"] = "0";
 	params["arq"] = "0";
+	params["CallId"] = AsString(setup.GetUUIEBody().m_callIdentifier.m_guid);
 
 	if (authData.m_call)
 		params["bandwidth"] = PString(authData.m_call->GetBandwidth());

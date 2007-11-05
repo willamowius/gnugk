@@ -564,6 +564,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%{Calling-Station-Id}/ - caller's number, if available
 <item><tt/%{Called-Station-Id}/ - destination number
 <item><tt/%{Dialed-Number}/ - original destination number (before rewrite)
+<item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
 <item><tt/%{bandwidth}/ - requested bandwidth, if present in the ARQ
 <item><tt/%{answer}/ - 1, if the request is an answering ARQ
 <item><tt/%{arq}/ - 1 for ARQ triggered query, 0 for Setup triggered query
