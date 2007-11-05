@@ -493,6 +493,19 @@ debug set RoutedMode H245Routed 1
 <item><tt/Who/<newline>
 <p>Show all people on the status port.
 
+<item><tt/Yell/, <tt/y/<newline>
+<p>Send a message to all status clients.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+Yell [message text]
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+Yell Hello World
+</verb></tscreen>
+</descrip>
+
 <item><tt/RouteReject/<newline>
 <p>Terminate this call on a virtual queue.
 This command is used as a response to a RouteRequest event (see below).
