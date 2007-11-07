@@ -136,7 +136,7 @@ public:
 	H225SignalingMsg(
 		Q931 *q931pdu, /// this pointer is not cloned and deleted by this class destructor
 		H225_H323_UserInformation *uuie, /// decoded User-User IE
-		UUIE& uuieBody, /// decoded UUIE body
+		UUIE& /*uuieBody*/, /// decoded UUIE body
 		const PIPSocket::Address &localAddr, /// an address the message has been received on
 		WORD localPort, /// a port number the message has been received on
 		const PIPSocket::Address &peerAddr, /// an address the message has been received from

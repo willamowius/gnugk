@@ -590,7 +590,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &re
 }
 
 // class CiscoGK
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest &req)
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest & /*req*/)
 {
 	if (lrq.HasOptionalField(H225_LocationRequest::e_nonStandardData)
 			&& lrq.m_nonStandardData.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {

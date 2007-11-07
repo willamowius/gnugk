@@ -376,7 +376,7 @@ public:
 	// override from class LogicalChannel
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
 	virtual void StartReading(ProxyHandler *);
-	virtual void SetRTPMute(bool toMute) {};   /// We do not Mute T.120 Channels
+	virtual void SetRTPMute(bool /*toMute*/) {};   /// We do not Mute T.120 Channels
 
 	void Create(T120ProxySocket *);
 	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
@@ -3999,7 +3999,7 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 	return true;
 }
 
-void RTPLogicalChannel::StartReading(ProxyHandler *handler)
+void RTPLogicalChannel::StartReading(ProxyHandler * /*handler*/)
 {
 	if (!used) {
 		RasServer::Instance()->GetRtpProxyHandler()->Insert(rtp, rtcp);

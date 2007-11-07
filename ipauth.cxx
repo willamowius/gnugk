@@ -103,7 +103,7 @@ int IPAuthBase::Check(
 	/// GRQ RAS message to be authenticated
 	RasPDU<H225_GatekeeperRequest> &grqPdu, 
 	/// gatekeeper request reject reason
-	unsigned &rejectReason
+	unsigned & /*rejectReason*/
 	)
 {
 	return CheckAddress(grqPdu->m_peerAddr, grqPdu->m_peerPort, PString());
@@ -113,7 +113,7 @@ int IPAuthBase::Check(
 	/// RRQ RAS message to be authenticated
 	RasPDU<H225_RegistrationRequest> &rrqPdu, 
 	/// authorization data (reject reason, ...)
-	RRQAuthData &authData
+	RRQAuthData & /*authData*/
 	)
 {
 	return CheckAddress(rrqPdu->m_peerAddr, rrqPdu->m_peerPort, PString());
@@ -123,7 +123,7 @@ int IPAuthBase::Check(
 	/// LRQ nessage to be authenticated
 	RasPDU<H225_LocationRequest> &lrqPdu, 
 	/// location request reject reason
-	unsigned &rejectReason
+	unsigned & /*rejectReason*/
 	)
 {
 	return CheckAddress(lrqPdu->m_peerAddr, lrqPdu->m_peerPort, PString());
@@ -133,7 +133,7 @@ int IPAuthBase::Check(
 	/// Q.931/H.225 Setup message to be authenticated
 	SetupMsg &setup,
 	/// authorization data (call duration limit, reject reason, ...)
-	SetupAuthData& authData
+	SetupAuthData& /*authData*/
 	)
 {
 	PIPSocket::Address addr;
@@ -251,7 +251,7 @@ FileIPAuth::~FileIPAuth()
 
 int FileIPAuth::CheckAddress(
 	const PIPSocket::Address &addr, /// IP address the request comes from
-	WORD port, /// port number the request comes from
+	WORD /*port*/, /// port number the request comes from
 	const PString &number
 	)
 {
