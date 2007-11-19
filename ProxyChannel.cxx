@@ -1623,6 +1623,15 @@ void CallSignalSocket::OnSetup(
 				&& _destAddr == _localAddr && _destPort == _localPort)
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 	}
+
+	// send a CallProceeding (to avoid caller timeouts)
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))) {
+		Q931 proceedingQ931;
+		PBYTEArray lBuffer;
+		BuildProceedingPDU(proceedingQ931, q931, setupBody);
+		proceedingQ931.Encode(lBuffer);
+		TransmitData(lBuffer);
+	}
 	
 	GkClient *gkClient = rassrv->GetGkClient();
 	bool rejectCall = false;
@@ -2652,6 +2661,20 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 	SetUUIE(FacilityPDU, signal);
 
 	PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &signal);
+}
+
+void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, Q931 & SetupPDU, H225_Setup_UUIE & SetupUUIE)
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_callProceeding);
+	H225_CallProceeding_UUIE & uuie = body;
+	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	uuie.m_callIdentifier = SetupUUIE.m_callIdentifier;
+	ProceedingPDU.BuildCallProceeding(m_crv);
+	SetUUIE(ProceedingPDU, signal);
+
+	PrintQ931(5, "Send to ", GetName(), &ProceedingPDU, &signal);
 }
 
 void CallSignalSocket::Dispatch()

@@ -699,7 +699,6 @@ RasServer::RasServer() : Singleton<RasServer>("RasSrv"), requestSeqNum(0),
 
 RasServer::~RasServer()
 {
-	delete vqueue;
 	delete authList;
 	delete acctList;
 	delete neighbors;
@@ -713,6 +712,7 @@ void RasServer::Stop()
 	PTRACE(1, "GK\tStopping RasServer...");
 	PWaitAndSignal lock(m_deletionPreventer);
 	ForEachInContainer(handlers, mem_vfun(&RasHandler::Stop));
+	delete vqueue;	// delete virtual queues before Jobs, otherwise the jobs will wait for the queues
 	RegularJob::Stop();
 }
 

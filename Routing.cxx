@@ -597,7 +597,7 @@ VirtualQueue::~VirtualQueue()
 	int numrequests = m_pendingRequests.size();
 	if( numrequests )
 		PTRACE(1,"VQueue\tDestroying virtual queue with "
-			<<numrequests<<" pending requests"
+			<< numrequests << " pending requests"
 			);
 	RouteRequests::iterator i = m_pendingRequests.begin();
 	while (i != m_pendingRequests.end()) {
@@ -622,7 +622,7 @@ void VirtualQueue::OnReload()
 			?"RequestTimeout":"CTI_Timeout", 
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;
-	m_requestTimeout = PMIN(PMAX(100,m_requestTimeout),20000);
+	m_requestTimeout = PMAX(100,m_requestTimeout);	// min wait: 100 msec
 
 	m_active = false;
 
