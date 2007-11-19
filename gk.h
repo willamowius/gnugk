@@ -77,16 +77,16 @@ class Gatekeeper : public PProcess
 	//@{
 
 	/** installs the signal handlers; First called init method. */
-	virtual BOOL InitHandlers(const PArgList &args);
+	virtual bool InitHandlers(const PArgList &args);
 
 	/** factory for the static toolkit; Called after #InitHandlers#.  */
-	virtual BOOL InitToolkit(const PArgList &args);
+	virtual bool InitToolkit(const PArgList &args);
 
 	/** factory for the static Config in Toolkit; Called after #InitToolkit# */
-	virtual BOOL InitConfig(const PArgList &args);
+	virtual bool InitConfig(const PArgList &args);
 
 	/** initiates logging and tracing; Called after #InitConfig# */
-	virtual BOOL InitLogging(const PArgList &args);
+	virtual bool InitLogging(const PArgList &args);
 
 	/** print the available command-line-options **/
 	void PrintOpts(void);

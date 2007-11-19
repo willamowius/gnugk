@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.32  2007/09/13 11:16:12  willamowius
+ * use unique variable names
+ *
  * Revision 1.31  2007/09/11 01:02:29  willamowius
  * clean up includes
  *
@@ -1637,7 +1640,7 @@ bool RadiusSocket::MakeRequest(
 	}
 
 	m_writeMutex.Wait();
-	BOOL result = WriteTo(request, length, serverAddress, serverPort);
+	bool result = WriteTo(request, length, serverAddress, serverPort);
 	if (!result)
 		PTRACE(5, "RADIUS\tError sending UDP packet ("
 			<< GetErrorCode(LastWriteError) << '/'

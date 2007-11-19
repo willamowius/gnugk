@@ -1447,19 +1447,19 @@ void RegistrationTable::GenerateAlias(H225_ArrayOf_AliasAddress & AliasList, con
 	H323SetAliasAddress(endpointId, AliasList[0]);
 }
 
-void RegistrationTable::PrintAllRegistrations(USocket *client, BOOL verbose)
+void RegistrationTable::PrintAllRegistrations(USocket *client, bool verbose)
 {
 	PString msg("AllRegistrations\r\n");
 	InternalPrint(client, verbose, &EndpointList, msg);
 }
 
-void RegistrationTable::PrintAllCached(USocket *client, BOOL verbose)
+void RegistrationTable::PrintAllCached(USocket *client, bool verbose)
 {
 	PString msg("AllCached\r\n");
 	InternalPrint(client, verbose, &OuterZoneList, msg);
 }
 
-void RegistrationTable::PrintRemoved(USocket *client, BOOL verbose)
+void RegistrationTable::PrintRemoved(USocket *client, bool verbose)
 {
 	PString msg("AllRemoved\r\n");
 	InternalPrint(client, verbose, &RemovedList, msg);
@@ -1480,7 +1480,7 @@ void RegistrationTable::PrintPrefixCapacities(USocket *client, PString alias) co
 	client->TransmitData(msg);
 }
 
-void RegistrationTable::InternalPrint(USocket *client, BOOL verbose, std::list<EndpointRec *> * List, PString & msg)
+void RegistrationTable::InternalPrint(USocket *client, bool verbose, std::list<EndpointRec *> * List, PString & msg)
 {
 	// copy the pointers into a temporary array to avoid large lock
 	listLock.StartRead();
@@ -3079,7 +3079,7 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 	call->SetSocket(NULL, NULL);
 }
 
-void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, BOOL verbose) const
+void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, bool verbose) const
 {
 	ReadLock lock(listLock);
 	n = m_activeCall, act = nb = np = 0;
@@ -3095,7 +3095,7 @@ void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, 
 	}
 }
 
-void CallTable::PrintCurrentCalls(USocket *client, BOOL verbose) const
+void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 {
 	PString msg = "CurrentCalls\r\n";
 	unsigned n, act, nb, np;

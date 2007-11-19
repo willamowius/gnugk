@@ -1358,7 +1358,7 @@ void Toolkit::LoadReasonMap(
 
 }
 
-BOOL Toolkit::MatchRegex(const PString &str, const PString &regexStr)
+bool Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 {
 	PINDEX pos=0;
 	PRegularExpression regex(regexStr, PRegularExpression::Extended);

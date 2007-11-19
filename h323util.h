@@ -33,9 +33,9 @@ PString AsString(const H225_TransportAddress_ipAddress & ip);
 
 PString AsString(const H225_EndpointType & terminalType);
 
-PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasName = TRUE);
+PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasName = TRUE);
 
-PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, BOOL includeAliasName = TRUE);
+PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasName = TRUE);
 
 PString AsString(const PASN_OctetString & Octets);
 

@@ -320,7 +320,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 }
 
 
-BOOL Gatekeeper::InitHandlers(const PArgList& args)
+bool Gatekeeper::InitHandlers(const PArgList& args)
 {
 #ifdef _WIN32
 	SetConsoleCtrlHandler(WinCtrlHandlerProc, TRUE);
@@ -366,7 +366,7 @@ BOOL Gatekeeper::InitHandlers(const PArgList& args)
 }
 
 
-BOOL Gatekeeper::InitLogging(const PArgList &args)
+bool Gatekeeper::InitLogging(const PArgList &args)
 {
 #if PTRACING
 	// PTrace::SetOptions(PTrace::Timestamp | PTrace::Thread);
@@ -387,7 +387,7 @@ BOOL Gatekeeper::InitLogging(const PArgList &args)
 }
 
 
-BOOL Gatekeeper::InitToolkit(const PArgList& /*args*/)
+bool Gatekeeper::InitToolkit(const PArgList& /*args*/)
 {
 	InstanceOf<Toolkit>(); // force using the right Toolkit constructor
 
@@ -395,7 +395,7 @@ BOOL Gatekeeper::InitToolkit(const PArgList& /*args*/)
 }
 
 
-BOOL Gatekeeper::InitConfig(const PArgList &args)
+bool Gatekeeper::InitConfig(const PArgList &args)
 {
 	// get the name of the config file
 	PFilePath fp("gatekeeper.ini");

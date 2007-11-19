@@ -68,7 +68,7 @@ PString AsString(const H225_EndpointType & terminalType)
 	return terminalTypeString.Mid(1);
 }
 
-PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasType)
+PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 {
 	PString aliasString;
 
@@ -101,7 +101,7 @@ PString AsString(const H225_AliasAddress & terminalAlias, BOOL includeAliasType)
 }
 
 
-PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, BOOL includeAliasName)
+PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasName)
 {
 	PString aliasListString = "";
 

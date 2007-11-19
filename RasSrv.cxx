@@ -1494,7 +1494,7 @@ bool RegistrationRequestPDU::Process()
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // H460 support Code
-	BOOL supportNAT = false;
+	bool supportNAT = false;
 	int RegPrior =0;
 	bool preemptsupport = false;
 	BOOL preempt = false;

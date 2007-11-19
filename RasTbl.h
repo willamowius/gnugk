@@ -425,9 +425,9 @@ public:
 	void ClearTable();
 	void CheckEndpoints();
 
-	void PrintAllRegistrations(USocket *client, BOOL verbose=FALSE);
-	void PrintAllCached(USocket *client, BOOL verbose=FALSE);
-	void PrintRemoved(USocket *client, BOOL verbose=FALSE);
+	void PrintAllRegistrations(USocket *client, bool verbose=FALSE);
+	void PrintAllCached(USocket *client, bool verbose=FALSE);
+	void PrintRemoved(USocket *client, bool verbose=FALSE);
 	void PrintPrefixCapacities(USocket *client, PString alias) const;
 
 	PString PrintStatistics() const;
@@ -445,7 +445,7 @@ private:
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationConfirm &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_AdmissionConfirm &);
 
-	void InternalPrint(USocket *, BOOL, std::list<EndpointRec *> *, PString &);
+	void InternalPrint(USocket *, bool, std::list<EndpointRec *> *, PString &);
 	void InternalStatistics(const std::list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g, unsigned & n) const;
 
 	void InternalRemove(iterator);
@@ -1094,7 +1094,7 @@ public:
 	void RemoveCall(const callptr &);
 	void RemoveFailedLeg(const callptr &);
 
-	void PrintCurrentCalls(USocket *client, BOOL verbose=FALSE) const;
+	void PrintCurrentCalls(USocket *client, bool verbose=FALSE) const;
 	PString PrintStatistics() const;
 
 #ifdef hasH460
@@ -1142,7 +1142,7 @@ private:
 	void InternalRemove(iterator);
 	void InternalRemoveFailedLeg(iterator);
 
-	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, BOOL verbose) const;
+	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, bool verbose) const;
 
 	std::list<CallRec *> CallList;
 	std::list<CallRec *> RemovedList;

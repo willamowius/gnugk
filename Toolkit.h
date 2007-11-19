@@ -403,9 +403,9 @@ class Toolkit : public Singleton<Toolkit>
 	 * @param regexStr the string which is compiled to a regex and executed with #regex.Execute(str, pos)#
 	 * @return TRUE if the regex matched and FALSE if not or any error case.
 	 */
-	static BOOL MatchRegex(const PString &str, const PString &regexStr);
+	static bool MatchRegex(const PString &str, const PString &regexStr);
 
-	/** returns the #BOOL# that #str# represents.
+	/** returns the #bool# that #str# represents.
 	 * Case insensitive, "t...", "y...", "a...", "1" are #TRUE#, all other values are #FALSE#.
 	 */
 	static bool AsBool(const PString & str);
