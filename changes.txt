@@ -1,5 +1,7 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- BUGFIX SRV policy correctly detects E.164 number.
+- BUGFIX Radius module now sent public IP of endpoints behind NAT.
 - new switch [RoutedMode] GenerateCallProceeding
 - new SQLAUth variable %{CallId}
 - BUGFIX(RasTbl.*,SoftPBX.cxx) status port commands (find,disconnectcall,transfercall) could influence round-robin order
