@@ -1360,7 +1360,15 @@ bool SRVPolicy::FindByAliases(
 			                }
 #endif
 							request.AddRoute(route);
-							request.SetFlag(RoutingRequest::e_aliasesChanged);
+                             // Fix for calling only a numeric number so the @xxx is removed
+				             PString called = ls[i].Left(at);
+						     PINDEX k = 0;
+						     for (k = 0; k < called.GetLength(); ++k)
+								if (!isdigit(alias[k]))
+									break;
+								if (k >= alias.GetLength())
+									H323SetAliasAddress(called, aliases[i]);
+							 request.SetFlag(RoutingRequest::e_aliasesChanged);
 							return true;
 				    }
 				}
@@ -1381,6 +1389,14 @@ bool SRVPolicy::FindByAliases(
 			       if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 				                    continue;
 			       Route route(m_name, dest);
+                    // Fix for calling only a numeric number so the @xxx is removed
+				     PString called = cs[j].Left(in);
+					  PINDEX l = 0;
+						for (l = 0; l < called.GetLength(); ++l)
+							if (!isdigit(alias[l]))
+								break;
+						if (l >= alias.GetLength())
+						  H323SetAliasAddress(called, aliases[i]);
 			       route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 			       request.AddRoute(route);
 			       request.SetFlag(RoutingRequest::e_aliasesChanged);	
