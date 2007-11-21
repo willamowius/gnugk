@@ -898,8 +898,8 @@ void TCPServer::ReadSocket(IPSocket *socket)
 	if (cps_limit > 0) {
 		time_t now = time(NULL);
 		// clear old values
-		one_sec.remove_if(bind2nd(not_equal_to<int>(), now));
-		many_sec.remove_if(bind2nd(less<int>(), now - check_interval));
+		one_sec.remove_if(bind2nd(not_equal_to<time_t>(), now));
+		many_sec.remove_if(bind2nd(less<time_t>(), now - check_interval));
 		PTRACE(4, GetName() << "\tcurrent cps=" << one_sec.size() << " calls in interval=" << many_sec.size());
 		if ((many_sec.size() > (cps_limit *  check_interval)) && (one_sec.size() > cps_limit)) {
 			// reject call
