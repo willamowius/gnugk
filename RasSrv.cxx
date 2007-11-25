@@ -273,7 +273,7 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 	return result;
 }
 
-PIPSocket::Address RasListener::GetPhysicalAddr(const Address & addr) const
+PIPSocket::Address RasListener::GetPhysicalAddr(const Address & /* addr */) const
 {
 	// Return the physical address. This is used when setting sockets
 	return m_ip;

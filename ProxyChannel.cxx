@@ -1628,7 +1628,7 @@ void CallSignalSocket::OnSetup(
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))) {
 		Q931 proceedingQ931;
 		PBYTEArray lBuffer;
-		BuildProceedingPDU(proceedingQ931, q931, setupBody);
+		BuildProceedingPDU(proceedingQ931, setupBody);
 		proceedingQ931.Encode(lBuffer);
 		TransmitData(lBuffer);
 	}
@@ -2663,7 +2663,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 	PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &signal);
 }
 
-void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, Q931 & SetupPDU, H225_Setup_UUIE & SetupUUIE)
+void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, H225_Setup_UUIE & SetupUUIE)
 {
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;

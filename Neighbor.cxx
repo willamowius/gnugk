@@ -1502,7 +1502,7 @@ bool RDSPolicy::FindByAliases(
 }
 
 
-bool RDSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+bool RDSPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_AliasAddress & /* aliases */)
 { 
     PTRACE(4, "ROUTING\tPolicy RDS not supported for LRQ");
 	return false;  

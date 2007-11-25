@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2007/09/10 18:13:48  willamowius
+ * clean up sql driver interface and remove unused methods from all drivers
+ *
  * Revision 1.11  2006/05/07 12:22:59  willamowius
  * fix comments
  *
@@ -396,7 +399,7 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 
 PString GkPgSQLConnection::EscapeString(
 	/// SQL connection to get escaping parameters from
-	SQLConnPtr conn,
+	SQLConnPtr /* conn */,
 	/// string to be escaped
 	const char* str
 	)

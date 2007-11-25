@@ -576,7 +576,7 @@ bool DNSPolicy::FindByAliases(
 	return false;
 }
 
-bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+bool DNSPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_AliasAddress & /* aliases */)
 { 
 	PTRACE(4, "ROUTING\tPolicy DNS not supported for LRQ");
 	return false; // DNSPolicy::FindByAliases((RoutingRequest&)request, aliases);
@@ -1166,8 +1166,8 @@ bool NumberAnalysisPolicy::OnRequest(AdmissionRequest & request)
 	if (aliases == NULL)
 		return false;
 
-	for (PINDEX i = 0; i < aliases->GetSize(); i++) {
-		const H225_AliasAddress &alias = (*aliases)[i];
+	for (PINDEX a = 0; a < aliases->GetSize(); a++) {
+		const H225_AliasAddress &alias = (*aliases)[a];
 		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits
 				|| alias.GetTag() == H225_AliasAddress::e_partyNumber) {
 			const PString s = AsString(alias, FALSE);
@@ -1196,8 +1196,8 @@ bool NumberAnalysisPolicy::OnRequest(SetupRequest & request)
 	if (aliases == NULL)
 		return false;
 
-	for (PINDEX i = 0; i < aliases->GetSize(); ++i) {
-		const H225_AliasAddress &alias = (*aliases)[i];
+	for (PINDEX a = 0; a < aliases->GetSize(); ++a) {
+		const H225_AliasAddress &alias = (*aliases)[a];
 		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits
 				|| alias.GetTag() == H225_AliasAddress::e_partyNumber) {
 			const PString s = AsString(alias, FALSE);
@@ -1268,7 +1268,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 	return false;
 }
 
-bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+bool ENUMPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_AliasAddress & /* aliases */)
 {
     PTRACE(4, "ROUTING\tPolicy ENUM not supported for LRQ");
 	return false; // ENUMPolicy::FindByAliases((RoutingRequest&)request, aliases);

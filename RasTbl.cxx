@@ -2900,7 +2900,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 	}
 }
 
-void CallTable::QoSReport(const H225_InfoRequestResponse & obj_irr, const callptr & call, const endptr & ep, const PASN_OctetString & rawstats)
+void CallTable::QoSReport(const H225_InfoRequestResponse & /* obj_irr */, const callptr & call, const endptr & ep, const PASN_OctetString & rawstats)
 {
 	PPER_Stream argStream(rawstats);
     H4609_QosMonitoringReportData report;

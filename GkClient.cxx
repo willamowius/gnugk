@@ -455,7 +455,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 	return true;
 }
 
-bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest &req)
+bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest & /* req */)
 {
 	if (m_parentVendor == ParentVendor_Cisco) {
 		Cisco_ARQnonStandardInfo nonStandardData;
