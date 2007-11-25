@@ -1440,8 +1440,8 @@ bool RDSPolicy::FindByAliases(
 	H225_ArrayOf_AliasAddress &aliases
 	)
 {
-	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
-		PString alias(AsString(aliases[i], FALSE));
+	for (PINDEX a = 0; a < aliases.GetSize(); ++a) {
+		PString alias(AsString(aliases[a], FALSE));
 	    if (alias.GetLength() == 0) continue;
 
 	// DNS RDS Record lookup
@@ -1460,8 +1460,8 @@ bool RDSPolicy::FindByAliases(
 		PStringList ls;
 		 if (PDNS::RDSLookup(number,"H323+D2U",ls)) {
 			 for (PINDEX i=0; i<ls.GetSize(); i++) {
-				PINDEX at = ls[i].Find('@');
-				PString ipaddr = ls[i].Mid(at + 1);
+				PINDEX pos = ls[i].Find('@');
+				PString ipaddr = ls[i].Mid(pos + 1);
 				PTRACE(4, "ROUTING\tRDS LS located domain " << domain << " at " << ipaddr);
 				H323TransportAddress addr = H323TransportAddress(ipaddr);
 

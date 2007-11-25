@@ -830,19 +830,19 @@ void RasServer::LoadConfig()
 	}
 
 	SocketsReader::CleanUp();
-	ifiterator iter = interfaces.begin();
-	while (iter != interfaces.end()) {
+	ifiterator it = interfaces.begin();
+	while (it != interfaces.end()) {
 		int i = -1;
 		while (++i < hsize)
-			if ((*iter)->IsBoundTo(&GKHome[i]))
+			if ((*it)->IsBoundTo(&GKHome[i]))
 				break;
 		if (i == hsize) {
 			// close unused listeners
-			GkInterface * r = *iter;
-			iter = interfaces.erase(iter);
+			GkInterface * r = *it;
+			it = interfaces.erase(it);
 			delete r;
 		}
-		else ++iter;
+		else ++it;
 	}
 	if (broadcastListener && !bUseBroadcastListener) {
 		broadcastListener->Close();
@@ -1633,16 +1633,16 @@ bool RegistrationRequestPDU::Process()
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
 		H225_ArrayOf_AliasAddress Alias, & Aliases = request.m_terminalAlias;
 		Alias.SetSize(1);
-		for (int i = 0; i < Aliases.GetSize(); ++i) {
-			Alias[0] = Aliases[i];
+		for (int a = 0; a < Aliases.GetSize(); ++a) {
+			Alias[0] = Aliases[a];
 			bool skip = false;
-			for (int j = 0; j < i; ++j) {
+			for (int j = 0; j < a; ++j) {
 				skip = (Alias[0] == Aliases[j]);
 				if (skip)
 					break;
 			}
 			if (skip) { // remove duplicate alias
-				Aliases.RemoveAt(i--);
+				Aliases.RemoveAt(a--);
 				continue;
 			}
 
@@ -1730,11 +1730,11 @@ bool RegistrationRequestPDU::Process()
 			PString ipdata = request.m_nonStandardData.m_data.AsString();
 			if (strncmp(ipdata, "IP=", 3) == 0) {
 				PStringArray ips(ipdata.Mid(3).Tokenise(",:;", false));
-				PINDEX i;
-				for (i = 0; i < ips.GetSize(); ++i)
-					if (PIPSocket::Address(ips[i]) == rx_addr)
+				PINDEX k;
+				for (k = 0; k < ips.GetSize(); ++k)
+					if (PIPSocket::Address(ips[k]) == rx_addr)
 						break;
-				nated = (i >= ips.GetSize());
+				nated = (k >= ips.GetSize());
 				request.RemoveOptionalField(H225_RegistrationRequest::e_nonStandardData);
 			}
 		}

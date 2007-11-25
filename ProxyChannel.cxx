@@ -691,8 +691,8 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket)
 	m_call = socket->m_call;
 }
 
-CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD port)
-	: TCPProxySocket("Q931d", socket, port), m_callerSocket(false)
+CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD _port)
+	: TCPProxySocket("Q931d", socket, _port), m_callerSocket(false)
 {
 	InternalInit();
 	SetRemote(socket);
@@ -725,12 +725,12 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	SetName(AsString(socket->peerAddr, GetPort()));
 
 	Address calling = INADDR_ANY, called = INADDR_ANY;
-	int type = m_call->GetNATType(calling, called);
-	if (type & CallRec::calledParty)
+	int nat_type = m_call->GetNATType(calling, called);
+	if (nat_type & CallRec::calledParty)
 		socket->peerAddr = called;
 
 	if (m_call->GetProxyMode() != CallRec::ProxyEnabled
-		&& type == CallRec::both && calling == called)
+		&& nat_type == CallRec::both && calling == called)
 		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "0"))) {
             PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
@@ -740,7 +740,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	// enable proxy if required, no matter whether H.245 routed
 	if (m_call->GetProxyMode() == CallRec::ProxyDetect)
 		if (Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr) 
-				|| (type != CallRec::none && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1"))))
+				|| (nat_type != CallRec::none && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1"))))
 			m_call->SetProxyMode(CallRec::ProxyEnabled);
 		else
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
@@ -1252,8 +1252,8 @@ void CallSignalSocket::ForwardCall(
 		setupUUIE.m_destinationAddress = a;
 	}
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ShowForwarderNumber", "0")))
-		if (endptr forwarder = m_call->GetForwarder()) {
-			const H225_ArrayOf_AliasAddress & a = forwarder->GetAliases();
+		if (endptr fwd = m_call->GetForwarder()) {
+			const H225_ArrayOf_AliasAddress & a = fwd->GetAliases();
 			for (PINDEX n = 0; n < a.GetSize(); ++n)
 				if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
 					PString callingNumber(AsString(a[n], FALSE));
@@ -1388,16 +1388,16 @@ PString CallSignalSocket::GetCalledStationId(
 			);
 
 	if (id.IsEmpty()) {
-		PIPSocket::Address addr;
-		WORD port = 0;
-		if (hasCall && authData.m_call->GetDestSignalAddr(addr, port))
-			id = AsString(addr, port);
+		PIPSocket::Address daddr;
+		WORD dport = 0;
+		if (hasCall && authData.m_call->GetDestSignalAddr(daddr, dport))
+			id = AsString(daddr, dport);
 		// this does not work well in routed mode, when destCallSignalAddress
 		// is usually the gatekeeper address
 		else if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress) 
-				&& GetIPAndPortFromTransportAddr(setupBody.m_destCallSignalAddress, addr, port)
-				&& addr.IsValid())
-			id = AsString(addr, port);
+				&& GetIPAndPortFromTransportAddr(setupBody.m_destCallSignalAddress, daddr, dport)
+				&& daddr.IsValid())
+			id = AsString(daddr, dport);
 	}
 	
 	return id;
@@ -2082,7 +2082,7 @@ bool CallSignalSocket::CreateRemote(
 	}
 	
 	Address calling = INADDR_ANY;
-	int type = m_call->GetNATType(calling, peerAddr);
+	int nat_type = m_call->GetNATType(calling, peerAddr);
 
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
     masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
@@ -2104,7 +2104,7 @@ bool CallSignalSocket::CreateRemote(
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
 	}
 	
-	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is NAT type " << type);
+	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is NAT type " << nat_type);
 	endptr calledep = m_call->GetCalledParty();
 	if (calledep) {
 		// m_call->GetCalledParty() should not be null in the case
@@ -2623,7 +2623,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				PString destination = *dest;
 				PString alias = "";
 				PString ip = "";
-				WORD port = 1720;
+				WORD destport = 1720;
 				PINDEX at = destination.Find('@');
 				if (at != P_MAX_INDEX) {
 					alias = destination.Left(at);
@@ -2634,16 +2634,16 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				} else if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
 					PINDEX colon = destination.Find(':');
 					ip = destination.Left(colon);
-					port = (WORD)destination.Right(destination.GetLength() - (colon + 1)).AsInteger();
+					destport = (WORD)destination.Right(destination.GetLength() - (colon + 1)).AsInteger();
 				}
 
 				if (!ip.IsEmpty()) {
-					H225_TransportAddress addr;
-					if (GetTransportAddress(ip, port, addr)) {
+					H225_TransportAddress destaddr;
+					if (GetTransportAddress(ip, destport, destaddr)) {
 						uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
-						uuie.m_alternativeAddress = addr;
+						uuie.m_alternativeAddress = destaddr;
 					} else {
-						PTRACE(2, "Warning: Invalid transport address (" << ip << ":" << port << ")");
+						PTRACE(2, "Warning: Invalid transport address (" << ip << ":" << destport << ")");
 					}
 				} else {
 					alias = destination;
@@ -3777,9 +3777,9 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 	
 	// check if the remote address to send data to has been already determined
 	PIPSocket::Address addr;
-	WORD port = 0;
-	GetSendAddress(addr, port);
-	if (port == 0) {
+	WORD wport = 0;
+	GetSendAddress(addr, wport);
+	if (wport == 0) {
 		QueuePacket(buffer, len);
 		PTRACE(3, Type() << '\t' << Name() << " socket has no destination address yet, " << len << " bytes queued");
 		return false;
@@ -3792,9 +3792,9 @@ bool UDPProxySocket::Flush()
 {
 	// check if the remote address to send data to has been already determined
 	PIPSocket::Address addr;
-	WORD port = 0;
-	GetSendAddress(addr, port);
-	if (port == 0) {
+	WORD fport = 0;
+	GetSendAddress(addr, fport);
+	if (fport == 0) {
 		PTRACE(3, Type() << '\t' << Name() << " socket has no destination address yet, flush ignored");
 		return false;
 	}
@@ -4077,10 +4077,10 @@ T120LogicalChannel::~T120LogicalChannel()
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
 
-bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
+bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler)
 {
 	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
-		OnSeparateStack(olca.m_separateStack, handler) : false;
+		OnSeparateStack(olca.m_separateStack, _handler) : false;
 }
 
 void T120LogicalChannel::StartReading(ProxyHandler *h)
@@ -4162,14 +4162,14 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 	socket = NULL;
 }
 
-bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler *handler)
+bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack, H245Handler * _handler)
 {
 	bool changed = false;
 	if (sepStack.m_networkAddress.GetTag() == H245_NetworkAccessParameters_networkAddress::e_localAreaAddress) {
 		H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(sepStack.m_networkAddress);
 		if (addr) {
 			*addr >> peerAddr >> peerPort;
-			*addr << handler->GetMasqAddr() << port;
+			*addr << _handler->GetMasqAddr() << port;
 			changed = true;
 		}
 	}

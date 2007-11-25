@@ -694,14 +694,14 @@ int SQLAuth::Check(
 		if (!s) {
 			PStringArray tokens(s.Tokenise("; \t", FALSE));
 			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
-				PIPSocket::Address addr;
+				PIPSocket::Address raddr;
 				WORD port = 0;
 					
-				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-						&& addr.IsValid() && port != 0) {
-					Route route("SQL", addr, port);
+				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, port)
+						&& raddr.IsValid() && port != 0) {
+					Route route("SQL", raddr, port);
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
-						SocketToH225TransportAddr(addr, port)
+						SocketToH225TransportAddr(raddr, port)
 						);
 					authData.m_destinationRoutes.push_back(route);
 					PTRACE(5, traceStr << " - call redirected to the address " <<
@@ -878,14 +878,14 @@ int SQLAuth::Check(
 		if (!s) {
 			PStringArray tokens(s.Tokenise("; \t", FALSE));
 			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
-				PIPSocket::Address addr;
+				PIPSocket::Address raddr;
 				WORD port = 0;
 					
-				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-						&& addr.IsValid() && port != 0) {
-					Route route("SQL", addr, port);
+				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, port)
+						&& raddr.IsValid() && port != 0) {
+					Route route("SQL", raddr, port);
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
-						SocketToH225TransportAddr(addr, port)
+						SocketToH225TransportAddr(raddr, port)
 						);
 					authData.m_destinationRoutes.push_back(route);
 					PTRACE(5, traceStr << " - call redirected to the address " <<

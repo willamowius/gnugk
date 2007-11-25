@@ -804,13 +804,13 @@ bool StatusClient::ReadCommand(
 	/// should the command be echoed (also NeedEcho() has to be true)
 	bool echo,
 	/// timeout (ms) for read operation, 0 means infinite
-	int readTimeout
+	int timeout
 	)
 {
-	while (IsReadable(readTimeout)) {
+	while (IsReadable(timeout)) {
 		char byte;
-		int read = ReadChar();
-		switch (read)
+		int ch = ReadChar();
+		switch (ch)
 		{
 			case -1:
 				break; // read IAC or socket closed
@@ -825,7 +825,7 @@ bool StatusClient::ReadCommand(
 			case '\b':
 				if (m_currentCmd.GetLength()) {
 					m_currentCmd = m_currentCmd.Left(m_currentCmd.GetLength() - 1);
-					byte = char(read);
+					byte = char(ch);
 					if (echo && NeedEcho()) {
 						Write(&byte, 1);
 						Write(&" ", 1);
@@ -834,7 +834,7 @@ bool StatusClient::ReadCommand(
 				}
 				break;
 			default:
-				byte = char(read);
+				byte = char(ch);
 				m_currentCmd += byte;
 				cmd = m_currentCmd.Right(3);
 				// Note: this only works if the telnet client doesn't buffer characters
@@ -1495,12 +1495,12 @@ void StatusClient::PrintFilters(
 // class StatusListener
 StatusListener::StatusListener(
 	const Address& addr, 
-	WORD port
+	WORD lport
 	)
 {
 	const unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
-	if (!Listen(addr, queueSize, port, PSocket::CanReuseAddress)) {
-		PTRACE(1, "STATUS\tCould not open listening socket at " << addr << ':' << port
+	if (!Listen(addr, queueSize, lport, PSocket::CanReuseAddress)) {
+		PTRACE(1, "STATUS\tCould not open listening socket at " << addr << ':' << lport
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
 			<< GetErrorText(PSocket::LastGeneralError)

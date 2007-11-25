@@ -942,7 +942,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 {
 	rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
 
-	PINDEX as, p;
+	PINDEX as;
 	if (m_endpointType == EndpointType_Terminal) {
 		rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
 	} else {
@@ -965,12 +965,12 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
 	as = m_h323Id.GetSize();
 	rrq.m_terminalAlias.SetSize(as);
-	for (p = 0; p < as; ++p)
+	for (PINDEX p = 0; p < as; ++p)
 		H323SetAliasAddress(m_h323Id[p], rrq.m_terminalAlias[p], H225_AliasAddress::e_h323_ID);
 
 	PINDEX s = m_e164.GetSize() + as;
 	rrq.m_terminalAlias.SetSize(s);
-	for (p = as; p < s; ++p)
+	for (PINDEX p = as; p < s; ++p)
 		H323SetAliasAddress(m_e164[p-as], rrq.m_terminalAlias[p]);
 
 	int ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);

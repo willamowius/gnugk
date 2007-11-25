@@ -778,7 +778,7 @@ bool SocketsReader::SelectSockets(SocketSelectList & slist)
 
 void SocketsReader::RemoveClosed(bool bDeleteImmediately)
 {
-	WriteLock lock(m_listmutex);
+	WriteLock listlock(m_listmutex);
 	iterator iter = partition(m_sockets.begin(), m_sockets.end(), mem_fun(&IPSocket::IsOpen));
 	if (ptrdiff_t rmsize = distance(iter, m_sockets.end())) {
 		if (bDeleteImmediately)

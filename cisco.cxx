@@ -22,8 +22,8 @@
 // ArrayOf_AliasAddress
 //
 
-Cisco_ArrayOf_AliasAddress::Cisco_ArrayOf_AliasAddress(unsigned tag, PASN_Object::TagClass tagClass)
-  : PASN_Array(tag, tagClass)
+Cisco_ArrayOf_AliasAddress::Cisco_ArrayOf_AliasAddress(unsigned _tag, PASN_Object::TagClass _tagClass)
+  : PASN_Array(_tag, _tagClass)
 {
 }
 
@@ -53,8 +53,8 @@ PObject * Cisco_ArrayOf_AliasAddress::Clone() const
 // ARQnonStandardInfo
 //
 
-Cisco_ARQnonStandardInfo::Cisco_ARQnonStandardInfo(unsigned tag, PASN_Object::TagClass tagClass)
-  : PASN_Sequence(tag, tagClass, 0, TRUE, 5)
+Cisco_ARQnonStandardInfo::Cisco_ARQnonStandardInfo(unsigned _tag, PASN_Object::TagClass _tagClass)
+  : PASN_Sequence(_tag, _tagClass, 0, TRUE, 5)
 {
   m_redirectIEinfo.SetConstraints(PASN_Object::FixedConstraint, 0, 255);
   m_callingOctet3a.SetConstraints(PASN_Object::FixedConstraint, 0, 255);
@@ -166,8 +166,8 @@ PObject * Cisco_ARQnonStandardInfo::Clone() const
 // LRQnonStandardInfo
 //
 
-Cisco_LRQnonStandardInfo::Cisco_LRQnonStandardInfo(unsigned tag, PASN_Object::TagClass tagClass)
-  : PASN_Sequence(tag, tagClass, 0, TRUE, 5)
+Cisco_LRQnonStandardInfo::Cisco_LRQnonStandardInfo(unsigned _tag, PASN_Object::TagClass _tagClass)
+  : PASN_Sequence(_tag, _tagClass, 0, TRUE, 5)
 {
   m_ttl.SetConstraints(PASN_Object::FixedConstraint, 1, 255);
   m_redirectIEinfo.SetConstraints(PASN_Object::FixedConstraint, 0, 255);

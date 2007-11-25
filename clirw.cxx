@@ -293,20 +293,20 @@ CLIRewrite::CLIRewrite()
 					PString lhs = data.Left(sepIndex).Trim();
 					data = data.Mid(sepIndex + 1).Trim();
 					PStringArray tokens = lhs.Tokenise(",;", FALSE);
-					for (PINDEX i = 0; i < tokens.GetSize(); ++i)
-						if (tokens[i] *= "allow")
+					for (PINDEX k = 0; k < tokens.GetSize(); ++k)
+						if (tokens[k] *= "allow")
 							manualCLIR = RewriteRule::AllowPresentation;
-						else if (tokens[i] *= "restrict")
+						else if (tokens[k] *= "restrict")
 							manualCLIR = RewriteRule::RestrictPresentation;
-						else if (tokens[i] *= "forward")
+						else if (tokens[k] *= "forward")
 							CLIRPolicy = RewriteRule::ForwardCLIR;
-						else if (tokens[i] *= "apply")
+						else if (tokens[k] *= "apply")
 							CLIRPolicy = RewriteRule::AlwaysApplyCLIR;
-						else if (tokens[i] *= "applyforterminals")
+						else if (tokens[k] *= "applyforterminals")
 							CLIRPolicy = RewriteRule::ApplyCLIRForTerminals;
 						else
 							PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '=' 
-								<< kv.GetDataAt(i) << ", unreconized pi option '" << tokens[i]
+								<< kv.GetDataAt(k) << ", unreconized pi option '" << tokens[k]
 								<< "'"
 								);
 				}
@@ -407,8 +407,8 @@ CLIRewrite::CLIRewrite()
 			
 			if (rule->m_screeningType == RewriteRule::NoScreening) {
 				rule->m_cli.resize(clis.GetSize());
-				for (PINDEX j = 0; j < clis.GetSize(); j++)
-					rule->m_cli[j] = (string)((const char *)(clis[j]));
+				for (PINDEX k = 0; k < clis.GetSize(); k++)
+					rule->m_cli[k] = (string)((const char *)(clis[k]));
 			} else
 				rule->m_cli.clear();
 

@@ -987,7 +987,7 @@ private:
 	/// the most common authentication capabilities 
 	/// shared by all authenticators on the list
 #ifdef OpenH323Factory
-    H235Authenticators authenticators;
+    H235Authenticators m_h235authenticators;
 #else
 	H225_ArrayOf_AuthenticationMechanism* m_mechanisms;
 	H225_ArrayOf_PASN_ObjectId* m_algorithmOIDs;

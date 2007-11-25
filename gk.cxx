@@ -282,13 +282,13 @@ void DumbHandler(int sig)
 
 
 // default params for overwriting
-Gatekeeper::Gatekeeper(const char * manuf,
-					   const char * name,
-					   WORD majorVersion,
-					   WORD minorVersion,
-					   CodeStatus status,
-					   WORD buildNumber)
-	: PProcess(manuf, name, majorVersion, minorVersion, status, buildNumber)
+Gatekeeper::Gatekeeper(const char * _manuf,
+					   const char * _name,
+					   WORD _majorVersion,
+					   WORD _minorVersion,
+					   CodeStatus _status,
+					   WORD _buildNumber)
+	: PProcess(_manuf, _name, _majorVersion, _minorVersion, _status, _buildNumber)
 {
 }
 

@@ -139,7 +139,7 @@ private:
 class CallSignalSocket : public TCPProxySocket {
 public:
 	CallSignalSocket();
-	CallSignalSocket(CallSignalSocket *, WORD);
+	CallSignalSocket(CallSignalSocket *, WORD _port);
 	virtual ~CallSignalSocket();
 
 #ifdef LARGE_FDSET

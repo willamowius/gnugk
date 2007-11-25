@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.40  2007/11/04 03:26:21  shorne
+ * Fix problem with FramedIP with NATed endpoints.
+ *
  * Revision 1.39  2007/09/11 01:02:29  willamowius
  * clean up includes
  *
@@ -730,9 +733,9 @@ int RadAuthBase::Check(
 	}
 	// check for Session-Timeout attribute (alternate call duration limit)	
 	if (result) {
-		const RadiusAttr* const attr = response->FindAttr(RadiusAttr::SessionTimeout);
+		const RadiusAttr* const tattr = response->FindAttr(RadiusAttr::SessionTimeout);
 		if (attr != NULL) {
-			const long sessionTimeout = attr->AsInteger();
+			const long sessionTimeout = tattr->AsInteger();
 			if (authData.m_callDurationLimit < 0 
 				|| authData.m_callDurationLimit > sessionTimeout) {
 				authData.m_callDurationLimit = sessionTimeout;
@@ -825,14 +828,14 @@ int RadAuthBase::Check(
 			if (!value) {
 				PStringArray tokens(value.Tokenise("; \t", FALSE));
 				for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
-					PIPSocket::Address addr;
-					WORD port = 0;
+					PIPSocket::Address raddr;
+					WORD rport = 0;
 					
-					if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-							&& addr.IsValid() && port != 0) {
-						Route route("RADIUS", addr, port);
+					if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, rport)
+							&& raddr.IsValid() && rport != 0) {
+						Route route("RADIUS", raddr, rport);
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
-							SocketToH225TransportAddr(addr, port)
+							SocketToH225TransportAddr(raddr, rport)
 							);
 						route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
 						authData.m_destinationRoutes.push_back(route);
@@ -1039,9 +1042,9 @@ int RadAuthBase::Check(
 	}
 	// check for Session-Timeout attribute (alternate call duration limit)	
 	if (result) {
-		const RadiusAttr* const attr = response->FindAttr(RadiusAttr::SessionTimeout);
-		if (attr != NULL) {
-			const long sessionTimeout = attr->AsInteger();
+		const RadiusAttr* const tattr = response->FindAttr(RadiusAttr::SessionTimeout);
+		if (tattr != NULL) {
+			const long sessionTimeout = tattr->AsInteger();
 			if (authData.m_callDurationLimit < 0 
 				|| authData.m_callDurationLimit > sessionTimeout) {
 				authData.m_callDurationLimit = sessionTimeout;
@@ -1082,14 +1085,14 @@ int RadAuthBase::Check(
 			if (!value) {
 				PStringArray tokens(value.Tokenise("; \t", FALSE));
 				for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
-					PIPSocket::Address addr;
-					WORD port = 0;
+					PIPSocket::Address raddr;
+					WORD rport = 0;
 					
-					if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, addr, port)
-							&& addr.IsValid() && port != 0) {
-						Route route("RADIUS", addr, port);
+					if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, rport)
+							&& raddr.IsValid() && rport != 0) {
+						Route route("RADIUS", raddr, rport);
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
-							SocketToH225TransportAddr(addr, port)
+							SocketToH225TransportAddr(raddr, rport)
 							);
 						route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
 						authData.m_destinationRoutes.push_back(route);

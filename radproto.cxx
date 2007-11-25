@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.33  2007/11/19 20:15:34  willamowius
+ * change BOOL to bool where it doesn't affect OpenH323 method signatures
+ *
  * Revision 1.32  2007/09/13 11:16:12  willamowius
  * use unique variable names
  *
@@ -1463,13 +1466,13 @@ bool RadiusPDU::EncryptPasswords(
 #endif
 
 RadiusSocket::RadiusSocket( 
-	WORD port 
+	WORD _port 
 	) : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
 	m_isReading(false), m_nestedCount(0), 
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
-	if (!Listen(0, port)) {
-		PTRACE(1, "RADIUS\tCould not bind socket to the port " << port
+	if (!Listen(0, _port)) {
+		PTRACE(1, "RADIUS\tCould not bind socket to the port " << _port
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
 			<< GetErrorText(PSocket::LastGeneralError)
@@ -1498,13 +1501,13 @@ RadiusSocket::RadiusSocket(
 
 RadiusSocket::RadiusSocket( 
 	const PIPSocket::Address& addr, 
-	WORD port
+	WORD _port
 	) : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
 	m_isReading(false), m_nestedCount(0),
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
-	if (!Listen(addr, 0, port)) {
-		PTRACE(1, "RADIUS\tCould not bind socket to " << addr << ':' << port
+	if (!Listen(addr, 0, _port)) {
+		PTRACE(1, "RADIUS\tCould not bind socket to " << addr << ':' << _port
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
 			<< GetErrorText(PSocket::LastGeneralError)

@@ -23,12 +23,12 @@ class Gatekeeper : public PProcess
 	PCLASSINFO(Gatekeeper, PProcess)
  public:
 	Gatekeeper
-		(const char * manuf = "GNU", 
-		 const char * name = "Gatekeeper", 
-		 WORD majorVersion = GNUGK_MAJOR_VERSION,
-		 WORD minorVersion = GNUGK_MINOR_VERSION,
-		 CodeStatus status = GNUGK_BUILD_TYPE,
-		 WORD buildNumber = GNUGK_BUILD_NUMBER);
+		(const char * _manuf = "GNU", 
+		 const char * _name = "Gatekeeper", 
+		 WORD _majorVersion = GNUGK_MAJOR_VERSION,
+		 WORD _minorVersion = GNUGK_MINOR_VERSION,
+		 CodeStatus _status = GNUGK_BUILD_TYPE,
+		 WORD _buildNumber = GNUGK_BUILD_NUMBER);
 
 	virtual void Main();
 

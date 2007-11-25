@@ -683,11 +683,11 @@ GkAuthenticatorList::GkAuthenticatorList()
 		for (PINDEX i=0; i< authlist.GetSize(); i++) {
 			if (PString(Auth->GetName()) == authlist[i]) {
 			   PTRACE(4,"GKAUTH\tLoaded Authenticator " << Auth->GetName() << " from Policy");
-               authenticators.Append(Auth);
+               m_h235authenticators.Append(Auth);
 			}
 		}
 	  } else
-	        authenticators.Append(Auth);
+	        m_h235authenticators.Append(Auth);
 	}
 #endif
 }
@@ -910,17 +910,17 @@ void GkAuthenticatorList::SelectH235Capability(
 		return;
 
 #ifdef OpenH323Factory
-    for (PINDEX auth = 0; auth < authenticators.GetSize(); auth++) {
+    for (PINDEX auth = 0; auth < m_h235authenticators.GetSize(); auth++) {
      for (PINDEX cap = 0; cap < grq.m_authenticationCapability.GetSize(); cap++) {
       for (PINDEX alg = 0; alg < grq.m_algorithmOIDs.GetSize(); alg++) {
-        if (authenticators[auth].IsCapability(grq.m_authenticationCapability[cap],
+        if (m_h235authenticators[auth].IsCapability(grq.m_authenticationCapability[cap],
                                               grq.m_algorithmOIDs[alg])) {
 			std::list<GkAuthenticator*>::const_iterator iter = m_authenticators.begin();
 			while (iter != m_authenticators.end()) {
 			 GkAuthenticator* gkauth = *iter++;
 			  if (gkauth->IsH235Capable() && gkauth->IsH235Capability(grq.m_authenticationCapability[cap],grq.m_algorithmOIDs[alg])) {
 				PTRACE(4, "GKAUTH\tGRQ accepted on " << H323TransportAddress(gcf.m_rasAddress)
-						<< " using authenticator " << authenticators[auth]);
+						<< " using authenticator " << m_h235authenticators[auth]);
 				  gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
 				  gcf.m_authenticationMode = grq.m_authenticationCapability[cap];
 				  gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
@@ -1435,9 +1435,9 @@ int SimplePasswordAuth::CheckCryptoTokens(
 				}
 				
 				// check all endpoint aliases for a password
-				const H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
-				for (PINDEX i = 0; i < aliases.GetSize(); i++) {
-					id = AsString(aliases[i], FALSE);
+				const H225_ArrayOf_AliasAddress pwaliases = ep->GetAliases();
+				for (PINDEX p = 0; p < pwaliases.GetSize(); p++) {
+					id = AsString(pwaliases[p], FALSE);
 					passwordFound = InternalGetPassword(id, passwd);
 					if (passwordFound)
 						break;

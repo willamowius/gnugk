@@ -271,7 +271,6 @@ bool EndpointRec::LoadConfig()
 
 void EndpointRec::LoadEndpointConfig()
 {
-	const char* RoutedSec = "RoutedMode";
 	Toolkit* toolkit = Toolkit::Instance();
 	PConfig* const cfg = GkConfig();
 	const PStringList sections = cfg->GetSections();
@@ -318,11 +317,11 @@ void EndpointRec::AddPrefixCapacities(const PString & prefixes)
 	for (PINDEX i = 0; i < prefix.GetSize(); ++i) {
 		PStringArray p(prefix[i].Tokenise(":=", false));
 		if (p.GetSize() > 1) {
-			string prefix = (const char *)p[0];
+			string cap_prefix = (const char *)p[0];
 			int capacity = p[1].AsInteger();
-			m_prefixCapacities.push_back(pair<std::string,int>(prefix,capacity));
-			m_activePrefixCalls[prefix] = 0;
-			PTRACE(5, "RAS\tEndpoint prefix: " << prefix << " capacity: " << capacity);
+			m_prefixCapacities.push_back(pair<std::string,int>(cap_prefix, capacity));
+			m_activePrefixCalls[cap_prefix] = 0;
+			PTRACE(5, "RAS\tEndpoint prefix: " << cap_prefix << " capacity: " << capacity);
 		} else {
 			PTRACE(1, "RAS\tEndpoint Syntax error in PrefixCapacities " << prefix[i]);
 		}
@@ -2751,7 +2750,6 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 {
 
 	Toolkit* const toolkit = Toolkit::Instance();
-	PString m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
 
 	if (!Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0")))
 		return;
@@ -2792,29 +2790,29 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
         recvAddr.GetIpAndPort(recv,rport);
 
 		if (info.HasOptionalField(H4609_RTCPMeasures::e_mediaSenderMeasures)) {
-			H4609_RTCPMeasures_mediaSenderMeasures & send = info.m_mediaSenderMeasures;
+			H4609_RTCPMeasures_mediaSenderMeasures & sender = info.m_mediaSenderMeasures;
 
-			if (send.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_worstEstimatedEnd2EndDelay))
-				worstdelay = send.m_worstEstimatedEnd2EndDelay;
-			if (send.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_meanEstimatedEnd2EndDelay))
-				meandelay = send.m_meanEstimatedEnd2EndDelay;
+			if (sender.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_worstEstimatedEnd2EndDelay))
+				worstdelay = sender.m_worstEstimatedEnd2EndDelay;
+			if (sender.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_meanEstimatedEnd2EndDelay))
+				meandelay = sender.m_meanEstimatedEnd2EndDelay;
 		}
 
 		if (info.HasOptionalField(H4609_RTCPMeasures::e_mediaReceiverMeasures)) {
-			H4609_RTCPMeasures_mediaReceiverMeasures & recv = info.m_mediaReceiverMeasures;
+			H4609_RTCPMeasures_mediaReceiverMeasures & receiver = info.m_mediaReceiverMeasures;
 
-			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_cumulativeNumberOfPacketsLost))
-				packetlost = recv.m_cumulativeNumberOfPacketsLost;
-			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_packetLostRate))
-				packetlossrate = recv.m_packetLostRate;
-			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_worstJitter))
-				maxjitter = recv.m_worstJitter;
-			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_estimatedThroughput))
-				bandwidth = recv.m_estimatedThroughput;
-			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_fractionLostRate))
-				packetlosspercent = recv.m_fractionLostRate;
-			if (recv.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_meanJitter))
-				meanjitter = recv.m_meanJitter;
+			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_cumulativeNumberOfPacketsLost))
+				packetlost = receiver.m_cumulativeNumberOfPacketsLost;
+			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_packetLostRate))
+				packetlossrate = receiver.m_packetLostRate;
+			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_worstJitter))
+				maxjitter = receiver.m_worstJitter;
+			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_estimatedThroughput))
+				bandwidth = receiver.m_estimatedThroughput;
+			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_fractionLostRate))
+				packetlosspercent = receiver.m_fractionLostRate;
+			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_meanJitter))
+				meanjitter = receiver.m_meanJitter;
 		}
 
 		//write report to database

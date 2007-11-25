@@ -30,7 +30,7 @@ class Cisco_ArrayOf_AliasAddress : public PASN_Array
     PCLASSINFO(Cisco_ArrayOf_AliasAddress, PASN_Array);
 #endif
   public:
-    Cisco_ArrayOf_AliasAddress(unsigned tag = UniversalSequence, TagClass tagClass = UniversalTagClass);
+    Cisco_ArrayOf_AliasAddress(unsigned _tag = UniversalSequence, TagClass _tagClass = UniversalTagClass);
 
     PASN_Object * CreateObject() const;
     H225_AliasAddress & operator[](PINDEX i) const;
@@ -48,7 +48,7 @@ class Cisco_ARQnonStandardInfo : public PASN_Sequence
     PCLASSINFO(Cisco_ARQnonStandardInfo, PASN_Sequence);
 #endif
   public:
-    Cisco_ARQnonStandardInfo(unsigned tag = 2, TagClass tagClass = ContextSpecificTagClass);
+    Cisco_ARQnonStandardInfo(unsigned _tag = 2, TagClass _tagClass = ContextSpecificTagClass);
 
     enum OptionalFields {
       e_redirectIEinfo,
@@ -87,7 +87,7 @@ class Cisco_LRQnonStandardInfo : public PASN_Sequence
     PCLASSINFO(Cisco_LRQnonStandardInfo, PASN_Sequence);
 #endif
   public:
-    Cisco_LRQnonStandardInfo(unsigned tag = 4, TagClass tagClass = ContextSpecificTagClass);
+    Cisco_LRQnonStandardInfo(unsigned _tag = 4, TagClass _tagClass = ContextSpecificTagClass);
 
     enum OptionalFields {
       e_callIdentifier,
