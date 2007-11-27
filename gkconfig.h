@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2007/09/13 11:17:11  willamowius
+ * use same parameter name in declaration and implementation
+ *
  * Revision 1.4  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -33,6 +36,8 @@
  */
 #ifndef GKCONFIG_H 
 #define GKCONFIG_H "@(#) $Id$"
+
+#include "pwlib_compat.h"
 
 class GatekeeperConfig : public PConfig
 {
@@ -102,7 +107,7 @@ public:
 	    the default "DefVal" being used, or the user had explicitly saved the
 	    value "DefVal" into the PConfig.
 	*/
-	virtual BOOL HasKey(
+	virtual PBoolean HasKey(
 		const PString& theSection, /// Section to use instead of the default.
 		const PString& theKey /// Key of the variable.
 		) const;
@@ -140,10 +145,10 @@ public:
 
 	    @return boolean value of the variable.
 	*/
-	virtual BOOL GetBoolean(
+	virtual PBoolean GetBoolean(
 		const PString& section, /// Section to use instead of the default.
 		const PString& key, /// The key name for the variable.
-		BOOL dflt = FALSE /// Default value for the variable.
+		PBoolean dflt = FALSE /// Default value for the variable.
 		) const;
 
 	/** Get an integer variable determined by the key in the section. If the

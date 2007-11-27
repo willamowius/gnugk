@@ -1497,7 +1497,7 @@ bool RegistrationRequestPDU::Process()
 	bool supportNAT = false;
 	int RegPrior =0;
 	bool preemptsupport = false;
-	BOOL preempt = false;
+	PBoolean preempt = false;
 
 #ifdef hasH460
 

@@ -108,9 +108,9 @@ public:
 	PCLASSINFO( TCPProxySocket, ServerSocket )
 
 	// override from class PTCPSocket
-	virtual BOOL Accept(PSocket &);
-	virtual BOOL Connect(const Address &, WORD, const Address &);
-	virtual BOOL Connect(const Address &);
+	virtual PBoolean Accept(PSocket &);
+	virtual PBoolean Connect(const Address &, WORD, const Address &);
+	virtual PBoolean Connect(const Address &);
 #endif
 	// override from class ProxySocket
 	virtual bool ForwardData();
@@ -148,7 +148,7 @@ public:
 #else
 	PCLASSINFO ( CallSignalSocket, TCPProxySocket )
 	// override from class TCPProxySocket
-	virtual BOOL Connect(const Address &);
+	virtual PBoolean Connect(const Address &);
 #endif
 
 	// override from class ProxySocket

@@ -113,7 +113,7 @@ PINDEX Cisco_ARQnonStandardInfo::GetDataLength() const
 }
 
 
-BOOL Cisco_ARQnonStandardInfo::Decode(PASN_Stream & strm)
+PBoolean Cisco_ARQnonStandardInfo::Decode(PASN_Stream & strm)
 {
   if (!PreambleDecode(strm))
     return FALSE;
@@ -221,7 +221,7 @@ PINDEX Cisco_LRQnonStandardInfo::GetDataLength() const
 }
 
 
-BOOL Cisco_LRQnonStandardInfo::Decode(PASN_Stream & strm)
+PBoolean Cisco_LRQnonStandardInfo::Decode(PASN_Stream & strm)
 {
   if (!PreambleDecode(strm))
     return FALSE;

@@ -213,7 +213,7 @@ protected:
 #ifdef LARGE_FDSET
 	virtual bool Accept(YaTCPSocket &);
 #else
-	virtual BOOL Accept(PSocket &);
+	virtual PBoolean Accept(PSocket &);
 #endif
 	// new virtual function
 	virtual bool ConnectRemote();
@@ -572,10 +572,10 @@ bool TCPProxySocket::TransmitData(const PBYTEArray & buf)
 }
 
 #ifndef LARGE_FDSET
-BOOL TCPProxySocket::Accept(PSocket & socket)
+PBoolean TCPProxySocket::Accept(PSocket & socket)
 {
 //	SetReadTimeout(PMaxTimeInterval);
-	BOOL result = PTCPSocket::Accept(socket);
+	PBoolean result = PTCPSocket::Accept(socket);
 	PTimeInterval timeout(100);
 	SetReadTimeout(timeout);
 	SetWriteTimeout(timeout);
@@ -588,18 +588,18 @@ BOOL TCPProxySocket::Accept(PSocket & socket)
 	return result;
 }
 
-BOOL TCPProxySocket::Connect(const Address & iface, WORD localPort, const Address & addr)
+PBoolean TCPProxySocket::Connect(const Address & iface, WORD localPort, const Address & addr)
 {
 	SetName(AsString(addr, GetPort()));
 	SetReadTimeout(PTimeInterval(6000));
-	BOOL result = PTCPSocket::Connect(iface, localPort, addr);
+	PBoolean result = PTCPSocket::Connect(iface, localPort, addr);
 	PTimeInterval timeout(100);
 	SetReadTimeout(timeout);
 	SetWriteTimeout(timeout);
 	return result;
 }
 
-BOOL TCPProxySocket::Connect(const Address & addr)
+PBoolean TCPProxySocket::Connect(const Address & addr)
 {
 	return Connect(INADDR_ANY, 0, addr);
 }
@@ -792,7 +792,7 @@ CallSignalSocket::~CallSignalSocket()
 #ifdef LARGE_FDSET
 bool CallSignalSocket::Connect(const Address & addr)
 #else
-BOOL CallSignalSocket::Connect(const Address & addr)
+PBoolean CallSignalSocket::Connect(const Address & addr)
 #endif
 {
 	Address local = RasServer::Instance()->GetLocalAddress(addr);
@@ -3426,7 +3426,7 @@ void H245Socket::SendEndSessionCommand()
 #ifdef LARGE_FDSET
 bool H245Socket::Accept(YaTCPSocket & socket)
 #else
-BOOL H245Socket::Accept(PSocket & socket)
+PBoolean H245Socket::Accept(PSocket & socket)
 #endif
 {
 	bool result = TCPProxySocket::Accept(socket);

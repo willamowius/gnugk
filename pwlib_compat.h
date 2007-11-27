@@ -37,6 +37,11 @@
   #endif
 #endif
 
+//#if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
+#ifndef PBoolean
+	typedef int PBoolean;
+#endif
+
 #ifdef P_DNS
 // define hasRDS for PWLib >= 1.11.3
  #if PWLIB_MAJOR == 1

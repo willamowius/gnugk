@@ -14,6 +14,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
  *
  *
@@ -91,7 +94,7 @@ void GatekeeperConfig::DeleteKey(const PString & theSection, const PString & the
 		m_chainedConfig->DeleteKey(theSection, theKey);
 }
 
-BOOL GatekeeperConfig::HasKey(const PString & theSection, const PString & theKey) const
+PBoolean GatekeeperConfig::HasKey(const PString & theSection, const PString & theKey) const
 {
 	return PConfig::HasKey(theSection, theKey)
 		|| (m_chainedConfig != NULL && m_chainedConfig->HasKey(theSection, theKey));
@@ -121,7 +124,7 @@ PString GatekeeperConfig::GetString(const PString & theSection,
 		return m_chainedConfig->GetString(theSection, theKey, dflt);
 }
 
-BOOL GatekeeperConfig::GetBoolean(const PString & section, const PString & key, BOOL dflt) const
+PBoolean GatekeeperConfig::GetBoolean(const PString & section, const PString & key, PBoolean dflt) const
 {
 	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
 		return PConfig::GetBoolean(section, key, dflt);

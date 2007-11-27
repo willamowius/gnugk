@@ -16,7 +16,7 @@
 #include <ptclib/asner.h>
 
 #include "h225.h"
-
+#include "pwlib_compat.h"
 
 //
 // ArrayOf_AliasAddress
@@ -67,7 +67,7 @@ class Cisco_ARQnonStandardInfo : public PASN_Sequence
     PASN_IA5String m_interfaceDescription;
 
     PINDEX GetDataLength() const;
-    BOOL Decode(PASN_Stream & strm);
+    PBoolean Decode(PASN_Stream & strm);
     void Encode(PASN_Stream & strm) const;
 #ifndef PASN_NOPRINTON
     void PrintOn(ostream & strm) const;
@@ -105,7 +105,7 @@ class Cisco_LRQnonStandardInfo : public PASN_Sequence
     PASN_IA5String m_displayInformationElement;
 
     PINDEX GetDataLength() const;
-    BOOL Decode(PASN_Stream & strm);
+    PBoolean Decode(PASN_Stream & strm);
     void Encode(PASN_Stream & strm) const;
 #ifndef PASN_NOPRINTON
     void PrintOn(ostream & strm) const;

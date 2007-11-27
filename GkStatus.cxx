@@ -50,7 +50,7 @@ public:
 #ifdef LARGE_FDSET
 	virtual bool Accept(YaTCPSocket &);
 #else
-	virtual BOOL Accept(PSocket &);
+	virtual PBoolean Accept(PSocket &);
 #endif
 
 	virtual int ReadChar();
@@ -303,7 +303,7 @@ TelnetSocket::TelnetSocket() : m_needEcho(false), m_state(StateNormal)
 #ifdef LARGE_FDSET
 bool TelnetSocket::Accept(YaTCPSocket & socket)
 #else
-BOOL TelnetSocket::Accept(PSocket & socket)
+PBoolean TelnetSocket::Accept(PSocket & socket)
 #endif
 {
 	if (!TCPSocket::Accept(socket))
