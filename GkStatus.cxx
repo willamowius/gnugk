@@ -503,7 +503,7 @@ void GkStatus::AuthenticateClient(
 {
 	if (newClient->Authenticate()) {
 		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
-		PTRACE(1, "STATUS\tNew client authenticated succesfully: " << newClient->WhoAmI()
+		PTRACE(1, "STATUS\tNew client authenticated successfully: " << newClient->WhoAmI()
 			<< ", login: " << newClient->GetUser()
 			);
 		// the welcome messages
