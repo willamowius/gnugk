@@ -2671,6 +2671,7 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, H225_Setup_UUIE 
 	H225_CallProceeding_UUIE & uuie = body;
 	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	uuie.m_callIdentifier = SetupUUIE.m_callIdentifier;
+	uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
 	ProceedingPDU.BuildCallProceeding(m_crv);
 	SetUUIE(ProceedingPDU, signal);
 

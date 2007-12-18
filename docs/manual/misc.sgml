@@ -255,7 +255,6 @@ by a parent gatekeeper in a GCF/RCF message.
 
 </itemize>
 
-
 <sect1>Section &lsqb;CTI::Agents&rsqb;
 <p>
 This section allows the configuration of a so called virtual queues to
@@ -327,6 +326,49 @@ This defines a regular expression for the virtual queues (used with the vqueue R
 Default: <tt/10/<newline>
 Timeout in seconds for the external application to answer the RouteRequest.
 If no answer is received during this time the call will be rejected.
+</itemize>
+
+
+<sect1>Section &lsqb;CTI::MakeCall&rsqb;
+<label id="ctimakecall">
+<p>This section contains the settings for the status port command <ref id="makecall" name="MakeCall">.
+<itemize>
+<item>
+<tt/EndpointAlias=DialOut/<newline>
+Default: <tt>InternalMakeCallEP</tt><newline>
+<p>
+This defines the endpoint alias for the pseudo endpoint used to dial.
+
+<item>
+<tt/UseH450=0/<newline>
+Default: <tt>1</tt><newline>
+<p>
+Use a H.450.2 transfer instead of a Facility message to transfer the call from the pseudo endpoint to the actual destination.
+
+<item>
+<tt/Gatekeeper=192.168.1.2/<newline>
+Default: <tt>127.0.0.1</tt><newline>
+<p>
+Gatekeeper IP for the pseudo endpoint to register with.
+
+<item>
+<tt/Interface=192.168.1.1:1730/<newline>
+Default: <tt>*:1722</tt><newline>
+<p>
+Interface and port to use for the pseudo endpoint.
+
+<item>
+<tt/DisableFastStart=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Disable FastStart for the pseudo endpoint.
+
+<item>
+<tt/DisableH245Tunneling=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Disable H.245 tunneling for the pseudo endpoint.
+
 </itemize>
 
 

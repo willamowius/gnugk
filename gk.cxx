@@ -31,6 +31,7 @@
 #include "RasSrv.h"
 #include "RasTbl.h"
 #include "SoftPBX.h"
+#include "MakeCall.h"
 #include "gktimer.h"
 #include "gk.h"
 #include "pwlib_compat.h"
@@ -78,6 +79,7 @@ void ShutdownHandler()
 	delete CallTable::Instance();
 	delete RegistrationTable::Instance();
 	delete RasServer::Instance();
+	delete MakeCallEndPoint::Instance();
 	delete Toolkit::Instance();
 	PTRACE(3, "GK\tdelete ok");
 

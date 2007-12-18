@@ -1276,8 +1276,12 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_RouteToAlias:
 		if (args.GetSize() == 4) {
+			if (args[1] == "-")
+				args[1] = "";	// "-" is empty agent
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), "");
 		} else if (args.GetSize() == 5) {
+			if (args[1] == "-")
+				args[1] = "";	// "-" is empty agent
 			args[4].Replace("-", " ", true);
 			args[4] = args[4].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4]);

@@ -576,6 +576,24 @@ TransferCall Frank Peter
 </verb></tscreen>
 </descrip>
 
+<label id="makecall">
+<item><tt/MakeCall/<newline>
+<p>Generate a new call from source to destination alias. You can also specify an IP number as destination.
+This done by establishing a call from a pseudo endpoint in the gatekeeper to the source alias/number and the transfering the call from the gatekeeper endpoint to the destination.
+<p>Use can choose to do the transfer either with a H.450.2 transfer or a Facility message.
+<p>See <ref id="ctimakecall" name="[CTI::MakeCall]"> for configuration options.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+MakeCall Source-Alias Destination-Alias
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+MakeCall 1234 5678
+MakeCall joe 192.168.6.1
+</verb></tscreen>
+</descrip>
+
 </itemize>
 
 <sect1>Messages (Reference)

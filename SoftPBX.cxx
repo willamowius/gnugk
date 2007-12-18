@@ -26,6 +26,7 @@
 #include "SoftPBX.h"
 #include "capctrl.h"
 #include "h323util.h"
+#include "MakeCall.h"
 
 int SoftPBX::TimeToLive = -1;
 PTime SoftPBX::StartUp;
@@ -226,7 +227,7 @@ void SoftPBX::DisconnectEndpoint(const endptr &ep)
 
 void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 {
-	PTRACE(1, "GK\tSoftPBX: TransferCall " << SourceAlias << " -> " << DestinationAlias);
+	PTRACE(3, "GK\tSoftPBX: TransferCall " << SourceAlias << " -> " << DestinationAlias);
 
 	endptr lDestForward;
 	endptr lSrcForward;
@@ -304,8 +305,8 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 
 void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 {
-	PTRACE(1, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
-	PTRACE(1, "GK\tSoftPBX: MakeCall not implemented, yet");
+	PTRACE(3, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
+	MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias);
 }
 
 void SoftPBX::PrintPrefixCapacities(USocket *client, PString alias)
