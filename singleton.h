@@ -19,7 +19,7 @@
 // STL
 #include <list>
 #include <algorithm>
-#include <stdexcept>
+//#include <stdexcept>
 
 //
 // a list of pointers that would delete all objects
@@ -65,9 +65,7 @@ class SingletonBase {
 // If the class is instantiated more than once,
 // a runtime error would be thrown
 //
-// I provide two ways to access the singleton:
-// (since I'm not sure which is better)
-// T::Instance()  or  InstanceOf<T>
+// To access the singleton use T::Instance()
 //
 template<class T> class Singleton : public SingletonBase {
   public:
@@ -126,18 +124,6 @@ template<class T> template <class U> T *Singleton<T>::Instance(const U &u)
 	return m_Instance;
 }
 #endif
-
-// Function to access the singleton
-template<class T> T *InstanceOf()
-{
-	if (Singleton<T>::m_Instance == 0) {
-		PWaitAndSignal lock(Singleton<T>::m_CreationLock);
-		// We have to check it again after we got the lock
-		if (Singleton<T>::m_Instance == 0)
-			Singleton<T>::m_Instance = new T;
-	}
-	return Singleton<T>::m_Instance;
-}
 
 // static members
 template<class T> T *Singleton<T>::m_Instance=0;

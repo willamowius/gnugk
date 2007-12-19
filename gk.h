@@ -69,9 +69,6 @@ class Gatekeeper : public PProcess
 	/**@name Initialization 
 	 * A sequence of virtual initialization methods is called from #Main#
 	 * before the fun starts. 
-	 * Each one takes the already parsed command line arguments (so you can
-	 * depend the behavior on them). Later -- after #InitConfig# -- you can 
-	 * also use #Toolkit::Config()# to decide different things.
 	 * Every method may return #FALSE# to abort #Main# and end the program.
 	 */
 	//@{
@@ -79,10 +76,6 @@ class Gatekeeper : public PProcess
 	/** installs the signal handlers; First called init method. */
 	virtual bool InitHandlers(const PArgList &args);
 
-	/** factory for the static toolkit; Called after #InitHandlers#.  */
-	virtual bool InitToolkit(const PArgList &args);
-
-	/** factory for the static Config in Toolkit; Called after #InitToolkit# */
 	virtual bool InitConfig(const PArgList &args);
 
 	/** initiates logging and tracing; Called after #InitConfig# */

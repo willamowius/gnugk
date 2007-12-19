@@ -144,7 +144,7 @@ void ReloadHandler()
 	/*
 	** Force reloading config
 	*/
-	InstanceOf<Toolkit>()->ReloadConfig();
+	Toolkit::Instance()->ReloadConfig();
 
 	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
 
@@ -372,9 +372,6 @@ bool Gatekeeper::InitHandlers(const PArgList& args)
 bool Gatekeeper::InitLogging(const PArgList &args)
 {
 #if PTRACING
-	// PTrace::SetOptions(PTrace::Timestamp | PTrace::Thread);
-	// PTrace::SetOptions(PTrace::Timestamp);
-	//PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel | PTrace::Thread);
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel);
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o')) {
@@ -386,14 +383,6 @@ bool Gatekeeper::InitLogging(const PArgList &args)
 	}
 #endif
 	
-	return TRUE;
-}
-
-
-bool Gatekeeper::InitToolkit(const PArgList& /*args*/)
-{
-	InstanceOf<Toolkit>(); // force using the right Toolkit constructor
-
 	return TRUE;
 }
 
@@ -410,7 +399,7 @@ bool Gatekeeper::InitConfig(const PArgList &args)
 	if (args.HasOption('s')) 
 		section = args.GetOptionString('s');
 
-	InstanceOf<Toolkit>()->SetConfig(fp, section);
+	Toolkit::Instance()->SetConfig(fp, section);
 
 	if( (GkConfig()->GetInteger("Fortytwo")  != 42) &&
 		(GkConfig()->GetInteger("Fourtytwo") != 42)) { 
@@ -494,7 +483,7 @@ void Gatekeeper::Main()
 	}
 #endif
 
-	if(!InitLogging(args) || !InitToolkit(args))
+	if(!InitLogging(args))
 		return;
 
 	if (args.HasOption('h')) {
