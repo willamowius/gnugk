@@ -2274,19 +2274,6 @@ void Toolkit::GetNetworkFromString(
 	}
 }
 
-PString Toolkit::CypherDecode(const PString & key, const PString & crypto, int s)
-{
-	size_t sz = key.GetLength();
-	if (sz > sizeof(PTEACypher::Key))
-		sz = sizeof(PTEACypher::Key);
-	PTEACypher::Key thekey;
-	memset(&thekey, s, sizeof(PTEACypher::Key));
-	memcpy(&thekey, (const char *)key, sz);
-	PTEACypher cypher(thekey);
-
-	return cypher.Decode(crypto);
-}
-
 PString Toolkit::GenerateAcctSessionId()
 {
 	PWaitAndSignal lock( m_acctSessionMutex );

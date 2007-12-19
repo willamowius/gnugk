@@ -22,8 +22,6 @@ using namespace std;
 
 class MakeCallEndPoint : public Singleton<MakeCallEndPoint>, public H323EndPoint
 {
-  PCLASSINFO(MakeCallEndPoint, H323EndPoint);
-
 public:
     MakeCallEndPoint();
 

@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //
-// Toolkit base class for the GnuGk
+// Toolkit class for the GnuGk
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -96,6 +96,7 @@ class GkSQLConnection;
 #endif
 class GkTimerManager;
 class CLIRewrite;
+
 class Toolkit : public Singleton<Toolkit>
 {
  public:
@@ -103,12 +104,6 @@ class Toolkit : public Singleton<Toolkit>
 	explicit Toolkit();
 	virtual ~Toolkit();
 
-	/// returns #basic# for
-	virtual const PString GetName() const { return "basic"; }
-
-	// by cwhuang
-	// The idea was got from OpenGatekeeper,
-	// but entirely implemented from scratch. :)
 	class RouteTable {
 		typedef PIPSocket::Address Address;
 		typedef PIPSocket::InterfaceTable InterfaceTable;
@@ -129,9 +124,6 @@ class Toolkit : public Singleton<Toolkit>
 	protected:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:
-#ifndef _WIN32
-			PCLASSINFO( RouteEntry, PIPSocket::RouteEntry )
-#endif
 			RouteEntry(const PString &);
 			RouteEntry(const PIPSocket::RouteEntry &, const InterfaceTable &);
 			bool Compare(const Address *) const;
@@ -411,8 +403,6 @@ class Toolkit : public Singleton<Toolkit>
 	static bool AsBool(const PString & str);
 
 	static void GetNetworkFromString(const PString &, PIPSocket::Address &, PIPSocket::Address &);
-
-	static PString CypherDecode(const PString &, const PString &, int);
 
 	/** you may add more extension codes in descendant classes. This codes will not be transferred
 	 * or something it will be the return code of some methods for handling switches easy. */

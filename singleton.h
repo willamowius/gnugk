@@ -71,7 +71,6 @@ template<class T> class Singleton : public SingletonBase {
   public:
 	static T *Instance();
 	static bool InstanceExists();
-	template<class U> static T *Instance(const U &);
 
   protected:
 	Singleton(const char *);
@@ -113,7 +112,7 @@ template<class T> bool Singleton<T>::InstanceExists()
 }
 
 // static members
-template<class T> T *Singleton<T>::m_Instance=0;
+template<class T> T *Singleton<T>::m_Instance = 0;
 template<class T> PMutex Singleton<T>::m_CreationLock;
 
 
