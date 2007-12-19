@@ -112,19 +112,6 @@ template<class T> bool Singleton<T>::InstanceExists()
 	return (m_Instance != 0);
 }
 
-#ifndef _WIN32  // VC++ doesn't support nested template?
-template<class T> template <class U> T *Singleton<T>::Instance(const U &u)
-{
-	if (m_Instance == 0) {
-		PWaitAndSignal lock(m_CreationLock);
-		// We have to check it again after we got the lock
-		if (m_Instance == 0)
-			m_Instance = new T(u);
-	}
-	return m_Instance;
-}
-#endif
-
 // static members
 template<class T> T *Singleton<T>::m_Instance=0;
 template<class T> PMutex Singleton<T>::m_CreationLock;
