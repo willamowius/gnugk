@@ -439,15 +439,12 @@ Montrez nous les messages d'erreur ou les logs si il y en a.
 <sect1>Participants
 <p>
 Le coordinateur actuel du projet est
-<url url="http://www.willamowius.de/" name="Jan Willamowius">
+<url url="http://www.willamowius.de/gnugk-consulting.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
 Les principales caract&#233;ristiques et fonctions de la version 2.0 ont &#233;t&#233;
 contribu&#233;es par
-<url url="http://www.cwhuang.idv.tw/" name="Chih-Wei Huang">
-<tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
-et
-<url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
+Chih-Wei Huang et Citron Network Inc.,
 incluant l'enregistrement et les tables d'appel thread safe,
 une nouvelle architecture de mode rout&#233;, proxy H.323,
 authentification H.235 et MySQL backend.
