@@ -72,6 +72,7 @@ class SingletonBase {
 template<class T> class Singleton : public SingletonBase {
   public:
 	static T *Instance();
+	static bool InstanceExists();
 	template<class U> static T *Instance(const U &);
 
   protected:
@@ -105,6 +106,12 @@ template<class T> T *Singleton<T>::Instance()
 			m_Instance = new T;
 	}
 	return m_Instance;
+}
+
+// Function to check for existance of singleton
+template<class T> bool Singleton<T>::InstanceExists()
+{
+	return (m_Instance != 0);
 }
 
 #ifndef _WIN32  // VC++ doesn't support nested template?

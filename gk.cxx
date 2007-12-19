@@ -79,7 +79,8 @@ void ShutdownHandler()
 	delete CallTable::Instance();
 	delete RegistrationTable::Instance();
 	delete RasServer::Instance();
-	delete MakeCallEndPoint::Instance();
+	if (MakeCallEndPoint::InstanceExists())
+		delete MakeCallEndPoint::Instance();
 	delete Toolkit::Instance();
 	PTRACE(3, "GK\tdelete ok");
 
