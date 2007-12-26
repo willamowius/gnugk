@@ -479,9 +479,7 @@ namespace {
 PString PrintGkVersion()
 {
 	return PString("Version:\r\n") + Toolkit::GKVersion() +
-		"GkStatus: Version(2.0) Ext()\r\n"
-		"Toolkit: Version(1.0) Ext(" + Toolkit::Instance()->GetName() + ")\r\n" 
-		+ SoftPBX::Uptime() + "\r\n;\r\n";
+		SoftPBX::Uptime() + "\r\n;\r\n";
 }
 
 }
