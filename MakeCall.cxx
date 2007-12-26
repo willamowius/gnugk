@@ -52,15 +52,6 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	}
 }
 
-
-BOOL MakeCallEndPoint::SetSoundDevice(PArgList & args,
-                                        const char * optionName,
-                                        PSoundChannel::Directions dir)
-{
-	// don't use any sound device
-	return FALSE;
-}
-
 void MakeCallEndPoint::ThirdPartyMakeCall(PString & user1, PString & user2)
 {
 	PString newToken;

@@ -33,9 +33,6 @@ public:
 	virtual void OnRegistrationConfirm();
 	virtual void OnRegistrationReject();
 
-    // New functions
-    BOOL SetSoundDevice(PArgList &, const char *, PSoundChannel::Directions);
-
 	virtual void ThirdPartyMakeCall(PString & user1, PString & user2);
 	virtual BOOL GatekeeperIsRegistered(void);
 
