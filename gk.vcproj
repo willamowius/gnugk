@@ -349,7 +349,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="h323plusd.lib ptlibd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
+				AdditionalDependencies="h323plusd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
 				SuppressStartupBanner="TRUE"
@@ -445,6 +445,9 @@
 			</File>
 			<File
 				RelativePath="main.cxx">
+			</File>
+			<File
+				RelativePath=".\MakeCall.cxx">
 			</File>
 			<File
 				RelativePath="Neighbor.cxx">
@@ -551,6 +554,9 @@
 			</File>
 			<File
 				RelativePath="job.h">
+			</File>
+			<File
+				RelativePath=".\MakeCall.h">
 			</File>
 			<File
 				RelativePath="name.h">
