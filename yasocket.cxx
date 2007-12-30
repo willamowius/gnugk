@@ -906,7 +906,11 @@ void TCPServer::ReadSocket(IPSocket *socket)
 			PTRACE(1, GetName() << "\tRate limit reached (max " << cps_limit << " cps) - rejecting call on " << socket->GetName());
 			int rej = ::accept(socket->GetHandle(), NULL, NULL);
 			::shutdown(rej, 2 /* SHUT_RDWR */ );
+#if defined(_WIN32)
+			::_close(rej);
+#else
 			::close(rej);
+#endif
 			return;
 		}
 		// add accepted calls to stats list
