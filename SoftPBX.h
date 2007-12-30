@@ -20,6 +20,7 @@ class PTime;
 class PString;
 class USocket;
 class EndpointRec;
+class CallRec;
 template<class> class SmartPtr;
 typedef SmartPtr<EndpointRec> endptr;
 
@@ -41,6 +42,7 @@ namespace SoftPBX
 	void DisconnectEndpoint(PString Id);
 	void DisconnectEndpoint(const endptr &);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
+	bool TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
 	void PrintPrefixCapacities(USocket *client, PString alias);
 	void PrintCapacityControlRules(USocket *client);

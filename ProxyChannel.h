@@ -136,6 +136,10 @@ private:
 	BYTE *bufptr;
 };
 
+#if H323_H450
+class X880_Invoke;
+class H4501_InterpretationApdu;
+#endif
 class CallSignalSocket : public TCPProxySocket {
 public:
 	CallSignalSocket();
@@ -198,6 +202,11 @@ protected:
 	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
 	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
+#if H323_H450
+	bool OnH450PDU(endptr &, H225_ArrayOf_PASN_OctetString &);
+	bool OnH450Invoke(endptr &, X880_Invoke &, H4501_InterpretationApdu &);
+	bool OnH450CallTransfer(endptr &, PASN_OctetString *);
+#endif
 
 	template<class UUIE> bool HandleH245Address(UUIE & uu)
 	{

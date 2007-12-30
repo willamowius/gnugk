@@ -225,6 +225,60 @@ void SoftPBX::DisconnectEndpoint(const endptr &ep)
 	}
 }
 
+bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias)
+{
+	if (!lCall || !lSrcForward) {
+		PString msg("SoftPBX: no call to transfer!");
+		PTRACE(1, "GK\t" + msg);
+		return false;
+	}
+
+	endptr lCalling, lCalled;
+	lCalling = lCall->GetCallingParty();
+	lCalled = lCall->GetCalledParty();
+	H225_ArrayOf_AliasAddress aliases = lSrcForward->GetAliases();
+	CallSignalSocket *lForwardedSocket = 0;
+	if (lCalling && lCalling->CompareAlias(&aliases)) {
+		lForwardedSocket = lCall->GetCallSignalSocketCalling();
+	} else if (lCalled && lCalled->CompareAlias(&aliases)) {
+		lForwardedSocket = lCall->GetCallSignalSocketCalled();
+	}
+	if (!lForwardedSocket) {
+		PString msg("SoftPBX: can't transfer call in direct mode!");
+		PTRACE(1, "GK\t" + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return false;
+	}
+
+	//Search destination of call forwarding : lDestForward
+	PStringList lBufferAliasArrayString;
+	lBufferAliasArrayString.AppendString(DestinationAlias);
+	H225_ArrayOf_AliasAddress lBufferAliasArray;
+	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
+
+	endptr lDestForward = RegistrationTable::Instance()->FindFirstEndpoint(lBufferAliasArray);
+	lBufferAliasArrayString.RemoveAll();
+	lBufferAliasArray.RemoveAll();
+
+	if (!lDestForward) {
+		PString msg("SoftPBX: transferred destination not found!");
+		PTRACE(1, "GK\t" + msg);
+		return false;
+	}
+
+	Q931 q931;
+	PBYTEArray lBuffer;
+	lForwardedSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_callForwarded, &DestinationAlias);
+	q931.Encode(lBuffer);
+	lForwardedSocket->TransmitData(lBuffer);
+
+	PString msg = PString("SoftPBX: call ") + PString(lCall->GetCallNumber()) + " transfer success.";
+	PTRACE(1, "GK\t" + msg);
+ 
+	return true;
+
+}
+
 void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 {
 	PTRACE(3, "GK\tSoftPBX: TransferCall " << SourceAlias << " -> " << DestinationAlias);

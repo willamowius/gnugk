@@ -35,6 +35,12 @@
 #include "sigmsg.h"
 #include "ProxyChannel.h"
 
+#ifdef H323_H450
+#include "h450/h4501.h"
+#include "h450/h4502.h"
+#include "SoftPBX.h"
+#endif
+
 using namespace std;
 using Routing::Route;
 
@@ -917,6 +923,23 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	SignalingMsg *msg = SignalingMsg::Create(q931pdu, uuie, 
 		_localAddr, _localPort, _peerAddr, _peerPort
 		);
+
+#ifdef H323_H450
+	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450", "0")) &&
+		 uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) && 
+		 q931pdu->HasIE(Q931::FacilityIE)) {
+           // Process H4501SupplementaryService APDU
+			PBYTEArray buf = q931pdu->GetIE(Q931::FacilityIE);
+			if (buf.GetSize() > 0) {
+				H225_EndpointIdentifier id;
+				PString epid((const char *)buf.GetPointer(), buf.GetSize());
+				id = epid;
+				endptr ep = RegistrationTable::Instance()->FindByEndpointId(id);
+			      if (OnH450PDU(ep, uuie->m_h323_uu_pdu.m_h4501SupplementaryService)) 
+				     return Closing;   // we are handling this one via the gatekeeper only
+			}
+    }
+#endif
 
 	if (m_h245Tunneling && uuie != NULL)
 #if H225_PROTOCOL_VERSION >= 4
@@ -2306,6 +2329,131 @@ void CallSignalSocket::OnInformation(
 		}
 	}
 }
+
+#if H323_H450
+bool CallSignalSocket::OnH450PDU(
+	 endptr & ep,
+	 H225_ArrayOf_PASN_OctetString & supplementary
+	 )
+{
+  bool result = false;
+
+  for (PINDEX i = 0; i < supplementary.GetSize(); i++) {
+    H4501_SupplementaryService supplementaryService;
+
+    // Decode the supplementary service PDU from the PPER Stream
+    if (supplementary[i].DecodeSubType(supplementaryService)) {
+      PTRACE(4, "H450\tReceived supplementary service PDU:\n  "
+             << setprecision(2) << supplementaryService);
+    }
+    else {
+      PTRACE(1, "H450\tInvalid supplementary service PDU decode:\n  "
+             << setprecision(2) << supplementaryService);
+      continue;
+    }
+
+    H4501_InterpretationApdu & interpretation = supplementaryService.m_interpretationApdu;
+
+    if (supplementaryService.m_serviceApdu.GetTag() == H4501_ServiceApdus::e_rosApdus) {
+      H4501_ArrayOf_ROS& operations = (H4501_ArrayOf_ROS&) supplementaryService.m_serviceApdu;
+
+      for (PINDEX j = 0; j < operations.GetSize(); j ++) {
+        X880_ROS& operation = operations[j];
+        switch (operation.GetTag()) {
+          case X880_ROS::e_invoke:
+            result = OnH450Invoke(ep,(X880_Invoke &)operation, interpretation);
+            break;
+
+          case X880_ROS::e_returnResult:
+          case X880_ROS::e_returnError:
+          case X880_ROS::e_reject:
+          default :
+            break;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+bool CallSignalSocket::OnH450Invoke(endptr & ep, X880_Invoke & invoke, H4501_InterpretationApdu & interpretation)
+{
+  bool result = false;
+
+  // Get the invokeId
+  int invokeId = invoke.m_invokeId.GetValue();
+
+  // Get the linkedId if present
+  int linkedId = -1;
+  if (invoke.HasOptionalField(X880_Invoke::e_linkedId)) {
+    linkedId = invoke.m_linkedId.GetValue();
+  }
+
+  // Get the argument if present
+  PASN_OctetString * argument = NULL;
+  if (invoke.HasOptionalField(X880_Invoke::e_argument)) {
+    argument = &invoke.m_argument;
+  }
+
+  // Get the opcode
+  if (invoke.m_opcode.GetTag() == X880_Code::e_local) {
+    int opcode = ((PASN_Integer&) invoke.m_opcode).GetValue();
+      
+	switch (opcode) {
+	  case H4502_CallTransferOperation::e_callTransferInitiate:
+		  result = OnH450CallTransfer(ep,argument);
+	  default:
+		 break;
+	}
+  }
+
+  return result;
+}
+
+static PString ParseEndpointAddress(H4501_EndpointAddress& endpointAddress)
+{
+  H4501_ArrayOf_AliasAddress& destinationAddress = endpointAddress.m_destinationAddress;
+
+  PString alias;
+  PString remoteParty = PString();
+  H323TransportAddress transportAddress;
+
+  for (PINDEX i = 0; i < destinationAddress.GetSize(); i++) {
+    H225_AliasAddress& aliasAddress = destinationAddress[i];
+
+    if (aliasAddress.GetTag() == H225_AliasAddress::e_transportID)
+      transportAddress = (H225_TransportAddress &)aliasAddress;
+    else
+      alias = ::H323GetAliasAddressString(aliasAddress);
+  }
+
+  if (alias.IsEmpty()) {
+    remoteParty = transportAddress;
+  }
+  else if (transportAddress.IsEmpty()) {
+    remoteParty = alias;
+  }
+  else {
+    remoteParty = alias + '@' + transportAddress;
+  }
+
+  return remoteParty;
+}
+
+bool CallSignalSocket::OnH450CallTransfer(endptr & ep, PASN_OctetString * argument)
+{
+  H4502_CTInitiateArg ctInitiateArg;
+  PPER_Stream argStream(*argument);
+  if (ctInitiateArg.Decode(argStream)) {
+      PString remoteParty = ParseEndpointAddress(ctInitiateArg.m_reroutingNumber);
+      const PASN_NumericString & callIdentifier = ctInitiateArg.m_callIdentity;
+      SmartPtr<CallRec> m_call = CallTable::Instance()->FindCallRec((const H225_CallIdentifier &)callIdentifier);
+	  return SoftPBX::TransferCall(ep, m_call, remoteParty);
+  }
+  return false;
+}
+
+#endif
 
 void CallSignalSocket::OnReleaseComplete(
 	SignalingMsg *msg
