@@ -357,7 +357,7 @@ When set, GnuGk will generate a CallProceeding for each Setup message it receive
 This can be helpfull to avoid a timeout in calling endpoints if the destination takes
 a long time to answer or the call is processed in a virtual queue.
 
-<item><tt/EnableH450=1/<newline>
+<item><tt/EnableH450.2=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
 When set, GnuGk will intercept H.450.2 call transfer messages and if possible transfer 
