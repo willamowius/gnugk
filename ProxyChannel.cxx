@@ -36,8 +36,14 @@
 #include "ProxyChannel.h"
 
 #ifdef H323_H450
-#include "h450/h4501.h"
-#include "h450/h4502.h"
+#include "pwlib_compat.h"
+ #ifdef h323pluslib
+   #include "h450/h4501.h"
+   #include "h450/h4502.h"
+ #else
+   #include "h4501.h"
+   #include "h4502.h"
+ #endif
 #include "SoftPBX.h"
 #endif
 

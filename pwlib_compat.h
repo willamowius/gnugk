@@ -78,17 +78,19 @@
 // OpenH323 version matching
 #if OPENH323_MAJOR == 1
     #if OPENH323_MINOR >= 19
-     #if OPENH323_MINOR == 19
+       #if OPENH323_MINOR == 19
 	   #if OPENH323_BUILD > 0
 	   #define OpenH323Factory 1         // OpenH323 Factory Loader Auth
 	   #endif
 	   #if OPENH323_BUILD > 4
+                #define h323pluslib 1        // Indicate H323plus Library
 		#ifdef H323_H460
 			#define hasH460 1    // H460 support
 		#endif
 		#define h323v6 1             // Version 6 features
-       #endif
-     #else // h323plus v1.20
+           #endif
+       #else // h323plus v1.20
+           #define h323pluslib 1             // Indicate H323plus Library
  	   #define OpenH323Factory 1         // OpenH323 Factory Loader Auth 
            #define h323v6 1                  // Version 6 features  
 	 #ifdef H323_H460
@@ -97,7 +99,7 @@
 	     #ifdef P_DNS
 	       #define hasSRV 1	             // DNS SRV
 	     #endif     
-        #endif
+       #endif
      #endif	
 #endif
 
