@@ -925,7 +925,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		);
 
 #ifdef H323_H450
-	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450", "0")) &&
+	// Enable H.450.2 Call Transfer Emulator
+	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450.2", "0")) &&
 		 uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) && 
 		 q931pdu->HasIE(Q931::FacilityIE)) {
            // Process H4501SupplementaryService APDU
@@ -2381,7 +2382,7 @@ bool CallSignalSocket::OnH450Invoke(endptr & ep, X880_Invoke & invoke, H4501_Int
   bool result = false;
 
   // Get the invokeId
-  int invokeId = invoke.m_invokeId.GetValue();
+  // int invokeId = invoke.m_invokeId.GetValue();
 
   // Get the linkedId if present
   int linkedId = -1;

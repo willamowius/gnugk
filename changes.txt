@@ -1,6 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
-- Added H.450 Call Transfer emulator [RoutedMode] EnableH450=1
+- Added H.450 Call Transfer emulator [RoutedMode] EnableH450.2=1
 - implement MakeCall command on status port
 - BUGFIX SRV policy correctly detects E.164 number.
 - BUGFIX Radius module now sent public IP of endpoints behind NAT.
