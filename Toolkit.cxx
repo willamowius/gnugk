@@ -36,6 +36,7 @@
 
 #if H323_H350
   const char *H350Section = "GkH350::Settings";
+  #include <ptclib/pldap.h>
   #include "h350/h350.h"
 #endif
 

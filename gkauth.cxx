@@ -35,6 +35,7 @@
 
 #if H323_H350
   extern const char *H350Section;
+  #include <ptclib/pldap.h>
   #include "h350/h350.h"
 #endif
 
