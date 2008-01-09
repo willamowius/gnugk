@@ -1138,7 +1138,6 @@ private:
 
 	bool InternalRemovePtr(CallRec *call);
 	void InternalRemove(const H225_CallIdentifier & CallId);
-	void InternalRemove(WORD CallRef);
 	void InternalRemove(iterator);
 	void InternalRemoveFailedLeg(iterator);
 

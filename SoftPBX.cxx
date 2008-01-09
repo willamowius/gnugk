@@ -206,7 +206,7 @@ void SoftPBX::DisconnectEndpoint(PString Id)
 	EpId = Id;
 	PTRACE(3, "GK\tSoftPBX: DisconnectEndpoint " << EpId);
 
-        DisconnectEndpoint(RegistrationTable::Instance()->FindByEndpointId(EpId));
+	DisconnectEndpoint(RegistrationTable::Instance()->FindByEndpointId(EpId));
 }
 
 void SoftPBX::DisconnectEndpoint(const endptr &ep)

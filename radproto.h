@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2006/04/30 09:22:56  willamowius
+ * PTimedMutex patch for PWLib >= 1.9.2
+ *
  * Revision 1.14  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -1180,55 +1183,6 @@ public:
 	*/
 	PIPSocket::Address GetLocalAddress() const { return m_localAddress; }
 	
-	/** Get default port number that will be used 
-		during communication with radius server (if server name string does
-		not specify custom port number).
-		
-		@return
-		port number
-	*/
-	WORD GetAuthPort() const { return m_authPort; }
-
-	/** Get default port number that will be used 
-		during communication with radius server (if server name string does
-		not specify custom port number).
-		
-		@return
-		port number
-	*/
-	WORD GetAcctPort() const { return m_acctPort; }
-
-	/** Set default port number that will be used 
-		during communication with radius server (if server name string does
-		not specify custom port number).
-	*/
-	void SetAuthPort(WORD port) { m_authPort = port; }
-
-	/** Set default port number that will be used 
-		during communication with radius server (if server name string does
-		not specify custom port number).
-	*/
-	void SetAcctPort(WORD port) { m_acctPort = port; }
-
-	/** Set UDP port range to be used by the client.
-		The effective range will be <base;base+range).
-
-		@return
-		True if the new port range has been set.
-	*/
-	bool SetClientPortRange( 
-		WORD base, /// base port number
-		WORD range /// number of ports in the range 
-		);
-
-	/** Get time interval for RADIUS packet Identifiers
-		to be unique.
-
-		@return
-		Id uniquess time interval.
-	*/
-	PTimeInterval GetIdCacheInterval() const { return m_idCacheTimeout; }
-
 	/** Set new time interval for RADIUS packet Identifiers
 		to be unique.
 		Warning: settings this value to	
@@ -1243,83 +1197,6 @@ public:
 		const PTimeInterval& timeout /// new time interval
 		);
 
-	/** Set timeout values for RADIUS protocol request/response sequence
-		to complete. If the timeout elapses and RADIUS server did not respond,
-		then this client switches to the next server on the list.
-		
-		@return
-		True if timeout has been set
-	*/
-	bool SetRequestTimeout( 
-		const PTimeInterval& timeout /// timeout for RADIUS request/response operation
-		);
-
-	/** Get timeout for RADIUS request operation.
-		
-		@return
-		Request timeout
-	*/
-	PTimeInterval GetRequestTimeout() const { return m_requestTimeout; }
-
-	/// Set timeout for unused RADIUS client sockets to be deleted.
-	void SetSocketDeleteTimeout(
-		const PTimeInterval& timeout /// new timeout
-		);
-
-	/** Get timout for unused RADIUS client sockets to be deleted.
-	
-		@return
-		Time period after which unused RADIUS sockets are deleted.
-	*/
-	PTimeInterval GetSocketDeleteTimeout() const { return m_socketDeleteTimeout; }
-	
-	/** Set retry count (retransmission count) for a single RADIUS server.
-		The number includes first request (e.g. settings this value to 1
-		disables retransmissions).
-
-		@return
-		True if the retry count has been changed.
-	*/
-	bool SetRetryCount(
-		unsigned retries /// retry count (must be at least 1)
-		);
-
-	/** Get retry count (retransmission count) for a single RADIUS server.
-		
-		@return
-		Max number of retransmission for a single RADIUS server.
-	*/
-	unsigned GetRetryCount() const { return m_numRetries; }
-
-	/** Set retransmission method. 
-		Round robin means:
-			repeat
-				transmit to server #1
-				transmit to server #2
-				...
-				transmit to server #n
-			until numRetries
-			
-		No round robin (default) means:
-			repeat
-				transmit to server #1
-			until numRetries
-			repeat
-				transmit to server #2
-			until numRetries
-			...
-	*/
-	void SetRoundRobinServers(
-		bool roundRobin /// true for rr behaviour
-		) { m_roundRobinServers = roundRobin; }
-	
-	/** Get retransmission method.
-		
-		@return
-		TRUE if round robin method is in use.
-	*/
-	bool GetRoundRobinServers() const { return m_roundRobinServers; }
-			
 	/** Send requestPDU to RADIUS server and waits for response.
 		If the response is received, it is returned in responsePDU.
 	

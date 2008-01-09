@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.34  2007/11/25 23:23:40  willamowius
+ * cleanup: rename variables that shadow others with the same name
+ *
  * Revision 1.33  2007/11/19 20:15:34  willamowius
  * change BOOL to bool where it doesn't affect OpenH323 method signatures
  *
@@ -2037,24 +2040,6 @@ void RadiusClient::GetServersFromString(
 	}
 }
 
-bool RadiusClient::SetClientPortRange( 
-	WORD base, /// base port number
-	WORD range /// number of ports in the range 
-	)
-{
-	if (range < 1)
-		return false;
-
-	PWaitAndSignal lock(m_socketMutex);
-	
-	m_portBase = base;
-	m_portMax = m_portBase + (((range-1) < (65535-m_portBase))
-		? (range-1) : (65535-m_portBase)
-		);
-
-	return true;
-}
-
 bool RadiusClient::SetIdCacheTimeout( 
 	const PTimeInterval& timeout /// new time interval
 	)
@@ -2068,38 +2053,6 @@ bool RadiusClient::SetIdCacheTimeout(
 	socket_const_iterator i = m_activeSockets.begin();
 	while (i != m_activeSockets.end()) {
 		(*i)->SetIdCacheTimeout(timeout);
-		++i;
-	}
-			
-	return true;
-}
-
-bool RadiusClient::SetRetryCount(
-	unsigned retries /// retry count (must be at least 1)
-	)
-{
-	if (retries < 1)
-		return false;
-
-	PWaitAndSignal lock(m_socketMutex);
-	m_numRetries = retries;
-	return true;
-}
-
-bool RadiusClient::SetRequestTimeout(
-	const PTimeInterval& timeout
-	)
-{
-	if (timeout < PTimeInterval(25))
-		return false;
-		
-	PWaitAndSignal lock(m_socketMutex);
-		
-	m_requestTimeout = timeout;
-	socket_const_iterator i = m_activeSockets.begin();
-	while (i != m_activeSockets.end()) {
-		(*i)->SetReadTimeout(timeout);
-		(*i)->SetWriteTimeout(timeout);
 		++i;
 	}
 			
@@ -2475,16 +2428,6 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	socket = newSocket;
 	id = (unsigned char)newId;
 	return true;
-}
-
-void RadiusClient::SetSocketDeleteTimeout(
-	const PTimeInterval& timeout /// new timeout
-	)
-{
-	PWaitAndSignal lock(m_socketMutex);
-
-	if (timeout > PTimeInterval(20000))
-		m_socketDeleteTimeout = timeout;
 }
 
 RadiusSocket* RadiusClient::CreateSocket( 

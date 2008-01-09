@@ -2982,16 +2982,6 @@ void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
 	);
 }
 
-void CallTable::InternalRemove(WORD CallRef)
-{
-	PTRACE(5, "GK\tRemoving CallRef: " << CallRef);
-	WriteLock lock(listLock);
-	InternalRemove(
-		find_if(CallList.begin(), CallList.end(),
-		bind2nd(mem_fun(&CallRec::CompareCRV), CallRef))
-	);
-}
-
 void CallTable::InternalRemove(iterator Iter)
 {
 	if (Iter == CallList.end()) {

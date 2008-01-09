@@ -406,15 +406,6 @@ bool GkAuthenticator::IsH235Capable() const
 	return m_h235Authenticators && m_h235Authenticators->GetSize() > 0;
 }
 
-void GkAuthenticator::SetSupportedChecks(
-	unsigned supportedRasChecks, /// RAS checks supported by this module
-	unsigned supportedMiscChecks /// non-RAS checks supported by this module
-	)
-{
-	m_supportedRasChecks = supportedRasChecks;
-	m_supportedMiscChecks = supportedMiscChecks;
-}
-
 void GkAuthenticator::AppendH235Authenticator(
 	H235Authenticator* h235Auth /// H.235 authenticator to append
 	)

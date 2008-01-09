@@ -347,17 +347,6 @@ protected:
 	*/
 	PConfig* GetConfig() const { return m_config; }
 
-	/// Set bitmasks for checks supported (implemented) by this authenticator
-	void SetSupportedChecks(
-		unsigned supportedRasChecks, /// RAS checks supported by this module
-		unsigned supportedMiscChecks /// non-RAS checks supported by this module
-		);
-
-	/** @return
-	    Bitmask for non-RAS checks supported/implemented by this authenticator.
-	*/
-	unsigned GetSupportedMiscChecks() const { return m_supportedMiscChecks; }
-
 	/** Should be called only from derived constructor to add supported
 	    H.235 capabilities (if any).
 	*/
