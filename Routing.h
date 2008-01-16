@@ -296,6 +296,8 @@ public:
 		H225_ArrayOf_AliasAddress* destinationInfo,
 		/// destinationCallSignalAddr (optionally set by this function on successful return)
 		PString* callSigAdr,
+		/// should the call be rejected modified by this function on return)
+		bool & reject,
 		/// an actual virtual queue name (should be present in destinationInfo too)
 		const PString& vqueue,
 		/// a sequence of aliases for the calling endpoint
@@ -325,7 +327,9 @@ public:
 		/// CRV of the call associated with the route request
 		unsigned crv,
 		/// callID of the call associated with the route request
-		const PString& callID
+		const PString& callID,
+		/// should this call be rejected
+		bool reject = false
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -345,7 +349,9 @@ public:
 		/// CRV of the call associated with the route request
 		unsigned crv,
 		/// callID of the call associated with the route request
-		const PString& callID
+		const PString& callID,
+		/// should this call be rejected
+		bool reject = false
 		);
 
 	/** Reject a pending route request (inserted by SendRequest).
@@ -395,6 +401,8 @@ private:
 		H225_ArrayOf_AliasAddress* m_agent;
 		/// destinationCallSignallAddress for the target agent - target route IF NOT NULL
 		PString* m_callsignaladdr;
+		/// should this call be rejected
+		bool m_reject;
 		/// a synchronization point for signalling that routing decision
 		/// has been made by the external application
 		PSyncPoint m_sync;
