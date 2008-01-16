@@ -2479,6 +2479,49 @@ void CallSignalSocket::OnReleaseComplete(
 			);
 		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
 			cause = msg->GetQ931().GetCause();
+
+			// translate cause codes
+			unsigned new_cause = 0;
+			endptr calling = m_call->GetCallingParty();
+			if (!calling)
+				calling = RegistrationTable::Instance()->FindBySignalAdr(m_call->GetSrcSignalAddr());
+			if (!calling)
+				calling = RegistrationTable::Instance()->FindByAliases(m_call->GetSourceAddress());
+			if (!calling) {
+				// if all fails, search on default port
+				PIPSocket::Address addr;
+				WORD port;
+				if (m_call->GetSrcSignalAddr(addr, port))
+					calling = RegistrationTable::Instance()->FindBySignalAdr(SocketToH225TransportAddr(addr, GK_DEF_ENDPOINT_SIGNAL_PORT));
+			}
+			endptr called = m_call->GetCalledParty();
+			if (!called)
+				called = RegistrationTable::Instance()->FindBySignalAdr(m_call->GetDestSignalAddr());
+			if (!called)
+				called = RegistrationTable::Instance()->FindByAliases(m_call->GetDestinationAddress());
+			if (!called) {
+				// if all fails, search on default port
+				PIPSocket::Address addr;
+				WORD port;
+				if (m_call->GetDestSignalAddr(addr, port))
+					called = RegistrationTable::Instance()->FindBySignalAdr(SocketToH225TransportAddr(addr, GK_DEF_ENDPOINT_SIGNAL_PORT));
+			}
+			if (msg->GetQ931().IsFromDestination()) {
+				if (called)
+					new_cause = called->TranslateReceivedCause(cause);
+				if (calling)
+					new_cause = calling->TranslateSentCause(new_cause);
+			} else {
+				if (calling)
+					new_cause = calling->TranslateReceivedCause(cause);
+				if (called)
+					new_cause = called->TranslateSentCause(new_cause);
+			}
+			if (new_cause != cause) {
+				PTRACE(4, "Q931\tTranslated cause code " << cause << " to " << new_cause);
+				msg->GetQ931().SetCause(Q931::CauseValues(new_cause));
+			}
+
 			m_call->SetDisconnectCause(cause);
 		} else if (rc != NULL) {
 			H225_ReleaseComplete_UUIE& rcBody = rc->GetUUIEBody();
@@ -2778,7 +2821,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				PString destination = *dest;
 				PString alias = "";
 				PString ip = "";
-				WORD destport = 1720;
+				WORD destport = GK_DEF_ENDPOINT_SIGNAL_PORT;
 				PINDEX at = destination.Find('@');
 				if (at != P_MAX_INDEX) {
 					alias = destination.Left(at);

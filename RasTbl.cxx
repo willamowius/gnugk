@@ -290,6 +290,8 @@ void EndpointRec::LoadEndpointConfig()
 			type = cfg->GetInteger(key, "CallingTypeOfNumber", -1);
 			if (type == -1)
 				m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
+			ParseTranslationMap(m_receivedCauseMap, cfg->GetString(key, "TranslateReceivedQ931Cause", ""));
+			ParseTranslationMap(m_sentCauseMap, cfg->GetString(key, "TranslateSentQ931Cause", ""));
 			m_proxy = cfg->GetInteger(key, "Proxy", 0);
 			PString log;
 			if (m_calledTypeOfNumber > -1)
@@ -308,6 +310,20 @@ void EndpointRec::LoadEndpointConfig()
 		m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
 		m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
 		m_proxy = 0;
+	}
+}
+
+void EndpointRec::ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini)
+{
+	cause_map.clear();
+	PStringArray pairs(ini.Tokenise(",", false));
+	for (PINDEX i = 0; i < pairs.GetSize(); ++i) {
+		PStringArray causes(pairs[i].Tokenise(":=", false));
+		if (causes.GetSize() == 2) {
+			cause_map.insert(pair<unsigned, unsigned>(causes[0].AsInteger(), causes[1].AsInteger()));
+		} else {
+			PTRACE(1, "RAS\tEndpoint Syntax error in cause mapping: " << causes[i]);
+		}
 	}
 }
 
@@ -438,6 +454,24 @@ void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 	} else {
 		// ignore if prefix is not limited (or this is the calling endpoint)
 	}
+}
+
+unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
+{
+	map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
+	if (i != m_receivedCauseMap.end())
+		return i->second;
+	else
+		return cause;
+}
+
+unsigned EndpointRec::TranslateSentCause(unsigned cause) const
+{
+	map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
+	if (i != m_sentCauseMap.end())
+		return i->second;
+	else
+		return cause;
 }
 
 void EndpointRec::SetTimeToLive(int seconds)
@@ -1839,6 +1873,11 @@ void CallRec::SetProxyMode(
 	if (m_proxyMode == ProxyDetect)
 		if (mode == ProxyEnabled || mode == ProxyDisabled)
 			m_proxyMode = mode;
+}
+
+H225_TransportAddress CallRec::GetSrcSignalAddr() const
+{
+	return m_srcSignalAddress;
 }
 
 bool CallRec::GetSrcSignalAddr(

@@ -891,6 +891,7 @@ void RasServer::LoadConfig()
 	}
 #endif
 
+	listeners->LoadConfig();
 	gkClient->OnReload();
 	neighbors->OnReload();
 	authList->OnReload();

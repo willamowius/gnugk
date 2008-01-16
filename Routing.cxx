@@ -1066,7 +1066,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 			PString ip = adr_parts[0];
 			WORD port = (WORD)(adr_parts[1].AsInteger());
 			if (port == 0)
-				port = 1720;
+				port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 		}
 		delete aliases;
@@ -1568,7 +1568,7 @@ void SqlPolicy::DatabaseLookup(
 			PString ip = adr_parts[0];
 			WORD port = (WORD)(adr_parts[1].AsInteger());
 			if (port == 0)
-				port = 1720;
+				port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 			**newCallSigAdr = SocketToH225TransportAddr(ip, port);
 		} else {
 			*newAliases = new H225_ArrayOf_AliasAddress();
@@ -1587,7 +1587,7 @@ void SqlPolicy::DatabaseLookup(
 		PString ip = adr_parts[0];
 		WORD port = (WORD)(adr_parts[1].AsInteger());
 		if (port == 0)
-			port = 1720;
+			port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 		**newCallSigAdr = SocketToH225TransportAddr(ip, port);
 	}
 	delete result;

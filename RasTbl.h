@@ -226,6 +226,10 @@ public:
 	string LongestPrefixMatch(const PString & alias, int * capacity) const;
 	void UpdatePrefixStats(const PString & dest, int update);
 
+	// cause code translation
+	unsigned TranslateReceivedCause(unsigned cause) const;
+	unsigned TranslateSentCause(unsigned cause) const;
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -242,6 +246,8 @@ private:
 	/// Load general endpoint settings from the config
 	void LoadEndpointConfig();
 	void AddPrefixCapacities(const PString & prefixes);
+	void ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini);
+
 
 	EndpointRec();
 	EndpointRec(const EndpointRec &);
@@ -293,6 +299,9 @@ protected:
 
     /// Assigned Gatekeeper
 	H225_AlternateGK m_assignedGatekeeper;
+	/// cause code translation
+	map<unsigned, unsigned> m_receivedCauseMap;
+	map<unsigned, unsigned> m_sentCauseMap;
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -455,7 +464,7 @@ private:
 
 	template<class F> endptr InternalFind(const F & FindObject, const std::list<EndpointRec *> *ListToBeFound) const
 	{   //  The function body must be put here,
-	    //  or the Stupid VC would fail to instantiate it
+	    //  or the stupid VC would fail to instantiate it
         	ReadLock lock(listLock);
         	const_iterator Iter(find_if(ListToBeFound->begin(), ListToBeFound->end(), FindObject));
 	        return endptr((Iter != ListToBeFound->end()) ? *Iter : 0);
@@ -794,6 +803,8 @@ public:
 	void SetDestSignalAddr(
 		const H225_TransportAddress & addr /// new signalling transport address
 		);
+
+	H225_TransportAddress GetSrcSignalAddr() const;
 
 	/** Get IP and port for the calling party. It is a signal address
 		for registered endpoints and remote signalling socket address
