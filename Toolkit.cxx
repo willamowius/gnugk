@@ -661,7 +661,6 @@ void Toolkit::GWRewriteTool::PrintData() {
 	}
 
 	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
-
 		// In
 		for (rule_iterator = m_GWRewrite.GetDataAt(i).m_entry_data.first.begin(); rule_iterator != m_GWRewrite.GetDataAt(i).m_entry_data.first.end(); ++rule_iterator) {
 			PTRACE(3, "GK\t" << m_GWRewrite.GetKeyAt(i) << " (in): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
@@ -671,11 +670,8 @@ void Toolkit::GWRewriteTool::PrintData() {
 		for (rule_iterator = m_GWRewrite.GetDataAt(i).m_entry_data.second.begin(); rule_iterator != m_GWRewrite.GetDataAt(i).m_entry_data.second.end(); ++rule_iterator) {
 			PTRACE(3, "GK\t" << m_GWRewrite.GetKeyAt(i) << " (out): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
 		}
-
 	}
-
 	PTRACE(2, "GK\tLoaded " << m_GWRewrite.GetSize() << " GW entries with rewrite info");
-
 }
 
 
@@ -750,7 +746,6 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 				sorted_out_strings.push_back(rule);
 			}
 
-
 			// Create the entry
 			gw_entry = new GWRewriteEntry();
 			gw_entry->m_entry_data.first = sorted_in_strings;
@@ -765,9 +760,6 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 
 	PrintData();
 }
-
-
-
 
 Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"), 
 	m_Config(NULL), m_ConfigDirty(false),
