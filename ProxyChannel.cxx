@@ -2520,6 +2520,7 @@ void CallSignalSocket::OnReleaseComplete(
 			if (new_cause != cause) {
 				PTRACE(4, "Q931\tTranslated cause code " << cause << " to " << new_cause);
 				msg->GetQ931().SetCause(Q931::CauseValues(new_cause));
+				msg->SetChanged();
 			}
 
 			m_call->SetDisconnectCause(cause);
