@@ -65,26 +65,6 @@ de votre application.
 Le nom exact de ce projet est
 <em>OpenH323 Gatekeeper - The GNU Gatekeeper</em>,
 en r&#233;sum&#233; <em/GnuGk/.
-Merci de ne pas le confondre avec d'autres projets de gatekeeper.
-
-Il y a plusieurs projets gatekeeper open-source bas&#233;s sur la pile de protocole OpenH323.
-<itemize>
-<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper">
-<quote>Un gatekeeper disponible sous MPL. Le projet a &#233;t&#233; inactif pour une certaine dur&#233;e.</quote>
-<item><url url="http://sourceforge.net/projects/openh323" name="OpenGK">
-<quote>Only in a very primary grades.</quote>
-<item><url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
-<quote>Celui-ci, aussi appel&#233; GnuGk.</quote>
-</itemize>
-
-Avoir diff&#233;rents gatekeepers avec des noms similaires embrouille vraiment
-la plupart des utilisateurs.
-Comme notre "OpenH323 Gatekeeper" &#233;tait le premier sur sc&#232;ne,
-ce n'est pas notre faute si d'autres ont choisi des noms similaires.
-Mais pour rendre la distinction plus &#233;vidente sans embrouiller encore plus
-les gens, nous avons d&#233;cid&#233; de donner un sous-titre au projet
-"OpenH323 Gatekeeper - The GNU Gatekeeper" et commenc&#233; &#224;
-utiliser <tt/gnugk/ comme nom pour les ex&#233;cutables.
 
 <sect1>Caract&#233;ristiques
 <p>
