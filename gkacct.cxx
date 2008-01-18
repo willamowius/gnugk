@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.33  2007/09/26 14:57:54  shorne
+ * Added CallLinkage SQL variable
+ *
  * Revision 1.32  2007/09/11 01:02:29  willamowius
  * clean up includes
  *
@@ -244,6 +247,7 @@ void GkAcctLogger::SetupAcctParams(
 	params["u"] = GetUsername(call);
 	params["d"] = call->GetDuration();
 	params["c"] = call->GetDisconnectCause();
+	params["cause-translated"] = call->GetDisconnectCauseTranslated();
 	params["s"] = call->GetAcctSessionId();
 	params["p"] = call->GetPostDialDelay();
 	params["r"] = call->GetReleaseSource();

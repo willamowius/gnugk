@@ -206,7 +206,8 @@ parameters are recognized:
 <item><tt/%n/ - call number (not unique after gatekeeper restart)
 <item><tt/%d/ - call duration (seconds)
 <item><tt/%t/ - total call duration (from Setup to Release Complete)
-<item><tt/%c/ - Q.931 disconnect cause (decimal integer)
+<item><tt/%c/ - Q.931 disconnect cause (decimal integer) as originally received
+<item><tt/%{cause-translated}/ - Q.931 disconnect cause (decimal integer) after translation rules
 <item><tt/%r/ - who disconnected the call (-1 - unknown, 0 - the gatekeeper, 1 - the caller, 2 - the callee)
 <item><tt/%p/ - PDD (Post Dial Delay) in seconds
 <item><tt/%s/ - unique (for this gatekeeper) session identifier (Acct-Session-Id)

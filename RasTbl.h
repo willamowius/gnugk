@@ -653,9 +653,15 @@ public:
 	unsigned GetDisconnectCause() const;
 
 	/** Set Q.931 ReleaseComplete cause code associated with this call. */
-	void SetDisconnectCause(
-		unsigned causeCode
-		);
+	void SetDisconnectCause(unsigned causeCode);
+
+	/** @return
+		Q.931 ReleaseComplete cause code after translation.
+	*/
+	unsigned GetDisconnectCauseTranslated() const;
+
+	/** Set Q.931 ReleaseComplete cause code after translation rules for this call. */
+	void SetDisconnectCauseTranslated(unsigned causeCode);
 
 	/// @return	Information about who disconnected the call (see #ReleaseSource enum#)
 	int GetReleaseSource() const;
@@ -1010,6 +1016,8 @@ private:
 	long m_durationLimit;
 	/// Q.931 release complete cause code
 	unsigned m_disconnectCause;
+	/// Q.931 release complete cause code after translation
+	unsigned m_disconnectCauseTranslated;
 	/// who disconnected the call (see #RelaseSource enum#)
 	int  m_releaseSource;
 	/// unique accounting session id associated with this call
@@ -1433,6 +1441,16 @@ inline void CallRec::SetDisconnectCause( unsigned causeCode )
 	// set the cause only if it has not been already set
 	if( m_disconnectCause == 0 )
 		m_disconnectCause = causeCode;
+}
+
+inline unsigned CallRec::GetDisconnectCauseTranslated() const
+{
+	return (m_disconnectCauseTranslated == 0) ? m_disconnectCause : m_disconnectCauseTranslated;
+}
+
+inline void CallRec::SetDisconnectCauseTranslated( unsigned causeCode )
+{
+	m_disconnectCauseTranslated = causeCode;
 }
 
 inline bool CallRec::IsTimeout(const time_t now) const
