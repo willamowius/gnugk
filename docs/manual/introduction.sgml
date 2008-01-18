@@ -63,41 +63,22 @@ of your application private.
 
 <sect1>Name
 <p>
-The formal name of this project is
+The full name of this project is
 <em>OpenH323 Gatekeeper - The GNU Gatekeeper</em>,
 short <em/GnuGk/.
-Please don't confuse it with other gatekeeper projects.
-
-There are several open-source gatekeeper projects based on the OpenH323 protocol stack.
-<itemize>
-<item><url url="http://opengatekeeper.sourceforge.net/" name="OpenGatekeeper">
-<quote>A gatekeeper available under MPL. The project has been inactive for a period of time now.</quote>
-<item><url url="http://sourceforge.net/projects/openh323" name="OpenGK">
-<quote>Only in a very primary grades.</quote>
-<item><url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
-<quote>This one, also called GnuGk.</quote>
-</itemize>
-
-To have different gatekeepers with very similar names is really
-confusing for most users.
-Since our "OpenH323 Gatekeeper" was the first on the scene,
-it is not our fault that others have chosen similar names.
-But to make the distinction a little more clear without confusing
-people even more, we have decided to give the project a
-subtitle "OpenH323 Gatekeeper - The GNU Gatekeeper" and start
-using <tt/gnugk/ as name for executables.
+We use the name to emphasise that this is free software.
 
 <sect1>Download
 <label id="download">
 <p>
-The newest stable and a development version are available at
+The newest versions are available at
 <url url="http://www.gnugk.org/h323download.html" name="the download page">.
 
 The very latest source code is in the CVS at
 <url url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/" name="Sourceforge Web-GUI">.
 Beware - that's the bleeding edge.
 
-You can also download some executables from
+You can also download executables from
 <url url="http://www.gnugk.org/h323download.html" name="the download page">.
 
 <sect1>Mailing Lists
@@ -115,21 +96,6 @@ To report problems or submit bugs/patches, send mails to the
 The list archive is
 <url url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer" name="here">. Please send user questions to the users mailing list and keep this list to development! If you want to contribute to the project, please
 <url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="join the mailing list">.
-
-<bf/Note/:
-Please don't send your questions as private emails to individual developer.
-We are usually busy. We would <bf/not/ like to be your private consultant,
-unless you'd like to pay us.
-Send your problems to the appropriate public mailing list so everybody
-can help you.
-
-Also please don't send the GnuGk specific problems to the OpenH323
-mailing list, or vice verse.
-They are different projects, though closely related.
-
-Before you sending an email, make sure you have read the related documents
-carefully. Describe your problems clearly and precisely. Show us the
-error messages or logs if there is any.
 
 <sect1>Contributors
 <p>
