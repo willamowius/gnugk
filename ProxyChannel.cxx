@@ -1656,11 +1656,11 @@ void CallSignalSocket::OnSetup(
 
 	// send a CallProceeding (to avoid caller timeouts)
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))) {
+		PTRACE(4, "Q931\tGatekeeper generated CallProceeding");
 		Q931 proceedingQ931;
 		PBYTEArray lBuffer;
 		BuildProceedingPDU(proceedingQ931, setupBody);
 		proceedingQ931.Encode(lBuffer);
-		PTRACE(4, "Q931\tGatekeeper generated CallProceeding");
 		TransmitData(lBuffer);
 	}
 	
@@ -2873,6 +2873,8 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, H225_Setup_UUIE 
 	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	uuie.m_callIdentifier = SetupUUIE.m_callIdentifier;
 	uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+	signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+	signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
 	ProceedingPDU.BuildCallProceeding(m_crv);
 	SetUUIE(ProceedingPDU, signal);
 

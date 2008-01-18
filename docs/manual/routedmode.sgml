@@ -353,6 +353,8 @@ Define the check interval in seconds before the CpsLimit is applied.
 <item><tt/GenerateCallProceeding=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
+WARNING: This is an experimental feature and may not work in all configurations.
+<p>
 When set, GnuGk will generate a CallProceeding for each Setup message it receives.
 This can be helpfull to avoid a timeout in calling endpoints if the destination takes
 a long time to answer or the call is processed in a virtual queue.
