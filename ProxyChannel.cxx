@@ -1660,6 +1660,7 @@ void CallSignalSocket::OnSetup(
 		PBYTEArray lBuffer;
 		BuildProceedingPDU(proceedingQ931, setupBody);
 		proceedingQ931.Encode(lBuffer);
+		PTRACE(4, "Q931\tGatekeeper generated CallProceeding");
 		TransmitData(lBuffer);
 	}
 	
