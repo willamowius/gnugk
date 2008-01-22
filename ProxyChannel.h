@@ -171,7 +171,7 @@ public:
 	Address GetPeerAddr() { return peerAddr; }
 	Address GetMasqAddr() { return masqAddr; }
 	void BuildFacilityPDU(Q931 &, int, const PObject * = 0);
-	void BuildProceedingPDU(Q931 & ProceedingPDU, H225_Setup_UUIE & SetupUUIE);
+	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
 	void RemoveCall();
 
 	// override from class ServerSocket

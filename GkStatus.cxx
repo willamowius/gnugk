@@ -734,6 +734,7 @@ void GkStatus::OnStart()
 	m_commands["printprefixcapacities"] = e_PrintPrefixCapacities;
 	m_commands["printpc"] = e_PrintPrefixCapacities;
 	m_commands["printcc"] = e_PrintCapacityControlRules;
+	m_commands["sendproceeding"] = e_SendProceeding;
 }
 
 void GkStatus::ReadSocket(
@@ -1271,6 +1272,12 @@ void StatusClient::ExecCommand(
 		}
 		SoftPBX::PrintStatistics(this, true);
 		RasServer::Instance()->Stop();
+		break;
+	case GkStatus::e_SendProceeding:
+		if (args.GetSize() == 2) {
+			SoftPBX::SendProceeding(args[1]);
+		} else
+			CommandError("Syntax Error: SendProceeding CALLID");
 		break;
 	case GkStatus::e_RouteToAlias:
 		if (args.GetSize() == 4) {

@@ -1659,7 +1659,7 @@ void CallSignalSocket::OnSetup(
 		PTRACE(4, "Q931\tGatekeeper generated CallProceeding");
 		Q931 proceedingQ931;
 		PBYTEArray lBuffer;
-		BuildProceedingPDU(proceedingQ931, setupBody);
+		BuildProceedingPDU(proceedingQ931, setupBody.m_callIdentifier, m_crv);
 		proceedingQ931.Encode(lBuffer);
 		TransmitData(lBuffer);
 	}
@@ -1860,7 +1860,11 @@ void CallSignalSocket::OnSetup(
 				rejectCall = true;
 			} else {
 				Route route;
+				PreliminaryCall * tmpCall = new PreliminaryCall(this, setupBody.m_callIdentifier, m_crv);
+				PreliminaryCallTable::Instance()->Insert(tmpCall);
 				request.Process();
+				PreliminaryCallTable::Instance()->Remove(setupBody.m_callIdentifier);
+				delete tmpCall;
 				// check if destination has changed in the routing process
 				// eg. via canMapAlias in LRQ
 				if (request.GetFlags() & Routing::SetupRequest::e_aliasesChanged) {
@@ -2864,18 +2868,18 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 	PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &signal);
 }
 
-void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, H225_Setup_UUIE & SetupUUIE)
+void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv)
 {
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_callProceeding);
 	H225_CallProceeding_UUIE & uuie = body;
 	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
-	uuie.m_callIdentifier = SetupUUIE.m_callIdentifier;
+	uuie.m_callIdentifier = callId;
 	uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
 	signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 	signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
-	ProceedingPDU.BuildCallProceeding(m_crv);
+	ProceedingPDU.BuildCallProceeding(crv);
 	SetUUIE(ProceedingPDU, signal);
 
 	PrintQ931(5, "Send to ", GetName(), &ProceedingPDU, &signal);

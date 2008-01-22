@@ -558,6 +558,23 @@ RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
+<item><tt/SendProceeding/<newline>
+<p>WARNING: This is an experimental feature.
+<p>Send a CallProceeding message to the caller.
+The only time this makes sense is after a RouteRequest event for a unregsiered call.
+Otherwise a status port application won't know if a Setup message has been send,
+but the call isn't established, yet.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+SendProceeding CallID
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
+</verb></tscreen>
+</descrip>
+
 <item><tt/Exit/, <tt/q/<newline>
 <p>Quit the status port.
 

@@ -225,6 +225,44 @@ void SoftPBX::DisconnectEndpoint(const endptr &ep)
 	}
 }
 
+void SoftPBX::SendProceeding(PString CallId)
+{
+	PTRACE(3, "GK\tSoftPBX: SendProceeding " << CallId);
+
+	H225_CallIdentifier cid;
+	CallId.Replace("-", "", true);
+	CallId.Replace(" ", "", true);
+	OpalGloballyUniqueID tmp_guid(CallId);
+	cid.m_guid = tmp_guid;
+ 
+	// CallProceeding will be sent during the routing process
+	// at this time the acll won't yet be in the CallTable,
+	// thus we look for it in the PreliminaryCallTable
+	PreliminaryCall * call = PreliminaryCallTable::Instance()->Find(cid);
+	CallSignalSocket * lForwardedSocket = NULL;
+
+	if (call) {
+		lForwardedSocket = call->GetCallSignalSocketCalling();
+		if (!lForwardedSocket) {
+			PString msg("SoftPBX: can't find signalling socket (direct mode ?)");
+			PTRACE(1, "GK\t" + msg);
+			GkStatus::Instance()->SignalStatus(msg + "\r\n");
+			return;
+		}
+	} else {
+		PString msg("SoftPBX: no call to send CallProceeding! " + AsString(cid.m_guid));
+		PTRACE(1, "GK\t" + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return;
+	}
+	
+	Q931 q931;
+	PBYTEArray lBuffer;
+	lForwardedSocket->BuildProceedingPDU(q931, call->GetCallIdentifier(), call->GetCallRef());
+	q931.Encode(lBuffer);
+	lForwardedSocket->TransmitData(lBuffer); 
+}
+
 bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias)
 {
 	if (!lCall || !lSrcForward) {

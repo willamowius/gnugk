@@ -13,6 +13,7 @@
 #define RASTBL_H "@(#) $Id$"
 
 #include <list>
+#include <map>
 #include <string>
 #include "rwlock.h"
 #include "singleton.h"
@@ -556,12 +557,10 @@ public:
 		citronNAT = 4  // caller with Citron NAT Technology?
 	};
 
-	PINDEX GetCallNumber() const
-	{ return m_CallNumber; }
-	const H225_CallIdentifier & GetCallIdentifier() const
-	{ return m_callIdentifier; }
-	const H225_ConferenceIdentifier & GetConferenceIdentifier() const
-	{ return m_conferenceIdentifier; }
+	PINDEX GetCallNumber() const { return m_CallNumber; }
+	const H225_CallIdentifier & GetCallIdentifier() const { return m_callIdentifier; }
+	unsigned GetCallRef() const { return m_crv; }
+	const H225_ConferenceIdentifier & GetConferenceIdentifier() const { return m_conferenceIdentifier; }
 	endptr GetCallingParty() const { return m_Calling; }
 	endptr GetCalledParty() const { return m_Called; }
 	endptr GetForwarder() const { return m_Forwarder; }
@@ -1464,5 +1463,45 @@ inline bool CallRec::IsTimeout(const time_t now) const
 	}
 	return result;
 }
+
+class PreliminaryCall
+{
+public:
+	PreliminaryCall(CallSignalSocket * callerSocket, H225_CallIdentifier id, unsigned ref)
+		: m_socket(callerSocket), m_callid(id), m_callref(ref) { };
+	~PreliminaryCall() { };
+
+	CallSignalSocket * GetCallSignalSocketCalling() const { return m_socket; };
+	H225_CallIdentifier GetCallIdentifier() const { return m_callid; };
+	unsigned GetCallRef() const { return m_callref; };
+
+private:
+	CallSignalSocket * m_socket;
+	H225_CallIdentifier m_callid;
+	unsigned m_callref;
+};
+
+// hold data about calls being established, only valid during the routing process before calls are accepted or rejected
+class PreliminaryCallTable : public Singleton<PreliminaryCallTable>
+{
+public:
+	PreliminaryCallTable() : Singleton<PreliminaryCallTable>("PreliminaryCallTable") { };
+	~PreliminaryCallTable() { calls.clear(); };
+	
+	void Insert(PreliminaryCall * call)
+		{ calls.insert( pair<H225_CallIdentifier, PreliminaryCall*>(call->GetCallIdentifier(), call)); };
+	void Remove(H225_CallIdentifier id) { calls.erase(id); };
+	PreliminaryCall * Find(H225_CallIdentifier id) const
+		{ map<H225_CallIdentifier, PreliminaryCall*>::const_iterator iter = calls.find(id);
+			return (iter != calls.end()) ? iter->second : NULL;
+		};
+
+private:
+	PreliminaryCallTable(const PreliminaryCallTable &);
+	PreliminaryCallTable& operator==(const PreliminaryCallTable &);
+
+	// cid -> call
+	map<H225_CallIdentifier, PreliminaryCall*> calls;
+};
 
 #endif // RASTBL_H

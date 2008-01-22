@@ -41,6 +41,7 @@ namespace SoftPBX
 	void DisconnectAlias(PString Alias);
 	void DisconnectEndpoint(PString Id);
 	void DisconnectEndpoint(const endptr &);
+	void SendProceeding(PString CallId);
 	void TransferCall(PString SourceAlias, PString DestinationAlias);
 	bool TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias);
 	void MakeCall(PString SourceAlias, PString DestinationAlias);
