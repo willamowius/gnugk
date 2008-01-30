@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.41  2007/11/25 23:23:40  willamowius
+ * cleanup: rename variables that shadow others with the same name
+ *
  * Revision 1.40  2007/11/04 03:26:21  shorne
  * Fix problem with FramedIP with NATed endpoints.
  *
@@ -734,7 +737,7 @@ int RadAuthBase::Check(
 	// check for Session-Timeout attribute (alternate call duration limit)	
 	if (result) {
 		const RadiusAttr* const tattr = response->FindAttr(RadiusAttr::SessionTimeout);
-		if (attr != NULL) {
+		if (tattr != NULL) {
 			const long sessionTimeout = tattr->AsInteger();
 			if (authData.m_callDurationLimit < 0 
 				|| authData.m_callDurationLimit > sessionTimeout) {
