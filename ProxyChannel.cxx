@@ -933,18 +933,15 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 #ifdef H323_H450
 	// Enable H.450.2 Call Transfer Emulator
 	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450.2", "0")) &&
-		 uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) && 
-		 q931pdu->HasIE(Q931::FacilityIE)) {
-           // Process H4501SupplementaryService APDU
-			PBYTEArray buf = q931pdu->GetIE(Q931::FacilityIE);
-			if (buf.GetSize() > 0) {
-				H225_EndpointIdentifier id;
-				PString epid((const char *)buf.GetPointer(), buf.GetSize());
-				id = epid;
-				endptr ep = RegistrationTable::Instance()->FindByEndpointId(id);
-			      if (OnH450PDU(ep, uuie->m_h323_uu_pdu.m_h4501SupplementaryService)) 
+		 uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService)) {
+			endptr ep;
+             if (m_call && m_callerSocket) 
+				 ep = m_call->GetCallingParty();
+			 else
+				 ep = m_call->GetCalledParty();
+		// Process H4501SupplementaryService APDU
+		if (ep && OnH450PDU(ep, uuie->m_h323_uu_pdu.m_h4501SupplementaryService)) 
 				     return Closing;   // we are handling this one via the gatekeeper only
-			}
     }
 #endif
 
