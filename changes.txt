@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- BUGFIX(contrib/sqlbill/sql/src/upgrade_tables.sql): fix wrong foreign key reference
 - implement SendProceeding command on status port (experimental)
 - BUGFIX(Routing.*): calls from registered endpoints to IPs should match vqueue ^.*$
 - added cause code translation (see [EP::..] TranslateReceivedQ931Cause and TranslateSentQ931Cause)

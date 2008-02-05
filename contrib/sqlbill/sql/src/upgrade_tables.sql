@@ -218,7 +218,7 @@ BEGIN
 	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voipuser_account_exists'';
 	IF attrfound = 0 THEN
 		ALTER TABLE voipuser ADD CONSTRAINT voipuser_account_exists 
-			FOREIGN KEY (accountid) REFERENCES voipuser(id) ON UPDATE CASCADE;
+			FOREIGN KEY (accountid) REFERENCES voipaccount(id) ON UPDATE CASCADE;
 	END IF;
 
 	-- recreate voipcall constraints
