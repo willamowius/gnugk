@@ -35,7 +35,7 @@ CREATE TABLE voiptariff (
 	CONSTRAINT voiptariff_destination_exists FOREIGN KEY (dstid) REFERENCES voiptariffdst(id) ON UPDATE CASCADE,
 	CONSTRAINT voiptariff_group_exists FOREIGN KEY (grpid) REFERENCES voiptariffgrp(id) ON UPDATE CASCADE,
 	CONSTRAINT voiptariff_unique UNIQUE (dstid, grpid, currencysym, terminating),
-	CONSTRAINT voiptariff_checkincrement CHECK (initialincrement > 0 AND regularincrement > 0)
+	CONSTRAINT voiptariff_checkincrement CHECK (initialincrement > 0 AND regularincrement >= 0)
 );
 
 CREATE INDEX voiptariff_dstid_idx ON voiptariff(dstid);

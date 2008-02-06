@@ -143,7 +143,7 @@ BEGIN
 	END IF;
 	SELECT INTO attrfound COUNT(*) FROM pg_constraint WHERE conname = ''voiptariff_checkincrement'';
 	IF attrfound = 0 THEN
-		ALTER TABLE voiptariff ADD CONSTRAINT voiptariff_checkincrement CHECK (initialincrement > 0 AND regularincrement > 0);
+		ALTER TABLE voiptariff ADD CONSTRAINT voiptariff_checkincrement CHECK (initialincrement > 0 AND regularincrement >= 0);
 	END IF;
 
 	constraintname := NULL;

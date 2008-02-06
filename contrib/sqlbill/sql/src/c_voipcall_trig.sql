@@ -114,7 +114,7 @@ BEGIN
 		ELSE
 			NEW.cost := NEW.price::NUMERIC(12,4) * NEW.initialincrement::NUMERIC(12,4)
 				/ 60::NUMERIC(12,4);
-			IF NEW.duration > NEW.initialincrement THEN
+			IF NEW.duration > NEW.initialincrement AND NEW.regularincrement > 0 THEN
 				NEW.cost := NEW.cost + NEW.price::NUMERIC(12,4) 
 					* ((NEW.duration - NEW.initialincrement + NEW.regularincrement - 1)::INT 
 						/ NEW.regularincrement::INT)::NUMERIC(12,4) 
@@ -144,7 +144,7 @@ BEGIN
 			ELSE
 				termtariff.cost := termtariff.price::NUMERIC(12,4) 
 					* termtariff.initialincrement::NUMERIC(12,4) / 60::NUMERIC(12,4);
-				IF NEW.duration > termtariff.initialincrement THEN
+				IF NEW.duration > termtariff.initialincrement AND termtariff.regularincrement > 0 THEN
 					termtariff.cost := termtariff.cost + termtariff.price::NUMERIC(12,4) 
 						* ((NEW.duration - termtariff.initialincrement + termtariff.regularincrement - 1)::INT 
 							/ termtariff.regularincrement::INT)::NUMERIC(12,4) 

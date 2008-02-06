@@ -1,3 +1,10 @@
+6 Feb 2008 -- willamowius
+  * new feature: fixed per-call prices - calls are only billed for the
+    initial increment if the regular increment is set to 0
+
+5 Feb 2008 -- willamowius
+  * fix bug in constraints update in upgrade_tables.sql
+
 13 Jun 2006 -- zvision
   * postgresql.conf typo fixed
 
