@@ -397,8 +397,8 @@ It will automatically be used if required.
 <item><tt>InternalNetwork=10.0.1.0/24</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define the networks behind the proxy. Multiple internal networks are allow.
-The proxy route channels only of the communications between one endpoint
+Define the networks behind the proxy. Multiple internal networks are allowed.
+The proxy route channels only the communications between one endpoint
 in the internal network and one external. If you don't specify it, all calls
 will be proxied. If using GnuGk behind a NAT and the [Gatekeeper::Main] ExternalIP
 is set then there is not requirement to set this as it is auto-detected at startup. 
