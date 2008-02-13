@@ -38,7 +38,7 @@ static const char *filteringsec="GkStatus::Filtering";
 // a very lightweight implementation of telnet socket
 class TelnetSocket : public ServerSocket {
 #ifndef LARGE_FDSET
-	PCLASSINFO(TelnetSocket, TCPSocket)
+	PCLASSINFO(TelnetSocket, ServerSocket)
 #endif
 public:
 	typedef PTelnetSocket::Options Options;
