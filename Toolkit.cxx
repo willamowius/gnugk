@@ -264,7 +264,10 @@ void Toolkit::RouteTable::InitTable()
 	// Set default IP according to route table
 	PIPSocket::Address defGW;
 	PIPSocket::GetGatewayAddress(defGW);
-	defAddr = GetLocalAddress(defGW);
+	if (defGW.AsString() == "0.0.0.0")
+		PIPSocket::GetNetworkInterface(defAddr);
+	else
+		defAddr = GetLocalAddress(defGW);
 
 #if PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry)
