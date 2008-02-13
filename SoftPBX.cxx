@@ -307,6 +307,9 @@ bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PStrin
 	Q931 q931;
 	PBYTEArray lBuffer;
 	lForwardedSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_callForwarded, &DestinationAlias);
+	H225_H323_UserInformation uuie;
+	GetUUIE(q931, uuie);
+	PrintQ931(5, "Send to ", lForwardedSocket->GetName(), &q931, &uuie);
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
 
@@ -387,6 +390,9 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	Q931 q931;
 	PBYTEArray lBuffer;
 	lForwardedSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_callForwarded, &DestinationAlias);
+	H225_H323_UserInformation uuie;
+	GetUUIE(q931, uuie);
+	PrintQ931(5, "Send to ", lForwardedSocket->GetName(), &q931, &uuie);
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
 

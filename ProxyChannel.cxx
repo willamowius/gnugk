@@ -831,7 +831,6 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 	return false;
 }
 
-namespace { // anonymous namespace
 #if PTRACING
 void PrintQ931(int tlevel, const char *msg1, const char *msg2, const Q931 *q931, const H225_H323_UserInformation *uuie)
 {
@@ -866,8 +865,6 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
 	strm.CompleteEncoding();
 	q931.SetIE(Q931::UserUserIE, strm);
 }
-
-} // end of anonymous namespace
 
 void CallSignalSocket::RemoveCall()
 {
@@ -1520,6 +1517,16 @@ void CallSignalSocket::OnSetup(
 	RasServer *rassrv = RasServer::Instance();
 	Toolkit *toolkit = Toolkit::Instance();
 	time_t setupTime = time(0); // record the timestamp here since processing may take much time
+
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))
+		&& !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "UseProvisionalRespToH245Tunneling", "0"))) {
+		// disable H.245 tunneling when the gatekeeper generates the CP
+		H225_H323_UserInformation * uuie = msg->GetUUIE();
+		if ((uuie != NULL) && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+			msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+		}
+		m_h245Tunneling = false;
+	}
 
 	m_crv = (WORD)(setup->GetCallReference() | 0x8000u);
 	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "1")) && m_setupPdu == NULL)
@@ -2202,6 +2209,45 @@ void CallSignalSocket::OnCallProceeding(
 		msg->SetUUIEChanged();
 	}
 	
+	if (m_call) {
+		if (m_call->IsProceedingSent()) {
+			// translate 2nd CallProceeding to Facility
+			// TODO: convert to Progress instead of Facility if CP contains fastStart elements ?
+			PTRACE(1, Type() << "\tTranslate CallProceeding to Facility/Progress");
+			Q931 q931;
+			H225_H323_UserInformation uuie;
+			H225_CallProceeding_UUIE & cp_uuie = msg->GetUUIE()->m_h323_uu_pdu.m_h323_message_body;
+			if (cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastStart)
+				|| cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastConnectRefused)) {
+				BuildProgressPDU(q931, msg->GetQ931().IsFromDestination());
+				GetUUIE(q931, uuie);
+				H225_Progress_UUIE & progress_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
+				if (msg->GetQ931().HasIE(Q931::DisplayIE))
+					q931.SetIE(Q931::DisplayIE, msg->GetQ931().GetIE(Q931::DisplayIE));
+				// copy over H.245 elements
+				if (cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastStart)) {
+					progress_uuie.IncludeOptionalField(H225_Progress_UUIE::e_fastStart);
+					progress_uuie.m_fastStart = cp_uuie.m_fastStart;
+				}
+				if (cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastConnectRefused)) {
+					progress_uuie.IncludeOptionalField(H225_Progress_UUIE::e_fastConnectRefused);
+				}
+			} else {
+				BuildFacilityPDU(q931, H225_FacilityReason::e_transportedInformation);
+				GetUUIE(q931, uuie);
+				if (msg->GetQ931().HasIE(Q931::DisplayIE))
+					q931.SetIE(Q931::DisplayIE, msg->GetQ931().GetIE(Q931::DisplayIE));
+				if (m_h225Version > 0 && m_h225Version < 4)
+					uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+			}
+			uuie.m_h323_uu_pdu.m_h245Tunneling = msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling;
+			msg->GetQ931() = q931;
+			*msg->GetUUIE() = uuie;
+			msg->SetUUIEChanged();
+		}
+		else
+			m_call->SetProceedingSent(true);
+	}
 }
 
 void CallSignalSocket::OnConnect(
@@ -2808,6 +2854,8 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 	uuie.m_reason.SetTag(reason);
 	switch (reason)
 	{
+		case H225_FacilityReason::e_transportedInformation:
+			break;
 		case H225_FacilityReason::e_startH245:
 			uuie.IncludeOptionalField(H225_Facility_UUIE::e_h245Address);
 			if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote))
@@ -2861,8 +2909,20 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 
 	FacilityPDU.BuildFacility(m_crv, m_crv & 0x8000u);
 	SetUUIE(FacilityPDU, signal);
+}
 
-	PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &signal);
+void CallSignalSocket::BuildProgressPDU(Q931 & ProgressPDU, PBoolean fromDestination)
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_progress);
+	H225_Progress_UUIE & uuie = body;
+	if (m_call) {
+		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	}
+
+	ProgressPDU.BuildProgress(m_crv, fromDestination, Q931::ProgressInbandInformationAvailable);
+	SetUUIE(ProgressPDU, signal);
 }
 
 void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv)
@@ -2874,8 +2934,13 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallI
 	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	uuie.m_callIdentifier = callId;
 	uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
-	signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
-	signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "UseProvisionalRespToH245Tunneling", "0"))) {
+		signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
+	} else {
+		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+	}
 	ProceedingPDU.BuildCallProceeding(crv);
 	SetUUIE(ProceedingPDU, signal);
 
@@ -3745,6 +3810,9 @@ bool NATH245Socket::ConnectRemote()
 
 	Q931 q931;
 	sigSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_startH245);
+	H225_H323_UserInformation uuie;
+	GetUUIE(q931, uuie);
+	PrintQ931(5, "Send to ", sigSocket->GetName(), &q931, &uuie);
 	q931.Encode(buffer);
 	sigSocket->TransmitData(buffer);
 	m_signalingSocketMutex.Signal();

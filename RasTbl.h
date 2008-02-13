@@ -952,6 +952,10 @@ public:
 	void SetRADIUSClass(const PBYTEArray &bytes);
 	void SetRADIUSClass(void * bytes, PINDEX len);
 	PBYTEArray GetRADIUSClass() const;
+	
+	bool IsProceedingSent() const { return m_proceedingSent; };
+	// TODO: JW also set when sent via status port
+	void SetProceedingSent(bool val) { m_proceedingSent = val; };
 
 private:
 	void SendDRQ();
@@ -1073,6 +1077,7 @@ private:
 	PString m_codec;
 	PIPSocket::Address m_mediaOriginatingIp;
 	PBYTEArray m_radiusClass;
+	bool m_proceedingSent;
 };
 
 typedef CallRec::Ptr callptr;

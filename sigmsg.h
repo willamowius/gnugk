@@ -51,7 +51,7 @@ public:
 	Q931& GetQ931() const { return *m_q931; }
 
 	/// @return a pointer to the User-User IE, NULL if not present
-	H225_H323_UserInformation* GetUUIE() const { return m_uuie; }
+	H225_H323_UserInformation* GetUUIE() { return m_uuie; }
 
 	/// Get an address the message has been received on
 	void GetLocalAddr(

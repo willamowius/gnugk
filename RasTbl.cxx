@@ -1751,7 +1751,7 @@ CallRec::CallRec(
 	m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY)
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -1769,6 +1769,9 @@ CallRec::CallRec(
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
 	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
+
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0")))
+		m_proceedingSent = true;	// this was probably done before a CallRec existed
 }
 
 CallRec::CallRec(
@@ -1793,7 +1796,7 @@ CallRec::CallRec(
 	m_usedCount(0), m_nattype(none), m_unregNAT(false), m_h245Routed(routeH245),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY)
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -1814,6 +1817,9 @@ CallRec::CallRec(
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
 	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
+	
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0")))
+		m_proceedingSent = true;	// this was probably done before a CallRec existed
 }
 
 CallRec::CallRec(
@@ -1840,7 +1846,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY)
+	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent)
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_calleeId = m_calleeAddr = " ";

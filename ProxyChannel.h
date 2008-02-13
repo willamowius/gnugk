@@ -55,6 +55,13 @@ struct SetupAuthData;
 
 extern const char *RoutedSec;
 
+void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
+
+bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie);
+
+void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie);
+
+
 class ProxySocket : public USocket {
 public:
 	enum Result {
@@ -171,6 +178,7 @@ public:
 	Address GetPeerAddr() { return peerAddr; }
 	Address GetMasqAddr() { return masqAddr; }
 	void BuildFacilityPDU(Q931 &, int, const PObject * = 0);
+	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
 	void RemoveCall();
 

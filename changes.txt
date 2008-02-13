@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- SQLBill: implement fixed per-call billing
 - BUGFIX(contrib/sqlbill/sql/src/upgrade_tables.sql): fix wrong foreign key reference
 - implement SendProceeding command on status port (experimental)
 - BUGFIX(Routing.*): calls from registered endpoints to IPs should match vqueue ^.*$
@@ -8,7 +9,7 @@ Changes from 2.2.6 to 2.2.7
 - implement MakeCall command on status port
 - BUGFIX SRV policy correctly detects E.164 number.
 - BUGFIX Radius module now sent public IP of endpoints behind NAT.
-- new switch [RoutedMode] GenerateCallProceeding
+- new switches [RoutedMode] GenerateCallProceeding, UseProvisionalRespToH245Tunneling (experimental)
 - new SQLAUth variable %{CallId}
 - BUGFIX(RasTbl.*,SoftPBX.cxx) status port commands (find,disconnectcall,transfercall) could influence round-robin order
 - enable auto-reconnect for MySQL >= 5.0
