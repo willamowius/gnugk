@@ -2532,7 +2532,7 @@ void CallSignalSocket::OnReleaseComplete(
 			cause = msg->GetQ931().GetCause();
 
 			// translate cause codes
-			unsigned new_cause = 0;
+			unsigned new_cause = cause;
 			endptr calling = m_call->GetCallingParty();
 			if (!calling)
 				calling = RegistrationTable::Instance()->FindBySignalAdr(m_call->GetSrcSignalAddr());
