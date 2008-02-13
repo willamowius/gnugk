@@ -357,7 +357,20 @@ WARNING: This is an experimental feature and may not work in all configurations.
 <p>
 When set, GnuGk will generate a CallProceeding for each Setup message it receives.
 This can be helpfull to avoid a timeout in calling endpoints if the destination takes
-a long time to answer or the call is processed in a virtual queue.
+a long time to answer or the call is processed in a virtual queue. Without setting
+UseProvisionalRespToH245Tunneling=1 this will disable H.245 tunneling.
+<p>
+CallProceeding messages sent by endpoints or gateways will be translated into Facility
+or Progress messages.
+
+<item><tt/UseProvisionalRespToH245Tunneling=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+WARNING: This is an experimental feature and may not work in all configurations.
+<p>
+If you only use H.323 equipment that supports provisionalRespToH245Tunneling,
+you can set this switch to keep H.245 tunneling enabled when using gatekeeper
+generated CallProceeding.
 
 <item><tt/EnableH450.2=1/<newline>
 Default: <tt>0</tt><newline>
