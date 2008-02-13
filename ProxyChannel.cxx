@@ -1525,6 +1525,9 @@ void CallSignalSocket::OnSetup(
 		if ((uuie != NULL) && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
 			msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 		}
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_parallelH245Control)) {
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_parallelH245Control);
+		}
 		m_h245Tunneling = false;
 	}
 
