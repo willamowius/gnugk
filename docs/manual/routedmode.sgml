@@ -148,7 +148,7 @@ Whether to allow an endpoint behind an NAT box register to the gatekeeper.
 If yes, the gatekeeper will translate the IP address in Q.931 and H.245
 channel into the IP of NAT box.
 
-Since 2.0.2, the GnuGk supports NAT outbound calls (from an endpoint behind NAT
+GnuGk supports NAT outbound calls (from an endpoint behind NAT
 to public networks) directly without any necessary modification
 of endpoints or NAT box. Just register the endpoint with the GnuGk
 and you can make call now. 
