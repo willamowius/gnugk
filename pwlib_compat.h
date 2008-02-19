@@ -60,6 +60,15 @@
  #endif
 #endif
 
+// define hasDeletingSetStream for PWLib >= 1.11.2
+#if PWLIB_MAJOR == 1
+  #if PWLIB_MINOR >= 11
+    #if PWLIB_BUILD >= 2
+       #define hasDeletingSetStream 1
+    #endif
+  #endif
+#endif
+
 #if PWLIB_MAJOR == 1
  #if PWLIB_MINOR == 12
      #define hasRDS 1 
@@ -71,6 +80,13 @@
 #ifdef PTLIB_MAJOR 
   #define hasRDS 1 
   #define hasSETENUMSERVERS 1    
+  #define hasDeletingSetStream 1
+#endif
+
+#if !defined(PWLIB_MAJOR) && !defined(PTLIB_MAJOR)
+  #warning "Can't detect PWLib/PTLib version"
+  // be on the safe side and rsik a small memleak instead of a crash
+  #define hasDeletingSetStream 1
 #endif
 
 ///////////////////////////////////////////////

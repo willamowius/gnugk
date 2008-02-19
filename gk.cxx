@@ -819,7 +819,9 @@ bool Gatekeeper::SetLogFilename(
 	
 	PTrace::SetStream(&cerr);
 	
+#ifndef hasDeletingSetStream
 	delete m_logFile;
+#endif
 	m_logFile = NULL;
 	
 	m_logFilename = filename;
@@ -841,7 +843,9 @@ bool Gatekeeper::RotateLogFile()
 	if (m_logFile) {
 		PTRACE(1, "GK\tLogging closed (log file rotation)");
 		PTrace::SetStream(&cerr); // redirect to cerr
+#ifndef hasDeletingSetStream
 		delete m_logFile;
+#endif
 		m_logFile = NULL;
 	}
 
@@ -887,7 +891,9 @@ bool Gatekeeper::ReopenLogFile()
 	if (m_logFile) {
 		PTRACE(1, "GK\tLogging closed (reopen log file)");
 		PTrace::SetStream(&cerr); // redirect to cerr
+#ifndef hasDeletingSetStream
 		delete m_logFile;
+#endif
 		m_logFile = NULL;
 	}
 
@@ -925,7 +931,9 @@ void Gatekeeper::CloseLogFile()
 	if (m_logFile)
 		PTRACE(1, "GK\tLogging closed");
 	PTrace::SetStream(&cerr);
+#ifndef hasDeletingSetStream
 	delete m_logFile;
+#endif
 	m_logFile = NULL;
 }
 #endif // PTRACING
