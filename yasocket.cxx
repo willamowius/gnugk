@@ -651,10 +651,8 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 			if (group == PSocket::LastReadError) {
 				PTRACE(5, msg << " closed by remote");
 				CloseSocket();
-				break;
 			}
-			// TODO: add break ? fallthrough intended ?
-			// has always been this way since code was written in 2003
+			break;
 		default:
 			PTRACE(3, msg << " Error(" << group << "): " 
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
