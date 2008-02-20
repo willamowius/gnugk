@@ -929,7 +929,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 #ifdef H323_H450
 	// Enable H.450.2 Call Transfer Emulator
-	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450.2", "0")) &&
+	if (uuie && Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450.2", "0")) &&
 		 uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService)) {
 			endptr ep;
              if (m_call && m_callerSocket) 
@@ -938,7 +938,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				 ep = m_call->GetCalledParty();
 		// Process H4501SupplementaryService APDU
 		if (ep && OnH450PDU(ep, uuie->m_h323_uu_pdu.m_h4501SupplementaryService)) 
-				     return Closing;   // we are handling this one via the gatekeeper only
+			return Closing;   // we are handling this one via the gatekeeper only
     }
 #endif
 
@@ -2243,6 +2243,9 @@ void CallSignalSocket::OnCallProceeding(
 					uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 			}
 			uuie.m_h323_uu_pdu.m_h245Tunneling = msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling;
+			if (msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardData)) {
+				uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_nonStandardData);
+			}
 			msg->GetQ931() = q931;
 			*msg->GetUUIE() = uuie;
 			msg->SetUUIEChanged();
