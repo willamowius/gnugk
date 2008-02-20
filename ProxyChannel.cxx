@@ -1666,7 +1666,7 @@ void CallSignalSocket::OnSetup(
 		PTRACE(4, "Q931\tGatekeeper generated CallProceeding");
 		Q931 proceedingQ931;
 		PBYTEArray lBuffer;
-		BuildProceedingPDU(proceedingQ931, setupBody.m_callIdentifier, m_crv);
+		BuildProceedingPDU(proceedingQ931, setupBody.m_callIdentifier, m_crv | 0x8000u);
 		proceedingQ931.Encode(lBuffer);
 		TransmitData(lBuffer);
 	}
@@ -2243,8 +2243,10 @@ void CallSignalSocket::OnCallProceeding(
 					uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 			}
 			uuie.m_h323_uu_pdu.m_h245Tunneling = msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling;
-			if (msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardData)) {
-				uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_nonStandardData);
+			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardNonStandard", "0"))) {	// JW
+				if (msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardData)) {
+					uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_nonStandardData);
+				}
 			}
 			msg->GetQ931() = q931;
 			*msg->GetUUIE() = uuie;
@@ -2922,6 +2924,7 @@ void CallSignalSocket::BuildProgressPDU(Q931 & ProgressPDU, PBoolean fromDestina
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_progress);
 	H225_Progress_UUIE & uuie = body;
+	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	if (m_call) {
 		uuie.m_callIdentifier = m_call->GetCallIdentifier();
 	}
