@@ -6,7 +6,7 @@ use strict;
 
 use IO::Socket;
 
-print "THIS IS NO REAL BILLING APPLICATION, JUST A DEMO HOW TO CONNECT TO THE GATEKEEPER.\nWRITE YOUR OWN CLIENT TO USE THE CDR MESSAGES!\n";
+print "THIS IS NO REAL BILLING APPLICATION, JUST A DEMO HOW TO CONNECT TO THE GATEKEEPER.\nWRITE YOUR OWN CLIENT AND USE [StatusAcct] MESSAGES!\n\n";
 
 if (@ARGV != 1) {
 	print "usage: billing.pl <gatekeeper_host>\n";
@@ -29,16 +29,18 @@ while (!$sock->eof()) {
 	my $msg = $sock->getline();
 	$msg = (split(/;/, $msg))[0];	# remove junk at end of line
 	my $msgtype = (split(/\|/, $msg))[0];	# what message type is it ?
+	# TODO: use [StatusAcct] instead of ACF and CDR messages!
 	if ($msgtype eq "ACF") {
-		my ($calling, $callref, $called) = (split(/\|/, $msg))[2,3,4];
-		$caller{$callref} = $calling;
-		$calls{$callref} = time();
-		print "User $calling started call $callref with $called\n";
+		my ($calling, $called, $callid) = (split(/\|/, $msg))[2,4,7];
+		$caller{$callid} = $calling;
+		$calls{$callid} = time();
+		print "User $calling started call $callid with $called\n";
 	}
 	if ($msgtype eq "CDR") {
-		my ($callref, $calltime) = (split(/\|/, $msg))[1,2];
-		my $initiator = $caller{$callref};
-		print "Call $callref ended after $calltime seconds\n";
+		my ($callid, $calltime) = (split(/\|/, $msg))[2,3];
+		$callid =~ s/\s+/-/g;
+		my $initiator = $caller{$callid};
+		print "Call $callid ended after $calltime seconds\n";
 		print "Charging $initiator for $calltime seconds\n";
 	}
 }
