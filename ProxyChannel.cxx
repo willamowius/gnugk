@@ -2214,9 +2214,8 @@ void CallSignalSocket::OnCallProceeding(
 	
 	if (m_call) {
 		if (m_call->IsProceedingSent()) {
-			// translate 2nd CallProceeding to Facility
-			// TODO: convert to Progress instead of Facility if CP contains fastStart elements ?
-			PTRACE(1, Type() << "\tTranslate CallProceeding to Facility/Progress");
+			// translate 2nd CallProceeding to Facility or Progress
+			PTRACE(2, Type() << "\tTranslate CallProceeding to Facility/Progress");
 			Q931 q931;
 			H225_H323_UserInformation uuie;
 			H225_CallProceeding_UUIE & cp_uuie = msg->GetUUIE()->m_h323_uu_pdu.m_h323_message_body;
