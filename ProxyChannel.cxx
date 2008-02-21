@@ -2225,6 +2225,7 @@ void CallSignalSocket::OnCallProceeding(
 				BuildProgressPDU(q931, msg->GetQ931().IsFromDestination());
 				GetUUIE(q931, uuie);
 				H225_Progress_UUIE & progress_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
+				progress_uuie.m_protocolIdentifier = cp_uuie.m_protocolIdentifier;
 				if (msg->GetQ931().HasIE(Q931::DisplayIE))
 					q931.SetIE(Q931::DisplayIE, msg->GetQ931().GetIE(Q931::DisplayIE));
 				// copy over H.245 elements
@@ -2238,6 +2239,8 @@ void CallSignalSocket::OnCallProceeding(
 			} else {
 				BuildFacilityPDU(q931, H225_FacilityReason::e_transportedInformation);
 				GetUUIE(q931, uuie);
+				H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
+				facility_uuie.m_protocolIdentifier = cp_uuie.m_protocolIdentifier;
 				if (msg->GetQ931().HasIE(Q931::DisplayIE))
 					q931.SetIE(Q931::DisplayIE, msg->GetQ931().GetIE(Q931::DisplayIE));
 				if (m_h225Version > 0 && m_h225Version < 4)
