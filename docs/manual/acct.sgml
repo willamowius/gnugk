@@ -431,10 +431,10 @@ to an SQL database. Many configuration settings are common with
 other SQL modules.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL | Firebird | odbc/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/ and <tt/ODBC/ drivers
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
