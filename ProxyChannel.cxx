@@ -2219,8 +2219,9 @@ void CallSignalSocket::OnCallProceeding(
 			Q931 q931;
 			H225_H323_UserInformation uuie;
 			H225_CallProceeding_UUIE & cp_uuie = msg->GetUUIE()->m_h323_uu_pdu.m_h323_message_body;
-			if (cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastStart)
-				|| cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastConnectRefused)) {
+			if ((cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastStart)
+				|| cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastConnectRefused))
+				&& (m_h225Version >= 2)) {
 				BuildProgressPDU(q931, msg->GetQ931().IsFromDestination());
 				GetUUIE(q931, uuie);
 				H225_Progress_UUIE & progress_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
