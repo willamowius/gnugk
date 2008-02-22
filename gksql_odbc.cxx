@@ -12,10 +12,13 @@
  *
  */
 
+#include "pwlib_compat.h"
+
 #ifdef P_ODBC
 
 #include <ptlib.h>
 #include <ptclib/podbc.h>
+#include "gksql.h"
 
 
 /** Class that encapsulates SQL query result for odbc backend.
@@ -286,7 +289,8 @@ PString GkodbcConnection::EscapeString(
 }
 
 namespace {
-	GkSQLCreator<GkodbcConnection> PgSQLCreator("odbc");
+	GkSQLCreator<GkodbcConnection> OdbcSQLCreator("odbc");
 }
 
 #endif /* P_ODBC */
+
