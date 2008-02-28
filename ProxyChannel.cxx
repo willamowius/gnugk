@@ -3713,7 +3713,10 @@ PBoolean H245Socket::Accept(PSocket & socket)
 {
 	bool result = TCPProxySocket::Accept(socket);
 	if (result) {
-		PTRACE(3, "H245\tConnected from " << GetName());
+		Address addr;
+		WORD p;
+		GetLocalAddress(addr, p);
+		PTRACE(3, "H245\tConnected from " << GetName() << " on " << addr << ":" << p);
 	} else if (peerH245Addr) {
 		result = H245Socket::ConnectRemote();
 	}
