@@ -415,12 +415,20 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	fdset.add(os_handle);
 	YaSelectList::large_fd_set exset = fdset;
 	struct timeval tval = { 6, 0 };
-	if (::select(os_handle + 1, 0, fdset, exset, &tval) > 0) {
+	if ((r = ::select(os_handle + 1, 0, fdset, exset, &tval)) > 0) {
 		optval = -1;
 		::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, &optval, &optlen);
 		if (optval == 0) // connected
 			return SetLinger();
 		errno = optval;
+	} else {
+		if (r == 0) {
+#ifdef _WIN32
+			errno = WSAETIMEDOUT;
+#else
+			errno = ETIMEDOUT;
+#endif
+		}
 	}
 	return ConvertOSError(-1);
 }
