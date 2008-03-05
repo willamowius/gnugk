@@ -25,7 +25,7 @@ For example,
 kill -HUP `cat /var/run/gnugk.pid`
 </verb></tscreen>
 
-<sect2>Section &lsqb;Gatekeeper::Main&rsqb;
+<sect1>Section &lsqb;Gatekeeper::Main&rsqb;
 <p>
 <itemize>
 <item><tt/Fortytwo=42/<newline>
@@ -323,7 +323,7 @@ Note: H.235.1 requires OpenSSL support compiled into GnuGk.
 </itemize>
 
 
-<sect2>Section &lsqb;GkStatus::Auth&rsqb;
+<sect1>Section &lsqb;GkStatus::Auth&rsqb;
 <label id="gkstatusauth">
 <p>
 Define a number of rules who is allowed to connect to the status port.
@@ -376,12 +376,12 @@ How long (in seconds) to wait before rejecting invalid username/password
 for the status line access.
 </itemize>
 
-<sect2>Section &lsqb;GkStatus::Filtering&rsqb;
+<sect1>Section &lsqb;GkStatus::Filtering&rsqb;
 <label id="gkstatusfilteringsect">
 <p>
 See <ref id="statusportfiltering" name="Status Port Filtering">.
 
-<sect2>Section &lsqb;LogFile&rsqb;
+<sect1>Section &lsqb;LogFile&rsqb;
 <label id="logfile">
 <p>
 This section defines log file related parameters. Currently it allows
