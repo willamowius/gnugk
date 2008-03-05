@@ -1,5 +1,6 @@
 Changes from 2.2.6 to 2.2.7
 ===========================
+- BUGFIX(RasTbl.cxx) honor setting of Called/CallingTypeOfNumber in [EP::..] section (patch by Mauricio Nuñez)
 - BUGFIX(Toolkit.cxx) fix detection of default IP when host has a default route, but no default gateway
 - SQLBill: implement fixed per-call billing
 - BUGFIX(contrib/sqlbill/sql/src/upgrade_tables.sql): fix wrong foreign key reference
