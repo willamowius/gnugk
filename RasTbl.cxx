@@ -287,9 +287,13 @@ void EndpointRec::LoadEndpointConfig()
 			int type = cfg->GetInteger(key, "CalledTypeOfNumber", -1);
 			if (type == -1)
 				m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
+			else
+				m_calledTypeOfNumber = type;
 			type = cfg->GetInteger(key, "CallingTypeOfNumber", -1);
 			if (type == -1)
 				m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
+			else
+				m_callingTypeOfNumber = type;
 			ParseTranslationMap(m_receivedCauseMap, cfg->GetString(key, "TranslateReceivedQ931Cause", ""));
 			ParseTranslationMap(m_sentCauseMap, cfg->GetString(key, "TranslateSentQ931Cause", ""));
 			m_proxy = cfg->GetInteger(key, "Proxy", 0);
