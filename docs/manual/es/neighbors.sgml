@@ -132,7 +132,7 @@ Eso puede ser utilizado con la política de enrutado "SRV routing policy" para ub
 Esto debe ser utilizado conjuntamente con una política "LRQ Authentication".
 </itemize>
 
-<sect2>Sección &lsqb;Neighbor::...&rsqb;
+<sect1>Sección &lsqb;Neighbor::...&rsqb;
 <p>
 Las secciones que empiezan con <tt/[Neighbor::/ son para las configuraciones especificas de un vecino.
 

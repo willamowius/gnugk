@@ -1,4 +1,4 @@
-<sect2>Section &lsqb;RoutedMode&rsqb;
+<sect1>Section &lsqb;RoutedMode&rsqb;
 <label id="routed">
 <p>
 Call signalling messages may be passwd in two ways.
@@ -206,7 +206,7 @@ settings to adjust keep alive timeout. See docs/keepalive.txt for more details.
 </itemize>
 
 <p>
-<sect2>Section &lsqb;Proxy&rsqb;
+<sect1>Section &lsqb;Proxy&rsqb;
 <label id="proxy">
 <p>
 The section defines the H.323 proxy features. It means the gatekeeper will

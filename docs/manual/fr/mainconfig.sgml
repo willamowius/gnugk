@@ -26,7 +26,7 @@ Par exemple,
 kill -HUP `cat /var/run/gnugk.pid`
 </verb></tscreen>
 
-<sect2>Section &lsqb;Gatekeeper::Main&rsqb;
+<sect1>Section &lsqb;Gatekeeper::Main&rsqb;
 <p>
 <itemize>
 <item><tt/Fortytwo=42/<newline>
@@ -311,7 +311,7 @@ Temps en millisecondes pour le timeout d'&#233;criture sur le canal d'&#233;tat.
 </itemize>
 
 
-<sect2>Section &lsqb;GkStatus::Auth&rsqb;
+<sect1>Section &lsqb;GkStatus::Auth&rsqb;
 <p>
 D&#233;finit un nombre de r&#232;gles pour indiquer qui est autoris&#233; &#224; se
 connecter au port d'&#233;tat.
@@ -371,7 +371,7 @@ l'acc&#232;s &#224; la ligne d'&#233;tat.
 </itemize>
 
 
-<sect2>Section &lsqb;LogFile&rsqb;
+<sect1>Section &lsqb;LogFile&rsqb;
 <label id="logfile">
 <p>
 Cette section d&#233;finit les param&#232;tres li&#233;s aux fichiers de log.

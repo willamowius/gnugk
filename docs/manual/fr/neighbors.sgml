@@ -131,7 +131,7 @@ hop count est sup&#233;rieur &#224; 1. Ce param&#232;tre peut &#234;tre annul&#2
 par la configuration d'un voisin donn&#233;.
 </itemize>
 
-<sect2>Section &lsqb;Neighbor::...&rsqb;
+<sect1>Section &lsqb;Neighbor::...&rsqb;
 <p>
 Les sections commen&#231;ant par <tt/[Neighbor::/ sont pour la configuration d'un
 voisin donn&#233;.

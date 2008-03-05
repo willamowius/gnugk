@@ -25,7 +25,7 @@ Por ejemplo,
 kill -HUP `cat /var/run/gnugk.pid`
 </verb></tscreen>
 
-<sect2>Sección &lsqb;Gatekeeper::Main&rsqb;
+<sect1>Sección &lsqb;Gatekeeper::Main&rsqb;
 <p>
 <itemize>
 <item><tt/Fortytwo=42/<newline>
@@ -320,7 +320,7 @@ convertir la URI recibida en un número E164 para opciones de enrutado.
 </itemize>
 
 
-<sect2>Sección &lsqb;GkStatus::Auth&rsqb;
+<sect1>Sección &lsqb;GkStatus::Auth&rsqb;
 <label id="gkstatusauth">
 <p>
 En esta sección se definen un número de reglas para determinar quienes están permitidos de conectarse al gatekeeper vía puerto de estado (vía telnet). 
@@ -373,7 +373,7 @@ Esta opción especifica que tiempo (en segundos) se debe esperar antes de rechaza
 para acceder vía puerto de estado.
 </itemize>
 
-<sect2>Sección &lsqb;GkStatus::Filtering&rsqb;
+<sect1>Sección &lsqb;GkStatus::Filtering&rsqb;
 <label id="gkstatusfilteringsect">
 <p>
 Revisar <ref id="statusportfiltering" name="Filtrado del Puerto de Estado"> para más detalle.
