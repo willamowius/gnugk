@@ -156,7 +156,7 @@ Use this setting with extreme caution.
 
 
 
-<sect2>Section &lsqb;Neighbor::...&rsqb;
+<sect1>Section &lsqb;Neighbor::...&rsqb;
 <p>
 Sections starting with <tt/[Neighbor::/ are for neighbor specific configuration.
 
