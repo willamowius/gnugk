@@ -309,8 +309,6 @@ prefix/capacity/curr: 125/5/0
 </descrip>
 <item><tt/printcc/<newline>
 <p>Print the current counters for all CapacityControl rules.
-<descrip>
-</descrip>
 
 <item><tt/Find/, <tt/f/<newline>
 <p>Find a registered endpoint by an alias or a prefix. To find an alias
