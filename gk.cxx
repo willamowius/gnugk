@@ -390,11 +390,13 @@ bool Gatekeeper::InitLogging(const PArgList &args)
 bool Gatekeeper::InitConfig(const PArgList &args)
 {
 	// get the name of the config file
-	PFilePath fp("gatekeeper.ini");
+	PFilePath fp;
 	PString section("Gatekeeper::Main");
 
 	if (args.HasOption('c')) 
 		fp = PFilePath(args.GetOptionString('c'));
+	else
+		fp = "gatekeeper.ini";
 
 	if (args.HasOption('s')) 
 		section = args.GetOptionString('s');
