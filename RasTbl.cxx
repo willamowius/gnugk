@@ -3132,6 +3132,17 @@ void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, 
 	}
 }
 
+void CallTable::UpdatePrefixCapacityCounters()
+{
+	ReadLock lock(listLock);
+	for (const_iterator Iter = CallList.begin(); Iter != CallList.end(); ++Iter) {
+	CallRec *call = *Iter;
+	endptr ep = call->GetCalledParty();
+	if (ep)
+		ep->UpdatePrefixStats(StripAliasType(call->GetDestInfo()), +1);
+	}
+}
+
 void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 {
 	PString msg = "CurrentCalls\r\n";

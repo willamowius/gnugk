@@ -154,6 +154,7 @@ void ReloadHandler()
 
 	CallTable::Instance()->LoadConfig();
 	RegistrationTable::Instance()->LoadConfig();
+	CallTable::Instance()->UpdatePrefixCapacityCounters();
 
 	// don't put this in LoadConfig()
 	RasServer::Instance()->SetRoutedMode();

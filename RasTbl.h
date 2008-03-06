@@ -1127,6 +1127,7 @@ public:
 #endif
 
 	void LoadConfig();
+	void UpdatePrefixCapacityCounters();    // after Reload
 
 	PINDEX Size() const { return m_activeCall; }
 
