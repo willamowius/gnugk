@@ -1490,21 +1490,18 @@ private:
 class PreliminaryCallTable : public Singleton<PreliminaryCallTable>
 {
 public:
-	PreliminaryCallTable() : Singleton<PreliminaryCallTable>("PreliminaryCallTable") { };
-	~PreliminaryCallTable() { calls.clear(); };
+	PreliminaryCallTable();
+	~PreliminaryCallTable();
 	
-	void Insert(PreliminaryCall * call)
-		{ calls.insert( pair<H225_CallIdentifier, PreliminaryCall*>(call->GetCallIdentifier(), call)); };
-	void Remove(H225_CallIdentifier id) { calls.erase(id); };
-	PreliminaryCall * Find(H225_CallIdentifier id) const
-		{ map<H225_CallIdentifier, PreliminaryCall*>::const_iterator iter = calls.find(id);
-			return (iter != calls.end()) ? iter->second : NULL;
-		};
+	void Insert(PreliminaryCall * call);
+	void Remove(H225_CallIdentifier id);
+	PreliminaryCall * Find(H225_CallIdentifier id) const;
 
 private:
 	PreliminaryCallTable(const PreliminaryCallTable &);
 	PreliminaryCallTable& operator==(const PreliminaryCallTable &);
 
+	mutable PReadWriteMutex tableLock;
 	// cid -> call
 	map<H225_CallIdentifier, PreliminaryCall*> calls;
 };
