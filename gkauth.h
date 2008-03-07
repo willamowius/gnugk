@@ -195,7 +195,7 @@ public:
 		/// if this module cannot determine authentication success or failure
 		/// (due to some missing info, for example), remaining modules will
 		/// decide about acceptation/rejection of the reqest,
-		/// otherwise auth processing ends at this module
+		/// if the request is accepted it is passed to a next rule
 		e_Optional, 
 		/// the request has to be authenticated by this module
 		/// and processing is continued with remaining modules
@@ -203,7 +203,10 @@ public:
 		/// if the request is authenticated by this module, authentication
 		/// is successful, otherwise the request is rejected
 		/// (no further modules are processed in both cases)
-		e_Sufficient 
+		e_Sufficient,
+		/// if the request is accepted/rejected by this module, authentication
+		/// processing ends, otherwise the request is passed to a next rule
+		e_Alternative
 	};
 
 	/// authentication status returned from Check methods
@@ -913,7 +916,8 @@ public:
 					PTRACE(3, "GKAUTH\t" << auth->GetName() << ' ' 
 						<< request.GetTagName() << " check ok"
 						);
-					if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+					if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
+							|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
 						return true;
 				} else if (result == GkAuthenticator::e_fail) {
 					PTRACE(3, "GKAUTH\t" << auth->GetName() << ' '

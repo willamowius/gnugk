@@ -14,7 +14,7 @@ authrule=actions
 
  <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
- <control>  := optional | required | sufficient
+ <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
  <q931>     := Setup | SetupUnreg
 
@@ -28,9 +28,10 @@ A rule may results in one of the three codes: ok, fail, pass.
 </itemize>
 There are also three ways to control a rule:
 <itemize>
-<item><tt/optional/ - If the rule cannot determine the request, it is passed to next rule.
+<item><tt/optional/ - If the rule cannot determine the request or accepts it, it is passed to next rule. Otherwise processing stops and the request is rejected
 <item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passed to next rule.
 <item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
+<item><tt/alternative/ - similar to the <tt/sufficient/ rule, except that if the module cannot determine request fate, the request is passed to a next module.
 </itemize>
 
 Currently supported modules: (most of them only support a subset of the ras or q931 actions)
@@ -116,7 +117,7 @@ The default is to accept all requests.
 
 <descrip>
 <tag/Example 1:/
-<tt/SimplePasswordAuth=optional;RRQ,ARQ/<newline>
+<tt/SimplePasswordAuth=alternative;RRQ,ARQ/<newline>
 <tt/AliasAuth=sufficient;RRQ/<newline>
 </descrip>
 
@@ -137,9 +138,9 @@ using RadAliasAuth takes place (SetupUnreg).
 
 <descrip>
 <tag/Example 3:/
-<tt/RadAuth=optional;RRQ,ARQ/<newline>
-<tt/RadAliasAuth=required;RRQ,ARQ,SetupUnreg/<newline>
-<tt/default=allow/
+<tt/RadAuth=alternative;RRQ,ARQ/<newline>
+<tt/RadAliasAuth=alternative;RRQ,ARQ,SetupUnreg/<newline>
+<tt/default=reject/
 </descrip>
 
 <sect1>Section &lsqb;FileIPAuth&rsqb;

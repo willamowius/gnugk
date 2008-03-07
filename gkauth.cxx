@@ -207,6 +207,8 @@ GkAuthenticator::GkAuthenticator(
 			m_controlFlag = e_Required, m_defaultStatus = e_fail;
 		else if (controlStr *= "sufficient")
 			m_controlFlag = e_Sufficient, m_defaultStatus = e_fail;
+		else if (controlStr *= "alternative")
+			m_controlFlag = e_Alternative, m_defaultStatus = e_next;
 		else
 			PTRACE(1, "GKAUTH\tInvalid control flag '" << controlStr
 				<< "' specified in the config for " << GetName()
@@ -799,7 +801,8 @@ void GkAuthenticatorList::OnReload()
 		while (iter != authenticators.end()) {
 			auth = *iter++;
 			if (auth->IsH235Capable() 
-					&& auth->GetControlFlag() == GkAuthenticator::e_Optional) {
+					&& (auth->GetControlFlag() == GkAuthenticator::e_Optional
+						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)) {
 				if (mechanisms.GetSize() == 0) {
 					auth->GetH235Capability(mechanisms, algorithmOIDs);
 					if (algorithmOIDs.GetSize() == 0 )
@@ -977,7 +980,8 @@ bool GkAuthenticatorList::Validate(
 			const int result = auth->Check(request, authData);
 			if (result == GkAuthenticator::e_ok) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " RRQ check ok");
-				if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+				if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
+						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
 					return true;
 			} else if (result == GkAuthenticator::e_fail) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " RRQ check failed");
@@ -1018,7 +1022,8 @@ bool GkAuthenticatorList::Validate(
 					);
 			if (result == GkAuthenticator::e_ok) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " ARQ check ok");
-				if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+				if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
+						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
 					return true;
 			} else if (result == GkAuthenticator::e_fail) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " ARQ check failed");
@@ -1060,7 +1065,8 @@ bool GkAuthenticatorList::Validate(
 					);
 			if (result == GkAuthenticator::e_ok) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check ok");
-				if (auth->GetControlFlag() != GkAuthenticator::e_Required)
+				if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
+						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
 					return true;
 			} else if (result == GkAuthenticator::e_fail) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check failed");
