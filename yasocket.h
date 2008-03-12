@@ -74,6 +74,11 @@ protected:
 	bool SetNonBlockingMode();
 	bool Bind(const Address &, WORD);
 
+private:
+	YaSocket(const YaSocket&);
+	YaSocket& operator=(const YaSocket&);
+	
+protected:
 	int os_handle;
 	int lastReadCount, lastWriteCount;
 	WORD port;
@@ -101,12 +106,16 @@ public:
 	virtual bool Connect(const Address &);
 
 protected:
-	sockaddr_in peeraddr;
-
-private:
 	// override from class YaSocket
 	virtual int os_recv(void *, int);
 	virtual int os_send(const void *, int);
+
+private:
+	YaTCPSocket(const YaTCPSocket&);
+	YaTCPSocket& operator=(const YaTCPSocket&);
+	
+private:
+	sockaddr_in peeraddr;
 };
 
 class YaUDPSocket : public YaSocket {
@@ -126,11 +135,16 @@ public:
 	virtual bool ReadFrom(void *, PINDEX, Address &, WORD);
 	virtual bool WriteTo(const void *, PINDEX, const Address &, WORD);
 
-private:
+protected:
 	// override from class YaSocket
 	virtual int os_recv(void *, int);
 	virtual int os_send(const void *, int);
 
+private:
+	YaUDPSocket(const YaUDPSocket&);
+	YaUDPSocket& operator=(const YaUDPSocket&);
+	
+private:
 	sockaddr_in recvaddr, sendaddr;
 };
 
@@ -242,13 +256,23 @@ public:
 	virtual ~TCPSocket() {}
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
+	
+private:
+	TCPSocket(const TCPSocket&);
+	TCPSocket& operator=(const TCPSocket&);
 };
 
 class UDPSocket : public PUDPSocket, public NamedObject {
 public:
 	PCLASSINFO( UDPSocket, PUDPSocket )
+	
+	UDPSocket() {}
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
+	
+private:
+	UDPSocket(const UDPSocket&);
+	UDPSocket& operator=(const UDPSocket&);
 };
 
 #endif // LARGE_FDSET
@@ -338,10 +362,13 @@ protected:
 	IPSocket *self;
 
 private:
-
+	USocket();
+	USocket(const USocket&);
+	USocket& operator=(const USocket&);
+	
+private:
 	std::list<PBYTEArray *> queue;
 	int qsize;
-
 	bool blocked;
 	PTimedMutex writeMutex, queueMutex;
 	const char *type;
@@ -392,6 +419,9 @@ protected:
 	mutable PMutex m_rmutex;
 
 private:
+	SocketsReader(const SocketsReader&);
+	SocketsReader& operator=(const SocketsReader&);
+	
 	// override from class Task
 	virtual void Exec();
 };
@@ -407,6 +437,10 @@ public:
 
 	// dispatch this socket to an appropriate handler
 	virtual void Dispatch() = 0;
+	
+private:
+	ServerSocket(const ServerSocket&);
+	ServerSocket& operator=(const ServerSocket&);
 };
 
 class TCPListenSocket : public TCPSocket {
@@ -424,6 +458,10 @@ public:
 	// create an appropriate socket to accept the request
 	virtual ServerSocket *CreateAcceptor() const = 0;
 
+private:
+	TCPListenSocket(const TCPListenSocket&);
+	TCPListenSocket& operator=(const TCPListenSocket&);
+	
 private:
 	PTime start;
 };
@@ -443,6 +481,9 @@ public:
 	bool CloseListener(TCPListenSocket *socket);
 
 private:
+	TCPServer(const TCPServer&);
+	TCPServer& operator=(const TCPServer&);
+	
 	// override from class SocketsReader
 	virtual void ReadSocket(IPSocket *);
 	virtual void CleanUp();
