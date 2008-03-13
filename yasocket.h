@@ -376,11 +376,14 @@ private:
 
 class SocketsReader : public RegularJob {
 public:
-	SocketsReader(int = 1000);
+	SocketsReader(int selectTimeout = 1000);
 	virtual ~SocketsReader();
 
 	// override from class RegularJob
 	virtual void Stop();
+
+	// override from class Task
+	virtual void Exec();
 
 protected:
 	// the derived classes should provide new interface to add sockets
@@ -411,19 +414,18 @@ protected:
 	void RemoveSocket(iterator);
 	void RemoveSocket(IPSocket *);
 
-	PTimeInterval m_timeout;
-	std::list<IPSocket *> m_sockets, m_removed;
-	// keep the size of list since list::size() is not thread-safe
-	int m_socksize, m_rmsize;
-	mutable PReadWriteMutex m_listmutex;
-	mutable PMutex m_rmutex;
-
 private:
 	SocketsReader(const SocketsReader&);
 	SocketsReader& operator=(const SocketsReader&);
 	
-	// override from class Task
-	virtual void Exec();
+protected:
+	PTimeInterval m_timeout;
+	std::list<IPSocket *> m_sockets, m_removed;
+	// keep the size of list since list::size() is not thread-safe
+	volatile int m_socksize;
+	volatile int m_rmsize;
+	mutable PReadWriteMutex m_listmutex;
+	mutable PMutex m_rmutex;
 };
 
 class ServerSocket : public TCPSocket {
@@ -487,7 +489,8 @@ private:
 	// override from class SocketsReader
 	virtual void ReadSocket(IPSocket *);
 	virtual void CleanUp();
-	
+
+private:	
 	// rate limiting
 	unsigned int cps_limit;	// max cps per one sec
 	unsigned int check_interval; // number of sec. to check if cps_limit applies

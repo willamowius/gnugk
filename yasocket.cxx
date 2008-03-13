@@ -730,8 +730,11 @@ SocketsReader::~SocketsReader()
 void SocketsReader::Stop()
 {
 	PWaitAndSignal lock(m_deletionPreventer);
-	ReadLock llock(m_listmutex);
+	
+	m_listmutex.StartWrite();
 	ForEachInContainer(m_sockets, mem_fun(&IPSocket::Close));
+	m_listmutex.EndWrite();
+	
 	RegularJob::Stop();
 }
 
@@ -887,7 +890,7 @@ void TCPServer::LoadConfig()
 
 bool TCPServer::CloseListener(TCPListenSocket *socket)
 {
-	ReadLock lock(m_listmutex);
+	WriteLock lock(m_listmutex);
 	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
 	if (iter != m_sockets.end()) {
 		PTRACE(6, GetName() << "\tListener " << (*iter)->GetName() << " closed");
