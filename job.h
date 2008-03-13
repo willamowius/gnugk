@@ -40,6 +40,7 @@
 class Job : public NamedObject 
 {
 public:
+	Job() {}
 	virtual ~Job();
 
 	/// Perform the actual job, return when it is done
@@ -56,6 +57,10 @@ public:
 
 	/// Stop all jobs being currently executed by Worker threads
 	static void StopAll();
+	
+private:
+	Job(const Job&);
+	Job& operator=(const Job&);
 };
 
 /** Similar to the Job, but is even more abstract. It does not contain
@@ -126,6 +131,11 @@ public:
 	virtual void Run();
 
 private:
+	Jobs();
+	Jobs(const Jobs&);
+	Jobs& operator=(const Jobs&);
+
+private:
 	/// task (or a serie of tasks) to be executed
 	Task* m_current;
 };
@@ -186,6 +196,10 @@ protected:
 	/// Send a signal to the waiting task
 	void Signal() { m_sync.Signal(); }
 
+private:
+	RegularJob(const RegularJob&);
+	RegularJob& operator=(const RegularJob&);
+
 protected:
 	/// can be used when calling Stop to prevent the job to be deleted
 	/// (and invalid object being referenced) before the function 
@@ -196,7 +210,7 @@ private:
 	/// used by Wait and Signal member functions
 	PSyncPoint m_sync;
 	/// true if the job should be stopped
-	bool m_stop;
+	volatile bool m_stop;
 };
 
 

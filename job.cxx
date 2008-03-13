@@ -65,20 +65,25 @@ public:
 	*/
 	void Destroy();
 
-private:
 	// override from class PThread
 	virtual void Main();
-
+	
+private:
+	Worker();
+	Worker(const Worker&);
+	Worker& operator=(const Worker&);
+	
+private:
 	/// idle timeout (seconds), after which the Worker is destoyed
 	PTimeInterval m_idleTimeout;
 	/// signals that either a new Job is present or the Worker is destroyed
 	PSyncPoint m_wakeupSync;
 	/// true if the Worker is being destroyed
-	bool m_closed;
+	volatile bool m_closed;
 	/// for atomic job insertion and deletion
 	PMutex m_jobMutex;
 	/// actual Job being executed, NULL if the Worker is idle
-	Job* m_job;
+	Job* volatile m_job;
 	/// Worker thread identifier
 	PThreadIdentifer m_id;
 	/// Agent singleton pointer to avoid unnecessary Instance() calls
@@ -118,7 +123,11 @@ public:
 		/// the worker to be marked as idle
 		Worker* worker
 		);
-		
+
+private:
+	Agent(const Agent&);
+	Agent& operator=(const Agent&);
+			
 private:
 	/// mutual access to Worker lists
 	PMutex m_wlistMutex;
@@ -127,7 +136,7 @@ private:
 	/// list of Worker threads executing some Jobs
 	std::list<Worker*> m_busyWorkers;
 	/// flag preventing new workers to be registered during Agent destruction
-	bool m_active;
+	volatile bool m_active;
 };
 
 
