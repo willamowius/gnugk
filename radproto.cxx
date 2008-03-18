@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.35  2008/01/09 00:44:07  willamowius
+ * remove unused code
+ *
  * Revision 1.34  2007/11/25 23:23:40  willamowius
  * cleanup: rename variables that shadow others with the same name
  *
@@ -2418,12 +2421,15 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	newSocket->SetWriteTimeout(m_requestTimeout);
 	newSocket->SetIdCacheTimeout(m_idCacheTimeout);
 	
-	m_activeSockets.push_back(newSocket);
-	PTRACE(5, "RADIUS\tCreated new RADIUS client socket: " << (*newSocket));
 	
 	const PINDEX newId = newSocket->GenerateNewId();
-	if (newId == P_MAX_INDEX)
+	if (newId == P_MAX_INDEX) {
+		delete newSocket;
 		return false;
+	}
+	
+	m_activeSockets.push_back(newSocket);
+	PTRACE(5, "RADIUS\tCreated new RADIUS client socket: " << (*newSocket));
 		
 	socket = newSocket;
 	id = (unsigned char)newId;
