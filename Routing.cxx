@@ -791,7 +791,7 @@ bool VirtualQueue::RouteToAlias(
 			r->m_sync.Signal();
 			if (!foundrequest) {
 				foundrequest = true;
-				if (reject)
+				if (!reject)
 					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
 						<< ", CRV=" << crv << ") accepted by agent " << AsString(agent));
 				else
