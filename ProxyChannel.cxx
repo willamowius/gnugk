@@ -3200,8 +3200,8 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 
 void CallSignalSocket::DispatchNextRoute()
 {
-	const int setupTimeout = PMAX(GkConfig()->GetInteger(RoutedSec,"SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
 	ReadLock lock(ConfigReloadMutex);
+	const int setupTimeout = PMAX(GkConfig()->GetInteger(RoutedSec,"SetupTimeout",DEFAULT_SETUP_TIMEOUT),1000);
 	
 	const PTime channelStart;
 
