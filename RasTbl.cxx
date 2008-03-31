@@ -2797,9 +2797,6 @@ static PTextFile* OpenQoSFile(
 
 void CallTable::OnQosMonitoringReport(const PString & conference, const endptr & ep, H4609_QosMonitoringReportData & qosdata)
 {
-
-	Toolkit* const toolkit = Toolkit::Instance();
-
 	if (!Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0")))
 		return;
 
@@ -2866,6 +2863,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 
 		//write report to database
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+		Toolkit* const toolkit = Toolkit::Instance();
 
 		if (toolkit->QoS().Enabled()) {
           std::map<PString, PString> params;
@@ -2893,7 +2891,6 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		  return;
 	}
 #endif  // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
-
 
 		//Write report to file
 	   PString fn = GkConfig()->GetString("GkQoSMonitor", "DetailFile", "");
