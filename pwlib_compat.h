@@ -84,7 +84,11 @@
 #endif
 
 #if !defined(PWLIB_MAJOR) && !defined(PTLIB_MAJOR)
-  #warning "Can't detect PWLib/PTLib version"
+  #if _WIN32
+    #pragma message ("warning: Can't detect PWLib/PTLib version")
+  #else
+    #warning "Can't detect PWLib/PTLib version"
+  #endif
   // be on the safe side and rsik a small memleak instead of a crash
   #define hasDeletingSetStream 1
 #endif
