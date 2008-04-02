@@ -1086,7 +1086,6 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 				port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 		}
-		delete aliases;
 		delete callSigAdr;
 		// the trick: if empty, the request is rejected
 		// so we return true to terminate the routing
@@ -1094,9 +1093,11 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		// rewritten, we return false to let subsequent
 		// policies determine the request
 		if (m_next == NULL || reject) {
+			delete aliases;
 			return true;
 		}
 	}
+	delete aliases;
 	return false;
 }
 
@@ -1315,7 +1316,8 @@ protected:
 		/* out: */
 		H225_ArrayOf_AliasAddress ** newAliases,	/* DatabaseLookup will allocate, caller must delete */
 		H225_TransportAddress ** newCallSigAdr,		/* DatabaseLookup will allocate, caller must delete */
-		bool * reject);
+		bool * reject,
+		unsigned * rejectReason);
 
 private:
 	// active ?
@@ -1399,12 +1401,14 @@ bool SqlPolicy::OnRequest(AdmissionRequest & request)
 		H225_ArrayOf_AliasAddress * newAliases = NULL;
 		H225_TransportAddress * newCallSigAdr = NULL;
 		bool reject = false;
+		unsigned rejectReason = -1;
 
 		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
-						/* out: */ &newAliases, &newCallSigAdr, &reject);
+						/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
 
 		if (reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
+			request.SetRejectReason(rejectReason);
 		}
 
 		if (newAliases) {
@@ -1448,12 +1452,14 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 	H225_ArrayOf_AliasAddress * newAliases = NULL;
 	H225_TransportAddress * newCallSigAdr = NULL;
 	bool reject = false;
+	unsigned rejectReason = -1;
 
 	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
-					/* out: */ &newAliases, &newCallSigAdr, &reject);
+					/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
 
 	if (reject) {
 		request.SetFlag(RoutingRequest::e_Reject);
+		request.SetRejectReason(rejectReason);
 	}
 
 	if (newAliases) {
@@ -1499,12 +1505,14 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	H225_ArrayOf_AliasAddress * newAliases = NULL;
 	H225_TransportAddress * newCallSigAdr = NULL;
 	bool reject = false;
+	unsigned rejectReason = -1;
 
 	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
-					/* out: */ &newAliases, &newCallSigAdr, &reject);
+					/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
 
 	if (reject) {
 		request.SetFlag(RoutingRequest::e_Reject);
+		request.SetRejectReason(rejectReason);
 	}
 
 	if (newAliases) {
@@ -1541,7 +1549,8 @@ void SqlPolicy::DatabaseLookup(
 		/* out: */
 		H225_ArrayOf_AliasAddress ** newAliases,	/* DatabaseLookup will allocate, caller must delete */
 		H225_TransportAddress ** newCallSigAdr,	/* DatabaseLookup will allocate, caller must delete */
-		bool * reject)
+		bool * reject,
+		unsigned * rejectReason)
 {
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
 	GkSQLResult::ResultRow resultRow;
@@ -1596,16 +1605,21 @@ void SqlPolicy::DatabaseLookup(
 		PString newDestinationAlias = resultRow[0].first;
 		PString newDestinationIP = resultRow[1].first;
 		PTRACE(5, m_name << "\tQuery result: " << newDestinationAlias << ", " << newDestinationIP);
-		*newAliases = new H225_ArrayOf_AliasAddress();
-		(*newAliases)->SetSize(1);
-		H323SetAliasAddress(newDestinationAlias, (**newAliases)[0]);
-		*newCallSigAdr = new H225_TransportAddress();
-		PStringArray adr_parts = newDestinationIP.Tokenise(":", FALSE);
-		PString ip = adr_parts[0];
-		WORD port = (WORD)(adr_parts[1].AsInteger());
-		if (port == 0)
-			port = GK_DEF_ENDPOINT_SIGNAL_PORT;
-		**newCallSigAdr = SocketToH225TransportAddr(ip, port);
+		if (newDestinationAlias.ToUpper() == "REJECT") {
+			*reject = TRUE;
+			*rejectReason = newDestinationIP.AsInteger();
+		} else {
+			*newAliases = new H225_ArrayOf_AliasAddress();
+			(*newAliases)->SetSize(1);
+			H323SetAliasAddress(newDestinationAlias, (**newAliases)[0]);
+			*newCallSigAdr = new H225_TransportAddress();
+			PStringArray adr_parts = newDestinationIP.Tokenise(":", FALSE);
+			PString ip = adr_parts[0];
+			WORD port = (WORD)(adr_parts[1].AsInteger());
+			if (port == 0)
+				port = GK_DEF_ENDPOINT_SIGNAL_PORT;
+			**newCallSigAdr = SocketToH225TransportAddr(ip, port);
+		}
 	}
 	delete result;
 #endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD

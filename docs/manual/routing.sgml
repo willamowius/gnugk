@@ -304,6 +304,11 @@ taken as destination IP and else it is treated as new destination alias.
 If 2 colums are returned, the first is treated as the new destination alias
 and the second is treated as new destination IP.
 
+When rejecting a call, the 2nd column can contain an integer designating the
+reject reason (H.225 AdmissionRejectReason for registered calls,
+H.225 LocationRejectReason for neighbor calls,
+H.225 disconnect reason for unregistered calls).
+
 If the database returns nothing, the call is passed on unchanged.
 
 <itemize>
