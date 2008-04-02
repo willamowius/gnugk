@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2007/09/10 18:13:48  willamowius
+ * clean up sql driver interface and remove unused methods from all drivers
+ *
  * Revision 1.10  2006/04/30 09:22:56  willamowius
  * PTimedMutex patch for PWLib >= 1.9.2
  *
@@ -387,8 +390,12 @@ private:
 	    True if at least one database connection has been established.
 	*/
 	bool Connect();
-	
+
 protected:
+	/** Disconnect connection pool from DB on connection error
+	*/
+	void Disconnect();
+	
 	/// filled with the actual host from m_hosts the database connection is made to
 	PString m_host;
 	/// database port to connect to
@@ -424,6 +431,7 @@ private:
 	/// set to true when destructor is being invoked
 	bool m_destroying;
 	/// remain false while connection to the database not yet established
+	/// reset to false on disconnect or error during operation -> reconnect
 	bool m_connected;
 };
 

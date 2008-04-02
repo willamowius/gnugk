@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2007/09/10 18:13:48  willamowius
+ * clean up sql driver interface and remove unused methods from all drivers
+ *
  * Revision 1.7  2007/09/10 11:17:21  willamowius
  * fix comment
  *
@@ -519,6 +522,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 			strcpy(errormsg, "SQL:");
 			isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
 		}
+		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr);
 	}
 
@@ -539,6 +543,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 			strcpy(errormsg, "SQL:");
 			isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
 		}
+		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
 	}
 	
@@ -563,6 +568,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 			}
 			delete [] reinterpret_cast<char*>(result);
 			result = NULL;
+			Disconnect();
 			return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
 		}
 	}
@@ -580,6 +586,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		}
 		delete [] reinterpret_cast<char*>(result);
 		result = NULL;
+		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
 	}
 

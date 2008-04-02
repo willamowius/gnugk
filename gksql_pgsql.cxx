@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2007/11/25 14:56:46  willamowius
+ * cleanup: comment out unused arguments
+ *
  * Revision 1.12  2007/09/10 18:13:48  willamowius
  * clean up sql driver interface and remove unused methods from all drivers
  *
@@ -378,8 +381,11 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 {
 	PGconn* pgsqlconn = ((PgSQLConnWrapper*)conn)->m_conn;
 	PGresult* result = PQexec(pgsqlconn, queryStr);
-	if (result == NULL)
-		return new GkPgSQLResult(PGRES_FATAL_ERROR, PQerrorMessage(pgsqlconn));
+	if (result == NULL) {
+		GkSQLResult * sqlResult = new GkPgSQLResult(PGRES_FATAL_ERROR, PQerrorMessage(pgsqlconn));
+		Disconnect();
+		return sqlResult;
+	}
 		
 	ExecStatusType resultInfo = PQresultStatus(result);
 	switch (resultInfo)
@@ -393,7 +399,9 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 		return new GkPgSQLResult(result);
 		
 	default:
-		return new GkPgSQLResult(resultInfo, PQresultErrorMessage(result));
+		GkSQLResult * sqlResult = new GkPgSQLResult(resultInfo, PQresultErrorMessage(result));
+		Disconnect();
+		return sqlResult;
 	}
 }
 

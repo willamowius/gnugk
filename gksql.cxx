@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
  *
  *
@@ -181,6 +184,24 @@ bool GkSQLConnection::Connect()
 	}
 }
 
+void GkSQLConnection::Disconnect()
+{
+	// disconnect/delete all connections
+	PTRACE(3, GetName() << "\tDisconnecting all SQL connections in pool");
+	for(iterator Iter = m_idleConnections.begin();
+		Iter != m_idleConnections.end(); Iter++) {
+		delete *Iter;
+	}
+	m_idleConnections.clear();
+	for(iterator Iter = m_busyConnections.begin();
+		Iter != m_busyConnections.end(); Iter++) {
+		delete *Iter;
+	}
+	m_busyConnections.clear();
+	// TODO:: delete waiting ?
+	m_connected = false;
+}
+
 GkSQLConnection::~GkSQLConnection()
 {
 	const PTime timeStart;
@@ -229,7 +250,7 @@ bool GkSQLConnection::AcquireSQLConnection(
 {
 	if (m_destroying)
 		return false;
-		
+
 	if (!m_connected) {
 		PTRACE(2, GetName() << "\tAttempting to reconnect to the database");
 		if (!Connect()) {

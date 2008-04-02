@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.10  2007/10/23 12:40:42  willamowius
+ * enable auto-reconnect for MySQL >= 5.0
+ *
  * Revision 1.9  2007/09/10 18:13:48  willamowius
  * clean up sql driver interface and remove unused methods from all drivers
  *
@@ -370,16 +373,22 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 	MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
 	
 	int result = mysql_real_query(mysqlconn, queryStr, strlen(queryStr));
-	if (result)
-		return new GkMySQLResult(result, mysql_error(mysqlconn));
+	if (result) {
+		GkSQLResult * sqlResult = new GkMySQLResult(result, mysql_error(mysqlconn));
+		Disconnect();
+		return sqlResult;
+	}
 	
 	MYSQL_RES* queryResult = mysql_store_result(mysqlconn);
 	if (queryResult)
 		return new GkMySQLResult(queryResult);
 
 	result = mysql_errno(mysqlconn);
-	if (result)
-		return new GkMySQLResult(result, mysql_error(mysqlconn));
+	if (result) {
+		GkSQLResult * sqlResult = new GkMySQLResult(result, mysql_error(mysqlconn));
+		Disconnect();
+		return sqlResult;
+	}
 
 	return new GkMySQLResult((long)mysql_affected_rows(mysqlconn));
 }
