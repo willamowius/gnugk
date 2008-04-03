@@ -649,6 +649,119 @@ else
 fi
 AC_SUBST(HAS_FIREBIRD)
 
+dnl #########################################################################
+dnl  Check for unixODBC
+dnl ########################################################################
+AC_ARG_ENABLE(unixodbc, 
+[  --enable-unixodbc                enable native unixODBC support (default=yes)], 
+[ unixodbc="${enableval}" ], [ unixodbc="yes" ]
+)
+
+AC_ARG_WITH(unixodbc-include-dir,
+[  --with-unixodbc-include-dir=DIR  directory where unixODBC includes may be found ],
+[ unixodbc_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(unixodbc-lib-dir,
+[  --with-unixodbc-lib-dir=DIR      directory where unixODBC libraries may be found ],
+[ unixodbc_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(unixodbc-dir,
+[  --with-unixodbc-dir=DIR          base directory where unixODBC is installed ],
+[ unixodbc_lib_dir="$withval/lib"
+  unixodbc_include_dir="$withval/include"
+]
+)
+
+if test "x${unixodbc}" != "xno"; then
+
+	AC_MSG_CHECKING([for sqlext.h])
+
+	AC_TRY_COMPILE([#include <sqlext.h>], [int a = 1;],
+		UNIXODBC_INCLUDE=" ",
+		UNIXODBC_INCLUDE=
+	)
+
+	if test "x$UNIXODBC_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/include/unixodbc /usr/local/include/unixodbc /usr/local/unixodbc/include $unixodbc_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				AC_TRY_COMPILE([#include <sqlext.h>], [int a = 1;],
+					UNIXODBC_INCLUDE="-I$try",
+					UNIXODBC_INCLUDE=
+				)
+				if test "x$UNIXODBC_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$UNIXODBC_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([unixODBC headers not found. Use --with-unixodbc-include-dir=<path>])
+		unixodbc="no"
+	else
+		sql_unixodbc_cflags="${sql_unixodbc_cflags} ${UNIXODBC_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for SQLAllocHandle in -lodbc])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/lib/unixodbc /usr/local/lib /usr/local/lib/unixodbc /usr/local/unixodbc/lib $unixodbc_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS -L$try -lodbc ${UNIXODBC_LIBS}"
+				AC_TRY_LINK([extern char SQLAllocHandle();], [SQLAllocHandle()],
+					[ UNIXODBC_LIBS="-lodbc ${UNIXODBC_LIBS}"
+					  UNIXODBC_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$UNIXODBC_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		dnl #  If one or the other isn't found, disable them both..
+		dnl #  If both are found, enable them both.
+		if test "x$UNIXODBC_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			UNIXODBC_INCLUDE=
+			AC_MSG_WARN([unixODBC lib not found. Use --with-unixodbc-lib-dir=<path>])
+			unixodbc="no"
+		else
+			AC_MSG_RESULT(yes) 
+			sql_unixodbc_ldflags="$sql_unixodbc_ldflags $UNIXODBC_LDFLAGS"
+		fi
+	fi
+
+	sql_unixodbc_ldflags="$sql_unixodbc_ldflags $LIBS"
+
+	if test "x$unixodbc" = "xno"; then
+		AC_MSG_WARN([unixODBC disabled])
+	fi
+else
+	unixodbc="no"
+fi
+
+if test "x$unixodbc" != "xno"; then
+	HAS_UNIXODBC=1
+	SOURCES="$SOURCES gksql_unixodbc.cxx"
+	STDCCFLAGS="${sql_unixodbc_cflags} -DHAS_UNIXODBC=1 $STDCCFLAGS"
+	LDFLAGS="$UNIXODBC_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$UNIXODBC_LIBS $ENDLDLIBS"
+    echo "Unixodbc support enabled"
+else
+    echo "Unixodbc support disabled"
+	HAS_UNIXODBC=0
+fi
+AC_SUBST(HAS_UNIXODBC)
 dnl ########################################################################
 dnl make directives
 
