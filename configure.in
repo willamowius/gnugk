@@ -762,6 +762,121 @@ else
 	HAS_UNIXODBC=0
 fi
 AC_SUBST(HAS_UNIXODBC)
+
+dnl #########################################################################
+dnl  Check for SQLite
+dnl ########################################################################
+AC_ARG_ENABLE(sqlite, 
+[  --enable-sqlite                enable SQLite support (default=yes)], 
+[ sqlite="${enableval}" ], [ sqlite="yes" ]
+)
+
+AC_ARG_WITH(sqlite-include-dir,
+[  --with-sqlite-include-dir=DIR  directory where SQLite includes may be found ],
+[ sqlite_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(sqlite-lib-dir,
+[  --with-sqlite-lib-dir=DIR      directory where SQLite libraries may be found ],
+[ sqlite_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(sqlite-dir,
+[  --with-sqlite-dir=DIR          base directory where SQLite is installed ],
+[ sqlite_lib_dir="$withval/lib"
+  sqlite_include_dir="$withval/include"
+]
+)
+
+if test "x${sqlite}" != "xno"; then
+
+	AC_MSG_CHECKING([for sqlite3.h])
+
+	AC_TRY_COMPILE([#include <sqlite3.h>], [int a = 1;],
+		SQLITE_INCLUDE=" ",
+		SQLITE_INCLUDE=
+	)
+
+	if test "x$SQLITE_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/include/sqlite /usr/local/include/sqlite $sqlite_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				AC_TRY_COMPILE([#include <sqlite3.h>], [int a = 1;],
+					SQLITE_INCLUDE="-I$try",
+					SQLITE_INCLUDE=
+				)
+				if test "x$SQLITE_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$SQLITE_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([SQLite headers not found. Use --with-sqlite-include-dir=<path>])
+		sqlite="no"
+	else
+		sql_sqlite_cflags="${sql_sqlite_cflags} ${SQLITE_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for sqlite3_libversion in -lsqlite3])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/local/lib $sqlite_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS -L$try -lsqlite3 ${SQLITE_LIBS}"
+				AC_TRY_LINK([extern sqlite3_libversion();], [sqlite3_libversion()],
+					[ SQLITE_LIBS="-lsqlite3 ${SQLITE_LIBS}"
+					  SQLITE_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$SQLITE_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		dnl #  If one or the other isn't found, disable them both..
+		dnl #  If both are found, enable them both.
+		if test "x$SQLITE_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			SQLITE_INCLUDE=
+			AC_MSG_WARN([SQLite lib not found. Use --with-sqlite-lib-dir=<path>])
+			sqlite="no"
+		else
+			AC_MSG_RESULT(yes) 
+			sql_sqlite_ldflags="$sql_sqlite_ldflags $SQLITE_LDFLAGS"
+		fi
+	fi
+
+	sql_sqlite_ldflags="$sql_sqlite_ldflags $LIBS"
+
+	if test "x$sqlite" = "xno"; then
+		AC_MSG_WARN([SQLite disabled])
+	fi
+else
+	sqlite="no"
+fi
+
+if test "x$sqlite" != "xno"; then
+	HAS_SQLITE=1
+	SOURCES="$SOURCES gksql_sqlite.cxx"
+	STDCCFLAGS="${sql_sqlite_cflags} -DHAS_SQLITE=1 $STDCCFLAGS"
+	LDFLAGS="$SQLITE_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$SQLITE_LIBS $ENDLDLIBS"
+    echo "SQLite support enabled"
+else
+    echo "SQLite support disabled"
+	HAS_SQLITE=0
+fi
+AC_SUBST(HAS_SQLITE)
+
 dnl ########################################################################
 dnl make directives
 
