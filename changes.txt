@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- ./configure support for Windows
 - new database driver 'SQLite'
 - new database driver 'unixODBC' (Unix only)
 - auto-reconnect on database errors (for all database drivers)
