@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.36  2008/03/18 15:51:13  zvision
+ * Delete socket when id cannot be generated
+ *
  * Revision 1.35  2008/01/09 00:44:07  willamowius
  * remove unused code
  *
@@ -267,6 +270,7 @@ struct CiscoAttrName {
 	CiscoAttrName(CISCO_ATTR_NAME("h323-voice-quality"), RadiusAttr::CiscoVSA_h323_voice_quality),
 	CiscoAttrName(CISCO_ATTR_NAME("h323-incoming-conf-id"), RadiusAttr::CiscoVSA_h323_incoming_conf_id),
 	CiscoAttrName(CISCO_ATTR_NAME("h323-preferred-lang"), RadiusAttr::CiscoVSA_h323_preferred_lang),
+	CiscoAttrName(CISCO_ATTR_NAME("release-source"),RadiusAttr::CiscoVSA_release_source),
 	CiscoAttrName(NULL, 0, 0)
 };
 

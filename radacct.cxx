@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.21  2007/09/11 01:02:29  willamowius
+ * clean up includes
+ *
  * Revision 1.20  2006/12/06 16:34:04  zvision
  * Handle RADIUS Class attribute correctly
  *
@@ -289,6 +292,7 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause,
 					PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16)
 					);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
 			}					
 			
 			if (call->GetDestSignalAddr(addr,port))

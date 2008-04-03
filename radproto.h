@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2008/04/03 10:24:20  willamowius
+ * new header config.h for configuration details
+ *
  * Revision 1.16  2008/01/09 00:44:07  willamowius
  * remove unused code
  *
@@ -222,7 +225,8 @@ public:
 		CiscoVSA_h323_return_code = 103, CiscoVSA_h323_redirect_number = 106,
 		CiscoVSA_h323_preferred_lang = 107, 
 		CiscoVSA_h323_redirect_ip_address = 108, 
-		CiscoVSA_h323_billing_model = 109, CiscoVSA_h323_currency = 110
+		CiscoVSA_h323_billing_model = 109, CiscoVSA_h323_currency = 110,
+		CiscoVSA_release_source = 115
 	};
 	
 	/** Construct uninitialized attribute. It should be initialized
