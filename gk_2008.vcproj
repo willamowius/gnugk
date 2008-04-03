@@ -616,6 +616,10 @@
 				>
 			</File>
 			<File
+				RelativePath="gksql_sqlite.cxx"
+				>
+			</File>
+			<File
 				RelativePath="GkStatus.cxx"
 				>
 			</File>
@@ -733,6 +737,10 @@
 				>
 			</File>
 			<File
+				RelativePath="config.h"
+				>
+			</File>
+			<File
 				RelativePath="factory.h"
 				>
 			</File>
@@ -773,6 +781,76 @@
 				>
 			</File>
 			<File
+				RelativePath="gnugkbuildopts.h"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug (ptlib 1.11)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release (ptlib +1.11)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="h323util.h"
 				>
 			</File>
@@ -785,11 +863,11 @@
 				>
 			</File>
 			<File
-				RelativePath="name.h"
+				RelativePath="MakeCall.h"
 				>
 			</File>
 			<File
-				RelativePath="MakeCall.h"
+				RelativePath="name.h"
 				>
 			</File>
 			<File
@@ -889,6 +967,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath="gnugkbuildopts.h.in"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

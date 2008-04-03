@@ -303,6 +303,10 @@ AC_SUBST(LARGE_FDSET)
 dnl #########################################################################
 dnl  Check for MySQL
 dnl ########################################################################
+
+dnl MSWIN_DISPLAY    mysql,MySQL
+dnl MSWIN_CHECK_FILE mysql,mysql.h,HAS_MYSQL=1
+
 AC_ARG_ENABLE(mysql, 
 [  --enable-mysql                enable MySQL support (default=yes)], 
 [ mysql="${enableval}" ], [ mysql="yes" ]
@@ -419,6 +423,10 @@ AC_SUBST(HAS_MYSQL)
 dnl #########################################################################
 dnl  Check for PostgreSQL
 dnl ########################################################################
+
+dnl MSWIN_DISPLAY    pgsql,PostgreSQL
+dnl MSWIN_CHECK_FILE pgsql,libpq-fe.h,HAS_PGSQL=1
+
 AC_ARG_ENABLE(pgsql, 
 [  --enable-pgsql                enable PostgreSQL support (default=yes)], 
 [ pgsql="${enableval}" ], [ pgsql="yes" ]
@@ -538,6 +546,10 @@ fi
 dnl #########################################################################
 dnl  Check for Firebird
 dnl ########################################################################
+
+dnl MSWIN_DISPLAY    firebird,Firebird
+dnl MSWIN_CHECK_FILE firebird,ibase.h,HAS_FIREBIRD=1
+
 AC_ARG_ENABLE(firebird, 
 [  --enable-firebird                enable Interbase/Firebird support (default=yes)], 
 [ firebird="${enableval}" ], [ firebird="yes" ]
@@ -766,6 +778,10 @@ AC_SUBST(HAS_UNIXODBC)
 dnl #########################################################################
 dnl  Check for SQLite
 dnl ########################################################################
+
+dnl MSWIN_DISPLAY    sqlite,SQLite
+dnl MSWIN_CHECK_FILE sqlite,sqlite3.h,HAS_SQLITE=1
+
 AC_ARG_ENABLE(sqlite, 
 [  --enable-sqlite                enable SQLite support (default=yes)], 
 [ sqlite="${enableval}" ], [ sqlite="yes" ]
@@ -911,6 +927,8 @@ AC_SUBST(OPENH323INSTALLPREFIX)
 
 dnl ########################################################################
 dnl Output configured files
+
+AC_CONFIG_HEADERS(gnugkbuildopts.h)
 
 AC_OUTPUT(Makefile)
 

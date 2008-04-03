@@ -15,10 +15,13 @@
 
 #include "pwlib_compat.h"
 
-// TODO: include autoconf file for Windows
+#ifdef _WIN32
+#include "gnugkbuildopts.h"
+#endif
 
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD || HAS_UNIXODBC || HAS_SQLITE
 #define		HAS_DATABASE 1
 #endif
 
 #endif // CONFIG_H
+
