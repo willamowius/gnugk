@@ -34,7 +34,7 @@
 #include "MakeCall.h"
 #include "gktimer.h"
 #include "gk.h"
-#include "pwlib_compat.h"
+#include "config.h"
 #include "capctrl.h"
 
 using std::vector;

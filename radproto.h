@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2008/01/09 00:44:07  willamowius
+ * remove unused code
+ *
  * Revision 1.15  2006/04/30 09:22:56  willamowius
  * PTimedMutex patch for PWLib >= 1.9.2
  *
@@ -97,7 +100,7 @@
 
 #include <vector>
 #include <ptlib/sockets.h>
-#include "pwlib_compat.h"
+#include "config.h"
 
 class PRandom;
 class PMessageDigest5;

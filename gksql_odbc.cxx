@@ -12,7 +12,7 @@
  *
  */
 
-#include "pwlib_compat.h"
+#include "config.h"
 
 #ifdef P_ODBC
 

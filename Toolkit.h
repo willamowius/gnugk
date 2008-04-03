@@ -15,7 +15,7 @@
 #include <vector>
 #include <ptlib/sockets.h>
 #include "singleton.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
@@ -91,7 +91,7 @@ bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net);
 #ifdef H323_H350
 class H350_Session;
 #endif
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 class GkSQLConnection;
 #endif
 class GkTimerManager;
@@ -206,7 +206,7 @@ class Toolkit : public Singleton<Toolkit>
 
 	class AssignedAliases {
 	 public:
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	    AssignedAliases();
 		~AssignedAliases();
 
@@ -223,7 +223,7 @@ class Toolkit : public Singleton<Toolkit>
 	 protected:
 		 std::vector< std::pair<PString, PString> > gkAssignedAliases;
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
      private:
 	   bool m_sqlactive;
 	   // connection to the SQL database
@@ -240,7 +240,7 @@ class Toolkit : public Singleton<Toolkit>
 #ifdef h323v6
 	class AssignedGatekeepers {
 	 public:
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	    AssignedGatekeepers();
 		~AssignedGatekeepers();
 
@@ -257,7 +257,7 @@ class Toolkit : public Singleton<Toolkit>
 	 protected:
 		 std::vector< std::pair<PString, PString> > assignedGKList;
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
      private:
 	   bool m_sqlactive;
 	   // connection to the SQL database
@@ -273,7 +273,7 @@ class Toolkit : public Singleton<Toolkit>
 	AssignedGatekeepers AssignedGKs() { return m_AssignedGKs; }
 #endif
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	class QoSMonitor {
 	  public:
         QoSMonitor();
@@ -545,7 +545,7 @@ protected:
 #ifdef h323v6
 	AssignedGatekeepers m_AssignedGKs;
 #endif
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	QoSMonitor m_qosMonitor;
 #endif
 	RouteTable m_RouteTable;

@@ -37,7 +37,7 @@
 #include "cisco.h"
 #include "h323util.h"
 #include "Neighbor.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 #ifdef hasH460
   #include <h460/h4601.h>

@@ -31,7 +31,7 @@
 #include "sigmsg.h"
 #include "Routing.h"
 #include "gkauth.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 #if H323_H350
   extern const char *H350Section;

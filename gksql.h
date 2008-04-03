@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2008/04/02 22:32:22  willamowius
+ * auto-reconnect on database errors
+ *
  * Revision 1.11  2007/09/10 18:13:48  willamowius
  * clean up sql driver interface and remove unused methods from all drivers
  *
@@ -53,7 +56,7 @@
 #include <vector>
 #include "name.h"
 #include "factory.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 /** Abstract base class that encapsulates SQL query result.
     Backend specific operations are performed by derived classes.

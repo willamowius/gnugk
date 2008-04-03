@@ -32,8 +32,8 @@
 #include "GkStatus.h"
 #include "sigmsg.h"
 #include "Routing.h"
-#include "pwlib_compat.h"
 #include "gksql.h"
+#include "config.h"
 
 using std::string;
 using std::vector;
@@ -1334,7 +1334,7 @@ private:
 SqlPolicy::SqlPolicy()
 {
 	m_active = false;
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	m_active = true;
 	static const char *sqlsection = "Routing::Sql";
 	m_name = "SqlPolicy";
@@ -1378,7 +1378,7 @@ SqlPolicy::SqlPolicy()
 	}
 #else
 	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
-#endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#endif // HAS_DATABASE
 }
 
 SqlPolicy::~SqlPolicy()
@@ -1557,7 +1557,7 @@ void SqlPolicy::DatabaseLookup(
 		bool * reject,
 		unsigned * rejectReason)
 {
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["s"] = source;
@@ -1628,7 +1628,7 @@ void SqlPolicy::DatabaseLookup(
 		}
 	}
 	delete result;
-#endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#endif // HAS_DATABASE
 }
 
 

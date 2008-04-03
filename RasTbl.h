@@ -19,7 +19,7 @@
 #include "singleton.h"
 #include "h225.h"
 #include "sigmsg.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 
 #if (_MSC_VER >= 1200)

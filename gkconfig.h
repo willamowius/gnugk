@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2007/11/27 12:57:27  willamowius
+ * preparation for PBoolean change in PWLib
+ *
  * Revision 1.5  2007/09/13 11:17:11  willamowius
  * use same parameter name in declaration and implementation
  *
@@ -37,7 +40,7 @@
 #ifndef GKCONFIG_H 
 #define GKCONFIG_H "@(#) $Id$"
 
-#include "pwlib_compat.h"
+#include "config.h"
 
 class GatekeeperConfig : public PConfig
 {

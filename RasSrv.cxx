@@ -40,7 +40,7 @@
 #include "gkacct.h"
 #include "gktimer.h"
 #include "RasSrv.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 #ifdef hasH460
   #include <h460/h4601.h>

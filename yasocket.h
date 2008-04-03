@@ -21,7 +21,7 @@
 #include <vector>
 #include <ptlib/sockets.h>
 #include "job.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 #ifdef LARGE_FDSET
 

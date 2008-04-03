@@ -16,7 +16,7 @@
 #include <ptclib/asner.h>
 
 #include "h225.h"
-#include "pwlib_compat.h"
+#include "config.h"
 
 //
 // ArrayOf_AliasAddress

@@ -26,7 +26,8 @@
 #include "gktimer.h"
 #include "h323util.h"
 #include "gkconfig.h"
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#include "config.h"
+#if HAS_DATABASE
 #include "gksql.h"
 #endif
 #include "clirw.h"
@@ -925,7 +926,7 @@ void Toolkit::CreateConfig()
 
 void Toolkit::ReloadSQLConfig()
 {
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	if (m_Config->GetSections().GetStringsIndex("SQLConfig") == P_MAX_INDEX)
 		return;
 
@@ -1253,7 +1254,7 @@ void Toolkit::ReloadSQLConfig()
 	delete sqlConn;
 	sqlConn = NULL;
 	PTRACE(3, "SQLCONF\tSQL config connection closed");
-#endif // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#endif // HAS_DATABASE
 }
 
 PConfig* Toolkit::ReloadConfig()
@@ -1284,7 +1285,7 @@ PConfig* Toolkit::ReloadConfig()
 #ifdef h323v6
 	m_AssignedGKs.LoadConfig(m_Config);
 #endif
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	m_qosMonitor.LoadConfig(m_Config);
 #endif
 	PString GKHome(m_Config->GetString("Home", ""));
@@ -1369,7 +1370,7 @@ bool Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 	return TRUE;
 }
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 Toolkit::AssignedAliases::AssignedAliases()
   : m_sqlactive(false), m_sqlConn(NULL)
 {
@@ -1472,13 +1473,13 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 
    return success;
 }
-#endif   // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#endif   // HAS_DATABASE
 
 void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
 {
 	gkAssignedAliases.clear();
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
   if (LoadSQL(m_config)) {
 	  m_sqlactive = true;
   } else 
@@ -1596,7 +1597,7 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 
 bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStringArray & aliases)
 {
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	if (DatabaseLookup(alias, aliases))
 		return true;
 #endif
@@ -1664,7 +1665,7 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 
 ////////////////////////////////////////////////////////////////////////
 #ifdef h323v6
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 Toolkit::AssignedGatekeepers::AssignedGatekeepers()
   : m_sqlactive(false), m_sqlConn(NULL)
 {
@@ -1769,13 +1770,13 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 
    return success;
 }
-#endif   // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#endif   // HAS_DATABASE
 
 void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 {
 	assignedGKList.clear();
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
   if (LoadSQL(m_config)) {
 	  m_sqlactive = true;
   } else 
@@ -1847,7 +1848,7 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias,cons
 
 bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
 {
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 	if (DatabaseLookup(alias,ip,addresses))
 		return true;
 #endif
@@ -1944,7 +1945,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 Toolkit::QoSMonitor::QoSMonitor()
   : m_sqlactive(false), m_sqlConn(NULL)
 {

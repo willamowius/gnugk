@@ -36,7 +36,7 @@
 #include "ProxyChannel.h"
 
 #ifdef H323_H450
-#include "pwlib_compat.h"
+#include "config.h"
  #ifdef h323pluslib
    #include "h450/h4501.h"
    #include "h450/h4502.h"

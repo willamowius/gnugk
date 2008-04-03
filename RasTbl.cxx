@@ -33,6 +33,7 @@
 #include "gkacct.h"
 #include "RasTbl.h"
 #include "gk_const.h"
+#include "config.h"
 
 #ifdef H323_H350
   #include <h350/h350_service.h>
@@ -2862,7 +2863,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		}
 
 		//write report to database
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#if HAS_DATABASE
 		Toolkit* const toolkit = Toolkit::Instance();
 
 		if (toolkit->QoS().Enabled()) {
@@ -2890,7 +2891,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		  toolkit->QoS().PostRecord(params);
 		  return;
 	}
-#endif  // HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD
+#endif  // HAS_DATABASE
 
 		//Write report to file
 	   PString fn = GkConfig()->GetString("GkQoSMonitor", "DetailFile", "");
