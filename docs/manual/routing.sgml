@@ -351,6 +351,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%s/ - the calling IP
 <item><tt/%r/ - the calling alias
 <item><tt/%i/ - the call ID
+<item><tt/%m/ - the messageType (ARQ, LRQ or Setup)
 </itemize>
 Some of these can be empty if they aren't included in The ARQ, LRQ or Setup message.
 <p>

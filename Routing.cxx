@@ -1313,6 +1313,7 @@ protected:
 		const PString & calledIP,
 		const PString & caller,
 		const PString & callid,
+		const PString & messageType,
 		/* out: */
 		H225_ArrayOf_AliasAddress ** newAliases,	/* DatabaseLookup will allocate, caller must delete */
 		H225_TransportAddress ** newCallSigAdr,		/* DatabaseLookup will allocate, caller must delete */
@@ -1398,12 +1399,13 @@ bool SqlPolicy::OnRequest(AdmissionRequest & request)
 		PString calledIP = "";	/* not available for ARQs */
 		PString caller = AsString(arq.m_srcInfo, FALSE);
 		PString callid = AsString(arq.m_callIdentifier.m_guid);
+		PString messageType = "ARQ";
 		H225_ArrayOf_AliasAddress * newAliases = NULL;
 		H225_TransportAddress * newCallSigAdr = NULL;
 		bool reject = false;
 		unsigned rejectReason = -1;
 
-		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
+		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
 						/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
 
 		if (reject) {
@@ -1448,13 +1450,14 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 	if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 		caller = AsString(lrq.m_sourceInfo[0], FALSE);
 	PString callid = "";	/* not available for LRQs */
+	PString messageType = "LRQ";
 
 	H225_ArrayOf_AliasAddress * newAliases = NULL;
 	H225_TransportAddress * newCallSigAdr = NULL;
 	bool reject = false;
 	unsigned rejectReason = -1;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
 					/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
 
 	if (reject) {
@@ -1501,13 +1504,14 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	PString calledIP = localAddr;
 	PString caller = AsString(setup.m_sourceAddress, FALSE);
 	PString callid = AsString(setup.m_callIdentifier.m_guid);
+	PString messageType = "Setup";
 
 	H225_ArrayOf_AliasAddress * newAliases = NULL;
 	H225_TransportAddress * newCallSigAdr = NULL;
 	bool reject = false;
 	unsigned rejectReason = -1;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid,
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
 					/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
 
 	if (reject) {
@@ -1546,6 +1550,7 @@ void SqlPolicy::DatabaseLookup(
 		const PString & calledIP,
 		const PString & caller,
 		const PString & callid,
+		const PString & messageType,
 		/* out: */
 		H225_ArrayOf_AliasAddress ** newAliases,	/* DatabaseLookup will allocate, caller must delete */
 		H225_TransportAddress ** newCallSigAdr,	/* DatabaseLookup will allocate, caller must delete */
@@ -1560,6 +1565,7 @@ void SqlPolicy::DatabaseLookup(
 	params["p"] = calledIP;
 	params["r"] = caller;
 	params["i"] = callid;
+	params["m"] = messageType;
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, m_name << ": query failed - timeout or fatal error");
