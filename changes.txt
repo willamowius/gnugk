@@ -1,5 +1,7 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- Merged P2Pnat support
+- Added first cut of Presence support
 - set radius release-source attribute in stop accounting packet, like %r in sqlacct
 - ./configure support for Windows
 - new database driver 'SQLite'
