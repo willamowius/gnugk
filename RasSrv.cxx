@@ -1495,12 +1495,24 @@ bool RegistrationRequestPDU::Process()
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // H460 support Code
-	bool supportNAT = false;
+	PBoolean supportNATOffload = false;
 	int RegPrior =0;
 	bool preemptsupport = false;
 	PBoolean preempt = false;
+	unsigned ntype = 0;
 
 #ifdef hasH460
+// Presence Support
+// Support Presence information
+#ifdef hasPresence
+	OpalOID rPreFS = OpalOID(OID3);
+	bool presencesupport = false;
+	H460_Feature * preFeature = NULL;
+#endif
+	
+// Support for NAT type detection
+// Indicates that the Endpoint registering supports Nated EPs calling it so proxying media may not be required
+	OpalOID rNaTFS = OpalOID(OID7);    
 
 // Registration Priority and Pre-emption
 // This allows the unregistration of duplicate aliases with lower priority 
@@ -1509,6 +1521,13 @@ bool RegistrationRequestPDU::Process()
 	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 
+		if (fs.HasFeature(rNaTFS)) {
+			H460_FeatureOID * natfeat = (H460_FeatureOID *)fs.GetFeature(rNaTFS);
+           if (natfeat->Contains(remoteNATOID))	  
+			      supportNATOffload = natfeat->Value(PString(remoteNATOID));
+		   if (natfeat->Contains(NATTypeOID))
+			      ntype = natfeat->Value(PString(NATTypeOID));
+		}
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
 			if (feat->Contains(priorityOID)) {
@@ -1520,6 +1539,12 @@ bool RegistrationRequestPDU::Process()
                 preempt = feat->Value(PString(preemptOID));
 			}
 		}
+#ifdef hasPresence
+		if (fs.HasFeature(rPreFS)) {
+			presencesupport = true;
+			preFeature = (H460_FeatureOID *)fs.GetFeature(rPreFS);
+		}
+#endif
 	}
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1575,6 +1600,24 @@ bool RegistrationRequestPDU::Process()
 			// endpoint was NOT registered and force Full Registration
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		} else {
+            // If received a NAT Type update OID5 only occurs with Light RRQ
+            if (ntype > 1) {
+				if (!ep->IsNATed()) {
+				  PTRACE(2, "OID5\tEndPoint reports itself as being behind a firewall!");
+				  ep->SetNAT(true);
+				  ep->SetSupportNAT(false);
+				  ep->SetNATAddress(rx_addr);
+				}
+				PTRACE(2, "OID5\tEndPoint NAT/FW reported as being " << ep->GetEPNATTypeString((EndpointRec::EPNatTypes)ntype));
+				ep->SetEPNATType(ntype);
+            }
+
+#ifdef hasPresence
+			// If we have some presence information
+			if (presencesupport && ep->hasContact())
+				  ep->ParsePresencePDU(this->GetTag(),&ep->GetEndpointIdentifier(),*preFeature);
+#endif
+
 			// forward lightweights, too
 			if (bShellForwardRequest)
 				RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
@@ -1587,15 +1630,17 @@ bool RegistrationRequestPDU::Process()
 	if (request.m_rasAddress.GetSize() == 0)
 		return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
 
-	bool nated = false, validaddress = false;
+	bool nated = false, validaddress = false, internal = false;
 	if (request.m_callSignalAddress.GetSize() >= 1) {
 		PIPSocket::Address ipaddr;
 		for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
 			SignalAddr = request.m_callSignalAddress[s];
 			if (GetIPFromTransportAddr(SignalAddr, ipaddr)) {
 				validaddress = ((rx_addr == ipaddr) || IsLoopback(rx_addr));  
-				if (validaddress)
-					break;
+				if (validaddress) {
+					internal = Toolkit::Instance()->IsInternal(rx_addr);
+				    break;
+				}
 			}
 		}
 		//validaddress = PIPSocket::IsLocalHost(rx_addr.AsString());
@@ -1749,11 +1794,21 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
 
+#ifdef hasPresence
+	// If we have some presence information
+	if (presencesupport) {
+	   if (!ep->hasContact()) 
+		     ep->CreateContact();
+	   ep->ParsePresencePDU(this->GetTag(),&ep->GetEndpointIdentifier(),*preFeature);
+	}	
+#endif
+
 	if (nated)
 		ep->SetNATAddress(rx_addr);
 	else {
 		ep->SetNAT(false);
-		if (supportNAT)
+		ep->SetInternal(internal);
+		if (supportNATOffload)
 		  ep->SetSupportNAT(true);
 	}
 
@@ -1766,7 +1821,7 @@ bool RegistrationRequestPDU::Process()
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-		if (supportcallingNAT && nated) {
+		if (supportcallingNAT && !internal) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -1774,7 +1829,11 @@ bool RegistrationRequestPDU::Process()
 			t35.m_t35CountryCode = Toolkit::t35cPoland;
 			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 			t35.m_t35Extension = Toolkit::t35eNATTraversal;
+		  // if the client is NAT or you are forcing ALL registration to use a keepAlive TCP socket
+		  if ((nated) || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "ForceNATKeepAlive", "0")))
 			rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
+		  else  // Be careful as some public IP's may block TCP but not UDP resulting in an incorrect NAT test result.
+		    rcf.m_nonStandardData.m_data = "NoNAT";
 		}
 
 #ifdef hasH460
@@ -1788,6 +1847,41 @@ bool RegistrationRequestPDU::Process()
 			  gd.SetSize(lPos+1);
 			  gd[lPos] = pre;
 			}
+
+#ifdef hasPresence	    
+		   // If presence support
+		   if (presencesupport) {
+	          H460_FeatureOID presence = H460_FeatureOID(rPreFS);
+			  ep->BuildPresencePDU(rcf.GetTag(),*preFeature);
+			  PINDEX lPos = gd.GetSize();
+			  gd.SetSize(lPos+1);
+			  gd[lPos] = presence;
+	       }
+#endif
+		   // if we support NAT notify the client they are behind a NAT or to test for NAT
+		   // send off a request to test the client NAT type with a STUN Server
+			if (supportcallingNAT && supportNATOffload && (ep->GetEPNATType() == 0)) {  
+			  H460_FeatureOID natfs = H460_FeatureOID(rNaTFS);
+              natfs.Add(PString(localNATOID),H460_FeatureContent(nated));
+
+			  // if detect behind a public NAT or on a public IP (test to see if behind firewall)
+			  if (!rx_addr.IsRFC1918()) { 
+                PIPSocket::Address m_ip;
+			    WORD m_port;
+			    PString stun = Kit->Config()->GetString(RoutedSec, "STUNServer", "");
+
+				if (!stun && GetTransportAddress(stun, GK_DEF_STUN_PORT, m_ip, m_port)) {
+					H323TransportAddress stunaddr = H323TransportAddress(m_ip,m_port);
+					natfs.Add(PString(STUNServOID),H460_FeatureContent(stunaddr));
+					natfs.Add(PString(NATProxyOID),H460_FeatureContent(ep->HasNATProxy()));
+				}
+			  }
+
+		      PINDEX lPos = gd.GetSize();
+			  gd.SetSize(lPos+1);
+			  gd[lPos] = natfs;
+			}
+
 			if (gd.GetSize() > 0)		  
 				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
 #endif
@@ -2194,7 +2288,9 @@ bool AdmissionRequestPDU::Process()
 		}
 	}
 
+	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #ifdef hasH460
+	bool natsupport = false;
     bool QoSReporting = false;
 	bool vendorInfo = false;
 	PString m_vendor,m_version = PString();
@@ -2202,6 +2298,15 @@ bool AdmissionRequestPDU::Process()
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
           H460_Feature & feat = (H460_Feature &)data[i];
+          /// OID5
+		  if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5))) {
+		     natsupport = true;
+			 H460_FeatureOID & foid5 = (H460_FeatureOID &)feat;
+			 if (foid5.Contains(NATInstOID)) {
+			   unsigned natstat = foid5.Value(NATInstOID);
+			   natoffloadsupport = (CallRec::NatStrategy)natstat;
+			 }
+		  }
 		  /// Vendor Information
   		  if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
 		     vendorInfo = true;
@@ -2333,6 +2438,11 @@ bool AdmissionRequestPDU::Process()
 		if (toParent)
 			pCallRec->SetToParent(true);
 
+		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
+			PTRACE(4,"RAS\tNAT Type reset to none"); 
+			pCallRec->SetNATType(0);
+		}
+
 		pCallRec->SetNewRoutes(arq.GetRoutes());
 		
 		if (authData.m_callDurationLimit > 0)
@@ -2353,6 +2463,37 @@ bool AdmissionRequestPDU::Process()
 			pCallRec->SetAccessTokens(acf.m_cryptoTokens);
 		CallTbl->Insert(pCallRec);
 
+#ifdef hasH460
+		// OID5 proxy offload. See if the media can go direct.
+		if (natoffloadsupport == CallRec::e_natUnknown) 
+		    if (!pCallRec->NATOffLoad(answer,natoffloadsupport))
+			 if (natoffloadsupport == CallRec::e_natFailure) {
+				PTRACE(2,"RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
+				return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination);
+			 }
+
+			
+		// If not required disable the proxy support function for this call
+		if (pCallRec->GetProxyMode() != CallRec::ProxyDisabled &&
+			(natoffloadsupport == CallRec::e_natLocalMaster || 
+				natoffloadsupport == CallRec::e_natRemoteMaster ||
+				natoffloadsupport == CallRec::e_natNoassist ||
+			(!pCallRec->SingleGatekeeper() && natoffloadsupport == CallRec::e_natRemoteProxy))) {
+					PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
+					pCallRec->SetProxyMode(CallRec::ProxyDisabled);
+		}
+
+		pCallRec->SetNATStrategy(natoffloadsupport);
+		PTRACE(4,"RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
+					" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
+
+		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
+			PTRACE(4,"RAS\tNAT Type reset to none"); 
+			pCallRec->SetNATType(0);
+		}
+
+		pCallRec->GetRemoteInfo(m_vendor,m_version);
+#endif
 		// Put rewriting information into call record
 		pCallRec->SetInboundRewriteId(in_rewrite_source);
 		pCallRec->SetOutboundRewriteId(out_rewrite_source);
@@ -2394,6 +2535,14 @@ bool AdmissionRequestPDU::Process()
 	if (!answer) {	
 	   PINDEX lastPos = 0;
        H225_ArrayOf_GenericData & data = acf.m_genericData;
+   /// OID5 Nat Traversal
+	   if (natsupport) {
+	     H460_FeatureOID fs = H460_FeatureOID(OID5);
+	     fs.Add(PString(NATInstOID),H460_FeatureContent((int)natoffloadsupport,8));
+         lastPos++;
+	     data.SetSize(lastPos);
+	     data[lastPos-1] = fs;   
+	   }
    /// OID9 Vendor Information
 	   if (vendorInfo && !m_vendor.IsEmpty()) {
 	      H460_FeatureOID fs = H460_FeatureOID(OID9);
@@ -2674,6 +2823,22 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				  for (PINDEX i = 0; i < locdata.GetSize(); i++) {
 				   
 				  H460_Feature & feat = (H460_Feature &)locdata[i];
+                   /// OID5 NAT Traversal
+				   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5))) {
+				     H460_FeatureOID foid5 = H460_FeatureOID(OID5);
+					  if (WantedEndPoint->IsNATed()) {
+	                    foid5.Add(PString(localNATOID),H460_FeatureContent(true));
+					    foid5.Add(PString(NATTypeOID),H460_FeatureContent(WantedEndPoint->GetEPNATType(),8));
+  					    foid5.Add(PString(NATProxyOID),H460_FeatureContent(WantedEndPoint->HasNATProxy()));
+						foid5.Add(PString(NATAddressOID),H460_FeatureContent(WantedEndPoint->GetNATIP().AsString()));
+					  } else {
+						foid5.Add(PString(remoteNATOID),H460_FeatureContent(WantedEndPoint->SupportNAT()));
+						foid5.Add(PString(NATMustProxyOID),H460_FeatureContent(WantedEndPoint->IsInternal()));
+				      }
+					  lastPos++;
+					  data.SetSize(lastPos);
+				      data[lastPos-1] = foid5;
+				   }
 				   /// OID9 Vendor Interoperability
 			       if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
 	                  PString m_vendor,m_version = PString();

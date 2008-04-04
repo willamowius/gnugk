@@ -489,6 +489,12 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
        lrq.IncludeOptionalField(H225_LocationRequest::e_genericData); 
        H225_ArrayOf_GenericData & data = lrq.m_genericData;
        PINDEX lastPos = 0;
+       
+	   /// OID5  'NAT Support
+	   H460_FeatureOID foid5 = H460_FeatureOID(OID5);
+	   lastPos++;
+	   data.SetSize(lastPos);
+	   data[lastPos-1] = foid5;
 
 	   /// OID9  'Remote application info
 	   H460_FeatureOID foid9 = H460_FeatureOID(OID9);

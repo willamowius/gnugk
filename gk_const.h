@@ -79,6 +79,7 @@ extern const char *H225_ProtocolID;
 #define NATProxyOID      4    // Proxy for NAT support
 #define NATMustProxyOID  5    // Media must proxy
 #define remoteNATOID     6    // bool if endpoint has remote NAT support
+#define NATAddressOID    7    // String of the remote party detected source address 
 
 #define GK_DEF_STUN_PORT		3478
 

@@ -20,6 +20,7 @@
 
 #include <time.h>
 #include <ptlib.h>
+#include <h323.h>
 #include <h323pdu.h>
 #include "gk_const.h"
 #include "h323util.h"
@@ -42,6 +43,9 @@
 #ifdef hasH460
   #include <h460/h4601.h>
   #include <h460/h4609.h>
+   #ifdef hasPresence 
+      #include <h460/h460p.h>
+   #endif
 #endif
 
 using std::copy;
@@ -68,6 +72,196 @@ const long DEFAULT_ALERTING_TIMEOUT = 180000;
 const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
 
+////////////////////////////////////////////////////////////////////////////
+
+#ifdef hasPresence
+
+static struct {
+  unsigned msgid;
+  int preState;			
+  int preInstruct;			
+  int preAuthorize;		
+  int preNotify;	
+  int preRequest;	
+  int preResponse;
+  int preAlive;
+  int preRemove;
+  int preAlert;
+} RASMessage_attributes[] = {					//   st  ins aut not req res alv rem alt
+	{ H225_RasMessage::e_registrationRequest		,1	,2	,0	,0	,0	,0	,0	,0	,0	 },
+	{ H225_RasMessage::e_registrationConfirm		,1	,2	,0	,0	,0	,0	,0	,0	,0	 },
+	{ H225_RasMessage::e_locationRequest			,0	,0	,1	,0	,1	,1	,1	,1	,1	 },
+	{ H225_RasMessage::e_locationConfirm			,0	,0	,0	,0	,0	,2	,0	,2	,0	 },
+	{ H225_RasMessage::e_serviceControlIndication	,1	,1	,0	,1	,0	,0	,0	,0	,0	 }
+};
+
+class H323Contact : public H323PresenceHandler
+{
+public:
+	H323Contact();
+
+	void Process();
+
+	void ParsePresencePDU(unsigned msgtag, const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu);
+
+	void BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu);
+
+	bool SendUnsolicatedInformation(const H225_FeatureDescriptor & desc,
+									const H225_TransportAddress & addr);
+
+  // Inherited
+	virtual void OnNotification(MsgType tag,
+								const H225_EndpointIdentifier * id, 
+								const H460P_PresenceNotification & notify);
+	virtual void OnSubscription(MsgType tag,
+								const H225_EndpointIdentifier * id, 
+								const H460P_PresenceSubscription & subscription);
+	virtual void OnInstructions(MsgType tag,
+								const H225_EndpointIdentifier * id, 
+								const H460P_ArrayOf_PresenceInstruction & instruction);
+    virtual void OnIdentifiers(MsgType tag,
+								const H460P_ArrayOf_PresenceIdentifier & identifier);
+
+protected:
+
+	typedef std::map<H225_AliasAddress,H225_TransportAddress> Contactlist;
+	typedef std::list<H225_AliasAddress> Blocklist;
+
+    H460P_Presentity state;
+	bool notifyLocal;
+	bool notifyRec;
+};
+
+
+H323Contact::H323Contact()
+{
+	notifyLocal = false;
+	notifyRec = false;
+}
+
+void H323Contact::Process()
+{
+
+}
+
+void H323Contact::ParsePresencePDU(unsigned msgtag,const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu)
+{
+
+	PString oid("1.3.6.1.4.1.17090.0.3.1");
+
+	const H225_ArrayOf_EnumeratedParameter & p = pdu.m_parameters;
+
+	for (PINDEX i=0; i < p.GetSize(); i++) {
+		const H460_FeatureParameter & param = p[i];
+		const H225_GenericIdentifier & id1 = param.m_id;
+		PASN_ObjectId id2 = id1;
+		if (id2.AsString() == oid) {
+		   const H225_Content & content = param.m_content;
+		   const PASN_OctetString & data = content;
+		   ReceivedPDU(id,data);
+		}
+	}
+}
+
+/*
+	case H460P_PresenceMessage e_presenceStatus:
+	case H460P_PresenceMessage e_presenceInstruct:
+	case H460P_PresenceMessage e_presenceAuthorize:
+	case H460P_PresenceMessage e_presenceNotify:
+	case H460P_PresenceMessage e_presenceRequest:
+	case H460P_PresenceMessage e_presenceResponse:
+	case H460P_PresenceMessage e_presenceAlive:
+	case H460P_PresenceMessage e_presenceRemove:
+	case H460P_PresenceMessage e_presenceAlert:
+*/
+void H323Contact::BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu)
+{
+	switch (msgtag) {
+	//  case H225_RasMessage::e_registrationRequest:
+	//	  break;
+	  case H225_RasMessage::e_registrationConfirm:
+		  break;
+	  case H225_RasMessage::e_locationRequest:
+		  break;
+	  case H225_RasMessage::e_locationConfirm:
+		  break;
+	  case H225_RasMessage::e_serviceControlIndication:
+		  break;
+	  default:
+		  break;
+	}
+}
+
+void H323Contact::OnNotification(MsgType tag,const H225_EndpointIdentifier * id, 
+								const H460P_PresenceNotification & notify)
+{
+	if (id != NULL) {
+        state = notify.m_presentity;
+		notifyLocal = true;
+	} else {
+
+		notifyRec = true;
+	}
+}
+
+void H323Contact::OnSubscription(MsgType tag,const H225_EndpointIdentifier * id, 
+								const H460P_PresenceSubscription & subscription)
+{
+	
+}
+
+void H323Contact::OnInstructions(MsgType tag,
+								const H225_EndpointIdentifier * id, 
+								const H460P_ArrayOf_PresenceInstruction & instruction)
+{
+
+}
+
+void H323Contact::OnIdentifiers(MsgType tag,
+								const H460P_ArrayOf_PresenceIdentifier & identifier) 
+{
+
+}
+
+bool H323Contact::SendUnsolicatedInformation(const H225_FeatureDescriptor & desc, 
+												const H225_TransportAddress & addr)
+{
+   H323SignalPDU pdu;
+   Q931 qPDU;
+	qPDU.BuildInformation(0,false);
+	qPDU.SetCallState(Q931::CallState_Active);
+	pdu.SetQ931(qPDU);
+
+    H225_H323_UU_PDU & msg = pdu.m_h323_uu_pdu;
+
+    msg.IncludeOptionalField(H225_H323_UU_PDU::e_genericData);
+    H225_FeatureDescriptor & feat = (H225_FeatureDescriptor &)msg.m_genericData;
+	feat = desc;
+
+/// This is going to have to change to use GnuGk code not OpenH323 -sh
+	H323EndPoint ep;
+	H323TransportTCP * trans = new H323TransportTCP(ep);
+	if (!trans->SetRemoteAddress(addr))
+		return false;
+	if (!trans->Connect()) 
+		return false;
+
+    PPER_Stream strm;
+    pdu.Encode(strm);
+    
+	if (!trans->WritePDU(strm))
+	    return false;
+
+    trans->Close();
+	delete trans;
+
+	return true;
+}
+
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////
+
 EndpointRec::EndpointRec(
 	/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
 	const H225_RasMessage& ras, 
@@ -80,7 +274,12 @@ EndpointRec::EndpointRec(
 	m_usedCount(0), m_nat(false), m_natsocket(NULL), m_permanent(permanent), 
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1), m_proxy(0),
-	m_registrationPriority(0), m_registrationPreemption(false)
+	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown), m_natsupport(false),
+	m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
+	m_internal(false),m_remote(false)
+#ifdef hasPresence
+	,m_contact(NULL)
+#endif
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -193,6 +392,12 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	m_hasCallCreditCapabilities = rrq.HasOptionalField(
 		H225_RegistrationRequest::e_callCreditCapability
 		);
+
+	if (m_permanent) {
+		PIPSocket::Address ipaddr;
+		GetIPFromTransportAddr(rrq.m_callSignalAddress[0], ipaddr);
+		m_internal = Toolkit::Instance()->IsInternal(ipaddr);
+	}
 }
 
 void EndpointRec::SetEndpointRec(H225_AdmissionRequest & arq)
@@ -204,6 +409,7 @@ void EndpointRec::SetEndpointRec(H225_AdmissionRequest & arq)
 	m_terminalType = &termType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = false;
+    m_remote = true;
 }
 
 void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
@@ -219,6 +425,7 @@ void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
 	m_terminalType = &acf.m_destinationType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = true;
+    m_remote = true;
 }
 
 void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
@@ -232,6 +439,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 	m_terminalType = &lcf.m_destinationType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = false;
+	m_remote = true;
 
 #ifdef hasH460
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
@@ -239,6 +447,39 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 
 		for (PINDEX i=0; i < data.GetSize(); i++) {
 		  H460_Feature & feat = (H460_Feature &)data[i];
+           /// OID5
+		   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5))) {
+			   H460_FeatureOID & oid5 = (H460_FeatureOID &)data[i];
+			   if (oid5.Contains(remoteNATOID)) {              /// Remote supports remote NAT
+				   BOOL supNAT = oid5.Value(PString(remoteNATOID));
+				   SetSupportNAT(supNAT);
+			   }
+			   if (oid5.Contains(localNATOID)) {                /// Remote EP is Nated
+				   BOOL isnat = oid5.Value(PString(localNATOID));
+				   SetNAT(isnat);
+				   if (isnat) {
+					   PIPSocket::Address addr;
+					   GetIPFromTransportAddr(lcf.m_callSignalAddress,addr);
+					   SetNATAddress(addr);
+				    }
+			   }
+               if (oid5.Contains(NATTypeOID)) {               /// Remote type of NAT
+				   unsigned ntype = oid5.Value(PString(NATTypeOID)) ;
+				   SetEPNATType(ntype);
+               }
+			   if (oid5.Contains(NATProxyOID)) {                /// Whether the remote GK can proxy
+				   BOOL supProxy = oid5.Value(PString(NATProxyOID));
+                   SetNATProxy(supProxy);
+			   }
+			   if (oid5.Contains(NATAddressOID)) {
+				   PString addr = oid5.Value(PString(NATAddressOID));
+				   SetNATAddress(addr);
+			   }
+			   if (oid5.Contains(NATMustProxyOID)) {            /// Whether this EP must proxy through GK
+				   BOOL mustProxy = oid5.Value(PString(NATMustProxyOID));
+				   SetInternal(mustProxy);
+			   }
+		   }
 		   /// OID9 Vendor Information
 		   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
 			   H460_FeatureOID & oid9 = (H460_FeatureOID &)data[i];
@@ -808,6 +1049,31 @@ bool EndpointRec::AddHTTPServiceControl(
 
 		return true;
 }
+
+#ifdef hasPresence
+bool EndpointRec::hasContact() 
+{
+	return (m_contact != NULL);
+}
+
+void EndpointRec::CreateContact() 
+{
+	if (m_contact == NULL)
+		m_contact = new H323Contact();
+}
+
+void EndpointRec::ParsePresencePDU(unsigned msgtag, const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu)
+{
+	if (!m_contact)
+		m_contact->ParsePresencePDU(msgtag, id, pdu);
+}
+
+void EndpointRec::BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu)
+{
+	if (!m_contact)
+		m_contact->BuildPresencePDU(msgtag, pdu);
+}
+#endif
 
 #ifdef H323_H350
 static const char * LDAPServiceOID = "1.3.6.1.4.1.17090.2.1";
@@ -1752,7 +2018,7 @@ CallRec::CallRec(
 	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
-	m_usedCount(0), m_nattype(none), m_unregNAT(false),
+	m_usedCount(0), m_nattype(none),m_natstrategy(e_natUnknown), m_unregNAT(false),
 	m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
@@ -1798,7 +2064,7 @@ CallRec::CallRec(
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
-	m_usedCount(0), m_nattype(none), m_unregNAT(false), m_h245Routed(routeH245),
+	m_usedCount(0), m_nattype(none),m_natstrategy(e_natUnknown), m_unregNAT(false), m_h245Routed(routeH245),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false)
@@ -1846,8 +2112,8 @@ CallRec::CallRec(
 	m_callingStationId(oldCall->m_callingStationId), m_calledStationId(oldCall->m_calledStationId),
 	m_dialedNumber(oldCall->m_dialedNumber),
 	m_routeToAlias(NULL), m_callingSocket(NULL /*oldCall->m_callingSocket*/), m_calledSocket(NULL),
-	m_usedCount(0), m_nattype(oldCall->m_nattype & ~calledParty), m_unregNAT(oldCall->m_unregNAT),
-	m_h245Routed(oldCall->m_h245Routed),
+	m_usedCount(0), m_nattype(oldCall->m_nattype & ~calledParty), m_natstrategy(e_natUnknown),
+	m_unregNAT(oldCall->m_unregNAT),m_h245Routed(oldCall->m_h245Routed),
 	m_toParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
@@ -2546,6 +2812,185 @@ bool CallRec::GetMediaOriginatingIp(PIPSocket::Address &addr) const
 		return true;
 	} else
 		return false;
+}
+
+bool CallRec::SingleGatekeeper()
+{
+	if (!m_Called || !m_Called)  // Default Single Gatekeeper TRUE!
+		return true;
+
+    if (!m_Calling->IsRemote() &&
+		 !m_Called->IsRemote())
+		      return true;
+
+	return false;
+}
+
+bool CallRec::GetRemoteInfo(PString & vendor, PString & version)
+{
+	if (!m_Called)
+		return false;
+
+	return m_Called->GetEndpointInfo(vendor,version);
+}
+
+PString CallRec::GetNATOffloadString(NatStrategy type)
+{
+  static const char * const Names[9] = {
+		"Unknown Strategy",
+		"No Assistance",
+		"Local Master",
+	    "Remote Master",
+		"Local Proxy",
+	    "Remote Proxy",
+		"Full Proxy",
+		"Same NAT",
+		"NAT Failure"
+  };
+
+  if (type < 9)
+    return Names[type];
+  
+  return PString((unsigned)type);
+}
+
+bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
+{
+	// If calling is missing or H.460 is disabled don't continue.
+	if (iscalled||!m_Calling)
+	   return false;
+
+	// If we don't have a called and the calling is a cone nat then default local Master
+	if (!m_Called) {
+		if (m_Calling->GetEPNATType() == EndpointRec::NatCone) {
+		   natinst = CallRec::e_natLocalMaster;
+	       return true;
+		}
+		return false;
+	}
+
+	bool goDirect = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "LocalProxyOptimize", "0"));
+
+#if PTRACING
+	PStringStream natinfo;
+    natinfo << "NAT Offload calculation inputs for Call No: " << GetCallNumber() << "\n" 
+            << " Rule : " << (goDirect ? "Local Proxy Media Optimized" : "Always Proxy Local Media");
+// Calling Endpoint
+		natinfo << "\n  Calling Endpoint:\n";
+	if (m_Calling->IsNATed()) {
+		natinfo << "    IsNATed:     Yes\n";
+		natinfo << "    Detected IP: " << m_Calling->GetNATIP() << "\n";
+		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType());
+	} else if (m_Calling->IsInternal()) {
+		natinfo << "    Proxy IP: " << m_Calling->GetIP() << "\n";
+	} else {
+		natinfo << "    IP: " << m_Calling->GetIP() << "\n";
+		natinfo << "    Support NAT: " << (m_Calling->SupportNAT() ? "Yes" : "No");
+	}
+// Called Endpoint
+		natinfo << "\n  Called Endpoint:\n";
+	if (m_Called->IsNATed()) {
+		natinfo << "    IsNATed:      Yes\n";
+		natinfo << "    Detected IP: " << m_Called->GetNATIP() << "\n";
+		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType());
+	} else if (m_Called->IsInternal()) {
+		natinfo << "    Proxy IP: " << m_Called->GetIP() << "\n";
+	} else {
+		natinfo << "    IP: " << m_Called->GetIP() << "\n";
+		natinfo << "    Support NAT: " << (m_Called->SupportNAT() ? "Yes" : "No");
+	}
+
+	PTRACE(5,"RAS\t\n" << natinfo << "\n");
+#endif
+
+	// If neither party supports NAT type is unknown and both are not on internal LAN then exit
+	if ((m_Called->GetEPNATType() == EndpointRec::NatUnknown) && !m_Called->IsInternal() &&
+		(m_Calling->GetEPNATType() == EndpointRec::NatUnknown) && !m_Calling->IsInternal()) {
+             PTRACE(5,"RAS\tDisable NAT Offload as neither party supports or needs it.");
+		     return false;
+	}
+
+	// Same NAT Calculations (support 1 party being registered at Nated GnuGk)
+	if ((m_Calling->IsNATed() && m_Called->IsNATed()               // both parties are NAT and
+		   && (m_Calling->GetNATIP() == m_Called->GetNATIP())) ||  // their NAT IP is the same OR
+		(!m_Called->IsNATed() && m_Called->IsInternal()            // Called is behind a proxy and
+		  && m_Calling->IsNATed() && !m_Calling->IsInternal()      // calling is NAT and
+		  && (m_Called->GetIP() == m_Calling->GetNATIP()))     ||  // Called IP & Calling NATIP is the same OR
+		(!m_Calling->IsNATed() && m_Calling->IsInternal()          // Calling is behind a proxy and
+		  && m_Called->IsNATed() && !m_Called->IsInternal()        // called is NAT and
+		  && (m_Calling->GetIP() == m_Called->GetNATIP())))        // Calling IP & Called NATIP is the same 
+	{
+		  PTRACE(5,"RAS\tNAT Offload detected Endpoints behind same NAT:");
+		  if (Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForSameNAT", "0"))) {
+		    PTRACE(5,"RAS\tProxying for same NAT");
+			natinst = CallRec::e_natSameNAT;
+		  } else {
+		    PTRACE(5,"RAS\tNo Proxy for same NAT");
+            natinst = CallRec::e_natNoassist;
+		  }
+		  return true;
+    }
+
+	// if calling is on public IP or Cone NAT and remote is a permanent Endpoint no Proxy support
+	if (((!m_Calling->IsNATed() && !m_Calling->IsInternal()) || 
+		 (m_Calling->GetEPNATType() == EndpointRec::NatCone)) && 
+		  m_Called->IsPermanent() && !m_Called->IsInternal()) 
+		     natinst = CallRec::e_natLocalMaster;
+
+    
+    // If Calling is behind local NAT but allowed to call out without proxying media
+    else if (goDirect && m_Calling->IsInternal() && 
+		((!m_Called->IsNATed() && m_Called->SupportNAT()) ||
+        (m_Called->GetEPNATType() == EndpointRec::NatCone)))
+        natinst = CallRec::e_natRemoteMaster;
+
+    // If Called is behind local NAT but allowed to call in without proxying media
+    else if (goDirect && m_Called->IsInternal() && 
+		((!m_Calling->IsNATed() && m_Calling->SupportNAT()) ||
+        (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
+        natinst = CallRec::e_natLocalMaster;
+
+	// If both parties must proxy (ie if both on internal network)
+	else if (m_Calling->IsInternal() && m_Called->IsInternal())
+		natinst = CallRec::e_natFullProxy;
+
+	// If the calling must proxy media then proxy local
+	else if (m_Calling->IsInternal())
+		natinst = CallRec::e_natLocalProxy;
+
+	// If the remote must proxy media then proxy remote
+	else if (m_Called->IsInternal())
+	     natinst = CallRec::e_natRemoteProxy;
+
+	// If both are not NAT then no NAT support required.
+	else if (!m_Calling->IsNATed() && !m_Called->IsNATed())
+		natinst = CallRec::e_natNoassist;
+
+	// If the calling in not NAT or the NAT is a Cone NAT
+	else if ((!m_Calling->IsNATed() && m_Calling->SupportNAT()) ||
+		(m_Calling->GetEPNATType() == EndpointRec::NatCone))
+		   natinst = CallRec:: e_natLocalMaster;
+
+	// If the called in not NAT or the NAT is a Cone NAT
+	else if ((!m_Called->IsNATed() && m_Called->SupportNAT()) ||
+		(m_Called->GetEPNATType() == EndpointRec::NatCone)) 
+		natinst = CallRec:: e_natRemoteMaster;
+    
+	// If the calling can proxy for NAT use it
+    else if (m_Calling->HasNATProxy())
+		natinst = CallRec::e_natLocalProxy;
+
+	// If the called can proxy for NAT use it
+	else if (m_Called->HasNATProxy())
+	    natinst = CallRec::e_natRemoteProxy;
+
+	// Oops cannot proceed the media will Fail!!
+	else {
+		natinst = CallRec::e_natFailure;
+        return false;
+	}
+
+	return true;
 }
 
 void CallRec::SetRADIUSClass(const PBYTEArray &bytes)

@@ -20,6 +20,7 @@
 #include "h225.h"
 #include "sigmsg.h"
 #include "config.h"
+#include "h323util.h"
 
 
 #if (_MSC_VER >= 1200)
@@ -62,6 +63,9 @@ private:
 	T *pt;
 };
 
+#ifdef hasPresence
+class H323Contact;
+#endif
 class EndpointRec
 {
 public:
@@ -81,6 +85,7 @@ public:
 	// public interface to access EndpointRec
 	H225_TransportAddress GetRasAddress() const;
 	H225_TransportAddress GetCallSignalAddress() const;
+	PIPSocket::Address GetIP() const;
 	H225_EndpointIdentifier GetEndpointIdentifier() const;
 	H225_ArrayOf_AliasAddress GetAliases() const;
 	H225_EndpointType GetEndpointType() const;
@@ -155,6 +160,23 @@ public:
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
 	void SetSupportNAT(bool support);
+
+	enum EPNatTypes {
+            NatUnknown,
+            NatOpen,
+            NatCone,
+            NatRestricted,
+            NatPortRestricted,
+            NatSymmetric,
+            FirewallSymmetric,
+            NatBlocked,
+            NatPartialBlocked
+       };
+
+	void SetEPNATType(int nattype) {m_epnattype = (EPNatTypes)nattype; }
+	void SetNATProxy(BOOL support) {m_natproxy = support; }
+	void SetInternal(BOOL internal) { m_internal = internal; }
+
 	void SetPriority(int priority) { m_registrationPriority = priority; };
 	void SetPreemption(bool support) { m_registrationPreemption = support; };
 	void SetAssignedGatekeeper(const H225_AlternateGK & gk) { m_assignedGatekeeper = gk; };
@@ -168,12 +190,26 @@ public:
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
 	bool IsNATed() const;
+	bool SupportNAT() const;
 
+	bool HasNATProxy() const;
+	bool IsInternal() const;
+	bool IsRemote() const;
+	int GetEPNATType() {return (int)m_epnattype; }
+	static PString GetEPNATTypeString(EPNatTypes nat);
+	bool SupportPreemption() const { return m_registrationPreemption; }
 	H225_AlternateGK GetAssignedGatekeeper() { return m_assignedGatekeeper; }
 
 	int  Priority() const { return m_registrationPriority; }
 	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;
+
+#ifdef hasPresence
+	bool hasContact();
+	void CreateContact();
+	void ParsePresencePDU(unsigned msgtag, const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu);
+	void BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu);
+#endif
 
 	/** If this Endpoint would be register itself again with all the same data
 	 * how would this RRQ would look like? May be implemented with a
@@ -277,7 +313,7 @@ protected:
 	mutable PMutex m_usedLock;
 
 	PTime m_updatedTime;
-	bool m_fromParent, m_nat, m_natsupport;
+	bool m_fromParent, m_nat;
 	PIPSocket::Address m_natip;
 	CallSignalSocket *m_natsocket;
 	/// permanent (preconfigured) endpoint flag
@@ -303,6 +339,14 @@ protected:
 	/// cause code translation
 	map<unsigned, unsigned> m_receivedCauseMap;
 	map<unsigned, unsigned> m_sentCauseMap;
+
+	EPNatTypes m_epnattype;
+	bool m_natsupport, m_natproxy, m_internal, m_remote;
+
+#ifdef hasPresence
+	H323Contact * m_contact;
+#endif
+
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -577,6 +621,46 @@ public:
 		/// filled with NAT IP of the called party (if nat type is calledParty)
 		PIPSocket::Address& calledPartyNATIP
 		) const;
+
+	// Override the calculated NAT type
+	void SetNATType(int newNatType) { m_nattype = newNatType; }
+
+	/** Can the call party be used to bypass proxy for NAT
+	*/
+	enum NatStrategy {
+		e_natUnknown,
+		e_natNoassist,
+		e_natLocalMaster,
+	    e_natRemoteMaster,
+		e_natLocalProxy,
+	    e_natRemoteProxy,
+		e_natFullProxy,
+		e_natSameNAT,
+		e_natFailure = 100
+	};
+
+	/** Return whether a call can be offloaded from having to proxy
+	  */
+	bool NATOffLoad(bool iscalled, NatStrategy & natinst);
+
+	/** Get String representation of the NATStrategy */
+	PString GetNATOffloadString(NatStrategy nat);
+
+	/** Get the NATStrategy Default is Unknown */
+	NatStrategy GetNATStrategy() { return m_natstrategy; }
+
+	/** Set the NATStrategy */
+	void SetNATStrategy(NatStrategy strategy) { m_natstrategy = strategy; }
+
+
+	/** Return whether the endpoints are registered at the same gatekeeper so
+	    only 1 gatekeeper is involved in the call
+	  */
+	bool SingleGatekeeper();
+
+	/** Return remote party device information
+	  */
+	bool GetRemoteInfo(PString & vendor, PString & version);
 
 	/** @return
 	    Current proxy mode flag (see #ProxyMode enum#).
@@ -1045,6 +1129,7 @@ private:
 	int m_usedCount;
 	mutable PTimedMutex m_usedLock, m_sockLock;
 	int m_nattype;
+	NatStrategy m_natstrategy;
 
 	/// unregistered caller NAT'd
 	bool m_unregNAT;
@@ -1225,6 +1310,14 @@ inline H225_TransportAddress EndpointRec::GetCallSignalAddress() const
 	return m_callSignalAddress;
 }
 
+inline PIPSocket::Address EndpointRec::GetIP() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	PIPSocket::Address addr;
+    GetIPFromTransportAddr(m_callSignalAddress,addr);
+	return addr;
+}
+
 inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -1288,6 +1381,46 @@ inline void EndpointRec::SetSupportNAT(bool support)
 inline bool EndpointRec::IsNATed() const
 { 
 	return m_nat;
+}
+
+inline bool EndpointRec::SupportNAT() const
+{
+	return m_natsupport;
+}
+
+inline bool EndpointRec::HasNATProxy() const
+{
+	return m_natproxy;
+}
+
+inline bool EndpointRec::IsInternal() const
+{
+	return m_internal;
+}
+
+inline bool EndpointRec::IsRemote() const
+{
+	return m_remote;
+}
+
+inline PString EndpointRec::GetEPNATTypeString(EPNatTypes nat)
+{
+  static const char * const Names[9] = {
+    "Unknown NAT",
+    "Open NAT",
+    "Cone NAT",
+    "Restricted NAT",
+    "Port Restricted NAT",
+    "Symmetric NAT",
+    "Symmetric Firewall",
+    "Blocked",
+    "Partially Blocked"
+  };
+
+  if (nat < 9)
+    return Names[nat];
+  
+  return PString((unsigned)nat);
 }
 
 inline PIPSocket::Address EndpointRec::GetNATIP() const
