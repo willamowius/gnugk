@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX(GkClient.cxx): use [Endpoint] Type= setting for GRQ, not only for RRQ
 - Merged P2Pnat support
 - Added first cut of Presence support
 - set radius release-source attribute in stop accounting packet, like %r in sqlacct

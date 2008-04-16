@@ -185,7 +185,7 @@ void NATClient::SendInfo(int state)
 
 class GRQRequester : public RasRequester {
 public:
-	GRQRequester(const PString &);
+	GRQRequester(const PString & gkid, H225_EndpointType & type);
 	~GRQRequester();
 
 	// override from class RasRequester
@@ -198,13 +198,17 @@ private:
 	H225_RasMessage grq_ras;
 };
 
-GRQRequester::GRQRequester(const PString & gkid) : RasRequester(grq_ras)
+GRQRequester::GRQRequester(const PString & gkid, H225_EndpointType & type) : RasRequester(grq_ras)
 {
 	grq_ras.SetTag(H225_RasMessage::e_gatekeeperRequest);
 	H225_GatekeeperRequest & grq = grq_ras;
 	grq.m_requestSeqNum = GetSeqNum();
 	grq.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	grq.m_endpointType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+	if (type.HasOptionalField(H225_EndpointType::e_terminal))
+		grq.m_endpointType.IncludeOptionalField(H225_EndpointType::e_terminal);
+	if (type.HasOptionalField(H225_EndpointType::e_gateway))
+		grq.m_endpointType.IncludeOptionalField(H225_EndpointType::e_gateway);
 	grq.IncludeOptionalField(H225_GatekeeperRequest::e_supportsAltGK);
 	if (!gkid) {
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_gatekeeperIdentifier);
@@ -373,7 +377,7 @@ void GkClient::OnReload()
 	else
 		m_parentVendor = ParentVendor_GnuGk;
 
-	s = GkConfig()->GetString(EndpointSection, "Type", "GnuGk");
+	s = GkConfig()->GetString(EndpointSection, "Type", "Gateway");
 	if (s[0] == 't' || s[0] == 'T') {
 		m_endpointType = EndpointType_Terminal;
 		m_prefixes.RemoveAll();
@@ -835,7 +839,13 @@ bool GkClient::Discovery()
 	if (!m_discoverParent)
 		return true;
 
-	GRQRequester request(GkConfig()->GetString(EndpointSection, "GatekeeperIdentifier", ""));
+	H225_EndpointType eptype;
+	if (m_endpointType == EndpointType_Terminal) {
+		eptype.IncludeOptionalField(H225_EndpointType::e_terminal);
+	} else {
+		eptype.IncludeOptionalField(H225_EndpointType::e_gateway);
+	}
+	GRQRequester request(GkConfig()->GetString(EndpointSection, "GatekeeperIdentifier", ""), eptype);
 	// the spec: timeout value 5 sec, retry count 2
 	request.SendRequest(m_gkaddr, m_gkport);
 	while (request.WaitForResponse(5000)) {
