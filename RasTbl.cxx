@@ -1145,16 +1145,6 @@ void GatewayRec::LoadGatewayConfig()
 	
 	Prefixes.clear();
 	
-	if (m_terminalType->HasOptionalField(H225_EndpointType::e_gateway) &&
-		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
-		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
-			AddPrefixes(m_terminalType->m_gateway.m_protocol);
-
-	if (m_terminalType->HasOptionalField(H225_EndpointType::e_mcu) &&
-		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptMCUPrefixes", "1")))
-		if (m_terminalType->m_mcu.HasOptionalField(H225_McuInfo::e_protocol))
-			AddPrefixes(m_terminalType->m_mcu.m_protocol);
-		
 	bool setDefaults = true;	
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
 		const PString alias = AsString(m_terminalAliases[i], FALSE);
@@ -1174,6 +1164,16 @@ void GatewayRec::LoadGatewayConfig()
 	if (setDefaults)
 		priority = 1;
 
+	if (m_terminalType->HasOptionalField(H225_EndpointType::e_gateway) &&
+		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
+		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+			AddPrefixes(m_terminalType->m_gateway.m_protocol);
+
+	if (m_terminalType->HasOptionalField(H225_EndpointType::e_mcu) &&
+		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptMCUPrefixes", "1")))
+		if (m_terminalType->m_mcu.HasOptionalField(H225_McuInfo::e_protocol))
+			AddPrefixes(m_terminalType->m_mcu.m_protocol);
+		
 	SortPrefixes();
 }
 
@@ -1231,7 +1231,8 @@ void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols &protocols)
 			for (PINDEX s = 0; s < supportedPrefixes->GetSize(); ++s) {
 				H225_AliasAddress &a = (*supportedPrefixes)[s].m_prefix;
 				if (a.GetTag() == H225_AliasAddress::e_dialedDigits)
-					Prefixes[(const char *)AsString(a, false)] = priority;
+					if (!Prefixes[(const char *)AsString(a, false)])
+						Prefixes[(const char *)AsString(a, false)] = priority;
 			}
 	}
 }
@@ -1244,8 +1245,7 @@ void GatewayRec::AddPrefixes(const PString & prefixes)
 		int prefix_priority = (p.GetSize() > 1) ? p[1].AsInteger() : priority;
 		if (prefix_priority < 1)
 			prefix_priority = 1;
-		if (!Prefixes[(const char *)p[0]] || Prefixes[(const char *)p[0]] > prefix_priority)
-			Prefixes[(const char *)p[0]] = prefix_priority;
+		Prefixes[(const char *)p[0]] = prefix_priority;
 	}
 }
 

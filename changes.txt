@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX(RasTbl.cxx): dynamically registered prefixes are added with the GatewayPriority
 - BUGFIX(GkClient.cxx): use [Endpoint] Type= setting for GRQ, not only for RRQ
 - Merged P2Pnat support
 - Added first cut of Presence support
