@@ -530,8 +530,8 @@ void Gatekeeper::Main()
 
 #ifdef hasH460
 	// License notice
-	cout << "\nThis program contains patent pending P2Pnat Media technology\n"
-            "under special royalty-free license to the GnuGk Project\n"
+	cout << "This program contains patent pending P2Pnat Media technology\n"
+            "under special royalty-free license to the GnuGk Project"
 		 << endl;
 #endif
 
