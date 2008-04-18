@@ -19,7 +19,7 @@
 #include "gnugkbuildopts.h"
 #endif
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD || HAS_UNIXODBC || HAS_SQLITE
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD || HAS_ODBC || HAS_SQLITE
 #define		HAS_DATABASE 1
 #endif
 

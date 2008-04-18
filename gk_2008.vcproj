@@ -620,6 +620,10 @@
 				>
 			</File>
 			<File
+				RelativePath="gksql_odbc.cxx"
+				>
+			</File>
+			<File
 				RelativePath="GkStatus.cxx"
 				>
 			</File>

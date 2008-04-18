@@ -620,7 +620,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\gksql_unixodbc.cxx"
+				RelativePath=".\gksql_odbc.cxx"
 				>
 			</File>
 			<File

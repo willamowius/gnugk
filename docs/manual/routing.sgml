@@ -312,10 +312,10 @@ H.225 disconnect reason for unregistered calls).
 If the database returns nothing, the call is passed on unchanged.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL | Firebird/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/ and <tt/Firebird/ drivers
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/, <tt/ODBC/ and <tt/SQLite/ drivers
 are implemented.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>

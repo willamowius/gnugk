@@ -56,14 +56,14 @@
 
 // ODBC
 
-#undef HAS_UNIXODBC
-#if defined(_MSC_VER) && HAS_UNIXODBC
-  #pragma include_alias(<sql.h>,      <@UNIXODBC_DIR@/include/sql.h>)
-  #pragma include_alias(<sqlext.h>,   <@UNIXODBC_DIR@/include/sqlext.h>)
-  #pragma include_alias(<sqltypes.h>, <@UNIXODBC_DIR@/include/sqltypes.h>)
+#undef HAS_ODBC
+#if defined(_MSC_VER) && HAS_ODBC
+  #pragma include_alias(<sql.h>,      <@ODBC_DIR@/include/sql.h>)
+  #pragma include_alias(<sqlext.h>,   <@ODBC_DIR@/include/sqlext.h>)
+  #pragma include_alias(<sqltypes.h>, <@ODBC_DIR@/include/sqltypes.h>)
 
-  #define UNIXODBC_LIBRARY_1 "@UNIXODBC_DIR@/lib/odbc32.lib"
-  #define UNIXODBC_LIBRARY_2 "@UNIXODBC_DIR@/lib/odbcCP32.lib"
+  #define ODBC_LIBRARY_1 "@ODBC_DIR@/lib/odbc32.lib"
+  #define ODBC_LIBRARY_2 "@ODBC_DIR@/lib/odbcCP32.lib"
 #endif
 
 

@@ -429,10 +429,10 @@
 				RelativePath="gksql_pgsql.cxx">
 			</File>
 			<File
-				RelativePath=".\gksql_sqlite.cxx">
+				RelativePath="gksql_sqlite.cxx">
 			</File>
 			<File
-				RelativePath=".\gksql_unixodbc.cxx">
+				RelativePath="gksql_odbc.cxx">
 			</File>
 			<File
 				RelativePath="GkStatus.cxx">

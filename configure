@@ -636,7 +636,7 @@ LARGE_FDSET
 HAS_MYSQL
 HAS_PGSQL
 HAS_FIREBIRD
-HAS_UNIXODBC
+HAS_ODBC
 HAS_SQLITE
 GNUGK_VERSION
 GNUGK_MAJOR_VERSION
@@ -1239,7 +1239,7 @@ Optional Features:
   --enable-mysql                enable MySQL support (default=yes)
   --enable-pgsql                enable PostgreSQL support (default=yes)
   --enable-firebird                enable Interbase/Firebird support (default=yes)
-  --enable-unixodbc                enable native unixODBC support (default=yes)
+  --enable-unixodbc                enable unixODBC support (default=yes)
   --enable-sqlite                enable SQLite support (default=yes)
 
 Optional Packages:
@@ -4645,6 +4645,10 @@ else
 fi
 
 
+
+
+
+
 # Check whether --enable-unixodbc was given.
 if test "${enable_unixodbc+set}" = set; then
   enableval=$enable_unixodbc;  unixodbc="${enableval}"
@@ -4881,16 +4885,17 @@ else
 fi
 
 if test "x$unixodbc" != "xno"; then
-	HAS_UNIXODBC=1
-	SOURCES="$SOURCES gksql_unixodbc.cxx"
-	STDCCFLAGS="${sql_unixodbc_cflags} -DHAS_UNIXODBC=1 $STDCCFLAGS"
+	HAS_ODBC=1
+	SOURCES="$SOURCES gksql_odbc.cxx"
+	STDCCFLAGS="${sql_unixodbc_cflags} -DHAS_ODBC=1 $STDCCFLAGS"
 	LDFLAGS="$UNIXODBC_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$UNIXODBC_LIBS $ENDLDLIBS"
-    echo "Unixodbc support enabled"
+    echo "unixODBC support enabled"
 else
-    echo "Unixodbc support disabled"
-	HAS_UNIXODBC=0
+    echo "unixODBC support disabled"
+	HAS_ODBC=0
 fi
+
 
 
 
@@ -5851,7 +5856,7 @@ LARGE_FDSET!$LARGE_FDSET$ac_delim
 HAS_MYSQL!$HAS_MYSQL$ac_delim
 HAS_PGSQL!$HAS_PGSQL$ac_delim
 HAS_FIREBIRD!$HAS_FIREBIRD$ac_delim
-HAS_UNIXODBC!$HAS_UNIXODBC$ac_delim
+HAS_ODBC!$HAS_ODBC$ac_delim
 HAS_SQLITE!$HAS_SQLITE$ac_delim
 GNUGK_VERSION!$GNUGK_VERSION$ac_delim
 GNUGK_MAJOR_VERSION!$GNUGK_MAJOR_VERSION$ac_delim
