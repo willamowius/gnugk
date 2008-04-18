@@ -214,29 +214,6 @@ private:
 };
 
 
-template<class F, class T>
-class SimpleJob : public Job {
-public:
-	SimpleJob(const F & _f, T *_t) : f(_f), t(_t) {}
-	virtual void Run() { f(t); }
-
-private:
-	const F f;
-	T *t;
-};
-
-template<class F, class T, class A>
-class SimpleJobA : public Job {
-public:
-	SimpleJobA(const F & _f, T *_t, const A & _a) : f(_f), t(_t), a(_a) {}
-	virtual void Run() { f(t, a); }
-
-private:
-	const F f;
-	T *t;
-	A a;
-};
-
 template<class T>
 class SimpleClassJob : public Job {
 public:
