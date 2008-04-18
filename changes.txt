@@ -1,16 +1,14 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
 - changed mysql library to static library
-- Added configure support to VS2003 and VS2005
-- unixODBC support added for Windows
 - BUGFIX(RasTbl.cxx): dynamically registered prefixes are added with the GatewayPriority
 - BUGFIX(GkClient.cxx): use [Endpoint] Type= setting for GRQ, not only for RRQ
-- Merged P2Pnat support
-- Added first cut of Presence support
+- merged P2Pnat support
+- added first cut of Presence support
 - set radius release-source attribute in stop accounting packet, like %r in sqlacct
 - ./configure support for Windows
 - new database driver 'SQLite'
-- new database driver 'unixODBC' (Unix only)
+- new database driver 'ODBC'
 - auto-reconnect on database errors (for all database drivers)
 - allow setting a reject reason when rejecting using the sql policy
 
