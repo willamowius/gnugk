@@ -2,7 +2,7 @@
 //
 // slist.h
 //
-// A Single Linked List Template
+// A Single Linked List Template   *** LEGACY - use STL for new code ***
 //
 // Copyright (c) Citron Network Inc. 2003
 //
@@ -28,9 +28,6 @@ public:
 
 	SList() : m_next(0) {}
 	virtual ~SList() = 0;
-
-	T* GetNext() { return m_next; }
-	const T* GetNext() const { return m_next; }
 
 	static T *Create(const PStringArray &);
 	
