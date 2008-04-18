@@ -429,6 +429,9 @@
 				RelativePath="gksql_pgsql.cxx">
 			</File>
 			<File
+				RelativePath=".\gksql_unixodbc.cxx">
+			</File>
+			<File
 				RelativePath="GkStatus.cxx">
 			</File>
 			<File
@@ -517,6 +520,9 @@
 				RelativePath="clirw.h">
 			</File>
 			<File
+				RelativePath=".\config.h">
+			</File>
+			<File
 				RelativePath="factory.h">
 			</File>
 			<File
@@ -545,6 +551,51 @@
 			</File>
 			<File
 				RelativePath="gktimer.h">
+			</File>
+			<File
+				RelativePath=".\gnugkbuildopts.h">
+				<FileConfiguration
+					Name="Debug (h323plus)|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine=""
+						AdditionalDependencies=""/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\gnugkbuildopts.h.in">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release (h323plus)|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug (h323plus)|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="h323util.h">

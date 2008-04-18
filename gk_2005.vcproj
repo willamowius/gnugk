@@ -616,6 +616,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\gksql_unixodbc.cxx"
+				>
+			</File>
+			<File
 				RelativePath="GkStatus.cxx"
 				>
 			</File>
@@ -733,6 +737,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\config.h"
+				>
+			</File>
+			<File
 				RelativePath="factory.h"
 				>
 			</File>
@@ -773,6 +781,54 @@
 				>
 			</File>
 			<File
+				RelativePath=".\gnugkbuildopts.h"
+				>
+			</File>
+			<File
+				RelativePath=".\gnugkbuildopts.h.in"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)/gnugkbuildopt.h"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="h323util.h"
 				>
 			</File>
@@ -785,11 +841,11 @@
 				>
 			</File>
 			<File
-				RelativePath="name.h"
+				RelativePath="MakeCall.h"
 				>
 			</File>
 			<File
-				RelativePath="MakeCall.h"
+				RelativePath="name.h"
 				>
 			</File>
 			<File
