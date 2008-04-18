@@ -11,15 +11,16 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2008/04/18 13:14:11  shorne
+ * Fixes for auto-configure on windows
+ *
  * Revision 1.1  2008/04/18 06:56:13  willamowius
  * database driver for sqlite
  *
  *
  */
 
-#if defined(_WIN32)
-  #include "gnugkbuildopts.h"
-#endif
+#include "config.h"
 
 #if HAS_SQLITE
 

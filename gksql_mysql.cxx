@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2008/04/18 13:14:11  shorne
+ * Fixes for auto-configure on windows
+ *
  * Revision 1.12  2008/04/18 05:37:23  shorne
  * Changed windows library to static link library
  *
@@ -46,9 +49,7 @@
  *
  */
 
-#if defined(_WIN32)
-  #include "gnugkbuildopts.h"
-#endif
+#include "config.h"
 
 #if HAS_MYSQL
 

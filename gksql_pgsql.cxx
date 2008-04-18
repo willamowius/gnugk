@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2008/04/18 13:14:11  shorne
+ * Fixes for auto-configure on windows
+ *
  * Revision 1.14  2008/04/02 22:32:22  willamowius
  * auto-reconnect on database errors
  *
@@ -55,9 +58,7 @@
  *
  */
 
-#if defined(_WIN32)
-   #include "gnugkbuildopts.h"
-#endif
+#include "config.h"
 
 #if HAS_PGSQL
 

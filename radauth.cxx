@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.43  2008/04/18 13:14:11  shorne
+ * Fixes for auto-configure on windows
+ *
  * Revision 1.42  2008/01/30 19:00:31  willamowius
  * fix bug introduced when renaming variables
  *
@@ -210,9 +213,7 @@
  *
  */
 
-#if defined(_WIN32)
-  #include "gnugkbuildopts.h"
-#endif
+#include "config.h"
 
 #if HAS_RADIUS
 
