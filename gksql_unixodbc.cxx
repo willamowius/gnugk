@@ -11,12 +11,20 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1  2008/04/03 09:43:03  willamowius
+ * native unixodbc driver
+ *
  *
  */
 #if HAS_UNIXODBC
 
 #include <ptlib.h>
 #include "gksql.h"
+
+#ifdef _WIN32
+ #pragma comment(lib,"odbc32.lib")
+ #pragma comment(lib,"odbcCP32.lib")
+#endif
 
 namespace unixodbc
 {
