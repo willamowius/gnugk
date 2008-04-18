@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2008/04/02 22:32:22  willamowius
+ * auto-reconnect on database errors
+ *
  * Revision 1.10  2007/10/23 12:40:42  willamowius
  * enable auto-reconnect for MySQL >= 5.0
  *
@@ -47,7 +50,7 @@
 #endif
 
 #ifdef _WIN32
-#pragma comment( lib, "libmysql.lib" )
+#pragma comment( lib, "mysqlclient.lib" )
 #endif
 
 #include <ptlib.h>
