@@ -11,20 +11,23 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2008/04/18 05:37:44  shorne
+ * Ported to Windows
+ *
  * Revision 1.1  2008/04/03 09:43:03  willamowius
  * native unixodbc driver
  *
  *
  */
+
+#if defined(_WIN32)
+  #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_UNIXODBC
 
 #include <ptlib.h>
 #include "gksql.h"
-
-#ifdef _WIN32
- #pragma comment(lib,"odbc32.lib")
- #pragma comment(lib,"odbcCP32.lib")
-#endif
 
 namespace unixodbc
 {
@@ -32,6 +35,12 @@ namespace unixodbc
 #include <sqlext.h>
 #include <sqltypes.h>
 }
+
+
+#ifdef _WIN32
+ #pragma comment(lib, UNIXODBC_LIBRARY_1 )
+ #pragma comment(lib, UNIXODBC_LIBRARY_2 )
+#endif
 
 using namespace unixodbc;
 
@@ -382,11 +391,11 @@ GkSQLResult* GkunixODBCConnection::ExecuteQuery(
 		char stat[10]; // Status SQL
 		SQLINTEGER err;
 		SQLSMALLINT	mlen;
-		char msg[100];
-		SQLGetDiagRec(SQL_HANDLE_DBC, conn, 1, (SQLCHAR*)stat, &err, (SQLCHAR*)msg, 100, &mlen);
+		PString msg;
+		SQLGetDiagRec(SQL_HANDLE_DBC, conn, 1, (SQLCHAR*)stat, &err, (unsigned char *)msg.GetPointer(100), 100, &mlen);
 		SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 		Disconnect();
-		return new GkunixODBCResult(result, PString("SQLExecDirect() failed: ") + msg + " (" + err + ")");
+		return new GkunixODBCResult(result, PString("SQLExecDirect() failed: ") + msg + " (" + PString(err) + ")");
 	}
 	
 	vector<GkSQLResult::ResultRow*> * resultRows = new vector<GkSQLResult::ResultRow*>();

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.37  2008/04/03 12:03:35  willamowius
+ * set radius release-source attribute in stop accounting packet, like %r in sqlacct
+ *
  * Revision 1.36  2008/03/18 15:51:13  zvision
  * Delete socket when id cannot be generated
  *
@@ -164,6 +167,11 @@
  * Initial revision
  *
  */
+
+#if defined(_WIN32)
+  #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_RADIUS
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)

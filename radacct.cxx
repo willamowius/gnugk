@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.22  2008/04/03 12:03:35  willamowius
+ * set radius release-source attribute in stop accounting packet, like %r in sqlacct
+ *
  * Revision 1.21  2007/09/11 01:02:29  willamowius
  * clean up includes
  *
@@ -99,6 +102,11 @@
  * Added cvs Log keyword
  *
  */
+
+#if defined(_WIN32)
+  #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_RADIUS
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)

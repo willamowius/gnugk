@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2008/04/02 22:32:22  willamowius
+ * auto-reconnect on database errors
+ *
  * Revision 1.13  2007/11/25 14:56:46  willamowius
  * cleanup: comment out unused arguments
  *
@@ -51,6 +54,11 @@
  * SQLAcct module ported from 2.0 branch
  *
  */
+
+#if defined(_WIN32)
+   #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_PGSQL
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)
@@ -63,7 +71,7 @@
 #include "gksql.h"
 
 #ifdef _WIN32
-#pragma comment( lib, "libpq.lib" )
+#pragma comment( lib, PGSQL_LIBRARY )
 #endif
 
 /** Class that encapsulates SQL query result for PostgreSQL backend.

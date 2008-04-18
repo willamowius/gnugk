@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2008/04/18 05:37:23  shorne
+ * Changed windows library to static link library
+ *
  * Revision 1.11  2008/04/02 22:32:22  willamowius
  * auto-reconnect on database errors
  *
@@ -42,6 +45,11 @@
  * SQLAcct module ported from 2.0 branch
  *
  */
+
+#if defined(_WIN32)
+  #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_MYSQL
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)
@@ -50,7 +58,7 @@
 #endif
 
 #ifdef _WIN32
-#pragma comment( lib, "mysqlclient.lib" )
+#pragma comment( lib, MYSQL_LIBRARY )
 #endif
 
 #include <ptlib.h>

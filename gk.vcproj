@@ -86,7 +86,7 @@
 				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="1"
 				OptimizeForProcessor="3"
-				PreprocessorDefinitions="NDEBUG;PTRACING;HAS_RADIUS=1"
+				PreprocessorDefinitions="NDEBUG;PTRACING"
 				RuntimeLibrary="2"
 				StructMemberAlignment="0"
 				BufferSecurityCheck="FALSE"
@@ -429,6 +429,9 @@
 				RelativePath="gksql_pgsql.cxx">
 			</File>
 			<File
+				RelativePath=".\gksql_sqlite.cxx">
+			</File>
+			<File
 				RelativePath=".\gksql_unixodbc.cxx">
 			</File>
 			<File
@@ -568,7 +571,8 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>
 				</FileConfiguration>
@@ -576,7 +580,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>
 				</FileConfiguration>
@@ -584,7 +589,8 @@
 					Name="Release (h323plus)|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>
 				</FileConfiguration>
@@ -592,7 +598,8 @@
 					Name="Debug (h323plus)|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS"
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>
 				</FileConfiguration>

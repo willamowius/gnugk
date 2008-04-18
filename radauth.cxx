@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.42  2008/01/30 19:00:31  willamowius
+ * fix bug introduced when renaming variables
+ *
  * Revision 1.41  2007/11/25 23:23:40  willamowius
  * cleanup: rename variables that shadow others with the same name
  *
@@ -206,7 +209,11 @@
  * Initial revision
  *
  */
- 
+
+#if defined(_WIN32)
+  #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_RADIUS
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2008/04/02 22:32:22  willamowius
+ * auto-reconnect on database errors
+ *
  * Revision 1.8  2007/09/10 18:13:48  willamowius
  * clean up sql driver interface and remove unused methods from all drivers
  *
@@ -36,6 +39,11 @@
  * Firebird SQL driver
  *
  */
+
+#if defined(_WIN32)
+  #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_FIREBIRD
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)
@@ -47,6 +55,10 @@
 #include <cmath>
 #include <ibase.h>
 #include "gksql.h"
+
+#ifdef _WIN32
+#pragma comment( lib, FIREBIRD_LIBRARY )
+#endif
 
 namespace {
 PString XSQLVARToPString(XSQLVAR *sqlvar)

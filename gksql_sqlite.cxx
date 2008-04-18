@@ -11,8 +11,16 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.1  2008/04/18 06:56:13  willamowius
+ * database driver for sqlite
+ *
  *
  */
+
+#if defined(_WIN32)
+  #include "gnugkbuildopts.h"
+#endif
+
 #if HAS_SQLITE
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)
@@ -23,6 +31,10 @@
 #include <ptlib.h>
 #include <sqlite3.h>
 #include "gksql.h"
+
+#ifdef _WIN32
+#pragma comment( lib, SQLITE_LIBRARY )
+#endif
 
 /** Class that encapsulates SQL query result for SQLite backend.
 	It does not provide any multithread safety, so should be accessed

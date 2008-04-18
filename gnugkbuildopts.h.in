@@ -12,11 +12,59 @@
 #ifndef GNUGKBUILDOPTS_H
 #define GNUGKBUILDOPTS_H 1
 
-#undef HAS_MYSQL
-#undef HAS_PGSQL
-#undef HAS_FIREBIRD
-#undef HAS_SQLITE
-#undef HAS_UNIXODBC
 
+// Radius
+
+#undef HAS_RADIUS
+
+
+// MYSQL
+
+#undef HAS_MYSQL
+#if defined(_MSC_VER) && HAS_MYSQL
+  #pragma include_alias(<mysql.h>, <@MYSQL_DIR@/include/mysql.h>)
+  #define MYSQL_LIBRARY "@MYSQL_DIR@/lib/opt/mysqlclient.lib"
 #endif
 
+
+// PostgreSQL
+
+#undef HAS_PGSQL
+#if defined(_MSC_VER) && HAS_PGSQL
+  #pragma include_alias(<libpq-fe.h>, <@PGSQL_DIR@/include/libpq-fe.h>)
+  #define PGSQL_LIBRARY "@PGSQL_DIR@/lib/libpq.lib"
+#endif
+
+
+// Firebird
+
+#undef HAS_FIREBIRD
+#if defined(_MSC_VER) && HAS_FIREBIRD
+  #pragma include_alias(<ibase.h>, <@FIREBIRD_DIR@/include/ibase.h>)
+  #define FIREBIRD_LIBRARY "@FIREBIRD_DIR@/lib/firebird.lib"
+#endif
+
+
+// SQLite
+
+#undef HAS_SQLITE
+#if defined(_MSC_VER) && HAS_SQLITE
+  #pragma include_alias(<sqlite3.h>, <@SQLITE_DIR@/sqlite-source/sqlite3.h>)
+  #define SQLITE_LIBRARY "@SQLITE_DIR@/sqlite.lib"
+#endif
+
+
+// ODBC
+
+#undef HAS_UNIXODBC
+#if defined(_MSC_VER) && HAS_UNIXODBC
+  #pragma include_alias(<sql.h>,      <@UNIXODBC_DIR@/include/sql.h>)
+  #pragma include_alias(<sqlext.h>,   <@UNIXODBC_DIR@/include/sqlext.h>)
+  #pragma include_alias(<sqltypes.h>, <@UNIXODBC_DIR@/include/sqltypes.h>)
+
+  #define UNIXODBC_LIBRARY_1 "@UNIXODBC_DIR@/lib/odbc32.lib"
+  #define UNIXODBC_LIBRARY_2 "@UNIXODBC_DIR@/lib/odbcCP32.lib"
+#endif
+
+
+#endif
