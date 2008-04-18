@@ -94,7 +94,6 @@ public:
 	virtual void Exec();
 
 	bool IsFrom(const PIPSocket::Address &, WORD) const;
-	void GetRecvAddress(PIPSocket::Address &, WORD &) const;
 	unsigned GetTag() const { return m_msg->GetTag(); }
 	const char *GetTagName() const { return m_msg->GetTagName(); }
 

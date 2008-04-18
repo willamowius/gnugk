@@ -377,11 +377,6 @@ bool RasMsg::IsFrom(const PIPSocket::Address & addr, WORD pt) const
 	return (addr == m_msg->m_peerAddr) && (pt == 0 || pt == m_msg->m_peerPort);
 }
 
-void RasMsg::GetRecvAddress(PIPSocket::Address & addr, WORD & pt) const
-{
-	addr = m_msg->m_peerAddr, pt = m_msg->m_peerPort;
-}
-
 void RasMsg::GetRasAddress(H225_TransportAddress & result) const
 {
 	result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket->GetPort());
