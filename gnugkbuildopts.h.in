@@ -16,6 +16,7 @@
 #undef HAS_PGSQL
 #undef HAS_FIREBIRD
 #undef HAS_SQLITE
+#undef HAS_UNIXODBC
 
 #endif
 
