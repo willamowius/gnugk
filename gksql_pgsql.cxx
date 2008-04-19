@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.15  2008/04/18 13:14:11  shorne
  * Fixes for auto-configure on windows
  *
@@ -73,6 +76,7 @@
 
 #ifdef _WIN32
 #pragma comment( lib, PGSQL_LIBRARY )
+#pragma comment( lib, "secur32.lib")
 #endif
 
 /** Class that encapsulates SQL query result for PostgreSQL backend.
