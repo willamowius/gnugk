@@ -283,7 +283,7 @@ private:
 	/// Load general endpoint settings from the config
 	void LoadEndpointConfig();
 	void AddPrefixCapacities(const PString & prefixes);
-	void ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini);
+	void ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, const PString & ini);
 
 
 	EndpointRec();
@@ -307,7 +307,7 @@ protected:
 
 	int m_activeCall, m_connectedCall, m_totalCall;
 	/// active calls per prefix (regex)
-	map<string, int> m_activePrefixCalls;
+	std::map<string, int> m_activePrefixCalls;
 
 	int m_pollCount, m_usedCount;
 	mutable PMutex m_usedLock;
@@ -337,8 +337,8 @@ protected:
     /// Assigned Gatekeeper
 	H225_AlternateGK m_assignedGatekeeper;
 	/// cause code translation
-	map<unsigned, unsigned> m_receivedCauseMap;
-	map<unsigned, unsigned> m_sentCauseMap;
+	std::map<unsigned, unsigned> m_receivedCauseMap;
+	std::map<unsigned, unsigned> m_sentCauseMap;
 
 	EPNatTypes m_epnattype;
 	bool m_natsupport, m_natproxy, m_internal, m_remote;
@@ -1637,7 +1637,7 @@ private:
 
 	mutable PReadWriteMutex tableLock;
 	// cid -> call
-	map<H225_CallIdentifier, PreliminaryCall*> calls;
+	std::map<H225_CallIdentifier, PreliminaryCall*> calls;
 };
 
 #endif // RASTBL_H

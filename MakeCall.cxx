@@ -75,7 +75,7 @@ PString MakeCallEndPoint::GetDestination(PString token)
 {
 	PString dest;
 	PWaitAndSignal lock(destinationMutex);
-	map<PString, PString>::iterator it = destinations.find(token);
+	std::map<PString, PString>::iterator it = destinations.find(token);
 	if (it != destinations.end()) {
 		dest = it->second;
 		// remove token from list

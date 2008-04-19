@@ -559,7 +559,7 @@ void EndpointRec::LoadEndpointConfig()
 	}
 }
 
-void EndpointRec::ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini)
+void EndpointRec::ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, const PString & ini)
 {
 	cause_map.clear();
 	PStringArray pairs(ini.Tokenise(",", false));
@@ -606,7 +606,7 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 	}
 	// check if matched prefix has capacity available
 	if ((matched_prefix.length() > 0) && (prefix_capacity >= 0)) {
-		map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(matched_prefix);
+		std::map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(matched_prefix);
 		if ((calls_iter != m_activePrefixCalls.end())
 			&& (calls_iter->second >= prefix_capacity)) {
 			PTRACE(5, "Prefix capacity for " << matched_prefix << " reached (max. " << prefix_capacity << ")");
@@ -648,7 +648,7 @@ PString EndpointRec::PrintPrefixCapacities() const
 		string prefix = Iter->first;
 		int capacity = Iter->second;
 		int calls = 0;
-		map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(prefix);
+		std::map<string, int>::const_iterator calls_iter = m_activePrefixCalls.find(prefix);
 		if (calls_iter != m_activePrefixCalls.end()) {
 			calls = calls_iter->second;
 		} else {
@@ -704,7 +704,7 @@ void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 
 unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 {
-	map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
+	std::map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
 	if (i != m_receivedCauseMap.end())
 		return i->second;
 	else
@@ -713,7 +713,7 @@ unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 
 unsigned EndpointRec::TranslateSentCause(unsigned cause) const
 {
-	map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
+	std::map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
 	if (i != m_sentCauseMap.end())
 		return i->second;
 	else
@@ -3636,6 +3636,6 @@ void PreliminaryCallTable::Remove(H225_CallIdentifier id)
 PreliminaryCall * PreliminaryCallTable::Find(H225_CallIdentifier id) const
 {
 	WriteLock lock(tableLock);
-	map<H225_CallIdentifier, PreliminaryCall*>::const_iterator iter = calls.find(id);
+	std::map<H225_CallIdentifier, PreliminaryCall*>::const_iterator iter = calls.find(id);
 	return (iter != calls.end()) ? iter->second : NULL;
 };
