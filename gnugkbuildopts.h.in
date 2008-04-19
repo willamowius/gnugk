@@ -23,7 +23,7 @@
 #undef HAS_MYSQL
 #if defined(_MSC_VER) && HAS_MYSQL
   #pragma include_alias(<mysql.h>, <@MYSQL_DIR@/include/mysql.h>)
-  #define MYSQL_LIBRARY "@MYSQL_DIR@/lib/opt/mysqlclient.lib"
+  #define MYSQL_LIBRARY "@MYSQL_DIR@/lib/opt/libmysql.lib"
 #endif
 
 
@@ -31,8 +31,8 @@
 
 #undef HAS_PGSQL
 #if defined(_MSC_VER) && HAS_PGSQL
-  #pragma include_alias(<libpq-fe.h>, <@PGSQL_DIR@/include/libpq-fe.h>)
-  #define PGSQL_LIBRARY "@PGSQL_DIR@/lib/libpq.lib"
+  #pragma include_alias(<libpq-fe.h>, <@PGSQL_DIR@/libpq-fe.h>)
+  #define PGSQL_LIBRARY "@PGSQL_DIR@/Release/libpq.lib"
 #endif
 
 
