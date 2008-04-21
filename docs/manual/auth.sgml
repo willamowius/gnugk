@@ -806,6 +806,260 @@ by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNum
 
 </itemize>
 
+<sect2>&lsqb;RadAuth&rsqb; Access-Request Radius Attributes
+<p>
+For RRQs, the following RADIUS attributes are included
+inside Access-Request packets:
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_generalID
+
+<item><tt>CHAP-Password</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_random 
+		+ H225_RegistrationRequest.tokens[CAT].m_challenge
+
+<item><tt>CHAP-Challenge</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_timeStamp
+
+<item><tt>NAS-IP-Address</tt><newline>
+<p>
+		GNU Gk Home or a particular local network interface set
+		by 'LocalInterface' config parameter
+
+<item><tt>NAS-Identifier</tt><newline>
+<p>
+		GNU Gk Name
+
+<item><tt>NAS-Port-Type</tt><newline>
+<p>
+		Virtual (GNU Gk does not have concept of physical ports)
+
+<item><tt>Framed-IP-Address</tt><newline>
+<p>
+		An IP address of registering endpoint signalling channel 
+
+<item><tt>Service-Type</tt><newline>
+<p>
+		Login-User
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out</tt><newline>
+<p>
+		A list of aliases an endpoint is registering with
+		(only if IncludeTerminalAliases config option is set)
+<p>
+NOTE: The list of aliases inside h323-ivr-out is in the following form:<newline>
+<tt>h323-ivr-out="h323-ivr-out=terminal-alias:alias1,alias2,...,aliasN;"</tt><newline>
+      The h323-ivr-out attribute can be (in future) instantiated multiple times
+      inside a single Access-Request and may also contain variables other than
+	  "terminal-alias", so a RADIUS server should be flexible enough 
+	  with processing of this attribute.
+</itemize>
+<p>
+For ARQ and Setup messages, the following RADIUS attributes are included
+inside Access-Request packets:
+<p>
+<itemize>
+
+<item><tt>User-Name</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_generalID
+
+<item><tt>CHAP-Password</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_random + ARQ.tokens[CAT].m_challenge
+
+<item><tt>CHAP-Challenge</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_timeStamp
+
+<item><tt>NAS-IP-Address</tt><newline>
+<p>
+		GnuGk Home or a particular local network interface set
+		by 'LocalInterface' config parameter
+
+<item><tt>NAS-Identifier</tt><newline>
+<p>
+		GnuGk Name
+
+<item><tt>NAS-Port-Type</tt><newline>
+<p>
+		Virtual (GnuGk does not have concept of physical ports)
+
+<item><tt>Framed-IP-Address</tt><newline>
+<p>
+		An IP address of registering endpoint signalling channel 
+
+<item><tt>Service-Type</tt><newline>
+<p>
+		Login-User (for ARQs from originating endpoint)
+		or Call-Check (for ARQs from answering endpoint)
+	
+<item><tt>Calling-Station-Id</tt><newline>
+<p>
+		Calling party's number (if available)
+		
+<item><tt>Called-Station-Id</tt><newline>
+<p>
+		Called party's number
+
+<item><tt>(optional) VSA: VendorId=Cisco, h323-conf-id</tt><newline>
+<p>
+		H.323 conference ID from ARQ
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-type</tt><newline>
+<p>
+		Call type (fixed value: "h323-call-type=VoIP")
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-origin</tt><newline>
+<p>
+		Call origin ("answer","originate")
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-gw-id</tt><newline>
+<p>
+		The same as NAS-Identifier
+</itemize>
+
+
+<sect2>&lsqb;RadAuth&rsqb; Access-Accept Radius Attributes
+<p>
+For RRQs, the following RADIUS attributes are recognized 
+inside Access-Accept packets:
+<p>
+<itemize>
+<item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
+<p>
+		If present and not 0, the request is rejected. This check is provided 
+		to allow interoperability with some poor billing systems, that send 
+		Access-Accept with non-zero h323-return-code to reject the call instead
+		of Access-Reject. The attribute can be in form h323-return-code="1" 
+		or h323-return-code="h323-return-code=1". Note that the return code
+		is a string, not an integer,
+
+<item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
+<p>
+		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
+		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
+		this information is used to build the message,
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-amout</tt><newline>
+<p>
+		A string representing current user's account balance. If an endpoint 
+		can understand H.225.0 CallCreditServiceControl messages, 
+		this information is used to build the message,
+		
+<item><tt>VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-in</tt><newline>
+<p>
+		If present, it is scanned for 'terminal-alias' variable that can contain
+		a list of aliases that should be assigned to the endpoint being registered.
+		All RRQ aliases that do not match this list are removed.
+		The format of this attribute is as follows:
+<p>
+<tt>Cisco-AVPair = "h323-ivr-in=variable:value;[variable:value;]"</tt><newline>
+<p>
+		where the "variable" can be "terminal-alias":
+<p>
+			Cisco-AVPair = "h323-ivr-in=terminal-alias:alias1[,alias2,...];"
+<p>
+<descrip>
+<tag/Example 1:/
+<tscreen><verb>
+RRQ {
+	m_terminalAlias = { "myalias", "1234" }
+}
+
+if RADIUS server returns the following h323-ivr-in:
+
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=terminal-alias:anotheralias,6789;"
+}
+
+the endpoint will get registered with aliases "anotheralias" and "6789".
+Also RCF will contain:
+
+RCF {
+	m_terminalAlias = { "anotheralias", "6789" }
+}
+</verb></tscreen>
+</descrip>
+		
+<descrip>
+<tag/Example 2 (add E164 to an existing alias):/
+<tscreen><verb>
+RRQ {
+	m_terminalAlias = { "it_s_me" }
+}
+
+if RADIUS server returns the following h323-ivr-in:
+
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=terminal-alias:it_s_me,48586259732;"
+}
+
+RCF will contain:
+
+RCF {
+	m_terminalAlias = { "it_s_me", "48586259732" }
+}
+</verb></tscreen>
+</descrip>
+		
+</itemize>
+<p>	
+For ARQs, the following RADIUS attributes are recognized
+inside Access-Accept packets:
+<p>
+<itemize>
+<item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
+<p>
+		If present and not 0, the request is rejected. This check is provided
+		to allow interoperability with some poor billing systems, that send 
+		Access-Accept with non-zero h323-return-code to reject the call instead 
+		of Access-Reject. The attribute can be in form h323-return-code="1" 
+		or h323-return-code="h323-return-code=1". Note that the return code
+		is a string, not an integer,
+
+<item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
+<p>
+		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
+		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
+		this information is used to build the message,
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-amout</tt><newline>
+<p>
+		A string representing current user account balance. If an endpoint can 
+		understand H.225.0 CallCreditServiceControl messages, this information 
+		is used to build the message,
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-time</tt><newline>
+<p>
+		If present, it enforces maximum call duration (in seconds).
+		The attribute can be in form of h323-credit-time="120" 
+		or h323-credit-time="h323-credit-time=120". Note that the return code 
+		is a string, not an integer,
+					   
+<item><tt>Session-Timeout</tt><newline>
+<p>
+		If present, it enforces maximum call duration (in seconds).
+		This is a standard RADIUS attribute of integer type,
+
+<item><tt>VSA: VendorId=Cisco, h323-redirect-number</tt><newline>
+<p>
+		If present, a call destination is overwritten with the number present 
+		in this attribute,
+
+<item><tt>VSA: VendorId=Cisco, h323-redirect-ip-address</tt><newline>
+<p>
+		If present, a call is sent to the IP address present in this attribute.
+</itemize>
+<p>
+If both Session-Timeout and h323-credit-time are present, a lesser value
+is taken.
+<p>
+
 <sect1>Section &lsqb;RadAliasAuth&rsqb;
 <label id="radaliasauth">
 <p>
@@ -997,6 +1251,43 @@ Select Called-Station-Id number type between the original one (as dialed
 by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
 
 </itemize>
+
+<sect2>&lsqb;RadAliasAuth&rsqb; Access-Request Radius Attributes
+<p>
+For RRQs, the same attributes as with RadAuth are sent, with an exception
+of username/password attributes (CHAP-Password, CHAP-Challenge, User-Name):
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		Either an endpoint alias from RRQ or a value of FixedUsername 
+		config parameter. If no alias is present, an IP address is used
+
+<item><tt>User-Password</tt><newline>
+<p>
+		Either the same as User-Name or a value of FixedPassword
+		config parameter
+</itemize>
+<p>
+For ARQ and Setup messages, the same attributes as with RadAuth are sent,
+with an exception of username/password attributes (CHAP-Password, 
+CHAP-Challenge, User-Name):
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		Either an endpoint alias or a value of FixedUsername config parameter
+
+<item><tt>User-Password</tt><newline>
+<p>
+		Either the same as User-Name or a value of FixedPassword config parameter
+</itemize>
+
+
+<sect2>&lsqb;RadAliasAuth&rsqb; Access-Accept Radius Attributes
+<p>
+Exactly the same attributes are recognized as with RadAuth module.
+<p>
 
 <sect1>Section &lsqb;CapacityControl&rsqb;
 <label id="capctrl">

@@ -423,6 +423,116 @@ by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNum
 
 </itemize>
 
+
+<sect2>&lsqb;RadAcct&rsqb; Accounting-Request Radius Attributes
+<p>
+For an Accounting-Request, the following RADIUS attributes are included
+inside Accounting-Request packets. Each attribute 
+is followed by a list of accounting event types, it is sent for:
+<p>
+<itemize>
+<item><tt>Acct-Status-Type (start,update,stop,on,off)</tt><newline>
+<p>
+		The accounting event type (Start, Iterim-Update, Stop, 
+		Accounting-On, Accounting-Off).
+		
+<item><tt>NAS-IP-Address (start,update,stop,on,off)</tt><newline>
+<p>
+		An IP address of the gatekeeper.
+		
+<item><tt>NAS-Identifier (start,update,stop,on,off)</tt><newline>
+<p>
+		The gatekeeper identifier (Name= gk parameter).
+		
+<item><tt>NAS-Port-Type (start,update,stop,on,off)</tt><newline>
+<p>
+		Fixed value Virtual.
+		
+<item><tt>Service-Type (start,update,stop)</tt><newline>
+<p>
+		Fixed value Login-User.
+		
+<item><tt>Acct-Session-Id (start,update,stop)</tt><newline>
+<p>
+		An unique accounting session identifier string.
+		
+<item><tt>User-Name (start,update,stop)</tt><newline>
+<p>
+		Calling party's account name.
+
+<item><tt>Framed-IP-Address (start,update,stop)</tt><newline>
+<p>
+		An IP address for the calling party. Either an endpoint call signalling
+		address or a remote socket address for the signalling channel.
+
+<item><tt>Acct-Session-Time (update,stop)</tt><newline>
+<p>
+		Call duration (seconds) - for interim-update events this is the actual
+		duration.
+		
+<item><tt>Calling-Station-Id (start,update,stop)</tt><newline>
+<p>
+		Calling party's number.
+		
+<item><tt>Called-Station-Id (start,update,stop)</tt><newline>
+<p>
+		Called party's number.
+
+<item><tt>(optional) VSA: VendorId=Cisco, h323-gw-id (start,update,stop)</tt><newline>
+<p>
+		The same as NAS-Identifier.
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-conf-id (start,update,stop)</tt><newline>
+<p>
+		H.323 Conference ID for the call.
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-origin (start,update,stop)</tt><newline>
+<p>
+		Fixed string "proxy".
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-type (start,update,stop)</tt><newline>
+<p>
+		Fixed string "VoIP".
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-setup-time (start,update,stop)</tt><newline>
+<p>
+		Timestamp when the Q.931 Setup message has been received by the gk.
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-connect-time (update,stop)</tt><newline>
+<p>
+		Timestamp when the call has been connected (Q.931 Setup message 
+		has been received or ACF has been sent in direct signalling mode).
+	
+<item><tt>(optional) VSA: VendorId=Cisco, h323-disconnect-time (stop)</tt><newline>
+<p>
+		Timestamp when the call has been disconnected (ReleaseComplete or DRQ
+		has been received).
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-disconnect-cause (stop)</tt><newline>
+<p>
+		Q.931 two digit hexadecimal disconnect cause.
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-remote-address (start,update,stop)</tt><newline>
+<p>
+		An IP address of the called party (if known).
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)</tt><newline>
+<p>
+		h323-call-id variable that contains an H.323 Call Identifier.
+		The syntax is as follows: "h323-ivr-out=h323-call-id:123FDE 12348765 9abc1234 12".
+		
+<item><tt>Acct-Delay-Time (start,update,stop)</tt><newline>
+<p>
+		Amount of time (seconds) the gk is trying to send the request.
+		Currently always 0.
+</itemize>
+
+<sect2>&lsqb;RadAcct&rsqb; Accounting-Response Radius Attributes
+<p>
+The gatekeeper does not interpter any attributes present in Accounting-Response
+RADIUS packets.
+<p>
+
 <sect1>Section &lsqb;SQLAcct&rsqb;
 <label id="sqlacct">
 <p>
