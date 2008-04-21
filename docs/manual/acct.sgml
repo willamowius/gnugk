@@ -426,9 +426,9 @@ by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNum
 
 <sect2>&lsqb;RadAcct&rsqb; Accounting-Request Radius Attributes
 <p>
-For an Accounting-Request, the following RADIUS attributes are included
+For an Accounting-Request, the following Radius attributes are included
 inside Accounting-Request packets. Each attribute 
-is followed by a list of accounting event types, it is sent for:
+is followed by a list of accounting event types.
 <p>
 <itemize>
 <item><tt>Acct-Status-Type (start,update,stop,on,off)</tt><newline>
@@ -523,14 +523,14 @@ is followed by a list of accounting event types, it is sent for:
 		
 <item><tt>Acct-Delay-Time (start,update,stop)</tt><newline>
 <p>
-		Amount of time (seconds) the gk is trying to send the request.
+		Amount of time (seconds) the gatekeeper is trying to send the request.
 		Currently always 0.
 </itemize>
 
 <sect2>&lsqb;RadAcct&rsqb; Accounting-Response Radius Attributes
 <p>
-The gatekeeper does not interpter any attributes present in Accounting-Response
-RADIUS packets.
+The gatekeeper ignores all attributes present in Accounting-Response
+Radius packets.
 <p>
 
 <sect1>Section &lsqb;SQLAcct&rsqb;
