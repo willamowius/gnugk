@@ -1,6 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
-- changed mysql library to static library
+- Changed P2Pnat from H.460 OID to the standard allocated H.460.23/24
 - BUGFIX(RasTbl.cxx): dynamically registered prefixes are added with the GatewayPriority
 - BUGFIX(GkClient.cxx): use [Endpoint] Type= setting for GRQ, not only for RRQ
 - merged P2Pnat support

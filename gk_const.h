@@ -54,12 +54,6 @@ extern const char *H225_ProtocolID;
 // Presence
 #define OID3 "1.3.6.1.4.1.17090.0.3"  // Presence
 
-///////////////////////////////////////////
-// NAT Type Detection
-
-#define OID5 "1.3.6.1.4.1.17090.0.5"  // NAT Traversal support   
-#define NATInstOID       7   // integer 8 Instruction on how NAT is to be Traversed
-
 //////////////////////////////////////////
 // Registration Priority and Pre-Emption
 
@@ -69,17 +63,24 @@ extern const char *H225_ProtocolID;
 #define priNotOID    3   // bool to notify EP registration RRJ (priority) UCF (higher Priority)
 #define preNotOID    4   // bool to notify EP registration RRJ (can preempt) UCF (was preempted)
 
-//////////////////////////////////////////
-// P2Pnat Media
 
-#define OID7 "1.3.6.1.4.1.17090.0.7"  // NAT Type detection support
-#define localNATOID      1    // bool if endpoint is NATed
-#define STUNServOID      2    // H225_TransportAddress of STUN Server 
-#define NATTypeOID       3    // integer 8 Endpoint NAT Type
-#define NATProxyOID      4    // Proxy for NAT support
-#define NATMustProxyOID  5    // Media must proxy
-#define remoteNATOID     6    // bool if endpoint has remote NAT support
-#define NATAddressOID    7    // String of the remote party detected source address 
+///////////////////////////////////////////
+// NAT Type Detection H.460.23/24
+
+#define P2P_IsNAT					1    // bool if endpoint is NATed
+#define P2P_STUNAddr			2    // H225_TransportAddress of STUN Server (23 only)
+#define P2P_NATdet				3    // integer 8 Endpoint NAT Type
+#define P2P_ProxyNAT			4    // Proxy for NAT support
+#define P2P_MustProxy			5    // Media must proxy
+#define P2P_RemoteNAT			6    // bool if endpoint has remote NAT support
+#define P2P_SameNAT			7    // Support Same NAT probing (Annex A)  
+#define P2P_DetRASAddr		8    // Detected RAS H225_TransportAddress (23 only)
+
+//////////////////////////////////////////
+// P2Pnat Media H.460.24 only
+
+#define P2P_NATInstruct			7    // integer 8 Instruction on how NAT is to be Traversed 
+#define P2P_SourceAddr			8    // Apparent public IP of remote
 
 #define GK_DEF_STUN_PORT		3478
 

@@ -447,15 +447,15 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 
 		for (PINDEX i=0; i < data.GetSize(); i++) {
 		  H460_Feature & feat = (H460_Feature &)data[i];
-           /// OID5
-		   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5))) {
-			   H460_FeatureOID & oid5 = (H460_FeatureOID &)data[i];
-			   if (oid5.Contains(remoteNATOID)) {              /// Remote supports remote NAT
-				   BOOL supNAT = oid5.Value(PString(remoteNATOID));
+           /// Std24
+		   if (feat.GetFeatureID() == H460_FeatureID(24)) {
+			   H460_FeatureStd & std24 = (H460_FeatureStd &)data[i];
+			   if (std24.Contains(P2P_RemoteNAT)) {              /// Remote supports remote NAT
+				   BOOL supNAT = std24.Value(P2P_RemoteNAT);
 				   SetSupportNAT(supNAT);
 			   }
-			   if (oid5.Contains(localNATOID)) {                /// Remote EP is Nated
-				   BOOL isnat = oid5.Value(PString(localNATOID));
+			   if (std24.Contains(P2P_IsNAT)) {                /// Remote EP is Nated
+				   BOOL isnat = std24.Value(P2P_IsNAT);
 				   SetNAT(isnat);
 				   if (isnat) {
 					   PIPSocket::Address addr;
@@ -463,20 +463,20 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 					   SetNATAddress(addr);
 				    }
 			   }
-               if (oid5.Contains(NATTypeOID)) {               /// Remote type of NAT
-				   unsigned ntype = oid5.Value(PString(NATTypeOID)) ;
+               if (std24.Contains(P2P_NATdet)) {               /// Remote type of NAT
+				   unsigned ntype = std24.Value(P2P_NATdet) ;
 				   SetEPNATType(ntype);
                }
-			   if (oid5.Contains(NATProxyOID)) {                /// Whether the remote GK can proxy
-				   BOOL supProxy = oid5.Value(PString(NATProxyOID));
+			   if (std24.Contains(P2P_ProxyNAT)) {                /// Whether the remote GK can proxy
+				   BOOL supProxy = std24.Value(P2P_ProxyNAT);
                    SetNATProxy(supProxy);
 			   }
-			   if (oid5.Contains(NATAddressOID)) {
-				   PString addr = oid5.Value(PString(NATAddressOID));
+			   if (std24.Contains(P2P_SourceAddr)) {                /// Whether the remote EP supports Same NAT probing
+				   PString addr = std24.Value(P2P_SourceAddr);
 				   SetNATAddress(addr);
 			   }
-			   if (oid5.Contains(NATMustProxyOID)) {            /// Whether this EP must proxy through GK
-				   BOOL mustProxy = oid5.Value(PString(NATMustProxyOID));
+			   if (std24.Contains(P2P_MustProxy)) {         /// Whether this EP must proxy through GK
+				   BOOL mustProxy = std24.Value(P2P_MustProxy);
 				   SetInternal(mustProxy);
 			   }
 		   }

@@ -20,6 +20,7 @@
 #include "gk_const.h"
 #include "Toolkit.h"
 #include "Routing.h"
+#include "config.h"
 
 class Q931;
 class H225_AliasAddress;
@@ -34,6 +35,12 @@ class H225_LocationRequest;
 class H225_Setup_UUIE;
 class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
+
+#ifdef hasH460
+  class H460_FeatureStd;
+  class STUNClient;
+  class UDPProxySocket;
+#endif
 
 class RasMsg;
 class RasServer;
@@ -73,7 +80,7 @@ public:
 	
 	bool SendARQ(Routing::AdmissionRequest &);
 	bool SendLRQ(Routing::LocationRequest &);
-	bool SendARQ(Routing::SetupRequest &, bool answer = false);
+	bool SendARQ(Routing::SetupRequest &, bool answer = false, int natoffload = 0);
 	bool SendARQ(Routing::FacilityRequest &);
 	void SendDRQ(const callptr &);
 	void SendURQ();
@@ -157,7 +164,7 @@ private:
 	void BuildRRQ(H225_RegistrationRequest &);
 	void BuildFullRRQ(H225_RegistrationRequest &);
 	void BuildLightWeightRRQ(H225_RegistrationRequest &);
-	bool WaitForACF(RasRequester &, Routing::RoutingRequest *);
+	bool WaitForACF(H225_AdmissionRequest &, RasRequester &, Routing::RoutingRequest *);
 	H225_AdmissionRequest & BuildARQ(H225_AdmissionRequest &);
 
 	void OnRCF(RasMsg *);
@@ -236,6 +243,30 @@ private:
 	PStringArray m_e164;
     /// list of Authenticators
 	H235Authenticators* m_h235Authenticators;
+
+#ifdef hasH460
+	// Handle P2Pnat RCF
+	void HandleP2P_RCF(H460_FeatureStd * feat);
+    // Handle P2Pnat ACF
+	void HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat);
+    // Notify NAT type
+    bool P2Pnat_TypeNotify(int & nattype);
+	// detected NAT type
+	int m_nattype;
+	// notify of NAT type
+	bool m_natnotify;
+	// H.460.23 support
+	bool gk_H460_23;
+	// STUN Client
+	STUNClient * m_stunClient;
+
+public:
+	// NAT type detected
+	void P2Pnat_TypeDetected(int nattype);
+    // Create socket pair
+    bool P2Pnat_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
+
+#endif
 };
 
 #endif // GKCLIENT_H

@@ -354,7 +354,7 @@ protected:
 
 class RTPLogicalChannel : public LogicalChannel {
 public:
-	RTPLogicalChannel(WORD, bool);
+	RTPLogicalChannel(H225_CallIdentifier,WORD, bool);
 	RTPLogicalChannel(RTPLogicalChannel *, WORD, bool);
 	virtual ~RTPLogicalChannel();
 
@@ -472,7 +472,7 @@ public:
 	typedef std::map<WORD, RTPLogicalChannel *>::iterator siterator;
 	typedef std::map<WORD, RTPLogicalChannel *>::const_iterator const_siterator;
 
-	H245ProxyHandler(const PIPSocket::Address &, const PIPSocket::Address &, const PIPSocket::Address &, H245ProxyHandler * = 0);
+	H245ProxyHandler(const H225_CallIdentifier &,const PIPSocket::Address &, const PIPSocket::Address &, const PIPSocket::Address &, H245ProxyHandler * = 0);
 	virtual ~H245ProxyHandler();
 
 	// override from class H245Handler
@@ -506,6 +506,7 @@ private:
 	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
 	ProxyHandler *handler;
 	H245ProxyHandler *peer;
+	H225_CallIdentifier callid;
 	bool isMute;
 };
 
@@ -762,9 +763,9 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
 			
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
-		H245ProxyHandler *proxyhandler = new H245ProxyHandler(socket->localAddr, calling, socket->masqAddr);
+		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 		socket->m_h245handler = proxyhandler;
-		m_h245handler = new H245ProxyHandler(localAddr, called, masqAddr, proxyhandler);
+		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 		proxyhandler->SetHandler(GetHandler());
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
 	} else if (m_call->IsH245Routed()) {
@@ -1821,9 +1822,40 @@ void CallSignalSocket::OnSetup(
 		}
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
+
+		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
+#ifdef hasH460
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
+	   authData.m_proxyMode != CallRec::ProxyDisabled) {  
+		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
+		for (PINDEX i =0; i < data.GetSize(); i++) {
+          H460_Feature & feat = (H460_Feature &)data[i];
+          /// Std 24
+		  if (feat.GetFeatureID() == H460_FeatureID(24)) {
+			 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+			 if (std24.Contains(P2P_NATInstruct)) {
+			   unsigned natstat = std24.Value(P2P_NATInstruct);
+			   natoffloadsupport = (CallRec::NatStrategy)natstat;
+			 }
+		  }
+		}
+
+	    // If not already set disable the proxy support function for this call
+		// if using Parent you must proxy...
+		if (!useParent &&
+			(natoffloadsupport == CallRec::e_natLocalMaster || 
+			  natoffloadsupport == CallRec::e_natRemoteMaster ||
+			  natoffloadsupport == CallRec::e_natNoassist ||
+			  natoffloadsupport == CallRec::e_natRemoteProxy)) {
+			    PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
+				authData.m_proxyMode = CallRec::ProxyDisabled;
+	    }
+	}
+#endif
+
 		if (!rejectCall && useParent) {
 			gkClient->RewriteE164(*setup, false);
-			if (!gkClient->SendARQ(request, true)) { // send answered ARQ
+			if (!gkClient->SendARQ(request, true, natoffloadsupport)) { // send answered ARQ
 				PTRACE(2, Type() << "\tGot ARJ from parent for " << GetName());
 				authData.m_rejectCause = Q931::CallRejected;
 				rejectCall = true;
@@ -1930,33 +1962,6 @@ void CallSignalSocket::OnSetup(
 		// if I'm behind NAT and the call is from parent, always use H.245 routed
 		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient->IsNATed());
 
-		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
-#ifdef hasH460
-	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
-	   authData.m_proxyMode != CallRec::ProxyDisabled) {  
-		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];
-          /// OID5
-		  if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5))) {
-			 H460_FeatureOID & foid5 = (H460_FeatureOID &)feat;
-			 if (foid5.Contains(PString(NATInstOID))) {
-			   unsigned natstat = foid5.Value(PString(NATInstOID));
-			   natoffloadsupport = (CallRec::NatStrategy)natstat;
-			 }
-		  }
-		}
-
-	    // If not already set disable the proxy support function for this call
-		if (natoffloadsupport == CallRec::e_natLocalMaster || 
-			  natoffloadsupport == CallRec::e_natRemoteMaster ||
-			  natoffloadsupport == CallRec::e_natNoassist ||
-			  natoffloadsupport == CallRec::e_natRemoteProxy) {
-			    PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
-				authData.m_proxyMode = CallRec::ProxyDisabled;
-	    }
-	}
-#endif
 		// workaround for bandwidth, as OpenH323 library :p
 		CallRec* call = new CallRec(q931, setupBody, h245Routed, 
 			destinationString, authData.m_proxyMode
@@ -2189,18 +2194,18 @@ bool CallSignalSocket::CreateRemote(
 
 			for (PINDEX i=0; i < fsn.GetSize(); i++) {
 				H460_Feature & feat = (H460_Feature &)fsn[i];
-				if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID5))) 
+				if (feat.GetFeatureID() == H460_FeatureID(24)) 
 					natfound = true;  break;
 			}
 
 			if (!natfound) {
 				PTRACE(5, Type() << "Added NAT Support to Outbound Call.");
-				H460_FeatureOID foid5 = H460_FeatureOID(OID5);
+				H460_FeatureStd std24 = H460_FeatureStd(24);
 				int remoteconfig = CallRec::e_natRemoteProxy;
-				foid5.Add(NATInstOID,H460_FeatureContent(remoteconfig,8));
+				std24.Add(P2P_NATInstruct,H460_FeatureContent(remoteconfig,8));
 				PINDEX lastpos = fsn.GetSize();
 				fsn.SetSize(lastpos+1);
-				fsn[lastpos] = foid5;    
+				fsn[lastpos] = std24;    
 			} 
 		}
 #endif
@@ -4213,14 +4218,23 @@ void T120ProxySocket::Dispatch()
 
 
 // class RTPLogicalChannel
-RTPLogicalChannel::RTPLogicalChannel(WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(0)
+RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(0)
 {
 	SrcIP = 0;
 	SrcPort = 0;
 
-	rtp = new UDPProxySocket("RTP");
-	rtcp = new UDPProxySocket("RTCP");
-	SetNAT(nated);
+#ifdef hasH460
+	// If we do not have a GKClient (no parent) and we 
+	// don't create the socket pair by STUN then
+	// create the socket pair here
+	GkClient *gkClient = RasServer::Instance()->GetGkClient();
+	if (!nated || !gkClient->P2Pnat_CreateSocketPair(id,rtp,rtcp,nated)) 
+#endif
+	{
+			rtp = new UDPProxySocket("RTP");
+			rtcp = new UDPProxySocket("RTCP");
+	}
+    SetNAT(nated);
 
 	// if Home specifies only one local address, we want to bind
 	// only to this specified local address
@@ -4526,12 +4540,12 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 
 // class H245ProxyHandler
-H245ProxyHandler::H245ProxyHandler(const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
-      : H245Handler(local, remote, masq), peer(pr)
+H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
+      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(FALSE)
 {
 	if (peer)
 		peer->peer = this;
-	isMute = false;
+
 }
 
 H245ProxyHandler::~H245ProxyHandler()
@@ -4824,7 +4838,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 		lc->OnHandlerSwapped(hnat != 0);
 		peer->fastStartLCs.erase(iter);
 	} else {
-		lc = new RTPLogicalChannel(flcn, hnat != 0);
+		lc = new RTPLogicalChannel(callid, flcn, hnat != 0);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 			return NULL;
@@ -4843,7 +4857,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 	if (!lc) {
 		// the LogicalChannelNumber of a fastStart logical channel is irrelevant
 		// it may be set later
-		lc = new RTPLogicalChannel(0, hnat != 0);
+		lc = new RTPLogicalChannel(callid, 0, hnat != 0);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
 			return NULL;

@@ -12,6 +12,10 @@
 // initial author: Chih-Wei Huang <cwhuang@linux.org.tw>
 // initial version: 02/27/2002
 //
+// This file contains Patent Pending Technology P2Pnat Technology
+// under special royalty-free license to the GnuGk Project.
+//
+// P2Pnat implementation written by Simon Horne <s.horne@packetizer.com>
 //////////////////////////////////////////////////////////////////
 
 #if defined(_WIN32) && (_MSC_VER <= 1200)
@@ -30,6 +34,12 @@
 #include "sigmsg.h"
 #include "cisco.h"
 #include "GkClient.h"
+
+#ifdef hasH460
+  #include <h460/h4601.h>
+  #include <ptclib/pstun.h>
+  #include <ptclib/random.h>
+#endif
 
 using std::vector;
 using std::multimap;
@@ -139,7 +149,7 @@ void NATClient::Exec()
 	socket = new CallSignalSocket;
 	socket->SetPort(gkport);
 	if (socket->Connect(gkip)) {
-		PTRACE(2, "GKC\t" << socket->GetName() << " connected, wainting for incoming call");
+		PTRACE(2, "GKC\t" << socket->GetName() << " connected, waiting for incoming call");
 		if (DetectIncomingCall()) {
 			PTRACE(3, "GKC\tIncoming call detected");
 			CreateJob(socket, &CallSignalSocket::Dispatch, "NAT call");
@@ -149,7 +159,9 @@ void NATClient::Exec()
 	}
 	delete socket;
 	socket = NULL;
-	int retryInterval = GkConfig()->GetInteger(EndpointSection, "NATRetryInterval", 60);
+	// If we lose the TCP connection then retry after 60 sec
+	int retryInterval = GkConfig()->GetInteger(EndpointSection, "NATRetryInterval", 60); 
+	PTRACE(4, "GKC\tNAT Socket connection lost " << gkip << " retry connection in " << retryInterval << " secs.");
 
 	ReadUnlock unlockConfig(ConfigReloadMutex);
 	Wait(retryInterval * 1000);
@@ -159,8 +171,8 @@ bool NATClient::DetectIncomingCall()
 {
 	while (socket->IsOpen()) {
 		long retry = GkConfig()->GetInteger(
-			EndpointSection, "NATKeepaliveInterval", 86400
-			); // one day
+			EndpointSection, "NATKeepaliveInterval", 20
+			); // keep alive interval must be less than 30 sec (from testing 20 sec seems fine)
 		SendInfo(Q931::CallState_IncomingCallProceeding);
 
 		ReadUnlock unlockConfig(ConfigReloadMutex);
@@ -182,6 +194,527 @@ void NATClient::SendInfo(int state)
 	socket->TransmitData(buf);
 }
 
+//////////////////////////////////////////////////////////////////////
+
+#ifdef hasH460
+
+// stuff cut from pstun.cxx
+
+#pragma pack(1)
+
+struct STUNattribute
+{
+  enum Types {
+    MAPPED_ADDRESS = 0x0001,
+    RESPONSE_ADDRESS = 0x0002,
+    CHANGE_REQUEST = 0x0003,
+    SOURCE_ADDRESS = 0x0004,
+    CHANGED_ADDRESS = 0x0005,
+    USERNAME = 0x0006,
+    PASSWORD = 0x0007,
+    MESSAGE_INTEGRITY = 0x0008,
+    ERROR_CODE = 0x0009,
+    UNKNOWN_ATTRIBUTES = 0x000a,
+    REFLECTED_FROM = 0x000b,
+    MaxValidCode
+  };
+  
+  PUInt16b type;
+  PUInt16b length;
+  
+  STUNattribute * GetNext() const { return (STUNattribute *)(((const BYTE *)this)+length+4); }
+};
+
+class STUNaddressAttribute : public STUNattribute
+{
+public:
+  BYTE     pad;
+  BYTE     family;
+  PUInt16b port;
+  BYTE     ip[4];
+
+  PIPSocket::Address GetIP() const { return PIPSocket::Address(4, ip); }
+
+protected:
+  enum { SizeofAddressAttribute = sizeof(BYTE)+sizeof(BYTE)+sizeof(WORD)+sizeof(PIPSocket::Address) };
+  void InitAddrAttr(Types newType)
+  {
+    type = (WORD)newType;
+    length = SizeofAddressAttribute;
+    pad = 0;
+    family = 1;
+  }
+  bool IsValidAddrAttr(Types checkType) const
+  {
+    return type == checkType && length == SizeofAddressAttribute;
+  }
+};
+
+class STUNmappedAddress : public STUNaddressAttribute
+{
+public:
+  void Initialise() { InitAddrAttr(MAPPED_ADDRESS); }
+  bool IsValid() const { return IsValidAddrAttr(MAPPED_ADDRESS); }
+};
+
+class STUNchangedAddress : public STUNaddressAttribute
+{
+public:
+  void Initialise() { InitAddrAttr(CHANGED_ADDRESS); }
+  bool IsValid() const { return IsValidAddrAttr(CHANGED_ADDRESS); }
+};
+
+class STUNchangeRequest : public STUNattribute
+{
+public:
+  BYTE flags[4];
+  
+  STUNchangeRequest() { }
+
+  STUNchangeRequest(bool changeIP, bool changePort)
+  {
+    Initialise();
+    SetChangeIP(changeIP);
+    SetChangePort(changePort);
+  }
+
+  void Initialise()
+  {
+    type = CHANGE_REQUEST;
+    length = sizeof(flags);
+    memset(flags, 0, sizeof(flags));
+  }
+  bool IsValid() const { return type == CHANGE_REQUEST && length == sizeof(flags); }
+  
+  bool GetChangeIP() const { return (flags[3]&4) != 0; }
+  void SetChangeIP(bool on) { if (on) flags[3] |= 4; else flags[3] &= ~4; }
+  
+  bool GetChangePort() const { return (flags[3]&2) != 0; }
+  void SetChangePort(bool on) { if (on) flags[3] |= 2; else flags[3] &= ~2; }
+};
+
+class STUNmessageIntegrity : public STUNattribute
+{
+public:
+  BYTE hmac[20];
+  
+  void Initialise()
+  {
+    type = MESSAGE_INTEGRITY;
+    length = sizeof(hmac);
+    memset(hmac, 0, sizeof(hmac));
+  }
+  bool IsValid() const { return type == MESSAGE_INTEGRITY && length == sizeof(hmac); }
+};
+
+struct STUNmessageHeader
+{
+  PUInt16b       msgType;
+  PUInt16b       msgLength;
+  BYTE           transactionId[16];
+};
+
+
+#pragma pack()
+
+
+class STUNmessage : public PBYTEArray
+{
+public:
+  enum MsgType {
+    BindingRequest  = 0x0001,
+    BindingResponse = 0x0101,
+    BindingError    = 0x0111,
+      
+    SharedSecretRequest  = 0x0002,
+    SharedSecretResponse = 0x0102,
+    SharedSecretError    = 0x0112,
+  };
+  
+  STUNmessage()
+  { }
+  
+  STUNmessage(MsgType newType, const BYTE * id = NULL)
+    : PBYTEArray(sizeof(STUNmessageHeader))
+  {
+    SetType(newType, id);
+  }
+
+  void SetType(MsgType newType, const BYTE * id = NULL)
+  {
+    SetMinSize(sizeof(STUNmessageHeader));
+    STUNmessageHeader * hdr = (STUNmessageHeader *)theArray;
+    hdr->msgType = (WORD)newType;
+    for (PINDEX i = 0; i < ((PINDEX)sizeof(hdr->transactionId)); i++)
+      hdr->transactionId[i] = id != NULL ? id[i] : (BYTE)PRandom::Number();
+  }
+
+  const STUNmessageHeader * operator->() const { return (STUNmessageHeader *)theArray; }
+  
+  STUNattribute * GetFirstAttribute() { 
+
+    int length = ((STUNmessageHeader *)theArray)->msgLength;
+    if (theArray == NULL || length < (int) sizeof(STUNmessageHeader))
+      return NULL;
+
+    STUNattribute * attr = (STUNattribute *)(theArray+sizeof(STUNmessageHeader)); 
+    STUNattribute * ptr = attr;
+
+    if (attr->length > GetSize() || attr->type >= STUNattribute::MaxValidCode)
+      return NULL;
+
+    while (ptr && (BYTE*) ptr < (BYTE*)(theArray+GetSize()) && length >= (int) ptr->length+4) {
+
+      length -= ptr->length + 4;
+      ptr = ptr->GetNext();
+    }
+
+    if (length != 0)
+      return NULL;
+
+    return attr; 
+  }
+
+  bool Validate()
+  {
+    int length = ((STUNmessageHeader *)theArray)->msgLength;
+    STUNattribute * attrib = GetFirstAttribute();
+    while (attrib && length > 0) {
+      length -= attrib->length + 4;
+      attrib = attrib->GetNext();
+    }
+
+    return length == 0;  // Exactly correct length
+  }
+
+  void AddAttribute(const STUNattribute & attribute)
+  {
+    STUNmessageHeader * hdr = (STUNmessageHeader *)theArray;
+    int oldLength = hdr->msgLength;
+    int attrSize = attribute.length + 4;
+    int newLength = oldLength + attrSize;
+    hdr->msgLength = (WORD)newLength;
+    // hdr pointer may be invalidated by next statement
+    SetMinSize(newLength+sizeof(STUNmessageHeader));
+    memcpy(theArray+sizeof(STUNmessageHeader)+oldLength, &attribute, attrSize);
+  }
+
+  void SetAttribute(const STUNattribute & attribute)
+  {
+    int length = ((STUNmessageHeader *)theArray)->msgLength;
+    STUNattribute * attrib = GetFirstAttribute();
+    while (length > 0) {
+      if (attrib->type == attribute.type) {
+        if (attrib->length == attribute.length)
+          *attrib = attribute;
+        else {
+          // More here
+        }
+        return;
+      }
+
+      length -= attrib->length + 4;
+      attrib = attrib->GetNext();
+    }
+
+    AddAttribute(attribute);
+  }
+
+  STUNattribute * FindAttribute(STUNattribute::Types type)
+  {
+    int length = ((STUNmessageHeader *)theArray)->msgLength;
+    STUNattribute * attrib = GetFirstAttribute();
+    while (length > 0) {
+      if (attrib->type == type)
+        return attrib;
+
+      length -= attrib->length + 4;
+      attrib = attrib->GetNext();
+    }
+    return NULL;
+  }
+
+
+  bool Read(PUDPSocket & socket)
+  {
+    if (!socket.Read(GetPointer(1000), 1000))
+      return false;
+    SetSize(socket.GetLastReadCount());
+    return true;
+  }
+  
+  bool Write(PUDPSocket & socket) const
+  {
+    return socket.Write(theArray, ((STUNmessageHeader *)theArray)->msgLength+sizeof(STUNmessageHeader)) != FALSE;
+  }
+
+  bool Poll(PUDPSocket & socket, const STUNmessage & request, PINDEX pollRetries)
+  {
+    for (PINDEX retry = 0; retry < pollRetries; retry++) {
+      if (!request.Write(socket))
+        break;
+
+      if (Read(socket) && Validate() &&
+            memcmp(request->transactionId, (*this)->transactionId, sizeof(request->transactionId)) == 0)
+        return true;
+    }
+
+    return false;
+  }
+};
+
+//
+
+class STUNsocket  : public UDPSocket
+{
+public:
+    STUNsocket();
+	virtual BOOL GetLocalAddress(PIPSocket::Address &);
+	virtual BOOL GetLocalAddress(PIPSocket::Address &, WORD &);
+
+	PIPSocket::Address externalIP;
+};
+
+STUNsocket::STUNsocket()
+  : externalIP(0)
+{
+}
+
+
+BOOL STUNsocket::GetLocalAddress(PIPSocket::Address & addr)
+{
+  if (!externalIP.IsValid())
+    return UDPSocket::GetLocalAddress(addr);
+
+  addr = externalIP;
+  return true;
+}
+
+
+BOOL STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port)
+{
+  if (!externalIP.IsValid())
+     return UDPSocket::GetLocalAddress(addr, port);
+
+  addr = externalIP;
+  port = GetPort();
+  return true;
+}
+
+//////
+
+struct STUNportRange {
+
+	STUNportRange() :  minport(0), maxport(0) {}
+	void LoadConfig(const char *, const char *, const char * = "");
+
+	WORD minport, maxport;
+};
+
+void STUNportRange::LoadConfig(const char *sec, const char *setting, const char *def)
+{
+	PStringArray cfgs = GkConfig()->GetString(sec, setting, def).Tokenise(",.:-/'", FALSE);
+	if (cfgs.GetSize() >= 2) {
+		minport = (WORD)cfgs[0].AsUnsigned();
+		maxport = (WORD)cfgs[1].AsUnsigned();
+	} 
+
+	PTRACE(3, "STUN\tPort range set " << ": " << minport << '-' << maxport);
+}
+
+//////
+
+class STUNClient   :  public  Job,
+	                          public PSTUNClient
+{
+ public:
+	 STUNClient(GkClient * _client, const H323TransportAddress &);
+	~STUNClient();
+
+	virtual void Stop();
+
+	virtual void Run();
+
+    virtual bool CreateSocketPair(
+			UDPSocket * & rtp,
+			UDPSocket * & rtcp,
+			const PIPSocket::Address & binding = PIPSocket::GetDefaultIpAny()
+    );
+
+private:
+	// override from class Task
+	virtual void Exec();
+	// Callback
+   void OnDetectedNAT(int m_nattype);
+
+    GkClient *                    m_client;
+	NatTypes                      m_nattype;
+	bool                             m_shutdown;
+	PMutex                         m_portCreateMutex;
+
+};
+
+STUNClient::STUNClient(GkClient * _client, const H323TransportAddress & addr)
+:  m_client(_client), m_nattype(UnknownNat), m_shutdown(false)
+{
+
+	PIPSocket::Address ip;
+	WORD port;
+	addr.GetIpAndPort(ip,port);
+	SetServer(ip, port);
+
+	STUNportRange ports;
+	ports.LoadConfig("Proxy", "RTPPortRange", "1024-65535");
+    SetPortRanges(ports.minport, ports.maxport, ports.minport, ports.maxport);
+
+	SetName("STUNClient");
+	Execute();
+}
+
+STUNClient::~STUNClient()
+{
+    Stop();
+}
+
+void STUNClient::Stop()
+{
+	Job::Stop();
+
+	// disconnect from STUN Server
+	m_shutdown = true;
+}
+
+void STUNClient::Run()
+{
+    Exec();
+}
+
+void STUNClient::Exec()
+{
+	ReadLock lockConfig(ConfigReloadMutex);
+
+        PTimedMutex mute;
+
+		// Wait 500 ms until the RCF has been processed before running tests 
+		// to prevent blocking.
+		mute.Wait(500); 
+	
+		// Get a valid NAT type....
+	    // We do the test 3 times as often the first test gives odd results
+	    // if after 3 attempts it gives odd results well it must be an odd NAT :)  S.H.
+		PINDEX i = 0;
+		do  {
+			m_nattype = GetNatType(TRUE);
+			i++;
+		} while ((i <= 3) && (m_nattype == RestrictedNat ||
+			     m_nattype == PortRestrictedNat ||
+			     m_nattype == BlockedNat ||
+			     m_nattype== PartialBlockedNat
+			));
+
+		OnDetectedNAT(m_nattype);
+
+		// Keep this job (thread) open so that creating STUN ports does not hold up 
+		// the processing of other calls
+		while (!m_shutdown) {
+			Sleep(100);
+		}
+
+	ReadUnlock unlockConfig(ConfigReloadMutex);
+}
+
+void STUNClient::OnDetectedNAT(int nattype)
+{
+	PTRACE(3,"STUN\tDetected NAT as type " << nattype << " " << GetNatTypeString((NatTypes)nattype));
+
+	// Call back to signal the GKClient to do a lightweight reregister
+	// to notify the gatekeeper
+    m_client->P2Pnat_TypeDetected(nattype);
+}
+
+bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const PIPSocket::Address & binding)
+{
+ 
+  // We only create port pairs, a pair at a time.
+  PWaitAndSignal m(m_portCreateMutex);
+
+  rtp = NULL;
+  rtcp = NULL;
+
+  if (GetNatType(FALSE) != ConeNat) {
+      PTRACE(1, "STUN\tCannot create socket pair using NAT type " << GetNatTypeName());
+      return FALSE;
+  }
+
+  PINDEX i;
+
+  PList<STUNsocket> stunSocket;
+  PList<STUNmessage> request;
+  PList<STUNmessage> response;
+
+  for (i = 0; i < numSocketsForPairing; i++)
+  {
+    PINDEX idx = stunSocket.Append(new STUNsocket);
+    if (!OpenSocket(stunSocket[idx], pairedPortInfo, binding)) {
+      PTRACE(1, "STUN\tUnable to open socket to server " << serverAddress);
+      return false;
+	}
+
+    idx = request.Append(new STUNmessage(STUNmessage::BindingRequest));
+    request[idx].AddAttribute(STUNchangeRequest(false, false));
+
+    response.Append(new STUNmessage);
+  }
+
+  for (i = 0; i < numSocketsForPairing; i++)
+  {
+    if (!response[i].Poll(stunSocket[i], request[i], pollRetries))
+    {
+      PTRACE(1, "STUN\tServer " << serverAddress << ':' << serverPort << " unexpectedly went offline.");
+      return false;
+    }
+  }
+
+  for (i = 0; i < numSocketsForPairing; i++)
+  {
+    STUNmappedAddress * mappedAddress = (STUNmappedAddress *)response[i].FindAttribute(STUNattribute::MAPPED_ADDRESS);
+    if (mappedAddress == NULL)
+    {
+      PTRACE(2, "STUN\tExpected mapped address attribute from server " << serverAddress << ':' << serverPort);
+      return false;
+    }
+    if (GetNatType(FALSE) != SymmetricNat)
+      stunSocket[i].SetPort(mappedAddress->port);
+    stunSocket[i].externalIP = mappedAddress->GetIP();
+  }
+
+  for (i = 0; i < numSocketsForPairing; i++)
+  {
+    for (PINDEX j = 0; j < numSocketsForPairing; j++)
+    {
+      if ((stunSocket[i].GetPort()&1) == 0 && (stunSocket[i].GetPort()+1) == stunSocket[j].GetPort()) {
+        stunSocket[i].SetSendAddress(0, 0);
+        stunSocket[i].SetReadTimeout(PMaxTimeInterval);
+        stunSocket[j].SetSendAddress(0, 0);
+        stunSocket[j].SetReadTimeout(PMaxTimeInterval);
+        rtp = &stunSocket[i];
+        rtcp = &stunSocket[j];
+        stunSocket.DisallowDeleteObjects();
+        stunSocket.Remove(rtp);
+        stunSocket.Remove(rtcp);
+        stunSocket.AllowDeleteObjects();
+        return true;
+      }
+    }
+  }
+
+  PTRACE(2, "STUN\tCould not get a pair of adjacent port numbers from NAT");
+  return false;
+}
+
+#endif
+
+/////////////////////////////////////////////////////////////////////
 
 class GRQRequester : public RasRequester {
 public:
@@ -317,6 +850,9 @@ GkClient::GkClient()
 	m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true)
+#ifdef hasH460
+	, m_nattype(0), m_natnotify(false), gk_H460_23(false),  m_stunClient(NULL)
+#endif
 {
 	m_resend = m_retry;
 	m_gkfailtime = m_retry * 128;
@@ -341,6 +877,7 @@ GkClient::GkClient()
        m_h235Authenticators->Append(Auth);
 	}
 #endif
+
 }
 
 GkClient::~GkClient()
@@ -456,6 +993,34 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 			rrq.m_nonStandardData.m_data = "IP=" + sigip.AsString();
 		}
 	}
+
+#ifdef hasH460
+		// H.460.23 Feature
+	    bool NoP2Pfeature = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "DisableH.460.23", "1"));
+		if (!NoP2Pfeature) {
+			bool contents = false;
+			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
+			H460_FeatureStd & feat = H460_FeatureStd(23); 
+
+			if (!IsRegistered()) {
+					feat.Add(P2P_RemoteNAT,H460_FeatureContent(true));
+					contents = true;
+			} else {
+					int natType = 0;
+					if (P2Pnat_TypeNotify(natType)) {
+						feat.Add(P2P_NATdet,H460_FeatureContent(natType,8)); 
+						contents = true;
+					}
+				}
+			if (contents) {
+				rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
+				desc.SetSize(1);
+				desc[0] = feat;
+			}
+		}
+#endif
+
 	return true;
 }
 
@@ -606,7 +1171,18 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 		arq.m_callIdentifier = oarq.m_callIdentifier;
 	}
 
-	return OnSendingARQ(arq, arq_obj) && WaitForACF(request, &arq_obj);
+#ifdef hasH460
+	if (gk_H460_23) {
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
+			H460_FeatureStd & feat = H460_FeatureStd(24); 
+			arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
+			desc.SetSize(1);
+			desc[0] = feat;
+	}
+#endif
+
+	return OnSendingARQ(arq, arq_obj) && WaitForACF(arq, request, &arq_obj);
 }
 
 bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
@@ -653,7 +1229,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 	return false;
 }
 
-bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
+bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer, int natoffload)
 {
 	H225_RasMessage arq_ras;
 	Requester<H225_AdmissionRequest> request(arq_ras, m_loaddr);
@@ -693,8 +1269,23 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	// workaround for bandwidth, as OpenH323 library :p
 	arq.m_bandWidth = 1280;
 
+#ifdef hasH460
+	if (gk_H460_23) {
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
+		H460_FeatureStd & feat = H460_FeatureStd(24); 
+
+		if (answer  && natoffload > 0) 
+			feat.Add(P2P_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
+
+		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
+		desc.SetSize(1);
+		desc[0] = feat;
+	}
+#endif
+
 	return OnSendingARQ(arq, setup_obj, answer)
-		&& WaitForACF(request, answer ? 0 : &setup_obj);
+		&& WaitForACF(arq, request, answer ? 0 : &setup_obj);
 }
 
 bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
@@ -728,7 +1319,7 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 	// workaround for bandwidth, as OpenH323 library :p
 	arq.m_bandWidth = 1280;
 
-	return OnSendingARQ(arq, facility_obj) && WaitForACF(request, &facility_obj);
+	return OnSendingARQ(arq, facility_obj) && WaitForACF(arq, request, &facility_obj);
 }
 
 void GkClient::SendDRQ(const callptr & call)
@@ -1018,7 +1609,7 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	rrq.m_keepAlive = TRUE;
 }
 
-bool GkClient::WaitForACF(RasRequester & request, Routing::RoutingRequest *robj)
+bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Routing::RoutingRequest *robj)
 {
 	request.SendRequest(m_gkaddr, m_gkport);
 	if (request.WaitForResponse(5000)) {
@@ -1029,6 +1620,16 @@ bool GkClient::WaitForACF(RasRequester & request, Routing::RoutingRequest *robj)
 				Route route("parent", acf.m_destCallSignalAddress);
 				route.m_flags |= Route::e_toParent;
 				robj->AddRoute(route);
+#ifdef hasH460
+				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
+				  callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
+					  CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
+						H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
+						int rNaTFS = 23; 
+						if (fs.HasFeature(rNaTFS)) 
+								HandleP2P_ACF(call, (H460_FeatureStd *)fs.GetFeature(rNaTFS));
+			     }
+#endif
 			}
 			return true;
 		}
@@ -1098,7 +1699,98 @@ void GkClient::OnRCF(RasMsg *ras)
 					m_natClient = new NATClient(rcf.m_callSignalAddress[0], m_endpointId);
 		}
 	}
+
+#ifdef hasH460
+	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_genericData)) {
+		  H460_FeatureSet fs = H460_FeatureSet(rcf.m_genericData);
+		   int rNaTFS = 23; 
+		   if (fs.HasFeature(rNaTFS)) 
+			   HandleP2P_RCF((H460_FeatureStd *)fs.GetFeature(rNaTFS));
+	}
+#endif
 }
+
+#ifdef hasH460
+void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
+{
+   BOOL proxy = FALSE;
+   BOOL NATdetect = FALSE;
+
+   gk_H460_23 = true;
+
+   if (feat->Contains(P2P_ProxyNAT)) 
+       proxy = feat->Value(P2P_ProxyNAT);
+
+   if (feat->Contains(P2P_IsNAT))
+       NATdetect = feat->Value(P2P_IsNAT);
+
+   if (feat->Contains(P2P_DetRASAddr)) {
+       H323TransportAddress addr = feat->Value(P2P_DetRASAddr);
+	   if (!NATdetect) {
+		   PIPSocket::Address ip;
+		   addr.GetIpAddress(ip);
+	 //      EP->OnDetectRASAddress(ip);
+	   }
+   }
+
+   if (NATdetect && feat->Contains(P2P_STUNAddr)) {
+           H323TransportAddress addr = feat->Value(P2P_STUNAddr);
+		   m_stunClient = new STUNClient(this,addr);
+   }
+}
+
+bool GkClient::P2Pnat_TypeNotify(int & nattype)
+{
+	if (m_natnotify) 
+		nattype = m_nattype;
+
+	return m_natnotify;
+}
+
+void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
+{
+    if (feat->Contains(P2P_NATInstruct)) {
+		unsigned NATinst = feat->Value(P2P_NATInstruct); 
+
+        PTRACE(4,"GKC\tP2Pnat strategy for call set to " << NATinst);
+
+		if (m_call) 
+			m_call->SetNATStrategy((CallRec::NatStrategy)NATinst);
+
+	}
+}
+
+bool GkClient::P2Pnat_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
+{
+
+  if (!m_stunClient) 
+	  return false;
+
+   callptr call = CallTable::Instance()->FindCallRec(id);
+   if (call && call->GetNATStrategy() == CallRec::e_natLocalMaster) {   // Local media master need to use STUN to open RTP ports
+			nated = true;
+			return m_stunClient->CreateSocketPair((UDPSocket * &)rtp,(UDPSocket * &)rtcp);
+	}
+
+	return false;
+}
+
+void GkClient::P2Pnat_TypeDetected(int nattype)
+{
+	m_nattype = nattype;
+	m_natnotify = true;
+	// This will cause the client to reregister
+	// We just advance the timer to force reregister
+	m_registeredTime = PTime() - PTimeInterval(m_timer);
+
+	if (m_nattype != 2) {
+		PTRACE(4,"GKC\tSTUN client disabled: Not supported for NAT type: " << nattype);
+		m_stunClient->Stop();
+		m_stunClient = NULL;
+	}
+}
+
+#endif
 
 void GkClient::OnRRJ(RasMsg *ras)
 {

@@ -49,8 +49,8 @@ public:
 
 	void SetPort(WORD pt) { port = pt; }
 	WORD GetPort() const { return port; }
-	void GetLocalAddress(Address &) const;
-	void GetLocalAddress(Address &, WORD &) const;
+	virtual void GetLocalAddress(Address &) const;
+	virtual void GetLocalAddress(Address &, WORD &) const;
 	bool SetOption(int, int, int = SOL_SOCKET);
 	bool SetOption(int, const void *, int, int = SOL_SOCKET);
 	bool GetOption(int, int &, int = SOL_SOCKET);
