@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.7  2008/04/18 14:22:32  willamowius
  * make the unixODBC driver the general ODBC driver for Unix and Windows
  *
@@ -308,7 +311,6 @@ GkODBCConnection::GkODBCConnWrapper::~GkODBCConnWrapper()
 {
 	SQLDisconnect(m_conn);
 	SQLFreeHandle(SQL_HANDLE_DBC, m_conn);
-	SQLDisconnect(m_env);
 	SQLFreeHandle(SQL_HANDLE_ENV, m_env);
 }
 
