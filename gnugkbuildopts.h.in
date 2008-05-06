@@ -31,8 +31,8 @@
 
 #undef HAS_PGSQL
 #if defined(_MSC_VER) && HAS_PGSQL
-  #pragma include_alias(<libpq-fe.h>, <@PGSQL_DIR@/libpq-fe.h>)
-  #define PGSQL_LIBRARY "@PGSQL_DIR@/Release/libpq.lib"
+  #pragma include_alias(<libpq-fe.h>, <@PGSQL_DIR@/include/libpq-fe.h>)
+  #define PGSQL_LIBRARY "@PGSQL_DIR@/lib/libpq.lib"
 #endif
 
 

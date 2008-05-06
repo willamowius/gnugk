@@ -427,7 +427,7 @@ dnl  Check for PostgreSQL
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    pgsql,PostgreSQL
-dnl MSWIN_CHECK_FILE pgsql,libpq-fe.h,HAS_PGSQL=1
+dnl MSWIN_CHECK_FILE pgsql,\include\libpq-fe.h,HAS_PGSQL=1
 dnl MSWIN_DIR_SYMBOL pgsql,PGSQL_DIR
 dnl MSWIN_CHECK_DIR  pgsql,\postgresql\libpq\
 
