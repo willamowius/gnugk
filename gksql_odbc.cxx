@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2008/05/02 09:51:27  zvision
+ * No need to disconnect ODBC environment handle
+ *
  * Revision 1.8  2008/04/18 14:37:28  willamowius
  * never include gnugkbuildopts.h directly, always include config.h
  *
@@ -325,13 +328,13 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 	
 	// allocate Environment handle and register version 
 	result = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env);
-	if (SQL_SUCCEEDED(result)) {
+	if (!SQL_SUCCEEDED(result)) {
 		PTRACE(2, GetName() << "\tODBC connection to " << m_database 
 			<< " failed (SQLAllocHandle(ENV) failed)");
 		return NULL;
 	}
 	result = SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0); 
-	if (SQL_SUCCEEDED(result)) {
+	if (!SQL_SUCCEEDED(result)) {
 		PTRACE(2, GetName() << "\tODBC connection to " << m_database 
 			<< " failed (SQLSetEnvAttr failed)");
 		printf("Error SetEnv\n");
@@ -341,7 +344,7 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 
 	// allocate connection handle, set timeout
 	result = SQLAllocHandle(SQL_HANDLE_DBC, env, &conn); 
-	if (SQL_SUCCEEDED(result)) {
+	if (!SQL_SUCCEEDED(result)) {
 		PTRACE(2, GetName() << "\tODBC connection to " << m_database 
 			<< " failed (SQLAllocHandle(DBC) failed)");
 		SQLFreeHandle(SQL_HANDLE_ENV, env);
@@ -351,14 +354,14 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 
 	// Connect to datasource
 	result = SQLDriverConnect(conn, NULL, (SQLCHAR*)(const char*) m_database, SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT);
-	if (SQL_SUCCEEDED(result)) {
+	if (!SQL_SUCCEEDED(result)) {
 		char stat[10]; // Status SQL
 		SQLINTEGER err;
 		SQLSMALLINT	mlen;
 		char msg[100];
 		SQLGetDiagRec(SQL_HANDLE_DBC, conn, 1, (SQLCHAR*)stat, &err, (SQLCHAR*)msg, sizeof(msg), &mlen);
 		PTRACE(2, GetName() << "\tODBC connection to " << m_database 
-			<< " failed (SQLConnect() failed): " << msg << " (" << err << ")");
+			<< " failed (SQLDriverConnect() failed): " << msg << " (" << err << ")");
 		SQLFreeHandle(SQL_HANDLE_DBC, conn);
 		SQLFreeHandle(SQL_HANDLE_ENV, env);
 		return NULL;
@@ -385,7 +388,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	SQLRETURN result;
 
 	result = SQLAllocHandle(SQL_HANDLE_STMT, conn, &stmt); 
-	if (SQL_SUCCEEDED(result)) {
+	if (!SQL_SUCCEEDED(result)) {
 		PTRACE(2, GetName() << "\tODBC connection to " << m_database 
 			<< " failed (SQLAllocHandle(STMT) failed)");
 		Disconnect();
@@ -393,7 +396,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	}
 
 	result = SQLExecDirect(stmt, (SQLCHAR*)(const char*) queryStr, SQL_NTS);
-	if (SQL_SUCCEEDED(result)) {
+	if (!SQL_SUCCEEDED(result)) {
 		char stat[10]; // Status SQL
 		SQLINTEGER err;
 		SQLSMALLINT	mlen;
