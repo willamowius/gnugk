@@ -406,7 +406,7 @@ to 48 - 10 digits and to all other at least 6 and at most 20 digits.
 <sect1>Section &lsqb;RewriteCLI&rsqb;
 <label id="clirewrite">
 <p>
-This section contains a set of rewrite rules for ANI/CLI numbers (caller id).
+This section contains a set of rewrite rules for ANI/CLI/H.323ID numbers (caller id).
 The rewrite process is done at two stages - inbound rewrite and outbound rewrite.
 The inbound rewrite is done before any other Q.931 Setup message processing
 (like inbound GWRewrite, authentication, accounting, ...) and it will have
@@ -452,7 +452,7 @@ is removed only when the call is send to a terminal, not a gateway.
 
 <descrip>
 <tag/Format for an inbound rule:/
-<tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=)NEW_CLI[,NEW_CLI]...</tt>
+<tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=|^=|/=)NEW_CLI[,NEW_CLI]...</tt>
 <p>
 The <tt/in:/ prefix tells that this is an inbound rule and the <tt/CALLER_IP/
 will be used to match the rule (it can be a single IP or a whole subnet).<newline>
@@ -480,8 +480,14 @@ Number matching/rewriting can be done in three ways:
                a prefix match against <tt/number_prefix/ and, if the match is found,
                the matched CLI prefix (<tt/number_prefix/) will be replaced
 			   with a NEW_CLI prefix.
+<item><tt/^=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
+               match against <tt/number_prefix/ and, if the match is found,
+               H.323 ID will be replaced with NEW_CLI, Calling-Station-Id will remain unchanged,
+<item><tt>/=</tt> - a <tt/cli/ or <tt/dno/ number will be matched using an identity
+               match against <tt/number_prefix/ and, if both numbers are the same,
+               H.323 ID will be replaced with NEW_CLI, Calling-Station=Id will remain unchanged,
 </itemize>
-After the equality (=/~=/*=) sign, there follows a list of new CLI values to be used.
+After the equality (=/~=/*=/^=//=) sign, there follows a list of new CLI values to be used.
 If more than one value is specified, a one will be chosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999
 (for number ranges CLIs should have a fixed length).

@@ -43,7 +43,9 @@ public:
 		enum RewriteType {
 			PrefixToNumber, /// match by a prefix, replace with a complete number
 			PrefixToPrefix, /// match by a prefix, replace only the prefix part
-			NumberToNumber /// match by a complete number, replace with a complete number
+			NumberToNumber, /// match by a complete number, replace with a complete number
+			PrefixToH323Id, /// match by a prefix, replace H.323 ID only with a complete number
+			NumberToH323Id  /// match by a complete number, replace H.323 ID only with a complete number
 		};
 		
 		/// how to hide caller's number

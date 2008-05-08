@@ -81,6 +81,10 @@ PString CLIRewrite::RewriteRule::AsString() const
 		s += " *= ";
 	else if (m_rewriteType == NumberToNumber)
 		s += " ~= ";
+	else if (m_rewriteType == PrefixToH323Id)
+		s += " ^= ";
+	else if (m_rewriteType == NumberToH323Id)
+		s += " /= ";
 	else
 		s += " ?unknown rewrite rule type? ";
 
@@ -352,6 +356,12 @@ CLIRewrite::CLIRewrite()
 					--keyChars;
 				} else if (data[sepIndex-1] == '~') {
 					rewriteType = RewriteRule::NumberToNumber;
+					--keyChars;
+				} else if (data[sepIndex-1] == '^') {
+					rewriteType = RewriteRule::PrefixToH323Id;
+					--keyChars;
+				} else if (data[sepIndex-1] == '/') {
+					rewriteType = RewriteRule::NumberToH323Id;
 					--keyChars;
 				}
 					
@@ -741,8 +751,11 @@ void CLIRewrite::Rewrite(
 	if (presentation != (unsigned)-1 && screening == (unsigned)-1)
 		screening = 0;
 
-	msg.GetQ931().SetCallingPartyNumber(newcli, plan, type, presentation, screening);
-	msg.SetChanged();
+	if (rule->m_rewriteType != RewriteRule::PrefixToH323Id
+			&& rule->m_rewriteType != RewriteRule::NumberToH323Id) {
+		msg.GetQ931().SetCallingPartyNumber(newcli, plan, type, presentation, screening);
+		msg.SetChanged();
+	}
 	if (m_processSourceAddress && msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		H225_ArrayOf_AliasAddress &sourceAddress = msg.GetUUIEBody().m_sourceAddress;
 		PINDEX aliasIndex = 0;
@@ -750,8 +763,15 @@ void CLIRewrite::Rewrite(
 			sourceAddress.SetSize(1);
 		else {
 			while (aliasIndex < sourceAddress.GetSize())
-				if (sourceAddress[aliasIndex].GetTag() == H225_AliasAddress::e_h323_ID
-						|| sourceAddress[aliasIndex].GetTag() == H225_AliasAddress::e_url_ID
+				if (sourceAddress[aliasIndex].GetTag() == H225_AliasAddress::e_h323_ID) {
+					if (rule->m_rewriteType == RewriteRule::PrefixToH323Id
+							|| rule->m_rewriteType == RewriteRule::NumberToH323Id) {
+						sourceAddress.RemoveAt(aliasIndex);
+					} else {
+						aliasIndex++;
+						continue;
+					}
+				} else if (sourceAddress[aliasIndex].GetTag() == H225_AliasAddress::e_url_ID
 						|| sourceAddress[aliasIndex].GetTag() == H225_AliasAddress::e_email_ID) {
 					aliasIndex++;
 					continue;
@@ -779,11 +799,28 @@ void CLIRewrite::Rewrite(
 			if (isTerminal && !newcli) {
 				msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_screeningIndicator);
 				msg.GetUUIEBody().m_screeningIndicator.SetValue(H225_ScreeningIndicator::e_networkProvided);
-				H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
+				if (rule->m_rewriteType == RewriteRule::PrefixToH323Id
+						|| rule->m_rewriteType == RewriteRule::NumberToH323Id)
+					H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1], H225_AliasAddress::e_h323_ID);
+				else
+					H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
 			} else
 				msg.GetUUIEBody().RemoveOptionalField(H225_Setup_UUIE::e_sourceAddress);
-		} else
-			H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
+		} else {
+			if (rule->m_rewriteType == RewriteRule::PrefixToH323Id
+					|| rule->m_rewriteType == RewriteRule::NumberToH323Id)
+				H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1], H225_AliasAddress::e_h323_ID);
+			else
+				H323SetAliasAddress(newcli, sourceAddress[sourceAddress.GetSize() - 1]);
+		}
+		msg.SetUUIEChanged();
+	}
+	
+	if (!msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
+			&& (rule->m_rewriteType == RewriteRule::PrefixToH323Id || rule->m_rewriteType == RewriteRule::NumberToH323Id)) {
+		msg.GetUUIEBody().IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		msg.GetUUIEBody().m_sourceAddress.SetSize(1);
+		H323SetAliasAddress(newcli, msg.GetUUIEBody().m_sourceAddress[0], H225_AliasAddress::e_h323_ID);
 		msg.SetUUIEChanged();
 	}
 }
