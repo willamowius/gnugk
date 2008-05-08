@@ -140,6 +140,8 @@ public:
 		e_PrintPrefixCapacities,       /// Print prefix capacity settings with their current counters
 		e_PrintCapacityControlRules,   /// Print CapacityControl rules and their current capacities
 		e_SendProceeding,              /// Send a CallProceeding message for this call-id
+		e_GetAuthInfo,                 /// Get auth module information
+		e_GetAcctInfo,                 /// Get acct module information
 		e_numCommands
 		/// Number of different strings
 	};

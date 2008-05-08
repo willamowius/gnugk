@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.34  2008/01/18 12:17:54  willamowius
+ * add accounting variable %{cause-translated}
+ *
  * Revision 1.33  2007/09/26 14:57:54  shorne
  * Added CallLinkage SQL variable
  *
@@ -535,6 +538,10 @@ PString GkAcctLogger::GetDialedNumber(
 	return id;
 }
 
+PString GkAcctLogger::GetInfo()
+{
+	return "No information available\r\n";
+}
 
 const char* const FileAcct::m_intervalNames[] =
 {

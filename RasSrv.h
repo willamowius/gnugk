@@ -166,6 +166,14 @@ public:
 		time_t now = 0
 		);
 	
+	PString GetAuthInfo(
+		const PString &moduleName
+		);
+
+	PString GetAcctInfo(
+		const PString &moduleName
+		);
+
 	template<class RAS> bool IsForwardedRas(const RAS & ras, const Address & addr) const
 	{
 		return IsForwardedMessage(ras.HasOptionalField(RAS::e_nonStandardData) ? &ras.m_nonStandardData : 0, addr);

@@ -1141,6 +1141,20 @@ bool RasServer::LogAcctEvent(
 	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt,call,now);
 }
 
+PString RasServer::GetAuthInfo(
+	const PString &moduleName
+	)
+{
+	return authList->GetInfo(moduleName);
+}
+
+PString RasServer::GetAcctInfo(
+	const PString &moduleName
+	)
+{
+	return acctList->GetInfo(moduleName);
+}
+
 void RasServer::Run()
 {
 	RasMsg::Initialize();

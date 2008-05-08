@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:57  willamowius
  *
  *
@@ -172,6 +175,15 @@ public:
 		AcctEvent evt, /// accounting event to log
 		const callptr& call /// a call associated with the event (if any)
 		);
+
+	/** Get human readable information about current module state
+	    that can be displayed on the status port interface.
+		
+		@return
+		A string (may contain multiple lines) with module information.
+		Each line (including the last one) has to be ended with \r\n.
+	*/
+	virtual PString GetInfo();
 
 protected:
 	/** @return
@@ -445,6 +457,23 @@ public:
 		const callptr& call, /// a call associated with the event (if any)
 		time_t now = 0 /// "now" timestamp for accounting update events
 		);
+
+	/** Get a module information string for the selected module.
+	
+	    @return
+		The module information string for status port diplay.
+	*/
+	PString GetInfo(
+		const PString &moduleName /// module to retrieve information for
+		) {
+		std::list<GkAcctLogger*>::const_iterator i = m_loggers.begin();
+		while (i != m_loggers.end()) {
+			GkAcctLogger* acct = *i++;
+			if (acct->GetName() == moduleName)
+				return acct->GetInfo();
+		}
+		return moduleName + " module not found\r\n";
+	}
 
 private:
 	GkAcctLoggerList(const GkAcctLogger&);

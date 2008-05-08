@@ -734,6 +734,10 @@ void GkStatus::OnStart()
 	m_commands["printpc"] = e_PrintPrefixCapacities;
 	m_commands["printcc"] = e_PrintCapacityControlRules;
 	m_commands["sendproceeding"] = e_SendProceeding;
+	m_commands["getauthinfo"] = e_GetAuthInfo;
+	m_commands["gai"] = e_GetAuthInfo;
+	m_commands["getacctinfo"] = e_GetAcctInfo;
+	m_commands["gci"] = e_GetAcctInfo;
 }
 
 void GkStatus::ReadSocket(
@@ -1407,6 +1411,18 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_PrintCapacityControlRules:
 		SoftPBX::PrintCapacityControlRules(this);
+		break;
+	case GkStatus::e_GetAuthInfo:
+		if (args.GetSize() == 2)
+			WriteString(RasServer::Instance()->GetAuthInfo(args[1]));
+		else
+			CommandError("Syntax Error: GetAuthInfo|gai AUTH_MODULE_NAME");
+		break;
+	case GkStatus::e_GetAcctInfo:
+		if (args.GetSize() == 2)
+			WriteString(RasServer::Instance()->GetAcctInfo(args[1]));
+		else
+			CommandError("Syntax Error: GetAcctInfo|gci ACCT_MODULE_NAME");
 		break;
 	default:
 		// commmand not recognized

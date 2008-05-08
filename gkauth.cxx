@@ -658,6 +658,10 @@ PString GkAuthenticator::GetDialedNumber(
 	return authData.m_dialedNumber;
 }
 
+PString GkAuthenticator::GetInfo()
+{
+	return "No information available\r\n";
+}
 
 // class GkAuthenticatorList
 GkAuthenticatorList::GkAuthenticatorList() 

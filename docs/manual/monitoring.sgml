@@ -613,6 +613,34 @@ MakeCall joe 192.168.6.1
 </verb></tscreen>
 </descrip>
 
+<item><tt/GetAuthInfo,gai/<newline>
+<p>Gather information from a specific authentication module (if it provides
+such information) and displays it on the status port.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+GetAuthInfo ModuleName
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+GetAuthInfo RadAliasAuth
+</verb></tscreen>
+</descrip>
+
+<item><tt/GetAcctInfo,gci/<newline>
+<p>Gather information from a specific accounting module (if it provides
+such information) and displays it on the status port.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+GetAcctInfo ModuleName
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+GetAcctInfo SqlAcct
+</verb></tscreen>
+</descrip>
+
 </itemize>
 
 <sect1>Messages (Reference)

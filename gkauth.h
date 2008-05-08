@@ -339,6 +339,15 @@ public:
 		SetupAuthData& authData
 		);
 
+	/** Get human readable information about current module state
+	    that can be displayed on the status port interface.
+		
+		@return
+		A string (may contain multiple lines) with module information.
+		Each line (including the last one) has to be ended with \r\n.
+	*/
+	virtual PString GetInfo();
+
 protected:
 	/** @return
 	    Default authentication status, if not determined by Check... method.
@@ -967,6 +976,24 @@ public:
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData& authData
 		);
+
+	/** Get a module information string for the selected module.
+	
+	    @return
+		The module information string for status port diplay.
+	*/
+	PString GetInfo(
+		const PString &moduleName /// module to retrieve information for
+		) {
+		ReadLock lock(m_reloadMutex);
+		std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
+		while (i != m_authenticators.end()) {
+			GkAuthenticator* auth = *i++;
+			if (auth->GetName() == moduleName)
+				return auth->GetInfo();
+		}
+		return moduleName + " module not found\r\n";
+	}
 
 private:
 	GkAuthenticatorList(const GkAuthenticatorList&);
