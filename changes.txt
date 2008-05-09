@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX (ProxyChannel.cxx) make sure Q.931 cause is included in generated ReleaseComplete
 - new ^= and /= RewriteCLI rules for H.323 ID only rewritting
 - new getauthinfo/getacctinfo status port commands
 - Changed P2Pnat from H.460 OID to the standard allocated H.460.23/24

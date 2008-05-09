@@ -1044,6 +1044,7 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 				m_call->SetDisconnectCause(
 					Toolkit::Instance()->MapH225ReasonToQ931Cause(uuie.m_reason.GetTag())
 					);
+			ReleasePDU.SetCause(Q931::CauseValues(m_call->GetDisconnectCause()));
 		} else { // H225_CallTerminationCause::e_releaseCompleteCauseIE
 			PPER_Stream strm;
 			cause->Encode(strm);
