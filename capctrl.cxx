@@ -699,6 +699,10 @@ int CapCtrlAuth::Check(
 				authData.m_call->GetCallingParty()->GetAliases(), true,
 				AliasAddressTagMask(H225_AliasAddress::e_h323_ID)
 				);
+	} else if (setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		h323Id = GetBestAliasAddressString(
+			setup.GetUUIEBody().m_sourceAddress, true, AliasAddressTagMask(H225_AliasAddress::e_h323_ID)
+			);
 	}
 	
 	if (!m_capacityControl->CheckCall(
