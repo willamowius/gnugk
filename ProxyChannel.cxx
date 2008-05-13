@@ -780,7 +780,7 @@ CallSignalSocket::~CallSignalSocket()
 		if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote)) {
 			if (!m_h245handler->IsSessionEnded() && ret->m_h245socket)
 				ret->m_h245socket->SendEndSessionCommand();
-			if (!ret->m_h245handler->IsSessionEnded())
+			if (ret->m_h245handler && !ret->m_h245handler->IsSessionEnded())
 				m_h245socket->SendEndSessionCommand();
 		}
 		m_h245socket->OnSignalingChannelClosed();
