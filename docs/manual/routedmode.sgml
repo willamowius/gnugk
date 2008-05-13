@@ -436,8 +436,8 @@ description.
 <item><tt/RTPPortRange=50000-59999/<newline>
 Default: <tt>1024-65535</tt><newline>
 <p>
-Specify the range of UDP port number for RTP/RTCP channels.
-Note the range size may limit the number of concurrent calls.
+Specify the range of UDP port number for RTP/RTCP channels. Since RTP streams require two sockets, the range has to contain an even number of ports.
+Note that the range size may limit the number of possible concurrent calls.
 
 <item><tt/ProxyForNAT=1/<newline>
 Default: <tt/1/<newline>
