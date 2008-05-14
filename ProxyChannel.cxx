@@ -2370,6 +2370,9 @@ void CallSignalSocket::OnAlerting(
 	SignalingMsg* msg
 	)
 {
+	if (!m_call)
+		return;
+
 	m_call->SetAlertingTime(time(NULL));
 	
 	AlertingMsg *alerting = dynamic_cast<AlertingMsg*>(msg);
@@ -2406,7 +2409,6 @@ void CallSignalSocket::OnInformation(
 	SignalingMsg *msg
 	)
 {
-
 	if (remote != NULL)
 		return;
 
