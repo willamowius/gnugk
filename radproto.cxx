@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.39  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.38  2008/04/18 13:14:11  shorne
  * Fixes for auto-configure on windows
  *
@@ -280,6 +283,7 @@ struct CiscoAttrName {
 	CiscoAttrName(CISCO_ATTR_NAME("h323-incoming-conf-id"), RadiusAttr::CiscoVSA_h323_incoming_conf_id),
 	CiscoAttrName(CISCO_ATTR_NAME("h323-preferred-lang"), RadiusAttr::CiscoVSA_h323_preferred_lang),
 	CiscoAttrName(CISCO_ATTR_NAME("release-source"),RadiusAttr::CiscoVSA_release_source),
+	CiscoAttrName(CISCO_ATTR_NAME("preferred-codec"),RadiusAttr::CiscoVSA_preferred_codec),
 	CiscoAttrName(NULL, 0, 0)
 };
 

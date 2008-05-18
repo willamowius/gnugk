@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.24  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.23  2008/04/18 13:14:11  shorne
  * Fixes for auto-configure on windows
  *
@@ -302,6 +305,7 @@ GkAcctLogger::Status RadAcct::Log(
 					PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16)
 					);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec,call->GetCodec());
 			}					
 			
 			if (call->GetDestSignalAddr(addr,port))
