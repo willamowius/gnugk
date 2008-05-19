@@ -465,6 +465,56 @@ Sample query strings:
 RewriteE164Query=SELECT rkey, rvalue FROM rewriterule WHERE gk = '%1'
 </verb></tscreen>
 
+<item><tt/RewriteAliasQuery=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define an SQL query used to retrieve from the database rewrite rules 
+for <tt/[RasSrv::RewriteAlias]/ section. The query is parameterized 
+- that means parameter replacement occurs before each query is executed. 
+Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings. 
+Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/RewriteAliasQuery/ only one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of two columns:
+<itemize>
+<item><tt/column at index 0/ - rewrite rule key
+<item><tt/column at index 1/ - rewrite rule value
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+RewriteAliasQuery=SELECT rkey, rvalue FROM assignedalias WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/AssignedAliasQuery=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define an SQL query used to retrieve from the database rewrite rules 
+for <tt/[RasSrv::AssignedAlias]/ section. The query is parameterized 
+- that means parameter replacement occurs before each query is executed. 
+Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings. 
+Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/AssignedAliasQuery/ only one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of two columns:
+<itemize>
+<item><tt/column at index 0/ - rewrite rule key
+<item><tt/column at index 1/ - rewrite rule value
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+AssignedAliasQuery=SELECT rkey, rvalue FROM assignedalias WHERE gk = '%1'
+</verb></tscreen>
+
 <item><tt/NeighborsQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
