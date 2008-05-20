@@ -2353,28 +2353,32 @@ PString Toolkit::ReadPassword(
 		return PString();
 
 	int paddingByte = m_encKeyPaddingByte;
-	if (cfg->HasKey(cfgSection, paddingByteConfigKey))
+	if (cfg->HasKey(cfgSection, paddingByteConfigKey)) {
 		paddingByte = cfg->GetInteger(cfgSection, paddingByteConfigKey, 0);
+	}
 
-	if (paddingByte == -1)
-		if (forceEncrypted || m_encryptAllPasswords)
+	if (paddingByte == -1) {
+		if (forceEncrypted || m_encryptAllPasswords) {
 			paddingByte = 0;
-		else
+		} else {
 			return cfg->GetString(cfgSection, cfgKey, "");
+		}
+	}
 
 	PTEACypher::Key encKey;
 	memset(&encKey, paddingByte, sizeof(encKey));
 
 	const size_t keyLen = cfgKey.GetLength();
-	if (keyLen > 0)
+	if (keyLen > 0) {
 		memcpy(&encKey, (const char*)cfgKey, min(keyLen, sizeof(encKey)));
+	}
 
 	PTEACypher cypher(encKey);
 	PString s;
-	if (!cypher.Decode(cfg->GetString(cfgSection, cfgKey, ""), s))
+	if (!cypher.Decode(cfg->GetString(cfgSection, cfgKey, ""), s)) {
 		PTRACE(1, "GK\tFailed to decode config password for [" << cfgSection
-			<< "] => " << cfgKey
-			);
+			<< "] => " << cfgKey);
+	}
 	return s;
 }
 

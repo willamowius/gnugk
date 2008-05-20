@@ -743,24 +743,28 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 
 	Address calling = INADDR_ANY, called = INADDR_ANY;
 	int nat_type = m_call->GetNATType(calling, called);
-	if (nat_type & CallRec::calledParty)
+	if (nat_type & CallRec::calledParty) {
 		socket->peerAddr = called;
+	}
 
 	if (m_call->GetProxyMode() != CallRec::ProxyEnabled
-		&& nat_type == CallRec::both && calling == called)
+		&& nat_type == CallRec::both && calling == called) {
 		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "0"))) {
             PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
 			return;
 		}
+	}
 
 	// enable proxy if required, no matter whether H.245 routed
-	if (m_call->GetProxyMode() == CallRec::ProxyDetect)
+	if (m_call->GetProxyMode() == CallRec::ProxyDetect) {
 		if (Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr) 
-				|| (nat_type != CallRec::none && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1"))))
+				|| (nat_type != CallRec::none && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1")))) {
 			m_call->SetProxyMode(CallRec::ProxyEnabled);
-		else
+		} else {
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
+		}
+	}
 			
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
@@ -768,9 +772,11 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 		proxyhandler->SetHandler(GetHandler());
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
-	} else if (m_call->IsH245Routed()) {
-		socket->m_h245handler = new H245Handler(socket->localAddr, calling, socket->masqAddr);
-		m_h245handler = new H245Handler(localAddr, called, masqAddr);
+	} else {
+		if (m_call->IsH245Routed()) {
+			socket->m_h245handler = new H245Handler(socket->localAddr, calling, socket->masqAddr);
+			m_h245handler = new H245Handler(localAddr, called, masqAddr);
+		}
 	}
 }
 
@@ -2661,9 +2667,11 @@ void CallSignalSocket::OnReleaseComplete(
 		}
 	}
 
-	if (m_callerSocket)
-		if (remote != NULL)
+	if (m_callerSocket) {
+		if (remote != NULL) {
 			remote->RemoveRemoteSocket();
+		}
+	}
 
 	if (m_call && remote != NULL && !m_callerSocket && m_call->GetReleaseSource() == CallRec::ReleasedByCallee
 		&& m_call->MoveToNextRoute()) {
@@ -4121,7 +4129,7 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 		return true;
 
 	const int queueSize = GetQueueSize();
-	if (queueSize > 0)
+	if (queueSize > 0) {
 		if (queueSize < 50) {
 			QueuePacket(buffer, len);
 			PTRACE(3, Type() << '\t' << Name() << " socket is busy, " << len << " bytes queued");
@@ -4130,6 +4138,7 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 			ClearQueue();
 			PTRACE(3, Type() << '\t' << Name() << " socket queue overflow, dropping queued packets");
 		}
+	}
 	
 	// check if the remote address to send data to has been already determined
 	PIPSocket::Address addr;
@@ -4327,15 +4336,16 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
 
-	if (mediaControlChannel == NULL)
-		if (mediaChannel == NULL)
+	if (mediaControlChannel == NULL) {
+		if (mediaChannel == NULL) {
 			return;
-		else {
+		} else {
 			tmpmediacontrol = *mediaChannel;
 			tmpmediacontrol.m_tsapIdentifier = tmpmediacontrol.m_tsapIdentifier + 1;
 			mediaControlChannel = &tmpmediacontrol;
 			dest = mediaControlChannel;
 		}
+	}
 
 	if (rev) { // from a reverseLogicalChannelParameters
 		tmp << tmpSrcIP << tmpSrcPort;
@@ -4352,10 +4362,11 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 	*mediaControlChannel << local << (port + 1);
 
 	if (mediaChannel) {
-		if (rev)
+		if (rev) {
 			tmp.m_tsapIdentifier = tmp.m_tsapIdentifier - 1;
-		else
+		} else {
 			dest = mediaChannel;
+		}
 		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort - 1, *dest);
 		*mediaChannel << local << port;
 	}
@@ -4773,12 +4784,13 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 			}
 		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
-			if (akalc)
+			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
-			else {
+			} else {
 				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
-				if (!lc->IsOpen())
+				if (!lc->IsOpen()) {
 					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
+				}
 			}
 		}
 	} else {

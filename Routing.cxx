@@ -595,10 +595,10 @@ VirtualQueue::~VirtualQueue()
 	m_listMutex.Wait();
 	
 	int numrequests = m_pendingRequests.size();
-	if( numrequests )
+	if( numrequests ) {
 		PTRACE(1,"VQueue\tDestroying virtual queue with "
-			<< numrequests << " pending requests"
-			);
+			<< numrequests << " pending requests");
+	}
 	RouteRequests::iterator i = m_pendingRequests.begin();
 	while (i != m_pendingRequests.end()) {
 		RouteRequest *r = *i++;
@@ -608,8 +608,9 @@ VirtualQueue::~VirtualQueue()
 	m_listMutex.Signal();
 
 	// wait a moment to give a chance to pending requests to cleanup
-	if( numrequests )
+	if( numrequests ) {
 		PThread::Sleep(500);
+	}
 }
 
 void VirtualQueue::OnReload()
@@ -663,8 +664,9 @@ void VirtualQueue::OnReload()
 		}
 	}
 	
-	if( !m_active )
+	if( !m_active ) {
 		PTRACE(2,"VQueue\t(CTI) Virtual queues disabled - no virtual queues configured");
+	}
 }
 
 bool VirtualQueue::SendRouteRequest(
@@ -709,9 +711,9 @@ bool VirtualQueue::SendRouteRequest(
 		msg += PString("|") + calledip;
 		msg += PString(";");
 		// signal RouteRequest to the status line only once
-		if( duprequest )
+		if( duprequest ) {
 			PTRACE(4, "VQueue\tDuplicate request: "<<msg);
-		else {
+		} else {
 			PTRACE(2, msg);
 			GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_ROUTEREQ);
 		}
@@ -722,10 +724,10 @@ bool VirtualQueue::SendRouteRequest(
 		m_listMutex.Wait();
 		m_pendingRequests.remove(r);
 		m_listMutex.Signal();
-		if( !result )
+		if( !result ) {
 			PTRACE(5,"VQueue\tRoute request (EPID: " << r->m_callingEpId
-				<< ", CRV=" << r->m_crv << ") timed out"
-				);
+				<< ", CRV=" << r->m_crv << ") timed out");
+		}
 		delete r;
 	}
 	return result;
@@ -791,20 +793,22 @@ bool VirtualQueue::RouteToAlias(
 			r->m_sync.Signal();
 			if (!foundrequest) {
 				foundrequest = true;
-				if (!reject)
+				if (!reject) {
 					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
 						<< ", CRV=" << crv << ") accepted by agent " << AsString(agent));
-				else
+				} else {
 					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
 						<< ", CRV=" << crv << ") rejected");
+				}
 			}
 		}
 		++i;
 	}
 	
-	if( !foundrequest )
+	if( !foundrequest ) {
 		PTRACE(4, "VQueue\tPending route request (EPID:" << callingEpId
 			<< ", CRV=" << crv << ") not found - ignoring RouteToAlias / RouteToGateway command");
+	}
 	
 	return foundrequest;
 }

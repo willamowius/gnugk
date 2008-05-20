@@ -174,8 +174,9 @@ void Worker::Main()
 		// wait for a new job or idle timeout expiration
 		if (m_job == NULL) {
 			timedout = !m_wakeupSync.Wait(m_idleTimeout);
-			if (timedout)
+			if (timedout) {
 				PTRACE(5, "JOB\tIdle timeout for Worker " << m_id);
+			}
 		}
 		// terminate this worker if closed explicitly or idle timeout expired
 		if (m_closed || (timedout && m_job == NULL)) {
@@ -204,10 +205,10 @@ void Worker::Main()
 	
 	// remove this Worker from the list of workers
 	m_agent->Remove(this);
-	if (m_job)
+	if (m_job) {
 		PTRACE(1, "JOB\tActive Job " << m_job->GetName() 
-			<< " left at closing Worker thread " << m_id
-			);
+			<< " left at closing Worker thread " << m_id);
+	}
 }
 
 bool Worker::Exec(

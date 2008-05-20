@@ -168,9 +168,11 @@ CLIRewrite::CLIRewrite()
 		PString key = kv.GetKeyAt(i);
 
 		unsigned j = 0;
-		while (ReservedKeys[j] != NULL)
-			if(key == ReservedKeys[j++])
+		while (ReservedKeys[j] != NULL) {
+			if (key == ReservedKeys[j++]) {
 				break;
+			}
+		}
 		if (ReservedKeys[j] != NULL)
 			continue;
 
@@ -322,11 +324,13 @@ CLIRewrite::CLIRewrite()
 				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '=' 
 					<< kv.GetDataAt(i)
 					);
-				if (newsiprule)
-					if (inbound)
+				if (newsiprule) {
+					if (inbound) {
 						m_inboundRules.erase(siprule);
-					else
+					} else {
 						diprule->second.erase(siprule);
+					}
+				}
 				if (newdiprule)
 					m_outboundRules.erase(diprule);
 				continue;
@@ -350,7 +354,7 @@ CLIRewrite::CLIRewrite()
 			// extract prefix to be matched
 			PINDEX keyChars = sepIndex - keyIndex;
 			int rewriteType = RewriteRule::PrefixToNumber;
-			if (sepIndex > keyIndex)
+			if (sepIndex > keyIndex) {
 				if (data[sepIndex-1] == '*') {
 					rewriteType = RewriteRule::PrefixToPrefix;
 					--keyChars;
@@ -364,17 +368,20 @@ CLIRewrite::CLIRewrite()
 					rewriteType = RewriteRule::NumberToH323Id;
 					--keyChars;
 				}
+			}
 					
 			if (rewriteType == RewriteRule::PrefixToPrefix && matchType != RewriteRule::MatchCallerNumber) {
 				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax - cannot perform "
 					"*= rewrite on non 'cli:' rules: " << key << '=' 
 					<< kv.GetDataAt(i)
 					);
-				if (newsiprule)
-					if (inbound)
+				if (newsiprule) {
+					if (inbound) {
 						m_inboundRules.erase(siprule);
-					else
+					} else {
 						diprule->second.erase(siprule);
+					}
+				}
 				if (newdiprule)
 					m_outboundRules.erase(diprule);
 				continue;

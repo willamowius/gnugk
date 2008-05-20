@@ -503,13 +503,16 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 
 	// MulticastListener::GetPort() didn't return the real multicast port
 	m_multicastPort = multicastPort;
-	if (m_rasListener && m_callSignalListener)
+	if (m_rasListener && m_callSignalListener) {
 		if (RasSrv->IsGKRouted()) {
 			m_rasListener->SetSignalPort(m_signalPort);
-			if (m_multicastListener)
+			if (m_multicastListener) {
 				m_multicastListener->SetSignalPort(m_signalPort);
-		} else
+			}
+		} else {
 			RasSrv->CloseListener(m_callSignalListener), m_callSignalListener = 0;
+		}
+	}
 
 	return m_rasListener != 0;
 }
@@ -612,13 +615,16 @@ bool RasRequester::WaitForResponse(int timeout)
 	m_timeout = timeout;
 	while (m_iterator == m_queue.end()) {
 		int passed = (int)((PTime() - m_sentTime).GetMilliSeconds());
-		if (m_timeout > passed && m_sync.Wait(m_timeout - passed))
-			if (m_timeout > 0)
+		if (m_timeout > passed && m_sync.Wait(m_timeout - passed)) {
+			if (m_timeout > 0) {
 				continue;
-			else
+			} else {
 				break;
-		if (!OnTimeout())
+			}
+		}
+		if (!OnTimeout()) {
 			break;
+		}
 	}
 	return m_iterator != m_queue.end();
 }
@@ -2224,12 +2230,12 @@ bool AdmissionRequestPDU::Process()
 		authData.m_dialedNumber = pExistingCallRec->GetDialedNumber();
 		
 	if (authData.m_dialedNumber.IsEmpty()) {
-		if (!answer && hasDestInfo)
+		if (!answer && hasDestInfo) {
 			authData.m_dialedNumber = GetBestAliasAddressString(
 				request.m_destinationInfo, false,
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
+		}
 	}
 		
 	if (hasDestInfo) { // apply rewriting rules
@@ -2241,22 +2247,24 @@ bool AdmissionRequestPDU::Process()
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
 
-     	if(in_rewrite_source.IsEmpty() && request.m_srcInfo.GetSize() > 0) {
+     	if (in_rewrite_source.IsEmpty() && request.m_srcInfo.GetSize() > 0) {
         	in_rewrite_source = GetBestAliasAddressString(request.m_srcInfo, false,
 				AliasAddressTagMask(H225_AliasAddress::e_h323_ID), 
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-				);
+					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 		}
 
-	 	if (!in_rewrite_source.IsEmpty())
+	 	if (!in_rewrite_source.IsEmpty()) {
 	 		if (Kit->GWRewriteE164(in_rewrite_source, true, request.m_destinationInfo[0])
-				&& !RasSrv->IsGKRouted())
+				&& !RasSrv->IsGKRouted()) {
 				aliasesChanged = true;
+			}
+		}
 
 		// Normal rewriting
-		if (Kit->RewriteE164(request.m_destinationInfo[0]) && !RasSrv->IsGKRouted())
+		if (Kit->RewriteE164(request.m_destinationInfo[0]) && !RasSrv->IsGKRouted()) {
 			aliasesChanged = true;
+		}
 	}
 
 	destinationString = hasDestInfo ? AsString(request.m_destinationInfo) :
@@ -2268,8 +2276,9 @@ bool AdmissionRequestPDU::Process()
 	authData.m_callLinkage = GetCallLinkage(authData);
 	
 	if (!RasSrv->ValidatePDU(*this, authData)) {
-		if (authData.m_rejectReason < 0)
+		if (authData.m_rejectReason < 0) {
 			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
+		}
 		return BuildReply(authData.m_rejectReason);
 	}
 
@@ -2281,8 +2290,9 @@ bool AdmissionRequestPDU::Process()
 		PTRACE(2, "RAS\tARQ destination set to " << authData.m_calledStationId);
 		hasDestInfo = true;
 		destinationString = AsString(request.m_destinationInfo);
-		if (!RasSrv->IsGKRouted())
+		if (!RasSrv->IsGKRouted()) {
 			aliasesChanged = true;
+		}
 	}
 	
 	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
@@ -2290,11 +2300,13 @@ bool AdmissionRequestPDU::Process()
 			bReject = true;
 			if (request.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)) {
 				PIPSocket::Address ipaddress;
-				if (GetIPFromTransportAddr(request.m_srcCallSignalAddress, ipaddress))
+				if (GetIPFromTransportAddr(request.m_srcCallSignalAddress, ipaddress)) {
 					bReject = !RasSrv->IsForwardedMessage(0, ipaddress);
+				}
 			}
-			if (bReject)
+			if (bReject) {
 				return BuildReply(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
+			}
 		}
 	}
 

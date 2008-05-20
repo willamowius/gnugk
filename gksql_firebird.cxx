@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.10  2008/04/18 13:14:11  shorne
  * Fixes for auto-configure on windows
  *
@@ -318,11 +321,13 @@ GkIBSQLResult::~GkIBSQLResult()
 		delete [] reinterpret_cast<char*>(m_sqlResult);
 		m_sqlResult = NULL;
 	}
-	if (m_tr != NULL)
-		if (m_queryError)
+	if (m_tr != NULL) {
+		if (m_queryError) {
 			isc_rollback_transaction(status, &m_tr);
-		else
+		} else {
 			isc_commit_transaction(status, &m_tr);
+		}
+	}
 }
 
 PString GkIBSQLResult::GetErrorMessage()
