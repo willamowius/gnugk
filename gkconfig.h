@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2008/04/03 10:24:20  willamowius
+ * new header config.h for configuration details
+ *
  * Revision 1.6  2007/11/27 12:57:27  willamowius
  * preparation for PBoolean change in PWLib
  *
@@ -66,10 +69,18 @@ public:
 
 	    @return list of all section names.
 	*/
+#ifdef hasPConfigArray
+    virtual PStringArray GetSections() const;
+#else
     virtual PStringList GetSections() const;
+#endif
 
 	/** Get a list of all the keys in the section. */
+#ifdef hasPConfigArray
+	virtual PStringArray GetKeys(
+#else
 	virtual PStringList GetKeys(
+#endif
 		const PString& theSection /// Section to use instead of the default.
 		) const;
 

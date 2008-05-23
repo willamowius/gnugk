@@ -14,6 +14,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2007/11/27 12:57:27  willamowius
+ * preparation for PBoolean change in PWLib
+ *
  * Revision 1.5  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -52,9 +55,15 @@ GatekeeperConfig::~GatekeeperConfig()
 	delete m_chainedConfig;
 }
 
+#ifdef hasPConfigArray
+PStringArray GatekeeperConfig::GetSections() const
+{
+	PStringArray list = PConfig::GetSections();
+#else
 PStringList GatekeeperConfig::GetSections() const
 {
 	PStringList list = PConfig::GetSections();
+#endif
 
 	if (m_chainedConfig != NULL) {
 		PStringList chainedList = m_chainedConfig->GetSections();
@@ -66,9 +75,15 @@ PStringList GatekeeperConfig::GetSections() const
 	return list;
 }
 
+#ifdef hasPConfigArray
+PStringArray GatekeeperConfig::GetKeys(const PString & theSection) const
+{
+	PStringArray list = PConfig::GetKeys(theSection);
+#else
 PStringList GatekeeperConfig::GetKeys(const PString & theSection) const
 {
 	PStringList list = PConfig::GetKeys(theSection);
+#endif
 
 	if (m_chainedConfig != NULL) {
 		PStringList chainedList = m_chainedConfig->GetKeys(theSection);

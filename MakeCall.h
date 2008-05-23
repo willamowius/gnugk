@@ -17,6 +17,7 @@
 #include <ptlib.h>
 #include <h323.h>
 #include "singleton.h"
+#include "config.h"
 #include <map>
 using namespace std;
 
@@ -26,15 +27,15 @@ public:
     MakeCallEndPoint();
 
     // overrides from H323EndPoint
-    virtual BOOL OnIncomingCall(H323Connection &, const H323SignalPDU &, H323SignalPDU &);
-    virtual BOOL OnConnectionForwarded(H323Connection &, const PString &, const H323SignalPDU &);
+    virtual PBoolean OnIncomingCall(H323Connection &, const H323SignalPDU &, H323SignalPDU &);
+    virtual PBoolean OnConnectionForwarded(H323Connection &, const PString &, const H323SignalPDU &);
     virtual void OnConnectionEstablished(H323Connection & connection, const PString & token);
-    virtual BOOL OpenAudioChannel(H323Connection &, BOOL, unsigned, H323AudioCodec &);
+    virtual PBoolean OpenAudioChannel(H323Connection &, PBoolean, unsigned, H323AudioCodec &);
 	virtual void OnRegistrationConfirm();
 	virtual void OnRegistrationReject();
 
 	virtual void ThirdPartyMakeCall(PString & user1, PString & user2);
-	virtual BOOL GatekeeperIsRegistered(void);
+	virtual PBoolean GatekeeperIsRegistered(void);
 
 protected:    
     void AddDestination(PString token, PString alias);
@@ -44,8 +45,8 @@ protected:
     PMutex destinationMutex;
     std::map<PString, PString> destinations; 
 
-	BOOL useH450Transfer;
-	BOOL isRegistered;
+	PBoolean useH450Transfer;
+	PBoolean isRegistered;
 };
 
 #endif  // _MakeCall_H

@@ -174,8 +174,8 @@ public:
        };
 
 	void SetEPNATType(int nattype) {m_epnattype = (EPNatTypes)nattype; }
-	void SetNATProxy(BOOL support) {m_natproxy = support; }
-	void SetInternal(BOOL internal) { m_internal = internal; }
+	void SetNATProxy(PBoolean support) {m_natproxy = support; }
+	void SetInternal(PBoolean internal) { m_internal = internal; }
 
 	void SetPriority(int priority) { m_registrationPriority = priority; };
 	void SetPreemption(bool support) { m_registrationPreemption = support; };

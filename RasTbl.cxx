@@ -451,11 +451,11 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		   if (feat.GetFeatureID() == H460_FeatureID(24)) {
 			   H460_FeatureStd & std24 = (H460_FeatureStd &)data[i];
 			   if (std24.Contains(P2P_RemoteNAT)) {              /// Remote supports remote NAT
-				   BOOL supNAT = std24.Value(P2P_RemoteNAT);
+				   PBoolean supNAT = std24.Value(P2P_RemoteNAT);
 				   SetSupportNAT(supNAT);
 			   }
 			   if (std24.Contains(P2P_IsNAT)) {                /// Remote EP is Nated
-				   BOOL isnat = std24.Value(P2P_IsNAT);
+				   PBoolean isnat = std24.Value(P2P_IsNAT);
 				   SetNAT(isnat);
 				   if (isnat) {
 					   PIPSocket::Address addr;
@@ -468,7 +468,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 				   SetEPNATType(ntype);
                }
 			   if (std24.Contains(P2P_ProxyNAT)) {                /// Whether the remote GK can proxy
-				   BOOL supProxy = std24.Value(P2P_ProxyNAT);
+				   PBoolean supProxy = std24.Value(P2P_ProxyNAT);
                    SetNATProxy(supProxy);
 			   }
 			   if (std24.Contains(P2P_SourceAddr)) {                /// Whether the remote EP supports Same NAT probing
@@ -476,7 +476,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 				   SetNATAddress(addr);
 			   }
 			   if (std24.Contains(P2P_MustProxy)) {         /// Whether this EP must proxy through GK
-				   BOOL mustProxy = std24.Value(P2P_MustProxy);
+				   PBoolean mustProxy = std24.Value(P2P_MustProxy);
 				   SetInternal(mustProxy);
 			   }
 		   }

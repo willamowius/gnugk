@@ -59,7 +59,7 @@ void MakeCallEndPoint::ThirdPartyMakeCall(PString & user1, PString & user2)
 	AddDestination(newToken, user2);
 }
 
-BOOL MakeCallEndPoint::GatekeeperIsRegistered(void)
+PBoolean MakeCallEndPoint::GatekeeperIsRegistered(void)
 {
 	return isRegistered;
 }	
@@ -87,7 +87,7 @@ PString MakeCallEndPoint::GetDestination(PString token)
 }
 
 
-BOOL MakeCallEndPoint::OnIncomingCall(H323Connection & connection,
+PBoolean MakeCallEndPoint::OnIncomingCall(H323Connection & connection,
                                         const H323SignalPDU &,
                                         H323SignalPDU &)
 {
@@ -96,7 +96,7 @@ BOOL MakeCallEndPoint::OnIncomingCall(H323Connection & connection,
 }
 
 
-BOOL MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
+PBoolean MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
                                                const PString & forwardParty,
                                                const H323SignalPDU & /*pdu*/)
 {
@@ -139,8 +139,8 @@ void MakeCallEndPoint::OnRegistrationReject()
 	isRegistered = FALSE;
 }
 
-BOOL MakeCallEndPoint::OpenAudioChannel(H323Connection & connection,
-                                          BOOL isEncoding,
+PBoolean MakeCallEndPoint::OpenAudioChannel(H323Connection & connection,
+                                          PBoolean isEncoding,
                                           unsigned bufferSize,
                                           H323AudioCodec & codec)
 {

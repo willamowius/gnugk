@@ -469,8 +469,8 @@ class STUNsocket  : public UDPSocket
 {
 public:
     STUNsocket();
-	virtual BOOL GetLocalAddress(PIPSocket::Address &);
-	virtual BOOL GetLocalAddress(PIPSocket::Address &, WORD &);
+	virtual PBoolean GetLocalAddress(PIPSocket::Address &);
+	virtual PBoolean GetLocalAddress(PIPSocket::Address &, WORD &);
 
 	PIPSocket::Address externalIP;
 };
@@ -481,7 +481,7 @@ STUNsocket::STUNsocket()
 }
 
 
-BOOL STUNsocket::GetLocalAddress(PIPSocket::Address & addr)
+PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr)
 {
   if (!externalIP.IsValid())
     return UDPSocket::GetLocalAddress(addr);
@@ -491,7 +491,7 @@ BOOL STUNsocket::GetLocalAddress(PIPSocket::Address & addr)
 }
 
 
-BOOL STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port)
+PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port)
 {
   if (!externalIP.IsValid())
      return UDPSocket::GetLocalAddress(addr, port);
@@ -1000,7 +1000,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 		if (!NoP2Pfeature) {
 			bool contents = false;
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
-			H460_FeatureStd & feat = H460_FeatureStd(23); 
+			H460_FeatureStd feat = H460_FeatureStd(23); 
 
 			if (!IsRegistered()) {
 					feat.Add(P2P_RemoteNAT,H460_FeatureContent(true));
@@ -1174,7 +1174,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 #ifdef hasH460
 	if (gk_H460_23) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
-			H460_FeatureStd & feat = H460_FeatureStd(24); 
+			H460_FeatureStd feat = H460_FeatureStd(24); 
 			arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 			H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
 			desc.SetSize(1);
@@ -1272,7 +1272,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer, int natof
 #ifdef hasH460
 	if (gk_H460_23) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
-		H460_FeatureStd & feat = H460_FeatureStd(24); 
+		H460_FeatureStd feat = H460_FeatureStd(24); 
 
 		if (answer  && natoffload > 0) 
 			feat.Add(P2P_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
@@ -1713,8 +1713,8 @@ void GkClient::OnRCF(RasMsg *ras)
 #ifdef hasH460
 void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
 {
-   BOOL proxy = FALSE;
-   BOOL NATdetect = FALSE;
+   PBoolean proxy = FALSE;
+   PBoolean NATdetect = FALSE;
 
    gk_H460_23 = true;
 

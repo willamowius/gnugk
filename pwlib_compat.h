@@ -37,8 +37,7 @@
   #endif
 #endif
 
-//#if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
-#ifndef PBoolean
+#if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
 	typedef int PBoolean;
 #endif
 
@@ -81,6 +80,13 @@
   #define hasRDS 1 
   #define hasSETENUMSERVERS 1    
   #define hasDeletingSetStream 1
+#endif
+
+// changed PConfig interface in PWLib >= 2.2.0
+#if PTLIB_MAJOR == 2
+  #if PTLIB_MINOR >= 2
+	#define hasPConfigArray 1
+  #endif
 #endif
 
 #if !defined(PWLIB_MAJOR) && !defined(PTLIB_MAJOR)
