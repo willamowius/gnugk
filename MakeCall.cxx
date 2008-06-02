@@ -54,12 +54,16 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 
 void MakeCallEndPoint::ThirdPartyMakeCall(PString & user1, PString & user2)
 {
+	if (!IsRegisteredWithGk()) {
+		PTRACE(1, "MakeCallEndpoint: Can't MakeCall when not registered with gatekeeper");
+		return;
+	}
 	PString newToken;
 	MakeCall(user1, newToken);
 	AddDestination(newToken, user2);
 }
 
-PBoolean MakeCallEndPoint::GatekeeperIsRegistered(void)
+PBoolean MakeCallEndPoint::IsRegisteredWithGk(void) const
 {
 	return isRegistered;
 }	

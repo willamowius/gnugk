@@ -404,7 +404,11 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 {
 	PTRACE(3, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
-	MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias);
+	if (MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
+		MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias);
+	} else {
+		delete MakeCallEndPoint::Instance();	// delete this failed instance, it will never work
+	}
 }
 
 void SoftPBX::PrintPrefixCapacities(USocket *client, PString alias)
