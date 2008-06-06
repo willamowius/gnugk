@@ -25,6 +25,7 @@
 #include "stl_supp.h"
 #include "gktimer.h"
 #include "h323util.h"
+#include "GkStatus.h"
 #include "gkconfig.h"
 #include "config.h"
 #if HAS_DATABASE
@@ -907,8 +908,12 @@ void Toolkit::CreateConfig()
 			delete m_Config;
 			m_Config = testConfig;
 		} else {
-			PTRACE(0, "CONFIG\tFailed to read valid config - keeping old config");
-			GkStatus::Instance()->SignalStatus("Failed to read valid config - keeping old config\r\n", MIN_STATUS_TRACE_LEVEL);
+			if (m_Config) {	// reload
+				PTRACE(0, "CONFIG\tFailed to read valid config - keeping old config");
+				GkStatus::Instance()->SignalStatus("Failed to read valid config - keeping old config\r\n", MIN_STATUS_TRACE_LEVEL);
+			} else {	// startup
+				m_Config = testConfig;	// warning will be printed a bit later			
+			}
 		}
 	} else { // Oops! Create temporary config file failed, use the original one
 		PTRACE(0, "CONFIG\tCould not create/link config to a temporary file " << m_tmpconfig);
