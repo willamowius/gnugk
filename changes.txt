@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX (Toolkit.cxx) on reload, check if new config is not empty (Fortytwo=42)
 - BUGFIX (ProxyChannel.cxx) add NULL pointer checks to avoid crashes
 - CapacityControl H.323 Id rules work now also for SetupUnreg calls
 - BUGFIX (ProxyChannel.cxx) make sure Q.931 cause is included in generated ReleaseComplete

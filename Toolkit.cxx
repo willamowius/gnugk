@@ -902,8 +902,14 @@ void Toolkit::CreateConfig()
 #else
 	if (symlink(m_ConfigFilePath, m_tmpconfig) == 0) {
 #endif
-		delete m_Config;
-		m_Config = new PConfig(m_tmpconfig, m_ConfigDefaultSection);
+		PConfig * testConfig = new PConfig(m_tmpconfig, m_ConfigDefaultSection);
+		if( (testConfig->GetInteger("Fortytwo") == 42) || (testConfig->GetInteger("Fourtytwo") == 42)) {
+			delete m_Config;
+			m_Config = testConfig;
+		} else {
+			PTRACE(0, "CONFIG\tFailed to read valid config - keeping old config");
+			GkStatus::Instance()->SignalStatus("Failed to read valid config - keeping old config\r\n", MIN_STATUS_TRACE_LEVEL);
+		}
 	} else { // Oops! Create temporary config file failed, use the original one
 		PTRACE(0, "CONFIG\tCould not create/link config to a temporary file " << m_tmpconfig);
 		delete m_Config;
