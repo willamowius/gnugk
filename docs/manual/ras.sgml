@@ -103,9 +103,11 @@ H323ID and password can be used to directly access their account information.
 <item><tt>AliasTypeFilter=terminal;h323id,dialeddigits</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Where endpoints send multiple H225_AliasAddress and some Aliases are shared across 
-multiple registrations. You can filter out the shared alias types for any given
-endpoint type. You must had seperate AliasTypeFilter entries for each endpoint type.
+Use this setting where endpoints send multiple H225_AliasAddress and some Aliases are
+shared across multiple registrations. You can filter out the shared alias types for
+any given endpoint type. The registrations will keep all alias types listed in the
+filter setting and remove all others.
+You must had seperate AliasTypeFilter entries for each endpoint type.
 Valid endpoint types are: gatekeeper,gateway,mcu,terminal
 Valid filters are: h323id, dialeddigits, url, transport, email, partynumber
 NOTE: If no alias is found that match the filter than all aliases are registered.
