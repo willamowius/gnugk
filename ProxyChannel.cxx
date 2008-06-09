@@ -2586,8 +2586,9 @@ bool CallSignalSocket::OnH450CallTransfer(endptr & ep, PASN_OctetString * argume
   PPER_Stream argStream(*argument);
   if (ctInitiateArg.Decode(argStream)) {
       PString remoteParty = ParseEndpointAddress(ctInitiateArg.m_reroutingNumber);
-      const PASN_NumericString & callIdentifier = ctInitiateArg.m_callIdentity;
-      SmartPtr<CallRec> m_call = CallTable::Instance()->FindCallRec((const H225_CallIdentifier &)callIdentifier);
+	  H225_CallIdentifier callid;
+	  callid.m_guid = H225_GloballyUniqueID(ctInitiateArg.m_callIdentity.GetValue());
+      SmartPtr<CallRec> m_call = CallTable::Instance()->FindCallRec(callid);
 	  return SoftPBX::TransferCall(ep, m_call, remoteParty);
   }
   return false;
