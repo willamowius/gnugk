@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.2  2006/07/31 08:34:22  willamowius
+ * make logging facility and priority configurable (patch by Brian Thompson)
+ *
  * Revision 1.1  2006/06/30 08:07:05  willamowius
  * new accounting module SyslogAcct
  *
@@ -18,10 +21,6 @@
  */
  
 #ifndef _WIN32
-
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbols off
-#endif
 
 #include <syslog.h>
 #include <ptlib.h>
