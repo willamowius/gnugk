@@ -685,14 +685,19 @@ void RasRequester::AddReply(RasMsg *ras)
 
 
 // class RasServer
-RasServer::RasServer() : Singleton<RasServer>("RasSrv"), requestSeqNum(0),
-	acctList(NULL)
+RasServer::RasServer() : Singleton<RasServer>("RasSrv")
 {
 	SetName("RasSrv");
 
-	authList = 0;
-	sigHandler = 0;
-	broadcastListener = 0;
+	requestSeqNum = 0;
+	listeners = NULL;
+	broadcastListener = NULL;
+	sigHandler = NULL;
+	authList = NULL;
+	acctList = NULL;
+	gkClient = NULL;
+	neighbors = NULL;
+	vqueue = NULL;
 	GKRoutedSignaling = false;
 	GKRoutedH245 = false;
 	altGKs = new H225_ArrayOf_AlternateGK;
