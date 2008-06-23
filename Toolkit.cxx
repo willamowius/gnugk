@@ -469,7 +469,7 @@ void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
 		for (PINDEX i = 0; i < n_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
 			PCaselessString first = PCaselessString(key[0]);				
-			if (!key && (isdigit(key[0]) || (first.FindOneOf("!.%*#ABCDEFGHIGKLMNOPQRSTUVWXYZ") != P_MAX_INDEX)))			
+			if (!key && (static_cast<unsigned char>(isdigit(key[0])) || (first.FindOneOf("!.%*#ABCDEFGHIGKLMNOPQRSTUVWXYZ") != P_MAX_INDEX)))			
 				rules[key] = cfgs.GetDataAt(i);
 		}
 		// now the rules are ascendantly sorted by the keys
@@ -545,7 +545,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 			 // sending the LRQ. 
 			 PINDEX j;
  		     for (j = 0; j < num.GetLength(); ++j)
-			       if (!isdigit(num[j]))
+			       if (!isdigit(static_cast<unsigned char>(num[j])))
 			   	         break;
 
 			 if (j >= num.GetLength()) { // is numeric

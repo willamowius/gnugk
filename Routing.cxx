@@ -1269,7 +1269,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 			alias = alias.Mid(1);
 		PINDEX j;
 		for (j = 0; j < alias.GetLength(); ++j)
-			if (!isdigit(alias[j]))
+			if (!isdigit(static_cast<unsigned char>(alias[j])))
 				break;
 
 		if (j >= alias.GetLength()) {

@@ -1370,7 +1370,7 @@ bool SRVPolicy::FindByAliases(
 				             PString called = ls[i].Left(at);
 						     PINDEX k = 0;
 						     for (k = 0; k < called.GetLength(); ++k)
-								if (!isdigit(alias[k]))
+								if (!isdigit(static_cast<unsigned char>(alias[k])))
 									break;
 								if (k >= alias.GetLength())
 									H323SetAliasAddress(called, aliases[i]);
@@ -1399,7 +1399,7 @@ bool SRVPolicy::FindByAliases(
 				     PString called = cs[j].Left(in);
 					  PINDEX l = 0;
 						for (l = 0; l < called.GetLength(); ++l)
-							if (!isdigit(alias[l]))
+							if (!isdigit(static_cast<unsigned char>(alias[l])))
 								break;
 						if (l >= alias.GetLength())
 						  H323SetAliasAddress(called, aliases[i]);
