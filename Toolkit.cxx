@@ -1338,7 +1338,7 @@ void Toolkit::LoadCauseMap(
 				unsigned cmin = causeRange[0].AsUnsigned() & 0x7f;
 				unsigned cmax = causeRange[1].AsUnsigned() & 0x7f;
 				for (; cmin <= cmax; ++cmin)
-					m_causeMap[cmin >> 3] |= (1UL << (cmin & 7));
+					m_causeMap[(cmin >> 3) & 0x0f] |= (1UL << (cmin & 7));
 			}
 		}
 }
