@@ -263,13 +263,21 @@ void Toolkit::RouteTable::InitTable()
 	if (!CreateTable())
 		return;
 
-	// Set default IP according to route table
-	PIPSocket::Address defGW;
-	PIPSocket::GetGatewayAddress(defGW);
-	if (defGW.AsString() == "0.0.0.0")
-		PIPSocket::GetNetworkInterface(defAddr);
-	else
-		defAddr = GetLocalAddress(defGW);
+    // Set default IP to Bind IP, if given.
+    PString bind =GkConfig()->GetString("Bind", "");
+    if (!bind) 
+		defAddr = Homes[0];
+
+	// If we do not have a valid Bind entry, try and retrieve the default interface
+	if (defAddr.AsString() == "0.0.0.0") {
+		// Set default IP according to route table
+		PIPSocket::Address defGW;
+		PIPSocket::GetGatewayAddress(defGW);
+		if (defGW.AsString() == "0.0.0.0")
+			PIPSocket::GetNetworkInterface(defAddr);
+		else
+			defAddr = GetLocalAddress(defGW);
+    }
 
 #if PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry)
