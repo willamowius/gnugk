@@ -131,7 +131,7 @@ install-addpasswd: addpasswd
 	$(INSTALL) $(OBJDIR)/addpasswd $(INSTALLBIN_DIR)
 
 static:
-	LDFLAGS=-static make optnoshared
+	P_SHAREDLIB=0 LDFLAGS=-static make optnoshared addpasswd
 
 #
 # By this command the build number may be incremented
