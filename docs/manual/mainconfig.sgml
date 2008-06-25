@@ -60,6 +60,13 @@ If you are using GnuGk behind a NAT box then you should use the ExternalIP
 setting which will automatically configure GnuGk to operate as if it was
 on the NAT box and superceded using this entry.
 
+<item><tt/Bind=192.168.1.1/<newline>
+Default: <tt/0.0.0.0/<newline>
+<p>
+Specify the IP address for default routing. If there is only one interface then
+this setting is ignored. Use this to specify which default IP address to use in a multihomed
+virtual environment where there are many virtual interfaces on one box.
+
 <item><tt/EndpointIDSuffix=_gk1/<newline>
 Default: <tt/_endp/<newline>
 <p>
@@ -292,7 +299,8 @@ When using GnuGk behind a NAT you can set the external IP address
 that you wish the GK to masquarade as. This will allow external EP's
 and other gatekeepers to contact the NATed GK. To work you must port
 forward the required ports to the GK IP or put the GK in the NAT box
-DMZ.
+DMZ. This is different to the bind setting which sets a physical IP
+address on the GnuGk box to default to.  
 
 <item><tt/ExternalIsDynamic=1/<newline>
 Default: <tt/0/<newline>
