@@ -263,12 +263,19 @@ void Toolkit::RouteTable::InitTable()
 	if (!CreateTable())
 		return;
 
-    // Set default IP to Bind IP, if given.
-    PString bind =GkConfig()->GetString("Bind", "");
-    if (!bind) 
-		defAddr = Homes[0];
+	// Get all the interface addresses available
+	std::vector<PIPSocket::Address> m_GKHome;
+	Toolkit::Instance()->GetGKHome(m_GKHome);
+	if (m_GKHome.size() > 1) {
+		// Set default IP to Bind IP, if given.
+		PString bind =GkConfig()->GetString("Bind", "");
+		if (!bind) 
+			defAddr = bind[0];
+	} else {
+        defAddr = m_GKHome[0];
+	}
 
-	// If we do not have a valid Bind entry, try and retrieve the default interface
+	// If we do not already have a valid entry, try and retrieve the default interface
 	if (defAddr.AsString() == "0.0.0.0") {
 		// Set default IP according to route table
 		PIPSocket::Address defGW;
