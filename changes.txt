@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- Added Bind INI setting to set the default interface for multihomed virtual servers.
 - BUGFIX (Toolkit.cxx) on reload, check if new config is not empty (Fortytwo=42)
 - BUGFIX (ProxyChannel.cxx) add NULL pointer checks to avoid crashes
 - CapacityControl H.323 Id rules work now also for SetupUnreg calls
