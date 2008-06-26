@@ -264,19 +264,19 @@ void Toolkit::RouteTable::InitTable()
 		return;
 
 	// Get all the interface addresses available
-	std::vector<PIPSocket::Address> m_GKHome;
-	Toolkit::Instance()->GetGKHome(m_GKHome);
-	if (m_GKHome.size() > 1) {
+	std::vector<PIPSocket::Address> home;
+	Toolkit::Instance()->GetGKHome(home);
+	if (!home.empty() && home.size() > 1) {
 		// Set default IP to Bind IP, if given.
 		PString bind =GkConfig()->GetString("Bind", "");
 		if (!bind) 
-			defAddr = bind[0];
-	} else {
-        defAddr = m_GKHome[0];
+			defAddr = bind;
+		} else {
+			defAddr = home[0];
 	}
 
 	// If we do not already have a valid entry, try and retrieve the default interface
-	if (defAddr.AsString() == "0.0.0.0") {
+	if (defAddr.IsLoopback() || !defAddr.IsValid()) {
 		// Set default IP according to route table
 		PIPSocket::Address defGW;
 		PIPSocket::GetGatewayAddress(defGW);
@@ -1301,6 +1301,10 @@ PConfig* Toolkit::ReloadConfig()
 		m_encKeyPaddingByte = m_encryptAllPasswords ? 0 : -1;
 		
 	ReloadSQLConfig();
+
+	PString GKHome(m_Config->GetString("Home", ""));
+	if (m_GKHome.empty() || !GKHome)
+		SetGKHome(GKHome.Tokenise(",:;", false));
 	
 	m_RouteTable.InitTable();
 	m_VirtualRouteTable.InitTable();
@@ -1314,10 +1318,7 @@ PConfig* Toolkit::ReloadConfig()
 #if HAS_DATABASE
 	m_qosMonitor.LoadConfig(m_Config);
 #endif
-	PString GKHome(m_Config->GetString("Home", ""));
-	if (m_GKHome.empty() || !GKHome)
-		SetGKHome(GKHome.Tokenise(",:;", false));
-	
+
 	m_timestampFormatStr = Config()->GetString("TimestampFormat", "Cisco");
 
 	delete m_cliRewrite;

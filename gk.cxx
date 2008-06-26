@@ -494,6 +494,9 @@ void Gatekeeper::Main()
 		ExitGK();
 	}
 
+	if (args.HasOption('i'))
+		Toolkit::Instance()->SetGKHome(args.GetOptionString('i').Lines());
+
 	if (!InitConfig(args) || !InitHandlers(args))
 		ExitGK();
 
@@ -502,9 +505,6 @@ void Gatekeeper::Main()
 	PString welcome("OpenH323 Gatekeeper - The GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
-
-	if (args.HasOption('i'))
-		Toolkit::Instance()->SetGKHome(args.GetOptionString('i').Lines());
 
 	vector<PIPSocket::Address> GKHome;
 	PString home(Toolkit::Instance()->GetGKHome(GKHome));
