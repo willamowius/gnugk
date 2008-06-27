@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.13  2008/04/18 13:14:11  shorne
  * Fixes for auto-configure on windows
  *
@@ -360,7 +363,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	// connect to the MySQL database, try each host on the list in case of failure
 	if (mysql_real_connect(conn, m_host, m_username, 
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
-			m_database, m_port, NULL, 0)) {
+			m_database, m_port, NULL, CLIENT_MULTI_STATEMENTS)) {
 		PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
 			<< '[' << m_database << "] established successfully"
 			);
@@ -392,6 +395,21 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 	}
 	
 	MYSQL_RES* queryResult = mysql_store_result(mysqlconn);
+
+	if (queryResult) {
+		/* loop and discard results after first if any */
+		MYSQL_RES* tmpResult;
+		int tmpstatus;
+		while ( (tmpstatus = mysql_next_result(mysqlconn) ) >= 0) {
+			if (tmpstatus > 0) {
+				/* error fetching next result */
+				break;
+			}
+			tmpResult = mysql_store_result(mysqlconn);
+			mysql_free_result(tmpResult);
+		}
+	}
+
 	if (queryResult)
 		return new GkMySQLResult(queryResult);
 
