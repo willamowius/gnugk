@@ -940,16 +940,18 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 #ifdef H323_H450
 	// Enable H.450.2 Call Transfer Emulator
-	if (uuie && Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450.2", "0")) &&
-		 uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService)) {
+	if (m_call
+		&& uuie
+		&& Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450.2", "0"))
+		&& uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService)) {
 			endptr ep;
-             if (m_call && m_callerSocket) 
-				 ep = m_call->GetCallingParty();
-			 else
-				 ep = m_call->GetCalledParty();
-		// Process H4501SupplementaryService APDU
-		if (ep && OnH450PDU(ep, uuie->m_h323_uu_pdu.m_h4501SupplementaryService)) 
-			return Closing;   // we are handling this one via the gatekeeper only
+			if (m_callerSocket) 
+				ep = m_call->GetCallingParty();
+			else
+				ep = m_call->GetCalledParty();
+			// Process H4501SupplementaryService APDU
+			if (ep && OnH450PDU(ep, uuie->m_h323_uu_pdu.m_h4501SupplementaryService)) 
+				return Closing;   // we are handling this one via the gatekeeper only
     }
 #endif
 
