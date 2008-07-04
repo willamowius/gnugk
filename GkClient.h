@@ -244,7 +244,7 @@ private:
     /// list of Authenticators
 	H235Authenticators* m_h235Authenticators;
 
-#ifdef hasH460
+#ifdef P2PnatClient
 	// Handle P2Pnat RCF
 	void HandleP2P_RCF(H460_FeatureStd * feat);
     // Handle P2Pnat ACF

@@ -4238,7 +4238,7 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 	SrcIP = 0;
 	SrcPort = 0;
 
-#ifdef hasH460
+#ifdef P2PnatClient
 	// If we do not have a GKClient (no parent) and we 
 	// don't create the socket pair by STUN then
 	// create the socket pair here

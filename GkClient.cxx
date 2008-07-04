@@ -35,7 +35,7 @@
 #include "cisco.h"
 #include "GkClient.h"
 
-#ifdef hasH460
+#ifdef P2PnatClient
   #include <h460/h4601.h>
   #include <ptclib/pstun.h>
   #include <ptclib/random.h>
@@ -196,7 +196,7 @@ void NATClient::SendInfo(int state)
 
 //////////////////////////////////////////////////////////////////////
 
-#ifdef hasH460
+#ifdef P2PnatClient
 
 // stuff cut from pstun.cxx
 
@@ -850,7 +850,7 @@ GkClient::GkClient()
 	m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true)
-#ifdef hasH460
+#ifdef P2PnatClient
 	, m_nattype(0), m_natnotify(false), gk_H460_23(false),  m_stunClient(NULL)
 #endif
 {
@@ -994,7 +994,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 		}
 	}
 
-#ifdef hasH460
+#ifdef P2PnatClient
 		// H.460.23 Feature
 	    bool NoP2Pfeature = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "DisableH.460.23", "1"));
 		if (!NoP2Pfeature) {
@@ -1011,7 +1011,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 						feat.Add(P2P_NATdet,H460_FeatureContent(natType,8)); 
 						contents = true;
 					}
-				}
+			}
 			if (contents) {
 				rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 				H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
@@ -1171,7 +1171,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 		arq.m_callIdentifier = oarq.m_callIdentifier;
 	}
 
-#ifdef hasH460
+#ifdef P2PnatClient
 	if (gk_H460_23) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(24); 
@@ -1269,7 +1269,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer, int natof
 	// workaround for bandwidth, as OpenH323 library :p
 	arq.m_bandWidth = 1280;
 
-#ifdef hasH460
+#ifdef P2PnatClient
 	if (gk_H460_23) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 		H460_FeatureStd feat = H460_FeatureStd(24); 
@@ -1620,7 +1620,7 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				Route route("parent", acf.m_destCallSignalAddress);
 				route.m_flags |= Route::e_toParent;
 				robj->AddRoute(route);
-#ifdef hasH460
+#ifdef P2PnatClient
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
 				  callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
 					  CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
@@ -1700,7 +1700,7 @@ void GkClient::OnRCF(RasMsg *ras)
 		}
 	}
 
-#ifdef hasH460
+#ifdef P2PnatClient
 	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_genericData)) {
 		  H460_FeatureSet fs = H460_FeatureSet(rcf.m_genericData);
 		   int rNaTFS = 23; 
@@ -1710,7 +1710,7 @@ void GkClient::OnRCF(RasMsg *ras)
 #endif
 }
 
-#ifdef hasH460
+#ifdef P2PnatClient
 void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
 {
    PBoolean proxy = FALSE;
