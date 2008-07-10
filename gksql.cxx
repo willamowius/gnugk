@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2008/04/02 22:32:22  willamowius
+ * auto-reconnect on database errors
+ *
  * Revision 1.13  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -152,8 +155,9 @@ bool GkSQLConnection::Initialize(
 		return false;
 	}
 	
-	if (!Connect())
+	if (!Connect()) {
 		PTRACE(1, GetName() << "\tDatabase connection failed, will rety later");
+	}
 	
 	return true;
 }
@@ -239,8 +243,9 @@ GkSQLConnection::~GkSQLConnection()
 	m_idleConnections.clear();
 
 	PTRACE(5, GetName() << "\tConnection pool cleanup finished");
-	if (!m_busyConnections.empty())
+	if (!m_busyConnections.empty()) {
 		PTRACE(1, GetName() << "\tConnection cleanup finished with " << m_busyConnections.size() << " active connections");
+	}
 }
 
 bool GkSQLConnection::AcquireSQLConnection(

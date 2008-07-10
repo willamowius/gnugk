@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.11  2008/05/06 15:23:22  willamowius
+ * merge in Michals changes
+ *
  * Revision 1.9  2008/05/02 09:51:27  zvision
  * No need to disconnect ODBC environment handle
  *
@@ -389,8 +392,9 @@ GkODBCConnection::GkODBCConnWrapper::~GkODBCConnWrapper()
 {
 	if (m_conn != SQL_NULL_HDBC) {
 		SQLRETURN r = SQLDisconnect(m_conn);
-		if (!SQL_SUCCEEDED(r))
+		if (!SQL_SUCCEEDED(r)) {
 			PTRACE(1, "ODBC disconnect failed: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, m_conn));
+		}
 		SQLFreeHandle(SQL_HANDLE_DBC, m_conn);
 		m_conn = SQL_NULL_HDBC;
 	}
@@ -411,12 +415,14 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 	}
 	
 	r = SQLSetConnectAttr(conn, SQL_ATTR_LOGIN_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
-	if (!SQL_SUCCEEDED(r))
+	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection login timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
+	}
 	
 	r = SQLSetConnectAttr(conn, SQL_ATTR_CONNECTION_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
-	if (!SQL_SUCCEEDED(r))
+	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection request timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
+	}
 
 	// Connect to datasource
 	r = SQLConnect(conn,
@@ -456,9 +462,10 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	}
 
 	r = SQLSetStmtAttr(stmt, SQL_ATTR_QUERY_TIMEOUT, reinterpret_cast<SQLPOINTER>(timeout == -1 ? 10 : ((timeout + 999) / 1000)), 0);
-	if (!SQL_SUCCEEDED(r))
+	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tSQL query timeout not set: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
-	
+	}
+
 	r = SQLExecDirect(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>((const char*)queryStr)), SQL_NTS);
 	bool nodata = (r == SQL_NO_DATA);
 	if (r != SQL_NO_DATA && !SQL_SUCCEEDED(r)) {
@@ -487,8 +494,9 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 			return new GkODBCResult(0, 0, NULL);
 		} else {
 			r = SQLRowCount(stmt, &rows);
-			if (!SQL_SUCCEEDED(r))
+			if (!SQL_SUCCEEDED(r)) {
 				PTRACE(1, GetName() << "\tFailed to get ODBC number of rows affected by a query: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
+			}
 			SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 			return new GkODBCResult(rows, 0, NULL);
 		}

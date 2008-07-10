@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2007/09/28 22:20:23  willamowius
+ * cleanup includes
+ *
  * Revision 1.13  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -133,29 +136,27 @@ SQLAcct::SQLAcct(
 		PTRACE(4, "GKACCT\t" << GetName() << " start query: " << m_startQuery);
 	
 	m_startQueryAlt = cfg->GetString(cfgSec, "StartQueryAlt", "");
-	if (!m_startQueryAlt) 
-		PTRACE(4, "GKACCT\t" << GetName() << " alternative start query: " 
-			<< m_startQueryAlt
-			);
+	if (!m_startQueryAlt) {
+		PTRACE(4, "GKACCT\t" << GetName() << " alternative start query: " << m_startQueryAlt);
+	}
 
 	m_updateQuery = cfg->GetString(cfgSec, "UpdateQuery", "");
 	if (m_updateQuery.IsEmpty() 
 		&& (GetEnabledEvents() & GetSupportedEvents() & (AcctUpdate | AcctConnect)) != 0) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
-			"no update query configured"
-			);
+			"no update query configured");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
-	} else
+	} else {
 		PTRACE(4, "GKACCT\t" << GetName() << " update query: " << m_updateQuery);
+	}
 
 	m_stopQuery = cfg->GetString(cfgSec, "StopQuery", "");
 	if (m_stopQuery.IsEmpty() 
 		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStop) == AcctStop) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
-			"no stop query configured"
-			);
+			"no stop query configured");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -163,10 +164,10 @@ SQLAcct::SQLAcct(
 		PTRACE(4, "GKACCT\t" << GetName() << " stop query: " << m_stopQuery);
 	
 	m_stopQueryAlt = cfg->GetString(cfgSec, "StopQueryAlt", "");
-	if (!m_stopQueryAlt) 
+	if (!m_stopQueryAlt) {
 		PTRACE(4, "GKACCT\t" << GetName() << " alternative stop query: " 
-			<< m_stopQueryAlt
-			);
+			<< m_stopQueryAlt);
+	}
 
 	vector<PIPSocket::Address> interfaces;
 	Toolkit::Instance()->GetGKHome(interfaces);
@@ -239,11 +240,11 @@ GkAcctLogger::Status SQLAcct::Log(
 	std::map<PString, PString> params;
 	SetupAcctParams(params, call, m_timestampFormat);
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
-	if (result == NULL)
+	if (result == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 			"data (event: " << evt << ", call: " << callNumber 
-			<< "): timeout or fatal error"
-			);
+			<< "): timeout or fatal error");
+	}
 	
 	if (result) {
 		if (result->IsValid()) {
@@ -275,11 +276,11 @@ GkAcctLogger::Status SQLAcct::Log(
 				);
 		else {
 			if (result->IsValid()) {
-				if (result->GetNumRows() < 1)
+				if (result->GetNumRows() < 1) {
 					PTRACE(4, "GKACCT\t" << GetName() << " failed to store accounting "
 						"data (event: " << evt << ", call: " << callNumber 
-						<< "): no rows have been updated"
-						);
+						<< "): no rows have been updated");
+				}
 			} else
 				PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 					"data (event: " << evt << ", call: " << callNumber 

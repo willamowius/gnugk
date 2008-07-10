@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.25  2008/05/18 20:40:56  willamowius
+ * put codec in RadAcct stop event (Thanks Tusar)
+ *
  * Revision 1.24  2008/04/18 14:37:28  willamowius
  * never include gnugkbuildopts.h directly, always include config.h
  *
@@ -329,11 +332,13 @@ GkAcctLogger::Status RadAcct::Log(
 	
 	// accounting updates must be fast, so we are just sending
 	// the request to the server and are not waiting for a response
-	if (result)
-		if (evt & AcctUpdate)
+	if (result) {
+		if (evt & AcctUpdate) {
 			result = m_radiusClient->SendRequest(*pdu);
-		else
+		} else {
 			result = m_radiusClient->MakeRequest(*pdu, response) && (response != NULL);
+		}
+	}
 			
 	delete pdu;
 

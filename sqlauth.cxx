@@ -454,36 +454,36 @@ SQLAuth::SQLAuth(
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
-	} else if (!m_regQuery)
+	} else if (!m_regQuery) {
 		PTRACE(4, "SQLAUTH\t" << GetName() << " RRQ query: " << m_regQuery);
+	}
 
 	m_nbQuery = cfg->GetString(authName, "NbQuery", "");
 	if (m_nbQuery.IsEmpty() && IsRasCheckEnabled(RasInfo<H225_LocationRequest>::flag)) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no LRQ query configured"
-			);
+			"no LRQ query configured");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
-	} else if (!m_nbQuery)
+	} else if (!m_nbQuery) {
 		PTRACE(4, "SQLAUTH\t" << GetName() << " LRQ query: " << m_nbQuery);
+	}
 
 	m_callQuery = cfg->GetString(authName, "CallQuery", "");
 	if (m_callQuery.IsEmpty() && (IsRasCheckEnabled(RasInfo<H225_AdmissionRequest>::flag)
 			|| IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg))) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no ARQ/Setup query configured"
-			);
+			"no ARQ/Setup query configured");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
-	} else if (!m_callQuery)
+	} else if (!m_callQuery) {
 		PTRACE(4, "SQLAUTH\t" << GetName() << " ARQ/Setup query: " << m_callQuery);
+	}
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not connect to the database"
-			);
+			"could not connect to the database");
 		return;
 	}
 }
