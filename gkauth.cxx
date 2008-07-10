@@ -240,26 +240,29 @@ GkAuthenticator::GkAuthenticator(
 			const PString checkStr = control[i].Trim().ToUpper();
 			if (rasmap.find(checkStr) != rasmap.end()) {
 				m_enabledRasChecks |= rasmap[checkStr];
-				if ((m_supportedRasChecks & rasmap[checkStr]) != rasmap[checkStr])
+				if ((m_supportedRasChecks & rasmap[checkStr]) != rasmap[checkStr]) {
 					PTRACE(1, "GKAUTH\t" << GetName() << " does not support '"
 						<< control[i] << "' check"
 						);
+				}
 			} else if(miscmap.find(checkStr) != miscmap.end()) {
 				m_enabledMiscChecks |= miscmap[checkStr];
-				if ((m_supportedMiscChecks & miscmap[checkStr]) != miscmap[checkStr])
+				if ((m_supportedMiscChecks & miscmap[checkStr]) != miscmap[checkStr]) {
 					PTRACE(1, "GKAUTH\t" << GetName() << " does not support '"
 						<< control[i] << "' check"
 						);
-			} else
+				}
+			} else {
 				PTRACE(1, "GKAUTH\tInvalid check flag '" << control[i]
 					<< "' specified in the config for " << GetName()
 					);
+			}
 		}
 		if ((m_enabledRasChecks & m_supportedRasChecks) == 0 
-			&& (m_enabledMiscChecks & m_supportedMiscChecks) == 0)
+			&& (m_enabledMiscChecks & m_supportedMiscChecks) == 0) {
 			PTRACE(1, "GKAUTH\tNo check flags have been specified "
-				"in the config for " << GetName() << " - it will be disabled"
-				);
+				"in the config for " << GetName() << " - it will be disabled");
+		}
 	}
 
 #if PTRACING
@@ -484,20 +487,22 @@ PString GkAuthenticator::GetUsername(
 			);
 
 	/// if no h323_ID, email_ID or url_ID has been found, try to find any alias
-	if (username.IsEmpty())
-		if (!arq.m_answerCall)
+	if (username.IsEmpty()) {
+		if (!arq.m_answerCall) {
 			username = GetBestAliasAddressString(arq.m_srcInfo, false, 
 				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 				AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 					| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 				);
-		else if (hasCall)
+		} else if (hasCall) {
 			username = GetBestAliasAddressString(
 				authData.m_call->GetSourceAddress(), true,
 				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 				AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 					| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 				);
+		}
+	}
 
 		
 	if (username.IsEmpty()) {
@@ -1127,10 +1132,10 @@ SimplePasswordAuth::SimplePasswordAuth(
 	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks), 
 	m_cache(NULL)
 {
-	if (!GetConfig()->HasKey(name, "KeyFilled"))
+	if (!GetConfig()->HasKey(name, "KeyFilled")) {
 		PTRACE(1, "GKAUTH\t" << GetName() << " KeyFilled config variable "
-			"is missing"
-			);
+			"is missing");
+	}
 	m_encryptionKey = GetConfig()->GetInteger(name, "KeyFilled", 0);
 	m_checkID = Toolkit::AsBool(GetConfig()->GetString(name, "CheckID", "0"));
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
@@ -2190,10 +2195,10 @@ PrefixAuth::PrefixAuth(
 		rls = NULL;
 	}
 
-	if (m_prefrules.empty())
+	if (m_prefrules.empty()) {
 		PTRACE(1, "GKAUTH\t" << GetName() << " contains no rules - "
-			"check the config"
-			);
+			"check the config");
+	}
 }
 
 PrefixAuth::~PrefixAuth()
