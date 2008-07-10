@@ -1179,11 +1179,13 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 	List::iterator iter = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsAcceptable), ras));
 	Neighbor *requester = (iter != m_neighbors.end()) ? *iter : 0;
 	int hopCount = 0;
-	if (requester)
-		if (requester->ForwardLRQ() < 0)
+	if (requester) {
+		if (requester->ForwardLRQ() < 0) {
 			return false;
-		else if (requester->ForwardLRQ() > 0)
+		} else if (requester->ForwardLRQ() > 0) {
 			hopCount = 1;
+		}
+	}
 
 	H225_LocationRequest & lrq = (*ras)->m_recvRAS;
 	if (lrq.HasOptionalField(H225_LocationRequest::e_hopCount)) {

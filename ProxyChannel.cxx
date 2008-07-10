@@ -2603,9 +2603,10 @@ void CallSignalSocket::OnReleaseComplete(
 	)
 {
 	ReleaseCompleteMsg *rc = dynamic_cast<ReleaseCompleteMsg*>(msg);
-	if (rc == NULL)
+	if (rc == NULL) {
 		PTRACE(2, Type() << "\tWarning: ReleaseComplete message from " << Name() << " without associated UUIE");
-	
+	}
+
 	unsigned cause = 0;
 	if (m_call) {
 		// regular ReleaseComplete processing

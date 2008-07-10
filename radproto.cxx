@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.40  2008/05/18 20:40:56  willamowius
+ * put codec in RadAcct stop event (Thanks Tusar)
+ *
  * Revision 1.39  2008/04/18 14:37:28  willamowius
  * never include gnugkbuildopts.h directly, always include config.h
  *
@@ -1667,12 +1670,13 @@ bool RadiusSocket::MakeRequest(
 
 	m_writeMutex.Wait();
 	bool result = WriteTo(request, length, serverAddress, serverPort);
-	if (!result)
+	if (!result) {
 		PTRACE(5, "RADIUS\tError sending UDP packet ("
 			<< GetErrorCode(LastWriteError) << '/'
 			<< GetErrorNumber(LastWriteError) << ": "
 			<< GetErrorText(LastWriteError) << " (id:" << (PINDEX)id << ')'
 			);
+	}
 	m_writeMutex.Signal();
 	
 	if (result)
@@ -1917,13 +1921,14 @@ RadiusClient::RadiusClient(
 {
 	GetServersFromString(servers);
 	
-	if (!address)
-		if (!PIPSocket::IsLocalHost(address))
+	if (!address) {
+		if (!PIPSocket::IsLocalHost(address)) {
 			PTRACE(1, "RADIUS\tSpecified local client address " << address
-				<< " is not bound to any local interface"
-				);
-		else
+				<< " is not bound to any local interface");
+		} else {
 			PIPSocket::GetHostAddress(address, m_localAddress);
+		}
+	}
 
 #if PTRACING
 	if (PTrace::CanTrace(4)) {
@@ -1969,13 +1974,14 @@ RadiusClient::RadiusClient(
 		
 	const PString addr = config.GetString(sectionName, "LocalInterface", "");
 	
-	if (!addr)
-		if (!PIPSocket::IsLocalHost(addr))
+	if (!addr) {
+		if (!PIPSocket::IsLocalHost(addr)) {
 			PTRACE(2, "RADIUS\tSpecified local client address '" << addr 
-				<< "' is not bound to any local interface"
-				);
-		else
+				<< "' is not bound to any local interface");
+		} else {
 			PIPSocket::GetHostAddress(addr, m_localAddress);
+		}
+	}
 
 	// parse port range (if it does exist)
 	const PStringArray s

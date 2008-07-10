@@ -789,11 +789,13 @@ bool GRQRequester::SendRequest(const Address & addr, WORD pt, int r)
 
 bool GRQRequester::IsExpected(const RasMsg *ras) const
 {
-	if (ras->GetSeqNum() == GetSeqNum())
-		if (ras->GetTag() == H225_RasMessage::e_gatekeeperRequest)
+	if (ras->GetSeqNum() == GetSeqNum()) {
+		if (ras->GetTag() == H225_RasMessage::e_gatekeeperRequest) {
 			return m_txAddr == INADDR_BROADCAST; // catch broadcasted GRQ to avoid loop
-		else if (ras->GetTag() == H225_RasMessage::e_gatekeeperConfirm || ras->GetTag() == H225_RasMessage::e_gatekeeperReject)
+		} else if (ras->GetTag() == H225_RasMessage::e_gatekeeperConfirm || ras->GetTag() == H225_RasMessage::e_gatekeeperReject) {
 			return (m_txAddr == INADDR_BROADCAST) ? true : ras->IsFrom(m_txAddr, m_txPort);
+		}
+	}
 	return false;
 }
 
@@ -895,11 +897,13 @@ void GkClient::OnReload()
 {
 	PConfig *cfg = GkConfig();
 	
-	if (IsRegistered())
-		if (Toolkit::AsBool(cfg->GetString(EndpointSection, "UnregisterOnReload", "0")))
+	if (IsRegistered()) {
+		if (Toolkit::AsBool(cfg->GetString(EndpointSection, "UnregisterOnReload", "0"))) {
 			SendURQ();
-		else
+		} else {
 			Unregister();
+		}
+	}
 
 	m_password = Toolkit::Instance()->ReadPassword(EndpointSection, "Password");
 	m_retry = m_resend = cfg->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY);

@@ -1987,8 +1987,9 @@ void RegistrationTable::CheckEndpoints()
 	Iter = partition(OuterZoneList.begin(), OuterZoneList.end(),
 		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 #if PTRACING
-	if (ptrdiff_t s = distance(Iter, OuterZoneList.end()))
+	if (ptrdiff_t s = distance(Iter, OuterZoneList.end())) {
 		PTRACE(2, s << " outerzone endpoint(s) expired.");
+	}
 #endif
 	copy(Iter, OuterZoneList.end(), back_inserter(RemovedList));
 	OuterZoneList.erase(Iter, OuterZoneList.end());

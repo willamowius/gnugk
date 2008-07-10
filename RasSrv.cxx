@@ -2355,11 +2355,13 @@ bool AdmissionRequestPDU::Process()
 	// check if it is the first arrived ARQ
 	if (pExistingCallRec) {
 		// request more bandwidth?
-		if (BWRequest > pExistingCallRec->GetBandwidth())
-			if (CallTbl->GetAdmission(BWRequest, pExistingCallRec))
+		if (BWRequest > pExistingCallRec->GetBandwidth()) {
+			if (CallTbl->GetAdmission(BWRequest, pExistingCallRec)) {
 				pExistingCallRec->SetBandwidth(BWRequest);
-			else
+			} else {
 				bReject = true;
+			}
+		}
 	} else {
 		bReject = (!CallTbl->GetAdmission(BWRequest));
 	}

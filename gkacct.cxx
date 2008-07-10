@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.35  2008/05/08 08:22:40  zvision
+ * New GetAuthInfo,GetAcctInfo status port commands
+ *
  * Revision 1.34  2008/01/18 12:17:54  willamowius
  * add accounting variable %{cause-translated}
  *
@@ -892,11 +895,12 @@ void FileAcct::Rotate()
 	
 	const PFilePath fn = m_cdrFilename;
 	
-	if (PFile::Exists(fn))
-		if (!PFile::Rename(fn, fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss")))
+	if (PFile::Exists(fn)) {
+		if (!PFile::Rename(fn, fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss"))) {
 			PTRACE(1, "GKACCT\t" << GetName() << " rotate failed - could not "
-				"rename the log file"
-				);
+				"rename the log file");
+		}
+	}
 	
 	m_cdrFile = OpenCDRFile(fn);
 	m_cdrLines = 0;
@@ -966,12 +970,14 @@ bool GkAcctLoggerList::LogAcctEvent(
 	)
 {
 	// if this is an accounting update, check the interval
-	if (evt & GkAcctLogger::AcctUpdate)
+	if (evt & GkAcctLogger::AcctUpdate) {
 		if ((!call) || m_acctUpdateInterval == 0 
-			|| (now - call->GetLastAcctUpdateTime()) < m_acctUpdateInterval)
+			|| (now - call->GetLastAcctUpdateTime()) < m_acctUpdateInterval) {
 			return true;
-		else
+		} else {
 			call->SetLastAcctUpdateTime(now);
+		}
+	}
 			
 	bool finalResult = true;
 	GkAcctLogger::Status status = GkAcctLogger::Ok;
