@@ -236,7 +236,7 @@ void SoftPBX::SendProceeding(PString CallId)
 	cid.m_guid = tmp_guid;
  
 	// CallProceeding will be sent during the routing process
-	// at this time the acll won't yet be in the CallTable,
+	// at this time the call won't yet be in the CallTable,
 	// thus we look for it in the PreliminaryCallTable
 	PreliminaryCall * call = PreliminaryCallTable::Instance()->Find(cid);
 	CallSignalSocket * lForwardedSocket = NULL;
