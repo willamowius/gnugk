@@ -471,7 +471,7 @@ can download an open source STUN server from http://sourceforge.net/projects/stu
 Default: <tt/0/<newline>
 <p>
 Used with P2Pnat Media. When using GnuGk to connect endpoints on a local LAN 
-to the public internet ie GnuGK behind (or on) a router. You can use this
+to the public internet ie GnuGk behind (or on) a router. You can use this
 setting to allow (where possible) your local LAN Endpoints to send media 
 directly to other endpoints on the public internet without requiring the 
 media to always to be proxied thro' the Gatekeeper.

@@ -93,7 +93,7 @@ Public Sub Connect(lcom As String, Optional silent As Boolean = False)
     check_con linecmd
     Wait 1
     If Not silent Then
-    MsgBox "Settings Reloaded", vbInformation, "GnuGK"
+    MsgBox "Settings Reloaded", vbInformation, "GnuGk"
     End If
     Winsock1.Close
     Unload Me
@@ -119,7 +119,7 @@ Dim result As Long
             result = ShellExecute(GetDesktopWindow(), "Open", App.Path & "\addpasswd.exe", _
                  "gatekeeper.ini SimplePasswordAuth " & username & " " & password & vbNullString, App.Path, SW_SHOWNORMAL)
   
-         MsgBox "User " & username & " Added", vbInformation, "GnuGK"
+         MsgBox "User " & username & " Added", vbInformation, "GnuGk"
          Me.Visible = False
          Connect "reload", True
  

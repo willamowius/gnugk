@@ -4,7 +4,7 @@ This installer uses the IStool packaging program
 www.istool.org
 
 Instructions
-Extract GnuGK package to a directory GnuGK
+Extract GnuGk package to a directory GnuGK
 Open Install\gnugk.iss
 Build Install
 

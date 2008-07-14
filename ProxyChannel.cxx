@@ -2433,7 +2433,7 @@ void CallSignalSocket::OnInformation(
 
 	Q931 &q931 = msg->GetQ931();
 
-	// We are only interested in the GnuGK NAT message everything else ignore.
+	// We are only interested in the GnuGk NAT message everything else ignore.
 	if (!q931.HasIE(Q931::FacilityIE))
 		return;
 
@@ -2934,7 +2934,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_facility);
 	H225_Facility_UUIE & uuie = body;
 	// Don't set protocolID intentionally so the remote
-	// can determine whether this is a message generate by GnuGK
+	// can determine whether this is a message generate by GnuGk
 	// uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	if (m_call) {
 		uuie.IncludeOptionalField(H225_Facility_UUIE::e_conferenceID);

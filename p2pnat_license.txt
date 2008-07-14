@@ -19,7 +19,7 @@ to Non-Qualified Parties on reasonable and reciprocal terms and conditions.
 
 
 The GnuGk project (www.gnugk.org) is hereby granted non-exclusive royalty-free license of 
-Point to Point through NAT ("P2Pnat Technology") to be used with the GnuGK project. 
+Point to Point through NAT ("P2Pnat Technology") to be used with the GnuGk project. 
 Users and developers of GnuGk are hereby also granted non-exclusive royalty-free license of 
 P2Pnat Technology as long as the use of GnuGk and/or any derived work containing this technology 
 is used and/or issued under the same terms and conditions as the GnuGk project. Failure to comply 
