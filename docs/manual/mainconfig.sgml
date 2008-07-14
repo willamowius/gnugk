@@ -101,6 +101,11 @@ The endpoint must then re-register with the gatekeeper using a full RRQ message.
 
 To disable this feature, set it to <tt/-1/.
 
+<item><tt/TraceLevel=2/<newline>
+Default: <tt/0/<newline>
+<p>
+Set trace level (same as -t on the command line).
+
 <item><tt/TotalBandwidth=100000/<newline>
 Default: <tt/-1/<newline>
 <p>
@@ -396,6 +401,11 @@ This section defines log file related parameters. Currently it allows
 users to specify log file rotation options.
 
 <itemize>
+<item><tt>Filename=/var/log/gk_trace.log</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Set the output filene for the log file (same as -o on the command line).
+
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

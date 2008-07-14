@@ -13,25 +13,51 @@
 #ifndef GK_H
 #define GK_H "@(#) $Id$"
 
+#include "config.h"
 #include "version.h"
+#ifdef COMPILE_AS_SERVICE
+#include <ptlib/svcproc.h>
+#else
 #include <ptlib/pprocess.h>
+#endif
 
+#ifdef COMPILE_AS_SERVICE
+#define GNUGK_NAME	"GNU Gatekeeper"
+#else
+#define GNUGK_NAME	"Gatekeeper"
+#endif
 
 class GkTimer;
+
+#ifdef COMPILE_AS_SERVICE
+class Gatekeeper : public PServiceProcess 
+{
+	PCLASSINFO(Gatekeeper, PServiceProcess)
+#else
 class Gatekeeper : public PProcess 
 {
 	PCLASSINFO(Gatekeeper, PProcess)
+#endif
  public:
 	Gatekeeper
 		(const char * _manuf = "GNU", 
-		 const char * _name = "Gatekeeper", 
+		 const char * _name = GNUGK_NAME, 
 		 WORD _majorVersion = GNUGK_MAJOR_VERSION,
 		 WORD _minorVersion = GNUGK_MINOR_VERSION,
 		 CodeStatus _status = GNUGK_BUILD_TYPE,
 		 WORD _buildNumber = GNUGK_BUILD_NUMBER);
 
 	virtual void Main();
-
+	
+#ifdef COMPILE_AS_SERVICE
+	virtual PBoolean OnStart();
+	virtual void OnStop();
+	virtual void Terminate();
+	virtual PBoolean OnPause();
+	virtual void OnContinue();
+    virtual void OnControl();
+#endif
+    
 #if PTRACING
 	enum RotationIntervals {
 		Hourly,
@@ -121,6 +147,11 @@ private:
 	/// human readable names for rotation intervals
 	static const char* const m_intervalNames[];
 #endif // PTRACING
+
+#ifdef COMPILE_AS_SERVICE
+	PString savedArguments;
+#endif
+
 };
 
 #endif // GK_H

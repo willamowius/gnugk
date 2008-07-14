@@ -1,5 +1,7 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- new compile option COMPILE_AS_SERVICE to create a native Windows service
+- new config options [Logfile]Filename=, [Gatekeeper::Main]TraceLevel= (same as -o and -t on cmd line)
 - BUGFIX (ProxyChannel.cxx) always check m_call in H.450.2 call transfer emulator
 - allow mutiple results per query from MySQL (and ignore all after the first)
   needed for using strored procedures (patch by Matteo Piscitelli)

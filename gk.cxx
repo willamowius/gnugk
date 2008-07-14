@@ -292,9 +292,73 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 					   WORD _minorVersion,
 					   CodeStatus _status,
 					   WORD _buildNumber)
+#ifdef COMPILE_AS_SERVICE
+	: PServiceProcess(_manuf, _name, _majorVersion, _minorVersion, _status, _buildNumber)
+#else
 	: PProcess(_manuf, _name, _majorVersion, _minorVersion, _status, _buildNumber)
+#endif
+{
+#ifdef COMPILE_AS_SERVICE
+	// save original arguments
+	for (int i = 0; i < GetArguments().GetCount(); i++) {
+		savedArguments += GetArguments().GetParameter(i);
+		savedArguments += " " ;
+	}
+#ifndef _WIN32
+	// set startup arguments for service process
+	GetArguments().Parse(GetArgumentsParseString());
+	if (GetArguments().HasOption("pid"))
+		pidfile = GetArguments().GetOptionString("pid");
+	GetArguments().SetArgs("-d -p " + pidfile);
+#endif
+#endif
+}
+
+#ifdef COMPILE_AS_SERVICE
+PBoolean Gatekeeper::OnStart()
+{
+	// change to the default directory to the one containing the executable
+	PDirectory exeDir = GetFile().GetDirectory();
+	exeDir.Change();
+
+	return TRUE;
+}
+
+void Gatekeeper::OnStop()
+{
+	Terminate();
+}
+
+void Gatekeeper::Terminate()
+{
+#ifdef _WIN32
+	if (!RasServer::Instance()->IsRunning())
+#else
+	if (ShutdownMutex.WillBlock() || !RasServer::Instance()->IsRunning())
+#endif
+		return;
+	PWaitAndSignal shutdown(ShutdownMutex);
+	RasServer::Instance()->Stop();
+	// TODO: wait for termination here
+	PProcess::Sleep(10 * 1000);	// sleep 10 sec
+}
+
+PBoolean Gatekeeper::OnPause()
+{
+	// ignore pause
+	return false;	// return true; would pause, but we can't continue, then
+}
+
+
+void Gatekeeper::OnContinue()
+{
+	// ignore continue (can't be paused, anyway)
+}
+
+void Gatekeeper::OnControl()
 {
 }
+#endif // COMPILE_AS_SERVICE
 
 
 const PString Gatekeeper::GetArgumentsParseString() const
@@ -373,6 +437,8 @@ bool Gatekeeper::InitHandlers(const PArgList& args)
 bool Gatekeeper::InitLogging(const PArgList &args)
 {
 #if PTRACING
+	// Syslog is the default when compiled as service, but we don't want that
+	PTrace::ClearOptions(PTrace::SystemLogStream);
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel);
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o')) {
@@ -444,6 +510,10 @@ void Gatekeeper::PrintOpts(void)
 
 void Gatekeeper::Main()
 {
+#ifdef COMPILE_AS_SERVICE
+	GetArguments().SetArgs(savedArguments);
+#endif
+
 	PArgList & args = GetArguments();
 	args.Parse(GetArgumentsParseString());
 
@@ -499,6 +569,26 @@ void Gatekeeper::Main()
 
 	if (!InitConfig(args) || !InitHandlers(args))
 		ExitGK();
+
+
+	// set trace level + output file from config , if not set on the command line (for service)
+	PString fake_cmdline;
+	if (args.GetOptionCount('t') == 0) {
+		int log_trace_level = GkConfig()->GetInteger("TraceLevel", 0);
+		for (int t=0; t < log_trace_level; t++)
+			fake_cmdline += " -t";
+	}
+	if (!args.HasOption('o')) {
+		PString log_trace_file = GkConfig()->GetString("Logfile", "Filename", "");
+		if (!log_trace_file.IsEmpty())
+			fake_cmdline += " -o " + log_trace_file;
+	}
+	if (!fake_cmdline.IsEmpty()) {
+		PArgList fake_args(fake_cmdline);
+		fake_args.Parse(GetArgumentsParseString());
+		if (!InitLogging(fake_args))
+			return;
+	}
 
 	EnableLogFileRotation();
 	
@@ -938,8 +1028,9 @@ void Gatekeeper::CloseLogFile()
 {
 	PWaitAndSignal lock(m_logFileMutex);
 
-	if (m_logFile)
+	if (m_logFile) {
 		PTRACE(1, "GK\tLogging closed");
+	}
 	PTrace::SetStream(&cerr);
 #ifndef hasDeletingSetStream
 	delete m_logFile;
