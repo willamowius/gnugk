@@ -945,27 +945,37 @@ GkInterface *RasServer::SelectInterface(const Address & addr)
 
 const GkInterface *RasServer::SelectInterface(const Address & addr) const
 {
-	return const_cast<RasServer *>(this)->SelectInterface(addr);
+	return const_cast<RasServer *>(this)->SelectInterface(addr);	// cast away const
+}
+
+RasListener * RasServer::GetRasListener(const Address & addr) const
+{
+	const GkInterface * interf = SelectInterface(addr);
+	return interf ? interf->GetRasListener() : NULL;
 }
 
 PIPSocket::Address RasServer::GetLocalAddress(const Address & addr) const
 {
-	return SelectInterface(addr)->GetRasListener()->GetPhysicalAddr(addr);
+	RasListener * listener = GetRasListener(addr);
+	return listener ? listener->GetPhysicalAddr(addr) : PIPSocket::Address(0);
 }
 
 PIPSocket::Address RasServer::GetMasqAddress(const Address & addr) const
 {
-	return SelectInterface(addr)->GetRasListener()->GetLocalAddr(addr);	
+	RasListener * listener = GetRasListener(addr);
+	return listener ? listener->GetLocalAddr(addr) : PIPSocket::Address(0);	
 }
 
 H225_TransportAddress RasServer::GetRasAddress(const Address & addr) const
 {
-	return SelectInterface(addr)->GetRasListener()->GetRasAddress(addr);
+	RasListener * listener = GetRasListener(addr);
+	return listener ? listener->GetRasAddress(addr) : H225_TransportAddress(0);
 }
 
 H225_TransportAddress RasServer::GetCallSignalAddress(const Address & addr) const
 {
-	return SelectInterface(addr)->GetRasListener()->GetCallSignalAddress(addr);
+	RasListener * listener = GetRasListener(addr);
+	return listener ? listener->GetCallSignalAddress(addr) : H225_TransportAddress(0);
 }
 
 bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, RasListener *socket)

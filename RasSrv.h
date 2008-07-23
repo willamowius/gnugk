@@ -102,6 +102,7 @@ public:
 
 	GkInterface *SelectInterface(const Address &);
 	const GkInterface *SelectInterface(const Address &) const;
+	RasListener * GetRasListener(const Address & addr) const;
 	Address GetLocalAddress(const Address &) const;
 	Address GetMasqAddress(const Address &) const;
 	H225_TransportAddress GetRasAddress(const Address &) const;

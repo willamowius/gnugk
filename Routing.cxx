@@ -516,7 +516,7 @@ ParentPolicy::ParentPolicy()
 
 bool ParentPolicy::IsActive()
 {
-	return m_gkClient->IsRegistered();
+	return m_gkClient ? m_gkClient->IsRegistered() : false;
 }
 
 bool ParentPolicy::OnRequest(AdmissionRequest & arq_obj)
@@ -921,7 +921,7 @@ VirtualQueuePolicy::VirtualQueuePolicy()
 
 bool VirtualQueuePolicy::IsActive() const
 {
-	return m_vqueue->IsActive();
+	return m_vqueue ? m_vqueue->IsActive() : false;
 }
 
 bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
