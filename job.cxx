@@ -39,7 +39,7 @@ public:
 
 	/// create a new Worker thread and start it immediatelly
 	Worker(
-		/// pointer to the Agent instance that the worker is run under control of
+		/// pointer to the Agent instance that is controlling this worker
 		Agent* agent,
 		/// timeout (seconds) for this Worker to be deleted, if idle
 		long idleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT

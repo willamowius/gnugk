@@ -24,15 +24,13 @@
 /** The base abstract class that represents job objects.
     This class implements the way to execute the job.
     Derived classes implement actual jobs (override Run()).
-	Jobs are executed and managed by internal Job managment system
+	Jobs are executed and managed by the internal Job managment system
 	consisting of the singleton Agent object and Worker threads
 	that accept and execute new Jobs.
 	
 	Specialized Job examples are:
     Jobs - executes series of Tasks
     RegularJob - executes a Task again and again until stopped
-    SimpleJob - calls some funtion with one pointer-type argument
-    SimpleJobA - calls some funtion with two arguments : pointer-type and reference
     SimpleClassJob - calls a member function of some class that takes no arguments
     SimpleClassJobA - calls a member function of some class that takes one 
 	                  argument of reference type
