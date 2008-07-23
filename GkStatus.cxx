@@ -140,7 +140,7 @@ public:
 	*/
 	void OnCommand(
 		/// command to be executed
-		const PString& cmd
+		PString cmd
 		);
 
 	/** @return
@@ -928,7 +928,7 @@ bool StatusClient::Authenticate()
 
 void StatusClient::OnCommand(
 	/// command to be executed
-	const PString& cmd
+	PString cmd
 	)
 {
 	{
@@ -937,6 +937,10 @@ void StatusClient::OnCommand(
 	}
 	// problem - if the ExecCommand does not get executed for some reason,
 	// m_numExecutingCommands will not decrement
+	
+	// make sure this PString doesn't share memory with other PStrings
+	// when we send it into another thread
+	cmd.MakeUnique();
 	CreateJob(this, &StatusClient::ExecCommand, cmd, "StatusCmd " + cmd);
 }
 
