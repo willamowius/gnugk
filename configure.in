@@ -543,11 +543,6 @@ else
 fi
 AC_SUBST(HAS_PGSQL)
 
-if test "x$pgsql" != "xno" -o "x$mysql" != "xno"; then
-	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
-	HEADERS="$HEADERS sqlacct.h gksql.h"
-fi
-
 dnl #########################################################################
 dnl  Check for Firebird
 dnl ########################################################################
@@ -912,6 +907,14 @@ else
 	HAS_SQLITE=0
 fi
 AC_SUBST(HAS_SQLITE)
+
+dnl ########################################################################
+dnl enable sqlauth, sqlacc if any DB present
+
+if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno"; then
+	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
+	HEADERS="$HEADERS sqlacct.h gksql.h"
+fi
 
 dnl ########################################################################
 dnl make directives

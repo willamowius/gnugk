@@ -4391,11 +4391,6 @@ else
 fi
 
 
-if test "x$pgsql" != "xno" -o "x$mysql" != "xno"; then
-	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
-	HEADERS="$HEADERS sqlacct.h gksql.h"
-fi
-
 
 
 # Check whether --enable-firebird was given.
@@ -5148,6 +5143,12 @@ else
 	HAS_SQLITE=0
 fi
 
+
+
+if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno"; then
+	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
+	HEADERS="$HEADERS sqlacct.h gksql.h"
+fi
 
 
 GNUGK_MAJOR_VERSION=`cat version.h | grep "define GNUGK_MAJOR_VERSION" | cut -f4 -d' '`
