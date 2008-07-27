@@ -498,7 +498,7 @@ public:
 
 private:
 	// override from class Policy
-	virtual bool IsActive();
+	virtual bool IsActive() const;
 
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);
@@ -514,7 +514,7 @@ ParentPolicy::ParentPolicy()
 	m_name = "Parent";
 }
 
-bool ParentPolicy::IsActive()
+bool ParentPolicy::IsActive() const
 {
 	return m_gkClient ? m_gkClient->IsRegistered() : false;
 }

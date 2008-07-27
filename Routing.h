@@ -188,7 +188,7 @@ public:
 protected:
 	// new virtual function
 	// if return false, the policy is disable
-	virtual bool IsActive() { return true; }
+	virtual bool IsActive() const { return true; }
 
 	// methods to handle the request
 	// return true:  fate of the request is determined (confirm or reject)

@@ -1105,7 +1105,7 @@ public:
 
 private:
 	// override from class Policy
-	virtual bool IsActive();
+	virtual bool IsActive() const;
 
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);
@@ -1123,7 +1123,7 @@ NeighborPolicy::NeighborPolicy() : m_neighbors(*RasServer::Instance()->GetNeighb
 	m_name = "Neighbor";
 }
 
-bool NeighborPolicy::IsActive()
+bool NeighborPolicy::IsActive() const
 {
 	return !m_neighbors.empty();
 }
