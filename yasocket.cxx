@@ -107,17 +107,20 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 		// are moved to the end of the vector
 		if (hasfd) {
 			while (++j != rendIter) {
-				if (!fdset.has((*j)->GetHandle()))
+				if (!fdset.has((*j)->GetHandle())) {
 					*j = *k--;
+				}
 			}
 			// at this point the vector [begin(),k] should contain
 			// all selected sockets, so erase the remaining vector elements
 			fds.erase(++k, fds.end());
-		} else
+		} else {
 			fds.clear();
+		}
 #endif
-	} else if (r < 0)
+	} else if (r < 0) {
 		PTRACE(3, GetName() << "\tSelect " << (t == Read ? "read" : "write") << " error - errno: " << errno);
+	}
 	return r > 0;
 }
 
