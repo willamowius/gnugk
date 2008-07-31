@@ -1149,13 +1149,12 @@ void GatewayRec::LoadGatewayConfig()
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
 		const PString alias = AsString(m_terminalAliases[i], FALSE);
 		if (!alias) {
-			const PString key = "EP::" + AsString(m_terminalAliases[i], FALSE);
+			const PString key = "EP::" + alias;
 			if (sections.GetStringsIndex(key) != P_MAX_INDEX) {
 				priority = cfg->GetInteger(key, "GatewayPriority", 1);
 				AddPrefixes(cfg->GetString(key, "GatewayPrefixes", ""));
 				setDefaults = false;
 				PTRACE(5, "RAS\tGateway " << key << " priority: " << priority);
-				break;
 			}
 			AddPrefixes(cfg->GetString("RasSrv::GWPrefixes", alias, ""));
 		}
