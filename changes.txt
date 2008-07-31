@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX (GkStatus.cxx) make sure status port threads don't share string memory with other threads
 - new compile option COMPILE_AS_SERVICE to create a native Windows service
 - new config options [Logfile]Filename=, [Gatekeeper::Main]TraceLevel= (same as -o and -t on cmd line)
 - BUGFIX (ProxyChannel.cxx) always check m_call in H.450.2 call transfer emulator
