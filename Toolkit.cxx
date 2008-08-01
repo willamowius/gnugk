@@ -265,14 +265,15 @@ void Toolkit::RouteTable::InitTable()
 
 	// Get all the interface addresses available
 	std::vector<PIPSocket::Address> home;
-	Toolkit::Instance()->GetGKHome(home);
+	PString foo = Toolkit::Instance()->GetGKHome(home);
 	if (!home.empty() && home.size() > 1) {
 		// Set default IP to Bind IP, if given.
-		PString bind =GkConfig()->GetString("Bind", "");
-		if (!bind) 
+		PString bind = GkConfig()->GetString("Bind", "");
+		if (!bind) {
 			defAddr = bind;
 		} else {
 			defAddr = home[0];
+		}
 	}
 
 	// If we do not already have a valid entry, try and retrieve the default interface
@@ -1302,6 +1303,8 @@ PConfig* Toolkit::ReloadConfig()
 		
 	ReloadSQLConfig();
 
+	// TODO/BUG: always call SetGKHome() on reload, even if we don't have a Home= setting
+	// otherwise we won't detect new IPs on the machine
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (m_GKHome.empty() || !GKHome)
 		SetGKHome(GKHome.Tokenise(",:;", false));
