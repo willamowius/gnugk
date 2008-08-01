@@ -40,6 +40,7 @@ Default: <tt/OpenH323GK/<newline>
 <p>
 Gatekeeper identifier of this gatekeeper. The gatekeeper will only respond to
 GRQs for this ID and will use it in a number of messages to its endpoints.
+<bf/This setting doesn't change when the config is reloaded!/
 
 <item><tt/Home=192.168.1.1/<newline>
 Default: <tt/0.0.0.0/<newline>
@@ -59,6 +60,7 @@ that you may want to use this option. One is automatic detection fails.
 If you are using GnuGk behind a NAT box then you should use the ExternalIP
 setting which will automatically configure GnuGk to operate as if it was
 on the NAT box and superceded using this entry.
+<bf/This setting doesn't change when the config is reloaded!/
 
 <item><tt/Bind=192.168.1.1/<newline>
 Default: <tt/0.0.0.0/<newline>
