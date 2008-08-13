@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.44  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.43  2008/04/18 13:14:11  shorne
  * Fixes for auto-configure on windows
  *
@@ -821,10 +824,16 @@ int RadAuthBase::Check(
 			value = attr->AsCiscoString();
 			if (!value) {
 				numbersToDial = value.Tokenise("; \t", FALSE);
-				authData.SetRouteToAlias(numbersToDial[0]);
-				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
-					"to the number " << value
-					);
+				if (numbersToDial.GetSize() > 0) {
+					authData.SetRouteToAlias(numbersToDial[0]);
+					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
+						"to the number " << value
+						);
+				} else {
+					PTRACE(1, "RADAUTH\t" << GetName()
+						<< " invalid ARQ check redirect numbers list: " << value
+						);
+				}
 			}
 		}
 	}
@@ -848,7 +857,8 @@ int RadAuthBase::Check(
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 							SocketToH225TransportAddr(raddr, rport)
 							);
-						route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
+						if (numbersToDial.GetSize() > 0)
+							route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
 						authData.m_destinationRoutes.push_back(route);
 						PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
 							"to the address " << route.AsString()
@@ -1078,10 +1088,16 @@ int RadAuthBase::Check(
 			value = attr->AsCiscoString();
 			if (!value) {
 				numbersToDial = value.Tokenise("; \t", FALSE);
-				authData.SetRouteToAlias(numbersToDial[0]);
-				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
-					"to the number " << value
-					);
+				if (numbersToDial.GetSize() > 0) {
+					authData.SetRouteToAlias(numbersToDial[0]);
+					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
+						"to the number " << value
+						);
+				} else {
+					PTRACE(1, "RADAUTH\t" << GetName()
+						<< " invalid ARQ check redirect numbers list: " << value
+						);
+				}
 			}
 		}
 	}
@@ -1105,7 +1121,8 @@ int RadAuthBase::Check(
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 							SocketToH225TransportAddr(raddr, rport)
 							);
-						route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
+						if (numbersToDial.GetSize() > 0)
+							route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
 						authData.m_destinationRoutes.push_back(route);
 						PTRACE(5, "RADAUTH\t" << GetName() << " Setup check redirect "
 							"to the address " << route.AsString()

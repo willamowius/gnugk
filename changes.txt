@@ -1,5 +1,7 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX(radauth.cxx) fixed crash in processing h323-redirect-ip
+  when no h323-redirect-number is present
 - BUGFIX (RasTbl.cxx) read GWPrefixes even if there is an EP:: section for this endpoint
 - BUGFIX (GkStatus.cxx) make sure status port threads don't share string memory with other threads
 - new compile option COMPILE_AS_SERVICE to create a native Windows service
