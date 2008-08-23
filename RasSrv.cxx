@@ -719,6 +719,7 @@ void RasServer::Stop()
 	PWaitAndSignal lock(m_deletionPreventer);
 	ForEachInContainer(handlers, mem_vfun(&RasHandler::Stop));
 	delete vqueue;	// delete virtual queues before Jobs, otherwise the jobs will wait for the queues
+	vqueue = NULL;
 	RegularJob::Stop();
 }
 
@@ -897,12 +898,18 @@ void RasServer::LoadConfig()
 	}
 #endif
 
-	listeners->LoadConfig();
-	gkClient->OnReload();
-	neighbors->OnReload();
-	authList->OnReload();
-	acctList->OnReload();
-	vqueue->OnReload();
+	if (listeners)
+		listeners->LoadConfig();
+	if (gkClient)
+		gkClient->OnReload();
+	if (neighbors)
+		neighbors->OnReload();
+	if (authList)
+		authList->OnReload();
+	if (acctList)
+		acctList->OnReload();
+	if (vqueue)
+		vqueue->OnReload();
 	Routing::Analyzer::Instance()->OnReload();
 
 	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", 1));
