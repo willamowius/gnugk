@@ -595,7 +595,7 @@ SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 </verb></tscreen>
 </descrip>
 
-<item><tt/Exit/, <tt/q/<newline>
+<item><tt/Exit/, <tt/Quit/, <tt/q/, <tt/Ctrl-D/<newline>
 <p>Quit the status port.
 
 <item><tt/TransferCall/<newline>

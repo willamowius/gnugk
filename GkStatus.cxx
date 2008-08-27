@@ -837,6 +837,11 @@ bool StatusClient::ReadCommand(
 					}
 				}
 				break;
+			case '\x04':	// Ctrl-D
+				cmd = "exit";
+				m_lastCmd = cmd;
+				m_currentCmd = PString();
+				return true;
 			default:
 				byte = char(ch);
 				m_currentCmd += byte;
