@@ -25,6 +25,8 @@
 #include "Toolkit.h"
 #include "RasSrv.h"
 #include "Routing.h"
+#include "gkacct.h"
+#include "capctrl.h"
 #include "rwlock.h"
 #include "gk.h"
 #include "h323util.h"
@@ -1265,12 +1267,43 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_Reload:
 		{
-			ConfigReloadMutex.EndRead();
-			ReloadHandler();
-			ConfigReloadMutex.StartRead();
+			if (args.GetSize() >= 2) {
+				ConfigReloadMutex.StartWrite();
+				Toolkit::Instance()->PrepareReloadConfig();
+				if (args[1] == "acctconfig") {
+					GkAcctLoggerList *acctList = RasServer::Instance()->GetAcctList();
+					if (acctList)
+						acctList->OnReload();
+					PTRACE(1, "STATUS\tAcct Config reloaded.");
+					m_gkStatus->SignalStatus("Acct Config reloaded.\r\n");
+				} else if (args[1] == "authconfig") {
+					GkAuthenticatorList *authList = RasServer::Instance()->GetAuthList();
+					if (authList)
+						authList->OnReload();
+					PTRACE(1, "STATUS\tAuth Config reloaded.");
+					m_gkStatus->SignalStatus("Auth Config reloaded.\r\n");
+				} else if (args[1] == "capconfig") {
+					CapacityControl::Instance()->LoadConfig();
+					PTRACE(1, "STATUS\tCapacityControl Config reloaded.");
+					m_gkStatus->SignalStatus("CapacityControl Config reloaded.\r\n");
+				} else if (args[1] == "epconfig") {
+					CallTable::Instance()->LoadConfig();
+					RegistrationTable::Instance()->LoadConfig();
+					CallTable::Instance()->UpdatePrefixCapacityCounters();
+					PTRACE(1, "STATUS\tEP Config reloaded.");
+					m_gkStatus->SignalStatus("EP Config reloaded.\r\n");
+				} else {
+					CommandError("Syntax Error: Reload <AcctConfig|AuthConfig|CapConfig|EpConfig>");
+				}
+				ConfigReloadMutex.EndWrite();
+			} else {
+				ConfigReloadMutex.EndRead();	// ReloadHandler() re-aquires a write lock
+				ReloadHandler();
+				ConfigReloadMutex.StartRead();
+				PTRACE(1, "STATUS\tFull Config reloaded.");
+				m_gkStatus->SignalStatus("Full Config reloaded.\r\n");
+			}
 		}
-		PTRACE(1, "STATUS\tConfig reloaded.");
-		m_gkStatus->SignalStatus("Config reloaded.\r\n");
 		break;
 	case GkStatus::e_Shutdown:
 		if (!Toolkit::AsBool(GkConfig()->GetString(authsec, "Shutdown", "1"))) {

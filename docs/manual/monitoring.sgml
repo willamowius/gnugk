@@ -150,6 +150,24 @@ The command <tt/help/ or <tt/h/ will show you a list of all available commands.
 <itemize>
 <item><tt/Reload/<newline>
 <p>Reload the configuration.
+You can add an optional parameter to reload only a part of your configuration:
+<itemize>
+<item>AcctConfig - reload only the accounting config
+<item>AuthConfig - reload only the authentication config
+<item>CapConfig - reload only the CapacityControl rules
+<item>EpConfig - reload only the endpoint config (permanent endpoints, endpoint section, call table settings)
+</itemize>
+<p>
+<descrip>
+<tag/Example:/
+<tscreen><verb>
+Reload
+Full Config reloaded.
+
+Reload EpConfig
+EP Config reloaded.
+</verb></tscreen>
+</descrip>
 
 <item><tt/Version/, <tt/v/<newline>
 <p>Show the version and OS information of the gatekeeper.

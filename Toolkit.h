@@ -382,6 +382,9 @@ class Toolkit : public Singleton<Toolkit>
 	 */
 	void SetConfig(int act, const PString & sec, const PString & key = PString::Empty(), const PString & value = PString::Empty());
 
+	// creates a new symlink so we can re-read the config file
+	void PrepareReloadConfig();
+
 	PConfig* ReloadConfig();
 
 	/// reads name of the running instance from config
@@ -525,7 +528,7 @@ class Toolkit : public Singleton<Toolkit>
 #ifdef OpenH323Factory
 	PStringList GetAuthenticatorList();
 #endif
-		
+
 protected:
 	void CreateConfig();
 	void ReloadSQLConfig();

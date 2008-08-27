@@ -1284,12 +1284,19 @@ void Toolkit::ReloadSQLConfig()
 #endif // HAS_DATABASE
 }
 
-PConfig* Toolkit::ReloadConfig()
+void Toolkit::PrepareReloadConfig()
 {
 	if (!m_ConfigDirty)
 		CreateConfig();
 	else // the config have been changed via status port, use it directly
 		m_ConfigDirty = false;
+}
+
+PConfig* Toolkit::ReloadConfig()
+{
+	// make a new symlink if needed
+	PrepareReloadConfig();
+	// read the toolkit config values
 
 	m_GKName = Config()->GetString("Name", "OpenH323GK");
 	

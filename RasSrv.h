@@ -160,6 +160,9 @@ public:
 	{
 		return authList->Validate(setup, authData);
 	}
+	
+	GkAcctLoggerList * GetAcctList() { return acctList; }
+	GkAuthenticatorList * GetAuthList() { return authList; }
 
 	bool LogAcctEvent(
 		int evt,
