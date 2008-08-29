@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2008/07/10 08:03:17  willamowius
+ * avoid gcc 4.3.x warnings
+ *
  * Revision 1.14  2008/04/02 22:32:22  willamowius
  * auto-reconnect on database errors
  *
@@ -257,7 +260,9 @@ bool GkSQLConnection::AcquireSQLConnection(
 		return false;
 
 	if (!m_connected) {
+		PWaitAndSignal lock(m_connectionsMutex);
 		PTRACE(2, GetName() << "\tAttempting to reconnect to the database");
+		Disconnect();
 		if (!Connect()) {
 			PTRACE(2, GetName() << "\tFailed to reconnect to the database");
 			return false;
