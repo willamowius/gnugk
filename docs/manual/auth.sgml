@@ -596,6 +596,11 @@ result and get additional information:
           to enable/disable (depends on the 'proxy' column value) RTP proxy
           for this call
 </enum>
+<item>If the request is denied, remaining columns are examined:
+<enum>
+	<item>If there exists a column called <tt/'q931cause'/, set a Q.931 cause in a Release Complete
+		  to this value
+</enum>
 </enum>
 <p>
 Query string examples:

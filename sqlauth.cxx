@@ -840,6 +840,18 @@ int SQLAuth::Check(
 
 	if (!Toolkit::AsBool(result[0].first)) {
 		authData.m_rejectCause = Q931::CallRejected;
+		GkSQLResult::ResultRow::const_iterator iter = FindField(result, "q931cause");
+		if (iter != result.end()) {
+			const PString &s = iter->first;
+			if (s.GetLength() > 0
+				&& strspn((const char*)s, "0123456789") == (size_t)s.GetLength()) {
+				int cause = s.AsInteger();
+				if (cause > 0 && cause < 128) {
+					authData.m_rejectCause = cause;
+					PTRACE(5, traceStr << " - Q.931 cause set to " << authData.m_rejectCause);
+				}
+			}
+		}
 		return e_fail;
 	}
 
