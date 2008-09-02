@@ -424,10 +424,10 @@ This module also provides CLIR (Calling Line Identification Restriction)
 feature that can be configured for each endpoint (rule).
 
 <itemize>
-<item><tt/ProcessSourceInfo=1/<newline>
+<item><tt/ProcessSourceAddress=1/<newline>
 Default: <tt/1/<newline>
 <p>
-In addition to rewriting a Calling-Party-Number IE also a sourceInfo
+In addition to rewriting a Calling-Party-Number IE also a sourceAddress
 element of a H.225.0 Setup message can be rewritten, so both contain
 consistent information.
 
