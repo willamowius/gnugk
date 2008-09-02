@@ -429,6 +429,7 @@ void CapacityControl::LogCall(
 	)
 {
 	if (callStart) {
+		// find longest matching rule by ip/h323id/cli
 		IpCallVolumes::iterator bestIpMatch = FindByIp(srcIp, calledStationId);
 		if (bestIpMatch != m_ipCallVolumes.end()) {
 			PTRACE(5, "CAPCTRL\tCall #" << callNumber
@@ -466,7 +467,8 @@ void CapacityControl::LogCall(
 		}
 	} else { // call stop
 		PWaitAndSignal lock(m_updateMutex);
-		
+
+		// find the right counter by GnuGk call number	
 		IpCallVolumes::iterator bestIpMatch = m_ipCallVolumes.begin();
 		while (bestIpMatch != m_ipCallVolumes.end()) {
 			std::list<PINDEX>::iterator i = find(bestIpMatch->second.m_calls.begin(),
