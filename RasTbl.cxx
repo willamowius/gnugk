@@ -1610,16 +1610,17 @@ endptr RegistrationTable::FindFirstEndpoint(const H225_ArrayOf_AliasAddress & al
 	return (ep) ? ep : InternalFindFirstEP(alias, &OuterZoneList);
 }
 
-void RegistrationTable::FindEndpoint(
+bool RegistrationTable::FindEndpoint(
 	const H225_ArrayOf_AliasAddress &aliases,
 	bool roundRobin,
 	bool searchOuterZone,
 	list<Route> &routes
 	)
 {
-	InternalFindEP(aliases, &EndpointList, roundRobin, routes);
-	if (searchOuterZone)
-		InternalFindEP(aliases, &OuterZoneList, roundRobin, routes);
+	bool found = InternalFindEP(aliases, &EndpointList, roundRobin, routes);
+	if (searchOuterZone && InternalFindEP(aliases, &OuterZoneList, roundRobin, routes))
+		found = true;
+	return found;
 }
 
 namespace {
@@ -1670,7 +1671,7 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 	return endptr(0);
 }
 
-void RegistrationTable::InternalFindEP(
+bool RegistrationTable::InternalFindEP(
 	const H225_ArrayOf_AliasAddress &aliases,
 	list<EndpointRec*> *endpoints,
 	bool roundRobin,
@@ -1681,7 +1682,7 @@ void RegistrationTable::InternalFindEP(
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
 		routes.push_back(Route(ep));
-        return;
+        return true;
 	}
 
 	int maxlen = 0;
@@ -1704,38 +1705,41 @@ void RegistrationTable::InternalFindEP(
 	}
 	listLock.EndRead();
 
-	if (!GWlist.empty()) {
-		GWlist.sort(ComparePriority);
+	if (GWlist.empty())
+		return false;
 		
-		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
-		while (i != GWlist.end()) {
-			if (i->second->HasAvailableCapacity(aliases))
-				routes.push_back(Route(endptr(i->second)));
-			else
-				PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
-			++i;
-		}
+	GWlist.sort(ComparePriority);
+		
+	std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
+	while (i != GWlist.end()) {
+		if (i->second->HasAvailableCapacity(aliases))
+			routes.push_back(Route(endptr(i->second)));
+		else
+			PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
+		++i;
+	}
 
-		if (routes.size() > 1 && roundRobin) {
-			PTRACE(3, "Prefix apply round robin");
-			WriteLock lock(listLock);
-			endpoints->remove(routes.front().m_destEndpoint.operator->());
-			endpoints->push_back(routes.front().m_destEndpoint.operator->());
-		}
+	if (routes.size() > 1 && roundRobin) {
+		PTRACE(3, "Prefix apply round robin");
+		WriteLock lock(listLock);
+		endpoints->remove(routes.front().m_destEndpoint.operator->());
+		endpoints->push_back(routes.front().m_destEndpoint.operator->());
+	}
 
 #if PTRACING
-		if (PTrace::CanTrace(4)) {
-			ostream &strm = PTrace::Begin(4, __FILE__, __LINE__);
-			strm << "RASTBL\tPrefix match for gateways: ";
-			list<Route>::const_iterator r = routes.begin();
-			while (r != routes.end()) {
-				strm << endl << AsDotString(r->m_destAddr);
-				++r;
-			}
-			PTrace::End(strm);
+	if (PTrace::CanTrace(4)) {
+		ostream &strm = PTrace::Begin(4, __FILE__, __LINE__);
+		strm << "RASTBL\tPrefix match for gateways: ";
+		list<Route>::const_iterator r = routes.begin();
+		while (r != routes.end()) {
+			strm << endl << AsDotString(r->m_destAddr);
+			++r;
 		}
-#endif
+		PTrace::End(strm);
 	}
+#endif
+
+	return true;
 }
 
 void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId)

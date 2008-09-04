@@ -469,7 +469,7 @@ public:
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindFirstEndpoint(const H225_ArrayOf_AliasAddress & alias);
-	void FindEndpoint(
+	bool FindEndpoint(
 		const H225_ArrayOf_AliasAddress &aliases,
 		bool roundRobin,
 		bool searchOuterZone,
@@ -516,7 +516,7 @@ private:
 	}
 
 	endptr InternalFindFirstEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound);
-	void InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, std::list<Routing::Route> &routes);
+	bool InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, std::list<Routing::Route> &routes);
 
 	void GenerateEndpointId(H225_EndpointIdentifier &);
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
