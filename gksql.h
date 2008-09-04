@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2008/04/03 10:24:20  willamowius
+ * new header config.h for configuration details
+ *
  * Revision 1.12  2008/04/02 22:32:22  willamowius
  * auto-reconnect on database errors
  *
@@ -309,7 +312,8 @@ protected:
 	    AcquireSQLConnection.
 	*/
 	void ReleaseSQLConnection(
-		SQLConnPtr& connptr /// connection to release (mark as idle)
+		SQLConnPtr& connptr, /// connection to release (mark as idle)
+		bool deleteFromPool = false /// true to delete the connection (a broken connection)
 		);
 
 	/** Execute the query using specified SQL connection.

@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX(gksql.cxx) SQL reconnect thread-safety fixes
 - new q931cause variable in SQLAuth module
 - status port connection can now be closed with Ctrl-D (instead of 'exit')
 - selective reload on the status port: Reload <AcctConfig|AuthConfig|CapConfig|EpConfig>

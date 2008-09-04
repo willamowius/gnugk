@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2008/08/29 08:39:19  zvision
+ * Fixed missing lock around Connect
+ *
  * Revision 1.15  2008/07/10 08:03:17  willamowius
  * avoid gcc 4.3.x warnings
  *
@@ -167,7 +170,9 @@ bool GkSQLConnection::Initialize(
 
 bool GkSQLConnection::Connect()
 {
-	for (PINDEX i = 0; i < m_minPoolSize; i++) {
+	PWaitAndSignal lock(m_connectionsMutex);
+	
+	for (PINDEX i = m_idleConnections.size(); i < m_minPoolSize; ++i) {
 		SQLConnPtr connptr = CreateNewConnection(i);
 		if (connptr != NULL)
 			m_idleConnections.push_back(connptr);
@@ -193,6 +198,8 @@ bool GkSQLConnection::Connect()
 
 void GkSQLConnection::Disconnect()
 {
+	PWaitAndSignal lock(m_connectionsMutex);
+	
 	// disconnect/delete all connections
 	PTRACE(3, GetName() << "\tDisconnecting all SQL connections in pool");
 	for(iterator Iter = m_idleConnections.begin();
@@ -200,11 +207,11 @@ void GkSQLConnection::Disconnect()
 		delete *Iter;
 	}
 	m_idleConnections.clear();
-	for(iterator Iter = m_busyConnections.begin();
-		Iter != m_busyConnections.end(); Iter++) {
-		delete *Iter;
-	}
-	m_busyConnections.clear();
+//	for(iterator Iter = m_busyConnections.begin();
+//		Iter != m_busyConnections.end(); Iter++) {
+//		delete *Iter;
+//	}
+//	m_busyConnections.clear();
 	// TODO:: delete waiting ?
 	m_connected = false;
 }
@@ -260,7 +267,6 @@ bool GkSQLConnection::AcquireSQLConnection(
 		return false;
 
 	if (!m_connected) {
-		PWaitAndSignal lock(m_connectionsMutex);
 		PTRACE(2, GetName() << "\tAttempting to reconnect to the database");
 		Disconnect();
 		if (!Connect()) {
@@ -278,8 +284,11 @@ bool GkSQLConnection::AcquireSQLConnection(
 			PTRACE(2, GetName() << "\tQuery timed out waiting " << timeout << "ms for the connection");
 			return false;
 		}
-		if (!m_destroying)
+		if (!m_destroying) {
 			connptr = m_idleConnections.front();
+			m_idleConnections.pop_front();
+			m_busyConnections.push_front(connptr);
+		}
 	} else {
 		bool waiting = false;
 	
@@ -327,15 +336,21 @@ bool GkSQLConnection::AcquireSQLConnection(
 }
 
 void GkSQLConnection::ReleaseSQLConnection(
-	SQLConnPtr& connptr
+	SQLConnPtr& connptr,
+	bool deleteFromPool
 	)
 {
 	if (connptr == NULL)
 		return;
 	// special case (no pool) for fast execution
-	if (m_minPoolSize == 1 && m_maxPoolSize == 1)
+	if (m_minPoolSize == 1 && m_maxPoolSize == 1) {
+		m_busyConnections.remove(connptr);
+		if (deleteFromPool)
+			delete connptr;
+		else
+			m_idleConnections.push_back(connptr);
 		m_connectionsMutex.Signal();
-	else {
+	} else {
 		// mark the connection as idle or give it to the first waiting request
 		{
 			PWaitAndSignal lock(m_connectionsMutex);
@@ -353,21 +368,25 @@ void GkSQLConnection::ReleaseSQLConnection(
 					break;
 				iter++;
 			}
-			if (iter != end && !m_destroying) {
+			if (iter != end && !m_destroying && !deleteFromPool) {
 				// do not remove itself from the list of busy connections
 				// just move the connection to the waiting request
 				*(*iter) = connptr;
 			} else {
 				// move the connection to the list of idle connections
 				m_busyConnections.remove(connptr);
-				m_idleConnections.push_back(connptr);
+				if (deleteFromPool)
+					delete connptr;
+				else
+					m_idleConnections.push_back(connptr);
 			}
 		
 			connptr = NULL;
 		}
 
 		// wake up any threads waiting for an idle connection
-		m_connectionAvailable.Signal();
+		if (!deleteFromPool)
+			m_connectionAvailable.Signal();
 	}
 }
 
@@ -389,7 +408,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 			PTRACE(5, GetName() << "\tExecuting query: " << queryStr);
 			result = ExecuteQuery(connptr, queryStr, timeout);
 		}
-		ReleaseSQLConnection(connptr);
+		ReleaseSQLConnection(connptr, !m_connected);
 		return result;
 	} else {
 		PTRACE(2, GetName() << "\tQuery failed - no idle connection in the pool");
@@ -415,7 +434,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 			PTRACE(5, GetName() << "\tExecuting query: " << finalQueryStr);
 			result = ExecuteQuery(connptr, finalQueryStr, timeout);
 		}
-		ReleaseSQLConnection(connptr);
+		ReleaseSQLConnection(connptr, !m_connected);
 		return result;
 	} else {
 		PTRACE(2, GetName() << "\tQuery failed - no idle connection in the pool");
