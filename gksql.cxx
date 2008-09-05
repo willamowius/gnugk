@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2008/09/04 08:19:04  zvision
+ * SQL reconnect thread safety fixes
+ *
  * Revision 1.16  2008/08/29 08:39:19  zvision
  * Fixed missing lock around Connect
  *
@@ -567,6 +570,20 @@ PString GkSQLConnection::ReplaceQueryParams(
 	}
 
 	return finalQuery;
+}
+
+void GkSQLConnection::GetInfo(
+	Info &info /// filled with SQL connection state information upon return
+	)
+{
+	PWaitAndSignal lock(m_connectionsMutex);
+
+	info.m_connected = m_connected;
+	info.m_minPoolSize = m_minPoolSize;
+	info.m_maxPoolSize = m_maxPoolSize;
+	info.m_idleConnections = m_idleConnections.size();
+	info.m_busyConnections = m_busyConnections.size();
+	info.m_waitingRequests = m_waitingRequests.size();
 }
 
 GkSQLConnection::SQLConnWrapper::~SQLConnWrapper()

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2008/09/04 08:19:04  zvision
+ * SQL reconnect thread safety fixes
+ *
  * Revision 1.13  2008/04/03 10:24:20  willamowius
  * new header config.h for configuration details
  *
@@ -146,6 +149,15 @@ protected:
 class GkSQLConnection : public NamedObject
 {
 public:
+	struct Info {
+		bool m_connected;
+		unsigned m_idleConnections;
+		unsigned m_busyConnections;
+		unsigned m_waitingRequests;
+		int m_minPoolSize;
+		int m_maxPoolSize;
+	};
+	
 	GkSQLConnection(
 		/// name to use in the log
 		const char* name = "SQL"
@@ -246,6 +258,11 @@ public:
 		long timeout = -1
 		);
 
+	/// Get information about SQL connection state
+	void GetInfo(
+		Info &info /// filled with SQL connection state information upon return
+		);
+		
 #if defined(_WIN32) && (_MSC_VER < 1300)
 public:
 #else

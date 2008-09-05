@@ -51,6 +51,8 @@ public:
 	
 	virtual ~SQLPasswordAuth();
 
+	virtual PString GetInfo();
+	
 protected:
 	/** Override from SimplePasswordAuth.
 	
@@ -87,6 +89,8 @@ public:
 		);
 	
 	virtual ~SQLAliasAuth();
+
+	virtual PString GetInfo();
 
 protected:
 	/** Get auth condition string for the given alias. 
@@ -183,6 +187,8 @@ public:
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData& authData
 		);
+
+	virtual PString GetInfo();
 
 private:
 	SQLAuth();
@@ -342,6 +348,28 @@ bool SQLPasswordAuth::GetPassword(
 	return true;
 }
 
+PString SQLPasswordAuth::GetInfo()
+{
+	PString result;
+	
+	if (m_sqlConn == NULL)
+		result += "  No SQL connection available\r\n";
+	else {
+		GkSQLConnection::Info info;
+		m_sqlConn->GetInfo(info);
+		result += "  Connected to an SQL Backend: " + PString(info.m_connected ? "Yes" : "No") + "\r\n";
+		result += "  Min Connection Pool Size:    " + PString(info.m_minPoolSize) + "\r\n";
+		result += "  Max Connection Pool Size:    " + PString(info.m_maxPoolSize) + "\r\n";
+		result += "  Idle Connections:            " + PString(info.m_idleConnections) + "\r\n";
+		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
+		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
+	}
+	
+	result += ";\r\n";
+	
+	return result;
+}
+
 SQLAliasAuth::SQLAliasAuth(
 	const char* authName
 	)
@@ -414,6 +442,27 @@ bool SQLAliasAuth::GetAuthConditionString(
 	return true;
 }
 
+PString SQLAliasAuth::GetInfo()
+{
+	PString result;
+	
+	if (m_sqlConn == NULL)
+		result += "  No SQL connection available\r\n";
+	else {
+		GkSQLConnection::Info info;
+		m_sqlConn->GetInfo(info);
+		result += "  Connected to an SQL Backend: " + PString(info.m_connected ? "Yes" : "No") + "\r\n";
+		result += "  Min Connection Pool Size:    " + PString(info.m_minPoolSize) + "\r\n";
+		result += "  Max Connection Pool Size:    " + PString(info.m_maxPoolSize) + "\r\n";
+		result += "  Idle Connections:            " + PString(info.m_idleConnections) + "\r\n";
+		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
+		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
+	}
+	
+	result += ";\r\n";
+	
+	return result;
+}
 
 SQLAuth::SQLAuth(
 	const char* authName,
@@ -923,6 +972,27 @@ int SQLAuth::Check(
 	return e_ok;
 }
 
+PString SQLAuth::GetInfo()
+{
+	PString result;
+	
+	if (m_sqlConn == NULL)
+		result += "  No SQL connection available\r\n";
+	else {
+		GkSQLConnection::Info info;
+		m_sqlConn->GetInfo(info);
+		result += "  Connected to an SQL Backend: " + PString(info.m_connected ? "Yes" : "No") + "\r\n";
+		result += "  Min Connection Pool Size:    " + PString(info.m_minPoolSize) + "\r\n";
+		result += "  Max Connection Pool Size:    " + PString(info.m_maxPoolSize) + "\r\n";
+		result += "  Idle Connections:            " + PString(info.m_idleConnections) + "\r\n";
+		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
+		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
+	}
+	
+	result += ";\r\n";
+	
+	return result;
+}
 
 namespace { // anonymous namespace
 	GkAuthCreator<SQLPasswordAuth> SQLPasswordAuthCreator("SQLPasswordAuth");

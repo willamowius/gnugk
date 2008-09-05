@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2006/04/14 13:56:19  willamowius
+ * call failover code merged
+ *
  * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
  *
  *
@@ -77,6 +80,8 @@ public:
 		const callptr& call /// additional data for the event
 		);
 
+	virtual PString GetInfo();
+	
 private:
 	/* No copy constructor allowed */
 	SQLAcct(const SQLAcct&);

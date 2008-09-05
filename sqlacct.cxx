@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2008/07/10 08:07:54  willamowius
+ * avoid gcc 4.3.x warnings
+ *
  * Revision 1.14  2007/09/28 22:20:23  willamowius
  * cleanup includes
  *
@@ -293,6 +296,28 @@ GkAcctLogger::Status SQLAcct::Log(
 	const bool succeeded = result != NULL && result->IsValid();	
 	delete result;
 	return succeeded ? Ok : Fail;
+}
+
+PString SQLAcct::GetInfo()
+{
+	PString result;
+	
+	if (m_sqlConn == NULL)
+		result += "  No SQL connection available\r\n";
+	else {
+		GkSQLConnection::Info info;
+		m_sqlConn->GetInfo(info);
+		result += "  Connected to an SQL Backend: " + PString(info.m_connected ? "Yes" : "No") + "\r\n";
+		result += "  Min Connection Pool Size:    " + PString(info.m_minPoolSize) + "\r\n";
+		result += "  Max Connection Pool Size:    " + PString(info.m_maxPoolSize) + "\r\n";
+		result += "  Idle Connections:            " + PString(info.m_idleConnections) + "\r\n";
+		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
+		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
+	}
+	
+	result += ";\r\n";
+	
+	return result;
 }
 
 namespace {
