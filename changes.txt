@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX(capctrl.cxx) added a missing lock during config reload for CapacityControl module
 - BUGFIX InternalPolicy should set a reject reason to something like gatewayResources/resourcesUnavailable
   instead of calledPartyNotRegistered when terminating gateways were found, but there was no capacity
 - BUGFIX(gksql.cxx) SQL reconnect thread-safety fixes

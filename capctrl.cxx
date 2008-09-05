@@ -209,6 +209,8 @@ void CapacityControl::LoadConfig()
 	std::stable_sort(h323IdCallVolumes.begin(), h323IdCallVolumes.end(), H323IdRule_greater());
 	std::stable_sort(cliCallVolumes.begin(), cliCallVolumes.end(), CLIRule_greater());
 
+	PWaitAndSignal lock(m_updateMutex);
+	
 	// update route entries that have not changed
 	{
 		IpCallVolumes::const_iterator rule = m_ipCallVolumes.begin();
