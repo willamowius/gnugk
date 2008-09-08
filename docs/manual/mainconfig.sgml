@@ -108,6 +108,8 @@ Default: <tt/0/<newline>
 <p>
 Set trace level (same as -t on the command line).
 
+<bf/This setting doesn't change when the config is reloaded!/
+
 <item><tt/TotalBandwidth=100000/<newline>
 Default: <tt/-1/<newline>
 <p>
