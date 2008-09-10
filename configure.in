@@ -261,6 +261,10 @@ AC_SUBST(INSTALLPREFIX)
 dnl #########################################################################
 dnl  Check for RADIUS
 dnl ########################################################################
+
+dnl MSWIN_DISPLAY    radius,RADIUS
+dnl MSWIN_CHECK_FILE radius,radacct.h,HAS_RADIUS=1
+
 AC_ARG_ENABLE(radius, 
 [  --enable-radius               enable RADIUS support (default=yes)], 
 [ radius="${enableval}" ], [radius="yes"] 
