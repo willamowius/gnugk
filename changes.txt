@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX(MakeCall.cxx) MakeCall didn't work on Windows
 - implemented status port gai/gci commands for SQLAcct, SQLAuth, SQLPasswordAuth and SQLAliasAuth modules
 - BUGFIX(capctrl.cxx) added a missing lock during config reload for CapacityControl module
 - BUGFIX InternalPolicy should set a reject reason to something like gatewayResources/resourcesUnavailable

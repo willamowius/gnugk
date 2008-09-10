@@ -404,9 +404,13 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 {
 	PTRACE(3, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
+	if (! MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
+		PProcess::Sleep(500);	// give pseudo-endpoint 0.5 sec to register
+	}
 	if (MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
 		MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias);
 	} else {
+		PTRACE(1, "GK\tSoftPBX: MakeCall registration of pseudo-endpoint failed");
 		delete MakeCallEndPoint::Instance();	// delete this failed instance, it will never work
 	}
 }

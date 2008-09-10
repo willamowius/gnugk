@@ -45,10 +45,12 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	}
 
 	PString gkName = GkConfig()->GetString("CTI::MakeCall", "Gatekeeper", "127.0.0.1");
-	if (SetGatekeeper(gkName, rasChannel))
+	if (SetGatekeeper(gkName, rasChannel)) {
 		PTRACE(3, "MakeCallEndpoint: Gatekeeper set: " << *gatekeeper);
-	else {
+		isRegistered = TRUE;
+	} else {
 		PTRACE(1, "MakeCallEndpoint: Error registering with gatekeeper at \"" << gkName << '"');
+		isRegistered = FALSE;
 	}
 }
 
