@@ -112,7 +112,7 @@ BEGIN
 	END IF;
 
 	IF length(e164) > 0 THEN
-		IF ascii(e164) >= 48 AND ascii(e164) <= 57 THEN
+		IF (ascii(e164) >= 48 AND ascii(e164) <= 57) OR ascii(e164) = 42 THEN
 			SELECT INTO dst.id, dst.active, trf.id D.id, D.active, T.id
 				FROM voiptariffdst D LEFT JOIN voiptariff T ON T.dstid = D.id
 					LEFT JOIN voiptariffgrp G ON T.grpid = G.id 
