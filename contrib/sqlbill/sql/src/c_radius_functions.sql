@@ -110,8 +110,6 @@ DECLARE
 	rrqalias TEXT;
 	aliases TEXT;
 BEGIN
-	RAISE LOG ''sqlbill: RRQ(username: %; IP: %)'', $1, framed_ip;
-	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
 	reject_attr.attrname := ''Auth-Type'';
@@ -127,6 +125,8 @@ BEGIN
 	-- remove RADIUS escapes
 	username := radius_xlat($1);
 
+	RAISE LOG ''sqlbill: RRQ(username: %; IP: %)'', username, framed_ip;
+	
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN
 		RETURN NEXT reject_attr;
@@ -348,8 +348,6 @@ DECLARE
 	trf voiptariff%ROWTYPE;
 	userid INT;
 BEGIN
-	RAISE LOG ''sqlbill: ARQ(username: %; IP: %; answer: %; calling: %; called: %)'', $1, framed_ip, answer_call, $5, $6;
-	
 	-- prepare Auth-Type := Reject avp, as it is referenced very often
 	reject_attr.id := 0;
 	reject_attr.attrname := ''Auth-Type'';
@@ -366,6 +364,8 @@ BEGIN
 	username := radius_xlat($1);
 	calling_station_id := radius_xlat($5);
 	called_station_id := radius_xlat($6);
+	
+	RAISE LOG ''sqlbill: ARQ(username: %; IP: %; answer: %; calling: %; called: %)'', username, framed_ip, answer_call, calling_station_id, called_station_id;
 	
 	userid := match_user(username, framed_ip);
 	IF userid IS NULL THEN
