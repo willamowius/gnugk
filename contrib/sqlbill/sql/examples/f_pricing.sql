@@ -45,8 +45,9 @@ UPDATE voiptariff_temp SET destination = trim(destination, '\'\r\n\t '),
 	graceperiod = trim(graceperiod, '\'\r\n\t '), terminating = trim(terminating, '\'\r\n\t ');
 
 UPDATE voiptariff_temp SET price = replace(price, ',', '.');
+UPDATE voiptariff_temp SET grp = '' WHERE grp IS NULL;
 
-DELETE FROM voiptariff_temp WHERE NOT initialincrement::TEXT ~* '[0-9]+';
+DELETE FROM voiptariff_temp WHERE (NOT initialincrement::TEXT ~* '[0-9]+') OR (NOT regularincrement::TEXT ~* '[0-9]+') OR (NOT graceperiod::TEXT ~* '[0-9]+');
 
 CREATE TEMPORARY TABLE voiptarifffull_temp
 (
