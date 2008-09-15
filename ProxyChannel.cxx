@@ -2349,11 +2349,6 @@ void CallSignalSocket::OnCallProceeding(
 					uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 			}
 			uuie.m_h323_uu_pdu.m_h245Tunneling = msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling;
-			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardNonStandard", "0"))) {	// JW
-				if (msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardData)) {
-					uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_nonStandardData);
-				}
-			}
 			msg->GetQ931() = q931;
 			*msg->GetUUIE() = uuie;
 			msg->SetUUIEChanged();
