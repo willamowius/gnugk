@@ -320,7 +320,7 @@ Default: <tt>N/A</tt><newline>
 Sets the eum server list in priority order seperated by (,) for the enum policy. 
 This overrides the PWLIB_ENUM_PATH environmental variable.
 
-<item><tt/RDSServers=myvirtualhost.com/<newline>
+<item><tt/RDSservers=myvirtualhost.com/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Use this to set RDS server to query for rds routing policy. 
@@ -377,6 +377,22 @@ When set, GnuGk will intercept H.450.2 call transfer messages and if possible tr
 the call on behalf of the endpoint. This allows the endpoint initiated transfering of
 calls where the remote endpoint may not support H.450 and the gatekeeper initiates the 
 call transfer.  
+
+<item><tt/RemoveH235Call=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+TODO: document
+
+<item><tt/RemoveH460Call=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+TODO: document
+
+<item><tt/ForceNATKeepAlive=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+TODO: document
+
 </itemize>
 
 <p>
