@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.45  2008/08/13 13:10:52  zvision
+ * h323-redirect-ip crash when no h323-redirect-number fixed
+ *
  * Revision 1.44  2008/04/18 14:37:28  willamowius
  * never include gnugkbuildopts.h directly, always include config.h
  *
@@ -857,8 +860,14 @@ int RadAuthBase::Check(
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 							SocketToH225TransportAddr(raddr, rport)
 							);
-						if (numbersToDial.GetSize() > 0)
+						if (numbersToDial.GetSize() > 0) {
 							route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
+							PINDEX pos = route.m_destNumber.Find('=');
+							if (pos != P_MAX_INDEX) {
+								route.m_destOutNumber = route.m_destNumber.Mid(pos + 1);
+								route.m_destNumber = route.m_destNumber.Left(pos);
+							}
+						}
 						authData.m_destinationRoutes.push_back(route);
 						PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
 							"to the address " << route.AsString()
@@ -1121,8 +1130,14 @@ int RadAuthBase::Check(
 						route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 							SocketToH225TransportAddr(raddr, rport)
 							);
-						if (numbersToDial.GetSize() > 0)
+						if (numbersToDial.GetSize() > 0) {
 							route.m_destNumber = (i < numbersToDial.GetSize()) ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1];
+							PINDEX pos = route.m_destNumber.Find('=');
+							if (pos != P_MAX_INDEX) {
+								route.m_destOutNumber = route.m_destNumber.Mid(pos + 1);
+								route.m_destNumber = route.m_destNumber.Left(pos);
+							}
+						}
 						authData.m_destinationRoutes.push_back(route);
 						PTRACE(5, "RADAUTH\t" << GetName() << " Setup check redirect "
 							"to the address " << route.AsString()

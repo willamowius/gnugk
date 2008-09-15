@@ -2068,52 +2068,74 @@ void CallSignalSocket::OnSetup(
 	PString out_rewrite_id;
 	// Do outbound per GW rewrite
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-		PIPSocket::Address neighbor_addr;
-		WORD port;
-		#if PTRACING
-		PString rewrite_type;
-		#endif
-
-		// Try neighbor list first
-		if (m_call->GetDestSignalAddr(neighbor_addr, port)) {
-			out_rewrite_id = rassrv->GetNeighbors()->GetNeighborIdBySigAdr(neighbor_addr);
+		if (!m_call->GetNewRoutes().empty() && !m_call->GetNewRoutes().front().m_destOutNumber.IsEmpty()) {
 			#if PTRACING
-			if (!out_rewrite_id)
-				rewrite_type = "neighbor or explicit IP";
+			PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": auth module");
 			#endif
-		}
-
-		// Try call record rewrite id
-		if (out_rewrite_id.IsEmpty()) {
-			out_rewrite_id = m_call->GetOutboundRewriteId();
+			for (PINDEX i = 0; i < setupBody.m_destinationAddress.GetSize(); ++i)
+				if (setupBody.m_destinationAddress[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+					PTRACE(2, Type() << "\tAuth out rewrite: " << ::AsString(setupBody.m_destinationAddress[i]) << " to " << m_call->GetNewRoutes().front().m_destOutNumber);
+					H323SetAliasAddress(m_call->GetNewRoutes().front().m_destOutNumber, setupBody.m_destinationAddress[i], setupBody.m_destinationAddress[i].GetTag());
+				} else if (setupBody.m_destinationAddress[i].GetTag() == H225_AliasAddress::e_partyNumber) {
+					H225_PartyNumber &partyNumber = setupBody.m_destinationAddress[i];
+					if (partyNumber.GetTag() == H225_PartyNumber::e_e164Number) {
+						H225_PublicPartyNumber &number = partyNumber;
+						number.m_publicNumberDigits = m_call->GetNewRoutes().front().m_destOutNumber;
+						PTRACE(2, Type() << "\tAuth out rewrite: " << ::AsString(setupBody.m_destinationAddress[i]) << " to " << m_call->GetNewRoutes().front().m_destOutNumber);
+					} else if (partyNumber.GetTag() == H225_PartyNumber::e_privateNumber) {
+						H225_PrivatePartyNumber &number = partyNumber;
+						number.m_privateNumberDigits = m_call->GetNewRoutes().front().m_destOutNumber;
+						PTRACE(2, Type() << "\tAuth out rewrite: " << ::AsString(setupBody.m_destinationAddress[i]) << " to " << m_call->GetNewRoutes().front().m_destOutNumber);
+					}
+				}
+		} else {
+			PIPSocket::Address neighbor_addr;
+			WORD port;
 			#if PTRACING
-			if (!out_rewrite_id)
-				rewrite_type = "call record";
+			PString rewrite_type;
 			#endif
-		}
-
-		// Try configured endpoint
-		if (out_rewrite_id.IsEmpty()) {
-			endptr rewriteEndPointOut = m_call->GetCalledParty();
-			if (rewriteEndPointOut && rewriteEndPointOut->GetAliases().GetSize() > 0) {
-		 		out_rewrite_id = GetBestAliasAddressString(
-					rewriteEndPointOut->GetAliases(), false,
-					AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
-					AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-						| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-					);
+	
+			// Try neighbor list first
+			if (m_call->GetDestSignalAddr(neighbor_addr, port)) {
+				out_rewrite_id = rassrv->GetNeighbors()->GetNeighborIdBySigAdr(neighbor_addr);
 				#if PTRACING
 				if (!out_rewrite_id)
-					rewrite_type = "setup H323 ID or E164";
+					rewrite_type = "neighbor or explicit IP";
 				#endif
 			}
-		}
+	
+			// Try call record rewrite id
+			if (out_rewrite_id.IsEmpty()) {
+				out_rewrite_id = m_call->GetOutboundRewriteId();
+				#if PTRACING
+				if (!out_rewrite_id)
+					rewrite_type = "call record";
+				#endif
+			}
 
-		if (!out_rewrite_id) {
-			#if PTRACING
-			PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
-			#endif
-		    toolkit->GWRewriteE164(out_rewrite_id, false, setupBody.m_destinationAddress);
+			// Try configured endpoint
+			if (out_rewrite_id.IsEmpty()) {
+				endptr rewriteEndPointOut = m_call->GetCalledParty();
+				if (rewriteEndPointOut && rewriteEndPointOut->GetAliases().GetSize() > 0) {
+			 		out_rewrite_id = GetBestAliasAddressString(
+						rewriteEndPointOut->GetAliases(), false,
+						AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+						AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+							| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
+						);
+					#if PTRACING
+					if (!out_rewrite_id)
+						rewrite_type = "setup H323 ID or E164";
+					#endif
+				}
+			}
+	
+			if (!out_rewrite_id) {
+				#if PTRACING
+				PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
+				#endif
+			    toolkit->GWRewriteE164(out_rewrite_id, false, setupBody.m_destinationAddress);
+			}
 		}
 	}
 
@@ -2122,9 +2144,15 @@ void CallSignalSocket::OnSetup(
 		PString calledNumber;
 
 		// Do per GW outbound rewrite after global rewrite
-		if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
-			if (toolkit->GWRewritePString(out_rewrite_id, false, calledNumber))
+		if (q931.GetCalledPartyNumber(calledNumber, &plan, &type)) {
+			if (!m_call->GetNewRoutes().empty() && !m_call->GetNewRoutes().front().m_destOutNumber.IsEmpty()) {
+				PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": auth module");
+				PTRACE(2, Type() << "\tAuth out rewrite Called-Party-Number IE: " << calledNumber << " to " << m_call->GetNewRoutes().front().m_destOutNumber);
+				calledNumber = m_call->GetNewRoutes().front().m_destOutNumber;
 				q931.SetCalledPartyNumber(calledNumber, plan, type);
+			} else if (toolkit->GWRewritePString(out_rewrite_id, false, calledNumber))
+				q931.SetCalledPartyNumber(calledNumber, plan, type);
+		}
 	}
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {

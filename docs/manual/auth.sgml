@@ -588,7 +588,10 @@ result and get additional information:
 	<item>If there exists a column called <tt/'credittime'/, use its integer
           value to set call duration limit
 	<item>If there exists a column called <tt/'redirectnumber'/, replace
-          the original destination number with this one
+          the original destination number with this one. You can put multiple
+		  numbers (that correspond to multiple <tt/'redirectip'/ entries) separated
+		  by a semicolon. You can also specify an outbound number (to be sent to a terminating gateway)
+		  by appending it with an '=' to the rewritten number (like 485811001001=1234485811001001)
 	<item>If there exists a column called <tt/'redirectip'/, force the call
           to be sent to the specified IP (one can put multiple destinations
 		  separated by a semicolon)
@@ -1059,6 +1062,14 @@ inside Access-Accept packets:
 <item><tt>VSA: VendorId=Cisco, h323-redirect-ip-address</tt><newline>
 <p>
 		If present, a call is sent to the IP address present in this attribute.
+		You can put multiple destinations separated with a semicolon.
+<item><tt>VSA: VendorId=Cisco, h323-redirect-number</tt><newline>
+<p>
+		If present, a called station id is rewritten to this number.
+		You can put multiple numbers (that correspond to multiple destinations
+		in <tt/h323-redirect-ip-address/) separated by a semicolon.
+		For each number you can also specify an outbound number (that is sent
+		to a terminating gateway) by appending it with an '='.
 </itemize>
 <p>
 If both Session-Timeout and h323-credit-time are present, a lesser value

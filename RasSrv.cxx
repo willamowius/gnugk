@@ -2458,6 +2458,25 @@ bool AdmissionRequestPDU::Process()
 
 	}
 
+	if (hasDestInfo && CalledEP && RequestingEP != CalledEP && !arq.GetRoutes().empty() && !arq.GetRoutes().front().m_destOutNumber.IsEmpty()) {
+		for (PINDEX i = 0; i < request.m_destinationInfo.GetSize(); ++i)
+			if (request.m_destinationInfo[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+				H323SetAliasAddress(arq.GetRoutes().front().m_destOutNumber, request.m_destinationInfo[i], request.m_destinationInfo[i].GetTag());
+				aliasesChanged = aliasesChanged || RasSrv->IsGKRouted();
+			} else if (request.m_destinationInfo[i].GetTag() == H225_AliasAddress::e_partyNumber) {
+				H225_PartyNumber &partyNumber = request.m_destinationInfo[i];
+				if (partyNumber.GetTag() == H225_PartyNumber::e_e164Number) {
+					H225_PublicPartyNumber &number = partyNumber;
+					number.m_publicNumberDigits = arq.GetRoutes().front().m_destOutNumber;
+					aliasesChanged = aliasesChanged || RasSrv->IsGKRouted();
+				} else if (partyNumber.GetTag() == H225_PartyNumber::e_privateNumber) {
+					H225_PrivatePartyNumber &number = partyNumber;
+					number.m_privateNumberDigits = arq.GetRoutes().front().m_destOutNumber;
+					aliasesChanged = aliasesChanged || RasSrv->IsGKRouted();
+				}
+			}
+	}
+	
 	if (pExistingCallRec) {
 		// duplicate or answer ARQ
 		PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
