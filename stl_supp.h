@@ -21,12 +21,6 @@
 
 namespace std {
 
-// Oops... the standard STL minus object is too restricted
-template <class _Tp, class R>
-struct Minus : public binary_function<_Tp,_Tp, R> {
-  R operator()(const _Tp& __x, const _Tp& __y) const { return __x - __y; }
-};
-
 #ifdef _WIN32
 #if (_MSC_VER <= 1200)
 // VC++ didn't define these
