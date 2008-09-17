@@ -1687,6 +1687,7 @@ void CallSignalSocket::OnSetup(
 	
 	GkClient *gkClient = rassrv->GetGkClient();
 	bool rejectCall = false;
+	bool suppressAcctStart = false;
 	SetupAuthData authData(m_call, m_call ? true : false);
 	
 	if (m_call) {
@@ -1698,6 +1699,10 @@ void CallSignalSocket::OnSetup(
 			PTRACE(2, Type() << "\tWarning: socket (" << Name() << ") already attached for callid " << callid);
 			m_call->SetDisconnectCause(Q931::CallRejected);
 			rejectCall = true;
+			// suppress 2nd AcctStart for same callid
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+				suppressAcctStart = (AsString(m_call->GetCallIdentifier().m_guid) == AsString(setupBody.m_callIdentifier.m_guid));
+			}
 		} else if (m_call->IsToParent() && !m_call->IsForwarded()) {
 			if (gkClient->CheckFrom(_peerAddr)) {
 				// looped call
@@ -1762,7 +1767,7 @@ void CallSignalSocket::OnSetup(
 		if (!authData.m_dialedNumber)
 			m_call->SetDialedNumber(authData.m_dialedNumber);
 		
-		if (m_call->GetFailedRoutes().empty() || !m_call->SingleFailoverCDR()) {
+		if (!suppressAcctStart && (m_call->GetFailedRoutes().empty() || !m_call->SingleFailoverCDR())) {
 			// log AcctStart accounting event
 			if (!rassrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call)) {
 				PTRACE(2, Type() << "\tDropping call #" << m_call->GetCallNumber()
@@ -1773,8 +1778,7 @@ void CallSignalSocket::OnSetup(
 			}
 		} else
 			PTRACE(5, Type() << "\tSupressing accounting start event for call #"
-				<< m_call->GetCallNumber() << ", failover active"
-				);
+				<< m_call->GetCallNumber());
 	} else {
 		// no existing CallRec
 		authData.m_dialedNumber = dialedNumber;
