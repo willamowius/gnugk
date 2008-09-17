@@ -11,9 +11,6 @@
 
 /*
  * You have to create a process with your own Gatekeeper class.
- * I choosed to make it this way. Alternatively you do use
- * your own "main.cxx" file and link that to yout binary instead
- * of this file.
  */
 
 
