@@ -68,16 +68,19 @@ for calls sent to this endpoint
 
 <item><tt/Proxy=1/<newline>
 Default: <tt/0/<newline>
+<p>
 Enables/disables proxying calls sent to this endpoint (0 - do not
 change global proxy settings, 1 - force proxy mode, 2 - disable proxy mode).
 
 <item><tt/TranslateReceivedQ931Cause=17:=34/<newline>
 Default: <tt>N/A</tt><newline>
+<p>
 Translate received cause codes in ReleaseComplete messages from this endpoint.
 In the above example code 17 (User busy) will be translated into cause code 34 (No circuit/channel available).
 
 <item><tt/TranslateSentQ931Cause=21:=34,27:=34/<newline>
 Default: <tt>N/A</tt><newline>
+<p>
 Translate cause codes in ReleaseComplete messages sent out to this endpoint.
 In the above example code 21 and 27 will be translated into cause code 34, because this particular gateway might deal with error code 34 better than with others.
 
