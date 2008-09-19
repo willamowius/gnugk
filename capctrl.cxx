@@ -69,7 +69,7 @@ struct CLIRule_greater : public std::binary_function<CapacityControl::CLICallVol
 } // end of anonymous namespace
 
 CapacityControl::InboundCallVolume::InboundCallVolume()
-	: m_maxVolume(0), m_currentVolume(0)
+	: m_maxVolume(0)
 {
 }
 
@@ -80,7 +80,7 @@ CapacityControl::InboundCallVolume::~InboundCallVolume()
 PString CapacityControl::InboundCallVolume::AsString() const
 {
 	return PString("pfx: ") + (m_prefix.empty() ? "*" : m_prefix.c_str())
-		+ ", vol (cur/max): " + PString(m_currentVolume) + "/" + PString(m_maxVolume);
+		+ ", vol (cur/max): " + PString(m_calls.size()) + "/" + PString(m_maxVolume);
 }
 
 bool CapacityControl::InboundCallVolume::operator==(const InboundCallVolume &obj) const
@@ -210,7 +210,7 @@ void CapacityControl::LoadConfig()
 	std::stable_sort(cliCallVolumes.begin(), cliCallVolumes.end(), CLIRule_greater());
 
 	PWaitAndSignal lock(m_updateMutex);
-	
+
 	// update route entries that have not changed
 	{
 		IpCallVolumes::const_iterator rule = m_ipCallVolumes.begin();
@@ -219,7 +219,6 @@ void CapacityControl::LoadConfig()
 				ipCallVolumes.begin(), ipCallVolumes.end(), *rule
 				);
 			if (matchingRule != ipCallVolumes.end() && matchingRule->second == rule->second) {
-				matchingRule->second.m_currentVolume = rule->second.m_currentVolume;
 				matchingRule->second.m_calls = rule->second.m_calls;
 			}
 			++rule;
@@ -233,7 +232,6 @@ void CapacityControl::LoadConfig()
 				h323IdCallVolumes.begin(), h323IdCallVolumes.end(), *rule
 				);
 			if (matchingRule != h323IdCallVolumes.end() && matchingRule->second == rule->second) {
-				matchingRule->second.m_currentVolume = rule->second.m_currentVolume;
 				matchingRule->second.m_calls = rule->second.m_calls;
 			}
 			++rule;
@@ -247,7 +245,6 @@ void CapacityControl::LoadConfig()
 				cliCallVolumes.begin(), cliCallVolumes.end(), *rule
 				);
 			if (matchingRule != cliCallVolumes.end() && matchingRule->second == rule->second) {
-				matchingRule->second.m_currentVolume = rule->second.m_currentVolume;
 				matchingRule->second.m_calls = rule->second.m_calls;
 			}
 			++rule;
@@ -443,8 +440,7 @@ void CapacityControl::LogCall(
 				<< "\t" << bestIpMatch->second.AsString()
 				);
 			PWaitAndSignal lock(m_updateMutex);
-			++(bestIpMatch->second.m_currentVolume);
-			bestIpMatch->second.m_calls.push_back(callNumber);
+			bestIpMatch->second.m_calls.insert(callNumber);
 			return;
 		}
 
@@ -455,8 +451,7 @@ void CapacityControl::LogCall(
 				<< "\t" << bestH323IdMatch->second.AsString()
 				);
 			PWaitAndSignal lock(m_updateMutex);
-			++(bestH323IdMatch->second.m_currentVolume);
-			bestH323IdMatch->second.m_calls.push_back(callNumber);
+			bestH323IdMatch->second.m_calls.insert(callNumber);
 			return;
 		}
 
@@ -467,8 +462,7 @@ void CapacityControl::LogCall(
 				<< "\t" << bestCliMatch->second.AsString()
 				);
 			PWaitAndSignal lock(m_updateMutex);
-			++(bestCliMatch->second.m_currentVolume);
-			bestCliMatch->second.m_calls.push_back(callNumber);
+			bestCliMatch->second.m_calls.insert(callNumber);
 			return;
 		}
 	} else { // call stop
@@ -477,11 +471,10 @@ void CapacityControl::LogCall(
 		// find the right counter by GnuGk call number	
 		IpCallVolumes::iterator bestIpMatch = m_ipCallVolumes.begin();
 		while (bestIpMatch != m_ipCallVolumes.end()) {
-			std::list<PINDEX>::iterator i = find(bestIpMatch->second.m_calls.begin(),
+			std::set<PINDEX>::iterator i = find(bestIpMatch->second.m_calls.begin(),
 				bestIpMatch->second.m_calls.end(), callNumber
 				);
 			if (i != bestIpMatch->second.m_calls.end()) {
-				--(bestIpMatch->second.m_currentVolume);
 				bestIpMatch->second.m_calls.erase(i);
 				return;
 			}
@@ -490,11 +483,10 @@ void CapacityControl::LogCall(
 
 		H323IdCallVolumes::iterator bestH323IdMatch = m_h323IdCallVolumes.begin();
 		while (bestH323IdMatch != m_h323IdCallVolumes.end()) {
-			std::list<PINDEX>::iterator i = find(bestH323IdMatch->second.m_calls.begin(),
+			std::set<PINDEX>::iterator i = find(bestH323IdMatch->second.m_calls.begin(),
 				bestH323IdMatch->second.m_calls.end(), callNumber
 				);
 			if (i != bestH323IdMatch->second.m_calls.end()) {
-				--(bestH323IdMatch->second.m_currentVolume);
 				bestH323IdMatch->second.m_calls.erase(i);
 				return;
 			}
@@ -503,11 +495,10 @@ void CapacityControl::LogCall(
 
 		CLICallVolumes::iterator bestCliMatch = m_cliCallVolumes.begin();
 		while (bestCliMatch != m_cliCallVolumes.end()) {
-			std::list<PINDEX>::iterator i = find(bestCliMatch->second.m_calls.begin(),
+			std::set<PINDEX>::iterator i = find(bestCliMatch->second.m_calls.begin(),
 				bestCliMatch->second.m_calls.end(), callNumber
 				);
 			if (i != bestCliMatch->second.m_calls.end()) {
-				--(bestCliMatch->second.m_currentVolume);
 				bestCliMatch->second.m_calls.erase(i);
 				return;
 			}
@@ -530,7 +521,7 @@ bool CapacityControl::CheckCall(
 			<< "\t" << bestIpMatch->second.AsString()
 			);
 		PWaitAndSignal lock(m_updateMutex);
-		return bestIpMatch->second.m_currentVolume < bestIpMatch->second.m_maxVolume;
+		return bestIpMatch->second.m_calls.size() < bestIpMatch->second.m_maxVolume;
 	}
 
 	H323IdCallVolumes::iterator bestH323IdMatch = FindByH323Id(srcAlias, calledStationId);
@@ -540,7 +531,7 @@ bool CapacityControl::CheckCall(
 			<< "\t" << bestH323IdMatch->second.AsString()
 			);
 		PWaitAndSignal lock(m_updateMutex);
-		return bestH323IdMatch->second.m_currentVolume < bestH323IdMatch->second.m_maxVolume;
+		return bestH323IdMatch->second.m_calls.size() < bestH323IdMatch->second.m_maxVolume;
 	}
 
 	CLICallVolumes::iterator bestCliMatch = FindByCli(srcCli, calledStationId);
@@ -549,7 +540,7 @@ bool CapacityControl::CheckCall(
 			<< bestCliMatch->first << "\t" << bestCliMatch->second.AsString()
 			);
 		PWaitAndSignal lock(m_updateMutex);
-		return bestCliMatch->second.m_currentVolume < bestCliMatch->second.m_maxVolume;
+		return bestCliMatch->second.m_calls.size() < bestCliMatch->second.m_maxVolume;
 	}
 	
 	return true;

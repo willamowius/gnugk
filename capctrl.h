@@ -15,6 +15,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include "Toolkit.h"
 
 class CallRec;
@@ -33,9 +34,8 @@ public:
 		bool operator==(const InboundCallVolume &) const;
 		
 		std::string m_prefix; /// destination prefix to match (regex)
-		int m_maxVolume; /// maximum allowed call volume
-		int m_currentVolume; /// current call volume
-		std::list<PINDEX> m_calls; /// active calls
+		unsigned m_maxVolume; /// maximum allowed call volume
+		std::set<PINDEX> m_calls; /// active calls
 	};
 
 	struct InboundIPCallVolume : public InboundCallVolume {
