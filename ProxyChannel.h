@@ -131,6 +131,14 @@ private:
 	TCPProxySocket& operator=(const TCPProxySocket&);
 
 protected:
+	struct TPKTV3 {
+		TPKTV3() {}
+		TPKTV3(WORD);
+
+		BYTE header, padding;
+		WORD length;
+	};
+
 	bool ReadTPKT();
 
 	TCPProxySocket *remote;
@@ -141,6 +149,8 @@ private:
 	bool SetMinBufSize(WORD);
 
 	BYTE *bufptr;
+	TPKTV3 tpkt;
+	unsigned tpktlen;
 };
 
 #if H323_H450

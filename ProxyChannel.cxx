@@ -549,16 +549,7 @@ bool ProxySocket::EndSession()
 	return CloseSocket();
 }
 
-
-struct TPKTV3 {
-	TPKTV3() {}
-	TPKTV3(WORD);
-
-	BYTE header, padding;
-	WORD length;
-};
-
-inline TPKTV3::TPKTV3(WORD len)
+inline TCPProxySocket::TPKTV3::TPKTV3(WORD len)
 	: header(3), padding(0)
 {
 	length = PIPSocket::Host2Net(WORD(len + sizeof(TPKTV3)));
@@ -566,7 +557,7 @@ inline TPKTV3::TPKTV3(WORD len)
 
 // class TCPProxySocket
 TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
-      : ServerSocket(p), ProxySocket(this, t), remote(s)
+      : ServerSocket(p), ProxySocket(this, t), remote(s), bufptr(NULL), tpktlen(0)
 {
 }
 
@@ -593,15 +584,17 @@ PBoolean TCPProxySocket::Accept(PSocket & socket)
 {
 //	SetReadTimeout(PMaxTimeInterval);
 	PBoolean result = PTCPSocket::Accept(socket);
-	PTimeInterval timeout(100);
-	SetReadTimeout(timeout);
-	SetWriteTimeout(timeout);
-	// since GetName() may not work if socket closed,
-	// we save it for reference
-	Address raddr;
-	WORD rport = 0;
-	GetPeerAddress(raddr, rport);
-	SetName(AsString(raddr, rport));
+	if (result) {
+		PTimeInterval timeout(100);
+		SetReadTimeout(timeout);
+		SetWriteTimeout(timeout);
+		// since GetName() may not work if socket closed,
+		// we save it for reference
+		Address raddr;
+		WORD rport = 0;
+		GetPeerAddress(raddr, rport);
+		SetName(AsString(raddr, rport));
+	}
 	return result;
 }
 
@@ -610,9 +603,11 @@ PBoolean TCPProxySocket::Connect(const Address & iface, WORD localPort, const Ad
 	SetName(AsString(addr, GetPort()));
 	SetReadTimeout(PTimeInterval(6000));
 	PBoolean result = PTCPSocket::Connect(iface, localPort, addr);
-	PTimeInterval timeout(100);
-	SetReadTimeout(timeout);
-	SetWriteTimeout(timeout);
+	if (result) {
+		PTimeInterval timeout(100);
+		SetReadTimeout(timeout);
+		SetWriteTimeout(timeout);
+	}
 	return result;
 }
 
@@ -626,24 +621,37 @@ PBoolean TCPProxySocket::Connect(const Address & addr)
 bool TCPProxySocket::ReadTPKT()
 {
 	PTRACE(5, Type() << "\tReading from " << GetName());
-	if (buflen == 0) {
-		TPKTV3 tpkt;
-		if (!ReadBlock(&tpkt, sizeof(TPKTV3)))
+	if (tpktlen < sizeof(tpkt)) {
+		if (!Read(reinterpret_cast<BYTE*>(&tpkt) + tpktlen, sizeof(tpkt) - tpktlen))
 			return ErrorHandler(PSocket::LastReadError);
+		tpktlen += GetLastReadCount();
+		if (tpktlen < sizeof(tpkt)) {
+			PTRACE(3, Type() << "\t" << GetName() << " fragmented TPKT header, will wait for more data");
+			return false;
+		}
+		
 		//if (tpkt.header != 3 || tpkt.padding != 0)
 		// some bad endpoints don't set padding to 0, e.g., Cisco AS5300
 		if (tpkt.header != 3) {
-			PTRACE(2, "Proxy\t" << GetName() << " NOT TPKT PACKET!");
-			return false; // Only support version 3
+			PTRACE(2, Type() << "\t" << GetName() << " NOT A TPKT PACKET!");
+			tpktlen = 0;
+			errno = EINVAL;
+			ConvertOSError(-1, PSocket::LastReadError);
+			return ErrorHandler(PSocket::LastReadError);
 		}
 		buflen = PIPSocket::Net2Host(tpkt.length) - sizeof(TPKTV3);
 		if (buflen < 1) {
-			PTRACE(3, "Proxy\t" << GetName() << " PACKET TOO SHORT!");
+			PTRACE(3, Type() << "\t" << GetName() << " TPKT PACKET TOO SHORT!");
 			buflen = 0;
+			tpktlen = 0;
 			return false;
 		}
-		if (!SetMinBufSize(buflen))
-			return false;
+		if (!SetMinBufSize(buflen)) {
+			PTRACE(1, Type() << "\t" << GetName() << " could not set new buffer size: " << buflen);
+			errno = ENOMEM;
+			ConvertOSError(-1, PSocket::LastReadError);
+			return ErrorHandler(PSocket::LastReadError);
+		}
 		buffer = PBYTEArray(bufptr = wbuffer, buflen, false);
 	}
 
@@ -657,11 +665,14 @@ bool TCPProxySocket::ReadTPKT()
 	if (!Read(bufptr, buflen))
 		return ErrorHandler(PSocket::LastReadError);
 
-	if (!(buflen -= GetLastReadCount()))
+	buflen -= GetLastReadCount();
+	if (buflen == 0) {
+		tpktlen = 0;
 		return true;
-
+	}
+	
 	bufptr += GetLastReadCount();
-	PTRACE(3, "Proxy\t" << GetName() << " read timeout?");
+	PTRACE(3, Type() << "\t" << GetName() << " TPKT fragmented, will wait for more data");
 	return false;
 }
 
