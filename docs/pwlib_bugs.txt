@@ -14,3 +14,7 @@ diff -r pwlib_v1_10_3/src/ptlib/unix/config.cxx pwlib/src/ptlib/unix/config.cxx
 ---
 >     if (instance->RemoveInstance(key))
 > 	RemoveAt(key);
+diff -r pwlib_v1_10_3/include/ptlib/notifier.h pwlib/include/ptlib/notifier.h
+38a39
+> #pragma GCC diagnostic ignored "-Waddress"
+
