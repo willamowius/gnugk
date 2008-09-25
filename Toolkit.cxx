@@ -1339,6 +1339,9 @@ PConfig* Toolkit::ReloadConfig()
 	LoadCauseMap(m_Config);
 
 	LoadReasonMap(m_Config);
+
+	ParseTranslationMap(m_receivedCauseMap, Config()->GetString(RoutedSec, "TranslateReceivedQ931Cause", ""));
+	ParseTranslationMap(m_sentCauseMap, Config()->GetString(RoutedSec, "TranslateSentQ931Cause", ""));
 	
 	return m_Config;
 }
@@ -2483,6 +2486,38 @@ unsigned Toolkit::MapH225ReasonToQ931Cause(
 		return 0;
 	else
 		return m_H225ReasonToQ931Cause[reason];
+}
+
+void Toolkit::ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini) const
+{
+	cause_map.clear();
+	PStringArray pairs(ini.Tokenise(",", false));
+	for (PINDEX i = 0; i < pairs.GetSize(); ++i) {
+		PStringArray causes(pairs[i].Tokenise(":=", false));
+		if (causes.GetSize() == 2) {
+			cause_map.insert(pair<unsigned, unsigned>(causes[0].AsInteger(), causes[1].AsInteger()));
+		} else {
+			PTRACE(1, "Syntax error in cause mapping: " << causes[i]);
+		}
+	}
+}
+
+unsigned Toolkit::TranslateReceivedCause(unsigned cause) const
+{
+	map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
+	if (i != m_receivedCauseMap.end())
+		return i->second;
+	else
+		return cause;
+}
+
+unsigned Toolkit::TranslateSentCause(unsigned cause) const
+{
+	map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
+	if (i != m_sentCauseMap.end())
+		return i->second;
+	else
+		return cause;
 }
 
 #ifdef OpenH323Factory

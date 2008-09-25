@@ -536,8 +536,8 @@ void EndpointRec::LoadEndpointConfig()
 				m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
 			else
 				m_callingTypeOfNumber = type;
-			ParseTranslationMap(m_receivedCauseMap, cfg->GetString(key, "TranslateReceivedQ931Cause", ""));
-			ParseTranslationMap(m_sentCauseMap, cfg->GetString(key, "TranslateSentQ931Cause", ""));
+			toolkit->ParseTranslationMap(m_receivedCauseMap, cfg->GetString(key, "TranslateReceivedQ931Cause", ""));
+			toolkit->ParseTranslationMap(m_sentCauseMap, cfg->GetString(key, "TranslateSentQ931Cause", ""));
 			m_proxy = cfg->GetInteger(key, "Proxy", 0);
 			PString log;
 			if (m_calledTypeOfNumber > -1)
@@ -556,20 +556,6 @@ void EndpointRec::LoadEndpointConfig()
 		m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
 		m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
 		m_proxy = 0;
-	}
-}
-
-void EndpointRec::ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, const PString & ini)
-{
-	cause_map.clear();
-	PStringArray pairs(ini.Tokenise(",", false));
-	for (PINDEX i = 0; i < pairs.GetSize(); ++i) {
-		PStringArray causes(pairs[i].Tokenise(":=", false));
-		if (causes.GetSize() == 2) {
-			cause_map.insert(pair<unsigned, unsigned>(causes[0].AsInteger(), causes[1].AsInteger()));
-		} else {
-			PTRACE(1, "RAS\tEndpoint Syntax error in cause mapping: " << causes[i]);
-		}
 	}
 }
 
@@ -704,6 +690,8 @@ void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 
 unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 {
+	// global translation first
+	cause = Toolkit::Instance()->TranslateReceivedCause(cause);
 	std::map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
 	if (i != m_receivedCauseMap.end())
 		return i->second;
@@ -713,6 +701,8 @@ unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 
 unsigned EndpointRec::TranslateSentCause(unsigned cause) const
 {
+	// global translation first
+	cause = Toolkit::Instance()->TranslateSentCause(cause);
 	std::map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
 	if (i != m_sentCauseMap.end())
 		return i->second;

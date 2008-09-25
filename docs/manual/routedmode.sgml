@@ -378,6 +378,18 @@ the call on behalf of the endpoint. This allows the endpoint initiated transferi
 calls where the remote endpoint may not support H.450 and the gatekeeper initiates the 
 call transfer.  
 
+<item><tt/TranslateReceivedQ931Cause=17:=34/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Translate all received cause codes in ReleaseComplete messages.
+In the above example code 17 (User busy) will be translated into cause code 34 (No circuit/channel available).
+
+<item><tt/TranslateSentQ931Cause=21:=34,27:=34/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Translate all cause codes in ReleaseComplete messages sent out.
+In the above example code 21 and 27 will be translated into cause code 34, because this particular gateway might deal with error code 34 better than with others.
+
 <item><tt/RemoveH235Call=1/<newline>
 Default: <tt>0</tt><newline>
 <p>

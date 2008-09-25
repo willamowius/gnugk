@@ -13,6 +13,7 @@
 #define TOOLKIT_H "@(#) $Id$"
 
 #include <vector>
+#include <map>
 #include <ptlib/sockets.h>
 #include "singleton.h"
 #include "config.h"
@@ -512,18 +513,20 @@ class Toolkit : public Singleton<Toolkit>
 		const PIPSocket::Address &destAddr /// callee's IP
 		) const;
 
-	void SetRerouteCauses(
-		unsigned char *causeMap
-		);
+	void SetRerouteCauses(unsigned char *causeMap);
 
 	/** Map H225_ReleaseCompleteReason code to Q.931 cause value.
 	
 	@return
 	The corresponding Q.931 cause value or 0, if there is no direct mapping.
 	*/	
-	unsigned MapH225ReasonToQ931Cause(
-		int reason
-		);
+	unsigned MapH225ReasonToQ931Cause(int reason);
+
+	void ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini) const;
+	
+	/// global translation of cause codes (called from endpoint specific method)
+	unsigned TranslateReceivedCause(unsigned cause) const;
+	unsigned TranslateSentCause(unsigned cause) const;
 
 #ifdef OpenH323Factory
 	PStringList GetAuthenticatorList();
@@ -580,6 +583,9 @@ private:
 	unsigned char m_causeMap[16];
 	/// map H.225 reason to Q.931 cause code
 	vector<unsigned> m_H225ReasonToQ931Cause;
+	/// global cause code translation
+	map<unsigned, unsigned> m_receivedCauseMap;
+	map<unsigned, unsigned> m_sentCauseMap;
 };
 
 

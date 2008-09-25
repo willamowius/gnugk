@@ -283,8 +283,6 @@ private:
 	/// Load general endpoint settings from the config
 	void LoadEndpointConfig();
 	void AddPrefixCapacities(const PString & prefixes);
-	void ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, const PString & ini);
-
 
 	EndpointRec();
 	EndpointRec(const EndpointRec &);
