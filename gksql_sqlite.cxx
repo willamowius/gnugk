@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2008/04/18 14:37:28  willamowius
+ * never include gnugkbuildopts.h directly, always include config.h
+ *
  * Revision 1.2  2008/04/18 13:14:11  shorne
  * Fixes for auto-configure on windows
  *
@@ -194,7 +197,7 @@ GkSQLiteResult::GkSQLiteResult(
 	m_numRows = numRowsAffected;
 	if ((long)selectResult->size() > numRowsAffected)
 		m_numRows = selectResult->size();
-	if (selectResult->size() > 0)
+	if (!selectResult->empty())
 		m_numFields = (*selectResult)[0]->size();
 	else
 		m_numFields = 0;
