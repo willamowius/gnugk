@@ -18,9 +18,9 @@
 
 // use at least PWLib Pandora
 #if PWLIB_MAJOR == 1
-  #if PWLIB_MINOR < 7
-    #error "PWLib too old, use at least 1.7.5.2"
-  #endif
+	#if PWLIB_MINOR < 7
+		#error "PWLib too old, use at least 1.7.5.2"
+	#endif
 #endif
 
 // define PTimedMutex for PWLib < 1.9.2
