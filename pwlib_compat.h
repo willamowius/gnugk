@@ -46,7 +46,7 @@
 	// define hasRDS for PWLib >= 1.11.3
 	#if PWLIB_MAJOR == 1
 		#if PWLIB_MINOR >= 11
-			#if PWLIB_BUILD > 2     
+			#if PWLIB_BUILD > 2
 				#define hasRDS 1
 			#endif
 		#endif
@@ -103,26 +103,24 @@
 ///////////////////////////////////////////////
 
 // OpenH323 version matching
+#ifdef H323_H460
+	#define hasH460 1    // H460 support
+#endif
+
 #if OPENH323_MAJOR == 1
 	#if OPENH323_MINOR >= 19
 		#if OPENH323_MINOR == 19
 			#if OPENH323_BUILD > 0
-				#define OpenH323Factory 1         // OpenH323 Factory Loader Auth
+				#define OpenH323Factory 1	// OpenH323 Factory Loader Auth
 			#endif
 			#if OPENH323_BUILD > 4
-				#define h323pluslib 1        // Indicate H323plus Library
-				#ifdef H323_H460
-					#define hasH460 1    // H460 support
-				#endif
-				#define h323v6 1             // Version 6 features
+				#define h323pluslib 1		// Indicate H323plus Library
+				#define h323v6 1			// Version 6 features
 			#endif
 		#else // h323plus v1.20
-			#define h323pluslib 1             // Indicate H323plus Library
-			#define OpenH323Factory 1         // OpenH323 Factory Loader Auth 
-			#define h323v6 1                  // Version 6 features  
-			#ifdef H323_H460
-				#define hasH460 1	             // H460 support 
-			#endif
+			#define OpenH323Factory 1		// OpenH323 Factory Loader Auth 
+			#define h323pluslib 1			// Indicate H323plus Library
+			#define h323v6 1				// Version 6 features  
 		#endif
 	#endif	
 #endif
