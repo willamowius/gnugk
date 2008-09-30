@@ -3550,6 +3550,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 
 	unsigned plan, type;
 	int dtype;
+	int dplan;
 	PIPSocket::Address calleeAddr;
 	WORD calleePort = 0;
 	PString Number;
@@ -3562,6 +3563,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 	if (q931->HasIE(Q931::CalledPartyNumberIE)) {
 		if (q931->GetCalledPartyNumber(Number, &plan, &type)) {
 			dtype = -1;
+			dplan = -1;
 			if (called) {
 				int proxy = called->GetProxyType();
 				if (proxy > 0) {
@@ -3573,11 +3575,19 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 				dtype = called->GetCallTypeOfNumber(true);
 				if (dtype != -1)
 					type = dtype;
+				dplan = called->GetCallPlanOfNumber(true);
+				if (dplan != -1)
+					plan = dplan;
 			}
 			if (dtype == -1) {
 				dtype = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
 				if (dtype != -1)
 					type = dtype;
+			}
+			if (dplan == -1) {
+				dplan = toolkit->Config()->GetInteger(RoutedSec, "CalledPlanOfNumber", -1);
+				if (dplan != -1)
+					plan = dplan;
 			}
 			q931->SetCalledPartyNumber(Number, plan, type);
 			#if PTRACING
@@ -3590,15 +3600,24 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 		unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
 		if (q931->GetCallingPartyNumber(Number, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1)) {
 			dtype = -1;
+			dplan = -1;
 			if (called) {
 				dtype = called->GetCallTypeOfNumber(false);
 				if (dtype != -1)
 					type = dtype;
+				dplan = called->GetCallPlanOfNumber(false);
+				if (dplan != -1)
+					plan = dplan;
 			}
 			if (dtype == -1) {
 				dtype = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
 				if (dtype != -1)
 					type = dtype;
+			}
+			if (dplan == -1) {
+				dplan = toolkit->Config()->GetInteger(RoutedSec, "CallingPlanOfNumber", -1);
+				if (dplan != -1)
+					plan = dplan;
 			}
 			q931->SetCallingPartyNumber(Number, plan, type, presentation, screening);
 			#if PTRACING

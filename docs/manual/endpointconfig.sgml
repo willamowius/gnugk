@@ -66,6 +66,20 @@ for calls sent to this endpoint
 (0 - UnknownType, 1 - InternationalType, 2 - NationalType,
 3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType).
 
+<item><tt/CalledPlanOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets Called-Numbering-Plan of number to the specified value
+for calls sent to this endpoint
+(0 - UnknownType, 1 - ISDN, 3 - X.121 numbering, 4 - Telex, 8 - National standard, 9 - private numbering).
+
+<item><tt/CallingPlanOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets Calling-Numbering-Plan of number to the specified value
+for calls sent to this endpoint
+(0 - UnknownType, 1 - ISDN, 3 - X.121 numbering, 4 - Telex, 8 - National standard, 9 - private numbering).
+
 <item><tt/Proxy=1/<newline>
 Default: <tt/0/<newline>
 <p>

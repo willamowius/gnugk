@@ -273,7 +273,8 @@ EndpointRec::EndpointRec(
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
 	m_usedCount(0), m_nat(false), m_natsocket(NULL), m_permanent(permanent), 
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
-	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1), m_proxy(0),
+	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
+	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown), m_natsupport(false),
 	m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
 	m_internal(false),m_remote(false)
@@ -536,6 +537,18 @@ void EndpointRec::LoadEndpointConfig()
 				m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
 			else
 				m_callingTypeOfNumber = type;
+
+			int plan = cfg->GetInteger(key, "CalledPlanOfNumber", -1);
+			if (plan == -1)
+				m_calledPlanOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledPlanOfNumber", -1);
+			else
+				m_calledPlanOfNumber = plan;
+			plan = cfg->GetInteger(key, "CallingPlanOfNumber", -1);
+			if (plan == -1)
+				m_callingPlanOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingPlanOfNumber", -1);
+			else
+				m_callingPlanOfNumber = plan;
+
 			toolkit->ParseTranslationMap(m_receivedCauseMap, cfg->GetString(key, "TranslateReceivedQ931Cause", ""));
 			toolkit->ParseTranslationMap(m_sentCauseMap, cfg->GetString(key, "TranslateSentQ931Cause", ""));
 			m_proxy = cfg->GetInteger(key, "Proxy", 0);
@@ -555,6 +568,8 @@ void EndpointRec::LoadEndpointConfig()
 		m_capacity = -1;
 		m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
 		m_callingTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingTypeOfNumber", -1);
+		m_calledPlanOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledPlanOfNumber", -1);
+		m_callingPlanOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CallingPlanOfNumber", -1);
 		m_proxy = 0;
 	}
 }

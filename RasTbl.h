@@ -95,6 +95,7 @@ public:
 	CallSignalSocket *GetSocket();
 
 	int GetCallTypeOfNumber(bool called = true) const { return called ? m_calledTypeOfNumber : m_callingTypeOfNumber; }
+	int GetCallPlanOfNumber(bool called = true) const { return called ? m_calledPlanOfNumber : m_callingPlanOfNumber; }
 	int GetProxyType() const { return m_proxy; }
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
@@ -325,6 +326,7 @@ protected:
 	/// capacity per prefix (regex)
 	list<pair<string, int> > m_prefixCapacities;
 	int m_calledTypeOfNumber, m_callingTypeOfNumber;
+	int m_calledPlanOfNumber, m_callingPlanOfNumber;
 	/// Proxy Type
 	int m_proxy;
 	/// Registration Priority Number
