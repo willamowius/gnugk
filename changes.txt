@@ -1,6 +1,7 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
 - new switches Called/CallingPlanOfNumber in [RoutedMode] and [EP::...] to set numbbering plan
+- enable SRV policy for all OpenH323 versions as lonng as DNS services are available
 - global switches for TranslateReceivedQ931Cause and TranslateSentQ931Cause in [RoutedMode],
   similar to those in [EP::...]
 - BUGFIX(ProxyChannel.cxx) supress 2nd acct start event for 2nd Setup with same callid
