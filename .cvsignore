@@ -10,3 +10,6 @@ gk.suo
 gk.ncb
 gk.plg
 gk.opt
+.sniffdir
+autom4te.cache
+*.proj
