@@ -2362,8 +2362,7 @@ bool AdmissionRequestPDU::Process()
 #endif
 
 	//
-	// Bandwidth
-	// and GkManager admission
+	// Bandwidth check
 	//
 	int BWRequest = request.m_bandWidth.GetValue();
 	// hack for Netmeeting 3.0x
