@@ -1443,7 +1443,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 	bool bShellSendReply = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
 
 	PString log;
-	PString alias(request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias)
+	PString alias((request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias) && request.m_endpointAlias.GetSize() > 0)
 		? AsString(request.m_endpointAlias[0],false) : PString(" ")
 		);
 
