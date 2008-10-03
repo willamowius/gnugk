@@ -115,7 +115,8 @@ Default: <tt/-1/<newline>
 <p>
 Total bandwidth available to be given to endpoints.
 By default this feature is off. Be careful when using it,
-because many endpoints have buggy implementations.
+because right now it only checks calls from registered endpoints and
+many endpoints supply give incorrect bandwidth values.
 
 <item><tt/RedirectGK=Endpoints > 100 || Calls > 50/<newline>
 Default: <tt>N/A</tt><newline>
