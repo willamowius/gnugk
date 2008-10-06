@@ -703,7 +703,6 @@ GkAuthenticatorList::~GkAuthenticatorList()
 #ifndef OpenH323Factory
 	delete m_mechanisms;
 	delete m_algorithmOIDs;
-#else
 #endif
 }
 
