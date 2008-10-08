@@ -50,7 +50,7 @@
 #ifdef hasH460
   #include <h460/h4601.h>
 #endif
-
+ 
 using namespace std;
 using Routing::Route;
 
@@ -1846,7 +1846,7 @@ void CallSignalSocket::OnSetup(
 		}
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
-
+ 
 		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #ifdef hasH460
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
@@ -1863,7 +1863,7 @@ void CallSignalSocket::OnSetup(
 			 }
 		  }
 		}
-
+ 
 	    // If not already set disable the proxy support function for this call
 		// if using Parent you must proxy...
 		if (!useParent &&
@@ -1876,7 +1876,7 @@ void CallSignalSocket::OnSetup(
 	    }
 	}
 #endif
-
+ 
 		if (!rejectCall && useParent) {
 			gkClient->RewriteE164(*setup, false);
 			if (!gkClient->SendARQ(request, true, natoffloadsupport)) { // send answered ARQ
@@ -1985,7 +1985,7 @@ void CallSignalSocket::OnSetup(
 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed
 		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient->IsNATed());
-
+ 
 		// workaround for bandwidth, as OpenH323 library :p
 		CallRec* call = new CallRec(q931, setupBody, h245Routed, 
 			destinationString, authData.m_proxyMode
@@ -2243,13 +2243,13 @@ bool CallSignalSocket::CreateRemote(
 		    bool natfound = false;
 			H225_ArrayOf_FeatureDescriptor & fsn = setupBody.m_supportedFeatures;
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
-
+ 
 			for (PINDEX i=0; i < fsn.GetSize(); i++) {
 				H460_Feature & feat = (H460_Feature &)fsn[i];
 				if (feat.GetFeatureID() == H460_FeatureID(24)) 
 					natfound = true;  break;
 			}
-
+ 
 			if (!natfound) {
 				PTRACE(5, Type() << "Added NAT Support to Outbound Call.");
 				H460_FeatureStd std24 = H460_FeatureStd(24);
@@ -2657,6 +2657,9 @@ void CallSignalSocket::OnReleaseComplete(
 
 			// translate cause codes
 			unsigned new_cause = cause;
+			// global translation first
+			new_cause = Toolkit::Instance()->TranslateReceivedCause(new_cause);
+			new_cause = Toolkit::Instance()->TranslateSentCause(new_cause);
 			endptr calling = m_call->GetCallingParty();
 			if (!calling)
 				calling = RegistrationTable::Instance()->FindBySignalAdr(m_call->GetSrcSignalAddr());
@@ -2683,12 +2686,12 @@ void CallSignalSocket::OnReleaseComplete(
 			}
 			if (msg->GetQ931().IsFromDestination()) {
 				if (called)
-					new_cause = called->TranslateReceivedCause(cause);
+					new_cause = called->TranslateReceivedCause(new_cause);
 				if (calling)
 					new_cause = calling->TranslateSentCause(new_cause);
 			} else {
 				if (calling)
-					new_cause = calling->TranslateReceivedCause(cause);
+					new_cause = calling->TranslateReceivedCause(new_cause);
 				if (called)
 					new_cause = called->TranslateSentCause(new_cause);
 			}
@@ -4620,7 +4623,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 {
 	if (peer)
 		peer->peer = this;
-
+ 
 }
 
 H245ProxyHandler::~H245ProxyHandler()

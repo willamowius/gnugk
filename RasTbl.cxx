@@ -705,8 +705,6 @@ void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 
 unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 {
-	// global translation first
-	cause = Toolkit::Instance()->TranslateReceivedCause(cause);
 	std::map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
 	if (i != m_receivedCauseMap.end())
 		return i->second;
@@ -716,8 +714,6 @@ unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 
 unsigned EndpointRec::TranslateSentCause(unsigned cause) const
 {
-	// global translation first
-	cause = Toolkit::Instance()->TranslateSentCause(cause);
 	std::map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
 	if (i != m_sentCauseMap.end())
 		return i->second;
