@@ -2670,7 +2670,8 @@ void CallRec::SetDialedNumber(
 	)
 {
 	PWaitAndSignal lock(m_usedLock);
-	m_dialedNumber = number;
+	if (m_dialedNumber.IsEmpty())
+		m_dialedNumber = number;
 }
 
 H225_AliasAddress* CallRec::GetRouteToAlias() const

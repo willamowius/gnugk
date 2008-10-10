@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- BUGFIX(RasTbl.cxx) never overwrite dialed_number after is has been set
 - BUGFIX(RasSrv.cxx) add check to avoid crash on GRQ
 - BUGFIX(ProxyChannel.cxx) fix reading of fragmented TPKT packets
 - new switches Called/CallingPlanOfNumber in [RoutedMode] and [EP::...] to set numbering plan
