@@ -1559,11 +1559,11 @@ bool RegistrationRequestPDU::Process()
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 
 		if (fs.HasFeature(rNaTFS)) {
-			H460_FeatureOID * natfeat = (H460_FeatureOID *)fs.GetFeature(rNaTFS);
+			H460_FeatureStd * natfeat = (H460_FeatureStd *)fs.GetFeature(rNaTFS);
            if (natfeat->Contains(P2P_RemoteNAT))	  
-			      supportNATOffload = natfeat->Value(PString(P2P_RemoteNAT));
+			      supportNATOffload = natfeat->Value(P2P_RemoteNAT);
 		   if (natfeat->Contains(P2P_NATdet))
-			      ntype = natfeat->Value(PString(P2P_NATdet));
+			      ntype = natfeat->Value(P2P_NATdet);
 		}
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
