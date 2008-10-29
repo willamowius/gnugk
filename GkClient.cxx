@@ -1157,6 +1157,13 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 	Requester<H225_AdmissionRequest> request(arq_ras, m_loaddr);
 	H225_AdmissionRequest & arq = BuildARQ(arq_ras);
 
+	if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "ForwardDestIp", "1"))) {
+		if (oarq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+			arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
+			arq.m_destCallSignalAddress = oarq.m_destCallSignalAddress;
+		}
+	}
+
 	if (oarq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
 		arq.m_destinationInfo = oarq.m_destinationInfo;

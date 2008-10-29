@@ -253,6 +253,11 @@ Set this if you want to use a specific endpoint identifier for this child
 gatekeeper. If this option is not set (default), the identifier is assigned
 by a parent gatekeeper in a GCF/RCF message.
 
+<item><tt/ForwardDestIp=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Forward the destCallSignalAddress in ARQs to the parent gatekeeper.
+
 <item><tt/DisableH.460.23=0/<newline>
 Default: <tt/1/<newline>
 <p>
