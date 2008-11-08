@@ -589,7 +589,7 @@ if test "x${firebird}" != "xno"; then
 	if test "x$FIREBIRD_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/include/firebird /usr/local/include/firebird /usr/local/firebird/include $firebird_include_dir; do
+		for try in /usr/include/firebird /usr/local/include /usr/local/include/firebird /usr/local/firebird/include $firebird_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				AC_TRY_COMPILE([#include <ibase.h>], [int a = 1;],
@@ -714,7 +714,7 @@ if test "x${unixodbc}" != "xno"; then
 	if test "x$UNIXODBC_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/include/unixodbc /usr/local/include/unixodbc /usr/local/unixodbc/include $unixodbc_include_dir; do
+		for try in /usr/include/unixodbc /usr/local/include /usr/local/include/unixodbc /usr/local/unixodbc/include $unixodbc_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				AC_TRY_COMPILE([#include <sqlext.h>], [int a = 1;],
@@ -835,7 +835,7 @@ if test "x${sqlite}" != "xno"; then
 	if test "x$SQLITE_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/include/sqlite /usr/local/include/sqlite $sqlite_include_dir; do
+		for try in /usr/include/sqlite /usr/local/include /usr/local/include/sqlite $sqlite_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				AC_TRY_COMPILE([#include <sqlite3.h>], [int a = 1;],

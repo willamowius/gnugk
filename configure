@@ -4481,7 +4481,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 	if test "x$FIREBIRD_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/include/firebird /usr/local/include/firebird /usr/local/firebird/include $firebird_include_dir; do
+		for try in /usr/include/firebird /usr/local/include /usr/local/include/firebird /usr/local/firebird/include $firebird_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat >conftest.$ac_ext <<_ACEOF
@@ -4733,7 +4733,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 	if test "x$UNIXODBC_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/include/unixodbc /usr/local/include/unixodbc /usr/local/unixodbc/include $unixodbc_include_dir; do
+		for try in /usr/include/unixodbc /usr/local/include /usr/local/include/unixodbc /usr/local/unixodbc/include $unixodbc_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat >conftest.$ac_ext <<_ACEOF
@@ -4984,7 +4984,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 	if test "x$SQLITE_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/include/sqlite /usr/local/include/sqlite $sqlite_include_dir; do
+		for try in /usr/include/sqlite /usr/local/include /usr/local/include/sqlite $sqlite_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				cat >conftest.$ac_ext <<_ACEOF
