@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2008/05/20 18:13:51  willamowius
+ * more braces to avoid gcc 4.3.0 warnings
+ *
  * Revision 1.11  2008/04/18 14:37:28  willamowius
  * never include gnugkbuildopts.h directly, always include config.h
  *
@@ -365,6 +368,7 @@ bool GkIBSQLResult::FetchRow(
 			if (errcode == -999) {
 				errcode = status[1];
 				long *pvector = status;
+				// TODO: replace all isc_interprete() with fb_interpret()
 				errormsg[isc_interprete(errormsg, &pvector)] = 0;
 			} else {
 				strcpy(errormsg, "SQL:");
