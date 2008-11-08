@@ -2488,7 +2488,7 @@ unsigned Toolkit::MapH225ReasonToQ931Cause(
 		return m_H225ReasonToQ931Cause[reason];
 }
 
-void Toolkit::ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini) const
+void Toolkit::ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, const PString & ini) const
 {
 	cause_map.clear();
 	PStringArray pairs(ini.Tokenise(",", false));
@@ -2504,7 +2504,7 @@ void Toolkit::ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PSt
 
 unsigned Toolkit::TranslateReceivedCause(unsigned cause) const
 {
-	map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
+	std::map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
 	if (i != m_receivedCauseMap.end())
 		return i->second;
 	else
@@ -2513,7 +2513,7 @@ unsigned Toolkit::TranslateReceivedCause(unsigned cause) const
 
 unsigned Toolkit::TranslateSentCause(unsigned cause) const
 {
-	map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
+	std::map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
 	if (i != m_sentCauseMap.end())
 		return i->second;
 	else

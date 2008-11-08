@@ -522,7 +522,7 @@ class Toolkit : public Singleton<Toolkit>
 	*/	
 	unsigned MapH225ReasonToQ931Cause(int reason);
 
-	void ParseTranslationMap(map<unsigned, unsigned> & cause_map, const PString & ini) const;
+	void ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, const PString & ini) const;
 	
 	/// global translation of cause codes (called from endpoint specific method)
 	unsigned TranslateReceivedCause(unsigned cause) const;
@@ -584,8 +584,8 @@ private:
 	/// map H.225 reason to Q.931 cause code
 	vector<unsigned> m_H225ReasonToQ931Cause;
 	/// global cause code translation
-	map<unsigned, unsigned> m_receivedCauseMap;
-	map<unsigned, unsigned> m_sentCauseMap;
+	std::map<unsigned, unsigned> m_receivedCauseMap;
+	std::map<unsigned, unsigned> m_sentCauseMap;
 };
 
 
