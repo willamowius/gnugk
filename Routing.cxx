@@ -1446,7 +1446,7 @@ bool SqlPolicy::OnRequest(AdmissionRequest & request)
 		H225_ArrayOf_AliasAddress * newAliases = NULL;
 		H225_TransportAddress * newCallSigAdr = NULL;
 		bool reject = false;
-		unsigned rejectReason = -1;
+		unsigned rejectReason = 0;
 
 		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
 						/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
@@ -1498,7 +1498,7 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 	H225_ArrayOf_AliasAddress * newAliases = NULL;
 	H225_TransportAddress * newCallSigAdr = NULL;
 	bool reject = false;
-	unsigned rejectReason = -1;
+	unsigned rejectReason = 0;
 
 	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
 					/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
@@ -1552,7 +1552,7 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	H225_ArrayOf_AliasAddress * newAliases = NULL;
 	H225_TransportAddress * newCallSigAdr = NULL;
 	bool reject = false;
-	unsigned rejectReason = -1;
+	unsigned rejectReason = 0;
 
 	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
 					/* out: */ &newAliases, &newCallSigAdr, &reject, &rejectReason);
