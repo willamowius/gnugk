@@ -1112,10 +1112,11 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
 {
 	H245_MultimediaSystemControlMessage h245msg;
 	if (!h245msg.Decode(strm)) {
-		PTRACE(4, "H245\tERROR DECODING H.245");
+		PTRACE(3, "H245\tERROR DECODING H.245 from " << GetName());
 		return false;
 	}
-	PTRACE(4, "H245\tReceived: " << setprecision(2) << h245msg);
+
+	PTRACE(4, "H245\tReceived from " << GetName() << ": " << setprecision(2) << h245msg);
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
