@@ -1385,9 +1385,7 @@ void Toolkit::LoadReasonMap(
 	m_H225ReasonToQ931Cause.assign(&DefaultH225ReasonToQ931Cause[0], &DefaultH225ReasonToQ931Cause[22]);
 
 	for(int reason = 0; reason < H225_ReleaseCompleteReason::e_tunnelledSignallingRejected; reason++) {
-		PString str_reason;
-		str_reason.sprintf("%d", reason);
-		PString cause = cfg->GetString("H225toQ931", str_reason, "");
+		PString cause = cfg->GetString("H225toQ931", PString(reason), "");
 		if (!cause.IsEmpty()) {
 			m_H225ReasonToQ931Cause[reason] = cause.AsInteger();
 		}
