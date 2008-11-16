@@ -748,7 +748,7 @@ int SQLAuth::Check(
 					
 				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, port)
 						&& raddr.IsValid() && port != 0) {
-					Route route("SQL", raddr, port);
+					Route route("SQLAuth", raddr, port);
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 						SocketToH225TransportAddr(raddr, port)
 						);
@@ -947,7 +947,7 @@ int SQLAuth::Check(
 					
 				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, port)
 						&& raddr.IsValid() && port != 0) {
-					Route route("SQL", raddr, port);
+					Route route("SQLAuth", raddr, port);
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 						SocketToH225TransportAddr(raddr, port)
 						);
