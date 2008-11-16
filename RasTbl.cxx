@@ -2709,6 +2709,11 @@ void CallRec::Update(const H225_InfoRequestResponse & irr)
 	}
 }
 
+void CallRec::ClearRoutes()
+{
+	m_newRoutes.clear();
+}
+
 void CallRec::SetNewRoutes(
 	const std::list<Routing::Route> &routes
 	)
@@ -3496,6 +3501,8 @@ void CallTable::InternalRemove(iterator Iter)
 		++(call->IsToParent() ? m_parentCall : m_neighborCall);
 	if (m_capacity >= 0)
 		m_capacity += call->GetBandwidth();
+		
+	call->ClearRoutes();	// won't try any more routes for this call
 
 	CallList.erase(Iter);
 	RemovedList.push_back(call.operator->());

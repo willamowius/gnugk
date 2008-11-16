@@ -1006,9 +1006,8 @@ public:
 	/// update IRR timers
 	void Update(const H225_InfoRequestResponse & irr);
 
-	void SetNewRoutes(
-		const std::list<Routing::Route> &routes
-		);
+	void ClearRoutes();
+	void SetNewRoutes(const std::list<Routing::Route> &routes);
 	const std::list<Routing::Route> &GetNewRoutes() const { return m_newRoutes; }
 	const std::list<Routing::Route> &GetFailedRoutes() const { return m_failedRoutes; }
 	bool MoveToNextRoute();
