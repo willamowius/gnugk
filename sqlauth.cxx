@@ -728,11 +728,20 @@ int SQLAuth::Check(
 		}
 	}
 
+	PStringArray numbersToDial;
 	iter = FindField(result, "redirectnumber");
 	if (iter != result.end()) {
 		const PString &s = iter->first;
 		if (!s) {
-			authData.SetRouteToAlias(s);
+			numbersToDial = s.Tokenise("; \t", FALSE);
+			if (numbersToDial.GetSize() > 0) {
+				PString rewrittenNumber(numbersToDial[0]);
+				PINDEX pos = rewrittenNumber.Find('=');
+				if (pos != P_MAX_INDEX)
+					rewrittenNumber = rewrittenNumber.Left(pos);
+				authData.SetRouteToAlias(rewrittenNumber);
+				PTRACE(5, traceStr << " - call redirected to the number " << rewrittenNumber);
+			}
 			PTRACE(5, traceStr << " - call redirected to the number " << s);
 		}
 	}
@@ -752,6 +761,14 @@ int SQLAuth::Check(
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 						SocketToH225TransportAddr(raddr, port)
 						);
+					if (numbersToDial.GetSize() > 0) {
+						route.m_destNumber = (i < numbersToDial.GetSize() ? numbersToDial[i] : numbersToDial[numbersToDial.GetSize() - 1]);
+						PINDEX pos = route.m_destNumber.Find('=');
+						if (pos != P_MAX_INDEX) {
+							route.m_destOutNumber = route.m_destNumber.Mid(pos + 1);
+							route.m_destNumber = route.m_destNumber.Left(pos);
+						}
+					}
 					authData.m_destinationRoutes.push_back(route);
 					PTRACE(5, traceStr << " - call redirected to the address " <<
 						route.AsString()
