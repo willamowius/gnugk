@@ -44,7 +44,7 @@ resolvable
 
 <item><tt/sql/<newline>
 <p>
-Route calls by rewriting the called alias with a database query. The database parameters are specified in the <ref id="routingsql" name="Routing::Sql"> section.
+Route calls by rewriting the called alias with a database query or send them directly to a destination IP. The database parameters are specified in the <ref id="routingsql" name="Routing::Sql"> section.
 
 <item><tt/vqueue/<newline>
 <p>
@@ -304,6 +304,13 @@ taken as destination IP and else it is treated as new destination alias.
 If 2 colums are returned, the first is treated as the new destination alias
 and the second is treated as new destination IP.
 
+If multiple rows of destination IPs are returned they are used as alternative routes
+for failover and GnuGk will try them in order.
+
+When at least one destination IP is specified or the call is rejected,
+the SQL policy will end the routing chain.
+If only a the alias is changed, the chain continues with this updated alias.
+
 When rejecting a call, the 2nd column can contain an integer designating the
 reject reason (H.225 AdmissionRejectReason for registered calls,
 H.225 LocationRejectReason for neighbor calls,
@@ -361,7 +368,9 @@ Otherwise, the first result row is used.
 Query string examples:
 <tscreen><verb>
 SELECT destination FROM routes WHERE called = '%c'
-SELECT concat(prefix,'%c') FROM routes WHERE route = substr('%c', 5)
+SELECT concat(prefix,'%c') FROM routes WHERE prefix = LEFT('%c', 5)
+SELECT gatewayip FROM routes WHERE prefix = LEFT('%c',5)
+SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) limit 3
 </verb></tscreen>
 
 </itemize>

@@ -1,5 +1,6 @@
 Changes from 2.2.7 to 2.2.8
 ===========================
+- enable multiple failover routes with sql routing policy
 - BUGFIX(RasTbl.*) %{last-cdr} was wrong if last call succeeded
 - forward the destCallSignalAddress in ARQs to the parent gatekeeper
   (set [Endpoint]ForwardDestIp=0 to get the old behavior)
