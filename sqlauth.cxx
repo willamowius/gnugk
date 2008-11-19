@@ -929,10 +929,15 @@ int SQLAuth::Check(
 	if (iter != result.end()) {
 		const PString &s = iter->first;
 		if (!s) {
-			PStringArray tokens(s.Tokenise("; \t", FALSE));
-			if (numbersToDial.GetSize() > 0)
-				authData.SetRouteToAlias(numbersToDial[0]);
-			PTRACE(5, traceStr << " - call redirected to the number " << numbersToDial);
+			numbersToDial = s.Tokenise("; \t", FALSE);
+			if (numbersToDial.GetSize() > 0) {
+				PString rewrittenNumber(numbersToDial[0]);
+				PINDEX pos = rewrittenNumber.Find('=');
+				if (pos != P_MAX_INDEX)
+					rewrittenNumber = rewrittenNumber.Left(pos);
+				authData.SetRouteToAlias(rewrittenNumber);
+				PTRACE(5, traceStr << " - call redirected to the number " << rewrittenNumber);
+			}
 		}
 	}
 			
