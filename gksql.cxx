@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2008/09/05 13:44:14  zvision
+ * GetInfo implemented for SQL acct/auth modules
+ *
  * Revision 1.17  2008/09/04 08:19:04  zvision
  * SQL reconnect thread safety fixes
  *
@@ -280,59 +283,45 @@ bool GkSQLConnection::AcquireSQLConnection(
 	
 	const PTime timeStart;
 	connptr = NULL;
-	
-	// special case (no pool) for fast execution
-	if (m_minPoolSize == 1 && m_maxPoolSize == 1) {
-		if (!(timeout == -1 ? (m_connectionsMutex.Wait(), true) : m_connectionsMutex.Wait(timeout))) {
-			PTRACE(2, GetName() << "\tQuery timed out waiting " << timeout << "ms for the connection");
-			return false;
-		}
-		if (!m_destroying) {
-			connptr = m_idleConnections.front();
-			m_idleConnections.pop_front();
-			m_busyConnections.push_front(connptr);
-		}
-	} else {
-		bool waiting = false;
-	
-		// wait for an idle connection or timeout
-		do {
-			if (!waiting) {
-				PWaitAndSignal lock(m_connectionsMutex);
-		
-				if (m_destroying)
-					break;
+	bool waiting = false;
 
-				// grab an idle connection if available or add itself
-				// to the list of waiting requests
-				if (!m_idleConnections.empty()) {
-					connptr = m_idleConnections.front();
-					m_idleConnections.pop_front();
-					m_busyConnections.push_front(connptr);
-				} else {
-					m_waitingRequests.push_back(&connptr);
-					waiting = true;
-				}
-			}
-		
-			if (connptr == NULL && timeout != 0 && !m_destroying)
-				m_connectionAvailable.Wait(min(250L,timeout));
-		
-			if (connptr == NULL && timeout >= 0)
-				if ((PTime()-timeStart).GetMilliSeconds() >= timeout)
-					break;
-		} while (connptr == NULL && !m_destroying);
-
-		if (connptr == NULL || m_destroying) {
+	// wait for an idle connection or timeout
+	do {
+		if (!waiting) {
 			PWaitAndSignal lock(m_connectionsMutex);
-			m_waitingRequests.remove(&connptr);
-			if (connptr) {
-				m_idleConnections.push_back(connptr);
-				m_busyConnections.remove(connptr);
+
+			if (m_destroying)
+				break;
+
+			// grab an idle connection if available or add itself
+			// to the list of waiting requests
+			if (!m_idleConnections.empty()) {
+				connptr = m_idleConnections.front();
+				m_idleConnections.pop_front();
+				m_busyConnections.push_front(connptr);
+			} else {
+				m_waitingRequests.push_back(&connptr);
+				waiting = true;
 			}
-			PTRACE(2, GetName() << "\tQuery timed out waiting for idle connection");
-			return false;
 		}
+
+		if (connptr == NULL && timeout != 0 && !m_destroying)
+			m_connectionAvailable.Wait(min(250L,timeout));
+
+		if (connptr == NULL && timeout >= 0)
+			if ((PTime()-timeStart).GetMilliSeconds() >= timeout)
+				break;
+	} while (connptr == NULL && !m_destroying);
+
+	if (connptr == NULL || m_destroying) {
+		PWaitAndSignal lock(m_connectionsMutex);
+		m_waitingRequests.remove(&connptr);
+		if (connptr) {
+			m_idleConnections.push_back(connptr);
+			m_busyConnections.remove(connptr);
+		}
+		PTRACE(2, GetName() << "\tQuery timed out waiting for idle connection");
+		return false;
 	}
 
 	return connptr != NULL;
@@ -345,52 +334,43 @@ void GkSQLConnection::ReleaseSQLConnection(
 {
 	if (connptr == NULL)
 		return;
-	// special case (no pool) for fast execution
-	if (m_minPoolSize == 1 && m_maxPoolSize == 1) {
-		m_busyConnections.remove(connptr);
-		if (deleteFromPool)
-			delete connptr;
-		else
-			m_idleConnections.push_back(connptr);
-		m_connectionsMutex.Signal();
-	} else {
-		// mark the connection as idle or give it to the first waiting request
-		{
-			PWaitAndSignal lock(m_connectionsMutex);
-		
-			// remove itself from the list of waiting requests
-			m_waitingRequests.remove(&connptr);
-		
-			witerator iter = m_waitingRequests.begin();
-			witerator end = m_waitingRequests.end();
-		
-			// find a waiting requests that has not been given a connection yet
-			while (iter != end) {
-				// check if SQLConnPtr* is not NULL and if SQLConnPtr is empty (NULL)
-				if (*iter && *(*iter) == NULL)
-					break;
-				iter++;
-			}
-			if (iter != end && !m_destroying && !deleteFromPool) {
-				// do not remove itself from the list of busy connections
-				// just move the connection to the waiting request
-				*(*iter) = connptr;
-			} else {
-				// move the connection to the list of idle connections
-				m_busyConnections.remove(connptr);
-				if (deleteFromPool)
-					delete connptr;
-				else
-					m_idleConnections.push_back(connptr);
-			}
-		
-			connptr = NULL;
+
+	// mark the connection as idle or give it to the first waiting request
+	{
+		PWaitAndSignal lock(m_connectionsMutex);
+
+		// remove itself from the list of waiting requests
+		m_waitingRequests.remove(&connptr);
+
+		witerator iter = m_waitingRequests.begin();
+		witerator end = m_waitingRequests.end();
+
+		// find a waiting requests that has not been given a connection yet
+		while (iter != end) {
+			// check if SQLConnPtr* is not NULL and if SQLConnPtr is empty (NULL)
+			if (*iter && *(*iter) == NULL)
+				break;
+			iter++;
+		}
+		if (iter != end && !m_destroying && !deleteFromPool) {
+			// do not remove itself from the list of busy connections
+			// just move the connection to the waiting request
+			*(*iter) = connptr;
+		} else {
+			// move the connection to the list of idle connections
+			m_busyConnections.remove(connptr);
+			if (deleteFromPool)
+				delete connptr;
+			else
+				m_idleConnections.push_back(connptr);
 		}
 
-		// wake up any threads waiting for an idle connection
-		if (!deleteFromPool)
-			m_connectionAvailable.Signal();
+		connptr = NULL;
 	}
+
+	// wake up any threads waiting for an idle connection
+	if (!deleteFromPool)
+		m_connectionAvailable.Signal();
 }
 
 GkSQLResult* GkSQLConnection::ExecuteQuery(
