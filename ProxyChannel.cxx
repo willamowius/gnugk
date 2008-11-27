@@ -1699,7 +1699,7 @@ void CallSignalSocket::OnSetup(
 	
 	GkClient *gkClient = rassrv->GetGkClient();
 	bool rejectCall = false;
-	bool suppressAcctStart = false;
+	bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 	SetupAuthData authData(m_call, m_call ? true : false);
 	
 	if (m_call) {
@@ -1713,7 +1713,7 @@ void CallSignalSocket::OnSetup(
 			rejectCall = true;
 			// suppress 2nd AcctStart for same callid
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
-				suppressAcctStart = (AsString(m_call->GetCallIdentifier().m_guid) == AsString(setupBody.m_callIdentifier.m_guid));
+				secondSetup = (AsString(m_call->GetCallIdentifier().m_guid) == AsString(setupBody.m_callIdentifier.m_guid));
 			}
 		} else if (m_call->IsToParent() && !m_call->IsForwarded()) {
 			if (gkClient->CheckFrom(_peerAddr)) {
@@ -1774,12 +1774,12 @@ void CallSignalSocket::OnSetup(
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
 		if (!authData.m_callingStationId)
 			m_call->SetCallingStationId(authData.m_callingStationId);
-		if (!authData.m_calledStationId)
+		if (!authData.m_calledStationId && !secondSetup)
 			m_call->SetCalledStationId(authData.m_calledStationId);
 		if (!authData.m_dialedNumber)
 			m_call->SetDialedNumber(authData.m_dialedNumber);
 		
-		if (!suppressAcctStart && (m_call->GetFailedRoutes().empty() || !m_call->SingleFailoverCDR())) {
+		if (!secondSetup && (m_call->GetFailedRoutes().empty() || !m_call->SingleFailoverCDR())) {
 			// log AcctStart accounting event
 			if (!rassrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call)) {
 				PTRACE(2, Type() << "\tDropping call #" << m_call->GetCallNumber()
