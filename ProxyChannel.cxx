@@ -34,9 +34,9 @@
 #include "Neighbor.h"
 #include "sigmsg.h"
 #include "ProxyChannel.h"
+#include "config.h"
 
 #ifdef H323_H450
-#include "config.h"
  #ifdef h323pluslib
    #include "h450/h4501.h"
    #include "h450/h4502.h"
