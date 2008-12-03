@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2008/05/18 20:40:56  willamowius
+ * put codec in RadAcct stop event (Thanks Tusar)
+ *
  * Revision 1.18  2008/04/03 12:03:35  willamowius
  * set radius release-source attribute in stop accounting packet, like %r in sqlacct
  *
@@ -229,7 +232,8 @@ public:
 		CiscoVSA_h323_preferred_lang = 107, 
 		CiscoVSA_h323_redirect_ip_address = 108, 
 		CiscoVSA_h323_billing_model = 109, CiscoVSA_h323_currency = 110,
-		CiscoVSA_release_source = 115, CiscoVSA_preferred_codec = 116
+		CiscoVSA_release_source = 115, CiscoVSA_preferred_codec = 116,
+		CiscoVSA_rewritten_e164_num = 117
 	};
 	
 	/** Construct uninitialized attribute. It should be initialized

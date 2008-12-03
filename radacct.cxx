@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.26  2008/07/10 08:13:21  willamowius
+ * avoid gcc 4.3.x warnings
+ *
  * Revision 1.25  2008/05/18 20:40:56  willamowius
  * put codec in RadAcct stop event (Thanks Tusar)
  *
@@ -309,6 +312,7 @@ GkAcctLogger::Status RadAcct::Log(
 					);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec,call->GetCodec());
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num,call->GetCalledStationId());
 			}					
 			
 			if (call->GetDestSignalAddr(addr,port))

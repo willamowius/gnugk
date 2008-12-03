@@ -520,7 +520,12 @@ is followed by a list of accounting event types.
 <p>
 		h323-call-id variable that contains an H.323 Call Identifier.
 		The syntax is as follows: "h323-ivr-out=h323-call-id:123FDE 12348765 9abc1234 12".
-		
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)</tt><newline>
+<p>
+		rewritten-e164-num contains the rewritten called party's number
+		(independet of the setting of the UseDialedNumber switch).
+
 <item><tt>Acct-Delay-Time (start,update,stop)</tt><newline>
 <p>
 		Amount of time (seconds) the gatekeeper is trying to send the request.

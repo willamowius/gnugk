@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.41  2008/07/10 08:18:33  willamowius
+ * avoid gcc 4.3.x warnings
+ *
  * Revision 1.40  2008/05/18 20:40:56  willamowius
  * put codec in RadAcct stop event (Thanks Tusar)
  *
@@ -287,6 +290,7 @@ struct CiscoAttrName {
 	CiscoAttrName(CISCO_ATTR_NAME("h323-preferred-lang"), RadiusAttr::CiscoVSA_h323_preferred_lang),
 	CiscoAttrName(CISCO_ATTR_NAME("release-source"),RadiusAttr::CiscoVSA_release_source),
 	CiscoAttrName(CISCO_ATTR_NAME("preferred-codec"),RadiusAttr::CiscoVSA_preferred_codec),
+	CiscoAttrName(CISCO_ATTR_NAME("rewritten-e164-num"),RadiusAttr::CiscoVSA_rewritten_e164_num),
 	CiscoAttrName(NULL, 0, 0)
 };
 
