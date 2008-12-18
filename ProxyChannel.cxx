@@ -1167,7 +1167,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm)
 		}
 	}
 	
-	if (!m_h245handler->HandleMesg(h245msg))
+	if (!m_h245handler || !m_h245handler->HandleMesg(h245msg))
 		return false;
 
 	strm.BeginEncoding();
