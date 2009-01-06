@@ -55,6 +55,7 @@ public:
 	};
 
 	struct InboundCLICallVolume : public InboundCallVolume {
+		InboundCLICallVolume() {}	//default c'tor needed for VS 2008 SP1
 		InboundCLICallVolume(const std::string &cli) : m_sourceCLI(cli) {}
 		
 		bool operator==(const InboundCLICallVolume &) const;
