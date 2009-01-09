@@ -277,8 +277,11 @@ Default: <tt/0/<newline>
 <p>
 Activate call failover: When activated, GnuGk will try to find
 other possible routes to a destination if the call fails on the
-first route. Currently only routes available via the 'internal'
-routing policy can be used as alternatives routes.
+first route. The list of routes for a call is built when the call
+first comes in and currently not all routing policies are able to
+provide multiple routes.
+You can use the 'internal' and the 'sql' policy to provide multiple routes.
+In addition to that multiple routes can be set by SQL and Radius authenticators.
 
 For accounting of calls using failover, see the SingleFailoverCDR
 switch in the <ref id="calltable" name="[CallTable]"> section.
