@@ -41,7 +41,7 @@ void Client::Main()
 {
 	PArgList args(GetArguments());
 	if (args.GetCount() < 4) {
-		cout << "Usage: addpasswd config section key password\n\n";
+		cout << "Usage: addpasswd config-file section user password\n\n";
 		return;
 	}
 
@@ -63,5 +63,6 @@ void Client::Main()
 	const PString key = args[2];
 	const PString password = args[3];
 	const PString encryptedPassword = Encrypt(key, password, paddingByte);
+	cout << "Setting: " << key << "=" << encryptedPassword << endl;
 	config.SetString(key, encryptedPassword);
 }
