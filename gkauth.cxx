@@ -1168,13 +1168,13 @@ SimplePasswordAuth::SimplePasswordAuth(
 	authenticator->SetPassword("dummy");
 	AppendH235Authenticator(authenticator);
 
-//#if P_SSL
-//	authenticator = new H235AuthProcedure1;
-//	authenticator->SetLocalId("dummy");
-//	authenticator->SetRemoteId("dummy");
-//	authenticator->SetPassword("dummy");
-//	AppendH235Authenticator(authenticator);
-//#endif
+#if P_SSL
+	authenticator = new H235AuthProcedure1;
+	authenticator->SetLocalId("dummy");
+	authenticator->SetRemoteId("dummy");
+	authenticator->SetPassword("dummy");
+	AppendH235Authenticator(authenticator);
+#endif
 
 #endif
 
