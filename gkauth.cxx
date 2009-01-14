@@ -1514,7 +1514,7 @@ bool SimplePasswordAuth::ResolveUserName(
 		} 
 	}
 
-	for (PINDEX j = 0; j < cryptotokens.GetSize(); j++) {
+	for (PINDEX j = 0; j < tokens.GetSize(); j++) {
 		H235_ClearToken& token = tokens[j];
 		// CAT
 			if (token.HasOptionalField(H235_ClearToken::e_generalID)) {
