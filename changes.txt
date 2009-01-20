@@ -1,7 +1,8 @@
 Changes from 2.2.8 to 2.2.9
 ===========================
+- new switch [SimplePasswordAuth]DisableAlgorithm= to disable H.235 algorithms
 - re-enable H.235.1 (Annex D / Baseline Profile) when compiling against OpenH323 < 1.19.x or H323Plus
-- fix CAT authentication when compiling against OpenH323 < 1.19.x or H323Plus
+- BUGFIX(gkauth.cxx) fix CAT authentication when compiling against OpenH323 < 1.19.x or H323Plus
 
 Changes from 2.2.7 to 2.2.8
 ===========================
