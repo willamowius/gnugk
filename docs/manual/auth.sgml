@@ -229,7 +229,8 @@ means the cache never expires.
 <item><tt/DisableAlgorithm=MD5,H.235.1/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Disable certain H.235 authentication algorithms. By default supported by GnuGk are used.
+Disable H.235 authentication algorithms in the GRQ/GCF negotioation, otherwise all algorithms supported by GnuGk are used.
+A disabled algorithm will still be used if it is used by an endpoint without negotiation.
 This switch can be used to avoid incompatibilities with vendor implementations.
 
 </itemize>
