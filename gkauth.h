@@ -745,6 +745,8 @@ private:
 	bool m_checkID;
 	/// cache for username/password pairs
 	CacheManager* m_cache;
+	/// list of H.235 algorithms to disable
+	PStringArray m_disabledAlgorithms;
 };
 
 

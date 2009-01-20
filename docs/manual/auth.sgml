@@ -225,6 +225,13 @@ The module <tt/SimplePasswordAuth/ and all its descendants will cache an
 authenticated password. This field define the cache timeout value in second.
 <tt/0/ means never cache the password, while a negative value
 means the cache never expires.
+
+<item><tt/DisableAlgorithm=MD5,H.235.1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Disable certain H.235 authentication algorithms. By default supported by GnuGk are used.
+This switch can be used to avoid incompatibilities with vendor implementations.
+
 </itemize>
 
 <sect1>Section &lsqb;SQLPasswordAuth&rsqb;

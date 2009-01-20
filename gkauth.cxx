@@ -1138,6 +1138,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 	m_encryptionKey = GetConfig()->GetInteger(name, "KeyFilled", 0);
 	m_checkID = Toolkit::AsBool(GetConfig()->GetString(name, "CheckID", "0"));
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
+	m_disabledAlgorithms = GetConfig()->GetString(name, "DisableAlgorithm", "").Tokenise(",;", FALSE);
 
 #ifdef OpenH323Factory
 	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
@@ -1145,35 +1146,47 @@ SimplePasswordAuth::SimplePasswordAuth(
     PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
     for (r = keyList.begin(); r != keyList.end(); ++r) {
-      H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-       if (authlist.GetSize() > 0) {
-		for (PINDEX i=0; i< authlist.GetSize(); i++) {
-			if (PString(Auth->GetName()) == authlist[i])
-               AppendH235Authenticator(Auth);
+		H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+		// only use, if it's not disabled for this GnuGk authentication method
+		if (m_disabledAlgorithms.GetStringsIndex(Auth->GetName()) == P_MAX_INDEX) {
+			if (authlist.GetSize() > 0) {
+				// if a global list of autenticators is configures, use it only if its on the list
+				for (PINDEX i=0; i< authlist.GetSize(); i++) {
+					if (PString(Auth->GetName()) == authlist[i])
+						AppendH235Authenticator(Auth);
+				}
+			} else {
+				// without global authenticator list: use all
+				AppendH235Authenticator(Auth);
+			}
 		}
-	   } else
-	       AppendH235Authenticator(Auth);
 	}
 #else
 	H235Authenticator* authenticator;
 
-	authenticator = new H235AuthSimpleMD5;
-	authenticator->SetLocalId("dummy");
-	authenticator->SetRemoteId("dummy");
-	authenticator->SetPassword("dummy");
-	AppendH235Authenticator(authenticator);
-	authenticator = new H235AuthCAT;
-	authenticator->SetLocalId("dummy");
-	authenticator->SetRemoteId("dummy");
-	authenticator->SetPassword("dummy");
-	AppendH235Authenticator(authenticator);
+	if (m_disabledAlgorithms.GetStringsIndex("MD5") == P_MAX_INDEX) {
+		authenticator = new H235AuthSimpleMD5;
+		authenticator->SetLocalId("dummy");
+		authenticator->SetRemoteId("dummy");
+		authenticator->SetPassword("dummy");
+		AppendH235Authenticator(authenticator);
+	}
+	if (m_disabledAlgorithms.GetStringsIndex("CAT") == P_MAX_INDEX) {
+		authenticator = new H235AuthCAT;
+		authenticator->SetLocalId("dummy");
+		authenticator->SetRemoteId("dummy");
+		authenticator->SetPassword("dummy");
+		AppendH235Authenticator(authenticator);
+	}
 
 #if P_SSL
-	authenticator = new H235AuthProcedure1;
-	authenticator->SetLocalId("dummy");
-	authenticator->SetRemoteId("dummy");
-	authenticator->SetPassword("dummy");
-	AppendH235Authenticator(authenticator);
+	if (m_disabledAlgorithms.GetStringsIndex("H.235.1") == P_MAX_INDEX) {
+		authenticator = new H235AuthProcedure1;
+		authenticator->SetLocalId("dummy");
+		authenticator->SetRemoteId("dummy");
+		authenticator->SetPassword("dummy");
+		AppendH235Authenticator(authenticator);
+	}
 #endif
 
 #endif

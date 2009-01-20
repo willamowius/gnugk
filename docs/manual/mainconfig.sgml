@@ -338,6 +338,7 @@ The default options are: H.235.1 (HMAC SHA1 old H235AnnexD), MD5 (Digest Authent
 If this setting is omitted, all authenticators are loaded by default. 
 If you are using plugin authenticators, then you may want to disable the default authenticators to provide optimum security.
 Note: H.235.1 requires OpenSSL support compiled into GnuGk.
+<bf/This switch is only available if GnuGk is compiled with H323Plus./
 </itemize>
 
 
