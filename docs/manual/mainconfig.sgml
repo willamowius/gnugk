@@ -303,7 +303,7 @@ Default: <tt/5000/<newline>
 Time in milliseconds for write timeout on status channel.
 
 <item><tt/ExternalIP=myip.no-ip.com/<newline>
-Default: <tt/N/A/<newline>
+Default: <tt>N/A</tt><newline>
 <p>
 When using GnuGk behind a NAT you can set the external IP address 
 that you wish the GK to masquarade as. This will allow external EP's
@@ -321,7 +321,7 @@ with a DNS address maintained by a DDNS service such as www.dyndns.com or
 www.no-ip.com. 
 
 <item><tt/DefaultDomain=gnugk.org/<newline>
-Default: <tt/N/A/<newline>
+Default: <tt>N/A</tt><newline>
 <p>
 When receiving a request for an address in the format user@domain.com. 
 This option will strip the domain from the address matching this value
@@ -331,7 +331,7 @@ It can also be used in conjunction with the [RasSrv::RewriteAlias] section to
 convert the received URI into a E164 number for routing. 
 
 <item><tt/Authenticators=H.235.1,CAT/<newline>
-Default: <tt/N/A/<newline>
+Default: <tt>N/A</tt><newline>
 <p>
 Selecting the specific authenticators to use when authenticating endpoints. 
 The default options are: H.235.1 (HMAC SHA1 old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 
