@@ -267,6 +267,11 @@ Default: <tt/1719/<newline>
 <p>
 The RAS channel TSAP identifier for unicast.
 
+<item><tt/UseMulticastListener=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Enable or disable gatekeeper discovery using multicast. By default it is enabled.
+
 <item><tt/MulticastPort=1718/<newline>
 Default: <tt/1718/<newline>
 <p>
