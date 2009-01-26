@@ -1,5 +1,9 @@
 Changes from 2.2.8 to 2.2.9
 ===========================
+- BUGFIX(ProxyChannel.cxx) don't set CallInProgress on releaseComplete message so 3rd and following
+  routes can be tried on failover even when DisableRetryChecks is not set
+- BUGFIX(ProxyChannel.cxx) make sure the DisableRetryChecks switch also covers the cases
+  where the remote side didn't accept the call (without a ReleaseComplete)
 - new switch [SimplePasswordAuth]DisableAlgorithm= to disable H.235 algorithms
 - re-enable H.235.1 (Annex D / Baseline Profile) when compiling against OpenH323 < 1.19.x or H323Plus
 - BUGFIX(gkauth.cxx) fix CAT authentication when compiling against OpenH323 < 1.19.x or H323Plus

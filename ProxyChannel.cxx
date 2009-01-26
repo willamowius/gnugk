@@ -1002,7 +1002,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		break;
 	}
 
-	if (!m_callerSocket && m_call && msg->GetTag() != Q931::CallProceedingMsg)
+	if (!m_callerSocket && m_call && (msg->GetTag() != Q931::CallProceedingMsg) && (msg->GetTag() != Q931::ReleaseCompleteMsg))
 		m_call->SetCallInProgress();
 
 	if (m_result == Error || m_result == NoData) {
@@ -3134,7 +3134,7 @@ void CallSignalSocket::Dispatch()
 				}
 				GetHandler()->Insert(this, remote);
 				return;
-			} else if (m_call && m_call->MoveToNextRoute() && m_h245socket == NULL) {
+			} else if (m_call && m_call->MoveToNextRoute() && (m_h245socket == NULL || m_call->DisableRetryChecks())) {
 				PTRACE(3, "Q931\t" << peerAddr << ':' << peerPort << " DIDN'T ACCEPT THE CALL");
 				if (m_call) {
 					m_call->SetCallSignalSocketCalled(NULL);
