@@ -1002,8 +1002,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		break;
 	}
 
-	if (!m_callerSocket && m_call && (msg->GetTag() != Q931::CallProceedingMsg) && (msg->GetTag() != Q931::ReleaseCompleteMsg))
+	if (!m_callerSocket && m_call
+		&& ((msg->GetTag() == Q931::AlertingMsg) || (msg->GetTag() == Q931::ConnectMsg))) {
 		m_call->SetCallInProgress();
+	}
 
 	if (m_result == Error || m_result == NoData) {
 		delete msg;

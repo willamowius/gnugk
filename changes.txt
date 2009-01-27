@@ -1,6 +1,6 @@
 Changes from 2.2.8 to 2.2.9
 ===========================
-- BUGFIX(ProxyChannel.cxx) don't set CallInProgress on releaseComplete message so 3rd and following
+- BUGFIX(ProxyChannel.cxx) only set CallInProgress on Alerting and Connect so a 3rd and following
   routes can be tried on failover even when DisableRetryChecks is not set
 - BUGFIX(ProxyChannel.cxx) make sure the DisableRetryChecks switch also covers the cases
   where the remote side didn't accept the call (without a ReleaseComplete)
