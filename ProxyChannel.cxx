@@ -209,7 +209,7 @@ public:
 
 	H245Socket(CallSignalSocket *);
 	H245Socket(H245Socket *, CallSignalSocket *);
-	~H245Socket();
+	virtual ~H245Socket();
 
 	void ConnectTo();
 

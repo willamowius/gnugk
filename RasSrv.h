@@ -68,7 +68,7 @@ public:
 	typedef PIPSocket::Address Address;
 
 	RasServer();
-	~RasServer();
+	virtual ~RasServer();
 
 	// override from class SocketsReader
 	virtual void Stop();

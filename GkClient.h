@@ -60,7 +60,7 @@ public:
 	typedef GkClient Base;
 
 	GkClient();
-	~GkClient();
+	virtual ~GkClient();
 
 	void OnReload();
 	void CheckRegistration();

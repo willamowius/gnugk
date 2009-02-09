@@ -124,7 +124,7 @@ public:
 	typedef std::list<Neighbor *> List;
 
 	NeighborList();
-	~NeighborList();
+	virtual ~NeighborList();
 
 	void OnReload();
 

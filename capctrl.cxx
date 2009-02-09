@@ -642,6 +642,7 @@ public:
 		/// Misc check events supported by this module
 		unsigned supportedMiscChecks = CapCtrlAuthMiscChecks
 		);
+	virtual ~CapCtrlAuth() {}
 	
 	/** Authenticate using data from Q.931 Setup message.
 	

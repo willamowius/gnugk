@@ -754,7 +754,7 @@ bool GlonetGK::BuildLRQ(H225_LocationRequest & lrq, WORD crv)
 class LRQRequester : public RasRequester {
 public:
 	LRQRequester(const LRQFunctor &);
-	~LRQRequester();
+	virtual ~LRQRequester();
 
 	bool Send(NeighborList::List &, Neighbor * = 0);
 	bool Send(Neighbor * nb);
@@ -1102,6 +1102,7 @@ using namespace Neighbors;
 class NeighborPolicy : public Policy {
 public:
 	NeighborPolicy();
+	virtual ~NeighborPolicy() {}
 
 private:
 	// override from class Policy

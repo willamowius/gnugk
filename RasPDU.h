@@ -56,7 +56,7 @@ struct GatekeeperMessage {
 class RasListener : public UDPSocket {
 public:
 	RasListener(const Address &, WORD);
-	~RasListener();
+	virtual ~RasListener();
 
 	GatekeeperMessage *ReadRas();
 	bool SendRas(const H225_RasMessage &, const Address &, WORD);
@@ -262,7 +262,7 @@ public:
 	// longer lifetime than this object
 	RasRequester(H225_RasMessage &);
 	RasRequester(H225_RasMessage &, const Address &);
-	~RasRequester();
+	virtual ~RasRequester();
 
 	WORD GetSeqNum() const { return m_seqNum; }
 	bool WaitForResponse(int);
@@ -303,7 +303,7 @@ public:
 	typedef typename RasInfo<RAS>::ConfirmTag ConfirmTag;
 	typedef typename RasInfo<RAS>::RejectTag RejectTag;
 	Requester(H225_RasMessage &, const Address &);
-	~Requester() { this->m_rasSrv->UnregisterHandler(this); } // fix for GCC 3.4.2
+	virtual ~Requester() { this->m_rasSrv->UnregisterHandler(this); } // fix for GCC 3.4.2
 };
 
 template<class RAS>

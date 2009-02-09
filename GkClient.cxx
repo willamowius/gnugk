@@ -528,8 +528,8 @@ class STUNClient   :  public  Job,
 	                          public PSTUNClient
 {
  public:
-	 STUNClient(GkClient * _client, const H323TransportAddress &);
-	~STUNClient();
+	STUNClient(GkClient * _client, const H323TransportAddress &);
+	virtual ~STUNClient();
 
 	virtual void Stop();
 
@@ -719,7 +719,7 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
 class GRQRequester : public RasRequester {
 public:
 	GRQRequester(const PString & gkid, H225_EndpointType & type);
-	~GRQRequester();
+	virtual ~GRQRequester();
 
 	// override from class RasRequester
 	virtual bool SendRequest(const Address &, WORD, int = 2);

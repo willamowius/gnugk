@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.4  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
@@ -351,7 +354,7 @@ public:
 	*/
 	void CheckTimers();
 
-	~GkTimerManager();
+	virtual ~GkTimerManager();
 		
 private:
 	GkTimerManager(const GkTimerManager&);

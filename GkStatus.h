@@ -187,6 +187,8 @@ public:
 		/// port number the socket is to be bound to
 		WORD port
 		);
+		
+	virtual ~StatusListener() {}
 
 	/** Create a new StatusClient socket that will be used
 		to accept a next incoming connection.

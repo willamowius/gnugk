@@ -77,7 +77,7 @@ public:
 		const char *type,
 		WORD buffSize = 1536
 	);
-	~ProxySocket() = 0; // abstract class
+	virtual ~ProxySocket() = 0; // abstract class
 
 	// new virtual function
 	virtual Result ReceiveData();
@@ -329,7 +329,7 @@ public:
 class ProxyHandler : public SocketsReader {
 public:
 	ProxyHandler(const PString& name);
-	~ProxyHandler();
+	virtual ~ProxyHandler();
 
 	void Insert(TCPProxySocket *);
 	void Insert(TCPProxySocket *, TCPProxySocket *);
@@ -367,7 +367,7 @@ private:
 class HandlerList {
 public:
 	HandlerList();
-	~HandlerList();
+	virtual ~HandlerList();
 
 	/** @return
 	    Signaling proxy thread to handle a new signaling/H.245/T.120 socket.

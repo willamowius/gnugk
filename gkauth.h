@@ -85,7 +85,7 @@ struct ARQAuthData
 		const endptr& ep,
 		const callptr& call
 		);
-	~ARQAuthData();
+	virtual ~ARQAuthData();
 		
 	ARQAuthData& operator=(const ARQAuthData& obj);
 		
@@ -139,7 +139,7 @@ struct SetupAuthData
 		/// is the Setup message from a registered endpoint
 		bool fromRegistered
 		);
-	~SetupAuthData();
+	virtual ~SetupAuthData();
 		
 	SetupAuthData& operator=(const SetupAuthData& obj);
 	
@@ -889,7 +889,7 @@ class GkAuthenticatorList
 public:
 	/// creates an empty list - OnRealod builds the actual stack of authenticator
 	GkAuthenticatorList();
-	~GkAuthenticatorList();
+	virtual ~GkAuthenticatorList();
 
 	/// read the config file and build a new stack of authenticator modules
 	void OnReload();

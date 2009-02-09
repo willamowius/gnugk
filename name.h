@@ -35,6 +35,8 @@ public:
 	NamedObject(
 		const NamedObject& obj
 		) : m_name((const char*)(obj.m_name)) {}
+		
+	virtual ~NamedObject() {}
 
 	/// assignment operator for proper PString assignment
 	NamedObject& operator=(

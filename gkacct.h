@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.21  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.20  2008/05/08 08:22:40  zvision
  * New GetAuthInfo,GetAcctInfo status port commands
  *
@@ -443,7 +446,7 @@ public:
 	
 	/** Destroy the list of accounting loggers.
 	*/
-	~GkAcctLoggerList();
+	virtual ~GkAcctLoggerList();
 
 	/** Apply configuration changes to the list of accounting loggers.
 		Usually it means destroying the old list and creating a new one.

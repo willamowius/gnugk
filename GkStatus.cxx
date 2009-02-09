@@ -99,6 +99,8 @@ public:
 		/// unique session ID (instance number) for this client
 		int instanceNo
 		);
+		
+	virtual ~StatusClient() {}
 
 	bool ReadCommand(
 		/// command that has been read (if ReadCommand succeeded)
