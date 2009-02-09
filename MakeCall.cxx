@@ -54,7 +54,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	}
 }
 
-void MakeCallEndPoint::ThirdPartyMakeCall(PString & user1, PString & user2)
+void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString & user2)
 {
 	if (!IsRegisteredWithGk()) {
 		PTRACE(1, "MakeCallEndpoint: Can't MakeCall when not registered with gatekeeper");

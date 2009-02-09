@@ -885,7 +885,7 @@ public:
 
 	/** Set the unregistered calling party signalling channel as NATed.
 	*/
-	void SetSrcNATed(PIPSocket::Address & natip);
+	void SetSrcNATed(const PIPSocket::Address & natip);
 
 	/** Set a new address for the called party signalling channel.
 	*/

@@ -34,7 +34,7 @@ public:
 	virtual void OnRegistrationConfirm();
 	virtual void OnRegistrationReject();
 
-	virtual void ThirdPartyMakeCall(PString & user1, PString & user2);
+	virtual void ThirdPartyMakeCall(const PString & user1, const PString & user2);
 	virtual PBoolean IsRegisteredWithGk(void) const;
 
 protected:    

@@ -400,7 +400,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	return false;
 }
 
-bool Toolkit::VirtualRouteTable::IsMasquerade(PIPSocket::Address & addr)
+bool Toolkit::VirtualRouteTable::IsMasquerade(PIPSocket::Address & addr) const
 {
 	if (!ExtIP) {
 	  H323TransportAddress ex = H323TransportAddress(ExtIP);
@@ -2161,7 +2161,7 @@ bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddres
 	return changed;
 }
 
-bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) {
+bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) const {
 
    return (m_VirtualRouteTable.IsMasquerade(externalIP));
 }

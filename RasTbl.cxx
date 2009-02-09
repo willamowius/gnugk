@@ -2207,7 +2207,7 @@ void CallRec::SetSrcSignalAddr(
 	m_callerAddr = AsDotString(addr);
 }
 
-void CallRec::SetSrcNATed(PIPSocket::Address & natip)
+void CallRec::SetSrcNATed(const PIPSocket::Address & natip)
 {
 	m_unregNAT = true;
 	m_srcunregNATAddress = natip;

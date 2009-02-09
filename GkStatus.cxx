@@ -233,7 +233,7 @@ private:
 	// filter vector
 	std::vector<PString>& regexFilters,
 	// Regex to be matched against messages
-	PString& regex
+	const PString& regex
 	);
 
     /** Remove regular expression filter located
@@ -1479,7 +1479,7 @@ void StatusClient::AddFilter(
     // vector of filters
     std::vector<PString>& regexFilters,
     // Regular expression
-    PString& regex
+    const PString& regex
     )
 {
     regexFilters.push_back(regex);

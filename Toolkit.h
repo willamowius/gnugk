@@ -119,9 +119,9 @@ class Toolkit : public Singleton<Toolkit>
 		void ClearTable();
 		bool IsEmpty() const { return rtable_begin == 0; }
 
-		std::vector<NetworkAddress> GetInternalNetworks() { return m_internalnetworks; }
+		std::vector<NetworkAddress> GetInternalNetworks() const { return m_internalnetworks; }
 
-	    virtual bool IsMasquerade(PIPSocket::Address &) { return false; }
+	    virtual bool IsMasquerade(const PIPSocket::Address &) const { return false; }
 	protected:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:
@@ -143,7 +143,7 @@ class Toolkit : public Singleton<Toolkit>
 	class VirtualRouteTable : public RouteTable {
 		// override from class  RouteTable
 	public:
-		virtual bool IsMasquerade(PIPSocket::Address &);
+		virtual bool IsMasquerade(PIPSocket::Address &) const;
 	protected:
 		virtual bool CreateTable();
 		
@@ -341,7 +341,7 @@ class Toolkit : public Singleton<Toolkit>
 	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
 	void SetGKHome(const PStringArray &);
 
-	bool isBehindNAT(PIPSocket::Address &);
+	bool isBehindNAT(PIPSocket::Address &) const;
 	std::vector<NetworkAddress> GetInternalNetworks();
 
 	// accessors
