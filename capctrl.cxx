@@ -35,14 +35,13 @@ struct IpRule_greater : public std::binary_function<CapacityControl::IpCallVolum
 
 	bool operator()(const CapacityControl::IpCallVolume &e1, const CapacityControl::IpCallVolume &e2) const 
 	{
-		int diff;
 		if (e1.first.IsAny()) {
 			if (!e2.first.IsAny())
 				return false;
 		} else {
 			if (e2.first.IsAny())
 				return true;
-			diff = e1.first.Compare(e2.first);
+			int diff = e1.first.Compare(e2.first);
 			if (diff != 0)
 				return diff > 0;
 		}
