@@ -3627,28 +3627,28 @@ PString CallTable::PrintStatistics() const
 
 PreliminaryCallTable::PreliminaryCallTable() : Singleton<PreliminaryCallTable>("PreliminaryCallTable")
 {
-};
+}
 
 PreliminaryCallTable::~PreliminaryCallTable()
 {
 	calls.clear();
-};
+}
 	
 void PreliminaryCallTable::Insert(PreliminaryCall * call)
 {
 	WriteLock lock(tableLock);
 	calls.insert( pair<H225_CallIdentifier, PreliminaryCall*>(call->GetCallIdentifier(), call));
-};
+}
 
 void PreliminaryCallTable::Remove(H225_CallIdentifier id)
 {
 	WriteLock lock(tableLock);
 	calls.erase(id);
-};
+}
 
 PreliminaryCall * PreliminaryCallTable::Find(H225_CallIdentifier id) const
 {
 	WriteLock lock(tableLock);
 	std::map<H225_CallIdentifier, PreliminaryCall*>::const_iterator iter = calls.find(id);
 	return (iter != calls.end()) ? iter->second : NULL;
-};
+}

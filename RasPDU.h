@@ -111,9 +111,9 @@ public:
 
 	static void Initialize();
 	static RegistrationTable *GetEndpointTbl()
-	        { return EndpointTbl; };
+	        { return EndpointTbl; }
 	static CallTable *GetCallTbl()
-	        { return CallTbl; }; 
+	        { return CallTbl; }
 protected:
 	RasMsg(GatekeeperMessage *m) : m_msg(m) {}
 	RasMsg(const RasMsg &);

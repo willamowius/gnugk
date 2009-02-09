@@ -234,9 +234,9 @@ public:
 		Read,
 		Write
 	};
-	SocketSelectList(size_t) {};
+	SocketSelectList(size_t) {}
 	SocketSelectList(PIPSocket *s = 0) { if (s && s->IsOpen()) Append(s); }
-	SocketSelectList(const PString &name, size_t) : m_name(name) {};
+	SocketSelectList(const PString &name, size_t) : m_name(name) {}
 	SocketSelectList(const PString &name, PIPSocket *s = NULL) : m_name(name) { if (s && s->IsOpen()) Append(s); }
 	bool Select(SelectType, const PTimeInterval &);
 	PSocket *operator[](int i) const;

@@ -1339,19 +1339,19 @@ bool ENUMPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_Ali
 
 class DestinationRoutes {
 public:
-	DestinationRoutes() { m_endChain = false; m_reject = false; m_aliasesChanged = false;};
-	~DestinationRoutes() { };
+	DestinationRoutes() { m_endChain = false; m_reject = false; m_aliasesChanged = false;}
+	~DestinationRoutes() { }
 	
-	bool EndPolicyChain() const { return m_endChain; };
-	bool RejectCall() const { return m_reject; };
-	void SetRejectCall(bool reject) { m_reject = reject; m_endChain = true; };
-	unsigned int GetRejectReason() const { return m_rejectReason; };
-	void SetRejectReason(unsigned int reason) { m_rejectReason = reason; };
-	bool ChangeAliases() const { return m_aliasesChanged; };
-	H225_ArrayOf_AliasAddress GetNewAliases() const { return m_newAliases; };
-	void SetNewAliases(const H225_ArrayOf_AliasAddress & aliases) { m_newAliases = aliases; m_aliasesChanged = true; };
+	bool EndPolicyChain() const { return m_endChain; }
+	bool RejectCall() const { return m_reject; }
+	void SetRejectCall(bool reject) { m_reject = reject; m_endChain = true; }
+	unsigned int GetRejectReason() const { return m_rejectReason; }
+	void SetRejectReason(unsigned int reason) { m_rejectReason = reason; }
+	bool ChangeAliases() const { return m_aliasesChanged; }
+	H225_ArrayOf_AliasAddress GetNewAliases() const { return m_newAliases; }
+	void SetNewAliases(const H225_ArrayOf_AliasAddress & aliases) { m_newAliases = aliases; m_aliasesChanged = true; }
 	
-	void AddRoute(const Route & route) { m_routes.push_back(route); m_endChain = true; };
+	void AddRoute(const Route & route) { m_routes.push_back(route); m_endChain = true; }
 	
 	std::list<Route> m_routes;
 
@@ -1370,7 +1370,7 @@ public:
 	virtual ~SqlPolicy();
 
 protected:
-	virtual bool IsActive() const { return m_active; };
+	virtual bool IsActive() const { return m_active; }
 
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(LocationRequest &);

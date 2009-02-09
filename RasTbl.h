@@ -178,9 +178,9 @@ public:
 	void SetNATProxy(PBoolean support) {m_natproxy = support; }
 	void SetInternal(PBoolean internal) { m_internal = internal; }
 
-	void SetPriority(int priority) { m_registrationPriority = priority; };
-	void SetPreemption(bool support) { m_registrationPreemption = support; };
-	void SetAssignedGatekeeper(const H225_AlternateGK & gk) { m_assignedGatekeeper = gk; };
+	void SetPriority(int priority) { m_registrationPriority = priority; }
+	void SetPreemption(bool support) { m_registrationPreemption = support; }
+	void SetAssignedGatekeeper(const H225_AlternateGK & gk) { m_assignedGatekeeper = gk; }
 	bool SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned);
 
 
@@ -972,7 +972,7 @@ public:
 	/** @return
         Call party to be charged for the call.
 	*/
-	PString GetCallLinkage()const { return m_callLinkage; };
+	PString GetCallLinkage()const { return m_callLinkage; }
 
 	/// Set calling party's number
 	void SetCalledStationId(
@@ -1036,9 +1036,9 @@ public:
 	void SetRADIUSClass(void * bytes, PINDEX len);
 	PBYTEArray GetRADIUSClass() const;
 	
-	bool IsProceedingSent() const { return m_proceedingSent; };
+	bool IsProceedingSent() const { return m_proceedingSent; }
 	// TODO: JW also set when sent via status port
-	void SetProceedingSent(bool val) { m_proceedingSent = val; };
+	void SetProceedingSent(bool val) { m_proceedingSent = val; }
 
 private:
 	void SendDRQ();
@@ -1606,12 +1606,12 @@ class PreliminaryCall
 {
 public:
 	PreliminaryCall(CallSignalSocket * callerSocket, H225_CallIdentifier id, unsigned ref)
-		: m_socket(callerSocket), m_callid(id), m_callref(ref) { };
-	~PreliminaryCall() { };
+		: m_socket(callerSocket), m_callid(id), m_callref(ref) { }
+	~PreliminaryCall() { }
 
-	CallSignalSocket * GetCallSignalSocketCalling() const { return m_socket; };
-	H225_CallIdentifier GetCallIdentifier() const { return m_callid; };
-	unsigned GetCallRef() const { return m_callref; };
+	CallSignalSocket * GetCallSignalSocketCalling() const { return m_socket; }
+	H225_CallIdentifier GetCallIdentifier() const { return m_callid; }
+	unsigned GetCallRef() const { return m_callref; }
 
 private:
 	CallSignalSocket * m_socket;
