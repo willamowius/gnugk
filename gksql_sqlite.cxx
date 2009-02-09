@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2008/09/26 14:55:45  willamowius
+ * code cleanup
+ *
  * Revision 1.3  2008/04/18 14:37:28  willamowius
  * never include gnugkbuildopts.h directly, always include config.h
  *

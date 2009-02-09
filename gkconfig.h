@@ -8,10 +8,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.8  2008/05/23 10:47:01  willamowius
+ * PBoolean patches, H.460 Linux compile fixes
+ *
  * Revision 1.7  2008/04/03 10:24:20  willamowius
  * new header config.h for configuration details
  *

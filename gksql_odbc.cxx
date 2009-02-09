@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.12  2008/07/10 08:01:07  willamowius
+ * avoid gcc 4.3.x warnings
+ *
  * Revision 1.11  2008/05/06 15:23:22  willamowius
  * merge in Michals changes
  *

@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2008/11/21 13:47:21  willamowius
+ * remove special case for pool size = 1: it didn't handle the case that connections now get deleted on error
+ *
  * Revision 1.18  2008/09/05 13:44:14  zvision
  * GetInfo implemented for SQL acct/auth modules
  *

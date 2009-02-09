@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2008/09/05 13:44:14  zvision
+ * GetInfo implemented for SQL acct/auth modules
+ *
  * Revision 1.14  2008/09/04 08:19:04  zvision
  * SQL reconnect thread safety fixes
  *

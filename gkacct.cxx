@@ -8,10 +8,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.36  2008/07/10 08:21:20  willamowius
+ * avoid gcc 4.3.x warnings
+ *
  * Revision 1.35  2008/05/08 08:22:40  zvision
  * New GetAuthInfo,GetAcctInfo status port commands
  *

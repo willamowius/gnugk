@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.27  2008/12/03 18:52:49  willamowius
+ * new RadAcct attribute: RewriteE164 (thanks Tusar)
+ *
  * Revision 1.26  2008/07/10 08:13:21  willamowius
  * avoid gcc 4.3.x warnings
  *

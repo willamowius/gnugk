@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2008/11/08 18:31:41  willamowius
+ * TODO: replace all isc_interprete() with fb_interpret()
+ *
  * Revision 1.12  2008/05/20 18:13:51  willamowius
  * more braces to avoid gcc 4.3.0 warnings
  *

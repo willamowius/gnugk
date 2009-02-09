@@ -8,10 +8,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.46  2008/09/15 08:42:09  zvision
+ * Allow outbound number rewrite by SQL/RADIUS modules
+ *
  * Revision 1.45  2008/08/13 13:10:52  zvision
  * h323-redirect-ip crash when no h323-redirect-number fixed
  *

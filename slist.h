@@ -8,7 +8,7 @@
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
-// We also explicitely grant the right to link this code
+// We also explicitly grant the right to link this code
 // with the OpenH323 library.
 //
 // initial author: Chih-Wei Huang <cwhuang@linux.org.tw>

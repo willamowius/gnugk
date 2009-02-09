@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2007/09/04 15:34:44  willamowius
+ * output callID in same format as other status port events (spaces replaced with dashes)
+ *
  * Revision 1.4  2007/08/31 22:30:43  willamowius
  * don't quote each parameter, quote in template if needed
  *

@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2008/06/09 14:40:22  willamowius
+ * removce VC pragma in Unix-only code
+ *
  * Revision 1.2  2006/07/31 08:34:22  willamowius
  * make logging facility and priority configurable (patch by Brian Thompson)
  *

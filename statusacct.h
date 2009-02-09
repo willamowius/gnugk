@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.3  2007/09/04 15:34:44  willamowius
+ * output callID in same format as other status port events (spaces replaced with dashes)
+ *
  * Revision 1.2  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *

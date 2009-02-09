@@ -7,10 +7,13 @@
  *
  * This work is published under the GNU Public License (GPL)
  * see file COPYING for details.
- * We also explicitely grant the right to link this code
+ * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2007/09/11 01:02:29  willamowius
+ * clean up includes
+ *
  * Revision 1.4  2006/04/14 13:56:19  willamowius
  * call failover code merged
  *
