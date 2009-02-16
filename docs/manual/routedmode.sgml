@@ -421,7 +421,7 @@ Usually they should be ignored anyway; use this switch if they cause trouble.
 <item><tt/ForceNATKeepAlive=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-TODO: document
+Force ALL registrations to use a keepAlive TCP socket.
 
 </itemize>
 

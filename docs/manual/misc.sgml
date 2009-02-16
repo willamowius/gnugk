@@ -261,7 +261,7 @@ Forward the destCallSignalAddress in ARQs to the parent gatekeeper.
 <item><tt/DisableH.460.23=0/<newline>
 Default: <tt/1/<newline>
 <p>
-TODO: document this
+By default H.460.23 is disabled when acting as an endpoint; set this switch to turn it on.
 
 </itemize>
 
