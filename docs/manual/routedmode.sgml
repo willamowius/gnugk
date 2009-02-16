@@ -408,12 +408,15 @@ In the above example code 21 and 27 will be translated into cause code 34, becau
 <item><tt/RemoveH235Call=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-TODO: document
+For compatibility with endpoints which do not support large Setup messages,
+this switch removes tokens and cryptoTokens from Setups to make them smaller.
 
 <item><tt/RemoveH460Call=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-TODO: document
+For compatibility with pre-H323v4 devices that do not support H.460,
+this switch strips the H.460 feature advertisements from the Setup PDU.
+Usually they should be ignored anyway; use this switch if they cause trouble.
 
 <item><tt/ForceNATKeepAlive=1/<newline>
 Default: <tt>0</tt><newline>
