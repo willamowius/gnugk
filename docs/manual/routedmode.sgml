@@ -544,5 +544,12 @@ of * mutes the audio/video and a subsequent send of * unmutes the
 audio/video. Only the party who muted the call can unmute. This is designed 
 as a hold function for terminals which do not support H450.4.
 
+<item><tt/RemoveMCInFastStartTransmitOffer=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Remove the mediaChannel from fastStart transmit offers.
+For unicast transmit channels, mediaChannel should not be sent on offer;
+it is responsibility of callee to provide mediaChannel in an answer.
+
 </itemize>
 
