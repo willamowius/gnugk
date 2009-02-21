@@ -616,12 +616,14 @@ void Gatekeeper::Main()
 		"modify it under the terms of the GNU General Public License\n"
 		"as published by the Free Software Foundation; either version 2\n"
 		"of the License, or (at your option) any later version.\n"
+		"We also explicitly grant the right to link this code\n"
+		"with the OpenH323/H323Plus and OpenSSL library.\n"
 	     << endl;
 
 #ifdef hasH460
 	// License notice
 	cout << "This program contains patent pending P2Pnat Media technology\n"
-            "under special royalty-free license to the GnuGk Project"
+            "under special royalty-free license to the GnuGk Project."
 		 << endl;
 #endif
 
