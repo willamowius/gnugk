@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.13  2008/11/08 18:31:41  willamowius
  * TODO: replace all isc_interprete() with fb_interpret()
  *
@@ -370,7 +373,7 @@ bool GkIBSQLResult::FetchRow(
 			char errormsg[512];
 			if (errcode == -999) {
 				errcode = status[1];
-				long *pvector = status;
+				ISC_STATUS *pvector = status;
 				// TODO: replace all isc_interprete() with fb_interpret()
 				errormsg[isc_interprete(errormsg, &pvector)] = 0;
 			} else {
@@ -417,7 +420,7 @@ bool GkIBSQLResult::FetchRow(
 			char errormsg[512];
 			if (errcode == -999) {
 				errcode = status[1];
-				long *pvector = status;
+				ISC_STATUS *pvector = status;
 				errormsg[isc_interprete(errormsg, &pvector)] = 0;
 			} else {
 				strcpy(errormsg, "SQL:");
@@ -497,7 +500,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	
 	isc_attach_database(status, 0, const_cast<char*>(dbname.c_str()), &conn, dpb_offset, &(dpb[0]));
 	if (status[0] == 1 && status[1] != 0) {
-		long *pvector = status;
+		ISC_STATUS *pvector = status;
 		char errormsg[512];
 		errormsg[isc_interprete(errormsg, &pvector)] = 0;
 		PTRACE(2, GetName() << "\tFirebird connection to " << m_username << '@' << dbname 
@@ -530,7 +533,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	
 	isc_start_transaction(status, &tr, 1, &conn, 0, NULL);
 	if (status[0] == 1 && status[1] != 0) {
-		long *pvector = status;
+		ISC_STATUS *pvector = status;
 		char errormsg[512];
 		errormsg[isc_interprete(errormsg, &pvector)] = 0;
 		return new GkIBSQLResult(status[1], errormsg);
@@ -541,7 +544,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		long errorcode = isc_sqlcode(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
-			long *pvector = status;
+			ISC_STATUS *pvector = status;
 			errormsg[isc_interprete(errormsg, &pvector)] = 0;
 		} else {
 			strcpy(errormsg, "SQL:");
@@ -562,7 +565,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		long errorcode = isc_sqlcode(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
-			long *pvector = status;
+			ISC_STATUS *pvector = status;
 			errormsg[isc_interprete(errormsg, &pvector)] = 0;
 		} else {
 			strcpy(errormsg, "SQL:");
@@ -585,7 +588,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 			long errorcode = isc_sqlcode(status);
 			if (errorcode == -999) {
 				errorcode = status[1];
-				long *pvector = status;
+				ISC_STATUS *pvector = status;
 				errormsg[isc_interprete(errormsg, &pvector)] = 0;
 			} else {
 				strcpy(errormsg, "SQL:");
@@ -603,7 +606,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		long errorcode = isc_sqlcode(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
-			long *pvector = status;
+			ISC_STATUS *pvector = status;
 			errormsg[isc_interprete(errormsg, &pvector)] = 0;
 		} else {
 			strcpy(errormsg, "SQL:");
