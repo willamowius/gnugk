@@ -23,6 +23,11 @@
 	#endif
 #endif
 
+// check for PConfig support
+#ifndef P_CONFIG_FILE
+	#error "Make sure PWLib has config file support enabled, avoid --disable-configfile or --enable-openh323 or --enable-minsize etc."
+#endif
+
 // define PTimedMutex for PWLib < 1.9.2
 #if PWLIB_MAJOR == 1
 	#if PWLIB_MINOR < 9
