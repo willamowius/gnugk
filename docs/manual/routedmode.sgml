@@ -518,22 +518,22 @@ Default: <tt/0/<newline>
 <p>
 Used with P2Pnat Media. When using GnuGk to connect endpoints on a local LAN 
 to the public internet ie GnuGk behind (or on) a router. You can use this
-setting to allow (where possible) your local LAN Endpoints to send media 
+setting to allow (where possible) your local LAN endpoints to send media 
 directly to other endpoints on the public internet without requiring the 
-media to always to be proxied thro' the Gatekeeper.
+media to always to be proxied through the gatekeeper.
 
 
 <item><tt/DisableH235Call=1/<newline>
 Default: <tt/0/<newline>
 <p>
-This setting removes the cryptoTokens and clearTokens off the Setup Message.
-Use this when working with IP Phones that do not support large Setup messages
+This setting removes the cryptoTokens and clearTokens off the Setup message.
+Use this when working with IP phones that do not support large Setup messages
 
 <item><tt/DisableH460Call=1/<newline>
 Default: <tt/0/<newline>
 <p>
-This setting removes the H.460 features from the Setup Message. Use this with
-pre-H.323v4 Endpoints and Gateways which cannot decode these messages.
+This setting removes the H.460 features from the Setup message. Use this with
+pre-H.323v4 endpoints and gateways which cannot decode these messages.
 
 <item><tt/EnableRTPMute=1/<newline>
 Default: <tt/0/<newline>
