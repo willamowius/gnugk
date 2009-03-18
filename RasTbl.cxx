@@ -2827,11 +2827,11 @@ bool CallRec::GetMediaOriginatingIp(PIPSocket::Address &addr) const
 
 bool CallRec::SingleGatekeeper()
 {
-	if (!m_Called || !m_Called)  // Default Single Gatekeeper TRUE!
+	if (!m_Calling || !m_Called)  // Default Single Gatekeeper TRUE!
 		return true;
 
     if (!m_Calling->IsRemote() &&
-		 !m_Called->IsRemote())
+		!m_Called->IsRemote())
 		      return true;
 
 	return false;
