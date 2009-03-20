@@ -811,7 +811,7 @@ bool VirtualQueue::RouteToAlias(
 	// signal the command to each pending request
 	bool foundrequest = false;
 	RouteRequests::iterator i = m_pendingRequests.begin();
-	while (i != m_pendingRequests.end()) {
+	while (!foundrequest && (i != m_pendingRequests.end())) {
 		RouteRequest *r = *i;
 		bool match = ((r->m_callingEpId == callingEpId) && (r->m_crv == crv));
 		if (!r->m_callID.IsEmpty() && !callID.IsEmpty()) {
@@ -1392,7 +1392,7 @@ private:
 	bool m_active;
 	// connection to the SQL database
 	GkSQLConnection* m_sqlConn;
-	// parametrized query string for the auth condition string retrieval
+	// parametrized query string for the routing query
 	PString m_query;
 	// query timeout
 	long m_timeout;
