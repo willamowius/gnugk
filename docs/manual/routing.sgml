@@ -354,11 +354,12 @@ The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
 <item><tt/%c/ - the called alias
-<item><tt/%p/ - the called IP (only available OnSetup, empty otherwise)
+<item><tt/%p/ - the called IP (only available on Setup, empty otherwise)
 <item><tt/%s/ - the calling IP
-<item><tt/%r/ - the calling alias
+<item><tt/%r/ - the calling aliases
+<item><tt/%{Calling-Station-Id}/ - the calling station ID (same value as used in accounting and authentication events), only available on ARQ and Setup
 <item><tt/%i/ - the call ID
-<item><tt/%m/ - the messageType (ARQ, LRQ or Setup)
+<item><tt/%m/ - the message type (ARQ, LRQ or Setup)
 </itemize>
 Some of these can be empty if they aren't included in The ARQ, LRQ or Setup message.
 <p>

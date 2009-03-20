@@ -1382,6 +1382,7 @@ protected:
 		const PString & calledAlias,
 		const PString & calledIP,
 		const PString & caller,
+		const PString & callingStationId,
 		const PString & callid,
 		const PString & messageType,
 		/* out: */
@@ -1465,11 +1466,12 @@ bool SqlPolicy::OnRequest(AdmissionRequest & request)
 			calledAlias = AsString((*aliases)[0], FALSE);
 		PString calledIP = "";	/* not available for ARQs */
 		PString caller = AsString(arq.m_srcInfo, FALSE);
+		PString callingStationId = request.GetCallingStationId();
 		PString callid = AsString(arq.m_callIdentifier.m_guid);
 		PString messageType = "ARQ";
 		DestinationRoutes destination;
 
-		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
+		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType,
 						/* out: */ destination);
 
 		if (destination.RejectCall()) {
@@ -1515,11 +1517,12 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 	PString caller = "";
 	if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 		caller = AsString(lrq.m_sourceInfo[0], FALSE);
+	PString callingStationId = request.GetCallingStationId();	// probably empty
 	PString callid = "";	/* not available for LRQs */
 	PString messageType = "LRQ";
 	DestinationRoutes destination;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType,
 					/* out: */ destination);
 
 	if (destination.RejectCall()) {
@@ -1561,11 +1564,12 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	request.GetWrapper()->GetLocalAddr(localAddr, localPort);
 	PString calledIP = localAddr;
 	PString caller = AsString(setup.m_sourceAddress, FALSE);
+	PString callingStationId = request.GetCallingStationId();
 	PString callid = AsString(setup.m_callIdentifier.m_guid);
 	PString messageType = "Setup";
 	DestinationRoutes destination;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callid, messageType,
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType,
 					/* out: */ destination);
 
 	if (destination.RejectCall()) {
@@ -1605,6 +1609,7 @@ void SqlPolicy::DatabaseLookup(
 		const PString & calledAlias,
 		const PString & calledIP,
 		const PString & caller,
+		const PString & callingStationId,
 		const PString & callid,
 		const PString & messageType,
 		/* out: */
@@ -1617,6 +1622,7 @@ void SqlPolicy::DatabaseLookup(
 	params["c"] = calledAlias;
 	params["p"] = calledIP;
 	params["r"] = caller;
+	params["Calling-Station-Id"] = callingStationId;
 	params["i"] = callid;
 	params["m"] = messageType;
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);

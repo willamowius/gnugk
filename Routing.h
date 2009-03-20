@@ -131,6 +131,8 @@ public:
 	typedef W Wrapper;
 
 	Request(ReqObj & r, Wrapper *w) : m_request(r), m_wrapper(w) {}
+	Request(ReqObj & r, Wrapper *w, const PString & id)
+		: m_request(r), m_wrapper(w), m_callingStationId(id) {}
 	Request(ReqObj & r, Wrapper *w, const std::list<Route> &failedRoutes)
 		: RoutingRequest(failedRoutes), m_request(r), m_wrapper(w) {}
 
@@ -142,12 +144,14 @@ public:
 	void SetAliases(H225_ArrayOf_AliasAddress & aliases);
 	const ReqObj & GetRequest() const { return m_request; }
 	const Wrapper *GetWrapper() const { return m_wrapper; }
+	PString GetCallingStationId() const { return m_callingStationId; }
 	const H225_ArrayOf_AliasAddress *GetAliases() const
 	{ return const_cast<Request<R, W> *>(this)->GetAliases(); }
 
 private:
 	ReqObj & m_request;
 	Wrapper *m_wrapper;
+	PString m_callingStationId;
 };
 
 typedef Request<H225_AdmissionRequest, RasMsg> AdmissionRequest;

@@ -1,5 +1,6 @@
 Changes from 2.2.8 to 2.2.9
 ===========================
+- new variable for sql routing: %{Calling-Station-Id}
 - BUGFIX(RasTbl.cxx) fix pointer check in SingleGatekeeper()
 - BUGFIX(RasSrv.h) fix memory leak in assignedGK code
 - BUGFIX(ProxyChannel.cxx) only set CallInProgress on Alerting and Connect so a 3rd and following

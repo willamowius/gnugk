@@ -1832,7 +1832,7 @@ void CallSignalSocket::OnSetup(
 		endptr called;
 		bool destFound = false;
 		H225_TransportAddress calledAddr;
-		Routing::SetupRequest request(setupBody, setup);
+		Routing::SetupRequest request(setupBody, setup, authData.m_callingStationId);
 		
 		if (!rejectCall && !authData.m_destinationRoutes.empty()) {
 			list<Route>::const_iterator i = authData.m_destinationRoutes.begin();
