@@ -357,7 +357,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%p/ - the called IP (only available on Setup, empty otherwise)
 <item><tt/%s/ - the calling IP
 <item><tt/%r/ - the calling aliases
-<item><tt/%{Calling-Station-Id}/ - the calling station ID (same value as used in accounting and authentication events), only available on ARQ and Setup
+<item><tt/%{Calling-Station-Id}/ - the calling station ID (same value as used in accounting and authentication events)
 <item><tt/%i/ - the call ID
 <item><tt/%m/ - the message type (ARQ, LRQ or Setup)
 </itemize>

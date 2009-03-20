@@ -1517,7 +1517,9 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 	PString caller = "";
 	if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 		caller = AsString(lrq.m_sourceInfo[0], FALSE);
-	PString callingStationId = request.GetCallingStationId();	// probably empty
+	PString callingStationId = request.GetCallingStationId();
+	if (callingStationId.IsEmpty())
+		callingStationId = caller;
 	PString callid = "";	/* not available for LRQs */
 	PString messageType = "LRQ";
 	DestinationRoutes destination;
