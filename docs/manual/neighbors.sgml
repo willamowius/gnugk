@@ -28,6 +28,21 @@ If a call from a neighbor is accepted also depends on the AcceptNeighborsCalls s
 Neighbor handling has changed significantly from version 2.0 to version 2.2.
 Neighbors can be specified now the old or the new way.
 
+The gatekeeper types have the following characteristics:
+<itemize>
+<item><tt/GnuGK/<newline>
+When in doubt, use this gatekeeper type. This also activates P2PNAT Media (H.460.23 / H.460.24).
+
+<item><tt/CiscoGK/<newline>
+GnuGk will pretend to be a Cisco gatekeeper and send fake manufacturer data.
+
+<item><tt/ClarentGK/<newline>
+Clarent gatekeeper can't decode nonStandardData in LRQs, so GnuGk will filter it out.
+
+<item><tt/GlonetGK/<newline>
+Limited support for LRQ forwarding.
+</itemize>
+
 NOTE: Make sure you get the capitalization of the gatekeeper types right. It matters...
 
 <descrip>
