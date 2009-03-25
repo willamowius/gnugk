@@ -1,13 +1,13 @@
 <sect>Introduction
 <p>
 <!--
-This manual is also available in Portuguese and Traditional Chinese.
+This manual is also available in other languages.
 The English version is the master document and will get updated first.
 -->
 <sect1>About
 <p>
 <bf>
-<url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
+<url url="http://www.gnugk.org/" name="The GNU Gatekeeper">
 </bf>
 is an open-source project that implements an H.323 gatekeeper.
 A gatekeeper provides call control services to the H.323 endpoints.
@@ -44,9 +44,14 @@ For a detailed description of what a gatekeeper does, see
 <sect1>Copyright
 <p>
 It is covered by the
-<htmlurl url="http://www.fsf.org/licensing/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
+<htmlurl url="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html" name="GNU General Public License version 2"> (GNU GPL v2).
 In addition to that, we explicitly grant
-the right to link this code to the OpenH323 and OpenSSL library.
+the right to link this code to the OpenH323/H323Plus and OpenSSL library.
+
+Some protocols implemented in the GNU Gatekeeper are covered by patents (especially the
+firewall / NAT traversal protocols). To the best of our knowledge, the GNU Gatekeeper Project
+has a valid license for all its releases, but users making derived versions of this code have
+to ensure that they also have a sufficient license before enabling those features.
 
 Generally speaking, the GNU GPL allows you to copy, distribute, resell or modify
 the software, but it requires that all derived works must be published
@@ -63,10 +68,8 @@ of your application private.
 
 <sect1>Name
 <p>
-The full name of this project is
-<em>OpenH323 Gatekeeper - The GNU Gatekeeper</em>,
-short <em/GnuGk/.
-We use the name to emphasise that this is free software.
+The name of this project <em>GNU Gatekeeper</em>, short <em/GnuGk/
+is used to emphasise that this is free software.
 
 <sect1>Download
 <label id="download">
