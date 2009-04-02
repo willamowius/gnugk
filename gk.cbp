@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="GnuGk" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="optnoshared">
+				<Option platforms="Unix;" />
+				<Option output="obj_linux_x86_64_r/gnugk" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="obj_linux_x86_64_r" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Compiler>
+					<Add directory="${PTLIBDIR}/include" />
+					<Add directory="${OPENH323DIR}/include" />
+				</Compiler>
+			</Target>
+			<Target title="debug">
+				<Option platforms="Unix;" />
+				<Option output="obj_linux_x86_64_d/gnugk" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="obj_linux_x86_64_d" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Compiler>
+					<Add directory="${PTLIBDIR}/include" />
+					<Add directory="${OPENH323DIR}/include" />
+				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile clean" />
+				</MakeCommands>
+			</Target>
+			<Target title="clean">
+				<Option type="4" />
+				<Option compiler="gcc" />
+			</Target>
+		</Build>
+		<Unit filename="GkClient.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="GkClient.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="GkStatus.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="GkStatus.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="MakeCall.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="MakeCall.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="Neighbor.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="Neighbor.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="ProxyChannel.cxx">
+			<Option target="optnoshared" />
+			<Option target="debug" />
+		</Unit>
+		<Unit filename="ProxyChannel.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="RasPDU.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="RasSrv.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="RasSrv.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="RasTbl.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="RasTbl.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="Routing.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="Routing.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="SoftPBX.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="SoftPBX.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="Toolkit.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="Toolkit.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="capctrl.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="capctrl.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="changes.txt">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="cisco.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="cisco.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="clirw.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="clirw.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="config.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="factory.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gk.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gk.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gk_const.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gkacct.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gkacct.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gkauth.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gkauth.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gkconfig.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gkconfig.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gksql.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gksql.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gksql_firebird.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gksql_mysql.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gksql_odbc.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gksql_pgsql.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gksql_sqlite.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gktimer.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gktimer.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="gnugkbuildopts.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="h323util.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="h323util.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="ipauth.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="ipauth.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="job.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="job.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="main.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="name.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="precompile.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="radacct.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="radacct.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="radauth.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="radauth.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="radproto.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="radproto.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="rasinfo.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="rwlock.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="sigmsg.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="sigmsg.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="singleton.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="singleton.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="slist.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="sqlacct.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="sqlacct.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="sqlauth.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="statusacct.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="statusacct.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="stl_supp.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="version.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="version.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="yasocket.cxx">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="yasocket.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
