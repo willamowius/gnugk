@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.21  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.20  2008/12/03 18:52:49  willamowius
  * new RadAcct attribute: RewriteE164 (thanks Tusar)
  *
@@ -1341,7 +1344,7 @@ protected:
 	typedef std::list<RadiusSocket*>::const_iterator socket_const_iterator;
 	
 	/// An entry describing a signle radius server
-	typedef struct RadiusServer
+	struct RadiusServer
 	{
 		PString m_serverAddress; /// IP or DNS name
 		PString m_sharedSecret; /// password shared between the client and the server
