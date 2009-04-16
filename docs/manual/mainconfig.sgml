@@ -344,6 +344,16 @@ If this setting is omitted, all authenticators are loaded by default.
 If you are using plugin authenticators, then you may want to disable the default authenticators to provide optimum security.
 Note: H.235.1 requires OpenSSL support compiled into GnuGk.
 <bf/This switch is only available if GnuGk is compiled with H323Plus./
+
+<item><tt/DisconnectCallsOnShutdown=0/<newline>
+Default: <tt>1</tt><newline>
+<p>
+By default GnuGk will disconnect all ongoing calls when it shuts down and
+will send an unregistration request to all endpoints.
+When you set this switch to 0 it won't do this.
+This switch is intended mainly for gatekeepers running in direct mode.
+In routed mode and proxy mode calls will still get disrupted when the gatekeeper shuts down.
+
 </itemize>
 
 

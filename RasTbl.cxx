@@ -1960,9 +1960,11 @@ void RegistrationTable::LoadConfig()
 void RegistrationTable::ClearTable()
 {
 	WriteLock lock(listLock);
-	// Unregister all endpoints, and move the records into RemovedList
-	transform(EndpointList.begin(), EndpointList.end(),
-		back_inserter(RemovedList), mem_fun(&EndpointRec::Unregister));
+	if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "DisconnectCallsOnShutdown", "1"))) {
+		// Unregister all endpoints, and move the records into RemovedList
+		transform(EndpointList.begin(), EndpointList.end(),
+			back_inserter(RemovedList), mem_fun(&EndpointRec::Unregister));
+	}
 	EndpointList.clear();
 	regSize = 0;
 	copy(OuterZoneList.begin(), OuterZoneList.end(), back_inserter(RemovedList));
@@ -3176,9 +3178,11 @@ void CallTable::ClearTable()
 	iterator Iter = CallList.begin();
 	while (Iter != CallList.end()) {
 		iterator i = Iter++;
-		(*i)->SetDisconnectCause(Q931::TemporaryFailure);
-		(*i)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
-		(*i)->Disconnect();
+		if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "DisconnectCallsOnShutdown", "1"))) {
+			(*i)->SetDisconnectCause(Q931::TemporaryFailure);
+			(*i)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
+			(*i)->Disconnect();
+		}
 		InternalRemove(i);
 		Iter = CallList.begin(); // reset invalidated iterator
 	}
