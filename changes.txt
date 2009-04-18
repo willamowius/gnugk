@@ -1,5 +1,6 @@
 Changes from 2.2.8 to 2.2.9
 ===========================
+- BUGFIX(Routing.cxx) fix round-robin that broke in 2.2.8
 - new switch [Gatekeeper::Main]DisconnectCallsOnShutdown=0 to avoid disconnecting calls on shutdown
 - new variable for sql routing: %{Calling-Station-Id}
 - BUGFIX(RasTbl.cxx) fix pointer check in SingleGatekeeper()

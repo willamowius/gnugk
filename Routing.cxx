@@ -462,9 +462,7 @@ bool InternalPolicy::FindByAliases(
 	)
 {
 	list<Route> routes;
-	RegistrationTable::Instance()->FindEndpoint(
-		aliases, roundRobin, true, routes
-		);
+	RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes);
 	list<Route>::iterator i = routes.begin();
 	while (i != routes.end()) {
 		i->m_policy = m_name;
@@ -496,9 +494,8 @@ bool InternalPolicy::FindByAliases(
 	H225_ArrayOf_AliasAddress & aliases
 	)
 {
-	// do not apply round robin selection for Location ReQuests
 	list<Route> routes;
-	if (RegistrationTable::Instance()->FindEndpoint(aliases, false, true, routes))
+	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes))
 		request.SetRejectReason(H225_ReleaseCompleteReason::e_gatewayResources);
 		
 	list<Route>::iterator i = routes.begin();
@@ -514,9 +511,8 @@ bool InternalPolicy::FindByAliases(
 	H225_ArrayOf_AliasAddress & aliases
 	)
 {
-	// do not apply round robin selection for Location ReQuests
 	list<Route> routes;
-	if (RegistrationTable::Instance()->FindEndpoint(aliases, false, true, routes))
+	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes))
 		request.SetRejectReason(H225_AdmissionRejectReason::e_resourceUnavailable);
 		
 	list<Route>::iterator i = routes.begin();
