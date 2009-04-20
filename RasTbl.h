@@ -268,6 +268,10 @@ public:
 	unsigned TranslateReceivedCause(unsigned cause) const;
 	unsigned TranslateSentCause(unsigned cause) const;
 
+	bool IsH46018Disabled() const { return m_h46018disabled; }
+	void SetUsesH46018(bool uses) { m_usesH46018 = uses; m_nat = uses; }
+	bool UsesH46018() const { return m_usesH46018; }
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -342,11 +346,12 @@ protected:
 
 	EPNatTypes m_epnattype;
 	bool m_natsupport, m_natproxy, m_internal, m_remote;
+	bool m_h46018disabled;
+	bool m_usesH46018;
 
 #ifdef hasPresence
 	H323Contact * m_contact;
 #endif
-
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -597,8 +602,7 @@ public:
 		none = 0,
 		callingParty = 1,
 		calledParty = 2,
-		both = 3,
-		citronNAT = 4  // caller with Citron NAT Technology?
+		both = 3
 	};
 
 	PINDEX GetCallNumber() const { return m_CallNumber; }
@@ -715,6 +719,7 @@ public:
 	*/
 	bool IsConnected() const { return (m_connectTime != 0); }
 
+	void SetH245Routed(PBoolean routed) { m_h245Routed = routed; }
 	bool IsH245Routed() const { return m_h245Routed; }
 	bool IsToParent() const { return m_toParent; }
 	bool IsForwarded() const { return m_forwarded; }
@@ -1039,6 +1044,11 @@ public:
 	bool IsProceedingSent() const { return m_proceedingSent; }
 	// TODO: JW also set when sent via status port
 	void SetProceedingSent(bool val) { m_proceedingSent = val; }
+	
+#ifdef HAS_H46018
+	void StoreSetup(SignalingMsg * msg);
+	PBYTEArray RetrieveSetup();
+#endif
 
 private:
 	void SendDRQ();
@@ -1162,6 +1172,10 @@ private:
 	PIPSocket::Address m_mediaOriginatingIp;
 	PBYTEArray m_radiusClass;
 	bool m_proceedingSent;
+#ifdef HAS_H46018
+	/// processed Setup data ready to be sent to the callee (for H.460.18)
+	PBYTEArray m_processedSetup;
+#endif
 };
 
 typedef CallRec::Ptr callptr;
@@ -1325,6 +1339,10 @@ inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
   
 inline int EndpointRec::GetTimeToLive() const
 {
+	if (UsesH46018()) {
+		// force timeToLive to 5 - 30 sec, 29 sec if not set
+		return m_timeToLive == 0 ? 29 : max(5, min(30, m_timeToLive));
+	}
 	return m_timeToLive;
 }
 

@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //
-// gk.cxx for OpenH323 Gatekeeper - GNU Gatekeeper
+// gk.cxx for GNU Gatekeeper
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -473,9 +473,8 @@ bool Gatekeeper::InitConfig(const PArgList &args)
 	if( (GkConfig()->GetInteger("Fortytwo")  != 42) &&
 		(GkConfig()->GetInteger("Fourtytwo") != 42)) { 
 		cerr << "WARNING: No config file found!\n"
-			 << "- Does the config file exist? The default (~/.pwlib_config/Gatekeeper.ini or gatekeeper.ini in current directory) or the one given with -c?\n"
-			 << "- Did you specify they the right 'Main' section with -s?\n" 
-			 << "- Is the line 'Fortytwo=42' present in this 'Main' section?"<<endl;
+			 << "- Use the -c switch to specify the config file.\n"
+			 << "- Make sure the line 'Fortytwo=42' present in the '[Gatekeeper::Main]' section.\n" << endl;
 	}
 	
 	return CheckSectionName(GkConfig());
@@ -592,7 +591,7 @@ void Gatekeeper::Main()
 
 	EnableLogFileRotation();
 	
-	PString welcome("OpenH323 Gatekeeper - The GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
+	PString welcome("GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
 
@@ -613,9 +612,7 @@ void Gatekeeper::Main()
 	// Copyright notice
 	cout <<
 		"This program is free software; you can redistribute it and/or\n"
-		"modify it under the terms of the GNU General Public License\n"
-		"as published by the Free Software Foundation; either version 2\n"
-		"of the License, or (at your option) any later version.\n"
+		"modify it under the terms of the GNU General Public License version 2.\n"
 		"We also explicitly grant the right to link this code\n"
 		"with the OpenH323/H323Plus and OpenSSL library.\n"
 	     << endl;
@@ -623,8 +620,14 @@ void Gatekeeper::Main()
 #ifdef hasH460
 	// License notice
 	cout << "This program contains patent pending P2Pnat Media technology\n"
-            "under special royalty-free license to the GnuGk Project."
+            "under special royalty-free license to the GNU Gatekeeper Project.\n"
 		 << endl;
+#endif
+
+#ifdef HAS_H46018
+	cout << "This program contains H.460.18 and H.460.19 technology patented by Tandberg\n"
+			"licensed to the GNU Gatekeeper Project.\n"
+			<< endl;
 #endif
 
 	// read capacity from commandline
@@ -635,9 +638,9 @@ void Gatekeeper::Main()
 		GKcapacity = GkConfig()->GetInteger("TotalBandwidth", -1);
 	CallTable::Instance()->SetTotalBandwidth(GKcapacity);
 	if (GKcapacity < 0)
-		cout << "\nDisable Bandwidth Management" << endl;
+		cout << "Disable Bandwidth Management" << endl;
 	else
-		cout << "\nAvailable Bandwidth " << GKcapacity << endl;
+		cout << "Available Bandwidth " << GKcapacity << endl;
 
 	// read timeToLive from command line
 	if (args.HasOption('l'))

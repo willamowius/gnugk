@@ -139,6 +139,48 @@ PString StripAliasType(const PString & alias)
 	}
 }
 
+H245_UnicastAddress_iPAddress IPToH245TransportIPAddr(const PIPSocket::Address & ip, WORD Port)
+{
+	H245_UnicastAddress_iPAddress ipaddr;
+	for (int i = 0; i < 4; ++i)
+		ipaddr.m_network[i] = ip[i];
+	ipaddr.m_tsapIdentifier = Port;
+
+	return ipaddr;
+}
+
+H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD Port)
+{
+	H245_TransportAddress Result;
+
+	Result.SetTag(H245_TransportAddress::e_unicastAddress);
+	H245_UnicastAddress & uniaddr = Result;
+	uniaddr.SetTag(H245_UnicastAddress::e_iPAddress);
+	H245_UnicastAddress_iPAddress & ipaddr = uniaddr;
+	for (int i = 0; i < 4; ++i)
+		ipaddr.m_network[i] = ip[i];
+	ipaddr.m_tsapIdentifier = Port;
+
+	return Result;
+}
+
+// convert a string (dot notation without port) into an H245 transport address
+//H245_TransportAddress StringToH245TransportAddr(const PString & Addr, WORD Port)
+//{
+//	H245_TransportAddress Result;
+//
+//	Result.SetTag(H245_TransportAddress::e_unicastAddress);
+//	H245_UnicastAddress & uniaddr = Result;
+//	uniaddr.SetTag(H245_UnicastAddress::e_iPAddress);
+//	H245_UnicastAddress_iPAddress & ipaddr = uniaddr;
+//	PIPSocket::Address ip(Addr);
+//	for (int i = 0; i < 4; ++i)
+//		ipaddr.m_network[i] = ip[i];
+//	ipaddr.m_tsapIdentifier = Port;
+//
+//	return Result;
+//}
+
 // convert a socket IP address into an H225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port)
 {
@@ -149,7 +191,7 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 
 	for (int i = 0; i < 4; ++i)
 		ResultIP.m_ip[i] = Addr[i];
-	ResultIP.m_port  = Port;
+	ResultIP.m_port = Port;
 
 	return Result;
 }

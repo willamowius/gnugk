@@ -12,6 +12,10 @@
 #ifndef GNUGKBUILDOPTS_H
 #define GNUGKBUILDOPTS_H 1
 
+// H.460.18 / H.460.19
+
+#undef HAS_H46018
+
 
 // Radius
 

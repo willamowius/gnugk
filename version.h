@@ -15,9 +15,8 @@
 **   $Source$
 **
 ** This program is free software; you can redistribute it and/or modify
-** it under the terms of the GNU General Public License as published by
-** the Free Software Foundation; either version 2 of the License, or
-** (at your option) any later version.
+** it under the terms of the GNU General Public License version 2 as published by
+** the Free Software Foundation.
 **
 ** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -40,7 +39,7 @@
 
 /* Minor version number of the gatekeeper */
 #ifndef GNUGK_MINOR_VERSION
-# define GNUGK_MINOR_VERSION 2
+# define GNUGK_MINOR_VERSION 3
 #endif
 
 /* Release status for the gatekeeper */
@@ -52,7 +51,7 @@
 
 /* Build number of the gatekeeper */
 #ifndef GNUGK_BUILD_NUMBER
-# define GNUGK_BUILD_NUMBER 9
+# define GNUGK_BUILD_NUMBER 0
 #endif
 
 #endif  /* GNUGK_VERSION_H */

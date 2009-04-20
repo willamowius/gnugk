@@ -40,7 +40,7 @@
 #include "config.h"
 
 #ifdef hasH460
-  #include <h460/h4601.h>
+	#include <h460/h4601.h>
 #endif
 
 using std::multimap;
@@ -176,10 +176,13 @@ PrefixInfo LRQForwarder::operator()(Neighbor *nb, WORD /*seqnum*/) const
 Neighbor::Neighbor()
 {
 	m_rasSrv = RasServer::Instance();
+	m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
 }
 
 Neighbor::~Neighbor()
 {
+	if (m_keepAliveTimer != NULL)
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
 	PTRACE(1, "NB\tDelete neighbor " << m_id);
 }
 
@@ -254,6 +257,15 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	}
 	PString aprefix(config->GetString(section, "AcceptPrefixes", "*"));
 	m_acceptPrefixes = PStringArray(aprefix.Tokenise(",", false));
+	if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
+#ifdef HAS_H46018
+	if (Toolkit::AsBool(config->GetString(section, "UseH46018", "0"))) {
+		PTime now;
+		m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+			this, &Neighbor::SendH46018GkKeepAlive, now, 29);	// do it now and every 29 seconds
+	}
+#endif
 
 	SetForwardedInfo(section);
 
@@ -266,9 +278,26 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	return true;
 }
 
+void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
+{
+#ifdef HAS_H46018
+	// send SCI to open the pinhole
+	H225_RasMessage sci_ras;
+	sci_ras.SetTag(H225_RasMessage::e_serviceControlIndication);
+	H225_ServiceControlIndication & sci = sci_ras;
+	sci.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	H460_FeatureStd feat = H460_FeatureStd(18);
+	sci.IncludeOptionalField(H225_ServiceControlIndication::e_featureSet);
+	sci.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+	H225_ArrayOf_FeatureDescriptor & desc = sci.m_featureSet.m_supportedFeatures;
+	desc.SetSize(1);
+	desc[0] = feat;
+	m_rasSrv->SendRas(sci_ras, GetIP(), m_port);
+#endif
+}
+
 bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & addr)
 {
-
   addr.GetIpAndPort(m_ip,m_port);
   m_id = "SRVrec";
   m_name = name;

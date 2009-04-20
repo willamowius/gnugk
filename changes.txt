@@ -1,7 +1,9 @@
 Changes from 2.2.8 to 2.2.9
 ===========================
+- H.460.18 and H.460.19 support
 - BUGFIX(Routing.cxx) fix round-robin that broke in 2.2.8
 - new switch [Gatekeeper::Main]DisconnectCallsOnShutdown=0 to avoid disconnecting calls on shutdown
+- new switch: [Proxy] ProxyAlways=1
 - new variable for sql routing: %{Calling-Station-Id}
 - BUGFIX(RasTbl.cxx) fix pointer check in SingleGatekeeper()
 - BUGFIX(RasSrv.h) fix memory leak in assignedGK code

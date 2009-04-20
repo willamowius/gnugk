@@ -69,7 +69,8 @@ public:
 		Connecting,
 		Forwarding,
 		Closing,
-		Error
+		Error,
+		DelayedConnecting	// H.460.18
 	};
 
 	ProxySocket(
@@ -157,6 +158,7 @@ private:
 class X880_Invoke;
 class H4501_InterpretationApdu;
 #endif
+
 class CallSignalSocket : public TCPProxySocket {
 public:
 	CallSignalSocket();
@@ -180,7 +182,7 @@ public:
 	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
 	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
 
-	bool HandleH245Mesg(PPER_Stream &);
+	bool HandleH245Mesg(PPER_Stream &, bool & suppress);
 	bool IsNATSocket() const { return m_isnatsocket; }
 	void OnH245ChannelClosed() { m_h245socket = 0; }
 	void SetPeerAddress(const Address &, WORD);
@@ -204,7 +206,8 @@ protected:
 	
 	void SetRemote(CallSignalSocket *);
 	bool CreateRemote(H225_Setup_UUIE &setupBody);
-	
+	CallSignalSocket * GetRemote() const { return (CallSignalSocket *)remote; }
+
 	void ForwardCall(FacilityMsg *msg);
 
 	/// signaling message handlers
@@ -217,7 +220,7 @@ protected:
 	void OnProgress(SignalingMsg *msg);
 	void OnInformation(SignalingMsg *msg);
 
-	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &);
+	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &, bool & suppress);
 	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
 #if H323_H450
@@ -310,7 +313,7 @@ private:
 	bool m_callerSocket;
 	/// H.225.0 protocol version in use by the remote party
 	unsigned m_h225Version;
-	/// raw Setup data as received from the caller
+	/// raw Setup data as received from the caller (for failover)
 	PBYTEArray m_rawSetup;
 	PMutex infomutex;    // Information PDU processing Mutex
 };

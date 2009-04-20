@@ -20,6 +20,7 @@
 #include <list>
 #include <map>
 #include "Routing.h"
+#include "gktimer.h"
 
 
 class H225_RasMessage;
@@ -82,6 +83,9 @@ public:
     // Sent profile based on SRV Record
 	virtual bool SetProfile(const PString &, const H323TransportAddress &);
 
+	// send a H.460.18 keepAlive (triggered by a timer)
+	void SendH46018GkKeepAlive(GkTimer* timer);
+
 	// get PrefixInfo for a given aliases
 	// if an alias is matched, set dest to the alias
 	virtual PrefixInfo GetPrefixInfo(const H225_ArrayOf_AliasAddress &, H225_ArrayOf_AliasAddress & dest);
@@ -117,6 +121,7 @@ protected:
 	Prefixes m_sendPrefixes;
 	PStringArray m_acceptPrefixes;
 	bool m_externalGK;
+	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 };
 
 class NeighborList {

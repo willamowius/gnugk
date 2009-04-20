@@ -277,10 +277,11 @@ EndpointRec::EndpointRec(
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown), m_natsupport(false),
 	m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false),m_remote(false)
+	m_internal(false),m_remote(false),m_usesH46018(false)
 #ifdef hasPresence
 	,m_contact(NULL)
 #endif
+
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -519,7 +520,7 @@ void EndpointRec::LoadEndpointConfig()
 	const PStringList sections = cfg->GetSections();
 	m_prefixCapacities.clear(); // clear capacity settings
 	m_activePrefixCalls.clear(); // we loose call stats on Reload, but capacities may have changed
-	
+
 	bool setDefaults = true;
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
 		const PString key = "EP::" + AsString(m_terminalAliases[i], FALSE);
@@ -559,7 +560,9 @@ void EndpointRec::LoadEndpointConfig()
 				log += " Calling Type Of Number: " + PString(m_callingTypeOfNumber);
 			if (m_proxy > 0)
 				log += " proxy: " + PString(m_proxy);
+			m_h46018disabled = cfg->GetInteger(key, "DisableH46018", 0);
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
+
 			break;
 		}
 	}
@@ -726,8 +729,8 @@ void EndpointRec::SetTimeToLive(int seconds)
 	PWaitAndSignal lock(m_usedLock);
 
 	if (m_timeToLive > 0 && !m_permanent) {
-		// To avoid bloated RRQ traffic, don't allow ttl < 60
-		if (seconds < 60)
+		// To avoid bloated RRQ traffic, don't allow ttl < 60 for non-H.460.18 endpoints
+		if (seconds < 60 && !UsesH46018())
 			seconds = 60;
 		m_timeToLive = (SoftPBX::TimeToLive > 0) ?
 			std::min(SoftPBX::TimeToLive, seconds) : 0;
@@ -904,7 +907,11 @@ PString EndpointRec::PrintOn(bool verbose) const
 		if (IsPermanent())
 			msg += " (permanent)";
 		PString natstring(IsNATed() ? m_natip.AsString() : PString());
-		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>\r\n", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
+		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
+		if (UsesH46018()) {
+			msg += " (H.460.18)";
+		}
+		msg += "\r\n";
 	}
 	return msg;
 }
@@ -2229,10 +2236,9 @@ void CallRec::SetCalling(
 {
 	InternalSetEP(m_Calling, NewCalling);
 	if (NewCalling) {
-		if (NewCalling->IsNATed()) {
-			m_nattype |= callingParty, m_h245Routed = true;
-//			if (NewCalling->HasNATSocket())
-//				m_nattype |= citronNAT;
+		if (NewCalling->IsNATed() || NewCalling->UsesH46018()) {
+			m_nattype |= callingParty;
+			m_h245Routed = true;
 		}
 		SetSrcSignalAddr(NewCalling->GetCallSignalAddress());
 		m_callerId = NewCalling->GetEndpointIdentifier().GetValue();
@@ -2245,8 +2251,10 @@ void CallRec::SetCalled(
 {
 	InternalSetEP(m_Called, NewCalled);
 	if (NewCalled) {
-		if (NewCalled->IsNATed())
-			m_nattype |= calledParty, m_h245Routed = true;
+		if (NewCalled->IsNATed() || NewCalled->UsesH46018()) {
+			m_nattype |= calledParty;
+			m_h245Routed = true;
+		}
 		SetDestSignalAddr(NewCalled->GetCallSignalAddress());
 		m_calleeId = NewCalled->GetEndpointIdentifier().GetValue();
 	}
@@ -2433,7 +2441,7 @@ void CallRec::SendDRQ()
 	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
 	drq.m_gatekeeperIdentifier = Toolkit::GKName();
 
-	// TODO: for an outer zone endpoint, the endpoint identifier may not correct
+	// TODO: for an outer zone endpoint, the endpoint identifier may not be correct
 	if (m_Called) {
 		drq.m_endpointIdentifier = m_Called->GetEndpointIdentifier();
 		RasSrv->SendRas(drq_ras, m_Called->GetRasAddress());
@@ -2886,7 +2894,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 #if PTRACING
 	PStringStream natinfo;
-    natinfo << "NAT Offload calculation inputs for Call No: " << GetCallNumber() << "\n" 
+    natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n" 
             << " Rule : " << (goDirect ? "Local Proxy Media Optimized" : "Always Proxy Local Media");
 // Calling Endpoint
 		natinfo << "\n  Calling Endpoint:\n";
@@ -2913,7 +2921,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		natinfo << "    Support NAT: " << (m_Called->SupportNAT() ? "Yes" : "No");
 	}
 
-	PTRACE(5,"RAS\t\n" << natinfo << "\n");
+	PTRACE(5,"RAS\t\n" << natinfo);
 #endif
 
 	// If neither party supports NAT type is unknown and both are not on internal LAN then exit
@@ -3024,6 +3032,20 @@ PBYTEArray CallRec::GetRADIUSClass() const
 	return m_radiusClass;
 }
 
+#ifdef HAS_H46018
+void CallRec::StoreSetup(SignalingMsg * msg)	// for H.460.18
+{
+	msg->Encode(m_processedSetup);
+	m_processedSetup.MakeUnique();
+}
+
+PBYTEArray CallRec::RetrieveSetup() // for H.460.18
+{
+	PBYTEArray processedSetup(m_processedSetup);
+	m_processedSetup.SetSize(0);	// delete stored Setup
+	return processedSetup;
+}
+#endif
 
 
 /*

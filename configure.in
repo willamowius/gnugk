@@ -1,6 +1,5 @@
 AC_INIT(gk.h)
 
-AC_PROG_CC
 AC_PROG_CXX
 
 dnl ########################################################################
@@ -19,8 +18,13 @@ else
 fi
 
 dnl ########################################################################
-dnl look for ptlib, use a preference order of explicit PWLIBDIR, directory
+dnl look for ptlib, use a preference order of explicit PTLIBDIR, PWLIBDIR, directory
 dnl at same level, home directory, /usr/local or /usr.
+
+dnl if PTLIBDIR is set, use that, use only PWLIBDIR internally from here on
+if test "${PTLIBDIR:-unset}" != "unset" ; then
+  PWLIBDIR=${PTLIBDIR}
+fi
 
 if test "${PWLIBDIR:-unset}" != "unset" ; then
   if test -d ${PWLIBDIR}; then
@@ -259,6 +263,37 @@ fi
 AC_SUBST(INSTALLPREFIX)
 
 dnl #########################################################################
+dnl  Switch for H.460.18 / .19
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    h46018,H.460.18/.19 support (check patent license)
+dnl MSWIN_DEFINE     h46018,HAS_H46018
+
+AC_ARG_ENABLE(h46018, 
+[  --enable-h46018         enable H.460.18 / H.460.19 support (default=no) check patent license before enabling], 
+[ h46018="${enableval}" ], [h46018="no"] 
+)
+
+H460SUPPORT=`cat ${OPENH323DIR}/include/openh323buildopts.h | grep 'define H323_H460'`
+if test "${H460SUPPORT:-unset}" = "unset" ; then
+	if test "x${h46018}" != "xno" ; then     
+		AC_MSG_RESULT(No H.460 support available)
+	fi
+	h46018="no"
+fi
+
+if test "x${h46018}" != "xno" ; then     
+   HAS_H46018=1
+   AC_DEFINE(HAS_H46018, 1)
+   STDCCFLAGS="-DHAS_H46018=1 $STDCCFLAGS"
+   echo "H.460.18 / H.460.19 support enabled"
+else
+   echo "H.460.18 / H.460.19 support disabled"
+   HAS_H46018=0
+fi
+AC_SUBST(HAS_H46018)
+
+dnl #########################################################################
 dnl  Check for RADIUS
 dnl ########################################################################
 
@@ -266,12 +301,13 @@ dnl MSWIN_DISPLAY    radius,RADIUS
 dnl MSWIN_CHECK_FILE radius,radacct.h,HAS_RADIUS=1
 
 AC_ARG_ENABLE(radius, 
-[  --enable-radius               enable RADIUS support (default=yes)], 
+[  --enable-radius         enable RADIUS support (default=yes)], 
 [ radius="${enableval}" ], [radius="yes"] 
 )
 	
 if test "x${radius}" != "xno" ; then     
    HAS_RADIUS=1
+   AC_DEFINE(HAS_RADIUS, 1)
    STDCCFLAGS="-DHAS_RADIUS=1 $STDCCFLAGS"
    SOURCES="$SOURCES radproto.cxx radauth.cxx radacct.cxx"
    HEADERS="$HEADERS radproto.h radauth.h radacct.h"
@@ -314,7 +350,7 @@ dnl MSWIN_DIR_SYMBOL mysql,MYSQL_DIR
 dnl MSWIN_CHECK_DIR  mysql,\Program Files\MySQL\MySQL Server 5.0
 
 AC_ARG_ENABLE(mysql, 
-[  --enable-mysql                enable MySQL support (default=yes)], 
+[  --enable-mysql          enable MySQL support (default=yes)], 
 [ mysql="${enableval}" ], [ mysql="yes" ]
 )
 
@@ -415,6 +451,7 @@ fi
 
 if test "x$mysql" != "xno"; then
 	HAS_MYSQL=1
+	AC_DEFINE(HAS_MYSQL, 1)
 	SOURCES="$SOURCES gksql_mysql.cxx"
 	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
 	LDFLAGS="$MYSQL_LDFLAGS $LDFLAGS"
@@ -437,7 +474,7 @@ dnl MSWIN_CHECK_DIR  pgsql,\postgresql\libpq\
 
 
 AC_ARG_ENABLE(pgsql, 
-[  --enable-pgsql                enable PostgreSQL support (default=yes)], 
+[  --enable-pgsql          enable PostgreSQL support (default=yes)], 
 [ pgsql="${enableval}" ], [ pgsql="yes" ]
 )
 
@@ -536,6 +573,7 @@ fi
 
 if test "x$pgsql" != "xno"; then
 	HAS_PGSQL=1
+	AC_DEFINE(HAS_PGSQL, 1)
 	SOURCES="$SOURCES gksql_pgsql.cxx"
 	STDCCFLAGS="${sql_pgsql_cflags} -DHAS_PGSQL=1 $STDCCFLAGS"
 	LDFLAGS="$PGSQL_LDFLAGS $LDFLAGS"
@@ -556,7 +594,7 @@ dnl MSWIN_CHECK_FILE firebird,include\ibase.h,HAS_FIREBIRD=1
 dnl MSWIN_DIR_SYMBOL firebird,FIREBIRD_DIR
 
 AC_ARG_ENABLE(firebird, 
-[  --enable-firebird                enable Interbase/Firebird support (default=yes)], 
+[  --enable-firebird       enable Interbase/Firebird support (default=yes)], 
 [ firebird="${enableval}" ], [ firebird="yes" ]
 )
 
@@ -655,6 +693,7 @@ fi
 
 if test "x$firebird" != "xno"; then
 	HAS_FIREBIRD=1
+	AC_DEFINE(HAS_FIREBIRD, 1)
 	SOURCES="$SOURCES gksql_firebird.cxx"
 	STDCCFLAGS="${sql_firebird_cflags} -DHAS_FIREBIRD=1 $STDCCFLAGS"
 	LDFLAGS="$FIREBIRD_LDFLAGS $LDFLAGS"
@@ -681,7 +720,7 @@ dnl MSWIN_CHECK_DIR  odbc,\Program Files\Microsoft Platform SDK for Windows Serv
 
 
 AC_ARG_ENABLE(unixodbc, 
-[  --enable-unixodbc                enable unixODBC support (default=yes)], 
+[  --enable-unixodbc       enable unixODBC support (default=yes)], 
 [ unixodbc="${enableval}" ], [ unixodbc="yes" ]
 )
 
@@ -780,6 +819,7 @@ fi
 
 if test "x$unixodbc" != "xno"; then
 	HAS_ODBC=1
+	AC_DEFINE(HAS_ODBC, 1)
 	SOURCES="$SOURCES gksql_odbc.cxx"
 	STDCCFLAGS="${sql_unixodbc_cflags} -DHAS_ODBC=1 $STDCCFLAGS"
 	LDFLAGS="$UNIXODBC_LDFLAGS $LDFLAGS"
@@ -802,7 +842,7 @@ dnl MSWIN_CHECK_DIR  sqlite,\sqlite\
 
 
 AC_ARG_ENABLE(sqlite, 
-[  --enable-sqlite                enable SQLite support (default=yes)], 
+[  --enable-sqlite         enable SQLite support (default=yes)], 
 [ sqlite="${enableval}" ], [ sqlite="yes" ]
 )
 
@@ -901,6 +941,7 @@ fi
 
 if test "x$sqlite" != "xno"; then
 	HAS_SQLITE=1
+	AC_DEFINE(HAS_SQLITE, 1)
 	SOURCES="$SOURCES gksql_sqlite.cxx"
 	STDCCFLAGS="${sql_sqlite_cflags} -DHAS_SQLITE=1 $STDCCFLAGS"
 	LDFLAGS="$SQLITE_LDFLAGS $LDFLAGS"

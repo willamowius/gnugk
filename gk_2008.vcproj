@@ -978,7 +978,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -989,7 +989,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1000,7 +1000,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1011,7 +1011,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1022,7 +1022,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1033,7 +1033,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1044,7 +1044,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS% %GNUGK_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS% %GNUGK_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1055,7 +1055,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>

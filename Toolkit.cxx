@@ -1299,7 +1299,10 @@ PConfig* Toolkit::ReloadConfig()
 	// read the toolkit config values
 
 	m_GKName = Config()->GetString("Name", "OpenH323GK");
-	
+#ifdef HAS_H46018
+	m_H46018Enabled	= Config()->GetBoolean(RoutedSec, "EnableH46018", 0);
+#endif
+
 	m_encryptAllPasswords = Toolkit::AsBool(
 		Config()->GetString("EncryptAllPasswords", "0")
 		);

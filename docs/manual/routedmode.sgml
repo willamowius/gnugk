@@ -423,6 +423,13 @@ Default: <tt>0</tt><newline>
 <p>
 Force ALL registrations to use a keepAlive TCP socket.
 
+<item><tt/EnableH46018=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable support for H.460.18 and H.460.19. This feature is covered by patents held by Tandberg.
+If you don't use the official releases by the GNU Gatekeeper Project, make sure you have a
+valid license before enabling it.
+
 </itemize>
 
 <p>

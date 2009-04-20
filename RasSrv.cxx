@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //
-// New RAS Server for GNU Gatekeeper
+// RAS Server for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2001-2003
 //
@@ -43,7 +43,10 @@
 #include "config.h"
 
 #ifdef hasH460
-  #include <h460/h4601.h>
+	#include <h460/h4601.h>
+	#ifdef HAS_H46018
+		#include <h460/h46018.h>
+	#endif
 #endif
 
 const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
@@ -754,6 +757,10 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 	const char *h245msg = GKRoutedH245 ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tUsing " << modemsg << " Signalling");
 	PTRACE(2, "GK\tH.245 Routed " << h245msg);
+#ifdef HAS_H46018
+	const char *h46018msg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46018", "0")) ? "Enabled" : "Disabled";
+	PTRACE(2, "GK\tH.460.18 Registrations " << h46018msg);
+#endif
 #endif
 }
 
@@ -1473,6 +1480,24 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier);
 		gcf.m_gatekeeperIdentifier = Toolkit::GKName();
 
+#ifdef HAS_H46018
+		if (Toolkit::Instance()->IsH46018Enabled()) {
+			// check if client supports H.460.18
+			if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
+				H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+				if (fs.HasFeature(18)) {
+					// include H.460.18 in supported features
+					gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_genericData);
+					H225_ArrayOf_GenericData & gd = gcf.m_genericData;
+					H460_FeatureStd h46018 = H460_FeatureStd(18);
+					PINDEX lPos = gd.GetSize();
+					gd.SetSize(lPos+1);
+					gd[lPos] = h46018;
+				}
+			}
+		}
+#endif
+
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
             RasSrv->HasAssignedGK(alias,m_msg->m_peerAddr,gcf))
@@ -1533,10 +1558,11 @@ bool RegistrationRequestPDU::Process()
 ///////////////////////////////////////////////////////////////////////////////////////////
 // H460 support Code
 	PBoolean supportNATOffload = false;
-	int RegPrior =0;
+	int RegPrior = 0;
 	bool preemptsupport = false;
 	PBoolean preempt = false;
 	unsigned ntype = 0;
+	PBoolean supportH46018 = false;
 
 #ifdef hasH460
 // Presence Support
@@ -1557,6 +1583,22 @@ bool RegistrationRequestPDU::Process()
 
 	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+		
+#ifdef HAS_H46018
+		// H.460.18
+		if (Toolkit::Instance()->IsH46018Enabled()) {
+			if (fs.HasFeature(18)) {
+				supportH46018 = true;
+				// ignore rasAddr ans use apparent address
+				const WORD rx_port = m_msg->m_peerPort;
+				request.m_rasAddress.SetSize(1);
+				request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+				// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
+				request.m_callSignalAddress.SetSize(1);
+				request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+			}
+		}
+#endif
 
 		if (fs.HasFeature(rNaTFS)) {
 			H460_FeatureStd * natfeat = (H460_FeatureStd *)fs.GetFeature(rNaTFS);
@@ -1599,7 +1641,7 @@ bool RegistrationRequestPDU::Process()
 		bool bReject = !ep;
 		// check if the RRQ was sent from the registered endpoint
 		if (ep && bShellSendReply) { // not forwarded RRQ
-			if (ep->IsNATed()) {
+			if (ep->IsNATed() || ep->UsesH46018()) {
 				// for nated endpoint, only check rx_addr
 			    bReject = (ep->GetNATIP() != rx_addr);
 			} else {
@@ -1624,7 +1666,7 @@ bool RegistrationRequestPDU::Process()
 		} 
 		if (bReject) {
 			if (ep && bShellSendReply) {
-			 PTRACE(1, "RAS\tWarning: Possibly endpointId collide,security attack or IP change");
+			 PTRACE(1, "RAS\tWarning: Possibly endpointId collide, security attack or IP change");
 			   if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
 			     PTRACE(1, "RAS\tDynamic IP? Removing existing Endpoint record and force reregistration.");
    						while (callptr call = CallTbl->FindCallRec(ep)) {
@@ -1681,10 +1723,12 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 		//validaddress = PIPSocket::IsLocalHost(rx_addr.AsString());
-		if (!bShellSendReply) // is forwarded RRQ?
+		if (!bShellSendReply) { // don't check forwarded RRQ
 			validaddress = true;
-		else if (!validaddress && !IsLoopback(ipaddr)) // do not allow nated from loopback
-			nated = true, validaddress = Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"));
+		} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow nated from loopback
+			nated = true;
+			validaddress = Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"));
+		}
 	}
 	if (!validaddress)
 		return BuildRRJ(H225_RegistrationRejectReason::e_invalidCallSignalAddress, nated);
@@ -1831,6 +1875,13 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
 
+#ifdef HAS_H46018
+	if (supportH46018 && !ep->IsH46018Disabled()) {	// check endpoint specific switch, too
+		ep->SetUsesH46018(true);
+		ep->SetNATAddress(rx_addr);
+	}
+#endif
+
 #ifdef hasPresence
 	// If we have some presence information
 	if (presencesupport) {
@@ -1858,7 +1909,7 @@ bool RegistrationRequestPDU::Process()
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-		if (supportcallingNAT && !internal) {
+		if (supportcallingNAT && !internal && !supportH46018) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -1866,11 +1917,11 @@ bool RegistrationRequestPDU::Process()
 			t35.m_t35CountryCode = Toolkit::t35cPoland;
 			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 			t35.m_t35Extension = Toolkit::t35eNATTraversal;
-		  // if the client is NAT or you are forcing ALL registration to use a keepAlive TCP socket
-		  if ((nated) || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "ForceNATKeepAlive", "0")))
-			rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
-		  else  // Be careful as some public IP's may block TCP but not UDP resulting in an incorrect NAT test result.
-		    rcf.m_nonStandardData.m_data = "NoNAT";
+			// if the client is NAT or you are forcing ALL registrations to use a keepAlive TCP socket
+			if ((nated) || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "ForceNATKeepAlive", "0")))
+				rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
+			else  // Be careful as some public IP's may block TCP but not UDP resulting in an incorrect NAT test result.
+				rcf.m_nonStandardData.m_data = "NoNAT";
 		}
 
 #ifdef hasH460
@@ -1895,6 +1946,19 @@ bool RegistrationRequestPDU::Process()
 			  gd[lPos] = presence;
 	       }
 #endif
+
+#ifdef HAS_H46018
+			// H.460.18
+			if (Toolkit::Instance()->IsH46018Enabled()) {
+				if (supportH46018) {
+					H460_FeatureStd H46018 = H460_FeatureStd(18);
+					PINDEX lPos = gd.GetSize();
+					gd.SetSize(lPos+1);
+					gd[lPos] = H46018;
+				}
+			}
+#endif
+
 		   // if we support NAT notify the client they are behind a NAT or to test for NAT
 		   // send off a request to test the client NAT type with a STUN Server
 			if (supportcallingNAT && supportNATOffload && (ep->GetEPNATType() == 0)) {  
@@ -3025,6 +3089,67 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 
 	PrintStatus(PString(PString::Printf, "RAC|%s;", inet_ntoa(m_msg->m_peerAddr)));
 	return true;
+}
+
+template<> bool RasPDU<H225_ServiceControlIndication>::Process()
+{
+	// OnSCI
+	H225_ServiceControlResponse & scr = BuildConfirm();
+
+#ifdef HAS_H46018
+	if (request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
+		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+		if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
+			// seems to be from a neigbor, send out a SCR with a keepAliveInterval
+			H460_FeatureStd feat = H460_FeatureStd(18);
+			scr.IncludeOptionalField(H225_ServiceControlResponse::e_featureSet);
+			scr.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			scr.m_featureSet.m_supportedFeatures.SetSize(1);
+			scr.m_featureSet.m_supportedFeatures[0] = feat;
+			H46018_LRQKeepAliveData lrqKeepAlive;
+			lrqKeepAlive.m_lrqKeepAliveInterval = 29;
+			PASN_OctetString rawKeepAlive;
+			rawKeepAlive.EncodeSubType(lrqKeepAlive);
+			feat.Add(2, H460_FeatureContent(rawKeepAlive));
+			scr.IncludeOptionalField(H225_ServiceControlResponse::e_genericData);
+			H225_ArrayOf_GenericData & gd = scr.m_genericData;
+			gd.SetSize(1);
+			gd[0] = feat;
+		}
+	}
+#endif
+
+	PrintStatus(PString(PString::Printf, "SCR|%s;", inet_ntoa(m_msg->m_peerAddr)));
+	return true;
+}
+
+template<> bool RasPDU<H225_ServiceControlResponse>::Process()
+{
+	// OnSCR
+#ifdef HAS_H46018
+	// check if it belongs to a neighbor SCI and use the keepAliveInterval
+	if (request.HasOptionalField(H225_ServiceControlResponse::e_featureSet)) {
+		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+		if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
+			for (PINDEX i=0; i < request.m_genericData.GetSize(); i++) {
+				H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
+				if (feat.Contains(H460_FeatureID(2))) {
+					PASN_OctetString rawKeepAlive = feat.Value(H460_FeatureID(2));
+					H46018_LRQKeepAliveData lrqKeepAlive;
+					PPER_Stream raw(rawKeepAlive);
+					if (lrqKeepAlive.Decode(raw)) {
+						// JW TODO: find matching neighbor and set timeout
+						// PTRACE(0, "JW keepAlive=" << lrqKeepAlive.m_lrqKeepAliveInterval);
+					} else {
+						PTRACE(1, "Error decoding LRQKeepAlive");
+					}
+				}
+			}
+		}
+	}
+#endif
+	// do nothing
+	return false;
 }
 
 template<> bool RasPDU<H225_RegistrationReject>::Process()

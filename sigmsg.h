@@ -90,6 +90,9 @@ public:
 	bool Encode(
 		PBYTEArray &buffer /// buffer to hold the encoded message
 		);
+	bool Decode(
+		const PBYTEArray & buffer /// buffer holding the encoded message
+		);
 			
 	/// factory constructor for signaling messages
 	static SignalingMsg* Create(

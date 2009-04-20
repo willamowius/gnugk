@@ -253,5 +253,11 @@ forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
 hop count is greater than 1. This setting can be overridden with configuration
 of a particular neighbor.
 
+<item><tt/UseH46018=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Enable H.460.18 keep-alive messages to this neighbor. Set this switch only on the H.460.18
+client side that is supposed to send the keep-alive SCIs.
+
 </itemize>
 

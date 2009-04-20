@@ -202,7 +202,10 @@ template<> struct RasInfo<H225_ResourcesAvailableIndicate> : public TagInfo<H225
 template<> struct RasInfo<H225_ResourcesAvailableConfirm> : public TagInfo<H225_RasMessage::e_resourcesAvailableConfirm> {};
 template<> struct RasInfo<H225_InfoRequestAck> : public TagInfo<H225_RasMessage::e_infoRequestAck> {};
 template<> struct RasInfo<H225_InfoRequestNak> : public TagInfo<H225_RasMessage::e_infoRequestNak> {};
-template<> struct RasInfo<H225_ServiceControlIndication> : public TagInfo<H225_RasMessage::e_serviceControlIndication> {};
+template<> struct RasInfo<H225_ServiceControlIndication> : public TagInfo<H225_RasMessage::e_serviceControlIndication> {
+	typedef RasTag<tag+1> ConfirmTag;
+	typedef RasType<tag+1>::Type ConfirmType;
+};
 template<> struct RasInfo<H225_ServiceControlResponse> : public TagInfo<H225_RasMessage::e_serviceControlResponse> {};
 
 #endif // RASINFO_H

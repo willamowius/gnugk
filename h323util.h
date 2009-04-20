@@ -21,6 +21,8 @@ class H225_TransportAddress_ipAddress;
 class H225_EndpointType;
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
+class H245_TransportAddress;
+class H245_UnicastAddress_iPAddress;
 class PASN_OctetString;
 
 PString AsString(const PIPSocket::Address &, WORD);
@@ -40,6 +42,13 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAl
 PString AsString(const PASN_OctetString & Octets);
 
 PString StripAliasType(const PString & alias);
+
+H245_UnicastAddress_iPAddress IPToH245TransportIPAddr(const PIPSocket::Address & ip, WORD Port);
+
+H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD Port);
+
+// convert a string (dot notation without port) into an H245 transport address
+//H245_TransportAddress StringToH245TransportAddr(const PString & Addr, WORD Port);
 
 // convert a socket IP address into an H225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port);

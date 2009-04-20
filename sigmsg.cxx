@@ -94,9 +94,7 @@ void SignalingMsg::GetPeerAddr(
 	addr = m_peerAddr;
 }
 
-bool SignalingMsg::Encode(
-	PBYTEArray &buffer
-	)
+bool SignalingMsg::Encode(PBYTEArray &buffer)
 {
 	if (m_uuie != NULL && m_uuieChanged) {
 		PPER_Stream strm;
@@ -105,6 +103,11 @@ bool SignalingMsg::Encode(
 		m_q931->SetIE(Q931::UserUserIE, strm);
 	}
 	return m_q931->Encode(buffer) ? true : false;
+}
+
+bool SignalingMsg::Decode(const PBYTEArray & buffer)
+{
+	return m_q931->Decode(buffer) ? true : false;
 }
 
 SignalingMsg* SignalingMsg::Create(

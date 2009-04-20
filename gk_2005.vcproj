@@ -796,7 +796,7 @@
 					>
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
+						CommandLine="configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"
 					/>
@@ -806,7 +806,7 @@
 					>
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
+						CommandLine="configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"
 					/>
@@ -816,7 +816,7 @@
 					>
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
+						CommandLine="configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"
 					/>
@@ -826,7 +826,7 @@
 					>
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
+						CommandLine="configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS&#x0D;&#x0A;%PWLIB_CONFIGURE_OPTIONS%&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"
 					/>

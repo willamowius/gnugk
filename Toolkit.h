@@ -343,6 +343,9 @@ class Toolkit : public Singleton<Toolkit>
 
 	bool isBehindNAT(PIPSocket::Address &) const;
 	std::vector<NetworkAddress> GetInternalNetworks();
+#ifdef HAS_H46018
+	bool IsH46018Enabled() const { return m_H46018Enabled; }
+#endif
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.
@@ -586,6 +589,10 @@ private:
 	/// global cause code translation
 	std::map<unsigned, unsigned> m_receivedCauseMap;
 	std::map<unsigned, unsigned> m_sentCauseMap;
+	// is H460.18 enabled ?
+#ifdef HAS_H46018
+	bool m_H46018Enabled;
+#endif
 };
 
 
