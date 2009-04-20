@@ -3449,7 +3449,7 @@ void CallSignalSocket::Dispatch()
 				const bool isReadable = remote->IsReadable(2*setupTimeout);
 				ConfigReloadMutex.StartRead();
 				if (!isReadable) {
-					PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
+					PTRACE(3, "Q931\tTimed out waiting for a response to Setup or SCI message from " << remote->GetName());
 					if( m_call )
 						m_call->SetDisconnectCause(Q931::TimerExpiry);
 					OnError();
