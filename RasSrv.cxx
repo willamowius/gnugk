@@ -3155,8 +3155,12 @@ template<> bool RasPDU<H225_ServiceControlResponse>::Process()
 					H46018_LRQKeepAliveData lrqKeepAlive;
 					PPER_Stream raw(rawKeepAlive);
 					if (lrqKeepAlive.Decode(raw)) {
-						// JW TODO: find matching neighbor and set timeout
-						// PTRACE(0, "JW keepAlive=" << lrqKeepAlive.m_lrqKeepAliveInterval);
+						// find matching neighbor and set interval
+						NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+						NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
+						if (iter != neighbors.end()) {
+							(*iter)->SetH46018GkKeepAliveInterval(lrqKeepAlive.m_lrqKeepAliveInterval);
+						}
 					} else {
 						PTRACE(1, "Error decoding LRQKeepAlive");
 					}

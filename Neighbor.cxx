@@ -177,11 +177,12 @@ Neighbor::Neighbor()
 {
 	m_rasSrv = RasServer::Instance();
 	m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
+	m_keepAliveTimerInterval = 0;
 }
 
 Neighbor::~Neighbor()
 {
-	if (m_keepAliveTimer != NULL)
+	if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
 	PTRACE(1, "NB\tDelete neighbor " << m_id);
 }
@@ -261,9 +262,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
 #ifdef HAS_H46018
 	if (Toolkit::AsBool(config->GetString(section, "UseH46018", "0"))) {
-		PTime now;
-		m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
-			this, &Neighbor::SendH46018GkKeepAlive, now, 29);	// do it now and every 29 seconds
+		SetH46018GkKeepAliveInterval(29);	// start with every 29 seconds
 	}
 #endif
 
@@ -294,6 +293,19 @@ void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
 	desc[0] = feat;
 	m_rasSrv->SendRas(sci_ras, GetIP(), m_port);
 #endif
+}
+
+void Neighbor::SetH46018GkKeepAliveInterval(int interval)
+{
+	if (m_keepAliveTimerInterval != interval) {
+		m_keepAliveTimerInterval = interval;
+		if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
+			Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
+		PTime now;
+		if (m_keepAliveTimerInterval > 0)
+			m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+				this, &Neighbor::SendH46018GkKeepAlive, now, m_keepAliveTimerInterval);	// do it now and every n seconds
+	}
 }
 
 bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & addr)

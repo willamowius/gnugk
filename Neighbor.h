@@ -85,6 +85,7 @@ public:
 
 	// send a H.460.18 keepAlive (triggered by a timer)
 	void SendH46018GkKeepAlive(GkTimer* timer);
+	void SetH46018GkKeepAliveInterval(int interval);
 
 	// get PrefixInfo for a given aliases
 	// if an alias is matched, set dest to the alias
@@ -121,6 +122,7 @@ protected:
 	Prefixes m_sendPrefixes;
 	PStringArray m_acceptPrefixes;
 	bool m_externalGK;
+	int m_keepAliveTimerInterval;
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 };
 
