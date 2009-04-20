@@ -1702,7 +1702,23 @@ bool RegistrationRequestPDU::Process()
 				RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
 			// endpoint was already registered
 			ep->Update(m_msg->m_recvRAS);
-			return bShellSendReply ? BuildRCF(ep) : false;
+			if (bShellSendReply) {
+				BuildRCF(ep);
+#ifdef HAS_H46018
+				// H.460.18
+				if (Toolkit::Instance()->IsH46018Enabled()) {
+					if (supportH46018) {
+						H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
+						H225_ArrayOf_GenericData & gd = rcf.m_genericData;
+						H460_FeatureStd H46018 = H460_FeatureStd(18);
+						gd.SetSize(1);
+						gd[0] = H46018;
+						rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
+					}
+				}
+#endif
+			}
+			return bShellSendReply;
 		}
 	}
 
@@ -1877,6 +1893,7 @@ bool RegistrationRequestPDU::Process()
 
 #ifdef HAS_H46018
 	if (supportH46018 && !ep->IsH46018Disabled()) {	// check endpoint specific switch, too
+		PTRACE(3, "H46018\tEP on " << rx_addr << " supports H.460.18");
 		ep->SetUsesH46018(true);
 		ep->SetNATAddress(rx_addr);
 	}

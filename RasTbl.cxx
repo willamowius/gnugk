@@ -277,7 +277,7 @@ EndpointRec::EndpointRec(
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown), m_natsupport(false),
 	m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false),m_remote(false),m_usesH46018(false)
+	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false)
 #ifdef hasPresence
 	,m_contact(NULL)
 #endif
@@ -560,7 +560,7 @@ void EndpointRec::LoadEndpointConfig()
 				log += " Calling Type Of Number: " + PString(m_callingTypeOfNumber);
 			if (m_proxy > 0)
 				log += " proxy: " + PString(m_proxy);
-			m_h46018disabled = cfg->GetInteger(key, "DisableH46018", 0);
+			m_h46018disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46018", 0));
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
 			break;

@@ -4492,7 +4492,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		payloadType = (int)wbuffer[1] & 0x7f;	// valid only for RTP packets, not for RTCP
 
 	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && (payloadType == m_keepAlivePayloadType)) {
-		// PTRACE(0, "JW RTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
+		PTRACE(6, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
 		fDestIP = rDestIP = fromIP;
 		fDestPort = rDestPort = fromPort;
@@ -5186,6 +5186,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 					PASN_OctetString & raw = olca.m_genericInformation[i].m_messageContent[0].m_parameterValue;
 					raw.DecodeSubType(params);
 					if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
+						PTRACE(5, "H46018\tExpecting KeepAlive PayloadType=" << params.m_keepAlivePayloadType << " for channel " << flcn);
 						RTPLogicalChannel* rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
 						if (rtplc) {
 							rtplc->SetKeepAlivePayloadType(params.m_keepAlivePayloadType);
