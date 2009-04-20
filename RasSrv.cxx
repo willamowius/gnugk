@@ -242,7 +242,7 @@ GatekeeperMessage *RasListener::ReadRas()
 	if (PTrace::CanTrace(3))
 		PTRACE(3, "RAS\n" << setprecision(2) << msg->m_recvRAS);
 	else
-		PTRACE(2, "RAS\tReceived " << msg->GetTagName());
+		PTRACE(2, "RAS\tReceived " << msg->GetTagName() << " from " << msg->m_peerAddr << ":" << msg->m_peerPort);
 #endif
 	msg->m_localAddr = GetLocalAddr(msg->m_peerAddr);
 	return msg;
@@ -370,7 +370,7 @@ bool MulticastListener::Filter(GatekeeperMessage *msg) const
 // class RasMsg
 void RasMsg::Exec()
 {
-	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received");
+	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received from " << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
 	if (Process())
 		Reply();
 }
