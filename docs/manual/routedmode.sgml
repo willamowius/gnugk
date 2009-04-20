@@ -212,7 +212,7 @@ Note the range size may limit the number of concurrent calls.
 Make sure this range is wide enough to take into account TIME_WAIT
 TCP socket timeout before a socket can be reused after closed.
 TIME_WAIT may vary from 15 seconds to a few minutes, depending on an OS.
-So if your range is 2000-2001 and you made two calls, next two can be
+So if for example your range is 2000-2001 and you made two calls, the next two calls can be
 made after TIME_WAIT timeout elapses and the sockets can be reused.
 The same applies to <tt/H245PortRange/ and <tt/T120PortRange/. TIME_WAIT
 can be usually tuned down on most OSes.
