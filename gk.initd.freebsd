@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # gnugk		This shell script takes care of starting and stopping
-#		gnugk (Openh323 Gatekeeper - GNU Gatekeeper daemon)
+#			gnugk (the GNU Gatekeeper daemon)
 #
 # Coded by Dariusz Wrebiak <dariusz.wrebiak@cstnet.com.pl>
 #

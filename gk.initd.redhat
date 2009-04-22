@@ -1,10 +1,10 @@
 #!/bin/sh
 #
 # gnugk         This shell script takes care of starting and stopping \
-#               gnugk (Openh323 Gatekeeper - GNU Gatekeeper daemon)
+#               gnugk (the GNU Gatekeeper daemon)
 #
 # chkconfig: 345 60 60
-# description: gk is the gnu gatekeeper
+# description: gkgnugk is the gnu gatekeeper
 # processname: /usr/sbin/gnugk
 # config: /etc/gatekeeper.ini
 #

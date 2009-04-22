@@ -1,15 +1,11 @@
 #! /bin/sh
 # Copyright (c) 1995-1998 SuSE GmbH Nuernberg, Germany.
 # Copyright (c) 2000 telos Systementwicklung GmbH
-# Copyright (c) 2000 Jan Willamowius
+# Copyright (c) 2000-2009 Jan Willamowius
 #
 # Initial Author: Marco Budde
 #
-# /sbin/init.d/<skeleton>
-#
-#   and symbolic its link
-#
-# /sbin/rc<skeleton>
+# /sbin/init.d/gnugk
 #
 
 . /etc/rc.config
@@ -67,3 +63,4 @@ esac
 # Inform the caller not only verbosely and set an exit status.
 test "$return" = "$rc_done" || exit 1
 exit 0
+
