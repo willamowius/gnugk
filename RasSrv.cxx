@@ -1707,7 +1707,7 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H46018
 				// H.460.18
 				if (Toolkit::Instance()->IsH46018Enabled()) {
-					if (supportH46018) {
+					if (ep->UsesH46018()) {
 						H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 						H225_ArrayOf_GenericData & gd = rcf.m_genericData;
 						H460_FeatureStd H46018 = H460_FeatureStd(18);
@@ -1926,7 +1926,7 @@ bool RegistrationRequestPDU::Process()
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-		if (supportcallingNAT && !internal && !supportH46018) {
+		if (supportcallingNAT && !internal && !ep->UsesH46018()) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -1967,7 +1967,7 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H46018
 			// H.460.18
 			if (Toolkit::Instance()->IsH46018Enabled()) {
-				if (supportH46018) {
+				if (ep->UsesH46018()) {
 					H460_FeatureStd H46018 = H460_FeatureStd(18);
 					PINDEX lPos = gd.GetSize();
 					gd.SetSize(lPos+1);
