@@ -632,6 +632,10 @@
 				>
 			</File>
 			<File
+				RelativePath="gnugk.rc"
+				>
+			</File>
+			<File
 				RelativePath="h323util.cxx"
 				>
 			</File>
