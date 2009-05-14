@@ -285,6 +285,12 @@ void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
 	sci_ras.SetTag(H225_RasMessage::e_serviceControlIndication);
 	H225_ServiceControlIndication & sci = sci_ras;
 	sci.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	// Tandberg GK adds open here, the standard doesn't mention this
+	H225_ServiceControlSession controlOpen;
+	controlOpen.m_sessionId = 0;
+	controlOpen.m_reason = H225_ServiceControlSession_reason::e_open;
+	sci.m_serviceControl.SetSize(1);
+	sci.m_serviceControl[0] = controlOpen;
 	H460_FeatureStd feat = H460_FeatureStd(18);
 	sci.IncludeOptionalField(H225_ServiceControlIndication::e_featureSet);
 	sci.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);

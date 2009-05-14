@@ -3132,6 +3132,9 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 			H225_ArrayOf_GenericData & gd = scr.m_genericData;
 			gd.SetSize(1);
 			gd[0] = feat;
+			// signal success
+			scr.IncludeOptionalField(H225_ServiceControlResponse::e_result);
+			scr.m_result = H225_ServiceControlResponse_result::e_started;
 		}
 	}
 #endif
