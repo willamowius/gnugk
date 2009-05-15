@@ -37,7 +37,7 @@ What you do with the powers of the Status Interface is up to you, but here are a
 <itemize>
 <item>Call Monitoring
 <item>Monitoring the registered endpoints
-<item>Graphical User Interface
+<item>Graphical User Interface for GnuGk
 <quote>
 See GkGUI.
 </quote>
@@ -119,26 +119,7 @@ or served by a web server on the same IP number as the gatekeeper
 (you cannot run it as an applet via a local file).
 
 The program is available at
-<url url="http://www.gnugk.org/h323gui.html" name="GnuGk Java GUI">
-
-<item>GkGUI<p>
-A new standalone Java program developed by
-<url url="http://www.citron.com.tw/" name="Citron Network Inc.">
-It requires Java 1.4. New features include:
-
-<itemize>
-<item>Monitor multiple gatekeepers simultaneously.
-<item>Two view modes: Button List and Tree List.
-<item>Call Detail Record(CDR) and statistics.
-<item>GK Status Log.
-<item>Different colors for different endpoint types.
-<item>Modify gatekeeper configuration.
-<item>Forced unregister endpoints.
-<item>Save and print status log and CDR.
-</itemize>
-
-The GkGUI is released under GNU General Public License, available at
-<url url="http://www.gnugk.org/h323develop.html#java" name="GnuGk Development">
+<url url="http://www.gnugk.org/h323gui.html" name="GnuGk.org">
 </itemize>
 
 <sect1>Commands (Reference)
@@ -168,6 +149,9 @@ Reload EpConfig
 EP Config reloaded.
 </verb></tscreen>
 </descrip>
+
+<item><tt/Shutdown/<newline>
+<p>Terminate the gatekeeper. Can be disabled by Shutdown=forbid in section <ref id="gkstatusauth" name="[GkStatus::Auth]">.
 
 <item><tt/Version/, <tt/v/<newline>
 <p>Show the version and OS information of the gatekeeper.
@@ -238,6 +222,9 @@ Number of Endpoints: 2
 ;
 </verb></tscreen>
 </descrip>
+
+<item><tt/PrintAllCached/, <tt/rc/<newline>
+<p>Print list of all cached outer-zone endpoints.
 
 <item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/<newline>
 <p>Show all current calls using the same ACF syntax as in call establishment.
@@ -510,8 +497,37 @@ debug set RoutedMode H245Routed 1
 </verb></tscreen>
 </descrip>
 
+<item><tt/SetLog/<newline>
+<p>Send trace output to another file.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+Setlog [filename]
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+Setlog /tmp/trace.log
+</verb></tscreen>
+</descrip>
+
+<item><tt/RotateLog/<newline>
+<p>Rotate the log file.
+
 <item><tt/Who/<newline>
 <p>Show all people on the status port.
+
+<item><tt/DisconnectSession/<newline>
+<p>Disconnect a user from the status port.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+DisconnectSession [session id]
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+DisconnectSession 2
+</verb></tscreen>
+</descrip>
 
 <item><tt/Yell/, <tt/y/<newline>
 <p>Send a message to all status clients.
@@ -522,7 +538,7 @@ Yell [message text]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
-Yell Hello World
+Yell Config reload in 5 minutes.
 </verb></tscreen>
 </descrip>
 
