@@ -95,10 +95,10 @@ public:
 
 	enum StatusInterfaceCommands {
 		e_PrintAllRegistrations,
-		e_PrintAllRegistrationsVerbose,/// extra line per reg starting with '#'. yeah #.
+		e_PrintAllRegistrationsVerbose,/// extra line per reg starting with '#'.
 		e_PrintAllCached,
 		e_PrintCurrentCalls,
-		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'. yeah #.
+		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'.
 		e_Find,                        /// find an endpoint
 		e_FindVerbose,
 		e_DisconnectIp,                /// disconnect a call by endpoint IP number
