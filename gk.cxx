@@ -474,7 +474,7 @@ bool Gatekeeper::InitConfig(const PArgList &args)
 		(GkConfig()->GetInteger("Fourtytwo") != 42)) { 
 		cerr << "WARNING: No config file found!\n"
 			 << "- Use the -c switch to specify the config file.\n"
-			 << "- Make sure the line 'Fortytwo=42' present in the '[Gatekeeper::Main]' section.\n" << endl;
+			 << "- Make sure the line 'Fortytwo=42' is present in the '[Gatekeeper::Main]' section.\n" << endl;
 	}
 	
 	return CheckSectionName(GkConfig());
