@@ -332,7 +332,7 @@ SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/
 Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
 
 <item><tt/Database=gnugk/<newline>
-Default: <tt/billing/<newline>
+Default: <tt>N/A</tt><newline>
 <p>
 The database name to connect to.
 
