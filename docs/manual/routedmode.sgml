@@ -366,8 +366,6 @@ Define the check interval in seconds before the CpsLimit is applied.
 <item><tt/GenerateCallProceeding=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-WARNING: This is an experimental feature and may not work in all configurations.
-<p>
 When set, GnuGk will generate a CallProceeding for each Setup message it receives.
 This can be helpfull to avoid a timeout in calling endpoints if the destination takes
 a long time to answer or the call is processed in a virtual queue. Without setting
@@ -379,7 +377,7 @@ or Progress messages.
 <item><tt/UseProvisionalRespToH245Tunneling=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-WARNING: This is an experimental feature and may not work in all configurations.
+WARNING: This is an experimental feature and not tested very well.
 <p>
 If you only use H.323 equipment that supports provisionalRespToH245Tunneling,
 you can set this switch to keep H.245 tunneling enabled when using gatekeeper
