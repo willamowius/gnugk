@@ -40,7 +40,6 @@ Default: <tt/OpenH323GK/<newline>
 <p>
 Gatekeeper identifier of this gatekeeper. The gatekeeper will only respond to
 GRQs for this ID and will use it in a number of messages to its endpoints.
-<bf/This setting doesn't change when the config is reloaded!/
 
 <item><tt/Home=192.168.1.1/<newline>
 Default: <tt/0.0.0.0/<newline>

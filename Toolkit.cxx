@@ -1296,12 +1296,11 @@ PConfig* Toolkit::ReloadConfig()
 {
 	// make a new symlink if needed
 	PrepareReloadConfig();
+
 	// read the toolkit config values
 
+	// read the gatekeeper name from the config file, because it might be uased as a key into the SQL config
 	m_GKName = Config()->GetString("Name", "OpenH323GK");
-#ifdef HAS_H46018
-	m_H46018Enabled	= Config()->GetBoolean(RoutedSec, "EnableH46018", 0);
-#endif
 
 	m_encryptAllPasswords = Toolkit::AsBool(
 		Config()->GetString("EncryptAllPasswords", "0")
@@ -1310,8 +1309,14 @@ PConfig* Toolkit::ReloadConfig()
 		m_encKeyPaddingByte = Config()->GetInteger(paddingByteConfigKey, 0);
 	else
 		m_encKeyPaddingByte = m_encryptAllPasswords ? 0 : -1;
-		
+
 	ReloadSQLConfig();
+
+	// update the gatekeeper name, in case it was set in the SQL config
+	m_GKName = m_Config->GetString("Name", "OpenH323GK");
+#ifdef HAS_H46018
+	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", 0);
+#endif
 
 	// TODO/BUG: always call SetGKHome() on reload, even if we don't have a Home= setting
 	// otherwise we won't detect new IPs on the machine
@@ -1332,7 +1337,7 @@ PConfig* Toolkit::ReloadConfig()
 	m_qosMonitor.LoadConfig(m_Config);
 #endif
 
-	m_timestampFormatStr = Config()->GetString("TimestampFormat", "Cisco");
+	m_timestampFormatStr = m_Config->GetString("TimestampFormat", "Cisco");
 
 	delete m_cliRewrite;
 	m_cliRewrite = new CLIRewrite;
@@ -1343,8 +1348,8 @@ PConfig* Toolkit::ReloadConfig()
 
 	LoadReasonMap(m_Config);
 
-	ParseTranslationMap(m_receivedCauseMap, Config()->GetString(RoutedSec, "TranslateReceivedQ931Cause", ""));
-	ParseTranslationMap(m_sentCauseMap, Config()->GetString(RoutedSec, "TranslateSentQ931Cause", ""));
+	ParseTranslationMap(m_receivedCauseMap, m_Config->GetString(RoutedSec, "TranslateReceivedQ931Cause", ""));
+	ParseTranslationMap(m_sentCauseMap, m_Config->GetString(RoutedSec, "TranslateSentQ931Cause", ""));
 	
 	return m_Config;
 }
