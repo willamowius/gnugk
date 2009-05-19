@@ -2050,6 +2050,7 @@ CallRec::CallRec(
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
+	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
 
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
@@ -2098,6 +2099,7 @@ CallRec::CallRec(
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
+	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
 
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
@@ -2119,6 +2121,7 @@ CallRec::CallRec(
 	m_destInfo(oldCall->m_destInfo), m_bandwidth(oldCall->m_bandwidth),
 	m_callerAddr(oldCall->m_callerAddr), m_callerId(oldCall->m_callerId),
 	m_inbound_rewrite_id(oldCall->m_inbound_rewrite_id),
+	m_disabledcodecs(oldCall->m_disabledcodecs),
 	m_setupTime(0), m_alertingTime(0), m_connectTime(0), m_disconnectTime(0),
 	m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
@@ -2352,6 +2355,11 @@ void CallRec::SetDurationLimit(long seconds)
 	m_durationLimit = sec;
 	if (IsConnected())
 		m_timeout = sec;
+}
+
+void CallRec::SetDisabledCodecs(const PString & codecs)
+{
+	m_disabledcodecs = codecs.Trim();
 }
 
 void CallRec::InternalSetEP(endptr & ep, const endptr & nep)

@@ -972,7 +972,8 @@ inside Access-Accept packets:
 		If present, it is scanned for 'terminal-alias' variable that can contain
 		a list of aliases that should be assigned to the endpoint being registered.
 		All RRQ aliases that do not match this list are removed.
-		The format of this attribute is as follows:
+		The 'disable-codec' variable is also supported to disallow certain codecs for this call.
+		The format of these attributes is as follows:
 <p>
 <tt>Cisco-AVPair = "h323-ivr-in=variable:value;[variable:value;]"</tt><newline>
 <p>
@@ -1022,7 +1023,16 @@ RCF {
 }
 </verb></tscreen>
 </descrip>
-		
+
+<descrip>
+<tag/Example 3 (disable G.711 and G.729 codecs):/
+<tscreen><verb>
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=codec-disable:g711Ulaw64k;g729;g711Alaw64k;g729AnnexA;"
+}
+</verb></tscreen>
+</descrip>
+
 </itemize>
 <p>	
 For ARQs, the following RADIUS attributes are recognized

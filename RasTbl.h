@@ -764,6 +764,10 @@ public:
 		long seconds /// duration limit to be set
 		);
 
+	/** Set list of codecs to disable for this call */
+	void SetDisabledCodecs(const PString & codecs);
+	PString GetDisabledCodecs() const { return m_disabledcodecs; }
+
 	/** @return
 		Timestamp (number of seconds since 1st January 1970)
 		for the Setup message associated with this call. 0 if Setup
@@ -1089,6 +1093,9 @@ private:
 	PString m_inbound_rewrite_id;
 	// rewrite id for outbound leg of call
 	PString m_outbound_rewrite_id;
+	
+	/// list of disabled codes
+	PString m_disabledcodecs;
 
 	/// current timeout (or duration limit) for the call
 	long m_timeout;

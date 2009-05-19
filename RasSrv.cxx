@@ -2590,6 +2590,9 @@ bool AdmissionRequestPDU::Process()
 
 		pCallRec->SetNewRoutes(arq.GetRoutes());
 		
+		if (!authData.m_disabledcodecs.IsEmpty())
+			pCallRec->SetDisabledCodecs(authData.m_disabledcodecs);
+
 		if (authData.m_callDurationLimit > 0)
 			pCallRec->SetDurationLimit(authData.m_callDurationLimit);
 		if (!authData.m_callingStationId)

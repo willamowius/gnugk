@@ -1155,6 +1155,7 @@ void CallSignalSocket::SendReleaseComplete(H225_ReleaseCompleteReason::Choices r
 
 bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
 {
+	bool changed = false;
 	H245_MultimediaSystemControlMessage h245msg;
 	if (!h245msg.Decode(strm)) {
 		PTRACE(3, "H245\tERROR DECODING H.245 from " << GetName());
@@ -1211,8 +1212,77 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
 			}
 		}
 	}
-	
-	if (!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress))
+
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
+		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
+
+		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage&)h245msg;
+		H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
+
+		// filter the audio capabilities
+		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+			// PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
+			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+
+			if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability ) {
+				H245_AudioCapability & H245AudioCapability = H245Capability;
+				if (m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
+					PTRACE(4, "Delete audio capability " << H245AudioCapability.GetTagName());
+					changed = true;
+					CapabilityTables.RemoveAt(i);
+					i--;
+					H245_ArrayOf_CapabilityDescriptor & CapabilityDescriptor = tcs.m_capabilityDescriptors;
+					for (PINDEX n = 0; n < CapabilityDescriptor.GetSize(); n++){
+						H245_ArrayOf_AlternativeCapabilitySet & AlternativeCapabilitySet = CapabilityDescriptor[n].m_simultaneousCapabilities;
+						for (PINDEX j = 0; j < AlternativeCapabilitySet.GetSize(); j++) {
+							for (PINDEX m = 0; m < AlternativeCapabilitySet[j].GetSize(); m++) {
+								if (cten == AlternativeCapabilitySet[j][m].GetValue()) {
+									PTRACE(4, "Capability Descriptors Number");
+									AlternativeCapabilitySet[j].RemoveAt(m);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// filter the video capabilities
+		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+			// PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
+			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+
+			if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability ) {
+				H245_VideoCapability & H245VideoCapability = H245Capability;
+				if (m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
+					PTRACE(4, "Delete video capability " << H245VideoCapability.GetTagName());
+					changed = true;
+					CapabilityTables.RemoveAt(i);
+					i--;
+					H245_ArrayOf_CapabilityDescriptor & CapabilityDescriptor = tcs.m_capabilityDescriptors;
+					for (PINDEX n = 0; n < CapabilityDescriptor.GetSize(); n++){
+						H245_ArrayOf_AlternativeCapabilitySet & AlternativeCapabilitySet = CapabilityDescriptor[n].m_simultaneousCapabilities;
+						for (PINDEX j = 0; j < AlternativeCapabilitySet.GetSize(); j++) {
+							for (PINDEX m = 0; m < AlternativeCapabilitySet[j].GetSize(); m++) {
+								if (cten == AlternativeCapabilitySet[j][m].GetValue()) {
+									PTRACE(4, "Capability Descriptors Number");
+									AlternativeCapabilitySet[j].RemoveAt(m);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (changed) {
+			PTRACE(4, "New Capability Table: " << setprecision(2) << tcs);
+		}
+	}
+
+	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress)) && !changed)
 		return false;
 
 	strm.BeginEncoding();
@@ -2123,6 +2193,9 @@ void CallSignalSocket::OnSetup(
 		m_result = Error;
 		return;
 	}
+
+	if (!rejectCall && strlen(authData.m_disabledcodecs) > 0)
+		m_call->SetDisabledCodecs(authData.m_disabledcodecs);
 
 	// perform outbound rewrite
 	PIPSocket::Address calleeAddr;
@@ -3226,8 +3299,7 @@ bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Contro
 bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bool fromCaller)
 {
 	bool changed = false;
-	PINDEX sz = fastStart.GetSize();
-	for (PINDEX i = 0; i < sz; ++i) {
+	for (PINDEX i = 0; i < fastStart.GetSize(); ++i) {
 		PPER_Stream strm = fastStart[i].GetValue();
 		H245_OpenLogicalChannel olc;
 		if (!olc.Decode(strm)) {
@@ -3235,6 +3307,45 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			return false;
 		}
 		PTRACE(4, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
+
+		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData && olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {
+			H245_AudioCapability & ac = olc.m_forwardLogicalChannelParameters.m_dataType;
+			if (m_call->GetDisabledCodecs().Find(ac.GetTagName() + ";", 0) != P_MAX_INDEX) {
+				PTRACE(4, "Delete Audio Forward Logical Channel " << ac.GetTagName());
+				fastStart.RemoveAt(i);
+				i--;
+				continue;
+			}
+		}
+		if (olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData && olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {
+			H245_AudioCapability & ac = olc.m_reverseLogicalChannelParameters.m_dataType;
+			if (m_call->GetDisabledCodecs().Find(ac.GetTagName() + ";", 0) != P_MAX_INDEX) {
+				PTRACE(4, "Delete Audio Reverse Logical Channel "  << ac.GetTagName());
+				fastStart.RemoveAt(i);
+				i--;
+				continue;
+			}
+		}
+
+		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData && olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {
+			H245_VideoCapability & vc = olc.m_forwardLogicalChannelParameters.m_dataType;
+			if (m_call->GetDisabledCodecs().Find(vc.GetTagName() + ";", 0) != P_MAX_INDEX) {
+				PTRACE(4, "Delete Video Forward Logical Channel " << vc.GetTagName());
+				fastStart.RemoveAt(i);
+				i--;
+				continue;
+			}
+		}
+		if (olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData && olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {
+			H245_VideoCapability & vc = olc.m_reverseLogicalChannelParameters.m_dataType;
+			if (m_call->GetDisabledCodecs().Find(vc.GetTagName() + ";", 0) != P_MAX_INDEX) {
+				PTRACE(4, "Delete Video Reverse Logical Channel "  << vc.GetTagName());
+				fastStart.RemoveAt(i);
+				i--;
+				continue;
+			}
+		}
+
 		H245Handler::pMem handlefs = (fromCaller) ? &H245Handler::HandleFastStartSetup : &H245Handler::HandleFastStartResponse;
 		if ((m_h245handler->*handlefs)(olc)) {
 			PPER_Stream wtstrm;
@@ -3270,6 +3381,9 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			if (audioCap != NULL && m_call)
 				m_call->SetCodec(GetH245CodecName(*audioCap));
 		}
+	}
+	if (changed) {
+		PTRACE(4, "New FastStart: " << setprecision(2) << fastStart);
 	}
 	return changed;
 }
@@ -4021,10 +4135,13 @@ bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 bool H245Handler::HandleRequest(H245_RequestMessage & Request)
 {
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
-	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel)
+	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		return hnat->HandleOpenLogicalChannel(Request);
-	else
+	} else if  (Request.GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
+       return true;
+	} else {
 		return false;
+	}
 }
 
 bool H245Handler::HandleResponse(H245_ResponseMessage & Response)

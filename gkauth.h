@@ -97,6 +97,8 @@ struct ARQAuthData
 	int m_rejectReason;
 	/// -1 if not set, max allowe call duration in seconds otherwise
 	long m_callDurationLimit;
+	/// disabled codecs
+	PString m_disabledcodecs;
 	/// endpoint that sent the request
 	endptr m_requestingEP;
 	/// call associated with the request (if any, only for answering ARQ)
@@ -153,6 +155,8 @@ struct SetupAuthData
 	int m_rejectCause;
 	/// -1 if not set, max allowe call duration in seconds otherwise
 	long m_callDurationLimit;
+	/// disabled codecs
+	PString m_disabledcodecs;
 	/// call associated with the message (if any)
 	callptr m_call;
 	/// is the Setup message from a registered endpoint

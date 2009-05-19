@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.47  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.46  2008/09/15 08:42:09  zvision
  * Allow outbound number rewrite by SQL/RADIUS modules
  *
@@ -728,6 +731,24 @@ int RadAuthBase::Check(
 			}
 		}
 	}
+	// process h323-ivr-in=codec-disable attribute 
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, RadiusAttr::CiscoVSA_AV_Pair);
+		while (attr != NULL) {
+			PINDEX index;
+			value = attr->AsCiscoString();
+			if (value.Find("h323-ivr-in=") == 0 && ((index = value.Find("codec-disable:")) != P_MAX_INDEX)) {
+				index += strlen("codec-disable:");
+				const PINDEX semicolonpos = value.FindLast(';', index);
+				value = value.Mid(index, semicolonpos == P_MAX_INDEX ? P_MAX_INDEX : (semicolonpos-index));
+				PTRACE(4, "RADAUTH\t" << GetName() << " Setup check set codec-disable: " << value); 
+				authData.m_disabledcodecs = value;
+				break;
+			}
+			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+			RadiusAttr::CiscoVSA_AV_Pair, attr);
+		}
+	}
 	// check for h323-credit-time attribute (call duration limit)	
 	if (result) {
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
@@ -1048,6 +1069,24 @@ int RadAuthBase::Check(
 					);
 				result = false;
 			}
+		}
+	}
+	// process h323-ivr-in=codec-disable attribute
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, RadiusAttr::CiscoVSA_AV_Pair);
+		while (attr != NULL) {
+			PINDEX index;
+			value = attr->AsCiscoString();
+			if (value.Find("h323-ivr-in=") == 0 && ((index = value.Find("codec-disable:")) != P_MAX_INDEX)) {
+				index += strlen("codec-disable:");
+				const PINDEX semicolonpos = value.FindLast(';', index);
+				value = value.Mid(index, semicolonpos == P_MAX_INDEX ? P_MAX_INDEX : (semicolonpos-index));
+				PTRACE(4, "RADAUTH\t" << GetName() << " Setup check set codec-disable: " << value); 
+				authData.m_disabledcodecs = value;
+				break;
+			}
+			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+			RadiusAttr::CiscoVSA_AV_Pair, attr);
 		}
 	}
 	// check for h323-credit-time attribute (call duration limit)	

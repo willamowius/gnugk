@@ -63,6 +63,12 @@ When failover is active, more than one gateway may be tried to
 establish a call. This switch defines if one or multiple CDRs
 are generated for such a call.
 
+<item><tt/DisabledCodecs=g711Alaw64k;g711Ulaw64k;h263VideoCapability;/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Filter out certain codecs. Please note the trailing semicolon. Calls must be H.245 routed or proxied for codec filtering to work.
+This setting can be overridden per call by the Radius attribute 'disable-codec'.
+
 </itemize>
 
 <sect1>Section &lsqb;H225toQ931&rsqb;
