@@ -1,9 +1,10 @@
-OpenH323 Gatekeeper - The GNU Gatekeeper
-----------------------------------------
+The GNU Gatekeeper
+------------------
 
-It is covered by the GNU Public License (GPL); for details
+It is covered by the GNU Public License (GPL) v2; for details
 see the file COPYING. In addition to that, we explicitely grant
-the right to link this code to the OpenH323 and OpenSSL library.
+the right to link this code to the OpenH323/H323Plus and
+OpenSSL library.
 
 Project homepage: http://www.gnugk.org/
 Project coordinator: Jan Willamowius <jan@willamowius.de>
