@@ -191,7 +191,7 @@ An IP address for this neighbor.
 Default: <tt>N/A</tt><newline>
 <p>
 A password to be used to validate crypto tokens received from incoming LRQs.
-<tt/It is not yet implemented/.
+<tt/Not yet implemented, yet./
 
 <item><tt/Dynamic=0/<newline>
 Default: <tt>0</tt><newline>
@@ -258,6 +258,11 @@ Default: <tt/0/<newline>
 <p>
 Enable H.460.18 keep-alive messages to this neighbor. Set this switch only on the H.460.18
 client side that is supposed to send the keep-alive SCIs.
+
+<item><tt/SendPassword=secret/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+EXPERIMENTAL: The password to send to the neighbor (right now only used for H.460.18 SCI).
 
 </itemize>
 

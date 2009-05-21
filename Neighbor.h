@@ -122,6 +122,7 @@ protected:
 	Prefixes m_sendPrefixes;
 	PStringArray m_acceptPrefixes;
 	bool m_externalGK;
+	PString m_sendPassword;	// password to send to neighbor
 	int m_keepAliveTimerInterval;
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 };

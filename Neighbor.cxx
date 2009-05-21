@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //
-// New Neighboring System for GNU Gatekeeper
+// Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
 //
@@ -57,6 +57,62 @@ namespace Neighbors {
 const char *NeighborSection = "RasSrv::Neighbors";
 const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
 
+static const char OID_MD5[] = "1.2.840.113549.2.5";
+
+static PWCharArray GetUCS2plusNULL(const PString & str)
+{
+	PWCharArray ucs2 = str.AsUCS2();
+	PINDEX len = ucs2.GetSize();
+	if (len > 0 && ucs2[len-1] != 0)
+	  ucs2.SetSize(len+1);
+	return ucs2;
+}
+
+// helper function to calculate GKPwdHash (could migrate into H323Plus)
+void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id, const PString & password)
+{
+	// TODO: at least Tandberg seems to calculate the GKPwdHash differently
+	cryptoTokens.RemoveAll();
+	// Cisco compatible hash calculation
+	H235_ClearToken clearToken;
+
+	// fill the PwdCertToken to calculate the hash
+	clearToken.m_tokenOID = "0.0";
+
+	clearToken.IncludeOptionalField(H235_ClearToken::e_generalID);
+	clearToken.m_generalID = GetUCS2plusNULL(id);
+
+	clearToken.IncludeOptionalField(H235_ClearToken::e_password);
+	clearToken.m_password = GetUCS2plusNULL(password);
+
+	clearToken.IncludeOptionalField(H235_ClearToken::e_timeStamp);
+	clearToken.m_timeStamp = (int)time(NULL);
+
+	// Encode it into PER
+	PPER_Stream strm;
+	clearToken.Encode(strm);
+	strm.CompleteEncoding();
+
+	// Generate an MD5 of the clear tokens PER encoding.
+	PMessageDigest5 stomach;
+	stomach.Process(strm.GetPointer(), strm.GetSize());
+	PMessageDigest5::Code digest;
+	stomach.Complete(digest);
+
+	// Create the H.225 crypto token
+	H225_CryptoH323Token * finalCryptoToken = new H225_CryptoH323Token;
+	finalCryptoToken->SetTag(H225_CryptoH323Token::e_cryptoGKPwdHash);
+	H225_CryptoH323Token_cryptoGKPwdHash & cryptoGKPwdHash = *finalCryptoToken;
+
+	// Set the token data that actually goes over the wire
+	cryptoGKPwdHash.m_gatekeeperId = Toolkit::GKName();
+	cryptoGKPwdHash.m_timeStamp = clearToken.m_timeStamp;
+	cryptoGKPwdHash.m_token.m_algorithmOID = OID_MD5;
+	cryptoGKPwdHash.m_token.m_hash.SetData(sizeof(digest)*8, (const BYTE *)&digest);
+	
+	if (finalCryptoToken != NULL)
+		cryptoTokens.Append(finalCryptoToken);
+}
 
 class OldGK : public Neighbor {
 	// override from class Neighbor
@@ -244,6 +300,8 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	m_name = config->GetString(section, "Host", "");
 	m_dynamic = Toolkit::AsBool(config->GetString(section, "Dynamic", "0"));
 	m_externalGK = false;
+	m_password = Toolkit::Instance()->ReadPassword(section, "Password");	// checking incomming password in LRQ (not implemented, yet)
+	m_sendPassword = Toolkit::Instance()->ReadPassword(section, "SendPassword", "");	// password to send to neighbor
 
 	if (!m_dynamic && !GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port))
 		return false;
@@ -297,6 +355,11 @@ void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
 	H225_ArrayOf_FeatureDescriptor & desc = sci.m_featureSet.m_supportedFeatures;
 	desc.SetSize(1);
 	desc[0] = feat;
+	if (!m_sendPassword.IsEmpty()) {
+		sci.IncludeOptionalField(H225_ServiceControlIndication::e_cryptoTokens);
+		sci.m_cryptoTokens.SetSize(1);
+		SetCryptoGkTokens(sci.m_cryptoTokens, Toolkit::GKName(), m_sendPassword);
+	}
 	m_rasSrv->SendRas(sci_ras, GetIP(), m_port);
 #endif
 }
