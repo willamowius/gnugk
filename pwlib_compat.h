@@ -42,6 +42,12 @@
 	#endif
 #endif
 
+// define PWCharArray for PWLib < 2.x.x
+#if PTLIB_MAJOR < 2
+	#define PWCharArray PWORDArray
+#endif
+
+
 #if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
 	typedef int PBoolean;
 #endif

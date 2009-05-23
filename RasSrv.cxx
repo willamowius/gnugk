@@ -1562,7 +1562,9 @@ bool RegistrationRequestPDU::Process()
 	bool preemptsupport = false;
 	PBoolean preempt = false;
 	unsigned ntype = 0;
+#ifdef HAS_H46018
 	PBoolean supportH46018 = false;
+#endif
 
 #ifdef hasH460
 // Presence Support
