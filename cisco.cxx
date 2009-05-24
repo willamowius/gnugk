@@ -11,8 +11,6 @@
 #include <ptlib.h>
 #include "cisco.h"
 
-#define new PNEW
-
 
 #if ! H323_DISABLE_CISCO
 

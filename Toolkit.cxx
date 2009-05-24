@@ -9,10 +9,6 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if defined(_WIN32) && (_MSC_VER > 1300)
-  #pragma warning(disable:4244) // warning about possible loss of data
-#endif
-
 #include <ptlib.h>
 #include <ptclib/pdns.h>
 #include <ptclib/cypher.h>
@@ -786,7 +782,7 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false),
 	m_cliRewrite(NULL)
 {
-	srand(time(0));
+	srand((unsigned int)time(0));
 }
 
 Toolkit::~Toolkit()

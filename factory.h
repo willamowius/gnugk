@@ -91,6 +91,9 @@ factory.h(135)   Init    Can't create SampleC with 3 parameter(s)
 
 *****************************************************************/
 
+#if defined(_WIN32) && (_MSC_VER >= 1200)
+#pragma warning( disable : 4355 ) // warning about using 'this' in initializer 	 
+#endif
 
 #include <map>
 #include <cstring>

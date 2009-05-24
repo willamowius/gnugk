@@ -14,10 +14,6 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if defined(_WIN32) && (_MSC_VER > 1300)
-  #pragma warning(disable:4244) // warning about possible loss of data
-#endif
-
 #include <ptlib.h>
 #include <ptclib/pdns.h>
 #include <ptclib/enum.h>
@@ -1147,10 +1143,10 @@ H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress & dest, const 
 
 	H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
 	clearToken.IncludeOptionalField(H235_ClearToken::e_timeStamp);
-	int timeStamp = time(0);
+	time_t timeStamp = time(0);
 	clearToken.m_timeStamp = timeStamp;
 
-	DWORD key = addr ^ timeStamp ^ challenge;
+	DWORD key = (DWORD)(addr ^ timeStamp ^ challenge);
 	PTEACypher::Key cryptokey;
 	memset(&cryptokey, challenge, sizeof(PTEACypher::Key));
 	memcpy(&cryptokey, &key, sizeof(DWORD));
@@ -1179,14 +1175,14 @@ bool DecodeAccessToken(const H225_CryptoH323Token & token, const PIPSocket::Addr
 	const H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
 	if (!clearToken.HasOptionalField(H235_ClearToken::e_timeStamp))
 		return false;
-	int now = time(0), timeStamp = clearToken.m_timeStamp.GetValue();
+	time_t now = time(0), timeStamp = clearToken.m_timeStamp.GetValue();
 	if (timeStamp > now || (now - timeStamp) > 30)
 		return false;
 
 	const PASN_BitString & bitstring = cryptoHashedToken.m_token.m_hash;
 	PString hashed((const char *)bitstring.GetDataPointer(), bitstring.GetSize() / 8);
 
-	DWORD key = addr ^ timeStamp ^ challenge;
+	DWORD key = (DWORD)(addr ^ timeStamp ^ challenge);
 	PTEACypher::Key cryptokey;
 	memset(&cryptokey, challenge, sizeof(PTEACypher::Key));
 	memcpy(&cryptokey, &key, sizeof(DWORD));

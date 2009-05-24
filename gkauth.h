@@ -507,7 +507,7 @@ private:
 	/// cached key-value pairs
 	std::map<PString, PString> m_cache;
 	/// timestamps for key-value pair expiration calculation
-	std::map<PString, long> m_ctime;
+	std::map<PString, time_t> m_ctime;
 	/// mutex for multiple read/mutual write access to the cache
 	mutable PReadWriteMutex m_rwmutex;
 };      

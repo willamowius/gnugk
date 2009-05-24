@@ -244,7 +244,7 @@ bool Gatekeeper::SetUserAndGroup(const PString &username)
 	char buffer[MAX_PASSWORD_BUFSIZE];
 
 #if defined (P_LINUX) || defined (P_AIX) || defined(P_IRIX) || (__GNUC__>=3 && defined(P_SOLARIS)) || defined(P_RTEMS)
-	::getpwnam_r(username,&userdata,buffer,sizeof(buffer),&userptr);
+	::getpwnam_r(username, &userdata, buffer, sizeof(buffer), &userptr);
 #else
 	userptr = ::getpwnam_r(username, &userdata, buffer, sizeof(buffer));
 #endif

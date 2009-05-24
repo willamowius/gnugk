@@ -33,16 +33,6 @@
 
 extern const char *H225_ProtocolID;
 
-#ifdef _WIN32
-#ifndef _OpenH323_VERSION_H
-#ifndef H323PLUS_LIB
-#include <../../openh323/version.h> // get OpenH323 version
-#else
-#include <../../h323plus/version.h> // get h323plus version
-#endif
-#endif
-#endif
-
 ///////////////////////////////////////
 //OIDs
 #define GnuGkOID "1.3.6.1.4.1.27938"

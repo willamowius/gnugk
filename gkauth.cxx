@@ -9,10 +9,6 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#if defined(_WIN32) && (_MSC_VER > 1300)
-  #pragma warning(disable:4244) // warning about possible loss of data
-#endif
-
 #include <ptlib.h>
 #include <h235.h>
 #include <h323pdu.h>
@@ -1097,7 +1093,7 @@ bool CacheManager::Retrieve(
 	if (iter == m_cache.end())
 		return false;
 	if (m_ttl >= 0) {
-		std::map<PString, long>::const_iterator i = m_ctime.find(key);
+		std::map<PString, time_t>::const_iterator i = m_ctime.find(key);
 		if (i == m_ctime.end() || (time(NULL) - i->second) >= m_ttl)
 			return false; // cache expired
 	}
