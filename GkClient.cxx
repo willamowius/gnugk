@@ -18,11 +18,6 @@
 // P2Pnat implementation written by Simon Horne <s.horne@packetizer.com>
 //////////////////////////////////////////////////////////////////
 
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#endif
-
 #include <ptlib.h>
 #include <h323pdu.h> 
 #include <h235auth.h>

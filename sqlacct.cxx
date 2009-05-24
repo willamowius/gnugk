@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.16  2008/09/05 13:44:14  zvision
  * GetInfo implemented for SQL acct/auth modules
  *
@@ -84,10 +87,6 @@
  * New direct SQL accounting module (SQLAcct)
  *
  */
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#endif
 
 #include <vector>
 #include <ptlib.h>

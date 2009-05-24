@@ -12,9 +12,6 @@
  * We also explicitly grant the right to link this code
  * with the OpenH323 library.
  */
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4284)
-#endif
 
 #include <ptlib.h>
 #include <ptlib/ipsock.h>

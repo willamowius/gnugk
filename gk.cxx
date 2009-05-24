@@ -10,11 +10,6 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if defined(_WIN32) && (_MSC_VER <= 1200)  
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#endif
-
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #ifndef _WIN32

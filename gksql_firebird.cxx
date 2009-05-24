@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.15  2009/03/04 06:04:36  willamowius
+ * fix using ISC_STATUS for Firebird 2.1 thanks Mounir Lamouri
+ *
  * Revision 1.14  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -58,11 +61,6 @@
 #include "config.h"
 
 #if HAS_FIREBIRD
-
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#endif
 
 #include <ptlib.h>
 #include <cmath>

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.20  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.19  2008/11/21 13:47:21  willamowius
  * remove special case for pool size = 1: it didn't handle the case that connections now get deleted on error
  *
@@ -64,10 +67,6 @@
  * SQLAcct module ported from 2.0 branch
  *
  */
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#endif
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>

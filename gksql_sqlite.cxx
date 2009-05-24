@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.5  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.4  2008/09/26 14:55:45  willamowius
  * code cleanup
  *
@@ -29,11 +32,6 @@
 #include "config.h"
 
 #if HAS_SQLITE
-
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#endif
 
 #include <ptlib.h>
 #include <sqlite3.h>

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.15  2008/09/05 13:44:14  zvision
  * GetInfo implemented for SQL acct/auth modules
  *
@@ -266,11 +269,7 @@ public:
 		Info &info /// filled with SQL connection state information upon return
 		);
 		
-#if defined(_WIN32) && (_MSC_VER < 1300)
-public:
-#else
 protected:
-#endif
 	/** Generic SQL database connection object - should be extended 
 	    by derived classes to include backed specific connection data.
 	*/

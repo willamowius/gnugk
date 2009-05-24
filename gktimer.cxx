@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.5  2007/09/11 01:02:29  willamowius
  * clean up includes
  *
@@ -33,9 +36,6 @@
  * Generic support for time-based events
  *
  */
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4284)
-#endif
 
 #include <ptlib.h>
 #include "stl_supp.h"

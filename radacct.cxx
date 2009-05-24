@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.28  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.27  2008/12/03 18:52:49  willamowius
  * new RadAcct attribute: RewriteE164 (thanks Tusar)
  *
@@ -121,11 +124,6 @@
 #include "config.h"
 
 #if HAS_RADIUS
-
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#pragma warning(disable:4284)
-#endif
 
 #include <ptlib.h>
 #include <h323pdu.h>

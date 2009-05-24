@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.48  2009/05/19 14:38:07  willamowius
+ * codec filtering
+ *
  * Revision 1.47  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -228,10 +231,6 @@
 #include "config.h"
 
 #if HAS_RADIUS
-
-#if defined(_WIN32) && (_MSC_VER <= 1200)
-#pragma warning(disable:4786) // warning about too long debug symbol off
-#endif
 
 #include <vector>
 #include <ptlib.h>

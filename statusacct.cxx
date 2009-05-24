@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.5  2007/09/04 15:34:44  willamowius
  * output callID in same format as other status port events (spaces replaced with dashes)
  *
@@ -34,10 +37,6 @@
  *
  *
  */
-
-#if (_MSC_VER >= 1200)
-#pragma warning( disable : 4786 ) // warning about too long debug symbols off
-#endif
 
 #include <ptlib.h>
 #include <h323pdu.h>
