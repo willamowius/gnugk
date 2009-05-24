@@ -848,22 +848,22 @@ public:
 		Call duration in seconds. 0 for unconnected calls. Actual
 		duration for calls in progress.
 	*/
-	long GetDuration() const;
+	time_t GetDuration() const;
 
 	/** @return
 		Call total time in seconds. 0 for calls without disconnect.
 	*/
-	long GetTotalCallDuration() const;
+	time_t GetTotalCallDuration() const;
 
 	/** @return
 		Call Post Dial Delay in seconds.
 	*/
-	long GetPostDialDelay() const;
+	time_t GetPostDialDelay() const;
 
 	/** @return
 		Call ring time in seconds. 0 for calls without Alerting.
 	*/
-	long GetRingTime() const;
+	time_t GetRingTime() const;
 
 	/** @return
 		A string that identifies uniquelly this call for accounting
@@ -1093,7 +1093,7 @@ private:
 	PString m_disabledcodecs;
 
 	/// current timeout (or duration limit) for the call
-	long m_timeout;
+	time_t m_timeout;
 	/// timestamp for call timeout measuring
 	time_t m_timer;
 	/// timestamp (seconds since 1st January, 1970) for the call creation
@@ -1111,7 +1111,7 @@ private:
 	/// timestamp for the most recent accounting update event logged for this call
 	time_t m_acctUpdateTime;
 	/// duration limit (seconds) for this call, 0 means no limit
-	long m_durationLimit;
+	time_t m_durationLimit;
 	/// Q.931 release complete cause code
 	unsigned m_disconnectCause;
 	/// Q.931 release complete cause code after translation

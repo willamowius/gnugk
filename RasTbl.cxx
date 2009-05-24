@@ -10,10 +10,6 @@
 //////////////////////////////////////////////////////////////////
 
 
-#if defined(_WIN32) && (_MSC_VER > 1300)
-	#pragma warning(disable:4244) // warning about possible loss of data
-#endif
-
 #include <time.h>
 #include <ptlib.h>
 #include <h323.h>
@@ -2346,7 +2342,7 @@ void CallRec::SetDurationLimit(long seconds)
 {
 	PWaitAndSignal lock(m_usedLock);
 	// allow only to restrict duration limit
-	const long sec = (m_durationLimit && seconds) 
+	const time_t sec = (m_durationLimit && seconds) 
 		? PMIN(m_durationLimit,seconds) : PMAX(m_durationLimit,seconds);
 	m_durationLimit = sec;
 	if (IsConnected())
@@ -2494,8 +2490,8 @@ PString CallRec::GenerateCDR(
 
 PString CallRec::PrintOn(bool verbose) const
 {
-	const int timer = time(0) - m_timer;
-	const int left = m_timeout > timer ? m_timeout - timer : 0;
+	const time_t timer = time(0) - m_timer;
+	const time_t left = m_timeout > timer ? m_timeout - timer : 0;
 
 	PString result(PString::Printf,
 		"Call No. %d | CallID %s | %d | %d\r\nDial %s\r\nACF|%s|%s|%d|%s|%s|false;\r\nACF|%s|%s|%d|%s|%s|true;\r\n",
@@ -2574,10 +2570,10 @@ void CallRec::SetDisconnectTime(time_t tm)
 			? (m_connectTime + 1) : tm;
 }
 
-long CallRec::GetPostDialDelay() const
+time_t CallRec::GetPostDialDelay() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	const long startTime = (m_setupTime == 0
+	const time_t startTime = (m_setupTime == 0
 		? m_creationTime : std::min(m_creationTime, m_setupTime));
 
 	if (startTime == 0)
@@ -2594,7 +2590,7 @@ long CallRec::GetPostDialDelay() const
 	return 0;
 }
 
-long CallRec::GetRingTime() const
+time_t CallRec::GetRingTime() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_alertingTime ) {
@@ -2609,7 +2605,7 @@ long CallRec::GetRingTime() const
 	return 0;
 }
 
-long CallRec::GetTotalCallDuration() const
+time_t CallRec::GetTotalCallDuration() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_disconnectTime ) {
@@ -2632,15 +2628,15 @@ void CallRec::SetReleaseSource(
 		m_releaseSource = releaseSource;
 }
 
-long CallRec::GetDuration() const
+time_t CallRec::GetDuration() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_connectTime ) {
 		if( m_disconnectTime )
 			return (m_disconnectTime > m_connectTime) 
-				? (m_disconnectTime-m_connectTime) : 1;
+				? (m_disconnectTime - m_connectTime) : 1;
 		else
-			return (long)time(NULL) - m_connectTime;
+			return (time(NULL) - m_connectTime);
 	} else
 		return 0;
 }

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.29  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.28  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -246,8 +249,8 @@ GkAcctLogger::Status RadAcct::Log(
 
 		const PString username = GetUsername(call);
 		if (username.IsEmpty() && m_fixedUsername.IsEmpty())
-			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine User-Name"
-				<<" for the call no. "<<call->GetCallNumber()
+			PTRACE(3, "RADACCT\t" << GetName() << " could not determine User-Name"
+				<< " for the call no. " << call->GetCallNumber()
 				);
 		else
 			pdu->AppendAttr(RadiusAttr::UserName, 
@@ -258,22 +261,22 @@ GkAcctLogger::Status RadAcct::Log(
 			pdu->AppendAttr(RadiusAttr::FramedIpAddress, callerIP);
 		
 		if ((evt & AcctStart) == 0)
-			pdu->AppendAttr(RadiusAttr::AcctSessionTime, call->GetDuration());
+			pdu->AppendAttr(RadiusAttr::AcctSessionTime, (long)call->GetDuration());
 	
 		PString stationId = GetCallingStationId(call);
 		if (!stationId)
 			pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
 		else
-			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
-				<<" Calling-Station-Id for the call "<<call->GetCallNumber()
+			PTRACE(3, "RADACCT\t" << GetName() << " could not determine"
+				<< " Calling-Station-Id for the call " << call->GetCallNumber()
 				);
 
 		stationId = m_useDialedNumber ? GetDialedNumber(call) : GetCalledStationId(call);
 		if (!stationId)
 			pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
 		else
-			PTRACE(3,"RADACCT\t"<<GetName()<<" could not determine"
-				<<" Called-Station-Id for the call no. "<<call->GetCallNumber()
+			PTRACE(3, "RADACCT\t" << GetName() << " could not determine"
+				<< " Called-Station-Id for the call no. " << call->GetCallNumber()
 				);
 		
 		if (m_appendCiscoAttributes) {
