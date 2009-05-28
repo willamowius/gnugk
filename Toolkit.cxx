@@ -688,12 +688,8 @@ void Toolkit::GWRewriteTool::PrintData() {
 }
 
 
-void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
-
-	PINDEX gw_size, i, j, lines_size;
-	PString key, cfg_value;
-	PStringArray lines, tokenised_line;
-	GWRewriteEntry *gw_entry;
+void Toolkit::GWRewriteTool::LoadConfig(PConfig *config)
+{
 	std::map<PString,PString> in_strings, out_strings;
 	vector<std::pair<PString,PString> > sorted_in_strings, sorted_out_strings;
 	std::map<PString,PString>::reverse_iterator strings_iterator;
@@ -702,18 +698,18 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 	PStringToString cfgs(config->GetAllKeyValues(GWRewriteSection));
 
 	// Clear old config
-	for (i = 0; i < m_GWRewrite.GetSize(); ++i) {
+	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
 		delete &(m_GWRewrite.GetDataAt(i));
 	}
 	m_GWRewrite.RemoveAll();
 
-	gw_size = cfgs.GetSize();
+	PINDEX gw_size = cfgs.GetSize();
 	if (gw_size > 0) {
-		for (i = 0; i < gw_size; ++i) {
+		for (PINDEX i = 0; i < gw_size; ++i) {
 
 			// Get the config keys
-			key = cfgs.GetKeyAt(i);
-			cfg_value = cfgs[key];
+			PString key = cfgs.GetKeyAt(i);
+			PString cfg_value = cfgs[key];
 
 			in_strings.clear();
 			out_strings.clear();
@@ -721,14 +717,14 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 			sorted_out_strings.clear();
 
 			// Split the config data into seperate lines
-			lines = cfg_value.Tokenise(PString(";"));
+			PStringArray lines = cfg_value.Tokenise(PString(";"));
 
-			lines_size = lines.GetSize();
+			PINDEX lines_size = lines.GetSize();
 
-			for (j = 0; j < lines_size; ++j) {
+			for (PINDEX j = 0; j < lines_size; ++j) {
 
 				// Split the config line into three strings, direction, from string, to string
-				tokenised_line = lines[j].Tokenise(PString("="));
+				PStringArray tokenised_line = lines[j].Tokenise(PString("="));
 
 				if (tokenised_line.GetSize() < 3) {
 					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - missing =, rule: " 
@@ -738,7 +734,6 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 				}
 
 				// Put into appropriate std::map
-
 				if (tokenised_line[0] == "in")
 					in_strings[tokenised_line[1]] = tokenised_line[2];
 				else if (tokenised_line[0] == "out")
@@ -760,14 +755,12 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config) {
 			}
 
 			// Create the entry
-			gw_entry = new GWRewriteEntry();
+			GWRewriteEntry * gw_entry = new GWRewriteEntry();
 			gw_entry->m_entry_data.first = sorted_in_strings;
 			gw_entry->m_entry_data.second = sorted_out_strings;
 
-
 			// Add to PDictionary hash table
-			m_GWRewrite.Insert(key,gw_entry);
-
+			m_GWRewrite.Insert(key, gw_entry);
 		}
 	}
 
