@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.44  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.43  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -569,7 +572,7 @@ void RadiusAttr::PrintOn(
 	if (!IsValid()) {
 		strm << "(Invalid) {\n";
 		if (m_length > 0) {
-			const _Ios_Fmtflags flags = strm.flags();
+			const ios::fmtflags flags = strm.flags();
 			const PBYTEArray value((const BYTE*)m_data, m_length, FALSE);
 
 			strm << hex << setfill('0') << resetiosflags(ios::floatfield)
@@ -603,7 +606,7 @@ void RadiusAttr::PrintOn(
 	strm << setw(indent+9) << "length = " << totalLen << " octets\n";
 	
 	if (!IsVsa()) {
-		const _Ios_Fmtflags flags = strm.flags();
+		const ios::fmtflags flags = strm.flags();
 		const PINDEX valueLen = (totalLen <= FixedHeaderLength) 
 			? 0 : (totalLen - FixedHeaderLength);
 		const PBYTEArray value((const BYTE*)m_value, valueLen, FALSE);
@@ -629,7 +632,7 @@ void RadiusAttr::PrintOn(
 		strm << setw(indent+11) << "vendorId = " 
 			<< GetVsaVendorId() << '\n';
 
-		const _Ios_Fmtflags flags = strm.flags();
+		const ios::fmtflags flags = strm.flags();
 		PINDEX valueLen = (totalLen <= VsaFixedHeaderLength)
 			? 0 : (totalLen - VsaFixedHeaderLength);
 		PINDEX headerLen = VsaFixedHeaderLength;
@@ -866,7 +869,7 @@ void RadiusPDU::PrintOn(
 	strm << setw(indent+5) << "id = " << (unsigned)m_id << '\n';
 	strm << setw(indent+9) << "length = " << GetLength() << " octets\n";
 
-	const _Ios_Fmtflags flags = strm.flags();
+	const ios::fmtflags flags = strm.flags();
 	const PBYTEArray value((const BYTE*)m_authenticator, AuthenticatorLength, FALSE);
 
 	strm << setw(indent+28) << "authenticator = 16 octets {\n";
