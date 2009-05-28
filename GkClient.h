@@ -241,8 +241,10 @@ private:
 	PStringArray m_h323Id;
 	/// list of E.164 aliases to register with
 	PStringArray m_e164;
-    /// list of Authenticators
+#ifdef OpenH323Factory
+	/// list of Authenticators
 	H235Authenticators* m_h235Authenticators;
+#endif
 
 #ifdef P2PnatClient
 	// Handle P2Pnat RCF
