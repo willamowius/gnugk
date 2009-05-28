@@ -70,8 +70,6 @@ PString AsString(const H225_EndpointType & terminalType)
 
 PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 {
-	PString aliasString;
-
 	if(!terminalAlias.IsValid())
 		return includeAliasType ? "invalid:UnknownType" : "invalid";
 
@@ -82,7 +80,7 @@ PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 		case H225_AliasAddress::e_h323_ID:
 		case H225_AliasAddress::e_transportID:
 		case H225_AliasAddress::e_partyNumber:
-			aliasString = H323GetAliasAddressString(terminalAlias);
+			PString aliasString = H323GetAliasAddressString(terminalAlias);
 			// OpenH323 prepends a special prefix to partyNumbers
 			// to distinguish a number subtype - we don't need this
 			if (terminalAlias.GetTag() == H225_AliasAddress::e_partyNumber) {
