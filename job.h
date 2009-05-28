@@ -146,6 +146,7 @@ class RegularJob : public Job
 {
 public:
 	RegularJob();
+	virtual ~RegularJob() {}
 
 	/** @return
 		true if the job has not been yet stopped

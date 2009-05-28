@@ -92,6 +92,7 @@ protected:
 class YaTCPSocket : public YaSocket {
 public:
 	YaTCPSocket(WORD = 0);
+	virtual ~YaTCPSocket() {}
 
 	void GetPeerAddress(Address &) const;
 	void GetPeerAddress(Address &, WORD &) const;
@@ -267,6 +268,8 @@ public:
 	PCLASSINFO( UDPSocket, PUDPSocket )
 	
 	UDPSocket() {}
+	virtual ~UDPSocket() {}
+
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
 	
@@ -434,6 +437,7 @@ class ServerSocket : public TCPSocket {
 #endif
 public:
 	ServerSocket(WORD pt = 0) : TCPSocket(pt) {}
+	virtual ~ServerSocket() {}
 
 	// new virtual function
 

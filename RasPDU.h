@@ -137,6 +137,7 @@ public:
 	typedef RAS RasClass;
 	
 	RasPDU(GatekeeperMessage *m) : RasMsg(m), request(m->m_recvRAS) {}
+	virtual ~RasPDU() {}
 
 	// override from class RasMsg
 	virtual bool Process() { return false; }

@@ -163,6 +163,7 @@ typedef Request<H225_Facility_UUIE, FacilityMsg> FacilityRequest;
 class Policy : public SList<Policy> {
 public:
 	Policy() : m_name("Undefined") {}
+	virtual ~Policy() {}
 
 	template <class R> bool HandleRas(Request<R,RasMsg> & request)
 	{
