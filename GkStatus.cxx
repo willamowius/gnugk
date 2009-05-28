@@ -1489,7 +1489,7 @@ void StatusClient::RemoveFilter(
     unsigned int index
     )
 {
-    if (index < 0 || index >= regexFilters.size()) {
+    if (index >= regexFilters.size()) {
 		PString msg("Index mismatch.\r\n");
 		WriteData(msg, msg.GetLength());
 		return;
