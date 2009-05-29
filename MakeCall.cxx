@@ -145,10 +145,10 @@ void MakeCallEndPoint::OnRegistrationReject()
 	isRegistered = FALSE;
 }
 
-PBoolean MakeCallEndPoint::OpenAudioChannel(H323Connection & connection,
-                                          PBoolean isEncoding,
-                                          unsigned bufferSize,
-                                          H323AudioCodec & codec)
+PBoolean MakeCallEndPoint::OpenAudioChannel(H323Connection & /* connection */,
+                                          PBoolean /* isEncoding */,
+                                          unsigned /* bufferSize */,
+                                          H323AudioCodec & /* codec */)
 {
 	// don't open audio connection, we need this connection just to do the transfer
 	return FALSE;
