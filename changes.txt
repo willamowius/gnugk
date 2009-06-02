@@ -1,4 +1,4 @@
-Changes from 2.2.8 to 2.2.9
+Changes from 2.2.8 to 2.3.0
 ===========================
 - codec filtering using [CallTable]DisableCodecs= or Radius (based on a patch by Georgiewskiy Yuriy)
 - H.460.18 and H.460.19 support
