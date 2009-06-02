@@ -377,7 +377,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	m_endpointIdentifier = rrq.m_endpointIdentifier;
     LoadAliases(rrq.m_terminalAlias,rrq.m_terminalType);
 	m_terminalType = &rrq.m_terminalType;
-	m_endpointVendor = &rrq.m_endpointVendor;
+	m_endpointVendor = new H225_VendorIdentifier(rrq.m_endpointVendor);
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
 		SetTimeToLive(rrq.m_timeToLive);
 	else
@@ -492,6 +492,15 @@ EndpointRec::~EndpointRec()
 {
 	PWaitAndSignal lock(m_usedLock);
 	PTRACE(3, "Gk\tDelete endpoint: " << m_endpointIdentifier.GetValue() << " " << m_usedCount);
+
+	if (m_endpointVendor);
+		delete m_endpointVendor;
+
+#ifdef hasPresence
+	if (m_contact)
+		delete m_contact;
+#endif
+
 	if (m_natsocket) {
 		m_natsocket->SetDeletable();
 		m_natsocket->Close();
@@ -818,22 +827,6 @@ bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 	return false;
 }
 
-bool EndpointRec::MatchAlias(
-	const H225_ArrayOf_AliasAddress& aliases,
-	int& matchedalias
-	) const
-{
-	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
-		PWaitAndSignal lock(m_usedLock);
-		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
-			if (aliases[i] == m_terminalAliases[j]) {
-				matchedalias = i;
-				return true;
-			}
-	}
-	return false;
-}
-
 void EndpointRec::Update(const H225_RasMessage & ras_msg)
 {
 	if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
@@ -1064,13 +1057,13 @@ void EndpointRec::CreateContact()
 
 void EndpointRec::ParsePresencePDU(unsigned msgtag, const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu)
 {
-	if (!m_contact)
+	if (m_contact)
 		m_contact->ParsePresencePDU(msgtag, id, pdu);
 }
 
 void EndpointRec::BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu)
 {
-	if (!m_contact)
+	if (m_contact)
 		m_contact->BuildPresencePDU(msgtag, pdu);
 }
 #endif

@@ -114,19 +114,6 @@ public:
 		const H225_ArrayOf_AliasAddress* aliases
 		) const;
 
-	/** Find if one of the given aliases matches any alias for this endpoint
-		and return an index for the matching alias.
-
-		@return
-		true if the match has been found, false otherwise.
-	*/
-	virtual bool MatchAlias(
-		/// aliases to be matched (one of them)
-		const H225_ArrayOf_AliasAddress& aliases,
-		/// filled with an index into aliases for the matching alias (if found)
-		int& matchedalias
-		) const;
-
 	virtual void LoadAliases(
 		/// aliases to be matched (one of them)
 	    const H225_ArrayOf_AliasAddress& aliases,
@@ -1378,6 +1365,9 @@ inline bool EndpointRec::GetEndpointInfo(PString & vendor, PString & version ) c
 inline void EndpointRec::SetEndpointInfo(const PString & vendor, const PString & version )
 {
 	PWaitAndSignal lock(m_usedLock);
+
+	if (m_endpointVendor)
+		delete m_endpointVendor;
 
 	m_endpointVendor = new H225_VendorIdentifier();
 
