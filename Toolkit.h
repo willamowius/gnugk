@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <map>
+#include <ptlib.h>
 #include <ptlib/sockets.h>
 #include "singleton.h"
 #include "config.h"
