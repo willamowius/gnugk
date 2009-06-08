@@ -88,6 +88,11 @@ LDFLAGS    += @LDFLAGS@
 ENDLDLIBS  += @ENDLDLIBS@
 ENDLDFLAGS += @ENDLDFLAGS@
 
+# FreeBSD needs more libs on a static compile
+ifeq ($(OSTYPE),FreeBSD)
+    ENDLDLIBS += -liconv -lintl
+endif # FreeBSD
+
 STDCCFLAGS += -D'MANUFACTURER=@MANUFACTURER@'
 STDCCFLAGS += -D'PROGRAMMNAME=@PROGRAMNAME@'
 
