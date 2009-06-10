@@ -493,7 +493,7 @@ EndpointRec::~EndpointRec()
 	PWaitAndSignal lock(m_usedLock);
 	PTRACE(3, "Gk\tDelete endpoint: " << m_endpointIdentifier.GetValue() << " " << m_usedCount);
 
-	if (m_endpointVendor);
+	if (m_endpointVendor)
 		delete m_endpointVendor;
 
 #ifdef hasPresence
