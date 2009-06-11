@@ -1,3 +1,6 @@
+Changes from 2.3.0 to 2.3.1
+===========================
+
 Changes from 2.2.8 to 2.3.0
 ===========================
 - codec filtering using [CallTable]DisableCodecs= or Radius (based on a patch by Georgiewskiy Yuriy)

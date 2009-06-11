@@ -51,7 +51,7 @@
 
 /* Build number of the gatekeeper */
 #ifndef GNUGK_BUILD_NUMBER
-# define GNUGK_BUILD_NUMBER 0
+# define GNUGK_BUILD_NUMBER 1
 #endif
 
 #endif  /* GNUGK_VERSION_H */
