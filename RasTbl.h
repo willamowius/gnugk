@@ -541,6 +541,14 @@ public:
 		ProxyDisabled /// disable full proxy mode
 	};
 
+	/// the combination of ProxyMode, RoutedMode and H245 routing
+	enum RoutingMode {
+		Undefined = 0,
+		SignalRouted,
+		H245Routed,
+		Proxied
+	};
+
 	/// who disconnected the call
 	enum ReleaseSource {
 		ReleasedByGatekeeper,

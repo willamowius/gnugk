@@ -796,13 +796,32 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	// enable proxy if required, no matter whether H.245 routed
 	if (m_call->GetProxyMode() == CallRec::ProxyDetect) {
 		if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyAlways", "0"))
-				|| Toolkit::Instance()->ProxyRequired(peerAddr, socket->peerAddr) 
 				|| (nat_type != CallRec::none && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1"))) ) {
+			// must proxy
 			m_call->SetProxyMode(CallRec::ProxyEnabled);
 		} else {
-			m_call->SetProxyMode(CallRec::ProxyDisabled);
+			// check if we have a [ModeSelection] rule matching for this call
+			int mode = Toolkit::Instance()->SelectRoutingMode(peerAddr, socket->peerAddr);
+			switch (mode) {
+				case CallRec::SignalRouted:
+					m_call->SetProxyMode(CallRec::ProxyDisabled);
+					m_call->SetH245Routed(false);
+					break;
+				case CallRec::H245Routed:
+					m_call->SetProxyMode(CallRec::ProxyDisabled);
+					m_call->SetH245Routed(true);
+					break;
+				case CallRec::Proxied:
+					m_call->SetProxyMode(CallRec::ProxyEnabled);
+					m_call->SetH245Routed(true);
+					break;
+				default:
+					m_call->SetProxyMode(CallRec::ProxyDisabled);
+					break;
+			}
 		}
 	}
+PTRACE(0, "JW Call is h245Routed=" << m_call->IsH245Routed() << " proxy=" << ((m_call->GetProxyMode() == CallRec::ProxyEnabled) ? 1 : 0));
 
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);

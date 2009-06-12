@@ -558,3 +558,55 @@ it is responsibility of callee to provide mediaChannel in an answer.
 
 </itemize>
 
+<p>
+<sect1>Section &lsqb;ModeSelection&rsqb;
+<label id="modeselection">
+<p>
+In routed mode or proxy mode, you can use this section to specify the exact routing mode
+(routed mode, routed mode plus H.245 routing or proxy mode) by IP network.
+
+<descrip>
+<tag/Syntax:/
+
+<tt/network=mode[,mode]/
+</descrip>
+
+The network is specified by an IP plus optional CIDR, eg. 192.168.1.0/24.
+The rule for the network with the longest netmask is used (the most specific).
+<p>
+
+Possible modes are (the names are case in-sensitive)
+<itemize>
+<item><tt/ROUTED/<newline>
+Routed mode where Q.931 messages are routed, but not H.245 messages (unless H.245 tunneling is active).
+<item><tt/H245ROUTED/<newline>
+Routed mode plus H.245 routing.
+<item><tt/PROXY/<newline>
+Proxy mode with RTP proxying.
+</itemize>
+
+The first mode is used for calls into and out of the specified network.
+The second mode is used for calls that stay inside the network.
+If only one mode is specified it is used for both cases.
+
+<descrip>
+<tag/Example:/
+
+In this example calls into and out of the 1.2.3.0/24 network are proxied, but calls that remain inside this network are in routed mode. Calls in the 3.4.5.0/24 are always proxied, even when they remain inside the network, unless IP 3.4.5.6 is involved. If 2 networks have a rule for the call, the one with the most proxying is used, eg. a call from 192.168.1.222 to 3.4.5.20 would be proxied.
+
+<tscreen><verb>
+[ModeSelection]
+127.0.0.0/24=ROUTED
+192.168.0.0/18=H245ROUTED,ROUTED
+1.2.3.0/24=PROXY,ROUTED
+3.4.5.0/24=PROXY,PROXY
+3.4.5.6=ROUTED
+</verb></tscreen>
+
+</descrip>
+
+If no rules matches the settings [RoutedMode]GkRouted=, H245Routed= or [Proxy]Enable= are used to determine the routing mode.
+<p>
+There are a few cases where these rules don't apply, because GnuGk knows that the call needs proxying:
+For example calls involving H.460.18/.19 will always be proxied (because this protocol requires proxing).
+

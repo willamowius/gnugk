@@ -30,7 +30,8 @@ typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 struct SetupAuthData;
 
 /// Hold an address of a single host or a whole network
-struct NetworkAddress {
+class NetworkAddress {
+public:
 	/// Build an "any" address 
 	NetworkAddress();
 	/// Build a single host address
@@ -80,8 +81,9 @@ struct NetworkAddress {
 	bool operator<=(const NetworkAddress &addr) const;
 	bool operator>(const NetworkAddress &addr) const;
 	bool operator>=(const NetworkAddress &addr) const;
-	
+
 	PIPSocket::Address m_address; /// host/network address
+private:
 	PIPSocket::Address m_netmask; /// netmask for the #m_address#
 };
 
@@ -154,24 +156,31 @@ class Toolkit : public Singleton<Toolkit>
 
 	class ProxyCriterion {
 		typedef PIPSocket::Address Address;
-
+		struct NetworkModes {
+			int fromExternal;	// CallRec::RoutingMode
+			int insideNetwork;	// CallRec::RoutingMode
+		};
 	public:
 		ProxyCriterion();
 		~ProxyCriterion();
 
-		bool Required(const Address &, const Address &) const;
-
+		// returns a CallRec::RoutingMode
+		int SelectRoutingMode(const Address & ip1, const Address & ip2) const;
 		void LoadConfig(PConfig *);
-
 		int IsInternal(const Address & ip) const;
 	
 	private:
+		int ToRoutingMode(const PCaselessString & mode) const;	// returns a CallRec::RoutingMode
+		NetworkAddress FindModeRule(const NetworkAddress & ip) const;
+
 		bool m_enable;
-		std::vector<NetworkAddress> m_networks;
+		std::vector<NetworkAddress> m_internalnetworks;
+		// mode selection for networks
+		std::map<NetworkAddress, NetworkModes> m_modeselection;
 	};
 
-	bool ProxyRequired(const PIPSocket::Address & ip1, const PIPSocket::Address & ip2) const
-	{ return m_ProxyCriterion.Required(ip1, ip2); }
+	int SelectRoutingMode(const PIPSocket::Address & ip1, const PIPSocket::Address & ip2) const
+	{ return m_ProxyCriterion.SelectRoutingMode(ip1, ip2); }
 
 	bool IsInternal(const PIPSocket::Address & ip1)
 	{ return (m_ProxyCriterion.IsInternal(ip1) > 0);  }

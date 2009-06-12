@@ -25,6 +25,8 @@
 #endif
 #include "clirw.h"
 #include "capctrl.h"
+#include "RasSrv.h"
+#include "RasTbl.h"
 #include "Toolkit.h"
 #include "gk_const.h"
 
@@ -414,44 +416,134 @@ Toolkit::ProxyCriterion::~ProxyCriterion()
 
 void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 {
+	// read switch for default proxy mode
 	m_enable = AsBool(config->GetString(ProxySection, "Enable", "0"));
 	if (!m_enable) {
-		PTRACE(2, "GK\tH.323 Proxy disabled");
-		return;
+		PTRACE(2, "GK\tH.323 Proxy not enabled by default");
+	} else {
+		PTRACE(2, "GK\tH.323 Proxy enabled");
 	}
 
-	PTRACE(2, "GK\tH.323 Proxy enabled");
-
-	m_networks.clear();
+	m_internalnetworks.clear();
+	m_modeselection.clear();
 
 	PStringArray networks(config->GetString(ProxySection, "InternalNetwork", "").Tokenise(" ,;\t", FALSE));
 
 	// if no networks specified then use the detected values
+	NetworkModes internal_netmode;
+	internal_netmode.fromExternal = m_enable ? CallRec::Proxied : CallRec::SignalRouted;;
+	internal_netmode.insideNetwork = CallRec::SignalRouted;;
 	if (networks.GetSize() == 0) {
-	  m_networks = Toolkit::Instance()->GetInternalNetworks();
-	  for (unsigned j = 0; j < m_networks.size(); ++j) 
-		PTRACE(2, "GK\tInternal Network " << j << " = " << m_networks[j].AsString());
-	  return;
-	} 
+		m_internalnetworks = Toolkit::Instance()->GetInternalNetworks();
+		for (unsigned j = 0; j < m_internalnetworks.size(); ++j) {
+			m_modeselection[m_internalnetworks[j]] = internal_netmode;
+			PTRACE(2, "GK\tInternal Network " << j << " = " << m_internalnetworks[j].AsString());
+		}
+	} else {
+		for (PINDEX i = 0; i < networks.GetSize(); ++i) {
+			m_internalnetworks.push_back(networks[i]);
+			m_modeselection[networks[i]] = internal_netmode;
+			PTRACE(2, "GK\tINI Internal Network " << i << " = " << m_internalnetworks[i].AsString());
+		}
+	}
 
-	  for (PINDEX i = 0; i < networks.GetSize(); ++i) {
-		m_networks.resize(m_networks.size() + 1);
-		m_networks[m_networks.size() - 1] = NetworkAddress(networks[i]);
-		PTRACE(2, "GK\tINI Internal Network " << i << " = " << m_networks.back().AsString());
-	  }
+	// read [ModeSelection] section
+	PStringToString mode_rules(config->GetAllKeyValues("ModeSelection"));
+	for (PINDEX i = 0; i < mode_rules.GetSize(); ++i) {
+		PString network = mode_rules.GetKeyAt(i);
+		if (!network.IsEmpty()) {
+			PStringArray modes((mode_rules.GetDataAt(i)).Tokenise(" ,;\t", FALSE));
+			if (modes.GetSize() >= 1 && modes.GetSize() <= 2) {
+				NetworkAddress addr = NetworkAddress(network);
+				NetworkModes netmode;
+				netmode.fromExternal = ToRoutingMode(modes[0].Trim());
+				netmode.insideNetwork = netmode.fromExternal;
+				if (modes.GetSize() == 2)
+					netmode.insideNetwork = ToRoutingMode(modes[1].Trim());
+				m_modeselection[addr] = netmode;
+				PTRACE(2, "GK\tModeSelection rule: " << addr.AsString() << "=" << netmode.fromExternal << "," << netmode.insideNetwork);
+			} else {
+				PTRACE(1, "GK\tInvalid ModeSelection rule: " << mode_rules.GetKeyAt(i) << "=" << mode_rules.GetDataAt(i) );
+			}
+		}
+	}
 }
 
-bool Toolkit::ProxyCriterion::Required(const Address & ip1, const Address & ip2) const
+int Toolkit::ProxyCriterion::ToRoutingMode(const PCaselessString & mode) const
 {
-	return m_enable ? (m_networks.empty() || (IsInternal(ip1) != IsInternal(ip2))) : false;
+	if (mode == "Routed")
+		return CallRec::SignalRouted;
+	else if (mode == "H245Routed")
+		return CallRec::H245Routed;
+	else if (mode == "Proxy")
+		return CallRec::Proxied;
+	else
+		return CallRec::Undefined;	
+}
+
+// returns network for the rule or IsAny() when no is rule found
+NetworkAddress Toolkit::ProxyCriterion::FindModeRule(const NetworkAddress & ip) const
+{
+	NetworkAddress bestmatch;
+
+	std::map<NetworkAddress, NetworkModes>::const_iterator iter = m_modeselection.begin();
+	while (iter != m_modeselection.end()) {
+		if ((ip << iter->first) && (iter->first.GetNetmaskLen() > bestmatch.GetNetmaskLen())) {
+			bestmatch = iter->first;
+		}
+		iter++;
+	}
+
+	return bestmatch;
+}
+
+int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Address & ip2) const
+{
+	// default mode
+	int mode = m_enable ? CallRec::Proxied : CallRec::SignalRouted;
+	if (mode == CallRec::SignalRouted && RasServer::Instance()->IsH245Routed())
+		mode = CallRec::H245Routed;
+
+	// check if we have a more specific setting
+	NetworkAddress bestMatchIP1 = FindModeRule(ip1);
+	NetworkAddress bestMatchIP2 = FindModeRule(ip2);
+
+	std::map<NetworkAddress, NetworkModes>::const_iterator iter;
+	// check for same network
+	if (!bestMatchIP1.IsAny() && !bestMatchIP2.IsAny()) {
+		// rules for both IPs
+		if (bestMatchIP1 == bestMatchIP1) {
+			// both on same network
+			iter = m_modeselection.find(bestMatchIP1);
+			if (iter != m_modeselection.end())
+				mode = iter->second.insideNetwork;
+		} else {
+			// on different networks, use maximum poxying
+			iter = m_modeselection.find(bestMatchIP1);
+			int mode1 = iter->second.fromExternal;	// no check, must exist
+			iter = m_modeselection.find(bestMatchIP2);
+			int mode2 = iter->second.fromExternal;	// no check, must exist
+			mode = max(mode1, mode2);
+		}
+	} else {
+		// only one rule, use that
+		iter = m_modeselection.find(bestMatchIP1);
+		if (iter != m_modeselection.end())
+			mode = iter->second.fromExternal;
+		iter = m_modeselection.find(bestMatchIP2);
+		if (iter != m_modeselection.end())
+			mode = iter->second.fromExternal;
+	}
+
+	return mode;
 }
 
 int Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 {
    // Return the network Id. Addresses may be on different internal networks
 	int retval = 0;
-	std::vector<NetworkAddress>::const_iterator i = m_networks.begin();
-	while (i != m_networks.end()) {
+	std::vector<NetworkAddress>::const_iterator i = m_internalnetworks.begin();
+	while (i != m_internalnetworks.end()) {
 		retval++;
 		if (ip << *i++)
 			return retval;
