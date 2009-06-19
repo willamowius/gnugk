@@ -2158,14 +2158,14 @@ bool Toolkit::QoSMonitor::PostRecord(const std::map<PString, PString>& params)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-bool Toolkit::RewriteE164(H225_AliasAddress &alias)
+bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 {
 	if ((alias.GetTag() != H225_AliasAddress::e_dialedDigits) &&
          (alias.GetTag() != H225_AliasAddress::e_h323_ID) &&
 		 (alias.GetTag() != H225_AliasAddress::e_url_ID)) {
 		if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
 			return false;
-		H225_PartyNumber &partyNumber = alias;
+		H225_PartyNumber & partyNumber = alias;
 		if (partyNumber.GetTag() != H225_PartyNumber::e_e164Number && partyNumber.GetTag() != H225_PartyNumber::e_privateNumber)
 			return false;
 	}
@@ -2177,13 +2177,15 @@ bool Toolkit::RewriteE164(H225_AliasAddress &alias)
 		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits)
 			H323SetAliasAddress(E164, alias, alias.GetTag());
 		else {
-			H225_PartyNumber &partyNumber = alias;
-			if (partyNumber.GetTag() == H225_PartyNumber::e_e164Number) {
-				H225_PublicPartyNumber &number = partyNumber;
-				number.m_publicNumberDigits = E164;
-			} else if (partyNumber.GetTag() == H225_PartyNumber::e_privateNumber) {
-				H225_PrivatePartyNumber &number = partyNumber;
-				number.m_privateNumberDigits = E164;
+			if (alias.GetTag() == H225_AliasAddress::e_partyNumber) {
+				H225_PartyNumber & partyNumber = alias;
+				if (partyNumber.GetTag() == H225_PartyNumber::e_e164Number) {
+					H225_PublicPartyNumber &number = partyNumber;
+					number.m_publicNumberDigits = E164;
+				} else if (partyNumber.GetTag() == H225_PartyNumber::e_privateNumber) {
+					H225_PrivatePartyNumber &number = partyNumber;
+					number.m_privateNumberDigits = E164;
+				}
 			}
 		}
 	}

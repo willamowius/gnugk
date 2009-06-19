@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(Toolkit.cxx) fix a crash in RewriteE164() when casting aliases
 - new config section [ModeSelection] to specify the routing/proxy mode by IP network
 
 Changes from 2.2.8 to 2.3.0
