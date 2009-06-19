@@ -97,7 +97,9 @@ unsigned NetworkAddress::GetNetmaskLen() const
 	return sz - len;
 }
 
-bool NetworkAddress::operator==(const NetworkAddress &addr) const
+// TODO: check if this operator return true for unequal addresses
+// BUG: 9.9.9.0/24 == 9.9.10.0/24
+bool NetworkAddress::operator==(const NetworkAddress & addr) const
 {
 	if (m_address.GetSize() != addr.m_address.GetSize())
 		return false;
@@ -106,7 +108,7 @@ bool NetworkAddress::operator==(const NetworkAddress &addr) const
 	for (unsigned i = 0; i < sz; i++)
 		if (m_address[i] != addr.m_address[i] || m_netmask[i] != addr.m_netmask[i])
 			return false;
-			
+
 	return true;
 }
 
@@ -512,7 +514,7 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 	// check for same network
 	if (!bestMatchIP1.IsAny() && !bestMatchIP2.IsAny()) {
 		// rules for both IPs
-		if (bestMatchIP1 == bestMatchIP1) {
+		if (bestMatchIP1.Compare(bestMatchIP2) == 0) {	// oprerator== broken ?
 			// both on same network
 			iter = m_modeselection.find(bestMatchIP1);
 			if (iter != m_modeselection.end())
