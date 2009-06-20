@@ -764,6 +764,63 @@ public:
 		has not been yet received.
 		Meaningful only in GK routed mode.
 	*/
+
+	PString GetSRC_media_control_IP() const;
+        PString GetDST_media_control_IP() const;
+    
+        void SetSRC_media_control_IP(PString IP);
+        void SetDST_media_control_IP(PString IP);
+    
+        PString GetSRC_media_IP() const; 
+        PString GetDST_media_IP() const; 
+                                             
+        void SetSRC_media_IP(PString IP);
+        void SetDST_media_IP(PString IP);
+    
+        void SetRTCP_SRC_sdes(PString val);
+        void SetRTCP_DST_sdes(PString val);
+    
+        PStringList GetRTCP_SRC_sdes() const;
+        PStringList GetRTCP_DST_sdes() const;
+    
+        bool GetRTCP_SRC_sdes_flag() const;
+        bool GetRTCP_DST_sdes_flag() const;
+	
+        void InitRTCP_report();
+    
+        void SetRTCP_SRC_packet_count(long val);
+        void SetRTCP_DST_packet_count(long val);
+    
+        void SetRTCP_SRC_packet_lost(long val);
+        void SetRTCP_DST_packet_lost(long val);
+    
+        void SetRTCP_SRC_jitter(int val);
+    
+        void SetRTCP_DST_jitter(int val);
+
+        // Get RTCP source packet count
+        long GetRTCP_SRC_packet_count() const;
+        // Get RTCP destination packet count
+        long GetRTCP_DST_packet_count() const;
+    
+        // Get RTCP source packet lost
+        long GetRTCP_SRC_packet_lost() const;
+        // Get RTCP destination packet lost
+        long GetRTCP_DST_packet_lost() const;
+    
+        // Get RTCP source jitter max
+        int GetRTCP_SRC_jitter_max() const;
+        // Get RTCP source jitter min
+        int GetRTCP_SRC_jitter_min() const;
+        // Get RTCP source jitter avg
+        int GetRTCP_SRC_jitter_avg() const;
+    
+        //Get RTCP destinaton jitter max
+        int GetRTCP_DST_jitter_max() const;
+        //Get RTCP destinaton jitter in
+        int GetRTCP_DST_jitter_min() const;
+        //Get RTCP destinaton jitter avg
+        int GetRTCP_DST_jitter_avg() const;
 	time_t GetSetupTime() const;
 
 	/** Set timestamp for a Setup message associated with this call. */
@@ -1086,6 +1143,42 @@ private:
 	
 	/// list of disabled codes
 	PString m_disabledcodecs;
+	
+	PString m_src_media_control_IP, m_dst_media_control_IP;
+        PString m_src_media_IP, m_dst_media_IP;
+    
+        PStringList m_rtcp_source_sdes;
+        bool m_rtcp_source_sdes_flag;
+    
+        PStringList m_rtcp_destination_sdes;  
+        bool m_rtcp_destination_sdes_flag;
+    
+        // RTCP_source_packet_count
+        long m_rtcp_source_packet_count;
+        // RTCP_destination_packet_count	
+        long m_rtcp_destination_packet_count;
+    
+        // RTCP_source_packet_lost
+        long m_rtcp_source_packet_lost;
+        // RTCP_destination_packet_lost
+        long m_rtcp_destination_packet_lost;
+    
+        // RTCP_source_jitter
+        int m_rtcp_source_jitter_min;
+        int m_rtcp_source_jitter_max;
+        int m_rtcp_source_jitter_avg;
+    
+        // RTCP_destination_jitter
+        int m_rtcp_destination_jitter_min;
+        int m_rtcp_destination_jitter_max;
+        int m_rtcp_destination_jitter_avg;
+
+
+        int m_rtcp_source_jitter_avg_count;
+        long m_rtcp_source_jitter_avg_sum;
+    
+        int m_rtcp_destination_jitter_avg_count;
+        long m_rtcp_destination_jitter_avg_sum;
 
 	/// current timeout (or duration limit) for the call
 	time_t m_timeout;
@@ -1564,6 +1657,96 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 {
 	return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
+}
+
+inline PString CallRec::GetSRC_media_control_IP() const
+{
+    return m_src_media_control_IP;
+}
+
+inline PString CallRec::GetDST_media_control_IP() const
+{
+    return m_dst_media_control_IP;
+}
+
+inline PString CallRec::GetSRC_media_IP() const
+{
+    return m_src_media_IP;
+}
+
+inline PString CallRec::GetDST_media_IP() const
+{
+    return m_dst_media_IP;
+}
+
+inline bool CallRec::GetRTCP_SRC_sdes_flag() const
+{
+    return m_rtcp_source_sdes_flag;
+}
+
+inline bool CallRec::GetRTCP_DST_sdes_flag() const
+{
+    return m_rtcp_destination_sdes_flag;
+}
+
+inline PStringList CallRec::GetRTCP_SRC_sdes() const
+{
+    return m_rtcp_source_sdes;
+}
+
+inline PStringList CallRec::GetRTCP_DST_sdes() const
+{
+    return m_rtcp_destination_sdes;
+}
+
+inline long CallRec::GetRTCP_SRC_packet_count() const
+{
+    return m_rtcp_source_packet_count;
+}
+
+inline long CallRec::GetRTCP_DST_packet_count() const
+{
+    return m_rtcp_destination_packet_count;
+}
+
+inline long CallRec::GetRTCP_SRC_packet_lost() const
+{
+    return m_rtcp_source_packet_lost;
+}
+
+inline long CallRec::GetRTCP_DST_packet_lost() const
+{
+    return m_rtcp_destination_packet_lost;
+}
+
+inline int CallRec::GetRTCP_SRC_jitter_max() const
+{
+    return m_rtcp_source_jitter_max;
+}
+
+inline int CallRec::GetRTCP_SRC_jitter_min() const
+{
+    return m_rtcp_source_jitter_min;
+}
+
+inline int CallRec::GetRTCP_SRC_jitter_avg() const
+{
+    return m_rtcp_source_jitter_avg;
+}
+
+inline int CallRec::GetRTCP_DST_jitter_max() const
+{
+    return m_rtcp_destination_jitter_max;
+}
+
+inline int CallRec::GetRTCP_DST_jitter_min() const
+{
+    return m_rtcp_destination_jitter_min;
+}
+
+inline int CallRec::GetRTCP_DST_jitter_avg() const
+{
+    return m_rtcp_destination_jitter_avg;
 }
 
 inline time_t CallRec::GetSetupTime() const

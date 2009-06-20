@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.30  2009/05/24 22:38:51  willamowius
+ * everything that holds a time should be a time_t, not a long
+ *
  * Revision 1.29  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -317,6 +320,62 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec,call->GetCodec());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num,call->GetCalledStationId());
+				//RTCP SOURCE REPORT
+				
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTP_source_IP=")+call->GetSRC_media_IP(),
+    				    true
+				);
+				
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTP_destination_IP=")+call->GetDST_media_IP(),
+    				    true
+				);
+				
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTCP_source_packet_count=")+PString(PString::Unsigned,call->GetRTCP_SRC_packet_count()),
+    				    true
+				);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTCP_source_packet_lost=")+PString(PString::Unsigned,call->GetRTCP_SRC_packet_lost()),
+				    true
+				);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTCP_source_jitter=")+PString(PString::Unsigned,call->GetRTCP_SRC_jitter_min())+PString("|")+PString(PString::Unsigned,call->GetRTCP_SRC_jitter_avg())+PString("|")+PString(PString::Unsigned,call->GetRTCP_SRC_jitter_max()),
+				    true
+				);
+				
+				PINDEX i_sdes = 0;
+				PStringList sdes = call->GetRTCP_SRC_sdes();
+				while (i_sdes < sdes.GetSize()) {
+				    pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+					PString("RTCP_source_sdes_")+sdes[i_sdes],
+					true
+				    );
+				    i_sdes ++;
+				}
+				//RTCP DESTINATION REPORT
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTCP_destination_packet_count=")+PString(PString::Unsigned,call->GetRTCP_DST_packet_count()),
+				    true
+				);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTCP_destination_packet_lost=")+PString(PString::Unsigned,call->GetRTCP_DST_packet_lost()),
+				    true
+				);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+				    PString("RTCP_destination_jitter=")+PString(PString::Unsigned,call->GetRTCP_DST_jitter_min())+PString("|")+PString(PString::Unsigned,call->GetRTCP_DST_jitter_avg())+PString("|")+PString(PString::Unsigned,call->GetRTCP_DST_jitter_max()),
+				    true
+				);
+				i_sdes = 0;
+				sdes = call->GetRTCP_DST_sdes();
+				while (i_sdes < sdes.GetSize()) {
+				    pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+					PString("RTCP_destination_sdes_")+sdes[i_sdes],
+					true
+				    );
+				    i_sdes ++;
+				}
 			}					
 			
 			if (call->GetDestSignalAddr(addr,port))
@@ -329,6 +388,7 @@ GkAcctLogger::Status RadAcct::Log(
 					+ GetGUIDString(call->GetCallIdentifier().m_guid),
 				true
 				);
+			
 		}
 	
 		pdu->AppendAttr(RadiusAttr::AcctDelayTime, 0);

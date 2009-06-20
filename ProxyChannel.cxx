@@ -287,10 +287,10 @@ public:
 
 	UDPProxySocket(const char *);
 
-	void SetDestination(H245_UnicastAddress_iPAddress &);
-	void SetForwardDestination(const Address &, WORD, const H245_UnicastAddress_iPAddress &);
-	void SetReverseDestination(const Address &, WORD, const H245_UnicastAddress_iPAddress &);
-	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, const H245_UnicastAddress_iPAddress &);
+	void SetDestination(H245_UnicastAddress_iPAddress &,callptr &);
+	void SetForwardDestination(const Address &, WORD, const H245_UnicastAddress_iPAddress &, callptr &);
+	void SetReverseDestination(const Address &, WORD, const H245_UnicastAddress_iPAddress &, callptr &);
+	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, const H245_UnicastAddress_iPAddress &, callptr &);
 
 	bool Bind(WORD pt);
 	bool Bind(const Address &localAddr, WORD pt);
@@ -310,6 +310,10 @@ protected:
 	virtual bool Flush();
 	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
+	//RTCP handler
+	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool direct);
+
+	callptr *  m_call;
 private:
 	UDPProxySocket();
 	UDPProxySocket(const UDPProxySocket&);
@@ -362,7 +366,7 @@ public:
 	WORD GetChannelNumber() const { return channelNumber; }
 	void SetChannelNumber(WORD cn) { channelNumber = cn; }
 
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *) = 0;
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *,callptr &) = 0;
 	virtual void StartReading(ProxyHandler *) = 0;
 	virtual void SetRTPMute(bool toMute) = 0;
 
@@ -381,11 +385,11 @@ public:
 	void SetMediaChannelSource(const H245_UnicastAddress_iPAddress &);
 	void SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress &);
 	PIPSocket::Address GetSourceIP() const;
-	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool);
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool);
+	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool, callptr &);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &);
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *,callptr &);
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool toMute);
 
@@ -413,7 +417,7 @@ public:
 	virtual ~T120LogicalChannel();
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *,callptr &);
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool /*toMute*/) {};   /// We do not Mute T.120 Channels
 
@@ -463,10 +467,10 @@ public:
 	virtual ~H245Handler();
 
 	virtual void OnH245Address(H225_TransportAddress &);
-	virtual bool HandleMesg(H245_MultimediaSystemControlMessage &, bool & suppress);
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
-	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &);
+	virtual bool HandleMesg(H245_MultimediaSystemControlMessage &, bool & suppress, callptr & mcall);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &);
+	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &,callptr &);
 
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
     PIPSocket::Address GetRemoteAddr() const { return remoteAddr; }
@@ -477,7 +481,7 @@ public:
 
 protected:
 	virtual bool HandleRequest(H245_RequestMessage &);
-	virtual bool HandleResponse(H245_ResponseMessage &);
+	virtual bool HandleResponse(H245_ResponseMessage &,callptr &);
 	virtual bool HandleCommand(H245_CommandMessage &);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
@@ -499,8 +503,8 @@ public:
 	virtual ~H245ProxyHandler();
 
 	// override from class H245Handler
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &,callptr &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &,callptr &);
 
 	void SetHandler(ProxyHandler *);
 	LogicalChannel *FindLogicalChannel(WORD);
@@ -511,12 +515,12 @@ public:
 private:
 	// override from class H245Handler
 	virtual bool HandleRequest(H245_RequestMessage &);
-	virtual bool HandleResponse(H245_ResponseMessage &);
+	virtual bool HandleResponse(H245_ResponseMessage &, callptr &);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
 	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
-	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
+	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &, callptr &);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
 	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &);
 	void HandleMuteRTPChannel();
@@ -1296,7 +1300,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
 		}
 	}
 
-	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress)) && !changed)
+	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress, m_call)) && !changed)
 		return false;
 
 	strm.BeginEncoding();
@@ -3023,10 +3027,9 @@ void CallSignalSocket::OnReleaseComplete(
 		} else 
 			PTRACE(5, "Q931\tFailover inactive for call " << m_call->GetCallNumber() << ", Q931 cause " << cause);
 	}
-	
+
 	if (m_call)
 		CallTable::Instance()->RemoveCall(m_call);
-		
 	m_result = Closing;
 }
 
@@ -3361,7 +3364,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		}
 
 		H245Handler::pMem handlefs = (fromCaller) ? &H245Handler::HandleFastStartSetup : &H245Handler::HandleFastStartResponse;
-		if ((m_h245handler->*handlefs)(olc)) {
+		if ((m_h245handler->*handlefs)(olc, m_call)) {
 			PPER_Stream wtstrm;
 			olc.Encode(wtstrm);
 			wtstrm.CompleteEncoding();
@@ -4111,7 +4114,7 @@ void H245Handler::OnH245Address(H225_TransportAddress & addr)
 		hnat->TranslateH245Address(addr);
 }
 
-bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool & suppress)
+bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool & suppress, callptr & mcall)
 {
 	bool changed = false;
 
@@ -4121,7 +4124,7 @@ bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool
 			changed = HandleRequest(h245msg);
 			break;
 		case H245_MultimediaSystemControlMessage::e_response:
-			changed = HandleResponse(h245msg);
+			changed = HandleResponse(h245msg, mcall);
 			break;
 		case H245_MultimediaSystemControlMessage::e_command:
 			changed = HandleCommand(h245msg);
@@ -4136,12 +4139,12 @@ bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool
 	return changed;
 }
 
-bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
+bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callptr & mcall)
 {
 	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
 
-bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
+bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr & mcall)
 {
 	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
@@ -4158,7 +4161,7 @@ bool H245Handler::HandleRequest(H245_RequestMessage & Request)
 	}
 }
 
-bool H245Handler::HandleResponse(H245_ResponseMessage & Response)
+bool H245Handler::HandleResponse(H245_ResponseMessage & Response, callptr & mcall)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
 	if (hnat && Response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck)
@@ -4576,7 +4579,7 @@ void UDPProxySocket::SetNAT(bool rev)
 	PTRACE(5, Type() << "\tfnat=" << fnat << " rnat=" << rnat);
 }
 
-void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
+void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
 	if ((DWORD)srcIP != 0)
 		fSrcIP = srcIP, fSrcPort = srcPort;
@@ -4593,17 +4596,38 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		<< " to " << fDestIP << ':' << fDestPort
 		);
 	SetConnected(true);
+
+	if (PString(Type()) == "RTCP") {
+	    mcall->SetSRC_media_control_IP(fDestIP.AsString());
+	    mcall->SetDST_media_control_IP(srcIP.AsString());
+	}
+	if (PString(Type()) == "RTP") {
+	    mcall->SetSRC_media_IP(fDestIP.AsString());
+	    mcall->SetDST_media_IP(srcIP.AsString());
+	}
+	
+	m_call = &mcall;		
 }
 
-void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr)
+void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
 	if( (DWORD)srcIP != 0 )
 		rSrcIP = srcIP, rSrcPort = srcPort;
 
 	addr >> rDestIP >> rDestPort;
-
+    
 	PTRACE(5, Type() << "\tReverse " << srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
 	SetConnected(true);
+	if (PString(Type()) == "RTCP"){
+	    mcall->SetSRC_media_control_IP(srcIP.AsString());
+	    mcall->SetDST_media_control_IP(rDestIP.AsString());
+	}
+	if (PString(Type()) == "RTP"){
+	    mcall->SetSRC_media_IP(srcIP.AsString());
+	    mcall->SetDST_media_IP(rDestIP.AsString());
+	}
+	m_call = &mcall;
+
 }
 
 ProxySocket::Result UDPProxySocket::ReceiveData()
@@ -4681,8 +4705,167 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if (fnat)
 			fDestIP = fromIP, fDestPort = fromPort;
 	}
+	if (PString(Type()) == "RTCP") {
+		bool direct = true;
+
+		if ((*m_call)->GetSRC_media_control_IP() == fromIP.AsString()) {
+			direct = true;
+		} else {
+			direct = false;
+		}
+
+		PIPSocket::Address addr = (DWORD)0; 
+		(*m_call)->GetMediaOriginatingIp(addr);
+
+		RTP_ControlFrame frame(2048);
+		frame.Attach(wbuffer,buflen);
+		do {
+			BYTE * payload = frame.GetPayloadPtr();
+			unsigned size = frame.GetPayloadSize(); 
+			if ((payload == NULL) || (size == 0) || ((payload + size) > (frame.GetPointer() + frame.GetSize()))){
+			/* TODO: 1.shall we test for a maximum size ? Indeed but what's the value ? *
+				 2. what's the correct exit status ? */
+//			PTRACE(2, "RTCP\tSession invalid frame");
+
+				break;
+			}
+			switch (frame.GetPayloadType()) {
+			case RTP_ControlFrame::e_SenderReport :
+				PTRACE(5, "RTCP\tSession SenderReport packet");
+				if (size >= sizeof(RTP_ControlFrame::SenderReport)) {
+					const RTP_ControlFrame::SenderReport & sr = *(const RTP_ControlFrame::SenderReport *)(payload);
+					if (direct) {
+						(*m_call)->SetRTCP_DST_packet_count(sr.psent);
+						PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_count:"<<sr.psent);
+					} else {
+						(*m_call)->SetRTCP_SRC_packet_count(sr.psent);
+						PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_count:"<<sr.psent);
+					}	
+					BuildReceiverReport(frame, sizeof(RTP_ControlFrame::SenderReport),direct);
+				} else {
+					PTRACE(5, "RTCP\tSession  SenderReport packet truncated");
+				}
+				break;
+			case RTP_ControlFrame::e_ReceiverReport:
+				PTRACE(5, "RTCP\tSession ReceiverReport packet");
+				if (size >= 4) {
+					BuildReceiverReport(frame, sizeof(PUInt32b),direct);
+				} else {
+					PTRACE(5, "RTP\tSession ReceiverReport packet truncated");
+				}
+				break;
+			case RTP_ControlFrame::e_SourceDescription :
+				PTRACE(5, "RTCP\tSession SourceDescription packet");		    
+				if ((!(*m_call)->GetRTCP_SRC_sdes_flag()&&direct) || (!(*m_call)->GetRTCP_DST_sdes_flag()&&!direct))
+					if (size >= frame.GetCount()*sizeof(RTP_ControlFrame::SourceDescription)) {
+						const RTP_ControlFrame::SourceDescription * sdes = (const RTP_ControlFrame::SourceDescription *)payload;
+						PINDEX srcIdx;
+						for (srcIdx = 0; srcIdx < (PINDEX)frame.GetCount(); srcIdx++) {
+							const RTP_ControlFrame::SourceDescription::Item * item = sdes->item;
+							while ((item != NULL) && (item->type != RTP_ControlFrame::e_END)) {
+								if (item != NULL && item->length != 0) {
+									switch (item->type) {
+									case RTP_ControlFrame::e_CNAME:
+										if (!direct) {
+											(*m_call)->SetRTCP_DST_sdes("cname="+((PString)(item->data)).Left(item->length));
+										} else {
+											(*m_call)->SetRTCP_SRC_sdes("cname="+((PString)(item->data)).Left(item->length));
+										}
+										break;
+									case RTP_ControlFrame::e_NAME:
+										if (!direct) {
+											(*m_call)->SetRTCP_DST_sdes("name="+((PString)(item->data)).Left(item->length));
+										} else {
+											(*m_call)->SetRTCP_SRC_sdes("name="+((PString)(item->data)).Left(item->length));
+										}
+										break;
+									case RTP_ControlFrame::e_EMAIL:
+										if (!direct) {
+											(*m_call)->SetRTCP_DST_sdes("email="+((PString)(item->data)).Left(item->length));
+										} else {
+											(*m_call)->SetRTCP_SRC_sdes("email="+((PString)(item->data)).Left(item->length));
+										}
+										break;
+									case RTP_ControlFrame::e_PHONE:
+										if (!direct) {
+											(*m_call)->SetRTCP_DST_sdes("phone="+((PString)(item->data)).Left(item->length));
+										} else {
+											(*m_call)->SetRTCP_SRC_sdes("phone="+((PString)(item->data)).Left(item->length));
+										}
+										break;
+									case RTP_ControlFrame::e_LOC:
+										if (!direct) {
+											(*m_call)->SetRTCP_DST_sdes("loc="+((PString)(item->data)).Left(item->length));
+										} else {
+											(*m_call)->SetRTCP_SRC_sdes("loc="+((PString)(item->data)).Left(item->length));
+										}
+										break;
+									case RTP_ControlFrame::e_TOOL:
+										if (!direct) {
+											(*m_call)->SetRTCP_DST_sdes("tool="+((PString)(item->data)).Left(item->length));
+										} else {
+											(*m_call)->SetRTCP_SRC_sdes("tool="+((PString)(item->data)).Left(item->length));
+										}
+										break;
+									case RTP_ControlFrame::e_NOTE:
+										if (!direct) {
+											(*m_call)->SetRTCP_DST_sdes("note="+((PString)(item->data)).Left(item->length));
+										} else {
+											(*m_call)->SetRTCP_SRC_sdes("note="+((PString)(item->data)).Left(item->length));
+										}
+										break;
+									default:
+										PTRACE(5,"RTCP\tSession  SourceDescription unknown item type " << item->type);
+										break;
+									}
+								}    
+								item = item->GetNextItem();
+							}
+							/* RTP_ControlFrame::e_END doesn't have a length field, so do NOT call item->GetNextItem()
+							otherwise it reads over the buffer */
+							if((item == NULL)
+								|| (item->type == RTP_ControlFrame::e_END)
+								|| ((sdes = (const RTP_ControlFrame::SourceDescription *)item->GetNextItem()) == NULL)){
+								break;
+						}
+					}
+				}
+				break;
+			case RTP_ControlFrame::e_Goodbye:
+				PTRACE(5, "RTCP\tSession Goodbye packet");
+				break;
+			case RTP_ControlFrame::e_ApplDefined:
+				PTRACE(5, "RTCP\tSession ApplDefined packet");
+				break;
+			default:
+				PTRACE(5, "RTCP\tSession  Unknown control payload type: " << frame.GetPayloadType());
+				break;
+			}
+		} while (frame.ReadNextCompound());
+	}
 	return Forwarding;
 }
+
+void UDPProxySocket::BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool direct)
+{
+  const RTP_ControlFrame::ReceiverReport * rr = (const RTP_ControlFrame::ReceiverReport *)(frame.GetPayloadPtr()+offset);
+  for (PINDEX repIdx = 0; repIdx < (PINDEX)frame.GetCount(); repIdx++) {
+    RTP_Session::ReceiverReport * report = new RTP_Session::ReceiverReport;
+    if (direct){
+	(*m_call)->SetRTCP_DST_packet_lost(report->totalLost = rr->GetLostPackets());
+	(*m_call)->SetRTCP_DST_jitter(rr->jitter);
+	PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_lost:"<<rr->GetLostPackets());
+	PTRACE(5, "RTCP\tSession SetRTCP_DST_jitter:"<<rr->jitter);
+    } else{
+	(*m_call)->SetRTCP_SRC_packet_lost(report->totalLost = rr->GetLostPackets());
+	(*m_call)->SetRTCP_SRC_jitter(rr->jitter);
+	PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_lost:"<<rr->GetLostPackets());
+	PTRACE(5, "RTCP\tSession SetRTCP_SRC_jitter:"<<rr->jitter);
+    }
+    rr++;
+  }
+}
+
 
 bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 {
@@ -4908,7 +5091,7 @@ void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress_iPAddres
 	addr >> SrcIP >> SrcPort;
 }
 
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaControlChannel, H245_UnicastAddress_iPAddress *mediaChannel, const PIPSocket::Address & local, bool rev)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaControlChannel, H245_UnicastAddress_iPAddress *mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall)
 {
 	// mediaControlChannel should be non-zero.
 	H245_UnicastAddress_iPAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
@@ -4937,7 +5120,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 		}
 	}
 	UDPProxySocket::pMem SetDest = (reversed) ? &UDPProxySocket::SetReverseDestination : &UDPProxySocket::SetForwardDestination;
-	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, *dest);
+	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, *dest, mcall);
 	*mediaControlChannel << local << (port + 1);
 
 	if (mediaChannel) {
@@ -4946,7 +5129,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 		} else {
 			dest = mediaChannel;
 		}
-		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort - 1, *dest);
+		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort - 1, *dest, mcall);
 		*mediaChannel << local << port;
 	}
 }
@@ -4957,24 +5140,24 @@ void RTPLogicalChannel::SetRTPMute(bool toMute)
 		rtp->SetMute(toMute);
 }
 
-bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev)
+bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & mcall)
 {
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
 		return false;
 	H245_UnicastAddress_iPAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev,mcall);
 	return true;
 }
 
-bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler)
+bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler, callptr & mcall)
 {
 	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
 	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
 	if (mediaControlChannel == NULL && mediaChannel == NULL) {
 		return false;
 	}
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false,mcall);
 	return true;
 }
 
@@ -5035,7 +5218,7 @@ T120LogicalChannel::~T120LogicalChannel()
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
 
-bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler)
+bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & mcall)
 {
 	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
 		OnSeparateStack(olca.m_separateStack, _handler) : false;
@@ -5167,14 +5350,14 @@ bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request)
 	return false;
 }
 
-bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response)
+bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr & mcall)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
 	if (peer)
 		switch (Response.GetTag())
 		{
 			case H245_ResponseMessage::e_openLogicalChannelAck:
-				return HandleOpenLogicalChannelAck(Response);
+				return HandleOpenLogicalChannelAck(Response, mcall);
 			case H245_ResponseMessage::e_openLogicalChannelReject:
 				return HandleOpenLogicalChannelReject(Response);
 			default:
@@ -5293,7 +5476,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelRej
 	return false; // nothing changed :)
 }
 
-bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
+bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca, callptr & mcall)
 {
 	if (hnat)
 		hnat->HandleOpenLogicalChannelAck(olca);
@@ -5345,7 +5528,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 #endif
 
-	bool result = lc->SetDestination(olca, this);
+	bool result = lc->SetDestination(olca, this, mcall);
 	if (result)
 		lc->StartReading(handler);
 	return result;
@@ -5421,7 +5604,7 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 	return false; // nothing changed :)
 }
 
-bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
+bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callptr & mcall)
 {
 	if (!peer)
 		return false;
@@ -5447,7 +5630,7 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc)
 	return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
 }
 
-bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
+bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,callptr & mcall)
 {
 	if (!peer)
 		return false;
@@ -5495,7 +5678,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc)
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 		}
 	}
-	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC)))
+	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, mcall)))
 		lc->StartReading(handler);
 	return changed;
 }

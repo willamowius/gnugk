@@ -2347,6 +2347,134 @@ void CallRec::SetDisabledCodecs(const PString & codecs)
 	m_disabledcodecs = codecs.Trim();
 }
 
+void CallRec::SetSRC_media_control_IP(PString IP)
+{
+    m_src_media_control_IP = IP;
+}
+
+
+void CallRec::SetDST_media_control_IP(PString IP)
+{
+    m_dst_media_control_IP = IP;
+}
+
+void CallRec::SetSRC_media_IP(PString IP)
+{
+    m_src_media_IP = IP;
+}
+
+
+void CallRec::SetDST_media_IP(PString IP)
+{
+    m_dst_media_IP = IP;
+}
+
+
+void CallRec::InitRTCP_report(){
+    m_rtcp_source_packet_count = 0;
+    m_rtcp_destination_packet_count = 0;
+    m_rtcp_source_packet_lost = 0;
+    m_rtcp_destination_packet_lost = 0;
+    
+    m_rtcp_source_jitter_max = 0;
+    m_rtcp_source_jitter_min = 0;
+    m_rtcp_source_jitter_avg = 0;
+    m_rtcp_source_jitter_avg_count = 0;
+    m_rtcp_source_jitter_avg_sum = 0;
+    
+    m_rtcp_destination_jitter_max = 0;
+    m_rtcp_destination_jitter_min = 0;
+    m_rtcp_destination_jitter_avg = 0;
+    m_rtcp_destination_jitter_avg_count = 0;
+    m_rtcp_destination_jitter_avg_sum = 0;
+    
+    m_src_media_IP = "0.0.0.0";
+    m_dst_media_IP = "0.0.0.0";
+    
+    m_src_media_control_IP = "0.0.0.0";
+    m_dst_media_control_IP = "0.0.0.0";
+    
+    m_rtcp_source_sdes_flag = false;
+    m_rtcp_destination_sdes_flag = false;
+}
+
+
+void CallRec::SetRTCP_SRC_sdes(PString val)
+{
+    m_rtcp_source_sdes.AppendString(val);
+    m_rtcp_source_sdes_flag = true;
+}
+
+void CallRec::SetRTCP_DST_sdes(PString val)
+{    
+    m_rtcp_destination_sdes.AppendString(val);
+    m_rtcp_destination_sdes_flag = true;    
+}
+
+
+void CallRec::SetRTCP_SRC_packet_count(long val)
+{
+    m_rtcp_source_packet_count = val;
+}
+
+void CallRec::SetRTCP_DST_packet_count(long val)
+{
+    m_rtcp_destination_packet_count = val;
+}
+
+void CallRec::SetRTCP_SRC_packet_lost(long val)
+{
+    m_rtcp_source_packet_lost = val;
+}
+
+void CallRec::SetRTCP_DST_packet_lost(long val)
+{
+    m_rtcp_destination_packet_lost = val;
+}
+
+void CallRec::SetRTCP_SRC_jitter(int val)
+{	
+    if (val > 0){
+        if (m_rtcp_source_jitter_min == 0) {
+	    m_rtcp_source_jitter_min = val;
+	}else if (m_rtcp_source_jitter_min > val) {
+	     m_rtcp_source_jitter_min = val;
+	}
+	if (m_rtcp_source_jitter_max == 0){
+	    m_rtcp_source_jitter_max = val;
+	}else if (m_rtcp_source_jitter_max < val){
+	    m_rtcp_source_jitter_max =val;
+	}
+	m_rtcp_source_jitter_avg_count ++;
+	m_rtcp_source_jitter_avg_sum +=val;
+	m_rtcp_source_jitter_avg = (int)(m_rtcp_source_jitter_avg_sum/m_rtcp_source_jitter_avg_count);
+    }else{
+	m_rtcp_source_jitter_avg = 0;
+    }
+}
+
+void CallRec::SetRTCP_DST_jitter(int val)
+{
+    if (val > 0){
+        if (m_rtcp_destination_jitter_min == 0){
+	    m_rtcp_destination_jitter_min = val;
+	}else if (m_rtcp_destination_jitter_min > val){
+	    m_rtcp_destination_jitter_min =val;
+	}
+	if (m_rtcp_destination_jitter_max == 0){
+	    m_rtcp_destination_jitter_max = val;
+	}else if (m_rtcp_destination_jitter_max < val){
+	    m_rtcp_destination_jitter_max =val;
+	}
+	m_rtcp_destination_jitter_avg_count ++;
+	m_rtcp_destination_jitter_avg_sum +=val;
+	m_rtcp_destination_jitter_avg = (int)(m_rtcp_destination_jitter_avg_sum/m_rtcp_destination_jitter_avg_count);
+    }else{
+	m_rtcp_destination_jitter_avg = 0;
+    }
+}
+
+
 void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
 {
 	if (ep != nep) {
@@ -3127,6 +3255,7 @@ void CallTable::Insert(CallRec * NewRec)
 	}
 	CallList.push_back(NewRec);
 	++m_activeCall;
+	NewRec->InitRTCP_report();
 	PTRACE(2, "CallTable::Insert(CALL) Call No. " << NewRec->GetCallNumber() << ", total sessions : " << m_activeCall);
 }
 
