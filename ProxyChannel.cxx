@@ -825,7 +825,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 			}
 		}
 	}
-PTRACE(0, "JW Call is h245Routed=" << m_call->IsH245Routed() << " proxy=" << ((m_call->GetProxyMode() == CallRec::ProxyEnabled) ? 1 : 0));
+PTRACE(0, "JW Call " << m_call->GetCallNumber() << ": h245Routed=" << m_call->IsH245Routed() << " proxy=" << ((m_call->GetProxyMode() == CallRec::ProxyEnabled) ? 1 : 0));
 
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
@@ -4090,7 +4090,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 			}
 			q931->SetCallingPartyNumber(Number, plan, type, presentation, screening);
 			#if PTRACING
-			PTRACE(4, Type() << "Set Calling Numbering Plan " << plan << TypeOfNumber << type);
+			PTRACE(4, Type() << "\tSet Calling Numbering Plan " << plan << TypeOfNumber << type);
 			#endif
 		}
 	}
