@@ -85,6 +85,7 @@ The new format specifies in the <tt/[RasSrv::Neighbors]/ section only the gateke
 
 
 <sect1>Section &lsqb;RasSrv::LRQFeatures&rsqb;
+<label id="lrqfeatures">
 <p>
 Defines some features of LRQ and LCF.
 <itemize>
@@ -173,7 +174,8 @@ Use this setting with extreme caution.
 
 <sect1>Section &lsqb;Neighbor::...&rsqb;
 <p>
-Sections starting with <tt/[Neighbor::/ are for neighbor specific configuration.
+Sections starting with <tt/[Neighbor::/ are specific for one neighbor.
+If you define a &lsqb;Neighbor::...&rsqb; section, the default values of all setting in <ref id="lrqfeatures" name="[RasSrv::LRQFeatures]"> apply again for this neighbor, so you have to repeat the settings here if you don't want the defaults.
 
 <itemize>
 <item><tt/GatekeeperIdentifier=GKID/<newline>
