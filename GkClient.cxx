@@ -1628,13 +1628,13 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				robj->AddRoute(route);
 #ifdef P2PnatClient
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
-				  callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
-					  CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
-						H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
-						int rNaTFS = 23; 
-						if (fs.HasFeature(rNaTFS)) 
-								HandleP2P_ACF(call, (H460_FeatureStd *)fs.GetFeature(rNaTFS));
-			     }
+					callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
+						CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
+					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
+					int rNaTFS = 23; 
+					if (fs.HasFeature(rNaTFS)) 
+						HandleP2P_ACF(call, (H460_FeatureStd *)fs.GetFeature(rNaTFS));
+				 }
 #endif
 			}
 			return true;
@@ -1708,10 +1708,10 @@ void GkClient::OnRCF(RasMsg *ras)
 
 #ifdef P2PnatClient
 	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_genericData)) {
-		  H460_FeatureSet fs = H460_FeatureSet(rcf.m_genericData);
-		   int rNaTFS = 23; 
-		   if (fs.HasFeature(rNaTFS)) 
-			   HandleP2P_RCF((H460_FeatureStd *)fs.GetFeature(rNaTFS));
+		H460_FeatureSet fs = H460_FeatureSet(rcf.m_genericData);
+		int rNaTFS = 23; 
+		if (fs.HasFeature(rNaTFS)) 
+			HandleP2P_RCF((H460_FeatureStd *)fs.GetFeature(rNaTFS));
 	}
 #endif
 }
