@@ -440,38 +440,40 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		H225_ArrayOf_GenericData & data = lcf.m_genericData;
 
 		for (PINDEX i=0; i < data.GetSize(); i++) {
-		  H460_Feature & feat = (H460_Feature &)data[i];
-           /// Std24
-		   if (feat.GetFeatureID() == H460_FeatureID(24)) {
-			   H460_FeatureStd & std24 = (H460_FeatureStd &)data[i];
-			   if (std24.Contains(P2P_RemoteNAT)) {              /// Remote supports remote NAT
-				   PBoolean supNAT = std24.Value(P2P_RemoteNAT);
-				   SetSupportNAT(supNAT);
-			   }
-			   if (std24.Contains(P2P_IsNAT)) {                /// Remote EP is Nated
-				   PBoolean isnat = std24.Value(P2P_IsNAT);
-				   SetNAT(isnat);
-				   if (isnat) {
-					   PIPSocket::Address addr;
-					   GetIPFromTransportAddr(lcf.m_callSignalAddress,addr);
+			H460_Feature & feat = (H460_Feature &)data[i];
+			/// Std24
+			if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH.460.24", "0"))) {
+				if (feat.GetFeatureID() == H460_FeatureID(24)) {
+				   H460_FeatureStd & std24 = (H460_FeatureStd &)data[i];
+				   if (std24.Contains(P2P_RemoteNAT)) {              /// Remote supports remote NAT
+					   PBoolean supNAT = std24.Value(P2P_RemoteNAT);
+					   SetSupportNAT(supNAT);
+				   }
+				   if (std24.Contains(P2P_IsNAT)) {                /// Remote EP is Nated
+					   PBoolean isnat = std24.Value(P2P_IsNAT);
+					   SetNAT(isnat);
+					   if (isnat) {
+						   PIPSocket::Address addr;
+						   GetIPFromTransportAddr(lcf.m_callSignalAddress,addr);
+						   SetNATAddress(addr);
+						}
+				   }
+				   if (std24.Contains(P2P_NATdet)) {               /// Remote type of NAT
+					   unsigned ntype = std24.Value(P2P_NATdet) ;
+					   SetEPNATType(ntype);
+				   }
+				   if (std24.Contains(P2P_ProxyNAT)) {                /// Whether the remote GK can proxy
+					   PBoolean supProxy = std24.Value(P2P_ProxyNAT);
+					   SetNATProxy(supProxy);
+				   }
+				   if (std24.Contains(P2P_SourceAddr)) {                /// Whether the remote EP supports Same NAT probing
+					   PString addr = std24.Value(P2P_SourceAddr);
 					   SetNATAddress(addr);
-				    }
-			   }
-               if (std24.Contains(P2P_NATdet)) {               /// Remote type of NAT
-				   unsigned ntype = std24.Value(P2P_NATdet) ;
-				   SetEPNATType(ntype);
-               }
-			   if (std24.Contains(P2P_ProxyNAT)) {                /// Whether the remote GK can proxy
-				   PBoolean supProxy = std24.Value(P2P_ProxyNAT);
-                   SetNATProxy(supProxy);
-			   }
-			   if (std24.Contains(P2P_SourceAddr)) {                /// Whether the remote EP supports Same NAT probing
-				   PString addr = std24.Value(P2P_SourceAddr);
-				   SetNATAddress(addr);
-			   }
-			   if (std24.Contains(P2P_MustProxy)) {         /// Whether this EP must proxy through GK
-				   PBoolean mustProxy = std24.Value(P2P_MustProxy);
-				   SetInternal(mustProxy);
+				   }
+				   if (std24.Contains(P2P_MustProxy)) {         /// Whether this EP must proxy through GK
+					   PBoolean mustProxy = std24.Value(P2P_MustProxy);
+					   SetInternal(mustProxy);
+				   }
 			   }
 		   }
 		   /// OID9 Vendor Information

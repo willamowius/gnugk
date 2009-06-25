@@ -1987,8 +1987,9 @@ void CallSignalSocket::OnSetup(
  
 		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #ifdef hasH460
-	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
-	   authData.m_proxyMode != CallRec::ProxyDisabled) {  
+	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "EnableH.460.24", "0"))
+		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
+		&& authData.m_proxyMode != CallRec::ProxyDisabled) {  
 		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
           H460_Feature & feat = (H460_Feature &)data[i];
@@ -2463,31 +2464,33 @@ bool CallSignalSocket::CreateRemote(
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
 #ifdef hasH460
 	} else {
-		// Add NAT offload support to older non supporting Endpoints (>H323v4)
-		// This will allow NAT endpoints who support the NAT offload feature
-		// to avoid proxying twice (remote and local) 
-		if (m_call->GetNATStrategy() == CallRec::e_natLocalProxy) {
-		    bool natfound = false;
-			H225_ArrayOf_FeatureDescriptor & fsn = setupBody.m_supportedFeatures;
-			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+		if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH.460.24", "0"))) {
+			// Add NAT offload support to older non supporting Endpoints (>H323v4)
+			// This will allow NAT endpoints who support the NAT offload feature
+			// to avoid proxying twice (remote and local) 
+			if (m_call->GetNATStrategy() == CallRec::e_natLocalProxy) {
+				bool natfound = false;
+				H225_ArrayOf_FeatureDescriptor & fsn = setupBody.m_supportedFeatures;
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 
-			for (PINDEX i=0; i < fsn.GetSize(); i++) {
-				H460_Feature & feat = (H460_Feature &)fsn[i];
-				if (feat.GetFeatureID() == H460_FeatureID(24))  {
-					natfound = true; 
-					break;
+				for (PINDEX i=0; i < fsn.GetSize(); i++) {
+					H460_Feature & feat = (H460_Feature &)fsn[i];
+					if (feat.GetFeatureID() == H460_FeatureID(24))  {
+						natfound = true; 
+						break;
+					}
 				}
+
+				if (!natfound) {
+					PTRACE(5, Type() << "Added NAT Support to Outbound Call.");
+					H460_FeatureStd std24 = H460_FeatureStd(24);
+					int remoteconfig = CallRec::e_natRemoteProxy;
+					std24.Add(P2P_NATInstruct,H460_FeatureContent(remoteconfig,8));
+					PINDEX lastpos = fsn.GetSize();
+					fsn.SetSize(lastpos+1);
+					fsn[lastpos] = std24;    
+				} 
 			}
- 
-			if (!natfound) {
-				PTRACE(5, Type() << "Added NAT Support to Outbound Call.");
-				H460_FeatureStd std24 = H460_FeatureStd(24);
-				int remoteconfig = CallRec::e_natRemoteProxy;
-				std24.Add(P2P_NATInstruct,H460_FeatureContent(remoteconfig,8));
-				PINDEX lastpos = fsn.GetSize();
-				fsn.SetSize(lastpos+1);
-				fsn[lastpos] = std24;    
-			} 
 		}
 #endif
 	}

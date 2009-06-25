@@ -2421,13 +2421,15 @@ bool AdmissionRequestPDU::Process()
 		for (PINDEX i =0; i < data.GetSize(); i++) {
           H460_Feature & feat = (H460_Feature &)data[i];
           /// Std24
-		  if (feat.GetFeatureID() == H460_FeatureID(24)) {
-		     natsupport = true;
-			 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-			 if (std24.Contains(P2P_NATInstruct)) {
-			   unsigned natstat = std24.Value(P2P_NATInstruct);
-			   natoffloadsupport = (CallRec::NatStrategy)natstat;
-			 }
+          if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH.460.24", "0"))) {
+			  if (feat.GetFeatureID() == H460_FeatureID(24)) {
+				 natsupport = true;
+				 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+				 if (std24.Contains(P2P_NATInstruct)) {
+				   unsigned natstat = std24.Value(P2P_NATInstruct);
+				   natoffloadsupport = (CallRec::NatStrategy)natstat;
+				 }
+			  }
 		  }
 		  /// Vendor Information
   		  if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
@@ -2678,39 +2680,39 @@ bool AdmissionRequestPDU::Process()
 	// If we have a call record and the remote party needs NAT support 
 	// and the requesting EP can provide it then notify the EP to lend assistance.
 	if (!answer) {	
-	   PINDEX lastPos = 0;
-       H225_ArrayOf_GenericData & data = acf.m_genericData;
-   /// Std24 Nat Traversal
-	   if (natsupport) {
-	     H460_FeatureStd fs = H460_FeatureStd(24);
-	     fs.Add(P2P_NATInstruct,H460_FeatureContent((int)natoffloadsupport,8));
-         lastPos++;
-	     data.SetSize(lastPos);
-	     data[lastPos-1] = fs;   
-	   }
-   /// OID9 Vendor Information
-	   if (vendorInfo && !m_vendor.IsEmpty()) {
-	      H460_FeatureOID fs = H460_FeatureOID(OID9);
-          fs.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
-          fs.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
-          lastPos++;
-	      data.SetSize(lastPos);
-	      data[lastPos-1] = fs; 
-	   }
-   /// H.460.9 QoS Reporting
-	   if (QoSReporting && 
-		 Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
-	     H460_FeatureStd fs = H460_FeatureStd(9);
+		PINDEX lastPos = 0;
+		H225_ArrayOf_GenericData & data = acf.m_genericData;
+		/// Std24 Nat Traversal
+		if (natsupport) {
+			 H460_FeatureStd fs = H460_FeatureStd(24);
+			 fs.Add(P2P_NATInstruct,H460_FeatureContent((int)natoffloadsupport,8));
+			 lastPos++;
+			 data.SetSize(lastPos);
+			 data[lastPos-1] = fs;   
+		}
+		/// OID9 Vendor Information
+		if (vendorInfo && !m_vendor.IsEmpty()) {
+			H460_FeatureOID fs = H460_FeatureOID(OID9);
+			fs.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
+			fs.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
+			lastPos++;
+			data.SetSize(lastPos);
+			data[lastPos-1] = fs; 
+		}
+		/// H.460.9 QoS Reporting
+		if (QoSReporting && 
+			Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+			H460_FeatureStd fs = H460_FeatureStd(9);
 
-		 if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "DRQOnly", "1")))
-	                 fs.Add(0,H460_FeatureContent(0,8));
-         lastPos++;
-	     data.SetSize(lastPos);
-	     data[lastPos-1] = fs;   
-	   }
+			if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "DRQOnly", "1")))
+					 fs.Add(0,H460_FeatureContent(0,8));
+			lastPos++;
+			data.SetSize(lastPos);
+			data[lastPos-1] = fs;   
+		}
 
-	   if (lastPos > 0) 
-		  acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
+		if (lastPos > 0) 
+			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
 	}
 #endif
 
@@ -2961,45 +2963,47 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				}
 
 #ifdef hasH460
-               H225_ArrayOf_GenericData & data = lcf.m_genericData;
-               PINDEX lastPos = 0;
+				H225_ArrayOf_GenericData & data = lcf.m_genericData;
+				PINDEX lastPos = 0;
 				if ((WantedEndPoint) && (request.HasOptionalField(H225_LocationRequest::e_genericData))) {
-                  H225_ArrayOf_GenericData & locdata = request.m_genericData; 
-				  for (PINDEX i = 0; i < locdata.GetSize(); i++) {
-				   
-				  H460_Feature & feat = (H460_Feature &)locdata[i];
-                   /// Std24 NAT Traversal
-				   if (feat.GetFeatureID() == H460_FeatureID(24)) {
-				     H460_FeatureStd std24 = H460_FeatureStd(24);
-					  if (WantedEndPoint->IsNATed()) {
-	                    std24.Add(P2P_IsNAT,H460_FeatureContent(true));
-					    std24.Add(P2P_NATdet,H460_FeatureContent(WantedEndPoint->GetEPNATType(),8));
-  					    std24.Add(P2P_ProxyNAT,H460_FeatureContent(WantedEndPoint->HasNATProxy()));
-						std24.Add(P2P_SourceAddr,H460_FeatureContent(WantedEndPoint->GetNATIP().AsString()));
-					  } else {
-						std24.Add(P2P_RemoteNAT,H460_FeatureContent(WantedEndPoint->SupportNAT()));
-						std24.Add(P2P_MustProxy,H460_FeatureContent(WantedEndPoint->IsInternal()));
-				      }
-					  lastPos++;
-					  data.SetSize(lastPos);
-				      data[lastPos-1] = std24;
-				   }
-				   /// OID9 Vendor Interoperability
-			       if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
-	                  PString m_vendor,m_version = PString();
-	                  if (WantedEndPoint->GetEndpointInfo(m_vendor,m_version)) {
-						 H460_FeatureOID foid9 = H460_FeatureOID(OID9);
-						 foid9.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
-						 foid9.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
-						 lastPos++;
-						 data.SetSize(lastPos);
-						 data[lastPos-1] = foid9;
-				      }
-				   }
-				 }
+					H225_ArrayOf_GenericData & locdata = request.m_genericData; 
+					for (PINDEX i = 0; i < locdata.GetSize(); i++) {
+
+						H460_Feature & feat = (H460_Feature &)locdata[i];
+						/// Std24 NAT Traversal
+						if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH.460.24", "0"))) {
+							if (feat.GetFeatureID() == H460_FeatureID(24)) {
+								H460_FeatureStd std24 = H460_FeatureStd(24);
+								if (WantedEndPoint->IsNATed()) {
+									std24.Add(P2P_IsNAT,H460_FeatureContent(true));
+									std24.Add(P2P_NATdet,H460_FeatureContent(WantedEndPoint->GetEPNATType(),8));
+									std24.Add(P2P_ProxyNAT,H460_FeatureContent(WantedEndPoint->HasNATProxy()));
+									std24.Add(P2P_SourceAddr,H460_FeatureContent(WantedEndPoint->GetNATIP().AsString()));
+								} else {
+									std24.Add(P2P_RemoteNAT,H460_FeatureContent(WantedEndPoint->SupportNAT()));
+									std24.Add(P2P_MustProxy,H460_FeatureContent(WantedEndPoint->IsInternal()));
+								}
+								lastPos++;
+								data.SetSize(lastPos);
+								data[lastPos-1] = std24;
+							}
+						}
+						/// OID9 Vendor Interoperability
+						if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
+							PString m_vendor,m_version = PString();
+							if (WantedEndPoint->GetEndpointInfo(m_vendor,m_version)) {
+								H460_FeatureOID foid9 = H460_FeatureOID(OID9);
+								foid9.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
+								foid9.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
+								lastPos++;
+								data.SetSize(lastPos);
+								data[lastPos-1] = foid9;
+							}
+						}
+					}
 				}
-	            if (lastPos > 0) 
-		            lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData); 
+				if (lastPos > 0) 
+					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData); 
 #endif		            
 
 

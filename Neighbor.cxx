@@ -588,23 +588,25 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	}
 
 #ifdef hasH460
-       lrq.IncludeOptionalField(H225_LocationRequest::e_genericData); 
-       H225_ArrayOf_GenericData & data = lrq.m_genericData;
-       PINDEX lastPos = 0;
-       
-	   /// STD24  'NAT Support
-	   H460_FeatureStd std24 = H460_FeatureStd(24);
-	   lastPos++;
-	   data.SetSize(lastPos);
-	   data[lastPos-1] = std24;
+	lrq.IncludeOptionalField(H225_LocationRequest::e_genericData); 
+	H225_ArrayOf_GenericData & data = lrq.m_genericData;
+	PINDEX lastPos = 0;
 
-	   /// OID9  'Remote application info
-	   H460_FeatureOID foid9 = H460_FeatureOID(OID9);
-	   lastPos++;
-	   data.SetSize(lastPos);
-	   data[lastPos-1] = foid9;
-	     		
+	/// STD24  'NAT Support
+	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString("RoutedMode", "EnableH.460.24", "0"))) {
+		H460_FeatureStd std24 = H460_FeatureStd(24);
+		lastPos++;
+		data.SetSize(lastPos);
+		data[lastPos-1] = std24;
+	}
+
+	/// OID9  'Remote application info
+	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
+	lastPos++;
+	data.SetSize(lastPos);
+	data[lastPos-1] = foid9;	
 #endif
+
 	return true;
 }
 
