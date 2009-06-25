@@ -514,7 +514,7 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 	// check for same network
 	if (!bestMatchIP1.IsAny() && !bestMatchIP2.IsAny()) {
 		// rules for both IPs
-		if (bestMatchIP1.Compare(bestMatchIP2) == 0) {	// oprerator== broken ?
+		if (bestMatchIP1.Compare(bestMatchIP2) == 0) {	// operator== broken ?
 			// both on same network
 			iter = m_modeselection.find(bestMatchIP1);
 			if (iter != m_modeselection.end())
