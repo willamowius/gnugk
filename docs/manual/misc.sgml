@@ -226,7 +226,7 @@ Define how often the TCP NAT signaling connection with a parent gatekeeper
 is refreshed. As NAT boxes usually keep TCP mappings for a definite time only,
 it is good to set this to some value a bit shorter than NAT box mapping timeout.
 Refreshing is done by sending a special Q.931 IncomingCallProceeding message.
-If you NAT performs TCP port translation, you may need to set it to a values
+If your NAT performs TCP port translation, you may need to set it to a values
 as short as 60 seconds.
 
 <item><tt/Discovery=0/<newline>
