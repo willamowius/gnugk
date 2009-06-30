@@ -3189,6 +3189,7 @@ void CallSignalSocket::OnFacility(
 					Address calling = INADDR_ANY, called = INADDR_ANY;
 					/*int nat_type = */ m_call->GetNATType(calling, called);
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
+					proxyhandler->SetUsesH46019(true);
 					if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
 						proxyhandler->SetUsesH46019(true);
 					callingSocket->m_h245handler = proxyhandler;
@@ -3332,6 +3333,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		}
 		PTRACE(4, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
 
+		// remove disabled audio codecs
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData && olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {
 			H245_AudioCapability & ac = olc.m_forwardLogicalChannelParameters.m_dataType;
 			if (m_call->GetDisabledCodecs().Find(ac.GetTagName() + ";", 0) != P_MAX_INDEX) {
@@ -3351,6 +3353,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			}
 		}
 
+		// remove disabled video codecs
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData && olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {
 			H245_VideoCapability & vc = olc.m_forwardLogicalChannelParameters.m_dataType;
 			if (m_call->GetDisabledCodecs().Find(vc.GetTagName() + ";", 0) != P_MAX_INDEX) {
@@ -3370,8 +3373,13 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			}
 		}
 
-		H245Handler::pMem handlefs = (fromCaller) ? &H245Handler::HandleFastStartSetup : &H245Handler::HandleFastStartResponse;
-		if ((m_h245handler->*handlefs)(olc, m_call)) {
+		bool changed = false;
+		if (fromCaller) {
+			changed = m_h245handler->HandleFastStartSetup(olc, m_call);
+		} else {
+			changed = m_h245handler->HandleFastStartResponse(olc, m_call);
+		}
+		if (changed) {
 			PPER_Stream wtstrm;
 			olc.Encode(wtstrm);
 			wtstrm.CompleteEncoding();
@@ -3379,6 +3387,8 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			changed = true;
 			PTRACE(5, "Q931\nfastStart[" << i << "] to send " << setprecision(2) << olc);
 		}
+
+		// save originating media IP and codec for accounting
 		if (fromCaller) {
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData
@@ -5408,7 +5418,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
-	if (hnat)
+	if (hnat && !UsesH46019())
 		hnat->HandleOpenLogicalChannel(olc);
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	if (IsT120Channel(olc)) {
@@ -5615,8 +5625,13 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 {
 	if (!peer)
 		return false;
-	if (hnat)
+	if (hnat && !UsesH46019()) {
 		hnat->HandleOpenLogicalChannel(olc);
+	} else {
+		if (UsesH46019()) {
+			HandleOpenLogicalChannel(olc);
+		}
+	}
 
 	bool changed = false;
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RemoveMCInFastStartTransmitOffer", "0"))) {
