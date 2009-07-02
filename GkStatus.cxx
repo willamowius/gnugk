@@ -1194,7 +1194,7 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_PrintCurrentCalls:
 		// print list of currently ongoing calls
-		SoftPBX::PrintCurrentCalls(this);
+		SoftPBX::PrintCurrentCalls(this, FALSE);
 		break;
 	case GkStatus::e_PrintCurrentCallsVerbose:
 		// print list of currently ongoing calls
