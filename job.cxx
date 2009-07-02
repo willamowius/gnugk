@@ -243,7 +243,7 @@ void Worker::Destroy()
 	m_wakeupSync.Signal();
 	
 	PTRACE(5, "JOB\tWaiting for Worker thread " << m_id << " termination");
-	WaitForTermination(10 * 1000);	// max. wait 10 sec.
+	WaitForTermination(5 * 1000);	// max. wait 5 sec.
 	delete this;
 }
 
