@@ -2371,11 +2371,19 @@ void CallSignalSocket::OnSetup(
 		delete feat_id;
 		if (Toolkit::Instance()->IsH46018Enabled())
 		{
-			// remove H.460.19 indicator from sender
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
-				setupBody.m_supportedFeatures.SetSize(0);
-				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+				for (PINDEX i =0; i < setupBody.m_supportedFeatures.GetSize(); i++) {
+					H460_Feature feat = H460_Feature(setupBody.m_supportedFeatures[i]);
+					if (feat.GetFeatureID() == H460_FeatureID(19))
+						setupBody.m_supportedFeatures.RemoveAt(i);
+				}
+				setupBody.m_supportedFeatures.SetSize(setupBody.m_supportedFeatures.GetSize()+1);
+				for (PINDEX j = setupBody.m_supportedFeatures.GetSize()-1; j > 0; j--) {
+					setupBody.m_supportedFeatures[j] = setupBody.m_supportedFeatures[j-1];
+				}
+				setupBody.m_supportedFeatures[0] = feat;  // Always set H.460.19 in position 0
 			}
+		} else {
 			// add H.460.19 indicator to Setups
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 			setupBody.m_supportedFeatures.SetSize(0);
@@ -3215,16 +3223,24 @@ void CallSignalSocket::OnFacility(
 					SetupMsg *setup = (SetupMsg *)SetupMsg::Create(q931pdu, uuie, _localAddr, _localPort, _peerAddr, _peerPort);
 					setup->Decode(rawSetup);
 					H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
-					HandleH245Address(setupBody);
-					HandleFastStart(setupBody, true);
+
+					if (HandleH245Address(setupBody))  
+							setup->SetUUIEChanged();   
+
+					if (HandleFastStart(setupBody, true))
+							setup->SetUUIEChanged();
 
 #if H225_PROTOCOL_VERSION >= 4
 				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_parallelH245Control) && m_h245handler) {
 					bool suppress = false;	// ignore for now
-					OnTunneledH245(setupBody.m_parallelH245Control, suppress);
+					if (OnTunneledH245(setupBody.m_parallelH245Control, suppress))
+							setup->SetUUIEChanged();
 				}
 #endif
 					// re-encode with changes made here
+					if (setup->IsChanged())
+							SetUUIE(*q931pdu,*uuie);
+
 					if (q931pdu->Encode(rawSetup))
 						this->TransmitData(rawSetup);
 
@@ -3373,13 +3389,13 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			}
 		}
 
-		bool changed = false;
+		bool altered = false;
 		if (fromCaller) {
-			changed = m_h245handler->HandleFastStartSetup(olc, m_call);
+			altered = m_h245handler->HandleFastStartSetup(olc, m_call);
 		} else {
-			changed = m_h245handler->HandleFastStartResponse(olc, m_call);
+			altered = m_h245handler->HandleFastStartResponse(olc, m_call);
 		}
-		if (changed) {
+		if (altered) {
 			PPER_Stream wtstrm;
 			olc.Encode(wtstrm);
 			wtstrm.CompleteEncoding();
@@ -5418,21 +5434,23 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
+	bool changed = false;
 	if (hnat && !UsesH46019())
-		hnat->HandleOpenLogicalChannel(olc);
+		changed = hnat->HandleOpenLogicalChannel(olc);
+
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	if (IsT120Channel(olc)) {
 		T120LogicalChannel *lc = CreateT120LogicalChannel(flcn);
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)
 			&& lc && lc->OnSeparateStack(olc.m_separateStack, this)) {
 			lc->StartReading(handler);
-			return true;
+			return changed;
 		}
 		return false;
 	} else {
 		bool nouse;
 		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-		bool changed = (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
+        changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
 
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
@@ -5452,6 +5470,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 		}
 		if (peer && peer->UsesH46019()) {
+			RTPLogicalChannel* rtplc;
+			if (h225Params) {
+				WORD sessionID = (WORD)h225Params->m_sessionID;
+				rtplc = dynamic_cast<RTPLogicalChannel *>(fastStartLCs[sessionID]);
+			} 
+			if (!rtplc) 
+				return changed;
+
 			olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 			olc.m_genericInformation.SetSize(1);
 			H245_CapabilityIdentifier & id = olc.m_genericInformation[0].m_messageIdentifier;
@@ -5467,12 +5493,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			n = 1;
 			H46019_TraversalParameters params;
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
-			LogicalChannel * lc = FindLogicalChannel(flcn);
-			if (lc) {
-				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort());	// use RTP port for keepAlives
-			} else {
-				PTRACE(1, "Can't find RTPC port for logical channel " << flcn);
-			}
+			params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), rtplc->GetPort());
+			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType);
+			params.m_keepAlivePayloadType = 127;
+				rtplc->SetKeepAlivePayloadType(127);
+				//rtplc->SetRTPMute(true);
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
 			params.m_keepAliveInterval = 19;
 			H245_ParameterValue & octetValue = genericParameter.m_parameterValue;
@@ -5625,15 +5650,11 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 {
 	if (!peer)
 		return false;
-	if (hnat && !UsesH46019()) {
-		hnat->HandleOpenLogicalChannel(olc);
-	} else {
-		if (UsesH46019()) {
-			HandleOpenLogicalChannel(olc);
-		}
-	}
 
 	bool changed = false;
+	if (hnat && !UsesH46019()) 
+		changed = hnat->HandleOpenLogicalChannel(olc);
+
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RemoveMCInFastStartTransmitOffer", "0"))) {
 		// for unicast transmit channels, mediaChannel should not be sent on offer
 		// it is responsibility of callee to provide mediaChannel in an answer
@@ -5646,23 +5667,29 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 			}
 		}
 	}
-	
-	bool nouse;
-	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-	return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
+
+	if (UsesH46019()) 
+		return (changed || HandleOpenLogicalChannel(olc));
+	else {
+		bool nouse;
+		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
+		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
+	}
 }
 
 bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,callptr & mcall)
 {
 	if (!peer)
 		return false;
-	if (hnat)
-		hnat->HandleOpenLogicalChannel(olc);
-	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
+
 	bool changed = false, isReverseLC;
+	if (hnat)
+		changed = hnat->HandleOpenLogicalChannel(olc);
+
+	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
 	if (!h225Params)
-		return false;
+		return changed;
 	WORD id = (WORD)h225Params->m_sessionID;
 	siterator iter = peer->fastStartLCs.find(id);
 	RTPLogicalChannel *lc = (iter != peer->fastStartLCs.end()) ? iter->second : 0;
