@@ -3242,6 +3242,8 @@ void CallSignalSocket::OnFacility(
 					if (setup->IsChanged())
 							SetUUIE(*q931pdu,*uuie);
 
+					PrintQ931(4, "Send to ", this->GetName(), &setup->GetQ931(), setup->GetUUIE());
+
 					if (q931pdu->Encode(rawSetup))
 						this->TransmitData(rawSetup);
 
@@ -5471,14 +5473,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 		}
 		if (peer && peer->UsesH46019()) {
-			RTPLogicalChannel* rtplc;
-			if (h225Params) {
-				WORD sessionID = (WORD)h225Params->m_sessionID;
-				rtplc = dynamic_cast<RTPLogicalChannel *>(fastStartLCs[sessionID]);
-			}
-			if (!rtplc)
-				return changed;
-
 			olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 			olc.m_genericInformation.SetSize(1);
 			H245_CapabilityIdentifier & id = olc.m_genericInformation[0].m_messageIdentifier;
@@ -5654,8 +5648,9 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 		return false;
 
 	bool changed = false;
-	if (hnat && !UsesH46019()) 
-		changed = hnat->HandleOpenLogicalChannel(olc);
+	if (hnat && !UsesH46019()) {
+		changed |= hnat->HandleOpenLogicalChannel(olc);
+	}
 
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RemoveMCInFastStartTransmitOffer", "0"))) {
 		// for unicast transmit channels, mediaChannel should not be sent on offer
@@ -5670,13 +5665,15 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 		}
 	}
 
-	if (UsesH46019()) 
-		return (changed || HandleOpenLogicalChannel(olc));
-	else {
-		bool nouse;
-		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
+	if (UsesH46019()) {
+		changed |= HandleOpenLogicalChannel(olc);
 	}
+
+	bool nouse;
+	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
+	if (h225Params)
+		changed |= OnLogicalChannelParameters(h225Params, 0);
+	return changed;
 }
 
 bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,callptr & mcall)
