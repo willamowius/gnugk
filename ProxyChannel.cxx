@@ -2366,6 +2366,7 @@ void CallSignalSocket::OnSetup(
 		SetConnected(true);	// avoid deletion
 
 		H460_FeatureStd feat = H460_FeatureStd(19);
+		// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
 		H460_FeatureID * feat_id = new H460_FeatureID(2);
 		feat.AddParameter(feat_id);	// we are a server
 		delete feat_id;
@@ -5450,7 +5451,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 	} else {
 		bool nouse;
 		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-        changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
+        changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
 
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
@@ -5493,11 +5494,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			n = 1;
 			H46019_TraversalParameters params;
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
-			params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), rtplc->GetPort());
-			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType);
-			params.m_keepAlivePayloadType = 127;
-				rtplc->SetKeepAlivePayloadType(127);
-				//rtplc->SetRTPMute(true);
+			LogicalChannel * lc = FindLogicalChannel(flcn);
+			if (lc) {
+				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTPC port for keepAlives
+			} else {
+				PTRACE(1, "Can't find RTPC port for logical channel " << flcn);
+			}
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
 			params.m_keepAliveInterval = 19;
 			H245_ParameterValue & octetValue = genericParameter.m_parameterValue;
