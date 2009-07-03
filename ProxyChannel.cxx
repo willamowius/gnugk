@@ -5475,8 +5475,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			if (h225Params) {
 				WORD sessionID = (WORD)h225Params->m_sessionID;
 				rtplc = dynamic_cast<RTPLogicalChannel *>(fastStartLCs[sessionID]);
-			} 
-			if (!rtplc) 
+			}
+			if (!rtplc)
 				return changed;
 
 			olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
@@ -5766,10 +5766,18 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 	// should be disable. So we reuse the fast start logical channel here
 	} else if (!fastStartLCs.empty()) {
 		siterator iter = fastStartLCs.begin();
+		if (!(iter->second)) {
+			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn << ": Invalid fastStart LC");
+			return NULL;
+		}
 		(lc = iter->second)->SetChannelNumber(flcn);
 		fastStartLCs.erase(iter);
 	} else if (!peer->fastStartLCs.empty()){
 		siterator iter = peer->fastStartLCs.begin();
+		if (!(iter->second)) {
+			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn << ": Invalid fastStart peer LC");
+			return NULL;
+		}
 		(lc = iter->second)->SetChannelNumber(flcn);
 		lc->OnHandlerSwapped(hnat != 0);
 		peer->fastStartLCs.erase(iter);
