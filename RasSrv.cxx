@@ -2053,12 +2053,11 @@ bool RegistrationRequestPDU::Process()
 
 	// Note that the terminalAlias is not optional here as we pass the auto generated alias if not were provided from
 	// the endpoint itself
-	PString log(PString::Printf, "RCF|%s|%s|%s|%s;",
-		    (const unsigned char *) AsDotString(SignalAddr),
-		    (const unsigned char *) AsString(ep->GetAliases()),
-		    (const unsigned char *) AsString(request.m_terminalType),
-		    (const unsigned char *) ep->GetEndpointIdentifier().GetValue()
-		);
+	PString log = "RCF|" + AsDotString(SignalAddr)
+		+ "|" + AsString(ep->GetAliases())
+		+ "|" + AsString(request.m_terminalType)
+		+ "|" + ep->GetEndpointIdentifier().GetValue()
+		+ ";";
 	PrintStatus(log);
 	return bShellSendReply;
 }
