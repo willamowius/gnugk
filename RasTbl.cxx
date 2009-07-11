@@ -883,11 +883,11 @@ EndpointRec *EndpointRec::Expired()
 
 PString EndpointRec::PrintOn(bool verbose) const
 {
-	PString msg(PString::Printf, "%s|%s|%s|%s\r\n",
-		    (const unsigned char *) AsDotString(GetCallSignalAddress()),
-		    (const unsigned char *) AsString(GetAliases()),
-		    (const unsigned char *) AsString(GetEndpointType()),
-		    (const unsigned char *) GetEndpointIdentifier().GetValue() );
+	PString msg = AsDotString(GetCallSignalAddress())
+		    + "|" + AsString(GetAliases())
+		    + "|" + AsString(GetEndpointType())
+		    + "|" + GetEndpointIdentifier().GetValue()
+		    + "\r\n";
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
 		PWaitAndSignal lock(m_usedLock);
@@ -2597,17 +2597,17 @@ PString CallRec::GenerateCDR(
 		timeString = "0|unconnected|" + toolkit->AsString(endTime, fmtStr);
 	}
 
-	return PString(PString::Printf, "CDR|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s;",
-		m_CallNumber,
-		(const char *)AsString(m_callIdentifier.m_guid),
-		(const char *)timeString,
-		(const char *)m_callerAddr,
-		(const char *)m_callerId,
-		(const char *)m_calleeAddr,
-		(const char *)m_calleeId,
-		(const char *)m_destInfo,
-		(const char *)m_srcInfo,
-		(const char *)toolkit->GKName()
+	return PString("CDR|" + PString(m_CallNumber)
+					+ "|" + AsString(m_callIdentifier.m_guid)
+					+ "|" + timeString
+					+ "|" + m_callerAddr
+					+ "|" + m_callerId
+					+ "|" + m_calleeAddr
+					+ "|" + m_calleeId
+					+ "|" + m_destInfo
+					+ "|" + m_srcInfo
+					+ "|" + toolkit->GKName()
+					+ ";"
 	);
 }
 
@@ -2616,31 +2616,30 @@ PString CallRec::PrintOn(bool verbose) const
 	const time_t timer = time(0) - m_timer;
 	const time_t left = m_timeout > timer ? m_timeout - timer : 0;
 
-	PString result(PString::Printf,
-		"Call No. %d | CallID %s | %ld | %ld\r\nDial %s\r\nACF|%s|%s|%d|%s|%s|false;\r\nACF|%s|%s|%d|%s|%s|true;\r\n",
+	PString result = PString(PString::Printf,
+		"Call No. %d | CallID %s | %ld | %ld\r\nDial %s\r\n",
 		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), (unsigned long)timer, (unsigned long)left,
-		(const char *)m_destInfo,
+		(const char *)m_destInfo)
 		// 1st ACF
-		(const char *)m_callerAddr,
-		(const char *)m_callerId,
-		m_crv,
-		(const char*)m_destInfo,
-		(const char*)m_srcInfo,
+		+ "ACF|" + m_callerAddr
+		+ "|" + m_callerId
+		+ "|" + PString(m_crv)
+		+ "|" + m_destInfo
+		+ "|" + m_srcInfo
+		+ "|false;\r\n"
 		// 2nd ACF
-		(const char *)m_calleeAddr,
-		(const char *)m_calleeId,
-		m_crv | 0x8000u,
-		(const char*)m_destInfo,
-		(const char*)m_srcInfo
-	);
+		+ "ACF|" + m_calleeAddr
+		+ "|" + m_calleeId
+		+ "|" + PString(m_crv | 0x8000u)
+		+ "|" + m_destInfo
+		+ "|" + m_srcInfo
+		+ "|true;\r\n";
 	if (verbose) {
-		result += PString(PString::Printf, "# %s|%s|%d|%s <%d>\r\n",
-				(const char *)((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr),
-				(const char *)((m_Called) ? AsString(m_Called->GetAliases()) : m_calleeAddr),
-				m_bandwidth,
-				m_connectTime ? (const char *)PTime(m_connectTime).AsString() : "unconnected",
-				m_usedCount
-			  );
+		result += "# " + ((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr) 	// "# %s|%s|%d|%s <%d>\r\n",
+				+ "|" + ((m_Called) ? AsString(m_Called->GetAliases()) : m_calleeAddr)
+				+ "|" + PString(m_bandwidth)
+				+ "|" + (m_connectTime ? (const char *)PTime(m_connectTime).AsString() : "unconnected")
+				+ " <" + PString(m_usedCount) + ">\r\n";
 	}
 
 	return result;
@@ -3523,21 +3522,19 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 	    const time_t eTime = time(0);
 	    const PTime rectime(eTime);
 
-		PString outstr = PString(PString::Printf, "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s",
-						(const char *)rectime.AsString(),
-						(const char *)conference,
-						(const char *)PString(session),
-                        (const char *)send.AsString(),
-						(const char *)PString(sport),
-						(const char *)recv.AsString(),
-						(const char *)PString(rport),
-						(const char *)PString(ep->IsNATed()),
-						(const char *)PString(meandelay),
-						(const char *)PString(packetlost),
-						(const char *)PString(packetlosspercent),
-						(const char *)PString(meanjitter),
-						(const char *)PString(bandwidth)
-					);
+		PString outstr = rectime.AsString()
+						+ "|" + conference
+						+ "|" + PString(session)
+						+ "|" + send.AsString()
+						+ "|" + PString(sport)
+						+ "|" + recv.AsString()
+						+ "|" + PString(rport)
+						+ "|" + PString(ep->IsNATed())
+						+ "|" + PString(meandelay)
+						+ "|" + PString(packetlost)
+						+ "|" + PString(packetlosspercent)
+						+ "|" + PString(meanjitter)
+						+ "|" + PString(bandwidth);
 		 
 		    PTRACE(4,"QoS\tQoS Report" << "\r\n" << outstr);
 

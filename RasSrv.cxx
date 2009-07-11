@@ -1462,12 +1462,11 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		grj.m_gatekeeperIdentifier = Toolkit::GKName();
 		if (rsn == H225_GatekeeperRejectReason::e_resourceUnavailable)
 			RasSrv->SetAltGKInfo(grj);
-		log = PString(PString::Printf, "GRJ|%s|%s|%s|%s;",
-			inet_ntoa(m_msg->m_peerAddr),
-			(const unsigned char *) alias,
-			(const unsigned char *) AsString(request.m_endpointType),
-			(const unsigned char *) grj.m_rejectReason.GetTagName()
-		      );
+		log = "GRJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+				+ "|" + alias
+				+ "|" + AsString(request.m_endpointType)
+				+ "|" + grj.m_rejectReason.GetTagName()
+				+ ";";
 	} else {
 		H225_GatekeeperConfirm & gcf = BuildConfirm();
 		gcf.m_protocolIdentifier = request.m_protocolIdentifier;
@@ -1506,11 +1505,10 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		  RasSrv->SelectH235Capability(request, gcf);
 		}
 
-		log = PString(PString::Printf, "GCF|%s|%s|%s;",
-			inet_ntoa(m_msg->m_peerAddr),
-			(const unsigned char *) alias,
-			(const unsigned char *) AsString(request.m_endpointType)
-		      );
+		log = "GCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
+				+ "|" + alias
+				+ "|" + AsString(request.m_endpointType)
+				+ ";";
 	}
 
 	PrintStatus(log);
@@ -2097,12 +2095,11 @@ bool RegistrationRequestPDU::BuildRRJ(unsigned reason, bool alt)
 	}
 	
 	PString alias(request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? AsString(request.m_terminalAlias) : PString(" "));
-	PString log(PString::Printf, "RRJ|%s|%s|%s|%s;",
-			inet_ntoa(m_msg->m_peerAddr),
-			(const unsigned char *) alias,
-			(const unsigned char *) AsString(request.m_terminalType),
-			(const unsigned char *) rrj.m_rejectReason.GetTagName()
-		    );
+	PString log = "RRJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+					+ "|" + alias
+					+ "|" + AsString(request.m_terminalType)
+					+ "|" + rrj.m_rejectReason.GetTagName()
+					+ ";";
 
 	return PrintStatus(log);
 }
@@ -2128,18 +2125,16 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 		// Return UCF
 		BuildConfirm();
 
-		log = PString(PString::Printf, "UCF|%s|%s;",
-			inet_ntoa(m_msg->m_peerAddr),
-			(const unsigned char *) endpointId
-		      );
+		log = "UCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
+				+ "|" + endpointId
+				+ ";";
 	} else {
 		// Return URJ
 		H225_UnregistrationReject & urj = BuildReject(H225_UnregRejectReason::e_notCurrentlyRegistered);
-		log = PString(PString::Printf, "URJ|%s|%s|%s;",
-			inet_ntoa(m_msg->m_peerAddr),
-			(const unsigned char *) endpointId,
-			(const unsigned char *) urj.m_rejectReason.GetTagName()
-		      );
+		log = "URJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+				+ "|" + endpointId
+				+ "|" + urj.m_rejectReason.GetTagName()
+				+ ";";
 	}
 
 	if (bShellForwardRequest)
@@ -2726,26 +2721,22 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 
 	PString log;
 	if (reason == e_routeRequest) {
-		log = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s",
-				(const unsigned char *) source,
-				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
-				(unsigned) request.m_callReferenceValue,
-				(const unsigned char *) destinationString,
-				(const unsigned char *) srcInfo
-		      	);
+		log = "RouteRequest|" + source
+				+ "|" + RequestingEP->GetEndpointIdentifier().GetValue()
+				+ "|" + PString(request.m_callReferenceValue)
+				+ "|" + destinationString
+				+ "|" + srcInfo;
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString(";");
 	} else if (reason < 0) {
-		log = PString(PString::Printf, "ACF|%s|%s|%u|%s|%s|%s",
-				(const unsigned char *) source,
-				(const unsigned char *) RequestingEP->GetEndpointIdentifier().GetValue(),
-				(unsigned) request.m_callReferenceValue,
-				(const unsigned char *) destinationString,
-				(const unsigned char *) srcInfo,
-				answerCall
-		      	);
+		log = "ACF|" + source
+				+ "|" + RequestingEP->GetEndpointIdentifier().GetValue()
+				+ "|" + PString(request.m_callReferenceValue)
+				+ "|" + destinationString
+				+ "|" + srcInfo
+				+ "|" + answerCall;
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
@@ -2754,13 +2745,11 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 		H225_AdmissionReject & arj = BuildReject(reason);
 		if (reason == H225_AdmissionRejectReason::e_resourceUnavailable)
 			RasSrv->SetAltGKInfo(arj);
-		log = PString(PString::Printf, "ARJ|%s|%s|%s|%s|%s",
-				(const unsigned char *) source,
-				(const unsigned char *) destinationString,
-				(const unsigned char *) srcInfo,
-				answerCall,
-				(const unsigned char *) arj.m_rejectReason.GetTagName()
-		      	);
+		log = "ARJ|" + source
+				+ "|" + destinationString
+				+ "|" + srcInfo
+				+ "|" + answerCall
+				+ "|" + arj.m_rejectReason.GetTagName();
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
@@ -3006,12 +2995,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 #endif		            
 
 
-				log = PString(PString::Printf, "LCF|%s|%s|%s|%s;",
-					inet_ntoa(m_msg->m_peerAddr),
-					(const unsigned char *) (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr)),
-					(const unsigned char *) AsString(request.m_destinationInfo),
-					(const unsigned char *) sourceInfoString
-					);
+				log = "LCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
+						+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))
+						+ "|" + AsString(request.m_destinationInfo),
+						+ "|" + sourceInfoString
+						+ ";";
 			}
 		} else {
 			if (m_msg->m_replyRAS.GetTag() == H225_RasMessage::e_requestInProgress) {
@@ -3030,12 +3018,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					if (iec == Toolkit::iecNeighborId)
 						ripData = rip.m_nonStandardData.m_data.AsString();
 				}
-				log = PString(PString::Printf, "RIP|%s|%s|%s|%s;",
-					inet_ntoa(m_msg->m_peerAddr),
-					(const unsigned char *) ripData,
-					(const unsigned char *) AsString(request.m_destinationInfo),
-					(const unsigned char *) sourceInfoString
-				      );
+				log = "RIP|" + PString(inet_ntoa(m_msg->m_peerAddr))
+						+ "|" + ripData
+						+ "|" + AsString(request.m_destinationInfo)
+						+ "|" + sourceInfoString
+						+ ";";
 			} else {
 				bReject = true;
 				reason = lrq.GetRejectReason();
@@ -3046,12 +3033,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	if (bReject) {
 		// Alias not found
 		H225_LocationReject & lrj = BuildReject(reason);
-		log = PString(PString::Printf, "LRJ|%s|%s|%s|%s;",
-			inet_ntoa(m_msg->m_peerAddr),
-			(const unsigned char *) AsString(request.m_destinationInfo),
-			(const unsigned char *) sourceInfoString,
-			(const unsigned char *) lrj.m_rejectReason.GetTagName()
-		      );
+		log = "LRJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+				+ "|" + AsString(request.m_destinationInfo),
+				+ "|" + sourceInfoString,
+				+ "|" + lrj.m_rejectReason.GetTagName()
+				+ ";";
 	}
 
 	// for a regsistered endpoint, reply to the sent address

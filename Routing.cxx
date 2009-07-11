@@ -728,13 +728,11 @@ bool VirtualQueue::SendRouteRequest(
 	bool result = false;
 	bool duprequest = false;
 	if (RouteRequest *r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, duprequest)) {
-		PString msg = PString(PString::Printf, "RouteRequest|%s|%s|%u|%s|%s", 
-				(const char *)source,
-				(const char *)epid,
-				crv,
-				(const char *)vqueue,
-				(const char *)sourceInfo
-			   );
+		PString msg = "RouteRequest|" + source
+						+ "|" + epid
+						+ "|" + PString(crv)
+						+ "|" + vqueue
+						+ "|" + sourceInfo;
 		PString cid = callID;
 		cid.Replace(" ", "-", true);
 		msg += PString("|") + cid;
