@@ -102,7 +102,9 @@ See section <ref id="commandline" name="Command Line Options"> for details on th
 <p>
 These are the steps for a manual installation. If you use an installer, this will be done for you.
 
-Copy the program to the folder you like and create a config file named 'gatekeeper.ini'.
+Different executables are provided for running as an application or as a service. Make sure you have the service version before you proceed.
+
+Copy <tt/gnugk.exe/ to the folder you like and create a config file named 'gatekeeper.ini' in the same folder.
 There are several config examples in the <tt>etc/</tt> subdirectory of the download archive.
 See section <ref id="config" name="Configuration File">
 for detailed explanations. When you run GnuGk as a service, no command line options are available.
