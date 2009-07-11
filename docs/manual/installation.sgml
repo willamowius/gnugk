@@ -82,14 +82,14 @@ There are two versions of the gatekeeper available: A regular program and a serv
 
 <sect2>Installing as a Program
 <p>
-These are the steps for a manual installation. If you use an installer, this will be done for you.
+These are the steps for a manual installation.
 
-Copy the program to the folder you like and create a config file.
+Copy <tt/gnugk.exe/ to the folder you like and create a config file.
 There are several config examples in the <tt>etc/</tt> subdirectory of the download archive.
 See section <ref id="config" name="Configuration File">
 for detailed explanations.
 
-Then you start the gatekeeper manually from the command line ('cmd.exe') or a batch file to start it.
+Then you start the gatekeeper manually from the command line ('cmd.exe') or create a batch file to start it.
 
 For example you may copy GnuGk to <tt>C:\GnuGk\</tt>, create a config in
 <tt>C:\GnuGk\gnugk.ini</tt> and start it as
@@ -100,11 +100,11 @@ See section <ref id="commandline" name="Command Line Options"> for details on th
 
 <sect2>Installing as a Service
 <p>
-These are the steps for a manual installation. If you use an installer, this will be done for you.
+These are the steps for a manual installation.
 
 Different executables are provided for running as an application or as a service. Make sure you have the service version before you proceed.
 
-Copy <tt/gnugk.exe/ to the folder you like and create a config file named 'gatekeeper.ini' in the same folder.
+Copy <tt/gnugk.exe/ to the folder you like and create a config file named <tt/gatekeeper.ini/ in the same folder.
 There are several config examples in the <tt>etc/</tt> subdirectory of the download archive.
 See section <ref id="config" name="Configuration File">
 for detailed explanations. When you run GnuGk as a service, no command line options are available.
