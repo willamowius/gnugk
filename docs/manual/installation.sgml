@@ -113,6 +113,8 @@ To register the service, run the following command from the command line ('cmd.e
 gnugk.exe install notray
 </verb></tscreen>
 
+After this, your service is installed and will be started on the next reboot or you can start it manually using the Windows control panel.
+
 When running GnuGk as a service, it will always look for a config file named <tt/gatekeeper.ini/
 in the current directory and you will have to set the trace level and trace file using the
 config file instead of the command line.
