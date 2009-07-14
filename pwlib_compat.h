@@ -94,10 +94,14 @@
 	#define hasDeletingSetStream 1
 #endif
 
-// changed PConfig interface in PWLib >= 2.2.0
 #if PTLIB_MAJOR == 2
+	// changed PConfig interface in PWLib >= 2.2.0
 	#if PTLIB_MINOR >= 2
 		#define hasPConfigArray 1
+	#endif
+	// bug with no trailing NULL bytes in BMP strings
+	#if ((PTLIB_MINOR == 2) || (PTLIB_MINOR == 4 && PTLIB_BUILD <= 5) || (PTLIB_MINOR == 5 && PTLIB_BUILD <= 2) || (PTLIB_MINOR == 6 && PTLIB_BUILD <= 4))
+		#define hasNoNullBytesInBMPStrings 1
 	#endif
 #endif
 

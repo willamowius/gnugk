@@ -60,6 +60,10 @@ static PWCharArray GetUCS2plusNULL(const PString & str)
 	return ucs2;
 }
 
+#ifdef hasNoNullBytesInBMPStrings
+#warning "Your PTLib version isn't able to produce compatible MD5 crypto tokens"
+#endif
+
 // helper function to calculate GKPwdHash (could migrate into H323Plus)
 void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id, const PString & password)
 {
