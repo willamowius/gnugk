@@ -63,7 +63,6 @@ static PWCharArray GetUCS2plusNULL(const PString & str)
 // helper function to calculate GKPwdHash (could migrate into H323Plus)
 void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id, const PString & password)
 {
-	// TODO: at least Tandberg seems to calculate the GKPwdHash differently
 	cryptoTokens.RemoveAll();
 	// Cisco compatible hash calculation
 	H235_ClearToken clearToken;
