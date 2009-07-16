@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.21  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.20  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -137,43 +140,6 @@ bool GkSQLConnection::Initialize(
 	}
 
 	return Connect();	
-}
-
-bool GkSQLConnection::Initialize(
-	const char* host,
-	const char* database,
-	const char* username,
-	const char* password,
-	unsigned port,
-	int minPoolSize,
-	int maxPoolSize
-	)
-{
-	PWaitAndSignal lock(m_connectionsMutex);
-	
-	m_minPoolSize = max(minPoolSize,0);
-	if (maxPoolSize == -1)
-		m_maxPoolSize = -1;
-	else
-		m_maxPoolSize = max(maxPoolSize,m_minPoolSize);
-
-	m_host = host;
-	m_port = port;	
-
-	m_database = database;
-	m_username = username;
-	m_password = password;
-
-	if (m_host.IsEmpty() || m_database.IsEmpty()) {
-		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
-		return false;
-	}
-	
-	if (!Connect()) {
-		PTRACE(1, GetName() << "\tDatabase connection failed, will rety later");
-	}
-	
-	return true;
 }
 
 bool GkSQLConnection::Connect()

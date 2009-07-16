@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.16  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -193,29 +196,6 @@ public:
 		PConfig* cfg,
 		/// name of the config section with SQL settings
 		const char* cfgSectionName
-		);
-
-	/** Build a new SQL connection using given parameters.
-	    Derived classes do not have to override this member function.
-		
-	    @return
-	    True if connections have been established.
-	*/	
-	virtual bool Initialize(
-		/// database host to connect to
-		const char* host,
-		/// database name to connect to
-		const char* database,
-		/// database username to connect as
-		const char* username,
-		/// password to use (or NULL to not use any password)
-		const char* password = NULL,
-		/// database port to connect to (0 to use a default)
-		unsigned port = 0,
-		/// minimum number of active SQL connections
-		int minPoolSize = 1,
-		/// maximum number of active SQL connections
-		int maxPoolSize = -1
 		);
 
 	/** Execute the query and return the result set. It uses first idle SQL
