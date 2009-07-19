@@ -243,7 +243,7 @@ public:
 	*/
 	bool HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases) const;
 	// void DumpPrefixCapacity() const;
-	string LongestPrefixMatch(const PString & alias, int * capacity) const;
+	string LongestPrefixMatch(const PString & alias, int & capacity) const;
 	void UpdatePrefixStats(const PString & dest, int update);
 
 	// cause code translation

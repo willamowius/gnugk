@@ -608,7 +608,7 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 			|| tag == H225_AliasAddress::e_partyNumber
 			|| tag == H225_AliasAddress::e_h323_ID) {
 			const PString alias = AsString(aliases[i], FALSE);
-			matched_prefix = LongestPrefixMatch(alias, &prefix_capacity);
+			matched_prefix = LongestPrefixMatch(alias, prefix_capacity);
 		}
 	}
 	// check if matched prefix has capacity available
@@ -667,7 +667,7 @@ PString EndpointRec::PrintPrefixCapacities() const
 	return msg;
 }
 
-string EndpointRec::LongestPrefixMatch(const PString & alias, int * capacity) const
+string EndpointRec::LongestPrefixMatch(const PString & alias, int & capacity) const
 {
 	int maxlen = 0;	// longest match
 	string matched_prefix;
@@ -691,14 +691,14 @@ string EndpointRec::LongestPrefixMatch(const PString & alias, int * capacity) co
 		++Iter;
 	}
 	// two return values
-	*capacity = prefix_capacity;
+	capacity = prefix_capacity;
 	return matched_prefix;
 }
 
 void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 {
-	int capacity;
-	string longest_match = LongestPrefixMatch(dest, &capacity);
+	int capacity = -1;
+	string longest_match = LongestPrefixMatch(dest, capacity);
 	if (longest_match.length() > 0) {
 		m_activePrefixCalls[longest_match] += update;
 		// avoid neg. call numbers; can happen we config is reloaded while calls are standing

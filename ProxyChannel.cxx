@@ -1968,11 +1968,25 @@ void CallSignalSocket::OnSetup(
 		bool destFound = false;
 		H225_TransportAddress calledAddr;
 		Routing::SetupRequest request(setupBody, setup, authData.m_callingStationId);
-		
+
+		// delete routes with no capacity
+		for (list<Route>::iterator i = authData.m_destinationRoutes.begin(); i != authData.m_destinationRoutes.end(); /* nothing */ ) {
+			H225_ArrayOf_AliasAddress destinationAliases;
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+				destinationAliases = setupBody.m_destinationAddress;
+			}
+			if ((*i).m_destEndpoint && !((*i).m_destEndpoint->HasAvailableCapacity(destinationAliases))) {
+				authData.m_destinationRoutes.erase(i++);	// delete route
+			} else {
+				i++;	// check next
+			}
+		}
+
 		if (!rejectCall && !authData.m_destinationRoutes.empty()) {
 			list<Route>::const_iterator i = authData.m_destinationRoutes.begin();
-			while (i != authData.m_destinationRoutes.end())
+			while (i != authData.m_destinationRoutes.end()) {
 				request.AddRoute(*i++);
+			}
 			calledAddr = authData.m_destinationRoutes.front().m_destAddr;
 			called = authData.m_destinationRoutes.front().m_destEndpoint;
 			destFound = true;
