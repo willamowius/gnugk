@@ -779,7 +779,7 @@ bool SocketsReader::SelectSockets(SocketSelectList & slist)
 	ConfigReloadMutex.StartRead();
 #if PTRACING
 	PString msg(PString::Printf, "\t%u sockets selected from %u, total %u/%u", slist.GetSize(), ss, m_socksize, m_rmsize);
-	PTRACE(5, GetName() << msg);
+	PTRACE(6, GetName() << msg);
 #endif
 	return true;
 }
