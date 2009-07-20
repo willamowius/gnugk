@@ -672,7 +672,6 @@ bool TCPProxySocket::ReadTPKT()
 		if (tpkt.header != 3) {
 			PTRACE(2, Type() << "\t" << GetName() << " NOT A TPKT PACKET!"
 				<< " header=" << (int)tpkt.header << " padding=" << (int)tpkt.padding << " length=" << (int)tpkt.length);
-			// TODO: hex dump of the message on trace level 5
 			tpktlen = 0;
 			errno = EINVAL;
 			ConvertOSError(-1, PSocket::LastReadError);
