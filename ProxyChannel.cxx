@@ -659,11 +659,20 @@ bool TCPProxySocket::ReadTPKT()
 			PTRACE(3, Type() << "\t" << GetName() << " fragmented TPKT header, will wait for more data");
 			return false;
 		}
-		
+
+		// accept malformed Tandberg MXP keep-alive		
+		if (tpkt.header == 0 && tpkt.padding == 3 && tpkt.length == 1024) {
+			PTRACE(3, Type() << "\tignoring empty Tandberg TPKT from " << GetName() << " (keep-alive)");
+			buflen = 0;
+			tpktlen = 0;
+			return false;
+		}
 		//if (tpkt.header != 3 || tpkt.padding != 0)
 		// some bad endpoints don't set padding to 0, e.g., Cisco AS5300
 		if (tpkt.header != 3) {
-			PTRACE(2, Type() << "\t" << GetName() << " NOT A TPKT PACKET!");
+			PTRACE(2, Type() << "\t" << GetName() << " NOT A TPKT PACKET!"
+				<< " header=" << (int)tpkt.header << " padding=" << (int)tpkt.padding << " length=" << (int)tpkt.length);
+			// TODO: hex dump of the message on trace level 5
 			tpktlen = 0;
 			errno = EINVAL;
 			ConvertOSError(-1, PSocket::LastReadError);

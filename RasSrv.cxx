@@ -1481,12 +1481,12 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 				if (fs.HasFeature(18)) {
 					// include H.460.18 in supported features
-					gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_genericData);
-					H225_ArrayOf_GenericData & gd = gcf.m_genericData;
-					H460_FeatureStd h46018 = H460_FeatureStd(18);
-					PINDEX lPos = gd.GetSize();
-					gd.SetSize(lPos+1);
-					gd[lPos] = h46018;
+					gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
+					H460_FeatureStd H46018 = H460_FeatureStd(18);
+					gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+					H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
+					desc.SetSize(1);
+					desc[0] = H46018;
 				}
 			}
 		}
@@ -1704,11 +1704,12 @@ bool RegistrationRequestPDU::Process()
 				if (Toolkit::Instance()->IsH46018Enabled()) {
 					if (ep->UsesH46018()) {
 						H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-						H225_ArrayOf_GenericData & gd = rcf.m_genericData;
+						rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 						H460_FeatureStd H46018 = H460_FeatureStd(18);
-						gd.SetSize(1);
-						gd[0] = H46018;
-						rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
+						rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+						H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
+						desc.SetSize(1);
+						desc[0] = H46018;
 					}
 				}
 #endif
@@ -1937,16 +1938,16 @@ bool RegistrationRequestPDU::Process()
 		}
 
 #ifdef hasH460
-		   H225_ArrayOf_GenericData & gd = rcf.m_genericData;
+		H225_ArrayOf_GenericData & gd = rcf.m_genericData;
 
-		   // if the client supports Registration PreEmption then notify the client that we do too
-		   if ((preemptsupport) &&
-			  (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && (!request.m_keepAlive))) {
-              H460_FeatureOID pre = H460_FeatureOID(rPriFS);
-			  PINDEX lPos = gd.GetSize();
-			  gd.SetSize(lPos+1);
-			  gd[lPos] = pre;
-			}
+		// if the client supports Registration PreEmption then notify the client that we do too
+		if ((preemptsupport) &&
+			(request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && (!request.m_keepAlive))) {
+			H460_FeatureOID pre = H460_FeatureOID(rPriFS);
+			PINDEX lPos = gd.GetSize();
+			gd.SetSize(lPos+1);
+			gd[lPos] = pre;
+		}
 
 #ifdef hasPresence	    
 		   // If presence support
@@ -1959,26 +1960,14 @@ bool RegistrationRequestPDU::Process()
 	       }
 #endif
 
-#ifdef HAS_H46018
-			// H.460.18
-			if (Toolkit::Instance()->IsH46018Enabled()) {
-				if (ep->UsesH46018()) {
-					H460_FeatureStd H46018 = H460_FeatureStd(18);
-					PINDEX lPos = gd.GetSize();
-					gd.SetSize(lPos+1);
-					gd[lPos] = H46018;
-				}
-			}
-#endif
-
-		   // if we support NAT notify the client they are behind a NAT or to test for NAT
-		   // send off a request to test the client NAT type with a STUN Server
+			// if we support NAT notify the client they are behind a NAT or to test for NAT
+			// send off a request to test the client NAT type with a STUN Server
 			if (supportcallingNAT && supportNATOffload && (ep->GetEPNATType() == 0)) {  
-			  H460_FeatureStd natfs = H460_FeatureStd(rNaTFS);
-              natfs.Add(P2P_IsNAT,H460_FeatureContent(nated));
+				H460_FeatureStd natfs = H460_FeatureStd(rNaTFS);
+				natfs.Add(P2P_IsNAT,H460_FeatureContent(nated));
 
-			  // if detect behind a public NAT or on a public IP (test to see if behind firewall)
-			  if (!rx_addr.IsRFC1918()) { 
+			// if detect behind a public NAT or on a public IP (test to see if behind firewall)
+			if (!rx_addr.IsRFC1918()) { 
                 PIPSocket::Address m_ip;
 			    WORD m_port;
 			    PString stun = Kit->Config()->GetString(RoutedSec, "STUNServer", "");
@@ -1988,17 +1977,32 @@ bool RegistrationRequestPDU::Process()
 					natfs.Add(P2P_STUNAddr,H460_FeatureContent(stunaddr));
 					natfs.Add(P2P_ProxyNAT,H460_FeatureContent(ep->HasNATProxy()));
 				}
-			  }
-			  natfs.Add(P2P_DetRASAddr,H460_FeatureContent(H323TransportAddress(request.m_rasAddress[0])));
-
-		      PINDEX lPos = gd.GetSize();
-			  gd.SetSize(lPos+1);
-			  gd[lPos] = natfs;
 			}
+			natfs.Add(P2P_DetRASAddr,H460_FeatureContent(H323TransportAddress(request.m_rasAddress[0])));
 
-			if (gd.GetSize() > 0)		  
-				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
+			PINDEX lPos = gd.GetSize();
+			gd.SetSize(lPos+1);
+			gd[lPos] = natfs;
+		}
+
+		if (gd.GetSize() > 0)		  
+			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_genericData);
+
+#ifdef HAS_H46018
+		// H.460.18
+		if (Toolkit::Instance()->IsH46018Enabled()) {
+			if (ep->UsesH46018()) {
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
+				H460_FeatureStd H46018 = H460_FeatureStd(18);
+				rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
+				desc.SetSize(1);
+				desc[0] = H46018;
+			}
+		}
 #endif
+
+#endif	// hasH460
 
 		// Gatekeeper assigned Aliases if the client supplied aliases
 		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) &&

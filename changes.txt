@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(RasSrv.cxx,ProxyChannel.cxx) Tandberg MXP interoperability fixes
 - BUGFIX(ProxyChannel.cxx) check capacity on routes supplies by authenticators (Radius, SQL etc.)
 - BUGFIX(RasSrv.cxx) avoid cutting off status messages after 1000 chars (problem in PString::Printf)
 - BUGFIX(ProxyChannel.cxx) fix for fastStart with H.460.19
