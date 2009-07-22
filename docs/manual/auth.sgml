@@ -1390,6 +1390,8 @@ than once.
 
 <sect1>Section &lsqb;GkH350::Settings&rsqb;
 <p>
+WARNING: This is an experimental feature and not tested very well.
+<p>
 This section defines the LDAP server and standard H.350 directory operating
 parameters to be used.
 
