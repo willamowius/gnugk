@@ -481,6 +481,11 @@ CIDR notation (prefix length), as shown in the example.
 <tt>InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24</tt>
 </descrip>
 
+<item><tt/ProxyAlways=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Always proxy all calls regardles of other settings.
+
 <item><tt/T120PortRange=40000-40999/<newline>
 Default: <tt>N/A (let the OS allocate ports)</tt><newline>
 <p>
