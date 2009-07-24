@@ -4605,10 +4605,8 @@ bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
 	if (!Listen(localAddr, 0, pt))
 		return false;
 
-	// Set the IP Type Of Service field for prioritisation of media UDP packets
+	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
 #ifdef _WIN32
-	// Windows MultMedia stuff seems to need greater depth due to enormous
-	// latencies in its operation, need to use DirectSound maybe?
 	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
 #else
 	// Don't use IPTOS_PREC_CRITIC_ECP on Unix platforms as then need to be root
