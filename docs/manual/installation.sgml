@@ -98,6 +98,8 @@ C:\GnuGk\gnugk.exe -c C:\GnuGk\gnugk.ini -o C:\GnuGk\gnugk.log -ttt
 </verb></tscreen>
 See section <ref id="commandline" name="Command Line Options"> for details on the command line options.
 
+Remember to add GnuGk as an exception for the Windows Firewall so it can communicate freely with the network.
+
 <sect2>Installing as a Service
 <p>
 These are the steps for a manual installation.
@@ -115,11 +117,13 @@ To register the service, run the following command from the command line ('cmd.e
 gnugk.exe install notray
 </verb></tscreen>
 
-After this, your service is installed and will be started on the next reboot or you can start it manually using the Windows control panel.
+After this, your service is installed and will be started on the next reboot or you can start it manually using the Windows control panel. On Windows Vista and Windows 7, you might have to disable UAC during the service installation.
 
 When running GnuGk as a service, it will always look for a config file named <tt/gatekeeper.ini/
 in the current directory and you will have to set the trace level and trace file using the
 config file instead of the command line.
+
+Remember to add GnuGk as an exception for the Windows Firewall so it can communicate freely with the network.
 
 <sect2>Compiling the Gatekeeper
 <p>
