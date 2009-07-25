@@ -3104,12 +3104,12 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
 
 	// if can go direct and calling supports Remote NAT and is not NAT or Cone NAT
-	else if (goDirect && m_Calling->SupportNAT() && 
+	else if (goDirect &&  
 		(!m_Calling->IsNATed() || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
 		     natinst = CallRec::e_natLocalMaster;
 
     // if can go direct and called supports Remote NAT and is not NAT or Cone NAT
-    else if (goDirect && m_Called->SupportNAT() && 
+    else if (goDirect && 
 		(!m_Called->IsNATed() || (m_Called->GetEPNATType() == EndpointRec::NatCone)))
 			natinst = CallRec::e_natRemoteMaster;
 
