@@ -612,17 +612,16 @@ void Gatekeeper::Main()
 		"with the OpenH323/H323Plus and OpenSSL library.\n"
 	     << endl;
 
-#ifdef hasH460
-	// License notice
-	cout << "This program contains patent pending P2Pnat Media technology\n"
-            "under special royalty-free license to the GNU Gatekeeper Project.\n"
-		 << endl;
-#endif
-
 #ifdef HAS_H46018
 	cout << "This program contains H.460.18 and H.460.19 technology patented by Tandberg\n"
 			"licensed to the GNU Gatekeeper Project.\n"
 			<< endl;
+#endif
+
+#ifdef HAS_H46023
+	cout << "This program contains H.460.23 and H.460.24 technology\n"
+            "licensed to the GNU Gatekeeper Project.\n"
+		 << endl;
 #endif
 
 	// read capacity from commandline

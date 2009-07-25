@@ -31,7 +31,7 @@
 #include "Neighbor.h"
 #include "config.h"
 
-#ifdef hasH460
+#ifdef HAS_H460
 	#include <h460/h4601.h>
 #endif
 
@@ -590,18 +590,19 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		lrq.m_canMapAlias = arq.m_canMapAlias;
 	}
 
-#ifdef hasH460
+#ifdef HAS_H460
 	lrq.IncludeOptionalField(H225_LocationRequest::e_genericData); 
 	H225_ArrayOf_GenericData & data = lrq.m_genericData;
 	PINDEX lastPos = 0;
 
-	/// STD24  'NAT Support
-	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString("RoutedMode", "EnableH.460.24", "0"))) {
+#ifdef HAS_H46023
+	if (Toolkit::Instance()->IsH46023Enabled()) {
 		H460_FeatureStd std24 = H460_FeatureStd(24);
 		lastPos++;
 		data.SetSize(lastPos);
 		data[lastPos-1] = std24;
 	}
+#endif
 
 	/// OID9  'Remote application info
 	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
@@ -1253,7 +1254,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
-#ifdef hasH460
+#ifdef HAS_H460
 			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 			  H225_RasMessage ras;
 			  ras.SetTag(H225_RasMessage::e_locationConfirm);
@@ -1466,7 +1467,7 @@ bool SRVPolicy::FindByAliases(
 				if (Request.Send(nb)) {
 					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
 							Route route(m_name, lcf->m_callSignalAddress);
-#ifdef hasH460
+#ifdef HAS_H460
 			                if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 			                    H225_RasMessage ras;
 			                    ras.SetTag(H225_RasMessage::e_locationConfirm);
@@ -1596,7 +1597,7 @@ bool RDSPolicy::FindByAliases(
 				if (Request.Send(nb)) {
 					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
 							Route route(m_name, lcf->m_callSignalAddress);
-#ifdef hasH460
+#ifdef HAS_H460
 			                if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 			                    H225_RasMessage ras;
 			                    ras.SetTag(H225_RasMessage::e_locationConfirm);

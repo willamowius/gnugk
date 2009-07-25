@@ -119,7 +119,7 @@
 
 // OpenH323 version matching
 #ifdef H323_H460
-	#define hasH460 1    // H460 support
+	#define HAS_H460 1    // H460 support
 #endif
 
 #if OPENH323_MAJOR == 1

@@ -12,10 +12,11 @@
 #ifndef GNUGKBUILDOPTS_H
 #define GNUGKBUILDOPTS_H 1
 
-// H.460.18 / H.460.19
-
+// H.460.18/.19
 #undef HAS_H46018
 
+// H.460.23/.24
+#undef HAS_H46023
 
 // Radius
 
@@ -54,7 +55,11 @@
 #undef HAS_SQLITE
 #if defined(_MSC_VER) && HAS_SQLITE
   #pragma include_alias(<sqlite3.h>, <@SQLITE_DIR@/sqlite-source/sqlite3.h>)
+#if defined(_DEBUG)
+  #define SQLITE_LIBRARY "@SQLITE_DIR@/sqlited.lib"
+#else
   #define SQLITE_LIBRARY "@SQLITE_DIR@/sqlite.lib"
+#endif
 #endif
 
 

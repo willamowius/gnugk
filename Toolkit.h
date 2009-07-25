@@ -18,6 +18,9 @@
 #include <ptlib/sockets.h>
 #include "singleton.h"
 #include "config.h"
+#ifdef HAS_H46023
+#include "transports.h"
+#endif
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
@@ -356,6 +359,12 @@ class Toolkit : public Singleton<Toolkit>
 #ifdef HAS_H46018
 	bool IsH46018Enabled() const { return m_H46018Enabled; }
 #endif
+#ifdef HAS_H46023
+	bool IsH46023Enabled() const;
+	void LoadH46023STUN();
+	bool GetH46023STUN(const PIPSocket::Address & addr,  H323TransportAddress & stun);
+	bool H46023SameNetwork(const PIPSocket::Address & addr1, const PIPSocket::Address & addr2);
+#endif
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.
@@ -603,6 +612,12 @@ private:
 #ifdef HAS_H46018
 	bool m_H46018Enabled;
 #endif
+	// is H460.23 enabled ?
+#ifdef HAS_H46023
+	bool m_H46023Enabled;
+	std::map<int,H323TransportAddress> m_H46023STUN;
+#endif
+
 };
 
 

@@ -1396,6 +1396,10 @@ PConfig* Toolkit::ReloadConfig()
 #ifdef HAS_H46018
 	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", 0);
 #endif
+#ifdef HAS_H46023
+	m_H46023Enabled	= (m_Config->GetBoolean(RoutedSec, "EnableH46023", 0) && 
+						!m_Config->GetString(RoutedSec, "H46023STUN",""));
+#endif
 
 	// TODO/BUG: always call SetGKHome() on reload, even if we don't have a Home= setting
 	// otherwise we won't detect new IPs on the machine
@@ -1406,6 +1410,9 @@ PConfig* Toolkit::ReloadConfig()
 	m_RouteTable.InitTable();
 	m_VirtualRouteTable.InitTable();
 	m_ProxyCriterion.LoadConfig(m_Config);
+#ifdef HAS_H46023
+	if (m_H46023Enabled)  LoadH46023STUN();
+#endif
 	m_Rewrite.LoadConfig(m_Config);
 	m_GWRewrite.LoadConfig(m_Config);
 	m_AssignedEPAliases.LoadConfig(m_Config);
@@ -2254,6 +2261,59 @@ bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) const {
 
    return (m_VirtualRouteTable.IsMasquerade(externalIP));
 }
+
+#ifdef HAS_H46023
+bool Toolkit::IsH46023Enabled() const 
+{ 
+	return (m_H46023Enabled && (             // is enabled and
+#ifdef HAS_H46018
+		   m_H46018Enabled ||              // used with H.460.18 or
+#endif
+		   m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints",1))); // GnuGk Native NAT Support
+}
+
+void Toolkit::LoadH46023STUN()
+{
+	m_H46023STUN.clear();
+
+	PString stun = m_Config->GetString(RoutedSec, "H46023STUN", "");
+	PStringArray stunlist = stun.Tokenise(",");
+
+	for (PINDEX i = 0; i < stunlist.GetSize(); i++) {
+	    PIPSocket::Address ip; WORD port;
+		GetTransportAddress(stunlist[i], GK_DEF_STUN_PORT, ip, port);
+		if (ip.IsValid()) {
+		     int intID = m_ProxyCriterion.IsInternal(ip);
+			 std::map<int,H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
+			 if (inf == m_H46023STUN.end()) {
+				 if (intID > 0) {
+				    PTRACE(4,"Std23\tSTUN Internal " << ip << " IF " << intID-1);
+				 } else {
+					PTRACE(4,"Std23\tSTUN Public Server " << stunlist[i] << " (" << ip << ")");
+				 }
+				m_H46023STUN.insert(pair<int, H323TransportAddress>(intID, H323TransportAddress(ip,port)));
+			 }
+		}
+	}
+}
+
+bool Toolkit::GetH46023STUN(const PIPSocket::Address & addr, H323TransportAddress & stun)
+{
+	 int intID = m_ProxyCriterion.IsInternal(addr);
+	 std::map<int,H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
+	 if (inf != m_H46023STUN.end()) {
+		 stun = inf->second;
+		 return true;
+	 }
+	PTRACE(2,"Std23\tNo STUNserver for Interface " << intID << " disabling H.460.23");
+	return false;
+}
+
+bool Toolkit::H46023SameNetwork(const PIPSocket::Address & addr1, const PIPSocket::Address & addr2)
+{
+	return (m_ProxyCriterion.IsInternal(addr1) == m_ProxyCriterion.IsInternal(addr2));
+}
+#endif
 
 std::vector<NetworkAddress> Toolkit::GetInternalNetworks() {
 

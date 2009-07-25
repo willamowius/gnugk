@@ -428,10 +428,17 @@ Enable support for H.460.18 and H.460.19. This feature is covered by patents hel
 If you don't use the official releases by the GNU Gatekeeper Project, make sure you have a
 valid license before enabling it.
 
-<item><tt/EnableH.460.24=1/<newline>
+<item><tt/EnableH46023=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Enable support for H.460.24.
+Enable support for H.460.23/.24
+
+<item><tt/H46023STUN=stun.ekiga.net,192.168.1.10/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Sets the STUN server list for use with H.460.23 seperated by (,). 
+Each Network interface must have a STUNserver set for H.460.23 support on that interface.
+
 
 </itemize>
 

@@ -43,7 +43,7 @@
 #include "SoftPBX.h"
 #endif
 
-#ifdef hasH460
+#ifdef HAS_H460
 	#include <h460/h4601.h>
 	#ifdef HAS_H46018
 		#include <h460/h46018.h>
@@ -299,6 +299,7 @@ public:
 	void SetMute(bool toMute) { mute = toMute; }
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 #ifdef HAS_H46018
+	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
 	void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
 #endif
 
@@ -327,6 +328,8 @@ private:
 #ifdef HAS_H46018
 	// also used as indicator whether H.460.19 should be used
 	int m_keepAlivePayloadType;
+	bool m_h46019fc;
+	bool m_keepset;
 #endif
 };
 
@@ -398,6 +401,7 @@ public:
 
 	bool IsOpen() const;
 	void SetKeepAlivePayloadType(int pt);
+	void SetUsesH46019fc(bool);
 
 private:
 	void SetNAT(bool);
@@ -511,6 +515,8 @@ public:
 	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
 	void SetUsesH46019(bool use) { m_useH46019 = use; }
 	bool UsesH46019() const { return m_useH46019; }
+	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
+	bool UsesH46019fc() const { return m_useH46019fc; }
 
 private:
 	// override from class H245Handler
@@ -538,6 +544,7 @@ private:
 	H225_CallIdentifier callid;
 	bool isMute;
 	bool m_useH46019;
+	bool m_useH46019fc;
 };
 
 
@@ -798,7 +805,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 
 	if (m_call->GetProxyMode() != CallRec::ProxyEnabled
 		&& nat_type == CallRec::both && calling == called) {
-		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "0"))) {
+		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "1"))) {
             PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
 			return;
@@ -2007,9 +2014,9 @@ void CallSignalSocket::OnSetup(
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
  
+#ifdef HAS_H46023
 		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
-#ifdef hasH460
-	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "EnableH.460.24", "0"))
+	if (Toolkit::Instance()->IsH46023Enabled()
 		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
 		&& authData.m_proxyMode != CallRec::ProxyDisabled) {  
 		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
@@ -2018,8 +2025,8 @@ void CallSignalSocket::OnSetup(
           /// Std 24
 		  if (feat.GetFeatureID() == H460_FeatureID(24)) {
 			 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-			 if (std24.Contains(P2P_NATInstruct)) {
-			   unsigned natstat = std24.Value(P2P_NATInstruct);
+			 if (std24.Contains(Std24_NATInstruct)) {
+			   unsigned natstat = std24.Value(Std24_NATInstruct);
 			   natoffloadsupport = (CallRec::NatStrategy)natstat;
 			 }
 		  }
@@ -2036,6 +2043,8 @@ void CallSignalSocket::OnSetup(
 				authData.m_proxyMode = CallRec::ProxyDisabled;
 	    }
 	}
+#else
+	int natoffloadsupport = 0;
 #endif
  
 		if (!rejectCall && useParent) {
@@ -2156,7 +2165,9 @@ void CallSignalSocket::OnSetup(
 			destinationString, authData.m_proxyMode
 			);
 		call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
+#ifdef HAS_H46023
 		call->SetNATStrategy(natoffloadsupport);
+#endif
 
 		// if the peer address is a public address, but the advertised source address is a private address
 		// then there is a good chance the remote endpoint is behind a NAT.
@@ -2367,14 +2378,14 @@ void CallSignalSocket::OnSetup(
 	SetCallTypePlan(&q931);
 #ifdef HAS_H46018
 	// proxy if calling or called use H.460.18
-	if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
-		|| (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())) {
+	if (m_call->H46019Required() && ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
+		|| (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()))) {
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.18/.19)");
 	}
 
 	// use delayed connecting if called party uses H.460.18
-	if (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()))
+	if (!m_call->H46019Required() || (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())))
 #endif
 	{
 		CreateRemote(setupBody);
@@ -2493,35 +2504,49 @@ bool CallSignalSocket::CreateRemote(
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_desiredFeatures);
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
-#ifdef hasH460
-	} else {
-		if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH.460.24", "0"))) {
+
+#ifdef HAS_H46023
+	} else {		
+		if (Toolkit::Instance()->IsH46023Enabled()) {
 			// Add NAT offload support to older non supporting Endpoints (>H323v4)
 			// This will allow NAT endpoints who support the NAT offload feature
 			// to avoid proxying twice (remote and local) 
-			if (m_call->GetNATStrategy() == CallRec::e_natLocalProxy) {
+			bool m_calledh46023 = m_call->GetCalledParty()->UsesH46023();
+			
 				bool natfound = false;
+				PINDEX id = 0;
 				H225_ArrayOf_FeatureDescriptor & fsn = setupBody.m_supportedFeatures;
-				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
-
-				for (PINDEX i=0; i < fsn.GetSize(); i++) {
-					H460_Feature & feat = (H460_Feature &)fsn[i];
-					if (feat.GetFeatureID() == H460_FeatureID(24))  {
-						natfound = true; 
-						break;
+				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+					for (PINDEX i=0; i < fsn.GetSize(); i++) {
+						H460_Feature & feat = (H460_Feature &)fsn[i];
+						if (feat.GetFeatureID() == H460_FeatureID(24))  {
+							natfound = true; 
+							id = i;
+							break;
+						}
 					}
 				}
 
-				if (!natfound) {
+				if (m_calledh46023 && !natfound) {
 					PTRACE(5, Type() << "Added NAT Support to Outbound Call.");
+		            setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 					H460_FeatureStd std24 = H460_FeatureStd(24);
-					int remoteconfig = CallRec::e_natRemoteProxy;
-					std24.Add(P2P_NATInstruct,H460_FeatureContent(remoteconfig,8));
+					CallRec::NatStrategy strat = m_call->GetNATStrategy();
+
+					if (strat == CallRec::e_natRemoteMaster)
+							strat = CallRec::e_natLocalMaster;
+					if (strat == CallRec::e_natRemoteProxy)		
+							strat = CallRec::e_natLocalProxy;
+
+					std24.Add(Std24_NATInstruct,H460_FeatureContent((int)strat,8));
 					PINDEX lastpos = fsn.GetSize();
 					fsn.SetSize(lastpos+1);
 					fsn[lastpos] = std24;    
-				} 
-			}
+				} else if (!m_calledh46023 && natfound) {
+					fsn.RemoveAt(id);
+					if (fsn.GetSize() == 0)
+						setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+				}
 		}
 #endif
 	}
@@ -2700,7 +2725,7 @@ void CallSignalSocket::OnConnect(
 	}
 	
 #ifdef HAS_H46018
-	if (Toolkit::Instance()->IsH46018Enabled()) {
+	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
 		// remove H.460.19 indicator from sender
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
 			connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
@@ -2762,7 +2787,7 @@ void CallSignalSocket::OnAlerting(
 	}
 
 #ifdef HAS_H46018
-	if (Toolkit::Instance()->IsH46018Enabled()) {
+	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
 		// remove H.460.19 indicator from sender
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
 			alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
@@ -3214,6 +3239,11 @@ void CallSignalSocket::OnFacility(
 					SetConnected(true);
 					GetHandler()->MoveTo(callingSocket->GetHandler(), this);
 
+					if (!m_call->H46019Required()) {  // we are using H.460.23/24
+						this->TransmitData(rawSetup);
+						m_result = DelayedConnecting;
+						return;
+					}
 					// always proxy H.245 for H.460.18/19
 					localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
 					masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
@@ -3418,7 +3448,12 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		if (fromCaller) {
 			altered = m_h245handler->HandleFastStartSetup(olc, m_call);
 		} else {
-			altered = m_h245handler->HandleFastStartResponse(olc, m_call);
+#ifdef HAS_H46018
+			if (m_call->H46019Required() && ((H245ProxyHandler*)m_h245handler)->UsesH46019fc())
+				altered = ((H245ProxyHandler*)m_h245handler)->HandleFastStartResponse(olc, m_call);
+			else
+#endif
+				altered = m_h245handler->HandleFastStartResponse(olc, m_call);
 		}
 		if (altered) {
 			PPER_Stream wtstrm;
@@ -3492,7 +3527,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			}
 #ifdef HAS_H46018
 			// add H.460.19 indicator if this is sent out to an endpoint that uses it
-			if (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
+			if (m_call && m_call->GetCalledParty() && m_call->H46019Required() && m_call->GetCalledParty()->UsesH46018()) {
 				m_crv = m_call->GetCallRef();	// make sure m_crv is set
 				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
@@ -3983,7 +4018,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	}
 	bool userevert = m_isnatsocket;
 #ifdef HAS_H46018
-	if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())
+	if (m_call->H46019Required() && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())
 		userevert = true;
 #endif
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
@@ -4587,7 +4622,7 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_
 UDPProxySocket::UDPProxySocket(const char *t) 
 	: ProxySocket(this, t), fDestPort(0), rDestPort(0)
 #ifdef HAS_H46018
-	, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE)
+	, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_h46019fc(false), m_keepset(false)
 #endif
 {
 	SetReadTimeout(PTimeInterval(50));
@@ -4707,8 +4742,18 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
 		fDestIP = rDestIP = fromIP;
 		fDestPort = rDestPort = fromPort;
+		m_keepset = true;
 		SetMute(false);
 		return NoData;	// don't forward keepAlive
+	} else if (m_h46019fc && !m_keepset) {
+		// The OLC response is always received by the Gatekeeper after the media from the called has already started
+		// the keepalive packets maybe received before the gatekeeper is aware they are keep alive packets.
+		// This clunge will allow media to flow on receipt of the OLC response until the gatekeeper knows it has received a 
+		// keepalive and then sets the destination IP and PORT (maybe several seconds later)
+		// Hoping to get this problem resolved in the ITU  - SH
+		fDestIP = rDestIP = fromIP;
+		fDestPort = rDestPort = fromPort;
+		m_keepset = true;
 	}
 	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && isCtrlPort) {	// using m_payloadType to check IF H.460.19 is used
 		int t = 0;
@@ -5038,7 +5083,7 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 	SrcIP = 0;
 	SrcPort = 0;
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 	// If we do not have a GKClient (no parent) and we 
 	// don't create the socket pair by STUN then
 	// create the socket pair here
@@ -5128,6 +5173,14 @@ void RTPLogicalChannel::SetKeepAlivePayloadType(int pt)
 		rtp->SetKeepAlivePayloadType(pt);
 	if (rtcp)
 		rtcp->SetKeepAlivePayloadType(pt);	// used as indicator that H.460.19 is used
+}
+
+void RTPLogicalChannel::SetUsesH46019fc(bool fc)
+{
+	if (rtp)
+		rtp->SetUsesH46019fc(fc);
+	if (rtcp)
+		rtcp->SetUsesH46019fc(fc);	
 }
 #endif
 
@@ -5376,7 +5429,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
-      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false)
+      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false)
 {
 	if (peer)
 		peer->peer = this;
@@ -5473,28 +5526,50 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 	} else {
 		bool nouse;
 		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-        changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
+
+	    if (UsesH46019fc())
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
+		else
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
 
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
+		unsigned m_keeppayloadtype = 0;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
 				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
 				if (gid == H46019OID) {
+					// Get the keepalive payload (if present)
+					H46019_TraversalParameters params;
+					PASN_OctetString & raw = olc.m_genericInformation[i].m_messageContent[0].m_parameterValue;
+					raw.DecodeSubType(params);
+					if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
+						m_keeppayloadtype = params.m_keepAlivePayloadType;
+						PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << m_keeppayloadtype);
+					}
 					// move remaining elements down
 					for(PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
 						olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
 					}
-					olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);
+					olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);	
 				}
 			}
 			if (olc.m_genericInformation.GetSize() == 0)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 		}
+
 		if (peer && peer->UsesH46019()) {
-			olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
-			olc.m_genericInformation.SetSize(1);
+			// We need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
+			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
+				olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()+1);	
+				for(PINDEX j = 0; j < olc.m_genericInformation.GetSize()-1; j++) {
+					olc.m_genericInformation[j+1] = olc.m_genericInformation[j];
+				}
+			} else {
+				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+				olc.m_genericInformation.SetSize(1);
+			}
 			H245_CapabilityIdentifier & id = olc.m_genericInformation[0].m_messageIdentifier;
             id.SetTag(H245_CapabilityIdentifier::e_standard);
             PASN_ObjectId & gid = id;
@@ -5508,11 +5583,21 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			n = 1;
 			H46019_TraversalParameters params;
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
-			LogicalChannel * lc = FindLogicalChannel(flcn);
+			LogicalChannel * lc;
+			if (UsesH46019fc()) {
+				WORD sessionID = (WORD)h225Params->m_sessionID;
+				lc = fastStartLCs[sessionID];
+			} else { 
+				lc = FindLogicalChannel(flcn);
+			}
 			if (lc) {
-				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTPC port for keepAlives
+				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
+				if (m_keeppayloadtype > 0) 
+					((RTPLogicalChannel*)lc)->SetKeepAlivePayloadType(m_keeppayloadtype);  // If remote has told us keeppayloadtype then set it.
+				if (UsesH46019fc())
+					((RTPLogicalChannel*)lc)->SetUsesH46019fc(true);
 			} else {
-				PTRACE(1, "Can't find RTPC port for logical channel " << flcn);
+				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
 			}
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
 			params.m_keepAliveInterval = 19;
@@ -5686,14 +5771,13 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 	}
 
 	if (UsesH46019()) {
-		changed |= HandleOpenLogicalChannel(olc);
+		SetUsesH46019fc(true);
+		return (HandleOpenLogicalChannel(olc) || changed);
+	} else {
+		bool nouse;
+		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
+		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
 	}
-
-	bool nouse;
-	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-	if (h225Params)
-		changed |= OnLogicalChannelParameters(h225Params, 0);
-	return changed;
 }
 
 bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,callptr & mcall)
@@ -5702,23 +5786,38 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 		return false;
 
 	bool changed = false, isReverseLC;
-	if (hnat)
+	if (!UsesH46019() && hnat)
 		changed = hnat->HandleOpenLogicalChannel(olc);
+
+	if (UsesH46019()) {
+		SetUsesH46019fc(true);
+		changed |= HandleOpenLogicalChannel(olc);
+	}
 
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
 	if (!h225Params)
 		return changed;
 	WORD id = (WORD)h225Params->m_sessionID;
-	siterator iter = peer->fastStartLCs.find(id);
-	RTPLogicalChannel *lc = (iter != peer->fastStartLCs.end()) ? iter->second : 0;
+	RTPLogicalChannel *lc = NULL;
+	siterator iter;
+	if (UsesH46019()) {
+	   iter = fastStartLCs.find(id);
+	   lc = (iter != fastStartLCs.end()) ? iter->second : 0;
+	} else {
+	   iter = peer->fastStartLCs.find(id);
+	   lc = (iter != peer->fastStartLCs.end()) ? iter->second : 0;
+	}
 	if (isReverseLC) {
 		if (lc) {
 			if (!FindLogicalChannel(flcn)) {
 				logicalChannels[flcn] = sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
 				lc->OnHandlerSwapped(hnat != 0);
-				peer->fastStartLCs.erase(iter);
+				if (UsesH46019())
+					fastStartLCs.erase(iter);
+				else
+					peer->fastStartLCs.erase(iter);
 			}
 		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
@@ -5736,7 +5835,10 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 			if (!peer->FindLogicalChannel(flcn)) {
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
-				peer->fastStartLCs.erase(iter);
+				if (UsesH46019())
+					fastStartLCs.erase(iter);
+				else
+					peer->fastStartLCs.erase(iter);
 			}
 		} else if ((lc = FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = peer->FindLogicalChannel(flcn);

@@ -36,7 +36,7 @@ class H225_Setup_UUIE;
 class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
 
-#ifdef hasH460
+#ifdef HAS_H460
   class H460_FeatureStd;
   class STUNClient;
   class UDPProxySocket;
@@ -246,7 +246,7 @@ private:
 	H235Authenticators* m_h235Authenticators;
 #endif
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 	// Handle P2Pnat RCF
 	void HandleP2P_RCF(H460_FeatureStd * feat);
     // Handle P2Pnat ACF

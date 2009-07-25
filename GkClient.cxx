@@ -30,7 +30,7 @@
 #include "cisco.h"
 #include "GkClient.h"
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
   #include <h460/h4601.h>
   #include <ptclib/pstun.h>
   #include <ptclib/random.h>
@@ -191,7 +191,7 @@ void NATClient::SendInfo(int state)
 
 //////////////////////////////////////////////////////////////////////
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 
 // stuff cut from pstun.cxx
 
@@ -651,7 +651,7 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
   {
     PINDEX idx = stunSocket.Append(new STUNsocket);
     if (!OpenSocket(stunSocket[idx], pairedPortInfo, binding)) {
-      PTRACE(1, "STUN\tUnable to open socket to server " << serverAddress);
+      PTRACE(1, "STUN\tUnable to open socket to server " << GetServer());
       return false;
 	}
 
@@ -665,7 +665,7 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
   {
     if (!response[i].Poll(stunSocket[i], request[i], pollRetries))
     {
-      PTRACE(1, "STUN\tServer " << serverAddress << ':' << serverPort << " unexpectedly went offline.");
+      PTRACE(1, "STUN\tServer unexpectedly went offline." << GetServer());
       return false;
     }
   }
@@ -675,7 +675,7 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
     STUNmappedAddress * mappedAddress = (STUNmappedAddress *)response[i].FindAttribute(STUNattribute::MAPPED_ADDRESS);
     if (mappedAddress == NULL)
     {
-      PTRACE(2, "STUN\tExpected mapped address attribute from server " << serverAddress << ':' << serverPort);
+      PTRACE(2, "STUN\tExpected mapped address attribute from server " << GetServer());
       return false;
     }
     if (GetNatType(FALSE) != SymmetricNat)
@@ -847,7 +847,7 @@ GkClient::GkClient()
 	m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true)
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 	, m_nattype(0), m_natnotify(false), gk_H460_23(false),  m_stunClient(NULL)
 #endif
 {
@@ -993,21 +993,20 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 		}
 	}
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 		// H.460.23 Feature
-	    bool NoP2Pfeature = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "DisableH.460.23", "1"));
-		if (!NoP2Pfeature) {
+		if (Toolkit::Instance()->IsH46023Enabled()) {
 			bool contents = false;
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(23); 
 
 			if (!IsRegistered()) {
-					feat.Add(P2P_RemoteNAT,H460_FeatureContent(true));
+					feat.Add(Std23_RemoteNAT,H460_FeatureContent(true));
 					contents = true;
 			} else {
 					int natType = 0;
 					if (P2Pnat_TypeNotify(natType)) {
-						feat.Add(P2P_NATdet,H460_FeatureContent(natType,8)); 
+						feat.Add(Std23_NATdet,H460_FeatureContent(natType,8)); 
 						contents = true;
 					}
 			}
@@ -1177,7 +1176,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 		arq.m_callIdentifier = oarq.m_callIdentifier;
 	}
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 	if (gk_H460_23) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(24); 
@@ -1275,13 +1274,13 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer, int natof
 	// workaround for bandwidth, as OpenH323 library :p
 	arq.m_bandWidth = 1280;
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 	if (gk_H460_23) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 		H460_FeatureStd feat = H460_FeatureStd(24); 
 
 		if (answer  && natoffload > 0) 
-			feat.Add(P2P_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
+			feat.Add(Std24_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
 
 		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
@@ -1626,15 +1625,16 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				Route route("parent", acf.m_destCallSignalAddress);
 				route.m_flags |= Route::e_toParent;
 				robj->AddRoute(route);
-#ifdef P2PnatClient
+#ifdef HAS_H46023
+			  if (Toolkit::Instance()->IsH46023Enabled()) {
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
 					callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
 						CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
 					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
-					int rNaTFS = 23; 
-					if (fs.HasFeature(rNaTFS)) 
-						HandleP2P_ACF(call, (H460_FeatureStd *)fs.GetFeature(rNaTFS));
+					if (fs.HasFeature(24)) 
+						HandleP2P_ACF(call, (H460_FeatureStd *)fs.GetFeature(24));
 				 }
+			  }
 #endif
 			}
 			return true;
@@ -1706,17 +1706,18 @@ void GkClient::OnRCF(RasMsg *ras)
 		}
 	}
 
-#ifdef P2PnatClient
-	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_genericData)) {
-		H460_FeatureSet fs = H460_FeatureSet(rcf.m_genericData);
-		int rNaTFS = 23; 
-		if (fs.HasFeature(rNaTFS)) 
-			HandleP2P_RCF((H460_FeatureStd *)fs.GetFeature(rNaTFS));
+#ifdef HAS_H46023
+    if (Toolkit::Instance()->IsH46023Enabled()) {
+		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_genericData)) {
+			H460_FeatureSet fs = H460_FeatureSet(rcf.m_genericData);
+			if (fs.HasFeature(23)) 
+				HandleP2P_RCF((H460_FeatureStd *)fs.GetFeature(23));
+		}
 	}
 #endif
 }
 
-#ifdef P2PnatClient
+#ifdef HAS_H46023
 void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
 {
    PBoolean proxy = FALSE;
@@ -1724,14 +1725,14 @@ void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
 
    gk_H460_23 = true;
 
-   if (feat->Contains(P2P_ProxyNAT)) 
-       proxy = feat->Value(P2P_ProxyNAT);
+   if (feat->Contains(Std24_ProxyNAT)) 
+       proxy = feat->Value(Std24_ProxyNAT);
 
-   if (feat->Contains(P2P_IsNAT))
-       NATdetect = feat->Value(P2P_IsNAT);
+   if (feat->Contains(Std23_IsNAT))
+       NATdetect = feat->Value(Std23_IsNAT);
 
-   if (feat->Contains(P2P_DetRASAddr)) {
-       H323TransportAddress addr = feat->Value(P2P_DetRASAddr);
+   if (feat->Contains(Std23_DetRASAddr)) {
+       H323TransportAddress addr = feat->Value(Std23_DetRASAddr);
 	   if (!NATdetect) {
 		   PIPSocket::Address ip;
 		   addr.GetIpAddress(ip);
@@ -1739,8 +1740,8 @@ void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
 	   }
    }
 
-   if (NATdetect && feat->Contains(P2P_STUNAddr)) {
-           H323TransportAddress addr = feat->Value(P2P_STUNAddr);
+   if (NATdetect && feat->Contains(Std23_STUNAddr)) {
+           H323TransportAddress addr = feat->Value(Std23_STUNAddr);
 		   m_stunClient = new STUNClient(this,addr);
    }
 }
@@ -1755,8 +1756,8 @@ bool GkClient::P2Pnat_TypeNotify(int & nattype)
 
 void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
 {
-    if (feat->Contains(P2P_NATInstruct)) {
-		unsigned NATinst = feat->Value(P2P_NATInstruct); 
+    if (feat->Contains(Std24_NATInstruct)) {
+		unsigned NATinst = feat->Value(Std24_NATInstruct); 
 
         PTRACE(4,"GKC\tP2Pnat strategy for call set to " << NATinst);
 

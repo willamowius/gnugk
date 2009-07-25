@@ -48,31 +48,36 @@ extern const char *H225_ProtocolID;
 // Registration Priority and Pre-Emption
 
 #define OID6  "1.3.6.1.4.1.17090.0.6"  // Registration priority & pre-emption
-#define priorityOID  1   // integer 8 Priority number highest priority gets registration
-#define preemptOID   2   // bool to instruct GK to preempt previous registration
-#define priNotOID    3   // bool to notify EP registration RRJ (priority) UCF (higher Priority)
-#define preNotOID    4   // bool to notify EP registration RRJ (can preempt) UCF (was preempted)
+#define OID6_Priority  1   // integer 8 Priority number highest priority gets registration
+#define OID6_Preempt   2   // bool to instruct GK to preempt previous registration
+#define OID6_PriNot    3   // bool to notify EP registration RRJ (priority) UCF (higher Priority)
+#define OID6_PreNot    4   // bool to notify EP registration RRJ (can preempt) UCF (was preempted)
 
 
 ///////////////////////////////////////////
-// NAT Type Detection H.460.23/24
+// H.460.23
 
-#define P2P_IsNAT					1    // bool if endpoint is NATed
-#define P2P_STUNAddr			2    // H225_TransportAddress of STUN Server (23 only)
-#define P2P_NATdet				3    // integer 8 Endpoint NAT Type
-#define P2P_ProxyNAT			4    // Proxy for NAT support
-#define P2P_MustProxy			5    // Media must proxy
-#define P2P_RemoteNAT			6    // bool if endpoint has remote NAT support
-#define P2P_SameNAT			7    // Support Same NAT probing (Annex A)  
-#define P2P_DetRASAddr		8    // Detected RAS H225_TransportAddress (23 only)
+#define Std23_RemoteNAT			1	// bool if endpoint has remote NAT support
+#define Std23_SameNAT			2	// bool Support Same NAT probing (Annex A) 
+#define Std23_IsNAT				3	// bool if endpoint is NATed
+#define Std23_DetRASAddr		4	// Detected RAS H225_TransportAddress
+#define Std23_STUNAddr			5	// transport IP address of STUN Server to test with
+#define Std23_NATdet			6   // integer 8 Endpoint STUN detected NAT Type
 
 //////////////////////////////////////////
-// P2Pnat Media H.460.24 only
+// H.460.24 
 
-#define P2P_NATInstruct			7    // integer 8 Instruction on how NAT is to be Traversed 
-#define P2P_SourceAddr			8    // Apparent public IP of remote
+#define Std24_ProxyNAT			1	// bool Proxy for NAT support
+#define Std24_RemoteNAT			2	// bool if endpoint has remote NAT support
+#define Std24_MustProxy			3	// bool Media must proxy
+#define Std24_IsNAT				4	// bool if endpoint is NATed
+#define Std24_NATdet			5   // integer 8 Endpoint STUN detected NAT Type
+#define Std24_SourceAddr		6	// transport Apparent public IP of remote
+#define Std24_SameNAT			7	// bool Apparent public IP of remote
+#define Std24_NATInstruct		8	// integer 8 Instruction on how NAT is to be Traversed 
 
 #define GK_DEF_STUN_PORT		3478
+
 
 ///////////////////////////////////////////
 // Remote Vendor Information

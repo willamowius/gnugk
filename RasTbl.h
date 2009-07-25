@@ -143,6 +143,7 @@ public:
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
 	void SetSupportNAT(bool support);
+	void SetSameNAT(bool support);
 
 	enum EPNatTypes {
             NatUnknown,
@@ -159,6 +160,7 @@ public:
 	void SetEPNATType(int nattype) {m_epnattype = (EPNatTypes)nattype; }
 	void SetNATProxy(PBoolean support) {m_natproxy = support; }
 	void SetInternal(PBoolean internal) { m_internal = internal; }
+	void SetUsesH46023(bool uses) { m_usesH46023 = uses; if (m_natproxy) m_natproxy = false; }
 
 	void SetPriority(int priority) { m_registrationPriority = priority; }
 	void SetPreemption(bool support) { m_registrationPreemption = support; }
@@ -174,6 +176,8 @@ public:
 	bool IsUpdated(const PTime *) const;
 	bool IsNATed() const;
 	bool SupportNAT() const;
+	bool SupportSameNAT() const;
+	bool UsesH46023() const { return m_usesH46023; }
 
 	bool HasNATProxy() const;
 	bool IsInternal() const;
@@ -327,7 +331,7 @@ protected:
 	std::map<unsigned, unsigned> m_sentCauseMap;
 
 	EPNatTypes m_epnattype;
-	bool m_natsupport, m_natproxy, m_internal, m_remote;
+	bool m_usesH46023,m_natsupport,m_samenatsupport, m_natproxy, m_internal, m_remote;
 	bool m_h46018disabled;
 	bool m_usesH46018;
 
@@ -529,7 +533,7 @@ private:
 template<class> class RasPDU;
 
 // record of one active call
-#ifdef hasH460
+#ifdef HAS_H460
  class H4609_QosMonitoringReportData;
 #endif
 class CallRec {
@@ -616,6 +620,7 @@ public:
 		PIPSocket::Address& calledPartyNATIP
 		) const;
 
+#ifdef HAS_H46023
 	// Override the calculated NAT type
 	void SetNATType(int newNatType) { m_nattype = newNatType; }
 
@@ -640,12 +645,14 @@ public:
 	/** Get String representation of the NATStrategy */
 	PString GetNATOffloadString(NatStrategy nat);
 
+
 	/** Get the NATStrategy Default is Unknown */
 	NatStrategy GetNATStrategy() { return m_natstrategy; }
 
 	/** Set the NATStrategy */
 	void SetNATStrategy(NatStrategy strategy) { m_natstrategy = strategy; }
 
+#endif
 
 	/** Return whether the endpoints are registered at the same gatekeeper so
 	    only 1 gatekeeper is involved in the call
@@ -1097,6 +1104,7 @@ public:
 	void SetProceedingSent(bool val) { m_proceedingSent = val; }
 	
 #ifdef HAS_H46018
+	bool H46019Required();
 	void StoreSetup(SignalingMsg * msg);
 	PBYTEArray RetrieveSetup();
 #endif
@@ -1228,8 +1236,9 @@ private:
 	int m_usedCount;
 	mutable PTimedMutex m_usedLock, m_sockLock;
 	int m_nattype;
+#ifdef HAS_H46023
 	NatStrategy m_natstrategy;
-
+#endif
 	/// unregistered caller NAT'd
 	bool m_unregNAT;
 	PIPSocket::Address m_srcunregNATAddress;
@@ -1308,7 +1317,7 @@ public:
 	void PrintCurrentCalls(USocket *client, bool verbose=FALSE) const;
 	PString PrintStatistics() const;
 
-#ifdef hasH460
+#ifdef HAS_H460
 	void OnQosMonitoringReport(const PString &,const endptr &, H4609_QosMonitoringReportData &);
     void QoSReport(const H225_DisengageRequest &, const endptr &, const PASN_OctetString &);
     void QoSReport(const H225_InfoRequestResponse &, const callptr &, const endptr &, const PASN_OctetString &);
@@ -1429,9 +1438,9 @@ inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
   
 inline int EndpointRec::GetTimeToLive() const
 {
-	if (UsesH46018()) {
-		// force timeToLive to 5 - 30 sec, 29 sec if not set
-		return m_timeToLive == 0 ? 29 : max(5, min(30, m_timeToLive));
+	if (m_nat || UsesH46018()) {
+		// force timeToLive to 5 - 30 sec, 19 sec if not set
+		return m_timeToLive == 0 ? 19 : max(5, min(30, m_timeToLive));
 	}
 	return m_timeToLive;
 }
@@ -1488,6 +1497,11 @@ inline void EndpointRec::SetSupportNAT(bool support)
 	m_natsupport = support;
 }
 
+inline void EndpointRec::SetSameNAT(bool support)
+{
+	m_samenatsupport = support;
+}
+
 inline bool EndpointRec::IsNATed() const
 { 
 	return m_nat;
@@ -1496,6 +1510,11 @@ inline bool EndpointRec::IsNATed() const
 inline bool EndpointRec::SupportNAT() const
 {
 	return m_natsupport;
+}
+
+inline bool EndpointRec::SupportSameNAT() const
+{
+	return m_samenatsupport;
 }
 
 inline bool EndpointRec::HasNATProxy() const
