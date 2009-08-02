@@ -2507,7 +2507,7 @@ bool CallSignalSocket::CreateRemote(
 
 #ifdef HAS_H46023
 	} else {		
-		if (Toolkit::Instance()->IsH46023Enabled()) {
+		if (Toolkit::Instance()->IsH46023Enabled() && m_call->GetCalledParty()) {
 			// Add NAT offload support to older non supporting Endpoints (>H323v4)
 			// This will allow NAT endpoints who support the NAT offload feature
 			// to avoid proxying twice (remote and local) 
