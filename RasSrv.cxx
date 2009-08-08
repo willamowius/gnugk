@@ -517,7 +517,7 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 
 bool GkInterface::IsReachable(const Address *addr) const
 {
-	return Toolkit::Instance()->GetRouteTable(true)->GetLocalAddress(*addr) == m_address;
+	return Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address;
 }
 
 bool GkInterface::ValidateSocket(IPSocket *socket, WORD & port)
@@ -1704,16 +1704,21 @@ bool RegistrationRequestPDU::Process()
 		} else {
             // If received a NAT Type update STD23 only occurs with Light RRQ
 			if (ntype == 0) {   
-				PTRACE(2, "Std23\tFEATURE DISBLED: On Instruction of Endpoint");
+				PTRACE(2, "Std23\tFEATURE DISABLED: On Instruction of Endpoint");
 				ep->SetUsesH46023(false);
 			} else if (ntype < 8) {
-				if (!ep->IsNATed()) {
+				if (ntype > 1) {
 				  PTRACE(4, "Std23\tEndpoint reports itself as being behind a NAT/FW!");
+				  PTRACE(4, "Std23\tNAT/FW reported as being " << ep->GetEPNATTypeString((EndpointRec::EPNatTypes)ntype));
 				  ep->SetNAT(true);
 				  ep->SetSupportNAT(false);
 				  ep->SetNATAddress(rx_addr);
+				} else {
+				  PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW! " 
+										<< (ep->UsesH46018() ? "H.460.18 Disabled" : ""));
+				  ep->SetUsesH46018(false);
+				  ep->SetNAT(false);
 				}
-				PTRACE(4, "Std23\tNAT/FW reported as being " << ep->GetEPNATTypeString((EndpointRec::EPNatTypes)ntype));
 				ep->SetEPNATType(ntype);
 			}
 

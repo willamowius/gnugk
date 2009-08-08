@@ -2,6 +2,7 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
 
+- BUGFIX(RasSrv.cxx) IsReachable looks at correct route table. (virtual was ignored)
 - globally changed hasH460 to HAS_H460 for consistency
 - Add HAS_H46023 so can compile without H.460.23/24 support
 - changed [RoutedMode]EnableH46024= to be consistent with H.460.18 switch
