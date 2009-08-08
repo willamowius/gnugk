@@ -2004,23 +2004,22 @@ bool RegistrationRequestPDU::Process()
 
 #ifdef HAS_H46023
 		if (supportH46023 && Toolkit::Instance()->IsH46023Enabled()) {
-			ep->SetUsesH46023(true);
 			// if we support NAT notify the client they are behind a NAT or to test for NAT
 			// send off a request to test the client NAT type with a STUN Server
 			// if behind Nat see if STUN server is available for the interface
 			// if not then disable Std23 for this endpoint
-			bool ok23 = true;  
 			H323TransportAddress stunaddr;
-			bool h46023nat = nated || ep->UsesH46018();
+			bool ok23 = Toolkit::Instance()->GetH46023STUN(rx_addr,stunaddr);
 
-			if (h46023nat)
-				ok23 = Toolkit::Instance()->GetH46023STUN(rx_addr,stunaddr);
 			// Build the message
 			if (ok23) {
+			  ep->SetUsesH46023(true);
+			  bool h46023nat = nated || (ep->UsesH46018() && !validaddress);
+
 			  H460_FeatureStd natfs = H460_FeatureStd(23);
 			  natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
 			  if (h46023nat) { 
-					natfs.Add(Std23_STUNAddr,H460_FeatureContent(stunaddr));
+				 natfs.Add(Std23_STUNAddr,H460_FeatureContent(stunaddr));
 			  } else {
 				// If not NAT then provide the RAS address to the client to determine
 				// whether there is an ALG (or someother device) making things appear as they are not
