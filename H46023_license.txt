@@ -15,7 +15,9 @@ in a truthful manner. This license also extends to cover users and furthur devel
 of the licensee's implementation only as far as the use does not violate the licensee's 
 own licensing terms and conditions, where apon a user is in breach of the licensee's license 
 then they shall be deemed to be breach of this license. ISVO will grant non-exclusive licenses 
-to Non-Qualified Parties on reasonable and reciprocal terms and conditions. 
+to Non-Qualified Parties on reasonable and reciprocal terms and conditions. ISVO shall retain
+the right to discriminately modify/alter licensing terms and conditions imposed on any 
+licensee and/or their user at anytime without notice.
 
 
 The GnuGk project (www.gnugk.org) is hereby granted non-exclusive royalty-free license of 
