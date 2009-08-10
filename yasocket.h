@@ -119,7 +119,7 @@ private:
 	sockaddr_in peeraddr;
 };
 
-class YaUDPSocket : public YaSocket {
+class YaUDPSocket : public YaSocket, public PObject {
 public:
 	YaUDPSocket();
 
