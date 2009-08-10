@@ -209,13 +209,13 @@ bool YaSocket::Write(const void *buf, int sz)
 	return lastWriteCount == sz;
 }
 
-void YaSocket::GetLocalAddress(Address & addr) const
+PBoolean YaSocket::GetLocalAddress(Address & addr) const
 {
 	WORD pt;
-	GetLocalAddress(addr, pt);
+	return GetLocalAddress(addr, pt);
 }
 
-void YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
+PBoolean YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
 {
 	sockaddr_in inaddr;
 	socklen_t insize = sizeof(inaddr);
@@ -223,6 +223,7 @@ void YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
 		addr = inaddr.sin_addr;
 		pt = ntohs(inaddr.sin_port);
 	}
+	return true;
 }
 
 bool YaSocket::SetOption(int option, int value, int level)
