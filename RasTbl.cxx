@@ -267,7 +267,7 @@ EndpointRec::EndpointRec(
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
-	m_registrationPriority(0), m_registrationPreemption(false),m_usesH46023(false),m_epnattype(NatUnknown), m_natsupport(false),
+	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown),m_usesH46023(false), m_natsupport(false),
 	m_samenatsupport(false),m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
 	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false)
 #ifdef hasPresence
@@ -2014,7 +2014,7 @@ CallRec::CallRec(
 	const PString& destInfo,
 	/// override proxy mode global setting from the config
 	int proxyMode
-	) : m_CallNumber(0), 
+	) : m_CallNumber(0),
 	m_callIdentifier(((const H225_AdmissionRequest&)arqPdu).m_callIdentifier),
 	m_conferenceIdentifier(((const H225_AdmissionRequest&)arqPdu).m_conferenceID), 
 	m_crv(((const H225_AdmissionRequest&)arqPdu).m_callReferenceValue.GetValue() & 0x7fffU),
@@ -2024,13 +2024,14 @@ CallRec::CallRec(
 	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
-	m_usedCount(0), m_nattype(none),m_unregNAT(false),m_h245Routed(RasServer::Instance()->IsH245Routed()),
+	m_usedCount(0), m_nattype(none),
+#ifdef HAS_H46023
+	m_natstrategy(e_natUnknown),
+#endif
+	m_unregNAT(false), m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false)
-#ifdef HAS_H46023
-	,m_natstrategy(e_natUnknown)
-#endif
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -2073,13 +2074,14 @@ CallRec::CallRec(
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_routeToAlias(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
-	m_usedCount(0), m_nattype(none), m_unregNAT(false), m_h245Routed(routeH245),
+	m_usedCount(0), m_nattype(none),
+#ifdef HAS_H46023
+	m_natstrategy(e_natUnknown),
+#endif
+	m_unregNAT(false), m_h245Routed(routeH245),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false)
-#ifdef HAS_H46023
-	,m_natstrategy(e_natUnknown)
-#endif
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -2127,14 +2129,14 @@ CallRec::CallRec(
 	m_dialedNumber(oldCall->m_dialedNumber),
 	m_routeToAlias(NULL), m_callingSocket(NULL /*oldCall->m_callingSocket*/), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(oldCall->m_nattype & ~calledParty), 
-	m_unregNAT(oldCall->m_unregNAT),m_h245Routed(oldCall->m_h245Routed),
+#if HAS_H46023
+	m_natstrategy(e_natUnknown),
+#endif
+	m_unregNAT(oldCall->m_unregNAT), m_h245Routed(oldCall->m_h245Routed),
 	m_toParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent)
-#if HAS_H46023
-	,m_natstrategy(e_natUnknown)
-#endif
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_calleeId = m_calleeAddr = " ";

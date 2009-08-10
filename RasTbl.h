@@ -331,7 +331,7 @@ protected:
 	std::map<unsigned, unsigned> m_sentCauseMap;
 
 	EPNatTypes m_epnattype;
-	bool m_usesH46023,m_natsupport,m_samenatsupport, m_natproxy, m_internal, m_remote;
+	bool m_usesH46023, m_natsupport, m_samenatsupport, m_natproxy, m_internal, m_remote;
 	bool m_h46018disabled;
 	bool m_usesH46018;
 
