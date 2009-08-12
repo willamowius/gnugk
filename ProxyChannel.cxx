@@ -805,7 +805,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 
 	if (m_call->GetProxyMode() != CallRec::ProxyEnabled
 		&& nat_type == CallRec::both && calling == called) {
-		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "1"))) {
+		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "0"))) {
             PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
 			return;
