@@ -329,7 +329,7 @@ private:
 	// also used as indicator whether H.460.19 should be used
 	int m_keepAlivePayloadType;
 	bool m_h46019fc;
-	bool m_keepset;
+	bool m_keepAliveTypeSet;
 #endif
 };
 
@@ -4622,7 +4622,7 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_
 UDPProxySocket::UDPProxySocket(const char *t) 
 	: ProxySocket(this, t), fDestPort(0), rDestPort(0)
 #ifdef HAS_H46018
-	, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_h46019fc(false), m_keepset(false)
+	, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_h46019fc(false), m_keepAliveTypeSet(false)
 #endif
 {
 	SetReadTimeout(PTimeInterval(50));
@@ -4742,10 +4742,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
 		fDestIP = rDestIP = fromIP;
 		fDestPort = rDestPort = fromPort;
-		m_keepset = true;
+		m_keepAliveTypeSet = true;
 		SetMute(false);
 		return NoData;	// don't forward keepAlive
-	} else if (m_h46019fc && !m_keepset) {
+	} else if (m_h46019fc && !m_keepAliveTypeSet) {
 		// The OLC response is always received by the Gatekeeper after the media from the called has already started
 		// the keepalive packets maybe received before the gatekeeper is aware they are keep alive packets.
 		// This clunge will allow media to flow on receipt of the OLC response until the gatekeeper knows it has received a 
@@ -4753,7 +4753,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// Hoping to get this problem resolved in the ITU  - SH
 		fDestIP = rDestIP = fromIP;
 		fDestPort = rDestPort = fromPort;
-		m_keepset = true;
+		m_keepAliveTypeSet = true;
 	}
 	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && isCtrlPort) {	// using m_payloadType to check IF H.460.19 is used
 		int t = 0;
