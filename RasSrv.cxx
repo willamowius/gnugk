@@ -1662,11 +1662,19 @@ bool RegistrationRequestPDU::Process()
 			(request.m_callSignalAddress.GetSize() >= 1) ?
 			EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], rx_addr) : endptr(0);
 		bool bReject = !ep;
+	    if (bReject) {
+			PString epid = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
+				request.m_endpointIdentifier.GetValue() : "<none>";
+			PTRACE(3, "RAS\tLightweight registration rejected, because endpoint isn't found (EPID=" << epid << ", IP=" << rx_addr << ")");
+		}
 		// check if the RRQ was sent from the registered endpoint
 		if (ep && bShellSendReply) { // not forwarded RRQ
 			if (ep->IsNATed() || ep->UsesH46018()) {
 				// for nated endpoint, only check rx_addr
 			    bReject = (ep->GetNATIP() != rx_addr);
+			    if (bReject) {
+					PTRACE(3, "RAS\tLightweight registration rejected, because IP doesn't match");
+				}
 			} else {
 				PIPSocket::Address oaddr, raddr;
 				WORD oport, rport;
@@ -1685,6 +1693,9 @@ bool RegistrationRequestPDU::Process()
 					raddr = oaddr, rport = oport;
 				}
 				bReject = (oaddr != raddr) || (oport != rport) || (IsLoopback(rx_addr) ? false : (raddr != rx_addr));
+			    if (bReject) {
+					PTRACE(3, "RAS\tLightweight registration rejected, because IP or ports don't match");
+				}
 			}
 		} 
 		if (bReject) {
@@ -2464,11 +2475,11 @@ bool AdmissionRequestPDU::Process()
 	}
 
 #ifdef HAS_H460
-	bool natsupport = false;
     bool QoSReporting = false;
 	bool vendorInfo = false;
 	PString m_vendor,m_version = PString();
 #ifdef HAS_H46023
+	bool natsupport = false;
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #endif
 	if (request.HasOptionalField(H225_AdmissionRequest::e_genericData)) {  
