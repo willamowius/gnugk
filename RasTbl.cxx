@@ -1554,11 +1554,13 @@ endptr RegistrationTable::FindByEndpointId(const H225_EndpointIdentifier & epId)
 {
 	PWaitAndSignal m(findmutex);
 
-	return InternalFind(compose1(bind2nd(equal_to<H225_EndpointIdentifier>(), epId),
+	PString epIdStr;
+	epIdStr = epId;
+	return InternalFind(compose1(bind2nd(equal_to<PString>(), epIdStr),
 			mem_fun(&EndpointRec::GetEndpointIdentifier)));
 }
 
-namespace { // end of anonymous namespace
+namespace { // anonymous namespace
 
 class CompareSigAdr {
 public:
