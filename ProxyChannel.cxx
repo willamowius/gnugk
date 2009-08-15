@@ -5088,7 +5088,7 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 	// don't create the socket pair by STUN then
 	// create the socket pair here
 	GkClient *gkClient = RasServer::Instance()->GetGkClient();
-	if (!nated || !gkClient->P2Pnat_CreateSocketPair(id,rtp,rtcp,nated)) 
+	if (!nated || !gkClient->H46023_CreateSocketPair(id,rtp,rtcp,nated)) 
 #endif
 	{
 			rtp = new UDPProxySocket("RTP");

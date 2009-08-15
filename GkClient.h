@@ -247,12 +247,12 @@ private:
 #endif
 
 #ifdef HAS_H46023
-	// Handle P2Pnat RCF
+	// Handle H46023 RCF
 	void HandleP2P_RCF(H460_FeatureStd * feat);
-    // Handle P2Pnat ACF
+    // Handle H46023 ACF
 	void HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat);
     // Notify NAT type
-    bool P2Pnat_TypeNotify(int & nattype);
+    bool H46023_TypeNotify(int & nattype);
 	// detected NAT type
 	int m_nattype;
 	// notify of NAT type
@@ -264,9 +264,9 @@ private:
 
 public:
 	// NAT type detected
-	void P2Pnat_TypeDetected(int nattype);
+	void H46023_TypeDetected(int nattype);
     // Create socket pair
-    bool P2Pnat_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
+    bool H46023_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
 
 #endif
 };

@@ -12,10 +12,6 @@
 // initial author: Chih-Wei Huang <cwhuang@linux.org.tw>
 // initial version: 02/27/2002
 //
-// This file contains Patent Pending Technology P2Pnat Technology
-// under special royalty-free license to the GnuGk Project.
-//
-// P2Pnat implementation written by Simon Horne <s.horne@packetizer.com>
 //////////////////////////////////////////////////////////////////
 
 #include <ptlib.h>
@@ -430,7 +426,7 @@ public:
   }
 
 
-  bool Read(PUDPSocket & socket)
+  bool Read(UDPSocket & socket)
   {
     if (!socket.Read(GetPointer(1000), 1000))
       return false;
@@ -438,12 +434,12 @@ public:
     return true;
   }
   
-  bool Write(PUDPSocket & socket) const
+  bool Write(UDPSocket & socket) const
   {
     return socket.Write(theArray, ((STUNmessageHeader *)theArray)->msgLength+sizeof(STUNmessageHeader)) != FALSE;
   }
 
-  bool Poll(PUDPSocket & socket, const STUNmessage & request, PINDEX pollRetries)
+  bool Poll(UDPSocket & socket, const STUNmessage & request, PINDEX pollRetries)
   {
     for (PINDEX retry = 0; retry < pollRetries; retry++) {
       if (!request.Write(socket))
@@ -536,6 +532,9 @@ class STUNClient   :  public  Job,
 			const PIPSocket::Address & binding = PIPSocket::GetDefaultIpAny()
     );
 
+protected:
+	bool OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPSocket::Address & binding);
+
 private:
 	// override from class Task
 	virtual void Exec();
@@ -624,7 +623,41 @@ void STUNClient::OnDetectedNAT(int nattype)
 
 	// Call back to signal the GKClient to do a lightweight reregister
 	// to notify the gatekeeper
-    m_client->P2Pnat_TypeDetected(nattype);
+    m_client->H46023_TypeDetected(nattype);
+}
+
+bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPSocket::Address & binding)
+{
+  if (serverPort == 0) {
+    PTRACE(1, "STUN\tServer port not set.");
+    return false;
+  }
+
+  if (!PIPSocket::GetHostAddress(serverHost, cachedServerAddress) || !cachedServerAddress.IsValid()) {
+    PTRACE(2, "STUN\tCould not find host \"" << serverHost << "\".");
+    return false;
+  }
+
+  PWaitAndSignal mutex(portInfo.mutex);
+
+  WORD startPort = portInfo.currentPort;
+
+  do {
+    portInfo.currentPort++;
+    if (portInfo.currentPort > portInfo.maxPort)
+      portInfo.currentPort = portInfo.basePort;
+
+    if (socket.Listen(binding, 1, portInfo.currentPort)) {
+      socket.SetSendAddress(cachedServerAddress, serverPort);
+      socket.SetReadTimeout(replyTimeout);
+      return true;
+    }
+
+  } while (portInfo.currentPort != startPort);
+
+  PTRACE(1, "STUN\tFailed to bind to local UDP port in range "
+         << portInfo.currentPort << '-' << portInfo.maxPort);
+  return false;
 }
 
 bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const PIPSocket::Address & binding)
@@ -650,7 +683,7 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
   for (i = 0; i < numSocketsForPairing; i++)
   {
     PINDEX idx = stunSocket.Append(new STUNsocket);
-    if (!OpenSocket(stunSocket[idx], pairedPortInfo, binding)) {
+    if (!OpenSocketA(stunSocket[idx], pairedPortInfo, binding)) {
       PTRACE(1, "STUN\tUnable to open socket to server " << GetServer());
       return false;
 	}
@@ -1005,7 +1038,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 					contents = true;
 			} else {
 					int natType = 0;
-					if (P2Pnat_TypeNotify(natType)) {
+					if (H46023_TypeNotify(natType)) {
 						feat.Add(Std23_NATdet,H460_FeatureContent(natType,8)); 
 						contents = true;
 					}
@@ -1746,7 +1779,7 @@ void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
    }
 }
 
-bool GkClient::P2Pnat_TypeNotify(int & nattype)
+bool GkClient::H46023_TypeNotify(int & nattype)
 {
 	if (m_natnotify) 
 		nattype = m_nattype;
@@ -1759,7 +1792,7 @@ void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
     if (feat->Contains(Std24_NATInstruct)) {
 		unsigned NATinst = feat->Value(Std24_NATInstruct); 
 
-        PTRACE(4,"GKC\tP2Pnat strategy for call set to " << NATinst);
+        PTRACE(4,"GKC\tH46024 strategy for call set to " << NATinst);
 
 		if (m_call) 
 			m_call->SetNATStrategy((CallRec::NatStrategy)NATinst);
@@ -1767,7 +1800,7 @@ void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
 	}
 }
 
-bool GkClient::P2Pnat_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
+bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
 {
 
   if (!m_stunClient) 
@@ -1782,7 +1815,7 @@ bool GkClient::P2Pnat_CreateSocketPair(const H225_CallIdentifier & id, UDPProxyS
 	return false;
 }
 
-void GkClient::P2Pnat_TypeDetected(int nattype)
+void GkClient::H46023_TypeDetected(int nattype)
 {
 	m_nattype = nattype;
 	m_natnotify = true;
