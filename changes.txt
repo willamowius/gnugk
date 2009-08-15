@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- changed ProxyForSameNAT default from 0 to 1 (to avoid media failure uncertainty)
 - BUGFIX(RasSrv.cxx) IsReachable looks at correct route table. (virtual was ignored)
 - changed [RoutedMode]EnableH46024= to be consistent with H.460.18 switch
 - BUGFIX(RasSrv.cxx) RCF messages H.460 features now supported Features not GenericData

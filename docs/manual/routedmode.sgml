@@ -519,31 +519,13 @@ If you have bad or broken endpoints that don't satisfy the precondition,
 you have better to disable this feature and let the NAT box forward
 RTP/RTCP stream for you.
 
-<item><tt/ProxyForSameNAT=0/<newline>
-Default: <tt/0/<newline>
+<item><tt/ProxyForSameNAT=1/<newline>
+Default: <tt/1/<newline>
 <p>
 Whether to proxy for calls between endpoints from the same NAT box.
-You do not need to enable this feature in general, since usually endpoints
-from the same NAT box can communicate with each other.
-
-<item><tt/STUNserver=stun.mydomain.com/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-Used with P2Pnat Media. This set the public STUN (RFC3489) server for the
-P2Pnat Media to determine what type of NAT the endpoint is behind. This 
-address is sent to the endpoint once it has been detected behind a NAT. You
-can download an open source STUN server from http://sourceforge.net/projects/stun/
-
-
-<item><tt/LocalProxyOptimize=1/<newline>
-Default: <tt/0/<newline>
-<p>
-Used with P2Pnat Media. When using GnuGk to connect endpoints on a local LAN 
-to the public internet ie GnuGk behind (or on) a router. You can use this
-setting to allow (where possible) your local LAN endpoints to send media 
-directly to other endpoints on the public internet without requiring the 
-media to always to be proxied through the gatekeeper.
-
+There is a degree of uncertainty when endpoints are behind the same NAT as to 
+whether they can communicate directly as one or both may be on subNATs. Disable
+this feature with caution.
 
 <item><tt/DisableH235Call=1/<newline>
 Default: <tt/0/<newline>
