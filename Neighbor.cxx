@@ -51,59 +51,27 @@ const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
 
 static const char OID_MD5[] = "1.2.840.113549.2.5";
 
-static PWCharArray GetUCS2plusNULL(const PString & str)
-{
-	PWCharArray ucs2 = str.AsUCS2();
-	PINDEX len = ucs2.GetSize();
-	if (len > 0 && ucs2[len-1] != 0)
-	  ucs2.SetSize(len+1);
-	return ucs2;
-}
-
-#ifdef hasNoNullBytesInBMPStrings
-#warning "Your PTLib version isn't able to produce compatible MD5 crypto tokens"
-#endif
-
-// helper function to calculate GKPwdHash (could migrate into H323Plus)
 void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id, const PString & password)
 {
-	cryptoTokens.RemoveAll();
-	// Cisco compatible hash calculation
-	H235_ClearToken clearToken;
+	H235AuthSimpleMD5 auth;
+	// avoid copying for thread-safely
+	auth.SetLocalId((const char *)id);
+	auth.SetPassword((const char *)password);
+	H225_ArrayOf_ClearToken dumbTokens;
+	H225_ArrayOf_CryptoH323Token newCryptoTokens;
+	auth.PrepareTokens(dumbTokens, newCryptoTokens);
+	H225_CryptoH323Token_cryptoEPPwdHash & cryptoEPPwdHash = newCryptoTokens[0];
 
-	// fill the PwdCertToken to calculate the hash
-	clearToken.m_tokenOID = "0.0";
-
-	clearToken.IncludeOptionalField(H235_ClearToken::e_generalID);
-	clearToken.m_generalID = GetUCS2plusNULL(id);
-
-	clearToken.IncludeOptionalField(H235_ClearToken::e_password);
-	clearToken.m_password = GetUCS2plusNULL(password);
-
-	clearToken.IncludeOptionalField(H235_ClearToken::e_timeStamp);
-	clearToken.m_timeStamp = (int)time(NULL);
-
-	// Encode it into PER
-	PPER_Stream strm;
-	clearToken.Encode(strm);
-	strm.CompleteEncoding();
-
-	// Generate an MD5 of the clear tokens PER encoding.
-	PMessageDigest5 stomach;
-	stomach.Process(strm.GetPointer(), strm.GetSize());
-	PMessageDigest5::Code digest;
-	stomach.Complete(digest);
-
-	// Create the H.225 crypto token
+	// Create the H.225 GK crypto token
 	H225_CryptoH323Token * finalCryptoToken = new H225_CryptoH323Token;
 	finalCryptoToken->SetTag(H225_CryptoH323Token::e_cryptoGKPwdHash);
 	H225_CryptoH323Token_cryptoGKPwdHash & cryptoGKPwdHash = *finalCryptoToken;
 
 	// Set the token data that actually goes over the wire
 	cryptoGKPwdHash.m_gatekeeperId = Toolkit::GKName();
-	cryptoGKPwdHash.m_timeStamp = clearToken.m_timeStamp;
+	cryptoGKPwdHash.m_timeStamp = cryptoEPPwdHash.m_timeStamp;
 	cryptoGKPwdHash.m_token.m_algorithmOID = OID_MD5;
-	cryptoGKPwdHash.m_token.m_hash.SetData(sizeof(digest)*8, (const BYTE *)&digest);
+	cryptoGKPwdHash.m_token.m_hash = cryptoEPPwdHash.m_token.m_hash;
 	
 	if (finalCryptoToken != NULL)
 		cryptoTokens.Append(finalCryptoToken);

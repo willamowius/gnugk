@@ -99,9 +99,9 @@
 	#if PTLIB_MINOR >= 2
 		#define hasPConfigArray 1
 	#endif
-	// bug with no trailing NULL bytes in BMP strings
+	// bug with no trailing NULL bytes in BMP strings, fixed in PTLib 2.7.1
 	#if ((PTLIB_MINOR == 2) || (PTLIB_MINOR == 4 && PTLIB_BUILD <= 5) || (PTLIB_MINOR == 5 && PTLIB_BUILD <= 2) || (PTLIB_MINOR == 6 && PTLIB_BUILD <= 4))
-		#define hasNoNullBytesInBMPStrings 1
+		#warning "PTLib with MD5 token bug"
 	#endif
 #endif
 
