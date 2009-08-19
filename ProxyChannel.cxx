@@ -4157,7 +4157,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 			}
 			q931->SetCalledPartyNumber(Number, plan, type);
 			#if PTRACING
-			PTRACE(4, Type() << "Set Called Numbering Plan " << plan << TypeOfNumber << type);
+			PTRACE(4, Type() << "\tSet Called Numbering Plan " << plan << TypeOfNumber << type);
 			#endif
 		}
 	}
