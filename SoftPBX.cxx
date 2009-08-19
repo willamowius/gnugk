@@ -87,6 +87,13 @@ void SoftPBX::PrintStatistics(USocket *client, bool)
 	client->TransmitData(msg);
 }
 
+void SoftPBX::ResetCallCounters(USocket *client)
+{
+	PTRACE(3, "GK\tSoftPBX: ResetCallCounters");
+    CallTable::Instance()->ResetCallCounters();
+	client->TransmitData("Call counters reset\r\n");
+}
+
 // send URQ to all endpoints
 void SoftPBX::UnregisterAllEndpoints()
 {

@@ -2633,6 +2633,8 @@ bool AdmissionRequestPDU::Process()
 			pExistingCallRec->SetCallingStationId(authData.m_callingStationId);
 		if (!authData.m_calledStationId)
 			pExistingCallRec->SetCalledStationId(authData.m_calledStationId);
+		if (authData.m_clientAuthId > 0)
+			pExistingCallRec->SetClientAuthId(authData.m_clientAuthId);
 	} else {
 
 		// the call is not in the table
@@ -2668,9 +2670,11 @@ bool AdmissionRequestPDU::Process()
 			pCallRec->SetCalledStationId(authData.m_calledStationId);
 		if (!authData.m_dialedNumber)
 			pCallRec->SetDialedNumber(authData.m_dialedNumber);
-			
+
 		if (authData.m_routeToAlias != NULL)
 			pCallRec->SetRouteToAlias(*authData.m_routeToAlias);
+		if (authData.m_clientAuthId > 0)
+			pCallRec->SetClientAuthId(authData.m_clientAuthId);
 
 		if (!RasSrv->IsGKRouted())
 			pCallRec->SetConnected();

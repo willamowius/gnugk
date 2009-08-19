@@ -1930,6 +1930,8 @@ void CallSignalSocket::OnSetup(
 			m_call->SetCalledStationId(authData.m_calledStationId);
 		if (!authData.m_dialedNumber)
 			m_call->SetDialedNumber(authData.m_dialedNumber);
+		if (authData.m_clientAuthId > 0)
+			m_call->SetClientAuthId(authData.m_clientAuthId);
 		
 		if (!secondSetup && (m_call->GetFailedRoutes().empty() || !m_call->SingleFailoverCDR())) {
 			// log AcctStart accounting event
@@ -2226,6 +2228,8 @@ void CallSignalSocket::OnSetup(
 			m_call->SetDialedNumber(authData.m_dialedNumber);
 		if (!rejectCall && destFound)
 			m_call->SetNewRoutes(request.GetRoutes());
+		if (authData.m_clientAuthId > 0)
+			m_call->SetClientAuthId(authData.m_clientAuthId);
 
 		if (!rassrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call)) {
 			PTRACE(2, Type() << "\tDropping call #" << call->GetCallNumber()

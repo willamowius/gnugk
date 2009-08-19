@@ -606,6 +606,9 @@ result and get additional information:
 	<item>If there exists a column called <tt/'proxy'/, force the gatekeeper
           to enable/disable (depends on the 'proxy' column value) RTP proxy
           for this call
+	<item>If there exists a column called <tt/'clientauthid'/, the gatekeeper will store
+          this ID in its call record and send it back on all accounting events.
+          This must be an unsigned integer with a maximum of 64 bits (eg. 'bigint unsigned' in MySql).
 </enum>
 <item>If the request is denied, remaining columns are examined:
 <enum>

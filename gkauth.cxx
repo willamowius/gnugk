@@ -48,17 +48,19 @@ ARQAuthData::ARQAuthData(
 	const callptr& call
 	) : m_rejectReason(-1), m_callDurationLimit(-1), 
 	m_requestingEP(ep),	m_call(call), m_billingMode(-1),
-	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect)
+	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect),
+	m_clientAuthId(0)
 {
 }
 
 ARQAuthData::ARQAuthData(
 	const ARQAuthData& obj
-	) : m_rejectReason(obj.m_rejectReason), 
+	) : m_rejectReason(obj.m_rejectReason),
 	m_callDurationLimit(obj.m_callDurationLimit), 
 	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call), 
 	m_billingMode(obj.m_billingMode), m_routeToAlias(NULL),
-	m_destinationRoutes(obj.m_destinationRoutes), m_proxyMode(obj.m_proxyMode)
+	m_destinationRoutes(obj.m_destinationRoutes), m_proxyMode(obj.m_proxyMode),
+	m_clientAuthId(0)
 {
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
@@ -67,11 +69,13 @@ ARQAuthData::ARQAuthData(
 ARQAuthData& ARQAuthData::operator=(const ARQAuthData& obj)
 {
 	if (this != &obj) {
+		m_rejectReason = obj.m_rejectReason;
 		m_callDurationLimit = obj.m_callDurationLimit; 
 		m_requestingEP = obj.m_requestingEP;
 		m_call = obj.m_call;
 		m_billingMode = obj.m_billingMode;
 		m_proxyMode = obj.m_proxyMode;
+		m_clientAuthId = obj.m_clientAuthId;
 
 		delete m_routeToAlias;
 		m_routeToAlias = NULL;
@@ -113,7 +117,8 @@ SetupAuthData::SetupAuthData(
 	bool fromRegistered
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
 	m_call(call), m_fromRegistered(fromRegistered), 
-	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect)
+	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect),
+	m_clientAuthId(0)
 {
 }
 
@@ -123,7 +128,7 @@ SetupAuthData::SetupAuthData(
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
 	m_fromRegistered(obj.m_fromRegistered),
 	m_routeToAlias(NULL), m_destinationRoutes(obj.m_destinationRoutes),
-	m_proxyMode(obj.m_proxyMode)
+	m_proxyMode(obj.m_proxyMode), m_clientAuthId(0)
 {
 	if (obj.m_routeToAlias)
 		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
@@ -138,6 +143,7 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 		m_call = obj.m_call;
 		m_fromRegistered = obj.m_fromRegistered;
 		m_proxyMode = obj.m_proxyMode;
+		m_clientAuthId = obj.m_clientAuthId;
 
 		delete m_routeToAlias;
 		m_routeToAlias = NULL;

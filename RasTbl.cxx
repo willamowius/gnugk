@@ -2033,7 +2033,8 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false)
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_clientAuthId(0)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -2083,7 +2084,8 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(routeH245),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false)
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_clientAuthId(0)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -2138,7 +2140,8 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent)
+	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
+	m_clientAuthId(0)
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_calleeId = m_calleeAddr = " ";
@@ -3210,7 +3213,8 @@ bool CallRec::IsTimeout(
 CallTable::CallTable() : Singleton<CallTable>("CallTable")
 {
 	m_CallNumber = 0, m_capacity = -1;
-	m_CallCount = m_successCall = m_neighborCall = m_parentCall = m_activeCall = 0;
+	ResetCallCounters();
+	m_activeCall = 0;
 	LoadConfig();
 }
 
@@ -3218,6 +3222,11 @@ CallTable::~CallTable()
 {
 	ClearTable();
 	DeleteObjectsInContainer(RemovedList);
+}
+
+void CallTable::ResetCallCounters()
+{
+	m_CallCount = m_successCall = m_neighborCall = m_parentCall = 0;
 }
 
 void CallTable::LoadConfig()

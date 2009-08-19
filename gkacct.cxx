@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.38  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.37  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -281,7 +284,7 @@ void GkAcctLogger::SetupAcctParams(
 	if (t)
 		params["disconnect-time"] = toolkit->AsString(PTime(t), timestampFormat);
 	params["ring-time"] = call->GetRingTime();
-	
+
 	if (call->GetSrcSignalAddr(addr, port)) {
 		params["caller-ip"] = addr.AsString();
 		params["caller-port"] = port;
@@ -317,6 +320,7 @@ void GkAcctLogger::SetupAcctParams(
 		params["media-oip"] = addr.AsString();
 	params["codec"] = call->GetCodec();
 	params["bandwidth"] = call->GetBandwidth();
+	params["client-auth-id"] = call->GetClientAuthId();
 }
 
 PString GkAcctLogger::ReplaceAcctParams(

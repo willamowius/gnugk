@@ -123,6 +123,8 @@ struct ARQAuthData
 	int m_proxyMode;
 	/// RADIUS Class attribute, if found in Access-Accept/Access-Reject
 	PBYTEArray m_radiusClass;
+	/// ID provided by client, to be passed out with accounting events
+	PUInt64 m_clientAuthId;
 	
 private:
 	ARQAuthData();
@@ -175,6 +177,8 @@ struct SetupAuthData
 	int m_proxyMode;
 	/// RADIUS Class attribute, if found in Access-Accept/Access-Reject
 	PBYTEArray m_radiusClass;
+	/// ID provided by client, to be passed out with accounting events
+	PUInt64 m_clientAuthId;
 		
 private:
 	SetupAuthData();

@@ -737,6 +737,7 @@ void GkStatus::OnStart()
 	m_commands["gai"] = e_GetAuthInfo;
 	m_commands["getacctinfo"] = e_GetAcctInfo;
 	m_commands["gci"] = e_GetAcctInfo;
+	m_commands["resetcallcounters"] = e_ResetCallCounters;
 }
 
 void GkStatus::ReadSocket(
@@ -1202,6 +1203,9 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_Statistics:
 		SoftPBX::PrintStatistics(this, TRUE);
+		break;
+	case GkStatus::e_ResetCallCounters:
+		SoftPBX::ResetCallCounters(this);
 		break;
 	case GkStatus::e_Find:
 		if (args.GetSize() == 2)

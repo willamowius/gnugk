@@ -761,6 +761,10 @@ public:
 		long seconds /// duration limit to be set
 		);
 
+	/** Set the client provided authentication id **/
+	void SetClientAuthId(PUInt64 id) { m_clientAuthId = id; }
+	PUInt64 GetClientAuthId() const { return m_clientAuthId; }
+
 	/** Set list of codecs to disable for this call */
 	void SetDisabledCodecs(const PString & codecs);
 	PString GetDisabledCodecs() const { return m_disabledcodecs; }
@@ -1275,6 +1279,7 @@ private:
 	/// processed Setup data ready to be sent to the callee (for H.460.18)
 	PBYTEArray m_processedSetup;
 #endif
+	PUInt64 m_clientAuthId;
 };
 
 typedef CallRec::Ptr callptr;
@@ -1291,6 +1296,7 @@ public:
 	CallTable();
 	~CallTable();
 
+	void ResetCallCounters();
 	void Insert(CallRec * NewRec);
 
 	// bandwidth management

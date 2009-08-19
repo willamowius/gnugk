@@ -142,6 +142,7 @@ public:
 		e_SendProceeding,              /// Send a CallProceeding message for this call-id
 		e_GetAuthInfo,                 /// Get auth module information
 		e_GetAcctInfo,                 /// Get acct module information
+		e_ResetCallCounters,           /// Reset the call counters
 		e_numCommands
 		/// Number of different strings
 	};

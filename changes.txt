@@ -1,5 +1,7 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- feature to set a ClientAuthId in SqlAuth that is provided as %{client-auth-id} on all accounting events
+- new status port command ResetCallCounters
 - changed ProxyForSameNAT default from 0 to 1 (to avoid media failure uncertainty)
 - BUGFIX(RasSrv.cxx) IsReachable looks at correct route table. (virtual was ignored)
 - changed [RoutedMode]EnableH46024= to be consistent with H.460.18 switch

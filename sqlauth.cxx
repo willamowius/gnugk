@@ -785,7 +785,17 @@ int SQLAuth::Check(
 				);
 		}
 	}
-			
+
+	iter = FindField(result, "clientauthid");
+	if (iter != result.end()) {
+		const PString & s = iter->first;
+		if (s.GetLength() > 0
+			&& strspn((const char*)s, "0123456789") == (size_t)s.GetLength()) {
+			authData.m_clientAuthId = s.AsUnsigned64();
+			PTRACE(5, traceStr << " - clientAuthId = " << authData.m_clientAuthId);
+		}
+	}
+	
 	return e_ok;
 }
 
@@ -997,7 +1007,17 @@ int SQLAuth::Check(
 				);
 		}
 	}
-			
+
+	iter = FindField(result, "clientauthid");
+	if (iter != result.end()) {
+		const PString & s = iter->first;
+		if (s.GetLength() > 0
+			&& strspn((const char*)s, "0123456789") == (size_t)s.GetLength()) {
+			authData.m_clientAuthId = s.AsUnsigned64();
+			PTRACE(5, traceStr << " - clientAuthId = " << authData.m_clientAuthId);
+		}
+	}
+
 	return e_ok;
 }
 

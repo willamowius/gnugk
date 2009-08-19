@@ -168,6 +168,9 @@ Startup: Fri, 21 Jun 2002 10:50:22 +0800   Running: 11 days 04:22:59
 </verb></tscreen>
 </descrip>
 
+<item><tt/ResetCallCounters/<newline>
+<p>Reset the statistics counters for total calls, successful calls, neighbor calls and parent calls to zero.
+
 <item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/<newline>
 <p>Show all registered endpoints.
 <descrip>
