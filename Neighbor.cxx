@@ -53,6 +53,8 @@ static const char OID_MD5[] = "1.2.840.113549.2.5";
 
 void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id, const PString & password)
 {
+	cryptoTokens.SetSize(0);
+
 	H235AuthSimpleMD5 auth;
 	// avoid copying for thread-safely
 	auth.SetLocalId((const char *)id);
