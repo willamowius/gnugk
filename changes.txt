@@ -8,7 +8,7 @@ Changes from 2.3.0 to 2.3.1
 - BUGFIX(RasSrv.cxx) RCF messages H.460 features now supported Features not GenericData
 - BUGFIX(ProxyChannel.cxx) H.460.19 working with Fast Connect
 - BUGFIX(RasSrv.cxx,ProxyChannel.cxx) Tandberg MXP interoperability fixes
-- BUGFIX(ProxyChannel.cxx) check capacity on routes supplies by authenticators (Radius, SQL etc.)
+- BUGFIX(ProxyChannel.cxx) check capacity on routes supplied by authenticators (Radius, SQL etc.)
 - BUGFIX(RasSrv.cxx) avoid cutting off status messages after 1000 chars (problem in PString::Printf)
 - BUGFIX(ProxyChannel.cxx) fix for fastStart with H.460.19
 - new switch [RoutedMode]EnableH.460.24=, which defaults to OFF
