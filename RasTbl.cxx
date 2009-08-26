@@ -2501,7 +2501,7 @@ void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
 {
 	if (ep != nep) {
 		if (ep)
-			ep->RemoveCall(StripAliasType(GetDialedNumber()));
+			ep->RemoveCall(StripAliasType(GetDestInfo()));
 		m_usedLock.Wait();
 		ep = nep;
 		m_usedLock.Signal();
@@ -2515,9 +2515,9 @@ void CallRec::RemoveAll()
 	if (IsToParent())
 		RasServer::Instance()->GetGkClient()->SendDRQ(callptr(this));
 	if (m_Calling)
-		m_Calling->RemoveCall(StripAliasType(GetDialedNumber()));
+		m_Calling->RemoveCall(StripAliasType(GetDestInfo()));
 	if (m_Called)
-		m_Called->RemoveCall(StripAliasType(GetDialedNumber()));
+		m_Called->RemoveCall(StripAliasType(GetDestInfo()));
 }
 
 void CallRec::RemoveSocket()
@@ -3725,7 +3725,7 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 	}
 	
 	if (call->GetCalledParty())
-		call->GetCalledParty()->RemoveCall(StripAliasType(call->GetDialedNumber()));
+		call->GetCalledParty()->RemoveCall(StripAliasType(call->GetDestInfo()));
 	
 	call->SetSocket(NULL, NULL);
 }
