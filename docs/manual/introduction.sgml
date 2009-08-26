@@ -9,10 +9,10 @@ The English version is the master document and will get updated first.
 <bf>
 <url url="http://www.gnugk.org/" name="The GNU Gatekeeper">
 </bf>
-is an open-source project that implements an H.323 gatekeeper.
-A gatekeeper provides call control services to the H.323 endpoints.
-It is an integral part of most useful internet telephony
-installations that are based on the H.323 standard.
+is an open-source project that implements a H.323 gatekeeper. A gatekeeper
+provides call control services to H.323 endpoints and is an integral part of
+most useful Internet telephony installations that are based on the H.323
+standard.
 
 According to Recommendation H.323, a gatekeeper shall provide the
 following services:
@@ -32,73 +32,79 @@ based on the
 <url url="http://sourceforge.net/projects/openh323" name="OpenH323">
 protocol stack.
 
-Recommendation H.323 is an international standard published by the
-<url url="http://www.itu.int/" name="ITU">.
-It is a communications standard for audio, video, and data over the Internet.
-See also Paul Jones'
-<url url="http://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on the H.323 Series Standard">.
+Recommendation H.323 is an international standard published by the <url
+url="http://www.itu.int/" name="ITU">.  It is a communications standard for
+audio, video, and data over the Internet.  See also Paul Jones' <url
+url="http://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on
+the H.323 Series Standard">.
 
 For a detailed description of what a gatekeeper does, see
 <url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="here">.
 
 <sect1>Copyright
 <p>
-It is covered by the
-<htmlurl url="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html" name="GNU General Public License version 2"> (GNU GPL v2).
-In addition to that, we explicitly grant
-the right to link this code to the OpenH323/H323Plus and OpenSSL library.
+The GNU Gatekeeper is covered by the <htmlurl
+url="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html" name="GNU
+General Public License version 2"> (GNU GPL v2).  In addition, we explicitly
+grant the right to link this code to the OpenH323/H323Plus and OpenSSL
+library.
 
-Some protocols implemented in the GNU Gatekeeper are covered by patents (especially the
-firewall / NAT traversal protocols). To the best of our knowledge, the GNU Gatekeeper Project
-has a valid license for all its releases, but users making derived versions of this code have
-to ensure that they also have a sufficient license before enabling those features.
+Some protocols implemented in the GNU Gatekeeper are covered by patents
+(especially the firewall / NAT traversal protocols).  To the best of our
+knowledge, the GNU Gatekeeper Project has a valid license for all its
+releases, but users making derived versions of this code must ensure that
+they have a valid license before enabling those features.
 
-Generally speaking, the GNU GPL allows you to copy, distribute, resell or modify
-the software, but it requires that all derived works must be published
-under GNU GPL also.
-That means that you must publish full source for all extensions to
-the gatekeeper and for all programs you include the gatekeeper into.
-See the file COPYING for details.
+Generally speaking, the GNU GPL allows you to copy, distribute, resell or
+modify the software, but it requires that all derived works must also be
+published under the GNU GPL.  This means that you must publish full source
+for all extensions to the gatekeeper and for all programs where you
+incorporate code from the GNU Gatekeeper.  See the file COPYING for details.
 
 If that's not what you want, you must interface to the gatekeeper through
-the status port and communicate via TCP with it.
-That way you only have to integrate the basic functionality into
-the gatekeeper (and provide source for that) and can keep other parts
-of your application private.
+the status port and communicate with it via TCP.  This allows you to
+integrate basic functionality into the gatekeeper (and provide source for
+that) but keep other parts of your application private.
 
 <sect1>Name
 <p>
-The name of this project <em>GNU Gatekeeper</em>, short <em/GnuGk/
-is used to emphasise that this is free software.
+The full name of this project is <em>GNU Gatekeeper</em>, but it may also be
+referred to as <em>GnuGk</em>.  The use of "GNU" in the name is to emphasize
+that this is free software.
 
 <sect1>Download
 <label id="download">
 <p>
-The newest versions are available at
+The newest version is available at
 <url url="http://www.gnugk.org/h323download.html" name="the download page">.
 
-The very latest source code is in the CVS at
-<url url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/" name="Sourceforge Web-GUI">.
-Beware - that's the bleeding edge.
+The very latest source code is in the CVS at <url
+url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/"
+name="Sourceforge Web-GUI">.  Beware - that's the bleeding edge.
 
 You can also download executables for a number of operating systems from
 <url url="http://www.gnugk.org/h323download.html" name="the download page">.
 
 <sect1>Mailing Lists
 <p>
-There are two mailing list for the project, one for the developers and one for the users.
+There are two mailing list for the project, one for developers and one for users.
 
-General user questions should be send to the
-<url url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. You can find the list archive
-<url url="https://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-users" name="here">.
-To join this mailing list, click
-<url url="https://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="here">.
+General user questions should be sent to the <url
+url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. 
+You can find the list archive <url
+url="https://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-users"
+name="here">.  To join this mailing list, click <url
+url="https://lists.sourceforge.net/lists/listinfo/openh323gk-users"
+name="here">.
 
-To report problems or submit bugs/patches, send mails to the
-<url url="mailto:Openh323gk-developer@sourceforge.net" name="developers mailing list">.
-The list archive is
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer" name="here">. Please send user questions to the users mailing list and keep this list to development! If you want to contribute to the project, please
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="join the mailing list">.
+To report problems or submit bugs/patches, send email to the
+<url url="mailto:Openh323gk-developer@sourceforge.net" name="developers
+mailing list">.  The list archive is <url
+url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer"
+name="here">.  Please send user questions to the users mailing list and keep
+this list for development!  If you want to contribute to the project, please
+<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer"
+name="join the developers mailing list">.
 
 <sect1>Contributors
 <p>
@@ -106,16 +112,16 @@ The current project coordinator is
 <url url="http://www.willamowius.de/gnugk-consulting.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
-The main features and functions of version 2.0 are contributed by
-Chih-Wei Huang <tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
-and
-<url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
-including thread-safe registration and call tables,
-new routed mode architecture, H.323 proxy,
-H.235 authentication and MySQL backend.
+The main features and functions of version 2.0 are contributed by Chih-Wei
+Huang <tt><htmlurl url="mailto:cwhuang@linux.org.tw"
+name="&lt;cwhuang@linux.org.tw&gt;"></tt> and Citron Network Inc., including
+thread-safe registration and call tables, new routed mode architecture,
+H.323 proxy, H.235 authentication and MySQL backend.
 
-Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl" name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done some great work on Radius support and other improvements.
+Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl"
+name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done some great work on
+Radius support and other improvements.
 
-The initial version of the gatekeeper has been developed by
+The initial version of the gatekeeper had been developed by
 Xiang Ping Chen, Joe Metzger and Rajat Todi.
 
