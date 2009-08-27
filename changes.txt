@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- features documented: [AssignedAliases::SQL], [AssignedGatekeepers::SQL] and [GkQoSMonitor::SQL]
 - BUGFIX(RasTbl.cxx) use rewritten number when decrementing prefix capacity counters, so they match the increment
 - feature to set a ClientAuthId in SqlAuth that is provided as %{client-auth-id} on all accounting events
 - new status port command ResetCallCounters
