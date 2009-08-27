@@ -155,6 +155,29 @@ allows endpoints to be assigned fully qualified E164 or URI addresses upon regis
 </verb>
 </descrip>
 
+<sect1>Section &lsqb;AssignedAliases::SQL&rsqb;
+<p>
+This section allows to read the assigned aliases from a database.
+You can use the same database parameters, as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to retrieve the assigned aliases from the database.
+
+One parameter is defined:
+<itemize>
+<item><tt/%u/ - endpoint alias
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT assignedalias FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
+
 <sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
 <p>
 This allows the assigning of a gatekeeper based apon the H323ID or the
@@ -177,6 +200,31 @@ is assigned the assigned and the others are assigned alternates.
 ^195\.71\.(129|131)\.[0-9]+$=x.x.x.x:1719
 </verb>
 </descrip>
+
+
+<sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
+<p>
+This section allows to read the assigned gatekeepers from a database.
+You can use the same database parameters, as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to retrieve the assigned gatekeepers from the database.
+
+One parameter is defined:
+<itemize>
+<item><tt/%u/ - endpoint alias
+<item><tt/%i/ - endpoint IP
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
 
 
 <sect1>Section &lsqb;NATedEndpoints&rsqb;

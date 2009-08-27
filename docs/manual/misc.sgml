@@ -128,6 +128,43 @@ Define the output file to log QoS information to. If a file is not defined the
 QoS information is outputted as an item in the Trace File trace level 4
 </itemize>
 
+<sect1>Section &lsqb;GkQoSMonitor::SQL&rsqb;
+<p>
+This section allows you to store QoS information in a database.
+You can use the same database parameters, as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+<itemize>
+<item><tt/Query=INSERT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to store the QoS information.
+
+The following parameters are defined:
+<itemize>
+<item><tt/%g/ - gatekeeper ID
+<item><tt/%{ConfId}/ - conference ID
+<item><tt/%{session}/ - session
+<item><tt/%{caller-ip}/ - caller IP
+<item><tt/%{caller-port}/ - caller port
+<item><tt/%{caller-nat}/ - is caller nated (0 or 1)
+<item><tt/%{callee-ip}/ - caller IP
+<item><tt/%{callee-port}/ - caller port
+<item><tt/%{avgdelay}/ - average delay
+<item><tt/%{packetloss}/ - packet loss
+<item><tt/%{packetloss-percent}/ - packet loss percentage
+<item><tt/%{avgjitter}/ - average jitter
+<item><tt/%{bandwidth}/ - bandwidth
+<item><tt/%t/ - timestamp
+
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+INSERT INTO qos SET caller_ip="%{caller-ip}", bandwidth="%{bandwidth}, timestamp=%t
+</verb></tscreen>
+
+</itemize>
+
 <sect1>Section &lsqb;Endpoint&rsqb;
 <label id="endpoint">
 <p>
