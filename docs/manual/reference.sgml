@@ -2,7 +2,7 @@
 <p>
 The behavior of the gatekeeper is completely determined by the command line
 options and configuration file. Some command line options may override
-the setting of the configuration file.
+a setting from the configuration file.
 For example, the option <tt/-l/ overrides the setting <tt/TimeToLive/
 in the configuration file.
 
@@ -22,26 +22,26 @@ Specify the configuration file to use.
 <tag/<tt/-s  --section section//
 Specify which main section to use in the configuration file. The default is [Gatekeeper::Main].
 <tag/<tt/-i  --interface IP//
-Specify the interface (IP number) that the gatekeeper listens to.
-You should leave out this option to let the gatekeeper automatically determine
-the IP it listens to, unless you want the gatekeeper only binds to
+Specify the interface (IP address) that the gatekeeper listens to.
+You should skip this option to let the gatekeeper automatically determine
+the IP it listens to, unless you want the gatekeeper to bind only to
 a specified IP.
 <tag/<tt/-l  --timetolive n//
 Specify the time-to-live timer (in seconds) for endpoint registration.
-It overrides the setting <tt/TimeToLive/ in the configuration file.
+Overrides the setting <tt/TimeToLive/ in the configuration file.
 See <ref id="ttl" name="there"> for detailed explanations.
 <tag/<tt/-b  --bandwidth n//
 Specify the total bandwidth available for the gatekeeper.
-Without specifying this option, the bandwidth management
-is disable by default.
+Without this option, bandwidth management
+is disabled.
 <tag/<tt/--pid filename//
-Specify the pid file, only valid for Unix version.
+Specify the pid file. Only valid for Unix version.
 <tag/<tt/-u  --user name//
-Run the gatekeeper process as this user. Only valid for Unix versions.
+Run the gatekeeper process as this user. Only valid for Unix version.
 <tag/<tt/--core n//
-(Unix only) Enable writing core dump files when the application crashes. A core
+Enable writing core dump files when the application crashes. A core
 dump file will not exceed n bytes in size. A special constant "unlimited"
-may be used to not enforce any particular limit.
+may be used to not enforce any particular limit.  Only valid for Unix version.
 </descrip>
 
 <sect2>Gatekeeper Mode
@@ -63,7 +63,7 @@ Use gatekeeper routed call signaling and H.245 control channel.
 <tag/<tt/-o  --output filename//
 Write trace log to the specified file.
 <tag/<tt/-t  --trace//
-Set trace verbosity. The more <tt/-t/ you add, the more verbose to output.
+Set trace verbosity. Each additional <tt/-t/ adds additional verbosity to the output.
 For example, use <tt/-ttttt/ to set the trace level to 5.
 </descrip>
 

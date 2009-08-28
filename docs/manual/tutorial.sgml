@@ -2,31 +2,29 @@
 <p>
 <sect1>A first simple experiment
 <p>
-To see that all components are up and running, get
+To confirm that all components are up and running, get
 2 Linux workstations, both connected to the LAN.
-Make sure you have at least version 1.1 of OpenH323 and OhPhone installed.
-On the first machine run the gatekeeper and ohphone (on
-different consoles):
+In addition to GnuGk the examples use a softphone called "OhPhone".
+On the first machine run the gatekeeper in direct mode:
 
 <tscreen><verb>
 jan@machine1 > gnugk -ttt
 </verb></tscreen>
 
-Now the gatekeeper is running in direct mode.
-The "<tt/-ttt/" option tells the gatekeeper to do a lot of debug output
-on the console (you can direct that output to a file with "<tt/-o logfile/").
+The "<tt/-ttt/" option tells the gatekeeper that it should be verbose with the debug output
+to the console. You can direct the output to a file with "<tt/-o logfilename.log/"
 
+Now start OhPhone on another console:
 <tscreen><verb>
 jan@machine1 > ohphone -l -a -u jan
 </verb></tscreen>
 
-Now this OhPhone is listening (<tt/-l/) for calls and will automatically
-accept them (<tt/-a/). It has registered as user jan with the gatekeeper
-that it will automatically detect. (If the auto detect fails for some
-reason use "<tt/-g 1.2.3.4/" to specify the IP number the gatekeeper
-is running on.)
+OhPhone is now listening (<tt/-l/) for calls and will automatically accept
+them (<tt/-a/).  It has also registered with the gatekeeper as user jan.  OhPhone
+will attempt to automatically locate the gatekeeper, but if the auto
+detect fails, use "<tt/-g 1.2.3.4/" to specify the IP address of the gatekeeper.
 
-On the second machine run ohphone only:
+On the second machine run ohphone this way:
 
 <tscreen><verb>
 peter@machine2 > ohphone -u peter jan
@@ -34,27 +32,27 @@ peter@machine2 > ohphone -u peter jan
 
 The second instance of OhPhone registers with the auto detected
 gatekeeper as user peter and tries to call user jan.
-The gatekeeper will resolve the username to the IP number from
+The gatekeeper will resolve the username to the IP address from
 where user jan has registered (machine1 in this case) and OhPhone
-will call the other instance of OhPhone on machine one.
+will call the other instance of OhPhone on machine1.
 
-The first instance of OhPhone will accept that call and Peter and Jan can chat.
+The instance of OhPhone on machine1 will automatically accept the call and Peter and Jan can chat.
 
 <sect1>Using the Status interface to monitor the gatekeeper
 <p>
-Now we try to see which messages are handled by the gatekeeper.
+The status interface presents a text-based means of interacting with an already-running gatekeeper.
+
 On a new console on machine1 we use telnet to connect to the gatekeeper:
 
 <tscreen><verb>
 jan@machine1 > telnet machine1 7000
 </verb></tscreen>
 
-Most probably we'll get an "Access forbidden!" message, because
-not everybody is allowed to spy.
+You should receive an "Access forbidden!" message because access to the status port is restricted by default.
 
-Now we create a file called <tt/gatekeeper.ini/ and put it in the
+Create a file called <tt/gatekeeper.ini/ in the
 directory where we start the gatekeeper.
-<tt/gatekeeper.ini/ only contains 4 lines:
+<tt/gatekeeper.ini/ will contain the following 4 lines:
 
 <tscreen><verb>
 [Gatekeeper::Main]
@@ -63,21 +61,36 @@ Fortytwo=42
 rule=allow
 </verb></tscreen>
 
-Stop the gatekeeper with Ctrl-C and restart it.
+Stop the gatekeeper with Ctrl-C and restart it, but specify that it should use the <tt/gatekeeper.ini/ we just created:
 
 <tscreen><verb>
 jan@machine1 > gnugk -ttt -c ./gatekeeper.ini
 </verb></tscreen>
 
-When we do the telnet again, we stay connected with the gatekeeper.
+Use telnet to connect to port 7000 and you should now be allowed to connect to the gatekeeper:
+
+<tscreen><verb>
+jan@machine1 >  telnet localhost 7000
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+Version:
+Gatekeeper(GNU) Version(2.3.1) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=1,h46018=1,h46023=1) Build(Aug 12 2009, 09:30:37) Sys(Linux i686 2.6.28-14-generic)
+Startup: Tue, 25 Aug 2009 15:30:44 -0500   Running: 2 days 21:30:50
+;
+</verb></tscreen>
+
 Now repeat the first experiment where Peter calls Jan and see which
 messages are handled by the gatekeeper in non-routed mode.
-There is a number of commands that can be issued in this telnet session:
-Type "help" to see them.
+
+There are a number of commands that can be issued in the telnet session - type "help" to see them.
+
 To end the telnet session with the gatekeeper type "quit" and hit Enter.
 
-But this is very insecure - everybody could connect to the status interface and see this.
-Lets change the configuration file to
+However, the example configuration file we created is very insecure because it has a default <bf/allow/ rule, so there are no
+restrictions on who can connect and which commands they may execute.
+
+Change the configuration file to:
 
 <tscreen><verb>
 [Gatekeeper::Main]
@@ -87,25 +100,41 @@ rule=password
 gkadmin=QC7VyAo5jEw=
 </verb></tscreen>
 
-The 5th line is added by addpasswd utility, it creates a user "gkadmin" with 
-password "secret" which will limit access to the status port.
-Restart the gatekeeper with this new configuration and do the telnet again.
-Now you will be asked for a username and password before you can login.
+The 5th line was added by the addpasswd utility, which was used to create a user "gkadmin" with 
+password "secret".  This change now enforces authentication to the status port.
 
-Take a look at the <ref id="gkstatusauth" name="GkStatus::Auth"> section for more details on securing the status ports.
+Restart the gatekeeper with this new configuration and perform the telnet again.
+You should now be prompted for a username and password:
 
-<sect1>Starting the gatekeeper in routed mode
+<tscreen><verb>
+jan@machine1 >  telnet localhost 7000
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+
+GnuGk login: gkadmin
+Password: secret
+Version:
+Gatekeeper(GNU) Version(2.3.1) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=1,h46018=1,h46023=1) Build(Aug 12 2009, 09:30:37) Sys(Linux i686 2.6.28-14-generic)
+Startup: Tue, 25 Aug 2009 15:30:44 -0500   Running: 2 days 21:33:32
+;
+</verb></tscreen>
+
+The <ref id="gkstatusauth" name="GkStatus::Auth"> section contains additional information on securing the status port.
+
+<sect1>Running the gatekeeper in routed mode
 <p>
 Starting the gatekeeper in routed mode means that the gatekeeper
-uses "gatekeeper routed signaling" for all calls. In this
-mode the gatekeeper all signaling messages go through the gatekeeper
-and it has much greater control over the calls.
+uses "gatekeeper routed signaling". 
+All signaling messages go through the gatekeeper, giving it
+much greater control over the calls.
 
+Start GnuGk like this:
 <tscreen><verb>
 jan@machine1 > gnugk -r
 </verb></tscreen>
 
-Now the gatekeeper is running in routed mode. Telnet to the status port
+will put the gatekeeper in routed mode. Telnet to the status port
 and make a call to see what messages are now handled by the gatekeeper.
 
 Note that all media packets (audio and video) are still sent
@@ -113,23 +142,23 @@ directly between the endpoints (the 2 instances of ohphone).
 
 <sect1>A virtual PBX: Disconnecting calls
 <p>
-Until now the gatekeeper has only acted as a mechanism
-to resolve symbolic names to IP addresses. That's an important
-function but hardly exciting.
+Until now the gatekeeper has acted only as a mechanism
+to resolve symbolic names to IP addresses. This is a critical function of
+a gatekeeper, but the gatekeeper is capable of much more.
 
-Since the gatekeeper has a lot of control over the calls,
-it can terminate them for example. When we are
-connected to the status port, we can list all active calls
-with "<tt/PrintCurrentCalls/". To terminate a call, we can
-say "<tt/Disconnectip 1.2.3.4/" for one of its endpoints.
+Because the gatekeeper has a lot of control over the calls,
+it can also be used to terminate them. While
+connected to the status port, you can list all active calls
+with "<tt/PrintCurrentCalls/". To terminate a call, type
+"<tt/Disconnectip 1.2.3.4/" for one of the endpoints.
 
-One could for example write a simple script that connects to
-the status port and listens for all ongoing calls and terminates
-them after 5 minutes, so no user can over use system resources.
+For example, a simple script could be written to connect to
+the status port, obtain a list of ongoing calls and terminate
+them after 5 minutes to prevent users from using too many system resources.
 
-Take a look at the other telephony functions like TransferCall to see what else is available.
+Other functions such as TransferCall are also available.
 
-<sect1>Routing calls over a gateway to reach external users
+<sect1>Routing calls to a gateway to reach external users
 <p>
 Without using a gateway you can only call other people with an
 IP phone over the Internet. To reach people with ordinary telephones
@@ -146,10 +175,10 @@ _________________          |            |
 |_______________|
 </verb></tscreen>
 
-The gatekeeper has to know which calls are supposed to be routed
-over the gateway and what numbers shall be called directly.
+The gatekeeper must be configured to specify which calls should be routed
+to the gateway and which numbers can be called directly.
 Use the [RasSrv::GWPrefixes] section of the config file to tell
-the gatekeeper the prefix of numbers that shall be routed over the
+the gatekeeper the prefix of numbers that should be routed to the
 gateway.
 
 <tscreen><verb>
@@ -158,26 +187,30 @@ gw1=0
 </verb></tscreen>
 
 This entry tells the gatekeeper to route all calls to E.164 numbers
-starting with 0 to the gateway that has registered with the H.323
+starting with "0" to the gateway that has registered with the H.323
 alias "gw1". If there is no registered gateway with that alias the
-call will fail. (Note that you must use the gateway alias - you
-can't just tell the gatekeeper the IP number of the gateway.)
+call will fail. 
 
-<p>
+<bf>NOTE:</bf> You must use the gateway alias - you cannot use the IP address of the gateway.
+
 A prefix can contain digits <tt/0-9/, <tt/#/ and <tt/*/. It can also
 contain a special character <tt/./ (a dot) that matches any digit
 and can be prefixed with <tt/!/ (an exclamation mark) to disable the prefix.
-Prefix matching is done accordingly to the longest matching prefix rule,
-with ! rules having higher priority if lengths are equal. You may also use := syntax to set the priority between several gateways matching the same prefix (see section <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> for details). Some examples:
+Prefix matching is done according to the longest matching prefix rule,
+with ! rules having higher priority if lengths are equal. You may also 
+use := syntax to set the priority between several gateways matching the same prefix (see section <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> for details). 
+Some examples:
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
 ; This entry will route numbers starting with 0048 (but not with 004850 and 004860)
-; to the gw1
+; to gw1
 gw1=0048,!004850,!004860
-; This entry will match only 001 with 10 digits following
+; This entry will match only 001 with 10 digits following and route the call to
+; gw2
 gw2=001..........
 </verb></tscreen>
+
 
 <sect1>Rewriting E.164 numbers
 <p>
@@ -187,7 +220,7 @@ network. You can use the <ref id="rewrite" name="RasSrv::RewriteE164">
 section to configure that.
 
 Example:
-You want to call number 12345 with you IP Phone and would like to
+You want to call number 12345 with your IP Phone and would like to
 reach number 08765 behind a gateway called "gw1".
 
 <tscreen><verb>
@@ -232,8 +265,8 @@ gw1=in=00=123400
 
 Rewrite expressions accept dot <tt/'.'/ and percent sign <tt/'%'/ wildcard
 characters to allow building more general rules. The dot character can occur
-at both left and right hand sides of expressions, the percent sign can occur
-only at the left side only. Use <tt/'.'/ to match any character and copy it
+on both the left and right hand sides of expressions. The percent sign can occur
+only at the left side. Use <tt/'.'/ to match any character and copy it
 to the rewritten string and <tt/'%'/ to match any character and skip it.
 A few simple examples:
 
