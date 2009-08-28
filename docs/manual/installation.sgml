@@ -64,7 +64,7 @@ In order to use the gatekeeper under heavy load, enabling the LARGE_FDSET featur
 (only available on Unix) is recommended (configure --with-large-fdset=4096). Some systems
 also need to use ulimit in order to allow more than 1024 sockets to be allocated for 
 a single process.
-Maximum LARGE_FDSET value should be calculated 
+Maximum LARGE_FDSET value for voice calls should be calculated 
 based upon predicted maximum sockets usage using the following formula:
 <tscreen><verb>
 MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
@@ -72,7 +72,7 @@ MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
 Where:
 10 = 2 sockets for Q.931 + 2 sockets for H.245 + 6 sockets for RTP
 </verb></tscreen>
-So for 100 concurrent calls you don't need more than 1024 sockets in the
+So for 100 concurrent voice calls you don't need more than 1024 sockets in the
 LARGE_FDSET.
 
 As a final step, you must either use <tt/make debug/ or <tt/make optnoshared/, depending
