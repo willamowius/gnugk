@@ -1306,7 +1306,7 @@ void RasServer::GetAlternateGK()
 	altGKs->SetSize(altgks.GetSize());
 
 	for (PINDEX idx = 0; idx < altgks.GetSize(); ++idx) {
-		const PStringArray tokens = altgks[idx].Tokenise(":", FALSE);
+		const PStringArray tokens = altgks[idx].Tokenise(":", FALSE);	// IPv6 problem
 		if (tokens.GetSize() < 4) {
 			PTRACE(1,"GK\tFormat error in AlternateGKs");
 			continue;
