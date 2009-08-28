@@ -53,11 +53,11 @@ See section <ref id="commandline" name="Command Line Options"> for details on th
 You are strongly encouraged to execute <tt/make debugdepend/ or <tt/make optdepend/
 in the gatekeeper directory before starting actual compilation - these commands
 build appropriate dependency lists, so any CVS updates to the source code will force
-all affected files to get recompiled and will prevent the code from being compiled
+all affected files to get recompiled and will prevent the resulting binary from being compiled
 with a mix of old and updated headers.
 
 Type <tt/configure --help/ to see a detailed list of all compile-time
-options. You can use them to enable or disable some features of the gatekeeper.
+options. You can use them to enable or disable features of the gatekeeper.
 For example, if you do not need RADIUS just type: <tt/configure --disable-radius/.<newline>
 
 In order to use the gatekeeper under heavy load, enabling the LARGE_FDSET feature
@@ -75,8 +75,8 @@ Where:
 So for 100 concurrent calls you don't need more than 1024 sockets in the
 LARGE_FDSET.
 
-As last step, you must use either <tt/make debug/ or <tt/make optnoshared/, depending
-on how yopu compiled the libraries.
+As a final step, you must either use <tt/make debug/ or <tt/make optnoshared/, depending
+on how you compiled the libraries.
 
 <sect1>Installing on Windows
 <p>
@@ -128,8 +128,8 @@ may start it manually using the Windows Control Panel -> Services function.  On 
 Windows 7, you may have to disable UAC during the service installation.
 
 When running GnuGk as a service, it will always look for a config file named <tt/gatekeeper.ini/
-in the current directory and you will have to set the trace level and trace file using the
-config file instead of the command line.
+in the current directory. Any changes to the trace level and location of the trace file must be made in the 
+config file rather than the command line.
 
 Remember to add GnuGk as an exception for the Windows Firewall so it can communicate freely with the network.
 
@@ -138,12 +138,12 @@ Remember to add GnuGk as an exception for the Windows Firewall so it can communi
 Once you have compiled the pre-requisites as specified at the beginning of
 this section and have the appropriate include/library paths configured, open and
 compile one of the provided solution files (<tt/.sln/) for your version of
-Microsoft Visual Studio.  If you want to get MySQL or PostgreSQL support,
-install/compile appropriate client libraries.
+Microsoft Visual Studio.  If you need MySQL or PostgreSQL support,
+install/compile appropriate client libraries before you compile GnuGk.
 
 <sect1>The addpasswd utility
 <p>
-Status port access authentication and the SimplePasswordAuth module require
+Status port authentication and many other authentication modules, like SimplePasswordAuth, require
 encrypted passwords to be stored in the gatekeeper configuration file.
 The gatekeeper also supports encryption of all passwords
 in the config. The <tt/addpasswd/ utility is required to generate and store 
