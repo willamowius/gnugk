@@ -101,7 +101,11 @@
 	#endif
 	// bug with no trailing NULL bytes in BMP strings, fixed in PTLib 2.7.1
 	#if ((PTLIB_MINOR == 2) || (PTLIB_MINOR == 4 && PTLIB_BUILD <= 5) || (PTLIB_MINOR == 5 && PTLIB_BUILD <= 2) || (PTLIB_MINOR == 6 && PTLIB_BUILD <= 4))
-		#warning "PTLib with MD5 token bug"
+		#ifdef _WIN32
+			#pragma message("PTLib with MD5 token bug")
+		#else
+			#warning "PTLib with MD5 token bug"
+		#endif
 	#endif
 #endif
 
