@@ -207,7 +207,6 @@ public:
         H225_ArrayOf_AlternateGK assignedGK;
 		assignedGK.SetSize(0);
 
-		// Put query in here....
 		// Queries a DB for gatekeeper registrations with the first being
 		// the assigned gatekeeper. The alternates are then in preference order
 		// Note: If an assigned gatekeeper is found then the registration is not
