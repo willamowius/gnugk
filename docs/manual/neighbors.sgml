@@ -33,13 +33,13 @@ The gatekeeper types have the following characteristics:
 <item><tt/GnuGk/<newline>
 When in doubt, use this gatekeeper type. This also activates P2PNAT Media (H.460.23 / H.460.24).
 
-<item><tt/CiscoGK/<newline>
+<item><tt/CiscoGk/<newline>
 GnuGk will pretend to be a Cisco gatekeeper and send fake manufacturer data.
 
-<item><tt/ClarentGK/<newline>
+<item><tt/ClarentGk/<newline>
 Clarent gatekeeper can't decode nonStandardData in LRQs, so GnuGk will filter it out.
 
-<item><tt/GlonetGK/<newline>
+<item><tt/GlonetGk/<newline>
 Limited support for LRQ forwarding.
 </itemize>
 
