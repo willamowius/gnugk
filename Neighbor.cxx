@@ -1044,7 +1044,16 @@ void NeighborList::OnReload()
 	}
 	for (i = 0; i < sz; ++i) {
 		const PString & nbid = cfgs.GetKeyAt(i);
-		const PString & type = cfgs.GetDataAt(i);
+		PString type = cfgs.GetDataAt(i);
+		// make neighbor type caseless
+		if (PCaselessString(type) == "GnuGK")
+			type = "GnuGK";
+		if (PCaselessString(type) == "CiscoGK")
+			type = "CiscoGK";
+		if (PCaselessString(type) == "ClarentGK")
+			type = "ClarentGK";
+		if (PCaselessString(type) == "GlonetGK")
+			type = "GlonetGK";
 		iter = find_if(m_neighbors.begin(), m_neighbors.end(),
 				compose1(bind2nd(equal_to<PString>(), nbid), mem_fun(&Neighbor::GetId))
 			      );

@@ -148,7 +148,7 @@ channel into the IP of NAT box.
 
 GnuGk supports NAT outbound calls (from an endpoint behind NAT
 to public networks) directly without any necessary modification
-of endpoints or NAT box. Just register the endpoint with the GnuGk
+of endpoints or NAT box. Just register the endpoint with GnuGk
 and you can make call now. 
 
 <item><tt/SupportCallingNATedEndpoints=0/<newline>

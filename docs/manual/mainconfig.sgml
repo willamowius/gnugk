@@ -13,7 +13,7 @@ at the beginning of a line.
 
 The file
 <tt/complete.ini/
-contains all available sections for the GnuGk.
+contains all available sections for GnuGk.
 In most cases it doesn't make sense to use them all at once.
 The file is just meant as a collection of examples for many settings.
 

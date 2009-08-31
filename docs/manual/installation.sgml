@@ -32,7 +32,7 @@ provides or compile the GNU Gatekeeper yourself. For simple installations or to 
 using pre-built executables shouldn't pose any issues, but for professional installations it is always recommended
 that you self-compile GnuGk.
 
-<sect2>Installing a binary of the GnuGK
+<sect2>Installing a binary of GnuGk
 <p>
 Copy the executable to the directory you like and create a config file.
 There are several config examples and auto startup scripts in the <tt>etc/</tt> subdirectory
@@ -111,7 +111,7 @@ Remember to add GnuGk as an exception for the Windows Firewall so it can communi
 These are the steps for a manual installation; there may be a binary version of the Gatekeeper-as-service which includes a GUI
 installer program available in the download location.
 
-First, ensure that you have the service version of the GnuGK before you proceed.
+First, ensure that you have the service version of GnuGk before you proceed.
 
 Copy <tt/gnugk.exe/ to the folder you like and create a config file named <tt/gatekeeper.ini/ in the same folder.
 See section <ref id="config" name="Configuration File">
