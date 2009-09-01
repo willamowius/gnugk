@@ -600,6 +600,7 @@ bool DNSPolicy::FindByAliases(
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
 			// remove the domain name part
 			H323SetAliasAddress(alias.Left(at), aliases[i]);
+			PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at) << " @ " << AsDotString(dest));
 			return true;
 		}
 	}
