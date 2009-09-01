@@ -1424,10 +1424,14 @@ bool SRVPolicy::FindByAliases(
 	
 		// LS Record lookup
 		PStringList ls;
-			if (PDNS::LookupSRV(number,"_h323ls._udp.",ls)) {
-			 for (PINDEX i=0; i<ls.GetSize(); i++) {
+		if (PDNS::LookupSRV(number,"_h323ls._udp.",ls)) {
+			for (PINDEX i=0; i<ls.GetSize(); i++) {
 				PINDEX at = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(at + 1);
+				if (ipaddr.Left(7) == "0.0.0.0") {
+					PTRACE(1, "ROUTING\tERROR in SRV lookup");
+					return false;
+				}
 				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
 				H323TransportAddress addr = H323TransportAddress(ipaddr);
 

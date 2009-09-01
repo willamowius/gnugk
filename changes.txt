@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(Neighbor.cxx) try next policy if SRV lookup fails
 - neighbor type (GnuGk|CiscoGk|ClarentGk|GlonetGk) is now caseless
 - features documented: [AssignedAliases::SQL], [AssignedGatekeepers::SQL] and [GkQoSMonitor::SQL]
 - BUGFIX(RasTbl.cxx) use rewritten number when decrementing prefix capacity counters, so they match the increment
