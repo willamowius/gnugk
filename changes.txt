@@ -1,5 +1,8 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- new switches in [Gatekeeper::Main]: CompareAliasType and CompareAliasCase to switch off
+  alias type and case matching
+- BUGFIX(Routing.cxx) fix dns policy for direct mode
 - BUGFIX(Neighbor.cxx) try next policy if SRV lookup fails
 - neighbor type (GnuGk|CiscoGk|ClarentGk|GlonetGk) is now caseless
 - features documented: [AssignedAliases::SQL], [AssignedGatekeepers::SQL] and [GkQoSMonitor::SQL]

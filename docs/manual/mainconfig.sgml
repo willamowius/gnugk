@@ -102,6 +102,18 @@ The endpoint must then re-register with the gatekeeper using a full RRQ message.
 
 To disable this feature, set it to <tt/-1/.
 
+<item><tt/CompareAliasType=0/<newline>
+Default: <tt/1/<newline>
+<p>
+By default H323ID '1234' won't match E164 number '1234' when comparing aliasses. With this switch you can
+decide to ignore the alias type in comparisions.
+
+<item><tt/CompareAliasCase=0/<newline>
+Default: <tt/1/<newline>
+<p>
+By default alias 'jan' won't match alias 'Jan' when comparing aliasses. With this switch you can make make
+the comparison caseinsensitive so the two would match.
+
 <item><tt/TraceLevel=2/<newline>
 Default: <tt/0/<newline>
 <p>

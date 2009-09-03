@@ -825,11 +825,23 @@ void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
 // due to strange bug of gcc, I have to pass pointer instead of reference
 bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 {
+	bool compareAliasType = GkConfig()->GetBoolean("CompareAliasType", true);
+	bool compareAliasCase = GkConfig()->GetBoolean("CompareAliasCase", true);
 	PWaitAndSignal lock(m_usedLock);
 	for (PINDEX i = 0; i < a->GetSize(); i++) {
-		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++)
-			if ((*a)[i] == m_terminalAliases[j])
+		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++) {
+			bool typeMatch = compareAliasType ? ((*a)[i].GetTag() == m_terminalAliases[j].GetTag()) : true;
+			bool contentMatch = false;
+			if (typeMatch) {
+				if (compareAliasCase) {
+					contentMatch = AsString((*a)[i], false) == AsString(m_terminalAliases[j], false);
+				} else {
+					contentMatch = PCaselessString(AsString((*a)[i], false)) == AsString(m_terminalAliases[j], false);
+				}
+			}
+			if (typeMatch && contentMatch)
 				return true;
+		}
 	}
 	return false;
 }
