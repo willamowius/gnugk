@@ -4,7 +4,7 @@ Changes from 2.3.0 to 2.3.1
   alias type and case matching
 - BUGFIX(Routing.cxx) fix dns policy for direct mode
 - BUGFIX(Neighbor.cxx) try next policy if SRV lookup fails
-- neighbor type (GnuGk|CiscoGk|ClarentGk|GlonetGk) is now caseless
+- neighbor type (GnuGk|CiscoGk|ClarentGk|GlonetGk) is now case insesitive
 - features documented: [AssignedAliases::SQL], [AssignedGatekeepers::SQL] and [GkQoSMonitor::SQL]
 - BUGFIX(RasTbl.cxx) use rewritten number when decrementing prefix capacity counters, so they match the increment
 - feature to set a ClientAuthId in SqlAuth that is provided as %{client-auth-id} on all accounting events
