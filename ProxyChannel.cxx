@@ -3230,7 +3230,7 @@ void CallSignalSocket::OnFacility(
 			&& facilityBody.HasOptionalField(H225_Facility_UUIE::e_callIdentifier)) {
 			H225_CallIdentifier callIdentifier = facilityBody.m_callIdentifier;
 			m_call = CallTable::Instance()->FindCallRec(callIdentifier);
-			if (m_call) {	// JW TODO: + ep uses it ?
+			if (m_call) {
 				m_call->SetCallSignalSocketCalled(this);
 				PBYTEArray rawSetup = m_call->RetrieveSetup();
 				CallSignalSocket * callingSocket = m_call->GetCallSignalSocketCalling();
