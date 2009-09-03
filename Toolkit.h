@@ -353,6 +353,7 @@ class Toolkit : public Singleton<Toolkit>
 
 	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
 	void SetGKHome(const PStringArray &);
+	bool IsGKHome(const PIPSocket::Address & addr) const;
 
 	bool isBehindNAT(PIPSocket::Address &) const;
 	std::vector<NetworkAddress> GetInternalNetworks();

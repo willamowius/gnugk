@@ -594,6 +594,16 @@ bool DNSPolicy::FindByAliases(
 			PIPSocket::Address addr;
 			if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 				continue;
+			if (!(RasServer::Instance()->IsGKRouted()) && Toolkit::Instance()->IsGKHome(addr)) {
+				// check if the domain is my IP, if so pass out endpoint IP in direct mode
+				H225_ArrayOf_AliasAddress find_aliases;
+				find_aliases.SetSize(1);
+				H323SetAliasAddress(alias.Left(at), find_aliases[0]);
+				endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
+				if (ep) {
+					dest = ep->GetCallSignalAddress();
+				}
+			}
 			Route route(m_name, dest);
 			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 			request.AddRoute(route);

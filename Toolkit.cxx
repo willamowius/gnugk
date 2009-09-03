@@ -2393,8 +2393,17 @@ void Toolkit::SetGKHome(const PStringArray & home)
 		swap(m_GKHome[0], *begin);
 }
 
-int
-Toolkit::GetInternalExtensionCode( const unsigned &country,
+bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
+{
+	for (std::vector<PIPSocket::Address>::const_iterator i = m_GKHome.begin(); i != m_GKHome.end(); ++i) {
+		if (*i == addr) {
+			return true;
+		}
+	}
+	return false;
+}
+
+int Toolkit::GetInternalExtensionCode( const unsigned &country,
 				   const unsigned &extension,
 				   const unsigned &manufacturer) const
 {
