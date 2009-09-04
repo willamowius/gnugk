@@ -6,10 +6,15 @@
 The status port is the external interface for monitoring and controlling the gatekeeper.
 The gatekeeper will send out messages about ongoing calls to all
 connected clients and it can receive commands via this interface.
-
+<p>
+Access to the status port is restricted by the rules in <ref id="gkstatusauth" name="GkStatus::Auth">.
+For security reasons, the default is not to allow any access until you have
+configured <ref id="gkstatusauth" name="GkStatus::Auth">.
 <p>
 The messages sent by the gatekeeper to the status port are grouped 
 into three <bf/output trace levels/:
+(These trace levels only apply to what is shown on the status port.
+Don't confuse them with the trace level for GnuGk's trace file.)
 <itemize>
 <item>Level 0
 	<quote>
