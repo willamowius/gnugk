@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(GkStatus.cxx) dont' flush status proct socket when access is denied to avoid blocking
 - new switches in [Gatekeeper::Main]: CompareAliasType and CompareAliasCase to switch off
   alias type and case matching
 - BUGFIX(Routing.cxx) fix dns policy for direct mode

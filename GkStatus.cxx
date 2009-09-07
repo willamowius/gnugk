@@ -512,7 +512,7 @@ void GkStatus::AuthenticateClient(
 			<< ", login: " << newClient->GetUser()
 			);
 		newClient->WriteString("\r\nAccess forbidden!\r\n");
-		newClient->Flush();
+		// newClient->Flush();	// dont' flush when access is denied to avoid blocking
 		delete newClient;
 	}
 }
