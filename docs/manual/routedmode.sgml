@@ -439,6 +439,10 @@ Default: <tt>N/A</tt><newline>
 Sets the STUN server list for use with H.460.23 seperated by (,). 
 Each Network interface must have a STUNserver set for H.460.23 support on that interface.
 
+<item><tt/TranslateSorensonSourceInfo=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Translate the non-standard caller information from a Sorenson VP200 into sourceAddress and CallingPartyIE.
 
 </itemize>
 

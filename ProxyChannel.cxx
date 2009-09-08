@@ -1709,6 +1709,54 @@ void CallSignalSocket::OnSetup(
 		m_h245Tunneling = false;
 	}
 
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
+		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
+			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData)) {
+			if (setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+				H225_H221NonStandard h221nst = setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier;
+				if (h221nst.m_manufacturerCode == 21334) {
+					PString sinfo = setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_data.AsString();
+					sinfo.Replace("SInfo:", "SInfo|");
+					if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+						setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+						setupBody.m_sourceAddress.SetSize(0);
+					}
+					PStringArray tokens = sinfo.Tokenise("|", FALSE);
+					for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
+						int sourceAdrSize = setupBody.m_sourceAddress.GetSize();
+						if (tokens[i].Left(4) == "0007") {
+							PString e164 = tokens[i].Mid(4);
+							if (strspn(e164, "1234567890*#+,") == strlen(e164)) {
+								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
+								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_dialedDigits);
+								sourceAdrSize++;
+								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
+								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_h323_ID);	// for ZVRS
+								// fill calling number IE
+								if (!q931.HasIE(Q931::CallingPartyNumberIE)) {
+									unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
+									unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
+									q931.SetCallingPartyNumber(e164, plan, type, presentation, screening);
+								}
+							} else {
+								PTRACE(1, "Invalid character in Sorensen source info: " << e164);
+							}
+						} else if (tokens[i].Left(4) == "0008") {
+							PString ip = tokens[i].Mid(4);
+							// check format of IP to avoid runtime error
+							if (ip.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
+								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
+								H323SetAliasAddress(ip, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_transportID);
+							} else {
+								PTRACE(1, "Invalid IP in Sorensen source info: " << ip);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	m_crv = (WORD)(setup->GetCallReference() | 0x8000u);
 	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "1")) && m_setupPdu == NULL)
 		m_setupPdu = new Q931(q931);
