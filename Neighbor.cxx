@@ -1545,24 +1545,25 @@ bool RDSPolicy::FindByAliases(
 {
 	for (PINDEX a = 0; a < aliases.GetSize(); ++a) {
 		PString alias(AsString(aliases[a], FALSE));
-	    if (alias.GetLength() == 0) continue;
+	    if (alias.GetLength() == 0)
+			continue;
 
-	// DNS RDS Record lookup
+		// DNS RDS Record lookup
 		PString number;
 		PString domain;
 		PINDEX at = alias.Find('@');
 		if (at == P_MAX_INDEX) {
-		   number = "h323:t@" + alias;	
-		   domain = alias;
+			number = "h323:t@" + alias;	
+			domain = alias;
 	    } else {
-		   number = "h323:" + alias;
-		   domain = alias.Mid(at+1);
+			number = "h323:" + alias;
+			domain = alias.Mid(at+1);
 		}
 	
 		// LS Record lookup
 		PStringList ls;
-		 if (PDNS::RDSLookup(number,"H323+D2U",ls)) {
-			 for (PINDEX i=0; i<ls.GetSize(); i++) {
+		if (PDNS::RDSLookup(number,"H323+D2U",ls)) {
+			for (PINDEX i=0; i<ls.GetSize(); i++) {
 				PINDEX pos = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(pos + 1);
 				PTRACE(4, "ROUTING\tRDS LS located domain " << domain << " at " << ipaddr);
@@ -1582,26 +1583,27 @@ bool RDSPolicy::FindByAliases(
 				LRQRequester Request(functor);
 				if (Request.Send(nb)) {
 					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
-							Route route(m_name, lcf->m_callSignalAddress);
+						Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
-			                if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
-			                    H225_RasMessage ras;
-			                    ras.SetTag(H225_RasMessage::e_locationConfirm);
-                                H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
-			                    con = *lcf;
-			                    route.m_destEndpoint = endptr(new EndpointRec(ras));	
-			                }
+						// TODO: more specific check if we need to create an endpoint record ?
+						if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+							H225_RasMessage ras;
+							ras.SetTag(H225_RasMessage::e_locationConfirm);
+							H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+							con = *lcf;
+							route.m_destEndpoint = endptr(new EndpointRec(ras));	
+						}
 #endif
-							request.AddRoute(route);
-							request.SetFlag(RoutingRequest::e_aliasesChanged);
-							return true;
-				    }
+						request.AddRoute(route);
+						request.SetFlag(RoutingRequest::e_aliasesChanged);
+						return true;
+					}
 				}
 				PTRACE(4, "ROUTING\tDNS RDS LRQ Error for " << domain << " at " << ipaddr);
-			 }
-			}  
-	} 
-  return false; 
+			}
+		}
+	}
+	return false;
 }
 
 
