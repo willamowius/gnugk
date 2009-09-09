@@ -531,6 +531,47 @@ is followed by a list of accounting event types.
 <p>
 		Amount of time (seconds) the gatekeeper is trying to send the request.
 		Currently always 0.
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTP_source_IP (stop)</tt><newline>
+<p>
+		RTCP source report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTP_destination_IP (stop)</tt><newline>
+<p>
+		RTCP source report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_packet_count (stop)</tt><newline>
+<p>
+		RTCP source report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_packet_lost (stop)</tt><newline>
+<p>
+		RTCP source report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_jitter (stop)</tt><newline>
+<p>
+		RTCP source report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_sdes_XXX (stop)</tt><newline>
+<p>
+		RTCP source report data (for each sdes)
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_packet_count (stop)</tt><newline>
+<p>
+		RTCP destination report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_packet_lost (stop)</tt><newline>
+<p>
+		RTCP destination report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_jitter (stop)</tt><newline>
+<p>
+		RTCP destination report data
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_sdes_XXX (stop)</tt><newline>
+<p>
+		RTCP destination report data (for each sdes)
+
 </itemize>
 
 <sect2>&lsqb;RadAcct&rsqb; Accounting-Response Radius Attributes
