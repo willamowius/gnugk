@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.31  2009/06/20 10:02:24  willamowius
+ * send RTCP statistics to Radius server (thanks to Georgiewskiy Yuriy)
+ *
  * Revision 1.30  2009/05/24 22:38:51  willamowius
  * everything that holds a time should be a time_t, not a long
  *
@@ -320,8 +323,8 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec,call->GetCodec());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num,call->GetCalledStationId());
+
 				//RTCP SOURCE REPORT
-				
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				    PString("RTP_source_IP=")+call->GetSRC_media_IP(),
     				    true
