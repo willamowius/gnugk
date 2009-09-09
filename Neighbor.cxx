@@ -1410,16 +1410,16 @@ bool SRVPolicy::FindByAliases(
 		PString alias(AsString(aliases[i], FALSE));
 	    if (alias.GetLength() == 0) continue;
 
-	// DNS SRV Record lookup
+		// DNS SRV Record lookup
 		PString number;
 		PString domain;
 		PINDEX at = alias.Find('@');
 		if (at == P_MAX_INDEX) {
-		   number = "h323:t@" + alias;	
-		   domain = alias;
+			number = "h323:t@" + alias;	
+			domain = alias;
 	    } else {
-		   number = "h323:" + alias;
-		   domain = alias.Mid(at+1);
+			number = "h323:" + alias;
+			domain = alias.Mid(at+1);
 		}
 	
 		// LS Record lookup
@@ -1449,63 +1449,66 @@ bool SRVPolicy::FindByAliases(
 				LRQRequester Request(functor);
 				if (Request.Send(nb)) {
 					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
-							Route route(m_name, lcf->m_callSignalAddress);
+						Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
-			                if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
-			                    H225_RasMessage ras;
-			                    ras.SetTag(H225_RasMessage::e_locationConfirm);
-                                H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
-			                    con = *lcf;
-			                    route.m_destEndpoint = endptr(new EndpointRec(ras));	
-			                }
+						// TODO: more specific check if we need to create an endpoint record ?
+						if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+							H225_RasMessage ras;
+							ras.SetTag(H225_RasMessage::e_locationConfirm);
+							H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+							con = *lcf;
+							route.m_destEndpoint = endptr(new EndpointRec(ras));	
+						}
 #endif
-							request.AddRoute(route);
-                             // Fix for calling only a numeric number so the @xxx is removed
-				             PString called = ls[i].Left(at);
-						     PINDEX k = 0;
-						     for (k = 0; k < called.GetLength(); ++k)
-								if (!isdigit(static_cast<unsigned char>(alias[k])))
-									break;
-								if (k >= alias.GetLength())
-									H323SetAliasAddress(called, aliases[i]);
-							 request.SetFlag(RoutingRequest::e_aliasesChanged);
-							return true;
-				    }
+						request.AddRoute(route);
+						// Fix for calling only a numeric number so the @xxx is removed
+						PString called = ls[i].Left(at);
+						PINDEX k = 0;
+						for (k = 0; k < called.GetLength(); ++k) {
+							if (!isdigit(static_cast<unsigned char>(alias[k])))
+								break;
+						}
+						if (k >= alias.GetLength())
+							H323SetAliasAddress(called, aliases[i]);
+						request.SetFlag(RoutingRequest::e_aliasesChanged);
+						return true;
+					}
 				}
 				PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
-			 }
-			}  
+			}
+		}  
 
-        // CS SRV Lookup
+		// CS SRV Lookup
 		PStringList cs;
-		   if (PDNS::LookupSRV(number,"_h323cs._tcp.",cs)) {
-			   for (PINDEX j=0; j<cs.GetSize(); j++) {
-				 PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
-		         H225_TransportAddress dest;
-				 PINDEX in = cs[j].Find('@');
-                 PString dom = cs[j].Mid(in+1);
-		         if (GetTransportAddress(dom, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
-			       PIPSocket::Address addr;
-			       if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
-				                    continue;
-			       Route route(m_name, dest);
+		if (PDNS::LookupSRV(number,"_h323cs._tcp.",cs)) {
+			for (PINDEX j=0; j<cs.GetSize(); j++) {
+				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
+				H225_TransportAddress dest;
+				PINDEX in = cs[j].Find('@');
+				PString dom = cs[j].Mid(in+1);
+				if (GetTransportAddress(dom, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
+					PIPSocket::Address addr;
+					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
+						continue;
+					Route route(m_name, dest);
                     // Fix for calling only a numeric number so the @xxx is removed
-				     PString called = cs[j].Left(in);
-					  PINDEX l = 0;
-						for (l = 0; l < called.GetLength(); ++l)
-							if (!isdigit(static_cast<unsigned char>(alias[l])))
-								break;
-						if (l >= alias.GetLength())
-						  H323SetAliasAddress(called, aliases[i]);
-			       route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
-			       request.AddRoute(route);
-			       request.SetFlag(RoutingRequest::e_aliasesChanged);	
-				 }
-			   }
-		     return true;
-		   } 
-	} 
-  return false; 
+					PString called = cs[j].Left(in);
+					PINDEX l = 0;
+					for (l = 0; l < called.GetLength(); ++l) {
+						if (!isdigit(static_cast<unsigned char>(alias[l])))
+							break;
+					}
+					if (l >= alias.GetLength())
+						H323SetAliasAddress(called, aliases[i]);
+					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+					request.AddRoute(route);
+					request.SetFlag(RoutingRequest::e_aliasesChanged);	
+				}
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
 
