@@ -1429,80 +1429,114 @@ bool SRVPolicy::FindByAliases(
 				PINDEX at = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(at + 1);
 				if (ipaddr.Left(7) == "0.0.0.0") {
-					PTRACE(1, "ROUTING\tERROR in SRV lookup");
+					PTRACE(1, "ROUTING\tERROR in LS SRV lookup (" << ls[i] << ")");
 					return false;
 				}
 				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
 				H323TransportAddress addr = H323TransportAddress(ipaddr);
 
-				// Create a SRV gatekeeper object
-				GnuGK * nb = new GnuGK();
-				if (!nb->SetProfile(domain,addr)) {
-					PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
-					return false;
+				PIPSocket::Address socketip;
+				WORD port;
+				if (!GetTransportAddress(ipaddr, GK_DEF_UNICAST_RAS_PORT, socketip, port) && socketip.IsValid()) {
+					PTRACE(1, "ROUTING\tERROR in SRV LS IP " << ipaddr);
+					return false;	// TODO: skip to next or to tcp ?
 				}
-
-				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
-
-				// Send LRQ to retreive callers signalling address 
-				LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
-				LRQRequester Request(functor);
-				if (Request.Send(nb)) {
-					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
-						Route route(m_name, lcf->m_callSignalAddress);
-#ifdef HAS_H460
-						// TODO: more specific check if we need to create an endpoint record ?
-						if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
-							H225_RasMessage ras;
-							ras.SetTag(H225_RasMessage::e_locationConfirm);
-							H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
-							con = *lcf;
-							route.m_destEndpoint = endptr(new EndpointRec(ras));	
-						}
-#endif
+				if (Toolkit::Instance()->IsGKHome(socketip)) {
+					// this is my address, no need to send LRQs, just look into the endpoint table
+					PINDEX numberat = number.Find('@');	// always has an @
+					H225_ArrayOf_AliasAddress find_aliases;
+					find_aliases.SetSize(1);
+					PString local_alias = number.Mid(5,numberat-5);
+					H323SetAliasAddress(local_alias, find_aliases[0]);
+					endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
+					if (ep) {
+						// endpoint found locally
+						Route route(ep);
+						route.m_policy = m_name;
 						request.AddRoute(route);
-						// Fix for calling only a numeric number so the @xxx is removed
-						PString called = ls[i].Left(at);
-						PINDEX k = 0;
-						for (k = 0; k < called.GetLength(); ++k) {
-							if (!isdigit(static_cast<unsigned char>(alias[k])))
-								break;
+						if (strspn(local_alias, "0123456789") == (size_t)local_alias.GetLength()) {
+							H323SetAliasAddress(local_alias, aliases[i]);
+							request.SetFlag(RoutingRequest::e_aliasesChanged);
 						}
-						if (k >= alias.GetLength())
-							H323SetAliasAddress(called, aliases[i]);
-						request.SetFlag(RoutingRequest::e_aliasesChanged);
 						return true;
 					}
-				}
-				PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
-			}
-		}  
+				} else {
+					// Create a SRV gatekeeper object
+					GnuGK * nb = new GnuGK();
+					if (!nb->SetProfile(domain,addr)) {
+						PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
+						return false;	// TODO: skip to tcp ?
+					}
 
+					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+
+					// Send LRQ to retreive callers signalling address 
+					LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
+					LRQRequester Request(functor);
+					if (Request.Send(nb)) {
+						if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
+							Route route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_H460
+							// TODO: more specific check if we need to create an endpoint record ?
+							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+								H225_RasMessage ras;
+								ras.SetTag(H225_RasMessage::e_locationConfirm);
+								H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+								con = *lcf;
+								route.m_destEndpoint = endptr(new EndpointRec(ras));
+							}
+#endif
+							request.AddRoute(route);
+							// Fix for calling only a numeric number so the @xxx is removed
+							PString called = ls[i].Left(at);
+							if (strspn(called, "0123456789") == (size_t)called.GetLength()) {
+								H323SetAliasAddress(called, aliases[i]);
+								request.SetFlag(RoutingRequest::e_aliasesChanged);
+							}
+							return true;
+						}
+					}
+					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
+				}
+			}
+		}
+
+		// TODO: look for CS records before LS records to save the LRQs if both CS and LS exist ?
 		// CS SRV Lookup
 		PStringList cs;
 		if (PDNS::LookupSRV(number,"_h323cs._tcp.",cs)) {
 			for (PINDEX j=0; j<cs.GetSize(); j++) {
-				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				H225_TransportAddress dest;
 				PINDEX in = cs[j].Find('@');
 				PString dom = cs[j].Mid(in+1);
+				if (dom.Left(7) == "0.0.0.0") {
+					PTRACE(1, "ROUTING\tERROR in CS SRV lookup (" << cs[j] << ")");
+					return false;
+				}
+				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				if (GetTransportAddress(dom, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
 					PIPSocket::Address addr;
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
+					if (!(RasServer::Instance()->IsGKRouted()) && Toolkit::Instance()->IsGKHome(addr)) {
+						// check if the domain is my IP, if so pass out endpoint IP in direct mode
+						H225_ArrayOf_AliasAddress find_aliases;
+						find_aliases.SetSize(1);
+						H323SetAliasAddress(alias.Left(at), find_aliases[0]);
+						endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
+						if (ep) {
+							dest = ep->GetCallSignalAddress();
+						}
+					}
 					Route route(m_name, dest);
                     // Fix for calling only a numeric number so the @xxx is removed
 					PString called = cs[j].Left(in);
-					PINDEX l = 0;
-					for (l = 0; l < called.GetLength(); ++l) {
-						if (!isdigit(static_cast<unsigned char>(alias[l])))
-							break;
-					}
-					if (l >= alias.GetLength())
+					if (strspn(called, "0123456789") == (size_t)called.GetLength()) {
 						H323SetAliasAddress(called, aliases[i]);
+						request.SetFlag(RoutingRequest::e_aliasesChanged);
+					}
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 					request.AddRoute(route);
-					request.SetFlag(RoutingRequest::e_aliasesChanged);	
 				}
 			}
 			return true;
