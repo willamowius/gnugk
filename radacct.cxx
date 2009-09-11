@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.32  2009/09/09 07:33:50  willamowius
+ * whitespace change
+ *
  * Revision 1.31  2009/06/20 10:02:24  willamowius
  * send RTCP statistics to Radius server (thanks to Georgiewskiy Yuriy)
  *
@@ -323,6 +326,21 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec,call->GetCodec());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num,call->GetCalledStationId());
+
+				// Post Dial Delay Time
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+					PString("h323pddtime=")+PString(PString::Unsigned,call->GetPostDialDelay()),true
+				);
+
+				// Ring Time
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+					PString("h323ringtime=")+PString(PString::Unsigned,call->GetRingTime()),true
+				);
+
+				// Number of Route Attempts
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+					PString("h323routeattempts=")+PString(PString::Unsigned,call->GetNoCallAttempts()),true
+				);
 
 				//RTCP SOURCE REPORT
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,

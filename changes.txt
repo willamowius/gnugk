@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- new Radius attributes on stop: h323pddtime, h323ringtime, h323routeattempts
 - BUGFIX(Neighbor.cxx) fix srv policy for direct mode, don't send LRQ if SRV points to us
 - new switch [RoutedMode]TranslateSorensonSourceInfo=1 to convert the Sorenson VP200 caller information
 - BUGFIX(GkStatus.cxx) dont' flush status proct socket when access is denied to avoid blocking
