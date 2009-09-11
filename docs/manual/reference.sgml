@@ -22,7 +22,7 @@ Specify the configuration file to use.
 <tag/<tt/-s  --section section//
 Specify which main section to use in the configuration file. The default is [Gatekeeper::Main].
 <tag/<tt/-i  --interface IP//
-Specify the interface (IP address) that the gatekeeper listens to.
+Specify the IP address that the gatekeeper listens to.
 You should skip this option to let the gatekeeper automatically determine
 the IP it listens to, unless you want the gatekeeper to bind only to
 a specified IP.
