@@ -1575,6 +1575,7 @@ bool RegistrationRequestPDU::Process()
 	bool preemptsupport = false;
 	PBoolean preempt = false;
 	unsigned ntype = 100;  // UnAllocated NAT Type
+	H225_TransportAddress alg_csAddress;	// ALG CallSignal Address
 #ifdef HAS_H46023
 	PBoolean supportH46023 = false;
 #endif
@@ -1608,6 +1609,8 @@ bool RegistrationRequestPDU::Process()
 				request.m_rasAddress.SetSize(1);
 				request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
 				// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
+				// if using H.460.23 and an ALG is detected, remember the CS Address so H.460.18 can be disabled.
+				alg_csAddress = request.m_callSignalAddress[0];
 				request.m_callSignalAddress.SetSize(1);
 				request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
 			}
@@ -1714,9 +1717,15 @@ bool RegistrationRequestPDU::Process()
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		} else {
             // If received a NAT Type update STD23 only occurs with Light RRQ
+			// NAT Type 0 indicates there is an ALG in play and that all NAT support
+			// should be disabled for the call and let the ALG Handle the NAT traversal
 			if (ntype == 0) {   
-				PTRACE(2, "Std23\tFEATURE DISABLED: On Instruction of Endpoint");
+				PTRACE(2, "Std23\tFEATURE DISABLED: ALG DETECTION");
+				if (ep->UsesH46018())
+					ep->SetCallSignalAddress(alg_csAddress);
+				ep->SetUsesH46018(false);
 				ep->SetUsesH46023(false);
+				ep->SetNAT(false);
 			} else if (ntype < 8) {
 				if (ntype > 1) {
 				  PTRACE(4, "Std23\tEndpoint reports itself as being behind a NAT/FW!");
