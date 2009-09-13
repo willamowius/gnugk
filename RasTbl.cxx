@@ -3166,7 +3166,9 @@ bool CallRec::H46019Required()
 {
 #ifdef HAS_H46023
 	return ( (m_natstrategy != CallRec::e_natLocalMaster &&
-			m_natstrategy != CallRec::e_natRemoteMaster));
+			m_natstrategy != CallRec::e_natRemoteMaster &&
+			m_natstrategy != CallRec::e_natNoassist)
+			);
 #else
 	return true;
 #endif
