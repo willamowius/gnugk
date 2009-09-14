@@ -1721,6 +1721,63 @@ void SqlPolicy::DatabaseLookup(
 }
 
 
+// a policy to route all calls to one default endpoint
+class CatchAllPolicy : public Policy {
+public:
+	CatchAllPolicy();
+	virtual ~CatchAllPolicy() { }
+
+protected:
+	virtual bool OnRequest(AdmissionRequest & request) { return CatchAllRoute(request); }
+	virtual bool OnRequest(LocationRequest & request) { return CatchAllRoute(request); }
+	virtual bool OnRequest(SetupRequest & request) { return CatchAllRoute(request); }
+
+	bool CatchAllRoute(RoutingRequest & request) const;
+	
+	PString m_catchAllAlias;
+	PString m_catchAllIP;
+};
+
+CatchAllPolicy::CatchAllPolicy()
+{
+	m_name = "CatchAllPolicy";
+	static const char *defaultPolicySection = "Routing::CatchAll";
+	PConfig* cfg = GkConfig();
+	m_catchAllAlias = cfg->GetString(defaultPolicySection, "CatchAllAlias", "catchall");
+	m_catchAllIP = cfg->GetString(defaultPolicySection, "CatchAllIP", "");
+	if (!m_catchAllIP.IsEmpty() && (m_catchAllIP.Find(':') == P_MAX_INDEX)) {
+		m_catchAllIP += ":1720";	// assume default port if none specified
+	}
+}
+
+bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
+{
+	if (!m_catchAllIP.IsEmpty()) {
+		H225_TransportAddress destAddr;
+		if (GetTransportAddress(m_catchAllIP, GK_DEF_UNICAST_RAS_PORT, destAddr)) {
+			Route route("catchall", destAddr);
+			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+			request.AddRoute(route);
+			return true;
+		} else {
+			PTRACE(1, m_name << "\tInvalid catch-all IP " << m_catchAllIP);
+		}
+	}
+	H225_ArrayOf_AliasAddress find_aliases;
+	find_aliases.SetSize(1);
+	H323SetAliasAddress(m_catchAllAlias, find_aliases[0]);
+	endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
+	if (ep) {
+		Route route(ep);
+		route.m_policy = m_name;
+		request.AddRoute(route);
+		return true;
+	}
+	PTRACE(1, m_name << "\tCatch-all endpoint " << m_catchAllAlias << " not found!");
+	return false;	// configured default endpoint not found
+}
+
+
 namespace { // anonymous namespace
 	SimpleCreator<ExplicitPolicy> ExplicitPolicyCreator("explicit");
 	SimpleCreator<InternalPolicy> InternalPolicyCreator("internal");
@@ -1730,6 +1787,7 @@ namespace { // anonymous namespace
 	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
 	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("enum");
 	SimpleCreator<SqlPolicy> SqlPolicyCreator("sql");
+	SimpleCreator<CatchAllPolicy> CatchAllPolicyCreator("catchall");
 }
 
 

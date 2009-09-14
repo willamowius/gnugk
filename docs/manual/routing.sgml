@@ -88,6 +88,12 @@ URN RDS or Universal resources name resolver discovery system is a system (as de
 whereby domain names SRV records are hosted on other domains. In this policy the servers set by 
 [RoutedMode] RDSServers are queried to resolve URI's which domains do not have SRV records. This can be used
 to virtually host URL domains or centralise the control of SRV records.
+
+<item><tt/catchall/<newline>
+<p>
+This policy will route all calls that reach it to one endpoint specified in the <ref id="routingcatchall" name="Routing::CatchAll"> section.
+You could put it at the end of the policy chain to route all calls that would outherwise fail.
+
 </itemize>
 
 <p>
@@ -412,6 +418,23 @@ default=numberanalysis,internal
 Calls to destinations starting with 0048 require at least 12 digits,
 to 48 - 10 digits and to all other at least 6 and at most 20 digits.
 </descrip>
+
+<sect1>Section &lsqb;Routing::CatchAll&rsqb;
+<label id="routingcatchall">
+<p>
+<itemize>
+<item><tt/CatchAllAlias=Frank/<newline>
+Default: <tt>catchall</tt><newline>
+<p>
+Specify an alias to route all calls to, if no CatchAllIP is specified.
+
+<item><tt/CatchAllIP=1.2.3.4/<newline>
+Default: <tt>(empty)</tt><newline>
+<p>
+Specify an IP to route all cvalls to. This overrides CatchAllAlias.
+
+</itemize>
+
 
 <sect1>Section &lsqb;RewriteCLI&rsqb;
 <label id="clirewrite">
