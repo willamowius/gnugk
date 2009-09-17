@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.45  2009/05/28 10:08:16  willamowius
+ * use the more portable ios::fmtflags instead of _Ios_Fmtflags
+ *
  * Revision 1.44  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -1976,7 +1979,7 @@ RadiusClient::RadiusClient(
 	m_numRetries(config.GetInteger(sectionName, "RequestRetransmissions",
 		DefaultRetries)),
 	m_roundRobinServers(config.GetBoolean(
-		sectionName, "RoundRobinServers", TRUE) ? true : false),
+		sectionName, "RoundRobinServers", TRUE)),
 	m_localAddress(INADDR_ANY)
 {
 	GetServersFromString(config.GetString(sectionName, "Servers", ""));

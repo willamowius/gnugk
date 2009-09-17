@@ -102,12 +102,12 @@ bool SignalingMsg::Encode(PBYTEArray &buffer)
 		strm.CompleteEncoding();
 		m_q931->SetIE(Q931::UserUserIE, strm);
 	}
-	return m_q931->Encode(buffer) ? true : false;
+	return m_q931->Encode(buffer);
 }
 
 bool SignalingMsg::Decode(const PBYTEArray & buffer)
 {
-	return m_q931->Decode(buffer) ? true : false;
+	return m_q931->Decode(buffer);
 }
 
 SignalingMsg* SignalingMsg::Create(

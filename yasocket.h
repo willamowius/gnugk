@@ -299,8 +299,8 @@ public:
 	virtual bool TransmitData(const PBYTEArray &);
 	virtual bool TransmitData(const BYTE *, int);
 
-	bool IsSocketOpen() const { return self->IsOpen() ? true : false; }
-	bool CloseSocket() { return IsSocketOpen() ? (self->Close() ? true : false) : false; }
+	bool IsSocketOpen() const { return self->IsOpen(); }
+	bool CloseSocket() { return IsSocketOpen() ? self->Close() : false; }
 
 	virtual bool Flush();
 	bool CanFlush() const { return (qsize > 0) && IsSocketOpen(); }

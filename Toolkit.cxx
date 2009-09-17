@@ -181,7 +181,7 @@ PString NetworkAddress::AsString() const
 
 bool NetworkAddress::IsAny() const
 {
-	return const_cast<NetworkAddress*>(this)->m_address.IsAny() ? true : false;
+	return const_cast<NetworkAddress*>(this)->m_address.IsAny();
 }
 
 bool NetworkAddress::operator<(const NetworkAddress &addr) const
