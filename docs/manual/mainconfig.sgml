@@ -73,6 +73,7 @@ Default: <tt/_endp/<newline>
 <p>
 The gatekeeper will assign a unique identifier to each registered endpoint.
 This option can be used to specify a suffix to append to the endpoint identifier. This is only useful when using more than one gatekeeper.
+<bf/This setting doesn't change when the config is reloaded!/
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
 Default: <tt/-1/<newline>
