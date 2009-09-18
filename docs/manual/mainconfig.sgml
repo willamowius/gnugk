@@ -441,7 +441,8 @@ users to specify log file rotation options.
 <item><tt>Filename=/var/log/gk_trace.log</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Set the output filene for the log file (same as -o on the command line).
+Set the output filename for the log file (same as -o on the command line).
+<bf/This setting doesn't change when the config is reloaded!/
 
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
 Default: <tt>N/A</tt><newline>
