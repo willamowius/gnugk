@@ -49,18 +49,6 @@ const char *RRQFeatureSection = "RasSrv::RRQFeatures";
 using namespace std;
 using Routing::Route;
 
-#if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS) || (defined P_OPENBSD)
-// On some OS we don't get broadcasts on a socket that is
-// bound to a specific interface. For those we have to start
-// a listener just for those broadcasts.
-// On Windows NT we get all messages on the RAS socket, even
-// if it's bound to a specific interface and thus don't have
-// to start a listener for broadcast.
-#define NEED_BROADCASTLISTENER 1
-#else
-#define NEED_BROADCASTLISTENER 0
-#endif
-
 
 class RegistrationRequestPDU : public RasPDU<H225_RegistrationRequest> {
 public:
