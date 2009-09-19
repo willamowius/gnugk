@@ -319,6 +319,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 
 bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 {
+PTRACE(0, "JW CreateRouteTable for " << extroute);
 	InterfaceTable if_table;
 	if (!PIPSocket::GetInterfaceTable(if_table)) {
 		PTRACE(1, "Error: Can't get interface table");
@@ -1179,7 +1180,7 @@ void Toolkit::ReloadSQLConfig()
 		queryResult = NULL;
 	}
 
-// Assigned Alias Query
+	// Assigned Alias Query
 	query = m_Config->GetString("SQLConfig", "AssignedAliasQuery", "");
 	if (!query.IsEmpty()) {
 		PTRACE(4, "SQLCONF\tLoading Assigned Alias rules from SQL database");
@@ -1467,9 +1468,7 @@ void Toolkit::LoadCauseMap(
 }
 
 // load H.225 reason to Q.931 cause mapping
-void Toolkit::LoadReasonMap(
-	PConfig *cfg
-	)
+void Toolkit::LoadReasonMap(PConfig *cfg)
 {
 	// default to ITU-T Recommendation H.225
 	unsigned DefaultH225ReasonToQ931Cause[] =	{
@@ -1924,11 +1923,11 @@ void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
 {
 
-// Support Gatekeeper discovery
+	// Support Gatekeeper discovery
     if (!GkConfig()->GetString(H350Section, "GatekeeperDiscovery", "0"))
 		   return false;
 
-// Search the Directory
+	// Search the Directory
 	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
 
 	H225_AliasAddress aliasaddress;
@@ -1960,7 +1959,7 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias,cons
 	   return false;
 	}
 
-// Locate the record
+	// Locate the record
 	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
        H350_Session::LDAP_Record entry = x->second;
 	   PString gk;
@@ -2610,9 +2609,7 @@ PString Toolkit::ReadPassword(
 	return s;
 }
 
-void Toolkit::RewriteCLI(
-	SetupMsg &msg
-	) const
+void Toolkit::RewriteCLI(SetupMsg & msg) const
 {
 	m_cliRewrite->InRewrite(msg);
 }
@@ -2626,17 +2623,13 @@ void Toolkit::RewriteCLI(
 	m_cliRewrite->OutRewrite(msg, authData, addr);
 }
 
-void Toolkit::SetRerouteCauses(
-	unsigned char *causeMap
-	)
+void Toolkit::SetRerouteCauses(unsigned char *causeMap)
 {
 	memcpy(causeMap, m_causeMap, 128/8);
 }
 
 
-unsigned Toolkit::MapH225ReasonToQ931Cause(
-	int reason
-	)
+unsigned Toolkit::MapH225ReasonToQ931Cause(int reason)
 {
 	if( reason < 0 || reason > H225_ReleaseCompleteReason::e_tunnelledSignallingRejected )
 		return 0;
