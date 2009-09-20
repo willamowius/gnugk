@@ -5837,14 +5837,12 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 	if (!peer)
 		return false;
 
-	bool changed = false, isReverseLC;
-	if (!UsesH46019() && hnat)
-		changed = hnat->HandleOpenLogicalChannel(olc);
-
-	if (UsesH46019()) {
+	if (UsesH46019()) 
 		SetUsesH46019fc(true);
-		changed |= HandleOpenLogicalChannel(olc);
-	}
+
+	bool changed = false, isReverseLC;
+	if (hnat) 
+		changed = hnat->HandleOpenLogicalChannel(olc);
 
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
@@ -5866,10 +5864,11 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 				logicalChannels[flcn] = sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
 				lc->OnHandlerSwapped(hnat != 0);
-				if (UsesH46019())
+				if (UsesH46019()) {
 					fastStartLCs.erase(iter);
-				else
+				} else {
 					peer->fastStartLCs.erase(iter);
+				}
 			}
 		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
