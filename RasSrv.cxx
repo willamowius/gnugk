@@ -1466,13 +1466,20 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
 				H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 				if (fs.HasFeature(18)) {
-					// include H.460.18 in supported features
-					gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
-					H460_FeatureStd H46018 = H460_FeatureStd(18);
-					gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-					H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
-					desc.SetSize(1);
-					desc[0] = H46018;
+				 PIPSocket::Address remoteRAS;
+				 const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
+				 if (GetIPFromTransportAddr(gcf.m_rasAddress, remoteRAS)) {
+					bool h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
+					if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
+						// include H.460.18 in supported features
+						gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
+						H460_FeatureStd H46018 = H460_FeatureStd(18);
+						gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+						H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
+						desc.SetSize(1);
+						desc[0] = H46018;
+					}
+				 }
 				}
 			}
 		}
@@ -1557,6 +1564,7 @@ bool RegistrationRequestPDU::Process()
 // H460 support Code
 	PBoolean supportNATOffload = false;
 	PBoolean supportSameNAT = false;
+	PBoolean h46018nat = false;
 	int RegPrior = 0;
 	bool preemptsupport = false;
 	PBoolean preempt = false;
@@ -1589,16 +1597,21 @@ bool RegistrationRequestPDU::Process()
 		// H.460.18
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			if (fs.HasFeature(18)) {
-				supportH46018 = true;
-				// ignore rasAddr ans use apparent address
-				const WORD rx_port = m_msg->m_peerPort;
-				request.m_rasAddress.SetSize(1);
-				request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
-				// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
-				// if using H.460.23 and an ALG is detected, remember the CS Address so H.460.18 can be disabled.
-				alg_csAddress = request.m_callSignalAddress[0];
-				request.m_callSignalAddress.SetSize(1);
-				request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+				PIPSocket::Address remoteRAS;
+				if (GetIPFromTransportAddr(request.m_rasAddress[0], remoteRAS)) {
+					h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
+					if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
+						supportH46018 = true;
+						// ignore rasAddr ans use apparent address
+						const WORD rx_port = m_msg->m_peerPort;
+						request.m_rasAddress.SetSize(1);
+						request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+						// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
+						// if using H.460.23 and an ALG is detected, remember the CS Address so H.460.18 can be disabled.
+						request.m_callSignalAddress.SetSize(1);
+						request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+					}
+				}
 			}
 		}
 #endif
@@ -1702,17 +1715,7 @@ bool RegistrationRequestPDU::Process()
 			// endpoint was NOT registered and force Full Registration
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		} else {
-            // If received a NAT Type update STD23 only occurs with Light RRQ
-			// NAT Type 0 indicates there is an ALG in play and that all NAT support
-			// should be disabled for the call and let the ALG Handle the NAT traversal
-			if (ntype == 0) {   
-				PTRACE(2, "Std23\tFEATURE DISABLED: ALG DETECTION");
-				if (ep->UsesH46018())
-					ep->SetCallSignalAddress(alg_csAddress);
-				ep->SetUsesH46018(false);
-				ep->SetUsesH46023(false);
-				ep->SetNAT(false);
-			} else if (ntype < 8) {
+			 if (ntype < 8) {
 				if (ntype > 1) {
 				  PTRACE(4, "Std23\tEndpoint reports itself as being behind a NAT/FW!");
 				  PTRACE(4, "Std23\tNAT/FW reported as being " << ep->GetEPNATTypeString((EndpointRec::EPNatTypes)ntype));
@@ -1720,11 +1723,17 @@ bool RegistrationRequestPDU::Process()
 				  ep->SetSupportNAT(false);
 				  ep->SetNATAddress(rx_addr);
 				} else {
-				  PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW! " 
+					if (ntype == 0) {
+						PTRACE(4, "Std23\tEndpoint instructs H.460.23/.24 to be disabled (BAD NAT)");
+					    ep->SetUsesH46023(false);
+					} else {
+						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW! " 
 										<< (ep->UsesH46018() ? "H.460.18 Disabled" : ""));
-				  ep->SetUsesH46018(false);
-				  ep->SetNAT(false);
+						ep->SetUsesH46018(false);
+						ep->SetNAT(false);
+					}
 				}
+				
 				ep->SetEPNATType(ntype);
 			}
 
@@ -2020,7 +2029,7 @@ bool RegistrationRequestPDU::Process()
 			// Build the message
 			if (ok23) {
 			  ep->SetUsesH46023(true);
-			  bool h46023nat = nated || (ep->UsesH46018() && !validaddress);
+			  bool h46023nat = nated || h46018nat;
 
 			  H460_FeatureStd natfs = H460_FeatureStd(23);
 			  natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
