@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- new switch [RoutedMode]H46018NoNat to disable H.460.18 if not NAT detected (default enabled)
 - new routing policy 'catchall' to route all calls to one alias or IP
 - new Radius attributes on stop: h323pddtime, h323ringtime, h323routeattempts
 - BUGFIX(Neighbor.cxx) fix srv policy for direct mode, don't send LRQ if SRV points to us
