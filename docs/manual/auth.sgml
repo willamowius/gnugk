@@ -614,6 +614,9 @@ result and get additional information:
 <enum>
 	<item>If there exists a column called <tt/'q931cause'/, set a Q.931 cause in a Release Complete
 		  to this value
+	<item>If there exists a column called <tt/'clientauthid'/, the gatekeeper will store
+          this ID in its call record and send it back on all accounting events.
+          This must be an unsigned integer with a maximum of 64 bits (eg. 'bigint unsigned' in MySQL).
 </enum>
 </enum>
 <p>

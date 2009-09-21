@@ -912,9 +912,10 @@ int SQLAuth::Check(
 
 	if (!Toolkit::AsBool(result[0].first)) {
 		authData.m_rejectCause = Q931::CallRejected;
+		// check for extra fields for rejected calls
 		GkSQLResult::ResultRow::const_iterator iter = FindField(result, "q931cause");
 		if (iter != result.end()) {
-			const PString &s = iter->first;
+			const PString & s = iter->first;
 			if (s.GetLength() > 0
 				&& strspn((const char*)s, "0123456789") == (size_t)s.GetLength()) {
 				int cause = s.AsInteger();
@@ -924,9 +925,19 @@ int SQLAuth::Check(
 				}
 			}
 		}
+		iter = FindField(result, "clientauthid");
+		if (iter != result.end()) {
+			const PString & s = iter->first;
+			if (s.GetLength() > 0
+				&& strspn((const char*)s, "0123456789") == (size_t)s.GetLength()) {
+				authData.m_clientAuthId = s.AsUnsigned64();
+				PTRACE(5, traceStr << " - clientAuthId = " << authData.m_clientAuthId);
+			}
+		}
 		return e_fail;
 	}
 
+	// check for extra fields for accepted calls
 	GkSQLResult::ResultRow::const_iterator iter = FindField(result, "credittime");
 	if (iter != result.end()) {
 		const PString &s = iter->first;
