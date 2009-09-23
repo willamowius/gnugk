@@ -4790,7 +4790,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		payloadType = (int)wbuffer[1] & 0x7f;	// valid only for RTP packets, not for RTCP
 
 	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && (payloadType == m_keepAlivePayloadType)) {
-		PTRACE(6, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
+		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
 		fDestIP = rDestIP = fromIP;
 		fDestPort = rDestPort = fromPort;
@@ -4798,6 +4798,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		SetMute(false);
 		return NoData;	// don't forward keepAlive
 	} else if (m_h46019fc && !m_keepAliveTypeSet) {
+		PTRACE(5, "H46018\tSimons' RTP keepAlive kludge: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// The OLC response is always received by the Gatekeeper after the media from the called has already started
 		// the keepalive packets maybe received before the gatekeeper is aware they are keep alive packets.
 		// This clunge will allow media to flow on receipt of the OLC response until the gatekeeper knows it has received a 
