@@ -661,6 +661,7 @@ For <tt/SQLAcct/ the following parameters are defined:
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
 <item><tt/%{bandwidth}/ - bandwidth for this call
+<item><tt/%{client-auth-id}/ - an ID provided to GnuGk when authenticating the call (through SqlAuth)
 </itemize>
 <p>
 Sample query string:
