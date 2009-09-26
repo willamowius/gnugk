@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.33  2009/09/11 20:21:51  willamowius
+ * new Radius attributes on stop: h323pddtime, h323ringtime, h323routeattempts thanks Yuriy Georgiewskiy
+ *
  * Revision 1.32  2009/09/09 07:33:50  willamowius
  * whitespace change
  *
@@ -329,12 +332,12 @@ GkAcctLogger::Status RadAcct::Log(
 
 				// Post Dial Delay Time
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-					PString("h323pddtime=")+PString(PString::Unsigned,call->GetPostDialDelay()),true
+					PString("h323pddtime=")+PString(PString::Unsigned,PString(call->GetPostDialDelay())),true
 				);
 
 				// Ring Time
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-					PString("h323ringtime=")+PString(PString::Unsigned,call->GetRingTime()),true
+					PString("h323ringtime=")+PString(PString::Unsigned,PString(call->GetRingTime())),true
 				);
 
 				// Number of Route Attempts
