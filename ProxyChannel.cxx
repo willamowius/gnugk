@@ -517,6 +517,8 @@ public:
 	bool UsesH46019() const { return m_useH46019; }
 	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
 	bool UsesH46019fc() const { return m_useH46019fc; }
+	void SetH46019fcAck(bool use) { m_H46019fcAck = use; }
+	bool IsH46019fcAck() { return m_H46019fcAck; }
 
 private:
 	// override from class H245Handler
@@ -545,6 +547,7 @@ private:
 	bool isMute;
 	bool m_useH46019;
 	bool m_useH46019fc;
+	bool m_H46019fcAck;
 };
 
 
@@ -5482,7 +5485,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
-      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false)
+      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false), m_H46019fcAck(false)
 {
 	if (peer)
 		peer->peer = this;
@@ -5566,6 +5569,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 	bool changed = false;
 	if (hnat && !UsesH46019())
 		changed = hnat->HandleOpenLogicalChannel(olc);
+
+	// if we started out doing fast connect and now we are not
+	// then set the H46019fc flag to false.
+	if (UsesH46019fc() && !IsH46019fcAck())  
+		SetUsesH46019fc(false);
 
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	if (IsT120Channel(olc)) {
@@ -5838,8 +5846,10 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 	if (!peer)
 		return false;
 
-	if (UsesH46019()) 
+	if (UsesH46019()) {
 		SetUsesH46019fc(true);
+		SetH46019fcAck(true);
+    }
 
 	bool changed = false, isReverseLC;
 	if (hnat) 
