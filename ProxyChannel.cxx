@@ -2461,11 +2461,14 @@ void CallSignalSocket::OnSetup(
 		if (Toolkit::Instance()->IsH46018Enabled())
 		{
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+				unsigned numRemoved = 0;
 				for (PINDEX i =0; i < setupBody.m_supportedFeatures.GetSize(); i++) {
 					H460_Feature feat = H460_Feature(setupBody.m_supportedFeatures[i]);
 					if (feat.GetFeatureID() == H460_FeatureID(19))
 						setupBody.m_supportedFeatures.RemoveAt(i);
+						numRemoved++;
 				}
+				setupBody.m_supportedFeatures.SetSize(setupBody.m_supportedFeatures.GetSize() - numRemoved);
 				setupBody.m_supportedFeatures.SetSize(setupBody.m_supportedFeatures.GetSize()+1);
 				for (PINDEX j = setupBody.m_supportedFeatures.GetSize()-1; j > 0; j--) {
 					setupBody.m_supportedFeatures[j] = setupBody.m_supportedFeatures[j-1];
