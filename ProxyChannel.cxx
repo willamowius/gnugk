@@ -5570,9 +5570,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 	if (hnat && !UsesH46019())
 		changed = hnat->HandleOpenLogicalChannel(olc);
 
-	// if we started out doing fast connect and now we are not
-	// then set the H46019fc flag to false.
-	if (UsesH46019fc() && !IsH46019fcAck())  
+	// if the caller was using Fast Connect and
+	// called did not reply (ie switch to slow) then
+	// turn off H46019fc for the proxy handler
+	if (peer->UsesH46019fc() && !IsH46019fcAck())  
 		SetUsesH46019fc(false);
 
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
