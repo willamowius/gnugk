@@ -92,7 +92,7 @@ to virtually host URL domains or centralise the control of SRV records.
 <item><tt/catchall/<newline>
 <p>
 This policy will route all calls that reach it to one endpoint specified in the <ref id="routingcatchall" name="Routing::CatchAll"> section.
-You could put it at the end of the policy chain to route all calls that would outherwise fail.
+You can put it as a fallback at the end of the policy chain to route all calls that would otherwise fail.
 
 </itemize>
 
@@ -431,7 +431,7 @@ Specify an alias to route all calls to, if no CatchAllIP is specified.
 <item><tt/CatchAllIP=1.2.3.4/<newline>
 Default: <tt>(empty)</tt><newline>
 <p>
-Specify an IP to route all cvalls to. This overrides CatchAllAlias.
+Specify an IP to route all calls to. This overrides CatchAllAlias.
 
 </itemize>
 
