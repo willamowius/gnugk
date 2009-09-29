@@ -4814,11 +4814,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		fDestPort = rDestPort = fromPort;
 		m_keepAliveTypeSet = true;
 	}
-	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && isCtrlPort) {	// using m_payloadType to check IF H.460.19 is used
-		int t = 0;
-		if (buflen >= 8)
-			t = (int)wbuffer[4] + (int)wbuffer[5] + (int)wbuffer[6] + (int)wbuffer[7];
-		// set new control channel destination on first RTCP message
+	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && isCtrlPort) {	// using m_keepAlivePayloadType to check if H.460.19 is used
+		// RTCP keepAlive: set new control channel destination on first RTCP message
 		fDestIP = rDestIP = fromIP;
 		fDestPort = rDestPort = fromPort;
 		// process control message as usual (should contain only a sender report)
