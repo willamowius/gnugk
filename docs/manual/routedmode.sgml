@@ -4,14 +4,13 @@
 <label id="routed">
 <p>
 Call signaling messages may be passed in two ways:
-The first method is Direct Endpoint Call Signaling, in which case
-the call signaling messages are passed directly between the endpoints.
+The first method is Direct Endpoint Call Signaling, where 
+call signaling messages are passed directly between the endpoints.
 The second method is Gatekeeper Routed Call Signaling. With this method,
 the call signaling messages are routed through the gatekeeper.
-The choice of which methods is used is made in the gatekeeper configuration.
 
-When Gatekeeper Routed call signaling is used, the gatekeeper may choose
-whether to route the H.245 control channel and media channels.
+When Gatekeeper Routed call signaling is used, there are three different options for routing
+of the H.245 control channel and media channels.
 
 <descrip>
 <tag/Case I./
@@ -25,33 +24,34 @@ are established directly between the endpoints.
 The gatekeeper routes the H.245 control channel,
 as well as all media channels, including RTP/RTCP for audio and video,
 and T.120 channel for data. In this case, no traffic is passed
-directly between the endpoints. This is usually called an H.323 Proxy,
+directly between the endpoints. This is usually called a H.323 Proxy,
 which can be regarded as an H.323-H.323 gateway.
 </descrip>
 
 This section defines the gatekeeper routed mode options (case I &amp; II).
 The proxy feature is defined in the <ref id="proxy" name="next section">.
-All settings in this section are affected by reloading the configuration at runtime.
+
+The settings in this section may be updated by reloading the configuration while the gatekeeper is running.
 
 <itemize>
 <item><tt/GKRouted=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Whether to enable the gatekeeper routed signaling mode.
+Enables gatekeeper routed signaling mode.
 
 <item><tt/H245Routed=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Whether to route the H.245 control channel through the gatekeeper too.
-Only takes effect if <tt/GKRouted=1/ and H.245 tunneling is disabled
+Enables routing of the H.245 control channel through the gatekeeper.
+This setting is honored if <tt/GKRouted=1/ and H.245 tunneling is disabled
 for a call. Even when this option is disabled, if Proxy or ProxyForNAT
-takes effect, an H.245 channel is always routed through the gatekeeper
+takes effect, a H.245 channel is always routed through the gatekeeper
 for calls being proxied.
 
 <item><tt/CallSignalPort=0/<newline>
 Default: <tt/1721/<newline>
 <p>
-The port of call signaling for the gatekeeper.
+The port for call signaling on the gatekeeper.
 The default port is <tt/1721/. We don't use the well-known port <tt/1720/ by default
 so you can run an H.323 endpoint or gateway in the same machine as the gatekeeper.
 You may set it to <tt/0/ to let the gatekeeper choose an arbitrary port.

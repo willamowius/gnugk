@@ -5,13 +5,13 @@ The following sections in the config file can be used to configure accounting.
 <sect1>Section &lsqb;Gatekeeper::Acct&rsqb;
 <label id="gkacct">
 <p>
-The section defines a list of modules that will be performing accounting.
-The accounting is for logging gatekeeper on/off events and call start/stop/update
-events. Each accounting module logs received events to a module specific storage.
-Such storage can be a plain text file or a RADIUS server and many
-more. The configuration is very similar to the one for gatekeeper authentication
-(see <ref id="gkauth" name="[Gatekeeper::Auth]">).
-
+This section defines a list of modules which may be used to perform
+accounting.  The accounting function can be used for logging gatekeeper
+on/off events and call start/stop/update events.  Each accounting module
+logs received events to module-specific storage.  The various storage
+options include plain text file, RADIUS server and many more.  The
+configuration is very similar to the one for gatekeeper authentication (see
+<ref id="gkauth" name="[Gatekeeper::Auth]">).
 
 All CDRs are also sent to the status port and can be used by external applications.
 
@@ -26,32 +26,32 @@ acctmod=actions
  <event>   := start | stop | connect | update | on | off
 </verb></tscreen>
 </descrip>
-The event list tells the gatekeeper, which events should trigger logging
+The event list tells the gatekeeper which events should trigger logging
 with the given accounting module (if an event type is supported by the module):
 <itemize>
-<item><tt/start/ - a call has been started and a Setup message has been received (only available in routed mode),
-<item><tt/connect/ - a call has been connected (only available in routed mode),
+<item><tt/start/ - a call has been started and a Setup message has been received (only available in routed mode)
+<item><tt/connect/ - a call has been connected (only available in routed mode)
 <item><tt/update/ - a call is active and the periodic update is performed
 	to reflect the new call duration. Frequency of such updates is determined
 	by <bf/AcctUpdateInterval/ variable from <ref id="calltable" name="[CallTable]">
-	section,
-<item><tt/stop/ - a call has been disconnected (removed from the GK call table),
-<item><tt/on/ - the gatekeeper has been started,
-<item><tt/off/ - the gatekeeper has been shut down.
+	section
+<item><tt/stop/ - a call has been disconnected (removed from the gatekeeper call table)
+<item><tt/on/ - the gatekeeper has been started
+<item><tt/off/ - the gatekeeper has been shut down
 </itemize>
-An event logging by a module may results in one of the three result codes:
+An event logged by a module may results in one of three result codes:
 <bf/ok/, <bf/fail/, <bf/next/.
 <itemize>
-<item><tt/ok/ - the event has been logged successfully by this module,
-<item><tt/fail/ - the module failed to log the event,
+<item><tt/ok/ - the event has been logged successfully by this module
+<item><tt/fail/ - the module failed to log the event
 <item><tt/next/ - the event has not been logged by this module, because the module
-  is not configured for/does not support this event type.
+  is not configured for/does not support this event type
 </itemize>
 Accounting modules can be stacked to log events by multiple modules or to create
 failover setups. <bf/control/ flag for each module, along with result codes,
-define what is the final status of the event processing by the whole module stack.
+define what is the final status of the event processing by the entire module stack.
 If the final result is <bf/failure/, some special actions may take place. Currently,
-if a call <bf/start/ event logging fails, the call is disconnected immediatelly.
+if a call <bf/start/ event logging fails, the call is disconnected immediately.
 The following <bf/control/ flags are recognized:
 <itemize>
 <item><tt/required/ - if the module fails to log an event, the final status
