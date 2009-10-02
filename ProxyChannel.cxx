@@ -517,8 +517,8 @@ public:
 	bool UsesH46019() const { return m_useH46019; }
 	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
 	bool UsesH46019fc() const { return m_useH46019fc; }
-	void SetH46019fcAck(bool use) { m_H46019fcAck = use; }
-	bool IsH46019fcAck() { return m_H46019fcAck; }
+	void SetH46019fcState(int use) { m_H46019fcState = use; }
+	int GetH46019fcState() { return m_H46019fcState; }
 
 private:
 	// override from class H245Handler
@@ -547,7 +547,7 @@ private:
 	bool isMute;
 	bool m_useH46019;
 	bool m_useH46019fc;
-	bool m_H46019fcAck;
+	int m_H46019fcState;
 };
 
 
@@ -2602,6 +2602,7 @@ bool CallSignalSocket::CreateRemote(
 					fsn[lastpos] = std24;    
 				} else if (!m_calledh46023 && natfound) {
 					fsn.RemoveAt(id);
+					fsn.SetSize(fsn.GetSize()-1);
 					if (fsn.GetSize() == 0)
 						setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 				}
@@ -5485,7 +5486,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
-      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false), m_H46019fcAck(false)
+      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false), m_H46019fcState(0)
 {
 	if (peer)
 		peer->peer = this;
@@ -5570,10 +5571,19 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 	if (hnat && !UsesH46019())
 		changed = hnat->HandleOpenLogicalChannel(olc);
 
-	// if we started out doing fast connect and now we are not
-	// then set the H46019fc flag to false.
-	if (UsesH46019fc() && !IsH46019fcAck())  
-		SetUsesH46019fc(false);
+	if (UsesH46019fc()) {
+		switch (GetH46019fcState()) {
+			case 1:							// Initiating
+				SetH46019fcState(2);
+				break;
+			case 2:							// Waiting for reply (switching)
+				SetUsesH46019fc(false);
+				break;
+			default:
+				PTRACE(2,"H46019\tFast Connect Logic Error");
+				break;
+		}
+	}
 
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	if (IsT120Channel(olc)) {
@@ -5833,8 +5843,12 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 
 	if (UsesH46019()) {
 		SetUsesH46019fc(true);
+		SetH46019fcState(1);
+	}
+
+	if (mcall->GetCallingParty()->UsesH46018())
 		return (HandleOpenLogicalChannel(olc) || changed);
-	} else {
+	else {
 		bool nouse;
 		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
 		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
@@ -5848,7 +5862,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 
 	if (UsesH46019()) {
 		SetUsesH46019fc(true);
-		SetH46019fcAck(true);
+		SetH46019fcState(3);
     }
 
 	bool changed = false, isReverseLC;
@@ -5875,11 +5889,10 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 				logicalChannels[flcn] = sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
 				lc->OnHandlerSwapped(hnat != 0);
-				if (UsesH46019()) {
+				if (UsesH46019())
 					fastStartLCs.erase(iter);
-				} else {
+				else
 					peer->fastStartLCs.erase(iter);
-				}
 			}
 		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
