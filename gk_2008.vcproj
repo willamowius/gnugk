@@ -71,7 +71,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="openh323d.lib ptclibd.lib ptlibd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
@@ -80,7 +79,7 @@
 				ProgramDatabaseFile=".\Debug/gnugk.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -163,7 +162,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="OpenH323s.lib ptclib.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
@@ -171,7 +169,7 @@
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -253,7 +251,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="openh323sd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
@@ -262,7 +259,7 @@
 				ProgramDatabaseFile=".\Debug/gnugk.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -345,7 +342,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="OpenH323s.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
@@ -353,7 +349,7 @@
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -435,7 +431,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plusd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
@@ -444,7 +439,7 @@
 				ProgramDatabaseFile=".\Debug/gnugk.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -532,7 +527,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plus.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
@@ -540,7 +534,7 @@
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -628,7 +622,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plus.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
@@ -636,7 +629,7 @@
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="2"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -718,7 +711,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plusd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug\gnugk.exe"
 				LinkIncremental="0"
@@ -727,7 +719,7 @@
 				ProgramDatabaseFile=".\Debug\gnugk.pdb"
 				SubSystem="2"
 				RandomizedBaseAddress="2"
-				DataExecutionPrevention="0"
+				DataExecutionPrevention="2"
 				TargetMachine="1"
 			/>
 			<Tool
