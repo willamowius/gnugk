@@ -71,6 +71,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="openh323d.lib ptclibd.lib ptlibd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
@@ -78,7 +79,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/gnugk.pdb"
 				SubSystem="1"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -162,13 +163,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="OpenH323s.lib ptclib.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="1"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -251,6 +253,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="openh323sd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
@@ -258,7 +261,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/gnugk.pdb"
 				SubSystem="1"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -342,13 +345,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="OpenH323s.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="1"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -431,6 +435,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plusd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug/gnugk.exe"
 				LinkIncremental="0"
@@ -438,7 +443,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/gnugk.pdb"
 				SubSystem="1"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -527,13 +532,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plus.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="1"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -622,13 +628,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plus.lib ptlibs.lib snmpapi.lib odbc32.lib odbccp32.lib wsock32.lib mpr.lib winmm.lib"
 				OutputFile="Release/gnugk.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ProgramDatabaseFile=".\Release/gnugk.pdb"
 				SubSystem="2"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -711,6 +718,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NXCOMPAT"
 				AdditionalDependencies="h323plusd.lib ptlibsd.lib snmpapi.lib Winmm.lib mpr.lib wsock32.lib"
 				OutputFile="Debug\gnugk.exe"
 				LinkIncremental="0"
@@ -718,7 +726,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug\gnugk.pdb"
 				SubSystem="2"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="2"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -982,7 +990,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -993,7 +1001,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1004,7 +1012,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1015,7 +1023,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1026,7 +1034,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1037,7 +1045,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1048,7 +1056,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS% %GNUGK_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS% %GNUGK_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
@@ -1059,7 +1067,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)gnugkbuildopts.h"
 					/>
