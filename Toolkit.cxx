@@ -319,7 +319,6 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 
 bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 {
-PTRACE(0, "JW CreateRouteTable for " << extroute);
 	InterfaceTable if_table;
 	if (!PIPSocket::GetInterfaceTable(if_table)) {
 		PTRACE(1, "Error: Can't get interface table");
