@@ -409,7 +409,7 @@ private:
 		PString* m_callsignaladdr;
 		/// should this call be rejected
 		bool m_reject;
-		/// a synchronization point for signalling that routing decision
+		/// a synchronization point for signaling that routing decision
 		/// has been made by the external application
 		PSyncPoint m_sync;
 	};

@@ -320,7 +320,7 @@ public:
 	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
 
-	/** Authenticate/Authorize RAS or signalling message.
+	/** Authenticate/Authorize RAS or signaling message.
 	
 	    @return
 	    e_fail - authentication rejected the request
@@ -554,7 +554,7 @@ public:
 	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
 
-	/** Authenticate/Authorize RAS or signalling message. 
+	/** Authenticate/Authorize RAS or signaling message. 
 	    An override from GkAuthenticator.
 	
 	    @return
@@ -821,26 +821,26 @@ public:
 		);
 
 protected:
-	/** Validate that the signalling addresses match the given condition.
+	/** Validate that the signaling addresses match the given condition.
 	    The condition consists of one or more auth rules.
 		
 	    @return
-	    true if the signalling addresses match the condition.
+	    true if the signaling addresses match the condition.
 	*/
 	virtual bool doCheck(
-		/// an array of source signalling addresses for an endpoint that sent the request
+		/// an array of source signaling addresses for an endpoint that sent the request
 		const H225_ArrayOf_TransportAddress& sigaddr,
 		/// auth condition string as returned by GetAuthConditionString
 		const PString& condition
 		);
 		
-	/** Validate that the signalling address matches the given auth rule.
+	/** Validate that the signaling address matches the given auth rule.
 	
 	    @return
 	    true if the signal address matches the rule.
 	*/
 	virtual bool CheckAuthRule(
-		/// a signalling address for the endpoint that sent the request
+		/// a signaling address for the endpoint that sent the request
 		const H225_TransportAddress& sigaddr,
 		/// the auth rule to be used for checking
 		const PString& authrule

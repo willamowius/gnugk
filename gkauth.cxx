@@ -1690,7 +1690,7 @@ bool AliasAuth::InternalGetAuthConditionString(
 }
 
 bool AliasAuth::doCheck(
-	/// an array of source signalling addresses for an endpoint that sent the request
+	/// an array of source signaling addresses for an endpoint that sent the request
 	const H225_ArrayOf_TransportAddress& sigaddr,
 	/// auth condition string as returned by GetAuthConditionString
 	const PString& condition
@@ -1716,7 +1716,7 @@ bool AliasAuth::doCheck(
 }
 
 bool AliasAuth::CheckAuthRule(
-	/// a signalling address for the endpoint that sent the request
+	/// a signaling address for the endpoint that sent the request
 	const H225_TransportAddress& sigaddr,
 	/// the auth rule to be used for checking
 	const PString& authrule

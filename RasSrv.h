@@ -126,7 +126,7 @@ public:
 	const NeighborList *GetNeighbors() const { return neighbors; }
 	const VirtualQueue *GetVirtualQueue() const { return vqueue; }
 
-	// get signalling handler
+	// get signaling handler
 	ProxyHandler *GetSigProxyHandler();
 	ProxyHandler *GetRtpProxyHandler();
 

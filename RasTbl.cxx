@@ -811,7 +811,7 @@ void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
 	m_nat = true;
 	m_natip = ip;
 
-	// we keep the original private IP in signalling address,
+	// we keep the original private IP in signaling address,
 	// because we have to use it to identify different endpoints
 	// but from the same NAT box
 	if (m_rasAddress.GetTag() != H225_TransportAddress::e_ipAddress)
@@ -2709,7 +2709,7 @@ void CallRec::SetConnectTime(time_t tm)
 		if( m_disconnectTime && m_disconnectTime <= m_connectTime )
 			m_disconnectTime = m_connectTime + 1;
 	}
-	// can be the case for direct signalling mode, 
+	// can be the case for direct signaling mode, 
 	// because CallRec is usually created after ARQ message 
 	// has been received
 	if( m_creationTime > m_connectTime )
@@ -3197,16 +3197,16 @@ bool CallRec::IsTimeout(
 {
 	PWaitAndSignal lock(m_usedLock);
 
-	// check timeout for signalling channel creation after ARQ->ACF
-	// or for the call being connected in direct signalling mode
+	// check timeout for signaling channel creation after ARQ->ACF
+	// or for the call being connected in direct signaling mode
 	if( connectTimeout > 0 && m_setupTime == 0 && m_connectTime == 0 )
 		if( (now-m_creationTime)*1000 > connectTimeout ) {
-			PTRACE(2,"Q931\tCall #"<<m_CallNumber<<" timed out waiting for its signalling channel to be opened");
+			PTRACE(2,"Q931\tCall #"<<m_CallNumber<<" timed out waiting for its signaling channel to be opened");
 			return true;
 		} else
 			return false;
 
-	// is signalling channel present?
+	// is signaling channel present?
 	if( m_setupTime && m_connectTime == 0 && connectTimeout > 0 )
 		if( (now-m_setupTime)*1000 > connectTimeout ) {
 			PTRACE(2,"Q931\tCall #"<<m_CallNumber<<" timed out waiting for a Connect message");

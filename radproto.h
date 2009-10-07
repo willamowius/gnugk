@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.22  2009/04/13 12:00:29  willamowius
+ * fix gcc warning
+ *
  * Revision 1.21  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -1123,7 +1126,7 @@ private:
 	PTimedMutex m_readMutex;
 	/// mutex for atomic WriteTo operation on the socket
 	PMutex m_writeMutex;
-	/// flag signalling that some request thread performs read operation
+	/// flag signaling that some request thread performs read operation
 	bool m_isReading;
 	/// number of pending requests
 	PINDEX m_nestedCount;

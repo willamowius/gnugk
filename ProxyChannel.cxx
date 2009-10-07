@@ -1664,7 +1664,7 @@ void CallSignalSocket::OnSetup(
 			PTRACE(2, Type() << "\tWarning: duplicate Setup received from " << Name());
 		else {
 			PTRACE(2, Type() << "\tWarning: multiple calls over single "
-				"signalling channel not supported - new connection needed "
+				"signaling channel not supported - new connection needed "
 				"(from " << Name() << ')'
 				);
 

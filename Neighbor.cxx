@@ -1621,7 +1621,7 @@ bool RDSPolicy::FindByAliases(
 
 				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
-				// Send LRQ to retreive callers signalling address 
+				// Send LRQ to retreive callers signaling address 
 				LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
 				LRQRequester Request(functor);
 				if (Request.Send(nb)) {

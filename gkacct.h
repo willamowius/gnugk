@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.22  2009/02/09 15:26:21  willamowius
+ * virtual destructors
+ *
  * Revision 1.21  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -162,7 +165,7 @@ public:
 	Control GetControlFlag() const { return m_controlFlag; }
 
 	/** @return
-		Flags signalling which accounting events (see #AcctEvent enum#)
+		Flags signaling which accounting events (see #AcctEvent enum#)
 		should be logged. The flags are ORed.
 	*/
 	int GetEnabledEvents() const { return m_enabledEvents; }

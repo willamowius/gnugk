@@ -710,8 +710,8 @@ public:
 
 	/** @return
 		true if the call has been connected - a Connect message
-		has been received in gk routed signalling or the call has been admitted
-		(ARQ->ACF) in direct signalling. Does not necessary mean
+		has been received in gk routed signaling or the call has been admitted
+		(ARQ->ACF) in direct signaling. Does not necessary mean
 		that the call is still in progress (may have been already disconnected).
 	*/
 	bool IsConnected() const { return (m_connectTime != 0); }
@@ -893,7 +893,7 @@ public:
 	}
 
 	/** Check if:
-		- a signalling channel associated with this call is not timed out
+		- a signaling channel associated with this call is not timed out
 		  and the call should be disconnected (removed from CallTable);
 		- call duration limit has been exceeded
 		- call should be disconnected from other reason
@@ -944,26 +944,26 @@ public:
 	*/
 	PString GetSrcInfo() const { return m_srcInfo; }
 
-	/** Set a new address for the calling party signalling channel.
+	/** Set a new address for the calling party signaling channel.
 	*/
 	void SetSrcSignalAddr(
-		const H225_TransportAddress & addr /// new signalling transport address
+		const H225_TransportAddress & addr /// new signaling transport address
 		);
 
-	/** Set the unregistered calling party signalling channel as NATed.
+	/** Set the unregistered calling party signaling channel as NATed.
 	*/
 	void SetSrcNATed(const PIPSocket::Address & natip);
 
-	/** Set a new address for the called party signalling channel.
+	/** Set a new address for the called party signaling channel.
 	*/
 	void SetDestSignalAddr(
-		const H225_TransportAddress & addr /// new signalling transport address
+		const H225_TransportAddress & addr /// new signaling transport address
 		);
 
 	H225_TransportAddress GetSrcSignalAddr() const;
 
 	/** Get IP and port for the calling party. It is a signal address
-		for registered endpoints and remote signalling socket address
+		for registered endpoints and remote signaling socket address
 		for unregistered endpoints.
 
 		@return
@@ -977,7 +977,7 @@ public:
 	H225_TransportAddress GetDestSignalAddr() const;
 
 	/** Get IP and port for the called party. It is a signal address
-		for registered endpoints and remote signalling socket address
+		for registered endpoints and remote signaling socket address
 		for unregistered endpoints.
 
 		@return
@@ -1220,9 +1220,9 @@ private:
 	int  m_releaseSource;
 	/// unique accounting session id associated with this call
 	PString m_acctSessionId;
-	/// signalling transport address of the calling party
+	/// signaling transport address of the calling party
 	H225_TransportAddress m_srcSignalAddress;
-	/// signalling transport address of the called party
+	/// signaling transport address of the called party
 	H225_TransportAddress m_destSignalAddress;
 	/// calling party's number
 	PString m_callingStationId;
@@ -1335,8 +1335,8 @@ public:
 	PINDEX Size() const { return m_activeCall; }
 
 	/** @return
-	    Timeout value for a signalling channel to be opened after ACF
-	    and for an Alerting message to be received after signalling start.
+	    Timeout value for a signaling channel to be opened after ACF
+	    and for an Alerting message to be received after signaling start.
 	    The value is expressed in milliseconds.
 	*/
 	long GetSignalTimeout() const { return m_signalTimeout; }
@@ -1385,7 +1385,7 @@ private:
 	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall;
 
 	/// timeout for a Connect message to be received
-	/// and for a signalling channel to be opened after ACF/ARQ
+	/// and for a signaling channel to be opened after ACF/ARQ
 	/// (0 if GK is not in routed mode)
 	long m_signalTimeout;
 	/// timeout for a Connect message to be received after getting an Alerting message
