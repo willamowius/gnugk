@@ -141,7 +141,7 @@ template<class R>
 class LRQSender : public LRQFunctor {
 public:
 	LRQSender(const R & r) : m_r(r) {}
-	virtual PrefixInfo operator()(Neighbor *, WORD) const;
+	virtual PrefixInfo operator()(Neighbor *, WORD seqnum) const;
 
 private:
 	const R & m_r;
@@ -1413,15 +1413,18 @@ bool SRVPolicy::FindByAliases(
 		// DNS SRV Record lookup
 		PString number;
 		PString domain;
+		PString localalias;
 		PINDEX at = alias.Find('@');
 		if (at == P_MAX_INDEX) {
 			number = "h323:t@" + alias;	
 			domain = alias;
+			localalias = alias;
 	    } else {
 			number = "h323:" + alias;
 			domain = alias.Mid(at+1);
+			localalias = alias.Left(at);
 		}
-	
+
 		// LS Record lookup
 		PStringList ls;
 		if (PDNS::LookupSRV(number,"_h323ls._udp.",ls)) {
@@ -1465,12 +1468,19 @@ bool SRVPolicy::FindByAliases(
 					GnuGK * nb = new GnuGK();
 					if (!nb->SetProfile(domain,addr)) {
 						PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
+						delete nb;
 						return false;	// TODO: skip to tcp ?
 					}
 
 					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
-					// Send LRQ to retreive callers signalling address 
+					// Send LRQ to retreive callers signaling address
+					H225_ArrayOf_AliasAddress orig_alias = *((AdmissionRequest &)request).GetAliases();
+					// only set local alias part in LRQ
+					H225_ArrayOf_AliasAddress new_alias;
+					new_alias.SetSize(1);
+					H323SetAliasAddress(localalias,new_alias[0]);
+					((AdmissionRequest &)request).SetAliases(new_alias);
 					LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
 					LRQRequester Request(functor);
 					if (Request.Send(nb)) {
@@ -1483,19 +1493,20 @@ bool SRVPolicy::FindByAliases(
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
 								H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 								con = *lcf;
-								route.m_destEndpoint = endptr(new EndpointRec(ras));
+								route.m_destEndpoint = endptr(new EndpointRec(ras));	// TODO: fix memleak
 							}
 #endif
 							request.AddRoute(route);
-							// Fix for calling only a numeric number so the @xxx is removed
-							PString called = ls[i].Left(at);
-							if (strspn(called, "0123456789") == (size_t)called.GetLength()) {
-								H323SetAliasAddress(called, aliases[i]);
-								request.SetFlag(RoutingRequest::e_aliasesChanged);
-							}
+							((AdmissionRequest &)request).SetAliases(orig_alias);	// restore original alias
+							// @xxx is removed for the alias we routed on
+							H323SetAliasAddress(localalias, aliases[i]);
+							request.SetFlag(RoutingRequest::e_aliasesChanged);
+							delete nb;
 							return true;
 						}
+						((AdmissionRequest &)request).SetAliases(orig_alias);	// restore original alias
 					}
+					delete nb;
 					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
 				}
 			}
@@ -1529,12 +1540,10 @@ bool SRVPolicy::FindByAliases(
 						}
 					}
 					Route route(m_name, dest);
-                    // Fix for calling only a numeric number so the @xxx is removed
+                    // @xxx is removed for the alias we routed on
 					PString called = cs[j].Left(in);
-					if (strspn(called, "0123456789") == (size_t)called.GetLength()) {
-						H323SetAliasAddress(called, aliases[i]);
-						request.SetFlag(RoutingRequest::e_aliasesChanged);
-					}
+					H323SetAliasAddress(called, aliases[i]);
+					request.SetFlag(RoutingRequest::e_aliasesChanged);
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 					request.AddRoute(route);
 				}
