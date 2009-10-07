@@ -1475,12 +1475,9 @@ bool SRVPolicy::FindByAliases(
 					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 					// Send LRQ to retreive callers signaling address
-					H225_ArrayOf_AliasAddress orig_alias = *((AdmissionRequest &)request).GetAliases();
+					PString orig_alias = AsString(aliases[i], false);
 					// only set local alias part in LRQ
-					H225_ArrayOf_AliasAddress new_alias;
-					new_alias.SetSize(1);
-					H323SetAliasAddress(localalias,new_alias[0]);
-					((AdmissionRequest &)request).SetAliases(new_alias);
+					H323SetAliasAddress(localalias, aliases[i]);
 					LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
 					LRQRequester Request(functor);
 					if (Request.Send(nb)) {
@@ -1497,14 +1494,12 @@ bool SRVPolicy::FindByAliases(
 							}
 #endif
 							request.AddRoute(route);
-							((AdmissionRequest &)request).SetAliases(orig_alias);	// restore original alias
-							// @xxx is removed for the alias we routed on
-							H323SetAliasAddress(localalias, aliases[i]);
+							// @xxx was removed for the alias we routed on
 							request.SetFlag(RoutingRequest::e_aliasesChanged);
 							delete nb;
 							return true;
 						}
-						((AdmissionRequest &)request).SetAliases(orig_alias);	// restore original alias
+						H323SetAliasAddress(orig_alias, aliases[i]);	// restore full alias for next policy
 					}
 					delete nb;
 					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
