@@ -307,7 +307,7 @@ Supports routing OnARQ, OnLRQ and OnSetup.
 If the string returned from the database is 'REJECT' (upper or lower case),
 the call is rejected. If the string matches a dotted IP address, it is
 taken as destination IP and else it is treated as new destination alias.
-If 2 colums are returned, the first is treated as the new destination alias
+If 2 columns are returned, the first is treated as the new destination alias
 and the second is treated as new destination IP.
 
 If multiple rows of destination IPs are returned they are used as alternative routes
@@ -367,7 +367,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%i/ - the call ID
 <item><tt/%m/ - the message type (ARQ, LRQ or Setup)
 </itemize>
-Some of these can be empty if they aren't included in The ARQ, LRQ or Setup message.
+Some of these can be empty if they aren't included in the ARQ, LRQ or Setup message.
 <p>
 If the query returns no rows, the current alias is used.
 Otherwise, the first result row is used.
@@ -440,7 +440,7 @@ Specify an IP to route all calls to. This overrides CatchAllAlias.
 <label id="clirewrite">
 <p>
 This section contains a set of rewrite rules for ANI/CLI/H.323ID numbers (caller id).
-The rewrite process is done at two stages - inbound rewrite and outbound rewrite.
+The rewrite process is done in two stages - inbound rewrite and outbound rewrite.
 The inbound rewrite is done before any other Q.931 Setup message processing
 (like inbound GWRewrite, authentication, accounting, ...) and it will have
 visible effect inside auth/acct modules, as it affects Calling-Station-Id.
