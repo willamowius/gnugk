@@ -18,7 +18,7 @@ It consists of three major components:
 	FreeRADIUS RADIUS server (http://www.freeradius.org) (optional)
 	PostgreSQL database server (http://www.postgresql.org)
 	
-All these application are open source and have been proven
+Each of these applications are open source and have been proven
 to be stable, mature products.
 
 What you may expect from this system:
@@ -45,7 +45,7 @@ What you will not find here:
 Quick Overview
 ==============
 
-To make everything working you need to:
+To make everything work you will need to:
 1. Install PostgreSQL and create a billing database schema.
 2. Fill the database with some data.
 Either:
