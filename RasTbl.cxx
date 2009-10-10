@@ -3092,6 +3092,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
          PTRACE(4,"RAS\tDisable H.460.24 Offload as neither party supports it.");
 		 return false;
 	}
+
 	// EP's are registered locally on different Networks and must proxy to reach eachother
 	else if (!goDirect && !m_Calling->IsRemote() && !m_Called->IsRemote())
 			natinst = CallRec::e_natFullProxy;
@@ -3131,6 +3132,16 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
     else if (goDirect && 
 		((!m_Called->IsNATed() && m_Called->SupportNAT()) || (m_Called->GetEPNATType() == EndpointRec::NatCone)))
 			natinst = CallRec::e_natRemoteMaster;
+
+    else if (goDirect && m_Calling->IsNATed())
+			natinst = CallRec::e_natLocalProxy;
+
+    else if (goDirect && m_Called->IsNATed())
+			natinst = CallRec::e_natRemoteProxy;
+
+	// if 1 of the EP's do not support H.460.24 then full proxy
+	else if (!callingSupport || !calledSupport)
+			natinst = CallRec::e_natFullProxy;
 
 	// Oops cannot proceed the media will Fail!!
 	else {
