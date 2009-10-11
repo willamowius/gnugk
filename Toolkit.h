@@ -126,6 +126,7 @@ class Toolkit : public Singleton<Toolkit>
 		bool IsEmpty() const { return rtable_begin == 0; }
 
 		std::vector<NetworkAddress> GetInternalNetworks() const { return m_internalnetworks; }
+		void AddInternalNetwork(const NetworkAddress & network);
 
 	    virtual bool IsMasquerade(const PIPSocket::Address &) const { return false; }
 	protected:
@@ -152,7 +153,6 @@ class Toolkit : public Singleton<Toolkit>
 		virtual bool IsMasquerade(PIPSocket::Address &) const;
 	protected:
 		virtual bool CreateTable();
-		
 	};
 
 	RouteTable *GetRouteTable(bool = false);

@@ -252,7 +252,7 @@ inline bool Toolkit::RouteTable::RouteEntry::Compare(const Address *ip) const
 // class Toolkit::RouteTable
 void Toolkit::RouteTable::InitTable()
 {
-	// Workaround for OS doesn't support GetRouteTable
+	// workaround for OS that don't support GetRouteTable
 	PIPSocket::GetHostAddress(defAddr);
 
 	ClearTable();
@@ -301,19 +301,33 @@ void Toolkit::RouteTable::ClearTable()
 	}
 }
 
-// can't pass a reference of Address, or STL complains...
+void Toolkit::RouteTable::AddInternalNetwork(const NetworkAddress & network)
+{
+	if (find(m_internalnetworks.begin(), m_internalnetworks.end(), network) == m_internalnetworks.end())
+		m_internalnetworks.push_back(network);
+}
+
 PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) const
 {
-  // If a dynamic external IP retrieve external IP from DNS entries
+	// look through internal networks and make sure we don't return the external IP for them
+	for (unsigned j = 0; j < m_internalnetworks.size(); ++j) {
+		if (addr << m_internalnetworks[j]) {
+			// TODO: what if internal network detected, is in route table and has different IP ?
+			return defAddr;
+		}
+	}
+	
+	// If a dynamic external IP retrieve external IP from DNS entries
 	if (DynExtIP && !addr.IsRFC1918()) {
-	  PIPSocket::Address extip;
-	  H323TransportAddress ex = H323TransportAddress(ExtIP);
-	  ex.GetIpAddress(extip);
-	  return extip;
+		// TODO: dynamic external IP used for all networks, even if in route table ?
+		PIPSocket::Address extip;
+		H323TransportAddress ex = H323TransportAddress(ExtIP);
+		ex.GetIpAddress(extip);
+		return extip;
 	}
 
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
-			bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
+		bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
 	return (entry != rtable_end) ? entry->GetDestination() : defAddr;
 }
 
@@ -347,9 +361,9 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 
 	rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
 	for (PINDEX r = 0; r < i ; ++r) {
-		if (!extroute && (r==r_table.GetSize()))
+		if (!extroute && (r==r_table.GetSize())) {
 			::new (rtable_end++) RouteEntry(extroute);
-		else {
+		} else {
 		  PIPSocket::RouteEntry & r_entry = r_table[r];
 		  if (r_entry.GetNetMask() != INADDR_ANY) 
 			::new (rtable_end++) RouteEntry(r_entry, if_table);
@@ -363,14 +377,16 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 {
 	PString nets = GkConfig()->GetString("NetworkInterfaces", "");
 	if (!nets) {		
-	   PStringArray networks(nets.Tokenise(" ,;\t", FALSE));
-	   int i = networks.GetSize();
-	   if (i > 0) {
-          rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
-		  for (PINDEX r = 0; r < i ; ++r) 
-             ::new (rtable_end++) RouteEntry(networks[r]);
-       }
-	   return true;
+		PStringArray networks(nets.Tokenise(" ,;\t", FALSE));
+		int i = networks.GetSize();
+		if (i > 0) {
+			rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
+			for (PINDEX r = 0; r < i ; ++r) {
+				::new (rtable_end++) RouteEntry(networks[r]);
+			}
+		}
+		// TODO: ExternalIP etc. ignored when NetworkInterfaces set ???
+		return true;
 	}
 
 	// If we have an external IP setting then load the detected Route Table and add a route for the external IP
@@ -444,6 +460,7 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 	} else {
 		for (PINDEX i = 0; i < networks.GetSize(); ++i) {
 			m_internalnetworks.push_back(networks[i]);
+			Toolkit::Instance()->GetRouteTable()->AddInternalNetwork(networks[i]);
 			m_modeselection[networks[i]] = internal_netmode;
 			PTRACE(2, "GK\tINI Internal Network " << i << " = " << m_internalnetworks[i].AsString());
 		}
