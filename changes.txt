@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- enable data execution protection on Windows versions that support it (starting with XP SP3)
 - BUGFIX(gk.cxx) make sure Windows service writes same trace format as application (including file and line)
 - BUGFIX(Neighbor.cxx) fix memory leak in srv policy, only send the local part of the alias in the LRQ
 - new switch [RoutedMode]H46018NoNat to disable H.460.18 if not NAT detected (default enabled)

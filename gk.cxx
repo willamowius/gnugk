@@ -231,7 +231,24 @@ bool Gatekeeper::SetUserAndGroup(const PString& /*username*/)
 	return false;
 }
 
-#else
+// method to enable data execution prevention when supported by OS (starting with XP SP3)
+#define PROCESS_DEP_ENABLE                          0x00000001
+#define PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION     0x00000002
+
+BOOL SetDEP(__in DWORD dwFlags = PROCESS_DEP_ENABLE)
+{
+	HMODULE hMod = GetModuleHandleW(L"Kernel32.dll");
+	if (!hMod)
+		return FALSE;
+	typedef BOOL (WINAPI *PSETDEP)(DWORD);
+	PSETDEP procSet = (PSETDEP)GetProcAddress(hMod,"SetProcessDEPPolicy");
+	if (!procSet)
+		return FALSE;
+	return procSet(dwFlags);
+}
+
+#else	// _WIN32
+
 #  include <pwd.h>
 
 bool Gatekeeper::SetUserAndGroup(const PString &username)
@@ -276,7 +293,6 @@ void DumbHandler(int sig)
 {
 	PTRACE(1, "Warning: signal " << sig << " received and ignored!");
 }
-
 #endif // _WIN32
 
 
@@ -293,6 +309,11 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 	: PProcess(_manuf, _name, _majorVersion, _minorVersion, _status, _buildNumber)
 #endif
 {
+#if (_WIN32)
+	// set data execution prevention (ignore if not available)
+	SetDEP(PROCESS_DEP_ENABLE);
+#endif
+
 #ifdef COMPILE_AS_SERVICE
 	// save original arguments
 	for (int i = 0; i < GetArguments().GetCount(); i++) {
