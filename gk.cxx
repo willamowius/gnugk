@@ -309,7 +309,7 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 	: PProcess(_manuf, _name, _majorVersion, _minorVersion, _status, _buildNumber)
 #endif
 {
-#if (_WIN32)
+#ifdef _WIN32
 	// set data execution prevention (ignore if not available)
 	SetDEP(PROCESS_DEP_ENABLE);
 #endif
