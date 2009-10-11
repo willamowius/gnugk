@@ -4799,8 +4799,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && (payloadType == m_keepAlivePayloadType)) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
-		fDestIP = rDestIP = fromIP;
-		fDestPort = rDestPort = fromPort;
+//		fDestIP = rDestIP = fromIP;
+//		fDestPort = rDestPort = fromPort;
 		m_keepAliveTypeSet = true;
 		SetMute(false);
 		return NoData;	// don't forward keepAlive
@@ -4811,14 +4811,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// This clunge will allow media to flow on receipt of the OLC response until the gatekeeper knows it has received a 
 		// keepalive and then sets the destination IP and PORT (maybe several seconds later)
 		// Hoping to get this problem resolved in the ITU  - SH
-		fDestIP = rDestIP = fromIP;
-		fDestPort = rDestPort = fromPort;
+//		fDestIP = rDestIP = fromIP;
+//		fDestPort = rDestPort = fromPort;
 		m_keepAliveTypeSet = true;
 	}
 	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && isCtrlPort) {	// using m_keepAlivePayloadType to check if H.460.19 is used
 		// RTCP keepAlive: set new control channel destination on first RTCP message
-		fDestIP = rDestIP = fromIP;
-		fDestPort = rDestPort = fromPort;
+//		fDestIP = rDestIP = fromIP;
+//		fDestPort = rDestPort = fromPort;
 		// process control message as usual (should contain only a sender report)
 	}
 #endif
@@ -5846,7 +5846,7 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 		SetH46019fcState(1);
 	}
 
-	if (mcall->GetCallingParty()->UsesH46018())
+	if (UsesH46019() && mcall->GetCallingParty() && mcall->GetCallingParty()->UsesH46018())
 		return (HandleOpenLogicalChannel(olc) || changed);
 	else {
 		bool nouse;
