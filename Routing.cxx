@@ -585,6 +585,9 @@ bool DNSPolicy::FindByAliases(
 	)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		// don't apply DNS to dialedDigits
+		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
+			continue;
 		PString alias(AsString(aliases[i], FALSE));
 		PINDEX at = alias.Find('@');
 

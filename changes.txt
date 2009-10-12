@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(Routing.cxx) don't apply dns policy to aliases of type dialedDigits
 - BUGFIX(Toolkit.h/.cxx) use default IP for networks specified in InternatlNetwork=, not ExternalIP
 - enable data execution protection on Windows versions that support it (starting with XP SP3)
 - BUGFIX(gk.cxx) make sure Windows service writes same trace format as application (including file and line)
