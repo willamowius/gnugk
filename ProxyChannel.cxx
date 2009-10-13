@@ -2461,25 +2461,31 @@ void CallSignalSocket::OnSetup(
 		if (Toolkit::Instance()->IsH46018Enabled())
 		{
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
-				unsigned numRemoved = 0;
-				for (PINDEX i =0; i < setupBody.m_supportedFeatures.GetSize(); i++) {
-					H460_Feature feat = H460_Feature(setupBody.m_supportedFeatures[i]);
-					if (feat.GetFeatureID() == H460_FeatureID(19))
-						setupBody.m_supportedFeatures.RemoveAt(i);
-						numRemoved++;
-				}
-				setupBody.m_supportedFeatures.SetSize(setupBody.m_supportedFeatures.GetSize() - numRemoved);
-				setupBody.m_supportedFeatures.SetSize(setupBody.m_supportedFeatures.GetSize()+1);
-				for (PINDEX j = setupBody.m_supportedFeatures.GetSize()-1; j > 0; j--) {
-					setupBody.m_supportedFeatures[j] = setupBody.m_supportedFeatures[j-1];
-				}
-				setupBody.m_supportedFeatures[0] = feat;  // Always set H.460.19 in position 0
+					unsigned numRemoved = -1;
+					for (PINDEX i =0; i < setupBody.m_supportedFeatures.GetSize(); i++) {
+						H460_Feature feat = H460_Feature(setupBody.m_supportedFeatures[i]);
+						if (feat.GetFeatureID() == H460_FeatureID(19)) {
+							numRemoved = i;
+							break;
+						}
+					}
+					if (numRemoved > 0) {
+						for (PINDEX j = numRemoved; j > 0; j--) { 
+							setupBody.m_supportedFeatures[j] = setupBody.m_supportedFeatures[j-1];
+						}						
+					} else if (numRemoved < 0) {
+						setupBody.m_supportedFeatures.SetSize(setupBody.m_supportedFeatures.GetSize()+1);
+						for (PINDEX j = setupBody.m_supportedFeatures.GetSize()-1; j > 0; j--) {
+							setupBody.m_supportedFeatures[j] = setupBody.m_supportedFeatures[j-1];
+						}
+					}
+					setupBody.m_supportedFeatures[0] = feat;  // Always set H.460.19 in position 0
+			} else {
+				// add H.460.19 indicator to Setups
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+				setupBody.m_supportedFeatures.SetSize(0);
+				AddH460Feature(setupBody.m_supportedFeatures, feat);
 			}
-		} else {
-			// add H.460.19 indicator to Setups
-			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
-			setupBody.m_supportedFeatures.SetSize(0);
-			AddH460Feature(setupBody.m_supportedFeatures, feat);
 		}
 	}
 #endif
