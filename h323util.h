@@ -27,6 +27,8 @@ class PASN_OctetString;
 
 PString AsString(const PIPSocket::Address &, WORD);
 
+PString AsString(const H245_UnicastAddress_iPAddress &);
+
 PString AsString(const H225_TransportAddress & ta);
 
 PString AsDotString(const H225_TransportAddress & ip);

@@ -21,6 +21,14 @@ PString AsString(const PIPSocket::Address & ip, WORD pt)
 		ip[0], ip[1], ip[2], ip[3], pt);
 }
 
+PString AsString(const H245_UnicastAddress_iPAddress & ip)
+{
+	return AsString(
+		PIPSocket::Address(ip.m_network.GetSize(), ip.m_network.GetValue()),
+		ip.m_tsapIdentifier
+		);
+}
+
 PString AsString(const H225_TransportAddress & ta)
 {
 	PStringStream stream;
