@@ -325,6 +325,7 @@ private:
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
 	bool fnat, rnat;
 	bool mute;
+	bool m_dontQueueRTP;
 #ifdef HAS_H46018
 	// also used as indicator whether H.460.19 should be used
 	int m_keepAlivePayloadType;
@@ -4685,7 +4686,9 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_
 
 // class UDPProxySocket
 UDPProxySocket::UDPProxySocket(const char *t) 
-	: ProxySocket(this, t), fDestPort(0), rDestPort(0)
+	: ProxySocket(this, t),
+		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
+		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0)
 #ifdef HAS_H46018
 	, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_h46019fc(false), m_keepAliveTypeSet(false)
 #endif
@@ -4693,6 +4696,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 	SetReadTimeout(PTimeInterval(50));
 	SetWriteTimeout(PTimeInterval(50));
 	fnat = rnat = mute = false;
+	m_dontQueueRTP = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "DisableRTPQueueing", "0"));
 }
 
 bool UDPProxySocket::Bind(WORD pt)
@@ -4847,12 +4851,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if (fDestPort) {
 			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
 			SetSendAddress(fDestIP, fDestPort);
-		} else
+		} else {
 			PTRACE(6, Type() << "\tForward from " << fromIP << ':' << fromPort 
 				<< " blocked, remote socket (" << fDestIP << ':' << fDestPort
 				<< ") not yet known or ready"
 				);
-
+			if (m_dontQueueRTP)
+				return NoData;
+		}
 		if (rnat)
 			rDestIP = fromIP, rDestPort = fromPort;
 	} else {
@@ -4861,11 +4867,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				" to " << rDestIP << ':' << rDestPort
 				);
 			SetSendAddress(rDestIP, rDestPort);
-		} else 
+		} else {
 			PTRACE(6, Type() << "\tForward from " << fromIP << ':' << fromPort 
 				<< " blocked, remote socket (" << rDestIP << ':' << rDestPort
 				<< ") not yet known or ready"
 				);
+			if (m_dontQueueRTP)
+				return NoData;
+		}
 		if (fnat)
 			fDestIP = fromIP, fDestPort = fromPort;
 	}

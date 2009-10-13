@@ -1,5 +1,7 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- new switch [Proxy]DisableRTPQueueing=1
+- BUGFIX(ProxyChannel.cxx) fully initialize UDP proxy IPs and ports
 - BUGFIX(Routing.cxx) don't apply dns policy to aliases of type dialedDigits
 - BUGFIX(Toolkit.h/.cxx) use default IP for networks specified in InternatlNetwork=, not ExternalIP
 - enable data execution protection on Windows versions that support it (starting with XP SP3)

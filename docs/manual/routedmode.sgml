@@ -550,6 +550,14 @@ Default: <tt/0/<newline>
 This setting removes the H.460 features from the Setup message. Use this with
 pre-H.323v4 endpoints and gateways which cannot decode these messages.
 
+<item><tt/DisableRTPQueueing=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Sometimes GnuGk will receive RTP data before it knows where to fordward it to.
+By default GnuGk will queue this data up to a ceratin amount and send it once
+the destination becomes available. In some cases this can cause a short loopback
+of RTP data, so you might want to disable RTP queueing.
+
 <item><tt/EnableRTPMute=1/<newline>
 Default: <tt/0/<newline>
 <p>
