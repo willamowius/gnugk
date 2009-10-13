@@ -5048,6 +5048,8 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 	if (isMute())
 		return true;
 
+	// TODO: since we have to send data in 2 directions (fDestIP + rDestIP),
+	// we should have 2 queues to avoid loopback
 	const int queueSize = GetQueueSize();
 	if (queueSize > 0) {
 		if (queueSize < 50) {
@@ -5084,6 +5086,8 @@ bool UDPProxySocket::Flush()
 		return false;
 	}
 
+	// TODO: since we have to send data in 2 directions (fDestIP + rDestIP),
+	// we should have 2 queues to avoid loopback
 	bool result = true;
 	while (result && GetQueueSize() > 0) {
 		PBYTEArray* const pdata = PopQueuedPacket();
