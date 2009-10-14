@@ -187,6 +187,7 @@ void SoftPBX::DisconnectIp(PString Ip)
 	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
 	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << AsDotString(callSignalAddress));
 
+	// TODO: extend for unregistered endpoints
 	DisconnectEndpoint(RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress));
 }
 
@@ -198,6 +199,7 @@ void SoftPBX::DisconnectAlias(PString Alias)
 	H323SetAliasAddress(Alias, EpAlias[0]);
 	PTRACE(3, "GK\tSoftPBX: DisconnectAlias " << Alias);
 
+	// TODO: extend for unregistered endpoints
 	DisconnectEndpoint(RegistrationTable::Instance()->FindByAliases(EpAlias));
 }
 
