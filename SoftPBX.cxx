@@ -171,7 +171,7 @@ void SoftPBX::DisconnectCall(unsigned CallNumber)
 		return;
 	}
 
-	Call->Disconnect();
+	Call->Disconnect(true);
 	// remove the call directly so we don't have to handle DCF
 	CallTable::Instance()->RemoveCall(Call);
 
@@ -187,8 +187,23 @@ void SoftPBX::DisconnectIp(PString Ip)
 	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
 	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << AsDotString(callSignalAddress));
 
-	// TODO: extend for unregistered endpoints
-	DisconnectEndpoint(RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress));
+	// TODO: extend to searching on non-standard ports
+	callptr Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress);
+	if (!Call) {
+		PString msg = "Can't find call for IP " + Ip;
+		PTRACE(2, "GK\tSoftPBX: " << msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return;
+	}
+	unsigned CallNumber = Call->GetCallNumber();
+
+	Call->Disconnect(true);
+	// remove the call directly so we don't have to handle DCF
+	CallTable::Instance()->RemoveCall(Call);
+
+	PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
+	PTRACE(2, "GK\tSoftPBX: " << msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
 // send a DRQ to this endpoint
