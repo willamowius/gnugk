@@ -300,7 +300,8 @@ public:
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
-	void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
+	// disabled for now, until we handle 2 payload types per UDPProxy
+	// void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
 #endif
 
 	// override from class ProxySocket
@@ -328,9 +329,9 @@ private:
 	bool m_dontQueueRTP;
 #ifdef HAS_H46018
 	// also used as indicator whether H.460.19 should be used
-	int m_keepAlivePayloadType;
+//	int m_keepAlivePayloadType;
 	bool m_h46019fc;
-	bool m_keepAliveTypeSet;
+//	bool m_keepAliveTypeSet;
 #endif
 };
 
@@ -401,7 +402,7 @@ public:
 	void OnHandlerSwapped(bool);
 
 	bool IsOpen() const;
-	void SetKeepAlivePayloadType(int pt);
+	// void SetKeepAlivePayloadType(int pt);
 	void SetUsesH46019fc(bool);
 
 private:
@@ -4690,7 +4691,8 @@ UDPProxySocket::UDPProxySocket(const char *t)
 		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0)
 #ifdef HAS_H46018
-	, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_h46019fc(false), m_keepAliveTypeSet(false)
+	, m_h46019fc(false)
+	//, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_keepAliveTypeSet(false)
 #endif
 {
 	SetReadTimeout(PTimeInterval(50));
@@ -4801,42 +4803,45 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	GetLastReceiveAddress(fromIP, fromPort);
 	buflen = (WORD)GetLastReadCount();
 #ifdef HAS_H46018
-	bool isCtrlPort = (rDestPort & 1) != 0;
 	int payloadType = H46019_UNDEFINED_PAYLOAD_TYPE;
 	if (buflen >= 2)
 		payloadType = (int)wbuffer[1] & 0x7f;	// valid only for RTP packets, not for RTCP
 
-	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && (payloadType == m_keepAlivePayloadType)) {
+//	Address localaddr;
+//	WORD localport = 0;
+//	GetLocalAddress(localaddr, localport);
+//	unsigned int seq = 0;
+//	unsigned int timestamp = 0;
+//	if (buflen >= 4)
+//		seq = (((int)wbuffer[2] << 8) & 0x7f) + ((int)wbuffer[3] & 0x7f);
+//	if (buflen >= 8)
+//		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
+//	PTRACE(0, "JW RTP IN on " << localport << " from " << fromIP << ":" << fromPort << " pType=" << payloadType
+//		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
+//		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
+//		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
+//		);
+
+	if (buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
-//		fDestIP = rDestIP = fromIP;
-//		fDestPort = rDestPort = fromPort;
-		m_keepAliveTypeSet = true;
-		SetMute(false);
+		if (fromIP == fDestIP) {
+			fDestPort = fromPort;
+			SetMute(false);
+		}
+		if (fromIP == rDestIP) {
+			rDestPort = fromPort;
+			SetMute(false);
+		}
 		return NoData;	// don't forward keepAlive
-	} else if (m_h46019fc && !m_keepAliveTypeSet) {
-		PTRACE(5, "H46018\tSimons' RTP keepAlive kludge: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
-		// The OLC response is always received by the Gatekeeper after the media from the called has already started
-		// the keepalive packets maybe received before the gatekeeper is aware they are keep alive packets.
-		// This clunge will allow media to flow on receipt of the OLC response until the gatekeeper knows it has received a 
-		// keepalive and then sets the destination IP and PORT (maybe several seconds later)
-		// Hoping to get this problem resolved in the ITU  - SH
-//		fDestIP = rDestIP = fromIP;
-//		fDestPort = rDestPort = fromPort;
-		m_keepAliveTypeSet = true;
-	}
-	if ((m_keepAlivePayloadType != H46019_UNDEFINED_PAYLOAD_TYPE) && isCtrlPort) {	// using m_keepAlivePayloadType to check if H.460.19 is used
-		// RTCP keepAlive: set new control channel destination on first RTCP message
-//		fDestIP = rDestIP = fromIP;
-//		fDestPort = rDestPort = fromPort;
-		// process control message as usual (should contain only a sender report)
 	}
 #endif
 
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP (reverse = fastStart ?)
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
-	if (rSrcIP == 0 && fromIP == fDestIP)
+	if (rSrcIP == 0 && fromIP == fDestIP) {
 		rSrcIP = fromIP, rSrcPort = fromPort;
+	}
 	if (fSrcIP == 0 && fromIP == rDestIP) {
 		fSrcIP = fromIP, fSrcPort = fromPort;
 		Address laddr;
@@ -4859,8 +4864,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			if (m_dontQueueRTP)
 				return NoData;
 		}
-		if (rnat)
+		if (rnat) {
 			rDestIP = fromIP, rDestPort = fromPort;
+		}
 	} else {
 		if (rDestPort) {
 			PTRACE(6, Type() << "\tForward " << fromIP << ':' << fromPort << 
@@ -4875,8 +4881,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			if (m_dontQueueRTP)
 				return NoData;
 		}
-		if (fnat)
+		if (fnat) {
 			fDestIP = fromIP, fDestPort = fromPort;
+		}
 	}
 	if (PString(Type()) == "RTCP") {
 		bool direct = true;
@@ -5243,13 +5250,13 @@ bool RTPLogicalChannel::IsOpen() const
 }
 
 #ifdef HAS_H46018
-void RTPLogicalChannel::SetKeepAlivePayloadType(int pt)
-{
-	if (rtp)
-		rtp->SetKeepAlivePayloadType(pt);
-	if (rtcp)
-		rtcp->SetKeepAlivePayloadType(pt);	// used as indicator that H.460.19 is used
-}
+//void RTPLogicalChannel::SetKeepAlivePayloadType(int pt)
+//{
+//	if (rtp)
+//		rtp->SetKeepAlivePayloadType(pt);
+//	if (rtcp)
+//		rtcp->SetKeepAlivePayloadType(pt);	// used as indicator that H.460.19 is used
+//}
 
 void RTPLogicalChannel::SetUsesH46019fc(bool fc)
 {
@@ -5682,8 +5689,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			}
 			if (lc) {
 				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
-				if (m_keeppayloadtype > 0) 
-					((RTPLogicalChannel*)lc)->SetKeepAlivePayloadType(m_keeppayloadtype);  // If remote has told us keeppayloadtype then set it.
+				// if (m_keeppayloadtype > 0) 
+				//	((RTPLogicalChannel*)lc)->SetKeepAlivePayloadType(m_keeppayloadtype);  // If remote has told us keeppayloadtype then set it.
 				if (UsesH46019fc())
 					((RTPLogicalChannel*)lc)->SetUsesH46019fc(true);
 			} else {
@@ -5734,11 +5741,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 					raw.DecodeSubType(params);
 					if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
 						PTRACE(5, "H46018\tExpecting KeepAlive PayloadType=" << params.m_keepAlivePayloadType << " for channel " << flcn);
-						RTPLogicalChannel* rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
-						if (rtplc) {
-							rtplc->SetKeepAlivePayloadType(params.m_keepAlivePayloadType);
-							rtplc->SetRTPMute(true);	// wait for keepAlive, then change destination and un-mute
-						}
+						// disabled for now, until we handle 2 payload types per UDPProxy
+//						RTPLogicalChannel* rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
+//						if (rtplc) {
+//							rtplc->SetKeepAlivePayloadType(params.m_keepAlivePayloadType);
+//							rtplc->SetRTPMute(true);	// wait for keepAlive, then change destination and un-mute
+//						}
 					}
 				}
 			}
