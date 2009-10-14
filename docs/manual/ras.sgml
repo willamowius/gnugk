@@ -3,30 +3,41 @@
 <sect1>Section &lsqb;RasSrv::GWPrefixes&rsqb;
 <label id="gwprefixes">
 <p>
-This section lists what E.164 numbers are routed to a specific gateway.
+This section configures how dialed E.164 numbers are routed to a specific gateway.
 
 <descrip>
 <tag/Format:/
 <tt>gw-alias=prefix[:=priority][,prefix[:=priority],...]</tt>
 <p>
-Note you have to specify the alias of the gateway.
-If a gateway registered with the alias, all numbers beginning with
-the prefixes are routed to this gateway. Special characters <tt/./ and <tt/!/
-can be used here to match any digit and disable the prefix.
+Note that you must specify the alias of the gateway.
+If a gateway has registered with the specified alias, all numbers beginning with
+the prefixes are routed to that gateway. Special characters <tt/./ and <tt/!/
+can be used here to match any digit or to disable the prefix.
 A priority can be given to each prefix for each gateway (using := syntax),
-so in case of several gateways match the dialed number, the one
-with the highest prefix priority will be selected to route the call (when the ActivateFailover switch is ON call will be routed to all selected gateways in order of the prefix priority). The smaller value corresponds to the higher priority. Default value is 1. In case when prefix priority intersectes with GatewayPriority (see section <ref id="epconfig" name="[EP::...]">) prefix one is preferred.
+so that if several gateways match the dialed number, the one
+with the highest prefix priority will be selected to route the call (when
+the ActivateFailover switch is ON, the call will be routed to all selected
+gateways in order of the prefix priority).  A smaller value corresponds to
+a higher priority.  Default value is 1.  If the prefix priority
+and overlaps the GatewayPriority (see section <ref id="epconfig"
+name="[EP::...]">), the prefix priority will be preferred.
+
+In the following example, the gateway "test-gw" will be responsible for
+prefixes "02" and "03" with a priority of "3", and for "04." with a priority
+of "1".
+
+<!-- TODO: WHAT IS THE "04." ACTUALLY GOING TO MEAN? -->
+
 <tag/Example:/
 <tt/test-gw=02,03:=3,04.:=1/
 </descrip>
 
-
 <sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
 <p>
-In this section you can put endpoints that don't have RAS support
-or that you don't want to be expired. The records will always
-keep in registration table of the gatekeeper.
-However, You can still unregister it via status port.
+In this section you may configure endpoints that don't have RAS support
+or that you don't want to be expired. Their records will always
+remain in the registration table of the gatekeeper.
+However, you can still unregister it via the status port.
 Special characters <tt/./ and <tt/!/
 can be used with prefixes here to match any digit and disable the prefix.
 You may use := syntax to set a prefix priority in the same manner as in <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> section.
@@ -52,15 +63,15 @@ Whether to accept <bf/endpointIdentifier/ specified in a full RRQ.
 <item><tt/AcceptGatewayPrefixes=1/<newline>
 Default: <tt/1/<newline>
 <p>
-A gateway can register its prefixes with the gatekeeper by containing
-<bf/supportedPrefixes/ in the <bf/terminalType/ field of RRQ.
+A gateway can register its prefixes with the gatekeeper by sending
+<bf/supportedPrefixes/ in the <bf/terminalType/ field of the RRQ.
 This option defines whether to accept the specified prefixes of a gateway.
 
 <item><tt/AcceptMCUPrefixes=1/<newline>
 Default: <tt/1/<newline>
 <p>
-A MCU can register its prefixes with the gatekeeper by containing
-<bf/supportedPrefixes/ in the <bf/terminalType/ field of RRQ.
+A MCU can register its prefixes with the gatekeeper by sending 
+<bf/supportedPrefixes/ in the <bf/terminalType/ field of the RRQ.
 This option defines whether to accept the specified prefixes of a MCU.
 
 
@@ -73,14 +84,14 @@ This option defines how to handle a registration request (RRQ) from an IP
 address which does not match what we have stored.  The default action is
 to reject the request.  With this option enabled the conflicting request
 will cause an unregister request (URQ) to be sent for the existing IP
-address and the entry to be removed allowing the endpoint to register
+address and the entry to be removed, allowing the endpoint to register
 with the new address.
 
 <item><tt/IRQPollCount=0/<newline>
 Default: <tt/1/<newline>
 <p>
 When the gatekeeper does not receive a keep-alive RRQ from an endpoint
-within TimeToLive time period, it sends an IRQ message to "poll" the endpoint
+within the TimeToLive time period, it sends an IRQ message to "poll" the endpoint
 and check if it is alive. After IRQPollCount messages are sent and no reply
 is received, the endpoint is unregistered. To disable this feature (and unregister
 endpoints immediately after TimeToLive timeout), set this variable to 0.
@@ -90,7 +101,7 @@ IRQ poll interval is 60 seconds.
 Default: <tt/0/<newline>
 <p>
 When the IP address of an endpoint changes, the gatekeeper can maintain registration. 
-This will force the EP to fully reregister if the IP Address changes. 
+This will force the EP to fully re-register if its IP address changes. 
 
 <item><tt>AccHTTPLink=https://billing.mysite.com?account=%a&amp;password=%p</tt><newline>
 Default: <tt>N/A</tt><newline>
@@ -107,10 +118,10 @@ Use this setting where endpoints send multiple H225_AliasAddress and some Aliase
 shared across multiple registrations. You can filter out the shared alias types for
 any given endpoint type. The registrations will keep all alias types listed in the
 filter setting and remove all others.
-You must had seperate AliasTypeFilter entries for each endpoint type.
-Valid endpoint types are: gatekeeper,gateway,mcu,terminal
-Valid filters are: h323id, dialeddigits, url, transport, email, partynumber
-NOTE: If no alias is found that match the filter than all aliases are registered.
+You must have separate AliasTypeFilter entries for each endpoint type.
+Valid endpoint types are: gatekeeper, gateway, mcu and terminal.
+Valid filters are: h323id, dialeddigits, url, transport, email and partynumber.
+NOTE: If no alias is found that match the filter then all aliases are registered.
 </itemize>
 
 
@@ -120,7 +131,7 @@ NOTE: If no alias is found that match the filter than all aliases are registered
 <item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
 Default: <tt/1/<newline>
 <p>
-If yes, the gatekeeper rejects an answered ARQ without a pre-existing
+If enabled, the gatekeeper rejects an answered ARQ without a pre-existing
 CallRec found in the CallTable by reason <bf/routeCallToGatekeeper/
 in routed mode.
 The endpoint shall release the call immediately and re-send call Setup
@@ -144,8 +155,8 @@ Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
 
 <sect1>Section &lsqb;RasSrv::AssignedAlias&rsqb;
 <p>
-This allows the assigning of aliases to registering endpoints. This 
-allows endpoints to be assigned fully qualified E164 or URI addresses upon registraton.
+This allows the assigning of aliases to endpoints as they register, allowing them to 
+set their fully qualified E.164 or URI addresses.
 
 <descrip>
 <tag/Example:/
@@ -157,8 +168,8 @@ allows endpoints to be assigned fully qualified E164 or URI addresses upon regis
 
 <sect1>Section &lsqb;AssignedAliases::SQL&rsqb;
 <p>
-This section allows to read the assigned aliases from a database.
-You can use the same database parameters, as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+This section configures GnuGk to read the assigned aliases from a database.
+You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
 
 <itemize>
 <item><tt/Query=SELECT .../<newline>
@@ -186,8 +197,8 @@ The received H323ID in the GRQ is checked to see if it has a prefix
 for an assigned gatekeeper or the IP is in a range of an assigned
 gatekeeper.
 The gatekeeper is then advised in the GCF to register with that gatekeeper.
-You may have multiple gatekeepers for a specific prefix the first
-is assigned the assigned and the others are assigned alternates.
+You may have multiple gatekeepers for a specific prefix.  The first
+is assigned as the primary and others are then the alternates.
 (requires H.323v6)
 
 <descrip>
@@ -196,7 +207,7 @@ is assigned the assigned and the others are assigned alternates.
 [RasSrv::AssignedGKs]
 ;; For Endpoint with H323ID starting with 01234
 01234=x.x.x.x:1719
-;; For Endpoint in the range of 195.71.129.0/24 to 195.71.131.0/24
+;; For Endpoints in the range of 195.71.129.0/24 or 195.71.131.0/24
 ^195\.71\.(129|131)\.[0-9]+$=x.x.x.x:1719
 </verb>
 </descrip>
@@ -204,8 +215,8 @@ is assigned the assigned and the others are assigned alternates.
 
 <sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
 <p>
-This section allows to read the assigned gatekeepers from a database.
-You can use the same database parameters, as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+This section allows GnuGk to read the assigned gatekeepers from a database.
+You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
 
 <itemize>
 <item><tt/Query=SELECT .../<newline>
@@ -213,7 +224,7 @@ Default: <tt>N/A</tt><newline>
 <p>
 Defines the SQL query used to retrieve the assigned gatekeepers from the database.
 
-One parameter is defined:
+Two parameters are defined:
 <itemize>
 <item><tt/%u/ - endpoint alias
 <item><tt/%i/ - endpoint IP

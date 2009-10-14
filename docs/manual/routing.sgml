@@ -601,7 +601,7 @@ a dialed number or a destination/called number (the dialed number after rewrite)
 Number matching/rewriting can be done in three ways:
 <itemize>
 
-<!-- NONE OF THE EXAMPLES ARE FOR CNO? -->
+<!-- TODO: NONE OF THE EXAMPLES ARE FOR CNO? -->
 
 <item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
                match against <tt/number_prefix/ and, if the match is found,
