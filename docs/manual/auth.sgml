@@ -20,7 +20,8 @@ authrule=actions
 
 </verb></tscreen>
 </descrip>
-A rule may results in one of the three codes: ok, fail, pass.
+
+A rule may results in one of these three codes: ok, fail, next.
 <itemize>
 <item><tt/ok/ - The request is authenticated by this module.
 <item><tt/fail/ - The authentication fails and should be rejected.
@@ -28,13 +29,13 @@ A rule may results in one of the three codes: ok, fail, pass.
 </itemize>
 There are also three ways to control a rule:
 <itemize>
-<item><tt/optional/ - If the rule cannot determine the request or accepts it, it is passed to next rule. Otherwise processing stops and the request is rejected
+<item><tt/optional/ - If the rule cannot determine the request or accepts it, it is passed to next rule. Otherwise processing stops and the request is rejected.
 <item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passed to next rule.
 <item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
 <item><tt/alternative/ - similar to the <tt/sufficient/ rule, except that if the module cannot determine request fate, the request is passed to a next module.
 </itemize>
 
-Currently supported modules: (most of them only support a subset of the ras or q931 actions)
+Currently supported modules: (most only support a subset of the ras or q931 actions)
 <itemize>
 <item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth</tt>
 <p>
@@ -42,27 +43,27 @@ These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
 The tokens should contain at least generalID and password.
 For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
 <bf/nestedcryptoToken/ tokens hashed by HMAC-SHA1-96 (libssl must be installed!)
-are supported now. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
-and a clear text username/password are supported now.
+are now supported. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
+and a clear text username/password are now supported.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
-an SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
-modules. <tt/MySQLPasswordAuth/
-module is supported for backward compatibility. For H.350.2 authentication ie. 
-<tt/H350PasswordAuth/ the <tt/GkH350::Settings/ section connection information must be completed.
+or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
+modules. The <tt/MySQLPasswordAuth/
+module is supported for backward compatibility. For H.350.2 authentication (<tt/H350PasswordAuth/)
+the <tt/GkH350::Settings/ section connection information must be completed.
 
 <item><tt>AliasAuth/SQLAliasAuth</tt>
 <p>
 The module can only be used to authenticate RegistrationRequest (RRQ).
 The IP of an endpoint with a given alias should match a specified pattern.
 For <tt/AliasAuth/ the pattern is defined in
-<ref id="rrqauth" name="[RasSrv::RRQAuth]"> section.
-For <tt/SQLAliasAuth/, the pattern is retrieved from an SQL database, 
-defined in <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
+<ref id="rrqauth" name="[RasSrv::RRQAuth]"> the section.
+For <tt/SQLAliasAuth/, the pattern is retrieved from a SQL database as 
+defined in the <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
 
 <item><tt>FileIPAuth</tt>
 <p>
 This module provides a simple way to restrict access to the gatekeeper
-based on caller's IP/network.
+based on caller's IP or network.
 
 <item><tt>PrefixAuth</tt>
 <p>
@@ -75,12 +76,12 @@ AdmissionRequest (ARQ) and LocationRequest (LRQ).
 <p>
 Provides authentication based on H.235 username/password
 security scheme. Authenticates RRQ, ARQ and Q.931 Setup through remote
-RADIUS servers. It passes to RADIUS servers usernames and passwords
+RADIUS servers. It passes to RADIUS servers the usernames and passwords
 extracted from CAT (Cisco Access Tokens) <bf/tokens/ carried
 inside RRQ, ARQ or Setup packets. Therefore if your endpoints do not
-support CATs or you do not need authentication scheme based on
-individually assigned usernames/password - this module will not
-work for you (but you may check <tt/RadAliasAuth/ module).
+support CATs or you do not need an authentication scheme based on
+individually assigned usernames/password then this module would not be appropriate
+(but you may check the <tt/RadAliasAuth/ module).
 See section <ref id="radauth" name="[RadAuth]"> for details.
 
 <item><tt>RadAliasAuth</tt>
@@ -95,7 +96,7 @@ See section <ref id="radaliasauth" name="[RadAliasAuth]"> for details.
 <item><tt>SQLAuth</tt>
 <p>
 A powerful module to authenticate and authorize RRQ, ARQ, LRQ and Setup
-messages. It can perform checks based on various parameters, like
+messages. It can perform checks based on various parameters such as 
 caller's number, destination number, username and more. It also supports
 enforcing call duration limit, number rewriting, call routing, alias
 verification and assignment.
@@ -104,14 +105,14 @@ See section <ref id="sqlauth" name="[SQLAuth]"> for more details.
 <item><tt>CapacityControl</tt>
 <p>
 A flexible module to control inbound call volume with ability to configure
-various conditions. IMPORTANT: It has to be used in conjunction with <tt/CapacityControl/
+various conditions. IMPORTANT: It must be used in conjunction with the <tt/CapacityControl/
 accounting module. See section <ref id="capctrl" name="[CapacityControl]"> for more details.
  
 </itemize>
 
-You can also configure a rule to check only for some particular RAS messages.
+You can also configure a rule to check only for specific RAS messages.
 The following example configures <tt/SimplePasswordAuth/ as an optional rule
-to check RRQ and ARQ. If an RRQ is not checked (not contains
+to check RRQ and ARQ. If a RRQ is not checked (does not contain
 <bf/tokens/ or <bf/cryptoTokens/ fields), it is checked by <tt/AliasAuth/.
 The default is to accept all requests.
 
@@ -122,7 +123,7 @@ The default is to accept all requests.
 </descrip>
 
 The example below authenticates all calls, checking signaling Setup
-message details, using RadAliasAuth module.
+message details, using the RadAliasAuth module.
 
 <descrip>
 <tag/Example 2:/
@@ -222,14 +223,14 @@ Check if the aliases match the ID in the tokens.
 Default: <tt/-1/<newline>
 <p>
 The module <tt/SimplePasswordAuth/ and all its descendants will cache an
-authenticated password. This field define the cache timeout value in second.
+authenticated password. This field defines the cache timeout value in seconds.
 <tt/0/ means never cache the password, while a negative value
 means the cache never expires.
 
 <item><tt/DisableAlgorithm=MD5,H.235.1/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Disable H.235 authentication algorithms in the GRQ/GCF negotioation, otherwise all algorithms supported by GnuGk are used.
+Disable H.235 authentication algorithms in the GRQ/GCF negotiation, otherwise all algorithms supported by GnuGk are used.
 A disabled algorithm will still be used if it is used by an endpoint without negotiation.
 This switch can be used to avoid incompatibilities with vendor implementations.
 
@@ -239,7 +240,7 @@ This switch can be used to avoid incompatibilities with vendor implementations.
 <label id="sqlpasswordauth">
 <p>
 Authenticate H.235 enabled endpoints using passwords stored
-in the SQL database. This section defines SQL driver to use,
+in the SQL database. This section defines the SQL driver to use,
 SQL database connection parameters and the query to use to retrieve passwords.
 
 <itemize>
@@ -284,10 +285,10 @@ means the cache never expires (only <tt/reload/ command will refresh the cache).
 <item><tt/MinPoolSize=5/<newline>
 Default: <tt/1/<newline>
 <p>
-Define the number of active SQL connections. This allows better performance
+Define the number of active SQL connections. This allows for better performance
 under heavy load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behavior, 
-when access to the SQL database is serialized (one query at time).
+at the same time. Setting <tt/MinPoolSize=1/ will simulate the old behavior, 
+when access to the SQL database was serialized (one query at time).
 
 <item><tt/Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
@@ -363,7 +364,7 @@ sigip:192.168.242.165:1720
 <p>
 Authenticate endpoints using rules stored in the SQL database
 (the rules conform to the format defined in the <ref id="rrqauth" name="[RasSrv::RRQAuth]"> section). 
-This section defines SQL driver to use, SQL database connection parameters 
+This section defines which SQL driver to use, SQL database connection parameters 
 and the query to use to retrieve the patterns.
 
 <itemize>
@@ -402,16 +403,16 @@ Default: <tt/0/<newline>
 <p>
 This field defines how long (alias;authrule) pairs retrieved from the database 
 will be cached in the local memory. The cache timeout value is expressed in seconds.
-<tt/0/ means to not cache rules, while a negative value
+<tt/0/ means not to cache rules, while a negative value
 means the cache never expires (only <tt/reload/ command will refresh the cache).
 
 <item><tt/MinPoolSize=5/<newline>
 Default: <tt/1/<newline>
 <p>
-Define the number of active SQL connections. This allows better performance
-under heave load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behavior, 
-when access to the SQL database is serialized (one query at time).
+Define the number of active SQL connections. This allows for better performance
+under heavy load, because more than 1 concurrent query can be executed
+at the same time. Setting <tt/MinPoolSize=1/ will simulate the old behavior,
+when access to the SQL database was serialized (one query at time).
 
 <item><tt/Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
@@ -438,7 +439,7 @@ SELECT 'sigip:' || host(ip) || port FROM users WHERE alias = '%1'
 <sect1>Section &lsqb;SQLAuth&rsqb;
 <label id="sqlauth">
 <p>
-Authenticate and authorize endpoints/calls using an SQL database.
+Authenticate and authorize endpoints/calls using a SQL database.
 Support for RRQ, ARQ, LRQ and Setup events is provided.
 
 <itemize>
@@ -475,29 +476,29 @@ the <tt/addpasswd/ utility.
 <item><tt/MinPoolSize=5/<newline>
 Default: <tt/1/<newline>
 <p>
-Define the number of active SQL connections. This allows better performance
-under heave load, because more than 1 concurrent query can be executed 
-at the same time. <tt/MinPoolSize=1/ setting simulates old behavior, 
-when access to the SQL database is serialized (one query at time).
+Define the number of active SQL connections. This allows for better performance
+under heavy load, because more than 1 concurrent query can be executed
+at the same time. Setting <tt/MinPoolSize=1/ will simulate the old behavior,
+when access to the SQL database was serialized (one query at time).
 
 <item><tt/RegQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query to be used to perform authentication and authorization
+Define a SQL query to be used to perform authentication and authorization
 of endpoint registrations. The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
-<item><tt/%u/ - username associated with an endpoint (usually an H.323 ID)
+<item><tt/%u/ - username associated with an endpoint (usually a H.323 ID)
 <item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for natted endpoints)
 <item><tt/%{aliases}/ - a comma separated list of endpoint aliases
 </itemize>
 <p>
 If the query returns no rows, the result is undefined, which basically
 means failure for <tt/required/ rules and "try next" for optional rules.
-Otherwise, the first result row is examined to determine authentication
-result and get additional information:
+Otherwise, the first result row is examined to determine the result of the authentication
+request and to get additional information:
 <enum>
 <item>The first column is converted into a boolean value (1, T, TRUE, allow, y, yes means true)
       and is an authentication result (accept/reject).
@@ -523,7 +524,7 @@ SELECT * FROM get_registration_auth('%g', '%u', '%{callerip}', '%{aliases}') AS 
 <item><tt/NbQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query to be used to perform authentication and authorization
+Define a SQL query to be used to perform authentication and authorization
 of location requests sent from neighbors. The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
@@ -540,8 +541,8 @@ replacement is made before each query is executed. The following parameters are 
 <p>
 If the query returns no rows, the result is undefined, which basically
 means failure for <tt/required/ rules and "try next" for optional rules.
-Otherwise, the first result row is examined to determine authentication
-result and get additional information:
+Otherwise, the first result row is examined to determine the result of the authentication
+and to get additional information:
 <enum>
 <item>The first column is converted into a boolean value (1, T, TRUE, allow, y, yes means true)
       and is an authentication result (accept/reject).
@@ -550,7 +551,7 @@ result and get additional information:
 <enum>
 	<item>If there exists a column called <tt/'destination'/, populate the original
 		destinationInfo field with these new aliases - this may affect routing
-		decision, which is made after auth step
+		decision, which is made after auth step.
 </enum>
 </enum>
 <p>
@@ -562,7 +563,7 @@ SELECT active FROM neighbors WHERE name = '%{nbid}' AND ip = '%{nbip}' UNION SEL
 <item><tt/CallQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query to be used to perform authentication and authorization
+Define a SQL query to be used to perform authentication and authorization
 of calls (ARQ and Setup). The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
@@ -581,8 +582,8 @@ replacement is made before each query is executed. The following parameters are 
 <p>
 If the query returns no rows, the result is undefined, which basically
 means failure for <tt/required/ rules and "try next" for optional rules.
-Otherwise, the first result row is examined to determine authentication
-result and get additional information:
+Otherwise, the first result row is examined to determine the authentication
+result and to get additional information:
 <enum>
 <item>The first column is converted into a boolean value (1, T, TRUE, allow, y, yes means true)
       and is an authentication result (accept/reject the call).
@@ -610,7 +611,7 @@ result and get additional information:
           this ID in its call record and send it back on all accounting events.
           This must be an unsigned integer with a maximum of 64 bits (eg. 'bigint unsigned' in MySQL).
 </enum>
-<item>If the request is denied, remaining columns are examined:
+<item>If the request is denied, the remaining columns are examined:
 <enum>
 	<item>If there exists a column called <tt/'q931cause'/, set a Q.931 cause in a Release Complete
 		  to this value
@@ -633,16 +634,16 @@ SELECT 1, '1234' AS redirectnumber, '192.168.1.1' AS redirectip
 <sect1>Section &lsqb;PrefixAuth&rsqb;
 <label id="prefixauth">
 <p>
-The section defines the authentication rule for <tt/PrefixAuth/ module.
+The section defines the authentication rule for the <tt/PrefixAuth/ module.
 Currently, only ARQs and LRQs can be authorized by this module.
 
-First, a most specific prefix is selected according to the <bf/destinationInfo/
+First, the most specific prefix is selected according to the <bf/destinationInfo/
 field of the received request. Then the request is accepted or rejected
-according to the matched rules with most specific netmask.
+according to the matched rules with the most specific netmask.
 If no matched prefix is found,
 and the <tt/default/ option is specified, the request is accepted
 or rejected according to that. Otherwise
-it is rejected or passed to next authentication module
+it is rejected or passed to the next authentication module
 according to the module requirement.
 
 <descrip>
@@ -674,8 +675,8 @@ ALL=allow ipv4:ALL
 </verb></tscreen>
 </descrip>
 
-In this configuration, all endpoints except from network <tt>10.0.0.0/27</tt>
-are allow to call prefix 555 (except 5555).
+In this configuration, all endpoints except those from network <tt>10.0.0.0/27</tt>
+are allowed to call prefix 555 (except 5555).
 Endpoints from <tt>192.168.1.0/24</tt> are not allowed to call prefix 5555,
 except <tt/192.168.1.1/.
 Endpoints <bf/not/ from <tt>172.16.0.0/24</tt> are denied to call prefix 86.
@@ -712,10 +713,10 @@ Servers names can be IP addresses or DNS names.
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Particular local network interface that RADIUS client should
+The specific local network interface that GnuGk should
 use in order to communicate with RADIUS servers. This parameter
-can be useful on NAT machines to restrict number of network
-interfaces used for RADIUS communication. By default this value
+can be useful on NAT machines to restrict which network
+interfaces are used for RADIUS communication. By default this value
 is empty and allows RADIUS requests to be sent on any (best suitable)
 network interface. If you are not sure what you are doing, it is
 better to leave this option unset.
@@ -723,23 +724,22 @@ better to leave this option unset.
 <item><tt/RadiusPortRange=10000-11000/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-By default (if this option is not set) RADIUS client
+By default, GnuGk
 allocates ports dynamically as specified by the operating system.
-If you want to restrict RADIUS client to use ports from
-a particular range only - set this parameter.
+If you want to restrict which ports it should use then configure this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
 Default: <tt>1812</tt><newline>
 <p>
 Default port number to be used for RADIUS authentication requests
-(Access-Request packets), if not overridden by <tt/Servers/ attribute.
+(Access-Request packets).  Can be overridden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
 Default: <tt>N/A (empty string)</tt><newline>
 <p>
 Secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
-value used, if no server-specific secret is set in the <tt/Servers/.
+value used if no server-specific secret is set in the <tt/Servers/ configuration option.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
 in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
@@ -749,21 +749,22 @@ Default: <tt/2000/ (milliseconds)<newline>
 <p>
 Timeout (milliseconds) for RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
-next RADIUS server is queried.
+the next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
 Default: <tt/9000/ (milliseconds)<newline>
 <p>
 Timeout (milliseconds) for RADIUS request 8-bit identifiers to be
-unique. If all 8-bit identifier range is exhausted within this period,
-new client socket (UDP socket) is allocation by RADIUS module. Let's
+unique. If the entire 8-bit identifier range is exhausted within this period,
+a new client socket (UDP socket) will be allocated by the RADIUS module. Let's
 take the example: we have approximately 60 RRQs/sec - after ca. 4 seconds
 8-bit identifiers range gets exhausted - new socket allocated - after next
 4 seconds the second 8-bit identifiers range gets exhausted - third socket
-allocated - after 9th second identifiers from the pool 1 are available again
-- ... . In general, too long timeout - too much resources consumed,
-too short timeout - RADIUS server may take incoming packets as duplicated
-and therefore drop it.
+allocated - after 9th second identifiers from the pool 1 are available again.
+
+In general, if you have too long a timeout then too many resources will be consumed.
+If you have too short a timeout, then the RADIUS server may take incoming packets as duplicates
+and therefore drop them.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
 Default: <tt/60000/ (milliseconds) - 60 s<newline>
@@ -778,7 +779,7 @@ Default: <tt/2/<newline>
 <p>
 How many times a single RADIUS request is transmitted to every
 configured RADIUS server (if no response is received). 1 means
-no retransmission, 2 - single retransmission, ... . Exact retransmission
+one transmission attempt and no re-transmission, 2 - single re-transmission, ... . Exact retransmission
 method is defined by <tt/RoundRobinServers/ attribute.
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
@@ -830,8 +831,7 @@ by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNum
 
 <sect2>&lsqb;RadAuth&rsqb; Access-Request Radius Attributes
 <p>
-For RRQs, the following RADIUS attributes are included
-inside Access-Request packets:
+For RRQs, the following RADIUS attributes are included within Access-Request packets:
 <p>
 <itemize>
 <item><tt>User-Name</tt><newline>
@@ -849,20 +849,20 @@ inside Access-Request packets:
 
 <item><tt>NAS-IP-Address</tt><newline>
 <p>
-		GNU Gk Home or a particular local network interface set
+		GnuGk Home or a particular local network interface set
 		by 'LocalInterface' config parameter
 
 <item><tt>NAS-Identifier</tt><newline>
 <p>
-		GNU Gk Name
+		GnuGk Name
 
 <item><tt>NAS-Port-Type</tt><newline>
 <p>
-		Virtual (GNU Gk does not have concept of physical ports)
+		Virtual (GnuGk does not have concept of physical ports)
 
 <item><tt>Framed-IP-Address</tt><newline>
 <p>
-		An IP address of registering endpoint signalling channel 
+		An IP address of registering endpoint signaling channel 
 
 <item><tt>Service-Type</tt><newline>
 <p>
@@ -913,7 +913,7 @@ inside Access-Request packets:
 
 <item><tt>Framed-IP-Address</tt><newline>
 <p>
-		An IP address of registering endpoint signalling channel 
+		An IP address of registering endpoint signaling channel 
 
 <item><tt>Service-Type</tt><newline>
 <p>
@@ -955,23 +955,23 @@ inside Access-Accept packets:
 <item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
 <p>
 		If present and not 0, the request is rejected. This check is provided 
-		to allow interoperability with some poor billing systems, that send 
+		to allow interoperability with some poor billing systems, which send 
 		Access-Accept with non-zero h323-return-code to reject the call instead
-		of Access-Reject. The attribute can be in form h323-return-code="1" 
+		of Access-Reject. The attribute can be in the form h323-return-code="1" 
 		or h323-return-code="h323-return-code=1". Note that the return code
-		is a string, not an integer,
+		is a string, not an integer.
 
 <item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
 <p>
 		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
 		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
-		this information is used to build the message,
+		this information is used to build the message.
 		
-<item><tt>VSA: VendorId=Cisco, h323-credit-amout</tt><newline>
+<item><tt>VSA: VendorId=Cisco, h323-credit-amount</tt><newline>
 <p>
 		A string representing current user's account balance. If an endpoint 
 		can understand H.225.0 CallCreditServiceControl messages, 
-		this information is used to build the message,
+		this information is used to build the message.
 		
 <item><tt>VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-in</tt><newline>
 <p>
@@ -1042,7 +1042,7 @@ Access-Accept {
 </itemize>
 <p>	
 For ARQs, the following RADIUS attributes are recognized
-inside Access-Accept packets:
+within Access-Accept packets:
 <p>
 <itemize>
 <item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
@@ -1052,36 +1052,36 @@ inside Access-Accept packets:
 		Access-Accept with non-zero h323-return-code to reject the call instead 
 		of Access-Reject. The attribute can be in form h323-return-code="1" 
 		or h323-return-code="h323-return-code=1". Note that the return code
-		is a string, not an integer,
+		is a string, not an integer.
 
 <item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
 <p>
 		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
 		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
-		this information is used to build the message,
+		this information is used to build the message.
 		
-<item><tt>VSA: VendorId=Cisco, h323-credit-amout</tt><newline>
+<item><tt>VSA: VendorId=Cisco, h323-credit-amount</tt><newline>
 <p>
 		A string representing current user account balance. If an endpoint can 
 		understand H.225.0 CallCreditServiceControl messages, this information 
-		is used to build the message,
+		is used to build the message.
 		
 <item><tt>VSA: VendorId=Cisco, h323-credit-time</tt><newline>
 <p>
 		If present, it enforces maximum call duration (in seconds).
 		The attribute can be in form of h323-credit-time="120" 
 		or h323-credit-time="h323-credit-time=120". Note that the return code 
-		is a string, not an integer,
+		is a string, not an integer.
 					   
 <item><tt>Session-Timeout</tt><newline>
 <p>
 		If present, it enforces maximum call duration (in seconds).
-		This is a standard RADIUS attribute of integer type,
+		This is a standard RADIUS attribute of integer type.
 
 <item><tt>VSA: VendorId=Cisco, h323-redirect-number</tt><newline>
 <p>
 		If present, a call destination is overwritten with the number present 
-		in this attribute,
+		in this attribute.
 
 <item><tt>VSA: VendorId=Cisco, h323-redirect-ip-address</tt><newline>
 <p>
@@ -1093,11 +1093,11 @@ inside Access-Accept packets:
 		You can put multiple numbers (that correspond to multiple destinations
 		in <tt/h323-redirect-ip-address/) separated by a semicolon.
 		For each number you can also specify an outbound number (that is sent
-		to a terminating gateway) by appending it with an '='.
+		to a terminating gateway) by appending it with a '='.
 </itemize>
 <p>
-If both Session-Timeout and h323-credit-time are present, a lesser value
-is taken.
+If both Session-Timeout and h323-credit-time are present, the smaller value
+is used.
 <p>
 
 <sect1>Section &lsqb;RadAliasAuth&rsqb;
@@ -1105,9 +1105,9 @@ is taken.
 <p>
 This section defines configuration settings that enable
 RADIUS authentication based on endpoint aliases and/or IP addresses
-present in RRQ RAS requests, ARQ RAS request or Q.931 Setup request.
+present in a RRQ RAS, ARQ RAS or Q.931 Setup request.
 This authentication scheme is useful both for endpoints registered
-at the gatekeeper (ARQ,RRQ) and calls from unregistered endpoints (Setup).
+at the gatekeeper (ARQ, RRQ) and calls from unregistered endpoints (Setup).
 
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
@@ -1116,7 +1116,7 @@ Default: <tt>N/A</tt><newline>
 RADIUS servers to be used for RAS requests authentication.
 This list can contain an arbitrary number of servers. The order of servers 
 is important, because servers will be queried by the RADIUS module 
-in the given order. If no port information is specified, port number from 
+in the given order. If no port information is specified, the port number from 
 <tt/DefaultAuthPort/ will be used. If no secret is set, 
 the default shared secret from <tt/SharedSecret/ is used.
 Servers can be IP addresses or DNS names.
@@ -1129,7 +1129,7 @@ Servers can be IP addresses or DNS names.
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Particular local network interface that RADIUS client should
+Specific local network interface that GnuGk should
 use in order to communicate with RADIUS servers. This parameter
 can be useful on NAT machines to restrict number of network
 interfaces used for RADIUS communication. By default this value
@@ -1333,7 +1333,7 @@ Exactly the same attributes are recognized as with RadAuth module.
 <label id="capctrl">
 <p>
 This section contains a set of rules for controlling inbound call volume
-depending on various conditions. In order this module to work, CapacityControl
+depending on various conditions. In order for this module to work, CapacityControl
 authentication and accounting modules have to be enabled like this:
 <tscreen><verb>
 [Gatekeeper::Auth]
@@ -1348,7 +1348,7 @@ caller's number (CLI) - in the order specified. In addition, the match can
 be narrowed by specifying a called number pattern. This module works by keeping
 lists of current call volume for each inbound route (rule) - this is done
 by having <tt/CapacityControl/ accounting module configured to add/remove
-active calls from matching routes. <tt/CapacityControl/ authentication module
+active calls from matching routes. The <tt/CapacityControl/ authentication module
 checks rules and accepts/rejects a call based on current/max call volume
 for a matching inbound route.
 <p>
