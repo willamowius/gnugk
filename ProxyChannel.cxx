@@ -3323,7 +3323,7 @@ void CallSignalSocket::OnFacility(
 					callingSocket->m_h245handler = proxyhandler;
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
-					((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true); // TODO: check if EP supports .19 ? what if calling also uses .19 ?
+					((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
 
 					H225_H323_UserInformation *uuie = NULL;
 					Q931 *q931pdu = new Q931();
@@ -6025,7 +6025,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 		lc = new RTPLogicalChannel(callid, 0, hnat != 0);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
-			// TODO: do we have to delete the lc object here to avoid a leak ?
+			delete lc;
 			return NULL;
 		}
 		fastStartLCs[id] = lc;
