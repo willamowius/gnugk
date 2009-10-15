@@ -23,13 +23,11 @@ and overlaps the GatewayPriority (see section <ref id="epconfig"
 name="[EP::...]">), the prefix priority will be preferred.
 
 In the following example, the gateway "test-gw" will be responsible for
-prefixes "02" and "03" with a priority of "3", and for "04." with a priority
-of "1".
-
-<!-- TODO: WHAT IS THE "04." ACTUALLY GOING TO MEAN? -->
+prefixes "02" and "03" with a priority of 3, and for "04" with a priority
+of 1.
 
 <tag/Example:/
-<tt/test-gw=02,03:=3,04.:=1/
+<tt/test-gw=02,03:=3,04:=1/
 </descrip>
 
 <sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
