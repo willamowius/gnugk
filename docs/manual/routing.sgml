@@ -703,7 +703,7 @@ for these IPs.
 
 <p>
 On the Windows platform, there is a problem with duplicated config
-keys, so there is a workaround for this restriction. This example
+keys in INI files, so GnuGk provides a workaround for this restriction. This example
 will not work because of the same key (<tt/in:192.168.1.1/):
 <tscreen><verb>
 [RewriteCLI]
