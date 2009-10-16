@@ -6,15 +6,15 @@
 If the destination of an ARQ is unknown, the gatekeeper sends LRQs to
 its neighbors to ask if they have the destination endpoint.
 A neighbor is selected if one of its prefixes matches the destination
-or it has ``<tt/*/'' prefix. More than one prefix can be specified.
-You can use special characters ``<tt/./'' and ``<tt/!/'' to do wildcard
-matching and disable a specific prefix.
+or it has the ``<tt/*/'' prefix. More than one prefix may be specified.
+You can use special characters ``<tt/./''  to do wildcard
+matching and ``<tt/!/'' to disable a specific prefix.
 
 Conversely, the gatekeeper will only reply to LRQs sent from neighbors
 defined in this section.
 If you specify an empty prefix, no LRQ will be sent to that neighbor,
-but the gatekeeper will accept LRQs from it. By the empty prefix it is meant
-a single semicolon appended to the neighbor entry. Example:<newline>
+but the gatekeeper will accept LRQs from it. The empty prefix is denoted
+by a single semicolon appended to the neighbor entry. Example:<newline>
 <newline>
 <tt/	GK1=192.168.0.5;/<newline>
 <newline>
@@ -23,10 +23,10 @@ If you skip the semicolon, LRQs will be always sent to this neighbor.
 The <tt/password/ field is used to authenticate LRQs from that neighbor.
 See section <ref id="gkauth" name="[Gatekeeper::Auth]"> for details.
 
-If a call from a neighbor is accepted also depends on the AcceptNeighborsCalls switch in the <ref id="routed" name="[RoutedMode]"> section.
+Whether a call is accepted from a neighbor also depends on the AcceptNeighborsCalls switch in the <ref id="routed" name="[RoutedMode]"> section.
 
 Neighbor handling has changed significantly from version 2.0 to version 2.2.
-Neighbors can be specified now the old or the new way.
+Neighbors can be specified using either format.
 
 The gatekeeper types have the following characteristics:
 <itemize>
@@ -43,7 +43,10 @@ Clarent gatekeeper can't decode nonStandardData in LRQs, so GnuGk will filter it
 Limited support for LRQ forwarding.
 </itemize>
 
-NOTE: Make sure you get the capitalization of the gatekeeper types right. It matters...
+NOTE: Gatekeeper type is case sensitive.
+
+<!-- TODO:  Make both formats show the same examples? -->
+<!-- TODO:  remove old style configuration from manual ? -->
 
 <descrip>
 <tag/Entry in the old format:/
@@ -81,8 +84,7 @@ NOTE: Make sure you get the capitalization of the gatekeeper types right. It mat
 <newline>
 </descrip>
 
-The new format specifies in the <tt/[RasSrv::Neighbors]/ section only the gatekeeper types. The configuration for each neighbor is placed in a separate section.
-
+With the new format the <tt/[RasSrv::Neighbors]/ section is only used to specify the gatekeeper type. The configuration for each neighbor is placed in a separate section.
 
 <sect1>Section &lsqb;RasSrv::LRQFeatures&rsqb;
 <label id="lrqfeatures">
@@ -92,29 +94,32 @@ Defines some features of LRQ and LCF.
 <item><tt/NeighborTimeout=1/<newline>
 Default: <tt/2/<newline>
 <p>
-Timeout value in seconds to wait responses from neighbors.
-If no response from all neighbors after timeout, the gatekeeper will
-reply an ARJ to the endpoint sending the ARQ.
+Timeout value in seconds to wait for responses from neighbors.
+If no neighbor responds before the timeout, the gatekeeper will
+reply with an ARJ to the endpoint sending the ARQ.
+
+<!-- TODO:  A better explanation of how NeighborTimeout and SendRetries interact? -->
 
 <item><tt/SendRetries=4/<newline>
 Default: <tt/2/<newline>
 <p>
 Number of tries to send LRQ to neighbors.
-If no response from neighbors after retries timeout, the gatekeeper will
-reply an LRJ to the endpoint sending the LRQ.
+If there is no response from neighbors after retries timeout, the gatekeeper will
+reply with a LRJ to the endpoint sending the LRQ.
 
 <item><tt/ForwardHopCount=2/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-If the gatekeeper receives an LRQ that the destination is either unknown,
+If the gatekeeper receives a LRQ that the destination is unknown
 it may forward this message to its neighbors.
-When the gatekeeper receives an LRQ and decides that the message
+
+When the gatekeeper receives a LRQ and decides that the message
 should be forwarded on to another gatekeeper, it first decrements
 <bf/hopCount/ field of the LRQ.
 If <bf/hopCount/ has reached 0, the gatekeeper shall not forward the message.
-This options defines the number of gatekeepers through which an LRQ
-may propagate. Note it only affects the sender of LRQ, not the forwarder.
-This setting can be overridden with configuration of a particular neighbor.
+This option defines the number of gatekeepers through which a LRQ
+may propagate. Note that it only affects the sender of LRQ, not the forwarder.
+This setting can be overridden via the configuration section for a particular neighbor.
 
 <item><tt/AlwaysForwardLRQ=1/<newline>
 Default: <tt>0</tt><newline>
@@ -134,9 +139,9 @@ of a particular neighbor.
 <item><tt/ForwardResponse=0/<newline>
 Default: <tt/0/<newline>
 <p>
-If the gatekeeper forwards received LRQ message it can decide either
+If the gatekeeper forwards a received LRQ message it can decide either
 to receive the LCF response or to let it travel back directly to the LRQ
-originator. Set this option to 1, if the gatekeeper needs to receive LCF
+originator. Set this option to 1 if the gatekeeper needs to receive LCF
 messages for forwarded LRQs. This setting can be overridden with configuration
 of a particular neighbor.
 
@@ -152,9 +157,9 @@ of a particular neighbor.
 <item><tt/AcceptNonNeighborLRQ=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Whether to accept an LRQ forwarded from parties not defined as Neighbors.
+Whether to accept a LRQ forwarded from parties not defined as Neighbors.
 This can be used with SRV routing policy to place calls to third party GKs.
-This should be used in conjuction with a LRQ Authentication policy.
+This should be used in conjunction with a LRQ Authentication policy.
 
 <item><tt/AcceptNonNeighborLCF=1/<newline>
 Default: <tt/0/<newline>
@@ -165,7 +170,8 @@ from any IP address. This has primary importance when a
 multiple level gatekeeper hierarchy is used without routed Q.931 signaling.
 As a minimal security, only LRQ/LCF sequence numbers will be checked accordingly. This feature is required by the
 national gatekeepers connected to the Global Dialing Scheme (GDS), see
-http://commons.internet2.edu/gds.html for more information.
+<url url="http://www.vide.net/help/gdsintro.shtml" name="http://www.vide.net/help/gdsintro.shtml">
+for more information.
 WARNING: Enabling receiving LCF from other than the LRQ destination IP is a significant security risk. 
 Use this setting with extreme caution.
 </itemize>
@@ -174,15 +180,18 @@ Use this setting with extreme caution.
 
 <sect1>Section &lsqb;Neighbor::...&rsqb;
 <p>
-Sections starting with <tt/[Neighbor::/ are specific for one neighbor.
-If you define a &lsqb;Neighbor::...&rsqb; section, the default values of all setting in <ref id="lrqfeatures" name="[RasSrv::LRQFeatures]"> apply again for this neighbor, so you have to repeat the settings here if you don't want the defaults.
+Sections starting with <tt/[Neighbor::/ are specific for one neighbor.  If
+you define a &lsqb;Neighbor::...&rsqb; section, the default values of all
+settings in <ref id="lrqfeatures" name="[RasSrv::LRQFeatures]"> will be applied to
+this neighbor.  You may override the global defaults through configuration options in
+each neighbor-specific section.
 
 <itemize>
 <item><tt/GatekeeperIdentifier=GKID/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Gatekeeper identifier for this neighbor. If this options is not specified,
-the identifier is taken from the second part of this <tt/Neighbor::/ section name.
+Gatekeeper identifier for this neighbor. If this option is not specified,
+the identifier is taken from the second part of the <tt/Neighbor::/ section name.
 
 <item><tt/Host=192.168.1.1/<newline>
 Default: <tt>N/A</tt><newline>
@@ -203,7 +212,7 @@ Default: <tt>0</tt><newline>
 <item><tt/SendPrefixes=004,002:=1,001:=2/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-A list of prefixes that this neighbor expects LRQs to receive for.
+A list of prefixes that this neighbor expects to receive LRQs for.
 If '*' is specified, LRQs will always be sent to this neighbor.
 A priority can be given to each prefix for each neighbor (using := syntax),
 so in case of multiple LCF received from multiple neighbor, the one
@@ -215,7 +224,7 @@ SendPrefixes=h323_ID,dialedDigits,001<newline>
 <item><tt/AcceptPrefixes=*/<newline>
 Default: <tt>*</tt><newline>
 <p>
-A list of prefixes that the gatekeeper will accept in LRQs received
+A list of prefixes that GnuGk will accept in LRQs received
 from this neighbor. If '*' is specified, all LRQs will be accepted from this neighbor.
 One can also direct the gatekeeper to accept LRQ from this neighbor
 based on an alias type:<newline>
@@ -243,7 +252,7 @@ Default: <tt/0/<newline>
 <p>
 If the gatekeeper forwards received LRQ message it can decide either
 to receive the LCF response or to let it travel back directly to the LRQ
-originator. Set this option to 1, if the gatekeeper needs to receive LCF
+originator. Set this option to "1" if the gatekeeper needs to receive LCF
 messages for forwarded LRQs.
 
 <item><tt/ForwardLRQ=always | never | depends/<newline>
@@ -252,18 +261,19 @@ Default: <tt/depends/<newline>
 This settings determines whether the received LRQ should be forwarded
 or not. <tt/always/ forwards LRQ unconditionally, <tt/never/ blocks LRQ
 forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
-hop count is greater than 1. This setting can be overridden with configuration
-of a particular neighbor.
+hop count is greater than 1.
 
 <item><tt/UseH46018=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Enable H.460.18 keep-alive messages to this neighbor. Set this switch only on the H.460.18
-client side that is supposed to send the keep-alive SCIs.
+client side that is supposed to send the keep-alive ServiceControlIndication (SCI) messages.
 
 <item><tt/SendPassword=secret/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
+
+
 EXPERIMENTAL: The password to send to the neighbor (right now only used for H.460.18 SCI).
 
 </itemize>

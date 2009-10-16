@@ -1,6 +1,7 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
-- set Radius VSA attribute h323_rtp_proxy in stop event
+- the manual has been improved (thanks to Robert Kulagowski)
+- set Radius VSA attribute h323_rtp_proxy in stop event (thanks to Yuriy Georgiewskiy)
 - BUGFIX(ProxyChannel.cxx) fix memory leak when creation of a fastStart channel fails
 - status port command DisconnectIP now also works with unregistered endpoints using the std port
 - BUGFIX(ProxyChannel.cxx) fix handling of H.460.19 RTP keepalive packets
@@ -36,7 +37,7 @@ Changes from 2.3.0 to 2.3.1
 - BUGFIX(RasSrv.cxx) avoid cutting off status messages after 1000 chars (problem in PString::Printf)
 - BUGFIX(ProxyChannel.cxx) fix for fastStart with H.460.19
 - new switch [RoutedMode]EnableH.460.24=, which defaults to OFF
-- send RTCP statistics to Radius server (thanks to Georgiewskiy Yuriy)
+- send RTCP statistics to Radius server (thanks to Yuriy Georgiewskiy)
 - BUGFIX(Toolkit.cxx) fix a crash in RewriteE164() when casting aliases
 - new config section [ModeSelection] to specify the routing/proxy mode by IP network
 

@@ -139,13 +139,13 @@ to the gatekeeper.
 Default: <tt>N/A</tt><newline>
 <p>
 Specify the trailing character to be removed in <bf/destinationInfo/.
-For example, if your endpoint incorrectly contains the termination character
-like `&num;' in <bf/destinationInfo/, you may remove it by this option.
+For example, if your endpoint incorrectly contains a termination character
+such as `&num;' in <bf/destinationInfo/ you may remove it with this option.
 
 <item><tt/RoundRobinGateways=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Enable/disable round-robin gateway selection, if more than one gateway
+Enable/disable round-robin gateway selection if more than one gateway
 matches a dialed number. If disabled, the first available gateway will be selected.
 Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
 

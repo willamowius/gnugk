@@ -31,9 +31,9 @@ with the given accounting module (if an event type is supported by the module):
 <itemize>
 <item><tt/start/ - a call has been started and a Setup message has been received (only available in routed mode)
 <item><tt/connect/ - a call has been connected (only available in routed mode)
-<item><tt/update/ - a call is active and the periodic update is performed
-	to reflect the new call duration. Frequency of such updates is determined
-	by <bf/AcctUpdateInterval/ variable from <ref id="calltable" name="[CallTable]">
+<item><tt/update/ - a call is active and a periodic update is performed
+	to reflect the new call duration. The frequency of these updates is determined
+	by the <bf/AcctUpdateInterval/ variable from the <ref id="calltable" name="[CallTable]">
 	section
 <item><tt/stop/ - a call has been disconnected (removed from the gatekeeper call table)
 <item><tt/on/ - the gatekeeper has been started
@@ -48,7 +48,7 @@ An event logged by a module may results in one of three result codes:
   is not configured for/does not support this event type
 </itemize>
 Accounting modules can be stacked to log events by multiple modules or to create
-failover setups. <bf/control/ flag for each module, along with result codes,
+failover setups. The <bf/control/ flag for each module, along with result codes,
 define what is the final status of the event processing by the entire module stack.
 If the final result is <bf/failure/, some special actions may take place. Currently,
 if a call <bf/start/ event logging fails, the call is disconnected immediately.
@@ -56,15 +56,15 @@ The following <bf/control/ flags are recognized:
 <itemize>
 <item><tt/required/ - if the module fails to log an event, the final status
                       is set to failure and the event is passed down to any remaining
-					  modules,
+					  modules.
 <item><tt/optional/ - the module tries to log an event, but the final status
                       is not affected by success or failure (except when the module
 					  is last on the list). The event is always passed down
-					  to any remaining modules,
+					  to any remaining modules.
 <item><tt/sufficient/ - the module determines the final status. If an event
                         is logged successfully, no remaining modules are processed.
 						Otherwise the final status is set to failure and the event
-						is passed down to any remaining modules,
+						is passed down to any remaining modules.
 <item><tt/alternative/ - if the module logs an event successfully, no remaining
                          modules are processed. Otherwise the final status is
 						 not modified and the event is passed down to any remaining
@@ -75,44 +75,44 @@ Currently supported accounting modules:
 <itemize>
 <item><tt>FileAcct</tt>
 <p>
-A plain CDR text file logger. It outputs status line like CDR lines to
-a specified text file. This module supports only <bf/stop/ accounting event.
+A plain Call Detail Report ("CDR") text file logger. It outputs CDR status data to
+a specified text file. This module only supports the <bf/stop/ accounting event.
 Configuration settings are read from <ref id="fileacct" name="[FileAcct]"> section.
 
 <item><tt>RadAcct</tt>
 <p>
 This module performs RADIUS accounting. It supports all event types
 (start, stop, update, on, off).
-See the section <ref id="radacct" name="[RadAcct]"> for configuration details.
+See section <ref id="radacct" name="[RadAcct]"> for configuration details.
 
 <item><tt>SQLAcct</tt>
 <p>
 This module performs direct SQL accounting. It supports (start, connect, stop, update)
 event types. 
-See the section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
+See section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 
 <item><tt>StatusAcct</tt>
 <p>
 This module logs all accounting events on the status port. It can be used to interface to external application in real-time. It supports (start, connect, stop, update)
 event types. 
-See the section <ref id="statusacct" name="[StatusAcct]"> for configuration details.
+See section <ref id="statusacct" name="[StatusAcct]"> for configuration details.
 
 <item><tt>SyslogAcct</tt>
 <p>
-This module logs all accounting events on the Unix syslog. It supports (start, connect, stop, update)
+This module logs all accounting events to the Unix syslog. It supports (start, connect, stop, update)
 event types. 
-See the section <ref id="syslogacct" name="[SyslogAcct]"> for configuration details.
+See section <ref id="syslogacct" name="[SyslogAcct]"> for configuration details.
 
 <item><tt>CapacityControl</tt>
 <p>
-This module performs inbound call volume logging, required for <tt/CapacityControl/
+This module performs inbound call volume logging, required for the <tt/CapacityControl/
 authentication module to work correctly. See the section <ref id="capctrl" name="[CapacityControl]">
 for details.
  
 <item><tt>default</tt>
 <p>
 This is a special pseudo module - it is used to set the final status
-if preceding modules have not determined it. The format is as follows:
+if other modules have not determined it. The format is as follows:
 <descrip>
 <tag/Syntax:/
 <tscreen><verb>
@@ -124,7 +124,7 @@ if preceding modules have not determined it. The format is as follows:
 
 </itemize>
 
-The sample configuration #1 (try to log call start/stop with RADIUS server,
+Sample configuration #1 (try to log call start/stop with RADIUS server,
 and always write a CDR to a text file):
 <descrip>
 <tag/Example:/
@@ -132,7 +132,7 @@ and always write a CDR to a text file):
 <tt/FileAcct=required/<newline>
 </descrip>
 
-The sample configuration #2 (try to log call start/stop with RADIUS server,
+Sample configuration #2 (try to log call start/stop with RADIUS server,
 if it fails use a CDR log file):
 <descrip>
 <tag/Example:/
@@ -141,13 +141,13 @@ if it fails use a CDR log file):
 <tt/default=accept/<newline>
 </descrip>
 The <bf/default/ rule is required here to prevent calls from being rejected
-because of RadAcct start event logging failure. If RadAcct returns <bf/fail/
-return code, it is passed down to FileAcct module. FileAcct module does not
-support <bf/start/ events, so it returns <bf/next/ return code. If there were
-no the <bf/default/ rule, the final status would be failure, because no module
+because of RadAcct start event logging failure. If RadAcct responds with a <bf/fail/
+return code, it is passed down to the FileAcct module. The FileAcct module does not
+support <bf/start/ events, so it returns a <bf/next/ code. If there were
+no <bf/default/ rule, the final status would be failure, because no module
 has been able to log the event.
 
-The sample configuration #3 (always log call start and stop events with RADIUS
+Sample configuration #3 (always log call start and stop events with RADIUS
 server, if it fails for call stop event, use a CDR file to store call info):
 <descrip>
 <tag/Example:/
@@ -155,11 +155,11 @@ server, if it fails for call stop event, use a CDR file to store call info):
 <tt/FileAcct=sufficient;stop/<newline>
 <tt/default=fail;start/<newline>
 </descrip>
-The <bf/default/ rule is optional here. If RadAcct returns <bf/fail/
-return code for <bf/start/ event, the code is passed down to FileAcct module.
-FileAcct module does not support <bf/start/ events, so it returns <bf/next/
-return code. The <bf/default/ rule ensures, that the call is disconnected
-if call start event could not has been logged with RadAcct. But we want
+The <bf/default/ rule is optional here. If RadAcct returns a <bf/fail/
+code for the <bf/start/ event, the code is passed to the FileAcct module.
+The FileAcct module does not support <bf/start/ events, so it returns <bf/next/
+return code. The <bf/default/ rule ensures that the call is disconnected
+if the call start event could not be logged with RadAcct. However, we still want
 to store a CDR in a text file in case the RADIUS server is down when the call
 disconnects, so we can fetch call duration into a billing system later.
 
@@ -183,7 +183,7 @@ exists, new CDRs will be appended at the end of the file.
 Default: <tt/1/<newline>
 <p>
 Use a CDR format compatible with the status interface CDR format (<tt/1/)
-or build a custom CDR strings from the <bf/CDRString/ parametrized string.
+or build a custom CDR string from the <bf/CDRString/ parametrized string.
 <p>
 The StandardCDRFormat is equivalent to this definition:
 <descrip>
@@ -196,10 +196,10 @@ The StandardCDRFormat is equivalent to this definition:
 Default: <tt>N/A</tt><newline>
 <p>
 If <bf/StandardCDRFormat/ is disabled (0) or not specified at all, 
-this parametrized string instructs the gatekeeper how to build a custom
-CDRs. Parameters are specified using <tt/%/ character and can be one letter
+this parametrized string instructs the gatekeeper on how to build a custom
+CDR. Parameters are specified using <tt/%/ character and can be one letter
 (like <tt/%n/) or longer (like <tt/%{CallId}/). Any remaining characters that
-are not parameter names are simply copied to a final CDR string. The following
+are not parameter names are simply copied to the final CDR string. The following
 parameters are recognized:
 <itemize>
 <item><tt/%g/ - gatekeeper name
@@ -244,7 +244,7 @@ parameters are recognized:
 Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings printed in CDR strings. If this setting
-is not specified, a global one from the main gatekeeper section is applied.
+is not specified, the global one from the main gatekeeper section is used.
 
 <item>
 <tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
@@ -260,7 +260,6 @@ In addition, rotation per number of CDRs written (L...) and per file size (S...)
 is supported. The <tt/L/ prefix specifies a number of CDR lines written,
 the <tt/S/ prefix specifies CDR file size. <tt/k/ and <tt/m/ suffixes can
 be used to specify thousands (kilobytes) and millions (megabytes). 
-See the examples for more details.
 
 <descrip>
 <tag/Example 1 - no rotation:/
@@ -331,9 +330,9 @@ for more details on the parameters).
 Default: <tt>N/A</tt><newline>
 <p>
 RADIUS servers to send accounting data to. If no port information is given,
-port number from <tt/DefaultAcctPort/ is be used. If no secret is set, 
-the default shared secret from <tt/SharedSecret/ is used. Server names could 
-be either IP addresses or DNS names.
+a port number from <tt/DefaultAcctPort/ is be used. If no secret is set, 
+the default shared secret from <tt/SharedSecret/ is used. Server names may be
+specified by IP address or DNS name.
 
 <descrip>
 <tag>Sample <tt/Servers/ lines:</tag>
@@ -348,29 +347,28 @@ be either IP addresses or DNS names.
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Particular local network interface that RADIUS client should
+Specific local network interface that GnuGk should
 use in order to communicate with RADIUS servers.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-By default (if this option is not set) RADIUS client
+By default (if this option is not set) GnuGk 
 allocates ports dynamically as specified by the operating system.
-If you want to restrict RADIUS client to use ports from
-a particular range only - set this parameter.
+In order to restrict the ports which GnuGk will use then configure this parameter appropriately.
 
 <item><tt/DefaultAcctPort=PORT_NO/<newline>
 Default: <tt>1813</tt><newline>
 <p>
-Default port number to be used for RADIUS accounting requests,
-if not overridden by <tt/Servers/ attribute.
+Default port number to be used for RADIUS accounting requests.
+May be overridden by the <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
 Default: <tt>N/A (empty string)</tt><newline>
 <p>
-A secret used to authenticate this GnuGk (NAS client) to RADIUS
+A secret used to authenticate this GnuGk (NAS client) to a RADIUS
 server. It should be a cryptographically strong password. This is the default
-value used, if no server-specific secret is set in the <tt/Servers/.
+value used if no server-specific secret is set in the <tt/Servers/.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
 in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
@@ -378,9 +376,9 @@ the <tt/addpasswd/ utility.
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
 Default: <tt/2000/ (milliseconds)<newline>
 <p>
-Timeout (milliseconds) for RADIUS server response to a request
+Timeout (milliseconds) for a RADIUS server response to a request
 sent by GnuGk. If no response is received within this time period,
-next RADIUS server is queried.
+then the next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
 Default: <tt/9000/ (milliseconds)<newline>
@@ -403,6 +401,21 @@ configured RADIUS server (if no response is received).
 Default: <tt/1/<newline>
 <p>
 RADIUS requests retransmission method.
+<p>
+If set to 1, RADIUS request
+is transmitted in the following way (until response is received):
+<tscreen><verb>
+Server #1 Attempt #1, Server #2 Attempt #1, ..., Server #N Attempt #1
+...
+Server #1 Attempt #RequestRetransmissions, ..., Server #1 Attempt #RequestRetransmissions
+</verb></tscreen>
+<p>
+If set to 0, the following sequence is preserved:
+<tscreen><verb>
+Server #1 Attempt #1, ..., Server #1 Attempt #RequestRetransmissions
+...
+Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
+</verb></tscreen>
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
 Default: <tt/0/<newline>
@@ -414,7 +427,7 @@ in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings sent in RADIUS attributes. If this setting
-is not specified, a global one from the main gatekeeper section is applied.
+is not specified, the global one from the main gatekeeper section is applied.
 
 <item><tt/UseDialedNumber=BOOLEAN/<newline>
 Default: <tt/0/<newline>
@@ -425,16 +438,16 @@ by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNum
 </itemize>
 
 
-<sect2>&lsqb;RadAcct&rsqb; Accounting-Request Radius Attributes
+<sect2>&lsqb;RadAcct&rsqb; Accounting-Request RADIUS Attributes
 <p>
-For an Accounting-Request, the following Radius attributes are included
-inside Accounting-Request packets. Each attribute 
+For an Accounting-Request, the following RADIUS attributes are included
+within Accounting-Request packets. Each attribute 
 is followed by a list of accounting event types.
 <p>
 <itemize>
 <item><tt>Acct-Status-Type (start,update,stop,on,off)</tt><newline>
 <p>
-		The accounting event type (Start, Iterim-Update, Stop, 
+		The accounting event type (Start, Interim-Update, Stop, 
 		Accounting-On, Accounting-Off).
 		
 <item><tt>NAS-IP-Address (start,update,stop,on,off)</tt><newline>
@@ -455,7 +468,7 @@ is followed by a list of accounting event types.
 		
 <item><tt>Acct-Session-Id (start,update,stop)</tt><newline>
 <p>
-		An unique accounting session identifier string.
+		A unique accounting session identifier string.
 		
 <item><tt>User-Name (start,update,stop)</tt><newline>
 <p>
@@ -463,8 +476,8 @@ is followed by a list of accounting event types.
 
 <item><tt>Framed-IP-Address (start,update,stop)</tt><newline>
 <p>
-		An IP address for the calling party. Either an endpoint call signalling
-		address or a remote socket address for the signalling channel.
+		An IP address for the calling party. Either an endpoint call signaling
+		address or a remote socket address for the signaling channel.
 
 <item><tt>Acct-Session-Time (update,stop)</tt><newline>
 <p>
@@ -502,7 +515,7 @@ is followed by a list of accounting event types.
 <item><tt>(optional) VSA: VendorId=Cisco, h323-connect-time (update,stop)</tt><newline>
 <p>
 		Timestamp when the call has been connected (Q.931 Setup message 
-		has been received or ACF has been sent in direct signalling mode).
+		has been received or ACF has been sent in direct signaling mode).
 	
 <item><tt>(optional) VSA: VendorId=Cisco, h323-disconnect-time (stop)</tt><newline>
 <p>
@@ -525,7 +538,7 @@ is followed by a list of accounting event types.
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)</tt><newline>
 <p>
 		rewritten-e164-num contains the rewritten called party's number
-		(independet of the setting of the UseDialedNumber switch).
+		(independent of the setting of the UseDialedNumber switch).
 
 <item><tt>Acct-Delay-Time (start,update,stop)</tt><newline>
 <p>
@@ -555,6 +568,8 @@ is followed by a list of accounting event types.
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_jitter (stop)</tt><newline>
 <p>
 		RTCP source report data
+
+<!-- TODO:  What does sdes mean? -->
 
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_sdes_XXX (stop)</tt><newline>
 <p>
@@ -588,7 +603,7 @@ Radius packets.
 <label id="sqlacct">
 <p>
 This accounting module stores accounting information directly
-to an SQL database. Many configuration settings are common with
+to a SQL database. Many configuration settings are common with
 other SQL modules.
 
 <itemize>
@@ -602,7 +617,7 @@ are implemented.
 Default: <tt/localhost/<newline>
 <p>
 SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
-Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+Examples: <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
 Default: <tt>N/A</tt><newline>
@@ -677,14 +692,14 @@ INSERT INTO call (gkname, sessid, username, calling, called)
 <item><tt/StartQueryAlt=INSERT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Defines SQL query used to insert a new call record to the database in case
+Defines a SQL query used to insert a new call record to the database in case
 the <tt/StartQuery/ failed for some reason (the call already exists, for example).
 The syntax and parameters are the same as for <tt/StartQuery/.
 
 <item><tt/UpdateQuery=UPDATE .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Defines SQL query used to update call record in the database with the current 
+Defines a SQL query used to update a call record in the database with the current 
 call state. The syntax and parameters are the same as for <tt/StartQuery/.
 <p>
 Sample query string:
@@ -695,7 +710,7 @@ UPDATE call SET duration = %d WHERE gkname = '%g' AND sessid = '%s'
 <item><tt/StopQuery=UPDATE .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Defines SQL query used to update call record in the database when the call
+Defines SQL query used to update a call record in the database when the call
 is finished (disconnected). The syntax and parameters are the same 
 as for <tt/StartQuery/.
 <p>
@@ -707,7 +722,7 @@ UPDATE call SET duration = %d, dtime = '%{disconnect-time}' WHERE gkname = '%g' 
 <item><tt/StopQueryAlt=INSERT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Defines SQL query used to update call record in the database when the call
+Defines a SQL query used to update call record in the database when the call
 is finished (disconnected) in case the regular <tt/StopQuery/ failed (because
 the call record does not yet exist, for example). The syntax and parameters 
 are the same as for <tt/StartQuery/.
@@ -722,7 +737,7 @@ INSERT INTO call (gkname, sessid, username, calling, called, duration)
 Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings used in queries. If this setting
-is not specified, a global one from the main gatekeeper section is used.
+is not specified, the global one from the main gatekeeper section is used.
 
 <item><tt/MinPoolSize=5/<newline>
 Default: <tt>1</tt><newline>
@@ -736,7 +751,7 @@ in the pool is used to store accounting data.
 <label id="mysqlscheme">
 <p>
 The SQLAcct module is designed to adapt to whatever database structure you already have. You can define all queries so they fit your existing tables.
-But here is an example what those tables might look like in MySQL and you can use these as a starting point.
+Here is an example of what those tables might look like in MySQL and which you can use as a starting point.
 <p>
 Create a new database; here we use the name 'GNUGK':
 
@@ -780,10 +795,18 @@ create table GNUGK.CDR (
 Then you need to create a username for accessing the data.
 
 <tscreen><verb>
-GRANT delete,insert,select,update ON GNUGK.* TO 'YourDesiredUsername'@'localhost' IDENTIFIED BY 'APassword';
+mysql> GRANT delete,insert,select,update ON GNUGK.* TO 'YourDesiredUsername'@'localhost' IDENTIFIED BY 'APassword';
+mysql> flush privileges;
 </verb></tscreen>
 
-With this command you will permit accessing the data from only the local server. If you need to access these data from any other computer then you have to set the proper security options.
+With this command you will permit access to the data only from the local server. If you need to access the data from any other computer then you have to set the proper security options.
+
+For example, to permit access from the 192.168.1.0/24 network:
+
+<tscreen><verb>
+mysql> GRANT delete,insert,select,update ON GNUGK.* TO 'YourDesiredUsername'@'192.168.1.%' IDENTIFIED BY 'APassword';
+mysql> flush privileges;
+</verb></tscreen>
 
 Then you can add the following settings into your gnugk.ini file to insert and update the history of the calls into your database. 
 
@@ -851,7 +874,7 @@ Defines the event when a call is connected. The syntax and parameters are the sa
 Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings used in events. If this setting
-is not specified, a global one from the main gatekeeper section is used.
+is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
 
@@ -859,7 +882,7 @@ is not specified, a global one from the main gatekeeper section is used.
 <label id="syslogacct">
 <p>
 This accounting module sends accounting information to the
-Unix syslog and is not available on Windows. The local syslog daemon will then route the messages according to the it's configuration (generally /etc/syslog.conf).
+Unix syslog and is not available on Windows. The local syslog daemon will then route the messages according to its configuration, generally specified in /etc/syslog.conf.
 
 <itemize>
 <item><tt/SyslogFacility=LOG_LOCAL1/<newline>
@@ -870,7 +893,7 @@ Set the syslog facility to one of LOG_USER, LOG_DAEMON, LOG_AUTH, LOG_LOCAL0, LO
 <item><tt/SyslogLevel=LOG_NOTICE/<newline>
 Default: <tt>LOG_INFO</tt><newline>
 <p>
-Set the syslog level to on one LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG.
+Set the syslog level to LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_NOTICE, LOG_INFO or LOG_DEBUG.
 
 <item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
 Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
@@ -897,6 +920,6 @@ Defines the event when a call is connected. The syntax and parameters are the sa
 Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings used in events. If this setting
-is not specified, a global one from the main gatekeeper section is used.
+is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
