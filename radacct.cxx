@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.35  2009/09/27 13:30:09  shorne
+ * Fix for previous commit
+ *
  * Revision 1.34  2009/09/26 02:26:55  shorne
  * Fix compile warning in Windows
  *
@@ -346,6 +349,12 @@ GkAcctLogger::Status RadAcct::Log(
 				// Number of Route Attempts
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 					PString("h323routeattempts=")+PString(PString::Unsigned,call->GetNoCallAttempts()),true
+				);
+				
+				// Proxy Mode
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
+					PString("h323_rtp_proxy=")+PString(PString::Unsigned,
+					((call->GetProxyMode() == CallRec::ProxyEnabled) ? 1 : 0)),true
 				);
 
 				//RTCP SOURCE REPORT

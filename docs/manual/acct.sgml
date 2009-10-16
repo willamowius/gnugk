@@ -532,6 +532,10 @@ is followed by a list of accounting event types.
 		Amount of time (seconds) the gatekeeper is trying to send the request.
 		Currently always 0.
 
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323_rtp_proxy (stop)</tt><newline>
+<p>
+		Proxy mode of call (0=off, 1=on)
+
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTP_source_IP (stop)</tt><newline>
 <p>
 		RTCP source report data

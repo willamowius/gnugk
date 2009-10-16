@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- set Radius VSA attribute h323_rtp_proxy in stop event
 - BUGFIX(ProxyChannel.cxx) fix memory leak when creation of a fastStart channel fails
 - status port command DisconnectIP now also works with unregistered endpoints using the std port
 - BUGFIX(ProxyChannel.cxx) fix handling of H.460.19 RTP keepalive packets
