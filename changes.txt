@@ -7,21 +7,21 @@ Changes from 2.3.0 to 2.3.1
 - new switch [Proxy]DisableRTPQueueing=1
 - BUGFIX(ProxyChannel.cxx) fully initialize UDP proxy IPs and ports
 - BUGFIX(Routing.cxx) don't apply dns policy to aliases of type dialedDigits
-- BUGFIX(Toolkit.h/.cxx) use default IP for networks specified in InternatlNetwork=, not ExternalIP
+- BUGFIX(Toolkit.h/.cxx) use default IP for networks specified in InternalNetwork=, not ExternalIP
 - enable data execution protection on Windows versions that support it (starting with XP SP3)
 - BUGFIX(gk.cxx) make sure Windows service writes same trace format as application (including file and line)
 - BUGFIX(Neighbor.cxx) fix memory leak in srv policy, only send the local part of the alias in the LRQ
-- new switch [RoutedMode]H46018NoNat to disable H.460.18 if not NAT detected (default enabled)
+- new switch [RoutedMode]H46018NoNat to disable H.460.18 if no NAT detected (default enabled)
 - new routing policy 'catchall' to route all calls to one alias or IP
 - new Radius attributes on stop: h323pddtime, h323ringtime, h323routeattempts
 - BUGFIX(Neighbor.cxx) fix srv policy for direct mode, don't send LRQ if SRV points to us
 - new switch [RoutedMode]TranslateSorensonSourceInfo=1 to convert the Sorenson VP200 caller information
-- BUGFIX(GkStatus.cxx) dont' flush status proct socket when access is denied to avoid blocking
+- BUGFIX(GkStatus.cxx) don't flush status port socket when access is denied to avoid blocking
 - new switches in [Gatekeeper::Main]: CompareAliasType and CompareAliasCase to switch off
   alias type and case matching
 - BUGFIX(Routing.cxx) fix dns policy for direct mode
 - BUGFIX(Neighbor.cxx) try next policy if SRV lookup fails
-- neighbor type (GnuGk|CiscoGk|ClarentGk|GlonetGk) is now case insesitive
+- neighbor type (GnuGk|CiscoGk|ClarentGk|GlonetGk) is now case insensitive
 - features documented: [AssignedAliases::SQL], [AssignedGatekeepers::SQL] and [GkQoSMonitor::SQL]
 - BUGFIX(RasTbl.cxx) use rewritten number when decrementing prefix capacity counters, so they match the increment
 - feature to set a ClientAuthId in SqlAuth that is provided as %{client-auth-id} on all accounting events
