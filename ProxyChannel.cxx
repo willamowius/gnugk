@@ -4824,7 +4824,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 	if (buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
-		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
+		// set new media destination on first keepAlive and un-mute RTP channel
+		// TODO: looking at the source IP isn't enough to determine the direction if both endpoints are on the same source IP
 		if (fromIP == fDestIP) {
 			fDestPort = fromPort;
 			SetMute(false);
