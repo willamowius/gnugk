@@ -3197,6 +3197,19 @@ PBYTEArray CallRec::RetrieveSetup() // for H.460.18
 	m_processedSetup.SetSize(0);	// delete stored Setup
 	return processedSetup;
 }
+
+int CallRec::GetH46019Direction()
+{
+	if (!H46019Required())
+		return 0;
+
+	int dir = 0;
+	if (m_Calling && m_Calling->UsesH46018())
+			dir += 1;
+	if (m_Called && m_Called->UsesH46018())
+			dir += 2;
+	return dir;
+}
 #endif
 
 

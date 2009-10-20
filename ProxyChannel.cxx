@@ -300,6 +300,7 @@ public:
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
+	void SetH46019Direction(int dir) { m_h46019dir = dir; }
 	// disabled for now, until we handle 2 payload types per UDPProxy
 	// void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
 #endif
@@ -332,6 +333,11 @@ private:
 //	int m_keepAlivePayloadType;
 	bool m_h46019fc;
 //	bool m_keepAliveTypeSet;
+	int m_h46019olc;
+	int m_h46019dir;
+	H323TransportAddress m_h46019fwd;
+	H323TransportAddress m_h46019rev;
+	bool m_OLCrev;
 #endif
 };
 
@@ -404,6 +410,7 @@ public:
 	bool IsOpen() const;
 	// void SetKeepAlivePayloadType(int pt);
 	void SetUsesH46019fc(bool);
+	void SetH46019Direction(int dir);
 
 private:
 	void SetNAT(bool);
@@ -521,6 +528,8 @@ public:
 	bool UsesH46019fc() const { return m_useH46019fc; }
 	void SetH46019fcState(int use) { m_H46019fcState = use; }
 	int GetH46019fcState() { return m_H46019fcState; }
+	void SetH46019Direction(int dir) { m_H46019dir = dir; }
+	int GetH46019Direction() { return m_H46019dir; }
 
 private:
 	// override from class H245Handler
@@ -550,6 +559,7 @@ private:
 	bool m_useH46019;
 	bool m_useH46019fc;
 	int m_H46019fcState;
+	int m_H46019dir;
 };
 
 
@@ -854,16 +864,16 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46018
-		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
+		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) 
 			proxyhandler->SetUsesH46019(true);
-		}
+		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 #endif
 		socket->m_h245handler = proxyhandler;
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46018
-		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
-			((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
-		}
+		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) 
+			((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);	
+		((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 #endif
 		proxyhandler->SetHandler(GetHandler());
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
@@ -3318,12 +3328,14 @@ void CallSignalSocket::OnFacility(
 					/*int nat_type = */ m_call->GetNATType(calling, called);
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
 					proxyhandler->SetUsesH46019(true);
-					if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
+					proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
+					if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) 
 						proxyhandler->SetUsesH46019(true);
 					callingSocket->m_h245handler = proxyhandler;
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
 					((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
+					((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 
 					H225_H323_UserInformation *uuie = NULL;
 					Q931 *q931pdu = new Q931();
@@ -3516,7 +3528,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			altered = m_h245handler->HandleFastStartSetup(olc, m_call);
 		} else {
 #ifdef HAS_H46018
-			if (m_call->H46019Required() && ((H245ProxyHandler*)m_h245handler)->UsesH46019fc())
+			if (m_call->H46019Required() && ((H245ProxyHandler*)m_h245handler)->UsesH46019())
 				altered = ((H245ProxyHandler*)m_h245handler)->HandleFastStartResponse(olc, m_call);
 			else
 #endif
@@ -4691,7 +4703,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0)
 #ifdef HAS_H46018
-	, m_h46019fc(false)
+	, m_h46019fc(false),m_h46019olc(0),	m_h46019dir(0),m_OLCrev(false)
 	//, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_keepAliveTypeSet(false)
 #endif
 {
@@ -4743,6 +4755,12 @@ void UDPProxySocket::SetNAT(bool rev)
 
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
+#if HAS_H46018
+	if (m_h46019dir > 0 && m_h46019olc == m_h46019dir) {
+		PTRACE(5, Type() << "\tH46019 Ignore forward already detected.");
+	} else {
+//	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
+#endif
 	if ((DWORD)srcIP != 0)
 		fSrcIP = srcIP, fSrcPort = srcPort;
 	addr >> fDestIP >> fDestPort;
@@ -4757,6 +4775,10 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort) 
 		<< " to " << fDestIP << ':' << fDestPort
 		);
+#if HAS_H46018
+	}
+#endif
+
 	SetConnected(true);
 
 	if (PString(Type()) == "RTCP") {
@@ -4773,10 +4795,23 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
+#if HAS_H46018
+	if (m_h46019dir > 0 && m_h46019olc == m_h46019dir) {
+		PTRACE(5, Type() << "\tH46019 Ignore reversing already detected.");
+	} else {
+//	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
+   
+   if (fSrcIP == 0)
+	   m_OLCrev = true;
+#endif
 	if( (DWORD)srcIP != 0 )
 		rSrcIP = srcIP, rSrcPort = srcPort;
 
 	addr >> rDestIP >> rDestPort;
+
+#if HAS_H46018
+	}
+#endif
     
 	PTRACE(5, Type() << "\tReverse " << srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
 	SetConnected(true);
@@ -4824,18 +4859,108 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 	if (buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
-		// set new media destination on first keepAlive and un-mute RTP channel
-		// TODO: looking at the source IP isn't enough to determine the direction if both endpoints are on the same source IP
-		if (fromIP == fDestIP) {
-			fDestPort = fromPort;
+		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
+		bool sameNAT = (fSrcIP == rSrcIP);
+			H323TransportAddress detAddr(fromIP,fromPort);
+			H323TransportAddress fwdAddr(fSrcIP,fSrcPort);
+			H323TransportAddress revAddr(fDestIP,fDestPort);
+
+			// if we are initiating or updating keep alive.
+			if (fwdAddr == detAddr || m_h46019fwd == revAddr) {
+				PTRACE(6, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
+				m_h46019rev = detAddr;
+				fSrcIP = fromIP;
+				if (m_h46019olc == 0 || m_h46019olc == 2) m_h46019olc += 1;
+			} else if (revAddr == detAddr || m_h46019rev == fwdAddr) {
+				PTRACE(6, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
+				m_h46019fwd = detAddr;
+				rSrcIP = fromIP;
+				if (m_h46019olc < 2) m_h46019olc += 2;
+			
+			// if we are negotiating and we don't know which is forword or reverse
+			} else if ((fSrcIP == 0 && fromIP != rSrcIP) ||
+				(m_h46019olc == 2 && detAddr != m_h46019fwd))
+			{
+				PTRACE(6, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
+				m_h46019rev = detAddr;
+				fSrcIP = fromIP;
+				if (m_h46019olc == 0 || m_h46019olc == 2) m_h46019olc += 1;
+			} else if ((rSrcIP == 0 && fromIP != fSrcIP) ||
+				(m_h46019olc == 1 && detAddr != m_h46019rev))
+			{
+				PTRACE(6, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
+				m_h46019fwd = detAddr;
+				rSrcIP = fromIP;
+				if (m_h46019olc < 2) m_h46019olc += 2;
+
+			// if we have a change in pinhole mapping then update
+			} else if (fromIP == fSrcIP && !sameNAT) {
+				PTRACE(6, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
+				fSrcPort = fromPort;
+				rDestIP = fSrcIP, rDestPort = fSrcPort;	
+					if (m_h46019olc == 0 || m_h46019olc == 2) m_h46019olc += 1;
+			} else if (fromIP == rSrcIP && !sameNAT) { 
+				PTRACE(6, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
+				rSrcPort = fromPort;
+				fDestIP = rSrcIP, fDestPort = rSrcPort;	
+				if (m_h46019olc < 2) m_h46019olc += 2;
+			}
+	
+
+			// Only 1 direction using H.460.19
+			// we need to check the direction of the keepAlive
+			if (m_h46019dir < 3) {
+				if (m_h46019olc > 0 && m_h46019olc != m_h46019dir) {
+					PTRACE(6, "H46018\tOnly 1 Party using H.460.19 and OLC received in reverse order..");
+					m_h46019olc = m_h46019dir;
+				// if we fail above then guess which direction we are setting
+				} else if (m_h46019olc == 0) {
+					if ((m_h46019dir == 1 && !m_OLCrev)||(m_h46019dir == 2 || m_OLCrev)) {
+						PTRACE(6, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
+						m_h46019fwd = detAddr;
+						rSrcIP = fromIP;
+						m_h46019olc = m_h46019dir;
+					} else if ((m_h46019dir == 2 && !m_OLCrev) || m_h46019dir == 1 && m_OLCrev) {
+						PTRACE(6, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
+						m_h46019rev = detAddr;
+						fSrcIP = fromIP;
+						m_h46019olc = m_h46019dir;
+					}
+				}
+			}
+
+			// Set the detected forward and reverse direction
+			// once the required information has been received
+			if (m_h46019olc == m_h46019dir) {
+				PIPSocket::Address addr;
+				if (!m_h46019fwd) {
+					m_h46019fwd.GetIpAddress(addr);
+						if (addr.IsValid()) {
+							PTRACE(6, "H46018\tResetting Fwd " << m_h46019fwd);
+							m_h46019fwd.GetIpAndPort(fSrcIP, fSrcPort);
+							rDestIP = fSrcIP, rDestPort = fSrcPort;	
+						}
+				}
+				if (!m_h46019rev) {
+					m_h46019rev.GetIpAddress(addr);
+					if (addr.IsValid()) {
+						PTRACE(6, "H46018\tResetting Rev " << m_h46019rev);
+						m_h46019rev.GetIpAndPort(rSrcIP, rSrcPort);
+						fDestIP = rSrcIP, fDestPort = rSrcPort;
+					}
+				}
+			}
 			SetMute(false);
-		}
-		if (fromIP == rDestIP) {
-			rDestPort = fromPort;
-			SetMute(false);
-		}
 		return NoData;	// don't forward keepAlive
 	}
+
+	// If we have received packets and H.460.19 is not ready then disgard them
+	if ( m_h46019olc < m_h46019dir) {
+			PTRACE(6, Type() << "\tForward from " << fromIP << ':' << fromPort 
+				<< " blocked, remote socket not yet ready H460.19 " << "s:" << m_h46019olc << " dir " << m_h46019dir
+				);
+		return NoData;	// don't forward anything...
+	} 
 #endif
 
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP (reverse = fastStart ?)
@@ -5266,6 +5391,14 @@ void RTPLogicalChannel::SetUsesH46019fc(bool fc)
 	if (rtcp)
 		rtcp->SetUsesH46019fc(fc);	
 }
+
+void RTPLogicalChannel::SetH46019Direction(int dir)
+{
+	if (rtp)
+		rtp->SetH46019Direction(dir);
+	if (rtcp)
+		rtcp->SetH46019Direction(dir);	
+}
 #endif
 
 void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress & addr)
@@ -5513,7 +5646,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
-      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false), m_H46019fcState(0)
+      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false), m_H46019fcState(0), m_H46019dir(0)
 {
 	if (peer)
 		peer->peer = this;
@@ -5521,8 +5654,10 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 
 H245ProxyHandler::~H245ProxyHandler()
 {
-	DeleteObjectsInMap(logicalChannels);
-	DeleteObjectsInMap(fastStartLCs);
+	if (!UsesH46019fc()) {
+		DeleteObjectsInMap(logicalChannels);
+		DeleteObjectsInMap(fastStartLCs);
+	}
 	if (peer)
 		peer->peer = 0;
 }
@@ -5567,6 +5702,8 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	if (!lc)
 		return false;
 
+	lc->SetH46019Direction(m_H46019dir);
+
 	H245_UnicastAddress_iPAddress *addr;
 	bool changed = false;
 
@@ -5607,7 +5744,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				SetUsesH46019fc(false);
 				break;
 			default:
-				PTRACE(2,"H46019\tFast Connect Logic Error");
 				break;
 		}
 	}
@@ -5694,6 +5830,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				//	((RTPLogicalChannel*)lc)->SetKeepAlivePayloadType(m_keeppayloadtype);  // If remote has told us keeppayloadtype then set it.
 				if (UsesH46019fc())
 					((RTPLogicalChannel*)lc)->SetUsesH46019fc(true);
+				((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());
 			} else {
 				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
 			}
@@ -5874,7 +6011,7 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callpt
 		SetH46019fcState(1);
 	}
 
-	if (UsesH46019() && mcall->GetCallingParty() && mcall->GetCallingParty()->UsesH46018())
+	if (UsesH46019() && mcall->GetCalledParty() && mcall->GetCalledParty()->UsesH46018())
 		return (HandleOpenLogicalChannel(olc) || changed);
 	else {
 		bool nouse;
@@ -5894,8 +6031,11 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
     }
 
 	bool changed = false, isReverseLC;
-	if (hnat) 
+	if (hnat && !peer->UsesH46019()) 
 		changed = hnat->HandleOpenLogicalChannel(olc);
+
+	if (peer->UsesH46019() && mcall->GetCallingParty()->UsesH46018())
+		changed |= HandleOpenLogicalChannel(olc);
 
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
@@ -5917,9 +6057,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 				logicalChannels[flcn] = sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
 				lc->OnHandlerSwapped(hnat != 0);
-				if (UsesH46019())
-					fastStartLCs.erase(iter);
-				else
+				if (!UsesH46019())
 					peer->fastStartLCs.erase(iter);
 			}
 		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
@@ -5938,9 +6076,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 			if (!peer->FindLogicalChannel(flcn)) {
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
-				if (UsesH46019())
-					fastStartLCs.erase(iter);
-				else
+				if (!UsesH46019())
 					peer->fastStartLCs.erase(iter);
 			}
 		} else if ((lc = FindRTPLogicalChannelBySessionID(id))) {

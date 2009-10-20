@@ -1111,6 +1111,7 @@ public:
 	bool H46019Required();
 	void StoreSetup(SignalingMsg * msg);
 	PBYTEArray RetrieveSetup();
+	int GetH46019Direction();
 #endif
 
 private:
