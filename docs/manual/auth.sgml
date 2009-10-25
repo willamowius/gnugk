@@ -979,6 +979,7 @@ inside Access-Accept packets:
 		a list of aliases that should be assigned to the endpoint being registered.
 		All RRQ aliases that do not match this list are removed.
 		The 'disable-codec' variable is also supported to disallow certain codecs for this call.
+		The 'proxy' variable that can contain 'yes' or 'no' for enabling/disabling proxy mode for this call.
 		The format of these attributes is as follows:
 <p>
 <tt>Cisco-AVPair = "h323-ivr-in=variable:value;[variable:value;]"</tt><newline>
@@ -1035,6 +1036,15 @@ RCF {
 <tscreen><verb>
 Access-Accept {
 	Cisco-AVPair = "h323-ivr-in=codec-disable:g711Ulaw64k;g729;g711Alaw64k;g729AnnexA;"
+}
+</verb></tscreen>
+</descrip>
+
+<descrip>
+<tag/Example 4 (enable proxy mode):/
+<tscreen><verb>
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=proxy:yes"
 }
 </verb></tscreen>
 </descrip>

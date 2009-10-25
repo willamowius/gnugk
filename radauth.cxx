@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.49  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.48  2009/05/19 14:38:07  willamowius
  * codec filtering
  *
@@ -900,7 +903,36 @@ int RadAuthBase::Check(
 			}
 		}
 	}
-	
+
+	// process h323-ivr-in=proxy attribute
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+			RadiusAttr::CiscoVSA_AV_Pair
+			);
+		while (attr != NULL) {
+			PINDEX index;
+			value = attr->AsCiscoString();
+			if (value.Find("h323-ivr-in=") == 0 
+				&& ((index = value.Find("proxy:")) != P_MAX_INDEX)) {
+				index += strlen("proxy:");
+				const PINDEX semicolonpos = value.Find(';', index);
+				value = value.Mid(index, semicolonpos == P_MAX_INDEX
+					? P_MAX_INDEX : (semicolonpos-index)
+					);
+				if (!value) {
+					authData.m_proxyMode = Toolkit::AsBool(value)
+						? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
+					PTRACE(5, "RADAUTH\t" << GetName() << " - proxy mode "
+						<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled")
+					);
+				}
+			}
+			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+				RadiusAttr::CiscoVSA_AV_Pair, attr
+				);
+		}
+	}
+
 	if (result)
 		result = OnReceivedPDU(*response, arqPdu, authData);
 	else
@@ -1186,6 +1218,35 @@ int RadAuthBase::Check(
 					}
 				}
 			}
+		}
+	}
+
+	// process h323-ivr-in=proxy attribute
+	if (result) {
+		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+			RadiusAttr::CiscoVSA_AV_Pair
+			);
+		while (attr != NULL) {
+			PINDEX index;
+			value = attr->AsCiscoString();
+			if (value.Find("h323-ivr-in=") == 0 
+				&& ((index = value.Find("proxy:")) != P_MAX_INDEX)) {
+				index += strlen("proxy:");
+				const PINDEX semicolonpos = value.Find(';', index);
+				value = value.Mid(index, semicolonpos == P_MAX_INDEX
+					? P_MAX_INDEX : (semicolonpos-index)
+					);
+				if (!value) {
+					authData.m_proxyMode = Toolkit::AsBool(value)
+						? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
+					PTRACE(5, "RADAUTH\t" << GetName() << " - proxy mode "
+						<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled")
+						);
+				}
+			}
+			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
+				RadiusAttr::CiscoVSA_AV_Pair, attr
+				);
 		}
 	}
 
