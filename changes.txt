@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(Routing.cxx) let dns policy handle LRQs that resolve locally, so URI dialing from neighbors works
 - the manual has been improved (thanks to Robert Kulagowski)
 - set Radius VSA attribute h323_rtp_proxy in stop event (thanks to Yuriy Georgiewskiy)
 - BUGFIX(ProxyChannel.cxx) fix memory leak when creation of a fastStart channel fails

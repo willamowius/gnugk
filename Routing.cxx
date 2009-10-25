@@ -620,10 +620,46 @@ bool DNSPolicy::FindByAliases(
 	return false;
 }
 
-bool DNSPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_AliasAddress & /* aliases */)
-{ 
-	PTRACE(4, "ROUTING\tPolicy DNS not supported for LRQ");
-	return false; // DNSPolicy::FindByAliases((RoutingRequest&)request, aliases);
+bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		// don't apply DNS to dialedDigits
+		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
+			continue;
+		PString alias(AsString(aliases[i], FALSE));
+		PINDEX at = alias.Find('@');
+
+		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
+		H225_TransportAddress dest;
+		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
+			PIPSocket::Address addr;
+			if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
+				continue;
+			if (Toolkit::Instance()->IsGKHome(addr)) {
+				// only apply DNS policy to LRQs that resolve locally
+				H225_ArrayOf_AliasAddress find_aliases;
+				find_aliases.SetSize(1);
+				H323SetAliasAddress(alias.Left(at), find_aliases[0]);
+				endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
+				if (ep) {
+					if (!(RasServer::Instance()->IsGKRouted())) {
+						// in direct mode, send call directly to EP
+						dest = ep->GetCallSignalAddress();
+					}
+					Route route(m_name, dest);
+					route.m_destEndpoint = ep;
+					request.AddRoute(route);
+					request.SetFlag(RoutingRequest::e_aliasesChanged);
+					// remove the domain name part
+					H323SetAliasAddress(alias.Left(at), aliases[i]);
+					PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at));
+					return true;
+				}
+			}
+		}
+	}
+	PTRACE(4, "ROUTING\tPolicy DNS only supports LRQs that resolve locally");
+	return false;
 }
 
 
