@@ -9,14 +9,14 @@ Default: <tt/1/<newline>
 <p>
 Generate CDRs for calls from neighbor zones.
 The IP and endpoint ID of the calling party is printed as empty.
-This is usually used for debug purpose.
+This is usually used for debugging purposes.
 
 <item><tt/GenerateUCCDR=0/<newline>
 Default: <tt/0/<newline>
 <p>
 Generate CDRs for calls that are unconnected. This is usually
-used for debug purpose. Note a call is considered unconnected
-only if the gatekeeper uses routed mode and a Q.931 Connect message is not
+used for debugging purposes. Note that a call is considered unconnected
+only if the gatekeeper uses routed mode and a Q.931 "Connect" message is not
 received by the gatekeeper. In direct mode, a call is always considered
 connected.
 
@@ -25,7 +25,7 @@ Default: <tt/0/<newline>
 <p>
 Default maximum call duration limit (seconds).
 Set it to <tt/0/ to disable this feature and not limit
-calls duration.
+call duration.
 
 <item><tt/AcctUpdateInterval=60/<newline>
 Default: <tt/0/<newline>
@@ -36,8 +36,10 @@ depend on accounting logger modules selected (see section
 <ref id="gkacct" name="[Gatekeeper::Acct]">). In general, the accounting
 update is to provide back-end services with incrementing call duration
 for connected calls.
-The default value 0 tells the gatekeeper to not send accounting updates
-at all. Please note that setting short periods may decrease GK performance.
+The default value "0" disables accounting updates.
+Please note that setting this to a short interval may decrease GK performance.
+
+<!--TODO:  Only Cisco and RFC822 or same list as in acct.sgml ? -->
 
 <item><tt/TimestampFormat=Cisco/<newline>
 Default: <tt/RFC822/<newline>
@@ -63,11 +65,14 @@ When failover is active, more than one gateway may be tried to
 establish a call. This switch defines if one or multiple CDRs
 are generated for such a call.
 
+<!-- TODO:  Specify Codec strings as example? -->
+
 <item><tt/DisabledCodecs=g711Alaw64k;g711Ulaw64k;h263VideoCapability;/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Filter out certain codecs. Please note the trailing semicolon. Calls must be H.245 routed or proxied for codec filtering to work.
-This setting can be overridden per call by the Radius attribute 'disable-codec'.
+Filter out certain codecs. Please note the trailing semicolon. Calls must be
+H.245 routed or proxied for codec filtering to work.
+This setting can be overridden on a per-call basis by using the Radius attribute 'disable-codec'.
 
 </itemize>
 
@@ -111,9 +116,9 @@ Endpoints must support H.460.9 for this service to function.
 <item><tt/Enable=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Define whether to enable or disable the feature. If enabled this function
-with respond to supportedFeature request from clients so clients know to
-send QoS Information to the gatekeeper.
+Defines whether to enable or disable the feature. If enabled, this function
+with respond to supportedFeature requests from clients so clients know to
+send QoS statistics to the gatekeeper.
 
 <item><tt/CallEndOnly=0/<newline>
 Default: <tt/1/<newline>
@@ -124,14 +129,14 @@ QoS information at the end of a call.
 <item><tt/DefaultFile=qos.txt/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define the output file to log QoS information to. If a file is not defined the
-QoS information is outputted as an item in the Trace File trace level 4
+Define the output file for QoS logs. If a file is not defined the
+QoS information is output as an item in the Trace File at trace level 4
 </itemize>
 
 <sect1>Section &lsqb;GkQoSMonitor::SQL&rsqb;
 <p>
 This section allows you to store QoS information in a database.
-You can use the same database parameters, as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
 
 <itemize>
 <item><tt/Query=INSERT .../<newline>
@@ -146,7 +151,7 @@ The following parameters are defined:
 <item><tt/%{session}/ - session
 <item><tt/%{caller-ip}/ - caller IP
 <item><tt/%{caller-port}/ - caller port
-<item><tt/%{caller-nat}/ - is caller nated (0 or 1)
+<item><tt/%{caller-nat}/ - is caller NATted (0 or 1)
 <item><tt/%{callee-ip}/ - caller IP
 <item><tt/%{callee-port}/ - caller port
 <item><tt/%{avgdelay}/ - average delay
@@ -168,23 +173,26 @@ INSERT INTO qos SET caller_ip="%{caller-ip}", bandwidth="%{bandwidth}, timestamp
 <sect1>Section &lsqb;Endpoint&rsqb;
 <label id="endpoint">
 <p>
-The gatekeeper can work as an endpoint by registering with another gatekeeper.
-With this feature, you can easily build gatekeeper hierarchies.
-The section defines the endpoint features for the gatekeeper.
+The gatekeeper can function as an endpoint by registering with another gatekeeper, allowing
+you to build gatekeeper hierarchies.
+This section defines the endpoint features for the gatekeeper.
 
 <itemize>
 <item><tt/Gatekeeper=10.0.1.1/<newline>
 Default: <tt/no/<newline>
 <p>
-Define a parent gatekeeper for the endpoint(gatekeeper) to register with.
+Define a parent gatekeeper for GnuGk to register with.
+
+<!-- TODO:  Better description of what will happen? -->
+
 Don't try to register with yourself, unless you want to be confusing.
-To disable this feature, set the field to be <tt/no/.
+To disable this feature, set the field to <tt/no/.
 
 <item><tt/Type=Gateway/<newline>
 Default: <tt/Gateway/<newline>
 <p>
-Define the terminal type for the endpoint.
-The valid values are <tt/Gateway/ or <tt/Terminal/.
+Define the terminal type GnuGk will use when it registers.
+Valid options are <tt/Gateway/ or <tt/Terminal/.
 
 <item><tt/Vendor=Cisco | GnuGk | Generic/<newline>
 Default: <tt/GnuGk/<newline>
@@ -208,15 +216,18 @@ Multiple aliases can be separated by comma.
 Default: <tt>N/A</tt><newline>
 <p>
 Specify a password to be sent to the parent gatekeeper.
+
+<!-- TODO:  Is it "and" or "or" with the crypto? -->
+
 All RAS requests will contain the password in the <bf/cryptoTokens/ field
 (MD5 & HMAC-SHA1-96) and the <bf/tokens/ field (CAT).
-To send RAS requests without both <bf/cryptoTokens/ and <bf/tokens/ fields,
+To send RAS requests without the <bf/cryptoTokens/ and <bf/tokens/ fields,
 set the password to be empty.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
 in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 <p>
-Besides, the password is also used in LRQs sent to neighbor gatekeepers.
+The password will be used in LRQs sent to neighbor gatekeepers.
 
 <item><tt/Prefix=188886,188887/<newline>
 Default: <tt>N/A</tt><newline>
@@ -229,7 +240,7 @@ Default: <tt>60</tt><newline>
 <p>
 Suggest a time-to-live value in seconds for the registration.
 Note that the real time-to-live timer is assigned by the parent
-gatekeeper in the RCF replied to the RRQ.
+gatekeeper in the RCF is sends to us in response to our RRQ.
 
 <item><tt/RRQRetryInterval=10/<newline>
 Default: <tt/3/<newline>
@@ -241,13 +252,13 @@ failure, up to a maximum RRQRetryInterval * 128 timeout.
 <item><tt/ARQTimeout=2/<newline>
 Default: <tt/2/<newline>
 <p>
-Define the timeout value in second for ARQs.
+Define the timeout value in seconds for ARQs.
 
 <item><tt/UnregisterOnReload=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Defines whether the child gatekeeper unregisters and re-registers with
-it's parent when receiving a Reload command.
+its parent after receiving a Reload command from the status port.
 
 <item><tt/NATRetryInterval=60/<newline>
 Default: <tt/60/<newline>
@@ -260,34 +271,36 @@ been broken.
 Default: <tt/86400/<newline>
 <p>
 Define how often the TCP NAT signaling connection with a parent gatekeeper
-is refreshed. As NAT boxes usually keep TCP mappings for a definite time only,
-it is good to set this to some value a bit shorter than NAT box mapping timeout.
+is refreshed. As NAT boxes usually keep TCP mappings for a certain duration,
+it's strongly suggested to set this to a value slightly shorter than the NAT box mapping timeout.
 Refreshing is done by sending a special Q.931 IncomingCallProceeding message.
-If your NAT performs TCP port translation, you may need to set it to a values
+If your NAT performs TCP port translation, you may need to set it to a value
 as short as 60 seconds.
 
 <item><tt/Discovery=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Decide whether to discover the parent gatekeeper by sending GRQ first.
+Configures GnuGk to attempt to discover the parent gatekeeper by first sending a GRQ.
 
 <item><tt/UseAlternateGK=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Enable alternate gatekeepers feature. If GRJ/GCF/RFC messages received 
+
+<!--TODO:  Does GnuGk support H.323v6 feature for alt GK when it is client? -->
+Enable alternate gatekeepers feature. If GRJ/GCF/RCF messages received 
 from a parent gatekeeper contain a list of alternate gatekeepers, this
-information is stored and can be used to reregister with another gatekeeper
-in case of any failure. If you don't want to use this feature, set this
+information is stored and can be used to re-register with another gatekeeper
+in case of failure. If you don't want to use this feature, set this
 variable to <tt/0/.
 
 <item><tt/GatekeeperIdentifier=ParentGK/<newline>
 Default: <tt/Not set/<newline>
 <p>
-Define it if you want to accept only such parent gatekeepers that match
+Define this parameter if you only want to accept parent gatekeepers that match
 this gatekeeper identifier. Useful with GRQ discovery and can prevent 
-an accidental gatekeeper match. Do not set this variable, if you do not
+an accidental gatekeeper match. Do not set this variable if you do not
 care about gatekeeper identifiers or you use alternate gatekeepers that
-can have different gatekeeper identifiers set.
+can have different gatekeeper identifiers.
 
 <item><tt/EndpointIdentifier=OpenH323GK/<newline>
 Default: <tt/Not set/<newline>
@@ -310,16 +323,16 @@ By default H.460.23 is disabled when acting as an endpoint; set this switch to t
 
 <sect1>Section &lsqb;CTI::Agents&rsqb;
 <p>
-This section allows the configuration of a so called virtual queues to
+This section allows the configuration of a so called virtual queue to
 allow inbound call distribution by an external application via the
 status port.
 A virtual queue has an H.323 alias that can be called like an endpoint
 or it can answer to a set of aliases.
 
-Upon arrival of a call on a virtual queue, the gatekeeper signals
+Once a call arrives on the virtual queue, the gatekeeper signals
 a RouteRequest on the status port and waits for an external application
-to respond with either a RouteReject (then the call will be rejected)
-or with RouteToAlias/RouteToGateway which leads to destination rewritten so the call
+to respond with either a RouteReject (which will cause the call to be rejected)
+or with RouteToAlias/RouteToGateway which leads to the destination being rewritten so the call
 will be routed to the alias (eg. call center agent) specified by
 the external application.
 
@@ -328,9 +341,9 @@ If no answer is received after a timeout period, the call is terminated.
 You can specify virtual queues in three ways:
 <itemize>
 <item><tt/exact alias name/ - a list of aliases is given. If a request destination
-  alias matches one these names, the virtual queue is activated,
+  alias matches one these names, the virtual queue is activated.
 <item><tt/prefix/ - a list of prefixes is given. If a request destination alias
-  starts with one these prefixes, the virtual queue is activated,
+  starts with one these prefixes, the virtual queue is activated.
 <item><tt/regular expression/ - a regular expression is given. If a request destination
   alias matches the expression, the virtual queue is activated.
 </itemize>
@@ -428,7 +441,7 @@ Disable H.245 tunneling for the pseudo endpoint.
 <sect1>Section &lsqb;SQLConfig&rsqb;
 <label id="sqlconf">
 <p>
-Load gatekeeper settings from an SQL database (in addition to settings
+Load gatekeeper settings from a SQL database (in addition to settings
 read from the config file). A generic <tt/ConfigQuery/ can be used
 to read almost all setting from the database and/or one of <tt/[RasSrv::RewriteE164]/,
 <tt/[RasSrv::PermanentEndpoints]/, <tt/[RasSrv::Neighbors]/, 
@@ -470,10 +483,10 @@ the <tt/addpasswd/ utility.
 <item><tt/ConfigQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query used to read gatekeeper settings from the database. 
+Define a SQL query used to read gatekeeper settings from the database. 
 The query is parameterized - that means parameter replacement occurs before 
 the query is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
-strings. Specify %% to embed a percent character before a digit into string 
+strings. Specify %% to embed a percent character before a digit in a string 
 (like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
 like <bf/%{1}123/. For <tt/ConfigQuery/ only one parameter is defined:
 <itemize>
@@ -496,8 +509,8 @@ ConfigQuery=SELECT 'RasSrv::RRQAuth', alias, rule FROM rrqauth WHERE gk = '%1'
 <item><tt/RewriteE164Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query used to retrieve from the database rewrite rules 
-for <tt/[RasSrv::RewriteE164]/ section. The query is parameterized 
+Define a SQL query used to retrieve rewrite rules from the database
+for the <tt/[RasSrv::RewriteE164]/ section. The query is parameterized 
 - that means parameter replacement occurs before each query is executed. 
 Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings. 
 Specify %% to embed a percent character before a digit into string 
@@ -521,8 +534,8 @@ RewriteE164Query=SELECT rkey, rvalue FROM rewriterule WHERE gk = '%1'
 <item><tt/RewriteAliasQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query used to retrieve from the database rewrite rules 
-for <tt/[RasSrv::RewriteAlias]/ section. The query is parameterized 
+Define a SQL query used to retrieve rewrite rules from the database
+for the <tt/[RasSrv::RewriteAlias]/ section. The query is parameterized 
 - that means parameter replacement occurs before each query is executed. 
 Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings. 
 Specify %% to embed a percent character before a digit into string 
@@ -546,8 +559,8 @@ RewriteAliasQuery=SELECT rkey, rvalue FROM assignedalias WHERE gk = '%1'
 <item><tt/AssignedAliasQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query used to retrieve from the database rewrite rules 
-for <tt/[RasSrv::AssignedAlias]/ section. The query is parameterized 
+Define a SQL query used to retrieve rewrite rules from the database
+for the <tt/[RasSrv::AssignedAlias]/ section. The query is parameterized 
 - that means parameter replacement occurs before each query is executed. 
 Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings. 
 Specify %% to embed a percent character before a digit into string 
@@ -571,8 +584,8 @@ AssignedAliasQuery=SELECT rkey, rvalue FROM assignedalias WHERE gk = '%1'
 <item><tt/NeighborsQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query used to retrieve from the database neighbor entries
-for <tt/[RasSrv::Neighbors]/ section . The query is parameterized 
+Define a SQL query used to retrieve neighbor entries from the database
+for the <tt/[RasSrv::Neighbors]/ section. The query is parameterized 
 - that means parameter replacement occurs before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
 strings. Specify %% to embed a percent character before a digit into string 
@@ -600,8 +613,8 @@ NeighborsQuery=SELECT nid, nip, nport, npfx, NULL, 0 FROM neighbor WHERE gk = '%
 <item><tt/PermanentEndpointsQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query used to retrieve permanent endpoints from the database 
-for <tt/[RasSrv::PermanentEndpoints]/ section . The query is parameterized 
+Define a SQL query used to retrieve permanent endpoints from the database 
+for the <tt/[RasSrv::PermanentEndpoints]/ section. The query is parameterized 
 - that means parameter replacement occurs before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
 strings. Specify %% to embed a percent character before a digit into string 
@@ -627,8 +640,8 @@ PermanentEndpointsQuery=SELECT peip, 1720, pealias, NULL FROM permanentep WHERE 
 <item><tt/GWPrefixesQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define an SQL query used to retrieve gateway prefixes from the database 
-for <tt/[RasSrv::GWPrefixes]/ section . The query is parameterized 
+Define a SQL query used to retrieve gateway prefixes from the database 
+for the <tt/[RasSrv::GWPrefixes]/ section. The query is parameterized 
 - that means parameter replacement is made before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
 strings. Specify %% to embed a percent character before a digit into string 
