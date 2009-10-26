@@ -4920,7 +4920,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 						m_h46019fwd = detAddr;
 						rSrcIP = fromIP;
 						m_h46019olc = m_h46019dir;
-					} else if ((m_h46019dir == 2 && !m_OLCrev) || m_h46019dir == 1 && m_OLCrev) {
+					} else if ((m_h46019dir == 2 && !m_OLCrev) || (m_h46019dir == 1 && m_OLCrev)) {
 						PTRACE(6, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
 						m_h46019rev = detAddr;
 						fSrcIP = fromIP;
