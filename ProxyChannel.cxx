@@ -5702,7 +5702,9 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	if (!lc)
 		return false;
 
+#ifdef HAS_H46018
 	lc->SetH46019Direction(m_H46019dir);
+#endif
 
 	H245_UnicastAddress_iPAddress *addr;
 	bool changed = false;
