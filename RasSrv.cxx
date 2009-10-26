@@ -1564,7 +1564,6 @@ bool RegistrationRequestPDU::Process()
 // H460 support Code
 	PBoolean supportNATOffload = false;
 	PBoolean supportSameNAT = false;
-	PBoolean h46018nat = false;
 	int RegPrior = 0;
 	bool preemptsupport = false;
 	PBoolean preempt = false;
@@ -1575,6 +1574,7 @@ bool RegistrationRequestPDU::Process()
 #endif
 #ifdef HAS_H46018
 	PBoolean supportH46018 = false;
+	PBoolean h46018nat = false;
 #endif
 
 #ifdef HAS_H460
