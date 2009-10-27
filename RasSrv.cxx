@@ -1569,11 +1569,13 @@ bool RegistrationRequestPDU::Process()
 	PBoolean preempt = false;
 	unsigned ntype = 100;  // UnAllocated NAT Type
 	H225_TransportAddress alg_csAddress;	// ALG CallSignal Address
+#ifdef HAS_H46018
+	PBoolean supportH46018 = false;
+#endif
 #ifdef HAS_H46023
 	PBoolean supportH46023 = false;
 #endif
-#ifdef HAS_H46018
-	PBoolean supportH46018 = false;
+#if (HAS_H46018 || HAS_H46023)
 	PBoolean h46018nat = false;
 #endif
 
@@ -3191,6 +3193,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 {
 	// OnSCI
 	H225_ServiceControlResponse & scr = BuildConfirm();
+	scr.m_requestSeqNum = request.m_requestSeqNum;	// redundant, just to avoid compiler warning when H.460.18 is disabled
 
 #ifdef HAS_H46018
 	if (request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
