@@ -312,14 +312,18 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 	// look through internal networks and make sure we don't return the external IP for them
 	for (unsigned j = 0; j < m_internalnetworks.size(); ++j) {
 		if (addr << m_internalnetworks[j]) {
-			// TODO: what if internal network detected, is in route table and has different IP ?
-			return defAddr;
+			// check if internal network is in route table, but don't use the default route
+			RouteEntry *entry = find_if(rtable_begin, rtable_end,
+				bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
+			if ((entry != rtable_end) && (entry->GetNetMask() != INADDR_ANY))
+				return entry->GetDestination();
+			else
+				return defAddr;
 		}
 	}
-	
-	// If a dynamic external IP retrieve external IP from DNS entries
+
+	// if a dynamic external IP is configured, resolve DNS entry now
 	if (DynExtIP && !addr.IsRFC1918()) {
-		// TODO: dynamic external IP used for all networks, even if in route table ?
 		PIPSocket::Address extip;
 		H323TransportAddress ex = H323TransportAddress(ExtIP);
 		ex.GetIpAddress(extip);
