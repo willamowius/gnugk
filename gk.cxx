@@ -635,7 +635,7 @@ void Gatekeeper::Main()
 
 #ifdef HAS_H46018
 	cout << "This program contains H.460.18 and H.460.19 technology patented by Tandberg\n"
-			"licensed to the GNU Gatekeeper Project.\n"
+			"and licensed to the GNU Gatekeeper Project.\n"
 			<< endl;
 #endif
 
