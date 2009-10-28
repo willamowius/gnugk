@@ -48,7 +48,7 @@ for a call. Even when this option is disabled, if Proxy or ProxyForNAT
 takes effect, a H.245 channel is always routed through the gatekeeper
 for calls being proxied.
 
-<item><tt/CallSignalPort=0/<newline>
+<item><tt/CallSignalPort=1720/<newline>
 Default: <tt/1721/<newline>
 <p>
 The port for call signaling on the gatekeeper.
