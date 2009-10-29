@@ -59,17 +59,17 @@ Specify the pid file, only valid for Unix version.
 .It Fl u -user Ar name
 Run the gatekeeper process as this user. Only valid for Unix versions. 
 .It Fl -core Ar n
-(Unix only) Enable writting core dump files when the application crashes. A core dump file will not exceed n bytes in size. A special constant "unlimited" may be used to not enforce any particular limit. 
+(Unix only) Enable writing core dump files when the application crashes. A core dump file will not exceed n bytes in size. A special constant "unlimited" may be used to not enforce any particular limit. 
 .El
 .Ss Gatekeeper Mode
 .Bl -tag -width Ds
 The options in this subsection override the settings in the [RoutedMode] section of the configuration file. 
 .It Fl d -direct
-Use direct endpoint call signalling. 
+Use direct endpoint call signaling. 
 .It Fl r -routed
-Use gatekeeper routed call signalling. 
+Use gatekeeper routed call signaling. 
 .It Fl rr -h245routed
-Use gatekeeper routed call signalling and H.245 control channel. 
+Use gatekeeper routed call signaling and H.245 control channel. 
 .El
 .Ss Debug Information
 .Bl -tag -width Ds
