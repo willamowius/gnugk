@@ -597,22 +597,25 @@ bool DNSPolicy::FindByAliases(
 			PIPSocket::Address addr;
 			if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 				continue;
-			if (!(RasServer::Instance()->IsGKRouted()) && Toolkit::Instance()->IsGKHome(addr)) {
-				// check if the domain is my IP, if so pass out endpoint IP in direct mode
+			if (Toolkit::Instance()->IsGKHome(addr)) {
+				// check if the domain is my IP, if so route to local endpoint if available
 				H225_ArrayOf_AliasAddress find_aliases;
 				find_aliases.SetSize(1);
 				H323SetAliasAddress(alias.Left(at), find_aliases[0]);
 				endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 				if (ep) {
 					dest = ep->GetCallSignalAddress();
+				} else {
+					continue;	// can't route this alias locally, try next alias
 				}
+			} else {
 			}
 			Route route(m_name, dest);
 			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 			request.AddRoute(route);
-			request.SetFlag(RoutingRequest::e_aliasesChanged);
-			// remove the domain name part
+			// remove the domain name part (should not be necessary with latest GnuGk as destination, but keep for older ones)
 			H323SetAliasAddress(alias.Left(at), aliases[i]);
+			request.SetFlag(RoutingRequest::e_aliasesChanged);
 			PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at) << " @ " << AsDotString(dest));
 			return true;
 		}
