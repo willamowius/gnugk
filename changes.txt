@@ -1,5 +1,7 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(Neighbor.cxx) srv policy now fails calls and doesn't pass them to the next policy
+  if a SRV record exists for a domain, but doesn't have a destination for the call
 - allow to set proxy mode through 'proxy' variable in Radius h323-ivr-in attribute (thanks to Yuriy Georgiewskiy)
 - BUGFIX(Routing.cxx) let dns policy handle LRQs that resolve locally, so URI dialing from neighbors works
 - the manual has been improved (thanks to Robert Kulagowski)

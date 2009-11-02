@@ -1503,6 +1503,9 @@ bool SRVPolicy::FindByAliases(
 					}
 					delete nb;
 					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
+					// we found the directory for this domain, but it didn't have a destination, so we fail the call
+					request.SetFlag(RoutingRequest::e_Reject);
+					return true;
 				}
 			}
 		}
