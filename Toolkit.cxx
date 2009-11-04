@@ -649,6 +649,16 @@ void Toolkit::RewriteTool::LoadConfig(
 	m_Rewrite->AddSection(config,AliasRewriteSection);
 }
 
+bool Toolkit::IsNumeric(const PString & s) 
+{
+	 PINDEX j;
+     for (j = 0; j < s.GetLength(); ++j)
+	       if (!isdigit(static_cast<unsigned char>(s[j])))
+	   	         break;
+
+	 return (j >= s.GetLength());
+}
+
 bool Toolkit::RewriteTool::RewritePString(PString & s) const
 {
 	bool changed = false;
@@ -657,25 +667,26 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	 PINDEX at = s.Find('@');
 	 if (at != P_MAX_INDEX) {
 		 PString num = s.Left(at);
+		 PString domain = s.Mid(at+1);
+		 PIPSocket::Address domIP(domain);
+
          // Check if we have a default domain and strip it
-		 if (s.Mid(at+1) == m_defaultDomain) {
+		 if (domain == m_defaultDomain) {
 		   PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
 		   s = num;
 		   changed = true;
-		 } else {
-			 // Check if all numeric then is E164 then strip the domain
-			 // this is used with SRV policy which includes the domain when 
-			 // sending the LRQ. 
-			 PINDEX j;
- 		     for (j = 0; j < num.GetLength(); ++j)
-			       if (!isdigit(static_cast<unsigned char>(num[j])))
-			   	         break;
 
-			 if (j >= num.GetLength()) { // is numeric
-				PTRACE(2, "\tRewriteToE164: " << s << " to " << num);
-                s = num;
-				changed = true;
-			 }
+	     // Check that the domain is not a local IP address.
+		 } else if (domIP.IsValid() && Toolkit::Instance()->IsGKHome(domIP)) {
+ 		   PTRACE(2, "\tRemoveDomain: " << domain << " to " << num);
+		   s = num;
+		   changed = true;
+
+		 // Check if all numeric then is E164 then strip the domain
+		 } else if (Toolkit::Instance()->IsNumeric(num)) {
+			PTRACE(2, "\tRewriteToE164: " << s << " to " << num);
+            s = num;
+			changed = true;
 		 }
 	 }
 
@@ -2202,18 +2213,20 @@ bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 
 	bool changed = RewritePString(E164);
 	if (changed) {
-		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits)
-			H323SetAliasAddress(E164, alias, alias.GetTag());
+		if (E164.Find("@") != P_MAX_INDEX)
+			H323SetAliasAddress(E164, alias,H225_AliasAddress::e_url_ID);
+		else if (IsNumeric(E164))
+			H323SetAliasAddress(E164, alias, H225_AliasAddress::e_dialedDigits);
+		else if (alias.GetTag() != H225_AliasAddress::e_partyNumber) 
+			H323SetAliasAddress(E164, alias, H225_AliasAddress::e_h323_ID);
 		else {
-			if (alias.GetTag() == H225_AliasAddress::e_partyNumber) {
-				H225_PartyNumber & partyNumber = alias;
-				if (partyNumber.GetTag() == H225_PartyNumber::e_e164Number) {
-					H225_PublicPartyNumber &number = partyNumber;
-					number.m_publicNumberDigits = E164;
-				} else if (partyNumber.GetTag() == H225_PartyNumber::e_privateNumber) {
-					H225_PrivatePartyNumber &number = partyNumber;
-					number.m_privateNumberDigits = E164;
-				}
+			H225_PartyNumber & partyNumber = alias;
+			if (partyNumber.GetTag() == H225_PartyNumber::e_e164Number) {
+				H225_PublicPartyNumber &number = partyNumber;
+				number.m_publicNumberDigits = E164;
+			} else if (partyNumber.GetTag() == H225_PartyNumber::e_privateNumber) {
+				H225_PrivatePartyNumber &number = partyNumber;
+				number.m_privateNumberDigits = E164;
 			}
 		}
 	}

@@ -320,6 +320,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool RewriteE164(H225_ArrayOf_AliasAddress & aliases);
 
 	bool RewritePString(PString & s) { return m_Rewrite.RewritePString(s); }
+	bool IsNumeric(const PString & s);
 
 	// Class to allow correct use of STL inside PDictionary type
 	class GWRewriteEntry : public PObject {
