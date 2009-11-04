@@ -4799,7 +4799,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	if (m_h46019dir > 0 && m_h46019olc == m_h46019dir) {
 		PTRACE(5, Type() << "\tH46019 Ignore reversing already detected.");
 	} else {
-//	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
+	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
    
    if (fSrcIP == 0)
 	   m_OLCrev = true;
@@ -4857,27 +4857,31 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 //		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
 //		);
 
-	if (buflen == 12) {
+	if (m_h46019dir > 0 && buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
 		bool sameNAT = (fSrcIP == rSrcIP);
 			H323TransportAddress detAddr(fromIP,fromPort);
+			// Forward direction ports
 			H323TransportAddress fwdAddr(fSrcIP,fSrcPort);
 			H323TransportAddress revAddr(fDestIP,fDestPort);
+			// Reverse direction ports
+			H323TransportAddress rfwdAddr(rSrcIP,rSrcPort);
+			H323TransportAddress rrevAddr(rDestIP,rDestPort);
 
 			// if we are initiating or updating keep alive.
-			if (fwdAddr == detAddr || m_h46019fwd == revAddr) {
+			if (rrevAddr == detAddr || fwdAddr == detAddr || m_h46019fwd == revAddr) {
 				PTRACE(6, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
 				m_h46019rev = detAddr;
 				fSrcIP = fromIP;
 				if (m_h46019olc == 0 || m_h46019olc == 2) m_h46019olc += 1;
-			} else if (revAddr == detAddr || m_h46019rev == fwdAddr) {
+			} else if (rfwdAddr == detAddr || revAddr == detAddr || m_h46019rev == fwdAddr) {
 				PTRACE(6, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
 				m_h46019fwd = detAddr;
 				rSrcIP = fromIP;
 				if (m_h46019olc < 2) m_h46019olc += 2;
 			
-			// if we are negotiating and we don't know which is forword or reverse
+			// if we are negotiating and we don't know which is forward or reverse
 			} else if ((fSrcIP == 0 && fromIP != rSrcIP) ||
 				(m_h46019olc == 2 && detAddr != m_h46019fwd))
 			{
