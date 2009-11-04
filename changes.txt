@@ -1,5 +1,6 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(toolkit.cxx) Enable RewritePString to rewrite address correctly if unregistered full URI.
 - BUGFIX(Neighbor.cxx) srv policy now fails calls and doesn't pass them to the next policy
   if a SRV record exists for a domain, but doesn't have a destination for the call
 - allow to set proxy mode through 'proxy' variable in Radius h323-ivr-in attribute (thanks to Yuriy Georgiewskiy)
