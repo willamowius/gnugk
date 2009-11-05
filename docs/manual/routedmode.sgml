@@ -93,7 +93,10 @@ Default: <tt/0/<newline>
 <p>
 With this feature enabled, the gatekeeper will accept calls
 from any unregistered endpoint.
-However, it raises security risks. Be careful to use it.
+Make sure you do proper authentication on these calls if you
+don't want to let everybody use your gatekeeper.
+When working with unregistered, you will probably also want
+to change the CallSignalPort to 1720.
 
 <item><tt/RemoveH245AddressOnTunneling=1/<newline>
 Default: <tt/0/<newline>
