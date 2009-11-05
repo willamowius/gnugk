@@ -5980,16 +5980,18 @@ void H245ProxyHandler::HandleMuteRTPChannel()
 
 bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 {
-	// due to bad implementation of some endpoints, we check the
-	// forwardLogicalChannelNumber on both sides
 	H245ProxyHandler *first, *second;
-	if (clc.m_source.GetTag() == H245_CloseLogicalChannel_source::e_lcse)
+	if (clc.m_source.GetTag() == H245_CloseLogicalChannel_source::e_user)
 		first = this, second = peer;
 	else
 		first = peer, second = this;
-	first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber)
-		|| second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
-	return false; // nothing changed :)
+	bool found = first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
+	if (!found && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "SearchBothSidesOnCLC", "0"))) {
+		// due to bad implementation of some endpoints, we check the
+		// forwardLogicalChannelNumber on both sides
+		second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
+	}
+	return false; // nothing changed
 }
 
 bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callptr & mcall)

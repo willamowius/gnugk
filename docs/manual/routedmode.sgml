@@ -574,6 +574,17 @@ Remove the mediaChannel from fastStart transmit offers.
 For unicast transmit channels, mediaChannel should not be sent on offer;
 it is responsibility of callee to provide mediaChannel in an answer.
 
+<item><tt/SearchBothSidesOnCLC=1/<newline>
+Default: <tt/0/<newline>
+<p>
+The H.245 CloseLogicalChannel request should only reference the
+endpoint's own logical channels.
+Some bad endpoint implementations require searching and closing
+logical channels for the other endpoint as well.
+Up to version 2.3.0 GnuGk did this automatically, but it can break
+channel establishment in some cases, so now you have to set this
+switch if you have these broken endpoints.
+
 </itemize>
 
 <p>
