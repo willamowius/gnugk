@@ -683,11 +683,11 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		   changed = true;
 
 		 // Check if all numeric then is E164 then strip the domain
-		 } else if (Toolkit::Instance()->IsNumeric(num)) {
-			PTRACE(2, "\tRewriteToE164: " << s << " to " << num);
-            s = num;
-			changed = true;
-		 }
+		 //} else if (Toolkit::Instance()->IsNumeric(num)) {
+			//PTRACE(2, "\tRewriteToE164: " << s << " to " << num);
+			//s = num;
+			//changed = true;
+		 //}
 	 }
 
 	// remove trailing character
