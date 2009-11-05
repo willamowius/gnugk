@@ -771,7 +771,7 @@ Default: <tt/60000/ (milliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed. It is used
 in conjunction with <tt/IdCacheTimeout/ - additional sockets
-created during heavy GK load time periods for serving incoming
+created during heavy gatekeeper load periods for serving incoming
 requests are closed during idle periods.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
@@ -1197,7 +1197,7 @@ Default: <tt/60000/ (milliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed. It is used
 in conjunction with <tt/IdCacheTimeout/ - additional sockets
-created during heavy GK load time periods for serving incoming
+created during heavy gatekeeper load periods for serving incoming
 requests are closed during idle periods.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>

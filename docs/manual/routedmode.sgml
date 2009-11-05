@@ -81,11 +81,11 @@ Default: <tt/1/<newline>
 With this feature enabled, the call signaling thread will accept calls
 without a pre-existing CallRec found in the CallTable, provided an endpoint
 corresponding to the destinationAddress in Setup can be found in the
-RegistrationTable, and the calling party is its neighbors or parent GK.
+RegistrationTable, and the calling party is a neighbor or parent gatekeeper.
 The gatekeeper will also use it's own call signaling address in LCF
 in responding to an LRQ. That means, the call signaling will be routed
-to GK2 in GK-GK calls.
-As a result, the CDRs in GK2 can correctly show the connected
+to gatekeeper 2 in gatekeeper-to-gatekeeper calls.
+As a result, the CDRs in gatekeeper 2 can correctly show the connected
 time, instead of 'unconnected'.
 
 <item><tt/AcceptUnregisteredCalls=1/<newline>

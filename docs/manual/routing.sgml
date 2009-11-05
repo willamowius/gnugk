@@ -30,7 +30,7 @@ RegistrationTable
 
 <item><tt/parent/<newline>
 <p>
-Route the call using information sent by the parent GK in
+Route the call using information sent by the parent gatekeeper in
 reply to an ARQ the gatekeeper will send.
 
 <item><tt/neighbor/<newline>
@@ -265,7 +265,7 @@ For example, if you have the following configuration,
 
 <tscreen><verb>
                         [Parent GK]
-                        ID=CitronGK
+                        ID=MasterGK
                         /         \
                        /           \
                       /             \
@@ -288,7 +288,7 @@ With this rule:
 When EP1 calls EP3 by <tt/18888200/, the CallingPartyNumber in the Q.931 Setup
 will be rewritten to <tt/18888601/. Conversely, EP3 can reach EP1 and EP2
 by calling <tt/18888601/ and <tt/18888602/, respectively. In consequence, an
-endpoint registered to the child GK with prefix '<tt/6/' will appear
+endpoint registered to the child gatekeeper with prefix '<tt/6/' will appear
 as an endpoint with prefix '<tt/188886/', for endpoints registered to
 the parent gatekeeper.
 

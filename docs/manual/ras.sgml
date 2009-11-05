@@ -44,7 +44,7 @@ You may use := syntax to set a prefix priority in the same manner as in <ref id=
 <tt>IP[:port]=alias[,alias,...;prefix[:=priority][,prefix[:=priority]]...]</tt>
 <tag/Example:/
 For gateway,
-<quote/<tt/10.0.1.5=Citron;009,008:=2,0.7:=3//
+<quote/<tt/10.0.1.5=MyGW;009,008:=2,0.7:=3//
 For terminal,
 <quote/<tt/10.0.1.10:1720=700//
 </descrip>

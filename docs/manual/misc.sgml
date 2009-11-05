@@ -37,7 +37,7 @@ depend on accounting logger modules selected (see section
 update is to provide back-end services with incrementing call duration
 for connected calls.
 The default value "0" disables accounting updates.
-Please note that setting this to a short interval may decrease GK performance.
+Please note that setting this to a short interval may decrease gatekeeper performance.
 
 <!--TODO:  Only Cisco and RFC822 or same list as in acct.sgml ? -->
 
@@ -200,7 +200,7 @@ Default: <tt/GnuGk/<newline>
 Choose parent gatekeeper type to enable vendor specific
 extensions.
 
-<item><tt/H323ID=CitronProxy/<newline>
+<item><tt/H323ID=ProxyGK/<newline>
 Default: <tt>&lt;Name&gt;</tt><newline>
 <p>
 Specify the H.323 ID aliases for the endpoint.
@@ -302,7 +302,7 @@ an accidental gatekeeper match. Do not set this variable if you do not
 care about gatekeeper identifiers or you use alternate gatekeepers that
 can have different gatekeeper identifiers.
 
-<item><tt/EndpointIdentifier=OpenH323GK/<newline>
+<item><tt/EndpointIdentifier=GnuGk/<newline>
 Default: <tt/Not set/<newline>
 <p>
 Set this if you want to use a specific endpoint identifier for this child

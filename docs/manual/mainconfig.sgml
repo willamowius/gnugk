@@ -34,7 +34,7 @@ This setting is used to test for the presence of the config file. If it
 is not found, a warning is issued.
 Make sure it's in all your config files.
 
-<item><tt/Name=OpenH323GK/<newline>
+<item><tt/Name=GnuGk/<newline>
 Default: <tt/OpenH323GK/<newline>
 <p>
 Gatekeeper identifier of this gatekeeper. The gatekeeper will only respond to
@@ -147,7 +147,7 @@ will not register with this gatekeeper again.
 <bf>NOTE:</bf>  The redirect capability will only function with H.323 version 4
 compliant endpoints.
 
-<item><tt/AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK/<newline>
+<item><tt/AlternateGKs=1.2.3.4:1719:false:120:GnuGk/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the endpoint loses connectivity with GnuGk it should automatically try 
@@ -157,21 +157,21 @@ to register with the alternate gatekeeper specified here.
 connection to its original gatekeeper.  Support for "Assigned Gatekeepers" was added
 in H.323v6.  See <url url="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html"> for additional information.
 
-The primary GK includes a field in the RCF to inform endpoints which alternate
+The primary gatekeeper includes a field in the RCF to inform endpoints which alternate
 IP and gatekeeper identifier to use.
 
-The alternate GK needs to be aware of all 
-registrations on the primary GK or else it would reject calls.
+The alternate gatekeeper needs to be aware of all 
+registrations on the primary gatekeeper or else it would reject calls.
 Our gatekeeper can forward every RRQ to an alternate IP address.
 
 The AlternateGKs config option specifies the fields contained in
-the primary GK's RCF. The first and second fields of this string define
+the primary gatekeeper's RCF. The first and second fields of this string define
 where (IP, port) to forward to.
-The third tells endpoints whether they need to register with the alternate GK
+The third tells endpoints whether they need to register with the alternate gatekeeper
 before placing calls. They usually don't because we forward their RRQs, so they
-are automatically known to the alternate GK.
-The fourth field specifies the priority for this GK.
-Lower is better; usually the primary GK is considered to have priority 1.
+are automatically known to the alternate gatekeeper.
+The fourth field specifies the priority for this gatekeeper.
+Lower is better; usually the primary gatekeeper is considered to have priority 1.
 The last field specifies the alternate gatekeeper's identifier.
 
 You may specify multiple alternate gatekeepers as a comma separated list.
@@ -189,7 +189,7 @@ You can specify multiple gatekeepers in a comma separated list.
 Default: <tt>N/A</tt><newline>
 <p>
 To avoid circular forwarding, you shouldn't forward RRQs you get from the
-other GK (this statement is true for both primary and alternate GK).
+other gatekeeper (this statement is true for both primary and alternate gatekeeper).
 Two mechanisms are used to identify whether a request should be forwarded.
 The first one looks for a flag in the RRQ. Since few endpoints implement this,
 we can increase the overall reliability of the system by specifying it here.
@@ -327,9 +327,9 @@ Time in milliseconds for write timeout on status channel.
 Default: <tt>N/A</tt><newline>
 <p>
 When using GnuGk behind a NAT you can set the external IP address 
-that you wish the GK to masquerade as. This will allow external endpoints
-and other gatekeepers to contact the NATed GK. To work you must port
-forward the required ports to the GK IP or put the GK in the NAT box
+that you wish the gatekeeper to masquerade as. This will allow external endpoints
+and other gatekeepers to contact the NATed gatekeeper. To work you must port
+forward the required ports to the gatekeeper IP or put the gatekeeper in the NAT box
 DMZ. This is different than the bind setting, which specifies a physical IP
 address on the GnuGk box.  
 
