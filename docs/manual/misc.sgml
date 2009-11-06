@@ -181,7 +181,7 @@ Define a parent gatekeeper for GnuGk to register with.
 When call in the routing process reaches the 'parent' routing policy,
 it will route all calls to this gatekeeper.
 
-Make sure you register with yourself, te result can be very confusing.
+Make sure you don't register with yourself, the results can be very confusing.
 
 <item><tt/Type=Gateway/<newline>
 Default: <tt/Gateway/<newline>
