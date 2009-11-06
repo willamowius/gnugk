@@ -39,12 +39,10 @@ for connected calls.
 The default value "0" disables accounting updates.
 Please note that setting this to a short interval may decrease gatekeeper performance.
 
-<!--TODO:  Only Cisco and RFC822 or same list as in acct.sgml ? -->
-
 <item><tt/TimestampFormat=Cisco/<newline>
 Default: <tt/RFC822/<newline>
 <p>
-Format of timestamp strings printed inside CDRs.
+Format of timestamp strings printed inside CDRs. You can use the same list of formats as specified in the <ref id="gkmain" name="[Gatekeeper::Main]"> section.
 
 <item><tt/IRRFrequency=60/<newline>
 Default: <tt/120/<newline>
@@ -182,11 +180,10 @@ This section defines the endpoint features for the gatekeeper.
 Default: <tt/no/<newline>
 <p>
 Define a parent gatekeeper for GnuGk to register with.
+When call in the routing process reaches the 'parent' routing policy,
+it will route all calls to this gatekeeper.
 
-<!-- TODO:  Better description of what will happen? -->
-
-Don't try to register with yourself, unless you want to be confusing.
-To disable this feature, set the field to <tt/no/.
+Make sure you register with yourself, te result can be very confusing.
 
 <item><tt/Type=Gateway/<newline>
 Default: <tt/Gateway/<newline>
@@ -216,8 +213,6 @@ Multiple aliases can be separated by comma.
 Default: <tt>N/A</tt><newline>
 <p>
 Specify a password to be sent to the parent gatekeeper.
-
-<!-- TODO:  Is it "and" or "or" with the crypto? -->
 
 All RAS requests will contain the password in the <bf/cryptoTokens/ field
 (MD5 & HMAC-SHA1-96) and the <bf/tokens/ field (CAT).
@@ -286,7 +281,6 @@ Configures GnuGk to attempt to discover the parent gatekeeper by first sending a
 Default: <tt/1/<newline>
 <p>
 
-<!--TODO:  Does GnuGk support H.323v6 feature for alt GK when it is client? -->
 Enable alternate gatekeepers feature. If GRJ/GCF/RCF messages received 
 from a parent gatekeeper contain a list of alternate gatekeepers, this
 information is stored and can be used to re-register with another gatekeeper
@@ -302,7 +296,7 @@ an accidental gatekeeper match. Do not set this variable if you do not
 care about gatekeeper identifiers or you use alternate gatekeepers that
 can have different gatekeeper identifiers.
 
-<item><tt/EndpointIdentifier=GnuGk/<newline>
+<item><tt/EndpointIdentifier=ChildGK/<newline>
 Default: <tt/Not set/<newline>
 <p>
 Set this if you want to use a specific endpoint identifier for this child

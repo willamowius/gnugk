@@ -25,13 +25,10 @@ See section <ref id="gkauth" name="[Gatekeeper::Auth]"> for details.
 
 Whether a call is accepted from a neighbor also depends on the AcceptNeighborsCalls switch in the <ref id="routed" name="[RoutedMode]"> section.
 
-Neighbor handling has changed significantly from version 2.0 to version 2.2.
-Neighbors can be specified using either format.
-
 The gatekeeper types have the following characteristics:
 <itemize>
 <item><tt/GnuGk/<newline>
-When in doubt, use this gatekeeper type. This also activates P2PNAT Media (H.460.23 / H.460.24).
+When in doubt, use this gatekeeper type. This also activates H.460.23 / H.460.24.
 
 <item><tt/CiscoGk/<newline>
 GnuGk will pretend to be a Cisco gatekeeper and send fake manufacturer data.
@@ -43,23 +40,7 @@ Clarent gatekeeper can't decode nonStandardData in LRQs, so GnuGk will filter it
 Limited support for LRQ forwarding.
 </itemize>
 
-NOTE: Gatekeeper type is case sensitive.
-
-<!-- TODO:  Make both formats show the same examples? -->
-<!-- TODO:  remove old style configuration from manual ? -->
-
 <descrip>
-<tag/Entry in the old format:/
-<tt>GKID=ip[:port;prefixes;password;dynamic]</tt>
-<p>
-<tag/Example:/
-<tt/GK1=192.168.0.5;*/<newline>
-<tt/GK2=10.0.1.1:1719;035,036;gk2/<newline>
-<tt/GK3=gk.citron.com.tw;;gk3;1/
-</descrip>
-
-<descrip>
-<tag/Entry in the new format:/
 <tt>GKID="GnuGk" | "CiscoGk" | "ClarentGk" | "GlonetGk"</tt>
 <p>
 <tag/Example:/
@@ -84,7 +65,7 @@ NOTE: Gatekeeper type is case sensitive.
 <newline>
 </descrip>
 
-With the new format the <tt/[RasSrv::Neighbors]/ section is only used to specify the gatekeeper type. The configuration for each neighbor is placed in a separate section.
+The <tt/[RasSrv::Neighbors]/ section is only used to specify the gatekeeper type. The configuration for each neighbor is placed in a separate section.
 
 <sect1>Section &lsqb;RasSrv::LRQFeatures&rsqb;
 <label id="lrqfeatures">
@@ -120,14 +101,6 @@ If <bf/hopCount/ has reached 0, the gatekeeper shall not forward the message.
 This option defines the number of gatekeepers through which a LRQ
 may propagate. Note that it only affects the sender of LRQ, not the forwarder.
 This setting can be overridden via the configuration section for a particular neighbor.
-
-<item><tt/AlwaysForwardLRQ=1/<newline>
-Default: <tt>0</tt><newline>
-<p>
-Force the gatekeeper to forward an LRQ even if there is no <bf/hopCount/
-in the LRQ. To avoid LRQ loops, you should use this option very carefully.
-This option is used only for an old-style (2.0) neighbor configuration,
-the new one reads the settings from a neighbor-specific config section.
 
 <item><tt/AcceptForwardedLRQ=1/<newline>
 Default: <tt/1/<newline>

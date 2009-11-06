@@ -569,11 +569,9 @@ is followed by a list of accounting event types.
 <p>
 		RTCP source report data
 
-<!-- TODO:  What does sdes mean? -->
-
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_sdes_XXX (stop)</tt><newline>
 <p>
-		RTCP source report data (for each sdes)
+		RTCP source report data (for each source description (sdes))
 
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_packet_count (stop)</tt><newline>
 <p>
@@ -589,7 +587,7 @@ is followed by a list of accounting event types.
 
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_sdes_XXX (stop)</tt><newline>
 <p>
-		RTCP destination report data (for each sdes)
+		RTCP destination report data (for each source description (sdes))
 
 </itemize>
 

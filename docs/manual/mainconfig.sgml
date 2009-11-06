@@ -25,6 +25,7 @@ kill -HUP `cat /var/run/gnugk.pid`
 </verb></tscreen>
 
 <sect1>Section &lsqb;Gatekeeper::Main&rsqb;
+<label id="gkmain">
 <p>
 <itemize>
 <item><tt/Fortytwo=42/<newline>
