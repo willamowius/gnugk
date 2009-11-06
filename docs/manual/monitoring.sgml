@@ -627,9 +627,7 @@ SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 <p>
 Transfer an established call from alias A to alias B. 
 
-<!-- TODO:  How does this interact with CompareCaseAlias -->
-
-Currently this works only with endpoints that properly support
+This works only with endpoints that properly support
 Q.931 Facility messages (so it doesn't work with Netmeeting).
 <descrip>
 <tag/Format:/
