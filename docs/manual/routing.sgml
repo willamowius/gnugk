@@ -32,6 +32,7 @@ RegistrationTable
 <p>
 Route the call using information sent by the parent gatekeeper in
 reply to an ARQ the gatekeeper will send.
+You can define your parent gatekeeper using the <ref id="endpoint" name="Endpoint"> section.
 
 <item><tt/neighbor/<newline>
 <p>
