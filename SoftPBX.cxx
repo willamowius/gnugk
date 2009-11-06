@@ -50,7 +50,7 @@ void SoftPBX::PrintEndpoint(const PString & EpStr, USocket *client, bool verbose
 	if (ep)
 		msg = "RCF|" + ep->PrintOn(verbose) + ";\r\n";
 	else
-		msg = "SoftPBX: endpoint " + EpStr + " not found!\r\n";
+		msg = "Endpoint " + EpStr + " not found!\r\n";
 	client->TransmitData(msg);
 }
 
@@ -110,8 +110,8 @@ void SoftPBX::UnregisterAlias(PString Alias)
 
 	const endptr ep = RegistrationTable::Instance()->FindByAliases(EpAlias);
 	if (!ep) {
-		PString msg("SoftPBX: alias " + Alias + " not found!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("Alias " + Alias + " not found!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
@@ -121,8 +121,8 @@ void SoftPBX::UnregisterAlias(PString Alias)
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
 	RegistrationTable::Instance()->RemoveByEndptr(ep);
 
-	PString msg("SoftPBX: Endpoint " + Alias + " unregistered!");
-	PTRACE(2, "GK\t" + msg);
+	PString msg("Endpoint " + Alias + " unregistered!");
+	PTRACE(2, "GK\tSoftPBX: " + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
@@ -135,8 +135,8 @@ void SoftPBX::UnregisterIp(PString Ip)
 
 	const endptr ep = RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);
 	if (!ep) {
-		PString msg("SoftPBX: ip " + AsDotString(callSignalAddress) + " not found!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("IP " + AsDotString(callSignalAddress) + " not found!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
@@ -146,8 +146,8 @@ void SoftPBX::UnregisterIp(PString Ip)
 	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
 	RegistrationTable::Instance()->RemoveByEndptr(ep);
 
-	PString msg("SoftPBX: Endpoint " + AsDotString(callSignalAddress) + " unregistered!");
-	PTRACE(2, "GK\t" + msg);
+	PString msg("Endpoint " + AsDotString(callSignalAddress) + " unregistered!");
+	PTRACE(2, "GK\tSoftPBX: " + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
@@ -231,8 +231,8 @@ void SoftPBX::DisconnectEndpoint(PString Id)
 void SoftPBX::DisconnectEndpoint(const endptr &ep)
 {
 	if (!ep) {
-		PString msg("SoftPBX: no endpoint to disconnect!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("No endpoint to disconnect!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
@@ -263,14 +263,14 @@ void SoftPBX::SendProceeding(PString CallId)
 	if (call) {
 		lForwardedSocket = call->GetCallSignalSocketCalling();
 		if (!lForwardedSocket) {
-			PString msg("SoftPBX: can't find signaling socket (direct mode ?)");
-			PTRACE(1, "GK\t" + msg);
+			PString msg("Can't find signaling socket (direct mode ?)");
+			PTRACE(1, "GK\tSoftPBX: " + msg);
 			GkStatus::Instance()->SignalStatus(msg + "\r\n");
 			return;
 		}
 	} else {
-		PString msg("SoftPBX: no call to send CallProceeding! " + AsString(cid.m_guid));
-		PTRACE(1, "GK\t" + msg);
+		PString msg("No call to send CallProceeding! " + AsString(cid.m_guid));
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
@@ -285,8 +285,8 @@ void SoftPBX::SendProceeding(PString CallId)
 bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias)
 {
 	if (!lCall || !lSrcForward) {
-		PString msg("SoftPBX: no call to transfer!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("No call to transfer!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		return false;
 	}
 
@@ -301,8 +301,8 @@ bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PStrin
 		lForwardedSocket = lCall->GetCallSignalSocketCalled();
 	}
 	if (!lForwardedSocket) {
-		PString msg("SoftPBX: can't transfer call in direct mode!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("Can't transfer call in direct mode!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return false;
 	}
@@ -318,8 +318,8 @@ bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PStrin
 	lBufferAliasArray.RemoveAll();
 
 	if (!lDestForward) {
-		PString msg("SoftPBX: transferred destination not found!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("Transferred destination not found!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		return false;
 	}
 
@@ -332,8 +332,8 @@ bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PStrin
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
 
-	PString msg = PString("SoftPBX: call ") + PString(lCall->GetCallNumber()) + " transfer success.";
-	PTRACE(1, "GK\t" + msg);
+	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + " transfer success.";
+	PTRACE(1, "GK\tSoftPBX: " + msg);
  
 	return true;
 
@@ -360,8 +360,8 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	lBufferAliasArray.RemoveAll();
 
 	if (!lSrcForward) {
-		PString msg("SoftPBX: no endpoint to transfer!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("No endpoint to transfer!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
@@ -379,14 +379,14 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 			lForwardedSocket = lCall->GetCallSignalSocketCalled();
 		}
 		if (!lForwardedSocket) {
-			PString msg("SoftPBX: can't transfer call in direct mode!");
-			PTRACE(1, "GK\t" + msg);
+			PString msg("Can't transfer call in direct mode!");
+			PTRACE(1, "GK\tSoftPBX: " + msg);
 			GkStatus::Instance()->SignalStatus(msg + "\r\n");
 			return;
 		}
 	} else {
-		PString msg("SoftPBX: no call to transfer!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("No call to transfer!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
@@ -400,8 +400,8 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	lBufferAliasArray.RemoveAll();
 
 	if (!lDestForward) {
-		PString msg("SoftPBX: transferred destination not found!");
-		PTRACE(1, "GK\t" + msg);
+		PString msg("Transfer destination not found!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
@@ -415,8 +415,8 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
 
-	PString msg = PString("SoftPBX: call ") + PString(lCall->GetCallNumber()) + " transferred from" + SourceAlias + " to " + DestinationAlias;
-	PTRACE(1, "GK\t" + msg);
+	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + " transferred from" + SourceAlias + " to " + DestinationAlias;
+	PTRACE(1, "GK\tSoftPBX: " + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 

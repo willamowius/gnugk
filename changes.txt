@@ -1,5 +1,8 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(SoftPBX.cxx) make response messages more consistent
+- the old format (2.0) to specify neighbor gatekeepers is depreceated now and has been
+  removed from the manual; it still works, but may be removed from future versions
 - BUGFIX(ProxyChannel.cxx) only close endpoints logical channel on CloseLogicalChannel, use
   [Proxy]SearchBothSidesOnCLC=1 to retain the old behavior
 - BUGFIX(toolkit.cxx) Enable RewritePString to rewrite address correctly if unregistered full URI.
