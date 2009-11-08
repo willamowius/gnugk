@@ -4003,6 +4003,15 @@ else
 fi
 
 
+H460SUPPORT=`cat ${OPENH323DIR}/include/openh323buildopts.h | grep 'define H323_H460'`
+if test "${H460SUPPORT:-unset}" = "unset" ; then
+	if test "x${h46023}" != "xno" ; then
+		{ $as_echo "$as_me:$LINENO: result: No H.460 support available" >&5
+$as_echo "No H.460 support available" >&6; }
+	fi
+	h46023="no"
+fi
+
 if test "x${h46023}" != "xno" ; then
    HAS_H46023=1
    cat >>confdefs.h <<\_ACEOF
