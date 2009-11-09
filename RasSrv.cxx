@@ -2863,7 +2863,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460)
 #ifdef HAS_H46023
 		if (h460) {
 			arj.IncludeOptionalField(H225_AdmissionReject::e_genericData);
-			H460_FeatureStd & h46024 = H460_FeatureStd(24);
+			H460_FeatureStd h46024 = H460_FeatureStd(24);
 			arj.m_genericData.SetSize(1);
 			arj.m_genericData[0] = h46024;
 		}
