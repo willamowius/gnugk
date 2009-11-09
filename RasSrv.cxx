@@ -80,7 +80,7 @@ private:
 		e_acf = -1,
 		e_routeRequest = -2
 	};
-	bool BuildReply(int);
+	bool BuildReply(int, bool h460 = false);
 
 	/** @return
 	    A string that can be used to identify a calling number.
@@ -1504,6 +1504,22 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		}
 #endif
 
+#ifdef HAS_H460
+		// check if client supports preemption
+		if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
+			H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+			if (fs.HasFeature(OpalOID(OID6))) {
+				gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
+				H460_FeatureOID oid = H460_FeatureOID(OID6);
+				gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
+				PINDEX lPos = desc.GetSize();
+				desc.SetSize(lPos+1);
+				desc[lPos] = oid;
+			}
+		}
+#endif
+
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
             RasSrv->HasAssignedGK(alias,m_msg->m_peerAddr,gcf))
@@ -1782,6 +1798,20 @@ bool RegistrationRequestPDU::Process()
 					}
 				}
 #endif
+
+#ifdef HAS_H460
+				if (ep->SupportPreemption()) {  
+					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
+					H460_FeatureOID pre = H460_FeatureOID(rPriFS);
+
+					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
+					PINDEX sz = desc.GetSize();
+					desc.SetSize(sz+1);
+					desc[sz] = pre;
+				}
+#endif
+
 			}
 			return bShellSendReply;
 		}
@@ -2031,7 +2061,7 @@ bool RegistrationRequestPDU::Process()
 			// Build the message
 			if (ok23) {
 			  ep->SetUsesH46023(true);
-			  bool h46023nat = nated || h46018nat;
+			  bool h46023nat = nated || h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"));
 
 			  H460_FeatureStd natfs = H460_FeatureStd(23);
 			  natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
@@ -2694,7 +2724,7 @@ bool AdmissionRequestPDU::Process()
 		    if (!pCallRec->NATOffLoad(answer,natoffloadsupport))
 			 if (natoffloadsupport == CallRec::e_natFailure) {
 				PTRACE(2,"RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
-				return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination);
+				return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination,true);
 			 }
 
 			
@@ -2798,7 +2828,7 @@ bool AdmissionRequestPDU::Process()
 	return BuildReply(e_acf);
 }
 
-bool AdmissionRequestPDU::BuildReply(int reason)
+bool AdmissionRequestPDU::BuildReply(int reason, bool h460)
 {
 	PString source = RequestingEP ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
 	PString srcInfo = AsString(request.m_srcInfo);
@@ -2830,6 +2860,14 @@ bool AdmissionRequestPDU::BuildReply(int reason)
 		H225_AdmissionReject & arj = BuildReject(reason);
 		if (reason == H225_AdmissionRejectReason::e_resourceUnavailable)
 			RasSrv->SetAltGKInfo(arj);
+#ifdef HAS_H46023
+		if (h460) {
+			arj.IncludeOptionalField(H225_AdmissionReject::e_genericData);
+			H460_FeatureStd & h46024 = H460_FeatureStd(24);
+			arj.m_genericData.SetSize(1);
+			arj.m_genericData[0] = h46024;
+		}
+#endif
 		log = "ARJ|" + source
 				+ "|" + destinationString
 				+ "|" + srcInfo
