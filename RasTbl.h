@@ -160,7 +160,7 @@ public:
 	void SetEPNATType(int nattype) {m_epnattype = (EPNatTypes)nattype; }
 	void SetNATProxy(PBoolean support) {m_natproxy = support; }
 	void SetInternal(PBoolean internal) { m_internal = internal; }
-	void SetUsesH46023(bool uses) { m_usesH46023 = uses; if (m_natproxy) m_natproxy = false; }
+	void SetUsesH46023(bool uses) { m_usesH46023 = uses; }
 
 	void SetPriority(int priority) { m_registrationPriority = priority; }
 	void SetPreemption(bool support) { m_registrationPreemption = support; }

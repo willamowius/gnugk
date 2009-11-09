@@ -3094,24 +3094,24 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
 
 	// EP's are registered locally on different Networks and must proxy to reach eachother
-	else if (!goDirect && !m_Calling->IsRemote() && !m_Called->IsRemote())
+	else if (!goDirect && !m_Calling->IsRemote() && !m_Called->IsRemote() && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
 
 	// If both parties must proxy (ie if both on seperate distinct networks)
-	else if (!goDirect && m_Called->IsInternal())
+	else if (!goDirect && m_Called->IsInternal() && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
 
 	// If the calling can proxy for NAT use it
-    else if (!goDirect)
+    else if (!goDirect && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natLocalProxy;
-
-	// If the called can proxy for NAT use it
-	else if (m_Called->IsInternal() && goDirect)
-			natinst = CallRec::e_natRemoteProxy;
 
 	// If can go direct and both are not NAT then no assistance required.
 	else if (goDirect && (!m_Calling->IsNATed() && !m_Called->IsNATed()))
 			natinst = CallRec::e_natNoassist;
+
+	// If the called can proxy for NAT use it
+	else if (goDirect && m_Called->IsInternal())
+			natinst = CallRec::e_natRemoteProxy;
 
 	// Same NAT (If both Parties are behind same detected NAT)
 	else if ((m_Calling->IsNATed() && m_Called->IsNATed()          // both parties are NAT and
@@ -3119,8 +3119,20 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 			if (m_Calling->SupportSameNAT() && m_Called->SupportSameNAT())  // Support H.460.24 Annex A
 		        natinst = CallRec::e_natSameNAT;
-			else
+			else if (GetProxyMode() == CallRec::ProxyEnabled)		// If we have the ability to proxy
 				natinst = CallRec::e_natFullProxy;
+			else {
+				natinst = CallRec::e_natFailure;
+				return false;
+			}
+	}
+
+	else if (goDirect && 
+		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
+		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
+			(!m_Calling->HasNATProxy() && (!m_Called->HasNATProxy()))) {
+						natinst = CallRec::e_natFailure;
+						return false;
 	}
 
 	// if can go direct and calling supports Remote NAT and is not NAT or Cone NAT
@@ -3133,14 +3145,14 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		((!m_Called->IsNATed() && m_Called->SupportNAT()) || (m_Called->GetEPNATType() == EndpointRec::NatCone)))
 			natinst = CallRec::e_natRemoteMaster;
 
-    else if (goDirect && m_Calling->IsNATed())
+    else if (goDirect && m_Calling->IsNATed() && m_Calling->HasNATProxy())
 			natinst = CallRec::e_natLocalProxy;
 
-    else if (goDirect && m_Called->IsNATed())
+    else if (goDirect && m_Called->IsNATed() && m_Called->HasNATProxy())
 			natinst = CallRec::e_natRemoteProxy;
 
 	// if 1 of the EP's do not support H.460.24 then full proxy
-	else if (!callingSupport || !calledSupport)
+	else if ((!callingSupport || !calledSupport) && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
 
 	// Oops cannot proceed the media will Fail!!
