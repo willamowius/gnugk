@@ -32,11 +32,11 @@
 .Op Fl -core Ar n
 .Sh DESCRIPTION
 .Bl -tag -width Ds
-The GNU Gatekeeper is an open-source project that implements an H.323 gatekeeper. A H323 gatekeeper controls all H.323 clients in its zone. It allows you, among other things, to register devices, make calls, perform AAA (Authentication, Authorization and Auditing), manage config at runtime and traverse NAT.
+The GNU Gatekeeper is an open-source project that implements a H.323 gatekeeper. A H323 gatekeeper controls all H.323 clients in its zone. It allows you, among other things, to register devices, make calls, perform AAA (Authentication, Authorization and Auditing), manage configurations at runtime and traverse NAT.
 .Sh OPTIONS
-The behavior of the gatekeeper is determined by the command line options and configuration file. Some command line options may override the setting of the configuration file. For example, the option 
+The behavior of the gatekeeper is determined through command line options and the configuration file. Some command line options may override settings found in the configuration file. For example, the option 
 .Em -l 
-overrides the setting TimeToLive in the configuration file. 
+overrides the setting "TimeToLive" in the configuration file. 
 Almost every option has a short and a long format, e.g., 
 .Em -c 
 is the same as 
@@ -49,17 +49,17 @@ Specify the configuration file to use.
 Specify which main section to use in the configuration file. The default is 
 .Em [Gatekeeper::Main]. 
 .It Fl i -interface Ar IP
-Specify the interface (IP number) that the gatekeeper listens to. You should leave out this option to let the gatekeeper automatically determine the IP it listens to, unless you want the gatekeeper only binds to a specified IP. 
+Specify the IP address that the gatekeeper listens to. You should leave out this option to let the gatekeeper automatically determine the IP it listens to, unless you want the gatekeeper to bind to a specified IP. 
 .It Fl l -timetolive Ar n
-Specify the time-to-live timer (in seconds) for endpoint registration. It overrides the setting TimeToLive in the configuration file. See there for detailed explanations. 
+Specify the time-to-live timer (in seconds) for endpoint registration. This overrides the setting "TimeToLive" in the configuration file. A detailed explanation can be found in the manual.
 .It Fl b -bandwidth Ar n
-Specify the total bandwidth available for the gatekeeper. Without specifying this option, the bandwidth management is disable by default. 
+Specify the total bandwidth available for the gatekeeper. Without specifying this option, bandwidth management is disabled by default. 
 .It Fl -pid Ar filename
-Specify the pid file, only valid for Unix version. 
+Specify the pid file.  Only valid for Unix version. 
 .It Fl u -user Ar name
 Run the gatekeeper process as this user. Only valid for Unix versions. 
 .It Fl -core Ar n
-(Unix only) Enable writing core dump files when the application crashes. A core dump file will not exceed n bytes in size. A special constant "unlimited" may be used to not enforce any particular limit. 
+(Unix only) Enable writing core dump files when the application crashes. A core dump file will not exceed n bytes in size. A special constant "unlimited" may also be specified. 
 .El
 .Ss Gatekeeper Mode
 .Bl -tag -width Ds
@@ -92,7 +92,7 @@ Major contributors include
 <cwhuang@linux.org.tw>
 and many more.
 .Sh SEE ALSO
-.Xr gatekeeper.ini 5 (to be done, see HTML manual)
+.Xr gatekeeper.ini 5 (and HTML manual)
 .Pp
 http://www.gnugk.org/ (project homepage)
 .Pp
