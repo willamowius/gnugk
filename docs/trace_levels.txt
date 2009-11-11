@@ -37,8 +37,8 @@ Level 5
 =======
 *) detailed program flow and resource usage, like Job allocation, 
    thread start/stop, socket usage
-*) detailes status interface clients authentication reports
-*) detailed network traffic reports, includind RTP proxy statistics
+*) details status interface clients authentication reports
+*) detailed network traffic reports, including RTP proxy statistics
 *) informational messages of lesser importance
 
 Level 6
