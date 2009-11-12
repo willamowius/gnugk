@@ -333,6 +333,14 @@ private:
 //	int m_keepAlivePayloadType;
 	bool m_h46019fc;
 //	bool m_keepAliveTypeSet;
+
+	// m_h46019dir = 0 ' No parties need H.460.19 so skip the code
+	// m_h46019dir = 1 ' Caller needs H.460.19
+	// m_h46019dir = 2 ' Called needs H.460.19 
+	// m_h46019dir = 3 ' Both need it.
+	// Each time a keepAlive is matched, m_h46019olc is incremented by 1 or 2
+	// depending on whether called/caller until it reaches the value of m_h46019dir
+	// and then the IP & ports get assigned checked and is released so media can flow.
 	int m_h46019olc;
 	int m_h46019dir;
 	H323TransportAddress m_h46019fwd;
