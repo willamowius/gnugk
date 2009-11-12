@@ -4869,54 +4869,56 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			H323TransportAddress rfwdAddr(rSrcIP,rSrcPort);
 			H323TransportAddress rrevAddr(rDestIP,rDestPort);
 
-			// if we are initiating or updating keep alive.
-			if ((rrevAddr == detAddr) || (fwdAddr == detAddr) || (m_h46019fwd == revAddr)) {
-				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				m_h46019rev = detAddr;
-				fSrcIP = fromIP;
-				if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
-
-			} else if ((rfwdAddr == detAddr) || (revAddr == detAddr) || (m_h46019rev == fwdAddr)) {
-				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				m_h46019fwd = detAddr;
-				rSrcIP = fromIP;
-				if (m_h46019olc < 2) m_h46019olc += 2;
-			
-			// if we are negotiating and we don't know which is forward or reverse
-			} else if (((fSrcIP == 0) && (fromIP != rSrcIP)) ||
-				((m_h46019olc == 2) && (detAddr != m_h46019fwd)))
-			{
-				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				m_h46019rev = detAddr;
-				fSrcIP = fromIP;
-				if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
-
-			} else if (((rSrcIP == 0) && (fromIP != fSrcIP)) ||
-				((m_h46019olc == 1) && (detAddr != m_h46019rev)))
-			{
-				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				m_h46019fwd = detAddr;
-				rSrcIP = fromIP;
-				if (m_h46019olc < 2) m_h46019olc += 2;
-
-			// if we have a change in pinhole mapping then update
-			} else if ((fromIP == fSrcIP) && !sameNAT) {
-				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				fSrcPort = fromPort;
-				rDestIP = fSrcIP, rDestPort = fSrcPort;	
+			if (m_h46019olc < m_h46019dir) {
+				// if we are initiating or updating keep alive.
+				if ((rrevAddr == detAddr) || (fwdAddr == detAddr) || (m_h46019fwd == revAddr)) {
+					PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
+					m_h46019rev = detAddr;
+					fSrcIP = fromIP;
 					if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
 
-			} else if ((fromIP == rSrcIP) && !sameNAT) { 
-				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				rSrcPort = fromPort;
-				fDestIP = rSrcIP, fDestPort = rSrcPort;	
-				if (m_h46019olc < 2) m_h46019olc += 2;
+				} else if ((rfwdAddr == detAddr) || (revAddr == detAddr) || (m_h46019rev == fwdAddr)) {
+					PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
+					m_h46019fwd = detAddr;
+					rSrcIP = fromIP;
+					if (m_h46019olc < 2) m_h46019olc += 2;
+				
+				// if we are negotiating and we don't know which is forward or reverse
+				} else if (((fSrcIP == 0) && (fromIP != rSrcIP)) ||
+					((m_h46019olc == 2) && (detAddr != m_h46019fwd)))
+				{
+					PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
+					m_h46019rev = detAddr;
+					fSrcIP = fromIP;
+					if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
+
+				} else if (((rSrcIP == 0) && (fromIP != fSrcIP)) ||
+					((m_h46019olc == 1) && (detAddr != m_h46019rev)))
+				{
+					PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
+					m_h46019fwd = detAddr;
+					rSrcIP = fromIP;
+					if (m_h46019olc < 2) m_h46019olc += 2;
+				}
+			} else {			
+				// if we have a change in pinhole mapping then update
+				if ((fromIP == fSrcIP) && !sameNAT) {
+					PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
+					fSrcPort = fromPort;
+					rDestIP = fSrcIP, rDestPort = fSrcPort;	
+						if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
+
+				} else if ((fromIP == rSrcIP) && !sameNAT) { 
+					PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
+					rSrcPort = fromPort;
+					fDestIP = rSrcIP, fDestPort = rSrcPort;	
+					if (m_h46019olc < 2) m_h46019olc += 2;
+				}
 			}
-	
 
 			// Only 1 direction using H.460.19
 			// we need to check the direction of the keepAlive
-			if (m_h46019dir < 3) {
+			if ((m_h46019olc < m_h46019dir) && (m_h46019dir < 3)) {
 				if ((m_h46019olc > 0) && (m_h46019olc != m_h46019dir)) {
 					PTRACE(5, "H46018\tOnly 1 Party using H.460.19 and OLC received in reverse order..");
 					m_h46019olc = m_h46019dir;
@@ -4944,15 +4946,19 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 					m_h46019fwd.GetIpAddress(addr);
 						if (addr.IsValid()) {
 							PTRACE(4, "H46018\tResetting Fwd " << m_h46019fwd);
-							m_h46019fwd.GetIpAndPort(fSrcIP, fSrcPort);
-							rDestIP = fSrcIP, rDestPort = fSrcPort;	
+							m_h46019fwd.GetIpAndPort(rSrcIP, rSrcPort);
+							fDestIP = rSrcIP, fDestPort = rSrcPort;
+							// now cleanup the reverse direction just in case
+							rDestIP = fSrcIP, rDestPort = fSrcPort;
 						}
 				}
 				if (!m_h46019rev) {
 					m_h46019rev.GetIpAddress(addr);
 					if (addr.IsValid()) {
 						PTRACE(4, "H46018\tResetting Rev " << m_h46019rev);
-						m_h46019rev.GetIpAndPort(rSrcIP, rSrcPort);
+						m_h46019rev.GetIpAndPort(fSrcIP, fSrcPort);
+						rDestIP = fSrcIP, rDestPort = fSrcPort;	
+						// now cleanup the forward direction just in case
 						fDestIP = rSrcIP, fDestPort = rSrcPort;
 					}
 				}
@@ -5661,12 +5667,14 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 
 H245ProxyHandler::~H245ProxyHandler()
 {
-	if (!UsesH46019fc()) {
-		DeleteObjectsInMap(logicalChannels);
-		DeleteObjectsInMap(fastStartLCs);
-	}
-	if (peer)
+	if (peer) {
 		peer->peer = 0;
+		if (peer->UsesH46019fc())
+			return;
+	}
+
+	DeleteObjectsInMap(logicalChannels);
+	DeleteObjectsInMap(fastStartLCs);
 }
 
 bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request)
