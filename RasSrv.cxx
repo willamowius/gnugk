@@ -1468,7 +1468,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				if (fs.HasFeature(18)) {
 				 PIPSocket::Address remoteRAS;
 				 const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
-				 if (GetIPFromTransportAddr(gcf.m_rasAddress, remoteRAS)) {
+				 if (GetIPFromTransportAddr(request.m_rasAddress, remoteRAS)) {
 					bool h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
 					if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
 						// include H.460.18 in supported features
