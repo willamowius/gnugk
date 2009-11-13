@@ -6006,11 +6006,12 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 		first = this, second = peer;
 	else
 		first = peer, second = this;
-	bool found = first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
+	bool found = first && first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	if (!found && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "SearchBothSidesOnCLC", "0"))) {
 		// due to bad implementation of some endpoints, we check the
 		// forwardLogicalChannelNumber on both sides
-		second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
+		if (second)
+			second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	}
 	return false; // nothing changed
 }
