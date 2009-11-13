@@ -5783,13 +5783,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 		}
 		return false;
 	} else {
-		bool nouse;
-		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
+		bool isReverseLC = false;
+		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
 
 	    if (UsesH46019fc())
 			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
 		else
 			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
+
 
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
@@ -5817,6 +5818,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			if (olc.m_genericInformation.GetSize() == 0)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 		}
+
+		// We don't put the generic identifier on the reverse OLC.
+		if (UsesH46019fc() && isReverseLC)
+			return true;
 
 		if (peer && peer->UsesH46019()) {
 			// We need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
