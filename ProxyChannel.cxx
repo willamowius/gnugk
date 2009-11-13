@@ -5676,9 +5676,9 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 H245ProxyHandler::~H245ProxyHandler()
 {
 	if (peer) {
-		peer->peer = 0;
 		if (peer->UsesH46019fc())
 			return;
+		peer->peer = 0;
 	}
 
 	DeleteObjectsInMap(logicalChannels);
