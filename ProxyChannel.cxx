@@ -5680,6 +5680,8 @@ H245ProxyHandler::~H245ProxyHandler()
 			return;
 		peer->peer = 0;
 	}
+	if (UsesH46019fc())
+		return;
 
 	DeleteObjectsInMap(logicalChannels);
 	DeleteObjectsInMap(fastStartLCs);
