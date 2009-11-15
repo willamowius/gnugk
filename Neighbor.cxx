@@ -1396,9 +1396,6 @@ protected:
 
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
-
-private:
-	int m_Timeout;
 };
 
 bool SRVPolicy::FindByAliases(
@@ -1574,9 +1571,6 @@ protected:
 
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
-
-private:
-	int m_Timeout;
 };
 
 bool RDSPolicy::FindByAliases(
