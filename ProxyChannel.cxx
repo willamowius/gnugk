@@ -403,7 +403,6 @@ public:
 
 	void SetMediaChannelSource(const H245_UnicastAddress_iPAddress &);
 	void SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress &);
-	PIPSocket::Address GetSourceIP() const;
 	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool, callptr &);
 	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &);
 
@@ -494,10 +493,8 @@ public:
 	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &,callptr &);
 
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
-    PIPSocket::Address GetRemoteAddr() const { return remoteAddr; }
     PIPSocket::Address GetMasqAddr() const { return masqAddr; }
 
-	void SetLocalAddr(const PIPSocket::Address & local) { localAddr = local; }
 	bool IsSessionEnded() const { return isH245ended; }
 
 protected:
@@ -5427,11 +5424,6 @@ void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress_i
 {
 	addr >> SrcIP >> SrcPort;
 	--SrcPort; // get the RTP port
-}
-
-PIPSocket::Address RTPLogicalChannel::GetSourceIP() const
-{
-	return SrcIP;
 }
 
 void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress_iPAddress & addr)

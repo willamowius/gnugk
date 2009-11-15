@@ -288,11 +288,6 @@ void UnixReloadHandler(int sig) // For HUP Signal
 	PTRACE(1, "GK\tGatekeeper Hangup (signal " << sig << ")");
 	ReloadHandler();
 }
-
-void DumbHandler(int sig)
-{
-	PTRACE(1, "Warning: signal " << sig << " received and ignored!");
-}
 #endif // _WIN32
 
 
