@@ -389,8 +389,6 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 				::new (rtable_end++) RouteEntry(networks[r]);
 			}
 		}
-		// TODO: ExternalIP etc. ignored when NetworkInterfaces set ???
-		return true;
 	}
 
 	// If we have an external IP setting then load the detected Route Table and add a route for the external IP
