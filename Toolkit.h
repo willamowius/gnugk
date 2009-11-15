@@ -116,7 +116,7 @@ class Toolkit : public Singleton<Toolkit>
 		typedef PIPSocket::InterfaceTable InterfaceTable;
 
 	public:
-		RouteTable() : rtable_begin(0), DynExtIP(false), ExtIP("") { /* initialize later */ }
+		RouteTable() : rtable_begin(0), rtable_end(0), DynExtIP(false), ExtIP("") { /* initialize later */ }
 		virtual ~RouteTable() { ClearTable(); }
 		Address GetLocalAddress() const { return defAddr; }
 		Address GetLocalAddress(const Address &) const;
@@ -206,7 +206,7 @@ class Toolkit : public Singleton<Toolkit>
 
 	class RewriteTool {
 	public:
-		RewriteTool() : m_Rewrite(0) {}
+		RewriteTool() : m_TrailingChar(' '), m_Rewrite(0) {}
 		~RewriteTool() { delete m_Rewrite; }
 		void LoadConfig(PConfig *);
 		bool RewritePString(PString &) const;
