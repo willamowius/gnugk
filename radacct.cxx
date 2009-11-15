@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.36  2009/10/16 11:41:47  willamowius
+ * set Radius VSA attribute h323_rtp_proxy in stop event
+ *
  * Revision 1.35  2009/09/27 13:30:09  shorne
  * Fix for previous commit
  *
@@ -244,7 +247,6 @@ GkAcctLogger::Status RadAcct::Log(
 		))));
 
 	PIPSocket::Address addr;
-	WORD port;
 					
 	// Gk works as NAS point, so append NAS IP
 	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
@@ -413,8 +415,9 @@ GkAcctLogger::Status RadAcct::Log(
 				    i_sdes ++;
 				}
 			}					
-			
-			if (call->GetDestSignalAddr(addr,port))
+
+			WORD port;
+			if (call->GetDestSignalAddr(addr, port))
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_remote_address,
 					addr.AsString()
 					);

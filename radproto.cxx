@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.46  2009/09/17 15:43:21  willamowius
+ * code cleanup
+ *
  * Revision 1.45  2009/05/28 10:08:16  willamowius
  * use the more portable ios::fmtflags instead of _Ios_Fmtflags
  *
@@ -1553,7 +1556,6 @@ RadiusSocket::RadiusSocket(
 		Close();
 	}
 	
-	int i;
 	PRandom random;
 	const unsigned _id_ = random;
 	m_oldestId = m_nextId = (BYTE)(_id_^(_id_>>8)^(_id_>>16)^(_id_>>24));
@@ -1565,6 +1567,7 @@ RadiusSocket::RadiusSocket(
 		memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
 		memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
 
+		int i;
 		for (i = 0; i < 256; i++)
 			m_readSyncPointIndices[i] = P_MAX_INDEX;
 
