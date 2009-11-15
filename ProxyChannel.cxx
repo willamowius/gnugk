@@ -3003,36 +3003,37 @@ bool CallSignalSocket::OnH450PDU(
 
 bool CallSignalSocket::OnH450Invoke(endptr & ep, X880_Invoke & invoke, H4501_InterpretationApdu & interpretation)
 {
-  bool result = false;
+	bool result = false;
 
-  // Get the invokeId
-  // int invokeId = invoke.m_invokeId.GetValue();
+	// Get the invokeId
+	// int invokeId = invoke.m_invokeId.GetValue();
 
-  // Get the linkedId if present
-  int linkedId = -1;
-  if (invoke.HasOptionalField(X880_Invoke::e_linkedId)) {
-    linkedId = invoke.m_linkedId.GetValue();
-  }
+	// Get the linkedId if present
+	// int linkedId = -1;
+	// if (invoke.HasOptionalField(X880_Invoke::e_linkedId)) {
+	//		linkedId = invoke.m_linkedId.GetValue();
+	// }
 
-  // Get the argument if present
-  PASN_OctetString * argument = NULL;
-  if (invoke.HasOptionalField(X880_Invoke::e_argument)) {
-    argument = &invoke.m_argument;
-  }
-
-  // Get the opcode
-  if (invoke.m_opcode.GetTag() == X880_Code::e_local) {
-    int opcode = ((PASN_Integer&) invoke.m_opcode).GetValue();
-      
-	switch (opcode) {
-	  case H4502_CallTransferOperation::e_callTransferInitiate:
-		  result = OnH450CallTransfer(ep,argument);
-	  default:
-		 break;
+	// Get the argument if present
+	PASN_OctetString * argument = NULL;
+	if (invoke.HasOptionalField(X880_Invoke::e_argument)) {
+		argument = &invoke.m_argument;
 	}
-  }
 
-  return result;
+	// Get the opcode
+	if (invoke.m_opcode.GetTag() == X880_Code::e_local) {
+		int opcode = ((PASN_Integer&) invoke.m_opcode).GetValue();
+
+		switch (opcode) {
+			case H4502_CallTransferOperation::e_callTransferInitiate:
+				result = OnH450CallTransfer(ep,argument);
+				break;
+			default:
+				break;
+		}
+	}
+
+	return result;
 }
 
 static PString ParseEndpointAddress(H4501_EndpointAddress& endpointAddress)
