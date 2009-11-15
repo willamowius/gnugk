@@ -1381,7 +1381,7 @@ bool ENUMPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_Ali
 
 class DestinationRoutes {
 public:
-	DestinationRoutes() { m_endChain = false; m_reject = false; m_aliasesChanged = false;}
+	DestinationRoutes() { m_endChain = false; m_reject = false; m_rejectReason = 0; m_aliasesChanged = false; }
 	~DestinationRoutes() { }
 	
 	bool EndPolicyChain() const { return m_endChain; }
