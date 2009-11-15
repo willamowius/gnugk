@@ -452,6 +452,7 @@ GkInterface::GkInterface(const PIPSocket::Address & addr) : m_address(addr)
 	m_multicastListener = 0;
 	m_callSignalListener = 0;
 	m_statusListener = 0;
+	m_rasSrv = NULL;
 }
 
 GkInterface::~GkInterface()
@@ -2999,12 +3000,11 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 template<> bool RasPDU<H225_LocationRequest>::Process()
 {
 	// OnLRQ
-	PString log,neighbor_alias;
+	PString log;
 
 	if (request.m_destinationInfo.GetSize() > 0) {
-
 		// per GW rewrite first
-		neighbor_alias = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
+		PString neighbor_alias = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
 
 		if (neighbor_alias != "") {
 			Kit->GWRewriteE164(neighbor_alias,true,request.m_destinationInfo[0]);
