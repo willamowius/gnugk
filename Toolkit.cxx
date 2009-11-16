@@ -400,14 +400,14 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	H323TransportAddress ex = H323TransportAddress(extip);
 	ex.GetIpAddress(ext);
 	if (ext.IsValid() && !ext.IsRFC1918()) {
-	   ExtIP = extip;
-	   PString extroute = PString();
-   	   if (!DynExtIP) 
+		ExtIP = extip;
+		PString extroute = PString();
+		if (!DynExtIP) 
 		  extroute = ext.AsString() + "/0";
 
-	   CreateRouteTable(extroute);
-	   PTRACE(1,"External IP = " << ExtIP << " dynamic " << DynExtIP);
-	   return true;
+		CreateRouteTable(extroute);
+		PTRACE(1,"External IP = " << ExtIP << " dynamic " << DynExtIP);
+		return true;
 	} else
         DynExtIP = false;
 
