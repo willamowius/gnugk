@@ -3211,14 +3211,9 @@ void CallSignalSocket::TryNextRoute()
 		newCall->SetToParent(true);
 
 	if(!newRoute.m_destNumber.IsEmpty()) {
-		H225_AliasAddress *destAlias = new H225_AliasAddress();
-		try {
-			H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
-			newCall->SetRouteToAlias(*destAlias);
-		} catch(...) {
-			PTRACE(0, "Q931\tRoute Error: " << newRoute.AsString());
-		}
-		delete destAlias;
+		H225_AliasAddress destAlias;
+		H323SetAliasAddress(newRoute.m_destNumber, destAlias);
+		newCall->SetRouteToAlias(destAlias);
 	}
 
 				
@@ -3792,14 +3787,9 @@ void CallSignalSocket::Dispatch()
 					m_call->SetToParent(true);
 
 				if(!newRoute.m_destNumber.IsEmpty()) {
-					H225_AliasAddress *destAlias = new H225_AliasAddress();
-					try {
-					H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
-					newCall->SetRouteToAlias(*destAlias);
-					} catch(...) {
-						PTRACE(0, "Q931\tRoute Error: " << newRoute.AsString());
-					}
-					delete destAlias;
+					H225_AliasAddress destAlias;
+					H323SetAliasAddress(newRoute.m_destNumber, destAlias);
+					newCall->SetRouteToAlias(destAlias);
 				}
 
 				
@@ -4009,14 +3999,9 @@ void CallSignalSocket::DispatchNextRoute()
 				m_call->SetToParent(true);
 
 			if(!newRoute.m_destNumber.IsEmpty()) {
-				H225_AliasAddress *destAlias = new H225_AliasAddress();
-				try {
-				H323SetAliasAddress(newRoute.m_destNumber, *destAlias);
-				newCall->SetRouteToAlias(*destAlias);
-				} catch(...) {
-					PTRACE(0, "Q931\tRoute Error: " << newRoute.AsString());
-				}
-				delete destAlias;
+				H225_AliasAddress destAlias;
+				H323SetAliasAddress(newRoute.m_destNumber, destAlias);
+				newCall->SetRouteToAlias(destAlias);
 			}
 
 			CallTable::Instance()->Insert(newCall);
