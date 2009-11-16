@@ -1,11 +1,12 @@
 Changes from 2.3.0 to 2.3.1
 ===========================
+- BUGFIX(Toolkit.cxx) don't ignore ExternalIP settings when NetworkInterfaces= is set
 - BUGFIX(SoftPBX.cxx) make response messages more consistent
 - the old format (2.0) to specify neighbor gatekeepers is depreceated now and has been
   removed from the manual; it still works, but may be removed from future versions
 - BUGFIX(ProxyChannel.cxx) only close endpoints logical channel on CloseLogicalChannel, use
   [Proxy]SearchBothSidesOnCLC=1 to retain the old behavior
-- BUGFIX(toolkit.cxx) Enable RewritePString to rewrite address correctly if unregistered full URI.
+- BUGFIX(Toolkit.cxx) Enable RewritePString to rewrite address correctly if unregistered full URI.
 - BUGFIX(Neighbor.cxx) srv policy now fails calls and doesn't pass them to the next policy
   if a SRV record exists for a domain, but doesn't have a destination for the call
 - allow to set proxy mode through 'proxy' variable in Radius h323-ivr-in attribute (thanks to Yuriy Georgiewskiy)
