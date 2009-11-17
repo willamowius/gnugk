@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.16  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.15  2009/03/04 06:04:36  willamowius
  * fix using ISC_STATUS for Firebird 2.1 thanks Mounir Lamouri
  *
@@ -70,6 +73,8 @@
 #ifdef _WIN32
 #pragma comment( lib, FIREBIRD_LIBRARY )
 #endif
+
+const unsigned int FB_BUFF_SIZE = 2048;
 
 namespace {
 PString XSQLVARToPString(XSQLVAR *sqlvar)
@@ -368,15 +373,14 @@ bool GkIBSQLResult::FetchRow(
 		m_numRows = m_sqlRow;
 		if (retval != 100) {
 			long errcode = isc_sqlcode(status);
-			char errormsg[512];
+			char errormsg[FB_BUFF_SIZE];
 			if (errcode == -999) {
 				errcode = status[1];
-				ISC_STATUS *pvector = status;
-				// TODO: replace all isc_interprete() with fb_interpret()
-				errormsg[isc_interprete(errormsg, &pvector)] = 0;
+				const ISC_STATUS *pvector = status;
+				fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
 				strcpy(errormsg, "SQL:");
-				isc_sql_interprete(static_cast<short>(errcode), errormsg + 4, 512 - 4); 
+				isc_sql_interprete(static_cast<short>(errcode), errormsg + 4, FB_BUFF_SIZE - 4); 
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
 				<< "): " << errormsg
@@ -415,14 +419,14 @@ bool GkIBSQLResult::FetchRow(
 		m_numRows = m_sqlRow;
 		if (retval != 100) {
 			long errcode = isc_sqlcode(status);
-			char errormsg[512];
+			char errormsg[FB_BUFF_SIZE];
 			if (errcode == -999) {
 				errcode = status[1];
-				ISC_STATUS *pvector = status;
-				errormsg[isc_interprete(errormsg, &pvector)] = 0;
+				const ISC_STATUS *pvector = status;
+				fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
 				strcpy(errormsg, "SQL:");
-				isc_sql_interprete(static_cast<short>(errcode), errormsg + 4, 512 - 4); 
+				isc_sql_interprete(static_cast<short>(errcode), errormsg + 4, FB_BUFF_SIZE - 4); 
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
 				<< "): " << errormsg
@@ -498,9 +502,9 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	
 	isc_attach_database(status, 0, const_cast<char*>(dbname.c_str()), &conn, dpb_offset, &(dpb[0]));
 	if (status[0] == 1 && status[1] != 0) {
-		ISC_STATUS *pvector = status;
-		char errormsg[512];
-		errormsg[isc_interprete(errormsg, &pvector)] = 0;
+		char errormsg[FB_BUFF_SIZE];
+  		const ISC_STATUS *pvector = status;
+		fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		PTRACE(2, GetName() << "\tFirebird connection to " << m_username << '@' << dbname 
 			<< " failed (isc_attach_database failed): " << errormsg
 			);
@@ -524,16 +528,16 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 {
 	isc_db_handle conn = ((IBSQLConnWrapper*)con)->m_conn;
 
-	char errormsg[512];
+	char errormsg[FB_BUFF_SIZE];
 	ISC_STATUS status[20];
 	isc_tr_handle tr = NULL;
 	isc_stmt_handle stmt = NULL;
 	
 	isc_start_transaction(status, &tr, 1, &conn, 0, NULL);
 	if (status[0] == 1 && status[1] != 0) {
-		ISC_STATUS *pvector = status;
-		char errormsg[512];
-		errormsg[isc_interprete(errormsg, &pvector)] = 0;
+		char errormsg[FB_BUFF_SIZE];
+		const ISC_STATUS *pvector = status;
+		fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		return new GkIBSQLResult(status[1], errormsg);
 	}
 	
@@ -542,11 +546,11 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		long errorcode = isc_sqlcode(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
-			ISC_STATUS *pvector = status;
-			errormsg[isc_interprete(errormsg, &pvector)] = 0;
+			const ISC_STATUS *pvector = status;
+			fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		} else {
 			strcpy(errormsg, "SQL:");
-			isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
+			isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 		}
 		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr);
@@ -563,11 +567,11 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		long errorcode = isc_sqlcode(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
-			ISC_STATUS *pvector = status;
-			errormsg[isc_interprete(errormsg, &pvector)] = 0;
+			const ISC_STATUS *pvector = status;
+			fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		} else {
 			strcpy(errormsg, "SQL:");
-			isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
+			isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 		}
 		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
@@ -586,11 +590,11 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 			long errorcode = isc_sqlcode(status);
 			if (errorcode == -999) {
 				errorcode = status[1];
-				ISC_STATUS *pvector = status;
-				errormsg[isc_interprete(errormsg, &pvector)] = 0;
+				const ISC_STATUS *pvector = status;
+				fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
 				strcpy(errormsg, "SQL:");
-				isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
+				isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 			}
 			delete [] reinterpret_cast<char*>(result);
 			result = NULL;
@@ -604,11 +608,11 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		long errorcode = isc_sqlcode(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
-			ISC_STATUS *pvector = status;
-			errormsg[isc_interprete(errormsg, &pvector)] = 0;
+			const ISC_STATUS *pvector = status;
+			fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		} else {
 			strcpy(errormsg, "SQL:");
-			isc_sql_interprete(static_cast<short>(errorcode), errormsg, 512 - 4);
+			isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 		}
 		delete [] reinterpret_cast<char*>(result);
 		result = NULL;
