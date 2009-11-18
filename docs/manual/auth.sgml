@@ -1106,8 +1106,14 @@ within Access-Accept packets:
 		to a terminating gateway) by appending it with a '='.
 </itemize>
 <p>
-If both Session-Timeout and h323-credit-time are present, the smaller value
+NOTE: If both Session-Timeout and h323-credit-time are present, the smaller value
 is used.
+<p>
+NOTE: If multiple failover mechanisms are specified, eg. multiple numbers in h323-redirect-number
+<bf/and/ multiple IPs in h323-redirect-ip-address, there is no guarantee that the the
+first number is used for the first IP and the 2nd number for the 2nd IP.
+This will usually the case, but for example when a capacity limit disables one IP,
+the association will change.
 <p>
 
 <sect1>Section &lsqb;RadAliasAuth&rsqb;
