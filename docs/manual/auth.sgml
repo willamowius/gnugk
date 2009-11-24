@@ -1088,20 +1088,15 @@ within Access-Accept packets:
 		If present, it enforces maximum call duration (in seconds).
 		This is a standard RADIUS attribute of integer type.
 
-<item><tt>VSA: VendorId=Cisco, h323-redirect-number</tt><newline>
-<p>
-		If present, a call destination is overwritten with the number present 
-		in this attribute.
-
 <item><tt>VSA: VendorId=Cisco, h323-redirect-ip-address</tt><newline>
 <p>
 		If present, a call is sent to the IP address present in this attribute.
 		You can put multiple destinations separated with a semicolon.
+
 <item><tt>VSA: VendorId=Cisco, h323-redirect-number</tt><newline>
 <p>
 		If present, a called station id is rewritten to this number.
-		You can put multiple numbers (that correspond to multiple destinations
-		in <tt/h323-redirect-ip-address/) separated by a semicolon.
+		You can put multiple numbers separated by a semicolon.
 		For each number you can also specify an outbound number (that is sent
 		to a terminating gateway) by appending it with a '='.
 </itemize>
