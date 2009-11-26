@@ -66,7 +66,7 @@ are <tt/e164.voxgratia.net/, <tt/e164.org/ and <tt/e164.arpa/.
 To specify your own server you may either specify the list via the ENUMserver variable in
 the RoutedMode section or specify an environmental variable PWLIB_ENUM_PATH with the address of your preferred
 enum servers.  Multiple servers should be separated by a colon(:) on Linux and a semicolon (;) on Windows. 
-(PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0; 1.7.5.2 (Pandora) doesn't support it.)
+(PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0)
 
 The enum policy replaces the destination with the information returned by the ENUM server, 
 so you must have the appropriate routing policies to continue processing the call after the enum policy. 
