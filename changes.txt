@@ -1,3 +1,7 @@
+Changes from 2.3.1 to 2.3.2
+===========================
+
+
 Changes from 2.3.0 to 2.3.1
 ===========================
 - Firebird database driver updated for Firebird 2.0.x and 2.1.x
