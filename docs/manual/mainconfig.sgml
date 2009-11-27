@@ -349,7 +349,7 @@ messages to maintain your DDNS name lease.  You must also configure the
 <tt>ExternalIP</tt> setting with a DNS address maintained by a DDNS service
 such as www.dyndns.com or www.no-ip.com.
 
-<item><tt/DefaultDomain=gnugk.org/<newline>
+<item><tt/DefaultDomain=gnugk.org,gnugk.com/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the GnuGk receives a request for an address in the format
@@ -359,7 +359,7 @@ request using just the "<bf>user</bf>" field.  This is useful when receiving
 interdomain calls placed via SRV routing policy where the full URI is
 received.  It can also be used in conjunction with the
 [RasSrv::RewriteAlias] section to convert the received URI into a E164
-number for further processing and routing.
+number for further processing and routing. 
 
 <item><tt/Authenticators=H.235.1,CAT/<newline>
 Default: <tt>N/A</tt><newline>
