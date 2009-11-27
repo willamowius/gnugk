@@ -641,7 +641,8 @@ void Toolkit::RewriteTool::LoadConfig(
 {
 	m_RewriteFastmatch = config->GetString(RewriteSection, "Fastmatch", "");
 	m_TrailingChar = config->GetString("RasSrv::ARQFeatures", "RemoveTrailingChar", " ")[0];
-	m_defaultDomain = config->GetString("Gatekeeper::Main", "DefaultDomain", "");
+	PString defDomain = config->GetString("Gatekeeper::Main", "DefaultDomain", "");
+	m_defaultDomain = defDomain.Tokenise(",");
 	delete m_Rewrite;
 	m_Rewrite = new RewriteData(config, RewriteSection);
 	m_Rewrite->AddSection(config,AliasRewriteSection);
@@ -669,23 +670,21 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		 PIPSocket::Address domIP(domain);
 
          // Check if we have a default domain and strip it
-		 if (domain == m_defaultDomain) {
-		   PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
-		   s = num;
-		   changed = true;
+		 for (PINDEX i=0; i < m_defaultDomain.GetSize(); i++) {
+			 if (domain == m_defaultDomain[i]) {
+			   PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
+			   s = num;
+			   changed = true;
+			   break;
+			 }
+		 }
 
 	     // Check that the domain is not a local IP address.
-		 } else if (domIP.IsValid() && Toolkit::Instance()->IsGKHome(domIP)) {
+		 if (!changed && domIP.IsValid() && Toolkit::Instance()->IsGKHome(domIP)) {
  		   PTRACE(2, "\tRemoveDomain: " << domain << " to " << num);
 		   s = num;
 		   changed = true;
-
-		 // Check if all numeric then is E164 then strip the domain
-		 } //else if (Toolkit::Instance()->IsNumeric(num)) {
-			//PTRACE(2, "\tRewriteToE164: " << s << " to " << num);
-			//s = num;
-			//changed = true;
-		 //}
+		 }
 	 }
 
 	// remove trailing character

@@ -214,7 +214,7 @@ class Toolkit : public Singleton<Toolkit>
 	private:
 		PString m_RewriteFastmatch;
 		char m_TrailingChar;
-		PString m_defaultDomain;
+		PStringArray m_defaultDomain;
 		RewriteData *m_Rewrite;
 	};
 
