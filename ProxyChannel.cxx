@@ -2460,6 +2460,11 @@ void CallSignalSocket::OnSetup(
 	if (!m_call->H46019Required() || (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())))
 #endif
 	{
+		// remove H.460.19 indicator TODO: leave other features intact
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+			setupBody.m_supportedFeatures.SetSize(0);
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+		}
 		CreateRemote(setupBody);
 	}
 #ifdef HAS_H46018
@@ -2496,7 +2501,7 @@ void CallSignalSocket::OnSetup(
 							setupBody.m_supportedFeatures[j] = setupBody.m_supportedFeatures[j-1];
 						}
 					}
-					setupBody.m_supportedFeatures[0] = feat;  // Always set H.460.19 in position 0
+					setupBody.m_supportedFeatures[0] = feat;  // always set H.460.19 in position 0
 			} else {
 				// add H.460.19 indicator to Setups
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
@@ -2703,7 +2708,7 @@ void CallSignalSocket::OnCallProceeding(
 	
 #ifdef HAS_H46018
 	if (Toolkit::Instance()->IsH46018Enabled()) {
-		// remove H.460.19 indicator from sender
+		// remove H.460.19 indicator from sender TODO: leave other features intact
 		if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
 			cpBody.m_featureSet.m_supportedFeatures.SetSize(0);
 			cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
@@ -2808,7 +2813,7 @@ void CallSignalSocket::OnConnect(
 	
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
-		// remove H.460.19 indicator from sender
+		// remove H.460.19 indicator from sender TODO: leave other features intact
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
 			connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
@@ -2870,7 +2875,7 @@ void CallSignalSocket::OnAlerting(
 
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
-		// remove H.460.19 indicator from sender
+		// remove H.460.19 indicator from sender TODO: leave other features intact
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
 			alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
 			alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
@@ -3392,7 +3397,7 @@ void CallSignalSocket::OnFacility(
 
 	case H225_FacilityReason::e_forwardedElements:
 		if (Toolkit::Instance()->IsH46018Enabled()) {
-			// remove H.460.19 indicator from sender
+			// remove H.460.19 indicator from sender TODO: leave other features intact
 			if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet)) {
 				facilityBody.m_featureSet.m_supportedFeatures.SetSize(0);
 				facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
@@ -4833,20 +4838,22 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (buflen >= 2)
 		payloadType = (int)wbuffer[1] & 0x7f;	// valid only for RTP packets, not for RTCP
 
-//	Address localaddr;
-//	WORD localport = 0;
-//	GetLocalAddress(localaddr, localport);
-//	unsigned int seq = 0;
-//	unsigned int timestamp = 0;
-//	if (buflen >= 4)
-//		seq = (((int)wbuffer[2] << 8) & 0x7f) + ((int)wbuffer[3] & 0x7f);
-//	if (buflen >= 8)
-//		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
-//	PTRACE(0, "JW RTP IN on " << localport << " from " << fromIP << ":" << fromPort << " pType=" << payloadType
-//		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
-//		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
-//		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
-//		);
+#ifdef RTP_DEBUG
+	Address localaddr;
+	WORD localport = 0;
+	GetLocalAddress(localaddr, localport);
+	unsigned int seq = 0;
+	unsigned int timestamp = 0;
+	if (buflen >= 4)
+		seq = (((int)wbuffer[2] << 8) & 0x7f) + ((int)wbuffer[3] & 0x7f);
+	if (buflen >= 8)
+		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
+	PTRACE(0, "JW RTP IN on " << localport << " from " << fromIP << ":" << fromPort << " pType=" << payloadType
+		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
+		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
+		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
+		);
+#endif
 
 	if (m_h46019dir > 0 && buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
