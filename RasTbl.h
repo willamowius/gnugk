@@ -1104,7 +1104,7 @@ public:
 	PBYTEArray GetRADIUSClass() const;
 	
 	bool IsProceedingSent() const { return m_proceedingSent; }
-	// TODO: JW also set when sent via status port
+	// TODO: also set when sent through a status port command
 	void SetProceedingSent(bool val) { m_proceedingSent = val; }
 	
 #ifdef HAS_H46018
