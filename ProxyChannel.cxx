@@ -5790,10 +5790,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 					// Get the keepalive payload (if present)
 					H46019_TraversalParameters params;
 					PASN_OctetString & raw = olc.m_genericInformation[i].m_messageContent[0].m_parameterValue;
-					raw.DecodeSubType(params);
-					if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
-						m_keeppayloadtype = params.m_keepAlivePayloadType;
-						PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << m_keeppayloadtype);
+					if (raw.DecodeSubType(params)) {
+						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
+							m_keeppayloadtype = params.m_keepAlivePayloadType;
+							PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << m_keeppayloadtype);
+						}
 					}
 					// move remaining elements down
 					for(PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
@@ -5893,15 +5894,16 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				if (gid == H46019OID && n == 1) {
 					H46019_TraversalParameters params;
 					PASN_OctetString & raw = olca.m_genericInformation[i].m_messageContent[0].m_parameterValue;
-					raw.DecodeSubType(params);
-					if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
-						PTRACE(5, "H46018\tExpecting KeepAlive PayloadType=" << params.m_keepAlivePayloadType << " for channel " << flcn);
-						// disabled for now, until we handle 2 payload types per UDPProxy
-//						RTPLogicalChannel* rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
-//						if (rtplc) {
-//							rtplc->SetKeepAlivePayloadType(params.m_keepAlivePayloadType);
-//							rtplc->SetRTPMute(true);	// wait for keepAlive, then change destination and un-mute
-//						}
+					if (raw.DecodeSubType(params)) {
+						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
+							PTRACE(5, "H46018\tExpecting KeepAlive PayloadType=" << params.m_keepAlivePayloadType << " for channel " << flcn);
+							// disabled for now, until we handle 2 payload types per UDPProxy
+//							RTPLogicalChannel* rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
+//							if (rtplc) {
+//								rtplc->SetKeepAlivePayloadType(params.m_keepAlivePayloadType);
+//								rtplc->SetRTPMute(true);	// wait for keepAlive, then change destination and un-mute
+//							}
+						}
 					}
 				}
 			}
