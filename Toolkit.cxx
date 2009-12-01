@@ -252,8 +252,11 @@ inline bool Toolkit::RouteTable::RouteEntry::Compare(const Address *ip) const
 // class Toolkit::RouteTable
 void Toolkit::RouteTable::InitTable()
 {
+#if (defined(P_LINUX) && (P_SHAREDLIB > 0))
 	// workaround for OS that don't support GetRouteTable
+	// will crash in static 32bit Linux executables
 	PIPSocket::GetHostAddress(defAddr);
+#endif
 
 	ClearTable();
 	if (!CreateTable())
