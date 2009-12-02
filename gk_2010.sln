@@ -1,0 +1,55 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gk", "gk_2010.vcxproj", "{C5052DDD-FADC-4415-B235-92A9761BB21D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "addpasswd", "addpasswd_2010.vcxproj", "{2C306BF0-7FBE-4136-B021-AFA258898341}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug (h323plus)|Win32 = Debug (h323plus)|Win32
+		Debug (ptlib 1.11+)|Win32 = Debug (ptlib 1.11+)|Win32
+		Debug as Service (h323plus)|Win32 = Debug as Service (h323plus)|Win32
+		Debug|Win32 = Debug|Win32
+		Release (h323plus)|Win32 = Release (h323plus)|Win32
+		Release (ptlib 1.11+)|Win32 = Release (ptlib 1.11+)|Win32
+		Release as Service (h323plus)|Win32 = Release as Service (h323plus)|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug (h323plus)|Win32.ActiveCfg = Debug (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug (h323plus)|Win32.Build.0 = Debug (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug (ptlib 1.11+)|Win32.ActiveCfg = Debug (ptlib 1.11)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug (ptlib 1.11+)|Win32.Build.0 = Debug (ptlib 1.11)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug as Service (h323plus)|Win32.ActiveCfg = Debug as Service (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug as Service (h323plus)|Win32.Build.0 = Debug as Service (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Debug|Win32.Build.0 = Debug|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release (h323plus)|Win32.ActiveCfg = Release (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release (h323plus)|Win32.Build.0 = Release (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release (ptlib 1.11+)|Win32.ActiveCfg = Release (ptlib +1.11)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release (ptlib 1.11+)|Win32.Build.0 = Release (ptlib +1.11)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release as Service (h323plus)|Win32.ActiveCfg = Release as Service (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release as Service (h323plus)|Win32.Build.0 = Release as Service (h323plus)|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release|Win32.ActiveCfg = Release|Win32
+		{C5052DDD-FADC-4415-B235-92A9761BB21D}.Release|Win32.Build.0 = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug (h323plus)|Win32.ActiveCfg = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug (h323plus)|Win32.Build.0 = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug (ptlib 1.11+)|Win32.ActiveCfg = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug (ptlib 1.11+)|Win32.Build.0 = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug as Service (h323plus)|Win32.ActiveCfg = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug as Service (h323plus)|Win32.Build.0 = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Debug|Win32.Build.0 = Debug|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release (h323plus)|Win32.ActiveCfg = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release (h323plus)|Win32.Build.0 = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release (ptlib 1.11+)|Win32.ActiveCfg = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release (ptlib 1.11+)|Win32.Build.0 = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release as Service (h323plus)|Win32.ActiveCfg = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release as Service (h323plus)|Win32.Build.0 = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release|Win32.ActiveCfg = Release|Win32
+		{2C306BF0-7FBE-4136-B021-AFA258898341}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
