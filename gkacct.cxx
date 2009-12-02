@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.40  2009/12/02 14:32:13  willamowius
+ * add new accounting events: AcctAlert, AcctRegister, AcctUnregister
+ *
  * Revision 1.39  2009/08/19 09:53:28  willamowius
  * SqlAuth can set a ClientAuthId, new status port command ResetCallCounters
  *
@@ -221,8 +224,14 @@ int GkAcctLogger::GetEvents(
 			mask |= AcctStop;
 		else if( token *= "update" )
 			mask |= AcctUpdate;
+		else if( token *= "alert" )
+			mask |= AcctAlert;
 		else if( token *= "connect" )
 			mask |= AcctConnect;
+		else if( token *= "register" )
+			mask |= AcctRegister;
+		else if( token *= "unregister" )
+			mask |= AcctUnregister;
 		else if( token *= "on" )
 			mask |= AcctOn;
 		else if( token *= "off" )
