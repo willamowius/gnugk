@@ -1473,8 +1473,8 @@ bool SRVPolicy::FindByAliases(
 
 					// Send LRQ to retreive callers signaling address
 					PString orig_alias = AsString(aliases[i], false);
-					// only set local alias part in LRQ
-					H323SetAliasAddress(localalias, aliases[i]);
+					// only set local alias part in LRQ -- Not correct to H.323 Annex O - SH
+					//H323SetAliasAddress(localalias, aliases[i]);			 
 					LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
 					LRQRequester Request(functor);
 					if (Request.Send(nb)) {
