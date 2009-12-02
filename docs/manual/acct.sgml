@@ -23,18 +23,21 @@ acctmod=actions
  <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | SyslogAcct | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
- <event>   := start | stop | connect | update | on | off
+ <event>   := start | stop | alert | connect | update | register | unregister | on | off
 </verb></tscreen>
 </descrip>
 The event list tells the gatekeeper which events should trigger logging
 with the given accounting module (if an event type is supported by the module):
 <itemize>
 <item><tt/start/ - a call has been started and a Setup message has been received (only available in routed mode)
+<item><tt/alert/ - a call is alerting (only available in routed mode)
 <item><tt/connect/ - a call has been connected (only available in routed mode)
 <item><tt/update/ - a call is active and a periodic update is performed
 	to reflect the new call duration. The frequency of these updates is determined
 	by the <bf/AcctUpdateInterval/ variable from the <ref id="calltable" name="[CallTable]">
 	section
+<item><tt/register/ - an endpoint has registered
+<item><tt/unregister/ - an endpoint has unregistered
 <item><tt/stop/ - a call has been disconnected (removed from the gatekeeper call table)
 <item><tt/on/ - the gatekeeper has been started
 <item><tt/off/ - the gatekeeper has been shut down
@@ -731,6 +734,21 @@ INSERT INTO call (gkname, sessid, username, calling, called, duration)
 	VALUES ('%g', '%s', '%u', '%{Calling-Station-Id}', '%{Called-Station-Id}', %d)
 </verb></tscreen>
 
+<item><tt/AlertQuery=UPDATE .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines SQL query used to update a call record in the database when the call is alerting.
+
+<item><tt/RegisterQuery=INSERT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines SQL query used to update the database when an endpoint registers.
+
+<item><tt/UnregisterQuery=DELETE .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines SQL query used to update the database when an endpoint unregisters.
+
 <item><tt/TimestampFormat=MySQL/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
@@ -863,10 +881,25 @@ Default: <tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}
 <p>
 Defines event used to update the current call state. The syntax and parameters are the same as for <tt/StartEvent/.
 
+<item><tt/AlertEvent=CALL|Alert|%{CallId}/<newline>
+Default: <tt>CALL|Alert|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is alerting. The syntax and parameters are the same as for <tt/StartEvent/.
+
 <item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
 Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
 Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/RegisterEvent=CALL|Register|%{endpoint-ip}/<newline>
+Default: <tt>CALL|Register|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
+<p>
+Defines the event when an endpoint registers. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/UnregisterEvent=CALL|Unregister|%{endpoint-ip}/<newline>
+Default: <tt>CALL|Unregister|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
+<p>
+Defines the event when an endpoint registers. The syntax and parameters are the same as for <tt/StartEvent/.
 
 <item><tt/TimestampFormat=MySQL/<newline>
 Default: <tt>N/A</tt><newline>
@@ -875,6 +908,15 @@ Format of timestamp strings used in events. If this setting
 is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
+
+In addition to the CDR parameters, Register and Unregister events can use the following parameters:
+<itemize>
+<item><tt/%{endpoint-ip}/ - IP number of the endpoint
+<item><tt/%{endpoint-port}/ - port number of the endpoint
+<item><tt/%{epid}/ - the endpoint ID
+<item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
+</itemize>
+
 
 <sect1>Section &lsqb;SyslogAcct&rsqb;
 <label id="syslogacct">
