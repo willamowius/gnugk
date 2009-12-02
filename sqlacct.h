@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.9  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.8  2008/09/05 13:44:14  zvision
  * GetInfo implemented for SQL acct/auth modules
  *
@@ -58,7 +61,7 @@ class SQLAcct : public GkAcctLogger
 public:
 	enum Constants {
 		/// events recognized by this module
-		SQLAcctEvents = AcctStart | AcctUpdate | AcctStop | AcctConnect
+		SQLAcctEvents = AcctStart | AcctUpdate | AcctStop | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
 	};
 	
 	/// Create a logger that sends accounting to an SQL database
@@ -73,7 +76,7 @@ public:
 	/// Destroy the accounting logger
 	virtual ~SQLAcct();
 
-	/** Log accounting event.
+	/** Log call accounting event.
 	
 		@return
 		Status of this logging operation (see #Status enum#)
@@ -81,6 +84,16 @@ public:
 	virtual Status Log( 
 		AcctEvent evt, /// accounting event to log
 		const callptr& call /// additional data for the event
+		);
+
+	/** Log endpoint accounting event.
+	
+		@return
+		Status of this logging operation (see #Status enum#)
+	*/
+	virtual Status Log( 
+		AcctEvent evt, /// accounting event to log
+		const endptr& ep /// additional data for the event
 		);
 
 	virtual PString GetInfo();
@@ -104,6 +117,12 @@ private:
 	PString m_stopQuery;
 	/// parametrized alternative query string for the call stop event
 	PString m_stopQueryAlt;
+	/// parametrized query string for call alerting
+	PString m_alertQuery;
+	/// parametrized query string for endpoint registration
+	PString m_registerQuery;
+	/// parametrized query string for endpoint un-registration
+	PString m_unregisterQuery;
 	/// timestamp formatting string
 	PString m_timestampFormat;
 };

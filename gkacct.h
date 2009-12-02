@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.23  2009/10/07 15:05:27  willamowius
+ * spelling fixes
+ *
  * Revision 1.22  2009/02/09 15:26:21  willamowius
  * virtual destructors
  *
@@ -143,6 +146,9 @@ public:
 		AcctOn = 0x0008, /// accounting enabled (GK start)
 		AcctOff = 0x0010, /// accounting disabled (GK stop)
 		AcctConnect = 0x0020, /// call connected
+		AcctAlert = 0x0040, /// call allerting
+		AcctRegister = 0x0100, /// endpoint registered
+		AcctUnregister = 0x0200, /// endpoint unregistered
 		AcctAll = -1,
 		AcctNone = 0
 	};
@@ -185,6 +191,16 @@ public:
 		const callptr& call /// a call associated with the event (if any)
 		);
 
+	/** Log an accounting event with this logger.
+	
+		@return
+		Status of this logging operation (see #Status enum#)
+	*/
+	virtual Status Log(		
+		AcctEvent evt, /// accounting event to log
+		const endptr& ep /// endpoint associated with the event
+		);
+
 	/** Get human readable information about current module state
 	    that can be displayed on the status port interface.
 		
@@ -213,8 +229,8 @@ protected:
 		const int events
 		) { m_supportedEvents = events; }
 
-	/** Fill the map with accounting parameters (name => value associations).
-	*/	
+	/** Fill the map with accounting parameters for calls (name => value associations).
+	*/
 	virtual void SetupAcctParams(
 		/// accounting parameters (name => value) associations
 		std::map<PString, PString>& params,
@@ -222,6 +238,15 @@ protected:
 		const callptr& call,
 		/// timestamp formatting string
 		const PString& timestampFormat
+		) const;
+
+	/** Fill the map with accounting parameters for endpoints (name => value associations).
+	*/
+	virtual void SetupAcctEndpointParams(
+		/// accounting parameters (name => value) associations
+		std::map<PString, PString>& params,
+		/// endpoint associated with an accounting event being logged
+		const endptr& ep
 		) const;
 
 	/** Replace accounting parameters placeholders (%a, %{Name}, ...) with 
@@ -465,6 +490,16 @@ public:
 		GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
 		const callptr& call, /// a call associated with the event (if any)
 		time_t now = 0 /// "now" timestamp for accounting update events
+		);
+
+	/** Log accounting event with all active accounting loggers.
+	
+		@return
+		true if the event has been successfully logged, false otherwise.
+	*/
+	bool LogAcctEvent( 
+		GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
+		const endptr& ep /// endpoint associated with the event
 		);
 
 	/** Get a module information string for the selected module.

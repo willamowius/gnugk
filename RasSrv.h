@@ -169,7 +169,12 @@ public:
 		callptr& call,
 		time_t now = 0
 		);
-	
+
+	bool LogAcctEvent(
+		int evt,
+		const endptr& ep
+		);
+
 	PString GetAuthInfo(
 		const PString &moduleName
 		);

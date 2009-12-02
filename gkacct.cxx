@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.39  2009/08/19 09:53:28  willamowius
+ * SqlAuth can set a ClientAuthId, new status port command ResetCallCounters
+ *
  * Revision 1.38  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -237,6 +240,14 @@ GkAcctLogger::Status GkAcctLogger::Log(
 	return (evt & m_enabledEvents & m_supportedEvents) ? m_defaultStatus : Next;
 }
 
+GkAcctLogger::Status GkAcctLogger::Log(
+	AcctEvent evt, /// accounting event to log
+	const endptr& /*ep*/ /// endpoint associated with the event (if any)
+	)
+{
+	return (evt & m_enabledEvents & m_supportedEvents) ? m_defaultStatus : Next;
+}
+
 void GkAcctLogger::SetupAcctParams(
 	/// CDR parameters (name => value) associations
 	std::map<PString, PString>& params,
@@ -321,6 +332,27 @@ void GkAcctLogger::SetupAcctParams(
 	params["codec"] = call->GetCodec();
 	params["bandwidth"] = call->GetBandwidth();
 	params["client-auth-id"] = call->GetClientAuthId();
+}
+
+void GkAcctLogger::SetupAcctEndpointParams(
+	/// parameter (name => value) associations
+	std::map<PString, PString>& params,
+	/// endpoint associated with an accounting event being logged
+	const endptr& ep
+	) const
+{
+	PIPSocket::Address addr;
+	WORD port = 0;
+
+	H225_TransportAddress sigip = ep->GetCallSignalAddress();
+	if (GetIPAndPortFromTransportAddr(sigip, addr, port)) {
+		params["endpoint-ip"] = addr.AsString();
+		params["endpoint-port"] = port;
+	}
+	
+	params["aliases"] = AsString(ep->GetAliases(), false);
+	params["aliases"].Replace(PString("="), PString(","), true);	// make list comma separated
+	params["epid"] = ep->GetEndpointIdentifier().GetValue();
 }
 
 PString GkAcctLogger::ReplaceAcctParams(
@@ -1046,6 +1078,78 @@ bool GkAcctLoggerList::LogAcctEvent(
 			: "Failed to log event ") << evt;
 		if (call)
 			strm << " for call no. " << call->GetCallNumber();
+		PTrace::End(strm);
+	}
+#endif
+	return finalResult;
+}
+
+bool GkAcctLoggerList::LogAcctEvent( 
+	GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
+	const endptr& ep /// endpoint associated with the event
+	)
+{
+	bool finalResult = true;
+	GkAcctLogger::Status status = GkAcctLogger::Ok;
+	std::list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
+	
+	while (iter != m_loggers.end()) {
+		GkAcctLogger* logger = *iter++;
+	
+		if ((evt & logger->GetEnabledEvents() & logger->GetSupportedEvents()) == 0)
+			continue;
+		
+		status = logger->Log(evt, ep);
+		switch (status)
+		{
+		case GkAcctLogger::Ok:
+#if PTRACING
+			if (PTrace::CanTrace(3)) {
+				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
+				strm << "GKACCT\t" << logger->GetName() << " logged event " << evt;
+				if (ep)
+					strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
+				PTrace::End(strm);
+			}
+#endif
+			break;
+			
+		default:
+#if PTRACING
+			if (PTrace::CanTrace(3)) {
+				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
+				strm << "GKACCT\t" << logger->GetName() << " failed to log event "
+					<< evt;
+				if (ep)
+					strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
+				PTrace::End(strm);
+			}
+#endif
+			// required and sufficient rules always determine 
+			// status of the request
+			if (logger->GetControlFlag() == GkAcctLogger::Required
+				|| logger->GetControlFlag() == GkAcctLogger::Sufficient)
+				finalResult = false;
+		}
+		
+		// sufficient and alternative are terminal rules (on log success)
+		if (status == GkAcctLogger::Ok 
+			&& (logger->GetControlFlag() == GkAcctLogger::Sufficient
+			|| logger->GetControlFlag() == GkAcctLogger::Alternative))
+			break;
+	}
+
+	// a last rule determine status of the the request
+	if (finalResult && status != GkAcctLogger::Ok)
+		finalResult = false;
+		
+#if PTRACING
+	if (PTrace::CanTrace(2)) {
+		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
+		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
+			: "Failed to log event ") << evt;
+		if (ep)
+			strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 		PTrace::End(strm);
 	}
 #endif

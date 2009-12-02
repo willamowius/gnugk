@@ -1475,6 +1475,7 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg, PIPSocket::Addres
 			break;
 	}
 
+	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctRegister, ep);
 	return ep;
 }
 
@@ -1536,6 +1537,7 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Loc
 
 void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 {
+	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, eptr);
 	EndpointRec *ep = eptr.operator->(); // evil
 	WriteLock lock(listLock);
 	InternalRemove(find(EndpointList.begin(), EndpointList.end(), ep));

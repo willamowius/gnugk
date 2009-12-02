@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.6  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -62,6 +65,9 @@ StatusAcct::StatusAcct(
 	m_stopEvent = cfg->GetString(cfgSec, "StopEvent", "CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
 	m_updateEvent = cfg->GetString(cfgSec, "UpdateEvent", "CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
 	m_connectEvent = cfg->GetString(cfgSec, "ConnectEvent", "CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
+	m_alertEvent = cfg->GetString(cfgSec, "AlertEvent", "CALL|Alert|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
+	m_registerEvent = cfg->GetString(cfgSec, "RegisterEvent", "EP|Register|%{endpoint-ip}:%{endpoint-port}|%{aliases}");
+	m_unregisterEvent = cfg->GetString(cfgSec, "UnregisterEvent", "EP|Unregister|%{endpoint-ip}:%{endpoint-port}|%{aliases}");
 }
 
 StatusAcct::~StatusAcct()
@@ -79,7 +85,7 @@ GkAcctLogger::Status StatusAcct::Log(
 		return Next;
 		
 	if (!call) {
-		PTRACE(1,"STATUSACCT\t"<<GetName()<<" - missing call info for event "<<evt);
+		PTRACE(1,"STATUSACCT\t"<<GetName()<<" - missing call info for event " << evt);
 		return Fail;
 	}
 
@@ -92,11 +98,45 @@ GkAcctLogger::Status StatusAcct::Log(
 		eventTmpl = m_updateEvent;
 	} else if (evt == AcctStop) {
 		eventTmpl = m_stopEvent;
+	} else if (evt == AcctAlert) {
+		eventTmpl = m_alertEvent;
 	}
 
 	if (!eventTmpl.IsEmpty()) {		// don't send event if the template string is empty
 		std::map<PString, PString> params;
 		SetupAcctParams(params, call, m_timestampFormat);
+		PString msg = ReplaceAcctParams(eventTmpl, params);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_CDR);
+	}
+
+	return Ok;
+}
+
+GkAcctLogger::Status StatusAcct::Log(
+	GkAcctLogger::AcctEvent evt, 
+	const endptr& ep
+	)
+{
+	// a workaround to prevent processing end on "sufficient" module
+	// if it is not interested in this event type
+	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
+		return Next;
+		
+	if (!ep) {
+		PTRACE(1,"STATUSACCT\t"<<GetName()<<" - missing endpoint info for event " << evt);
+		return Fail;
+	}
+
+	PString eventTmpl;
+	if (evt == AcctRegister) {
+		eventTmpl = m_registerEvent;
+	} else if (evt == AcctUnregister) {
+		eventTmpl = m_unregisterEvent;
+	}
+
+	if (!eventTmpl.IsEmpty()) {		// don't send event if the template string is empty
+		std::map<PString, PString> params;
+		SetupAcctEndpointParams(params, ep);
 		PString msg = ReplaceAcctParams(eventTmpl, params);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_CDR);
 	}

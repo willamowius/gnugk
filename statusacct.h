@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.4  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.3  2007/09/04 15:34:44  willamowius
  * output callID in same format as other status port events (spaces replaced with dashes)
  *
@@ -45,7 +48,7 @@ public:
 	enum Constants
 	{
 		/// events recognized by this module
-		StatusAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect
+		StatusAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
 	};
 
 	StatusAcct( 
@@ -63,6 +66,12 @@ public:
 	virtual Status Log(
 		AcctEvent evt,
 		const callptr& call
+		);
+
+	/// overriden from GkAcctLogger
+	virtual Status Log(
+		AcctEvent evt,
+		const endptr& ep
 		);
 
 	/// overriden from GkAcctLogger
@@ -92,6 +101,12 @@ private:
 	PString m_updateEvent;
 	/// parametrized string for the call connect event
 	PString m_connectEvent;
+	/// parametrized string for the call alerting event
+	PString m_alertEvent;
+	/// parametrized string for the endpoint register event
+	PString m_registerEvent;
+	/// parametrized string for the endpoint un-register event
+	PString m_unregisterEvent;
 	/// timestamp formatting string
 	PString m_timestampFormat;
 };

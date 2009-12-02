@@ -2855,7 +2855,9 @@ void CallSignalSocket::OnAlerting(
 	H225_Alerting_UUIE &alertingBody = alerting->GetUUIEBody();
 	
 	m_h225Version = GetH225Version(alertingBody);
-	
+
+	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctAlert, m_call);	// ignore success/failiure
+
 	if (HandleFastStart(alertingBody, false))
 		msg->SetUUIEChanged();
 

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.17  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -174,6 +177,20 @@ SQLAcct::SQLAcct(
 			<< m_stopQueryAlt);
 	}
 
+	m_alertQuery = cfg->GetString(cfgSec, "AlertQuery", "");
+	if (!m_alertQuery) {
+		PTRACE(4, "GKACCT\t" << GetName() << " alert query: " << m_alertQuery);
+	}
+
+	m_registerQuery = cfg->GetString(cfgSec, "RegisterQuery", "");
+	if (!m_registerQuery) {
+		PTRACE(4, "GKACCT\t" << GetName() << " registration query: " << m_registerQuery);
+	}
+	m_unregisterQuery = cfg->GetString(cfgSec, "UnregisterQuery", "");
+	if (!m_unregisterQuery) {
+		PTRACE(4, "GKACCT\t" << GetName() << " un-registration query: " << m_unregisterQuery);
+	}
+
 	vector<PIPSocket::Address> interfaces;
 	Toolkit::Instance()->GetGKHome(interfaces);
 	if (interfaces.empty()) {
@@ -232,8 +249,9 @@ GkAcctLogger::Status SQLAcct::Log(
 	else if (evt == AcctStop) {
 		query = m_stopQuery;
 		queryAlt = m_stopQueryAlt;
-	}
-	
+	} if (evt == AcctAlert)
+		query = m_alertQuery;
+
 	if (query.IsEmpty()) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 			"data (event: " << evt << ", call: " << callNumber 
@@ -292,6 +310,78 @@ GkAcctLogger::Status SQLAcct::Log(
 					<< "): (" << result->GetErrorCode() << ") "
 					<< result->GetErrorMessage()
 					);
+		}
+	}
+
+	const bool succeeded = result != NULL && result->IsValid();	
+	delete result;
+	return succeeded ? Ok : Fail;
+}
+
+GkAcctLogger::Status SQLAcct::Log(
+	GkAcctLogger::AcctEvent evt, 
+	const endptr& ep
+	)
+{
+	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
+		return Next;
+		
+	if (!ep) {
+		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
+		return Fail;
+	}
+	
+	const PString epid = ep->GetEndpointIdentifier().GetValue();
+
+	if (m_sqlConn == NULL) {
+		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
+			"data (event: " << evt << ", endpoint: " << epid
+			<< "): SQL connection not active"
+			);
+		return Fail;
+	}
+	
+	PString query, queryAlt;
+	if (evt == AcctRegister)
+		query = m_registerQuery;
+	else if (evt == AcctUnregister)
+		query = m_unregisterQuery;
+
+	if (query.IsEmpty()) {
+		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
+			"data (event: " << evt << ", endpoint: " << epid
+			<< "): SQL query is empty"
+			);
+		return Fail;
+	}
+
+	std::map<PString, PString> params;
+	SetupAcctEndpointParams(params, ep);
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
+	if (result == NULL) {
+		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
+			"data (event: " << evt << ", endpoint: " << epid
+			<< "): timeout or fatal error");
+	}
+	
+	if (result) {
+		if (result->IsValid()) {
+			if (result->GetNumRows() < 1) {
+				PTRACE(4, "GKACCT\t" << GetName() << " failed to store accounting "
+					"data (event: " << evt << ", endpoint: " << epid
+					<< "): no rows have been updated"
+					);
+				delete result;
+				result = NULL;
+			}
+		} else {
+			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
+				"data (event: " << evt << ", endpoint: " << epid
+				<< "): (" << result->GetErrorCode() << ") "
+				<< result->GetErrorMessage()
+				);
+			delete result;
+			result = NULL;
 		}
 	}
 

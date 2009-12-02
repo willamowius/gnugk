@@ -1,5 +1,6 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- add new accounting events: AcctAlert, AcctRegister, AcctUnregister
 - BUGFIX(ProxyChannel.cxx, gkauth.cxx) always check if DecodeSubType() was successfull
   before using the result value
 - BUGFIX(ProxyChannel.cxx) remove supportedFeature H.460.19 from Setup when called party
