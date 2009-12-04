@@ -350,7 +350,7 @@ specified by IP address or DNS name.
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Specific local network interface that GnuGk should
+Specific local network interface that <htmlurl url="http://www.gnugk.org/" name="GnuGk"> should
 use in order to communicate with RADIUS servers.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>

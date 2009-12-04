@@ -5,7 +5,7 @@ The following sections in the config file can be used to configure authenticatio
 <sect1>Section &lsqb;Gatekeeper::Auth&rsqb;
 <label id="gkauth">
 <p>
-The section defines the authentication mechanism for the gatekeeper.
+The section defines the authentication mechanism for the <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper">.
 
 <descrip>
 <tag/Syntax:/

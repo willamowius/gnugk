@@ -28,7 +28,7 @@ Whether a call is accepted from a neighbor also depends on the AcceptNeighborsCa
 The gatekeeper types have the following characteristics:
 <itemize>
 <item><tt/GnuGk/<newline>
-When in doubt, use this gatekeeper type. This also activates H.460.23 / H.460.24.
+When in doubt, use the <htmlurl url="http://www.gnugk.org/" name="GnuGk gatekeeper"> type. This also activates H.460.23 / H.460.24.
 
 <item><tt/CiscoGk/<newline>
 GnuGk will pretend to be a Cisco gatekeeper and send fake manufacturer data.

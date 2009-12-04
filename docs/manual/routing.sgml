@@ -11,7 +11,7 @@ specify which policies to use and modify their behavior.
 <label id="routingpolicy">
 <p>
 This section explains how the various potential routing
-policies within the gatekeeper work.
+policies within the <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper"> work.
 
 The incoming call requests can be routed using the following
 possibilities:

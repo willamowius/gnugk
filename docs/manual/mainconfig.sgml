@@ -1,7 +1,8 @@
 <sect1>Configuration File
 <label id="config">
 <p>
-The configuration file is a standard text file. The basic format is:
+The <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper">
+configuration file is a standard text file. The basic format is:
 
 <tscreen><verb>
 [Section String]
@@ -349,7 +350,7 @@ messages to maintain your DDNS name lease.  You must also configure the
 <tt>ExternalIP</tt> setting with a DNS address maintained by a DDNS service
 such as www.dyndns.com or www.no-ip.com.
 
-<item><tt/DefaultDomain=gnugk.org,gnugk.com/<newline>
+<item><tt/DefaultDomain=gnugk.org,gnugk.de/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the GnuGk receives a request for an address in the format

@@ -5,7 +5,8 @@
 To confirm that all components are up and running, get
 2 Linux workstations, both connected to the LAN.
 In addition to GnuGk the examples use a softphone called "OhPhone".
-On the first machine run the gatekeeper in direct mode:
+On the first machine run the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
+in direct mode:
 
 <tscreen><verb>
 jan@machine1 > gnugk -ttt
