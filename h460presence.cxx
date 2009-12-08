@@ -25,7 +25,10 @@
 
 
 GkPresence::GkPresence()
- : m_enabled(false), m_sqlactive(false), m_sqlConn(NULL)
+ : m_enabled(false), m_sqlactive(false)
+#if HAS_DATABASE
+	, m_sqlConn(NULL)
+#endif
 {
 }
 
