@@ -4808,7 +4808,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	    mcall->SetDST_media_IP(srcIP.AsString());
 	}
 
-#ifdef HAS_H46024B
+#if defined(HAS_H46018) && defined(HAS_H46024B)
 				// If required begin Annex B probing
 		if (mcall->GetNATStrategy() == CallRec::e_natAnnexB) 
 			mcall->H46024BSessionFlag(m_sessionID);

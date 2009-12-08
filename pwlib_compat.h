@@ -126,7 +126,7 @@
 	#define HAS_H460 1    // H460 support
 #endif
 
-#if defined(HAS_H46018) && defined(H323_H46024B)
+#ifdef H323_H46024B
 	#define HAS_H46024B	1  
 #endif
 
