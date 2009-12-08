@@ -1239,7 +1239,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 			  ras.SetTag(H225_RasMessage::e_locationConfirm);
               H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 			  con = *lcf;
-			  route.m_destEndpoint = endptr(new EndpointRec(ras));	
+			  route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);	
 			}
 #endif
 			route.m_routeId = request.GetNeighborUsed();
@@ -1481,13 +1481,12 @@ bool SRVPolicy::FindByAliases(
 						if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
 							Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
-							// TODO: more specific check if we need to create an endpoint record ?
 							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 								H225_RasMessage ras;
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
 								H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 								con = *lcf;
-								route.m_destEndpoint = endptr(new EndpointRec(ras));	// TODO: fix memleak
+								route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 							}
 #endif
 							request.AddRoute(route);
@@ -1620,13 +1619,12 @@ bool RDSPolicy::FindByAliases(
 					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
 						Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
-						// TODO: more specific check if we need to create an endpoint record ?
 						if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 							H225_RasMessage ras;
 							ras.SetTag(H225_RasMessage::e_locationConfirm);
 							H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 							con = *lcf;
-							route.m_destEndpoint = endptr(new EndpointRec(ras));	
+							route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);	
 						}
 #endif
 						request.AddRoute(route);
