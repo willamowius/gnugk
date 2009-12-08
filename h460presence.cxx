@@ -184,11 +184,13 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 					    H323PresenceStore::iterator itm = localStore.find(store.m_Instruction[i]);
 						if (itm != localStore.end()) {
 							H323PresenceEndpoint & ep = itm->second;
-							H460P_PresencePDU msg;
-							msg.SetTag(H460P_PresencePDU::e_notification);
-							H460P_PresenceNotification & notification = msg;
-							notification = ep.m_Notify[0];
-							EnQueuePresence(addr[j],msg);
+							if (ep.m_Notify.GetSize() > 0) {
+								H460P_PresencePDU msg;
+								msg.SetTag(H460P_PresencePDU::e_notification);
+								H460P_PresenceNotification & notification = msg;
+								notification = ep.m_Notify[0];
+								EnQueuePresence(addr[j],msg);
+							}
 						} else {
 						  // We need to go find them...
 
