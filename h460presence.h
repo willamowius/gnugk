@@ -75,7 +75,7 @@ protected:
 								H323PresenceStore & instruction
 								);
 
-	void HandleNewInstruction(int tag, 
+	void HandleNewInstruction(unsigned tag, 
 								const H460P_PresenceInstruction & instruction, 
 								H323PresenceInstructions & instructions
 								);
@@ -107,5 +107,3 @@ private:
 };
 
 #endif
-
-

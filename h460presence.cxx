@@ -25,7 +25,7 @@
 
 
 GkPresence::GkPresence()
- : m_sqlConn(NULL), m_enabled(false), m_sqlactive(false)
+ : m_enabled(false), m_sqlactive(false), m_sqlConn(NULL)
 {
 }
 
@@ -186,8 +186,8 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 							H323PresenceEndpoint & ep = itm->second;
 							H460P_PresencePDU msg;
 							msg.SetTag(H460P_PresencePDU::e_notification);
-							H460P_PresenceNotification & not = msg;
-							not = ep.m_Notify[0];
+							H460P_PresenceNotification & notification = msg;
+							notification = ep.m_Notify[0];
 							EnQueuePresence(addr[j],msg);
 						} else {
 						  // We need to go find them...
@@ -258,13 +258,13 @@ void GkPresence::EnQueuePresence(const H225_AliasAddress & addr, const H460P_Pre
 			else {
 				list<H460P_PresencePDU> m_Indication;
 				m_Indication.push_back(msg);
-				xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU>>(addr,m_Indication));
+				xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));
 			}
 		} else {
 			list<H460P_PresencePDU> m_Indication;
 			m_Indication.push_back(msg);
 			H323PresenceInd xlist;
-			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU>>(addr,m_Indication));	
+			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));	
 			pendingStore.insert(pair<H225_EndpointIdentifier,H323PresenceInd>(it->second,xlist));
 		}
 		return;
@@ -282,13 +282,13 @@ void GkPresence::EnQueuePresence(const H225_AliasAddress & addr, const H460P_Pre
 			else {
 				list<H460P_PresencePDU> m_Indication;
 				m_Indication.push_back(msg);
-				xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU>>(addr,m_Indication));
+				xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));
 			}
 		} else {
 			list<H460P_PresencePDU> m_Indication;
 			m_Indication.push_back(msg);
 			H323PresenceInd xlist;
-			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU>>(addr,m_Indication));	
+			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));	
 			remoteStore.insert(pair<H225_TransportAddress,H323PresenceInd>(rt->second,xlist));
 		}
 		return;
@@ -450,8 +450,8 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 				if (ep.m_Instruction[i].GetTag() == H460P_PresenceInstruction::e_subscribe) {
 					H460P_PresencePDU msg;
 					msg.SetTag(H460P_PresencePDU::e_notification);
-					H460P_PresenceNotification & not = msg;
-					not = notify;
+					H460P_PresenceNotification & notification = msg;
+					notification = notify;
 					EnQueuePresence(ep.m_Instruction[i],msg);
 				}
 			}
@@ -464,7 +464,7 @@ void GkPresence::OnSubscription(MsgType tag, const H460P_PresenceSubscription & 
 
 }
 
-void GkPresence::HandleNewInstruction(int tag, const H460P_PresenceInstruction & instruction, H323PresenceInstructions & instructions)
+void GkPresence::HandleNewInstruction(unsigned tag, const H460P_PresenceInstruction & instruction, H323PresenceInstructions & instructions)
 {
 	int found = 0;
 	const H225_AliasAddress & a = instruction;
