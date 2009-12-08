@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="gk"
 	ProjectGUID="{C5052DDD-FADC-4415-B235-92A9761BB21D}"
 	TargetFrameworkVersion="131072"
@@ -829,6 +829,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h460presence.cxx"
+				>
+			</File>
+			<File
 				RelativePath="ipauth.cxx"
 				>
 			</File>
@@ -1071,6 +1075,10 @@
 			</File>
 			<File
 				RelativePath="h323util.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h460presence.h"
 				>
 			</File>
 			<File

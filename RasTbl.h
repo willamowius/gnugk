@@ -58,7 +58,7 @@ private:
 	T *pt;
 };
 
-#ifdef hasPresence
+#ifdef HAS_H460P
 class H323Contact;
 #endif
 class EndpointRec
@@ -142,8 +142,9 @@ public:
 	void SetNAT(bool nat);
 	void SetNATAddress(const PIPSocket::Address &);
 	void SetSocket(CallSignalSocket *);
-	void SetSupportNAT(bool support);
-	void SetSameNAT(bool support);
+	void SetH46024(bool support);
+	void SetH46024A(bool support);
+	void SetH46024B(bool support);
 
 	enum EPNatTypes {
             NatUnknown,
@@ -175,8 +176,9 @@ public:
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
 	bool IsNATed() const;
-	bool SupportNAT() const;
-	bool SupportSameNAT() const;
+	bool SupportH46024() const;
+	bool SupportH46024A() const;
+	bool SupportH46024B() const;
 	bool UsesH46023() const { return m_usesH46023; }
 
 	bool HasNATProxy() const;
@@ -191,11 +193,11 @@ public:
 	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;
 
-#ifdef hasPresence
-	bool hasContact();
-	void CreateContact();
-	void ParsePresencePDU(unsigned msgtag, const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu);
-	void BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu);
+	void SetUsesH460P(bool uses);
+	bool UsesH460P() { return m_usesH460P; }
+#ifdef HAS_H460P
+	void ParsePresencePDU(const PASN_OctetString & pdu);
+	bool BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu);
 #endif
 
 	/** If this Endpoint would be register itself again with all the same data
@@ -331,13 +333,11 @@ protected:
 	std::map<unsigned, unsigned> m_sentCauseMap;
 
 	EPNatTypes m_epnattype;
-	bool m_usesH46023, m_natsupport, m_samenatsupport, m_natproxy, m_internal, m_remote;
+	bool m_usesH46023, m_H46024, m_H46024a, m_H46024b, m_natproxy, m_internal, m_remote;
 	bool m_h46018disabled;
 	bool m_usesH46018;
+	bool m_usesH460P;
 
-#ifdef hasPresence
-	H323Contact * m_contact;
-#endif
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -535,6 +535,9 @@ template<class> class RasPDU;
 // record of one active call
 #ifdef HAS_H460
  class H4609_QosMonitoringReportData;
+#ifdef HAS_H46024B
+ class H323TransportAddress;
+#endif
 #endif
 class CallRec {
 public:
@@ -634,7 +637,8 @@ public:
 		e_natLocalProxy,
 	    e_natRemoteProxy,
 		e_natFullProxy,
-		e_natSameNAT,
+		e_natAnnexA,		// Same NAT
+		e_natAnnexB,		// Nat Offload
 		e_natFailure = 100
 	};
 
@@ -651,6 +655,17 @@ public:
 
 	/** Set the NATStrategy */
 	void SetNATStrategy(NatStrategy strategy) { m_natstrategy = strategy; }
+
+#ifdef HAS_H46024B
+	/** Initiate Probe */
+	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev);
+
+	/** Response Probe */
+	void H46024BRespond();
+
+    /** Set session callback flag */
+	void H46024BSessionFlag(WORD sessionID);
+#endif
 
 #endif
 
@@ -1244,6 +1259,18 @@ private:
 #ifdef HAS_H46023
 	NatStrategy m_natstrategy;
 #endif
+
+#ifdef HAS_H46024B
+	struct H46024Balternate {
+		 H245_TransportAddress forward;
+		 H245_TransportAddress reverse;
+	};
+
+	std::map<WORD,H46024Balternate> m_H46024Balternate;
+	void BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const map<WORD,H46024Balternate> & alt);
+	list<int> m_h46024Bflag;
+	PMutex m_H46024Bmutex;
+#endif
 	/// unregistered caller NAT'd
 	bool m_unregNAT;
 	PIPSocket::Address m_srcunregNATAddress;
@@ -1499,14 +1526,19 @@ inline void EndpointRec::SetNAT(bool nat)
 	m_nat = nat;
 }
 
-inline void EndpointRec::SetSupportNAT(bool support)
+inline void EndpointRec::SetH46024(bool support)
 {
-	m_natsupport = support;
+	m_H46024 = support;
 }
 
-inline void EndpointRec::SetSameNAT(bool support)
+inline void EndpointRec::SetH46024A(bool support)
 {
-	m_samenatsupport = support;
+	m_H46024a = support;
+}
+
+inline void EndpointRec::SetH46024B(bool support)
+{
+	m_H46024b = support;
 }
 
 inline bool EndpointRec::IsNATed() const
@@ -1514,14 +1546,19 @@ inline bool EndpointRec::IsNATed() const
 	return m_nat;
 }
 
-inline bool EndpointRec::SupportNAT() const
+inline bool EndpointRec::SupportH46024() const
 {
-	return m_natsupport;
+	return m_H46024;
 }
 
-inline bool EndpointRec::SupportSameNAT() const
+inline bool EndpointRec::SupportH46024A() const
 {
-	return m_samenatsupport;
+	return m_H46024a;
+}
+
+inline bool EndpointRec::SupportH46024B() const
+{
+	return m_H46024b;
 }
 
 inline bool EndpointRec::HasNATProxy() const

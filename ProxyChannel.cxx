@@ -301,6 +301,7 @@ public:
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
 	void SetH46019Direction(int dir) { m_h46019dir = dir; }
+	void SetH46024SessionID(WORD id) { m_sessionID = id; }
 	// disabled for now, until we handle 2 payload types per UDPProxy
 	// void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
 #endif
@@ -343,6 +344,7 @@ private:
 	// and then the IP & ports get assigned checked and is released so media can flow.
 	int m_h46019olc;
 	int m_h46019dir;
+	WORD m_sessionID;
 	H323TransportAddress m_h46019fwd;
 	H323TransportAddress m_h46019rev;
 	bool m_OLCrev;
@@ -418,6 +420,7 @@ public:
 	// void SetKeepAlivePayloadType(int pt);
 	void SetUsesH46019fc(bool);
 	void SetH46019Direction(int dir);
+	void SetH46024SessionID(WORD id);
 
 private:
 	void SetNAT(bool);
@@ -1251,19 +1254,36 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
 			m_call->SetCodec(GetH245CodecName(*audioCap));
 	}
 
-	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response
-			&& ((H245_ResponseMessage&)h245msg).GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
-		H245_OpenLogicalChannelAck &olcack = (H245_ResponseMessage&)h245msg;
-		if (m_callerSocket) {
-			if (olcack.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
-					&& olcack.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
-				H245_H2250LogicalChannelAckParameters *channel = &((H245_H2250LogicalChannelAckParameters&)olcack.m_forwardMultiplexAckParameters);
-				if (channel != NULL && channel->HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
-					H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(channel->m_mediaChannel);
-					if (addr != NULL && m_call) {
-						PIPSocket::Address ip;
-						*addr >> ip;
-						m_call->SetMediaOriginatingIp(ip);
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response) {
+		H245_ResponseMessage & rmsg  = h245msg;
+#ifdef HAS_H46024B
+		if (rmsg.GetTag() == H245_ResponseMessage::e_genericResponse) {
+			const char * H46024B_OID = "0.0.8.460.24.2";
+ 			H245_GenericMessage & gmsg = rmsg;
+			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
+				if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
+					PASN_ObjectId & val = id; 
+					if (val.AsString() == H46024B_OID) {
+						m_call->H46024BRespond();
+						suppress = true;
+						return true;
+					}
+				}
+		}
+#endif
+		if (rmsg.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
+			H245_OpenLogicalChannelAck &olcack = rmsg;
+			if (m_callerSocket) {
+				if (olcack.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
+						&& olcack.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
+					H245_H2250LogicalChannelAckParameters *channel = &((H245_H2250LogicalChannelAckParameters&)olcack.m_forwardMultiplexAckParameters);
+					if (channel != NULL && channel->HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
+						H245_UnicastAddress_iPAddress *addr = GetH245UnicastAddress(channel->m_mediaChannel);
+						if (addr != NULL && m_call) {
+							PIPSocket::Address ip;
+							*addr >> ip;
+							m_call->SetMediaOriginatingIp(ip);
+						}
 					}
 				}
 			}
@@ -4701,7 +4721,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0)
 #ifdef HAS_H46018
-	, m_h46019fc(false),m_h46019olc(0),	m_h46019dir(0),m_OLCrev(false)
+	, m_h46019fc(false),m_h46019olc(0),	m_h46019dir(0), m_sessionID(0), m_OLCrev(false)
 	//, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_keepAliveTypeSet(false)
 #endif
 {
@@ -4787,6 +4807,12 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	    mcall->SetSRC_media_IP(fDestIP.AsString());
 	    mcall->SetDST_media_IP(srcIP.AsString());
 	}
+
+#ifdef HAS_H46024B
+				// If required begin Annex B probing
+		if (mcall->GetNATStrategy() == CallRec::e_natAnnexB) 
+			mcall->H46024BSessionFlag(m_sessionID);
+#endif
 	
 	m_call = &mcall;		
 }
@@ -4962,6 +4988,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 						fDestIP = rSrcIP, fDestPort = rSrcPort;
 					}
 				}
+#ifdef HAS_H46024B
+				// If required begin Annex B probing
+				if ((*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) 
+					(*m_call)->H46024BInitiate(m_sessionID, m_h46019fwd, m_h46019rev);
+#endif
 			}
 			SetMute(false);
 		return NoData;	// don't forward keepAlive
@@ -5412,6 +5443,14 @@ void RTPLogicalChannel::SetH46019Direction(int dir)
 	if (rtcp)
 		rtcp->SetH46019Direction(dir);	
 }
+
+void RTPLogicalChannel::SetH46024SessionID(WORD id)
+{
+	if (rtp)
+		rtp->SetH46024SessionID(id);
+	if (rtcp)
+		rtcp->SetH46024SessionID(id);	
+}
 #endif
 
 void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress & addr)
@@ -5716,6 +5755,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 #ifdef HAS_H46018
 	lc->SetH46019Direction(m_H46019dir);
+	lc->SetH46024SessionID((WORD)h225Params->m_sessionID);
 #endif
 
 	H245_UnicastAddress_iPAddress *addr;
@@ -5851,6 +5891,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				if (UsesH46019fc())
 					((RTPLogicalChannel*)lc)->SetUsesH46019fc(true);
 				((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());
+				((RTPLogicalChannel*)lc)->SetH46024SessionID((WORD)h225Params->m_sessionID);
 			} else {
 				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
 			}

@@ -21,6 +21,9 @@
 #ifdef HAS_H46023
 #include "transports.h"
 #endif
+#ifdef HAS_H460P
+#include "h460presence.h"
+#endif
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
@@ -367,6 +370,10 @@ class Toolkit : public Singleton<Toolkit>
 	bool GetH46023STUN(const PIPSocket::Address & addr,  H323TransportAddress & stun);
 	bool H46023SameNetwork(const PIPSocket::Address & addr1, const PIPSocket::Address & addr2);
 #endif
+#ifdef HAS_H460P
+	bool IsH460PEnabled() const;
+	GkPresence & GetPresenceHandler();
+#endif
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.
@@ -618,6 +625,10 @@ private:
 #ifdef HAS_H46023
 	bool m_H46023Enabled;
 	std::map<int,H323TransportAddress> m_H46023STUN;
+#endif
+
+#ifdef HAS_H460P
+	GkPresence m_presence;
 #endif
 
 };

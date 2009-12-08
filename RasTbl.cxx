@@ -35,9 +35,9 @@
 #ifdef HAS_H460
   #include <h460/h4601.h>
   #include <h460/h4609.h>
-   #ifdef hasPresence 
-      #include <h460/h460p.h>
-   #endif
+#ifdef HAS_H46024B
+  #include <h460/h46024b.h>
+#endif
 #endif
 
 using std::copy;
@@ -64,194 +64,6 @@ const long DEFAULT_ALERTING_TIMEOUT = 180000;
 const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
 
-////////////////////////////////////////////////////////////////////////////
-
-#ifdef hasPresence
-
-static struct {
-  unsigned msgid;
-  int preState;			
-  int preInstruct;			
-  int preAuthorize;		
-  int preNotify;	
-  int preRequest;	
-  int preResponse;
-  int preAlive;
-  int preRemove;
-  int preAlert;
-} RASMessage_attributes[] = {					//   st  ins aut not req res alv rem alt
-	{ H225_RasMessage::e_registrationRequest		,1	,2	,0	,0	,0	,0	,0	,0	,0	 },
-	{ H225_RasMessage::e_registrationConfirm		,1	,2	,0	,0	,0	,0	,0	,0	,0	 },
-	{ H225_RasMessage::e_locationRequest			,0	,0	,1	,0	,1	,1	,1	,1	,1	 },
-	{ H225_RasMessage::e_locationConfirm			,0	,0	,0	,0	,0	,2	,0	,2	,0	 },
-	{ H225_RasMessage::e_serviceControlIndication	,1	,1	,0	,1	,0	,0	,0	,0	,0	 }
-};
-
-class H323Contact : public H323PresenceHandler
-{
-public:
-	H323Contact();
-
-	void Process();
-
-	void ParsePresencePDU(unsigned msgtag, const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu);
-
-	void BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu);
-
-	bool SendUnsolicatedInformation(const H225_FeatureDescriptor & desc,
-									const H225_TransportAddress & addr);
-
-  // Inherited
-	virtual void OnNotification(MsgType tag,
-								const H225_EndpointIdentifier * id, 
-								const H460P_PresenceNotification & notify);
-	virtual void OnSubscription(MsgType tag,
-								const H225_EndpointIdentifier * id, 
-								const H460P_PresenceSubscription & subscription);
-	virtual void OnInstructions(MsgType tag,
-								const H225_EndpointIdentifier * id, 
-								const H460P_ArrayOf_PresenceInstruction & instruction);
-    virtual void OnIdentifiers(MsgType tag,
-								const H460P_ArrayOf_PresenceIdentifier & identifier);
-
-protected:
-
-	typedef std::map<H225_AliasAddress,H225_TransportAddress> Contactlist;
-	typedef std::list<H225_AliasAddress> Blocklist;
-
-    H460P_Presentity state;
-	bool notifyLocal;
-	bool notifyRec;
-};
-
-
-H323Contact::H323Contact()
-{
-	notifyLocal = false;
-	notifyRec = false;
-}
-
-void H323Contact::Process()
-{
-
-}
-
-void H323Contact::ParsePresencePDU(unsigned msgtag,const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu)
-{
-
-	PString oid("1.3.6.1.4.1.17090.0.3.1");
-
-	const H225_ArrayOf_EnumeratedParameter & p = pdu.m_parameters;
-
-	for (PINDEX i=0; i < p.GetSize(); i++) {
-		const H460_FeatureParameter & param = p[i];
-		const H225_GenericIdentifier & id1 = param.m_id;
-		PASN_ObjectId id2 = id1;
-		if (id2.AsString() == oid) {
-		   const H225_Content & content = param.m_content;
-		   const PASN_OctetString & data = content;
-		   ReceivedPDU(id,data);
-		}
-	}
-}
-
-/*
-	case H460P_PresenceMessage e_presenceStatus:
-	case H460P_PresenceMessage e_presenceInstruct:
-	case H460P_PresenceMessage e_presenceAuthorize:
-	case H460P_PresenceMessage e_presenceNotify:
-	case H460P_PresenceMessage e_presenceRequest:
-	case H460P_PresenceMessage e_presenceResponse:
-	case H460P_PresenceMessage e_presenceAlive:
-	case H460P_PresenceMessage e_presenceRemove:
-	case H460P_PresenceMessage e_presenceAlert:
-*/
-void H323Contact::BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu)
-{
-	switch (msgtag) {
-	//  case H225_RasMessage::e_registrationRequest:
-	//	  break;
-	  case H225_RasMessage::e_registrationConfirm:
-		  break;
-	  case H225_RasMessage::e_locationRequest:
-		  break;
-	  case H225_RasMessage::e_locationConfirm:
-		  break;
-	  case H225_RasMessage::e_serviceControlIndication:
-		  break;
-	  default:
-		  break;
-	}
-}
-
-void H323Contact::OnNotification(MsgType tag,const H225_EndpointIdentifier * id, 
-								const H460P_PresenceNotification & notify)
-{
-	if (id != NULL) {
-        state = notify.m_presentity;
-		notifyLocal = true;
-	} else {
-
-		notifyRec = true;
-	}
-}
-
-void H323Contact::OnSubscription(MsgType tag,const H225_EndpointIdentifier * id, 
-								const H460P_PresenceSubscription & subscription)
-{
-	
-}
-
-void H323Contact::OnInstructions(MsgType tag,
-								const H225_EndpointIdentifier * id, 
-								const H460P_ArrayOf_PresenceInstruction & instruction)
-{
-
-}
-
-void H323Contact::OnIdentifiers(MsgType tag,
-								const H460P_ArrayOf_PresenceIdentifier & identifier) 
-{
-
-}
-
-bool H323Contact::SendUnsolicatedInformation(const H225_FeatureDescriptor & desc, 
-												const H225_TransportAddress & addr)
-{
-   H323SignalPDU pdu;
-   Q931 qPDU;
-	qPDU.BuildInformation(0,false);
-	qPDU.SetCallState(Q931::CallState_Active);
-	pdu.SetQ931(qPDU);
-
-    H225_H323_UU_PDU & msg = pdu.m_h323_uu_pdu;
-
-    msg.IncludeOptionalField(H225_H323_UU_PDU::e_genericData);
-    H225_FeatureDescriptor & feat = (H225_FeatureDescriptor &)msg.m_genericData;
-	feat = desc;
-
-/// This is going to have to change to use GnuGk code not OpenH323 -sh
-	H323EndPoint ep;
-	H323TransportTCP * trans = new H323TransportTCP(ep);
-	if (!trans->SetRemoteAddress(addr))
-		return false;
-	if (!trans->Connect()) 
-		return false;
-
-    PPER_Stream strm;
-    pdu.Encode(strm);
-    
-	if (!trans->WritePDU(strm))
-	    return false;
-
-    trans->Close();
-	delete trans;
-
-	return true;
-}
-
-#endif
-
 /////////////////////////////////////////////////////////////////////////////////
 
 EndpointRec::EndpointRec(
@@ -267,12 +79,9 @@ EndpointRec::EndpointRec(
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
-	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown),m_usesH46023(false), m_natsupport(false),
-	m_samenatsupport(false),m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false)
-#ifdef hasPresence
-	,m_contact(NULL)
-#endif
+	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown),m_usesH46023(false), m_H46024(false),
+	m_H46024a(false),m_H46024b(false),m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
+	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false),m_usesH460P(false)
 
 {
 	switch (m_RasMsg.GetTag())
@@ -447,7 +256,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 				   H460_FeatureStd & std24 = (H460_FeatureStd &)data[i];
 				   if (std24.Contains(Std24_RemoteNAT)) {              /// Remote supports remote NAT
 					   PBoolean supNAT = std24.Value(Std24_RemoteNAT);
-					   SetSupportNAT(supNAT);
+					   SetH46024(supNAT);
 				   }
 				   if (std24.Contains(Std24_IsNAT)) {                /// Remote EP is Nated
 					   PBoolean isnat = std24.Value(Std24_IsNAT);
@@ -466,17 +275,21 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 					   PBoolean supProxy = std24.Value(Std24_ProxyNAT);
 					   SetNATProxy(supProxy);
 				   }
-				   if (std24.Contains(Std24_SourceAddr)) {                /// Whether the remote EP supports Same NAT probing
+				   if (std24.Contains(Std24_SourceAddr)) {               /// Whether the remote EP supports Same NAT probing
 					   PString addr = std24.Value(Std24_SourceAddr);
 					   SetNATAddress(addr);
 				   }
-				   if (std24.Contains(Std24_MustProxy)) {         /// Whether this EP must proxy through GK
+				   if (std24.Contains(Std24_MustProxy)) {				/// Whether this EP must proxy through GK
 					   PBoolean mustProxy = std24.Value(Std24_MustProxy);
 					   SetInternal(mustProxy);
 				   }
-				   if (std24.Contains(Std24_SameNAT)) {			  /// Whether this EP supports H.460.24 Annex A
-					   PBoolean samenat = std24.Value(Std24_MustProxy);
-					   SetSameNAT(samenat);
+				   if (std24.Contains(Std24_AnnexA)) {					/// Whether this EP supports H.460.24 Annex A
+					   PBoolean annexA = std24.Value(Std24_AnnexA);
+					   SetH46024A(annexA);
+				   }
+				   if (std24.Contains(Std24_AnnexB)) {					/// Whether this EP supports H.460.24 Annex B
+					   PBoolean annexB = std24.Value(Std24_AnnexB);
+					   SetH46024B(annexB);
 				   }
 			   }
 		   }
@@ -503,10 +316,7 @@ EndpointRec::~EndpointRec()
 	if (m_endpointVendor)
 		delete m_endpointVendor;
 
-#ifdef hasPresence
-	if (m_contact)
-		delete m_contact;
-#endif
+	SetUsesH460P(false);
 
 	if (m_natsocket) {
 		m_natsocket->SetDeletable();
@@ -1062,28 +872,33 @@ bool EndpointRec::AddHTTPServiceControl(
 		return true;
 }
 
-#ifdef hasPresence
-bool EndpointRec::hasContact() 
+void EndpointRec::SetUsesH460P(bool uses)
 {
-	return (m_contact != NULL);
+	if (uses == m_usesH460P)
+		return;
+
+#ifdef HAS_H460P
+	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
+	if (uses) 
+	   handler.RegisterEndpoint(m_endpointIdentifier,m_terminalAliases);
+	else
+	   handler.UnRegisterEndpoint(m_terminalAliases);
+
+	m_usesH460P = uses;
+#endif
 }
 
-void EndpointRec::CreateContact() 
+#ifdef HAS_H460P
+void EndpointRec::ParsePresencePDU(const PASN_OctetString & pdu)
 {
-	if (m_contact == NULL)
-		m_contact = new H323Contact();
+	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
+	handler.ProcessPresenceElement(pdu);
 }
 
-void EndpointRec::ParsePresencePDU(unsigned msgtag, const H225_EndpointIdentifier * id, const H225_FeatureDescriptor & pdu)
+bool EndpointRec::BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu)
 {
-	if (m_contact)
-		m_contact->ParsePresencePDU(msgtag, id, pdu);
-}
-
-void EndpointRec::BuildPresencePDU(unsigned msgtag, H225_FeatureDescriptor & pdu)
-{
-	if (m_contact)
-		m_contact->BuildPresencePDU(msgtag, pdu);
+	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
+	return handler.BuildPresenceElement(msgtag,m_endpointIdentifier, pdu);
 }
 #endif
 
@@ -1539,6 +1354,7 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 {
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, eptr);
 	EndpointRec *ep = eptr.operator->(); // evil
+	ep->SetUsesH460P(false);
 	WriteLock lock(listLock);
 	InternalRemove(find(EndpointList.begin(), EndpointList.end(), ep));
 }
@@ -3015,7 +2831,7 @@ bool CallRec::GetRemoteInfo(PString & vendor, PString & version)
 
 PString CallRec::GetNATOffloadString(NatStrategy type)
 {
-  static const char * const Names[9] = {
+  static const char * const Names[10] = {
 		"Unknown Strategy",
 		"No Assistance",
 		"Local Master",
@@ -3023,11 +2839,12 @@ PString CallRec::GetNATOffloadString(NatStrategy type)
 		"Local Proxy",
 	    "Remote Proxy",
 		"Full Proxy",
-		"Same NAT",
+		"AnnexA SameNAT",
+		"AnnexB NAToffload",
 		"NAT Failure"
   };
 
-  if (type < 9)
+  if (type < 10)
     return Names[type];
   
   return PString((unsigned)type);
@@ -3054,8 +2871,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				(m_Calling->IsNATed() ?  m_Calling->GetNATIP() : m_Calling->GetIP()),
 				(m_Called->IsNATed() ?  m_Called->GetNATIP() : m_Called->GetIP()));
 
-	bool callingSupport = (m_Calling->SupportNAT() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
-	bool calledSupport = (m_Called->SupportNAT() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));
+	bool callingSupport = (m_Calling->SupportH46024() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
+	bool calledSupport = (m_Called->SupportH46024() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));
 	
 #if PTRACING
 	PStringStream natinfo;
@@ -3071,7 +2888,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		natinfo << "    Proxy IP: " << m_Calling->GetIP() << "\n";
 	} else {
 		natinfo << "    IP: " << m_Calling->GetIP() << "\n";
-		natinfo << "    Support H.460.24: " << (m_Calling->SupportNAT() ? "Yes" : "No");
+		natinfo << "    Support H.460.24: " << (m_Calling->SupportH46024() ? "Yes" : "No");
 	}
 // Called Endpoint
 		natinfo << "\n  Called Endpoint:\n";
@@ -3083,7 +2900,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		natinfo << "    Proxy IP: " << m_Called->GetIP() << "\n";
 	} else {
 		natinfo << "    IP: " << m_Called->GetIP() << "\n";
-		natinfo << "    Support H.460.24: " << (m_Called->SupportNAT() ? "Yes" : "No");
+		natinfo << "    Support H.460.24: " << (m_Called->SupportH46024() ? "Yes" : "No");
 	}
 
 	PTRACE(5,"RAS\t\n" << natinfo);
@@ -3119,8 +2936,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	else if ((m_Calling->IsNATed() && m_Called->IsNATed()          // both parties are NAT and
 		&& (m_Calling->GetNATIP() == m_Called->GetNATIP()))) {	   // their NAT IP is the same
 
-			if (m_Calling->SupportSameNAT() && m_Called->SupportSameNAT())  // Support H.460.24 Annex A
-		        natinst = CallRec::e_natSameNAT;
+			if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())  
+		        natinst = CallRec::e_natAnnexA;
 			else if (GetProxyMode() == CallRec::ProxyEnabled)		// If we have the ability to proxy
 				natinst = CallRec::e_natFullProxy;
 			else {
@@ -3128,23 +2945,31 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				return false;
 			}
 	}
-
+#ifdef HAS_H46024B
+	else if (goDirect && 
+		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
+		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
+		(m_Calling->IsNATed() && m_Calling->GetEPNATType() < EndpointRec::NatSymmetric) && 
+		    (m_Called->IsNATed() && m_Called->GetEPNATType() < EndpointRec::NatSymmetric) &&
+			(m_Calling->SupportH46024B() && m_Called->SupportH46024B()))  
+				natinst = CallRec::e_natAnnexB;
+#endif
 	else if (goDirect && 
 		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
 		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
 			(!m_Calling->HasNATProxy() && (!m_Called->HasNATProxy()))) {
-						natinst = CallRec::e_natFailure;
-						return false;
+				natinst = CallRec::e_natFailure;
+				return false;
 	}
 
 	// if can go direct and calling supports Remote NAT and is not NAT or Cone NAT
 	else if (goDirect &&  
-		((!m_Calling->IsNATed() && m_Calling->SupportNAT()) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
+		((!m_Calling->IsNATed() && m_Calling->SupportH46024()) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
 		     natinst = CallRec::e_natLocalMaster;
 
     // if can go direct and called supports Remote NAT and is not NAT or Cone NAT
     else if (goDirect && 
-		((!m_Called->IsNATed() && m_Called->SupportNAT()) || (m_Called->GetEPNATType() == EndpointRec::NatCone)))
+		((!m_Called->IsNATed() && m_Called->SupportH46024()) || (m_Called->GetEPNATType() == EndpointRec::NatCone)))
 			natinst = CallRec::e_natRemoteMaster;
 
     else if (goDirect && m_Calling->IsNATed() && m_Calling->HasNATProxy())
@@ -3166,7 +2991,131 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	return true;
 }
 
-#endif
+#ifdef HAS_H46024B
+void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const map<WORD,H46024Balternate> & alt)
+{
+
+	const char * H46024B_OID = "0.0.8.460.24.2";
+	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
+	H245_RequestMessage & msg = h245msg;
+	msg.SetTag(H245_RequestMessage::e_genericRequest);
+
+ 	H245_GenericMessage & gmsg = msg;
+	gmsg.IncludeOptionalField(H245_GenericMessage::e_subMessageIdentifier);
+    gmsg.IncludeOptionalField(H245_GenericMessage::e_messageContent);
+    H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
+     id.SetTag(H245_CapabilityIdentifier::e_standard);
+        PASN_ObjectId & val = id; 
+        val.SetValue(H46024B_OID);
+
+	PASN_Integer & num = gmsg.m_subMessageIdentifier;
+	   num = 1;
+
+    gmsg.SetTag(H245_GenericMessage::e_messageContent);
+    H245_ArrayOf_GenericParameter & content = gmsg.m_messageContent;
+
+	 content.SetSize(1);
+	   H245_GenericParameter & param = content[0];
+	   H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
+		 idm.SetTag(H245_ParameterIdentifier::e_standard);
+		 PASN_Integer & idx = idm;
+		 idx = 1;
+		param.m_parameterValue.SetTag(H245_ParameterValue::e_octetString);
+		PASN_OctetString & oct = param.m_parameterValue;
+
+
+		H46024B_ArrayOf_AlternateAddress addrs;
+
+		map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.begin();
+		while (i != m_H46024Balternate.end()) {
+			int sz = addrs.GetSize();
+			addrs.SetSize(sz+1);
+				H46024B_AlternateAddress addr;
+				addr.m_sessionID = i->first;
+				addr.IncludeOptionalField(H46024B_AlternateAddress::e_rtpAddress);
+				if (initiate)
+				   addr.m_rtpAddress = i->second.forward;
+				else
+				   addr.m_rtpAddress = i->second.reverse;
+			addrs[sz] = addr;
+			i++;
+		}
+		oct.EncodeSubType(addrs);
+}
+
+void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemControlMessage & h245msg)
+{
+	Q931 q931;
+	socket->BuildFacilityPDU(q931, H225_FacilityReason::e_undefinedReason);
+	H225_H323_UserInformation uuie;
+	GetUUIE(q931, uuie);
+	uuie.m_h323_uu_pdu.m_h245Tunneling = true;
+	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
+	  PINDEX sz = uuie.m_h323_uu_pdu.m_h245Control.GetSize();
+	  uuie.m_h323_uu_pdu.m_h245Control.SetSize(sz+1);
+	  uuie.m_h323_uu_pdu.m_h245Control[sz].EncodeSubType(h245msg);
+
+	SetUUIE(q931, uuie);
+    PBYTEArray lBuffer;
+	q931.Encode(lBuffer);
+	socket->TransmitData(lBuffer);
+}
+
+void CallRec::H46024BSessionFlag(WORD sessionID)
+{
+	   list<int>::const_iterator p = find(m_h46024Bflag.begin(), m_h46024Bflag.end(), sessionID);
+	   if (p == m_h46024Bflag.end())
+	      m_h46024Bflag.push_back(sessionID);
+}
+
+void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev)
+{
+	map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.find(sessionID);
+	if (i != m_H46024Balternate.end()) return;
+
+	PWaitAndSignal m(m_H46024Bmutex);
+
+	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev);
+
+	H46024Balternate alt;
+	fwd.SetPDU(alt.forward);
+	rev.SetPDU(alt.reverse);
+	m_H46024Balternate.insert(pair<WORD,H46024Balternate>(sessionID,alt));
+
+	m_h46024Bflag.remove(sessionID);
+
+	if (m_h46024Bflag.size() == 0) {
+		// Build the Generic Request
+		H245_MultimediaSystemControlMessage h245msg;
+		BuildH46024AnnexBMessage(true,h245msg,m_H46024Balternate);
+
+		PTRACE(4,"H46024B\tRequest Message\n" << h245msg);
+
+		// If we are tunnning
+		SendH46024BFacility(GetCallSignalSocketCalling(), h245msg);
+	}
+}
+
+void CallRec::H46024BRespond()
+{
+	if (m_H46024Balternate.size() == 0)
+		return;
+
+	PTRACE(5,"H46024B\tNAT offload respond");
+
+	// Build the Generic response
+	H245_MultimediaSystemControlMessage h245msg;
+	BuildH46024AnnexBMessage(false,h245msg,m_H46024Balternate);
+
+    // If we are tunnning
+	CallSignalSocket * socket = GetCallSignalSocketCalled();
+	SendH46024BFacility(socket, h245msg);
+
+	m_H46024Balternate.clear();
+}
+#endif // HAS_H46024B
+
+#endif  // HAS_H46023
 
 void CallRec::SetRADIUSClass(const PBYTEArray &bytes)
 {

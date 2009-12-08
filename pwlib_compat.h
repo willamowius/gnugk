@@ -126,6 +126,14 @@
 	#define HAS_H460 1    // H460 support
 #endif
 
+#if defined(HAS_H46018) && defined(H323_H46024B)
+	#define HAS_H46024B	1  
+#endif
+
+#ifdef H323_H460P
+	#define HAS_H460P	1  // Presence
+#endif
+
 #if OPENH323_MAJOR == 1
 	#if OPENH323_MINOR >= 19
 		#if OPENH323_MINOR == 19

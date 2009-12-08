@@ -1442,6 +1442,9 @@ PConfig* Toolkit::ReloadConfig()
 #ifdef HAS_H46023
 	if (m_H46023Enabled)  LoadH46023STUN();
 #endif
+#ifdef HAS_H460P
+	m_presence.LoadConfig(m_Config);
+#endif
 	m_Rewrite.LoadConfig(m_Config);
 	m_GWRewrite.LoadConfig(m_Config);
 	m_AssignedEPAliases.LoadConfig(m_Config);
@@ -2341,6 +2344,18 @@ bool Toolkit::GetH46023STUN(const PIPSocket::Address & addr, H323TransportAddres
 bool Toolkit::H46023SameNetwork(const PIPSocket::Address & addr1, const PIPSocket::Address & addr2)
 {
 	return (m_ProxyCriterion.IsInternal(addr1) == m_ProxyCriterion.IsInternal(addr2));
+}
+#endif
+
+#ifdef HAS_H460P
+bool Toolkit::IsH460PEnabled() const 
+{
+	return m_presence.IsEnabled();
+}
+
+GkPresence & Toolkit::GetPresenceHandler() 
+{ 
+	return m_presence; 
 }
 #endif
 
