@@ -80,8 +80,7 @@ To speed up your routing, make sure you resolve internal destinations before the
 <p>
 DNS SRV or H.323 Annex O allows for the routing of calls using a H.323 URI. 
 Addresses can be configured as user (at) domain. H.323 URIs are stored in the 
-DNS domain records of the domain and are queried to find the destination. 
-Records can be used to determine the signaling address or for the LRQ address. 
+SRV DNS records of the domain and are queried to find the destination. 
 
 <item><tt/rds/<newline>
 <p>
