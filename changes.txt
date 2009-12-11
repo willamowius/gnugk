@@ -1,5 +1,6 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- rewrite srv policy, add handling of LRQs
 - BUGFIX(Neighbor.cxx) fix memory leaks in neighbor, srv and rds policy
 - More presence work added
 - added H.460.24 Annex B support
@@ -8,7 +9,7 @@ Changes from 2.3.1 to 2.3.2
   before using the result value
 - BUGFIX(ProxyChannel.cxx) remove supportedFeature H.460.19 from Setup when called party
   doesn't support it
-- Added support for multiple DefaultDomains
+- added support for multiple DefaultDomains
 
 Changes from 2.3.0 to 2.3.1
 ===========================

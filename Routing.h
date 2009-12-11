@@ -47,7 +47,8 @@ struct Route {
 	// a policy can set flags to indicate extra status of a processed request
 	enum Flags {
 		e_toParent = 1,
-		e_toNeighbor = 2
+		e_toNeighbor = 2,
+		e_Reject = 4
 	};
 	
 	Route();

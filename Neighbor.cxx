@@ -1396,41 +1396,42 @@ protected:
 
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+
+	virtual Route * CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly);
+	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases);
+	virtual Route * LSLocalLookup(H225_ArrayOf_AliasAddress & aliases);
 };
 
-bool SRVPolicy::FindByAliases(
-	RoutingRequest &request,
-	H225_ArrayOf_AliasAddress &aliases
-	)
+Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		// only apply to urlID and h323ID
+		if ((aliases[i].GetTag() != H225_AliasAddress::e_url_ID)
+			&& (aliases[i].GetTag() != H225_AliasAddress::e_h323_ID))
+			continue;
 		PString alias(AsString(aliases[i], FALSE));
-	    if (alias.GetLength() == 0) continue;
+		PINDEX at = alias.Find('@');
+		// skip empty aliases or those without at-sign
+	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
+			continue;
 
 		// DNS SRV Record lookup
-		PString number;
-		PString domain;
-		PString localalias;
-		PINDEX at = alias.Find('@');
-		if (at == P_MAX_INDEX) {
-			number = "h323:t@" + alias;	
-			domain = alias;
-			localalias = alias;
-	    } else {
-			number = "h323:" + alias;
-			domain = alias.Mid(at+1);
-			localalias = alias.Left(at);
-		}
+		PString number = "h323:" + alias;
+		PString domain = alias.Mid(at+1);
+		PString localalias = alias.Left(at);
+		if (IsIPAddress(domain)
+			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
+			continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
 
 		// LS Record lookup
 		PStringList ls;
-		if (PDNS::LookupSRV(number,"_h323ls._udp.",ls)) {
-			for (PINDEX i=0; i<ls.GetSize(); i++) {
+		if (PDNS::LookupSRV(number, "_h323ls._udp.", ls)) {
+			for (PINDEX i=0; i < ls.GetSize(); i++) {
 				PINDEX at = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(at + 1);
 				if (ipaddr.Left(7) == "0.0.0.0") {
 					PTRACE(1, "ROUTING\tERROR in LS SRV lookup (" << ls[i] << ")");
-					return false;
+					continue;
 				}
 				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
 				H323TransportAddress addr = H323TransportAddress(ipaddr);
@@ -1439,10 +1440,10 @@ bool SRVPolicy::FindByAliases(
 				WORD port;
 				if (!GetTransportAddress(ipaddr, GK_DEF_UNICAST_RAS_PORT, socketip, port) && socketip.IsValid()) {
 					PTRACE(1, "ROUTING\tERROR in SRV LS IP " << ipaddr);
-					return false;	// TODO: skip to next or to tcp ?
+					continue;
 				}
 				if (Toolkit::Instance()->IsGKHome(socketip)) {
-					// this is my address, no need to send LRQs, just look into the endpoint table
+					// this is my domain, no need to send LRQs, just look into the endpoint table
 					PINDEX numberat = number.Find('@');	// always has an @
 					H225_ArrayOf_AliasAddress find_aliases;
 					find_aliases.SetSize(1);
@@ -1451,14 +1452,11 @@ bool SRVPolicy::FindByAliases(
 					endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 					if (ep) {
 						// endpoint found locally
-						Route route(ep);
-						route.m_policy = m_name;
-						request.AddRoute(route);
-						if (strspn(local_alias, "0123456789") == (size_t)local_alias.GetLength()) {
-							H323SetAliasAddress(local_alias, aliases[i]);
-							request.SetFlag(RoutingRequest::e_aliasesChanged);
-						}
-						return true;
+						Route * route = new Route(ep);
+						route->m_policy = m_name;
+						return route;
+					} else {
+						return NULL;
 					}
 				} else {
 					// Create a SRV gatekeeper object
@@ -1466,92 +1464,218 @@ bool SRVPolicy::FindByAliases(
 					if (!nb->SetProfile(domain,addr)) {
 						PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
 						delete nb;
-						return false;	// TODO: skip to tcp ?
+						return NULL;
 					}
 
 					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 					// Send LRQ to retreive callers signaling address
-					PString orig_alias = AsString(aliases[i], false);
-					// only set local alias part in LRQ TODO: Not correct to H.323 Annex O
-					H323SetAliasAddress(localalias, aliases[i]);
 					LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
 					LRQRequester Request(functor);
 					if (Request.Send(nb)) {
 						if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
-							Route route(m_name, lcf->m_callSignalAddress);
+							Route * route = new Route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
 							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 								H225_RasMessage ras;
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
 								H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 								con = *lcf;
-								route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+								route->m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 							}
 #endif
-							request.AddRoute(route);
-							// @xxx was removed for the alias we routed on
-							request.SetFlag(RoutingRequest::e_aliasesChanged);
 							delete nb;
-							return true;
+							return route;
 						}
-						H323SetAliasAddress(orig_alias, aliases[i]);	// restore full alias for next policy
 					}
 					delete nb;
 					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
 					// we found the directory for this domain, but it didn't have a destination, so we fail the call
-					request.SetFlag(RoutingRequest::e_Reject);
-					return true;
+					Route * route = new Route();
+					route->m_flags |= Route::e_Reject;
+					return route;
 				}
 			}
 		}
+	}
+	return NULL;
+}
 
-		// TODO: look for CS records before LS records to save the LRQs if both CS and LS exist ?
+Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		// only apply to urlID and h323ID
+		if ((aliases[i].GetTag() != H225_AliasAddress::e_url_ID)
+			&& (aliases[i].GetTag() != H225_AliasAddress::e_h323_ID))
+			continue;
+		PString alias(AsString(aliases[i], FALSE));
+		PINDEX at = alias.Find('@');
+		// skip empty aliases or those without at-sign
+	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
+			continue;
+
+		// DNS SRV Record lookup
+		PString number = "h323:" + alias;
+		PString domain = alias.Mid(at+1);
+		if (IsIPAddress(domain)
+			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
+			continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
+
+		// LS Record lookup
+		PStringList ls;
+		if (PDNS::LookupSRV(number, "_h323ls._udp.", ls)) {
+			for (PINDEX i=0; i < ls.GetSize(); i++) {
+				PINDEX at = ls[i].Find('@');
+				PString ipaddr = ls[i].Mid(at + 1);
+				if (ipaddr.Left(7) == "0.0.0.0") {
+					PTRACE(1, "ROUTING\tERROR in LS SRV lookup (" << ls[i] << ")");
+					continue;
+				}
+				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
+				H323TransportAddress addr = H323TransportAddress(ipaddr);
+
+				PIPSocket::Address socketip;
+				WORD port;
+				if (!GetTransportAddress(ipaddr, GK_DEF_UNICAST_RAS_PORT, socketip, port) && socketip.IsValid()) {
+					PTRACE(1, "ROUTING\tERROR in SRV LS IP " << ipaddr);
+					continue;
+				}
+				if (Toolkit::Instance()->IsGKHome(socketip)) {
+					// this is my domain, no need to send LRQs, just look into the endpoint table
+					PINDEX numberat = number.Find('@');	// always has an @
+					H225_ArrayOf_AliasAddress find_aliases;
+					find_aliases.SetSize(1);
+					PString local_alias = number.Mid(5,numberat-5);
+					H323SetAliasAddress(local_alias, find_aliases[0]);
+					endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
+					if (ep) {
+						// endpoint found locally
+						Route * route = new Route(ep);
+						route->m_policy = m_name;
+						return route;
+					}
+				} else {
+					PTRACE(3, "ROUTING\tSkipped, using only local LS for LRQs");
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
+Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+		// only apply to urlID and h323ID
+		if ((aliases[i].GetTag() != H225_AliasAddress::e_url_ID)
+			&& (aliases[i].GetTag() != H225_AliasAddress::e_h323_ID))
+			continue;
+		PString alias(AsString(aliases[i], FALSE));
+		PINDEX at = alias.Find('@');
+		// skip empty aliases or those without at-sign
+	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
+			continue;
+
+		// DNS SRV Record lookup
+		PString number = "h323:" + alias;
+		PString domain = alias.Mid(at+1);
+		if (IsIPAddress(domain)
+			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
+			continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
+
 		// CS SRV Lookup
 		PStringList cs;
-		if (PDNS::LookupSRV(number,"_h323cs._tcp.",cs)) {
-			for (PINDEX j=0; j<cs.GetSize(); j++) {
+		if (PDNS::LookupSRV(number, "_h323cs._tcp.", cs)) {
+			for (PINDEX j = 0; j < cs.GetSize(); j++) {
 				H225_TransportAddress dest;
 				PINDEX in = cs[j].Find('@');
 				PString dom = cs[j].Mid(in+1);
 				if (dom.Left(7) == "0.0.0.0") {
 					PTRACE(1, "ROUTING\tERROR in CS SRV lookup (" << cs[j] << ")");
-					return false;
+					continue;
 				}
 				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				if (GetTransportAddress(dom, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
 					PIPSocket::Address addr;
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
-					if (!(RasServer::Instance()->IsGKRouted()) && Toolkit::Instance()->IsGKHome(addr)) {
-						// check if the domain is my IP, if so pass out endpoint IP in direct mode
+					Route * route = NULL;
+					if (Toolkit::Instance()->IsGKHome(addr)) {
 						H225_ArrayOf_AliasAddress find_aliases;
 						find_aliases.SetSize(1);
 						H323SetAliasAddress(alias.Left(at), find_aliases[0]);
 						endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 						if (ep) {
-							dest = ep->GetCallSignalAddress();
+							// pass out endpoint IP in direct mode
+							if(!(RasServer::Instance()->IsGKRouted())) {
+								dest = ep->GetCallSignalAddress();
+							}
+							route = new Route(m_name, dest);
+							route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+							return route;
+						} else {
+							return NULL;	// endpoint not found
 						}
 					}
-					Route route(m_name, dest);
-                    // @xxx is removed for the alias we routed on
-					PString called = cs[j].Left(in);
-					H323SetAliasAddress(called, aliases[i]);
-					request.SetFlag(RoutingRequest::e_aliasesChanged);
-					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
-					request.AddRoute(route);
+					if (!localonly) {
+						route = new Route(m_name, dest);
+						route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+						return route;
+					}
 				}
 			}
-			return true;
 		}
 	}
-	return false;
+	return NULL;
 }
 
+bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{
+	Route * route = CSLookup(aliases, false);
+	if (route) {
+		if (route->m_flags & Route::e_Reject) {
+			request.SetFlag(RoutingRequest::e_Reject);
+		} else {
+			request.AddRoute(*route);
+		}
+		delete route;
+		return true;
+	}
+	route = LSLookup(request, aliases);
+	if (route) {
+		if (route->m_flags & Route::e_Reject) {
+			request.SetFlag(RoutingRequest::e_Reject);
+		} else {
+			request.AddRoute(*route);
+		}
+		delete route;
+		return true;
+	}
+	return false;  
+}
 
 bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 { 
-    PTRACE(4, "ROUTING\tPolicy SRV not supported for LRQ");
+	Route * route = CSLookup(aliases, true);
+	if (route) {
+		if (route->m_flags & Route::e_Reject) {
+			request.SetFlag(RoutingRequest::e_Reject);
+		} else {
+			request.AddRoute(*route);
+		}
+		delete route;
+		return true;
+	}
+	route = LSLocalLookup(aliases);
+	if (route) {
+		if (route->m_flags & Route::e_Reject) {
+			request.SetFlag(RoutingRequest::e_Reject);
+		} else {
+			request.AddRoute(*route);
+		}
+		delete route;
+		return true;
+	}
 	return false;  
 }
 #endif
