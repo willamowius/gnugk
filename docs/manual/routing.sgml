@@ -40,8 +40,7 @@ Route the call using neighbors by exchanging LRQ messages.
 
 <item><tt/dns/<newline>
 <p>
-The destination is resolved from DNS, provided it is
-resolvable.
+The destination is resolved from DNS A records.
 
 <item><tt/sql/<newline>
 <p>
@@ -144,7 +143,7 @@ A typical ENUM routing setup would look like this:
 <descrip>
 <tag/Example:/
 <quote><tt>[RoutingPolicy]<newline>
-default=explicit,internal,enum,dns,internal,parent,neighbor</tt></quote>
+default=explicit,internal,enum,srv,dns,internal,parent,neighbor</tt></quote>
 </descrip>
 
 
