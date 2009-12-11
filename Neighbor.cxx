@@ -335,10 +335,11 @@ void Neighbor::SetH46018GkKeepAliveInterval(int interval)
 		m_keepAliveTimerInterval = interval;
 		if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
 			Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
-		PTime now;
-		if (m_keepAliveTimerInterval > 0)
+		if (m_keepAliveTimerInterval > 0) {
+			PTime now;
 			m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				this, &Neighbor::SendH46018GkKeepAlive, now, m_keepAliveTimerInterval);	// do it now and every n seconds
+		}
 	}
 }
 
