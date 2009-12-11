@@ -1392,7 +1392,6 @@ public:
 	SRVPolicy() { m_name = "SRV"; }
 
 protected:
-    virtual bool OnRequest(SetupRequest &) { return false; }
     virtual bool OnRequest(FacilityRequest &) { return false; }
 
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
@@ -1607,10 +1606,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 						H323SetAliasAddress(alias.Left(at), find_aliases[0]);
 						endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 						if (ep) {
-							// pass out endpoint IP in direct mode
-							if(!(RasServer::Instance()->IsGKRouted())) {
-								dest = ep->GetCallSignalAddress();
-							}
+							dest = ep->GetCallSignalAddress();
 							route = new Route(m_name, dest);
 							route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 							return route;
@@ -1630,6 +1626,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 	return NULL;
 }
 
+// used for ARQs and Setups
 bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	Route * route = CSLookup(aliases, false);
@@ -1655,6 +1652,7 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 	return false;  
 }
 
+// usd for LRQs
 bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 { 
 	Route * route = CSLookup(aliases, true);
