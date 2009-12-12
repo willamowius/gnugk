@@ -120,23 +120,24 @@ public:
 	{
 
 #ifdef OpenH323Factory
-         for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
-             H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
+		for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
+			H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
 
-		   if (authenticator->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
-		     authenticator->SetLocalId(id);
-		     authenticator->SetPassword(m_password);
+			if (authenticator->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
+				authenticator->SetLocalId(id);
+				authenticator->SetPassword(m_password);
 
-             if (authenticator->PrepareTokens(rasmsg.m_tokens, rasmsg.m_cryptoTokens)) {
-                 PTRACE(4, "GKClient\tPrepared PDU with authenticator " << authenticator);
-	 		 }
-		   }
+				if (authenticator->PrepareTokens(rasmsg.m_tokens, rasmsg.m_cryptoTokens)) {
+					PTRACE(4, "GKClient\tPrepared PDU with authenticator " << authenticator);
+				}
+			}
+			delete authenticator;
 		}
-          if (rasmsg.m_tokens.GetSize() > 0)
-              rasmsg.IncludeOptionalField(RAS::e_tokens);
+		if (rasmsg.m_tokens.GetSize() > 0)
+			rasmsg.IncludeOptionalField(RAS::e_tokens);
 
-          if (rasmsg.m_cryptoTokens.GetSize() > 0)
-              rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
+		if (rasmsg.m_cryptoTokens.GetSize() > 0)
+			rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
 #else
 		if (!m_password) {
 			// to avoid including h235.h
