@@ -243,9 +243,9 @@ However, if the detection fails, you can specify it manually in this section.
 
 <descrip>
 <tag/Format:/
-<tt/alias=true,yes,1,.../
+<tt/alias=true | yes | 1/
 <tag/Example:/
-Specify an endpoint with alias 601 is behind NAT.
+Specify that the endpoint with alias 601 is behind NAT.
 <quote/<tt/601=true//
 </descrip>
 
