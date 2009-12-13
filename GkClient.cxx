@@ -148,6 +148,7 @@ void NATClient::Exec()
 			return;
 		}
 	}
+	PWaitAndSignal lockDeletion(m_deletionPreventer);
 	delete socket;
 	socket = NULL;
 	// If we lose the TCP connection then retry after 60 sec
@@ -182,7 +183,9 @@ void NATClient::SendInfo(int state)
 	information.SetIE(Q931::FacilityIE, epid);
 	information.SetCallState(Q931::CallStates(state));
 	information.Encode(buf);
-	socket->TransmitData(buf);
+	if (socket) {
+		socket->TransmitData(buf);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
