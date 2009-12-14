@@ -370,7 +370,10 @@ Prefixes: 02,09
 </descrip>
 
 <item><tt/UnregisterIP/<newline>
-<p>Forcefully unregister an endpoint by IP and call signaling port. If you don't specify a port, the default call signalling port 1720 is used.
+<p>
+Forcefully unregister an endpoint by IP and call signaling port.
+If you don't specify a call signal port, GnuGk will unregister
+the first endpoint it finds on the IP number
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -435,7 +438,10 @@ DisconnectCall 1533
 </descrip>
 
 <item><tt/DisconnectIP/<newline>
-<p>Disconnect all calls of an endpoint by IP and call signaling port.
+<p>
+Disconnect all calls of an endpoint by IP and call signaling port.
+If you don't specify a call signal port, GnuGk will disconnect the
+first endpoint it finds on the IP number
 <descrip>
 <tag/Format:/
 <tscreen><verb>

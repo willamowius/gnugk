@@ -131,11 +131,15 @@ void SoftPBX::UnregisterIp(PString Ip)
 	H225_TransportAddress callSignalAddress;
 	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
 
-	PTRACE(3, "GK\tSoftPBX: UnregisterIp " << AsDotString(callSignalAddress));
+	PTRACE(3, "GK\tSoftPBX: UnregisterIp " << Ip);
 
-	const endptr ep = RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);
+	endptr ep;
+	if (Ip.Find(':') == P_MAX_INDEX)
+		ep = RegistrationTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress);	// no port specified
+	else
+		ep = RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);	// port specify, search for it
 	if (!ep) {
-		PString msg("IP " + AsDotString(callSignalAddress) + " not found!");
+		PString msg("IP " + Ip + " not found!");
 		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
@@ -185,10 +189,13 @@ void SoftPBX::DisconnectIp(PString Ip)
 {
 	H225_TransportAddress callSignalAddress;
 	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
-	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << AsDotString(callSignalAddress));
+	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << Ip);
 
-	// TODO: extend to searching on non-standard ports
-	callptr Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress);
+	callptr Call;
+	if (Ip.Find(':') == P_MAX_INDEX)
+		Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress);	// no port specified
+	else
+		Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress);	// port specify, search for it
 	if (!Call) {
 		PString msg = "Can't find call for IP " + Ip;
 		PTRACE(2, "GK\tSoftPBX: " << msg);

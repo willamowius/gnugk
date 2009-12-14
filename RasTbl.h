@@ -457,6 +457,7 @@ public:
 
 	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
 	endptr FindBySignalAdr(const H225_TransportAddress &, PIPSocket::Address = INADDR_ANY) const;
+	endptr FindBySignalAdrIgnorePort(const H225_TransportAddress &, PIPSocket::Address = INADDR_ANY) const;
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindFirstEndpoint(const H225_ArrayOf_AliasAddress & alias);
@@ -720,6 +721,7 @@ public:
 	bool CompareCallNumber(PINDEX CallNumber) const;
 	bool CompareEndpoint(const endptr *) const;
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
+	bool CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const;
 
 	bool IsUsed() const { return (m_usedCount != 0); }
 
@@ -1338,6 +1340,7 @@ public:
 	callptr FindCallRec(PINDEX CallNumber) const;
 	callptr FindCallRec(const endptr &) const;
 	callptr FindBySignalAdr(const H225_TransportAddress & SignalAdr) const;
+	callptr FindBySignalAdrIgnorePort(const H225_TransportAddress & SignalAdr) const;
 
 	void ClearTable();
 	void CheckCalls(
@@ -1720,6 +1723,27 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 {
 	return (m_Calling && m_Calling->GetCallSignalAddress() == *adr) ||
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
+}
+
+inline bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
+{
+	H225_TransportAddress cmpAdr;
+	if (!adr || (adr->GetTag() != H225_TransportAddress::e_ipAddress))
+		return false;
+	cmpAdr = *adr;	// make a copy, we'll temporarily modify it
+	if (m_Calling && (m_Calling->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
+		// set same port on copy as on other adr
+		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Calling->GetCallSignalAddress()).m_port;
+		if (m_Calling->GetCallSignalAddress() == cmpAdr)
+			return true;
+	}
+	if (m_Called && (m_Called->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
+		// set same port on copy as on other adr
+		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Called->GetCallSignalAddress()).m_port;
+		if (m_Calling->GetCallSignalAddress() == cmpAdr)
+			return true;
+	}
+	return false;
 }
 
 inline PString CallRec::GetSRC_media_control_IP() const

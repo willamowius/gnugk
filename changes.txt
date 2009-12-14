@@ -1,5 +1,6 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- extend statusport commands UnregisterIP and DisconnectIP to find endpoints on non-standard ports
 - BUGFIX(GkClient.cxx) fix race condition when unregistering child
 - BUGFIX(GkClient.h) fix memory leak
 - rewrite srv policy, add handling of LRQs and Setups

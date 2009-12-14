@@ -1401,10 +1401,36 @@ protected:
 	const H225_TransportAddress & SigAdr;
 };
 
+class CompareSigAdrIgnorePort {
+public:
+	CompareSigAdrIgnorePort(const H225_TransportAddress & adr) : SigAdr(adr) {}
+	bool operator()(const EndpointRec *ep) const {
+		H225_TransportAddress other = ep->GetCallSignalAddress();	// make a copy, we'll modify it temporarily!
+		if ((SigAdr.GetTag() == H225_TransportAddress::e_ipAddress)
+			&& (other.GetTag() == H225_TransportAddress::e_ipAddress)) {
+			// set same port on copy as on other adr
+			((H225_TransportAddress_ipAddress &)other).m_port = ((const H225_TransportAddress_ipAddress &)SigAdr).m_port;
+		}
+		return other == SigAdr;
+	}
+
+protected:
+	const H225_TransportAddress & SigAdr;
+};
+
 class CompareSigAdrWithNAT : public CompareSigAdr {
 public:
 	CompareSigAdrWithNAT(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdr(adr), natip(ip) {}
 	bool operator()(const EndpointRec *ep) const { return (ep->GetNATIP() == natip) && CompareSigAdr::operator()(ep); }
+
+private:
+	PIPSocket::Address natip;
+};
+
+class CompareSigAdrWithNATIgnorePort : public CompareSigAdrIgnorePort {
+public:
+	CompareSigAdrWithNATIgnorePort(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdrIgnorePort(adr), natip(ip) {}
+	bool operator()(const EndpointRec *ep) const { return (ep->GetNATIP() == natip) && CompareSigAdrIgnorePort::operator()(ep); }
 
 private:
 	PIPSocket::Address natip;
@@ -1423,6 +1449,11 @@ bool operator==(const H225_TransportAddress & adr, PIPSocket::Address ip)
 endptr RegistrationTable::FindBySignalAdr(const H225_TransportAddress & sigAd, PIPSocket::Address ip) const
 {
 	return (sigAd == ip) ? InternalFind(CompareSigAdr(sigAd)) : InternalFind(CompareSigAdrWithNAT(sigAd, ip));
+}
+
+endptr RegistrationTable::FindBySignalAdrIgnorePort(const H225_TransportAddress & sigAd, PIPSocket::Address ip) const
+{
+	return (sigAd == ip) ? InternalFind(CompareSigAdrIgnorePort(sigAd)) : InternalFind(CompareSigAdrWithNATIgnorePort(sigAd, ip));
 }
 
 endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress & sigAd) const
@@ -3327,6 +3358,11 @@ callptr CallTable::FindCallRec(const endptr & ep) const
 callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) const
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdr), &SignalAdr));
+}
+
+callptr CallTable::FindBySignalAdrIgnorePort(const H225_TransportAddress & SignalAdr) const
+{
+	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdrIgnorePort), &SignalAdr));
 }
 
 void CallTable::ClearTable()
