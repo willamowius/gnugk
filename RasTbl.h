@@ -1725,7 +1725,7 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-inline bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
+bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 {
 	H225_TransportAddress cmpAdr;
 	if (!adr || (adr->GetTag() != H225_TransportAddress::e_ipAddress))
