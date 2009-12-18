@@ -2028,6 +2028,27 @@ CallRec::~CallRec()
 	m_routeToAlias = NULL;
 }
 
+bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
+{
+	H225_TransportAddress cmpAdr;
+	if (!adr || (adr->GetTag() != H225_TransportAddress::e_ipAddress))
+		return false;
+	cmpAdr = *adr;	// make a copy, we'll temporarily modify it
+	if (m_Calling && (m_Calling->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
+		// set same port on copy as on other adr
+		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Calling->GetCallSignalAddress()).m_port;
+		if (m_Calling->GetCallSignalAddress() == cmpAdr)
+			return true;
+	}
+	if (m_Called && (m_Called->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
+		// set same port on copy as on other adr
+		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Called->GetCallSignalAddress()).m_port;
+		if (m_Calling->GetCallSignalAddress() == cmpAdr)
+			return true;
+	}
+	return false;
+}
+
 void CallRec::SetProxyMode(
 	int mode /// proxy mode flag (see #ProxyMode enum#)
 	)

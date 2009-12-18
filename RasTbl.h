@@ -1725,27 +1725,6 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 		(m_Called && m_Called->GetCallSignalAddress() == *adr);
 }
 
-bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
-{
-	H225_TransportAddress cmpAdr;
-	if (!adr || (adr->GetTag() != H225_TransportAddress::e_ipAddress))
-		return false;
-	cmpAdr = *adr;	// make a copy, we'll temporarily modify it
-	if (m_Calling && (m_Calling->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
-		// set same port on copy as on other adr
-		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Calling->GetCallSignalAddress()).m_port;
-		if (m_Calling->GetCallSignalAddress() == cmpAdr)
-			return true;
-	}
-	if (m_Called && (m_Called->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
-		// set same port on copy as on other adr
-		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Called->GetCallSignalAddress()).m_port;
-		if (m_Calling->GetCallSignalAddress() == cmpAdr)
-			return true;
-	}
-	return false;
-}
-
 inline PString CallRec::GetSRC_media_control_IP() const
 {
     return m_src_media_control_IP;
