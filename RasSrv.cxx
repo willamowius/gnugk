@@ -3319,6 +3319,21 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	}
 #endif
 
+#ifdef HAS_H460P
+	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
+		H460_FeatureSet fs = H460_FeatureSet(request.m_genericData);
+		OpalOID oid3(OID3);
+		if (fs.HasFeature(oid3) && Toolkit::Instance()->IsH460PEnabled()) {
+			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(oid3);
+			if (feat->Contains(OID3_PDU)) {
+				PASN_OctetString & prePDU = feat->Value(OID3_PDU);
+				GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
+				handler.ProcessPresenceElement(prePDU);
+			}
+		}
+	}
+#endif
+
 	PrintStatus(PString(PString::Printf, "SCR|%s;", inet_ntoa(m_msg->m_peerAddr)));
 	return true;
 }
