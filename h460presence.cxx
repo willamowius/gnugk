@@ -285,13 +285,13 @@ bool AddPresenceMap(const H460P_PresenceIdentifier & pid, const H323PresenceID &
 
 bool RemovePresenceMap(const H460P_PresenceIdentifier & pid, H323PresenceIds & Ids, H323PresenceIdMap & Idmap)
 {
-	H323PresenceIds::const_iterator id = Ids.find(pid);
+	H323PresenceIds::iterator id = Ids.find(pid);
 	if (id != Ids.end()) {
-		H323PresenceIdMap::const_iterator a = Idmap.find(id->second.m_subscriber);
+		H323PresenceIdMap::iterator a = Idmap.find(id->second.m_subscriber);
 		if (a != Idmap.end()) {
 			Idmap.erase(a);
 		}
-		H323PresenceIdMap::const_iterator b = Idmap.find(id->second.m_Alias);
+		H323PresenceIdMap::iterator b = Idmap.find(id->second.m_Alias);
 		if (b != Idmap.end()) {
 			Idmap.erase(b);
 		}
