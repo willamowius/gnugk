@@ -449,6 +449,14 @@ Default: <tt>N/A</tt><newline>
 Sets the STUN server list for use with H.460.23 seperated by (,). 
 Each Network interface must have a STUNserver set for H.460.23 support on that interface.
 
+<item><tt/NATStdMin=18/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Require registering endpoints detected as being behind a NAT to support a Standard NAT Traversal mechanism.
+When an endpoint registers from behind a NAT and does not support the minimum NAT standard then the registration
+will be rejected with a reason neededFeatureNotSupported.
+Valid values are "18" for H.460.18/.19 and "23" for H.460.23/.24
+
 <item><tt/TranslateSorensonSourceInfo=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
