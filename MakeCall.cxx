@@ -19,7 +19,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 {
 	SetLocalUserName(GkConfig()->GetString("CTI::MakeCall", "EndpointAlias", "InternalMakeCallEP"));
 	isRegistered = FALSE;
-	useH450Transfer = Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "UseH450", "1"));
+	useH450Transfer = Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "UseH450", "0"));
 
 	// Set the various options
 	DisableFastStart(Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "DisableFastStart", "0")));

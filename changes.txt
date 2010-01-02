@@ -1,12 +1,13 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
-- New switch [RoutedMode]NATStdMin for registering endpoints behind NAT to support NAT standard.
+- changed default for [CTI::MakeCall]UseH450= to 0 (supported by more endpoints)
+- new switch [RoutedMode]NATStdMin for registering endpoints behind NAT to support NAT standard.
 - extend statusport commands UnregisterIP and DisconnectIP to find endpoints on non-standard ports
 - BUGFIX(GkClient.cxx) fix race condition when unregistering child
 - BUGFIX(GkClient.h) fix memory leak
 - rewrite srv policy, add handling of LRQs and Setups
 - BUGFIX(Neighbor.cxx) fix memory leaks in neighbor, srv and rds policy
-- More presence work added
+- more presence work added
 - added H.460.24 Annex B support
 - add new accounting events: AcctAlert, AcctRegister, AcctUnregister
 - BUGFIX(ProxyChannel.cxx, gkauth.cxx) always check if DecodeSubType() was successfull

@@ -398,8 +398,8 @@ Default: <tt>InternalMakeCallEP</tt><newline>
 This defines the endpoint alias for the pseudo endpoint used to dial.
 
 <item>
-<tt/UseH450=0/<newline>
-Default: <tt>1</tt><newline>
+<tt/UseH450=1/<newline>
+Default: <tt>0</tt><newline>
 <p>
 Use a H.450.2 transfer instead of a Facility message to transfer the call from the pseudo endpoint to the actual destination.
 
