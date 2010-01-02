@@ -126,8 +126,10 @@
 	#define HAS_H460 1    // H460 support
 #endif
 
-#ifdef H323_H46024B
-	#define HAS_H46024B	1  
+#ifdef HAS_H46023
+	#ifdef H323_H46024B
+		#define HAS_H46024B	1  
+	#endif
 #endif
 
 #ifdef H323_H460P

@@ -1897,10 +1897,16 @@ bool RegistrationRequestPDU::Process()
 		} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow nated from loopback
 			nated = true;
 			PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
-			if (!featureRequired && 
-					((featureRequired == "18" && !supportH46018) ||
-					 (featureRequired == "23" && !supportH46023)))
+			if (!featureRequired && ( 0
+#ifdef HAS_H46018
+					|| (featureRequired == "18" && !supportH46018)
+#endif
+#ifdef HAS_H46023
+					 || (featureRequired == "23" && !supportH46023)
+#endif
+					 )) {
 						return BuildRRJ(H225_RegistrationRejectReason::e_neededFeatureNotSupported, nated);
+			}
 			else
 				validaddress = Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"));
 		}
