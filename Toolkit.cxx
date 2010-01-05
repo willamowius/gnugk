@@ -284,10 +284,14 @@ void Toolkit::RouteTable::InitTable()
     }
 
 #if PTRACING
-	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry)
+	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
 		PTRACE(2, "Network=" << entry->GetNetwork() << '/' << entry->GetNetMask() <<
 			  ", IP=" << entry->GetDestination());
+	}
 	PTRACE(2, "Default IP=" << defAddr);
+	if (defAddr.IsLoopback()) {
+		PTRACE(1, "WARNING: Your default IP=" << defAddr << " is a loopback address. That probably won't work!");
+	}
 #endif
 }
 
