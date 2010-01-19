@@ -2997,7 +2997,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				return false;
 			}
 	}
-#if defined(HAS_H46018) && defined(H323_H46024B)
+#if defined(HAS_H46018) && defined(HAS_H46024B)
 	else if (goDirect && 
 		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
 		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
