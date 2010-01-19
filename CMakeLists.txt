@@ -17,7 +17,8 @@ if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "64")
 	add_definitions("-DP_64BIT")
 endif()
 
-SET(CMAKE_MODULE_PATH ".")
+# loom for FindXXX.cmake modules in our cmake folder
+SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 find_package(PTLIB REQUIRED)
 find_package(H323PLUS REQUIRED)
