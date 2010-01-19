@@ -2480,10 +2480,25 @@ void CallSignalSocket::OnSetup(
 	if (!m_call->H46019Required() || (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())))
 #endif
 	{
-		// remove H.460.19 indicator TODO: leave other features intact
+		// remove H.460.19 indicator
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
-			setupBody.m_supportedFeatures.SetSize(0);
-			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+			int numRemoved = -1;
+			int sz = setupBody.m_supportedFeatures.GetSize();
+			for (PINDEX i =0; i < sz; i++) {
+				H460_Feature feat = H460_Feature(setupBody.m_supportedFeatures[i]);
+				if (feat.GetFeatureID() == H460_FeatureID(19)) {
+					numRemoved = i;
+					break;
+				}
+			}
+			if (numRemoved > -1) {
+				for (PINDEX i=numRemoved; i < sz-1; i++) 
+					setupBody.m_supportedFeatures[i] = setupBody.m_supportedFeatures[i+1];
+
+				setupBody.m_supportedFeatures.SetSize(sz-1);
+				if (setupBody.m_supportedFeatures.GetSize() == 0)
+					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+			}
 		}
 		CreateRemote(setupBody);
 	}
@@ -2639,17 +2654,19 @@ bool CallSignalSocket::CreateRemote(
 					H460_FeatureStd std24 = H460_FeatureStd(24);
 					CallRec::NatStrategy strat = m_call->GetNATStrategy();
 
-					if (strat == CallRec::e_natRemoteMaster)
-							strat = CallRec::e_natLocalMaster;
-					if (strat == CallRec::e_natRemoteProxy)		
-							strat = CallRec::e_natLocalProxy;
+					if (strat == CallRec::e_natRemoteMaster)     strat = CallRec::e_natLocalMaster;
+					else if (strat == CallRec::e_natLocalMaster) strat = CallRec::e_natRemoteMaster;
+					else if (strat == CallRec::e_natRemoteProxy) strat = CallRec::e_natLocalProxy;
+					else if (strat == CallRec::e_natLocalProxy)  strat = CallRec::e_natRemoteProxy;
 
 					std24.Add(Std24_NATInstruct,H460_FeatureContent((int)strat,8));
 					PINDEX lastpos = fsn.GetSize();
 					fsn.SetSize(lastpos+1);
 					fsn[lastpos] = std24;    
-				} else if (!m_calledh46023 && natfound) {
-					fsn.RemoveAt(id);
+				} else if (!m_calledh46023 && natfound) {  // Remove H460.23 from Supported Features.
+					for (PINDEX j=id; j < fsn.GetSize()-1; ++j) {
+						fsn[j] == fsn[j+1];
+					}
 					fsn.SetSize(fsn.GetSize()-1);
 					if (fsn.GetSize() == 0)
 						setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
