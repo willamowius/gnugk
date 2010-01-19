@@ -5,7 +5,7 @@
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
 // We also explicitly grant the right to link this code
-// with the OpenH323 library.
+// with the OpenH323/H323Plus library.
 //
 //////////////////////////////////////////////////////////////////
 
@@ -121,14 +121,16 @@
 
 ///////////////////////////////////////////////
 
-// OpenH323 version matching
+// OpenH323/H323Plus version matching
 #ifdef H323_H460
 	#define HAS_H460 1    // H460 support
 #endif
 
-#ifdef H323_H46023 
-	#ifdef H323_H46024B
-		#define HAS_H46024B	1  
+#ifdef HAS_H46023		// config switch if H.460.23 should be enabled
+	#ifdef H323_H46023	// feature detection, if library supports H.460.23
+		#ifdef H323_H46024B
+			#define HAS_H46024B	1
+		#endif
 	#endif
 #endif
 
