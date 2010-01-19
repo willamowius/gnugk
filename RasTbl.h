@@ -179,6 +179,7 @@ public:
 	bool SupportH46024() const;
 	bool SupportH46024A() const;
 	bool SupportH46024B() const;
+	bool UseH46024B() const;
 	bool UsesH46023() const { return m_usesH46023; }
 
 	bool HasNATProxy() const;
@@ -1562,6 +1563,12 @@ inline bool EndpointRec::SupportH46024A() const
 inline bool EndpointRec::SupportH46024B() const
 {
 	return m_H46024b;
+}
+
+inline bool EndpointRec::UseH46024B() const
+{
+	int nat = (int)m_epnattype;
+	return (m_H46024b && (nat > 2 && nat < 5));
 }
 
 inline bool EndpointRec::HasNATProxy() const

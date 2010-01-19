@@ -2935,7 +2935,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	if (goDirect && m_Calling->IsNATed()) {
 		natinfo << "    IsNATed:     Yes\n";
 		natinfo << "    Detected IP: " << m_Calling->GetNATIP() << "\n";
-		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType());
+		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
+		natinfo << "    H.460.24 Annex B: " << (m_Calling->UseH46024B() ? "Yes" : "No");
 	} else if (!goDirect) {
 		natinfo << "    Proxy IP: " << m_Calling->GetIP() << "\n";
 	} else {
@@ -2947,7 +2948,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	if (goDirect && m_Called->IsNATed()) {
 		natinfo << "    IsNATed:      Yes\n";
 		natinfo << "    Detected IP: " << m_Called->GetNATIP() << "\n";
-		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType());
+		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
+		natinfo << "    H.460.24 Annex B: " << (m_Called->UseH46024B() ? "Yes" : "No");
 	} else if (!goDirect) {
 		natinfo << "    Proxy IP: " << m_Called->GetIP() << "\n";
 	} else {
@@ -2994,23 +2996,23 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				natinst = CallRec::e_natFullProxy;
 			else {
 				natinst = CallRec::e_natFailure;
+				PTRACE(2, "H46024\tFAILURE: No Annex A Support!");
 				return false;
 			}
 	}
-#if defined(HAS_H46018) && defined(HAS_H46024B)
-	else if (goDirect && 
-		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
-		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
-		(m_Calling->IsNATed() && m_Calling->GetEPNATType() < EndpointRec::NatSymmetric) && 
-		    (m_Called->IsNATed() && m_Called->GetEPNATType() < EndpointRec::NatSymmetric) &&
-			(m_Calling->SupportH46024B() && m_Called->SupportH46024B()))  
+
+	// Both parties are NAT and both and are either restricted or port restricted NAT
+	else if (goDirect && (m_Calling->UseH46024B() && m_Called->UseH46024B()))  
 				natinst = CallRec::e_natAnnexB;
-#endif
+
 	else if (goDirect && 
 		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
 		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
 			(!m_Calling->HasNATProxy() && (!m_Called->HasNATProxy()))) {
 				natinst = CallRec::e_natFailure;
+				PTRACE(2, "H46024\tFAILURE: No Annex B Support!" 
+					<< " local: " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType())
+					<< " remote: " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()));
 				return false;
 	}
 
@@ -3037,6 +3039,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	// Oops cannot proceed the media will Fail!!
 	else {
 			natinst = CallRec::e_natFailure;
+			PTRACE(2, "H46024\tFAILURE: No resolvable routing policy!");
 			return false;
 	}
 
