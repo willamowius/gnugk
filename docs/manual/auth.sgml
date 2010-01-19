@@ -603,7 +603,7 @@ result and to get additional information:
 		  by appending it with an '=' to the rewritten number (like 485811001001=1234485811001001)
 	<item>If there exists a column called <tt/'redirectip'/, force the call
           to be sent to the specified IP (one can put multiple destinations
-		  separated by a semicolon)
+		  separated by a semicolon, that will be used for failover, if failover is activated)
 	<item>If there exists a column called <tt/'proxy'/, force the gatekeeper
           to enable/disable (depends on the 'proxy' column value) RTP proxy
           for this call
