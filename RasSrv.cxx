@@ -3161,8 +3161,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 								bool mustproxy = Toolkit::Instance()->H46023SameNetwork(AsDotString(request.m_replyAddress),
 												WantedEndPoint->IsNATed() ? WantedEndPoint->GetNATIP() :WantedEndPoint->GetIP());
 
+								std24.Add(Std24_RemoteNAT,H460_FeatureContent(WantedEndPoint->SupportH46024()));
 								if (mustproxy || !WantedEndPoint->IsNATed()) {
-									std24.Add(Std24_RemoteNAT,H460_FeatureContent(WantedEndPoint->SupportH46024()));
 									std24.Add(Std24_MustProxy,H460_FeatureContent(mustproxy));
 								} else {
 									std24.Add(Std24_IsNAT,H460_FeatureContent(true));
@@ -3194,14 +3194,20 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				}
 				if (lastPos > 0) 
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData); 
+
+				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
+				if (!featureRequired && featureRequired == "24" && WantedEndPoint && !WantedEndPoint->SupportH46024()) {
+					bReject = true;
+					reason = H225_LocationRejectReason::e_genericDataReason;
+				} else 
 #endif		            
-
-
-				log = "LCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
-						+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))
-						+ "|" + AsString(request.m_destinationInfo),
-						+ "|" + sourceInfoString
-						+ ";";
+				{
+					log = "LCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
+							+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))
+							+ "|" + AsString(request.m_destinationInfo),
+							+ "|" + sourceInfoString
+							+ ";";
+				}
 			}
 		} else {
 			if (m_msg->m_replyRAS.GetTag() == H225_RasMessage::e_requestInProgress) {
