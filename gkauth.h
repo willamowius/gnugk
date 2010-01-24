@@ -760,7 +760,7 @@ private:
 
 #ifdef H323_H350
 
-/// Generic SQL authenticator for H.235 enabled endpoints
+/// H.350 authenticator for H.235 enabled endpoints
 class H350PasswordAuth : public SimplePasswordAuth
 {
 public:
