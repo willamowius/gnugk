@@ -564,7 +564,7 @@ public:
 	             or cannot be determined (SQL failure, no cryptoTokens, ...)
 	*/
 	virtual int Check(
-		/// ARQ to be authenticated/authorized
+		/// RRQ to be authenticated/authorized
 		RasPDU<H225_RegistrationRequest>& request, 
 		/// authorization data (reject reason, ...)
 		RRQAuthData& authData
@@ -814,7 +814,7 @@ public:
 	
 	/// an override from GkAuthenticator
 	virtual int Check(
-		/// ARQ to be authenticated/authorized
+		/// RRQ to be authenticated/authorized
 		RasPDU<H225_RegistrationRequest>& request, 
 		/// authorization data (reject reason, ...)
 		RRQAuthData& authData
