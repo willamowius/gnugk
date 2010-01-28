@@ -493,12 +493,10 @@ It will automatically be used if required.
 <item><tt>InternalNetwork=10.0.1.0/24</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define the networks behind the proxy. Multiple internal networks are allowed.
-The proxy route channels only the communications between one endpoint
-in the internal network and one external. If you don't specify it, all calls
-will be proxied. If using GnuGk behind a NAT and the [Gatekeeper::Main] ExternalIP
-is set then there is not requirement to set this as it is auto-detected at startup. 
-Using this setting will simply override the default detected settings. 
+Define the networks behind the proxy, if you want to override the automatic detection.
+Multiple internal networks are allowed.
+Packets to internal networks will use the local interface as sender instead of the default IP or ExternalIP.
+For internal networks, the proxying can be disabled, even when global proxying is activated.
 
 <descrip>
 <tag/Format:/
