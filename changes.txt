@@ -1,5 +1,6 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- BUGFIX(gksql_mysql.cxx) make sure /etc/my.cnf gets read
 - changed default for [CTI::MakeCall]UseH450= to 0 (supported by more endpoints)
 - new switch [RoutedMode]NATStdMin for registering endpoints behind NAT to support NAT standard.
 - extend statusport commands UnregisterIP and DisconnectIP to find endpoints on non-standard ports

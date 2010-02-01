@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.16  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -360,6 +363,10 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	my_bool reconnect = 1;	// enable auto-reconnect, older versions have it on by default
 	mysql_options(conn, MYSQL_OPT_RECONNECT, &reconnect);
 #endif
+
+	// this call to mysql_options is needed for libmysqlclient to read /etc/my.cnf,
+	// which might contain eg. a setting where to find the mysql socket
+	mysql_options(conn, MYSQL_READ_DEFAULT_GROUP, "gnugk");
 
 	// connect to the MySQL database, try each host on the list in case of failure
 	if (mysql_real_connect(conn, m_host, m_username, 
