@@ -326,7 +326,7 @@ If the database returns nothing, the call is passed on unchanged.
 Default: <tt>N/A</tt><newline>
 <p>
 SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/, <tt/ODBC/ and <tt/SQLite/ drivers
-are implemented.
+are implemented. GnuGk supports only version 3 of SQLite.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/<newline>
