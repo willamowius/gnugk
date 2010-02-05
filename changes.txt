@@ -1,5 +1,6 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- BUGFIX(Toolkit.cxx) make sure explicit [ModeSelection] rules override implied rules for internal networks
 - BUGFIX(RasSrv.cxx) don't start GnuGk, if we can't open a signaling port in routed mode
 - BUGFIX(gksql_mysql.cxx) make sure /etc/my.cnf gets read
 - changed default for [CTI::MakeCall]UseH450= to 0 (supported by more endpoints)

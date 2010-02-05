@@ -485,6 +485,16 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 				netmode.insideNetwork = netmode.fromExternal;
 				if (modes.GetSize() == 2)
 					netmode.insideNetwork = ToRoutingMode(modes[1].Trim());
+				// check if we have one or more (implied) rules for internal networks that we have to delete first
+				std::map<NetworkAddress, NetworkModes>::iterator iter = m_modeselection.begin();
+				while (iter != m_modeselection.end()) {
+					if (iter->first << addr) {
+						PTRACE(2, "Removing (implied) ModeSelection rule for " << iter->first.AsString());
+						m_modeselection.erase(iter++);
+					} else {
+						iter++;
+					}
+				}
 				m_modeselection[addr] = netmode;
 				PTRACE(2, "GK\tModeSelection rule: " << addr.AsString() << "=" << netmode.fromExternal << "," << netmode.insideNetwork);
 			} else {
@@ -540,8 +550,9 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 		if (bestMatchIP1.Compare(bestMatchIP2) == 0) {	// operator== broken ?
 			// both on same network
 			iter = m_modeselection.find(bestMatchIP1);
-			if (iter != m_modeselection.end())
+			if (iter != m_modeselection.end()) {
 				mode = iter->second.insideNetwork;
+			}
 		} else {
 			// on different networks, use maximum poxying
 			iter = m_modeselection.find(bestMatchIP1);
