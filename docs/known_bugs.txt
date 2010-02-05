@@ -7,5 +7,3 @@ Known bugs:
   calls (ForwardOnFacility=1), it is recommended to disable this flag
 * the gatekeeper does not try to bind a socket again if a Q.931/H.245/T.120 port
   is already in use, therefore some calls may fail under specific circumstances
-* (2.2.x, fixed in 2.2.8cvs) PostgreSQL driver for SQLxxx modules does not reconnect to the database
-  if the connection is lost until gatekeeper reload
