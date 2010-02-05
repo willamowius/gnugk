@@ -499,7 +499,12 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 		}
 	}
 
-	return m_rasListener != 0;
+
+	if (RasSrv->IsGKRouted()) {
+		return (m_rasListener != NULL) && (m_callSignalListener != NULL);
+	} else {
+		return m_rasListener != NULL;
+	}
 }
 
 bool GkInterface::IsReachable(const Address *addr) const
@@ -852,9 +857,9 @@ void RasServer::LoadConfig()
 		ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
 		if (iter == interfaces.end()) {
 			GkInterface *gkif = CreateInterface(addr);
-			if (gkif->CreateListeners(this))
+			if (gkif->CreateListeners(this)) {
 				interfaces.push_back(gkif);
-			else {
+			} else {
 				delete gkif;
 				gkif = NULL;
 			}
