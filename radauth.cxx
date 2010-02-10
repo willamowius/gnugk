@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.50  2009/10/25 22:13:09  willamowius
+ * allow to set proxy mode through 'proxy' variable in Radius h323-ivr-in attribute (thanks to Yuriy Georgiewskiy)
+ *
  * Revision 1.49  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -953,7 +956,7 @@ int RadAuthBase::Check(
 	H225_Setup_UUIE& setupBody = setup.GetUUIEBody();
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PIPSocket::Address addr;
-	endptr callingEP, calledEP;
+	endptr callingEP;
 	
 	if (hasCall)
 		callingEP = authData.m_call->GetCallingParty();

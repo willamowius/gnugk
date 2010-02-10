@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2009/12/02 14:32:13  willamowius
+ * add new accounting events: AcctAlert, AcctRegister, AcctUnregister
+ *
  * Revision 1.18  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -341,7 +344,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		return Fail;
 	}
 	
-	PString query, queryAlt;
+	PString query;
 	if (evt == AcctRegister)
 		query = m_registerQuery;
 	else if (evt == AcctUnregister)

@@ -1771,7 +1771,7 @@ void CallSignalSocket::OnSetup(
 								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_dialedDigits);
 								sourceAdrSize++;
 								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
-								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_h323_ID);	// for ZVRS
+								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_h323_ID);
 								// fill calling number IE
 								if (!q931.HasIE(Q931::CallingPartyNumberIE)) {
 									unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;

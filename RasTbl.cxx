@@ -3589,8 +3589,6 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 			}
 		}
 
-		PString timeString;
-	
 	    const time_t eTime = time(0);
 	    const PTime rectime(eTime);
 

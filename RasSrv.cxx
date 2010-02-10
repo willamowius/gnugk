@@ -1345,10 +1345,6 @@ void RasServer::ClearAltGKsTable()
 
 void RasServer::HouseKeeping()
 {
-#if PTRACING
-  PTime startUp;
-#endif
-
 	for (unsigned count = 0; IsRunning(); ++count)
 		if (!Wait(1000)) {
 			if( !IsRunning() )
