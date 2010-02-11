@@ -454,21 +454,31 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 	PStringArray networks(config->GetString(ProxySection, "InternalNetwork", "").Tokenise(" ,;\t", FALSE));
 
 	// if no networks specified then use the detected values
+	int signalRoutingMode = CallRec::Undefined;
+	if (RasServer::Instance()->IsGKRouted()) {
+		if (RasServer::Instance()->IsH245Routed()) {
+			signalRoutingMode = CallRec::H245Routed;
+		} else {
+			signalRoutingMode = CallRec::SignalRouted;
+		}
+	}
 	NetworkModes internal_netmode;
-	internal_netmode.fromExternal = m_enable ? CallRec::Proxied : CallRec::SignalRouted;;
-	internal_netmode.insideNetwork = CallRec::SignalRouted;;
+	internal_netmode.fromExternal = m_enable ? CallRec::Proxied : signalRoutingMode;
+	internal_netmode.insideNetwork = signalRoutingMode;
 	if (networks.GetSize() == 0) {
 		m_internalnetworks = Toolkit::Instance()->GetInternalNetworks();
 		for (unsigned j = 0; j < m_internalnetworks.size(); ++j) {
 			m_modeselection[m_internalnetworks[j]] = internal_netmode;
-			PTRACE(2, "GK\tInternal Network " << j << " = " << m_internalnetworks[j].AsString());
+			PTRACE(2, "GK\tInternal Network " << j << " = " << m_internalnetworks[j].AsString()
+					<< " (" << internal_netmode.fromExternal << "," << internal_netmode.insideNetwork << ")");
 		}
 	} else {
 		for (PINDEX i = 0; i < networks.GetSize(); ++i) {
 			m_internalnetworks.push_back(networks[i]);
 			Toolkit::Instance()->GetRouteTable()->AddInternalNetwork(networks[i]);
 			m_modeselection[networks[i]] = internal_netmode;
-			PTRACE(2, "GK\tINI Internal Network " << i << " = " << m_internalnetworks[i].AsString());
+			PTRACE(2, "GK\tINI Internal Network " << i << " = " << m_internalnetworks[i].AsString()
+					<< " (" << internal_netmode.fromExternal << "," << internal_netmode.insideNetwork << ")");
 		}
 	}
 

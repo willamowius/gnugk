@@ -1727,7 +1727,7 @@ void SqlPolicy::DatabaseLookup(
 		PString newDestinationIP = resultRow[1].first;
 		PTRACE(5, m_name << "\tQuery result : " << newDestinationAlias << ", " << newDestinationIP);
 		if (newDestinationAlias.ToUpper() == "REJECT") {
-			destination.SetRejectCall(true);;
+			destination.SetRejectCall(true);
 			destination.SetRejectReason(newDestinationIP.AsInteger());
 		} else {
 			H225_ArrayOf_AliasAddress newAliases;
