@@ -533,7 +533,7 @@ NetworkAddress Toolkit::ProxyCriterion::FindModeRule(const NetworkAddress & ip) 
 
 	std::map<NetworkAddress, NetworkModes>::const_iterator iter = m_modeselection.begin();
 	while (iter != m_modeselection.end()) {
-		if ((ip << iter->first) && (iter->first.GetNetmaskLen() > bestmatch.GetNetmaskLen())) {
+		if ((ip << iter->first) && (iter->first.GetNetmaskLen() >= bestmatch.GetNetmaskLen())) {
 			bestmatch = iter->first;
 		}
 		iter++;
