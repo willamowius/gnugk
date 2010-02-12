@@ -555,6 +555,7 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 
 	std::map<NetworkAddress, NetworkModes>::const_iterator iter;
 	// check for same network
+	// TODO: add invalid state to NetworkAddress so we can have ModeSlection rules for 0.0.0.0/0 that set a global default
 	if (!bestMatchIP1.IsAny() && !bestMatchIP2.IsAny()) {
 		// rules for both IPs
 		if (bestMatchIP1.Compare(bestMatchIP2) == 0) {	// operator== broken ?
