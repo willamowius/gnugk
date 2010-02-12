@@ -25,7 +25,7 @@ The gatekeeper routes the H.245 control channel,
 as well as all media channels, including RTP/RTCP for audio and video,
 and T.120 channel for data. In this case, no traffic is passed
 directly between the endpoints. This is usually called a H.323 Proxy,
-which can be regarded as an H.323-H.323 gateway.
+and can be treated as a H.323-H.323 gateway.
 </descrip>
 
 This section defines the gatekeeper routed mode options (case I &amp; II).
@@ -71,8 +71,8 @@ Default: <tt/1/<newline>
 <p>
 The number of RTP proxy handling threads. Increase this value only if you
 experience problems with RTP delay or jitter on a heavily loaded gatekeeper.
-A special care has to be taken on Windows, at RTP handling threads are subject
-of the same limit of 64 sockets as signaling threads. Each RTP thread is
+Special care has to be taken on Windows, as RTP handling threads are subject
+to the same limit of 64 sockets as signaling threads. Each RTP thread is
 able to handle at most 32 proxied calls (2 sockets per call).
 
 <item><tt/AcceptNeighborsCalls=1/<newline>
@@ -82,10 +82,10 @@ With this feature enabled, the call signaling thread will accept calls
 without a pre-existing CallRec found in the CallTable, provided an endpoint
 corresponding to the destinationAddress in Setup can be found in the
 RegistrationTable, and the calling party is a neighbor or parent gatekeeper.
-The gatekeeper will also use it's own call signaling address in LCF
-in responding to an LRQ. That means, the call signaling will be routed
+The gatekeeper will also use its own call signaling address in the LCF
+when responding to the LRQ. Call signaling will be routed
 to gatekeeper 2 in gatekeeper-to-gatekeeper calls.
-As a result, the CDRs in gatekeeper 2 can correctly show the connected
+As a result, the CDRs in gatekeeper 2 will correctly show the connected
 time, instead of 'unconnected'.
 
 <item><tt/AcceptUnregisteredCalls=1/<newline>
@@ -95,7 +95,7 @@ With this feature enabled, the gatekeeper will accept calls
 from any unregistered endpoint.
 Make sure you do proper authentication on these calls if you
 don't want to let everybody use your gatekeeper.
-When working with unregistered, you will probably also want
+When working with unregistered endpoints, you will probably also want
 to change the CallSignalPort to 1720.
 
 <item><tt/RemoveH245AddressOnTunneling=1/<newline>
@@ -109,7 +109,7 @@ is TRUE. This enforces the remote party to stay in tunneling mode.
 <item><tt/RemoveCallOnDRQ=0/<newline>
 Default: <tt/1/<newline>
 <p>
-With this option turning off, the gatekeeper will not disconnect a call
+With this option disabled, the gatekeeper will not disconnect a call
 if it receives a DRQ for it. This avoids potential race conditions when
 a DRQ overtakes a Release Complete.
 This is only meaningful in routed mode because in direct mode, the only
@@ -137,15 +137,15 @@ Though the gatekeeper closes the TCP channel to the destination,
 some endpoints (e.g. Cisco CallManager) don't drop the call even if
 the call signaling channel is closed.
 This results in phones that keep ringing if the caller hangs up
-before the callee pickups.
+before the called number answers.
 Setting this parameter to <tt/1/ makes the gatekeeper always send
 Release Complete to both endpoints before closing the call when
-it receives DRQ from one of the parties.
+it receives a DRQ from one of the parties.
 
 <item><tt/SupportNATedEndpoints=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Whether to allow an endpoint behind an NAT box register to the gatekeeper.
+Whether to allow an endpoint behind a NAT box register to the gatekeeper.
 If yes, the gatekeeper will translate the IP address in Q.931 and H.245
 channel into the IP of NAT box.
 
@@ -157,7 +157,7 @@ and you can make call now.
 <item><tt/SupportCallingNATedEndpoints=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Whether to allow an endpoint behind an NAT box that support GnuGk Nat Traversal
+Whether to allow an endpoint behind an NAT box that support GnuGk NAT Traversal
 technique to receive calls. Use this to block errant gateways that do not support
 GnuGk Nat Traversal technique properly from causing one way audio problems when 
 trying to call to the gateway. Calls to the gateways return caller unreachable.
@@ -302,7 +302,7 @@ This will disable all checks if a failed call has already received
 FastStart or H.245 messages. Caution: Using this switch enables you
 to retry more calls, but you run the risk that some of the retried
 calls will fail because the caller is already in a state where he
-can't talkt to a new partner.
+can't talk to a new partner.
 
 <item><tt/CalledTypeOfNumber=1/<newline>
 Default: <tt>N/A</tt><newline>
@@ -335,7 +335,7 @@ Sets Calling-Numbering-Plan of number to the specified value
 <item><tt/ENUMservers=e164.org,e164.arpa/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Sets the eum server list in priority order seperated by (,) for the enum policy. 
+Sets the enum server list in priority order separated by (,) for the enum policy. 
 This overrides the PWLIB_ENUM_PATH environmental variable.
 
 <item><tt/RDSservers=myvirtualhost.com/<newline>
@@ -349,7 +349,7 @@ This overrides the PWLIB_RDS_PATH environmental variable.
 <item><tt/CpsLimit=10/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Limit the rate of incomming calls to n calls per second. If more calls are received they are
+Limit the rate of incoming calls to n calls per second. If more calls are received they are
 rejected on TCP level without H.323 error messages and they won't show up in CDRs.
 A value of zero (default) disables the feature.
 <p>
@@ -357,7 +357,7 @@ The limit only applies if the calls in the check interval are greater than check
 <p>
 This feature is meant to shield the gatekeeper from overload and to avoid as much resource usage a possible in an overload situation.
 <p>
-Currently the calls are blocked when the first message comes in on the signalling port. This makes it
+Currently the calls are blocked when the first message comes in on the signaling port. This makes it
 very effective for unregistered calls. But so far ARQs are not blocked, so it will be less effective with
 registered calls.
 
@@ -370,7 +370,7 @@ Define the check interval in seconds before the CpsLimit is applied.
 Default: <tt>0</tt><newline>
 <p>
 When set, GnuGk will generate a CallProceeding for each Setup message it receives.
-This can be helpfull to avoid a timeout in calling endpoints if the destination takes
+This can be helpful to avoid a timeout in calling endpoints if the destination takes
 a long time to answer or the call is processed in a virtual queue. Without setting
 UseProvisionalRespToH245Tunneling=1 this will disable H.245 tunneling.
 <p>
@@ -390,7 +390,7 @@ generated CallProceeding.
 Default: <tt>0</tt><newline>
 <p>
 When set, GnuGk will intercept H.450.2 call transfer messages and if possible transfer 
-the call on behalf of the endpoint. This allows the endpoint initiated transfering of
+the call on behalf of the endpoint. This allows the endpoint initiated transferring of
 calls where the remote endpoint may not support H.450 and the gatekeeper initiates the 
 call transfer.  
 
@@ -446,7 +446,7 @@ Enable support for H.460.23/.24
 <item><tt/H46023STUN=stun.ekiga.net,192.168.1.10/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Sets the STUN server list for use with H.460.23 seperated by (,). 
+Sets the STUN server list for use with H.460.23 separated by (,). 
 Each Network interface must have a STUNserver set for H.460.23 support on that interface.
 
 <item><tt/NATStdMin=18/<newline>
@@ -493,7 +493,7 @@ It will automatically be used if required.
 <item><tt>InternalNetwork=10.0.1.0/24</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define the networks behind the proxy, if you want to override the automatic detection.
+If you want to override automatic detection of networks behind the proxy, you may do so by specifying them here.
 Multiple internal networks are allowed.
 Packets to internal networks will use the local interface as sender instead of the default IP or ExternalIP.
 For internal networks, the proxying can be disabled, even when global proxying is activated.
@@ -511,7 +511,7 @@ CIDR notation (prefix length), as shown in the example.
 <item><tt/ProxyAlways=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Always proxy all calls regardles of other settings.
+Always proxy all calls regardless of other settings.
 
 <item><tt/T120PortRange=40000-40999/<newline>
 Default: <tt>N/A (let the OS allocate ports)</tt><newline>
@@ -524,19 +524,19 @@ description.
 <item><tt/RTPPortRange=50000-59999/<newline>
 Default: <tt>1024-65535</tt><newline>
 <p>
-Specify the range of UDP port number for RTP/RTCP channels. Since RTP streams require two sockets, the range has to contain an even number of ports.
-Note that the range size may limit the number of possible concurrent calls.
+Specify the range of UDP port number for RTP/RTCP channels. Since RTP streams require two sockets, the range must contain an even number of ports.
+Note that the size of the specified range may limit the number of possible concurrent calls.
 
 <item><tt/ProxyForNAT=1/<newline>
 Default: <tt/1/<newline>
 <p>
-If yes, the gatekeeper will proxy for calls to which one of the endpoints
-participated is behind an NAT box. This ensure the RTP/RTCP stream can
+If set, the gatekeeper will function as a proxy for calls where one of the participating endpoints
+is behind a NAT box. This ensures the RTP/RTCP stream can
 penetrate into the NAT box without modifying it.
 However, the endpoint behind the NAT box must use the same port
 to send and receive RTP/RTCP stream.
 If you have bad or broken endpoints that don't satisfy the precondition,
-you have better to disable this feature and let the NAT box forward
+you should disable this feature and let the NAT box forward
 RTP/RTCP stream for you.
 
 <item><tt/ProxyForSameNAT=1/<newline>
@@ -562,10 +562,10 @@ pre-H.323v4 endpoints and gateways which cannot decode these messages.
 <item><tt/DisableRTPQueueing=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Sometimes GnuGk will receive RTP data before it knows where to fordward it to.
-By default GnuGk will queue this data up to a ceratin amount and send it once
+Sometimes GnuGk will receive RTP data before it knows where to forward it to.
+By default GnuGk will queue this data up to a certain amount and send it once
 the destination becomes available. In some cases this can cause a short loopback
-of RTP data, so you might want to disable RTP queueing.
+of RTP data, so you might want to disable RTP queuing.
 
 <item><tt/EnableRTPMute=1/<newline>
 Default: <tt/0/<newline>
@@ -648,5 +648,5 @@ If no rules matches the settings [RoutedMode]GkRouted=, H245Routed= or [Proxy]En
 There are a few cases where these rules don't apply, because
 <htmlurl url="http://www.gnugk.org/" name="the GNU Gatekeeper">
 knows that the call needs proxying:
-For example calls involving H.460.18/.19 will always be proxied (because this protocol requires proxing).
+For example calls involving H.460.18/.19 will always be proxied (because this protocol requires proxying).
 
