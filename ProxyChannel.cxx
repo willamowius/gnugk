@@ -1224,6 +1224,31 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
 
 	PTRACE(4, "H245\tReceived from " << GetName() << ": " << setprecision(2) << h245msg);
 
+	// remove t38FaxUdpOptions from t38FaxProfile eg. for Avaya Communication Manager
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
+		&& ((H245_RequestMessage &) h245msg).GetTag() == H245_RequestMessage::e_requestMode
+	&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveFaxUDPOptionsFromRM", "0"))
+	) {
+			H245_RequestMode & rm = (H245_RequestMessage &) h245msg;
+			for(PINDEX i = 0; i < rm.m_requestedModes.GetSize(); i++) {
+					for(PINDEX j = 0; j < rm.m_requestedModes[i].GetSize(); j++) {
+							if(rm.m_requestedModes[i][j].m_type.GetTag() == H245_ModeElementType::e_dataMode) {
+									H245_DataMode & dm = (H245_DataMode &) rm.m_requestedModes[i][j].m_type;
+									if(dm.m_application.GetTag() == H245_DataMode_application::e_t38fax) {
+											H245_DataMode_application_t38fax & t38fax = (H245_DataMode_application_t38fax &) dm.m_application;
+											if(
+													t38fax.m_t38FaxProtocol.GetTag() == H245_DataProtocolCapability::e_udp
+													&& t38fax.m_t38FaxProfile.HasOptionalField(H245_T38FaxProfile::e_t38FaxUdpOptions)
+											) {
+													PTRACE(2, "H245\tRemoving t38FaxUdpOptions received in RM from " << GetName());
+													t38fax.m_t38FaxProfile.RemoveOptionalField(H245_T38FaxProfile::e_t38FaxUdpOptions);
+											}
+									}
+							}
+					}
+			}
+	}
+
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		H245_OpenLogicalChannel &olc = (H245_RequestMessage&)h245msg;
@@ -4362,7 +4387,9 @@ bool H245Handler::HandleRequest(H245_RequestMessage & Request)
 	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		return hnat->HandleOpenLogicalChannel(Request);
 	} else if  (Request.GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
-       return true;
+    		return true;
+	} else if  (Request.GetTag() == H245_RequestMessage::e_requestMode) {
+    		return true;
 	} else {
 		return false;
 	}

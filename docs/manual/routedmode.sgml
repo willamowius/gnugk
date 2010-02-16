@@ -462,6 +462,16 @@ Default: <tt>0</tt><newline>
 <p>
 Translate the non-standard caller information from a Sorenson VP200 into sourceAddress and CallingPartyIE.
 
+<item><tt/RemoveFaxUDPOptionsFromRM=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Avaya Communication Manager 3.1 equipped by TN2602AP media processor becomes confused
+when it receives t38FaxUdpOptions in t38FaxProfile of H.245 RequestMode. For example,
+AddPac VoiceFinder does so. After that TN2602AP starts to send larger T.38 packets than
+receiver can process. This results in facsimile document distortion. So we need to remove
+t38FaxUdpOptions from RM to make ACM3.1+TN2602AP become compatible with endpoints which send
+t38FaxUdpOptions in RM.
+
 </itemize>
 
 <p>

@@ -1,5 +1,7 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- new switch [RoutedMode]RemoveFaxUDPOptionsFromRM=1 to remove t38FaxUdpOptions
+  from t38FaxProfile eg. for Avaya Communication Manager (thanks Denis Kochmashev)
 - BUGFIX(Toolkit.cxx) consider H245Routed setting for implied [ModeSelection]
   rules for internal networks (based on patch by Denis Kochmashev)
 - BUGFIX(Toolkit.cxx) make sure explicit [ModeSelection] rules override implied
