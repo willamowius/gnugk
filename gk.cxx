@@ -35,7 +35,7 @@
 using std::vector;
 
 /*
- * many things here should be members of Gatkeeper. 
+ * many things here should be members of Gatekeeper. 
  */
 
 PReadWriteMutex ConfigReloadMutex;

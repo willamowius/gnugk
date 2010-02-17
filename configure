@@ -5462,7 +5462,7 @@ GNUGK_MINOR_VERSION=`cat version.h | grep "define GNUGK_MINOR_VERSION" | cut -f4
 GNUGK_BUILD_NUMBER=`cat version.h | grep "define GNUGK_BUILD_NUMBER" | cut -f4 -d' '`
 GNUGK_BUILD_TYPE=`cat version.h | grep "define GNUGK_BUILD_TYPE" | cut -f4 -d' '`
 GNUGK_VERSION="${GNUGK_MAJOR_VERSION}.${GNUGK_MINOR_VERSION}.${GNUGK_BUILD_NUMBER}"
-echo "GNU Gatkeeper version is ${GNUGK_VERSION}"
+echo "GNU Gatekeeper version is ${GNUGK_VERSION}"
 
 
 
