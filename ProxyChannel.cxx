@@ -2505,6 +2505,7 @@ void CallSignalSocket::OnSetup(
 	if (!m_call->H46019Required() || (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())))
 #endif
 	{
+#ifdef HAS_H460
 		// remove H.460.19 indicator
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 			int numRemoved = -1;
@@ -2525,6 +2526,7 @@ void CallSignalSocket::OnSetup(
 					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 			}
 		}
+#endif
 		CreateRemote(setupBody);
 	}
 #ifdef HAS_H46018
