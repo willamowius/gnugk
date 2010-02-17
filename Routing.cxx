@@ -1427,6 +1427,7 @@ protected:
 		const PString & callingStationId,
 		const PString & callid,
 		const PString & messageType,
+		const PString & clientauthid,
 		/* out: */
 		DestinationRoutes & destination);
 
@@ -1511,9 +1512,10 @@ bool SqlPolicy::OnRequest(AdmissionRequest & request)
 		PString callingStationId = request.GetCallingStationId();
 		PString callid = AsString(arq.m_callIdentifier.m_guid);
 		PString messageType = "ARQ";
+		PString clientauthid = request.GetClientAuthId();
 		DestinationRoutes destination;
 
-		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType,
+		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
 						/* out: */ destination);
 
 		if (destination.RejectCall()) {
@@ -1564,9 +1566,10 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 		callingStationId = caller;
 	PString callid = "";	/* not available for LRQs */
 	PString messageType = "LRQ";
+	PString clientauthid = "";	/* not available for LRQs */
 	DestinationRoutes destination;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType,
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType, clientauthid,
 					/* out: */ destination);
 
 	if (destination.RejectCall()) {
@@ -1611,9 +1614,10 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	PString callingStationId = request.GetCallingStationId();
 	PString callid = AsString(setup.m_callIdentifier.m_guid);
 	PString messageType = "Setup";
+	PString clientauthid = request.GetClientAuthId();
 	DestinationRoutes destination;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType,
+	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
 					/* out: */ destination);
 
 	if (destination.RejectCall()) {
@@ -1656,6 +1660,7 @@ void SqlPolicy::DatabaseLookup(
 		const PString & callingStationId,
 		const PString & callid,
 		const PString & messageType,
+		const PString & clientauthid,
 		/* out: */
 		DestinationRoutes & destination)
 {
@@ -1669,6 +1674,7 @@ void SqlPolicy::DatabaseLookup(
 	params["Calling-Station-Id"] = callingStationId;
 	params["i"] = callid;
 	params["m"] = messageType;
+	params["client-auth-id"] = clientauthid;
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, m_name << ": query failed - timeout or fatal error");

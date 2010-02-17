@@ -132,8 +132,8 @@ public:
 	typedef W Wrapper;
 
 	Request(ReqObj & r, Wrapper *w) : m_request(r), m_wrapper(w) {}
-	Request(ReqObj & r, Wrapper *w, const PString & id)
-		: m_request(r), m_wrapper(w), m_callingStationId(id) {}
+	Request(ReqObj & r, Wrapper *w, const PString & id, PUInt64 authid)
+		: m_request(r), m_wrapper(w), m_callingStationId(id), m_clientAuthId(authid) {}
 	Request(ReqObj & r, Wrapper *w, const std::list<Route> &failedRoutes)
 		: RoutingRequest(failedRoutes), m_request(r), m_wrapper(w) {}
 
@@ -146,6 +146,7 @@ public:
 	const ReqObj & GetRequest() const { return m_request; }
 	const Wrapper *GetWrapper() const { return m_wrapper; }
 	PString GetCallingStationId() const { return m_callingStationId; }
+	PUInt64 GetClientAuthId() const { return m_clientAuthId; }
 	const H225_ArrayOf_AliasAddress *GetAliases() const
 	{ return const_cast<Request<R, W> *>(this)->GetAliases(); }
 
@@ -153,6 +154,8 @@ private:
 	ReqObj & m_request;
 	Wrapper *m_wrapper;
 	PString m_callingStationId;
+	/// ID provided by client during authentication
+	PUInt64 m_clientAuthId;
 };
 
 typedef Request<H225_AdmissionRequest, RasMsg> AdmissionRequest;

@@ -2097,7 +2097,7 @@ void CallSignalSocket::OnSetup(
 		endptr called;
 		bool destFound = false;
 		H225_TransportAddress calledAddr;
-		Routing::SetupRequest request(setupBody, setup, authData.m_callingStationId);
+		Routing::SetupRequest request(setupBody, setup, authData.m_callingStationId, authData.m_clientAuthId);
 
 		// delete routes with no capacity
 		for (list<Route>::iterator i = authData.m_destinationRoutes.begin(); i != authData.m_destinationRoutes.end(); /* nothing */ ) {

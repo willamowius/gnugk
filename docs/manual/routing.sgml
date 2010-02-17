@@ -363,6 +363,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%{Calling-Station-Id}/ - the calling station ID (same value as used in accounting and authentication events)
 <item><tt/%i/ - the call ID
 <item><tt/%m/ - the message type (ARQ, LRQ or Setup)
+<item><tt/%{client-auth-id}/ - an ID provided to GnuGk when authenticating the call (through SqlAuth)
 </itemize>
 Some of these can be empty if they aren't included in the ARQ, LRQ or Setup message.
 <p>
