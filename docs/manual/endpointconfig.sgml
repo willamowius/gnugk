@@ -52,6 +52,11 @@ manner as in <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> section.  If
 no priority is explicitly configured for a prefix, then the gateway priority
 is used.
 
+<item><tt/AddNumbers=4212,5650-5630,6000/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Add E.164 numbers to this endpoint. The new aliases can either be specified
+as a list of numbers or as number ranges.
 
 <item><tt/CalledTypeOfNumber=1/<newline>
 Default: <tt>N/A</tt><newline>

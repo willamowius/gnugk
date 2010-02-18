@@ -379,6 +379,11 @@ void EndpointRec::LoadEndpointConfig()
 			if (m_proxy > 0)
 				log += " proxy: " + PString(m_proxy);
 			m_h46018disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46018", 0));
+			PString numbersDef = cfg->GetString(key, "AddNumbers", "");
+			if (!numbersDef.IsEmpty()) {
+				AddNumbers(numbersDef);
+			}
+
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
 			break;
@@ -588,6 +593,43 @@ void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
 		m_terminalAliases = a;
 	}
 	LoadConfig(); // update settings for the new aliases
+}
+
+void EndpointRec::AddNumbers(const PString & numbers)
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	PStringArray defs(numbers.Tokenise(",", FALSE));
+	for (PINDEX i = 0; i < defs.GetSize(); i++) {
+		if (defs[i].Find("-") != P_MAX_INDEX) {
+			// range
+			PStringArray bounds(defs[i].Tokenise("-", FALSE));
+			unsigned lower = bounds[0].AsUnsigned();
+			unsigned upper = 0;
+			if (bounds.GetSize() == 2) {
+				upper = bounds[1].AsUnsigned();
+			} else {
+				PTRACE(1, "AddNumber: Invalid range definition: " << defs[i]);
+				continue;
+			}
+			if (upper <= lower) {
+				PTRACE(1, "AddNumber: Invalid range bounds: " << defs[i]);
+				continue;
+			}
+			unsigned num = upper - lower;
+			for (unsigned j = 0; j <= num; j++) {
+				PString number(lower + j);
+				PTRACE(4, "Adding number " << number << " to endpoint (from range)");
+				m_terminalAliases.SetSize(m_terminalAliases.GetSize() + 1);
+				H323SetAliasAddress(number, m_terminalAliases[m_terminalAliases.GetSize() - 1], H225_AliasAddress::e_dialedDigits);
+			}
+		} else {
+			// single number
+			PTRACE(4, "Adding number " << defs[i] << " to endpoint");
+			m_terminalAliases.SetSize(m_terminalAliases.GetSize() + 1);
+			H323SetAliasAddress(defs[i], m_terminalAliases[m_terminalAliases.GetSize() - 1]);
+		}
+	}
 }
 
 bool EndpointRec::SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned)
@@ -3449,7 +3491,6 @@ void CallTable::CheckCalls(
 			rassrv->LogAcctEvent(GkAcctLogger::AcctUpdate, *call, now);
 		call++;
 	}
-	
 }
 
 #ifdef HAS_H460

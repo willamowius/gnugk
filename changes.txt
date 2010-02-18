@@ -1,5 +1,6 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- new setting [EP::...] AddNumbers= to add numeric aliases to an endpoint
 - new variable for sql routing: %{client-auth-id}
 - new switch [RoutedMode]RemoveFaxUDPOptionsFromRM=1 to remove t38FaxUdpOptions
   from t38FaxProfile eg. for Avaya Communication Manager (thanks Denis Kochmashev)
