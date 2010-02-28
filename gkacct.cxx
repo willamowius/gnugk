@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.41  2009/12/02 15:02:46  willamowius
+ * select the new accounting events separately
+ *
  * Revision 1.40  2009/12/02 14:32:13  willamowius
  * add new accounting events: AcctAlert, AcctRegister, AcctUnregister
  *
@@ -687,7 +690,7 @@ FileAcct::FileAcct(
 			this, &FileAcct::RotateOnTimer, rotateTime, 60*60
 			);
 		PTRACE(5, "GKACCT\t" << GetName() << " hourly rotation enabled (first "
-			"rotation sheduled at " << rotateTime
+			"rotation scheduled at " << rotateTime
 			);
 		break;
 		
@@ -701,7 +704,7 @@ FileAcct::FileAcct(
 			this, &FileAcct::RotateOnTimer, rotateTime, 60*60*24
 			);
 		PTRACE(5, "GKACCT\t" << GetName() << " daily rotation enabled (first "
-			"rotation sheduled at " << rotateTime
+			"rotation scheduled at " << rotateTime
 			);
 		break;
 		
@@ -723,7 +726,7 @@ FileAcct::FileAcct(
 			this, &FileAcct::RotateOnTimer, rotateTime, 60*60*24*7
 			);
 		PTRACE(5, "GKACCT\t" << GetName() << " weekly rotation enabled (first "
-			"rotation sheduled at " << rotateTime
+			"rotation scheduled at " << rotateTime
 			);
 		break;
 		
@@ -751,7 +754,7 @@ FileAcct::FileAcct(
 			this, &FileAcct::RotateOnTimer, rotateTime
 			);
 		PTRACE(5, "GKACCT\t" << GetName() << " monthly rotation enabled (first "
-			"rotation sheduled at " << rotateTime
+			"rotation scheduled at " << rotateTime
 			);
 		break;
 	}

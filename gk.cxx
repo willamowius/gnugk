@@ -817,7 +817,7 @@ void Gatekeeper::EnableLogFileRotation(
 			&Gatekeeper::RotateOnTimer, rotateTime, 60*60
 			);
 		PTRACE(5, "GK\tHourly log file rotation enabled (first "
-			"rotation sheduled at " << rotateTime
+			"rotation scheduled at " << rotateTime
 			);
 		break;
 		
@@ -830,7 +830,7 @@ void Gatekeeper::EnableLogFileRotation(
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24
 			);
-		PTRACE(5, "GK\tDaily rotation enabled (first rotation sheduled at " 
+		PTRACE(5, "GK\tDaily rotation enabled (first rotation scheduled at " 
 			<< rotateTime
 			);
 		break;
@@ -852,7 +852,7 @@ void Gatekeeper::EnableLogFileRotation(
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24*7
 			);
-		PTRACE(5, "GK\tWeekly rotation enabled (first rotation sheduled at " 
+		PTRACE(5, "GK\tWeekly rotation enabled (first rotation scheduled at " 
 			<< rotateTime
 			);
 		break;
@@ -880,7 +880,7 @@ void Gatekeeper::EnableLogFileRotation(
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime
 			);
-		PTRACE(5, "GK\tMonthly rotation enabled (first rotation sheduled at " 
+		PTRACE(5, "GK\tMonthly rotation enabled (first rotation scheduled at " 
 			<< rotateTime
 			);
 		break;
