@@ -191,7 +191,7 @@ or build a custom CDR string from the <bf/CDRString/ parametrized string.
 The StandardCDRFormat is equivalent to this definition:
 <descrip>
 <tt/TimestampFormat=RFC822/<newline>
-<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|{callee-epid}|%{dest-info}|%{src-info}|%g;</tt><newline>
+<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|%{callee-epid}|%{dest-info}|%{src-info}|%g;</tt><newline>
 </descrip>
 
 <item>
