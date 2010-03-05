@@ -120,6 +120,7 @@ protected:
 	bool m_forwardResponse;
 	int m_forwardto;
 	Prefixes m_sendPrefixes;
+	PStringArray m_sendAliases;
 	PStringArray m_acceptPrefixes;
 	bool m_externalGK;
 	PString m_sendPassword;	// password to send to neighbor

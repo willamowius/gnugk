@@ -279,6 +279,39 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		PStringArray p(sprefixes[i].Tokenise(":=", false));
 		m_sendPrefixes[p[0]] = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
 	}
+
+	PString salias(config->GetString(section, "SendAliases", ""));
+	PStringArray defs(salias.Tokenise(",", FALSE));
+	m_sendAliases.SetSize(0);
+	for (PINDEX i = 0; i < defs.GetSize(); i++) {
+		if (defs[i].Find("-") != P_MAX_INDEX) {
+			// range
+			PStringArray bounds(defs[i].Tokenise("-", FALSE));
+			unsigned lower = bounds[0].AsUnsigned();
+			unsigned upper = 0;
+			if (bounds.GetSize() == 2) {
+				upper = bounds[1].AsUnsigned();
+			} else {
+				PTRACE(1, "SendAliases: Invalid range definition: " << defs[i]);
+				continue;
+			}
+			if (upper <= lower) {
+				PTRACE(1, "SendAliases: Invalid range bounds: " << defs[i]);
+				continue;
+			}
+			unsigned num = upper - lower;
+			for (unsigned j = 0; j <= num; j++) {
+				PString number(lower + j);
+				PTRACE(4, "Adding alias " << number << " to neighbor " << m_id << " (from range)");
+				m_sendAliases.AppendString(number);
+			}
+		} else {
+			// single alias
+			PTRACE(4, "Adding alias " << defs[i] << " to neighbor " << m_id);
+			m_sendAliases.AppendString(defs[i]);
+		}
+	}
+
 	PString aprefix(config->GetString(section, "AcceptPrefixes", "*"));
 	m_acceptPrefixes = PStringArray(aprefix.Tokenise(",", false));
 	if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
@@ -343,6 +376,7 @@ void Neighbor::SetH46018GkKeepAliveInterval(int interval)
 	}
 }
 
+// initialize neighbor object created by SRV policy
 bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & addr)
 {
   addr.GetIpAndPort(m_ip,m_port);
@@ -352,12 +386,7 @@ bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & add
   m_externalGK = true;
 
   m_sendPrefixes.clear();
-  PString sprefix("*");
-  PStringArray sprefixes = sprefix.Tokenise(",", false);
-	for (PINDEX i = 0; i < sprefixes.GetSize(); ++i) {
-		PStringArray p(sprefixes[i].Tokenise(":=", false));
-		m_sendPrefixes[p[0]] = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
-	}
+  m_sendPrefixes["*"] = 1;
  
   SetForwardedInfo(LRQFeaturesSection);
 
@@ -370,6 +399,7 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 	Prefixes::iterator iter, biter = m_sendPrefixes.begin(), eiter = m_sendPrefixes.end();
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		H225_AliasAddress & alias = aliases[i];
+		// send by alias type
 		iter = m_sendPrefixes.find(alias.GetTagName());
 		if (iter != eiter) {
 			dest.SetSize(1);
@@ -377,6 +407,15 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 			return PrefixInfo(100, (short)iter->second);
 		}
 		PString destination(AsString(alias, false));
+		// send by exact alias match
+		for (PINDEX j = 0; j < m_sendAliases.GetSize(); j++) {
+			if (destination == m_sendAliases[j]) {
+				dest.SetSize(1);
+				dest[0] = alias;
+				return PrefixInfo(100, 1);
+			}
+		}
+		// send by prefix
 		while (iter != biter) {
 			--iter; // search in reverse order
 			const int len = MatchPrefix(destination, iter->first);
@@ -390,6 +429,7 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 			}
 		}
 	}
+	// send allways ? (handled last, treated as shortest match)
 	iter = m_sendPrefixes.find("*");
 	if (iter == eiter)
 		return nomatch;

@@ -194,6 +194,12 @@ One can also direct the gatekeeper to send LRQ to this neighbor
 based on an alias type:<newline>
 SendPrefixes=h323_ID,dialedDigits,001<newline>
 
+<item><tt/SendAliases=4526354,2000-2010,frank/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+A list of specific aliases this neighbor expects to receive LRQs for.
+For E.164 numbers, ranges can be specified.
+
 <item><tt/AcceptPrefixes=*/<newline>
 Default: <tt>*</tt><newline>
 <p>
