@@ -84,8 +84,8 @@ Configuration settings are read from <ref id="fileacct" name="[FileAcct]"> secti
 
 <item><tt>RadAcct</tt>
 <p>
-This module performs RADIUS accounting. It supports all event types
-(start, stop, update, on, off).
+This module performs RADIUS accounting. It supports the event types
+start, stop, update, on, off.
 See section <ref id="radacct" name="[RadAcct]"> for configuration details.
 
 <item><tt>SQLAcct</tt>
