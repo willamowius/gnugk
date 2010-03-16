@@ -121,7 +121,7 @@ if other modules have not determined it. The format is as follows:
 <tscreen><verb>
  default=<status>[;<event>,<event>,...]
  <status> := accept | fail
- <event>  := start | stop | update | on | off
+ <event>  := start | stop | alert | connect | update | register | unregister | on | off
 </verb></tscreen>
 </descrip>
 
