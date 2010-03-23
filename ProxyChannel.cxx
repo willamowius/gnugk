@@ -3252,8 +3252,6 @@ void CallSignalSocket::OnReleaseComplete(
 
 void CallSignalSocket::TryNextRoute()
 {
-	PTRACE(3, "Q931\tTrying next route: " << m_call->GetNewRoutes().front().AsString());
-
 	CallRec *newCall = new CallRec(m_call.operator ->());
 	CallTable::Instance()->RemoveFailedLeg(m_call);
 	
@@ -3271,8 +3269,12 @@ void CallSignalSocket::TryNextRoute()
 		callingSocket->buffer.MakeUnique();
 	}
 
+	if (newCall->GetNewRoutes().empty() {
+		PTRACE(1, "Q931\tERROR: TryNextRoute() without a route");
+		return;
+	}
 	const Route &newRoute = newCall->GetNewRoutes().front();
-	PTRACE(1, "Q931\tNew route: " << 	newRoute.AsString());
+	PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 	if (newRoute.m_destEndpoint)
 		newCall->SetCalled(newRoute.m_destEndpoint);
 	else
@@ -3286,7 +3288,6 @@ void CallSignalSocket::TryNextRoute()
 		H323SetAliasAddress(newRoute.m_destNumber, destAlias);
 		newCall->SetRouteToAlias(destAlias);
 	}
-
 				
 	CallTable::Instance()->Insert(newCall);
 
