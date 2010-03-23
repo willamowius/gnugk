@@ -3269,7 +3269,7 @@ void CallSignalSocket::TryNextRoute()
 		callingSocket->buffer.MakeUnique();
 	}
 
-	if (newCall->GetNewRoutes().empty() {
+	if (newCall->GetNewRoutes().empty()) {
 		PTRACE(1, "Q931\tERROR: TryNextRoute() without a route");
 		return;
 	}
