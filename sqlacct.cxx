@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.20  2010/02/10 02:09:52  willamowius
+ * remove unused variables
+ *
  * Revision 1.19  2009/12/02 14:32:13  willamowius
  * add new accounting events: AcctAlert, AcctRegister, AcctUnregister
  *
@@ -255,11 +258,15 @@ GkAcctLogger::Status SQLAcct::Log(
 	} if (evt == AcctAlert)
 		query = m_alertQuery;
 
+	if (query.IsEmpty() && (evt == AcctAlert)) {
+	}
+
 	if (query.IsEmpty()) {
-		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-			"data (event: " << evt << ", call: " << callNumber 
-			<< "): SQL query is empty"
-			);
+		if (evt != AcctAlert) {
+			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
+				"data (event: " << evt << ", call: " << callNumber 
+				<< "): SQL query is empty");
+		}
 		return Fail;
 	}
 
@@ -351,10 +358,6 @@ GkAcctLogger::Status SQLAcct::Log(
 		query = m_unregisterQuery;
 
 	if (query.IsEmpty()) {
-		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-			"data (event: " << evt << ", endpoint: " << epid
-			<< "): SQL query is empty"
-			);
 		return Fail;
 	}
 
