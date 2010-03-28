@@ -4928,6 +4928,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
 		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
 		);
+	PTRACE(0, "JW RTP DB on " << localport << " this=" << this << " dir=" << m_h46019dir << " olc=" << m_h46019olc << " fc=" << m_h46019fc
+		<< " fwd=" << m_h46019fwd << " rev=" << m_h46019rev << " OLCrev=" << m_OLCrev);
 #endif
 
 	if (m_h46019dir > 0 && buflen == 12) {
