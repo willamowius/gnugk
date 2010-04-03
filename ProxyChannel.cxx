@@ -697,8 +697,7 @@ bool TCPProxySocket::ReadTPKT()
 			tpktlen = 0;
 			return false;
 		}
-		//if (tpkt.header != 3 || tpkt.padding != 0)
-		// some bad endpoints don't set padding to 0, e.g., Cisco AS5300
+		// some endpoints don't set padding to 0, e.g., Cisco AS5300 (setting it to 0 is only required in H.323v3 or later)
 		if (tpkt.header != 3) {
 			PTRACE(2, Type() << "\t" << GetName() << " NOT A TPKT PACKET!"
 				<< " header=" << (int)tpkt.header << " padding=" << (int)tpkt.padding << " length=" << (int)tpkt.length);
