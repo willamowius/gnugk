@@ -235,7 +235,7 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	// Perform outbound per GK rewrite on the destination of the LRQ
 	Toolkit::Instance()->GWRewriteE164(m_id,false,lrq.m_destinationInfo[0]);
 
-	lrq.m_replyAddress = m_rasSrv->GetRasAddress(GetIP());	// ZVRS ???
+	lrq.m_replyAddress = m_rasSrv->GetRasAddress(GetIP());
 
 //	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
 //	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
