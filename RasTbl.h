@@ -1126,6 +1126,9 @@ public:
 	// TODO: also set when sent through a status port command
 	void SetProceedingSent(bool val) { m_proceedingSent = val; }
 	
+	void SetBindHint(const PString & ip) { m_bindHint = ip; }
+	PString GetBindHint() const { return m_bindHint; }
+	
 #ifdef HAS_H46018
 	bool H46019Required();
 	void StoreSetup(SignalingMsg * msg);
@@ -1177,40 +1180,40 @@ private:
 	PString m_disabledcodecs;
 	
 	PString m_src_media_control_IP, m_dst_media_control_IP;
-        PString m_src_media_IP, m_dst_media_IP;
-    
-        PStringList m_rtcp_source_sdes;
-        bool m_rtcp_source_sdes_flag;
-    
-        PStringList m_rtcp_destination_sdes;  
-        bool m_rtcp_destination_sdes_flag;
-    
-        // RTCP_source_packet_count
-        long m_rtcp_source_packet_count;
-        // RTCP_destination_packet_count	
-        long m_rtcp_destination_packet_count;
-    
-        // RTCP_source_packet_lost
-        long m_rtcp_source_packet_lost;
-        // RTCP_destination_packet_lost
-        long m_rtcp_destination_packet_lost;
-    
-        // RTCP_source_jitter
-        int m_rtcp_source_jitter_min;
-        int m_rtcp_source_jitter_max;
-        int m_rtcp_source_jitter_avg;
-    
-        // RTCP_destination_jitter
-        int m_rtcp_destination_jitter_min;
-        int m_rtcp_destination_jitter_max;
-        int m_rtcp_destination_jitter_avg;
+	PString m_src_media_IP, m_dst_media_IP;
+
+	PStringList m_rtcp_source_sdes;
+	bool m_rtcp_source_sdes_flag;
+
+	PStringList m_rtcp_destination_sdes;  
+	bool m_rtcp_destination_sdes_flag;
+
+	// RTCP_source_packet_count
+	long m_rtcp_source_packet_count;
+	// RTCP_destination_packet_count	
+	long m_rtcp_destination_packet_count;
+
+	// RTCP_source_packet_lost
+	long m_rtcp_source_packet_lost;
+	// RTCP_destination_packet_lost
+	long m_rtcp_destination_packet_lost;
+
+	// RTCP_source_jitter
+	int m_rtcp_source_jitter_min;
+	int m_rtcp_source_jitter_max;
+	int m_rtcp_source_jitter_avg;
+
+	// RTCP_destination_jitter
+	int m_rtcp_destination_jitter_min;
+	int m_rtcp_destination_jitter_max;
+	int m_rtcp_destination_jitter_avg;
 
 
-        int m_rtcp_source_jitter_avg_count;
-        long m_rtcp_source_jitter_avg_sum;
-    
-        int m_rtcp_destination_jitter_avg_count;
-        long m_rtcp_destination_jitter_avg_sum;
+	int m_rtcp_source_jitter_avg_count;
+	long m_rtcp_source_jitter_avg_sum;
+
+	int m_rtcp_destination_jitter_avg_count;
+	long m_rtcp_destination_jitter_avg_sum;
 
 	/// current timeout (or duration limit) for the call
 	time_t m_timeout;
@@ -1312,6 +1315,7 @@ private:
 	PBYTEArray m_processedSetup;
 #endif
 	PUInt64 m_clientAuthId;
+	PString m_bindHint;	// outgoing IP or empty
 };
 
 typedef CallRec::Ptr callptr;

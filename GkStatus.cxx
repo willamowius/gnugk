@@ -712,6 +712,7 @@ void GkStatus::OnStart()
 	m_commands["rta"] = e_RouteToAlias;
 	m_commands["routetogateway"] = e_RouteToGateway;
 	m_commands["rtg"] = e_RouteToGateway;
+	m_commands["bindandroutetogateway"] = e_BindAndRouteToGateway;
 	m_commands["routereject"] = e_RouteReject;
 	m_commands["shutdown"] = e_Shutdown;
 	m_commands["exit"] = e_Exit;
@@ -1348,6 +1349,16 @@ void StatusClient::ExecCommand(
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5]);
 		} else
 			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]");
+		break;
+	case GkStatus::e_BindAndRouteToGateway:
+		if (args.GetSize() == 6) {
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), "", args[1]);
+		} else if (args.GetSize() == 7) {
+			args[6].Replace("-", " ", true);
+			args[6] = args[6].Trim();
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1]);
+		} else
+			CommandError("Syntax Error: BindAndRouteToGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]");
 		break;
 	case GkStatus::e_RouteReject:
 		if (args.GetSize() == 3) {

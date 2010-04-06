@@ -814,7 +814,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	m_h245Tunneling = socket->m_h245Tunneling;
 	socket->GetPeerAddress(peerAddr, peerPort);
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
-    masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 	
 	SetHandler(socket->GetHandler());
 	SetName(AsString(socket->peerAddr, GetPort()));
@@ -1468,6 +1468,7 @@ void CallSignalSocket::ForwardCall(
 	m_call->SetForward(fsocket, route.m_destAddr, forwarded, forwarder, altDestInfo);
 	if (route.m_flags & Route::e_toParent)
 		m_call->SetToParent(true);
+	m_call->SetBindHint(request.GetSourceIP());
 
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is forwarded to "
 		<< altDestInfo << (!forwarder ? (" by " + forwarder) : PString())
@@ -2187,7 +2188,7 @@ void CallSignalSocket::OnSetup(
 				Route route("nbtoken", calledAddr);
 				route.m_destEndpoint = called;
 				request.AddRoute(route);
-				
+
 				if (!useParent) {
 					Address toIP;
 					GetIPFromTransportAddr(calledAddr, toIP);
@@ -2282,6 +2283,7 @@ void CallSignalSocket::OnSetup(
 #ifdef HAS_H46023
 		call->SetNATStrategy(natoffloadsupport);
 #endif
+		call->SetBindHint(request.GetSourceIP());
 
 		// if the peer address is a public address, but the advertised source address is a private address
 		// then there is a good chance the remote endpoint is behind a NAT.
@@ -2633,8 +2635,14 @@ bool CallSignalSocket::CreateRemote(
 	Address calling = INADDR_ANY;
 	int nat_type = m_call->GetNATType(calling, peerAddr);
 
-	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
-    masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+	WORD notused;
+	if (!m_call->GetBindHint().IsEmpty() && GetTransportAddress(m_call->GetBindHint(), 0, localAddr, notused)) {
+		masqAddr = localAddr;
+		PTRACE(5, "Using BindHint=" << localAddr);
+	} else {
+		localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+	}
 
 	setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 	setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
@@ -4164,7 +4172,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 #endif
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
 	ret->m_h245socket = new H245Socket(m_h245socket, ret);
-	m_h245socket->SetH245Address(h245addr,masqAddr);
+	m_h245socket->SetH245Address(h245addr, masqAddr);
 	CreateJob(m_h245socket, &H245Socket::ConnectTo, "H245Connector");
 	return true;
 }
@@ -4646,7 +4654,7 @@ bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address 
 	else
 		socket->peerH245Addr = new H225_TransportAddress(h245addr);
 	m_signalingSocketMutex.Signal();
-	
+
 	h245addr = SocketToH225TransportAddr(myip, socket->listener->GetPort());
 	PTRACE(3, "H245\tSet h245Address to " << AsDotString(h245addr));
 	return swapped;

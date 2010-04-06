@@ -2744,11 +2744,13 @@ bool AdmissionRequestPDU::Process()
 			pExistingCallRec->SetCalledStationId(authData.m_calledStationId);
 		if (authData.m_clientAuthId > 0)
 			pExistingCallRec->SetClientAuthId(authData.m_clientAuthId);
+		pExistingCallRec->SetBindHint(arq.GetSourceIP());
 	} else {
 
 		// the call is not in the table
 		CallRec *pCallRec = new CallRec(*this, BWRequest, destinationString, authData.m_proxyMode);
 
+		pCallRec->SetBindHint(arq.GetSourceIP());
 		if (CalledEP)
 			pCallRec->SetCalled(CalledEP);
 		else {

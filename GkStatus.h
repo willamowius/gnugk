@@ -124,6 +124,7 @@ public:
 		e_Shutdown,                    /// Shutdown the program
 		e_RouteToAlias,                /// Route a call to a specified alias
 		e_RouteToGateway,              /// Route a call to a specified alias + destinationCallSignalAddr
+		e_BindAndRouteToGateway,       /// Route a call to a specified alias + destinationCallSignalAddr + specify bind IP
 		e_RouteReject,                 /// Reject to Route a call upon ARQ (send ARJ)
 		e_Trace,                       /// change trace level for status interface output
 #if PTRACING

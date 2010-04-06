@@ -609,6 +609,20 @@ RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
+<item><tt/BindAndRouteToGateway/<newline>
+<p>This command is similar to RouteToGateway, but you can also specify which
+IP of a multi-homed server to use for the outgoing call.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+BindAndRouteToGateway IP Alias IP:Port CallingEndpointID CallRef [CallID]
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+BindAndRouteToGateway 192.168.0.2 Suzi 192.168.0.50 endp_4711 1234
+</verb></tscreen>
+</descrip>
+
 <item><tt/SendProceeding/<newline>
 <p>WARNING: This is an experimental feature.
 <p>Send a CallProceeding message to the caller.

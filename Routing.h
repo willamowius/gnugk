@@ -113,6 +113,8 @@ public:
 	void SetFlag(unsigned f) { m_flags |= f; }
 	unsigned GetRejectReason() const { return m_reason; }
 	unsigned GetFlags() const { return m_flags; }
+	void SetSourceIP(const PString & ip) { m_sourceIP = ip; }
+	PString GetSourceIP() const { return m_sourceIP; }
 
 private:
 	RoutingRequest(const RoutingRequest&);
@@ -123,6 +125,7 @@ private:
 	unsigned m_flags; /// request specific flags
 	std::list<Route> m_routes;
 	std::list<Route> m_failedRoutes;
+	PString m_sourceIP;
 };
 
 template<class R, class W>
@@ -306,6 +309,8 @@ public:
 		H225_ArrayOf_AliasAddress* destinationInfo,
 		/// destinationCallSignalAddr (optionally set by this function on successful return)
 		PString* callSigAdr,
+		/// bind IP for BindAndRouteToGateway
+		PString* bindIP,
 		/// should the call be rejected modified by this function on return)
 		bool & reject,
 		/// an actual virtual queue name (should be present in destinationInfo too)
@@ -338,6 +343,8 @@ public:
 		unsigned crv,
 		/// callID of the call associated with the route request
 		const PString& callID,
+		// outgoing IP or empty
+		const PString& bindIP = PString::Empty(),
 		/// should this call be rejected
 		bool reject = false
 		);
@@ -360,6 +367,8 @@ public:
 		unsigned crv,
 		/// callID of the call associated with the route request
 		const PString& callID,
+		// outgoing IP or empty
+		const PString& bindIP = PString::Empty(),
 		/// should this call be rejected
 		bool reject = false
 		);
@@ -394,11 +403,12 @@ private:
 			unsigned crv,
 			const PString& callID,
 			H225_ArrayOf_AliasAddress* agent,
-			PString* callsignaladdr
+			PString* callsignaladdr,
+			PString* bindIP
 			)
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
-			m_agent(agent), m_callsignaladdr(callsignaladdr) {}
+			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP) {}
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
@@ -411,6 +421,8 @@ private:
 		H225_ArrayOf_AliasAddress* m_agent;
 		/// destinationCallSignallAddress for the target agent - target route IF NOT NULL
 		PString* m_callsignaladdr;
+		/// bindIP or empty
+		PString* m_sourceIP;
 		/// should this call be rejected
 		bool m_reject;
 		/// a synchronization point for signaling that routing decision
@@ -433,6 +445,8 @@ private:
 		/// a pointer to a string to be filled with a callSignalAddress
 		/// when the routing decision has been made (optional)
 		PString* callSigAdr,
+		/// bind IP for BindAndRouteToGateway
+		PString* bindIP,
 		/// set by the function to true if another route request for the same
 		/// call is pending
 		bool& duplicate
