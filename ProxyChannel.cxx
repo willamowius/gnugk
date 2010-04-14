@@ -4833,8 +4833,9 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	} else {
 //	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
 #endif
-	if ((DWORD)srcIP != 0)
+	if ((DWORD)srcIP != 0) {
 		fSrcIP = srcIP, fSrcPort = srcPort;
+	}
 	addr >> fDestIP >> fDestPort;
 
 	if ((DWORD)srcIP) {
@@ -4842,8 +4843,9 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		WORD lport = 0;
 		GetLocalAddress(laddr, lport);
 		SetName(AsString(srcIP, srcPort) + "<=>" + AsString(laddr, lport) + "<=>" + AsString(fDestIP, fDestPort));
-	} else
+	} else {
 		SetName("(To be autodetected)");
+	}
 	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort) 
 		<< " to " << fDestIP << ':' << fDestPort
 		);
@@ -4863,9 +4865,10 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	}
 
 #if defined(HAS_H46018) && defined(HAS_H46024B)
-				// If required begin Annex B probing
-		if (mcall->GetNATStrategy() == CallRec::e_natAnnexB) 
-			mcall->H46024BSessionFlag(m_sessionID);
+	// If required begin Annex B probing
+	if (mcall->GetNATStrategy() == CallRec::e_natAnnexB) {
+		mcall->H46024BSessionFlag(m_sessionID);
+	}
 #endif
 	
 	m_call = &mcall;		
@@ -4877,15 +4880,15 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	if (m_h46019dir > 0 && m_h46019olc == m_h46019dir) {
 		PTRACE(5, Type() << "\tH46019 Ignore reversing already detected.");
 	} else {
-	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
+		PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
    
-   if (fSrcIP == 0)
-	   m_OLCrev = true;
+		if (fSrcIP == 0)
+			m_OLCrev = true;
 #endif
-	if( (DWORD)srcIP != 0 )
-		rSrcIP = srcIP, rSrcPort = srcPort;
+		if ( (DWORD)srcIP != 0 )
+			rSrcIP = srcIP, rSrcPort = srcPort;
 
-	addr >> rDestIP >> rDestPort;
+		addr >> rDestIP >> rDestPort;
 
 #if HAS_H46018
 	}
@@ -4902,7 +4905,6 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	    mcall->SetDST_media_IP(rDestIP.AsString());
 	}
 	m_call = &mcall;
-
 }
 
 ProxySocket::Result UDPProxySocket::ReceiveData()
@@ -5254,22 +5256,22 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 void UDPProxySocket::BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool direct)
 {
-  const RTP_ControlFrame::ReceiverReport * rr = (const RTP_ControlFrame::ReceiverReport *)(frame.GetPayloadPtr()+offset);
-  for (PINDEX repIdx = 0; repIdx < (PINDEX)frame.GetCount(); repIdx++) {
-    RTP_Session::ReceiverReport * report = new RTP_Session::ReceiverReport;
-    if (direct){
-	(*m_call)->SetRTCP_DST_packet_lost(report->totalLost = rr->GetLostPackets());
-	(*m_call)->SetRTCP_DST_jitter(rr->jitter);
-	PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_lost:"<<rr->GetLostPackets());
-	PTRACE(5, "RTCP\tSession SetRTCP_DST_jitter:"<<rr->jitter);
-    } else{
-	(*m_call)->SetRTCP_SRC_packet_lost(report->totalLost = rr->GetLostPackets());
-	(*m_call)->SetRTCP_SRC_jitter(rr->jitter);
-	PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_lost:"<<rr->GetLostPackets());
-	PTRACE(5, "RTCP\tSession SetRTCP_SRC_jitter:"<<rr->jitter);
-    }
-    rr++;
-  }
+	const RTP_ControlFrame::ReceiverReport * rr = (const RTP_ControlFrame::ReceiverReport *)(frame.GetPayloadPtr()+offset);
+	for (PINDEX repIdx = 0; repIdx < (PINDEX)frame.GetCount(); repIdx++) {
+		RTP_Session::ReceiverReport * report = new RTP_Session::ReceiverReport;
+		if (direct) {
+			(*m_call)->SetRTCP_DST_packet_lost(report->totalLost = rr->GetLostPackets());
+			(*m_call)->SetRTCP_DST_jitter(rr->jitter);
+			PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_lost:"<<rr->GetLostPackets());
+			PTRACE(5, "RTCP\tSession SetRTCP_DST_jitter:"<<rr->jitter);
+		} else {
+			(*m_call)->SetRTCP_SRC_packet_lost(report->totalLost = rr->GetLostPackets());
+			(*m_call)->SetRTCP_SRC_jitter(rr->jitter);
+			PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_lost:"<<rr->GetLostPackets());
+			PTRACE(5, "RTCP\tSession SetRTCP_SRC_jitter:"<<rr->jitter);
+		}
+		rr++;
+	}
 }
 
 
