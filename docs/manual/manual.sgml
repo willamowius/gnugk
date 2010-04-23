@@ -13,6 +13,7 @@
 <!ENTITY acct SYSTEM "acct.sgml">
 <!ENTITY endpointconfig SYSTEM "endpointconfig.sgml">
 <!ENTITY monitoring SYSTEM "monitoring.sgml">
+<!ENTITY advanced SYSTEM "advanced.sgml">
 ]>
 <!-- This is the User Manual for the GNU Gatekeeper -->
 
@@ -47,6 +48,7 @@ explains how to compile, install, configure and monitor
 &endpointconfig;
 &misc;
 &monitoring;
+&advanced;
 
 </article>
 
