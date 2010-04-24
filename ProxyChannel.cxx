@@ -5258,17 +5258,16 @@ void UDPProxySocket::BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX 
 {
 	const RTP_ControlFrame::ReceiverReport * rr = (const RTP_ControlFrame::ReceiverReport *)(frame.GetPayloadPtr()+offset);
 	for (PINDEX repIdx = 0; repIdx < (PINDEX)frame.GetCount(); repIdx++) {
-		RTP_Session::ReceiverReport * report = new RTP_Session::ReceiverReport;
 		if (direct) {
-			(*m_call)->SetRTCP_DST_packet_lost(report->totalLost = rr->GetLostPackets());
+			(*m_call)->SetRTCP_DST_packet_lost(rr->GetLostPackets());
 			(*m_call)->SetRTCP_DST_jitter(rr->jitter);
-			PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_lost:"<<rr->GetLostPackets());
-			PTRACE(5, "RTCP\tSession SetRTCP_DST_jitter:"<<rr->jitter);
+			PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_lost:" << rr->GetLostPackets());
+			PTRACE(5, "RTCP\tSession SetRTCP_DST_jitter:" << rr->jitter);
 		} else {
-			(*m_call)->SetRTCP_SRC_packet_lost(report->totalLost = rr->GetLostPackets());
+			(*m_call)->SetRTCP_SRC_packet_lost(rr->GetLostPackets());
 			(*m_call)->SetRTCP_SRC_jitter(rr->jitter);
-			PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_lost:"<<rr->GetLostPackets());
-			PTRACE(5, "RTCP\tSession SetRTCP_SRC_jitter:"<<rr->jitter);
+			PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_lost:" << rr->GetLostPackets());
+			PTRACE(5, "RTCP\tSession SetRTCP_SRC_jitter:" << rr->jitter);
 		}
 		rr++;
 	}
@@ -5306,7 +5305,7 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 		PTRACE(3, Type() << '\t' << Name() << " socket has no destination address yet, " << len << " bytes queued");
 		return false;
 	}
-	
+
 	return InternalWriteData(buffer, len);
 }
 
@@ -5412,7 +5411,8 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 	PIPSocket::Address laddr(INADDR_ANY);
 	std::vector<PIPSocket::Address> home;
 	Toolkit::Instance()->GetGKHome(home);
-	if (home.size() == 1)
+	// TODO: missing logic to bind to a specific outbound addr, eg ExternalIP
+	if (home.size() >= 1)
 		laddr = home[0];
 
 	int numPorts = min(RTPPortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS*2);
