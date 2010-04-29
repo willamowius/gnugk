@@ -536,8 +536,6 @@ public:
 	bool UsesH46019fc() const { return m_useH46019fc; }
 	void SetH46019fcState(int use) { m_H46019fcState = use; }
 	int GetH46019fcState() { return m_H46019fcState; }
-	void SetH46019Direction(int dir) { m_H46019dir = dir; }
-	int GetH46019Direction() { return m_H46019dir; }
 
 private:
 	// override from class H245Handler
@@ -567,7 +565,6 @@ private:
 	bool m_useH46019;
 	bool m_useH46019fc;
 	int m_H46019fcState;
-	int m_H46019dir;
 };
 
 
@@ -5751,7 +5748,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler *pr)
-      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false), m_H46019fcState(0), m_H46019dir(0)
+      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_useH46019fc(false), m_H46019fcState(0)
 {
 	if (peer)
 		peer->peer = this;
@@ -5812,7 +5809,6 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		return false;
 
 #ifdef HAS_H46018
-	lc->SetH46019Direction(m_H46019dir);
 	lc->SetH46024SessionID((WORD)h225Params->m_sessionID);
 #endif
 
