@@ -786,16 +786,14 @@ StatusClient::StatusClient(
         PStringToString filters = GkConfig()->GetAllKeyValues(filteringsec);
         SetWriteTimeout(10);
 	
-	PString key;
-	PString data;
 	for (PINDEX i = 0; i < filters.GetSize(); i++) {
-	    key = filters.GetKeyAt(i);
-	    data = filters.GetDataAt(i);
+	    PString key = filters.GetKeyAt(i);
+	    PString data = filters.GetDataAt(i);
 	    PStringArray regexArray(data.Tokenise("\n", false));
 	    for (PINDEX k = 0; k < regexArray.GetSize(); ++k) {
-		if(filters.GetKeyAt(i) == "IncludeFilter")
+		if (filters.GetKeyAt(i) == "IncludeFilter")
 		    AddFilter(m_includeFilterRegex, regexArray[k]);
-		else if(filters.GetKeyAt(i) == "ExcludeFilter")
+		else if (filters.GetKeyAt(i) == "ExcludeFilter")
 		    AddFilter(m_excludeFilterRegex, regexArray[k]);
 	    }
 	}
