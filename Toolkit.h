@@ -297,7 +297,7 @@ class Toolkit : public Singleton<Toolkit>
 		~QoSMonitor();
 	    void LoadConfig(PConfig *);
 		bool PostRecord(const std::map<PString, PString>& params);
-		bool Enabled() { return m_sqlactive; }
+		bool Enabled() const { return m_sqlactive; }
 
      private:
 	   bool m_sqlactive;

@@ -186,17 +186,17 @@ public:
 	bool HasNATProxy() const;
 	bool IsInternal() const;
 	bool IsRemote() const;
-	int GetEPNATType() {return (int)m_epnattype; }
+	int GetEPNATType() const { return (int)m_epnattype; }
 	static PString GetEPNATTypeString(EPNatTypes nat);
 	bool SupportPreemption() const { return m_registrationPreemption; }
-	H225_AlternateGK GetAssignedGatekeeper() { return m_assignedGatekeeper; }
+	H225_AlternateGK GetAssignedGatekeeper() const { return m_assignedGatekeeper; }
 
 	int  Priority() const { return m_registrationPriority; }
 	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;
 
 	void SetUsesH460P(bool uses);
-	bool UsesH460P() { return m_usesH460P; }
+	bool UsesH460P() const { return m_usesH460P; }
 #ifdef HAS_H460P
 	void ParsePresencePDU(const PASN_OctetString & pdu);
 	bool BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu);
@@ -654,7 +654,7 @@ public:
 
 
 	/** Get the NATStrategy Default is Unknown */
-	NatStrategy GetNATStrategy() { return m_natstrategy; }
+	NatStrategy GetNATStrategy() const { return m_natstrategy; }
 
 	/** Set the NATStrategy */
 	void SetNATStrategy(NatStrategy strategy) { m_natstrategy = strategy; }

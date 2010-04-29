@@ -65,7 +65,7 @@ public:
 	void OnReload();
 	void CheckRegistration();
 	bool CheckFrom(const RasMsg *) const;
-	bool CheckFrom(const PIPSocket::Address & ip) { return m_gkaddr == ip; }
+	bool CheckFrom(const PIPSocket::Address & ip) const { return m_gkaddr == ip; }
 	bool IsRegistered() const { return m_registered; }
 	bool IsNATed() const { return m_natClient != NULL; }
 	PString GetParent() const;
