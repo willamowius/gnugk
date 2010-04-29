@@ -1879,7 +1879,7 @@ bool RegistrationRequestPDU::Process()
 	if (request.m_rasAddress.GetSize() == 0)
 		return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
 
-	bool nated = false, validaddress = false, internal = false;
+	bool nated = false, validaddress = false;
 	if (request.m_callSignalAddress.GetSize() >= 1) {
 		PIPSocket::Address ipaddr;
 		for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
@@ -1887,7 +1887,6 @@ bool RegistrationRequestPDU::Process()
 			if (GetIPFromTransportAddr(SignalAddr, ipaddr)) {
 				validaddress = ((rx_addr == ipaddr) || IsLoopback(rx_addr));  
 				if (validaddress) {
-					internal = Toolkit::Instance()->IsInternal(rx_addr);
 				    break;
 				}
 			}
