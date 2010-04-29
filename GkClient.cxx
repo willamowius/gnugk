@@ -1756,13 +1756,13 @@ void GkClient::OnRCF(RasMsg *ras)
 #ifdef HAS_H46023
 void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
 {
-   PBoolean proxy = FALSE;
+//   PBoolean proxy = FALSE;
    PBoolean NATdetect = FALSE;
 
    gk_H460_23 = true;
 
-   if (feat->Contains(Std24_ProxyNAT)) 
-       proxy = feat->Value(Std24_ProxyNAT);
+//   if (feat->Contains(Std24_ProxyNAT)) 
+//       proxy = feat->Value(Std24_ProxyNAT);
 
    if (feat->Contains(Std23_IsNAT))
        NATdetect = feat->Value(Std23_IsNAT);
