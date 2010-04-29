@@ -1552,7 +1552,7 @@ bool Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 		return FALSE;
 	}
 	if(!regex.Execute(str, pos)) {
-		PTRACE(5, "Gk\tRegex '"<<regexStr<<"' did not match '"<<str<<"'");
+		// PTRACE(6, "Gk\tRegex '" << regexStr << "' did not match '" << str << "'");
 		return FALSE;
 	}
 	return TRUE;
