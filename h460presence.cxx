@@ -142,9 +142,9 @@ void PresWorker::ProcessMessages()
 		while (i != epid.end()) {
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(*i);
 			if (ep) {
-				H225_RasMessage sci_ras;
 				PASN_OctetString element;
 				if (handler->BuildPresenceElement(H225_RasMessage::e_serviceControlIndication, *i, element)) {
+					H225_RasMessage sci_ras;
 					BuildSCI(sci_ras,element);
 					RasServer::Instance()->SendRas(sci_ras, ep->GetRasAddress());
 				}
@@ -159,12 +159,12 @@ void PresWorker::ProcessMessages()
 		// Process the LRQ message for each TransportAddress
 		list<H225_TransportAddress>::iterator i = gkip.begin();
 		while (i != gkip.end()) {
+			PASN_OctetString element;
+			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest,*i, element)) {
 				H225_RasMessage lrq_ras;
-				PASN_OctetString element;
-				if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest,*i, element)) {
-					BuildLRQ(lrq_ras,element);
-					RasServer::Instance()->SendRas(lrq_ras, *i);
-				}
+				BuildLRQ(lrq_ras,element);
+				RasServer::Instance()->SendRas(lrq_ras, *i);
+			}
 			i++;
 		}
 	}
@@ -681,7 +681,7 @@ bool GkPresence::GetPendingIdentifiers(list<H225_EndpointIdentifier> & epid)
 		epid.push_back(i->first);
 		i++;
 	}
-	return (epid.size() > 0);
+	return (!epid.empty());
 }
 
 bool GkPresence::GetPendingAddresses(list<H225_TransportAddress> & gkip)
@@ -693,7 +693,7 @@ bool GkPresence::GetPendingAddresses(list<H225_TransportAddress> & gkip)
 		gkip.push_back(i->first);
 		i++;
 	}
-	return (gkip.size() > 0);
+	return (!gkip.empty());
 }
 
 bool GkPresence::GetSubscriptionIdentifier(const H225_AliasAddress & local, const H225_AliasAddress & remote, H460P_PresenceIdentifier & id)
