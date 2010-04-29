@@ -3280,7 +3280,7 @@ void CallSignalSocket::TryNextRoute()
 		PTRACE(1, "Q931\tERROR: TryNextRoute() without a route");
 		return;
 	}
-	const Route &newRoute = newCall->GetNewRoutes().front();
+	const Route & newRoute = newCall->GetNewRoutes().front();
 	PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 	if (newRoute.m_destEndpoint)
 		newCall->SetCalled(newRoute.m_destEndpoint);
@@ -6266,6 +6266,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 		lc = new RTPLogicalChannel(callid, flcn, hnat != 0);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
+			delete lc;
 			return NULL;
 		}
 	}
