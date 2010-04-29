@@ -3181,7 +3181,7 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 
 	m_h46024Bflag.remove(sessionID);
 
-	if (m_h46024Bflag.size() == 0) {
+	if (m_h46024Bflag.empty()) {
 		// Build the Generic Request
 		H245_MultimediaSystemControlMessage h245msg;
 		BuildH46024AnnexBMessage(true,h245msg,m_H46024Balternate);
