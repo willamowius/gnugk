@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.23  2009/11/15 15:41:22  willamowius
+ * code cleanup
+ *
  * Revision 1.22  2009/07/16 12:48:40  willamowius
  * remove unused code
  *
@@ -179,7 +182,7 @@ void GkSQLConnection::Disconnect()
 	
 	// disconnect/delete all connections
 	PTRACE(3, GetName() << "\tDisconnecting all SQL connections in pool");
-	for(iterator Iter = m_idleConnections.begin(); Iter != m_idleConnections.end(); Iter++) {
+	for(iterator Iter = m_idleConnections.begin(); Iter != m_idleConnections.end(); ++Iter) {
 		delete *Iter;
 	}
 	m_idleConnections.clear();
