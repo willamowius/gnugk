@@ -522,7 +522,6 @@
     <ClCompile Include="main.cxx" />
     <ClCompile Include="MakeCall.cxx" />
     <ClCompile Include="Neighbor.cxx" />
-    <ClCompile Include="precompile.cxx" />
     <ClCompile Include="ProxyChannel.cxx" />
     <ClCompile Include="radacct.cxx" />
     <ClCompile Include="radauth.cxx" />
