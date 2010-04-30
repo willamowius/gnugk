@@ -65,7 +65,7 @@ Cisco_ARQnonStandardInfo::Cisco_ARQnonStandardInfo(unsigned _tag, PASN_Object::T
 #ifndef PASN_NOPRINTON
 void Cisco_ARQnonStandardInfo::PrintOn(ostream & strm) const
 {
-  int indent = strm.precision() + 2;
+  std::streamsize indent = strm.precision() + 2;
   strm << "{\n";
   strm << setw(indent+14) << "sourceAlias = " << setprecision(indent) << m_sourceAlias << '\n';
   strm << setw(indent+17) << "sourceExtAlias = " << setprecision(indent) << m_sourceExtAlias << '\n';
@@ -177,7 +177,7 @@ Cisco_LRQnonStandardInfo::Cisco_LRQnonStandardInfo(unsigned _tag, PASN_Object::T
 #ifndef PASN_NOPRINTON
 void Cisco_LRQnonStandardInfo::PrintOn(ostream & strm) const
 {
-  int indent = strm.precision() + 2;
+  std::streamsize indent = strm.precision() + 2;
   strm << "{\n";
   strm << setw(indent+6) << "ttl = " << setprecision(indent) << m_ttl << '\n';
   if (HasOptionalField(e_callIdentifier))

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.47  2009/11/15 15:45:52  willamowius
+ * code cleanup
+ *
  * Revision 1.46  2009/09/17 15:43:21  willamowius
  * code cleanup
  *
@@ -573,7 +576,7 @@ void RadiusAttr::PrintOn(
 	ostream &strm   /// Stream to print the object into.
     ) const
 {
-	const int indent = strm.precision() + 2;
+	const std::streamsize indent = strm.precision() + 2;
 
 	if (!IsValid()) {
 		strm << "(Invalid) {\n";
@@ -862,7 +865,7 @@ void RadiusPDU::PrintOn(
 	ostream& strm /// Stream to print the object into.
 	) const
 {
-	const int indent = strm.precision() + 2;
+	const std::streamsize indent = strm.precision() + 2;
 
 	strm << ((!IsValid()) ? "(Invalid) {\n" : "{\n");
 	
@@ -892,7 +895,7 @@ void RadiusPDU::PrintOn(
 	else {
 		strm << setw(indent+13) << "attributes = " << numAttributes << " elements {\n";
 
-		const int aindent = indent + 2;
+		const std::streamsize aindent = indent + 2;
 
 		const RadiusAttr* attr = GetAttr();
 		PINDEX i = 0;
@@ -1948,7 +1951,7 @@ RadiusClient::RadiusClient(
 #if PTRACING
 	if (PTrace::CanTrace(4)) {
 		ostream& s = PTrace::Begin(4, __FILE__, __LINE__);
-		const int indent = s.precision() + 2;
+		const std::streamsize indent = s.precision() + 2;
 		s << "RADIUS\tCreated instance of RADIUS client (local if: "
 			<< m_localAddress << ", default ports: " << m_authPort << ',' 
 			<< m_acctPort << ") for RADIUS servers group:";
@@ -2026,7 +2029,7 @@ RadiusClient::RadiusClient(
 #if PTRACING
 	if (PTrace::CanTrace(4)) {
 		ostream& os = PTrace::Begin(4, __FILE__, __LINE__);
-		const int indent = os.precision() + 2;
+		const std::streamsize indent = os.precision() + 2;
 		os << "RADIUS\tCreated instance of RADIUS client (local if: "
 			<< m_localAddress << ", default ports: " << m_authPort << ',' 
 			<< m_acctPort << ") for RADIUS servers group:";
