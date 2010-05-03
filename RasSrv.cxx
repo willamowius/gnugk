@@ -935,13 +935,33 @@ WORD RasServer::GetRequestSeqNum()
 	return ++requestSeqNum;
 }
 
+GkInterface *RasServer::SelectDefaultInterface()
+{
+	if (interfaces.empty())
+		return NULL;
+
+    PIPSocket::Address defIP = Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress();
+    ifiterator iter = interfaces.begin();
+	while (iter != interfaces.end()) {
+		GkInterface * intface = *iter++;
+		if (intface->GetRasListener()->GetPhysicalAddr(defIP) == defIP)
+			return intface;
+	}
+    PTRACE(5,"RasSrv\tWARNING: No route detected using First Interface");
+    return interfaces.front();
+}
+
 GkInterface *RasServer::SelectInterface(const Address & addr)
 {
 	ifiterator iter, eiter = interfaces.end();
 	if (interfaces.empty())
 		return NULL;
 	iter = find_if(interfaces.begin(), eiter, bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
-	return (iter != eiter) ? *iter : interfaces.front();
+	if (iter != eiter) 
+        return *iter;
+    else 
+        return SelectDefaultInterface();
+
 }
 
 const GkInterface *RasServer::SelectInterface(const Address & addr) const
@@ -2582,6 +2602,7 @@ bool AdmissionRequestPDU::Process()
 		}
 	}
 
+	bool signalOffload = false;
 #ifdef HAS_H460
     bool QoSReporting = false;
 	bool vendorInfo = false;
@@ -2821,6 +2842,8 @@ bool AdmissionRequestPDU::Process()
 			pCallRec->SetNATType(0);
 		}
 
+		signalOffload = pCallRec->NATSignallingOffload(answer);
+
 		pCallRec->GetRemoteInfo(m_vendor,m_version);
 #endif
 		// Put rewriting information into call record
@@ -2829,7 +2852,7 @@ bool AdmissionRequestPDU::Process()
 
 	}
 
-	if (RasSrv->IsGKRouted()) {
+	if (RasSrv->IsGKRouted() && !signalOffload) {
 		acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
 		GetCallSignalAddress(acf.m_destCallSignalAddress);
 	} else {

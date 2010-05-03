@@ -326,12 +326,25 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 		}
 	}
 
-	// if a dynamic external IP is configured, resolve DNS entry now
-	if (DynExtIP && !addr.IsRFC1918()) {
-		PIPSocket::Address extip;
+	// if external IP is configured
+    if (!ExtIP) {
+      if (DynExtIP) {  // if dynamic resolve DNS entry
+        PIPSocket::Address extip;
 		H323TransportAddress ex = H323TransportAddress(ExtIP);
 		ex.GetIpAddress(extip);
-		return extip;
+          if (extip.IsValid()) {
+              return extip;
+          } else {
+              PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unresolvable." );
+          }
+      } else {  // If valid IP then use the ExtIP value
+          PIPSocket::Address extip(ExtIP);
+          if (extip.IsValid()) {
+              return extip;
+          } else {
+              PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unuseable." );
+          }
+      }
 	}
 
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
@@ -403,7 +416,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	PIPSocket::Address ext((DWORD)0);
 	H323TransportAddress ex = H323TransportAddress(extip);
 	ex.GetIpAddress(ext);
-	if (ext.IsValid() && !ext.IsRFC1918()) {
+	if (ext.IsValid()) {
 		ExtIP = extip;
 		PString extroute = PString();
 		if (!DynExtIP) 
