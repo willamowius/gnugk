@@ -32,6 +32,10 @@
   #include <ptclib/random.h>
 #endif
 
+#if P_DNS
+  #include <ptclib/pdns.h>
+#endif
+
 using std::vector;
 using std::multimap;
 using std::make_pair;
@@ -49,6 +53,7 @@ class AlternateGKs {
 public:
 	AlternateGKs(const PIPSocket::Address &, WORD);
 	void Set(const H225_ArrayOf_AlternateGK &);
+	void Set(const PString &);
 	bool Get(PIPSocket::Address &, WORD &);
 
 private:
@@ -71,6 +76,18 @@ void AlternateGKs::Set(const H225_ArrayOf_AlternateGK & agk)
 		AltGKs.insert(make_pair(int(gk.m_priority), gk.m_rasAddress));
 	}
 	index = AltGKs.begin();
+}
+
+void AlternateGKs::Set(const PString & addr)
+{
+	PIPSocket::Address gkaddr;
+	WORD gkport;
+	H225_TransportAddress haddr;
+	if (GetTransportAddress(addr, GK_DEF_UNICAST_RAS_PORT, gkaddr, gkport)) {
+		H323TransportAddress taddr(gkaddr, gkport);
+		taddr.SetPDU(haddr);
+		AltGKs.insert(make_pair(AltGKs.size()+1, haddr));
+	}
 }
 
 bool AlternateGKs::Get(PIPSocket::Address & gkaddr, WORD & gkport)
@@ -967,7 +984,23 @@ void GkClient::OnReload()
 	
 	PIPSocket::Address gkaddr = m_gkaddr;
 	WORD gkport = m_gkport;
-	const PCaselessString gk(cfg->GetString(EndpointSection, "Gatekeeper", "no"));
+	PCaselessString gk(cfg->GetString(EndpointSection, "Gatekeeper", "no"));
+
+	PStringList gkHost;
+#if P_DNS
+	PStringList str;
+    if (PDNS::LookupSRV(gk,"_h323rs._udp.",str)) {
+		PTRACE(5, "EP\t" << str.GetSize() << " h323rs SRV Records found" );
+		  for (PINDEX i = 0; i < str.GetSize(); i++) {
+			PCaselessString newhost = str[i].Right(str[i].GetLength()-5);
+			PTRACE(4, "EP\th323rs SRV record " << newhost );
+			if (i == 0) 
+				gk = newhost;
+			else 
+				m_gkList->Set(newhost);
+		  }
+	} 
+#endif	
 	
 	if (!IsRegistered())
 		m_ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
