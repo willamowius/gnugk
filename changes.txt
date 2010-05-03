@@ -1,5 +1,8 @@
 Changes from 2.3.1 to 2.3.2
 ===========================
+- new GKClient supports SRV lookup on registrations
+- BUGFIX(RasSrv.cxx) set unresolved interface to the default gateway IP as first is loopback on windows
+- BUGFIX(Toolkit.cxx) Setting ExternalIP when behind a NAT on a private network
 - BUGFIX(ProxyChannel.cxx) fix memory leak in BuildReceiverReport()
 - new status port command BindAndRouteToGateway
 - new setting [Neighbor::...] SendAliases= to specify aliases to send to the neighbor
