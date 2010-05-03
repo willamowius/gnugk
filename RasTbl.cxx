@@ -2954,6 +2954,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	if (!m_Called) {
 		if (m_Calling->GetEPNATType() == EndpointRec::NatCone) {
 		   natinst = CallRec::e_natLocalMaster;
+		   m_natstrategy = natinst;
 	       return true;
 		}
 		return false;
@@ -3038,6 +3039,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				natinst = CallRec::e_natFullProxy;
 			else {
 				natinst = CallRec::e_natFailure;
+				m_natstrategy = natinst;
 				PTRACE(2, "H46024\tFAILURE: No Annex A Support!");
 				return false;
 			}
@@ -3052,6 +3054,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
 			(!m_Calling->HasNATProxy() && (!m_Called->HasNATProxy()))) {
 				natinst = CallRec::e_natFailure;
+				m_natstrategy = natinst;
 				PTRACE(2, "H46024\tFAILURE: No Annex B Support!" 
 					<< " local: " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType())
 					<< " remote: " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()));
@@ -3081,11 +3084,20 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	// Oops cannot proceed the media will Fail!!
 	else {
 			natinst = CallRec::e_natFailure;
+			m_natstrategy = natinst;
 			PTRACE(2, "H46024\tFAILURE: No resolvable routing policy!");
 			return false;
 	}
 
+	m_natstrategy = natinst;
 	return true;
+}
+
+bool CallRec::NATSignallingOffload(bool isAnswer)
+{
+   return (!isAnswer && (m_natstrategy == e_natNoassist || 
+		m_natstrategy == e_natRemoteMaster || 
+		m_natstrategy == e_natRemoteProxy));
 }
 
 #ifdef HAS_H46024B

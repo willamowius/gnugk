@@ -659,6 +659,10 @@ public:
 	/** Set the NATStrategy */
 	void SetNATStrategy(NatStrategy strategy) { m_natstrategy = strategy; }
 
+	/** Can Signalling be offloaded
+	  */
+	bool NATSignallingOffload(bool isAnswer);
+
 #ifdef HAS_H46024B
 	/** Initiate Probe */
 	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev);
