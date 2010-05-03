@@ -533,6 +533,9 @@ bool GkPresence::DatabaseLoad()
 bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & id)
 {
 #ifdef HAS_DATABASE
+	if (!m_sqlConn)
+		return false;
+
 	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["i"] = identifier;
@@ -549,6 +552,9 @@ bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & 
 bool GkPresence::DatabaseDelete(const PString & identifier)
 {
 #ifdef HAS_DATABASE
+	if (!m_sqlConn)
+		return false;
+
 	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["i"] = identifier;
@@ -562,6 +568,9 @@ bool GkPresence::DatabaseDelete(const PString & identifier)
 bool GkPresence::DatabaseUpdate(unsigned tag, const PString & identifier)
 {
 #ifdef HAS_DATABASE
+	if (!m_sqlConn)
+		return false;
+
 	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["i"] = identifier;
