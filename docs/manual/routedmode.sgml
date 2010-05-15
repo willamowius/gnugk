@@ -199,6 +199,8 @@ If you have broken endpoints that can't handle Q.931 Facility with reason
 <bf/callForwarded/ (or the other reasons), turn on this option. Note that this feature
 may not always work correctly, as it does not provide any means
 of capability renegotiation and media channel reopening.
+The call is only forwarded if the forwarder is the called party and
+the H.245 channel is not established, yet.
 
 <item><tt/ShowForwarderNumber=0/<newline>
 Default: <tt/0/<newline>
