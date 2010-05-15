@@ -192,11 +192,11 @@ Modify the sourceAddress field of UUIE element from Q.931 Setup message.
 <item><tt/ForwardOnFacility=1/<newline>
 Default: <tt/0/<newline>
 <p>
-If yes, on receiving Q.931 Facility with reason <bf/callForwarded/,
+If yes, on receiving Q.931 Facility with reason <bf/callForwarded/, <bf/routeCallToGatekeeper/ or <bf/routeCallToMC/,
 the gatekeeper will forwards call Setup directly to the forwarded endpoint,
 instead of passing the message back to the caller.
 If you have broken endpoints that can't handle Q.931 Facility with reason
-<bf/callForwarded/, turn on this option. Note that this feature
+<bf/callForwarded/ (or the other reasons), turn on this option. Note that this feature
 may not always work correctly, as it does not provide any means
 of capability renegotiation and media channel reopening.
 
