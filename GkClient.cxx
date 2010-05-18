@@ -82,9 +82,9 @@ void AlternateGKs::Set(const PString & addr)
 {
 	PIPSocket::Address gkaddr;
 	WORD gkport;
-	H225_TransportAddress haddr;
 	if (GetTransportAddress(addr, GK_DEF_UNICAST_RAS_PORT, gkaddr, gkport)) {
 		H323TransportAddress taddr(gkaddr, gkport);
+		H225_TransportAddress haddr;
 		taddr.SetPDU(haddr);
 		AltGKs.insert(make_pair(AltGKs.size()+1, haddr));
 	}
