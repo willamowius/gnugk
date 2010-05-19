@@ -1051,6 +1051,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				arq.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 			}
 			delete callSigAdr;
+			delete bindIP;
 		}
 		// the trick: if empty, the request is rejected
 		// so we return true to terminate the routing
@@ -1116,9 +1117,11 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				);
 				request.AddRoute(route);					
 				delete callSigAdr;
+				delete bindIP;
 				return true;	// stop processing
 			}
 			delete callSigAdr;
+			delete bindIP;
 			// the trick: if empty, the request is rejected
 			// so we return true to terminate the routing
 			// decision process, otherwise the aliases is
@@ -1187,6 +1190,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 		}
 		delete callSigAdr;
+		delete bindIP;
 		// the trick: if empty, the request is rejected
 		// so we return true to terminate the routing
 		// decision process, otherwise the aliases is
