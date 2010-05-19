@@ -453,6 +453,8 @@ users to specify log file rotation options.
 Default: <tt>N/A</tt><newline>
 <p>
 Set the output filename for the log file (same as -o on the command line).
+On Windows, backslashes in the file name have to be escaped.
+<p>
 <bf/This setting doesn't change when the config is reloaded!/
 
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
@@ -471,6 +473,7 @@ file. To disable rotation, do not configure the <tt/Rotate/ parameter or set it 
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Hourly</tt><newline>
 <tt>RotateTime=45</tt><newline>
+<tt>Filename=/var/log/gk_trace.log</tt><newline>
 </descrip>
 
 <descrip>
@@ -478,6 +481,7 @@ file. To disable rotation, do not configure the <tt/Rotate/ parameter or set it 
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Daily</tt><newline>
 <tt>RotateTime=23:00</tt><newline>
+<tt>Filename=C:\\Logs\\GnuGk.log</tt><newline>
 </descrip>
 
 <descrip>
