@@ -3608,7 +3608,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			altered = m_h245handler->HandleFastStartSetup(olc, m_call);
 		} else {
 #ifdef HAS_H46018
-			if (m_call->H46019Required() && ((H245ProxyHandler*)m_h245handler)->UsesH46019())
+			if (m_call->H46019Required() && PIsDescendant(m_h245handler, H245ProxyHandler) && ((H245ProxyHandler*)m_h245handler)->UsesH46019())
 				altered = ((H245ProxyHandler*)m_h245handler)->HandleFastStartResponse(olc, m_call);
 			else
 #endif
