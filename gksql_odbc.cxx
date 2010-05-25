@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.13  2009/02/09 13:25:59  willamowius
+ * typo in comment
+ *
  * Revision 1.12  2008/07/10 08:01:07  willamowius
  * avoid gcc 4.3.x warnings
  *
@@ -489,7 +492,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		return new GkODBCResult(r, errmsg + ", query: " + queryStr);
 	}
 	
-	SQLINTEGER rows = 0;
+	SQLLEN rows = 0;
 	
 	if (columns == 0) {
 		if (nodata) {
@@ -534,7 +537,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		GkSQLResult::ResultRow * row = new GkSQLResult::ResultRow(columns);
 		
 		for (SQLUSMALLINT i = 1; i <= columns; ++i) {
-			SQLINTEGER indicator;
+			SQLLEN indicator;
 			char data[512];
 			/* retrieve column data as a string */
 			SQLRETURN result = SQLGetData(stmt, i, SQL_C_CHAR, data, sizeof(data), &indicator);
