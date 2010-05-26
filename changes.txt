@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- display H323Plus and PTLib version in GnuGk's version string
 
 
 Changes from 2.3.1 to 2.3.2

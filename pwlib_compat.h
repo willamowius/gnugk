@@ -119,6 +119,13 @@
 	#define hasDeletingSetStream 1
 #endif
 
+// store version numver it PT macros for dispaly later on
+#if !defined(PTLIB_MAJOR)
+	#define PTLIB_MAJOR	PWLIB_MAJOR
+	#define PTLIB_MINOR	PWLIB_MINOR
+	#define PTLIB_BUILD	PWLIB_BUILD
+#endif
+
 ///////////////////////////////////////////////
 
 // OpenH323/H323Plus version matching

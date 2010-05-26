@@ -22,7 +22,7 @@ const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
 		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d,pgsql=%d,firebird=%d,odbc=%d,sqlite=%d,large_fdset=%d,crypto/ssl=%d,h46018=%d,h46023=%d)"
-		       " Build(%s, %s) Sys(%s %s %s)\r\n",
+		       " H323Plus(%d.%d.%d) PTLib(%d.%d.%d) Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
 #ifdef P_PTHREADS
@@ -80,6 +80,8 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
+				OPENH323_MAJOR, OPENH323_MINOR, OPENH323_BUILD,
+				PTLIB_MAJOR, PTLIB_MINOR, PTLIB_BUILD,
 		       __DATE__, __TIME__,
 		       (const unsigned char*)(PProcess::GetOSName()),
 		       (const unsigned char*)(PProcess::GetOSHardware()),
