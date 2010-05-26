@@ -3101,7 +3101,7 @@ bool CallRec::NATSignallingOffload(bool isAnswer)
 }
 
 #ifdef HAS_H46024B
-void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const map<WORD,H46024Balternate> & alt)
+void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt)
 {
 
 	const char * H46024B_OID = "0.0.8.460.24.2";
@@ -3135,7 +3135,7 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 
 		H46024B_ArrayOf_AlternateAddress addrs;
 
-		map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.begin();
+		std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.begin();
 		while (i != m_H46024Balternate.end()) {
 			int sz = addrs.GetSize();
 			addrs.SetSize(sz+1);
@@ -3179,7 +3179,7 @@ void CallRec::H46024BSessionFlag(WORD sessionID)
 
 void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev)
 {
-	map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.find(sessionID);
+	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.find(sessionID);
 	if (i != m_H46024Balternate.end()) return;
 
 	PWaitAndSignal m(m_H46024Bmutex);

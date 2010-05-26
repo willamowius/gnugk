@@ -1278,7 +1278,7 @@ private:
 	};
 
 	std::map<WORD,H46024Balternate> m_H46024Balternate;
-	void BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const map<WORD,H46024Balternate> & alt);
+	void BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt);
 	list<int> m_h46024Bflag;
 	PMutex m_H46024Bmutex;
 #endif
