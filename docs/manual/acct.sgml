@@ -744,6 +744,14 @@ Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to update the database when an endpoint registers.
 
+Register and Unregister queries can use the following parameters:
+<itemize>
+<item><tt/%{endpoint-ip}/ - IP number of the endpoint
+<item><tt/%{endpoint-port}/ - port number of the endpoint
+<item><tt/%{epid}/ - the endpoint ID
+<item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
+</itemize>
+
 <item><tt/UnregisterQuery=DELETE .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
