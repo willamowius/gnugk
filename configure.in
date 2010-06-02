@@ -4,7 +4,7 @@ AC_PROG_CXX
 
 dnl ########################################################################
 dnl Check if recv call supports MSG_NOSIGNAL flag
-AC_MSG_CHECKING(if MSG_NOSIGNAL is supported by recv call)
+AC_MSG_CHECKING(if MSG_NOSIGNAL is supported by recv() call)
 AC_TRY_COMPILE([
 #include <sys/types.h>
 #include <sys/socket.h>
