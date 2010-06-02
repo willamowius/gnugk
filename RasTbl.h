@@ -58,9 +58,7 @@ private:
 	T *pt;
 };
 
-#ifdef HAS_H460P
-class H323Contact;
-#endif
+
 class EndpointRec
 {
 public:
