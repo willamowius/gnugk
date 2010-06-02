@@ -2469,8 +2469,19 @@ void Toolkit::SetGKHome(const PStringArray & home)
 				break;
 			}
 
+	// move loopback interfaces to the end
+	std::list<PIPSocket::Address> sortedHomes;
+	for (unsigned j=0; j < m_GKHome.size(); j++) {
+		if (m_GKHome[j].IsLoopback()) {
+			sortedHomes.push_back(m_GKHome[j]);
+		} else {
+			sortedHomes.push_front(m_GKHome[j]);
+		}		
+	}
+	m_GKHome.assign(sortedHomes.begin(), sortedHomes.end());
 	m_GKHome.resize(size);
-	// put the default IP to the first
+
+	// put the default IP first
 	begin = find(m_GKHome.begin(), m_GKHome.end(), m_RouteTable.GetLocalAddress());
 	if (begin != m_GKHome.end())
 		swap(m_GKHome[0], *begin);

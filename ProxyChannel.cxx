@@ -5412,7 +5412,7 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 	std::vector<PIPSocket::Address> home;
 	Toolkit::Instance()->GetGKHome(home);
 	// TODO: missing logic to bind to a specific outbound addr, eg ExternalIP
-	if (home.size() >= 1)
+	if (home.size() == 1)
 		laddr = home[0];
 
 	int numPorts = min(RTPPortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS*2);
