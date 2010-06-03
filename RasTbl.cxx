@@ -1886,6 +1886,7 @@ void RegistrationTable::CheckEndpoints()
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
 			SoftPBX::DisconnectEndpoint(endptr(ep));
 			ep->Expired();
+			RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
 			RemovedList.push_back(ep);
 			Iter = EndpointList.erase(Iter);
 			--regSize;
