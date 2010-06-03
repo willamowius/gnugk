@@ -90,14 +90,14 @@ See section <ref id="radacct" name="[RadAcct]"> for configuration details.
 
 <item><tt>SQLAcct</tt>
 <p>
-This module performs direct SQL accounting. It supports (start, connect, stop, update)
+This module performs direct SQL accounting. It supports (start, connect, stop, update, alert, register, unregister)
 event types. 
 See section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 
 <item><tt>StatusAcct</tt>
 <p>
-This module logs all accounting events on the status port. It can be used to interface to external application in real-time. It supports (start, connect, stop, update)
-event types. 
+This module logs all accounting events on the status port. It can be used to interface to external application in real-time. It supports (start, connect, stop, update, alert, register, unregister)
+event types.
 See section <ref id="statusacct" name="[StatusAcct]"> for configuration details.
 
 <item><tt>SyslogAcct</tt>
