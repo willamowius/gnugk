@@ -15,6 +15,7 @@
 
 #include <ptlib/sockets.h>
 
+class H225_CallIdentifier;
 class H225_GloballyUniqueID;
 class H225_TransportAddress;
 class H225_TransportAddress_ipAddress;
@@ -38,6 +39,8 @@ PString AsString(const H225_TransportAddress_ipAddress & ip);
 PString AsString(const H225_EndpointType & terminalType);
 
 PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasName = TRUE);
+
+PString AsString(const PBYTEArray & array);
 
 PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasName = TRUE);
 
@@ -116,6 +119,10 @@ PString GetGUIDString(
 	const H225_GloballyUniqueID& id, /// 128-bit identifier to convert
 	bool fixedLength = false /// skip leading zeros (false) or not (true)
 	);
+
+/** convert a string into a call-id
+ */
+H225_CallIdentifier StringToCallId(PString CallId);
 
 /** Check if the given #alias# is present on the list of #aliases#.
 

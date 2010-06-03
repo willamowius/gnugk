@@ -134,6 +134,16 @@ PString AsString(const PASN_OctetString & Octets)
 	return result;
 }
 
+PString AsString(const PBYTEArray & array)
+{
+	PString result;
+	for (PINDEX i = 0; i < array.GetSize(); i++) {
+		if (isprint(array[i]))
+			result += array[i];
+	}
+	return result;
+}
+
 PString StripAliasType(const PString & alias)
 {
 	const PINDEX nameIndex = alias.FindLast(':');
@@ -278,6 +288,18 @@ PString GetGUIDString(
 	}
 
 	return idstr;
+}
+
+/** convert a string into a call-id
+ */
+H225_CallIdentifier StringToCallId(PString CallId)
+{
+	H225_CallIdentifier result;
+	CallId.Replace("-", "", true);
+	CallId.Replace(" ", "", true);
+	OpalGloballyUniqueID tmp_guid(CallId);
+	result.m_guid = tmp_guid;
+	return result;
 }
 
 PINDEX GetBestAliasAddressIndex(
