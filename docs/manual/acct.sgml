@@ -899,13 +899,13 @@ Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port
 <p>
 Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
 
-<item><tt/RegisterEvent=CALL|Register|%{endpoint-ip}/<newline>
-Default: <tt>CALL|Register|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
+<item><tt/RegisterEvent=EP|Register|%{endpoint-ip}/<newline>
+Default: <tt>EP|Register|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
 <p>
 Defines the event when an endpoint registers. The syntax and parameters are the same as for <tt/StartEvent/.
 
-<item><tt/UnregisterEvent=CALL|Unregister|%{endpoint-ip}/<newline>
-Default: <tt>CALL|Unregister|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
+<item><tt/UnregisterEvent=EP|Unregister|%{endpoint-ip}/<newline>
+Default: <tt>EP|Unregister|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
 <p>
 Defines the event when an endpoint registers. The syntax and parameters are the same as for <tt/StartEvent/.
 
