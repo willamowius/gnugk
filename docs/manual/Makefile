@@ -1,5 +1,5 @@
 # detect distribution: sgml2... is called differently on Ubuntu
-distro := $(shell lsb_release -i -s)
+distro := $(shell lsb_release -i -s 2> /dev/null)
 ifeq ($(distro),Ubuntu)
 	SGML2LATEX = linuxdoc -B latex
 	SGML2HTML = linuxdoc -B html
