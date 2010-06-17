@@ -3094,7 +3094,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	return true;
 }
 
-bool CallRec::NATSignallingOffload(bool isAnswer)
+bool CallRec::NATSignallingOffload(bool isAnswer) const
 {
    return (!isAnswer && (m_natstrategy == e_natNoassist || 
 		m_natstrategy == e_natRemoteMaster || 
@@ -3246,7 +3246,7 @@ PBYTEArray CallRec::GetRADIUSClass() const
 }
 
 #ifdef HAS_H46018
-bool CallRec::H46019Required()
+bool CallRec::H46019Required() const
 {
 #ifdef HAS_H46023
 	return ( (m_natstrategy != CallRec::e_natLocalMaster &&
@@ -3271,7 +3271,7 @@ PBYTEArray CallRec::RetrieveSetup() // for H.460.18
 	return processedSetup;
 }
 
-int CallRec::GetH46019Direction()
+int CallRec::GetH46019Direction() const
 {
 	if (!H46019Required())
 		return 0;

@@ -659,7 +659,7 @@ public:
 
 	/** Can Signalling be offloaded
 	  */
-	bool NATSignallingOffload(bool isAnswer);
+	bool NATSignallingOffload(bool isAnswer) const;
 
 #ifdef HAS_H46024B
 	/** Initiate Probe */
@@ -1132,10 +1132,10 @@ public:
 	PString GetBindHint() const { return m_bindHint; }
 	
 #ifdef HAS_H46018
-	bool H46019Required();
+	bool H46019Required() const;
 	void StoreSetup(SignalingMsg * msg);
 	PBYTEArray RetrieveSetup();
-	int GetH46019Direction();
+	int GetH46019Direction() const;
 #endif
 
 private:
