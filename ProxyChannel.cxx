@@ -534,9 +534,9 @@ public:
 	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
 	bool UsesH46019fc() const { return m_useH46019fc; }
 	void SetH46019fcState(int use) { m_H46019fcState = use; }
-	int GetH46019fcState() { return m_H46019fcState; }
+	int GetH46019fcState() const { return m_H46019fcState; }
 	void SetH46019Direction(int dir) { m_H46019dir = dir; }
-	int GetH46019Direction() { return m_H46019dir; }
+	int GetH46019Direction() const { return m_H46019dir; }
 
 private:
 	// override from class H245Handler
