@@ -292,7 +292,6 @@ public:
 	void SetReverseDestination(const Address &, WORD, const H245_UnicastAddress_iPAddress &, callptr &);
 	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, const H245_UnicastAddress_iPAddress &, callptr &);
 
-	bool Bind(WORD pt);
 	bool Bind(const Address &localAddr, WORD pt);
 	void SetNAT(bool);
 	bool isMute() { return mute; }
@@ -4785,11 +4784,6 @@ UDPProxySocket::UDPProxySocket(const char *t)
 	m_dontQueueRTP = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "DisableRTPQueueing", "0"));
 }
 
-bool UDPProxySocket::Bind(WORD pt)
-{
-	return Bind(INADDR_ANY, pt);
-}
-
 bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
 {
 	if (!Listen(localAddr, 0, pt))
@@ -4939,7 +4933,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		);
 	PTRACE(0, "JW RTP DB on " << localport << " this=" << this << " dir=" << m_h46019dir << " olc=" << m_h46019olc << " fc=" << m_h46019fc
 		<< " fwd=" << m_h46019fwd << " rev=" << m_h46019rev << " OLCrev=" << m_OLCrev);
-#endif
+#endif // RTP_DEBUG
 
 	if (m_h46019dir > 0 && buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
@@ -5050,7 +5044,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			// If required begin Annex B probing
 			if ((*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) 
 				(*m_call)->H46024BInitiate(m_sessionID, m_h46019fwd, m_h46019rev);
-#endif
+#endif	// HAS_H46024B
 		}
 		SetMute(false);
 		return NoData;	// don't forward keepAlive
@@ -5063,7 +5057,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				);
 		return NoData;	// don't forward anything...
 	} 
-#endif
+#endif	// HAS_H46018
 
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP (reverse = fastStart ?)
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
@@ -5411,7 +5405,6 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 	PIPSocket::Address laddr(INADDR_ANY);
 	std::vector<PIPSocket::Address> home;
 	Toolkit::Instance()->GetGKHome(home);
-	// TODO: missing logic to bind to a specific outbound addr, eg ExternalIP
 	if (home.size() == 1)
 		laddr = home[0];
 
