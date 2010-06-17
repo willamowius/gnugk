@@ -5439,7 +5439,12 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
 {
-	memcpy(this, flc, sizeof(RTPLogicalChannel)); // bitwise copy :)
+	port = flc->port;
+	used = flc->used;
+	rtp = flc->rtp;
+	rtcp = flc->rtcp;
+	SrcIP = flc->SrcIP;
+	SrcPort = flc->SrcPort;
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
