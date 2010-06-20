@@ -1464,6 +1464,7 @@ private:
 SqlPolicy::SqlPolicy()
 {
 	m_active = false;
+	m_sqlConn = NULL;
 #if HAS_DATABASE
 	m_active = true;
 	static const char *sqlsection = "Routing::Sql";
