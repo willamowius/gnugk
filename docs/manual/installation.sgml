@@ -16,10 +16,10 @@ To successfully compile the GNU Gatekeeper you must first compile the pre-requis
 <item>OpenH323 or H323Plus
 </enum>
 
-On Unix, run <tt/configure/ and <tt/make debug/ or <tt/make optnoshared/
+On Unix, run <tt/configure/ and <tt/make debugnoshared/ or <tt/make optnoshared/
 in the gatekeeper directory to build debug or release version, respectively.
 
-<bf>NOTE:</bf>  You must use either <tt/make debug/ or <tt/make optnoshared/
+<bf>NOTE:</bf>  You must use either <tt/make debugnoshared/ or <tt/make optnoshared/
 throughout the compile process.  For example, if a library is compiled with <tt/make
 optnoshared/ then everything must be compiled the same way.
 
@@ -75,7 +75,7 @@ Where:
 So for 100 concurrent voice calls you don't need more than 1024 sockets in the
 LARGE_FDSET.
 
-As a final step, you must either use <tt/make debug/ or <tt/make optnoshared/, depending
+As a final step, you must either use <tt/make debugnoshared/ or <tt/make optnoshared/, depending
 on how you compiled the libraries.
 
 <sect1>Installing on Windows

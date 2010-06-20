@@ -72,7 +72,7 @@ In order to use gdb with GnuGk, the software and libraries must be compiled with
 
 You may follow the instructions above in obtaining the software, but the compile in each subdirectory must be:
 <verb>
-$ make debug
+$ make debugnoshared
 </verb>
 
 Configure your CLI to allow unlimited core files:
@@ -80,14 +80,9 @@ Configure your CLI to allow unlimited core files:
 ulimit -c unlimited
 </verb>
 
-Because the <tt>make debug</tt> creates dynamically linked libraries, execute the following:
-<verb>
-export LD_LIBRARY_PATH=$PTLIBDIR/lib_linux_x86:$OPENH323DIR/lib
-</verb>
-
 Run GnuGk:
 <verb>
-~/openh323/obj_linux_x86_64_d/gnugk -c your.ini
+~/openh323/obj_linux_x86_64_d_s/gnugk -c your.ini
 # wait for crash
 gdb obj_linux_x86_64_d/gnugk core
 bt
