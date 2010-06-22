@@ -213,6 +213,7 @@ private:
 };
 
 
+// helper to start a thread without parameter
 template<class T>
 class SimpleClassJob : public Job {
 public:
@@ -224,6 +225,7 @@ private:
 	void (T::*j)();
 };
 
+// helper to start a thread with one parameter
 template<class T, class A>
 class SimpleClassJobA : public Job {
 public:
@@ -237,19 +239,21 @@ private:
 	A a;
 };
 
+// start a thread without parameter
 template<class T>
-void CreateJob(T *t, void (T::*j)(), const char *n)
+void CreateJob(T *t, void (T::*j)(), const char *jobname)
 {
 	Job *newjob = new SimpleClassJob<T>(t, j);
-	newjob->SetName(n);
+	newjob->SetName(jobname);
 	newjob->Execute();
 }
 
+// start a thread with one parameter
 template<class T, class A>
-void CreateJob(T *t, void (T::*j)(A), A a, const char *n)
+void CreateJob(T *t, void (T::*j)(A), A a, const char *jobname)
 {
 	Job *newjob = new SimpleClassJobA<T, A>(t, j, a);
-	newjob->SetName(n);
+	newjob->SetName(jobname);
 	newjob->Execute();
 }
 
