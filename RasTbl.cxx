@@ -2134,12 +2134,15 @@ int CallRec::GetNATType(
 	PIPSocket::Address& calledPartyNATIP
 	) const
 {
-	if (m_nattype & callingParty)
+	if (m_nattype & callingParty) {
+	  if (m_unregNAT)
+		callingPartyNATIP = m_srcunregNATAddress;
+	  else
 		callingPartyNATIP = m_Calling->GetNATIP();
+	}
 	if (m_nattype & calledParty)
 		calledPartyNATIP = m_Called->GetNATIP();
-	if (m_unregNAT)
-		callingPartyNATIP = m_srcunregNATAddress;
+
 	return m_nattype;
 }
 
@@ -2155,6 +2158,7 @@ void CallRec::SetSrcNATed(const PIPSocket::Address & natip)
 {
 	m_unregNAT = true;
 	m_srcunregNATAddress = natip;
+	m_nattype = callingParty;
 }
 
 void CallRec::SetDestSignalAddr(
