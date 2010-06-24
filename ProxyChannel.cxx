@@ -2643,8 +2643,12 @@ bool CallSignalSocket::CreateRemote(
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 	}
 
-	setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
-	setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
+	// only rewrite sourceCallSignalAddress if we are proxying,
+	// otherwise leave the receiving endpoint the option to deal with NATed caller itself
+	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
+		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
+		setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
+	}
 
 	// For compatibility with endpoints which do not support large Setup messages
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {

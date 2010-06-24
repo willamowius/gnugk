@@ -1,5 +1,7 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- BUGFIX(ProxyChannel.cxx) only rewrite sourceCallSignalAddress if proxying
+- BUGFIX(ProxyChannel.cxx) fix NAT detection for unregistered callers
 - BUGFIX(RasTbl.cxx) fire unregister event also when endpoint expired
 - BUGFIX(Toolkit.cxx) fix order of home IPs
 - display H323Plus and PTLib version in GnuGk's version string
