@@ -46,7 +46,7 @@ extern const char *H225_ProtocolID;
 // H.460.23
 
 #define Std23_RemoteNAT			1	// bool if endpoint has remote NAT support
-#define Std23_AnnexA			2	// bool Support Same NAT probing (Annex A) 
+#define Std23_AnnexA			2	// bool Support Same NAT probing (Annex A)
 #define Std23_IsNAT				3	// bool if endpoint is NATed
 #define Std23_DetRASAddr		4	// Detected RAS H225_TransportAddress
 #define Std23_STUNAddr			5	// transport IP address of STUN Server to test with
@@ -54,7 +54,7 @@ extern const char *H225_ProtocolID;
 #define Std23_AnnexB			7	// bool Support Proxy offload (Annex B)
 
 //////////////////////////////////////////
-// H.460.24 
+// H.460.24
 
 #define Std24_ProxyNAT			1	// bool Proxy for NAT support
 #define Std24_RemoteNAT			2	// bool if endpoint has remote NAT support
@@ -62,15 +62,15 @@ extern const char *H225_ProtocolID;
 #define Std24_IsNAT				4	// bool if endpoint is NATed
 #define Std24_NATdet			5   // integer 8 Endpoint STUN detected NAT Type
 #define Std24_SourceAddr		6	// transport Apparent public IP of remote
-#define Std24_AnnexA			7	// bool Support Same NAT probing (Annex A) 
-#define Std24_NATInstruct		8	// integer 8 Instruction on how NAT is to be Traversed 
+#define Std24_AnnexA			7	// bool Support Same NAT probing (Annex A)
+#define Std24_NATInstruct		8	// integer 8 Instruction on how NAT is to be Traversed
 #define Std24_AnnexB			9	// bool Support Proxy offload (Annex B)
 
 #define GK_DEF_STUN_PORT		3478
 
 
 //+++++++++++++++++++++++++++++++++++++++++++++
-// Packetizer OID 
+// Packetizer OID
 
 ///////////////////////////////////////////
 // Presence

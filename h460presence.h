@@ -48,14 +48,14 @@ public:
 	bool GetPendingIdentifiers(list<H225_EndpointIdentifier> & epid);
 	bool GetPendingAddresses(list<H225_TransportAddress> & gkip);
 
-	bool GetSubscriptionIdentifier(const H225_AliasAddress & local, 
-									const H225_AliasAddress & remote, 
+	bool GetSubscriptionIdentifier(const H225_AliasAddress & local,
+									const H225_AliasAddress & remote,
 									H460P_PresenceIdentifier & id);
 
 	bool GetSubscription(const H460P_PresenceIdentifier & id,
 									H323PresenceID & local);
 
-	bool GetLocalSubscriptions(const H225_AliasAddress & local, 
+	bool GetLocalSubscriptions(const H225_AliasAddress & local,
 							list<H460P_PresenceIdentifier> & id);
 
 
@@ -92,11 +92,11 @@ protected:
 								const H225_TransportAddress & ip
 								);
 
-	virtual void OnIdentifiers(MsgType tag, 
+	virtual void OnIdentifiers(MsgType tag,
 								const H460P_PresenceIdentifier & identifier,
 								const H225_TransportAddress & ip
 								);
- 
+
   // Build callback - Endpoint
 	virtual PBoolean BuildSubscription(const H225_EndpointIdentifier & ep,
 								H323PresenceStore & subscription
@@ -131,7 +131,7 @@ protected:
 	bool HandleStatusUpdates(const H460P_PresenceIdentifier & identifier, const H225_AliasAddress & local, unsigned type, const H225_AliasAddress & remote, const H323PresenceID * id = NULL);
 	bool HandleForwardPresence(const H460P_PresenceIdentifier & identifier, const H460P_PresencePDU & msg);
 
-	bool HandleNewInstruction(unsigned tag, const H225_AliasAddress & addr, const H460P_PresenceInstruction & instruction, 
+	bool HandleNewInstruction(unsigned tag, const H225_AliasAddress & addr, const H460P_PresenceInstruction & instruction,
 								H323PresenceInstructions & instructions);
 
 	H460P_PresenceSubscription & HandleSubscription(bool isNew, const H460P_PresenceIdentifier & pid, const H323PresenceID & id);
