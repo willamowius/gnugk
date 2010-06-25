@@ -286,7 +286,7 @@ void SoftPBX::SendProceeding(PString CallId)
 	PBYTEArray lBuffer;
 	lForwardedSocket->BuildProceedingPDU(q931, call->GetCallIdentifier(), call->GetCallRef() | 0x8000u);
 	q931.Encode(lBuffer);
-	lForwardedSocket->TransmitData(lBuffer); 
+	lForwardedSocket->TransmitData(lBuffer);
 }
 
 bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias)

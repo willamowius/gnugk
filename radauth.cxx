@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.51  2010/02/10 02:09:52  willamowius
+ * remove unused variables
+ *
  * Revision 1.50  2009/10/25 22:13:09  willamowius
  * allow to set proxy mode through 'proxy' variable in Radius h323-ivr-in attribute (thanks to Yuriy Georgiewskiy)
  *
@@ -838,7 +841,7 @@ int RadAuthBase::Check(
 			 		RadiusAttr::CiscoVSA_h323_currency
 					);
 				if (attr != NULL)
-					authData.m_amountString += attr->AsCiscoString(); 
+					authData.m_amountString += attr->AsCiscoString();
 			} else {
 				PTRACE(3, "RADAUTH\t" << GetName() << " invalid h323-credit-amount "
 					"attribute '" << value << '\''

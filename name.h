@@ -56,7 +56,7 @@ public:
 		const char* name
 		) 
 	{ 
-		m_name = name; 
+		m_name = name;
 	}
 	
 	/** @return

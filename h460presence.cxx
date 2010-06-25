@@ -889,7 +889,7 @@ PBoolean GkPresence::BuildSubscription(const H225_EndpointIdentifier & ep, H323P
 			    i++;
 		}
 	}
-	return found; 
+	return found;
 }
 
 PBoolean GkPresence::BuildNotification(const H225_EndpointIdentifier & ep, H323PresenceStore & notify) 
@@ -937,7 +937,7 @@ PBoolean GkPresence::BuildNotification(const H225_EndpointIdentifier & ep, H323P
 			    i++;
 		}
 	}
-	return found; 
+	return found;
 }
 
 PBoolean GkPresence::BuildInstructions(const H225_EndpointIdentifier & ep, H323PresenceStore & instruction) 
@@ -985,7 +985,7 @@ PBoolean GkPresence::BuildInstructions(const H225_EndpointIdentifier & ep, H323P
 			    i++;
 		}
 	}
-	return found; 
+	return found;
 }
 
 PBoolean GkPresence::BuildSubscription(bool request, const H225_TransportAddress & ip, H323PresenceGkStore & subscription)
@@ -1034,7 +1034,7 @@ PBoolean GkPresence::BuildSubscription(bool request, const H225_TransportAddress
 			    i++;
 		}
 	}
-	return found; 
+	return found;
 }
 
 PBoolean GkPresence::BuildNotification(const H225_TransportAddress & ip, H323PresenceGkStore & notify)
@@ -1081,7 +1081,7 @@ PBoolean GkPresence::BuildNotification(const H225_TransportAddress & ip, H323Pre
 			    i++;
 		}
 	}
-	return found; 
+	return found;
 }
 
 PBoolean GkPresence::BuildIdentifiers(bool alive, const H225_TransportAddress & ip, H323PresenceGkStore & identifiers)
@@ -1130,7 +1130,7 @@ PBoolean GkPresence::BuildIdentifiers(bool alive, const H225_TransportAddress & 
 			    i++;
 		}
 	}
-	return found; 
+	return found;
 }
 
 void UpdateLocalPresence(H460P_PresenceNotification & local, const H460P_PresenceNotification & received)
@@ -1295,7 +1295,7 @@ bool GkPresence::RemoveSubscription(unsigned type,const H460P_PresenceIdentifier
 	   PTRACE(4,"PRES\tRemoved Subscription " << PresMsgType(type) << " : " << it->second.m_subscriber << " to " << it->second.m_Alias);
 	   return true;
 	}
-	return false;  
+	return false;
 }
 
 bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & addr, 

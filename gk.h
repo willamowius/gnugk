@@ -30,18 +30,18 @@
 class GkTimer;
 
 #ifdef COMPILE_AS_SERVICE
-class Gatekeeper : public PServiceProcess 
+class Gatekeeper : public PServiceProcess
 {
 	PCLASSINFO(Gatekeeper, PServiceProcess)
 #else
-class Gatekeeper : public PProcess 
+class Gatekeeper : public PProcess
 {
 	PCLASSINFO(Gatekeeper, PProcess)
 #endif
  public:
 	Gatekeeper
-		(const char * _manuf = "GNU", 
-		 const char * _name = GNUGK_NAME, 
+		(const char * _manuf = "GNU",
+		 const char * _name = GNUGK_NAME,
 		 WORD _majorVersion = GNUGK_MAJOR_VERSION,
 		 WORD _minorVersion = GNUGK_MINOR_VERSION,
 		 CodeStatus _status = GNUGK_BUILD_TYPE,
@@ -57,7 +57,7 @@ class Gatekeeper : public PProcess
 	virtual void OnContinue();
     virtual void OnControl();
 #endif
-    
+
 #if PTRACING
 	enum RotationIntervals {
 		Hourly,
@@ -92,9 +92,9 @@ class Gatekeeper : public PProcess
 	/** returns the template string for which the cmommand line is parsed */
 	virtual const PString GetArgumentsParseString() const;
 
-	/**@name Initialization 
+	/**@name Initialization
 	 * A sequence of virtual initialization methods is called from #Main#
-	 * before the fun starts. 
+	 * before the fun starts.
 	 * Every method may return #FALSE# to abort #Main# and end the program.
 	 */
 	//@{

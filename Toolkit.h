@@ -38,7 +38,7 @@ struct SetupAuthData;
 /// Hold an address of a single host or a whole network
 class NetworkAddress {
 public:
-	/// Build an "any" address 
+	/// Build an "any" address
 	NetworkAddress();
 	/// Build a single host address
 	NetworkAddress(
@@ -189,7 +189,7 @@ class Toolkit : public Singleton<Toolkit>
 	{ return m_ProxyCriterion.SelectRoutingMode(ip1, ip2); }
 
 	bool IsInternal(const PIPSocket::Address & ip1)
-	{ return (m_ProxyCriterion.IsInternal(ip1) > 0);  }
+	{ return (m_ProxyCriterion.IsInternal(ip1) > 0); }
 
 	// Since PStringToString is not thread-safe,
 	// I write this small class to replace that
@@ -445,7 +445,7 @@ class Toolkit : public Singleton<Toolkit>
 		iecUnknown     = -1,   /// internal extension code for an unknown triple(cntry,ext,manuf)
 		iecFailoverRAS  = 1,   /// i.e.c. for "This RQ is a failover RQ" and must not be answerd.
 		iecNeighborId = 2,     /// i.e.c. for neighbor id sent inside LRQ/LCF nonStandardData parameter
-		iecNATTraversal = 3,   /// i.e.c. for IP=/NAT= parameters sent inside RRQ/RCF nonStandardData 
+		iecNATTraversal = 3,   /// i.e.c. for IP=/NAT= parameters sent inside RRQ/RCF nonStandardData
 		iecUserbase    = 1000 /// first guaranteed unused 'iec' by GnuGk Toolkit.
 	};
 	/** t35 extension or definitions as field for H225_NonStandardIdentifier */

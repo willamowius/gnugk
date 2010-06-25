@@ -1,4 +1,4 @@
 /* Dummy file provided to be a special dependency of version.cxx
-   to ensure that the correct build timestamp is compiled 
+   to ensure that the correct build timestamp is compiled
    into the gatekeeper executable
 */

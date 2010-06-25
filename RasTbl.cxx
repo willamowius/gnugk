@@ -268,7 +268,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 						}
 				   }
 				   if (std24.Contains(Std24_NATdet)) {               /// Remote type of NAT
-					   unsigned ntype = std24.Value(Std24_NATdet) ;
+					   unsigned ntype = std24.Value(Std24_NATdet);
 					   SetEPNATType(ntype);
 				   }
 				   if (std24.Contains(Std24_ProxyNAT)) {                /// Whether the remote GK can proxy
@@ -2233,7 +2233,7 @@ void CallRec::SetSocket(
 	CallSignalSocket* called
 	)
 {
-	PWaitAndSignal lock(m_sockLock); 
+	PWaitAndSignal lock(m_sockLock);
 	m_callingSocket = calling, m_calledSocket = called;
 	if( calling ) {
 		m_callerAddr = calling->GetName();
@@ -2250,7 +2250,7 @@ void CallRec::SetCallSignalSocketCalling(
 	CallSignalSocket* socket
 	)
 {
-	PWaitAndSignal lock(m_sockLock); 
+	PWaitAndSignal lock(m_sockLock);
 	m_callingSocket = socket;
 	if (m_callingSocket) {
 		m_callerAddr = m_callingSocket->GetName();
@@ -2267,7 +2267,7 @@ void CallRec::SetCallSignalSocketCalled(
 	CallSignalSocket* socket
 	)
 {
-	PWaitAndSignal lock(m_sockLock); 
+	PWaitAndSignal lock(m_sockLock);
 	m_calledSocket = socket;
 }
 
@@ -2359,7 +2359,7 @@ void CallRec::SetRTCP_SRC_sdes(PString val)
 void CallRec::SetRTCP_DST_sdes(PString val)
 {    
     m_rtcp_destination_sdes.AppendString(val);
-    m_rtcp_destination_sdes_flag = true;    
+    m_rtcp_destination_sdes_flag = true;
 }
 
 
@@ -3119,7 +3119,7 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
     gmsg.IncludeOptionalField(H245_GenericMessage::e_messageContent);
     H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
      id.SetTag(H245_CapabilityIdentifier::e_standard);
-        PASN_ObjectId & val = id; 
+        PASN_ObjectId & val = id;
         val.SetValue(H46024B_OID);
 
 	PASN_Integer & num = gmsg.m_subMessageIdentifier;
@@ -3541,7 +3541,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 	if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
         H4609_PeriodicQoSMonReport & rep = qosdata;
 		H4609_ArrayOf_PerCallQoSReport & percall = rep.m_perCallInfo;
-        report = percall[0].m_mediaChannelsQoS; 
+        report = percall[0].m_mediaChannelsQoS;
 	} else if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_final) {
         H4609_FinalQosMonReport & rep = qosdata;
         report = rep.m_mediaInfo;

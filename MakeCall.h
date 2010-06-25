@@ -43,7 +43,7 @@ protected:
     PString GetDestination(PString token);
 
     PMutex destinationMutex;
-    std::map<PString, PString> destinations; 
+    std::map<PString, PString> destinations;
 
 	PBoolean useH450Transfer;
 	PBoolean isRegistered;

@@ -381,7 +381,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	int i = (!extroute) ? r_table.GetSize()+1 : r_table.GetSize();
 
 	rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
-	for (PINDEX r = 0; r < i ; ++r) {
+	for (PINDEX r = 0; r < i; ++r) {
 		if (!extroute && (r==r_table.GetSize())) {
 			::new (rtable_end++) RouteEntry(extroute);
 		} else {
@@ -402,7 +402,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 		int i = networks.GetSize();
 		if (i > 0) {
 			rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
-			for (PINDEX r = 0; r < i ; ++r) {
+			for (PINDEX r = 0; r < i; ++r) {
 				::new (rtable_end++) RouteEntry(networks[r]);
 			}
 		}
@@ -439,7 +439,7 @@ bool Toolkit::VirtualRouteTable::IsMasquerade(PIPSocket::Address & addr) const
 	  return true;
 	}
 
-	return false; 
+	return false;
 }
 
 // class Toolkit::ProxyCriterion
@@ -649,7 +649,7 @@ void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
 			std::map<PString, PString, pstr_prefix_lesser>::iterator iter = rules.begin();
 			
 			// reverse the order
-			for (int i = m_size; i-- > 0 ; ++iter) {
+			for (int i = m_size; i-- > 0; ++iter) {
 //				m_RewriteKey[i] = iter->first;
 				::new(m_RewriteKey + i) PString(iter->first);
 //				m_RewriteValue[i] = iter->second;
@@ -1465,7 +1465,7 @@ PConfig* Toolkit::ReloadConfig()
 	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", 0);
 #endif
 #ifdef HAS_H46023
-	m_H46023Enabled	= (m_Config->GetBoolean(RoutedSec, "EnableH46023", 0) && 
+	m_H46023Enabled	= (m_Config->GetBoolean(RoutedSec, "EnableH46023", 0) &&
 						!m_Config->GetString(RoutedSec, "H46023STUN",""));
 #endif
 
@@ -1630,7 +1630,7 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 		PStringArray & newAliases	
         )
 {
-	if (!m_sqlactive) 
+	if (!m_sqlactive)
 		return false;
 
 	GkSQLResult::ResultRow resultRow;
@@ -1664,7 +1664,7 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 			if (retval[0].IsEmpty()) {
 				PTRACE(1, "AliasSQL\tQuery Invalid value found.");
 				continue;
-			} 
+			}
 		    if (!success) success = true;
 		    PTRACE(5, "AliasSQL\tQuery result: " << retval[0]);
 		    newAliases.AppendString(retval[0]);
@@ -1683,14 +1683,14 @@ void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
 #if HAS_DATABASE
   if (LoadSQL(m_config)) {
 	  m_sqlactive = true;
-  } else 
+  } else
 #endif
   {
    	const PStringToString kv = m_config->GetAllKeyValues(AssignedAliasSection);
 	for (PINDEX i=0; i < kv.GetSize(); i++) {
 		PString data = kv.GetDataAt(i);
 		PStringArray datalines = data.Tokenise(" ,;\t");
-		for (PINDEX j=0; j < datalines.GetSize(); j++) 
+		for (PINDEX j=0; j < datalines.GetSize(); j++)
 		   gkAssignedAliases.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),datalines[j]));
 	}
   }
@@ -1826,7 +1826,7 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 	if (!found) {
 		for (PINDEX i=0; i < alias.GetSize(); i++) {
 		  PString search = H323GetAliasAddressString(alias[i]);
-		  
+
 		  for (unsigned j=0; j < gkAssignedAliases.size(); j++) {
              PTRACE(5,"Alias\tCompare " << gkAssignedAliases[j].first << " to " << search);
 			  if (gkAssignedAliases[j].first == search) {
@@ -1926,7 +1926,7 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 		PStringArray & newGks	
         )
 {
-	if (!m_sqlactive) 
+	if (!m_sqlactive)
 		return false;
 
 	GkSQLResult::ResultRow resultRow;
@@ -1961,7 +1961,7 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 			if (retval[0].IsEmpty()) {
 				PTRACE(1, "AssignSQL\tQuery Invalid value found.");
 				continue;
-			} 
+			}
 		    if (!success) success = true;
 		    PTRACE(5, "AssignSQL\tQuery result: " << retval[0]);
 		    newGks.AppendString(retval[0]);
@@ -1980,11 +1980,11 @@ void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 #if HAS_DATABASE
   if (LoadSQL(m_config)) {
 	  m_sqlactive = true;
-  } else 
+  } else
 #endif
   {
 	const PStringToString kv = m_config->GetAllKeyValues(AssignedGatekeeperSection);
-	for (PINDEX i=0; i < kv.GetSize(); i++) 
+	for (PINDEX i=0; i < kv.GetSize(); i++)
 		   assignedGKList.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),kv.GetDataAt(i)));
   }
 }
@@ -2067,7 +2067,7 @@ static PString DNStoIP(const PString & dns)
    H323TransportAddress iface(dns);
    PIPSocket::Address ip;
    WORD port = GK_DEF_UNICAST_RAS_PORT;
-   iface.GetIpAndPort(ip, port); 
+   iface.GetIpAndPort(ip, port);
    return PString(ip + ":" + port);
 }
 #endif
@@ -2102,12 +2102,12 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 		for (PINDEX k=0; k < assignedGK.GetSize(); k++) {
            PString number = assignedGK[k];
 
-			if (IsIPAddress(number)) 
+			if (IsIPAddress(number))
 				ipaddresses.AppendString(number);
 #ifdef hasSRV
 			else {
 				PString xnum = assignedGK[k];
-				if (xnum.Left(5) != "h323:") 
+				if (xnum.Left(5) != "h323:")
 						xnum = "h323:user@" + xnum;
 
 				PStringList str;
@@ -2122,16 +2122,16 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 						ipaddresses.AppendString(DNStoIP(number));
 				}
 			}
-#endif   
+#endif
 		}
 
 		for (PINDEX k=0; k < ipaddresses.GetSize(); k++) {
            PString num = ipaddresses[k];
            WORD port = GK_DEF_UNICAST_RAS_PORT;
 		   PStringArray tokens = num.Tokenise(":", FALSE);
-		   if (tokens.GetSize() == 2) 
+		   if (tokens.GetSize() == 2)
                port = (WORD)tokens[1].AsUnsigned();
-	        
+
 		   H225_AlternateGK * alt = new H225_AlternateGK;
 		     alt->m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
 		     alt->m_needToRegister = true;
@@ -2155,7 +2155,7 @@ Toolkit::QoSMonitor::QoSMonitor()
 Toolkit::QoSMonitor::~QoSMonitor()
 {
 }
-	    
+
 void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 {
 	delete m_sqlConn;
@@ -2203,7 +2203,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 
 bool Toolkit::QoSMonitor::PostRecord(const std::map<PString, PString>& params)
 {
-	if (!m_sqlactive) 
+	if (!m_sqlactive)
 		return false;
 
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
@@ -2228,7 +2228,7 @@ bool Toolkit::QoSMonitor::PostRecord(const std::map<PString, PString>& params)
 			return false;
 		}
 	}
-    
+
 	delete result;
 	return true;
 }
@@ -2256,7 +2256,7 @@ bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 			H323SetAliasAddress(E164, alias,H225_AliasAddress::e_url_ID);
 		else if (IsNumeric(E164))
 			H323SetAliasAddress(E164, alias, H225_AliasAddress::e_dialedDigits);
-		else if (alias.GetTag() != H225_AliasAddress::e_partyNumber) 
+		else if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
 			H323SetAliasAddress(E164, alias, H225_AliasAddress::e_h323_ID);
 		else {
 			H225_PartyNumber & partyNumber = alias;
@@ -2334,8 +2334,8 @@ bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) const {
 }
 
 #ifdef HAS_H46023
-bool Toolkit::IsH46023Enabled() const 
-{ 
+bool Toolkit::IsH46023Enabled() const
+{
 	return (m_H46023Enabled && (             // is enabled and
 #ifdef HAS_H46018
 		   m_H46018Enabled ||              // used with H.460.18 or
@@ -2387,20 +2387,20 @@ bool Toolkit::H46023SameNetwork(const PIPSocket::Address & addr1, const PIPSocke
 #endif
 
 #ifdef HAS_H460P
-bool Toolkit::IsH460PEnabled() const 
+bool Toolkit::IsH460PEnabled() const
 {
 	return m_presence.IsEnabled();
 }
 
-GkPresence & Toolkit::GetPresenceHandler() 
-{ 
-	return m_presence; 
+GkPresence & Toolkit::GetPresenceHandler()
+{
+	return m_presence;
 }
 #endif
 
 std::vector<NetworkAddress> Toolkit::GetInternalNetworks() {
 
-    return GkConfig()->HasKey("ExternalIP") ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks(); 
+    return GkConfig()->HasKey("ExternalIP") ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
 }
 
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
@@ -2559,7 +2559,7 @@ void Toolkit::GetNetworkFromString(
 	PINDEX slashPos = s.Find('/');
 	if (slashPos == P_MAX_INDEX) {
 		// a single IP
-		static BYTE fullNetMask[16] = { 
+		static BYTE fullNetMask[16] = {
 			255, 255, 255, 255, 255, 255, 255, 255,
 			255, 255, 255, 255, 255, 255, 255, 255
 			};

@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.42  2010/02/28 22:35:04  willamowius
+ * fix spelling
+ *
  * Revision 1.41  2009/12/02 15:02:46  willamowius
  * select the new accounting events separately
  *
@@ -175,7 +178,7 @@ extern const char* CallTableSection;
 GkAcctLogger::GkAcctLogger(
 	const char* moduleName,
 	const char* cfgSecName
-	) 
+	)
 	: NamedObject(moduleName), m_controlFlag(Required), m_defaultStatus(Fail),
 	m_enabledEvents(AcctAll), m_supportedEvents(AcctNone), m_config(GkConfig()),
 	m_configSectionName(cfgSecName)
@@ -183,7 +186,7 @@ GkAcctLogger::GkAcctLogger(
 	if (m_configSectionName.IsEmpty())
 		m_configSectionName = moduleName;
 		
-	const PStringArray control( 
+	const PStringArray control(
 		m_config->GetString(GkAcctSectionName, moduleName, "").Tokenise(";,")
 		);
 
@@ -292,7 +295,7 @@ void GkAcctLogger::SetupAcctParams(
 		params["gkip"] = interfaces.front().AsString();
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
-	params["CallLink"] = call->GetCallLinkage();  
+	params["CallLink"] = call->GetCallLinkage();
 	
 	t = call->GetSetupTime();
 	if (t)
@@ -448,7 +451,7 @@ PString GkAcctLogger::GetUsername(
 			| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 		);
 			
-	if (callingEP && (username.IsEmpty() 
+	if (callingEP && (username.IsEmpty()
 			|| FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX))
 		username = GetBestAliasAddressString(callingEP->GetAliases(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -469,7 +472,7 @@ PString GkAcctLogger::GetUsername(
 	if (username.IsEmpty()) {
 		PIPSocket::Address callingSigAddr;
 		WORD callingSigPort;
-		if (call->GetSrcSignalAddr(callingSigAddr, callingSigPort) 
+		if (call->GetSrcSignalAddr(callingSigAddr, callingSigPort)
 			&& callingSigAddr.IsValid())
 			username = callingSigAddr.AsString();
 	}
@@ -507,7 +510,7 @@ PString GkAcctLogger::GetCallingStationId(
 	if (id.IsEmpty()) {
 		PIPSocket::Address callingSigAddr;
 		WORD callingSigPort = 0;
-		if (call->GetSrcSignalAddr(callingSigAddr, callingSigPort) 
+		if (call->GetSrcSignalAddr(callingSigAddr, callingSigPort)
 			&& callingSigAddr.IsValid())
 			id = ::AsString(callingSigAddr, callingSigPort);
 	}
@@ -545,7 +548,7 @@ PString GkAcctLogger::GetCalledStationId(
 	if (id.IsEmpty()) {
 		PIPSocket::Address calledSigAddr;
 		WORD calledSigPort = 0;
-		if (call->GetDestSignalAddr(calledSigAddr, calledSigPort) 
+		if (call->GetDestSignalAddr(calledSigAddr, calledSigPort)
 		 	&& calledSigAddr.IsValid())
 			id = ::AsString(calledSigAddr, calledSigPort);
 	}
@@ -583,7 +586,7 @@ PString GkAcctLogger::GetDialedNumber(
 	if (id.IsEmpty()) {
 		PIPSocket::Address calledSigAddr;
 		WORD calledSigPort = 0;
-		if (call->GetDestSignalAddr(calledSigAddr, calledSigPort) 
+		if (call->GetDestSignalAddr(calledSigAddr, calledSigPort)
 		 	&& calledSigAddr.IsValid())
 			id = ::AsString(calledSigAddr, calledSigPort);
 	}
@@ -601,14 +604,14 @@ const char* const FileAcct::m_intervalNames[] =
 	"Hourly", "Daily", "Weekly", "Monthly"
 };
 
-FileAcct::FileAcct( 
+FileAcct::FileAcct(
 	const char* moduleName,
 	const char* cfgSecName
 	)
 	:
 	GkAcctLogger(moduleName, cfgSecName),
 	m_cdrFile(NULL), m_rotateLines(-1), m_rotateSize(-1), m_rotateInterval(-1),
-	m_rotateMinute(-1), m_rotateHour(-1), m_rotateDay(-1), 
+	m_rotateMinute(-1), m_rotateHour(-1), m_rotateDay(-1),
 	m_rotateTimer(GkTimerManager::INVALID_HANDLE), m_cdrLines(0),
 	m_standardCDRFormat(true)
 {
@@ -616,10 +619,10 @@ FileAcct::FileAcct(
 	
 	m_cdrString = GetConfig()->GetString(GetConfigSectionName(), "CDRString", "");
 	m_standardCDRFormat = Toolkit::AsBool(
-		GetConfig()->GetString(GetConfigSectionName(), "StandardCDRFormat", 
+		GetConfig()->GetString(GetConfigSectionName(), "StandardCDRFormat",
 			m_cdrString.IsEmpty() ? "1" : "0"
 			));
-	m_timestampFormat = GetConfig()->GetString(GetConfigSectionName(), 
+	m_timestampFormat = GetConfig()->GetString(GetConfigSectionName(),
 		"TimestampFormat", ""
 		);
 		
@@ -638,7 +641,7 @@ FileAcct::FileAcct(
 				m_rotateLines *= 1000*1000;
 		} else if (rotateCondition[0] == 'S' || rotateCondition[0] == 's') {
 			// rotate per CDR file size
-			m_rotateSize = rotateCondition.Mid(1).AsInteger(); 
+			m_rotateSize = rotateCondition.Mid(1).AsInteger();
 			if (suffix == 'k' || suffix == 'K')
 				m_rotateSize *= 1024;
 			else if (suffix == 'm' || suffix == 'M')
@@ -677,11 +680,11 @@ FileAcct::FileAcct(
 
 	// setup rotation timer in case of time based rotation
 	PTime now, rotateTime;
-		
-	switch (m_rotateInterval) 
+
+	switch (m_rotateInterval)
 	{
 	case Hourly:
-		rotateTime = PTime(0, m_rotateMinute, now.GetHour(), now.GetDay(), 
+		rotateTime = PTime(0, m_rotateMinute, now.GetHour(), now.GetDay(),
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		if (rotateTime <= now)
@@ -695,7 +698,7 @@ FileAcct::FileAcct(
 		break;
 		
 	case Daily:
-		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(), 
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(),
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		if (rotateTime <= now)
@@ -709,11 +712,11 @@ FileAcct::FileAcct(
 		break;
 		
 	case Weekly:
-		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(), 
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(),
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		if (rotateTime.GetDayOfWeek() < m_rotateDay)
-			rotateTime += PTimeInterval(0, 0, 0, 0, 
+			rotateTime += PTimeInterval(0, 0, 0, 0,
 				m_rotateDay - rotateTime.GetDayOfWeek()
 				);
 		else if (rotateTime.GetDayOfWeek() > m_rotateDay)
@@ -731,7 +734,7 @@ FileAcct::FileAcct(
 		break;
 		
 	case Monthly:
-		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1, 
+		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1,
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
@@ -739,9 +742,9 @@ FileAcct::FileAcct(
 			rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
 
 		if (rotateTime <= now) {
-			rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1, 
-				now.GetMonth() + (now.GetMonth() == 12 ? -11 : 1), 
-				now.GetYear() + (now.GetMonth() == 12 ? 1 : 0), 
+			rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1,
+				now.GetMonth() + (now.GetMonth() == 12 ? -11 : 1),
+				now.GetYear() + (now.GetMonth() == 12 ? 1 : 0),
 				now.GetTimeZone()
 				);
 			const int month = rotateTime.GetMonth();
@@ -832,7 +835,7 @@ void FileAcct::GetRotateInterval(
 }
 
 GkAcctLogger::Status FileAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
+	GkAcctLogger::AcctEvent evt,
 	const callptr& call
 	)
 {
@@ -858,7 +861,7 @@ GkAcctLogger::Status FileAcct::Log(
 	if (m_cdrFile && m_cdrFile->IsOpen()) {
 		if (m_cdrFile->WriteLine(PString(cdrString))) {
 			PTRACE(5, "GKACCT\t" << GetName() << " - CDR string for event "
-				<< evt << ", call no. " << call->GetCallNumber() 
+				<< evt << ", call no. " << call->GetCallNumber()
 				<< ": " << cdrString
 				);
 			m_cdrLines++;
@@ -917,8 +920,8 @@ void FileAcct::RotateOnTimer(
 		// setup next time for one-shot timer
 		const PTime& rotateTime = timer->GetExpirationTime();
 		PTime newRotateTime(rotateTime.GetSecond(), rotateTime.GetMinute(),
-			rotateTime.GetHour(), 1, 
-			rotateTime.GetMonth() < 12 ? rotateTime.GetMonth() + 1 : 1, 
+			rotateTime.GetHour(), 1,
+			rotateTime.GetMonth() < 12 ? rotateTime.GetMonth() + 1 : 1,
 			rotateTime.GetMonth() < 12 ? rotateTime.GetYear() : rotateTime.GetYear() + 1,
 			rotateTime.GetTimeZone()
 			);

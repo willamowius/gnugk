@@ -30,7 +30,7 @@ namespace {
 
 struct IpRule_greater : public std::binary_function<CapacityControl::IpCallVolume, CapacityControl::IpCallVolume, bool> {
 
-	bool operator()(const CapacityControl::IpCallVolume &e1, const CapacityControl::IpCallVolume &e2) const 
+	bool operator()(const CapacityControl::IpCallVolume &e1, const CapacityControl::IpCallVolume &e2) const
 	{
 		if (e1.first.IsAny()) {
 			if (!e2.first.IsAny())
@@ -48,7 +48,7 @@ struct IpRule_greater : public std::binary_function<CapacityControl::IpCallVolum
 
 struct H323IdRule_greater : public std::binary_function<CapacityControl::H323IdCallVolume, CapacityControl::H323IdCallVolume, bool> {
 
-	bool operator()(const CapacityControl::H323IdCallVolume &e1, const CapacityControl::H323IdCallVolume &e2) const 
+	bool operator()(const CapacityControl::H323IdCallVolume &e1, const CapacityControl::H323IdCallVolume &e2) const
 	{
 		return H323GetAliasAddressString(e1.first) > H323GetAliasAddressString(e2.first);
 	}
@@ -56,7 +56,7 @@ struct H323IdRule_greater : public std::binary_function<CapacityControl::H323IdC
 
 struct CLIRule_greater : public std::binary_function<CapacityControl::CLICallVolume, CapacityControl::CLICallVolume, bool> {
 
-	bool operator()(const CapacityControl::CLICallVolume &e1, const CapacityControl::CLICallVolume &e2) const 
+	bool operator()(const CapacityControl::CLICallVolume &e1, const CapacityControl::CLICallVolume &e2) const
 	{
 		return e1.first.compare(e2.first) > 0;
 	}
@@ -166,7 +166,7 @@ void CapacityControl::LoadConfig()
 				
 				rule = &(cliCallVolumes.back().second);
 			} else {
-				PTRACE(1, "CAPCTRL\tUknown CapacityControl rule: " << key << '=' 
+				PTRACE(1, "CAPCTRL\tUknown CapacityControl rule: " << key << '='
 					<< kv.GetDataAt(i)
 					);
 				continue;
@@ -174,7 +174,7 @@ void CapacityControl::LoadConfig()
 
 			PStringArray tokens(data.Tokenise(" \t", FALSE));
 			if (tokens.GetSize() < 1) {
-				PTRACE(1, "CAPCTRL\tInvalid CapacityControl rule syntax: " << key << '=' 
+				PTRACE(1, "CAPCTRL\tInvalid CapacityControl rule syntax: " << key << '='
 					<< kv.GetDataAt(i)
 					);
 				if (newIpRule)
@@ -553,7 +553,7 @@ public:
 	};
 	
 	/// Create a logger that updates information about inbound traffic
-	CapCtrlAcct( 
+	CapCtrlAcct(
 		/// name from Gatekeeper::Acct section
 		const char* moduleName
 		);
@@ -563,7 +563,7 @@ public:
 		@return
 		Status of this logging operation (see #Status enum#)
 	*/
-	virtual Status Log( 
+	virtual Status Log(
 		AcctEvent evt, /// accounting event to log
 		const callptr& call /// additional data for the event
 		);
@@ -588,7 +588,7 @@ CapCtrlAcct::CapCtrlAcct(
 }
 
 GkAcctLogger::Status CapCtrlAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
+	GkAcctLogger::AcctEvent evt,
 	const callptr &call
 	)
 {
@@ -668,9 +668,9 @@ CapCtrlAuth::CapCtrlAuth(
 	const char* authName,
 	unsigned supportedRasChecks,
 	unsigned supportedMiscChecks
-	) 
-	: 
-	GkAuthenticator(authName, supportedRasChecks, supportedMiscChecks), 
+	)
+	:
+	GkAuthenticator(authName, supportedRasChecks, supportedMiscChecks),
 	m_capacityControl(CapacityControl::Instance())
 {
 }

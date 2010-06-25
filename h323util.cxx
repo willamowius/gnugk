@@ -111,7 +111,7 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAl
 {
 	PString aliasListString = "";
 
-	for(PINDEX cnt = 0; cnt < terminalAlias.GetSize(); cnt ++ )
+	for(PINDEX cnt = 0; cnt < terminalAlias.GetSize(); cnt++ )
 	{
 
 		aliasListString += AsString(terminalAlias[cnt], includeAliasName);

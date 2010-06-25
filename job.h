@@ -88,7 +88,7 @@ public:
 		if (m_next != NULL && m_next != this)
 			m_next->SetNext(next);
 		else
-			m_next = next; 
+			m_next = next;
 	}
 
 	/** @return
@@ -104,7 +104,7 @@ public:
 	{
 		Task* next = m_next;
 		if (next != this) // do not set m_done flag for circular task
-			m_done = true; 
+			m_done = true;
 		return next;
 	}
 

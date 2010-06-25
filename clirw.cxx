@@ -114,7 +114,7 @@ struct RewriteRule_greater : public std::binary_function<CLIRewrite::RewriteRule
 
 struct SingleIpRule_greater : public std::binary_function<CLIRewrite::SingleIpRule, CLIRewrite::SingleIpRule, bool> {
 
-	bool operator()(const CLIRewrite::SingleIpRule &e1, const CLIRewrite::SingleIpRule &e2) const 
+	bool operator()(const CLIRewrite::SingleIpRule &e1, const CLIRewrite::SingleIpRule &e2) const
 	{
 		if (e1.first.IsAny()) {
 			if (!e2.first.IsAny())
@@ -132,7 +132,7 @@ struct SingleIpRule_greater : public std::binary_function<CLIRewrite::SingleIpRu
 
 struct DoubleIpRule_greater : public std::binary_function<CLIRewrite::DoubleIpRule, CLIRewrite::DoubleIpRule, bool> {
 
-	bool operator()(const CLIRewrite::DoubleIpRule &e1, const CLIRewrite::DoubleIpRule &e2) const 
+	bool operator()(const CLIRewrite::DoubleIpRule &e1, const CLIRewrite::DoubleIpRule &e2) const
 	{
 		if (e1.first.IsAny()) {
 			if (!e2.first.IsAny())
@@ -277,7 +277,7 @@ CLIRewrite::CLIRewrite()
 				
 				rules = &(siprule->second);
 			} else {
-				PTRACE(1, "CLIRW\tUknown CLI rewrite rule: " << key << '=' 
+				PTRACE(1, "CLIRW\tUknown CLI rewrite rule: " << key << '='
 					<< kv.GetDataAt(i)
 					);
 				continue;
@@ -307,7 +307,7 @@ CLIRewrite::CLIRewrite()
 						else if (tokens[k] *= "applyforterminals")
 							CLIRPolicy = RewriteRule::ApplyCLIRForTerminals;
 						else
-							PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '=' 
+							PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '='
 								<< kv.GetDataAt(k) << ", unreconized pi option '" << tokens[k]
 								<< "'"
 								);
@@ -317,7 +317,7 @@ CLIRewrite::CLIRewrite()
 			
 			const PINDEX sepIndex = data.Find('=');
 			if (sepIndex == P_MAX_INDEX) {
-				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '=' 
+				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax: " << key << '='
 					<< kv.GetDataAt(i)
 					);
 				if (newsiprule) {
@@ -368,7 +368,7 @@ CLIRewrite::CLIRewrite()
 					
 			if (rewriteType == RewriteRule::PrefixToPrefix && matchType != RewriteRule::MatchCallerNumber) {
 				PTRACE(1, "CLIRW\tInvalid CLI rewrite rule syntax - cannot perform "
-					"*= rewrite on non 'cli:' rules: " << key << '=' 
+					"*= rewrite on non 'cli:' rules: " << key << '='
 					<< kv.GetDataAt(i)
 					);
 				if (newsiprule) {
@@ -474,7 +474,7 @@ CLIRewrite::CLIRewrite()
 		strm << "Outbound CLI rewrite rules:" << endl;
 		for (unsigned i = 0; i < m_outboundRules.size(); i++)
 			for (unsigned j = 0; j < m_outboundRules[i].second.size(); j++) {
-				strm << "\tsrc " << m_outboundRules[i].first.AsString() << " dst " 
+				strm << "\tsrc " << m_outboundRules[i].first.AsString() << " dst "
 					<< m_outboundRules[i].second[j].first.AsString() << ":" << endl;
 				for (unsigned k = 0; k < m_outboundRules[i].second[j].second.size(); k++)
 					strm << "\t\t" << m_outboundRules[i].second[j].second[k].AsString() << endl;

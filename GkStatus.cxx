@@ -170,7 +170,7 @@ public:
 	bool IsBusy()
 	{ 
 		PWaitAndSignal lock(m_cmutex);
-		return m_numExecutingCommands > 0; 
+		return m_numExecutingCommands > 0;
 	}
 
 	const PString& GetUser() const { return m_user; }
@@ -918,7 +918,7 @@ bool StatusClient::Authenticate()
 			break;
 		} else
 			result = CheckAuthRule(rules(rule_start, rule_end - 1).Trim());
-		logical_or = (rules[rule_end] == '|') ;
+		logical_or = (rules[rule_end] == '|');
 		if ((logical_or && result) || !(logical_or || result))
 			break;
 		rule_start = rule_end + 1;

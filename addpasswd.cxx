@@ -16,16 +16,16 @@
 #include <ptlib/pprocess.h>
 
 class Client : public PProcess
-{       
+{
   PCLASSINFO(Client, PProcess)
   public:
     void Main();
-};      
+};
 
 PCREATE_PROCESS(Client)
 
 PString Encrypt(
-	const PString& key, 
+	const PString& key,
 	const PString& password,
 	int paddingByte
 	)

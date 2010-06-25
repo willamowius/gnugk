@@ -803,8 +803,8 @@ public:
 	void SetSRC_media_control_IP(PString IP);
 	void SetDST_media_control_IP(PString IP);
 
-	PString GetSRC_media_IP() const; 
-	PString GetDST_media_IP() const; 
+	PString GetSRC_media_IP() const;
+	PString GetDST_media_IP() const;
 
 	void SetSRC_media_IP(PString IP);
 	void SetDST_media_IP(PString IP);
@@ -1186,7 +1186,7 @@ private:
 	PStringList m_rtcp_source_sdes;
 	bool m_rtcp_source_sdes_flag;
 
-	PStringList m_rtcp_destination_sdes;  
+	PStringList m_rtcp_destination_sdes;
 	bool m_rtcp_destination_sdes_flag;
 
 	// RTCP_source_packet_count
@@ -1525,7 +1525,7 @@ inline void EndpointRec::SetEndpointInfo(const PString & vendor, const PString &
 	m_endpointVendor = new H225_VendorIdentifier();
 
 	m_endpointVendor->IncludeOptionalField(H225_VendorIdentifier::e_productId);
-	   m_endpointVendor->m_productId.SetValue(vendor); 
+	   m_endpointVendor->m_productId.SetValue(vendor);
 	m_endpointVendor->IncludeOptionalField(H225_VendorIdentifier::e_versionId);
 	   m_endpointVendor->m_versionId.SetValue(version);
 }

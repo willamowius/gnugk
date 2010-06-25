@@ -48,7 +48,7 @@ SignalingMsg* SignalingMsg::Clone()
 
 unsigned SignalingMsg::GetTag() const
 { 
-	return m_q931->GetMessageType(); 
+	return m_q931->GetMessageType();
 }
 
 PString SignalingMsg::GetTagName() const
@@ -58,7 +58,7 @@ PString SignalingMsg::GetTagName() const
 
 unsigned SignalingMsg::GetCallReference() const
 { 
-	return m_q931->GetCallReference(); 
+	return m_q931->GetCallReference();
 }
 
 

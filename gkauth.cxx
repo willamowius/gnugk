@@ -185,7 +185,7 @@ GkAuthenticator::GkAuthenticator(
 	const char* name, /// a name for the module (to be used in the config file)
 	unsigned supportedRasChecks, /// RAS checks supported by this module
 	unsigned supportedMiscChecks /// non-RAS checks supported by this module
-	) 
+	)
 	: NamedObject(name), m_defaultStatus(e_fail), m_controlFlag(e_Required),
 	m_enabledRasChecks(~0U), m_supportedRasChecks(supportedRasChecks), 
 	m_enabledMiscChecks(~0U), m_supportedMiscChecks(supportedMiscChecks),

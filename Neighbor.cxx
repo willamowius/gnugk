@@ -1689,7 +1689,7 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		delete route;
 		return true;
 	}
-	return false;  
+	return false;
 }
 
 // usd for LRQs
@@ -1715,7 +1715,7 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		delete route;
 		return true;
 	}
-	return false;  
+	return false;
 }
 #endif
 
@@ -1806,7 +1806,7 @@ bool RDSPolicy::FindByAliases(
 bool RDSPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_AliasAddress & /* aliases */)
 { 
     PTRACE(4, "ROUTING\tPolicy RDS not supported for LRQ");
-	return false;  
+	return false;
 }
 #endif
 

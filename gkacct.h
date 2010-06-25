@@ -12,6 +12,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.24  2009/12/02 14:32:13  willamowius
+ * add new accounting events: AcctAlert, AcctRegister, AcctUnregister
+ *
  * Revision 1.23  2009/10/07 15:05:27  willamowius
  * spelling fixes
  *
@@ -317,7 +320,7 @@ private:
 	GkAcctLogger();
 	GkAcctLogger(const GkAcctLogger&);
 	GkAcctLogger & operator=(const GkAcctLogger&);
-	 
+
 private:
 	/// processing behaviour (see #Control enum#)
 	Control m_controlFlag;

@@ -368,7 +368,7 @@ public:
     if (theArray == NULL || length < (int) sizeof(STUNmessageHeader))
       return NULL;
 
-    STUNattribute * attr = (STUNattribute *)(theArray+sizeof(STUNmessageHeader)); 
+    STUNattribute * attr = (STUNattribute *)(theArray+sizeof(STUNmessageHeader));
     STUNattribute * ptr = attr;
 
     if (attr->length > GetSize() || attr->type >= STUNattribute::MaxValidCode)
@@ -383,7 +383,7 @@ public:
     if (length != 0)
       return NULL;
 
-    return attr; 
+    return attr;
   }
 
   bool Validate()
@@ -611,7 +611,7 @@ void STUNClient::Exec()
 
 		// Wait 500 ms until the RCF has been processed before running tests 
 		// to prevent blocking.
-		mute.Wait(500); 
+		mute.Wait(500);
 	
 		// Get a valid NAT type....
 	    // We do the test 3 times as often the first test gives odd results
@@ -1826,7 +1826,7 @@ bool GkClient::H46023_TypeNotify(int & nattype)
 void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
 {
     if (feat->Contains(Std24_NATInstruct)) {
-		unsigned NATinst = feat->Value(Std24_NATInstruct); 
+		unsigned NATinst = feat->Value(Std24_NATInstruct);
 
         PTRACE(4,"GKC\tH46024 strategy for call set to " << NATinst);
 

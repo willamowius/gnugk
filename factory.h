@@ -92,7 +92,7 @@ factory.h(135)   Init    Can't create SampleC with 3 parameter(s)
 *****************************************************************/
 
 #if defined(_WIN32) && (_MSC_VER >= 1200)
-#pragma warning( disable : 4355 ) // warning about using 'this' in initializer 	 
+#pragma warning( disable : 4355 ) // warning about using 'this' in initializer
 #endif
 
 #include <map>
@@ -178,7 +178,7 @@ public:
 	};
 
 	template<typename P1, typename P2>
-	struct Creator2 : public Functor2<Product *, P1, P2>, Registrar { 
+	struct Creator2 : public Functor2<Product *, P1, P2>, Registrar {
 		Creator2(Identifier n) : Registrar(n, this) {}
 	};
 

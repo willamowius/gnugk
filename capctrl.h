@@ -25,7 +25,7 @@ typedef SmartPtr<CallRec> callptr;
 /// Perform per IP/H.323 ID/CLI/prefix inbound call volume accounting/control
 class CapacityControl : public Singleton<CapacityControl> {
 public:
-	/// a single call volume accounting entry 
+	/// a single call volume accounting entry
 	struct InboundCallVolume {
 		InboundCallVolume();
 		virtual ~InboundCallVolume();

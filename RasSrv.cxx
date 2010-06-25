@@ -1721,7 +1721,7 @@ bool RegistrationRequestPDU::Process()
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
 			if (feat->Contains(OID6_Priority)) {
 				unsigned prior = feat->Value(PString(OID6_Priority));
-				RegPrior = (int)prior;  
+				RegPrior = (int)prior;
 			}
 			if (feat->Contains(OID6_Preempt)) {
 				preemptsupport = true;
@@ -1788,7 +1788,7 @@ bool RegistrationRequestPDU::Process()
 							call->Disconnect();
 							CallTbl->RemoveCall(call);
 						}
-						EndpointTbl->RemoveByEndptr(ep);                              
+						EndpointTbl->RemoveByEndptr(ep);
 			   }
 			}
 			// endpoint was NOT registered and force Full Registration
@@ -1879,7 +1879,7 @@ bool RegistrationRequestPDU::Process()
 #endif
 
 #ifdef HAS_H460
-				if (ep->SupportPreemption()) {  
+				if (ep->SupportPreemption()) {
 					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					H460_FeatureOID pre = H460_FeatureOID(rPriFS);
 
@@ -1976,7 +1976,7 @@ bool RegistrationRequestPDU::Process()
 
 			const endptr ep = EndpointTbl->FindByAliases(Alias);
 			if (ep) {
-				bNewEP = (ep->GetCallSignalAddress() != SignalAddr); 
+				bNewEP = (ep->GetCallSignalAddress() != SignalAddr);
 				if (bNewEP) {
 					if ((RegPrior > ep->Priority()) || (preempt) ||
 					  (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
@@ -2002,7 +2002,7 @@ bool RegistrationRequestPDU::Process()
 						H225_RegistrationReject & rrj = m_msg->m_replyRAS;
 #ifdef HAS_H460
 						// notify that EP can pre-empt previous registration
-						if ((preemptsupport) && (RegPrior == ep->Priority())) {  
+						if ((preemptsupport) && (RegPrior == ep->Priority())) {
 							rrj.IncludeOptionalField(H225_RegistrationReject::e_genericData);
 							H460_FeatureOID pre = H460_FeatureOID(rPriFS);
                             pre.Add(PString(OID6_PreNot),H460_FeatureContent(TRUE));
@@ -2611,7 +2611,7 @@ bool AdmissionRequestPDU::Process()
 	bool natsupport = false;
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #endif
-	if (request.HasOptionalField(H225_AdmissionRequest::e_genericData)) {  
+	if (request.HasOptionalField(H225_AdmissionRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
           H460_Feature & feat = (H460_Feature &)data[i];
@@ -2838,7 +2838,7 @@ bool AdmissionRequestPDU::Process()
 					" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
 
 		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
-			PTRACE(4,"RAS\tNAT Type reset to none"); 
+			PTRACE(4,"RAS\tNAT Type reset to none");
 			pCallRec->SetNATType(0);
 		}
 
@@ -2893,7 +2893,7 @@ bool AdmissionRequestPDU::Process()
 			 fs.Add(Std24_NATInstruct,H460_FeatureContent((int)natoffloadsupport,8));
 			 lastPos++;
 			 data.SetSize(lastPos);
-			 data[lastPos-1] = fs;   
+			 data[lastPos-1] = fs;
 		}
 #endif
 		/// OID9 Vendor Information
@@ -2903,7 +2903,7 @@ bool AdmissionRequestPDU::Process()
 			fs.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
 			lastPos++;
 			data.SetSize(lastPos);
-			data[lastPos-1] = fs; 
+			data[lastPos-1] = fs;
 		}
 		/// H.460.9 QoS Reporting
 		if (QoSReporting && 
@@ -2914,7 +2914,7 @@ bool AdmissionRequestPDU::Process()
 					 fs.Add(0,H460_FeatureContent(0,8));
 			lastPos++;
 			data.SetSize(lastPos);
-			data[lastPos-1] = fs;   
+			data[lastPos-1] = fs;
 		}
 
 		if (lastPos > 0) 
@@ -3043,14 +3043,14 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	}
 
 #ifdef HAS_H460
-	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {  
+	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
           H460_Feature & feat = (H460_Feature &)data[i];
     /// H.460.9 QoS Feature
            if (feat.GetFeatureID() == H460_FeatureID(9)) {
 			   H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
-			   if (qosfeat.Contains(1)) {  
+			   if (qosfeat.Contains(1)) {
 			      PASN_OctetString & rawstats = qosfeat.Value(1);
                   CallTbl->QoSReport(*this, ep, rawstats);
 			   }
@@ -3173,7 +3173,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				H225_ArrayOf_GenericData & data = lcf.m_genericData;
 				PINDEX lastPos = 0;
 				if ((WantedEndPoint) && (request.HasOptionalField(H225_LocationRequest::e_genericData))) {
-					H225_ArrayOf_GenericData & locdata = request.m_genericData; 
+					H225_ArrayOf_GenericData & locdata = request.m_genericData;
 					for (PINDEX i = 0; i < locdata.GetSize(); i++) {
 
 						H460_Feature & feat = (H460_Feature &)locdata[i];
@@ -3218,7 +3218,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					}
 				}
 				if (lastPos > 0) 
-					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData); 
+					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
 
 				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
 				if (!featureRequired && featureRequired == "24" && WantedEndPoint && !WantedEndPoint->SupportH46024()) {
@@ -3294,14 +3294,14 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 		if (call)
 			call->Update(request);
 #ifdef HAS_H460
-		if (call && request.HasOptionalField(H225_InfoRequestResponse::e_genericData)) {  
+		if (call && request.HasOptionalField(H225_InfoRequestResponse::e_genericData)) {
 			H225_ArrayOf_GenericData & data = request.m_genericData;
 			for (PINDEX i =0; i < data.GetSize(); i++) {
 			  H460_Feature & feat = (H460_Feature &)data[i];
 		/// H.460.9 QoS Feature
 				if (feat.GetFeatureID() == H460_FeatureID(9)) {
 					H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
-					if (qosfeat.Contains(1)) {  
+					if (qosfeat.Contains(1)) {
 			           PASN_OctetString & rawstats = qosfeat.Value(1);
                        CallTbl->QoSReport(*this, call, ep , rawstats);
 					}

@@ -1285,7 +1285,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
  			H245_GenericMessage & gmsg = rmsg;
 			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
 				if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
-					PASN_ObjectId & val = id; 
+					PASN_ObjectId & val = id;
 					if (val.AsString() == H46024B_OID) {
 						m_call->H46024BRespond();
 						suppress = true;
@@ -2132,7 +2132,7 @@ void CallSignalSocket::OnSetup(
 		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 	if (Toolkit::Instance()->IsH46023Enabled()
 		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
-		&& authData.m_proxyMode != CallRec::ProxyDisabled) {  
+		&& authData.m_proxyMode != CallRec::ProxyDisabled) {
 		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
           H460_Feature & feat = (H460_Feature &)data[i];
@@ -2305,7 +2305,7 @@ void CallSignalSocket::OnSetup(
 				// If the called Party is not NATed then the called EP must support NAT'd callers
 				// latter versions of OpenH323 and GnomeMeeting do also allow this condition.
 			} else {
-                PTRACE(4, Type() << "\tUnregistered party is not NATed"); 
+                PTRACE(4, Type() << "\tUnregistered party is not NATed");
 			}
 		} else {
 			   // If the party cannot be determined if behind NAT and we have support then just Treat as being NAT
@@ -2678,7 +2678,7 @@ bool CallSignalSocket::CreateRemote(
 					for (PINDEX i=0; i < fsn.GetSize(); i++) {
 						H460_Feature & feat = (H460_Feature &)fsn[i];
 						if (feat.GetFeatureID() == H460_FeatureID(24))  {
-							natfound = true; 
+							natfound = true;
 							id = i;
 							break;
 						}
@@ -2699,7 +2699,7 @@ bool CallSignalSocket::CreateRemote(
 					std24.Add(Std24_NATInstruct,H460_FeatureContent((int)strat,8));
 					PINDEX lastpos = fsn.GetSize();
 					fsn.SetSize(lastpos+1);
-					fsn[lastpos] = std24;    
+					fsn[lastpos] = std24;
 				} else if (!m_calledh46023 && natfound) {  // Remove H460.23 from Supported Features.
 					for (PINDEX j=id; j < fsn.GetSize()-1; ++j) {
 						fsn[j] == fsn[j+1];
@@ -3440,7 +3440,7 @@ void CallSignalSocket::OnFacility(
 					H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
 
 					if (HandleH245Address(setupBody))  
-							setup->SetUUIEChanged();   
+							setup->SetUUIEChanged();
 
 					if (HandleFastStart(setupBody, true))
 							setup->SetUUIEChanged();
@@ -5120,14 +5120,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			direct = false;
 		}
 
-		PIPSocket::Address addr = (DWORD)0; 
+		PIPSocket::Address addr = (DWORD)0;
 		(*m_call)->GetMediaOriginatingIp(addr);
 
 		RTP_ControlFrame frame(2048);
 		frame.Attach(wbuffer,buflen);
 		do {
 			BYTE * payload = frame.GetPayloadPtr();
-			unsigned size = frame.GetPayloadSize(); 
+			unsigned size = frame.GetPayloadSize();
 			if ((payload == NULL) || (size == 0) || ((payload + size) > (frame.GetPointer() + frame.GetSize()))){
 			/* TODO: 1.shall we test for a maximum size ? Indeed but what's the value ? *
 				 2. what's the correct exit status ? */

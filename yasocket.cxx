@@ -63,7 +63,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 		std::vector<YaSocket*>::iterator last = remove_if(
 			fds.begin(), fds.end(),
 			not1(compose1(
-				bind1st(mem_fun(&large_fd_set::has), &fdset), 
+				bind1st(mem_fun(&large_fd_set::has), &fdset),
 				mem_fun(&YaSocket::GetHandle)
 				)));
 		fds.erase(last, fds.end());
@@ -72,14 +72,14 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 		   another 10-15% of performance gain. As it is not much under normal
 		   conditions, I leave it for thouse who want to squeeze a few more
 		   calls from their proxies;-)
-		   
+
 		   I did some performance tests (Duron 1.1GHz) with simulation of
 		   various fds selected sockets coverage (10%, 33%, 50%, 75%, 90%):
-		   
+
 		   LARGE_FDSET=1024  - 12% performance gain
 		   LARGE_FDSET=4096  - 15% performance gain
 		   LARGE_FDSET=16384 - 13% performance gain
-		   
+
 		   For LARGE_FDSET=4096 it took less than 1ms to manipulate the fdset
 		   and this grows in a linear fashion (LARGE_FDSET=16384 takes a few
 		   milliseconds to perform the same task).
@@ -89,7 +89,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 		const std::vector<YaSocket*>::reverse_iterator rendIter = fds.rend();
 		bool hasfd = false;
 		
-		// start from the end of the list, skip consecutive sockets 
+		// start from the end of the list, skip consecutive sockets
 		// that were not selected (find the first one selected)
 		while (j != rendIter) {
 			k--;
@@ -99,7 +99,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 			} else
 				++j;
 		}
-		// reorder remaining sockets, so non-selected sockets 
+		// reorder remaining sockets, so non-selected sockets
 		// are moved to the end of the vector
 		if (hasfd) {
 			while (++j != rendIter) {
@@ -557,7 +557,7 @@ PSocket *SocketSelectList::operator[](int i) const
 
 
 // class USocket
-USocket::USocket(IPSocket *s, const char *t) 
+USocket::USocket(IPSocket *s, const char *t)
 	: self(s), qsize(0), blocked(false), type(t)
 {
 }
@@ -662,7 +662,7 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 			}
 			break;
 		default:
-			PTRACE(3, msg << " Error(" << group << "): " 
+			PTRACE(3, msg << " Error(" << group << "): "
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
 				<< self->GetErrorNumber(group) << ')'
 				);

@@ -127,7 +127,7 @@ protected:
 	static Toolkit *Kit;
 	static GkStatus *StatusPort;
 	static RegistrationTable *EndpointTbl;
-	static CallTable *CallTbl; 
+	static CallTable *CallTbl;
 	static RasServer *RasSrv;
 };
 
