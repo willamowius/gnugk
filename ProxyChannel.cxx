@@ -5131,7 +5131,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			if ((payload == NULL) || (size == 0) || ((payload + size) > (frame.GetPointer() + frame.GetSize()))){
 			/* TODO: 1.shall we test for a maximum size ? Indeed but what's the value ? *
 				 2. what's the correct exit status ? */
-//			PTRACE(2, "RTCP\tSession invalid frame");
+				PTRACE(1, "RTCP\tSession invalid frame");
 
 				break;
 			}
@@ -5142,12 +5142,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 					const RTP_ControlFrame::SenderReport & sr = *(const RTP_ControlFrame::SenderReport *)(payload);
 					if (direct) {
 						(*m_call)->SetRTCP_DST_packet_count(sr.psent);
-						PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_count:"<<sr.psent);
+						PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_count:" << sr.psent);
 					} else {
 						(*m_call)->SetRTCP_SRC_packet_count(sr.psent);
-						PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_count:"<<sr.psent);
+						PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_count:" << sr.psent);
 					}	
-					BuildReceiverReport(frame, sizeof(RTP_ControlFrame::SenderReport),direct);
+					BuildReceiverReport(frame, sizeof(RTP_ControlFrame::SenderReport), direct);
 				} else {
 					PTRACE(5, "RTCP\tSession  SenderReport packet truncated");
 				}
@@ -5155,7 +5155,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			case RTP_ControlFrame::e_ReceiverReport:
 				PTRACE(5, "RTCP\tSession ReceiverReport packet");
 				if (size >= 4) {
-					BuildReceiverReport(frame, sizeof(PUInt32b),direct);
+					BuildReceiverReport(frame, sizeof(PUInt32b), direct);
 				} else {
 					PTRACE(5, "RTP\tSession ReceiverReport packet truncated");
 				}
@@ -5167,7 +5167,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 						const RTP_ControlFrame::SourceDescription * sdes = (const RTP_ControlFrame::SourceDescription *)payload;
 						for (PINDEX srcIdx = 0; srcIdx < (PINDEX)frame.GetCount(); srcIdx++) {
 							const RTP_ControlFrame::SourceDescription::Item * item = sdes->item;
-							while ((item != NULL) && (item->type != RTP_ControlFrame::e_END)) {
+							while ((item != NULL)
+									&& (((BYTE*)item + sizeof(RTP_ControlFrame::SourceDescription::Item)) <= (payload + size))
+									&& (item->type != RTP_ControlFrame::e_END)) {
 								if (item != NULL && item->length != 0) {
 									switch (item->type) {
 									case RTP_ControlFrame::e_CNAME:
