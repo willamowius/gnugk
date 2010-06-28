@@ -5046,7 +5046,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			}
 #ifdef HAS_H46024B
 			// If required begin Annex B probing
-			if ((*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) 
+			if (m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) 
 				(*m_call)->H46024BInitiate(m_sessionID, m_h46019fwd, m_h46019rev);
 #endif	// HAS_H46024B
 		}
@@ -5111,7 +5111,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
-	if (PString(Type()) == "RTCP") {
+	if (PString(Type()) == "RTCP" && m_call) {
 		bool direct = true;
 
 		if ((*m_call)->GetSRC_media_control_IP() == fromIP.AsString()) {
@@ -5162,11 +5162,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				break;
 			case RTP_ControlFrame::e_SourceDescription :
 				PTRACE(5, "RTCP\tSession SourceDescription packet");		    
-				if ((!(*m_call)->GetRTCP_SRC_sdes_flag()&&direct) || (!(*m_call)->GetRTCP_DST_sdes_flag()&&!direct))
+				if ((!(*m_call)->GetRTCP_SRC_sdes_flag() && direct) || (!(*m_call)->GetRTCP_DST_sdes_flag() && !direct))
 					if (size >= frame.GetCount()*sizeof(RTP_ControlFrame::SourceDescription)) {
 						const RTP_ControlFrame::SourceDescription * sdes = (const RTP_ControlFrame::SourceDescription *)payload;
-						PINDEX srcIdx;
-						for (srcIdx = 0; srcIdx < (PINDEX)frame.GetCount(); srcIdx++) {
+						for (PINDEX srcIdx = 0; srcIdx < (PINDEX)frame.GetCount(); srcIdx++) {
 							const RTP_ControlFrame::SourceDescription::Item * item = sdes->item;
 							while ((item != NULL) && (item->type != RTP_ControlFrame::e_END)) {
 								if (item != NULL && item->length != 0) {
