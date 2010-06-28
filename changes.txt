@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- BUGFIX(Routing.cxx) check if routing policies have been configured, before using them
 - BUGFIX(ProxyChannel.cxx) only rewrite sourceCallSignalAddress if proxying
 - BUGFIX(ProxyChannel.cxx) fix NAT detection for unregistered callers
 - BUGFIX(RasTbl.cxx) fire unregister event also when endpoint expired
