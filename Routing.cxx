@@ -311,11 +311,15 @@ Policy *Analyzer::Create(const PString & cfg)
 
 Policy *Analyzer::ChoosePolicy(const H225_ArrayOf_AliasAddress *aliases, Rules & rules)
 {
+	// safeguard if we don't have any rules (eg. not yet initialized on startup)
+	if (rules.empty())
+		return NULL;
+
 	// use rules.begin() as the default policy
 	// since "*" has the minimum key value
 	Rules::iterator iter, biter, eiter;
 	iter = biter = rules.begin(), eiter = rules.end();
-	if (aliases && aliases->GetSize() > 0)
+	if (aliases && aliases->GetSize() > 0) {
 		for (PINDEX i = 0; i < aliases->GetSize(); ++i) {
 			const H225_AliasAddress & alias = (*aliases)[i];
 			iter = rules.find(alias.GetTagName());
@@ -328,6 +332,7 @@ Policy *Analyzer::ChoosePolicy(const H225_ArrayOf_AliasAddress *aliases, Rules &
 					return iter->second;
 			}
 		}
+	}
 	return iter->second;
 }
 
