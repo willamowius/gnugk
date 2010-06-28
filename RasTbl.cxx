@@ -2388,19 +2388,19 @@ void CallRec::SetRTCP_SRC_jitter(int val)
     if (val > 0){
         if (m_rtcp_source_jitter_min == 0) {
 	    m_rtcp_source_jitter_min = val;
-	}else if (m_rtcp_source_jitter_min > val) {
+	} else if (m_rtcp_source_jitter_min > val) {
 	     m_rtcp_source_jitter_min = val;
 	}
 	if (m_rtcp_source_jitter_max == 0){
 	    m_rtcp_source_jitter_max = val;
-	}else if (m_rtcp_source_jitter_max < val){
+	} else if (m_rtcp_source_jitter_max < val) {
 	    m_rtcp_source_jitter_max =val;
 	}
 	m_rtcp_source_jitter_avg_count ++;
 	m_rtcp_source_jitter_avg_sum +=val;
-	m_rtcp_source_jitter_avg = (int)(m_rtcp_source_jitter_avg_sum/m_rtcp_source_jitter_avg_count);
-    }else{
-	m_rtcp_source_jitter_avg = 0;
+	m_rtcp_source_jitter_avg = (int)(m_rtcp_source_jitter_avg_sum / m_rtcp_source_jitter_avg_count);
+    } else {
+		m_rtcp_source_jitter_avg = 0;
     }
 }
 
@@ -2409,19 +2409,19 @@ void CallRec::SetRTCP_DST_jitter(int val)
     if (val > 0){
         if (m_rtcp_destination_jitter_min == 0){
 	    m_rtcp_destination_jitter_min = val;
-	}else if (m_rtcp_destination_jitter_min > val){
+	} else if (m_rtcp_destination_jitter_min > val) {
 	    m_rtcp_destination_jitter_min =val;
 	}
 	if (m_rtcp_destination_jitter_max == 0){
 	    m_rtcp_destination_jitter_max = val;
-	}else if (m_rtcp_destination_jitter_max < val){
+	} else if (m_rtcp_destination_jitter_max < val) {
 	    m_rtcp_destination_jitter_max =val;
 	}
 	m_rtcp_destination_jitter_avg_count ++;
 	m_rtcp_destination_jitter_avg_sum +=val;
-	m_rtcp_destination_jitter_avg = (int)(m_rtcp_destination_jitter_avg_sum/m_rtcp_destination_jitter_avg_count);
-    }else{
-	m_rtcp_destination_jitter_avg = 0;
+	m_rtcp_destination_jitter_avg = (int)(m_rtcp_destination_jitter_avg_sum / m_rtcp_destination_jitter_avg_count);
+    } else {
+		m_rtcp_destination_jitter_avg = 0;
     }
 }
 
