@@ -394,7 +394,7 @@ PString RewriteString(
 	while (lastDstDot != NULL) {
 		lastSrcDot = strchr(lastSrcDot, '.');
 		if (lastSrcDot == NULL) {
-			PTRACE(0, "GK\tInvalid rewrite rule (dots do not match) - "
+			PTRACE(1, "GK\tInvalid rewrite rule (dots do not match) - "
 				<< prefix << " = " << value
 				);
 			break;

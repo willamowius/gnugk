@@ -180,7 +180,7 @@ FileIPAuth::FileIPAuth(
 	if (cfg->HasKey(FileIPAuthSecName, "include")) {
 		const PFilePath fp(cfg->GetString(FileIPAuthSecName, "include", ""));
 		if (!PFile::Exists(fp)) {
-			PTRACE(0, GetName() << "\tCould not read the include file '"
+			PTRACE(1, GetName() << "\tCould not read the include file '"
 				<< fp << "': the file does not exist"
 				);
 			return;

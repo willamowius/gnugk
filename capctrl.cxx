@@ -425,7 +425,7 @@ void CapacityControl::LogCall(
 {
 	if (callStart) {
 		if (callNumber < 1) {
-			PTRACE(0, "CAPCTRL\tInvalid call number used (" << callNumber << ")");
+			PTRACE(1, "CAPCTRL\tInvalid call number used (" << callNumber << ")");
 		}
 	
 		// find longest matching rule by ip/h323id/cli
