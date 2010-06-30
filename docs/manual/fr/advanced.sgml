@@ -1,0 +1,92 @@
+<sect>Advanced Topics
+<p>
+This portion of the manual will cover advanced topics, such as compiling GnuGk.
+
+<sect1>Compiling GnuGk
+<label id="compile">
+<p>
+The following instructions are an example of how to compile GnuGK from source on an Ubuntu platform.
+<verb>
+$ sudo apt-get update
+$ sudo apt-get install flex bison build-essential subversion cvs pkg-config
+</verb>
+
+Get and compile ptlib from SourceForge
+<verb>
+$ cd ~
+$ svn co http://opalvoip.svn.sourceforge.net/svnroot/opalvoip/ptlib/trunk ptlib
+$ cd ptlib
+$ export PTLIBDIR=~/ptlib
+$ ./configure
+$ make optnoshared
+</verb>
+
+Get and compile h323plus:
+<verb>
+$ cd ~
+$ cvs -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus login
+
+(just press enter when prompted for password)
+
+$ cvs -z3 -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus co -P h323plus
+
+$ cd h323plus
+$ export OPENH323DIR=~/h323plus
+$ ./configure
+$ make optnoshared
+</verb>
+
+Get and compile GnuGk:
+<verb>
+$ cvs -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk login
+
+(just press enter when prompted for password)
+
+$ cvs -z3 -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk co -P openh323gk
+
+$ cd openh323gk
+$ ./configure --enable-h46018
+$ make optnoshared
+</verb>
+
+Once the compile is finished, the binary can be found in the 
+obj_linux_x86_s subdirectory.
+
+At this time, because all libraries and GnuGk are running CVS and svn 
+versions of the software, in order to stay up-to-date, run the following:
+
+<verb>
+$ cd ~/ptlib
+$ svn up
+$ cd ~/h323plus
+$ cvs up
+$ cd ~/openh323gk
+$ cvs up
+</verb>
+If any of the source files are changed, you may need to recompile.
+
+<sect1>Debugging GnuGk
+<label id="debug">
+<p>
+In order to use gdb with GnuGk, the software and libraries must be compiled with debug support.
+
+You may follow the instructions above in obtaining the software, but the compile in each subdirectory must be:
+<verb>
+$ make debugnoshared
+</verb>
+
+Configure your CLI to allow unlimited core files:
+<verb>
+ulimit -c unlimited
+</verb>
+
+Run GnuGk:
+<verb>
+~/openh323/obj_linux_x86_64_d_s/gnugk -c your.ini
+# wait for crash
+gdb obj_linux_x86_64_d/gnugk core
+bt
+</verb>
+
+Once you've obtained a backtrace, post it to the mailing list.
+

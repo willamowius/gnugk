@@ -3,9 +3,7 @@
 <sect>Configuration Par Terminal
 <label id="epconfig">
 <p>
-En plus des options standards du fichier de configuration, des param&#232;tres de
-configuration par terminal peuvent &#234;tre indiqu&#233;s dans le fichier de
-configuration. La syntaxe est la suivante:
+En plus des options standards du fichier de configuration, des param&#232;tres de configuration par terminal peuvent &#234;tre indiqu&#233;s dans le fichier de configuration. La syntaxe est la suivante:
 
 <sect1>Section &lsqb;EP::...&rsqb;
 <p>
@@ -14,37 +12,80 @@ configuration. La syntaxe est la suivante:
 Key Name=Value String
 </verb></tscreen>
 
-<tt/ALIAS/ est remplac&#233; par l'alias r&#233;el du terminal auquel les
-param&#232;tres doivent s'appliquer. Actuellement, les options suivantes sont
-reconnues:
+<tt/ALIAS/ est remplac&#233; par l'alias r&#233;el du terminal auquel les param&#232;tres doivent s'appliquer. Actuellement, les options suivantes sont reconnues:
 
 <itemize>
 <item><tt/Capacity=10/<newline>
 D&#233;fault: <tt/-1/
 <p>
-Capacit&#233; d'appel pour un terminal. Par plus de <tt/Capacity/ appels
-simultan&#233;s seront envoy&#233;s &#224; ce terminal. Dans le cas des passerelles,
-si plus d'une passerelle correspond au num&#233;ro compos&#233;, un appel sera
-envoy&#233; &#224; la premi&#232;re passerelle disponible (qui a de la capacit&#233;
-disponible).
+Capacit&#233; d'appel pour un terminal. Pas plus de <tt/Capacity/ appels simultan&#233;s seront envoy&#233;s &#224; ce terminal. Dans le cas des passerelles, si plus d'une passerelle correspond au num&#233;ro compos&#233;, un appel sera envoy&#233; &#224; la premi&#232;re passerelle disponible (qui a de la capacit&#233; disponible).
+
+<item><tt/PrefixCapacities=^0049:=10,^(0044|0045):=20/<newline>
+D&#233;fault: <tt>N/A</tt><newline>
+<p>
+Limite la capacit&#233; de certains pr&#233;fixes. Des expressions r&#233;guli&#232;res peuvent &#234;tre utilis&#233;es pour sp&#233;cifier le pr&#233;fixe et sp&#233;cifier la capacit&#233; combin&#233;e du groupe de pr&#233;fixes. Pour qu'une passerelle soit consid&#233;r&#233;e comme disponible a.) le pr&#233;fixe doit avoir une capacit&#233; restante suffisante et b.) la capacit&#233; totale de la passerelle ne doit pas avoir &#233;t&#233; d&#233;pass&#233;e. 
 
 <item><tt/GatewayPriority=1/<newline>
-D&#233;fault: <tt/1/
+D&#233;fault: <tt/1/<newline>
 <p>
-S'applique uniquement aux passerelles. Permet un routage bas&#233; sur la priorit&#233;
-dans la cas o&#249; plus d'une passerelle correspond &#224; un num&#233;ro compos&#233;.
-Plus la valeur est petite, plus la priorit&#233; affect&#233;e &#224; la passerelle
-est &#233;lev&#233;e. Un appel est rout&#233; &#224; la premi&#232;re passerelle
-disponible (qui a de la capacit&#233; disponible) avec la priorit&#233; la plus
-&#233;lev&#233;e (la valeur <tt/GatewayPriority/ la plus petite).
+S'applique uniquement aux passerelles. Permet un routage bas&#233; sur la priorit&#233; dans la cas o&#249; plus d'une passerelle correspond &#224; un num&#233;ro compos&#233;.
+Plus la valeur est petite, plus la priorit&#233; affect&#233;e &#224; la passerelle est &#233;lev&#233;e. Un appel est rout&#233; &#224; la premi&#232;re passerelle disponible (qui a de la capacit&#233; disponible) avec la priorit&#233; la plus
+&#233;lev&#233;e (la valeur <tt/GatewayPriority/ la plus petite). Dans le cas o&#249; la priorit&#233; d'une passerelle est en contradiction avec la priorit&#233; d'un pr&#233;fixe (se r&#233;f&#233;rer &#224; la section <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> pour plus de diitails), la priorit&#233; du pr&#233;fixe a le dessus. 
 
 <item><tt/GatewayPrefixes=0048,0049,0044/<newline>
 D&#233;fault: <tt>N/A</tt>
 <p>
-Pr&#233;fixes suppl&#233;mentaires pour cette passerelle. S'applique uniquement aux
-passerelles. Les caract&#232;res sp&#233;ciaux <tt/./ et <tt/!/ peuvent &#234;tre
-utilis&#233;s pour correspondre &#224; n'importe quel chiffre et d&#233;sactiver le
-pr&#233;fixe.
+Pr&#233;fixes suppl&#233;mentaires pour cette passerelle. S'applique uniquement aux passerelles. Les caract&#232;res sp&#233;ciaux <tt/./ et <tt/!/ peuvent &#234;tre utilis&#233;s pour correspondre &#224; n'importe quel chiffre ou d&#233;sactiver le pr&#233;fixe. Vous pouvez utilier la syntaxe := pour &#233;tablir un priorit&#233; de pr&#233;fixe de la m&#234;me mani&#232;re comme indiqu&#233; dans la section <ref id="gwprefixes" name="[RasSrv::GWPrefixes]">. Si aucune priorit&#233; n'est explicitement configur&#233;e pour un pr&#233;fixe, la priorit&#233; de passerelle est alors utilis&#233;e. 
+
+<item><tt/AddNumbers=4212,5650-5630,6000/<newline>
+D&#233;fault: <tt>N/A</tt><newline>
+<p>
+Ajouter des num&#233;ros E.164 &#224; ce terminal. Les nouveaux alias peuvent &#234;tre sp&#233;cifi&#233;s comme une liste de num&#233;ros ou un intervalle de num&#233;ros. 
+
+<item><tt/CalledTypeOfNumber=1/<newline>
+D&#233;fault: <tt>N/A</tt><newline>
+<p>
+Assigne la valeur sp&#233;cifi&#233;e au type de num&#233;ro appel&#233; (Called-Party-Number) pour les appels &#233;mis vers ce terminal
+(0 - UnknownType, 1 - InternationalType, 2 - NationalType, 3 - NetworkSpecifiedType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType)
+(0 - inconnu, 1 - international, 2 - national, 3 - sp&#233;cifi&#233; par le r&#233;seau, 4 - abonn&#233;, 6 - abbr&#233;g&#233;, 7 - r&#233;serv&#233;)
+
+<item><tt/CallingTypeOfNumber=1/<newline>
+D&#233;fault: <tt>N/A</tt><newline>
+<p>
+Assigne la valeur sp&#233;cifi&#233;e au type de num&#233;ro appelant (Calling-Party-Number) pour les appels &#233;mis vers ce terminal
+(0 - UnknownType, 1 - InternationalType, 2 - NationalType, 3 - NetworkSpecifiedType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType)
+(0 - inconnu, 1 - international, 2 - national, 3 - sp&#233;cifi&#233; par le r&#233;seau, 4 - abonn&#233;, 6 - abbr&#233;g&#233;, 7 - r&#233;serv&#233;)
+
+<item><tt/CalledPlanOfNumber=1/<newline>
+D&#233;fault: <tt>N/A</tt><newline>
+<p> 
+Assigne la valeur sp&#233;cifi&#233;e au Called-Numbering-Plan de ce num&#233;ro pour les appels &#233;mis vers ce terminal
+(0 - inconnu, 1 - ISDN, 3 - num&#233;rotage X.121, 4 - Telex, 8 - standard national, 9 - num&#233;ro priv&#233;)
+
+<item><tt/CallingPlanOfNumber=1/<newline>
+D&#233;fault: <tt>N/A</tt><newline>
+<p>
+Assigne la valeur sp&#233;cifi&#233;e au Calling-Numbering-Plan de ce num&#233;ro pour les appels &#233;mis vers ce terminal
+(0 - inconnu, 1 - ISDN, 3 - num&#233;rotage X.121, 4 - Telex, 8 - standard national, 9 - num&#233;ro priv&#233;)
+
+<item><tt/Proxy=1/<newline>
+D&#233;fault:<tt/0/<newline>
+<p>
+Activer/d&#233;sactiver les appels proxy depuis ce terminal (0 - ne pas changer les param&#232;tres proxy, 1 - activer le mode proxy, 2 - d&#233;sactiver le mode proxy)
+
+<item><tt/TranslateReceivedQ931Cause=17:=34/<newline>
+D&#233;fault:<tt>N/A</tt><newline>
+<p>Traduire les codes cause en messages ReleaseComplete envoy&#233;s depuis ce terminal. 
+
+<item><tt/TranslateSentQ931Cause=21:=34,27:=34/<newline>
+D&#233;fault:<tt>N/A</tt><newline>
+<p>Traduire les codes cause en messages ReleaseComplete envoy&#233;s vers ce terminal. 
+Dans l'exemple ci-dessus, les codes 21 et 27 sont traduits en code-cause 34, car cette passerelle peut peut-&#234;tre g&#233;rer un code erreur 34 mieux qu'un autre. 
+
+<item><tt/DisableH46018=1/<newline>
+D&#233;fault:<tt>0</tt><newline>
+<p>
+D&#233;sactiver H.460.18/.19 pour ce terminal. 
 
 </itemize>
 
@@ -64,6 +105,4 @@ Capacity=30
 GatewayPriority=2
 </verb></tscreen>
 
-Dans cet exemple, les appels seront envoy&#233;s &#224; la passerelle <tt/gw1/ &#224;
-moins que sa capacit&#233; ne soit totalement utilis&#233;e (60 appels simultan&#233;s)
-puis &#224; la passerelle <tt/gw2/.
+Dans cet exemple, les appels seront envoy&#233;s &#224; la passerelle <tt/gw1/ &#224; moins que sa capacit&#233; ne soit totalement utilis&#233;e (60 appels simultan&#233;s) puis &#224; la passerelle <tt/gw2/.

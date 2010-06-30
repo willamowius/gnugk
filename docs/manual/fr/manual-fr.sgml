@@ -12,8 +12,8 @@
 <!ENTITY auth SYSTEM "auth.sgml">
 <!ENTITY acct SYSTEM "acct.sgml">
 <!ENTITY endpointconfig SYSTEM "endpointconfig.sgml">
-
 <!ENTITY monitoring SYSTEM "monitoring.sgml">
+<!ENTITY advanced SYSTEM "advanced.sgml">
 ]>
 <!-- French translation from manual.sgml v1.1 -->
 <!-- Ceci est le Manuel Utilisateur de OpenH323 Gatekeeper - The GNU Gatekeeper -->
