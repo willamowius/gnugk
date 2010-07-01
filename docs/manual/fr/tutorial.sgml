@@ -1,63 +1,52 @@
 <!-- French translation from tutorial.sgml v1.2 -->
 
-<sect>Pour Commencer (Tutorial)
+<sect>Tutoriel
 <p>
-<sect1>Une premi&#232;re exp&#233;rience simple
+<sect1>Un premier exemple tr&#232;s simple
 <p>
 Pour s'assurer que tous les composants fonctionnent, trouvez
 2 stations de travail Linux, toutes les deux connect&#233;es au r&#233;seau local.
-Assurez-vous d'avoir au moins la version 1.1 de OpenH323 et OhPhone d'install&#233;e.
-Sur la premi&#232;re machine, lancez le gatekeeper et ohphone (dans
-des consoles diff&#233;rentes):
+Ces exemples utilisent &#233;galement le logiciel "OhPhone".
+Sur la premi&#232;re machine, &#233;x&#233;cuter le <htmlurl url="http://www.gnugk.org/"name="gatekeeper"> en mode direct:
 
 <tscreen><verb>
 jan@machine1 > gnugk -ttt
 </verb></tscreen>
 
-Le gatekeeper tourne maintenant en mode direct.
-L'option "<tt/-ttt/" indique au gatekeeper de faire beaucoup de traces de debug
-dans la console (vous pouvez rediriger cette sortie vers un fichier avec
-"<tt/-o logfile/").
+L'option "<tt/-ttt/" indique au gatekeeper d'&#233;crire un maximum de traces de debug dans la console (vous pouvez rediriger cette sortie vers un fichier avec la commande 
+"<tt/-o logfilename/").
 
+D&#233;marrer maintenant OhPhone dans une autre console:
 <tscreen><verb>
 jan@machine1 > ohphone -l -a -u jan
 </verb></tscreen>
 
-Cet OhPhone attend maintenant (<tt/-l/) les appels et les acceptera automatiquement
-(<tt/-a/). Il s'est enregistr&#233; comme utilisateur jan aupr&#232;s du gatekeeper
-qu'il d&#233;tectera automatiquement. (Si la d&#233;tection automatique ne marche pas
-pour une quelconque raison, utilisez "<tt/-g 1.2.3.4/" pour indiquer le num&#233;ro
-IP sur lequel le gatekeeper tourne.)
+Cet OhPhone est maintenant &#224; l'&#232;coute d'appels entrants(<tt/-l/) et les acceptera automatiquement (<tt/-a/). Il s'est enregistr&#233; comme utilisateur jan aupr&#232;s du gatekeeper. OhPhone tentera de d&#233;terminer automatiquement la location du gatekeeper, mais si cette d&#233;tection automatique &#233;choue, utiliser "<tt/-g 1.2.3.4/" pour sp&#233;cifier l'addresse IP du gatekeeper. 
 
-Sur la deuxi&#232;me machine, lancez seulement ohphone:
+Sur la deuxi&#232;me machine, d&#233;marer ohphone de cette mani&#232;re:
 
 <tscreen><verb>
 peter@machine2 > ohphone -u peter jan
 </verb></tscreen>
 
-La deuxi&#232;me instance de OhPhone s'enregistre aupr&#232;s du gatekeeper
-d&#233;tect&#233; automatiquement en tant qu'utilisateur peter et essaye d'appeler jan.
-Le gatekeeper d&#233;terminera le num&#233;ro IP o&#249; jan s'est enregistr&#233;
-(machine1 dans ce cas) &#224; partir du username et OhPhone appellera l'autre instance
-de OhPhone sur la machine une.
+La deuxi&#232;me instance de OhPhone s'enregistre aupr&#232;s du gatekeeper d&#233;tect&#233; automatiquement en tant qu'utilisateur peter et essaye d'appeler jan.
+Le gatekeeper d&#233;terminera le num&#233;ro IP sous lequel jan s'est enregistr&#233; (machine1 dans ce cas) et OhPhone appellera l'autre instance de OhPhone sur machine1.
 
-La premi&#232;re instance de OhPhone acceptera cet appel, Peter et Jan pourront parler.
+L'instance d'OhPhone sur machine1 acceptera automatiquement cet appel: Peter et Jan pourront parler.
 
 <sect1>Utilisation de l'interface Status pour surveiller le gatekeeper
 <p>
-Nous allons maintenant essayer de voir quels messages sont trait&#233;s par le gatekeeper.
-Dans une nouvelle console sur machine1 nous utilisons telnet pour nous connecter
-au gatekeeper:
+L'interface Status est une mani&#232;re d'int&#233;ragir avec un gatekeeper en cours d'&#233;x&#233;cution &#224; l'aide de texte. 
+
+Dans une nouvelle console sur machine1 nous utilisons telnet pour nous connecter au gatekeeper:
 
 <tscreen><verb>
 jan@machine1 > telnet machine1 7000
 </verb></tscreen>
 
-Tr&#232;s probablement nous aurons un message "Acc&#232;s interdit!", car tout le
-monde n'a pas le droit d'espionner.
+Vous devriez recevoir un message "Acc&#232;s interdit!" car l'acc&#232;s &#224; ce port est restreint par d&#233;faut. 
 
-Nous cr&#233;ons maintenant un fichier appel&#233; <tt/gatekeeper.ini/ et le mettons
-dans le r&#233;pertoire o&#249; nous d&#233;marrons le gatekeeper.
+Cr&#233;er maintenant un fichier appel&#233; <tt/gatekeeper.ini/ dans le r&#233;pertoire o&#249; dans lequel nous d&#233;marrons le gatekeeper.
 <tt/gatekeeper.ini/ contient seulement 4 lignes:
 
 <tscreen><verb>
@@ -67,14 +56,62 @@ Fortytwo=42
 rule=allow
 </verb></tscreen>
 
-Arr&#234;tez le gatekeeper avec Ctrl-C et red&#233;marrez-le.
-Quand nous faisons &#224; nouveau le telnet, nous restons connect&#233;s au gatekeeper.
-R&#233;p&#233;tons maintenant la premi&#232;re exp&#233;rience o&#249; Peter appelle
-Jan et voyons quels messages sont trait&#233;s par le gatekeeper en mode non-rout&#233;.
-Il existe un certain nombre de commandes qui peuvent &#234;tre envoy&#233;es dans cette
-session telnet:
-Tapez "help" pour les voir.
-Pour terminer la session telnet avec le gatekeeper, tapez "quit" et Entr&#233;e.
+Arr&#234;ter le gatekeeper avec Ctrl-C, red&#233;marrer le gatekeeper en sp&#233;cifiant qu'il doit utiliser le <tt/gatekeeper.ini/ qui vient d'&#234;tre cr&#233;&#233;.
+
+<tscreen><verb>
+jan@machine1 > gnugk -ttt -c ./gatekeeper.ini
+</verb></tscreen>
+
+Utiliser telent pour se connecter au port 700 et vous devrez maintenant &#234;tre autoris&#233; &#224; vous connecter au gatekeeper. 
+
+<tscreen><verb>
+jan@machine1 >  telnet localhost 7000
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+Version:
+Gatekeeper(GNU) Version(2.3.1) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=1,h46018=1,h46023=1) Build(Aug 12 2009, 09:30:37) Sys(Linux i686 2.6.28-14-generic)
+Startup: Tue, 25 Aug 2009 15:30:44 -0500   Running: 2 days 21:30:50
+;
+</verb></tscreen>
+
+R&#233;p&#233;tez maintenant le premier exemple lorsque Peter appelle Jan et observez quels messages sont trait&#233;s par le gatekeeper en mode non rout&#233;. 
+
+Il y a de nombreuses commandes qui peuvent &#234;tre trait&#233;es dans la session telent - tapez "help" pour les voir. 
+
+Pour quitter la session telnet avec le gatekeeper, tapez "quit" et appuyez sur Entr&#233;e. 
+
+Cependant, l'exemple de fichier de configuration que nous avons cr&#233;&#233; n'est pas bien s&#233;curis&#233; car il a un param&#233;trage par d&#233;faut <bf/allow/, donc il n'y a aucune restriction sur qui peut se connecter et quelles commandes cet utilisateur peut ex&#233;cuter. 
+
+Modifier le fichier de configuration de cette mani&#232;re:
+
+<tscreen><verb>
+[Gatekeeper::Main]
+Fortytwo=42
+[GkStatus::Auth]
+rule=password
+gkadmin=QC7VyAo5jEw=
+</verb></tscreen>
+
+La cinqui&#232;me ligne a &#233;t&#233; ajout&#233;e par l'utilitaire addpasswd, qui a &#233;t&#233; utilis&#233; pour cr&#233;&#233;r l'utilisateur "gkadmin" avec le mot de passe "secret. Ce changement permet l'authentification par le port d'&#233;tat. 
+
+Red&#233;marrer le gatekeeper avec cette nouvelle configuration et &#233;x&#233;cutez telnet &#224; nouveau. On vous demande maintenant un nom d'utilisateur et un mot de passe. 
+
+<tscreen><verb>
+jan@machine1 >  telnet localhost 7000
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+
+GnuGk login: gkadmin
+Password: secret
+Version:
+Gatekeeper(GNU) Version(2.3.1) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=1,h46018=1,h46023=1) Build(Aug 12 2009, 09:30:37) Sys(Linux i686 2.6.28-14-generic)
+Startup: Tue, 25 Aug 2009 15:30:44 -0500   Running: 2 days 21:33:32
+;
+</verb></tscreen>
+
+La section <ref id="gkstatusauth" name="GkStatus::Auth"> contient plus d'informations sur la s&#233;curisation du port d'&#233;tat. 
 
 <sect1>D&#233;marrage du gatekeeper en mode rout&#233
 <p>
@@ -83,30 +120,20 @@ utilise la "signalisation rout&#233;e du gatekeeper" pour tous les appels. Dans 
 mode tous les messages de signalisation du gatekeeper passent par le gatekeeper
 qui a beaucoup plus de contr&#244;le sur les appels.
 
+D&#233;marrer GnuGk de la mani&#232;re suivante:
 <tscreen><verb>
 jan@machine1 > gnugk -r
 </verb></tscreen>
 
-Le gatekeeper tourne maintenant en mode rout&#233;. Faire un telnet sur le port
-d'&#233;tat et fa&#238;tes un appel pour voir quels messages sont maintenant
-trait&#233;s par le gatekeeper.
+Le gatekeeper tourne maintenant en mode rout&#233;. Faire un telnet sur le port d'&#233;tat et fa&#238;tes un appel pour voir quels messages sont maintenant trait&#233;s par le gatekeeper.
 
-Il faut noter que tous les paquets media (audio et vid&#233;o) sont toujours
-envoy&#233;s directement entre les terminaux (les 2 instances de ohphone).
+Noter que tous les paquets media (audio et vid&#233;o) sont toujours envoy&#233;s directement entre les terminaux (les 2 instances de ohphone).
 
-Comme la signalisation rout&#233;e du gatekeeper est beaucoup plus complexe, vous
-avez plus de chances de tomber sur une anomalie dans ce mode. Mais si &#231;&#224;
-casse, vous gardez les pi&#232;ces. ;-)
-
+<sect1>Un PBX virtuel: D&#233;connexion des appels
 <p>
-<sect1>Un PBX virtuel: D&#233;connection des appels
-<p>
-Jusqu'&#224; maintenant le gatekeeper a seulement servi de m&#233;canisme pour
-r&#233;soudre des noms symboliques en adresses IP. Il s'agit d'une fonction importante
-mais pas tr&#232;s excitante.
+Jusqu'&#224; maintenant le gatekeeper a seulement servi de m&#233;canisme pour r&#233;soudre des noms symboliques en adresses IP. Il s'agit d'une fonction importante, mais le gatekeeper est capable de beaucoup plus. 
 
-Puisque le gatekeeper a beaucoup de contr&#244;le sur les appels, il peut les
-terminer par exemple. Quand nous sommes connect&#233;s au port d'&#233;tat, nous
+Puisque le gatekeeper a beaucoup de contr&#244;le sur les appels, il peut les terminer par exemple. Quand nous sommes connect&#233;s au port d'&#233;tat, nous
 pouvons obtenir la liste de tous les appels en cours avec "<tt/PrintCurrentCalls/".
 Pour terminer un appel, nous pouvons dire "<tt/Disconnectip 1.2.3.4/" pour un de
 ses terminaux.
@@ -149,17 +176,19 @@ gw1=0
 Cette entr&#233;e indique au gatekeeper de router tous les appels aux num&#233;ros E.164
 qui commencent par 0 sur la passerelle qui s'est enregistr&#233;e avec l'alias H.323
 "gw1". Si il n'y a pas de passerelle enregistr&#233;e avec cet alias l'appel
-&#233;chouera. (Il faut noter que vous devez utiliser l'alias de la passerelle -
-vous ne pouvez pas juste indiquer au gatekeeper le num&#233;ro IP de la passerelle.)
+&#233;chouera. 
 
-<p>
+<bf>NB:</bf>Il faut noter que vous devez utiliser l'alias de la passerelle -
+vous ne pouvez pas juste indiquer au gatekeeper l'addresse IP de la passerelle.
+
 Un pr&#233;fixe peut contenir des chiffres <tt/0-9/, <tt/#/ et <tt/*/. Il peut aussi
 contenir un carct&#232;re sp&#233;cial <tt/./ (un point) qui correspond &#224;
 n'importe quel chiffre et peut &#234;tre pr&#233;fix&#233; par <tt/!/ (un point
 d'exclamation) pour d&#233;sactiver le pr&#233;fixe.
 La correspondance des pr&#233;fixes est faite en respectant la r&#232;gle du plus
 long pr&#233;fixe correspondant, avec les r&#232;gles ! ayant une priorit&#233;
-sup&#233;rieure si les longueurs sont &#233;gales. Quelques exemples:
+sup&#233;rieure si les longueurs sont &#233;gales. 
+Quelques exemples:
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
@@ -247,3 +276,4 @@ Quelques exemples simples:
 ; m&#234;me ceci est possible (415161 => 041051061)
 4.5.6=04.05.06
 </verb></tscreen>
+ 

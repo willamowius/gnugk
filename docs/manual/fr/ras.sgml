@@ -12,31 +12,41 @@ sp&#233;cifique.
 <tt>gw-alias=prefix[,prefix,...]</tt>
 <p>
 Il faut noter que vous devez indiquer l'alias de la passerelle.
-Si une passerelle est enregistr&#233;e pour cet alias, tous les num&#233;ros
-commen&#231;ant par les pr&#233;fixes sont rout&#233;s vers cette passerelle.
+Si une passerelle est enregistr&#233;e pour cet alias, tous les num&#233;ros commen&#231;ant par les pr&#233;fixes sont rout&#233;s vers cette passerelle.
 Les caract&#232;res sp&#233;ciaux <tt/./ et <tt/!/ peuvent &#234;tre utilis&#233;s
 ici pour correspondre &#224; n'importe quel chiffre et d&#233;sactiver le pr&#233;fixe.
+
+A priority can be given to each prefix for each gateway (using := syntax),
+so that if several gateways match the dialed number, the one
+with the highest prefix priority will be selected to route the call (when
+the ActivateFailover switch is ON, the call will be routed to all selected
+gateways in order of the prefix priority).  A smaller value corresponds to
+a higher priority.  Default value is 1.  If the prefix priority
+and overlaps the GatewayPriority (see section <ref id="epconfig"
+name="[EP::...]">), the prefix priority will be preferred.
+
+In the following example, the gateway "test-gw" will be responsible for
+prefixes "02" and "03" with a priority of 3, and for "04" with a priority
+of 1.
+
 <tag/Exemple:/
-<tt/test-gw=02,03/
+<tt/test-gw=02,03:=3,04:=1/
 </descrip>
 
 
 <sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
 <p>
-Dans cette section vous pouvez mettre des terminaux qui n'ont pas le support RAS ou
-que vous ne souhaitez pas voir expirer. Les enregistrements seront toujours
-conserv&#233;s dans le table d'enregistrements du gatekeeper.
+Dans cette section vous pouvez mettre des terminaux qui n'ont pas le support RAS ou que vous ne souhaitez pas voir expirer. Les enregistrements seront toujours conserv&#233;s dans le table d'enregistrements du gatekeeper.
 Cependant, vous pouvez toujours le d&#233;senregistrer par le port d'&#233;tat.
-Les caract&#232;res sp&#233;ciaux <tt/./ et <tt/!/ peuvent &#234;tre utilis&#233;s
-avec les pr&#233;fixes ici pour correspondre &#224; n'importe quel chiffre et
+Les caract&#232;res sp&#233;ciaux <tt/./ et <tt/!/ peuvent &#234;tre utilis&#233;s avec les pr&#233;fixes ici pour correspondre &#224; n'importe quel chiffre et
 d&#233;sactiver le pr&#233;fixe.
-
+Vous pouvez utiliser la syntaxe := pour fixer la priorit&#233; d'un pr&#233;fixe de la m&#234;me mani&#232;re que dans la section <ref id="gwprefixes" name="[RasSrv::GWPrefixes]">.
 <descrip>
 <tag/Format:/
-<tt>IP[:port]=alias[,alias,...;prefix,prefix,...]</tt>
+<tt>IP[:port]=alias[,alias,...;prefix[:=priority][,prefix[:=priority]]...]</tt>
 <tag/Exemple:/
 Pour une passerelle,
-<quote/<tt/10.0.1.5=Citron;009,008//
+<quote/<tt/10.0.1.5=MyGW;009,008:=2,0.7:=3//
 Pour un terminal,
 <quote/<tt/10.0.1.10:1720=700//
 </descrip>
@@ -46,19 +56,24 @@ Pour un terminal,
 <p>
 <itemize>
 <item><tt/AcceptEndpointIdentifier=1/<newline>
-D&#233;fault: <tt/1/
+D&#233;fault: <tt/1/<newline>
 <p>
 Indique si on accepte <bf/endpointIdentifier/ indiqu&#233; dans un RRQ complet.
 
 <item><tt/AcceptGatewayPrefixes=1/<newline>
-D&#233;fault: <tt/1/
+D&#233;fault: <tt/1/<newline>
 <p>
 Une passerelle peut enregistrer ses pr&#233;fixes avec le gatekeeper  en contenant
 <bf/supportedPrefixes/ dans le champ <bf/terminalType/ du RRQ.
 Cette option indique si on accepte les pr&#233;fixes de cette passerelle.
 
+<item><tt/AcceptMCUPrefixes=1/<newline>
+D&#233;faut: <tt/1/<newline>
+<p>
+Un MCU peut enregistrer ses pr&#233;fixes avec le gatekeeper en envoyant <bf/supportedPrefixes/ dans le champ <bf/terminalType/ du RRQ. Cette option d&#233;finit s'il faut accepter ou non les pr&#233;fixes sp&#233;cifi&#233;s par un MCU. 
+
 <item><tt/OverwriteEPOnSameAddress=1/<newline>
-D&#233;fault: <tt/0/
+D&#233;faut: <tt/0/<newline>
 <p>
 Dans certains r&#233;seaux l'adresse IP d'un terminal peut changer de fa&#231;on
 inattendue. Ceci peut se produire quand un terminal utilise une connexion PPP
@@ -67,11 +82,10 @@ d'enregistrement (RRQ) d'une adresse IP qui ne correspond pas &#224; ce que nous
 avons stock&#233;. L'action par d&#233;faut est de rejeter la requ&#234;te. Avec
 cette option activ&#233;e la requ&#234;te contradictoire entra&#238;nera une
 requ&#234;te non-enregistr&#233; (URQ) &#224; &#234;tre envoy&#233;e pour l'adresse IP
-existante et l'entr&#233;e est supprim&#233;e pour permettre le terminal de
-s'enregistrer avec la nouvelle adresse.
+existante et l'entr&#233;e est supprim&#233;e pour permettre le terminal de s'enregistrer avec la nouvelle adresse.
 
 <item><tt/IRQPollCount=0/<newline>
-D&#233;fault: <tt/1/
+D&#233;fault: <tt/1/<newline>
 <p>
 Quand le gatekeeper ne re&#231;oit pas un RRQ garder-en-vie d'un terminal pendant une
 p&#233;riode de temps TimeToLive, il envoie un message IRQ pour "sonder" le terminal et
@@ -81,45 +95,54 @@ d&#233;senregistr&#233;. Pour d&#233;sactiver cette fonction (et d&#233;senregis
 terminaux juste apr&#233;s TimeToLive), r&#233;gler cette variable &#224; 0.
 L'intervalle de sondage IRQ est de 60 secondes.
 
+<item><tt/SupportDynamicIP=1/<newline>
+Default: <tt/0/<newline>
+<p>
+When the IP address of an endpoint changes, the gatekeeper can maintain registration. 
+This will force the EP to fully re-register if its IP address changes. 
+
+<item><tt>AccHTTPLink=https://billing.mysite.com?account=%a&amp;password=%p</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+You can assign a URL for clients to access to view billing information.
+If using PacPhone you can also add wildcards for the client to use so the clients 
+H323ID and password can be used to directly access their account information.
+    %a - H323ID   %p - password 
+
+<item><tt>AliasTypeFilter=terminal;h323id,dialeddigits</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Use this setting where endpoints send multiple H225_AliasAddress and some Aliases are
+shared across multiple registrations. You can filter out the shared alias types for
+any given endpoint type. The registrations will keep all alias types listed in the
+filter setting and remove all others.
+You must have separate AliasTypeFilter entries for each endpoint type.
+Valid endpoint types are: gatekeeper, gateway, mcu and terminal.
+Valid filters are: h323id, dialeddigits, url, transport, email and partynumber.
+NOTE: If no alias is found that match the filter then all aliases are registered.
 </itemize>
 
 
 <sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
 <p>
 <itemize>
-<item><tt/ArjReasonRouteCallToSCN=0/<newline>
-D&#233;fault: <tt/1/
-<p>
-Si oui, le gatekeeper rejette un appel d'une passerelle &#224; elle-m&#234;me avec
-la raison <bf/routeCallToSCN/.
 
 <item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
-D&#233;fault: <tt/1/
+D&#233;faut: <tt/1/<newline>
 <p>
-Si oui, le gatekeeper rejette un ARQ r&#233;pondu sans un CallRec pr&#233;existant
+Si cette option est activ&#233;e, le gatekeeper rejette un ARQ r&#233;pondu sans un CallRec pr&#233;existant
 dans la CallTable avec la raison <bf/routeCallToGatekeeper/ en mode rout&#233;.
-Le terminal doit lib&#233;rer l'appel imm&#233;diatement et renvoyer l'appel Setup
-au gatekeeper.
-
-<item><tt/CallUnregisteredEndpoints=0/<newline>
-D&#233;fault: <tt/1/
-<p>
-Avec cette option activ&#233;e, le gatekeeper acceptera un ARQ d'un terminal
-enregistr&#233; avec <bf/destCallSignalAddress/, que l'adresse appartienne &#224;
-un terminal enregistr&#233; ou non.
-Ceci signifie que vous pouvez explicitement indiquer l'IP du terminal (enregistr&#233;
-ou non) que vous voulez appeler.
+Le terminal doit lib&#233;rer l'appel imm&#233;diatement et renvoyer l'appel Setup au gatekeeper.
 
 <item><tt/RemoveTrailingChar=#/<newline>
-D&#233;fault: <tt>N/A</tt>
+D&#233;fault: <tt>N/A</tt><newline>
 <p>
 Indique le caract&#232;re de fin &#224; supprimer de <bf/destinationInfo/.
 Par exemple, si votre terminal contient de mani&#232;re erron&#233;e le caract&#232;re
-de fin tel que `&num;' dans <bf/destinationInfo/, vous pouvez le supprimer avec
-cette option.
+de fin tel que `&num;' dans <bf/destinationInfo/, vous pouvez le supprimer avec cette option.
 
 <item><tt/RoundRobinGateways=0/<newline>
-D&#233;fault: <tt/1/
+D&#233;fault: <tt/1/<newline>
 <p>
 Active/d&#233;sactive la s&#233;lection round-robin(?) de passerelle, si plus d'une
 passerelle correspond &#224; un num&#233;ro compos&#233;. Si d&#233;sactiv&#233;, la
@@ -128,6 +151,89 @@ appels suivants seront envoy&#233;s &#224; chaque passerelle &#224; son tour.
 
 </itemize>
 
+<sect1>Section &lsqb;RasSrv::AssignedAlias&rsqb;
+<p>
+This allows the assigning of aliases to endpoints as they register, allowing them to 
+set their fully qualified E.164 or URI addresses.
+
+<descrip>
+<tag/Example:/
+<verb>
+[RasSrv::AssignedAlias]
+1234=3323465777,me@mysite.com 
+</verb>
+</descrip>
+
+<sect1>Section &lsqb;AssignedAliases::SQL&rsqb;
+<p>
+This section configures GnuGk to read the assigned aliases from a database.
+You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to retrieve the assigned aliases from the database.
+
+One parameter is defined:
+<itemize>
+<item><tt/%u/ - endpoint alias
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT assignedalias FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
+
+<sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
+<p>
+This allows the assigning of a gatekeeper based upon the H323ID or the
+apparent source IP address of the registering endpoint.
+The received H323ID in the GRQ is checked to see if it has a prefix
+for an assigned gatekeeper or the IP is in a range of an assigned
+gatekeeper.
+The endpoint is then advised in the GCF to register with that gatekeeper.
+You may have multiple gatekeepers for a specific prefix.  The first
+is assigned as the primary and others are then the alternates.
+(requires H.323v6)
+
+<descrip>
+<tag/Examples:/
+<verb>
+[RasSrv::AssignedGKs]
+;; For Endpoint with H323ID starting with 01234
+01234=x.x.x.x:1719
+;; For Endpoints in the range of 195.71.129.0/24 or 195.71.131.0/24
+^195\.71\.(129|131)\.[0-9]+$=x.x.x.x:1719
+</verb>
+</descrip>
+
+
+<sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
+<p>
+This section allows <htmlurl url="http://www.gnugk.org/" name="GnuGk"> to read the assigned gatekeepers from a database.
+You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to retrieve the assigned gatekeepers from the database.
+
+Two parameters are defined:
+<itemize>
+<item><tt/%u/ - endpoint alias
+<item><tt/%i/ - endpoint IP
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
 
 <sect1>Section &lsqb;NATedEndpoints&rsqb;
 <p>

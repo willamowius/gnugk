@@ -48,7 +48,10 @@ Ce module ne peut être utilisé que pour l'authentification des RegistrationReque
 L'adresse IP d'un terminal et un alias donné doit vérifier une pattern donnée.
 Pour <tt/AliasAuth/, la pattern est définie dans la section <ref id="rrqauth" name="[RasSrv::RRQAuth]">.
 Pour <tt/SQLAliasAuth/, la pattern est rappatrier à partir d'une base de données SQL, définie dans la section <ref id="sqlaliasauth" name="[SQLAliasAuth]">.
-Pour <tt/LDAPAliasAuth/, l'alias (par défaut: mail attribute) et l'adresse IP (par défaut: voIPIpAddress attribute) doivent être trouvé dans une entrée LDAP.
+
+<item><tt>FileIPAuth</tt>
+<p>
+Ce module donne un moyen simple pour restreindre l'acc&#232;s au gatekeeper selon l'addresse IP ou le r&#233;seau de l'appelant. 
 
 <item><tt>PrefixAuth</tt>
 <p>
@@ -64,9 +67,18 @@ Ce module permet l'authentification suivant le schéma de sécurité username/passw
 <p>
 Ce module permet d'authentifier à partir des alias de terminals et/ou des adresses IP "call signalling" avec l'aide de serveurs RADIUS. Il ne nécessite aucun <bf/tokens/ H.235 dans les messages RAS, il peut donc être uilisé avec une gamme plus large de systemes contrairement au module <tt/RadAuth/. Les messages RRQ, ARQ, et Q.931 Setup peuvent être authentifiés avec ce module. Pour plus de détails se référer à la section <ref id="radaliasauth" name="[RadAliasAuth]">.
 
+<item><tt>SQLAuth</tt>
+<p>
+Un module puissant pour authentifier et authoriser les messages RRQ, ARQ, LRQ et Setup. Il peut effectuer des v&#233;r&#233;fications bas&#233;s sur les param&#232;tres pr&#233;c&#233;dents tels que le num&#233;ro de l'appelant, le num&#233;ro du destinataire, le nom d'utilisateur et d'autres param&#232;tres. Il supporte aussi la limitation de la dur&#233;e d'un appel, la r&#233;&#233;criture de num&#233;ros, le routage d'appels, la v&#233;rification d'alias et l'assignation. 
+Se r&#233;f&#233;rer &#224; la section <ref id="sqlauth" name="[SQLAuth]"> pour plus de d&#233;tails. 
+
+<item><tt>CapacityControl</tt>
+<p>
+Un module flexible permettant de controler le volume d'appels entrants avec la possibilit&#233; de configurer plusieurs conditions. IMPORTANT: Ceci doit &#234;tre utilis&#233; en conjonction avec le module accounting <tt/CapacityControl/. Se r&#233;f&#233;rer &#224; la section <ref id="capctrl" name="[CapacityControl]"> pour plus de d&#233;tails. 
+
 </itemize>
 
-Vous pouvez aussi configurer une règle afin de vérifier seulement une partie du message RAS. L'exemple suivant montre comment vérifier uniquement les RRQ et ARQ à partir du module <tt/SimplePasswordAuth/ avec une règle optionnelle. Si un RRQ n'est pas vérifié (ne contient pas de champs <bf/tokens/ ou <bf/cryptoTokens/), il est passé à la règle suivante <tt/AliasAuth/. La règle par défaut est d'acepter toutes les requêtes.
+Vous pouvez aussi configurer une règle afin de vérifier seulement une partie des messages RAS. L'exemple suivant montre comment vérifier uniquement les RRQ et ARQ à partir du module <tt/SimplePasswordAuth/ avec une règle optionnelle. Si un RRQ n'est pas vérifié (ne contient pas de champs <bf/tokens/ ou <bf/cryptoTokens/), il est passé à la règle suivante <tt/AliasAuth/. La règle par défaut est d'acepter toutes les requêtes.
 
 <descrip>
 <tag/Exemple 1:/
@@ -91,6 +103,8 @@ L'exemple suivant vérifie l'enregistrement des terminaux (RRQ) et l'admission d'
 <tt/default=allow/
 </descrip>
 
+XXXXXXXXXXXXXXXXXXXX1
+
 <sect1>Section &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
 <p>
@@ -99,6 +113,11 @@ Cette section définie la paire userid/password utilisé par le module <tt/SimpleP
 Usage:
 <tscreen><verb>
 addpasswd config section userid password
+</verb></tscreen>
+
+Exemple:
+<tscreen><verb>
+addpasswd config.ini SimplePasswordAuth frank secret
 </verb></tscreen>
 
 Options:
@@ -118,6 +137,14 @@ Défaut: <tt/-1/
 <p>
 Le module <tt/SimplePasswordAuth/ et tous ses descandants mettent en cache un mot de passe authentifié. Ce champ définie le durée de vie du cache en seconde.
 <tt/0/ signifie qu'aucun cache ne sera utilisé, alors qu'une valeur négative indique que le cache n'expirera jamais.
+
+<item><tt/DisableAlgorithm=MD5,H.235.1/<newline>
+D&#233;faut: <tt>N/A</tt><newline>
+<p>
+D&#233;sactive les algorithmes d'authentification H.235 dans la n&#233;gotiation GRQ/GCF, sinon tous les algorithmes support&#233;s par GnuGk sont utilis&#233;s. 
+Un algorithme d&#233;sativ&#233; sera encore utilis&#233; s'il est utilis&#233; par un terminal sans n&#233;gotiation. 
+Cet interrupteur peut &#234;tre utilis&#233; pour &#233;viter des incompatibilit&#233;s avec des impl&#233;mentations vendeur. 
+
 </itemize>
 
 <sect1>Section &lsqb;SQLPasswordAuth&rsqb;
@@ -234,18 +261,18 @@ Cette section définie le gestionnaire SQL à utiliser, les paramètres de la conne
 
 <itemize>
 <item><tt/Driver=MySQL | PostgreSQL/<newline>
-Défaut: N/A
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
 Gestionnaire de base de données à utiliser, les versions pour <tt/MySQL/ et <tt/PostgreSQL/ sont implémentées.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Défaut: <tt/localhost/
+D&#233;faut: <tt/localhost/<newline>
 <p>
 Adresse de l'hôte hébergeant le serveur SQL. Peut être de la forme <tt/DNS[:PORT]/ ou <tt/IP[:PORT]/.
 Par exemple <tt/sql.mycompany.com/ ou <tt/sql.mycompany.com:3306/ ou <tt/192.168.3.100/.
 
 <item><tt/Database=billing/<newline>
-Défaut: <tt/billing/
+D&#233;faut: <tt/billing/<newline>
 <p>
 Nom de la base de données à laquelle se connecter.
 
@@ -260,18 +287,18 @@ Si aucun mot de passe n'est spécifié, une connexion sans mot de passe sera effec
 Si <tt/EncryptAllPasswords/ est selectionné, ou la variable <tt/KeyFilled/ est définie dans cette section, le mot de passe sera sous une forme encryptée et peut être généré par l'utilitaire <tt/addpasswd/.
 
 <item><tt/CacheTimeout=120/<newline>
-Défaut: <tt/0/
+Défaut: <tt/0/<newline>
 <p>
 Ce champ définie combien de temps le couple (alias;authrule) récupéré depuis la base de données sera conservé dans le cache local.
 La valeur à pour unité la seconde. <tt/0/ signifie qu'aucune règle ne sera mise en cache, et une valeur négative indique que le cache n'expire jamais (seule la commande <tt/reload/ forcera le rafraîchissement du cache).
 
 <item><tt/MinPoolSize=5/<newline>
-Défaut: <tt/1/
+D&#233;faut: <tt/1/<newline>
 <p>
 Définit le nombre de connexions simultanéés à la base de données SQL. Cela permet une performance accrue sous charge élevée (pusieurs requêtes sont alors exécutées en parallèle). Si <tt/MinPoolSize=1/ simule le conportement des versions précédentes (les requêtes sont lancées en série, une requête à la fois).
 
 <item><tt/Query=SELECT .../<newline>
-Défaut: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
 Définie la requête SQL utilisées pour récupérer la règle d'alias de la base de données. La requête est personnalisable - ce qui signifie que le remplacement des paramètres est fait à chaque nouvelle requête.
 Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
@@ -363,22 +390,22 @@ Défaut: <tt>N/A</tt>
 Par défaut (si cette option n'est pas définie), le client RADIUS alloue des ports dynamiquement comme indiqué par l'OS. Si vous désirez que le client RADIUS utilise des ports d'une plage particulière seulement - configurer ce paramètre.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
-Défaut: <tt>1812</tt>
+Défaut: <tt>1812</tt><newline>
 <p>
 Ports UDP à utiliser pour les requêtes d'authentification RADIUS (paquets Access-Request), l'attribut <tt/Servers/ est prioritaire.
 
 <item><tt/SharedSecret=SECRET/<newline>
-Défaut: <tt>N/A (chaîne vide)</tt>
+Défaut: <tt>N/A (chaîne vide)</tt><newline>
 <p>
 Secret utilisé pour authentifier ce GnuGK (client NAS) auprès d'un serveur RADIUS. Cela peut être un mot de passe à fort encryption. C'est la valeur par défaut, si aucun secret spécifique n'est indiqué dans la partie <tt/Servers/. Si <tt/EncryptAllPasswords/ est selectionné, or la variable <tt/KeyFilled/ est définie dans cette section, alors le mot de passe est sous une forme cryptée et peut être crée à partir de l'utilitaire <tt/addpasswd/.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Défaut: <tt/2000/ (milisecondes)
+Défaut: <tt/2000/ (milisecondes)<newline>
 <p>
 Délai (en millisecondes) que la réponse du serveur RADIUS à une requête envoyée par GnuGK ne peut dépasser. Si il n'y a pas de réponse dans cette période, une nouvelle requête est envoyé au serveur RADIUS suivant.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Défaut: <tt/9000/ (milisecondes)
+Défaut: <tt/9000/ (milisecondes)<newline>
 <p>
 Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
 unique. If all 8-bit identifier range is exhausted within this period,
@@ -392,17 +419,17 @@ too short timeout - RADIUS server may take incoming packets as duplicated
 and therefore drop it.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Défaut: <tt/60000/ (milisecondes) - 60 s
+Défaut: <tt/60000/ (milisecondes) - 60 s<newline>
 <p>
 Délai au bout duquel les sockets RADIUS inutilisées sont fermées. Utilisé en conjonction de <tt/IdCacheTimeout/ - les sockets supplémentaires créées pendant les périodes où GnuGK est fortement chargé afin de répondre aux requêtes entrantes, sont fermées pendant les périodes d'inactivités.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
-Défaut: <tt/2/
+Défaut: <tt/2/<newline>
 <p>
 Combien de fois une même requête RADIUS est envoyée à chaque serveur RADIUS configurés (si aucune réponse n'est reçue). 1 signifie aucune retransmission, 2 - une seule, ... . la méthode exacte de retransmission est définie par l'attribut <tt/RoundRobinServers/.
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
-Défaut: <tt/1/
+Défaut: <tt/1/<newline>
 <p>
 Méthode de retransmission des requêtes RADIUS.
 <p>
@@ -421,12 +448,12 @@ Serveur #N Essai #1, ..., Serveur #N Essai #RequêtesRetransmises
 </verb></tscreen>
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
-Défaut: <tt/0/
+Défaut: <tt/0/<newline>
 <p>
 Si définie, les attributs RADIUS spécifiques Cisco (en anglais: VendorSpecificAttribut) sont inclus dans les requêtes RADIUS(h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
-Défaut: <tt/1/
+Défaut: <tt/1/<newline>
 <p>
 Si définie, l'attribut VSA Cisco 'h323-ivr-out' est envoyé avec la liste d'alias avec laquelle le terminal s'est enregistré(RRQ.m_terminalAlias). Cet attribut est fourni afin de permettre un contrôle fin sur la liste d'alias du terminal sous lesquels il a le droit de s'enregistrer. Le formadt e cet attribut est:
 <tscreen><verb>
@@ -443,29 +470,319 @@ Défaut: <tt/0/
 
 </itemize>
 
+
+<sect2>&lsqb;RadAuth&rsqb; Access-Request Radius Attributes
+<p>
+For RRQs, the following RADIUS attributes are included within Access-Request packets:
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_generalID
+
+<item><tt>CHAP-Password</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_random 
+		+ H225_RegistrationRequest.tokens[CAT].m_challenge
+
+<item><tt>CHAP-Challenge</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_timeStamp
+
+<item><tt>NAS-IP-Address</tt><newline>
+<p>
+		GnuGk Home or a particular local network interface set
+		by 'LocalInterface' config parameter
+
+<item><tt>NAS-Identifier</tt><newline>
+<p>
+		GnuGk Name
+
+<item><tt>NAS-Port-Type</tt><newline>
+<p>
+		Virtual (GnuGk does not have concept of physical ports)
+
+<item><tt>Framed-IP-Address</tt><newline>
+<p>
+		An IP address of registering endpoint signaling channel 
+
+<item><tt>Service-Type</tt><newline>
+<p>
+		Login-User
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out</tt><newline>
+<p>
+		A list of aliases an endpoint is registering with
+		(only if IncludeTerminalAliases config option is set)
+<p>
+NOTE: The list of aliases inside h323-ivr-out is in the following form:<newline>
+<tt>h323-ivr-out="h323-ivr-out=terminal-alias:alias1,alias2,...,aliasN;"</tt><newline>
+      The h323-ivr-out attribute can be (in future) instantiated multiple times
+      inside a single Access-Request and may also contain variables other than
+	  "terminal-alias", so a RADIUS server should be flexible enough 
+	  with processing of this attribute.
+</itemize>
+<p>
+For ARQ and Setup messages, the following RADIUS attributes are included
+inside Access-Request packets:
+<p>
+<itemize>
+
+<item><tt>User-Name</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_generalID
+
+<item><tt>CHAP-Password</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_random + ARQ.tokens[CAT].m_challenge
+
+<item><tt>CHAP-Challenge</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_timeStamp
+
+<item><tt>NAS-IP-Address</tt><newline>
+<p>
+		GnuGk Home or a particular local network interface set
+		by 'LocalInterface' config parameter
+
+<item><tt>NAS-Identifier</tt><newline>
+<p>
+		GnuGk Name
+
+<item><tt>NAS-Port-Type</tt><newline>
+<p>
+		Virtual (GnuGk does not have concept of physical ports)
+
+<item><tt>Framed-IP-Address</tt><newline>
+<p>
+		An IP address of registering endpoint signaling channel 
+
+<item><tt>Service-Type</tt><newline>
+<p>
+		Login-User (for ARQs from originating endpoint)
+		or Call-Check (for ARQs from answering endpoint)
+	
+<item><tt>Calling-Station-Id</tt><newline>
+<p>
+		Calling party's number (if available)
+		
+<item><tt>Called-Station-Id</tt><newline>
+<p>
+		Called party's number
+
+<item><tt>(optional) VSA: VendorId=Cisco, h323-conf-id</tt><newline>
+<p>
+		H.323 conference ID from ARQ
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-type</tt><newline>
+<p>
+		Call type (fixed value: "h323-call-type=VoIP")
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-origin</tt><newline>
+<p>
+		Call origin ("answer","originate")
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-gw-id</tt><newline>
+<p>
+		The same as NAS-Identifier
+</itemize>
+
+
+<sect2>&lsqb;RadAuth&rsqb; Access-Accept Radius Attributes
+<p>
+For RRQs, the following RADIUS attributes are recognized 
+inside Access-Accept packets:
+<p>
+<itemize>
+<item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
+<p>
+		If present and not 0, the request is rejected. This check is provided 
+		to allow interoperability with some poor billing systems, which send 
+		Access-Accept with non-zero h323-return-code to reject the call instead
+		of Access-Reject. The attribute can be in the form h323-return-code="1" 
+		or h323-return-code="h323-return-code=1". Note that the return code
+		is a string, not an integer.
+
+<item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
+<p>
+		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
+		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
+		this information is used to build the message.
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-amount</tt><newline>
+<p>
+		A string representing current user's account balance. If an endpoint 
+		can understand H.225.0 CallCreditServiceControl messages, 
+		this information is used to build the message.
+		
+<item><tt>VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-in</tt><newline>
+<p>
+		If present, it is scanned for 'terminal-alias' variable that can contain
+		a list of aliases that should be assigned to the endpoint being registered.
+		All RRQ aliases that do not match this list are removed.
+		The 'disable-codec' variable is also supported to disallow certain codecs for this call.
+		The 'proxy' variable that can contain 'yes' or 'no' for enabling/disabling proxy mode for this call.
+		The format of these attributes is as follows:
+<p>
+<tt>Cisco-AVPair = "h323-ivr-in=variable:value;[variable:value;]"</tt><newline>
+<p>
+		where the "variable" can be "terminal-alias":
+<p>
+			Cisco-AVPair = "h323-ivr-in=terminal-alias:alias1[,alias2,...];"
+<p>
+<descrip>
+<tag/Example 1:/
+<tscreen><verb>
+RRQ {
+	m_terminalAlias = { "myalias", "1234" }
+}
+
+if RADIUS server returns the following h323-ivr-in:
+
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=terminal-alias:anotheralias,6789;"
+}
+
+the endpoint will get registered with aliases "anotheralias" and "6789".
+Also RCF will contain:
+
+RCF {
+	m_terminalAlias = { "anotheralias", "6789" }
+}
+</verb></tscreen>
+</descrip>
+		
+<descrip>
+<tag/Example 2 (add E164 to an existing alias):/
+<tscreen><verb>
+RRQ {
+	m_terminalAlias = { "it_s_me" }
+}
+
+if RADIUS server returns the following h323-ivr-in:
+
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=terminal-alias:it_s_me,48586259732;"
+}
+
+RCF will contain:
+
+RCF {
+	m_terminalAlias = { "it_s_me", "48586259732" }
+}
+</verb></tscreen>
+</descrip>
+
+<descrip>
+<tag/Example 3 (disable G.711 and G.729 codecs):/
+<tscreen><verb>
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=codec-disable:g711Ulaw64k;g729;g711Alaw64k;g729AnnexA;"
+}
+</verb></tscreen>
+</descrip>
+
+<descrip>
+<tag/Example 4 (enable proxy mode):/
+<tscreen><verb>
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=proxy:yes"
+}
+</verb></tscreen>
+</descrip>
+
+</itemize>
+<p>	
+For ARQs, the following RADIUS attributes are recognized
+within Access-Accept packets:
+<p>
+<itemize>
+<item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
+<p>
+		If present and not 0, the request is rejected. This check is provided
+		to allow interoperability with some poor billing systems, that send 
+		Access-Accept with non-zero h323-return-code to reject the call instead 
+		of Access-Reject. The attribute can be in form h323-return-code="1" 
+		or h323-return-code="h323-return-code=1". Note that the return code
+		is a string, not an integer.
+
+<item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
+<p>
+		Billing mode for this account. Can be 0 (credit), 1 or 2 (debit). 
+		If an endpoint can understand H.225.0 CallCreditServiceControl messages,
+		this information is used to build the message.
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-amount</tt><newline>
+<p>
+		A string representing current user account balance. If an endpoint can 
+		understand H.225.0 CallCreditServiceControl messages, this information 
+		is used to build the message.
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-time</tt><newline>
+<p>
+		If present, it enforces maximum call duration (in seconds).
+		The attribute can be in form of h323-credit-time="120" 
+		or h323-credit-time="h323-credit-time=120". Note that the return code 
+		is a string, not an integer.
+					   
+<item><tt>Session-Timeout</tt><newline>
+<p>
+		If present, it enforces maximum call duration (in seconds).
+		This is a standard RADIUS attribute of integer type.
+
+<item><tt>VSA: VendorId=Cisco, h323-redirect-ip-address</tt><newline>
+<p>
+		If present, a call is sent to the IP address present in this attribute.
+		You can put multiple destinations separated with a semicolon.
+
+<item><tt>VSA: VendorId=Cisco, h323-redirect-number</tt><newline>
+<p>
+		If present, a called station id is rewritten to this number.
+		You can put multiple numbers separated by a semicolon.
+		For each number you can also specify an outbound number (that is sent
+		to a terminating gateway) by appending it with a '='.
+</itemize>
+<p>
+NOTE: If both Session-Timeout and h323-credit-time are present, the smaller value
+is used.
+<p>
+NOTE: If multiple failover mechanisms are specified, eg. multiple numbers in h323-redirect-number
+<bf/and/ multiple IPs in h323-redirect-ip-address, there is no guarantee that the the
+first number is used for the first IP and the 2nd number for the 2nd IP.
+This will usually the case, but for example when a capacity limit disables one IP,
+the association will change.
+<p>
+
 <sect1>Section &lsqb;RadAliasAuth&rsqb;
 <label id="radaliasauth">
 <p>
-Cette section permet de configurer la partie qui s'occupe d'activer les authentification RADIUS des alias de terminal ou des adresses IP présents dans les requêtes RAS RRQ, ARQ ou Setup Q.931.
-Ce schéma authentification est utile à la fois pour les terminaux enregistrés auprès de la GateKeeper (ARQ,RRQ) et aussi pour les appels provenant de terminaux non-enregistrés (Setup).
+This section defines configuration settings that enable
+RADIUS authentication based on endpoint aliases and/or IP addresses
+present in a RRQ RAS, ARQ RAS or Q.931 Setup request.
+This authentication scheme is useful both for endpoints registered
+at the gatekeeper (ARQ, RRQ) and calls from unregistered endpoints (Setup).
 
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
-Défaut: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Serveurs RADIUS à utiliser pour les requêtes d'authentifcation RAS.
-Cette liste peut contenir un nombre arbitraire de serveurs. L'ordre des serveurs sera suivi par celui des requêtes. Si aucun port UDP n'est spécifié, c'est la valeur <tt/DefaultAuthPort/ qui est utilisée. Si aucun secret est indiqué, la valeur de <tt/SharedSecret/ sera utilisée.
-Des adresses IP comme des noms DNS peuvent être indiqués pour les serveurs.
+RADIUS servers to be used for RAS requests authentication.
+This list can contain an arbitrary number of servers. The order of servers 
+is important, because servers will be queried by the RADIUS module 
+in the given order. If no port information is specified, the port number from 
+<tt/DefaultAuthPort/ will be used. If no secret is set, 
+the default shared secret from <tt/SharedSecret/ is used.
+Servers can be IP addresses or DNS names.
 
 <descrip>
-<tag/Exemple:/
+<tag/Example:/
 <tt/Servers=192.168.3.1:1645;192.168.3.2:1812:1813:mysecret;radius.mycompany.com/
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
-Défaut: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
-Particular local network interface that RADIUS client should
+Specific local network interface that GnuGk should
 use in order to communicate with RADIUS servers. This parameter
 can be useful on NAT machines to restrict number of network
 interfaces used for RADIUS communication. By default this value
@@ -474,7 +791,7 @@ network interface. If you are not sure what you are doing, it is
 better to leave this option unset.
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 By default (if this option is not set) RADIUS client
 allocates ports dynamically as specified by the operating system.
@@ -482,15 +799,15 @@ If you want to restrict RADIUS client to use ports from
 a particular range only - set this parameter.
 
 <item><tt/DefaultAuthPort=PORT_NO/<newline>
-Default: <tt>1812</tt>
+Default: <tt>1812</tt><newline>
 <p>
 Default port number to be used for RADIUS authentication requests
-(Access-Request packets), if not overriden by <tt/Servers/ attribute.
+(Access-Request packets), if not overridden by <tt/Servers/ attribute.
 
 <item><tt/SharedSecret=SECRET/<newline>
-Default: <tt>N/A (empty string)</tt>
+Default: <tt>N/A (empty string)</tt><newline>
 <p>
-Secret used to authenticate this GNU GK (NAS client) to RADIUS
+Secret used to authenticate this GnuGk (NAS client) to RADIUS
 server. It should be a cryptographically strong password. This is the default
 value used, if no server-specific secret is set in the <tt/Servers/.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
@@ -498,44 +815,44 @@ in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
 
 <item><tt/RequestTimeout=TIMEOUT_MS/<newline>
-Default: <tt/2000/ (miliseconds)
+Default: <tt/2000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS server response to a request
-sent by GNU GK. If no response is received within this time period,
+Timeout (milliseconds) for RADIUS server response to a request
+sent by GnuGk. If no response is received within this time period,
 next RADIUS server is queried.
 
 <item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
-Default: <tt/9000/ (miliseconds)
+Default: <tt/9000/ (milliseconds)<newline>
 <p>
-Timeout (miliseconds) for RADIUS request 8-bit identifiers to be
+Timeout (milliseconds) for RADIUS request 8-bit identifiers to be
 unique. If all 8-bit identifier range is exhausted within this period,
 new client socket (UDP socket) is allocation by RADIUS module. Let's
-take the example: we have approximatelly 60 RRQs/sec - after ca. 4 seconds
+take the example: we have approximately 60 RRQs/sec - after ca. 4 seconds
 8-bit identifiers range gets exhausted - new socket allocated - after next
-4 seconds the second 8-bit identifiers range gets exhauted - third socket
+4 seconds the second 8-bit identifiers range gets exhausted - third socket
 allocated - after 9th second identifiers from the pool 1 are available again
 - ... . In general, too long timeout - too much resources consumed,
 too short timeout - RADIUS server may take incoming packets as duplicated
 and therefore drop it.
 
 <item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
-Default: <tt/60000/ (miliseconds) - 60 s
+Default: <tt/60000/ (milliseconds) - 60 s<newline>
 <p>
 Timeout for unused RADIUS sockets to be closed. It is used
 in conjunction with <tt/IdCacheTimeout/ - additional sockets
-created during heavy GK load time periods for serving incoming
+created during heavy gatekeeper load periods for serving incoming
 requests are closed during idle periods.
 
 <item><tt/RequestRetransmissions=NUMBER/<newline>
-Default: <tt/2/
+Default: <tt/2/<newline>
 <p>
-How many times a single RADIUS request is transmissed to every
+How many times a single RADIUS request is transmitted to every
 configured RADIUS server (if no response is received). 1 means
 no retransmission, 2 - single retransmission, ... . Exact retransmission
 method is defined by <tt/RoundRobinServers/ attribute.
 
 <item><tt/RoundRobinServers=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 RADIUS requests retransmission method.
 <p>
@@ -555,13 +872,13 @@ Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
 </verb></tscreen>
 
 <item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
-If set, Cisco Vendor Specific RADIUS attibutes are included
+If set, Cisco Vendor Specific RADIUS attributes are included
 in RADIUS requests (h323-conf-id,h323-call-origin,h323-call-type).
 
 <item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
-Default: <tt/1/
+Default: <tt/1/<newline>
 <p>
 If set, Cisco VSA 'h323-ivr-out' attribute is sent with a list of aliases
 the endpoint is registering (RRQ.m_terminalAlias). This attribute is provided
@@ -574,18 +891,18 @@ Example:
 </verb></tscreen>
 
 <item><tt/FixedUsername/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 If this parameter is set, it overwrites a value of User-Name RADIUS attribute
 for outgoing RADIUS request. That means every Access-Request will be
 authenticated as for user <tt/FixedUsername/.
 
 <item><tt/FixedPassword/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>N/A</tt><newline>
 <p>
 If not set, User-Password is a copy of User-Name. For example, if User-Name
 is 'john' then User-Password will also be set to 'john'. Setting this
-parameter overrides this behavious and User-Password attribute will be
+parameter overrides this behavior and User-Password attribute will be
 always set to the value of <tt/FixedPassword/.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
 in this section, the password is in encrypted form and should be created using
@@ -621,10 +938,176 @@ and the password 'ppp'.
 </descrip>
 
 <item><tt/UseDialedNumber=BOOLEAN/<newline>
-Default: <tt/0/
+Default: <tt/0/<newline>
 <p>
 Select Called-Station-Id number type between the original one (as dialed
 by the user) - <tt/UseDialedNumber=1/ - and the rewritten one - <tt/UseDialedNumber=0/.
+
+</itemize>
+
+<sect2>&lsqb;RadAliasAuth&rsqb; Access-Request Radius Attributes
+<p>
+For RRQs, the same attributes as with RadAuth are sent, with an exception
+of username/password attributes (CHAP-Password, CHAP-Challenge, User-Name):
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		Either an endpoint alias from RRQ or a value of FixedUsername 
+		config parameter. If no alias is present, an IP address is used
+
+<item><tt>User-Password</tt><newline>
+<p>
+		Either the same as User-Name or a value of FixedPassword
+		config parameter
+</itemize>
+<p>
+For ARQ and Setup messages, the same attributes as with RadAuth are sent,
+with an exception of username/password attributes (CHAP-Password, 
+CHAP-Challenge, User-Name):
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		Either an endpoint alias or a value of FixedUsername config parameter
+
+<item><tt>User-Password</tt><newline>
+<p>
+		Either the same as User-Name or a value of FixedPassword config parameter
+</itemize>
+
+
+<sect2>&lsqb;RadAliasAuth&rsqb; Access-Accept Radius Attributes
+<p>
+Exactly the same attributes are recognized as with RadAuth module.
+<p>
+
+<sect1>Section &lsqb;CapacityControl&rsqb;
+<label id="capctrl">
+<p>
+This section contains a set of rules for controlling inbound call volume
+depending on various conditions. In order for this module to work, CapacityControl
+authentication and accounting modules have to be enabled like this:
+<tscreen><verb>
+[Gatekeeper::Auth]
+CapacityControl=required;Setup
+ 
+[Gatekeeper::Acct]
+CapacityControl=required;start,stop
+</verb></tscreen>
+<p>
+A capacity rule can be matched by a caller's IP, caller's H.323 ID and/or
+caller's number (CLI) - in the order specified. In addition, the match can
+be narrowed by specifying a called number pattern. This module works by keeping
+lists of current call volume for each inbound route (rule) - this is done
+by having <tt/CapacityControl/ accounting module configured to add/remove
+active calls from matching routes. The <tt/CapacityControl/ authentication module
+checks rules and accepts/rejects a call based on current/max call volume
+for a matching inbound route.
+<p>
+<descrip>
+<tag/Format for an inbound route rule:/
+<tt>[ip:CALLER_IP|h323id:CALLER_H323ID|cli:CALLER_NUMBER]=[CALLED NUMBER REGEX PATTERN] MAX_CAPACITY</tt>
+<p>
+<tt/ip:/, <tt/h323id:/ and <tt/cli:/ prefixes define rule type. An inbound call
+will be matched either by caller's IP, H.323ID or CLI. The optional <tt/CALLED NUMBER REGEX PATTERN/
+is a regular expression that the called number should match to apply this rule to.
+<tt/MAX_CAPACITY/ is maximum number of active calls for this route.
+<p>
+The rules are match in the following order:
+<itemize>
+<item>IP rules
+<item>H.323ID rules
+<item>CLI rules
+</itemize>
+
+The longest match in the first matching category is used.
+
+<tag/Example 1:/
+<tscreen><verb>
+[CapacityControl]
+ip:192.168.1.0/24=30
+ip:any=120
+</verb></tscreen>
+<p>
+These rules tell that the 192.168.1.0/24 subnet can send up to 30 concurrent
+calls, while all other IPs can send up to 120 concurrent calls.
+ 
+<tag/Example 2:/
+<tscreen><verb>
+[CapacityControl]
+%r1% cli:1001=30
+%r2% cli:1001=^48(50|51) 5
+</verb></tscreen>
+<p>
+These rules limit caller with CLI 1001 to send up to 5 calls to 4850/4851
+destinations and up to 30 calls to other destinations. %r1% and %r2% are
+special constructs to allow having the same <tt/cli:1001/ config key more
+than once.
+</descrip>
+
+
+<sect1>Section &lsqb;GkH350::Settings&rsqb;
+<p>
+WARNING: This is an experimental feature and not tested very well.
+<p>
+This section defines the LDAP server and standard H.350 directory operating
+parameters to be used.
+
+<itemize>
+<item><tt/ServerName/<newline>
+Default: <tt/127.0.0.1/
+<p>
+The LDAP server IP address.
+
+<item><tt/ServerPort/<newline>
+Default: <tt/389/
+<p>
+The LDAP server's TCP port (usually 389).
+
+<item><tt/SearchBaseDN/<newline>
+Default: <tt>N/A</tt>
+<p>
+Entry point into the server's H.350 directory structure.
+Searches are only made below this root node.
+
+<item><tt/BindUserDN/<newline>
+Default: <tt>N/A</tt>
+<p>
+The distinguished name the gatekeeper uses to bind
+to the LDAP server. Leave empty if you want to access
+the LDAP server anonymously.
+
+<item><tt/BindUserPW/<newline>
+Default: <tt>N/A</tt>
+<p>
+If you specified <tt/BindUserDN/, then specify the corresponding
+password to be used for binding here.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in an encrypted form and should be created 
+using the <tt/addpasswd/ utility.
+
+<item><tt/BindAuthMode/<newline>
+Default: <tt>simple</tt>
+<p>
+Bind Authentication method choices are <tt/simple,sasl,kerberos/
+
+<item><tt/ServiceControl=BOOLEAN/<newline>
+Default: <tt/0/<newline>
+<p>
+Use RRQ/RCF service control field to advise an endpoint of the H.350 directory 
+and searchDN to use for white page lookups.
+
+<item><tt/AssignedAliases=BOOLEAN/<newline>
+Default: <tt/0/<newline>
+<p>
+Use H.350.1 to advise endpoints of their assigned aliases.
+
+<item><tt/GatekeeperDiscovery=BOOLEAN/<newline>
+Default: <tt/0/<newline>
+<p>
+Use H.350.1 to resolve on GRQ/GCF the registering endpoints assigned gatekeeper 
+(h323IdentityGKDomain).
 
 </itemize>
 

@@ -3,7 +3,7 @@
 <sect1>Fichier de Configuration
 <label id="config">
 <p>
-Le fichier de configuration est un fichier texte normal. Le format de base est:
+Le fichier de configuration <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper"> est un fichier texte normal. Le format de base est:
 
 <tscreen><verb>
 [Section String]
@@ -27,24 +27,25 @@ kill -HUP `cat /var/run/gnugk.pid`
 </verb></tscreen>
 
 <sect1>Section &lsqb;Gatekeeper::Main&rsqb;
+<label id="gkmain">
 <p>
 <itemize>
 <item><tt/Fortytwo=42/<newline>
-D&#233;faut: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
 Ce param&#232;tre est utilis&#233; pour tester la pr&#233;sence du fichier de
 configuration. Si il n'est pas trouv&#233;, un avertissement est &#233;mis.
 Assurez-vous qu'il soit dans tous vos fichiers de configuration.
 
 <item><tt/Name=OpenH323GK/<newline>
-D&#233;faut: <tt/OpenH323GK/
+D&#233;faut: <tt/OpenH323GK/<newline>
 <p>
 Identifiant Gatekeeper de ce gatekeeper. Le gatekeeper r&#233;pondra uniquement aux
 GRQs pour cet ID et l'utilisera dans un certain nombre de messages &#224; ces
 terminaux.
 
 <item><tt/Home=192.168.1.1/<newline>
-D&#233;faut: <tt/0.0.0.0/
+D&#233;faut: <tt/0.0.0.0/<newline>
 <p>
 Le gatekeeper &#233;couter les requ&#234;tes sur ce num&#233;ro IP.
 Par d&#233;faut, le gatekeeper &#233;coute toutes les interfaces de votre hote.
@@ -54,7 +55,7 @@ multiples Home peuvent &#234;tre utilis&#233;es et doivent &#234;tre
 s&#233;par&#233;res par un point-virgule (;) ou une virgule (,).
 
 <item><tt>NetworkInterfaces=192.168.1.1/24,10.0.0.1/0</tt><newline>
-D&#233;faut: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
 Indique les interfaces r&#233;seau du gatekeeper. Par d&#233;faut le gatekeeper
 d&#233;tectera les interfaces de vote hote automatiquement. Il y a deux situations
@@ -63,6 +64,13 @@ d&#233;tection automatique a &#233;chou&#233;, l'autre est que le gatekeeper soi
 derri&#232;re un routeur et autorise les terminaux avec des IPs publiques &#224;
 s'enregistrer.
 
+<bf/NOTE:/ Si ce param&#232;tre est modifi&#233;, vous devez red&#233;marrer le gatekeeper. Un rafraichissement depuis le port d'&#233;tat n'entrainera une relecture de cette valeur. 
+
+<item><tt/Bind=192.168.1.1/<newline>
+D&#233;faut: <tt/0.0.0.0/<newline>
+<p>
+Sp&#233;cifier l'addresse IP pour un routage par d&#233;faut. S'il n'y a qu'une seule interface alors ce param&#232;tre est ignor&#233;. Utiliser cette fonctionnalit&#233; pour sp&#233;cifier quelle addresse IP utiliser par d&#233;faut pour utiliser un environnement virtuel avec plusieurs addresses IP (multi-homed) sur lequel il pourrait y avoir plusieurs interfaces virtuelles pour un seul hote. 
+
 <item><tt/EndpointIDSuffix=_gk1/<newline>
 D&#233;faut: <tt/_endp/
 <p>
@@ -70,6 +78,7 @@ Le gatekeeper assignera un identifiant unique &#224; chaque terminal enregistr&#
 Cette option peut &#234;tre utilis&#233;e pour pr&#233;ciser un suffixe &#224;
 ajouter &#224; l'identifiant du terminal. Ceci est seulement utile quand vous utilisez
 plus d'un gatekeeper.
+<bf/Ce param&#232;tre n'est pas modif&#233;e si la configuration est rafraichie./
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
 D&#233;faut: <tt/-1/
@@ -99,12 +108,31 @@ un message RRQ complet.
 
 Pour d&#233;sactiver cette fonction, lui donner la valeur <tt/-1/.
 
+<item><tt/CompareAliasType=0/<newline>
+D&#233;faut: <tt/1/<newline>
+<p>
+Par d&#233;faut, un H323ID de '1234' ne sera pas associ&#232; au num&#232;ro E164 '1234' lors de la comparaison des alias. Ce param&#232;tre permet d'ignore le type d'alias lors de la comparaison. 
+
+<item><tt/CompareAliasCase=0/<newline>
+D&#233;faut: <tt/1/<newline>
+<p>
+Par d&#233;faut, l'alias 'jan' ne sera pas identifi&#232; &#224; l'alias 'Jan'. Si ce param&#232;tre est r&#233;gl&#233; sur "faux", la comparaison ne sera pas sensible &#224; la casse. 
+
+<item><tt/TraceLevel=2/<newline>
+D&#233;faut: <tt/0/<newline>
+<p>
+Etablir le niveau de trace (m&#234;me fonctionnalit&#233; que -t de la ligne de commande).
+
+<bf/Ce param&#232;tre n'est pas modifi&#233; lorsque la configuration est rafraichie!/
+
 <item><tt/TotalBandwidth=100000/<newline>
 D&#233;faut: <tt/-1/
 <p>
 La bande passante totale disponible &#224; donner aux terminaux.
 Par d&#233;faut cette fonction est d&#233;sactiv&#233;e. Fa&#238;tes attention quand
 vous l'utilisez car beaucoup de terminaux ont des impl&#233;mentations erron&#233;es.
+
+<bf>NB:</bf> Actuellement, GnuGk ne v&#233;rifie que les appels de terminaux enregistr&#232;s et de nombreux terminaux fournissent des valeurs de bande passante erron&#233;es. 
 
 <item><tt/RedirectGK=Endpoints > 100 || Calls > 50/<newline>
 D&#233;faut: <tt>N/A</tt>
@@ -121,23 +149,18 @@ Le gatekeeper retournera un message de rejet RAS avec une liste de gatekeepers
 alternatifs d&#233;finis dans <tt/AlternateGKs/.
 Il faut noter que la redirection <tt/permanent/ signifie que les terminaux
 redirig&#233;s ne s'enregistreront plus avec ce gatekeeper.
-Veuillez aussi noter que la fonction entre en vigueur avec les terminaux respectant
-la version 4 de H.323.
+<bf>NB:</bf> La fonctionnalit&#233; de redirection ne fonctionne qu'avec la version H.323 avec 4 terminaux "compliants". 
 
 <item><tt/AlternateGKs=1.2.3.4:1719:false:120:OpenH323GK/<newline>
-D&#233;faut: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
-Nous autorisons l'existence d'un autre gatekeeper pour fournir de la redondance.
-Ceci est impl&#233;ment&#233; de mani&#232;re active-active. En r&#233;alit&#233;,
-vous pouvez vous retrouver dans une situation (valide!) o&#249; certains terminaux
-sont enregistr&#233;s avec le premier gatekeeper et d'autres sont enregistr&#233;s
-avec le second.
-Vous pourriez m&#234;me utiliser les deux gatekeepers d'une mani&#232;re round_robin(?)
-pour le partage de charge (ce n'est pas test&#233 :-)).
-Si vous continuez &#224; lire, "GK primaire" indique le gatekeeper que vous &#234;tes
-en train de configurer and "GK alternatif" indique l'autre.
+Si le terminal perd sa connection avec GnuGk, il doit automatiquement essayer de s'enregistrer avec le gatekeeper alternatif sp&#233;cifi&#233; ici. 
+
+<bf>NB:</bf>Selon le terminal, il se peut qu'il n'essaie pas de r&#233;&#233;tablir la connexion avec le gatekeeper d'origine. La fonctionnalit&#233; "Assigned Gatek&#232;pers" a &#233;t&#233; ajout&#233;e dans H.323v6. Se r&#233;f&#233;rer &#224; <url url="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html"> pour plus d'informations. 
+
 The GK primaire inclut un champ dans le RCF pour indiquer aux terminaux quels IP
 et gatekeeper alternatifs utiliser.
+
 Mais le GK alternatif doit conna&#238;tre chaque enregistrement avec le GK primaire
 ou il rejetterait les appels.
 Donc notre gatekeeper peut transmettre chaque RRQ &#224; l'adresse IP alternative.
@@ -154,16 +177,20 @@ Plus bas est mieux, en g&#233;n&#233; ral on consid&#232;re que le GK primaire a
 priorit&#233; de 1.
 Le dernier champ indique l'identifiant du gatekeeper alternatif.
 
+Vous pouvez sp&#233;cifier plusieurs gatekeepers alternatifs dans une liste s&#233;par&#233;e par des virgules. 
+
 <item><tt/SendTo=1.2.3.4:1719/<newline>
-D&#233;faut: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
 Bien que cette information soit contenue dans AlternateGKs, vous devez quand m&#234;me
 indiquer &#224; quelle adresse transmettre les RRQs. Ceci peut &#234;tre diff&#233;rent
 de l'adresse de AlternateGK, il s'agit donc d'une option de configuration
 s&#233;par&#233;e (penser aux machines &#224; plusieurs adresses).
 
+Vous pouvez sp&#233;cifier plusieurs gatekeepers dans une liste s&#233;par&#233;e par des virgules. 
+
 <item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
-D&#233;faut: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
 Pour &#233;viter les transmissions circulaires, vous ne devez pas transmettres les RRQs
 que vous recevez de l'autre GK (cette d&#233;claration est valable pour les deux, GK
@@ -179,12 +206,6 @@ D&#233;faut: <tt/7000/
 <p>
 Port d'&#233;tat pour surveiller le gatekeeper.
 Se reporter &#224; <ref id="monitor" name="cette section"> pour plus de d&#233;tails.
-
-<item><tt/SignalCallId=1/<newline>
-D&#233;faut: <tt/0/
-<p>
-IDs du signal d'appel dans les messages ACF/ARJ/DCF/DRJ/RouteRequest sur le port d'&#233;tat.
-Se reporter &#244; <ref id="monitor" name="cette section"> pour plus de d&#233;tails.
 
 <item><tt/StatusTraceLevel=2/<newline>
 D&#233;faut: <tt/2/
@@ -238,7 +259,7 @@ Quelques codes de format habituels:
 </itemize>
 
 <item><tt/EncryptAllPasswords=1/<newline>
-D&#233;faut: <tt/0/
+D&#233;faut: <tt/0/<newline>
 <p>
 Active le chiffrage de tous les mots de passe dans la configuration (mots de passe
 SQL, RADIUS, [Password], [GkStatus::Auth]). Si c'est activ&#233; tous les mots de
@@ -247,7 +268,7 @@ Autrement seuls les mots de passe de [Password] et [GkStatus::Auth] sont crypt&#
 (ancien comportement).
 
 <item><tt/KeyFilled=0/<newline>
-D&#233;faut: <tt>N/A</tt>
+D&#233;faut: <tt>N/A</tt><newline>
 <p>
 D&#233;finit un octet de remplissage global &#224; utiliser pendant le cryptage/
 d&#233;cryptage de mot de passe. Il peut &#234;tre annul&#233; en positionnant
@@ -262,7 +283,7 @@ sophistiqu&#233;es.
 
 <itemize>
 <item><tt/UseBroadcastListener=0/<newline>
-D&#233;faut: <tt/1/
+D&#233;faut: <tt/1/<newline>
 <p>
 Indique si on doit &#233;couter au requ&#234;tes RAS diffus&#233;es. Ceci implique de
 s'attacher &#224; toutes les interfaces sur la machine, donc si vous voulez lancer
@@ -270,48 +291,88 @@ plusieurs instances de gatekeepers sur la m&#234;me machine, vous devriez
 d&#233;sactiver cette option.
 
 <item><tt/UnicastRasPort=1719/<newline>
-D&#233;faut: <tt/1719/
+D&#233;faut: <tt/1719/<newline>
 <p>
 L'identifiant TSAP du canal RAS pour unicast(?).
 
+<item><tt/MulticastListener=0/<newline>
+D&#233;faut: <tt/1/<newline>
+<p>
+Active ou d&#233;sactive la d&#233;couverte de gatekeeper par multicast. Activ&#233; par d&#233;faut. 
+
 <item><tt/MulticastPort=1718/<newline>
-D&#233;faut: <tt/1718/
+D&#233;faut: <tt/1718/<newline>
 <p>
 L'identifiant TSAP du canal RAS pour multicast.
 
 <item><tt/MulticastGroup=224.0.1.41/<newline>
-D&#233;faut: <tt/224.0.1.41/
+D&#233;faut: <tt/224.0.1.41/<newline>
 <p>
 Le groupe de multicast pour le canal RAS.
 
 <item><tt/EndpointSignalPort=1720/<newline>
-D&#233;faut: <tt/1720/
+D&#233;faut: <tt/1720/<newline>
 <p>
 Default port for call signalling channel of endpoints.
 
 <item><tt/ListenQueueLength=1024/<newline>
-D&#233;faut: <tt/1024/
+D&#233;faut: <tt/1024/<newline>
 <p>
 Longueur de la queue pour les connections entrantes TCP.
 
 <item><tt/SignalReadTimeout=1000/<newline>
-D&#233;faut: <tt/1000/
+D&#233;faut: <tt/1000/<newline>
 <p>
 Temps en millisecondes pour le timeout de lecture sur les canaux de signal d'appel (Q931).
 
 <item><tt/StatusReadTimeout=3000/<newline>
-D&#233;faut: <tt/3000/
+D&#233;faut: <tt/3000/<newline>
 <p>
 Temps en millisecondes pour le timeout de lecture sur le canal d'&#233;tat.
 
 <item><tt/StatusWriteTimeout=5000/<newline>
-D&#233;faut: <tt/5000/
+D&#233;faut: <tt/5000/<newline>
 <p>
 Temps en millisecondes pour le timeout d'&#233;criture sur le canal d'&#233;tat.
+
+<item><tt/ExternalIP=myip.no-ip.com/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Si vous utilisez GnuGk depuis un NAT, vous pouvez sp&#233;cifier l'addresse IP externe que votre gatekeeper affichera. Ceci permettra aux terminaux externes et aux autres gatekeepers de contacter le gatekeeper NAT. Pour travailler, vous devez transmettre les ports vers les ports r&#233;quis par l'IP du gatekeeper ou mettre le gatekeeper dans la boite NAT DMZ. Ceci diff&#232;re du param&#233;trage bind, qui sp&#233;cifie une addresse IP physique de la boite GnuGk. 
+
+Vous pouvez sp&#233;cifier une addresse IP ou un nom de domaine non ambigu (FQDN: fully-qualified domain name). Si vous utilisez un FQDN et <tt>ExternalIsDynamic</tt> est r&#233;gl&#233; sur faux, le FQDN sera r&#233;duit &#224; une addresse IP au d&#233;marrage ou au rafraichissement de la configuration. 
+Si <tt>ExternalIsDynamic</tt> est r&#233;gl&#233; sur vrai, le nom sera enregistr&#233; et r&#233;duit en cas de besoin. 
+
+<item><tt/ExternalIsDynamic=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Configure GnuGk pour accepter une addresse externe dynamique. Si ce param&#232;tre est activ&#233;, GnuGk fait en sorte que le service DDNS (Dynamic DNS) recoive des messages "keep-alive" pour maintenir son nom. Vous devez &#233;galement configurer le param&#232;tre <tt>ExternalIP</tt> avec une addresse DNS maintenue par un service DDNS tel que www.dyndns.com ou www.no-ip.com. 
+
+<item><tt/DefaultDomain=gnugk.org,gnugk.de/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Si GnuGk recoit une requ&#234;te pour une addresse dans un format <bf>user@domain.com</bf>, cette option extraira le domaine de l'addresse si elle est conforme au param&#233;tre <tt>DefaultDomain</tt> et &#233;x&#233;cutera la requ&#234;te en utilisant seulement le champ "<bf>user</bf>" field. Ceci est utile lors de la r&#233;ception d'appels entre diff&#233;rents domaines plac&#233;s via une politique de routage SRV lorsque l'URI entier est recu. Cette fonctionnalit&#233; peut aussi &#234;tre utilis&#233;e en conjonction avec la section [RasSrv::RewriteAlias] section pour convertir l'URI recu en un num&#233;ro E164 pour la suite du processus de routage. 
+
+<item><tt/Authenticators=H.235.1,CAT/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+S&#233;lectionne les authentificateurs &#224; utiliser lors de l'authentification de terminaux. 
+Les options par d&#233;faut sont: H.235.1 (HMAC SHA1 /  old H235AnnexD), MD5 (Digest Authentication) et CAT (Cisco Access Tokens ie RADIUS). 
+Si ce param&#232;tre est ommis, tous les authentificateurs sont enregistr&#233;s par d&#233;faut. 
+Si vous utilisez des authentificateurs plugin, il se peut que vous vouliez d&#233;sactiver les authentificateurs par d&#233;faut afin d'assurer une s&#233;curit&#233; optimale. 
+
+NB: H.235.1 n&#233;cessite que le support OpenSSL soit compil&#233; dans GnuGk.
+<bf/Cet interrupteur n'est disponible que si GnuGk est compil&#233; avec H323Plus./
+
+<item><tt/DisconnectCallsOnShutdown=0/<newline>
+Default: <tt>1</tt><newline>
+<p>
+GnuGk d&#233;connectera tous les appels sortants quand il s'&#233;teint et enverra une requ&#234;te de d&#233;senregistrement &#224; tous les terminaux. Pour modifier ce param&#232;trage par d&#233;faut, fixer ce param&#232;tre sur "0". Cet interrupteur est surtout &#224; l'intention des gatekeepers &#233;x&#233;cut&#233;s en mode direct;en mode rout&#233; et en mode proxy, les appels seront coup&#233;s quand le gatekeeper s'&#233;teint. 
+
 </itemize>
 
-
 <sect1>Section &lsqb;GkStatus::Auth&rsqb;
+<label id="gkstatusauth">
 <p>
 D&#233;finit un nombre de r&#232;gles pour indiquer qui est autoris&#233; &#224; se
 connecter au port d'&#233;tat.
@@ -354,31 +415,42 @@ doit saisir son nom d'utilisateur et son mot de passe.
 </itemize>
 
 <item><tt/default=allow/<newline>
-D&#233;faut: <tt/forbid/
+D&#233;faut: <tt/forbid/<newline>
 <p>
 Utilis&#233; uniquement quand <tt/rule=explicit/.
 
 <item><tt/Shutdown=forbid/<newline>
-D&#233;faut: <tt/allow/
+D&#233;faut: <tt/allow/<newline>
 <p>
 Indique si on peut arr&#234;ter le gatekeeper par le port d'&#233;tat.
 
 <item><tt/DelayReject=5/<newline>
-D&#233;faut: <tt/0/
+D&#233;faut: <tt/0/<newline>
 <p>
 Combien de temps (en secondes) avant de rejeter un usernam/password invalide pour
 l'acc&#232;s &#224; la ligne d'&#233;tat.
 </itemize>
 
+<sect1>Section &lsqb;GkStatus::Filtering&rsqb;
+<label id="gkstatusfilteringsect">
+<p>
+Se r&#233;f&#233;rer &#224; <ref id="statusportfiltering" name="Filtrage du port d'&#233;tat">. 
 
 <sect1>Section &lsqb;LogFile&rsqb;
 <label id="logfile">
 <p>
 Cette section d&#233;finit les param&#232;tres li&#233;s aux fichiers de log.
-Actuellement, ceci permet aux utilisateurs de pr&#233;ciser les options de rotation
-des fichiers de log.
+Actuellement, ceci permet aux utilisateurs de pr&#233;ciser les options de rotation des fichiers de log.
 
 <itemize>
+<item><tt>Filename=/var/log/gk_trace.log</tt><newline>
+D&#233;faut: <tt>N/A</tt><newline>
+<p>
+Afficher le nom du fichier de sortie pour le fichier log (m&#234;me fonctionnalit&#233; que -o de la ligne de commande). Sous Windows, les backslashs dans le nom du fichier doivent &#234;tre supprim&#233;s. 
+<p>
+<bf/Ce param&#232;tre n'est pas modifi&#233; lorsque la configuration est rafraichie!/
+
+
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
 D&#233;faut: <tt>N/A</tt>
 <p>

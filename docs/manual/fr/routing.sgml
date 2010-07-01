@@ -4,15 +4,15 @@
 <p>
 Les sections suivantes du fichier de configuration peuvent &#234;tre utilis&#233;es
 pour configurer comment les appels sont rout&#233;s.
+<p>
+Chaque appel passe par une chaine de politiques de routage. Chaque politique peut router l'appel et ceci termine la chaine ou modifier l'appel et le transmettre. Vous pouvez utiliser ce param&#232;trage dans les sections suivantes pour sp&#233;cifer quelles politiques vous voulez utiliser et modifier leur comportement. 
 
 <sect1>Section &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
 <p>
-Cette section explique comment les diverses politiques de routage possibles du
-gatekeeper fonctionnenet.
+Cette section explique comment les diverses politiques de routage possibles du gatekeeper fonctionnent.
 
-Les demandes d'appel peuvent &#234;tre rout&#233;es en utilisant un certain nombre
-de fournisseurs de routage:
+Les demandes entrantes d'appel peuvent &#234;tre rout&#233;es de plusieurs mani&#232;res:
 
 <itemize>
 
@@ -28,6 +28,7 @@ La r&#232;gle classique; cherche la destination dans la RegistrationTable
 <p>
 Route l'appel en utilisant des informations envoy&#233;es par le GK parent en
 r&#233;ponse &#224; un ARQ que le gatekeeper enverra.
+Vous pouvez d&#233;fnir votre gatekeeper parent en utilisant la section <ref id="endpoint" name="Endpoint">. 
 
 <item><tt/neighbor/<newline>
 <p>
@@ -35,25 +36,73 @@ Route l'appel en utilisant les voisins en &#233;changeant des messages LRQ
 
 <item><tt/dns/<newline>
 <p>
-La destination est r&#233;solue par DNS, &#224; condition qu'elle soit r&#233;solvable
+La destination est r&#233;solue par "DNS A records".
+
+<item><tt/sql/<newline>
+<p>
+Route les appels en r&#233;&#233;crivant l'alias appel&#233; par un appel &#224; une base de donn&#233;es puis les envoie directement vers la destination IP. Les param&#232;tres de la base de donn&#233;es sont sp&#233;cifi&#233;s dans la section <ref id="routingsql" name="Routing::Sql">. 
 
 <item><tt/vqueue/<newline>
 <p>
 Utilise le m&#233;canisme de queue virtuelle et g&#233;n&#232;re un
 &#233;v&#233;nement RouteRequest pour laisser une application externe faire le routage
-(ne peut &#234;tre utilis&#233; qu'avec OnARQ)
 
 <item><tt/numberanalysis/<newline>
 <p>
-Fournit un support pour l'envoi des chiffres recouverts(?) pour les messages ARQ.
+Provides support for overlapped digit sending for ARQ messages.
+This also partially supports Setup messages (no overlapped sending
+- only number length validation).
+
+<item><tt/enum/<newline>
+<p>
+ENUM (RFC3761) is a method to use DNS lookups to convert
+real International Direct Dialing E.164 numbers into H.323 dialing information. The default servers
+are <tt/e164.voxgratia.net/, <tt/e164.org/ and <tt/e164.arpa/.
+To specify your own server you may either specify the list via the ENUMserver variable in
+the RoutedMode section or specify an environmental variable PWLIB_ENUM_PATH with the address of your preferred
+enum servers.  Multiple servers should be separated by a colon(:) on Linux and a semicolon (;) on Windows. 
+(PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0)
+
+The enum policy replaces the destination with the information returned by the ENUM server, 
+so you must have the appropriate routing policies to continue processing the call after the enum policy. 
+You should have the srv and dns policies after the enum policy, because the new location is often 
+returned in the form of 'number@gatekeeper' and the srv and dns policies are needed to resolve this.
+
+Finally, keep in mind that each routing check with the enum policy requires a DNS lookup. 
+To speed up your routing, make sure you resolve internal destinations before the enum policy is applied.
+
+<item><tt/srv/<newline>
+<p>
+DNS SRV or H.323 Annex O allows for the routing of calls using a H.323 URI. 
+Addresses can be configured as user (at) domain. H.323 URIs are stored in the 
+SRV DNS records of the domain and are queried to find the destination. 
+
+<item><tt/rds/<newline>
+<p>
+URN RDS or Universal resources name resolver discovery system is a system (as defined in RFC 2915 Sect 7.2 
+whereby domain names SRV records are hosted on other domains. In this policy the servers set by 
+[RoutedMode] RDSServers are queried to resolve URI's whose domains do not have SRV records. This can be used
+to virtually host URL domains or centralize the control of SRV records.
+
+<item><tt/catchall/<newline>
+<p>
+This policy will route all calls that reach it to one endpoint specified in the <ref id="routingcatchall" name="Routing::CatchAll"> section.
+You can use it as a fallback at the end of the policy chain to route all calls which would otherwise fail.
+
 
 </itemize>
+
+<p>
+La configuration par d&#233;fautj des politiques de routage est la suivante:
+<descrip>
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,parent,neighbor</tt></quote>
+</descrip>
 
 Si une politique ne correspond pas, la politique suivante est essay&#233;e.
 
 Ces politiques peuvent &#234;tre appliqu&#233;es &#224; un certain nombre de types de
-requ&#234;tes de routage et de donn&#233;es d'entr&#233;e de routage. Les
-diff&#233;rents types sont:
+requ&#234;tes de routage et de donn&#233;es d'entr&#233;e de routage. Les diff&#233;rents types sont:
 ARQ, LRQ, Setup et Facility (avec la raison callForwarded)
 Il y a aussi la politique de routage g&#233;n&#233;rale, qui est une sorte de valeur
 par d&#233;faut pour les autres types.
@@ -87,6 +136,12 @@ en utilisant la syntaxe expliqu&#233;e ci-dessus.
 default=numberanalysis,internal,neighbor</tt></quote>
 </descrip>
 
+Une mise en place typique d'un routage ENUM ressemble &#224; ceci:
+<descrip>
+<tag/Exemple:/
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,enum,srv,dns,internal,parent,neighbor</tt></quote>
+</descrip>
 
 <sect1>Section &lsqb;RasSrv::RewriteE164&rsqb;
 <label id="rewrite">
@@ -98,31 +153,10 @@ dialedDigits (num&#233;ro E.164).
 <tag/Format:/
 <tt>[!]original-prefix=target-prefix</tt>
 <p>
-Si le num&#233;ro commence avec <tt/original-prefix/, il est r&#233;&#233;crit en
-<tt/target-prefix/.
-Si le drapeau `<tt/!/' pr&#233;c&#232;de le <tt/original-prefix/, le sens est
-invers&#233; et le target-prfix est ajout&#233; au d&#233;but du num&#233;ro
-compos&#233;. Les caract&#232;res jokers sp&#233;ciaux (<tt/'.'/ et <tt/'%'/) sont
-disponibles.
+Si l'alias est <tt/original-alias/, il est r&#233;&#233;crit en tant que <tt/target-alias/.
 <tag/Exemple:/
-<tt/08=18888/
-<p>
-Si vous composez <tt/08345718/, il est r&#233;&#233;crit en <tt/18888345718/.
-<tag/Exemple:/
-<tt/!08=18888/
-<p>
-Si vous composez <tt/09345718/, il est r&#233;&#233;crit en <tt/1888809345718/.
+<tt/bill=033123456/
 </descrip>
-
-Option:
-<itemize>
-<item><tt/Fastmatch=08/<newline>
-Default: <tt>N/A</tt>
-<p>
-R&#233;&#233;crit uniquement les dialDigits commen&#231;ant par le pr&#233;fixe
-indiqu&#233;.
-</itemize>
-
 
 <sect1>Section &lsqb;RasSrv::GWRewriteE164&rsqb;
 <label id="gwrewrite">
@@ -227,6 +261,93 @@ Cette section ne se rapporte pas &#224; la section
 <ref id="rewrite" name="RasSrv::RewriteE164">,
 bien que le plus r&#233;cent prendra effet en premier.
 
+<sect1>Section &lsqb;Routing::Sql&rsqb;
+<label id="routingsql">
+<p>
+Rewrite the called alias with a SQL query.
+Supports routing OnARQ, OnLRQ and OnSetup.
+
+If the string returned from the database is 'REJECT' (upper or lower case),
+the call is rejected. If the string matches a dotted IP address, it is
+taken as destination IP otherwise it is treated as a new destination alias.
+If 2 columns are returned, the first is treated as the new destination alias
+and the second is treated as new destination IP.
+
+If multiple rows of destination IPs are returned they are used as alternative routes
+for failover and GnuGk will try them in order.
+
+When at least one destination IP is specified or the call is rejected,
+the SQL policy will end the routing chain.
+If only the alias is changed, the chain continues with this updated alias.
+
+When rejecting a call, the 2nd column can contain an integer designating the
+reject reason (H.225 AdmissionRejectReason for registered calls,
+H.225 LocationRejectReason for neighbor calls,
+H.225 disconnect reason for unregistered calls).
+
+If the database returns nothing, the call is passed on unchanged.
+
+<itemize>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/, <tt/ODBC/ and <tt/SQLite/ drivers
+are implemented. GnuGk supports only version 3 of SQLite.
+
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
+Default: <tt/localhost/<newline>
+<p>
+SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
+Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
+
+<item><tt/Database=gnugk/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The database name to connect to.
+
+<item><tt/Username=gnugk/<newline>
+<p>
+The username used to connect to the database.
+
+<item><tt/Password=secret/<newline>
+<p>
+The password used to connect to the database.
+If the password is not specified, a database connection attempt 
+without any password will be made.
+
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query to fetch the new destination number.
+The query is parameterized - that means parameter
+replacement is made before each query is executed. The following parameters are defined:
+<itemize>
+<item><tt/%c/ - the called alias
+<item><tt/%p/ - the called IP (only available on Setup, empty otherwise)
+<item><tt/%s/ - the calling IP
+<item><tt/%r/ - the calling aliases
+<item><tt/%{Calling-Station-Id}/ - the calling station ID (same value as used in accounting and authentication events)
+<item><tt/%i/ - the call ID
+<item><tt/%m/ - the message type (ARQ, LRQ or Setup)
+<item><tt/%{client-auth-id}/ - an ID provided to GnuGk when authenticating the call (through SqlAuth)
+</itemize>
+Some of these can be empty if they aren't included in the ARQ, LRQ or Setup message.
+<p>
+If the query returns no rows, the current alias is used.
+Otherwise, the first result row is used.
+<p>
+Query string examples.  Note that these are examples; the actual structure and schema
+are user defined, as are the various field names in these examples.  GnuGk is simply expecting either IP addresses or aliases as a result of the query.
+
+<tscreen><verb>
+SELECT destination FROM routes WHERE called = '%c'
+SELECT concat(prefix,'%c') FROM routes WHERE prefix = LEFT('%c', 5)
+SELECT gatewayip FROM routes WHERE prefix = LEFT('%c',5)
+SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) limit 3
+</verb></tscreen>
+
+</itemize>
+
 <sect1>Section &lsqb;Routing::NumberAnalysis&rsqb;
 <label id="numberanalysis">
 <p>
@@ -265,3 +386,304 @@ default=numberanalysis,internal
 Les appels aux destinations commen&#231;ant par 0048 ont besoin d'au moins 12 chiffres,
 par 48 - 10 chiffres et pour tous les autres au moins 6 et au plus 20 chiffres.
 </descrip>
+
+<sect1>Section &lsqb;Routing::CatchAll&rsqb;
+<label id="routingcatchall">
+<p>
+<itemize>
+<item><tt/CatchAllIP=1.2.3.4/<newline>
+Default: <tt>(empty)</tt><newline>
+<p>
+Specify an IP address to route all calls to. This overrides CatchAllAlias.
+
+<item><tt/CatchAllAlias=Frank/<newline>
+Default: <tt>catchall</tt><newline>
+<p>
+If CatchAllIP is not specified, then route all calls to this alias.
+</itemize>
+
+
+<sect1>Section &lsqb;RewriteCLI&rsqb;
+<label id="clirewrite">
+<p>
+This section contains a set of rewrite rules for ANI/CLI/H.323_ID numbers (Caller ID).
+The rewrite process is done in two stages - inbound rewrite and outbound rewrite.
+The inbound rewrite is done before any other Q.931 Setup message processing
+(such as inbound GWRewrite, authentication, accounting, ...), and because it alters the Calling-Station-Id it will have
+an effect in the authorization and accounting modules.
+The outbound rewrite takes place just before the Setup message is to be forwarded
+and its effect is visible only to the callee.
+<p>
+An inbound rewrite rule can be matched by a caller's IP and a dialed number
+or an original CLI/ANI.
+An outbound rewrite rule can be matched by a caller's IP, callee's IP and
+a dialed number or a destination number (the dialed number after rewrite)
+or a CLI/ANI (after inbound rewrite).
+<p>
+This module also provides CLIR (Calling Line Identification Restriction)
+feature that can be configured for each endpoint (rule).
+
+<itemize>
+<item><tt/ProcessSourceAddress=1/<newline>
+Default: <tt/1/<newline>
+<p>
+In addition to rewriting a Calling-Party-Number Information Element ("IE"), the sourceAddress
+element of a H.225.0 Setup message can be rewritten, so both contain
+consistent information.
+
+<item><tt/RemoveH323Id=1/<newline>
+Default: <tt/1/<newline>
+<p>
+When a sourceInfo element of an H.225.0 Setup message is rewritten,
+aliases of type H323_ID, email_ID and url_ID can be left untouched
+if this option is disabled.
+
+<item><tt/CLIRPolicy=apply/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+A global Presentation Indicator ("PI") processing policy can be set up.
+This policy will be applied to all CLI rewrite rules that do not override it.
+Possible choices are <tt/forward/ - just forward the received PI as-is,
+<tt/apply/ - examine the received PI and hide CLI if it is set to "presentation
+restricted" and <tt/applyforterminals/ - similar to <tt/apply/ except that the number
+is removed only when the call is sent to a terminal, not a gateway.
+
+</itemize>
+
+<descrip>
+<tag/Format for an inbound rule:/
+<tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=|^=|/=)NEW_CLI[,NEW_CLI]...</tt>
+<p>
+The <tt/in:/ prefix tells that this is an inbound rule and the <tt/CALLER_IP/
+will be used to match the rule (it can be a single IP or an entire subnet).<newline>
+
+The optional <tt/pi=/ parameter controls CLIR (Calling Line Identification Restriction)
+features. Specifying either <tt/allow/ or <tt/restrict/ forces presentation indicator
+to be set to "presentation allowed" or "presentation restricted". <tt/forward/, <tt/apply/
+and <tt/applyforterminals/ controls how the received (if any) presentation indicator
+is processed by the gatekeeper. <tt/forward/ means forward it to the callee as-is,
+<tt/apply/ means hiding CLI if the PI is set to "presentation restricted", <tt/applyforterminals/
+is similar to <tt/apply/, except that CLI is hidden only when sending the call to a terminal,
+not a gateway.<newline>
+
+The prefix <tt/cli:/ or <tt/dno:/ (the default) selects what number will be used
+to match the <tt/number_prefix/ - a caller id (CLI/ANI) or a dialed number.
+Number matching/rewriting can be done in five ways:
+<itemize>
+<item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
+               match against <tt/number_prefix/ and, if the match is found,
+               CLI will be replaced with NEW_CLI.
+<item><tt/~=/ - a <tt/cli/ or <tt/dno/ number will be matched using an identity
+               match against <tt/number_prefix/ and, if both numbers are the same,
+               CLI will be replaced with NEW_CLI.
+<item><tt/*=/ - (VALID ONLY FOR <tt/cli/) a <tt/cli/ number will be matched using
+               a prefix match against <tt/number_prefix/ and, if the match is found,
+               the matched CLI prefix (<tt/number_prefix/) will be replaced
+		with a NEW_CLI prefix.
+<item><tt/^=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
+               match against <tt/number_prefix/ and, if the match is found,
+               H.323_ID will be replaced with NEW_CLI, Calling-Station-Id will remain unchanged.
+<item><tt>/=</tt> - a <tt/cli/ or <tt/dno/ number will be matched using an identity
+               match against <tt/number_prefix/ and, if both numbers are the same,
+               H.323_ID will be replaced with NEW_CLI, Calling-Station=Id will remain unchanged,
+</itemize>
+After the equality (=/~=/*=/^=//=) sign, there follows a list of new CLI values to be used.
+If more than one value is specified, one will be chosen on a random basis.
+It's possible to specify whole number ranges, like 49173600000-49173699999
+(for number ranges CLIs should have a fixed length).
+There is a special string constant "any", that can be used in place
+of the <tt/CALLER_IP/ or the <tt/number_prefix/. To enable <tt/CLIR/ for this rule,
+use a special string constant <tt/"hide"/ instead of the list of new CLI values.
+Note that CLIR is far more useful for outbound rules.
+
+<tag/Example 1:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=dno:5551=3003
+in:192.168.1.1=cli:1001=2222
+in:192.168.1.1=any=1111
+</verb></tscreen>
+<p>
+These rules state that for calls from the IP 192.168.1.1:
+1) if the user dialed a number beginning with 5551, set CLI to 3003,
+2) if the call is from user with CLI beginning with 1001, set CLI to 2222,
+3) for other calls from this IP, set CLI to 1111.
+
+<tag/Example 2:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=18001111
+in:192.168.2.0/24=any=18002222
+in:any=any=0
+</verb></tscreen>
+<p>
+These rules state that:
+1) for calls from the network 192.168.1.0/24, set CLI to 18001111,
+2) for calls from the network 192.168.2.0/24, set CLI to 18002222,
+3) for other calls, set CLI to 0.
+
+<tag/Example 3:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=0048*=48
+in:192.168.1.0/24=0*=48
+in:any=100.~=48900900900
+</verb></tscreen>
+<p>
+These rules state that:
+1) for calls from the network 192.168.1.0/24, rewrite 0048 to 48 (example - 0048900900900 => 48900900900),
+2) for other calls from the network 192.168.1.0/24, rewrite 0 to 48 (example - 0900900900 => 48900900900),
+3) for other calls, if CLI is 4 digits and starts with 100, set it to 48900900900.
+
+<tag/Example 4 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=hide
+</verb></tscreen>
+<p>
+This example causes caller's number to be removed from Setup messages
+originating from the 192.168.1.0/24 network. It also causes proper presentation
+and screening indicators to be set in Setup messages.
+</descrip>
+
+<descrip>
+<tag/Format for an outbound rule:/
+<tt>out:CALLER_IP=CALLEE_IP [pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:|cno:]number_prefix(=|~=|*=)NEW_CLI[,NEW_CLI]...</tt>
+<p>
+The <tt/out:/ prefix tells that this is an outbound rule, the <tt/CALLER_IP/
+and the <tt/CALLEE_IP/ will be used to match the rule and can be a single IP
+or a subnet address.<newline>
+
+The optional <tt/pi=/ parameter controls CLIR (Calling Line Identification Restriction)
+features. Specifying either <tt/allow/ or <tt/restrict/ forces the presentation indicator
+to be set to "presentation allowed" or "presentation restricted". <tt/forward/, <tt/apply/
+and <tt/applyforterminals/ controls how the received (if any) presentation indicator
+is processed by the gatekeeper. <tt/forward/ means just to forward it to the callee as-is,
+<tt/apply/ means hiding CLI if the PI is set to "presentation restricted", <tt/applyforterminals/
+is similar to <tt/apply/, except that the CLI is hidden only when sending the call to a terminal,
+not a gateway.<newline>
+
+The prefix <tt/cli:/, <tt/dno:/ (the default) or <tt/cno:/ selects what number
+will be used to match the <tt/number_prefix/ - a caller id (CLI/ANI),
+a dialed number or a destination/called number (the dialed number after rewrite).
+Number matching/rewriting can be done in three ways:
+<itemize>
+
+<!-- TODO: NONE OF THE EXAMPLES ARE FOR CNO? -->
+
+<item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
+               match against <tt/number_prefix/ and, if the match is found,
+               CLI will be replaced with NEW_CLI,
+<item><tt/~=/ - a <tt/cli/ or <tt/dno/ number will be matched using an identity
+               match against <tt/number_prefix/ and, if both numbers are the same,
+               CLI will be replaced with NEW_CLI,
+<item><tt/*=/ - (VALID ONLY FOR <tt/cli/) a <tt/cli/ number will be matched using
+               a prefix match against <tt/number_prefix/ and, if the match is found,
+               the matched CLI prefix (<tt/number_prefix/) will be replaced
+			   with a NEW_CLI prefix.
+</itemize>
+After the equality sign (=/~=/*=), a list of new CLI values to be used is specified.
+If more than one value is configured, one will be chosen on a random basis.
+It's possible to specify entire number ranges, like 49173600000-49173699999.
+There is a special string constant "any" which can be used in place
+of the <tt/CALLER_IP/, the <tt/CALLEE_IP/ or the <tt/number_prefix/. 
+To enable <tt/CLIR/ for this rule, use a special string constant <tt/"hide"/
+or <tt/"hidefromterminals"/ instead of the list of new CLI values.
+
+<tag/Example 1:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001
+out:any=192.168.1.2 any=1002
+</verb></tscreen>
+<p>
+These rules set a fixed ANI/CLI for each terminating IP:
+1) present myself with ANI 1001, when sending calls to IP 192.168.1.1,
+2) present myself with ANI 1002, when sending calls to IP 192.168.1.2.
+
+<tag/Example 2:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001-1999,3001-3999
+</verb></tscreen>
+<p>
+This rule randomly selects ANI/CLI from range 1001-1999, 3001-3999
+for calls sent to 192.168.1.1.
+
+<tag/Example 3 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=any any=hidefromterminals
+out:192.168.1.1=any any=hide
+</verb></tscreen>
+<p>
+In this example each subscriber has enabled CLIR, so all calls to terminals
+will have a caller's number removed and presentation/screening indicators set.
+Calls to gateways will have the presentation indicator set to "presentation restricted"
+and the caller's number will not be removed to allow proper call routing and number
+removal at the destination equipment.<newline>
+One exception to these rules are calls from 192.168.1.1 which will have a caller's number
+always removed, no matter whether calling a terminal or a gateway.
+
+<tag/Example 4 (CLIP):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=hide
+</verb></tscreen>
+<p>
+In this example CLIP (Calling Line Identification Presentation) feature
+is disabled for the user 192.168.1.1.
+
+<tag/Example 5 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:192.168.1.1=any pi=restrict,apply cli:.*=.
+out:any=any pi=allow cli:.*=.
+</verb></tscreen>
+<p>
+These rules do not change CLI (.*=.) and:
+1) enable CLIR for an endpoint 192.168.1.1. <tt/apply/ tells the gatekeeper
+   to not only set the PI, but also to hide the number.
+2) force CLI presentation for other endpoints.
+</descrip>
+
+<p>
+The rule matching process has a strictly defined order:
+<enum>
+<item>
+the closest caller's IP match is determined (closest means with the longest
+network mask - single IPs have the highest priority, "any" has the lowest
+priority),
+<item>
+(outbound rules) the closest callee's IP match is determined,
+<item>
+the longest matching prefix/number is searched for the given IP/IP pair
+in the following order:
+<enum>
+<item><tt/dno:/ type (dialed number) rules are searched,
+<item><tt/cno:/ type (destination/called number) rules are searched,
+<item><tt/cli:/ type (caller id) rules are searched.
+</enum>
+</enum>
+After a match for caller's/caller's IP is found, no more rules
+are checked, even if no prefix/number is matched inside the set of rules
+for these IPs.
+
+<p>
+On the Windows platform, there is a problem with duplicated config
+keys in INI files, so GnuGk provides a workaround for this restriction. This example
+will not work because of the same key (<tt/in:192.168.1.1/):
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=1001=2001
+in:192.168.1.1=any=2000
+</verb></tscreen>
+As a workaround, you can use a string with percent signs (%) at the beginning
+and at the end before the key. This prefix will be automatically stripped
+from the key name before loading rules:
+<tscreen><verb>
+[RewriteCLI]
+%r1% in:192.168.1.1=1001=2001
+%r2% in:192.168.1.1=any=2000
+</verb></tscreen>
+
