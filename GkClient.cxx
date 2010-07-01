@@ -631,7 +631,7 @@ void STUNClient::Exec()
 		// Keep this job (thread) open so that creating STUN ports does not hold up 
 		// the processing of other calls
 		while (!m_shutdown) {
-			PProcess::Sleep(100);
+			PThread::Sleep(100);
 		}
 
 	ReadUnlock unlockConfig(ConfigReloadMutex);

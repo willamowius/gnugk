@@ -783,9 +783,9 @@ StatusClient::StatusClient(
 	m_traceLevel(MAX_STATUS_TRACE_LEVEL),
 	m_isFilteringActive(false)
 {
-        PStringToString filters = GkConfig()->GetAllKeyValues(filteringsec);
-        SetWriteTimeout(10);
-	
+	PStringToString filters = GkConfig()->GetAllKeyValues(filteringsec);
+	SetWriteTimeout(10);
+
 	for (PINDEX i = 0; i < filters.GetSize(); i++) {
 	    PString key = filters.GetKeyAt(i);
 	    PString data = filters.GetDataAt(i);
@@ -959,7 +959,7 @@ void StatusClient::DoDebug(
 	const PStringArray& args
 	)
 {
-        bool tmp = m_isFilteringActive;
+	bool tmp = m_isFilteringActive;
 	m_isFilteringActive = false;
 
 	if (args.GetSize() <= 1) {
@@ -1102,7 +1102,7 @@ bool StatusClient::AuthenticateUser()
 		} else
 			PTRACE(5, "STATUS\tPassword mismatch for user " << login);
 			
-		PProcess::Sleep(delay * 1000);
+		PThread::Sleep(delay * 1000);
 
 		if ((time(NULL) - now) > loginTimeout)
 			break;

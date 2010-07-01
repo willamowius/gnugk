@@ -431,7 +431,7 @@ void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 {
 	PTRACE(3, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
 	if (! MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
-		PProcess::Sleep(500);	// give pseudo-endpoint 0.5 sec to register
+		PThread::Sleep(500);	// give pseudo-endpoint 0.5 sec to register
 	}
 	if (MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
 		MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias);

@@ -175,7 +175,7 @@ void ReloadHandler()
 	** Leave critical Section
 	*/
 	// give other threads the chance to pass by this handler
-	PProcess::Sleep(500);
+	PThread::Sleep(500);
 }
 
 #ifdef _WIN32
@@ -351,7 +351,7 @@ void Gatekeeper::Terminate()
 	PWaitAndSignal shutdown(ShutdownMutex);
 	RasServer::Instance()->Stop();
 	// TODO: wait for termination here
-	PProcess::Sleep(10 * 1000);	// sleep 10 sec
+	PThread::Sleep(10 * 1000);	// sleep 10 sec
 }
 
 PBoolean Gatekeeper::OnPause()
