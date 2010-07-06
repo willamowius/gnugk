@@ -51,10 +51,10 @@ int Gatekeeper::m_rotateDay = 0;
 GkTimer* Gatekeeper::m_rotateTimer = GkTimerManager::INVALID_HANDLE;
 #endif // PTRACING
 
+PMutex ShutdownMutex;
+
 namespace { // keep the global objects private
 
-
-PMutex ShutdownMutex;
 PTimedMutex ReloadMutex;
 
 #ifndef _WIN32

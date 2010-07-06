@@ -20,6 +20,7 @@
 #include "rwlock.h"
 #include "yasocket.h"
 #include "Toolkit.h"
+#include "gk.h"
 
 using std::mem_fun;
 using std::bind1st;
@@ -902,6 +903,18 @@ bool TCPServer::CloseListener(TCPListenSocket *socket)
 
 void TCPServer::ReadSocket(IPSocket *socket)
 {
+	if (ShutdownMutex.WillBlock()) {
+		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
+		int rej = ::accept(socket->GetHandle(), NULL, NULL);
+		::shutdown(rej, 2 /* SHUT_RDWR */ );
+#if defined(_WIN32)
+		::_close(rej);
+#else
+		::close(rej);
+#endif
+		return;
+	}
+
 	PTRACE(4, GetName() << "\tAccept request on " << socket->GetName());
 	// rate limiting
 	if (cps_limit > 0) {

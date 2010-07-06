@@ -25,6 +25,7 @@
 #include "ProxyChannel.h"
 #include "gkacct.h"
 #include "RasTbl.h"
+#include "gk.h"
 #include "gk_const.h"
 #include "config.h"
 
@@ -2805,6 +2806,9 @@ void CallRec::SetNewRoutes(
 bool CallRec::MoveToNextRoute()
 {
 	if (! Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
+		return false;
+		
+	if (ShutdownMutex.WillBlock())
 		return false;
 
 	if (!m_newRoutes.empty()) {

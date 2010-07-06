@@ -27,6 +27,8 @@
 #define GNUGK_NAME	"Gatekeeper"
 #endif
 
+extern PMutex ShutdownMutex;
+
 class GkTimer;
 
 #ifdef COMPILE_AS_SERVICE

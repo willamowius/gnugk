@@ -1,5 +1,7 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- BUGFIX(yasocket.cxx, RasTbl.cxx) don't accept new calls or retry calls when shutdown is
+  in progress, avoids possible crash
 - BUGFIX(Routing.cxx) check if routing policies have been configured, before using them
 - BUGFIX(ProxyChannel.cxx) only rewrite sourceCallSignalAddress if proxying
 - BUGFIX(ProxyChannel.cxx) fix NAT detection for unregistered callers
