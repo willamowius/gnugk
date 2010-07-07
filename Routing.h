@@ -408,7 +408,8 @@ private:
 			)
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
-			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP) {}
+			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP),
+			m_reject(false) {}
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
