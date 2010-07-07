@@ -1939,7 +1939,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0)
+	m_clientAuthId(0), m_rerouteState(NoReroute)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -1990,7 +1990,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0)
+	m_clientAuthId(0), m_rerouteState(NoReroute)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -2046,7 +2046,8 @@ CallRec::CallRec(
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
-	m_clientAuthId(0)
+	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState)
+	// TODO: add new fields, bind hint etc. ? + c'tor ?
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_calleeId = m_calleeAddr = " ";
@@ -2227,6 +2228,24 @@ void CallRec::SetForward(
 		SetCalled(forwarded);
 	else
 		SetDestSignalAddr(dest);
+}
+
+void CallRec::RerouteDropCalling()
+{
+	PWaitAndSignal lock(m_sockLock); 
+	m_forwarded = true;
+	m_Forwarder = m_Calling;
+	m_callingSocket = NULL;
+	m_Calling = endptr(0);
+}
+
+void CallRec::RerouteDropCalled()
+{
+	PWaitAndSignal lock(m_sockLock); 
+	m_forwarded = true;
+	m_Forwarder = m_Called;
+	m_calledSocket = NULL;
+	m_Called = endptr(0);
 }
 
 void CallRec::SetSocket(
@@ -3713,7 +3732,6 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 	if (call) {
 		if (ep == call->GetForwarder())
 			return;
-
 		if (ep != call->GetCallingParty() && ep != call->GetCalledParty()) {
 			PTRACE(3, "GK\tWarning: CallRec doesn't belong to the requesting endpoint!");
 			return;

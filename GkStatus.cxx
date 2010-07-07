@@ -696,6 +696,7 @@ void GkStatus::OnStart()
 	m_commands["unregisterip"] = e_UnregisterIp;
 	m_commands["unregisteralias"] = e_UnregisterAlias;
 	m_commands["transfercall"] = e_TransferCall;
+	m_commands["reroutecall"] = e_RerouteCall;
 	m_commands["makecall"] = e_MakeCall;
 	m_commands["yell"] = e_Yell;
 	m_commands["who"] = e_Who;
@@ -878,7 +879,7 @@ bool StatusClient::WriteString(
 	
 	if (!WriteData(msg, msg.GetLength()))
 	    while (CanFlush())
-		Flush();
+			Flush();
 
 	return IsOpen();
 }
@@ -1263,6 +1264,12 @@ void StatusClient::ExecCommand(
 			SoftPBX::TransferCall(args[1], args[2]);
 		else
 			CommandError("Syntax Error: TransferCall SOURCE DESTINATION");
+		break;
+	case GkStatus::e_RerouteCall:
+		if (args.GetSize() == 4)
+			SoftPBX::RerouteCall(args[1], args[2], args[3]);
+		else
+			CommandError("Syntax Error: RerouteCall CALLID CALLER|CALLED DESTINATION");
 		break;
 	case GkStatus::e_MakeCall:
 		if (args.GetSize() == 3)

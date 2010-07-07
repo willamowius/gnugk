@@ -32,6 +32,7 @@
 #define GK_DEF_LISTEN_QUEUE_LENGTH	1024
 
 extern const char *H225_ProtocolID;
+extern const char *H245_ProtocolID;
 
 //+++++++++++++++++++++++++++++++++++++++++++++
 // GnuGk OID

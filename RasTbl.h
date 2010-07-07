@@ -32,6 +32,9 @@ class CallSignalSocket;
 class RasServer;
 class Q931;
 
+enum CallLeg { Caller, Called };
+enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
+
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
 template<class T> class SmartPtr {
@@ -337,7 +340,6 @@ protected:
 	bool m_h46018disabled;
 	bool m_usesH46018;
 	bool m_usesH460P;
-
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -703,6 +705,8 @@ public:
 	void SetCalling(const endptr & NewCalling);
 	void SetCalled(const endptr & NewCalled);
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
+	void RerouteDropCalling();
+	void RerouteDropCalled();
 	void SetBandwidth(int bandwidth) { m_bandwidth = bandwidth; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetCallSignalSocketCalling(CallSignalSocket* socket);
@@ -1126,7 +1130,12 @@ public:
 	bool IsProceedingSent() const { return m_proceedingSent; }
 	// TODO: also set when sent through a status port command
 	void SetProceedingSent(bool val) { m_proceedingSent = val; }
-	
+
+	void SetRerouteState(RerouteState state) { m_rerouteState = state; }
+	RerouteState GetRerouteState() const { return m_rerouteState; }
+	void SetRerouteDirection(CallLeg dir) { m_rerouteDirection = dir; }
+	CallLeg GetRerouteDirection() const { return m_rerouteDirection; }
+
 	void SetBindHint(const PString & ip) { m_bindHint = ip; }
 	PString GetBindHint() const { return m_bindHint; }
 	
@@ -1316,6 +1325,8 @@ private:
 #endif
 	PUInt64 m_clientAuthId;
 	PString m_bindHint;	// outgoing IP or empty
+	RerouteState m_rerouteState;	// is Pause&Reroute transfer in progress ?
+	CallLeg m_rerouteDirection;
 };
 
 typedef CallRec::Ptr callptr;
@@ -1356,6 +1367,8 @@ public:
 	void RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &);
 	void RemoveCall(const callptr &);
 	void RemoveFailedLeg(const callptr &);
+	void DropCallingParty();
+	void DropCalledParty();
 
 	void PrintCurrentCalls(USocket *client, bool verbose=FALSE) const;
 	PString PrintStatistics() const;

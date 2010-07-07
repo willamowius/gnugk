@@ -660,6 +660,21 @@ TransferCall Frank Peter
 </verb></tscreen>
 </descrip>
 
+<item><tt/RerouteCall/<newline>
+<p>
+EXPERIMENTAL: Gatekeeper based call transfer using TCS0 pause and reroute.
+
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+RerouteCall <call-id> <CALLER|CALLED> <destination>
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+RerouteCall 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 CALLER 192.168.1.222
+</verb></tscreen>
+</descrip>
+
 <label id="makecall">
 <item><tt/MakeCall/<newline>
 <p>Generate a new call from source to destination alias. You can also

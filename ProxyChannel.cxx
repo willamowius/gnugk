@@ -147,6 +147,7 @@ PString GetH245CodecName(const H245_AudioCapability &cap)
 const char* RoutedSec = "RoutedMode";
 const char* ProxySection = "Proxy";
 const char* H225_ProtocolID = "0.0.8.2250.0.2";
+const char* H245_ProtocolID = "0.0.8.245.0.3";
 
 #ifdef HAS_H46018
 #define H46018OID	"0.0.8.460.18.0.1"
@@ -225,12 +226,14 @@ public:
 	virtual ~H245Socket();
 
 	void ConnectTo();
+	void ConnectToRerouteDestination();
 
 	// override from class ProxySocket
     virtual Result ReceiveData();
 	virtual bool EndSession();
 
 	void SendEndSessionCommand();
+	void SendTCS(H245_TerminalCapabilitySet * tcs);
 	H225_TransportAddress GetH245Address(const Address &);
 	bool SetH245Address(H225_TransportAddress & h245addr, const Address &);
 	bool Reverting(const H225_TransportAddress &);
@@ -905,10 +908,10 @@ CallSignalSocket::~CallSignalSocket()
 	
 	if (m_call) {
 		if (m_call->GetCallSignalSocketCalling() == this) {
+			m_call->SetCallSignalSocketCalling(NULL);
 			PTRACE(1, "Q931\tWARNING: Calling socket " << GetName() 
 				<< " not removed from CallRec before deletion"
 				);
-			m_call->SetCallSignalSocketCalling(NULL);
 		} else if (m_call->GetCallSignalSocketCalled() == this) {
 			m_call->SetCallSignalSocketCalled(NULL);
 			PTRACE(1, "Q931\tWARNING: Called socket " << GetName() 
@@ -1055,14 +1058,11 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		&& uuie
 		&& Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "EnableH450.2", "0"))
 		&& uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService)) {
-			endptr ep;
-			if (m_callerSocket) 
-				ep = m_call->GetCallingParty();
-			else
-				ep = m_call->GetCalledParty();
 			// Process H4501SupplementaryService APDU
-			if (ep && OnH450PDU(ep, uuie->m_h323_uu_pdu.m_h4501SupplementaryService)) 
-				return Closing;   // we are handling this one via the gatekeeper only
+			if (OnH450PDU(uuie->m_h323_uu_pdu.m_h4501SupplementaryService))  {
+				delete msg;
+				return NoData;   // don't forward
+			}
     }
 #endif
 
@@ -1118,6 +1118,65 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			msg->SetUUIEChanged();
 		if (!m_callerSocket && m_call)
 			m_call->SetH245ResponseReceived();
+	}
+
+	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() == Q931::ReleaseCompleteMsg)) {
+		PTRACE(1, "Q931\tReroute failed, terminating call");
+// don't end reroute on RC to dropped party		m_call->SetRerouteState(NoReroute);
+	}
+
+	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() != Q931::SetupMsg) && (msg->GetTag() != Q931::ConnectMsg)) {
+		m_result = NoData;	// don't forward anything until reroute is through
+		PTRACE(2, "Call in reroute: won't forward " << msg->GetTagName());
+		delete msg;
+		return m_result;
+	}
+
+	if (m_call && m_call->GetRerouteState() == RerouteInitiated && (msg->GetTag() == Q931::ConnectMsg)) {
+		m_result = NoData;	// process messages, but don't forward anything until reroute is through
+		PTRACE(2, "Call in reroute: won't forward " << msg->GetTagName() << " switching to Rerouting state");
+		m_call->SetRerouteState(Rerouting);
+
+		// forward saved TCS
+		// TODO: if have save TCS
+		if (m_h245Tunneling) {
+			// WARNING: this code for h245tunneled mode is hardly tested
+			// when tunneling, forward the TCS here (we probably got it in the connect)
+			// when call is not tunneled, the TCS comes later and goes through automatically
+
+			// build TCS
+			Q931 q931;
+			H225_H323_UserInformation uuie;
+			PBYTEArray lBuffer;
+			BuildFacilityPDU(q931, 0);
+			GetUUIE(q931, uuie);
+			uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+			uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;	// for new this only works with tunneling
+			uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
+			uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
+			H245_MultimediaSystemControlMessage h245msg;
+			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
+			H245_RequestMessage & h245req = h245msg;
+			h245req.SetTag(H245_RequestMessage::e_terminalCapabilitySet);
+			H245_TerminalCapabilitySet & tcs = h245req;
+			tcs = GetSavedTCS();	// TODO: is this the right side, or should we use remote->GetSavedTCS() ?
+			tcs.m_protocolIdentifier.SetValue(H245_ProtocolID);
+			uuie.m_h323_uu_pdu.m_h245Control[0].EncodeSubType(h245msg);
+			SetUUIE(q931, uuie);
+			q931.Encode(lBuffer);
+
+			// send TCS to forwarded party
+			if (m_call->GetRerouteDirection() == Called) {
+				PrintQ931(3, "Send to ", m_call->GetCallSignalSocketCalled()->GetName(), &q931, &uuie);
+				m_call->GetCallSignalSocketCalled()->TransmitData(lBuffer);
+			} else {
+				PrintQ931(3, "Send to ", m_call->GetCallSignalSocketCalling()->GetName(), &q931, &uuie);
+				m_call->GetCallSignalSocketCalling()->TransmitData(lBuffer);
+			}
+		}
+
+		delete msg;
+		return m_result;
 	}
 
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
@@ -1211,7 +1270,7 @@ void CallSignalSocket::SendReleaseComplete(H225_ReleaseCompleteReason::Choices r
 	SendReleaseComplete(&cause);
 }
 
-bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
+bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245Socket * h245sock)
 {
 	bool changed = false;
 	H245_MultimediaSystemControlMessage h245msg;
@@ -1313,11 +1372,51 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress)
 		}
 	}
 
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response
+		&& ((H245_ResponseMessage&)h245msg).GetTag() == H245_ResponseMessage::e_terminalCapabilitySetAck) {
+		H245_TerminalCapabilitySetAck & ack = (H245_ResponseMessage&)h245msg;
+
+		if (m_call && m_call->GetRerouteState() == RerouteInitiated) {
+			PTRACE(2, "H245\tReroute: Filtering out TCSAck received from " << GetName());
+			suppress = true;
+		}
+
+		if (m_call && m_call->GetRerouteState() == Rerouting) {
+			CallSignalSocket * forwarded = (m_call->GetRerouteDirection() == Caller) ? m_call->GetCallSignalSocketCalling() : m_call->GetCallSignalSocketCalled();
+			if (!forwarded->CompareH245Socket(h245sock)) {
+				PTRACE(2, "H245\tReroute: Filtering out TCSAck received from " << GetName());
+				suppress = true;
+			} else if (forwarded->CompareH245Socket(h245sock)) {
+				// rewrite seq of ack, because we rewrite seq of TCS
+				ack.m_sequenceNumber = 1;
+				changed = true;
+			}
+		}
+
+	}
+
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
 
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage&)h245msg;
 		H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
+
+		// save TCS (only works for non-tunneled right now)
+		if (m_call && h245sock && tcs.m_capabilityTable.GetSize() > 0) {
+			if (m_call->GetCallSignalSocketCalling()->CompareH245Socket(h245sock)) {
+				m_call->GetCallSignalSocketCalling()->SaveTCS(tcs);
+			} else {
+				m_call->GetCallSignalSocketCalled()->SaveTCS(tcs);
+			}
+		}
+		// rewrite sq of TCS, must rewrite ACK, too!
+		if (m_call && m_call->GetRerouteState() == Rerouting) {
+			CallSignalSocket * forwarded = (m_call->GetRerouteDirection() == Caller) ? m_call->GetCallSignalSocketCalling() : m_call->GetCallSignalSocketCalled();
+			if (!forwarded->CompareH245Socket(h245sock)) {
+				tcs.m_sequenceNumber = 3;
+				changed = true;
+			}
+		}
 
 		// filter the audio capabilities
 		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
@@ -1702,9 +1801,7 @@ PString CallSignalSocket::GetDialedNumber(
 	return dialedNumber;
 }
 
-void CallSignalSocket::OnSetup(
-	SignalingMsg *msg
-	)
+void CallSignalSocket::OnSetup(SignalingMsg *msg)
 {
 	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
 	if (setup == NULL) {
@@ -1971,7 +2068,7 @@ void CallSignalSocket::OnSetup(
 		m_call->SetSetupTime(setupTime);
 		m_call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
 		
-		if (m_call->IsSocketAttached()) {
+		if (m_call->IsSocketAttached() && !m_call->GetRerouteState() == RerouteInitiated) {
 			PTRACE(2, Type() << "\tWarning: socket (" << Name() << ") already attached for callid " << callid);
 			m_call->SetDisconnectCause(Q931::CallRejected);
 			rejectCall = true;
@@ -2291,13 +2388,13 @@ void CallSignalSocket::OnSetup(
 			H323TransportAddress sourceAddress(setupBody.m_sourceCallSignalAddress);
 			sourceAddress.GetIpAddress(srcAddr);
 
-			if (_peerAddr != srcAddr) {  // We have a NAT?
+			if (_peerAddr != srcAddr) {  // do we have a NAT?
 				if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"))) {
 					PTRACE(4, Type() << "\tSource address " <<  srcAddr
 						<< " peer address " << _peerAddr << " caller is behind NAT");
 					call->SetSrcNATed(srcAddr);
 				} else {
-					// If unregistered caller is NATed & no policy then reject.
+					// if unregistered caller is NATed & no policy then reject.
 					PTRACE(4, Type() << "\tUnregistered party is NATed. Not supported by policy.");
 					authData.m_rejectReason = Q931::NoRouteToDestination;
 					rejectCall = true;
@@ -2308,11 +2405,11 @@ void CallSignalSocket::OnSetup(
                 PTRACE(4, Type() << "\tUnregistered party is not NATed");
 			}
 		} else {
-			   // If the party cannot be determined if behind NAT and we have support then just Treat as being NAT
+			   // If the party cannot be determined if behind NAT and we have support then just treat as being NAT
 			     if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0")) &&
 				    Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "TreatUnregisteredNAT", "0"))) {
 					PTRACE(4, Type() << "\tUnregistered party " << _peerAddr << " cannot detect if NATed. Treated as if NATed");
-					srcAddr = "192.168.1.1";  // Just an arbitory internal address.
+					srcAddr = "192.168.1.1";  // just an arbitrary internal address
 					call->SetSrcNATed(srcAddr);
 				} else {
 					PTRACE(4, Type() << "\tWARNING: Unregistered party " << _peerAddr << " cannot detect if NATed");
@@ -3034,10 +3131,7 @@ void CallSignalSocket::OnInformation(
 }
 
 #if H323_H450
-bool CallSignalSocket::OnH450PDU(
-	 endptr & ep,
-	 H225_ArrayOf_PASN_OctetString & supplementary
-	 )
+bool CallSignalSocket::OnH450PDU(H225_ArrayOf_PASN_OctetString & supplementary)
 {
   bool result = false;
 
@@ -3064,7 +3158,7 @@ bool CallSignalSocket::OnH450PDU(
         X880_ROS& operation = operations[j];
         switch (operation.GetTag()) {
           case X880_ROS::e_invoke:
-            result = OnH450Invoke(ep,(X880_Invoke &)operation, interpretation);
+            result = OnH450Invoke((X880_Invoke &)operation, interpretation);
             break;
 
           case X880_ROS::e_returnResult:
@@ -3079,7 +3173,7 @@ bool CallSignalSocket::OnH450PDU(
   return result;
 }
 
-bool CallSignalSocket::OnH450Invoke(endptr & ep, X880_Invoke & invoke, H4501_InterpretationApdu & interpretation)
+bool CallSignalSocket::OnH450Invoke(X880_Invoke & invoke, H4501_InterpretationApdu & interpretation)
 {
 	bool result = false;
 
@@ -3104,7 +3198,7 @@ bool CallSignalSocket::OnH450Invoke(endptr & ep, X880_Invoke & invoke, H4501_Int
 
 		switch (opcode) {
 			case H4502_CallTransferOperation::e_callTransferInitiate:
-				result = OnH450CallTransfer(ep,argument);
+				result = OnH450CallTransfer(argument);
 				break;
 			default:
 				break;
@@ -3116,53 +3210,298 @@ bool CallSignalSocket::OnH450Invoke(endptr & ep, X880_Invoke & invoke, H4501_Int
 
 static PString ParseEndpointAddress(H4501_EndpointAddress& endpointAddress)
 {
-  H4501_ArrayOf_AliasAddress& destinationAddress = endpointAddress.m_destinationAddress;
+	H4501_ArrayOf_AliasAddress& destinationAddress = endpointAddress.m_destinationAddress;
 
-  PString alias;
-  PString remoteParty = PString();
-  H323TransportAddress transportAddress;
+	PString alias;
+	PString remoteParty = PString();
+	H323TransportAddress transportAddress;
 
-  for (PINDEX i = 0; i < destinationAddress.GetSize(); i++) {
-    H225_AliasAddress& aliasAddress = destinationAddress[i];
+	for (PINDEX i = 0; i < destinationAddress.GetSize(); i++) {
+		H225_AliasAddress& aliasAddress = destinationAddress[i];
 
-    if (aliasAddress.GetTag() == H225_AliasAddress::e_transportID)
-      transportAddress = (H225_TransportAddress &)aliasAddress;
-    else
-      alias = ::H323GetAliasAddressString(aliasAddress);
-  }
+		if (aliasAddress.GetTag() == H225_AliasAddress::e_transportID) {
+			transportAddress = (H225_TransportAddress &)aliasAddress;
+			transportAddress.Replace("ip$","");
+			transportAddress.Replace("*","");
+		}
+		else
+			alias = ::H323GetAliasAddressString(aliasAddress);
+	}
+	if (alias.IsEmpty()) {
+		remoteParty = transportAddress;
+	}
+	else if (transportAddress.IsEmpty()) {
+		remoteParty = alias;
+	}
+	else {
+		remoteParty = alias + '@' + transportAddress;
+	}
 
-  if (alias.IsEmpty()) {
-    remoteParty = transportAddress;
-  }
-  else if (transportAddress.IsEmpty()) {
-    remoteParty = alias;
-  }
-  else {
-    remoteParty = alias + '@' + transportAddress;
-  }
-
-  return remoteParty;
+	return remoteParty;
 }
 
-bool CallSignalSocket::OnH450CallTransfer(endptr & ep, PASN_OctetString * argument)
+bool CallSignalSocket::OnH450CallTransfer(PASN_OctetString * argument)
 {
-  H4502_CTInitiateArg ctInitiateArg;
-  PPER_Stream argStream(*argument);
-  if (ctInitiateArg.Decode(argStream)) {
-      PString remoteParty = ParseEndpointAddress(ctInitiateArg.m_reroutingNumber);
-	  H225_CallIdentifier callid;
-	  callid.m_guid = H225_GloballyUniqueID(ctInitiateArg.m_callIdentity.GetValue());
-      SmartPtr<CallRec> m_call = CallTable::Instance()->FindCallRec(callid);
-	  return SoftPBX::TransferCall(ep, m_call, remoteParty);
-  }
-  return false;
+	H4502_CTInitiateArg ctInitiateArg;
+	PPER_Stream argStream(*argument);
+	if (ctInitiateArg.Decode(argStream)) {
+		PString remoteParty = ParseEndpointAddress(ctInitiateArg.m_reroutingNumber);
+		if (remoteParty.IsEmpty()) {
+			PTRACE(1, "H.450.2 Emulator: Empty destination");
+			return false;
+		}
+		// ignored for now
+		//H225_CallIdentifier callid;
+		//callid.m_guid = H225_GloballyUniqueID(ctInitiateArg.m_callIdentity.GetValue());
+		if (!m_call) {
+			PTRACE(1, "H.450.2 Emulator: No call to transfer");
+			return false;
+		}
+		if (!(m_call->GetCallSignalSocketCalling() && m_call->GetCallSignalSocketCalled())) {
+			PTRACE(1, "H.450.2 Emulator: Must have 2 connected parties on call for transfer");
+			return false;
+		}
+		PCaselessString method = Toolkit::Instance()->Config()->GetString(RoutedSec, "H4502EmulatorTransferMethod", "callForwarded");
+		PTRACE(2, "H.450.2 Emulator Transfer call to " << remoteParty << " using method " << method);
+		if (method == "Reroute") {
+			// fork another thread for the reroute, so this socket doesn't block
+			remoteParty.MakeUnique();
+			if (this == m_call->GetCallSignalSocketCalling()) {
+				CreateJob(this, &CallSignalSocket::RerouteCalled, remoteParty, "Reroute to " + remoteParty);
+			} else {
+				CreateJob(m_call->GetCallSignalSocketCalling(), &CallSignalSocket::RerouteCaller, remoteParty, "Reroute to " + remoteParty);
+			}
+			return true;
+		} else {
+			// TODO: extend to unregistered calls
+			endptr ep = m_callerSocket ? m_call->GetCallingParty() : m_call->GetCalledParty();
+			return ep ? SoftPBX::TransferCall(ep, m_call, remoteParty) : false;
+		}
+	}
+	return false;
 }
 
-#endif
+#endif	// H323_H450
 
-void CallSignalSocket::OnReleaseComplete(
-	SignalingMsg *msg
-	)
+// helper method to start a thread with only one parameter (which would be 2nd)
+void CallSignalSocket::RerouteCaller(PString destination)
+{
+	RerouteCall(Caller, destination, true);
+}
+
+void CallSignalSocket::RerouteCalled(PString destination)
+{
+	RerouteCall(Called, destination, true);
+}
+
+// to be called on the remaining socket !!!
+bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, bool h450transfer)
+{
+	CallSignalSocket * droppedSocket = NULL;
+	CallSignalSocket * remainingSocket = NULL;
+
+	// check if we have access to signalling channel of endpoint to be transferred
+	if (which == Called) {
+		droppedSocket = m_call->GetCallSignalSocketCalling();
+		remainingSocket = m_call->GetCallSignalSocketCalled();
+	} else {
+		droppedSocket = m_call->GetCallSignalSocketCalled();
+		remainingSocket = m_call->GetCallSignalSocketCalling();
+	}
+	if (this != remainingSocket) {
+		PTRACE(1, "Error: RerouteCall() called on wrong socket" << this);
+		return false;
+	}
+
+	// build Setup
+	Q931 q931;
+	H225_H323_UserInformation uuie;
+	PBYTEArray perBuffer;
+	bool tunneling = (which == Called) ? m_call->GetCallSignalSocketCalled()->m_h245Tunneling : m_call->GetCallSignalSocketCalling()->m_h245Tunneling;
+	if (which == Caller) {
+		// use saved Setup and just change the destination
+		q931.Decode(m_rawSetup);
+		GetUUIE(q931, uuie);
+		H225_Setup_UUIE & setup = uuie.m_h323_uu_pdu.m_h323_message_body;
+		uuie.m_h323_uu_pdu.m_h245Tunneling = tunneling;
+		// remove old destination
+		setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		setup.RemoveOptionalField(H225_Setup_UUIE::e_destinationAddress);
+		// TODO: unify code to set destination between BuildSetup and here (just here ?)
+		// check if destination contain IP to set destCallSigAdr
+		PString alias;
+		PString destip;
+		PINDEX at = destination.Find("@");
+		if (at != P_MAX_INDEX) {
+			alias = destination.Left(at);
+			destip = destination.Mid(at+1);
+			if (!IsIPAddress(destip)) {
+				// use as URL_ID
+				destip = "";
+				alias = destination;
+			}
+		} else {
+			if (IsIPAddress(destination)) {
+				destip = destination;
+			} else {
+				alias = destination;
+			}
+		}
+		if (!destip.IsEmpty()) {
+			setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+			PStringArray adr_parts = destip.Tokenise(":", FALSE);
+			PString ip = adr_parts[0];
+			WORD port = (WORD)(adr_parts[1].AsInteger());
+			if (port == 0)
+				port = GK_DEF_ENDPOINT_SIGNAL_PORT;
+			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
+		}
+		if (!alias.IsEmpty()) {
+			setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			setup.m_destinationAddress.SetSize(1);
+			H323SetAliasAddress(alias, setup.m_destinationAddress[0]);
+			if (setup.m_destinationAddress[0].GetTag() == H225_AliasAddress::e_dialedDigits) {
+				q931.SetCalledPartyNumber(alias);
+			}
+		}
+	} else {
+		BuildSetupPDU(q931, m_call->GetCallIdentifier(), m_call->GetCallRef(), destination, tunneling);
+		GetUUIE(q931, uuie);
+		H225_Setup_UUIE & setup_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
+		setup_uuie.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		setup_uuie.m_sourceAddress.SetSize(1);
+		if (which == Called) {
+			H323SetAliasAddress(m_call->GetCalledStationId(), setup_uuie.m_sourceAddress[0]);
+		} else {
+			H323SetAliasAddress(m_call->GetCallingStationId(), setup_uuie.m_sourceAddress[0]);
+		}
+	}
+	SetUUIE(q931, uuie);
+	q931.Encode(perBuffer);
+	m_rawSetup = perBuffer;
+	m_rawSetup.MakeUnique();
+
+	PrintQ931(3, "Setup for Reroute ", GetName(), &q931, &uuie);
+
+	PIPSocket::Address dummyAddr;
+	SignalingMsg *msg = SignalingMsg::Create(&q931, &uuie, dummyAddr, dummyAddr, dummyAddr, (WORD)0);
+	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
+	if (setup == NULL) {
+		PTRACE(1, "Can't cast Setup");	// should never happen
+		return false;
+	}
+	H225_Setup_UUIE &setupBody = setup->GetUUIEBody();
+
+	// invoke authentication
+	SetupAuthData authData(m_call, m_call ? true : false);
+	authData.m_callingStationId = GetCallingStationId(*setup, authData);
+	authData.m_calledStationId = GetCalledStationId(*setup, authData);
+	if (!RasServer::Instance()->ValidatePDU(*setup, authData)) {
+		PTRACE(1, "Q931\tAutentication of reroute destination failed");
+		return false;
+	}
+	// invoke routing policies for destination
+	Routing::SetupRequest request(setupBody, setup, authData.m_callingStationId, authData.m_clientAuthId);
+	request.Process();
+	Route route;
+	if (!request.GetFirstRoute(route)) {
+		PTRACE(1, "Q931\tCan't find reroute destination");
+		return false;
+	}
+	PTRACE(1, "Q931\tRerouting route: " << route.AsString());
+
+	m_call->SetRerouteState(RerouteInitiated);
+	m_call->SetRerouteDirection(which);
+	
+	PBYTEArray lBuffer;
+	if (!m_h245socket || droppedSocket->m_h245socket) {
+		// build TCS0 for tunneled H.245 connection
+		BuildFacilityPDU(q931, 0);
+		GetUUIE(q931, uuie);
+		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+		uuie.m_h323_uu_pdu.m_h245Tunneling = tunneling;
+		uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
+		uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
+		H245_MultimediaSystemControlMessage h245msg;
+		h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
+		H245_RequestMessage & h245req = h245msg;
+		h245req.SetTag(H245_RequestMessage::e_terminalCapabilitySet);
+		H245_TerminalCapabilitySet & tcs0 = h245req;
+		tcs0.m_protocolIdentifier.SetValue(H245_ProtocolID);
+		uuie.m_h323_uu_pdu.m_h245Control[0].EncodeSubType(h245msg);
+		SetUUIE(q931, uuie);
+		q931.Encode(lBuffer);
+	}
+	// send TCS0 to forwarded party
+	if (m_h245socket) {
+		m_h245socket->SendTCS(NULL);
+	} else {
+		PrintQ931(1, "Q931\tSending TCS0 to forwarded ", GetName(), &q931, &uuie);
+		TransmitData(lBuffer);
+	}
+
+	// send TCS0 to dropping party
+	if (droppedSocket->m_h245socket) {
+		droppedSocket->m_h245socket->SendTCS(NULL);
+	} else {
+		PrintQ931(1, "Q931\tSending TCS0 to dropped ", droppedSocket->GetName(), &q931, &uuie);
+		droppedSocket->TransmitData(lBuffer);
+	}
+
+	PThread::Sleep(1000);	// wait for all CLCs to be exchanged: TODO: better criteria
+
+	// drop party from call
+	if (which == Called) {
+		m_call->RerouteDropCalling();
+	} else {
+		m_call->RerouteDropCalled();
+	}
+
+	droppedSocket->RemoveRemoteSocket();
+	droppedSocket->RemoveH245Handler();
+	if (droppedSocket->m_h245socket) {
+		droppedSocket->m_h245socket->RemoveRemoteSocket();
+	}
+	if (droppedSocket->GetHandler()->Detach(this))
+		PTRACE(1, "Q931\tSocket " << droppedSocket->GetName() << " detached from its handler");
+	else
+		PTRACE(1, "Q931\tFailed to detach socket " << droppedSocket->GetName() << " from its handler");
+	remote = NULL;
+	m_h245socket->RemoveRemoteSocket();
+	GetHandler()->Remove(droppedSocket);
+
+	// TODO: ReleaseComplete answer from dropped party cfauses deletion of signalling socket of remaining party
+	// because its only 1 call record - solution: 2 call records or check if forwarder set when RC comes in ?
+	// TODO: if (h450transfer): include H450 returnResult in RC
+	//droppedSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);
+
+	// TODO: send CLC for all open channels to remaining party, instead of Sleep() above, but that info is only collected in proxy mode
+
+	if (route.m_destEndpoint)
+		m_call->SetCalled(route.m_destEndpoint);
+	else
+		m_call->SetDestSignalAddr(route.m_destAddr);
+
+	if (route.m_flags & Route::e_toParent)
+		m_call->SetToParent(true);
+
+	if(!route.m_destNumber.IsEmpty()) {
+		H225_AliasAddress destAlias;
+		H323SetAliasAddress(route.m_destNumber, destAlias);
+		m_call->SetRouteToAlias(destAlias);
+	}
+
+	// send Setup
+	buffer = m_rawSetup;
+	buffer.MakeUnique();
+	// delete msg;	// TODO: crash or leak
+	PTRACE(5, GetName() << "\tRerouting call to " << route.AsString());
+	CreateJob(this, &CallSignalSocket::DispatchNextRoute, "Reroute");
+	
+	return true;
+}
+
+void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 {
 	ReleaseCompleteMsg *rc = dynamic_cast<ReleaseCompleteMsg*>(msg);
 	if (rc == NULL) {
@@ -3788,6 +4127,67 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallI
 	PrintQ931(5, "Send to ", GetName(), &ProceedingPDU, &signal);
 }
 
+void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling)
+{
+	SetupPDU.BuildSetup(crv);
+	H225_H323_UserInformation signal;
+	signal.m_h323_uu_pdu.m_h245Tunneling = h245tunneling;
+	signal.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_setup);
+	H225_Setup_UUIE & setup = signal.m_h323_uu_pdu.m_h323_message_body;
+	setup.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	setup.m_conferenceID = callid.m_guid; // generate new: OpalGloballyUniqueID();
+	setup.m_callIdentifier.m_guid = setup.m_conferenceID;
+	// TODO: consider m_call->BindHint ?
+	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+	setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
+	setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
+	// check if destination contain IP to set destCallSigAdr
+	PString alias;
+	PString destip;
+	PINDEX at = destination.Find("@");
+	if (at != P_MAX_INDEX) {
+		alias = destination.Left(at);
+		destip = destination.Mid(at+1);
+		if (!IsIPAddress(destip)) {
+			// use as URL_ID
+			destip = "";
+			alias = destination;
+		}
+	} else {
+		if (IsIPAddress(destination)) {
+			destip = destination;
+		} else {
+			alias = destination;
+		}
+	}
+	if (!destip.IsEmpty()) {
+		setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		PStringArray adr_parts = destip.Tokenise(":", FALSE);
+		PString ip = adr_parts[0];
+		WORD port = (WORD)(adr_parts[1].AsInteger());
+		if (port == 0)
+			port = GK_DEF_ENDPOINT_SIGNAL_PORT;
+		setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
+	}
+	if (!alias.IsEmpty()) {
+		setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+		setup.m_destinationAddress.SetSize(1);
+		H323SetAliasAddress(alias, setup.m_destinationAddress[0]);
+		if (setup.m_destinationAddress[0].GetTag() == H225_AliasAddress::e_dialedDigits) {
+			SetupPDU.SetCalledPartyNumber(alias);
+		}
+	}
+	// set bearer capability to unrestricted information transfer + huge transfer rate
+	PBYTEArray caps;
+	caps.SetSize(4);
+	caps[0] = 0x88;
+	caps[1] = 0x18;
+	caps[2] = 0x86;
+	caps[3] = 0xa5;
+	SetupPDU.SetIE(Q931::BearerCapabilityIE, caps);
+	SetUUIE(SetupPDU, signal);
+}
+
 // handle a new message on a new connection
 void CallSignalSocket::Dispatch()
 {
@@ -3947,6 +4347,10 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 {
 	H225_H323_UserInformation *uuie = NULL;
 	Q931 *q931pdu = new Q931();
+
+	// JW TODO: is this ok for failover ???
+	buffer = m_rawSetup;
+	buffer.MakeUnique();
 
 	if (!q931pdu->Decode(buffer)) {
 		PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING Q.931!");
@@ -4174,9 +4578,17 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		userevert = true;
 #endif
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
-	ret->m_h245socket = new H245Socket(m_h245socket, ret);
+	if (!m_call->GetRerouteState() == RerouteInitiated)
+		ret->m_h245socket = new H245Socket(m_h245socket, ret);
 	m_h245socket->SetH245Address(h245addr, masqAddr);
-	CreateJob(m_h245socket, &H245Socket::ConnectTo, "H245Connector");
+	// if in reroute, don't listen, actively connect to the other side, half of the H.245 connection is already up
+	if (m_call->GetRerouteState() == RerouteInitiated) {
+		m_h245socket->SetRemoteSocket(ret->m_h245socket);
+		ret->m_h245socket->SetRemoteSocket(m_h245socket);
+		CreateJob(m_h245socket, &H245Socket::ConnectToRerouteDestination, "H245RerouteConnector");
+	} else {
+		CreateJob(m_h245socket, &H245Socket::ConnectTo, "H245Connector");	// start a listener
+	}
 	return true;
 }
 
@@ -4400,9 +4812,9 @@ bool H245Handler::HandleRequest(H245_RequestMessage & Request)
 	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		return hnat->HandleOpenLogicalChannel(Request);
 	} else if  (Request.GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
-    		return true;
+       return true;
 	} else if  (Request.GetTag() == H245_RequestMessage::e_requestMode) {
-    		return true;
+		return true;
 	} else {
 		return false;
 	}
@@ -4524,6 +4936,56 @@ void H245Socket::ConnectTo()
 	GetHandler()->Insert(this, remote);
 }
 
+// called when in Reroute, don't listen, but connect directly and re-send TCS
+void H245Socket::ConnectToRerouteDestination()
+{
+			PTRACE(0, "ConnectToRerouteDestination()");
+		if (ConnectRemote()) {
+			ConfigReloadMutex.StartRead();
+			SetConnected(true);
+			remote->SetConnected(true);
+			GetHandler()->Insert(this, remote);
+			ConfigReloadMutex.EndRead();
+
+			// re-send TCS
+			H245Socket * remote_h245socket = dynamic_cast<H245Socket*>(remote);
+			if (remote_h245socket && remote_h245socket->sigSocket) {
+				H245_TerminalCapabilitySet tcs = remote_h245socket->sigSocket->GetSavedTCS();
+				SendTCS(&tcs);
+			} else {
+				PTRACE(1, "Reroute: Can't retrieve TCS to re-send");
+			}
+			return;
+		}
+
+	ReadLock lockConfig(ConfigReloadMutex);
+
+	m_signalingSocketMutex.Wait();
+	// establish H.245 channel failed, disconnect the call
+	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
+	if (socket) {
+		socket->SetConnected(false);
+		socket->RemoveCall();
+		if (!socket->IsBlocked())
+		    socket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+		socket->CloseSocket();
+	}
+	m_signalingSocketMutex.Signal();
+	
+	if (H245Socket *ret = static_cast<H245Socket *>(remote)) {
+		ret->m_signalingSocketMutex.Wait();
+		socket = ret->sigSocket;
+		if (socket) {
+			if (socket->IsConnected() && !socket->IsBlocked())
+				socket->SendReleaseComplete(H225_ReleaseCompleteReason::e_unreachableDestination);
+			socket->SetConnected(false);
+			socket->CloseSocket();
+		}
+		ret->m_signalingSocketMutex.Signal();
+	}
+	GetHandler()->Insert(this, remote);
+}
+
 ProxySocket::Result H245Socket::ReceiveData()
 {
 	if (!ReadTPKT())
@@ -4532,7 +4994,7 @@ ProxySocket::Result H245Socket::ReceiveData()
 	PPER_Stream strm(buffer);
 
 	bool suppress = false;
-	if (sigSocket && sigSocket->HandleH245Mesg(strm, suppress))
+	if (sigSocket && sigSocket->HandleH245Mesg(strm, suppress, (H245Socket *)this))
 		buffer = strm;
 
 	if (suppress)
@@ -4563,8 +5025,37 @@ void H245Socket::SendEndSessionCommand()
 	PPER_Stream wtstrm;
 	h245msg.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
-	TransmitData(wtstrm);
+	if (!TransmitData(wtstrm)) {
+		PTRACE(1, "H245\tSending of endSessionCommand to " << GetName() << " failed");
+	}
 	PTRACE(4, "H245\tSend endSessionCommand to " << GetName());
+}
+
+void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs)
+{
+	if (!IsConnected()) {
+		return;
+	}
+	H245_MultimediaSystemControlMessage h245msg;
+	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
+	H245_RequestMessage & h245req = h245msg;
+	h245req.SetTag(H245_RequestMessage::e_terminalCapabilitySet);
+	H245_TerminalCapabilitySet & newTCS = h245req;
+	// saved capabilities, otherwise empty
+	if (tcs) {
+		newTCS = *tcs;
+		newTCS.m_sequenceNumber = 1;
+	} else {
+		newTCS.m_sequenceNumber = 2;
+		newTCS.m_protocolIdentifier.SetValue(H245_ProtocolID);
+	}
+	PPER_Stream wtstrm;
+	h245msg.Encode(wtstrm);
+	wtstrm.CompleteEncoding();
+	if (!TransmitData(wtstrm)) {
+		PTRACE(1, "H245\tSending of TerminalCapabilitySet to " << GetName() << " failed");
+	}
+	PTRACE(4, "H245\tSend TerminalCapabilitySet to " << GetName());
 }
 
 #ifdef LARGE_FDSET
@@ -6522,8 +7013,9 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 				Remove(k);
 				continue;
 			}
-			if (socket->IsDeletable())
+			if (socket->IsDeletable()) {
 				Remove(k);
+			}
 		}
 	}
 	return slist.GetSize() > 0;
@@ -6533,6 +7025,10 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 void ProxyHandler::ReadSocket(IPSocket *socket)
 {
 	ProxySocket *psocket = dynamic_cast<ProxySocket *>(socket);
+	if (psocket == NULL) {
+		PTRACE(1, "Error\tInvalid socket");
+		return;
+	}
 	switch (psocket->ReceiveData())
 	{
 		case ProxySocket::Connecting:
@@ -6585,14 +7081,16 @@ void ProxyHandler::AddPairSockets(IPSocket *first, IPSocket *second)
 	if (iter == m_sockets.end()) {
 		m_sockets.push_back(first);
 		++m_socksize;
-	} else
+	} else {
 		PTRACE(1, GetName() << "\tTrying to add an already existing socket to the handler");
+	}
 	iter = find(m_sockets.begin(), m_sockets.end(), second);
 	if (iter == m_sockets.end()) {
 		m_sockets.push_back(second);
 		++m_socksize;
-	} else
+	} else {
 		PTRACE(1, GetName() << "\tTrying to add an already existing socket to the handler");
+	}
 	m_listmutex.EndWrite();
 	Signal();
 	PTRACE(5, GetName() << " total sockets " << m_socksize);
@@ -6604,7 +7102,12 @@ void ProxyHandler::FlushSockets()
 	m_listmutex.StartRead();
 	iterator i = m_sockets.begin(), j = m_sockets.end();
 	while (i != j) {
-		if (dynamic_cast<ProxySocket *>(*i)->CanFlush()) {
+		ProxySocket * s = dynamic_cast<ProxySocket *>(*i);
+		if (s == NULL) {
+			PTRACE(1, "Proxy\tCast of proxy socket failed");
+			continue;
+		}
+		if (s->CanFlush()) {
 #ifdef _WIN32
 			if (wlist.GetSize() >= FD_SETSIZE)
 				PTRACE(0, "Proxy\tToo many sockets in this proxy handler "

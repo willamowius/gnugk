@@ -289,6 +289,8 @@ void SoftPBX::SendProceeding(PString CallId)
 	lForwardedSocket->TransmitData(lBuffer);
 }
 
+// used by H.450.2 call emulator
+// TODO: extend to unregistered
 bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias)
 {
 	if (!lCall || !lSrcForward) {
@@ -346,6 +348,7 @@ bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PStrin
 
 }
 
+// used from the status port
 void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 {
 	PTRACE(3, "GK\tSoftPBX: TransferCall " << SourceAlias << " -> " << DestinationAlias);
@@ -358,7 +361,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	PStringList lBufferAliasArrayString;
 	H225_ArrayOf_AliasAddress lBufferAliasArray;
 
-	//Search for the call in CallTable
+	// Search for the call in CallTable
 	lBufferAliasArrayString.AppendString(SourceAlias);
 	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
 
@@ -374,7 +377,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	}
 	lCall = CallTable::Instance()->FindCallRec(lSrcForward);
 
-	//Search for the Forwarded CallSignalSocket in lCall ( calling or caller socket ? )
+	// Search for the Forwarded CallSignalSocket in lCall ( calling or caller socket ? )
 	if (lCall) {
 		endptr lCalling, lCalled;
 		lCalling = lCall->GetCallingParty();
@@ -398,7 +401,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 		return;
 	}
 
-	//Search destination of call forwarding : lDestForward
+	// Search destination of call forwarding : lDestForward
 	lBufferAliasArrayString.AppendString(DestinationAlias);
 	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
 
@@ -422,7 +425,46 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
 
-	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + " transferred from" + SourceAlias + " to " + DestinationAlias;
+	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + " transferred from " + SourceAlias + " to " + DestinationAlias;
+	PTRACE(1, "GK\tSoftPBX: " + msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+}
+
+void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichLeg, const PString & destination)
+{
+	PTRACE(1, "GK\tSoftPBX: RerouteCall " << CallId << " (" << whichLeg << ") -> " << destination);
+
+	CallLeg which = (whichLeg == "called") ? Called : Caller;
+	callptr lCall = CallTable::Instance()->FindCallRec(StringToCallId(CallId));
+	CallSignalSocket * lForwardedSocket = NULL;
+
+	if (lCall) {
+		if (which == Called) {
+			lForwardedSocket = lCall->GetCallSignalSocketCalled();
+		} else {
+			lForwardedSocket = lCall->GetCallSignalSocketCalling();
+		}
+		if (lForwardedSocket) {
+			if (!lForwardedSocket->RerouteCall(which, destination, false)) {
+				PString msg("SoftPBX: Reroute failed");
+				PTRACE(1, "GK\t" + msg);
+				GkStatus::Instance()->SignalStatus(msg + "\r\n");
+				return;
+			}
+		} else {
+			PString msg("SoftPBX: can't find signalling socket (direct mode ?)");
+			PTRACE(1, "GK\t" + msg);
+			GkStatus::Instance()->SignalStatus(msg + "\r\n");
+			return;
+		}
+	} else {
+		PString msg("SoftPBX: no call to reroute!");
+		PTRACE(1, "GK\t" + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return;
+	}
+
+	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + " / " + which + " rerouted to " + destination;
 	PTRACE(1, "GK\tSoftPBX: " + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }

@@ -61,7 +61,6 @@ bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie);
 
 void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie);
 
-
 class ProxySocket : public USocket {
 public:
 	enum Result {
@@ -125,7 +124,9 @@ public:
 	virtual bool TransmitData(const PBYTEArray &);
 
 	void RemoveRemoteSocket();
-	
+	void SetRemoteSocket(TCPProxySocket * ret) { remote=ret; }
+	TCPProxySocket * GetRemoteSocket() const { return remote; }
+
 private:
 	TCPProxySocket();
 	TCPProxySocket(const TCPProxySocket&);
@@ -182,7 +183,7 @@ public:
 	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
 	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
 
-	bool HandleH245Mesg(PPER_Stream &, bool & suppress);
+	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	bool IsNATSocket() const { return m_isnatsocket; }
 	void OnH245ChannelClosed() { m_h245socket = 0; }
 	void SetPeerAddress(const Address &, WORD);
@@ -192,7 +193,11 @@ public:
 	void BuildFacilityPDU(Q931 &, int, const PObject * = 0);
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
+	void BuildSetupPDU(Q931 &, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling);
 	void RemoveCall();
+	bool RerouteCall(CallLeg which, const PString & destination, bool h450transfer);
+	void RerouteCaller(PString destination);
+	void RerouteCalled(PString destination);
 
 	// override from class ServerSocket
 	virtual void Dispatch();
@@ -200,6 +205,9 @@ public:
 	Result RetrySetup();
 	void TryNextRoute();
 	void RemoveH245Handler();
+	void SaveTCS(const H245_TerminalCapabilitySet & tcs) { m_savedTCS = tcs; }
+	H245_TerminalCapabilitySet GetSavedTCS() const { return m_savedTCS; }
+	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// compare pointers !
 	
 protected:
 	CallSignalSocket(CallSignalSocket *);
@@ -224,9 +232,9 @@ protected:
 	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);
 
 #if H323_H450
-	bool OnH450PDU(endptr &, H225_ArrayOf_PASN_OctetString &);
-	bool OnH450Invoke(endptr &, X880_Invoke &, H4501_InterpretationApdu &);
-	bool OnH450CallTransfer(endptr &, PASN_OctetString *);
+	bool OnH450PDU(H225_ArrayOf_PASN_OctetString &);
+	bool OnH450Invoke(X880_Invoke &, H4501_InterpretationApdu &);
+	bool OnH450CallTransfer(PASN_OctetString *);
 #endif
 
 	template<class UUIE> bool HandleH245Address(UUIE & uu)
@@ -316,6 +324,7 @@ private:
 	/// raw Setup data as received from the caller (for failover)
 	PBYTEArray m_rawSetup;
 	PMutex infomutex;    // Information PDU processing Mutex
+	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
 };
 
 class CallSignalListener : public TCPListenSocket {

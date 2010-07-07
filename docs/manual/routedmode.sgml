@@ -396,6 +396,13 @@ the call on behalf of the endpoint. This allows the endpoint initiated transferr
 calls where the remote endpoint may not support H.450 and the gatekeeper initiates the 
 call transfer.  
 
+<item><tt/H4502EmulatorTransferMethod=Reroute/<newline>
+Default: <tt>callForwarded</tt><newline>
+<p>
+Set the cal transfer method for the H.450.2 emulator.
+It defaults to sending a callFordwarded Facility to the endpoint.
+Setting it to "Reroute" uses a gatekeeper based TCS=0 transfer.
+
 <item><tt/TranslateReceivedQ931Cause=17:=34/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

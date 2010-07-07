@@ -111,6 +111,7 @@ public:
 		e_UnregisterIp,                /// force unregisterung of one andpoint by IP number
 		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
 		e_TransferCall,                /// transfer call from one endpoint to another
+		e_RerouteCall,                 /// transfer call with pause and reroute
 		e_MakeCall,                    /// establish a new call from endpoint A to endpoint B
 		e_Yell,                        /// write a message to all status clients
 		e_Who,                         /// list who is logged on at a status port

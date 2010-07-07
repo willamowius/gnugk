@@ -1,5 +1,7 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- gatekeeper-based TCS=0 call transfer: activated through H.450.2 emulator
+  or new status port command RerouteCall
 - BUGFIX(yasocket.cxx, RasTbl.cxx) don't accept new calls or retry calls when shutdown is
   in progress, avoids possible crash
 - BUGFIX(Routing.cxx) check if routing policies have been configured, before using them
