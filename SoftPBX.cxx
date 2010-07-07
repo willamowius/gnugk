@@ -464,7 +464,7 @@ void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichL
 		return;
 	}
 
-	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + " / " + which + " rerouted to " + destination;
+	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + PString(" / ") + whichLeg + PString(" rerouted to ") + destination;
 	PTRACE(1, "GK\tSoftPBX: " + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
