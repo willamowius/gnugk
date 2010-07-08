@@ -5882,6 +5882,8 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 {
 	SrcIP = 0;
 	SrcPort = 0;
+	rtp = NULL;
+	rtcp = NULL;
 
 #ifdef HAS_H46023
 	// If we do not have a GKClient (no parent) and we 
