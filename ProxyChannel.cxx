@@ -4254,7 +4254,7 @@ void CallSignalSocket::Dispatch()
 				RemoveH245Handler();
 
 				const Route &newRoute = m_call->GetNewRoutes().front();
-				PTRACE(1, "Q931\tNew route: " << 	newRoute.AsString());
+				PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 
 				CallRec *newCall = new CallRec(m_call.operator ->());
 				CallTable::Instance()->RemoveFailedLeg(m_call);
@@ -4470,7 +4470,7 @@ void CallSignalSocket::DispatchNextRoute()
 			m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 				
 			const Route &newRoute = m_call->GetNewRoutes().front();
-			PTRACE(1, "Q931\tNew route: " << 	newRoute.AsString());
+			PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 				
 			CallRec *newCall = new CallRec(m_call.operator ->());
 			CallTable::Instance()->RemoveFailedLeg(m_call);
