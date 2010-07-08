@@ -2307,7 +2307,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				authData.m_rejectCause = Q931::CallRejected;
 				rejectCall = true;
 			} else {
-				Route route;
 				PreliminaryCall * tmpCall = new PreliminaryCall(this, setupBody.m_callIdentifier, m_crv);
 				PreliminaryCallTable::Instance()->Insert(tmpCall);
 				request.Process();
@@ -2341,6 +2340,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 					}
 				}
 				if (!rejectCall) {
+					Route route;
 					if (request.GetFirstRoute(route)) {
 						destFound = true;
 						calledAddr = route.m_destAddr;
