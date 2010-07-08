@@ -55,9 +55,10 @@ Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0)
 }
 
 Route::Route(
+	const PString &policyName,
 	const endptr &destEndpoint
-	) : m_destAddr(destEndpoint->GetCallSignalAddress()), m_destEndpoint(destEndpoint),
-	m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_destNumber(""), m_destOutNumber("")
+	) : m_destAddr(destEndpoint->GetCallSignalAddress()), m_destEndpoint(destEndpoint), m_policy(policyName),
+	m_proxyMode(CallRec::ProxyDetect), m_flags(0)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -65,7 +66,7 @@ Route::Route(
 Route::Route(
 	const PString &policyName,
 	const H225_TransportAddress &destAddr
-	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_destNumber(""), m_destOutNumber("")
+	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -75,7 +76,7 @@ Route::Route(
 	const PIPSocket::Address &destIpAddr,
 	WORD destPort
 	) : m_destAddr(SocketToH225TransportAddr(destIpAddr, destPort)),
-	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_destNumber(""), m_destOutNumber("")
+	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -1841,8 +1842,7 @@ bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
 	H323SetAliasAddress(m_catchAllAlias, find_aliases[0]);
 	endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 	if (ep) {
-		Route route(ep);
-		route.m_policy = m_name;
+		Route route("catchall", ep);
 		request.AddRoute(route);
 		return true;
 	}

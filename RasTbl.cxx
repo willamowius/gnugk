@@ -1587,7 +1587,7 @@ bool RegistrationTable::InternalFindEP(
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &aliases), endpoints);
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
-		routes.push_back(Route(ep));
+		routes.push_back(Route("internal", ep));
         return true;
 	}
 
@@ -1619,7 +1619,7 @@ bool RegistrationTable::InternalFindEP(
 	std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
 	while (i != GWlist.end()) {
 		if (i->second->HasAvailableCapacity(aliases))
-			routes.push_back(Route(endptr(i->second)));
+			routes.push_back(Route("internal", endptr(i->second)));
 		else
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
 		++i;

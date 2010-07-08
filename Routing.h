@@ -53,6 +53,7 @@ struct Route {
 	
 	Route();
 	Route(
+		const PString &policyName,
 		const endptr &destEndpoint
 		);
 	Route(

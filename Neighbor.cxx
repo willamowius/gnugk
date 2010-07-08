@@ -1492,8 +1492,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 					if (ep) {
 						// endpoint found locally
-						Route * route = new Route(ep);
-						route->m_policy = m_name;
+						Route * route = new Route("srv", ep);
 						return route;
 					} else {
 						return NULL;
@@ -1590,8 +1589,7 @@ Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
 					endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 					if (ep) {
 						// endpoint found locally
-						Route * route = new Route(ep);
-						route->m_policy = m_name;
+						Route * route = new Route("srv", ep);
 						return route;
 					}
 				} else {
