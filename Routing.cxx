@@ -1678,7 +1678,7 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 }
 
 void SqlPolicy::DatabaseLookup(
-		/*in */
+		/* in */
 		const PString & source,
 		const PString & calledAlias,
 		const PString & calledIP,
