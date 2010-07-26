@@ -4253,6 +4253,10 @@ void CallSignalSocket::Dispatch()
 				
 				RemoveH245Handler();
 
+				if (m_call->GetNewRoutes().empty()) {
+					PTRACE(1, "Q931\tERROR: Call retry without a route");
+					return;
+				}
 				const Route &newRoute = m_call->GetNewRoutes().front();
 				PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 
@@ -4469,6 +4473,10 @@ void CallSignalSocket::DispatchNextRoute()
 			m_call->SetDisconnectCause(Q931::NoRouteToDestination);
 			m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 				
+			if (m_call->GetNewRoutes().empty()) {
+				PTRACE(1, "Q931\tERROR: Call retry without a route");
+				return;
+			}
 			const Route &newRoute = m_call->GetNewRoutes().front();
 			PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 				
@@ -5952,7 +5960,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 RTPLogicalChannel::~RTPLogicalChannel()
 {
 	if (peer) {
-		peer->peer = 0;
+		peer->peer = NULL;
 	} else {
 		if (used) {
 			// the sockets will be deleted by ProxyHandler,
