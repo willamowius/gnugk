@@ -94,21 +94,14 @@ public:
 		e_Reject = 16
 	};
 	
-	// note this is not a polymorphic class
 	RoutingRequest();
-	RoutingRequest(
-		const std::list<Route> &failedRoutes
-		);
-	~RoutingRequest();
+	RoutingRequest(const std::list<Route> &failedRoutes);
+	virtual ~RoutingRequest();
 
-	bool AddRoute(
-		const Route &route
-		);
-	bool GetFirstRoute(
-		Route &route
-		);
+	bool AddRoute(const Route &route);
+	bool GetFirstRoute(Route &route);
 	void RemoveAllRoutes();
-	std::list<Route> &GetRoutes() { return m_routes; }
+	std::list<Route> & GetRoutes() { return m_routes; }
 	
 	void SetRejectReason(unsigned reason) { m_reason = reason; }
 	void SetFlag(unsigned f) { m_flags |= f; }

@@ -1693,6 +1693,19 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				H225_AdmissionConfirm & acf = (*ras)->m_recvRAS;
 				Route route("parent", acf.m_destCallSignalAddress);
 				route.m_flags |= Route::e_toParent;
+				// check if destination has changed
+				if (acf.HasOptionalField(H225_AdmissionConfirm::e_destinationInfo)) {
+					// signal change of destination if caller supports canMapAlias
+					if (arq.HasOptionalField(H225_AdmissionRequest::e_canMapAlias)
+						&& arq.m_canMapAlias
+						&& acf.m_destinationInfo.GetSize() > 0 ) {
+						robj->SetFlag(Routing::RoutingRequest::e_aliasesChanged);
+						Routing::AdmissionRequest * orig_request = dynamic_cast<Routing::AdmissionRequest *>(robj);
+						if (orig_request) {
+							orig_request->GetRequest().m_destinationInfo = acf.m_destinationInfo;
+						}
+					}
+				}
 				robj->AddRoute(route);
 #ifdef HAS_H46023
 			  if (Toolkit::Instance()->IsH46023Enabled()) {
