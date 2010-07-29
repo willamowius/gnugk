@@ -526,8 +526,6 @@ bool InternalPolicy::FindByAliases(
 
 
 // a policy to route call to parent
-// the policy was originally in GkClient.cxx,
-// but damn VC has problem to instantiate the creator
 class ParentPolicy : public Policy {
 public:
 	ParentPolicy();
