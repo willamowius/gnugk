@@ -3487,7 +3487,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	m_h245socket->RemoveRemoteSocket();
 	GetHandler()->Remove(droppedSocket);
 
-	// TODO: ReleaseComplete answer from dropped party cfauses deletion of signalling socket of remaining party
+	// TODO: ReleaseComplete answer from dropped party causes deletion of signalling socket of remaining party
 	// because its only 1 call record - solution: 2 call records or check if forwarder set when RC comes in ?
 	// TODO: if (h450transfer): include H450 returnResult in RC
 	//droppedSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);
