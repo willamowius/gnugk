@@ -571,7 +571,7 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --disable-h46018 --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
 "
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>
@@ -580,7 +580,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --disable-h46018 --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
 "
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>
@@ -589,7 +589,7 @@
 					Name="Release (h323plus)|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --disable-h46018 --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
 "
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>
@@ -598,7 +598,7 @@
 					Name="Debug (h323plus)|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="configure --disable-h46018 --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
+						CommandLine="configure --exclude-env=VSNET_PWLIB_CONFIGURE_EXCLUDE_DIRS
 "
 						AdditionalDependencies="$(SolutionDir)/configure.in"
 						Outputs="$(InputDir)/gnugkbuildopt.h"/>

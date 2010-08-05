@@ -560,49 +560,49 @@
     <CustomBuild Include="gnugkbuildopts.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug (h323plus)|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug (h323plus)|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug (h323plus)|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug (h323plus)|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug (ptlib 1.11)|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug (ptlib 1.11)|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug (ptlib 1.11)|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug (ptlib 1.11)|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug as Service (h323plus)|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug as Service (h323plus)|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug as Service (h323plus)|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug as Service (h323plus)|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release (h323plus)|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release (h323plus)|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release (h323plus)|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release (h323plus)|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release (ptlib +1.11)|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release (ptlib +1.11)|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release (ptlib +1.11)|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release (ptlib +1.11)|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release as Service (h323plus)|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release as Service (h323plus)|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS% %GNUGK_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS% %GNUGK_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release as Service (h323plus)|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release as Service (h323plus)|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Configuring Build Options</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cd $(ProjectDir)
-configure --disable-h46018 --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
+configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)/configure.in;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
