@@ -45,7 +45,7 @@ protected:
     PMutex destinationMutex;
     std::map<PString, PString> destinations;
 
-	PBoolean useH450Transfer;
+	PCaselessString transferMethod;
 	PBoolean isRegistered;
 };
 

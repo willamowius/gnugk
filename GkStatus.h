@@ -104,6 +104,7 @@ public:
 		e_DisconnectIp,                /// disconnect a call by endpoint IP number
 		e_DisconnectAlias,             /// disconnect a call by endpoint alias
 		e_DisconnectCall,              /// disconnect a call by call number
+		e_DisconnectCallId,            /// disconnect a call by call ID
 		e_DisconnectEndpoint,          /// disconnect a call by endpoint ID
 		e_DisconnectSession,           /// disconnect a user from status port
 		e_ClearCalls,                  /// disconnect all calls

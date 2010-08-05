@@ -146,6 +146,12 @@
 #endif
 
 #if OPENH323_MAJOR == 1
+	#if OPENH323_MINOR >= 22
+		#define HAS_ROUTECALLTOMC 1	// H323Plus endpoints supports RouteCallToMC() starts inside 1.22.0
+	#endif
+#endif
+
+#if OPENH323_MAJOR == 1
 	#if OPENH323_MINOR >= 19
 		#if OPENH323_MINOR == 19
 			#if OPENH323_BUILD > 0

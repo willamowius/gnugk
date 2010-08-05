@@ -398,10 +398,17 @@ Default: <tt>InternalMakeCallEP</tt><newline>
 This defines the endpoint alias for the pseudo endpoint used to dial.
 
 <item>
+<tt/TransferMethod=H.450.2/<newline>
+Default: <tt>FacilityForward</tt><newline>
+<p>
+Set the method to transfer the call from the pseudo endpoint to the actual destination. Possible values are:
+FacilityForward, FacilityRouteCallToMC and H.450.2.
+
+<item>
 <tt/UseH450=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Use a H.450.2 transfer instead of a Facility message to transfer the call from the pseudo endpoint to the actual destination.
+Use a H.450.2 transfer instead of a Facility message to transfer the call from the pseudo endpoint to the actual destination. <bf>Deprecated: Use TransferMethod= instead.</bf>
 
 <item>
 <tt/Gatekeeper=192.168.1.2/<newline>

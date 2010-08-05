@@ -1138,7 +1138,10 @@ public:
 
 	void SetBindHint(const PString & ip) { m_bindHint = ip; }
 	PString GetBindHint() const { return m_bindHint; }
-	
+
+	void SetCallerID(const PString & id) { m_callerID = id; }
+	PString GetCallerID() const { return m_callerID; }
+
 #ifdef HAS_H46018
 	bool H46019Required() const;
 	void StoreSetup(SignalingMsg * msg);
@@ -1327,6 +1330,7 @@ private:
 	PString m_bindHint;	// outgoing IP or empty
 	RerouteState m_rerouteState;	// is Pause&Reroute transfer in progress ?
 	CallLeg m_rerouteDirection;
+	PString m_callerID;	// forced caller ID or empty
 };
 
 typedef CallRec::Ptr callptr;

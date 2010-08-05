@@ -109,6 +109,8 @@ public:
 	unsigned GetFlags() const { return m_flags; }
 	void SetSourceIP(const PString & ip) { m_sourceIP = ip; }
 	PString GetSourceIP() const { return m_sourceIP; }
+	void SetCallerID(const PString & id) { m_callerID = id; }
+	PString GetCallerID() const { return m_callerID; }
 
 private:
 	RoutingRequest(const RoutingRequest&);
@@ -120,6 +122,7 @@ private:
 	std::list<Route> m_routes;
 	std::list<Route> m_failedRoutes;
 	PString m_sourceIP;
+	PString m_callerID;
 };
 
 template<class R, class W>
@@ -305,6 +308,8 @@ public:
 		PString* callSigAdr,
 		/// bind IP for BindAndRouteToGateway
 		PString* bindIP,
+		/// caller ID
+		PString* callerID,
 		/// should the call be rejected modified by this function on return)
 		bool & reject,
 		/// an actual virtual queue name (should be present in destinationInfo too)
@@ -315,7 +320,9 @@ public:
 		/// the callID as string
 		const PString& callID,
 		/// the called IP for unregistered calls
-		const PString& calledip = "unknown"
+		const PString& calledip = "unknown",
+		/// vendor string of caller
+		const PString& vendorString = "unknown"
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -338,7 +345,9 @@ public:
 		/// callID of the call associated with the route request
 		const PString& callID,
 		// outgoing IP or empty
-		const PString& bindIP = PString::Empty(),
+		const PString& bindIP,
+		// callerID or empty
+		const PString& callerID,
 		/// should this call be rejected
 		bool reject = false
 		);
@@ -362,7 +371,9 @@ public:
 		/// callID of the call associated with the route request
 		const PString& callID,
 		// outgoing IP or empty
-		const PString& bindIP = PString::Empty(),
+		const PString& bindIP,
+		// callerID or empty
+		const PString& callerID,
 		/// should this call be rejected
 		bool reject = false
 		);
@@ -398,12 +409,13 @@ private:
 			const PString& callID,
 			H225_ArrayOf_AliasAddress* agent,
 			PString* callsignaladdr,
-			PString* bindIP
+			PString* bindIP,
+			PString* callerID
 			)
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
 			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP),
-			m_reject(false) {}
+			m_callerID(callerID), m_reject(false) {}
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
@@ -418,6 +430,8 @@ private:
 		PString* m_callsignaladdr;
 		/// bindIP or empty
 		PString* m_sourceIP;
+		/// callerID or empty
+		PString* m_callerID;
 		/// should this call be rejected
 		bool m_reject;
 		/// a synchronization point for signaling that routing decision
@@ -442,6 +456,8 @@ private:
 		PString* callSigAdr,
 		/// bind IP for BindAndRouteToGateway
 		PString* bindIP,
+		/// caller ID
+		PString* callerID,
 		/// set by the function to true if another route request for the same
 		/// call is pending
 		bool& duplicate

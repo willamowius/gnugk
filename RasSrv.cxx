@@ -2771,6 +2771,7 @@ bool AdmissionRequestPDU::Process()
 		CallRec *pCallRec = new CallRec(*this, BWRequest, destinationString, authData.m_proxyMode);
 
 		pCallRec->SetBindHint(arq.GetSourceIP());
+		pCallRec->SetCallerID(arq.GetCallerID());
 		if (CalledEP)
 			pCallRec->SetCalled(CalledEP);
 		else {

@@ -14,20 +14,24 @@
 
 #include "MakeCall.h"
 #include "Toolkit.h"
+#include "config.h"
 
 MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndPoint")
 {
 	SetLocalUserName(GkConfig()->GetString("CTI::MakeCall", "EndpointAlias", "InternalMakeCallEP"));
 	isRegistered = FALSE;
-	useH450Transfer = Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "UseH450", "0"));
+	transferMethod = GkConfig()->GetString("CTI::MakeCall", "TransferMethod", "FacilityForward");
+	// compatibility with old switch
+	if (Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "UseH450", "0"))) {
+		transferMethod = "H.450.2";
+	}
 
 	// Set the various options
 	DisableFastStart(Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "DisableFastStart", "0")));
 	DisableH245Tunneling(Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "DisableH245Tunneling", "0")));
 
 	// Set the default codecs
-	AddAllCapabilities(0, 0, "*");
-	AddAllUserInputCapabilities(0, 1);
+	AddAllCapabilities(0, 0, "G.711");
 
 	// Start the listener thread for incoming calls.
 	H323TransportAddress iface = GkConfig()->GetString("CTI::MakeCall", "Interface", "*:1722");
@@ -126,11 +130,17 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection,
 	// find second party by call token
 	PString second_party = GetDestination(token);
 	PTRACE(1, "MakeCallEndpoint: Transfering call to 2nd party " << second_party);
-	if (useH450Transfer) {
+	if (transferMethod == "H.450.2") {
 		PTRACE(3, "MakeCallEndpoint: Using H.450.2 to transfer call");
 		connection.TransferCall(second_party);
+#ifdef HAS_ROUTECALLTOMC
+	} else if (transferMethod == "FacilityRouteCallToMC") {
+		PTRACE(3, "MakeCallEndpoint: Using Facility(routeCalltoMC) to transfer call");
+		H225_ConferenceIdentifier confId;
+		connection.RouteCallToMC(second_party, confId);
+#endif
 	} else {
-		PTRACE(3, "MakeCallEndpoint: Using Facility to transfer call");
+		PTRACE(3, "MakeCallEndpoint: Using Facility(callforwarded) to transfer call");
 		connection.ForwardCall(second_party);
 	}
 }

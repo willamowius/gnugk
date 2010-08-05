@@ -101,7 +101,7 @@ void SoftPBX::UnregisterAllEndpoints()
 	RegistrationTable::Instance()->ClearTable();
 }
 
-void SoftPBX::UnregisterAlias(PString Alias)
+void SoftPBX::UnregisterAlias(const PString & Alias)
 {
 	H225_ArrayOf_AliasAddress EpAlias;
 	EpAlias.SetSize(1);
@@ -126,7 +126,7 @@ void SoftPBX::UnregisterAlias(PString Alias)
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
-void SoftPBX::UnregisterIp(PString Ip)
+void SoftPBX::UnregisterIp(const PString & Ip)
 {
 	H225_TransportAddress callSignalAddress;
 	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
@@ -184,8 +184,29 @@ void SoftPBX::DisconnectCall(unsigned CallNumber)
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
+void SoftPBX::DisconnectCallId(const PString & CallId)
+{
+	PTRACE(3, "GK\tSoftPBX: DisconnectCallId " << CallId);
+
+	callptr Call = CallTable::Instance()->FindCallRec(StringToCallId(CallId));
+	if (!Call) {
+		PString msg = "Can't find call id " + CallId;
+		PTRACE(2, "GK\tSoftPBX: " << msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return;
+	}
+
+	Call->Disconnect(true);
+	// remove the call directly so we don't have to handle DCF
+	CallTable::Instance()->RemoveCall(Call);
+
+	PString msg = "Call id " + CallId + " disconnected.";
+	PTRACE(2, "GK\tSoftPBX: " << msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+}
+
 // send a DRQ to this endpoint
-void SoftPBX::DisconnectIp(PString Ip)
+void SoftPBX::DisconnectIp(const PString & Ip)
 {
 	H225_TransportAddress callSignalAddress;
 	GetTransportAddress(Ip, (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), callSignalAddress);
@@ -214,7 +235,7 @@ void SoftPBX::DisconnectIp(PString Ip)
 }
 
 // send a DRQ to this endpoint
-void SoftPBX::DisconnectAlias(PString Alias)
+void SoftPBX::DisconnectAlias(const PString & Alias)
 {
 	H225_ArrayOf_AliasAddress EpAlias;
 	EpAlias.SetSize(1);
@@ -226,7 +247,7 @@ void SoftPBX::DisconnectAlias(PString Alias)
 }
 
 // send a DRQ to this endpoint
-void SoftPBX::DisconnectEndpoint(PString Id)
+void SoftPBX::DisconnectEndpoint(const PString & Id)
 {
 	H225_EndpointIdentifier EpId;	// id of endpoint to be disconnected
 	EpId = Id;
@@ -251,15 +272,11 @@ void SoftPBX::DisconnectEndpoint(const endptr &ep)
 	}
 }
 
-void SoftPBX::SendProceeding(PString CallId)
+void SoftPBX::SendProceeding(const PString & CallId)
 {
 	PTRACE(3, "GK\tSoftPBX: SendProceeding " << CallId);
 
-	H225_CallIdentifier cid;
-	CallId.Replace("-", "", true);
-	CallId.Replace(" ", "", true);
-	OpalGloballyUniqueID tmp_guid(CallId);
-	cid.m_guid = tmp_guid;
+	H225_CallIdentifier cid = StringToCallId(CallId);
  
 	// CallProceeding will be sent during the routing process
 	// at this time the call won't yet be in the CallTable,
@@ -289,9 +306,9 @@ void SoftPBX::SendProceeding(PString CallId)
 	lForwardedSocket->TransmitData(lBuffer);
 }
 
-// used by H.450.2 call emulator
+// used by H.450.2 emulator
 // TODO: extend to unregistered
-bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PString DestinationAlias)
+bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, const PString & DestinationAlias)
 {
 	if (!lCall || !lSrcForward) {
 		PString msg("No call to transfer!");
@@ -316,7 +333,7 @@ bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PStrin
 		return false;
 	}
 
-	//Search destination of call forwarding : lDestForward
+	// search destination of call forwarding : lDestForward
 	PStringList lBufferAliasArrayString;
 	lBufferAliasArrayString.AppendString(DestinationAlias);
 	H225_ArrayOf_AliasAddress lBufferAliasArray;
@@ -348,8 +365,8 @@ bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, PStrin
 
 }
 
-// used from the status port
-void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
+// used by status port (old)
+void SoftPBX::TransferCall(const PString & SourceAlias, const PString & DestinationAlias)
 {
 	PTRACE(3, "GK\tSoftPBX: TransferCall " << SourceAlias << " -> " << DestinationAlias);
 
@@ -361,7 +378,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	PStringList lBufferAliasArrayString;
 	H225_ArrayOf_AliasAddress lBufferAliasArray;
 
-	// Search for the call in CallTable
+	// search for the call in CallTable
 	lBufferAliasArrayString.AppendString(SourceAlias);
 	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
 
@@ -377,7 +394,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 	}
 	lCall = CallTable::Instance()->FindCallRec(lSrcForward);
 
-	// Search for the Forwarded CallSignalSocket in lCall ( calling or caller socket ? )
+	// search for the Forwarded CallSignalSocket in lCall ( calling or caller socket ? )
 	if (lCall) {
 		endptr lCalling, lCalled;
 		lCalling = lCall->GetCallingParty();
@@ -401,7 +418,7 @@ void SoftPBX::TransferCall(PString SourceAlias, PString DestinationAlias)
 		return;
 	}
 
-	// Search destination of call forwarding : lDestForward
+	// search destination of call forwarding : lDestForward
 	lBufferAliasArrayString.AppendString(DestinationAlias);
 	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
 
@@ -469,7 +486,49 @@ void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichL
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
-void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
+// used by status port (new)
+void SoftPBX::TransferCall(const PString & CallId, const PCaselessString & which, const PString & Destination, const PString & method)
+{
+	PTRACE(1, "GK\tSoftPBX: TransferCall " << CallId << " (" << which << ") -> " << Destination << " using " << method);
+ 
+	callptr lCall = CallTable::Instance()->FindCallRec(StringToCallId(CallId));
+	CallSignalSocket *lForwardedSocket = NULL;
+ 
+	if (lCall) {
+		if (which == "called") {
+			lForwardedSocket = lCall->GetCallSignalSocketCalled();
+		} else {
+			lForwardedSocket = lCall->GetCallSignalSocketCalling();
+		}
+		if (!lForwardedSocket) {
+			PString msg("SoftPBX: can't find signalling socket (direct mode ?)");
+			PTRACE(1, "GK\t" + msg);
+			GkStatus::Instance()->SignalStatus(msg + "\r\n");
+			return;
+		}
+	} else {
+		PString msg("SoftPBX: no call to transfer!");
+		PTRACE(1, "GK\t" + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return;
+	}
+ 
+	Q931 q931;
+	PBYTEArray lBuffer;
+	if (method == "FacilityRouteCallToMC") {
+		lForwardedSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_routeCallToMC, &Destination);
+	} else {
+		lForwardedSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_callForwarded, &Destination);
+	}
+	q931.Encode(lBuffer);
+	lForwardedSocket->TransmitData(lBuffer);
+ 
+	PString msg = PString("SoftPBX: call ") + CallId + " transferred from " + which + " to " + Destination;
+	PTRACE(1, "GK\t" + msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+}
+
+void SoftPBX::MakeCall(const PString & SourceAlias, const PString & DestinationAlias)
 {
 	PTRACE(3, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
 	if (! MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
@@ -483,7 +542,7 @@ void SoftPBX::MakeCall(PString SourceAlias, PString DestinationAlias)
 	}
 }
 
-void SoftPBX::PrintPrefixCapacities(USocket *client, PString alias)
+void SoftPBX::PrintPrefixCapacities(USocket *client, const PString & alias)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintPrefixCapacities(" << alias << ")");
 	RegistrationTable::Instance()->PrintPrefixCapacities(client, alias);

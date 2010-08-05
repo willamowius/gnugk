@@ -1,5 +1,10 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- new switch: [CTI::MakeCall]TransferMethod=
+- added vendor string in RouteRequest event
+- extended status port commands RouteToAlias/RouteToGateway/BindAndRouteToGateway with caller-ID parameter
+- updated status port command: TransferCall by call-id and with transfer method
+- new status port command: DisconnectCallId
 - BUGFIX(GkClient.cxx) signal change of destination alias in parent policy
 - gatekeeper-based TCS=0 call transfer: activated through H.450.2 emulator
   or new status port command RerouteCall
@@ -11,7 +16,6 @@ Changes from 2.3.2 to 2.3.3
 - BUGFIX(RasTbl.cxx) fire unregister event also when endpoint expired
 - BUGFIX(Toolkit.cxx) fix order of home IPs
 - display H323Plus and PTLib version in GnuGk's version string
-
 
 Changes from 2.3.1 to 2.3.2
 ===========================

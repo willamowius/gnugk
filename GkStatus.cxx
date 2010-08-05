@@ -688,6 +688,7 @@ void GkStatus::OnStart()
 	m_commands["fv"] = e_FindVerbose;
 	m_commands["disconnectip"] = e_DisconnectIp;
 	m_commands["disconnectcall"] = e_DisconnectCall;
+	m_commands["disconnectcallid"] = e_DisconnectCallId;
 	m_commands["disconnectalias"] = e_DisconnectAlias;
 	m_commands["disconnectendpoint"] = e_DisconnectEndpoint;
 	m_commands["disconnectsession"] = e_DisconnectSession;
@@ -1161,6 +1162,13 @@ void StatusClient::ExecCommand(
 		else
 			CommandError("Syntax Error: DisconnectCall CALL_NUMBER [CALL_NUMBER...]");
 		break;
+	case GkStatus::e_DisconnectCallId:
+		// disconnect call with this call ID
+		if (args.GetSize() == 2)
+			SoftPBX::DisconnectCallId(args[1]);
+		else
+			CommandError("Syntax Error: DisconnectCallId CALL_ID");
+		break;
 	case GkStatus::e_DisconnectEndpoint:
 		// disconnect call on this alias
 		if (args.GetSize() == 2)
@@ -1262,8 +1270,12 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_TransferCall:
 		if (args.GetSize() == 3)
 			SoftPBX::TransferCall(args[1], args[2]);
+		else if (args.GetSize() == 4)
+			SoftPBX::TransferCall(args[1], args[2], args[3], "FacilityForward");
+		else if (args.GetSize() == 5)
+			SoftPBX::TransferCall(args[1], args[2], args[3], args[4]);
 		else
-			CommandError("Syntax Error: TransferCall SOURCE DESTINATION");
+			CommandError("Syntax Error: TransferCall SOURCE DESTINATION or TransferCall CALLID CALLER|CALLED DESTINATION [TRANSFER-METHOD]");
 		break;
 	case GkStatus::e_RerouteCall:
 		if (args.GetSize() == 4)
@@ -1335,35 +1347,49 @@ void StatusClient::ExecCommand(
 		if (args.GetSize() == 4) {
 			if (args[1] == "-")
 				args[1] = "";	// "-" is empty agent
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), "");
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), "", "", "");
 		} else if (args.GetSize() == 5) {
 			if (args[1] == "-")
 				args[1] = "";	// "-" is empty agent
 			args[4].Replace("-", " ", true);
 			args[4] = args[4].Trim();
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4]);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4], "", "");
+		} else if (args.GetSize() == 6) {
+			if (args[1] == "-")
+				args[1] = "";	// "-" is empty agent
+			args[4].Replace("-", " ", true);
+			args[4] = args[4].Trim();
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4], "", args[5]);
 		} else
-			CommandError("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID]");
+			CommandError("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
 		break;
 	case GkStatus::e_RouteToGateway:
 		if (args.GetSize() == 5) {
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), "");
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), "", "", "");
 		} else if (args.GetSize() == 6) {
 			args[5].Replace("-", " ", true);
 			args[5] = args[5].Trim();
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5]);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5], "", "");
+		} else if (args.GetSize() == 7) {
+			args[5].Replace("-", " ", true);
+			args[5] = args[5].Trim();
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5], "", args[6]);
 		} else
-			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]");
+			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
 		break;
 	case GkStatus::e_BindAndRouteToGateway:
 		if (args.GetSize() == 6) {
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), "", args[1]);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), "", args[1], "");
 		} else if (args.GetSize() == 7) {
 			args[6].Replace("-", " ", true);
 			args[6] = args[6].Trim();
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1]);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1], "");
+		} else if (args.GetSize() == 8) {
+			args[6].Replace("-", " ", true);
+			args[6] = args[6].Trim();
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1], args[7]);
 		} else
-			CommandError("Syntax Error: BindAndRouteToGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID]");
+			CommandError("Syntax Error: BindAndRouteToGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
 		break;
 	case GkStatus::e_RouteReject:
 		if (args.GetSize() == 3) {

@@ -437,6 +437,19 @@ DisconnectCall 1533
 </verb></tscreen>
 </descrip>
 
+<item><tt/DisconnectCallId/<newline>
+<p>Disconnect a call with given call ID.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+DisconnectCallId CallId
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+DisconnectCallId ee-ab-8f-81-58-57-df-11-95-39-00-1e-c9-7e-69-ec
+</verb></tscreen>
+</descrip>
+
 <item><tt/DisconnectIP/<newline>
 <p>
 Disconnect all calls of an endpoint by IP and call signaling port.
@@ -579,11 +592,11 @@ RouteReject endp_4711 1234
 This command is used as a response to a RouteRequest event (see below).
 CallingEndpointID and CallRef must be passed back as they are in the corresponding RouteRequest.
 The CallID parameter is optional; if it is given it has to be the same format as
-signaled by RouteRequest.
+signaled by RouteRequest. As additional parameter you can set the CLI for the caling party.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteToAlias Alias CallingEndpointID CallRef [CallID]
+RouteToAlias Alias CallingEndpointID CallRef [CallID [CLI]]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -597,11 +610,11 @@ This command is used as a response to a RouteRequest event (see below).
 You can use this command to route calls to out-of-zone gateways or MCUs not registered with the gatekeeper. Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
 CallingEndpointID and CallRef must be passed back as they are in the corresponding RouteRequest.
 The CallID parameter is optional; if it is given it must be the same format as
-signaled by RouteRequest.
+signaled by RouteRequest. As additional parameter you can set the CLI for the caling party.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteToGateway Alias IP:Port CallingEndpointID CallRef [CallID]
+RouteToGateway Alias IP:Port CallingEndpointID CallRef [CallID [CLI]]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -615,7 +628,7 @@ IP of a multi-homed server to use for the outgoing call.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-BindAndRouteToGateway IP Alias IP:Port CallingEndpointID CallRef [CallID]
+BindAndRouteToGateway IP Alias IP:Port CallingEndpointID CallRef [CallID [CLI]]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -645,18 +658,23 @@ SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 
 <item><tt/TransferCall/<newline>
 <p>
-Transfer an established call from alias A to alias B. 
+Transfer an established call from endpoint A to endpoint B. 
 
-This works only with endpoints that properly support
-Q.931 Facility messages (so it doesn't work with Netmeeting).
+The call that shall be transfered is selected by the call ID
+and the string "caller" or "called" is used to specify the which
+end of the call shall be transferred.
+
+You can choose the transfer method with the optional last parameter.
+The call transfer works only with endpoints that properly support
+Q.931 Facility callForwarded or raouteCallToMC messages (so it doesn't work with Netmeeting).
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-TransferCall Source-Alias New-Destination-Alias
+TransferCall <call-id> <CALLER | CALLED> <destination> [<FacilityForward | FacilityRouteCallToMC>]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
-TransferCall Frank Peter
+TransferCall ee-ab-8f-81-58-57-df-11-95-39-00-1e-c9-7e-69-ec caller Peter
 </verb></tscreen>
 </descrip>
 
@@ -681,8 +699,7 @@ RerouteCall 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 CALLER 192.168.1.222
 specify an IP number as destination.  This is done by establishing a call
 from a pseudo endpoint in the gatekeeper to the source alias/number and then
 transferring the call from the gatekeeper endpoint to the destination.
-
-The transfer can be done using either a H.450.2 transfer or a Facility message.
+The method how this call transfer is done can be configured.
 
 See <ref id="ctimakecall" name="[CTI::MakeCall]"> for configuration options.
 <descrip>
@@ -801,9 +818,9 @@ an UnregistrationConfirm (UCF).
 <p>
 After a call disconnected, the call detail record is shown (in one line).
 
-<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias|CallID|CalledIP:Port;/<newline>
+<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias|CallID|CalledIP:Port|VendorString;/<newline>
 <p>Request for an external application to route an incoming call on a virtual queue.
-This can be done with a RouteToAlias or RouteReject command.
+This can be done with a RouteToAlias/RouteToGateway or RouteReject command.
 
 </itemize>
 

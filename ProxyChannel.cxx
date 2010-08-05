@@ -1180,9 +1180,14 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	}
 
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
-		const PString s = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
-		if (!s) {
-			msg->GetQ931().SetDisplayName(s);
+		PString newDisplayIE;
+		if (!m_call->GetCallerID().IsEmpty() && (m_crv & 0x8000u)) {	// only rewrite DisplayIE from caller
+			newDisplayIE = m_call->GetCallerID();
+		} else {
+			newDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+		}
+		if (!newDisplayIE.IsEmpty()) {
+			msg->GetQ931().SetDisplayName(newDisplayIE);
 			msg->SetChanged();
 		}
 	}
@@ -1567,6 +1572,7 @@ void CallSignalSocket::ForwardCall(
 	if (route.m_flags & Route::e_toParent)
 		m_call->SetToParent(true);
 	m_call->SetBindHint(request.GetSourceIP());
+	m_call->SetCallerID(request.GetCallerID());
 
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is forwarded to "
 		<< altDestInfo << (!forwarder ? (" by " + forwarder) : PString())
@@ -2021,6 +2027,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		toolkit->RewriteE164(setupBody.m_destinationAddress);
 	}
 
+	// rewrite existing CalledPartyNumberIE
 	if (q931.HasIE(Q931::CalledPartyNumberIE)) {
 		unsigned plan, type;
 		PString calledNumber;
@@ -2380,6 +2387,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		call->SetNATStrategy(natoffloadsupport);
 #endif
 		call->SetBindHint(request.GetSourceIP());
+		call->SetCallerID(request.GetCallerID());
 
 		// if the peer address is a public address, but the advertised source address is a private address
 		// then there is a good chance the remote endpoint is behind a NAT.
@@ -2561,6 +2569,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			} else if (toolkit->GWRewritePString(out_rewrite_id, false, calledNumber))
 				q931.SetCalledPartyNumber(calledNumber, plan, type);
 		}
+	}
+	// set forced CallingPartyNumberIE
+	if (!m_call->GetCallerID().IsEmpty()) {
+		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
+		// unsigned presentation = (unsigned)-1;	// presentation and screening not included, if presentation=-1
+		unsigned presentation = H225_PresentationIndicator::e_presentationAllowed;
+		unsigned screening = H225_ScreeningIndicator::e_networkProvided;
+		q931.SetCallingPartyNumber(m_call->GetCallerID(), plan, type, presentation, screening);
 	}
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
@@ -4044,6 +4060,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			break;
 
 		case H225_FacilityReason::e_callForwarded:
+		case H225_FacilityReason::e_routeCallToMC:
 			uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 			if (const H225_TransportAddress *addr = dynamic_cast<const H225_TransportAddress *>(parm)) {
 				uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
@@ -4081,6 +4098,9 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 					uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
 					uuie.m_alternativeAliasAddress.SetSize(1);
 					H323SetAliasAddress(alias, uuie.m_alternativeAliasAddress[0]);
+				}
+				if (reason == H225_FacilityReason::e_routeCallToMC) {
+					uuie.IncludeOptionalField(H225_Facility_UUIE::e_conferenceID);
 				}
 			}
 			break;
@@ -4423,9 +4443,14 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 	}
 
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
-		const PString s = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
-		if (!s) {
-			msg->GetQ931().SetDisplayName(s);
+		PString newDisplayIE;
+		if (!m_call->GetCallerID().IsEmpty()) {
+			newDisplayIE = m_call->GetCallerID();
+		} else {
+			newDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+		}
+		if (!newDisplayIE.IsEmpty()) {
+			msg->GetQ931().SetDisplayName(newDisplayIE);
 			msg->SetChanged();
 		}
 	}
