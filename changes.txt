@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- H.450.2 emulater extended for unregistered calls
 - new switch: [CTI::MakeCall]TransferMethod=
 - added vendor string in RouteRequest event
 - extended status port commands RouteToAlias/RouteToGateway/BindAndRouteToGateway with caller-ID parameter

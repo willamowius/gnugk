@@ -306,65 +306,6 @@ void SoftPBX::SendProceeding(const PString & CallId)
 	lForwardedSocket->TransmitData(lBuffer);
 }
 
-// used by H.450.2 emulator
-// TODO: extend to unregistered
-bool SoftPBX::TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, const PString & DestinationAlias)
-{
-	if (!lCall || !lSrcForward) {
-		PString msg("No call to transfer!");
-		PTRACE(1, "GK\tSoftPBX: " + msg);
-		return false;
-	}
-
-	endptr lCalling, lCalled;
-	lCalling = lCall->GetCallingParty();
-	lCalled = lCall->GetCalledParty();
-	H225_ArrayOf_AliasAddress aliases = lSrcForward->GetAliases();
-	CallSignalSocket *lForwardedSocket = 0;
-	if (lCalling && lCalling->CompareAlias(&aliases)) {
-		lForwardedSocket = lCall->GetCallSignalSocketCalling();
-	} else if (lCalled && lCalled->CompareAlias(&aliases)) {
-		lForwardedSocket = lCall->GetCallSignalSocketCalled();
-	}
-	if (!lForwardedSocket) {
-		PString msg("Can't transfer call in direct mode!");
-		PTRACE(1, "GK\tSoftPBX: " + msg);
-		GkStatus::Instance()->SignalStatus(msg + "\r\n");
-		return false;
-	}
-
-	// search destination of call forwarding : lDestForward
-	PStringList lBufferAliasArrayString;
-	lBufferAliasArrayString.AppendString(DestinationAlias);
-	H225_ArrayOf_AliasAddress lBufferAliasArray;
-	H323SetAliasAddresses(lBufferAliasArrayString, lBufferAliasArray);
-
-	endptr lDestForward = RegistrationTable::Instance()->FindFirstEndpoint(lBufferAliasArray);
-	lBufferAliasArrayString.RemoveAll();
-	lBufferAliasArray.RemoveAll();
-
-	if (!lDestForward) {
-		PString msg("Transferred destination not found!");
-		PTRACE(1, "GK\tSoftPBX: " + msg);
-		return false;
-	}
-
-	Q931 q931;
-	PBYTEArray lBuffer;
-	lForwardedSocket->BuildFacilityPDU(q931, H225_FacilityReason::e_callForwarded, &DestinationAlias);
-	H225_H323_UserInformation uuie;
-	GetUUIE(q931, uuie);
-	PrintQ931(5, "Send to ", lForwardedSocket->GetName(), &q931, &uuie);
-	q931.Encode(lBuffer);
-	lForwardedSocket->TransmitData(lBuffer);
-
-	PString msg = PString("Call ") + PString(lCall->GetCallNumber()) + " transfer success.";
-	PTRACE(1, "GK\tSoftPBX: " + msg);
- 
-	return true;
-
-}
-
 // used by status port (old)
 void SoftPBX::TransferCall(const PString & SourceAlias, const PString & DestinationAlias)
 {

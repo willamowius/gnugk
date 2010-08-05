@@ -3287,12 +3287,13 @@ bool CallSignalSocket::OnH450CallTransfer(PASN_OctetString * argument)
 			} else {
 				CreateJob(m_call->GetCallSignalSocketCalling(), &CallSignalSocket::RerouteCaller, remoteParty, "Reroute to " + remoteParty);
 			}
-			return true;
 		} else {
-			// TODO: extend to unregistered calls
-			endptr ep = m_callerSocket ? m_call->GetCallingParty() : m_call->GetCalledParty();
-			return ep ? SoftPBX::TransferCall(ep, m_call, remoteParty) : false;
+			PString callid = AsString(m_call->GetCallIdentifier().m_guid);
+			callid.Replace(" ", "-", true);
+			PCaselessString which = (this == m_call->GetCallSignalSocketCalling()) ? "called" : "calling";
+			SoftPBX::TransferCall(callid, which, remoteParty, method);
 		}
+		return true;
 	}
 	return false;
 }

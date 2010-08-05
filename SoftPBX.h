@@ -41,12 +41,10 @@ namespace SoftPBX
 	void DisconnectCallId(const PString & CallId);
 	void DisconnectIp(const PString & Ip);
 	void DisconnectAlias(const PString & Alias);
-	void TransferCallNew(PString CallId, PString which, PString Destination);
 	void DisconnectEndpoint(const PString & Id);
 	void DisconnectEndpoint(const endptr &);
 	void SendProceeding(const PString & CallId);
 	void TransferCall(const PString & SourceAlias, const PString & DestinationAlias);
-	bool TransferCall(endptr & lSrcForward, SmartPtr<CallRec> lCall, const PString&  DestinationAlias);
 	void TransferCall(const PString & CallId, const PCaselessString & which, const PString & Destination, const PString & method);
 	void MakeCall(const PString & SourceAlias, const PString & DestinationAlias);
 	void RerouteCall(const PString & CallId, const PCaselessString & whichLeg, const PString & destination);

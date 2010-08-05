@@ -140,7 +140,7 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection,
 		connection.RouteCallToMC(second_party, confId);
 #endif
 	} else {
-		PTRACE(3, "MakeCallEndpoint: Using Facility(callforwarded) to transfer call");
+		PTRACE(3, "MakeCallEndpoint: Using Facility(callForwarded) to transfer call");
 		connection.ForwardCall(second_party);
 	}
 }
