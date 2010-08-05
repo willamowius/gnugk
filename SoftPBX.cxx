@@ -242,7 +242,6 @@ void SoftPBX::DisconnectAlias(const PString & Alias)
 	H323SetAliasAddress(Alias, EpAlias[0]);
 	PTRACE(3, "GK\tSoftPBX: DisconnectAlias " << Alias);
 
-	// TODO: extend for unregistered endpoints
 	DisconnectEndpoint(RegistrationTable::Instance()->FindByAliases(EpAlias));
 }
 

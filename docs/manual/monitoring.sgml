@@ -467,7 +467,7 @@ DisconnectIP 10.0.1.31:1720
 </descrip>
 
 <item><tt/DisconnectAlias/<newline>
-<p>Disconnect all calls of an endpoint by one of its aliases. To match an alias
+<p>Disconnect all calls of a registered endpoint by one of its aliases. To match an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name
 (h323, e164, url, email) to the alias, followed by a colon.
 <descrip>
@@ -478,6 +478,19 @@ DisconnectAlias Alias
 <tag/Example:/
 <tscreen><verb>
 DisconnectAlias 601
+</verb></tscreen>
+</descrip>
+
+<item><tt/DisconnectEndpoint/<newline>
+<p>Disconnect all calls of a registered endpoint by one of its endpoint identifier.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+DisconnectEndpoint ID
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+DisconnectEndpoint 5624_endp
 </verb></tscreen>
 </descrip>
 
