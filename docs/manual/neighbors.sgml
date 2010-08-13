@@ -10,15 +10,9 @@ or it has the ``<tt/*/'' prefix. More than one prefix may be specified.
 You can use special characters ``<tt/./''  to do wildcard
 matching and ``<tt/!/'' to disable a specific prefix.
 
-Conversely, the gatekeeper will only reply to LRQs sent from neighbors
-defined in this section.
-If you specify an empty prefix, no LRQ will be sent to that neighbor,
-but the gatekeeper will accept LRQs from it. The empty prefix is denoted
-by a single semicolon appended to the neighbor entry. Example:<newline>
-<newline>
-<tt/	GK1=192.168.0.5;/<newline>
-<newline>
-If you skip the semicolon, LRQs will be always sent to this neighbor.
+The gatekeeper will only reply to LRQs sent from neighbors defined in this section.
+If you specify an empty SendPrefixes entry, no LRQ will be sent to that neighbor,
+but the gatekeeper will accept LRQs from it.
 
 The <tt/password/ field is used to authenticate LRQs from that neighbor.
 See section <ref id="gkauth" name="[Gatekeeper::Auth]"> for details.
