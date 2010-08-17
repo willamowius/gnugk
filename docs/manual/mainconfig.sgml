@@ -82,6 +82,15 @@ Don't let the name fool you, this is the exact number of connections.
 </itemize>
 
 
+<sect1>Regular Expressions
+<label id="regex">
+<p>
+In a few places in the configuration file, GnuGk allows regular expressions.
+The syntax for these regular expressions is "extended POSIX 1003.2 regular expressions".
+On Unix systems you can usually get a manual page explaining the syntax with "man 7 regex"
+or online at <url url="http://www.kernel.org/doc/man-pages/online/pages/man7/regex.7.html" name="http://www.kernel.org/doc/man-pages/online/pages/man7/regex.7.html">.
+
+
 <sect1>Section &lsqb;Gatekeeper::Main&rsqb;
 <label id="gkmain">
 <p>
