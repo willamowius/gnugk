@@ -166,41 +166,13 @@ if the call start event could not be logged with RadAcct. However, we still want
 to store a CDR in a text file in case the RADIUS server is down when the call
 disconnects, so we can fetch call duration into a billing system later.
 
-<sect1>Section &lsqb;FileAcct&rsqb;
-<label id="fileacct">
+<sect1>Customizing CDR strings
+<label id="cdrparameters">
 <p>
-This accounting module writes CDR lines to a specified text file. The CDR
-format can be a standard one (the same as displayed by the status interface)
-or a customized one (using parametrized query string).
+Most accounting modules let you customize the CDR data they store. They use a common set of
+parameters to define the CDR string.
 
-<itemize>
-<item>
-<tt/DetailFile=FULL_PATH_AND_FILENAME/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-A full path to the CDR plain text file. If a file with the given name already 
-exists, new CDRs will be appended at the end of the file.
-
-<item>
-<tt/StandardCDRFormat=0/<newline>
-Default: <tt/1/<newline>
-<p>
-Use a CDR format compatible with the status interface CDR format (<tt/1/)
-or build a custom CDR string from the <bf/CDRString/ parametrized string.
-<p>
-The StandardCDRFormat is equivalent to this definition:
-<descrip>
-<tt/TimestampFormat=RFC822/<newline>
-<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|%{callee-epid}|%{dest-info}|%{src-info}|%g;</tt><newline>
-</descrip>
-
-<item>
-<tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-Station-Id}|%d|%c/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-If <bf/StandardCDRFormat/ is disabled (0) or not specified at all, 
-this parametrized string instructs the gatekeeper on how to build a custom
-CDR. Parameters are specified using <tt/%/ character and can be one letter
+Parameters are specified using <tt/%/ character and can be one letter
 (like <tt/%n/) or longer (like <tt/%{CallId}/). Any remaining characters that
 are not parameter names are simply copied to the final CDR string. The following
 parameters are recognized:
@@ -240,8 +212,47 @@ parameters are recognized:
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
 <item><tt/%{bandwidth}/ - bandwidth for this call
-<item><tt/%{client-auth-id}/ - an ID provided to GnuGk when authenticating the call (through SqlAuth)
+<item><tt/%{client-auth-id}/ - an ID provided to GnuGk when authenticating the call (through SQLAuth)
 </itemize><newline>
+
+
+<sect1>Section &lsqb;FileAcct&rsqb;
+<label id="fileacct">
+<p>
+This accounting module writes CDR lines to a specified text file. The CDR
+format can be a standard one (the same as displayed by the status interface)
+or a customized one (using parametrized query string).
+
+<itemize>
+<item>
+<tt/DetailFile=FULL_PATH_AND_FILENAME/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+A full path to the CDR plain text file. If a file with the given name already 
+exists, new CDRs will be appended at the end of the file.
+
+<item>
+<tt/StandardCDRFormat=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Use a CDR format compatible with the status interface CDR format (<tt/1/)
+or build a custom CDR string from the <bf/CDRString/ parametrized string.
+<p>
+The StandardCDRFormat is equivalent to this definition:
+<descrip>
+<tt/TimestampFormat=RFC822/<newline>
+<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|%{callee-epid}|%{dest-info}|%{src-info}|%g;</tt><newline>
+</descrip>
+
+<item>
+<tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-Station-Id}|%d|%c/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+If <bf/StandardCDRFormat/ is disabled (0) or not specified at all, 
+this parametrized string instructs the gatekeeper on how to build a custom
+CDR.
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your CDRs.
 
 <item><tt/TimestampFormat=Cisco/<newline>
 Default: <tt>N/A</tt><newline>
@@ -607,82 +618,18 @@ This accounting module stores accounting information directly
 to a SQL database. Many configuration settings are common with
 other SQL modules.
 
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
+
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/, <tt/ODBC/ and <tt/SQLite/ drivers
-are implemented. GnuGk supports only version 3 of SQLite.
-
-<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/<newline>
-<p>
-SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
-Examples: <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-
-<item><tt/Database=billing/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-The database name to connect to.
-
-<item><tt/Username=gnugk/<newline>
-<p>
-The username used to connect to the database.
-
-<item><tt/Password=secret/<newline>
-<p>
-The password used to connect to the database.
-If the password is not specified, a database connection attempt 
-without any password will be made.
-If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
-in this section, the password is in an encrypted form and should be created 
-using the <tt/addpasswd/ utility.
-
 <item><tt/StartQuery=INSERT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to insert a new call record to the database. The query
 is parametrized - that means parameter replacement is made before each query
-is executed. Parameter placeholders are denoted by % character and can be one
-letter (like %u) or whole strings (like %{src-info}). Specify %% to embed 
-a percent character inside the query string (like <bf/%%/).
-For <tt/SQLAcct/ the following parameters are defined:
-<itemize>
-<item><tt/%g/ - gatekeeper name
-<item><tt/%n/ - call number (not unique after gatekeeper restart)
-<item><tt/%d/ - call duration (seconds)
-<item><tt/%t/ - total call duration (from Setup to Release Complete)
-<item><tt/%c/ - Q.931 disconnect cause (<bf/hexadecimal/ integer)
-<item><tt/%r/ - who disconnected the call (-1 - unknown, 0 - the gatekeeper, 1 - the caller, 2 - the callee)
-<item><tt/%p/ - PDD (Post Dial Delay) in seconds
-<item><tt/%s/ - unique (for this gatekeeper) call (Acct-Session-Id)
-<item><tt/%u/ - H.323 ID of the calling party
-<item><tt/%{gkip}/ - IP address of the gatekeeper
-<item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
-<item><tt/%{ConfId}/ - H.323 conference identifier (16 hex 8-bit digits)
-<item><tt/%{setup-time}/ - timestamp string for Q.931 Setup message
-<item><tt/%{alerting-time}/ - timestamp string for Q.931 Alerting message
-<item><tt/%{connect-time}/ - timestamp string for a call connected event
-<item><tt/%{disconnect-time}/ - timestamp string for a call disconnect event
-<item><tt/%{ring-time}/ - time a remote phone was ringing for (from Alerting till Connect or Release Complete)
-<item><tt/%{caller-ip}/ - signaling IP address of the caller
-<item><tt/%{caller-port}/ - signaling port of the caller
-<item><tt/%{callee-ip}/ - signaling IP address of the called party
-<item><tt/%{callee-port}/ - signaling port of the called party
-<item><tt/%{src-info}/ - a colon separated list of source aliases
-<item><tt/%{dest-info}/ - a colon separated list of destination aliases
-<item><tt/%{Calling-Station-Id}/ - calling party number
-<item><tt/%{Called-Station-Id}/ - called party number (rewritten Dialed-Number)
-<item><tt/%{Dialed-Number}/ - dialed number (as received from the calling party)
-<item><tt/%{caller-epid}/ - endpoint identifier of the calling party
-<item><tt/%{callee-epid}/ - endpoint identifier of the called party
-<item><tt/%{call-attempts}/ - number of attempts to establish the calls (with failover this can be > 1)
-<item><tt/%{last-cdr}/ - is this the last CDR for this call ? (0 / 1) only when using failover this can be 0
-<item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
-<item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
-<item><tt/%{bandwidth}/ - bandwidth for this call
-<item><tt/%{client-auth-id}/ - an ID provided to GnuGk when authenticating the call (through SqlAuth)
-</itemize>
+is executed.
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your CDRs.
 <p>
 Sample query string:
 <tscreen><verb>
@@ -872,6 +819,9 @@ This accounting module sends all accounting information to the
 status port where it can be used to interface to
 external systems in real time.
 
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your event strings.
+
 <itemize>
 <item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
 Default: <tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
@@ -932,6 +882,9 @@ In addition to the CDR parameters, Register and Unregister events can use the fo
 This accounting module sends accounting information to the
 Unix syslog and is not available on Windows. The local syslog daemon will then route the messages according to its configuration, generally specified in /etc/syslog.conf.
 
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your event strings.
+
 <itemize>
 <item><tt/SyslogFacility=LOG_LOCAL1/<newline>
 Default: <tt>LOG_USER</tt><newline>
@@ -971,3 +924,4 @@ Format of timestamp strings used in events. If this setting
 is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
+

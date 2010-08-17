@@ -448,37 +448,10 @@ to read almost all setting from the database and/or one of <tt/[RasSrv::RewriteE
 Entries read from the SQL database take precedence over settings found
 in the config file.
 
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
+
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/, <tt/ODBC/ and <tt/SQLite/ drivers
-are implemented. GnuGk supports only version 3 of SQLite.
-
-<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
-Default: <tt/localhost/<newline>
-<p>
-SQL server host address. Can be in the form of <tt/DNS[:PORT]/ or <tt/IP[:PORT]/.
-Like <tt/sql.mycompany.com/ or <tt/sql.mycompany.com:3306/ or <tt/192.168.3.100/.
-
-<item><tt/Database=gkconfig/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-The database name to connect to.
-
-<item><tt/Username=gnugk/<newline>
-<p>
-The username used to connect to the database.
-
-<item><tt/Password=secret/<newline>
-<p>
-The password used to connect to the database.
-If the password is not specified, a database connection attempt 
-without any password will be made.
-If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
-in this section, the password is in encrypted form and should be created using
-the <tt/addpasswd/ utility.
-
 <item><tt/ConfigQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
