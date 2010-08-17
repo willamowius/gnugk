@@ -42,6 +42,9 @@ Default: <tt>N/A</tt><newline>
 SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/, <tt/ODBC/ and <tt/SQLite/ drivers
 are implemented. GnuGk supports only version 3 of SQLite.
 
+Make sure your database is configured to support password based authentication.
+Especially Microsoft SQL Server needs to be configured to use "Mixed Mode".
+
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/<newline>
 <p>
@@ -80,6 +83,11 @@ at the same time. Setting <tt/MinPoolSize=1/ will simulate the old behavior,
 when access to the SQL database was serialized (one query at time).
 Don't let the name fool you, this is the exact number of connections.
 </itemize>
+
+<sect2>Stored Procedure
+Stored procedures work very well when using MySQL.
+
+When using ODBC, you can not call stored procedures which use parameters using the "CALL <procedure>" syntax, but you can call them with "EXEC <procedure>".
 
 
 <sect1>Regular Expressions
