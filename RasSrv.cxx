@@ -317,13 +317,15 @@ bool BroadcastListener::Filter(GatekeeperMessage *msg) const
 // class MulticastListener
 class MulticastListener : public RasListener {
 public:
-	MulticastListener(const Address &, WORD, WORD);
+	MulticastListener(const Address &, WORD);
 
 	// override from class RasListener
 	virtual bool Filter(GatekeeperMessage *) const;
 };
 
-MulticastListener::MulticastListener(const Address & addr, WORD pt, WORD upt) : RasListener(addr, pt)
+// we must listen to INADDR_ANY to get multicast packets, but we need to
+// call setsockopt() for each IP so all interfaces join the multicast group (tested on Linux 2.6.x)
+MulticastListener::MulticastListener(const Address & addr, WORD pt) : RasListener(INADDR_ANY, pt)
 {
 	SetName(AsString(addr, pt) + "(Mcast)");
 	Address multiaddr(GkConfig()->GetString("MulticastGroup", GK_DEF_MULTICAST_GROUP));
@@ -334,7 +336,7 @@ MulticastListener::MulticastListener(const Address & addr, WORD pt, WORD upt) : 
 		PTRACE(1, "RAS\tCan't join multicast group " << multiaddr);
 		Close();
 	}
-	port = upt; // unicast port
+	port = pt;
 }
 
 bool MulticastListener::Filter(GatekeeperMessage *msg) const
@@ -486,8 +488,6 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 	if (SetListener(statusPort, m_statusPort, m_statusListener, &GkInterface::CreateStatusListener))
 		m_rasSrv->AddListener(m_statusListener);
 
-	// MulticastListener::GetPort() didn't return the real multicast port
-	m_multicastPort = multicastPort;
 	if (m_rasListener && m_callSignalListener) {
 		if (RasSrv->IsGKRouted()) {
 			m_rasListener->SetSignalPort(m_signalPort);
@@ -536,7 +536,7 @@ RasListener *GkInterface::CreateRasListener()
 
 MulticastListener *GkInterface::CreateMulticastListener()
 {
-	return (m_multicastPort && !IsLoopback(m_address)) ? new MulticastListener(m_address, m_multicastPort, m_rasPort) : 0;
+	return (m_multicastPort && !IsLoopback(m_address)) ? new MulticastListener(m_address, m_multicastPort) : 0;
 }
 
 CallSignalListener *GkInterface::CreateCallSignalListener()
