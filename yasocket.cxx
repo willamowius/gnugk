@@ -741,6 +741,8 @@ void SocketsReader::Stop()
 
 void SocketsReader::AddSocket(IPSocket *socket)
 {
+	if (socket == NULL)
+		return;
 	m_listmutex.StartWrite();
 	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
 	if (iter == m_sockets.end()) {
@@ -780,8 +782,10 @@ bool SocketsReader::SelectSockets(SocketSelectList & slist)
 	}
 	ConfigReloadMutex.StartRead();
 #if PTRACING
-	PString msg(PString::Printf, "\t%u sockets selected from %u, total %u/%u", slist.GetSize(), ss, m_socksize, m_rmsize);
-	PTRACE(6, GetName() << msg);
+	if (PTrace::CanTrace(6)) {
+		PString msg(PString::Printf, "\t%u sockets selected from %u, total %u/%u", slist.GetSize(), ss, m_socksize, m_rmsize);
+		PTRACE(6, GetName() << msg);
+	}
 #endif
 	return true;
 }
