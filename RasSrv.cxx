@@ -1513,7 +1513,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				}
 			}
 		}
-#endif
+#endif // HAS_H46018
 
 #ifdef HAS_H46023
 		if (Toolkit::Instance()->IsH46023Enabled()) {
@@ -1532,7 +1532,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				}
 			}
 		}
-#endif
+#endif // HAS_H46023
 
 #ifdef HAS_H460P
 		if (Toolkit::Instance()->IsH460PEnabled()) {
@@ -1550,7 +1550,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				}
 			}
 		}
-#endif
+#endif // HAS_H460P
 
 #ifdef HAS_H460
 		// check if client supports preemption
@@ -1566,7 +1566,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				desc[lPos] = oid;
 			}
 		}
-#endif
+#endif // HAS_H460
 
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
@@ -1651,7 +1651,7 @@ bool RegistrationRequestPDU::Process()
 	OpalOID rPreFS = OpalOID(OID3);
 	PBoolean presencePDU = false;
 	PASN_OctetString preFeature;
-#endif
+#endif // HAS_H460P
 	
 // Registration Priority and Pre-emption
 // This allows the unregistration of duplicate aliases with lower priority 
@@ -1681,7 +1681,7 @@ bool RegistrationRequestPDU::Process()
 				}
 			}
 		}
-#endif
+#endif // HAS_H46018
 #ifdef HAS_H46023
       if (Toolkit::Instance()->IsH46023Enabled()) {
 	    supportH46023 = fs.HasFeature(23);
@@ -1715,7 +1715,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 	  }
-#endif
+#endif // HAS_H460P
 
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
@@ -1729,7 +1729,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 	}
-#endif
+#endif // HAS_H460
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
    // If calling NAT support disabled. 
@@ -2011,7 +2011,7 @@ bool RegistrationRequestPDU::Process()
 				               data.SetSize(lastPos+1);
 				               data[lastPos] = pre;
 						}
-#endif
+#endif // HAS_H460
 						H225_ArrayOf_AliasAddress & duplicateAlias = rrj.m_rejectReason;
 						duplicateAlias = Alias;
 						return true;
@@ -2082,7 +2082,7 @@ bool RegistrationRequestPDU::Process()
 		ep->SetUsesH46018(true);
 		ep->SetNATAddress(rx_addr);
 	}
-#endif
+#endif // HAS_H46018
 
 #ifdef HAS_H460P
 	// If we have some presence information
@@ -2090,7 +2090,7 @@ bool RegistrationRequestPDU::Process()
 	if (presencePDU)
 	   ep->ParsePresencePDU(preFeature);
 
-#endif
+#endif // HAS_H460P
 
 	if (nated || (ep->UsesH46018() && !validaddress))
 		ep->SetNATAddress(rx_addr);
@@ -2137,7 +2137,7 @@ bool RegistrationRequestPDU::Process()
 				gd[0] = H46018;
 			}
 		}
-#endif
+#endif // HAS_H46018
 
 #ifdef HAS_H46023
 		if (supportH46023 && Toolkit::Instance()->IsH46023Enabled()) {
@@ -2168,7 +2168,7 @@ bool RegistrationRequestPDU::Process()
 				  gd[lPos] = natfs;
 			 } 
 		}
-#endif
+#endif // HAS_H46023
 
 #ifdef HAS_H460P
 		if (presenceSupport) {
@@ -2181,7 +2181,7 @@ bool RegistrationRequestPDU::Process()
 			gd.SetSize(lPos+1);
 			gd[lPos] = presence;
 		}
-#endif
+#endif // HAS_H460P
 
 		// if the client supports Registration PreEmption then notify the client that we do too
 		if ((preemptsupport) &&
@@ -2196,7 +2196,7 @@ bool RegistrationRequestPDU::Process()
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 			rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		}						
-#endif
+#endif // HAS_H460
 
 		// Gatekeeper assigned Aliases if the client supplied aliases
 		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) &&
