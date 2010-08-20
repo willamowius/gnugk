@@ -93,7 +93,7 @@ Don't let the name fool you, this is the exact number of connections.
 <sect2>Stored Procedure
 Stored procedures work very well when using MySQL.
 
-When using ODBC, you can not call stored procedures which use parameters using the "CALL <procedure>" syntax, but you can call them with "EXEC <procedure>".
+When using ODBC, you can not call stored procedures which use parameters using the "CALL ProcedureName" syntax, but you can call them with "EXEC ProcedureName".
 
 
 <sect1>Regular Expressions
