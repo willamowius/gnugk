@@ -39,8 +39,14 @@ But you are also free to use differend database drivers and options for each mod
 <item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-SQL database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/, <tt/ODBC/ and <tt/SQLite/ drivers
-are implemented. GnuGk supports only version 3 of SQLite.
+Database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/,
+<tt/ODBC/ and <tt/SQLite/ drivers are implemented.
+Not all of these driver are always available. When GnuGk is compiled, only those
+drivers are included where the necessary database libraries and header files are
+available. When you start GnuGk, you can see in the version string which drivers
+are included in your executable.
+
+GnuGk supports only version 3 of SQLite.
 
 Make sure your database is configured to support password based authentication.
 Especially Microsoft SQL Server needs to be configured to use "Mixed Mode".
