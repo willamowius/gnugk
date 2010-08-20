@@ -90,7 +90,8 @@ when access to the SQL database was serialized (one query at time).
 Don't let the name fool you, this is the exact number of connections.
 </itemize>
 
-<sect2>Stored Procedure
+<sect2>Stored Procedures
+<p>
 Stored procedures work very well when using MySQL.
 
 When using ODBC, you can not call stored procedures which use parameters using the "CALL ProcedureName" syntax, but you can call them with "EXEC ProcedureName".
