@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- new config section [ReplyToRasAddress]
 - BUGFIX(RasSrv.cxx): fix multicast discovery
 - document status port command: DisconnectEndpoint
 - H.450.2 emulater extended for unregistered calls

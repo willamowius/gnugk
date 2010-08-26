@@ -465,6 +465,48 @@ in routed mode and proxy mode calls will still get disrupted when the gatekeeper
 </itemize>
 
 
+<sect1>Section &lsqb;ReplyToRasAddress&rsqb;
+<p>
+Some messages from endpoints to the gatekeeper (GatekeeperRequest,
+RegistrationRequest and InfoRequestResponse) contain an element
+<it/rasAddress/ where the endpoint tells the gatekeeper where to
+send the response to these messages.
+By default GnuGk will ignore this address and respond to the IP and port
+where it has received the request from. It does so, because some endpoints
+rely on this behaviour and in case where eg. a NAT is used, the response may
+not reach the sender if it is sent to another IP and port. Usually endpoints
+will send the RAS messages from their RAS port anyway, so it doesn't make a difference.
+
+This section allows you to define when GnuGk should use the rasAddress inside the
+message it has received instead of the address where it has received the message from.
+
+<descrip>
+<tag/Syntax:/
+
+<tt/network=True|False/
+</descrip>
+
+The network is specified by an IP plus optional CIDR, eg. 192.168.1.0/24.
+The network specifies the IP where the RAS message is received from, the setting specifies
+whether to use the rasAddress. The default is not to use it.
+The rule for the network with the longest netmask is used (the most specific).
+<p>
+
+<descrip>
+<tag/Example:/
+
+In this example messages from the 192.168.0.0/18 will use the rasAddress,
+except for messages comming from the 192.168.4.0/24 network.
+
+<tscreen><verb>
+[ReplyToRasAddress]
+192.168.0.0/18=True
+192.168.4.0/24=False
+</verb></tscreen>
+
+</descrip>
+
+
 <sect1>Section &lsqb;GkStatus::Auth&rsqb;
 <label id="gkstatusauth">
 <p>

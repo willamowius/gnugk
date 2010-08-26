@@ -907,6 +907,35 @@ void RasServer::LoadConfig()
 	Routing::Analyzer::Instance()->OnReload();
 
 	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", 1));
+
+	// read [ReplyToRasAddress] section
+	m_replyras.clear();
+	PStringToString ras_rules(GkConfig()->GetAllKeyValues("ReplyToRasAddress"));
+	for (PINDEX i = 0; i < ras_rules.GetSize(); ++i) {
+		PString network = ras_rules.GetKeyAt(i);
+		bool setting = Toolkit::AsBool(ras_rules.GetDataAt(i));
+		if (!network.IsEmpty()) {
+			NetworkAddress addr = NetworkAddress(network);
+			m_replyras[addr] = setting;
+		}
+	}
+}
+
+bool RasServer::ReplyToRasAddress(const NetworkAddress & ip) const
+{
+	NetworkAddress bestmatch;
+	bool result = false;
+
+	std::map<NetworkAddress, bool>::const_iterator iter = m_replyras.begin();
+	while (iter != m_replyras.end()) {
+		if ((ip << iter->first) && (iter->first.GetNetmaskLen() >= bestmatch.GetNetmaskLen())) {
+			bestmatch = iter->first;
+			result = iter->second;
+		}
+		iter++;
+	}
+
+	return result;
 }
 
 void RasServer::AddListener(RasListener *socket)
@@ -1460,6 +1489,18 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 
 	bool bShellSendReply = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
 
+	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		PIPSocket::Address rasIP;
+		WORD rasPort;
+		if (GetIPAndPortFromTransportAddr(request.m_rasAddress, rasIP, rasPort)) {
+			PTRACE(3, "Reply to rasAddress from request:" << rasIP << ":" << rasPort);
+			m_msg->m_peerAddr = rasIP;
+			m_msg->m_peerPort = rasPort;
+		} else {
+			PTRACE(1, "Unable to parse rasAddress " << request.m_rasAddress);
+		}
+	}
+
 	PString log;
 	PString alias((request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias) && request.m_endpointAlias.GetSize() > 0)
 		? AsString(request.m_endpointAlias[0],false) : PString(" ")
@@ -1735,7 +1776,19 @@ bool RegistrationRequestPDU::Process()
    // If calling NAT support disabled. 
    // Use this to block errant gateways that don't support NAT mechanism properly.
 	bool supportcallingNAT = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1"));
-	
+
+	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr) && request.m_rasAddress.GetSize() > 0) {
+		PIPSocket::Address rasIP;
+		WORD rasPort;
+		if (GetIPAndPortFromTransportAddr(request.m_rasAddress[0], rasIP, rasPort)) {
+			PTRACE(3, "Reply to rasAddress from request:" << rasIP << ":" << rasPort);
+			m_msg->m_peerAddr = rasIP;
+			m_msg->m_peerPort = rasPort;
+		} else {
+			PTRACE(1, "Unable to parse rasAddress " << request.m_rasAddress[0]);
+		}
+	}
+
 	// lightweight registration update
 	if (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && request.m_keepAlive) {
 		endptr ep = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
@@ -3298,8 +3351,8 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 		if (call && request.HasOptionalField(H225_InfoRequestResponse::e_genericData)) {
 			H225_ArrayOf_GenericData & data = request.m_genericData;
 			for (PINDEX i =0; i < data.GetSize(); i++) {
-			  H460_Feature & feat = (H460_Feature &)data[i];
-		/// H.460.9 QoS Feature
+				H460_Feature & feat = (H460_Feature &)data[i];
+				/// H.460.9 QoS Feature
 				if (feat.GetFeatureID() == H460_FeatureID(9)) {
 					H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
 					if (qosfeat.Contains(1)) {
@@ -3311,6 +3364,17 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 		}
 #endif
 		if (request.HasOptionalField(H225_InfoRequestResponse::e_needResponse) && request.m_needResponse) {
+			if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+				PIPSocket::Address rasIP;
+				WORD rasPort;
+				if (GetIPAndPortFromTransportAddr(request.m_rasAddress, rasIP, rasPort)) {
+					PTRACE(3, "Reply to rasAddress from request:" << rasIP << ":" << rasPort);
+					m_msg->m_peerAddr = rasIP;
+					m_msg->m_peerPort = rasPort;
+				} else {
+					PTRACE(1, "Unable to parse rasAddress " << request.m_rasAddress);
+				}
+			}
 			BuildConfirm();
 			PrintStatus(PString(PString::Printf, "IACK|%s;", inet_ntoa(m_msg->m_peerAddr)));
 			return true;

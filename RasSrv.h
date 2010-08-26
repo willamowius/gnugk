@@ -116,6 +116,7 @@ public:
 	bool IsRedirected(unsigned = 0) const;
 	bool IsForwardedMessage(const H225_NonStandardParameter *, const Address &) const;
 	void ForwardRasMsg(H225_RasMessage &);
+	bool ReplyToRasAddress(const NetworkAddress & ip) const;
 
 	bool RemoveCallOnDRQ() const { return bRemoveCallOnDRQ; }
 
@@ -295,6 +296,7 @@ private:
 	int redirectGK;
 
 	WaitingARQlist *wArqList;
+	std::map<NetworkAddress, bool> m_replyras; // on which network should we use the rasAddress included in GRQ/RRQ/IRQ
 };
 
 #endif // RASSRV_H
