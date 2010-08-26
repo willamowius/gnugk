@@ -473,7 +473,7 @@ RegistrationRequest and InfoRequestResponse) contain an element
 send the response to these messages.
 By default GnuGk will ignore this address and respond to the IP and port
 where it has received the request from. It does so, because some endpoints
-rely on this behaviour and in case where eg. a NAT is used, the response may
+rely on this behavior and in case where eg. a NAT is used, the response may
 not reach the sender if it is sent to another IP and port. Usually endpoints
 will send the RAS messages from their RAS port anyway, so it doesn't make a difference.
 
@@ -496,7 +496,7 @@ The rule for the network with the longest netmask is used (the most specific).
 <tag/Example:/
 
 In this example messages from the 192.168.0.0/18 will use the rasAddress,
-except for messages comming from the 192.168.4.0/24 network.
+except for messages coming from the 192.168.4.0/24 network.
 
 <tscreen><verb>
 [ReplyToRasAddress]
