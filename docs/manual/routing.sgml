@@ -20,8 +20,8 @@ possibilities:
 
 <item><tt/explicit/<newline>
 <p>
-The destination is explicitly specified in the routing
-request.
+The destination is explicitly specified in the call to be routed.
+This policy is needed for dialing by IP number.
 
 <item><tt/internal/<newline>
 <p>
