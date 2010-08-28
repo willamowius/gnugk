@@ -244,7 +244,7 @@ is assigned as the primary and others are then the alternates.
 <descrip>
 <tag/Examples:/
 <verb>
-[RasSrv::AssignedGKs]
+[RasSrv::AssignedGatekeeper]
 ;; For Endpoint with H323ID starting with 01234
 01234=x.x.x.x:1719
 ;; For Endpoints in the range of 195.71.129.0/24 or 195.71.131.0/24
