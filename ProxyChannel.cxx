@@ -1417,7 +1417,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		// rewrite sq of TCS, must rewrite ACK, too!
 		if (m_call && m_call->GetRerouteState() == Rerouting) {
 			CallSignalSocket * forwarded = (m_call->GetRerouteDirection() == Caller) ? m_call->GetCallSignalSocketCalling() : m_call->GetCallSignalSocketCalled();
-			if (!forwarded->CompareH245Socket(h245sock)) {
+			if (forwarded && !forwarded->CompareH245Socket(h245sock)) {
 				tcs.m_sequenceNumber = 3;
 				changed = true;
 			}
