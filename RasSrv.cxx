@@ -2368,6 +2368,14 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 		EndpointTbl->FindByEndpointId(request.m_endpointIdentifier) :
 		request.m_callSignalAddress.GetSize() ? EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], m_msg->m_peerAddr) : endptr(0);
 	if (ep) {
+		if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+			if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
+				PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+			} else {
+				PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
+			}
+		}
+
 		// Disconnect all calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
 		// Remove from the table
@@ -2553,6 +2561,14 @@ bool AdmissionRequestPDU::Process()
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 	if (!RequestingEP)
 		return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
+
+	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
+			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
+		}
+	}
 
 	if (RasSrv->IsRedirected(H225_RasMessage::e_admissionRequest) && !answer) {
 		PTRACE(1, "RAS\tWarning: Exceed call limit!!");
@@ -3035,6 +3051,15 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460)
 template<> bool RasPDU<H225_BandwidthRequest>::Process()
 {
 	// OnBRQ
+	endptr RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
+	if (RequestingEP && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
+			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
+		}
+	}
+
 	int bandwidth = request.m_bandWidth.GetValue();
 	// hack for Netmeeting 3.0x
 	if ((bandwidth > 0) && (bandwidth < 100))
@@ -3094,6 +3119,14 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	} else {
 		bReject = true;
 		rsn = H225_DisengageRejectReason::e_notRegistered;
+	}
+
+	if (ep && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
+			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
+		}
 	}
 
 #ifdef HAS_H460
@@ -3181,6 +3214,15 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		                   bReject = !RasSrv->ValidatePDU(*this, reason);
 
 	PString sourceInfoString(fromRegEndpoint ? request.m_endpointIdentifier.GetValue() : request.HasOptionalField(H225_LocationRequest::e_gatekeeperIdentifier) ? request.m_gatekeeperIdentifier.GetValue() : m_msg->m_peerAddr.AsString());
+
+	// reply to the replyAddress if ReplyToRasAddress is configured
+	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		if (GetIPAndPortFromTransportAddr(request.m_replyAddress, m_msg->m_peerAddr, m_msg->m_peerPort)) {
+			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << request.m_replyAddress);
+		}
+	}
 
 	if (!bReject) {
 		endptr WantedEndPoint;
@@ -3387,6 +3429,15 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 {
 	// OnRAI
+	endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
+	if (ep && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
+			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
+		}
+	}
+
 	// accept all RAIs
 	H225_ResourcesAvailableConfirm & rac = BuildConfirm();
 	rac.m_protocolIdentifier = request.m_protocolIdentifier;
@@ -3398,6 +3449,15 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 {
 	// OnSCI
+	endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
+	if (ep && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
+			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
+		}
+	}
+
 	H225_ServiceControlResponse & scr = BuildConfirm();
 	scr.m_requestSeqNum = request.m_requestSeqNum;	// redundant, just to avoid compiler warning when H.460.18 is disabled
 
