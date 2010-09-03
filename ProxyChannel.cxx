@@ -1138,7 +1138,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		m_call->SetRerouteState(Rerouting);
 
 		// forward saved TCS
-		// TODO: if have save TCS
+		// TODO: if have saved TCS
 		if (m_h245Tunneling) {
 			// WARNING: this code for h245tunneled mode is hardly tested
 			// when tunneling, forward the TCS here (we probably got it in the connect)
