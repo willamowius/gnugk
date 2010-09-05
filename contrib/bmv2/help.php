@@ -32,7 +32,7 @@ echo '<tr><td colspan="2">The nature of BMV reflects its origins - the card oper
 echo '<tr><td colspan="2">  &nbsp;</td></tr>' ;
 echo '<tr><td>    &nbsp; </td> <td></td></tr>' ;
 echo '<tr><td colspan="2">  &nbsp;</td></tr>' ;
-echo '</table > \n';
+echo '</table >';
 
 include "../local/tail.php";
 ?>

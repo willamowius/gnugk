@@ -7,12 +7,13 @@ BMV2 Install procedure
 2. Set the owner and permissions as required.
 3. Copy all the files in bmv/local/sample to bmv/local
 4. Edit all files in bmv/local to personalise your system
-5. create .htaccess files everywhere, and populate them as appropriate.
-6. edit your http.conf to add the new virtual server
+5. create/change .htaccess files everywhere, and populate them as appropriate.
+6. edit your http.conf to add the new virtual server (make sure BMV2 is not installed in a subdirectory)
 7. Stop and start Apache (restart may work for you - not recommended).
 
 If you do not know how to do the above, this is not the product you need!
 
 Upgrade procedure is as above, but omit steps 3 to 6.
 
-(C) 2010, Andrew C Grillet, Released under Gpl 2
+(C) 2010, Andrew C Grillet, Released under GPL 2
+
