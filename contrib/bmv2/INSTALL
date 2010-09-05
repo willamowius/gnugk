@@ -1,0 +1,18 @@
+BMV2 Install procedure
+======================
+
+(If you can read this, you have probably installed it already.)
+
+1. Copy the tarball to /var/www and do tar -xf <tarball>
+2. Set the owner and permissions as required.
+3. Copy all the files in bmv/local/sample to bmv/local
+4. Edit all files in bmv/local to personalise your system
+5. create .htaccess files everywhere, and populate them as appropriate.
+6. edit your http.conf to add the new virtual server
+7. Stop and start Apache (restart may work for you - not recommended).
+
+If you do not know how to do the above, this is not the product you need!
+
+Upgrade procedure is as above, but omit steps 3 to 6.
+
+(C) 2010, Andrew C Grillet, Released under Gpl 2

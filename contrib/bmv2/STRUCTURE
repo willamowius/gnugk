@@ -1,0 +1,31 @@
+
+The top level menu is accessed first, and has its submenu already opened.
+This offers
+. Help/About
+. Today at a glance
+
+The Costs menu offers
+. Costs today
+. Costs yesterday
+. Costs this week
+. Costs last week
+. Costs for specified week
+. Costs for specified period.
+
+The QA menu offers
+. Today's ASR/ACDs
+. Today's failed calls
+. Today's doubtful calls
+. Today's call log.
+. Yesterday's ASR/ACDs
+. Yesterday's failed calls
+. Yesterday's doubtful calls
+. Yesterday's call log.
+
+The Rates menu offers
+. Rates by account
+. Rates by destination
+. Rates by prefix
+
+
+

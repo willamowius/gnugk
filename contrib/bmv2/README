@@ -1,0 +1,43 @@
+This is "Billing Manager for Voip" - BMV 
+I pronounce it "Beh Em Veh"  (Like BMW in German - to confuse the unsuspecting).
+It is released under the GPL, so you can pronounce it how you like!
+(c) 2004-2010, Andrew C Grillet
+andrew@grillet.co.uk
+
+This project is released under the GPL version 2. 
+
+BMV 2 is a web site for managing GnuGk/Sqlbill systems used to record cost 
+of VoIP services. It is a light-weight application constructed entirely from 
+HTML and PHP5.
+
+BMV Version 1 served the same purpose, but did not use Sqlbill. It was written 
+in 2004, for use with a proprietly product that did the same job as Sqlbill. 
+
+BMV 1.x used table formats derived from an even older product. The concept was 
+valuable, but, with a user base of less than 5, supporting the billing tool 
+in gnugk was proving impossible, and rather than continue using an archaic gnugk, 
+I decided to support standard Gnugk/Sqlbill. This meant release under GPL was  
+the most sensible proposition - I no longer need support the product alone. 
+
+I run BMV on OpenBSD systems with Apache 1.3. The original version was developed
+using FreeBSD using Apache 2.2, and at least one Windows instance has been seen 
+to work!
+
+The design objectives are:
+
+. Simple construction methods mean it can rapidly develop
+. Efficient use of resources means it can co-reside with the GnuGk for high performance.
+. Web based PostgreSQL connection means it can run on a separate machine if required.
+. Ease of use means it can be used by non-technical (accounts) personnel
+. Support for quality control and diagnosis of problems
+. The application cannot modify data, and is consequently secure
+
+The fact that BMV cannot modify data means other tools are required to perform tasks like 
+adding or altering the tariffs used, etc. (Upload of preprepared tariffs will be supported).
+
+If anyone is planning to support modification of data, then they should first address the 
+issue of user authentication. I use basic authentication.
+
+History
+2.0     Total rewrite to convert to Sqlbill schema.
+

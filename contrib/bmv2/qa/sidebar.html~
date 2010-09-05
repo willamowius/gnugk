@@ -1,0 +1,83 @@
+<HTML> 
+<HEAD>
+<TITLE>BMV 0.1</TITLE>
+</HEAD>
+<-- This file is used as a resource to create new sidebars. It shouold not be used unedited.
+If it is, it appears to show all menus dropepd down at once -->
+
+<BODY>
+<h2>Index</h2>
+<HR color="red" size="10">
+<h3>   <A HREF="../index.html" TARGET="main_window">Main Index</A> </h3>
+<ul>
+<li />
+  <A HREF="tdysummary.php" TARGET="right_window" >Today at a glance</A> <br>
+<li />
+  <A HREF="ytdtraffic.php" TARGET="right_window" >Yesterday summary</A> 
+
+</ul>
+<h3>   <A HREF="../costs/index.html" TARGET="main_window">Costs Index</A> </h3>
+<ul>
+<li />
+  <A HREF="costtdy.php" TARGET="right_window" >Today</A> 
+<li /> 
+  <A HREF="costytd.php" TARGET="right_window" >Yesterday</A> 
+<li /> 
+  <A HREF="costthisweek.php" TARGET="right_window" >This week</A> 
+<li />
+  <A HREF="costlastweek.php" TARGET="right_window" >Last week</A> 
+<li />
+  <A HREF="chooseweek.html" TARGET="right_window" >Specified week</A> 
+<li /> 
+  <A HREF="chooseperiod.html" TARGET="right_window" >Specified period</A> 
+<br>
+</ul>
+<h3>   <A HREF="../qa/index.html" TARGET="main_window">QA Index</A> </h3>
+<ul>
+<li />
+  <A HREF="tdyasr.php" TARGET="right_window" >Today's ASRs and ACDs</A> 
+<li />
+  <A HREF="tdyq931.php" TARGET="right_window" >Today's Failed calls</A> 
+<li />
+  <A HREF="tdybad.php" TARGET="right_window" >Today's dubious calls</A> 
+<li />
+  <A HREF="today.php" TARGET="right_window" >Today's termination log</A>
+<br />
+<li />
+  <A HREF="ytdtraffic.php" TARGET="right_window" >Yesterday summary</A> 
+<li />
+  <A HREF="ytdasr.php" TARGET="right_window" >Yesterday's ASRs and ACDs</A>
+<li />
+  <A HREF="ytdq931.php" TARGET="right_window" >Yesterday's Failed calls</A>
+<li />
+  <A HREF="ytdbad.php" TARGET="right_window" >Yesterday's dubious calls</A>
+<li />
+  <A HREF="yesterday.php" TARGET="right_window" >Yesterday's log</A> 
+
+</ul>
+<h3>   <A HREF="../rates/index.html" TARGET="main_window">Rates Index</A> </h3>
+<ul>
+<li />
+  <A HREF="rates-pfx.php" TARGET="right_window" >Rates for prefix</A> 
+<li />
+  <A HREF="rates-dest.php" TARGET="right_window" >Rates for destination</A> 
+<li />
+  <A HREF="rates-car.php" TARGET="right_window" >Rates for carrier</A> 
+<li /> 
+  <A HREF="rates-sel.html" TARGET="right_window" >Selected rates </A> 
+<li />  
+
+</ul>
+<h3>   <A HREF="../index.html" TARGET="main_window">Exit</A> </h3>
+
+   <br> 
+  <A HREF="gateways.php" TARGET="right_window" >Gateway details </A> 
+   <br> 
+  <A HREF="termlog.php" TARGET="right_window" >Full termination log (long)</A> 
+</P>
+
+<P> </P>
+</BODY>
+</HTML>
+
+
