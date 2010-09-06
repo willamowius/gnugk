@@ -989,7 +989,7 @@ void GkClient::OnReload()
 	PStringList gkHost;
 #if P_DNS
 	PStringList str;
-    if (PDNS::LookupSRV(gk,"_h323rs._udp.",str)) {
+    if (gk != "no" && PDNS::LookupSRV(gk, "_h323rs._udp.", str)) {
 		PTRACE(5, "EP\t" << str.GetSize() << " h323rs SRV Records found" );
 		  for (PINDEX i = 0; i < str.GetSize(); i++) {
 			PCaselessString newhost = str[i].Right(str[i].GetLength()-5);
