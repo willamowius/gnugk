@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- include BMV, a web front-end for SQLBill (in crontrib/bmv2/)
 - new config section [ReplyToRasAddress]
 - BUGFIX(RasSrv.cxx): fix multicast discovery
 - document status port command: DisconnectEndpoint
