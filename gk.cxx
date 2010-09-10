@@ -648,9 +648,9 @@ void Gatekeeper::Main()
 		GKcapacity = GkConfig()->GetInteger("TotalBandwidth", -1);
 	CallTable::Instance()->SetTotalBandwidth(GKcapacity);
 	if (GKcapacity < 0)
-		PTRACE(2, "GK\tDisable Bandwidth Management");
+		PTRACE(2, "GK\tTotal bandwidth not limited");
 	else
-		PTRACE(2, "GK\tAvailable Bandwidth " << GKcapacity);
+		PTRACE(2, "GK\tAvailable bandwidth: " << GKcapacity);
 
 	// read timeToLive from command line
 	if (args.HasOption('l'))

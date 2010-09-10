@@ -22,6 +22,8 @@ possibilities:
 <p>
 The destination is explicitly specified in the call to be routed.
 This policy is needed for dialing by IP number.
+You can define mappings for the destination IP in the
+<ref id="routingexplicit" name="Routing::Explicit"> section.
 
 <item><tt/internal/<newline>
 <p>
@@ -294,6 +296,25 @@ the parent gatekeeper.
 The section does not relate to the section
 <ref id="rewrite" name="RasSrv::RewriteE164">,
 though the latter will take effect first.
+
+
+<sect1>Section &lsqb;Routing::Explicit&rsqb;
+<label id="routingexplicit">
+<p>
+You can define a mapping where calls to certain IPs should be routed by the 'explicit' policy.
+
+<descrip>
+<tag/Format:/
+<tt/IP=newIP[:port]/
+</descrip>
+
+<descrip>
+<tag/Example:/
+<quote><tt>[Routing::Explicit]<newline>
+192.168.1.100=10.10.1.100<newline>
+192.168.1.101=10.10.1.101:1720</tt></quote>
+</descrip>
+
 
 <sect1>Section &lsqb;Routing::Sql&rsqb;
 <label id="routingsql">

@@ -690,7 +690,6 @@ RasServer::RasServer() : Singleton<RasServer>("RasSrv")
 	vqueue = NULL;
 	GKRoutedSignaling = false;
 	GKRoutedH245 = false;
-	altGKs = new H225_ArrayOf_AlternateGK;
 }
 
 RasServer::~RasServer()
@@ -699,7 +698,6 @@ RasServer::~RasServer()
 	delete acctList;
 	delete neighbors;
 	delete gkClient;
-	delete altGKs;
 	DeleteObjectsInContainer(requests);
 }
 
@@ -905,6 +903,7 @@ void RasServer::LoadConfig()
 	if (vqueue)
 		vqueue->OnReload();
 	Routing::Analyzer::Instance()->OnReload();
+	Routing::ExplicitPolicy::OnReload();
 
 	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", 1));
 
@@ -1314,6 +1313,7 @@ void RasServer::OnStop()
 	PTRACE(1, "GK\tRasServer stopped");
 }
 
+// load configuration for alternate gatekeepers
 void RasServer::GetAlternateGK()
 {
 	ClearAltGKsTable();
@@ -1347,29 +1347,24 @@ void RasServer::GetAlternateGK()
 		for (PINDEX i = 0; i < skipSize; ++i)
 			skipAddr.push_back(Address(skipips[i]));
 
-	PString param(GkConfig()->GetString("AlternateGKs", ""));
-	if (param.IsEmpty())
-		return;
 
-	PStringArray altgks(param.Tokenise(" ,;\t", FALSE));
-	altGKs->SetSize(altgks.GetSize());
-
-	for (PINDEX idx = 0; idx < altgks.GetSize(); ++idx) {
-		const PStringArray tokens = altgks[idx].Tokenise(":", FALSE);	// IPv6 problem
-		if (tokens.GetSize() < 4) {
-			PTRACE(1,"GK\tFormat error in AlternateGKs");
-			continue;
-		}
-
-		H225_AlternateGK & alt = (*altGKs)[idx];
-		alt.m_rasAddress = SocketToH225TransportAddr(Address(tokens[0]), (WORD)tokens[1].AsUnsigned());
-		alt.m_needToRegister = Toolkit::AsBool(tokens[2]);
-		alt.m_priority = tokens[3].AsInteger();
-		if (tokens.GetSize() > 4) {
-			alt.IncludeOptionalField(H225_AlternateGK::e_gatekeeperIdentifier);
-			alt.m_gatekeeperIdentifier = tokens[4];
+	// read [RasSrv::AlternateGatekeeper] section
+	m_altGkRules.clear();
+	PStringToString altgk_rules(GkConfig()->GetAllKeyValues("RasSrv::AlternateGatekeeper"));
+	for (PINDEX i = 0; i < altgk_rules.GetSize(); ++i) {
+		PString network = altgk_rules.GetKeyAt(i);
+		PString setting = altgk_rules.GetDataAt(i);
+		if (!network.IsEmpty()) {
+			NetworkAddress addr = NetworkAddress(network);
+			m_altGkRules[addr] = ParseAltGKConfig(setting);
 		}
 	}
+
+	// parse global alt gk config
+	PString altGkSetting = GkConfig()->GetString("AlternateGKs", "");
+	if (altGkSetting.IsEmpty())
+		return;
+	altGKs = ParseAltGKConfig(altGkSetting);
 
 	PString sendto(GkConfig()->GetString("SendTo", ""));
 	PStringArray svrs(sendto.Tokenise(" ,;\t", FALSE));
@@ -1381,10 +1376,52 @@ void RasServer::GetAlternateGK()
 		}
 }
 
+H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSetting) const
+{
+	PStringArray altgks(altGkSetting.Tokenise(",", FALSE));
+	H225_ArrayOf_AlternateGK alternateGKs;
+	alternateGKs.SetSize(altgks.GetSize());
+
+	for (PINDEX idx = 0; idx < altgks.GetSize(); ++idx) {
+		const PStringArray tokens = altgks[idx].Tokenise(":;", FALSE);	// TODO: IPv6 problem
+		if (tokens.GetSize() < 4) {
+			PTRACE(1,"GK\tFormat error in AlternateGKs");
+			continue;
+		}
+
+		H225_AlternateGK & alt = alternateGKs[idx];
+		alt.m_rasAddress = SocketToH225TransportAddr(Address(tokens[0]), (WORD)tokens[1].AsUnsigned());
+		alt.m_needToRegister = Toolkit::AsBool(tokens[2]);
+		alt.m_priority = tokens[3].AsInteger();
+		if (tokens.GetSize() > 4) {
+			alt.IncludeOptionalField(H225_AlternateGK::e_gatekeeperIdentifier);
+			alt.m_gatekeeperIdentifier = tokens[4];
+		}
+	}
+
+	return alternateGKs;
+}
+
+H225_ArrayOf_AlternateGK RasServer::GetAltGKForIP(const NetworkAddress & ip) const
+{
+	// find alternate gatekeeper rule by IP address
+	H225_ArrayOf_AlternateGK result;
+	NetworkAddress bestmatch;
+	std::map<NetworkAddress, H225_ArrayOf_AlternateGK>::const_iterator iter = m_altGkRules.begin();
+	while (iter != m_altGkRules.end()) {
+		if ((ip << iter->first) && (iter->first.GetNetmaskLen() >= bestmatch.GetNetmaskLen())) {
+			bestmatch = iter->first;
+			result = iter->second;
+		}
+		iter++;
+	}
+	return result;
+}
+
 void RasServer::ClearAltGKsTable()
 {
 	redirectGK = e_noRedirect;
-	altGKs->SetSize(0);
+	altGKs.SetSize(0);
 	altGKsAddr.clear();
 	skipAddr.clear();
 	altGKsPort.clear();
@@ -1518,7 +1555,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		grj.IncludeOptionalField(H225_GatekeeperReject::e_gatekeeperIdentifier);
 		grj.m_gatekeeperIdentifier = Toolkit::GKName();
 		if (rsn == H225_GatekeeperRejectReason::e_resourceUnavailable)
-			RasSrv->SetAltGKInfo(grj);
+			RasSrv->SetAltGKInfo(grj, m_msg->m_peerAddr);
 		log = "GRJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
 				+ "|" + alias
 				+ "|" + AsString(request.m_endpointType)
@@ -1617,7 +1654,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 #endif
 		{
 		  if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
-			RasSrv->SetAlternateGK(gcf);
+			RasSrv->SetAlternateGK(gcf, m_msg->m_peerAddr);
 
 		  RasSrv->SelectH235Capability(request, gcf);
 		}
@@ -2264,7 +2301,7 @@ bool RegistrationRequestPDU::Process()
 
 		// Alternate GKs
 		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK))
-			RasSrv->SetAlternateGK(rcf);
+			RasSrv->SetAlternateGK(rcf, m_msg->m_peerAddr);
 		
 		// Call credit display 
 		if (ep->AddCallCreditServiceControl(rcf.m_serviceControl,
@@ -2336,7 +2373,7 @@ bool RegistrationRequestPDU::BuildRRJ(unsigned reason, bool alt)
 	rrj.IncludeOptionalField(H225_RegistrationReject::e_gatekeeperIdentifier);
 	rrj.m_gatekeeperIdentifier = Toolkit::GKName();
 	if (alt)
-		RasSrv->SetAltGKInfo(rrj);
+		RasSrv->SetAltGKInfo(rrj, m_msg->m_peerAddr);
 
 	if (request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)
 		&& request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
@@ -2707,30 +2744,6 @@ bool AdmissionRequestPDU::Process()
 	}
 #endif
 
-	//
-	// Bandwidth check
-	//
-	int BWRequest = request.m_bandWidth.GetValue();
-	// hack for Netmeeting 3.0x
-	if ((BWRequest > 0) && (BWRequest < 100))
-		BWRequest = 1280;
-	// check if it is the first arrived ARQ
-	if (pExistingCallRec) {
-		// request more bandwidth?
-		if (BWRequest > pExistingCallRec->GetBandwidth()) {
-			if (CallTbl->GetAdmission(BWRequest, pExistingCallRec)) {
-				pExistingCallRec->SetBandwidth(BWRequest);
-			} else {
-				bReject = true;
-			}
-		}
-	} else {
-		bReject = (!CallTbl->GetAdmission(BWRequest));
-	}
-	PTRACE(3, "GK\tARQ will request bandwith of " << BWRequest);
-	if (bReject)
-		return BuildReply(H225_AdmissionRejectReason::e_requestDenied); // what the spec says
-
 	if (request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
 		H225_TransportAddress tmp;
 		GetCallSignalAddress(tmp);
@@ -2779,6 +2792,50 @@ bool AdmissionRequestPDU::Process()
 		
 		authData.m_proxyMode = route.m_proxyMode;
 	}
+
+	// bandwidth check
+	int BWRequest = request.m_bandWidth.GetValue();	// this is the bidirectional bandwidth
+	// force a minimum bandwidth for endpoints that don't properly report usage (eg. Netmeeting)
+	if ((CallTbl->GetMinimumBandwidthPerCall() > 0) && (BWRequest < CallTbl->GetMinimumBandwidthPerCall()))
+		BWRequest = CallTbl->GetMinimumBandwidthPerCall();
+	// enforce max bandwidth per call
+	if ((CallTbl->GetMaximumBandwidthPerCall() > 0) && (BWRequest > CallTbl->GetMaximumBandwidthPerCall()))
+		BWRequest = CallTbl->GetMaximumBandwidthPerCall();
+
+	// check if it is the first arrived ARQ
+	if (pExistingCallRec) {
+		// 2nd ARQ: request more bandwidth if needed
+		BWRequest = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
+		int AdditionalBW = 0;
+		if (BWRequest > pExistingCallRec->GetBandwidth()) {
+			AdditionalBW = CallTbl->CheckTotalBandwidth(BWRequest - pExistingCallRec->GetBandwidth());
+			AdditionalBW = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
+			BWRequest = pExistingCallRec->GetBandwidth() + AdditionalBW;
+		}
+		if (BWRequest <= 0) {
+			bReject = true;
+		} else {
+			CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
+			CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
+			CallTbl->UpdateTotalBandwidth(AdditionalBW);
+			pExistingCallRec->SetBandwidth(BWRequest);
+		}
+	} else {
+		// 1st ARQ
+		BWRequest = CallTbl->CheckEPBandwidth(RequestingEP, BWRequest);
+		BWRequest = CallTbl->CheckEPBandwidth(CalledEP, BWRequest);
+		BWRequest = CallTbl->CheckTotalBandwidth(BWRequest);
+		if (BWRequest <= 0) {
+			bReject = true;
+		} else {
+			CallTbl->UpdateEPBandwidth(RequestingEP, BWRequest);
+			CallTbl->UpdateTotalBandwidth(BWRequest);
+		}
+	}
+	PTRACE(1, "JW ACF will grant bandwidth of " << BWRequest);
+	PTRACE(3, "GK\tACF will grant bandwidth of " << BWRequest);
+	if (bReject)
+		return BuildReply(H225_AdmissionRejectReason::e_requestDenied); // what the spec says
 
 	// new connection admitted
 	H225_AdmissionConfirm & acf = BuildConfirm();
@@ -2981,7 +3038,7 @@ bool AdmissionRequestPDU::Process()
 			H460_FeatureStd fs = H460_FeatureStd(9);
 
 			if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "DRQOnly", "1")))
-					 fs.Add(0,H460_FeatureContent(0,8));
+				fs.Add(0,H460_FeatureContent(0,8));
 			lastPos++;
 			data.SetSize(lastPos);
 			data[lastPos-1] = fs;
@@ -3026,7 +3083,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460)
 	} else {
 		H225_AdmissionReject & arj = BuildReject(reason);
 		if (reason == H225_AdmissionRejectReason::e_resourceUnavailable)
-			RasSrv->SetAltGKInfo(arj);
+			RasSrv->SetAltGKInfo(arj, m_msg->m_peerAddr);
 #ifdef HAS_H46023
 		if (h460) {
 			arj.IncludeOptionalField(H225_AdmissionReject::e_genericData);
@@ -3061,9 +3118,12 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 	}
 
 	int bandwidth = request.m_bandWidth.GetValue();
-	// hack for Netmeeting 3.0x
-	if ((bandwidth > 0) && (bandwidth < 100))
-		bandwidth = 1280;
+	// enforce minimum bandwidth per call
+	if ((CallTbl->GetMinimumBandwidthPerCall() > 0) && (bandwidth < CallTbl->GetMinimumBandwidthPerCall()))
+		bandwidth = CallTbl->GetMinimumBandwidthPerCall();
+	// enforce max bandwidth per call
+	if ((CallTbl->GetMaximumBandwidthPerCall() > 0) && (bandwidth > CallTbl->GetMaximumBandwidthPerCall()))
+		bandwidth = CallTbl->GetMaximumBandwidthPerCall();
 
 	callptr pCall = request.HasOptionalField(H225_BandwidthRequest::e_callIdentifier) ?
 		CallTbl->FindCallRec(request.m_callIdentifier) :
@@ -3075,16 +3135,27 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 	if (!bReject && !pCall) {
 		bReject = true;
 		rsn = H225_BandRejectReason::e_invalidConferenceID;
-	} else if (!CallTbl->GetAdmission(bandwidth, pCall)) {
-		bReject = true;
-		rsn = H225_BandRejectReason::e_insufficientResources;
+	} else if (!bReject) {
+		int AdditionalBW = bandwidth - pCall->GetBandwidth();
+		AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCallingParty(), AdditionalBW);
+		AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
+		AdditionalBW = CallTbl->CheckTotalBandwidth(AdditionalBW);
+		if (AdditionalBW > 0) {
+			CallTbl->UpdateEPBandwidth(pCall->GetCallingParty(), AdditionalBW);
+			CallTbl->UpdateEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
+			CallTbl->UpdateTotalBandwidth(AdditionalBW);
+			bandwidth = pCall->GetBandwidth() + AdditionalBW;
+		} else {
+			bReject = true;
+			rsn = H225_BandRejectReason::e_insufficientResources;
+		}
 	}
 	if (bReject) {
 		H225_BandwidthReject & brj = BuildReject(rsn);
 		if (rsn == H225_BandRejectReason::e_insufficientResources) {
 			brj.m_allowedBandWidth = CallTbl->GetAvailableBW();
 			// ask the endpoint to try alternate gatekeepers
-			RasSrv->SetAltGKInfo(brj);
+			RasSrv->SetAltGKInfo(brj, m_msg->m_peerAddr);
 		}
 		log = PString(PString::Printf, "BRJ|%s|%s|%u|%s;",
 			inet_ntoa(m_msg->m_peerAddr),

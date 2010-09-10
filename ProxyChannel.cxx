@@ -2048,11 +2048,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	// remove the destination signaling address of the gatekeeper
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+		// rewrite destination IP here (can't do it in Explicit policy, because local IPs are removed before they get there)
+		Routing::ExplicitPolicy::MapDestination(setupBody.m_destCallSignalAddress);
 		PIPSocket::Address _destAddr;
 		WORD _destPort = 0;
 		if (GetIPAndPortFromTransportAddr(setupBody.m_destCallSignalAddress, _destAddr, _destPort)
-				&& _destAddr == _localAddr && _destPort == _localPort)
+				&& _destAddr == _localAddr && _destPort == _localPort) {
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		}
 	}
 
 	// send a CallProceeding (to avoid caller timeouts)

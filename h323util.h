@@ -32,9 +32,9 @@ PString AsString(const H245_UnicastAddress_iPAddress &);
 
 PString AsString(const H225_TransportAddress & ta);
 
-PString AsDotString(const H225_TransportAddress & ip);
+PString AsDotString(const H225_TransportAddress & ip, bool showPort=true);
 
-PString AsString(const H225_TransportAddress_ipAddress & ip);
+PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort=true);
 
 PString AsString(const H225_EndpointType & terminalType);
 

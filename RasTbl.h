@@ -102,6 +102,9 @@ public:
 	virtual void AddNumbers(const PString & numbers);
 	virtual void SetEndpointType(const H225_EndpointType &);
     virtual void SetEndpointInfo(const PString & vendor, const PString & version);
+	virtual int GetBandwidth() const { return m_bandwidth; }
+	virtual void SetBandwidth(int bw) { m_bandwidth = bw;  if (m_bandwidth < 0) m_bandwidth = 0; }
+	virtual int GetMaxBandwidth() const { return m_maxBandwidth; }
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return false; }
@@ -340,6 +343,9 @@ protected:
 	bool m_h46018disabled;
 	bool m_usesH46018;
 	bool m_usesH460P;
+	
+	int m_bandwidth;	// bandwidth currently occupied by this endpoint
+	int m_maxBandwidth; // maximum bandwidth allowed for this endpoint
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -707,7 +713,7 @@ public:
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
 	void RerouteDropCalling();
 	void RerouteDropCalled();
-	void SetBandwidth(int bandwidth) { m_bandwidth = bandwidth; }
+	void SetBandwidth(int bandwidth) { m_bandwidth = bandwidth; if (m_bandwidth < 0) m_bandwidth = 0; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetCallSignalSocketCalling(CallSignalSocket* socket);
 	void SetCallSignalSocketCalled(CallSignalSocket* socket);
@@ -1352,9 +1358,13 @@ public:
 
 	// bandwidth management
 	void SetTotalBandwidth(int bw);
-	bool GetAdmission(int bw);
-	bool GetAdmission(int bw, const callptr &);
 	int GetAvailableBW() const { return m_capacity; }
+	int GetMinimumBandwidthPerCall() const { return m_minimumBandwidthPerCall; }
+	int GetMaximumBandwidthPerCall() const { return m_maximumBandwidthPerCall; }
+	int CheckTotalBandwidth(int bw) const;
+	void UpdateTotalBandwidth(int bw);
+	int CheckEPBandwidth(const endptr & ep, int bw) const;
+	void UpdateEPBandwidth(const endptr & ep, int bw);
 
 	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
 	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
@@ -1433,7 +1443,9 @@ private:
 	PINDEX m_CallNumber;
 	mutable PReadWriteMutex listLock;
 
-	int m_capacity;
+	int m_capacity;	// total available bandwidth for gatekeeper (-1 = unlimited)
+	int m_minimumBandwidthPerCall;	// don't accept bandwith requests from endpoints lower tan this (eg. for Netmeeting)
+	int m_maximumBandwidthPerCall;	// maximum bandwidth allowed per call (<= 0 means unlimited)
 
 	// statistics
 	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall;

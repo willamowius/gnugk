@@ -1,5 +1,12 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- improved bandwith management: calls that exceed the bandwidth limit
+  will be allowed with reduced bandwith instead of rejected
+- limit bandwidth per call: [Gatekeeper::Main] MinimumBandwidthPerCall= and MaximumBandwidthPerCall=
+- limit bandwidth for registered endpoints with [EP::...] MaxBandwidth=
+- change to the format of [Gatekeeper::Main] AlternateGKs=
+- new config section [RasSrv::AlternateGatekeeper] for alternate gatekeeper configuration by endpoint IP
+- new config section [Routing::Explicit] to define mappings for IP dialing
 - include BMV, a web front-end for SQLBill (in crontrib/bmv2/)
 - new config section [ReplyToRasAddress]
 - BUGFIX(RasSrv.cxx): fix multicast discovery

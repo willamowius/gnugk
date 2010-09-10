@@ -214,6 +214,25 @@ protected:
 	const char* m_name;
 };
 
+
+// the simplest policy, the destination has been explicitly specified
+class ExplicitPolicy : public Policy {
+public:
+	ExplicitPolicy();
+
+	static void MapDestination(H225_TransportAddress & addr);
+	static void OnReload();
+
+protected:
+	virtual bool OnRequest(AdmissionRequest &);
+	// the policy doesn't apply to LocationRequest
+	virtual bool OnRequest(SetupRequest &);
+	virtual bool OnRequest(FacilityRequest &);
+
+	static map<PString, H225_TransportAddress> m_destMap;
+};
+
+
 class AliasesPolicy : public Policy {
 public:
 	AliasesPolicy() { m_name = "Aliases"; }
@@ -335,7 +354,7 @@ public:
 		/// aliases for the routing target (an agent that the call will be routed to)
 		/// that will replace the original destination info
 		const H225_ArrayOf_AliasAddress& agent,
-		/// ip that will replace the destionationCallSignalAddress (RouteToGateway)
+		/// ip that will replace the destinationCallSignalAddress (RouteToGateway)
 		/// used only if set (port != 0)
 		const PString& destinationip,
 		/// identifier of the endpoint associated with the route request

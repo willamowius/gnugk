@@ -364,21 +364,46 @@ bool AliasesPolicy::OnRequest(FacilityRequest & request)
 }
 
 
-// the simplest policy, the destination has been explicitly specified
-class ExplicitPolicy : public Policy {
-public:
-	ExplicitPolicy() { m_name = "Explicit"; }
-protected:
-	virtual bool OnRequest(AdmissionRequest &);
-	// the policy doesn't apply to LocationRequest
-	virtual bool OnRequest(SetupRequest &);
-	virtual bool OnRequest(FacilityRequest &);
-};
+map<PString, H225_TransportAddress> ExplicitPolicy::m_destMap;
+
+ExplicitPolicy::ExplicitPolicy()
+{
+	m_name = "Explicit";
+}
+
+void ExplicitPolicy::OnReload()
+{
+	m_destMap.clear();
+	PStringToString mappings(GkConfig()->GetAllKeyValues("Routing::Explicit"));
+	for (PINDEX i = 0; i < mappings.GetSize(); ++i) {
+		PString src = mappings.GetKeyAt(i);
+		PString dest = mappings.GetDataAt(i);
+		if (!dest.IsEmpty()) {
+			H225_TransportAddress addr;
+			if (GetTransportAddress(dest, 1720, addr)) {
+				m_destMap[src] = addr;
+			} else {
+				PTRACE(1, "Error parsing entry in [Routing::Explicit]: " << src << "=" << dest);
+			}
+		}
+	}
+}
+
+void ExplicitPolicy::MapDestination(H225_TransportAddress & addr)
+{
+	PString orig = AsDotString(addr, false);	// original IP without port
+	map<PString, H225_TransportAddress>::const_iterator i = m_destMap.find(orig);
+	if (i != m_destMap.end()) {
+		addr = i->second;
+		PTRACE(4, "[Routing::Explicit]: map destination " << orig << " to " << AsDotString(i->second));
+	}
+}
 
 bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 {
 	H225_AdmissionRequest & arq = request.GetRequest();
 	if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+		MapDestination(arq.m_destCallSignalAddress);
 		Route route(m_name, arq.m_destCallSignalAddress);
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 			route.m_destAddr
@@ -388,10 +413,11 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 	return false;
 }
 
-bool ExplicitPolicy::OnRequest(SetupRequest &request)
+bool ExplicitPolicy::OnRequest(SetupRequest & request)
 {
 	H225_Setup_UUIE &setup = request.GetRequest();
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+		// don't map IP here, for Setup already done in OnSetup()
 		Route route(m_name, setup.m_destCallSignalAddress);
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 			route.m_destAddr
@@ -405,6 +431,7 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 {
 	H225_Facility_UUIE & facility = request.GetRequest();
 	if (facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress)) {
+		MapDestination(facility.m_alternativeAddress);
 		Route route(m_name, facility.m_alternativeAddress);
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 			route.m_destAddr
@@ -415,7 +442,7 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 }
 
 
-// the classical policy, find the dstionation from the RegistrationTable
+// the classical policy, find the dstination from the RegistrationTable
 class InternalPolicy : public AliasesPolicy {
 public:
 	InternalPolicy();
@@ -846,7 +873,7 @@ bool VirtualQueue::RouteToAlias(
 	/// aliases for the routing target (an agent that the call will be routed to) 
 	/// that will replace the original destination info
 	const H225_ArrayOf_AliasAddress& agent,
-	/// ip that will replace the destionationCallSignalAddress (RouteToGateway)
+	/// ip that will replace the destinationCallSignalAddress (RouteToGateway)
 	/// used only if set (!= NULL)
 	const PString& destinationip,
 	/// identifier of the endpoint associated with the route request

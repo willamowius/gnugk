@@ -36,18 +36,23 @@ PString AsString(const H225_TransportAddress & ta)
 	return stream;
 }
 
-PString AsDotString(const H225_TransportAddress & ip)
+PString AsDotString(const H225_TransportAddress & ip, bool showPort)
 {
 	return (ip.IsValid() && ip.GetTag() == H225_TransportAddress::e_ipAddress) ?
-		AsString((const H225_TransportAddress_ipAddress &)ip) : PString();
+		AsString((const H225_TransportAddress_ipAddress &)ip, showPort) : PString();
 }
 
-PString AsString(const H225_TransportAddress_ipAddress & ip)
+PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort)
 {
-	return PString(PString::Printf, "%d.%d.%d.%d:%u",
-		ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3],
-		ip.m_port.GetValue());
+	if (showPort)
+		return PString(PString::Printf, "%d.%d.%d.%d:%u",
+			ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3],
+			ip.m_port.GetValue());
+	else
+		return PString(PString::Printf, "%d.%d.%d.%d",
+			ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
 }
+
 
 PString AsString(const H225_EndpointType & terminalType)
 {

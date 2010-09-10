@@ -49,7 +49,6 @@ class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
 class HandlerList;
-class WaitingARQlist;
 
 namespace Neighbors {
 	class NeighborList;
@@ -190,20 +189,33 @@ public:
 		return IsForwardedMessage(ras.HasOptionalField(RAS::e_nonStandardData) ? &ras.m_nonStandardData : 0, addr);
 	}
 
-	template<class RAS> void SetAlternateGK(RAS & ras)
+	template<class RAS> void SetAlternateGK(RAS & ras, const NetworkAddress & ip)
 	{
-		if (altGKs->GetSize() > 0) {
+		H225_ArrayOf_AlternateGK alternates = GetAltGKForIP(ip);
+		if (alternates.GetSize() > 0) {
+			// add alternates by IP
 			ras.IncludeOptionalField(RAS::e_alternateGatekeeper);
-			ras.m_alternateGatekeeper = *altGKs;
+			ras.m_alternateGatekeeper = alternates;
+		} else	if (altGKs.GetSize() > 0) {
+			// use global configuration
+			ras.IncludeOptionalField(RAS::e_alternateGatekeeper);
+			ras.m_alternateGatekeeper = altGKs;
 		}
 	}
 
-	template<class RAS> void SetAltGKInfo(RAS & ras)
+	template<class RAS> void SetAltGKInfo(RAS & ras, const NetworkAddress & ip)
 	{
-		if (altGKs->GetSize() > 0) {
+		H225_ArrayOf_AlternateGK alternates = GetAltGKForIP(ip);
+		if (alternates.GetSize() > 0) {
+			// add alternates by IP
 			ras.IncludeOptionalField(RAS::e_altGKInfo);
 			ras.m_altGKInfo.m_altGKisPermanent = (redirectGK == e_permanentRedirect);
-			ras.m_altGKInfo.m_alternateGatekeeper = *altGKs;
+			ras.m_altGKInfo.m_alternateGatekeeper = alternates;
+		} else	if (altGKs.GetSize() > 0) {
+			// use global configuration
+			ras.IncludeOptionalField(RAS::e_altGKInfo);
+			ras.m_altGKInfo.m_altGKisPermanent = (redirectGK == e_permanentRedirect);
+			ras.m_altGKInfo.m_alternateGatekeeper = altGKs;
 		}
 	}
 
@@ -247,6 +259,8 @@ private:
 	virtual void OnStop();
 
 	void GetAlternateGK();
+	H225_ArrayOf_AlternateGK ParseAltGKConfig(const PString & altGkSetting) const;
+	H225_ArrayOf_AlternateGK GetAltGKForIP(const NetworkAddress & ip) const;
 	void ClearAltGKsTable();
 	void HouseKeeping();
 
@@ -290,12 +304,12 @@ private:
 	};
 	std::vector<Address> altGKsAddr, skipAddr;
 	std::vector<WORD> altGKsPort;
-	H225_ArrayOf_AlternateGK *altGKs;
+	H225_ArrayOf_AlternateGK altGKs;
 	PINDEX altGKsSize;
+	std::map<NetworkAddress, H225_ArrayOf_AlternateGK> m_altGkRules;	// alternate GK rules by IP
 	PINDEX epLimit, callLimit;
 	int redirectGK;
 
-	WaitingARQlist *wArqList;
 	std::map<NetworkAddress, bool> m_replyras; // on which network should we use the rasAddress included in GRQ/RRQ/IRQ
 };
 

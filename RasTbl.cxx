@@ -82,7 +82,8 @@ EndpointRec::EndpointRec(
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown),m_usesH46023(false), m_H46024(false),
 	m_H46024a(false),m_H46024b(false),m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false),m_usesH460P(false)
+	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false),m_usesH460P(false),
+	m_bandwidth(0), m_maxBandwidth(-1)
 
 {
 	switch (m_RasMsg.GetTag())
@@ -384,6 +385,7 @@ void EndpointRec::LoadEndpointConfig()
 			if (!numbersDef.IsEmpty()) {
 				AddNumbers(numbersDef);
 			}
+			m_maxBandwidth = cfg->GetInteger(key, "MaxBandwidth", -1);
 
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
@@ -815,8 +817,13 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason,  int preempti
         GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
 
 	RasSrv->ForwardRasMsg(ras_msg);
-	if (reason == H225_UnregRequestReason::e_maintenance)
-		RasSrv->SetAlternateGK(urq);
+	if (reason == H225_UnregRequestReason::e_maintenance) {
+		PIPSocket::Address ip;
+		WORD notused;
+		if (GetIPAndPortFromTransportAddr(GetRasAddress(), ip, notused)) {
+			RasSrv->SetAlternateGK(urq, ip);
+		}
+	}
 	RasSrv->SendRas(ras_msg, GetRasAddress());
 	return true;
 }
@@ -3350,7 +3357,10 @@ bool CallRec::IsTimeout(
 
 CallTable::CallTable() : Singleton<CallTable>("CallTable")
 {
-	m_CallNumber = 0, m_capacity = -1;
+	m_CallNumber = 0;
+	m_capacity = -1;
+	m_minimumBandwidthPerCall = -1;
+	m_maximumBandwidthPerCall = -1;
 	ResetCallCounters();
 	m_activeCall = 0;
 	LoadConfig();
@@ -3372,6 +3382,8 @@ void CallTable::LoadConfig()
 	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
 	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
 	SetTotalBandwidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
+	m_minimumBandwidthPerCall = GkConfig()->GetInteger("MinimumBandwidthPerCall", -1);
+	m_maximumBandwidthPerCall = GkConfig()->GetInteger("MaximumBandwidthPerCall", -1);
 	m_signalTimeout = std::max(
 		GkConfig()->GetInteger(RoutedSec, "SignalTimeout", DEFAULT_SIGNAL_TIMEOUT),
 		5000L
@@ -3424,21 +3436,63 @@ void CallTable::SetTotalBandwidth(int bw)
 	}
 }
 
-bool CallTable::GetAdmission(int bw)
+int CallTable::CheckTotalBandwidth(int bw) const
 {
-	if (m_capacity < 0)
-		return true;
-	if (m_capacity < bw)
-		return false;
-
-	m_capacity -= bw;
-	PTRACE(2, "GK\tAvailable Bandwidth " << m_capacity);
-	return true;
+	if ((m_capacity < 0) || (m_capacity >= bw)) {
+		PTRACE(1, "JW global bandwidth check: full bandwidth granted: cpacity=" << m_capacity << " bw=" << bw);
+		return bw;
+	}
+	if (m_capacity > 0) {
+		PTRACE(1, "JW global bandwidth check: reduce bandwidth granted: " << m_capacity);
+		return m_capacity;
+	}
+	PTRACE(1, "JW global bandwidth check: no bandwidth left");
+	return 0;
 }
 
-bool CallTable::GetAdmission(int bw, const callptr & call)
+void CallTable::UpdateTotalBandwidth(int bw)
 {
-	return GetAdmission(bw - call->GetBandwidth());
+	if (m_capacity >= 0) {
+		m_capacity -= bw;
+		if (m_capacity < 0)	{
+			// shouldn't happen, just to make sure we can destinguish the disabled state
+			m_capacity = 0;
+		}
+		PTRACE(2, "GK\tAvailable Bandwidth " << m_capacity);
+	}
+}
+
+int CallTable::CheckEPBandwidth(const endptr & ep, int bw) const
+{
+	PTRACE(1, "JW EP bandwidth check: ep=" << ep << " requested=" << bw);
+	if (ep) {
+		int epMax = ep->GetMaxBandwidth();
+		PTRACE(1, "JW EP bandwidth check: ep=" << ep->GetEndpointIdentifier().GetValue() << " requested=" << bw << " maximum=" << epMax);
+		if (epMax >= 0) {
+			int epUsed = ep->GetBandwidth();
+			PTRACE(1, "JW EP bandwidth check: requested=" << bw << " already used=" << epUsed << " maximum=" << epMax);
+			if (epUsed >= epMax) {
+				PTRACE(1, "JW EP bandwidth check: limit reached");
+				return 0;
+			} if (epUsed + bw <= epMax) {
+				PTRACE(1, "JW EP bandwidth check: fully granted");
+				return bw;
+			} else {
+				PTRACE(1, "JW EP bandwidth check: partially granted bw=" << (epMax - epUsed));
+				return (epMax - epUsed);
+			}
+		}
+	}
+	PTRACE(1, "JW EP bandwidth check: no limiting");
+	return bw;
+}
+
+void CallTable::UpdateEPBandwidth(const endptr & ep, int bw)
+{
+	if (ep) {
+		ep->SetBandwidth(ep->GetBandwidth() + bw);
+		PTRACE(1, "JW EP bandwidth updated for ep " << ep->GetEndpointIdentifier().GetValue() << " by " << bw << " now at " << ep->GetBandwidth());
+	}
 }
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
@@ -3796,6 +3850,8 @@ void CallTable::InternalRemove(iterator Iter)
 		++m_successCall;
 	if (!call->GetCallingParty())
 		++(call->IsToParent() ? m_parentCall : m_neighborCall);
+	UpdateEPBandwidth(call->GetCallingParty(), - call->GetBandwidth());
+	UpdateEPBandwidth(call->GetCalledParty(), - call->GetBandwidth());
 	if (m_capacity >= 0)
 		m_capacity += call->GetBandwidth();
 		

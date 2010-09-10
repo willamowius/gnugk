@@ -206,11 +206,27 @@ Set trace level (same as -t on the command line).
 <item><tt/TotalBandwidth=100000/<newline>
 Default: <tt/-1/<newline>
 <p>
-Total bandwidth available to be given to endpoints.
-By default this feature is off.
+Total bandwidth available to be given to endpoints in units of 100 bits per second.
+By default this feature is off (-1).
 
-<bf>NOTE:</bf>  At this time, the GnuGk only checks calls from registered endpoints and
-many endpoints supply incorrect bandwidth values.
+<bf>NOTE:</bf> At this time, the GnuGk only checks calls to and from registered endpoints.
+
+<item><tt/MinimumBandwidthPerCall=1280/<newline>
+Default: <tt/-1/<newline>
+<p>
+Raise bandwidth requests from endpoints to at least this value in units of 100 bits per second.
+Useful when endpoints don't report correct values (eg. Netmeeting).
+If set to zero or less, no minimum is enforced (default).
+
+<bf>NOTE:</bf> At this time, the GnuGk only checks calls to and from registered endpoints.
+
+<item><tt/MaximumBandwidthPerCall=100000/<newline>
+Default: <tt/-1/<newline>
+<p>
+Set maximum bandwidth allowed for a single call in units of 100 bits per second.
+If set to zero or less, no maximum is enforced (default).
+
+<bf>NOTE:</bf> At this time, the GnuGk only checks calls to and from registered endpoints.
 
 <item><tt/RedirectGK=Endpoints > 100 | Calls > 50/<newline>
 Default: <tt>N/A</tt><newline>
@@ -230,7 +246,8 @@ will not register with this gatekeeper again.
 <bf>NOTE:</bf>  The redirect capability will only function with H.323 version 4
 compliant endpoints.
 
-<item><tt/AlternateGKs=1.2.3.4:1719:false:120:GnuGk/<newline>
+<label id="alternategks">
+<item><tt/AlternateGKs=1.2.3.4;1719;false:120;GnuGk/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the endpoint loses connectivity with GnuGk it should automatically try 
@@ -258,6 +275,13 @@ Lower is better; usually the primary gatekeeper is considered to have priority 1
 The last field specifies the alternate gatekeeper's identifier.
 
 You may specify multiple alternate gatekeepers as a comma separated list.
+
+This global definition can be overriden by a per IP specification in
+<ref id="rassrvalternategatekeeper" name="RasSrv::AlternateGatekeeper">.
+
+<bf>NOTE:</bf> In older versions of GnuGk, the fields were separated by colons.
+This will continue to work for a now, but it is deprecated.
+Please change your old configurations to use semikolons.
 
 <item><tt/SendTo=1.2.3.4:1719/<newline>
 Default: <tt>N/A</tt><newline>

@@ -229,6 +229,33 @@ SELECT assignedalias FROM users WHERE alias = '%u' AND active
 
 </itemize>
 
+<sect1>Section &lsqb;RasSrv::AlternateGatekeeper&rsqb;
+<label id="rassrvalternategatekeeper">
+<p>
+This section allows you to override the global definition of <ref id="alternategks" name="AlternateGKs">
+from the [Gatekeeper::Main] section for certain IPs or IP ranges.
+See there for a detailed definition of the config options.
+
+The network is specified by an IP plus optional CIDR, eg. 192.168.1.0/24.
+The rule for the network with the longest netmask is used (the most specific).
+<p>
+
+<descrip>
+<tag/Example:/
+
+In this example, 192.168.1.10 gets assigned GnuGk10 as alternate gatekeeper,
+while the rest of the 192.168.0.0/18 network will use GnuGk4. Endpoints in
+all other networks will use the globally defined alternate gatekeeper. 
+
+<tscreen><verb>
+[RasSrv::AlternateGatekeeper]
+192.168.0.0/18=1.2.3.4;1719;true;120;GnuGk4
+192.168.1.10=1.2.3.10;1719;true;120;GnuGk10
+</verb></tscreen>
+
+</descrip>
+
+
 <sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
 <p>
 This allows the assigning of a gatekeeper based upon the H323ID or the

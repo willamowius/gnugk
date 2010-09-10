@@ -31,7 +31,7 @@ Specify the time-to-live timer (in seconds) for endpoint registration.
 Overrides the setting <tt/TimeToLive/ in the configuration file.
 See <ref id="ttl" name="there"> for detailed explanations.
 <tag/<tt/-b  --bandwidth n//
-Specify the total bandwidth available for the gatekeeper.
+Specify the total bandwidth available for the gatekeeper in units of 100 bits per second.
 Without this option, bandwidth management
 is disabled.
 <tag/<tt/--pid filename//

@@ -154,7 +154,7 @@ The following parameters are defined:
 <item><tt/%{packetloss}/ - packet loss
 <item><tt/%{packetloss-percent}/ - packet loss percentage
 <item><tt/%{avgjitter}/ - average jitter
-<item><tt/%{bandwidth}/ - bandwidth
+<item><tt/%{bandwidth}/ - bandwidth (in units of 100 bits per second)
 <item><tt/%t/ - timestamp
 
 </itemize>

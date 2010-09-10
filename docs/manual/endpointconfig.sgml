@@ -111,6 +111,12 @@ Default: <tt>0</tt><newline>
 <p>
 Disable H.460.18/.19 for this endpoint.
 
+<item><tt/MaxBandwidth=100000/<newline>
+Default: <tt>-1</tt><newline>
+<p>
+Maxmimum bandwidth this endpoint may use in units of 100 bits per second.
+This includes inbound and outbound bandwidth.
+
 </itemize>
 
 Example:
