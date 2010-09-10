@@ -596,8 +596,7 @@ void Gatekeeper::Main()
 	if (!fake_cmdline.IsEmpty()) {
 		PArgList fake_args(fake_cmdline);
 		fake_args.Parse(GetArgumentsParseString());
-		if (!InitLogging(fake_args))
-			return;
+		InitLogging(fake_args);
 	}
 
 	EnableLogFileRotation();
