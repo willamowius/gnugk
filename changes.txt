@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- BUGFIX(Routing.cxx): apply ENUM policy also to Setup and Facility messages
 - BUGFIX(gk.cxx): fix crash when setting a non-writable trace file in the config file
 - improved bandwith management: calls that exceed the bandwidth limit
   will be allowed with reduced bandwith instead of rejected

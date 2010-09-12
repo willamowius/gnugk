@@ -1420,9 +1420,6 @@ class ENUMPolicy : public AliasesPolicy {
 public:
 	ENUMPolicy() { m_name = "ENUM"; }
 protected:
-    virtual bool OnRequest(SetupRequest &) { return false; }
-    virtual bool OnRequest(FacilityRequest &) { return false; }
-
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 };
