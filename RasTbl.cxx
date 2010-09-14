@@ -3439,7 +3439,7 @@ void CallTable::SetTotalBandwidth(int bw)
 int CallTable::CheckTotalBandwidth(int bw) const
 {
 	if ((m_capacity < 0) || (m_capacity >= bw)) {
-		PTRACE(1, "JW global bandwidth check: full bandwidth granted: cpacity=" << m_capacity << " bw=" << bw);
+		PTRACE(1, "JW global bandwidth check: full bandwidth granted: capacity=" << m_capacity << " bw=" << bw);
 		return bw;
 	}
 	if (m_capacity > 0) {
