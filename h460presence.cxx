@@ -367,6 +367,8 @@ bool GkPresence::IsEnabled() const
 void GkPresence::LoadConfig(PConfig * cfg)
 {
 	m_enabled = cfg->GetBoolean("RoutedMode", "EnableH460P", 0);
+	if (!m_enabled)
+		return;
 
 #if HAS_DATABASE
 	delete m_sqlConn;
@@ -440,11 +442,10 @@ void GkPresence::LoadConfig(PConfig * cfg)
 
 	if (!m_sqlactive) {
 		PTRACE(1, "H460P\tNo backend database support. Please recompile GnuGk with database support.");
+		return;
 	}
 
-
 	m_worker = new PresWorker(this, cfg->GetInteger("RoutedMode", "H460PActThread", DEFAULT_PRESWORKER_TIMER)*1000);
-
 }
 
 bool GkPresence::DatabaseLoad()

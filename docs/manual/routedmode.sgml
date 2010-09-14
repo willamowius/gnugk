@@ -613,6 +613,11 @@ Up to version 2.3.0 GnuGk did this automatically, but it can break
 channel establishment in some cases, so now you have to set this
 switch if you have these broken endpoints.
 
+<item><tt/EnableH460P=1/<newline>
+Default: <tt/0/<newline>
+<p>
+WARNING: This in an experimental feature to support the not yet released H.460 presence standard.
+
 <item><tt/H460PActThread=10/<newline>
 Default: <tt/2/<newline>
 <p>
