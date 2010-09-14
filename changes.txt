@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- documented H460PActThread= switch
 - BUGFIX(Routing.cxx): apply ENUM policy also to Setup and Facility messages
 - BUGFIX(gk.cxx): fix crash when setting a non-writable trace file in the config file
 - improved bandwith management: calls that exceed the bandwidth limit
