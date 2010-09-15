@@ -3404,7 +3404,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	PrintQ931(3, "Setup for Reroute ", GetName(), &q931, &uuie);
 
 	PIPSocket::Address dummyAddr;
-	SignalingMsg *msg = SignalingMsg::Create(&q931, &uuie, dummyAddr, dummyAddr, dummyAddr, (WORD)0);
+	SignalingMsg *msg = SignalingMsg::Create(&q931, &uuie, dummyAddr, 0, dummyAddr, 0);
 	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
 	if (setup == NULL) {
 		PTRACE(1, "Can't cast Setup");	// should never happen
