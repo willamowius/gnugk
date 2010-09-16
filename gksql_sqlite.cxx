@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.7  2010/09/16 10:17:37  willamowius
+ * database drivers load their libraries at runtime now, added Library= switch
+ *
  * Revision 1.6  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -316,7 +319,7 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 	if (!g_sharedLibrary.IsLoaded()) {
 		if (m_library.IsEmpty()) {
 #ifdef _WIN32
-			m_library = "sqlite" + g_sharedLibrary.GetExtension();
+			m_library = "sqlite3" + g_sharedLibrary.GetExtension();
 #else
 			m_library = "libsqlite3" + g_sharedLibrary.GetExtension();
 #endif

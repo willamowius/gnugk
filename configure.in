@@ -705,7 +705,7 @@ dnl  Check for SQLite
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    sqlite,SQLite
-dnl MSWIN_CHECK_FILE sqlite,sqlite-source\sqlite3.h,HAS_SQLITE=1
+dnl MSWIN_CHECK_FILE sqlite,sqlite3.h,HAS_SQLITE=1
 dnl MSWIN_DIR_SYMBOL sqlite,SQLITE_DIR
 dnl MSWIN_CHECK_DIR  sqlite,\sqlite\
 

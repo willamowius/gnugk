@@ -28,7 +28,6 @@
 #undef HAS_MYSQL
 #if defined(_MSC_VER) && HAS_MYSQL
   #pragma include_alias(<mysql.h>, <@MYSQL_DIR@/include/mysql.h>)
-  #define MYSQL_LIBRARY "@MYSQL_DIR@/lib/opt/libmysql.lib"
 #endif
 
 
@@ -37,7 +36,6 @@
 #undef HAS_PGSQL
 #if defined(_MSC_VER) && HAS_PGSQL
   #pragma include_alias(<libpq-fe.h>, <@PGSQL_DIR@/include/libpq-fe.h>)
-  #define PGSQL_LIBRARY "@PGSQL_DIR@/lib/libpq.lib"
 #endif
 
 
@@ -46,7 +44,6 @@
 #undef HAS_FIREBIRD
 #if defined(_MSC_VER) && HAS_FIREBIRD
   #pragma include_alias(<ibase.h>, <@FIREBIRD_DIR@/include/ibase.h>)
-  #define FIREBIRD_LIBRARY "@FIREBIRD_DIR@/lib/firebird.lib"
 #endif
 
 
@@ -54,12 +51,7 @@
 
 #undef HAS_SQLITE
 #if defined(_MSC_VER) && HAS_SQLITE
-  #pragma include_alias(<sqlite3.h>, <@SQLITE_DIR@/sqlite-source/sqlite3.h>)
-#if defined(_DEBUG)
-  #define SQLITE_LIBRARY "@SQLITE_DIR@/sqlited.lib"
-#else
-  #define SQLITE_LIBRARY "@SQLITE_DIR@/sqlite.lib"
-#endif
+  #pragma include_alias(<sqlite3.h>, <@SQLITE_DIR@/sqlite3.h>)
 #endif
 
 
@@ -70,9 +62,6 @@
   #pragma include_alias(<sql.h>,      <@ODBC_DIR@/include/sql.h>)
   #pragma include_alias(<sqlext.h>,   <@ODBC_DIR@/include/sqlext.h>)
   #pragma include_alias(<sqltypes.h>, <@ODBC_DIR@/include/sqltypes.h>)
-
-  #define ODBC_LIBRARY_1 "@ODBC_DIR@/lib/odbc32.lib"
-  #define ODBC_LIBRARY_2 "@ODBC_DIR@/lib/odbcCP32.lib"
 #endif
 
 
