@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- database drivers load their libraries at runtime now, added Library= switch
 - documented [RoutedMode] EnableH460P= and H460PActThread= switches
 - BUGFIX(Routing.cxx): apply ENUM policy also to Setup and Facility messages
 - BUGFIX(gk.cxx): fix crash when setting a non-writable trace file in the config file

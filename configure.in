@@ -391,15 +391,9 @@ AC_ARG_WITH(mysql-include-dir,
 [ mysql_include_dir="$withval" ]
 )
 
-AC_ARG_WITH(mysql-lib-dir,
-[  --with-mysql-lib-dir=DIR      directory where the MySQL libraries may be found ],
-[ mysql_lib_dir="$withval" ]
-)
-
 AC_ARG_WITH(mysql-dir,
 [  --with-mysql-dir=DIR          base directory where MySQL is installed ],
-[ mysql_lib_dir="$withval/lib/mysql"
-  mysql_include_dir="$withval/include/mysql"
+[ mysql_include_dir="$withval/include/mysql"
 ]
 )
 
@@ -439,40 +433,7 @@ if test "x${mysql}" != "xno"; then
 	else
 		sql_mysql_cflags="${sql_mysql_cflags} ${MYSQL_INCLUDE}"
 		AC_MSG_RESULT(yes)
-
-		AC_MSG_CHECKING([for mysql_init in -lmysqlclient])
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/lib/mysql /usr/local/lib/mysql /usr/local/mysql/lib/mysql $mysql_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
-				AC_TRY_LINK([extern char mysql_init();], [mysql_init()],
-					[ MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
-					  MYSQL_LDFLAGS="-L$try"
-					]
-				)
-				if test "x$MYSQL_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-		dnl #  If one or the other isn't found, disable them both..
-		dnl #  If both are found, enable them both.
-		if test "x$MYSQL_LDFLAGS" = "x"; then
-			AC_MSG_RESULT(no)
-			MYSQL_INCLUDE=
-			AC_MSG_WARN([mysql lib not found. Use --with-mysql-lib-dir=<path>])
-			mysql="no"
-		else
-			AC_MSG_RESULT(yes) 
-			sql_mysql_ldflags="$sql_mysql_ldflags $MYSQL_LDFLAGS"
-		fi
 	fi
-
-	sql_mysql_ldflags="$sql_mysql_ldflags $LIBS"
 
 	if test "x$mysql" = "xno"; then
 		AC_MSG_WARN([MySQL disabled])
@@ -486,8 +447,6 @@ if test "x$mysql" != "xno"; then
 	AC_DEFINE(HAS_MYSQL, 1)
 	SOURCES="$SOURCES gksql_mysql.cxx"
 	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
-	LDFLAGS="$MYSQL_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$MYSQL_LIBS $ENDLDLIBS"
     echo "MySQL support enabled"
 else
     echo "MySQL support disabled"
@@ -515,15 +474,9 @@ AC_ARG_WITH(pgsql-include-dir,
 [ pgsql_include_dir="$withval" ]
 )
 
-AC_ARG_WITH(pgsql-lib-dir,
-[  --with-pgsql-lib-dir=DIR      directory where the PostgreSQL libraries may be found ],
-[ pgsql_lib_dir="$withval" ]
-)
-
 AC_ARG_WITH(pgsql-dir,
 [  --with-pgsql-dir=DIR          base directory where PostgreSQL is installed ],
-[ pgsql_lib_dir="$withval/lib"
-  pgsql_include_dir="$withval/include"
+[ pgsql_include_dir="$withval/include"
 ]
 )
 
@@ -561,40 +514,7 @@ if test "x${pgsql}" != "xno"; then
 	else
 		sql_pgsql_cflags="${sql_pgsql_cflags} ${PGSQL_INCLUDE}"
 		AC_MSG_RESULT(yes)
-
-		AC_MSG_CHECKING([for PQconnectdb in -lpq])
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/local/lib /usr/local/pgsql/lib $pgsql_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lpq -lcrypt ${PGSQL_LIBS}"
-				AC_TRY_LINK([extern char PQconnectdb();], [PQconnectdb],
-					[ PGSQL_LIBS="-lpq -lcrypt ${PGSQL_LIBS}"
-					  PGSQL_LDFLAGS="-L$try"
-					]
-				)
-				if test "x$PGSQL_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-		dnl #  If one or the other isn't found, disable them both..
-		dnl #  If both are found, enable them both.
-		if test "x$PGSQL_LDFLAGS" = "x"; then
-			AC_MSG_RESULT(no)
-			PGSQL_INCLUDE=
-			AC_MSG_WARN([pgsql lib not found. Use --with-pgsql-lib-dir=<path>])
-			pgsql="no"
-		else
-			AC_MSG_RESULT(yes) 
-			sql_pgsql_ldflags="$sql_pgsql_ldflags $PGSQL_LDFLAGS"
-		fi
 	fi
-
-	sql_pgsql_ldflags="$sql_pgsql_ldflags $LIBS"
 
 	if test "x$pgsql" = "xno"; then
 		AC_MSG_WARN([PostgreSQL disabled])
@@ -608,8 +528,6 @@ if test "x$pgsql" != "xno"; then
 	AC_DEFINE(HAS_PGSQL, 1)
 	SOURCES="$SOURCES gksql_pgsql.cxx"
 	STDCCFLAGS="${sql_pgsql_cflags} -DHAS_PGSQL=1 $STDCCFLAGS"
-	LDFLAGS="$PGSQL_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$PGSQL_LIBS $ENDLDLIBS"
     echo "PostgreSQL support enabled"
 else
     echo "PostgreSQL support disabled"
@@ -635,15 +553,9 @@ AC_ARG_WITH(firebird-include-dir,
 [ firebird_include_dir="$withval" ]
 )
 
-AC_ARG_WITH(firebird-lib-dir,
-[  --with-firebird-lib-dir=DIR      directory where Firebird libraries may be found ],
-[ firebird_lib_dir="$withval" ]
-)
-
 AC_ARG_WITH(firebird-dir,
 [  --with-firebird-dir=DIR          base directory where Firebird is installed ],
-[ firebird_lib_dir="$withval/lib"
-  firebird_include_dir="$withval/include"
+[ firebird_include_dir="$withval/include"
 ]
 )
 
@@ -681,40 +593,7 @@ if test "x${firebird}" != "xno"; then
 	else
 		sql_firebird_cflags="${sql_firebird_cflags} ${FIREBIRD_INCLUDE}"
 		AC_MSG_RESULT(yes)
-
-		AC_MSG_CHECKING([for isc_attach_database in -lfbclient])
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/lib/firebird /usr/local/lib /usr/local/lib/firebird /usr/local/firebird/lib $firebird_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lfbclient ${FIREBIRD_LIBS}"
-				AC_TRY_LINK([extern char isc_attach_database();], [isc_attach_database()],
-					[ FIREBIRD_LIBS="-lfbclient ${FIREBIRD_LIBS}"
-					  FIREBIRD_LDFLAGS="-L$try"
-					]
-				)
-				if test "x$FIREBIRD_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-		dnl #  If one or the other isn't found, disable them both..
-		dnl #  If both are found, enable them both.
-		if test "x$FIREBIRD_LDFLAGS" = "x"; then
-			AC_MSG_RESULT(no)
-			FIREBIRD_INCLUDE=
-			AC_MSG_WARN([Firebird lib not found. Use --with-firebird-lib-dir=<path>])
-			firebird="no"
-		else
-			AC_MSG_RESULT(yes) 
-			sql_firebird_ldflags="$sql_firebird_ldflags $FIREBIRD_LDFLAGS"
-		fi
 	fi
-
-	sql_firebird_ldflags="$sql_firebird_ldflags $LIBS"
 
 	if test "x$firebird" = "xno"; then
 		AC_MSG_WARN([Firebird disabled])
@@ -728,8 +607,6 @@ if test "x$firebird" != "xno"; then
 	AC_DEFINE(HAS_FIREBIRD, 1)
 	SOURCES="$SOURCES gksql_firebird.cxx"
 	STDCCFLAGS="${sql_firebird_cflags} -DHAS_FIREBIRD=1 $STDCCFLAGS"
-	LDFLAGS="$FIREBIRD_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$FIREBIRD_LIBS $ENDLDLIBS"
     echo "Firebird support enabled"
 else
     echo "Firebird support disabled"
@@ -759,11 +636,6 @@ AC_ARG_ENABLE(unixodbc,
 AC_ARG_WITH(unixodbc-include-dir,
 [  --with-unixodbc-include-dir=DIR  directory where unixODBC includes may be found ],
 [ unixodbc_include_dir="$withval" ]
-)
-
-AC_ARG_WITH(unixodbc-lib-dir,
-[  --with-unixodbc-lib-dir=DIR      directory where unixODBC libraries may be found ],
-[ unixodbc_lib_dir="$withval" ]
 )
 
 AC_ARG_WITH(unixodbc-dir,
@@ -807,40 +679,7 @@ if test "x${unixodbc}" != "xno"; then
 	else
 		sql_unixodbc_cflags="${sql_unixodbc_cflags} ${UNIXODBC_INCLUDE}"
 		AC_MSG_RESULT(yes)
-
-		AC_MSG_CHECKING([for SQLAllocHandle in -lodbc])
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/lib/unixodbc /usr/local/lib /usr/local/lib/unixodbc /usr/local/unixodbc/lib $unixodbc_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lodbc ${UNIXODBC_LIBS}"
-				AC_TRY_LINK([extern char SQLAllocHandle();], [SQLAllocHandle()],
-					[ UNIXODBC_LIBS="-lodbc ${UNIXODBC_LIBS}"
-					  UNIXODBC_LDFLAGS="-L$try"
-					]
-				)
-				if test "x$UNIXODBC_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-		dnl #  If one or the other isn't found, disable them both..
-		dnl #  If both are found, enable them both.
-		if test "x$UNIXODBC_LDFLAGS" = "x"; then
-			AC_MSG_RESULT(no)
-			UNIXODBC_INCLUDE=
-			AC_MSG_WARN([unixODBC lib not found. Use --with-unixodbc-lib-dir=<path>])
-			unixodbc="no"
-		else
-			AC_MSG_RESULT(yes) 
-			sql_unixodbc_ldflags="$sql_unixodbc_ldflags $UNIXODBC_LDFLAGS"
-		fi
 	fi
-
-	sql_unixodbc_ldflags="$sql_unixodbc_ldflags $LIBS"
 
 	if test "x$unixodbc" = "xno"; then
 		AC_MSG_WARN([unixODBC disabled])
@@ -854,8 +693,6 @@ if test "x$unixodbc" != "xno"; then
 	AC_DEFINE(HAS_ODBC, 1)
 	SOURCES="$SOURCES gksql_odbc.cxx"
 	STDCCFLAGS="${sql_unixodbc_cflags} -DHAS_ODBC=1 $STDCCFLAGS"
-	LDFLAGS="$UNIXODBC_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$UNIXODBC_LIBS $ENDLDLIBS"
     echo "unixODBC support enabled"
 else
     echo "unixODBC support disabled"
@@ -883,15 +720,9 @@ AC_ARG_WITH(sqlite-include-dir,
 [ sqlite_include_dir="$withval" ]
 )
 
-AC_ARG_WITH(sqlite-lib-dir,
-[  --with-sqlite-lib-dir=DIR      directory where SQLite libraries may be found ],
-[ sqlite_lib_dir="$withval" ]
-)
-
 AC_ARG_WITH(sqlite-dir,
 [  --with-sqlite-dir=DIR          base directory where SQLite is installed ],
-[ sqlite_lib_dir="$withval/lib"
-  sqlite_include_dir="$withval/include"
+[ sqlite_include_dir="$withval/include"
 ]
 )
 
@@ -929,40 +760,7 @@ if test "x${sqlite}" != "xno"; then
 	else
 		sql_sqlite_cflags="${sql_sqlite_cflags} ${SQLITE_INCLUDE}"
 		AC_MSG_RESULT(yes)
-
-		AC_MSG_CHECKING([for sqlite3_libversion in -lsqlite3])
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/local/lib $sqlite_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lsqlite3 ${SQLITE_LIBS}"
-				AC_TRY_LINK([extern sqlite3_libversion();], [sqlite3_libversion()],
-					[ SQLITE_LIBS="-lsqlite3 ${SQLITE_LIBS}"
-					  SQLITE_LDFLAGS="-L$try"
-					]
-				)
-				if test "x$SQLITE_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-		dnl #  If one or the other isn't found, disable them both..
-		dnl #  If both are found, enable them both.
-		if test "x$SQLITE_LDFLAGS" = "x"; then
-			AC_MSG_RESULT(no)
-			SQLITE_INCLUDE=
-			AC_MSG_WARN([SQLite lib not found. Use --with-sqlite-lib-dir=<path>])
-			sqlite="no"
-		else
-			AC_MSG_RESULT(yes) 
-			sql_sqlite_ldflags="$sql_sqlite_ldflags $SQLITE_LDFLAGS"
-		fi
 	fi
-
-	sql_sqlite_ldflags="$sql_sqlite_ldflags $LIBS"
 
 	if test "x$sqlite" = "xno"; then
 		AC_MSG_WARN([SQLite disabled])
@@ -976,8 +774,6 @@ if test "x$sqlite" != "xno"; then
 	AC_DEFINE(HAS_SQLITE, 1)
 	SOURCES="$SOURCES gksql_sqlite.cxx"
 	STDCCFLAGS="${sql_sqlite_cflags} -DHAS_SQLITE=1 $STDCCFLAGS"
-	LDFLAGS="$SQLITE_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$SQLITE_LIBS $ENDLDLIBS"
     echo "SQLite support enabled"
 else
     echo "SQLite support disabled"
@@ -997,7 +793,7 @@ dnl ########################################################################
 dnl make directives
 
 dnl ########################################################################
-dnl extract the OpenH323 version
+dnl extract the GnuGk version
 GNUGK_MAJOR_VERSION=`cat version.h | grep "define GNUGK_MAJOR_VERSION" | cut -f4 -d' '`
 GNUGK_MINOR_VERSION=`cat version.h | grep "define GNUGK_MINOR_VERSION" | cut -f4 -d' '`
 GNUGK_BUILD_NUMBER=`cat version.h | grep "define GNUGK_BUILD_NUMBER" | cut -f4 -d' '`

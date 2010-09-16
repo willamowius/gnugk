@@ -45,11 +45,18 @@ Not all of these driver are always available. When GnuGk is compiled, only those
 drivers are included where the necessary database libraries and header files are
 available. When you start GnuGk, you can see in the version string which drivers
 are included in your executable.
+At runtime, GnuGk will load the shared library (DLL) for the database you have configured.
 
-GnuGk supports only version 3 of SQLite.
+GnuGk supports version 3 of SQLite.
 
 Make sure your database is configured to support password based authentication.
 Especially Microsoft SQL Server needs to be configured to use "Mixed Mode".
+
+<item><tt/Library=c:/Program Files/Mysql/libmysql.dll/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+If the shared library or DLL is not found automatically, you can set a different
+filename here or provide an absolute path to the library.
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 Default: <tt/localhost/<newline>

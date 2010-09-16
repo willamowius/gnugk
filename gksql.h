@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2009/07/16 12:48:40  willamowius
+ * remove unused code
+ *
  * Revision 1.17  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -412,6 +415,8 @@ protected:
 	PString m_username;
 	/// password associated with the username (if any)
 	PString m_password;
+	/// name of shared library
+	PString m_library;
 
 private:
 	/// iterator typedefs for convenience

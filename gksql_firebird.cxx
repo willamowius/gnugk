@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.17  2009/11/17 14:35:47  willamowius
+ * Firebird database driver updated for Firebird 2.0.x and 2.1.x
+ *
  * Revision 1.16  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -21,7 +24,7 @@
  * typo in comment
  *
  * Revision 1.13  2008/11/08 18:31:41  willamowius
- * TODO: replace all isc_interprete() with fb_interpret()
+ * TODO: replace all isc_interprete() with (*g_fb_interpret)()
  *
  * Revision 1.12  2008/05/20 18:13:51  willamowius
  * more braces to avoid gcc 4.3.0 warnings
@@ -70,13 +73,51 @@
 #include <ibase.h>
 #include "gksql.h"
 
-#ifdef _WIN32
-#pragma comment( lib, FIREBIRD_LIBRARY )
-#endif
-
 const unsigned int FB_BUFF_SIZE = 2048;
 
+static PDynaLink g_sharedLibrary;
+static ISC_LONG (ISC_EXPORT *g_fb_interpret)(ISC_SCHAR*, unsigned int, const ISC_STATUS**) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_attach_database)(ISC_STATUS*,
+                                          short,
+                                          const ISC_SCHAR*,
+                                          isc_db_handle*,
+                                          short,
+                                          const ISC_SCHAR*) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_commit_transaction)(ISC_STATUS *, isc_tr_handle *) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_detach_database)(ISC_STATUS *, isc_db_handle *) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_dsql_allocate_statement)(ISC_STATUS *,
+                                                  isc_db_handle *,
+                                                  isc_stmt_handle *) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_dsql_describe)(ISC_STATUS *,
+                                        isc_stmt_handle *,
+                                        unsigned short,
+                                        XSQLDA *) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_dsql_execute)(ISC_STATUS*,
+                                       isc_tr_handle*,
+                                       isc_stmt_handle*,
+                                       unsigned short,
+                                       XSQLDA*) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_dsql_fetch)(ISC_STATUS *,
+                                     isc_stmt_handle *,
+                                     unsigned short,
+                                     XSQLDA *) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_dsql_free_statement)(ISC_STATUS *, isc_stmt_handle *, unsigned short) = NULL;
+static	ISC_STATUS (ISC_EXPORT *g_isc_dsql_prepare)(ISC_STATUS*,
+                                       isc_tr_handle*,
+                                       isc_stmt_handle*,
+                                       unsigned short,
+                                       const ISC_SCHAR*,
+                                       unsigned short,
+                                       XSQLDA*) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_rollback_transaction)(ISC_STATUS *, isc_tr_handle *) = NULL;
+static ISC_LONG (ISC_EXPORT *g_isc_sqlcode)(const ISC_STATUS*) = NULL;
+static void (ISC_EXPORT *g_isc_sql_interprete)(short, ISC_SCHAR*, short) = NULL;
+static ISC_STATUS (ISC_EXPORT_VARARG *g_isc_start_transaction)(ISC_STATUS *,
+                                                   isc_tr_handle *,
+                                                   short, ...) = NULL;
+
 namespace {
+
 PString XSQLVARToPString(XSQLVAR *sqlvar)
 {
 	if (sqlvar->sqltype & 1)
@@ -110,6 +151,7 @@ PString XSQLVARToPString(XSQLVAR *sqlvar)
 		return PString();
 	}
 }
+
 } // end of namespace
 
 /** Class that encapsulates SQL query result for Firebird backend.
@@ -318,7 +360,7 @@ GkIBSQLResult::~GkIBSQLResult()
 	ISC_STATUS status[20];
 	
 	if (m_stmt != NULL)
-		isc_dsql_free_statement(status, &m_stmt, DSQL_drop);
+		(*g_isc_dsql_free_statement)(status, &m_stmt, DSQL_drop);
 	if (m_sqlResult != NULL) {
 		for (int i = 0; i < m_sqlResult->sqld; ++i) {
 			if (m_sqlResult->sqlvar[i].sqldata != NULL) {
@@ -335,9 +377,9 @@ GkIBSQLResult::~GkIBSQLResult()
 	}
 	if (m_tr != NULL) {
 		if (m_queryError) {
-			isc_rollback_transaction(status, &m_tr);
+			(*g_isc_rollback_transaction)(status, &m_tr);
 		} else {
-			isc_commit_transaction(status, &m_tr);
+			(*g_isc_commit_transaction)(status, &m_tr);
 		}
 	}
 }
@@ -368,19 +410,19 @@ bool GkIBSQLResult::FetchRow(
 	
 	ISC_STATUS retval;
 	ISC_STATUS status[20];	
-	retval = isc_dsql_fetch(status, &m_stmt, 1, m_sqlResult);
+	retval = (*g_isc_dsql_fetch)(status, &m_stmt, 1, m_sqlResult);
 	if (status[0] == 1 && status[1] != 0) {
 		m_numRows = m_sqlRow;
 		if (retval != 100) {
-			long errcode = isc_sqlcode(status);
+			long errcode = (*g_isc_sqlcode)(status);
 			char errormsg[FB_BUFF_SIZE];
 			if (errcode == -999) {
 				errcode = status[1];
 				const ISC_STATUS *pvector = status;
-				fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+				(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
 				strcpy(errormsg, "SQL:");
-				isc_sql_interprete(static_cast<short>(errcode), errormsg + 4, FB_BUFF_SIZE - 4); 
+				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg + 4, FB_BUFF_SIZE - 4); 
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
 				<< "): " << errormsg
@@ -414,19 +456,19 @@ bool GkIBSQLResult::FetchRow(
 		return false;
 	ISC_STATUS retval;	
 	ISC_STATUS status[20];	
-	retval = isc_dsql_fetch(status, &m_stmt, 1, m_sqlResult);
+	retval = (*g_isc_dsql_fetch)(status, &m_stmt, 1, m_sqlResult);
 	if (status[0] == 1 && status[1] != 0) {
 		m_numRows = m_sqlRow;
 		if (retval != 100) {
-			long errcode = isc_sqlcode(status);
+			long errcode = (*g_isc_sqlcode)(status);
 			char errormsg[FB_BUFF_SIZE];
 			if (errcode == -999) {
 				errcode = status[1];
 				const ISC_STATUS *pvector = status;
-				fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+				(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
 				strcpy(errormsg, "SQL:");
-				isc_sql_interprete(static_cast<short>(errcode), errormsg + 4, FB_BUFF_SIZE - 4); 
+				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg + 4, FB_BUFF_SIZE - 4); 
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
 				<< "): " << errormsg
@@ -462,7 +504,7 @@ GkIBSQLConnection::~GkIBSQLConnection()
 GkIBSQLConnection::IBSQLConnWrapper::~IBSQLConnWrapper()
 {
 	ISC_STATUS status[20];
-	isc_detach_database(status, &m_conn);
+	(*g_isc_detach_database)(status, &m_conn);
 }
 
 GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
@@ -470,6 +512,41 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	int id
 	)
 {
+	if (!g_sharedLibrary.IsLoaded()) {
+		if (m_library.IsEmpty()) {
+#ifdef _WIN32
+			m_library = "firebird" + g_sharedLibrary.GetExtension();
+#else
+			m_library = "libfbclient" + g_sharedLibrary.GetExtension();
+#endif
+		}
+
+		if (!g_sharedLibrary.Open(m_library)) {
+			PTRACE (1, GetName() << "\tCan't load library " << m_library);
+			return NULL;
+		}
+
+		if (!g_sharedLibrary.GetFunction("fb_interpret", (PDynaLink::Function &)g_fb_interpret)
+			|| !g_sharedLibrary.GetFunction("isc_attach_database", (PDynaLink::Function &)g_isc_attach_database)
+			|| !g_sharedLibrary.GetFunction("isc_commit_transaction", (PDynaLink::Function &)g_isc_commit_transaction)
+			|| !g_sharedLibrary.GetFunction("isc_detach_database", (PDynaLink::Function &)g_isc_detach_database)
+			|| !g_sharedLibrary.GetFunction("isc_dsql_allocate_statement", (PDynaLink::Function &)g_isc_dsql_allocate_statement)
+			|| !g_sharedLibrary.GetFunction("isc_dsql_describe", (PDynaLink::Function &)g_isc_dsql_describe)
+			|| !g_sharedLibrary.GetFunction("isc_dsql_execute", (PDynaLink::Function &)g_isc_dsql_execute)
+			|| !g_sharedLibrary.GetFunction("isc_dsql_fetch", (PDynaLink::Function &)g_isc_dsql_fetch)
+			|| !g_sharedLibrary.GetFunction("isc_dsql_free_statement", (PDynaLink::Function &)g_isc_dsql_free_statement)
+			|| !g_sharedLibrary.GetFunction("isc_dsql_prepare", (PDynaLink::Function &)g_isc_dsql_prepare)
+			|| !g_sharedLibrary.GetFunction("isc_rollback_transaction", (PDynaLink::Function &)g_isc_rollback_transaction)
+			|| !g_sharedLibrary.GetFunction("isc_sqlcode", (PDynaLink::Function &)g_isc_sqlcode)
+			|| !g_sharedLibrary.GetFunction("isc_sql_interprete", (PDynaLink::Function &)g_isc_sql_interprete)
+			|| !g_sharedLibrary.GetFunction("isc_start_transaction", (PDynaLink::Function &)g_isc_start_transaction)
+			) {
+			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+			g_sharedLibrary.Close();
+			return NULL;
+		}
+	}
+
 	unsigned dpb_offset = 0;
 	std::vector<char> dpb(1);
 	
@@ -500,11 +577,11 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 		dbname.insert(0, (const char *)m_host);
 	}
 	
-	isc_attach_database(status, 0, const_cast<char*>(dbname.c_str()), &conn, dpb_offset, &(dpb[0]));
+	(*g_isc_attach_database)(status, 0, const_cast<char*>(dbname.c_str()), &conn, dpb_offset, &(dpb[0]));
 	if (status[0] == 1 && status[1] != 0) {
 		char errormsg[FB_BUFF_SIZE];
   		const ISC_STATUS *pvector = status;
-		fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		PTRACE(2, GetName() << "\tFirebird connection to " << m_username << '@' << dbname 
 			<< " failed (isc_attach_database failed): " << errormsg
 			);
@@ -533,24 +610,24 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	isc_tr_handle tr = NULL;
 	isc_stmt_handle stmt = NULL;
 	
-	isc_start_transaction(status, &tr, 1, &conn, 0, NULL);
+	(*g_isc_start_transaction)(status, &tr, 1, &conn, 0, NULL);
 	if (status[0] == 1 && status[1] != 0) {
 		char errormsg[FB_BUFF_SIZE];
 		const ISC_STATUS *pvector = status;
-		fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		return new GkIBSQLResult(status[1], errormsg);
 	}
 	
-	isc_dsql_allocate_statement(status, &conn, &stmt);
+	(*g_isc_dsql_allocate_statement)(status, &conn, &stmt);
 	if (status[0] == 1 && status[1] != 0) {
-		long errorcode = isc_sqlcode(status);
+		long errorcode = (*g_isc_sqlcode)(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
 			const ISC_STATUS *pvector = status;
-			fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+			(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		} else {
 			strcpy(errormsg, "SQL:");
-			isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
+			(*g_isc_sql_interprete)(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 		}
 		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr);
@@ -562,16 +639,16 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	result->version = SQLDA_VERSION1;
 	result->sqln = numcols;
 	
-	isc_dsql_prepare(status, &tr, &stmt, 0, const_cast<char*>(queryStr), SQL_DIALECT_CURRENT, result);
+	(*g_isc_dsql_prepare)(status, &tr, &stmt, 0, const_cast<char*>(queryStr), SQL_DIALECT_CURRENT, result);
 	if (status[0] == 1 && status[1] != 0) {
-		long errorcode = isc_sqlcode(status);
+		long errorcode = (*g_isc_sqlcode)(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
 			const ISC_STATUS *pvector = status;
-			fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+			(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		} else {
 			strcpy(errormsg, "SQL:");
-			isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
+			(*g_isc_sql_interprete)(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 		}
 		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
@@ -585,16 +662,16 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		result->version = SQLDA_VERSION1;
 		result->sqln = numcols;
 	
-		isc_dsql_describe(status, &stmt, SQLDA_VERSION1, result);
+		(*g_isc_dsql_describe)(status, &stmt, SQLDA_VERSION1, result);
 		if (status[0] == 1 && status[1] != 0) {
-			long errorcode = isc_sqlcode(status);
+			long errorcode = (*g_isc_sqlcode)(status);
 			if (errorcode == -999) {
 				errorcode = status[1];
 				const ISC_STATUS *pvector = status;
-				fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+				(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
 				strcpy(errormsg, "SQL:");
-				isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
+				(*g_isc_sql_interprete)(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 			}
 			delete [] reinterpret_cast<char*>(result);
 			result = NULL;
@@ -603,16 +680,16 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		}
 	}
 
-	isc_dsql_execute(status, &tr, &stmt, SQLDA_VERSION1, NULL);
+	(*g_isc_dsql_execute)(status, &tr, &stmt, SQLDA_VERSION1, NULL);
 	if (status[0] == 1 && status[1] != 0) {
-		long errorcode = isc_sqlcode(status);
+		long errorcode = (*g_isc_sqlcode)(status);
 		if (errorcode == -999) {
 			errorcode = status[1];
 			const ISC_STATUS *pvector = status;
-			fb_interpret(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+			(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		} else {
 			strcpy(errormsg, "SQL:");
-			isc_sql_interprete(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
+			(*g_isc_sql_interprete)(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE - 4);
 		}
 		delete [] reinterpret_cast<char*>(result);
 		result = NULL;

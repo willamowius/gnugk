@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.24  2010/04/29 22:20:42  willamowius
+ * prefer pre-increment
+ *
  * Revision 1.23  2009/11/15 15:41:22  willamowius
  * code cleanup
  *
@@ -130,6 +133,7 @@ bool GkSQLConnection::Initialize(
 		return false;
 	}
 
+	m_library = cfg->GetString(cfgSectionName, "Library", "");
 	GetHostAndPort(cfg->GetString(cfgSectionName, "Host", "localhost"), m_host, m_port);
 	m_database = cfg->GetString(cfgSectionName, "Database", "");
 	m_username = cfg->GetString(cfgSectionName, "Username", "");

@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.19  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.18  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -75,10 +78,26 @@
 #include <libpq-fe.h>
 #include "gksql.h"
 
-#ifdef _WIN32
-#pragma comment( lib, PGSQL_LIBRARY )
-#pragma comment( lib, "secur32.lib")
-#endif
+static PDynaLink g_sharedLibrary;
+static void (*g_PQclear)(PGresult *res) = NULL;
+static char * (*g_PQcmdTuples)(PGresult *res) = NULL;
+static char * (*g_PQerrorMessage)(const PGconn *conn) = NULL;
+static size_t (*g_PQescapeString)(char *to, const char *from, size_t length) = NULL;
+static PGresult * (*g_PQexec)(PGconn *conn, const char *query) = NULL;
+static void (*g_PQfinish)(PGconn *conn) = NULL;
+static char * (*g_PQfname)(const PGresult *res, int field_num) = NULL;
+static int (*g_PQgetlength)(const PGresult *res, int tup_num, int field_num) = NULL;
+static char * (*g_PQgetvalue)(const PGresult *res, int tup_num, int field_num) = NULL;
+static int (*g_PQnfields)(const PGresult *res) = NULL;
+static int (*g_PQntuples)(const PGresult *res) = NULL;
+static char * (*g_PQresultErrorMessage)(const PGresult *res) = NULL;
+static ExecStatusType (*g_PQresultStatus)(const PGresult *res) = NULL;
+static PGconn * (*g_PQsetdbLogin)(const char *pghost, const char *pgport,
+             const char *pgoptions, const char *pgtty,
+             const char *dbName,
+             const char *login, const char *pwd) = NULL;
+static ConnStatusType (*g_PQstatus)(const PGconn *conn) = NULL;
+
 
 /** Class that encapsulates SQL query result for PostgreSQL backend.
 	It does not provide any multithread safety, so should be accessed
@@ -239,8 +258,8 @@ GkPgSQLResult::GkPgSQLResult(
 	m_errorCode(0)
 {
 	if (m_sqlResult) {
-		m_numRows = PQntuples(m_sqlResult);
-		m_numFields = PQnfields(m_sqlResult);
+		m_numRows = (*g_PQntuples)(m_sqlResult);
+		m_numFields = (*g_PQnfields)(m_sqlResult);
 	} else
 		m_queryError = true;
 }
@@ -269,7 +288,7 @@ GkPgSQLResult::GkPgSQLResult(
 GkPgSQLResult::~GkPgSQLResult()
 {
 	if (m_sqlResult)
-		PQclear(m_sqlResult);
+		(*g_PQclear)(m_sqlResult);
 }
 
 PString GkPgSQLResult::GetErrorMessage()
@@ -300,8 +319,8 @@ bool GkPgSQLResult::FetchRow(
 	
 	for (PINDEX i = 0; i < m_numFields; i++)
 		result[i] = PString(
-			PQgetvalue(m_sqlResult, m_sqlRow, i), 
-			PQgetlength(m_sqlResult, m_sqlRow, i)
+			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i), 
+			(*g_PQgetlength)(m_sqlResult, m_sqlRow, i)
 			);
 	
 	m_sqlRow++;
@@ -327,10 +346,10 @@ bool GkPgSQLResult::FetchRow(
 	
 	for (PINDEX i = 0; i < m_numFields; i++) {
 		result[i].first = PString(
-			PQgetvalue(m_sqlResult, m_sqlRow, i), 
-			PQgetlength(m_sqlResult, m_sqlRow, i)
+			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i), 
+			(*g_PQgetlength)(m_sqlResult, m_sqlRow, i)
 			);
-		result[i].second = PQfname(m_sqlResult, i);
+		result[i].second = (*g_PQfname)(m_sqlResult, i);
 	}
 	
 	m_sqlRow++;
@@ -352,7 +371,7 @@ GkPgSQLConnection::~GkPgSQLConnection()
 
 GkPgSQLConnection::PgSQLConnWrapper::~PgSQLConnWrapper()
 {
-	PQfinish(m_conn);
+	(*g_PQfinish)(m_conn);
 }
 
 GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
@@ -360,15 +379,47 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 	int id
 	)
 {
+	if (!g_sharedLibrary.IsLoaded()) {
+		if (m_library.IsEmpty()) {
+			m_library = "libpq" + g_sharedLibrary.GetExtension();
+		}
+
+		if (!g_sharedLibrary.Open(m_library)) {
+			PTRACE (1, GetName() << "\tCan't load library " << m_library);
+			return NULL;
+		}
+
+		if (!g_sharedLibrary.GetFunction("PQclear", (PDynaLink::Function &)g_PQclear)
+			|| !g_sharedLibrary.GetFunction("PQcmdTuples", (PDynaLink::Function &)g_PQcmdTuples)
+			|| !g_sharedLibrary.GetFunction("PQerrorMessage", (PDynaLink::Function &)g_PQerrorMessage)
+			|| !g_sharedLibrary.GetFunction("PQescapeString", (PDynaLink::Function &)g_PQescapeString)
+			|| !g_sharedLibrary.GetFunction("PQexec", (PDynaLink::Function &)g_PQexec)
+			|| !g_sharedLibrary.GetFunction("PQfinish", (PDynaLink::Function &)g_PQfinish)
+			|| !g_sharedLibrary.GetFunction("PQfname", (PDynaLink::Function &)g_PQfname)
+			|| !g_sharedLibrary.GetFunction("PQgetlength", (PDynaLink::Function &)g_PQgetlength)
+			|| !g_sharedLibrary.GetFunction("PQgetvalue", (PDynaLink::Function &)g_PQgetvalue)
+			|| !g_sharedLibrary.GetFunction("PQnfields", (PDynaLink::Function &)g_PQnfields)
+			|| !g_sharedLibrary.GetFunction("PQntuples", (PDynaLink::Function &)g_PQntuples)
+			|| !g_sharedLibrary.GetFunction("PQresultErrorMessage", (PDynaLink::Function &)g_PQresultErrorMessage)
+			|| !g_sharedLibrary.GetFunction("PQresultStatus", (PDynaLink::Function &)g_PQresultStatus)
+			|| !g_sharedLibrary.GetFunction("PQsetdbLogin", (PDynaLink::Function &)g_PQsetdbLogin)
+			|| !g_sharedLibrary.GetFunction("PQstatus", (PDynaLink::Function &)g_PQstatus)
+			) {
+			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+			g_sharedLibrary.Close();
+			return NULL;
+		}
+	}
+
 	PGconn* conn;
 	const PString portStr(m_port);
 //	const PString optionsStr("connect_timeout=10000");
-	if ((conn = PQsetdbLogin(m_host, 
+	if ((conn = (*g_PQsetdbLogin)(m_host, 
 			m_port ? (const char*)portStr : (const char*)NULL,
 			NULL /*(const char*)optionsStr*/, NULL,
 			m_database, m_username, 
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password
-			)) && PQstatus(conn) == CONNECTION_OK) {
+			)) && (*g_PQstatus)(conn) == CONNECTION_OK) {
 		PTRACE(5, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
 			<< '[' << m_database << "] established successfully"
 			);
@@ -376,10 +427,10 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 	} else {
 		PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
 			<< '[' << m_database << "] failed (PQsetdbLogin failed): " 
-			<< (conn ? PQerrorMessage(conn) : "")
+			<< (conn ? (*g_PQerrorMessage)(conn) : "")
 			);
 		if (conn)
-			PQfinish(conn);
+			(*g_PQfinish)(conn);
 	}
 	return NULL;
 }
@@ -394,26 +445,26 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 	)
 {
 	PGconn* pgsqlconn = ((PgSQLConnWrapper*)conn)->m_conn;
-	PGresult* result = PQexec(pgsqlconn, queryStr);
+	PGresult* result = (*g_PQexec)(pgsqlconn, queryStr);
 	if (result == NULL) {
-		GkSQLResult * sqlResult = new GkPgSQLResult(PGRES_FATAL_ERROR, PQerrorMessage(pgsqlconn));
+		GkSQLResult * sqlResult = new GkPgSQLResult(PGRES_FATAL_ERROR, (*g_PQerrorMessage)(pgsqlconn));
 		Disconnect();
 		return sqlResult;
 	}
 		
-	ExecStatusType resultInfo = PQresultStatus(result);
+	ExecStatusType resultInfo = (*g_PQresultStatus)(result);
 	switch (resultInfo)
 	{
 	case PGRES_COMMAND_OK:
 		return new GkPgSQLResult(
-			PQcmdTuples(result) ? atoi(PQcmdTuples(result)) : 0
+			(*g_PQcmdTuples)(result) ? atoi((*g_PQcmdTuples)(result)) : 0
 			);
 		
 	case PGRES_TUPLES_OK:
 		return new GkPgSQLResult(result);
 		
 	default:
-		GkSQLResult * sqlResult = new GkPgSQLResult(resultInfo, PQresultErrorMessage(result));
+		GkSQLResult * sqlResult = new GkPgSQLResult(resultInfo, (*g_PQresultErrorMessage)(result));
 		Disconnect();
 		return sqlResult;
 	}
@@ -431,7 +482,8 @@ PString GkPgSQLConnection::EscapeString(
 	
 	if (numChars)
 		escapedStr.SetSize(
-			PQescapeString(escapedStr.GetPointer(numChars*2+1), str, numChars) + 1
+			// TODO: switch to PQescapeStriongConn()
+			(*g_PQescapeString)(escapedStr.GetPointer(numChars*2+1), str, numChars) + 1
 			);
 	return escapedStr;
 }

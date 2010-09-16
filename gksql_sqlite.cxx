@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.6  2009/05/24 20:48:26  willamowius
+ * remove hacks for VC6 which isn't supported any more since quite a while
+ *
  * Revision 1.5  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -37,9 +40,15 @@
 #include <sqlite3.h>
 #include "gksql.h"
 
-#ifdef _WIN32
-#pragma comment( lib, SQLITE_LIBRARY )
-#endif
+static PDynaLink g_sharedLibrary;
+static int (*g_sqlite3_changes)(sqlite3*) = NULL;
+static int (*g_sqlite3_close)(sqlite3 *) = NULL;
+static const char * (*g_sqlite3_errmsg)(sqlite3*) = NULL;
+static int (*g_sqlite3_exec)(sqlite3*, const char *sql, int (*callback)(void*,int,char**,char**), void *, char **errmsg) = NULL;
+static void (*g_sqlite3_free)(void*) = NULL;
+static char * (*g_sqlite3_mprintf)(const char*,...) = NULL;
+static int (*g_sqlite3_open)(const char *filename, sqlite3 **ppDb) = NULL;
+
 
 /** Class that encapsulates SQL query result for SQLite backend.
 	It does not provide any multithread safety, so should be accessed
@@ -296,7 +305,7 @@ GkSQLiteConnection::~GkSQLiteConnection()
 
 GkSQLiteConnection::GkSQLiteConnWrapper::~GkSQLiteConnWrapper()
 {
-	sqlite3_close(m_conn);
+	(*g_sqlite3_close)(m_conn);
 }
 
 GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
@@ -304,13 +313,41 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 	int id
 	)
 {
+	if (!g_sharedLibrary.IsLoaded()) {
+		if (m_library.IsEmpty()) {
+#ifdef _WIN32
+			m_library = "sqlite" + g_sharedLibrary.GetExtension();
+#else
+			m_library = "libsqlite3" + g_sharedLibrary.GetExtension();
+#endif
+		}
+
+		if (!g_sharedLibrary.Open(m_library)) {
+			PTRACE (1, GetName() << "\tCan't load library " << m_library);
+			return NULL;
+		}
+
+		if (!g_sharedLibrary.GetFunction("sqlite3_changes", (PDynaLink::Function &)g_sqlite3_changes)
+			|| !g_sharedLibrary.GetFunction("sqlite3_close", (PDynaLink::Function &)g_sqlite3_close)
+			|| !g_sharedLibrary.GetFunction("sqlite3_errmsg", (PDynaLink::Function &)g_sqlite3_errmsg)
+			|| !g_sharedLibrary.GetFunction("sqlite3_exec", (PDynaLink::Function &)g_sqlite3_exec)
+			|| !g_sharedLibrary.GetFunction("sqlite3_free", (PDynaLink::Function &)g_sqlite3_free)
+			|| !g_sharedLibrary.GetFunction("sqlite3_mprintf", (PDynaLink::Function &)g_sqlite3_mprintf)
+			|| !g_sharedLibrary.GetFunction("sqlite3_open", (PDynaLink::Function &)g_sqlite3_open)
+			) {
+			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+			g_sharedLibrary.Close();
+			return NULL;
+		}
+	}
+
 	sqlite3 *conn;
-	int rc = sqlite3_open(m_database, &conn);
+	int rc = (*g_sqlite3_open)(m_database, &conn);
 	if (rc) {
 		PTRACE(2, GetName() << "\tSQLite connection to " <<  m_database 
-			<< " failed (sqlite3_open failed): " << sqlite3_errmsg(conn)
+			<< " failed (sqlite3_open failed): " << (*g_sqlite3_errmsg)(conn)
 			);
-		sqlite3_close(conn);
+		(*g_sqlite3_close)(conn);
 		return NULL;
 	}	
 	
@@ -343,13 +380,13 @@ GkSQLResult* GkSQLiteConnection::ExecuteQuery(
 
 	vector<GkSQLResult::ResultRow*> * resultRows = new vector<GkSQLResult::ResultRow*>();
 	char *errormsg = NULL;
-	int rc = sqlite3_exec(conn, queryStr, sqlite_callback, resultRows, &errormsg);
+	int rc = (*g_sqlite3_exec)(conn, queryStr, sqlite_callback, resultRows, &errormsg);
 	if (rc != SQLITE_OK) {
 		delete resultRows;
 		Disconnect();
 		return new GkSQLiteResult(rc, errormsg);
 	}
-	return new GkSQLiteResult(sqlite3_changes(conn), resultRows);
+	return new GkSQLiteResult((*g_sqlite3_changes)(conn), resultRows);
 }
 
 PString GkSQLiteConnection::EscapeString(
@@ -359,9 +396,9 @@ PString GkSQLiteConnection::EscapeString(
 	const char* str
 	)
 {
-	char * quoted = sqlite3_mprintf("%q",str);
+	char * quoted = (*g_sqlite3_mprintf)("%q",str);
 	PString result(quoted);
-	sqlite3_free(quoted);
+	(*g_sqlite3_free)(quoted);
 	return result;
 }
 

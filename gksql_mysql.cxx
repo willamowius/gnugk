@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2010/02/01 13:23:17  willamowius
+ * make sure /etc/my.cnf gets read
+ *
  * Revision 1.17  2009/05/24 20:48:26  willamowius
  * remove hacks for VC6 which isn't supported any more since quite a while
  *
@@ -65,13 +68,30 @@
 
 #if HAS_MYSQL
 
-#ifdef _WIN32
-#pragma comment( lib, MYSQL_LIBRARY )
-#endif
-
 #include <ptlib.h>
 #include <mysql.h>
 #include "gksql.h"
+
+static PDynaLink g_sharedLibrary;
+static MYSQL * (STDCALL *g_mysql_init)(MYSQL *mysql) = NULL;
+static void (STDCALL *g_mysql_free_result)(MYSQL_RES *result) = NULL;
+static unsigned long (STDCALL *g_mysql_real_escape_string)(MYSQL *mysql, char *to, const char *from, unsigned long length) = NULL;
+static my_ulonglong (STDCALL *g_mysql_num_rows)(MYSQL_RES *result) = NULL;
+static unsigned int (STDCALL *g_mysql_num_fields)(MYSQL_RES *result) = NULL;
+static MYSQL_ROW (STDCALL *g_mysql_fetch_row)(MYSQL_RES *result) = NULL;
+static MYSQL_FIELD * (STDCALL *g_mysql_fetch_fields)(MYSQL_RES *result) = NULL;
+static unsigned long * (STDCALL *g_mysql_fetch_lengths)(MYSQL_RES *result) = NULL;
+static void (STDCALL *g_mysql_close)(MYSQL *mysql) = NULL;
+static int (STDCALL *g_mysql_options)(MYSQL *mysql, enum mysql_option option, const char *arg) = NULL;
+static MYSQL * (STDCALL *g_mysql_real_connect)(MYSQL *mysql, const char *host, const char *user, const char *passwd, const char *db, unsigned int port, const char *unix_socket, unsigned long client_flag) = NULL;
+static int (STDCALL *g_mysql_real_query)(MYSQL *mysql, const char *stmt_str, unsigned long length) = NULL;
+static MYSQL_RES * (STDCALL *g_mysql_store_result)(MYSQL *mysql) = NULL;
+static int (STDCALL *g_mysql_next_result)(MYSQL *mysql) = NULL;
+static unsigned int (STDCALL *g_mysql_errno)(MYSQL *mysql) = NULL;
+static const char * (STDCALL *g_mysql_error)(MYSQL *mysql) = NULL;
+static my_ulonglong (STDCALL *g_mysql_affected_rows)(MYSQL *mysql) = NULL;
+
+
 
 /** Class that encapsulates SQL query result for MySQL backend.
 	It does not provide any multithread safety, so should be accessed
@@ -234,8 +254,8 @@ GkMySQLResult::GkMySQLResult(
 	m_sqlRowLengths(NULL), m_errorCode(0)
 {
 	if (m_sqlResult) {
-		m_numRows = (long)mysql_num_rows(m_sqlResult);
-		m_numFields = mysql_num_fields(m_sqlResult);
+		m_numRows = (long)(*g_mysql_num_rows)(m_sqlResult);
+		m_numFields = (*g_mysql_num_fields)(m_sqlResult);
 	} else
 		m_queryError = true;
 }
@@ -264,7 +284,7 @@ GkMySQLResult::GkMySQLResult(
 GkMySQLResult::~GkMySQLResult()
 {
 	if (m_sqlResult)
-		mysql_free_result(m_sqlResult);
+		(*g_mysql_free_result)(m_sqlResult);
 }
 
 PString GkMySQLResult::GetErrorMessage()
@@ -285,8 +305,8 @@ bool GkMySQLResult::FetchRow(
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
 	
-	m_sqlRow = mysql_fetch_row(m_sqlResult);
-	m_sqlRowLengths = mysql_fetch_lengths(m_sqlResult);
+	m_sqlRow = (*g_mysql_fetch_row)(m_sqlResult);
+	m_sqlRowLengths = (*g_mysql_fetch_lengths)(m_sqlResult);
 	if (m_sqlRow == NULL || m_sqlRowLengths == NULL) {
 		m_sqlRow = NULL;
 		m_sqlRowLengths = NULL;
@@ -309,9 +329,9 @@ bool GkMySQLResult::FetchRow(
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
 	
-	m_sqlRow = mysql_fetch_row(m_sqlResult);
-	m_sqlRowLengths = mysql_fetch_lengths(m_sqlResult);
-	MYSQL_FIELD* fields = mysql_fetch_fields(m_sqlResult);
+	m_sqlRow = (g_mysql_fetch_row)(m_sqlResult);
+	m_sqlRowLengths = (*g_mysql_fetch_lengths)(m_sqlResult);
+	MYSQL_FIELD* fields = (*g_mysql_fetch_fields)(m_sqlResult);
 	if (m_sqlRow == NULL || m_sqlRowLengths == NULL || fields == NULL) {
 		m_sqlRow = NULL;
 		m_sqlRowLengths = NULL;
@@ -342,7 +362,7 @@ GkMySQLConnection::~GkMySQLConnection()
 
 GkMySQLConnection::MySQLConnWrapper::~MySQLConnWrapper()
 {
-	mysql_close(m_conn);
+	(*g_mysql_close)(m_conn);
 }
 
 GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
@@ -350,26 +370,64 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	int id
 	)
 {
+	if (!g_sharedLibrary.IsLoaded()) {
+		if (m_library.IsEmpty()) {
+#ifdef _WIN32
+			m_library = "libmysql" + g_sharedLibrary.GetExtension();
+#else
+			m_library = "libmysqlclient" + g_sharedLibrary.GetExtension();
+#endif
+		}
+
+		if (!g_sharedLibrary.Open(m_library)) {
+			PTRACE (1, GetName() << "\tCan't load library " << m_library);
+			return NULL;
+		}
+
+		if (!g_sharedLibrary.GetFunction("mysql_init", (PDynaLink::Function &)g_mysql_init)
+			|| !g_sharedLibrary.GetFunction("mysql_free_result", (PDynaLink::Function &)g_mysql_free_result)
+			|| !g_sharedLibrary.GetFunction("mysql_real_escape_string", (PDynaLink::Function &)g_mysql_real_escape_string)
+			|| !g_sharedLibrary.GetFunction("mysql_num_rows", (PDynaLink::Function &)g_mysql_num_rows)
+			|| !g_sharedLibrary.GetFunction("mysql_num_fields", (PDynaLink::Function &)g_mysql_num_fields)
+			|| !g_sharedLibrary.GetFunction("mysql_fetch_row", (PDynaLink::Function &)g_mysql_fetch_row)
+			|| !g_sharedLibrary.GetFunction("mysql_fetch_fields", (PDynaLink::Function &)g_mysql_fetch_fields)
+			|| !g_sharedLibrary.GetFunction("mysql_fetch_lengths", (PDynaLink::Function &)g_mysql_fetch_lengths)
+			|| !g_sharedLibrary.GetFunction("mysql_close", (PDynaLink::Function &)g_mysql_close)
+			|| !g_sharedLibrary.GetFunction("mysql_options", (PDynaLink::Function &)g_mysql_options)
+			|| !g_sharedLibrary.GetFunction("mysql_real_connect", (PDynaLink::Function &)g_mysql_real_connect)
+			|| !g_sharedLibrary.GetFunction("mysql_real_query", (PDynaLink::Function &)g_mysql_real_query)
+			|| !g_sharedLibrary.GetFunction("mysql_store_result", (PDynaLink::Function &)g_mysql_store_result)
+			|| !g_sharedLibrary.GetFunction("mysql_next_result", (PDynaLink::Function &)g_mysql_next_result)
+			|| !g_sharedLibrary.GetFunction("mysql_errno", (PDynaLink::Function &)g_mysql_errno)
+			|| !g_sharedLibrary.GetFunction("mysql_error", (PDynaLink::Function &)g_mysql_error)
+			|| !g_sharedLibrary.GetFunction("mysql_affected_rows", (PDynaLink::Function &)g_mysql_affected_rows)
+			) {
+			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+			g_sharedLibrary.Close();
+			return NULL;
+		}
+	}
+
 	const unsigned int CONNECT_TIMEOUT = 10000;
 
-	MYSQL* conn = mysql_init(NULL);
+	MYSQL* conn = (*g_mysql_init)(NULL);
 	if (conn == NULL) {
 		PTRACE(1, GetName() << "\tCannot allocate MySQL connection object (mysql_init failed)");
 		return NULL;
 	}
-	mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&CONNECT_TIMEOUT);
+	(*g_mysql_options)(conn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&CONNECT_TIMEOUT);
 
 #if (MYSQL_VERSION_ID >= 50013)
 	my_bool reconnect = 1;	// enable auto-reconnect, older versions have it on by default
-	mysql_options(conn, MYSQL_OPT_RECONNECT, &reconnect);
+	(*g_mysql_options)(conn, MYSQL_OPT_RECONNECT, (const char*)&reconnect);
 #endif
 
 	// this call to mysql_options is needed for libmysqlclient to read /etc/my.cnf,
 	// which might contain eg. a setting where to find the mysql socket
-	mysql_options(conn, MYSQL_READ_DEFAULT_GROUP, "gnugk");
+	(*g_mysql_options)(conn, MYSQL_READ_DEFAULT_GROUP, "gnugk");
 
 	// connect to the MySQL database, try each host on the list in case of failure
-	if (mysql_real_connect(conn, m_host, m_username, 
+	if ((*g_mysql_real_connect)(conn, m_host, m_username, 
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
 			m_database, m_port, NULL, CLIENT_MULTI_STATEMENTS)) {
 		PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
@@ -378,7 +436,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 		return new MySQLConnWrapper(id, m_host, conn);
 	} else {
 		PTRACE(2, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
-			<< '[' << m_database << "] failed (mysql_real_connect failed): " << mysql_error(conn)
+			<< '[' << m_database << "] failed (mysql_real_connect failed): " << (*g_mysql_error)(conn)
 			);
 	}
 	return NULL;
@@ -395,40 +453,40 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 {
 	MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
 	
-	int result = mysql_real_query(mysqlconn, queryStr, strlen(queryStr));
+	int result = (*g_mysql_real_query)(mysqlconn, queryStr, strlen(queryStr));
 	if (result) {
-		GkSQLResult * sqlResult = new GkMySQLResult(result, mysql_error(mysqlconn));
+		GkSQLResult * sqlResult = new GkMySQLResult(result, (*g_mysql_error)(mysqlconn));
 		Disconnect();
 		return sqlResult;
 	}
 	
-	MYSQL_RES* queryResult = mysql_store_result(mysqlconn);
+	MYSQL_RES* queryResult = (*g_mysql_store_result)(mysqlconn);
 
 	if (queryResult) {
 		/* loop and discard results after first if any */
 		MYSQL_RES* tmpResult;
 		int tmpstatus;
-		while ( (tmpstatus = mysql_next_result(mysqlconn) ) >= 0) {
+		while ( (tmpstatus = (*g_mysql_next_result)(mysqlconn) ) >= 0) {
 			if (tmpstatus > 0) {
 				/* error fetching next result */
 				break;
 			}
-			tmpResult = mysql_store_result(mysqlconn);
-			mysql_free_result(tmpResult);
+			tmpResult = (*g_mysql_store_result)(mysqlconn);
+			(*g_mysql_free_result)(tmpResult);
 		}
 	}
 
 	if (queryResult)
 		return new GkMySQLResult(queryResult);
 
-	result = mysql_errno(mysqlconn);
+	result = (*g_mysql_errno)(mysqlconn);
 	if (result) {
-		GkSQLResult * sqlResult = new GkMySQLResult(result, mysql_error(mysqlconn));
+		GkSQLResult * sqlResult = new GkMySQLResult(result, (*g_mysql_error)(mysqlconn));
 		Disconnect();
 		return sqlResult;
 	}
 
-	return new GkMySQLResult((long)mysql_affected_rows(mysqlconn));
+	return new GkMySQLResult((long)(*g_mysql_affected_rows)(mysqlconn));
 }
 
 PString GkMySQLConnection::EscapeString(
@@ -444,7 +502,7 @@ PString GkMySQLConnection::EscapeString(
 	if (numChars) {
 		MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
 		escapedStr.SetSize(
-			mysql_real_escape_string(
+			(*g_mysql_real_escape_string)(
 				mysqlconn, escapedStr.GetPointer(numChars*2+1), str, numChars
 				) + 1
 			);

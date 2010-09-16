@@ -688,23 +688,18 @@ enable_radius
 with_large_fdset
 enable_mysql
 with_mysql_include_dir
-with_mysql_lib_dir
 with_mysql_dir
 enable_pgsql
 with_pgsql_include_dir
-with_pgsql_lib_dir
 with_pgsql_dir
 enable_firebird
 with_firebird_include_dir
-with_firebird_lib_dir
 with_firebird_dir
 enable_unixodbc
 with_unixodbc_include_dir
-with_unixodbc_lib_dir
 with_unixodbc_dir
 enable_sqlite
 with_sqlite_include_dir
-with_sqlite_lib_dir
 with_sqlite_dir
 '
       ac_precious_vars='build_alias
@@ -1351,19 +1346,14 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-large-fdset=MAXFD    Maximum number of sockets supported (default=1024)
   --with-mysql-include-dir=DIR  directory where the MySQL includes may be found
-  --with-mysql-lib-dir=DIR      directory where the MySQL libraries may be found
   --with-mysql-dir=DIR          base directory where MySQL is installed
   --with-pgsql-include-dir=DIR  directory where the PostgreSQL includes may be found
-  --with-pgsql-lib-dir=DIR      directory where the PostgreSQL libraries may be found
   --with-pgsql-dir=DIR          base directory where PostgreSQL is installed
   --with-firebird-include-dir=DIR  directory where Firebird includes may be found
-  --with-firebird-lib-dir=DIR      directory where Firebird libraries may be found
   --with-firebird-dir=DIR          base directory where Firebird is installed
   --with-unixodbc-include-dir=DIR  directory where unixODBC includes may be found
-  --with-unixodbc-lib-dir=DIR      directory where unixODBC libraries may be found
   --with-unixodbc-dir=DIR          base directory where unixODBC is installed
   --with-sqlite-include-dir=DIR  directory where SQLite includes may be found
-  --with-sqlite-lib-dir=DIR      directory where SQLite libraries may be found
   --with-sqlite-dir=DIR          base directory where SQLite is installed
 
 Some influential environment variables:
@@ -4096,18 +4086,9 @@ fi
 
 
 
-# Check whether --with-mysql-lib-dir was given.
-if test "${with_mysql_lib_dir+set}" = set; then
-  withval=$with_mysql_lib_dir;  mysql_lib_dir="$withval"
-
-fi
-
-
-
 # Check whether --with-mysql-dir was given.
 if test "${with_mysql_dir+set}" = set; then
-  withval=$with_mysql_dir;  mysql_lib_dir="$withval/lib/mysql"
-  mysql_include_dir="$withval/include/mysql"
+  withval=$with_mysql_dir;  mysql_include_dir="$withval/include/mysql"
 
 
 fi
@@ -4299,87 +4280,7 @@ $as_echo "$as_me: WARNING: mysql headers not found. Use --with-mysql-include-dir
 		sql_mysql_cflags="${sql_mysql_cflags} ${MYSQL_INCLUDE}"
 		{ $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
-
-		{ $as_echo "$as_me:$LINENO: checking for mysql_init in -lmysqlclient" >&5
-$as_echo_n "checking for mysql_init in -lmysqlclient... " >&6; }
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/lib/mysql /usr/local/lib/mysql /usr/local/mysql/lib/mysql $mysql_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lmysqlclient ${MYSQL_LIBS}"
-				cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-extern char mysql_init();
-int
-main ()
-{
-mysql_init()
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then
-   MYSQL_LIBS="-lmysqlclient ${MYSQL_LIBS}"
-					  MYSQL_LDFLAGS="-L$try"
-
-
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-fi
-
-rm -rf conftest.dSYM
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-				if test "x$MYSQL_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-						if test "x$MYSQL_LDFLAGS" = "x"; then
-			{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-			MYSQL_INCLUDE=
-			{ $as_echo "$as_me:$LINENO: WARNING: mysql lib not found. Use --with-mysql-lib-dir=<path>" >&5
-$as_echo "$as_me: WARNING: mysql lib not found. Use --with-mysql-lib-dir=<path>" >&2;}
-			mysql="no"
-		else
-			{ $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-			sql_mysql_ldflags="$sql_mysql_ldflags $MYSQL_LDFLAGS"
-		fi
 	fi
-
-	sql_mysql_ldflags="$sql_mysql_ldflags $LIBS"
 
 	if test "x$mysql" = "xno"; then
 		{ $as_echo "$as_me:$LINENO: WARNING: MySQL disabled" >&5
@@ -4397,8 +4298,6 @@ _ACEOF
 
 	SOURCES="$SOURCES gksql_mysql.cxx"
 	STDCCFLAGS="${sql_mysql_cflags} -DHAS_MYSQL=1 $STDCCFLAGS"
-	LDFLAGS="$MYSQL_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$MYSQL_LIBS $ENDLDLIBS"
     echo "MySQL support enabled"
 else
     echo "MySQL support disabled"
@@ -4427,18 +4326,9 @@ fi
 
 
 
-# Check whether --with-pgsql-lib-dir was given.
-if test "${with_pgsql_lib_dir+set}" = set; then
-  withval=$with_pgsql_lib_dir;  pgsql_lib_dir="$withval"
-
-fi
-
-
-
 # Check whether --with-pgsql-dir was given.
 if test "${with_pgsql_dir+set}" = set; then
-  withval=$with_pgsql_dir;  pgsql_lib_dir="$withval/lib"
-  pgsql_include_dir="$withval/include"
+  withval=$with_pgsql_dir;  pgsql_include_dir="$withval/include"
 
 
 fi
@@ -4560,87 +4450,7 @@ $as_echo "$as_me: WARNING: pgsql headers not found. Use --with-pgsql-include-dir
 		sql_pgsql_cflags="${sql_pgsql_cflags} ${PGSQL_INCLUDE}"
 		{ $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
-
-		{ $as_echo "$as_me:$LINENO: checking for PQconnectdb in -lpq" >&5
-$as_echo_n "checking for PQconnectdb in -lpq... " >&6; }
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/local/lib /usr/local/pgsql/lib $pgsql_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lpq -lcrypt ${PGSQL_LIBS}"
-				cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-extern char PQconnectdb();
-int
-main ()
-{
-PQconnectdb
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then
-   PGSQL_LIBS="-lpq -lcrypt ${PGSQL_LIBS}"
-					  PGSQL_LDFLAGS="-L$try"
-
-
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-fi
-
-rm -rf conftest.dSYM
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-				if test "x$PGSQL_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-						if test "x$PGSQL_LDFLAGS" = "x"; then
-			{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-			PGSQL_INCLUDE=
-			{ $as_echo "$as_me:$LINENO: WARNING: pgsql lib not found. Use --with-pgsql-lib-dir=<path>" >&5
-$as_echo "$as_me: WARNING: pgsql lib not found. Use --with-pgsql-lib-dir=<path>" >&2;}
-			pgsql="no"
-		else
-			{ $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-			sql_pgsql_ldflags="$sql_pgsql_ldflags $PGSQL_LDFLAGS"
-		fi
 	fi
-
-	sql_pgsql_ldflags="$sql_pgsql_ldflags $LIBS"
 
 	if test "x$pgsql" = "xno"; then
 		{ $as_echo "$as_me:$LINENO: WARNING: PostgreSQL disabled" >&5
@@ -4658,8 +4468,6 @@ _ACEOF
 
 	SOURCES="$SOURCES gksql_pgsql.cxx"
 	STDCCFLAGS="${sql_pgsql_cflags} -DHAS_PGSQL=1 $STDCCFLAGS"
-	LDFLAGS="$PGSQL_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$PGSQL_LIBS $ENDLDLIBS"
     echo "PostgreSQL support enabled"
 else
     echo "PostgreSQL support disabled"
@@ -4687,18 +4495,9 @@ fi
 
 
 
-# Check whether --with-firebird-lib-dir was given.
-if test "${with_firebird_lib_dir+set}" = set; then
-  withval=$with_firebird_lib_dir;  firebird_lib_dir="$withval"
-
-fi
-
-
-
 # Check whether --with-firebird-dir was given.
 if test "${with_firebird_dir+set}" = set; then
-  withval=$with_firebird_dir;  firebird_lib_dir="$withval/lib"
-  firebird_include_dir="$withval/include"
+  withval=$with_firebird_dir;  firebird_include_dir="$withval/include"
 
 
 fi
@@ -4820,87 +4619,7 @@ $as_echo "$as_me: WARNING: Firebird headers not found. Use --with-firebird-inclu
 		sql_firebird_cflags="${sql_firebird_cflags} ${FIREBIRD_INCLUDE}"
 		{ $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
-
-		{ $as_echo "$as_me:$LINENO: checking for isc_attach_database in -lfbclient" >&5
-$as_echo_n "checking for isc_attach_database in -lfbclient... " >&6; }
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/lib/firebird /usr/local/lib /usr/local/lib/firebird /usr/local/firebird/lib $firebird_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lfbclient ${FIREBIRD_LIBS}"
-				cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-extern char isc_attach_database();
-int
-main ()
-{
-isc_attach_database()
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then
-   FIREBIRD_LIBS="-lfbclient ${FIREBIRD_LIBS}"
-					  FIREBIRD_LDFLAGS="-L$try"
-
-
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-fi
-
-rm -rf conftest.dSYM
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-				if test "x$FIREBIRD_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-						if test "x$FIREBIRD_LDFLAGS" = "x"; then
-			{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-			FIREBIRD_INCLUDE=
-			{ $as_echo "$as_me:$LINENO: WARNING: Firebird lib not found. Use --with-firebird-lib-dir=<path>" >&5
-$as_echo "$as_me: WARNING: Firebird lib not found. Use --with-firebird-lib-dir=<path>" >&2;}
-			firebird="no"
-		else
-			{ $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-			sql_firebird_ldflags="$sql_firebird_ldflags $FIREBIRD_LDFLAGS"
-		fi
 	fi
-
-	sql_firebird_ldflags="$sql_firebird_ldflags $LIBS"
 
 	if test "x$firebird" = "xno"; then
 		{ $as_echo "$as_me:$LINENO: WARNING: Firebird disabled" >&5
@@ -4918,8 +4637,6 @@ _ACEOF
 
 	SOURCES="$SOURCES gksql_firebird.cxx"
 	STDCCFLAGS="${sql_firebird_cflags} -DHAS_FIREBIRD=1 $STDCCFLAGS"
-	LDFLAGS="$FIREBIRD_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$FIREBIRD_LIBS $ENDLDLIBS"
     echo "Firebird support enabled"
 else
     echo "Firebird support disabled"
@@ -4944,14 +4661,6 @@ fi
 # Check whether --with-unixodbc-include-dir was given.
 if test "${with_unixodbc_include_dir+set}" = set; then
   withval=$with_unixodbc_include_dir;  unixodbc_include_dir="$withval"
-
-fi
-
-
-
-# Check whether --with-unixodbc-lib-dir was given.
-if test "${with_unixodbc_lib_dir+set}" = set; then
-  withval=$with_unixodbc_lib_dir;  unixodbc_lib_dir="$withval"
 
 fi
 
@@ -5082,87 +4791,7 @@ $as_echo "$as_me: WARNING: unixODBC headers not found. Use --with-unixodbc-inclu
 		sql_unixodbc_cflags="${sql_unixodbc_cflags} ${UNIXODBC_INCLUDE}"
 		{ $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
-
-		{ $as_echo "$as_me:$LINENO: checking for SQLAllocHandle in -lodbc" >&5
-$as_echo_n "checking for SQLAllocHandle in -lodbc... " >&6; }
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/lib/unixodbc /usr/local/lib /usr/local/lib/unixodbc /usr/local/unixodbc/lib $unixodbc_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lodbc ${UNIXODBC_LIBS}"
-				cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-extern char SQLAllocHandle();
-int
-main ()
-{
-SQLAllocHandle()
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then
-   UNIXODBC_LIBS="-lodbc ${UNIXODBC_LIBS}"
-					  UNIXODBC_LDFLAGS="-L$try"
-
-
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-fi
-
-rm -rf conftest.dSYM
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-				if test "x$UNIXODBC_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-						if test "x$UNIXODBC_LDFLAGS" = "x"; then
-			{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-			UNIXODBC_INCLUDE=
-			{ $as_echo "$as_me:$LINENO: WARNING: unixODBC lib not found. Use --with-unixodbc-lib-dir=<path>" >&5
-$as_echo "$as_me: WARNING: unixODBC lib not found. Use --with-unixodbc-lib-dir=<path>" >&2;}
-			unixodbc="no"
-		else
-			{ $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-			sql_unixodbc_ldflags="$sql_unixodbc_ldflags $UNIXODBC_LDFLAGS"
-		fi
 	fi
-
-	sql_unixodbc_ldflags="$sql_unixodbc_ldflags $LIBS"
 
 	if test "x$unixodbc" = "xno"; then
 		{ $as_echo "$as_me:$LINENO: WARNING: unixODBC disabled" >&5
@@ -5180,8 +4809,6 @@ _ACEOF
 
 	SOURCES="$SOURCES gksql_odbc.cxx"
 	STDCCFLAGS="${sql_unixodbc_cflags} -DHAS_ODBC=1 $STDCCFLAGS"
-	LDFLAGS="$UNIXODBC_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$UNIXODBC_LIBS $ENDLDLIBS"
     echo "unixODBC support enabled"
 else
     echo "unixODBC support disabled"
@@ -5210,18 +4837,9 @@ fi
 
 
 
-# Check whether --with-sqlite-lib-dir was given.
-if test "${with_sqlite_lib_dir+set}" = set; then
-  withval=$with_sqlite_lib_dir;  sqlite_lib_dir="$withval"
-
-fi
-
-
-
 # Check whether --with-sqlite-dir was given.
 if test "${with_sqlite_dir+set}" = set; then
-  withval=$with_sqlite_dir;  sqlite_lib_dir="$withval/lib"
-  sqlite_include_dir="$withval/include"
+  withval=$with_sqlite_dir;  sqlite_include_dir="$withval/include"
 
 
 fi
@@ -5343,87 +4961,7 @@ $as_echo "$as_me: WARNING: SQLite headers not found. Use --with-sqlite-include-d
 		sql_sqlite_cflags="${sql_sqlite_cflags} ${SQLITE_INCLUDE}"
 		{ $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
-
-		{ $as_echo "$as_me:$LINENO: checking for sqlite3_libversion in -lsqlite3" >&5
-$as_echo_n "checking for sqlite3_libversion in -lsqlite3... " >&6; }
-
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/local/lib $sqlite_lib_dir; do
-			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lsqlite3 ${SQLITE_LIBS}"
-				cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-extern sqlite3_libversion();
-int
-main ()
-{
-sqlite3_libversion()
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then
-   SQLITE_LIBS="-lsqlite3 ${SQLITE_LIBS}"
-					  SQLITE_LDFLAGS="-L$try"
-
-
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-fi
-
-rm -rf conftest.dSYM
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-				if test "x$SQLITE_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		LIBS="$old_LIBS"
-
-						if test "x$SQLITE_LDFLAGS" = "x"; then
-			{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-			SQLITE_INCLUDE=
-			{ $as_echo "$as_me:$LINENO: WARNING: SQLite lib not found. Use --with-sqlite-lib-dir=<path>" >&5
-$as_echo "$as_me: WARNING: SQLite lib not found. Use --with-sqlite-lib-dir=<path>" >&2;}
-			sqlite="no"
-		else
-			{ $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-			sql_sqlite_ldflags="$sql_sqlite_ldflags $SQLITE_LDFLAGS"
-		fi
 	fi
-
-	sql_sqlite_ldflags="$sql_sqlite_ldflags $LIBS"
 
 	if test "x$sqlite" = "xno"; then
 		{ $as_echo "$as_me:$LINENO: WARNING: SQLite disabled" >&5
@@ -5441,8 +4979,6 @@ _ACEOF
 
 	SOURCES="$SOURCES gksql_sqlite.cxx"
 	STDCCFLAGS="${sql_sqlite_cflags} -DHAS_SQLITE=1 $STDCCFLAGS"
-	LDFLAGS="$SQLITE_LDFLAGS $LDFLAGS"
-	ENDLDLIBS="$SQLITE_LIBS $ENDLDLIBS"
     echo "SQLite support enabled"
 else
     echo "SQLite support disabled"

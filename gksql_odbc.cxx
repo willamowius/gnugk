@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.14  2010/05/25 15:46:29  willamowius
+ * fix 64bit compile with gcc 4.4.3
+ *
  * Revision 1.13  2009/02/09 13:25:59  willamowius
  * typo in comment
  *
@@ -55,15 +58,48 @@ namespace nativeodbc
 #include <sqltypes.h>
 }
 
-
-#ifdef _WIN32
- #pragma comment(lib, ODBC_LIBRARY_1 )
- #pragma comment(lib, ODBC_LIBRARY_2 )
-#endif
-
 using namespace nativeodbc;
 
 namespace {
+
+static PDynaLink g_sharedLibrary;
+static SQLRETURN (SQL_API *g_SQLAllocHandle)(SQLSMALLINT HandleType,
+									SQLHANDLE InputHandle, SQLHANDLE *OutputHandle) = NULL;
+static SQLRETURN (SQL_API *g_SQLConnect)(SQLHDBC ConnectionHandle,
+                                  SQLCHAR *ServerName, SQLSMALLINT NameLength1,
+                                  SQLCHAR *UserName, SQLSMALLINT NameLength2,
+                                  SQLCHAR *Authentication, SQLSMALLINT NameLength3) = NULL;
+static SQLRETURN (SQL_API *g_SQLDescribeCol)(SQLHSTMT StatementHandle,
+                                      SQLUSMALLINT ColumnNumber, SQLCHAR *ColumnName,
+                                      SQLSMALLINT BufferLength, SQLSMALLINT *NameLength,
+                                      SQLSMALLINT *DataType, SQLULEN *ColumnSize,
+                                      SQLSMALLINT *DecimalDigits, SQLSMALLINT *Nullable) = NULL;
+static SQLRETURN (SQL_API *g_SQLDisconnect)(SQLHDBC ConnectionHandle) = NULL;
+static SQLRETURN (SQL_API *g_SQLExecDirect)(SQLHSTMT StatementHandle,
+                                     SQLCHAR *StatementText, SQLINTEGER TextLength) = NULL;
+static SQLRETURN (SQL_API *g_SQLFetch)(SQLHSTMT StatementHandle) = NULL;
+static SQLRETURN (SQL_API *g_SQLFreeHandle)(SQLSMALLINT HandleType, SQLHANDLE Handle) = NULL;
+static SQLRETURN (SQL_API *g_SQLGetData)(SQLHSTMT StatementHandle,
+                                  SQLUSMALLINT ColumnNumber, SQLSMALLINT TargetType,
+                                  SQLPOINTER TargetValue, SQLLEN BufferLength,
+                                  SQLLEN *StrLen_or_Ind) = NULL;
+static SQLRETURN (SQL_API *g_SQLGetDiagRec)(SQLSMALLINT HandleType, SQLHANDLE Handle,
+                                     SQLSMALLINT RecNumber, SQLCHAR *Sqlstate,
+                                     SQLINTEGER *NativeError, SQLCHAR *MessageText,
+                                     SQLSMALLINT BufferLength, SQLSMALLINT *TextLength) = NULL;
+static SQLRETURN (SQL_API *g_SQLNumResultCols)(SQLHSTMT StatementHandle,
+                                        SQLSMALLINT *ColumnCount) = NULL;
+static SQLRETURN (SQL_API *g_SQLRowCount)(SQLHSTMT StatementHandle,
+                                   SQLLEN *RowCount) = NULL;
+static SQLRETURN (SQL_API *g_SQLSetConnectAttr)(SQLHDBC ConnectionHandle,
+                                         SQLINTEGER Attribute, SQLPOINTER Value,
+                                         SQLINTEGER StringLength) = NULL;
+static SQLRETURN (SQL_API *g_SQLSetEnvAttr)(SQLHENV EnvironmentHandle,
+                                     SQLINTEGER Attribute, SQLPOINTER Value,
+                                     SQLINTEGER StringLength);
+static SQLRETURN (SQL_API *g_SQLSetStmtAttr)(SQLHSTMT StatementHandle,
+                                      SQLINTEGER Attribute, SQLPOINTER Value,
+                                      SQLINTEGER StringLength) = NULL;
 
 PString GetODBCDiagMsg(
 	SQLRETURN result,
@@ -85,7 +121,7 @@ PString GetODBCDiagMsg(
 	SQLRETURN r;
 	
 	memset(msg, 0, SQL_MAX_MESSAGE_LENGTH);
-	r = SQLGetDiagRec(handleType, handle, 1, reinterpret_cast<SQLCHAR*>(sqlState),
+	r = (*g_SQLGetDiagRec)(handleType, handle, 1, reinterpret_cast<SQLCHAR*>(sqlState),
 		&nativeError, msg, SQL_MAX_MESSAGE_LENGTH, &msgSize
 		);
 	if (r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO) {
@@ -370,26 +406,12 @@ GkODBCConnection::GkODBCConnection(
 	const char* name
 	) : GkSQLConnection(name), m_env(SQL_NULL_HENV)
 {
-	// allocate Environment handle and register version 
-	SQLRETURN r = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_env);
-	if (!SQL_SUCCEEDED(r)) {
-		PTRACE(1, GetName() << "\tFailed to allocate an ODBC environment handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, SQL_NULL_HENV));
-		return;
-	}
-	r = SQLSetEnvAttr(m_env, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0); 
-	if (!SQL_SUCCEEDED(r)) {
-		PTRACE(1, GetName() << "\tFailed to request ODBC interface version 3.0: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
-		SQLFreeHandle(SQL_HANDLE_ENV, m_env);
-		m_env = SQL_NULL_HENV;
-		return;
-	}
-	PTRACE(5, GetName() << "\tODBC environment created");
 }
 	
 GkODBCConnection::~GkODBCConnection()
 {
 	if (m_env != SQL_NULL_HENV) {
-		SQLFreeHandle(SQL_HANDLE_ENV, m_env);
+		(*g_SQLFreeHandle)(SQL_HANDLE_ENV, m_env);
 		m_env = SQL_NULL_HENV;
 	}
 }
@@ -397,11 +419,11 @@ GkODBCConnection::~GkODBCConnection()
 GkODBCConnection::GkODBCConnWrapper::~GkODBCConnWrapper()
 {
 	if (m_conn != SQL_NULL_HDBC) {
-		SQLRETURN r = SQLDisconnect(m_conn);
+		SQLRETURN r = (*g_SQLDisconnect)(m_conn);
 		if (!SQL_SUCCEEDED(r)) {
 			PTRACE(1, "ODBC disconnect failed: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, m_conn));
 		}
-		SQLFreeHandle(SQL_HANDLE_DBC, m_conn);
+		(*g_SQLFreeHandle)(SQL_HANDLE_DBC, m_conn);
 		m_conn = SQL_NULL_HDBC;
 	}
 }
@@ -411,34 +433,84 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 	int id
 	)
 {
+	if (!g_sharedLibrary.IsLoaded()) {
+		if (m_library.IsEmpty()) {
+#ifdef _WIN32
+			m_library = "odbc32" + g_sharedLibrary.GetExtension();
+#else
+			m_library = "libodbc" + g_sharedLibrary.GetExtension();
+#endif
+		}
+
+		if (!g_sharedLibrary.Open(m_library)) {
+			PTRACE (1, GetName() << "\tCan't load library " << m_library);
+			return NULL;
+		}
+
+		if (!g_sharedLibrary.GetFunction("SQLAllocHandle", (PDynaLink::Function &)g_SQLAllocHandle)
+			|| !g_sharedLibrary.GetFunction("SQLConnect", (PDynaLink::Function &)g_SQLConnect)
+			|| !g_sharedLibrary.GetFunction("SQLDescribeCol", (PDynaLink::Function &)g_SQLDescribeCol)
+			|| !g_sharedLibrary.GetFunction("SQLDisconnect", (PDynaLink::Function &)g_SQLDisconnect)
+			|| !g_sharedLibrary.GetFunction("SQLExecDirect", (PDynaLink::Function &)g_SQLExecDirect)
+			|| !g_sharedLibrary.GetFunction("SQLFetch", (PDynaLink::Function &)g_SQLFetch)
+			|| !g_sharedLibrary.GetFunction("SQLFreeHandle", (PDynaLink::Function &)g_SQLFreeHandle)
+			|| !g_sharedLibrary.GetFunction("SQLGetData", (PDynaLink::Function &)g_SQLGetData)
+			|| !g_sharedLibrary.GetFunction("SQLGetDiagRec", (PDynaLink::Function &)g_SQLGetDiagRec)
+			|| !g_sharedLibrary.GetFunction("SQLNumResultCols", (PDynaLink::Function &)g_SQLNumResultCols)
+			|| !g_sharedLibrary.GetFunction("SQLRowCount", (PDynaLink::Function &)g_SQLRowCount)
+			|| !g_sharedLibrary.GetFunction("SQLSetConnectAttr", (PDynaLink::Function &)g_SQLSetConnectAttr)
+			|| !g_sharedLibrary.GetFunction("SQLSetEnvAttr", (PDynaLink::Function &)g_SQLSetEnvAttr)
+			|| !g_sharedLibrary.GetFunction("SQLSetStmtAttr", (PDynaLink::Function &)g_SQLSetStmtAttr)
+			) {
+			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+			g_sharedLibrary.Close();
+			return NULL;
+		}
+
+		// allocate Environment handle and register version 
+		SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_env);
+		if (!SQL_SUCCEEDED(r)) {
+			PTRACE(1, GetName() << "\tFailed to allocate an ODBC environment handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, SQL_NULL_HENV));
+			return NULL;
+		}
+		r = (*g_SQLSetEnvAttr)(m_env, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0); 
+		if (!SQL_SUCCEEDED(r)) {
+			PTRACE(1, GetName() << "\tFailed to request ODBC interface version 3.0: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
+			(*g_SQLFreeHandle)(SQL_HANDLE_ENV, m_env);
+			m_env = SQL_NULL_HENV;
+			return NULL;
+		}
+		PTRACE(5, GetName() << "\tODBC environment created");
+	}
+
 	SQLHDBC conn = SQL_NULL_HDBC;
 
 	// allocate connection handle, set timeout
-	SQLRETURN r = SQLAllocHandle(SQL_HANDLE_DBC, m_env, &conn); 
+	SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_DBC, m_env, &conn); 
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to allocate an ODBC connection handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
 		return NULL;
 	}
 	
-	r = SQLSetConnectAttr(conn, SQL_ATTR_LOGIN_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
+	r = (g_SQLSetConnectAttr)(conn, SQL_ATTR_LOGIN_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection login timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
 	}
 	
-	r = SQLSetConnectAttr(conn, SQL_ATTR_CONNECTION_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
+	r = (*g_SQLSetConnectAttr)(conn, SQL_ATTR_CONNECTION_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection request timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
 	}
 
 	// Connect to datasource
-	r = SQLConnect(conn,
+	r = (*g_SQLConnect)(conn,
 		reinterpret_cast<SQLCHAR*>(const_cast<char*>(m_database.IsEmpty() ? "" : (const char*)m_database)), SQL_NTS,
 		reinterpret_cast<SQLCHAR*>(const_cast<char*>(m_username.IsEmpty() ? "" : (const char*)m_username)), SQL_NTS,
 		reinterpret_cast<SQLCHAR*>(const_cast<char*>(m_password.IsEmpty() ? "" : (const char*)m_password)), SQL_NTS
 		);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tODBC connect to " << m_database << " failed: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
-		SQLFreeHandle(SQL_HANDLE_DBC, conn);
+		(*g_SQLFreeHandle)(SQL_HANDLE_DBC, conn);
 		return NULL;
 	}
 
@@ -459,7 +531,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	SQLHDBC conn = ((GkODBCConnWrapper*)con)->m_conn;
 	SQLHSTMT stmt = SQL_NULL_HSTMT;
 
-	SQLRETURN r = SQLAllocHandle(SQL_HANDLE_STMT, conn, &stmt); 
+	SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_STMT, conn, &stmt); 
 	if (!SQL_SUCCEEDED(r)) {
 		PString errmsg(GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
 		PTRACE(1, GetName() << "\tFailed to allocate an ODBC statement handle: " << errmsg);
@@ -467,27 +539,27 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		return new GkODBCResult(r, errmsg);
 	}
 
-	r = SQLSetStmtAttr(stmt, SQL_ATTR_QUERY_TIMEOUT, reinterpret_cast<SQLPOINTER>(timeout == -1 ? 10 : ((timeout + 999) / 1000)), 0);
+	r = (*g_SQLSetStmtAttr)(stmt, SQL_ATTR_QUERY_TIMEOUT, reinterpret_cast<SQLPOINTER>(timeout == -1 ? 10 : ((timeout + 999) / 1000)), 0);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tSQL query timeout not set: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 	}
 
-	r = SQLExecDirect(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>((const char*)queryStr)), SQL_NTS);
+	r = (*g_SQLExecDirect)(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>((const char*)queryStr)), SQL_NTS);
 	bool nodata = (r == SQL_NO_DATA);
 	if (r != SQL_NO_DATA && !SQL_SUCCEEDED(r)) {
 		PString errmsg(GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 		PTRACE(1, GetName() << "\tFailed to execute an ODBC query: " << errmsg);
-		SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+		(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
 		Disconnect();
 		return new GkODBCResult(r, errmsg + ", query: " + queryStr);
 	}
 	
 	SQLSMALLINT columns = 0;
-	r = SQLNumResultCols(stmt, &columns);
+	r = (*g_SQLNumResultCols)(stmt, &columns);
 	if (!SQL_SUCCEEDED(r)) {
 		PString errmsg(GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 		PTRACE(1, GetName() << "\tFailed to get ODBC number of result columns: " << errmsg);
-		SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+		(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
 		Disconnect();
 		return new GkODBCResult(r, errmsg + ", query: " + queryStr);
 	}
@@ -496,14 +568,14 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	
 	if (columns == 0) {
 		if (nodata) {
-			SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+			(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
 			return new GkODBCResult(0, 0, NULL);
 		} else {
-			r = SQLRowCount(stmt, &rows);
+			r = (*g_SQLRowCount)(stmt, &rows);
 			if (!SQL_SUCCEEDED(r)) {
 				PTRACE(1, GetName() << "\tFailed to get ODBC number of rows affected by a query: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 			}
-			SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+			(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
 			return new GkODBCResult(rows, 0, NULL);
 		}
 	}
@@ -515,7 +587,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	
 	for (SQLUSMALLINT i = 1; i <= columns; ++i) {
 		SQLCHAR colname[64];
-		r = SQLDescribeCol(stmt, i, colname, sizeof(colname), NULL, NULL, NULL, NULL, NULL);
+		r = (*g_SQLDescribeCol)(stmt, i, colname, sizeof(colname), NULL, NULL, NULL, NULL, NULL);
 		if (!SQL_SUCCEEDED(r))
 			PTRACE(1, GetName() << "\tFailed to get an ODBC result set column #" << i << " name: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 		else
@@ -524,7 +596,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 
 	std::list<GkSQLResult::ResultRow*> *resultRows = new std::list<GkSQLResult::ResultRow*>();
 	do {
-		r = SQLFetch(stmt);
+		r = (*g_SQLFetch)(stmt);
 		if (r == SQL_NO_DATA)
 			break;
 			
@@ -540,7 +612,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 			SQLLEN indicator;
 			char data[512];
 			/* retrieve column data as a string */
-			SQLRETURN result = SQLGetData(stmt, i, SQL_C_CHAR, data, sizeof(data), &indicator);
+			SQLRETURN result = (*g_SQLGetData)(stmt, i, SQL_C_CHAR, data, sizeof(data), &indicator);
 			if (SQL_SUCCEEDED(result)) {
 				/* Handle null columns */
 				if (indicator == SQL_NULL_DATA)
@@ -558,7 +630,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 
 	} while (SQL_SUCCEEDED(r));
 
-	SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+	(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
 	
 	return new GkODBCResult(rows, columns, resultRows);
 }
