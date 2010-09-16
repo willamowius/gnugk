@@ -11,6 +11,9 @@
  * with the OpenH323 library.
  *
  * $Log$
+ * Revision 1.18  2010/09/16 10:17:37  willamowius
+ * database drivers load their libraries at runtime now, added Library= switch
+ *
  * Revision 1.17  2009/11/17 14:35:47  willamowius
  * Firebird database driver updated for Firebird 2.0.x and 2.1.x
  *
@@ -515,7 +518,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	if (!g_sharedLibrary.IsLoaded()) {
 		if (m_library.IsEmpty()) {
 #ifdef _WIN32
-			m_library = "firebird" + g_sharedLibrary.GetExtension();
+			m_library = "fbclient" + g_sharedLibrary.GetExtension();
 #else
 			m_library = "libfbclient" + g_sharedLibrary.GetExtension();
 #endif
