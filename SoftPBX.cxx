@@ -205,7 +205,7 @@ void SoftPBX::DisconnectCallId(const PString & CallId)
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
-// send a DRQ to this endpoint
+// disconnect all calls on this IP[:port]
 void SoftPBX::DisconnectIp(const PString & Ip)
 {
 	H225_TransportAddress callSignalAddress;
@@ -213,25 +213,27 @@ void SoftPBX::DisconnectIp(const PString & Ip)
 	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << Ip);
 
 	callptr Call;
-	if (Ip.Find(':') == P_MAX_INDEX)
-		Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress);	// no port specified
-	else
-		Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress);	// port specify, search for it
-	if (!Call) {
-		PString msg = "Can't find call for IP " + Ip;
-		PTRACE(2, "GK\tSoftPBX: " << msg);
-		GkStatus::Instance()->SignalStatus(msg + "\r\n");
-		return;
+	if (Ip.Find(':') == P_MAX_INDEX) {
+		// no port specified
+		while (Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress)) {
+			unsigned CallNumber = Call->GetCallNumber();
+			Call->Disconnect(true);
+			CallTable::Instance()->RemoveCall(Call);
+			PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
+			PTRACE(2, "GK\tSoftPBX: " << msg);
+			GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		}
+	} else {
+		// port specify, search for it
+		while (Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress)) {
+			unsigned CallNumber = Call->GetCallNumber();
+			Call->Disconnect(true);
+			CallTable::Instance()->RemoveCall(Call);
+			PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
+			PTRACE(2, "GK\tSoftPBX: " << msg);
+			GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		}
 	}
-	unsigned CallNumber = Call->GetCallNumber();
-
-	Call->Disconnect(true);
-	// remove the call directly so we don't have to handle DCF
-	CallTable::Instance()->RemoveCall(Call);
-
-	PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
-	PTRACE(2, "GK\tSoftPBX: " << msg);
-	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
 // send a DRQ to this endpoint
