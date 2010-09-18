@@ -13,7 +13,10 @@ Key Name=Value String
 </verb></tscreen>
 
 <tt/ALIAS/ should be replaced with the actual alias for the endpoint the settings
-should apply to. Currently, the following options are recognized:
+should apply to. If your endpoint has multiple aliases, you can pick one of them.
+GnuGk will look through all aliases and use the first [EP:..] section it finds.
+
+Currently, the following options are recognized:
 
 <itemize>
 <item><tt/Capacity=10/<newline>
