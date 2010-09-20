@@ -7,9 +7,10 @@
 <item><tt/GenerateNBCDR=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Generate CDRs for calls from neighbor zones.
+Generate CDRs for calls from neighbor zones on the status port.
 The IP and endpoint ID of the calling party is printed as empty.
 This is usually used for debugging purposes.
+The accounting modules will always get CDR data for all call.
 
 <item><tt/GenerateUCCDR=0/<newline>
 Default: <tt/0/<newline>
