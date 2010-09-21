@@ -19,7 +19,6 @@
 #include "singleton.h"
 #include "config.h"
 #include <map>
-using namespace std;
 
 class MakeCallEndPoint : public Singleton<MakeCallEndPoint>, public H323EndPoint
 {
