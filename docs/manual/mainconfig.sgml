@@ -254,7 +254,7 @@ will not register with this gatekeeper again.
 compliant endpoints.
 
 <label id="alternategks">
-<item><tt/AlternateGKs=1.2.3.4;1719;false:120;GnuGk/<newline>
+<item><tt/AlternateGKs=1.2.3.4;1719;false;120;GnuGk/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the endpoint loses connectivity with GnuGk it should automatically try 
