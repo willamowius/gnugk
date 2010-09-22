@@ -3439,14 +3439,11 @@ void CallTable::SetTotalBandwidth(int bw)
 int CallTable::CheckTotalBandwidth(int bw) const
 {
 	if ((m_capacity < 0) || (m_capacity >= bw)) {
-		PTRACE(1, "JW global bandwidth check: full bandwidth granted: capacity=" << m_capacity << " bw=" << bw);
 		return bw;
 	}
 	if (m_capacity > 0) {
-		PTRACE(1, "JW global bandwidth check: reduce bandwidth granted: " << m_capacity);
 		return m_capacity;
 	}
-	PTRACE(1, "JW global bandwidth check: no bandwidth left");
 	return 0;
 }
 
@@ -3464,26 +3461,21 @@ void CallTable::UpdateTotalBandwidth(int bw)
 
 int CallTable::CheckEPBandwidth(const endptr & ep, int bw) const
 {
-	PTRACE(1, "JW EP bandwidth check: ep=" << ep << " requested=" << bw);
 	if (ep) {
 		int epMax = ep->GetMaxBandwidth();
-		PTRACE(1, "JW EP bandwidth check: ep=" << ep->GetEndpointIdentifier().GetValue() << " requested=" << bw << " maximum=" << epMax);
 		if (epMax >= 0) {
 			int epUsed = ep->GetBandwidth();
-			PTRACE(1, "JW EP bandwidth check: requested=" << bw << " already used=" << epUsed << " maximum=" << epMax);
 			if (epUsed >= epMax) {
-				PTRACE(1, "JW EP bandwidth check: limit reached");
+				PTRACE(3, "EP bandwidth check: limit reached");
 				return 0;
 			} if (epUsed + bw <= epMax) {
-				PTRACE(1, "JW EP bandwidth check: fully granted");
 				return bw;
 			} else {
-				PTRACE(1, "JW EP bandwidth check: partially granted bw=" << (epMax - epUsed));
+				PTRACE(3, "EP bandwidth check: partially granted bw=" << (epMax - epUsed));
 				return (epMax - epUsed);
 			}
 		}
 	}
-	PTRACE(1, "JW EP bandwidth check: no limiting");
 	return bw;
 }
 
@@ -3491,7 +3483,6 @@ void CallTable::UpdateEPBandwidth(const endptr & ep, int bw)
 {
 	if (ep) {
 		ep->SetBandwidth(ep->GetBandwidth() + bw);
-		PTRACE(1, "JW EP bandwidth updated for ep " << ep->GetEndpointIdentifier().GetValue() << " by " << bw << " now at " << ep->GetBandwidth());
 	}
 }
 

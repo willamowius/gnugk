@@ -2841,7 +2841,6 @@ bool AdmissionRequestPDU::Process()
 			CallTbl->UpdateTotalBandwidth(BWRequest);
 		}
 	}
-	PTRACE(1, "JW ACF will grant bandwidth of " << BWRequest);
 	PTRACE(3, "GK\tACF will grant bandwidth of " << BWRequest);
 	if (bReject)
 		return BuildReply(H225_AdmissionRejectReason::e_requestDenied); // what the spec says
