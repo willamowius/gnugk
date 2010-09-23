@@ -102,8 +102,8 @@ public:
 	virtual void AddNumbers(const PString & numbers);
 	virtual void SetEndpointType(const H225_EndpointType &);
     virtual void SetEndpointInfo(const PString & vendor, const PString & version);
-	virtual int GetBandwidth() const { return m_bandwidth; }
-	virtual void SetBandwidth(int bw) { m_bandwidth = bw;  if (m_bandwidth < 0) m_bandwidth = 0; }
+	virtual long GetBandwidth() const { return m_bandwidth; }
+	virtual void SetBandwidth(long bw) { m_bandwidth = bw;  if (m_bandwidth < 0) m_bandwidth = 0; }
 	virtual int GetMaxBandwidth() const { return m_maxBandwidth; }
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
@@ -320,7 +320,7 @@ protected:
 	/// session number for call credit service control session
 	int m_callCreditSession;
 	/// endpoint call capacity, -1 means no limit
-	int m_capacity;
+	long m_capacity;
 	/// capacity per prefix (regex)
 	list<pair<string, int> > m_prefixCapacities;
 	int m_calledTypeOfNumber, m_callingTypeOfNumber;
@@ -344,8 +344,8 @@ protected:
 	bool m_usesH46018;
 	bool m_usesH460P;
 	
-	int m_bandwidth;	// bandwidth currently occupied by this endpoint
-	int m_maxBandwidth; // maximum bandwidth allowed for this endpoint
+	long m_bandwidth;	// bandwidth currently occupied by this endpoint
+	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -577,7 +577,7 @@ public:
 		/// ARQ with call information
 		const RasPDU<H225_AdmissionRequest>& arq,
 		/// bandwidth occupied by the call
-		int bandwidth,
+		long bandwidth,
 		/// called party's aliases in a string form
 		const PString& destInfo,
 		/// override proxy mode global setting from the config
@@ -618,7 +618,7 @@ public:
 	endptr GetCallingParty() const { return m_Calling; }
 	endptr GetCalledParty() const { return m_Called; }
 	endptr GetForwarder() const { return m_Forwarder; }
-	int GetBandwidth() const { return m_bandwidth; }
+	long GetBandwidth() const { return m_bandwidth; }
 
 	/** @return
 	    A bit mask with NAT flags for calling and called parties. 
@@ -713,7 +713,7 @@ public:
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
 	void RerouteDropCalling();
 	void RerouteDropCalled();
-	void SetBandwidth(int bandwidth) { m_bandwidth = bandwidth; if (m_bandwidth < 0) m_bandwidth = 0; }
+	void SetBandwidth(long bandwidth) { m_bandwidth = bandwidth; if (m_bandwidth < 0) m_bandwidth = 0; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetCallSignalSocketCalling(CallSignalSocket* socket);
 	void SetCallSignalSocketCalled(CallSignalSocket* socket);
@@ -1186,7 +1186,7 @@ private:
 	/// called party aliases in a string form
 	PString m_destInfo;
 	/// bandwidth occupied by this call (as declared in ARQ)
-	int m_bandwidth;
+	long m_bandwidth;
 
 	PString m_callerAddr, m_callerId;
 	PString m_calleeAddr, m_calleeId;
@@ -1357,14 +1357,14 @@ public:
 	void Insert(CallRec * NewRec);
 
 	// bandwidth management
-	void SetTotalBandwidth(int bw);
-	int GetAvailableBW() const { return m_capacity; }
-	int GetMinimumBandwidthPerCall() const { return m_minimumBandwidthPerCall; }
-	int GetMaximumBandwidthPerCall() const { return m_maximumBandwidthPerCall; }
-	int CheckTotalBandwidth(int bw) const;
-	void UpdateTotalBandwidth(int bw);
-	int CheckEPBandwidth(const endptr & ep, int bw) const;
-	void UpdateEPBandwidth(const endptr & ep, int bw);
+	void SetTotalBandwidth(long bw);
+	long GetAvailableBW() const { return m_capacity; }
+	long GetMinimumBandwidthPerCall() const { return m_minimumBandwidthPerCall; }
+	long GetMaximumBandwidthPerCall() const { return m_maximumBandwidthPerCall; }
+	long CheckTotalBandwidth(long bw) const;
+	void UpdateTotalBandwidth(long bw);
+	long CheckEPBandwidth(const endptr & ep, long bw) const;
+	void UpdateEPBandwidth(const endptr & ep, long bw);
 
 	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
 	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
@@ -1443,9 +1443,9 @@ private:
 	PINDEX m_CallNumber;
 	mutable PReadWriteMutex listLock;
 
-	int m_capacity;	// total available bandwidth for gatekeeper (-1 = unlimited)
-	int m_minimumBandwidthPerCall;	// don't accept bandwith requests from endpoints lower tan this (eg. for Netmeeting)
-	int m_maximumBandwidthPerCall;	// maximum bandwidth allowed per call (<= 0 means unlimited)
+	long m_capacity;	// total available bandwidth for gatekeeper (-1 = unlimited)
+	long m_minimumBandwidthPerCall;	// don't accept bandwith requests from endpoints lower tan this (eg. for Netmeeting)
+	long m_maximumBandwidthPerCall;	// maximum bandwidth allowed per call (<= 0 means unlimited)
 
 	// statistics
 	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall;

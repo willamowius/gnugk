@@ -2803,7 +2803,7 @@ bool AdmissionRequestPDU::Process()
 	}
 
 	// bandwidth check
-	int BWRequest = request.m_bandWidth.GetValue();	// this is the bidirectional bandwidth
+	long BWRequest = request.m_bandWidth.GetValue();	// this is the bidirectional bandwidth
 	// force a minimum bandwidth for endpoints that don't properly report usage (eg. Netmeeting)
 	if ((CallTbl->GetMinimumBandwidthPerCall() > 0) && (BWRequest < CallTbl->GetMinimumBandwidthPerCall()))
 		BWRequest = CallTbl->GetMinimumBandwidthPerCall();
@@ -2815,7 +2815,7 @@ bool AdmissionRequestPDU::Process()
 	if (pExistingCallRec) {
 		// 2nd ARQ: request more bandwidth if needed
 		BWRequest = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
-		int AdditionalBW = 0;
+		long AdditionalBW = 0;
 		if (BWRequest > pExistingCallRec->GetBandwidth()) {
 			AdditionalBW = CallTbl->CheckTotalBandwidth(BWRequest - pExistingCallRec->GetBandwidth());
 			AdditionalBW = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
@@ -2847,7 +2847,7 @@ bool AdmissionRequestPDU::Process()
 
 	// new connection admitted
 	H225_AdmissionConfirm & acf = BuildConfirm();
-	acf.m_bandWidth = BWRequest;
+	acf.m_bandWidth = (int)BWRequest;
 
 	// Per GW outbound rewrite
 	if (hasDestInfo && CalledEP && (RequestingEP != CalledEP)) {
@@ -3125,7 +3125,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 		}
 	}
 
-	int bandwidth = request.m_bandWidth.GetValue();
+	long bandwidth = request.m_bandWidth.GetValue();
 	// enforce minimum bandwidth per call
 	if ((CallTbl->GetMinimumBandwidthPerCall() > 0) && (bandwidth < CallTbl->GetMinimumBandwidthPerCall()))
 		bandwidth = CallTbl->GetMinimumBandwidthPerCall();
@@ -3144,7 +3144,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 		bReject = true;
 		rsn = H225_BandRejectReason::e_invalidConferenceID;
 	} else if (!bReject) {
-		int AdditionalBW = bandwidth - pCall->GetBandwidth();
+		long AdditionalBW = bandwidth - pCall->GetBandwidth();
 		AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCallingParty(), AdditionalBW);
 		AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
 		AdditionalBW = CallTbl->CheckTotalBandwidth(AdditionalBW);
@@ -3161,7 +3161,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 	if (bReject) {
 		H225_BandwidthReject & brj = BuildReject(rsn);
 		if (rsn == H225_BandRejectReason::e_insufficientResources) {
-			brj.m_allowedBandWidth = CallTbl->GetAvailableBW();
+			brj.m_allowedBandWidth = (int)CallTbl->GetAvailableBW();
 			// ask the endpoint to try alternate gatekeepers
 			RasSrv->SetAltGKInfo(brj, m_msg->m_peerAddr);
 		}
@@ -3174,7 +3174,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 	} else {
 		pCall->SetBandwidth(bandwidth);
 		H225_BandwidthConfirm & bcf = BuildConfirm();
-		bcf.m_bandWidth = bandwidth;
+		bcf.m_bandWidth = (int)bandwidth;
 		log = PString(PString::Printf, "BCF|%s|%s|%u;",
 			inet_ntoa(m_msg->m_peerAddr),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),

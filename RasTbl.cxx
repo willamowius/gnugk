@@ -1923,7 +1923,7 @@ CallRec::CallRec(
 	/// ARQ with call information
 	const RasPDU<H225_AdmissionRequest>& arqPdu,
 	/// bandwidth occupied by the call
-	int bandwidth,
+	long bandwidth,
 	/// called party's aliases in a string form
 	const PString& destInfo,
 	/// override proxy mode global setting from the config
@@ -3424,10 +3424,10 @@ void CallTable::Insert(CallRec * NewRec)
 	PTRACE(2, "CallTable::Insert(CALL) Call No. " << NewRec->GetCallNumber() << ", total sessions : " << m_activeCall);
 }
 
-void CallTable::SetTotalBandwidth(int bw)
+void CallTable::SetTotalBandwidth(long bw)
 {
 	if ((m_capacity = bw) >= 0) {
-		int used = 0;
+		long used = 0;
 		WriteLock lock(listLock);
 		iterator Iter = CallList.begin(), eIter = CallList.end();
 		while (Iter != eIter)
@@ -3439,7 +3439,7 @@ void CallTable::SetTotalBandwidth(int bw)
 	}
 }
 
-int CallTable::CheckTotalBandwidth(int bw) const
+long CallTable::CheckTotalBandwidth(long bw) const
 {
 	if ((m_capacity < 0) || (m_capacity >= bw)) {
 		return bw;
@@ -3450,7 +3450,7 @@ int CallTable::CheckTotalBandwidth(int bw) const
 	return 0;
 }
 
-void CallTable::UpdateTotalBandwidth(int bw)
+void CallTable::UpdateTotalBandwidth(long bw)
 {
 	if (m_capacity >= 0) {
 		m_capacity -= bw;
@@ -3462,12 +3462,12 @@ void CallTable::UpdateTotalBandwidth(int bw)
 	}
 }
 
-int CallTable::CheckEPBandwidth(const endptr & ep, int bw) const
+long CallTable::CheckEPBandwidth(const endptr & ep, long bw) const
 {
 	if (ep) {
-		int epMax = ep->GetMaxBandwidth();
+		long epMax = ep->GetMaxBandwidth();
 		if (epMax >= 0) {
-			int epUsed = ep->GetBandwidth();
+			long epUsed = ep->GetBandwidth();
 			if (epUsed >= epMax) {
 				PTRACE(3, "EP bandwidth check: limit reached");
 				return 0;
@@ -3482,7 +3482,7 @@ int CallTable::CheckEPBandwidth(const endptr & ep, int bw) const
 	return bw;
 }
 
-void CallTable::UpdateEPBandwidth(const endptr & ep, int bw)
+void CallTable::UpdateEPBandwidth(const endptr & ep, long bw)
 {
 	if (ep) {
 		ep->SetBandwidth(ep->GetBandwidth() + bw);
