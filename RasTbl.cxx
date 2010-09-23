@@ -3381,7 +3381,10 @@ void CallTable::LoadConfig()
 {
 	m_genNBCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateNBCDR", "1"));
 	m_genUCCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "GenerateUCCDR", "0"));
-	SetTotalBandwidth(GkConfig()->GetInteger("TotalBandwidth", m_capacity));
+	int GKCapacity = GkConfig()->GetInteger("TotalBandwidth", -1);
+	if (GKCapacity == 0)
+		GKCapacity = -1;	// turn bw management off when switch is set to 0
+	SetTotalBandwidth(GKCapacity);	// will take into account ongoing calls
 	m_minimumBandwidthPerCall = GkConfig()->GetInteger("MinimumBandwidthPerCall", -1);
 	m_maximumBandwidthPerCall = GkConfig()->GetInteger("MaximumBandwidthPerCall", -1);
 	m_signalTimeout = std::max(

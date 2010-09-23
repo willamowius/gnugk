@@ -645,6 +645,8 @@ void Gatekeeper::Main()
 		GKcapacity = args.GetOptionString('b').AsInteger();
 	else
 		GKcapacity = GkConfig()->GetInteger("TotalBandwidth", -1);
+	if (GKcapacity == 0)
+		GKcapacity = -1;	// turn bw management off for 0, too
 	CallTable::Instance()->SetTotalBandwidth(GKcapacity);
 	if (GKcapacity < 0)
 		PTRACE(2, "GK\tTotal bandwidth not limited");
