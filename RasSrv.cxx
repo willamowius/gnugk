@@ -3145,17 +3145,23 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 		rsn = H225_BandRejectReason::e_invalidConferenceID;
 	} else if (!bReject) {
 		long AdditionalBW = bandwidth - pCall->GetBandwidth();
-		AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCallingParty(), AdditionalBW);
-		AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
-		AdditionalBW = CallTbl->CheckTotalBandwidth(AdditionalBW);
+		// only update settings when more BW is requested, if its less, agree and leave as is
 		if (AdditionalBW > 0) {
-			CallTbl->UpdateEPBandwidth(pCall->GetCallingParty(), AdditionalBW);
-			CallTbl->UpdateEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
-			CallTbl->UpdateTotalBandwidth(AdditionalBW);
-			bandwidth = pCall->GetBandwidth() + AdditionalBW;
+			AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCallingParty(), AdditionalBW);
+			AdditionalBW = CallTbl->CheckEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
+			AdditionalBW = CallTbl->CheckTotalBandwidth(AdditionalBW);
+			if (AdditionalBW > 0) {
+				CallTbl->UpdateEPBandwidth(pCall->GetCallingParty(), AdditionalBW);
+				CallTbl->UpdateEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
+				CallTbl->UpdateTotalBandwidth(AdditionalBW);
+				bandwidth = pCall->GetBandwidth() + AdditionalBW;
+			} else {
+				bReject = true;
+				rsn = H225_BandRejectReason::e_insufficientResources;
+			}
 		} else {
-			bReject = true;
-			rsn = H225_BandRejectReason::e_insufficientResources;
+			// the endpoint has requested to lower the bandwidth
+			// fow now we just agree, we also reduce update the curent total, per call and per endpoint usage
 		}
 	}
 	if (bReject) {
