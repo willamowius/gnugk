@@ -20,7 +20,9 @@ if (!defined $sock) {
 }
 
 print $sock "unregisterip $ip\n";
+$sock->getline();
 print $sock "quit\n";
+$sock->getline();
 
 close($sock);
 
