@@ -285,7 +285,7 @@ inline bool Request<R, W>::Process()
 	answe the call). Basically, it rewrites virtual queue alias
 	into the alias of the specified agent.
 
-	The route request is uniquelly identified by (EndpointIdentifier,CRV)
+	The route request is uniquely identified by (EndpointIdentifier,CRV)
 	values pair.
 */
 class VirtualQueue

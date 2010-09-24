@@ -2234,7 +2234,7 @@ int PrefixAuth::Check(
 		&& arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)
 		&& CallTable::Instance()->FindCallRec(arq.m_callIdentifier)) {
 		PTRACE(5, "GKAUTH\t" << GetName() << " ARQ check skipped - call "
-			" already admitted and present in the call table"
+			"already admitted and present in the call table"
 			);
 		return e_ok;
 	}
