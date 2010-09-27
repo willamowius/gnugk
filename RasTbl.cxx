@@ -770,6 +770,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		if (UsesH46018()) {
 			msg += " (H.460.18)";
 		}
+		msg += " bw:" + PString(m_bandwidth);
 		msg += "\r\n";
 	}
 	return msg;
@@ -2243,6 +2244,7 @@ void CallRec::RerouteDropCalling()
 	m_forwarded = true;
 	m_Forwarder = m_Calling;
 	m_callingSocket = NULL;
+	CallTable::Instance()->UpdateEPBandwidth(m_Calling, -GetBandwidth());
 	m_Calling = endptr(0);
 }
 
@@ -2252,6 +2254,7 @@ void CallRec::RerouteDropCalled()
 	m_forwarded = true;
 	m_Forwarder = m_Called;
 	m_calledSocket = NULL;
+	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
 	m_Called = endptr(0);
 }
 
@@ -2611,11 +2614,13 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + m_srcInfo
 		+ "|true;\r\n";
 	if (verbose) {
-		result += "# " + ((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr) 	// "# %s|%s|%d|%s <%d>\r\n",
+		result += "# " + ((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr)
 				+ "|" + ((m_Called) ? AsString(m_Called->GetAliases()) : m_calleeAddr)
 				+ "|" + PString(m_bandwidth)
 				+ "|" + (m_connectTime ? (const char *)PTime(m_connectTime).AsString() : "unconnected")
-				+ " <" + PString(m_usedCount) + ">\r\n";
+				+ " <" + PString(m_usedCount) + ">"
+				+ " bw:" + PString(m_bandwidth)
+				+ "\r\n";
 	}
 
 	return result;
