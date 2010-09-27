@@ -5,7 +5,7 @@
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
 // We also explicitly grant the right to link this code
-// with the OpenH323 library.
+// with the OpenH323/H323Plus library.
 //
 //////////////////////////////////////////////////////////////////
 
@@ -385,9 +385,11 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 		if (!extroute && (r==r_table.GetSize())) {
 			::new (rtable_end++) RouteEntry(extroute);
 		} else {
-		  PIPSocket::RouteEntry & r_entry = r_table[r];
-		  if (r_entry.GetNetMask() != INADDR_ANY) 
-			::new (rtable_end++) RouteEntry(r_entry, if_table);
+			PIPSocket::RouteEntry & r_entry = r_table[r];
+			//if (r_entry.GetNetMask() != INADDR_ANY && r_entry.GetNetwork().GetVersion() == 4 && r_entry.GetDestination().GetVersion() == 4) {
+			if (r_entry.GetNetMask() != INADDR_ANY && r_entry.GetNetwork().GetVersion() != 6) {
+				::new (rtable_end++) RouteEntry(r_entry, if_table);
+			}
 		}
 	}
 
@@ -397,7 +399,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 bool Toolkit::VirtualRouteTable::CreateTable()
 {
 	PString nets = GkConfig()->GetString("NetworkInterfaces", "");
-	if (!nets) {		
+	if (!nets) {
 		PStringArray networks(nets.Tokenise(" ,;\t", FALSE));
 		int i = networks.GetSize();
 		if (i > 0) {
@@ -2418,56 +2420,40 @@ PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
 
 void Toolkit::SetGKHome(const PStringArray & home)
 {
-	std::vector<PIPSocket::Address>::iterator begin;
 	m_GKHome.clear();
-	int n, i, size = home.GetSize();
-	if (size > 0)
-		for (n = 0; n < size; ++n)
-			m_GKHome.push_back(home[n]);
+	for (PINDEX n = 0; n < home.GetSize(); ++n)
+		m_GKHome.push_back(home[n]);
 
 	PIPSocket::InterfaceTable it;
 	if (PIPSocket::GetInterfaceTable(it)) {
 		int is = it.GetSize();
-		if (size > 0) {
-			// check if the interface is valid
-			for (n = 0; n < size; ++n) {
-				for (i = 0; i < is; ++i)
-					if (m_GKHome[n] == it[i].GetAddress())
-						break;
-				if (i == is) {
-					PTRACE(1, "GK\tAddress " << m_GKHome[n] << " not found"
-						" in the PWLib interface table"
-						);
-					//begin = m_GKHome.begin();
-					//copy(begin + n + 1, begin + size, begin + n);
-					//--size, --n;
+		// check if the interface is valid
+		for (size_t n = 0; n < m_GKHome.size(); ++n) {
+			PINDEX i = 0;
+			for (i = 0; i < is; ++i)
+				if (m_GKHome[n] == it[i].GetAddress())
+					break;
+			if (i == is) {
+				PTRACE(1, "GK\tAddress " << m_GKHome[n] << " not found"
+					" in the PTLib interface table");
+			}
+		}
+
+		// if no home interfaces specified, set all IPs from interface table
+		// except INADDR_ANY and any non IPv4 adresses
+		if (m_GKHome.empty()) {
+			for (PINDEX n = 0; n < it.GetSize(); ++n) {
+				const PIPSocket::Address addr = it[n].GetAddress();
+				if (addr != INADDR_ANY && addr.GetVersion() == 4) {
+					m_GKHome.push_back(addr);
 				}
 			}
 		}
-		if (size == 0) {
-			m_GKHome.clear();
-			size = is;
-			for (n = 0; n < size; ++n)
-				m_GKHome.push_back(it[n].GetAddress());
-		}
-		// remove INADDR_ANY
-		for (n = 0; n < size; ++n)
-			if (m_GKHome[n] == INADDR_ANY) {
-				begin = m_GKHome.begin();
-				copy(begin + n + 1, begin + size, begin + n);
-				--size, --n;
-			}
 	}
 
 	// remove duplicate interfaces
-	for (n = 0; n < size; ++n)
-		for (i = 0; i < n; ++i)
-			if (m_GKHome[n] == m_GKHome[i]) {
-				begin = m_GKHome.begin();
-				copy(begin + n + 1, begin + size, begin + n);
-				--size, --n;
-				break;
-			}
+	sort(m_GKHome.begin(), m_GKHome.end());
+	unique(m_GKHome.begin(), m_GKHome.end());
 
 	// move loopback interfaces to the end
 	std::list<PIPSocket::Address> sortedHomes;
@@ -2479,12 +2465,6 @@ void Toolkit::SetGKHome(const PStringArray & home)
 		}		
 	}
 	m_GKHome.assign(sortedHomes.begin(), sortedHomes.end());
-	m_GKHome.resize(size);
-
-	// put the default IP first
-	begin = find(m_GKHome.begin(), m_GKHome.end(), m_RouteTable.GetLocalAddress());
-	if (begin != m_GKHome.end())
-		swap(m_GKHome[0], *begin);
 }
 
 bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
