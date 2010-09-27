@@ -399,9 +399,9 @@ call transfer.
 <item><tt/H4502EmulatorTransferMethod=Reroute/<newline>
 Default: <tt>callForwarded</tt><newline>
 <p>
-Set the cal transfer method for the H.450.2 emulator.
+Set the call transfer method for the H.450.2 emulator.
 It defaults to sending a callFordwarded Facility to the endpoint.
-Setting it to "Reroute" uses a gatekeeper based TCS=0 transfer.
+Setting it to "Reroute" uses a gatekeeper based TCS=0 transfer. ("Reroute" is still considered and experimental feature, that should be used with care.)
 
 <item><tt/TranslateReceivedQ931Cause=17:=34/<newline>
 Default: <tt>N/A</tt><newline>
