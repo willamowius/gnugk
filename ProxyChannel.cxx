@@ -3490,7 +3490,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	else
 		PTRACE(1, "Q931\tFailed to detach socket " << droppedSocket->GetName() << " from its handler");
 	remote = NULL;
-	m_h245socket->RemoveRemoteSocket();
+	if (m_h245socket)
+		m_h245socket->RemoveRemoteSocket();
 	GetHandler()->Remove(droppedSocket);
 
 	// TODO: ReleaseComplete answer from dropped party causes deletion of signalling socket of remaining party
