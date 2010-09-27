@@ -1388,13 +1388,15 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 		if (m_call && m_call->GetRerouteState() == Rerouting) {
 			CallSignalSocket * forwarded = (m_call->GetRerouteDirection() == Caller) ? m_call->GetCallSignalSocketCalling() : m_call->GetCallSignalSocketCalled();
-			if (!forwarded->CompareH245Socket(h245sock)) {
-				PTRACE(2, "H245\tReroute: Filtering out TCSAck received from " << GetName());
-				suppress = true;
-			} else if (forwarded->CompareH245Socket(h245sock)) {
-				// rewrite seq of ack, because we rewrite seq of TCS
-				ack.m_sequenceNumber = 1;
-				changed = true;
+			if (forwarded) {
+				if (forwarded->CompareH245Socket(h245sock)) {
+					// rewrite seq of ack, because we rewrite seq of TCS
+					ack.m_sequenceNumber = 1;
+					changed = true;
+				} else {
+					PTRACE(2, "H245\tReroute: Filtering out TCSAck received from " << GetName());
+					suppress = true;
+				}
 			}
 		}
 
@@ -1408,16 +1410,17 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 		// save TCS (only works for non-tunneled right now)
 		if (m_call && h245sock && tcs.m_capabilityTable.GetSize() > 0) {
-			if (m_call->GetCallSignalSocketCalling()->CompareH245Socket(h245sock)) {
+			if (m_call->GetCallSignalSocketCalling()
+				&& m_call->GetCallSignalSocketCalling()->CompareH245Socket(h245sock)) {
 				m_call->GetCallSignalSocketCalling()->SaveTCS(tcs);
-			} else {
+			} else if (m_call->GetCallSignalSocketCalled()) {
 				m_call->GetCallSignalSocketCalled()->SaveTCS(tcs);
 			}
 		}
-		// rewrite sq of TCS, must rewrite ACK, too!
+		// rewrite seq of TCS, must rewrite ACK, too!
 		if (m_call && m_call->GetRerouteState() == Rerouting) {
 			CallSignalSocket * forwarded = (m_call->GetRerouteDirection() == Caller) ? m_call->GetCallSignalSocketCalling() : m_call->GetCallSignalSocketCalled();
-			if (forwarded && !forwarded->CompareH245Socket(h245sock)) {
+			if (forwarded && !(forwarded->CompareH245Socket(h245sock))) {
 				tcs.m_sequenceNumber = 3;
 				changed = true;
 			}
