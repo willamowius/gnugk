@@ -258,6 +258,7 @@ Enable/disable keepalive feature on TCP signaling sockets. This can
 help to detect inactive signaling channels and prevent dead calls from hanging
 in the call table. For this option to work, you also need to tweak system
 settings to adjust keep alive timeout. See docs/keepalive.txt for more details.
+If this switch is not present in the configuration, the socket is left untouched.
 
 <item><tt/TranslateFacility=1/<newline>
 Default: <tt/0/<newline>
