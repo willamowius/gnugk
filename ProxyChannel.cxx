@@ -4227,7 +4227,7 @@ void CallSignalSocket::Dispatch()
 
 	if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 		Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-			GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+			GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0, 
 			SOL_SOCKET
 			);
 
@@ -4255,7 +4255,7 @@ void CallSignalSocket::Dispatch()
 			if (InternalConnectTo()) {
 				if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 					remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0, 
 						SOL_SOCKET
 						);
 							
@@ -4346,7 +4346,7 @@ void CallSignalSocket::Dispatch()
 			if (remote && remote->IsConnected()) { // remote is NAT socket
 				if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 					remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0, 
 						SOL_SOCKET
 						);
 				ForwardData();
@@ -4484,7 +4484,7 @@ void CallSignalSocket::DispatchNextRoute()
 		if (InternalConnectTo()) {
 			if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 				remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-					GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+					GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0, 
 					SOL_SOCKET
 					);
 							
@@ -4563,7 +4563,7 @@ void CallSignalSocket::DispatchNextRoute()
 		if (remote && remote->IsConnected()) { // remote is NAT socket
 			if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 				remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-					GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0, 
+					GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0, 
 					SOL_SOCKET
 					);
 			ForwardData();

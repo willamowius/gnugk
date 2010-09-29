@@ -251,8 +251,8 @@ A timeout value (in milliseconds) to wait for a Connect message
 after a call entered Alerting state. This option can be thought
 as a maximum "ringing time".
 
-<item><tt/TcpKeepAlive=0/<newline>
-Default: <tt/1/<newline>
+<item><tt/TcpKeepAlive=1/<newline>
+Default: <tt/0/<newline>
 <p>
 Enable/disable keepalive feature on TCP signaling sockets. This can
 help to detect inactive signaling channels and prevent dead calls from hanging
