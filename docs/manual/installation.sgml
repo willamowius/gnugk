@@ -150,7 +150,8 @@ in the config. The <tt/addpasswd/ utility is required to generate and store
 these encrypted passwords. This utility is included with the gatekeeper 
 and can be compiled using:
 <tscreen><verb>
-$ make addpasswd
+$ cd addpasswd
+$ make optnoshared
 </verb></tscreen>
 
 The usage is as follows:

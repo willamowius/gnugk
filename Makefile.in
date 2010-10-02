@@ -1,7 +1,7 @@
 # -*- mode: Makefile -*-
 # Copyright (C) 2002 by its various Authors, see CVS-log
 #
-# PURPOSE OF THIS FILE: Make file for OpenH323 Gatekeeper
+# PURPOSE OF THIS FILE: Make file for GNU Gatekeeper
 #
 # - Automatic Version Information via RCS:
 #   $Id$
@@ -38,7 +38,7 @@ HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            statusacct.h syslogacct.h capctrl.h MakeCall.h h460presence.h @HEADERS@
 
 # add cleanup files for non-default targets
-CLEAN_FILES += $(OBJDIR)/addpasswd $(OBJDIR)/addpasswd.o docs/manual/*.html
+CLEAN_FILES += docs/manual/*.html
 # add cleanup files for autoconf
 #CLEAN_FILES += Makefile config.*
 
@@ -123,20 +123,11 @@ STDCCFLAGS += -fno-strict-aliasing
 versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PW_LIBDIR)/$(PTLIB_FILE)
 	@touch $@
 
-# extra targets
-addpasswd: $(OBJDIR)/addpasswd.o
-	$(CXX) -o $(OBJDIR)/addpasswd $(CFLAGS) $(OBJDIR)/addpasswd.o $(LDFLAGS) -l$(PTLIB_BASE)$(LIB_TYPE) $(ENDLDLIBS) $(ENDLDFLAGS)
-
 doc:
 	$(MAKE) -C docs/manual html
 
-install: install-addpasswd
-
-install-addpasswd: addpasswd
-	$(INSTALL) $(OBJDIR)/addpasswd $(INSTALLBIN_DIR)
-
 static:
-	P_SHAREDLIB=0 LDFLAGS=-static $(MAKE) optnoshared addpasswd
+	P_SHAREDLIB=0 LDFLAGS=-static $(MAKE) optnoshared
 
 #
 # By this command the build number may be incremented

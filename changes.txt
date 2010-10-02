@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- addpasswd moved to subdir
 - BUGFIX(routedmode.sgml): TcpKeepAlive= has always defaulted to 0
 - BUGFIX(Toolkit.cxx): disregard IPv6 addresses if the machine has any
 - BUGFIX(SoftPBX.cxx): DisconnectIP now disconnects all calls on the IP as specified

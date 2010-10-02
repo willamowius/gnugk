@@ -209,7 +209,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="addpasswd.cxx"
+			RelativePath="addpasswd\addpasswd.cxx"
 			>
 			<FileConfiguration
 				Name="Debug|Win32"
