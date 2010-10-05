@@ -1782,7 +1782,7 @@ void SqlPolicy::DatabaseLookup(
 	if (result->GetNumRows() < 1)
 		PTRACE(3, m_name << ": query returned no rows");
 	else if (result->GetNumFields() < 1)
-		PTRACE(2, m_name << ": bad-formed query - "
+		PTRACE(2, m_name << ": bad query - "
 			"no columns found in the result set"
 			);
 	else if (!result->FetchRow(resultRow) || resultRow.empty())

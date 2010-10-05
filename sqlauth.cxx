@@ -244,7 +244,7 @@ bool RunQuery(
 	if (result->GetNumRows() < 1)
 		PTRACE(3, traceStr << ": query returned no rows");
 	else if (result->GetNumFields() < 1)
-		PTRACE(2, traceStr << ": bad-formed query - "
+		PTRACE(2, traceStr << ": bad query - "
 			"no columns found in the result set"
 			);
 	else if (!result->FetchRow(resultRow) || resultRow.empty())
