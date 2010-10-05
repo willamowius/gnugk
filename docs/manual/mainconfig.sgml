@@ -101,7 +101,8 @@ Don't let the name fool you, this is the exact number of connections.
 <p>
 Many SQL modules provide a set of placeholders that you can use
 in your queries, like %{CallId} in SqlAcct.
-They all start with the percent sign. Beware that you must
+
+Placeholders allways start with the percent sign. Beware that you must
 escape the percent sign if you need it for something else in your
 queries (eg. in a LIKE). One way to do so is to use CHAR(37), eg.
 concat(alias,CHAR(37)) instead of concat(alias,'%').
