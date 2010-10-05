@@ -108,7 +108,7 @@ private:
 
 class TCPProxySocket : public ServerSocket, public ProxySocket {
 public:
-	TCPProxySocket(const char *, TCPProxySocket * = 0, WORD = 0);
+	TCPProxySocket(const char *, TCPProxySocket * = NULL, WORD = 0);
 	virtual ~TCPProxySocket();
 
 #ifndef LARGE_FDSET
@@ -185,12 +185,12 @@ public:
 
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	bool IsNATSocket() const { return m_isnatsocket; }
-	void OnH245ChannelClosed() { m_h245socket = 0; }
+	void OnH245ChannelClosed() { m_h245socket = NULL; }
 	void SetPeerAddress(const Address &, WORD);
 	Address GetLocalAddr() { return localAddr; }
 	Address GetPeerAddr() { return peerAddr; }
 	Address GetMasqAddr() { return masqAddr; }
-	void BuildFacilityPDU(Q931 &, int, const PObject * = 0);
+	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL);
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
 	void BuildSetupPDU(Q931 &, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling);
