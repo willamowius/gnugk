@@ -1654,7 +1654,7 @@ void CallSignalSocket::ForwardCall(
 			if (m_h245socket) {
 				m_h245socket->SetSigSocket(result);
 				result->m_h245socket = m_h245socket;
-				m_h245socket = 0;
+				m_h245socket = NULL;
 			}
 			if (remoteSocket->m_result == Forwarding)
 				remoteSocket->ForwardData();
@@ -3631,6 +3631,10 @@ void CallSignalSocket::TryNextRoute()
 	CallSignalSocket *callingSocket = static_cast<CallSignalSocket*>(remote);
 	if (callingSocket != NULL) {
 		callingSocket->RemoveRemoteSocket();
+		if (callingSocket->m_h245socket) {
+			callingSocket->m_h245socket->SetSigSocket(NULL);
+			callingSocket->m_h245socket = NULL;
+		}
 		callingSocket->RemoveH245Handler();
 		if (callingSocket->GetHandler()->Detach(callingSocket))
 			PTRACE(6, "Q931\tSocket " << callingSocket->GetName() << " detached from its handler");
@@ -4380,7 +4384,6 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 	H225_H323_UserInformation *uuie = NULL;
 	Q931 *q931pdu = new Q931();
 
-	// JW TODO: is this ok for failover ???
 	buffer = m_rawSetup;
 	buffer.MakeUnique();
 
