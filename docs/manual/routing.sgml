@@ -327,6 +327,8 @@ the call is rejected. If the string matches a dotted IP address, it is
 taken as destination IP otherwise it is treated as a new destination alias.
 If 2 columns are returned, the first is treated as the new destination alias
 and the second is treated as new destination IP.
+If the 2nd column contains 'IGNORE', the database result is treated as if it would
+only contain 1 result column. (This allows simpler SQL queries in some cases.)
 
 If multiple rows of destination IPs are returned they are used as alternative routes
 for failover and GnuGk will try them in order.

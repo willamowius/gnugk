@@ -1787,7 +1787,8 @@ void SqlPolicy::DatabaseLookup(
 			);
 	else if (!result->FetchRow(resultRow) || resultRow.empty())
 		PTRACE(2, m_name << ": query failed - could not fetch the result row");
-	else if (result->GetNumFields() == 1) {
+	else if ((result->GetNumFields() == 1)
+			|| ((result->GetNumFields() == 2) && (resultRow[1].first.ToUpper() == "IGNORE")) ) {
 		PString newDestination = resultRow[0].first;
 		PTRACE(5, m_name << "\tQuery result : " << newDestination);
 		if (newDestination.ToUpper() == "REJECT") {

@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- ignore a 2nd column in SQL routing if it equals "IGNORE"
 - addpasswd moved to subdir
 - BUGFIX(routedmode.sgml): TcpKeepAlive= has always defaulted to 0
 - BUGFIX(Toolkit.cxx): disregard IPv6 addresses if the machine has any
