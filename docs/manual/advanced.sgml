@@ -38,6 +38,7 @@ $ make optnoshared
 
 Get and compile GnuGk:
 <verb>
+$ cd ~
 $ cvs -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk login
 
 (just press enter when prompted for password)
@@ -63,7 +64,7 @@ $ cvs up
 $ cd ~/openh323gk
 $ cvs up
 </verb>
-If any of the source files are changed, you may need to recompile.
+If any of the source files are changed, you have to recompile.
 
 <sect1>Debugging GnuGk
 <label id="debug">
