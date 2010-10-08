@@ -1181,7 +1181,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
 		PString newDisplayIE;
-		if (!m_call->GetCallerID().IsEmpty() && (m_crv & 0x8000u)) {	// only rewrite DisplayIE from caller
+		if (m_call && !m_call->GetCallerID().IsEmpty() && (m_crv & 0x8000u)) {	// only rewrite DisplayIE from caller
 			newDisplayIE = m_call->GetCallerID();
 		} else {
 			newDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
