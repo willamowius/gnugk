@@ -3793,7 +3793,7 @@ fi
 fi
 
 if test "${HAS_OPENH323:-unset}" = "unset" ; then
-  echo "Cannot find OpenH323 - please install or set OPENH323DIR and try again"
+  echo "Cannot find OpenH323/H323Plus - please install or set OPENH323DIR and try again"
   exit
 fi
 
@@ -3801,7 +3801,7 @@ if test -d "${OPENH323DIR}/share/openh323"; then
   OPENH323MAKEDIR=${OPENH323DIR}/share/openh323/
 fi
 
-echo "OpenH323 prefix set to $OPENH323DIR"
+echo "OpenH323/H323Plus prefix set to $OPENH323DIR"
 
 if test "${OPENH323MAKEDIR:-unset}" = "unset"; then
   OPENH323MAKEDIR=${OPENH323DIR}
@@ -3912,13 +3912,13 @@ fi
 fi
 if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
   if test "${OPENH323_MAJOR_VERSION}" = ""; then
-    echo "Error: Could not determine OpenH323 version"
+    echo "Error: Could not determine OpenH323/H323Plus version"
     exit
   fi
   OPENH323_VERSION="${OPENH323_MAJOR_VERSION}.${OPENH323_MINOR_VERSION}.${OPENH323_BUILD_NUMBER}"
   echo "OpenH323 version is ${OPENH323_VERSION}"
 else
-  echo "Error: Could not determine OpenH323 version"
+  echo "Error: Could not determine OpenH323/H323Plus version"
   exit
 fi
 

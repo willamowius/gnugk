@@ -1,5 +1,6 @@
 Changes from 2.3.2 to 2.3.3
 ===========================
+- "make" with no target builds optnoshared now
 - BUGFIX(ProxyChannel.cxx) fix crash on failover with DisableRetryChecks=1
 - ignore a 2nd column in SQL routing if it equals "IGNORE"
 - addpasswd moved to subdir

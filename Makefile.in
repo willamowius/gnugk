@@ -71,12 +71,10 @@ endif
 CWD:=$(shell pwd)
 
 
-# having an own idea about default targets. This leads to nicly
-# maintainable binaries with proper library dependence, libraries may be
-# replaced on the fly.
-.PHONY: bothdepend bothshared gkdefault
+# having an own idea about default targets
+.PHONY: bothdepend optnoshared gkdefault
 .DEFAULT: gkdefault
-gkdefault: bothdepend bothshared
+gkdefault: bothdepend optnoshared
 
 # LD_RUN_LIST is the list form of the LD_RUN_PATH
 LD_RUN_LIST := $(subst $(colon),$(space),$(LD_RUN_PATH))
