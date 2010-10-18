@@ -2836,15 +2836,16 @@ bool AdmissionRequestPDU::Process()
 		BWRequest = CallTbl->CheckTotalBandwidth(BWRequest);
 		if (BWRequest <= 0) {
 			bReject = true;
+			PTRACE(3, "GK\tARJ - no bandwidth");
 		} else {
 			CallTbl->UpdateEPBandwidth(RequestingEP, BWRequest);
 			CallTbl->UpdateTotalBandwidth(BWRequest);
 		}
 	}
-	PTRACE(3, "GK\tACF will grant bandwidth of " << BWRequest);
 	if (bReject)
 		return BuildReply(H225_AdmissionRejectReason::e_requestDenied); // what the spec says
 
+	PTRACE(3, "GK\tACF will grant bandwidth of " << BWRequest);
 	// new connection admitted
 	H225_AdmissionConfirm & acf = BuildConfirm();
 	acf.m_bandWidth = (int)BWRequest;

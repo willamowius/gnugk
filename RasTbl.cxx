@@ -3474,12 +3474,12 @@ long CallTable::CheckEPBandwidth(const endptr & ep, long bw) const
 		if (epMax >= 0) {
 			long epUsed = ep->GetBandwidth();
 			if (epUsed >= epMax) {
-				PTRACE(3, "EP bandwidth check: limit reached");
+				PTRACE(3, "EP " << ep->GetEndpointIdentifier().GetValue() << " bandwidth check: limit reached");
 				return 0;
 			} if (epUsed + bw <= epMax) {
 				return bw;
 			} else {
-				PTRACE(3, "EP bandwidth check: partially granted bw=" << (epMax - epUsed));
+				PTRACE(3, "EP " << ep->GetEndpointIdentifier().GetValue() << " bandwidth check: partially granted bw=" << (epMax - epUsed));
 				return (epMax - epUsed);
 			}
 		}
