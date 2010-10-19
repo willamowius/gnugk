@@ -223,7 +223,7 @@ Set trace level (same as -t on the command line).
 <item><tt/TotalBandwidth=100000/<newline>
 Default: <tt/-1/<newline>
 <p>
-Total bandwidth available for all endpoints in units of 100 bits per second.
+Total bandwidth available for all endpoints in units of 100 bits per second (eg. 5120 means 512 kbps).
 By default this feature is off (-1).
 
 <bf>NOTE:</bf> At this time, the GnuGk only checks calls to and from registered endpoints.
@@ -232,7 +232,8 @@ By default this feature is off (-1).
 Default: <tt/-1/<newline>
 <p>
 Raise bandwidth requests from endpoints to at least this value in units of 100 bits per second.
-Useful when endpoints don't report correct values (eg. Netmeeting).
+The value includes both directions, so a 384 kbps call would have a value of 7680.
+Setting a minimum is useful when endpoints don't report correct values (eg. Netmeeting).
 If set to zero or less, no minimum is enforced (default).
 
 <bf>NOTE:</bf> At this time, the GnuGk only checks calls to and from registered endpoints.

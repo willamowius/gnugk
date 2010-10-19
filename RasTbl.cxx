@@ -770,7 +770,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		if (UsesH46018()) {
 			msg += " (H.460.18)";
 		}
-		msg += " bw:" + PString(m_bandwidth);
+		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth);
 		msg += "\r\n";
 	}
 	return msg;
