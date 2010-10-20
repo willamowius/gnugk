@@ -50,8 +50,7 @@ are now supported. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
 and a clear text username/password are now supported.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
-modules. The <tt/MySQLPasswordAuth/
-module is supported for backward compatibility. For H.350.2 authentication (<tt/H350PasswordAuth/)
+modules. For H.350.2 authentication (<tt/H350PasswordAuth/)
 the <tt/GkH350::Settings/ section connection information must be completed.
 
 <item><tt>AliasAuth/SQLAliasAuth</tt>
