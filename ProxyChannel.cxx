@@ -2245,7 +2245,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		&& authData.m_proxyMode != CallRec::ProxyDisabled) {
 		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];
+          H460_Feature & feat = (H460_Feature &)data[i];	// TODO/BUG: this probably triggeres the H323Plus bug, too
           /// Std 24
 		  if (feat.GetFeatureID() == H460_FeatureID(24)) {
 			 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
@@ -2665,8 +2665,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 					int numRemoved = -1;
 					for (PINDEX i =0; i < setupBody.m_supportedFeatures.GetSize(); i++) {
-						H460_Feature feat = H460_Feature(setupBody.m_supportedFeatures[i]);
-						if (feat.GetFeatureID() == H460_FeatureID(19)) {
+						if (setupBody.m_supportedFeatures[i].m_id == H460_FeatureID(19)) {
 							numRemoved = i;
 							break;
 						}
@@ -2794,8 +2793,7 @@ bool CallSignalSocket::CreateRemote(
 				H225_ArrayOf_FeatureDescriptor & fsn = setupBody.m_supportedFeatures;
 				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 					for (PINDEX i=0; i < fsn.GetSize(); i++) {
-						H460_Feature & feat = (H460_Feature &)fsn[i];
-						if (feat.GetFeatureID() == H460_FeatureID(24))  {
+						if (fsn[i].m_id == H460_FeatureID(24))  {
 							natfound = true;
 							id = i;
 							break;
