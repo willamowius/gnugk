@@ -154,7 +154,7 @@ const char* H245_ProtocolID = "0.0.8.245.0.3";
 #define H46019OID	"0.0.8.460.19.0.1"
 #define H46019_UNDEFINED_PAYLOAD_TYPE	-1
 
-void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, H460_Feature & newFeat)
+void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat)
 {
 	PINDEX lastpos = desc.GetSize();
 	desc.SetSize(lastpos+1);
@@ -2629,15 +2629,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 			int numRemoved = -1;
 			int sz = setupBody.m_supportedFeatures.GetSize();
-			for (PINDEX i =0; i < sz; i++) {
-				H460_Feature feat = H460_Feature(setupBody.m_supportedFeatures[i]);
-				if (feat.GetFeatureID() == H460_FeatureID(19)) {
+			for (PINDEX i = 0; i < sz; i++) {
+				if (setupBody.m_supportedFeatures[i].m_id == H460_FeatureID(19)) {
 					numRemoved = i;
 					break;
 				}
 			}
 			if (numRemoved > -1) {
-				for (PINDEX i=numRemoved; i < sz-1; i++) 
+				for (PINDEX i = numRemoved; i < sz-1; i++) 
 					setupBody.m_supportedFeatures[i] = setupBody.m_supportedFeatures[i+1];
 
 				setupBody.m_supportedFeatures.SetSize(sz-1);
