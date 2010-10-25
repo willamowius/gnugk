@@ -4,38 +4,15 @@
  * Generic support for time-based events.
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
+ * Copyright (c) 2006-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.5  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.4  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:19:57  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.3  2005/02/11 17:23:06  zvision
- * Write SCCS keyword correctly
- *
- * Revision 1.2  2004/05/12 11:47:06  zvision
- * Generic support for time-based events
- *
- * Revision 1.1.2.2  2004/05/10 18:01:38  zvision
- * Fixed VC6 compilation errors regarding member templates
- *
- * Revision 1.1.2.1  2004/05/10 16:43:26  zvision
- * Generic support for time-based events
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
+
 #ifndef GKTIMER_H
 #define GKTIMER_H "@(#) $Id$"
 

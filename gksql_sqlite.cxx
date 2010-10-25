@@ -3,35 +3,12 @@
  *
  * SQLite driver module for GnuGk
  *
- * Copyright (c) 2007, Jan Willamowius
+ * Copyright (c) 2007-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.7  2010/09/16 10:17:37  willamowius
- * database drivers load their libraries at runtime now, added Library= switch
- *
- * Revision 1.6  2009/05/24 20:48:26  willamowius
- * remove hacks for VC6 which isn't supported any more since quite a while
- *
- * Revision 1.5  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.4  2008/09/26 14:55:45  willamowius
- * code cleanup
- *
- * Revision 1.3  2008/04/18 14:37:28  willamowius
- * never include gnugkbuildopts.h directly, always include config.h
- *
- * Revision 1.2  2008/04/18 13:14:11  shorne
- * Fixes for auto-configure on windows
- *
- * Revision 1.1  2008/04/18 06:56:13  willamowius
- * database driver for sqlite
- *
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 

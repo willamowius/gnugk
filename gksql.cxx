@@ -4,79 +4,12 @@
  * Generic interface to access SQL databases
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
+ * Copyright (c) 2006-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.24  2010/04/29 22:20:42  willamowius
- * prefer pre-increment
- *
- * Revision 1.23  2009/11/15 15:41:22  willamowius
- * code cleanup
- *
- * Revision 1.22  2009/07/16 12:48:40  willamowius
- * remove unused code
- *
- * Revision 1.21  2009/05/24 20:48:26  willamowius
- * remove hacks for VC6 which isn't supported any more since quite a while
- *
- * Revision 1.20  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.19  2008/11/21 13:47:21  willamowius
- * remove special case for pool size = 1: it didn't handle the case that connections now get deleted on error
- *
- * Revision 1.18  2008/09/05 13:44:14  zvision
- * GetInfo implemented for SQL acct/auth modules
- *
- * Revision 1.17  2008/09/04 08:19:04  zvision
- * SQL reconnect thread safety fixes
- *
- * Revision 1.16  2008/08/29 08:39:19  zvision
- * Fixed missing lock around Connect
- *
- * Revision 1.15  2008/07/10 08:03:17  willamowius
- * avoid gcc 4.3.x warnings
- *
- * Revision 1.14  2008/04/02 22:32:22  willamowius
- * auto-reconnect on database errors
- *
- * Revision 1.13  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.12  2005/05/19 16:41:17  zvision
- * Solaris need explicit std::map
- *
- * Revision 1.11  2005/04/24 16:39:44  zvision
- * MSVC6.0 compatibility fixed
- *
- * Revision 1.10  2005/01/28 11:19:42  zvision
- * All passwords in the config can be stored in an encrypted form
- *
- * Revision 1.9  2005/01/16 15:22:35  zvision
- * Database Host parameter accepts only one host now
- *
- * Revision 1.8  2004/12/25 15:38:45  zvision
- * Typos fixed
- *
- * Revision 1.7  2004/12/15 14:43:24  zvision
- * Shutdown the gatekeeper on SQL auth/acct module config errors.
- * Thanks to Mikko Oilinki.
- *
- * Revision 1.6  2004/12/15 13:41:33  zvision
- * Reconnect to the database, if the initial attempt failed. Thanks to Mikko Oilinki
- *
- * Revision 1.5  2004/07/09 22:11:36  zvision
- * SQLAcct module ported from 2.0 branch
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 

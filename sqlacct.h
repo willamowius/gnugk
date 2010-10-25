@@ -4,47 +4,15 @@
  * SQL accounting module for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
+ * Copyright (c) 2005-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.9  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.8  2008/09/05 13:44:14  zvision
- * GetInfo implemented for SQL acct/auth modules
- *
- * Revision 1.7  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.6  2005/03/08 14:31:13  zvision
- * Support for Connect event added
- *
- * Revision 1.5  2005/01/12 17:55:07  willamowius
- * fix gkip accounting parameter
- *
- * Revision 1.4  2005/01/05 15:42:41  willamowius
- * new accounting event 'connect', parameter substitution unified in parent class
- *
- * Revision 1.3  2004/11/10 18:30:41  zvision
- * Ability to customize timestamp strings
- *
- * Revision 1.2  2004/07/09 22:11:36  zvision
- * SQLAcct module ported from 2.0 branch
- *
- * Revision 1.1.2.1  2004/04/23 16:01:16  zvision
- * New direct SQL accounting module (SQLAcct)
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
+
 #ifndef SQLACCT_H
 #define SQLACCT_H "@(#) $Id$"
 

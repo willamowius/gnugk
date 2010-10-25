@@ -3,14 +3,12 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
+// Copyright (c) 2002-2010, Jan Willamowius
 //
-// This work is published under the GNU Public License (GPL)
+// This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
 // We also explicitly grant the right to link this code
-// with the OpenH323 library.
-//
-// initial author: Chih-Wei Huang <cwhuang@linux.org.tw>
-// initial version: 02/27/2002
+// with the OpenH323/H323Plus and OpenSSL library.
 //
 //////////////////////////////////////////////////////////////////
 
@@ -1340,7 +1338,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer, int natof
 			RewriteE164(arq.m_destinationInfo, true);
 	}
 	arq.m_answerCall = answer;
-	// workaround for bandwidth, as OpenH323 library :p
+	// workaround for bandwidth
 	arq.m_bandWidth = 1280;
 
 #ifdef HAS_H46023
@@ -1390,7 +1388,7 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 		arq.m_destinationInfo = facility.m_alternativeAliasAddress;
 	}
 	arq.m_answerCall = false;
-	// workaround for bandwidth, as OpenH323 library :p
+	// workaround for bandwidth
 	arq.m_bandWidth = 1280;
 
 	return OnSendingARQ(arq, facility_obj) && WaitForACF(arq, request, &facility_obj);

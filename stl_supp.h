@@ -4,10 +4,14 @@
 //
 // Supplementary of STL
 //
-// The codes are adapted from SGI implementation
+// Copyright (c) 2001-2010, Jan Willamowius
 //
+// Part of this code is adapted from the SGI implementation
+//
+// This work is published under the GNU Public License version 2 (GPLv2)
+// see file COPYING for details.
 // We also explicitly grant the right to link this code
-// with the OpenH323 library.
+// with the OpenH323/H323Plus and OpenSSL library.
 //
 //////////////////////////////////////////////////////////////////
 

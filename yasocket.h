@@ -3,14 +3,12 @@
 // yasocket.h
 //
 // Copyright (c) Citron Network Inc. 2002-2003
+// Copyright (c) 2004-2010, Jan Willamowius
 //
-// This work is published under the GNU Public License (GPL)
+// This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
 // We also explicitly grant the right to link this code
-// with the OpenH323 library.
-//
-// initial author: Chin-Wei Huang <cwhuang@linux.org.tw>
-// initial version: 03/14/2003
+// with the OpenH323/H323Plus and OpenSSL library.
 //
 //////////////////////////////////////////////////////////////////
 
@@ -25,7 +23,7 @@
 
 #ifdef LARGE_FDSET
 
-// yet another socket class to replace PSocket
+// yet another socket class to replace PSocket (Unix only)
 
 class YaSocket : public NamedObject {
 public:

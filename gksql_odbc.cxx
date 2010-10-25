@@ -3,44 +3,12 @@
  *
  * native ODBC / unixODBC driver module for GnuGk
  *
- * Copyright (c) 2008, Jan Willamowius
+ * Copyright (c) 2008-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.14  2010/05/25 15:46:29  willamowius
- * fix 64bit compile with gcc 4.4.3
- *
- * Revision 1.13  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.12  2008/07/10 08:01:07  willamowius
- * avoid gcc 4.3.x warnings
- *
- * Revision 1.11  2008/05/06 15:23:22  willamowius
- * merge in Michals changes
- *
- * Revision 1.9  2008/05/02 09:51:27  zvision
- * No need to disconnect ODBC environment handle
- *
- * Revision 1.8  2008/04/18 14:37:28  willamowius
- * never include gnugkbuildopts.h directly, always include config.h
- *
- * Revision 1.7  2008/04/18 14:22:32  willamowius
- * make the unixODBC driver the general ODBC driver for Unix and Windows
- *
- * Revision 1.3  2008/04/18 13:14:11  shorne
- * Fixes for auto-configure on windows
- *
- * Revision 1.2  2008/04/18 05:37:44  shorne
- * Ported to Windows
- *
- * Revision 1.1  2008/04/03 09:43:03  willamowius
- * native unixodbc driver
- *
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 

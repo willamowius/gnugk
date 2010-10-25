@@ -3,32 +3,12 @@
  *
  * accounting module for GNU Gatekeeper that send it's output to the status port. 
  *
- * Copyright (c) 2005, Jan Willamowius
+ * Copyright (c) 2005-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.4  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.3  2007/09/04 15:34:44  willamowius
- * output callID in same format as other status port events (spaces replaced with dashes)
- *
- * Revision 1.2  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:19:59  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.1  2005/08/28 18:05:55  willamowius
- * new accounting module StatusAcct
- *
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 

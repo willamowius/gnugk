@@ -4,69 +4,12 @@
  * PostgreSQL driver module for GnuGk
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
+ * Copyright (c) 2006-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.19  2009/05/24 20:48:26  willamowius
- * remove hacks for VC6 which isn't supported any more since quite a while
- *
- * Revision 1.18  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.17  2008/04/19 07:10:21  shorne
- * added secur32.lib for windows
- *
- * Revision 1.16  2008/04/18 14:37:28  willamowius
- * never include gnugkbuildopts.h directly, always include config.h
- *
- * Revision 1.15  2008/04/18 13:14:11  shorne
- * Fixes for auto-configure on windows
- *
- * Revision 1.14  2008/04/02 22:32:22  willamowius
- * auto-reconnect on database errors
- *
- * Revision 1.13  2007/11/25 14:56:46  willamowius
- * cleanup: comment out unused arguments
- *
- * Revision 1.12  2007/09/10 18:13:48  willamowius
- * clean up sql driver interface and remove unused methods from all drivers
- *
- * Revision 1.11  2006/05/07 12:22:59  willamowius
- * fix comments
- *
- * Revision 1.10  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:19:59  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.9  2005/04/24 16:39:44  zvision
- * MSVC6.0 compatibility fixed
- *
- * Revision 1.8  2005/03/15 15:34:03  zvision
- * Compiler warning removed
- *
- * Revision 1.7  2005/01/16 15:22:35  zvision
- * Database Host parameter accepts only one host now
- *
- * Revision 1.6  2004/10/20 09:16:23  zvision
- * VC6 compilation errors fixed
- *
- * Revision 1.5.4.1  2004/10/20 09:10:12  zvision
- * VC6 compilation errors fixed
- *
- * Revision 1.5  2004/08/02 10:52:07  zvision
- * Ability to extract column names from a result set
- *
- * Revision 1.4  2004/07/09 22:11:36  zvision
- * SQLAcct module ported from 2.0 branch
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 

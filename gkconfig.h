@@ -5,44 +5,15 @@
  * than one config source (file) and access them through a single config instance.
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
+ * Copyright (c) 2006-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.8  2008/05/23 10:47:01  willamowius
- * PBoolean patches, H.460 Linux compile fixes
- *
- * Revision 1.7  2008/04/03 10:24:20  willamowius
- * new header config.h for configuration details
- *
- * Revision 1.6  2007/11/27 12:57:27  willamowius
- * preparation for PBoolean change in PWLib
- *
- * Revision 1.5  2007/09/13 11:17:11  willamowius
- * use same parameter name in declaration and implementation
- *
- * Revision 1.4  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.3  2005/02/11 17:23:04  zvision
- * Write SCCS keyword correctly
- *
- * Revision 1.2  2005/01/27 13:41:28  zvision
- * SQLConfig ported from 2.0 branch
- *
- * Revision 1.1.2.1  2004/06/28 00:16:20  zvision
- * All gatekeeper settings can be read from an SQL database
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
+
 #ifndef GKCONFIG_H 
 #define GKCONFIG_H "@(#) $Id$"
 

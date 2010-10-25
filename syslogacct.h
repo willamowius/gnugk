@@ -3,17 +3,12 @@
  *
  * accounting module for GNU Gatekeeper that send it's output to the syslog. 
  *
- * Copyright (c) 2006, Jan Willamowius
+ * Copyright (c) 2006-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.1  2006/06/30 08:07:05  willamowius
- * new accounting module SyslogAcct
- *
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 

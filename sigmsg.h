@@ -4,12 +4,15 @@
  * Structures to hold and process signaling messages
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
+ * Copyright (c) 2005-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
+ * with the OpenH323/H323Plus and OpenSSL library.
+ *
  */
+
 #ifndef SIGMSG_H
 #define SIGMSG_H "@(#) $Id$"
 

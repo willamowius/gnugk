@@ -4,67 +4,15 @@
  * RADIUS protocol accounting module for GNU Gatekeeper. 
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
+ * Copyright (c) 2005-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.13  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.12  2004/11/15 23:57:42  zvision
- * Ability to choose between the original and the rewritten dialed number
- *
- * Revision 1.11  2004/11/10 18:30:41  zvision
- * Ability to customize timestamp strings
- *
- * Revision 1.10  2004/07/26 12:19:41  zvision
- * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
- *
- * Revision 1.9.2.1  2004/07/07 23:11:07  zvision
- * Faster and more elegant handling of Cisco VSA
- *
- * Revision 1.9  2004/06/25 13:33:19  zvision
- * Better Username, Calling-Station-Id and Called-Station-Id handling.
- * New SetupUnreg option in Gatekeeper::Auth section.
- *
- * Revision 1.8  2004/04/17 11:43:43  zvision
- * Auth/acct API changes.
- * Header file usage more consistent.
- *
- * Revision 1.7  2004/03/17 00:00:38  zvision
- * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
- *
- * Revision 1.6  2003/10/31 00:01:25  zvision
- * Improved accounting modules stacking control, optimized radacct/radauth a bit
- *
- * Revision 1.5  2003/10/08 12:40:48  zvision
- * Realtime accounting updates added
- *
- * Revision 1.4  2003/09/29 16:11:44  zvision
- * Added cvs Id keyword to header #define macro
- *
- * Revision 1.3  2003/09/14 21:10:34  zvision
- * Changes due to accounting API redesign.
- *
- * Revision 1.2  2003/09/12 16:31:16  zvision
- * Accounting initially added to the 2.2 branch
- *
- * Revision 1.1.2.3  2003/07/31 22:58:48  zvision
- * Added Framed-IP-Address attribute and improved h323-disconnect-cause handling
- *
- * Revision 1.1.2.2  2003/07/03 15:30:40  zvision
- * Added cvs Log keyword
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
+
 #if HAS_RADIUS
 
 #ifndef __RADACCT_H

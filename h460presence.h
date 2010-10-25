@@ -1,15 +1,14 @@
-
 //////////////////////////////////////////////////////////////////
 //
 // Presence in H.323 gatekeeper
+//
+// Copyright (c) 2009-2010, Simon Horne
+// Copyright (c) 2009-2010, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
 // We also explicitly grant the right to link this code
 // with the H323plus library.
-//
-// initial author: Simon Horne <s.horne@packetizer.com>
-// initial version: 08/12/2009
 //
 //////////////////////////////////////////////////////////////////
 

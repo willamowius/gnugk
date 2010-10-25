@@ -6,99 +6,15 @@
  * Please see docs/radauth.txt for more details.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
+ * Copyright (c) 2005-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.17  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.16  2005/02/01 14:28:11  zvision
- * Parts of signaling code rewritten
- *
- * Revision 1.15  2004/11/15 23:57:43  zvision
- * Ability to choose between the original and the rewritten dialed number
- *
- * Revision 1.14  2004/07/26 12:19:41  zvision
- * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
- *
- * Revision 1.13.2.1  2004/07/07 23:11:07  zvision
- * Faster and more elegant handling of Cisco VSA
- *
- * Revision 1.13  2004/06/25 13:33:19  zvision
- * Better Username, Calling-Station-Id and Called-Station-Id handling.
- * New SetupUnreg option in Gatekeeper::Auth section.
- *
- * Revision 1.12  2004/04/17 11:43:43  zvision
- * Auth/acct API changes.
- * Header file usage more consistent.
- *
- * Revision 1.11  2004/03/17 00:00:38  zvision
- * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
- *
- * Revision 1.10  2004/02/20 14:44:11  zvision
- * Changed API for GkAuthenticator class. Modified RadAuth/RadAliasAuth classes.
- * Added Q.931 Setup authentication for RadAuth module.
- *
- * Revision 1.9  2003/11/14 00:27:30  zvision
- * Q.931/H.225 Setup authentication added
- *
- * Revision 1.8  2003/10/31 00:01:28  zvision
- * Improved accounting modules stacking control, optimized radacct/radauth a bit
- *
- * Revision 1.7  2003/10/08 12:40:48  zvision
- * Realtime accounting updates added
- *
- * Revision 1.6  2003/09/29 16:11:44  zvision
- * Added cvs Id keyword to header #define macro
- *
- * Revision 1.5  2003/09/28 16:24:31  zvision
- * Introduced call duration limit feature for registered endpoints (ARQ)
- *
- * Revision 1.4  2003/08/25 12:53:38  zvision
- * Introduced includeTerminalAliases config option. Changed visibility
- * of some member variables to private.
- *
- * Revision 1.3  2003/08/20 14:46:19  zvision
- * Avoid PString reference copying. Small code improvements.
- *
- * Revision 1.2  2003/08/19 10:47:37  zvision
- * Initially added to 2.2 brach. Completely redesigned.
- * Redundant code removed. Added h323-return-code, h323-credit-time
- * and Session-Timeout respone attributes processing.
- *
- * Revision 1.1.2.7  2003/07/31 13:09:15  zvision
- * Added Q.931 Setup message authentication and call duration limit feature
- *
- * Revision 1.1.2.6  2003/07/07 12:02:55  zvision
- * Improved H.235 handling.
- *
- * Revision 1.1.2.5  2003/05/28 13:25:19  zvision
- * Added alias based authentication (RadAliasAuth)
- *
- * Revision 1.1.2.4  2003/05/26 23:08:18  zvision
- * New OnSend and OnReceive hooks.
- * LocalInterface config parameter Introduced.
- *
- * Revision 1.1.2.3  2003/05/13 17:48:43  zvision
- * Removed acctPort. New includeFramedIP feature.
- *
- * Revision 1.1.2.2  2003/04/29 14:56:26  zvision
- * Added H.235 capability matching
- *
- * Revision 1.1.2.1  2003/04/23 20:16:25  zvision
- * Initial revision
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
+
 #if HAS_RADIUS
 
 #ifndef __RADAUTH_H

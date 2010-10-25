@@ -5,112 +5,15 @@
  * scalability and multithreading access. 
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
+ * Copyright (c) 2003-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.22  2009/04/13 12:00:29  willamowius
- * fix gcc warning
- *
- * Revision 1.21  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.20  2008/12/03 18:52:49  willamowius
- * new RadAcct attribute: RewriteE164 (thanks Tusar)
- *
- * Revision 1.19  2008/05/18 20:40:56  willamowius
- * put codec in RadAcct stop event (Thanks Tusar)
- *
- * Revision 1.18  2008/04/03 12:03:35  willamowius
- * set radius release-source attribute in stop accounting packet, like %r in sqlacct
- *
- * Revision 1.17  2008/04/03 10:24:20  willamowius
- * new header config.h for configuration details
- *
- * Revision 1.16  2008/01/09 00:44:07  willamowius
- * remove unused code
- *
- * Revision 1.15  2006/04/30 09:22:56  willamowius
- * PTimedMutex patch for PWLib >= 1.9.2
- *
- * Revision 1.14  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:20:00  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.13  2005/04/18 11:24:51  zvision
- * Use list instead of vector in GetSocket to prevent from using invalidated
- * iterators. Thanks to kubuqi cn
- *
- * Revision 1.12  2004/07/26 12:19:42  zvision
- * New faster Radius implementation, thanks to Pavel Pavlov for ideas!
- *
- * Revision 1.11.2.3  2004/07/12 22:27:32  zvision
- * Ability to set a shared secret for each RADIUS server separatelly.
- * More RADIUS code optimizations.
- *
- * Revision 1.11.2.2  2004/07/07 23:11:08  zvision
- * Faster and more elegant handling of Cisco VSA
- *
- * Revision 1.11.2.1  2004/07/07 20:50:14  zvision
- * New, faster, Radius client implementation. Thanks to Pavel Pavlov for ideas!
- *
- * Revision 1.11  2004/04/21 14:15:27  zvision
- * Default ports are now set to fixes values (1812,1813), because of problems
- * with getservbyname and multiple threads on some systems
- *
- * Revision 1.10  2004/04/17 11:43:43  zvision
- * Auth/acct API changes.
- * Header file usage more consistent.
- *
- * Revision 1.9  2004/03/17 00:00:38  zvision
- * Conditional compilation to allow to control RADIUS on Windows just by setting HA_RADIUS macro
- *
- * Revision 1.8  2003/11/11 11:14:21  zvision
- * Fixed invalid signed/unsigned integer conversions for radius attributes.
- * Optimized radius attributes handling.
- *
- * Revision 1.7  2003/10/08 12:40:48  zvision
- * Realtime accounting updates added
- *
- * Revision 1.6  2003/09/29 16:11:44  zvision
- * Added cvs Id keyword to header #define macro
- *
- * Revision 1.5  2003/09/24 00:22:03  zvision
- * Removed time_t RadAttr constructors
- *
- * Revision 1.4  2003/09/12 16:31:16  zvision
- * Accounting initially added to the 2.2 branch
- *
- * Revision 1.3  2003/08/20 14:46:19  zvision
- * Avoid PString reference copying. Small code improvements.
- *
- * Revision 1.2  2003/08/19 10:44:19  zvision
- * Initially added to 2.2 branch
- *
- * Revision 1.1.2.5  2003/07/03 15:32:20  zvision
- * Fixed comments. Removed md5 param from VerifyResponseAuthenticator.
- *
- * Revision 1.1.2.4  2003/06/19 10:52:24  zvision
- * Added AcctStatusTypes enum.
- *
- * Revision 1.1.2.3  2003/06/05 10:02:21  zvision
- * Bugfixes and small code cleanup.
- *
- * Revision 1.1.2.2  2003/05/13 17:45:01  zvision
- * Added attribute searching functions
- *
- * Revision 1.1.2.1  2003/04/23 20:14:56  zvision
- * Initial revision
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
+
 #if HAS_RADIUS
 
 #ifndef __RADPROTO_H

@@ -3,41 +3,12 @@
  *
  * accounting module for GNU Gatekeeper for the status port.
  *
- * Copyright (c) 2005, Jan Willamowius
+ * Copyright (c) 2005-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.7  2009/05/24 20:48:26  willamowius
- * remove hacks for VC6 which isn't supported any more since quite a while
- *
- * Revision 1.6  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.5  2007/09/04 15:34:44  willamowius
- * output callID in same format as other status port events (spaces replaced with dashes)
- *
- * Revision 1.4  2007/08/31 22:30:43  willamowius
- * don't quote each parameter, quote in template if needed
- *
- * Revision 1.3  2006/06/19 22:06:58  willamowius
- * compile fix for gcc 3.3.1 on Solaris
- *
- * Revision 1.2  2006/04/14 13:56:19  willamowius
- * call failover code merged
- *
- * Revision 1.1.1.1  2005/11/21 20:19:58  willamowius
- *
- *
- * Revision 1.4  2005/11/15 19:52:56  jan
- * Michal v1 (works, but on in routed, not proxy mode)
- *
- * Revision 1.1  2005/08/28 18:05:55  willamowius
- * new accounting module StatusAcct
- *
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 

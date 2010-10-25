@@ -5,14 +5,12 @@
 // New Multi-threaded RAS Server for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2001-2003
+// Copyright (c) 2000-2010, Jan Willamowius
 //
-// This work is published under the GNU Public License (GPL)
+// This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
 // We also explicitly grant the right to link this code
-// with the OpenH323 library.
-//
-// initial author: Chih-Wei Huang <cwhuang@linux.org.tw>
-// initial version: 03/14/2003
+// with the OpenH323/H323Plus and OpenSSL library.
 //
 //////////////////////////////////////////////////////////////////
 

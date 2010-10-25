@@ -4,66 +4,12 @@
  * Firebird/Interbase driver module for GnuGk
  *
  * Copyright (c) 2006, Michal Zygmuntowicz
+ * Copyright (c) 2006-2010, Jan Willamowius
  *
- * This work is published under the GNU Public License (GPL)
+ * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
  * We also explicitly grant the right to link this code
- * with the OpenH323 library.
- *
- * $Log$
- * Revision 1.18  2010/09/16 10:17:37  willamowius
- * database drivers load their libraries at runtime now, added Library= switch
- *
- * Revision 1.17  2009/11/17 14:35:47  willamowius
- * Firebird database driver updated for Firebird 2.0.x and 2.1.x
- *
- * Revision 1.16  2009/05/24 20:48:26  willamowius
- * remove hacks for VC6 which isn't supported any more since quite a while
- *
- * Revision 1.15  2009/03/04 06:04:36  willamowius
- * fix using ISC_STATUS for Firebird 2.1 thanks Mounir Lamouri
- *
- * Revision 1.14  2009/02/09 13:25:59  willamowius
- * typo in comment
- *
- * Revision 1.13  2008/11/08 18:31:41  willamowius
- * TODO: replace all isc_interprete() with (*g_fb_interpret)()
- *
- * Revision 1.12  2008/05/20 18:13:51  willamowius
- * more braces to avoid gcc 4.3.0 warnings
- *
- * Revision 1.11  2008/04/18 14:37:28  willamowius
- * never include gnugkbuildopts.h directly, always include config.h
- *
- * Revision 1.10  2008/04/18 13:14:11  shorne
- * Fixes for auto-configure on windows
- *
- * Revision 1.9  2008/04/02 22:32:22  willamowius
- * auto-reconnect on database errors
- *
- * Revision 1.8  2007/09/10 18:13:48  willamowius
- * clean up sql driver interface and remove unused methods from all drivers
- *
- * Revision 1.7  2007/09/10 11:17:21  willamowius
- * fix comment
- *
- * Revision 1.6  2007/08/15 09:43:14  zvision
- * Compilation error fixed
- *
- * Revision 1.5  2007/03/13 18:39:43  willamowius
- * compile fix for PWLib 1.11.3CVS
- *
- * Revision 1.4  2006/08/08 12:24:36  zvision
- * Escape quote characters in query strings
- *
- * Revision 1.3  2006/07/06 15:25:13  willamowius
- * set all deleted pointers to NULL (most probably more than needed)
- *
- * Revision 1.2  2006/06/08 07:38:42  willamowius
- * compile fixes for gcc 3.3.x
- *
- * Revision 1.1  2006/06/02 09:21:34  zvision
- * Firebird SQL driver
+ * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
 
