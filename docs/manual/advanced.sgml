@@ -2,10 +2,10 @@
 <p>
 This portion of the manual will cover advanced topics, such as compiling GnuGk.
 
-<sect1>Compiling GnuGk
+<sect1>Compiling GnuGk from CVS
 <label id="compile">
 <p>
-The following instructions are an example of how to compile GnuGK from source on an Ubuntu platform.
+The following instructions are an example of how to compile GnuGk from source on an Ubuntu platform.
 <verb>
 $ sudo apt-get update
 $ sudo apt-get install flex bison build-essential subversion cvs pkg-config automake
