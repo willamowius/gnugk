@@ -229,7 +229,7 @@ authenticated password. This field defines the cache timeout value in seconds.
 <tt/0/ means never cache the password, while a negative value
 means the cache never expires.
 
-<item><tt/DisableAlgorithm=MD5,H.235.1/<newline>
+<item><tt/DisableAlgorithm=MD5,H.235.1,CAT/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Disable H.235 authentication algorithms in the GRQ/GCF negotiation, otherwise all algorithms supported by GnuGk are used.
