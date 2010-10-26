@@ -116,7 +116,7 @@ You can also configure a rule to check only for specific RAS messages.
 The following example configures <tt/SimplePasswordAuth/ as an optional rule
 to check RRQ and ARQ. If a RRQ is not checked (does not contain
 <bf/tokens/ or <bf/cryptoTokens/ fields), it is checked by <tt/AliasAuth/.
-The default is to accept all requests.
+The default is to check all supported requests.
 
 <descrip>
 <tag/Example 1:/
