@@ -16,8 +16,8 @@ Changes from 2.3.2 to 2.3.3
 - documented [RoutedMode] EnableH460P= and H460PActThread= switches
 - BUGFIX(Routing.cxx): apply ENUM policy also to Setup and Facility messages
 - BUGFIX(gk.cxx): fix crash when setting a non-writable trace file in the config file
-- improved bandwith management: calls that exceed the bandwidth limit
-  will be allowed with reduced bandwith instead of rejected
+- improved bandwidth management: calls that exceed the bandwidth limit
+  will be allowed with reduced bandwidth instead of rejected
 - limit bandwidth per call: [Gatekeeper::Main] MinimumBandwidthPerCall= and MaximumBandwidthPerCall=
 - limit bandwidth for registered endpoints with [EP::...] MaxBandwidth=
 - change to the format of [Gatekeeper::Main] AlternateGKs=
@@ -27,7 +27,7 @@ Changes from 2.3.2 to 2.3.3
 - new config section [ReplyToRasAddress]
 - BUGFIX(RasSrv.cxx): fix multicast discovery
 - document status port command: DisconnectEndpoint
-- H.450.2 emulater extended for unregistered calls
+- H.450.2 emulator extended for unregistered calls
 - new switch: [CTI::MakeCall]TransferMethod=
 - added vendor string in RouteRequest event
 - extended status port commands RouteToAlias/RouteToGateway/BindAndRouteToGateway with caller-ID parameter
