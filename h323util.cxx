@@ -41,18 +41,19 @@ PString AsString(const H225_TransportAddress & ta)
 PString AsDotString(const H225_TransportAddress & ip, bool showPort)
 {
 	return (ip.IsValid() && ip.GetTag() == H225_TransportAddress::e_ipAddress) ?
-		AsString((const H225_TransportAddress_ipAddress &)ip, showPort) : PString();
+		AsString((const H225_TransportAddress_ipAddress &)ip, showPort) : PString::Empty();
 }
 
 PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort)
 {
-	if (showPort)
+	if (showPort) {
 		return PString(PString::Printf, "%d.%d.%d.%d:%u",
 			ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3],
 			ip.m_port.GetValue());
-	else
+	} else {
 		return PString(PString::Printf, "%d.%d.%d.%d",
 			ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	}
 }
 
 
