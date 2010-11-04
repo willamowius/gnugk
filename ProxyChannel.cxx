@@ -2759,7 +2759,8 @@ bool CallSignalSocket::CreateRemote(
 
 	// only rewrite sourceCallSignalAddress if we are proxying,
 	// otherwise leave the receiving endpoint the option to deal with NATed caller itself
-	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
+	if (m_call->GetProxyMode() == CallRec::ProxyEnabled
+		|| Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AlwaysRewriteSourceCallSignalAddress", "1"))) {
 		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 	}

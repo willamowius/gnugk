@@ -482,6 +482,13 @@ receiver can process. This results in facsimile document distortion. So we need 
 t38FaxUdpOptions from RM to make ACM3.1+TN2602AP become compatible with endpoints which send
 t38FaxUdpOptions in RM.
 
+<item><tt/AlwaysRewriteSourceCallSignalAddress=0/<newline>
+Default: <tt>1</tt><newline>
+<p>
+When set to false or 0, GnuGk will not rewrite the sourceCallSignalAddress to its own IP in
+routed mode. This helps some endpoints to get through NATs.
+In proxy mode, the IP is always rewritten to GnuGk's IP, regardles of this switch.
+
 </itemize>
 
 <p>
