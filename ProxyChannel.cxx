@@ -5641,7 +5641,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
-	if (PString(Type()) == "RTCP" && m_call) {
+	if (PString(Type()) == "RTCP" && m_call && (*m_call)) {
 		bool direct = true;
 
 		if ((*m_call)->GetSRC_media_control_IP() == fromIP.AsString()) {

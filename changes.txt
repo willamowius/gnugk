@@ -1,5 +1,6 @@
 Changes from 2.3.3 to 2.3.4
 ===========================
+- BUGFIX(ProxyChannel.cxx) fix crash in RTCP handling
 - new switch: [RoutedMode]AlwaysRewriteSourceCallSignalAddress=, defaults to 2.3.2 behavior
 
 Changes from 2.3.2 to 2.3.3
