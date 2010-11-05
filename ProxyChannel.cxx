@@ -4285,11 +4285,11 @@ void CallSignalSocket::Dispatch()
 					PTRACE(1, "Q931\tERROR: Call retry without a route");
 					return;
 				}
-				const Route &newRoute = m_call->GetNewRoutes().front();
-				PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 
-				CallRec *newCall = new CallRec(m_call.operator ->());
+				CallRec * newCall = new CallRec(m_call.operator ->());
 				CallTable::Instance()->RemoveFailedLeg(m_call);
+				Route newRoute = m_call->GetNewRoutes().front();
+				PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 				m_call = callptr(newCall);
 
 				if (newRoute.m_destEndpoint)
@@ -4305,7 +4305,6 @@ void CallSignalSocket::Dispatch()
 					H323SetAliasAddress(newRoute.m_destNumber, destAlias);
 					newCall->SetRouteToAlias(destAlias);
 				}
-
 				
 				CallTable::Instance()->Insert(newCall);
 

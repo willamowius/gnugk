@@ -49,6 +49,7 @@ const char* const CTIsection = "CTI::Agents";
 
 Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0)
 {
+	m_destAddr.SetTag(H225_TransportAddress::e_nonStandardAddress);	// set to an invalid address
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
 
