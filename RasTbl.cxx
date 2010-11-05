@@ -2329,24 +2329,24 @@ void CallRec::SetDisabledCodecs(const PString & codecs)
 	m_disabledcodecs = codecs.Trim();
 }
 
-void CallRec::SetSRC_media_control_IP(PString IP)
+void CallRec::SetSRC_media_control_IP(const PString & IP)
 {
     m_src_media_control_IP = IP;
 }
 
 
-void CallRec::SetDST_media_control_IP(PString IP)
+void CallRec::SetDST_media_control_IP(const PString & IP)
 {
     m_dst_media_control_IP = IP;
 }
 
-void CallRec::SetSRC_media_IP(PString IP)
+void CallRec::SetSRC_media_IP(const PString & IP)
 {
     m_src_media_IP = IP;
 }
 
 
-void CallRec::SetDST_media_IP(PString IP)
+void CallRec::SetDST_media_IP(const PString & IP)
 {
     m_dst_media_IP = IP;
 }
@@ -2381,13 +2381,13 @@ void CallRec::InitRTCP_report(){
 }
 
 
-void CallRec::SetRTCP_SRC_sdes(PString val)
+void CallRec::SetRTCP_SRC_sdes(const PString & val)
 {
     m_rtcp_source_sdes.AppendString(val);
     m_rtcp_source_sdes_flag = true;
 }
 
-void CallRec::SetRTCP_DST_sdes(PString val)
+void CallRec::SetRTCP_DST_sdes(const PString & val)
 {    
     m_rtcp_destination_sdes.AppendString(val);
     m_rtcp_destination_sdes_flag = true;

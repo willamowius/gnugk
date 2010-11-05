@@ -812,17 +812,17 @@ public:
 	PString GetSRC_media_control_IP() const;
 	PString GetDST_media_control_IP() const;
 
-	void SetSRC_media_control_IP(PString IP);
-	void SetDST_media_control_IP(PString IP);
+	void SetSRC_media_control_IP(const PString & IP);
+	void SetDST_media_control_IP(const PString & IP);
 
 	PString GetSRC_media_IP() const;
 	PString GetDST_media_IP() const;
 
-	void SetSRC_media_IP(PString IP);
-	void SetDST_media_IP(PString IP);
+	void SetSRC_media_IP(const PString & IP);
+	void SetDST_media_IP(const PString & IP);
 
-	void SetRTCP_SRC_sdes(PString val);
-	void SetRTCP_DST_sdes(PString val);
+	void SetRTCP_SRC_sdes(const PString & val);
+	void SetRTCP_DST_sdes(const PString & val);
 
 	PStringList GetRTCP_SRC_sdes() const;
 	PStringList GetRTCP_DST_sdes() const;

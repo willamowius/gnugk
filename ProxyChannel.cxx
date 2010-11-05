@@ -328,6 +328,7 @@ private:
 	bool fnat, rnat;
 	bool mute;
 	bool m_dontQueueRTP;
+	bool m_EnableRTCPStats;
 #ifdef HAS_H46018
 	// also used as indicator whether H.460.19 should be used
 //	int m_keepAlivePayloadType;
@@ -5316,6 +5317,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 	SetWriteTimeout(PTimeInterval(50));
 	fnat = rnat = mute = false;
 	m_dontQueueRTP = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "DisableRTPQueueing", "0"));
+	m_EnableRTCPStats = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"));
 }
 
 bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
@@ -5641,7 +5643,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
-	if (PString(Type()) == "RTCP" && m_call && (*m_call)) {
+	if (PString(Type()) == "RTCP" && m_call && (*m_call) && m_EnableRTCPStats) {
 		bool direct = true;
 
 		if ((*m_call)->GetSRC_media_control_IP() == fromIP.AsString()) {
