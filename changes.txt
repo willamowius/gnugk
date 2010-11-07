@@ -1,5 +1,6 @@
 Changes from 2.3.3 to 2.3.4
 ===========================
+- BUGFIX(RasSrv.cxx) allow calls with zero bandwidth
 - BUGFIX(ProxyChannel.cxx) fix crash when call being retried is deleted by another thread
 - new switch: [Proxy]EnableRTCPStats=, must be enabled to send RTCP stats to Radius server
 - BUGFIX(ProxyChannel.cxx) fix crash in RTCP handling

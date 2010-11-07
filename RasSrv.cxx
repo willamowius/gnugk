@@ -2809,35 +2809,37 @@ bool AdmissionRequestPDU::Process()
 	if ((CallTbl->GetMaximumBandwidthPerCall() > 0) && (BWRequest > CallTbl->GetMaximumBandwidthPerCall()))
 		BWRequest = CallTbl->GetMaximumBandwidthPerCall();
 
-	// check if it is the first arrived ARQ
-	if (pExistingCallRec) {
-		// 2nd ARQ: request more bandwidth if needed
-		BWRequest = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
-		long AdditionalBW = 0;
-		if (BWRequest > pExistingCallRec->GetBandwidth()) {
-			AdditionalBW = CallTbl->CheckTotalBandwidth(BWRequest - pExistingCallRec->GetBandwidth());
-			AdditionalBW = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
-			BWRequest = pExistingCallRec->GetBandwidth() + AdditionalBW;
-		}
-		if (BWRequest <= 0) {
-			bReject = true;
+	if (BWRequest > 0) {
+		// check if it is the first arrived ARQ
+		if (pExistingCallRec) {
+			// 2nd ARQ: request more bandwidth if needed
+			BWRequest = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
+			long AdditionalBW = 0;
+			if (BWRequest > pExistingCallRec->GetBandwidth()) {
+				AdditionalBW = CallTbl->CheckTotalBandwidth(BWRequest - pExistingCallRec->GetBandwidth());
+				AdditionalBW = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
+				BWRequest = pExistingCallRec->GetBandwidth() + AdditionalBW;
+			}
+			if (BWRequest <= 0) {
+				bReject = true;
+			} else {
+				CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
+				CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
+				CallTbl->UpdateTotalBandwidth(AdditionalBW);
+				pExistingCallRec->SetBandwidth(BWRequest);
+			}
 		} else {
-			CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
-			CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
-			CallTbl->UpdateTotalBandwidth(AdditionalBW);
-			pExistingCallRec->SetBandwidth(BWRequest);
-		}
-	} else {
-		// 1st ARQ
-		BWRequest = CallTbl->CheckEPBandwidth(RequestingEP, BWRequest);
-		BWRequest = CallTbl->CheckEPBandwidth(CalledEP, BWRequest);
-		BWRequest = CallTbl->CheckTotalBandwidth(BWRequest);
-		if (BWRequest <= 0) {
-			bReject = true;
-			PTRACE(3, "GK\tARJ - no bandwidth");
-		} else {
-			CallTbl->UpdateEPBandwidth(RequestingEP, BWRequest);
-			CallTbl->UpdateTotalBandwidth(BWRequest);
+			// 1st ARQ
+			BWRequest = CallTbl->CheckEPBandwidth(RequestingEP, BWRequest);
+			BWRequest = CallTbl->CheckEPBandwidth(CalledEP, BWRequest);
+			BWRequest = CallTbl->CheckTotalBandwidth(BWRequest);
+			if (BWRequest <= 0) {
+				bReject = true;
+				PTRACE(3, "GK\tARJ - no bandwidth");
+			} else {
+				CallTbl->UpdateEPBandwidth(RequestingEP, BWRequest);
+				CallTbl->UpdateTotalBandwidth(BWRequest);
+			}
 		}
 	}
 	if (bReject)
