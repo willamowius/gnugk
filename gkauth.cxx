@@ -50,7 +50,7 @@ ARQAuthData::ARQAuthData(
 	const callptr& call
 	) : m_rejectReason(-1), m_callDurationLimit(-1), 
 	m_requestingEP(ep),	m_call(call), m_billingMode(-1),
-	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect),
+	m_proxyMode(CallRec::ProxyDetect),
 	m_clientAuthId(0)
 {
 }
@@ -60,12 +60,10 @@ ARQAuthData::ARQAuthData(
 	) : m_rejectReason(obj.m_rejectReason),
 	m_callDurationLimit(obj.m_callDurationLimit), 
 	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call), 
-	m_billingMode(obj.m_billingMode), m_routeToAlias(NULL),
+	m_billingMode(obj.m_billingMode), m_routeToAlias(obj.m_routeToAlias),
 	m_destinationRoutes(obj.m_destinationRoutes), m_proxyMode(obj.m_proxyMode),
 	m_clientAuthId(0)
 {
-	if (obj.m_routeToAlias)
-		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
 }
 
 ARQAuthData& ARQAuthData::operator=(const ARQAuthData& obj)
@@ -78,38 +76,21 @@ ARQAuthData& ARQAuthData::operator=(const ARQAuthData& obj)
 		m_billingMode = obj.m_billingMode;
 		m_proxyMode = obj.m_proxyMode;
 		m_clientAuthId = obj.m_clientAuthId;
-
-		delete m_routeToAlias;
-		m_routeToAlias = NULL;
-		if (obj.m_routeToAlias)
-			m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
-
+		m_routeToAlias = obj.m_routeToAlias;
 		m_destinationRoutes = obj.m_destinationRoutes;
 	}
 	return *this;
 }
 
-ARQAuthData::~ARQAuthData()
+void ARQAuthData::SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias)
 {
-	delete m_routeToAlias;
-	m_routeToAlias = NULL;
-}
-
-void ARQAuthData::SetRouteToAlias(H225_AliasAddress* alias)
-{
-	delete m_routeToAlias;
 	m_routeToAlias = alias;
-}
-
-void ARQAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
-{
-	SetRouteToAlias(new H225_AliasAddress(alias));
 }
 
 void ARQAuthData::SetRouteToAlias(const PString& alias, int tag)
 {
-	SetRouteToAlias(new H225_AliasAddress);
-	H323SetAliasAddress(alias, *m_routeToAlias, tag);
+	m_routeToAlias.SetSize(1);
+	H323SetAliasAddress(alias, m_routeToAlias[0], tag);
 }
 
 SetupAuthData::SetupAuthData(
@@ -119,7 +100,7 @@ SetupAuthData::SetupAuthData(
 	bool fromRegistered
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
 	m_call(call), m_fromRegistered(fromRegistered), 
-	m_routeToAlias(NULL), m_proxyMode(CallRec::ProxyDetect),
+	m_proxyMode(CallRec::ProxyDetect),
 	m_clientAuthId(0)
 {
 }
@@ -129,11 +110,9 @@ SetupAuthData::SetupAuthData(
 	) : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
 	m_fromRegistered(obj.m_fromRegistered),
-	m_routeToAlias(NULL), m_destinationRoutes(obj.m_destinationRoutes),
+	m_routeToAlias(obj.m_routeToAlias), m_destinationRoutes(obj.m_destinationRoutes),
 	m_proxyMode(obj.m_proxyMode), m_clientAuthId(0)
 {
-	if (obj.m_routeToAlias)
-		m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
 }
 
 SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
@@ -146,12 +125,7 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 		m_fromRegistered = obj.m_fromRegistered;
 		m_proxyMode = obj.m_proxyMode;
 		m_clientAuthId = obj.m_clientAuthId;
-
-		delete m_routeToAlias;
-		m_routeToAlias = NULL;
-		if (obj.m_routeToAlias)
-			m_routeToAlias = new H225_AliasAddress(*obj.m_routeToAlias);
-
+		m_routeToAlias = obj.m_routeToAlias;
 		m_destinationRoutes = obj.m_destinationRoutes;
 	}
 
@@ -160,25 +134,17 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 
 SetupAuthData::~SetupAuthData()
 {
-	delete m_routeToAlias;
-	m_routeToAlias = NULL;
 }
 
-void SetupAuthData::SetRouteToAlias(H225_AliasAddress* alias)
+void SetupAuthData::SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias)
 {
-	delete m_routeToAlias;
 	m_routeToAlias = alias;
-}
-
-void SetupAuthData::SetRouteToAlias(const H225_AliasAddress& alias)
-{
-	SetRouteToAlias(new H225_AliasAddress(alias));
 }
 
 void SetupAuthData::SetRouteToAlias(const PString& alias, int tag)
 {
-	SetRouteToAlias(new H225_AliasAddress);
-	H323SetAliasAddress(alias, *m_routeToAlias, tag);
+	m_routeToAlias.SetSize(1);
+	H323SetAliasAddress(alias, m_routeToAlias[0], tag);
 }
 
 

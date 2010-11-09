@@ -87,12 +87,10 @@ struct ARQAuthData
 		const endptr& ep,
 		const callptr& call
 		);
-	virtual ~ARQAuthData();
-		
+
 	ARQAuthData& operator=(const ARQAuthData& obj);
 		
-	void SetRouteToAlias(H225_AliasAddress* alias);
-	void SetRouteToAlias(const H225_AliasAddress& alias);
+	void SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias);
 	void SetRouteToAlias(const PString& alias, int tag = -1);
 		
 	/// -1 if not set, H225_AdmissionRejectReason enum otherwise
@@ -118,7 +116,7 @@ struct ARQAuthData
 	/// H225_CallCreditServiceControl_billingMode or -1, if not defined
 	int m_billingMode;
 	/// if not NULL, route the call to the specified alias
-	H225_AliasAddress* m_routeToAlias;
+	H225_ArrayOf_AliasAddress m_routeToAlias;
 	/// if not empty, route the call to the specified destinations
 	std::list<Routing::Route> m_destinationRoutes;
 	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)
@@ -149,9 +147,8 @@ struct SetupAuthData
 		
 	SetupAuthData& operator=(const SetupAuthData& obj);
 	
-	void SetRouteToAlias(H225_AliasAddress* alias);
-	void SetRouteToAlias(const H225_AliasAddress& alias);
-	void SetRouteToAlias(const PString& alias, int tag = -1);
+	void SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias);
+	void SetRouteToAlias(const PString & alias, int tag = -1);
 
 	/// -1 if not set, H225_ReleaseCompleteReason enum otherwise
 	int m_rejectReason;
@@ -172,7 +169,7 @@ struct SetupAuthData
 	/// number dialed by the user (Called-Station-Id before rewrite)
 	PString m_dialedNumber;
 	/// if not NULL, route the call to the specified alias
-	H225_AliasAddress* m_routeToAlias;
+	H225_ArrayOf_AliasAddress m_routeToAlias;
 	/// if not empty, route the call to the specified destinations
 	std::list<Routing::Route> m_destinationRoutes;
 	/// override global proxy setting from the config (see #CallRec::ProxyMode enum#)

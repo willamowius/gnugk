@@ -1090,14 +1090,12 @@ public:
 		);
 
 	/** @return
-	    Fixed destination address for the call (NULL if not set).
+	    Fixed destination address for the call (size 0 if not set).
 	*/
-	H225_AliasAddress* GetRouteToAlias() const;
+	H225_ArrayOf_AliasAddress GetRouteToAlias() const { return m_routeToAlias; }
 	
 	/// Set fixed destination address for the call
-	void SetRouteToAlias(
-		const H225_AliasAddress& alias /// alias to set
-		);
+	void SetRouteToAlias(const H225_ArrayOf_AliasAddress& alias) { m_routeToAlias = alias; }
 
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
@@ -1276,7 +1274,7 @@ private:
 	/// dialed number (called party's number before rewrite)
 	PString m_dialedNumber;
 	/// fixed destination alias
-	H225_AliasAddress* m_routeToAlias;
+	H225_ArrayOf_AliasAddress m_routeToAlias;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 

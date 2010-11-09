@@ -2122,10 +2122,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			rejectCall = true;
 		}
 
-		if (!rejectCall && authData.m_routeToAlias != NULL) {
+		if (!rejectCall && authData.m_routeToAlias.GetSize() > 0) {
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
-			setupBody.m_destinationAddress.SetSize(1);
-			setupBody.m_destinationAddress[0] = *authData.m_routeToAlias;
+			setupBody.m_destinationAddress = authData.m_routeToAlias;
 
 			const PString alias = AsString(setupBody.m_destinationAddress[0], FALSE);
 			if (q931.HasIE(Q931::CalledPartyNumberIE)) {
@@ -2180,10 +2179,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			rejectCall = true;
 		}
 
-		if (!rejectCall && authData.m_routeToAlias != NULL) {
+		if (!rejectCall && authData.m_routeToAlias.GetSize() > 0) {
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
-			setupBody.m_destinationAddress.SetSize(1);
-			setupBody.m_destinationAddress[0] = *authData.m_routeToAlias;
+			setupBody.m_destinationAddress = authData.m_routeToAlias;
 
 			const PString alias = AsString(setupBody.m_destinationAddress[0], FALSE);
 			if (q931.HasIE(Q931::CalledPartyNumberIE)) {
@@ -3506,8 +3504,9 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		m_call->SetToParent(true);
 
 	if(!route.m_destNumber.IsEmpty()) {
-		H225_AliasAddress destAlias;
-		H323SetAliasAddress(route.m_destNumber, destAlias);
+		H225_ArrayOf_AliasAddress destAlias;
+		destAlias.SetSize(1);
+		H323SetAliasAddress(route.m_destNumber, destAlias[0]);
 		m_call->SetRouteToAlias(destAlias);
 	}
 
@@ -3657,8 +3656,9 @@ void CallSignalSocket::TryNextRoute()
 		newCall->SetToParent(true);
 
 	if(!newRoute.m_destNumber.IsEmpty()) {
-		H225_AliasAddress destAlias;
-		H323SetAliasAddress(newRoute.m_destNumber, destAlias);
+		H225_ArrayOf_AliasAddress destAlias;
+		destAlias.SetSize(1);
+		H323SetAliasAddress(newRoute.m_destNumber, destAlias[0]);
 		newCall->SetRouteToAlias(destAlias);
 	}
 				
@@ -4301,8 +4301,9 @@ void CallSignalSocket::Dispatch()
 					m_call->SetToParent(true);
 
 				if(!newRoute.m_destNumber.IsEmpty()) {
-					H225_AliasAddress destAlias;
-					H323SetAliasAddress(newRoute.m_destNumber, destAlias);
+					H225_ArrayOf_AliasAddress destAlias;
+					destAlias.SetSize(1);
+					H323SetAliasAddress(newRoute.m_destNumber, destAlias[0]);
 					newCall->SetRouteToAlias(destAlias);
 				}
 				
@@ -4524,8 +4525,9 @@ void CallSignalSocket::DispatchNextRoute()
 				m_call->SetToParent(true);
 
 			if(!newRoute.m_destNumber.IsEmpty()) {
-				H225_AliasAddress destAlias;
-				H323SetAliasAddress(newRoute.m_destNumber, destAlias);
+				H225_ArrayOf_AliasAddress destAlias;
+				destAlias.SetSize(1);
+				H323SetAliasAddress(newRoute.m_destNumber, destAlias[0]);
 				newCall->SetRouteToAlias(destAlias);
 			}
 

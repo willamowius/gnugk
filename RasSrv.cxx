@@ -2687,11 +2687,10 @@ bool AdmissionRequestPDU::Process()
 		return BuildReply(authData.m_rejectReason);
 	}
 
-	if (authData.m_routeToAlias != NULL) {
+	if (authData.m_routeToAlias.GetSize() > 0) {
 		request.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
-		request.m_destinationInfo.SetSize(1);
-		request.m_destinationInfo[0] = *authData.m_routeToAlias;
-		authData.m_calledStationId = AsString(*authData.m_routeToAlias, FALSE);
+		request.m_destinationInfo = authData.m_routeToAlias;
+		authData.m_calledStationId = AsString(authData.m_routeToAlias, FALSE);
 		PTRACE(2, "RAS\tARQ destination set to " << authData.m_calledStationId);
 		hasDestInfo = true;
 		destinationString = AsString(request.m_destinationInfo);
@@ -2938,8 +2937,8 @@ bool AdmissionRequestPDU::Process()
 		if (!authData.m_dialedNumber)
 			pCallRec->SetDialedNumber(authData.m_dialedNumber);
 
-		if (authData.m_routeToAlias != NULL)
-			pCallRec->SetRouteToAlias(*authData.m_routeToAlias);
+		if (authData.m_routeToAlias.GetSize() > 0)
+			pCallRec->SetRouteToAlias(authData.m_routeToAlias);
 		if (authData.m_clientAuthId > 0)
 			pCallRec->SetClientAuthId(authData.m_clientAuthId);
 
