@@ -127,9 +127,9 @@ public:
 		/// Firebird specific error message text
 		const char* errorMsg,
 		/// transaction handle
-		isc_tr_handle tr = NULL,
+		isc_tr_handle tr = 0L,
 		/// statement handle
-		isc_stmt_handle stmt = NULL,
+		isc_stmt_handle stmt = 0L,
 		/// SELECT type query result
 		XSQLDA* selectResult = NULL
 		);
@@ -308,7 +308,7 @@ GkIBSQLResult::~GkIBSQLResult()
 {
 	ISC_STATUS status[20];
 	
-	if (m_stmt != NULL)
+	if (m_stmt != 0L)
 		(*g_isc_dsql_free_statement)(status, &m_stmt, DSQL_drop);
 	if (m_sqlResult != NULL) {
 		for (int i = 0; i < m_sqlResult->sqld; ++i) {
@@ -324,7 +324,7 @@ GkIBSQLResult::~GkIBSQLResult()
 		delete [] reinterpret_cast<char*>(m_sqlResult);
 		m_sqlResult = NULL;
 	}
-	if (m_tr != NULL) {
+	if (m_tr != 0L) {
 		if (m_queryError) {
 			(*g_isc_rollback_transaction)(status, &m_tr);
 		} else {
@@ -518,7 +518,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	}
 	
 	ISC_STATUS status[20];
-	isc_db_handle conn = NULL;
+	isc_db_handle conn = 0L;
 	std::string dbname((const char*)m_database);
 	
 	if (!m_host) {
@@ -556,8 +556,8 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 
 	char errormsg[FB_BUFF_SIZE];
 	ISC_STATUS status[20];
-	isc_tr_handle tr = NULL;
-	isc_stmt_handle stmt = NULL;
+	isc_tr_handle tr = 0L;
+	isc_stmt_handle stmt = 0L;
 	
 	(*g_isc_start_transaction)(status, &tr, 1, &conn, 0, NULL);
 	if (status[0] == 1 && status[1] != 0) {
