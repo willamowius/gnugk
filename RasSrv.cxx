@@ -903,7 +903,7 @@ void RasServer::LoadConfig()
 	Routing::Analyzer::Instance()->OnReload();
 	Routing::ExplicitPolicy::OnReload();
 
-	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", 1));
+	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", "1"));
 
 	// read [ReplyToRasAddress] section
 	m_replyras.clear();
