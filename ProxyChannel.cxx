@@ -2608,6 +2608,30 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
 	}
 	SetCallTypePlan(&q931);
+
+	// add destination alias (for Swyx trunk)
+	if (m_call->GetCalledParty()) {
+		PString addAlias = m_call->GetCalledParty()->GetAdditionalDestinationAlias();
+		if (!addAlias.IsEmpty()) {
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+				setupBody.m_destinationAddress.SetSize(0);
+			}
+			bool found = false; // see if already there
+			for(PINDEX i = 0; i < setupBody.m_destinationAddress.GetSize(); i++) {
+				if (AsString(setupBody.m_destinationAddress[i], false) == addAlias) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				setupBody.m_destinationAddress.SetSize(setupBody.m_destinationAddress.GetSize()+1);
+				H323SetAliasAddress(addAlias,
+					setupBody.m_destinationAddress[setupBody.m_destinationAddress.GetSize() - 1]);
+			}
+		}
+	}
+
 #ifdef HAS_H46018
 	// proxy if calling or called use H.460.18
 	if (m_call->H46019Required() && ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())

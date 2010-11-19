@@ -381,12 +381,13 @@ void EndpointRec::LoadEndpointConfig()
 				log += " Calling Type Of Number: " + PString(m_callingTypeOfNumber);
 			if (m_proxy > 0)
 				log += " proxy: " + PString(m_proxy);
-			m_h46018disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46018", 0));
+			m_h46018disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46018", "0"));
 			PString numbersDef = cfg->GetString(key, "AddNumbers", "");
 			if (!numbersDef.IsEmpty()) {
 				AddNumbers(numbersDef);
 			}
 			m_maxBandwidth = cfg->GetInteger(key, "MaxBandwidth", -1);
+			m_additionalDestAlias = cfg->GetString(key, "AdditionalDestinationAlias", "");
 
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 

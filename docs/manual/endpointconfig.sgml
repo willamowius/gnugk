@@ -120,6 +120,12 @@ Default: <tt>-1</tt><newline>
 Maximum bandwidth this endpoint may use in units of 100 bits per second.
 This includes inbound and outbound bandwidth.
 
+<item><tt/AdditionalDestinationAlias=H323-TRUNK/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Add an additional alias to all calls going to this endpoint, if its not already present.
+This can be used to add the trunk ID required by Swxy version 6 and up.
+
 </itemize>
 
 Example:

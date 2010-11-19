@@ -263,6 +263,8 @@ public:
 	// cause code translation
 	unsigned TranslateReceivedCause(unsigned cause) const;
 	unsigned TranslateSentCause(unsigned cause) const;
+	// adding a fixed alias to all calls _to_ this endpoint
+	PString GetAdditionalDestinationAlias() const { return m_additionalDestAlias; }
 
 	bool IsH46018Disabled() const { return m_h46018disabled; }
 	void SetUsesH46018(bool uses) { m_usesH46018 = uses; m_nat = uses; }
@@ -339,6 +341,8 @@ protected:
 	/// cause code translation
 	std::map<unsigned, unsigned> m_receivedCauseMap;
 	std::map<unsigned, unsigned> m_sentCauseMap;
+	/// additional alias to be added to all calls TO this endpoint
+	PString m_additionalDestAlias;
 
 	EPNatTypes m_epnattype;
 	bool m_usesH46023, m_H46024, m_H46024a, m_H46024b, m_natproxy, m_internal, m_remote;

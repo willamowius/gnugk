@@ -1,5 +1,6 @@
 Changes from 2.3.3 to 2.3.4
 ===========================
+- new switch: [EP::...]AdditionalDestinationAlias=
 - BUGFIX rewrite memory mangement for routeToAlias
 - BUGFIX(RasSrv.cxx) allow calls with zero bandwidth
 - BUGFIX(ProxyChannel.cxx) fix crash when call being retried is deleted by another thread
