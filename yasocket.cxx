@@ -141,7 +141,7 @@ bool YaSocket::Close()
 	os_handle = -1;
 	::shutdown(handle, SHUT_RDWR);
 #ifdef _WIN32
-	::closesocket(handle);
+	::closesocket(handle);	// TODO: is this close() after shutdown() ok ??
 #else
 	::close(handle);
 #endif
@@ -909,11 +909,6 @@ void TCPServer::ReadSocket(IPSocket *socket)
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);
 		::shutdown(rej, 2 /* SHUT_RDWR */ );
-#if defined(_WIN32)
-		::_close(rej);
-#else
-		::close(rej);
-#endif
 		return;
 	}
 

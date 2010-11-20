@@ -1,5 +1,6 @@
 Changes from 2.3.3 to 2.3.4
 ===========================
+- BUGFIX(yasocket.cxx) fix crash on Windows service shutdown
 - new switch: [EP::...]AdditionalDestinationAlias=
 - BUGFIX rewrite memory mangement for routeToAlias
 - BUGFIX(RasSrv.cxx) allow calls with zero bandwidth
