@@ -2675,6 +2675,20 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		m_call->SetCallSignalSocketCalling(this);
 		SetConnected(true);	// avoid deletion
 
+		// only rewrite sourceCallSignalAddress if we are proxying,
+		// otherwise leave the receiving endpoint the option to deal with NATed caller itself
+		if (m_call->GetProxyMode() == CallRec::ProxyEnabled
+			|| Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AlwaysRewriteSourceCallSignalAddress", "1"))) {
+			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
+			setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
+		}
+
+		// For compatibility with endpoints which do not support large Setup messages
+		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
+			 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+			 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+		}
+
 		H460_FeatureStd feat = H460_FeatureStd(19);
 		// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
 		H460_FeatureID * feat_id = new H460_FeatureID(2);
@@ -2713,7 +2727,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	msg->SetUUIEChanged();
 	
 #ifdef HAS_H46018
-	// if destination route/enpoint uses H.460.18
+	// if destination route/endpoint uses H.460.18
 	if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
 		// send SCI
 		RasServer *RasSrv = RasServer::Instance();
@@ -4618,7 +4632,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
 	if (m_h245Tunneling && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
 		return false;
-	if (!m_h245handler) // no H245 routed
+	if (!m_h245handler) // not H.245 routed
 		return true;
 
 	CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote);
