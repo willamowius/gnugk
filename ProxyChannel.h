@@ -184,7 +184,6 @@ public:
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	bool IsNATSocket() const { return m_isnatsocket; }
 	void OnH245ChannelClosed() { m_h245socket = NULL; }
-	void SetPeerAddress(const Address &, WORD);
 	Address GetLocalAddr() { return localAddr; }
 	Address GetPeerAddr() { return peerAddr; }
 	Address GetMasqAddr() { return masqAddr; }

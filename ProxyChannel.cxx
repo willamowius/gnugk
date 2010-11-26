@@ -1498,11 +1498,6 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	return true;
 }
 
-void CallSignalSocket::SetPeerAddress(const Address & ip, WORD pt)
-{
-	peerAddr = ip, peerPort = pt;
-}
-
 bool CallSignalSocket::EndSession()
 {
 	SendReleaseComplete();
@@ -3793,6 +3788,7 @@ void CallSignalSocket::OnFacility(
 				CallSignalSocket * callingSocket = m_call->GetCallSignalSocketCalling();
 				if (callingSocket && (rawSetup.GetSize() > 0)) {
 					remote = callingSocket;
+					remote->GetPeerAddress(peerAddr, peerPort);
 					localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
 					masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 					callingSocket->remote = this;
@@ -3806,8 +3802,6 @@ void CallSignalSocket::OnFacility(
 						return;
 					}
 					// always proxy H.245 for H.460.18/19
-					localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
-					masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 					Address calling = INADDR_ANY, called = INADDR_ANY;
 					/*int nat_type = */ m_call->GetNATType(calling, called);
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);

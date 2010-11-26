@@ -1,5 +1,6 @@
 Changes from 2.3.3 to 2.3.4
 ===========================
+- BUGFIX(ProxyChannel.cxx) fix H.245 IP in H.460.18 call
 - BUGFIX(ProxyChannel.cxx) sourceCallSignalAddr rewrite and RemoveH235Call= were ignored
   when calling endpoint who uses H.460.18
 - BUGFIX(yasocket.cxx) fix crash on Windows service shutdown
