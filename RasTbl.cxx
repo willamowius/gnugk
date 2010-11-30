@@ -3298,9 +3298,9 @@ int CallRec::GetH46019Direction() const
 
 	int dir = 0;
 	if (m_Calling && m_Calling->UsesH46018())
-			dir += 1;
+			dir += H46019_CALLER;
 	if (m_Called && m_Called->UsesH46018())
-			dir += 2;
+			dir += H46019_CALLED;
 	return dir;
 }
 #endif

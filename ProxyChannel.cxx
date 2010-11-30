@@ -335,13 +335,10 @@ private:
 	bool m_h46019fc;
 //	bool m_keepAliveTypeSet;
 
-	// m_h46019dir = 0 ' No parties need H.460.19 so skip the code
-	// m_h46019dir = 1 ' Caller needs H.460.19
-	// m_h46019dir = 2 ' Called needs H.460.19 
-	// m_h46019dir = 3 ' Both need it.
-	// Each time a keepAlive is matched, m_h46019olc is incremented by 1 or 2
+	// Each time a keepAlive is matched, m_h46019olc is incremented by 1 or 2 (H46019_CALLER or H46019_CALLED)
 	// depending on whether called/caller until it reaches the value of m_h46019dir
 	// and then the IP & ports get assigned checked and is released so media can flow.
+	// see H46019_xxx defines in RasTbl.h
 	int m_h46019olc;
 	int m_h46019dir;
 	WORD m_sessionID;
@@ -497,6 +494,7 @@ public:
 
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
     PIPSocket::Address GetMasqAddr() const { return masqAddr; }
+    PIPSocket::Address GetRemoteAddr() const { return remoteAddr; }
 
 	bool IsSessionEnded() const { return isH245ended; }
 
@@ -5342,7 +5340,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0)
 #ifdef HAS_H46018
-	, m_h46019fc(false),m_h46019olc(0),	m_h46019dir(0), m_sessionID(0), m_OLCrev(false)
+	, m_h46019fc(false), m_h46019olc(H46019_NONE), m_h46019dir(H46019_NONE), m_sessionID(0), m_OLCrev(false)
 	//, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_keepAliveTypeSet(false)
 #endif
 {
@@ -5391,7 +5389,7 @@ void UDPProxySocket::SetNAT(bool rev)
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
 #if HAS_H46018
-	if (m_h46019dir > 0 && m_h46019olc == m_h46019dir) {
+	if (m_h46019dir > H46019_NONE && m_h46019olc == m_h46019dir) {
 		PTRACE(5, Type() << "\tH46019 Ignore forward already detected.");
 	} else {
 //	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
@@ -5440,7 +5438,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
 #if HAS_H46018
-	if (m_h46019dir > 0 && m_h46019olc == m_h46019dir) {
+	if (m_h46019dir > H46019_NONE && m_h46019olc == m_h46019dir) {
 		PTRACE(5, Type() << "\tH46019 Ignore reversing already detected.");
 	} else {
 		PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
@@ -5504,7 +5502,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fwd=" << m_h46019fwd << " rev=" << m_h46019rev << " OLCrev=" << m_OLCrev);
 #endif // RTP_DEBUG
 
-	if (m_h46019dir > 0 && buflen == 12) {
+	if (m_h46019dir > H46019_NONE && buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
 		bool sameNAT = (fSrcIP == rSrcIP);
@@ -5522,30 +5520,30 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
 				m_h46019rev = detAddr;
 				fSrcIP = fromIP;
-				if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
+				if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
 
 			} else if ((rfwdAddr == detAddr) || (revAddr == detAddr) || (m_h46019rev == fwdAddr)) {
 				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
 				m_h46019fwd = detAddr;
 				rSrcIP = fromIP;
-				if (m_h46019olc < 2) m_h46019olc += 2;
+				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
 
 			// if we are negotiating and we don't know which is forward or reverse
 			} else if (((fSrcIP == 0) && (fromIP != rSrcIP)) ||
-				((m_h46019olc == 2) && (detAddr != m_h46019fwd)))
+				((m_h46019olc == H46019_CALLED) && (detAddr != m_h46019fwd)))
 			{
 				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
 				m_h46019rev = detAddr;
 				fSrcIP = fromIP;
-				if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
+				if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
 
 			} else if (((rSrcIP == 0) && (fromIP != fSrcIP)) ||
-				((m_h46019olc == 1) && (detAddr != m_h46019rev)))
+				((m_h46019olc == H46019_CALLER) && (detAddr != m_h46019rev)))
 			{
 				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
 				m_h46019fwd = detAddr;
 				rSrcIP = fromIP;
-				if (m_h46019olc < 2) m_h46019olc += 2;
+				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
 			}
 		} else {			
 			// if we have a change in pinhole mapping then update
@@ -5553,30 +5551,30 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
 				fSrcPort = fromPort;
 				rDestIP = fSrcIP, rDestPort = fSrcPort;	
-					if ((m_h46019olc == 0) || (m_h46019olc == 2)) m_h46019olc += 1;
+					if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
 
 			} else if ((fromIP == rSrcIP) && !sameNAT) { 
 				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
 				rSrcPort = fromPort;
 				fDestIP = rSrcIP, fDestPort = rSrcPort;	
-				if (m_h46019olc < 2) m_h46019olc += 2;
+				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
 			}
 		}
 
 		// Only 1 direction using H.460.19
 		// we need to check the direction of the keepAlive
-		if ((m_h46019olc < m_h46019dir) && (m_h46019dir < 3)) {
-			if ((m_h46019olc > 0) && (m_h46019olc != m_h46019dir)) {
+		if ((m_h46019olc < m_h46019dir) && (m_h46019dir < H46019_BOTH)) {
+			if ((m_h46019olc > H46019_NONE) && (m_h46019olc != m_h46019dir)) {
 				PTRACE(5, "H46018\tOnly 1 Party using H.460.19 and OLC received in reverse order..");
 				m_h46019olc = m_h46019dir;
 			// if we fail above then guess which direction we are setting
-			} else if (m_h46019olc == 0) {
-				if (((m_h46019dir == 1) && !m_OLCrev)||((m_h46019dir == 2) || m_OLCrev)) {
+			} else if (m_h46019olc == H46019_NONE) {
+				if (((m_h46019dir == H46019_CALLER) && !m_OLCrev)||((m_h46019dir == H46019_CALLED) || m_OLCrev)) {
 					PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
 					m_h46019fwd = detAddr;
 					rSrcIP = fromIP;
 					m_h46019olc = m_h46019dir;
-				} else if (((m_h46019dir == 2) && !m_OLCrev) || ((m_h46019dir == 1) && m_OLCrev)) {
+				} else if (((m_h46019dir == H46019_CALLED) && !m_OLCrev) || ((m_h46019dir == H46019_CALLER) && m_OLCrev)) {
 					PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
 					m_h46019rev = detAddr;
 					fSrcIP = fromIP;
@@ -5620,10 +5618,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 	// If we have received packets and H.460.19 is not ready then disgard them
-	if ( m_h46019olc < m_h46019dir) {
+	if (m_h46019olc < m_h46019dir) {
 			PTRACE(5, Type() << "\tForward from " << fromIP << ':' << fromPort 
-				<< " blocked, remote socket not yet ready H460.19 " << "s:" << m_h46019olc << " dir " << m_h46019dir
-				);
+				<< " blocked, remote socket not yet ready H460.19 " << "s:" << m_h46019olc << " dir " << m_h46019dir);
 		return NoData;	// don't forward anything...
 	} 
 #endif	// HAS_H46018
@@ -5836,7 +5833,6 @@ void UDPProxySocket::BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX 
 		rr++;
 	}
 }
-
 
 bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 {
@@ -6441,7 +6437,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 		return false;
 	} else {
 		bool isReverseLC = false;
-		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
+		H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverseLC);
 
 	    if (UsesH46019fc())
 			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;

@@ -554,6 +554,15 @@ template<class> class RasPDU;
  class H323TransportAddress;
 #endif
 #endif
+
+#ifdef HAS_H46018
+// direction definitions for H.460.19
+#define H46019_NONE		0	// m_h46019dir = 0 ' No party needs H.460.19, so skip the code
+#define H46019_CALLER	1	// m_h46019dir = 1 ' Caller needs H.460.19
+#define H46019_CALLED	2	// m_h46019dir = 2 ' Called needs H.460.19
+#define H46019_BOTH		(H46019_CALLER + H46019_CALLED)	// m_h46019dir = 3 ' Both need it
+#endif
+
 class CallRec {
 public:
 	/// flag to overwrite proxy settings for the call
