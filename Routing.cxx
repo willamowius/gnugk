@@ -441,24 +441,6 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 }
 
 
-// the classical policy, find the dstination from the RegistrationTable
-class InternalPolicy : public AliasesPolicy {
-public:
-	InternalPolicy();
-
-protected:
-	virtual bool OnRequest(AdmissionRequest &);
-	virtual bool OnRequest(SetupRequest &);
-
-	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
-	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
-	virtual bool FindByAliases(SetupRequest &, H225_ArrayOf_AliasAddress &);
-	virtual bool FindByAliases(AdmissionRequest &, H225_ArrayOf_AliasAddress &);
-	
-private:
-	bool roundRobin;
-};
-
 InternalPolicy::InternalPolicy()
 	: roundRobin(Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "RoundRobinGateways", "1")))
 {
@@ -551,23 +533,6 @@ bool InternalPolicy::FindByAliases(
 }
 
 
-// a policy to route call to parent
-class ParentPolicy : public Policy {
-public:
-	ParentPolicy();
-
-private:
-	// override from class Policy
-	virtual bool IsActive() const;
-
-	virtual bool OnRequest(AdmissionRequest &);
-	virtual bool OnRequest(LocationRequest &);
-	virtual bool OnRequest(SetupRequest &);
-	virtual bool OnRequest(FacilityRequest &);
-
-	GkClient *m_gkClient;
-};
-
 ParentPolicy::ParentPolicy()
 {
 	m_gkClient = RasServer::Instance()->GetGkClient();
@@ -599,15 +564,6 @@ bool ParentPolicy::OnRequest(FacilityRequest & facility_obj)
 	return !(facility_obj.GetFlags() & RoutingRequest::e_fromParent) && m_gkClient->SendARQ(facility_obj);
 }
 
-
-// a policy to look up the destination from DNS
-class DNSPolicy : public AliasesPolicy {
-public:
-	DNSPolicy() { m_name = "DNS"; }
-protected:
-	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
-	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
-};
 
 bool DNSPolicy::FindByAliases(
 	RoutingRequest &request,
@@ -1028,23 +984,6 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 }
 
 
-// a policy to route call via external program
-class VirtualQueuePolicy : public Policy {
-public:
-	VirtualQueuePolicy();
-
-protected:
-	// override from class Policy
-	virtual bool IsActive() const;
-
-	virtual bool OnRequest(AdmissionRequest &);
-	virtual bool OnRequest(LocationRequest &);
-	virtual bool OnRequest(SetupRequest &);
-
-private:
-	VirtualQueue *m_vqueue;
-};
-
 VirtualQueuePolicy::VirtualQueuePolicy()
 {
 	m_vqueue = RasServer::Instance()->GetVirtualQueue();
@@ -1277,31 +1216,6 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 	return false;
 }
 
-class NumberAnalysisPolicy : public Policy {
-public:
-	struct PrefixEntry {
-		string m_prefix;
-		int m_minLength;
-		int m_maxLength;
-	};
-	
-	NumberAnalysisPolicy();
-
-protected:
-	virtual bool OnRequest(AdmissionRequest &);
-	virtual bool OnRequest(SetupRequest &);
-
-private:
-	NumberAnalysisPolicy(const NumberAnalysisPolicy &);
-	NumberAnalysisPolicy& operator=(const NumberAnalysisPolicy &);
-	
-private:
-	typedef vector<PrefixEntry> Prefixes;
-
-	/// list of number prefixes, with min/max number length as values
-	Prefixes m_prefixes;
-};
-
 struct PrefixGreater : public binary_function<NumberAnalysisPolicy::PrefixEntry, NumberAnalysisPolicy::PrefixEntry, bool> {
 
 	bool operator()(const NumberAnalysisPolicy::PrefixEntry &e1, const NumberAnalysisPolicy::PrefixEntry &e2) const 
@@ -1414,14 +1328,6 @@ bool NumberAnalysisPolicy::OnRequest(SetupRequest & request)
 	return false;
 }
 
-// a policy to look up the destination from ENUM Name Server
-class ENUMPolicy : public AliasesPolicy {
-public:
-	ENUMPolicy() { m_name = "ENUM"; }
-protected:
-	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
-	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
-};
 
 bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
@@ -1467,69 +1373,6 @@ bool ENUMPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_Ali
 
 
 
-class DestinationRoutes {
-public:
-	DestinationRoutes() { m_endChain = false; m_reject = false; m_rejectReason = 0; m_aliasesChanged = false; }
-	~DestinationRoutes() { }
-	
-	bool EndPolicyChain() const { return m_endChain; }
-	bool RejectCall() const { return m_reject; }
-	void SetRejectCall(bool reject) { m_reject = reject; m_endChain = true; }
-	unsigned int GetRejectReason() const { return m_rejectReason; }
-	void SetRejectReason(unsigned int reason) { m_rejectReason = reason; }
-	bool ChangeAliases() const { return m_aliasesChanged; }
-	H225_ArrayOf_AliasAddress GetNewAliases() const { return m_newAliases; }
-	void SetNewAliases(const H225_ArrayOf_AliasAddress & aliases) { m_newAliases = aliases; m_aliasesChanged = true; }
-	
-	void AddRoute(const Route & route) { m_routes.push_back(route); m_endChain = true; }
-	
-	std::list<Route> m_routes;
-
-protected:
-	bool m_endChain;
-	bool m_reject;
-	unsigned int m_rejectReason;
-	bool m_aliasesChanged;
-	H225_ArrayOf_AliasAddress m_newAliases;
-};
-
-// a policy to route calls via an SQL database
-class SqlPolicy : public Policy {
-public:
-	SqlPolicy();
-	virtual ~SqlPolicy();
-
-protected:
-	virtual bool IsActive() const { return m_active; }
-
-	virtual bool OnRequest(AdmissionRequest &);
-	virtual bool OnRequest(LocationRequest &);
-	virtual bool OnRequest(SetupRequest &);
-
-	virtual void DatabaseLookup(
-		/*in */
-		const PString & source,
-		const PString & calledAlias,
-		const PString & calledIP,
-		const PString & caller,
-		const PString & callingStationId,
-		const PString & callid,
-		const PString & messageType,
-		const PString & clientauthid,
-		/* out: */
-		DestinationRoutes & destination);
-
-private:
-	// active ?
-	bool m_active;
-	// connection to the SQL database
-	GkSQLConnection* m_sqlConn;
-	// parametrized query string for the routing query
-	PString m_query;
-	// query timeout
-	long m_timeout;
-};
-
 SqlPolicy::SqlPolicy()
 {
 	m_active = false;
@@ -1550,7 +1393,7 @@ SqlPolicy::SqlPolicy()
 		m_active = false;
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
 	if (m_sqlConn == NULL) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
@@ -1858,23 +1701,6 @@ void SqlPolicy::DatabaseLookup(
 #endif // HAS_DATABASE
 }
 
-
-// a policy to route all calls to one default endpoint
-class CatchAllPolicy : public Policy {
-public:
-	CatchAllPolicy();
-	virtual ~CatchAllPolicy() { }
-
-protected:
-	virtual bool OnRequest(AdmissionRequest & request) { return CatchAllRoute(request); }
-	virtual bool OnRequest(LocationRequest & request) { return CatchAllRoute(request); }
-	virtual bool OnRequest(SetupRequest & request) { return CatchAllRoute(request); }
-
-	bool CatchAllRoute(RoutingRequest & request) const;
-	
-	PString m_catchAllAlias;
-	PString m_catchAllIP;
-};
 
 CatchAllPolicy::CatchAllPolicy()
 {
