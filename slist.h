@@ -18,6 +18,7 @@
 #define SLIST_H "@(#) $Id$"
 
 #include "factory.h"
+#include <ptlib.h>
 
 template<class T>
 class SList {

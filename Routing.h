@@ -22,6 +22,7 @@
 #include "slist.h"
 #include "singleton.h"
 #include "RasTbl.h"
+#include "stl_supp.h"
 
 
 // forward references to avoid includes
@@ -425,7 +426,7 @@ protected:
 		/* out: */
 		DestinationRoutes & destination);
 
-private:
+protected:
 	// active ?
 	bool m_active;
 	// connection to the SQL database
