@@ -301,6 +301,7 @@ public:
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
 	void SetH46019Direction(int dir) { m_h46019dir = dir; }
 	void SetH46024SessionID(WORD id) { m_sessionID = id; }
+	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
 	// disabled for now, until we handle 2 payload types per UDPProxy
 	// void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
 #endif
@@ -341,6 +342,7 @@ private:
 	// see H46019_xxx defines in RasTbl.h
 	int m_h46019olc;
 	int m_h46019dir;
+    bool m_h46019uni;
 	WORD m_sessionID;
 	H323TransportAddress m_h46019fwd;
 	H323TransportAddress m_h46019rev;
@@ -417,6 +419,7 @@ public:
 	// void SetKeepAlivePayloadType(int pt);
 	void SetUsesH46019fc(bool);
 	void SetH46019Direction(int dir);
+    void SetH46019UniDirectional(bool uni);
 	void SetH46024SessionID(WORD id);
 
 private:
@@ -5340,7 +5343,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0)
 #ifdef HAS_H46018
-	, m_h46019fc(false), m_h46019olc(H46019_NONE), m_h46019dir(H46019_NONE), m_sessionID(0), m_OLCrev(false)
+	, m_h46019fc(false), m_h46019olc(H46019_NONE), m_h46019dir(H46019_NONE), m_h46019uni(false), m_sessionID(0), m_OLCrev(false)
 	//, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_keepAliveTypeSet(false)
 #endif
 {
@@ -5617,11 +5620,16 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		return NoData;	// don't forward keepAlive
 	}
 
-	// If we have received packets and H.460.19 is not ready then disgard them
 	if (m_h46019olc < m_h46019dir) {
+      if (m_h46019uni) {  // if uniDirectional Channel revert to socket detection
+			PTRACE(5, Type() << "\tH.460.19 Unidirectional Channel using port detection!");
+            m_h46019olc = m_h46019dir;
+      } else {
+          // if we have received packets and H.460.19 is not ready then disregard them
 			PTRACE(5, Type() << "\tForward from " << fromIP << ':' << fromPort 
 				<< " blocked, remote socket not yet ready H460.19 " << "s:" << m_h46019olc << " dir " << m_h46019dir);
-		return NoData;	// don't forward anything...
+		  return NoData;	// don't forward anything...
+      }
 	} 
 #endif	// HAS_H46018
 
@@ -6068,6 +6076,17 @@ void RTPLogicalChannel::SetH46019Direction(int dir)
 		rtcp->SetH46019Direction(dir);	
 }
 
+void RTPLogicalChannel::SetH46019UniDirectional(bool uni)
+{
+    if (uni) {
+	    if (rtp)
+		    rtp->SetH46019UniDirectional(true);
+	    if (rtcp)
+		    rtcp->SetH46019UniDirectional(true);	
+    }
+}
+
+
 void RTPLogicalChannel::SetH46024SessionID(WORD id)
 {
 	if (rtp)
@@ -6448,6 +6467,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
 		unsigned m_keeppayloadtype = 0;
+        bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
@@ -6471,6 +6491,25 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			}
 			if (olc.m_genericInformation.GetSize() == 0)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+
+            // check if we are doing unidirectional H.239
+            if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+				H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
+				m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
+            }
+		}
+
+		// if OLC is a H.460.19 unidirectional channel replace IP with apparent IP Address
+		if (h225Params && m_h46019uni) {
+			// TODO: only do this for OLCs from the H.460.19 client
+			H245_UnicastAddress_iPAddress * addr = NULL;
+			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
+				&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel))
+				&& (!GetRemoteAddr().IsAny()) ) {	// only change one direction
+				*addr << GetRemoteAddr() << addr->m_tsapIdentifier;
+				PTRACE(4, "H46019\tChanging undirectional media control IP to apparent IP " << AsString(*addr));
+				changed = true;
+			}
 		}
 
 		// We don't put the generic identifier on the reverse OLC.
@@ -6512,9 +6551,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
 				// if (m_keeppayloadtype > 0) 
 				//	((RTPLogicalChannel*)lc)->SetKeepAlivePayloadType(m_keeppayloadtype);  // If remote has told us keeppayloadtype then set it.
-				if (UsesH46019fc())
-					((RTPLogicalChannel*)lc)->SetUsesH46019fc(true);
+				((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
 				((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());
+                ((RTPLogicalChannel*)lc)->SetH46019UniDirectional(m_h46019uni);
 				((RTPLogicalChannel*)lc)->SetH46024SessionID((WORD)h225Params->m_sessionID);
 			} else {
 				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
