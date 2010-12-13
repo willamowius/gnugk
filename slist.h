@@ -3,6 +3,7 @@
 // slist.h
 //
 // A Single Linked List Template   *** LEGACY - use STL for new code ***
+// only used as parent for Policy class
 //
 // Copyright (c) Citron Network Inc. 2003
 // Copyright (c) 2006-2010, Jan Willamowius
@@ -43,6 +44,7 @@ SList<T>::~SList()
 
 // ignore overflow warning when comparing size
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
+
 template<class T>
 T *SList<T>::Create(const PStringArray & rules)
 {
