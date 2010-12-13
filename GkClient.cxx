@@ -359,7 +359,10 @@ public:
   }
 
   const STUNmessageHeader * operator->() const { return (STUNmessageHeader *)theArray; }
-  
+
+// ignore overflow warning when comparing length
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+
   STUNattribute * GetFirstAttribute() { 
 
     int length = ((STUNmessageHeader *)theArray)->msgLength;

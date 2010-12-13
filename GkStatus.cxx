@@ -1003,14 +1003,14 @@ void StatusClient::DoDebug(
 					result += "[" + secs[i] + "]\r\n";
 				WriteString(result + ";\r\n");
 			}
-		} else if ((args[1] *= "set") && (args.GetSize()>=5)) {
+		} else if ((args[1] *= "set") && (args.GetSize() >= 5)) {
 			Toolkit::Instance()->SetConfig(1, args[2], args[3], args[4]);
 			WriteString(GkConfig()->GetString(args[2],args[3],"") + "\r\n");
 		} else if (args[1] *= "remove") {
-			if (args.GetSize()>=4) {
+			if (args.GetSize() >= 4) {
 				Toolkit::Instance()->SetConfig(2, args[2], args[3]);
 				WriteString("Remove " + args[3] + " in section " + args[2] + "\r\n");
-			} else if (args.GetSize()>=3) {
+			} else if (args.GetSize() >= 3) {
 				Toolkit::Instance()->SetConfig(3, args[2]);
 				WriteString("Remove section " + args[2] + "\r\n");
 			}
@@ -1129,6 +1129,9 @@ void StatusClient::CommandError(const PString & msg)
 	WriteString(msg + "\r\n");
 	PTRACE(2, "STATUS\t" + msg + " from client " << Name());
 }
+
+// ignore warning when comparing to define
+#pragma GCC diagnostic ignored "-Wtype-limits"
 
 void StatusClient::ExecCommand(
 	/// the command to be executed
@@ -1411,7 +1414,7 @@ void StatusClient::ExecCommand(
 				m_traceLevel = MAX_STATUS_TRACE_LEVEL;
 			else {
 				unsigned level = args[1].AsUnsigned();
-				if (level >= MIN_STATUS_TRACE_LEVEL 
+				if (level >= MIN_STATUS_TRACE_LEVEL
 					&& level <= MAX_STATUS_TRACE_LEVEL)
 					m_traceLevel = level;
 				else {

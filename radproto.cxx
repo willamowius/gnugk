@@ -23,6 +23,9 @@
 #include "Toolkit.h"
 #include "radproto.h"
 
+// ignore overflow warnings
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+
 namespace {
 #if PTRACING
 /// Human-readable attribute names

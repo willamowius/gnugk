@@ -40,6 +40,9 @@ SList<T>::~SList()
 	delete m_next;  // delete whole list recursively
 }
 
+
+// ignore overflow warning when comparing size
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 template<class T>
 T *SList<T>::Create(const PStringArray & rules)
 {
