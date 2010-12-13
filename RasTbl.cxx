@@ -1448,7 +1448,7 @@ namespace { // anonymous namespace
 class CompareSigAdr {
 public:
 	CompareSigAdr(const H225_TransportAddress & adr) : SigAdr(adr) {}
-	bool operator()(const EndpointRec *ep) const { return ep->GetCallSignalAddress() == SigAdr; }
+	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetCallSignalAddress() == SigAdr); }
 
 protected:
 	const H225_TransportAddress & SigAdr;
@@ -1458,6 +1458,8 @@ class CompareSigAdrIgnorePort {
 public:
 	CompareSigAdrIgnorePort(const H225_TransportAddress & adr) : SigAdr(adr) {}
 	bool operator()(const EndpointRec *ep) const {
+		if (!ep)
+			return false;
 		H225_TransportAddress other = ep->GetCallSignalAddress();	// make a copy, we'll modify it temporarily!
 		if ((SigAdr.GetTag() == H225_TransportAddress::e_ipAddress)
 			&& (other.GetTag() == H225_TransportAddress::e_ipAddress)) {
@@ -1474,7 +1476,7 @@ protected:
 class CompareSigAdrWithNAT : public CompareSigAdr {
 public:
 	CompareSigAdrWithNAT(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdr(adr), natip(ip) {}
-	bool operator()(const EndpointRec *ep) const { return (ep->GetNATIP() == natip) && CompareSigAdr::operator()(ep); }
+	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetNATIP() == natip) && CompareSigAdr::operator()(ep); }
 
 private:
 	PIPSocket::Address natip;
@@ -1483,7 +1485,7 @@ private:
 class CompareSigAdrWithNATIgnorePort : public CompareSigAdrIgnorePort {
 public:
 	CompareSigAdrWithNATIgnorePort(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdrIgnorePort(adr), natip(ip) {}
-	bool operator()(const EndpointRec *ep) const { return (ep->GetNATIP() == natip) && CompareSigAdrIgnorePort::operator()(ep); }
+	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetNATIP() == natip) && CompareSigAdrIgnorePort::operator()(ep); }
 
 private:
 	PIPSocket::Address natip;
