@@ -3155,13 +3155,14 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 				CallTbl->UpdateEPBandwidth(pCall->GetCalledParty(), AdditionalBW);
 				CallTbl->UpdateTotalBandwidth(AdditionalBW);
 				bandwidth = pCall->GetBandwidth() + AdditionalBW;
+				pCall->SetBandwidth(bandwidth);
 			} else {
 				bReject = true;
 				rsn = H225_BandRejectReason::e_insufficientResources;
 			}
 		} else {
 			// the endpoint has requested to lower the bandwidth
-			// fow now we just agree, we also reduce update the curent total, per call and per endpoint usage
+			// fow now we just agree, we could also reduce update the current total, per call and per endpoint usage
 		}
 	}
 	if (bReject) {
@@ -3178,7 +3179,6 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 			(const unsigned char *) brj.m_rejectReason.GetTagName()
 		      );
 	} else {
-		pCall->SetBandwidth(bandwidth);
 		H225_BandwidthConfirm & bcf = BuildConfirm();
 		bcf.m_bandWidth = (int)bandwidth;
 		log = PString(PString::Printf, "BCF|%s|%s|%u;",
