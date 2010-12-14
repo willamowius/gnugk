@@ -357,7 +357,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 		}
 	}
 
-	const unsigned int CONNECT_TIMEOUT = 10000;
+	const unsigned int CONNECT_TIMEOUT = 10;	// connect timeout in seconds (!)
 
 	MYSQL* conn = (*g_mysql_init)(NULL);
 	if (conn == NULL) {
@@ -401,14 +401,14 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 	)
 {
 	MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
-	
+
 	int result = (*g_mysql_real_query)(mysqlconn, queryStr, strlen(queryStr));
 	if (result) {
 		GkSQLResult * sqlResult = new GkMySQLResult(result, (*g_mysql_error)(mysqlconn));
 		Disconnect();
 		return sqlResult;
 	}
-	
+
 	MYSQL_RES* queryResult = (*g_mysql_store_result)(mysqlconn);
 
 	if (queryResult) {
