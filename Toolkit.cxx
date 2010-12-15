@@ -183,7 +183,7 @@ PString NetworkAddress::AsString() const
 
 bool NetworkAddress::IsAny() const
 {
-	return const_cast<NetworkAddress*>(this)->m_address.IsAny();
+	return const_cast<NetworkAddress*>(this)->m_address.IsAny() && (GetNetmaskLen() == 0);	// TODO: why cast this ?
 }
 
 bool NetworkAddress::operator<(const NetworkAddress &addr) const
@@ -501,6 +501,10 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 
 	// read [ModeSelection] section
 	PStringToString mode_rules(config->GetAllKeyValues("ModeSelection"));
+	if (mode_rules.GetSize() > 0) {
+		// if we have ModeSelection rules, only use those, don't try to merge them with detected
+		m_modeselection.clear();
+	}
 	for (PINDEX i = 0; i < mode_rules.GetSize(); ++i) {
 		PString network = mode_rules.GetKeyAt(i);
 		if (!network.IsEmpty()) {
@@ -512,16 +516,6 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 				netmode.insideNetwork = netmode.fromExternal;
 				if (modes.GetSize() == 2)
 					netmode.insideNetwork = ToRoutingMode(modes[1].Trim());
-				// check if we have one or more (implied) rules for internal networks that we have to delete first
-				std::map<NetworkAddress, NetworkModes>::iterator iter = m_modeselection.begin();
-				while (iter != m_modeselection.end()) {
-					if (iter->first << addr) {
-						PTRACE(2, "Removing (implied) ModeSelection rule for " << iter->first.AsString());
-						m_modeselection.erase(iter++);
-					} else {
-						iter++;
-					}
-				}
 				m_modeselection[addr] = netmode;
 				PTRACE(2, "GK\tModeSelection rule: " << addr.AsString() << "=" << netmode.fromExternal << "," << netmode.insideNetwork);
 			} else {
@@ -565,21 +559,23 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 	int mode = m_enable ? CallRec::Proxied : CallRec::SignalRouted;
 	if (mode == CallRec::SignalRouted && RasServer::Instance()->IsH245Routed())
 		mode = CallRec::H245Routed;
+	PTRACE(5, "ModeSelection for " << ip1.AsString() << " -> " << ip2.AsString() << " default=" << mode);
 
 	// check if we have a more specific setting
+	// TODO: add invalid state to NetworkAddress so we can have ModeSelection rules for 0.0.0.0/0 that set a global default
 	NetworkAddress bestMatchIP1 = FindModeRule(ip1);
 	NetworkAddress bestMatchIP2 = FindModeRule(ip2);
 
 	std::map<NetworkAddress, NetworkModes>::const_iterator iter;
 	// check for same network
-	// TODO: add invalid state to NetworkAddress so we can have ModeSlection rules for 0.0.0.0/0 that set a global default
 	if (!bestMatchIP1.IsAny() && !bestMatchIP2.IsAny()) {
 		// rules for both IPs
-		if (bestMatchIP1.Compare(bestMatchIP2) == 0) {	// operator== broken ?
+		if (bestMatchIP1.Compare(bestMatchIP2) == 0) {
 			// both on same network
 			iter = m_modeselection.find(bestMatchIP1);
 			if (iter != m_modeselection.end()) {
 				mode = iter->second.insideNetwork;
+				PTRACE(5, "ModeSelection: Both IPs on same network: mode=" << mode);
 			}
 		} else {
 			// on different networks, use maximum poxying
@@ -588,15 +584,24 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 			iter = m_modeselection.find(bestMatchIP2);
 			int mode2 = iter->second.fromExternal;	// no check, must exist
 			mode = max(mode1, mode2);
+			PTRACE(5, "ModeSelection: Both IPs on different networks: mode1=" << mode1 << " mode2=" << mode2 << " => " << mode);
 		}
 	} else {
 		// only one rule, use that
-		iter = m_modeselection.find(bestMatchIP1);
-		if (iter != m_modeselection.end())
-			mode = iter->second.fromExternal;
-		iter = m_modeselection.find(bestMatchIP2);
-		if (iter != m_modeselection.end())
-			mode = iter->second.fromExternal;
+		if (!bestMatchIP1.IsAny()) {
+			iter = m_modeselection.find(bestMatchIP1);
+			if (iter != m_modeselection.end()) {
+				mode = iter->second.fromExternal;
+				PTRACE(5, "ModeSelection: Only rule for IP 1 = " << ip1.AsString() << " mode=" << mode);
+			}
+		}
+		if (!bestMatchIP2.IsAny()) {
+			iter = m_modeselection.find(bestMatchIP2);
+			if (iter != m_modeselection.end()) {
+				mode = iter->second.fromExternal;
+				PTRACE(5, "ModeSelection: Only rule for IP 2 = " << ip2.AsString() << " mode=" << mode);
+			}
+		}
 	}
 
 	return mode;
