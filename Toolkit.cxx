@@ -183,7 +183,7 @@ PString NetworkAddress::AsString() const
 
 bool NetworkAddress::IsAny() const
 {
-	return const_cast<NetworkAddress*>(this)->m_address.IsAny() && (GetNetmaskLen() == 0);	// TODO: why cast this ?
+	return m_address.IsAny() && (GetNetmaskLen() == 0);
 }
 
 bool NetworkAddress::operator<(const NetworkAddress &addr) const
