@@ -1,6 +1,6 @@
 Changes from 2.3.3 to 2.3.4
 ===========================
-- BUGFIX(Toolkit.cxx) fix handling of ModeSelection rules
+- BUGFIX(Toolkit.cxx) fix handling of ModeSelection rules (sponsored by Charite, Berlin)
 - BUGFIX(gksql_mysql.cxx) set MySQL connect timeout to 10 seconds (was 10000 seconds)
 - BUGFIX(RasTbl.cxx) add NULL pointer checks when searching for endpoints
 - BUGFIX(RasSrv.cxx) fix handling of BRQs reducing the bandwidth
