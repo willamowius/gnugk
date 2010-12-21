@@ -229,6 +229,9 @@ void GkAcctLogger::SetupAcctEndpointParams(
 	params["epid"] = ep->GetEndpointIdentifier().GetValue();
 }
 
+// avoid warning in PTLib object.h
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+
 PString GkAcctLogger::ReplaceAcctParams(
 	/// parametrized CDR string
 	const PString& cdrStr,
