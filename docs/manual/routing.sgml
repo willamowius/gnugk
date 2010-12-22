@@ -42,7 +42,7 @@ Route the call using neighbors by exchanging LRQ messages.
 
 <item><tt/dns/<newline>
 <p>
-The destination is resolved from DNS A records.
+The destination is resolved from DNS A records or plain IP adresses in the called alias.
 
 <item><tt/sql/<newline>
 <p>
