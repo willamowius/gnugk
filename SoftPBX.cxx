@@ -305,6 +305,7 @@ void SoftPBX::SendProceeding(const PString & CallId)
 	lForwardedSocket->BuildProceedingPDU(q931, call->GetCallIdentifier(), call->GetCallRef() | 0x8000u);
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
+	call->SetProceedingSent(true);
 }
 
 // used by status port (old)

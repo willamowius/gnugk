@@ -1,5 +1,6 @@
 Changes from 2.3.3 to 2.3.4
 ===========================
+- convert 2nd CallProceeding even if the first was sent through the status port
 - BUGFIX(Toolkit.cxx) fix handling of ModeSelection rules (sponsored by Charite, Berlin)
 - BUGFIX(gksql_mysql.cxx) set MySQL connect timeout to 10 seconds (was 10000 seconds)
 - BUGFIX(RasTbl.cxx) add NULL pointer checks when searching for endpoints

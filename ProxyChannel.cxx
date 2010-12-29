@@ -2303,6 +2303,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 		}
 
+		bool proceedingSent = false;
 		if (!rejectCall && !destFound) {
 			// for compatible to old version
 			if (!(useParent || rassrv->AcceptUnregisteredCalls(_peerAddr))) {
@@ -2315,6 +2316,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				PreliminaryCall * tmpCall = new PreliminaryCall(this, setupBody.m_callIdentifier, m_crv);
 				PreliminaryCallTable::Instance()->Insert(tmpCall);
 				request.Process();
+				proceedingSent = tmpCall->IsProceedingSent();
 				PreliminaryCallTable::Instance()->Remove(setupBody.m_callIdentifier);
 				delete tmpCall;
 				// check if destination has changed in the routing process
@@ -2380,6 +2382,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		CallRec* call = new CallRec(q931, setupBody, h245Routed, 
 			destinationString, authData.m_proxyMode
 			);
+		call->SetProceedingSent(proceedingSent);
 		call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
 #ifdef HAS_H46023
 		call->SetNATStrategy(natoffloadsupport);

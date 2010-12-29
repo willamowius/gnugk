@@ -650,7 +650,6 @@ BindAndRouteToGateway 192.168.0.2 Suzi 192.168.0.50 endp_4711 1234
 </descrip>
 
 <item><tt/SendProceeding/<newline>
-<p>WARNING: This is an experimental feature.
 <p>Send a CallProceeding message to the caller.
 The only time this makes sense is after a RouteRequest event for an unregistered call.
 Otherwise a status port application won't know if a Setup message has been sent but that

@@ -1147,7 +1147,6 @@ public:
 	PBYTEArray GetRADIUSClass() const;
 	
 	bool IsProceedingSent() const { return m_proceedingSent; }
-	// TODO: also set when sent through a status port command
 	void SetProceedingSent(bool val) { m_proceedingSent = val; }
 
 	void SetRerouteState(RerouteState state) { m_rerouteState = state; }
@@ -1927,17 +1926,20 @@ class PreliminaryCall
 {
 public:
 	PreliminaryCall(CallSignalSocket * callerSocket, H225_CallIdentifier id, unsigned ref)
-		: m_socket(callerSocket), m_callid(id), m_callref(ref) { }
+		: m_socket(callerSocket), m_callid(id), m_callref(ref), m_proceedingSent(false) { }
 	~PreliminaryCall() { }
 
 	CallSignalSocket * GetCallSignalSocketCalling() const { return m_socket; }
 	H225_CallIdentifier GetCallIdentifier() const { return m_callid; }
 	unsigned GetCallRef() const { return m_callref; }
+	bool IsProceedingSent() const { return m_proceedingSent; }
+	void SetProceedingSent(bool val) { m_proceedingSent = val; }
 
 private:
 	CallSignalSocket * m_socket;
 	H225_CallIdentifier m_callid;
 	unsigned m_callref;
+	bool m_proceedingSent;
 };
 
 // hold data about calls being established, only valid during the routing process before calls are accepted or rejected
