@@ -425,7 +425,7 @@ PString GkPgSQLConnection::EscapeString(
 	
 	if (numChars)
 		escapedStr.SetSize(
-			// TODO: switch to PQescapeStriongConn()
+			// TODO: switch to PQescapeStringConn()
 			(*g_PQescapeString)(escapedStr.GetPointer(numChars*2+1), str, numChars) + 1
 			);
 	return escapedStr;
