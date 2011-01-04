@@ -141,7 +141,7 @@ This can be used to add the trunk ID required by Swxy version 6 and up.
 
 </itemize>
 
-Example:
+Example how to attach an [EP::..] section to an endpoint:
 
 <tscreen><verb>
 [RasSrv::PermanentEndpoints]
