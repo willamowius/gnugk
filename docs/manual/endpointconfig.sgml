@@ -114,11 +114,24 @@ Default: <tt>0</tt><newline>
 <p>
 Disable H.460.18/.19 for this endpoint.
 
-<item><tt/MaxBandwidth=100000/<newline>
+<item><tt/MaxBandwidth=81920/<newline>
 Default: <tt>-1</tt><newline>
 <p>
 Maximum bandwidth this endpoint may use in units of 100 bits per second.
-This includes inbound and outbound bandwidth.
+
+This includes inbound and outbound bandwidth, so for symmetrical calls this
+should be doubled.
+
+Common bandwidth settings and their GnuGk equivalents:<newline>
+384K  =  7680<newline>
+512K  =  10240<newline>
+768K  =  15360<newline>
+1024K =  20480<newline>
+1920K =  38400<newline>
+2048K =  40960<newline>
+4096K =  81920<newline>
+
+If you do not wish to restrict bandwidth, then use "-1".
 
 <item><tt/AdditionalDestinationAlias=H323-TRUNK/<newline>
 Default: <tt>n/a</tt><newline>
