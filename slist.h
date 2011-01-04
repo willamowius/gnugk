@@ -43,7 +43,9 @@ SList<T>::~SList()
 
 
 // ignore overflow warning when comparing size
+#ifndef _WIN32
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
 
 template<class T>
 T *SList<T>::Create(const PStringArray & rules)

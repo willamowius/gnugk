@@ -230,7 +230,9 @@ void GkAcctLogger::SetupAcctEndpointParams(
 }
 
 // avoid warning in PTLib object.h
+#ifndef _WIN32
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
 
 PString GkAcctLogger::ReplaceAcctParams(
 	/// parametrized CDR string
