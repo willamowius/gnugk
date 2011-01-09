@@ -86,11 +86,6 @@ LDFLAGS    += @LDFLAGS@
 ENDLDLIBS  += @ENDLDLIBS@
 ENDLDFLAGS += @ENDLDFLAGS@
 
-# FreeBSD needs more libs on a static compile
-ifeq ($(OSTYPE),FreeBSD)
-    ENDLDLIBS += -liconv -lintl
-endif # FreeBSD
-
 STDCCFLAGS += -D'MANUFACTURER=@MANUFACTURER@'
 STDCCFLAGS += -D'PROGRAMMNAME=@PROGRAMNAME@'
 
@@ -123,9 +118,6 @@ versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323
 
 doc:
 	$(MAKE) -C docs/manual html
-
-static:
-	P_SHAREDLIB=0 LDFLAGS=-static $(MAKE) optnoshared
 
 #
 # By this command the build number may be incremented
