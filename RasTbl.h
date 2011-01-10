@@ -1123,7 +1123,7 @@ public:
 	bool MoveToNextRoute();
 
 	bool IsCallInProgress() const;
-	void SetCallInProgress();
+	void SetCallInProgress(bool val=true);
 
 	bool IsH245ResponseReceived() const;
 	void SetH245ResponseReceived();
@@ -1131,6 +1131,7 @@ public:
 	bool IsFastStartResponseReceived() const;
 	void SetFastStartResponseReceived();
 
+	bool IsFailoverActive() const { return m_failoverActive; }
 	bool SingleFailoverCDR() const;
 	int GetNoCallAttempts() const;
 	int GetNoRemainingRoutes() const;
@@ -1334,6 +1335,8 @@ private:
 	bool m_callInProgress;
 	bool m_h245ResponseReceived;
 	bool m_fastStartResponseReceived;
+	/// flag if failover is activated for easy access
+	bool m_failoverActive;
 	bool m_singleFailoverCDR;
 	
 	PString m_codec;

@@ -1,6 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
-
+- enable failover for calls released by the gatekeeper (eg. timeouts)
 
 Changes from 2.3.3 to 2.3.4
 ===========================

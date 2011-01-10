@@ -3573,7 +3573,6 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 			);
 		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
 			cause = msg->GetQ931().GetCause();
-
 			// translate cause codes
 			unsigned new_cause = cause;
 			// global translation first
@@ -3637,7 +3636,8 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 		}
 	}
 
-	if (m_call && remote != NULL && !m_callerSocket && m_call->GetReleaseSource() == CallRec::ReleasedByCallee
+	if (m_call && remote != NULL && !m_callerSocket
+		&& ((m_call->GetReleaseSource() == CallRec::ReleasedByCallee) || (m_call->GetReleaseSource() == CallRec::ReleasedByGatekeeper))
 		&& m_call->MoveToNextRoute()) {
 		if (!m_call->DisableRetryChecks() &&
 			(m_call->IsCallInProgress() || m_call->IsFastStartResponseReceived()

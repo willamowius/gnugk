@@ -47,7 +47,8 @@ namespace Routing {
 class VirtualQueue;
 
 /// An entry for a single call destination route
-struct Route {
+class Route {
+public:
 	// a policy can set flags to indicate extra status of a processed request
 	enum Flags {
 		e_toParent = 1,
@@ -57,35 +58,39 @@ struct Route {
 	
 	Route();
 	Route(
-		const PString &policyName,
-		const endptr &destEndpoint
+		const PString & policyName,
+		const endptr & destEndpoint,
+		unsigned priority = 1
 		);
 	Route(
-		const PString &policyName,
-		const H225_TransportAddress &destAddr
+		const PString & policyName,
+		const H225_TransportAddress & destAddr
 		);
 	Route(
-		const PString &policyName,
-		const PIPSocket::Address &destIpAddr,
+		const PString & policyName,
+		const PIPSocket::Address & destIpAddr,
 		WORD destPort
 		);
-		
+
+	bool operator< (const Route & rhs) { return m_priority < rhs.m_priority; }
+
 	PString AsString() const;
 
-	bool IsFailoverActive(
-		unsigned cause
-		) const;
+	bool IsFailoverActive(unsigned cause) const;
+
 
 	H225_TransportAddress m_destAddr; /// destination address for signaling
 	endptr m_destEndpoint; /// destination endpoint record (if available)
-	H225_AliasAddress m_srcAddr; /// source alias that matched the route
 	PString m_policy; /// name of the policy that found the route
 	PString m_routeId; /// optional policy-specific route identifier
 	int m_proxyMode; /// per-route proxy mode flag
 	unsigned m_flags; /// additional route specific flags
-	unsigned char m_rerouteCauses[16]; /// bit flags to trigger rerouting on particular Q931 causes
 	PString m_destNumber; /// rewritten number (corresponds to Toolkit::RewriteE164)
 	PString m_destOutNumber; /// number actually sent to the called party  (corresponds to Toolkit::GWRewriteE164)
+
+protected:
+	unsigned char m_rerouteCauses[16]; /// bit flags to trigger rerouting on particular Q931 causes
+	unsigned m_priority;	/// priority of this route (less is more important)
 };
 
 class RoutingRequest {
@@ -388,8 +393,8 @@ public:
 	H225_ArrayOf_AliasAddress GetNewAliases() const { return m_newAliases; }
 	void SetNewAliases(const H225_ArrayOf_AliasAddress & aliases) { m_newAliases = aliases; m_aliasesChanged = true; }
 	
-	void AddRoute(const Route & route) { m_routes.push_back(route); m_endChain = true; }
-	
+	void AddRoute(const Route & route, bool endChain = true) { m_routes.push_back(route); m_endChain = endChain; }
+
 	std::list<Route> m_routes;
 
 protected:

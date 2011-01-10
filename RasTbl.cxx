@@ -1950,7 +1950,7 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
@@ -1964,6 +1964,7 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
 
@@ -2001,7 +2002,7 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(routeH245),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
@@ -2018,6 +2019,7 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
 
@@ -2057,6 +2059,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
+	m_failoverActive(oldCall->m_failoverActive),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState)
 	// TODO: add new fields, bind hint etc. ? + c'tor ?
@@ -2819,7 +2822,7 @@ void CallRec::SetNewRoutes(
 
 bool CallRec::MoveToNextRoute()
 {
-	if (! Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
+	if (! IsFailoverActive())
 		return false;
 		
 	if (ShutdownMutex.WillBlock())
@@ -2844,9 +2847,9 @@ bool CallRec::IsCallInProgress() const
 	return m_callInProgress;
 }
 
-void CallRec::SetCallInProgress()
+void CallRec::SetCallInProgress(bool val)
 {
-	m_callInProgress = true;
+	m_callInProgress = val;
 }
 
 bool CallRec::IsH245ResponseReceived() const
@@ -3557,7 +3560,11 @@ void CallTable::CheckCalls(
 			);
 		(*call)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		(*call)->Disconnect();
-		RemoveCall((*call));
+		if (((*call)->GetNoRemainingRoutes() == 0) || (! (*call)->IsFailoverActive())) {
+			RemoveCall((*call));
+		} else {
+			(*call)->SetCallInProgress(false);	// not necessary with DisableRetryChecks=1
+		}
 		call++;
 	}
 	

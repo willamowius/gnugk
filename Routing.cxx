@@ -46,35 +46,36 @@ const char *SectionName[] = {
 const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
 const char* const CTIsection = "CTI::Agents";
 
-Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
 {
 	m_destAddr.SetTag(H225_TransportAddress::e_nonStandardAddress);	// set to an invalid address
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
 
 Route::Route(
-	const PString &policyName,
-	const endptr &destEndpoint
+	const PString & policyName,
+	const endptr & destEndpoint,
+	unsigned priority
 	) : m_destAddr(destEndpoint->GetCallSignalAddress()), m_destEndpoint(destEndpoint), m_policy(policyName),
-	m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+	m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
 
 Route::Route(
-	const PString &policyName,
-	const H225_TransportAddress &destAddr
-	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+	const PString & policyName,
+	const H225_TransportAddress & destAddr
+	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
 
 Route::Route(
-	const PString &policyName,
-	const PIPSocket::Address &destIpAddr,
+	const PString & policyName,
+	const PIPSocket::Address & destIpAddr,
 	WORD destPort
 	) : m_destAddr(SocketToH225TransportAddr(destIpAddr, destPort)),
-	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0)
+	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -83,7 +84,7 @@ PString Route::AsString() const
 {
 	return AsDotString(m_destAddr) + " (policy: " + m_policy + ", proxy: "
 		+ PString(m_proxyMode) + ", flags: " + PString(m_flags) + ", Called-Station-Id: " + m_destNumber
-		+ ", Called-Station-Id-Out: " + m_destOutNumber + ")";
+		+ ", Called-Station-Id-Out: " + m_destOutNumber + ", priority: " + PString(m_priority) + ")";
 }
 
 bool Route::IsFailoverActive(
@@ -111,9 +112,7 @@ RoutingRequest::~RoutingRequest()
 {
 }
 
-bool RoutingRequest::AddRoute(
-	const Route &route
-	)
+bool RoutingRequest::AddRoute(const Route & route)
 {
 	PIPSocket::Address addr;
 	WORD port;
@@ -132,12 +131,11 @@ bool RoutingRequest::AddRoute(
 		++i;
 	}
 	m_routes.push_back(route);
+	m_routes.sort();	// put routes in priority order
 	return true;
 }
 
-bool RoutingRequest::GetFirstRoute(
-	Route &route
-	)
+bool RoutingRequest::GetFirstRoute(Route & route)
 {
 	if (m_routes.empty())
 		return false;
@@ -1540,7 +1538,7 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	PIPSocket::Address localAddr;
 	WORD localPort;
 	request.GetWrapper()->GetLocalAddr(localAddr, localPort);
-	PString calledIP = localAddr;
+	PString calledIP = localAddr;	// TODO: only correct if a gatekeeper IP was called, should we use explicit IP if present ?
 	PString caller = AsString(setup.m_sourceAddress, FALSE);
 	PString callingStationId = request.GetCallingStationId();
 	PString callid = AsString(setup.m_callIdentifier.m_guid);
