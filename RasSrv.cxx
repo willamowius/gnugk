@@ -2814,18 +2814,21 @@ bool AdmissionRequestPDU::Process()
 			// 2nd ARQ: request more bandwidth if needed
 			BWRequest = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
 			long AdditionalBW = 0;
-			if (BWRequest > pExistingCallRec->GetBandwidth()) {
-				AdditionalBW = CallTbl->CheckTotalBandwidth(BWRequest - pExistingCallRec->GetBandwidth());
+			long callBW = pExistingCallRec->GetBandwidth();
+			if (BWRequest > callBW) {
+				AdditionalBW = CallTbl->CheckTotalBandwidth(BWRequest - callBW);
 				AdditionalBW = CallTbl->CheckEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
-				BWRequest = pExistingCallRec->GetBandwidth() + AdditionalBW;
+				BWRequest = callBW + AdditionalBW;
+				callBW = BWRequest;
 			}
 			if (BWRequest <= 0) {
 				bReject = true;
 			} else {
+				bReject = false;
 				CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCallingParty(), AdditionalBW);
-				CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCalledParty(), BWRequest);
+				CallTbl->UpdateEPBandwidth(pExistingCallRec->GetCalledParty(), callBW);
 				CallTbl->UpdateTotalBandwidth(AdditionalBW);
-				pExistingCallRec->SetBandwidth(BWRequest);
+				pExistingCallRec->SetBandwidth(callBW);
 			}
 		} else {
 			// 1st ARQ
