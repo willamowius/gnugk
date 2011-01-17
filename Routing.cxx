@@ -64,8 +64,9 @@ Route::Route(
 
 Route::Route(
 	const PString & policyName,
-	const H225_TransportAddress & destAddr
-	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
+	const H225_TransportAddress & destAddr,
+	unsigned priority
+	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -73,9 +74,10 @@ Route::Route(
 Route::Route(
 	const PString & policyName,
 	const PIPSocket::Address & destIpAddr,
-	WORD destPort
+	WORD destPort,
+	unsigned priority
 	) : m_destAddr(SocketToH225TransportAddr(destIpAddr, destPort)),
-	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
+	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -1716,10 +1718,10 @@ bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
 	if (!m_catchAllIP.IsEmpty()) {
 		H225_TransportAddress destAddr;
 		if (GetTransportAddress(m_catchAllIP, GK_DEF_UNICAST_RAS_PORT, destAddr)) {
-			Route route("catchall", destAddr);
+			Route route("catchall", destAddr, 999);
 			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 			request.AddRoute(route);
-			return true;
+			return (m_next == NULL);
 		} else {
 			PTRACE(1, m_name << "\tInvalid catch-all IP " << m_catchAllIP);
 		}
@@ -1729,9 +1731,9 @@ bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
 	H323SetAliasAddress(m_catchAllAlias, find_aliases[0]);
 	endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 	if (ep) {
-		Route route("catchall", ep);
+		Route route("catchall", ep, 999);
 		request.AddRoute(route);
-		return true;
+		return (m_next == NULL);
 	}
 	PTRACE(1, m_name << "\tCatch-all endpoint " << m_catchAllAlias << " not found!");
 	return false;	// configured default endpoint not found

@@ -64,12 +64,14 @@ public:
 		);
 	Route(
 		const PString & policyName,
-		const H225_TransportAddress & destAddr
+		const H225_TransportAddress & destAddr,
+		unsigned priority = 1
 		);
 	Route(
 		const PString & policyName,
 		const PIPSocket::Address & destIpAddr,
-		WORD destPort
+		WORD destPort,
+		unsigned priority = 1
 		);
 
 	bool operator< (const Route & rhs) { return m_priority < rhs.m_priority; }
