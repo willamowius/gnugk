@@ -28,7 +28,8 @@ SOURCES	 = main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Neighbor.cxx GkClient.cxx gkauth.cxx RasSrv.cxx ProxyChannel.cxx \
            gk.cxx version.cxx gkacct.cxx gktimer.cxx gkconfig.cxx \
            sigmsg.cxx clirw.cxx cisco.cxx ipauth.cxx statusacct.cxx \
-           syslogacct.cxx capctrl.cxx MakeCall.cxx h460presence.cxx @SOURCES@
+           syslogacct.cxx capctrl.cxx MakeCall.cxx h460presence.cxx \
+           ldapauth.cxx @SOURCES@
 
 HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            RasSrv.h RasTbl.h Routing.h SoftPBX.h Toolkit.h factory.h \
@@ -113,7 +114,7 @@ STDCCFLAGS += -fno-strict-aliasing -Wtype-limits -Wstrict-overflow=5 -fstrict-ov
 
 # special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled
 # so the proper build timestamp is included
-versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PW_LIBDIR)/$(PTLIB_FILE)
+versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PT_LIBDIR)/$(PTLIB_FILE)
 	@touch $@
 
 doc:
