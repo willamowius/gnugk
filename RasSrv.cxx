@@ -2359,7 +2359,12 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep)
 {
 	H225_RegistrationConfirm & rcf = BuildConfirm();
 	rcf.m_protocolIdentifier = request.m_protocolIdentifier;
-	rcf.m_callSignalAddress.SetSize(1);	// TODO: set this to size 0 in direct mode ?
+	if (RasSrv->IsGKRouted()) {
+		rcf.m_callSignalAddress.SetSize(1);
+		GetCallSignalAddress(rcf.m_callSignalAddress[0]);
+	} else {
+		rcf.m_callSignalAddress.SetSize(0);	// we don't have a call signall address in direct mode
+	}
 	GetCallSignalAddress(rcf.m_callSignalAddress[0]);
 	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
 	rcf.m_terminalAlias = ep->GetAliases();
