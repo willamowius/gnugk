@@ -83,7 +83,7 @@ Veuillez envoyer les questions utilisateur &#224; la liste de diffusion des util
 <sect1>Participants
 <p>
 Le coordinateur actuel du projet est
-<url url="http://www.willamowius.de/gnugk-consulting.html" name="Jan Willamowius">
+<url url="http://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
 Les principales caract&#233;ristiques et fonctions de la version 2.0 ont &#233;t&#233; contribu&#233;es par Chih-Wei Huang et Citron Network Inc., incluant l'enregistrement et les tables d'appel thread safe, une nouvelle architecture de mode rout&#233;, proxy H.323, l'authentification H.235 et le backend MySQL.

@@ -8,6 +8,7 @@ OpenSSL library.
 
 Project homepage: http://www.gnugk.org/
 Project coordinator: Jan Willamowius <jan@willamowius.de>
+Support: http://www.willamowus.com/gnugk-support.html
 
 To ask questions or submit bugs, please use either the
 users or the developers mailing list.
