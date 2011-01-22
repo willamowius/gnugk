@@ -38,9 +38,6 @@ audio, video, and data over the Internet.  See also Paul Jones' <url
 url="http://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on
 the H.323 Series Standard">.
 
-For a detailed description of what a gatekeeper does, see
-<url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="here">.
-
 <sect1>Copyright
 <p>
 The GNU Gatekeeper is covered by the <htmlurl
