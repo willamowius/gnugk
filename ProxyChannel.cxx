@@ -2043,15 +2043,27 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}
 
-	// remove the destination signaling address of the gatekeeper
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		// rewrite destination IP here (can't do it in Explicit policy, because local IPs are removed before they get there)
 		Routing::ExplicitPolicy::MapDestination(setupBody.m_destCallSignalAddress);
+		// remove the destination signaling address of the gatekeeper
 		PIPSocket::Address _destAddr;
 		WORD _destPort = 0;
 		if (GetIPAndPortFromTransportAddr(setupBody.m_destCallSignalAddress, _destAddr, _destPort)
 				&& _destAddr == _localAddr && _destPort == _localPort) {
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		}
+		//  also remove destCallSigAddr if its the ExternalIP
+		if (GkConfig()->HasKey("ExternalIP")) {
+			PString extip = GkConfig()->GetString("ExternalIP", "");
+			PIPSocket::Address ext((DWORD)0);
+			H323TransportAddress ex = H323TransportAddress(extip);
+			ex.GetIpAddress(ext);
+			if (GetIPAndPortFromTransportAddr(setupBody.m_destCallSignalAddress, _destAddr, _destPort)
+					&& _destAddr == ext) {
+				PTRACE(1, "Removing External IP from callDestSignalAddr in Setup");
+				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+			}
 		}
 	}
 

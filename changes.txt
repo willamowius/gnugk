@@ -1,5 +1,7 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- BUGFIX(ProxyChannel.cxx) remove callDestSignalAddress from incoming Setup if its the
+  ExternalIP to avoid loops
 - BUGFIX(RasSrv.cxx) don't include a callSignalAddress in RCFs in direct mode
 - BUGFIX(RasSrv.cxx) fix bandwidth calculation
 - enable failover to CatchAll endpoint
