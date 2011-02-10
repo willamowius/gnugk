@@ -573,7 +573,7 @@ bool OldGK::SetProfile(const PString & id, const PString & args)
 	if (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AlwaysForwardLRQ", "0")))
 		m_forwardto = 1;
 
-	PTRACE(1, "Set neighbor " << m_gkid << '(' << (m_dynamic ? m_name : AsString(m_ip, m_port)) << ')' << (cfg.GetSize() > 1 ? (" for prefix " + cfg[1]) : PString()));
+	PTRACE(1, "Set neighbor " << m_gkid << '(' << (m_dynamic ? m_name : AsString(m_ip, m_port)) << ')' << (cfg.GetSize() > 1 ? (" for prefix " + cfg[1]) : PString::Empty()));
 	return true;
 }
 

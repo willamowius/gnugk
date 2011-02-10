@@ -422,7 +422,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	ex.GetIpAddress(ext);
 	if (ext.IsValid()) {
 		ExtIP = extip;
-		PString extroute = PString();
+		PString extroute;
 		if (!DynExtIP) 
 		  extroute = ext.AsString() + "/0";
 
@@ -1037,7 +1037,7 @@ PString Toolkit::GetTempDir() const
 			
 		// check if the directory exists and is accessible (access rights)
 		if (!(PFile::Exists(tmpdir) && PFile::Access(tmpdir, PFile::ReadWrite)))
-			tmpdir = PString();
+			tmpdir = PString::Empty();
 	}
 	
 	return tmpdir;
@@ -2593,7 +2593,7 @@ PString Toolkit::AsString(
 {
 	PString fmtStr = !formatStr ? formatStr : m_timestampFormatStr;
 	if (fmtStr.IsEmpty())
-		return PString();
+		return PString::Empty();
 
 	if (fmtStr *= "Cisco")
 		fmtStr = "%H:%M:%S.%u %Z %a %b %d %Y";
@@ -2655,11 +2655,11 @@ PString Toolkit::ReadPassword(
 	)
 {
 	if (cfgSection.IsEmpty() || cfgKey.IsEmpty())
-		return PString();
+		return PString::Empty();
 		
 	PConfig* const cfg = Config();
 	if (!cfg->HasKey(cfgSection, cfgKey))
-		return PString();
+		return PString::Empty();
 
 	int paddingByte = m_encKeyPaddingByte;
 	if (cfg->HasKey(cfgSection, paddingByteConfigKey)) {

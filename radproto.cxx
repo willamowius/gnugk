@@ -549,14 +549,14 @@ bool RadiusAttr::GetVsaValue(PBYTEArray& buffer, PINDEX offset) const
 PString RadiusAttr::AsString() const
 {
 	if (!IsValid())
-		return PString();
+		return PString::Empty();
 
 	const PINDEX len = m_length;
 	const PINDEX headerLen = (m_type == VendorSpecific) 
 			? VsaFixedHeaderLength : FixedHeaderLength;
 
 	if (len <= headerLen)
-		return PString();
+		return PString::Empty();
 	else
 		return PString((const char*)(m_data + headerLen), len - headerLen);
 }
@@ -587,12 +587,12 @@ PIPSocket::Address RadiusAttr::AsAddress() const
 PString RadiusAttr::AsVsaString() const
 {
 	if (!IsValid() || m_type != VendorSpecific)
-		return PString();
+		return PString::Empty();
 		
 	const PINDEX len = m_length;
 
 	if (len <= VsaRfc2865FixedHeaderLength)
-		return PString();
+		return PString::Empty();
 	else
 		return PString((const char*)m_vendorValue, len - VsaRfc2865FixedHeaderLength);
 }
@@ -601,7 +601,7 @@ PString RadiusAttr::AsCiscoString() const
 {
 	if (!IsValid() || m_type != VendorSpecific 
 			|| GetRadiusInteger(m_vendorId) != CiscoVendorId)
-		return PString();
+		return PString::Empty();
 		
 	const PINDEX len = m_length;
 	PINDEX offset = VsaRfc2865FixedHeaderLength;
@@ -619,7 +619,7 @@ PString RadiusAttr::AsCiscoString() const
 			i++;
 			
 	if (offset >= len)
-		return PString();
+		return PString::Empty();
 	else	
 		return PString((const char*)m_data + offset, len - offset);
 }

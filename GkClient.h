@@ -109,7 +109,7 @@ public:
         SetPassword(lrq);
 #else
 		SetNBPassword(lrq, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
-			(m_e164.GetSize() > 0 ? m_e164[0] : PString())
+			(m_e164.GetSize() > 0 ? m_e164[0] : PString::Empty())
 			);
 #endif
 	}
@@ -151,7 +151,7 @@ public:
 	template<class RAS> void SetPassword(RAS & rasmsg)
 	{
 		SetPassword(rasmsg, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
-			(m_e164.GetSize() > 0 ? m_e164[0] : PString())
+			(m_e164.GetSize() > 0 ? m_e164[0] : PString::Empty())
 			);
 	}
 

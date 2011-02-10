@@ -1088,9 +1088,9 @@ public:
 		/// primary RADIUS server
 		const PString& servers, 
 		/// local address for RADIUS client
-		const PString& address = PString(),
+		const PString& address = PString::Empty(),
 		/// default secret shared between the client and the server
-		const PString& sharedSecret = PString()
+		const PString& sharedSecret = PString::Empty()
 		);
 
 	/** Construct a RADIUS protocol client reading its settings

@@ -142,7 +142,7 @@ class Toolkit : public Singleton<Toolkit>
 			bool Compare(const Address *) const;
 		};
 		virtual bool CreateTable() { return CreateRouteTable(); }
-		bool CreateRouteTable(const PString & extroute=PString());
+		bool CreateRouteTable(const PString & extroute = PString::Empty());
 
 		RouteEntry *rtable_begin, *rtable_end;
 		Address defAddr;
@@ -517,7 +517,7 @@ class Toolkit : public Singleton<Toolkit>
 	*/
 	PString AsString(
 		const PTime& tm, /// timestamp to convert into a string
-		const PString& formatStr = PString() /// format string to use
+		const PString& formatStr = PString::Empty() /// format string to use
 		);
 
 	/** Read and decrypt a password from the config. As a decryption key

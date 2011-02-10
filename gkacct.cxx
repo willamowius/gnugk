@@ -304,7 +304,7 @@ PString GkAcctLogger::GetUsername(
 	) const
 {
 	if (!call)
-		return PString();
+		return PString::Empty();
 		
 	const endptr callingEP = call->GetCallingParty();
 	PString username;
@@ -350,7 +350,7 @@ PString GkAcctLogger::GetCallingStationId(
 	) const
 {
 	if (!call)
-		return PString();
+		return PString::Empty();
 
 	PString id = call->GetCallingStationId();
 	if (!id)
@@ -388,7 +388,7 @@ PString GkAcctLogger::GetCalledStationId(
 	) const
 {
 	if (!call)
-		return PString();
+		return PString::Empty();
 
 	PString id = call->GetCalledStationId();
 	if (!id)
@@ -426,7 +426,7 @@ PString GkAcctLogger::GetDialedNumber(
 	) const
 {
 	if (!call)
-		return PString();
+		return PString::Empty();
 
 	PString id = call->GetDialedNumber();
 	if (!id)

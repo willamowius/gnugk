@@ -71,7 +71,7 @@ PString XSQLVARToPString(XSQLVAR *sqlvar)
 {
 	if (sqlvar->sqltype & 1)
 		if (*(sqlvar->sqlind) == -1)
-			return PString();
+			return PString::Empty();
 
 	switch (sqlvar->sqltype & ~1L) {
 	case SQL_TEXT:
@@ -97,7 +97,7 @@ PString XSQLVARToPString(XSQLVAR *sqlvar)
 	case SQL_VARYING:
 		return PString(sqlvar->sqldata + 2, *(short*)(sqlvar->sqldata));
 	default:
-		return PString();
+		return PString::Empty();
 	}
 }
 

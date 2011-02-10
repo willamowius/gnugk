@@ -509,7 +509,7 @@ PString GkAuthenticator::GetUsername(
 			);
 		if (!username && callingEP 
 				&& FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX)
-			username = PString();
+			username = PString::Empty();
 	}
 
 	if (username.IsEmpty() && hasCall) {
@@ -521,7 +521,7 @@ PString GkAuthenticator::GetUsername(
 			);
 		if (!username && callingEP 
 				&& FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX)
-			username = PString();
+			username = PString::Empty();
 	}
 	
 	if (username.IsEmpty() && callingEP)
@@ -1989,7 +1989,7 @@ PStringArray ARQAuthObj::GetPrefixes() const
 		}
 	}
 	if (array.GetSize() == 0)
-		array.AppendString(PString());
+		array.AppendString(PString::Empty());
 	return array;
 }
 
@@ -2036,7 +2036,7 @@ PIPSocket::Address LRQAuthObj::GetIP() const
 PString LRQAuthObj::GetAliases() const
 {
 	return m_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) 
-		? AsString(m_lrq.m_sourceInfo) : PString();
+		? AsString(m_lrq.m_sourceInfo) : PString::Empty();
 }
 
 int AuthRule::Check(

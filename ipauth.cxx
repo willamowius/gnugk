@@ -109,7 +109,7 @@ int IPAuthBase::Check(
 	unsigned & /*rejectReason*/
 	)
 {
-	return CheckAddress(grqPdu->m_peerAddr, grqPdu->m_peerPort, PString());
+	return CheckAddress(grqPdu->m_peerAddr, grqPdu->m_peerPort, PString::Empty());
 }
 
 int IPAuthBase::Check(
@@ -119,7 +119,7 @@ int IPAuthBase::Check(
 	RRQAuthData & /*authData*/
 	)
 {
-	return CheckAddress(rrqPdu->m_peerAddr, rrqPdu->m_peerPort, PString());
+	return CheckAddress(rrqPdu->m_peerAddr, rrqPdu->m_peerPort, PString::Empty());
 }
 
 int IPAuthBase::Check(
@@ -129,7 +129,7 @@ int IPAuthBase::Check(
 	unsigned & /*rejectReason*/
 	)
 {
-	return CheckAddress(lrqPdu->m_peerAddr, lrqPdu->m_peerPort, PString());
+	return CheckAddress(lrqPdu->m_peerAddr, lrqPdu->m_peerPort, PString::Empty());
 }
 
 int IPAuthBase::Check(

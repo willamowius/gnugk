@@ -921,7 +921,7 @@ GkClient::GkClient()
 	m_handlers[3] = new GkClientHandler(this, &GkClient::OnIRQ, H225_RasMessage::e_infoRequest);
 
 #ifdef OpenH323Factory
-	m_password = PString();
+	m_password = PString::Empty();
     m_h235Authenticators = new H235Authenticators();
     PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
@@ -1011,7 +1011,7 @@ void GkClient::OnReload()
 	
 	if (gk == "no") {
 		m_timer = 0;
-		m_rrjReason = PString();
+		m_rrjReason = PString::Empty();
 		return;
 	} else if (gk == "auto") {
 		m_gkaddr = INADDR_BROADCAST;
@@ -1502,7 +1502,7 @@ bool GkClient::RewriteE164(
 bool GkClient::Discovery()
 {
 	m_loaddr = m_gkaddr;
-	m_gatekeeperId = PString();
+	m_gatekeeperId = PString::Empty();
 
 	if (!m_discoverParent)
 		return true;

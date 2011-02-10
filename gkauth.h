@@ -658,8 +658,8 @@ protected:
 			return e_ok;
 		}
 
-		PString username = PString();
-		PString password = PString();
+		PString username = PString::Empty();
+		PString password = PString::Empty();
 		if (!ResolveUserName(req.m_tokens, req.m_cryptoTokens,username)) {
             PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
 			return e_fail;

@@ -117,7 +117,7 @@ PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 
 PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasName)
 {
-	PString aliasListString = "";
+	PString aliasListString = PString::Empty();
 
 	for(PINDEX cnt = 0; cnt < terminalAlias.GetSize(); cnt++ )
 	{
@@ -346,7 +346,7 @@ PString GetBestAliasAddressString(
 	if (i != P_MAX_INDEX)
 		return AsString(aliases[i], FALSE);
 	else
-		return PString();
+		return PString::Empty();
 }
 
 PINDEX FindAlias(
