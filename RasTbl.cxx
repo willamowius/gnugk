@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -64,6 +64,24 @@ namespace {
 const long DEFAULT_SIGNAL_TIMEOUT = 30000;
 const long DEFAULT_ALERTING_TIMEOUT = 180000;
 const int DEFAULT_IRQ_POLL_COUNT = 1;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+void EPQoS::Init()
+{
+	m_lastMsg = 0;
+	m_audioPacketLossPercent = 0.0;
+	m_audioJitter = 0;
+	m_videoPacketLossPercent = 0.0;
+	m_videoJitter = 0;
+}
+
+PString EPQoS::AsString() const
+{
+	return PString(PString::Printf, "%s|%0.2f%%|%lu|%0.2f%%|%lu",
+		(const char*)m_lastMsg.AsString(PTime::LongISO8601, PTime::UTC),
+		m_audioPacketLossPercent, m_audioJitter, m_videoPacketLossPercent, m_videoJitter);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -767,7 +785,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		PWaitAndSignal lock(m_usedLock);
 		if (IsPermanent())
 			msg += " (permanent)";
-		PString natstring(IsNATed() ? m_natip.AsString() : PString());
+		PString natstring(IsNATed() ? m_natip.AsString() : PString::Empty());
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
 		if (UsesH46018()) {
 			msg += " (H.460.18)";
@@ -1678,6 +1696,27 @@ void RegistrationTable::PrintAllRegistrations(USocket *client, bool verbose)
 	InternalPrint(client, verbose, &EndpointList, msg);
 }
 
+void RegistrationTable::PrintEndpointQoS(USocket *client) //const
+{
+	map<PString, EPQoS> epqos;
+	// copy data into a temporary container to avoid long locking
+	listLock.StartRead();
+	for (const_iterator Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
+		epqos[AsString((*Iter)->GetAliases())] = EPQoS((*Iter)->GetUpdatedTime());
+	listLock.EndRead();
+	// end of lock
+
+	PString msg("EndpointQoS\r\n");
+	msg.SetSize(EndpointList.size() * 100);	// avoid realloc: estimate n rows of 100 chars
+	// fetch QoS data from call table
+	CallTable::Instance()->SupplyEndpointQoS(epqos);
+	for (map<PString, EPQoS>::const_iterator i = epqos.begin(); i != epqos.end(); ++i)
+		msg += "QoS|" + i->first + "|" + i->second.AsString() + "\r\n";
+
+	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", epqos.size());
+	client->TransmitData(msg);
+}
+
 void RegistrationTable::PrintAllCached(USocket *client, bool verbose)
 {
 	PString msg("AllCached\r\n");
@@ -2338,7 +2377,6 @@ void CallRec::SetSRC_media_control_IP(const PString & IP)
     m_src_media_control_IP = IP;
 }
 
-
 void CallRec::SetDST_media_control_IP(const PString & IP)
 {
     m_dst_media_control_IP = IP;
@@ -2349,34 +2387,51 @@ void CallRec::SetSRC_media_IP(const PString & IP)
     m_src_media_IP = IP;
 }
 
-
 void CallRec::SetDST_media_IP(const PString & IP)
 {
     m_dst_media_IP = IP;
 }
 
-
-void CallRec::InitRTCP_report(){
+void CallRec::InitRTCP_report() {
+	// audio values
     m_rtcp_source_packet_count = 0;
     m_rtcp_destination_packet_count = 0;
     m_rtcp_source_packet_lost = 0;
     m_rtcp_destination_packet_lost = 0;
-    
+
     m_rtcp_source_jitter_max = 0;
     m_rtcp_source_jitter_min = 0;
     m_rtcp_source_jitter_avg = 0;
     m_rtcp_source_jitter_avg_count = 0;
     m_rtcp_source_jitter_avg_sum = 0;
-    
+
     m_rtcp_destination_jitter_max = 0;
     m_rtcp_destination_jitter_min = 0;
     m_rtcp_destination_jitter_avg = 0;
     m_rtcp_destination_jitter_avg_count = 0;
     m_rtcp_destination_jitter_avg_sum = 0;
-    
+
+	// video values
+    m_rtcp_source_video_packet_count = 0;
+    m_rtcp_destination_video_packet_count = 0;
+    m_rtcp_source_video_packet_lost = 0;
+    m_rtcp_destination_video_packet_lost = 0;
+
+    m_rtcp_source_video_jitter_max = 0;
+    m_rtcp_source_video_jitter_min = 0;
+    m_rtcp_source_video_jitter_avg = 0;
+    m_rtcp_source_video_jitter_avg_count = 0;
+    m_rtcp_source_video_jitter_avg_sum = 0;
+
+    m_rtcp_destination_video_jitter_max = 0;
+    m_rtcp_destination_video_jitter_min = 0;
+    m_rtcp_destination_video_jitter_avg = 0;
+    m_rtcp_destination_video_jitter_avg_count = 0;
+    m_rtcp_destination_video_jitter_avg_sum = 0;
+
     m_src_media_IP = "0.0.0.0";
     m_dst_media_IP = "0.0.0.0";
-    
+
     m_src_media_control_IP = "0.0.0.0";
     m_dst_media_control_IP = "0.0.0.0";
     
@@ -2422,18 +2477,18 @@ void CallRec::SetRTCP_SRC_jitter(int val)
 {	
     if (val > 0){
         if (m_rtcp_source_jitter_min == 0) {
-	    m_rtcp_source_jitter_min = val;
-	} else if (m_rtcp_source_jitter_min > val) {
-	     m_rtcp_source_jitter_min = val;
-	}
-	if (m_rtcp_source_jitter_max == 0){
-	    m_rtcp_source_jitter_max = val;
-	} else if (m_rtcp_source_jitter_max < val) {
-	    m_rtcp_source_jitter_max =val;
-	}
-	m_rtcp_source_jitter_avg_count ++;
-	m_rtcp_source_jitter_avg_sum +=val;
-	m_rtcp_source_jitter_avg = (int)(m_rtcp_source_jitter_avg_sum / m_rtcp_source_jitter_avg_count);
+			m_rtcp_source_jitter_min = val;
+		} else if (m_rtcp_source_jitter_min > val) {
+			 m_rtcp_source_jitter_min = val;
+		}
+		if (m_rtcp_source_jitter_max == 0) {
+			m_rtcp_source_jitter_max = val;
+		} else if (m_rtcp_source_jitter_max < val) {
+			m_rtcp_source_jitter_max = val;
+		}
+		m_rtcp_source_jitter_avg_count++;
+		m_rtcp_source_jitter_avg_sum += val;
+		m_rtcp_source_jitter_avg = (int)(m_rtcp_source_jitter_avg_sum / m_rtcp_source_jitter_avg_count);
     } else {
 		m_rtcp_source_jitter_avg = 0;
     }
@@ -2441,22 +2496,85 @@ void CallRec::SetRTCP_SRC_jitter(int val)
 
 void CallRec::SetRTCP_DST_jitter(int val)
 {
-    if (val > 0){
-        if (m_rtcp_destination_jitter_min == 0){
-	    m_rtcp_destination_jitter_min = val;
-	} else if (m_rtcp_destination_jitter_min > val) {
-	    m_rtcp_destination_jitter_min =val;
-	}
-	if (m_rtcp_destination_jitter_max == 0){
-	    m_rtcp_destination_jitter_max = val;
-	} else if (m_rtcp_destination_jitter_max < val) {
-	    m_rtcp_destination_jitter_max =val;
-	}
-	m_rtcp_destination_jitter_avg_count ++;
-	m_rtcp_destination_jitter_avg_sum +=val;
-	m_rtcp_destination_jitter_avg = (int)(m_rtcp_destination_jitter_avg_sum / m_rtcp_destination_jitter_avg_count);
+    if (val > 0) {
+        if (m_rtcp_destination_jitter_min == 0) {
+			m_rtcp_destination_jitter_min = val;
+		} else if (m_rtcp_destination_jitter_min > val) {
+			m_rtcp_destination_jitter_min = val;
+		}
+		if (m_rtcp_destination_jitter_max == 0) {
+			m_rtcp_destination_jitter_max = val;
+		} else if (m_rtcp_destination_jitter_max < val) {
+			m_rtcp_destination_jitter_max = val;
+		}
+		m_rtcp_destination_jitter_avg_count++;
+		m_rtcp_destination_jitter_avg_sum += val;
+		m_rtcp_destination_jitter_avg = (int)(m_rtcp_destination_jitter_avg_sum / m_rtcp_destination_jitter_avg_count);
     } else {
 		m_rtcp_destination_jitter_avg = 0;
+    }
+}
+
+
+void CallRec::SetRTCP_SRC_video_packet_count(long val)
+{
+    m_rtcp_source_video_packet_count = val;
+}
+
+void CallRec::SetRTCP_DST_video_packet_count(long val)
+{
+    m_rtcp_destination_video_packet_count = val;
+}
+
+void CallRec::SetRTCP_SRC_video_packet_lost(long val)
+{
+    m_rtcp_source_video_packet_lost = val;
+}
+
+void CallRec::SetRTCP_DST_video_packet_lost(long val)
+{
+    m_rtcp_destination_video_packet_lost = val;
+}
+
+void CallRec::SetRTCP_SRC_video_jitter(int val)
+{	
+    if (val > 0){
+        if (m_rtcp_source_video_jitter_min == 0) {
+			m_rtcp_source_video_jitter_min = val;
+		} else if (m_rtcp_source_video_jitter_min > val) {
+			 m_rtcp_source_video_jitter_min = val;
+		}
+		if (m_rtcp_source_video_jitter_max == 0) {
+			m_rtcp_source_video_jitter_max = val;
+		} else if (m_rtcp_source_video_jitter_max < val) {
+			m_rtcp_source_video_jitter_max = val;
+		}
+		m_rtcp_source_video_jitter_avg_count++;
+		m_rtcp_source_video_jitter_avg_sum += val;
+		m_rtcp_source_video_jitter_avg = (int)(m_rtcp_source_video_jitter_avg_sum / m_rtcp_source_video_jitter_avg_count);
+    } else {
+		m_rtcp_source_video_jitter_avg = 0;
+    }
+}
+
+void CallRec::SetRTCP_DST_video_jitter(int val)
+{
+    if (val > 0) {
+        if (m_rtcp_destination_video_jitter_min == 0) {
+			m_rtcp_destination_video_jitter_min = val;
+		} else if (m_rtcp_destination_video_jitter_min > val) {
+			m_rtcp_destination_video_jitter_min = val;
+		}
+		if (m_rtcp_destination_video_jitter_max == 0) {
+			m_rtcp_destination_video_jitter_max = val;
+		} else if (m_rtcp_destination_video_jitter_max < val) {
+			m_rtcp_destination_video_jitter_max = val;
+		}
+		m_rtcp_destination_video_jitter_avg_count++;
+		m_rtcp_destination_video_jitter_avg_sum += val;
+		m_rtcp_destination_video_jitter_avg = (int)(m_rtcp_destination_video_jitter_avg_sum / m_rtcp_destination_video_jitter_avg_count);
+    } else {
+		m_rtcp_destination_video_jitter_avg = 0;
     }
 }
 
@@ -3363,6 +3481,35 @@ CallTable::~CallTable()
 	DeleteObjectsInContainer(RemovedList);
 }
 
+void CallTable::SupplyEndpointQoS(map<PString, EPQoS> & epqos) const
+{
+	for (const_iterator Iter = CallList.begin(); Iter != CallList.end(); ++Iter) {
+		CallRec *call = *Iter;
+		if (call->IsConnected()) {
+			endptr calling =  call->GetCallingParty();
+			endptr called = call->GetCalledParty();
+			if (calling) {
+				map<PString, EPQoS>::iterator i = epqos.find(AsString(calling->GetAliases()));
+				if (i != epqos.end()) {
+					i->second.SetAudioPacketLossPercent(call->GetRTCP_SRC_packet_loss_percent());
+					i->second.SetVideoPacketLossPercent(call->GetRTCP_SRC_video_packet_loss_percent());
+					i->second.SetAudioJitter(call->GetRTCP_SRC_jitter_avg());
+					i->second.SetVideoJitter(call->GetRTCP_SRC_video_jitter_avg());
+				}
+			}
+			if (called) {
+				map<PString, EPQoS>::iterator i = epqos.find(AsString(called->GetAliases()));
+				if (i != epqos.end()) {
+					i->second.SetAudioPacketLossPercent(call->GetRTCP_DST_packet_loss_percent());
+					i->second.SetVideoPacketLossPercent(call->GetRTCP_DST_video_packet_loss_percent());
+					i->second.SetAudioJitter(call->GetRTCP_DST_jitter_avg());
+					i->second.SetVideoJitter(call->GetRTCP_DST_video_jitter_avg());
+				}
+			}
+		}
+	}
+}
+
 void CallTable::ResetCallCounters()
 {
 	m_CallCount = m_successCall = m_neighborCall = m_parentCall = 0;
@@ -3614,8 +3761,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 	} 
 
 	for (PINDEX i=0; i < report.GetSize(); i++) {
-
-		int worstdelay = 0; int meandelay = 0; int packetlost=0; int packetlossrate = 0; 
+		int worstdelay = 0; int meandelay = 0; int packetslost = 0; int packetlossrate = 0; 
 		int packetlosspercent = 0; int bandwidth = 0; int maxjitter = 0; int meanjitter = 0;
 		H323TransportAddress sendAddr; H323TransportAddress recvAddr; PIPSocket::Address send; 
 		WORD sport = 0; PIPSocket::Address recv; WORD rport = 0; int session = 0;
@@ -3623,8 +3769,6 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		H4609_RTCPMeasures & info = report[i];	
 		session = info.m_sessionId;
 		PTRACE(4,"QoS\tPreparing QoS Report Session " << session);
-
-//		H225_TransportChannelInfo & addr = info.m_rtpAddress;
 
 	    H225_TransportChannelInfo & rtp = info.m_rtpAddress;
 	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_sendAddress))
@@ -3650,7 +3794,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 			H4609_RTCPMeasures_mediaReceiverMeasures & receiver = info.m_mediaReceiverMeasures;
 
 			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_cumulativeNumberOfPacketsLost))
-				packetlost = receiver.m_cumulativeNumberOfPacketsLost;
+				packetslost = receiver.m_cumulativeNumberOfPacketsLost;
 			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_packetLostRate))
 				packetlossrate = receiver.m_packetLostRate;
 			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_worstJitter))
@@ -3663,39 +3807,72 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 				meanjitter = receiver.m_meanJitter;
 		}
 
-		//write report to database
+		// save report in call for status port/radius reporting
+		callptr call = FindCallRec(StringToCallId(conference));
+		if (call && ep) {
+			if (call->GetCallingParty()
+				&& call->GetCallingParty()->GetEndpointIdentifier() == ep->GetEndpointIdentifier()) {
+				if (session == RTP_Session::DefaultAudioSessionID) {
+					call->SetRTCP_SRC_packet_lost(packetslost);
+					call->SetRTCP_SRC_jitter(meanjitter);
+					PTRACE(5, "QoS\tSession SetRTCP_SRC_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSession SetRTCP_SRC_jitter:" << meanjitter);
+				}
+				if (session == RTP_Session::DefaultVideoSessionID) {
+					call->SetRTCP_SRC_video_packet_lost(packetslost);
+					call->SetRTCP_SRC_video_jitter(meanjitter);
+					PTRACE(5, "QoS\tSession SetRTCP_SRC_video_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSession SetRTCP_SRC_video_jitter:" << meanjitter);
+				}
+			} else {
+				if (session == RTP_Session::DefaultAudioSessionID) {
+					call->SetRTCP_DST_packet_lost(packetslost);
+					call->SetRTCP_DST_jitter(meanjitter);
+					PTRACE(5, "QoS\tSession SetRTCP_DST_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSession SetRTCP_DST_jitter:" << meanjitter);
+				}
+				if (session == RTP_Session::DefaultVideoSessionID) {
+					call->SetRTCP_DST_video_packet_lost(packetslost);
+					call->SetRTCP_DST_video_jitter(meanjitter);
+					PTRACE(5, "QoS\tSession SetRTCP_DST_video_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSession SetRTCP_DST_video_jitter:" << meanjitter);
+				}
+			}
+		}
+
+		// write report to database
 #if HAS_DATABASE
 		Toolkit* const toolkit = Toolkit::Instance();
 
 		if (toolkit->QoS().Enabled()) {
-          std::map<PString, PString> params;
-	      const time_t t = time(0);
-	      const PTime nowtime(t);
+			std::map<PString, PString> params;
+			const time_t t = time(0);
+			const PTime nowtime(t);
 
-		   params["g"] = toolkit->GKName();
-           params["ConfId"] = conference;
-           params["session"] = session;
-	       params["caller-ip"] = send.AsString();
-	       params["caller-port"] = sport;
-	       params["caller-nat"] = ep->IsNATed();
+			params["g"] = toolkit->GKName();
+			params["ConfId"] = conference;
+			params["session"] = session;
+			params["caller-ip"] = send.AsString();
+			params["caller-port"] = sport;
+			params["caller-nat"] = ep->IsNATed();
 
-	       params["callee-ip"] = recv.AsString();
-   	       params["callee-port"] = rport;
+			params["callee-ip"] = recv.AsString();
+			params["callee-port"] = rport;
 
-	       params["avgdelay"] = meandelay;
-	       params["packetloss"] = packetlost;
-	       params["packetloss-percent"] = packetlosspercent;
-	       params["avgjitter"] = meanjitter;
-	       params["bandwidth"] = bandwidth;
-           params["t"] = nowtime.AsString();
+			params["avgdelay"] = meandelay;
+			params["packetloss"] = packetslost;
+			params["packetloss-percent"] = packetlosspercent;
+			params["avgjitter"] = meanjitter;
+			params["bandwidth"] = bandwidth;
+			params["t"] = nowtime.AsString();
 
-		  toolkit->QoS().PostRecord(params);
-		  return;
-	}
+			toolkit->QoS().PostRecord(params);
+			//return;	// JW: disabled: allow DB plus file to be active at same time
+		}
 #endif  // HAS_DATABASE
 
-		//Write report to file
-	   PString fn = GkConfig()->GetString("GkQoSMonitor", "DetailFile", "");
+		// write report to file
+		PString fn = GkConfig()->GetString("GkQoSMonitor", "DetailFile", "");
 		bool fileoutput = !fn.IsEmpty();
 		bool newfile = fileoutput ? !PFile::Exists(fn) : false;
  
@@ -3725,20 +3902,20 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 						+ "|" + PString(rport)
 						+ "|" + PString(ep->IsNATed())
 						+ "|" + PString(meandelay)
-						+ "|" + PString(packetlost)
+						+ "|" + PString(packetslost)
 						+ "|" + PString(packetlosspercent)
 						+ "|" + PString(meanjitter)
 						+ "|" + PString(bandwidth);
-		 
-		    PTRACE(4,"QoS\tQoS Report" << "\r\n" << outstr);
 
-			if (qosFile && qosFile->IsOpen()) {
-				if (!qosFile->WriteLine(outstr)) {
-                PTRACE(4,"QoS\tError writing QoS information to File");
-			    } 
-		       qosFile->Close();
-		       delete qosFile;
-		    }
+		PTRACE(4,"QoS\tQoS Report" << "\r\n" << outstr);
+
+		if (qosFile && qosFile->IsOpen()) {
+			if (!qosFile->WriteLine(outstr)) {
+				PTRACE(4,"QoS\tError writing QoS information to File");
+			} 
+		   qosFile->Close();
+		   delete qosFile;
+		}
 	}
 }
 
@@ -3748,7 +3925,7 @@ void CallTable::QoSReport(const H225_InfoRequestResponse & /* obj_irr */, const 
     H4609_QosMonitoringReportData report;
 	if (report.Decode(argStream) && report.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
 		PTRACE(5,"QoS\tReport " << report);
-		OnQosMonitoringReport(AsString(call->GetCallIdentifier().m_guid),ep,report);
+		OnQosMonitoringReport(AsString(call->GetCallIdentifier().m_guid), ep, report);
 	} else {
 		PTRACE(4,"QoS\tIRR Call Statistics decode failure.");
 	}
@@ -3761,7 +3938,7 @@ void CallTable::QoSReport(const H225_DisengageRequest & obj_drq, const endptr & 
 	if (report.Decode(argStream) && report.GetTag() == H4609_QosMonitoringReportData::e_final) {
 		PTRACE(5,"QoS\tReport " << report);
 		PString conference = ::AsString(obj_drq.m_conferenceID);
-		OnQosMonitoringReport(conference,ep,report);
+		OnQosMonitoringReport(conference, ep, report);
 	
 	} else {
 		PTRACE(4,"QoS\tDRQ Call Statistics decode failure.");

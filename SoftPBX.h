@@ -2,7 +2,7 @@
 //
 // SoftPBX.h
 //
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -50,6 +50,7 @@ namespace SoftPBX
 	void RerouteCall(const PString & CallId, const PCaselessString & whichLeg, const PString & destination);
 	void PrintPrefixCapacities(USocket *client, const PString & alias);
 	void PrintCapacityControlRules(USocket *client);
+	void PrintEndpointQoS(USocket *client);
 	
 	PString Uptime();
 

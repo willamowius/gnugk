@@ -3,7 +3,7 @@
 // GkStatus.h	thread listening for connections to receive
 //		status updates from the gatekeeper
 //
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -148,6 +148,7 @@ public:
 		e_GetAuthInfo,                 /// Get auth module information
 		e_GetAcctInfo,                 /// Get acct module information
 		e_ResetCallCounters,           /// Reset the call counters
+		e_PrintEndpointQoS,            /// Print QoS values for all endpoints
 		e_numCommands
 		/// Number of different strings
 	};

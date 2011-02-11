@@ -1,5 +1,8 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- new status port command: PrintEndpointQoS
+- use H.460.9 data in the same way as sniffed RTCP stats for status port and Radius reporting
+- BUGFIX(RasSrv.cxx) fix handling of H.460.9 in ARQ/ACF, signal support in RCF
 - BUGFIX(ProxyChannel.cxx) remove callDestSignalAddress from incoming Setup if its the
   ExternalIP to avoid loops
 - BUGFIX(RasSrv.cxx) don't include a callSignalAddress in RCFs in direct mode

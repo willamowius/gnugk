@@ -3,7 +3,7 @@
 // RAS Server for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1730,8 +1730,9 @@ bool RegistrationRequestPDU::Process()
 #endif
 
 #ifdef HAS_H460
-// Presence Support
+	bool EPSupportsQoSReporting = false;
 #ifdef HAS_H460P
+	// Presence Support
 	PBoolean presenceSupport = false;
 	OpalOID rPreFS = OpalOID(OID3);
 	PBoolean presencePDU = false;
@@ -1768,38 +1769,38 @@ bool RegistrationRequestPDU::Process()
 		}
 #endif // HAS_H46018
 #ifdef HAS_H46023
-      if (Toolkit::Instance()->IsH46023Enabled()) {
-	    supportH46023 = fs.HasFeature(23);
-		if (supportH46023) {
-			H460_FeatureStd * natfeat = (H460_FeatureStd *)fs.GetFeature(23);
-			// Check whether the endpoint supports Remote Nat directly (NATOffoad)
-           if (natfeat->Contains(Std23_RemoteNAT))	  
-			      supportH46024 = natfeat->Value(Std23_RemoteNAT);
-		   // Check whether the endpoint supports SameNAT H.460.24AnnexA
-		   if (natfeat->Contains(Std23_AnnexA))	  
-			      supportH46024A = natfeat->Value(Std23_AnnexA);
-		   // Check whether the endpoint supports offload H.460.24AnnexB
-		   if (natfeat->Contains(Std23_AnnexB))	  
-			      supportH46024B = natfeat->Value(Std23_AnnexB);
-		   // Check if the endpoint is notifying the Gk the type of NAT detected
-		   if (natfeat->Contains(Std23_NATdet))
-			      ntype = natfeat->Value(Std23_NATdet);
+		if (Toolkit::Instance()->IsH46023Enabled()) {
+			supportH46023 = fs.HasFeature(23);
+			if (supportH46023) {
+				H460_FeatureStd * natfeat = (H460_FeatureStd *)fs.GetFeature(23);
+				// Check whether the endpoint supports Remote Nat directly (NATOffoad)
+				if (natfeat->Contains(Std23_RemoteNAT))	  
+					supportH46024 = natfeat->Value(Std23_RemoteNAT);
+				// Check whether the endpoint supports SameNAT H.460.24AnnexA
+				if (natfeat->Contains(Std23_AnnexA))	  
+					supportH46024A = natfeat->Value(Std23_AnnexA);
+				// Check whether the endpoint supports offload H.460.24AnnexB
+				if (natfeat->Contains(Std23_AnnexB))	  
+					supportH46024B = natfeat->Value(Std23_AnnexB);
+				// Check if the endpoint is notifying the Gk the type of NAT detected
+				if (natfeat->Contains(Std23_NATdet))
+					ntype = natfeat->Value(Std23_NATdet);
+			}
 		}
-	  }
 #endif
 
 #ifdef HAS_H460P
-      if (Toolkit::Instance()->IsH460PEnabled()) {
-		presenceSupport = fs.HasFeature(rPreFS);
-		if (presenceSupport) {
-			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPreFS);
-			presencePDU = feat->Contains(OID3_PDU);
-			if (presencePDU) {
-				PASN_OctetString & prePDU = feat->Value(OID3_PDU);
-				preFeature = prePDU;
+		if (Toolkit::Instance()->IsH460PEnabled()) {
+			presenceSupport = fs.HasFeature(rPreFS);
+			if (presenceSupport) {
+				H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPreFS);
+				presencePDU = feat->Contains(OID3_PDU);
+				if (presencePDU) {
+					PASN_OctetString & prePDU = feat->Value(OID3_PDU);
+					preFeature = prePDU;
+				}
 			}
 		}
-	  }
 #endif // HAS_H460P
 
 		if (fs.HasFeature(rPriFS)) {
@@ -1813,8 +1814,14 @@ bool RegistrationRequestPDU::Process()
                 preempt = feat->Value(PString(OID6_Preempt));
 			}
 		}
+
+		// H.460.9
+		if (fs.HasFeature(9)) {
+			EPSupportsQoSReporting = true;
+		}
 	}
 #endif // HAS_H460
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
    // If calling NAT support disabled. 
@@ -1978,13 +1985,24 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460
 				if (ep->SupportPreemption()) {
 					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-					H460_FeatureOID pre = H460_FeatureOID(rPriFS);
-
+					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
 					PINDEX sz = desc.GetSize();
 					desc.SetSize(sz+1);
-					desc[sz] = pre;
+					desc[sz] = H460_FeatureOID(rPriFS);
+				}
+
+				// H.460.9
+				if (EPSupportsQoSReporting
+					&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
+					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
+					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
+					PINDEX sz = desc.GetSize();
+					desc.SetSize(sz+1);
+					desc[sz] = H460_FeatureStd(9);
 				}
 #endif
 
@@ -2247,22 +2265,22 @@ bool RegistrationRequestPDU::Process()
 
 			// Build the message
 			if (ok23) {
-			  ep->SetUsesH46023(true);
-			  bool h46023nat = nated || h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"));
+				ep->SetUsesH46023(true);
+				bool h46023nat = nated || h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"));
 
-			  H460_FeatureStd natfs = H460_FeatureStd(23);
-			  natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
-			  if (h46023nat) { 
-				 natfs.Add(Std23_STUNAddr,H460_FeatureContent(stunaddr));
-			  } else {
-				// If not NAT then provide the RAS address to the client to determine
-				// whether there is an ALG (or someother device) making things appear as they are not
-				 natfs.Add(Std23_DetRASAddr,H460_FeatureContent(H323TransportAddress(request.m_rasAddress[0])));
-			  }
+				H460_FeatureStd natfs = H460_FeatureStd(23);
+				natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
+				if (h46023nat) { 
+					natfs.Add(Std23_STUNAddr,H460_FeatureContent(stunaddr));
+				} else {
+					// If not NAT then provide the RAS address to the client to determine
+					// whether there is an ALG (or someother device) making things appear as they are not
+					natfs.Add(Std23_DetRASAddr,H460_FeatureContent(H323TransportAddress(request.m_rasAddress[0])));
+				}
 
-				  PINDEX lPos = gd.GetSize();
-				  gd.SetSize(lPos+1);
-				  gd[lPos] = natfs;
+				PINDEX lPos = gd.GetSize();
+				gd.SetSize(lPos+1);
+				gd[lPos] = natfs;
 			 } 
 		}
 #endif // HAS_H46023
@@ -2287,6 +2305,14 @@ bool RegistrationRequestPDU::Process()
 			PINDEX lPos = gd.GetSize();
 			gd.SetSize(lPos+1);
 			gd[lPos] = pre;
+		}
+
+		// H.460.9
+		if (EPSupportsQoSReporting
+			&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+			PINDEX lPos = gd.GetSize();
+			gd.SetSize(lPos+1);
+			gd[lPos] = H460_FeatureStd(9);
 		}
 
 		if (gd.GetSize() > 0)	{
@@ -2595,7 +2621,7 @@ PString AdmissionRequestPDU::GetCallLinkage(
 	if (!id)
 		return id;
 	else
-		return PString();  // No Call Linkage detected.
+		return PString::Empty();  // No Call Linkage detected.
 
 }
 
@@ -2721,36 +2747,38 @@ bool AdmissionRequestPDU::Process()
 
 	bool signalOffload = false;
 #ifdef HAS_H460
-    bool QoSReporting = false;
+    bool EPSupportsQoSReporting = false;
 	bool vendorInfo = false;
-	PString m_vendor,m_version = PString();
+	PString vendor, version = PString::Empty();
 #ifdef HAS_H46023
 	bool natsupport = false;
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #endif
 	if (request.HasOptionalField(H225_AdmissionRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];
-          
+		for (PINDEX i = 0; i < data.GetSize(); i++) {
+			H460_Feature & feat = (H460_Feature &)data[i];
+			if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
+				vendorInfo = true;
 #ifdef HAS_H46023
-		  if (Toolkit::Instance()->IsH46023Enabled()) {
-			  if (feat.GetFeatureID() == H460_FeatureID(24)) {
-				 natsupport = true;
-				 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-				 if (std24.Contains(Std24_NATInstruct)) {
-				   unsigned natstat = std24.Value(Std24_NATInstruct);
-				   natoffloadsupport = (CallRec::NatStrategy)natstat;
-				 }
-			  }
-		  }
+			if (Toolkit::Instance()->IsH46023Enabled()) {
+				if (feat.GetFeatureID() == H460_FeatureID(24)) {
+					natsupport = true;
+					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+					if (std24.Contains(Std24_NATInstruct)) {
+						unsigned natstat = std24.Value(Std24_NATInstruct);
+						natoffloadsupport = (CallRec::NatStrategy)natstat;
+					}
+				}
+			}
 #endif
-		  /// Vendor Information
-  		  if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
-		     vendorInfo = true;
-          /// H.460.9 QoS Reporting
-		  if (feat.GetFeatureID() == H460_FeatureID(9)) 
-             QoSReporting = true;
+		}
+	}
+	/// H.460.9 QoS Reporting
+	if (request.HasOptionalField(H225_AdmissionRequest::e_featureSet)) {
+		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+		if (fs.HasFeature(9)) {
+			EPSupportsQoSReporting = true;
 		}
 	}
 #endif
@@ -2987,7 +3015,7 @@ bool AdmissionRequestPDU::Process()
 
 		signalOffload = pCallRec->NATSignallingOffload(answer);
 
-		pCallRec->GetRemoteInfo(m_vendor,m_version);
+		pCallRec->GetRemoteInfo(vendor, version);
 #endif
 		// Put rewriting information into call record
 		pCallRec->SetInboundRewriteId(in_rewrite_source);
@@ -3022,7 +3050,7 @@ bool AdmissionRequestPDU::Process()
 			authData.m_amountString, authData.m_billingMode, 
 			authData.m_callDurationLimit)) {
 			   	acf.IncludeOptionalField(H225_AdmissionConfirm::e_serviceControl);
-	        }
+	}
 
 #ifdef HAS_H460
 	if (!answer) {	
@@ -3040,28 +3068,26 @@ bool AdmissionRequestPDU::Process()
 		}
 #endif
 		/// OID9 Vendor Information
-		if (vendorInfo && !m_vendor.IsEmpty()) {
+		if (vendorInfo && !vendor.IsEmpty()) {
 			H460_FeatureOID fs = H460_FeatureOID(OID9);
-			fs.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
-			fs.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
+			fs.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
+			fs.Add(PString(VendorVerOID),H460_FeatureContent(version));
 			lastPos++;
 			data.SetSize(lastPos);
 			data[lastPos-1] = fs;
 		}
-		/// H.460.9 QoS Reporting
-		if (QoSReporting && 
-			Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
-			H460_FeatureStd fs = H460_FeatureStd(9);
-
-			if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "DRQOnly", "1")))
-				fs.Add(0,H460_FeatureContent(0,8));
-			lastPos++;
-			data.SetSize(lastPos);
-			data[lastPos-1] = fs;
-		}
-
 		if (lastPos > 0) 
 			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
+
+		/// H.460.9 QoS Reporting
+		if (EPSupportsQoSReporting
+			&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+			acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
+			acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_desiredFeatures;
+			desc.SetSize(1);
+			desc[0] = H460_FeatureStd(9);
+		}
 	}
 #endif
 
@@ -3226,15 +3252,14 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];
-    /// H.460.9 QoS Feature
-           if (feat.GetFeatureID() == H460_FeatureID(9)) {
-			   H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
-			   if (qosfeat.Contains(1)) {
-			      PASN_OctetString & rawstats = qosfeat.Value(1);
-                  CallTbl->QoSReport(*this, ep, rawstats);
-			   }
-		   }
+			H460_Feature & feat = (H460_Feature &)data[i];
+			/// H.460.9 QoS Feature
+			if (feat.GetFeatureID() == H460_FeatureID(9)) {
+				H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
+				if (qosfeat.Contains(1)) {
+					CallTbl->QoSReport(*this, ep, qosfeat.Value(1));
+				}
+			}
 		}
 	}
 #endif
@@ -3394,11 +3419,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 #endif
 						/// OID9 Vendor Interoperability
 						if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
-							PString m_vendor,m_version = PString();
-							if (WantedEndPoint->GetEndpointInfo(m_vendor,m_version)) {
+							PString vendor, version = PString::Empty();
+							if (WantedEndPoint->GetEndpointInfo(vendor, version)) {
 								H460_FeatureOID foid9 = H460_FeatureOID(OID9);
-								foid9.Add(PString(VendorProdOID),H460_FeatureContent(m_vendor));
-								foid9.Add(PString(VendorVerOID),H460_FeatureContent(m_version));
+								foid9.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
+								foid9.Add(PString(VendorVerOID),H460_FeatureContent(version));
 								lastPos++;
 								data.SetSize(lastPos);
 								data[lastPos-1] = foid9;
@@ -3485,14 +3510,13 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 #ifdef HAS_H460
 		if (call && request.HasOptionalField(H225_InfoRequestResponse::e_genericData)) {
 			H225_ArrayOf_GenericData & data = request.m_genericData;
-			for (PINDEX i =0; i < data.GetSize(); i++) {
+			for (PINDEX i = 0; i < data.GetSize(); i++) {
 				H460_Feature & feat = (H460_Feature &)data[i];
 				/// H.460.9 QoS Feature
 				if (feat.GetFeatureID() == H460_FeatureID(9)) {
 					H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
 					if (qosfeat.Contains(1)) {
-			           PASN_OctetString & rawstats = qosfeat.Value(1);
-                       CallTbl->QoSReport(*this, call, ep , rawstats);
+						CallTbl->QoSReport(*this, call, ep , qosfeat.Value(1));
 					}
 				}
 			}

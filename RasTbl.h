@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -457,6 +457,31 @@ public:
 	virtual EndpointRec *Expired() { return this; }
 };
 
+class EPQoS {
+public:
+	EPQoS() { Init(); }
+	EPQoS(PTime lastMsg) { Init(); m_lastMsg = lastMsg; }
+	~EPQoS() { }
+
+	void Init();
+	PString AsString() const;
+
+	void SetAudioPacketLossPercent(float val) { m_audioPacketLossPercent = val; }
+	float GetAudioPacketLossPercent() const { return m_audioPacketLossPercent; }
+	void SetAudioJitter(unsigned val) { m_audioJitter = val; }
+	unsigned GetAudioJitter() const { return m_audioJitter; }
+	void SetVideoPacketLossPercent(float val) { m_videoPacketLossPercent = val; }
+	float GetVideoPacketLossPercent() const { return m_videoPacketLossPercent; }
+	void SetVideoJitter(unsigned val) { m_videoJitter = val; }
+	unsigned GetVideoJitter() const { return m_videoJitter; }
+
+protected:
+	PTime m_lastMsg;
+	float m_audioPacketLossPercent;
+	unsigned long m_audioJitter;
+	float m_videoPacketLossPercent;
+	unsigned long m_videoJitter;
+};
 
 class RegistrationTable : public Singleton<RegistrationTable> {
 public:
@@ -489,6 +514,7 @@ public:
 	void PrintAllCached(USocket *client, bool verbose=FALSE);
 	void PrintRemoved(USocket *client, bool verbose=FALSE);
 	void PrintPrefixCapacities(USocket *client, PString alias) const;
+	void PrintEndpointQoS(USocket *client); //const;
 
 	PString PrintStatistics() const;
 
@@ -770,7 +796,7 @@ public:
 
 	PString GenerateCDR(
 		/// timestamp formatting string (empty for a default RFC822 format)
-		const PString& timestampFormat = PString()
+		const PString & timestampFormat = PString::Empty()
 		) const;
 	PString PrintOn(bool verbose) const;
 
@@ -845,38 +871,50 @@ public:
 
 	void InitRTCP_report();
 
+	// set audio RTCP stats
 	void SetRTCP_SRC_packet_count(long val);
-	void SetRTCP_DST_packet_count(long val);
-
 	void SetRTCP_SRC_packet_lost(long val);
-	void SetRTCP_DST_packet_lost(long val);
-
 	void SetRTCP_SRC_jitter(int val);
+	void SetRTCP_DST_packet_count(long val);
+	void SetRTCP_DST_packet_lost(long val);
 	void SetRTCP_DST_jitter(int val);
 
-	// Get RTCP source packet count
-	long GetRTCP_SRC_packet_count() const;
-	// Get RTCP destination packet count
-	long GetRTCP_DST_packet_count() const;
+	// get audio RTCP stats
+	long GetRTCP_SRC_packet_count() const { return m_rtcp_source_packet_count; }
+	long GetRTCP_SRC_packet_lost() const { return m_rtcp_source_packet_lost; }
+	float GetRTCP_SRC_packet_loss_percent() const { return (m_rtcp_source_packet_count == 0) ? 0 : (m_rtcp_source_packet_lost / m_rtcp_source_packet_count); }
+	int GetRTCP_SRC_jitter_max() const { return m_rtcp_source_jitter_max; }
+	int GetRTCP_SRC_jitter_min() const { return m_rtcp_source_jitter_min; }
+	int GetRTCP_SRC_jitter_avg() const { return m_rtcp_source_jitter_avg; }
+	long GetRTCP_DST_packet_count() const { return m_rtcp_destination_packet_count; }
+	long GetRTCP_DST_packet_lost() const { return m_rtcp_destination_packet_lost; }
+	float GetRTCP_DST_packet_loss_percent() const { return (m_rtcp_destination_packet_count == 0) ? 0 : (m_rtcp_destination_packet_lost / m_rtcp_destination_packet_count); }
+	int GetRTCP_DST_jitter_max() const { return m_rtcp_destination_jitter_max; }
+	int GetRTCP_DST_jitter_min() const { return m_rtcp_destination_jitter_min; }
+	int GetRTCP_DST_jitter_avg() const { return m_rtcp_destination_jitter_avg; }
 
-	// Get RTCP source packet lost
-	long GetRTCP_SRC_packet_lost() const;
-	// Get RTCP destination packet lost
-	long GetRTCP_DST_packet_lost() const;
+	// set video RTCP stats
+	void SetRTCP_SRC_video_packet_count(long val);
+	void SetRTCP_SRC_video_packet_lost(long val);
+	void SetRTCP_SRC_video_jitter(int val);
+	void SetRTCP_DST_video_packet_count(long val);
+	void SetRTCP_DST_video_packet_lost(long val);
+	void SetRTCP_DST_video_jitter(int val);
 
-	// Get RTCP source jitter max
-	int GetRTCP_SRC_jitter_max() const;
-	// Get RTCP source jitter min
-	int GetRTCP_SRC_jitter_min() const;
-	// Get RTCP source jitter avg
-	int GetRTCP_SRC_jitter_avg() const;
+	// get video RTCP stats
+	long GetRTCP_SRC_video_packet_count() const { return m_rtcp_source_video_packet_count; }
+	long GetRTCP_SRC_video_packet_lost() const { return m_rtcp_source_video_packet_lost; }
+	float GetRTCP_SRC_video_packet_loss_percent() const { return (m_rtcp_source_video_packet_count == 0) ? 0 : (m_rtcp_source_video_packet_lost / m_rtcp_source_video_packet_count); }
+	int GetRTCP_SRC_video_jitter_max() const { return m_rtcp_source_video_jitter_max; }
+	int GetRTCP_SRC_video_jitter_min() const { return m_rtcp_source_video_jitter_min; }
+	int GetRTCP_SRC_video_jitter_avg() const { return m_rtcp_source_video_jitter_avg; }
+	long GetRTCP_DST_video_packet_count() const { return m_rtcp_destination_video_packet_count; }
+	long GetRTCP_DST_video_packet_lost() const { return m_rtcp_destination_video_packet_lost; }
+	float GetRTCP_DST_video_packet_loss_percent() const { return (m_rtcp_destination_video_packet_count == 0) ? 0 : (m_rtcp_destination_video_packet_lost / m_rtcp_destination_video_packet_count); }
+	int GetRTCP_DST_video_jitter_max() const { return m_rtcp_destination_video_jitter_max; }
+	int GetRTCP_DST_video_jitter_min() const { return m_rtcp_destination_video_jitter_min; }
+	int GetRTCP_DST_video_jitter_avg() const { return m_rtcp_destination_video_jitter_avg; }
 
-	//Get RTCP destinaton jitter max
-	int GetRTCP_DST_jitter_max() const;
-	//Get RTCP destinaton jitter in
-	int GetRTCP_DST_jitter_min() const;
-	//Get RTCP destinaton jitter avg
-	int GetRTCP_DST_jitter_avg() const;
 	time_t GetSetupTime() const;
 
 	/** Set timestamp for a Setup message associated with this call. */
@@ -1220,22 +1258,16 @@ private:
 	PStringList m_rtcp_destination_sdes;
 	bool m_rtcp_destination_sdes_flag;
 
-	// RTCP_source_packet_count
+	// RTCP audio stats
 	long m_rtcp_source_packet_count;
-	// RTCP_destination_packet_count	
 	long m_rtcp_destination_packet_count;
-
-	// RTCP_source_packet_lost
 	long m_rtcp_source_packet_lost;
-	// RTCP_destination_packet_lost
 	long m_rtcp_destination_packet_lost;
 
-	// RTCP_source_jitter
 	int m_rtcp_source_jitter_min;
 	int m_rtcp_source_jitter_max;
 	int m_rtcp_source_jitter_avg;
 
-	// RTCP_destination_jitter
 	int m_rtcp_destination_jitter_min;
 	int m_rtcp_destination_jitter_max;
 	int m_rtcp_destination_jitter_avg;
@@ -1245,6 +1277,26 @@ private:
 
 	int m_rtcp_destination_jitter_avg_count;
 	long m_rtcp_destination_jitter_avg_sum;
+
+	// RTCP video stats
+	long m_rtcp_source_video_packet_count;
+	long m_rtcp_destination_video_packet_count;
+	long m_rtcp_source_video_packet_lost;
+	long m_rtcp_destination_video_packet_lost;
+
+	int m_rtcp_source_video_jitter_min;
+	int m_rtcp_source_video_jitter_max;
+	int m_rtcp_source_video_jitter_avg;
+
+	int m_rtcp_destination_video_jitter_min;
+	int m_rtcp_destination_video_jitter_max;
+	int m_rtcp_destination_video_jitter_avg;
+
+	int m_rtcp_source_video_jitter_avg_count;
+	long m_rtcp_source_video_jitter_avg_sum;
+
+	int m_rtcp_destination_video_jitter_avg_count;
+	long m_rtcp_destination_video_jitter_avg_sum;
 
 	/// current timeout (or duration limit) for the call
 	time_t m_timeout;
@@ -1407,6 +1459,7 @@ public:
     void QoSReport(const H225_DisengageRequest &, const endptr &, const PASN_OctetString &);
     void QoSReport(const H225_InfoRequestResponse &, const callptr &, const endptr &, const PASN_OctetString &);
 #endif
+	void SupplyEndpointQoS(map<PString, EPQoS> & epqos) const;
 
 	void LoadConfig();
 	void UpdatePrefixCapacityCounters();    // after Reload
@@ -1819,56 +1872,6 @@ inline PStringList CallRec::GetRTCP_SRC_sdes() const
 inline PStringList CallRec::GetRTCP_DST_sdes() const
 {
     return m_rtcp_destination_sdes;
-}
-
-inline long CallRec::GetRTCP_SRC_packet_count() const
-{
-    return m_rtcp_source_packet_count;
-}
-
-inline long CallRec::GetRTCP_DST_packet_count() const
-{
-    return m_rtcp_destination_packet_count;
-}
-
-inline long CallRec::GetRTCP_SRC_packet_lost() const
-{
-    return m_rtcp_source_packet_lost;
-}
-
-inline long CallRec::GetRTCP_DST_packet_lost() const
-{
-    return m_rtcp_destination_packet_lost;
-}
-
-inline int CallRec::GetRTCP_SRC_jitter_max() const
-{
-    return m_rtcp_source_jitter_max;
-}
-
-inline int CallRec::GetRTCP_SRC_jitter_min() const
-{
-    return m_rtcp_source_jitter_min;
-}
-
-inline int CallRec::GetRTCP_SRC_jitter_avg() const
-{
-    return m_rtcp_source_jitter_avg;
-}
-
-inline int CallRec::GetRTCP_DST_jitter_max() const
-{
-    return m_rtcp_destination_jitter_max;
-}
-
-inline int CallRec::GetRTCP_DST_jitter_min() const
-{
-    return m_rtcp_destination_jitter_min;
-}
-
-inline int CallRec::GetRTCP_DST_jitter_avg() const
-{
-    return m_rtcp_destination_jitter_avg;
 }
 
 inline time_t CallRec::GetSetupTime() const

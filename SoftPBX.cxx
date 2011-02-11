@@ -2,7 +2,7 @@
 //
 // SoftPBX.cxx
 //
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -497,6 +497,12 @@ void SoftPBX::PrintCapacityControlRules(USocket *client)
 	PString msg(CapacityControl::Instance()->PrintRules());
 	msg += ";\r\n";
 	client->TransmitData(msg);
+}
+
+void SoftPBX::PrintEndpointQoS(USocket *client)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintEndpointQoS");
+	RegistrationTable::Instance()->PrintEndpointQoS(client);
 }
 
 PString SoftPBX::Uptime()

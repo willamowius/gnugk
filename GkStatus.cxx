@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -743,6 +743,7 @@ void GkStatus::OnStart()
 	m_commands["getacctinfo"] = e_GetAcctInfo;
 	m_commands["gci"] = e_GetAcctInfo;
 	m_commands["resetcallcounters"] = e_ResetCallCounters;
+	m_commands["printendpointqos"] = e_PrintEndpointQoS;
 }
 
 void GkStatus::ReadSocket(
@@ -823,7 +824,7 @@ bool StatusClient::ReadCommand(
 			case '\n':
 				cmd = m_currentCmd;
 				m_lastCmd = cmd;
-				m_currentCmd = PString();
+				m_currentCmd = PString::Empty();
 				if (echo && NeedEcho())
 					TransmitData("\r\n");
 				return true;
@@ -841,7 +842,7 @@ bool StatusClient::ReadCommand(
 			case '\x04':	// Ctrl-D
 				cmd = "exit";
 				m_lastCmd = cmd;
-				m_currentCmd = PString();
+				m_currentCmd = PString::Empty();
 				return true;
 			default:
 				byte = char(ch);
@@ -1121,7 +1122,7 @@ PString StatusClient::GetPassword(
 	) const
 {
 	return !login
-		? Toolkit::Instance()->ReadPassword(authsec, login, true) : PString();
+		? Toolkit::Instance()->ReadPassword(authsec, login, true) : PString::Empty();
 }
 
 void StatusClient::CommandError(const PString & msg)
@@ -1515,6 +1516,10 @@ void StatusClient::ExecCommand(
 			WriteString(RasServer::Instance()->GetAcctInfo(args[1]));
 		else
 			CommandError("Syntax Error: GetAcctInfo|gci ACCT_MODULE_NAME");
+		break;
+	case GkStatus::e_PrintEndpointQoS:
+		// print QoS values for all endpoints
+		SoftPBX::PrintEndpointQoS(this);
 		break;
 	default:
 		// commmand not recognized
