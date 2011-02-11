@@ -466,17 +466,15 @@ public:
 	void Init();
 	PString AsString() const;
 
+	void IncrementCalls() { m_numCalls++; }
 	void SetAudioPacketLossPercent(float val) { m_audioPacketLossPercent = val; }
-	float GetAudioPacketLossPercent() const { return m_audioPacketLossPercent; }
 	void SetAudioJitter(unsigned val) { m_audioJitter = val; }
-	unsigned GetAudioJitter() const { return m_audioJitter; }
 	void SetVideoPacketLossPercent(float val) { m_videoPacketLossPercent = val; }
-	float GetVideoPacketLossPercent() const { return m_videoPacketLossPercent; }
 	void SetVideoJitter(unsigned val) { m_videoJitter = val; }
-	unsigned GetVideoJitter() const { return m_videoJitter; }
 
 protected:
 	PTime m_lastMsg;
+	unsigned m_numCalls;
 	float m_audioPacketLossPercent;
 	unsigned long m_audioJitter;
 	float m_videoPacketLossPercent;

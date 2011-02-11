@@ -758,16 +758,17 @@ GetAcctInfo SqlAcct
 <p>EXPERIMENTAL: Display QoS values for all endpoints. The values are collected
 through H.460.9 and/or proxied RTCP messages, so at least one of these features
 must be enabled to have packet loss or jitter values.
+If an endpoint has more than one active call, the packet loss and jitter values are from one randomly selected call.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-QoS|<endpoint aliases>|<last contact from endpoint>|<audio packet loss percent>|<audio jitter>|<video packet loss percent>|<video jitter>
+QoS|<endpoint aliases>|<last contact from endpoint>|<num calls>|<audio packet loss percent>|<audio jitter>|<video packet loss percent>|<video jitter>
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
 EndpointQoS
-QoS|8001:dialedDigits=Peter:h323_ID|2011-02-10 T 09:23:08 Z|0.00%|0|0.00%|0
-QoS|Mary:h323_ID|2011-02-10 T 09:23:08 Z|0.00%|0|0.00%|0
+QoS|8001:dialedDigits=Peter:h323_ID|2011-02-10 T 09:23:08 Z|1|0.00%|0|0.00%|0
+QoS|Mary:h323_ID|2011-02-10 T 09:23:08 Z|1|0.00%|0|0.00%|0
 Number of Endpoints: 2
 ;
 </verb></tscreen>

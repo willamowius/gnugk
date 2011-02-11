@@ -71,6 +71,7 @@ const int DEFAULT_IRQ_POLL_COUNT = 1;
 void EPQoS::Init()
 {
 	m_lastMsg = 0;
+	m_numCalls = 0;
 	m_audioPacketLossPercent = 0.0;
 	m_audioJitter = 0;
 	m_videoPacketLossPercent = 0.0;
@@ -79,8 +80,8 @@ void EPQoS::Init()
 
 PString EPQoS::AsString() const
 {
-	return PString(PString::Printf, "%s|%0.2f%%|%lu|%0.2f%%|%lu",
-		(const char*)m_lastMsg.AsString(PTime::LongISO8601, PTime::UTC),
+	return PString(PString::Printf, "%s|%d|%0.2f%%|%lu|%0.2f%%|%lu",
+		(const char*)m_lastMsg.AsString(PTime::LongISO8601, PTime::UTC), m_numCalls,
 		m_audioPacketLossPercent, m_audioJitter, m_videoPacketLossPercent, m_videoJitter);
 }
 
@@ -3491,6 +3492,7 @@ void CallTable::SupplyEndpointQoS(map<PString, EPQoS> & epqos) const
 			if (calling) {
 				map<PString, EPQoS>::iterator i = epqos.find(AsString(calling->GetAliases()));
 				if (i != epqos.end()) {
+					i->second.IncrementCalls();
 					i->second.SetAudioPacketLossPercent(call->GetRTCP_SRC_packet_loss_percent());
 					i->second.SetVideoPacketLossPercent(call->GetRTCP_SRC_video_packet_loss_percent());
 					i->second.SetAudioJitter(call->GetRTCP_SRC_jitter_avg());
@@ -3500,6 +3502,7 @@ void CallTable::SupplyEndpointQoS(map<PString, EPQoS> & epqos) const
 			if (called) {
 				map<PString, EPQoS>::iterator i = epqos.find(AsString(called->GetAliases()));
 				if (i != epqos.end()) {
+					i->second.IncrementCalls();
 					i->second.SetAudioPacketLossPercent(call->GetRTCP_DST_packet_loss_percent());
 					i->second.SetVideoPacketLossPercent(call->GetRTCP_DST_video_packet_loss_percent());
 					i->second.SetAudioJitter(call->GetRTCP_DST_jitter_avg());
