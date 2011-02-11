@@ -109,6 +109,7 @@ public:
 	bool SendRas(const H225_RasMessage &, const Address &, WORD, RasListener * = 0);
 	bool SendRas(const H225_RasMessage &, const H225_TransportAddress &, RasListener * = 0);
 	bool SendRas(const H225_RasMessage &, const Address &, WORD, const Address &);
+	bool SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port);
 
 	bool IsRedirected(unsigned = 0) const;
 	bool IsForwardedMessage(const H225_NonStandardParameter *, const Address &) const;

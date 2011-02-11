@@ -1058,6 +1058,16 @@ bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WO
 	return listener->SendRas(rasobj, addr, pt);
 }
 
+bool RasServer::SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port)
+{
+	H225_RasMessage ras_msg;
+	ras_msg.SetTag(H225_RasMessage::e_requestInProgress);
+	H225_RequestInProgress & rip = ras_msg;
+	rip.m_requestSeqNum.SetValue(seqNum);
+	rip.m_delay = ripDelay;
+	return SendRas(ras_msg, addr, port);
+}
+
 bool RasServer::IsRedirected(unsigned tag) const
 {
 	if (redirectGK != e_noRedirect)
@@ -2650,6 +2660,12 @@ bool AdmissionRequestPDU::Process()
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 	}
 
+	// send RIP message before doing any real work if configured to do so
+	unsigned ripDelay = GkConfig()->GetInteger("RasSrv::ARQFeatures", "SendRIP", 0);
+	if (ripDelay > 0) {
+		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
+	}
+
 	bool aliasesChanged = false;
 	bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
 		&& request.m_destinationInfo.GetSize() > 0;
@@ -3323,6 +3339,12 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	if (request.HasOptionalField(H225_LocationRequest::e_endpointIdentifier))
 		if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier))
 			fromRegEndpoint = replyAddrMatch ? true : ep->IsNATed();
+
+	// send RIP message before doing any real work if configured to do so
+	unsigned ripDelay = GkConfig()->GetInteger("RasSrv::LRQFeatures", "SendRIP", 0);
+	if (ripDelay > 0) {
+		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
+	}
 
     // Neighbors do not need Validation
 	bool bReject = !(fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this));
