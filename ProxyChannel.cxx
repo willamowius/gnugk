@@ -5496,6 +5496,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	WORD fromPort;
 	GetLastReceiveAddress(fromIP, fromPort);
 	buflen = (WORD)GetLastReadCount();
+	// verify packet
+	unsigned int version = 0;
+	if (buflen >= 1)
+		version = (((int)wbuffer[0] & 0xc0) >> 6);
+	if (version != 2) {
+		PTRACE(1, "RTP\tInvalid RTP/RTCP packet: version=" << version);
+		return NoData;
+	}
 #ifdef HAS_H46018
 	int payloadType = H46019_UNDEFINED_PAYLOAD_TYPE;
 	if (buflen >= 2)
@@ -5700,18 +5708,22 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		bool direct = ((*m_call)->GetSRC_media_control_IP() == fromIP.AsString());
 		PIPSocket::Address addr = (DWORD)0;
 		(*m_call)->GetMediaOriginatingIp(addr);
+		if (buflen < 4) {
+			PTRACE(1, "RTCP\tInvalid RTCP frame");
+			return NoData;
+		}
 
 		RTP_ControlFrame frame(2048);
 		frame.Attach(wbuffer, buflen);
 		do {
 			BYTE * payload = frame.GetPayloadPtr();
 			unsigned size = frame.GetPayloadSize();
-			if ((payload == NULL) || (size == 0) || ((payload + size) > (frame.GetPointer() + frame.GetSize()))) {
-			/* TODO: 1.shall we test for a maximum size ? Indeed but what's the value ? *
-				 2. what's the correct exit status ? */
-				PTRACE(1, "RTCP\tSession invalid frame");
-				// TODO: return NoData; ?
-				break;
+			if ((payload == NULL) || (size == 0)
+				|| (frame.GetVersion() != 2)
+				|| ((payload + size) > (frame.GetPointer() + frame.GetSize()))) {
+				// TODO: test for a maximum size ? what is the max size ?
+				PTRACE(1, "RTCP\tInvalid RTCP frame");
+				return NoData;
 			}
 			switch (frame.GetPayloadType()) {
 			case RTP_ControlFrame::e_SenderReport :
