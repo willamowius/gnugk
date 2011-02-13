@@ -141,8 +141,15 @@ national gatekeepers connected to the Global Dialing Scheme (GDS), see
 for more information.
 WARNING: Enabling receiving LCF from other than the LRQ destination IP is a significant security risk. 
 Use this setting with extreme caution.
-</itemize>
 
+<item><tt/SendRIP=9000/<newline>
+Default: <tt/0/<newline>
+<p>
+Send a RequestInProgress (RIP) message with this delay value after receiving an LRQ.
+This switch can be used to extend the duration the caller will wait for an answer.
+No RIP is sent when the delay ist set to 0.
+
+</itemize>
 
 
 <sect1>Section &lsqb;Neighbor::...&rsqb;
