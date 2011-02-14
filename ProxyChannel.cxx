@@ -297,10 +297,10 @@ public:
 	bool isMute() { return mute; }
 	void SetMute(bool toMute) { mute = toMute; }
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
+	void SetRTPSessionID(WORD id) { m_sessionID = id; }
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
 	void SetH46019Direction(int dir) { m_h46019dir = dir; }
-	void SetH46024SessionID(WORD id) { m_sessionID = id; }
 	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
 	// disabled for now, until we handle 2 payload types per UDPProxy
 	// void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
@@ -330,6 +330,7 @@ private:
 	bool mute;
 	bool m_dontQueueRTP;
 	bool m_EnableRTCPStats;
+	WORD m_sessionID;
 #ifdef HAS_H46018
 	// also used as indicator whether H.460.19 should be used
 //	int m_keepAlivePayloadType;
@@ -343,7 +344,6 @@ private:
 	int m_h46019olc;
 	int m_h46019dir;
     bool m_h46019uni;
-	WORD m_sessionID;
 	H323TransportAddress m_h46019fwd;
 	H323TransportAddress m_h46019rev;
 	bool m_OLCrev;
@@ -420,7 +420,7 @@ public:
 	void SetUsesH46019fc(bool);
 	void SetH46019Direction(int dir);
     void SetH46019UniDirectional(bool uni);
-	void SetH46024SessionID(WORD id);
+	void SetRTPSessionID(WORD id);
 
 private:
 	void SetNAT(bool);
@@ -6134,16 +6134,15 @@ void RTPLogicalChannel::SetH46019UniDirectional(bool uni)
 		    rtcp->SetH46019UniDirectional(true);	
     }
 }
+#endif
 
-
-void RTPLogicalChannel::SetH46024SessionID(WORD id)
+void RTPLogicalChannel::SetRTPSessionID(WORD id)
 {
 	if (rtp)
-		rtp->SetH46024SessionID(id);
+		rtp->SetRTPSessionID(id);
 	if (rtcp)
-		rtcp->SetH46024SessionID(id);	
+		rtcp->SetRTPSessionID(id);	
 }
-#endif
 
 void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress & addr)
 {
@@ -6447,8 +6446,8 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 #ifdef HAS_H46018
 	lc->SetH46019Direction(m_H46019dir);
-	lc->SetH46024SessionID((WORD)h225Params->m_sessionID);
 #endif
+	lc->SetRTPSessionID((WORD)h225Params->m_sessionID);
 
 	H245_UnicastAddress_iPAddress *addr;
 	bool changed = false;
@@ -6603,7 +6602,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
 				((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());
                 ((RTPLogicalChannel*)lc)->SetH46019UniDirectional(m_h46019uni);
-				((RTPLogicalChannel*)lc)->SetH46024SessionID((WORD)h225Params->m_sessionID);
+				((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
 			} else {
 				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
 			}
