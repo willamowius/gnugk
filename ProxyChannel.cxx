@@ -5728,7 +5728,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			switch (frame.GetPayloadType()) {
 			case RTP_ControlFrame::e_SenderReport :
 				PTRACE(5, "RTCP\tSession SenderReport packet");
-				if (size >= sizeof(RTP_ControlFrame::SenderReport)) {
+				if (size >= (sizeof(PUInt32b)+sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport))) {
 					const RTP_ControlFrame::SenderReport & sr = *(const RTP_ControlFrame::SenderReport *)(payload);
 					if (direct) {
 						if (m_sessionID == RTP_Session::DefaultAudioSessionID) {
@@ -5756,7 +5756,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				break;
 			case RTP_ControlFrame::e_ReceiverReport:
 				PTRACE(5, "RTCP\tSession ReceiverReport packet");
-				if (size >= 4) {
+				if (size >= (sizeof(PUInt32b)+frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport))) {
 					BuildReceiverReport(frame, sizeof(PUInt32b), direct);
 				} else {
 					PTRACE(5, "RTP\tSession ReceiverReport packet truncated");
@@ -5765,7 +5765,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			case RTP_ControlFrame::e_SourceDescription :
 				PTRACE(5, "RTCP\tSession SourceDescription packet");		    
 				if ((!(*m_call)->GetRTCP_SRC_sdes_flag() && direct) || (!(*m_call)->GetRTCP_DST_sdes_flag() && !direct))
-					if (size >= frame.GetCount()*sizeof(RTP_ControlFrame::SourceDescription)) {
+					if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::SourceDescription))) {
 						const RTP_ControlFrame::SourceDescription * sdes = (const RTP_ControlFrame::SourceDescription *)payload;
 						for (PINDEX srcIdx = 0; srcIdx < (PINDEX)frame.GetCount(); srcIdx++) {
 							const RTP_ControlFrame::SourceDescription::Item * item = sdes->item;
