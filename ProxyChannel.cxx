@@ -5353,12 +5353,12 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_
 #endif
 
 // class UDPProxySocket
-UDPProxySocket::UDPProxySocket(const char *t) 
+UDPProxySocket::UDPProxySocket(const char *t)
 	: ProxySocket(this, t),
 		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
-		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0)
+		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0)
 #ifdef HAS_H46018
-	, m_h46019fc(false), m_h46019olc(H46019_NONE), m_h46019dir(H46019_NONE), m_h46019uni(false), m_sessionID(0), m_OLCrev(false)
+	, m_h46019fc(false), m_h46019olc(H46019_NONE), m_h46019dir(H46019_NONE), m_h46019uni(false), m_OLCrev(false)
 	//, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_keepAliveTypeSet(false)
 #endif
 {
