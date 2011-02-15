@@ -3764,8 +3764,8 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 	} 
 
 	for (PINDEX i=0; i < report.GetSize(); i++) {
-		int worstdelay = 0; int meandelay = 0; int packetslost = 0; int packetlossrate = 0; 
-		int packetlosspercent = 0; int bandwidth = 0; int maxjitter = 0; int meanjitter = 0;
+		int worstdelay = -1; int meandelay = -1; int packetslost = -1; int packetlossrate = -1; 
+		int packetlosspercent = -1; int bandwidth = -1; int maxjitter = -1; int meanjitter = -1;
 		H323TransportAddress sendAddr; H323TransportAddress recvAddr; PIPSocket::Address send; 
 		WORD sport = 0; PIPSocket::Address recv; WORD rport = 0; int session = 0;
 
@@ -3815,30 +3815,34 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		if (call && ep) {
 			if (call->GetCallingParty()
 				&& call->GetCallingParty()->GetEndpointIdentifier() == ep->GetEndpointIdentifier()) {
-				if (session == RTP_Session::DefaultAudioSessionID) {
+				if ((session == RTP_Session::DefaultAudioSessionID)
+					&& (packetslost >= 0) && (meanjitter >= 0)) {
 					call->SetRTCP_SRC_packet_lost(packetslost);
 					call->SetRTCP_SRC_jitter(meanjitter);
-					PTRACE(5, "QoS\tSession SetRTCP_SRC_packet_lost:" << packetslost);
-					PTRACE(5, "QoS\tSession SetRTCP_SRC_jitter:" << meanjitter);
+					PTRACE(5, "QoS\tSetRTCP_SRC_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSetRTCP_SRC_jitter:" << meanjitter);
 				}
-				if (session == RTP_Session::DefaultVideoSessionID) {
+				if ((session == RTP_Session::DefaultVideoSessionID)
+					&& (packetslost >= 0) && (meanjitter >= 0)) {
 					call->SetRTCP_SRC_video_packet_lost(packetslost);
 					call->SetRTCP_SRC_video_jitter(meanjitter);
-					PTRACE(5, "QoS\tSession SetRTCP_SRC_video_packet_lost:" << packetslost);
-					PTRACE(5, "QoS\tSession SetRTCP_SRC_video_jitter:" << meanjitter);
+					PTRACE(5, "QoS\tSetRTCP_SRC_video_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSetRTCP_SRC_video_jitter:" << meanjitter);
 				}
 			} else {
-				if (session == RTP_Session::DefaultAudioSessionID) {
+				if ((session == RTP_Session::DefaultAudioSessionID)
+					&& (packetslost >= 0) && (meanjitter >= 0)) {
 					call->SetRTCP_DST_packet_lost(packetslost);
 					call->SetRTCP_DST_jitter(meanjitter);
-					PTRACE(5, "QoS\tSession SetRTCP_DST_packet_lost:" << packetslost);
-					PTRACE(5, "QoS\tSession SetRTCP_DST_jitter:" << meanjitter);
+					PTRACE(5, "QoS\tSetRTCP_DST_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSetRTCP_DST_jitter:" << meanjitter);
 				}
-				if (session == RTP_Session::DefaultVideoSessionID) {
+				if ((session == RTP_Session::DefaultVideoSessionID)
+					&& (packetslost >= 0) && (meanjitter >= 0)) {
 					call->SetRTCP_DST_video_packet_lost(packetslost);
 					call->SetRTCP_DST_video_jitter(meanjitter);
-					PTRACE(5, "QoS\tSession SetRTCP_DST_video_packet_lost:" << packetslost);
-					PTRACE(5, "QoS\tSession SetRTCP_DST_video_jitter:" << meanjitter);
+					PTRACE(5, "QoS\tSetRTCP_DST_video_packet_lost:" << packetslost);
+					PTRACE(5, "QoS\tSetRTCP_DST_video_jitter:" << meanjitter);
 				}
 			}
 		}

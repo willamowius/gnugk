@@ -5717,7 +5717,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		frame.Attach(wbuffer, buflen);
 		do {
 			BYTE * payload = frame.GetPayloadPtr();
-			unsigned size = frame.GetPayloadSize();
+			unsigned size = frame.GetPayloadSize();	// TODO: check size against buflen ?
 			if ((payload == NULL) || (size == 0)
 				|| (frame.GetVersion() != 2)
 				|| ((payload + size) > (frame.GetPointer() + frame.GetSize()))) {
@@ -5727,43 +5727,47 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			}
 			switch (frame.GetPayloadType()) {
 			case RTP_ControlFrame::e_SenderReport :
-				PTRACE(5, "RTCP\tSession SenderReport packet");
-				if (size >= (sizeof(PUInt32b)+sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport))) {
+				PTRACE(5, "RTCP\tSenderReport packet");
+				if (size >= (sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport))) {
 					const RTP_ControlFrame::SenderReport & sr = *(const RTP_ControlFrame::SenderReport *)(payload);
 					if (direct) {
 						if (m_sessionID == RTP_Session::DefaultAudioSessionID) {
 							(*m_call)->SetRTCP_DST_packet_count(sr.psent);
-							PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_count:" << sr.psent);
+							PTRACE(5, "RTCP\tSetRTCP_DST_packet_count:" << sr.psent);
 						}
 						if (m_sessionID == RTP_Session::DefaultVideoSessionID) {
 							(*m_call)->SetRTCP_DST_video_packet_count(sr.psent);
-							PTRACE(5, "RTCP\tSession SetRTCP_DST_video_packet_count:" << sr.psent);
+							PTRACE(5, "RTCP\tSetRTCP_DST_video_packet_count:" << sr.psent);
 						}
 					} else {
 						if (m_sessionID == RTP_Session::DefaultAudioSessionID) {
 							(*m_call)->SetRTCP_SRC_packet_count(sr.psent);
-							PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_count:" << sr.psent);
+							PTRACE(5, "RTCP\tSetRTCP_SRC_packet_count:" << sr.psent);
 						}
 						if (m_sessionID == RTP_Session::DefaultVideoSessionID) {
 							(*m_call)->SetRTCP_SRC_video_packet_count(sr.psent);
-							PTRACE(5, "RTCP\tSession SetRTCP_SRC_video_packet_count:" << sr.psent);
+							PTRACE(5, "RTCP\tSetRTCP_SRC_video_packet_count:" << sr.psent);
 						}
 					}
 					BuildReceiverReport(frame, sizeof(RTP_ControlFrame::SenderReport), direct);
 				} else {
-					PTRACE(5, "RTCP\tSession  SenderReport packet truncated");
+					PTRACE(0, "JW RTCP\tSenderReport packet truncated is=" << size << " expected="
+						<< (sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport)));
+					PTRACE(5, "RTCP\tSenderReport packet truncated");
 				}
 				break;
 			case RTP_ControlFrame::e_ReceiverReport:
-				PTRACE(5, "RTCP\tSession ReceiverReport packet");
-				if (size >= (sizeof(PUInt32b)+frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport))) {
+				PTRACE(5, "RTCP\tReceiverReport packet");
+				if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport))) {
 					BuildReceiverReport(frame, sizeof(PUInt32b), direct);
 				} else {
-					PTRACE(5, "RTP\tSession ReceiverReport packet truncated");
+					PTRACE(0, "JW RTCP\tReceiverReport packet truncated is=" << size << " expected="
+						<< (frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport)));
+					PTRACE(5, "RTCP\tReceiverReport packet truncated");
 				}
 				break;
 			case RTP_ControlFrame::e_SourceDescription :
-				PTRACE(5, "RTCP\tSession SourceDescription packet");		    
+				PTRACE(5, "RTCP\tSourceDescription packet");		    
 				if ((!(*m_call)->GetRTCP_SRC_sdes_flag() && direct) || (!(*m_call)->GetRTCP_DST_sdes_flag() && !direct))
 					if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::SourceDescription))) {
 						const RTP_ControlFrame::SourceDescription * sdes = (const RTP_ControlFrame::SourceDescription *)payload;
@@ -5824,7 +5828,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 										}
 										break;
 									default:
-										PTRACE(5,"RTCP\tSession  SourceDescription unknown item type " << item->type);
+										PTRACE(5,"RTCP\tSourceDescription unknown item type " << item->type);
 										break;
 									}
 								}    
@@ -5841,13 +5845,13 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				}
 				break;
 			case RTP_ControlFrame::e_Goodbye:
-				PTRACE(5, "RTCP\tSession Goodbye packet");
+				PTRACE(5, "RTCP\tGoodbye packet");
 				break;
 			case RTP_ControlFrame::e_ApplDefined:
-				PTRACE(5, "RTCP\tSession ApplDefined packet");
+				PTRACE(5, "RTCP\tApplDefined packet");
 				break;
 			default:
-				PTRACE(5, "RTCP\tSession  Unknown control payload type: " << frame.GetPayloadType());
+				PTRACE(5, "RTCP\tUnknown control payload type: " << frame.GetPayloadType());
 				break;
 			}
 		} while (frame.ReadNextCompound());
@@ -5859,32 +5863,31 @@ void UDPProxySocket::BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX 
 {
 	const RTP_ControlFrame::ReceiverReport * rr = (const RTP_ControlFrame::ReceiverReport *)(frame.GetPayloadPtr()+offset);
 	for (PINDEX repIdx = 0; repIdx < (PINDEX)frame.GetCount(); repIdx++) {
-		//PTRACE(0, "JW RTCPStats: dst=" << dst << " packetloss=" << rr->GetLostPackets() << " jitter=" << rr->jitter << " session=" << m_sessionID);
 		if (dst) {
 			if (m_sessionID == RTP_Session::DefaultAudioSessionID) {
 				(*m_call)->SetRTCP_DST_packet_lost(rr->GetLostPackets());
-				(*m_call)->SetRTCP_DST_jitter(rr->jitter);
-				PTRACE(5, "RTCP\tSession SetRTCP_DST_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSession SetRTCP_DST_jitter:" << rr->jitter);
+				(*m_call)->SetRTCP_DST_jitter(rr->jitter / 8);
+				PTRACE(5, "RTCP\tSetRTCP_DST_packet_lost:" << rr->GetLostPackets());
+				PTRACE(5, "RTCP\tSetRTCP_DST_jitter:" << (rr->jitter / 8));
 			}
 			if (m_sessionID == RTP_Session::DefaultVideoSessionID) {
 				(*m_call)->SetRTCP_DST_video_packet_lost(rr->GetLostPackets());
-				(*m_call)->SetRTCP_DST_video_jitter(rr->jitter);
-				PTRACE(5, "RTCP\tSession SetRTCP_DST_video_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSession SetRTCP_DST_video_jitter:" << rr->jitter);
+				(*m_call)->SetRTCP_DST_video_jitter(rr->jitter / 90);
+				PTRACE(5, "RTCP\tSetRTCP_DST_video_packet_lost:" << rr->GetLostPackets());
+				PTRACE(5, "RTCP\tSetRTCP_DST_video_jitter:" << (rr->jitter / 90));
 			}
 		} else {
 			if (m_sessionID == RTP_Session::DefaultAudioSessionID) {
 				(*m_call)->SetRTCP_SRC_packet_lost(rr->GetLostPackets());
-				(*m_call)->SetRTCP_SRC_jitter(rr->jitter);
-				PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSession SetRTCP_SRC_jitter:" << rr->jitter);
+				(*m_call)->SetRTCP_SRC_jitter(rr->jitter / 8);
+				PTRACE(5, "RTCP\tSetRTCP_SRC_packet_lost:" << rr->GetLostPackets());
+				PTRACE(5, "RTCP\tSetRTCP_SRC_jitter:" << (rr->jitter / 8));
 			}
 			if (m_sessionID == RTP_Session::DefaultVideoSessionID) {
 				(*m_call)->SetRTCP_SRC_video_packet_lost(rr->GetLostPackets());
-				(*m_call)->SetRTCP_SRC_video_jitter(rr->jitter);
-				PTRACE(5, "RTCP\tSession SetRTCP_SRC_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSession SetRTCP_SRC_jitter:" << rr->jitter);
+				(*m_call)->SetRTCP_SRC_video_jitter(rr->jitter / 90);
+				PTRACE(5, "RTCP\tSetRTCP_SRC_video_packet_lost:" << rr->GetLostPackets());
+				PTRACE(5, "RTCP\tSetRTCP_SRC_video_jitter:" << (rr->jitter / 90));
 			}
 		}
 		rr++;

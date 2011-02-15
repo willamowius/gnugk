@@ -762,7 +762,7 @@ If an endpoint has more than one active call, the packet loss and jitter values 
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-QoS|<endpoint aliases>|<last contact from endpoint>|<num calls>|<audio packet loss percent>|<audio jitter>|<video packet loss percent>|<video jitter>
+QoS|<endpoint aliases>|<last contact from endpoint>|<num calls>|<audio Rx packet loss percent>|<audio Rx jitter>|<video Rx packet loss percent>|<video Rx jitter>
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>

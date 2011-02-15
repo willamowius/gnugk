@@ -3094,16 +3094,16 @@ bool AdmissionRequestPDU::Process()
 		}
 		if (lastPos > 0) 
 			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
+	}
 
-		/// H.460.9 QoS Reporting
-		if (EPSupportsQoSReporting
-			&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
-			acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
-			acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
-			H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_desiredFeatures;
-			desc.SetSize(1);
-			desc[0] = H460_FeatureStd(9);
-		}
+	/// H.460.9 QoS Reporting
+	if (EPSupportsQoSReporting
+		&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
+		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_desiredFeatures;
+		desc.SetSize(1);
+		desc[0] = H460_FeatureStd(9);
 	}
 #endif
 
