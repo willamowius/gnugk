@@ -123,7 +123,7 @@ Default: <tt/1/<newline>
 Define whether to collect the information via IRR messages or to only collect 
 QoS information at the end of a call. 
 
-<item><tt/DefaultFile=qos.txt/<newline>
+<item><tt/DetailFile=qos.txt/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Define the output file for QoS logs. If a file is not defined the
