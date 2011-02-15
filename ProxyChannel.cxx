@@ -5751,8 +5751,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 					}
 					BuildReceiverReport(frame, sizeof(RTP_ControlFrame::SenderReport), direct);
 				} else {
-					PTRACE(0, "JW RTCP\tSenderReport packet truncated is=" << size << " expected="
-						<< (sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport)));
 					PTRACE(5, "RTCP\tSenderReport packet truncated");
 				}
 				break;
@@ -5761,8 +5759,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport))) {
 					BuildReceiverReport(frame, sizeof(PUInt32b), direct);
 				} else {
-					PTRACE(0, "JW RTCP\tReceiverReport packet truncated is=" << size << " expected="
-						<< (frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport)));
 					PTRACE(5, "RTCP\tReceiverReport packet truncated");
 				}
 				break;
