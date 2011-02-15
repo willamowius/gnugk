@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- jitter values reported through Radius are now in msec (was codec dependant clock rate)
 - new switches: [RasSrv::ARQFeatures] SendRIP=<delay> and [RasSrv::LRQFeatures] SendRIP=<delay>
 - new status port command: PrintEndpointQoS
 - use H.460.9 data in the same way as sniffed RTCP stats for status port and Radius reporting
