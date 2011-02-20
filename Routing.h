@@ -47,7 +47,7 @@ namespace Routing {
 class VirtualQueue;
 
 /// An entry for a single call destination route
-struct Route {
+class Route {
 public:
 	// a policy can set flags to indicate extra status of a processed request
 	enum Flags {
