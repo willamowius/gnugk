@@ -24,7 +24,9 @@
 #include "radproto.h"
 
 // ignore overflow warnings
+#ifndef _WIN32
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
 
 namespace {
 #if PTRACING
