@@ -26,7 +26,7 @@
 
 
 namespace Routing {
-	struct Route;
+	class Route;
 }
 
 class USocket;

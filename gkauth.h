@@ -59,7 +59,7 @@ template<class> class RasPDU;
 template<class> struct RasInfo;
 
 namespace Routing {
-struct Route;
+	class Route;
 }
 
 /// Data read/written during RRQ processing by all configured 
