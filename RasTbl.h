@@ -880,13 +880,13 @@ public:
 	// get audio RTCP stats
 	long GetRTCP_SRC_packet_count() const { return m_rtcp_source_packet_count; }
 	long GetRTCP_SRC_packet_lost() const { return m_rtcp_source_packet_lost; }
-	float GetRTCP_SRC_packet_loss_percent() const { return (m_rtcp_source_packet_count == 0) ? 0 : (m_rtcp_source_packet_lost / m_rtcp_source_packet_count); }
+	float GetRTCP_SRC_packet_loss_percent() const { return (m_rtcp_source_packet_count == 0) ? 0 : (float)(m_rtcp_source_packet_lost / m_rtcp_source_packet_count); }
 	int GetRTCP_SRC_jitter_max() const { return m_rtcp_source_jitter_max; }
 	int GetRTCP_SRC_jitter_min() const { return m_rtcp_source_jitter_min; }
 	int GetRTCP_SRC_jitter_avg() const { return m_rtcp_source_jitter_avg; }
 	long GetRTCP_DST_packet_count() const { return m_rtcp_destination_packet_count; }
 	long GetRTCP_DST_packet_lost() const { return m_rtcp_destination_packet_lost; }
-	float GetRTCP_DST_packet_loss_percent() const { return (m_rtcp_destination_packet_count == 0) ? 0 : (m_rtcp_destination_packet_lost / m_rtcp_destination_packet_count); }
+	float GetRTCP_DST_packet_loss_percent() const { return (m_rtcp_destination_packet_count == 0) ? 0 : (float)(m_rtcp_destination_packet_lost / m_rtcp_destination_packet_count); }
 	int GetRTCP_DST_jitter_max() const { return m_rtcp_destination_jitter_max; }
 	int GetRTCP_DST_jitter_min() const { return m_rtcp_destination_jitter_min; }
 	int GetRTCP_DST_jitter_avg() const { return m_rtcp_destination_jitter_avg; }
@@ -902,13 +902,13 @@ public:
 	// get video RTCP stats
 	long GetRTCP_SRC_video_packet_count() const { return m_rtcp_source_video_packet_count; }
 	long GetRTCP_SRC_video_packet_lost() const { return m_rtcp_source_video_packet_lost; }
-	float GetRTCP_SRC_video_packet_loss_percent() const { return (m_rtcp_source_video_packet_count == 0) ? 0 : (m_rtcp_source_video_packet_lost / m_rtcp_source_video_packet_count); }
+	float GetRTCP_SRC_video_packet_loss_percent() const { return (m_rtcp_source_video_packet_count == 0) ? 0 : (float)(m_rtcp_source_video_packet_lost / m_rtcp_source_video_packet_count); }
 	int GetRTCP_SRC_video_jitter_max() const { return m_rtcp_source_video_jitter_max; }
 	int GetRTCP_SRC_video_jitter_min() const { return m_rtcp_source_video_jitter_min; }
 	int GetRTCP_SRC_video_jitter_avg() const { return m_rtcp_source_video_jitter_avg; }
 	long GetRTCP_DST_video_packet_count() const { return m_rtcp_destination_video_packet_count; }
 	long GetRTCP_DST_video_packet_lost() const { return m_rtcp_destination_video_packet_lost; }
-	float GetRTCP_DST_video_packet_loss_percent() const { return (m_rtcp_destination_video_packet_count == 0) ? 0 : (m_rtcp_destination_video_packet_lost / m_rtcp_destination_video_packet_count); }
+	float GetRTCP_DST_video_packet_loss_percent() const { return (m_rtcp_destination_video_packet_count == 0) ? 0 : (float)(m_rtcp_destination_video_packet_lost / m_rtcp_destination_video_packet_count); }
 	int GetRTCP_DST_video_jitter_max() const { return m_rtcp_destination_video_jitter_max; }
 	int GetRTCP_DST_video_jitter_min() const { return m_rtcp_destination_video_jitter_min; }
 	int GetRTCP_DST_video_jitter_avg() const { return m_rtcp_destination_video_jitter_avg; }
