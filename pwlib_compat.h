@@ -17,6 +17,7 @@
 
 #include "ptbuildopts.h"
 #include "openh323buildopts.h"
+#include "gnugkbuildopts.h"
 
 // use at least PWLib Pandora
 #if PWLIB_MAJOR == 1
