@@ -52,7 +52,7 @@ GnuGk supports version 3 of SQLite.
 Make sure your database is configured to support password based authentication.
 Especially Microsoft SQL Server needs to be configured to use "Mixed Mode".
 
-<item><tt/Library=c:/Program Files/Mysql/libmysql.dll/<newline>
+<item><tt>Library=c:/Program Files/Mysql/libmysql.dll</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the shared library or DLL is not found automatically, you can set a different
