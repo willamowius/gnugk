@@ -3267,7 +3267,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 #ifdef HAS_H460
 	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
+		for (PINDEX i = 0; i < data.GetSize(); i++) {
 			H460_Feature & feat = (H460_Feature &)data[i];
 			/// H.460.9 QoS Feature
 			if (feat.GetFeatureID() == H460_FeatureID(9)) {
