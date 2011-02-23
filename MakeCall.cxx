@@ -55,6 +55,9 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		PTRACE(1, "MakeCallEndpoint: Error registering with gatekeeper at \"" << gkName << '"');
 		isRegistered = FALSE;
 	}
+#ifdef H323_H460
+	H46018Enable(PFalse);
+#endif
 }
 
 void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString & user2)
