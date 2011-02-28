@@ -1286,13 +1286,13 @@ PString GatewayRec::PrintOn(bool verbose) const
 	return msg;
 }
 
-OuterZoneEPRec::OuterZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &epID) : EndpointRec(completeRAS, false)
+OutOfZoneEPRec::OutOfZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &epID) : EndpointRec(completeRAS, false)
 {
 	m_endpointIdentifier = epID;
 	PTRACE(1, "New OZEP|" << PrintOn(false));
 }
 
-OuterZoneGWRec::OuterZoneGWRec(const H225_RasMessage & completeLCF, const H225_EndpointIdentifier &epID) : GatewayRec(completeLCF, false)
+OutOfZoneGWRec::OutOfZoneGWRec(const H225_RasMessage & completeLCF, const H225_EndpointIdentifier &epID) : GatewayRec(completeLCF, false)
 {
 	m_endpointIdentifier = epID;
 
@@ -1301,7 +1301,7 @@ OuterZoneGWRec::OuterZoneGWRec(const H225_RasMessage & completeLCF, const H225_E
 		AddPrefixes(obj_lcf.m_supportedProtocols);
 		SortPrefixes();
 	}
-	defaultGW = false; // don't let outer zone gateway be default
+	defaultGW = false; // don't let out-of-zone gateway be default
 	PTRACE(1, "New OZGW|" << PrintOn(false));
 }
 
@@ -1398,9 +1398,9 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Adm
 {
 	H225_EndpointIdentifier epID;
 	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
-	EndpointRec *ep = new OuterZoneEPRec(ras_msg, epID);
+	EndpointRec *ep = new OutOfZoneEPRec(ras_msg, epID);
 	WriteLock lock(listLock);
-	OuterZoneList.push_front(ep);
+	OutOfZoneList.push_front(ep);
 	return endptr(ep);
 }
 
@@ -1413,12 +1413,12 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Loc
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType) &&
 	    (lcf.m_destinationType.HasOptionalField(H225_EndpointType::e_gateway)
 			|| lcf.m_destinationType.HasOptionalField(H225_EndpointType::e_mcu)))
-		ep = new OuterZoneGWRec(ras_msg, epID);
+		ep = new OutOfZoneGWRec(ras_msg, epID);
 	else
-		ep = new OuterZoneEPRec(ras_msg, epID);
+		ep = new OutOfZoneEPRec(ras_msg, epID);
 
 	WriteLock lock(listLock);
-	OuterZoneList.push_front(ep);
+	OutOfZoneList.push_front(ep);
 	return endptr(ep);
 }
 
@@ -1533,7 +1533,7 @@ endptr RegistrationTable::FindBySignalAdrIgnorePort(const H225_TransportAddress 
 endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress & sigAd) const
 {
 	return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
-			mem_fun(&EndpointRec::GetCallSignalAddress)), &OuterZoneList);
+			mem_fun(&EndpointRec::GetCallSignalAddress)), &OutOfZoneList);
 }
 
 endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias) const
@@ -1544,18 +1544,18 @@ endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias)
 endptr RegistrationTable::FindFirstEndpoint(const H225_ArrayOf_AliasAddress & alias)
 {
 	endptr ep = InternalFindFirstEP(alias, &EndpointList);
-	return (ep) ? ep : InternalFindFirstEP(alias, &OuterZoneList);
+	return (ep) ? ep : InternalFindFirstEP(alias, &OutOfZoneList);
 }
 
 bool RegistrationTable::FindEndpoint(
 	const H225_ArrayOf_AliasAddress &aliases,
 	bool roundRobin,
-	bool searchOuterZone,
+	bool searchOutOfZone,
 	list<Route> &routes
 	)
 {
 	bool found = InternalFindEP(aliases, &EndpointList, roundRobin, routes);
-	if (searchOuterZone && InternalFindEP(aliases, &OuterZoneList, roundRobin, routes))
+	if (searchOutOfZone && InternalFindEP(aliases, &OutOfZoneList, roundRobin, routes))
 		found = true;
 	return found;
 }
@@ -1721,7 +1721,7 @@ void RegistrationTable::PrintEndpointQoS(USocket *client) //const
 void RegistrationTable::PrintAllCached(USocket *client, bool verbose)
 {
 	PString msg("AllCached\r\n");
-	InternalPrint(client, verbose, &OuterZoneList, msg);
+	InternalPrint(client, verbose, &OutOfZoneList, msg);
 }
 
 void RegistrationTable::PrintRemoved(USocket *client, bool verbose)
@@ -1786,7 +1786,7 @@ PString RegistrationTable::PrintStatistics() const
 	unsigned es, et, eg, en;
 	InternalStatistics(&EndpointList, es, et, eg, en);
 	unsigned cs, ct, cg, cn; // cn is useless
-	InternalStatistics(&OuterZoneList, cs, ct, cg, cn);
+	InternalStatistics(&OutOfZoneList, cs, ct, cg, cn);
 
 	return PString(PString::Printf, "-- Endpoint Statistics --\r\n"
 		"Total Endpoints: %u  Terminals: %u  Gateways: %u  NATed: %u\r\n"
@@ -1924,8 +1924,8 @@ void RegistrationTable::ClearTable()
 	}
 	EndpointList.clear();
 	regSize = 0;
-	copy(OuterZoneList.begin(), OuterZoneList.end(), back_inserter(RemovedList));
-	OuterZoneList.clear();
+	copy(OutOfZoneList.begin(), OutOfZoneList.end(), back_inserter(RemovedList));
+	OutOfZoneList.clear();
 }
 
 void RegistrationTable::CheckEndpoints()
@@ -1948,15 +1948,15 @@ void RegistrationTable::CheckEndpoints()
 		else ++Iter;
 	}
 
-	Iter = partition(OuterZoneList.begin(), OuterZoneList.end(),
+	Iter = partition(OutOfZoneList.begin(), OutOfZoneList.end(),
 		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 #if PTRACING
-	if (ptrdiff_t s = distance(Iter, OuterZoneList.end())) {
-		PTRACE(2, s << " outerzone endpoint(s) expired.");
+	if (ptrdiff_t s = distance(Iter, OutOfZoneList.end())) {
+		PTRACE(2, s << " out-of-zone endpoint(s) expired.");
 	}
 #endif
-	copy(Iter, OuterZoneList.end(), back_inserter(RemovedList));
-	OuterZoneList.erase(Iter, OuterZoneList.end());
+	copy(Iter, OutOfZoneList.end(), back_inserter(RemovedList));
+	OutOfZoneList.erase(Iter, OutOfZoneList.end());
 
 	// Cleanup unused EndpointRec in RemovedList
 	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&EndpointRec::IsUsed));
@@ -3949,6 +3949,13 @@ void CallTable::QoSReport(const H225_DisengageRequest & obj_drq, const endptr & 
 	
 	} else {
 		PTRACE(4,"QoS\tDRQ Call Statistics decode failure.");
+		PTRACE(0,"JW QoS\tDRQ Call Statistics decode failure");
+		H4609_FinalQosMonReport rep;
+		if (rep.Decode(argStream)) {
+			PTRACE(0,"JW QoS\tReport " << rep);
+		} else {
+			PTRACE(0,"JW no decode at all");
+		}
 	}
 }
 #endif

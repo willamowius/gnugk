@@ -67,8 +67,8 @@ private:
 class EndpointRec
 {
 public:
-	/** Construct internal/outer zone endpoint from the specified RAS message.
-		RRQ builds an internal zone endpoint, ARQ, ACF and LCF build outer zone
+	/** Construct internal/out-of-zone endpoint from the specified RAS message.
+		RRQ builds an internal zone endpoint, ARQ, ACF and LCF build out-of-zone
 		endpoints.
 	*/
 	EndpointRec(
@@ -440,18 +440,18 @@ protected:
 };
 
 
-class OuterZoneEPRec : public EndpointRec {
+class OutOfZoneEPRec : public EndpointRec {
 public:
-	OuterZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
+	OutOfZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
 
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
 };
 
 
-class OuterZoneGWRec : public GatewayRec {
+class OutOfZoneGWRec : public GatewayRec {
 public:
-	OuterZoneGWRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
+	OutOfZoneGWRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &);
 
 	virtual EndpointRec *Unregister() { return this; }
 	virtual EndpointRec *Expired() { return this; }
@@ -501,7 +501,7 @@ public:
 	bool FindEndpoint(
 		const H225_ArrayOf_AliasAddress &aliases,
 		bool roundRobin,
-		bool searchOuterZone,
+		bool searchOutOfZone,
 		std::list<Routing::Route> &routes
 		);
 
@@ -552,7 +552,7 @@ private:
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
 
 	std::list<EndpointRec *> EndpointList;
-	std::list<EndpointRec *> OuterZoneList;
+	std::list<EndpointRec *> OutOfZoneList;
 	std::list<EndpointRec *> RemovedList;
 	int regSize;
 	mutable PReadWriteMutex listLock;

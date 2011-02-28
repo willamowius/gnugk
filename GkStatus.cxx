@@ -1206,7 +1206,7 @@ void StatusClient::ExecCommand(
 		SoftPBX::PrintAllRegistrations(this, TRUE);
 		break;
 	case GkStatus::e_PrintAllCached:
-		// print list of all cached outer-zone endpoints
+		// print list of all cached out-of-zone endpoints
 		SoftPBX::PrintAllCached(this, (args.GetSize() > 1));
 		break;
 	case GkStatus::e_PrintCurrentCalls:
