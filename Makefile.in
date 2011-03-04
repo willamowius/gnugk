@@ -114,12 +114,16 @@ STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR
 STDCCFLAGS += -fno-strict-aliasing
 
 # enable more warnings when using gcc >= 4.4
-GCCMAJORGTEQ4 := $(shell expr 4 \<= `gcc -dumpversion | cut -f1 -d.`)
+GCCMAJOREQ4 := $(shell expr 4 == `gcc -dumpversion | cut -f1 -d.`)
+GCCMAJORGT4 := $(shell expr 4 \< `gcc -dumpversion | cut -f1 -d.`)
 GCCMINORGTEQ4 := $(shell expr 4 \<= `gcc -dumpversion | cut -f2 -d.`)
-ifeq "$(GCCMAJORGTEQ4)" "1"
+ifeq "$(GCCMAJOREQ4)" "1"
 ifeq "$(GCCMINORGTEQ4)" "1"
 STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare
 endif
+endif
+ifeq "$(GCCMAJORGT4)" "1"
+STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare
 endif
 
 # special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled
