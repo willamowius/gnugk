@@ -19,7 +19,10 @@
 
 #ifdef _WIN32
 #include "gnugkbuildopts.h"
+#else
+#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
+
 
 #if (defined P_LINUX) || (defined P_FREEBSD) || (defined P_HPUX9) || (defined P_SOLARIS) || (defined P_OPENBSD)
 // On some OS we don't get broadcasts on a socket that is

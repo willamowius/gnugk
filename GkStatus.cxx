@@ -1132,7 +1132,7 @@ void StatusClient::CommandError(const PString & msg)
 }
 
 // ignore warning when comparing to define
-#ifndef _WIN32
+#if (!_WIN32) && (GCC_VERSION >= 40400)
 #pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
 

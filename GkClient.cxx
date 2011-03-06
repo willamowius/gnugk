@@ -361,7 +361,7 @@ public:
   const STUNmessageHeader * operator->() const { return (STUNmessageHeader *)theArray; }
 
 // ignore overflow warning when comparing length
-#ifndef _WIN32
+#if (!_WIN32) && (GCC_VERSION >= 40400)
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 #endif
 

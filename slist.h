@@ -43,7 +43,7 @@ SList<T>::~SList()
 
 
 // ignore overflow warning when comparing size
-#ifndef _WIN32
+#if (!_WIN32) && (GCC_VERSION >= 40400)
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 #endif
 
