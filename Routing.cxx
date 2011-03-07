@@ -1004,9 +1004,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 	if (m_vqueue->IsDestinationVirtualQueue(vq)) {
 		H225_AdmissionRequest & arq = request.GetRequest();
 		PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
-			"a virtual queue " << vq << " (ARQ "
-			<< arq.m_requestSeqNum.GetValue() << ')'
-			);
+			"a virtual queue " << vq << " (ARQ " << arq.m_requestSeqNum.GetValue() << ')');
 		endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
 		if (ep) {
 			PString source = AsDotString(ep->GetCallSignalAddress());
@@ -1014,7 +1012,11 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			PString * callSigAdr = new PString();
 			PString * bindIP = new PString();
 			PString * callerID = new PString();
+			PString calledIP = "unknown";
 			PString vendorInfo;
+			if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
+				calledIP = AsString(arq.m_destCallSignalAddress, false);
+			}
 			if (ep->GetEndpointType().HasOptionalField(H225_EndpointType::e_vendor)) {
 				if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
 					vendorInfo += ep->GetEndpointType().m_vendor.m_productId.AsString();
@@ -1024,7 +1026,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				}
 			}
 
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), "unknown", vendorInfo))
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo))
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 			if (reject) {
 				request.SetFlag(RoutingRequest::e_Reject);
