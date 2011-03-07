@@ -1523,9 +1523,7 @@ void CallSignalSocket::OnError()
 		remote->EndSession();
 }
 
-void CallSignalSocket::ForwardCall(
-	FacilityMsg *msg
-	)
+void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 {
 	ReadLock configLock(ConfigReloadMutex);
 	MarkSocketBlocked lock(this);
