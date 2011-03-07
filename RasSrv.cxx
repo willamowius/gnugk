@@ -2399,7 +2399,7 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep)
 		rcf.m_callSignalAddress.SetSize(1);
 		GetCallSignalAddress(rcf.m_callSignalAddress[0]);
 	} else {
-		rcf.m_callSignalAddress.SetSize(0);	// we don't have a call signall address in direct mode
+		rcf.m_callSignalAddress.SetSize(0);	// we don't have a call signal address in direct mode
 	}
 	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
 	rcf.m_terminalAlias = ep->GetAliases();
