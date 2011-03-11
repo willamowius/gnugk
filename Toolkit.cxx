@@ -2418,7 +2418,7 @@ GkPresence & Toolkit::GetPresenceHandler()
 
 std::vector<NetworkAddress> Toolkit::GetInternalNetworks() {
 
-    return GkConfig()->HasKey("ExternalIP") ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
+    return !GkConfig()->GetString("ExternalIP", "").IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
 }
 
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const

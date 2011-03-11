@@ -2052,8 +2052,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		}
 		//  also remove destCallSigAddr if its the ExternalIP
-		if (GkConfig()->HasKey("ExternalIP")) {
-			PString extip = GkConfig()->GetString("ExternalIP", "");
+		PString extip = GkConfig()->GetString("ExternalIP", "");
+		if (!extip.IsEmpty()) {
 			PIPSocket::Address ext((DWORD)0);
 			H323TransportAddress ex = H323TransportAddress(extip);
 			ex.GetIpAddress(ext);

@@ -198,10 +198,11 @@ RasListener::RasListener(const Address & addr, WORD pt) : m_ip(addr)
 	SetName(AsString(addr, pt) + "(U)");
 	m_signalPort = 0;
 	// note: this won't be affected by reloading
-	m_virtualInterface = GkConfig()->HasKey("NetworkInterfaces");
+	m_virtualInterface = (!GkConfig()->GetString("NetworkInterfaces", "").IsEmpty());
     // Check if we have external IP setting 
-	if (!m_virtualInterface)  
-		m_virtualInterface = GkConfig()->HasKey("ExternalIP");
+	if (!m_virtualInterface) {
+		m_virtualInterface = (!GkConfig()->GetString("ExternalIP", "").IsEmpty());
+	}
 }
 
 RasListener::~RasListener()
