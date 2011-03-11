@@ -164,8 +164,8 @@ will not cause this value to be re-read.
 <item><tt/Bind=192.168.1.1/<newline>
 Default: <tt/0.0.0.0/<newline>
 <p>
-Specify the IP address for default routing. If there is only one interface then
-this setting is ignored. Use this to specify which default IP address to use in a multihomed
+Specify the IP address for default routing.
+Use this to specify which default IP address to use in a multihomed
 virtual environment where there may be many virtual interfaces on one host.
 
 <item><tt/EndpointIDSuffix=_gk1/<newline>

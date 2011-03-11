@@ -261,29 +261,38 @@ void Toolkit::RouteTable::InitTable()
 	if (!CreateTable())
 		return;
 
-	// Get all the interface addresses available
+	// get Home IPs (all detected IPs or set through config file)
 	std::vector<PIPSocket::Address> home;
-	PString foo = Toolkit::Instance()->GetGKHome(home);
-	if (!home.empty() && home.size() > 1) {
-		// Set default IP to Bind IP, if given.
-		PString bind = GkConfig()->GetString("Bind", "");
-		if (!bind) {
-			defAddr = bind;
-		} else {
-			defAddr = home[0];
-		}
+	Toolkit::Instance()->GetGKHome(home);
+	// if we only have 1 Home IP, then thats also the default IP
+	if (home.size() == 1) {
+		defAddr = home[0];
+	}
+	// Bind= always sets the default IP
+	PString bind = GkConfig()->GetString("Bind", "");
+	if (!bind.IsEmpty()) {
+		defAddr = bind;
 	}
 
-	// If we do not already have a valid entry, try and retrieve the default interface
+	// if we do not already have a valid entry, try and retrieve the default interface
 	if (defAddr.IsLoopback() || !defAddr.IsValid()) {
 		// Set default IP according to route table
 		PIPSocket::Address defGW;
 		PIPSocket::GetGatewayAddress(defGW);
-		if (defGW.AsString() == "0.0.0.0")
+		if (defGW.AsString() == "0.0.0.0") {
+			// no default gateway, use first interface as default
 			PIPSocket::GetNetworkInterface(defAddr);
-		else
+		} else {
+			// use the default gateway
 			defAddr = GetLocalAddress(defGW);
+		}
     }
+	// if we have a list of Home IPs and the default address is not in it, use the first Home IP,
+	// unless the default IP was explicitely specified in Bind=
+	if (bind.IsEmpty() &&
+		!home.empty() && (find(home.begin(), home.end(), defAddr) == home.end())) {
+		defAddr = home[0];
+	} 
 
 #if PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
