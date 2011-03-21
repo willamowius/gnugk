@@ -11,6 +11,11 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#ifdef HAS_LIBSSH
+#include <libssh/libssh.h>
+#include <libssh/server.h>
+#endif
+
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <ptclib/telnet.h>
@@ -62,7 +67,7 @@ public:
 
 	bool NeedEcho() const { return m_needEcho; }
 
-private:
+protected:
 	enum State {
 		StateNormal,
 		StateCarriageReturn,
@@ -99,7 +104,7 @@ public:
 		
 	virtual ~StatusClient() {}
 
-	bool ReadCommand(
+	virtual bool ReadCommand(
 		/// command that has been read (if ReadCommand succeeded)
 		PString& cmd,
 		/// should the command be echoed (also NeedEcho() has to be true)
@@ -115,7 +120,7 @@ public:
 		@return
 		true if the message has been sent (or ignored because of trace level).
 	*/
-	bool WriteString(
+	virtual bool WriteString(
 		/// string to be sent through the socket
 		const PString& msg, 
 		/// output trace level assigned to the message
@@ -135,7 +140,7 @@ public:
 		@return
 		true if the client has been granted access, false to reject the client.
 	*/
-	bool Authenticate();
+	virtual bool Authenticate();
 	
 	/** Executes the given command as a new Job (in a separate Worker thread).
 	*/
@@ -177,7 +182,7 @@ public:
 
 	const PString& GetUser() const { return m_user; }
 	
-private:
+protected:
 	// override from class ServerSocket
 	virtual void Dispatch();
 
@@ -205,7 +210,7 @@ private:
 		@return
 		true if the use has been authenticated.
 	*/
-	bool AuthenticateUser();
+	virtual bool AuthenticateUser();
 
 	/** @return
 		The decrypted password associated with the specified login.
@@ -296,6 +301,279 @@ private:
         bool m_isFilteringActive;
 };
 
+#ifdef HAS_LIBSSH
+
+// SSH version of the staus client
+class SSHStatusClient : public StatusClient {
+	PCLASSINFO(SSHStatusClient, StatusClient)
+public:
+	SSHStatusClient(int instanceNo);
+	virtual ~SSHStatusClient();
+
+#ifdef LARGE_FDSET
+	virtual bool Accept(YaTCPSocket &);
+#else
+	virtual PBoolean Accept(PSocket &);
+#endif
+
+	/** Check the client with all configured status authentication rules.
+		Ask for username/password, if required.
+		
+		@return
+		true if the client has been granted access, false to reject the client.
+	*/
+	virtual bool Authenticate();
+
+	/** Authenticate this status interface client through all authentication
+		rules and return the final result.
+		
+		@return
+		true if the use has been authenticated.
+	*/
+	virtual bool AuthenticateUser();
+
+	virtual bool ReadCommand(
+		/// command that has been read (if ReadCommand succeeded)
+		PString& cmd,
+		/// should the command be echoed (also NeedEcho() has to be true)
+		bool echo = true,
+		/// timeout (ms) for read operation
+		int readTimeout = 0
+		);
+
+	virtual bool WriteData(const BYTE * msg, int len);
+
+protected:
+	ssh_bind sshbind;
+	ssh_session session;
+    ssh_message message;
+    ssh_channel chan;
+};
+
+SSHStatusClient::SSHStatusClient(int instanceNo) : StatusClient(instanceNo)
+{
+	chan = 0;
+	m_needEcho = true;
+}
+
+SSHStatusClient::~SSHStatusClient()
+{
+    ssh_disconnect(session);
+	if (sshbind) {
+		ssh_bind_set_fd(sshbind, -1);		// make sure StatusListener is not closed
+		ssh_bind_free(sshbind);
+	}
+	ssh_finalize();
+}
+
+#ifdef LARGE_FDSET
+bool SSHStatusClient::Accept(YaTCPSocket & socket)
+#else
+PBoolean SSHStatusClient::Accept(PSocket & socket)
+#endif
+{
+	sshbind = ssh_bind_new();
+	session = ssh_new();
+
+	// ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");
+
+	bool keyAvailable = false;
+	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
+	if (PFile::Exists(dsakey)) {
+		keyAvailable = true;
+		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_DSAKEY, (const char *)dsakey);
+		PTRACE(0, "Setting DSA key to " << dsakey);
+	}
+	PString rsakey = GkConfig()->GetString(authsec, "RSAKey", "/etc/ssh/ssh_host_rsa_key");
+	if (PFile::Exists(rsakey)) {
+		keyAvailable = true;
+		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_RSAKEY, (const char *)rsakey);
+		PTRACE(0, "Setting RSA key to " << rsakey);
+	}
+	if (!keyAvailable) {
+		PTRACE(0, "No DSA or RSA key file found");
+		return false;
+	}
+
+    if(ssh_init() < 0) {
+		PTRACE(0, "ssh_init() failed");
+		return false;
+    }
+	ssh_bind_set_fd(sshbind, socket.GetHandle());
+    if(ssh_bind_accept(sshbind, session) == SSH_ERROR) {
+		PTRACE(0, "ssh_bind_accept() failed: " << ssh_get_error(sshbind));
+		return false;
+    }
+
+    if(ssh_handle_key_exchange(session)) {
+		PTRACE(0, "ssh_handle_key_exchange failed: " << ssh_get_error(session));
+		// TODO: close fd ?
+		return false;
+	}
+	
+	// set handle for SocketReader
+	os_handle = ssh_get_fd(session);
+
+	return true;
+}
+
+bool SSHStatusClient::Authenticate()
+{
+	// TODO: check the auth rules and allow any password if client is covered by explicit IP auth
+	const time_t now = time(NULL);
+	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
+    bool auth = false;
+    int retries = 0;
+    do {
+        message = ssh_message_get(session);
+        if (!message) {
+			PTRACE(1, "ssh read error: " << ssh_get_error(session));
+            break;
+		}
+        switch(ssh_message_type(message)){
+            case SSH_REQUEST_AUTH:
+                switch(ssh_message_subtype(message)){
+                    case SSH_AUTH_METHOD_PASSWORD:
+						retries++;
+                        if (AuthenticateUser()){
+							auth = true;
+							ssh_message_auth_reply_success(message,0);
+							break;
+						}
+						// fall through: not authenticated, send default message
+                    case SSH_AUTH_METHOD_NONE:
+                    default:
+                        ssh_message_auth_set_methods(message, SSH_AUTH_METHOD_PASSWORD);
+                        ssh_message_reply_default(message);
+                        break;
+                }
+                break;
+            default:
+                ssh_message_reply_default(message);
+        }
+        ssh_message_free(message);
+    } while (!auth && (retries < 3) && ((time(NULL) - now) < loginTimeout));
+
+    if (!auth) {
+        return false;
+    }
+
+	// open channel
+    do {
+        message = ssh_message_get(session);
+        if (message) {
+            switch(ssh_message_type(message)) {
+                case SSH_REQUEST_CHANNEL_OPEN:
+                    if (ssh_message_subtype(message) == SSH_CHANNEL_SESSION) {
+                        chan = ssh_message_channel_request_open_reply_accept(message);
+                        break;
+                    }
+                default:
+                ssh_message_reply_default(message);
+            }
+            ssh_message_free(message);
+        }
+    } while(message && !chan);
+    if (!chan) {
+        PTRACE(0, "Error establishing SSH channel: " << ssh_get_error(session));
+        return false;
+    }
+
+    return true;
+}
+
+bool SSHStatusClient::AuthenticateUser()
+{
+	const int delay = GkConfig()->GetInteger(authsec, "DelayReject", 0);
+
+	PString login = ssh_message_auth_user(message);
+	PString password = ssh_message_auth_password(message);
+
+	// PTRACE(1, "User " << login << " wants to authenticate with password " << password);
+
+	const PString storedPassword = GetPassword(login);
+	if (storedPassword.IsEmpty())
+		PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
+	else if (!password && password == storedPassword) {
+		m_user = login;
+		return true;
+	} else
+		PTRACE(5, "STATUS\tPassword mismatch for user " << login);
+
+	PProcess::Sleep(delay * 1000);
+
+	return false;
+}
+
+bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
+{
+    char buf[2048];
+    int i = 0;
+    do {
+        i = ssh_channel_read(chan, buf, sizeof(buf), 0);
+		for (int c = 0; c < i; c++) {
+			char byte;
+			char ch = buf[c];
+			switch (ch)
+			{
+				case '\r':
+				case '\n':
+					cmd = m_currentCmd;
+					m_lastCmd = cmd;
+					m_currentCmd = PString();
+					if (echo && NeedEcho())
+						ssh_channel_write(chan, (void *)"\r\n", 2);
+					return true;
+				case '\b':
+				case 0x7f:	// backspace with ssh
+					if (m_currentCmd.GetLength()) {
+						m_currentCmd = m_currentCmd.Left(m_currentCmd.GetLength() - 1);
+						byte = char(ch);
+						if (echo && NeedEcho()) {
+							ssh_channel_write(chan, (void *)"\b \b", 3);
+						}
+					}
+					break;
+				case '\x04':	// Ctrl-D
+					cmd = "exit";
+					m_lastCmd = cmd;
+					m_currentCmd = PString::Empty();
+					return true;
+				default:
+					byte = char(ch);
+					m_currentCmd += byte;
+					cmd = m_currentCmd.Right(3);
+					// Note: this only works if the telnet client doesn't buffer characters
+					// Windows does, my Linux telnet doesn't
+					if (cmd == "\x1b\x5b\x41" || cmd == "\x5b\x41") { // Up Arrow
+						if (echo && NeedEcho()) {
+							for(PINDEX i = 0; i < m_currentCmd.GetLength() - 3; i ++)
+								Write("\b", 1);
+							WriteString(m_lastCmd);
+						}
+						m_currentCmd = m_lastCmd;
+					} else if (cmd.Find('\x1b') == P_MAX_INDEX)
+						if (echo && NeedEcho())
+							ssh_channel_write(chan, &buf[c], 1);
+					break;
+				}
+			}
+    } while (i > 0);
+
+	return true;
+}
+
+bool SSHStatusClient::WriteData(const BYTE * msg, int len)
+{
+	if (!chan)
+		return false;
+
+	int written = ssh_channel_write(chan, msg, len);
+	ssh_blocking_flush(session);
+	return (written == len);
+}
+
+#endif // HAS_LIBSSH
 
 TelnetSocket::TelnetSocket() : m_needEcho(false), m_state(StateNormal)
 {
@@ -752,8 +1030,9 @@ void GkStatus::ReadSocket(
 {
 	PString cmd;
 	StatusClient* client = static_cast<StatusClient*>(clientSocket);
-	if (client->ReadCommand(cmd) && !cmd)
+	if (client->ReadCommand(cmd) && !cmd.IsEmpty()) {
 		client->OnCommand(cmd);
+	}
 }
 
 void GkStatus::CleanUp()
@@ -1634,5 +1913,14 @@ StatusListener::StatusListener(
 ServerSocket *StatusListener::CreateAcceptor() const
 {
 	static int StaticInstanceNo = 0;
-	return new StatusClient(++StaticInstanceNo);
+#ifdef HAS_LIBSSH
+	if (Toolkit::AsBool(GkConfig()->GetString("SSHStatusPort", 0))) {
+		PTRACE(4, "STATUS\tUsing SSH for status port");
+		return new SSHStatusClient(++StaticInstanceNo);
+	} else {
+#endif
+		return new StatusClient(++StaticInstanceNo);
+#ifdef HAS_LIBSSH
+	}
+#endif
 }

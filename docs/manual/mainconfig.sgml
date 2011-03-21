@@ -333,6 +333,12 @@ Default: <tt/2/<newline>
 Default output trace level for new status interface clients.
 See <ref id="monitor" name="this section"> for details.
 
+<item><tt/SshStatusPort=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Use the SSH protocol for the status port.
+User passwords can be set in the <ref id="gkstatusauth" name="[GkStatus::Auth]"> section.
+
 <item><tt/TimestampFormat=ISO8601/<newline>
 Default: <tt/Cisco/<newline>
 <p>
@@ -543,10 +549,22 @@ The IP of the client must match <tt/explicit/ <bf/or/ <tt/regex/ rule.
 The IP of the client must match <tt/regex/ rule, <bf/and/ the user has to login by username and password.
 </itemize>
 
+Using the SSH protocol for the status port implies that all users are authenticated by password.
+
 <item><tt/default=allow/<newline>
 Default: <tt/forbid/<newline>
 <p>
 Only used when <tt/rule=explicit/.
+
+<item><tt/DSAKey=/etc/ssh/ssh_host_dsa_key<newline>
+Default: <tt/ssh_host_dsa_key (in current working directory)/<newline>
+<p>
+Path for the file containing the DSA host key. (only used for SSH)
+
+<item><tt/RSAKey=/etc/ssh/ssh_host_rsa_key<newline>
+Default: <tt/ssh_host_rsa_key (in current working directory)/<newline>
+<p>
+Path for the file containing the RSA host key. (only used for SSH)
 
 <item><tt/Shutdown=forbid/<newline>
 Default: <tt/allow/<newline>

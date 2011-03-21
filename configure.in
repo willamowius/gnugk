@@ -789,6 +789,113 @@ if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$
 	HEADERS="$HEADERS sqlacct.h gksql.h"
 fi
 
+dnl #########################################################################
+dnl  Check for libssh
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    libssh,libSSH
+dnl MSWIN_CHECK_FILE libssh,libssh\server.h,HAS_LIBSSH=1
+dnl MSWIN_DIR_SYMBOL libssh,LIBSSH_DIR
+dnl MSWIN_CHECK_DIR  libssh,\libssh\include\
+
+AC_ARG_ENABLE(libssh, 
+[  --enable-libssh                enable libssh support (default=yes)], 
+[ libssh="${enableval}" ], [ libssh="yes" ]
+)
+
+AC_ARG_WITH(libssh-include-dir,
+[  --with-libssh-include-dir=DIR  directory where libssh includes may be found ],
+[ libssh_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(libssh-lib-dir,
+[  --with-libssh-lib-dir=DIR      directory where libssh libraries may be found ],
+[ libssh_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(libssh-dir,
+[  --with-libssh-dir=DIR          base directory where libssh is installed ],
+[ libssh_lib_dir="$withval/lib"
+  libssh_include_dir="$withval/include"
+]
+)
+
+if test "x${libssh}" != "xno"; then
+
+	AC_MSG_CHECKING([for libssh/server.h])
+
+	old_CFLAGS="$CFLAGS"
+
+	for try in /usr/include /usr/local/include $libssh_include_dir; do
+		if test -d $try; then
+			CFLAGS="$old_CFLAGS -I$try"
+			AC_TRY_COMPILE([#include <libssh/libssh.h>], [int a = 1;],
+				LIBSSH_INCLUDE="-I$try",
+				LIBSSH_INCLUDE=
+			)
+		fi
+	done
+	CFLAGS="$old_CFLAGS"
+
+	if test "x$LIBSSH_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([libssh headers not found. Use --with-libssh-include-dir=<path>])
+		libssh="no"
+	else
+		libssh_cflags="${libssh_cflags} ${LIBSSH_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for ssh_handle_key_exchange()/ssh_blocking_flush() in libssh])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/local/lib $libssh_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS /usr/local/lib/libssh.so.5 -lcrypto -lz"
+				AC_TRY_LINK([extern ssh_handle_key_exchange(); extern ssh_blocking_flush();], [ssh_handle_key_exchange(); ssh_blocking_flush();],
+					[ LIBSSH_LIBS="/usr/local/lib/libssh.so.5"
+					  LIBSSH_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$LIBSSH_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		if test "x$LIBSSH_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			LIBSSH_INCLUDE=
+			AC_MSG_WARN([libssh lib not found. Use --with-libssh-lib-dir=<path>])
+			libssh="no"
+		else
+			AC_MSG_RESULT(yes) 
+			libssh_ldflags="$libssh_ldflags $LIBSSH_LDFLAGS"
+		fi
+	fi
+
+	libssh_ldflags="$libssh_ldflags $LIBS"
+
+	if test "x$libssh" = "xno"; then
+		AC_MSG_WARN([libssh disabled])
+	fi
+else
+	libssh="no"
+fi
+
+if test "x$libssh" != "xno"; then
+	HAS_LIBSSH=1
+	STDCCFLAGS="${libssh_cflags} -DHAS_LIBSSH=1 $STDCCFLAGS"
+	LDFLAGS="$LIBSSH_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$LIBSSH_LIBS $ENDLDLIBS"
+    echo "libssh support enabled"
+else
+    echo "libssh support disabled"
+	HAS_LIBSSH=0
+fi
+AC_SUBST(HAS_LIBSSH)
+
 dnl ########################################################################
 dnl make directives
 

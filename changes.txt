@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- support for SSH encryption of the status port connection
 - BUGFIX(*.cxx) treat empty ExternalIP and NetworkInterfaces settings correctly
 - BUGFIX(Toolkit.cxx) fix setting of the default IP, make sure its include in the
   Home= setting, unless explicitely specified in Bind=
