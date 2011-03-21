@@ -3874,7 +3874,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 			params["t"] = nowtime.AsString();
 
 			toolkit->QoS().PostRecord(params);
-			//return;	// JW: disabled: allow DB plus file to be active at same time
+			//return;	// disabled: allow DB plus file to be active at same time
 		}
 #endif  // HAS_DATABASE
 
@@ -3931,10 +3931,10 @@ void CallTable::QoSReport(const H225_InfoRequestResponse & /* obj_irr */, const 
 	PPER_Stream argStream(rawstats);
     H4609_QosMonitoringReportData report;
 	if (report.Decode(argStream) && report.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
-		PTRACE(5,"QoS\tReport " << report);
+		PTRACE(5, "QoS\tReport " << report);
 		OnQosMonitoringReport(AsString(call->GetCallIdentifier().m_guid), ep, report);
 	} else {
-		PTRACE(4,"QoS\tIRR Call Statistics decode failure.");
+		PTRACE(4, "QoS\tIRR Call Statistics decode failure");
 	}
 }
 
@@ -3942,20 +3942,13 @@ void CallTable::QoSReport(const H225_DisengageRequest & obj_drq, const endptr & 
 {
 	PPER_Stream argStream(rawstats);
     H4609_QosMonitoringReportData report;
-	if (report.Decode(argStream) && report.GetTag() == H4609_QosMonitoringReportData::e_final) {
-		PTRACE(5,"QoS\tReport " << report);
-		PString conference = ::AsString(obj_drq.m_conferenceID);
-		OnQosMonitoringReport(conference, ep, report);
+	if (report.Decode(argStream)
+		&& ((report.GetTag() == H4609_QosMonitoringReportData::e_final) || (report.GetTag() == H4609_QosMonitoringReportData::e_periodic))) {
+		PTRACE(5, "QoS\tReport " << report);
+		OnQosMonitoringReport(AsString(obj_drq.m_conferenceID), ep, report);
 	
 	} else {
-		PTRACE(4,"QoS\tDRQ Call Statistics decode failure.");
-		PTRACE(0,"JW QoS\tDRQ Call Statistics decode failure");
-		H4609_FinalQosMonReport rep;
-		if (rep.Decode(argStream)) {
-			PTRACE(0,"JW QoS\tReport " << rep);
-		} else {
-			PTRACE(0,"JW no decode at all");
-		}
+		PTRACE(4, "QoS\tDRQ Call Statistics decode failure");
 	}
 }
 #endif
