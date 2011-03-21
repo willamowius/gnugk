@@ -3101,7 +3101,7 @@ bool AdmissionRequestPDU::Process()
 		&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
 		H460_FeatureStd feat = H460_FeatureStd(9);
 		if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "CallEndOnly", "1"))) {
-			H460_FeatureID finalonly = H460_FeatureID(0); // TODO: standard says 0, Wireshark says 1
+			H460_FeatureID finalonly = H460_FeatureID(0); // TODO: standard says 0, Wireshark says 1, PVX ignores both
 			feat.AddParameter(&finalonly);
 			// delete finalonly;
 		}
