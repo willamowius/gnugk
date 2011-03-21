@@ -3099,11 +3099,17 @@ bool AdmissionRequestPDU::Process()
 	/// H.460.9 QoS Reporting
 	if (EPSupportsQoSReporting
 		&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+		H460_FeatureStd feat = H460_FeatureStd(9);
+		if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "CallEndOnly", "1"))) {
+			H460_FeatureID finalonly = H460_FeatureID(0); // TODO: standard says 0, Wireshark says 1
+			feat.AddParameter(&finalonly);
+			// delete finalonly;
+		}
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
 		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_desiredFeatures;
 		desc.SetSize(1);
-		desc[0] = H460_FeatureStd(9);
+		desc[0] = feat;
 	}
 #endif
 
