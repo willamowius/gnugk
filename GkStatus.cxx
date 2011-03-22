@@ -569,7 +569,7 @@ bool SSHStatusClient::WriteData(const BYTE * msg, int len)
 		return false;
 
 	int written = ssh_channel_write(chan, msg, len);
-	ssh_blocking_flush(session);
+	ssh_blocking_flush(session, 5000);	// wait 5 sec. max
 	return (written == len);
 }
 
