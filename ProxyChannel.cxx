@@ -3753,8 +3753,15 @@ void CallSignalSocket::OnFacility(
 				m_result = NoData;
 		}
 		break;
-	case H225_FacilityReason::e_callForwarded:
 	case H225_FacilityReason::e_routeCallToGatekeeper:
+        // Fix for VCS Include orginal destination as an alternativeAlias
+        if (!facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress)) {
+              facilityBody.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
+              H225_TransportAddress orgAddress = m_call->GetDestSignalAddr();
+              facilityBody.m_alternativeAliasAddress.SetSize(1);
+              H323SetAliasAddress(m_call->GetDestSignalAddr(),facilityBody.m_alternativeAliasAddress[0]);
+        }
+	case H225_FacilityReason::e_callForwarded:
 	case H225_FacilityReason::e_routeCallToMC:
 		if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardOnFacility", "0")))
 			break;
