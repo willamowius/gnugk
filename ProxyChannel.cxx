@@ -625,7 +625,7 @@ TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
 TCPProxySocket::~TCPProxySocket()
 {
 	if (remote) {
-		remote->remote = 0; // detach myself from remote
+		remote->remote = NULL; // detach myself from remote
 		remote->SetDeletable();
 	}
 }
@@ -897,14 +897,16 @@ CallSignalSocket::~CallSignalSocket()
 {
 	if (m_h245socket) {
 		if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote)) {
-			if (!m_h245handler->IsSessionEnded() && ret->m_h245socket)
+			if (m_h245handler && !m_h245handler->IsSessionEnded() && ret->m_h245socket) {
 				ret->m_h245socket->SendEndSessionCommand();
-			if (ret->m_h245handler && !ret->m_h245handler->IsSessionEnded())
+			}
+			if (ret->m_h245handler && !ret->m_h245handler->IsSessionEnded()) {
 				m_h245socket->SendEndSessionCommand();
+			}
 		}
 		m_h245socket->OnSignalingChannelClosed();
 	}
-	
+
 	if (m_call) {
 		if (m_call->GetCallSignalSocketCalling() == this) {
 			m_call->SetCallSignalSocketCalling(NULL);
@@ -3811,6 +3813,7 @@ void CallSignalSocket::OnFacility(
 				PBYTEArray rawSetup = m_call->RetrieveSetup();
 				CallSignalSocket * callingSocket = m_call->GetCallSignalSocketCalling();
 				if (callingSocket && (rawSetup.GetSize() > 0)) {
+					m_callerSocket = false;
 					remote = callingSocket;
 					remote->GetPeerAddress(peerAddr, peerPort);
 					localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
