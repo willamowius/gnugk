@@ -352,7 +352,7 @@ void Gatekeeper::Terminate()
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
 	RasServer::Instance()->Stop();
-	// TODO: wait for termination here
+	// wait for termination
 	PThread::Sleep(10 * 1000);	// sleep 10 sec
 }
 
