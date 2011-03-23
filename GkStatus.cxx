@@ -407,7 +407,6 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 
     if(ssh_handle_key_exchange(session)) {
 		PTRACE(1, "ssh_handle_key_exchange failed: " << ssh_get_error(session));
-		// TODO: close fd ?
 		return false;
 	}
 	
@@ -430,12 +429,12 @@ bool SSHStatusClient::Authenticate()
 			PTRACE(1, "ssh read error: " << ssh_get_error(session));
             break;
 		}
-        switch(ssh_message_type(message)){
+        switch(ssh_message_type(message)) {
             case SSH_REQUEST_AUTH:
-                switch(ssh_message_subtype(message)){
+                switch(ssh_message_subtype(message)) {
                     case SSH_AUTH_METHOD_PASSWORD:
 						retries++;
-                        if (AuthenticateUser()){
+                        if (AuthenticateUser()) {
 							auth = true;
 							ssh_message_auth_reply_success(message,0);
 							break;
