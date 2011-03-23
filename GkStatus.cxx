@@ -382,31 +382,31 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	if (PFile::Exists(dsakey)) {
 		keyAvailable = true;
 		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_DSAKEY, (const char *)dsakey);
-		PTRACE(0, "Setting DSA key to " << dsakey);
+		PTRACE(3, "Setting DSA key to " << dsakey);
 	}
 	PString rsakey = GkConfig()->GetString(authsec, "RSAKey", "/etc/ssh/ssh_host_rsa_key");
 	if (PFile::Exists(rsakey)) {
 		keyAvailable = true;
 		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_RSAKEY, (const char *)rsakey);
-		PTRACE(0, "Setting RSA key to " << rsakey);
+		PTRACE(3, "Setting RSA key to " << rsakey);
 	}
 	if (!keyAvailable) {
-		PTRACE(0, "No DSA or RSA key file found");
+		PTRACE(1, "No DSA or RSA key file found");
 		return false;
 	}
 
     if(ssh_init() < 0) {
-		PTRACE(0, "ssh_init() failed");
+		PTRACE(1, "ssh_init() failed");
 		return false;
     }
 	ssh_bind_set_fd(sshbind, socket.GetHandle());
     if(ssh_bind_accept(sshbind, session) == SSH_ERROR) {
-		PTRACE(0, "ssh_bind_accept() failed: " << ssh_get_error(sshbind));
+		PTRACE(1, "ssh_bind_accept() failed: " << ssh_get_error(sshbind));
 		return false;
     }
 
     if(ssh_handle_key_exchange(session)) {
-		PTRACE(0, "ssh_handle_key_exchange failed: " << ssh_get_error(session));
+		PTRACE(1, "ssh_handle_key_exchange failed: " << ssh_get_error(session));
 		// TODO: close fd ?
 		return false;
 	}
@@ -475,7 +475,7 @@ bool SSHStatusClient::Authenticate()
         }
     } while(message && !chan);
     if (!chan) {
-        PTRACE(0, "Error establishing SSH channel: " << ssh_get_error(session));
+        PTRACE(1, "Error establishing SSH channel: " << ssh_get_error(session));
         return false;
     }
 
