@@ -763,10 +763,10 @@ void CLIRewrite::Rewrite(
 	}
 	if (m_processSourceAddress && msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		H225_ArrayOf_AliasAddress &sourceAddress = msg.GetUUIEBody().m_sourceAddress;
-		PINDEX aliasIndex = 0;
 		if (m_removeH323Id)
 			sourceAddress.SetSize(1);
 		else {
+			PINDEX aliasIndex = 0;
 			while (aliasIndex < sourceAddress.GetSize())
 				if (sourceAddress[aliasIndex].GetTag() == H225_AliasAddress::e_h323_ID) {
 					if (rule->m_rewriteType == RewriteRule::PrefixToH323Id
