@@ -851,9 +851,9 @@ if test "x${libssh}" != "xno"; then
 
 		for try in /usr/lib /usr/local/lib $libssh_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS /usr/local/lib/libssh.so.5 -lcrypto -lz"
+				LIBS="$old_LIBS -lssh -lcrypto -lz"
 				AC_TRY_LINK([extern ssh_handle_key_exchange(); extern ssh_blocking_flush();], [ssh_handle_key_exchange(); ssh_blocking_flush();],
-					[ LIBSSH_LIBS="/usr/local/lib/libssh.so.5"
+					[ LIBSSH_LIBS="-lssh"
 					  LIBSSH_LDFLAGS="-L$try"
 					]
 				)
