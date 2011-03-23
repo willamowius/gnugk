@@ -348,7 +348,7 @@ PString PresMsgType(unsigned tag)
 GkPresence::GkPresence()
  : m_enabled(false), m_sqlactive(false), m_worker(NULL)
 #if HAS_DATABASE
-	, m_sqlConn(NULL)
+	, m_sqlConn(NULL), m_timeout(-1)
 #endif
 {
 }

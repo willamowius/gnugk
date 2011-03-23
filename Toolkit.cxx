@@ -1591,7 +1591,7 @@ bool Toolkit::MatchRegex(const PString &str, const PString &regexStr)
 
 #if HAS_DATABASE
 Toolkit::AssignedAliases::AssignedAliases()
-  : m_sqlactive(false), m_sqlConn(NULL)
+  : m_sqlactive(false), m_sqlConn(NULL), m_timeout(-1)
 {
 }
 
@@ -2166,7 +2166,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 
 #if HAS_DATABASE
 Toolkit::QoSMonitor::QoSMonitor()
-  : m_sqlactive(false), m_sqlConn(NULL)
+  : m_sqlactive(false), m_sqlConn(NULL), m_timeout(-1)
 {
 }
 
