@@ -25,7 +25,7 @@ static PDynaLink g_sharedLibrary;
 static void (*g_PQclear)(PGresult *res) = NULL;
 static char * (*g_PQcmdTuples)(PGresult *res) = NULL;
 static char * (*g_PQerrorMessage)(const PGconn *conn) = NULL;
-static size_t (*g_PQescapeString)(char *to, const char *from, size_t length) = NULL;
+static size_t (*g_PQescapeStringConn)(PGconn *conn, char *to, const char *from, size_t length, int *error) = NULL;
 static PGresult * (*g_PQexec)(PGconn *conn, const char *query) = NULL;
 static void (*g_PQfinish)(PGconn *conn) = NULL;
 static char * (*g_PQfname)(const PGresult *res, int field_num) = NULL;
@@ -335,7 +335,7 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 		if (!g_sharedLibrary.GetFunction("PQclear", (PDynaLink::Function &)g_PQclear)
 			|| !g_sharedLibrary.GetFunction("PQcmdTuples", (PDynaLink::Function &)g_PQcmdTuples)
 			|| !g_sharedLibrary.GetFunction("PQerrorMessage", (PDynaLink::Function &)g_PQerrorMessage)
-			|| !g_sharedLibrary.GetFunction("PQescapeString", (PDynaLink::Function &)g_PQescapeString)
+			|| !g_sharedLibrary.GetFunction("PQescapeStringConn", (PDynaLink::Function &)g_PQescapeStringConn)
 			|| !g_sharedLibrary.GetFunction("PQexec", (PDynaLink::Function &)g_PQexec)
 			|| !g_sharedLibrary.GetFunction("PQfinish", (PDynaLink::Function &)g_PQfinish)
 			|| !g_sharedLibrary.GetFunction("PQfname", (PDynaLink::Function &)g_PQfname)
@@ -415,18 +415,18 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 
 PString GkPgSQLConnection::EscapeString(
 	/// SQL connection to get escaping parameters from
-	SQLConnPtr /* conn */,
+	SQLConnPtr conn,
 	/// string to be escaped
 	const char* str
 	)
 {
 	PString escapedStr;
 	const unsigned long numChars = str ? strlen(str) : 0;
+	int err = 0;
 	
 	if (numChars)
 		escapedStr.SetSize(
-			// TODO: switch to PQescapeStringConn()
-			(*g_PQescapeString)(escapedStr.GetPointer(numChars*2+1), str, numChars) + 1
+			(*g_PQescapeStringConn)(((PgSQLConnWrapper*)conn)->m_conn, escapedStr.GetPointer(numChars*2+1), str, numChars, &err) + 1
 			);
 	return escapedStr;
 }
