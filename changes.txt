@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- add the called IP as alternativeAddress to a routeCallToGK Facility if no alternative is provided
 - BUGFIX(ProxyChannel.cxx) fix rare crash for H.460.18 calls
 - support for SSH encryption of the status port connection
 - BUGFIX(*.cxx) treat empty ExternalIP and NetworkInterfaces settings correctly

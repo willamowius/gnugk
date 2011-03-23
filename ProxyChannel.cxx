@@ -3756,12 +3756,10 @@ void CallSignalSocket::OnFacility(
 		}
 		break;
 	case H225_FacilityReason::e_routeCallToGatekeeper:
-		if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardOnFacility", "0")))
-			break;
         // include orginal destination as an alternativeAlias if none is provided (fix for VCS)
-        if (!facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress)) {
+        if (!facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress)
+			&& !facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress)) {
               facilityBody.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
-              H225_TransportAddress orgAddress = m_call->GetDestSignalAddr();
               facilityBody.m_alternativeAliasAddress.SetSize(1);
               H323SetAliasAddress(m_call->GetDestSignalAddr(),facilityBody.m_alternativeAliasAddress[0]);
         }
