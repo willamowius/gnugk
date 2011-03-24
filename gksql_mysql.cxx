@@ -351,7 +351,11 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 			|| !g_sharedLibrary.GetFunction("mysql_error", (PDynaLink::Function &)g_mysql_error)
 			|| !g_sharedLibrary.GetFunction("mysql_affected_rows", (PDynaLink::Function &)g_mysql_affected_rows)
 			) {
+#ifdef hasDynaLinkGetLastError
 			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+#else
+			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
+#endif
 			g_sharedLibrary.Close();
 			return NULL;
 		}

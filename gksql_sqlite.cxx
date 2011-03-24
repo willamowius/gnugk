@@ -315,7 +315,11 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 			|| !g_sharedLibrary.GetFunction("sqlite3_mprintf", (PDynaLink::Function &)g_sqlite3_mprintf)
 			|| !g_sharedLibrary.GetFunction("sqlite3_open", (PDynaLink::Function &)g_sqlite3_open)
 			) {
+#ifdef hasDynaLinkGetLastError
 			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+#else
+			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
+#endif
 			g_sharedLibrary.Close();
 			return NULL;
 		}

@@ -55,7 +55,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		PTRACE(1, "MakeCallEndpoint: Error registering with gatekeeper at \"" << gkName << '"');
 		isRegistered = FALSE;
 	}
-#ifdef H323_H460
+#ifdef H323_H46018
 	H46018Enable(PFalse);
 #endif
 }

@@ -90,7 +90,7 @@
 	#endif
 #endif
 
-// for Ptlib v2.x
+// for PTlib v2.x
 #ifdef PTLIB_MAJOR 
 	#define hasRDS 1 
 	#define hasSETENUMSERVERS 1    
@@ -101,6 +101,10 @@
 	// changed PConfig interface in PWLib >= 2.2.0
 	#if PTLIB_MINOR >= 2
 		#define hasPConfigArray 1
+	#endif
+	// availability of GetLastError in PDynaLink
+	#if PTLIB_MINOR >= 8
+		#define hasDynaLinkGetLastError 1
 	#endif
 	// bug with no trailing NULL bytes in BMP strings, fixed in PTLib 2.7.1
 	#if ((PTLIB_MINOR == 2) || (PTLIB_MINOR == 4 && PTLIB_BUILD <= 5) || (PTLIB_MINOR == 5 && PTLIB_BUILD <= 2) || (PTLIB_MINOR == 6 && PTLIB_BUILD <= 4))
@@ -149,8 +153,15 @@
 #endif
 
 #if OPENH323_MAJOR == 1
-	#if OPENH323_MINOR >= 22
-		#define HAS_ROUTECALLTOMC 1	// H323Plus endpoints supports RouteCallToMC() starts inside 1.22.0
+	#if OPENH323_MINOR == 22
+		#if OPENH323_BUILD >= 1
+		#define HAS_ROUTECALLTOMC 1	// H323Plus endpoints supports RouteCallToMC() - starts with 1.22.1
+		#endif
+	#endif
+#endif
+#if OPENH323_MAJOR == 1
+	#if OPENH323_MINOR > 22
+		#define HAS_ROUTECALLTOMC 1	// H323Plus endpoints supports RouteCallToMC() - starts inside 1.22.1
 	#endif
 #endif
 

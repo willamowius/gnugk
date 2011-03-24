@@ -430,7 +430,11 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 			|| !g_sharedLibrary.GetFunction("SQLSetEnvAttr", (PDynaLink::Function &)g_SQLSetEnvAttr)
 			|| !g_sharedLibrary.GetFunction("SQLSetStmtAttr", (PDynaLink::Function &)g_SQLSetStmtAttr)
 			) {
+#ifdef hasDynaLinkGetLastError
 			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+#else
+			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
+#endif
 			g_sharedLibrary.Close();
 			return NULL;
 		}

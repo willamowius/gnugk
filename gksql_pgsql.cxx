@@ -348,7 +348,11 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 			|| !g_sharedLibrary.GetFunction("PQsetdbLogin", (PDynaLink::Function &)g_PQsetdbLogin)
 			|| !g_sharedLibrary.GetFunction("PQstatus", (PDynaLink::Function &)g_PQstatus)
 			) {
+#ifdef hasDynaLinkGetLastError
 			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+#else
+			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
+#endif
 			g_sharedLibrary.Close();
 			return NULL;
 		}

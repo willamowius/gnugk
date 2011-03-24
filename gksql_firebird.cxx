@@ -488,7 +488,11 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 			|| !g_sharedLibrary.GetFunction("isc_sql_interprete", (PDynaLink::Function &)g_isc_sql_interprete)
 			|| !g_sharedLibrary.GetFunction("isc_start_transaction", (PDynaLink::Function &)g_isc_start_transaction)
 			) {
+#ifdef hasDynaLinkGetLastError
 			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
+#else
+			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
+#endif
 			g_sharedLibrary.Close();
 			return NULL;
 		}
