@@ -6,9 +6,9 @@ Changes from 2.3.4 to 2.3.5
 - support for SSH encryption of the status port connection
 - BUGFIX(*.cxx) treat empty ExternalIP and NetworkInterfaces settings correctly
 - BUGFIX(Toolkit.cxx) fix setting of the default IP, make sure its include in the
-  Home= setting, unless explicitely specified in Bind=
-- BUGFIX(Routing.cxx) populate calledIP field in RouteRequsts resulting from ARQs
-- jitter values reported through Radius are now in msec (was codec dependant clock rate)
+  Home= setting, unless explicitly specified in Bind=
+- BUGFIX(Routing.cxx) populate calledIP field in RouteRequests resulting from ARQs
+- jitter values reported through Radius are now in msec (was codec dependent clock rate)
 - new switches: [RasSrv::ARQFeatures] SendRIP=<delay> and [RasSrv::LRQFeatures] SendRIP=<delay>
 - new status port command: PrintEndpointQoS
 - use H.460.9 data in the same way as sniffed RTCP stats for status port and Radius reporting
