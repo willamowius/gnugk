@@ -376,7 +376,7 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	session = ssh_new();
 
 	//ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");	// only enable for debugging
-	ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BANNER, "SSH-2.0-GnuGk\r");	// TODO: doesn't seem to work
+	ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BANNER, "SSH-2.0-GnuGk");	// TODO: doesn't seem to work
 
 	bool keyAvailable = false;
 	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
@@ -488,6 +488,10 @@ bool SSHStatusClient::Authenticate()
             switch(ssh_message_type(message)) {
                 case SSH_REQUEST_CHANNEL:
                     switch (ssh_message_subtype(message)) {
+						case SSH_CHANNEL_REQUEST_UNKNOWN:
+							// Putty X11 forwarding, deny to avoid hang
+			                ssh_message_reply_default(message);	// deny
+			                break;
 						case SSH_CHANNEL_REQUEST_PTY:
 		                    ssh_message_channel_request_reply_success(message);
 			                break;
@@ -495,12 +499,23 @@ bool SSHStatusClient::Authenticate()
 							shell = true;
 		                    ssh_message_channel_request_reply_success(message);
 			                break;
+						case SSH_CHANNEL_X11:
+			                ssh_message_reply_default(message);	// deny X11 forwarding
+			                break;
+						default:
+							PTRACE(3, "Unhandled SSH_REQUEST_CHANNEL message " << ssh_message_type(message) << " subtype " << ssh_message_subtype(message));
+							break;
 					}
+					break;
+				default:
+					PTRACE(0, "JW unhandled " << ssh_message_type(message) << " sub=" << ssh_message_subtype(message));
 				// ignore the rest for now
             }
             ssh_message_free(message);
         }
     } while(message && !shell);
+	if (!message)
+		return false;
 
     return true;
 }
