@@ -375,7 +375,8 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	sshbind = ssh_bind_new();
 	session = ssh_new();
 
-	// ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");
+	//ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");	// only enable for debugging
+	ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BANNER, "SSH-2.0-GnuGk\r");	// TODO: doesn't seem to work
 
 	bool keyAvailable = false;
 	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
@@ -467,8 +468,9 @@ bool SSHStatusClient::Authenticate()
                         chan = ssh_message_channel_request_open_reply_accept(message);
                         break;
                     }
+	                // fall through intended
                 default:
-                ssh_message_reply_default(message);
+	                ssh_message_reply_default(message);
             }
             ssh_message_free(message);
         }
@@ -477,6 +479,28 @@ bool SSHStatusClient::Authenticate()
         PTRACE(1, "Error establishing SSH channel: " << ssh_get_error(session));
         return false;
     }
+
+	// handle requests
+	bool shell = false;
+    do {
+        message = ssh_message_get(session);
+        if (message) {
+            switch(ssh_message_type(message)) {
+                case SSH_REQUEST_CHANNEL:
+                    switch (ssh_message_subtype(message)) {
+						case SSH_CHANNEL_REQUEST_PTY:
+		                    ssh_message_channel_request_reply_success(message);
+			                break;
+						case SSH_CHANNEL_REQUEST_SHELL:
+							shell = true;
+		                    ssh_message_channel_request_reply_success(message);
+			                break;
+					}
+				// ignore the rest for now
+            }
+            ssh_message_free(message);
+        }
+    } while(message && !shell);
 
     return true;
 }
