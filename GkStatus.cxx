@@ -508,7 +508,7 @@ bool SSHStatusClient::Authenticate()
 					}
 					break;
 				default:
-					PTRACE(0, "JW unhandled " << ssh_message_type(message) << " sub=" << ssh_message_subtype(message));
+					PTRACE(3, "Unhandled SSH message " << ssh_message_type(message) << " subtype " << ssh_message_subtype(message));
 				// ignore the rest for now
             }
             ssh_message_free(message);
