@@ -991,9 +991,10 @@ bool EndpointRec::AddH350ServiceControl(
 	PString server = ldap + ":" + port;
 
 	// TODO: this SearchBaseDN is also used for lookup of the commObjects,
-	// so its probably not the SearchBaseDN for white page lookup
+	// so its probably not the right SearchBaseDN for white page lookup
 	PString search = GkConfig()->GetString("GkH350::Settings", "SearchBaseDN", "");
-		if (search.IsEmpty()) return false;
+	if (search.IsEmpty())
+		return false;
 	   
 	const PINDEX sessionIndex = sessions.GetSize();
 	sessions.SetSize(sessionIndex + 1);

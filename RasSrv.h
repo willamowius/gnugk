@@ -221,7 +221,6 @@ public:
 #ifdef h323v6
 	template<class RAS> bool HasAssignedGK(const PString & alias,const PIPSocket::Address & ip, RAS & ras)
 	{
-
         H225_ArrayOf_AlternateGK assignedGK;
 		assignedGK.SetSize(0);
 

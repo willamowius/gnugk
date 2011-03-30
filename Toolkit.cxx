@@ -1746,7 +1746,7 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 {
 	// support Assigned Aliases
     if (!Toolkit::AsBool(GkConfig()->GetString(H350Section, "AssignedAliases", "0")))
-		   return false;
+		return false;
 
 	// search the directory
 	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
@@ -1825,7 +1825,7 @@ bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStri
 		return true;
 #endif
 #ifdef H323_H350
-	if (QueryH350Directory(alias,aliases))
+	if (QueryH350Directory(alias, aliases))
 		return true;
 #endif
 
@@ -2012,14 +2012,13 @@ void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 }
 
 #ifdef H323_H350
-bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
+bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses)
 {
+	// support gatekeeper discovery
+    if (!Toolkit::AsBool(GkConfig()->GetString(H350Section, "GatekeeperDiscovery", "0")))
+	   return false;
 
-	// Support Gatekeeper discovery
-    if (!GkConfig()->GetString(H350Section, "GatekeeperDiscovery", "0"))
-		   return false;
-
-	// Search the Directory
+	// search the directory
 	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
 
 	H225_AliasAddress aliasaddress;
@@ -2029,54 +2028,58 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias,cons
 	switch (aliasaddress.GetTag()) {
 	  case H225_AliasAddress::e_dialedDigits:
             filter = "h323IdentitydialedDigits=" + alias;
+            break;
 	  case H225_AliasAddress::e_h323_ID:
             filter = "h323Identityh323-ID=" + alias;
+            break;
 	  case H225_AliasAddress::e_url_ID:
 		    filter = "h323IdentityURL-ID=" + alias;
+		    break;
 	  default:
-		  return false;
+			PTRACE(4, "H350\tAssigned GK: unhandled alias type " << aliasaddress.GetTagName());
+			return false;
 	}
 
 	H350_Session session;
 	if (!Toolkit::Instance()->CreateH350Session(&session)) {
-	   PTRACE(4,"H350\tAssigned GK: Could not connect to Server.");
+	   PTRACE(1, "H350\tAssigned GK: Could not connect to Server.");
 	   return false;
 	}
 
 	H350_Session::LDAP_RecordList rec;
 	int count = session.Search(search,filter,rec);
 	if (count <= 0) {
-	   PTRACE(4,"H350\tAssigned GK: No Record Found");
-	   session.Close();
-	   return false;
+		PTRACE(4, "H350\tAssigned GK: No Record Found");
+		session.Close();
+		return false;
 	}
 
-	// Locate the record
+	// locate the record
 	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
-       H350_Session::LDAP_Record entry = x->second;
-	   PString gk;
-	   if (session.GetAttribute(entry,"h323IdentityGKDomain",gk)) {
-           PTRACE(2,"H350\tAssigned GK: GK located " << gk);
-		   addresses = gk.Lines();
-		   session.Close();
-		   return true;
-	   }
+		H350_Session::LDAP_Record entry = x->second;
+		PString gk;
+		if (session.GetAttribute(entry, "h323IdentityGKDomain", gk)) {
+			PTRACE(2, "H350\tAssigned GK: GK located " << gk);
+			addresses = gk.Lines();
+			session.Close();
+			return true;
+		}
 	}
 
-	PTRACE(4,"H350\tAssigned GK: No valid Assigned GK found.");
+	PTRACE(4, "H350\tAssigned GK: No valid Assigned GK found");
 	session.Close();
 	return false;
 }
 #endif
 
-bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses)
+bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses)
 {
 #if HAS_DATABASE
-	if (DatabaseLookup(alias,ip,addresses))
+	if (DatabaseLookup(alias, ip, addresses))
 		return true;
 #endif
 #ifdef H323_H350
-	if (QueryH350Directory(alias,ip,addresses))
+	if (QueryH350Directory(alias, ip, addresses))
 		return true;
 #endif
 
@@ -2094,11 +2097,11 @@ static PString DNStoIP(const PString & dns)
 }
 #endif
 
-bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
+bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
 {
 	bool found = false;
 	PStringArray assignedGK;
-	found = QueryAssignedGK(alias,ip,assignedGK);
+	found = QueryAssignedGK(alias, ip, assignedGK);
 
 	if (!found) {
 		  for (unsigned j=0; j < assignedGKList.size(); j++) {
@@ -2130,24 +2133,24 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias,const PIP
 			else {
 				PString xnum = assignedGK[k];
 				if (xnum.Left(5) != "h323:")
-						xnum = "h323:user@" + xnum;
+					xnum = "h323:user@" + xnum;
 
 				PStringList str;
 				if (PDNS::LookupSRV(xnum,"_h323rs._udp.",str)) {
 					PTRACE(4, "AssignGK\t" << str.GetSize() << " SRV Records found" );
 					for (PINDEX i = 0; i < str.GetSize(); i++) {
 						PString newhost = str[i].Right(str[i].GetLength()-5);
-						PTRACE(4, "AssignGK\tDNS SRV converted GK address " << number << " to " << newhost );
+						PTRACE(4, "AssignedGK\tDNS SRV converted GK address " << number << " to " << newhost );
 						ipaddresses.AppendString(newhost);
 					}
 				} else {
-						ipaddresses.AppendString(DNStoIP(number));
+					ipaddresses.AppendString(DNStoIP(number));
 				}
 			}
 #endif
 		}
 
-		for (PINDEX k=0; k < ipaddresses.GetSize(); k++) {
+		for (PINDEX k = 0; k < ipaddresses.GetSize(); k++) {
            PString num = ipaddresses[k];
            WORD port = GK_DEF_UNICAST_RAS_PORT;
 		   PStringArray tokens = num.Tokenise(":", FALSE);
