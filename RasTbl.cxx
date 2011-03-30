@@ -990,6 +990,8 @@ bool EndpointRec::AddH350ServiceControl(
 	PString port = GkConfig()->GetString("GkH350::Settings", "ServerPort", "389");
 	PString server = ldap + ":" + port;
 
+	// TODO: this SearchBaseDN is also used for lookup of the commObjects,
+	// so its probably not the SearchBaseDN for white page lookup
 	PString search = GkConfig()->GetString("GkH350::Settings", "SearchBaseDN", "");
 		if (search.IsEmpty()) return false;
 	   
@@ -1013,8 +1015,8 @@ bool EndpointRec::AddH350ServiceControl(
 	PASN_OctetString & data = pdu.m_data;
 
 	H225_H350ServiceControl svc;
-		svc.m_ldapURL = server;
-		svc.m_ldapDN = search;
+	svc.m_ldapURL = server;
+	svc.m_ldapDN = search;
 
 	data.EncodeSubType(svc);
 	return true;

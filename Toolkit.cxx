@@ -1744,11 +1744,11 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 
 bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PStringArray & aliases)
 {
-// Support Assigned Aliases
-    if (!GkConfig()->GetString(H350Section, "AssignedAliases", "0"))
+	// support Assigned Aliases
+    if (!Toolkit::AsBool(GkConfig()->GetString(H350Section, "AssignedAliases", "0")))
 		   return false;
 
-// Search the Directory
+	// search the directory
 	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
 
 	H225_AliasAddress aliasaddress;
@@ -1758,57 +1758,61 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 	switch (aliasaddress.GetTag()) {
 	  case H225_AliasAddress::e_dialedDigits:
             filter = "h323IdentitydialedDigits=" + alias;
+            break;
 	  case H225_AliasAddress::e_h323_ID:
             filter = "h323Identityh323-ID=" + alias;
+            break;
 	  case H225_AliasAddress::e_url_ID:
 		    filter = "h323IdentityURL-ID=" + alias;
+		    break;
 	  default:
+		  PTRACE(4, "H350\tAssigned Alias: unhandled alias type " << aliasaddress.GetTagName());
 		  return false;
 	}
 
 	H350_Session session;
 	if (!Toolkit::Instance()->CreateH350Session(&session)) {
-	   PTRACE(4,"H350\tAssigned Alias: Could not connect to Server.");
+	   PTRACE(1, "H350\tAssigned Alias: Could not connect to directory server");
 	   return false;
 	}
 
 	H350_Session::LDAP_RecordList rec;
 	int count = session.Search(search,filter,rec);
 	if (count <= 0) {
-	   PTRACE(4,"H350\tAssigned Alias: No Record Found");
+	   PTRACE(4, "H350\tAssigned Alias: No Record Found");
 	   session.Close();
 	   return false;
 	}
 
-// Locate the record
+	// locate the record
 	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
        H350_Session::LDAP_Record entry = x->second;
 	   PString al;
 	   PINDEX i;
-       if (session.GetAttribute(entry,"h323Identityh323-ID",al)) {
+       if (session.GetAttribute(entry,"h323Identityh323-ID", al)) {
 		   	PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 	   }
-       if (session.GetAttribute(entry,"h323IdentitydialedDigits",al)) {
+       if (session.GetAttribute(entry,"h323IdentitydialedDigits", al)) {
 		   	PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 	   }
-       if (session.GetAttribute(entry,"h323IdentityURL-ID",al)) {
+       if (session.GetAttribute(entry,"h323IdentityURL-ID", al)) {
 		   	PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 	   }
 	   session.Close();
 	   if (aliases.GetSize() > 0) {
-		   PTRACE(2,"H350\tAssigned Alias: Located " << aliases.GetSize() << " Aliases.");
+		   PTRACE(2, "H350\tAssigned Alias: Located " << aliases.GetSize() << " aliases");
 		   session.Close();
 		   return true;
 	   }
 	}
 
-	PTRACE(4,"H350\tAssigned Alias: No valid Assigned GK found.");
+	PTRACE(4, "H350\tAssigned Alias: No valid Assigned Alias found");
 	session.Close();
 	return false;
 }

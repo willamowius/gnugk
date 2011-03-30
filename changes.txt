@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- BUGFIX(Toolkit.cxx) fix H.350 AssignedAliases
 - BUGFIX(gksql_pqsql.cxx) use PQescapeStringConn() instead of PQescapeString()
 - add the called IP as alternativeAliasAddress to a routeCallToGK Facility if none is provided
 - BUGFIX(ProxyChannel.cxx) fix rare crash for H.460.18 calls

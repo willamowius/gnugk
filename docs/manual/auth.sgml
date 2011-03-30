@@ -15,7 +15,7 @@ config sections for each modulke that you want to use.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | CapacityControl | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
@@ -51,7 +51,7 @@ and a clear text username/password are now supported.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
 modules. For H.350.2 authentication (<tt/H350PasswordAuth/)
-the <tt/GkH350::Settings/ section connection information must be completed.
+the <ref id="h350settings" name="[GkH350::Settings]"> section connection information must be completed.
 
 <item><tt>AliasAuth/SQLAliasAuth</tt>
 <p>
@@ -1312,6 +1312,7 @@ than once.
 
 
 <sect1>Section &lsqb;GkH350::Settings&rsqb;
+<label id="h350settings">
 <p>
 WARNING: This is an experimental feature and not tested very well.
 <p>
@@ -1356,18 +1357,18 @@ Default: <tt>simple</tt>
 <p>
 Bind Authentication method choices are <tt/simple,sasl,kerberos/
 
-<item><tt/ServiceControl=BOOLEAN/<newline>
+<item><tt/ServiceControl=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Use RRQ/RCF service control field to advise an endpoint of the H.350 directory 
 and searchDN to use for white page lookups.
 
-<item><tt/AssignedAliases=BOOLEAN/<newline>
+<item><tt/AssignedAliases=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Use H.350.1 to advise endpoints of their assigned aliases.
 
-<item><tt/GatekeeperDiscovery=BOOLEAN/<newline>
+<item><tt/GatekeeperDiscovery=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Use H.350.1 to resolve on GRQ/GCF the registering endpoints assigned gatekeeper 
