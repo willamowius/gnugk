@@ -33,9 +33,9 @@
 #include "gk_const.h"
 
 #if H323_H350
-  const char *H350Section = "GkH350::Settings";
-  #include <ptclib/pldap.h>
-  #include "h350/h350.h"
+const char *H350Section = "GkH350::Settings";
+#include <ptclib/pldap.h>
+#include "h350/h350.h"
 #endif
 
 using namespace std;
@@ -1786,30 +1786,30 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 
 	// locate the record
 	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
-       H350_Session::LDAP_Record entry = x->second;
-	   PString al;
-	   PINDEX i;
-       if (session.GetAttribute(entry,"h323Identityh323-ID", al)) {
-		   	PStringList als = al.Lines();
+		H350_Session::LDAP_Record entry = x->second;
+		PString al;
+		PINDEX i;
+		if (session.GetAttribute(entry,"h323Identityh323-ID", al)) {
+			PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
-	   }
-       if (session.GetAttribute(entry,"h323IdentitydialedDigits", al)) {
-		   	PStringList als = al.Lines();
+		}
+		if (session.GetAttribute(entry,"h323IdentitydialedDigits", al)) {
+			PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
-	   }
-       if (session.GetAttribute(entry,"h323IdentityURL-ID", al)) {
-		   	PStringList als = al.Lines();
+		}
+		if (session.GetAttribute(entry,"h323IdentityURL-ID", al)) {
+			PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
-	   }
-	   session.Close();
-	   if (aliases.GetSize() > 0) {
-		   PTRACE(2, "H350\tAssigned Alias: Located " << aliases.GetSize() << " aliases");
-		   session.Close();
-		   return true;
-	   }
+		}
+		session.Close();
+		if (aliases.GetSize() > 0) {
+			PTRACE(2, "H350\tAssigned Alias: Located " << aliases.GetSize() << " aliases");
+			session.Close();
+			return true;
+		}
 	}
 
 	PTRACE(4, "H350\tAssigned Alias: No valid Assigned Alias found");

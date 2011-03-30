@@ -28,9 +28,9 @@
 #include "config.h"
 
 #if H323_H350
-  extern const char *H350Section;
-  #include <ptclib/pldap.h>
-  #include "h350/h350.h"
+extern const char *H350Section;
+#include <ptclib/pldap.h>
+#include "h350/h350.h"
 #endif
 
 namespace {
@@ -1462,7 +1462,7 @@ bool SimplePasswordAuth::ResolveUserName(
 		)
 {
 	for (PINDEX i = 0; i < cryptotokens.GetSize(); i++) {
-	  // MD5
+		// MD5
 		if (cryptotokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 			H225_CryptoH323Token_cryptoEPPwdHash& pwdhash = cryptotokens[i];
 			username = AsString(pwdhash.m_alias, false);
@@ -1496,10 +1496,10 @@ bool SimplePasswordAuth::ResolveUserName(
 	for (PINDEX j = 0; j < tokens.GetSize(); j++) {
 		H235_ClearToken& token = tokens[j];
 		// CAT
-			if (token.HasOptionalField(H235_ClearToken::e_generalID)) {
-                username = token.m_generalID;
-				return true;
-			}
+		if (token.HasOptionalField(H235_ClearToken::e_generalID)) {
+			username = token.m_generalID;
+			return true;
+		}
 	}
 
 	return false;
@@ -1508,20 +1508,17 @@ bool SimplePasswordAuth::ResolveUserName(
 #ifdef H323_H350
 
 H350PasswordAuth::H350PasswordAuth(const char* authName)
-: SimplePasswordAuth(authName)
+	: SimplePasswordAuth(authName)
 {
-
 }
 	
 H350PasswordAuth::~H350PasswordAuth()
 {
-
 }
 
-bool H350PasswordAuth::GetPassword(const PString& alias,PString& password)
+bool H350PasswordAuth::GetPassword(const PString & alias, PString & password)
 {
-
-// Search the Directory
+	// search the directory
 	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
 
 	H225_AliasAddress aliasaddress;
@@ -1531,32 +1528,32 @@ bool H350PasswordAuth::GetPassword(const PString& alias,PString& password)
 
 	H350_Session session;
 	if (!Toolkit::Instance()->CreateH350Session(&session)) {
-	   PTRACE(4,"H350\tH235Auth: Could not connect to Server.");
-	   return false;
+		PTRACE(1, "H350\tH235Auth: Could not connect to server");
+		return false;
 	}
 
 	H350_Session::LDAP_RecordList rec;
-	int count = session.Search(search,filter,rec);
+	int count = session.Search(search, filter, rec);
 	if (count <= 0) {
-	   PTRACE(4,"H350\tH235Auth:No Record Found");
-	   session.Close();
-	   return false;
+		PTRACE(4, "H350\tH235Auth: No record found");
+		session.Close();
+		return false;
 	}
 
-// Locate the record
+	// locate the record
 	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
-       H350_Session::LDAP_Record entry = x->second;
-	   if (session.GetAttribute(entry,"h235IdentityPassword",password)) {
-           PTRACE(2,"H350\tH235Auth:Password Located.");
-	       session.Close();
-		   return true;
-	   }
+		H350_Session::LDAP_Record entry = x->second;
+		if (session.GetAttribute(entry, "h235IdentityPassword", password)) {
+			password = password.Trim();	// server may send newline at end etc.
+			PTRACE(4, "H350\tH235Auth: Password located");
+			session.Close();
+			return true;
+		}
 	}
 
-	PTRACE(4,"H350\tH235Auth: No Password found.");
+	PTRACE(4, "H350\tH235Auth: No password found");
 	session.Close();
 	return false;
-
 }
 
 #endif

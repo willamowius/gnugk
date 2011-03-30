@@ -783,7 +783,6 @@ protected:
 		/// password string, if the match is found
 		PString& password
 		);
-
 };
 
 #endif
