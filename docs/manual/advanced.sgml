@@ -6,6 +6,8 @@ This portion of the manual will cover advanced topics, such as compiling GnuGk.
 <label id="compile">
 <p>
 The following instructions are an example of how to compile GnuGk from source on an Ubuntu platform.
+<p>
+First make sure your system is up-to-date and install the tools needed for the compile
 <verb>
 $ sudo apt-get update
 $ sudo apt-get install flex bison build-essential subversion cvs pkg-config automake
