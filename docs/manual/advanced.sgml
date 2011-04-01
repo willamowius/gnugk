@@ -13,7 +13,7 @@ $ sudo apt-get update
 $ sudo apt-get install flex bison build-essential subversion cvs pkg-config automake
 </verb>
 
-Get and compile ptlib from SourceForge
+Get and compile PTLib from SourceForge:
 <verb>
 $ cd ~
 $ svn co http://opalvoip.svn.sourceforge.net/svnroot/opalvoip/ptlib/trunk ptlib
@@ -23,7 +23,7 @@ $ ./configure
 $ make optnoshared
 </verb>
 
-Get and compile h323plus:
+Get and compile H323Plus:
 <verb>
 $ cd ~
 $ cvs -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus login
@@ -55,7 +55,7 @@ $ make optnoshared
 Once the compile is finished, the binary can be found in the 
 obj_linux_x86_s subdirectory.
 
-At this time, because all libraries and GnuGk are running CVS and svn 
+At this time, because all libraries and GnuGk are running CVS and SVN
 versions of the software, in order to stay up-to-date, run the following:
 
 <verb>
