@@ -12,7 +12,8 @@ First make sure your system is up-to-date and install the tools needed for the c
 $ sudo apt-get update
 $ sudo apt-get install flex bison build-essential subversion cvs pkg-config automake
 </verb>
-
+Also make sure the "...-devel" packages for all databases you want to use are installed.
+<p>
 Get and compile PTLib from SourceForge:
 <verb>
 $ cd ~
