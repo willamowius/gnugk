@@ -616,11 +616,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\gksql_sqlite.cxx"
+				RelativePath="gksql_sqlite.cxx"
 				>
 			</File>
 			<File
-				RelativePath=".\gksql_odbc.cxx"
+				RelativePath="gksql_odbc.cxx"
 				>
 			</File>
 			<File
@@ -789,11 +789,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\gnugkbuildopts.h"
+				RelativePath="gnugkbuildopts.h"
 				>
 			</File>
 			<File
-				RelativePath=".\gnugkbuildopts.h.in"
+				RelativePath="gnugkbuildopts.h.in"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -862,6 +862,10 @@
 			</File>
 			<File
 				RelativePath="ProxyChannel.h"
+				>
+			</File>
+			<File
+				RelativePath="pwlib_compat.h"
 				>
 			</File>
 			<File
