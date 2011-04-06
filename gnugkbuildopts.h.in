@@ -28,8 +28,10 @@
 
 #undef HAS_LIBSSH
 #if defined(_MSC_VER) && HAS_LIBSSH
-  #pragma include_alias(<libssh/libssh.h>, <@LIBSSH_DIR@/libssh/libssh.h>)
-  #pragma include_alias(<libssh/server.h>, <@LIBSSH_DIR@/libssh/server.h>)
+  #pragma include_alias("libssh/libssh.h", "@LIBSSH_DIR@/libssh/libssh.h")
+  #pragma include_alias("libssh/server.h", "@LIBSSH_DIR@/libssh/server.h")
+  // inside libssh.h
+  #pragma include_alias("libssh/legacy.h", "@LIBSSH_DIR@/libssh/legacy.h")
 #endif
 
 // MYSQL

@@ -14,8 +14,8 @@
 #include "config.h"
 
 #ifdef HAS_LIBSSH
-#include <libssh/libssh.h>
-#include <libssh/server.h>
+#include "libssh/libssh.h"
+#include "libssh/server.h"
 #endif
 
 #include <ptlib.h>
