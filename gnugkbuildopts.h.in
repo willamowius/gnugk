@@ -24,9 +24,13 @@
 
 #undef HAS_RADIUS
 
-// libssh
+// libSSH
 
 #undef HAS_LIBSSH
+#if defined(_MSC_VER) && HAS_LIBSSH
+  #pragma include_alias(<libssh/libssh.h>, <@LIBSSH_DIR@/libssh/libssh.h>)
+  #pragma include_alias(<libssh/server.h>, <@LIBSSH_DIR@/libssh/server.h>)
+#endif
 
 // MYSQL
 
