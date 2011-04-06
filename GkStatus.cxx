@@ -14,6 +14,9 @@
 #include "config.h"
 
 #ifdef HAS_LIBSSH
+#ifdef _WIN32
+#pragma comment(lib, LIBSSH_LIB)
+#endif
 #include "libssh/libssh.h"
 #include "libssh/server.h"
 #endif
