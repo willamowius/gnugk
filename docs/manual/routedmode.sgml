@@ -459,6 +459,15 @@ Default: <tt>N/A</tt><newline>
 Sets the STUN server list for use with H.460.23 separated by (,). 
 Each Network interface must have a STUNserver set for H.460.23 support on that interface.
 
+<item><tt/H46023PublicIP=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Newer endpoints on public IP addresses can receive calls from endpoints behind NAT. This feature when
+enabled will presume all endpoints that are not NAT can receive calls from endpoints behind NAT for the 
+purpose of H.460.24 media pathway calculations so to avoid proxying of media. This maybe used in conjunction
+with AlwaysRewriteSourceCallSignalAddress=0 to trick the remote endpoint to think that the call is coming direct
+from behind NAT and not routed via the gatekeeper.
+
 <item><tt/NATStdMin=18/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

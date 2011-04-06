@@ -100,7 +100,8 @@ EndpointRec::EndpointRec(
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
-	m_registrationPriority(0), m_registrationPreemption(false),m_epnattype(NatUnknown),m_usesH46023(false), m_H46024(false),
+	m_registrationPriority(0), m_registrationPreemption(false),
+    m_epnattype(NatUnknown),m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP",0))),
 	m_H46024a(false),m_H46024b(false),m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
 	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false),m_usesH460P(false),
 	m_bandwidth(0), m_maxBandwidth(-1)
@@ -3105,7 +3106,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		   m_natstrategy = natinst;
 	       return true;
 		}
-		return false;
+        PTRACE(4,"RAS\tNo Called Endpoint for H460.24");
+        return false;
 	}
 
 	// If both the calling and called are on the same network segment (interface)
@@ -3113,6 +3115,13 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	bool goDirect = Toolkit::Instance()->H46023SameNetwork( 
 				(m_Calling->IsNATed() ?  m_Calling->GetNATIP() : m_Calling->GetIP()),
 				(m_Called->IsNATed() ?  m_Called->GetNATIP() : m_Called->GetIP()));
+
+#if 0 // Currently for testing only - SH
+    if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023ForceDirect", "0"))) {
+         PTRACE(4,"RAS\tH46024 Proxy Disabled. Force call to go direct");
+         goDirect = true;
+    }
+#endif
 
 	bool callingSupport = (m_Calling->SupportH46024() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
 	bool calledSupport = (m_Called->SupportH46024() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));

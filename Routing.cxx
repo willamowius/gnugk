@@ -406,6 +406,16 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 			route.m_destAddr
 			);
+#ifdef HAS_H460
+        if (!route.m_destEndpoint && 
+            arq.HasOptionalField(H225_AdmissionRequest::e_genericData)) {
+			 H225_RasMessage ras;
+             ras.SetTag(H225_RasMessage::e_admissionRequest);
+			 H225_AdmissionRequest & req = (H225_AdmissionRequest &)ras;
+			 req = arq;
+		   route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);	
+        }
+#endif
 		return request.AddRoute(route);
 	}
 	return false;
