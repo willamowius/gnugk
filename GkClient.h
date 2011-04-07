@@ -34,7 +34,7 @@ class H225_Setup_UUIE;
 class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
 
-#ifdef HAS_H460
+#ifdef HAS_H46023
   class H460_FeatureStd;
   class STUNClient;
   class UDPProxySocket;

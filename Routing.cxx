@@ -406,7 +406,7 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 			route.m_destAddr
 			);
-#ifdef HAS_H460
+#ifdef HAS_H46023
         if (!route.m_destEndpoint && 
             arq.HasOptionalField(H225_AdmissionRequest::e_genericData)) {
 			 H225_RasMessage ras;
