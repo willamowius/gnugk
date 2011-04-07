@@ -3020,8 +3020,15 @@ bool AdmissionRequestPDU::Process()
 					pCallRec->SetProxyMode(CallRec::ProxyDisabled);
 		}
 
-        if (pCallRec->GetProxyMode() == CallRec::ProxyDisabled)
-            pCallRec->SetConnected();  // To avoid timeout Deletion as we may not be tunneling signalling - SH
+        if (!pCallRec->SingleGatekeeper() &&
+            pCallRec->GetProxyMode() == CallRec::ProxyDisabled &&
+            (natoffloadsupport == CallRec::e_natRemoteMaster ||
+		     natoffloadsupport == CallRec::e_natRemoteProxy)) {
+               // Where the remote will handle the NAT Traversal
+               // the local gatekeeper may not receive any signalling so
+               // set the call as connected.
+                pCallRec->SetConnected();  
+        }
 
 		pCallRec->SetNATStrategy(natoffloadsupport);
 		PTRACE(4,"RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
