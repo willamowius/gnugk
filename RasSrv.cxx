@@ -3020,6 +3020,9 @@ bool AdmissionRequestPDU::Process()
 					pCallRec->SetProxyMode(CallRec::ProxyDisabled);
 		}
 
+        if (pCallRec->GetProxyMode() == CallRec::ProxyDisabled)
+            pCallRec->SetConnected();  // To avoid timeout Deletion as we may not be tunneling signalling - SH
+
 		pCallRec->SetNATStrategy(natoffloadsupport);
 		PTRACE(4,"RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
 					" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
