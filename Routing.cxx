@@ -27,6 +27,10 @@
 #include "gksql.h"
 #include "config.h"
 
+#ifdef HAS_H46023
+  #include <h460/h4601.h>
+#endif
+
 using std::string;
 using std::vector;
 using std::list;
@@ -408,8 +412,9 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 			);
 #ifdef HAS_H46023
         if (!route.m_destEndpoint && 
-            arq.HasOptionalField(H225_AdmissionRequest::e_genericData)) {
-			 H225_RasMessage ras;
+           arq.HasOptionalField(H225_AdmissionRequest::e_genericData) &&
+           H460_FeatureSet(arq.m_genericData).HasFeature(24)) {
+	         H225_RasMessage ras;
              ras.SetTag(H225_RasMessage::e_admissionRequest);
 			 H225_AdmissionRequest & req = (H225_AdmissionRequest &)ras;
 			 req = arq;
