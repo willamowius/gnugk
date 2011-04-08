@@ -450,7 +450,7 @@ PString GkMySQLConnection::EscapeString(
 	)
 {
 	PString escapedStr;
-	const unsigned long numChars = str ? strlen(str) : 0;
+	const size_t numChars = str ? strlen(str) : 0;
 	
 	if (numChars) {
 		char * buf = (char *)malloc(numChars * 2 + 1);
