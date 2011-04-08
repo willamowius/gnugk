@@ -453,12 +453,11 @@ PString GkMySQLConnection::EscapeString(
 	const unsigned long numChars = str ? strlen(str) : 0;
 	
 	if (numChars) {
+		char * buf = (char *)malloc(numChars * 2 + 1);
 		MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
-		escapedStr.SetSize(
-			(*g_mysql_real_escape_string)(
-				mysqlconn, escapedStr.GetPointer(numChars*2+1), str, numChars
-				) + 1
-			);
+		(*g_mysql_real_escape_string)(mysqlconn, buf, str, numChars);
+		escapedStr = buf;
+		free(buf);
 	}
 	return escapedStr;
 }

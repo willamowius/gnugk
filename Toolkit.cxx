@@ -2664,15 +2664,12 @@ PString Toolkit::AsString(
 		}
 	} while (i != P_MAX_INDEX && i < length);
 	
-	PString buf;
-	
-	buf.SetSize(128);
-	if (strftime(buf.GetPointer(), 128, (const char*)fmtStr, tmptr) == 0) {
+	char buf[128];
+	if (strftime(buf, sizeof(buf), (const char*)fmtStr, tmptr) == 0) {
 		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
 		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
 	}
-	
-	buf.MakeMinimumSize();
+
 	return buf;
 }
 

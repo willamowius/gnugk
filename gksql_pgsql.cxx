@@ -425,13 +425,15 @@ PString GkPgSQLConnection::EscapeString(
 	)
 {
 	PString escapedStr;
-	const unsigned long numChars = str ? strlen(str) : 0;
+	const size_t numChars = str ? strlen(str) : 0;
 	int err = 0;
 	
-	if (numChars)
-		escapedStr.SetSize(
-			(*g_PQescapeStringConn)(((PgSQLConnWrapper*)conn)->m_conn, escapedStr.GetPointer(numChars*2+1), str, numChars, &err) + 1
-			);
+	if (numChars) {
+		char * buf = (char *)malloc(numChars * 2 + 1);
+		(*g_PQescapeStringConn) (((PgSQLConnWrapper*)conn)->m_conn, buf, str, numChars, &err);
+		escapedStr = buf;
+		free(buf);
+	}
 	return escapedStr;
 }
 
