@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- add encryption support (StartTLS) for H.350 (needs PTLib 2.11.x)
 - BUGFIX(gnugk.rc) fix tray icon for Windows service
 - BUGFIX(gkauth.cxx) remove newline from H.235 password from H.350 server
 - BUGFIX(Toolkit.cxx) fix H.350 AssignedAliases and GatekeeperDiscovery

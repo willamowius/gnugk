@@ -1318,30 +1318,35 @@ This section defines the LDAP server and standard H.350 directory operating
 parameters to be used.
 
 <itemize>
-<item><tt/ServerName/<newline>
+<item><tt/ServerName=127.0.0.1/<newline>
 Default: <tt/127.0.0.1/
 <p>
 The LDAP server IP address.
 
-<item><tt/ServerPort/<newline>
+<item><tt/ServerPort=389/<newline>
 Default: <tt/389/
 <p>
 The LDAP server's TCP port (usually 389).
 
-<item><tt/SearchBaseDN/<newline>
+<item><tt/StartTLS=1/<newline>
+Default: <tt/0/
+<p>
+Use StartTLS to encrypt the LDAP connection.
+
+<item><tt/SearchBaseDN=ou=commObjects,dc=gnugk,dc=org/<newline>
 Default: <tt>N/A</tt>
 <p>
 Entry point into the server's H.350 directory structure.
 Searches are only made below this root node.
 
-<item><tt/BindUserDN/<newline>
+<item><tt/BindUserDN=cn=admin,dc=gnugk,dc=org/<newline>
 Default: <tt>N/A</tt>
 <p>
 The distinguished name the gatekeeper uses to bind
 to the LDAP server. Leave empty if you want to access
 the LDAP server anonymously.
 
-<item><tt/BindUserPW/<newline>
+<item><tt/BindUserPW=secret/<newline>
 Default: <tt>N/A</tt>
 <p>
 If you specified <tt/BindUserDN/, then specify the corresponding
@@ -1350,7 +1355,7 @@ If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
 in this section, the password is in an encrypted form and should be created 
 using the <tt/addpasswd/ utility.
 
-<item><tt/BindAuthMode/<newline>
+<item><tt/BindAuthMode=simple/<newline>
 Default: <tt>simple</tt>
 <p>
 Bind Authentication method choices are <tt/simple,sasl,kerberos/

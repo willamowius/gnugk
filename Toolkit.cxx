@@ -1731,10 +1731,22 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 		authMethod = PLDAPSession::AuthSASL;
 	else if (mode == "kerberos")
 		authMethod = PLDAPSession::AuthKerberos;
+	
+	bool startTLS = Toolkit::AsBool(GkConfig()->GetString(H350Section, "StartTLS", "0"));
 
 	if (!session->Open(server)) {
-	   PTRACE(4,"H350\tCannot locate H.350 Server");
-	   return false;
+		PTRACE(1,"H350\tCannot locate H.350 Server");
+		return false;
+	}
+	if (startTLS) {
+#ifdef hasLDAPStartTLS
+		if (!session->StartTLS()) {
+			PTRACE(1,"H350\tStartTLS failed");
+			return false;
+		}
+#else
+		PTRACE(1, "H350\tError: LDAP StartTLS not supported in this version");
+#endif
 	}
 	if (!user.IsEmpty())
 	    session->Bind(user,password,authMethod);
