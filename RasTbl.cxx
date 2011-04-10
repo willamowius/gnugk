@@ -223,6 +223,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 		PIPSocket::Address ipaddr;
 		GetIPFromTransportAddr(rrq.m_callSignalAddress[0], ipaddr);
 		m_internal = Toolkit::Instance()->IsInternal(ipaddr);
+        m_remote = true;
 	}
 }
 
