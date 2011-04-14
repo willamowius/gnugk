@@ -295,7 +295,7 @@ The last field specifies the alternate gatekeeper's identifier.
 You may specify multiple alternate gatekeepers as a comma separated list.
 
 This global definition can be overriden by a per IP specification in
-<ref id="rassrvalternategatekeeper" name="RasSrv::AlternateGatekeeper">.
+<ref id="rassrvalternategatekeeper" name="[RasSrv::AlternateGatekeeper]">.
 
 <bf>NOTE:</bf> In older versions of GnuGk, the fields were separated by colons.
 This will continue to work for now, but it is deprecated.

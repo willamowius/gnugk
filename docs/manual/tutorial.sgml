@@ -121,7 +121,7 @@ Startup: Tue, 25 Aug 2009 15:30:44 -0500   Running: 2 days 21:33:32
 ;
 </verb></tscreen>
 
-The <ref id="gkstatusauth" name="GkStatus::Auth"> section contains additional information on securing the status port.
+The <ref id="gkstatusauth" name="[GkStatus::Auth]"> section contains additional information on securing the status port.
 
 <sect1>Running the gatekeeper in routed mode
 <p>
@@ -217,7 +217,7 @@ gw2=001..........
 <p>
 When using a gateway you often have to use different numbers internally
 and rewrite them before sending them over a gateway into the telephone
-network. You can use the <ref id="rewrite" name="RasSrv::RewriteE164">
+network. You can use the <ref id="rewrite" name="[RasSrv::RewriteE164]">
 section to configure that.
 
 Example:
@@ -234,7 +234,7 @@ gw1=0
 
 You can also configure rewriting of E.164 numbers based on which gateway
 you are receiving a call from or sending a call to using the
-<ref id="gwrewrite" name="RasSrv::GWRewriteE164"> section.
+<ref id="gwrewrite" name="[RasSrv::GWRewriteE164]"> section.
 
 Example:
 You have two different gateways ("gw1" and "gw2") which you are sending
