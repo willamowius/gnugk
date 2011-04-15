@@ -1704,7 +1704,7 @@ void RegistrationTable::PrintAllRegistrations(USocket *client, bool verbose)
 
 void RegistrationTable::PrintEndpointQoS(USocket *client) //const
 {
-	map<PString, EPQoS> epqos;
+	std::map<PString, EPQoS> epqos;
 	// copy data into a temporary container to avoid long locking
 	listLock.StartRead();
 	for (const_iterator Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter)
@@ -1716,7 +1716,7 @@ void RegistrationTable::PrintEndpointQoS(USocket *client) //const
 	msg.SetSize(EndpointList.size() * 100);	// avoid realloc: estimate n rows of 100 chars
 	// fetch QoS data from call table
 	CallTable::Instance()->SupplyEndpointQoS(epqos);
-	for (map<PString, EPQoS>::const_iterator i = epqos.begin(); i != epqos.end(); ++i)
+	for (std::map<PString, EPQoS>::const_iterator i = epqos.begin(); i != epqos.end(); ++i)
 		msg += "QoS|" + i->first + "|" + i->second.AsString() + "\r\n";
 
 	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", epqos.size());
@@ -3495,7 +3495,7 @@ CallTable::~CallTable()
 	DeleteObjectsInContainer(RemovedList);
 }
 
-void CallTable::SupplyEndpointQoS(map<PString, EPQoS> & epqos) const
+void CallTable::SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const
 {
 	for (const_iterator Iter = CallList.begin(); Iter != CallList.end(); ++Iter) {
 		CallRec *call = *Iter;
@@ -3503,7 +3503,7 @@ void CallTable::SupplyEndpointQoS(map<PString, EPQoS> & epqos) const
 			endptr calling =  call->GetCallingParty();
 			endptr called = call->GetCalledParty();
 			if (calling) {
-				map<PString, EPQoS>::iterator i = epqos.find(AsString(calling->GetAliases()));
+				std::map<PString, EPQoS>::iterator i = epqos.find(AsString(calling->GetAliases()));
 				if (i != epqos.end()) {
 					i->second.IncrementCalls();
 					i->second.SetAudioPacketLossPercent(call->GetRTCP_SRC_packet_loss_percent());
@@ -3513,7 +3513,7 @@ void CallTable::SupplyEndpointQoS(map<PString, EPQoS> & epqos) const
 				}
 			}
 			if (called) {
-				map<PString, EPQoS>::iterator i = epqos.find(AsString(called->GetAliases()));
+				std::map<PString, EPQoS>::iterator i = epqos.find(AsString(called->GetAliases()));
 				if (i != epqos.end()) {
 					i->second.IncrementCalls();
 					i->second.SetAudioPacketLossPercent(call->GetRTCP_DST_packet_loss_percent());

@@ -240,7 +240,7 @@ protected:
 	virtual bool OnRequest(SetupRequest &);
 	virtual bool OnRequest(FacilityRequest &);
 
-	static map<PString, H225_TransportAddress> m_destMap;
+	static std::map<PString, H225_TransportAddress> m_destMap;
 };
 
 

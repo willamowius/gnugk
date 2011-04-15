@@ -366,7 +366,7 @@ bool AliasesPolicy::OnRequest(FacilityRequest & request)
 }
 
 
-map<PString, H225_TransportAddress> ExplicitPolicy::m_destMap;
+std::map<PString, H225_TransportAddress> ExplicitPolicy::m_destMap;
 
 ExplicitPolicy::ExplicitPolicy()
 {
@@ -394,7 +394,7 @@ void ExplicitPolicy::OnReload()
 void ExplicitPolicy::MapDestination(H225_TransportAddress & addr)
 {
 	PString orig = AsDotString(addr, false);	// original IP without port
-	map<PString, H225_TransportAddress>::const_iterator i = m_destMap.find(orig);
+	std::map<PString, H225_TransportAddress>::const_iterator i = m_destMap.find(orig);
 	if (i != m_destMap.end()) {
 		addr = i->second;
 		PTRACE(4, "[Routing::Explicit]: map destination " << orig << " to " << AsDotString(i->second));

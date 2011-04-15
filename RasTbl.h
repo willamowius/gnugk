@@ -1457,7 +1457,7 @@ public:
     void QoSReport(const H225_DisengageRequest &, const endptr &, const PASN_OctetString &);
     void QoSReport(const H225_InfoRequestResponse &, const callptr &, const endptr &, const PASN_OctetString &);
 #endif
-	void SupplyEndpointQoS(map<PString, EPQoS> & epqos) const;
+	void SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const;
 
 	void LoadConfig();
 	void UpdatePrefixCapacityCounters();    // after Reload
