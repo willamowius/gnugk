@@ -479,10 +479,6 @@
 				>
 			</File>
 			<File
-				RelativePath="main.cxx"
-				>
-			</File>
-			<File
 				RelativePath="MakeCall.cxx"
 				>
 			</File>

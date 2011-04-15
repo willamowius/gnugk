@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project(gnugk)
 
-set(SOURCES main.cxx singleton.cxx job.cxx yasocket.cxx h323util.cxx
+set(SOURCES singleton.cxx job.cxx yasocket.cxx h323util.cxx
            Toolkit.cxx SoftPBX.cxx GkStatus.cxx RasTbl.cxx Routing.cxx
            Neighbor.cxx GkClient.cxx gkauth.cxx RasSrv.cxx ProxyChannel.cxx
            gk.cxx version.cxx gkacct.cxx gktimer.cxx gkconfig.cxx

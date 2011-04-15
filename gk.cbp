@@ -208,9 +208,6 @@
 		<Unit filename="job.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="main.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
 		<Unit filename="name.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>

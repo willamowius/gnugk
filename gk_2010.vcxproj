@@ -519,7 +519,6 @@
     <ClCompile Include="h460presence.cxx" />
     <ClCompile Include="ipauth.cxx" />
     <ClCompile Include="job.cxx" />
-    <ClCompile Include="main.cxx" />
     <ClCompile Include="MakeCall.cxx" />
     <ClCompile Include="Neighbor.cxx" />
     <ClCompile Include="ProxyChannel.cxx" />
