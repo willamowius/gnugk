@@ -19,6 +19,11 @@
 #include <ptlib.h>
 #include "gksql.h"
 
+#ifdef P_SOLARIS
+#define SIZEOF_LONG_INT	8
+#define BOOL		int
+#endif
+
 namespace nativeodbc
 {
 #include <sql.h>

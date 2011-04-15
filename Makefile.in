@@ -106,6 +106,15 @@ include $(OPENH323MAKEDIR)/openh323u.mak
 temp_STDCCFLAGS := $(subst -fdata-sections,,$(STDCCFLAGS))
 STDCCFLAGS = $(temp_STDCCFLAGS)
 
+#ifeq ($(OSTYPE),solaris)
+    ### Remove references to gcc 3.x libs that come with Solaris 10
+    temp_ENDLDLIBS := $(subst -R/usr/sfw/lib,,$(ENDLDLIBS))
+    ENDLDLIBS = $(temp_ENDLDLIBS)
+    temp_ENDLDLIBS := $(subst -L/usr/sfw/lib,,$(ENDLDLIBS))
+    ENDLDLIBS = $(temp_ENDLDLIBS)
+    ENDLDLIBS += -L/opt/csw/lib
+#endif # solaris
+
 # GK version infomation
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
 
