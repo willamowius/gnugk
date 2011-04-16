@@ -20,7 +20,11 @@
 #include "gksql.h"
 
 #ifdef P_SOLARIS
+#ifdef P_64BIT
 #define SIZEOF_LONG_INT	8
+#else
+#define SIZEOF_LONG_INT	4
+#endif
 #define BOOL		int
 #endif
 
