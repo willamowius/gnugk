@@ -3473,7 +3473,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
 
 				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
-				if (!featureRequired && featureRequired == "24" && WantedEndPoint && !WantedEndPoint->SupportH46024()) {
+                PBoolean assumePublicH46024 =  Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0));
+				if (!featureRequired && featureRequired == "23" && WantedEndPoint && (!WantedEndPoint->SupportH46024() || !assumePublicH46024)) {
 					bReject = true;
 					reason = H225_LocationRejectReason::e_genericDataReason;
 				} else 
