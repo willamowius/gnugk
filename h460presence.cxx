@@ -411,7 +411,7 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
 		return;
 	} else
-		PTRACE(4, "H460PSQL\tQuerylist: " << m_queryAdd);
+		PTRACE(4, "H460PSQL\tQueryAdd: " << m_queryAdd);
 
 	m_queryDelete = cfg->GetString(authName, "QueryDelete", "");
 	if (m_queryDelete.IsEmpty()) {
@@ -429,7 +429,7 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
 		return;
 	} else
-		PTRACE(4, "H460PSQL\tQuerySubList: " << m_queryUpdate);
+		PTRACE(4, "H460PSQL\tQueryUpdate: " << m_queryUpdate);
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "H460PSQL\tModule creation failed: Could not connect to the database"
