@@ -88,22 +88,458 @@ void ShutdownHandler()
 #endif
 }
 
-bool CheckSectionName(PConfig *cfg)
+static const char * KnowConfigEntries[][2] = {
+	// valid config entries
+	{ "AssignedAliases::SQL", "Password" },
+	{ "AssignedAliases::SQL", "Username" },
+	{ "AssignedAliases::SQL", "Driver" },
+	{ "AssignedAliases::SQL", "Database" },
+	{ "AssignedAliases::SQL", "Query" },
+	{ "AssignedAliases::SQL", "Library" },
+	{ "CallTable", "DisabledCodecs" },
+	{ "CallTable", "IRRCheck" },
+	{ "CallTable", "GenerateNBCDR" },
+	{ "CallTable", "GenerateUCCDR" },
+	{ "CallTable", "SingleFailoverCDR" },
+	{ "CallTable", "AcctUpdateInterval" },
+	{ "CallTable", "TimestampFormat" },
+	{ "CallTable", "IRRFrequency" },
+	{ "CallTable", "DefaultCallDurationLimit" },
+	{ "CallTable", "DefaultCallTimeout" },
+	{ "CTI::Agents", "RequestTimeout" },
+	{ "CTI::Agents", "VirtualQueueAliases" },
+	{ "CTI::Agents", "VirtualQueuePrefixes" },
+	{ "CTI::Agents", "VirtualQueueRegex" },
+	{ "CTI::MakeCall", "DisableFastStart" },
+	{ "CTI::MakeCall", "DisableH245Tunneling" },
+	{ "CTI::MakeCall", "Interface" },
+	{ "CTI::MakeCall", "EndpointAlias" },
+	{ "CTI::MakeCall", "UseH450" },
+	{ "CTI::MakeCall", "Gatekeeper" },
+	{ "Endpoint", "Prefix" },
+	{ "Endpoint", "EndpointIdentifier" },
+	{ "Endpoint", "UseAlternateGK" },
+	{ "Endpoint", "Password" },
+	{ "Endpoint", "Discovery" },
+	{ "Endpoint", "E164" },
+	{ "Endpoint", "TimeToLive" },
+	{ "Endpoint", "RRQRetryInterval" },
+	{ "Endpoint", "Vendor" },
+	{ "Endpoint", "UnregisterOnReload" },
+	{ "Endpoint", "NATRetryInterval" },
+	{ "Endpoint", "NATKeepaliveInterval" },
+	{ "Endpoint", "Type" },
+	{ "Endpoint", "H323ID" },
+	{ "Endpoint", "Gatekeeper" },
+	{ "Endpoint", "GatekeeperIdentifier" },
+	{ "Endpoint", "DisableH46018" },
+	{ "FileAcct", "StandardCDRFormat" },
+	{ "FileAcct", "Rotate" },
+	{ "FileAcct", "RotateTime" },
+	{ "FileAcct", "CDRString" },
+	{ "FileAcct", "RotateDay" },
+	{ "FileAcct", "TimestampFormat" },
+	{ "FileAcct", "DetailFile" },
+	{ "Gatekeeper::Acct", "CapacityControl" },
+	{ "Gatekeeper::Acct", "default" },
+	{ "Gatekeeper::Acct", "FileAcct" },
+	{ "Gatekeeper::Acct", "RadAcct" },
+	{ "Gatekeeper::Acct", "SQLAcct" },
+	{ "Gatekeeper::Acct", "StatusAcct" },
+	{ "Gatekeeper::Acct", "SyslogAcct" },
+	{ "Gatekeeper::Auth", "AliasAuth" },
+	{ "Gatekeeper::Auth", "CapacityControl" },
+	{ "Gatekeeper::Auth", "default" },
+	{ "Gatekeeper::Auth", "FileIPAuth" },
+	{ "Gatekeeper::Auth", "H350PasswordAuth" },
+	{ "Gatekeeper::Auth", "PrefixAuth" },
+	{ "Gatekeeper::Auth", "RadAliasAuth" },
+	{ "Gatekeeper::Auth", "RadAuth" },
+	{ "Gatekeeper::Auth", "SimplePasswordAuth" },
+	{ "Gatekeeper::Auth", "SQLAuth" },
+	{ "Gatekeeper::Auth", "SQLAliasAuth" },
+	{ "Gatekeeper::Auth", "SQLPasswordAuth" },
+	{ "Gatekeeper::Main", "ExternalIP" },
+	{ "Gatekeeper::Main", "ExternalIsDynamic" },
+	{ "Gatekeeper::Main", "DefaultDomain" },
+	{ "Gatekeeper::Main", "Home" },
+	{ "Gatekeeper::Main", "TimeToLive" },
+	{ "Gatekeeper::Main", "RedirectGK" },
+	{ "Gatekeeper::Main", "EndpointIDSuffix" },
+	{ "Gatekeeper::Main", "EndpointSignalPort" },
+	{ "Gatekeeper::Main", "Name" },
+	{ "Gatekeeper::Main", "TimestampFormat" },
+	{ "Gatekeeper::Main", "MinimumBandwidthPerCall" },
+	{ "Gatekeeper::Main", "NetworkInterfaces" },
+	{ "Gatekeeper::Main", "Fortytwo" },
+	{ "Gatekeeper::Main", "StatusTraceLevel" },
+	{ "Gatekeeper::Main", "StatusPort" },
+	{ "Gatekeeper::Main", "UseMulticastListener" },
+	{ "Gatekeeper::Main", "UnicastRasPort" },
+	{ "Gatekeeper::Main", "UseBroadcastListener" },
+	{ "Gatekeeper::Main", "MulticastPort" },
+	{ "Gatekeeper::Main", "MulticastGroup" },
+	{ "Gatekeeper::Main", "SkipForwards" },
+	{ "Gatekeeper::Main", "AlternateGKs" },
+	{ "Gatekeeper::Main", "ListenQueueLength" },
+	{ "Gatekeeper::Main", "CompareAliasType" },
+	{ "Gatekeeper::Main", "CompareAliasCase" },
+	{ "Gatekeeper::Main", "TotalBandwidth" },
+	{ "Gatekeeper::Main", "MaximumBandwidthPerCall" },
+	{ "Gatekeeper::Main", "SendTo" },
+	{ "Gatekeeper::Main", "EndpointSuffix" },
+	{ "Gatekeeper::Main", "DisconnectCallsOnShutdown" },
+	{ "Gatekeeper::Main", "TraceLevel" },
+	{ "Gatekeeper::Main", "SshStatusPort" },
+	{ "Gatekeeper::Main", "FortyTwo" },	// legacy
+	{ "Gatekeeper::Main", "FourtyTwo" },	// legacy
+	{ "GkH350::Settings", "ServiceControl" },
+	{ "GkH350::Settings", "ServerPort" },
+	{ "GkH350::Settings", "SearchBaseDN" },
+	{ "GkH350::Settings", "BindAuthMode" },
+	{ "GkH350::Settings", "BindUserDN" },
+	{ "GkH350::Settings", "BindUserPW" },
+	{ "GkH350::Settings", "ServerName" },
+	{ "GkH350::Settings", "AssignedAliases" },
+	{ "GkH350::Settings", "GatekeeperDiscovery" },
+	{ "GkH350::Settings", "StartTLS" },
+	{ "GkQoSMonitor", "Enable" },
+	{ "GkQoSMonitor", "CallEndOnly" },
+	{ "GkQoSMonitor", "DetailFile" },
+	{ "GkQoSMonitor::SQL", "Password" },
+	{ "GkQoSMonitor::SQL", "Username" },
+	{ "GkQoSMonitor::SQL", "Driver" },
+	{ "GkQoSMonitor::SQL", "Database" },
+	{ "GkQoSMonitor::SQL", "Query" },
+	{ "GkQoSMonitor::SQL", "Host" },
+	{ "GkQoSMonitor::SQL", "CacheTimeout" },
+	{ "GkQoSMonitor::SQL", "Library" },
+	{ "LogFile", "Rotate" },
+	{ "LogFile", "RotateTime" },
+	{ "LogFile", "RotateDay" },
+	{ "LogFile", "Filename" },
+	{ "Proxy", "DisableRTPQueueing" },
+	{ "Proxy", "RTPPortRange" },
+	{ "Proxy", "ProxyForNAT" },
+	{ "Proxy", "ProxyForSameNAT" },
+	{ "Proxy", "Enable" },
+	{ "Proxy", "InternalNetwork" },
+	{ "Proxy", "EnableRTCPStats" },
+	{ "Proxy", "EnableRTPMute" },
+	{ "Proxy", "T120PortRange" },
+	{ "Proxy", "ProxyAlways" },
+	{ "RadAcct", "RequestTimeout" },
+	{ "RadAcct", "RequestRetransmissions" },
+	{ "RadAcct", "AppendCiscoAttributes" },
+	{ "RadAcct", "RoundRobinServers" },
+	{ "RadAcct", "Servers" },
+	{ "RadAcct", "SharedSecret" },
+	{ "RadAcct", "TimestampFormat" },
+	{ "RadAcct", "IdCacheTimeout" },
+	{ "RadAcct", "SocketDeleteTimeout" },
+	{ "RadAcct", "LocalInterface" },
+	{ "RadAcct", "FixedUsername" },
+	{ "RadAcct", "UseDialedNumber" },
+	{ "RadAcct", "RadiusPortRange" },
+	{ "RadAcct", "DefaultAcctPort" },
+	{ "RadAliasAuth", "RequestTimeout" },
+	{ "RadAliasAuth", "RequestRetransmissions" },
+	{ "RadAliasAuth", "AppendCiscoAttributes" },
+	{ "RadAliasAuth", "RoundRobinServers" },
+	{ "RadAliasAuth", "IncludeTerminalAliases" },
+	{ "RadAliasAuth", "Servers" },
+	{ "RadAliasAuth", "FixedPassword" },
+	{ "RadAliasAuth", "SharedSecret" },
+	{ "RadAliasAuth", "IdCacheTimeout" },
+	{ "RadAliasAuth", "SocketDeleteTimeout" },
+	{ "RadAliasAuth", "LocalInterface" },
+	{ "RadAliasAuth", "FixedUsername" },
+	{ "RadAliasAuth", "UseDialedNumber" },
+	{ "RadAliasAuth", "RadiusPortRange" },
+	{ "RadAliasAuth", "DefaultAuthPort" },
+	{ "RadAuth", "RequestTimeout" },
+	{ "RadAuth", "RequestRetransmissions" },
+	{ "RadAuth", "AppendCiscoAttributes" },
+	{ "RadAuth", "RoundRobinServers" },
+	{ "RadAuth", "IncludeTerminalAliases" },
+	{ "RadAuth", "Servers" },
+	{ "RadAuth", "SharedSecret" },
+	{ "RadAuth", "IdCacheTimeout" },
+	{ "RadAuth", "SocketDeleteTimeout" },
+	{ "RadAuth", "LocalInterface" },
+	{ "RadAuth", "UseDialedNumber" },
+	{ "RadAuth", "RadiusPortRange" },
+	{ "RadAuth", "DefaultAuthPort" },
+	{ "RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper" },
+	{ "RasSrv::ARQFeatures", "CallUnregisteredEndpoints" },
+	{ "RasSrv::ARQFeatures", "RoundRobinGateways" },
+	{ "RasSrv::ARQFeatures", "RemoveTrailingChar" },
+	{ "RasSrv::ARQFeatures", "SendRIP" },
+	{ "RasSrv::LRQFeatures", "SendRIP" },
+	{ "RasSrv::LRQFeatures", "AcceptForwardedLRQ" },
+	{ "RasSrv::LRQFeatures", "AcceptNonNeighborLRQ" },
+	{ "RasSrv::LRQFeatures", "AcceptNonNeighborLCF" },
+	{ "RasSrv::LRQFeatures", "NeighborTimeout" },
+	{ "RasSrv::LRQFeatures", "AlwaysForwardLRQ" },
+	{ "RasSrv::LRQFeatures", "ForwardResponse" },
+	{ "RasSrv::LRQFeatures", "ForwardHopCount" },
+	{ "RasSrv::LRQFeatures", "ForwardLRQ" },
+	{ "RasSrv::RRQFeatures", "AcceptMCUPrefixes" },
+	{ "RasSrv::RRQFeatures", "AliasTypeFilter" },
+	{ "RasSrv::RRQFeatures", "AcceptEndpointIdentifier" },
+	{ "RasSrv::RRQFeatures", "IRQPollCount" },
+	{ "RasSrv::RRQFeatures", "OverwriteEPOnSameAddress" },
+	{ "RasSrv::RRQFeatures", "AcceptGatewayPrefixes" },
+	{ "RasSrv::RRQFeatures", "SupportDynamicIP" },
+	{ "RoutedMode", "GkRouted" },
+	{ "RoutedMode", "Q931PortRange" },
+	{ "RoutedMode", "AcceptNeighborsCalls" },
+	{ "RoutedMode", "ActivateFailover" },
+	{ "RoutedMode", "GenerateCallProceeding" },
+	{ "RoutedMode", "CpsLimit" },
+	{ "RoutedMode", "AcceptUnregisteredCalls" },
+	{ "RoutedMode", "RemoveH245AddressOnTunneling" },
+	{ "RoutedMode", "TcpKeepAlive" },
+	{ "RoutedMode", "H245PortRange" },
+	{ "RoutedMode", "ShowForwarderNumber" },
+	{ "RoutedMode", "TranslateFacility" },
+	{ "RoutedMode", "H245Routed" },
+	{ "RoutedMode", "SendReleaseCompleteOnDRQ" },
+	{ "RoutedMode", "SupportNATedEndpoints" },
+	{ "RoutedMode", "CallSignalPort" },
+	{ "RoutedMode", "CallSignalHandlerNumber" },
+	{ "RoutedMode", "ENUMservers" },
+	{ "RoutedMode", "UseProvisionalRespToH245Tunneling" },
+	{ "RoutedMode", "EnableH450.2" },
+	{ "RoutedMode", "H4502EmulatorTransferMethod" },
+	{ "RoutedMode", "EnableH46018" },
+	{ "RoutedMode", "ScreenCallingPartyNumberIE" },
+	{ "RoutedMode", "CpsCheckInterval" },
+	{ "RoutedMode", "ScreenSourceAddress" },
+	{ "RoutedMode", "AlertingTimeout" },
+	{ "RoutedMode", "SetupTimeout" },
+	{ "RoutedMode", "DropCallsByReleaseComplete" },
+	{ "RoutedMode", "RemoveCallOnDRQ" },
+	{ "RoutedMode", "GKRouted" },
+	{ "RoutedMode", "ScreenDisplayIE" },
+	{ "RoutedMode", "FailoverCauses" },
+	{ "RoutedMode", "ForwardOnFacility" },
+	{ "RoutedMode", "RtpHandlerNumber" },
+	{ "RoutedMode", "SocketCleanupTimeout" },
+	{ "RoutedMode", "SignalTimeout" },
+	{ "RoutedMode", "EnableH46023" },
+	{ "RoutedMode", "H46023STUN" },
+	{ "RoutedMode", "AcceptNeighborCalls" },
+	{ "RoutedMode", "SupportCallingNATedEndpoints" },
+	{ "RoutedMode", "TranslateReceivedQ931Cause" },
+	{ "RoutedMode", "TranslateSentQ931Cause" },
+	{ "RoutedMode", "H46018NoNat" },
+	{ "RoutedMode", "DisableRetryChecks" },
+	{ "Routing::CatchAll", "CatchAllAlias" },
+	{ "Routing::CatchAll", "CatchAllIP" },
+	{ "Routing::Sql", "Password" },
+	{ "Routing::Sql", "Username" },
+	{ "Routing::Sql", "Driver" },
+	{ "Routing::Sql", "Database" },
+	{ "Routing::Sql", "Query" },
+	{ "Routing::Sql", "Host" },
+	{ "Routing::Sql", "MinPoolSize" },
+	{ "Routing::Sql", "Library" },
+	{ "SQLAcct", "StopQuery" },
+	{ "SQLAcct", "Password" },
+	{ "SQLAcct", "TimestampFormat" },
+	{ "SQLAcct", "Username" },
+	{ "SQLAcct", "StartQuery" },
+	{ "SQLAcct", "UpdateQuery" },
+	{ "SQLAcct", "Driver" },
+	{ "SQLAcct", "Database" },
+	{ "SQLAcct", "StopQueryAlt" },
+	{ "SQLAcct", "StartQueryAlt" },
+	{ "SQLAcct", "MinPoolSize" },
+	{ "SQLAcct", "Host" },
+	{ "SQLAcct", "AlertQuery" },
+	{ "SQLAcct", "RegisterQuery" },
+	{ "SQLAcct", "UnregisterQuery" },
+	{ "SQLAcct", "Library" },
+	{ "SQLAliasAuth", "TableJWJW" },
+	{ "SQLAliasAuth", "Password" },
+	{ "SQLAliasAuth", "Username" },
+	{ "SQLAliasAuth", "Driver" },
+	{ "SQLAliasAuth", "MinPoolSize" },
+	{ "SQLAliasAuth", "Database" },
+	{ "SQLAliasAuth", "Query" },
+	{ "SQLAliasAuth", "Host" },
+	{ "SQLAliasAuth", "Table" },
+	{ "SQLAliasAuth", "CacheTimeout" },
+	{ "SQLAliasAuth", "Library" },
+	{ "SQLAuth", "Password" },
+	{ "SQLAuth", "Username" },
+	{ "SQLAuth", "CallQuery" },
+	{ "SQLAuth", "Driver" },
+	{ "SQLAuth", "MinPoolSize" },
+	{ "SQLAuth", "Database" },
+	{ "SQLAuth", "Host" },
+	{ "SQLAuth", "NbQuery" },
+	{ "SQLAuth", "RegQuery" },
+	{ "SQLAuth", "CacheTimeout" },
+	{ "SQLAuth", "Library" },
+	{ "SQLConfig", "NeighborsQuery" },
+	{ "SQLConfig", "Password" },
+	{ "SQLConfig", "Username" },
+	{ "SQLConfig", "Driver" },
+	{ "SQLConfig", "PermanentEndpointsQuery" },
+	{ "SQLConfig", "Database" },
+	{ "SQLConfig", "Host" },
+	{ "SQLConfig", "ConfigQuery" },
+	{ "SQLConfig", "Library" },
+	{ "SQLConfig", "GWPrefixesQuery" },
+	{ "SQLConfig", "RewriteE164Query" },
+	{ "SQLConfig", "RewriteAliasQuery" },
+	{ "SQLPasswordAuth", "Password" },
+	{ "SQLPasswordAuth", "Username" },
+	{ "SQLPasswordAuth", "Driver" },
+	{ "SQLPasswordAuth", "MinPoolSize" },
+	{ "SQLPasswordAuth", "Database" },
+	{ "SQLPasswordAuth", "Query" },
+	{ "SQLPasswordAuth", "Host" },
+	{ "SQLPasswordAuth", "Table" },
+	{ "SQLPasswordAuth", "CacheTimeout" },
+	{ "SQLPasswordAuth", "Library" },
+	{ "StatusAcct", "UpdateEvent" },
+	{ "StatusAcct", "TimestampFormat" },
+	{ "StatusAcct", "ConnectEvent" },
+	{ "StatusAcct", "StopEvent" },
+	{ "StatusAcct", "StartEvent" },
+	{ "SyslogAcct", "UpdateEvent" },
+	{ "SyslogAcct", "TimestampFormat" },
+	{ "SyslogAcct", "ConnectEvent" },
+	{ "SyslogAcct", "StopEvent" },
+	{ "SyslogAcct", "StartEvent" },
+
+	// ignore name partially to check
+	{ "EP::", "DisableH46018" },
+	{ "EP::", "CalledTypeOfNumber" },
+	{ "EP::", "MaxBandwidth" },
+	{ "EP::", "CallingTypeOfNumber" },
+	{ "EP::", "PrefixCapacities" },
+	{ "EP::", "TranslateReceivedQ931Cause" },
+	{ "EP::", "TranslateSentQ931Cause" },
+	{ "EP::", "Capacity" },
+	{ "EP::", "Proxy" },
+	{ "EP::", "GatewayPriority" },
+	{ "EP::", "GatewayPrefixes" },
+	{ "Neighbor::", "AcceptForwardedLRQ" },
+	{ "Neighbor::", "UseH46018" },
+	{ "Neighbor::", "Dynamic" },
+	{ "Neighbor::", "Password" },
+	{ "Neighbor::", "AcceptPrefixes" },
+	{ "Neighbor::", "ForwardResponse" },
+	{ "Neighbor::", "SendPrefixes" },
+	{ "Neighbor::", "ForwardHopCount" },
+	{ "Neighbor::", "ForwardLRQ" },
+	{ "Neighbor::", "Host" },
+	{ "Neighbor::", "GatekeeperIdentifier" },
+
+	// uncheckable sections
+	{ "CapacityControl", "*" },
+	{ "Endpoint::RewriteE164", "*" },
+	{ "GkStatus::Auth", "*" },
+	{ "H225toQ931", "*" },
+	{ "FileIPAuth", "*" },
+	{ "ModeSelection", "*" },
+	{ "NATedEndpoints", "*" },
+	{ "PrefixAuth", "*" },
+	{ "RasSrv::AlternateGatekeeper", "*" },
+	{ "RasSrv::AssignedGatekeeper", "*" },
+	{ "RasSrv::GWPrefixes", "*" },
+	{ "RasSrv::GWRewriteE164", "*" },
+	{ "RasSrv::Neighbors", "*" },
+	{ "RasSrv::PermanentEndpoints", "*" },
+	{ "RasSrv::RewriteAlias", "*" },
+	{ "RasSrv::RewriteE164", "*" },
+	{ "RasSrv::RRQAuth", "*" },
+	{ "ReplyToRasAddress", "*" },
+	{ "RewriteCLI", "*" },
+	{ "Routing::Explicit", "*" },
+	{ "Routing::NumberAnalysis", "*" },
+	{ "RoutingPolicy", "*" },
+	{ "RoutingPolicy::OnARQ", "*" },
+	{ "RoutingPolicy::OnFacility", "*" },
+	{ "RoutingPolicy::OnLRQ", "*" },
+	{ "RoutingPolicy::OnSetup", "*" },
+	{ "SimplePasswordAuth", "*" },
+
+	{ NULL }	// the end
+};
+
+bool CheckConfig(PConfig * cfg, const PString & mainsection)
 {
-	bool result = true;
+	unsigned warnings = 0;
+	bool mainsectionfound = false;
 	PStringList sections = cfg->GetSections();
 	for (PINDEX i = 0; i < sections.GetSize(); ++i) {
-		PString sec = sections[i];
-		if (sec.Find("RasSvr") == 0) {
-			cerr << "The section " << sec << " should be ";
-			sec.Replace("RasSvr", "RasSrv");
-		       	cerr << sec << '\n';
-			result = false;
+		// check section names
+		PCaselessString sect = sections[i];
+		if ((sect.Left(1) == ";") || (sect.Left(1) == "#")) {
+			continue;
+		}
+		if (sect.Left(4) == "EP::") {
+			sect = "EP::";
+		}
+		if (sect.Left(10) == "Neighbor::") {
+			sect = "Neighbor::";
+		}
+		if (sect == mainsection) {
+			mainsectionfound = true;
+		}
+		const char * ks = NULL;
+		unsigned i = 0;
+		bool found = false;
+		bool section_checkable = true;
+		while ((ks = KnowConfigEntries[i][0])) {
+			if (sect == ks) {
+				found = true;
+				section_checkable = (PString(KnowConfigEntries[i][1]) != "*");
+				break;
+			}
+			i++;
+		}
+		if (!found) {
+			PTRACE(0, "WARNING: Config section [" << sect << "] unknown");
+			warnings++;
+		} else if (!section_checkable) {
+			//PTRACE(0, "Section " << sect << " can't be checked in detail");
+		} else {
+			// check all entries in this section
+			PStringToString entries = cfg->GetAllKeyValues(sect);
+			for (PINDEX j = 0; j < entries.GetSize(); j++) {
+				PCaselessString key = entries.GetKeyAt(j);
+				PString value = entries.GetDataAt(j);
+				if (value.IsEmpty()) {
+					PTRACE(0, "WARNING: Empty switch: [" << sect << "] " << key << "=");
+				}
+				unsigned k = 0;
+				bool entry_found = false;
+				while ((ks = KnowConfigEntries[k][0])) {
+					const char * ke = KnowConfigEntries[k][1];
+					k++;
+					if ((sect == ks) && (key == ke)) {
+						entry_found = true;
+						break;
+					}
+				}
+				if (!entry_found) {
+					PTRACE(0, "WARNING: Config entry [" << sect << "] " << key << "=" << value << " unknown");
+					warnings++;
+				}
+			}
 		}
 	}
-	if (!result)
-		cerr << endl;
-	return result;
+	if (!mainsectionfound) {
+		PTRACE(0, "WARNING: This doesn't look like a GNU Gatekeeper configuration file!");
+	}
+
+	return (warnings == 0);
 }
 
 // due to some unknown reason (PWLib bug?),
@@ -479,20 +915,20 @@ bool Gatekeeper::InitConfig(const PArgList &args)
 		fp = PFilePath(args.GetOptionString('c'));
 	else
 		fp = "gatekeeper.ini";
+	if (!PFile::Exists(fp)) {
+		cerr << "WARNING: Config file " << fp << " doesn't exist!"
+			 << "- Use the -c switch to specify the config file.\n" << endl;
+	}
 
 	if (args.HasOption('s'))
 		section = args.GetOptionString('s');
 
 	Toolkit::Instance()->SetConfig(fp, section);
 
-	if( (GkConfig()->GetInteger("Fortytwo")  != 42) &&
-		(GkConfig()->GetInteger("Fourtytwo") != 42)) {
-		cerr << "WARNING: No config file found!\n"
-			 << "- Use the -c switch to specify the config file.\n"
-			 << "- Make sure the line 'Fortytwo=42' is present in the '[Gatekeeper::Main]' section.\n" << endl;
-	}
-	
-	return CheckSectionName(GkConfig());
+	// check config for unknown options (only warn about them)
+	CheckConfig(GkConfig(), section);
+
+	return true;
 }
 
 

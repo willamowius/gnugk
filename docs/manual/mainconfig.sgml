@@ -127,13 +127,6 @@ or see it online at <url url="http://www.kernel.org/doc/man-pages/online/pages/m
 <label id="gkmain">
 <p>
 <itemize>
-<item><tt/Fortytwo=42/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-This setting is used to test for the presence of the config file. If it
-is not found, a warning is issued.
-Make sure it's in all your config files.
-
 <item><tt/Name=GnuGk/<newline>
 Default: <tt/OpenH323GK/<newline>
 <p>
