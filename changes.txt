@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- New setting [RoutedMode] H46023PublicIP to allow Non-NAT endpoints provide NAT support (default=0).
 - the config file is now checked for unrecognized entries and a warning is printed
 - config switch Fortytwo=42 is now obsolete
 - add encryption support (StartTLS) for H.350 (needs PTLib 2.11.x)
