@@ -3094,11 +3094,13 @@ bool AdmissionRequestPDU::Process()
 		}
 #endif
 		/// OID9 Vendor Information
-		if (vendorInfo && !vendor.IsEmpty()) {
+		if (vendorInfo) {
 			H460_FeatureOID fs = H460_FeatureOID(OID9);
-			fs.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
-			fs.Add(PString(VendorVerOID),H460_FeatureContent(version));
-			lastPos++;
+            if (!vendor.IsEmpty()) {
+			    fs.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
+			    fs.Add(PString(VendorVerOID),H460_FeatureContent(version));
+			    lastPos++;
+            }
 			data.SetSize(lastPos);
 			data[lastPos-1] = fs;
 		}
