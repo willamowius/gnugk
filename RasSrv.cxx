@@ -3099,8 +3099,8 @@ bool AdmissionRequestPDU::Process()
             if (!vendor.IsEmpty()) {
 			    fs.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
 			    fs.Add(PString(VendorVerOID),H460_FeatureContent(version));
-			    lastPos++;
             }
+            lastPos++;
 			data.SetSize(lastPos);
 			data[lastPos-1] = fs;
 		}
