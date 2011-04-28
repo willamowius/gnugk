@@ -329,11 +329,13 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "SignalTimeout" },
 	{ "RoutedMode", "EnableH46023" },
 	{ "RoutedMode", "H46023STUN" },
+	{ "RoutedMode", "H46023PublicIP" },
 	{ "RoutedMode", "AcceptNeighborCalls" },
 	{ "RoutedMode", "SupportCallingNATedEndpoints" },
 	{ "RoutedMode", "TranslateReceivedQ931Cause" },
 	{ "RoutedMode", "TranslateSentQ931Cause" },
 	{ "RoutedMode", "H46018NoNat" },
+	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "DisableRetryChecks" },
 	{ "Routing::CatchAll", "CatchAllAlias" },
 	{ "Routing::CatchAll", "CatchAllIP" },
@@ -413,6 +415,27 @@ static const char * KnowConfigEntries[][2] = {
 	{ "SyslogAcct", "ConnectEvent" },
 	{ "SyslogAcct", "StopEvent" },
 	{ "SyslogAcct", "StartEvent" },
+    { "GkPresence::SQL", "Driver" },
+	{ "GkPresence::SQL", "MinPoolSize" },
+    { "GkPresence::SQL", "Host" },
+    { "GkPresence::SQL", "Database" },
+    { "GkPresence::SQL", "CacheTimeout" },
+    { "GkPresence::SQL", "QueryList" },
+    { "GkPresence::SQL", "QueryAdd" },
+    { "GkPresence::SQL", "QueryDelete" },
+    { "GkPresence::SQL", "QueryUpdate" },
+    { "AssignedGatekeepers::SQL", "Driver" },
+	{ "AssignedGatekeepers::SQL", "MinPoolSize" },
+    { "AssignedGatekeepers::SQL", "Host" },
+    { "AssignedGatekeepers::SQL", "Database" },
+    { "AssignedGatekeepers::SQL", "CacheTimeout" },
+    { "AssignedGatekeepers::SQL", "Query" },
+    { "AssignedAliases::SQL", "Driver" },
+	{ "AssignedAliases::SQL", "MinPoolSize" },
+    { "AssignedAliases::SQL", "Host" },
+    { "AssignedAliases::SQL", "Database" },
+    { "AssignedAliases::SQL", "CacheTimeout" },
+    { "AssignedAliases::SQL", "Query" },
 
 	// ignore name partially to check
 	{ "EP::", "DisableH46018" },
@@ -449,6 +472,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "PrefixAuth", "*" },
 	{ "RasSrv::AlternateGatekeeper", "*" },
 	{ "RasSrv::AssignedGatekeeper", "*" },
+	{ "RasSrv::AssignedAliases", "*" },
 	{ "RasSrv::GWPrefixes", "*" },
 	{ "RasSrv::GWRewriteE164", "*" },
 	{ "RasSrv::Neighbors", "*" },
@@ -491,16 +515,16 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 			mainsectionfound = true;
 		}
 		const char * ks = NULL;
-		unsigned i = 0;
+		unsigned j = 0;
 		bool found = false;
 		bool section_checkable = true;
-		while ((ks = KnowConfigEntries[i][0])) {
+		while ((ks = KnowConfigEntries[j][0])) {
 			if (sect == ks) {
 				found = true;
-				section_checkable = (PString(KnowConfigEntries[i][1]) != "*");
+				section_checkable = (PString(KnowConfigEntries[j][1]) != "*");
 				break;
 			}
-			i++;
+			j++;
 		}
 		if (!found) {
 			PTRACE(0, "WARNING: Config section [" << sect << "] unknown");
