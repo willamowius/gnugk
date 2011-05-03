@@ -121,6 +121,7 @@ STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR
 STDCCFLAGS += -fno-strict-aliasing
 # security flags
 STDCCFLAGS += -fstack-protector
+LDFLAGS += -Wl,-z,relro,-z,now
 
 # enable more warnings when using gcc >= 4.4
 GCCMAJOREQ4 := $(shell expr 4 == `gcc -dumpversion | cut -f1 -d.`)
