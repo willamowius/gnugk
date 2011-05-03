@@ -28,7 +28,7 @@ SOURCES	 = singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            Neighbor.cxx GkClient.cxx gkauth.cxx RasSrv.cxx ProxyChannel.cxx \
            gk.cxx version.cxx gkacct.cxx gktimer.cxx gkconfig.cxx \
            sigmsg.cxx clirw.cxx cisco.cxx ipauth.cxx statusacct.cxx \
-           syslogacct.cxx capctrl.cxx MakeCall.cxx h460presence.cxx \
+           syslogacct.cxx capctrl.cxx MakeCall.cxx h460presence.cxx ldap.cxx \
            @SOURCES@
 
 HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
@@ -119,6 +119,8 @@ STDCCFLAGS = $(temp_STDCCFLAGS)
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
 
 STDCCFLAGS += -fno-strict-aliasing
+# security flags
+STDCCFLAGS += -fstack-protector
 
 # enable more warnings when using gcc >= 4.4
 GCCMAJOREQ4 := $(shell expr 4 == `gcc -dumpversion | cut -f1 -d.`)
