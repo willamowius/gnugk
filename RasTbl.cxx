@@ -1604,7 +1604,6 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 	if (!GWlist.empty()) {
 		GWlist.sort(ComparePriority);
 		
-		std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
 		GatewayRec *e = GWlist.front().second;
 		PTRACE(4, "Prefix match for GW " << AsDotString(e->GetCallSignalAddress()));
 		return endptr(e);

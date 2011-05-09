@@ -117,9 +117,6 @@ void CapacityControl::LoadConfig()
 	const PString cfgSec("CapacityControl");
 	
 	unsigned ipRules = 0, h323IdRules = 0, cliRules = 0;
-	IpCallVolumes::iterator ipRule = ipCallVolumes.end();
-	H323IdCallVolumes::iterator h323IdRule  = h323IdCallVolumes.end();
-	CLICallVolumes::iterator cliRule  = cliCallVolumes.end();
 	
 	const PStringToString kv = cfg->GetAllKeyValues(cfgSec);
 	for (PINDEX i = 0; i < kv.GetSize(); ++i) {
