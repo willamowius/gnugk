@@ -25,6 +25,9 @@
 #else
 #define SIZEOF_LONG_INT	4
 #endif
+#endif
+
+#ifndef BOOL
 #define BOOL		int
 #endif
 
