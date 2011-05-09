@@ -308,7 +308,7 @@ bool BroadcastListener::Filter(GatekeeperMessage *msg) const
 	if (tag == H225_RasMessage::e_gatekeeperRequest
 		|| tag == H225_RasMessage::e_locationRequest)
 		return true;
-	PTRACE(1, "RAS\tUnknown broadcasted RAS message tag " << tag);
+	PTRACE(1, "RAS\tUnknown broadcasted RAS message tag " << msg->GetTagName());
 	return false;
 }
 
