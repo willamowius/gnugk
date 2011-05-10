@@ -566,19 +566,26 @@ private:
 
     GkClient *                    m_client;
 	NatTypes                      m_nattype;
-	bool                             m_shutdown;
-	PMutex                         m_portCreateMutex;
+	bool                          m_shutdown;
+	PMutex                        m_portCreateMutex;
+    int                           m_socketsForPairing;
+    int                           m_pollRetries;
 
 };
 
 STUNClient::STUNClient(GkClient * _client, const H323TransportAddress & addr)
-:  m_client(_client), m_nattype(UnknownNat), m_shutdown(false)
+:  m_client(_client), m_nattype(UnknownNat), m_shutdown(false),
+   m_socketsForPairing(4), m_pollRetries(3)
 {
 
 	PIPSocket::Address ip;
 	WORD port;
 	addr.GetIpAndPort(ip,port);
+#ifdef hasNewSTUN
+    m_serverAddress = PIPSocketAddressAndPort(ip, port);
+#else
 	SetServer(ip, port);
+#endif
 
 	STUNportRange ports;
 	ports.LoadConfig("Proxy", "RTPPortRange", "1024-65535");
@@ -649,6 +656,43 @@ void STUNClient::OnDetectedNAT(int nattype)
     m_client->H46023_TypeDetected(nattype);
 }
 
+#ifdef hasNewSTUN
+bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPSocket::Address & binding)
+{
+  if (!m_serverAddress.IsValid()) {
+    PTRACE(1, "STUN\tServer port not set.");
+    return false;
+  }
+
+  if (portInfo.basePort == 0) {
+    if (!socket.Listen(binding, 1)) {
+      PTRACE(3, "STUN\tCannot bind port to " << m_interface);
+      return false;
+    }
+  }  
+  else {
+    WORD startPort = portInfo.currentPort;
+    PTRACE(3, "STUN\tUsing ports " << portInfo.basePort << " through " << portInfo.maxPort << " starting at " << startPort);
+    for (;;) {
+      bool status = socket.Listen(binding, 1, portInfo.currentPort);
+      PWaitAndSignal mutex(portInfo.mutex);
+      portInfo.currentPort++;
+      if (portInfo.currentPort > portInfo.maxPort)
+        portInfo.currentPort = portInfo.basePort;
+      if (status)
+        break;
+      if (portInfo.currentPort == startPort) {
+        PTRACE(3, "STUN\tListen failed on " << m_interface << ":" << portInfo.currentPort);
+        return false;
+      }
+    } 
+  }
+
+  socket.SetSendAddress(m_serverAddress.GetAddress(), m_serverAddress.GetPort());
+
+  return true;
+}
+#else
 bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPSocket::Address & binding)
 {
   if (serverPort == 0) {
@@ -682,6 +726,7 @@ bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPS
          << portInfo.currentPort << '-' << portInfo.maxPort);
   return false;
 }
+#endif
 
 bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const PIPSocket::Address & binding)
 {
@@ -703,7 +748,7 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
   PList<STUNmessage> request;
   PList<STUNmessage> response;
 
-  for (i = 0; i < numSocketsForPairing; i++)
+  for (i = 0; i < m_socketsForPairing; i++)
   {
     PINDEX idx = stunSocket.Append(new STUNsocket);
     if (!OpenSocketA(stunSocket[idx], pairedPortInfo, binding)) {
@@ -717,16 +762,16 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
     response.Append(new STUNmessage);
   }
 
-  for (i = 0; i < numSocketsForPairing; i++)
+  for (i = 0; i < m_socketsForPairing; i++)
   {
-    if (!response[i].Poll(stunSocket[i], request[i], pollRetries))
+    if (!response[i].Poll(stunSocket[i], request[i], m_pollRetries))
     {
       PTRACE(1, "STUN\tServer unexpectedly went offline." << GetServer());
       return false;
     }
   }
 
-  for (i = 0; i < numSocketsForPairing; i++)
+  for (i = 0; i < m_socketsForPairing; i++)
   {
     STUNmappedAddress * mappedAddress = (STUNmappedAddress *)response[i].FindAttribute(STUNattribute::MAPPED_ADDRESS);
     if (mappedAddress == NULL)
@@ -739,9 +784,9 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
     stunSocket[i].externalIP = mappedAddress->GetIP();
   }
 
-  for (i = 0; i < numSocketsForPairing; i++)
+  for (i = 0; i < m_socketsForPairing; i++)
   {
-    for (PINDEX j = 0; j < numSocketsForPairing; j++)
+    for (PINDEX j = 0; j < m_socketsForPairing; j++)
     {
       if ((stunSocket[i].GetPort()&1) == 0 && (stunSocket[i].GetPort()+1) == stunSocket[j].GetPort()) {
         stunSocket[i].SetSendAddress(0, 0);

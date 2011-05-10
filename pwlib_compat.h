@@ -108,6 +108,7 @@
 	#endif
 	#if PTLIB_MINOR >= 11
 		#define hasLDAPStartTLS 1
+        #define hasNewSTUN      1
 	#endif
 	// bug with no trailing NULL bytes in BMP strings, fixed in PTLib 2.7.1
 	#if ((PTLIB_MINOR == 2) || (PTLIB_MINOR == 4 && PTLIB_BUILD <= 5) || (PTLIB_MINOR == 5 && PTLIB_BUILD <= 2) || (PTLIB_MINOR == 6 && PTLIB_BUILD <= 4))
