@@ -1192,7 +1192,7 @@ void Gatekeeper::GetRotateInterval(
 			
 		if (m_rotateHour < 0 || m_rotateHour > 23 || m_rotateMinute < 0
 			|| m_rotateMinute > 59) {
-			PTRACE(1, "GK\tInvalid log file RotateTime specified: " << s);
+			PTRACEX(1, "GK\tInvalid log file RotateTime specified: " << s);
 			m_rotateMinute = 59;
 			m_rotateHour = 0;
 		}
@@ -1215,13 +1215,13 @@ void Gatekeeper::GetRotateInterval(
 			m_rotateDay = (i != dayNames.end()) ? i->second : -1;
 		}
 		if (m_rotateDay < 0 || m_rotateDay > 6) {
-			PTRACE(1, "GK\tInvalid log file RotateDay specified: " << s);
+			PTRACEX(1, "GK\tInvalid log file RotateDay specified: " << s);
 			m_rotateDay = 0;
 		}
 	} else if (m_rotateInterval == Monthly) {
 		m_rotateDay = cfg.GetInteger(section, "RotateDay", 1);
 		if (m_rotateDay < 1 || m_rotateDay > 31) {
-			PTRACE(1, "GK\tInvalid RotateDay specified: "
+			PTRACEX(1, "GK\tInvalid RotateDay specified: "
 				<< cfg.GetString(section, "RotateDay", "")
 				);
 			m_rotateDay = 1;
@@ -1256,7 +1256,7 @@ void Gatekeeper::EnableLogFileRotation(
 			m_rotateInterval = i;
 
 	if (m_rotateInterval < 0 || m_rotateInterval >= RotationIntervalMax) {
-		PTRACE(1, "GK\tUnsupported log file rotation method: "
+		PTRACEX(1, "GK\tUnsupported log file rotation method: "
 			<< rotateCondition << " - rotation disabled"
 			);
 		return;
@@ -1279,7 +1279,7 @@ void Gatekeeper::EnableLogFileRotation(
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime, 60*60
 			);
-		PTRACE(5, "GK\tHourly log file rotation enabled (first "
+		PTRACEX(5, "GK\tHourly log file rotation enabled (first "
 			"rotation scheduled at " << rotateTime
 			);
 		break;
@@ -1293,7 +1293,7 @@ void Gatekeeper::EnableLogFileRotation(
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24
 			);
-		PTRACE(5, "GK\tDaily rotation enabled (first rotation scheduled at "
+		PTRACEX(5, "GK\tDaily rotation enabled (first rotation scheduled at "
 			<< rotateTime
 			);
 		break;
@@ -1315,9 +1315,9 @@ void Gatekeeper::EnableLogFileRotation(
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24*7
 			);
-		PTRACE(5, "GK\tWeekly rotation enabled (first rotation scheduled at "
+		PTRACEX(5, "GK\tWeekly rotation enabled (first rotation scheduled at "
 			<< rotateTime
-			);
+		      );
 		break;
 		
 	case Monthly:
@@ -1343,7 +1343,7 @@ void Gatekeeper::EnableLogFileRotation(
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime
 			);
-		PTRACE(5, "GK\tMonthly rotation enabled (first rotation scheduled at "
+		PTRACEX(5, "GK\tMonthly rotation enabled (first rotation scheduled at "
 			<< rotateTime
 			);
 		break;
@@ -1391,7 +1391,7 @@ bool Gatekeeper::SetLogFilename(
 		return true;
 
 	if (m_logFile) {
-		PTRACE(1, "GK\tLogging redirected to the file '" << filename << '\'');
+		PTRACEX(1, "GK\tLogging redirected to the file '" << filename << '\'');
 		EnableLogFileRotation(false);
 	}
 	
@@ -1419,7 +1419,7 @@ bool Gatekeeper::RotateLogFile()
 	PWaitAndSignal lock(m_logFileMutex);
 
 	if (m_logFile) {
-		PTRACE(1, "GK\tLogging closed (log file rotation)");
+		PTRACEX(1, "GK\tLogging closed (log file rotation)");
 		PTrace::SetStream(&cerr); // redirect to cerr
 #ifndef hasDeletingSetStream
 		delete m_logFile;
@@ -1458,7 +1458,7 @@ bool Gatekeeper::RotateLogFile()
 
 	m_logFile->SetPosition(0, PFile::End);
 	PTrace::SetStream(m_logFile);
-	PTRACE(1, "GK\tLogging restarted.");
+	PTRACEX(1, "GK\tLogging restarted.");
 	return true;
 }
 	
@@ -1467,7 +1467,7 @@ bool Gatekeeper::ReopenLogFile()
 	PWaitAndSignal lock(m_logFileMutex);
 
 	if (m_logFile) {
-		PTRACE(1, "GK\tLogging closed (reopen log file)");
+		PTRACEX(1, "GK\tLogging closed (reopen log file)");
 		PTrace::SetStream(&cerr); // redirect to cerr
 #ifndef hasDeletingSetStream
 		delete m_logFile;
@@ -1498,7 +1498,7 @@ bool Gatekeeper::ReopenLogFile()
 	}
 	m_logFile->SetPosition(0, PFile::End);
 	PTrace::SetStream(m_logFile);
-	PTRACE(1, "GK\tLogging restarted");
+	PTRACEX(1, "GK\tLogging restarted");
 	return true;
 }
 
@@ -1507,7 +1507,7 @@ void Gatekeeper::CloseLogFile()
 	PWaitAndSignal lock(m_logFileMutex);
 
 	if (m_logFile) {
-		PTRACE(1, "GK\tLogging closed");
+		PTRACEX(1, "GK\tLogging closed");
 	}
 	PTrace::SetStream(&cerr);
 #ifndef hasDeletingSetStream
