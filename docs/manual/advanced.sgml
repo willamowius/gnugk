@@ -69,7 +69,7 @@ $ cvs update
 </verb>
 If any of the source files are changed, you have to recompile.
 
-<sect1>Debugging GnuGk
+<sect1>Debugging GnuGk (on Linux)
 <label id="debug">
 <p>
 In order to use gdb with GnuGk, the software and libraries must be compiled with debug support.
@@ -79,7 +79,7 @@ You may follow the instructions above in obtaining the software, but the compile
 $ make debugnoshared
 </verb>
 
-Configure your CLI to allow unlimited core files:
+Allow unlimited core dumps:
 <verb>
 ulimit -c unlimited
 </verb>
