@@ -107,6 +107,8 @@ static const char * KnowConfigEntries[][2] = {
 	{ "CallTable", "DefaultCallDurationLimit" },
 	{ "CallTable", "DefaultCallTimeout" },
 	{ "CTI::Agents", "RequestTimeout" },
+	{ "CTI::Agents", "CTI_Timeout" },	// obsolete, but still accepted
+	{ "CTI::Agents", "VirtualQueue" },	// obsolete, but still accepted
 	{ "CTI::Agents", "VirtualQueueAliases" },
 	{ "CTI::Agents", "VirtualQueuePrefixes" },
 	{ "CTI::Agents", "VirtualQueueRegex" },
@@ -471,6 +473,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "NATedEndpoints", "*" },
 	{ "PrefixAuth", "*" },
 	{ "RasSrv::AlternateGatekeeper", "*" },
+	{ "RasSrv::AssignedAlias", "*" },
 	{ "RasSrv::AssignedGatekeeper", "*" },
 	{ "RasSrv::AssignedAliases", "*" },
 	{ "RasSrv::GWPrefixes", "*" },
