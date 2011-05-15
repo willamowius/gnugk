@@ -94,3 +94,6 @@ bt
 
 Once you've obtained a backtrace, post it to the mailing list.
 
+Note: On some systems, the core dump is named "core.xxx" where xxx
+is the process number of the program that crashed.
+
