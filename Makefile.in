@@ -106,14 +106,14 @@ include $(OPENH323MAKEDIR)/openh323u.mak
 temp_STDCCFLAGS := $(subst -fdata-sections,,$(STDCCFLAGS))
 STDCCFLAGS = $(temp_STDCCFLAGS)
 
-#ifeq ($(OSTYPE),solaris)
+ifeq "$(OSTYPE)" "solaris"
     ### Remove references to gcc 3.x libs that come with Solaris 10
     temp_ENDLDLIBS := $(subst -R/usr/sfw/lib,,$(ENDLDLIBS))
     ENDLDLIBS = $(temp_ENDLDLIBS)
     temp_ENDLDLIBS := $(subst -L/usr/sfw/lib,,$(ENDLDLIBS))
     ENDLDLIBS = $(temp_ENDLDLIBS)
     ENDLDLIBS += -L/opt/csw/lib
-#endif # solaris
+endif # solaris
 
 # GK version infomation
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
@@ -121,7 +121,9 @@ STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR
 STDCCFLAGS += -fno-strict-aliasing
 # security flags
 STDCCFLAGS += -fstack-protector
-LDFLAGS += -Wl,-z,relro,-z,now
+ifeq "$(OSTYPE)" "linux"
+    LDFLAGS += -Wl,-z,relro,-z,now
+endif # linux
 # can't enable PIE on openSuSE 11.4 due to linker bug
 #STDCCFLAGS += -fPIE -pie
 #LDFLAGS    += -fPIE -pie
