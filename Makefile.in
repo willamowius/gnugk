@@ -127,7 +127,7 @@ LDFLAGS += -Wl,-z,relro,-z,now
 #LDFLAGS    += -fPIE -pie
 
 # enable more warnings when using gcc >= 4.4
-GCCMAJOREQ4 := $(shell expr 4 == `gcc -dumpversion | cut -f1 -d.`)
+GCCMAJOREQ4 := $(shell expr 4 = `gcc -dumpversion | cut -f1 -d.`)
 GCCMAJORGT4 := $(shell expr 4 \< `gcc -dumpversion | cut -f1 -d.`)
 GCCMINORGTEQ4 := $(shell expr 4 \<= `gcc -dumpversion | cut -f2 -d.`)
 ifeq "$(GCCMAJOREQ4)" "1"
