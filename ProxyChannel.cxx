@@ -5506,12 +5506,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	buflen = (WORD)GetLastReadCount();
 	// verify packet
 	unsigned int version = 0;
+	bool isRTPorRTCP = true;	// check if this is RTP or RTCP, could also be T.38 traffic
 	if (buflen >= 1)
 		version = (((int)wbuffer[0] & 0xc0) >> 6);
-	if (version != 2) {
-		PTRACE(1, "RTP\tInvalid RTP/RTCP packet: version=" << version);
-		return NoData;
-	}
+	isRTPorRTCP = (version == 2);
+
 #ifdef HAS_H46018
 	int payloadType = H46019_UNDEFINED_PAYLOAD_TYPE;
 	if (buflen >= 2)
@@ -5712,7 +5711,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
-	if (PString(Type()) == "RTCP" && m_call && (*m_call) && m_EnableRTCPStats) {
+	if (PString(Type()) == "RTCP" && isRTPorRTCP && m_call && (*m_call) && m_EnableRTCPStats) {
 		bool direct = ((*m_call)->GetSRC_media_control_IP() == fromIP.AsString());
 		PIPSocket::Address addr = (DWORD)0;
 		(*m_call)->GetMediaOriginatingIp(addr);
