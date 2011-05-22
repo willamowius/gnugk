@@ -134,10 +134,10 @@ Gatekeeper identifier of this gatekeeper. The gatekeeper will only respond to
 GRQs for this ID and will use it in a number of messages to its endpoints.
 
 <item><tt/Home=192.168.1.1/<newline>
-Default: <tt/0.0.0.0/<newline>
+Default: <tt/listen to all IPs/<newline>
 <p>
 The gatekeeper will listen for requests on this IP address.
-If set to <tt/0.0.0.0/ the gatekeeper will listen on all interfaces of your host.
+If not set, the gatekeeper will listen on all IPs of your host.
 Multiple Home addresses can be used
 and must be separated with a semicolon (;) or comma (,).
 
@@ -155,7 +155,7 @@ on the NAT box.  The ExternalIP setting will take precedence and will override t
 will not cause this value to be re-read.
 
 <item><tt/Bind=192.168.1.1/<newline>
-Default: <tt/0.0.0.0/<newline>
+Default: <tt>N/A</tt><newline>
 <p>
 Specify the IP address for default routing.
 Use this to specify which default IP address to use in a multihomed
