@@ -15,6 +15,7 @@
 #ifndef H323UTIL_H
 #define H323UTIL_H "@(#) $Id$"
 
+#include <ptlib.h>
 #include <ptlib/sockets.h>
 
 class H225_CallIdentifier;
