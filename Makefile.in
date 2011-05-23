@@ -149,6 +149,19 @@ versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323
 doc:
 	$(MAKE) -C docs/manual html
 
+# test support using Google C++ Test Framework
+TESTCASES = h323util.t.cxx Toolkit.t.cxx
+TESTOBJS = ./obj_linux_x86_64_s/h323util.o
+
+libgtest.a:
+	$(CXX) -I${GTEST_DIR}/include -I${GTEST_DIR} -c ${GTEST_DIR}/src/gtest-all.cc
+	$(AR) -rv libgtest.a gtest-all.o
+
+test: libgtest.a testrunner.cxx $(TESTCASES) $(TESTOBJS)
+	$(CXX) -I${GTEST_DIR}/include $(STDCCFLAGS) testrunner.cxx $(TESTCASES) -o testrunner libgtest.a $(TESTOBJS) $(LDFLAGS) -lh323_linux_x86_64__s -lpt_s $(ENDLDLIBS)
+	./testrunner
+	
+
 #
 # By this command the build number may be incremented
 #
