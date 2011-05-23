@@ -150,7 +150,7 @@ doc:
 	$(MAKE) -C docs/manual html
 
 # test support using Google C++ Test Framework
-TESTCASES = h323util.t.cxx Toolkit.t.cxx
+TESTCASES = h323util.t.cxx
 TESTOBJS = ./obj_linux_x86_64_s/h323util.o
 
 libgtest.a:
