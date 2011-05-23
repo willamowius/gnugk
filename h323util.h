@@ -71,8 +71,6 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 
 bool IsIPAddress(const PString & addr);
 
-bool IsRemoteNATSupport(const PString & addr);
-
 bool IsLoopback(const PIPSocket::Address &);
 
 /** Find an alias which tag is of type specified by #primaryTags#.

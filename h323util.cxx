@@ -262,13 +262,6 @@ bool IsIPAddress(const PString & addr)
 	return ((addr.FindRegEx(ipPattern) != P_MAX_INDEX) || (addr.FindRegEx(ipAndPortPattern) != P_MAX_INDEX));
 }
 
-bool IsRemoteNATSupport(const PString & addr)
-{
-	PString ipAddr = addr.Trim();
-	PINDEX p = ipAddr.Find('*');
-	return (p != P_MAX_INDEX);
-}
-
 bool IsLoopback(const PIPSocket::Address & addr)
 {
 	return addr.IsLoopback() != 0;
