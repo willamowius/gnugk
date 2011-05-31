@@ -1578,9 +1578,11 @@ void Toolkit::LoadReasonMap(PConfig *cfg)
 
 }
 
-bool Toolkit::MatchRegex(const PString &str, const PString &regexStr)
+bool Toolkit::MatchRegex(const PString & str, const PString & regexStr)
 {
-	PINDEX pos=0;
+	if (regexStr.IsEmpty())
+		return false;	// nothing matches an empty regex and it triggers a PTLib assertion
+	PINDEX pos = 0;
 	PRegularExpression regex(regexStr, PRegularExpression::Extended);
 	if(regex.GetErrorCode() != PRegularExpression::NoError) {
 		PTRACE(2, "Errornous '"<< regex.GetErrorText() <<"' compiling regex: " << regexStr);
@@ -2123,14 +2125,14 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 		  for (unsigned j=0; j < assignedGKList.size(); j++) {
 		    PString match = assignedGKList[j].first.Trim();
 			if (match.Left(1) != "^") {
-			  // Do prefix match
+			  // prefix match
 			  if (MatchPrefix(alias,assignedGKList[j].first)) {
 				   assignedGK.AppendString(assignedGKList[j].second);
 				   if (!found) found = true;
 			  }
 			} else {
-	          // Do Regex match for IP address
-			  if (MatchRegex(ip.AsString(),match)) {
+	          // regex match for IP address
+			  if (MatchRegex(ip.AsString(), match)) {
 				   assignedGK.AppendString(assignedGKList[j].second);
 				   if (!found) found = true;
 		      }
