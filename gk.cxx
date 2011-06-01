@@ -737,6 +737,10 @@ bool Gatekeeper::SetUserAndGroup(const PString &username)
 
 void UnixShutdownHandler(int sig)
 {
+//#ifdef P_MACOSX
+//	RasServer::Instance()->Stop();
+//	_exit(0);
+//#endif
 	if (ShutdownMutex.WillBlock() || !RasServer::Instance()->IsRunning())
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
