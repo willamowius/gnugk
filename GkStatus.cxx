@@ -310,7 +310,7 @@ protected:
 
 // SSH version of the staus client
 class SSHStatusClient : public StatusClient {
-	PCLASSINFO(SSHStatusClient, StatusClient)
+
 public:
 	SSHStatusClient(int instanceNo);
 	virtual ~SSHStatusClient();
