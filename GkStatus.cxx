@@ -385,19 +385,20 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 
 	bool keyAvailable = false;
 	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
-	if (PFile::Exists(dsakey)) {
+	if (PFile::Exists(dsakey) && PFile::Access(dsakey, PFile::ReadOnly)) {
 		keyAvailable = true;
 		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_DSAKEY, (const char *)dsakey);
 		PTRACE(3, "Setting DSA key to " << dsakey);
 	}
 	PString rsakey = GkConfig()->GetString(authsec, "RSAKey", "/etc/ssh/ssh_host_rsa_key");
-	if (PFile::Exists(rsakey)) {
+	if (PFile::Exists(rsakey) && PFile::Access(rsakey, PFile::ReadOnly)) {
 		keyAvailable = true;
 		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_RSAKEY, (const char *)rsakey);
 		PTRACE(3, "Setting RSA key to " << rsakey);
 	}
 	if (!keyAvailable) {
 		PTRACE(1, "No DSA or RSA key file found");
+		socket.Close();
 		return false;
 	}
 
