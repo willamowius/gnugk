@@ -943,7 +943,7 @@ bool Gatekeeper::InitConfig(const PArgList &args)
 		fp = "gatekeeper.ini";
 	if (!PFile::Exists(fp)) {
 		cerr << "WARNING: Config file " << fp << " doesn't exist!"
-			 << "- Use the -c switch to specify the config file.\n" << endl;
+			 << " Use the -c switch to specify the config file.\n" << endl;
 	}
 
 	if (args.HasOption('s'))
