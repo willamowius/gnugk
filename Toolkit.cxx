@@ -977,7 +977,7 @@ Toolkit::RouteTable *Toolkit::GetRouteTable(bool real)
 PConfig* Toolkit::Config()
 {
 	// Make sure the config would not be called before SetConfig
-	if (!m_ConfigDefaultSection) {
+	if (m_ConfigDefaultSection.IsEmpty()) {
 		PTRACE(0, "Error: Call Config() before SetConfig()!");
 		return NULL;
 	}
@@ -1229,7 +1229,7 @@ void Toolkit::ReloadSQLConfig()
 		queryResult = NULL;
 	}
 
-// Rewrite Alias Query
+	// Rewrite Alias Query
 	query = m_Config->GetString("SQLConfig", "RewriteAliasQuery", "");
 	if (!query.IsEmpty()) {
 		PTRACE(4, "SQLCONF\tLoading rewrite rules from SQL database");
@@ -1456,7 +1456,7 @@ void Toolkit::PrepareReloadConfig()
 {
 	if (!m_ConfigDirty)
 		CreateConfig();
-	else // the config have been changed via status port, use it directly
+	else // the config has been changed via status port, use it directly
 		m_ConfigDirty = false;
 }
 
