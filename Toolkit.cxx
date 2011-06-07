@@ -977,7 +977,10 @@ Toolkit::RouteTable *Toolkit::GetRouteTable(bool real)
 PConfig* Toolkit::Config()
 {
 	// Make sure the config would not be called before SetConfig
-	PAssert(!m_ConfigDefaultSection, "Error: Call Config() before SetConfig()!");
+	if (!m_ConfigDefaultSection) {
+		PTRACE(0, "Error: Call Config() before SetConfig()!");
+		return NULL;
+	}
 	return (m_Config == NULL) ? ReloadConfig() : m_Config;
 }
 
