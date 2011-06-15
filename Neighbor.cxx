@@ -230,8 +230,10 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	lrq.m_requestSeqNum = seqnum;
 	lrq.m_destinationInfo = dest;
 
-	// Perform outbound per GK rewrite on the destination of the LRQ
-	Toolkit::Instance()->GWRewriteE164(m_id,false,lrq.m_destinationInfo[0]);
+	// perform outbound per GK rewrite on the destination of the LRQ
+	Toolkit::Instance()->GWRewriteE164(m_id, GW_REWRITE_OUT, lrq.m_destinationInfo[0]);
+	if (m_gkid != m_id)
+		Toolkit::Instance()->GWRewriteE164(m_gkid, GW_REWRITE_OUT, lrq.m_destinationInfo[0]);
 
 	lrq.m_replyAddress = m_rasSrv->GetRasAddress(GetIP());
 
@@ -1123,13 +1125,12 @@ bool NeighborList::CheckIP(const PIPSocket::Address & addr) const
 
 PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 {
-
 	PIPSocket::Address ipaddr;
 
 	// Get the Neigbor IP address from the transport address
 	if (!GetIPFromTransportAddr(sigAd, ipaddr))
 	{
-		return PString("");
+		return PString::Empty();
 	}
 
 	return GetNeighborIdBySigAdr(ipaddr);
@@ -1137,21 +1138,42 @@ PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 
 PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 {
-
-	List::iterator findNeighbor;
-
 	// Attempt to find the neigbor in the list
-	findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
 
 	if (findNeighbor == m_neighbors.end())
 	{
-		return PString("");
+		return PString::Empty();
 	}
 
 	return (*findNeighbor)->GetId();
-
 }
 
+PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
+{
+	// Attempt to find the neigbor in the list
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
+
+	if (findNeighbor == m_neighbors.end())
+	{
+		return PString::Empty();
+	}
+
+	return (*findNeighbor)->GetGkId();
+}
+
+PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd)
+{
+	PIPSocket::Address ipaddr;
+
+	// Get the Neigbor IP address from the transport address
+	if (!GetIPFromTransportAddr(sigAd, ipaddr))
+	{
+		return PString::Empty();
+	}
+
+	return GetNeighborGkIdBySigAdr(ipaddr);
+}
 
 /* Not used currently
 H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress & dest, const PIPSocket::Address & addr)

@@ -2017,7 +2017,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
 			#endif
 
-			toolkit->GWRewriteE164(in_rewrite_id, true, setupBody.m_destinationAddress);
+			toolkit->GWRewriteE164(in_rewrite_id, GW_REWRITE_IN, setupBody.m_destinationAddress);
 		}
 
 		// Normal rewrite
@@ -2033,7 +2033,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (q931.GetCalledPartyNumber(calledNumber, &plan, &type)) {
 			// Do per GW inbound rewrite before global rewrite
 			if (!in_rewrite_id)
-				rewritten = toolkit->GWRewritePString(in_rewrite_id, true, calledNumber);
+				rewritten = toolkit->GWRewritePString(in_rewrite_id, GW_REWRITE_IN, calledNumber);
 			
 			// Normal rewrite
 		    rewritten = toolkit->RewritePString(calledNumber) || rewritten;
@@ -2563,7 +2563,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				#if PTRACING
 				PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
 				#endif
-			    toolkit->GWRewriteE164(out_rewrite_id, false, setupBody.m_destinationAddress);
+			    toolkit->GWRewriteE164(out_rewrite_id, GW_REWRITE_OUT, setupBody.m_destinationAddress);
 			}
 		}
 	}
@@ -2579,7 +2579,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				PTRACE(2, Type() << "\tAuth out rewrite Called-Party-Number IE: " << calledNumber << " to " << m_call->GetNewRoutes().front().m_destOutNumber);
 				calledNumber = m_call->GetNewRoutes().front().m_destOutNumber;
 				q931.SetCalledPartyNumber(calledNumber, plan, type);
-			} else if (toolkit->GWRewritePString(out_rewrite_id, false, calledNumber))
+			} else if (toolkit->GWRewritePString(out_rewrite_id, GW_REWRITE_OUT, calledNumber))
 				q931.SetCalledPartyNumber(calledNumber, plan, type);
 		}
 	}

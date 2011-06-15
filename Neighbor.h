@@ -71,6 +71,7 @@ public:
 	int ForwardLRQ() const { return m_forwardto; }
 	WORD GetDefaultHopCount() const { return m_forwardHopCount; }
 	PString GetId() const { return m_id; }
+	PString GetGkId() const { return m_gkid; }
 	PIPSocket::Address GetIP() const;
 	H225_LocationRequest & BuildLRQ(H225_RasMessage &, WORD, const H225_ArrayOf_AliasAddress &);
 
@@ -138,9 +139,13 @@ public:
 	bool CheckLRQ(RasMsg *) const;
 	bool CheckIP(const PIPSocket::Address &) const;
 
-	// Return the neighbors Id from the list from the signal address.
+	// return the neighbor's ID from the list by signal address
 	PString GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd);
 	PString GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd);
+
+	// return the neighbor's gatekeeper ID from the list by signal address
+	PString GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd);
+	PString GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd);
 
 	operator List & () { return m_neighbors; }
 	operator const List & () const { return m_neighbors; }

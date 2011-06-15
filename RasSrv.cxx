@@ -2707,7 +2707,7 @@ bool AdmissionRequestPDU::Process()
 		}
 
 	 	if (!in_rewrite_source.IsEmpty()) {
-	 		if (Kit->GWRewriteE164(in_rewrite_source, true, request.m_destinationInfo[0])
+	 		if (Kit->GWRewriteE164(in_rewrite_source, GW_REWRITE_IN, request.m_destinationInfo[0])
 				&& !RasSrv->IsGKRouted()) {
 				aliasesChanged = true;
 			}
@@ -2914,7 +2914,7 @@ bool AdmissionRequestPDU::Process()
 		}
 
 		if (!out_rewrite_source.IsEmpty())
-			if (Kit->GWRewriteE164(out_rewrite_source,false,request.m_destinationInfo[0])
+			if (Kit->GWRewriteE164(out_rewrite_source, GW_REWRITE_OUT, request.m_destinationInfo[0])
 				&& !RasSrv->IsGKRouted())
 				aliasesChanged = true;
 
@@ -3338,11 +3338,15 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	PString log;
 
 	if (request.m_destinationInfo.GetSize() > 0) {
-		// per GW rewrite first
-		PString neighbor_alias = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
+		// do GWRewriteE164 for neighbor befor processing
+		PString neighbor_id = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
+		PString neighbor_gkid = RasSrv->GetNeighbors()->GetNeighborGkIdBySigAdr(request.m_replyAddress);
 
-		if (neighbor_alias != "") {
-			Kit->GWRewriteE164(neighbor_alias,true,request.m_destinationInfo[0]);
+		if (!neighbor_id.IsEmpty()) {
+			Kit->GWRewriteE164(neighbor_id, GW_REWRITE_IN, request.m_destinationInfo[0]);
+		}
+		if (!neighbor_gkid.IsEmpty() && (neighbor_gkid != neighbor_id)) {
+			Kit->GWRewriteE164(neighbor_gkid, GW_REWRITE_IN, request.m_destinationInfo[0]);
 		}
 
 		// Normal rewrite

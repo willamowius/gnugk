@@ -203,7 +203,12 @@ it is rewritten to <tt/target-alias/.
 <p>
 This section describes rewriting the dialedDigits E.164 number depending on
 the gateway a call has come from or is being sent to. This allows for more
-flexible manipulation of the dialedDigits for routing etc. In combination
+flexible manipulation of the dialedDigits for routing etc.
+
+Despite the name of the section, you can not only rewite calls from and to gateways,
+but also calls from terminals (regular endpoints) and neighbor gatekeepers.
+
+In combination
 with the <ref id="rewrite" name="RasSrv::RewriteE164"> you can have triple
 stage rewriting:
 
@@ -233,18 +238,66 @@ Call to "gw2", dialedDigits 0867822
 
 <descrip>
 <tag/Format:/
-<tt>gw-alias=in|out=[!]original-prefix=target-prefix[;in|out...]</tt>
+<tt>alias=in|out=[!]original-prefix=target-prefix[;in|out...]</tt>
 <p>
-If the call matches the gateway, the direction and begins with
+If the call matches the alias, the direction and begins with
 <tt/original-prefix/ it is rewritten to <tt/target-prefix/.
 If the `<tt/!/' flag precedes the <tt/original-prefix/, the sense is inverted.
 Special wildcard characters (<tt/'.'/ and <tt/'%'/) are available.
-Multiple rules for the same gateway should be separated by ';'.
+'.' matches one character and '%' matches any number of characters.
+Multiple rules for the same gateway are separated by ';'.
+<p>
+Calls from and to gateways and terminals are matched by their first alias.
+Calls from and to neighbors are matched by the neighbor ID in the GnuGk
+config (the XXX in the [Neighbor::XXX] section name) or the gatekeeper identifier
+of the neighbor if it is set.
+
+Note that when you have multi-homed neighbors or are accepting non-neighbor LRQs,
+the source of the call can not always be determined and no IN rule for a neighbor will match.
+In these cases you should only use OUT and [RasSrv::RewriteE164] rules.
+
 <tag/Example:/
 <tt/gw1=in=123=321/
 <p>
 If a call is received from "gw1" to <tt/12377897/, it is rewritten to <tt/32177897/
 before further action is taken.
+
+<tag/Neighbor Example 1:/
+<p>
+In this example the neighbor is identified by it's ID and incoming calls from NbGk
+will have their 01 prefix replaced by an 04 prefix and the reverse for outgoing calls.
+<tscreen><verb>
+[RasSrv::Neighbors]
+NbGk=GnuGk
+
+[Neighbor::NbGk]
+GatekeeperIdentifier=GK-PW-Prox
+Host=192.168.1.100
+SendPrefixes=*
+AcceptPrefixes=*
+
+[RasSrv::GWRewriteE164]
+NbGk=in=01=04;out=04=01
+</verb></tscreen>
+
+<tag/Neighbor Example 2:/
+<p>
+In this example the neighbor is identified by it's gatekeeper identifier and incoming calls from
+GK-PW-Prox that don't have a 0049 prefix get this prefix prepended. Eg. a call to 1234 would be
+rewritten to 00491234 while a call to 00496789 would proceed unchanged.
+<tscreen><verb>
+[RasSrv::Neighbors]
+NbGk=GnuGk
+
+[Neighbor::NbGk]
+GatekeeperIdentifier=GK-PW-Prox
+Host=192.168.1.100
+SendPrefixes=*
+AcceptPrefixes=*
+
+[RasSrv::GWRewriteE164]
+GK-PW-Prox=in=!0049.=0049.
+</verb></tscreen>
 </descrip>
 
 

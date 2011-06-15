@@ -109,6 +109,9 @@ class GkSQLConnection;
 class GkTimerManager;
 class CLIRewrite;
 
+#define GW_REWRITE_IN		true
+#define GW_REWRITE_OUT	false
+
 class Toolkit : public Singleton<Toolkit>
 {
  public:
@@ -345,7 +348,7 @@ class Toolkit : public Singleton<Toolkit>
 			~GWRewriteTool();
 			void LoadConfig(PConfig *);
 			void PrintData();
-			bool RewritePString(PString gw, bool direction, PString &data);
+			bool RewritePString(const PString & gw, bool direction, PString & data);
 
 		private:
 			PDictionary<PString, GWRewriteEntry> m_GWRewrite;
@@ -353,9 +356,9 @@ class Toolkit : public Singleton<Toolkit>
 	};
 
 	// Equivalent functions to RewriteE164 group
-	bool GWRewriteE164(PString gw, bool direction, H225_AliasAddress &alias);
-	bool GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddress &aliases);
-	bool GWRewritePString(PString gw, bool direction, PString &data) { return m_GWRewrite.RewritePString(gw,direction,data); }
+	bool GWRewriteE164(const PString & gw, bool direction, H225_AliasAddress &alias);
+	bool GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_AliasAddress &aliases);
+	bool GWRewritePString(const PString & gw, bool direction, PString & data) { return m_GWRewrite.RewritePString(gw, direction, data); }
 
 	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
 	void SetGKHome(const PStringArray &);

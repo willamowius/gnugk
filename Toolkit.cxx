@@ -685,16 +685,13 @@ Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 
 Toolkit::RewriteData::~RewriteData()
 {
-//	delete [] m_RewriteKey;
 	if (m_RewriteKey)
 		for (int i = 0; i < m_size * 2; i++)
 			(m_RewriteKey+i)->~PString();
 	delete[] ((BYTE*)m_RewriteKey);
 }
 
-void Toolkit::RewriteTool::LoadConfig(
-	PConfig *config
-	)
+void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 {
 	m_RewriteFastmatch = config->GetString(RewriteSection, "Fastmatch", "");
 	m_TrailingChar = config->GetString("RasSrv::ARQFeatures", "RemoveTrailingChar", " ")[0];
@@ -793,20 +790,18 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 
 static const char *GWRewriteSection = "RasSrv::GWRewriteE164";
 
-Toolkit::GWRewriteTool::~GWRewriteTool() {
+Toolkit::GWRewriteTool::~GWRewriteTool()
+{
 	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
 		delete &(m_GWRewrite.GetDataAt(i));
 	}
 	m_GWRewrite.RemoveAll();
 }
 
-bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString &data) {
-
-	GWRewriteEntry *gw_entry;
-	PString key, value;
-
+bool Toolkit::GWRewriteTool::RewritePString(const PString & gw, bool direction, PString & data)
+{
 	// First lookup the GW in the dictionary
-	gw_entry = m_GWRewrite.GetAt(gw);
+	GWRewriteEntry * gw_entry = m_GWRewrite.GetAt(gw);
 
 	if (gw_entry == NULL)
 		return false;
@@ -816,8 +811,8 @@ bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString 
 	std::vector<pair<PString,PString> >::iterator end_iterator = direction
 		? gw_entry->m_entry_data.first.end() : gw_entry->m_entry_data.second.end();
 
+	PString key, value;
 	for (; rule_iterator != end_iterator; ++rule_iterator) {
-	
 		key = (*rule_iterator).first;
 			
 		const int len = MatchPrefix(data, key);
@@ -842,8 +837,8 @@ bool Toolkit::GWRewriteTool::RewritePString(PString gw, bool direction, PString 
 	return false;
 }
 
-void Toolkit::GWRewriteTool::PrintData() {
-
+void Toolkit::GWRewriteTool::PrintData()
+{
 	std::vector<pair<PString,PString> >::iterator rule_iterator;
 
 	PTRACE(2, "GK\tLoaded per GW rewrite data:");
@@ -2327,11 +2322,8 @@ bool Toolkit::RewriteE164(H225_ArrayOf_AliasAddress & aliases)
 	return changed;
 }
 
-bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_AliasAddress &alias) {
-
-	PString E164;
-	bool changed;
-
+bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_AliasAddress & alias)
+{
 	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) {
 		if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
 			return false;
@@ -2340,8 +2332,8 @@ bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_AliasAddress &alias
 			return false;
 	}
 
-	E164 = ::AsString(alias, FALSE);
-	changed = GWRewritePString(gw,direction,E164);
+	PString E164 = ::AsString(alias, FALSE);
+	bool changed = GWRewritePString(gw, direction, E164);
 
 	if (changed) {
 		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits)
@@ -2361,21 +2353,19 @@ bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_AliasAddress &alias
 	return changed;
 }
 
-bool Toolkit::GWRewriteE164(PString gw, bool direction, H225_ArrayOf_AliasAddress &aliases) {
+bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_AliasAddress & aliases)
+{
+	bool changed = false;
 
-	bool changed;
-	PINDEX n;
-
-	changed = false;
-	for (n = 0; n < aliases.GetSize(); ++n) {
-		changed |= GWRewriteE164(gw,direction,aliases[n]);
+	for (PINDEX n = 0; n < aliases.GetSize(); ++n) {
+		changed |= GWRewriteE164(gw, direction, aliases[n]);
 	}
 
 	return changed;
 }
 
-bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) const {
-
+bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) const
+{
    return (m_VirtualRouteTable.IsMasquerade(externalIP));
 }
 
