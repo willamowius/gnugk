@@ -2081,7 +2081,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	bool rejectCall = false;
 	bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 	SetupAuthData authData(m_call, m_call ? true : false);
-	
+
 	if (m_call) {
 		// existing CallRec
 		m_call->SetSetupTime(setupTime);
@@ -5538,43 +5538,43 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (m_h46019dir > H46019_NONE && buflen == 12) {
 		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
 		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
-		bool sameNAT = (fSrcIP == rSrcIP);
-		H323TransportAddress detAddr(fromIP, fromPort);
+		bool sameNAT = (fSrcIP == rSrcIP);	// BUG: can break when private net of H.460.19 side is same as private NET of other side
+		H323TransportAddress keepaliveAddr(fromIP, fromPort);
 		// Forward direction ports
-		H323TransportAddress fwdAddr(fSrcIP, fSrcPort);
-		H323TransportAddress revAddr(fDestIP, fDestPort);
+		H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
+		H323TransportAddress fDestAddr(fDestIP, fDestPort);
 		// Reverse direction ports
-		H323TransportAddress rfwdAddr(rSrcIP, rSrcPort);
-		H323TransportAddress rrevAddr(rDestIP, rDestPort);
+		H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
+		H323TransportAddress rDestAddr(rDestIP, rDestPort);
 
 		if (m_h46019olc < m_h46019dir) {
 			// if we are initiating or updating keep alive
-			if ((rrevAddr == detAddr) || (fwdAddr == detAddr) || (m_h46019fwd == revAddr)) {
+			if ((rDestAddr == keepaliveAddr) || (fSrcAddr == keepaliveAddr) || (m_h46019fwd == fDestAddr)) {
 				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				m_h46019rev = detAddr;
+				m_h46019rev = keepaliveAddr;
 				fSrcIP = fromIP;
 				if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
 
-			} else if ((rfwdAddr == detAddr) || (revAddr == detAddr) || (m_h46019rev == fwdAddr)) {
+			} else if ((rSrcAddr == keepaliveAddr) || (fDestAddr == keepaliveAddr) || (m_h46019rev == fSrcAddr)) {
 				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				m_h46019fwd = detAddr;
+				m_h46019fwd = keepaliveAddr;
 				rSrcIP = fromIP;
 				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
 
 			// if we are negotiating and we don't know which is forward or reverse
 			} else if (((fSrcIP == 0) && (fromIP != rSrcIP)) ||
-				((m_h46019olc == H46019_CALLED) && (detAddr != m_h46019fwd)))
+				((m_h46019olc == H46019_CALLED) && (keepaliveAddr != m_h46019fwd)))
 			{
 				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				m_h46019rev = detAddr;
+				m_h46019rev = keepaliveAddr;
 				fSrcIP = fromIP;
 				if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
 
 			} else if (((rSrcIP == 0) && (fromIP != fSrcIP)) ||
-				((m_h46019olc == H46019_CALLER) && (detAddr != m_h46019rev)))
+				((m_h46019olc == H46019_CALLER) && (keepaliveAddr != m_h46019rev)))
 			{
 				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				m_h46019fwd = detAddr;
+				m_h46019fwd = keepaliveAddr;
 				rSrcIP = fromIP;
 				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
 			}
@@ -5604,12 +5604,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			} else if (m_h46019olc == H46019_NONE) {
 				if (((m_h46019dir == H46019_CALLER) && !m_OLCrev)||((m_h46019dir == H46019_CALLED) || m_OLCrev)) {
 					PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-					m_h46019fwd = detAddr;
+					m_h46019fwd = keepaliveAddr;
 					rSrcIP = fromIP;
 					m_h46019olc = m_h46019dir;
 				} else if (((m_h46019dir == H46019_CALLED) && !m_OLCrev) || ((m_h46019dir == H46019_CALLER) && m_OLCrev)) {
 					PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-					m_h46019rev = detAddr;
+					m_h46019rev = keepaliveAddr;
 					fSrcIP = fromIP;
 					m_h46019olc = m_h46019dir;
 				}
