@@ -1077,7 +1077,6 @@ void Toolkit::CreateConfig()
 	} while (PFile::Exists(m_tmpconfig));
 
 #ifdef _WIN32
-	// Does WIN32 support symlink?
 	if (PFile::Copy(m_ConfigFilePath, m_tmpconfig)) {
 #else
 	if (symlink(m_ConfigFilePath, m_tmpconfig) == 0) {
