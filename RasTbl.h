@@ -1734,7 +1734,8 @@ inline bool EndpointRec::IsUsed() const
 inline bool EndpointRec::IsUpdated(const PTime *now) const
 {
 	PWaitAndSignal lock(m_usedLock);
-	return (!m_timeToLive || (*now - m_updatedTime).GetSeconds() < m_timeToLive);
+	int ttl = GetTimeToLive();
+	return (!ttl || (*now - m_updatedTime).GetSeconds() < ttl);
 }
 
 inline bool EndpointRec::HasNATSocket() const

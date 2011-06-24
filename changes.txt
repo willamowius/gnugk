@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- BUGFIX(RasTbl.h) make sure H.460.18 registrations expire, even without global TimeToLive
 - support GWRewiteE164 for neighbors by neighbor ID or neighbor GK-ID
 - BUGFIX(Toolkit.cxx) fix PTLib assert when using empty string as regex
 - actively reject Home=0.0.0.0
