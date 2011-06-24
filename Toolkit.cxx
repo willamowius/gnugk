@@ -1083,7 +1083,7 @@ void Toolkit::CreateConfig()
 	if (symlink(m_ConfigFilePath, m_tmpconfig) == 0) {
 #endif
 		PConfig * testConfig = new PConfig(m_tmpconfig, m_ConfigDefaultSection);
-		if( (testConfig->GetInteger("Fortytwo") == 42) || (testConfig->GetInteger("Fourtytwo") == 42)) {
+		if (testConfig->GetSections().GetSize() > 0) {
 			delete m_Config;
 			m_Config = testConfig;
 		} else {
