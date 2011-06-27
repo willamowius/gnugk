@@ -394,7 +394,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "SQLAliasAuth", "MinPoolSize" },
 	{ "SQLAliasAuth", "Password" },
 	{ "SQLAliasAuth", "Query" },
-	{ "SQLAliasAuth", "TableJWJW" },
+	{ "SQLAliasAuth", "Table" },
 	{ "SQLAliasAuth", "Username" },
 	{ "SQLAuth", "CacheTimeout" },
 	{ "SQLAuth", "CallQuery" },
