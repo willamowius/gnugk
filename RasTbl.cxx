@@ -2445,6 +2445,15 @@ void CallRec::InitRTCP_report() {
 }
 
 
+void CallRec::SetRTCP_sdes(bool isSRC, const PString & val)
+{
+	if (isSRC) {
+		SetRTCP_SRC_sdes(val);
+	} else {
+		SetRTCP_DST_sdes(val);
+	}
+}
+
 void CallRec::SetRTCP_SRC_sdes(const PString & val)
 {
     m_rtcp_source_sdes.AppendString(val);

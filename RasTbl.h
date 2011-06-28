@@ -858,6 +858,7 @@ public:
 	void SetSRC_media_IP(const PString & IP);
 	void SetDST_media_IP(const PString & IP);
 
+	void SetRTCP_sdes(bool isSRC, const PString & val);
 	void SetRTCP_SRC_sdes(const PString & val);
 	void SetRTCP_DST_sdes(const PString & val);
 
