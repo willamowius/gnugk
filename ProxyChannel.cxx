@@ -773,6 +773,7 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket)
 	InternalInit();
 	remote = socket;
 	m_call = socket->m_call;
+	m_h245Tunneling = socket->m_h245Tunneling;
 }
 
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD _port)
@@ -2209,7 +2210,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			if ((*i).m_destEndpoint && !((*i).m_destEndpoint->HasAvailableCapacity(destinationAliases))) {
 				authData.m_destinationRoutes.erase(i++);	// delete route
 			} else {
-				i++;	// check next
+				++i;	// check next
 			}
 		}
 
@@ -4769,7 +4770,6 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 	m_call->GetDestSignalAddr(calleeAddr, calleePort);
 	H225_TransportAddress callerAddr = SocketToH225TransportAddr(calleeAddr, calleePort);
 	endptr called = RegistrationTable::Instance()->FindBySignalAdr(callerAddr);
-	const char* TypeOfNumber = " Type Of Number ";
 
 	if (q931->HasIE(Q931::CalledPartyNumberIE)) {
 		if (q931->GetCalledPartyNumber(Number, &plan, &type)) {
@@ -4802,7 +4802,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 			}
 			q931->SetCalledPartyNumber(Number, plan, type);
 			#if PTRACING
-			PTRACE(4, Type() << "\tSet Called Numbering Plan " << plan << TypeOfNumber << type);
+			PTRACE(4, Type() << "\tSet Called Numbering Plan " << plan << " Type Of Number " << type);
 			#endif
 		}
 	}
@@ -4832,7 +4832,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 			}
 			q931->SetCallingPartyNumber(Number, plan, type, presentation, screening);
 			#if PTRACING
-			PTRACE(4, Type() << "\tSet Calling Numbering Plan " << plan << TypeOfNumber << type);
+			PTRACE(4, Type() << "\tSet Calling Numbering Plan " << plan << " Type Of Number " << type);
 			#endif
 		}
 	}
@@ -5351,7 +5351,7 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress_
 // class UDPProxySocket
 UDPProxySocket::UDPProxySocket(const char *t)
 	: ProxySocket(this, t),
-		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
+		m_call(NULL), fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0)
 #ifdef HAS_H46018
 	, m_h46019fc(false), m_useH46019(false), m_h46019DetectionDone(false)
@@ -5660,7 +5660,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 							while ((item != NULL)
 									&& (((BYTE*)item + sizeof(RTP_ControlFrame::SourceDescription::Item)) <= (payload + size))
 									&& (item->type != RTP_ControlFrame::e_END)) {
-								if (item != NULL && item->length != 0) {
+								if (item->length != 0) {
 									switch (item->type) {
 									case RTP_ControlFrame::e_CNAME:
 										(*m_call)->SetRTCP_sdes(direct, "cname="+((PString)(item->data)).Left(item->length));
@@ -5687,7 +5687,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 										PTRACE(5,"RTCP\tSourceDescription unknown item type " << item->type);
 										break;
 									}
-								}    
+								}
 								item = item->GetNextItem();
 							}
 							/* RTP_ControlFrame::e_END doesn't have a length field, so do NOT call item->GetNextItem()
@@ -6367,8 +6367,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
-		unsigned m_keeppayloadtype = 0;
-        // bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
@@ -6379,8 +6377,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 					PASN_OctetString & raw = olc.m_genericInformation[i].m_messageContent[0].m_parameterValue;
 					if (raw.DecodeSubType(params)) {
 						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
-							m_keeppayloadtype = params.m_keepAlivePayloadType;
-							PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << m_keeppayloadtype);
+							unsigned payloadtype = params.m_keepAlivePayloadType;
+							PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << payloadtype);
 						}
 					}
 					// move remaining elements down
