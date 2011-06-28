@@ -300,10 +300,8 @@ public:
 	void SetRTPSessionID(WORD id) { m_sessionID = id; }
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
-	void SetH46019Direction(int dir) { m_h46019dir = dir; }
-	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
-	// disabled for now, until we handle 2 payload types per UDPProxy
-	// void SetKeepAlivePayloadType(int pt) { m_keepAlivePayloadType = pt; }
+	void SetUsesH46019(bool val) { m_useH46019 = val; }
+	bool UsesH46019() const { return m_useH46019; }
 #endif
 
 	// override from class ProxySocket
@@ -317,7 +315,8 @@ protected:
 	// RTCP handler
 	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
-	callptr *  m_call;
+	callptr * m_call;
+
 private:
 	UDPProxySocket();
 	UDPProxySocket(const UDPProxySocket&);
@@ -328,25 +327,16 @@ private:
 	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
 	bool fnat, rnat;
 	bool mute;
+	bool m_isRTPType;
+	bool m_isRTCPType;
 	bool m_dontQueueRTP;
 	bool m_EnableRTCPStats;
 	WORD m_sessionID;
 #ifdef HAS_H46018
-	// also used as indicator whether H.460.19 should be used
-//	int m_keepAlivePayloadType;
 	bool m_h46019fc;
-//	bool m_keepAliveTypeSet;
-
-	// Each time a keepAlive is matched, m_h46019olc is incremented by 1 or 2 (H46019_CALLER or H46019_CALLED)
-	// depending on whether called/caller until it reaches the value of m_h46019dir
-	// and then the IP & ports get assigned checked and is released so media can flow.
-	// see H46019_xxx defines in RasTbl.h
-	int m_h46019olc;
-	int m_h46019dir;
-    bool m_h46019uni;
-	H323TransportAddress m_h46019fwd;
-	H323TransportAddress m_h46019rev;
-	bool m_OLCrev;
+	bool m_useH46019;
+	bool m_h46019DetectionDone;
+	PMutex m_h46019DetectionLock;
 #endif
 };
 
@@ -416,10 +406,8 @@ public:
 	void OnHandlerSwapped(bool);
 
 	bool IsOpen() const;
-	// void SetKeepAlivePayloadType(int pt);
 	void SetUsesH46019fc(bool);
 	void SetH46019Direction(int dir);
-    void SetH46019UniDirectional(bool uni);
 	void SetRTPSessionID(WORD id);
 
 private:
@@ -1123,7 +1111,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() == Q931::ReleaseCompleteMsg)) {
 		PTRACE(1, "Q931\tReroute failed, terminating call");
-// don't end reroute on RC to dropped party		m_call->SetRerouteState(NoReroute);
+		// don't end reroute on RC to dropped party		m_call->SetRerouteState(NoReroute);
 	}
 
 	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() != Q931::SetupMsg) && (msg->GetTag() != Q931::ConnectMsg)) {
@@ -5366,10 +5354,12 @@ UDPProxySocket::UDPProxySocket(const char *t)
 		fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0)
 #ifdef HAS_H46018
-	, m_h46019fc(false), m_h46019olc(H46019_NONE), m_h46019dir(H46019_NONE), m_h46019uni(false), m_OLCrev(false)
-	//, m_keepAlivePayloadType(H46019_UNDEFINED_PAYLOAD_TYPE), m_keepAliveTypeSet(false)
+	, m_h46019fc(false), m_useH46019(false), m_h46019DetectionDone(false)
 #endif
 {
+	// set flags for RTP/RTCP to avoid string compares later on ?
+	m_isRTPType = PString(t) == "RTP";
+	m_isRTCPType = PString(t) == "RTCP";
 	SetReadTimeout(PTimeInterval(50));
 	SetWriteTimeout(PTimeInterval(50));
 	fnat = rnat = mute = false;
@@ -5414,12 +5404,6 @@ void UDPProxySocket::SetNAT(bool rev)
 
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
-#if HAS_H46018
-	if (m_h46019dir > H46019_NONE && m_h46019olc == m_h46019dir) {
-		PTRACE(5, Type() << "\tH46019 Ignore forward already detected.");
-	} else {
-//	   PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
-#endif
 	if ((DWORD)srcIP != 0) {
 		fSrcIP = srcIP, fSrcPort = srcPort;
 	}
@@ -5436,17 +5420,14 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort) 
 		<< " to " << fDestIP << ':' << fDestPort
 		);
-#if HAS_H46018
-	}
-#endif
 
 	SetConnected(true);
 
-	if (PString(Type()) == "RTCP") {
+	if (m_isRTCPType) {
 	    mcall->SetSRC_media_control_IP(fDestIP.AsString());
 	    mcall->SetDST_media_control_IP(srcIP.AsString());
 	}
-	if (PString(Type()) == "RTP") {
+	if (m_isRTPType) {
 	    mcall->SetSRC_media_IP(fDestIP.AsString());
 	    mcall->SetDST_media_IP(srcIP.AsString());
 	}
@@ -5463,37 +5444,25 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, const H245_UnicastAddress_iPAddress & addr, callptr & mcall)
 {
-#if HAS_H46018
-	if (m_h46019dir > H46019_NONE && m_h46019olc == m_h46019dir) {
-		PTRACE(5, Type() << "\tH46019 Ignore reversing already detected.");
-	} else {
-		PTRACE(5, Type() << "\tH46019 v:" << m_h46019dir << " s:" <<  m_h46019olc  << " fwd " << m_h46019fwd << " rev " << m_h46019rev);
-   
-		if (fSrcIP == 0)
-			m_OLCrev = true;
-#endif
-		if ( (DWORD)srcIP != 0 )
-			rSrcIP = srcIP, rSrcPort = srcPort;
+	if ( (DWORD)srcIP != 0 )
+		rSrcIP = srcIP, rSrcPort = srcPort;
 
-		addr >> rDestIP >> rDestPort;
+	addr >> rDestIP >> rDestPort;
 
-#if HAS_H46018
-	}
-#endif
-    
 	PTRACE(5, Type() << "\tReverse " << srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
 	SetConnected(true);
-	if (PString(Type()) == "RTCP"){
+	if (m_isRTCPType){
 	    mcall->SetSRC_media_control_IP(srcIP.AsString());
 	    mcall->SetDST_media_control_IP(rDestIP.AsString());
 	}
-	if (PString(Type()) == "RTP"){
+	if (m_isRTPType){
 	    mcall->SetSRC_media_IP(srcIP.AsString());
 	    mcall->SetDST_media_IP(rDestIP.AsString());
 	}
 	m_call = &mcall;
 }
 
+// this method handles either RTP, RTCP or T.38 data
 ProxySocket::Result UDPProxySocket::ReceiveData()
 {
 	if (!Read(wbuffer, wbufsize)) {
@@ -5504,19 +5473,18 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	WORD fromPort;
 	GetLastReceiveAddress(fromIP, fromPort);
 	buflen = (WORD)GetLastReadCount();
-	// verify packet
-	unsigned int version = 0;
-	bool isRTPorRTCP = true;	// check if this is RTP or RTCP, could also be T.38 traffic
+	unsigned int version = 0;	// RTP version
 	if (buflen >= 1)
 		version = (((int)wbuffer[0] & 0xc0) >> 6);
-	isRTPorRTCP = (version == 2);
+	bool isRTP = m_isRTPType && (version == 2);
+	bool isRTCP = m_isRTCPType && (version == 2);
+	bool isRTPKeepAlive = isRTP && (buflen == 12);
 
 #ifdef HAS_H46018
-	int payloadType = H46019_UNDEFINED_PAYLOAD_TYPE;
-	if (buflen >= 2)
-		payloadType = (int)wbuffer[1] & 0x7f;	// valid only for RTP packets, not for RTCP
-
 #ifdef RTP_DEBUG
+	int payloadType = H46019_UNDEFINED_PAYLOAD_TYPE;
+	if ((buflen >= 2) && isRTP)
+		payloadType = (int)wbuffer[1] & 0x7f;
 	Address localaddr;
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
@@ -5531,136 +5499,49 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
 		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
 		);
-	PTRACE(0, "JW RTP DB on " << localport << " this=" << this << " dir=" << m_h46019dir << " olc=" << m_h46019olc << " fc=" << m_h46019fc
-		<< " fwd=" << m_h46019fwd << " rev=" << m_h46019rev << " OLCrev=" << m_OLCrev);
+	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc);
 #endif // RTP_DEBUG
 
-	if (m_h46019dir > H46019_NONE && buflen == 12) {
-		PTRACE(5, "H46018\tRTP keepAlive: PayloadType=" << payloadType << " new media destination=" << fromIP << ":" << fromPort);
-		// set new media destination to fromIP+fromPort on first keepAlive, un-mute RTP channel
-		bool sameNAT = (fSrcIP == rSrcIP);	// BUG: can break when private net of H.460.19 side is same as private NET of other side
-		H323TransportAddress keepaliveAddr(fromIP, fromPort);
-		// Forward direction ports
-		H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
-		H323TransportAddress fDestAddr(fDestIP, fDestPort);
-		// Reverse direction ports
-		H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
-		H323TransportAddress rDestAddr(rDestIP, rDestPort);
-
-		if (m_h46019olc < m_h46019dir) {
-			// if we are initiating or updating keep alive
-			if ((rDestAddr == keepaliveAddr) || (fSrcAddr == keepaliveAddr) || (m_h46019fwd == fDestAddr)) {
-				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				m_h46019rev = keepaliveAddr;
-				fSrcIP = fromIP;
-				if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
-
-			} else if ((rSrcAddr == keepaliveAddr) || (fDestAddr == keepaliveAddr) || (m_h46019rev == fSrcAddr)) {
-				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				m_h46019fwd = keepaliveAddr;
-				rSrcIP = fromIP;
-				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
-
-			// if we are negotiating and we don't know which is forward or reverse
-			} else if (((fSrcIP == 0) && (fromIP != rSrcIP)) ||
-				((m_h46019olc == H46019_CALLED) && (keepaliveAddr != m_h46019fwd)))
-			{
-				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				m_h46019rev = keepaliveAddr;
-				fSrcIP = fromIP;
-				if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
-
-			} else if (((rSrcIP == 0) && (fromIP != fSrcIP)) ||
-				((m_h46019olc == H46019_CALLER) && (keepaliveAddr != m_h46019rev)))
-			{
-				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				m_h46019fwd = keepaliveAddr;
-				rSrcIP = fromIP;
-				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
+	// detecting ports for H.460.19
+	if (!m_h46019DetectionDone) {
+		if (!UsesH46019())
+			m_h46019DetectionDone = true;
+		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
+			PWaitAndSignal mutexWait (m_h46019DetectionLock);
+			PTRACE(5, "H46018\tRTP/RTCP keepAlive: new destination=" << fromIP << ":" << fromPort);
+			if ((fDestIP == 0) && (fromIP != rDestIP) && (fromPort != rDestPort)) {
+				// fwd dest was unset and packet didn't come from other side
+				PTRACE(5, "H46018\tSetting forward destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
+				fDestIP = fromIP; fDestPort = fromPort;
+				rSrcIP = fromIP; rSrcPort = fromPort;
 			}
-		} else {			
-			// if we have a change in pinhole mapping then update
-			if ((fromIP == fSrcIP) && !sameNAT) {
-				PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-				fSrcPort = fromPort;
-				rDestIP = fSrcIP, rDestPort = fSrcPort;	
-					if ((m_h46019olc == H46019_NONE) || (m_h46019olc == H46019_CALLED)) m_h46019olc += H46019_CALLER;
-
-			} else if ((fromIP == rSrcIP) && !sameNAT) { 
-				PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-				rSrcPort = fromPort;
-				fDestIP = rSrcIP, fDestPort = rSrcPort;	
-				if (m_h46019olc < H46019_CALLED) m_h46019olc += H46019_CALLED;
+			if ((rDestIP == 0) && (fromIP != fDestIP) && (fromPort != fDestPort)) {
+				// reverse dest was unset and packet didn't come from other side
+				PTRACE(5, "H46018\tSetting reverse destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
+				rDestIP = fromIP; rDestPort = fromPort;
+				fSrcIP = fromIP; fSrcPort = fromPort;
 			}
-		}
-
-		// Only 1 direction using H.460.19
-		// we need to check the direction of the keepAlive
-		if ((m_h46019olc < m_h46019dir) && (m_h46019dir < H46019_BOTH)) {
-			if ((m_h46019olc > H46019_NONE) && (m_h46019olc != m_h46019dir)) {
-				PTRACE(5, "H46018\tOnly 1 Party using H.460.19 and OLC received in reverse order..");
-				m_h46019olc = m_h46019dir;
-			// if we fail above then guess which direction we are setting
-			} else if (m_h46019olc == H46019_NONE) {
-				if (((m_h46019dir == H46019_CALLER) && !m_OLCrev)||((m_h46019dir == H46019_CALLED) || m_OLCrev)) {
-					PTRACE(5, "H46018\tRTP Setting Forward " << fromIP << ":" << fromPort);
-					m_h46019fwd = keepaliveAddr;
-					rSrcIP = fromIP;
-					m_h46019olc = m_h46019dir;
-				} else if (((m_h46019dir == H46019_CALLED) && !m_OLCrev) || ((m_h46019dir == H46019_CALLER) && m_OLCrev)) {
-					PTRACE(5, "H46018\tRTP Setting Reverse " << fromIP << ":" << fromPort);
-					m_h46019rev = keepaliveAddr;
-					fSrcIP = fromIP;
-					m_h46019olc = m_h46019dir;
-				}
-			}
-		}
-
-		// Set the detected forward and reverse direction
-		// once the required information has been received
-		if (m_h46019olc == m_h46019dir) {
-			PIPSocket::Address addr;
-			if (!m_h46019fwd) {
-				m_h46019fwd.GetIpAddress(addr);
-					if (addr.IsValid()) {
-						PTRACE(4, "H46018\tResetting Fwd " << m_h46019fwd);
-						m_h46019fwd.GetIpAndPort(rSrcIP, rSrcPort);
-						fDestIP = rSrcIP, fDestPort = rSrcPort;
-						// now cleanup the reverse direction just in case
-						rDestIP = fSrcIP, rDestPort = fSrcPort;
-					}
-			}
-			if (!m_h46019rev) {
-				m_h46019rev.GetIpAddress(addr);
-				if (addr.IsValid()) {
-					PTRACE(4, "H46018\tResetting Rev " << m_h46019rev);
-					m_h46019rev.GetIpAndPort(fSrcIP, fSrcPort);
-					rDestIP = fSrcIP, rDestPort = fSrcPort;	
-					// now cleanup the forward direction just in case
-					fDestIP = rSrcIP, fDestPort = rSrcPort;
-				}
-			}
+			if ((fDestIP != 0) && (rDestIP != 0)) {
+				m_h46019DetectionDone = true;
+				// note: we don't do port switching at this time, once the ports are set they stay
 #ifdef HAS_H46024B
-			// If required begin Annex B probing
-			if (m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) 
-				(*m_call)->H46024BInitiate(m_sessionID, m_h46019fwd, m_h46019rev);
+				// If required begin Annex B probing
+				if (m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
+					(*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(rDestIP, rDestPort));
+				}
 #endif	// HAS_H46024B
+			}
+#ifdef RTP_DEBUG
+			PTRACE(0, "JW RTP IN2 on " << localport << " from " << fromIP << ":" << fromPort
+				<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
+				<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
+			);
+#endif // RTP_DEBUG
 		}
-		SetMute(false);
-		return NoData;	// don't forward keepAlive
 	}
-
-	if (m_h46019olc < m_h46019dir) {
-      if (m_h46019uni) {  // if uniDirectional Channel revert to socket detection
-			PTRACE(5, Type() << "\tH.460.19 Unidirectional Channel using port detection!");
-            m_h46019olc = m_h46019dir;
-      } else {
-          // if we have received packets and H.460.19 is not ready then disregard them
-			PTRACE(5, Type() << "\tForward from " << fromIP << ':' << fromPort 
-				<< " blocked, remote socket not yet ready H460.19 " << "s:" << m_h46019olc << " dir " << m_h46019dir);
-		  return NoData;	// don't forward anything...
-      }
-	} 
+	if (isRTPKeepAlive) {
+		return NoData;	// don't forward RTP keepAlive (RTCP uses first data packet which must be forwarded)
+	}
 #endif	// HAS_H46018
 
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP (reverse = fastStart ?)
@@ -5711,7 +5592,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
-	if (PString(Type()) == "RTCP" && isRTPorRTCP && m_call && (*m_call) && m_EnableRTCPStats) {
+	if (isRTCP && m_call && (*m_call) && m_EnableRTCPStats) {
 		bool direct = ((*m_call)->GetSRC_media_control_IP() == fromIP.AsString());
 		PIPSocket::Address addr = (DWORD)0;
 		(*m_call)->GetMediaOriginatingIp(addr);
@@ -5782,53 +5663,25 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 								if (item != NULL && item->length != 0) {
 									switch (item->type) {
 									case RTP_ControlFrame::e_CNAME:
-										if (!direct) {
-											(*m_call)->SetRTCP_DST_sdes("cname="+((PString)(item->data)).Left(item->length));
-										} else {
-											(*m_call)->SetRTCP_SRC_sdes("cname="+((PString)(item->data)).Left(item->length));
-										}
+										(*m_call)->SetRTCP_sdes(direct, "cname="+((PString)(item->data)).Left(item->length));
 										break;
 									case RTP_ControlFrame::e_NAME:
-										if (!direct) {
-											(*m_call)->SetRTCP_DST_sdes("name="+((PString)(item->data)).Left(item->length));
-										} else {
-											(*m_call)->SetRTCP_SRC_sdes("name="+((PString)(item->data)).Left(item->length));
-										}
+										(*m_call)->SetRTCP_sdes(direct, "name="+((PString)(item->data)).Left(item->length));
 										break;
 									case RTP_ControlFrame::e_EMAIL:
-										if (!direct) {
-											(*m_call)->SetRTCP_DST_sdes("email="+((PString)(item->data)).Left(item->length));
-										} else {
-											(*m_call)->SetRTCP_SRC_sdes("email="+((PString)(item->data)).Left(item->length));
-										}
+										(*m_call)->SetRTCP_sdes(direct, "email="+((PString)(item->data)).Left(item->length));
 										break;
 									case RTP_ControlFrame::e_PHONE:
-										if (!direct) {
-											(*m_call)->SetRTCP_DST_sdes("phone="+((PString)(item->data)).Left(item->length));
-										} else {
-											(*m_call)->SetRTCP_SRC_sdes("phone="+((PString)(item->data)).Left(item->length));
-										}
+										(*m_call)->SetRTCP_sdes(direct, "phone="+((PString)(item->data)).Left(item->length));
 										break;
 									case RTP_ControlFrame::e_LOC:
-										if (!direct) {
-											(*m_call)->SetRTCP_DST_sdes("loc="+((PString)(item->data)).Left(item->length));
-										} else {
-											(*m_call)->SetRTCP_SRC_sdes("loc="+((PString)(item->data)).Left(item->length));
-										}
+										(*m_call)->SetRTCP_sdes(direct, "loc="+((PString)(item->data)).Left(item->length));
 										break;
 									case RTP_ControlFrame::e_TOOL:
-										if (!direct) {
-											(*m_call)->SetRTCP_DST_sdes("tool="+((PString)(item->data)).Left(item->length));
-										} else {
-											(*m_call)->SetRTCP_SRC_sdes("tool="+((PString)(item->data)).Left(item->length));
-										}
+										(*m_call)->SetRTCP_sdes(direct, "tool="+((PString)(item->data)).Left(item->length));
 										break;
 									case RTP_ControlFrame::e_NOTE:
-										if (!direct) {
-											(*m_call)->SetRTCP_DST_sdes("note="+((PString)(item->data)).Left(item->length));
-										} else {
-											(*m_call)->SetRTCP_SRC_sdes("note="+((PString)(item->data)).Left(item->length));
-										}
+										(*m_call)->SetRTCP_sdes(direct, "note="+((PString)(item->data)).Left(item->length));
 										break;
 									default:
 										PTRACE(5,"RTCP\tSourceDescription unknown item type " << item->type);
@@ -6107,14 +5960,6 @@ bool RTPLogicalChannel::IsOpen() const
 }
 
 #ifdef HAS_H46018
-//void RTPLogicalChannel::SetKeepAlivePayloadType(int pt)
-//{
-//	if (rtp)
-//		rtp->SetKeepAlivePayloadType(pt);
-//	if (rtcp)
-//		rtcp->SetKeepAlivePayloadType(pt);	// used as indicator that H.460.19 is used
-//}
-
 void RTPLogicalChannel::SetUsesH46019fc(bool fc)
 {
 	if (rtp)
@@ -6126,19 +5971,9 @@ void RTPLogicalChannel::SetUsesH46019fc(bool fc)
 void RTPLogicalChannel::SetH46019Direction(int dir)
 {
 	if (rtp)
-		rtp->SetH46019Direction(dir);
+		rtp->SetUsesH46019(dir > H46019_NONE);
 	if (rtcp)
-		rtcp->SetH46019Direction(dir);	
-}
-
-void RTPLogicalChannel::SetH46019UniDirectional(bool uni)
-{
-    if (uni) {
-	    if (rtp)
-		    rtp->SetH46019UniDirectional(true);
-	    if (rtcp)
-		    rtcp->SetH46019UniDirectional(true);	
-    }
+		rtcp->SetUsesH46019(dir > H46019_NONE);	
 }
 #endif
 
@@ -6463,6 +6298,12 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 		lc->SetMediaControlChannelSource(*addr);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1);
+#ifdef HAS_H46018
+		if (UsesH46019()) {
+			PTRACE(5, "H46018\tSetting control port to 0");
+			lc->SetMediaControlChannelSource(0);
+		}
+#endif
 		changed = true;
 	}
 	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
@@ -6471,6 +6312,12 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		if (addr->m_tsapIdentifier != 0) {
 			lc->SetMediaChannelSource(*addr);
 			*addr << GetMasqAddr() << lc->GetPort();
+#ifdef HAS_H46018
+			if (UsesH46019()) {
+				PTRACE(5, "H46018\tSetting media port to 0");
+				lc->SetMediaChannelSource(0);
+			}
+#endif
 		} else {
 			*addr << GetMasqAddr() << (WORD)0;
 		}
@@ -6512,16 +6359,16 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 		bool isReverseLC = false;
 		H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverseLC);
 
-	    if (UsesH46019fc())
+	    if (UsesH46019fc()) {
 			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
-		else
+		} else {
 			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
-
+		}
 
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
 		unsigned m_keeppayloadtype = 0;
-        bool m_h46019uni = false;
+        // bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
@@ -6545,25 +6392,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			}
 			if (olc.m_genericInformation.GetSize() == 0)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
-
-            // check if we are doing unidirectional H.239
-            if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
-				H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
-				m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-            }
-		}
-
-		// if OLC is a H.460.19 unidirectional channel replace IP with apparent IP Address
-		if (h225Params && m_h46019uni) {
-			// TODO: only do this for OLCs from the H.460.19 client
-			H245_UnicastAddress_iPAddress * addr = NULL;
-			if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
-				&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel))
-				&& (!GetRemoteAddr().IsAny()) ) {	// only change one direction
-				*addr << GetRemoteAddr() << addr->m_tsapIdentifier;
-				PTRACE(4, "H46019\tChanging undirectional media control IP to apparent IP " << AsString(*addr));
-				changed = true;
-			}
 		}
 
 		// We don't put the generic identifier on the reverse OLC.
@@ -6603,11 +6431,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			}
 			if (lc) {
 				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
-				// if (m_keeppayloadtype > 0) 
-				//	((RTPLogicalChannel*)lc)->SetKeepAlivePayloadType(m_keeppayloadtype);  // If remote has told us keeppayloadtype then set it.
 				((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
 				((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());
-                ((RTPLogicalChannel*)lc)->SetH46019UniDirectional(m_h46019uni);
 				((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
 			} else {
 				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
@@ -6657,12 +6482,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 					if (raw.DecodeSubType(params)) {
 						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
 							PTRACE(5, "H46018\tExpecting KeepAlive PayloadType=" << params.m_keepAlivePayloadType << " for channel " << flcn);
-							// disabled for now, until we handle 2 payload types per UDPProxy
-//							RTPLogicalChannel* rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
-//							if (rtplc) {
-//								rtplc->SetKeepAlivePayloadType(params.m_keepAlivePayloadType);
-//								rtplc->SetRTPMute(true);	// wait for keepAlive, then change destination and un-mute
-//							}
 						}
 					}
 				}
@@ -6745,7 +6564,6 @@ void H245ProxyHandler::HandleMuteRTPChannel()
 		lc->SetRTPMute(isMute);
 		PTRACE(3, (isMute ? "Mute": "Release") << " RTP Channel " << lc->GetChannelNumber() );
 	}
-// handler->SetMute(isMute);
 }
 
 bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
