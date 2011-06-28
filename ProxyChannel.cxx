@@ -5357,7 +5357,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 	, m_h46019fc(false), m_useH46019(false), m_h46019DetectionDone(false)
 #endif
 {
-	// set flags for RTP/RTCP to avoid string compares later on ?
+	// set flags for RTP/RTCP to avoid string compares later on
 	m_isRTPType = PString(t) == "RTP";
 	m_isRTCPType = PString(t) == "RTCP";
 	SetReadTimeout(PTimeInterval(50));
@@ -5499,16 +5499,17 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
 		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
 		);
-	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc);
+	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc << " isRTP=" << m_isRTPType << " isRTCP=" << m_isRTCPType);
 #endif // RTP_DEBUG
 
 	// detecting ports for H.460.19
 	if (!m_h46019DetectionDone) {
-		if (!UsesH46019())
-			m_h46019DetectionDone = true;
+		if (!UsesH46019()) {
+			m_h46019DetectionDone = true;	// skip port detection if H.460.19 isn't used
+		}
 		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
 			PWaitAndSignal mutexWait (m_h46019DetectionLock);
-			PTRACE(5, "H46018\tRTP/RTCP keepAlive: new destination=" << fromIP << ":" << fromPort);
+			PTRACE(5, "H46018\tRTP/RTCP keepAlive from " << fromIP << ":" << fromPort);
 			if ((fDestIP == 0) && (fromIP != rDestIP) && (fromPort != rDestPort)) {
 				// fwd dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting forward destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
