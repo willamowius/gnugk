@@ -1464,6 +1464,12 @@ PConfig* Toolkit::ReloadConfig()
 	// read the gatekeeper name from the config file, because it might be uased as a key into the SQL config
 	m_GKName = Config()->GetString("Name", "OpenH323GK");
 
+
+	// set the max size of an array in an ASN encoded message (eg. max length of alias list)
+	PINDEX maxArraySize = GkConfig()->GetInteger("MaxASNArraySize", 0);
+	if (maxArraySize > 0)
+		PASN_Object::SetMaximumArraySize(maxArraySize);
+
 	m_encryptAllPasswords = Toolkit::AsBool(
 		Config()->GetString("EncryptAllPasswords", "0")
 		);
