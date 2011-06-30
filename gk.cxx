@@ -186,7 +186,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "FourtyTwo" },	// obsolete
 	{ "Gatekeeper::Main", "Home" },
 	{ "Gatekeeper::Main", "ListenQueueLength" },
-	{ "Gatekeeper::Main", "MaximumBandwidthPerCall" },
+	{ "Gatekeeper::Main", "MaxASNArraySize" },
 	{ "Gatekeeper::Main", "MinimumBandwidthPerCall" },
 	{ "Gatekeeper::Main", "MulticastGroup" },
 	{ "Gatekeeper::Main", "MulticastPort" },
@@ -592,7 +592,7 @@ void ReloadHandler()
 	// only one thread must do this
 	if (ReloadMutex.WillBlock())
 		return;
-	
+
 	/*
 	** Enter critical Section
 	*/
@@ -627,7 +627,7 @@ void ReloadHandler()
 	RasServer::Instance()->LoadConfig();
 
 	Gatekeeper::EnableLogFileRotation();
-	
+
 	ConfigReloadMutex.EndWrite();
 
 	/*
@@ -647,7 +647,7 @@ void ReloadHandler()
 BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 {
 	PString eventName = "CTRL_UNKNOWN_EVENT";
-	
+
 	if( dwCtrlType == CTRL_LOGOFF_EVENT ) {
 		eventName = "CTRL_LOGOFF_EVENT";
 #if PTRACING
@@ -656,7 +656,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 		// prevent shut down
 		return FALSE;
 	}
-	
+
 	if( dwCtrlType == CTRL_C_EVENT )
 		eventName = "CTRL_C_EVENT";
 	else if( dwCtrlType == CTRL_BREAK_EVENT )
@@ -873,7 +873,7 @@ bool Gatekeeper::InitHandlers(const PArgList& args)
 	SetConsoleCtrlHandler(WinCtrlHandlerProc, TRUE);
 #else
 	struct sigaction sigact;
-	
+
 	memset(&sigact, 0, sizeof(sigact));
 	sigact.sa_handler = UnixShutdownHandler;
 	sigemptyset(&sigact.sa_mask);
@@ -882,7 +882,7 @@ bool Gatekeeper::InitHandlers(const PArgList& args)
 	sigaddset(&sigact.sa_mask, SIGQUIT);
 	sigaddset(&sigact.sa_mask, SIGHUP);
 	sigaddset(&sigact.sa_mask, SIGUSR1);
-	
+
 	sigaction(SIGTERM, &sigact, NULL);
 	sigaction(SIGINT, &sigact, NULL);
 	sigaction(SIGQUIT, &sigact, NULL);
@@ -900,7 +900,7 @@ bool Gatekeeper::InitHandlers(const PArgList& args)
 	sigemptyset(&sigact.sa_mask);
 	sigaddset(&sigact.sa_mask, SIGHUP);
 	sigaddset(&sigact.sa_mask, SIGUSR1);
-	
+
 	sigaction(SIGHUP, &sigact, NULL);
 	sigaction(SIGUSR1, &sigact, NULL);
 
@@ -928,7 +928,7 @@ bool Gatekeeper::InitLogging(const PArgList &args)
 		}
 	}
 #endif
-	
+
 	return TRUE;
 }
 
@@ -1068,7 +1068,7 @@ void Gatekeeper::Main()
 	}
 
 	EnableLogFileRotation();
-	
+
 	PString welcome("GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
@@ -1142,7 +1142,7 @@ void Gatekeeper::Main()
 	RasSrv->SetENUMServers();
 
 	// Load RDS servers
-	RasSrv->SetRDSServers();	
+	RasSrv->SetRDSServers();
 
 #if defined(_WIN32)
 	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT
@@ -1186,7 +1186,7 @@ void Gatekeeper::GetRotateInterval(
 	)
 {
 	PString s;
-	
+
 	if (m_rotateInterval == Hourly)
 		m_rotateMinute = cfg.GetInteger(section, "RotateTime", 59);
 	else {
@@ -1195,7 +1195,7 @@ void Gatekeeper::GetRotateInterval(
 		m_rotateMinute = 0;
 		if (s.Find(':') != P_MAX_INDEX)
 			m_rotateMinute = s.Mid(s.Find(':') + 1).AsInteger();
-			
+
 		if (m_rotateHour < 0 || m_rotateHour > 23 || m_rotateMinute < 0
 			|| m_rotateMinute > 59) {
 			PTRACEX(1, "GK\tInvalid log file RotateTime specified: " << s);
@@ -1203,7 +1203,7 @@ void Gatekeeper::GetRotateInterval(
 			m_rotateHour = 0;
 		}
 	}
-			
+
 	if (m_rotateInterval == Weekly)	{
 		s = cfg.GetString(section, "RotateDay", "Sun");
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
@@ -1240,23 +1240,23 @@ void Gatekeeper::EnableLogFileRotation(
 	)
 {
 	PWaitAndSignal lock(m_logFileMutex);
-	
+
 	if (m_rotateTimer != GkTimerManager::INVALID_HANDLE) {
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_rotateTimer);
 		m_rotateTimer = GkTimerManager::INVALID_HANDLE;
 	}
-	
+
 	if (!enable)
 		return;
-		
+
 	PConfig* const config = GkConfig();
-	// determine rotation type (by lines, by size, by time)	
+	// determine rotation type (by lines, by size, by time)
 	const PString rotateCondition = config->GetString(
 		logConfigSectionName, "Rotate", ""
 		).Trim();
 	if (rotateCondition.IsEmpty())
 		return;
-		
+
 	for (int i = 0; i < RotationIntervalMax; i++)
 		if (strcasecmp(rotateCondition, m_intervalNames[i]) == 0)
 			m_rotateInterval = i;
@@ -1273,7 +1273,7 @@ void Gatekeeper::EnableLogFileRotation(
 
 	// setup rotation timer in case of time based rotation
 	PTime now, rotateTime;
-			
+
 	switch (m_rotateInterval)
 	{
 	case Hourly:
@@ -1289,7 +1289,7 @@ void Gatekeeper::EnableLogFileRotation(
 			"rotation scheduled at " << rotateTime
 			);
 		break;
-		
+
 	case Daily:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(),
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
@@ -1303,7 +1303,7 @@ void Gatekeeper::EnableLogFileRotation(
 			<< rotateTime
 			);
 		break;
-		
+
 	case Weekly:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(),
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
@@ -1325,13 +1325,13 @@ void Gatekeeper::EnableLogFileRotation(
 			<< rotateTime
 		      );
 		break;
-		
+
 	case Monthly:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1,
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
-		while (rotateTime.GetMonth() != now.GetMonth())				
+		while (rotateTime.GetMonth() != now.GetMonth())
 			rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
 
 		if (rotateTime <= now) {
@@ -1342,10 +1342,10 @@ void Gatekeeper::EnableLogFileRotation(
 				);
 			const int month = rotateTime.GetMonth();
 			rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
-			while (rotateTime.GetMonth() != month)				
+			while (rotateTime.GetMonth() != month)
 				rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
 		}
-					
+
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime
 			);
@@ -1370,16 +1370,16 @@ void Gatekeeper::RotateOnTimer(
 			rotateTime.GetMonth() < 12 ? rotateTime.GetYear() : rotateTime.GetYear() + 1,
 			rotateTime.GetTimeZone()
 			);
-	
+
 		newRotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
-		
+
 		const int month = newRotateTime.GetMonth();
-		while (newRotateTime.GetMonth() != month)				
+		while (newRotateTime.GetMonth() != month)
 			newRotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
-		
+
 		timer->SetExpirationTime(newRotateTime);
 		timer->SetFired(false);
-	}	
+	}
 	m_logFileMutex.Signal();
 	RotateLogFile();
 }
@@ -1390,7 +1390,7 @@ bool Gatekeeper::SetLogFilename(
 {
 	if (filename.IsEmpty())
 		return false;
-		
+
 	PWaitAndSignal lock(m_logFileMutex);
 	if (!m_logFilename && m_logFile != NULL && m_logFile->IsOpen()
 		&& m_logFilename == filename)
@@ -1400,14 +1400,14 @@ bool Gatekeeper::SetLogFilename(
 		PTRACEX(1, "GK\tLogging redirected to the file '" << filename << '\'');
 		EnableLogFileRotation(false);
 	}
-	
+
 	PTrace::SetStream(&cerr);
-	
+
 #ifndef hasDeletingSetStream
 	delete m_logFile;
 #endif
 	m_logFile = NULL;
-	
+
 	m_logFilename = filename;
 	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
 	if (!m_logFile->IsOpen()) {
@@ -1417,9 +1417,9 @@ bool Gatekeeper::SetLogFilename(
 	}
 	m_logFile->SetPosition(0, PFile::End);
 	PTrace::SetStream(m_logFile);
-	return true;	
+	return true;
 }
-		
+
 bool Gatekeeper::RotateLogFile()
 {
 	PWaitAndSignal lock(m_logFileMutex);
@@ -1435,7 +1435,7 @@ bool Gatekeeper::RotateLogFile()
 
 	if (m_logFilename.IsEmpty())
 		return false;
-	
+
 	PFile* const oldLogFile = new PTextFile(m_logFilename, PFile::WriteOnly,
 		PFile::MustExist
 		);
@@ -1452,7 +1452,7 @@ bool Gatekeeper::RotateLogFile()
 		oldLogFile->Move(oldLogFile->GetFilePath(), filename);
 	}
 	delete oldLogFile;
-		
+
 	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
 	if (!m_logFile->IsOpen()) {
 		cerr << "Warning: could not open the log file \""
@@ -1467,7 +1467,7 @@ bool Gatekeeper::RotateLogFile()
 	PTRACEX(1, "GK\tLogging restarted.");
 	return true;
 }
-	
+
 bool Gatekeeper::ReopenLogFile()
 {
 	PWaitAndSignal lock(m_logFileMutex);
@@ -1483,7 +1483,7 @@ bool Gatekeeper::ReopenLogFile()
 
 	if (m_logFilename.IsEmpty())
 		return false;
-	
+
 	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly,
 		PFile::MustExist
 		);
@@ -1491,8 +1491,8 @@ bool Gatekeeper::ReopenLogFile()
 		delete m_logFile;
 		m_logFile = NULL;
 	}
-	
-	if (m_logFile == NULL) {	
+
+	if (m_logFile == NULL) {
 		m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
 		if (!m_logFile->IsOpen()) {
 			cerr << "Warning: could not open the log file \""
