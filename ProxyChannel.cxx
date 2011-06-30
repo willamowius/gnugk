@@ -5451,11 +5451,11 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 
 	PTRACE(5, Type() << "\tReverse " << srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
 	SetConnected(true);
-	if (m_isRTCPType){
+	if (m_isRTCPType) {
 	    mcall->SetSRC_media_control_IP(srcIP.AsString());
 	    mcall->SetDST_media_control_IP(rDestIP.AsString());
 	}
-	if (m_isRTPType){
+	if (m_isRTPType) {
 	    mcall->SetSRC_media_IP(srcIP.AsString());
 	    mcall->SetDST_media_IP(rDestIP.AsString());
 	}
