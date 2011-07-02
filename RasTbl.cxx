@@ -3315,6 +3315,7 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 			addrs[sz] = addr;
 			i++;
 		}
+        PTRACE(6, "H46024B\tAlternateAddresses " << addrs);
 		oct.EncodeSubType(addrs);
 }
 
@@ -3336,6 +3337,18 @@ void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemCo
 	socket->TransmitData(lBuffer);
 }
 
+CallSignalSocket * CallRec::H46024BSignalSocket(bool response)
+{
+      // If the calling party is symmetric then the probing
+      // is done in reverse
+      bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
+
+      if (!response)
+          return (callerIsSymmetric ? GetCallSignalSocketCalled() :  GetCallSignalSocketCalling());
+      else
+          return (callerIsSymmetric ? GetCallSignalSocketCalling() : GetCallSignalSocketCalled());   
+}
+
 void CallRec::H46024BSessionFlag(WORD sessionID)
 {
 	   list<int>::const_iterator p = find(m_h46024Bflag.begin(), m_h46024Bflag.end(), sessionID);
@@ -3345,10 +3358,12 @@ void CallRec::H46024BSessionFlag(WORD sessionID)
 
 void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev)
 {
+	PWaitAndSignal m(m_H46024Bmutex);
+
+    if (m_h46024Bflag.empty()) return;
+
 	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.find(sessionID);
 	if (i != m_H46024Balternate.end()) return;
-
-	PWaitAndSignal m(m_H46024Bmutex);
 
 	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev);
 
@@ -3367,12 +3382,14 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 		PTRACE(4,"H46024B\tRequest Message\n" << h245msg);
 
 		// If we are tunnning
-		SendH46024BFacility(GetCallSignalSocketCalling(), h245msg);
+		SendH46024BFacility(H46024BSignalSocket(false), h245msg);
 	}
 }
 
 void CallRec::H46024BRespond()
 {
+	PWaitAndSignal m(m_H46024Bmutex);
+
 	if (m_H46024Balternate.size() == 0)
 		return;
 
@@ -3381,12 +3398,11 @@ void CallRec::H46024BRespond()
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
 	BuildH46024AnnexBMessage(false,h245msg,m_H46024Balternate);
+	m_H46024Balternate.clear();
 
     // If we are tunnning
-	CallSignalSocket * socket = GetCallSignalSocketCalled();
-	SendH46024BFacility(socket, h245msg);
+	SendH46024BFacility(H46024BSignalSocket(true), h245msg);
 
-	m_H46024Balternate.clear();
 }
 #endif // HAS_H46024B
 

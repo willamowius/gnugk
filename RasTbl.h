@@ -709,6 +709,9 @@ public:
 	bool NATSignallingOffload(bool isAnswer) const;
 
 #ifdef HAS_H46024B
+    /** GetSignallingSocket */
+    CallSignalSocket * H46024BSignalSocket(bool response);
+
 	/** Initiate Probe */
 	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev);
 

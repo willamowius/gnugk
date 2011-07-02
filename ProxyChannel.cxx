@@ -1103,9 +1103,17 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	}
 	
 	if (msg->GetUUIE() != NULL && msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)) {
-		bool suppress = false;	// ignore for now
+		bool suppress = false;
 		if (m_h245handler && OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control, suppress))
 			msg->SetUUIEChanged();
+
+        if (suppress) {
+		    m_result = NoData;	// don't forward anything 
+		    PTRACE(2, "Not forwarding " << msg->GetTagName());
+		    delete msg;
+		    return m_result;
+        }
+
 		if (!m_callerSocket && m_call)
 			m_call->SetH245ResponseReceived();
 	}
@@ -1331,6 +1339,25 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			m_call->SetCodec(GetH245CodecName(*audioCap));
 	}
 
+    if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
+#ifdef HAS_H46024B
+		    H245_IndicationMessage & imsg  = h245msg;
+		    if (imsg.GetTag() == H245_IndicationMessage::e_genericIndication) {
+			    const char * H46024B_OID = "0.0.8.460.24.2";
+ 			    H245_GenericMessage & gmsg = imsg;
+			    H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
+				    if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
+					    PASN_ObjectId & val = id;
+					    if (val.AsString() == H46024B_OID) {
+                            // TBD Signal to shutdown proxy support - SH
+						    suppress = true;
+						    return false;
+					    }
+				    }
+            }
+#endif
+    }
+
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response) {
 		H245_ResponseMessage & rmsg  = h245msg;
 #ifdef HAS_H46024B
@@ -1343,7 +1370,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 					if (val.AsString() == H46024B_OID) {
 						m_call->H46024BRespond();
 						suppress = true;
-						return true;
+						return false;
 					}
 				}
 		}
@@ -5527,7 +5554,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				// note: we don't do port switching at this time, once the ports are set they stay
 #ifdef HAS_H46024B
 				// If required begin Annex B probing
-				if (m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
+				if (isRTPKeepAlive && m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
 					(*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(rDestIP, rDestPort));
 				}
 #endif	// HAS_H46024B
@@ -5563,6 +5590,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		|| (fromIP == rDestIP && fromIP != rSrcIP)) {
 		if (fDestPort) {
 			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
+#ifdef HAS_H46024B
+            if (isRTP && m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
+                m_h46019DetectionDone = true;  // We missed the probe packets but detection is done. - SH
+			    (*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(fromIP, fromPort));
+            }
+#endif
 			SetSendAddress(fDestIP, fDestPort);
 		} else {
 			PTRACE(6, Type() << "\tForward from " << fromIP << ':' << fromPort 
