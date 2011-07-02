@@ -2692,9 +2692,7 @@ void CallRec::SendDRQ()
 	}
 }
 
-PString CallRec::GenerateCDR(
-	const PString& timestampFormat
-	) const
+PString CallRec::GenerateCDR(const PString& timestampFormat) const
 {
 	PString timeString;
 	const PString fmtStr = !timestampFormat ? timestampFormat : PString("RFC822");
@@ -2860,9 +2858,7 @@ int CallRec::GetReleaseSource() const
 	return m_releaseSource;
 }
 
-void CallRec::SetReleaseSource(
-	int releaseSource
-	)
+void CallRec::SetReleaseSource(int releaseSource)
 {
 	if (m_releaseSource == -1)
 		m_releaseSource = releaseSource;
@@ -2887,9 +2883,7 @@ PString CallRec::GetCallingStationId()
 	return m_callingStationId;
 }
 
-void CallRec::SetCallingStationId(
-	const PString& id
-	)
+void CallRec::SetCallingStationId(const PString& id)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_callingStationId = id;
@@ -2901,9 +2895,7 @@ PString CallRec::GetCalledStationId()
 	return m_calledStationId;
 }
 
-void CallRec::SetCalledStationId(
-	const PString& id
-	)
+void CallRec::SetCalledStationId(const PString& id)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_calledStationId = id;
@@ -3083,23 +3075,23 @@ bool CallRec::GetRemoteInfo(PString & vendor, PString & version)
 
 PString CallRec::GetNATOffloadString(NatStrategy type)
 {
-  static const char * const Names[10] = {
+	static const char * const Names[10] = {
 		"Unknown Strategy",
 		"No Assistance",
 		"Local Master",
-	    "Remote Master",
+		"Remote Master",
 		"Local Proxy",
-	    "Remote Proxy",
+		"Remote Proxy",
 		"Full Proxy",
 		"AnnexA SameNAT",
 		"AnnexB NAToffload",
 		"NAT Failure"
-  };
+	};
 
-  if (type < 10)
-    return Names[type];
-  
-  return PString((unsigned)type);
+	if (type < 10)
+		return Names[type];
+
+	return PString((unsigned)type);
 }
 
 bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
@@ -3139,8 +3131,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	PStringStream natinfo;
     natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n" 
             << " Rule : " << (goDirect ? "Go Direct (if possible)" : "Must Proxy Media");
-// Calling Endpoint
-		natinfo << "\n  Calling Endpoint:\n";
+	// Calling Endpoint
+	natinfo << "\n  Calling Endpoint:\n";
 	if (goDirect && m_Calling->IsNATed()) {
 		natinfo << "    IsNATed:     Yes\n";
 		natinfo << "    Detected IP: " << m_Calling->GetNATIP() << "\n";
@@ -3152,8 +3144,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		natinfo << "    IP: " << m_Calling->GetIP() << "\n";
 		natinfo << "    Support H.460.24: " << (m_Calling->SupportH46024() ? "Yes" : "No");
 	}
-// Called Endpoint
-		natinfo << "\n  Called Endpoint:\n";
+	// Called Endpoint
+	natinfo << "\n  Called Endpoint:\n";
 	if (goDirect && m_Called->IsNATed()) {
 		natinfo << "    IsNATed:      Yes\n";
 		natinfo << "    Detected IP: " << m_Called->GetNATIP() << "\n";
@@ -3249,10 +3241,10 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// Oops cannot proceed the media will Fail!!
 	else {
-			natinst = CallRec::e_natFailure;
-			m_natstrategy = natinst;
-			PTRACE(2, "H46024\tFAILURE: No resolvable routing policy!");
-			return false;
+		natinst = CallRec::e_natFailure;
+		m_natstrategy = natinst;
+		PTRACE(2, "H46024\tFAILURE: No resolvable routing policy!");
+		return false;
 	}
 
 	m_natstrategy = natinst;
@@ -3279,44 +3271,44 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 	gmsg.IncludeOptionalField(H245_GenericMessage::e_subMessageIdentifier);
     gmsg.IncludeOptionalField(H245_GenericMessage::e_messageContent);
     H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
-     id.SetTag(H245_CapabilityIdentifier::e_standard);
-        PASN_ObjectId & val = id;
-        val.SetValue(H46024B_OID);
+	id.SetTag(H245_CapabilityIdentifier::e_standard);
+	PASN_ObjectId & val = id;
+	val.SetValue(H46024B_OID);
 
 	PASN_Integer & num = gmsg.m_subMessageIdentifier;
-	   num = 1;
+	num = 1;
 
     gmsg.SetTag(H245_GenericMessage::e_messageContent);
     H245_ArrayOf_GenericParameter & content = gmsg.m_messageContent;
 
-	 content.SetSize(1);
-	   H245_GenericParameter & param = content[0];
-	   H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
-		 idm.SetTag(H245_ParameterIdentifier::e_standard);
-		 PASN_Integer & idx = idm;
-		 idx = 1;
-		param.m_parameterValue.SetTag(H245_ParameterValue::e_octetString);
-		PASN_OctetString & oct = param.m_parameterValue;
+	content.SetSize(1);
+	H245_GenericParameter & param = content[0];
+	H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
+	idm.SetTag(H245_ParameterIdentifier::e_standard);
+	PASN_Integer & idx = idm;
+	idx = 1;
+	param.m_parameterValue.SetTag(H245_ParameterValue::e_octetString);
+	PASN_OctetString & oct = param.m_parameterValue;
 
 
-		H46024B_ArrayOf_AlternateAddress addrs;
+	H46024B_ArrayOf_AlternateAddress addrs;
 
-		std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.begin();
-		while (i != m_H46024Balternate.end()) {
-			int sz = addrs.GetSize();
-			addrs.SetSize(sz+1);
-				H46024B_AlternateAddress addr;
-				addr.m_sessionID = i->first;
-				addr.IncludeOptionalField(H46024B_AlternateAddress::e_rtpAddress);
-				if (initiate)
-				   addr.m_rtpAddress = i->second.forward;
-				else
-				   addr.m_rtpAddress = i->second.reverse;
-			addrs[sz] = addr;
-			i++;
-		}
-        PTRACE(6, "H46024B\tAlternateAddresses " << addrs);
-		oct.EncodeSubType(addrs);
+	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.begin();
+	while (i != m_H46024Balternate.end()) {
+		int sz = addrs.GetSize();
+		addrs.SetSize(sz+1);
+		H46024B_AlternateAddress addr;
+		addr.m_sessionID = i->first;
+		addr.IncludeOptionalField(H46024B_AlternateAddress::e_rtpAddress);
+		if (initiate)
+			addr.m_rtpAddress = i->second.forward;
+		else
+			addr.m_rtpAddress = i->second.reverse;
+		addrs[sz] = addr;
+		i++;
+	}
+	PTRACE(6, "H46024B\tAlternateAddresses " << addrs);
+	oct.EncodeSubType(addrs);
 }
 
 void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemControlMessage & h245msg)
@@ -3339,31 +3331,33 @@ void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemCo
 
 CallSignalSocket * CallRec::H46024BSignalSocket(bool response)
 {
-      // If the calling party is symmetric then the probing
-      // is done in reverse
-      bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
+	// If the calling party is symmetric then the probing
+	// is done in reverse
+	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
 
-      if (!response)
-          return (callerIsSymmetric ? GetCallSignalSocketCalled() :  GetCallSignalSocketCalling());
-      else
-          return (callerIsSymmetric ? GetCallSignalSocketCalling() : GetCallSignalSocketCalled());   
+	if (!response)
+		return (callerIsSymmetric ? GetCallSignalSocketCalled() :  GetCallSignalSocketCalling());
+	else
+		return (callerIsSymmetric ? GetCallSignalSocketCalling() : GetCallSignalSocketCalled());   
 }
 
 void CallRec::H46024BSessionFlag(WORD sessionID)
 {
-	   list<int>::const_iterator p = find(m_h46024Bflag.begin(), m_h46024Bflag.end(), sessionID);
-	   if (p == m_h46024Bflag.end())
-	      m_h46024Bflag.push_back(sessionID);
+	list<int>::const_iterator p = find(m_h46024Bflag.begin(), m_h46024Bflag.end(), sessionID);
+	if (p == m_h46024Bflag.end())
+		m_h46024Bflag.push_back(sessionID);
 }
 
 void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev)
 {
 	PWaitAndSignal m(m_H46024Bmutex);
 
-    if (m_h46024Bflag.empty()) return;
+    if (m_h46024Bflag.empty())
+		return;
 
 	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.find(sessionID);
-	if (i != m_H46024Balternate.end()) return;
+	if (i != m_H46024Balternate.end())
+		return;
 
 	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev);
 
