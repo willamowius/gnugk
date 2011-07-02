@@ -5503,11 +5503,13 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	unsigned int version = 0;	// RTP version
 	if (buflen >= 1)
 		version = (((int)wbuffer[0] & 0xc0) >> 6);
-	bool isRTP = m_isRTPType && (version == 2);
 	bool isRTCP = m_isRTCPType && (version == 2);
+#if (HAS_H46018 || HAS_H46023)
+	bool isRTP = m_isRTPType && (version == 2);
+#endif
+#ifdef HAS_H46018
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
 
-#ifdef HAS_H46018
 #ifdef RTP_DEBUG
 	int payloadType = H46019_UNDEFINED_PAYLOAD_TYPE;
 	if ((buflen >= 2) && isRTP)
@@ -5592,7 +5594,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
 #ifdef HAS_H46024B
             if (isRTP && m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
-                m_h46019DetectionDone = true;  // We missed the probe packets but detection is done. - SH
+#ifdef HAS_H46018
+                m_h46019DetectionDone = true;  // We missed the probe packets but detection is done
+#endif
 			    (*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(fromIP, fromPort));
             }
 #endif
