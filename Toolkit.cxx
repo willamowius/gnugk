@@ -1504,7 +1504,8 @@ PConfig* Toolkit::ReloadConfig()
 	m_VirtualRouteTable.InitTable();
 	m_ProxyCriterion.LoadConfig(m_Config);
 #ifdef HAS_H46023
-	if (m_H46023Enabled)  LoadH46023STUN();
+	if (m_H46023Enabled)
+		LoadH46023STUN();
 #endif
 #ifdef HAS_H460P
 	m_presence.LoadConfig(m_Config);
