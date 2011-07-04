@@ -444,14 +444,14 @@ valid license before enabling it.
 <item><tt/H46018NoNat=0/<newline>
 Default: <tt>1</tt><newline>
 <p>
-Enable H.460.18 if the endpoint is not behind a NAT. Setting to 0 will 
+Enable H.460.18 even if the endpoint is not behind a NAT. Setting to 0 will 
 disable H.460.18 if the endpoint is detected as not being behind a NAT. If H.460.23 is supported
 and enabled then direct media is still supported.
 
 <item><tt/EnableH46023=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Enable support for H.460.23/.24
+Enable support for H.460.23/.24. You must also set STUN servers for H.460.23/.24 to become active.
 
 <item><tt/H46023STUN=stun.ekiga.net,192.168.1.10/<newline>
 Default: <tt>N/A</tt><newline>
