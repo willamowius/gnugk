@@ -3302,11 +3302,16 @@ static PString ParseEndpointAddress(H4501_EndpointAddress& endpointAddress)
 
 		if (aliasAddress.GetTag() == H225_AliasAddress::e_transportID) {
 			transportAddress = (H225_TransportAddress &)aliasAddress;
-			transportAddress.Replace("ip$","");
-			transportAddress.Replace("*","");
-		}
-		else
+			transportAddress.Replace("ip$", "");
+			transportAddress.Replace("*", "");
+		} else {
 			alias = ::H323GetAliasAddressString(aliasAddress);
+			alias.Replace("E164:", "");
+			alias.Replace("Private:", "");
+			alias.Replace("Data:", "");
+			alias.Replace("Telex:", "");
+			alias.Replace("NSP:", "");
+		}
 	}
 	if (alias.IsEmpty()) {
 		remoteParty = transportAddress;
