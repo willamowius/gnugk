@@ -432,16 +432,6 @@ Default: <tt/1024/<newline>
 <p>
 Queue length for incoming TCP connection.
 
-<item><tt/SignalReadTimeout=1000/<newline>
-Default: <tt/1000/<newline>
-<p>
-Time in milliseconds for read timeout on call signaling channels (Q931).
-
-<item><tt/StatusReadTimeout=3000/<newline>
-Default: <tt/3000/<newline>
-<p>
-Time in milliseconds for read timeout on status channel.
-
 <item><tt/StatusWriteTimeout=5000/<newline>
 Default: <tt/5000/<newline>
 <p>
