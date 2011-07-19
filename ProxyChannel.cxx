@@ -3661,6 +3661,10 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 				m_call->SetDisconnectCause(cause);
 			}
 		}
+	} else {
+		PTRACE(1, "Error: ReleaseComplete is not associated with a call - dropping");
+		m_result = NoData;
+		return;
 	}
 
 	if (m_callerSocket) {
