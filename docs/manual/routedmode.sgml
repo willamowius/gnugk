@@ -583,13 +583,13 @@ There is a degree of uncertainty when endpoints are behind the same NAT as to
 whether they can communicate directly as one or both may be on subNATs. Disable
 this feature with caution.
 
-<item><tt/DisableH235Call=1/<newline>
+<item><tt/RemoveH235Call=1/<newline>
 Default: <tt/0/<newline>
 <p>
 This setting removes the cryptoTokens and clearTokens off the Setup message.
 Use this when working with IP phones that do not support large Setup messages
 
-<item><tt/DisableH460Call=1/<newline>
+<item><tt/RemoveH460Call=1/<newline>
 Default: <tt/0/<newline>
 <p>
 This setting removes the H.460 features from the Setup message. Use this with

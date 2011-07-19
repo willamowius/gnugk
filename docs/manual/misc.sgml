@@ -244,11 +244,6 @@ Define a retry interval in seconds for resending an RRQ if no response
 is received from the parent gatekeeper. This interval is doubled with each
 failure, up to a maximum RRQRetryInterval * 128 timeout.
 
-<item><tt/ARQTimeout=2/<newline>
-Default: <tt/2/<newline>
-<p>
-Define the timeout value in seconds for ARQs.
-
 <item><tt/UnregisterOnReload=1/<newline>
 Default: <tt/0/<newline>
 <p>
@@ -307,12 +302,6 @@ by a parent gatekeeper in a GCF/RCF message.
 Default: <tt/1/<newline>
 <p>
 Forward the destCallSignalAddress in ARQs to the parent gatekeeper.
-
-<item><tt/DisableH.460.23=0/<newline>
-Default: <tt/1/<newline>
-<p>
-By default H.460.23 is disabled when acting as an endpoint; set this switch to turn it on.
-
 </itemize>
 
 <sect1>Section &lsqb;CTI::Agents&rsqb;
