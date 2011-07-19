@@ -3159,7 +3159,7 @@ void CallSignalSocket::OnInformation(
 	if (remote != NULL)
 		return;
 
-	m_result = Error;
+	m_result = m_call ? Forwarding : NoData;
 	
     // If NAT support disabled then ignore the message.
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
