@@ -199,6 +199,7 @@ void NATClient::SendInfo(int state)
 	information.SetCallState(Q931::CallStates(state));
 	information.Encode(buf);
 	if (socket) {
+		PrintQ931(5, "Send to ", socket->GetName(), &information, NULL);
 		socket->TransmitData(buf);
 	}
 }
