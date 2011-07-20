@@ -41,8 +41,8 @@ public:
 	IPAuthPrefix& operator=(const IPAuthPrefix&);
 	IPAuthPrefix& operator=(bool);
 
-        typedef std::vector<std::string>::iterator prefix_iterator;
-        typedef std::vector<std::string>::const_iterator const_prefix_iterator;
+	typedef std::vector<std::string>::iterator prefix_iterator;
+	typedef std::vector<std::string>::const_iterator const_prefix_iterator;
 
 	bool auth;
 
@@ -55,7 +55,6 @@ class FileIPAuth : public IPAuthBase {
 public:
 	typedef std::pair<NetworkAddress, IPAuthPrefix> IPAuthEntry;
 
-	
 	/// Create text file based authenticator
 	FileIPAuth( 
 		/// authenticator name from Gatekeeper::Auth section
@@ -209,10 +208,10 @@ FileIPAuth::FileIPAuth(
 		PString auth(kv.GetDataAt(i));
 		PString prefix(".");
 
-                if ((position = auth.Find(';', position)) != P_MAX_INDEX) {
-            		position++;
-                        prefix = auth(position, auth.GetLength());
-                        position--;
+		if ((position = auth.Find(';', position)) != P_MAX_INDEX) {
+			position++;
+			prefix = auth(position, auth.GetLength());
+			position--;
 			auth.Delete(position, auth.GetLength() - position);
 		}
 
