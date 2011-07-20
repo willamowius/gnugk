@@ -18,48 +18,43 @@ else
 fi
 
 dnl ########################################################################
-dnl look for ptlib, use a preference order of explicit PTLIBDIR, PWLIBDIR, directory
+dnl look for ptlib, use a preference order of explicit PTLIBDIR, directory
 dnl at same level, home directory, /usr/local or /usr.
 
-dnl if PTLIBDIR is set, use that, use only PWLIBDIR internally from here on
 if test "${PTLIBDIR:-unset}" != "unset" ; then
-  PWLIBDIR=${PTLIBDIR}
-fi
-
-if test "${PWLIBDIR:-unset}" != "unset" ; then
-  if test -d ${PWLIBDIR}; then
-  	AC_CHECK_FILE(${PWLIBDIR}/make/unix.mak, HAS_PTLIB=1)
+  if test -d ${PTLIBDIR}; then
+  	AC_CHECK_FILE(${PTLIBDIR}/make/unix.mak, HAS_PTLIB=1)
   fi
   if test "${HAS_PTLIB:-unset}" != "unset" ; then
-    AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , ${PWLIBDIR}/make)
+    AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , ${PTLIBDIR}/make)
   fi
 fi
 if test "${HAS_PTLIB:-unset}" = "unset" ; then
-  if test -d ${HOME}/pwlib/include; then
-  	AC_CHECK_FILE(${HOME}/pwlib/include/ptlib.h, HAS_PTLIB=1)
+  if test -d ${HOME}/ptlib/include; then
+  	AC_CHECK_FILE(${HOME}/ptlib/include/ptlib.h, HAS_PTLIB=1)
   fi
   if test "${HAS_PTLIB:-unset}" != "unset" ; then
-    PWLIBDIR="${HOME}/pwlib"
-    AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , ${PWLIBDIR}/make)
+    PTLIBDIR="${HOME}/ptlib"
+    AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , ${PTLIBDIR}/make)
   else
-	if test -d ../pwlib; then
-  	  AC_CHECK_FILE(../pwlib/include/ptlib.h, HAS_PTLIB=1)
+	if test -d ../ptlib; then
+  	  AC_CHECK_FILE(../ptlib/include/ptlib.h, HAS_PTLIB=1)
   	fi
   	if test "${HAS_PTLIB:-unset}" != "unset" ; then
-      PWLIBDIR="../pwlib"
-      AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , ${PWLIBDIR}/make)
+      PTLIBDIR="../ptlib"
+      AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , ${PTLIBDIR}/make)
   	else
       if test -d /usr/local/include; then
 	    AC_CHECK_FILE(/usr/local/include/ptlib.h, HAS_PTLIB=1)
 	  fi
       if test "${HAS_PTLIB:-unset}" != "unset" ; then
-        AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/local/share/pwlib/make:/usr/local/bin)
+        AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/local/share/ptlib/make:/usr/local/bin)
       else
 	    if test -d /usr/include; then
           AC_CHECK_FILE(/usr/include/ptlib.h, HAS_PTLIB=1)
 	    fi
         if test "${HAS_PTLIB:-unset}" != "unset" ; then
-          AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/share/pwlib/make/)
+          AC_PATH_PROG(PTLIB_CONFIG, ptlib-config, , /usr/share/ptlib/make/)
         fi
       fi
     fi
@@ -67,70 +62,70 @@ if test "${HAS_PTLIB:-unset}" = "unset" ; then
 fi
 
 if test "${HAS_PTLIB:-unset}" = "unset" ; then
-  echo "Cannot find pwlib - please install or set PWLIBDIR and try again"
+  echo "Cannot find PTLib - please install or set PTLIBDIR and try again"
   exit
 fi
 
-if test "${PWLIBDIR:-unset}" = "unset" ; then
+if test "${PTLIBDIR:-unset}" = "unset" ; then
   if test "${PTLIB_CONFIG:-unset}" = "unset" ; then
     echo "Cannot find ptlib-config - please install and try again"
     exit
   fi
-  PWLIBDIR=`$PTLIB_CONFIG --pwlibdir`
+  PTLIBDIR=`$PTLIB_CONFIG --prefix`
 fi
 
-echo "PWLib prefix set to $PWLIBDIR"
+echo "PTLib prefix set to $PTLIBDIR"
 
-AC_SUBST(PWLIBDIR)
+AC_SUBST(PTLIBDIR)
 
 dnl ########################################################################
-dnl extract the PWLIB version
+dnl extract the PTLIB version
 if test "${PTLIB_CONFIG:-unset}" = "unset"; then
-  AC_CHECK_FILE(${PWLIBDIR}/version.h, HAS_PWLIB_VERSION_FILE=1)
-  if test "${HAS_PWLIB_VERSION_FILE:-unset}" != "unset"; then
-    PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
-    PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
-    PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
-    PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
+  AC_CHECK_FILE(${PTLIBDIR}/version.h, HAS_PTLIB_VERSION_FILE=1)
+  if test "${HAS_PTLIB_VERSION_FILE:-unset}" != "unset"; then
+    PTLIB_MAJOR_VERSION=`cat ${PTLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
+    PTLIB_MINOR_VERSION=`cat ${PTLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
+    PTLIB_BUILD_NUMBER=`cat ${PTLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
+    PTLIB_VERSION="${PTLIB_MAJOR_VERSION}.${PTLIB_MINOR_VERSION}.${PTLIB_BUILD_NUMBER}"
   else
-    AC_CHECK_FILE(${PWLIBDIR}/ptbuildopts.h, HAS_PWLIB_VERSION_FILE=1)
-	if test "${HAS_PWLIB_VERSION_FILE:-unset}" != "unset"; then
-      PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_MAJOR | cut -f3 -d' '`
-      PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_MINOR | cut -f3 -d' '`
-      PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_BUILD | cut -f3 -d' '`
-      PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
+    AC_CHECK_FILE(${PTLIBDIR}/ptbuildopts.h, HAS_PTLIB_VERSION_FILE=1)
+	if test "${HAS_PTLIB_VERSION_FILE:-unset}" != "unset"; then
+      PTLIB_MAJOR_VERSION=`cat ${PTLIBDIR}/ptbuildopts.h | grep PTLIB_MAJOR | cut -f3 -d' '`
+      PTLIB_MINOR_VERSION=`cat ${PTLIBDIR}/ptbuildopts.h | grep PTLIB_MINOR | cut -f3 -d' '`
+      PTLIB_BUILD_NUMBER=`cat ${PTLIBDIR}/ptbuildopts.h | grep PTLIB_BUILD | cut -f3 -d' '`
+      PTLIB_VERSION="${PTLIB_MAJOR_VERSION}.${PTLIB_MINOR_VERSION}.${PTLIB_BUILD_NUMBER}"
     fi
   fi
 else
-  PWLIB_VERSION=`${PTLIB_CONFIG} --version`
-  PWLIB_MAJOR_VERSION=[`echo "${PWLIB_VERSION}" | sed -e "s/\([0-9]*\)\.[0-9]*\.[0-9]*.*/\1/"`]
-  PWLIB_MINOR_VERSION=[`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.\([0-9]*\)\.[0-9]*.*/\1/'`]
-  PWLIB_BUILD_NUMBER=[`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/'`]
+  PTLIB_VERSION=`${PTLIB_CONFIG} --version`
+  PTLIB_MAJOR_VERSION=[`echo "${PTLIB_VERSION}" | sed -e "s/\([0-9]*\)\.[0-9]*\.[0-9]*.*/\1/"`]
+  PTLIB_MINOR_VERSION=[`echo "${PTLIB_VERSION}" | sed -e 's/[0-9]*\.\([0-9]*\)\.[0-9]*.*/\1/'`]
+  PTLIB_BUILD_NUMBER=[`echo "${PTLIB_VERSION}" | sed -e 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/'`]
 fi
-if test "${PWLIB_VERSION:-unset}" = "unset" -o "${PWLIB_VERSION}" = ".."; then
+if test "${PTLIB_VERSION:-unset}" = "unset" -o "${PTLIB_VERSION}" = ".."; then
   echo "Error: could not determine PWLib version"
   exit
 fi
 
-echo "PTLib version is ${PWLIB_VERSION}"
+echo "PTLib version is ${PTLIB_VERSION}"
 
-if test ${PWLIB_MAJOR_VERSION} -lt 1; then
+if test ${PTLIB_MAJOR_VERSION} -lt 1; then
   echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
   exit
 fi
-if test ${PWLIB_MAJOR_VERSION} -eq 1; then
-  if test ${PWLIB_MINOR_VERSION} -lt 7; then
+if test ${PTLIB_MAJOR_VERSION} -eq 1; then
+  if test ${PTLIB_MINOR_VERSION} -lt 7; then
     echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
     exit
-  elif test ${PWLIB_MINOR_VERSION} -eq 7; then
-    if test ${PWLIB_BUILD_NUMBER} -lt 5; then
+  elif test ${PTLIB_MINOR_VERSION} -eq 7; then
+    if test ${PTLIB_BUILD_NUMBER} -lt 5; then
       echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
       exit
     fi
   fi
 fi
 
-AC_SUBST(PWLIB_VERSION)
+AC_SUBST(PTLIB_VERSION)
 
 dnl ########################################################################
 dnl look for OpenH323/H323plus, use a preference order of explicit OPENH323DIR, directory
@@ -144,11 +139,11 @@ if test "${OPENH323DIR:-unset}" != "unset" ; then
   fi
 fi
 if test "${HAS_OPENH323:-unset}" = "unset" ; then
-  if test -d ${PWLIBDIR}/../openh323; then
-    AC_CHECK_FILE(${PWLIBDIR}/../openh323/version.h, HAS_OPENH323=1)
+  if test -d ${PTLIBDIR}/../openh323; then
+    AC_CHECK_FILE(${PTLIBDIR}/../openh323/version.h, HAS_OPENH323=1)
   fi
   if test "${HAS_OPENH323:-unset}" != "unset" ; then
-    OPENH323DIR="${PWLIBDIR}/../openh323"
+    OPENH323DIR="${PTLIBDIR}/../openh323"
   else
     if test -d ${HOME}/openh323/include; then
       AC_CHECK_FILE(${HOME}/openh323/include/h323.h, HAS_OPENH323=1)

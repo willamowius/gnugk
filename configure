@@ -593,8 +593,8 @@ INSTALLPREFIX
 OPENH323_VERSION
 OPENH323MAKEDIR
 OPENH323DIR
-PWLIB_VERSION
-PWLIBDIR
+PTLIB_VERSION
+PTLIBDIR
 PTLIB_CONFIG
 ac_ct_CC
 CFLAGS
@@ -2966,20 +2966,16 @@ fi
 
 
 if test "${PTLIBDIR:-unset}" != "unset" ; then
-  PWLIBDIR=${PTLIBDIR}
-fi
-
-if test "${PWLIBDIR:-unset}" != "unset" ; then
-  if test -d ${PWLIBDIR}; then
-  	as_ac_File=`$as_echo "ac_cv_file_${PWLIBDIR}/make/unix.mak" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PWLIBDIR}/make/unix.mak" >&5
-$as_echo_n "checking for ${PWLIBDIR}/make/unix.mak... " >&6; }
+  if test -d ${PTLIBDIR}; then
+  	as_ac_File=`$as_echo "ac_cv_file_${PTLIBDIR}/make/unix.mak" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PTLIBDIR}/make/unix.mak" >&5
+$as_echo_n "checking for ${PTLIBDIR}/make/unix.mak... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${PWLIBDIR}/make/unix.mak"; then
+if test -r "${PTLIBDIR}/make/unix.mak"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3007,7 +3003,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in ${PWLIBDIR}/make
+for as_dir in ${PTLIBDIR}/make
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
@@ -3037,16 +3033,16 @@ fi
   fi
 fi
 if test "${HAS_PTLIB:-unset}" = "unset" ; then
-  if test -d ${HOME}/pwlib/include; then
-  	as_ac_File=`$as_echo "ac_cv_file_${HOME}/pwlib/include/ptlib.h" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${HOME}/pwlib/include/ptlib.h" >&5
-$as_echo_n "checking for ${HOME}/pwlib/include/ptlib.h... " >&6; }
+  if test -d ${HOME}/ptlib/include; then
+  	as_ac_File=`$as_echo "ac_cv_file_${HOME}/ptlib/include/ptlib.h" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${HOME}/ptlib/include/ptlib.h" >&5
+$as_echo_n "checking for ${HOME}/ptlib/include/ptlib.h... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${HOME}/pwlib/include/ptlib.h"; then
+if test -r "${HOME}/ptlib/include/ptlib.h"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3061,7 +3057,7 @@ fi
 
   fi
   if test "${HAS_PTLIB:-unset}" != "unset" ; then
-    PWLIBDIR="${HOME}/pwlib"
+    PTLIBDIR="${HOME}/ptlib"
     # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -3075,7 +3071,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in ${PWLIBDIR}/make
+for as_dir in ${PTLIBDIR}/make
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
@@ -3103,29 +3099,29 @@ fi
 
 
   else
-	if test -d ../pwlib; then
-  	  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ../pwlib/include/ptlib.h" >&5
-$as_echo_n "checking for ../pwlib/include/ptlib.h... " >&6; }
-if ${ac_cv_file____pwlib_include_ptlib_h+:} false; then :
+	if test -d ../ptlib; then
+  	  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ../ptlib/include/ptlib.h" >&5
+$as_echo_n "checking for ../ptlib/include/ptlib.h... " >&6; }
+if ${ac_cv_file____ptlib_include_ptlib_h+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "../pwlib/include/ptlib.h"; then
-  ac_cv_file____pwlib_include_ptlib_h=yes
+if test -r "../ptlib/include/ptlib.h"; then
+  ac_cv_file____ptlib_include_ptlib_h=yes
 else
-  ac_cv_file____pwlib_include_ptlib_h=no
+  ac_cv_file____ptlib_include_ptlib_h=no
 fi
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file____pwlib_include_ptlib_h" >&5
-$as_echo "$ac_cv_file____pwlib_include_ptlib_h" >&6; }
-if test "x$ac_cv_file____pwlib_include_ptlib_h" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file____ptlib_include_ptlib_h" >&5
+$as_echo "$ac_cv_file____ptlib_include_ptlib_h" >&6; }
+if test "x$ac_cv_file____ptlib_include_ptlib_h" = xyes; then :
   HAS_PTLIB=1
 fi
 
   	fi
   	if test "${HAS_PTLIB:-unset}" != "unset" ; then
-      PWLIBDIR="../pwlib"
+      PTLIBDIR="../ptlib"
       # Extract the first word of "ptlib-config", so it can be a program name with args.
 set dummy ptlib-config; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -3139,7 +3135,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in ${PWLIBDIR}/make
+for as_dir in ${PTLIBDIR}/make
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
@@ -3202,7 +3198,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="/usr/local/share/pwlib/make:/usr/local/bin"
+as_dummy="/usr/local/share/ptlib/make:/usr/local/bin"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
@@ -3266,7 +3262,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in /usr/share/pwlib/make/
+for as_dir in /usr/share/ptlib/make/
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
@@ -3300,32 +3296,32 @@ fi
 fi
 
 if test "${HAS_PTLIB:-unset}" = "unset" ; then
-  echo "Cannot find pwlib - please install or set PWLIBDIR and try again"
+  echo "Cannot find PTLib - please install or set PTLIBDIR and try again"
   exit
 fi
 
-if test "${PWLIBDIR:-unset}" = "unset" ; then
+if test "${PTLIBDIR:-unset}" = "unset" ; then
   if test "${PTLIB_CONFIG:-unset}" = "unset" ; then
     echo "Cannot find ptlib-config - please install and try again"
     exit
   fi
-  PWLIBDIR=`$PTLIB_CONFIG --pwlibdir`
+  PTLIBDIR=`$PTLIB_CONFIG --prefix`
 fi
 
-echo "PWLib prefix set to $PWLIBDIR"
+echo "PTLib prefix set to $PTLIBDIR"
 
 
 
 if test "${PTLIB_CONFIG:-unset}" = "unset"; then
-  as_ac_File=`$as_echo "ac_cv_file_${PWLIBDIR}/version.h" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PWLIBDIR}/version.h" >&5
-$as_echo_n "checking for ${PWLIBDIR}/version.h... " >&6; }
+  as_ac_File=`$as_echo "ac_cv_file_${PTLIBDIR}/version.h" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PTLIBDIR}/version.h" >&5
+$as_echo_n "checking for ${PTLIBDIR}/version.h... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${PWLIBDIR}/version.h"; then
+if test -r "${PTLIBDIR}/version.h"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3335,24 +3331,24 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  HAS_PWLIB_VERSION_FILE=1
+  HAS_PTLIB_VERSION_FILE=1
 fi
 
-  if test "${HAS_PWLIB_VERSION_FILE:-unset}" != "unset"; then
-    PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
-    PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
-    PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
-    PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
+  if test "${HAS_PTLIB_VERSION_FILE:-unset}" != "unset"; then
+    PTLIB_MAJOR_VERSION=`cat ${PTLIBDIR}/version.h | grep MAJOR_VERSION | cut -f3 -d' '`
+    PTLIB_MINOR_VERSION=`cat ${PTLIBDIR}/version.h | grep MINOR_VERSION | cut -f3 -d' '`
+    PTLIB_BUILD_NUMBER=`cat ${PTLIBDIR}/version.h | grep BUILD_NUMBER | cut -f3 -d' '`
+    PTLIB_VERSION="${PTLIB_MAJOR_VERSION}.${PTLIB_MINOR_VERSION}.${PTLIB_BUILD_NUMBER}"
   else
-    as_ac_File=`$as_echo "ac_cv_file_${PWLIBDIR}/ptbuildopts.h" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PWLIBDIR}/ptbuildopts.h" >&5
-$as_echo_n "checking for ${PWLIBDIR}/ptbuildopts.h... " >&6; }
+    as_ac_File=`$as_echo "ac_cv_file_${PTLIBDIR}/ptbuildopts.h" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PTLIBDIR}/ptbuildopts.h" >&5
+$as_echo_n "checking for ${PTLIBDIR}/ptbuildopts.h... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${PWLIBDIR}/ptbuildopts.h"; then
+if test -r "${PTLIBDIR}/ptbuildopts.h"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3362,39 +3358,39 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  HAS_PWLIB_VERSION_FILE=1
+  HAS_PTLIB_VERSION_FILE=1
 fi
 
-	if test "${HAS_PWLIB_VERSION_FILE:-unset}" != "unset"; then
-      PWLIB_MAJOR_VERSION=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_MAJOR | cut -f3 -d' '`
-      PWLIB_MINOR_VERSION=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_MINOR | cut -f3 -d' '`
-      PWLIB_BUILD_NUMBER=`cat ${PWLIBDIR}/ptbuildopts.h | grep PWLIB_BUILD | cut -f3 -d' '`
-      PWLIB_VERSION="${PWLIB_MAJOR_VERSION}.${PWLIB_MINOR_VERSION}.${PWLIB_BUILD_NUMBER}"
+	if test "${HAS_PTLIB_VERSION_FILE:-unset}" != "unset"; then
+      PTLIB_MAJOR_VERSION=`cat ${PTLIBDIR}/ptbuildopts.h | grep PTLIB_MAJOR | cut -f3 -d' '`
+      PTLIB_MINOR_VERSION=`cat ${PTLIBDIR}/ptbuildopts.h | grep PTLIB_MINOR | cut -f3 -d' '`
+      PTLIB_BUILD_NUMBER=`cat ${PTLIBDIR}/ptbuildopts.h | grep PTLIB_BUILD | cut -f3 -d' '`
+      PTLIB_VERSION="${PTLIB_MAJOR_VERSION}.${PTLIB_MINOR_VERSION}.${PTLIB_BUILD_NUMBER}"
     fi
   fi
 else
-  PWLIB_VERSION=`${PTLIB_CONFIG} --version`
-  PWLIB_MAJOR_VERSION=`echo "${PWLIB_VERSION}" | sed -e "s/\([0-9]*\)\.[0-9]*\.[0-9]*.*/\1/"`
-  PWLIB_MINOR_VERSION=`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.\([0-9]*\)\.[0-9]*.*/\1/'`
-  PWLIB_BUILD_NUMBER=`echo "${PWLIB_VERSION}" | sed -e 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/'`
+  PTLIB_VERSION=`${PTLIB_CONFIG} --version`
+  PTLIB_MAJOR_VERSION=`echo "${PTLIB_VERSION}" | sed -e "s/\([0-9]*\)\.[0-9]*\.[0-9]*.*/\1/"`
+  PTLIB_MINOR_VERSION=`echo "${PTLIB_VERSION}" | sed -e 's/[0-9]*\.\([0-9]*\)\.[0-9]*.*/\1/'`
+  PTLIB_BUILD_NUMBER=`echo "${PTLIB_VERSION}" | sed -e 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/'`
 fi
-if test "${PWLIB_VERSION:-unset}" = "unset" -o "${PWLIB_VERSION}" = ".."; then
+if test "${PTLIB_VERSION:-unset}" = "unset" -o "${PTLIB_VERSION}" = ".."; then
   echo "Error: could not determine PWLib version"
   exit
 fi
 
-echo "PTLib version is ${PWLIB_VERSION}"
+echo "PTLib version is ${PTLIB_VERSION}"
 
-if test ${PWLIB_MAJOR_VERSION} -lt 1; then
+if test ${PTLIB_MAJOR_VERSION} -lt 1; then
   echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
   exit
 fi
-if test ${PWLIB_MAJOR_VERSION} -eq 1; then
-  if test ${PWLIB_MINOR_VERSION} -lt 7; then
+if test ${PTLIB_MAJOR_VERSION} -eq 1; then
+  if test ${PTLIB_MINOR_VERSION} -lt 7; then
     echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
     exit
-  elif test ${PWLIB_MINOR_VERSION} -eq 7; then
-    if test ${PWLIB_BUILD_NUMBER} -lt 5; then
+  elif test ${PTLIB_MINOR_VERSION} -eq 7; then
+    if test ${PTLIB_BUILD_NUMBER} -lt 5; then
       echo "Error: at leat PWLib version 1.7.5.2 (Pandora) required"
       exit
     fi
@@ -3432,16 +3428,16 @@ fi
   fi
 fi
 if test "${HAS_OPENH323:-unset}" = "unset" ; then
-  if test -d ${PWLIBDIR}/../openh323; then
-    as_ac_File=`$as_echo "ac_cv_file_${PWLIBDIR}/../openh323/version.h" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PWLIBDIR}/../openh323/version.h" >&5
-$as_echo_n "checking for ${PWLIBDIR}/../openh323/version.h... " >&6; }
+  if test -d ${PTLIBDIR}/../openh323; then
+    as_ac_File=`$as_echo "ac_cv_file_${PTLIBDIR}/../openh323/version.h" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PTLIBDIR}/../openh323/version.h" >&5
+$as_echo_n "checking for ${PTLIBDIR}/../openh323/version.h... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${PWLIBDIR}/../openh323/version.h"; then
+if test -r "${PTLIBDIR}/../openh323/version.h"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3456,7 +3452,7 @@ fi
 
   fi
   if test "${HAS_OPENH323:-unset}" != "unset" ; then
-    OPENH323DIR="${PWLIBDIR}/../openh323"
+    OPENH323DIR="${PTLIBDIR}/../openh323"
   else
     if test -d ${HOME}/openh323/include; then
       as_ac_File=`$as_echo "ac_cv_file_${HOME}/openh323/include/h323.h" | $as_tr_sh`
