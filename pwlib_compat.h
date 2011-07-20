@@ -28,7 +28,7 @@
 
 // check for PConfig support
 #ifndef P_CONFIG_FILE
-	#error "Make sure PWLib has config file support enabled, avoid --disable-configfile or --enable-openh323 or --enable-minsize etc."
+	#error "Make sure PTLib has config file support enabled, avoid --disable-configfile or --enable-openh323 or --enable-minsize etc."
 #endif
 
 // define PTimedMutex for PWLib < 1.9.2
@@ -123,9 +123,9 @@
 
 #if !defined(PWLIB_MAJOR) && !defined(PTLIB_MAJOR)
 	#if _WIN32
-		#pragma message ("warning: Can't detect PWLib/PTLib version")
+		#pragma message ("warning: Can't detect PTLib version")
 	#else
-		#warning "Can't detect PWLib/PTLib version"
+		#warning "Can't detect PTLib version"
 	 #endif
 	// be on the safe side and risk a small memleak instead of a crash
 	#define hasDeletingSetStream 1
