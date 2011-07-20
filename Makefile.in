@@ -56,7 +56,7 @@ space:=$(empty) $(empty)
 .DELETE_ON_ERROR:
 
 # setup various important paths
-PWLIBDIR=@PWLIBDIR@
+PTLIBDIR=@PTLIBDIR@
 OPENH323DIR=@OPENH323DIR@
 OPENH323MAKEDIR=@OPENH323MAKEDIR@
 
@@ -80,7 +80,7 @@ gkdefault: bothdepend optnoshared
 
 # LD_RUN_LIST is the list form of the LD_RUN_PATH
 LD_RUN_LIST := $(subst $(colon),$(space),$(LD_RUN_PATH))
-LD_RUN_LIST += $(PWLIBDIR)/lib $(OPENH323DIR)/lib
+LD_RUN_LIST += $(PTLIBDIR)/lib $(OPENH323DIR)/lib
 
 # compiler/linker flags set by configure script
 STDCCFLAGS += @STDCCFLAGS@
