@@ -608,7 +608,6 @@ bool DNSPolicy::FindByAliases(
 				} else {
 					continue;	// can't route this alias locally, try next alias
 				}
-			} else {
 			}
 			Route route(m_name, dest);
 			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
@@ -658,10 +657,18 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 					PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at));
 					return true;
 				}
+			} else {
+				if (at == P_MAX_INDEX) {
+					// alias is only the hostname
+					Route route(m_name, dest);
+					request.AddRoute(route);
+					PTRACE(4, "ROUTING\tDNS policy resolves to " << domain);
+					return true;
+				}
 			}
 		}
 	}
-	PTRACE(4, "ROUTING\tPolicy DNS only supports LRQs that resolve locally");
+	//JW PTRACE(4, "ROUTING\tPolicy DNS only supports LRQs that resolve locally");
 	return false;
 }
 

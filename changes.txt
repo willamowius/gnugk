@@ -1,5 +1,6 @@
 Changes from 2.3.4 to 2.3.5
 ===========================
+- the DNS policy now also resolves hostnames (without alias@) in LRQs
 - BUGFIX(ProxyChannel.cxx) silently drop GnuGk NAT message if endpoint is not NATed
 - BUGFIX(ProxyChannel.cxx) make sure ReleaseComplete gets dropped if it doesn't belong to a call
 - BUGFIX(ProxyChannel.cxx) strip Private: prefix from H.450.2 transfer destinations
