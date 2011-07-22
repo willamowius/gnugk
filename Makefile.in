@@ -96,6 +96,8 @@ ifdef PASN_NOPRINT
   STDCCFLAGS += -DPASN_NOPRINT
 endif
 
+#STDCCFLAGS += -DRTP_DEBUG=1
+
 ###
 ### Including the general make rules of OpenH323
 ###
