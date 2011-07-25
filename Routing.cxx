@@ -583,8 +583,7 @@ bool ParentPolicy::OnRequest(FacilityRequest & facility_obj)
 DNSPolicy::DNSPolicy()
 {
 	m_name = "DNS";
-	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::DNS", "ResolveNonLocalLRQ", "0"));
-PTRACE(0, "JW resolve=" << m_resolveNonLocalLRQs);
+	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::DNS", "ResolveNonLocalLRQ", "1"));
 }
 
 bool DNSPolicy::FindByAliases(
