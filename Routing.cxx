@@ -50,6 +50,8 @@ const char *SectionName[] = {
 const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
 const char* const CTIsection = "CTI::Agents";
 
+bool DNSPolicy::m_resolveNonLocalLRQs = false;
+
 Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
 {
 	m_destAddr.SetTag(H225_TransportAddress::e_nonStandardAddress);	// set to an invalid address
@@ -578,6 +580,12 @@ bool ParentPolicy::OnRequest(FacilityRequest & facility_obj)
 	return !(facility_obj.GetFlags() & RoutingRequest::e_fromParent) && m_gkClient->SendARQ(facility_obj);
 }
 
+DNSPolicy::DNSPolicy()
+{
+	m_name = "DNS";
+	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::DNS", "ResolveNonLocalLRQ", "0"));
+PTRACE(0, "JW resolve=" << m_resolveNonLocalLRQs);
+}
 
 bool DNSPolicy::FindByAliases(
 	RoutingRequest &request,
@@ -592,6 +600,8 @@ bool DNSPolicy::FindByAliases(
 		PINDEX at = alias.Find('@');
 
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
+		if (domain.Find("ip$") == 0)
+			domain.Replace("ip$", "", false);
 		H225_TransportAddress dest;
 		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
 			PIPSocket::Address addr;
@@ -632,6 +642,8 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		PINDEX at = alias.Find('@');
 
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
+		if (domain.Find("ip$") == 0)
+			domain.Replace("ip$", "", false);
 		H225_TransportAddress dest;
 		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
 			PIPSocket::Address addr;
@@ -657,18 +669,17 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 					PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at));
 					return true;
 				}
-			} else {
-				if (at == P_MAX_INDEX) {
-					// alias is only the hostname
-					Route route(m_name, dest);
-					request.AddRoute(route);
-					PTRACE(4, "ROUTING\tDNS policy resolves to " << domain);
-					return true;
-				}
+			} else if (m_resolveNonLocalLRQs) {
+				Route route(m_name, dest);
+				request.AddRoute(route);
+				PTRACE(4, "ROUTING\tDNS policy resolves to " << domain);
+				return true;
 			}
 		}
 	}
-	//JW PTRACE(4, "ROUTING\tPolicy DNS only supports LRQs that resolve locally");
+	if (!m_resolveNonLocalLRQs) {
+		PTRACE(4, "ROUTING\tPolicy DNS only routes LRQs that resolve locally");
+	}
 	return false;
 }
 

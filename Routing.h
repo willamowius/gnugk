@@ -323,10 +323,13 @@ private:
 // a policy to look up the destination from DNS
 class DNSPolicy : public AliasesPolicy {
 public:
-	DNSPolicy() { m_name = "DNS"; }
+	DNSPolicy();
+
 protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+
+	static bool m_resolveNonLocalLRQs;
 };
 
 // a policy to route call via external program

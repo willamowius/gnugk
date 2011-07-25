@@ -369,6 +369,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "UseProvisionalRespToH245Tunneling" },
 	{ "Routing::CatchAll", "CatchAllAlias" },
 	{ "Routing::CatchAll", "CatchAllIP" },
+	{ "Routing::DNS", "ResolveNonLocalLRQ" },
 	{ "Routing::Sql", "Database" },
 	{ "Routing::Sql", "Driver" },
 	{ "Routing::Sql", "Host" },

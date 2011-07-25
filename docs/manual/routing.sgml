@@ -42,7 +42,7 @@ Route the call using neighbors by exchanging LRQ messages.
 
 <item><tt/dns/<newline>
 <p>
-The destination is resolved from DNS A records or plain IP adresses in the called alias.
+The destination is resolved from DNS A records or plain IP adresses in the called alias. This policy can be configured in the <ref id="routingdns" name="Routing::DNS"> section.
 
 <item><tt/sql/<newline>
 <p>
@@ -350,6 +350,16 @@ The section does not relate to the section
 <ref id="rewrite" name="RasSrv::RewriteE164">,
 though the latter will take effect first.
 
+
+<sect1>Section &lsqb;Routing::DNS&rsqb;
+<label id="routingdns">
+<p>
+<itemize>
+<item><tt/ResolveNonLocalLRQ=0/<newline>
+Default: <tt>1</tt><newline>
+<p>
+This switch selects if the DNS policy should resolve hostnames or IPs in LRQs that don't terminate locally.
+</itemize>
 
 <sect1>Section &lsqb;Routing::Explicit&rsqb;
 <label id="routingexplicit">
