@@ -121,9 +121,9 @@ endif # solaris
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
 
 STDCCFLAGS += -fno-strict-aliasing
-# security flags
-STDCCFLAGS += -fstack-protector
 ifeq "$(OSTYPE)" "linux"
+	# security flags
+	STDCCFLAGS += -fstack-protector
     LDFLAGS += -Wl,-z,relro,-z,now
 endif # linux
 # can't enable PIE on openSuSE 11.4 due to linker bug
