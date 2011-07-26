@@ -1,3 +1,7 @@
+Changes from 2.3.5 to 2.3.6
+===========================
+
+
 Changes from 2.3.4 to 2.3.5
 ===========================
 - new switch [Routing::DNS] ResolveNonLocalLRQ=1 to configure if DNS policy resolves hostnames
