@@ -205,7 +205,7 @@ This section describes rewriting the dialedDigits E.164 number depending on
 the gateway a call has come from or is being sent to. This allows for more
 flexible manipulation of the dialedDigits for routing etc.
 
-Despite the name of the section, you can not only rewite calls from and to gateways,
+Despite the name of the section, you can not only rewrite calls from and to gateways,
 but also calls from terminals (regular endpoints) and neighbor gatekeepers.
 
 In combination
