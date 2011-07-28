@@ -31,7 +31,7 @@ extra_commands="reload"
 load_rc_config $name
 
 # use some defaults if no flags are specified in /etc/rc.conf
-gnugk_flags=${gnugk_flags-"-c /usr/local/etc/gnugk.ini -t -o /var/log/gnugk/gnugk.log"}
+gnugk_flags=${gnugk_flags-"-c /etc/gatekeeper.ini -t -o /var/log/gnugk/gnugk.log"}
 
 run_rc_command "$1"
 

@@ -16,8 +16,8 @@
 
 GNUGK=/usr/sbin/gnugk
 GKPID=/var/run/gnugk.pid
-GKCONFIG=/etc/gnugk.ini
-LOGFILE=/var/log/gk.log
+GKCONFIG=/etc/gatekeeper.ini
+LOGFILE=/var/log/gnugk.log
 
 if [ ! -x $GNUGK ] ; then
   echo "$GNUGK: No such file!"
