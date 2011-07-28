@@ -1,6 +1,8 @@
 Changes from 2.3.5 to 2.3.6
 ===========================
-
+- BUGFIX(ProxyChannel.cxx) always include destCallSignalAddress in Setup to avoid
+  crash in Polycom m100
+- BUGFIX(ProxyChannel.cxx) remove endpointIdentifier from Setup before forwarding
 
 Changes from 2.3.4 to 2.3.5
 ===========================

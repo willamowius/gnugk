@@ -2252,8 +2252,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			setupBody.m_destCallSignalAddress = calledAddr;
 			PTRACE(3, Type() << "\tSetup CRV=" << msg->GetCallReference() 
-				<< " destination address set to " << AsDotString(setupBody.m_destCallSignalAddress)
-				);
+				<< " destination address set to " << AsDotString(setupBody.m_destCallSignalAddress));
 		}
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
@@ -2503,6 +2502,18 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	if (!rejectCall && strlen(authData.m_disabledcodecs) > 0)
 		m_call->SetDisabledCodecs(authData.m_disabledcodecs);
+
+	// remove endpointIdentifier from the forwarded Setup
+	setupBody.RemoveOptionalField(H225_Setup_UUIE::e_endpointIdentifier);
+	
+	// include destCallSignalAddress (Polycom m100 1.0 crashes if its not present)
+	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+		PIPSocket::Address destAddr;
+		WORD destPort = 0;
+		m_call->GetDestSignalAddr(destAddr, destPort);
+		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		setupBody.m_destCallSignalAddress = SocketToH225TransportAddr(destAddr, destPort);
+	}
 
 	// perform outbound rewrite
 	PIPSocket::Address calleeAddr;
