@@ -6054,10 +6054,9 @@ void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress_iPAddres
 	addr >> SrcIP >> SrcPort;
 }
 
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaControlChannel, H245_UnicastAddress_iPAddress *mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * mediaControlChannel, H245_UnicastAddress_iPAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall)
 {
-	// mediaControlChannel should be non-zero.
-	H245_UnicastAddress_iPAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
+	H245_UnicastAddress_iPAddress tmp, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
 
@@ -6065,7 +6064,8 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 		if (mediaChannel == NULL) {
 			return;
 		} else {
-			tmpmediacontrol = *mediaChannel;
+			// set mediaControlChannel if we have a mediaChannel
+			H245_UnicastAddress_iPAddress tmpmediacontrol = *mediaChannel;
 			tmpmediacontrol.m_tsapIdentifier = tmpmediacontrol.m_tsapIdentifier + 1;
 			mediaControlChannel = &tmpmediacontrol;
 			dest = mediaControlChannel;
@@ -6077,7 +6077,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress *mediaC
 		dest = &tmp;
 		*mediaControlChannel >> tmpSrcIP >> tmpSrcPort;
 		if (!mediaChannel) {
-			tmpmedia = *mediaControlChannel;
+			H245_UnicastAddress_iPAddress tmpmedia = *mediaControlChannel;
 			tmpmedia.m_tsapIdentifier = tmpmedia.m_tsapIdentifier - 1;
 			mediaChannel = &tmpmedia;
 		}
@@ -6117,7 +6117,7 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 {
 	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
 	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
-	if (mediaControlChannel == NULL && mediaChannel == NULL) {
+	if (mediaControlChannel == NULL && mediaChannel == NULL) {	// JW: BUG ? OR ?
 		return false;
 	}
 	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false,mcall);
