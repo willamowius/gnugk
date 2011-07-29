@@ -6056,7 +6056,7 @@ void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress_iPAddres
 
 void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * mediaControlChannel, H245_UnicastAddress_iPAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall)
 {
-	H245_UnicastAddress_iPAddress tmp, *dest = mediaControlChannel;
+	H245_UnicastAddress_iPAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
 
@@ -6065,7 +6065,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * media
 			return;
 		} else {
 			// set mediaControlChannel if we have a mediaChannel
-			H245_UnicastAddress_iPAddress tmpmediacontrol = *mediaChannel;
+			tmpmediacontrol = *mediaChannel;
 			tmpmediacontrol.m_tsapIdentifier = tmpmediacontrol.m_tsapIdentifier + 1;
 			mediaControlChannel = &tmpmediacontrol;
 			dest = mediaControlChannel;
@@ -6077,7 +6077,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * media
 		dest = &tmp;
 		*mediaControlChannel >> tmpSrcIP >> tmpSrcPort;
 		if (!mediaChannel) {
-			H245_UnicastAddress_iPAddress tmpmedia = *mediaControlChannel;
+			tmpmedia = *mediaControlChannel;
 			tmpmedia.m_tsapIdentifier = tmpmedia.m_tsapIdentifier - 1;
 			mediaChannel = &tmpmedia;
 		}
@@ -6108,8 +6108,8 @@ bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParam
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
 		return false;
 	H245_UnicastAddress_iPAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
-	H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : 0;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev,mcall);
+	H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : NULL;
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, mcall);
 	return true;
 }
 
@@ -6117,10 +6117,10 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 {
 	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
 	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
-	if (mediaControlChannel == NULL && mediaChannel == NULL) {	// JW: BUG ? OR ?
+	if (mediaControlChannel == NULL && mediaChannel == NULL) {
 		return false;
 	}
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false,mcall);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, mcall);
 	return true;
 }
 
