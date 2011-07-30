@@ -1,5 +1,7 @@
 Changes from 2.3.5 to 2.3.6
 ===========================
+- BUGFIX(ProxyChannel.cxx) fix crash when handling a OLCA without mediaControlChannel
+  on a NATed connection
 - BUGFIX(ProxyChannel.cxx) always include destCallSignalAddress in Setup to avoid
   crash in Polycom m100
 - BUGFIX(ProxyChannel.cxx) remove endpointIdentifier from Setup before forwarding

@@ -5464,9 +5464,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	} else {
 		SetName("(To be autodetected)");
 	}
-	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort) 
-		<< " to " << fDestIP << ':' << fDestPort
-		);
+	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << fDestIP << ':' << fDestPort);
 
 	SetConnected(true);
 
@@ -6904,11 +6902,14 @@ bool NATHandler::SetAddress(H245_UnicastAddress_iPAddress * addr)
 	if (!ChangeAddress(addr))
 	    return addr ? (*addr << remoteAddr, true) : false;
 	else
-		return TRUE;
+		return true;
 }
 
 bool NATHandler::ChangeAddress(H245_UnicastAddress_iPAddress * addr)
 {
+	if (!addr)
+		return false;
+
    PIPSocket::Address olcAddr = 
 	   PIPSocket::Address(addr->m_network.GetSize(), addr->m_network.GetValue());
 
