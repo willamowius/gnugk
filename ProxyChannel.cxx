@@ -6910,18 +6910,18 @@ bool NATHandler::ChangeAddress(H245_UnicastAddress_iPAddress * addr)
 	if (!addr)
 		return false;
 
-   PIPSocket::Address olcAddr = 
-	   PIPSocket::Address(addr->m_network.GetSize(), addr->m_network.GetValue());
+	PIPSocket::Address olcAddr = 
+		PIPSocket::Address(addr->m_network.GetSize(), addr->m_network.GetValue());
 
-   // Is NATed Endpoint
-   if (olcAddr.IsRFC1918())
-	   return FALSE;
+	// Is NATed Endpoint
+	if (olcAddr.IsRFC1918())
+		return false;
 
-   // if the OLC address differs from the remote NAT address
-   if (remoteAddr != olcAddr) 
-      remoteAddr = olcAddr;
+	// if the OLC address differs from the remote NAT address
+	if (remoteAddr != olcAddr) 
+		remoteAddr = olcAddr;
 
-   return true;
+	return true;
 }
 
 
