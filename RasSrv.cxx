@@ -1729,9 +1729,9 @@ bool RegistrationRequestPDU::Process()
 	bool preemptsupport = false;
 	PBoolean preempt = false;
 	unsigned ntype = 100;  // UnAllocated NAT Type
-	H225_TransportAddress alg_csAddress;	// ALG CallSignal Address
 #ifdef HAS_H46018
 	PBoolean supportH46018 = false;
+	H225_TransportAddress originalCallSigAddress;	// original call signal address (to restore if H.460.18 is disabled)
 #endif
 #ifdef HAS_H46023
 	PBoolean supportH46023 = false;
@@ -1766,12 +1766,14 @@ bool RegistrationRequestPDU::Process()
 					h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
 					if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
 						supportH46018 = true;
-						// ignore rasAddr ans use apparent address
+						// ignore rasAddr and use apparent address
 						const WORD rx_port = m_msg->m_peerPort;
 						request.m_rasAddress.SetSize(1);
 						request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
 						// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
-						// if using H.460.23 and an ALG is detected, remember the CS Address so H.460.18 can be disabled.
+						// this needs to be reversed if we disable H.460.18 for this endpoint later on
+						if (request.m_callSignalAddress.GetSize() > 0)
+							originalCallSigAddress = request.m_callSignalAddress[0];
 						request.m_callSignalAddress.SetSize(1);
 						request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
 					}
@@ -2207,6 +2209,11 @@ bool RegistrationRequestPDU::Process()
 		PTRACE(3, "H46018\tEP on " << rx_addr << " supports H.460.18");
 		ep->SetUsesH46018(true);
 		ep->SetNATAddress(rx_addr);
+	}
+	if (supportH46018 && ep->IsH46018Disabled()) {
+		// if the endpoint wanted H.460.18, we had overwritten its callSignalAddr above
+		// we have to restore it here if we disable H.460.18 for this endpoint
+		ep->SetCallSignalAddress(originalCallSigAddress);
 	}
 #endif // HAS_H46018
 
