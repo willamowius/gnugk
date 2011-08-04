@@ -302,6 +302,7 @@ public:
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
 	void SetUsesH46019(bool val) { m_useH46019 = val; }
 	bool UsesH46019() const { return m_useH46019; }
+	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
 #endif
 
 	// override from class ProxySocket
@@ -335,6 +336,7 @@ private:
 #ifdef HAS_H46018
 	bool m_h46019fc;
 	bool m_useH46019;
+	bool m_h46019uni;
 	bool m_h46019DetectionDone;
 	PMutex m_h46019DetectionLock;
 #endif
@@ -408,6 +410,7 @@ public:
 	bool IsOpen() const;
 	void SetUsesH46019fc(bool);
 	void SetH46019Direction(int dir);
+	void SetH46019UniDirectional(bool uni);
 	void SetRTPSessionID(WORD id);
 
 private:
@@ -861,15 +864,17 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46018
-		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) 
+		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
 			proxyhandler->SetUsesH46019(true);
+		}
 		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 #endif
 		socket->m_h245handler = proxyhandler;
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46018
-		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) 
-			((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);	
+		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
+			((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
+		}
 		((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 #endif
 		proxyhandler->SetHandler(GetHandler());
@@ -3865,10 +3870,10 @@ void CallSignalSocket::OnFacility(
 					Address calling = INADDR_ANY, called = INADDR_ANY;
 					/*int nat_type = */ m_call->GetNATType(calling, called);
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
-					proxyhandler->SetUsesH46019(true);
 					proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
-					if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) 
+					if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
 						proxyhandler->SetUsesH46019(true);
+					}
 					callingSocket->m_h245handler = proxyhandler;
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
@@ -5401,7 +5406,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 		m_call(NULL), fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0)
 #ifdef HAS_H46018
-	, m_h46019fc(false), m_useH46019(false), m_h46019DetectionDone(false)
+	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_h46019DetectionDone(false)
 #endif
 {
 	// set flags for RTP/RTCP to avoid string compares later on
@@ -5592,7 +5597,15 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 #endif	// HAS_H46018
 
-	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP (reverse = fastStart ?)
+	// fix for H.239 from H.460.19 client
+	if (!m_h46019DetectionDone && UsesH46019() && m_h46019uni
+		&& fSrcIP == 0 && fDestIP != 0 && rSrcIP== 0 && rDestIP==0) {
+		PTRACE(5, "H46018\tSetting forward destination on unidirectional channel to " << fromIP << ":" << fromPort);
+		fSrcIP = fromIP, fSrcPort = fromPort;
+		m_h46019DetectionDone = true;
+	}
+
+	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
 	if (rSrcIP == 0 && fromIP == fDestIP) {
 		rSrcIP = fromIP, rSrcPort = fromPort;
@@ -6031,6 +6044,14 @@ void RTPLogicalChannel::SetH46019Direction(int dir)
 	if (rtcp)
 		rtcp->SetUsesH46019(dir > H46019_NONE);	
 }
+
+void RTPLogicalChannel::SetH46019UniDirectional(bool uni)
+{
+	if (rtp) 	 
+		rtp->SetH46019UniDirectional(uni);
+	if (rtcp) 	 
+		rtcp->SetH46019UniDirectional(uni);
+}
 #endif
 
 void RTPLogicalChannel::SetRTPSessionID(WORD id)
@@ -6423,6 +6444,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 
 #ifdef HAS_H46018
 		// add traversal parameters if using H.460.19
+		bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
@@ -6447,6 +6469,18 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			if (olc.m_genericInformation.GetSize() == 0)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 		}
+
+		// check if we are doing unidirectional H.239 from a H.460.19 client
+		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) { 	 
+			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType; 	 
+			m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability); 	 
+			if (UsesH46019() && m_h46019uni) {
+				LogicalChannel * lc = FindLogicalChannel(flcn);
+				if (lc) {
+					((RTPLogicalChannel*)lc)->SetH46019UniDirectional(m_h46019uni);
+				}
+			}
+		} 	 
 
 		// We don't put the generic identifier on the reverse OLC.
 		if (UsesH46019fc() && isReverseLC)

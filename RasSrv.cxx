@@ -3122,7 +3122,6 @@ bool AdmissionRequestPDU::Process()
 		if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "CallEndOnly", "1"))) {
 			H460_FeatureID finalonly = H460_FeatureID(0); // TODO: standard says 0, Wireshark says 1, PVX ignores both
 			feat.AddParameter(&finalonly);
-			// delete finalonly;
 		}
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
 		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);

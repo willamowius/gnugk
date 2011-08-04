@@ -1,5 +1,6 @@
 Changes from 2.3.5 to 2.3.6
 ===========================
+- BUGFIX(ProxyChannel.cxx) fix H.239 where only one sides uses H.460.19
 - BUGFIX(RasSrv.cxx) use correct callSignalAddress for H.460.18 enabled endpoint if H.460.18
   has been disabled per endpoint
 - BUGFIX(ProxyChannel.cxx) fix crash when handling a OLCA without mediaControlChannel
