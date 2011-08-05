@@ -1,4 +1,5 @@
 #!/bin/sh
+# initd script for Redhat and CentOS (eg. 5.x)
 #
 # gnugk         This shell script takes care of starting and stopping \
 #               gnugk (the GNU Gatekeeper daemon)

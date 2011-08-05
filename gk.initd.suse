@@ -1,4 +1,5 @@
 #! /bin/sh
+# initd script for OpenSuSE 9.x
 # Copyright (c) 1995-1998 SuSE GmbH Nuernberg, Germany.
 # Copyright (c) 2000 telos Systementwicklung GmbH
 # Copyright (c) 2000-2009 Jan Willamowius

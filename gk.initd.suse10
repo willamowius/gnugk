@@ -1,4 +1,5 @@
 #! /bin/sh
+# initd script for OpenSuSE 10.x
 # Copyright (c) 2005-2007 Jan Willamowius
 #
 # Note: On Suse 10.2, you should use the tradional network management using ifup.
