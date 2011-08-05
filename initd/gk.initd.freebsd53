@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# $FreeBSD:$
+#
+# PROVIDE: gnugk
+# REQUIRE: LOGIN
+#
+# Rename this file to gnugk.sh and copy to /usr/local/etc/rc.d/gnugk.sh
+#
+# Add to /etc/rc.conf two lines:
+# gnugk_enable="YES"
+# gnugk_flags="-c ? -o ? ... any flags you need"
+#
+# Default config location: /usr/local/etc/gnugk.ini
+# Default log file location: /var/log/gnugk/gnugk.log
+# Default PID file location: /var/run/gnugk.pid
+
+. /etc/rc.subr
+
+name="gnugk"
+rcvar=`set_rcvar`
+pidfile="/var/run/${name}.pid"
+command="/usr/local/sbin/gnugk"
+command_args=">/dev/null &"
+extra_commands="reload"
+
+# Use this to prevent GnuGk running as root, you can also set it in /etc/rc.conf
+#gnugk_user=gnugk
+#gnugk_group=gnugk
+
+load_rc_config $name
+
+# use some defaults if no flags are specified in /etc/rc.conf
+gnugk_flags=${gnugk_flags-"-c /etc/gatekeeper.ini -t -o /var/log/gnugk/gnugk.log"}
+
+run_rc_command "$1"
+

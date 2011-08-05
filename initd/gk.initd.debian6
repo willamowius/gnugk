@@ -1,0 +1,112 @@
+#! /bin/sh
+# initd script for Debian 6 (works also on Debian 5)
+
+### BEGIN INIT INFO
+# Provides:          gnugk
+# Required-Start:    $syslog
+# Required-Stop:     $syslog
+# Should-Start:      $local_fs $network $named
+# Should-Stop:       $local_fs $network $named
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start GnuGk
+# Description:       Run the GNU Gatekeeper as daemon
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/gnugk
+CONFIG=/etc/gatekeeper.ini
+NAME=gnugk
+DESC='GNU Gatekeeper'
+ARGS="--config $CONFIG --output /var/log/gnugk/gnugk.log --pid /var/run/gnugk/gnugk.pid"
+
+test -x $DAEMON -a -f $CONFIG|| exit 0
+# we need to be able to run the daemon
+
+ulimit -c unlimited
+ulimit -d unlimited
+ulimit -f unlimited
+ulimit -n 999999
+ulimit -v unlimited
+ulimit -l unlimited
+
+#
+# Add this to /etc/default/gnugk:
+## Configuration of GnuGK:
+## 
+## Shall we launch GnuGK on bootup? (Needs to be "yes" or it won't start)
+#START_ON_BOOT=yes
+#RESTART=yes
+#
+## Additional params like debugging?
+#PARAMS="--core unlimited"
+#NICE=-20
+##REALTIME=61 - only for -rt kernels
+#
+
+[ -f /etc/default/gnugk ]&&. /etc/default/gnugk
+if [ "$START_ON_BOOT" != "yes" ]; then
+	echo "$NAME : disabled in /etc/default/gnugk."
+	exit 0
+fi
+
+if [ "$RESTART" != "yes" ]; then
+	echo "$NAME restart: disabled in /etc/default/gnugk."
+	exit 0
+fi
+
+if [ -n "$PARAMS" ]; then
+	ARGS=" $PARAMS $ARGS "
+fi
+
+if [ ! -d "/var/run/$NAME" ]; then
+    mkdir "/var/run/$NAME"
+    chown gnugk.gnugk "/var/run/$NAME"
+fi
+
+set -e
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	start-stop-daemon --start --quiet --nicelevel $NICE \
+		--chuid $NAME --pidfile /var/run/$NAME/$NAME.pid \
+		--background --exec $DAEMON -- $ARGS
+	echo "$NAME."
+	if [ -n "$REALTIME" ]; then
+	sleep 3
+	echo "Changing $NAME cheduler and priority."
+	chrt -f -p $REALTIME `pidof gnugk`
+	ulimit -a
+	fi
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+		start-stop-daemon --stop --quiet \
+		--pidfile /var/run/$NAME/$NAME.pid \
+		--exec $DAEMON --oknodo
+	echo "$NAME."
+	;;
+  reload)
+	echo "Reloading $DESC configuration files."
+	start-stop-daemon --stop --signal 1 --quiet --pidfile \
+		/var/run/$NAME/$NAME.pid --exec $DAEMON
+  ;;
+  restart|force-reload)
+	#
+	#	If the "reload" option is implemented, move the "force-reload"
+	#	option to the "reload" entry above. If not, "force-reload" is
+	#	just the same as "restart".
+	#
+	$0 stop && $0 start
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	# echo "Usage: $N {start|stop|restart|reload|force-reload}" >&2
+	echo "Usage: $N {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+
+exit 0
+

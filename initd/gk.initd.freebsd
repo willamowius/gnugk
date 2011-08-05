@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# gnugk		This shell script takes care of starting and stopping
+#			gnugk (the GNU Gatekeeper daemon)
+#
+# Coded by Dariusz Wrebiak <dariusz.wrebiak@cstnet.com.pl>
+#
+#		Cyfrowe Systemy Telekomunikacyjne Sp z O.O.
+#		ul. Szkotnik 2B, 33-100 Tarnow
+#		Poland
+#		tel: (+048) 146376600
+#		fax: (+048) 146376621
+#		www: http://cstnet.com.pl
+#		e-mail: office@cstnet.com.pl
+#
+
+GNUGK=/usr/sbin/gnugk
+GKPID=/var/run/gnugk.pid
+GKCONFIG=/etc/gatekeeper.ini
+LOGFILE=/var/log/gnugk.log
+
+if [ ! -x $GNUGK ] ; then
+  echo "$GNUGK: No such file!"
+  exit 0
+fi
+
+if [ ! -f $GKCONFIG ] ; then
+  echo "$GKCONFIG: No such file!"
+  exit 0
+fi
+
+start() {
+  if [ -f $GKPID ] ; then
+    echo "$GNUGK is running!"
+    exit 0
+  fi
+  if [ -f $LOGFILE ] ; then
+    mv $LOGFILE $LOGFILE.old
+  fi
+  echo -n "Starting $GNUGK: "
+  $GNUGK -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
+  echo ""
+}
+
+stop() {
+  if [ ! -f $GKPID ] ; then
+    echo "$GNUGK is not running!"
+    exit 0
+  fi
+  echo -n "Stopping $GNUGK: "
+  kill -9 "`cat $GKPID`"
+  rm -rf $GKPID
+  echo ""
+}
+
+restart() {
+  stop
+  start
+}
+
+case "$1" in
+  start)
+    start
+    exit 0
+    ;;
+  stop)
+    stop
+    exit 0
+    ;;
+  restart)
+    restart
+    exit 0
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 0
+esac 
+
