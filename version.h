@@ -1,33 +1,16 @@
-/* -*- mode: c++; eval: (c-set-style "linux"); -*-
-** Copyright (C) 2002 Dr.-Ing. Martin Froehlich <Martin.Froehlich@mediaWays.net>
-**
-** PURPOSE OF THIS FILE: PWLib conform versioning
-**
-** WARNING: This file is edited automatically by the makefile, if opened by
-**          an editor, reload from disk before adding own changes!
-**
-** Note: Do not add spaces manually between macros and their values, that
-** may lead to not nice design of some markers and makes tham difficult to
-** quote correctly in e.g. a debugger
-**
-** - Automatic Version Information via RCS:
-**   $Id$
-**   $Source$
-**
-** This program is free software; you can redistribute it and/or modify
-** it under the terms of the GNU General Public License version 2 as published by
-** the Free Software Foundation.
-**
-** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-** GNU General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software
-** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-**
-*/
+//////////////////////////////////////////////////////////////////
+//
+// Version number for GnuGk
+//
+// Copyright (c) 2002, Dr.-Ing. Martin Froehlich <Martin.Froehlich@mediaWays.net>
+// Copyright (c) 2006-2011, Jan Willamowius
+//
+// This work is published under the GNU Public License version 2 (GPLv2)
+// see file COPYING for details.
+// We also explicitly grant the right to link this code
+// with the OpenH323/H323Plus and OpenSSL library.
+//
+//////////////////////////////////////////////////////////////////
 
 #ifndef GNUGK_VERSION_H
 #define GNUGK_VERSION_H "@(#) $Id$"
