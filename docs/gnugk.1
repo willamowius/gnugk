@@ -10,7 +10,7 @@
 .\" Created: Tue May  15 2005 
 .\"
 .\"
-.Dd January 18, 2011
+.Dd August 7, 2011
 .Dt GNUGK 1 
 .Os
 .Sh NAME
@@ -32,8 +32,10 @@
 .Op Fl -core Ar n
 .Sh DESCRIPTION
 .Bl -tag -width Ds
-The GNU Gatekeeper is an open-source project that implements a H.323 gatekeeper. A H323 gatekeeper controls all H.323 clients in its zone. It allows you, among other things, to register devices, make calls, perform AAA (Authentication, Authorization and Auditing), manage configurations at runtime and traverse NAT.
+The GNU Gatekeeper is an open-source project that implements a H.323 gatekeeper. A H.323 gatekeeper controls all H.323 clients in its zone. It allows you, among other things, to register devices, make calls, perform AAA (Authentication, Authorization and Auditing), manage configurations at runtime and traverse NAT.
+.El
 .Sh OPTIONS
+.Bl -tag -width Ds
 The behavior of the gatekeeper is determined through command line options and the configuration file. Some command line options may override settings found in the configuration file. For example, the option 
 .Em -l 
 overrides the setting "TimeToLive" in the configuration file. 
