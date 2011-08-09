@@ -5475,14 +5475,8 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 	SetConnected(true);
 
-	if (m_isRTCPType) {
-	    mcall->SetSRC_media_control_IP(fDestIP.AsString());
-	    mcall->SetDST_media_control_IP(srcIP.AsString());
-	}
-	if (m_isRTPType) {
-	    mcall->SetSRC_media_IP(fDestIP.AsString());
-	    mcall->SetDST_media_IP(srcIP.AsString());
-	}
+	SetMediaIP("SRC", fDestIP);
+	SetMediaIP("DST", srcIP);
 
 #if defined(HAS_H46018) && defined(HAS_H46024B)
 	// If required begin Annex B probing
@@ -5490,7 +5484,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		mcall->H46024BSessionFlag(m_sessionID);
 	}
 #endif
-	
+
 	m_call = &mcall;		
 }
 
@@ -5502,15 +5496,12 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	addr >> rDestIP >> rDestPort;
 
 	PTRACE(5, Type() << "\tReverse " << srcIP << ':' << srcPort << " to " << rDestIP << ':' << rDestPort);
+
 	SetConnected(true);
-	if (m_isRTCPType) {
-	    mcall->SetSRC_media_control_IP(srcIP.AsString());
-	    mcall->SetDST_media_control_IP(rDestIP.AsString());
-	}
-	if (m_isRTPType) {
-	    mcall->SetSRC_media_IP(srcIP.AsString());
-	    mcall->SetDST_media_IP(rDestIP.AsString());
-	}
+
+	SetMediaIP("SRC", srcIP);
+	SetMediaIP("DST", rDestIP);
+
 	m_call = &mcall;
 }
 
