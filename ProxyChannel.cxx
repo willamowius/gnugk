@@ -378,7 +378,7 @@ public:
 	WORD GetChannelNumber() const { return channelNumber; }
 	void SetChannelNumber(WORD cn) { channelNumber = cn; }
 
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *,callptr &) = 0;
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromH46019) = 0;
 	virtual void StartReading(ProxyHandler *) = 0;
 	virtual void SetRTPMute(bool toMute) = 0;
 
@@ -396,11 +396,11 @@ public:
 
 	void SetMediaChannelSource(const H245_UnicastAddress_iPAddress &);
 	void SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress &);
-	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool, callptr &);
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &);
+	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool, callptr &, bool fromH46019);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &, bool);
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *,callptr &);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromH46019);
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool toMute);
 
@@ -431,9 +431,9 @@ public:
 	virtual ~T120LogicalChannel();
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *,callptr &);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool /*fromH46019*/);
 	virtual void StartReading(ProxyHandler *);
-	virtual void SetRTPMute(bool /*toMute*/) {};   /// We do not Mute T.120 Channels
+	virtual void SetRTPMute(bool /*toMute*/) { }   /// We do not Mute T.120 Channels
 
 	void Create(T120ProxySocket *);
 	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
@@ -537,7 +537,7 @@ private:
 	virtual bool HandleResponse(H245_ResponseMessage &, callptr &);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
 	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &, callptr &);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &);
@@ -5522,6 +5522,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	Address fromIP;
 	WORD fromPort;
 	GetLastReceiveAddress(fromIP, fromPort);
+	H323TransportAddress fromAddr(fromIP, fromPort);	// for easier comparison
 	buflen = (WORD)GetLastReadCount();
 	unsigned int version = 0;	// RTP version
 	if (buflen >= 1)
@@ -5551,24 +5552,27 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
 		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
 		);
-	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc << " isRTP=" << m_isRTPType << " isRTCP=" << m_isRTCPType);
+	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni);
 #endif // RTP_DEBUG
 
 	// detecting ports for H.460.19
 	if (!m_h46019DetectionDone) {
 		if (!UsesH46019()) {
-			m_h46019DetectionDone = true;	// skip port detection if H.460.19 isn't used
+			m_h46019DetectionDone = true;	// skip H.460.19 port detection if H.460.19 isn't used
 		}
 		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
 			PWaitAndSignal mutexWait (m_h46019DetectionLock);
+			// combine IP+port for easier comparison
+			H323TransportAddress fDestAddr(fDestIP, fDestPort);
+			H323TransportAddress rDestAddr(rDestIP, rDestPort);
 			PTRACE(5, "H46018\tRTP/RTCP keepAlive from " << fromIP << ":" << fromPort);
-			if ((fDestIP == 0) && (fromIP != rDestIP) && (fromPort != rDestPort)) {
+			if ((fDestIP == 0) && (fromAddr != rDestAddr)) {
 				// fwd dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting forward destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
 				fDestIP = fromIP; fDestPort = fromPort;
 				rSrcIP = fromIP; rSrcPort = fromPort;
 			}
-			if ((rDestIP == 0) && (fromIP != fDestIP) && (fromPort != fDestPort)) {
+			else if ((rDestIP == 0) && (fromAddr != fDestAddr)) {
 				// reverse dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting reverse destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
 				rDestIP = fromIP; rDestPort = fromPort;
@@ -5597,12 +5601,40 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 #endif	// HAS_H46018
 
-	// fix for H.239 from H.460.19 client
-	if (!m_h46019DetectionDone && UsesH46019() && m_h46019uni
-		&& fSrcIP == 0 && fDestIP != 0 && rSrcIP== 0 && rDestIP==0) {
-		PTRACE(5, "H46018\tSetting forward destination on unidirectional channel to " << fromIP << ":" << fromPort);
-		fSrcIP = fromIP, fSrcPort = fromPort;
-		m_h46019DetectionDone = true;
+	// set of fixes for H.460.19 port detection
+	if (UsesH46019() && !m_h46019DetectionDone) {
+		// fix for H.239 from H.460.19 client
+		if (m_h46019uni
+			&& fSrcIP == 0 && fDestIP != 0 && rDestIP == 0) {
+			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << fromIP << ":" << fromPort);
+			fSrcIP = fromIP, fSrcPort = fromPort;
+			m_h46019DetectionDone = true;
+		}
+		// fix for H.224 connection: m100 doesn't send keepAlive, but we can see where it apparently comes from
+		if (!m_h46019uni) {
+			// TODO: should we wait for a number of RTP packets before we do H.460.19 auto-detection without keepalives ?
+			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
+			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0 && rSrcIP != 0 && fromAddr != rSrcAddr) {
+				PTRACE(5, "H46018\tAuto-detecting forward source on H.460.19 channel to " << fromIP << ":" << fromPort);
+				fSrcIP = fromIP, fSrcPort = fromPort;
+			}
+			H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
+			if (fSrcIP != 0 && rDestIP != 0 && fDestIP == 0 && rSrcIP == 0 && fromAddr != fSrcAddr) {
+				PTRACE(5, "H46018\tAuto-detecting reverse source on H.460.19 channel to " << fromIP << ":" << fromPort);
+				rSrcIP = fromIP, rSrcPort = fromPort;
+			}
+		}
+		// set RTCP destination in channels with only 1 H.460.19 client
+		// (we only saved it as source IP form the OLC and didn't set the dest IP)
+		// JW TODO: move to Handle... where the source is set ?
+		if (m_isRTCPType && fSrcIP != 0 && fDestIP == 0 && rSrcIP == 0 && rDestIP == 0) {
+			PTRACE(5, "H46018\tSet RTCP reverse dest from forward source to " << fSrcIP << ":" << fSrcPort);
+			rDestIP = fSrcIP, rDestPort = fSrcPort;
+		}
+		if (m_isRTCPType && fSrcIP == 0 && fDestIP == 0 && rSrcIP != 0 && rDestIP == 0) {
+			PTRACE(5, "H46018\tSet RTCP forward dest from reverse source to " << rSrcIP << ":" << rSrcPort);
+			fDestIP = rSrcIP, fDestPort = rSrcPort;
+		}
 	}
 
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP
@@ -5831,7 +5863,7 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 	// we should have 2 queues to avoid loopback
 	const int queueSize = GetQueueSize();
 	if (queueSize > 0) {
-		if (queueSize < 50) {
+		if (queueSize < 50 && !m_dontQueueRTP) {
 			QueuePacket(buffer, len);
 			PTRACE(3, Type() << '\t' << Name() << " socket is busy, " << len << " bytes queued");
 			return false;
@@ -6073,7 +6105,7 @@ void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress_iPAddres
 	addr >> SrcIP >> SrcPort;
 }
 
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * mediaControlChannel, H245_UnicastAddress_iPAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * mediaControlChannel, H245_UnicastAddress_iPAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromH46019)
 {
 	H245_UnicastAddress_iPAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
@@ -6097,21 +6129,37 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * media
 		*mediaControlChannel >> tmpSrcIP >> tmpSrcPort;
 		if (!mediaChannel) {
 			tmpmedia = *mediaControlChannel;
-			tmpmedia.m_tsapIdentifier = tmpmedia.m_tsapIdentifier - 1;
+			if (tmpmedia.m_tsapIdentifier > 0)
+				tmpmedia.m_tsapIdentifier = tmpmedia.m_tsapIdentifier - 1;
 			mediaChannel = &tmpmedia;
 		}
 	}
 	UDPProxySocket::pMem SetDest = (reversed) ? &UDPProxySocket::SetReverseDestination : &UDPProxySocket::SetForwardDestination;
 	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, *dest, mcall);
+#ifdef HAS_H46018
+	if (fromH46019) {
+		PTRACE(5, "H46018\tSetting control channel destination to 0");
+		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, 0, mcall);
+	}
+#endif
 	*mediaControlChannel << local << (port + 1);
 
 	if (mediaChannel) {
 		if (rev) {
-			tmp.m_tsapIdentifier = tmp.m_tsapIdentifier - 1;
+			if (tmp.m_tsapIdentifier > 0)
+				tmp.m_tsapIdentifier = tmp.m_tsapIdentifier - 1;
 		} else {
 			dest = mediaChannel;
 		}
-		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort - 1, *dest, mcall);
+		if (tmpSrcPort > 0)
+			tmpSrcPort -= 1;
+		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, *dest, mcall);
+#ifdef HAS_H46018
+		if (fromH46019) {
+			PTRACE(5, "H46018\tSetting media channel destination to 0");
+			(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, 0, mcall);
+		}
+#endif
 		*mediaChannel << local << port;
 	}
 }
@@ -6122,24 +6170,24 @@ void RTPLogicalChannel::SetRTPMute(bool toMute)
 		rtp->SetMute(toMute);
 }
 
-bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & mcall)
+bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromH46019)
 {
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
 		return false;
 	H245_UnicastAddress_iPAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : NULL;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, mcall);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, mcall, fromH46019);
 	return true;
 }
 
-bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler, callptr & mcall)
+bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler, callptr & mcall, bool fromH46019)
 {
 	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
 	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
 	if (mediaControlChannel == NULL && mediaChannel == NULL) {
 		return false;
 	}
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, mcall);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, mcall, fromH46019);
 	return true;
 }
 
@@ -6200,7 +6248,7 @@ T120LogicalChannel::~T120LogicalChannel()
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
 
-bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & mcall)
+bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & mcall, bool /*fromH46019*/)
 {
 	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
 		OnSeparateStack(olca.m_separateStack, _handler) : false;
@@ -6377,7 +6425,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		*addr << GetMasqAddr() << (lc->GetPort() + 1);
 #ifdef HAS_H46018
 		if (UsesH46019()) {
-			PTRACE(5, "H46018\tSetting control port to 0");
+			PTRACE(5, "H46018\tSetting control channel to 0");
 			lc->SetMediaControlChannelSource(0);
 		}
 #endif
@@ -6391,7 +6439,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 			*addr << GetMasqAddr() << lc->GetPort();
 #ifdef HAS_H46018
 			if (UsesH46019()) {
-				PTRACE(5, "H46018\tSetting media port to 0");
+				PTRACE(5, "H46018\tSetting media channel to 0");
 				lc->SetMediaChannelSource(0);
 			}
 #endif
@@ -6471,9 +6519,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 		}
 
 		// check if we are doing unidirectional H.239 from a H.460.19 client
-		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) { 	 
-			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType; 	 
-			m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability); 	 
+		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
+			m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
 			if (UsesH46019() && m_h46019uni) {
 				LogicalChannel * lc = FindLogicalChannel(flcn);
 				if (lc) {
@@ -6593,7 +6641,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 #endif
 
-	bool result = lc->SetDestination(olca, this, mcall);
+	bool result = lc->SetDestination(olca, this, mcall, UsesH46019());
 	if (result)
 		lc->StartReading(handler);
 	return result;
@@ -6775,7 +6823,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 		}
 	}
-	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, mcall)))
+	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, mcall, UsesH46019())))
 		lc->StartReading(handler);
 	return changed;
 }
