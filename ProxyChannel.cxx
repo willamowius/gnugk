@@ -313,6 +313,8 @@ protected:
 	virtual bool Flush();
 	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
+	void SetMediaIP(const PString & direction, const Address & ip);
+
 	// RTCP handler
 	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
@@ -5512,6 +5514,24 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	m_call = &mcall;
 }
 
+void UDPProxySocket::SetMediaIP(const PString & direction, const Address & ip)
+{
+	if (*m_call) {
+		if (m_isRTCPType) {
+			if (direction == "SRC")
+				(*m_call)->SetSRC_media_control_IP(ip.AsString());
+			else if (direction == "DST")
+				(*m_call)->SetDST_media_control_IP(ip.AsString());
+		}
+		if (m_isRTPType) {
+			if (direction == "SRC")
+				(*m_call)->SetSRC_media_IP(ip.AsString());
+			else if (direction == "DST")
+				(*m_call)->SetDST_media_IP(ip.AsString());
+		}
+	}
+}
+
 // this method handles either RTP, RTCP or T.38 data
 ProxySocket::Result UDPProxySocket::ReceiveData()
 {
@@ -5571,12 +5591,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				PTRACE(5, "H46018\tSetting forward destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
 				fDestIP = fromIP; fDestPort = fromPort;
 				rSrcIP = fromIP; rSrcPort = fromPort;
+				SetMediaIP("SRC", fDestIP);
 			}
 			else if ((rDestIP == 0) && (fromAddr != fDestAddr)) {
 				// reverse dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting reverse destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
 				rDestIP = fromIP; rDestPort = fromPort;
 				fSrcIP = fromIP; fSrcPort = fromPort;
+				SetMediaIP("DST", rDestIP);
 			}
 			if ((fDestIP != 0) && (rDestIP != 0)) {
 				m_h46019DetectionDone = true;
