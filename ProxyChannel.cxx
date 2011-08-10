@@ -5507,7 +5507,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 
 void UDPProxySocket::SetMediaIP(const PString & direction, const Address & ip)
 {
-	if (*m_call) {
+	if (m_call && *m_call) {
 		if (m_isRTCPType) {
 			if (direction == "SRC")
 				(*m_call)->SetSRC_media_control_IP(ip.AsString());
