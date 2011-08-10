@@ -283,7 +283,7 @@ PString GetGUIDString(
 		i += 4;
 		
 		idstr += fixedLength ? PString(PString::Printf, "%08x", hex)
-			: PString(PString::Unsigned, (long)hex, 16);
+			: PString(PString::Unsigned, (PInt64)hex, 16);
 		if (j < 3)
 			idstr += ' ';
 	}

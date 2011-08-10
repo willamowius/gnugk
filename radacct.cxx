@@ -185,7 +185,7 @@ GkAcctLogger::Status RadAcct::Log(
 						toolkit->AsString(PTime(tm), m_timestampFormat));
 				
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause,
-					PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16)
+					PString(PString::Unsigned, (PInt64)(call->GetDisconnectCause()), 16)
 					);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec,call->GetCodec());
