@@ -5612,7 +5612,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (isRTPKeepAlive) {
 		return NoData;	// don't forward RTP keepAlive (RTCP uses first data packet which must be forwarded)
 	}
-#endif	// HAS_H46018
 
 	// set of fixes for H.460.19 port detection
 	if (UsesH46019() && !m_h46019DetectionDone) {
@@ -5649,6 +5648,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = rSrcIP, fDestPort = rSrcPort;
 		}
 	}
+#endif	// HAS_H46018
 
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
