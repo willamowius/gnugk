@@ -66,7 +66,7 @@ GkAcctLogger::GkAcctLogger(
 		m_enabledEvents = GetEvents(control);
 	
 	PTRACE(1, "GKACCT\tCreated module " << moduleName << " with event mask "
-		<< PString(PString::Unsigned, (PInt64)m_enabledEvents, 16)
+		<< PString(PString::Unsigned, (long)m_enabledEvents, 16)
 		);
 }
 
