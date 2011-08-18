@@ -108,10 +108,6 @@ public:
 	void Release();
 
 	static void Initialize();
-	static RegistrationTable *GetEndpointTbl()
-	        { return EndpointTbl; }
-	static CallTable *GetCallTbl()
-	        { return CallTbl; }
 protected:
 	RasMsg(GatekeeperMessage *m) : m_msg(m) {}
 	RasMsg(const RasMsg &);
@@ -174,14 +170,9 @@ public:
 	bool IsReachable(const Address *) const;
 
 	RasListener *GetRasListener() const { return m_rasListener; }
-	MulticastListener *GetMulticastListener() const { return m_multicastListener; }
-	CallSignalListener *GetCallSignalListener() const { return m_callSignalListener; }
-	StatusListener *GetStatusListener() const { return m_statusListener; }
 
 	WORD GetRasPort() const { return m_rasPort; }
-	WORD GetMulticastPort() const { return m_multicastPort; }
 	WORD GetSignalPort() const { return m_signalPort; }
-	WORD GetStatusPort() const { return m_statusPort; }
 
 protected:
 	bool ValidateSocket(IPSocket *, WORD &);
