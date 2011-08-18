@@ -979,7 +979,7 @@ int GkStatus::ParseCommand(
 			else
 				expandedCmd = iter;
 		}
-		iter++;
+		++iter;
 	}
 	if( expandedCmd != m_commands.end() ) {
 		PTRACE(6, "STATUS\tExpanded prefix '" << command << "' into command '" 
