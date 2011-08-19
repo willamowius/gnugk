@@ -2,7 +2,7 @@
 //
 // singleton.h
 //
-// Copyright (c) 2001-2010, Jan Willamowius
+// Copyright (c) 2001-2011, Jan Willamowius
 //
 // All singleton objects are put into a list
 // so that it would be delete when program exits.
@@ -20,7 +20,6 @@
 // STL
 #include <list>
 #include <algorithm>
-//#include <stdexcept>
 
 //
 // a list of pointers that would delete all objects
@@ -84,8 +83,9 @@ template<class T> class Singleton : public SingletonBase {
 
 template<class T> Singleton<T>::Singleton(const char *n) : SingletonBase(n)
 {
-//	if (m_Instance != 0)
-//		throw std::runtime_error("Duplicate instances");
+	if (m_Instance != 0) {
+		PTRACE(0, "Runtime error: Duplicate singleton instances");
+	}
 }
 
 template<class T> Singleton<T>::~Singleton()
