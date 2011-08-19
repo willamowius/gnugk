@@ -142,11 +142,11 @@ public:
 	typedef R ReqObj;
 	typedef W Wrapper;
 
-	Request(ReqObj & r, Wrapper *w) : m_request(r), m_wrapper(w) {}
+	Request(ReqObj & r, Wrapper *w) : m_request(r), m_wrapper(w), m_clientAuthId(0) {}
 	Request(ReqObj & r, Wrapper *w, const PString & id, PUInt64 authid)
 		: m_request(r), m_wrapper(w), m_callingStationId(id), m_clientAuthId(authid) {}
 	Request(ReqObj & r, Wrapper *w, const std::list<Route> &failedRoutes)
-		: RoutingRequest(failedRoutes), m_request(r), m_wrapper(w) {}
+		: RoutingRequest(failedRoutes), m_request(r), m_wrapper(w), m_clientAuthId(0) {}
 
 	bool Process();
 
