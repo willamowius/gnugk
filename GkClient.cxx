@@ -946,7 +946,7 @@ GkClient::GkClient()
 	m_ttl(GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL)),
 	m_timer(0),
 	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY)),
-	m_rewriteInfo(NULL), m_natClient(NULL),
+	m_authMode(-1), m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true)
 #ifdef HAS_H46023
