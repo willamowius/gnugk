@@ -1896,6 +1896,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		m_h245Tunneling = false;
 	}
 
+
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
 
        // Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information 
@@ -1924,7 +1925,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
        // Sorenson nTouch fix to provide a CalledPartyNumber as well if destinationAddress dialedDigits are provided
        if (!q931.HasIE(Q931::CalledPartyNumberIE)) {
           PString calledNumber;
-          bool rewritten = false;
           unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
           if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
             calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress,false, 
@@ -1934,9 +1934,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
                   q931.SetCalledPartyNumber(calledNumber, plan, type);
 
           }
-        }
+       }
 
-		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
+	   if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
 			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData) 
             &&  setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
             &&  setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
