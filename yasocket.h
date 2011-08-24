@@ -411,9 +411,6 @@ protected:
 
 	// remove closed sockets
 	void RemoveClosed(bool);
-	// for historical reason, assume the list has been locked
-	void RemoveSocket(iterator);
-	void RemoveSocket(IPSocket *);
 
 private:
 	SocketsReader(const SocketsReader&);
