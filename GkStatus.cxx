@@ -417,7 +417,7 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 		return false;
 	}
 	
-	// set handle for SocketReader
+	// set handle for SocketsReader
 	os_handle = ssh_get_fd(session);
 
 	return true;
