@@ -1897,8 +1897,50 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
+
+       // Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information 
+       // (its under the sorenson switch even though not sorenson can be moved later to own switch - SH)
+       if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
+            && setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
+            && setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(11) == "viable vpad") {
+                if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+                    unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
+                    unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
+                    PString callingNumber = GetBestAliasAddressString(setupBody.m_sourceAddress, false, 
+                        AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
+                    q931.SetCallingPartyNumber(callingNumber, plan, type, presentation, screening);
+                }
+       }
+
+       if (q931.HasIE(Q931::CalledPartyNumberIE)) {
+           PString dialedNumber;
+           q931.GetCalledPartyNumber(dialedNumber);
+           if (! Toolkit::Instance()->IsNumeric(dialedNumber)) {
+               PTRACE(4,"WARNING: Removed Called Party Number IE as it's not numeric!");
+               q931.RemoveIE(Q931::CalledPartyNumberIE);
+           }
+       }
+
+       // Sorenson nTouch fix to provide a CalledPartyNumber as well if destinationAddress dialedDigits are provided
+       if (!q931.HasIE(Q931::CalledPartyNumberIE)) {
+          PString calledNumber;
+          bool rewritten = false;
+          unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
+          if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+            calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress,false, 
+                           AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
+            PTRACE(1, "Setting the Q.931 CalledPartyNumber to: " << calledNumber);
+            if (Toolkit::Instance()->IsNumeric(calledNumber))                
+                  q931.SetCalledPartyNumber(calledNumber, plan, type);
+
+          }
+        }
+
 		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
-			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData)) {
+			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData) 
+            &&  setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
+            &&  setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
+            &&  setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(7) != "VidSoft") {
 			if (setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 				H225_H221NonStandard h221nst = setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier;
 				if (h221nst.m_manufacturerCode == 21334) {
