@@ -8,6 +8,8 @@ Changes from 2.3.5 to 2.3.6
 - BUGFIX(ProxyChannel.cxx) always include destCallSignalAddress in Setup to avoid
   crash in Polycom m100
 - BUGFIX(ProxyChannel.cxx) remove endpointIdentifier from Setup before forwarding
+- new switch [Routed::H46023SignalGKRouted] to force all signalling to be Gatekeeper routed for H.460.23/.24
+- added more interop support for sorenson equipment.
 
 Changes from 2.3.4 to 2.3.5
 ===========================

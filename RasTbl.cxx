@@ -3253,9 +3253,11 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 bool CallRec::NATSignallingOffload(bool isAnswer) const
 {
-   return (!isAnswer && (m_natstrategy == e_natNoassist || 
-		m_natstrategy == e_natRemoteMaster || 
-		m_natstrategy == e_natRemoteProxy));
+   return (!isAnswer  
+      && !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0"))
+      && (m_natstrategy == e_natNoassist || 
+		  m_natstrategy == e_natRemoteMaster || 
+		  m_natstrategy == e_natRemoteProxy));
 }
 
 #ifdef HAS_H46024B
