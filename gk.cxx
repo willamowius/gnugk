@@ -343,6 +343,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "H4502EmulatorTransferMethod" },
 	{ "RoutedMode", "H46018NoNat" },
 	{ "RoutedMode", "H46023PublicIP" },
+	{ "RoutedMode", "H46023SignalGKRouted" },
 	{ "RoutedMode", "H46023STUN" },
 	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "Q931PortRange" },
