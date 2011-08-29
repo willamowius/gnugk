@@ -219,10 +219,13 @@ GatekeeperMessage *RasListener::ReadRas()
 		return 0;
 	}
 #if PTRACING
+	if ((msg->GetTag() != H225_RasMessage::e_serviceControlIndication && msg->GetTag() != H225_RasMessage::e_serviceControlResponse)
+		||  PTrace::CanTrace(5)) {
 	if (PTrace::CanTrace(3))
 		PTRACE(3, "RAS\n" << setprecision(2) << msg->m_recvRAS);
 	else
 		PTRACE(2, "RAS\tReceived " << msg->GetTagName() << " from " << msg->m_peerAddr << ":" << msg->m_peerPort);
+	}
 #endif
 	msg->m_localAddr = GetLocalAddr(msg->m_peerAddr);
 	return msg;
@@ -231,7 +234,8 @@ GatekeeperMessage *RasListener::ReadRas()
 bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt)
 {
 #if PTRACING
-	if (PTrace::CanTrace(3))
+	if ( ((rasobj.GetTag() != H225_RasMessage::e_serviceControlIndication && rasobj.GetTag() != H225_RasMessage::e_serviceControlResponse) && PTrace::CanTrace(3))
+		|| PTrace::CanTrace(5))
 		PTRACE(3, "RAS\tSend to " << addr << ':' << pt << '\n' << setprecision(2) << rasobj);
 	else
 		PTRACE(2, "RAS\tSend " << RasName[rasobj.GetTag()] << " to " << addr << ':' << pt);
@@ -498,7 +502,7 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 		}
 	}
 
-
+ 
 	if (RasSrv->IsGKRouted()) {
 		return (m_rasListener != NULL) && (m_callSignalListener != NULL);
 	} else {
@@ -588,7 +592,10 @@ RasRequester::RasRequester(H225_RasMessage & req, const Address & addr) : m_requ
 
 void RasRequester::Init()
 {
+	m_request = NULL;
 	m_seqNum = m_rasSrv->GetRequestSeqNum();
+	m_timeout = 0;
+	m_retry = 0;
 	m_iterator = m_queue.end();
 	AddFilter(H225_RasMessage::e_requestInProgress);
 }
@@ -681,6 +688,9 @@ RasServer::RasServer() : Singleton<RasServer>("RasSrv")
 	requestSeqNum = 0;
 	listeners = NULL;
 	broadcastListener = NULL;
+#ifdef HAS_H46018
+	m_multiplexHandler = NULL;
+#endif
 	sigHandler = NULL;
 	authList = NULL;
 	acctList = NULL;
@@ -793,6 +803,11 @@ bool RasServer::AcceptUnregisteredCalls(const PIPSocket::Address & addr) const
 	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptNeighborsCalls", "1")) ? neighbors->CheckIP(addr) : false;
 }
 
+bool RasServer::IsCallFromTraversalZone(const PIPSocket::Address & addr) const
+{
+	return neighbors->IsTraversalZone(addr);
+}
+
 bool RasServer::RegisterHandler(RasHandler *handler)
 {
 	PWaitAndSignal lock(hmutex);
@@ -889,6 +904,14 @@ void RasServer::LoadConfig()
 	}
 #endif
 
+#ifdef HAS_H46018
+	// create mutiplex RTP listeners
+	if (!m_multiplexHandler
+		&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+		m_multiplexHandler = MultiplexHandler::Instance();
+	}
+#endif
+
 	if (listeners)
 		listeners->LoadConfig();
 	if (gkClient)
@@ -903,9 +926,9 @@ void RasServer::LoadConfig()
 		vqueue->OnReload();
 	Routing::Analyzer::Instance()->OnReload();
 	Routing::ExplicitPolicy::OnReload();
-
+ 
 	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", "1"));
-
+ 
 	// read [ReplyToRasAddress] section
 	m_replyras.clear();
 	PStringToString ras_rules(GkConfig()->GetAllKeyValues("ReplyToRasAddress"));
@@ -918,21 +941,20 @@ void RasServer::LoadConfig()
 		}
 	}
 }
-
 bool RasServer::ReplyToRasAddress(const NetworkAddress & ip) const
 {
 	NetworkAddress bestmatch;
 	bool result = false;
-
+ 
 	std::map<NetworkAddress, bool>::const_iterator iter = m_replyras.begin();
 	while (iter != m_replyras.end()) {
 		if ((ip << iter->first) && (iter->first.GetNetmaskLen() >= bestmatch.GetNetmaskLen())) {
 			bestmatch = iter->first;
 			result = iter->second;
 		}
-		iter++;
+		++iter;
 	}
-
+ 
 	return result;
 }
 
@@ -956,6 +978,11 @@ bool RasServer::CloseListener(TCPListenSocket *socket)
 	return listeners->CloseListener(socket);
 }
 
+void RasServer::AddListener(UDPSocket *socket)
+{
+	AddSocket(socket);
+}
+
 WORD RasServer::GetRequestSeqNum()
 {
 	PWaitAndSignal lock(seqNumMutex);
@@ -966,7 +993,7 @@ GkInterface *RasServer::SelectDefaultInterface()
 {
 	if (interfaces.empty())
 		return NULL;
-
+ 
     PIPSocket::Address defIP = Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress();
     ifiterator iter = interfaces.begin();
 	while (iter != interfaces.end()) {
@@ -977,7 +1004,7 @@ GkInterface *RasServer::SelectDefaultInterface()
     PTRACE(5,"RasSrv\tWARNING: No route detected using First Interface");
     return interfaces.front();
 }
-
+ 
 GkInterface *RasServer::SelectInterface(const Address & addr)
 {
 	ifiterator iter, eiter = interfaces.end();
@@ -988,7 +1015,7 @@ GkInterface *RasServer::SelectInterface(const Address & addr)
         return *iter;
     else 
         return SelectDefaultInterface();
-
+ 
 }
 
 const GkInterface *RasServer::SelectInterface(const Address & addr) const
@@ -1068,7 +1095,7 @@ bool RasServer::SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Addr
 	rip.m_delay = ripDelay;
 	return SendRas(ras_msg, addr, port);
 }
-
+ 
 bool RasServer::IsRedirected(unsigned tag) const
 {
 	if (redirectGK != e_noRedirect)
@@ -1227,7 +1254,7 @@ bool RasServer::LogAcctEvent(
 {
 	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt, ep);
 }
-
+ 
 PString RasServer::GetAuthInfo(
 	const PString &moduleName
 	)
@@ -1356,7 +1383,7 @@ void RasServer::GetAlternateGK()
 		for (PINDEX i = 0; i < skipSize; ++i)
 			skipAddr.push_back(Address(skipips[i]));
 
-
+ 
 	// read [RasSrv::AlternateGatekeeper] section
 	m_altGkRules.clear();
 	PStringToString altgk_rules(GkConfig()->GetAllKeyValues("RasSrv::AlternateGatekeeper"));
@@ -1368,13 +1395,13 @@ void RasServer::GetAlternateGK()
 			m_altGkRules[addr] = ParseAltGKConfig(setting);
 		}
 	}
-
+ 
 	// parse global alt gk config
 	PString altGkSetting = GkConfig()->GetString("AlternateGKs", "");
 	if (altGkSetting.IsEmpty())
 		return;
 	altGKs = ParseAltGKConfig(altGkSetting);
-
+ 
 	PString sendto(GkConfig()->GetString("SendTo", ""));
 	PStringArray svrs(sendto.Tokenise(" ,;\t", FALSE));
 	if ((altGKsSize = svrs.GetSize()) > 0)
@@ -1384,7 +1411,6 @@ void RasServer::GetAlternateGK()
 			altGKsPort.push_back((tokens.GetSize() > 1) ? WORD(tokens[1].AsUnsigned()) : GK_DEF_UNICAST_RAS_PORT);
 		}
 }
-
 H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSetting) const
 {
 	PStringArray altgks(altGkSetting.Tokenise(",", FALSE));
@@ -1410,7 +1436,7 @@ H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSettin
 
 	return alternateGKs;
 }
-
+ 
 H225_ArrayOf_AlternateGK RasServer::GetAltGKForIP(const NetworkAddress & ip) const
 {
 	// find alternate gatekeeper rule by IP address
@@ -1422,7 +1448,7 @@ H225_ArrayOf_AlternateGK RasServer::GetAltGKForIP(const NetworkAddress & ip) con
 			bestmatch = iter->first;
 			result = iter->second;
 		}
-		iter++;
+		++iter;
 	}
 	return result;
 }
@@ -1546,7 +1572,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			PTRACE(1, "Unable to parse rasAddress " << request.m_rasAddress);
 		}
 	}
-
+ 
 	PString log;
 	PString alias((request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias) && request.m_endpointAlias.GetSize() > 0)
 		? AsString(request.m_endpointAlias[0],false) : PString(" ")
@@ -1629,7 +1655,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			}
 		}
 #endif // HAS_H46023
-
+ 
 #ifdef HAS_H460P
 		if (Toolkit::Instance()->IsH460PEnabled()) {
 			// check if client supports presence
@@ -1647,7 +1673,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			}
 		}
 #endif // HAS_H460P
-
+ 
 #ifdef HAS_H460
 		// check if client supports preemption
 		if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
@@ -1801,7 +1827,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 #endif
-
+ 
 #ifdef HAS_H460P
 		if (Toolkit::Instance()->IsH460PEnabled()) {
 			presenceSupport = fs.HasFeature(rPreFS);
@@ -1815,7 +1841,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 #endif // HAS_H460P
-
+ 
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
 			if (feat->Contains(OID6_Priority)) {
@@ -1827,14 +1853,14 @@ bool RegistrationRequestPDU::Process()
                 preempt = feat->Value(PString(OID6_Preempt));
 			}
 		}
-
+ 
 		// H.460.9
 		if (fs.HasFeature(9)) {
 			EPSupportsQoSReporting = true;
 		}
 	}
 #endif // HAS_H460
-
+ 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
    // If calling NAT support disabled. 
@@ -1852,7 +1878,7 @@ bool RegistrationRequestPDU::Process()
 			PTRACE(1, "Unable to parse rasAddress " << request.m_rasAddress[0]);
 		}
 	}
-
+ 
 	// lightweight registration update
 	if (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && request.m_keepAlive) {
 		endptr ep = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
@@ -1977,7 +2003,7 @@ bool RegistrationRequestPDU::Process()
 					}
 				}
 #endif
-
+ 
 #ifdef HAS_H460P
 				// H.460P
 				if (presenceSupport) {
@@ -1986,7 +2012,7 @@ bool RegistrationRequestPDU::Process()
 					PASN_OctetString preData;
 					if (ep->BuildPresencePDU(rcf.GetTag(),preData))
 						presence.Add(OID3_PDU,H460_FeatureContent(preData));
-
+ 
 					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
 					PINDEX sz = desc.GetSize();
@@ -1994,7 +2020,7 @@ bool RegistrationRequestPDU::Process()
 					desc[sz] = presence;
 				}
 #endif
-
+ 
 #ifdef HAS_H460
 				if (ep->SupportPreemption()) {
 					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
@@ -2005,7 +2031,7 @@ bool RegistrationRequestPDU::Process()
 					desc.SetSize(sz+1);
 					desc[sz] = H460_FeatureOID(rPriFS);
 				}
-
+ 
 				// H.460.9
 				if (EPSupportsQoSReporting
 					&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
@@ -2018,7 +2044,7 @@ bool RegistrationRequestPDU::Process()
 					desc[sz] = H460_FeatureStd(9);
 				}
 #endif
-
+ 
 			}
 			return bShellSendReply;
 		}
@@ -2216,13 +2242,12 @@ bool RegistrationRequestPDU::Process()
 		ep->SetCallSignalAddress(originalCallSigAddress);
 	}
 #endif // HAS_H46018
-
 #ifdef HAS_H460P
 	// If we have some presence information
 	ep->SetUsesH460P(presenceSupport);
 	if (presencePDU)
 	   ep->ParsePresencePDU(preFeature);
-
+ 
 #endif // HAS_H460P
 
 	if (nated || (ep->UsesH46018() && !validaddress))
@@ -2302,14 +2327,14 @@ bool RegistrationRequestPDU::Process()
 			 } 
 		}
 #endif // HAS_H46023
-
+ 
 #ifdef HAS_H460P
 		if (presenceSupport) {
 			H460_FeatureOID presence = H460_FeatureOID(rPreFS);
 			PASN_OctetString preData;
 			if (ep->BuildPresencePDU(rcf.GetTag(),preData)) 
 				presence.Add(OID3_PDU,H460_FeatureContent(preData));
-
+ 
 			PINDEX lPos = gd.GetSize();
 			gd.SetSize(lPos+1);
 			gd[lPos] = presence;
@@ -2467,7 +2492,7 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 				PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 			}
 		}
-
+ 
 		// Disconnect all calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
 		// Remove from the table
@@ -2661,7 +2686,7 @@ bool AdmissionRequestPDU::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
 		}
 	}
-
+ 
 	if (RasSrv->IsRedirected(H225_RasMessage::e_admissionRequest) && !answer) {
 		PTRACE(1, "RAS\tWarning: Exceed call limit!!");
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
@@ -2672,7 +2697,7 @@ bool AdmissionRequestPDU::Process()
 	if (ripDelay > 0) {
 		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
 	}
-
+ 
 	bool aliasesChanged = false;
 	bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
 		&& request.m_destinationInfo.GetSize() > 0;
@@ -2863,7 +2888,7 @@ bool AdmissionRequestPDU::Process()
 	// enforce max bandwidth per call
 	if ((CallTbl->GetMaximumBandwidthPerCall() > 0) && (BWRequest > CallTbl->GetMaximumBandwidthPerCall()))
 		BWRequest = CallTbl->GetMaximumBandwidthPerCall();
-
+ 
 	if (BWRequest > 0) {
 		// check if it is the first arrived ARQ
 		if (pExistingCallRec) {
@@ -2902,7 +2927,7 @@ bool AdmissionRequestPDU::Process()
 	}
 	if (bReject)
 		return BuildReply(H225_AdmissionRejectReason::e_requestDenied); // what the spec says
-
+ 
 	PTRACE(3, "GK\tACF will grant bandwidth of " << BWRequest);
 	// new connection admitted
 	H225_AdmissionConfirm & acf = BuildConfirm();
@@ -3036,7 +3061,7 @@ bool AdmissionRequestPDU::Process()
                // set the call as connected.
                 pCallRec->SetConnected();  
         }
-
+ 
 		pCallRec->SetNATStrategy(natoffloadsupport);
 		PTRACE(4,"RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
 					" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
@@ -3047,7 +3072,7 @@ bool AdmissionRequestPDU::Process()
 		}
 
 		signalOffload = pCallRec->NATSignallingOffload(answer);
-
+ 
 		pCallRec->GetRemoteInfo(vendor, version);
 #endif
 		// Put rewriting information into call record
@@ -3114,7 +3139,7 @@ bool AdmissionRequestPDU::Process()
 		if (lastPos > 0) 
 			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
 	}
-
+ 
 	/// H.460.9 QoS Reporting
 	if (EPSupportsQoSReporting
 		&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
@@ -3198,7 +3223,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
 		}
 	}
-
+ 
 	long bandwidth = request.m_bandWidth.GetValue();
 	// enforce minimum bandwidth per call
 	if ((CallTbl->GetMinimumBandwidthPerCall() > 0) && (bandwidth < CallTbl->GetMinimumBandwidthPerCall()))
@@ -3287,7 +3312,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 		}
 	}
-
+ 
 #ifdef HAS_H460
 	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
@@ -3347,7 +3372,6 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		// do GWRewriteE164 for neighbor befor processing
 		PString neighbor_id = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
 		PString neighbor_gkid = RasSrv->GetNeighbors()->GetNeighborGkIdBySigAdr(request.m_replyAddress);
-
 		if (!neighbor_id.IsEmpty()) {
 			Kit->GWRewriteE164(neighbor_id, GW_REWRITE_IN, request.m_destinationInfo[0]);
 		}
@@ -3373,7 +3397,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	if (ripDelay > 0) {
 		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
 	}
-
+ 
     // Neighbors do not need Validation
 	bool bReject = !(fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this));
 
@@ -3391,7 +3415,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << request.m_replyAddress);
 		}
 	}
-
+ 
 	if (!bReject) {
 		endptr WantedEndPoint;
 		Route route;
@@ -3439,7 +3463,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				if ((WantedEndPoint) && (request.HasOptionalField(H225_LocationRequest::e_genericData))) {
 					H225_ArrayOf_GenericData & locdata = request.m_genericData;
 					for (PINDEX i = 0; i < locdata.GetSize(); i++) {
-
+ 
 						H460_Feature & feat = (H460_Feature &)locdata[i];
 						/// Std24 NAT Traversal
 #ifdef HAS_H46023
@@ -3483,7 +3507,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				}
 				if (lastPos > 0) 
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
-
+ 
 				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
                 PBoolean assumePublicH46024 =  Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0));
 				if (!featureRequired && featureRequired == "23" && WantedEndPoint && (!WantedEndPoint->SupportH46024() || !assumePublicH46024)) {
@@ -3605,7 +3629,7 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 		}
 	}
-
+ 
 	// accept all RAIs
 	H225_ResourcesAvailableConfirm & rac = BuildConfirm();
 	rac.m_protocolIdentifier = request.m_protocolIdentifier;
@@ -3617,44 +3641,83 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 {
 	// OnSCI
-	endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
-	if (ep && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
-		if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
-			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+	H225_ServiceControlResponse & scr = BuildConfirm();
+ 
+#ifdef HAS_H46018
+	bool incomingCall = false;
+	
+	// find the neighbor this comes from
+	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
+	Neighbors::Neighbor * from_neighbor = NULL;
+	bool neighbor_authenticated = true;
+	if (iter != neighbors.end())
+		from_neighbor = (*iter);
+	// check the password, if set
+	if (from_neighbor)
+		neighbor_authenticated = from_neighbor->Authenticate(this);
+ 
+	// accept incomingIndication from neighbor without an entry in supportedFeatures
+	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
+		for (PINDEX i=0; i < request.m_genericData.GetSize(); i++) {
+			H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
+			if (feat.Contains(H460_FeatureID(1))) {
+				if (from_neighbor && neighbor_authenticated) {
+					// incoming call from neighor
+					PASN_OctetString rawIncomingIndication = feat.Value(H460_FeatureID(1));
+					H46018_IncomingCallIndication incomingIndication;
+					PPER_Stream raw(rawIncomingIndication);
+					if (incomingIndication.Decode(raw)) {
+						incomingCall = true;
+						PTRACE(2, "Incomming H.460.18 call from neighbor sigAdr="
+							<< AsString(incomingIndication.m_callSignallingAddress)
+							<< " callID=" << incomingIndication.m_callID);
+						CallSignalSocket * outgoingSocket = new CallSignalSocket();
+						outgoingSocket->OnSCICall(incomingIndication.m_callID, incomingIndication.m_callSignallingAddress);
 		} else {
-			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
+						PTRACE(1, "Error decoding IncomingIndication");
+					}
+				}
+			} else {
+				// not from neighbor or unauthenticated, ignore call
+			}
 		}
 	}
 
-	H225_ServiceControlResponse & scr = BuildConfirm();
-	scr.m_requestSeqNum = request.m_requestSeqNum;	// redundant, just to avoid compiler warning when H.460.18 is disabled
-
-#ifdef HAS_H46018
-	if (request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
+	// check if its a keepAlive from neighbor
+	if (!incomingCall && request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 		if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
-			// seems to be from a neigbor, send out a SCR with a keepAliveInterval
-			H460_FeatureStd feat = H460_FeatureStd(18);
-			scr.IncludeOptionalField(H225_ServiceControlResponse::e_featureSet);
-			scr.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			scr.m_featureSet.m_supportedFeatures.SetSize(1);
-			scr.m_featureSet.m_supportedFeatures[0] = feat;
-			H46018_LRQKeepAliveData lrqKeepAlive;
-			lrqKeepAlive.m_lrqKeepAliveInterval = 29;
-			PASN_OctetString rawKeepAlive;
-			rawKeepAlive.EncodeSubType(lrqKeepAlive);
-			feat.Add(2, H460_FeatureContent(rawKeepAlive));
-			scr.IncludeOptionalField(H225_ServiceControlResponse::e_genericData);
-			H225_ArrayOf_GenericData & gd = scr.m_genericData;
-			gd.SetSize(1);
-			gd[0] = feat;
-			// signal success
-			scr.IncludeOptionalField(H225_ServiceControlResponse::e_result);
-			scr.m_result = H225_ServiceControlResponse_result::e_started;
+			// set interval
+			if (from_neighbor && neighbor_authenticated) {
+				from_neighbor->SetH46018Server(true);	// remember to use H.460.18 with this neighbor
+				// keepAlive from a neigbor, send out a SCR with a keepAliveInterval
+				H460_FeatureStd feat = H460_FeatureStd(18);
+				scr.IncludeOptionalField(H225_ServiceControlResponse::e_featureSet);
+				scr.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				scr.m_featureSet.m_supportedFeatures.SetSize(1);
+				scr.m_featureSet.m_supportedFeatures[0] = feat;
+				H46018_LRQKeepAliveData lrqKeepAlive;
+				lrqKeepAlive.m_lrqKeepAliveInterval = 29;
+				PASN_OctetString rawKeepAlive;
+				rawKeepAlive.EncodeSubType(lrqKeepAlive);
+				feat.Add(2, H460_FeatureContent(rawKeepAlive));
+				scr.IncludeOptionalField(H225_ServiceControlResponse::e_genericData);
+				H225_ArrayOf_GenericData & gd = scr.m_genericData;
+				gd.SetSize(1);
+				gd[0] = feat;
+				// signal success
+				scr.IncludeOptionalField(H225_ServiceControlResponse::e_result);
+				scr.m_result = H225_ServiceControlResponse_result::e_started;
+			} else {
+				// signal failure
+				scr.IncludeOptionalField(H225_ServiceControlResponse::e_result);
+				scr.m_result = H225_ServiceControlResponse_result::e_failed;
+			}
 		}
 	}
 #endif
-
+ 
 #ifdef HAS_H460P
 	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_genericData);

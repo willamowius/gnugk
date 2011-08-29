@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2010, Jan Willamowius
+// Copyright (c) 2004-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -54,7 +54,7 @@ void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PStrin
 	cryptoTokens.SetSize(0);
 
 	H235AuthSimpleMD5 auth;
-	// avoid copying for thread-safely
+	// avoid copying for thread-safety
 	auth.SetLocalId((const char *)id);
 	auth.SetPassword((const char *)password);
 	H225_ArrayOf_ClearToken dumbTokens;
@@ -62,19 +62,18 @@ void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PStrin
 	auth.PrepareTokens(dumbTokens, newCryptoTokens);
 	H225_CryptoH323Token_cryptoEPPwdHash & cryptoEPPwdHash = newCryptoTokens[0];
 
-	// Create the H.225 GK crypto token
+	// Create the H.225 GK crypto token with the hash calculated for the EP token
 	H225_CryptoH323Token * finalCryptoToken = new H225_CryptoH323Token;
 	finalCryptoToken->SetTag(H225_CryptoH323Token::e_cryptoGKPwdHash);
 	H225_CryptoH323Token_cryptoGKPwdHash & cryptoGKPwdHash = *finalCryptoToken;
 
 	// Set the token data that actually goes over the wire
-	cryptoGKPwdHash.m_gatekeeperId = Toolkit::GKName();
+	cryptoGKPwdHash.m_gatekeeperId = id;
 	cryptoGKPwdHash.m_timeStamp = cryptoEPPwdHash.m_timeStamp;
 	cryptoGKPwdHash.m_token.m_algorithmOID = OID_MD5;
 	cryptoGKPwdHash.m_token.m_hash = cryptoEPPwdHash.m_token.m_hash;
 	
-	if (finalCryptoToken != NULL)
-		cryptoTokens.Append(finalCryptoToken);
+	cryptoTokens.Append(finalCryptoToken);
 }
 
 class OldGK : public Neighbor {
@@ -197,6 +196,8 @@ Neighbor::Neighbor()
 	m_rasSrv = RasServer::Instance();
 	m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
 	m_keepAliveTimerInterval = 0;
+	m_H46018Server = false;
+	m_H46018Client = false;
 }
 
 Neighbor::~Neighbor()
@@ -245,9 +246,16 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 	lrq.m_sourceInfo.SetSize(1);
 	H323SetAliasAddress(Toolkit::GKName(), lrq.m_sourceInfo[0], H225_AliasAddress::e_h323_ID);
-	
+
+	// TODO: is this right ?
 	if (m_externalGK)
 	   m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
+
+	if (!m_sendPassword.IsEmpty()) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_cryptoTokens);
+		lrq.m_cryptoTokens.SetSize(1);
+		SetCryptoGkTokens(lrq.m_cryptoTokens, m_sendAuthUser, m_sendPassword);
+	}
 
 	if (m_forwardHopCount >= 1) { // what if set hopCount = 1?
 		lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
@@ -265,8 +273,10 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	m_name = config->GetString(section, "Host", "");
 	m_dynamic = Toolkit::AsBool(config->GetString(section, "Dynamic", "0"));
 	m_externalGK = false;
+	m_authUser = config->GetString(section, "AuthUser", m_gkid);	// defaults to GatekeeperIdentifier
 	m_password = Toolkit::Instance()->ReadPassword(section, "Password");	// checking incomming password in LRQ (not implemented, yet)
-	m_sendPassword = Toolkit::Instance()->ReadPassword(section, "SendPassword", "");	// password to send to neighbor
+	m_sendAuthUser = config->GetString(section, "SendAuthUser", Toolkit::GKName());	// defaults to own GatekeeperId
+	m_sendPassword = Toolkit::Instance()->ReadPassword(section, "SendPassword");	// password to send to neighbor
 
 	if (!m_dynamic && !GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port))
 		return false;
@@ -279,7 +289,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		PStringArray p(sprefixes[i].Tokenise(":=", false));
 		m_sendPrefixes[p[0]] = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
 	}
-
+ 
 	PString salias(config->GetString(section, "SendAliases", ""));
 	PStringArray defs(salias.Tokenise(",", FALSE));
 	m_sendAliases.SetSize(0);
@@ -311,13 +321,14 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 			m_sendAliases.AppendString(defs[i]);
 		}
 	}
-
+ 
 	PString aprefix(config->GetString(section, "AcceptPrefixes", "*"));
 	m_acceptPrefixes = PStringArray(aprefix.Tokenise(",", false));
 	if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
 #ifdef HAS_H46018
-	if (Toolkit::AsBool(config->GetString(section, "UseH46018", "0"))) {
+	if (Toolkit::AsBool(config->GetString(section, "H46018Client", "0"))) {
+		m_H46018Client = true;
 		SetH46018GkKeepAliveInterval(29);	// start with every 29 seconds
 	}
 #endif
@@ -336,7 +347,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
 {
 #ifdef HAS_H46018
-	// send SCI to open the pinhole
+	// send SCI to open the pinhole to neighbor GK
 	H225_RasMessage sci_ras;
 	sci_ras.SetTag(H225_RasMessage::e_serviceControlIndication);
 	H225_ServiceControlIndication & sci = sci_ras;
@@ -356,7 +367,7 @@ void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
 	if (!m_sendPassword.IsEmpty()) {
 		sci.IncludeOptionalField(H225_ServiceControlIndication::e_cryptoTokens);
 		sci.m_cryptoTokens.SetSize(1);
-		SetCryptoGkTokens(sci.m_cryptoTokens, Toolkit::GKName(), m_sendPassword);
+		SetCryptoGkTokens(sci.m_cryptoTokens, m_sendAuthUser, m_sendPassword);
 	}
 	m_rasSrv->SendRas(sci_ras, GetIP(), m_port);
 #endif
@@ -502,8 +513,67 @@ bool Neighbor::CheckReply(RasMsg *ras) const
 		: false;
 }
 
+bool Neighbor::Authenticate(RasMsg *ras) const
+{
+	if (m_password.IsEmpty()) {
+		return true;	// no password, no check needed
+	} else {
+		// check tokens
+		H225_ArrayOf_CryptoH323Token tokens;
+		// check LRQs and SCIs
+		switch (ras->GetTag()) {
+			case H225_RasMessage::e_locationRequest:
+				{
+					H225_LocationRequest & lrq = (*ras)->m_recvRAS;
+					if (lrq.HasOptionalField(H225_LocationRequest::e_cryptoTokens))
+						tokens = lrq.m_cryptoTokens;
+				}
+				break;
+			case H225_RasMessage::e_serviceControlIndication:
+				{
+					H225_ServiceControlIndication & sci = (*ras)->m_recvRAS;
+					if (sci.HasOptionalField(H225_ServiceControlIndication::e_cryptoTokens))
+						tokens = sci.m_cryptoTokens;
+				}
+				break;
+			default:
+				break;
+		}
+
+		H235AuthSimpleMD5 authMD5;
+		PBYTEArray dummy;
+		authMD5.SetLocalId(m_authUser);
+		authMD5.SetPassword(m_password);
+		for (PINDEX i = 0 ; i < tokens.GetSize(); i++) {
+			H225_CryptoH323Token cryptoToken;
+			if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoGKPwdHash) {
+				// convert the GKPwdHash into an EPPwdHash that H323Plus is able to check
+				H225_CryptoH323Token_cryptoGKPwdHash & cryptoGKPwdHash = tokens[i];
+				cryptoToken.SetTag(H225_CryptoH323Token::e_cryptoEPPwdHash);
+				H225_CryptoH323Token_cryptoEPPwdHash & cryptoEPPwdHash = cryptoToken;
+				H323SetAliasAddress(cryptoGKPwdHash.m_gatekeeperId, cryptoEPPwdHash.m_alias);
+				cryptoEPPwdHash.m_timeStamp = cryptoGKPwdHash.m_timeStamp;
+				cryptoEPPwdHash.m_token.m_algorithmOID = OID_MD5;
+				cryptoEPPwdHash.m_token.m_hash = cryptoGKPwdHash.m_token.m_hash;
+			} else {
+				cryptoToken = tokens[i];	// use other tokens as they are
+			}
+			if (authMD5.ValidateCryptoToken(cryptoToken, dummy) == H235Authenticator::e_OK) {
+				PTRACE(5, "Neighbor\tMD5 password match");
+				return true;
+			}
+		}
+
+		PTRACE(1, "Neighbor\tPassword required, but no match");
+		return false;	// no token found that allows access
+	}
+}
+ 
 bool Neighbor::IsAcceptable(RasMsg *ras) const
 {
+	if (!Authenticate(ras))
+		return false;
+ 
 	if (ras->IsFrom(GetIP(), 0 /*m_port*/)) {
 		// ras must be an LRQ
 		H225_LocationRequest & lrq = (*ras)->m_recvRAS;
@@ -553,7 +623,7 @@ void Neighbor::SetForwardedInfo(const PString & section)
 // class OldGK
 bool OldGK::SetProfile(const PString & id, const PString & args)
 {
-	m_id = m_gkid = id;
+	m_authUser = m_id = m_gkid = id;
 	PStringArray cfg(args.Tokenise(";", true));
 	m_name = cfg[0].Trim();
 	m_sendPrefixes.clear();
@@ -601,25 +671,17 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		lrq.m_canMapAlias = arq.m_canMapAlias;
 	}
 
-#ifdef HAS_H460
-	lrq.IncludeOptionalField(H225_LocationRequest::e_genericData); 
-	H225_ArrayOf_GenericData & data = lrq.m_genericData;
-	PINDEX lastPos = 0;
-
 #ifdef HAS_H46023
+	/// STD24  NAT Support
 	if (Toolkit::Instance()->IsH46023Enabled()) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_genericData);
+		H225_ArrayOf_GenericData & data = lrq.m_genericData;
+		PINDEX lastPos = 0;
 		H460_FeatureStd std24 = H460_FeatureStd(24);
 		lastPos++;
 		data.SetSize(lastPos);
 		data[lastPos-1] = std24;
 	}
-#endif
-
-	/// OID9  'Remote application info
-	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
-	lastPos++;
-	data.SetSize(lastPos);
-	data[lastPos-1] = foid9;	
 #endif
 
 	return true;
@@ -645,6 +707,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
 	return true;
 }
 
@@ -662,6 +725,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
 	return true;
 }
 
@@ -879,7 +943,8 @@ public:
 	bool Send(Neighbor * nb);
 	int GetReqNumber() const { return m_requests.size(); }
 	H225_LocationConfirm *WaitForDestination(int);
-	PString GetNeighborUsed() { return m_neighbor_used; }
+	PString GetNeighborUsed() const { return m_neighbor_used; }
+	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
 
 	// override from class RasRequester
 	virtual bool IsExpected(const RasMsg *) const;
@@ -902,9 +967,10 @@ private:
 	const LRQFunctor & m_sendto;
 	RasMsg *m_result;
 	PString m_neighbor_used;
+	bool m_h46018_client, m_h46018_server;
 };
 
-LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(0)
+LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(0), m_h46018_client(false), m_h46018_server(false)
 {
 	AddFilter(H225_RasMessage::e_locationConfirm);
 	AddFilter(H225_RasMessage::e_locationReject);
@@ -1003,6 +1069,9 @@ void LRQRequester::Process(RasMsg *ras)
 					m_result = ras;
 				AddReply(req.m_reply = ras);
 				m_neighbor_used = req.m_neighbor->GetId(); // record neighbor used
+				m_h46018_client = req.m_neighbor->IsH46018Client();
+				m_h46018_server = req.m_neighbor->IsH46018Server();
+				PTRACE(0, "JW from LCF neighbor " << m_neighbor_used << ": GnuGk is client=" << m_h46018_client << " server=" << m_h46018_server);
 				if (m_result)
 					m_sync.Signal();
 			} else { // should be H225_RasMessage::e_locationReject
@@ -1087,6 +1156,8 @@ void NeighborList::OnReload()
 		const PString & nbid = cfgs.GetKeyAt(i);
 		PString type = cfgs.GetDataAt(i);
 		// make neighbor type caseless
+		if (PCaselessString(type) == "Generic")
+			type = "GnuGK";
 		if (PCaselessString(type) == "GnuGK")
 			type = "GnuGK";
 		if (PCaselessString(type) == "CiscoGK")
@@ -1123,6 +1194,11 @@ bool NeighborList::CheckIP(const PIPSocket::Address & addr) const
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &addr)) != m_neighbors.end();
 }
 
+bool NeighborList::IsTraversalZone(const PIPSocket::Address & addr) const
+{
+	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalZone), &addr)) != m_neighbors.end();
+}
+
 PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
@@ -1140,15 +1216,13 @@ PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 {
 	// Attempt to find the neigbor in the list
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
-
 	if (findNeighbor == m_neighbors.end())
 	{
 		return PString::Empty();
 	}
-
 	return (*findNeighbor)->GetId();
 }
-
+ 
 PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 {
 	// Attempt to find the neigbor in the list
@@ -1161,17 +1235,16 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 
 	return (*findNeighbor)->GetGkId();
 }
-
+ 
 PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
-
+ 
 	// Get the Neigbor IP address from the transport address
 	if (!GetIPFromTransportAddr(sigAd, ipaddr))
 	{
 		return PString::Empty();
 	}
-
 	return GetNeighborGkIdBySigAdr(ipaddr);
 }
 
@@ -1295,12 +1368,17 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
-			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
-			  H225_RasMessage ras;
-			  ras.SetTag(H225_RasMessage::e_locationConfirm);
-              H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
-			  con = *lcf;
-			  route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);	
+			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
+				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
+				H225_RasMessage ras;
+				ras.SetTag(H225_RasMessage::e_locationConfirm);
+				H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+				con = *lcf;
+				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+				// set flag to use H.460.18 if neighbor is traversal server
+				if (request.IsTraversalZone()) {
+					route.m_destEndpoint->SetUsesH46018(true);
+				}
 			}
 #endif
 			route.m_routeId = request.GetNeighborUsed();
@@ -1382,6 +1460,20 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 		if (request.Send(m_neighbors, requester)) {
 			if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 				Route route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_H460
+				if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
+					// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
+					H225_RasMessage ras;
+					ras.SetTag(H225_RasMessage::e_locationConfirm);
+					H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+					con = *lcf;
+					route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+					// set flag to use H.460.18 if neighbor is traversal server
+					if (request.IsTraversalZone()) {
+						route.m_destEndpoint->SetUsesH46018(true);
+					}
+				}
+#endif
 				route.m_routeId = request.GetNeighborUsed();
 				route.m_flags |= Route::e_toNeighbor;
 				lrq_obj.AddRoute(route);
@@ -1411,6 +1503,20 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_H460
+			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
+				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
+				H225_RasMessage ras;
+				ras.SetTag(H225_RasMessage::e_locationConfirm);
+				H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+				con = *lcf;
+				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+				// set flag to use H.460.18 if neighbor is traversal server
+				if (request.IsTraversalZone()) {
+					route.m_destEndpoint->SetUsesH46018(true);
+				}
+			}
+#endif
 			route.m_routeId = request.GetNeighborUsed();
 			route.m_flags |= Route::e_toNeighbor;
 			setup_obj.AddRoute(route);
@@ -1435,6 +1541,20 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_H460
+			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
+				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
+				H225_RasMessage ras;
+				ras.SetTag(H225_RasMessage::e_locationConfirm);
+				H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
+				con = *lcf;
+				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+				// set flag to use H.460.18 if neighbor is traversal server
+				if (request.IsTraversalZone()) {
+					route.m_destEndpoint->SetUsesH46018(true);
+				}
+			}
+#endif
 			route.m_routeId = request.GetNeighborUsed();
 			route.m_flags |= Route::e_toNeighbor;
 			facility_obj.AddRoute(route);
@@ -1535,6 +1655,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 						if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
 							Route * route = new Route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
+							// JW TODO: also create an EPRec if we must use .18 ?
 							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 								H225_RasMessage ras;
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
@@ -1559,7 +1680,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 	}
 	return NULL;
 }
-
+ 
 Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
@@ -1572,14 +1693,14 @@ Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
 		// skip empty aliases or those without at-sign
 	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
 			continue;
-
+ 
 		// DNS SRV Record lookup
 		PString number = "h323:" + alias;
 		PString domain = alias.Mid(at+1);
 		if (IsIPAddress(domain)
 			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
 			continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
-
+ 
 		// LS Record lookup
 		PStringList ls;
 		if (PDNS::LookupSRV(number, "_h323ls._udp.", ls)) {
@@ -1592,7 +1713,7 @@ Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
 				}
 				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
 				H323TransportAddress addr = H323TransportAddress(ipaddr);
-
+ 
 				PIPSocket::Address socketip;
 				WORD port;
 				if (!GetTransportAddress(ipaddr, GK_DEF_UNICAST_RAS_PORT, socketip, port) && socketip.IsValid()) {
@@ -1620,7 +1741,7 @@ Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
 	}
 	return NULL;
 }
-
+ 
 Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
@@ -1633,7 +1754,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 		// skip empty aliases or those without at-sign
 	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
 			continue;
-
+ 
 		// DNS SRV Record lookup
 		PString number = "h323:" + alias;
 		PString domain = alias.Mid(at+1);
@@ -1683,7 +1804,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 	}
 	return NULL;
 }
-
+ 
 // used for ARQs and Setups
 bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {

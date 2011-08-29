@@ -17,12 +17,12 @@
 
 /* Major version number of the gatekeeper */
 #ifndef GNUGK_MAJOR_VERSION
-# define GNUGK_MAJOR_VERSION 2
+# define GNUGK_MAJOR_VERSION 3
 #endif
 
 /* Minor version number of the gatekeeper */
 #ifndef GNUGK_MINOR_VERSION
-# define GNUGK_MINOR_VERSION 3
+# define GNUGK_MINOR_VERSION 0
 #endif
 
 /* Release status for the gatekeeper */
@@ -34,7 +34,7 @@
 
 /* Build number of the gatekeeper */
 #ifndef GNUGK_BUILD_NUMBER
-# define GNUGK_BUILD_NUMBER 6
+# define GNUGK_BUILD_NUMBER 0
 #endif
 
 #endif  /* GNUGK_VERSION_H */

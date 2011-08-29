@@ -17,27 +17,37 @@
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>
+#include "h245.h"
 
 class H225_CallIdentifier;
 class H225_GloballyUniqueID;
 class H225_TransportAddress;
 class H225_TransportAddress_ipAddress;
+class H225_TransportAddress_ip6Address;
 class H225_EndpointType;
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
 class H245_TransportAddress;
-class H245_UnicastAddress_iPAddress;
+class H245_UnicastAddress;
 class PASN_OctetString;
+
+PString AsString(const PIPSocket::Address &);
 
 PString AsString(const PIPSocket::Address &, WORD);
 
+PString AsString(const H245_UnicastAddress &);
+
 PString AsString(const H245_UnicastAddress_iPAddress &);
+
+PString AsString(const H245_UnicastAddress_iP6Address &);
 
 PString AsString(const H225_TransportAddress & ta);
 
 PString AsDotString(const H225_TransportAddress & ip, bool showPort=true);
 
 PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort=true);
+
+PString AsString(const H225_TransportAddress_ip6Address & ip, bool showPort=true);
 
 PString AsString(const H225_EndpointType & terminalType);
 
@@ -50,8 +60,6 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAl
 PString AsString(const PASN_OctetString & Octets);
 
 PString StripAliasType(const PString & alias);
-
-H245_UnicastAddress_iPAddress IPToH245TransportIPAddr(const PIPSocket::Address & ip, WORD Port);
 
 H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD Port);
 
@@ -69,7 +77,16 @@ bool GetIPFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Addre
 
 bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip, WORD & port);
 
+PStringArray SplitIPAndPort(const PString & str);
+
+WORD GetH245Port(const H245_UnicastAddress & addr);
+void SetH245Port(H245_UnicastAddress & addr, WORD port);
+
 bool IsIPAddress(const PString & addr);
+
+bool IsIPv4Address(const PString & addr);
+
+bool IsIPv6Address(const PString & addr);
 
 bool IsLoopback(const PIPSocket::Address &);
 

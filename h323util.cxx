@@ -17,18 +17,90 @@
 #include "h323util.h"
 
 
-PString AsString(const PIPSocket::Address & ip, WORD pt)
+PString AsString(const PIPSocket::Address & ip)
 {
-	return PString(PString::Printf, "%d.%d.%d.%d:%u",
-		ip[0], ip[1], ip[2], ip[3], pt);
+	if (ip.GetVersion() == 4)
+		return PString(PString::Printf, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+	if (ip.GetVersion() == 6)
+		return PString(PString::Printf, "%x:%x:%x:%x:%x:%x:%x:%x",
+			ip[0] * 256 + ip[1],
+			ip[2] * 256 + ip[3],
+			ip[4] * 256 + ip[5],
+			ip[6] * 256 + ip[7],
+			ip[8] * 256 + ip[9],
+			ip[10] * 256 + ip[11],
+			ip[12] * 256 + ip[13],
+			ip[14] * 256 + ip[15]);
+	return ip.AsString();
 }
 
-PString AsString(const H245_UnicastAddress_iPAddress & ip)
+PString AsString(const PIPSocket::Address & ip, WORD pt)
+{
+	if (ip.GetVersion() == 4)
+		return PString(PString::Printf, "%d.%d.%d.%d:%u", ip[0], ip[1], ip[2], ip[3], pt);
+	if (ip.GetVersion() == 6)
+		return PString(PString::Printf, "[%x:%x:%x:%x:%x:%x:%x:%x]:%u",
+			ip[0] * 256 + ip[1],
+			ip[2] * 256 + ip[3],
+			ip[4] * 256 + ip[5],
+			ip[6] * 256 + ip[7],
+			ip[8] * 256 + ip[9],
+			ip[10] * 256 + ip[11],
+			ip[12] * 256 + ip[13],
+			ip[14] * 256 + ip[15],
+			pt);
+	return "[" + ip.AsString() + "]:" + PString(pt);
+}
+
+PString AsString(const H245_UnicastAddress & ip)
+{
+	if (ip.GetTag() == H245_UnicastAddress::e_iPAddress) {
+		const H245_UnicastAddress_iPAddress & ipv4 = ip;
+		return AsString(ipv4);
+	} else if (ip.GetTag() == H245_UnicastAddress::e_iP6Address) {
+		const H245_UnicastAddress_iP6Address & ipv6 = ip;
+		return AsString(ipv6);
+	} else {
+		return "unsupported H.245 address (" + ip.GetTagName() + ")";
+	}
+}
+
+PString AsString(const H245_UnicastAddress_iPAddress & ipv4)
 {
 	return AsString(
-		PIPSocket::Address(ip.m_network.GetSize(), ip.m_network.GetValue()),
-		ip.m_tsapIdentifier
-		);
+		PIPSocket::Address(ipv4.m_network.GetSize(), ipv4.m_network.GetValue()),
+		ipv4.m_tsapIdentifier);
+}
+
+PString AsString(const H245_UnicastAddress_iP6Address & ipv6)
+{
+	return AsString(
+		PIPSocket::Address(ipv6.m_network.GetSize(), ipv6.m_network.GetValue()),
+		ipv6.m_tsapIdentifier);
+}
+
+WORD GetH245Port(const H245_UnicastAddress & addr)
+{
+	if (addr.GetTag() == H245_UnicastAddress::e_iPAddress) {
+		const H245_UnicastAddress_iPAddress & ipv4 = addr;
+		return ipv4.m_tsapIdentifier;
+	} else if (addr.GetTag() == H245_UnicastAddress::e_iP6Address) {
+		const H245_UnicastAddress_iP6Address & ipv6 = addr;
+		return ipv6.m_tsapIdentifier;
+	} else {
+		return 0;
+	}
+}
+
+void SetH245Port(H245_UnicastAddress & addr, WORD port)
+{
+	if (addr.GetTag() == H245_UnicastAddress::e_iPAddress) {
+		H245_UnicastAddress_iPAddress & ipv4 = addr;
+		ipv4.m_tsapIdentifier = port;
+	} else if (addr.GetTag() == H245_UnicastAddress::e_iP6Address) {
+		H245_UnicastAddress_iP6Address & ipv6 = addr;
+		ipv6.m_tsapIdentifier = port;
+	}
 }
 
 PString AsString(const H225_TransportAddress & ta)
@@ -40,8 +112,12 @@ PString AsString(const H225_TransportAddress & ta)
 
 PString AsDotString(const H225_TransportAddress & ip, bool showPort)
 {
-	return (ip.IsValid() && ip.GetTag() == H225_TransportAddress::e_ipAddress) ?
-		AsString((const H225_TransportAddress_ipAddress &)ip, showPort) : PString::Empty();
+	PString result = "unknown transport";
+	if (ip.IsValid() && ip.GetTag() == H225_TransportAddress::e_ipAddress)
+		result = AsString((const H225_TransportAddress_ipAddress &)ip, showPort);
+	if (ip.IsValid() && ip.GetTag() == H225_TransportAddress::e_ip6Address)
+		result = AsString((const H225_TransportAddress_ip6Address &)ip, showPort);
+	return result;
 }
 
 PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort)
@@ -56,6 +132,27 @@ PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort)
 	}
 }
 
+PString AsString(const H225_TransportAddress_ip6Address & ip, bool showPort)
+{
+	PString result = PString(PString::Printf, "%x:%x:%x:%x:%x:%x:%x:%x",
+		ip.m_ip[0] * 256 + ip.m_ip[1],
+		ip.m_ip[2] * 256 + ip.m_ip[3],
+		ip.m_ip[4] * 256 + ip.m_ip[5],
+		ip.m_ip[6] * 256 + ip.m_ip[7],
+		ip.m_ip[8] * 256 + ip.m_ip[9],
+		ip.m_ip[10] * 256 + ip.m_ip[11],
+		ip.m_ip[12] * 256 + ip.m_ip[13],
+		ip.m_ip[14] * 256 + ip.m_ip[15]
+	);
+	// JW TODO: optimize to leave out consecutive blocks of zeros
+//	result.Replace(":0:", "::", true);
+//	result.Replace(":0:", "::", true);
+//	result.Replace(":::", "::", true);
+//	result.Replace(":::", "::", true);
+	if (showPort)
+		result = "[" + result + PString("]:") + PString(ip.m_port.GetValue());
+	return result;
+}
 
 PString AsString(const H225_EndpointType & terminalType)
 {
@@ -121,7 +218,6 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAl
 
 	for(PINDEX cnt = 0; cnt < terminalAlias.GetSize(); cnt++ )
 	{
-
 		aliasListString += AsString(terminalAlias[cnt], includeAliasName);
 
 		if (cnt < (terminalAlias.GetSize() - 1)) {
@@ -163,27 +259,25 @@ PString StripAliasType(const PString & alias)
 	}
 }
 
-H245_UnicastAddress_iPAddress IPToH245TransportIPAddr(const PIPSocket::Address & ip, WORD Port)
-{
-	H245_UnicastAddress_iPAddress ipaddr;
-	for (int i = 0; i < 4; ++i)
-		ipaddr.m_network[i] = ip[i];
-	ipaddr.m_tsapIdentifier = Port;
-
-	return ipaddr;
-}
-
 H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD Port)
 {
 	H245_TransportAddress Result;
-
 	Result.SetTag(H245_TransportAddress::e_unicastAddress);
 	H245_UnicastAddress & uniaddr = Result;
-	uniaddr.SetTag(H245_UnicastAddress::e_iPAddress);
-	H245_UnicastAddress_iPAddress & ipaddr = uniaddr;
-	for (int i = 0; i < 4; ++i)
-		ipaddr.m_network[i] = ip[i];
-	ipaddr.m_tsapIdentifier = Port;
+
+	if (ip.GetVersion() == 6) {
+		uniaddr.SetTag(H245_UnicastAddress::e_iP6Address);
+		H245_UnicastAddress_iP6Address & ipaddr = uniaddr;
+		for (int i = 0; i < 16; ++i)
+			ipaddr.m_network[i] = ip[i];
+		ipaddr.m_tsapIdentifier = Port;
+	} else {
+		uniaddr.SetTag(H245_UnicastAddress::e_iPAddress);
+		H245_UnicastAddress_iPAddress & ipaddr = uniaddr;
+		for (int i = 0; i < 4; ++i)
+			ipaddr.m_network[i] = ip[i];
+		ipaddr.m_tsapIdentifier = Port;
+	}
 
 	return Result;
 }
@@ -210,22 +304,29 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 {
 	H225_TransportAddress Result;
 
-	Result.SetTag( H225_TransportAddress::e_ipAddress );
-	H225_TransportAddress_ipAddress & ResultIP = Result;
+	if (Addr.GetVersion() == 6) {
+		Result.SetTag( H225_TransportAddress::e_ip6Address );
+		H225_TransportAddress_ip6Address & ResultIP = Result;
+		for (int i = 0; i < 16; ++i)
+			ResultIP.m_ip[i] = Addr[i];
+		ResultIP.m_port = Port;
+	} else {
+		Result.SetTag( H225_TransportAddress::e_ipAddress );
+		H225_TransportAddress_ipAddress & ResultIP = Result;
 
-	for (int i = 0; i < 4; ++i)
-		ResultIP.m_ip[i] = Addr[i];
-	ResultIP.m_port = Port;
+		for (int i = 0; i < 4; ++i)
+			ResultIP.m_ip[i] = Addr[i];
+		ResultIP.m_port = Port;
+	}
 
 	return Result;
 }
 
 bool GetTransportAddress(const PString & addr, WORD def_port, PIPSocket::Address & ip, WORD & port)
 {
-	PString ipAddr = addr.Trim();
-	PINDEX p = ipAddr.Find(':');
-	port = (p != P_MAX_INDEX) ? WORD(ipAddr.Mid(p+1).AsUnsigned()) : def_port;
-	return PIPSocket::GetHostAddress(ipAddr.Left(p), ip) != 0;
+	PStringArray adr_parts = SplitIPAndPort(addr.Trim());
+	port = (adr_parts.GetSize() > 1) ? WORD(adr_parts[1].AsUnsigned()) : def_port;
+	return PIPSocket::GetHostAddress(adr_parts[0], ip) != 0;
 }
 
 bool GetTransportAddress(const PString & addr, WORD def_port, H225_TransportAddress & Result)
@@ -246,20 +347,71 @@ bool GetIPFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Addre
 
 bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip, WORD & port)
 {
-	if (!(addr.IsValid() && addr.GetTag() == H225_TransportAddress::e_ipAddress))
+	if (!addr.IsValid())
 		return false;
-	const H225_TransportAddress_ipAddress & ipaddr = addr;
-	ip = PIPSocket::Address(ipaddr.m_ip.GetSize(), (const BYTE*)ipaddr.m_ip);
-	port = (WORD)ipaddr.m_port;
-	return true;
+	if (addr.GetTag() == H225_TransportAddress::e_ipAddress) {
+		const H225_TransportAddress_ipAddress & ipaddr = addr;
+		ip = PIPSocket::Address(ipaddr.m_ip.GetSize(), (const BYTE*)ipaddr.m_ip);
+		port = (WORD)ipaddr.m_port;
+		return true;
+	}
+	if (addr.GetTag() == H225_TransportAddress::e_ip6Address) {
+		const H225_TransportAddress_ip6Address & ipaddr = addr;
+		ip = PIPSocket::Address(ipaddr.m_ip.GetSize(), (const BYTE*)ipaddr.m_ip);
+		port = (WORD)ipaddr.m_port;
+		return true;
+	}
+	 return false;
+}
+
+PStringArray SplitIPAndPort(const PString & str)
+{
+	if (!IsIPv6Address(str)) {
+		return str.Tokenise(":", FALSE);
+	} else {
+		PStringArray result;
+		if (str.Left(1) == "[") {
+			result.SetSize(2);
+			PINDEX n = str.FindLast(']');
+			result[0] = str.Left(n);
+			result[0].Replace("[", "", true);
+			result[0].Replace("]", "", true);
+			result[1] = str.Mid(n+1);
+			if (result[1].GetLength() == 0)
+				result.SetSize(1);
+		} else {
+			result.SetSize(1);
+			result[0] = str;
+		}
+		return result;
+	}
 }
 
 bool IsIPAddress(const PString & addr)
+{
+	return (IsIPv4Address(addr) || IsIPv6Address(addr));
+}
+
+bool IsIPv4Address(const PString & addr)
 {
 	static PRegularExpression ipPattern("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended);
 	static PRegularExpression ipAndPortPattern("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+$", PRegularExpression::Extended);
 
 	return ((addr.FindRegEx(ipPattern) != P_MAX_INDEX) || (addr.FindRegEx(ipAndPortPattern) != P_MAX_INDEX));
+}
+
+bool IsIPv6Address(const PString & addr)
+{
+	struct addrinfo * result = NULL;
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = PF_INET6;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_NUMERICHOST;
+	bool isValid = (getaddrinfo((const char *)addr, NULL, &hints, &result) == 0);
+	freeaddrinfo(result);
+	return isValid;
 }
 
 bool IsLoopback(const PIPSocket::Address & addr)

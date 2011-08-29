@@ -52,6 +52,7 @@ typedef H225SignalingMsg<H225_Facility_UUIE> FacilityMsg;
 struct SetupAuthData;
 
 extern const char *RoutedSec;
+extern const char *ProxySection;
 
 void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
 
@@ -123,7 +124,7 @@ public:
 
 	void RemoveRemoteSocket();
 	void SetRemoteSocket(TCPProxySocket * ret) { remote=ret; }
-	TCPProxySocket * GetRemoteSocket() const { return remote; }
+	//TCPProxySocket * GetRemoteSocket() const { return remote; }
 
 private:
 	TCPProxySocket();
@@ -182,7 +183,6 @@ public:
 	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
 
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
-	bool IsNATSocket() const { return m_isnatsocket; }
 	void OnH245ChannelClosed() { m_h245socket = NULL; }
 	Address GetLocalAddr() { return localAddr; }
 	Address GetPeerAddr() { return peerAddr; }
@@ -195,6 +195,7 @@ public:
 	bool RerouteCall(CallLeg which, const PString & destination, bool h450transfer);
 	void RerouteCaller(PString destination);
 	void RerouteCalled(PString destination);
+	void PerformConnecting();
 
 	// override from class ServerSocket
 	virtual void Dispatch();
@@ -211,6 +212,12 @@ protected:
 	
 	void SetRemote(CallSignalSocket *);
 	bool CreateRemote(H225_Setup_UUIE &setupBody);
+public:
+#ifdef HAS_H46018
+	bool CreateRemote(const H225_TransportAddress & addr);
+	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
+#endif
+protected:
 	CallSignalSocket * GetRemote() const { return (CallSignalSocket *)remote; }
 
 	void ForwardCall(FacilityMsg *msg);
@@ -334,6 +341,61 @@ public:
 	// override from class TCPListenSocket
 	virtual ServerSocket *CreateAcceptor() const;
 };
+
+#ifdef HAS_H46018
+
+class MultiplexRTPListener : public UDPSocket {
+#ifndef LARGE_FDSET
+	PCLASSINFO ( MultiplexRTPListener, UDPSocket )
+#endif
+public:
+	MultiplexRTPListener(WORD pt, WORD buffSize = 1536);
+	virtual ~MultiplexRTPListener();
+
+	void ReceiveData();
+protected:
+	BYTE * wbuffer;
+	WORD wbufsize, buflen;
+};
+
+class MultiplexDestination
+{
+public:
+	MultiplexDestination(PInt32 multiplexID) { m_multiplexID = multiplexID; m_detectionDone = false; m_destMultipled = false; }
+	bool IsDetectionDone() const { return m_detectionDone; }
+//	Adr GetDestination() const { return m_destination; }
+//	void SetDestination(Adr dest) { m_destination = dest; }
+	bool IsDestinationMultiplexed() const { return m_destMultipled; }
+	PInt32 GetDestinationMultiplexID() const { return m_destMultiplexID; }
+	void SetDestinationMultiplexID(PInt32 id) { m_destMultiplexID = id; m_destMultipled = true; }
+
+protected:
+	PInt32 m_multiplexID;
+	bool m_detectionDone;
+//	Adr m_destination;
+	bool m_destMultipled;
+	PInt32 m_destMultiplexID;
+};
+
+class MultiplexHandler : public Singleton<MultiplexHandler>, public SocketsReader {
+public:
+	MultiplexHandler();
+	virtual ~MultiplexHandler();
+
+//	virtual MultiplexDestination * GetDestination(PInt32 multiplexID) const;
+//	virtual void AddDestination(MultiplexDestination dest);
+//	virtual void RemoveDestination(PInt32 multiplexID);
+
+protected:
+	virtual void OnStart();
+	virtual void Stop();
+	virtual void ReadSocket(IPSocket * socket);
+
+	MultiplexRTPListener * m_multiplexRTPListener;
+	MultiplexRTPListener * m_multiplexRTCPListener;
+};
+
+#endif
 
 class ProxyHandler : public SocketsReader {
 public:

@@ -1047,7 +1047,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			PString calledIP = "unknown";
 			PString vendorInfo;
 			if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-				calledIP = AsString(arq.m_destCallSignalAddress, false);
+				calledIP = AsDotString(arq.m_destCallSignalAddress, false);
 			}
 			if (ep->GetEndpointType().HasOptionalField(H225_EndpointType::e_vendor)) {
 				if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {

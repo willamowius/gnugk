@@ -32,6 +32,7 @@ class RasListener;
 class MulticastListener;
 class CallSignalListener;
 class StatusListener;
+class MultiplexRTPListener;
 class RasServer;
 
 const unsigned MaxRasTag = H225_RasMessage::e_serviceControlResponse;

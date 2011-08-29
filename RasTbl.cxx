@@ -24,6 +24,7 @@
 #include "GkClient.h"
 #include "GkStatus.h"
 #include "ProxyChannel.h"
+#include "Neighbor.h"
 #include "gkacct.h"
 #include "RasTbl.h"
 #include "gk.h"
@@ -67,7 +68,6 @@ const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-
 void EPQoS::Init()
 {
 	m_lastMsg = 0;
@@ -268,6 +268,22 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 	m_fromParent = false;
 	m_remote = true;
 
+#ifdef HAS_H46018
+	if (Toolkit::Instance()->IsH46018Enabled()) {
+		// find neighbor object to see if we have to use H.460.18
+		PIPSocket::Address socketAddr;
+		if (GetIPFromTransportAddr(m_rasAddress, socketAddr)) {
+			NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+			NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &socketAddr));
+			if (iter != neighbors.end()) {
+				if ((*iter)->IsH46018Server()) {
+					m_usesH46018 = true;
+				}
+			}
+		}
+	}
+#endif
+ 
 #ifdef HAS_H460
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
 		H225_ArrayOf_GenericData & data = lcf.m_genericData;
@@ -409,7 +425,7 @@ void EndpointRec::LoadEndpointConfig()
 			}
 			m_maxBandwidth = cfg->GetInteger(key, "MaxBandwidth", -1);
 			m_additionalDestAlias = cfg->GetString(key, "AdditionalDestinationAlias", "");
-
+ 
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
 			break;
@@ -547,7 +563,7 @@ void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 	string longest_match = LongestPrefixMatch(dest, capacity);
 	if (longest_match.length() > 0) {
 		m_activePrefixCalls[longest_match] += update;
-		// avoid neg. call numbers; can happen we config is reloaded while calls are standing
+		// avoid neg. call numbers; can happen when config is reloaded while calls are standing
 		if (m_activePrefixCalls[longest_match] < 0)
 			m_activePrefixCalls[longest_match] = 0;
 	} else {
@@ -624,7 +640,7 @@ void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
 void EndpointRec::AddNumbers(const PString & numbers)
 {
 	PWaitAndSignal lock(m_usedLock);
-
+ 
 	PStringArray defs(numbers.Tokenise(",", FALSE));
 	for (PINDEX i = 0; i < defs.GetSize(); i++) {
 		if (defs[i].Find("-") != P_MAX_INDEX) {
@@ -657,7 +673,7 @@ void EndpointRec::AddNumbers(const PString & numbers)
 		}
 	}
 }
-
+ 
 bool EndpointRec::SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -950,14 +966,13 @@ void EndpointRec::SetUsesH460P(bool uses)
 {
 	if (uses == m_usesH460P)
 		return;
-
+ 
 #ifdef HAS_H460P
 	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
 	if (uses) 
 	   handler.RegisterEndpoint(m_endpointIdentifier,m_terminalAliases);
 	else
 	   handler.UnRegisterEndpoint(m_terminalAliases);
-
 	m_usesH460P = uses;
 #endif
 }
@@ -1342,10 +1357,11 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg, PIPSocket::Addres
 			break;
 		}
 		case H225_RasMessage::e_admissionRequest: {
-			H225_AdmissionConfirm nouse;
 			H225_AdmissionRequest & arq = ras_msg;
-			if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) && !(ep = FindOZEPBySignalAdr(arq.m_destCallSignalAddress)))
+			if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress) && !(ep = FindOZEPBySignalAdr(arq.m_destCallSignalAddress))) {
+				H225_AdmissionConfirm nouse;
 				ep = InternalInsertOZEP(ras_msg, nouse);
+			}
 			break;
 		}
 		case H225_RasMessage::e_admissionConfirm: {
@@ -1473,11 +1489,11 @@ class CompareSigAdr {
 public:
 	CompareSigAdr(const H225_TransportAddress & adr) : SigAdr(adr) {}
 	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetCallSignalAddress() == SigAdr); }
-
+ 
 protected:
 	const H225_TransportAddress & SigAdr;
 };
-
+ 
 class CompareSigAdrIgnorePort {
 public:
 	CompareSigAdrIgnorePort(const H225_TransportAddress & adr) : SigAdr(adr) {}
@@ -1501,11 +1517,11 @@ class CompareSigAdrWithNAT : public CompareSigAdr {
 public:
 	CompareSigAdrWithNAT(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdr(adr), natip(ip) {}
 	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetNATIP() == natip) && CompareSigAdr::operator()(ep); }
-
+ 
 private:
 	PIPSocket::Address natip;
 };
-
+ 
 class CompareSigAdrWithNATIgnorePort : public CompareSigAdrIgnorePort {
 public:
 	CompareSigAdrWithNATIgnorePort(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdrIgnorePort(adr), natip(ip) {}
@@ -1534,7 +1550,7 @@ endptr RegistrationTable::FindBySignalAdrIgnorePort(const H225_TransportAddress 
 {
 	return (sigAd == ip) ? InternalFind(CompareSigAdrIgnorePort(sigAd)) : InternalFind(CompareSigAdrWithNATIgnorePort(sigAd, ip));
 }
-
+ 
 endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress & sigAd) const
 {
 	return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
@@ -1710,18 +1726,18 @@ void RegistrationTable::PrintEndpointQoS(USocket *client) //const
 		epqos[AsString((*Iter)->GetAliases())] = EPQoS((*Iter)->GetUpdatedTime());
 	listLock.EndRead();
 	// end of lock
-
+ 
 	PString msg("EndpointQoS\r\n");
 	msg.SetSize(EndpointList.size() * 100);	// avoid realloc: estimate n rows of 100 chars
 	// fetch QoS data from call table
 	CallTable::Instance()->SupplyEndpointQoS(epqos);
 	for (std::map<PString, EPQoS>::const_iterator i = epqos.begin(); i != epqos.end(); ++i)
 		msg += "QoS|" + i->first + "|" + i->second.AsString() + "\r\n";
-
+ 
 	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", epqos.size());
 	client->TransmitData(msg);
 }
-
+ 
 void RegistrationTable::PrintAllCached(USocket *client, bool verbose)
 {
 	PString msg("AllCached\r\n");
@@ -1995,7 +2011,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0), m_rerouteState(NoReroute)
+	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -2047,7 +2063,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0), m_rerouteState(NoReroute)
+	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -2073,6 +2089,22 @@ CallRec::CallRec(
 	
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0")))
 		m_proceedingSent = true;	// this was probably done before a CallRec existed
+}
+
+// a pretty empty CallRec, the rest is set when the Setup comes in (used with H.460.18 on SCI)
+CallRec::CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
+  : m_CallNumber(0), m_callIdentifier(callID),
+	m_crv(0),
+	m_bandwidth(1280), m_setupTime(0), m_alertingTime(0), m_connectTime(0), 
+	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
+	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
+	m_callingSocket(NULL), m_calledSocket(NULL),
+	m_usedCount(0), m_nattype(none),m_natstrategy(e_natUnknown), m_unregNAT(false), m_h245Routed(true),
+	m_toParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
+	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_h46018ReverseSetup(true), m_callfromTraversalZone(true)
+{
 }
 
 CallRec::CallRec(
@@ -2105,7 +2137,8 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(oldCall->m_failoverActive),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
-	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState)
+	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
+	m_callfromTraversalZone(oldCall->m_callfromTraversalZone)
 	// TODO: add new fields, bind hint etc. ? + c'tor ?
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
@@ -2129,7 +2162,7 @@ CallRec::~CallRec()
 {
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 }
-
+ 
 bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 {
 	H225_TransportAddress cmpAdr;
@@ -2201,7 +2234,7 @@ int CallRec::GetNATType(
 	}
 	if (m_nattype & calledParty)
 		calledPartyNATIP = m_Called->GetNATIP();
-
+ 
 	return m_nattype;
 }
 
@@ -2296,7 +2329,7 @@ void CallRec::RerouteDropCalling()
 	CallTable::Instance()->UpdateEPBandwidth(m_Calling, -GetBandwidth());
 	m_Calling = endptr(0);
 }
-
+ 
 void CallRec::RerouteDropCalled()
 {
 	PWaitAndSignal lock(m_sockLock); 
@@ -2306,7 +2339,7 @@ void CallRec::RerouteDropCalled()
 	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
 	m_Called = endptr(0);
 }
-
+ 
 void CallRec::SetSocket(
 	CallSignalSocket* calling, 
 	CallSignalSocket* called
@@ -2421,19 +2454,19 @@ void CallRec::InitRTCP_report() {
     m_rtcp_destination_video_packet_count = 0;
     m_rtcp_source_video_packet_lost = 0;
     m_rtcp_destination_video_packet_lost = 0;
-
+ 
     m_rtcp_source_video_jitter_max = 0;
     m_rtcp_source_video_jitter_min = 0;
     m_rtcp_source_video_jitter_avg = 0;
     m_rtcp_source_video_jitter_avg_count = 0;
     m_rtcp_source_video_jitter_avg_sum = 0;
-
+ 
     m_rtcp_destination_video_jitter_max = 0;
     m_rtcp_destination_video_jitter_min = 0;
     m_rtcp_destination_video_jitter_avg = 0;
     m_rtcp_destination_video_jitter_avg_count = 0;
     m_rtcp_destination_video_jitter_avg_sum = 0;
-
+ 
     m_src_media_IP = "0.0.0.0";
     m_dst_media_IP = "0.0.0.0";
 
@@ -2453,7 +2486,7 @@ void CallRec::SetRTCP_sdes(bool isSRC, const PString & val)
 		SetRTCP_DST_sdes(val);
 	}
 }
-
+ 
 void CallRec::SetRTCP_SRC_sdes(const PString & val)
 {
     m_rtcp_source_sdes.AppendString(val);
@@ -2534,22 +2567,22 @@ void CallRec::SetRTCP_SRC_video_packet_count(long val)
 {
     m_rtcp_source_video_packet_count = val;
 }
-
+ 
 void CallRec::SetRTCP_DST_video_packet_count(long val)
 {
     m_rtcp_destination_video_packet_count = val;
 }
-
+ 
 void CallRec::SetRTCP_SRC_video_packet_lost(long val)
 {
     m_rtcp_source_video_packet_lost = val;
 }
-
+ 
 void CallRec::SetRTCP_DST_video_packet_lost(long val)
 {
     m_rtcp_destination_video_packet_lost = val;
 }
-
+ 
 void CallRec::SetRTCP_SRC_video_jitter(int val)
 {	
     if (val > 0){
@@ -2570,7 +2603,7 @@ void CallRec::SetRTCP_SRC_video_jitter(int val)
 		m_rtcp_source_video_jitter_avg = 0;
     }
 }
-
+ 
 void CallRec::SetRTCP_DST_video_jitter(int val)
 {
     if (val > 0) {
@@ -2591,8 +2624,8 @@ void CallRec::SetRTCP_DST_video_jitter(int val)
 		m_rtcp_destination_video_jitter_avg = 0;
     }
 }
-
-
+ 
+ 
 void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
 {
 	if (ep != nep) {
@@ -3123,7 +3156,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
          goDirect = true;
     }
 #endif
-
+ 
 	bool callingSupport = (m_Calling->SupportH46024() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
 	bool calledSupport = (m_Called->SupportH46024() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));
 	
@@ -3166,7 +3199,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
          PTRACE(4,"RAS\tDisable H.460.24 Offload as neither party supports it.");
 		 return false;
 	}
-
+ 
 	// EP's are registered locally on different Networks and must proxy to reach eachother
 	else if (!goDirect && !m_Calling->IsRemote() && !m_Called->IsRemote() && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
@@ -3186,7 +3219,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	// If the called can proxy for NAT use it
 	else if (goDirect && m_Called->IsInternal())
 			natinst = CallRec::e_natRemoteProxy;
-
+ 
 	// Same NAT (If both Parties are behind same detected NAT)
 	else if ((m_Calling->IsNATed() && m_Called->IsNATed()          // both parties are NAT and
 		&& (m_Calling->GetNATIP() == m_Called->GetNATIP()))) {	   // their NAT IP is the same
@@ -3202,11 +3235,11 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				return false;
 			}
 	}
-
+ 
 	// Both parties are NAT and both and are either restricted or port restricted NAT
 	else if (goDirect && (m_Calling->UseH46024B() && m_Called->UseH46024B()))  
 				natinst = CallRec::e_natAnnexB;
-
+ 
 	else if (goDirect && 
 		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
 		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
@@ -3231,14 +3264,14 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
     else if (goDirect && m_Calling->IsNATed() && m_Calling->HasNATProxy())
 			natinst = CallRec::e_natLocalProxy;
-
+ 
     else if (goDirect && m_Called->IsNATed() && m_Called->HasNATProxy())
 			natinst = CallRec::e_natRemoteProxy;
-
+ 
 	// if 1 of the EP's do not support H.460.24 then full proxy
 	else if ((!callingSupport || !calledSupport) && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
-
+ 
 	// Oops cannot proceed the media will Fail!!
 	else {
 		natinst = CallRec::e_natFailure;
@@ -3259,16 +3292,16 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 		  m_natstrategy == e_natRemoteMaster || 
 		  m_natstrategy == e_natRemoteProxy));
 }
-
+ 
 #ifdef HAS_H46024B
 void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt)
 {
-
+ 
 	const char * H46024B_OID = "0.0.8.460.24.2";
 	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
 	H245_RequestMessage & msg = h245msg;
 	msg.SetTag(H245_RequestMessage::e_genericRequest);
-
+ 
  	H245_GenericMessage & gmsg = msg;
 	gmsg.IncludeOptionalField(H245_GenericMessage::e_subMessageIdentifier);
     gmsg.IncludeOptionalField(H245_GenericMessage::e_messageContent);
@@ -3276,13 +3309,13 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 	id.SetTag(H245_CapabilityIdentifier::e_standard);
 	PASN_ObjectId & val = id;
 	val.SetValue(H46024B_OID);
-
+ 
 	PASN_Integer & num = gmsg.m_subMessageIdentifier;
 	num = 1;
-
+ 
     gmsg.SetTag(H245_GenericMessage::e_messageContent);
     H245_ArrayOf_GenericParameter & content = gmsg.m_messageContent;
-
+ 
 	content.SetSize(1);
 	H245_GenericParameter & param = content[0];
 	H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
@@ -3291,10 +3324,10 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 	idx = 1;
 	param.m_parameterValue.SetTag(H245_ParameterValue::e_octetString);
 	PASN_OctetString & oct = param.m_parameterValue;
-
-
+ 
+ 
 	H46024B_ArrayOf_AlternateAddress addrs;
-
+ 
 	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.begin();
 	while (i != m_H46024Balternate.end()) {
 		int sz = addrs.GetSize();
@@ -3312,7 +3345,7 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 	PTRACE(6, "H46024B\tAlternateAddresses " << addrs);
 	oct.EncodeSubType(addrs);
 }
-
+ 
 void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemControlMessage & h245msg)
 {
 	Q931 q931;
@@ -3324,84 +3357,84 @@ void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemCo
 	  PINDEX sz = uuie.m_h323_uu_pdu.m_h245Control.GetSize();
 	  uuie.m_h323_uu_pdu.m_h245Control.SetSize(sz+1);
 	  uuie.m_h323_uu_pdu.m_h245Control[sz].EncodeSubType(h245msg);
-
+ 
 	SetUUIE(q931, uuie);
     PBYTEArray lBuffer;
 	q931.Encode(lBuffer);
 	socket->TransmitData(lBuffer);
 }
-
+ 
 CallSignalSocket * CallRec::H46024BSignalSocket(bool response)
 {
 	// If the calling party is symmetric then the probing
 	// is done in reverse
 	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
-
+ 
 	if (!response)
 		return (callerIsSymmetric ? GetCallSignalSocketCalled() :  GetCallSignalSocketCalling());
 	else
 		return (callerIsSymmetric ? GetCallSignalSocketCalling() : GetCallSignalSocketCalled());   
 }
-
+ 
 void CallRec::H46024BSessionFlag(WORD sessionID)
 {
 	list<int>::const_iterator p = find(m_h46024Bflag.begin(), m_h46024Bflag.end(), sessionID);
 	if (p == m_h46024Bflag.end())
 		m_h46024Bflag.push_back(sessionID);
 }
-
+ 
 void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev)
 {
 	PWaitAndSignal m(m_H46024Bmutex);
-
+ 
     if (m_h46024Bflag.empty())
 		return;
-
+ 
 	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.find(sessionID);
 	if (i != m_H46024Balternate.end())
 		return;
-
+ 
 	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev);
-
+ 
 	H46024Balternate alt;
 	fwd.SetPDU(alt.forward);
 	rev.SetPDU(alt.reverse);
 	m_H46024Balternate.insert(pair<WORD,H46024Balternate>(sessionID,alt));
-
+ 
 	m_h46024Bflag.remove(sessionID);
-
+ 
 	if (m_h46024Bflag.empty()) {
 		// Build the Generic Request
 		H245_MultimediaSystemControlMessage h245msg;
 		BuildH46024AnnexBMessage(true,h245msg,m_H46024Balternate);
-
+ 
 		PTRACE(4,"H46024B\tRequest Message\n" << h245msg);
-
+ 
 		// If we are tunnning
 		SendH46024BFacility(H46024BSignalSocket(false), h245msg);
 	}
 }
-
+ 
 void CallRec::H46024BRespond()
 {
 	PWaitAndSignal m(m_H46024Bmutex);
-
+ 
 	if (m_H46024Balternate.size() == 0)
 		return;
-
+ 
 	PTRACE(5,"H46024B\tNAT offload respond");
-
+ 
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
 	BuildH46024AnnexBMessage(false,h245msg,m_H46024Balternate);
 	m_H46024Balternate.clear();
-
+ 
     // If we are tunnning
 	SendH46024BFacility(H46024BSignalSocket(true), h245msg);
-
+ 
 }
 #endif // HAS_H46024B
-
+ 
 #endif  // HAS_H46023
 
 void CallRec::SetRADIUSClass(const PBYTEArray &bytes)
@@ -3447,12 +3480,12 @@ PBYTEArray CallRec::RetrieveSetup() // for H.460.18
 	m_processedSetup.SetSize(0);	// delete stored Setup
 	return processedSetup;
 }
-
+ 
 int CallRec::GetH46019Direction() const
 {
 	if (!H46019Required())
 		return 0;
-
+ 
 	int dir = 0;
 	if (m_Calling && m_Calling->UsesH46018())
 			dir += H46019_CALLER;
@@ -3545,7 +3578,7 @@ void CallTable::SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const
 		}
 	}
 }
-
+ 
 void CallTable::ResetCallCounters()
 {
 	m_CallCount = m_successCall = m_neighborCall = m_parentCall = 0;
@@ -3623,7 +3656,6 @@ long CallTable::CheckTotalBandwidth(long bw) const
 	}
 	return 0;
 }
-
 void CallTable::UpdateTotalBandwidth(long bw)
 {
 	if (m_capacity >= 0) {
@@ -3635,7 +3667,7 @@ void CallTable::UpdateTotalBandwidth(long bw)
 		PTRACE(2, "GK\tAvailable Bandwidth " << m_capacity);
 	}
 }
-
+ 
 long CallTable::CheckEPBandwidth(const endptr & ep, long bw) const
 {
 	if (ep) {
@@ -3692,7 +3724,7 @@ callptr CallTable::FindBySignalAdrIgnorePort(const H225_TransportAddress & Signa
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdrIgnorePort), &SignalAdr));
 }
-
+ 
 void CallTable::ClearTable()
 {
 	WriteLock lock(listLock);
@@ -3879,7 +3911,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 				}
 			}
 		}
-
+ 
 		// write report to database
 #if HAS_DATABASE
 		Toolkit* const toolkit = Toolkit::Instance();

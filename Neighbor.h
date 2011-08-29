@@ -44,8 +44,8 @@ using Routing::FacilityRequest;
 
 
 struct PrefixInfo {
-	PrefixInfo() {}
-	PrefixInfo(short int l, short int p) : m_length(l), m_priority(p) {}
+	PrefixInfo() : m_length(0), m_priority(0) { }
+	PrefixInfo(short int l, short int p) : m_length(l), m_priority(p) { }
 	operator bool() const { return m_length >= 0; }
 	bool operator<(PrefixInfo) const;
 
@@ -67,6 +67,7 @@ public:
 
 	bool SendLRQ(H225_RasMessage &);
 	bool IsFrom(const PIPSocket::Address *ip) const { return GetIP() == *ip; }
+	bool IsTraversalZone(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && (m_H46018Server || m_H46018Client); }
 	bool ForwardResponse() const { return m_forwardResponse; }
 	int ForwardLRQ() const { return m_forwardto; }
 	WORD GetDefaultHopCount() const { return m_forwardHopCount; }
@@ -82,6 +83,9 @@ public:
     // Sent profile based on SRV Record
 	virtual bool SetProfile(const PString &, const H323TransportAddress &);
 
+	void SetH46018Server(bool val) { m_H46018Server = val; }
+	bool IsH46018Server() const { return m_H46018Server; }
+	bool IsH46018Client() const { return m_H46018Client; }
 	// send a H.460.18 keepAlive (triggered by a timer)
 	void SendH46018GkKeepAlive(GkTimer* timer);
 	void SetH46018GkKeepAliveInterval(int interval);
@@ -101,6 +105,8 @@ public:
 	// check if the given message is a valid reply from this neighbor
 	virtual bool CheckReply(RasMsg *) const;
 
+	// check if we require a password and if its correct
+	virtual bool Authenticate(RasMsg *ras) const;
 	// check if the given LRQ is acceptable
 	virtual bool IsAcceptable(RasMsg *ras) const;
 
@@ -110,7 +116,7 @@ protected:
 	typedef std::map<PString, int, pstr_prefix_lesser> Prefixes;
 
 	RasServer *m_rasSrv;
-	PString m_id, m_gkid, m_password, m_name;
+	PString m_id, m_gkid, m_password, m_name, m_authUser;
 	mutable PIPSocket::Address m_ip;
 	mutable WORD m_port;
 	WORD m_forwardHopCount;
@@ -122,9 +128,11 @@ protected:
 	PStringArray m_sendAliases;
 	PStringArray m_acceptPrefixes;
 	bool m_externalGK;
-	PString m_sendPassword;	// password to send to neighbor
+	PString m_sendAuthUser, m_sendPassword;	// password to send to neighbor
 	int m_keepAliveTimerInterval;
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
+	bool m_H46018Server;
+	bool m_H46018Client;
 };
 
 class NeighborList {
@@ -138,6 +146,7 @@ public:
 
 	bool CheckLRQ(RasMsg *) const;
 	bool CheckIP(const PIPSocket::Address &) const;
+	bool IsTraversalZone(const PIPSocket::Address &) const;
 
 	// return the neighbor's ID from the list by signal address
 	PString GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd);
@@ -146,7 +155,7 @@ public:
 	// return the neighbor's gatekeeper ID from the list by signal address
 	PString GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd);
 	PString GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd);
-
+ 
 	operator List & () { return m_neighbors; }
 	operator const List & () const { return m_neighbors; }
 

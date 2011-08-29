@@ -21,6 +21,9 @@ Whether a call is accepted from a neighbor also depends on the AcceptNeighborsCa
 
 The gatekeeper types have the following characteristics:
 <itemize>
+<item><tt/Generic/<newline>
+For neighbors from any H.323 compliant vendor. (This setting is identical to 'GnuGk'.)
+
 <item><tt/GnuGk/<newline>
 When in doubt, use the <htmlurl url="http://www.gnugk.org/" name="GnuGk gatekeeper"> type. This also activates H.460.23 / H.460.24.
 
@@ -175,8 +178,14 @@ An IP address for this neighbor.
 <item><tt/Password=secret/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-A password to be used to validate crypto tokens received from incoming LRQs.
-<tt/Not yet implemented, yet./
+A password to be used to validate crypto tokens received in incoming LRQs and SCIs.
+Encrypted if Keyfilled= is set, plain text otherwise.
+
+<item><tt/AuthUser=Foo/<newline>
+Default: <tt>GKID</tt><newline>
+<p>
+The user name to be used to validate crypto tokens received in incoming LRQs and SCIs.
+The default value is the gatekeeper identifier for this neighbor (see above).
 
 <item><tt/Dynamic=0/<newline>
 Default: <tt>0</tt><newline>
@@ -243,18 +252,67 @@ or not. <tt/always/ forwards LRQ unconditionally, <tt/never/ blocks LRQ
 forwarding, <tt/depends/ tells the gatekeeper to forward LRQ only if its
 hop count is greater than 1.
 
-<item><tt/UseH46018=1/<newline>
+<item><tt/H46018Client=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Enable H.460.18 keep-alive messages to this neighbor. Set this switch only on the H.460.18
-client side that is supposed to send the keep-alive ServiceControlIndication (SCI) messages.
+Enable H.460.18 keep-alive messages to this neighbor.
+The H.460.18 server doesn't need this switch, it will automatically detect
+the keep-alives and activate H.460.18 for the neighbor sending them
+(if H.460.18 is enabled in [RoutedMode]).
 
 <item><tt/SendPassword=secret/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-
-
 EXPERIMENTAL: The password to send to the neighbor (right now only used for H.460.18 SCI).
+Encrypted if Keyfilled= is set, plain text otherwise.
+
+<item><tt/SendAuthUser=Foo/<newline>
+Default: <tt>own GK-ID</tt><newline>
+<p>
+The user name (gatekeeprID) to be used to send crypto tokens to this neighbor (right now only used for H.460.18 SCI).
+The default value is this gatekeeper's ID.
 
 </itemize>
+
+<sect1>Configuring a Traversal Zone with GnuGk as Traversal Server
+<label id="traversalserver">
+<p>
+To configure a traversal zone with a Tandberg VCS, add a Zone of type "Traversal client" in the VCS.
+
+The user name and password configured in the VCS should be set as AuthUser= and Password= in the
+[Neighbor::..] section.
+The password must be encoded with the addpasswd tool if the Keyfilled= switch is used,
+otherwise it is entered as plain text in the config.
+
+Enable H.323, set the Protocol to H.460.18 (not Assent) and the port to 1719.
+
+Add the IP of your GnuGk server as the Peer 1 address in the VCS.
+
+Set H46018Client=0 in the [Neighbor::..] section. If H.460.18 is globally enabled,
+GnuGk will automatically detect that a neighbor is acting like a H.460.18 traversal zone client
+and it needs to act as a traversal server.
+
+<descrip>
+<tag/Example:/
+<tt/[RasSrv::Neighbors]/<newline>
+<tt/VCSClient=GnuGk/<newline>
+<newline>
+<tt/[Neighbor::VCSClient]/<newline>
+<tt/GatekeeperIdentifier=FooVCS/<newline>
+<tt/Host=192.168.1.1/<newline>
+<tt/SendPrefixes=02/<newline>
+<tt/AcceptPrefixes=*/<newline>
+<tt/H46018Client=0/<newline>
+<tt/AuthUser=clientuser/<newline>
+<tt/Password=&lt;encoded client pw&gt;/<newline>
+<newline>
+</descrip>
+
+<sect1>Configuring a Traversal Zone with GnuGk as Traversal Client
+<label id="traversalserver">
+<p>
+To configure a traversal zone with a Tandberg VCS, add a Zone of type "Traversal server" in the VCS.
+
+Set H46018Client=1 in the [Neighbor::..] section.
+
 

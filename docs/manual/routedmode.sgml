@@ -652,6 +652,21 @@ Default: <tt/2/<newline>
 <p>
 Sleep time between updating of H.460 Presence information.
 
+<item><tt/RTPMultiplexing=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Enable H.460.19 RTP multiplexing.
+
+<item><tt/RTPMultiplexPort=4000/<newline>
+Default: <tt/3000/<newline>
+<p>
+Set the RTP port for H.460.19 RTP multiplexing.
+
+<item><tt/RTCPMultiplexPort=4001/<newline>
+Default: <tt/3001/<newline>
+<p>
+Set the RTCP port for H.460.19 RTP multiplexing.
+
 </itemize>
 
 <p>

@@ -47,6 +47,7 @@ class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
 class HandlerList;
+class MultiplexHandler;
 
 namespace Neighbors {
 	class NeighborList;
@@ -84,6 +85,7 @@ public:
 	bool IsGKRouted() const { return GKRoutedSignaling; }
 	bool IsH245Routed() const { return GKRoutedH245; }
 	bool AcceptUnregisteredCalls(const PIPSocket::Address &) const;
+	bool IsCallFromTraversalZone(const PIPSocket::Address &) const;
 
 	// customized handler
 	bool RegisterHandler(RasHandler *);
@@ -94,6 +96,7 @@ public:
 	void AddListener(RasListener *);
 	void AddListener(TCPListenSocket *);
 	bool CloseListener(TCPListenSocket *);
+	void AddListener(UDPSocket *);
 
 	WORD GetRequestSeqNum();
 
@@ -286,6 +289,9 @@ private:
 
 	TCPServer *listeners;
 	RasListener *broadcastListener;
+#ifdef HAS_H46018
+	MultiplexHandler *m_multiplexHandler;
+#endif
 
 	HandlerList *sigHandler;
 	GkAuthenticatorList *authList;

@@ -36,7 +36,7 @@ class Q931;
 
 enum CallLeg { Caller, Called };
 enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
-
+ 
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
 template<class T> class SmartPtr {
@@ -195,10 +195,8 @@ public:
 	int GetEPNATType() const { return (int)m_epnattype; }
 	static PString GetEPNATTypeString(EPNatTypes nat);
 	bool SupportPreemption() const { return m_registrationPreemption; }
-	H225_AlternateGK GetAssignedGatekeeper() const { return m_assignedGatekeeper; }
 
 	int  Priority() const { return m_registrationPriority; }
-	bool HasNATSocket() const;
 	PTime GetUpdatedTime() const;
 
 	void SetUsesH460P(bool uses);
@@ -462,16 +460,16 @@ public:
 	EPQoS() { Init(); }
 	EPQoS(PTime lastMsg) { Init(); m_lastMsg = lastMsg; }
 	~EPQoS() { }
-
+ 
 	void Init();
 	PString AsString() const;
-
+ 
 	void IncrementCalls() { m_numCalls++; }
 	void SetAudioPacketLossPercent(float val) { m_audioPacketLossPercent = val; }
 	void SetAudioJitter(unsigned val) { m_audioJitter = val; }
 	void SetVideoPacketLossPercent(float val) { m_videoPacketLossPercent = val; }
 	void SetVideoJitter(unsigned val) { m_videoJitter = val; }
-
+ 
 protected:
 	PTime m_lastMsg;
 	unsigned m_numCalls;
@@ -573,12 +571,12 @@ template<class> class RasPDU;
 
 // record of one active call
 #ifdef HAS_H460
- class H4609_QosMonitoringReportData;
+class H4609_QosMonitoringReportData;
 #ifdef HAS_H46024B
- class H323TransportAddress;
+class H323TransportAddress;
 #endif
 #endif
-
+ 
 #ifdef HAS_H46018
 // direction definitions for H.460.19
 #define H46019_NONE		0	// m_h46019dir = 0 ' No party needs H.460.19, so skip the code
@@ -637,6 +635,12 @@ public:
 		int proxyMode = ProxyDetect
 		);
 	
+	/// build a new call record with just a callID and transport adr (after H.460.18 SCI)
+	CallRec(
+		H225_CallIdentifier callID,
+		H225_TransportAddress sigAdr
+		);
+ 
 	CallRec(
 		CallRec *oldCall
 		);
@@ -707,21 +711,21 @@ public:
 	/** Can Signalling be offloaded
 	  */
 	bool NATSignallingOffload(bool isAnswer) const;
-
+ 
 #ifdef HAS_H46024B
     /** GetSignallingSocket */
     CallSignalSocket * H46024BSignalSocket(bool response);
-
+ 
 	/** Initiate Probe */
 	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev);
-
+ 
 	/** Response Probe */
 	void H46024BRespond();
-
+ 
     /** Set session callback flag */
 	void H46024BSessionFlag(WORD sessionID);
 #endif
-
+ 
 #endif
 
 	/** Return whether the endpoints are registered at the same gatekeeper so
@@ -860,7 +864,6 @@ public:
 
 	void SetSRC_media_IP(const PString & IP);
 	void SetDST_media_IP(const PString & IP);
-
 	void SetRTCP_sdes(bool isSRC, const PString & val);
 	void SetRTCP_SRC_sdes(const PString & val);
 	void SetRTCP_DST_sdes(const PString & val);
@@ -894,7 +897,7 @@ public:
 	int GetRTCP_DST_jitter_max() const { return m_rtcp_destination_jitter_max; }
 	int GetRTCP_DST_jitter_min() const { return m_rtcp_destination_jitter_min; }
 	int GetRTCP_DST_jitter_avg() const { return m_rtcp_destination_jitter_avg; }
-
+ 
 	// set video RTCP stats
 	void SetRTCP_SRC_video_packet_count(long val);
 	void SetRTCP_SRC_video_packet_lost(long val);
@@ -902,7 +905,7 @@ public:
 	void SetRTCP_DST_video_packet_count(long val);
 	void SetRTCP_DST_video_packet_lost(long val);
 	void SetRTCP_DST_video_jitter(int val);
-
+ 
 	// get video RTCP stats
 	long GetRTCP_SRC_video_packet_count() const { return m_rtcp_source_video_packet_count; }
 	long GetRTCP_SRC_video_packet_lost() const { return m_rtcp_source_video_packet_lost; }
@@ -1194,14 +1197,18 @@ public:
 	RerouteState GetRerouteState() const { return m_rerouteState; }
 	void SetRerouteDirection(CallLeg dir) { m_rerouteDirection = dir; }
 	CallLeg GetRerouteDirection() const { return m_rerouteDirection; }
-
+ 
 	void SetBindHint(const PString & ip) { m_bindHint = ip; }
 	PString GetBindHint() const { return m_bindHint; }
-
+ 
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
-
+ 
 #ifdef HAS_H46018
+	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }	
+	void SetH46018ReverseSetup(bool val) { m_h46018ReverseSetup = val; }
+	bool IsCallFromTraversalZone() const { return m_callfromTraversalZone; }	
+	void SetCallFromTraversalZone(bool val) { m_callfromTraversalZone = val; }
 	bool H46019Required() const;
 	void StoreSetup(SignalingMsg * msg);
 	PBYTEArray RetrieveSetup();
@@ -1285,21 +1292,21 @@ private:
 	long m_rtcp_destination_video_packet_count;
 	long m_rtcp_source_video_packet_lost;
 	long m_rtcp_destination_video_packet_lost;
-
+ 
 	int m_rtcp_source_video_jitter_min;
 	int m_rtcp_source_video_jitter_max;
 	int m_rtcp_source_video_jitter_avg;
-
+ 
 	int m_rtcp_destination_video_jitter_min;
 	int m_rtcp_destination_video_jitter_max;
 	int m_rtcp_destination_video_jitter_avg;
-
+ 
 	int m_rtcp_source_video_jitter_avg_count;
 	long m_rtcp_source_video_jitter_avg_sum;
-
+ 
 	int m_rtcp_destination_video_jitter_avg_count;
 	long m_rtcp_destination_video_jitter_avg_sum;
-
+ 
 	/// current timeout (or duration limit) for the call
 	time_t m_timeout;
 	/// timestamp for call timeout measuring
@@ -1351,13 +1358,13 @@ private:
 #ifdef HAS_H46023
 	NatStrategy m_natstrategy;
 #endif
-
+ 
 #ifdef HAS_H46024B
 	struct H46024Balternate {
 		 H245_TransportAddress forward;
 		 H245_TransportAddress reverse;
 	};
-
+ 
 	std::map<WORD,H46024Balternate> m_H46024Balternate;
 	void BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt);
 	list<int> m_h46024Bflag;
@@ -1404,6 +1411,8 @@ private:
 	PUInt64 m_clientAuthId;
 	PString m_bindHint;	// outgoing IP or empty
 	RerouteState m_rerouteState;	// is Pause&Reroute transfer in progress ?
+	bool m_h46018ReverseSetup;
+	bool m_callfromTraversalZone;
 	CallLeg m_rerouteDirection;
 	PString m_callerID;	// forced caller ID or empty
 };
@@ -1638,12 +1647,12 @@ inline void EndpointRec::SetH46024(bool support)
 {
 	m_H46024 = support;
 }
-
+ 
 inline void EndpointRec::SetH46024A(bool support)
 {
 	m_H46024a = support;
 }
-
+ 
 inline void EndpointRec::SetH46024B(bool support)
 {
 	m_H46024b = support;
@@ -1658,7 +1667,7 @@ inline bool EndpointRec::SupportH46024() const
 {
 	return m_H46024;
 }
-
+ 
 inline bool EndpointRec::SupportH46024A() const
 {
 	return m_H46024a;
@@ -1668,7 +1677,7 @@ inline bool EndpointRec::SupportH46024B() const
 {
 	return m_H46024b;
 }
-
+ 
 inline bool EndpointRec::UseH46024B() const
 {
 	int nat = (int)m_epnattype;
@@ -1740,11 +1749,6 @@ inline bool EndpointRec::IsUpdated(const PTime *now) const
 	PWaitAndSignal lock(m_usedLock);
 	int ttl = GetTimeToLive();
 	return (!ttl || (*now - m_updatedTime).GetSeconds() < ttl);
-}
-
-inline bool EndpointRec::HasNATSocket() const
-{
-	return m_natsocket;
 }
 
 inline PTime EndpointRec::GetUpdatedTime() const

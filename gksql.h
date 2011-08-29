@@ -19,6 +19,7 @@
 #include <list>
 #include <map>
 #include <vector>
+#include "h323util.h"
 #include "name.h"
 #include "factory.h"
 #include "config.h"
@@ -413,13 +414,30 @@ inline void GkSQLConnection::GetHostAndPort(
 	WORD& port
 	)
 {
-	const PINDEX i = str.Find(':');
-	if (i == P_MAX_INDEX) {
-		host = str;
-		port = 0;
+	if (IsIPv4Address(str) || (str.Left(1) != "[")) {
+		// IPv4 or IPv6 without bracket and port or DNS name
+		const PINDEX i = str.Find(':');
+		if (i == P_MAX_INDEX) {
+			host = str;
+			port = 0;
+		} else {
+			host = str.Left(i);
+			port = (WORD)(str.Mid(i+1).AsUnsigned());
+		}
 	} else {
-		host = str.Left(i);
-		port = (WORD)(str.Mid(i+1).AsUnsigned());
+		const PINDEX j = str.Find("]:");
+		if (j != P_MAX_INDEX) {
+			// IPv6 address with port
+			host = str.Left(j+1);
+			port = (WORD)(str.Mid(j+2).AsUnsigned());
+		} else {
+			host = str;
+			port = 0;
+		}
+		if (host.Left(1) == "[")
+			host = host.Mid(1);
+		if (host.Right(1) == "]")
+			host = host.Left(host.GetLength() - 1);
 	}
 }
 
