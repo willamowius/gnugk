@@ -2784,8 +2784,10 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.18/.19)");
 	}
 
-	// use delayed connecting if called party uses H.460.18 (TODO: but not for calls to traversal server)
-	if (!m_call->H46019Required() || (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())))
+	// use delayed connecting if called party uses H.460.18 (but not for calls to traversal server)
+	if (!m_call->H46019Required()
+		|| !(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())
+		||  (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) )
 #endif
 	{
 #ifdef HAS_H460
@@ -2834,6 +2836,7 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 		}
 
 		H460_FeatureStd feat = H460_FeatureStd(19);
+		// JW TODO: skip adding mediaTraversalServer parameter if we talk to a traversal server ?
 		// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
 		H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 		feat.AddParameter(feat_id);
@@ -2880,7 +2883,8 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 	// JW TODO: differentiate between traversal server and traversal client
 	//   for ep calls we are server and we send the SCI, but in a traversal zone
 	//   we might be client and then we send the Setup directly (with .19 tag)
-	if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
+	if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()
+		&& !(m_call->GetCalledParty()->IsTraversalServer())) {
 		// send SCI
 		RasServer *RasSrv = RasServer::Instance();
 		H225_RasMessage sci_ras;
@@ -2893,12 +2897,6 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 		controlOpen.m_reason = H225_ServiceControlSession_reason::e_open;
 		sci.m_serviceControl.SetSize(1);
 		sci.m_serviceControl[0] = controlOpen;
-		// JW TODO: add crypto token, needed eg. for traversal zone
-//		if (m_call->GetCalledParty()->NeedsCryptoToken()) {
-//			sci.IncludeOptionalField(H225_ServiceControlIndication::e_cryptoTokens);
-//			sci.m_cryptoTokens.SetSize(1);
-//			m_call->GetCalledParty()->SetCryptoToken(sci.m_cryptoTokens);	// decide if this needs to be EP of GK token insiude EPRec
-//		}
 
 		H46018_IncomingCallIndication incoming;
 		incoming.m_callID = setupBody.m_callIdentifier;
@@ -2929,9 +2927,7 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 #endif
 }
 
-bool CallSignalSocket::CreateRemote(
-	H225_Setup_UUIE &setupBody
-	)
+bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 {
 	if (!m_call->GetDestSignalAddr(peerAddr, peerPort)) {
 		PTRACE(3, Type() << "\tINVALID DESTINATION ADDRESS for call from " << Name());
@@ -4923,7 +4919,9 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	}
 	bool userevert = m_isnatsocket;
 #ifdef HAS_H46018
-	if (m_call->H46019Required() && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())
+	if (m_call->H46019Required()
+		&& m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()
+		&& !m_call->GetCalledParty()->IsTraversalServer())
 		userevert = true;
 #endif
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);

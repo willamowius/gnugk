@@ -103,7 +103,7 @@ EndpointRec::EndpointRec(
 	m_registrationPriority(0), m_registrationPreemption(false),
     m_epnattype(NatUnknown),m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP",0))),
 	m_H46024a(false),m_H46024b(false),m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false),m_usesH460P(false),
+	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false),m_usesH460P(false),m_isTraversalServer(false),
 	m_bandwidth(0), m_maxBandwidth(-1)
 
 {
@@ -2261,9 +2261,7 @@ void CallRec::SetDestSignalAddr(
 	m_calleeAddr = AsDotString(addr);
 }
 
-void CallRec::SetCalling(
-	const endptr& NewCalling
-	)
+void CallRec::SetCalling(const endptr & NewCalling)
 {
 	InternalSetEP(m_Calling, NewCalling);
 	if (NewCalling) {
@@ -2276,13 +2274,11 @@ void CallRec::SetCalling(
 	}
 }
 
-void CallRec::SetCalled(
-	const endptr& NewCalled
-	)
+void CallRec::SetCalled(const endptr & NewCalled)
 {
 	InternalSetEP(m_Called, NewCalled);
 	if (NewCalled) {
-		if (NewCalled->IsNATed() || NewCalled->UsesH46018()) {
+		if ((NewCalled->IsNATed() || NewCalled->UsesH46018()) && !NewCalled->IsTraversalServer()) {
 			m_nattype |= calledParty;
 			m_h245Routed = true;
 		}

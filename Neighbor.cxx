@@ -944,6 +944,8 @@ public:
 	int GetReqNumber() const { return m_requests.size(); }
 	H225_LocationConfirm *WaitForDestination(int);
 	PString GetNeighborUsed() const { return m_neighbor_used; }
+	bool IsTraversalClient() const { return m_h46018_client; }
+	bool IsTraversalServer() const { return m_h46018_server; }
 	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
 
 	// override from class RasRequester
@@ -1071,7 +1073,6 @@ void LRQRequester::Process(RasMsg *ras)
 				m_neighbor_used = req.m_neighbor->GetId(); // record neighbor used
 				m_h46018_client = req.m_neighbor->IsH46018Client();
 				m_h46018_server = req.m_neighbor->IsH46018Server();
-				PTRACE(0, "JW from LCF neighbor " << m_neighbor_used << ": GnuGk is client=" << m_h46018_client << " server=" << m_h46018_server);
 				if (m_result)
 					m_sync.Signal();
 			} else { // should be H225_RasMessage::e_locationReject
@@ -1376,7 +1377,12 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 				con = *lcf;
 				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 				// set flag to use H.460.18 if neighbor is traversal server
-				if (request.IsTraversalZone()) {
+				if (request.IsTraversalClient()) {
+					route.m_destEndpoint->SetUsesH46018(true);
+					// if we are the client, then the call goes to a traversal server
+					route.m_destEndpoint->SetTraversalServer(true);
+				}
+				if (request.IsTraversalServer()) {
 					route.m_destEndpoint->SetUsesH46018(true);
 				}
 			}
@@ -1469,7 +1475,12 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 					con = *lcf;
 					route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 					// set flag to use H.460.18 if neighbor is traversal server
-					if (request.IsTraversalZone()) {
+					if (request.IsTraversalClient()) {
+						route.m_destEndpoint->SetUsesH46018(true);
+						// if we are the client, then the call goes to a traversal server
+						route.m_destEndpoint->SetTraversalServer(true);
+					}
+					if (request.IsTraversalServer()) {
 						route.m_destEndpoint->SetUsesH46018(true);
 					}
 				}
@@ -1512,7 +1523,12 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 				con = *lcf;
 				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 				// set flag to use H.460.18 if neighbor is traversal server
-				if (request.IsTraversalZone()) {
+				if (request.IsTraversalClient()) {
+					route.m_destEndpoint->SetUsesH46018(true);
+					// if we are the client, then the call goes to a traversal server
+					route.m_destEndpoint->SetTraversalServer(true);
+				}
+				if (request.IsTraversalServer()) {
 					route.m_destEndpoint->SetUsesH46018(true);
 				}
 			}
@@ -1550,7 +1566,12 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 				con = *lcf;
 				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 				// set flag to use H.460.18 if neighbor is traversal server
-				if (request.IsTraversalZone()) {
+				if (request.IsTraversalClient()) {
+					route.m_destEndpoint->SetUsesH46018(true);
+					// if we are the client, then the call goes to a traversal server
+					route.m_destEndpoint->SetTraversalServer(true);
+				}
+				if (request.IsTraversalServer()) {
 					route.m_destEndpoint->SetUsesH46018(true);
 				}
 			}

@@ -267,6 +267,8 @@ public:
 	bool IsH46018Disabled() const { return m_h46018disabled; }
 	void SetUsesH46018(bool uses) { m_usesH46018 = uses; m_nat = uses; }
 	bool UsesH46018() const { return m_usesH46018; }
+	bool IsTraversalServer() const { return m_isTraversalServer; }
+	void SetTraversalServer(bool val) { m_isTraversalServer = val; }
 
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
@@ -347,6 +349,7 @@ protected:
 	bool m_h46018disabled;
 	bool m_usesH46018;
 	bool m_usesH460P;
+	bool m_isTraversalServer;
 	
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
