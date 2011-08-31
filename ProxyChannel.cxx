@@ -2368,7 +2368,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				&& setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)
 				&& setupBody.m_cryptoTokens.GetSize() > 0) {
 			PINDEX s = setupBody.m_cryptoTokens.GetSize() - 1;
-			// TODO JW: really check only the last token ? what if GetSize() == 0 ?
+			// TODO: really check only the last token ?
 			destFound = Neighbors::DecodeAccessToken(setupBody.m_cryptoTokens[s], _peerAddr, calledAddr);
 			if (destFound) {
 				called = RegistrationTable::Instance()->FindBySignalAdr(calledAddr);
@@ -2790,7 +2790,7 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 		||  (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) )
 #endif
 	{
-#ifdef HAS_H460
+#ifdef HAS_H46018
 		// remove H.460.19 indicator
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 			int numRemoved = -1;
@@ -2809,6 +2809,19 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 				if (setupBody.m_supportedFeatures.GetSize() == 0)
 					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 			}
+		}
+		if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) {
+			H460_FeatureStd feat = H460_FeatureStd(19);
+			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+				H460_FeatureID * feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(feat_id);
+				delete feat_id;
+			}
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+				setupBody.m_supportedFeatures.SetSize(0);
+			}
+			AddH460Feature(setupBody.m_supportedFeatures, feat);
 		}
 #endif
 		CreateRemote(setupBody);
@@ -2835,19 +2848,18 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 			 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 		}
 
-		H460_FeatureStd feat = H460_FeatureStd(19);
-		// JW TODO: skip adding mediaTraversalServer parameter if we talk to a traversal server ?
-		// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
-		H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-		feat.AddParameter(feat_id);
-		delete feat_id;
-		if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-			feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-			feat.AddParameter(feat_id);
-			delete feat_id;
-		}
 		if (Toolkit::Instance()->IsH46018Enabled())
 		{
+			H460_FeatureStd feat = H460_FeatureStd(19);
+			// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
+			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+			feat.AddParameter(feat_id);
+			delete feat_id;
+			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(feat_id);
+				delete feat_id;
+			}
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 					int numRemoved = -1;
 					for (PINDEX i =0; i < setupBody.m_supportedFeatures.GetSize(); i++) {
@@ -2879,10 +2891,7 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 	msg->SetUUIEChanged();
 
 #ifdef HAS_H46018
-	// if destination route/endpoint uses H.460.18
-	// JW TODO: differentiate between traversal server and traversal client
-	//   for ep calls we are server and we send the SCI, but in a traversal zone
-	//   we might be client and then we send the Setup directly (with .19 tag)
+	// if destination route/endpoint uses H.460.18 (client side)
 	if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()
 		&& !(m_call->GetCalledParty()->IsTraversalServer())) {
 		// send SCI
@@ -3130,8 +3139,8 @@ void CallSignalSocket::OnCallProceeding(
 			cpBody.m_featureSet.m_supportedFeatures.SetSize(0);
 			cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty()
-			&& m_call->GetCallingParty()->UsesH46018())
+		if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
+			|| m_call->IsCallFromTraversalZone() )
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
@@ -3240,8 +3249,8 @@ void CallSignalSocket::OnConnect(
 			connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty()
-			&& m_call->GetCallingParty()->UsesH46018())
+		if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
+			|| m_call->IsCallFromTraversalZone() )
 		{
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
@@ -3263,16 +3272,14 @@ void CallSignalSocket::OnConnect(
 #endif
 }
 
-void CallSignalSocket::OnAlerting(
-	SignalingMsg* msg
-	)
+void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 {
 	if (!m_call)
 		return;
 
 	m_call->SetAlertingTime(time(NULL));
 
-	AlertingMsg *alerting = dynamic_cast<AlertingMsg*>(msg);
+	AlertingMsg * alerting = dynamic_cast<AlertingMsg*>(msg);
 	if (alerting == NULL) {
 		PTRACE(2, Type() << "\tError: Alerting message from " << Name() << " without associated UUIE");
 		m_result = Error;
@@ -3309,8 +3316,8 @@ void CallSignalSocket::OnAlerting(
 			alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
 			alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty()
-			&& m_call->GetCallingParty()->UsesH46018())
+		if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
+			|| m_call->IsCallFromTraversalZone() )
 		{
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
@@ -6942,7 +6949,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
 			params.m_keepAliveInterval = 19;
 			if (m_useRTPMultiplexing) {
-				// TODO JW: check if .19 client supports it (should, bot some don't, servers may also not)
+				// TODO JW: check if .19 client supports it (should, but some don't, servers may also not)
 				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexID);
 				// TODO JW : multiplexID table
 				params.m_multiplexID = 0xbadbad;
