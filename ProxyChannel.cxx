@@ -6864,20 +6864,45 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 		}
 
 #ifdef HAS_H46018
-		// add traversal parameters if using H.460.19
+		// parse incoming traversal parameters for H.460.19
 		bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
 				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
 				if (gid == H46019OID) {
-					// Get the keepalive payload (if present)
+					// get the keepalive information (if present)
 					H46019_TraversalParameters params;
 					PASN_OctetString & raw = olc.m_genericInformation[i].m_messageContent[0].m_parameterValue;
 					if (raw.DecodeSubType(params)) {
+						unsigned payloadtype = 0;	// TODO: better default ?
+						H323TransportAddress keepAliveRTPAddr;
+						H245_UnicastAddress_iPAddress keepAliveRTCPAddr;
+						unsigned keepAliveInterval = 19;
 						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
-							unsigned payloadtype = params.m_keepAlivePayloadType;
+							payloadtype = params.m_keepAlivePayloadType;
 							PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << payloadtype);
+						}
+						// JW TODO: remember keepAliveChannel+Interval: we must send keepAlives to it if we are a traversal client
+						// do we know at this stage what the sender address is going to be ?
+						// one thread per channel ? or one thread for all channels with keepalives ?
+						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveChannel)) {
+							keepAliveRTPAddr = params.m_keepAliveChannel;
+							PTRACE(0, "JW H46018\tReceived KeepAlive Channel=" << keepAliveRTPAddr);
+						}
+						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveInterval)) {
+							keepAliveInterval = params.m_keepAliveInterval;
+							PTRACE(0, "JW H46018\tReceived KeepAlive Interval=" << keepAliveInterval);
+						}
+						bool isReverseLC = false;
+						H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverseLC);
+						H245_UnicastAddress_iPAddress * control;
+						if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
+							&& (control = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
+							keepAliveRTCPAddr = *control;
+							PTRACE(0, "JW H46018\tUsing RTCP KeepAlive Addr=" << keepAliveRTCPAddr);
+						} else {
+							PTRACE(0, "JW H46018\tError: H.460.19 server didn't provide mediaControlChannel");
 						}
 					}
 					// move remaining elements down
