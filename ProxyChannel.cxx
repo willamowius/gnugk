@@ -5717,7 +5717,7 @@ MultiplexHandler::~MultiplexHandler()
 void MultiplexHandler::OnStart()
 {
 	// create mutiplex RTP listeners
-	 m_multiplexRTPListener = new MultiplexRTPListener(GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT));
+	 m_multiplexRTPListener = new MultiplexRTPListener((int)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT));
 	 if (m_multiplexRTPListener->IsOpen()) {
 		PTRACE(1, "RTPM\tMultiplex RTP listener listening on port " << m_multiplexRTPListener->GetPort());
 		AddSocket(m_multiplexRTPListener);
@@ -5726,7 +5726,7 @@ void MultiplexHandler::OnStart()
 		delete m_multiplexRTPListener;
 		m_multiplexRTPListener = NULL;
 	}
-	 m_multiplexRTCPListener = new MultiplexRTPListener(GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT));
+	 m_multiplexRTCPListener = new MultiplexRTPListener((int)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT));
 	 if (m_multiplexRTCPListener->IsOpen()) {
 		PTRACE(1, "RTPM\tMultiplex RTCP listener listening on port " << m_multiplexRTCPListener->GetPort());
 		AddSocket(m_multiplexRTCPListener);
@@ -6726,8 +6726,8 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	if (peer)
 		peer->peer = this;
 	m_useRTPMultiplexing = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"));
-	m_multiplexedRTPPort = GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
-	m_multiplexedRTCPPort = GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
+	m_multiplexedRTPPort = (int)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
+	m_multiplexedRTCPPort = (int)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
 }
 
 H245ProxyHandler::~H245ProxyHandler()
