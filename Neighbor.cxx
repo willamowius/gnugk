@@ -672,17 +672,23 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	}
 
 #ifdef HAS_H46023
-	/// STD24  NAT Support
-	if (Toolkit::Instance()->IsH46023Enabled()) {
-		lrq.IncludeOptionalField(H225_LocationRequest::e_genericData);
-		H225_ArrayOf_GenericData & data = lrq.m_genericData;
-		PINDEX lastPos = 0;
-		H460_FeatureStd std24 = H460_FeatureStd(24);
-		lastPos++;
-		data.SetSize(lastPos);
-		data[lastPos-1] = std24;
-	}
+    /// STD24  NAT Support
+    if (Toolkit::Instance()->IsH46023Enabled()) {
+        H460_FeatureStd std24 = H460_FeatureStd(24);
+        int sz = lrq.m_genericData.GetSize();
+        lrq.m_genericData.SetSize(sz+1);
+        lrq.m_genericData[sz] = std24;
+    }
 #endif
+#if 0   // Disable until we workout moving non-standard H.460 stuff to new compile directive. - SH
+     /// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
+     H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
+     int sz = lrq.m_genericData.GetSize();	 
+     lrq.m_genericData.SetSize(sz+1);	 
+     lrq.m_genericData[sz] = foid9;
+#endif
+     if (lrq.m_genericData.GetSize() > 0)
+          lrq.IncludeOptionalField(H225_LocationRequest::e_genericData);
 
 	return true;
 }
