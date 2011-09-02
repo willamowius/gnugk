@@ -1048,10 +1048,9 @@ void LRQRequester::Process(RasMsg *ras)
 		Request & req = iter->second;
 		if (req.m_neighbor->CheckReply(ras) ||
 			Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptNonNeighborLCF", "0"))) {
-			PTRACE(5,"NB\tReceived "<<ras->GetTagName()<<" message matched"
-				<<" pending LRQ for neighbor "<<req.m_neighbor->GetId()
-				<<':'<<req.m_neighbor->GetIP()
-				);
+			PTRACE(5, "NB\tReceived " << ras->GetTagName() << " message matched"
+				<< " pending LRQ for neighbor " << req.m_neighbor->GetId()
+				<< ':' << req.m_neighbor->GetIP() );
 			unsigned tag = ras->GetTag();
 			if (tag == H225_RasMessage::e_requestInProgress) {
 				if (H225_NonStandardParameter *param = ras->GetNonStandardParam()) {
@@ -1086,9 +1085,8 @@ void LRQRequester::Process(RasMsg *ras)
 				delete ras;
 				ras = NULL;
 				if (req.m_count <= 0 && req.m_reply == 0) {
-					PTRACE(5,"NB\tLRQ rejected for neighbor "<<req.m_neighbor->GetId()
-						<<':'<<req.m_neighbor->GetIP()
-						);
+					PTRACE(5, "NB\tLRQ rejected for neighbor " << req.m_neighbor->GetId()
+						<< ':' << req.m_neighbor->GetIP() );
 					m_requests.erase(iter);
 					if (m_requests.empty())
 						RasRequester::Stop();

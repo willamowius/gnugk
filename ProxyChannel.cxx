@@ -939,7 +939,7 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 		if (TCPProxySocket::Connect(local, pt, addr))
 			return true;
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
-		PTRACE(1, Type() << "\tCould not open/connect Q.931 socket at " << local << ':' << pt
+		PTRACE(1, Type() << "\tCould not open/connect Q.931 socket at " << AsString(local, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
 			);
@@ -4395,10 +4395,11 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 					alias = destination.Left(at);
 					destination = destination.Right(destination.GetLength() - (at + 1));
 				}
+				// TODO: unify with regex in h323util.cxx
 				if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
 					ip = destination;
 				} else if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
-					PINDEX colon = destination.Find(':');
+					PINDEX colon = destination.Find(':');	// TODO: IPv6 bug
 					ip = destination.Left(colon);
 					destport = (WORD)destination.Right(destination.GetLength() - (colon + 1)).AsInteger();
 				}

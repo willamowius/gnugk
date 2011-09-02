@@ -818,9 +818,7 @@ GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 	Execute();
 }
 
-void GkStatus::AuthenticateClient(
-	StatusClient* newClient
-	)
+void GkStatus::AuthenticateClient(StatusClient* newClient)
 {
 	if (newClient->Authenticate()) {
 		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
@@ -867,7 +865,7 @@ public:
 
 private:
 	/// message to be sent
-	const PString& m_message;
+	const PString & m_message;
 	/// output trace level assigned to the message
 	int m_traceLevel;
 };
@@ -952,9 +950,9 @@ void GkStatus::PrintHelp(
 
 int GkStatus::ParseCommand(
 	/// message to be parsed
-	const PString& msg,
+	const PString & msg,
 	/// message split into tokens upon successful return
-	PStringArray& args
+	PStringArray & args
 	)
 {
 	// the 'Tokenise' doesn't seem to work correctly for leading spaces
@@ -1349,7 +1347,7 @@ void StatusClient::DoDebug(
 
 bool StatusClient::CheckAuthRule(
 	/// authentication rule to be used
-	const PString& rule
+	const PString & rule
 	)
 {
 	PIPSocket::Address peerAddress;
@@ -1937,14 +1935,11 @@ void StatusClient::PrintFilters(
 }
 
 // class StatusListener
-StatusListener::StatusListener(
-	const Address& addr, 
-	WORD lport
-	)
+StatusListener::StatusListener(const Address & addr, WORD lport)
 {
 	const unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
 	if (!Listen(addr, queueSize, lport, PSocket::CanReuseAddress)) {
-		PTRACE(1, "STATUS\tCould not open listening socket at " << addr << ':' << lport
+		PTRACE(1, "STATUS\tCould not open listening socket at " << AsString(addr, lport)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
 			<< GetErrorText(PSocket::LastGeneralError)
@@ -1954,7 +1949,7 @@ StatusListener::StatusListener(
 	SetName(AsString(addr, GetPort()));
 }
 
-ServerSocket *StatusListener::CreateAcceptor() const
+ServerSocket * StatusListener::CreateAcceptor() const
 {
 	static int StaticInstanceNo = 0;
 #ifdef HAS_LIBSSH

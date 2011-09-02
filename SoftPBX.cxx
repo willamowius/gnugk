@@ -213,7 +213,7 @@ void SoftPBX::DisconnectIp(const PString & Ip)
 	PTRACE(3, "GK\tSoftPBX: DisconnectIp " << Ip);
 
 	callptr Call;
-	if (Ip.Find(':') == P_MAX_INDEX) {
+	if (Ip.Find(':') == P_MAX_INDEX) {	// TODO: IPv6 bug
 		// no port specified
 		while (Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress)) {
 			unsigned CallNumber = Call->GetCallNumber();
