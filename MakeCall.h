@@ -34,7 +34,7 @@ public:
 	virtual void OnRegistrationReject();
 
 	virtual void ThirdPartyMakeCall(const PString & user1, const PString & user2);
-	virtual PBoolean IsRegisteredWithGk(void) const;
+	virtual PBoolean IsRegisteredWithGk() const;
 
 protected:    
     void AddDestination(PString token, PString alias);

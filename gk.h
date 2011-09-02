@@ -79,16 +79,14 @@ class Gatekeeper : public PProcess
 	static bool ReopenLogFile();	
 	static void CloseLogFile();
 
-	static void EnableLogFileRotation(
-		bool enable = true
-		);
+	static void EnableLogFileRotation(bool enable = true);
 
 	/** Rotate the log file, saving old file contents to a different
 	    file and starting with a new one. This is a callback function
 	    called when the rotation timer expires.
 	*/
 	static void RotateOnTimer(
-		GkTimer* timer /// timer object that triggered rotation
+		GkTimer * timer /// timer object that triggered rotation
 		);
 #endif // PTRACING
 
@@ -104,20 +102,20 @@ class Gatekeeper : public PProcess
 	//@{
 
 	/** installs the signal handlers; First called init method. */
-	virtual bool InitHandlers(const PArgList &args);
+	virtual bool InitHandlers(const PArgList & args);
 
-	virtual bool InitConfig(const PArgList &args);
+	virtual bool InitConfig(const PArgList & args);
 
 	/** initiates logging and tracing; Called after #InitConfig# */
-	virtual bool InitLogging(const PArgList &args);
+	virtual bool InitLogging(const PArgList & args);
 
 	/** print the available command-line-options **/
-	void PrintOpts(void);
+	void PrintOpts();
 
 	/** Set a new user and group (ownership) for the GK process.
 		The group that will be set is the user's default group.
 	*/
-	virtual bool SetUserAndGroup(const PString &username);
+	virtual bool SetUserAndGroup(const PString & username);
 
 	//@}
 
@@ -125,8 +123,8 @@ private:
 #if PTRACING
 	/// parse rotation interval from the config
 	static void GetRotateInterval(
-		PConfig& cfg, /// the config
-		const PString& section /// name of the config section to check
+		PConfig & cfg, /// the config
+		const PString & section /// name of the config section to check
 		);
 #endif
 

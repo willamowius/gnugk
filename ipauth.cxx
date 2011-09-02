@@ -35,8 +35,8 @@ public:
 	void AddPrefix(const PString &);
 	void SortPrefix(bool greater = true);
 	int PrefixMatch(const PString &) const;
-	std::string PrintOn(void) const;
-	std::string PrintPrefix(void) const;
+	std::string PrintOn() const;
+	std::string PrintPrefix() const;
 
 	IPAuthPrefix& operator=(const IPAuthPrefix&);
 	IPAuthPrefix& operator=(bool);
@@ -366,7 +366,7 @@ int IPAuthPrefix::PrefixMatch(const PString & number) const
 	return 0;
 }
 
-std::string IPAuthPrefix::PrintOn(void) const
+std::string IPAuthPrefix::PrintOn() const
 {
 	if (!auth)
 		return std::string(" to called any");
@@ -380,7 +380,7 @@ std::string IPAuthPrefix::PrintOn(void) const
 	return ret;
 }
 
-std::string IPAuthPrefix::PrintPrefix(void) const
+std::string IPAuthPrefix::PrintPrefix() const
 {
 	std::string prefix;
 	const_prefix_iterator Iter = Prefixs.begin();

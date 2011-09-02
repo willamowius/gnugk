@@ -71,7 +71,7 @@ void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString &
 	AddDestination(newToken, user2);
 }
 
-PBoolean MakeCallEndPoint::IsRegisteredWithGk(void) const
+PBoolean MakeCallEndPoint::IsRegisteredWithGk() const
 {
 	return isRegistered;
 }	

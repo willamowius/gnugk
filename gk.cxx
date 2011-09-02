@@ -705,7 +705,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 	return TRUE;
 }
 
-bool Gatekeeper::SetUserAndGroup(const PString& /*username*/)
+bool Gatekeeper::SetUserAndGroup(const PString & /*username*/)
 {
 	return false;
 }
@@ -728,9 +728,9 @@ BOOL SetDEP(__in DWORD dwFlags = PROCESS_DEP_ENABLE)
 
 #else	// _WIN32
 
-#  include <pwd.h>
+#include <pwd.h>
 
-bool Gatekeeper::SetUserAndGroup(const PString &username)
+bool Gatekeeper::SetUserAndGroup(const PString & username)
 {
 #if defined(P_PTHREADS) && !defined(P_THREAD_SAFE_CLIB)
 	static const size_t MAX_PASSWORD_BUFSIZE = 1024;
@@ -882,7 +882,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 }
 
 
-bool Gatekeeper::InitHandlers(const PArgList& args)
+bool Gatekeeper::InitHandlers(const PArgList & args)
 {
 #ifdef _WIN32
 	SetConsoleCtrlHandler(WinCtrlHandlerProc, TRUE);
@@ -928,7 +928,7 @@ bool Gatekeeper::InitHandlers(const PArgList& args)
 }
 
 
-bool Gatekeeper::InitLogging(const PArgList &args)
+bool Gatekeeper::InitLogging(const PArgList & args)
 {
 #if PTRACING
 	// Syslog is the default when compiled as service, but we don't want that
@@ -948,7 +948,7 @@ bool Gatekeeper::InitLogging(const PArgList &args)
 }
 
 
-bool Gatekeeper::InitConfig(const PArgList &args)
+bool Gatekeeper::InitConfig(const PArgList & args)
 {
 	// get the name of the config file
 	PFilePath fp;
@@ -975,7 +975,7 @@ bool Gatekeeper::InitConfig(const PArgList &args)
 }
 
 
-void Gatekeeper::PrintOpts(void)
+void Gatekeeper::PrintOpts()
 {
 	cout << "Options:\n"
 		"  -r  --routed       : Use gatekeeper routed call signaling\n"
@@ -1195,10 +1195,7 @@ const char* const Gatekeeper::m_intervalNames[] =
 	"Hourly", "Daily", "Weekly", "Monthly"
 };
 
-void Gatekeeper::GetRotateInterval(
-	PConfig& cfg,
-	const PString& section
-	)
+void Gatekeeper::GetRotateInterval(PConfig & cfg, const PString & section)
 {
 	PString s;
 
@@ -1250,9 +1247,7 @@ void Gatekeeper::GetRotateInterval(
 	}
 }
 
-void Gatekeeper::EnableLogFileRotation(
-	bool enable
-	)
+void Gatekeeper::EnableLogFileRotation(bool enable)
 {
 	PWaitAndSignal lock(m_logFileMutex);
 
@@ -1371,9 +1366,7 @@ void Gatekeeper::EnableLogFileRotation(
 	}
 }
 
-void Gatekeeper::RotateOnTimer(
-	GkTimer* timer
-	)
+void Gatekeeper::RotateOnTimer(GkTimer* timer)
 {
 	m_logFileMutex.Wait();
 	if (m_rotateInterval == Monthly) {
@@ -1399,9 +1392,7 @@ void Gatekeeper::RotateOnTimer(
 	RotateLogFile();
 }
 
-bool Gatekeeper::SetLogFilename(
-	const PString& filename
-	)
+bool Gatekeeper::SetLogFilename(const PString & filename)
 {
 	if (filename.IsEmpty())
 		return false;
