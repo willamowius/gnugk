@@ -45,7 +45,7 @@ public:
 	    Set a new timer expiration time.
 	*/
 	void SetExpirationTime(
-		const PTime& expirationTime /// the new expiration time
+		const PTime & expirationTime /// the new expiration time
 		) { m_expirationTime = expirationTime; }
 		
 	/** @return
@@ -66,21 +66,21 @@ public:
 	bool IsFired() const { return m_fired; }
 	
 	/// destroy this timer object
-	virtual ~GkTimer() {}
+	virtual ~GkTimer() { }
 		
 protected:
 	/// build an one-shot timer object
 	GkTimer(
-		const PTime& expirationTime /// expiration time
+		const PTime & expirationTime /// expiration time
 		) : m_periodic(false), m_fired(false), m_interval(0), 
-			m_expirationTime(expirationTime) {}
+			m_expirationTime(expirationTime) { }
 
 	/// build a periodic timer object
 	GkTimer(
-		const PTime& expirationTime, /// the first expiration time
+		const PTime & expirationTime, /// the first expiration time
 		long interval /// timer interval (seconds)
 		) : m_periodic(true), m_fired(false), m_interval(interval), 
-			m_expirationTime(expirationTime) {}
+			m_expirationTime(expirationTime) { }
 
 	/// This function is called by GkTimerManager when the timer expires
 	virtual void OnTimerExpired() = 0;
@@ -104,18 +104,18 @@ class GkVoidMemberFuncTimer : public GkTimer
 public:
 	/// build an one-shot timer object
 	GkVoidMemberFuncTimer(
-		const PTime& expirationTime, /// timer expiration time
+		const PTime & expirationTime, /// timer expiration time
 		T* classObj, /// object of class T
 		void (T::*timerFunc)() /// object's member function to call
-		) : GkTimer(expirationTime), m_classObj(classObj), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime), m_classObj(classObj), m_timerFunc(timerFunc) { }
 
 	/// build a periodic timer object
 	GkVoidMemberFuncTimer(
-		const PTime& expirationTime, /// the first timer expiration time
+		const PTime & expirationTime, /// the first timer expiration time
 		long interval, /// timer interval (seconds)
 		T* classObj, /// object of class T
 		void (T::*timerFunc)() /// object's member function to call
-		) : GkTimer(expirationTime, interval), m_classObj(classObj), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime, interval), m_classObj(classObj), m_timerFunc(timerFunc) { }
 
 protected:
 	/// This function is called by GkTimerManager when the timer expires
@@ -140,18 +140,18 @@ class GkOneArgMemberFuncTimer : public GkTimer
 public:
 	/// build an one-shot timer object
 	GkOneArgMemberFuncTimer(
-		const PTime& expirationTime, /// timer expiration time
+		const PTime & expirationTime, /// timer expiration time
 		T* classObj, /// object of class T
 		void (T::*timerFunc)(GkTimer*) /// object's member function to call
-		) : GkTimer(expirationTime), m_classObj(classObj), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime), m_classObj(classObj), m_timerFunc(timerFunc) { }
 
 	/// build a periodic timer object
 	GkOneArgMemberFuncTimer(
-		const PTime& expirationTime, /// the first timer expiration time
+		const PTime & expirationTime, /// the first timer expiration time
 		long interval, /// timer interval (seconds)
 		T* classObj, /// object of class T
 		void (T::*timerFunc)(GkTimer*) /// object's member function to call
-		) : GkTimer(expirationTime, interval), m_classObj(classObj), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime, interval), m_classObj(classObj), m_timerFunc(timerFunc) { }
 
 protected:
 	/// This function is called by GkTimerManager when the timer expires
@@ -166,7 +166,7 @@ private:
 	
 private:
 	T* m_classObj;
-	void (T::*m_timerFunc)(GkTimer*);
+	void (T::*m_timerFunc)(GkTimer *);
 };
 
 
@@ -195,7 +195,7 @@ public:
 	*/
 	GkTimerHandle RegisterTimer(
 		void (*timerFunc)(), /// timer function
-		const PTime& tm /// timer expiration time
+		const PTime & tm /// timer expiration time
 		);
 	
 	/** Register a periodic timer that calls a simple void function
@@ -206,7 +206,7 @@ public:
 	*/
 	GkTimerHandle RegisterTimer(
 		void (*timerFunc)(), /// timer function
-		const PTime& tm, /// the first expiration time
+		const PTime & tm, /// the first expiration time
 		long interval /// timer interval (seconds)
 		);
 		
@@ -219,7 +219,7 @@ public:
 	*/
 	GkTimerHandle RegisterTimer(
 		void (*timerFunc)(GkTimer*), /// timer function
-		const PTime& tm /// timer expiration time
+		const PTime & tm /// timer expiration time
 		);
 
 	/** Register a periodic timer that calls an one arg function
@@ -285,7 +285,7 @@ public:
 	GkTimerHandle RegisterTimer(
 		T* obj, /// object of the class T
 		void (T::*timerFunc)(GkTimer*), /// timer function (a member of the class T)
-		const PTime& tm /// timer expiration time
+		const PTime & tm /// timer expiration time
 		)
 	{ // it has to be here to compile with VC6
 		GkTimer* const t = new GkOneArgMemberFuncTimer<T>(tm, obj, timerFunc);
@@ -305,7 +305,7 @@ public:
 	GkTimerHandle RegisterTimer(
 		T* obj, /// object of the class T
 		void (T::*timerFunc)(GkTimer*), /// timer function (a member of the class T)
-		const PTime& tm, /// the first timer expiration time
+		const PTime & tm, /// the first timer expiration time
 		long interval /// timer interval (seconds)
 		)
 	{ // it has to be here to compile with VC6
@@ -334,8 +334,8 @@ public:
 	virtual ~GkTimerManager();
 		
 private:
-	GkTimerManager(const GkTimerManager&);
-	GkTimerManager& operator=(const GkTimerManager&);
+	GkTimerManager(const GkTimerManager &);
+	GkTimerManager& operator=(const GkTimerManager &);
 	
 private:
 	PMutex m_timersMutex; /// mutual access to the timers

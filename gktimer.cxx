@@ -24,15 +24,15 @@ class GkVoidFuncTimer : public GkTimer
 {
 public:
 	GkVoidFuncTimer(
-		const PTime& expirationTime,
+		const PTime & expirationTime,
 		void (*timerFunc)()
-		) : GkTimer(expirationTime), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime), m_timerFunc(timerFunc) { }
 
 	GkVoidFuncTimer(
-		const PTime& expirationTime,
+		const PTime & expirationTime,
 		long interval,
 		void (*timerFunc)()
-		) : GkTimer(expirationTime, interval), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime, interval), m_timerFunc(timerFunc) { }
 
 protected:
 	virtual void OnTimerExpired() { if (m_timerFunc) (*m_timerFunc)(); }
@@ -49,15 +49,15 @@ class GkOneArgFuncTimer : public GkTimer
 {
 public:
 	GkOneArgFuncTimer(
-		const PTime& expirationTime,
+		const PTime & expirationTime,
 		void (*timerFunc)(GkTimer*)
-		) : GkTimer(expirationTime), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime), m_timerFunc(timerFunc) { }
 
 	GkOneArgFuncTimer(
-		const PTime& expirationTime,
+		const PTime & expirationTime,
 		long interval,
 		void (*timerFunc)(GkTimer*)
-		) : GkTimer(expirationTime, interval), m_timerFunc(timerFunc) {}
+		) : GkTimer(expirationTime, interval), m_timerFunc(timerFunc) { }
 
 protected:
 	virtual void OnTimerExpired() { if (m_timerFunc) (*m_timerFunc)(this); }
@@ -88,11 +88,11 @@ GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 
 GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 	void (*timerFunc)(), /// timer function
-	const PTime& tm, /// the first expiration time
+	const PTime & tm, /// the first expiration time
 	long interval /// timer interval (seconds)
 	)
 {
-	GkTimer* const t = new GkVoidFuncTimer(tm, interval, timerFunc);
+	GkTimer * const t = new GkVoidFuncTimer(tm, interval, timerFunc);
 	PWaitAndSignal lock(m_timersMutex);
 	m_timers.push_back(t);
 	return t;
@@ -100,10 +100,10 @@ GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 
 GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 	void (*timerFunc)(GkTimer*), /// timer function
-	const PTime& tm /// timer expiration time
+	const PTime & tm /// timer expiration time
 	)
 {
-	GkTimer* const t = new GkOneArgFuncTimer(tm, timerFunc);
+	GkTimer * const t = new GkOneArgFuncTimer(tm, timerFunc);
 	PWaitAndSignal lock(m_timersMutex);
 	m_timers.push_back(t);
 	return t;
@@ -111,19 +111,17 @@ GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 
 GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 	void (*timerFunc)(GkTimer*), /// timer function
-	const PTime& tm, /// the first timer expiration time
+	const PTime & tm, /// the first timer expiration time
 	long interval /// timer interval (seconds)
 	)
 {
-	GkTimer* const t = new GkOneArgFuncTimer(tm, interval, timerFunc);
+	GkTimer * const t = new GkOneArgFuncTimer(tm, interval, timerFunc);
 	PWaitAndSignal lock(m_timersMutex);
 	m_timers.push_back(t);
 	return t;
 }
 
-bool GkTimerManager::UnregisterTimer(
-	GkTimerManager::GkTimerHandle timer
-	)
+bool GkTimerManager::UnregisterTimer(GkTimerManager::GkTimerHandle timer)
 {
 	PWaitAndSignal lock(m_timersMutex);
 	std::list<GkTimerHandle>::iterator i 
