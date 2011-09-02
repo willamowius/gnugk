@@ -18,28 +18,69 @@
 
 namespace {
 
-TEST(H323UtilTest, PIPSocketAddressAsString) {
-	PIPSocket::Address ip;
-	EXPECT_STREQ("127.0.0.1:777", AsString(ip, 777));
+class H323UtilTest : public ::testing::Test {
+protected:
+	H323UtilTest() {
+		// H.245 IPs
+		h245unicast.SetTag(H245_UnicastAddress::e_iPAddress);
+		H245_UnicastAddress_iPAddress & ip = h245unicast;
+		ip.m_network.SetSize(4);
+		ip.m_network[0] = 1;
+		ip.m_network[1] = 2;
+		ip.m_network[2] = 3;
+		ip.m_network[3] = 4;
+		ip.m_tsapIdentifier = 555;
+		h245ipv4 = ip;
+		// sockets
+		ipv4socket = "3.4.5.6";
+		ipv6socket = "2001:0db8:85a3:08d3:1319:8a2e:0370:7344";
+		ipv6socket_localhost = "::1";
+		// H.225 IPs
+		h225transport_withipv4 = SocketToH225TransportAddr(ipv4socket, 999);
+		h225transportipv4 = h225transport_withipv4;
+		h225transport_withipv6 = SocketToH225TransportAddr(ipv6socket, 1111);
+		h225transportipv6 = h225transport_withipv6;
+		h225transport_withipv6localhost = SocketToH225TransportAddr(ipv6socket_localhost, 1111);
+	}
+
+	H245_UnicastAddress h245unicast;
+	H245_UnicastAddress_iPAddress h245ipv4;
+	PIPSocket::Address ipv4socket;
+	PIPSocket::Address ipv6socket;
+	PIPSocket::Address ipv6socket_localhost;
+	H225_TransportAddress h225transport_withipv4;
+	H225_TransportAddress h225transport_withipv6;
+	H225_TransportAddress h225transport_withipv6localhost;
+	H225_TransportAddress_ipAddress h225transportipv4;
+	H225_TransportAddress_ip6Address h225transportipv6;
+};
+
+
+TEST_F(H323UtilTest, PIPSocketAddressAsString) {
+	EXPECT_STREQ("3.4.5.6:777", AsString(ipv4socket, 777));
+	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:888", AsString(ipv6socket, 888));
+	EXPECT_STREQ("[::1]:888", AsString(ipv6socket_localhost, 888));
 }
 
-TEST(H323UtilTest, H245UnicastIPAddressAsString) {
-	H245_UnicastAddress_iPAddress ip;
-	EXPECT_STREQ("0.0.0.0:0", AsString(ip));
+TEST_F(H323UtilTest, H245UnicastIPAddressAsString) {
+	EXPECT_STREQ("1.2.3.4:555", AsString(h245unicast));
+	EXPECT_STREQ("1.2.3.4:555", AsString(h245ipv4));
 }
 
-TEST(H323UtilTest, H225TransportAddressAsString) {
-	PIPSocket::Address ip;
-	H225_TransportAddress transport = SocketToH225TransportAddr(ip, 999);
-	const H225_TransportAddress_ipAddress & transport_ip = transport;
-	EXPECT_TRUE(AsString(transport).Find("7f 00 00 01") != P_MAX_INDEX);
-	EXPECT_STREQ("127.0.0.1:999", AsDotString(transport));
-	EXPECT_STREQ("127.0.0.1:999", AsString(transport_ip));
-	EXPECT_STREQ("127.0.0.1:999", AsString(transport_ip, true));
-	EXPECT_STREQ("127.0.0.1",     AsString(transport_ip, false));
+TEST_F(H323UtilTest, H225TransportAddressAsString) {
+	EXPECT_TRUE(AsString(h225transport_withipv4).Find("03 04 05 06") != P_MAX_INDEX);
+	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4));
+	EXPECT_STREQ("3.4.5.6:999", AsString(h225transportipv4));
+	EXPECT_STREQ("3.4.5.6:999", AsString(h225transportipv4, true));
+	EXPECT_STREQ("3.4.5.6",     AsString(h225transportipv4, false));
+	EXPECT_TRUE(AsString(h225transport_withipv6).Find("20 01 0d b8 85 a3 08 d3") != P_MAX_INDEX);
+	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:1111", AsDotString(h225transport_withipv6));
+	EXPECT_STREQ("[::1]:1111", AsDotString(h225transport_withipv6localhost));
+	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:1111", AsString(h225transportipv6, true));
+	EXPECT_STREQ("2001:db8:85a3:8d3:1319:8a2e:370:7344",     AsString(h225transportipv6, false));
 }
 
-TEST(H323UtilTest, EndpointTypeAsString) {
+TEST_F(H323UtilTest, EndpointTypeAsString) {
 	H225_EndpointType ep_type;
 	EXPECT_STREQ("unknown", AsString(ep_type));
 	ep_type.IncludeOptionalField(H225_EndpointType::e_terminal);
@@ -50,7 +91,7 @@ TEST(H323UtilTest, EndpointTypeAsString) {
 	EXPECT_STREQ("terminal,gateway,mcu,gatekeeper", AsString(ep_type));
 }
 
-TEST(H323UtilTest, AliasAsString) {
+TEST_F(H323UtilTest, AliasAsString) {
 	H225_AliasAddress alias;
 	EXPECT_STREQ("invalid:UnknownType", AsString(alias, true));
 	EXPECT_STREQ("invalid", AsString(alias, false));
@@ -64,7 +105,7 @@ TEST(H323UtilTest, AliasAsString) {
 	EXPECT_STREQ(AsString(alias, false), StripAliasType(AsString(alias, true)));
 }
 
-TEST(H323UtilTest, ArrayOfAliasAsString) {
+TEST_F(H323UtilTest, ArrayOfAliasAsString) {
 	H225_ArrayOf_AliasAddress aliases;
 	EXPECT_STREQ("", AsString(aliases, true));
 	EXPECT_STREQ("", AsString(aliases, false));
@@ -78,7 +119,7 @@ TEST(H323UtilTest, ArrayOfAliasAsString) {
 	EXPECT_STREQ("jan=1234", AsString(aliases, false));
 }
 
-TEST(H323UtilTest, OctetStringAsString) {
+TEST_F(H323UtilTest, OctetStringAsString) {
 	PASN_OctetString bytes;
 	bytes.SetSize(4);
 	bytes[0] = 1;
@@ -88,7 +129,7 @@ TEST(H323UtilTest, OctetStringAsString) {
 	EXPECT_STREQ("01 02 03 0a", AsString(bytes));
 }
 
-TEST(H323UtilTest, ByteArrayAsString) {
+TEST_F(H323UtilTest, ByteArrayAsString) {
 	PBYTEArray bytes;
 	bytes.SetSize(4);
 	bytes[0] = 'a';
@@ -98,28 +139,38 @@ TEST(H323UtilTest, ByteArrayAsString) {
 	EXPECT_STREQ("abc", AsString(bytes));
 }
 
-TEST(H323UtilTest, IsIPAddress) {
+TEST_F(H323UtilTest, IsIPAddress) {
 	EXPECT_TRUE(IsIPAddress("1.2.3.4"));
 	EXPECT_TRUE(IsIPAddress("1.2.3.4:999"));
 	EXPECT_TRUE(IsIPAddress("255.255.255.255"));
+	EXPECT_TRUE(IsIPAddress("2001:0db8:85a3:08d3:1319:8a2e:0370:7344"));
+	EXPECT_TRUE(IsIPAddress("::1"));
 	EXPECT_FALSE(IsIPAddress("a.b.c.d"));
 	EXPECT_FALSE(IsIPAddress("1.2.3.4.5"));
 	EXPECT_FALSE(IsIPAddress("1.2.3.4:"));
 }
 
-TEST(H323UtilTest, IsLoopback) {
+TEST_F(H323UtilTest, IsIPv6Address) {
+	EXPECT_TRUE(IsIPv6Address("2001:0db8:85a3:08d3:1319:8a2e:0370:7344"));
+	EXPECT_TRUE(IsIPv6Address("2001:0db8:0000:08d3:0000:8a2e:0070:7344"));
+	EXPECT_TRUE(IsIPv6Address("2001:db8:0:8d3:0:8a2e:70:7344"));
+	EXPECT_TRUE(IsIPv6Address("::1"));
+	EXPECT_FALSE(IsIPv6Address("1.2.3.4"));
+}
+
+TEST_F(H323UtilTest, IsLoopback) {
 	PIPSocket::Address ip;
 	EXPECT_TRUE(IsLoopback(ip));
 }
 
-TEST(H323UtilTest, GetGUIDString) {
+TEST_F(H323UtilTest, GetGUIDString) {
 	H225_GloballyUniqueID id;
 	EXPECT_STREQ("00000000 00000000 00000000 00000000", GetGUIDString(id, true));
 	EXPECT_STREQ("0 0 0 0", GetGUIDString(id, false));
 	EXPECT_EQ(35, GetGUIDString(id, true).GetLength());
 }
 
-TEST(H323UtilTest, StringToCallId) {
+TEST_F(H323UtilTest, StringToCallId) {
 	PString str = "00000000 00000000 00000000 00000000";
 	H225_CallIdentifier callid = StringToCallId(str);
 	EXPECT_STREQ("00000000 00000000 00000000 00000000", GetGUIDString(callid.m_guid, true));
@@ -128,7 +179,7 @@ TEST(H323UtilTest, StringToCallId) {
 	EXPECT_STREQ("00000001 00000020 00000300 00004000", GetGUIDString(callid.m_guid, true));
 }
 
-TEST(H323UtilTest, FindAlias) {
+TEST_F(H323UtilTest, FindAlias) {
 	H225_ArrayOf_AliasAddress aliases;
 	aliases.SetSize(2);
 	H323SetAliasAddress(PString("jan"), aliases[0]);
@@ -138,7 +189,7 @@ TEST(H323UtilTest, FindAlias) {
 	EXPECT_EQ(P_MAX_INDEX, FindAlias(aliases, "9999"));
 }
 
-TEST(H323UtilTest, MatchPrefix) {
+TEST_F(H323UtilTest, MatchPrefix) {
 	EXPECT_EQ(0, MatchPrefix("123456789", "44"));
 	EXPECT_EQ(3, MatchPrefix("123456789", "123"));
 	EXPECT_EQ(-3, MatchPrefix("123456789", "!123"));
@@ -148,7 +199,7 @@ TEST(H323UtilTest, MatchPrefix) {
 	EXPECT_EQ(0, MatchPrefix("123456789", "1%4"));
 }
 
-TEST(H323UtilTest, RewriteString) {
+TEST_F(H323UtilTest, RewriteString) {
 	EXPECT_STREQ("1111497654321", RewriteString("497654321", "49", "111149"));
 	EXPECT_STREQ("111149771777", RewriteString("49771777", "49..1", "111149..1"));
 	EXPECT_STREQ("49123456", RewriteString("777749123456", "%%%%49", "49"));
