@@ -410,7 +410,8 @@ bool IsIPv6Address(const PString & addr)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_NUMERICHOST;
 	bool isValid = (getaddrinfo((const char *)addr, NULL, &hints, &result) == 0);
-	freeaddrinfo(result);
+	if (result)
+		freeaddrinfo(result);
 	return isValid;
 }
 
