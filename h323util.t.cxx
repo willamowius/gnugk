@@ -156,6 +156,8 @@ TEST_F(H323UtilTest, IsIPv6Address) {
 	EXPECT_TRUE(IsIPv6Address("2001:db8:0:8d3:0:8a2e:70:7344"));
 	EXPECT_TRUE(IsIPv6Address("::1"));
 	EXPECT_FALSE(IsIPv6Address("1.2.3.4"));
+	EXPECT_FALSE(IsIPv6Address("abcd"));
+	EXPECT_FALSE(IsIPv6Address(""));
 }
 
 TEST_F(H323UtilTest, IsLoopback) {
